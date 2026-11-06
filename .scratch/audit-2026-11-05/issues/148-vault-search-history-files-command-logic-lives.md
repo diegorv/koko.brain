@@ -4,7 +4,7 @@
 
 **Audit check:** not re-audited (deferred architecture work); carried over as it was.
 
-**Owner decision needed:** Has a second consumer (a CLI, an MCP server or another app) appeared that justifies starting this?
+**Owner decision (2026-11-06):** no second consumer yet; keep it deferred.
 
 **What to build:** Move the non-command code into domain modules.
 
@@ -40,3 +40,4 @@ After the move:
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/architecture-stability/issues/28-move-command-logic-into-domain-modules.md` by audit 2026-11-05 without a re-check (deferred architecture work).
+- 2026-11-06: owner answered in the 2026-11-06 survey: no second consumer yet; keep it deferred. Status stays needs-info.

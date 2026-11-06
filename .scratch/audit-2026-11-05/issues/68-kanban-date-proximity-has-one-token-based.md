@@ -6,7 +6,7 @@
 
 **Stale in the text below:** Line numbers all match HEAD. Issue text 'Owner decision, recommended' is still an open decision (checked cards show no proximity tone); per the memory note on owner-decision Issues, confirm with the owner before relay launch. Existing tests are in src/tests/lib/plugins/kanban/KanbanView.test.ts and kanban.logic.test.ts (getDateProximity tests at kanban.logic.test.ts:1136-1165), as the Issue says.
 
-**Owner decision needed:** Should checked (done) kanban cards show no date proximity tone (recommended), or keep the tone they have today?
+**Owner decision (2026-11-06):** done (checked) cards drop the date proximity tone. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
 **What to build:** Date proximity is styled four times with raw palette shades: the card border map (`src/lib/plugins/kanban/KanbanCard.svelte:118-125`, red-500, yellow-500, orange-400, blue-400), the picker badge map (`KanbanDatePicker.svelte:20-27`, red-400, yellow-400 and others), and inline ternaries in `KanbanListView.svelte:48` and `KanbanTableView.svelte:69` (red-500 and yellow-500, with tomorrow and upcoming muted). yellow-400 is 1.36:1 on Lavender. Completed cards keep the overdue border and badge while struck through (`KanbanCard.svelte:114,167`). Move it into `kanban.logic.ts` next to `getDateProximity` (about line 690):
 - `PROXIMITY_CLASSES: Record<DateProximity, { badge: string; border: string }>`: overdue `bg-destructive/15 text-destructive` and `border-l-4 border-l-destructive`; today `bg-warning/15 text-warning` and `border-l-4 border-l-warning`; tomorrow `bg-type-orange/15 text-type-orange` and `border-l-4 border-l-type-orange`; upcoming `bg-type-blue/15 text-type-blue` and `border-l-4 border-l-type-blue`; future and none `bg-muted text-muted-foreground` and no border.
@@ -15,7 +15,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -34,3 +34,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/47-kanban-proximity-token-map.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

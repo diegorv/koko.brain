@@ -101,7 +101,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 64 | [Word count and graph stats read correctly for zero and one](issues/64-word-count-graph-stats-read-correctly-zero.md) | none | todo | | |
 | 65 | [Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover](issues/65-hovering-open-note-keeps-fill-kanban-lane.md) | none | todo | | |
 | 66 | [The collection table reads as a table](issues/66-collection-table-reads-table.md) | none | todo | | |
-| 67 | [The first semantic or hybrid search after a one-file index update does not reload the whole search cache](issues/67-first-semantic-hybrid-search-after-one-file.md) | none | todo | | |
+| 67 | [The first semantic or hybrid search after a one-file index update does not reload the whole search cache](issues/67-first-semantic-hybrid-search-after-one-file.md) | none | wontfix | | |
 | 68 | [Kanban date proximity has one token-based map, and done cards drop it](issues/68-kanban-date-proximity-has-one-token-based.md) | none | todo | | |
 | 69 | [The New event dialog shows "Enter a title." only after the title was touched](issues/69-new-event-dialog-shows-enter-title-only.md) | none | todo | | |
 | 70 | [The command palette shows dense one-line rows with key hints](issues/70-command-palette-shows-dense-one-line-rows.md) | none | todo | | |
@@ -163,11 +163,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 126 | [A failure after the disk op still reports a completed rename as done and re-keys the index](issues/126-failure-after-disk-op-still-reports-completed.md) | none | todo | | |
 | 127 | [A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes](issues/127-note-unquoted-wikilink-value-up-home-accepts.md) | none | todo | | |
 | 128 | [A failed Auto Move tells the user which note did not move and why](issues/128-failed-auto-move-tells-user-which-note.md) | none | todo | | |
-| 129 | [A vault picked outside the two allowed folders is refused or warned about, never half-working](issues/129-vault-picked-outside-two-allowed-folders-refused.md) | none | todo | | |
+| 129 | [A vault picked outside the two allowed folders is refused with a message naming them, never half-working](issues/129-vault-picked-outside-two-allowed-folders-refused.md) | none | todo | | |
 | 130 | [The quick-capture dedupe anchor advances only after the frontend accepts the capture](issues/130-quick-capture-dedupe-anchor-advances-only-after.md) | none | todo | | |
 | 131 | [A note whose live-preview widget throws on every render stays editable and in sync with its tab](issues/131-note-whose-live-preview-widget-throws-every.md) | none | todo | | |
 | 132 | [Collection link() cells never navigate the app webview and drop unsafe schemes](issues/132-collection-link-cells-never-navigate-app-webview.md) | none | todo | | |
-| 133 | [QueryJS blocks written by a deep link or capture do not auto-run until the user trusts them](issues/133-queryjs-blocks-written-deep-link-capture-do.md) | none | todo | | |
+| 133 | [QueryJS blocks written by a deep link or capture do not auto-run until the user trusts them](issues/133-queryjs-blocks-written-deep-link-capture-do.md) | none | wontfix | | |
 | 134 | [read_files_batch only reads inside the vault that is actually open](issues/134-read-files-batch-only-reads-inside-vault.md) | none | todo | | |
 | 135 | [Note-writing commands refuse paths outside the open vault](issues/135-note-writing-commands-refuse-paths-outside-open.md) | 134 | todo | | |
 | 136 | [Vault-root commands (scan, index builds, watcher, model init) only accept the open vault](issues/136-vault-root-commands-scan-index-builds-watcher.md) | 135 | todo | | |
@@ -177,7 +177,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 140 | [Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed](issues/140-live-preview-render-gaps-are-decided-one.md) | none | todo | | |
 | 141 | [The local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/141-local-graph-center-follows-every-way-graph.md) | none | todo | | |
 | 142 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/142-tag-may-start-digit-may-carry-emoji.md) | none | todo | | |
-| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | none | todo | | |
+| 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | 142 | todo | | |
 | 144 | [The tab strip shows overflow and hides the .md extension](issues/144-tab-strip-shows-overflow-hides-md-extension.md) | none | todo | | |
 | 145 | [EmptyState, InlineAlert and Badge primitives exist](issues/145-emptystate-inlinealert-badge-primitives-exist.md) | none | todo | | |
 | 146 | [Sidebar panels and settings use the empty and error primitives](issues/146-sidebar-panels-settings-use-empty-error-primitives.md) | 145 | todo | | |
@@ -194,3 +194,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 00:31 — ledger created (151 Issues)
 - 2026-11-06 00:39 — 45 set to wontfix by hand: the round-2 second opinion found its error path unreachable in daily use (see the Issue); the CLI has no transition from todo to wontfix
 - 2026-11-06 — 34, 35, 55 and 122 set to wontfix by hand: the owner kept the tasks-view Issues 02, 04, 06 and 20 that cover them (tasks-view PRD L4 (a))
+- 2026-11-06 05:47 — 67 and 133 set to wontfix by hand from the owner's 2026-11-06 survey: 67 keeps option C (the one cache reload is accepted), 133 uses the existing autoRunQueries manual setting; the CLI has no transition from todo to wontfix
+- 2026-11-06 05:48 — ledger updated (blocked by of 143)
+- 2026-11-06 05:53 — ledger updated (title of 129)

@@ -6,7 +6,7 @@
 
 **Stale in the text below:** Valid design work that depends on an owner decision; not a defect. Blocked by 29, which is not done. Drawer anatomy around it changed (a6b28484d, c1c126972), so the insertion point is now just before the root div inside {#if settingsPanelStore.isOpen}.
 
-**Owner decision needed:** Make the Settings drawer modal (scrim, outside-click close, Tab trap), or keep the app behind it interactive and drop this ticket?
+**Owner decision (2026-11-06):** Settings becomes modal: a scrim closes it on an outside click, and Tab stays inside. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
 **What to build:** ASSUMES THE OWNER DECISION "make the Settings drawer modal" (recommended yes). While Settings is open, the app behind it is covered by a scrim, so it reads as a settings surface and not a third sidebar; clicking the scrim closes Settings; Tab and Shift+Tab cycle inside the drawer; and the dialog says `aria-modal="true"`. On the Appearance section the scrim is transparent, so the live theme preview behind it shows true colours, but it still catches the click and closes.
 
@@ -17,7 +17,7 @@ In `src/lib/app/SettingsPanel.svelte`:
 
 **Blocked by:** 71
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/settings.spec.ts e2e/specs/event-calendar.spec.ts e2e/specs/note-action-bar.spec.ts`.
 
@@ -37,3 +37,4 @@ In `src/lib/app/SettingsPanel.svelte`:
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/30-settings-drawer-modal-scrim.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

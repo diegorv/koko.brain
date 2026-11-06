@@ -27,4 +27,3 @@
 
 ## Comments
 - 2026-11-06: owner decision (tasks-view PRD L4 (a)): kept `.scratch/tasks-view/issues/` Issue 04, which covers this one. Closed without work.
-- 2026-11-06: closed as wontfix from the 2026-11-06 survey: covered by .scratch/tasks-view/issues/04-mounted-list-and-rule-sentence.md (the list stays mounted during a refetch).

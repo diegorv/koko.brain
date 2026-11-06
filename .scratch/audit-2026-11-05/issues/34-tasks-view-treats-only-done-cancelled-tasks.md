@@ -28,4 +28,3 @@
 
 ## Comments
 - 2026-11-06: owner decision (tasks-view PRD L4 (a)): kept `.scratch/tasks-view/issues/` Issue 02 and 06, which covers this one. Closed without work.
-- 2026-11-06: closed as wontfix from the 2026-11-06 survey: covered by .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md and 06-open-closed-rule.md, which keep this work inside the Tasks view redesign.

@@ -6,9 +6,9 @@
 
 **Stale in the text below:** Line numbers drifted. The queryjs Run button stop is at :208 (not :159), Retry at :318 (not :250), ignoreEvent at :168-170 (not :138-140), and the kb-ui pager handlers at :526-538. The Issue is still postponed by the owner (needs-info). It stays valid as written.
 
-**Owner decision needed:** Postponed on 2026-11-02: pick it up now, or keep it postponed?
+**Owner decision (2026-11-06):** schedule it now. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Blocked by:** none
 
@@ -35,3 +35,4 @@ Triage note (2026-11-02): this Issue first bundled six items. The three with a c
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/live-preview-audit/issues/04-queryjs-pager-and-cosmetic-render-gaps.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

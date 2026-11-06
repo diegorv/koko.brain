@@ -28,4 +28,3 @@
 
 ## Comments
 - 2026-11-06: owner decision (tasks-view PRD L4 (a)): kept `.scratch/tasks-view/issues/` Issue 20, which covers this one. Closed without work.
-- 2026-11-06: closed as wontfix from the 2026-11-06 survey: covered by .scratch/tasks-view/issues/20-todoist-sync-errors-visible.md.

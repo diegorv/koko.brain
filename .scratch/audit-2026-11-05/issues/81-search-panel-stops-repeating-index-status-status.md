@@ -6,7 +6,7 @@
 
 **Stale in the text below:** Line refs moved: the panel block is now SearchPanel.svelte:98-111 (Issue says about 90-103), SearchStatus mount is AppShell.svelte:305 (Issue says about 299). The ticket still assumes the owner decision that the status bar owns the index status.
 
-**Owner decision needed:** Which surface keeps the index count: the status bar (recommended; remove the Search panel's row), or the panel (hide SearchStatus while the Search lens is open)?
+**Owner decision (2026-11-06):** the status bar keeps the index count; remove the Search panel row. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
 **What to build:** (Assumes the owner decision "the status bar owns the index status"; see Notes.) While the Search lens is open the index state is shown twice: the panel's "Indexed: N notes · M chunks" row with its own progress spinner (`src/lib/features/search/SearchPanel.svelte` about lines 90-103) and the always-mounted status bar's `SearchStatus` ("N notes indexed", "Indexing...", semantic progress; `src/lib/features/search/SearchStatus.svelte`, mounted at `src/lib/app/AppShell.svelte` about line 299). Remove the panel's "Index stats + progress" block and the `Loader2` import it leaves unused.
 
@@ -14,7 +14,7 @@ Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -33,3 +33,4 @@ Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

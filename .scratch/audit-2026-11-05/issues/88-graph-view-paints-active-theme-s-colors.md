@@ -6,7 +6,7 @@
 
 **Stale in the text below:** Constants at lines 45-50 (Issue says 46-51), literals at 243/251 (Issue says 244/252). Blocker 39 is done, but the store only exposes isDark, so the revision getter still has to be added.
 
-**Owner decision needed:** Default theme graph background: move from #1a1a1e to the editor background #2a2e3d (recommended), or keep #1a1a1e?
+**Owner decision (2026-11-06):** the graph paints with the active theme's colors, and the Default theme's graph background becomes the editor background (#2a2e3d). Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
 **What to build:** `src/lib/plugins/graph-view/GraphView.svelte` paints a fixed dark palette: constants at lines 46-51 (`BG_COLOR '#1a1a1e'`, nodes `#8b8b8b`, active `#c084fc`, labels `#a1a1aa`, two edge rgba values), literals at 244 and 252, and the background inline at 429. On Lavender Haze the graph is a near-black slab (`references/ux-polish-2026-11-04/screens/lavender/12-cmd-toggle-graph-view.png`). Changes:
 - `graph-view.logic.ts`: a pure `graphPalette(tokens)` taking `{ editorBg, foreground, mutedForeground, primary }` strings and returning `{ background, node, nodeActive, nodeDimmed, edge, edgeHighlight, label, labelDimmed }`, using `mixColors` from `utils/color.ts`: background `editorBg`; node `mutedForeground`; nodeActive `primary`; nodeDimmed `mix(mutedForeground, editorBg, 0.8)`; edge `mix(mutedForeground, editorBg, 0.4)`; edgeHighlight `mix(primary, editorBg, 0.5)`; label `mix(foreground, mutedForeground, 0.5)`; labelDimmed `mix(label, editorBg, 0.7)`. If any token is empty or unparseable it returns the current constants as an exported fallback palette. JSDoc on both exports.
@@ -15,7 +15,7 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh` for the extended spec.
 
@@ -35,3 +35,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/45-graph-view-theme-palette.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

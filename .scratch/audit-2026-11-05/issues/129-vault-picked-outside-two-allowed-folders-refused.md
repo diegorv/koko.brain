@@ -1,4 +1,4 @@
-# 129: A vault picked outside the two allowed folders is refused or warned about, never half-working
+# 129: A vault picked outside the two allowed folders is refused with a message naming them, never half-working
 
 **Migrated from:** `.scratch/file-io-audit/issues/37-vault-outside-allowed-folders.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The owner's vault is inside an allowed root, so this needs an unusual vault location. The fix is a UX choice.
 
@@ -6,9 +6,9 @@
 
 **Stale in the text below:** Line refs drifted: open() is vault.service.ts:31 (Issue says :26), scan read_dir is vault.rs:139 (Issue says :96), ensure_safe_write_path is vault.rs:958-970 (Issue says :862-874), and the link-updater failure log is link-updater.service.ts:75-79 (Issue says :55-59). The dialog plugin's non-recursive grant was not re-verified (it is outside the repo). The likely fix is UX: refuse or warn when the picked folder is outside the allowed scope.
 
-**Owner decision needed:** For a vault picked outside ~/Documents/kokobrain-vaults and ~/kokobrain-vaults: refuse to open it with a message naming the allowed folders, or open it with a warning that some features fail?
+**Owner decision (2026-11-06):** refuse to open a vault outside ~/Documents/kokobrain-vaults and ~/kokobrain-vaults, with a message naming both folders.
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Blocked by:** none
 Priority: P2
@@ -33,12 +33,12 @@ Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw report
 Written by audit 2026-11-05 from the text above and its audit header; the original Issue had none.
 
 - [ ] Failing test first, in src/tests/lib/core/vault/vault.logic.test.ts: a new pure check (name it in the test, for example isVaultPathAllowed) returns true for '<home>/kokobrain-vaults/work', '<documents>/kokobrain-vaults' and a nested folder under both, and false for '<home>/Projects/notes', '<home>/kokobrain-vaults-other' and '<home>/Documents/notes' (prefix lookalikes must not pass). It fails today because no check exists.
-- [ ] Failing test first, in src/tests/lib/core/vault/vault.service.test.ts (describe 'openVaultDialog'), with the dialog open() mock resolving to a folder outside both allowed roots and the home and documents dirs mocked. Refuse branch: openVaultDialog resolves false, vaultStore.path is unchanged and a toast names both allowed folders. Warn branch: vaultStore.path is the picked folder and a toast warns that some features will fail, naming both folders. A folder inside an allowed root opens as today. It fails today because openVaultDialog (vault.service.ts:30-34) passes any folder to switchVault.
-- [ ] Cancelling the dialog and a dialog-plugin failure behave as in the existing openVaultDialog tests. The existing cases that open '/Users/me/my-vault', '/vault' and '/new' pick folders outside the allowed roots. Under the refuse branch they move their paths under a mocked allowed root, keeping their assertions. Whether openRecentVault applies the same check is stated in the Issue Notes, and tested if it does.
+- [ ] Failing test first, in src/tests/lib/core/vault/vault.service.test.ts (describe 'openVaultDialog'), with the dialog open() mock resolving to a folder outside both allowed roots and the home and documents dirs mocked. openVaultDialog resolves false, vaultStore.path is unchanged and a toast names both allowed folders. A folder inside an allowed root opens as today. It fails today because openVaultDialog (vault.service.ts:30-34) passes any folder to switchVault.
+- [ ] Cancelling the dialog and a dialog-plugin failure behave as in the existing openVaultDialog tests. The existing cases that open '/Users/me/my-vault', '/vault' and '/new' pick folders outside the allowed roots. They move their paths under a mocked allowed root, keeping their assertions. Whether openRecentVault applies the same check is stated in the Issue Notes, and tested if it does.
 - [ ] The Rust side (scan_vault, ensure_safe_write_path) and the capability scope in src-tauri/capabilities/default.json are not changed.
 - [ ] Frontend gate: pnpm check + pnpm vitest run pass.
-- [ ] Owner decision recorded in the Issue Notes: for a vault picked outside ~/Documents/kokobrain-vaults and ~/kokobrain-vaults, refuse to open it with a message naming the allowed folders, or open it with a warning that some features fail.
 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/37-vault-outside-allowed-folders.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

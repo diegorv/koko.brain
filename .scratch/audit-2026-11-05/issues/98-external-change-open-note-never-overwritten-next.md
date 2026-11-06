@@ -6,9 +6,9 @@
 
 **Stale in the text below:** Line refs moved: saveFileByPath write is now writeTab editor.service.ts:194 (saveFileByPath :171-179 is now a per-path queue); dirty skip :428 (was :380); reload equality check :446 (was :398); frontmatter tab branch :116-141 (was :112-129).
 
-**Owner decision needed:** When a dirty tab's note changed on disk since it was loaded: (a) keep the external version as a File History snapshot or conflict copy, then save and toast, (b) reload from disk and drop the in-app typing, or (c) keep 'editor always wins', which is pinned by editor.service.test.ts 'skips dirty tabs, editor always wins'.
+**Owner decision (2026-11-06):** (a): before writing, keep the external version as a File History snapshot or conflict copy, then save the typing and show a toast. The test 'skips dirty tabs, editor always wins' changes with it.
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Blocked by:** none
 Priority: P1
@@ -36,7 +36,7 @@ Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .
 × external-change-1 / save-pipeline-8 ... AssertionError: expected false to be true at external-change-overwrite.test.ts:75 expect(externalVersionSurvives()).toBe(true); × calendar-1 ... AssertionError: expected false to be true at :91
 ```
 
-**Fix sketch.** Track a disk baseline (hash of savedContent or mtime). Before any tab write, stat or read the file. If it differs from savedContent, keep the external bytes (conflict copy or File History snapshot) before writing, and toast. Changing the pinned 'editor always wins' test needs owner approval.
+**Fix sketch.** Track a disk baseline (hash of savedContent or mtime). Before any tab write, stat or read the file. If it differs from savedContent, keep the external bytes (conflict copy or File History snapshot) before writing, and toast. The pinned 'editor always wins' test changes to the new contract (owner decision 2026-11-06).
 
 ## Acceptance criteria
 
@@ -47,10 +47,10 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 - [ ] When a conflict is detected the user sees a toast that names the note and says the external version was kept.
 - [ ] The calendar path (frontmatter-write.service.ts tab branch, which saves through saveFileByPath) gets the same protection, tested in src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts: a calendar write to an open tab whose file changed on disk keeps the external version before writing.
 - [ ] The disk baseline is refreshed after each successful write and after each reload, so a normal second autosave of the same tab does not report a conflict.
-- [ ] The existing test 'skips dirty tabs, editor always wins' (editor.service.test.ts, reloadExternallyChangedTabs describe) is changed only with the owner's approval, and the change is recorded in the commit message.
+- [ ] The existing test 'skips dirty tabs, editor always wins' (editor.service.test.ts, reloadExternallyChangedTabs describe) changes to the new contract, approved by the owner on 2026-11-06, and the commit message says so.
 - [ ] Gate, frontend only: pnpm check + pnpm vitest run.
-- [ ] Owner decision recorded in the Issue Notes: what a dirty tab does when its file changed on disk since it was loaded, one of (a) keep the external version as a File History snapshot or conflict copy, then save and toast, (b) reload from disk and drop the in-app typing, or (c) keep 'editor always wins'. The criteria above assume (a); (b) or (c) replaces criteria 1 to 4.
 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/08-external-change-overwritten.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

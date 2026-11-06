@@ -6,13 +6,13 @@
 
 **Stale in the text below:** KanbanCard.svelte render lines are 215-217 in the text but the DatePicker usage is at :216 (accurate within a line); KanbanDatePicker trigger is at :88-96, close to the cited 88-99. Status is still needs-triage: the Issue itself says it was drafted without a deep dive, and it needs a decision on keyboard reachability (a hidden date trigger must stay focusable, so use focus-within or opacity rather than display:none, consistent with Issue 67 'hover-only controls also appear on keyboard focus').
 
-**Owner decision needed:** Hide the empty date row until hover: confirm it stays reachable by keyboard through focus-within or opacity (not display:none), or drop the ticket.
+**Owner decision (2026-11-06):** hide the empty date row until hover or focus, with focus-within or opacity (not display:none), so the date button stays reachable with Tab. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
 **What to build:** Every kanban card without a date shows a 50%-opacity calendar icon row (`KanbanDatePicker.svelte`, about lines 88-99, rendered by `KanbanCard.svelte` about lines 215-217), and the card is `rounded-lg` inside a `rounded-lg` lane. Reveal the date affordance only on card hover or focus-within, and make the card `rounded-md`.
 
 **Blocked by:** 68
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/63-kanban-card-quiet.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

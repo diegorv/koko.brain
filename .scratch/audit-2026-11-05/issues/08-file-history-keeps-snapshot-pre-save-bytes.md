@@ -4,11 +4,11 @@
 
 **Audit check at `5f8003d67`:** still_present (content, medium). Snapshots store only post-save content: registerFileHistoryHook src/lib/features/file-history/file-history.service.ts:190-196 forwards the after-save content to saveSnapshotForFile :111-124, which calls save_snapshot with it (src-tauri/src/commands/history.rs:61-67). No pre-write snapshot exists in writeTab (src/lib/core/editor/editor.service.ts:187-205). Deep-link overwrite calls saveOpenNoteBeforeWrite (src/lib/features/deep-link/deep-link.service.ts:247-250, :265-267), which writes only a dirty tab, then writeTextFile :310 and notifyAfterSave(new content) :312; the comment at :264 claims the replaced text gets a snapshot, which is true only for a dirty tab. Retention src-tauri/src/db/history_repo.rs:82-89 deletes every row older than the cutoff, the file's latest included. For an owner moving an existing vault in, every note starts with an empty history, so a select-all overwrite that autosaves leaves only in-session undo.
 
-**Stale in the text below:** Line refs drifted: deep-link pre-write save at deep-link.service.ts:247-250 and :265-267 (Issue :246-250, :266-269), overwrite write at :310 and snapshot at :312 (Issue :314/:317), prepend/append at :270-303, closed-note frontmatter rewrite at frontmatter-write.service.ts:153 (Issue :149/:157), daily append at deep-link-actions.ts:71 (Issue :55-66); vault.rs write_atomic for task toggle is at :779 (Issue :683). The deep-link.service.ts:264 comment now asserts the overwrite snapshot behavior, which is misleading for a clean or closed note. Triage criteria for the original sections are still missing.
+**Stale in the text below:** Line refs drifted: deep-link pre-write save at deep-link.service.ts:247-250 and :265-267 (Issue :246-250, :266-269), overwrite write at :310 and snapshot at :312 (Issue :314/:317), prepend/append at :270-303, closed-note frontmatter rewrite at frontmatter-write.service.ts:153 (Issue :149/:157), daily append at deep-link-actions.ts:71 (Issue :55-66); vault.rs write_atomic for task toggle is at :779 (Issue :683). The deep-link.service.ts:264 comment now asserts the overwrite snapshot behavior, which is misleading for a clean or closed note. Criteria for the original sections were added on 2026-11-06.
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Owner decision needed:** (1) Retention: help/documentation/15-file-history.md:48-57 documents that old snapshots are all deleted, and history_repo.rs:194-205 tests it. Keep that, or keep each note's newest snapshot past retention? (2) Before this runs, the pre-save-baseline section needs its own criteria, with the repro .scratch/file-io-audit/repro/o05-settings-history/file-history-baseline.test.ts as its red test (see the second opinion below).
+**Owner decision (2026-11-06):** change the documented retention: retention never deletes a note's newest snapshot. Update help/documentation/15-file-history.md:48-57 and the Rust retention test with it.
 
 **Blocked by:** none
 Priority: P1
@@ -46,11 +46,16 @@ AssertionError: expected [ 'oops, clipboard contents\n' ] to include '# Old note
 
 **Fix sketch.** Before the write in the overwrite branch, when the target exists, read its disk bytes and snapshot them with `saveSnapshotForFile` (save_snapshot already skips a duplicate of the latest row). Do the same for the other app-initiated writers that bypass saveFileByPath and snapshot only the new bytes: the deep-link prepend and append branches (deep-link.service.ts:272-307), the daily append/prepend (src/lib/app/deep-link-actions.ts:55-66) and the closed-note frontmatter rewrite (src/lib/core/frontmatter/frontmatter-write.service.ts:149, snapshot at :157). Overwrite is the destructive case; prepend and append keep the old text inside the new bytes.
 
-These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
+These criteria cover only the editor-data-safety amendment (2026-11-02). The criteria for the original sections were added on 2026-11-06, below.
 
 - [ ] A closed, externally authored note with an empty File History receives `kokobrain://new?name=X&overwrite=true&content=x`; afterwards File History holds the original text as well as 'x'
 - [ ] The same holds when the note is open in a clean tab
 - [ ] The deep-link prepend/append, the daily append/prepend and the closed-note frontmatter rewrite snapshot the pre-write bytes of a note with an empty history
+
+- [ ] Failing test first: move .scratch/file-io-audit/repro/o05-settings-history/file-history-baseline.test.ts to src/tests/lib/features/file-history/file-history-baseline.test.ts (fix its fixture import). Only Tauri APIs are mocked; it asserts that the bytes a save overwrites stay recoverable through File History. It fails today.
+- [ ] A note whose File History is empty gets a snapshot of its pre-save disk bytes before its first in-app save overwrites them, so the version before the first edit can be restored.
+- [ ] Retention never deletes a note's newest snapshot (owner decision above): a Rust test next to the current retention test in src-tauri/src/db/history_repo.rs keeps one snapshot of a note whose snapshots are all past retention, and help/documentation/15-file-history.md:48-57 says so. The existing test at history_repo.rs:194-205, which asserts that every old snapshot is deleted, changes to the new contract, and the commit message says so.
+- [ ] Gate, both: cargo test --manifest-path src-tauri/Cargo.toml + pnpm check + pnpm vitest run.
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
@@ -62,3 +67,4 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/13-file-history-no-baseline.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

@@ -11,44 +11,18 @@ The owner is about to rely on Kokobrain for real. This audit read the whole app 
 - Owner decisions honored: one vault per session (no vault switching mid-session); a case-only rename being refused is wontfix; overlays keep their motion under reduced motion; a rename need not recompute an open tab's file type.
 - The raw results (per-domain findings, refutations, verdicts, the plan and its review) are in `raw/`.
 
-## Needs the owner
+## Owner decisions (2026-11-06)
 
-These Issues are `needs-info`: a decision comes first. The most urgent ones are near the top of the plan.
+The owner answered every open decision in a survey on 2026-11-06. Each Issue records its answer as **Owner decision (2026-11-06)**; the answers are also in `raw/owner-answers.json`.
 
-- [04](issues/04-closing-main-window-never-leaves-windowless-app.md) Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working. **Decide:** Red close button: (a) quit the app after the exit flush (invoke confirm_exit, frontend only; the Quick Capture shortcuts stop with the app), or (b) hide the main window, show it again on a Dock click through RunEvent::Reopen, and keep captures and deep links writing (Rust plus the allow-hide capability). Either way, the tests at tauri-listeners.service.test.ts:224-311 that pin destroy() change. Decide Issue 44 (Dock Quit, logout and shutdown skip the exit flush) together with this one: with (b), Dock right-click Quit becomes the natural way to quit.
-- [08](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) File History keeps a snapshot of the pre-save bytes. **Decide:** keep the documented retention (old snapshots all deleted) or keep each note's newest snapshot; and the pre-save-baseline section needs its own criteria before it runs.
-- [11](issues/11-rendered-table-cells-show-links-highlight-underscore.md) Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content. **Decide:** Table cells: (a) render links, ==highlight==, underscore emphasis, <br> and escaped pipes. This reverses the inline-markdown.test.ts:60 case that pins ==highlight== as unsupported. (b) Render only links, <br> and escaped pipes, and keep ==highlight== unsupported.
-- [13](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails. **Decide:** Closing a dirty tab: (a) save it and close, and prompt only when the save fails. This changes help/documentation/03-editor.md:129 and the test at editor.service.test.ts:658. (b) Keep the Save/Discard prompt, but cancel the pending debounced save while it is open, so Discard really discards.
-- [34](issues/34-tasks-view-treats-only-done-cancelled-tasks.md) The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed. **Decide:** Overlaps `.scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md`, `.scratch/tasks-view/issues/06-open-closed-rule.md`, which another session was writing while this audit ran (untracked at the time). Keep this Issue or that one, and close the other. Toggling an in-progress [/] task: (a) write [x] (done), which reverses the pinned test toggle_task_in_content_in_progress_to_unchecked at parsing.rs:3272-3276, or (b) keep writing [ ] and change only the view's filter, icon and stats to read status.
-- [35](issues/35-tasks-view-keeps-list-scroll-position-screen.md) The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update. **Decide:** Overlaps `.scratch/tasks-view/issues/04-mounted-list-and-rule-sentence.md`, which another session was writing while this audit ran (untracked at the time). Keep this Issue or that one, and close the other.
-- [55](issues/55-todoist-sync-tells-user-when-could-not.md) Todoist sync tells the user when it could not reach Todoist or the token was rejected. **Decide:** Overlaps `.scratch/tasks-view/issues/20-todoist-sync-errors-visible.md`, which another session was writing while this audit ran (untracked at the time). Keep this Issue or that one, and close the other.
-- [67](issues/67-first-semantic-hybrid-search-after-one-file.md) The first semantic or hybrid search after a one-file index update does not reload the whole search cache. **Decide:** Search cache after an index update: option A, B or C as described in the Issue (for example keep the cache and patch the changed file's rows, or reload it in the background), recorded in Notes with the Issue 24 timing numbers.
-- [68](issues/68-kanban-date-proximity-has-one-token-based.md) Kanban date proximity has one token-based map, and done cards drop it. **Decide:** Should checked (done) kanban cards show no date proximity tone (recommended), or keep the tone they have today?
-- [70](issues/70-command-palette-shows-dense-one-line-rows.md) The command palette shows dense one-line rows with key hints. **Decide:** Apply the denser rows to the shared CommandDialog, which also changes the Quick Switcher, Template picker and One-on-one picker, or only to the command palette?
-- [81](issues/81-search-panel-stops-repeating-index-status-status.md) The Search panel stops repeating the index status the status bar already shows. **Decide:** Which surface keeps the index count: the status bar (recommended; remove the Search panel's row), or the panel (hide SearchStatus while the Search lens is open)?
-- [83](issues/83-kanban-cards-drop-empty-date-row-until.md) Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable. **Decide:** Hide the empty date row until hover: confirm it stays reachable by keyboard through focus-within or opacity (not display:none), or drop the ticket.
-- [88](issues/88-graph-view-paints-active-theme-s-colors.md) The graph view paints with the active theme's colors. **Decide:** Default theme graph background: move from #1a1a1e to the editor background #2a2e3d (recommended), or keep #1a1a1e?
-- [89](issues/89-settings-modal-scrim-closes-outside-click-tab.md) Settings is modal: a scrim closes it on outside click and Tab stays inside. **Decide:** Make the Settings drawer modal (scrim, outside-click close, Tab trap), or keep the app behind it interactive and drop this ticket?
-- [98](issues/98-external-change-open-note-never-overwritten-next.md) An external change to an open note is never overwritten by the next autosave or calendar write. **Decide:** When a dirty tab's note changed on disk since it was loaded: (a) keep the external version as a File History snapshot or conflict copy, then save and toast, (b) reload from disk and drop the in-app typing, or (c) keep 'editor always wins', which is pinned by editor.service.test.ts 'skips dirty tabs, editor always wins'.
-- [118](issues/118-type-rename-reports-partial-failure-also-updates.md) Type rename reports partial failure and also updates _type values with a trailing comment. **Decide:** When some notes fail during a type rename: keep the rename and list the notes that were not updated (toast plus log), or roll the rename back?
-- [122](issues/122-stale-tasks-list-never-ticks-wrong-task.md) A stale Tasks list never ticks the wrong task line on a clean tab or after an external edit. **Decide:** Overlaps `.scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md`, which another session was writing while this audit ran (untracked at the time). Keep this Issue or that one, and close the other.
-- [127](issues/127-note-unquoted-wikilink-value-up-home-accepts.md) A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes. **Decide:** Fold unquoted wikilink values before the lossy check, so writes rewrite up: [[Home]] as up: "[[Home]]". This reverses the test at properties.logic.test.ts:1542-1544. Or keep refusing such notes with a toast?
-- [129](issues/129-vault-picked-outside-two-allowed-folders-refused.md) A vault picked outside the two allowed folders is refused or warned about, never half-working. **Decide:** For a vault picked outside ~/Documents/kokobrain-vaults and ~/kokobrain-vaults: refuse to open it with a message naming the allowed folders, or open it with a warning that some features fail?
-- [131](issues/131-note-whose-live-preview-widget-throws-every.md) A note whose live-preview widget throws on every render stays editable and in sync with its tab. **Decide:** After the rebuild also throws: rebuild once more with live-preview block decorators off (source mode) so the note stays editable, show a toast that the note could not be rendered, or both?
-- [133](issues/133-queryjs-blocks-written-deep-link-capture-do.md) QueryJS blocks written by a deep link or capture do not auto-run until the user trusts them. **Decide:** QueryJS auto-run: (a) trust per block content hash, persisted per vault, so blocks written by deep links or captures show Run, (b) default autoRunQueries to 'manual', or (c) keep the ADR 0010 trade-off as is.
-- [139](issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text. **Decide:** Postponed on 2026-11-02: pick it up now, or keep it postponed?
-- [140](issues/140-live-preview-render-gaps-are-decided-one.md) Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed. **Decide:** For each item (item 2, math directly under a paragraph or callout line, is the most likely for you): render it, keep it as is, or provide a repro first?
-- [141](issues/141-local-graph-center-follows-every-way-graph.md) The local graph center follows every way the graph tab gets focus, and hints when the center note is gone. **Decide:** You triaged this low on 2026-11-05: keep it deferred, or schedule it?
-- [142](issues/142-tag-may-start-digit-may-carry-emoji.md) A tag may start with a digit and may carry emoji, as in Obsidian. **Decide:** Decide the emoji code-point set, and whether the task-metadata tag regex accepts non-ASCII letters, / and emoji. Also say when to run it (after editor-inline-tags Issue 01).
-- [143](issues/143-typing-editor-suggests-vault-s-existing-tags.md) Typing # in the editor suggests the vault's existing tags. **Decide:** Created as 'not to be run now': schedule it after editor-inline-tags Issue 01, or keep it deferred?
-- [148](issues/148-vault-search-history-files-command-logic-lives.md) Vault, search, history and files command logic lives in domain modules outside commands/. **Decide:** Has a second consumer (a CLI, an MCP server or another app) appeared that justifies starting this?
-- [149](issues/149-cargo-workspace-kokobrain-core-crate-exists.md) A Cargo workspace with a kokobrain-core crate exists. **Decide:** Has a second consumer (a CLI, an MCP server or another app) appeared that justifies starting this?
-- [150](issues/150-core-tests-live-core-crate-no-re.md) Core tests live in the core crate, with no re-export shim. **Decide:** Start only after 149 (the Cargo workspace). Has a second consumer appeared?
-- [151](issues/151-editor-engine-lives-packages-editor.md) The editor engine lives in packages/editor. **Decide:** Has a second consumer of the editor engine appeared that justifies extracting it?
+- Now ready-for-agent: 04, 08, 11, 13, 68, 70, 81, 83, 88, 89, 98, 118, 127, 129, 131, 139, 140, 142, 143.
+- Still needs-info, deferred by the owner: 141 (local graph center) and 148 to 151 (architecture work that waits for a second consumer of the code).
+- Closed: 34, 35, 55 and 122 (covered by the tasks-view Issues 02, 04, 06 and 20), 67 (the one search-cache reload is accepted) and 133 (the existing autoRunQueries manual setting is used; no code).
+- To do by the owner in the app: set Settings > QueryJS auto-run to manual (Issue 133).
 
 ## Order
 
-Implement in number order. An Issue can start when every Issue in its **Blocked by** line is done. relay-lite turns every non-closed status into `todo`, so `needs-info` Issues look available to it: run `/relay-lite:run audit-2026-11-05 NN ...` with explicit numbers, never `--all`, and launch a `needs-info` Issue only after its decision is in its Notes. Numbers 01 to 151 follow the order below; 45 was closed after the order was built (see Closed by the audit).
+Implement in number order. An Issue can start when every Issue in its **Blocked by** line is done. relay-lite turns every non-closed status into `todo`, so `needs-info` Issues look available to it: run `/relay-lite:run audit-2026-11-05 NN ...` with explicit numbers, never `--all`, and launch a `needs-info` Issue only after its decision is in its Notes. Numbers 01 to 151 follow the order below; 34, 35, 45, 55, 67, 122 and 133 were closed after the order was built (see Closed by the audit), so their numbers are missing below.
 
 ### Written content at risk
 
@@ -57,11 +31,11 @@ Bugs that lose, corrupt, overwrite or misplace what the user wrote.
 - [01](issues/01-caret-selection-follow-their-text-when-frontmatter.md) The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note
 - [02](issues/02-keyboard-edits-next-hidden-frontmatter-never-change.md) Keyboard edits next to the hidden frontmatter never change its fences
 - [03](issues/03-quick-capture-writes-page-titles-app-ids.md) Quick Capture writes page titles, app ids and URLs into template frontmatter as valid YAML
-- [04](issues/04-closing-main-window-never-leaves-windowless-app.md) Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working (needs-info)
+- [04](issues/04-closing-main-window-never-leaves-windowless-app.md) Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working
 - [05](issues/05-live-preview-controls-change-only-text-user.md) Live-preview controls change only the text the user asked to change: fence attributes, task markers and tab-indented pastes stay intact (from `file-io-audit`)
 - [06](issues/06-canvas-edit-closed-renamed-inside-debounce-window.md) A canvas edit closed or renamed inside the debounce window reaches its .canvas file (from `audit-2026-11-04`)
 - [07](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) An empty --- --- frontmatter block is matched, and writers never stack a second block (from `file-io-audit`)
-- [08](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot (from `file-io-audit`) (needs-info)
+- [08](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot (from `file-io-audit`)
 - [09](issues/09-kanban-card-lane-title-being-edited-saved.md) A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab
 
 ### Daily use and UI correctness
@@ -69,9 +43,9 @@ Bugs that lose, corrupt, overwrite or misplace what the user wrote.
 A daily flow breaks, or the UI shows wrong or stale data, or content is not displayed.
 
 - [10](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents
-- [11](issues/11-rendered-table-cells-show-links-highlight-underscore.md) Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content (needs-info)
+- [11](issues/11-rendered-table-cells-show-links-highlight-underscore.md) Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content
 - [12](issues/12-backlinks-outgoing-links-always-show-open-note.md) Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version
-- [13](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails (needs-info)
+- [13](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails
 - [14](issues/14-canvas-image-nodes-load-their-image-main.md) Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots
 - [15](issues/15-canvas-file-image-nodes-store-vault-relative.md) Canvas file and image nodes store vault-relative paths and resolve both absolute and vault-relative ones (from `audit-2026-11-04`)
 - [16](issues/16-kanban-drag-drop-puts-card-lane-exactly.md) Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows
@@ -92,8 +66,6 @@ A daily flow breaks, or the UI shows wrong or stale data, or content is not disp
 - [31](issues/31-renaming-moving-note-updates-links-kanban-cards.md) Renaming or moving a note updates [[links]] in kanban cards and file nodes in canvases
 - [32](issues/32-queryjs-block-run-seconds-after-save-shows.md) A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result
 - [33](issues/33-kb-pages-folder-returns-notes-that-folder.md) kb.pages('"folder"') returns the notes in that folder and its subfolders only
-- [34](issues/34-tasks-view-treats-only-done-cancelled-tasks.md) The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed (needs-info)
-- [35](issues/35-tasks-view-keeps-list-scroll-position-screen.md) The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update (needs-info)
 - [36](issues/36-auto-move-evaluates-moves-only-markdown-notes.md) Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are
 - [37](issues/37-leaving-theme-editor-any-way-other-than.md) Leaving the theme editor any way other than Save puts the active theme back on the app
 - [38](issues/38-relationship-picker-navigates-arrow-keys.md) The relationship picker navigates with arrow keys (from `ux-polish`)
@@ -112,7 +84,6 @@ A daily flow breaks, or the UI shows wrong or stale data, or content is not disp
 - [52](issues/52-clearing-canvas-node-s-color-link-node.md) Clearing a canvas node's color or a link node's title is saved to the .canvas file
 - [53](issues/53-file-inlinks-lists-notes-that-link-note.md) file.inlinks lists the notes that link to a note whose name contains a dot
 - [54](issues/54-vault-open-creates-every-missing-placeholder-template.md) Vault open creates every missing placeholder template, including the parent folders periodic-note/ and quick-capture/
-- [55](issues/55-todoist-sync-tells-user-when-could-not.md) Todoist sync tells the user when it could not reach Todoist or the token was rejected (needs-info)
 - [56](issues/56-new-file-from-template-says-name-taken.md) New File from Template says the name is taken instead of silently opening the existing note
 - [57](issues/57-quick-switcher-create-folder-path-projects-idea.md) Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why
 - [58](issues/58-dragging-node-graph-moves-that-node-dragging.md) Dragging a node in the graph moves that node; dragging the background pans
@@ -129,10 +100,9 @@ Visual, copy and fine-tuning.
 - [64](issues/64-word-count-graph-stats-read-correctly-zero.md) Word count and graph stats read correctly for zero and one (from `ux-polish`)
 - [65](issues/65-hovering-open-note-keeps-fill-kanban-lane.md) Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover (from `ux-polish`)
 - [66](issues/66-collection-table-reads-table.md) The collection table reads as a table (from `ux-polish`)
-- [67](issues/67-first-semantic-hybrid-search-after-one-file.md) The first semantic or hybrid search after a one-file index update does not reload the whole search cache (needs-info) (from `ui-responsiveness`)
-- [68](issues/68-kanban-date-proximity-has-one-token-based.md) Kanban date proximity has one token-based map, and done cards drop it (needs-info) (from `ux-polish`)
+- [68](issues/68-kanban-date-proximity-has-one-token-based.md) Kanban date proximity has one token-based map, and done cards drop it (from `ux-polish`)
 - [69](issues/69-new-event-dialog-shows-enter-title-only.md) The New event dialog shows "Enter a title." only after the title was touched (from `ux-polish`)
-- [70](issues/70-command-palette-shows-dense-one-line-rows.md) The command palette shows dense one-line rows with key hints (needs-info) (from `ux-polish`)
+- [70](issues/70-command-palette-shows-dense-one-line-rows.md) The command palette shows dense one-line rows with key hints (from `ux-polish`)
 - [71](issues/71-opening-settings-moves-focus-into-drawer-closing.md) Opening Settings moves focus into the drawer, and closing returns it (from `ux-polish`)
 - [72](issues/72-click-audio-player-wrapper-s-padding-moves.md) A click in the audio player wrapper's padding moves the cursor like a click next to the widget (from `live-preview-click-reveal`)
 - [73](issues/73-every-language-code-block-dropdown-guide-offer.md) Every language the code-block dropdown and the guide offer is syntax-highlighted
@@ -143,15 +113,15 @@ Visual, copy and fine-tuning.
 - [78](issues/78-tasks-help-says-default-view-lists-only.md) The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date
 - [79](issues/79-calendar-day-more-than-three-notes-lets.md) A calendar day with more than three notes lets the user reach every note
 - [80](issues/80-kb-table-kb-ui-table-kb-list.md) A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link
-- [81](issues/81-search-panel-stops-repeating-index-status-status.md) The Search panel stops repeating the index status the status bar already shows (needs-info) (from `ux-polish`)
+- [81](issues/81-search-panel-stops-repeating-index-status-status.md) The Search panel stops repeating the index status the status bar already shows (from `ux-polish`)
 - [82](issues/82-retention-days-debounce-delay-accept-typed-values.md) Retention days and Debounce delay accept typed values and clamp on commit (from `ux-polish`)
-- [83](issues/83-kanban-cards-drop-empty-date-row-until.md) Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable (needs-info) (from `ux-polish`)
+- [83](issues/83-kanban-cards-drop-empty-date-row-until.md) Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable (from `ux-polish`)
 - [84](issues/84-status-colors-use-theme-tokens-test-forbids.md) Status colors use theme tokens, and a test forbids raw palette classes (from `ux-polish`)
 - [85](issues/85-canvas-nodes-edges-grid-draw-from-theme.md) Canvas nodes, edges and grid draw from theme tokens, so they show on light themes (from `ux-polish`)
 - [86](issues/86-canvas-menus-pickers-edge-labels-use-theme.md) Canvas menus, pickers and edge labels use theme tokens (from `ux-polish`)
 - [87](issues/87-toasts-editor-s-codemirror-base-follow-theme.md) Toasts and the editor's CodeMirror base follow the theme mode (from `ux-polish`)
-- [88](issues/88-graph-view-paints-active-theme-s-colors.md) The graph view paints with the active theme's colors (needs-info) (from `ux-polish`)
-- [89](issues/89-settings-modal-scrim-closes-outside-click-tab.md) Settings is modal: a scrim closes it on outside click and Tab stays inside (needs-info) (from `ux-polish`)
+- [88](issues/88-graph-view-paints-active-theme-s-colors.md) The graph view paints with the active theme's colors (from `ux-polish`)
+- [89](issues/89-settings-modal-scrim-closes-outside-click-tab.md) Settings is modal: a scrim closes it on outside click and Tab stays inside (from `ux-polish`)
 - [90](issues/90-help-text-that-belongs-settings-row-sits.md) Help text that belongs to a settings row sits inside that row through a SettingItem hint prop (from `ux-polish`)
 - [91](issues/91-graph-controls-event-dialog-use-shadcn-select.md) Graph controls and the event dialog use shadcn Select, Switch and Checkbox (from `ux-polish`)
 - [92](issues/92-search-results-link-rows-reserve-gutter-their.md) Search results and link rows reserve a gutter for their hover actions (from `ux-polish`)
@@ -165,7 +135,7 @@ Visual, copy and fine-tuning.
 Real defects that need an unusual setup or sequence. Several came from earlier audits and stay valid, but they are not daily risks.
 
 - [97](issues/97-view-toolbar-icon-writes-keep-file-s.md) .view toolbar and icon writes keep the file's YAML comments (from `file-io-audit`)
-- [98](issues/98-external-change-open-note-never-overwritten-next.md) An external change to an open note is never overwritten by the next autosave or calendar write (needs-info) (from `file-io-audit`)
+- [98](issues/98-external-change-open-note-never-overwritten-next.md) An external change to an open note is never overwritten by the next autosave or calendar write (from `file-io-audit`)
 - [99](issues/99-note-deleted-renamed-outside-app-closed-marked.md) A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave (from `file-io-audit`)
 - [100](issues/100-watcher-rescan-dropped-fsevents-reloads-open-tabs.md) A watcher rescan (dropped FSEvents) reloads open tabs before the next save (from `file-io-audit`)
 - [101](issues/101-unparseable-canvas-opens-error-state-never-overwritten.md) An unparseable .canvas opens in an error state and is never overwritten by canvas edits (from `audit-2026-11-04`)
@@ -185,22 +155,20 @@ Real defects that need an unusual setup or sequence. Several came from earlier a
 - [115](issues/115-session-whose-settings-json-was-never-loaded.md) A session whose settings.json was never loaded never writes it and never purges File History at the default retention (from `audit-2026-11-04`)
 - [116](issues/116-auto-move-rules-todoist-sent-list-failed.md) Auto-move rules and the Todoist sent list: a failed load is never saved over the file (from `audit-2026-11-04`)
 - [117](issues/117-auto-move-rule-edit-made-just-before.md) An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json
-- [118](issues/118-type-rename-reports-partial-failure-also-updates.md) Type rename reports partial failure and also updates _type values with a trailing comment (needs-info) (from `file-io-audit`)
+- [118](issues/118-type-rename-reports-partial-failure-also-updates.md) Type rename reports partial failure and also updates _type values with a trailing comment (from `file-io-audit`)
 - [119](issues/119-non-utf-8-files-open-read-only.md) Non-UTF-8 files open read-only or as binary, never written back with U+FFFD (from `file-io-audit`)
 - [120](issues/120-crlf-notes-keep-their-crlf-line-endings.md) CRLF notes keep their CRLF line endings after an edit (from `file-io-audit`)
 - [121](issues/121-minor-write-races-are-closed-autosave-during.md) Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag (from `file-io-audit`)
-- [122](issues/122-stale-tasks-list-never-ticks-wrong-task.md) A stale Tasks list never ticks the wrong task line on a clean tab or after an external edit (needs-info) (from `file-io-audit`)
 - [123](issues/123-kanban-lane-actions-never-turn-raw-into.md) Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card (from `file-io-audit`)
 - [124](issues/124-watcher-events-keep-fts5-semantic-rust-indexes.md) Watcher events keep FTS5, semantic and Rust indexes current, and a read error is not treated as a delete (from `file-io-audit`)
 - [125](issues/125-semantic-update-still-embedding-when-note-deleted.md) A semantic update still embedding when its note is deleted leaves no chunks for the trashed note (from `file-io-audit`)
 - [126](issues/126-failure-after-disk-op-still-reports-completed.md) A failure after the disk op still reports a completed rename as done and re-keys the index (from `file-io-audit`)
-- [127](issues/127-note-unquoted-wikilink-value-up-home-accepts.md) A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes (needs-info)
+- [127](issues/127-note-unquoted-wikilink-value-up-home-accepts.md) A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes
 - [128](issues/128-failed-auto-move-tells-user-which-note.md) A failed Auto Move tells the user which note did not move and why
-- [129](issues/129-vault-picked-outside-two-allowed-folders-refused.md) A vault picked outside the two allowed folders is refused or warned about, never half-working (needs-info) (from `file-io-audit`)
+- [129](issues/129-vault-picked-outside-two-allowed-folders-refused.md) A vault picked outside the two allowed folders is refused or warned about, never half-working (from `file-io-audit`)
 - [130](issues/130-quick-capture-dedupe-anchor-advances-only-after.md) The quick-capture dedupe anchor advances only after the frontend accepts the capture (from `file-io-audit`)
-- [131](issues/131-note-whose-live-preview-widget-throws-every.md) A note whose live-preview widget throws on every render stays editable and in sync with its tab (needs-info) (from `file-io-audit`)
+- [131](issues/131-note-whose-live-preview-widget-throws-every.md) A note whose live-preview widget throws on every render stays editable and in sync with its tab (from `file-io-audit`)
 - [132](issues/132-collection-link-cells-never-navigate-app-webview.md) Collection link() cells never navigate the app webview and drop unsafe schemes (from `audit-2026-11-04`)
-- [133](issues/133-queryjs-blocks-written-deep-link-capture-do.md) QueryJS blocks written by a deep link or capture do not auto-run until the user trusts them (needs-info) (from `file-io-audit`)
 - [134](issues/134-read-files-batch-only-reads-inside-vault.md) read_files_batch only reads inside the vault that is actually open (from `audit-2026-11-04`)
 - [135](issues/135-note-writing-commands-refuse-paths-outside-open.md) Note-writing commands refuse paths outside the open vault (from `audit-2026-11-04`)
 - [136](issues/136-vault-root-commands-scan-index-builds-watcher.md) Vault-root commands (scan, index builds, watcher, model init) only accept the open vault (from `audit-2026-11-04`)
@@ -211,11 +179,11 @@ Refactors, deferred architecture work and new features.
 
 - [137](issues/137-file-icons-read-frontmatter-only-through-rust.md) File icons read frontmatter only through Rust (from `architecture-stability`)
 - [138](issues/138-file-icon-saves-that-cannot-happen-tell.md) File icon saves that cannot happen tell the user, and clicking the current icon writes nothing (from `architecture-stability`)
-- [139](issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text (needs-info) (from `live-preview-audit`)
-- [140](issues/140-live-preview-render-gaps-are-decided-one.md) Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed (needs-info) (from `live-preview-audit`)
+- [139](issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text (from `live-preview-audit`)
+- [140](issues/140-live-preview-render-gaps-are-decided-one.md) Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed (from `live-preview-audit`)
 - [141](issues/141-local-graph-center-follows-every-way-graph.md) The local graph center follows every way the graph tab gets focus, and hints when the center note is gone (needs-info) (from `audit-2026-11-04`)
-- [142](issues/142-tag-may-start-digit-may-carry-emoji.md) A tag may start with a digit and may carry emoji, as in Obsidian (needs-info) (from `tags-obsidian-parity`)
-- [143](issues/143-typing-editor-suggests-vault-s-existing-tags.md) Typing # in the editor suggests the vault's existing tags (needs-info) (from `tags-obsidian-parity`)
+- [142](issues/142-tag-may-start-digit-may-carry-emoji.md) A tag may start with a digit and may carry emoji, as in Obsidian (from `tags-obsidian-parity`)
+- [143](issues/143-typing-editor-suggests-vault-s-existing-tags.md) Typing # in the editor suggests the vault's existing tags (from `tags-obsidian-parity`)
 - [144](issues/144-tab-strip-shows-overflow-hides-md-extension.md) The tab strip shows overflow and hides the .md extension (from `ux-polish`)
 - [145](issues/145-emptystate-inlinealert-badge-primitives-exist.md) EmptyState, InlineAlert and Badge primitives exist (from `ux-polish`)
 - [146](issues/146-sidebar-panels-settings-use-empty-error-primitives.md) Sidebar panels and settings use the empty and error primitives (from `ux-polish`)
@@ -229,6 +197,12 @@ Refactors, deferred architecture work and new features.
 
 Open Issues that do not enter the plan, and new findings covered elsewhere. Each origin file says why in its Comments.
 
+- Issue [34](issues/34-tasks-view-treats-only-done-cancelled-tasks.md): wontfix from the owner's 2026-11-06 survey (the Issue says why).
+- Issue [35](issues/35-tasks-view-keeps-list-scroll-position-screen.md): wontfix from the owner's 2026-11-06 survey (the Issue says why).
+- Issue [55](issues/55-todoist-sync-tells-user-when-could-not.md): wontfix from the owner's 2026-11-06 survey (the Issue says why).
+- Issue [67](issues/67-first-semantic-hybrid-search-after-one-file.md): wontfix from the owner's 2026-11-06 survey (the Issue says why).
+- Issue [122](issues/122-stale-tasks-list-never-ticks-wrong-task.md): wontfix from the owner's 2026-11-06 survey (the Issue says why).
+- Issue [133](issues/133-queryjs-blocks-written-deep-link-capture-do.md): wontfix from the owner's 2026-11-06 survey (the Issue says why).
 - Issue [45](issues/45-backlinks-outgoing-links-show-load-error-retry.md) (from `.scratch/ux-polish/issues/06-link-panels-show-load-error.md`): wontfix after the plan was built. The round-2 second opinion found that the only error the three link commands return is a poisoned VaultIndex lock, which needs an earlier Rust panic, so the Retry state cannot be reached in daily use.
 - `.scratch/file-io-audit/issues/51-empty-inline-footnote-kills-footnote-plugin.md`: resolved. Fixed by 1ad0306a5 ('fix: empty inline footnote no longer crashes live preview', audit-2026-11-04 Issue 06). At HEAD, buildFootnoteDecorations in footnote-plugin.ts skips the empty inline case before it pushes a decoration.
 - `.scratch/file-io-audit/issues/20-composer-clears-dropped-capture.md`: resolved. Fixed by 0a1c22a73 ('fix: composer keeps text until the capture note is written', audit-2026-11-04 Issue 12). submit_composer_capture now carries a request_id, and the result is reported back (quick_capture/commands.rs:469-490).
@@ -342,5 +316,5 @@ Every Issue that was open in `.scratch/` before the audit is either in this plan
 ## Not covered
 
 - `.scratch/ios-app/`: the iOS proof of concept delivers only onto `feature/ios-poc`; it was left out.
-- Folders created while the audit ran (`view-engine-fixes`, `view-editor`, `usage-telemetry`, `vault-mods`, and `tasks-view`, untracked at the time) were not migrated. They were cross-checked by title, by shared source files and by reading the closest Issues: two findings were dropped as covered by `view-engine-fixes` (see Closed), and four Issues here are marked `needs-info` because `tasks-view` overlaps them.
+- Folders created while the audit ran (`view-engine-fixes`, `view-editor`, `usage-telemetry`, `vault-mods`, and `tasks-view`, untracked at the time) were not migrated. They were cross-checked by title, by shared source files and by reading the closest Issues: two findings were dropped as covered by `view-engine-fixes` (see Closed), and four Issues here (34, 35, 55, 122) overlapped `tasks-view`; the owner closed them on 2026-11-06 in favor of the tasks-view Issues 02, 04, 06 and 20.
 - Nothing was run: no test, build or manual check in the app. Findings that depend on the packaged app (asset protocol scope, fs capability, window close) were confirmed from config and code only.

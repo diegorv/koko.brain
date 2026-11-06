@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-**Owner decision needed:** Table cells: (a) render links, ==highlight==, underscore emphasis, <br> and escaped pipes. This reverses the inline-markdown.test.ts:60 case that pins ==highlight== as unsupported. (b) Render only links, <br> and escaped pipes, and keep ==highlight== unsupported.
+**Owner decision (2026-11-06):** cells render links, ==highlight==, underscore emphasis, <br> and escaped pipes. Reverse the inline-markdown test that pins ==highlight== as unsupported, and say so in the commit message.
 
 - [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts: render a TableWidget whose body cell is '[Docs](https://x.dev) a \\| b<br>next' and assert that the cell has an element with class cm-lp-link and text 'Docs', a <br> element, and textContent 'Docs a | bnext' with no '[', '](' or backslash. It fails today.
 - [ ] Cmd+mousedown (Ctrl on non-mac) on that link calls host.openExternal('https://x.dev') and leaves the editor selection unchanged. A plain click behaves as clicks on other cell text do today. A javascript: URL is not opened.
@@ -26,3 +26,5 @@
 - **Source:** audit 2026-11-05, domain `live-preview`, finding `N-live-preview-04` (from live-preview-ux-2, live-preview-spec-1). Size M.
 
 ## Comments
+
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

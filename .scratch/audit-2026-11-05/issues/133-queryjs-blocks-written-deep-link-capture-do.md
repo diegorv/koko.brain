@@ -6,9 +6,9 @@
 
 **Stale in the text below:** Line references moved: kb-api.ts:469 is now :552 (runQueryjsBlock) and kb-api.ts:360 is now :413 (kb.view new Function); settings.store.svelte.ts:136 is now :141; resolveScriptPath is at about kb-api.ts:526, not :443; deep-link.logic.ts:80-99 is now around :94-99 (new) and :125-128. Status is still needs-triage, and the original section still lacks acceptance criteria, as its own note says.
 
-**Owner decision needed:** QueryJS auto-run: (a) trust per block content hash, persisted per vault, so blocks written by deep links or captures show Run, (b) default autoRunQueries to 'manual', or (c) keep the ADR 0010 trade-off as is.
+**Owner decision (2026-11-06):** close it: the owner chose 'manual' through the existing autoRunQueries setting (Settings), so no code change; the owner switches the setting in the vault.
 
-**Status:** needs-info
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -59,3 +59,4 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/40-queryjs-unsandboxed.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: closed as wontfix from the 2026-11-06 survey: the owner chose 'manual' through the existing autoRunQueries setting (Settings), so no code change; the owner switches the setting in the vault.

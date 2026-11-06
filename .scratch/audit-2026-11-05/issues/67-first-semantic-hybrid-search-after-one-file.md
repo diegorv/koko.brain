@@ -6,9 +6,9 @@
 
 **Stale in the text below:** Cited lines moved (781->786, 1267->1262, 1299->1294, 1326->1321, 1473->1468) and the invalidation list misses the call at :571. The owner decision (A, B or C) is still not recorded in Notes.
 
-**Owner decision needed:** Search cache after an index update: option A, B or C as described in the Issue (for example keep the cache and patch the changed file's rows, or reload it in the background), recorded in Notes with the Issue 24 timing numbers.
+**Owner decision (2026-11-06):** close it: the owner keeps option C: one cache reload of about 2.5 s per edit burst is accepted next to 10 to 29 s of reranking.
 
-**Status:** needs-info
+**Status:** wontfix
 
 Priority: P3 (2.5 to 2.9 s on the first semantic or hybrid search after an index change; 2 of 6 cache lookups in the owner session; the reranker is the larger cost)
 
@@ -53,3 +53,4 @@ Recommendation: C until Issue 24's numbers exist. Revisit with A if `cache=miss`
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ui-responsiveness/issues/26-search-cache-reload-after-index-update.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: closed as wontfix from the 2026-11-06 survey: the owner keeps option C: one cache reload of about 2.5 s per edit burst is accepted next to 10 to 29 s of reranking.

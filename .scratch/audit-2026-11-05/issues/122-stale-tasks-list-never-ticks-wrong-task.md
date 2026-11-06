@@ -46,4 +46,3 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/24-stale-task-list-wrong-line.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision (tasks-view PRD L4 (a)): kept `.scratch/tasks-view/issues/` Issue 02, which covers this one. Closed without work.
-- 2026-11-06: closed as wontfix from the 2026-11-06 survey: covered by .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md (toggle_task_status checks the expected text and status before writing).

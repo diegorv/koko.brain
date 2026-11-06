@@ -4,7 +4,7 @@
 
 **Audit check:** not re-audited (deferred architecture work); carried over as it was.
 
-**Owner decision needed:** Start only after 149 (the Cargo workspace). Has a second consumer appeared?
+**Owner decision (2026-11-06):** no second consumer yet; keep it deferred.
 
 **What to build:**
 - **Move tests.** Move the core-only integration tests to `src-tauri/crates/kokobrain-core/tests/`, rewriting `kokobrain_lib::` to `kokobrain_core::`:
@@ -34,3 +34,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/architecture-stability/issues/30-move-core-tests-into-core-crate.md` by audit 2026-11-05 without a re-check (deferred architecture work).
+- 2026-11-06: owner answered in the 2026-11-06 survey: no second consumer yet; keep it deferred. Status stays needs-info.

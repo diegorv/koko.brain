@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-**Owner decision needed:** Closing a dirty tab: (a) save it and close, and prompt only when the save fails. This changes help/documentation/03-editor.md:129 and the test at editor.service.test.ts:658. (b) Keep the Save/Discard prompt, but cancel the pending debounced save while it is open, so Discard really discards.
+**Owner decision (2026-11-06):** closing a dirty tab saves it and closes with no prompt; ask only when the save fails. Update help/documentation/03-editor.md:129 and the pinned test at editor.service.test.ts:658. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
 - [ ] Failing test first, in src/tests/lib/core/editor/editor.service.test.ts: add a tab with content !== savedContent, writeTextFile resolving, call await closeTab(index); ask is not called, writeTextFile was called with the tab's content, and the tab is gone. It fails today (ask is called).
 - [ ] When writeTextFile rejects, closeTab asks with the failed-save wording; Cancel keeps the tab open and dirty, the confirm answer closes it.
@@ -27,3 +27,5 @@
 - **Source:** audit 2026-11-05, domain `editor`, finding `N-editor-02` (from editor-ux-3, editor-spec-3). Size S.
 
 ## Comments
+
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

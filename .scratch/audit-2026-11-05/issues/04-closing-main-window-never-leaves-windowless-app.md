@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
-**Owner decision needed:** Red close button: (a) quit the app after the exit flush (invoke confirm_exit, frontend only; the Quick Capture shortcuts stop with the app), or (b) hide the main window, show it again on a Dock click through RunEvent::Reopen, and keep captures and deep links writing (Rust plus the allow-hide capability). Either way, the tests at tauri-listeners.service.test.ts:224-311 that pin destroy() change. Decide Issue 44 (Dock Quit, logout and shutdown skip the exit flush) together with this one: with (b), Dock right-click Quit becomes the natural way to quit.
+**Owner decision (2026-11-06):** the red button hides the main window after the exit flush, and a Dock click shows it again (RunEvent::Reopen); captures and deep links keep writing. Do Issue 106 (Dock Quit, logout and shutdown run the exit flush) together with it. The survey question said '108' by mistake (a number from before the plan was renumbered); its description was this Issue 106. Any wording below that assumes this decision, calls it recommended or unconfirmed, or asks to confirm it with the owner is superseded: the owner confirmed it on 2026-11-06.
 
 - [ ] Failing test first, in src/tests/lib/app/tauri-listeners.service.test.ts: register the close handler, fire close-requested with all saves succeeding, and assert the window's hide() is called and destroy() is not. It fails today. Update the existing 'destroys the window ...' cases (:224-300) to the new contract and say so in the commit message.
 - [ ] When the user cancels at the discard prompt the window stays shown (existing case keeps passing).
@@ -42,3 +42,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, high). Confirmed at HEAD (no source change since 5f8003d67). tauri-listeners.service.ts:51-54 calls preventDefault, then prepareForExit, then getCurrentWindow().destroy(). The .run closure at lib.rs:392-396 matches only RunEvent::ExitRequested, and rg finds no Reopen anywhere in src-tauri/src. dispatch_shortcut (lib.rs:45) checks only db::is_open(), then advances the signature and emits qc:capture-detected (lib.rs:62-81). The composer also routes through app.emit(QC_CAPTURE_DETECTED_EVENT) (quick_capture/commands.rs:484), so with no main webview it hits the 3 s RESULT_TIMEOUT_MS and shows 'Save not confirmed' (composer/+page.svelte:10,61,216). capabilities/default.json grants allow-destroy and allow-close but not allow-hide; only composer.json has allow-hide. Nothing already written to disk is lost, because the flush runs first. Captures that never reach disk fall under ux by the category definition, though they should be treated as urgent. Corrections to apply while implementing: The tests that pin destroy() run from tauri-listeners.service.test.ts:224 to about :372, not :224-311 (also the drain, settings-flush and cancel cases at :311, :332, :359 and :372). Move the run closure reference to lib.rs:392-396.
 
 ## Comments
+
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

@@ -1,0 +1,71 @@
+{
+ "verdict": "CHANGES_REQUESTED",
+ "findings": [
+  {
+   "file": ".scratch/audit-2026-11-05/issues/118-type-rename-reports-partial-failure-also-updates.md",
+   "problem": "The Issue is now ready-for-agent, but none of its checkboxes covers the behavior the owner decided. The decision is to keep the rename and list the notes that were not updated (toast plus log). The only checkboxes (:78-80) are for the YAML-quoting amendment. The Issue's own text still says it cannot run: line 7 says 'The original sections still need acceptance criteria before the Issue can run', and line 76 says 'Triage must add criteria for the original sections above before this Issue runs'. relay-lite reads only the checkboxes, so a run would either skip the owner's decision or refuse the Issue. Issue 08 was given the same kind of fix in this diff; 118 was not.",
+   "fix": "Add checkboxes for the partial-failure, trailing-comment and open-tab-abort sections, each with its red test (the trailing-comment repro is trailing-comment-type-value.test.ts). One should assert that a failed member write keeps the rename and shows a toast plus a log entry naming the notes that were not updated. Then replace the text at :7 and :76. Until that is done, keep the status at needs-info.",
+   "severity": "blocker"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/04-closing-main-window-never-leaves-windowless-app.md",
+   "problem": "The decision line says 'Do Issue 108 (Dock Quit, logout and shutdown) together with it', but Issue 108 is 'Rename link rewrite skips links inside code blocks'. The Dock Quit Issue is 106 (106-dock-quit-logout-shutdown-run-exit-flush.md). The old text said 'Issue 44', which is that Issue's number in file-io-audit. The number was copied as-is from owner-answers.json, but the description given there matches 106, not 108. An agent following the line would pair Issue 04 with the wrong Issue.",
+   "fix": "Change it to Issue 106 and note that the survey's '108' was a numbering slip, since the description given ('Dock Quit, logout and shutdown flush') is Issue 106. If needed, confirm with the owner.",
+   "severity": "major"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/131-note-whose-live-preview-widget-throws-every.md",
+   "problem": "The Issue is ready-for-agent but still says the decision is open. The body at :29 still reads '**Owner decision needed.** Options: ... and/or ...'. The line at :7 says 'The Issue still needs the owner decision it names ... before it can be implemented'. The checkbox at :33 still says '(if the owner picks the toast)', although the owner chose both the source-mode fallback and the toast. No checkbox states the source-mode rebuild.",
+   "fix": "Replace :29 with the decision, or delete it. Make the toast checkbox unconditional. Add a checkbox saying that after the second throw the view is rebuilt with the live-preview block decorators off, so the note is editable as text. Update the line at :7.",
+   "severity": "major"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/98-external-change-open-note-never-overwritten-next.md",
+   "problem": "Two checkboxes still treat the decision as open. :52 says 'Owner decision recorded in the Issue Notes: ... one of (a) ..., (b) ..., or (c) ... (b) or (c) replaces criteria 1 to 4'. :50 says the pinned test changes 'only with the owner's approval'. Per the project memory note (relay-owner-decision-issues), Issues with an 'Owner decision recorded in Notes' checkbox come back blocked. The fix sketch at :39 also still says the test change 'needs owner approval'.",
+   "fix": "Remove the :52 checkbox, since the decision (a) is recorded. Reword :50 so the test changes to the new contract (approved 2026-11-06) and the commit message says so. Update the fix sketch at :39.",
+   "severity": "major"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/129-vault-picked-outside-two-allowed-folders-refused.md",
+   "problem": "The checkboxes still allow both options, and one requires the option the owner rejected. The failing-test checkbox at :36 asserts a 'Refuse branch' and also a 'Warn branch' in which vaultStore.path becomes the picked folder; the warn branch contradicts the refuse decision. The checkbox at :40 still asks for the decision to be recorded, with both options. The title (and the ledger and PRD row) still says 'refused or warned about'.",
+   "fix": "Remove the Warn-branch assertion from :36, and drop the 'Under the refuse branch' qualifier at :37. Delete the :40 checkbox. Optionally retitle to 'is refused with a message naming the allowed folders'.",
+   "severity": "major"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/142-tag-may-start-digit-may-carry-emoji.md",
+   "problem": "Several parts of the text contradict the ready-for-agent status and the decision. The checkbox at :22 still ends 'Owner decision first: today it is ASCII only'. The line at :7 says the decisions 'are still open in Notes, so it is not startable by relay as is', and :3 says 'The owner decisions in its Notes are still open'. The Notes still say 'Not to be run now' (:30), 'Open question for triage ... Decide before building' (:32), and that editor-inline-tags Issue 01 must be delivered first. The decision line states Issue 01 is resolved, which is correct: d1a7c2ffc and 53ff0da41 delivered it, and 724d87004 archived the folder.",
+   "fix": "Drop 'Owner decision first ...' from :22, and say the regex also rejects all-digit tags. Update :3 and :7. Replace the open question at :32 with the decided set (Extended_Pictographic + U+200D + U+FE0E/U+FE0F). Mark the 'Not to be run now' and 'Depends on' notes as superseded on 2026-11-06.",
+   "severity": "major"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/140-live-preview-render-gaps-are-decided-one.md",
+   "problem": "The item-2 checkbox (:29) still says 'Item 2, if decided render' and 'The decision first records how Obsidian treats $$'. The Notes item 2 (:20) still allows 'keep today's behavior'. The owner said to fix item 2 now. The lines at :3 and :7 still say each item needs a decision.",
+   "fix": "Make the :29 checkbox unconditional. If the Obsidian check stays, make it a note for the implementer rather than a gate. Update :3, :7 and :20.",
+   "severity": "minor"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/143-typing-editor-suggests-vault-s-existing-tags.md",
+   "problem": "The stale line (:7) says 'Status is still needs-triage'. The Notes say 'Not to be run now' and 'deliver [editor-inline-tags Issue 01] first'. The empty-prefix open question is unanswered.",
+   "fix": "Update :7 and the Notes, or mark them superseded. Either state the empty-prefix choice (Obsidian opens right after #) or leave it explicitly to the implementer.",
+   "severity": "minor"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/68-kanban-date-proximity-has-one-token-based.md",
+   "problem": "Old wording still calls the decision unconfirmed. Issue 68 says 'recommended but unconfirmed owner decision' and 'confirm with the owner before relay launch' (:3, :7, :13). The same kind of wording remains in 81 (:3, :11, :29), 83 (:3, :7), 88 (:3, :30), 89 (:3, :7, :11, :33), 13 (:3), 139 (:7) and 04 (:29). These lines are outside the checkboxes but could make a build agent stop.",
+   "fix": "Replace 'unconfirmed', 'assumes', 'confirm with the owner before relay launch' and 'if the owner prefers' with 'confirmed 2026-11-06', or delete them.",
+   "severity": "minor"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/issues/08-file-history-keeps-snapshot-pre-save-bytes.md",
+   "problem": "Three small problems. (1) The decision line 'keep the documented retention change' can be read as keeping the documented retention, which is the opposite of the decision. (2) The stale line (:7) still says 'Triage criteria for the original sections are still missing'. (3) The new retention checkbox adds a Rust test but does not say to reverse the existing history_repo.rs:194-205 test, which asserts that every old snapshot is deleted.",
+   "fix": "Reword the decision line to 'change the documented retention: retention never deletes a note's newest snapshot'. Update :7. In the retention checkbox, say that the existing test at history_repo.rs:194-205 is changed to the new contract and the commit message records it.",
+   "severity": "minor"
+  },
+  {
+   "file": ".scratch/audit-2026-11-05/PRD.md",
+   "problem": "Two stale lines. :25 says '45 was closed after the order was built', and six more Issues are now closed. :319 still says 'four Issues here are marked needs-info because tasks-view overlaps them'. The new Closed entries for 34, 35, 55, 67, 122 and 133 have no links, while the 45 entry has one.",
+   "fix": "Update :25 to name 34, 35, 55, 67, 122, 133 and 45. Note at :319 that the four Issues were closed. Link the new Closed entries.",
+   "severity": "minor"
+  }
+ ]
+}

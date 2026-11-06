@@ -4,15 +4,15 @@
 
 **Audit check at `5f8003d67`:** design_or_refactor (ux, medium). Feature not built: the single autocompletion instance lists only wikilinkCompletionSource and dateShortcutCompletionSource (src/lib/core/markdown-editor/setup/editor-extensions.ts:136-142), and rg finds no listTags or tag completion source in src/lib. Its dependency (editor inline tags) is delivered, so it is unblocked; it is new work, not a defect.
 
-**Stale in the text below:** Status is still needs-triage.
+**Stale in the text below:** the needs-triage and 'not to be run now' notes are superseded: the owner scheduled it on 2026-11-06, after 142.
 
-**Owner decision needed:** Created as 'not to be run now': schedule it after editor-inline-tags Issue 01, or keep it deferred?
+**Owner decision (2026-11-06):** schedule it. editor-inline-tags Issue 01 is already resolved; run it after 142.
 
 **What to build:** When you type `#` at a position where a tag can start (line start or after whitespace, outside code and frontmatter), the editor shows a completion list with the vault's tags, filtered by what has been typed after `#`, as Obsidian does. Picking one inserts the full tag name, nested ones included (`#area/sub`). `# ` (a heading) and `#` with no match show no list.
 
-**Blocked by:** none
+**Blocked by:** 142
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -25,12 +25,13 @@
 
 ## Notes
 
-- **Depends on** editor-inline-tags Issue 01 (another folder, so not in `Blocked by`): deliver it first. If Issue 01 of this folder lands first, completion uses its rule.
-- **Created 2026-11-04** at the owner's request, split out of editor-inline-tags Issue 01 (out of scope there). Not to be run now.
+- **Depends on** editor-inline-tags Issue 01: delivered, so this no longer waits on it. If Issue 01 of this folder lands first, completion uses its rule.
+- **Created 2026-11-04** at the owner's request, split out of editor-inline-tags Issue 01 (out of scope there). Not to be run now (superseded 2026-11-06: scheduled after 142).
 - **Model to follow:** `core/markdown-editor/extensions/wikilink/completion.ts` + `completion.logic.ts` (context detection apart from the source, data through `editorHost`).
-- **Open question for triage:** whether the list should also open on an empty prefix (right after `#`) or only after the first letter, since `#` is also typed for headings at line start. Obsidian opens it right after `#`; here `# ` with a space already rules out the heading case.
+- **Left to the implementer:** whether the list should also open on an empty prefix (right after `#`) or only after the first letter, since `#` is also typed for headings at line start. Obsidian opens it right after `#`; here `# ` with a space already rules out the heading case.
 - **Size:** S/M.
 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/tags-obsidian-parity/issues/02-tag-autocomplete.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

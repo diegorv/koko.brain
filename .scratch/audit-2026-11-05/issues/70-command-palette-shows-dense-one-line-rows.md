@@ -6,13 +6,13 @@
 
 **Stale in the text below:** Line numbers fine (about line 33 is now 31-35). CommandDialog is shared by QuickSwitcher, TemplatePicker and OneOnOnePicker, so a density change hits those too, not only the palette; the Issue does not say so.
 
-**Owner decision needed:** Apply the denser rows to the shared CommandDialog, which also changes the Quick Switcher, Template picker and One-on-one picker, or only to the command palette?
+**Owner decision (2026-11-06):** the dense rows go into the shared CommandDialog, so the Quick Switcher, Template picker and One-on-one picker change too.
 
 **What to build:** The palette forces `py-3` rows with 20px icons (`src/lib/components/ui/command/command-dialog.svelte`, about line 33), shows about 4.5 rows (`max-h-[300px]`) and has a close X. Make rows one line `h-9` with the category muted on the right, raise the list to `max-h-[min(60vh,400px)]`, add a footer with key hints (Enter, arrows, Esc), and drop the close X. Use a density prop on the item instead of descendant selectors.
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/ux-polish/issues/56-command-palette-density.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

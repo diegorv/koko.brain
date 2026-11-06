@@ -4,11 +4,11 @@
 
 **Audit check at `5f8003d67`:** still_present (content, low). (a) propagate_type_rename_inner skips failures with debug_log and returns the count (src-tauri/src/commands/vault.rs:392-446). (b) renameType: the open-tab write loop and `await call('propagate_type_rename', ...)` share one try (src/lib/features/type-definitions/type-definitions.service.ts:229-241), the catch returns at :242-246, and the count is discarded. (c) rewrite_type_line compares the raw value, so 'Project # note' returns None (src-tauri/src/vault/parsing.rs:143-147). (d) the new name is written raw (parsing.rs:148-151; rewriteTypeInFrontmatter at type-definitions.logic.ts:210; `_type: ${typeName}` template at type-definitions.service.ts:79); validateTypeName (type-definitions.logic.ts:168) checks only file-name legality. Rust traced, not run.
 
-**Stale in the text below:** Line numbers moved: vault.rs :356-376/~423 is now :392-446; renameItem at type-definitions.service.ts:223, tab loop :229-240, propagate call :241, catch :242-246 (Issue :209, :215-231, :226); resolveTypedNoteTarget template :79 (Issue :73); validateTypeName :168 (Issue :157-166); rewriteTypeInFrontmatter :210 (Issue :194-206). The original sections still need acceptance criteria before the Issue can run.
+**Stale in the text below:** Line numbers moved: vault.rs :356-376/~423 is now :392-446; renameItem at type-definitions.service.ts:223, tab loop :229-240, propagate call :241, catch :242-246 (Issue :209, :215-231, :226); resolveTypedNoteTarget template :79 (Issue :73); validateTypeName :168 (Issue :157-166); rewriteTypeInFrontmatter :210 (Issue :194-206). Criteria for the original sections were added on 2026-11-06, below.
 
-**Owner decision needed:** When some notes fail during a type rename: keep the rename and list the notes that were not updated (toast plus log), or roll the rename back?
+**Owner decision (2026-11-06):** keep the rename and list the notes that were not updated (toast plus log); no rollback.
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Blocked by:** none
 Priority: P2
@@ -73,7 +73,14 @@ FAIL: AssertionError: expected null to be '---\n_type: Initiative\n---\n\nbody' 
 
 **Fix sketch.** Write the type value as a quoted YAML scalar whenever it is not a safe plain string (double quotes with `\` and `"` escaped is simplest), in rewrite_type_line, rewriteTypeInFrontmatter and resolveTypedNoteTarget alike, keeping the original quote style only when the new name needs no escaping in it. Or reject YAML indicator characters and number, boolean or null look-alikes in validateTypeName; that alone leaves the existing-quote case open.
 
-These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
+Criteria for the original sections (added 2026-11-06, following the owner decision above):
+
+- [ ] Failing test first, in src-tauri/tests/vault_type_rename_test.rs: when one member write fails, propagate_type_rename returns the paths of the notes it could not update (not only the count); the existing continues_past_write_failures_and_counts_only_successes case changes to the new return shape and the commit message says so. It fails today (failures are only logged).
+- [ ] renameType keeps the rename when some members fail and shows a toast naming the notes that were not updated, plus a log entry through error(); tested in src/tests/lib/features/type-definitions/type-definitions.service.test.ts with only the Tauri APIs mocked.
+- [ ] A failing write to an open member tab no longer aborts propagation: the other members are still rewritten, and the failed tab is listed in the same toast (same test file).
+- [ ] Failing test first: move .scratch/file-io-audit/repro/h06-type-rename/trailing-comment-type-value.test.ts under src/tests/lib/features/type-definitions/ (fix its imports); rewriteTypeInFrontmatter turns '_type: Project # note' into '_type: Initiative' for a rename of Project. It fails today (null). The Rust rewrite_type_line gets the same case in src-tauri/tests/vault_type_rename_test.rs.
+
+Criteria for the editor-data-safety amendment (2026-11-02):
 
 - [ ] Renaming a type to 'Book #2', to '[Projects]' and to '2024' re-indexes every member (closed note and open tab) under exactly that name; Rust and TS tests cover each
 - [ ] A new note created for a type named 'Book #2' is indexed under 'Book #2'
@@ -87,3 +94,4 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/34-type-rename-partial-failure.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

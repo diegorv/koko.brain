@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-**Owner decision needed:** Fold unquoted wikilink values before the lossy check, so writes rewrite up: [[Home]] as up: "[[Home]]". This reverses the test at properties.logic.test.ts:1542-1544. Or keep refusing such notes with a toast?
+**Owner decision (2026-11-06):** fold unquoted wikilink values before the lossy check, so a write rewrites up: [[Home]] as up: "[[Home]]". Reverse the test at properties.logic.test.ts:1542-1544.
 
 - [ ] Failing test first, in src/tests/lib/core/frontmatter/properties.logic.test.ts (describe 'detectLossyFrontmatter', :1101): detectLossyFrontmatter(note('_belongs_to: [[Team]]')) and detectLossyFrontmatter(note('people:\n  - [[Carol]]\n  - [[Dan]]')) return null. It fails today.
 - [ ] In src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts: updateNoteFrontmatter on '---\nup: [[Home]]\n---\nbody' setting _favorite: true writes `up: "[[Home]]"` and `_favorite: true`, body unchanged, and parseFrontmatterProperties reads `up` back as the same string.
@@ -25,3 +25,5 @@
 - **Source:** audit 2026-11-05, domain `metadata`, finding `N-metadata-04` (from metadata-ux-4, metadata-spec-2). Size S.
 
 ## Comments
+
+- 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
