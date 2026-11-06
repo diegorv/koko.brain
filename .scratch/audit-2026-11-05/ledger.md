@@ -94,7 +94,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 57 | [Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why](issues/57-quick-switcher-create-folder-path-projects-idea.md) | none | todo | | |
 | 58 | [Dragging a node in the graph moves that node; dragging the background pans](issues/58-dragging-node-graph-moves-that-node-dragging.md) | none | todo | | |
 | 59 | [Switching the graph Arrows toggle redraws the graph at once, also after the layout has settled](issues/59-switching-graph-arrows-toggle-redraws-graph-once.md) | none | todo | | |
-| 60 | [Live preview paints no active-line background; source mode keeps it](issues/60-live-preview-paints-no-active-line-background.md) | none | todo | | |
+| 60 | [Live preview paints no active-line background; source mode keeps it](issues/60-live-preview-paints-no-active-line-background.md) | none | in-progress | | |
 | 61 | [Editor tables use the full content width, with hover controls overlaid and the gap below the table kept](issues/61-editor-tables-use-full-content-width-hover.md) | none | todo | | |
 | 62 | [The status bar note count follows notes created, imported and deleted during the session](issues/62-status-bar-note-count-follows-notes-created.md) | none | todo | | |
 | 63 | [The Tags view explains when the rare-tag filter hides everything](issues/63-tags-view-explains-when-rare-tag-filter.md) | none | todo | | |
@@ -219,3 +219,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 07:36 — 10 — deliver — merged: asset-protocol scope adds $HOME/kokobrain-vaults; R1 APPROVED, no fix round; cargo 1314 passed, full suite 12979 passed, build ok; manual in-app image checks left for the owner — 4d9a270c6
 - 2026-11-06 07:36 — 33 — start — launched by /relay-lite:run (parallel with 22) — 8ad679878
 - 2026-11-06 07:44 — 22 — deliver — merged: inline rename to an illegal name toasts why; R1 APPROVED, one nit rejected; full suite 12981 passed after rebase, build ok — 5c90647ed
+- 2026-11-06 07:44 — 60 — start — launched by /relay-lite:run (parallel with 33) — 619e2366a
