@@ -190,7 +190,7 @@ ctx.addAction({
 | `run.log(text)` | Adds a line to the run's log. The run view keeps the last 500 lines |
 | `run.progress(done, total, label?)` | Sets the progress bar to `done` of `total`, with an optional label under it. Throws `Mod "<id>": run.progress needs numbers done and total` (or `needs a string label`) on other values |
 
-- **The run view stays open** until you press **Close** or **Escape**, even for an action that ends at once, such as one that only shows a toast or opens a note.
+- **A quiet run closes the view by itself.** When a run ends **Done** without having called `run.log` or `run.progress`, there is nothing to read, so the picker closes: an action that only shows a toast, opens a note or opens a dialog leaves no window behind. A run that logged or showed progress stays on **Done** until you press **Close** or **Escape**, and so does a **Failed** or **Cancelled** run. To keep the view open on a quick action, log a line.
 - **Close** hides the view; the run goes on. While it runs, the mod's rail button shows a busy mark, and clicking it opens the run view again instead of the picker. A button has one live run at a time; two buttons of a mod can run side by side.
 - **Stop** aborts `run.signal` and marks the run **Cancelled** at once. It cannot interrupt code that is running: the mod has to check `run.signal.aborted` or pass the signal on. Valid calls to `run.log` and `run.progress` after the run ended are ignored.
 
@@ -241,7 +241,7 @@ ctx.addAction({
 | `prompt({ title, message?, label?, placeholder?, value?, multiline? })` | the text, or `null` when cancelled | **Enter** submits, **Esc** cancels. With `multiline: true` the field is a text area: **Enter** adds a line and **Cmd+Enter** submits. Enter while an input method is composing (Japanese, Chinese, ...) never submits |
 | `loading(label, task, { cancellable? })` | what `task` resolves to; rejects when it rejects | Calls `task(signal)` at once and shows `label` with a spinner until it settles. The dialog cannot be dismissed; `cancellable: true` adds **Cancel**, which aborts `signal` and closes the dialog. The promise still follows the task, so stop when `signal.aborted` |
 
-- **One dialog at a time.** A second call, from this mod or another, waits until the first is closed. A dialog opened from an action shows above its run view; closing it returns to the run view.
+- **One dialog at a time.** A second call, from this mod or another, waits until the first is closed. A dialog opened from an action shows above its run view; closing it returns to the run view while the run goes on (a quiet run that then ends closes it, see above).
 - **Unload.** When the mod unloads, its open and waiting dialogs close as cancelled: `alert` resolves, `confirm` resolves `false`, `prompt` resolves `null`, and `loading` aborts its signal. No promise is left hanging. A call after unload rejects with `Mod "<id>" is unloaded`.
 - **Bad arguments** reject with `Mod "<id>": ...`, for example `Mod "<id>": ui.confirm needs a non-empty string title` or `ui.loading needs a task function`.
 

@@ -1,7 +1,9 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Command from '#lib/components/ui/command/index.js';
 	import { modPickerStore, type ModPickerAction } from './mod-picker.store.svelte';
+	import { closesWhenDone } from './mods.logic';
 	import { modsRunsStore, type ModRunStatus } from './mods-runs.store.svelte';
 
 	const STATUS_LABELS: Record<ModRunStatus, string> = {
@@ -35,6 +37,11 @@
 	$effect(() => {
 		void lineCount;
 		if (logBox && followLog) logBox.scrollTop = logBox.scrollHeight;
+	});
+
+	// A quick action (open a note, show a dialog, a toast) leaves nothing to read: no "Done" window left behind.
+	$effect(() => {
+		if (run && closesWhenDone(run)) untrack(() => modPickerStore.close());
 	});
 
 	function handleLogScroll() {
@@ -89,7 +96,8 @@
 	{#if run}
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
 		<div class="flex flex-col gap-3 p-4" data-mod-run={run.status} onkeydown={handleRunKeydown}>
-			<div class="flex items-center justify-between gap-2">
+			<!-- pr-6 keeps the status clear of the dialog's close button in the top-right corner. -->
+			<div class="flex items-center justify-between gap-2 pr-6">
 				<span class="truncate font-medium">{run.title}</span>
 				<span class="text-xs text-muted-foreground" data-mod-run-status>{STATUS_LABELS[run.status]}</span>
 			</div>

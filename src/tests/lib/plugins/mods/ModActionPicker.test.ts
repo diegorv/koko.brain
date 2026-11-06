@@ -73,6 +73,7 @@ describe('ModActionPicker', () => {
 		ctx.addAction({ id: 'hello', title: 'Say hello', description: 'Shows a toast', run: async () => { globalThis.__modEvents.push('hello:run'); } });
 		ctx.addAction({ id: 'boom', title: 'Explode', run: () => { throw new Error('kaboom'); } });
 		ctx.addAction({ id: 'idea', title: 'New idea note', input: { placeholder: 'Describe the idea' }, run: (text) => { globalThis.__modEvents.push('idea:' + text); } });
+		ctx.addAction({ id: 'counted', title: 'Counted job', run: (input, run) => { run.progress(1, 1, 'One of one'); globalThis.__modEvents.push('counted:run'); } });
 		ctx.addAction({ id: 'slow', title: 'Slow job', run: async (input, run) => {
 			run.log('Reading notes');
 			run.progress(1, 4, 'Note 1 of 4');
@@ -106,7 +107,7 @@ describe('ModActionPicker', () => {
 	it("lists the button's actions with title and description", () => {
 		clickRailButton();
 
-		expect(rows().map((el) => el.dataset.modAction)).toEqual(['hello', 'boom', 'idea', 'slow']);
+		expect(rows().map((el) => el.dataset.modAction)).toEqual(['hello', 'boom', 'idea', 'counted', 'slow']);
 		expect(row('hello').textContent).toContain('Say hello');
 		expect(row('hello').textContent).toContain('Shows a toast');
 		expect(row('boom').textContent).toContain('Explode');
@@ -115,19 +116,34 @@ describe('ModActionPicker', () => {
 		expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('Hello mod');
 	});
 
-	it('picking an action runs it and switches the picker to its run view, which shows Done at the end', async () => {
+	it('picking an action runs it in the run view, which closes by itself when a quiet run ends', async () => {
 		clickRailButton();
 
 		row('hello').click();
 		flushSync();
+		// The run view shows while the action runs.
+		expect(runView()?.textContent).toContain('Say hello');
 
 		await vi.waitFor(() => expect(globals.__modEvents).toEqual(['hello:run']));
+		await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
 		flushSync();
-		expect(rows()).toEqual([]);
-		expect(runView()?.textContent).toContain('Say hello');
+		// No log line and no progress: nothing to read, so the picker closes.
+		expect(modPickerStore.isOpen).toBe(false);
+		expect(runView()).toBeNull();
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('a run that showed progress stays open on Done', async () => {
+		clickRailButton();
+
+		row('counted').click();
+		flushSync();
+
+		await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+		flushSync();
+		expect(modPickerStore.isOpen).toBe(true);
 		expect(status()).toBe('Done');
 		expect(stopButton()).toBeNull();
-		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('a throwing action shows Failed with its message and stack, and the error toast', async () => {
@@ -345,16 +361,17 @@ describe('ModActionPicker', () => {
 			expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('New idea note');
 		});
 
-		it('Enter runs the action with the typed text and shows its run view', async () => {
+		it('Enter runs the action with the typed text; the quiet run then closes the picker', async () => {
 			const input = openInputStep();
 			type(input, 'A flying car');
 
 			press(input, 'Enter');
 
 			await vi.waitFor(() => expect(globals.__modEvents).toEqual(['idea:A flying car']));
+			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
 			flushSync();
 			expect(field()).toBeNull();
-			expect(runView()?.textContent).toContain('New idea note');
+			expect(modPickerStore.isOpen).toBe(false);
 		});
 
 		it('Escape closes the picker and runs nothing', async () => {
@@ -380,7 +397,7 @@ describe('ModActionPicker', () => {
 
 	it('unloading the mod while its picker is open closes it', () => {
 		clickRailButton();
-		expect(rows()).toHaveLength(4);
+		expect(rows()).toHaveLength(5);
 
 		disableMod('hello');
 		flushSync();

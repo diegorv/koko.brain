@@ -74,6 +74,15 @@ export function errorText(err: unknown): string {
 	return err.stack ? `${err.message}\n${err.stack}` : err.message;
 }
 
+/**
+ * Whether the run view closes by itself: a run that ended done without a log
+ * line or a progress call left nothing to read. A run that logged or showed
+ * progress, failed, or was cancelled stays open until the user closes it.
+ */
+export function closesWhenDone(run: { status: string; lines: readonly string[]; progress: unknown }): boolean {
+	return run.status === 'done' && run.lines.length === 0 && run.progress === null;
+}
+
 /** A validated `manifest.json`; unknown keys are dropped */
 export interface ModManifest {
 	/** Equal to the mod's folder name */

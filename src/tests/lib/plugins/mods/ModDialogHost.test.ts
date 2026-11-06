@@ -351,8 +351,10 @@ describe('ModDialogHost', () => {
 		ctx.addAction({
 			id: 'archive',
 			title: 'Archive',
-			run: async () => {
+			// The log line keeps the run view open after the run ends (a quiet run closes it by itself).
+			run: async (_input: string, run: { log: (text: string) => void }) => {
 				answer = await ctx.ui.confirm({ title: 'Archive 12 notes?' });
+				run.log(answer ? 'archived' : 'kept');
 			},
 		});
 		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'sparkles' });

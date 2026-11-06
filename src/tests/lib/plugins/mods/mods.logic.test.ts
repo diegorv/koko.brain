@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
 	assertVaultPath,
+	closesWhenDone,
 	errorText,
 	evaluateModSource,
 	isModCodePath,
@@ -11,6 +12,25 @@ import {
 
 const VAULT = '/vaults/main';
 const MODS = `${VAULT}/_system/mods`;
+
+describe('closesWhenDone', () => {
+	const quiet = { status: 'done', lines: [], progress: null } as const;
+
+	it('closes a run that ended done with no log line and no progress', () => {
+		expect(closesWhenDone(quiet)).toBe(true);
+	});
+
+	it('keeps a run that logged or showed progress', () => {
+		expect(closesWhenDone({ ...quiet, lines: ['Wrote 3 notes'] })).toBe(false);
+		expect(closesWhenDone({ ...quiet, progress: { done: 1, total: 1 } })).toBe(false);
+	});
+
+	it('keeps a run that is still going, failed or was cancelled', () => {
+		expect(closesWhenDone({ ...quiet, status: 'running' })).toBe(false);
+		expect(closesWhenDone({ ...quiet, status: 'failed' })).toBe(false);
+		expect(closesWhenDone({ ...quiet, status: 'cancelled' })).toBe(false);
+	});
+});
 
 describe('errorText', () => {
 	it('puts the message first, then the stack', () => {
