@@ -7,6 +7,7 @@ use kokobrain_lib::utils::fs::{
 	validate_vault_path, write_atomic,
 };
 use kokobrain_lib::vault::index::VaultIndex;
+use kokobrain_lib::vault::parsing::rewrite_type_in_frontmatter;
 use std::fs;
 use tempfile::TempDir;
 
@@ -742,7 +743,7 @@ fn write_atomic_retry_after_a_failure_succeeds() {
 fn child_mixed_concurrent_writes() {
 	let Some(dir) = child_dir() else { return };
 	let path = text_path(&dir, "data.json");
-	write_atomic(&path, "small-seed").expect("seed");
+	write_atomic(&path, "small-seed-end").expect("seed");
 	let done = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
 
 	let reader = {
@@ -750,7 +751,11 @@ fn child_mixed_concurrent_writes() {
 		std::thread::spawn(move || {
 			while !done.load(std::sync::atomic::Ordering::Relaxed) {
 				let text = fs::read_to_string(&path).expect("the target always exists");
-				assert!(text.starts_with("small-"), "reader saw {} bytes of a failed write", text.len());
+				assert!(
+					text.starts_with("small-") && text.ends_with("-end"),
+					"reader saw {} bytes that are not one whole small write",
+					text.len()
+				);
 			}
 		})
 	};
@@ -759,7 +764,7 @@ fn child_mixed_concurrent_writes() {
 			let path = path.clone();
 			std::thread::spawn(move || {
 				for i in 0..40 {
-					write_atomic(&path, &format!("small-{t}-{i}")).expect("a write under the limit");
+					write_atomic(&path, &format!("small-{t}-{i}-end")).expect("a write under the limit");
 					assert_write_error(write_atomic(&path, &"x".repeat(OVER_LIMIT)));
 				}
 			})
@@ -780,7 +785,8 @@ fn write_atomic_failures_do_not_disturb_concurrent_writes_that_succeed() {
 	run_child("child_mixed_concurrent_writes", tmp.path(), true);
 
 	assert_eq!(sorted_names(tmp.path()), vec!["data.json"]);
-	assert!(fs::read_to_string(tmp.path().join("data.json")).unwrap().starts_with("small-"));
+	let text = fs::read_to_string(tmp.path().join("data.json")).unwrap();
+	assert!(text.starts_with("small-") && text.ends_with("-end"), "unexpected content: {text}");
 }
 
 /// The first write of a process uses sequence 0, so a child can occupy its temp name.
@@ -953,7 +959,7 @@ fn child_toggle_task() {
 	update_note_in_index_inner(&mut idx, path.clone(), &content, 0);
 	let version = idx.version();
 
-	let error = toggle_task_status_inner(&mut idx, &path, 2).err().expect("the write should fail");
+	let error = toggle_task_status_inner(&mut idx, &path, 2).expect_err("the write should fail");
 
 	assert!(error.starts_with("write failed for "), "unexpected error: {error}");
 	assert_eq!(idx.version(), version);
@@ -981,6 +987,8 @@ fn child_type_rename() {
 	let content = fs::read_to_string(&path).unwrap();
 	let mut idx = VaultIndex::default();
 	update_note_in_index_inner(&mut idx, path.clone(), &content, 0);
+	// The rename swallows a write error, so prove it has something to write.
+	assert!(rewrite_type_in_frontmatter(&content, "Project", "Initiative").is_some());
 
 	let (updated, last) = propagate_type_rename_inner(&mut idx, "Project", "Initiative");
 

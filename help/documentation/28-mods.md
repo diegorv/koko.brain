@@ -230,16 +230,16 @@ ctx.addAction({
 | Method | Resolves to | Rejects |
 |--------|-------------|---------|
 | `loadData()` | the saved value, or `null` when the file is not there | see below |
-| `saveData(value)` | nothing, once the value is on disk | `Mod "<id>": saveData needs a value JSON can represent: <what and where>`, or `Mod "<id>": saveData refused: ...` after a load that failed, with nothing written; or with an `Error` when the write fails |
+| `saveData(value)` | nothing, once the value is on disk | `Mod "<id>": saveData needs a value JSON can represent: <what and where>`, or `Mod "<id>": saveData refused: ...` after a load that could not read or move the file, with nothing written; or with an `Error` when the write fails |
 
 - **What `saveData` takes.** Anything JSON represents: objects, arrays, strings, finite numbers, booleans, `null`. It refuses `undefined` at the top level or in an array, functions, symbols, `BigInt`, cycles, `NaN`, `Infinity`, and objects such as a `Map`, a `Set` or a class instance, which `JSON.stringify` would otherwise change without a word. A property set to `undefined` or keyed by a symbol is left out, a `Date` is saved as its ISO string (`null` when invalid), and `-0` as `0`. Since `null` is also what `loadData` resolves to with no file, a saved `null` reads as nothing saved.
 - **Crash safety.** A write goes to a temp file next to `data.json` and is renamed over it, so if the app crashes mid-write the file keeps its previous content. A crash can leave a stray `data.json.tmp-*`; it is never read. The write does not force the bytes to the physical disk, so a power cut right after a save can still lose or damage that file.
 - **Order.** Calls of one mod run one at a time, in call order, so the last `saveData` wins, and a `loadData` sees every save called before it. The value is read at the call: changing the object afterwards does not change what is saved. A mod that saves on every click does not need its own queue.
-- **Unload.** After the mod unloads or the vault changes, both reject with `Mod "<id>" is unloaded`, also when that happens while they wait. A save still queued at that moment is not written, and rejects once the call ahead of it ends. One already sent to disk does land, even though it rejects.
+- **Unload.** After the mod unloads or the vault changes, both reject with `Mod "<id>" is unloaded`, also when that happens while they wait. A save still queued at that moment is not written, and rejects once the call ahead of it ends. One already sent to disk may land even though it rejects.
 
 **Data that cannot be parsed is never lost.** When `data.json` is not valid UTF-8 JSON (an empty file counts), `loadData` renames it to `data.corrupt-<timestamp>.json` in the same folder, which keeps its exact bytes, and rejects with an error whose `name` is `ModDataCorruptError` and whose `corruptPath` is the vault-relative path of the copy. The next `loadData` resolves to `null`.
 
-Any other rejection means the file could not be read or moved, and may still be in place: `saveData` refuses with `Mod "<id>": saveData refused: ...` until a later `loadData` reads the file or moves it aside. (`Mod "<id>" is unloaded` is the exception: the mod is gone, and if that came during the rename the copy is already kept, and only the debug log says so.)
+Any other rejection means the file could not be read or moved, and may still be in place: `saveData` refuses with `Mod "<id>": saveData refused: ...` until a later `loadData` resolves or reports the file as corrupt. (`Mod "<id>" is unloaded` is the exception: the mod is gone, and the file may or may not have been moved aside. The next load finds out, and only the debug log says what happened.)
 
 ```javascript
 async function load(ctx) {
