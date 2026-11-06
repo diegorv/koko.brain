@@ -88,14 +88,17 @@ describe('theme CSS variable contract', () => {
 
 	it('derives every column tone in light and dark, and names it for Tailwind', () => {
 		const appCss = readFileSync('src/app.css', 'utf8');
-		const declaredIn = (selector: string, name: string) =>
-			[...appCss.matchAll(new RegExp(`\\n${selector} \\{[^}]*`, 'g'))].some((m) => m[0].includes(`\n\t${name}:`));
+		// The theme thumbnail re-derives the tones through these scopes, so each block must serve both selectors.
+		const declaredIn = (selectors: string, name: string) =>
+			[...appCss.matchAll(new RegExp(`\\n${selectors} \\{[^}]*`, 'g'))].some((m) => m[0].includes(`\n\t${name}:`));
+		const light = ':root,\\n\\.column-tones';
+		const dark = '\\.dark,\\n\\.column-tones-dark';
 		for (const name of ['--rail-bg', '--nav-bg', '--list-bg']) {
-			expect(declaredIn(':root', name), `${name} in :root`).toBe(true);
-			expect(declaredIn('\\.dark', name), `${name} in .dark`).toBe(true);
+			expect(declaredIn(light, name), `${name} in the light block`).toBe(true);
+			expect(declaredIn(dark, name), `${name} in the dark block`).toBe(true);
 			expect(appCss, `${name} in @theme`).toContain(`--color-${name.slice(2)}: var(${name});`);
 		}
-		expect(declaredIn(':root', '--rail-muted-fg')).toBe(true);
+		expect(declaredIn(light, '--rail-muted-fg')).toBe(true);
 		expect(appCss).toContain('--color-rail-muted-fg: var(--rail-muted-fg);');
 	});
 

@@ -369,15 +369,21 @@
  * lightness, so it barely moves a surface that is already dark, and the editor
  * is often too close for a mix toward it to show. The list keeps
  * --file-explorer-bg and the other columns only go darker.
+ *
+ * .column-tones and .column-tones-dark re-derive the tones under an element
+ * that sets those colors itself, such as a preview of a theme that is not the
+ * active one. A value declared on :root resolves there and inherits as is.
  */
-:root {
+:root,
+.column-tones {
 	--rail-bg: color-mix(in oklch, var(--file-explorer-bg) 96%, black);
 	--rail-muted-fg: color-mix(in oklch, var(--file-explorer-muted-fg) 70%, var(--file-explorer-fg));
 	--nav-bg: var(--file-explorer-bg);
 	--list-bg: color-mix(in oklch, var(--file-explorer-bg) 50%, var(--editor-bg));
 }
 
-.dark {
+.dark,
+.column-tones-dark {
 	--rail-bg: oklch(from var(--file-explorer-bg) calc(l - 0.06) c h);
 	--nav-bg: oklch(from var(--file-explorer-bg) calc(l - 0.03) c h);
 	--list-bg: var(--file-explorer-bg);
