@@ -28,3 +28,5 @@
 - **Size:** M.
 
 ## Comments
+
+- **2026-11-06, after Issue 02 (commit `0e6db1917` on `feature/vault-mods`):** each mod now has an on/off switch in Settings > Labs (`modsEnabledStore.disabledMods`, saved per vault in localStorage; `enableMod` / `disableMod` / `listDisabledMod` in `mods-host.service.ts`). A reload must respect it: a file change in a switched-off mod never loads it; at most it re-lists the row as `disabled` (new manifest name), and a new folder whose name is in `disabledMods` is listed as `disabled`, not loaded. The host already keeps a per-folder epoch (`folderEpochs`) that makes an in-flight load drop its result after a switch; the reload's own generation counter must not bypass it. Add a host test: changing `main.js` of a disabled mod runs nothing and leaves it `disabled`.
