@@ -267,7 +267,7 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 		tabBar: '#edeaf2',
 		divider: '#C0B8D0',
 		fileExplorerBg: '#e8e7ec',
-		fileExplorerAccent: '#D5D0E2',
+		fileExplorerAccent: '#DDD8E8',
 		typeOrange: '#b66737',
 		typeYellow: '#907900',
 		fileExplorerMutedFg: '#8078A0',
