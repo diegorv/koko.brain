@@ -122,7 +122,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 85 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/85-canvas-nodes-edges-grid-draw-from-theme.md) | none | todo | | |
 | 86 | [Canvas menus, pickers and edge labels use theme tokens](issues/86-canvas-menus-pickers-edge-labels-use-theme.md) | 85 | todo | | |
 | 87 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/87-toasts-editor-s-codemirror-base-follow-theme.md) | none | done | issue/87-toasts-editor-s-codemirror-base-follow-theme (cc94c8675) | 2026-11-06 |
-| 88 | [The graph view paints with the active theme's colors](issues/88-graph-view-paints-active-theme-s-colors.md) | none | in-progress | | |
+| 88 | [The graph view paints with the active theme's colors](issues/88-graph-view-paints-active-theme-s-colors.md) | none | done | issue/88-graph-view-paints-active-theme-s-colors (2526c56d4) | 2026-11-06 |
 | 89 | [Settings is modal: a scrim closes it on outside click and Tab stays inside](issues/89-settings-modal-scrim-closes-outside-click-tab.md) | 71 | todo | | |
 | 90 | [Help text that belongs to a settings row sits inside that row through a SettingItem hint prop](issues/90-help-text-that-belongs-settings-row-sits.md) | none | todo | | |
 | 91 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/91-graph-controls-event-dialog-use-shadcn-select.md) | none | todo | | |
@@ -231,3 +231,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 08:20 — 87 — start — launched by /relay-lite:run (parallel with 88 and 94) — f14b0ad78
 - 2026-11-06 08:47 — 87 — deliver — merged: toasts and the editor base theme follow the theme mode; R1 APPROVED, no findings; full suite 13009 passed, build ok — cc94c8675
 - 2026-11-06 08:48 — 143 — start — launched by /relay-lite:run (parallel with 88 and 94) — 7c85c5fa8
+- 2026-11-06 09:17 — 88 — deliver — merged: graph view paints with the active theme's colors; R1 APPROVED with 2 findings fixed (79f2e0a02), R2 APPROVED; full suite 13051 passed after three rebases, build ok; theme-mode E2E not run — 2526c56d4
