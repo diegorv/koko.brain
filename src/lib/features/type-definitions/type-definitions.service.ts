@@ -347,7 +347,7 @@ const viewWriteTails = new Map<string, Promise<unknown>>();
  * `ViewWriteError`. `transform` must be pure: it runs a second time when a tab
  * opens during the existence check, and what it throws propagates.
  */
-async function rewriteViewFile(
+export async function rewriteViewFile(
 	path: string,
 	transform: (base: string) => string,
 	options: RewriteViewOptions = {},

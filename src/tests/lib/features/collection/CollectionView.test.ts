@@ -28,6 +28,7 @@ vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn(() => Promise.resolve(vi
 vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn() }));
 
 import { mount, unmount, flushSync } from 'svelte';
+import { parse as parseYaml } from 'yaml';
 import CollectionViewHarness from '../../../fixtures/CollectionViewHarness.svelte';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
@@ -61,7 +62,7 @@ interface HarnessApi {
 	getYaml: () => string;
 }
 
-describe('CollectionView — selfUpdate latch', () => {
+describe('CollectionView — self-write latch', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 	let api: HarnessApi | undefined;
@@ -115,8 +116,8 @@ describe('CollectionView — selfUpdate latch', () => {
 		expect(document.activeElement).toBe(input);
 
 		// One keystroke: FilterRow fires onUpdate per input event → CollectionView
-		// persistState → onYamlChange → the harness round-trips the new yaml back
-		// down as a prop change. The selfUpdate latch must swallow exactly this
+		// writeYaml → onYamlChange → the harness round-trips the new yaml back
+		// down as a prop change. The `selfYaml` latch must swallow exactly this
 		// round-trip; if the guard re-runs into the reset branch, the seeding
 		// effect regenerates row uids and the keyed each replaces this input.
 		input.value = 'opened';
@@ -721,5 +722,52 @@ describe('CollectionView — view tab menu', () => {
 			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.textContent?.trim() ?? ''),
 		);
 		expect(entries).toEqual(['Rename', 'Change type', 'Delete view']);
+	});
+});
+
+describe('CollectionView — a .collection toolbar edit writes only its key', () => {
+	const ONE_ITEM_AND = `filters:
+  and:
+    - status == 'open'
+  note: kept
+views:
+  - type: table
+    name: All
+    order:
+      - file.name
+      - status
+`;
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map([['/vault/a.md', makeRecord('/vault/a.md', { status: 'open' })]]));
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		document.body.innerHTML = '';
+	});
+
+	it('keeps a one-item and with an unknown key in the filters when the Sort changes', async () => {
+		component = mount(CollectionViewHarness, {
+			target,
+			props: { initialYaml: ONE_ITEM_AND, register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+
+		[...target.querySelectorAll<HTMLElement>('th')].find((th) => th.textContent?.trim() === 'status')!.click();
+		await Promise.resolve();
+		flushSync();
+
+		const raw = parseYaml(api!.getYaml());
+		expect(raw.filters).toEqual({ and: ["status == 'open'"], note: 'kept' });
+		expect(raw.views[0].sort).toEqual([{ column: 'status', direction: 'ASC' }]);
 	});
 });

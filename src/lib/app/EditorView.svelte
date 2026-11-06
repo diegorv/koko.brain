@@ -12,6 +12,7 @@
 	import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
 	import { appBlockLinks, appEditorHost, appFencedBlockRenderers, openWikilinkTarget } from '#lib/app/editor-host.js';
 	import CollectionView from '#lib/features/collection/CollectionView.svelte';
+	import { rewriteViewFile } from '#lib/features/type-definitions/type-definitions.service.js';
 	import TasksView from '#lib/features/tasks/TasksView.svelte';
 	import TagsView from '#lib/features/tags/TagsView.svelte';
 	import GraphView from '#lib/plugins/graph-view/GraphView.svelte';
@@ -85,7 +86,7 @@
 			{:else if isCollectionTab && !collectionSourceMode}
 				<!-- One instance per file: a shared one carried its view tab and toolbar state across files. -->
 				{#key editorStore.activeTab.path}
-					<CollectionView path={editorStore.activeTab.path} yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} />
+					<CollectionView path={editorStore.activeTab.path} yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} rewriteView={rewriteViewFile} />
 				{/key}
 			{:else}
 				<MarkdownEditor host={appEditorHost} renderers={appFencedBlockRenderers} blockLinks={appBlockLinks} />

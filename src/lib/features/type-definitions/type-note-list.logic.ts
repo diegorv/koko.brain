@@ -2,6 +2,7 @@ import type { CollectionDefinition, CollectionFilter, CollectionViewDef, Propert
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 import { parseFilterToGroups, filterGroupsToFilter, getAllKnownProperties } from '#lib/features/collection/toolbar/filter.logic.js';
 import { parseCollectionYaml, railViewIndex, updateCollectionYaml, type CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
+import { sortedJson } from '#lib/features/collection/key-edit.logic.js';
 import { isValidFileName } from '#lib/core/filesystem/fs.logic.js';
 
 /**
@@ -141,15 +142,6 @@ export const TOOLBAR_KEYS: readonly ToolbarKey[] = ['filters', 'viewFilters', 's
 /** The value of each key the toolbar would write for its local state. */
 export function toolbarValuesFromState(globalFilters: FilterGroup[], viewFilters: FilterGroup[], sort: SortDef[]): ToolbarValues {
 	return { filters: filterGroupsToFilter(globalFilters), viewFilters: filterGroupsToFilter(viewFilters), sort };
-}
-
-/** JSON with the keys of every object sorted, so key order never makes two values differ. */
-function sortedJson(value: unknown): string {
-	return JSON.stringify(value ?? null, (_key, v: unknown) =>
-		v && typeof v === 'object' && !Array.isArray(v)
-			? Object.fromEntries(Object.entries(v as Record<string, unknown>).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
-			: v,
-	);
 }
 
 /**
