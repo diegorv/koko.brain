@@ -68,6 +68,12 @@ describe('dailyNotePath', () => {
 		expect(dailyNotePath(new Date(2026, 10, 5))).toBe('/vault/2026/11-Nov/_journal-day-05-11-2026.md');
 	});
 
+	it('is the path the app opens for the daily note', async () => {
+		await openOrCreateDailyNote();
+
+		expect(vi.mocked(openOrCreateNote).mock.calls[0][0].filePath).toBe(dailyNotePath());
+	});
+
 	it('creates nothing', () => {
 		dailyNotePath();
 
