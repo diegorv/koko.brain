@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Labeled rail as the default at a fixed 192 px](issues/01-labeled-rail-default.md) | none | done | issue/01-labeled-rail-default (ba5a0029c) | 2026-11-06 |
 | 02 | [Resizable width saved in `layout.railWidth`](issues/02-resizable-width.md) | 01 | done | issue/02-resizable-width (24c7f3eab) | 2026-11-06 |
 | 03 | [Captioned and collapsed forms, the toggle and the Settings controls](issues/03-captioned-and-collapsed.md) | 02 | done | issue/03-captioned-and-collapsed (36da3137a) | 2026-11-06 |
-| 05 | [Mod color from the manifest, and the docs for the rail forms](issues/05-mod-color-and-docs.md) | 03 | in-progress | | |
+| 05 | [Mod color from the manifest, and the docs for the rail forms](issues/05-mod-color-and-docs.md) | 03 | done | issue/05-mod-color-and-docs (85e183990) | 2026-11-06 |
 | 07 | [Future: icon colors customizable in Settings > Appearance](issues/07-future-custom-icon-colors.md) | 05 | todo | | |
 
 ## Log
@@ -51,3 +51,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 13:53 — 03 — start — launched by /relay-lite:run — 56dcaeda0
 - 2026-11-06 14:21 — 03 — deliver — round 1 APPROVED with one minor and one nit, no code change; sort arrow overlap below 1440 px filed as Issue 08 (needs-triage); full suite 13656 passed, build passed; six gate specs 111 passed on the branch tip — 36da3137a
 - 2026-11-06 14:21 — 05 — start — launched by /relay-lite:run — cb769e06a
+- 2026-11-06 14:40 — 05 — deliver — round 1 APPROVED with one minor and two nits, nits fixed; round 2 APPROVED; full suite 13689 passed, build passed; real app not verified — 85e183990
