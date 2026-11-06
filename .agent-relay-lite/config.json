@@ -1,5 +1,5 @@
 {
-  "base": "main",
+  "base": "feature/vault-mods",
   "remote": "origin",
   "delivery": "merge",
   "checks": {
