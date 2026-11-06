@@ -1,4 +1,4 @@
-# 140: Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed
+# 140: `$$` block math right under a paragraph or callout line renders as math
 
 **Migrated from:** `.scratch/live-preview-audit/issues/05-render-gaps-needing-a-decision.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). The owner scheduled item 2 on 2026-11-06; items 1, 3 and 4 stay postponed.
 

@@ -174,7 +174,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 137 | [File icons read frontmatter only through Rust](issues/137-file-icons-read-frontmatter-only-through-rust.md) | none | todo | | |
 | 138 | [File icon saves that cannot happen tell the user, and clicking the current icon writes nothing](issues/138-file-icon-saves-that-cannot-happen-tell.md) | 137 | todo | | |
 | 139 | [QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text](issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) | none | todo | | |
-| 140 | [Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed](issues/140-live-preview-render-gaps-are-decided-one.md) | none | todo | | |
+| 140 | [`$$` block math right under a paragraph or callout line renders as math](issues/140-live-preview-render-gaps-are-decided-one.md) | none | todo | | |
 | 141 | [The local graph center follows every way the graph tab gets focus, and hints when the center note is gone](issues/141-local-graph-center-follows-every-way-graph.md) | none | todo | | |
 | 142 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/142-tag-may-start-digit-may-carry-emoji.md) | none | todo | | |
 | 143 | [Typing # in the editor suggests the vault's existing tags](issues/143-typing-editor-suggests-vault-s-existing-tags.md) | 142 | todo | | |
@@ -197,3 +197,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 05:47 — 67 and 133 set to wontfix by hand from the owner's 2026-11-06 survey: 67 keeps option C (the one cache reload is accepted), 133 uses the existing autoRunQueries manual setting; the CLI has no transition from todo to wontfix
 - 2026-11-06 05:48 — ledger updated (blocked by of 143)
 - 2026-11-06 05:53 — ledger updated (title of 129)
+- 2026-11-06 05:56 — ledger updated (title of 140)

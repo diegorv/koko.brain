@@ -165,7 +165,7 @@ Real defects that need an unusual setup or sequence. Several came from earlier a
 - [126](issues/126-failure-after-disk-op-still-reports-completed.md) A failure after the disk op still reports a completed rename as done and re-keys the index (from `file-io-audit`)
 - [127](issues/127-note-unquoted-wikilink-value-up-home-accepts.md) A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes
 - [128](issues/128-failed-auto-move-tells-user-which-note.md) A failed Auto Move tells the user which note did not move and why
-- [129](issues/129-vault-picked-outside-two-allowed-folders-refused.md) A vault picked outside the two allowed folders is refused or warned about, never half-working (from `file-io-audit`)
+- [129](issues/129-vault-picked-outside-two-allowed-folders-refused.md) A vault picked outside the two allowed folders is refused with a message naming them, never half-working (from `file-io-audit`)
 - [130](issues/130-quick-capture-dedupe-anchor-advances-only-after.md) The quick-capture dedupe anchor advances only after the frontend accepts the capture (from `file-io-audit`)
 - [131](issues/131-note-whose-live-preview-widget-throws-every.md) A note whose live-preview widget throws on every render stays editable and in sync with its tab (from `file-io-audit`)
 - [132](issues/132-collection-link-cells-never-navigate-app-webview.md) Collection link() cells never navigate the app webview and drop unsafe schemes (from `audit-2026-11-04`)
@@ -180,7 +180,7 @@ Refactors, deferred architecture work and new features.
 - [137](issues/137-file-icons-read-frontmatter-only-through-rust.md) File icons read frontmatter only through Rust (from `architecture-stability`)
 - [138](issues/138-file-icon-saves-that-cannot-happen-tell.md) File icon saves that cannot happen tell the user, and clicking the current icon writes nothing (from `architecture-stability`)
 - [139](issues/139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md) QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text (from `live-preview-audit`)
-- [140](issues/140-live-preview-render-gaps-are-decided-one.md) Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed (from `live-preview-audit`)
+- [140](issues/140-live-preview-render-gaps-are-decided-one.md) `$$` block math right under a paragraph or callout line renders as math (from `live-preview-audit`)
 - [141](issues/141-local-graph-center-follows-every-way-graph.md) The local graph center follows every way the graph tab gets focus, and hints when the center note is gone (needs-info) (from `audit-2026-11-04`)
 - [142](issues/142-tag-may-start-digit-may-carry-emoji.md) A tag may start with a digit and may carry emoji, as in Obsidian (from `tags-obsidian-parity`)
 - [143](issues/143-typing-editor-suggests-vault-s-existing-tags.md) Typing # in the editor suggests the vault's existing tags (from `tags-obsidian-parity`)
