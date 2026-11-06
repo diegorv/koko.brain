@@ -12,9 +12,9 @@
 
 **Blocked by:** 05
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Waits on:** PRD decision B2 (open vs closed). Once answered, this Issue is fully specified.
+**Answered:** PRD B2 (a): done and cancelled are closed; todo, in progress, question, important and forwarded are open (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the spec's hide-completed selector changes.
 
@@ -27,4 +27,4 @@
 ## Notes
 
 - **Size:** S.
-- `audit-2026-11-05/34` asks for the same open rule and the status-preserving tick of Issue 02, and is `needs-info` asking the owner to keep it or these Issues (PRD decision L4). Do not edit or delete anything under `.scratch/audit-2026-11-05/`: name `audit-2026-11-05/34` in the delivery comment, and the main session closes it once the owner answers L4. It covers Issues 02 and 06 together.
+- `audit-2026-11-05/34` asks for the same open rule and the status-preserving tick of Issue 02. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/34` is (with Issue 02) closed as wontfix, covered by this Issue. Do not edit `.scratch/audit-2026-11-05/`.

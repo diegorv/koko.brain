@@ -10,9 +10,9 @@
 
 **Blocked by:** 20
 
-**Status:** needs-info
+**Status:** needs-triage
 
-**Waits on:** PRD decision B3 (Todoist in real use) and `audit-2026-11-05/116` resolved (a corrupt `todoist-sent.json` still loads as `[]` today, `todoist.service.ts:114-117`, and this Issue writes it more often).
+**Waits on:** `audit-2026-11-05/116` resolved (a corrupt `todoist-sent.json` still loads as `[]` today, `todoist.service.ts:114-117`, and this Issue writes it more often). PRD B3 is answered: Todoist is to be used.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

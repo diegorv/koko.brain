@@ -11,9 +11,9 @@ Under PRD decision B7 (a), Issue 26 fixes this, because the note tag scanner rea
 
 **Blocked by:** 11
 
-**Status:** needs-info
+**Status:** wontfix
 
-**Waits on:** PRD decision B7 (task tag rule). Run this Issue only when B7 is answered (b). Under (a) close it as wontfix in the same commit that delivers Issue 26, whose tests cover the same cases.
+**Answered:** PRD B7 (a): Issue 26 fixes the link and URL case with the note tag scanner, and its tests cover these cases. Closed without work (owner, 2026-11-06).
 
 **Gate:** Rust only: `cargo test --manifest-path src-tauri/Cargo.toml`. Run cargo from the checkout or worktree root.
 

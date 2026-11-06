@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** wontfix
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
-**Owner decision needed:** Overlaps `.scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md`, `.scratch/tasks-view/issues/06-open-closed-rule.md`, which another session was writing while this audit ran (untracked at the time). Keep this Issue or that one, and close the other. Toggling an in-progress [/] task: (a) write [x] (done), which reverses the pinned test toggle_task_in_content_in_progress_to_unchecked at parsing.rs:3272-3276, or (b) keep writing [ ] and change only the view's filter, icon and stats to read status.
+**Owner decision (2026-11-06):** close it: covered by .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md and 06-open-closed-rule.md, which keep this work inside the Tasks view redesign.
 
 - [ ] Failing test first, in src/tests/lib/features/tasks/tasks.logic.test.ts: filterCompletedTasks on tasks with `checked: true` and status 'in-progress', 'important', 'question' and 'forwarded' plus one 'done' task returns the four open ones and drops the done one. It fails today.
 - [ ] filterCompleted keeps a group whose only task is in-progress; computeTaskStats counts in-progress as pending and cancelled as completed.
@@ -27,3 +27,5 @@
 - **Source:** audit 2026-11-05, domain `calendar`, finding `N-calendar-02` (from calendar-ux-2, calendar-spec-1). Size M.
 
 ## Comments
+- 2026-11-06: owner decision (tasks-view PRD L4 (a)): kept `.scratch/tasks-view/issues/` Issue 02 and 06, which covers this one. Closed without work.
+- 2026-11-06: closed as wontfix from the 2026-11-06 survey: covered by .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md and 06-open-closed-rule.md, which keep this work inside the Tasks view redesign.

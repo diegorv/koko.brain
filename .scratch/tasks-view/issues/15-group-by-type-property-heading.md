@@ -12,9 +12,9 @@
 
 **Blocked by:** 14
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-**Waits on:** Issue 12, which waits on PRD decision B6. Heading grouping reads `row.headings`, which exists only under B6 (a) as Issue 12 specifies it. Re-check once B6 is answered; under B6 (b) the heading grouping drops out of this Issue (the PRD says (b) "gives no heading grouping").
+**Answered:** PRD B6 (a), so heading grouping stays in this Issue (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

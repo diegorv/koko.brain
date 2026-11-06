@@ -51,6 +51,23 @@ One owner on one Mac, with one vault in heavy use. They use meta-bind, kanban, t
 
 ## Decisions
 
+### Owner answers (2026-11-06)
+
+| Decision | Answer |
+|---|---|
+| B1 | (a) "All open" by default, plus a seeded "To list" saved view |
+| B2 | (a) done and cancelled are closed, every other status is open |
+| B3 | The owner wants to use Todoist. The live API check is the owner's, after delivery (runbook under B3) |
+| B4 | (a) sidecar keyed by Todoist id |
+| B5 | Few open tasks carry dates (owner's estimate, not measured): only "All open" and "No date" ship |
+| B6 | (a) Rust records headings; the one-time index rebuild is accepted |
+| B7 | (a) task tags follow the note tag rule; Issue 31 is wontfix |
+| L1 | (a) the token stays in the vault, documented (Issue 25 rewritten) |
+| L3 | (a) no automatic send |
+| L4 | (a) the tasks-view Issues stay; audit 34, 35, 55 and 122 are wontfix |
+
+No assumption (A1 to A12) was vetoed.
+
 ### Blocking decisions (answer before the Issues they gate)
 
 - **B1. Default list and `#to-list`** (gates Issue 17).
@@ -70,6 +87,15 @@ One owner on one Mac, with one vault in heavy use. They use meta-bind, kanban, t
   - Run two live calls with the owner's token, one on a completed task id and one on a deleted one, to learn whether `GET /api/v1/tasks/{task_id}` returns the task, 404, or something else. Verified so far: the SDK `getTask` JSDoc says "Retrieves a single active (non-completed) task by its ID" (`node_modules/@doist/todoist-sdk/dist/types/todoist-api.d.ts:155-160`), and the v1 docs say "Returns a single active (non-completed) task by ID" and list 404 among its responses (https://developer.todoist.com/api/v1/#tag/Tasks/operation/get_task_api_v1_tasks__task_id__get, read 2026-11-06). Neither says which status a completed or a deleted id gets, so the live check stays. The v1 404 body is JSON: `{ "error": "Task not found", "error_code": 478, "error_tag": "NOT_FOUND", "http_code": 404, ... }` (https://developer.todoist.com/api/v1/#tag/Migrating-from-v9).
   - The same session confirms the recurring `dueString` form Issue 24 sends (`every week starting 2026-11-10`).
   - **Default: treated as used, and the wording is "closed in Todoist (completed or deleted)" until the live check is done.**
+  - **Runbook for the owner** (endpoints checked against the v1 OpenAPI spec on 2026-11-06; it creates, closes and deletes one test task in the owner's account). With `T` set to the token from the vault's `.kokobrain/settings.json` (`todoist.apiToken`) and `A=https://api.todoist.com/api/v1`:
+    ```sh
+    ID=$(curl -s -X POST "$A/tasks" -H "Authorization: Bearer $T" -H 'Content-Type: application/json' -d '{"content":"kokobrain API test","due_string":"every week starting 10 Nov 2026"}' | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d["id"]); print(d.get("due"), file=sys.stderr)')
+    curl -s -X POST "$A/tasks/$ID/close" -H "Authorization: Bearer $T" -o /dev/null -w '%{http_code}\n'
+    curl -s "$A/tasks/$ID" -H "Authorization: Bearer $T" -w '\n%{http_code}\n'   # completed id: what comes back?
+    curl -s -X DELETE "$A/tasks/$ID" -H "Authorization: Bearer $T" -o /dev/null -w '%{http_code}\n'
+    curl -s "$A/tasks/$ID" -H "Authorization: Bearer $T" -w '\n%{http_code}\n'   # deleted id: what comes back?
+    ```
+    The `due` printed by the first call shows whether Todoist read the start date (Issue 24). The task is recurring, so `close` moves it to the next date instead of completing it; if the third call shows an active task, repeat the steps without `due_string` to see a completed id. Record the results here; Issue 20's icon title and Issue 24's date format follow them.
 - **B4. Todoist identity** (gates Issues 22 and 30).
   - (a) A sidecar keyed by Todoist id, matched on the task's `🆔` signifier when present, then on `relPath` plus the clean description, with a "possibly sent" row state (see Todoist below).
   - (b) Write the `🆔 <todoist id>` signifier into the task line on send. The parser already reads it (`parsing.rs:1483`, `metadata.id`). Matching is then exact and survives rewording and renames.
@@ -119,7 +145,7 @@ One owner on one Mac, with one vault in heavy use. They use meta-bind, kanban, t
   - (b) Later: a saved view (Issue 17) doubles as a send rule, with a "Send all not sent" action on that view. This needs bulk send and a confirmation step first.
   - **Default: (a).** Cost: if the owner meant (b), the Todoist part of the complaint is only half answered by this run.
 - **L4. Duplicate Issues in audit 2026-11-05** (see Risks, "Duplicate Issues"). Audit 2026-11-05 Issues 34, 35, 55 and 122 each ask the owner to keep either themselves or the matching tasks-view Issue (02, 04, 06, 20).
-  - (a) Keep the tasks-view Issues. Each tasks-view delivery closes its audit twin as covered, in a separate commit that deletes the audit Issue file and updates its row in `.scratch/audit-2026-11-05/ledger.md`.
+  - (a) Keep the tasks-view Issues. The audit twins are closed as wontfix (`Status: wontfix` and the ledger row), the audit's convention for work closed without a delivery.
   - (b) Keep the audit Issues and rewrite the matching tasks-view Issues on top of them.
   - **Default: (a).** Cost: (a) keeps one spec per behavior, and the tasks-view Issues cover more (02 adds the text and status guard that 122 asks for, and the status-preserving tick that 34 asks for). Under (b), Issues 02, 04, 06 and 20 are re-specified and the chain 01-10 waits for it. Until L4 is answered no relay run picks the audit twins (they are `needs-info`), so the tasks-view Issues are not gated on it. No tasks-view Issue edits or deletes an audit file: each names its twin in the delivery comment, and the main session closes the twin only after the owner answers L4.
 
@@ -365,31 +391,31 @@ Issues live in `issues/`. "Requires" names a prerequisite in another feature, wh
 | 03 | Task writes reach search and the QueryJS cache | 02 | |
 | 04 | The list stays mounted, and the rule explains itself | 01 | |
 | 05 | Rows show status, dates, priority, recurrence and tags | 02, 04 | |
-| 06 | Open means not done and not cancelled | 05 | B2 |
+| 06 | Open means not done and not cancelled | 05 |  |
 | 07 | Quick filters on status, due and priority | 06 | |
 | 08 | Group and sort by note, folder, due, priority or status | 07 | |
 | 09 | Set status, due and priority from the row, with undo | 03, 08 | audit-2026-11-05/135 |
 | 10 | Keyboard navigation and accessible rows | 08 | |
-| 11 | Rust records task headings | none | B6 |
-| 12 | Tasks come from the entries snapshot, and the heading rule runs in TS | 03, 08, 11 | B6 |
-| 13 | Sources panel with source cards and default excludes | 12 | B6 (via 12) |
-| 14 | Property clause and "Only this / Hide this" actions | 13 | B6 (via 12) |
-| 15 | Group by note type, note property or heading | 14 | B6 (via 12) |
+| 11 | Rust records task headings | none |  |
+| 12 | Tasks come from the entries snapshot, and the heading rule runs in TS | 03, 08, 11 |  |
+| 13 | Sources panel with source cards and default excludes | 12 |  |
+| 14 | Property clause and "Only this / Hide this" actions | 13 |  |
+| 15 | Group by note type, note property or heading | 14 |  |
 | 16 | The view's rules survive a restart | 13 | audit-2026-11-05/115 |
-| 17 | Saved views and the "To list" migration | 16 | B1 |
-| 18 | Built-in smart lists and their empty states | 07, 17 | B5 |
+| 17 | Saved views and the "To list" migration | 16 |  |
+| 18 | Built-in smart lists and their empty states | 07, 17 |  |
 | 19 | Task tag quick filter | 07 | |
 | 20 | Todoist sync failures are visible and read the HTTP status | none | |
-| 21 | A Todoist send is never silently forgotten | 20 | B3, audit-2026-11-05/116 |
-| 22 | Todoist link survives edits, and reworded tasks show "possibly sent" | 07, 21 | B3, B4, audit-2026-11-05/116 |
-| 23 | Todoist state on each row and as a quick filter | 07, 10, 22 | B3 |
-| 24 | Todoist send: full project lists, refresh, the default label and recurring due dates | 20 | B3 |
-| 25 | Todoist token moves out of the vault | none | L1 |
-| 26 | Task tags follow the note tag rule | 11 | B7 |
-| 27 | Remove `get_tasks_in_section_v2` and its disk re-read | 12 | B6 |
-| 28 | Lifecycle clause, the archived override and value pickers | 14 | B6 (via 12) |
+| 21 | A Todoist send is never silently forgotten | 20 | audit-2026-11-05/116 |
+| 22 | Todoist link survives edits, and reworded tasks show "possibly sent" | 07, 21 | audit-2026-11-05/116 |
+| 23 | Todoist state on each row and as a quick filter | 07, 10, 22 |  |
+| 24 | Todoist send: full project lists, refresh, the default label and recurring due dates | 20 |  |
+| 25 | Say plainly that the Todoist token lives in the vault | none |  |
+| 26 | Task tags follow the note tag rule | 11 |  |
+| 27 | Remove `get_tasks_in_section_v2` and its disk re-read | 12 |  |
+| 28 | Lifecycle clause, the archived override and value pickers | 14 |  |
 | 29 | The "modified" marker with Save, Revert and Reset | 17 | |
-| 30 | Todoist links follow renames, and unmatched entries are listed | 22 | B3, B4 |
-| 31 | A `#` inside a link or URL is not a task tag | 11 | B7 |
+| 30 | Todoist links follow renames, and unmatched entries are listed | 22 |  |
+| 31 | A `#` inside a link or URL is not a task tag | 11 | wontfix (B7 a) |
 
 Issues 26 to 30 were split out of 19, 12, 13, 17 and 22 to keep each Issue to one run; they are numbered after 25 so the earlier numbers stay stable. Issue 31 was added by the completeness review: it gives the link defect under B7 an owner when B7 is answered (b).

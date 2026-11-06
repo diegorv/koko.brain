@@ -4,11 +4,11 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-**Owner decision needed:** Overlaps `.scratch/tasks-view/issues/04-mounted-list-and-rule-sentence.md`, which another session was writing while this audit ran (untracked at the time). Keep this Issue or that one, and close the other.
+**Owner decision (2026-11-06):** close it: covered by .scratch/tasks-view/issues/04-mounted-list-and-rule-sentence.md (the list stays mounted during a refetch).
 
 - [ ] Failing test first, in a new src/tests/lib/features/tasks/TasksView.refresh.test.ts (mock only Tauri APIs: @tauri-apps/api/core and @tauri-apps/plugin-fs; tasks.store and tasks.logic stay real): with tasksStore holding one group with the task 'Buy milk' and `get_tasks_in_section_v2` left pending, mount TasksView; the 'Buy milk' row is still in the DOM and 'Indexing tasks...' is not. It fails today.
 - [ ] With an empty store (first load), 'Indexing tasks...' still shows until the IPC resolves.
@@ -26,3 +26,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, medium). buildTaskIndex calls setLoading(true) on every call (tasks.service.ts:65) and runs after each toggle (:150). TasksView.svelte:78-83 re-runs it on every vaultIndexVersion bump and on mount, and :169-170 swaps the whole list for 'Indexing tasks...'. The defect exists. The overlap the Issue names is real: .scratch/tasks-view/issues/04-mounted-list-and-rule-sentence.md item 1 specifies the same fix (isLoading && fileTaskGroups.length === 0) with a failing test. That directory is untracked. Corrections to apply while implementing: Practically a duplicate of tasks-view/04, which already specifies this fix and test (and is blocked by tasks-view/01). Record that this Issue should be closed in favor of 04 unless the owner wants the list fix to ship ahead of 04's other parts.
 
 ## Comments
+- 2026-11-06: owner decision (tasks-view PRD L4 (a)): kept `.scratch/tasks-view/issues/` Issue 04, which covers this one. Closed without work.
+- 2026-11-06: closed as wontfix from the 2026-11-06 survey: covered by .scratch/tasks-view/issues/04-mounted-list-and-rule-sentence.md (the list stays mounted during a refetch).

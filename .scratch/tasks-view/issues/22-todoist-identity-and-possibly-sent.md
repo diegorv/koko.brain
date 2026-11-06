@@ -12,9 +12,9 @@ Test: converting a legacy file while `tasksStore.rows` is empty, saving, then lo
 
 **Blocked by:** 07, 21
 
-**Status:** needs-info
+**Status:** needs-triage
 
-**Waits on:** PRD decisions B3 and B4, and `audit-2026-11-05/116` (migrated from `audit-2026-11-04/14`) resolved.
+**Waits on:** `audit-2026-11-05/116` (migrated from `audit-2026-11-04/14`) resolved. PRD B3 (used) and B4 (a, the sidecar keyed by Todoist id) are answered.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

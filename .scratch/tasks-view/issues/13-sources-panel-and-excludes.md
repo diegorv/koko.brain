@@ -20,9 +20,9 @@
 
 **Blocked by:** 12
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-**Waits on:** Issue 12, which waits on PRD decision B6. The heading clause, the default heading card and the row fields it reads (`headings`, `noteType`, `noteTags`, `archived`) are specified for B6 (a) and Issue 12 as written. Re-check this Issue once B6 is answered; under B6 (b) the heading clause and the default card need a new spec.
+**Answered:** PRD B6 (a), the option this Issue is specified for; no re-spec needed (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the spec's section-tag textbox goes away.
 

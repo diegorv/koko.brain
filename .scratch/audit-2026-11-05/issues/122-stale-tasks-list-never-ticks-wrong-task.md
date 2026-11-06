@@ -6,9 +6,9 @@
 
 **Stale in the text below:** vault.rs:708-713 is now vault.rs:759-829 (inner at :759, command at :803). tasks.service.ts:54-73 (buildTaskIndex) is now :63-84 and the post-toggle refetch at :115 is now :150. The throttle constants are at tauri-listeners.service.ts:106-109, not :84-88. Point (2), list ahead of disk with a dirty tab, is handled by b4f126bf2 for the toggle; the remaining scope is a clean tab or an external edit. The Rust write is now atomic (vault_fs::write_atomic, vault.rs:779). The +layout.svelte:135-155 edit effect was not re-verified.
 
-**Owner decision needed:** Overlaps `.scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md`, which another session was writing while this audit ran (untracked at the time). Keep this Issue or that one, and close the other.
+**Owner decision (2026-11-06):** close it: covered by .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md (toggle_task_status checks the expected text and status before writing).
 
-**Status:** needs-info
+**Status:** wontfix
 
 **Blocked by:** none
 Priority: P2
@@ -45,3 +45,5 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/file-io-audit/issues/24-stale-task-list-wrong-line.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: owner decision (tasks-view PRD L4 (a)): kept `.scratch/tasks-view/issues/` Issue 02, which covers this one. Closed without work.
+- 2026-11-06: closed as wontfix from the 2026-11-06 survey: covered by .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md (toggle_task_status checks the expected text and status before writing).

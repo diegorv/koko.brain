@@ -1,26 +1,24 @@
-# 25: Todoist token moves out of the vault
+# 25: Say plainly that the Todoist token lives in the vault
 
-**What to build:** The Todoist API token is stored in plain text in the vault's `.kokobrain/settings.json` (`src/lib/core/settings/settings.types.ts:243-245`), and vaults are often synced. ADR-0019 says keys must not be written to the vault (`docs/adr/0019-kokobrain-in-vault-data-dir.md:61`; that line also points at a keychain service that no longer exists, so correct it in the same change).
+**What to build:** PRD decision L1 is answered (a): the Todoist API token stays in the vault's `.kokobrain/settings.json` (`src/lib/core/settings/settings.types.ts:243-245`), because the owner does not sync vaults. Nothing moves. What is wrong today is that the docs and the UI say otherwise or say nothing:
 
-With PRD decision L1's default (b1):
-
-- A Rust command pair `get_app_secret { key }` / `set_app_secret { key, value }` that reads and writes one JSON file under the Tauri app config dir, registered in `src-tauri/src/lib.rs`'s `invoke_handler` and in `src/lib/contracts/commands.ts`. No capability entry: the app defines no app-command permissions (`src-tauri/build.rs` calls plain `tauri_build::build()`, no `src-tauri/permissions/`), and Tauri 2 then allows registered app commands (from memory; confirm against the Tauri 2 capabilities docs). No such mechanism exists today (no `app_config_dir`, `app_data_dir` or `plugin-store` use in `src-tauri/src` or `src/lib`).
-- `settingsStore.todoist.apiToken` reads from it. On first load, a token found in `settings.json` is copied to the app file, then removed from `settings.json` only after the copy succeeded.
-- `TodoistSection.svelte` says the token is stored on this machine only.
+- `docs/adr/0019-kokobrain-in-vault-data-dir.md:61` says keys must not be written to the vault and points at a bundle-ID macOS Keychain service (ADR-0013) that no longer exists. Add an amendment section dated 2026-11-06, in the style of ADR-0003's 2026-11-01 amendment: the Todoist token is stored in `.kokobrain/settings.json`, this is an accepted exception (PRD L1), and anyone who syncs a vault must exclude `.kokobrain/` (the line above, `:58`, already says so for the model). Do not rewrite the original Consequences text.
+- The `apiToken` JSDoc (`settings.types.ts:244`) says where it comes from but not where it is stored. Add: "Stored in plain text in the vault's `.kokobrain/settings.json`; see ADR-0019's 2026-11-06 amendment."
+- `TodoistSection.svelte` (`:20-21`): the token field's `description` keeps the Todoist path and adds "Stored in this vault's .kokobrain folder. Exclude .kokobrain from sync tools."
+- `help/documentation/10-tasks-and-todoist.md` setup steps (`:121-125`): one sentence with the same fact.
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Waits on:** PRD decision L1 (token location). With (b2) `localStorage` this becomes frontend only; with (a) it becomes a docs change; with (c) it needs a new ADR, since ADR-0013's keychain was dropped to stay cross-platform.
+**Answered:** PRD L1 (a): keep the token in the vault and document it (owner, 2026-11-06).
 
-**Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` (for option b1).
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, with the real settings store, mocking only `invoke` and `@tauri-apps/plugin-fs`: a `settings.json` holding `todoist.apiToken` loads, the token is written through `set_app_secret`, and the next saved `settings.json` has no token. Fails today.
-- [ ] If `set_app_secret` fails, the token stays in `settings.json` and a toast explains why.
-- [ ] Rust test: the command writes only under the app config dir and refuses a key with a path separator.
-- [ ] ADR-0019 gets an amendment for the new location.
+- [ ] Failing test first, `src/tests/lib/core/settings/TodoistSection.test.ts` with the real settings store: the token field shows the storage sentence. Fails today.
+- [ ] The help doc and ADR changes are prose only; `src/tests/help/` still passes.
 
 ## Notes
 
-- **Size:** M.
+- **Size:** XS.
+- The old (b1) design, a Rust command pair under the app config dir, is in git history (commit 8dac7a537) if the owner ever starts syncing vaults.

@@ -9,9 +9,9 @@ Test, first: with the Tasks tab never opened in the session, renaming a note tha
 
 **Blocked by:** 22
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Waits on:** PRD decisions B3 and B4 (inherited from Issue 22).
+**Answered:** PRD B3 (used) and B4 (a) (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

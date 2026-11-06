@@ -68,8 +68,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 31 | [Renaming or moving a note updates [[links]] in kanban cards and file nodes in canvases](issues/31-renaming-moving-note-updates-links-kanban-cards.md) | 15 | todo | | |
 | 32 | [A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result](issues/32-queryjs-block-run-seconds-after-save-shows.md) | none | todo | | |
 | 33 | [kb.pages('"folder"') returns the notes in that folder and its subfolders only](issues/33-kb-pages-folder-returns-notes-that-folder.md) | none | todo | | |
-| 34 | [The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed](issues/34-tasks-view-treats-only-done-cancelled-tasks.md) | none | todo | | |
-| 35 | [The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update](issues/35-tasks-view-keeps-list-scroll-position-screen.md) | none | todo | | |
+| 34 | [The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed](issues/34-tasks-view-treats-only-done-cancelled-tasks.md) | none | wontfix | | |
+| 35 | [The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update](issues/35-tasks-view-keeps-list-scroll-position-screen.md) | none | wontfix | | |
 | 36 | [Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are](issues/36-auto-move-evaluates-moves-only-markdown-notes.md) | none | todo | | |
 | 37 | [Leaving the theme editor any way other than Save puts the active theme back on the app](issues/37-leaving-theme-editor-any-way-other-than.md) | none | todo | | |
 | 38 | [The relationship picker navigates with arrow keys](issues/38-relationship-picker-navigates-arrow-keys.md) | none | todo | | |
@@ -89,7 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 52 | [Clearing a canvas node's color or a link node's title is saved to the .canvas file](issues/52-clearing-canvas-node-s-color-link-node.md) | none | todo | | |
 | 53 | [file.inlinks lists the notes that link to a note whose name contains a dot](issues/53-file-inlinks-lists-notes-that-link-note.md) | none | todo | | |
 | 54 | [Vault open creates every missing placeholder template, including the parent folders periodic-note/ and quick-capture/](issues/54-vault-open-creates-every-missing-placeholder-template.md) | none | todo | | |
-| 55 | [Todoist sync tells the user when it could not reach Todoist or the token was rejected](issues/55-todoist-sync-tells-user-when-could-not.md) | none | todo | | |
+| 55 | [Todoist sync tells the user when it could not reach Todoist or the token was rejected](issues/55-todoist-sync-tells-user-when-could-not.md) | none | wontfix | | |
 | 56 | [New File from Template says the name is taken instead of silently opening the existing note](issues/56-new-file-from-template-says-name-taken.md) | none | todo | | |
 | 57 | [Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why](issues/57-quick-switcher-create-folder-path-projects-idea.md) | none | todo | | |
 | 58 | [Dragging a node in the graph moves that node; dragging the background pans](issues/58-dragging-node-graph-moves-that-node-dragging.md) | none | todo | | |
@@ -156,7 +156,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 119 | [Non-UTF-8 files open read-only or as binary, never written back with U+FFFD](issues/119-non-utf-8-files-open-read-only.md) | none | todo | | |
 | 120 | [CRLF notes keep their CRLF line endings after an edit](issues/120-crlf-notes-keep-their-crlf-line-endings.md) | none | todo | | |
 | 121 | [Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag](issues/121-minor-write-races-are-closed-autosave-during.md) | none | todo | | |
-| 122 | [A stale Tasks list never ticks the wrong task line on a clean tab or after an external edit](issues/122-stale-tasks-list-never-ticks-wrong-task.md) | none | todo | | |
+| 122 | [A stale Tasks list never ticks the wrong task line on a clean tab or after an external edit](issues/122-stale-tasks-list-never-ticks-wrong-task.md) | none | wontfix | | |
 | 123 | [Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card](issues/123-kanban-lane-actions-never-turn-raw-into.md) | none | todo | | |
 | 124 | [Watcher events keep FTS5, semantic and Rust indexes current, and a read error is not treated as a delete](issues/124-watcher-events-keep-fts5-semantic-rust-indexes.md) | none | todo | | |
 | 125 | [A semantic update still embedding when its note is deleted leaves no chunks for the trashed note](issues/125-semantic-update-still-embedding-when-note-deleted.md) | none | todo | | |
@@ -193,3 +193,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-06 00:31 — ledger created (151 Issues)
 - 2026-11-06 00:39 — 45 set to wontfix by hand: the round-2 second opinion found its error path unreachable in daily use (see the Issue); the CLI has no transition from todo to wontfix
+- 2026-11-06 — 34, 35, 55 and 122 set to wontfix by hand: the owner kept the tasks-view Issues 02, 04, 06 and 20 that cover them (tasks-view PRD L4 (a))

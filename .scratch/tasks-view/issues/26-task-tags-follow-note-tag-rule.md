@@ -8,13 +8,13 @@
 - No DTO change, but a parser output change: bump `INDEX_SCHEMA_VERSION` one above its value on main at merge time (re-check after any rebase, even a clean one) (`index_cache.rs:13-18`, "or on parser output changes"; 5 to 6 today, 6 to 7 if Issue 11 bumped it first), or cached entries with a matching mtime keep the old tags. One more full index rebuild per vault; tell the owner. Add a schema-mismatch test as in `src-tauri/tests/commands/vault_test.rs:972-990`. `metadata.tags` and `description` change for non-ASCII tags, and so do the labels Todoist receives (`todoist-bridge.logic.ts:58-60`).
 - The e2e mock parser (`e2e/mocks/vault-index.ts:150-182`) follows, through the parity fixture from Issue 11 (add tag cases to it). It returns `tags: []` for every task today (`:177`), so it gains a tag parser.
 - In the delivery comment, say that `audit-2026-11-05/142`'s task-metadata checkbox is covered by this Issue, so that Issue only changes the shared scanner.
-- Issue 31 is the B7 (b) fix for the link case above. When this Issue is delivered, close 31 as wontfix in a separate commit that deletes its file and says this Issue covers it.
+- Issue 31, the B7 (b) fix for the link case above, is closed as wontfix: B7 was answered (a), and this Issue's tests cover its cases.
 
 **Blocked by:** 11
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Waits on:** PRD decision B7 (task tag rule). `audit-2026-11-05/142` lists "Owner decision first" for exactly this change.
+**Answered:** PRD B7 (a): task tags follow the note tag rule. Issue 31 is closed as wontfix (owner, 2026-11-06).
 
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the e2e mock changes. Run cargo from the checkout or worktree root.
 

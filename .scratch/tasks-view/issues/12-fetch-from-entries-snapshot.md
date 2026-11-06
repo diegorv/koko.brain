@@ -18,9 +18,9 @@
 
 **Blocked by:** 03, 08, 11
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Waits on:** PRD decision B6.
+**Answered:** PRD B6 (a) (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the view's fetch path changes (the e2e mock already serves `get_all_vault_entries_v2`, `e2e/mocks/tauri-core.ts:442`).
 

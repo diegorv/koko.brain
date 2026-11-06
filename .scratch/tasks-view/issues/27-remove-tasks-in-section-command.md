@@ -11,9 +11,9 @@
 
 **Blocked by:** 12
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Waits on:** PRD decision B6 (inherited from Issue 12).
+**Answered:** PRD B6 (a) (owner, 2026-11-06).
 
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the e2e mock changes. Run cargo from the checkout or worktree root.
 

@@ -9,9 +9,9 @@
 
 **Blocked by:** 07, 10, 22
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Waits on:** PRD decision B3.
+**Answered:** PRD B3: the owner wants to use Todoist (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 

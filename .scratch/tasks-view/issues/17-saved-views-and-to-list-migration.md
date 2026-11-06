@@ -11,9 +11,9 @@
 
 **Blocked by:** 16
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Waits on:** PRD decision B1 (default list and `#to-list`).
+**Answered:** PRD B1 (a): open on "All open" with default excludes, plus a seeded "To list" saved view in a vault that has a `#to-list` heading (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the default list changes what the spec sees first.
 
