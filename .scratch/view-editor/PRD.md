@@ -49,6 +49,8 @@ The `collection` internal names (`features/collection`, `fileType`, the fence) s
 | 06 | Display section | 05 | ready-for-agent |
 | 07 | Behavior section | 06 | ready-for-agent |
 
+**Start (owner, 2026-11-06): the foundation first**, in two waves of two: 01 with `view-engine-fixes/02`, then 02 with `view-engine-fixes/01`. `view-engine-fixes/02` lands before 03, so the preview shows its error and failure count.
+
 The Issues run in sequence. 01 and 02 share `yaml-parser.ts`; 02 to 07 share `ViewDialog.svelte`, `view-dialog.logic.ts` and help § View Files. 04 must land before 07, which lets the dialog hide a view.
 
 ## Out of scope

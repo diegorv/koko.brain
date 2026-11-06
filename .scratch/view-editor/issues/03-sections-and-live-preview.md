@@ -22,7 +22,7 @@
 - New view: definition `{ views: [{ type: 'table', name }] }`, no path, `listSort: 'title'` (the preset of PRD default D6).
 - Schedule in an `$effect` with `untrack` (CLAUDE.md rule 2), debounced 300 ms, dropping a stale run by a sequence number as `loadSeq` does. Re-run on draft changes and when the property index or entries are replaced.
 - States: "Loading..." until `collectionStore.isIndexReady` and `viewEntriesLoaded(...)`; "Finish the filter to see matches" while a row's value is blank (skip the run); the `filterError` text when the query reports one.
-- Caveat line under the count: "A misspelled method matches no notes without an error" (`collection.logic.ts:347-358`; fixed for real in `view-engine-fixes/02`).
+- Next to the count, the number of notes that could not be evaluated ("1 note could not be evaluated"), which `view-engine-fixes/02` adds to the query result.
 - Save is blocked while `filterError` is set and the filters were touched (PRD default D10).
 - Collapsed summary: "N notes" or "Filter error".
 
@@ -38,6 +38,7 @@
     - The rendered preview reads "3 notes", then "1 note" after a filter row is edited.
     - A row with a blank value renders "Finish the filter to see matches".
     - An unparseable expression renders the error text and disables Save.
+    - A filter calling an unknown method renders its error and disables Save; `status.lower() == 'a'` over records where one `status` is a number renders "1 note could not be evaluated".
     - A `formula.x` option is listed for a file with that formula.
     - Closing with a touched field renders the discard prompt; Cancel on it keeps the draft.
     - "+ All views" adds the section, and Create passes root filters to `createView`.
@@ -45,5 +46,6 @@
 
 ## Notes
 
+- **Run after (other feature):** view-engine-fixes 02, which adds the per-note failure count and the unknown-method error to `queryViewLens`. relay-lite does not enforce this.
 - Cost: one in-memory query per debounce, the work of one navigator count without the disk read. Not measured on the owner's vault: check it in the app and report the time in the Comments.
 - **Size:** M.

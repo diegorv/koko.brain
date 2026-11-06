@@ -5,7 +5,7 @@
 - Put the menu trigger on each tab only, and clear `tabContextIndex` when the menu closes.
 - Delete view asks first, naming the view: `Delete view "<name>"?`. Cancel writes nothing.
 
-**Blocked by:** none
+**Blocked by:** 02
 
 **Status:** ready-for-agent
 
@@ -18,5 +18,6 @@
 
 ## Notes
 
+- **Run after (other feature):** view-editor 01: both edit `CollectionView.view-writes.test.ts`. It can run in parallel with view-editor 02 (no shared file). relay-lite does not enforce this.
 - A deleted view is recoverable only through file history today.
 - **Size:** S.

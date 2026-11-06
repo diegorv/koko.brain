@@ -5,7 +5,7 @@
 - `validateExpression` checks method names against every name a call can reach, and reports `Unknown method "<name>"`. That is more than `methodRegistry` (`methods.logic.ts`): list `filter` and `map` are handled in the evaluator (`evaluator.ts:490`, `:508`), and the `file.` methods `hasTag`, `inFolder`, `hasProperty`, `asLink` sit in `evaluator.ts:563-584`. Missing one of these would turn a working view into an error.
 - `executeQuery` returns how many records threw. The rail list, the `.view` tab and inline blocks show "N notes could not be evaluated" next to the count. The view-editor preview gets it through `queryViewLens`.
 
-**Blocked by:** 01
+**Blocked by:** none
 
 **Status:** ready-for-agent
 
@@ -16,11 +16,11 @@
   - `src/tests/lib/features/collection/collection-logic.test.ts`: `status.lower() == 'a'` over records where one `status` is a number reports one failure.
   - `src/tests/lib/features/rail-shell/RailNoteList.view.test.ts`: the rendered text "1 note could not be evaluated".
 - [ ] `help/documentation/12-collection.md` § Expression Language Reference: unknown methods are errors; per-note failures are counted.
-- [ ] View-editor 03 added a preview caveat "A misspelled method matches no notes without an error": remove it. `docs/agents/view-files.md` § Filter expressions: update the "(changes: view-engine-fixes/02)" item.
+- [ ] `docs/agents/view-files.md` § Filter expressions: update the "(changes: view-engine-fixes/02)" item.
 
 ## Notes
 
-- **Run after (other feature):** view-editor 03 (`queryViewLens`, `RailNoteList.svelte`) and view-editor 04. relay-lite does not enforce this.
-- Shares `collection.logic.ts` with 03, 04 and 08, and `CollectionView.svelte` with 01: chained.
+- **Runs before (other feature):** view-editor 03 and 04, which extend `queryViewLens` and edit `RailNoteList.svelte`. Never run it in parallel with them. It can run in parallel with view-editor 01 (no shared file).
+- Shares `collection.logic.ts` with 03, 04 and 08, and `CollectionView.svelte` with 01, which runs after this one.
 - Visible change: a view whose filter calls a method that does not exist lists 0 notes today and shows a filter error after this, which also hides the rail's Sort and Filter (`RailNoteList.svelte:192`). Such a view is already broken, so this is ready-for-agent; 08 differs because the shapes it turns into errors list notes today.
 - **Size:** M.

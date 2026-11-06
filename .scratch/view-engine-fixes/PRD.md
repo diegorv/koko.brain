@@ -15,8 +15,8 @@ Vocabulary (`.view` tab, inline block, rail list) as in `.scratch/view-editor/PR
 
 | # | Issue | Blocked by | Status |
 |---|---|---|---|
-| 01 | Tab-strip menu acts on the right tab, and Delete asks first | | ready-for-agent |
-| 02 | Filters report unknown methods and per-note failures | 01 | ready-for-agent |
+| 01 | Tab-strip menu acts on the right tab, and Delete asks first | 02 | ready-for-agent |
+| 02 | Filters report unknown methods and per-note failures | | ready-for-agent |
 | 03 | Columns and sort keys resolve like expressions | 02 | ready-for-agent |
 | 04 | DESC sort lists notes without a value last | 03 | needs-info |
 | 05 | Linear-calendar bars line up with their day columns | | ready-for-agent |
@@ -34,10 +34,13 @@ Vocabulary (`.view` tab, inline block, rail list) as in `.scratch/view-editor/PR
 | 17 | Help docs speak of views, and their examples work | 03, 14 | ready-for-agent |
 | 18 | A `.view` checker for agents | 02 | needs-info |
 
-**Chains inside this feature** follow shared files: `CollectionView.svelte` (01, 02, 06, 07, 11, 13, 15), `RailNoteList.svelte` (02, 07, 09, 10), `collection.logic.ts` (02, 03, 04, 08), `collection-block-widget.ts` (02, 03, 06, 16). 05 and 12 touch none of them.
+**Chains inside this feature** follow shared files: `CollectionView.svelte` (02, 01, 06, 07, 11, 13, 15), `RailNoteList.svelte` (02, 07, 09, 10), `collection.logic.ts` (02, 03, 04, 08), `collection-block-widget.ts` (02, 03, 06, 16). 05 and 12 touch none of them.
+
+**Start (owner, 2026-11-06): the foundation first**, in two waves of two: view-editor 01 with view-engine-fixes 02, then view-editor 02 with view-engine-fixes 01. No two Issues of a wave share a file.
 
 **Order against view-editor.** Each Issue that shares a file with `.scratch/view-editor/` names the view-editor Issue to run after in its Notes ("Run after (other feature)"). relay-lite does not enforce it across features:
-- 02: after view-editor 03 and 04 (`queryViewLens`, `RailNoteList.svelte`).
+- 01: after view-editor 01 (shared test file `CollectionView.view-writes.test.ts`).
+- 02: **before** view-editor 03 and 04 (`queryViewLens`, `RailNoteList.svelte`), never in parallel with them.
 - 04: after view-editor 05 (it removes 05's DESC info line).
 - 07, 10: after view-editor 04 (`RailNoteList.svelte`).
 - 08: after view-editor 03 (`lens.logic.ts`).
