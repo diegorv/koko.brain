@@ -14,7 +14,7 @@
    - "Hide this folder" adds the folder to `query.exclude.folders`; "Hide this note" adds its `relPath` to `query.exclude.notes`. Nothing is added twice.
    - The rule sentence (`describeTaskQuery`, Issue 13) updates at once.
 
-**Blocked by:** 13
+**Blocked by:** 08, 13
 
 **Status:** ready-for-agent
 

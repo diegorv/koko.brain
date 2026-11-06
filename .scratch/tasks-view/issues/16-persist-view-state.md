@@ -6,7 +6,7 @@
 - Reading tolerates unknown keys, fills missing keys with defaults (the `#to-list` default card, the four excludes on), and an invalid value falls back to the defaults with an `error()` log and a toast. It is not overwritten until the user changes the view.
 - Writes follow the settings service's existing save path. No new `writeTextFile` site.
 
-**Blocked by:** 13
+**Blocked by:** 08, 13
 
 **Status:** needs-triage
 

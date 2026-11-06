@@ -326,7 +326,7 @@ Today a toggle relies on the watcher to update FTS5, the semantic index and the 
 
 Issues 11, 26 and 31 each bump `INDEX_SCHEMA_VERSION`, so they never run in parallel: two branches that both change 5 to 6 merge cleanly and leave one bump for two parser changes. 26 and 31 are Blocked by 11; only one of them runs (B7). If the owner wants the tag fix before headings, flip the dependency. Each bump is one above main at merge time, re-checked after any rebase.
 
-- **Confinement.** Every task write command refuses a path outside the open vault, using the open-root accessor from `audit-2026-11-05/134`, as `audit-2026-11-05/135` requires for `toggle_task_status` (`commands/vault.rs:765`, `:779`). Issue 02 changes an existing command and adds no new write surface, so 135 confines it under its new signature. Issue 09 adds a new command, so it waits for 135 and includes its own outside-vault test.
+- **Confinement.** Every task write command refuses a path outside the open vault, using the open-root accessor from `audit-2026-11-05/134`, as `audit-2026-11-05/135` requires for `toggle_task_status` (`commands/vault.rs:765`, `:779`). Issue 02 changes an existing command and adds no new write surface, so 135 confines it under its new signature. Issue 09 adds a new command, so it confines it itself on 134's accessor and includes its own outside-vault test: the owner moved 135 out of the audit's first wave on 2026-11-06, so 09 does not wait for it.
 - Every write command updates the index and emits `vault-index-updated` the way `toggle_task_status` does (`commands/vault.rs:804-829`). There is no new `writeTextFile` site in TS. The TS orchestration keeps the dirty-buffer protocol (`tasks.service.ts:121-155`): save a dirty tab, compare the line, write, then `syncExternalContentToEditor`, then `afterTaskWrite`.
 - The e2e mock (`e2e/mocks/tauri-core.ts:156-160`, `e2e/mocks/vault-index.ts:150-182`, `:478-490`) changes with each command.
 
@@ -394,20 +394,20 @@ Issues live in `issues/`. "Requires" names a prerequisite in another feature, wh
 | 06 | Open means not done and not cancelled | 05 |  |
 | 07 | Quick filters on status, due and priority | 06 | |
 | 08 | Group and sort by note, folder, due, priority or status | 07 | |
-| 09 | Set status, due and priority from the row, with undo | 03, 08 | audit-2026-11-05/135 |
+| 09 | Set status, due and priority from the row, with undo | 03, 08 | audit-2026-11-05/134 |
 | 10 | Keyboard navigation and accessible rows | 08 | |
 | 11 | Rust records task headings | none |  |
-| 12 | Tasks come from the entries snapshot, and the heading rule runs in TS | 03, 08, 11 |  |
+| 12 | Tasks come from the entries snapshot, and the heading rule runs in TS | 03, 07, 11 |  |
 | 13 | Sources panel with source cards and default excludes | 12 |  |
-| 14 | Property clause and "Only this / Hide this" actions | 13 |  |
+| 14 | Property clause and "Only this / Hide this" actions | 08, 13 |  |
 | 15 | Group by note type, note property or heading | 14 |  |
-| 16 | The view's rules survive a restart | 13 | audit-2026-11-05/115 |
+| 16 | The view's rules survive a restart | 08, 13 | audit-2026-11-05/115 |
 | 17 | Saved views and the "To list" migration | 16 |  |
 | 18 | Built-in smart lists and their empty states | 07, 17 |  |
 | 19 | Task tag quick filter | 07 | |
 | 20 | Todoist sync failures are visible and read the HTTP status | none | |
 | 21 | A Todoist send is never silently forgotten | 20 | audit-2026-11-05/116 |
-| 22 | Todoist link survives edits, and reworded tasks show "possibly sent" | 07, 21 | audit-2026-11-05/116 |
+| 22 | Todoist link survives edits, and reworded tasks show "possibly sent" | 07, 12, 21 | audit-2026-11-05/116 |
 | 23 | Todoist state on each row and as a quick filter | 07, 10, 22 |  |
 | 24 | Todoist send: full project lists, refresh, the default label and recurring due dates | 20 |  |
 | 25 | Say plainly that the Todoist token lives in the vault | none |  |

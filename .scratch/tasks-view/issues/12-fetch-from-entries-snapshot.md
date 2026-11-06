@@ -16,7 +16,7 @@
 - `toggleTask` and `updateTask` call `vaultStore.requestPromptIndexRefresh()` (`vault.store.svelte.ts:114`) right before `call('toggle_task_status' | 'update_task_lines')`, as `lifecycle.service.ts:34` does. Not in `afterTaskWrite`: it runs after the command returns, and the Rust command emits `vault-index-updated` during the call, so a flag set afterwards is consumed by a later, unrelated event. `afterTaskWrite` and records the written line's new text and status in an overlay keyed `filePath:lineNumber`. `buildTaskRows` applies the overlay. Each overlay entry stores the write's `updateResult.version`. It is dropped once `vaultStore.vaultIndexVersion` has reached that version, because the memo read at that version already includes the write (`bumpVaultIndexVersion` sets the Rust version, `vault.store.svelte.ts:108-111`).
 - Toggle (Issue 02) and row edits (Issue 09, when present) read `expectedText`/`expectedStatus` from the overlaid row.
 
-**Blocked by:** 03, 08, 11
+**Blocked by:** 03, 07, 11
 
 **Status:** ready-for-agent
 

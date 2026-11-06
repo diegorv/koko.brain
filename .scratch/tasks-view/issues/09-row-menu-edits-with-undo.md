@@ -10,7 +10,7 @@
 **Rust:** one new command, `update_task_lines { path, edits: [{ lineNumber, expectedText, expectedStatus, newText, newStatus }] }`.
 - All or nothing: if any edit's line no longer parses as a task with `expectedText` and `expectedStatus` (as in Issue 02), nothing is written and the result is `stale: true`.
 - Each edit keeps the line's indent and list marker, sets the checkbox char for `newStatus`, and replaces the text after `] ` with `newText`. A `newText` containing `\n` or `\r` is refused with an error.
-- Refuses a path outside the open vault, using the open-root accessor from `audit-2026-11-05/134` (migrated from `audit-2026-11-04/05`), with the same check `audit-2026-11-05/135` (migrated from `audit-2026-11-04/16`) adds to `toggle_task_status`.
+- Refuses a path outside the open vault, using the open-root accessor from `audit-2026-11-05/134` (migrated from `audit-2026-11-04/05`), and checks the canonical path is inside the vault root itself. `audit-2026-11-05/135`, which would add that check to every note-writing command, was moved out of the audit's first wave by the owner on 2026-11-06, so this Issue does not wait for it.
 - Writes with `vault_fs::write_atomic`, updates the index and emits `vault-index-updated` the way `toggle_task_status` does (`commands/vault.rs:804-829`). Returns `{ updatedContent, updateResult, stale }` (`#[ts(export)]`).
 - Registered in `src/lib/contracts/commands.ts` and in the e2e mock (`e2e/mocks/tauri-core.ts`, `e2e/mocks/vault-index.ts`).
 
@@ -23,7 +23,7 @@
 
 **Status:** needs-triage
 
-**Waits on:** `audit-2026-11-05/135` (and its blocker `/134`) resolved, so the new write command reuses the open-root accessor instead of adding another unconfined write path. Otherwise fully specified.
+**Waits on:** `audit-2026-11-05/134` resolved, so the new write command reuses its open-root accessor instead of adding another unconfined write path. Otherwise fully specified.
 
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the e2e mock changes.
 
