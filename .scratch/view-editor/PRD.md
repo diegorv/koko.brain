@@ -18,18 +18,10 @@ The `collection` internal names (`features/collection`, `fileType`, the fence) s
 - **Scope.** Under the name, four sections: **Filters** (with the live preview), **Sort & limit**, **Display**, **Behavior**. Collection-editor concerns stay out: view `type`, calendar keys, `order` (columns), `formulas`, `properties`, adding or removing views.
 - **Layout.** One scrolling column of collapsible sections. Each section shows a one-line summary when collapsed (`23 notes`, `title, max 50`, `rocket, Work`, `pinned, hidden`). Filters starts expanded. New view and Edit view use the same sections.
 - **Name with several views.** With one view in the file, the name is written as `_sidebar_label` and as that view's `name`. With several views, it is written as `_sidebar_label` only: view names are tab names in the `.view` tab, and the dialog never renames them. Behavior gets a selector for `_rail_view` (shown with several views); picking another view reloads This view's filters, the view sort and the limit from that view.
-- **Save writes everything the dialog shows** (no per-key conflict check). **Reopened below: see Needs human, H1.**
-
-## Needs human
-
-**H1. Save: everything, or only what the user changed.** The owner chose "Save writes every field as loaded or edited" on 2026-11-05. The research found that this is already lossy today, before any field is added (`research/synthesis-modal.md` R1, `research/synthesis-completeness.md` C1, C5):
-- An unchanged Save renames the view to the label (`yaml-parser.ts:318`), so New table's `All` becomes the file name.
-- Every untouched filter goes through the Filter panel round trip, which is not an identity: `x != true` becomes `x == false`, `x == date('X')` becomes `x == 'X'`, `x > '5'` becomes `x > 5`, `{and: []}` becomes JSON text, an empty `or` is dropped. Inline blocks run the raw filter, so their rows change (`view-engine-fixes/08`).
-- Writing every field in canonical spelling would rename every alias (`icon:` to `_icon:`) and rewrite every section.
-
-Recommendation: a **touched-only patch**. Save writes only the fields whose draft differs from what was loaded; an unchanged Save writes nothing. This is not the conflict check the owner declined: a field the user did touch still overwrites the file. With it, the one-view name rule becomes "`views[0].name` follows the label only when it equalled the old label", so `All` survives.
-
-Issue 02 carries this decision and is `needs-info` until it is made. Every later Issue builds on 02.
+- **Save writes only what the user changed** (decided 2026-11-06, reversing the 2026-11-05 "save everything", after the research below). Save writes only the fields whose draft differs from what was loaded; an unchanged Save writes nothing. There is still no per-key conflict check: a field the user touched overwrites the file. With one view in the file, `views[0].name` follows the label only when it equalled the old label, so New table's `All` survives. Why: "save everything" was already lossy before any field was added (`research/synthesis-modal.md` R1, `research/synthesis-completeness.md` C1, C5):
+  - An unchanged Save renamed the view to the label (`yaml-parser.ts:318`).
+  - Every untouched filter went through the Filter panel round trip, which is not an identity: `x != true` becomes `x == false`, `x == date('X')` becomes `x == 'X'`, `x > '5'` becomes `x > 5`, `{and: []}` becomes JSON text, an empty `or` is dropped. Inline blocks run the raw filter, so their rows changed (`view-engine-fixes/08`).
+  - Writing every field in canonical spelling would rename every alias (`icon:` to `_icon:`).
 
 ## Defaults taken by the agent (override any of them)
 
@@ -50,7 +42,7 @@ Issue 02 carries this decision and is `needs-info` until it is made. Every later
 | # | Issue | Blocked by | Status |
 |---|---|---|---|
 | 01 | Tab rename and delete keep `_rail_view` in sync | | ready-for-agent |
-| 02 | Edit view saves only what the user changed (draft, patch, Document writer) | 01 | needs-info (H1) |
+| 02 | Edit view saves only what the user changed (draft, patch, Document writer) | 01 | ready-for-agent |
 | 03 | Section layout and live Filters preview | 02 | ready-for-agent |
 | 04 | Edit view opens from anywhere, hidden views included | 03 | ready-for-agent |
 | 05 | Sort & limit section | 04 | ready-for-agent |

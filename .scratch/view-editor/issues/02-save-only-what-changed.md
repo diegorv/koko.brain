@@ -15,7 +15,7 @@
 
 **Name and Filters on the patch:**
 - The name is validated only when touched or for New view (PRD default D9).
-- One view: `views[0].name` changes only when it equalled the old effective label (H1). Several views: only `_sidebar_label` is written; no view is renamed and `_rail_view` is not written.
+- One view: `views[0].name` changes only when it equalled the old effective label (owner decision of 2026-11-06). Several views: only `_sidebar_label` is written; no view is renamed and `_rail_view` is not written.
 - An absent `_sidebar_label` with an unchanged name writes nothing.
 - Filters: only a touched section is written (`filterGroupsToFilter`); empty groups delete the key.
 
@@ -25,9 +25,9 @@
 
 **Blocked by:** 01
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
-**Needs human:** PRD H1. The owner chose "Save writes everything the dialog shows"; this Issue implements the recommended touched-only patch instead. Do not start it until the owner confirms H1. If the owner keeps "writes everything", rewrite this Issue: the draft and Document writer still apply, the patch becomes every field, and the tests on unchanged Save change.
+The touched-only save is an owner decision of 2026-11-06 (PRD § Owner decisions).
 
 **Gate:** frontend: `pnpm check` + `pnpm vitest run`.
 
@@ -39,7 +39,7 @@
   - A head comment and an inline comment survive a label change (D2).
   - One view named `All`, no `_sidebar_label`, label changed: `name` stays `All`. One view whose `name` equals the label: `name` follows.
   - Several views: only `_sidebar_label` changes; `_rail_view` and every `name` stay.
-- [ ] `src/tests/lib/features/collection/yaml-parser.test.ts:956-1150`: the `updateViewEditYaml` tests move to the new module. The multi-view rename tests (around :988 and :1093) take the new expectation. This is a behavior change the owner approved on 2026-11-05 ("Separar o nome"), not a weakened test.
+- [ ] `src/tests/lib/features/collection/yaml-parser.test.ts:956-1150`: the `updateViewEditYaml` tests move to the new module. The multi-view rename tests (around :988 and :1093) take the new expectation. This is a behavior change the owner approved (2026-11-05 for several views, 2026-11-06 for the one-view rule), not a weakened test.
 - [ ] `src/tests/lib/features/type-definitions/edit-view.service.test.ts`:
   - With a dirty `.view` tab in the real `editorStore`, `readViewBase` returns the buffer.
   - An unchanged save writes nothing: the mocked write is not called.

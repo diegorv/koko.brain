@@ -23,7 +23,7 @@ Vocabulary (`.view` tab, inline block, rail list) as in `.scratch/view-editor/PR
 | 06 | Calendars say how many notes have no date | 01, 03 | ready-for-agent |
 | 07 | The Filter panel cannot write an empty or unparseable filter | 02 | ready-for-agent |
 | 08 | The rail and the editor run the file's filter; bad shapes are errors | 04, 07 | needs-info |
-| 09 | Rail view switcher for multi-view files | 07 | needs-info |
+| 09 | Rail view switcher for multi-view files | 07 | ready-for-agent |
 | 10 | Rule line names the limit and the sort source | 09 | ready-for-agent |
 | 11 | Small `.view` tab write feedback | 06 | needs-info |
 | 12 | View writers refresh promptly and fail loudly | | ready-for-agent |
@@ -49,7 +49,6 @@ Vocabulary (`.view` tab, inline block, rail list) as in `.scratch/view-editor/PR
 
 - **04**: flips a behavior a test pins (`collection-logic.test.ts:640-659`, DESC puts nulls first).
 - **08**: a `filters:` list of strings becomes an error where today it lists every note; a map shape becomes an error in inline blocks too.
-- **09**: waits for view-editor 02, which waits for the owner's H1.
 - **11**: its `limit` part turns `2.5`, `.inf` and `.nan`, which parse today, into parse errors.
 - **16**: the name of the new block key (`view` is already an alias of `_view`).
 - **18**: how a script under `scripts/` loads the TS modules.

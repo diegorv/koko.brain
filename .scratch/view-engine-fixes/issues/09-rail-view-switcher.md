@@ -7,9 +7,7 @@
 
 **Blocked by:** 07
 
-**Status:** needs-info
-
-**Needs human:** this writes through `applyViewDialogPatch`, which view-editor 02 creates, and 02 waits on the owner's H1 decision. Once 02 is done, set this to ready-for-agent.
+**Status:** ready-for-agent
 
 **Gate:** frontend: `pnpm check` + `pnpm vitest run`.
 
@@ -18,5 +16,5 @@
 
 ## Notes
 
-- **Run after (other feature):** view-editor 07 and 04. relay-lite does not enforce this.
+- **Run after (other feature):** view-editor 07 and 04 (07 needs 02, which creates `applyViewDialogPatch`). relay-lite does not enforce this.
 - **Size:** M.
