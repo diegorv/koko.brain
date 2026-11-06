@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Discover and load mods from `_system/mods/`](issues/02-load-mods.md) | 01 | done | issue/02-load-mods (97110117b) | 2026-11-06 |
 | 03 | [A mod's rail button opens a picker of its actions](issues/03-rail-button-action-picker.md) | 02 | done | issue/03-rail-button-action-picker (533b439f9) | 2026-11-06 |
 | 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | todo | | |
-| 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | todo | | |
+| 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | in-progress | | |
 | 06 | [Long runs: progress, log, Stop, and a busy rail button](issues/06-run-view-and-stop.md) | 04 | todo | | |
 | 07 | [Mod authoring docs, an example mod and the mods ADR](issues/07-docs-example-adr.md) | 06 | todo | | |
 | 08 | [`ctx.http.fetch`, with an MCP Streamable HTTP example mod](issues/08-ctx-http-and-mcp-example.md) | 06, 07 | todo | | |
@@ -58,3 +58,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 09:40 — 02 — deliver — merged to feature/vault-mods as 97110117b; review APPROVED x2 (claude); fix round kept read-failure cause, isolated dedupe test folder, hello mod asserts it ran only with toggle on; nits 4-5 not changed; check, mods tests, E2E vault-mods (4) and full suite + build green — 97110117b
 - 2026-11-06 09:57 — 03 — start — launched by /relay-lite:run — e6811bfb8
 - 2026-11-06 10:29 — 03 — deliver — merged to feature/vault-mods as 533b439f9; review APPROVED x2 (claude); fix round: icon pack preloaded only when getIconSync misses, JSDoc fixes; round 2 ship-only, two test nits not taken; full suite + build green — 533b439f9
+- 2026-11-06 10:30 — 05 — start — launched by /relay-lite:run — aa1494bfb
