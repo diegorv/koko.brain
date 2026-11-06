@@ -3,6 +3,55 @@ import type { ModV1 } from './contract/mod-api.v1';
 /** Vault-relative folder that holds one subfolder per mod (PRD P2: fixed, ignores `templates.systemFolder`) */
 export const MODS_DIR = '_system/mods';
 
+/** The files of a mod whose change reloads it */
+const MOD_FILES = ['manifest.json', 'main.js'];
+
+/** What a watcher batch asks of the mods host */
+export interface ModChanges {
+	/** The mods folder or one of its ancestors inside the vault changed: list the folders again and reload all */
+	rediscover: boolean;
+	/** Mod folders to reload, each once, sorted */
+	folders: string[];
+}
+
+/**
+ * Maps the absolute paths of a watcher batch to the mods to reload. A path is
+ * the mods folder or one of its ancestors below the vault root (`_system`
+ * renamed can arrive as that path alone): rediscover. A mod folder (a deletion
+ * often arrives as the folder alone, since the Rust watcher keeps only the
+ * deepest paths) or a `manifest.json` / `main.js` directly inside one: that
+ * folder. Anything else is ignored. A single name with a `.` directly in the
+ * mods folder is a file, not a mod: a mod id has no `.`. So a folder whose
+ * name has a `.` (listed only as an error at start) is not reloaded, and its
+ * error row stays after it is deleted until the next start or rediscover.
+ */
+export function mapModChanges(paths: string[], vaultPath: string): ModChanges {
+	const modsPath = `${vaultPath}/${MODS_DIR}`;
+	let rediscover = false;
+	const folders = new Set<string>();
+	for (const path of paths) {
+		if (path === modsPath || (path.startsWith(`${vaultPath}/`) && modsPath.startsWith(`${path}/`))) {
+			rediscover = true;
+			continue;
+		}
+		if (!path.startsWith(`${modsPath}/`)) continue;
+		const segments = path.slice(modsPath.length + 1).split('/');
+		if (segments.length === 1 && !segments[0].includes('.')) folders.add(segments[0]);
+		else if (segments.length === 2 && MOD_FILES.includes(segments[1])) folders.add(segments[0]);
+	}
+	return { rediscover, folders: [...folders].sort() };
+}
+
+/**
+ * Whether an absolute watcher path is mod code: a file under the vault's mods
+ * folder that is not a note (`.md`, `.markdown`) or a view (`.view`). The
+ * watcher handler leaves these out of the index rebuild. False with no vault.
+ */
+export function isModCodePath(path: string, vaultPath: string | null): boolean {
+	if (vaultPath === null || !path.startsWith(`${vaultPath}/${MODS_DIR}/`)) return false;
+	return !(path.endsWith('.md') || path.endsWith('.markdown') || path.endsWith('.view'));
+}
+
 /**
  * Throws `Invalid vault path "<path>"` unless `path` is a vault-relative
  * path: split on `/`, no empty path, no leading `/`, and no empty, `.` or

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
 
 const fsFiles = vi.hoisted(() => new Map<string, string>());
 
@@ -33,6 +33,17 @@ vi.mock('@tauri-apps/api/core', () => ({
 
 vi.mock('svelte-sonner', () => ({
 	toast: { info: vi.fn(), success: vi.fn(), warning: vi.fn(), error: vi.fn() },
+}));
+
+// Only the watcher's listener registry is replaced, so a test can deliver a
+// batch the way the Rust watcher would.
+const fileListeners = vi.hoisted(() => new Set<(paths: string[]) => void>());
+vi.mock('#lib/core/filesystem/fs.watcher.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/core/filesystem/fs.watcher.js')>()),
+	onFileChange: vi.fn((listener: (paths: string[]) => void) => {
+		fileListeners.add(listener);
+		return () => fileListeners.delete(listener);
+	}),
 }));
 
 // error() reports to Sentry; mod errors must stay out of it (PRD P9).
@@ -489,6 +500,295 @@ describe('mods host', () => {
 
 			expect(globals.__modEvents).toEqual(['alpha:load']);
 			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['alpha', 'loaded']]);
+		});
+	});
+
+	describe('reload on file change', () => {
+		const MODS = `${VAULT}/_system/mods`;
+
+		/** A mod with one rail button titled `title`, which records its load and unload */
+		function buttonMod(folder: string, title: string): string {
+			return `export default {
+	onload(ctx) {
+		globalThis.__modEvents.push('${folder}:load:${title}');
+		ctx.addRailButton({ id: 'main', title: '${title}', icon: 'lucide:sparkles' });
+	},
+	onunload() { globalThis.__modEvents.push('${folder}:unload'); },
+};`;
+		}
+
+		/** Delivers one watcher batch to every registered listener */
+		function emit(paths: string[]): void {
+			for (const listener of fileListeners) listener(paths);
+		}
+
+		function removeMod(folder: string): void {
+			for (const key of [...fsFiles.keys()]) if (key.startsWith(`${MODS}/${folder}/`)) fsFiles.delete(key);
+		}
+
+		const buttons = () => railRegistryStore.actions.map((a) => [a.key, a.label]);
+		const states = () => modsStore.entries.map((e) => [e.folder, e.state]);
+
+		beforeEach(() => {
+			fileListeners.clear();
+		});
+
+		it('a changed main.js swaps the old button for the new one', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello v1'));
+			await startModsHost(VAULT);
+			expect(buttons()).toEqual([['mod:hello:main', 'Hello v1']]);
+
+			writeMod('hello', buttonMod('hello', 'Hello v2'));
+			emit([`${MODS}/hello/main.js`]);
+
+			await vi.waitFor(() => expect(buttons()).toEqual([['mod:hello:main', 'Hello v2']]));
+			expect(globals.__modEvents).toEqual(['hello:load:Hello v1', 'hello:unload', 'hello:load:Hello v2']);
+			expect(states()).toEqual([['hello', 'loaded']]);
+		});
+
+		it('a changed manifest.json reloads the mod under its new name', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello'));
+			await startModsHost(VAULT);
+
+			writeMod('hello', buttonMod('hello', 'Hello'), { name: 'Renamed', version: '2.0.0' });
+			emit([`${MODS}/hello/manifest.json`]);
+
+			await vi.waitFor(() => expect(modsStore.entries[0]).toMatchObject({ name: 'Renamed', version: '2.0.0', state: 'loaded' }));
+		});
+
+		it('a broken new main.js leaves the mod in error with no button, and another mod keeps its button', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello'));
+			writeMod('other', buttonMod('other', 'Other'));
+			await startModsHost(VAULT);
+
+			fsFiles.set(`${MODS}/hello/main.js`, 'const mod = {};\n');
+			emit([`${MODS}/hello/main.js`]);
+
+			const message = '_system/mods/hello: main.js: found no "export default"; a mod default-exports an object with onload';
+			await vi.waitFor(() => expect(states()).toEqual([['hello', 'error'], ['other', 'loaded']]));
+			expect(modsStore.entries[0].error?.message).toBe(message);
+			expect(toast.error).toHaveBeenCalledWith(message);
+			expect(buttons()).toEqual([['mod:other:main', 'Other']]);
+			expect(globals.__modEvents).toContain('hello:unload');
+			expect(globals.__modEvents).not.toContain('other:unload');
+			expect(error).not.toHaveBeenCalled();
+		});
+
+		it('a deleted mod folder unloads the mod and drops its row', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello'));
+			writeMod('other', buttonMod('other', 'Other'));
+			await startModsHost(VAULT);
+
+			removeMod('hello');
+			emit([`${MODS}/hello`]);
+
+			await vi.waitFor(() => expect(states()).toEqual([['other', 'loaded']]));
+			expect(buttons()).toEqual([['mod:other:main', 'Other']]);
+			expect(globals.__modEvents).toContain('hello:unload');
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('a new mod folder loads, even when the vault had no mods folder at start', async () => {
+			await startModsHost(VAULT);
+			expect(modsStore.entries).toEqual([]);
+
+			writeMod('fresh', buttonMod('fresh', 'Fresh'));
+			emit([`${MODS}/fresh/main.js`, `${MODS}/fresh/manifest.json`]);
+
+			await vi.waitFor(() => expect(states()).toEqual([['fresh', 'loaded']]));
+			expect(buttons()).toEqual([['mod:fresh:main', 'Fresh']]);
+			expect(globals.__modEvents).toEqual(['fresh:load:Fresh']);
+		});
+
+		it('two quick batches for one mod load it once, with the newest code', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello v1'));
+			await startModsHost(VAULT);
+			let release!: () => void;
+			const gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const original = vi.mocked(readTextFile).getMockImplementation()!;
+			vi.mocked(readTextFile).mockClear();
+			vi.mocked(readTextFile).mockImplementation(async (path, options) => {
+				await gate;
+				return original(path, options);
+			});
+			// A failure before release() must not leave every later read hanging.
+			onTestFinished(() => {
+				release();
+				vi.mocked(readTextFile).mockImplementation(original);
+			});
+
+			writeMod('hello', buttonMod('hello', 'Hello v2'));
+			emit([`${MODS}/hello/main.js`]);
+			await vi.waitFor(() => expect(readTextFile).toHaveBeenCalledWith(`${MODS}/hello/manifest.json`));
+			writeMod('hello', buttonMod('hello', 'Hello v3'));
+			emit([`${MODS}/hello/main.js`]);
+			release();
+
+			await vi.waitFor(() => expect(buttons()).toEqual([['mod:hello:main', 'Hello v3']]));
+			expect(globals.__modEvents).toEqual(['hello:load:Hello v1', 'hello:unload', 'hello:load:Hello v3']);
+		});
+
+		it('a change while the first onload still runs unloads that instance and loads the new code', async () => {
+			let release!: () => void;
+			globals.__modGate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			writeMod(
+				'slow',
+				`export default {
+	async onload(ctx) {
+		globalThis.__modEvents.push('slow:load-start');
+		await globalThis.__modGate;
+	},
+	onunload() { globalThis.__modEvents.push('slow:unload'); },
+};`,
+			);
+			const starting = startModsHost(VAULT);
+			await vi.waitFor(() => expect(globals.__modEvents).toContain('slow:load-start'));
+
+			writeMod('slow', buttonMod('slow', 'Slow v2'));
+			emit([`${MODS}/slow/main.js`]);
+			release();
+			await starting;
+
+			await vi.waitFor(() => expect(buttons()).toEqual([['mod:slow:main', 'Slow v2']]));
+			expect(globals.__modEvents).toEqual(['slow:load-start', 'slow:unload', 'slow:load:Slow v2']);
+			expect(states()).toEqual([['slow', 'loaded']]);
+		});
+
+		it('a batch that arrives before the start lists the mods folder loads the mod once', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello'));
+
+			const starting = startModsHost(VAULT);
+			emit([`${MODS}/hello/main.js`]);
+			await starting;
+
+			await vi.waitFor(() => expect(states()).toEqual([['hello', 'loaded']]));
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(globals.__modEvents).toEqual(['hello:load:Hello']);
+			expect(buttons()).toEqual([['mod:hello:main', 'Hello']]);
+		});
+
+		it('a reloaded mod whose onload never settles does not block the next save', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello v1'));
+			await startModsHost(VAULT);
+			globals.__modGate = new Promise<void>(() => {});
+
+			writeMod(
+				'hello',
+				`export default {
+	async onload(ctx) {
+		globalThis.__modEvents.push('hello:hang');
+		await globalThis.__modGate;
+	},
+	onunload() { globalThis.__modEvents.push('hello:unload'); },
+};`,
+			);
+			emit([`${MODS}/hello/main.js`]);
+			await vi.waitFor(() => expect(globals.__modEvents).toContain('hello:hang'));
+
+			writeMod('hello', buttonMod('hello', 'Hello v3'));
+			emit([`${MODS}/hello/main.js`]);
+
+			await vi.waitFor(() => expect(buttons()).toEqual([['mod:hello:main', 'Hello v3']]));
+			expect(states()).toEqual([['hello', 'loaded']]);
+		});
+
+		it('a failed check for manifest.json keeps the running mod and its row', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello'));
+			await startModsHost(VAULT);
+			vi.mocked(exists).mockRejectedValueOnce(new Error('disk gone'));
+
+			emit([`${MODS}/hello/main.js`]);
+
+			await vi.waitFor(() => expect(error).toHaveBeenCalled());
+			expect(globals.__modEvents).toEqual(['hello:load:Hello']);
+			expect(buttons()).toEqual([['mod:hello:main', 'Hello']]);
+			expect(states()).toEqual([['hello', 'loaded']]);
+		});
+
+		it('a changed main.js of a disabled mod runs nothing and leaves it disabled under its new name', async () => {
+			modsEnabledStore.setModEnabled('hello', false);
+			writeMod('hello', buttonMod('hello', 'Hello'));
+			await startModsHost(VAULT);
+
+			writeMod('hello', buttonMod('hello', 'Hello v2'), { name: 'Renamed' });
+			emit([`${MODS}/hello/main.js`, `${MODS}/hello/manifest.json`]);
+
+			await vi.waitFor(() => expect(modsStore.entries[0]).toMatchObject({ name: 'Renamed', state: 'disabled' }));
+			expect(readTextFile).not.toHaveBeenCalledWith(`${MODS}/hello/main.js`);
+			expect(globals.__modEvents).toEqual([]);
+			expect(buttons()).toEqual([]);
+		});
+
+		it('a new folder switched off in Labs is listed as disabled, not loaded', async () => {
+			modsEnabledStore.setModEnabled('fresh', false);
+			await startModsHost(VAULT);
+
+			writeMod('fresh', buttonMod('fresh', 'Fresh'));
+			emit([`${MODS}/fresh`]);
+
+			await vi.waitFor(() => expect(states()).toEqual([['fresh', 'disabled']]));
+			expect(globals.__modEvents).toEqual([]);
+		});
+
+		it('a change to _system lists the mods folder again: a gone folder unloads, a new one loads', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello'));
+			await startModsHost(VAULT);
+
+			removeMod('hello');
+			writeMod('fresh', buttonMod('fresh', 'Fresh'));
+			emit([`${VAULT}/_system`]);
+
+			await vi.waitFor(() => expect(states()).toEqual([['fresh', 'loaded']]));
+			expect(buttons()).toEqual([['mod:fresh:main', 'Fresh']]);
+			expect(globals.__modEvents).toContain('hello:unload');
+		});
+
+		it('a deleted mods folder unloads every mod', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello'));
+			writeMod('other', buttonMod('other', 'Other'));
+			await startModsHost(VAULT);
+
+			removeMod('hello');
+			removeMod('other');
+			emit([MODS]);
+
+			await vi.waitFor(() => expect(modsStore.entries).toEqual([]));
+			expect(buttons()).toEqual([]);
+		});
+
+		it('ignores a README or a backup file', async () => {
+			writeMod('hello', buttonMod('hello', 'Hello'));
+			await startModsHost(VAULT);
+			vi.mocked(readTextFile).mockClear();
+
+			emit([`${MODS}/hello/README.md`, `${MODS}/hello/main.js~`]);
+			await new Promise((resolve) => setTimeout(resolve, 0));
+
+			expect(readTextFile).not.toHaveBeenCalled();
+			expect(globals.__modEvents).toEqual(['hello:load:Hello']);
+		});
+
+		it('stop unsubscribes the listener, and mods off never subscribes', async () => {
+			await startModsHost(VAULT);
+			expect(fileListeners.size).toBe(1);
+
+			stopModsHost();
+			expect(fileListeners.size).toBe(0);
+
+			modsEnabledStore.setEnabled(false);
+			await startModsHost(VAULT);
+			expect(fileListeners.size).toBe(0);
+		});
+
+		it('a second start keeps one listener', async () => {
+			await startModsHost(VAULT);
+			await startModsHost(VAULT);
+
+			expect(fileListeners.size).toBe(1);
 		});
 	});
 

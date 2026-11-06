@@ -12,11 +12,11 @@
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/vault-mods.spec.ts`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - `mods.logic.test.ts`: the mapping for a file, a mod folder, the mods folder, `_system` itself, a README, a backup file, a path outside the folder, and a mixed batch.
   - `mods-host.service.test.ts`: a batch with a changed `main.js` swaps `mod:hello:main` for the new button; a broken new `main.js` leaves the mod in `error` with no button while another mod keeps its button; a deleted folder unloads; a new folder loads; two quick batches for one mod load it once with the newest code.
   - `watcher-handler.service.test.ts`: a batch of only mod `.js`/`.json` paths skips the rebuild; a batch with a mod `.js` and a note still updates the note incrementally (keep `watcher-handler.mixed-batch.test.ts` green).
@@ -30,3 +30,5 @@
 ## Comments
 
 - **2026-11-06, after Issue 02 (commit `0e6db1917` on `feature/vault-mods`):** each mod now has an on/off switch in Settings > Labs (`modsEnabledStore.disabledMods`, saved per vault in localStorage; `enableMod` / `disableMod` / `listDisabledMod` in `mods-host.service.ts`). A reload must respect it: a file change in a switched-off mod never loads it; at most it re-lists the row as `disabled` (new manifest name), and a new folder whose name is in `disabledMods` is listed as `disabled`, not loaded. The host already keeps a per-folder epoch (`folderEpochs`) that makes an in-flight load drop its result after a switch; the reload's own generation counter must not bypass it. Add a host test: changing `main.js` of a disabled mod runs nothing and leaves it `disabled`.
+
+- **2026-11-06, delivered from `issue/04-reload-on-save` onto `feature/vault-mods`:** a save under a mod's folder unloads and reloads that mod without a restart; review round 1 fixes: start/listener race loads a mod once, a reload never waits on `onload`, a failed `manifest.json` check keeps the running mod. Tests: pnpm check 0 errors; mods + lifecycle vitest 348 passed; E2E vault-mods 8 passed; full suite at bd4aede41 13253 passed, build ok. Reviews: round 1 APPROVED (findings fixed), round 2 APPROVED (no findings).

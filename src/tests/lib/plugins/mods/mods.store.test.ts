@@ -55,6 +55,22 @@ describe('modsStore', () => {
 		});
 	});
 
+	it('removes the entry of a folder and keeps the others', () => {
+		modsStore.setEntries([HELLO, BROKEN]);
+
+		modsStore.removeEntry('hello');
+
+		expect(modsStore.entries).toEqual([BROKEN]);
+	});
+
+	it('removing an unknown folder changes nothing', () => {
+		modsStore.setEntries([HELLO]);
+
+		modsStore.removeEntry('missing');
+
+		expect(modsStore.entries).toEqual([HELLO]);
+	});
+
 	it('reset empties the list', () => {
 		modsStore.setEntries([HELLO]);
 

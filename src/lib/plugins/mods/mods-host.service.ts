@@ -1,20 +1,22 @@
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 
+import { onFileChange } from '#lib/core/filesystem/fs.watcher.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
 import { preloadPacks } from '#lib/features/file-icons/file-icons.service.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import type { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
-import { debug } from '#lib/utils/debug.js';
+import { debug, error } from '#lib/utils/debug.js';
+import { serializeWithRerun } from '#lib/utils/inflight.js';
 
 import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModV1 } from './contract/mod-api.v1';
 import { createModKb, MOD_APP, type ModApp } from './mod-app.service';
 import { modPickerStore } from './mod-picker.store.svelte';
 import { createModVault, createModWorkspace } from './mod-vault.service';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
-import { evaluateModSource, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
+import { evaluateModSource, mapModChanges, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
 import { modsStore } from './mods.store.svelte';
 
 /**
@@ -61,10 +63,15 @@ const NOTIFY_KINDS: readonly ModNotifyKindV1[] = ['info', 'success', 'warning', 
 /** Bumped by every stop; a load that sees a different value drops its result */
 let generation = 0;
 /**
- * Bumped per folder by every per-mod switch, so a load still in flight from
- * before an off/on drops its result instead of loading the mod twice
+ * Bumped per folder by every per-mod switch and every reload request, so a
+ * load still in flight from before drops its result instead of loading the
+ * mod twice or with older code
  */
 const folderEpochs = new Map<string, number>();
+/** One serialized reload per folder for the running host; emptied at stop */
+const reloadRunners = new Map<string, () => Promise<void>>();
+/** Detaches the host's watcher listener; null while stopped */
+let unsubscribeFileChange: (() => void) | null = null;
 /** Mods whose `onload` was called and that are not unloaded yet, in load order */
 let liveMods: LiveMod[] = [];
 /** Last load error toasted per vault and folder, so an unchanged error is not toasted again on reload */
@@ -270,8 +277,12 @@ function recordLoadError(vaultPath: string, folder: string, message: string, err
 	toast.error(message);
 }
 
-/** Reads, evaluates and loads one mod folder; records the result unless the start was superseded */
-async function loadMod(vaultPath: string, folder: string, startGeneration: number): Promise<void> {
+/**
+ * Reads, evaluates and loads one mod folder; records the result unless the
+ * start was superseded. With `waitForOnload` false it resolves once `onload`
+ * is called, so a reload runner is never held by an `onload` that does not settle.
+ */
+async function loadMod(vaultPath: string, folder: string, startGeneration: number, waitForOnload = true): Promise<void> {
 	const dir = `${MODS_DIR}/${folder}`;
 	const startEpoch = folderEpochs.get(folder) ?? 0;
 	const current = () => generation === startGeneration && (folderEpochs.get(folder) ?? 0) === startEpoch;
@@ -306,21 +317,24 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 
 	const live: LiveMod = { folder, manifest, module, controller: new AbortController(), disposers: [], unloaded: false };
 	liveMods.push(live);
-	try {
-		await module.onload(createModContext(manifest, vaultPath, live));
-	} catch (err) {
-		liveMods = liveMods.filter((m) => m !== live);
-		unloadMod(live, false);
-		return fail(`${dir}: onload failed: ${messageOf(err)}`, err, manifest);
-	}
-	// A stop while onload ran has already unloaded it.
-	if (live.unloaded || !current()) {
-		unloadMod(live, true);
-		return;
-	}
+	const loading = (async () => {
+		try {
+			await module.onload(createModContext(manifest, vaultPath, live));
+		} catch (err) {
+			liveMods = liveMods.filter((m) => m !== live);
+			unloadMod(live, false);
+			return fail(`${dir}: onload failed: ${messageOf(err)}`, err, manifest);
+		}
+		// A stop, switch or reload while onload ran has already unloaded it.
+		if (live.unloaded || !current()) {
+			unloadMod(live, true);
+			return;
+		}
 
-	toastedErrors.delete(`${vaultPath}\n${folder}`);
-	modsStore.upsertEntry({ id: manifest.id, folder, name: manifest.name, version: manifest.version, state: 'loaded' });
+		toastedErrors.delete(`${vaultPath}\n${folder}`);
+		modsStore.upsertEntry({ id: manifest.id, folder, name: manifest.name, version: manifest.version, state: 'loaded' });
+	})();
+	if (waitForOnload) await loading;
 }
 
 /**
@@ -329,6 +343,7 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
  * its name: the row shows the folder, and the reason goes only to `debug()`.
  */
 async function listDisabledMod(vaultPath: string, folder: string, startGeneration: number): Promise<void> {
+	const startEpoch = folderEpochs.get(folder) ?? 0;
 	let manifest: ModManifest | undefined;
 	try {
 		const parsed = parseModManifest(await readTextFile(`${vaultPath}/${MODS_DIR}/${folder}/manifest.json`), folder);
@@ -337,7 +352,7 @@ async function listDisabledMod(vaultPath: string, folder: string, startGeneratio
 	} catch (err) {
 		debug(`MOD:${folder}`, 'disabled mod listed by folder name: cannot read manifest.json:', err);
 	}
-	if (generation !== startGeneration) return;
+	if (generation !== startGeneration || (folderEpochs.get(folder) ?? 0) !== startEpoch) return;
 	modsStore.upsertEntry({
 		id: manifest?.id ?? folder,
 		folder,
@@ -348,11 +363,80 @@ async function listDisabledMod(vaultPath: string, folder: string, startGeneratio
 }
 
 /**
+ * Reloads one folder: unloads the running mod, then loads it from disk again,
+ * or lists it as disabled when it is switched off. With no `manifest.json`
+ * left (the folder deleted, or only its manifest), it only unloads and drops
+ * the row; a restart would list a folder that stays without a manifest as an
+ * error. When the check for the manifest fails, the running mod is left as
+ * it is. Runs through the folder's serialized runner, so two reloads of one
+ * mod never overlap; the runner does not wait for the new code's `onload`.
+ */
+async function reloadFolder(vaultPath: string, folder: string, startGeneration: number): Promise<void> {
+	const startEpoch = folderEpochs.get(folder) ?? 0;
+	const current = () => generation === startGeneration && (folderEpochs.get(folder) ?? 0) === startEpoch;
+	if (!current()) return;
+	const present = await exists(`${vaultPath}/${MODS_DIR}/${folder}/manifest.json`);
+	if (!current()) return;
+
+	const running = liveMods.filter((m) => m.folder === folder);
+	liveMods = liveMods.filter((m) => m.folder !== folder);
+	for (const live of running) unloadMod(live, true);
+	if (!present) {
+		modsStore.removeEntry(folder);
+		toastedErrors.delete(`${vaultPath}\n${folder}`);
+		return;
+	}
+	if (modsEnabledStore.disabledMods.includes(folder)) await listDisabledMod(vaultPath, folder, startGeneration);
+	else await loadMod(vaultPath, folder, startGeneration, false);
+}
+
+/**
+ * Asks for a reload of one folder. Bumps the folder's epoch first, so a load
+ * of it still in flight (a start's, a switch's or an older reload's) drops
+ * its result, and the runner then loads the newest files once.
+ */
+function requestReload(vaultPath: string, folder: string, startGeneration: number): void {
+	folderEpochs.set(folder, (folderEpochs.get(folder) ?? 0) + 1);
+	let run = reloadRunners.get(folder);
+	if (!run) {
+		run = serializeWithRerun(() => reloadFolder(vaultPath, folder, startGeneration));
+		reloadRunners.set(folder, run);
+	}
+	run().catch((err: unknown) => error('MODS', `reloading ${MODS_DIR}/${folder} failed:`, err));
+}
+
+/** Lists the mods folder again and reloads every folder on disk or known to the host */
+async function rediscoverMods(vaultPath: string, startGeneration: number): Promise<void> {
+	const modsPath = `${vaultPath}/${MODS_DIR}`;
+	const onDisk = (await exists(modsPath))
+		? (await readDir(modsPath)).filter((e) => e.isDirectory).map((e) => e.name)
+		: [];
+	if (generation !== startGeneration) return;
+	const known = [...modsStore.entries.map((e) => e.folder), ...liveMods.map((m) => m.folder)];
+	for (const folder of new Set([...onDisk, ...known])) requestReload(vaultPath, folder, startGeneration);
+}
+
+/** The host's watcher listener: maps the batch to the mods it touches and reloads them */
+function onModFilesChanged(vaultPath: string, paths: string[], startGeneration: number): void {
+	if (generation !== startGeneration) return;
+	const { rediscover, folders } = mapModChanges(paths, vaultPath);
+	if (rediscover) {
+		rediscoverMods(vaultPath, startGeneration).catch((err: unknown) => error('MODS', 'listing the mods folder again failed:', err));
+	}
+	for (const folder of folders) requestReload(vaultPath, folder, startGeneration);
+}
+
+/**
  * Loads every mod in `<vaultPath>/_system/mods/` when mods are on for that
  * vault, after stopping any mods already loaded. Each mod loads on its own, so
  * one broken mod never blocks another; its error goes to the status list, a
  * toast and `debug()`. A mod switched off in Labs is listed, not loaded. A
  * missing mods folder means zero mods.
+ *
+ * Until the next stop, the host also listens to the file watcher: a changed
+ * `main.js` or `manifest.json`, or a mod folder added or deleted, reloads that
+ * mod; a change to the mods folder itself or `_system` reloads them all.
+ * Self-saves count, so editing `main.js` in the app reloads it.
  *
  * Throws when the mods folder cannot be read (a host failure, for the caller
  * to report with `error()`).
@@ -361,13 +445,19 @@ export async function startModsHost(vaultPath: string): Promise<void> {
 	stopModsHost();
 	if (vaultStore.path !== vaultPath || !modsEnabledStore.enabled) return;
 	const startGeneration = generation;
+	// Before any await, so a change during the first load is not missed.
+	unsubscribeFileChange = onFileChange((paths) => onModFilesChanged(vaultPath, paths, startGeneration));
 
 	const modsPath = `${vaultPath}/${MODS_DIR}`;
 	if (!(await exists(modsPath))) return;
 	const entries = await readDir(modsPath);
 	if (generation !== startGeneration) return;
 
-	const folders = entries.filter((e) => e.isDirectory).map((e) => e.name).sort();
+	// A folder with a runner was already asked to reload by this start's listener, which loads it.
+	const folders = entries
+		.filter((e) => e.isDirectory && !reloadRunners.has(e.name))
+		.map((e) => e.name)
+		.sort();
 	const disabled = modsEnabledStore.disabledMods;
 	await Promise.allSettled(
 		folders.map((folder) =>
@@ -414,11 +504,16 @@ export function disableMod(folder: string): void {
 
 /**
  * Unloads every mod, including one whose `onload` is still running, empties
- * the status list, and makes any load still in flight drop its result.
- * Synchronous; with nothing loaded it changes nothing visible.
+ * the status list, detaches the watcher listener, and makes any load or
+ * reload still in flight drop its result. Synchronous; with nothing loaded it
+ * changes nothing visible.
  */
 export function stopModsHost(): void {
 	generation++;
+	// The watcher keeps its listeners across its own stop, so the host detaches its own.
+	unsubscribeFileChange?.();
+	unsubscribeFileChange = null;
+	reloadRunners.clear();
 	const mods = liveMods;
 	liveMods = [];
 	for (const live of mods.reverse()) unloadMod(live, true);

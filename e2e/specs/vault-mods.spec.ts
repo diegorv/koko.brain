@@ -149,6 +149,24 @@ test.describe('Vault mods', () => {
 
 			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello' })).toHaveCount(1);
 		});
+
+		test('saving a new main.js reloads the mod: its rail button takes the new title', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			const button = page.locator('[data-rail-item^="mod:hello:"]');
+			await expect(button).toHaveAttribute('aria-label', 'Hello mod');
+
+			// A save of main.js, delivered the way the Rust watcher reports it.
+			const mainPath = `${MODS}/hello/main.js`;
+			const next = HELLO_MOD[mainPath].replace("title: 'Hello mod'", "title: 'Hello mod v2'");
+			expect(next).not.toBe(HELLO_MOD[mainPath]);
+			await page.evaluate(({ path, content }) => window.__e2e.fs.writeFile(path, content), { path: mainPath, content: next });
+			await page.evaluate((paths) => window.__e2e.events.emit('vault-files-changed', { paths }), [mainPath]);
+
+			await expect(button).toHaveAttribute('aria-label', 'Hello mod v2');
+			await expect(button).toHaveCount(1);
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+		});
 	});
 
 	test.describe('a vault with a broken mod and a good mod', () => {

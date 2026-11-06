@@ -1,6 +1,86 @@
 import { describe, it, expect } from 'vitest';
 
-import { assertVaultPath, evaluateModSource, parseModManifest } from '#lib/plugins/mods/mods.logic.js';
+import {
+	assertVaultPath,
+	evaluateModSource,
+	isModCodePath,
+	mapModChanges,
+	parseModManifest,
+} from '#lib/plugins/mods/mods.logic.js';
+
+const VAULT = '/vaults/main';
+const MODS = `${VAULT}/_system/mods`;
+
+describe('mapModChanges', () => {
+	it('reloads the mod whose main.js or manifest.json changed', () => {
+		expect(mapModChanges([`${MODS}/hello/main.js`], VAULT)).toEqual({ rediscover: false, folders: ['hello'] });
+		expect(mapModChanges([`${MODS}/hello/manifest.json`], VAULT)).toEqual({ rediscover: false, folders: ['hello'] });
+	});
+
+	it('reloads a mod folder reported on its own, as a deletion often is', () => {
+		expect(mapModChanges([`${MODS}/hello`], VAULT)).toEqual({ rediscover: false, folders: ['hello'] });
+	});
+
+	it('rediscovers everything for the mods folder itself or _system', () => {
+		expect(mapModChanges([MODS], VAULT)).toEqual({ rediscover: true, folders: [] });
+		expect(mapModChanges([`${VAULT}/_system`], VAULT)).toEqual({ rediscover: true, folders: [] });
+	});
+
+	it.each([
+		['a README in a mod folder', `${MODS}/hello/README.md`],
+		['a README directly in the mods folder', `${MODS}/README.md`],
+		['an editor backup', `${MODS}/hello/main.js~`],
+		['a file in a subfolder of a mod', `${MODS}/hello/lib/main.js`],
+		['another file under _system', `${VAULT}/_system/templates/daily.md`],
+		['a note outside the mods folder', `${VAULT}/Notes/main.js`],
+		['a sibling whose name starts like the mods folder', `${VAULT}/_system/mods-old/hello/main.js`],
+		['the vault root', VAULT],
+		['a path outside the vault', '/vaults/other/_system/mods/hello/main.js'],
+	])('ignores %s', (_label, path) => {
+		expect(mapModChanges([path], VAULT)).toEqual({ rediscover: false, folders: [] });
+	});
+
+	it('maps a mixed batch to each mod once, in folder order', () => {
+		const result = mapModChanges(
+			[
+				`${VAULT}/Notes/a.md`,
+				`${MODS}/zeta/main.js`,
+				`${MODS}/alpha/manifest.json`,
+				`${MODS}/zeta/manifest.json`,
+				`${MODS}/alpha/README.md`,
+				`${MODS}/gone`,
+			],
+			VAULT,
+		);
+
+		expect(result).toEqual({ rediscover: false, folders: ['alpha', 'gone', 'zeta'] });
+	});
+
+	it('maps an empty batch to nothing', () => {
+		expect(mapModChanges([], VAULT)).toEqual({ rediscover: false, folders: [] });
+	});
+});
+
+describe('isModCodePath', () => {
+	it('is true for any file under the mods folder that is not a note or a view', () => {
+		expect(isModCodePath(`${MODS}/hello/main.js`, VAULT)).toBe(true);
+		expect(isModCodePath(`${MODS}/hello/manifest.json`, VAULT)).toBe(true);
+		expect(isModCodePath(`${MODS}/hello/main.js~`, VAULT)).toBe(true);
+	});
+
+	it('is false for a note or a view under the mods folder', () => {
+		expect(isModCodePath(`${MODS}/hello/README.md`, VAULT)).toBe(false);
+		expect(isModCodePath(`${MODS}/hello/notes.markdown`, VAULT)).toBe(false);
+		expect(isModCodePath(`${MODS}/hello/list.view`, VAULT)).toBe(false);
+	});
+
+	it('is false outside the mods folder, for the folder itself, and with no vault', () => {
+		expect(isModCodePath(`${VAULT}/Notes/main.js`, VAULT)).toBe(false);
+		expect(isModCodePath(`${VAULT}/_system/mods-old/main.js`, VAULT)).toBe(false);
+		expect(isModCodePath(MODS, VAULT)).toBe(false);
+		expect(isModCodePath(`${MODS}/hello/main.js`, null)).toBe(false);
+	});
+});
 
 describe('assertVaultPath', () => {
 	it('accepts a relative path, nested or not', () => {

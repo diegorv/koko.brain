@@ -38,6 +38,11 @@ export const modsStore = {
 		entries = [...entries.filter((e) => e.folder !== entry.folder), entry].sort(byFolder);
 	},
 
+	/** Drops the entry of a folder, if any */
+	removeEntry(folder: string) {
+		entries = entries.filter((e) => e.folder !== folder);
+	},
+
 	/** Empties the list */
 	reset() {
 		entries = [];
