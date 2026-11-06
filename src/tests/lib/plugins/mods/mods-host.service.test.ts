@@ -35,7 +35,7 @@ import { toast } from 'svelte-sonner';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type { ModContextV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
-import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
+import { disableMod, enableMod, startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
 import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
 
 const VAULT = '/vaults/main';
@@ -315,5 +315,156 @@ describe('mods host', () => {
 
 		expect(toast.error).toHaveBeenCalledTimes(2);
 		expect(modsStore.entries[0].state).toBe('error');
+	});
+
+	describe('per-mod switch', () => {
+		it('lists a disabled mod with its manifest name and never runs or reads its main.js', async () => {
+			writeMod('alpha', recordingMod('alpha'));
+			writeMod('beta', recordingMod('beta'));
+			modsEnabledStore.setModEnabled('beta', false);
+
+			await startModsHost(VAULT);
+
+			expect(modsStore.entries).toEqual([
+				{ id: 'alpha', folder: 'alpha', name: 'Mod alpha', version: '1.0.0', state: 'loaded' },
+				{ id: 'beta', folder: 'beta', name: 'Mod beta', version: '1.0.0', state: 'disabled' },
+			]);
+			expect(globals.__modEvents).toEqual(['alpha:load']);
+			expect(readTextFile).not.toHaveBeenCalledWith(`${VAULT}/_system/mods/beta/main.js`);
+		});
+
+		it('lists a disabled mod with an unreadable manifest under its folder name, without an error', async () => {
+			fsFiles.set(`${VAULT}/_system/mods/broken/manifest.json`, '{not json');
+			modsEnabledStore.setModEnabled('broken', false);
+
+			await startModsHost(VAULT);
+
+			expect(modsStore.entries).toEqual([
+				{ id: 'broken', folder: 'broken', name: 'broken', version: '', state: 'disabled' },
+			]);
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('disableMod unloads only that mod and lists it as disabled', async () => {
+			writeMod('alpha', recordingMod('alpha'));
+			writeMod('beta', recordingMod('beta'));
+			await startModsHost(VAULT);
+			const beta = globals.__modCtx.beta;
+			globals.__modEvents = [];
+
+			modsEnabledStore.setModEnabled('beta', false);
+			disableMod('beta');
+
+			expect(globals.__modEvents).toEqual(['beta:unload', 'beta:dispose-2', 'beta:dispose-1']);
+			expect(beta.signal.aborted).toBe(true);
+			expect(() => beta.notify('late')).toThrow('Mod "beta" is unloaded');
+			expect(globals.__modCtx.alpha.signal.aborted).toBe(false);
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([
+				['alpha', 'loaded'],
+				['beta', 'disabled'],
+			]);
+		});
+
+		it('disableMod turns a mod in error into a disabled row without its error', async () => {
+			writeMod('broken', 'export default {};');
+			await startModsHost(VAULT);
+
+			modsEnabledStore.setModEnabled('broken', false);
+			disableMod('broken');
+
+			expect(modsStore.entries).toEqual([
+				{ id: 'broken', folder: 'broken', name: 'Mod broken', version: '1.0.0', state: 'disabled' },
+			]);
+		});
+
+		it('enableMod loads only that mod', async () => {
+			writeMod('alpha', recordingMod('alpha'));
+			writeMod('beta', recordingMod('beta'));
+			modsEnabledStore.setModEnabled('beta', false);
+			await startModsHost(VAULT);
+			globals.__modEvents = [];
+
+			modsEnabledStore.setModEnabled('beta', true);
+			await enableMod(VAULT, 'beta');
+
+			expect(globals.__modEvents).toEqual(['beta:load']);
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([
+				['alpha', 'loaded'],
+				['beta', 'loaded'],
+			]);
+		});
+
+		it('enableMod does not load a mod that is already loaded', async () => {
+			writeMod('alpha', recordingMod('alpha'));
+			await startModsHost(VAULT);
+
+			await enableMod(VAULT, 'alpha');
+
+			expect(globals.__modEvents).toEqual(['alpha:load']);
+		});
+
+		it('enableMod does nothing while mods are off for the vault or another vault is open', async () => {
+			writeMod('alpha', recordingMod('alpha'));
+			modsEnabledStore.setEnabled(false);
+			await enableMod(VAULT, 'alpha');
+
+			modsEnabledStore.setEnabled(true);
+			await enableMod('/vaults/other', 'alpha');
+
+			expect(globals.__modEvents).toEqual([]);
+			expect(modsStore.entries).toEqual([]);
+		});
+
+		it('a disable while the mod is still loading unloads it and keeps it disabled', async () => {
+			let release!: () => void;
+			globals.__modGate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			writeMod(
+				'slow',
+				`export default {
+	async onload(ctx) {
+		globalThis.__modEvents.push('slow:load-start');
+		await globalThis.__modGate;
+	},
+	onunload() { globalThis.__modEvents.push('slow:unload'); },
+};`,
+			);
+
+			const starting = startModsHost(VAULT);
+			await vi.waitFor(() => expect(globals.__modEvents).toContain('slow:load-start'));
+			modsEnabledStore.setModEnabled('slow', false);
+			disableMod('slow');
+			release();
+			await starting;
+
+			expect(globals.__modEvents).toContain('slow:unload');
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['slow', 'disabled']]);
+		});
+
+		it('off then on while the files are still being read loads the mod once', async () => {
+			writeMod('alpha', recordingMod('alpha'));
+			let release!: () => void;
+			const gate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const original = vi.mocked(readTextFile).getMockImplementation()!;
+			vi.mocked(readTextFile).mockImplementation(async (path, options) => {
+				await gate;
+				return original(path, options);
+			});
+
+			const starting = startModsHost(VAULT);
+			await vi.waitFor(() => expect(readTextFile).toHaveBeenCalled());
+			modsEnabledStore.setModEnabled('alpha', false);
+			disableMod('alpha');
+			modsEnabledStore.setModEnabled('alpha', true);
+			const enabling = enableMod(VAULT, 'alpha');
+			release();
+			await Promise.all([starting, enabling]);
+
+			expect(globals.__modEvents).toEqual(['alpha:load']);
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['alpha', 'loaded']]);
+		});
 	});
 });

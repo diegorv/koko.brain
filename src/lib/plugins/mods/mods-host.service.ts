@@ -20,6 +20,7 @@ export interface ModRuntime {
 }
 
 interface LiveMod extends ModRuntime {
+	folder: string;
 	manifest: ModManifest;
 	module: ModV1;
 }
@@ -28,6 +29,11 @@ const NOTIFY_KINDS: readonly ModNotifyKindV1[] = ['info', 'success', 'warning', 
 
 /** Bumped by every stop; a load that sees a different value drops its result */
 let generation = 0;
+/**
+ * Bumped per folder by every per-mod switch, so a load still in flight from
+ * before an off/on drops its result instead of loading the mod twice
+ */
+const folderEpochs = new Map<string, number>();
 /** Mods whose `onload` was called and that are not unloaded yet, in load order */
 let liveMods: LiveMod[] = [];
 /** Last load error toasted per vault and folder, so an unchanged error is not toasted again on reload */
@@ -120,7 +126,8 @@ function recordLoadError(vaultPath: string, folder: string, message: string, err
 /** Reads, evaluates and loads one mod folder; records the result unless the start was superseded */
 async function loadMod(vaultPath: string, folder: string, startGeneration: number): Promise<void> {
 	const dir = `${MODS_DIR}/${folder}`;
-	const current = () => generation === startGeneration;
+	const startEpoch = folderEpochs.get(folder) ?? 0;
+	const current = () => generation === startGeneration && (folderEpochs.get(folder) ?? 0) === startEpoch;
 	const fail = (message: string, err?: unknown, manifest?: ModManifest) => {
 		if (current()) recordLoadError(vaultPath, folder, message, err, manifest);
 	};
@@ -150,7 +157,7 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 		return fail(`${dir}: ${messageOf(err)}`, err, manifest);
 	}
 
-	const live: LiveMod = { manifest, module, controller: new AbortController(), disposers: [], unloaded: false };
+	const live: LiveMod = { folder, manifest, module, controller: new AbortController(), disposers: [], unloaded: false };
 	liveMods.push(live);
 	try {
 		await module.onload(createModContext(manifest, vaultPath, live));
@@ -170,10 +177,35 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 }
 
 /**
+ * Lists a switched-off mod under its manifest name without reading or running
+ * its `main.js`. A manifest that cannot be read or parsed only costs the row
+ * its name: the row shows the folder, and the reason goes only to `debug()`.
+ */
+async function listDisabledMod(vaultPath: string, folder: string, startGeneration: number): Promise<void> {
+	let manifest: ModManifest | undefined;
+	try {
+		const parsed = parseModManifest(await readTextFile(`${vaultPath}/${MODS_DIR}/${folder}/manifest.json`), folder);
+		if (parsed.ok) manifest = parsed.manifest;
+		else debug(`MOD:${folder}`, 'disabled mod listed by folder name:', parsed.error);
+	} catch (err) {
+		debug(`MOD:${folder}`, 'disabled mod listed by folder name: cannot read manifest.json:', err);
+	}
+	if (generation !== startGeneration) return;
+	modsStore.upsertEntry({
+		id: manifest?.id ?? folder,
+		folder,
+		name: manifest?.name ?? folder,
+		version: manifest?.version ?? '',
+		state: 'disabled',
+	});
+}
+
+/**
  * Loads every mod in `<vaultPath>/_system/mods/` when mods are on for that
  * vault, after stopping any mods already loaded. Each mod loads on its own, so
  * one broken mod never blocks another; its error goes to the status list, a
- * toast and `debug()`. A missing mods folder means zero mods.
+ * toast and `debug()`. A mod switched off in Labs is listed, not loaded. A
+ * missing mods folder means zero mods.
  *
  * Throws when the mods folder cannot be read (a host failure, for the caller
  * to report with `error()`).
@@ -189,7 +221,48 @@ export async function startModsHost(vaultPath: string): Promise<void> {
 	if (generation !== startGeneration) return;
 
 	const folders = entries.filter((e) => e.isDirectory).map((e) => e.name).sort();
-	await Promise.allSettled(folders.map((folder) => loadMod(vaultPath, folder, startGeneration)));
+	const disabled = modsEnabledStore.disabledMods;
+	await Promise.allSettled(
+		folders.map((folder) =>
+			disabled.includes(folder)
+				? listDisabledMod(vaultPath, folder, startGeneration)
+				: loadMod(vaultPath, folder, startGeneration),
+		),
+	);
+}
+
+/**
+ * Loads one mod after it was switched on in Labs. Does nothing while mods are
+ * off for the vault, when `vaultPath` is no longer the open vault, or when the
+ * mod is already loaded. Call it after saving the switch.
+ */
+export async function enableMod(vaultPath: string, folder: string): Promise<void> {
+	if (vaultStore.path !== vaultPath || !modsEnabledStore.enabled) return;
+	if (liveMods.some((m) => m.folder === folder)) return;
+	folderEpochs.set(folder, (folderEpochs.get(folder) ?? 0) + 1);
+	await loadMod(vaultPath, folder, generation);
+}
+
+/**
+ * Unloads one mod after it was switched off in Labs, including one whose
+ * `onload` is still running, and lists it as disabled. A load of that mod
+ * still in flight drops its result. The other mods are untouched.
+ */
+export function disableMod(folder: string): void {
+	folderEpochs.set(folder, (folderEpochs.get(folder) ?? 0) + 1);
+	const live = liveMods.find((m) => m.folder === folder);
+	if (live) {
+		liveMods = liveMods.filter((m) => m !== live);
+		unloadMod(live, true);
+	}
+	const previous = modsStore.entries.find((e) => e.folder === folder);
+	modsStore.upsertEntry({
+		id: previous?.id ?? folder,
+		folder,
+		name: previous?.name ?? folder,
+		version: previous?.version ?? '',
+		state: 'disabled',
+	});
 }
 
 /**

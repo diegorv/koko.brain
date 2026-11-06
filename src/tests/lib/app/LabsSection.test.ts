@@ -9,6 +9,8 @@ vi.mock('svelte-sonner', () => ({
 vi.mock('#lib/plugins/mods/mods-host.service.js', () => ({
 	startModsHost: vi.fn(() => Promise.resolve()),
 	stopModsHost: vi.fn(),
+	enableMod: vi.fn(() => Promise.resolve()),
+	disableMod: vi.fn(),
 }));
 
 import { toast } from 'svelte-sonner';
