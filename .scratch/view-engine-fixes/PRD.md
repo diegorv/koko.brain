@@ -21,11 +21,11 @@ Vocabulary (`.view` tab, inline block, rail list) as in `.scratch/view-editor/PR
 | 04 | DESC sort lists notes without a value last | 03 | needs-info |
 | 05 | Linear-calendar bars line up with their day columns | | ready-for-agent |
 | 06 | Calendars say how many notes have no date | 01, 03 | ready-for-agent |
-| 07 | The Filter panel cannot write an empty or unparseable filter | 02 | ready-for-agent |
-| 08 | The rail and the editor run the file's filter; bad shapes are errors | 04, 07 | needs-info |
+| 07 | The Filter panel cannot write an empty or unparseable filter | 02, 06 | ready-for-agent |
+| 08 | The rail and the editor run the file's filter; bad shapes are errors | 04, 07, 09, 10, 15 | needs-info |
 | 09 | Rail view switcher for multi-view files | 07 | ready-for-agent |
 | 10 | Rule line names the limit and the sort source | 09 | ready-for-agent |
-| 11 | Small `.view` tab write feedback | 06 | needs-info |
+| 11 | Small `.view` tab write feedback | 06, 07 | ready-for-agent |
 | 12 | View writers refresh promptly and fail loudly | | ready-for-agent |
 | 13 | Properties panel matches the table's columns | 11 | ready-for-agent |
 | 14 | New here infers the type from a compound `&&` filter | 08 | ready-for-agent |
@@ -34,25 +34,25 @@ Vocabulary (`.view` tab, inline block, rail list) as in `.scratch/view-editor/PR
 | 17 | Help docs speak of views, and their examples work | 03, 14 | ready-for-agent |
 | 18 | A `.view` checker for agents | 02 | needs-info |
 
-**Chains inside this feature** follow shared files: `CollectionView.svelte` (02, 01, 06, 07, 11, 13, 15), `RailNoteList.svelte` (02, 07, 09, 10), `collection.logic.ts` (02, 03, 04, 08), `collection-block-widget.ts` (02, 03, 06, 16). 05 and 12 touch none of them.
+**Chains inside this feature** follow shared files: `CollectionView.svelte` (02, 01, 06, 07, 11, 13, 15, 08), `RailNoteList.svelte` (02, 07, 09, 10), `collection.logic.ts` (02, 03, 04, 08), `lens.logic.ts` (09, 10, 08), `collection-block-widget.ts` (02, 03, 06, 16). 05 and 12 touch none of them.
 
-**Start (owner, 2026-11-06): the foundation first**, in two waves of two: view-editor 01 with view-engine-fixes 02, then view-editor 02 with view-engine-fixes 01. No two Issues of a wave share a file.
+The order across both features is in `.scratch/view-editor/PRD.md` § Issues (reviewed 2026-11-06).
 
 **Order against view-editor.** Each Issue that shares a file with `.scratch/view-editor/` names the view-editor Issue to run after in its Notes ("Run after (other feature)"). relay-lite does not enforce it across features:
 - 01: after view-editor 01 (shared test file `CollectionView.view-writes.test.ts`).
 - 02: **before** view-editor 03 and 04 (`queryViewLens`, `RailNoteList.svelte`), never in parallel with them.
-- 04: after view-editor 05 (it removes 05's DESC info line).
+- 04: before view-editor 05, so 05 needs no DESC info line.
 - 07, 10: after view-editor 04 (`RailNoteList.svelte`).
 - 08: after view-editor 03 (`lens.logic.ts`).
 - 09: after view-editor 07 and 04.
 - 11: after view-editor 02 and 05 (`yaml-parser.ts`, 05's limit wording).
-- 12: after view-editor 07 (`type-sidebar.logic.ts`, `type-definitions.service.ts`).
+- 12: beside view-editor 04 or after view-editor 07, never in parallel with view-editor 02, 03, 05, 06, 07 (`type-sidebar.logic.ts`, `type-definitions.service.ts`).
 
 ## Needs human
 
 - **04**: flips a behavior a test pins (`collection-logic.test.ts:640-659`, DESC puts nulls first).
 - **08**: a `filters:` list of strings becomes an error where today it lists every note; a map shape becomes an error in inline blocks too.
-- **11**: its `limit` part turns `2.5`, `.inf` and `.nan`, which parse today, into parse errors.
+- **11**, `limit` part only: it turns `2.5`, `.inf` and `.nan`, which parse today, into parse errors. The rest of 11 is ready.
 - **16**: the name of the new block key (`view` is already an alias of `_view`).
 - **18**: how a script under `scripts/` loads the TS modules.
 

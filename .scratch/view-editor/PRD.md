@@ -49,7 +49,21 @@ The `collection` internal names (`features/collection`, `fileType`, the fence) s
 | 06 | Display section | 05 | ready-for-agent |
 | 07 | Behavior section | 06 | ready-for-agent |
 
-**Start (owner, 2026-11-06): the foundation first**, in two waves of two: 01 with `view-engine-fixes/02`, then 02 with `view-engine-fixes/01`. `view-engine-fixes/02` lands before 03, so the preview shows its error and failure count.
+**Order (reviewed 2026-11-06).** Waves of up to three Issues that share no file (`ve` = view-editor, `vef` = view-engine-fixes; "if decided" = waits on an owner decision, skip it in its wave otherwise):
+1. ve-01 ∥ vef-02
+2. ve-02 ∥ vef-01 ∥ vef-03
+3. ve-03 ∥ vef-04 (if decided) ∥ vef-05
+4. ve-04 ∥ vef-06 ∥ vef-12
+5. ve-05 ∥ vef-07
+6. ve-06 ∥ vef-11
+7. ve-07 ∥ vef-13
+8. vef-09 ∥ vef-15 ∥ vef-16 (if decided)
+9. vef-10 ∥ vef-18 (if decided)
+10. vef-08 (if decided)
+11. vef-14
+12. vef-17
+
+Owner decisions that unblock the most: vef-04 (nulls last in DESC), then the `limit` part of vef-11, then vef-08.
 
 The Issues run in sequence. 01 and 02 share `yaml-parser.ts`; 02 to 07 share `ViewDialog.svelte`, `view-dialog.logic.ts` and help § View Files. 04 must land before 07, which lets the dialog hide a view.
 

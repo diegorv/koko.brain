@@ -15,5 +15,6 @@
 
 ## Notes
 
+- Likely to hit: New table writes no `order` (`collection.service.ts:18-22`), so the first column toggle of every new table writes the whole vault into `order`. Blocked by 11 only because both edit `CollectionView.svelte`.
 - `toggleColumn` was not read by the sweep (`research/validated/A09.md`): read it first and report in the Comments if the behavior differs.
 - **Size:** M.

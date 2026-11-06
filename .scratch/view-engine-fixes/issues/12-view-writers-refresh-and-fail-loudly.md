@@ -16,6 +16,6 @@
 
 ## Notes
 
-- **Run after (other feature):** view-editor 07 (`type-sidebar.logic.ts`, `type-definitions.service.ts`). relay-lite does not enforce this.
+- **Other feature:** shares `type-sidebar.logic.ts` and `type-definitions.service.ts` with view-editor 02, 03, 05, 06 and 07. Run it beside view-editor 04 (which edits neither) or after view-editor 07, never in parallel with those five or with 09. relay-lite does not enforce this.
 - `type-definitions.service.ts` is a hotspot (`docs/HOTSPOTS.md`): keep the change to the four options objects.
 - **Size:** S.

@@ -18,7 +18,7 @@
 - Run `queryViewLens` on a draft definition: the loaded definition with the draft filters, and `limit` removed from the edited view. The dialog applies the limit itself, so one run gives both counts ("N notes", or "N of M notes" once 05 adds a limit).
 - Show the count, the rule in words (`describeViewFilters`), and the first 20 titles, read-only.
 - Do not reuse `countViewNotes`: it re-reads the file from disk (`view-lens.service.ts:22-33`).
-- Build the `LensContext` from the real stores as `TypesNavigator.svelte:96-105` does (entries, vault path, system folder, type map). Do not edit `TypesNavigator.svelte` or `RailNoteList.svelte` here, so 04 can run in parallel.
+- Build the `LensContext` from the real stores as `TypesNavigator.svelte:96-105` does (entries, vault path, system folder, type map). Do not edit `TypesNavigator.svelte` or `RailNoteList.svelte` here: 04 owns those.
 - New view: definition `{ views: [{ type: 'table', name }] }`, no path, `listSort: 'title'` (the preset of PRD default D6).
 - Schedule in an `$effect` with `untrack` (CLAUDE.md rule 2), debounced 300 ms, dropping a stale run by a sequence number as `loadSeq` does. Re-run on draft changes and when the property index or entries are replaced.
 - States: "Loading..." until `collectionStore.isIndexReady` and `viewEntriesLoaded(...)`; "Finish the filter to see matches" while a row's value is blank (skip the run); the `filterError` text when the query reports one.

@@ -15,6 +15,7 @@
   - `src/tests/lib/features/collection/expression/` (the evaluator test file): `validateExpression("file.hasLink('x')")` and `validateExpression("x.reverse()")` return a reason. `status.lower()`, `tags.filter(value != 'x')`, `tags.map(value)`, `file.hasTag('a')`, `file.inFolder('/v')`, `file.hasProperty('a')` and `file.asLink()` return none.
   - `src/tests/lib/features/collection/collection-logic.test.ts`: `status.lower() == 'a'` over records where one `status` is a number reports one failure.
   - `src/tests/lib/features/rail-shell/RailNoteList.view.test.ts`: the rendered text "1 note could not be evaluated".
+  - The `.view` tab count: in `src/tests/lib/features/collection/CollectionView.test.ts`, not `CollectionView.view-writes.test.ts`, which view-editor 01 edits in parallel.
 - [ ] `help/documentation/12-collection.md` § Expression Language Reference: unknown methods are errors; per-note failures are counted.
 - [ ] `docs/agents/view-files.md` § Filter expressions: update the "(changes: view-engine-fixes/02)" item.
 

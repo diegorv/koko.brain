@@ -9,7 +9,7 @@
 | Limit | `views[idx].limit` | number input; empty means not set | a finite integer of at least 1 is set; `.nan` and `.inf` show as ignored; `2.5` shows "acts as 2" | an integer from 1; required to be one when touched; empty deletes the key |
 
 - While the view sort is not empty, the List order select is disabled with: "The view's sort wins; _sort and _order pins apply only without it" (`type-note-list.logic.ts:96-98`).
-- Info line under the view sort: "With DESC, notes without the value come first" (`collection.logic.ts:426-434`; `view-engine-fixes/04` may change this, and then this line goes).
+- If `view-engine-fixes/04` has not landed, an info line under the view sort: "With DESC, notes without the value come first" (`collection.logic.ts:426-434`). If it has, no line.
 - The preview (03) passes the draft `_sort` as `listSort` and the draft view sort, and applies the draft limit: "N of M notes".
 - New view shows the `_sort: title` preset as set (PRD default D6). `createView` (`type-definitions.service.ts:271-279`) takes the patch: `buildNewViewYaml`, then `applyViewDialogPatch`.
 - Collapsed summary: `title, max 50`, or `due DESC, max 50`.

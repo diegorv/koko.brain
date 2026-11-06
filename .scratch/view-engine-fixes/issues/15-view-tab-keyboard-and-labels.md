@@ -19,5 +19,4 @@ Fix: labels and titles on the buttons; rows focusable with Enter opening the not
 
 ## Notes
 
-- Overlaps `.scratch/ux-polish/issues/62` (needs-triage) if it covers the same buttons: merge there if so.
 - **Size:** S.

@@ -18,5 +18,4 @@
 
 ## Notes
 
-- Overlaps `.scratch/ux-polish/issues/61` (needs-triage) if it is about calendars: check before starting and merge if so.
 - **Size:** S.

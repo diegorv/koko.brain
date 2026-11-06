@@ -14,7 +14,7 @@ Shapes under `filters:` that are neither an expression nor an `and`/`or`/`not` m
 - A list or an unknown shape under `filters:` (root or view) is a `filterError`: `filters must be an expression or an and/or/not map`.
 - A table test of documented filter shapes through the round trip, each marked identity or lossy.
 
-**Blocked by:** 04, 07
+**Blocked by:** 04, 07, 09, 10, 15
 
 **Status:** needs-info
 
@@ -30,4 +30,5 @@ Shapes under `filters:` that are neither an expression nor an `and`/`or`/`not` m
 ## Notes
 
 - **Run after (other feature):** view-editor 03 (`lens.logic.ts`). relay-lite does not enforce this.
+- Blocked by 09 and 10 (`lens.logic.ts`) and 15 (`CollectionView.svelte`) only to avoid conflicts.
 - **Size:** M.

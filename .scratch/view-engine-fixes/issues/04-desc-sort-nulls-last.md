@@ -14,9 +14,9 @@
 
 - [ ] Failing test first: `collection-logic.test.ts:640-659` asserts nulls last for DESC (the owner-approved change), plus a `limit: 2` DESC case that returns the two highest values.
 - [ ] `help/documentation/12-collection.md` § Sort Panel: notes without the value come last.
-- [ ] View-editor 05 added an info line "With DESC, notes without the value come first": remove it.
+- [ ] If view-editor 05 already landed with an info line "With DESC, notes without the value come first", remove it.
 
 ## Notes
 
-- **Run after (other feature):** view-editor 05 (it removes 05's DESC info line). relay-lite does not enforce this.
+- **Run before (other feature):** view-editor 05, so 05 needs no DESC info line. relay-lite does not enforce this.
 - **Size:** S.
