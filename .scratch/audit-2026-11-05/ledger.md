@@ -122,7 +122,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 85 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/85-canvas-nodes-edges-grid-draw-from-theme.md) | none | todo | | |
 | 86 | [Canvas menus, pickers and edge labels use theme tokens](issues/86-canvas-menus-pickers-edge-labels-use-theme.md) | 85 | todo | | |
 | 87 | [Toasts and the editor's CodeMirror base follow the theme mode](issues/87-toasts-editor-s-codemirror-base-follow-theme.md) | none | todo | | |
-| 88 | [The graph view paints with the active theme's colors](issues/88-graph-view-paints-active-theme-s-colors.md) | none | todo | | |
+| 88 | [The graph view paints with the active theme's colors](issues/88-graph-view-paints-active-theme-s-colors.md) | none | in-progress | | |
 | 89 | [Settings is modal: a scrim closes it on outside click and Tab stays inside](issues/89-settings-modal-scrim-closes-outside-click-tab.md) | 71 | todo | | |
 | 90 | [Help text that belongs to a settings row sits inside that row through a SettingItem hint prop](issues/90-help-text-that-belongs-settings-row-sits.md) | none | todo | | |
 | 91 | [Graph controls and the event dialog use shadcn Select, Switch and Checkbox](issues/91-graph-controls-event-dialog-use-shadcn-select.md) | none | todo | | |
@@ -223,3 +223,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 07:58 — 33 — deliver — merged: kb.pages folder source matches by path segment, leading slash and root handled; R1 APPROVED, fix 7002e0722, R2 APPROVED; full suite 12988 passed after rebase, build ok — 4d172a562
 - 2026-11-06 07:58 — 44 — start — launched by /relay-lite:run (parallel with 60) — 4f5d753e5
 - 2026-11-06 08:14 — 44 — deliver — merged: block ID rule ignores trailing block links and exponents; R1 APPROVED, no code fix; full suite 12995 passed, build ok; follow-up for extractBlockContent filed as 163 — 92e997ca4
+- 2026-11-06 08:14 — 88 — start — launched by /relay-lite:run (parallel with 60) — 9905d20ab
