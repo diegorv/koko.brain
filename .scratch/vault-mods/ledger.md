@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | done | issue/04-reload-on-save (a867e5320) | 2026-11-06 |
 | 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | done | issue/05-ctx-vault-and-input (b9e201d91) | 2026-11-06 |
 | 06 | [Long runs: progress, log, Stop, and a busy rail button](issues/06-run-view-and-stop.md) | 04 | done | issue/06-run-view-and-stop (612b4fb84) | 2026-11-06 |
-| 07 | [Mod authoring docs, an example mod and the mods ADR](issues/07-docs-example-adr.md) | 06 | in-progress | | |
+| 07 | [Mod authoring docs, an example mod and the mods ADR](issues/07-docs-example-adr.md) | 06 | done | issue/07-docs-example-adr (6b3699922) | 2026-11-06 |
 | 08 | [`ctx.http.fetch`, with an MCP Streamable HTTP example mod](issues/08-ctx-http-and-mcp-example.md) | 06, 07 | todo | | |
 | 09 | [Spike: can the app run `claude -p` jobs?](issues/09-spike-claude-cli-from-app.md) | none | todo | | |
 | 10 | [Rust agent runner (`mods_run_agent`)](issues/10-agent-runs.md) | none | todo | | |
@@ -65,3 +65,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 12:09 — 06 — start — launched by /relay-lite:run — 92f14b08a
 - 2026-11-06 12:50 — 06 — deliver — merged to main as 612b4fb84; review APPROVED x2 (claude); fix round: Stop/Close keyboard access, focus into run view, log follows new lines; round 2 nits (Shift+Tab wrap, followLog reset between runs) left unfixed; full suite + build green — 612b4fb84
 - 2026-11-06 12:50 — 07 — start — launched by /relay-lite:run — 22cbc18f2
+- 2026-11-06 13:15 — 07 — deliver — merged to main as 6b3699922; review APPROVED x2 (claude); fix round: 28-mods.md names the hello example and late run.log/progress calls; ADR-0036 taken by mods, the planned iOS ADR moves to the next free number; full suite + build green after rebase — 6b3699922
