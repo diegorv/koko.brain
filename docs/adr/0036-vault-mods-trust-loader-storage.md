@@ -6,6 +6,22 @@ status: active
 date: 2026-11-06
 ---
 
+## Amendment (2026-11-06): a mod's data lives in `.kokobrain/mods/<id>/`
+
+The Storage decision below still holds for a mod's code. Its data no longer belongs next to it. Habits kept `data.json` in `_system/mods/habits/`, the code folder, and a mod that reached `.kokobrain/` through `ctx.vault.write` would run the after-save path on every write (vault-wide invalidation, a file history row, an Auto Move timer), because the skip there only covers `isModCodePath`.
+
+- **Decision:** `ctx.loadData()` and `ctx.saveData(value)`, an additive change to contract v1 with no `apiVersion` bump, read and write `<vault>/.kokobrain/mods/<id>/data.json` (`createModData`, `src/lib/plugins/mods/mod-vault.service.ts`). The rejected alternative below, hidden `.kokobrain/mods/`, was rejected for code because the watcher drops dot-folder events (`docs/agents/indexing-watcher-rules.md` rule 5). For data that is the point: nothing should react to a save.
+- **Atomic writes:** the Rust command `write_mod_data` (`src-tauri/src/commands/vault.rs`) reuses `vault_fs::write_atomic`. It takes the vault, the id and the content and builds the path itself, with a fixed file name, instead of taking a path: `std::fs` is not covered by the plugin-fs ACL, and a general atomic write would be a way to overwrite any file from the webview, which `create_note` does not give (it refuses an existing file).
+- **Corrupt data:** `loadData` moves unparseable bytes to `data.corrupt-<timestamp>.json` with a rename, since `readTextFile` replaces bytes that are not UTF-8, and rejects with a `ModDataCorruptErrorV1`. The next load resolves to `null`.
+- **Order:** one FIFO queue per mod instance, for loads and saves. A new instance after a reload has its own queue; the one write the old instance can have in flight is a single IPC, and queued ones reject at unload.
+
+Consequences:
+
+- **The data leaves git.** A vault's `.gitignore` covers `.kokobrain/`, so this data has no history. The owner accepted this for Habits.
+- **A crash is safe, a power cut is not guaranteed.** `write_atomic` does not `fsync` before the rename, so a process crash leaves the old or the new file, while an OS crash or power loss can leave a damaged one, which `loadData` then reports as corrupt. A stray `data.json.tmp-*` can remain after a crash; nothing reads it.
+- **Not a containment boundary.** As in the Trust decision, a mod can still call any Tauri command. The manifest id goes into the path because it is validated, not because a mod could not write elsewhere; `write_mod_data` refuses an id that is not one path segment only to keep the command narrow. A symlink planted inside `.kokobrain/mods/` is followed for its folder, which is accepted: planting it already needs write access there, and only a file named `data.json` can result.
+- **Deleting a mod folder leaves its data**, and a renamed mod id starts empty.
+
 ## Context
 
 The owner wanted to extend Kokobrain from the vault, without an app release: small JavaScript programs that add rail buttons whose actions read and write notes, and later call HTTP APIs or run LLM agents (`.scratch/vault-mods/PRD.md`). Only the owner writes mods, and editing one must not need a restart.
