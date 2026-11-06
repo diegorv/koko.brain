@@ -130,6 +130,15 @@ describe('TableOfContentsPanel', () => {
 		expect(target.textContent).toContain('No headings found');
 	});
 
+	it('draws its header as the shared sidebar section header', () => {
+		mountPanel();
+
+		const header = target.querySelector('[data-sidebar-section-header]')!;
+		expect(header).toBe(target.querySelector('button'));
+		expect(header.querySelector('[data-sidebar-section-chevron]')).not.toBeNull();
+		expect(header.querySelector('h2')!.textContent).toBe('Table of contents');
+	});
+
 	it('titles the panel in sentence case, above its entries by size', () => {
 		mountPanel();
 		showTableOfContents(A);

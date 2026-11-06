@@ -119,15 +119,37 @@ describe('PropertiesView text roles', () => {
 		expect(empty.classList).toContain('text-meta');
 	});
 
-	it('titles Properties and Relationships in sentence case with the title role', () => {
+	it('titles the section Properties in sentence case through the shared sidebar section header', () => {
 		editorStore.addTab({ path: NOTE, name: 'note.md', content: NOTE_BODY, savedContent: NOTE_BODY });
 		mountView();
 
-		expect(titles().map((h) => h.textContent?.trim())).toEqual(['Properties', 'Relationships']);
-		for (const title of titles()) {
-			expect(title.classList).toContain('text-title');
-			expect(title.classList).not.toContain('uppercase');
-		}
+		expect(titles().map((h) => h.textContent?.trim())).toEqual(['Properties']);
+		const header = target.querySelector('[data-sidebar-section-header]')!;
+		expect(header.querySelector('h2')).toBe(titles()[0]);
+		expect(header.querySelector('[data-sidebar-section-chevron]')).not.toBeNull();
+		expect(titles()[0].classList).toContain('text-title');
+		expect(titles()[0].classList).not.toContain('uppercase');
+	});
+
+	it('labels Relationships as a section-label sub-heading, not a second title', () => {
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: NOTE_BODY, savedContent: NOTE_BODY });
+		mountView();
+
+		const sub = [...target.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'Relationships')!;
+		expect(sub.classList).toContain('section-label');
+		expect(sub.classList).not.toContain('text-title');
+	});
+
+	it('keeps one add-property entry point: the row under the properties', () => {
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: NOTE_BODY, savedContent: NOTE_BODY });
+		mountView();
+
+		expect(target.querySelector('button[title="Add property"]')).toBeNull();
+		const addRows = [...target.querySelectorAll('button')].filter((b) => b.textContent?.trim() === 'Add property');
+		expect(addRows).toHaveLength(1);
+		addRows[0].click();
+		flushSync();
+		expect(target.querySelector('input[placeholder="Property name..."]')).not.toBeNull();
 	});
 
 	it('labels each relationship kind with the section-label style', () => {

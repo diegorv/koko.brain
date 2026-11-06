@@ -11,7 +11,6 @@
 	import { applyDockBadge } from '#lib/features/dock-badge/dock-badge.service.js';
 	import * as Resizable from '#lib/components/ui/resizable/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
-	import { Separator } from '#lib/components/ui/separator/index.js';
 	import Rail from '#lib/features/rail-shell/Rail.svelte';
 	import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
 	import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
@@ -280,7 +279,6 @@
 									{/if}
 									{#if settingsStore.layout.tableOfContentsVisible}
 										<TableOfContentsPanel />
-										<Separator />
 									{/if}
 									{#if settingsStore.layout.backlinksVisible}
 										<BacklinksPanel />

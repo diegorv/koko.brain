@@ -251,6 +251,45 @@ describe('AppShell right sidebar', () => {
 			expect(sidebarTitles()).not.toContain('Info');
 		});
 	});
+
+	describe('sections', () => {
+		beforeEach(() => {
+			editorStore.reset();
+			editorStore.addTab({ path: '/vault/alpha.md', name: 'alpha.md', content: 'body', savedContent: 'body' });
+			settingsStore.updateLayout({
+				rightSidebarVisible: true,
+				propertiesVisible: true,
+				tableOfContentsVisible: true,
+				backlinksVisible: true,
+				outgoingLinksVisible: true,
+			});
+		});
+
+		afterEach(() => editorStore.reset());
+
+		it('draws all four through one shared section header', async () => {
+			await mountShell();
+
+			const headers = [...target.querySelectorAll('[data-right-sidebar] [data-sidebar-section-header]')];
+			expect(headers.map((h) => h.querySelector('h2')?.textContent?.trim())).toEqual([
+				'Properties',
+				'Table of contents',
+				'Backlinks',
+				'Outgoing links',
+			]);
+			for (const header of headers) {
+				expect(header.classList).toContain('pane-toolbar');
+				expect(header.firstElementChild!.hasAttribute('data-sidebar-section-chevron')).toBe(true);
+			}
+		});
+
+		it('leaves the dividers between sections to the sections themselves', async () => {
+			await mountShell();
+
+			const separators = [...target.querySelectorAll('[data-right-sidebar] [data-slot="separator"]')];
+			expect(separators.filter((s) => s.closest('[data-sidebar-section]') === null)).toEqual([]);
+		});
+	});
 });
 
 describe('AppShell traffic-light inset', () => {
