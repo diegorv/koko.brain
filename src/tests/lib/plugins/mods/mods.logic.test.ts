@@ -7,6 +7,7 @@ import {
 	evaluateModSource,
 	isModCodePath,
 	mapModChanges,
+	parseModData,
 	parseModManifest,
 	serializeModData,
 } from '#lib/plugins/mods/mods.logic.js';
@@ -438,5 +439,29 @@ describe('serializeModData', () => {
 
 		expect(() => serializeModData({ n: 1n })).toThrow();
 		expect(() => serializeModData(cycle)).toThrow();
+	});
+});
+
+describe('parseModData', () => {
+	const bytes = (text: string) => Array.from(new TextEncoder().encode(text));
+
+	it('parses UTF-8 JSON, what serializeModData writes included', () => {
+		const value = { name: 'Ação', list: [1, null] };
+
+		expect(parseModData(bytes(serializeModData(value)))).toEqual({ ok: true, value });
+	});
+
+	it.each(['{}', '[]', '0', '""', 'null'])('parses the empty value %s', (text) => {
+		expect(parseModData(bytes(text))).toEqual({ ok: true, value: JSON.parse(text) });
+	});
+
+	it.each([
+		['no bytes', []],
+		['truncated JSON', bytes('{"a":')],
+		['whitespace only', bytes('  \n')],
+		['invalid UTF-8 inside a string', [0x22, 0xff, 0x22]],
+		['Latin-1 text inside a string', [0x22, 0x41, 0xe7, 0xe3, 0x6f, 0x22]],
+	])('rejects %s', (_label, input) => {
+		expect(parseModData(input)).toEqual({ ok: false });
 	});
 });

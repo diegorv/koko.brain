@@ -8,7 +8,7 @@
 //! manually during smoke testing.
 
 use kokobrain_lib::commands::vault::{
-	collect_v2_entries, index_delta_inner, project_note_record, rename_note_inner,
+	collect_v2_entries, index_delta_inner, project_note_record, read_mod_data, rename_note_inner,
 	toggle_task_status_inner, update_note_in_index_inner, write_mod_data,
 };
 use kokobrain_lib::vault::entry::NoteEntry;
@@ -230,6 +230,79 @@ fn write_mod_data_never_exposes_a_partial_file_to_a_reader() {
 	done.store(true, std::sync::atomic::Ordering::Relaxed);
 
 	assert!(reader.join().expect("reader") > 0);
+}
+
+fn read_data(vault: &std::path::Path) -> Result<Option<Vec<u8>>, String> {
+	read_mod_data(vault.to_string_lossy().to_string(), "habits".to_string())
+}
+
+#[test]
+fn read_mod_data_is_none_only_when_the_file_is_not_there() {
+	let tmp = tempdir().expect("tmpdir");
+	assert_eq!(read_data(tmp.path()), Ok(None));
+	assert_eq!(dir_names(tmp.path()), Vec::<String>::new());
+
+	let dir = tmp.path().join(".kokobrain/mods/habits");
+	fs::create_dir_all(&dir).unwrap();
+	assert_eq!(read_data(tmp.path()), Ok(None));
+}
+
+#[test]
+fn read_mod_data_returns_the_bytes_as_they_are() {
+	let tmp = tempdir().expect("tmpdir");
+	write_data(tmp.path(), "").expect("write");
+	assert_eq!(read_data(tmp.path()), Ok(Some(Vec::new())));
+
+	let bytes = vec![b'{', 0xff, 0xc3, b'}', 0];
+	fs::write(tmp.path().join(".kokobrain/mods/habits/data.json"), &bytes).unwrap();
+	assert_eq!(read_data(tmp.path()), Ok(Some(bytes)));
+}
+
+#[test]
+fn read_mod_data_reports_anything_else_as_an_error_not_as_no_file() {
+	let tmp = tempdir().expect("tmpdir");
+	let mods = tmp.path().join(".kokobrain/mods");
+	fs::create_dir_all(&mods).unwrap();
+
+	// The file cannot be reached, which does not say it is not there.
+	fs::write(mods.join("habits"), "a file where the folder should be").unwrap();
+	assert!(read_data(tmp.path()).is_err());
+
+	fs::remove_file(mods.join("habits")).unwrap();
+	fs::create_dir_all(mods.join("habits/data.json")).unwrap();
+	assert!(read_data(tmp.path()).is_err());
+
+	// A vault that is gone, such as an unmounted volume, is not an empty mod.
+	assert!(read_data(&tmp.path().join("missing")).is_err());
+}
+
+#[test]
+fn read_mod_data_refuses_an_id_that_is_not_one_segment() {
+	let tmp = tempdir().expect("tmpdir");
+	fs::write(tmp.path().join("data.json"), "outside the mods folder").unwrap();
+
+	for id in ["", ".", "..", "../../..", "a/b", "A"] {
+		let result = read_mod_data(tmp.path().to_string_lossy().to_string(), id.to_string());
+		assert_eq!(result, Err(format!("Invalid mod id: {}", id)));
+	}
+}
+
+/// The frontend builds this path too, for the rename that keeps a corrupt
+/// file; vitest mocks the command, so only this test ties the two together.
+#[test]
+fn mod_data_commands_use_the_folder_the_frontend_constant_names() {
+	let logic = include_str!("../../src/lib/plugins/mods/mods.logic.ts");
+	let folder = logic
+		.split("export const MOD_DATA_DIR = '")
+		.nth(1)
+		.and_then(|rest| rest.split('\'').next())
+		.expect("MOD_DATA_DIR in mods.logic.ts");
+	let tmp = tempdir().expect("tmpdir");
+
+	write_data(tmp.path(), "{}").expect("write");
+
+	assert_eq!(fs::read_to_string(tmp.path().join(folder).join("habits/data.json")).unwrap(), "{}");
+	assert_eq!(read_data(tmp.path()), Ok(Some(b"{}".to_vec())));
 }
 
 #[test]

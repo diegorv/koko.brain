@@ -30,6 +30,7 @@ const INJECTED = new Set(['AppHandle', 'State', 'Webview']);
 const PRIMITIVES: Record<string, string> = {
 	String: 'string',
 	bool: 'boolean',
+	u8: 'number',
 	i64: 'number',
 	u32: 'number',
 	u64: 'number',

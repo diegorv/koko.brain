@@ -1021,17 +1021,13 @@ pub fn create_folder(path: String) -> Result<(), String> {
 	std::fs::create_dir_all(&path).map_err(|e| format!("mkdir failed for {}: {}", path, e))
 }
 
-/// Writes a mod's data to `<vault_path>/.kokobrain/mods/<mod_id>/data.json`
-/// through `write_atomic`, creating missing folders: a crash mid-write leaves
-/// the old file, never a truncated one. It touches no `VaultIndex` and emits
-/// nothing. Rust builds the path, with a fixed file name, so that `std::fs`,
-/// which the plugin-fs ACL does not cover, gets no general way to overwrite a
-/// file. The check on `mod_id` only keeps it one path segment; the manifest
-/// rules are `parseModManifest`'s.
-#[tauri::command]
-pub fn write_mod_data(vault_path: String, mod_id: String, content: String) -> Result<(), String> {
-	let _trace = CmdTrace::new("write_mod_data");
-	let vault = vault_fs::validate_vault_path(&vault_path)?;
+/// `<vault_path>/.kokobrain/mods/<mod_id>/data.json`. Rust builds the path,
+/// with a fixed file name, so that `std::fs`, which the plugin-fs ACL does not
+/// cover, gets no general way to read or overwrite a file. The check on `mod_id`
+/// only keeps it one path segment; the manifest rules are `parseModManifest`'s.
+/// Errors when the vault is not a reachable folder.
+fn mod_data_path(vault_path: &str, mod_id: &str) -> Result<std::path::PathBuf, String> {
+	let vault = vault_fs::validate_vault_path(vault_path)?;
 	let is_one_segment = !mod_id.is_empty()
 		&& mod_id
 			.bytes()
@@ -1039,9 +1035,35 @@ pub fn write_mod_data(vault_path: String, mod_id: String, content: String) -> Re
 	if !is_one_segment {
 		return Err(format!("Invalid mod id: {}", mod_id));
 	}
-	let dir = vault.join(".kokobrain").join("mods").join(&mod_id);
-	std::fs::create_dir_all(&dir).map_err(|e| format!("mkdir failed for {}: {}", dir.display(), e))?;
-	vault_fs::write_atomic(&dir.join("data.json").to_string_lossy(), &content)
+	Ok(vault.join(".kokobrain").join("mods").join(mod_id).join("data.json"))
+}
+
+/// Writes a mod's data through `write_atomic`, creating missing folders: a
+/// crash mid-write leaves the old file, never a truncated one. It touches no
+/// `VaultIndex` and emits nothing.
+#[tauri::command]
+pub fn write_mod_data(vault_path: String, mod_id: String, content: String) -> Result<(), String> {
+	let _trace = CmdTrace::new("write_mod_data");
+	let path = mod_data_path(&vault_path, &mod_id)?;
+	if let Some(dir) = path.parent() {
+		std::fs::create_dir_all(dir).map_err(|e| format!("mkdir failed for {}: {}", dir.display(), e))?;
+	}
+	vault_fs::write_atomic(&path.to_string_lossy(), &content)
+}
+
+/// Reads a mod's data as raw bytes, `None` only when the file is not there. A
+/// plain `exists` check would not do: it reports any error as "not there", and
+/// a mod that then saves replaces the file it could not reach. Bytes rather than
+/// text so the frontend can tell invalid UTF-8 from a lossy decode.
+#[tauri::command]
+pub fn read_mod_data(vault_path: String, mod_id: String) -> Result<Option<Vec<u8>>, String> {
+	let _trace = CmdTrace::new("read_mod_data");
+	let path = mod_data_path(&vault_path, &mod_id)?;
+	match std::fs::read(&path) {
+		Ok(bytes) => Ok(Some(bytes)),
+		Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+		Err(e) => Err(format!("read failed for {}: {}", path.display(), e)),
+	}
 }
 
 /// Tauri command: removes a single note from the managed `VaultIndex`.

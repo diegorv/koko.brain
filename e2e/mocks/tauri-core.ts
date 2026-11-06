@@ -95,6 +95,11 @@ function handleWriteModData(args: Args<'write_mod_data'>): null {
 	return null;
 }
 
+function handleReadModData(args: Args<'read_mod_data'>): number[] | null {
+	const text = virtualFS.readFileSafe(`${args.vaultPath}/.kokobrain/mods/${args.modId}/data.json`);
+	return text === null ? null : Array.from(new TextEncoder().encode(text));
+}
+
 // ─── v2 Vault index ────────────────────────────────────────────────────────
 
 // Never invoked by the app (it uses `scan_vault_v2_cached`); typed for exhaustiveness.
@@ -440,6 +445,7 @@ const HANDLERS: Handlers = {
 	create_note: handleCreateNote,
 	create_folder: handleCreateFolder,
 	write_mod_data: handleWriteModData,
+	read_mod_data: handleReadModData,
 
 	// v2 Vault index
 	scan_vault_v2: handleScanVaultV2,

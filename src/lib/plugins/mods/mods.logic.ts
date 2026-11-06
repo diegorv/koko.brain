@@ -103,6 +103,19 @@ export function serializeModData(value: unknown): string {
 }
 
 /**
+ * The bytes of a mod's `data.json` as a value. `ok: false` on invalid UTF-8 as
+ * well as invalid JSON: a lossy decode could parse, and the next save would
+ * then replace the bytes it dropped.
+ */
+export function parseModData(bytes: number[]): { ok: true; value: unknown } | { ok: false } {
+	try {
+		return { ok: true, value: JSON.parse(new TextDecoder('utf-8', { fatal: true }).decode(Uint8Array.from(bytes))) };
+	} catch {
+		return { ok: false };
+	}
+}
+
+/**
  * A thrown value as one string for `debug()`: the message, then the stack.
  * The log file JSON-stringifies non-string arguments, which turns an `Error`
  * into `{}`; the message comes first because a WKWebView stack omits it.

@@ -11,7 +11,7 @@ import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { debug } from '#lib/utils/debug.js';
 
 import type { ModContextV1, ModDataCorruptErrorV1, ModVaultV1, ModWorkspaceV1 } from './contract/mod-api.v1';
-import { assertVaultPath, errorText, isModCodePath, MOD_DATA_DIR, serializeModData } from './mods.logic';
+import { assertVaultPath, errorText, isModCodePath, MOD_DATA_DIR, parseModData, serializeModData } from './mods.logic';
 
 /** What `ctx.vault` and `ctx.workspace` need from the mod's `ctx` */
 export interface ModVaultScope {
@@ -127,6 +127,12 @@ export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): 
 	const dir = `${MOD_DATA_DIR}/${modId}`;
 	const dataPath = `${vaultPath}/${dir}/data.json`;
 
+	/**
+	 * True from the start of a load until it knows the state of the file: after a
+	 * load that failed, `data.json` may still hold what it could not read, and a
+	 * save would replace the only copy.
+	 */
+	let saveBlocked = false;
 	let tail: Promise<unknown> = Promise.resolve();
 	const inOrder = <T>(run: () => Promise<T>): Promise<T> => {
 		const result = tail.then(() => {
@@ -149,17 +155,18 @@ export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): 
 	return {
 		loadData: () =>
 			inOrder(async () => {
-				const text = await logged('loadData', async () => ((await exists(dataPath)) ? readTextFile(dataPath) : null));
+				saveBlocked = true;
+				const bytes = await logged('loadData', () => call('read_mod_data', { vaultPath, modId }));
 				assertLive();
-				if (text === null) return null;
-				try {
-					return JSON.parse(text) as unknown;
-				} catch {
-					// Handled below, outside the try: the steps that keep the file can throw too.
+				const parsed = bytes === null ? ({ ok: true, value: null } as const) : parseModData(bytes);
+				if (parsed.ok) {
+					saveBlocked = false;
+					return parsed.value;
 				}
-				// A rename, not a rewrite of `text`: readTextFile replaces bytes that are not UTF-8.
+				// A rename, not a rewrite: only the file itself holds these exact bytes.
 				const name = `data.corrupt-${Date.now()}.json`;
 				await logged('loadData', () => rename(dataPath, `${vaultPath}/${dir}/${name}`));
+				saveBlocked = false;
 				debug(tag, `data.json is not valid JSON; moved to ${name}`);
 				assertLive();
 				const corruptPath = `${dir}/${name}`;
@@ -178,6 +185,9 @@ export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): 
 				throw new Error(`Mod "${modId}": saveData needs a value JSON can represent: ${err instanceof Error ? err.message : String(err)}`);
 			}
 			await inOrder(async () => {
+				if (saveBlocked) {
+					throw new Error(`Mod "${modId}": saveData refused: the last loadData failed, so data.json may hold data that was not read; call loadData again`);
+				}
 				await logged('saveData', () => call('write_mod_data', { vaultPath, modId, content }));
 				assertLive();
 			});

@@ -96,6 +96,8 @@ export interface CommandMap {
 	create_folder: { args: { path: string }; result: null };
 	/** Writes `<vaultPath>/.kokobrain/mods/<modId>/data.json` atomically, creating missing folders; touches no index. */
 	write_mod_data: { args: { vaultPath: string; modId: string; content: string }; result: null };
+	/** The bytes of `<vaultPath>/.kokobrain/mods/<modId>/data.json`; null only when the file is not there. */
+	read_mod_data: { args: { vaultPath: string; modId: string }; result: number[] | null };
 	/** Starts or replaces the vault watcher (`commands/watcher.rs`). */
 	start_vault_watcher: { args: { path: string }; result: null };
 	/** Stops the vault watcher; no-op when none runs. */
@@ -235,6 +237,7 @@ export const COMMAND_ARGS = {
 	create_note: ['path', 'content'],
 	create_folder: ['path'],
 	write_mod_data: ['vaultPath', 'modId', 'content'],
+	read_mod_data: ['vaultPath', 'modId'],
 	start_vault_watcher: ['path'],
 	stop_vault_watcher: [],
 	read_files_batch: ['vaultPath', 'paths'],

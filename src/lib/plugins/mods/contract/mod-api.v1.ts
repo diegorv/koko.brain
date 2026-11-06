@@ -312,16 +312,18 @@ export interface ModContextV1 {
 	/** The theme's colors */
 	theme: ModThemeV1;
 	/**
-	 * Resolves to what `saveData` last saved, or to `null` when nothing was. Rejects
-	 * with a `ModDataCorruptErrorV1` when the file is not valid JSON, and with an
-	 * `Error` when it cannot be read: in that case do not save over it.
+	 * Resolves to what `saveData` last saved, or to `null` when the file is not
+	 * there. Rejects with a `ModDataCorruptErrorV1` when it is not valid UTF-8
+	 * JSON, and with an `Error` when it cannot be read or moved aside: `saveData`
+	 * then refuses until a load succeeds.
 	 */
 	loadData: () => Promise<unknown>;
 	/**
 	 * Saves `data` as `<vault>/.kokobrain/mods/<id>/data.json`, atomically, off the
 	 * index, search, file history and Auto Move. Calls land in order, so the last
 	 * one wins; `data` is read at the call. Rejects `Mod "<id>": ...` when JSON
-	 * cannot represent it, and with an `Error` when the write fails.
+	 * cannot represent it or the last load failed, and with an `Error` when the
+	 * write fails. A mod that never loads replaces whatever the file held.
 	 */
 	saveData: (data: unknown) => Promise<void>;
 }
