@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Setting a folder icon never stacks a second frontmatter block](issues/07-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
 | 08 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/08-file-history-keeps-snapshot-pre-save-bytes.md) | 13 | todo | | |
 | 09 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/09-kanban-card-lane-title-being-edited-saved.md) | 06 | todo | | |
-| 10 | [Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) | none | in-progress | | |
+| 10 | [Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents](issues/10-images-notes-display-vault-under-kokobrain-vaults.md) | none | done | issue/10-images-notes-display-vault-under-kokobrain-vaults (4d9a270c6) | 2026-11-06 |
 | 11 | [Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content](issues/11-rendered-table-cells-show-links-highlight-underscore.md) | none | todo | | |
 | 12 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/12-backlinks-outgoing-links-always-show-open-note.md) | none | todo | | |
 | 13 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/13-closing-tab-unsaved-text-saves-closes-prompt.md) | 06 | todo | | |
@@ -216,3 +216,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 07:02 — 03 — start — launched by /relay-lite:run (parallel with 10) — a2aeb59a5
 - 2026-11-06 07:25 — 03 — deliver — merged: capture placeholders quoted as YAML scalars, including one followed by a comment; R1 APPROVED, R2 APPROVED (fix b3661bb2e); full suite 12977 passed, build ok — a48236edf
 - 2026-11-06 07:26 — 22 — start — launched by /relay-lite:run (parallel with 10) — 4cada6904
+- 2026-11-06 07:36 — 10 — deliver — merged: asset-protocol scope adds $HOME/kokobrain-vaults; R1 APPROVED, no fix round; cargo 1314 passed, full suite 12979 passed, build ok; manual in-app image checks left for the owner — 4d9a270c6
