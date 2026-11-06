@@ -8,10 +8,18 @@ vi.mock('svelte-sonner', () => ({
 import type {
 	ModActionInputV1,
 	ModActionV1,
+	ModAlertOptionsV1,
+	ModConfirmOptionsV1,
 	ModContextV1,
 	ModInfoV1,
+	ModLoadingOptionsV1,
+	ModPromptOptionsV1,
 	ModRailButtonV1,
 	ModRunV1,
+	ModThemeColorsV1,
+	ModThemeStateV1,
+	ModThemeV1,
+	ModUiV1,
 	ModV1,
 	ModVaultEntryV1,
 	ModVaultV1,
@@ -45,6 +53,8 @@ const CONTEXT_PUBLIC = {
 	addRailButton: true,
 	vault: true,
 	workspace: true,
+	ui: true,
+	theme: true,
 } satisfies Record<keyof ModContextV1, true>;
 
 /** Raw access the host adds on top of the contract (`ModContext` in the host); unstable, not frozen */
@@ -67,6 +77,74 @@ const VAULT_ENTRY_PUBLIC = {
 const WORKSPACE_PUBLIC = {
 	openNote: true,
 } satisfies Record<keyof ModWorkspaceV1, true>;
+
+const UI_PUBLIC = {
+	alert: true,
+	confirm: true,
+	prompt: true,
+	loading: true,
+} satisfies Record<keyof ModUiV1, true>;
+
+const ALERT_OPTIONS_PUBLIC = {
+	title: true,
+	message: true,
+	kind: true,
+} satisfies Record<keyof ModAlertOptionsV1, true>;
+
+const CONFIRM_OPTIONS_PUBLIC = {
+	title: true,
+	message: true,
+	confirmLabel: true,
+	cancelLabel: true,
+	destructive: true,
+} satisfies Record<keyof ModConfirmOptionsV1, true>;
+
+const PROMPT_OPTIONS_PUBLIC = {
+	title: true,
+	message: true,
+	label: true,
+	placeholder: true,
+	value: true,
+	multiline: true,
+} satisfies Record<keyof ModPromptOptionsV1, true>;
+
+const LOADING_OPTIONS_PUBLIC = {
+	cancellable: true,
+} satisfies Record<keyof ModLoadingOptionsV1, true>;
+
+const THEME_PUBLIC = {
+	current: true,
+	onChange: true,
+} satisfies Record<keyof ModThemeV1, true>;
+
+const THEME_STATE_PUBLIC = {
+	mode: true,
+	colors: true,
+} satisfies Record<keyof ModThemeStateV1, true>;
+
+/** The color keys; `mod-theme.test.ts` pins their CSS variables */
+const THEME_COLORS_PUBLIC = {
+	background: true,
+	foreground: true,
+	card: true,
+	cardForeground: true,
+	popover: true,
+	popoverForeground: true,
+	primary: true,
+	primaryForeground: true,
+	secondary: true,
+	secondaryForeground: true,
+	muted: true,
+	mutedForeground: true,
+	accent: true,
+	accentForeground: true,
+	destructive: true,
+	destructiveForeground: true,
+	border: true,
+	input: true,
+	ring: true,
+	divider: true,
+} satisfies Record<keyof ModThemeColorsV1, true>;
 
 const ACTION_PUBLIC = {
 	id: true,
@@ -141,6 +219,25 @@ describe('mod API contract v1', () => {
 
 	it('ctx.workspace exposes exactly the contract members', () => {
 		expect(Object.keys(makeContext().workspace).sort()).toEqual(Object.keys(WORKSPACE_PUBLIC).sort());
+	});
+
+	it('ctx.ui exposes exactly the contract members', () => {
+		expect(Object.keys(makeContext().ui).sort()).toEqual(Object.keys(UI_PUBLIC).sort());
+	});
+
+	it('the dialog options are the contract fields', () => {
+		expect(Object.keys(ALERT_OPTIONS_PUBLIC).sort()).toEqual(['kind', 'message', 'title']);
+		expect(Object.keys(CONFIRM_OPTIONS_PUBLIC).sort()).toEqual(['cancelLabel', 'confirmLabel', 'destructive', 'message', 'title']);
+		expect(Object.keys(PROMPT_OPTIONS_PUBLIC).sort()).toEqual(['label', 'message', 'multiline', 'placeholder', 'title', 'value']);
+		expect(Object.keys(LOADING_OPTIONS_PUBLIC)).toEqual(['cancellable']);
+	});
+
+	it('ctx.theme exposes exactly the contract members, and current is mode plus every contract color', () => {
+		vaultStore.open('/vault');
+		const { theme } = makeContext();
+		expect(Object.keys(theme).sort()).toEqual(Object.keys(THEME_PUBLIC).sort());
+		expect(Object.keys(theme.current).sort()).toEqual(Object.keys(THEME_STATE_PUBLIC).sort());
+		expect(Object.keys(theme.current.colors).sort()).toEqual(Object.keys(THEME_COLORS_PUBLIC).sort());
 	});
 
 	it('a vault list entry is name, path and isFolder', () => {

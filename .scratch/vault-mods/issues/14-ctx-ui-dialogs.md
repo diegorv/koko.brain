@@ -40,11 +40,11 @@ Update `help/documentation/28-mods.md`: a `ctx.ui` section with the four dialogs
 
 **Blocked by:** 07
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, then `bash scripts/e2e.sh e2e/specs/vault-mods.spec.ts`.
 
-- [ ] Failing tests first:
+- [x] Failing tests first:
   - Dialog store: queue order, one open at a time, settle values per kind, closing every dialog of one mod at its unload.
   - `ModDialogHost` component tests: alert dismiss; confirm Enter / Esc / buttons and `destructive` styling; prompt single line (Enter, Esc gives `null`, IME Enter ignored) and multiline (Cmd+Enter); loading shows the label and closes when the task settles, Cancel aborts the signal; the mod name caption.
   - `ctx.theme`: `current` returns every contract token with the value set on the document element and the right `mode`; `onChange` fires after a theme change with the new values, its disposer and unload stop it, a throwing callback does not stop another mod's.
@@ -61,3 +61,5 @@ Update `help/documentation/28-mods.md`: a `ctx.ui` section with the four dialogs
 - **Size:** M.
 
 ## Comments
+
+- 2026-11-06, branch issue/14-ctx-ui-dialogs: added the four `ctx.ui` dialogs (ModDialogHost in AppOverlays), `ctx.theme` current colors and onChange, `--card-foreground` in both app.css blocks, docs in 28-mods.md and 26-theming.md, unit and E2E tests. Fix round after review 1: `watchModTheme` now reports a theme change made between subscribing and the first flush (regression test added). Full suite at f27e230aa: vitest 568 files, 13439 passed, 1 skipped, 1 todo; pnpm build passed. Reviews: round 1 APPROVED (1 minor fixed, 2 nits no change), round 2 APPROVED (no findings).

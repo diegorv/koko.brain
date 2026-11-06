@@ -134,6 +134,142 @@ export interface ModWorkspaceV1 {
 	openNote: (path: string) => Promise<void>;
 }
 
+/** Options for `ctx.ui.alert` */
+export interface ModAlertOptionsV1 {
+	/** Dialog title */
+	title: string;
+	/** Text under the title */
+	message?: string;
+	/** Dialog style; `'info'` when omitted */
+	kind?: ModNotifyKindV1;
+}
+
+/** Options for `ctx.ui.confirm` */
+export interface ModConfirmOptionsV1 {
+	/** Dialog title */
+	title: string;
+	/** Text under the title */
+	message?: string;
+	/** Label of the confirm button; `'OK'` when omitted */
+	confirmLabel?: string;
+	/** Label of the cancel button; `'Cancel'` when omitted */
+	cancelLabel?: string;
+	/** Styles the confirm button as destructive */
+	destructive?: boolean;
+}
+
+/** Options for `ctx.ui.prompt` */
+export interface ModPromptOptionsV1 {
+	/** Dialog title */
+	title: string;
+	/** Text under the title */
+	message?: string;
+	/** Label above the field */
+	label?: string;
+	/** Placeholder of the field */
+	placeholder?: string;
+	/** Initial text of the field; `''` when omitted */
+	value?: string;
+	/** A multi-line field: Cmd+Enter submits, Enter adds a line */
+	multiline?: boolean;
+}
+
+/** Options for `ctx.ui.loading` */
+export interface ModLoadingOptionsV1 {
+	/** Adds a Cancel button that aborts the task's signal */
+	cancellable?: boolean;
+}
+
+/**
+ * The app's dialogs, in its theme, with the mod's name as a caption. One
+ * shows at a time; a second call waits until the first is closed. When the mod
+ * unloads, its dialogs close as cancelled. Each rejects with
+ * `Mod "<id>": ...` on bad arguments and `Mod "<id>" is unloaded` after unload.
+ */
+export interface ModUiV1 {
+	/** Shows a message; resolves when it is dismissed */
+	alert: (options: ModAlertOptionsV1) => Promise<void>;
+	/** Asks yes or no; resolves `true` on confirm (Enter), `false` on cancel (Esc) */
+	confirm: (options: ModConfirmOptionsV1) => Promise<boolean>;
+	/** Asks for text; resolves to it, or to `null` when cancelled */
+	prompt: (options: ModPromptOptionsV1) => Promise<string | null>;
+	/**
+	 * Runs `task(signal)` at once while a dialog that cannot be dismissed shows
+	 * `label` and a spinner, and resolves or rejects with the task. The signal
+	 * aborts on Cancel (with `cancellable`) and when the mod unloads.
+	 */
+	loading: <T>(label: string, task: (signal: AbortSignal) => T | Promise<T>, options?: ModLoadingOptionsV1) => Promise<T>;
+}
+
+/**
+ * The theme's Global colors, the mod color contract. Each key is a CSS
+ * variable on the document (`cardForeground` is `--card-foreground`), which a
+ * mod's DOM can use directly; the values here are the resolved ones, in the
+ * color syntax the theme uses (`#rrggbb`, `oklch(...)`).
+ */
+export interface ModThemeColorsV1 {
+	/** `--background` */
+	background: string;
+	/** `--foreground` */
+	foreground: string;
+	/** `--card` */
+	card: string;
+	/** `--card-foreground` */
+	cardForeground: string;
+	/** `--popover` */
+	popover: string;
+	/** `--popover-foreground` */
+	popoverForeground: string;
+	/** `--primary` */
+	primary: string;
+	/** `--primary-foreground` */
+	primaryForeground: string;
+	/** `--secondary` */
+	secondary: string;
+	/** `--secondary-foreground` */
+	secondaryForeground: string;
+	/** `--muted` */
+	muted: string;
+	/** `--muted-foreground` */
+	mutedForeground: string;
+	/** `--accent` */
+	accent: string;
+	/** `--accent-foreground` */
+	accentForeground: string;
+	/** `--destructive` */
+	destructive: string;
+	/** `--destructive-foreground` */
+	destructiveForeground: string;
+	/** `--border` */
+	border: string;
+	/** `--input` */
+	input: string;
+	/** `--ring` */
+	ring: string;
+	/** `--divider` */
+	divider: string;
+}
+
+/** The applied theme, as `ctx.theme` reports it */
+export interface ModThemeStateV1 {
+	/** Whether the applied theme is light or dark */
+	mode: 'light' | 'dark';
+	/** The contract colors, resolved */
+	colors: ModThemeColorsV1;
+}
+
+/** The app's theme, for a mod that builds its own UI */
+export interface ModThemeV1 {
+	/** The applied theme, read when accessed */
+	readonly current: ModThemeStateV1;
+	/**
+	 * Calls `callback` with the new theme after every theme change. Returns a
+	 * disposer; it is also removed at unload. A throwing callback goes to the
+	 * debug log.
+	 */
+	onChange: (callback: (theme: ModThemeStateV1) => void) => () => void;
+}
+
 /** What a mod's `onload` receives. Every function throws once the mod is unloaded or the vault changed. */
 export interface ModContextV1 {
 	/** Contract version, `1` */
@@ -156,6 +292,10 @@ export interface ModContextV1 {
 	vault: ModVaultV1;
 	/** Opens notes */
 	workspace: ModWorkspaceV1;
+	/** The app's alert, confirm, prompt and loading dialogs */
+	ui: ModUiV1;
+	/** The theme's colors */
+	theme: ModThemeV1;
 }
 
 /** The default export of a mod's `main.js` */

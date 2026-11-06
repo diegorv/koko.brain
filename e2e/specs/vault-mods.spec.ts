@@ -21,6 +21,17 @@ const HELLO_MOD: Record<string, string> = {
 			},
 		});
 		ctx.addAction({
+			id: 'project',
+			title: 'New project',
+			run: async () => {
+				if (!(await ctx.ui.confirm({ title: 'Create a project note?', confirmLabel: 'Create' }))) return;
+				const title = await ctx.ui.prompt({ title: 'New project', label: 'Project title', placeholder: 'Project name' });
+				if (title === null) return;
+				const path = await ctx.vault.create('Projects/' + title + '.md', '# ' + title + '\\n');
+				await ctx.workspace.openNote(path);
+			},
+		});
+		ctx.addAction({
 			id: 'slow',
 			title: 'Slow job',
 			run: async (input, run) => {
@@ -141,6 +152,37 @@ test.describe('Vault mods', () => {
 			expect(await page.evaluate((p) => window.__e2e.fs.dump()[p], `${TEST_VAULT_PATH}/Ideas/Idea.md`)).toBe(
 				'# Idea\n\nA flying car',
 			);
+		});
+
+		test('a mod action confirms, prompts for a title and creates a note with it', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			await page.locator('[data-rail-item="mod:hello:main"]').click();
+			await page.locator('[data-mod-action="project"]').click();
+
+			const dialog = page.locator('[data-mod-dialog]');
+			await expect(dialog).toHaveAttribute('data-mod-dialog', 'confirm');
+			await expect(dialog.locator('[data-mod-dialog-caption]')).toHaveText('Hello mod');
+			await expect(dialog).toContainText('Create a project note?');
+			await expect(dialog.locator('[data-mod-dialog-confirm]')).toHaveText('Create');
+			await expect(dialog.locator('[data-mod-dialog-confirm]')).toBeFocused();
+			await page.keyboard.press('Enter');
+
+			await expect(dialog).toHaveAttribute('data-mod-dialog', 'prompt');
+			await expect(dialog.locator('[data-mod-dialog-caption]')).toHaveText('Hello mod');
+			await expect(dialog).toContainText('Project title');
+			const field = dialog.locator('[data-mod-dialog-field]');
+			await expect(field).toHaveAttribute('placeholder', 'Project name');
+			await field.fill('Moonshot');
+			await field.press('Enter');
+
+			await expect(dialog).toBeHidden();
+			await expect(page.locator('.cm-content')).toContainText('Moonshot');
+			expect(await page.evaluate((p) => window.__e2e.fs.dump()[p], `${TEST_VAULT_PATH}/Projects/Moonshot.md`)).toBe('# Moonshot\n');
 		});
 
 		test('a long action shows its log in the run view, and Stop cancels a second run', async ({ vaultPage: page }) => {

@@ -68,6 +68,7 @@ import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.
 import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
+import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import type { ModRunV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
@@ -119,6 +120,7 @@ describe('mods host', () => {
 		railRegistryStore.reset();
 		modPickerStore.reset();
 		modsRunsStore.reset();
+		modDialogsStore.reset();
 		globals.__modEvents = [];
 		globals.__modCtx = {};
 		vaultStore.open(VAULT);
@@ -1341,6 +1343,152 @@ describe('mods host', () => {
 			expect(globals.__modEvents).toContain('create:Mod "runner" is unloaded');
 			expect(invoke).not.toHaveBeenCalledWith('create_note', expect.anything());
 			expect(fsFiles.has(`${VAULT}/Late.md`)).toBe(false);
+		});
+	});
+
+	describe('ctx.ui', () => {
+		beforeEach(async () => {
+			writeMod('alpha', recordingMod('alpha'), { name: 'Alpha' });
+			writeMod('beta', recordingMod('beta'), { name: 'Beta' });
+			await startModsHost(VAULT);
+		});
+
+		it('confirm shows a dialog with the mod name and defaults, and resolves with the answer', async () => {
+			const answer = globals.__modCtx.alpha.ui.confirm({ title: 'Archive 12 notes?', destructive: true });
+
+			expect(modDialogsStore.current).toMatchObject({
+				kind: 'confirm',
+				modId: 'alpha',
+				modName: 'Alpha',
+				title: 'Archive 12 notes?',
+				confirmLabel: 'OK',
+				cancelLabel: 'Cancel',
+				destructive: true,
+			});
+			modDialogsStore.answer(modDialogsStore.current!.id, true);
+			expect(await answer).toBe(true);
+		});
+
+		it('alert, prompt and loading fill their defaults', async () => {
+			const { alpha } = globals.__modCtx;
+			void alpha.ui.alert({ title: 'Done' });
+			void alpha.ui.prompt({ title: 'New project', placeholder: 'Project name' });
+			void alpha.ui.loading('Archiving...', () => new Promise(() => {}));
+
+			expect(modDialogsStore.dialogs).toMatchObject([
+				{ kind: 'alert', title: 'Done', alertKind: 'info' },
+				{ kind: 'prompt', title: 'New project', placeholder: 'Project name', value: '', multiline: false },
+				{ kind: 'loading', label: 'Archiving...', cancellable: false },
+			]);
+		});
+
+		it('an unknown alert kind falls back to info', () => {
+			void globals.__modCtx.alpha.ui.alert({ title: 'Done', kind: 'shiny' as never });
+			expect(modDialogsStore.current).toMatchObject({ alertKind: 'info' });
+		});
+
+		it('loading runs the task at once, resolves with it and closes its dialog', async () => {
+			let release!: (value: string) => void;
+			const result = globals.__modCtx.alpha.ui.loading('Working', () => new Promise<string>((resolve) => (release = resolve)));
+
+			expect(release).toBeTypeOf('function');
+			expect(modDialogsStore.current).toMatchObject({ kind: 'loading', label: 'Working' });
+			release('done');
+
+			expect(await result).toBe('done');
+			expect(modDialogsStore.current).toBeNull();
+		});
+
+		it('loading rejects with the task and closes its dialog', async () => {
+			const result = globals.__modCtx.alpha.ui.loading('Working', async () => {
+				throw new Error('disk full');
+			});
+
+			await expect(result).rejects.toThrow('disk full');
+			expect(modDialogsStore.current).toBeNull();
+		});
+
+		it('cancelling a loading dialog aborts the signal the task received', async () => {
+			let signal!: AbortSignal;
+			const result = globals.__modCtx.alpha.ui.loading(
+				'Working',
+				(s) =>
+					new Promise((_resolve, reject) => {
+						signal = s;
+						s.addEventListener('abort', () => reject(new Error('aborted')));
+					}),
+				{ cancellable: true },
+			);
+
+			modDialogsStore.dismiss(modDialogsStore.current!.id);
+
+			await expect(result).rejects.toThrow('aborted');
+			expect(signal.aborted).toBe(true);
+		});
+
+		it('a mod unloaded with a confirm open resolves it false and leaves no dialog of its own', async () => {
+			const answer = globals.__modCtx.alpha.ui.confirm({ title: 'Sure?' });
+			const prompt = globals.__modCtx.alpha.ui.prompt({ title: 'Name' });
+			const other = globals.__modCtx.beta.ui.alert({ title: 'Beta says hi' });
+
+			disableMod('alpha');
+
+			expect(await answer).toBe(false);
+			expect(await prompt).toBeNull();
+			expect(modDialogsStore.dialogs.map((d) => d.modId)).toEqual(['beta']);
+			modDialogsStore.answer(modDialogsStore.current!.id, undefined);
+			await other;
+		});
+
+		it('an unload aborts the signal of a loading task and settles every dialog when the host stops', async () => {
+			let signal!: AbortSignal;
+			const loading = globals.__modCtx.alpha.ui.loading('Working', async (s) => {
+				signal = s;
+				await new Promise((resolve) => s.addEventListener('abort', resolve));
+				return 'stopped';
+			});
+			const alert = globals.__modCtx.beta.ui.alert({ title: 'Queued' });
+
+			stopModsHost();
+
+			expect(signal.aborted).toBe(true);
+			expect(await loading).toBe('stopped');
+			expect(await alert).toBeUndefined();
+			expect(modDialogsStore.dialogs).toEqual([]);
+		});
+
+		it('every ctx.ui call rejects after stop', async () => {
+			const { ui } = globals.__modCtx.alpha;
+			stopModsHost();
+
+			await expect(ui.alert({ title: 'x' })).rejects.toThrow('Mod "alpha" is unloaded');
+			await expect(ui.confirm({ title: 'x' })).rejects.toThrow('Mod "alpha" is unloaded');
+			await expect(ui.prompt({ title: 'x' })).rejects.toThrow('Mod "alpha" is unloaded');
+			await expect(ui.loading('x', () => {})).rejects.toThrow('Mod "alpha" is unloaded');
+			expect(modDialogsStore.dialogs).toEqual([]);
+		});
+
+		it('ctx.theme throws after stop', () => {
+			const { theme } = globals.__modCtx.alpha;
+			stopModsHost();
+
+			expect(() => theme.current).toThrow('Mod "alpha" is unloaded');
+			expect(() => theme.onChange(() => {})).toThrow('Mod "alpha" is unloaded');
+		});
+
+		it('bad arguments reject with the mod id and open no dialog', async () => {
+			const { ui } = globals.__modCtx.alpha;
+
+			await expect(ui.alert(undefined as never)).rejects.toThrow('Mod "alpha": ui.alert needs a non-empty string title');
+			await expect(ui.confirm({ title: '' })).rejects.toThrow('Mod "alpha": ui.confirm needs a non-empty string title');
+			await expect(ui.prompt({} as never)).rejects.toThrow('Mod "alpha": ui.prompt needs a non-empty string title');
+			await expect(ui.confirm({ title: 'x', confirmLabel: 3 as never })).rejects.toThrow(
+				'Mod "alpha": ui.confirm needs a string confirmLabel',
+			);
+			await expect(ui.prompt({ title: 'x', value: null as never })).rejects.toThrow('Mod "alpha": ui.prompt needs a string value');
+			await expect(ui.loading('', () => {})).rejects.toThrow('Mod "alpha": ui.loading needs a non-empty string label');
+			await expect(ui.loading('Working', 'task' as never)).rejects.toThrow('Mod "alpha": ui.loading needs a task function');
+			expect(modDialogsStore.dialogs).toEqual([]);
 		});
 	});
 });

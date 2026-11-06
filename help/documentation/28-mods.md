@@ -84,7 +84,7 @@ _system/mods/foo: manifest.json id "bar" does not match the folder name
 `main.js` looks like an ES module but is one file, evaluated as a function:
 
 - Exactly **one** `export default`, at the start of a line. Zero or several is an error.
-- **No `import`** and no other `export`. Anything a mod needs comes from `ctx`, from browser APIs (`fetch`, timers, `localStorage`, the DOM), or from code you paste into the file.
+- **No `import`** and no other `export`. Anything a mod needs comes from `ctx`, from browser APIs (`fetch`, timers, `localStorage`, the DOM), or from code in the file itself, pasted or [bundled by your own build](#your-own-ui-and-packages).
 - The code runs in strict mode.
 - The default export is an object with an `onload` function and, optionally, `onunload`.
 
@@ -214,6 +214,118 @@ Notes created or written this way reach search, backlinks and tags at once. `wri
 |--------|-------------|
 | `openNote(path)` | Opens the note at a vault-relative path in the editor, or switches to its tab. Rejects when the note does not exist. Pass a file: for a folder it resolves anyway and the app shows its own "Failed to open file." toast (reported like any app error) |
 
+### `ctx.ui`: dialogs
+
+Four dialogs in the app's own look: they follow the theme, take focus, and close on **Esc** like the app's dialogs. Each shows the mod's `name` as a small caption above its title, so you always know which mod is asking.
+
+```javascript
+ctx.addAction({
+	id: 'archive',
+	title: 'Archive old notes',
+	run: async () => {
+		if (!(await ctx.ui.confirm({ title: 'Archive 12 notes?', confirmLabel: 'Archive', destructive: true }))) return;
+		const reason = await ctx.ui.prompt({ title: 'Why?', placeholder: 'Reason' }); // null when cancelled
+		if (reason === null) return;
+		await ctx.ui.loading('Archiving...', async (signal) => {
+			/* work; check signal.aborted between steps */
+		});
+		await ctx.ui.alert({ title: 'Done', message: '12 notes archived', kind: 'success' });
+	},
+});
+```
+
+| Method | Resolves to | Keys |
+|--------|-------------|------|
+| `alert({ title, message?, kind? })` | nothing, once dismissed | **Enter** (OK), **Esc**. `kind`: `'info'` (default), `'success'`, `'warning'` or `'error'` sets the icon |
+| `confirm({ title, message?, confirmLabel?, cancelLabel?, destructive? })` | `true` or `false` | **Enter** confirms, **Esc** cancels. Labels default to **OK** and **Cancel**; `destructive: true` styles the confirm button as destructive |
+| `prompt({ title, message?, label?, placeholder?, value?, multiline? })` | the text, or `null` when cancelled | **Enter** submits, **Esc** cancels. With `multiline: true` the field is a text area: **Enter** adds a line and **Cmd+Enter** submits. Enter while an input method is composing (Japanese, Chinese, ...) never submits |
+| `loading(label, task, { cancellable? })` | what `task` resolves to; rejects when it rejects | Calls `task(signal)` at once and shows `label` with a spinner until it settles. The dialog cannot be dismissed; `cancellable: true` adds **Cancel**, which aborts `signal` and closes the dialog. The promise still follows the task, so stop when `signal.aborted` |
+
+- **One dialog at a time.** A second call, from this mod or another, waits until the first is closed. A dialog opened from an action shows above its run view; closing it returns to the run view.
+- **Unload.** When the mod unloads, its open and waiting dialogs close as cancelled: `alert` resolves, `confirm` resolves `false`, `prompt` resolves `null`, and `loading` aborts its signal. No promise is left hanging. A call after unload rejects with `Mod "<id>" is unloaded`.
+- **Bad arguments** reject with `Mod "<id>": ...`, for example `Mod "<id>": ui.confirm needs a non-empty string title` or `ui.loading needs a task function`.
+
+The app offers only these four. A custom modal, a form or a layout is the mod's own UI: build it in the DOM with the [theme colors](#ctxtheme-colors), or with a package you bundle (see [Your own UI and packages](#your-own-ui-and-packages)).
+
+### `ctx.theme`: colors
+
+The theme's **Global** colors are a stable contract for mods: the names below stay, and each one is a CSS variable on the document that follows the theme in Settings, a custom theme, and light or dark.
+
+| Key | CSS variable | Key | CSS variable |
+|-----|--------------|-----|--------------|
+| `background` | `--background` | `muted` | `--muted` |
+| `foreground` | `--foreground` | `mutedForeground` | `--muted-foreground` |
+| `card` | `--card` | `accent` | `--accent` |
+| `cardForeground` | `--card-foreground` | `accentForeground` | `--accent-foreground` |
+| `popover` | `--popover` | `destructive` | `--destructive` |
+| `popoverForeground` | `--popover-foreground` | `destructiveForeground` | `--destructive-foreground` |
+| `primary` | `--primary` | `border` | `--border` |
+| `primaryForeground` | `--primary-foreground` | `input` | `--input` |
+| `secondary` | `--secondary` | `ring` | `--ring` |
+| `secondaryForeground` | `--secondary-foreground` | `divider` | `--divider` |
+
+| Member | Description |
+|--------|-------------|
+| `ctx.theme.current` | `{ mode, colors }`, read when you access it: `mode` is `'light'` or `'dark'`, and `colors` has one key per row above with its resolved value, in the syntax the theme uses (`'#21222e'`, `'oklch(0.22 0.025 273)'`) |
+| `ctx.theme.onChange(callback)` | Calls `callback({ mode, colors })` after every theme change. Returns a function that removes it; it is also removed at unload. A callback that throws goes to the debug log and does not stop the others |
+
+In the DOM, use the variables directly; they inherit into shadow DOM too, so a repaint is not needed. Use `current` and `onChange` where a CSS variable cannot reach, such as a `<canvas>` or a chart library that takes colors as strings.
+
+A dialog the mod builds itself:
+
+```javascript
+function askColor(ctx) {
+	const dialog = document.createElement('dialog');
+	dialog.style.cssText = `
+		background: var(--popover); color: var(--popover-foreground);
+		border: 1px solid var(--border); border-radius: 12px; padding: 16px;`;
+	dialog.innerHTML = `
+		<p style="color: var(--muted-foreground); font-size: 12px"></p>
+		<form method="dialog" style="display: flex; gap: 8px">
+			<button value="red" style="background: var(--primary); color: var(--primary-foreground)">Red</button>
+			<button value="" style="background: var(--secondary); color: var(--secondary-foreground)">Cancel</button>
+		</form>`;
+	dialog.querySelector('p').textContent = ctx.mod.name;
+	document.body.append(dialog);
+	ctx.register(() => dialog.remove());
+	return new Promise((resolve) => {
+		dialog.addEventListener('close', () => {
+			resolve(dialog.returnValue || null);
+			dialog.remove();
+		});
+		dialog.showModal();
+	});
+}
+```
+
+For a canvas:
+
+```javascript
+const paint = ({ colors }) => {
+	chart.setColors({ line: colors.primary, grid: colors.border, text: colors.mutedForeground });
+};
+paint(ctx.theme.current);
+ctx.theme.onChange(paint); // removed at unload
+```
+
+## Your own UI and packages
+
+A mod is one `main.js` without `import`, but the file does not have to be written by hand. A mod can use any npm package (a chart library, a date picker, a UI framework) by bundling it into `main.js` with its own build:
+
+- Keep the mod's source, its `package.json` and `node_modules` **outside the vault**, so the vault holds only the built `main.js` and `manifest.json` and syncing or indexing the vault does not walk `node_modules`.
+- Build an IIFE and end it with the one `export default` the loader accepts. With [esbuild](https://esbuild.github.io):
+
+  ```bash
+  esbuild src/main.js --bundle --format=iife --global-name=__mod \
+    --footer:js='export default __mod.default;' \
+    --outfile="$VAULT/_system/mods/my-mod/main.js"
+  ```
+
+  `src/main.js` is a normal ES module: it can `import` packages and `export default { onload(ctx) { ... } }`. The bundle has no `import` left, and the footer puts the single top-level `export default` on its own line. The code runs in strict mode.
+- Writing the bundle into the mod folder is a save of `main.js`, so the mod [reloads](#reload-on-save) on every build.
+
+**Kokobrain never builds or installs anything for a mod.** It reads `manifest.json` and `main.js` and runs them; the build, the packages and their updates are yours. What the app guarantees for UI you build this way is the [theme color contract](#ctxtheme-colors).
+
 ## Raw access: `ctx.app` and `ctx.kb`
 
 These two members hand a mod the app's own objects. They exist so you can experiment without waiting for a stable API, and they come with no compatibility promise: they change whenever the app's internals do. Reading `ctx.app` or calling `ctx.kb` throws after the mod unloads; objects you already took from them stay usable.
@@ -342,7 +454,7 @@ onload(ctx) {
 
 Every error Kokobrain catches, and everything a mod writes with `ctx.log`, goes to the debug log under `MOD:<id>`. To keep it in a file, turn on **Settings → Troubleshooting → Save debug log to file**; lines look like `[10:42:07.123] [FRONT-END:MOD:daily-log] ...` in `~/Library/Logs/com.diegorv.kokobrain/`.
 
-Mod errors that the mod host catches (loading, actions, unload, `ctx.vault`, `ctx.workspace`) are never sent to Sentry. Two kinds can reach it while Sentry is on: uncaught ones (the last row above), and failures inside `ctx.app` functions, which report like any app error.
+Mod errors that the mod host catches (loading, actions, unload, `ctx.vault`, `ctx.workspace`, `ctx.ui`, `ctx.theme.onChange` callbacks) are never sent to Sentry. Two kinds can reach it while Sentry is on: uncaught ones (the last row above), and failures inside `ctx.app` functions, which report like any app error.
 
 > [!NOTE]
 > Stack traces show the mod's frames by function name only (for example `onload@`), without a file and line: the app's web view does not report locations for code evaluated this way.
@@ -350,7 +462,7 @@ Mod errors that the mod host catches (loading, actions, unload, `ctx.vault`, `ct
 ## Limits
 
 - **A synchronous infinite loop freezes the whole app**, and **Stop** cannot end it. Mods run on the app's main thread. If a mod freezes the app as soon as the vault opens, quit Kokobrain and rename or delete the mod's folder in Finder, then reopen.
-- **No `import`**, one file per mod.
+- **No `import`**, one file per mod; bundle packages with [your own build](#your-own-ui-and-packages).
 - **`export default` declares no name.** The loader turns it into an assignment, so after `export default function foo() {}` or `export default class Foo {}` the rest of the file cannot refer to `foo` or `Foo` (and the loader rejects both, since the default export must be an object). Declare the object first and export it: `const mod = { onload(ctx) { /* ... */ } }; export default mod;`.
 - **Long work** should check `run.signal.aborted` between steps in an action (it aborts on **Stop** and at unload), or `ctx.signal.aborted` in work the mod started outside an action.
 - **`fetch` reaches only the hosts the app's Content Security Policy allows** (`connect-src` in `src-tauri/tauri.conf.json`: GitHub, Todoist, Hugging Face and Sentry). A request to any other host is blocked by the web view.

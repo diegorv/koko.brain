@@ -30,6 +30,11 @@ interface Recorded {
 	lines: string[];
 }
 
+/** Stands in for the `ctx` members the hello example does not use */
+function unused(): never {
+	throw new Error('the hello example does not use this');
+}
+
 function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 	const seen: Recorded = { actions: [], buttons: [], toasts: [], files: new Map(), opened: [], progress: [], lines: [] };
 	const ctx: ModContextV1 = {
@@ -66,6 +71,13 @@ function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 			openNote: async (path) => {
 				seen.opened.push(path);
 			},
+		},
+		ui: { alert: unused, confirm: unused, prompt: unused, loading: unused },
+		theme: {
+			get current(): never {
+				return unused();
+			},
+			onChange: unused,
 		},
 	};
 	return { ctx, seen };

@@ -97,6 +97,9 @@ Each region can have its own background, text, and accent colors. This lets you 
 
 These apply to shared surfaces (popovers, dialogs) and act as fallback defaults for regions that don't override them.
 
+> [!IMPORTANT]
+> This table, without `tabBar`, is the color contract of [vault mods](28-mods.md#ctxtheme-colors): `ctx.theme` reports these colors and mods use their CSS variables in their own UI. Renaming or removing one of these tokens or its CSS variable is a breaking change for mods. `cardForeground` cannot be set from a theme yet: it takes the stylesheet's light or dark default.
+
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
 | `background` | `--background` | Base app background; used by surfaces without a dedicated variable |

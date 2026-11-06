@@ -5,6 +5,7 @@ import { toast } from 'svelte-sonner';
 
 import AppOverlays from '#lib/app/AppOverlays.svelte';
 import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
+import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 
 // bits-ui's Command scrolls its first item into view; jsdom does not implement it.
@@ -79,5 +80,28 @@ describe('AppOverlays mod action picker', () => {
 		flushSync();
 
 		expect(document.querySelector('[data-mod-action="hello"]')?.textContent).toContain('Say hello');
+	});
+});
+
+describe('AppOverlays mod dialogs', () => {
+	let component: Record<string, unknown> | null = null;
+
+	afterEach(() => {
+		modDialogsStore.reset();
+		flushSync();
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('mounts the dialog host, so a mod dialog in the store shows', () => {
+		component = mount(AppOverlays, { target: document.body.appendChild(document.createElement('div')) });
+		flushSync();
+		expect(document.querySelector('[data-mod-dialog]')).toBeNull();
+
+		void modDialogsStore.open('hello', 'Hello mod', { kind: 'alert', title: 'Done', alertKind: 'info' }).result;
+		flushSync();
+
+		expect(document.querySelector('[data-mod-dialog="alert"]')?.textContent).toContain('Done');
 	});
 });

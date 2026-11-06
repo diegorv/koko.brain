@@ -11,9 +11,11 @@ import type { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { serializeWithRerun } from '#lib/utils/inflight.js';
 
-import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModRunV1, ModV1 } from './contract/mod-api.v1';
+import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModRunV1, ModThemeV1, ModUiV1, ModV1 } from './contract/mod-api.v1';
 import { createModKb, MOD_APP, type ModApp } from './mod-app.service';
+import { modDialogsStore, type ModDialogSpec } from './mod-dialogs.store.svelte';
 import { modPickerStore } from './mod-picker.store.svelte';
+import { readModTheme, watchModTheme } from './mod-theme.svelte';
 import { createModVault, createModWorkspace } from './mod-vault.service';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
 import { modsRunsStore } from './mods-runs.store.svelte';
@@ -114,6 +116,82 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	const actions = new Map<string, ModActionV1>();
 	const buttonIds = new Set<string>();
 	const kb = () => createModKb(vaultPath, assertLive);
+
+	/** Checks a dialog's options: a `title`, and a string wherever an optional text field is set */
+	const dialogOptions = <T extends { title: string }>(fn: string, options: T, texts: (keyof T & string)[]): T => {
+		if (!isText(options?.title)) throw invalid(`ui.${fn} needs a non-empty string title`);
+		for (const field of ['message', ...texts] as (keyof T & string)[]) {
+			if (options[field] !== undefined && typeof options[field] !== 'string') throw invalid(`ui.${fn} needs a string ${field}`);
+		}
+		return options;
+	};
+	const openDialog = <S extends ModDialogSpec>(spec: S) => modDialogsStore.open(manifest.id, manifest.name, spec);
+
+	const ui: ModUiV1 = {
+		alert: async (options) => {
+			assertLive();
+			const { title, message, kind } = dialogOptions('alert', options, []);
+			// Mods are untyped JavaScript: an unknown kind falls back to info, as in notify.
+			const alertKind = kind && NOTIFY_KINDS.includes(kind) ? kind : 'info';
+			await openDialog({ kind: 'alert', title, message, alertKind }).result;
+		},
+		confirm: async (options) => {
+			assertLive();
+			const { title, message, confirmLabel, cancelLabel, destructive } = dialogOptions('confirm', options, ['confirmLabel', 'cancelLabel']);
+			return openDialog({
+				kind: 'confirm',
+				title,
+				message,
+				confirmLabel: confirmLabel || 'OK',
+				cancelLabel: cancelLabel || 'Cancel',
+				destructive: destructive === true,
+			}).result;
+		},
+		prompt: async (options) => {
+			assertLive();
+			const { title, message, label, placeholder, value, multiline } = dialogOptions('prompt', options, ['label', 'placeholder', 'value']);
+			return openDialog({ kind: 'prompt', title, message, label, placeholder, value: value ?? '', multiline: multiline === true }).result;
+		},
+		loading: async (label, task, options) => {
+			assertLive();
+			if (!isText(label)) throw invalid('ui.loading needs a non-empty string label');
+			if (typeof task !== 'function') throw invalid('ui.loading needs a task function');
+			const controller = new AbortController();
+			const abort = () => controller.abort();
+			// The unload aborts at once; Cancel settles the dialog as cancelled.
+			runtime.controller.signal.addEventListener('abort', abort);
+			const dialog = openDialog({ kind: 'loading', label, cancellable: options?.cancellable === true });
+			void dialog.result.then((cancelled) => {
+				if (cancelled) abort();
+			});
+			try {
+				return await task(controller.signal);
+			} finally {
+				runtime.controller.signal.removeEventListener('abort', abort);
+				modDialogsStore.answer<'loading'>(dialog.id, false);
+			}
+		},
+	};
+
+	const theme: ModThemeV1 = {
+		get current() {
+			assertLive();
+			return readModTheme();
+		},
+		onChange: (callback) => {
+			assertLive();
+			if (typeof callback !== 'function') throw invalid('theme.onChange needs a callback function');
+			return disposable(
+				watchModTheme(() => {
+					try {
+						callback(readModTheme());
+					} catch (err) {
+						debug(tag, 'theme.onChange callback failed:', errorText(err));
+					}
+				}),
+			);
+		},
+	};
 
 	/**
 	 * Runs a picked action from the picker of the button `buttonKey` and shows
@@ -271,6 +349,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		},
 		vault: createModVault({ modId: manifest.id, vaultPath, assertLive }),
 		workspace: createModWorkspace({ modId: manifest.id, vaultPath, assertLive }),
+		ui,
+		theme,
 		get app() {
 			assertLive();
 			return MOD_APP;
@@ -299,6 +379,7 @@ function unloadMod(live: LiveMod, callOnunload: boolean): void {
 	live.unloaded = true;
 	live.controller.abort();
 	modPickerStore.closeForMod(live.manifest.id);
+	modDialogsStore.closeForMod(live.manifest.id);
 	if (callOnunload && live.module.onunload) {
 		try {
 			const result = live.module.onunload();

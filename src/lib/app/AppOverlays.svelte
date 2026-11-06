@@ -7,6 +7,7 @@
 	import TemplatePicker from '#lib/plugins/templates/TemplatePicker.svelte';
 	import OneOnOnePicker from '#lib/plugins/one-on-one/OneOnOnePicker.svelte';
 	import ModActionPicker from '#lib/plugins/mods/ModActionPicker.svelte';
+	import ModDialogHost from '#lib/plugins/mods/ModDialogHost.svelte';
 	import FileHistoryDialog from '#lib/features/file-history/FileHistoryDialog.svelte';
 	import { getBuiltInCommands } from '#lib/app/commands.js';
 </script>
@@ -18,4 +19,5 @@
 <TemplatePicker />
 <OneOnOnePicker />
 <ModActionPicker />
+<ModDialogHost />
 <FileHistoryDialog />
