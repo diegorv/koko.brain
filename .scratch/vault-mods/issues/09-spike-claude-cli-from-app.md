@@ -25,6 +25,7 @@ It needs the owner's machine, Claude login and a Finder-launched build.
 
 ## Notes
 
+- Relay-lite reads every Status other than resolved or wontfix as `todo`, so never run this feature with `--all`; launch Issues by number. When the spike ends, mark this file `**Status:** wontfix` (the ledger picks up only that change) and record the outcome in its closing commit.
 - **Size:** S.
 
 ## Comments

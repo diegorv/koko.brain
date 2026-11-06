@@ -17,11 +17,11 @@ PRD "Owner decisions needed" 1, 2 and 4:
 - **Frontend:** `ctx.agents.run({ prompt, model, ... }, { onLine })` resolving to `{ code, result, costUsd }`; `run.signal` kills. Labs fields for the `claude` path and the ceiling.
 - No program spawn other than `claude`. No `sh -c`.
 - ts-rs DTOs (commit the regenerated `src/lib/contracts/generated/`), `CommandMap`, an E2E `HANDLERS` entry in `e2e/mocks/tauri-core.ts`.
-- Docs and ADR-0036 amendment: the spawn command, its reach, the soft budget cap ("spend can pass the cap", CLI reference).
+- Docs and a mods ADR amendment: the spawn command, its reach, the soft budget cap ("spend can pass the cap", CLI reference).
 
-**Blocked by:** 06, 09
+**Blocked by:** 06, 07
 
-Also waits on owner decisions 1, 2 and 4 (above).
+Also waits on owner decisions 1, 2 and 4 (above), and on the findings of the spike in Issue 09. 09 merges nothing, so it is not on the Blocked by line: the ledger would never mark it done.
 
 **Status:** needs-info
 

@@ -7,7 +7,7 @@
 - Output folder and file names follow this repo's `.scratch/<feature>/` layout by default, configurable at the top of `main.js`.
 - Docs: a short walkthrough in `28-mods.md`.
 
-**Blocked by:** 05, 06, 10
+**Blocked by:** 05, 06, 07, 10
 
 Also waits on owner decision 4 in the PRD (spend ceiling and Bash).
 

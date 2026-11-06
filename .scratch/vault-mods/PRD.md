@@ -36,9 +36,9 @@ _system/mods/
 - Plain JavaScript, no bundler and no TypeScript in the MVP.
 - Later, not MVP: `styles.css`, per-mod `data.json` settings (Obsidian's `loadData`/`saveData`), a settings tab per mod, TypeScript typings for `ctx`, multi-file mods.
 
-## Provisional decisions (taken while the owner was away; confirm or change)
+## Design decisions (taken while the owner was away)
 
-Each is reversible and is what all analysts who looked at it recommended. The Issues are written against them. **P1 and P3 were confirmed by the owner on 2026-11-06**; the others stay provisional.
+The Issues are written against these. **P1 and P3 were confirmed by the owner on 2026-11-06.** The others were presented as cheap to change later and stand as accepted defaults; changing one is a normal follow-up Issue (the `ctx` contract is v1 with no users outside this vault). Each follows the analysts' recommendation, except P4, which keeps the owner's main-webview decision against D1's Worker proposal.
 
 | # | Decision | Why | Alternative |
 |---|---|---|---|
@@ -50,11 +50,12 @@ Each is reversible and is what all analysts who looked at it recommended. The Is
 | P6 | **Rail placement:** mod buttons are their own block above the bottom group, kept out of `railItems()`, so they are not "Go to X" commands and not in Settings > Layout | `railItems()` feeds the palette's Go to commands (`app/commands.ts:56-66`) | Mixed into the pinned block |
 | P7 | **Long runs:** after picking, the picker becomes a run view (log, progress, Stop, Close). Close hides it and the run continues; the rail button shows a busy mark and reopens it. Vault teardown aborts every run | `core/status-bar/` cannot import `plugins/` (ADR-0003); the rail button is the mod's own registration | Picker closes; a separate running indicator |
 | P8 | **Input:** an action may declare one optional text input, shown as a second picker step. Forms with fields come later | Covers the owner's examples (an idea, a URL) | Declarative forms in the MVP |
-| P9 | Mod errors the host catches go to a toast and `debug('MOD:<id>', ...)`, not to Sentry; uncaught ones from mod code are dropped in Sentry's `beforeSend` by their `kokobrain-mods/` sourceURL. Host failures still use `error()` | Mod error text can carry note content and API responses; `beforeSend` does not scrub messages | Same as any app error |
+| P9 | Mod errors the host catches go to a toast and `debug('MOD:<id>', ...)`, not to Sentry; uncaught ones are dropped in Sentry's `beforeSend` by their `kokobrain-mods/` sourceURL or a host tag (Issue 12). Host failures still use `error()` | Mod error text can carry note content and API responses; `beforeSend` does not scrub messages | Same as any app error |
+| P10 | **A reload waits for live runs.** Saving a mod while one of its actions runs does not abort the run: the reload waits until the mod's runs end, then loads the newest code once. Turning mods off, deleting the mod and closing the vault still abort | A mod edited in Kokobrain reloads on every 2 s autosave (`core/editor/editor.service.ts:227`); aborting would kill a paid agent run mid-edit | Reload aborts the run |
 
 ## Owner decisions needed (blocking the actions after the skeleton)
 
-These change native surface or a recorded ADR. Issues 08 to 11 are `needs-info` until they are answered.
+These change native surface or a recorded ADR. Issues 08, 10 and 11 are `needs-info` until they are answered; 09 (the spike) is `ready-for-human`.
 
 1. **LLM engine.** (a) Spawn the `claude` CLI from Rust: it uses the owner's existing login and has agents, per-agent models, MCP and a budget flag built in. (b) The Anthropic Messages API with a key stored per machine; the mod writes its own agent loop. **Recommended: (a)**, if the spike (Issue 09) passes, with (b) as the fallback.
 2. **Process spawn command shape**, if (a). D3 proposes a generic `ctx.exec(programKey, argv)` with a per-machine program allowlist. D1 proposes a typed `mods_run_agent` whose `claude` argv is built in Rust (cwd outside the vault, `--setting-sources user`, `--strict-mcp-config`, Bash off by default, `--max-budget-usd`). App commands have no ACL (`src-tauri/build.rs:23`), so either is callable by any webview JS, QueryJS included. **Recommended: D1's typed command**: same cost, the program path and spend ceiling live in Rust-side machine config, and the mod API cannot name a program. It is not a boundary: without an ACL any webview JS can call the config setter too.
@@ -65,9 +66,18 @@ These change native surface or a recorded ADR. Issues 08 to 11 are `needs-info` 
 ## Order
 
 1. Issues 01 to 05: the walking skeleton. A mod in the vault, the Labs toggle, a rail button, a picker, reload on save, and an action that writes a note. No new native surface.
-2. Issues 06 and 07: long runs with Stop, and the docs with a working example mod.
+2. Issues 06, 07 and 12: long runs with Stop, the docs with a working example mod, and uncaught mod errors kept out of Sentry.
 3. Issue 08: HTTP, with an MCP Streamable HTTP example mod.
 4. Issue 09 (spike, owner's machine), then 10 and 11: the agent engine and the "idea to PRD + Issues" example mod.
+
+Launch by number, never with `--all`: relay-lite reads `needs-info` and `ready-for-human` as `todo`.
+
+## Owner checks after delivery
+
+E2E runs in Chromium without the CSP or the Tauri ACL, so these need one look in the real app (`pnpm tauri dev` or a build):
+
+- After 02: the hello mod loads and shows its toast (the loader under `script-src 'self' 'unsafe-eval'`).
+- After 12: a mod that throws from a `setTimeout` shows `kokobrain-mods/<id>/main.js` in the error's stack in WKWebView devtools, and no Sentry event is sent.
 
 ## Later (not MVP, no Issue yet)
 
