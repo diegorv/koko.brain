@@ -24,3 +24,12 @@
 - **Size:** S.
 
 ## Comments
+
+- **2026-11-06, owner check in the real app (`pnpm tauri dev`, WKWebView), after Issue 02:** JSC ignores `//# sourceURL` for `new Function` code. A `boom` mod whose `onload` throws shows this stack in Labs:
+
+  ```
+  onload@
+  loadMod@http://localhost:1420/src/lib/plugins/mods/mods-host.service.ts:145:22
+  ```
+
+  The mod frame has a function name and no location; no frame contains `kokobrain-mods/`. So the sourceURL rule above never matches in the app, and the host tag is the only reliable signal: the loader must also wrap `onload` and every registered callback so their errors get tagged (the fallback in Notes). Errors from a mod's own `setTimeout`, DOM listener or floating promise stay untagged. One possible extra signal: a frame with no location (`name@`) comes from `new Function` code, but QueryJS evaluates with `new Function` too, so that rule would also drop QueryJS errors. Size goes from S to M; re-triage before it runs.
