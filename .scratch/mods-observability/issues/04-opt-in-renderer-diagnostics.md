@@ -2,7 +2,7 @@
 
 **What to build:** When explicitly approved for implementation, let a user collect ordinary frontend diagnostics, including mod events, without the verbose Live Preview, tab-switch and QueryJS trace families. Preserve those diagnostics for deliberate renderer investigations rather than deleting them.
 
-**Blocked by:** None technically; independent of Issues 01-03.
+**Blocked by:** none
 
 **Status:** needs-triage
 

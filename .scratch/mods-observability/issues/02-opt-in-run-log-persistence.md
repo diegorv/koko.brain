@@ -2,7 +2,7 @@
 
 **What to build:** A user can explicitly enable local persistence of mod-authored run messages to investigate partial failures after the run view is closed, replaced or cleared. Each saved entry identifies its run using Issue 01's identity convention. The existing run view and run.log(text) API remain compatible.
 
-**Blocked by:** 01: Trace host-managed mod execution in the local session log.
+**Blocked by:** 01
 
 **Status:** ready-for-agent
 

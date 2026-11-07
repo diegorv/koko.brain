@@ -2,7 +2,7 @@
 
 **What to build:** With frontend file logging enabled, a user can determine whether a mod loaded, whether a host-managed action started, and how that run ended, even when the mod produces no output. Record a small execution trace through the existing local debug logger without changing action behavior or requiring changes to individual mods.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

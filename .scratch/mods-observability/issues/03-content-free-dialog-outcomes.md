@@ -2,7 +2,7 @@
 
 **What to build:** A user inspecting the local session log can distinguish a mod dialog that was queued, displayed, answered or cancelled, without saving the dialog's content. Notification calls leave evidence that a notification was requested, not that it was seen. Public dialog results and cancellation behavior stay unchanged.
 
-**Blocked by:** None (can start immediately).
+**Blocked by:** none
 
 **Status:** ready-for-agent
 
