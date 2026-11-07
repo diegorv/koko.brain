@@ -261,7 +261,7 @@ Implement `ready-for-agent` Issues from `.scratch/<feature>/issues/` with the re
 In a prompt that names a workflow role (build, review, fix, re-review, deliver), the role prompt decides these two things where it differs from this file:
 
 - **Test scope:** the role's targeted checks replace Quick Reference rule 6 and the Task Completion steps. The full suite runs only in deliver.
-- **Records:** `.scratch/<feature>/work/NN/discovery.md` and `review*.md` are required workflow records. Write them even if other instructions discourage report files: the post-delivery review below finds its range from the commit that adds the review file.
+- **Workflow inputs:** `.scratch/<feature>/work/NN/discovery.md` and `review*.md` are required, versioned inputs to subsequent workflow steps. `discovery.md` preserves the implementation plan and evidence for later agents. Review files are consumed by `review-lint`, `review-ticks`, `after-review`, and the fix, re-review and deliver steps. These files fall under the allowance for files written as input to another tool, rather than optional reports for the parent agent. When your role requires one, write and commit it before returning. A final chat message or structured result does not replace the file: the step is complete only when the required file exists and is committed.
 
 Every other rule in this file still applies.
 
