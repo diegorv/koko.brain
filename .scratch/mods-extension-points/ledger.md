@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [`ctx.watch`, `ctx.onNoteSaved`, vault path methods and a raw pack](issues/01-raw-pack-and-watch.md) | none | done | issue/01-raw-pack-and-watch (1a344f35a) | 2026-11-07 |
 | 02 | [`ctx.labs`, opt-in palette rows and a lazy run view](issues/02-labs-and-palette-opt-in.md) | none | done | issue/02-labs-and-palette-opt-in (a1ba666fd) | 2026-11-07 |
-| 03 | [Right click on note rows and folders, with `run.target`](issues/03-right-click-menus.md) | 02 | todo | | |
+| 03 | [Right click on note rows and folders, with `run.target`](issues/03-right-click-menus.md) | 02 | in-progress | | |
 | 04 | [`ctx.ui.pick`](issues/04-ui-pick.md) | none | todo | | |
 
 ## Log
@@ -51,3 +51,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-07 11:00 — 02 — start — launched by /relay-lite:run — 41e239758
 - 2026-11-07 11:33 — 02 — deliver — Blocked: merge permission denied because delivery removes the issue worktree. Round 1 APPROVED by Claude with no findings; full suite passed (576 files, 13904 tests passed). No implementation merge or push; branch and worktree preserved pending explicit removal authorization. — 1b762941c
 - 2026-11-07 15:21 — 02 — deliver — Review round 1 APPROVED with no findings; full suite passed (576 files, 13904 tests); sync rebased, merge merged after the owner authorized removing the worktree, which auto mode had denied. — a1ba666fd
+- 2026-11-07 15:24 — 03 — start — launched by /relay-lite:run — 93e5ffb6d
