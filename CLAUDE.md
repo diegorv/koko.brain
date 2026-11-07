@@ -265,6 +265,8 @@ In a prompt that names a workflow role (build, review, fix, re-review, deliver),
 
 Every other rule in this file still applies.
 
+**Worktree removal at delivery:** the owner authorizes `relay deliver merge` to remove the Issue's worktree (`<repo>.worktrees/issue-NN-slug`) and delete its branch (`issue/NN-slug`), for every relay-lite delivery in this repository. This is not irreversible local destruction: the command removes them only after the squash commit is pushed to `origin/main`, so the work is already on `main`, and the only files lost are ignored and regenerable (`node_modules`, `.svelte-kit`, `test-results`). Run it without asking for a separate authorization.
+
 ### Post-delivery review (main session)
 
 Relay-lite's deliver step fixes the findings of an APPROVED review and merges them, and nothing reviews that fix (`reReviews` loops only on CHANGES_REQUESTED). The main session closes the gap after every `/relay-lite:run` delivery:
