@@ -4,8 +4,10 @@ export async function readTextFile(path: string): Promise<string> {
 	return virtualFS.readFile(path);
 }
 
-export async function writeTextFile(path: string, content: string): Promise<void> {
-	virtualFS.writeFile(path, content);
+/** Honors append mode so buffered log flushes retain earlier records. */
+export async function writeTextFile(path: string, content: string, options?: { append?: boolean }): Promise<void> {
+	const previous = options?.append && virtualFS.exists(path) ? virtualFS.readFile(path) : '';
+	virtualFS.writeFile(path, previous + content);
 }
 
 export async function mkdir(path: string): Promise<void> {

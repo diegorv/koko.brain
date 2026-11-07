@@ -82,6 +82,9 @@ interface LiveMod extends ModRuntime {
 	module: ModV1;
 }
 
+/** Entry point known by the host; command includes palette and programmatic calls. */
+type ActionOrigin = 'rail' | 'note-menu' | 'folder-menu' | 'command';
+
 const NOTIFY_KINDS: readonly ModNotifyKindV1[] = ['info', 'success', 'warning', 'error'];
 
 /** Bumped by every stop; a load that sees a different value drops its result */
@@ -165,7 +168,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				run: (target) => {
 					assertLive();
 					if (actions.get(actionId) !== action) throw invalid(`unknown action id "${actionId}"`);
-					openPicker(actionKey(actionId), action.title, [actionId], true, { ...target });
+					openPicker(actionKey(actionId), action.title, [actionId], target.on === 'note' ? 'note-menu' : 'folder-menu', true, { ...target });
 				},
 			}));
 			const owned = placements.get(actionId)!;
@@ -278,9 +281,21 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	 * run cancelled at once, even when the mod's code goes on. A failure is the
 	 * mod's, so it goes to the run, a toast and `debug()`, never Sentry (PRD P9).
 	 */
-	const runAction = async (action: ModActionV1, input: string, buttonKey: string, lazy: boolean, target?: ModRunV1['target']) => {
+	const runAction = async (action: ModActionV1, input: string, buttonKey: string, origin: ActionOrigin, lazy: boolean, target?: ModRunV1['target']) => {
 		const controller = new AbortController();
 		const id = modsRunsStore.start({ modId: manifest.id, buttonKey, title: action.title, stop: () => controller.abort() });
+		const startedAt = performance.now();
+		const identity = { modId: manifest.id, actionId: action.id, runId: id, origin };
+		debug('MOD-HOST', JSON.stringify({ event: 'action-start', ...identity, outcome: 'running', elapsedMs: 0 }));
+		let terminal = false;
+		const recordEnd = (outcome: 'done' | 'failed' | 'cancelled') => {
+			// Stop ends the host run, not necessarily the JavaScript executing it.
+			if (terminal) return;
+			terminal = true;
+			debug('MOD-HOST', JSON.stringify({
+				event: 'action-end', ...identity, outcome, elapsedMs: Math.round(performance.now() - startedAt),
+			}));
+		};
 		let revealed = false;
 		const reveal = () => {
 			revealed = true;
@@ -304,6 +319,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		};
 		controller.signal.addEventListener('abort', () => {
 			modsRunsStore.cancel(id);
+			recordEnd('cancelled');
 			end();
 		});
 		runtime.controller.signal.addEventListener('abort', abortOnUnload);
@@ -327,11 +343,13 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		try {
 			await action.run(input, run);
 			modsRunsStore.finish(id);
+			recordEnd('done');
 		} catch (err) {
 			// After an abort, a rejection is how the mod stops, not a failure.
 			if (!controller.signal.aborted) {
 				debug(tag, `${action.title} failed:`, errorText(err));
 				modsRunsStore.fail(id, { message: messageOf(err), stack: err instanceof Error ? err.stack : undefined });
+				recordEnd('failed');
 				toast.error(`${manifest.name}: ${action.title} failed: ${messageOf(err)}`);
 			}
 		} finally {
@@ -346,7 +364,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	 * action skips the list: it runs the action, or opens straight on its text
 	 * field when the action asks for input.
 	 */
-	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined, lazy = false, target?: ModRunV1['target']) => {
+	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined, origin: ActionOrigin, lazy = false, target?: ModRunV1['target']) => {
 		if (modsRunsStore.isBusy(buttonKey)) {
 			revealRuns.get(buttonKey)?.();
 			return;
@@ -357,7 +375,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			title: a.title,
 			description: a.description,
 			input: a.input,
-			run: (input: string) => runAction(a, input, buttonKey, lazy && !a.input, target),
+			run: (input: string) => runAction(a, input, buttonKey, origin, lazy && !a.input, target),
 		}));
 		if (rows.length === 1 && !rows[0].input) {
 			void rows[0].run('');
@@ -416,7 +434,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				run: () => {
 					assertLive();
 					if (actions.get(entry.id) !== entry) throw invalid(`unknown action id "${entry.id}"`);
-					openPicker(actionKey(entry.id), entry.title, [entry.id], true);
+					openPicker(actionKey(entry.id), entry.title, [entry.id], 'command', true);
 				},
 			});
 			return disposable(() => {
@@ -453,7 +471,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				icon: button.icon,
 				color: manifest.color,
 				busy: () => modsRunsStore.isBusy(key),
-				run: () => openPicker(key, title, listed),
+				run: () => openPicker(key, title, listed, 'rail'),
 			});
 			return disposable(() => {
 				buttonIds.delete(id);
@@ -524,6 +542,7 @@ function reportUnloadError(live: LiveMod, phase: string, err: unknown): void {
 function unloadMod(live: LiveMod, callOnunload: boolean): void {
 	if (live.unloaded) return;
 	live.unloaded = true;
+	debug('MOD-HOST', JSON.stringify({ event: 'unload', modId: live.manifest.id }));
 	live.controller.abort();
 	modPickerStore.closeForMod(live.manifest.id);
 	modDialogsStore.closeForMod(live.manifest.id);
@@ -567,10 +586,16 @@ function recordLoadError(vaultPath: string, folder: string, message: string, err
  * is called, so a reload runner is never held by an `onload` that does not settle.
  */
 async function loadMod(vaultPath: string, folder: string, startGeneration: number, waitForOnload = true): Promise<void> {
+	const startedAt = performance.now();
+	debug('MOD-HOST', JSON.stringify({ event: 'load-attempt', modId: folder }));
+	const result = (outcome: 'loaded' | 'failed' | 'superseded') => debug('MOD-HOST', JSON.stringify({
+		event: 'load-result', modId: folder, outcome, elapsedMs: Math.round(performance.now() - startedAt),
+	}));
 	const dir = `${MODS_DIR}/${folder}`;
 	const startEpoch = folderEpochs.get(folder) ?? 0;
 	const current = () => generation === startGeneration && (folderEpochs.get(folder) ?? 0) === startEpoch;
 	const fail = (message: string, err?: unknown, manifest?: ModManifest) => {
+		result(current() ? 'failed' : 'superseded');
 		if (current()) recordLoadError(vaultPath, folder, message, err, manifest);
 	};
 
@@ -590,7 +615,7 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 	} catch (err) {
 		return fail(`${dir}: cannot read main.js: ${messageOf(err)}`, err, manifest);
 	}
-	if (!current()) return;
+	if (!current()) return result('superseded');
 
 	let module: ModV1;
 	try {
@@ -620,11 +645,12 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 		// A stop, switch or reload while onload ran has already unloaded it.
 		if (live.unloaded || !current()) {
 			unloadMod(live, true);
-			return;
+			return result('superseded');
 		}
 
 		toastedErrors.delete(`${vaultPath}\n${folder}`);
 		modsStore.upsertEntry({ id: manifest.id, folder, name: manifest.name, version: manifest.version, state: 'loaded' });
+		result('loaded');
 	})();
 	if (waitForOnload) await loading;
 }
@@ -662,6 +688,7 @@ async function listDisabledMod(vaultPath: string, folder: string, startGeneratio
 async function waitForRuns(folder: string, current: () => boolean): Promise<void> {
 	const runsOf = () => liveMods.filter((m) => m.folder === folder).flatMap((m) => [...m.runs]);
 	// A loaded mod's id is its folder name, which the run store keys mods by.
+	if (runsOf().length > 0 && current()) debug('MOD-HOST', JSON.stringify({ event: 'reload-wait', modId: folder }));
 	try {
 		for (let runs = runsOf(); runs.length > 0 && current(); runs = runsOf()) {
 			modsRunsStore.setReloadPending(folder, true);

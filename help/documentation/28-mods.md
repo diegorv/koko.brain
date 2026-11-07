@@ -613,6 +613,38 @@ Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, 
 > [!NOTE]
 > Stack traces show the mod's frames by function name only (for example `onload@`), without a file and line: the app's web view does not report locations for code evaluated this way.
 
+### Automatic host execution trace
+
+Turn on **Settings → Troubleshooting → Save debug log to file** before reproducing a problem. The host writes records even when a mod never calls `ctx.log`, `run.log` or `run.progress`. Console **Debug mode** alone does not enable file output. Without an active log session, nothing is written; enabling logging later does not replay earlier events.
+
+Look for `[FRONT-END:MOD-HOST]` in the session file in `~/Library/Logs/com.diegorv.kokobrain/`. Each record is one JSON object after the timestamp and tag:
+
+```text
+[10:42:07.123] [FRONT-END:MOD-HOST] {"event":"action-start","modId":"daily-log","actionId":"stamp","runId":7,"origin":"rail","outcome":"running","elapsedMs":0}
+[10:42:07.140] [FRONT-END:MOD-HOST] {"event":"action-end","modId":"daily-log","actionId":"stamp","runId":7,"origin":"rail","outcome":"done","elapsedMs":17}
+```
+
+| Event | Meaning and fields |
+|-------|--------------------|
+| `load-attempt` | The host starts reading a mod. `modId` is the folder name, also used before its manifest can be validated. |
+| `load-result` | That load settles as `loaded`, `failed` or `superseded`, with `modId` and `elapsedMs`. Superseded code is not reported as successfully loaded. An `onload` that never settles has no result yet. |
+| `unload` | The host begins unloading `modId`: disabling, deletion, reload, vault teardown or cleanup after a failed load. It does not promise that asynchronous cleanup has finished. |
+| `reload-wait` | A reload of `modId` is waiting for live host runs. The replacement gets its own load attempt and result when it actually loads. |
+| `action-start` | A host-managed run starts: `modId`, `actionId`, `runId`, `origin`, `outcome: "running"`, `elapsedMs: 0`. |
+| `action-end` | That host run ends once, with the same identifiers and origin, `outcome: "done"`, `"failed"` or `"cancelled"`, and elapsed milliseconds since start. |
+
+`runId` identifies a run **within this app session**, not across restarts or as a globally durable ID. Concurrent runs have different IDs, and a later run on the same button or command gets a new ID. Invoking a busy key reveals the existing run without recording another start. Durations use a monotonic clock, rounded to milliseconds.
+
+`origin` is `rail`, `note-menu`, `folder-menu` or `command`. Palette selection and programmatic invocation of a command row are both `command`: the host cannot distinguish them. Opening a picker without starting an action produces no action event.
+
+**Cancelled describes host state.** Stop or unload ends the host run immediately; it does not prove arbitrary JavaScript has stopped. A late resolution or rejection neither changes cancellation nor writes another terminal event. `done` means the action resolved, not that its note contents or business outcome are correct.
+
+Automatic records contain only the selected identifiers, host event/outcome codes and timing. Identifiers are JSON-escaped so embedded newlines cannot create extra records. They do not include action input, titles, target paths, note content, progress labels or raw errors. Existing `MOD:<id>` messages, mod-authored logs and other app logs are separate and may contain those details; review the whole file before sharing it. These diagnostic records do not call the Sentry error reporter, and existing caught-mod-error routing and user-facing feedback are unchanged.
+
+Coverage is limited to host-managed loads and actions. Direct raw-registry callbacks, mod-owned DOM listeners, timers, save/theme/watch callbacks and work detached from an action are not automatically separate runs. Uncaught errors and downstream app-service reporting retain the limits described above.
+
+This uses the existing local buffered writer, normally flushing every 250 ms or 50 lines. It is not a crash-proof journal: a crash, write failure or disabling logging partway through a run can leave an incomplete trace. Browser tests verify rendered runs and buffered filesystem output; native WKWebView session-file delivery still requires a desktop check.
+
 ## Limits
 
 - **A synchronous infinite loop freezes the whole app**, and **Stop** cannot end it. Mods run on the app's main thread. If a mod freezes the app as soon as the vault opens, quit Kokobrain and rename or delete the mod's folder in Finder, then reopen.
