@@ -175,6 +175,7 @@ const ACTION_PUBLIC = {
 } satisfies Record<keyof ModActionV1, true>;
 
 const RUN_PUBLIC = {
+	target: true,
 	signal: true,
 	log: true,
 	progress: true,
@@ -203,7 +204,7 @@ const MOD_PUBLIC = {
 	onunload: true,
 } satisfies Record<keyof ModV1, true>;
 
-function makeContext(): ModContextV1 {
+function makeContext(): ModContext {
 	return createModContext({ id: 'hello', name: 'Hello', version: '1.0.0' }, '/vault', {
 		controller: new AbortController(),
 		disposers: [],
@@ -286,7 +287,13 @@ describe('mod API contract v1', () => {
 		railRegistryStore.actions[0].run();
 		await modPickerStore.actions[0].run('');
 
+		expect(Object.keys(received!).sort()).toEqual(['log', 'progress', 'signal']);
+		expect(received).not.toHaveProperty('target');
+
+		ctx.labs.place('a', { menu: { on: ['folder'] } });
+		railRegistryStore.menuItems[0].run({ on: 'folder', path: '' });
 		expect(Object.keys(received!).sort()).toEqual(Object.keys(RUN_PUBLIC).sort());
+		expect(received!.target).toEqual({ on: 'folder', path: '' });
 	});
 
 	it('an action input is an optional placeholder', () => {

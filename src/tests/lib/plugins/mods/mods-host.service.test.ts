@@ -408,6 +408,114 @@ describe('mods host', () => {
 		});
 	});
 
+	describe('menu placement', () => {
+		it('validates untyped placement options before registering either surface', async () => {
+			writeMod('hello', recordingMod('hello'));
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+			ctx.addAction({ id: 'greet', title: 'Greet', run() {} });
+			const loose = ctx.labs as unknown as { place: (id: string, options: unknown) => void };
+			for (const options of [null, {}, { palette: false }, { menu: null }, { menu: {} }, { menu: { on: ['editor'] } }, { palette: true, menu: { on: ['note'], files: 'pdf' } }]) {
+				expect(() => loose.place('greet', options)).toThrow('labs.place needs');
+			}
+			expect(railRegistryStore.menuItems).toEqual([]);
+			expect(modCommandsStore.list[0].palette).toBe(false);
+			ctx.labs.place('greet', { menu: { on: [] } });
+			expect(railRegistryStore.menuItems[0].on).toEqual([]);
+		});
+
+		it('captures a menu target through input and leaves rail and command runs target-free', async () => {
+			writeMod('hello', recordingMod('hello'));
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+			const received: { input: string; run: ModRunV1 }[] = [];
+			ctx.addAction({ id: 'greet', title: 'Greet', input: {}, run: (input, run) => { received.push({ input, run }); } });
+			const on: ('note' | 'folder')[] = ['note'];
+			ctx.labs.place('greet', { menu: { on } });
+			on.push('folder');
+			expect(railRegistryStore.menuItems[0].on).toEqual(['note']);
+			const target = { on: 'note' as const, path: 'Work/alpha.md' };
+			railRegistryStore.menuItems[0].run(target);
+			target.path = 'other.md';
+			expect(modPickerStore.inputAction?.id).toBe('greet');
+			await modPickerStore.actions[0].run('hello');
+			expect(received[0].input).toBe('hello');
+			expect(received[0].run.target).toEqual({ on: 'note', path: 'Work/alpha.md' });
+			modCommandsStore.list[0].run();
+			await modPickerStore.actions[0].run('palette');
+			ctx.addRailButton({ id: 'greet', title: 'Greet', icon: '' });
+			railRegistryStore.actions[0].run();
+			await modPickerStore.actions[0].run('rail');
+			expect(received[1].run).not.toHaveProperty('target');
+			expect(received[2].run).not.toHaveProperty('target');
+		});
+
+		it('shares the command busy key and reveals only on output or another invocation', async () => {
+			writeMod('hello', recordingMod('hello'));
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+			let release!: () => void;
+			const gate = new Promise<void>((resolve) => { release = resolve; });
+			onTestFinished(release);
+			const received: ModRunV1[] = [];
+			ctx.addAction({ id: 'greet', title: 'Greet', run: (_input, run) => { received.push(run); return gate; } });
+			ctx.labs.place('greet', { menu: { on: ['folder'] } });
+			railRegistryStore.menuItems[0].run({ on: 'folder', path: '' });
+			expect(received[0].target).toEqual({ on: 'folder', path: '' });
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(modsRunsStore.isBusy('mod:hello:action:greet')).toBe(true);
+			modCommandsStore.list[0].run();
+			expect(received).toHaveLength(1);
+			expect(modPickerStore.isOpen).toBe(true);
+			release();
+			await vi.waitFor(() => expect(modsRunsStore.isBusy('mod:hello:action:greet')).toBe(false));
+		});
+
+		it('keeps one menu item after reload and none after unload or failed onload', async () => {
+			const source = `export default { onload(ctx) {
+				ctx.addAction({ id: 'greet', title: 'Greet', run() {} });
+				ctx.labs.place('greet', { menu: { on: ['note', 'folder'] } });
+			} };`;
+			writeMod('hello', source);
+			await startModsHost(VAULT);
+			const stale = railRegistryStore.menuItems[0];
+			for (const listener of fileListeners) listener([`${VAULT}/_system/mods/hello/main.js`]);
+			await vi.waitFor(() => expect(railRegistryStore.menuItems[0]?.run).not.toBe(stale.run));
+			expect(railRegistryStore.menuItems).toHaveLength(1);
+			expect(() => stale.run({ on: 'note', path: 'old.md' })).toThrow('unloaded');
+			stopModsHost();
+			expect(railRegistryStore.menuItems).toEqual([]);
+			writeMod('hello', source.replace("} };", "throw new Error('bad load'); } };"));
+			await startModsHost(VAULT);
+			expect(modsStore.entries[0].state).toBe('error');
+			expect(railRegistryStore.menuItems).toEqual([]);
+		});
+
+		it('places an action on both surfaces, passes its target and disposes both placements', async () => {
+			writeMod('hello', recordingMod('hello'));
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+			const received: ModRunV1[] = [];
+			const remove = ctx.addAction({ id: 'greet', title: 'Greet', run: (_input, run) => { received.push(run); } });
+			expect(() => ctx.labs.place('missing', { menu: { on: ['note'] } })).toThrow('unknown action id');
+			const off = ctx.labs.place('greet', { palette: true, menu: { on: ['note', 'folder'] } });
+			expect(railRegistryStore.menuItems).toMatchObject([{ id: 'mod:hello:action:greet', label: 'Mod hello: Greet', on: ['note', 'folder'], files: 'markdown' }]);
+			expect(modCommandsStore.list[0].palette).toBe(true);
+			railRegistryStore.menuItems[0].run({ on: 'note', path: 'Work/alpha.md' });
+			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:action:greet')?.status).toBe('done'));
+			expect(received[0].target).toEqual({ on: 'note', path: 'Work/alpha.md' });
+			expect(modPickerStore.isOpen).toBe(false);
+			off();
+			off();
+			expect(railRegistryStore.menuItems).toEqual([]);
+			expect(modCommandsStore.list[0].palette).toBe(false);
+			ctx.labs.place('greet', { menu: { on: ['folder'], files: 'all' } });
+			remove();
+			expect(railRegistryStore.menuItems).toEqual([]);
+			expect(modCommandsStore.list).toEqual([]);
+		});
+	});
+
 	describe('lazy non-rail run view', () => {
 		async function prepare(input = false) {
 			let release!: () => void;

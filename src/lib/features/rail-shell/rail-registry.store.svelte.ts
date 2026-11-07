@@ -1,4 +1,4 @@
-import type { RailAction, RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySection } from './rail-shell.types';
+import type { RailAction, RailFolderCreator, RailLensProvider, RailMenuItem, RailNavigator, RailTodaySection } from './rail-shell.types';
 
 /**
  * The rail shell's registration point. `features/` may not import `plugins/`
@@ -21,7 +21,23 @@ let folderCreators = $state.raw<RailFolderCreator[]>([]);
 /** Action buttons registered by plugins, in registration order */
 let actions = $state.raw<RailAction[]>([]);
 
+/** Note-row and folder menu actions registered by plugins, in registration order */
+let menuItems = $state.raw<RailMenuItem[]>([]);
+
 export const railRegistryStore = {
+	/** Registered note-row and folder menu actions */
+	get menuItems() {
+		return menuItems;
+	},
+
+	/** Adds a menu item, replacing one with the same id. Returns its unregister function. */
+	registerMenuItem(entry: RailMenuItem): () => void {
+		menuItems = [...menuItems.filter((item) => item.id !== entry.id), entry];
+		return () => {
+			menuItems = menuItems.filter((item) => item !== entry);
+		};
+	},
+
 	/** Registered navigators */
 	get navigators() {
 		return navigators;
@@ -90,5 +106,6 @@ export const railRegistryStore = {
 		todaySections = [];
 		folderCreators = [];
 		actions = [];
+		menuItems = [];
 	},
 };

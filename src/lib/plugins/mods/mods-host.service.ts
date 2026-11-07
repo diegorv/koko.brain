@@ -34,8 +34,18 @@ import { modsStore } from './mods.store.svelte';
 export interface ModContext extends ModContextV1 {
 	/** Experimental entry points with no compatibility promise; not part of contract v1. */
 	readonly labs: {
-		/** Places a registered action in the palette until disposed or unloaded. Unknown ids throw. */
-		place(actionId: string, options: { palette: true }): () => void;
+		/** Places a registered action until disposed or unloaded. Unknown ids throw. */
+		place(actionId: string, options: {
+			/** Opts into the command palette */
+			palette?: true;
+			/** Flat note-row or folder menu placement */
+			menu?: {
+				/** Surfaces that show the action */
+				on: ('note' | 'folder')[];
+				/** Note rows only; defaults to markdown */
+				files?: 'markdown' | 'all';
+			};
+		}): () => void;
 	};
 	/**
 	 * Unstable. The app's own live objects, listed in `MOD_APP`
@@ -125,15 +135,46 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	};
 
 	const actions = new Map<string, ModActionV1>();
+	const placements = new Map<string, Set<() => void>>();
 	const buttonIds = new Set<string>();
 	const revealRuns = new Map<string, () => void>();
 	const actionKey = (id: string) => `mod:${manifest.id}:action:${id}`;
 	const labs: ModContext['labs'] = {
 		place: (actionId, options) => {
 			assertLive();
-			if (!actions.has(actionId)) throw invalid(`unknown action id "${actionId}"`);
-			if (options?.palette !== true) throw invalid('labs.place needs palette: true');
-			return disposable(modCommandsStore.place(actionKey(actionId)));
+			const action = actions.get(actionId);
+			if (!action) throw invalid(`unknown action id "${actionId}"`);
+			const menu = options?.menu;
+			if (options?.palette !== true && menu === undefined) throw invalid('labs.place needs palette: true or menu');
+			if (options.palette !== undefined && options.palette !== true) throw invalid('labs.place needs palette: true');
+			if (menu !== undefined) {
+				if (!menu || !Array.isArray(menu.on) || !menu.on.every((on) => on === 'note' || on === 'folder')) {
+					throw invalid('labs.place needs menu.on to list note or folder');
+				}
+				if (menu.files !== undefined && menu.files !== 'markdown' && menu.files !== 'all') {
+					throw invalid('labs.place needs menu.files to be markdown or all');
+				}
+			}
+			const cleanups: (() => void)[] = [];
+			if (options.palette) cleanups.push(modCommandsStore.place(actionKey(actionId)));
+			if (menu) cleanups.push(railRegistryStore.registerMenuItem({
+				id: actionKey(actionId),
+				label: `${manifest.name}: ${action.title}`,
+				on: [...menu.on],
+				files: menu.files ?? 'markdown',
+				run: (target) => {
+					assertLive();
+					if (actions.get(actionId) !== action) throw invalid(`unknown action id "${actionId}"`);
+					openPicker(actionKey(actionId), action.title, [actionId], true, { ...target });
+				},
+			}));
+			const owned = placements.get(actionId)!;
+			const off = disposable(() => {
+				for (const cleanup of cleanups) cleanup();
+				owned.delete(off);
+			});
+			owned.add(off);
+			return off;
 		},
 	};
 	const kb = () => createModKb(vaultPath, assertLive);
@@ -237,7 +278,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	 * run cancelled at once, even when the mod's code goes on. A failure is the
 	 * mod's, so it goes to the run, a toast and `debug()`, never Sentry (PRD P9).
 	 */
-	const runAction = async (action: ModActionV1, input: string, buttonKey: string, lazy: boolean) => {
+	const runAction = async (action: ModActionV1, input: string, buttonKey: string, lazy: boolean, target?: ModRunV1['target']) => {
 		const controller = new AbortController();
 		const id = modsRunsStore.start({ modId: manifest.id, buttonKey, title: action.title, stop: () => controller.abort() });
 		let revealed = false;
@@ -270,6 +311,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		if (!lazy) reveal();
 
 		const run: ModRunV1 = {
+			...(target ? { target } : {}),
 			signal: controller.signal,
 			log: (text) => {
 				modsRunsStore.log(id, String(text));
@@ -304,7 +346,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	 * action skips the list: it runs the action, or opens straight on its text
 	 * field when the action asks for input.
 	 */
-	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined, lazy = false) => {
+	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined, lazy = false, target?: ModRunV1['target']) => {
 		if (modsRunsStore.isBusy(buttonKey)) {
 			revealRuns.get(buttonKey)?.();
 			return;
@@ -315,7 +357,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			title: a.title,
 			description: a.description,
 			input: a.input,
-			run: (input: string) => runAction(a, input, buttonKey, lazy && !a.input),
+			run: (input: string) => runAction(a, input, buttonKey, lazy && !a.input, target),
 		}));
 		if (rows.length === 1 && !rows[0].input) {
 			void rows[0].run('');
@@ -367,6 +409,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				run: action.run,
 			};
 			actions.set(entry.id, entry);
+			placements.set(entry.id, new Set());
 			const unregister = modCommandsStore.register({
 				id: actionKey(entry.id),
 				label: `${manifest.name}: ${entry.title}`,
@@ -378,6 +421,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			});
 			return disposable(() => {
 				if (actions.get(entry.id) === entry) actions.delete(entry.id);
+				for (const off of placements.get(entry.id) ?? []) off();
+				placements.delete(entry.id);
 				unregister();
 			});
 		},

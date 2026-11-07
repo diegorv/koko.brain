@@ -49,6 +49,13 @@ export interface ModActionInputV1 {
  * run: its progress bar, its log, and Stop.
  */
 export interface ModRunV1 {
+	/** Clicked menu target; absent from rail and palette invocations. */
+	target?: {
+		/** Surface the action was selected from */
+		on: 'note' | 'folder';
+		/** Vault-relative path; an empty string is the vault root */
+		path: string;
+	};
 	/**
 	 * Aborted on Stop, when the mod unloads (mods switched off, the mod switched
 	 * off or deleted) and when the vault closes; not when the mod reloads after a

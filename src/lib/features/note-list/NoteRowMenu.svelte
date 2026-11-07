@@ -26,19 +26,22 @@
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { getViewVisible } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { formatShortcut } from '#lib/utils/keybindings.js';
+	import type { MenuActionItem } from '#lib/utils/menu-action.types.js';
 	import { RENAME_SHORTCUT, setNoteRowMenuContext, type NoteRowRenameState } from './note-row-menu.context';
 	import type { NoteRowNote } from './note-row.types';
 
 	interface Props {
 		/** The listed notes; inline rename looks its target up here */
 		notes: NoteRowNote[];
+		/** Data-only menu actions; markdown rows only unless an entry opts into all files */
+		extraItems?: readonly MenuActionItem[];
 		/** Classes of the element that wraps the rows and receives right-clicks */
 		class?: string;
 		/** The list content, holding NoteRow components */
 		children: Snippet;
 	}
 
-	let { notes, class: className = '', children }: Props = $props();
+	let { notes, extraItems = [], class: className = '', children }: Props = $props();
 
 	let contextTarget = $state<NoteRowNote | null>(null);
 	let rename = $state<NoteRowRenameState>({ value: '', input: undefined });
@@ -257,6 +260,11 @@
 				<FolderSearch class="size-4" />
 				<span>Reveal in Finder</span>
 			</ContextMenu.Item>
+			{#each extraItems.filter((item) => item.on.includes('note') && (item.files === 'all' || isMarkdownFile(target.path))) as item (item.id)}
+				<ContextMenu.Item inset onclick={() => { if (vaultStore.path) item.run({ on: 'note', path: getRelativePath(vaultStore.path.replace(/\/+$/, ''), target.path) }); }}>
+					<span>{item.label}</span>
+				</ContextMenu.Item>
+			{/each}
 			<ContextMenu.Separator />
 
 			<ContextMenu.Item onclick={() => handleStartRename(target)}>

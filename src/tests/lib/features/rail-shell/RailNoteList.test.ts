@@ -164,6 +164,21 @@ describe('RailNoteList', () => {
 		document.body.innerHTML = '';
 	});
 
+	it('shows late menu registrations and removes them when disposed', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+		await mountList();
+		const received: unknown[] = [];
+		const off = railRegistryStore.registerMenuItem({ id: 'organize', label: 'Organize here', on: ['note'], run: (target) => { received.push(target); } });
+		await chooseMenuItem('alpha', 'Organize here');
+		expect(received).toEqual([{ on: 'note', path: 'Work/alpha.md' }]);
+		off();
+		row('alpha').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+		await settle();
+		const labels = [...document.querySelectorAll('[role="menuitem"]')].map((el) => el.textContent?.trim());
+		expect(labels).not.toContain('Organize here');
+		expect(labels).toContain('Duplicate');
+	});
+
 	it('shows the Inbox label, its rule and one row per inbox note', async () => {
 		typeDefinitionsStore.setEntries([
 			entryV2(ALPHA, { modifiedAt: 200 }),

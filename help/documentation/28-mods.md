@@ -195,7 +195,7 @@ ctx.addRailButton({
 - **`addRailButton(button)`** adds a button to the rail and returns a function that removes it. Clicking it opens a picker with the button's actions (resolved at click time, so actions added later are listed). When the button resolves to **a single action**, the click skips the list: an action without `input` runs at once, and one with `input` opens straight on its text field. A mod can add several buttons, each with its own `actions` list.
 - **Icons** are `pack:name` or a bare Lucide name. Packs: `lucide`, `feather`, `fa-solid`, `fa-regular`, `fa-brands`, `octicons`, `boxicons`, `coolicons`, `simple-icons`, `tabler`, `remix`, `emoji`. An unknown icon falls back to a default.
 
-### `ctx.labs.place`: opt into the command palette
+### `ctx.labs.place`: palette and right-click menus
 
 `ctx.labs` is **unstable**, outside `ModContextV1`. Its members may change without an API version bump. Register an action first, then place it:
 
@@ -210,12 +210,35 @@ Calling `unplace()` removes this placement, not the action. Removing the action 
 
 Every registered action, marked or not, is available in `ctx.app.modCommandsStore.list` as `{ id, label, run, palette }`. Its id is `mod:<mod-id>:action:<action-id>`. Calling a row's `run()` invokes the action through the host, asking for input when needed.
 
-### Runs: `run.signal`, `run.log`, `run.progress`
+To show an action in right-click menus, use `menu`. Both placements can be set in one call:
+
+```javascript
+ctx.addAction({
+	id: 'inspect',
+	title: 'Inspect this target',
+	run: (_input, run) => {
+		if (run.target) ctx.notify(`${run.target.on}: ${run.target.path || '(vault root)'}`);
+	},
+});
+ctx.labs.place('inspect', {
+	palette: true,
+	menu: { on: ['note', 'folder'], files: 'markdown' },
+});
+```
+
+- `on: ['note']` places a flat item in the rail note list's row menu. `on: ['folder']` places it in the Files navigator's folder and vault-root menus. Use both to show it on both surfaces.
+- `files` defaults to `'markdown'`: `.canvas`, `.view`, PDF and other non-markdown rows hide it. Set `'all'` only when the action supports those files. The filter never applies to folders.
+- Items use `<Mod name>: <Action title>`, alongside the built-ins. The app does not call mod code while rendering menus; there is no `when` callback.
+- A repeated menu placement for the same action replaces its previous menu entry. Disposing an older placement does not remove the replacement. Unloading or removing the action clears its menu entries.
+- Menu runs receive `run.target: { on: 'note' | 'folder', path: string }`. The path is vault-relative and the vault root is `''`. It is captured from the clicked item, not the active editor, and stays the same while entering action input. Rail and palette runs have no `target`; use your own active-note fallback there if needed.
+- Menu and palette invocations share one live run per action. Invoking it again while busy reveals that run, rather than starting another for a different clicked target.
+
+### Runs: `run.target`, `run.signal`, `run.log`, `run.progress`
 
 Running an action starts a **run**. Its view shows the action's title, its state (**Running**, **Done**, **Failed** or **Cancelled**), a progress bar, the run's log, the error with its stack when it failed, and **Stop** and **Close** buttons.
 
 - **From the rail, or with `input`:** the run view opens when the action starts, after any input is submitted.
-- **From the palette or a raw command row, without `input`:** the view opens only on the first `run.log` or `run.progress`. A quiet run does not interrupt typing. Invoking the same action again while it runs opens its existing view rather than starting another run. After **Close**, later output does not reopen it.
+- **From a menu, the palette or a raw command row, without `input`:** the view opens only on the first `run.log` or `run.progress`. A quiet run does not interrupt typing. Invoking the same action again while it runs opens its existing view rather than starting another run. After **Close**, later output does not reopen it.
 - **Delayed output can take focus:** the first log or progress opens the modal view even if another picker is open, replacing that picker's input. A quiet run has no visible **Stop** until invoked again. It also holds a mod reload without a visible **Reload pending** indicator until its view is opened. Switching the mod off in Labs aborts it.
 - Rail and non-rail invocations use separate run keys, so the same action can run through both at once.
 
@@ -238,6 +261,7 @@ ctx.addAction({
 
 | Member | Description |
 |--------|-------------|
+| `run.target` | Optional clicked menu target: `{ on: 'note' \| 'folder', path: string }`. Vault-relative path; `''` is the root. Absent from rail and palette runs |
 | `run.signal` | An `AbortSignal` aborted on **Stop**, when the mod unloads (mods turned off, the mod switched off or deleted) and when the vault closes. Not aborted by a reload after a save, which waits for the run. Pass it to `fetch` or check `run.signal.aborted` between steps |
 | `run.log(text)` | Adds a line to the run's log. The run view keeps the last 500 lines |
 | `run.progress(done, total, label?)` | Sets the progress bar to `done` of `total`, with an optional label under it. Throws `Mod "<id>": run.progress needs numbers done and total` (or `needs a string label`) on other values |

@@ -124,3 +124,20 @@ describe('railRegistryStore', () => {
 		expect(railRegistryStore.actions).toEqual([]);
 	});
 });
+
+it('keeps menu entries by identity, replaces by id and clears them on reset', () => {
+	railRegistryStore.reset();
+	expect(railRegistryStore.menuItems).toEqual([]);
+	const old = railRegistryStore.registerMenuItem({ id: 'organize', label: 'Old', on: ['note'], run: () => {} });
+	const entry = { id: 'organize', label: 'Organize', on: ['note', 'folder'] as const, files: 'all' as const, run: () => {} };
+	const off = railRegistryStore.registerMenuItem(entry);
+	old();
+	expect(railRegistryStore.menuItems).toEqual([entry]);
+	expect(railRegistryStore.menuItems[0]).toBe(entry);
+	off();
+	off();
+	expect(railRegistryStore.menuItems).toEqual([]);
+	railRegistryStore.registerMenuItem(entry);
+	railRegistryStore.reset();
+	expect(railRegistryStore.menuItems).toEqual([]);
+});

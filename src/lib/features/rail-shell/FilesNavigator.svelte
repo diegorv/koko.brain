@@ -357,6 +357,11 @@
 					<FolderPlus class="size-4" />
 					<span>New folder</span>
 				</ContextMenu.Item>
+				{#each railRegistryStore.menuItems.filter((item) => item.on.includes('folder')) as item (item.id)}
+					<ContextMenu.Item inset onclick={() => item.run({ on: 'folder', path: target.isRoot ? '' : getRelativePath(vaultRoot, target.path) })}>
+						<span>{item.label}</span>
+					</ContextMenu.Item>
+				{/each}
 				{#if !target.isRoot}
 					<ContextMenu.Separator />
 					<ContextMenu.Item onclick={() => handleChangeIcon(target.path)}>

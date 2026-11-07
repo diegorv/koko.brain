@@ -175,6 +175,25 @@ afterEach(() => {
 });
 
 describe('FilesNavigator folder menu', () => {
+	it.each([['root', ''], ['folder', 'Work']])('passes the %s relative target to registered inset items', async (kind, path) => {
+		vaultStore.open(`${VAULT}/`);
+		const received: unknown[] = [];
+		railRegistryStore.registerMenuItem({ id: 'folder', label: 'Tag here', on: ['folder'], run: (target) => { received.push(target); } });
+		railRegistryStore.registerMenuItem({ id: 'note', label: 'Organize note', on: ['note'], run: () => {} });
+		render();
+		const el = kind === 'root' ? root() : row(WORK);
+		const labels = await openMenu(el);
+		expect(labels).toContain('Tag here');
+		expect(labels).not.toContain('Organize note');
+		expect(received).toEqual([]);
+		const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) => el.textContent?.trim() === 'Tag here')!;
+		expect(item.hasAttribute('data-inset')).toBe(true);
+		expect(document.querySelectorAll('[data-slot="context-menu-separator"]')).toHaveLength(kind === 'root' ? 0 : 2);
+		item.click();
+		await tick();
+		expect(received).toEqual([{ on: 'folder', path }]);
+	});
+
 	it('offers the folder operations on a folder row, the kanban item from the plugin registry', async () => {
 		render();
 		expect(await openMenu(row(WORK))).toEqual([
@@ -190,11 +209,13 @@ describe('FilesNavigator folder menu', () => {
 			'Rename',
 			'Move to Trash',
 		]);
+		expect(document.querySelectorAll('[data-slot="context-menu-separator"]')).toHaveLength(2);
 	});
 
 	it('offers only the create items on the vault root, which cannot be renamed or trashed', async () => {
 		render();
 		expect(await openMenu(root())).toEqual(['New note', 'New Canvas', 'New table', 'New Kanban Board', 'New view', 'New folder']);
+		expect(document.querySelectorAll('[data-slot="context-menu-separator"]')).toHaveLength(0);
 	});
 
 	it('offers the create items on an empty vault', async () => {

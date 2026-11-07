@@ -61,6 +61,25 @@ const HELLO_MOD: Record<string, string> = {
 				run.progress(2, 2);
 			},
 		});
+		ctx.addAction({
+			id: 'inspect', title: 'Inspect selected note',
+			run: async (_input, run) => {
+				const text = await ctx.vault.read(run.target.path);
+				const path = await ctx.vault.create('Menus/Selected.md', '# Selected\\n\\n' + run.target.path + '\\n\\n' + text);
+				await ctx.workspace.openNote(path);
+			},
+		});
+		ctx.addAction({
+			id: 'annotate', title: 'Annotate selected note',
+			run: async (_input, run) => {
+				const text = await ctx.ui.prompt({ title: 'Annotate note', label: 'Annotation' });
+				if (text === null) return;
+				const path = await ctx.vault.create('Menus/Annotation.md', '# Annotation\\n\\n' + run.target.path + '\\n\\n' + text);
+				await ctx.workspace.openNote(path);
+			},
+		});
+		ctx.labs.place('inspect', { menu: { on: ['note'] } });
+		ctx.labs.place('annotate', { menu: { on: ['note'] } });
 		ctx.labs.place('slow', { palette: true });
 		ctx.labs.place('idea', { palette: true });
 		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'lucide:sparkles' });
@@ -194,6 +213,49 @@ test.describe('Vault mods', () => {
 			await field.press('Enter');
 			await expect(field).toBeHidden();
 			await expect(page.locator('.cm-content')).toContainText('A palette-created idea');
+		});
+
+		test('a row menu action writes and opens a note from the clicked target', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			await page.locator('[data-rail-item="files"]').click();
+			const row = page.locator('[data-note-row]', { has: page.getByText('Welcome', { exact: true }) });
+			await row.click({ button: 'right' });
+			await page.getByRole('menuitem', { name: 'Hello mod: Inspect selected note', exact: true }).click();
+			await expect(page.locator('.cm-content')).toContainText('Welcome.md');
+			await expect(page.locator('.cm-content')).toContainText('This is the test vault');
+			expect(await page.evaluate((p) => window.__e2e.fs.dump()[p], `${TEST_VAULT_PATH}/Menus/Selected.md`)).toBe(
+				'# Selected\n\nWelcome.md\n\n' + TEST_FILES[`${TEST_VAULT_PATH}/Welcome.md`],
+			);
+		});
+
+		test('a row menu prompt keeps focus after the menu closes and writes the answer', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			await page.locator('[data-rail-item="files"]').click();
+			await page.locator('[data-note-row]', { has: page.getByText('Welcome', { exact: true }) }).click({ button: 'right' });
+			await page.getByRole('menuitem', { name: 'Hello mod: Annotate selected note', exact: true }).click();
+			const dialog = page.locator('[data-mod-dialog="prompt"]');
+			const field = dialog.locator('[data-mod-dialog-field]');
+			await expect(page.getByRole('menu')).toBeHidden();
+			await expect(dialog).toContainText('Annotate note');
+			await expect(field).toBeFocused();
+			await page.keyboard.type('A focused annotation');
+			await expect(field).toHaveValue('A focused annotation');
+			await page.keyboard.press('Enter');
+			await expect(dialog).toBeHidden();
+			await expect(page.locator('.cm-content')).toContainText('A focused annotation');
+			expect(await page.evaluate((p) => window.__e2e.fs.dump()[p], `${TEST_VAULT_PATH}/Menus/Annotation.md`)).toBe(
+				'# Annotation\n\nWelcome.md\n\nA focused annotation',
+			);
 		});
 
 		test('New idea note asks for text, writes the note and opens it', async ({ vaultPage: page }) => {

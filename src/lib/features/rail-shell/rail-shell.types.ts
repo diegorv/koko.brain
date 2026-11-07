@@ -214,6 +214,9 @@ export interface RailAction {
 	run: () => void;
 }
 
+/** Shared menu contracts, exposed under the rail registry's names. */
+export type { MenuActionTarget as RailMenuTarget, MenuActionItem as RailMenuItem } from '#lib/utils/menu-action.types.js';
+
 /** A "New <thing>" item a plugin adds to the Files navigator's folder menu (e.g. New Kanban Board). */
 export interface RailFolderCreator {
 	/** Unique id */

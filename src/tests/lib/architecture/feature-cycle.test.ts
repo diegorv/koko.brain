@@ -59,6 +59,11 @@ function cycleMembers(list: string[]) {
 describe('feature cycle ratchet', () => {
 	const { unlisted, stale } = checkFeatureCycles(pairs, baseline.featureCycleEdges);
 
+	it('note-row menu contracts do not depend on their rail-shell consumer', () => {
+		expect(pairs).toContain('rail-shell -> note-list');
+		expect(pairs).not.toContain('note-list -> rail-shell');
+	});
+
 	it('every pair inside a feature cycle is in featureCycleEdges', () => {
 		expect(unlisted, unlisted.join('\n\n')).toEqual([]);
 	});

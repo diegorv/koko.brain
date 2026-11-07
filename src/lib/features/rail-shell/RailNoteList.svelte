@@ -818,7 +818,7 @@
 		</div>
 	{/if}
 
-	<NoteRowMenu {notes} class="flex-1 overflow-hidden">
+	<NoteRowMenu {notes} extraItems={railRegistryStore.menuItems} class="flex-1 overflow-hidden">
 		{#if groupedItems}
 			<VList data={groupedItems} getKey={(item: GroupedItem) => item.key} class="px-1 py-1">
 				{#snippet children(item: GroupedItem)}

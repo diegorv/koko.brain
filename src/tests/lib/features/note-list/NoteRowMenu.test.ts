@@ -54,6 +54,8 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import type { NoteRowNote } from '#lib/features/note-list/note-row.types.js';
 
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+
 const ALPHA = '/vault/notes/alpha.md';
 const BETA = '/vault/notes/beta.md';
 
@@ -148,6 +150,7 @@ describe('NoteRowMenu', () => {
 		vaultStore.open('/vault');
 		fsStore.reset();
 		fileIconsStore.reset();
+		railRegistryStore.reset();
 		vi.clearAllMocks();
 		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 		target = document.body.appendChild(document.createElement('div'));
@@ -157,6 +160,25 @@ describe('NoteRowMenu', () => {
 		if (component) unmount(component);
 		component = null;
 		document.body.replaceChildren();
+	});
+
+	it.each(['md', 'canvas'])('filters registered items on a %s row without invoking them during render', async (extension) => {
+		vaultStore.open('/vault/');
+		const received: unknown[] = [];
+		railRegistryStore.registerMenuItem({ id: 'markdown', label: 'Organize note', on: ['note'], run: (target) => { received.push(target); } });
+		railRegistryStore.registerMenuItem({ id: 'all', label: 'Inspect file', on: ['note'], files: 'all', run: (target) => { received.push(target); } });
+		railRegistryStore.registerMenuItem({ id: 'folder', label: 'Tag folder', on: ['folder'], run: () => {} });
+		mountHarness({ notes: [makeNote({ path: `/vault/notes/alpha.${extension}` })], extraItems: railRegistryStore.menuItems });
+		await rightClick(row('Alpha'));
+		expect(received).toEqual([]);
+		expect(menuLabels().includes('Organize note')).toBe(extension === 'md');
+		expect(menuLabels()).toContain('Inspect file');
+		expect(menuLabels()).not.toContain('Tag folder');
+		const item = [...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent?.trim() === 'Inspect file')!;
+		expect(item.hasAttribute('data-inset')).toBe(true);
+		expect(menuEntries().filter((label) => label === '---')).toHaveLength(2);
+		await clickItem('Inspect file');
+		expect(received).toEqual([{ on: 'note', path: `notes/alpha.${extension}` }]);
 	});
 
 	describe('row', () => {
