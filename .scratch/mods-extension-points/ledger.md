@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [`ctx.watch`, `ctx.onNoteSaved`, vault path methods and a raw pack](issues/01-raw-pack-and-watch.md) | none | done | issue/01-raw-pack-and-watch (1a344f35a) | 2026-11-07 |
 | 02 | [`ctx.labs`, opt-in palette rows and a lazy run view](issues/02-labs-and-palette-opt-in.md) | none | done | issue/02-labs-and-palette-opt-in (a1ba666fd) | 2026-11-07 |
 | 03 | [Right click on note rows and folders, with `run.target`](issues/03-right-click-menus.md) | 02 | in-progress | | |
-| 04 | [`ctx.ui.pick`](issues/04-ui-pick.md) | none | in-progress | | |
+| 04 | [`ctx.ui.pick`](issues/04-ui-pick.md) | none | done | issue/04-ui-pick (3f70c999f) | 2026-11-07 |
 
 ## Log
 
@@ -53,3 +53,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-07 15:21 — 02 — deliver — Review round 1 APPROVED with no findings; full suite passed (576 files, 13904 tests); sync rebased, merge merged after the owner authorized removing the worktree, which auto mode had denied. — a1ba666fd
 - 2026-11-07 15:24 — 03 — start — launched by /relay-lite:run — 93e5ffb6d
 - 2026-11-07 15:26 — 04 — start — launched by /relay-lite:run — a130be70a
+- 2026-11-07 15:51 — 04 — deliver — Merged ctx.ui.pick. Reviews 1 and 2 APPROVED by Claude; minor browser-coverage finding fixed and re-reviewed. Vitest: 576 files, 13921 passed, 54 skipped, 1 todo; Chromium: 13 passed; pnpm check: 0 errors/warnings. Sync clean, merge merged; worktree and branch removed. No code changes after the latest review; no post-delivery review needed. Native Tauri/WKWebView not verified. — 3f70c999f
