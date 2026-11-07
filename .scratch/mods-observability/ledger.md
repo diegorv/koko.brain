@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Trace host-managed mod execution in the local session log](issues/01-host-execution-trace.md) | none | todo | | |
+| 01 | [Trace host-managed mod execution in the local session log](issues/01-host-execution-trace.md) | none | in-progress | | |
 | 02 | [Preserve run.log messages locally with explicit consent](issues/02-opt-in-run-log-persistence.md) | 01 | todo | | |
 | 03 | [Record content-free outcomes of host-provided mod dialogs](issues/03-content-free-dialog-outcomes.md) | none | todo | | |
 | 04 | [Separate verbose renderer diagnostics from ordinary file logs](issues/04-opt-in-renderer-diagnostics.md) | none | todo | | |
@@ -43,3 +43,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-07 20:13 — ledger created (4 Issues)
+- 2026-11-07 20:17 — 01 — start — launched by /relay-lite:run — 0b3eb4a03
