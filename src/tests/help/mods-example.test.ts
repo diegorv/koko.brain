@@ -42,6 +42,8 @@ function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 		mod: { id: 'hello', name: 'Hello', version: '1.0.0', dir: '_system/mods/hello' },
 		signal: new AbortController().signal,
 		register: () => {},
+		watch: unused,
+		onNoteSaved: unused,
 		notify: (message) => {
 			seen.toasts.push(message);
 		},
@@ -55,6 +57,9 @@ function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 			return () => {};
 		},
 		vault: {
+			rename: unused,
+			move: unused,
+			delete: unused,
 			read: async (path) => seen.files.get(path) ?? '',
 			exists: async (path) => seen.files.has(path),
 			list: async () => [],

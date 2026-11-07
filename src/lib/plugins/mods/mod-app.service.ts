@@ -1,11 +1,13 @@
-import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { openFileInEditor, saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
+import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 // Owner decision (Issue 05): mods may import QueryJS for `ctx.kb`; listed in PLUGIN_ALLOWLIST.
@@ -50,6 +52,16 @@ export const MOD_APP = {
 	updateNoteFrontmatter,
 	/** The vault's type definitions: `getTypeMetadata(name)`, `typeMetadataMap` */
 	typeDefinitionsStore,
+	/** Live rail registrations; register each returned cleanup with ctx.register */
+	railRegistryStore,
+	/** Live application settings; raw mutations do not persist themselves */
+	settingsStore,
+	/** Opens or creates a note using NoteCreationOptions, including per-call templates and variables */
+	openOrCreateNote,
+	/** Saves a dirty open tab by absolute path; resolves true on success or no-op, false on write failure */
+	saveFileByPath,
+	/** Syncs external bytes into an open tab and CodeMirror; schedule chooses frontmatter, body or no auto-save */
+	syncExternalContentToEditor,
 };
 
 /** Type of `ctx.app` */

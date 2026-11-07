@@ -1,6 +1,7 @@
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 
+import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { onFileChange } from '#lib/core/filesystem/fs.watcher.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
@@ -10,6 +11,7 @@ import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.
 import type { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { serializeWithRerun } from '#lib/utils/inflight.js';
+import { vaultRelativeKey } from '#lib/utils/path.js';
 
 import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModRunV1, ModThemeV1, ModUiV1, ModV1 } from './contract/mod-api.v1';
 import { createModKb, MOD_APP, type ModApp } from './mod-app.service';
@@ -17,6 +19,7 @@ import { modDialogsStore, type ModDialogSpec } from './mod-dialogs.store.svelte'
 import { modPickerStore } from './mod-picker.store.svelte';
 import { readModTheme, watchModTheme } from './mod-theme.svelte';
 import { createModData, createModVault, createModWorkspace } from './mod-vault.service';
+import { watchModValue } from './mod-watch.svelte';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
 import { modsRunsStore } from './mods-runs.store.svelte';
 import { errorText, evaluateModSource, mapModChanges, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
@@ -49,7 +52,7 @@ export interface ModContext extends ModContextV1 {
 export interface ModRuntime {
 	/** Aborted at unload; its signal is `ctx.signal` */
 	controller: AbortController;
-	/** Cleanups from `ctx.register`, `addAction` and `addRailButton`, run in reverse at unload */
+	/** Cleanups from ctx registrations and subscriptions, run in reverse at unload */
 	disposers: (() => void)[];
 	/** One promise per live action run, settled when the run ends; a reload waits for them (PRD P10) */
 	runs: Set<Promise<void>>;
@@ -352,6 +355,38 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			return disposable(() => {
 				buttonIds.delete(id);
 				unregister();
+			});
+		},
+		watch: (read, onChange) => {
+			assertLive();
+			if (typeof read !== 'function') throw invalid('watch needs a read function');
+			if (typeof onChange !== 'function') throw invalid('watch needs a callback function');
+			return disposable(watchModValue(tag, read, onChange));
+		},
+		onNoteSaved: (callback) => {
+			assertLive();
+			if (typeof callback !== 'function') throw invalid('onNoteSaved needs a callback function');
+			const pending = new Set<ReturnType<typeof setTimeout>>();
+			const report = (err: unknown) => debug(tag, 'onNoteSaved callback failed:', errorText(err));
+			const unsubscribe = addAfterSaveObserver((path) => {
+				const relative = vaultRelativeKey(vaultPath, path);
+				if (relative === null || runtime.unloaded || vaultStore.path !== vaultPath) return;
+				// Leave the synchronous save fan-out before running any mod code.
+				const timer = setTimeout(() => {
+					pending.delete(timer);
+					if (runtime.unloaded || vaultStore.path !== vaultPath) return;
+					try {
+						void Promise.resolve(callback(relative)).catch(report);
+					} catch (err) {
+						report(err);
+					}
+				}, 0);
+				pending.add(timer);
+			});
+			return disposable(() => {
+				unsubscribe();
+				for (const timer of pending) clearTimeout(timer);
+				pending.clear();
 			});
 		},
 		vault: createModVault({ modId: manifest.id, vaultPath, assertLive }),

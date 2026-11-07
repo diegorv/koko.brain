@@ -26,7 +26,7 @@ Update `help/documentation/28-mods.md`: the new contract members, and one table 
 
 **Blocked by:** none
 
-**Status:** needs-triage
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -34,4 +34,12 @@ Update `help/documentation/28-mods.md`: the new contract members, and one table 
 - [ ] `ctx.onNoteSaved`: gets the vault-relative path of a real save, after the sync observers ran; a throw does not reach the others or Sentry; gone after unload.
 - [ ] `ctx.vault.rename`, `move`, `delete`, with Tauri mocked: relative paths in and out; an invalid path rejects; `delete` on a folder re-keys its children; a call after unload rejects.
 - [ ] `mod-api-contract.test.ts` freezes the new members. Each raw member in a new `mod-app.service.test.ts` is the real object.
-- [ ] No file under `core/` changes, and `layer-baseline.json` does not grow.
+- [x] No file under `core/` changes, and `layer-baseline.json` does not grow.
+
+## Comments
+
+2026-11-07, branch `issue/01-raw-pack-and-watch`. Delivered by the owner's decision without `work/01/discovery.md` or `review*.md`: the run used a non-Claude model behind the Claude CLI, whose agents refused to write those files, so `relay after-review` could not pass and the deliver step never ran. The other criteria stay unticked because no review file marks them; only the last one was checked directly against the diff.
+
+Tests: full suite passed at a37066089 (exit=0): `pnpm check` clean, vitest 574 files passed, 13881 tests passed, 54 skipped, 1 todo. Log: `/Users/diegorv/Dev/pet-projects/koko/brain.worktrees/test-logs/mods-extension-points/01-deliver.log`. `cargo test` on the same code: 1340 passed, 13 ignored.
+
+Reviews (journal only, no file): round 1 CHANGES_REQUESTED, one major: `ctx.vault.delete` calls `stat` without an `fs:allow-stat` grant. Fixed in `fix(mods): authorize vault deletion metadata reads`, with a test that reads the real capability file. Round 2 APPROVED, no findings. Native deletion was not exercised.

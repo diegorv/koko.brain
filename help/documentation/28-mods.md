@@ -138,6 +138,35 @@ While you edit `main.js` inside Kokobrain, autosave reloads the mod every couple
 | `ctx.notify(message, { kind? })` | Shows a toast "`<mod name>`: message". `kind` is `'info'` (default), `'success'`, `'warning'` or `'error'` |
 | `ctx.log(...args)` | Writes to the debug log under the tag `MOD:<id>` (see [Errors and logs](#errors-and-logs)) |
 
+### `ctx.watch`: reacting to state
+
+`ctx.watch(read, onChange)` tracks the reactive state read synchronously by `read` and calls `onChange(value)` only when `Object.is` says the result changed. It does not call the handler at subscription. It returns a disposer, and unload also removes it; you do not need `ctx.register` for this watch.
+
+```javascript
+ctx.watch(
+	() => ctx.app.editorStore.activeTabPath,
+	(path) => ctx.log('Active note:', path),
+);
+```
+
+The baseline is read at subscription, so a change before the first effect flush is still reported. Reads in `onChange` do not become dependencies. Several writes before a flush may produce one callback for the final value, not one per write. Return a primitive or a stable object identity: returning a fresh object looks like a change even if its fields are equal.
+
+A synchronous throw in either function goes to the mod's debug log, not Sentry. A failed read keeps the last good value; if the initial read failed, the first successful read establishes the baseline without notifying. Recovery needs a reactive dependency read before the throw. A read that always throws before touching reactive state cannot wake up again by itself.
+
+**Keep the read narrow.** Reading `activeTab.content` re-runs per keystroke; `activeTabPath` does not. A handler that calls `ctx.kb()` and reads pages after each `vaultIndexVersion` bump rebuilds every page for the changed snapshot. Coalesce that work or refresh only while its result is on screen.
+
+### `ctx.onNoteSaved`: reacting to saves
+
+`ctx.onNoteSaved(callback)` calls `callback(path)` with the **vault-relative** path of a note saved through the app's after-save pipeline, including `ctx.vault.write`. It does not subscribe to external filesystem edits or to note creation. The callback runs through `setTimeout(0)`, after all synchronous save observers, including observers registered later, so slow mod code cannot delay that save's observer loop. It still runs on the UI thread.
+
+```javascript
+ctx.onNoteSaved((path) => ctx.log('Saved:', path));
+```
+
+The returned disposer unsubscribes and cancels pending callbacks; unload does the same automatically. A callback that throws or returns a rejected promise goes to the mod's debug log, not Sentry. Already-running asynchronous callbacks are not cancelled: check `ctx.signal.aborted` after awaiting work.
+
+**Avoid save loops.** `ctx.vault.write` has no equality guard, so a save callback that writes the same note can trigger itself indefinitely. Compare the old and new content before writing. An idempotent `ctx.app.updateNoteFrontmatter` mutation writes nothing when unchanged. Switch off the mod in **Settings → Labs** to stop an asynchronous save loop.
+
 ### Actions and rail buttons
 
 ```javascript
@@ -198,7 +227,7 @@ ctx.addAction({
 
 ### `ctx.vault`: reading and writing files
 
-Every path is **vault-relative** (`Ideas/Idea.md`). A path that is empty, starts with `/`, or has an empty, `.` or `..` segment rejects with `Invalid vault path "<path>"`.
+Every path is **vault-relative** (`Ideas/Idea.md`). A path that is empty, starts with `/`, or has an empty, `.` or `..` segment rejects with `Invalid vault path "<path>"`. The only empty-path exceptions are the folder in `list('')` and the destination folder in `move(path, '')`, both meaning the vault root.
 
 | Method | Resolves to | Notes |
 |--------|-------------|-------|
@@ -207,6 +236,11 @@ Every path is **vault-relative** (`Ideas/Idea.md`). A path that is empty, starts
 | `list(folder)` | `{ name, path, isFolder }[]` | direct children only, dot entries left out; `list('')` lists the vault root |
 | `create(path, content)` | `path` | Creates a new file at exactly that path, creating missing folders. Rejects with `"<path>" already exists; use write`; never renames |
 | `write(path, content)` | nothing | Overwrites an existing file; an open tab shows the new content. Rejects with `"<path>" does not exist; use create`, and with `"<path>" has unsaved changes in an open tab` rather than lose your edits |
+| `rename(path, newName)` | new vault-relative path | Renames a file or folder within its parent. `newName` must be one name, including any extension, not a path. Rejects if the destination is taken |
+| `move(path, targetFolder)` | new vault-relative path | Moves a file or folder into an existing folder; `''` is the vault root. If already there, resolves to the unchanged path, never `null`. Rejects if the destination is taken |
+| `delete(path)` | nothing | Moves the file or folder to Trash. The host detects folders and cleans up child paths in tabs, the file tree and indexes |
+
+These path methods use the app's existing rename, move and delete services, including tab updates, link updates and index cleanup. Calls after unload reject; an operation already running inside a filesystem service cannot be cancelled and may finish even if the mod unloads before it resolves.
 
 Notes created or written this way reach search, backlinks and tags at once. `write` also runs the after-save steps of a note saved in the editor (file history, Auto Move); `create` does not. A file of a mod that is not a note skips those steps when written with `write`. For a mod's own state, use [`ctx.saveData`](#ctxloaddata-and-ctxsavedata-the-mods-own-data) instead.
 
@@ -397,6 +431,11 @@ These two members hand a mod the app's own objects. They exist so you can experi
 | `openOrCreateDailyNote()` | Opens today's daily note, creating it from its template when missing |
 | `updateNoteFrontmatter(absolutePath, mutate)` | Rewrites a note's frontmatter. `mutate` receives the properties (`{ key, value, type }[]`, `type` one of `text`, `list`, `number`, `date`, `boolean`) and returns the new list. On an open tab it keeps unsaved body edits and saves the whole tab at once. It refuses frontmatter it cannot rewrite safely (YAML comments, nested maps, anchors, duplicate keys) with an error. Only call it on a Markdown note: on a `.canvas`, `.view` or `.js` tab it would add a frontmatter block to the file |
 | `typeDefinitionsStore` | The vault's types: `getTypeMetadata(name)` and `typeMetadataMap` (folder, template, icon, color, archive rule per type) |
+| `railRegistryStore` | Live rail registrations: navigators, lens providers, folder creators, Today sections and actions. Wrap returned unregister functions in `ctx.register(...)`. A raw provider that throws can break its consumer; guard experimental providers yourself |
+| `settingsStore` | Live app settings, including `layout` and `updateLayout(...)`. Raw setters change memory; they do not save settings to disk automatically |
+| `openOrCreateNote(options)` | Opens an existing note or creates it and opens it. Takes absolute `filePath`, `title`, optional `templatePath`, `inlineTemplate`, `customVariables`, `contextDate` and `buildContent(content)`. A mod validates its own raw paths; resolves with no value |
+| `saveFileByPath(absolutePath)` | Saves a dirty open tab through the editor save pipeline. Resolves `true` for success or no-op (including no matching tab), `false` on a write failure |
+| `syncExternalContentToEditor(absolutePath, content, markSaved, schedule)` | Updates an open tab and signals CodeMirror. `markSaved: true` treats the bytes as already on disk; it does not write them. `schedule` is `'frontmatter'` (500 ms), `'body'` (2000 ms), or `'none'`. No matching tab is a no-op |
 
 ### `ctx.kb()`
 
@@ -507,7 +546,7 @@ onload(ctx) {
 
 Every error Kokobrain catches, and everything a mod writes with `ctx.log`, goes to the debug log under `MOD:<id>`. To keep it in a file, turn on **Settings → Troubleshooting → Save debug log to file**; lines look like `[10:42:07.123] [FRONT-END:MOD:daily-log] ...` in `~/Library/Logs/com.diegorv.kokobrain/`.
 
-Mod errors that the mod host catches (loading, actions, unload, `ctx.vault`, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, `ctx.theme.onChange` callbacks) are never sent to Sentry. Two kinds can reach it while Sentry is on: uncaught ones (the last row above), and failures inside `ctx.app` functions, which report like any app error.
+Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, `ctx.theme.onChange`, synchronous `ctx.watch` functions and `ctx.onNoteSaved` callbacks) are never sent to Sentry. The vault adapters also log their rejections under the mod tag. Uncaught errors (the last row above) and failures inside app services can reach Sentry while it is on. That includes `ctx.app` functions and the existing filesystem services called by `ctx.vault.rename`, `move` and `delete`.
 
 > [!NOTE]
 > Stack traces show the mod's frames by function name only (for example `onload@`), without a file and line: the app's web view does not report locations for code evaluated this way.

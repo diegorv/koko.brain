@@ -47,6 +47,8 @@ const CONTEXT_PUBLIC = {
 	mod: true,
 	signal: true,
 	register: true,
+	watch: true,
+	onNoteSaved: true,
 	notify: true,
 	log: true,
 	addAction: true,
@@ -68,6 +70,9 @@ const VAULT_PUBLIC = {
 	list: true,
 	create: true,
 	write: true,
+	rename: true,
+	move: true,
+	delete: true,
 } satisfies Record<keyof ModVaultV1, true>;
 
 const VAULT_ENTRY_PUBLIC = {

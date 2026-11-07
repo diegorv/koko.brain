@@ -1,4 +1,4 @@
-import { exists, readDir, readTextFile, rename, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readDir, readTextFile, rename, stat, writeTextFile } from '@tauri-apps/plugin-fs';
 
 import { call } from '#lib/contracts/ipc.js';
 import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
@@ -6,9 +6,10 @@ import { isTabDirty } from '#lib/core/editor/editor.logic.js';
 import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
-import { addToTree } from '#lib/core/filesystem/fs.service.js';
+import { addToTree, deleteItem, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
 import { debug } from '#lib/utils/debug.js';
+import { relativePath } from '#lib/utils/path.js';
 
 import type { ModContextV1, ModDataCorruptErrorV1, ModVaultV1, ModWorkspaceV1 } from './contract/mod-api.v1';
 import { assertVaultPath, errorText, isModCodePath, MOD_DATA_DIR, parseModData, serializeModData } from './mods.logic';
@@ -24,10 +25,10 @@ export interface ModVaultScope {
 }
 
 /**
- * Builds `ctx.vault`. Every call checks the live guard first, and again after
- * each await that comes before a store update, so a call started in one vault
- * never updates the stores of the next one. File system errors propagate to the
- * mod, which the host's action wrapper reports (PRD P9).
+ * Builds `ctx.vault`. Every call checks the live guard first and before local
+ * store updates after awaits. Path operations delegate to the app's filesystem
+ * services: once started, those operations cannot be cancelled by unload.
+ * File system errors propagate to the mod's caller.
  */
 export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope): ModVaultV1 {
 	const tag = `MOD:${modId}`;
@@ -52,6 +53,29 @@ export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope):
 	};
 
 	return {
+		rename: async (path, newName) => {
+			const abs = toAbsolute(path);
+			assertVaultPath(newName);
+			if (newName.includes('/')) throw new Error(`Mod "${modId}": vault.rename needs a single name`);
+			const renamed = await logged('rename', path, () => renameItem(abs, newName));
+			assertLive();
+			return relativePath(vaultPath, renamed);
+		},
+		move: async (path, targetFolder) => {
+			const abs = toAbsolute(path);
+			const target = targetFolder === '' ? vaultPath : toAbsolute(targetFolder);
+			const moved = await logged('move', path, () => moveItem(abs, target));
+			assertLive();
+			// The filesystem service uses null for an already-in-folder no-op.
+			return relativePath(vaultPath, moved ?? abs);
+		},
+		delete: async (path) => {
+			const abs = toAbsolute(path);
+			const info = await logged('delete', path, () => stat(abs));
+			assertLive();
+			await logged('delete', path, () => deleteItem(abs, info.isDirectory));
+			assertLive();
+		},
 		read: async (path) => {
 			const abs = toAbsolute(path);
 			return logged('read', path, () => readTextFile(abs));

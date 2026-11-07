@@ -65,6 +65,30 @@ function isCovered(fsGlob: string, scope: string[]): boolean {
 	return scope.some((glob) => globMatches(glob.split('/'), sample));
 }
 
+describe('mod vault deletion capability', () => {
+	it('allows stat in the main window only within the supported vault locations', () => {
+		const capability = readJson('src-tauri/capabilities/default.json') as {
+			windows: string[];
+			permissions: (string | ScopedPermission)[];
+		};
+		expect(capability.windows).toContain('main');
+		const permissions = capability.permissions.filter(
+			(p) => (typeof p === 'string' ? p : p.identifier) === 'fs:allow-stat',
+		);
+		expect(permissions).toEqual([
+			{
+				identifier: 'fs:allow-stat',
+				allow: [
+					{ path: '$DOCUMENT/kokobrain-vaults/**' },
+					{ path: '$DOCUMENT/kokobrain-vaults/**/.kokobrain/**' },
+					{ path: '$HOME/kokobrain-vaults/**' },
+					{ path: '$HOME/kokobrain-vaults/**/.kokobrain/**' },
+				],
+			},
+		]);
+	});
+});
+
 describe('asset protocol scope', () => {
 	it('serves every vault root the fs plugin may read', () => {
 		const fsScope = fsReadScope();

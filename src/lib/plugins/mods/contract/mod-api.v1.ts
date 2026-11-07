@@ -129,6 +129,12 @@ export interface ModVaultV1 {
 	 * `"<path>" has unsaved changes in an open tab` instead of losing the user's edits.
 	 */
 	write: (path: string, content: string) => Promise<void>;
+	/** Renames a file or folder within its parent; newName is one name, including any extension. Resolves to the new relative path. */
+	rename: (path: string, newName: string) => Promise<string>;
+	/** Moves a file or folder into targetFolder ('' for the vault root). Resolves to its relative path, unchanged if already there. */
+	move: (path: string, targetFolder: string) => Promise<string>;
+	/** Moves a file or folder to Trash, detecting folders and cleaning up their children automatically. */
+	delete: (path: string) => Promise<void>;
 }
 
 /** The app's workspace, for a mod */
@@ -303,6 +309,19 @@ export interface ModContextV1 {
 	addAction: (action: ModActionV1) => () => void;
 	/** Adds a rail button; throws on a duplicate id. Returns a disposer; it is also removed at unload */
 	addRailButton: (button: ModRailButtonV1) => () => void;
+	/**
+	 * Tracks `read` and calls `onChange` only when its value changes by Object.is,
+	 * not at subscription. Both failures go to the mod's debug log. The handler
+	 * is untracked. Returns a disposer; it is also removed at unload.
+	 */
+	watch: <T>(read: () => T, onChange: (value: T) => void) => () => void;
+	/**
+	 * Reports a saved note's vault-relative path in a later timer, after the
+	 * synchronous save observers. Callback failures go to the mod's debug log.
+	 * Returns a disposer; unload also unsubscribes and cancels pending callbacks.
+	 * Writing again with vault.write can loop; switching off the mod in Labs stops it.
+	 */
+	onNoteSaved: (callback: (path: string) => void) => () => void;
 	/** Reads and writes vault files by vault-relative path */
 	vault: ModVaultV1;
 	/** Opens notes */
