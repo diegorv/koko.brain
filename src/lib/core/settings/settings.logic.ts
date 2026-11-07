@@ -256,13 +256,10 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 	{
 		group: 'Advanced',
 		sections: [
+			{ id: 'labs', label: 'Labs' },
 			{ id: 'sentry', label: 'Sentry' },
 			{ id: 'troubleshooting', label: 'Troubleshooting' },
 			{ id: 'update', label: 'Update' },
 		],
-	},
-	{
-		group: 'Labs',
-		sections: [{ id: 'labs', label: 'Labs' }],
 	},
 ] as const;

@@ -365,16 +365,17 @@ describe('mergeLayout', () => {
 describe('SETTINGS_SECTION_GROUPS', () => {
 	it('contains all expected groups in order', () => {
 		const groups = SETTINGS_SECTION_GROUPS.map((g) => g.group);
-		expect(groups).toEqual(['General', 'Notes', 'Vault', 'Tools', 'Integrations', 'Advanced', 'Labs']);
+		expect(groups).toEqual(['General', 'Notes', 'Vault', 'Tools', 'Integrations', 'Advanced']);
 	});
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-move', 'trash', 'search', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update', 'labs']);
+		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-move', 'trash', 'search', 'queryjs', 'todoist', 'labs', 'sentry', 'troubleshooting', 'update']);
 	});
 
-	it('keeps Labs last, with the one Labs section', () => {
-		expect(SETTINGS_SECTION_GROUPS.at(-1)).toEqual({ group: 'Labs', sections: [{ id: 'labs', label: 'Labs' }] });
+	it('lists Labs first in the Advanced group', () => {
+		const advanced = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Advanced');
+		expect(advanced?.sections[0]).toEqual({ id: 'labs', label: 'Labs' });
 	});
 
 	it('lists Layout last in the General group', () => {
@@ -396,7 +397,7 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 	it('moves Sentry out of Integrations and into Advanced', () => {
 		const sections = (name: string) => SETTINGS_SECTION_GROUPS.find((g) => g.group === name)?.sections.map((s) => s.id);
 		expect(sections('Integrations')).toEqual(['todoist']);
-		expect(sections('Advanced')).toEqual(['sentry', 'troubleshooting', 'update']);
+		expect(sections('Advanced')).toEqual(['labs', 'sentry', 'troubleshooting', 'update']);
 	});
 
 	it('lists Calendar in the Notes group', () => {
