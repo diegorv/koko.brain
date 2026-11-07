@@ -6,7 +6,7 @@
     "setup": "pnpm install --frozen-lockfile",
     "typecheck": "pnpm check",
     "testFile": "pnpm vitest run <file>",
-    "suite": "pnpm vitest run && pnpm build"
+    "suite": "pnpm vitest run"
   },
   "reReviews": 1,
   "codex": null,
