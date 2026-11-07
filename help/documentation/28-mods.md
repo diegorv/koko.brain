@@ -122,9 +122,10 @@ While you edit `main.js` inside Kokobrain, autosave reloads the mod every couple
 
 ## The `ctx` reference
 
-`ctx` has two parts:
+`ctx` has three parts:
 
 - The **v1 contract**: stable. A new member is added without breaking existing mods; removing or changing one would bump `ctx.apiVersion`.
+- **Experiments** (`ctx.labs`): host-provided entry points outside contract v1, with no compatibility promise.
 - **Raw access** (`ctx.app`, `ctx.kb`): the app's own objects, unstable. See [Raw access](#raw-access-ctxapp-and-ctxkb).
 
 ### Basics
@@ -194,9 +195,29 @@ ctx.addRailButton({
 - **`addRailButton(button)`** adds a button to the rail and returns a function that removes it. Clicking it opens a picker with the button's actions (resolved at click time, so actions added later are listed). When the button resolves to **a single action**, the click skips the list: an action without `input` runs at once, and one with `input` opens straight on its text field. A mod can add several buttons, each with its own `actions` list.
 - **Icons** are `pack:name` or a bare Lucide name. Packs: `lucide`, `feather`, `fa-solid`, `fa-regular`, `fa-brands`, `octicons`, `boxicons`, `coolicons`, `simple-icons`, `tabler`, `remix`, `emoji`. An unknown icon falls back to a default.
 
+### `ctx.labs.place`: opt into the command palette
+
+`ctx.labs` is **unstable**, outside `ModContextV1`. Its members may change without an API version bump. Register an action first, then place it:
+
+```javascript
+ctx.addAction({ id: 'hello', title: 'Say hello', run: () => ctx.notify('Hello') });
+const unplace = ctx.labs.place('hello', { palette: true });
+```
+
+**Cmd+P** now lists `<Mod name>: Say hello` in category **Mod**. Actions are absent from the palette by default; adding a rail button does not add a palette command. An unknown action id throws.
+
+Calling `unplace()` removes this placement, not the action. Removing the action or unloading the mod removes its command and placements automatically; no `ctx.register` is needed. If an action has multiple placements, it remains in the palette until all are disposed.
+
+Every registered action, marked or not, is available in `ctx.app.modCommandsStore.list` as `{ id, label, run, palette }`. Its id is `mod:<mod-id>:action:<action-id>`. Calling a row's `run()` invokes the action through the host, asking for input when needed.
+
 ### Runs: `run.signal`, `run.log`, `run.progress`
 
-Running an action (picked from the list, or straight from a single-action button) starts a **run**, and the picker shows its run view: the action's title, its state (**Running**, **Done**, **Failed** or **Cancelled**), a progress bar, the run's log, the error with its stack when it failed, and **Stop** and **Close** buttons.
+Running an action starts a **run**. Its view shows the action's title, its state (**Running**, **Done**, **Failed** or **Cancelled**), a progress bar, the run's log, the error with its stack when it failed, and **Stop** and **Close** buttons.
+
+- **From the rail, or with `input`:** the run view opens when the action starts, after any input is submitted.
+- **From the palette or a raw command row, without `input`:** the view opens only on the first `run.log` or `run.progress`. A quiet run does not interrupt typing. Invoking the same action again while it runs opens its existing view rather than starting another run. After **Close**, later output does not reopen it.
+- **Delayed output can take focus:** the first log or progress opens the modal view even if another picker is open, replacing that picker's input. A quiet run has no visible **Stop** until invoked again. It also holds a mod reload without a visible **Reload pending** indicator until its view is opened. Switching the mod off in Labs aborts it.
+- Rail and non-rail invocations use separate run keys, so the same action can run through both at once.
 
 ```javascript
 ctx.addAction({
@@ -221,7 +242,7 @@ ctx.addAction({
 | `run.log(text)` | Adds a line to the run's log. The run view keeps the last 500 lines |
 | `run.progress(done, total, label?)` | Sets the progress bar to `done` of `total`, with an optional label under it. Throws `Mod "<id>": run.progress needs numbers done and total` (or `needs a string label`) on other values |
 
-- **A quiet run closes the view by itself.** When a run ends **Done** without having called `run.log` or `run.progress`, there is nothing to read, so the picker closes: an action that only shows a toast, opens a note or opens a dialog leaves no window behind. A run that logged or showed progress stays on **Done** until you press **Close** or **Escape**, and so does a **Failed** or **Cancelled** run. To keep the view open on a quick action, log a line.
+- **A quiet run closes the view by itself.** When a run ends **Done** without having called `run.log` or `run.progress`, there is nothing to read, so the picker closes: an action that only shows a toast, opens a note or opens a dialog leaves no window behind. An open view that logged or showed progress stays on **Done** until you press **Close** or **Escape**, and so does an open **Failed** or **Cancelled** view. A non-rail run that fails before any output stays hidden and reports its failure through a toast. To keep the view open on a quick action, log a line.
 - **Close** hides the view; the run goes on. While it runs, the mod's rail button shows a busy mark, and clicking it opens the run view again instead of the picker. A button has one live run at a time; two buttons of a mod can run side by side.
 - **Stop** aborts `run.signal` and marks the run **Cancelled** at once. It cannot interrupt code that is running: the mod has to check `run.signal.aborted` or pass the signal on. Valid calls to `run.log` and `run.progress` after the run ended are ignored.
 
@@ -431,6 +452,7 @@ These two members hand a mod the app's own objects. They exist so you can experi
 | `openOrCreateDailyNote()` | Opens today's daily note, creating it from its template when missing |
 | `updateNoteFrontmatter(absolutePath, mutate)` | Rewrites a note's frontmatter. `mutate` receives the properties (`{ key, value, type }[]`, `type` one of `text`, `list`, `number`, `date`, `boolean`) and returns the new list. On an open tab it keeps unsaved body edits and saves the whole tab at once. It refuses frontmatter it cannot rewrite safely (YAML comments, nested maps, anchors, duplicate keys) with an error. Only call it on a Markdown note: on a `.canvas`, `.view` or `.js` tab it would add a frontmatter block to the file |
 | `typeDefinitionsStore` | The vault's types: `getTypeMetadata(name)` and `typeMetadataMap` (folder, template, icon, color, archive rule per type) |
+| `modCommandsStore` | `list` contains every mod action as `{ id, label, run, palette }`, including actions not placed in the palette. Call a row's `run()` to invoke it through the host |
 | `railRegistryStore` | Live rail registrations: navigators, lens providers, folder creators, Today sections and actions. Wrap returned unregister functions in `ctx.register(...)`. A raw provider that throws can break its consumer; guard experimental providers yourself |
 | `settingsStore` | Live app settings, including `layout` and `updateLayout(...)`. Raw setters change memory; they do not save settings to disk automatically |
 | `openOrCreateNote(options)` | Opens an existing note or creates it and opens it. Takes absolute `filePath`, `title`, optional `templatePath`, `inlineTemplate`, `customVariables`, `contextDate` and `buildContent(content)`. A mod validates its own raw paths; resolves with no value |

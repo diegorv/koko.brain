@@ -94,6 +94,7 @@ import { typeDefinitionsStore } from '#lib/features/type-definitions/type-defini
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 describe('getBuiltInCommands', () => {
@@ -106,8 +107,27 @@ describe('getBuiltInCommands', () => {
 		fsStore.reset();
 		searchStore.reset();
 		settingsPanelStore._reset();
+		modCommandsStore.reset();
 		typeDefinitionsStore.reset();
 		railRegistryStore.reset();
+	});
+
+	it('appends only marked mod actions and removes them when their placement is disposed', () => {
+		const id = 'mod:hello:action:greet';
+		const events: string[] = [];
+		const remove = modCommandsStore.register({ id, label: 'Hello: Greet', run: () => { events.push('ran'); } });
+		expect(getBuiltInCommands().filter((c) => c.category === 'Mod')).toEqual([]);
+		expect(modCommandsStore.list).toHaveLength(1);
+		const unplace = modCommandsStore.place(id);
+		const commands = getBuiltInCommands().filter((c) => c.category === 'Mod');
+		expect(commands).toMatchObject([{ id, label: 'Hello: Greet', category: 'Mod' }]);
+		commands[0].action();
+		expect(events).toEqual(['ran']);
+		unplace();
+		expect(getBuiltInCommands().filter((c) => c.category === 'Mod')).toEqual([]);
+		expect(modCommandsStore.list).toHaveLength(1);
+		remove();
+		expect(modCommandsStore.list).toEqual([]);
 	});
 
 	it('returns 41 built-in commands with no navigator, no pin and no view', () => {

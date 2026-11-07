@@ -62,7 +62,7 @@ const CONTEXT_PUBLIC = {
 } satisfies Record<keyof ModContextV1, true>;
 
 /** Raw access the host adds on top of the contract (`ModContext` in the host); unstable, not frozen */
-const HOST_UNSTABLE = ['app', 'kb'] satisfies Exclude<keyof ModContext, keyof ModContextV1>[];
+const HOST_UNSTABLE = ['app', 'kb', 'labs'] satisfies Exclude<keyof ModContext, keyof ModContextV1>[];
 
 const VAULT_PUBLIC = {
 	read: true,

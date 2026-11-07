@@ -45,6 +45,8 @@ const HELLO_MOD: Record<string, string> = {
 				run.progress(2, 2);
 			},
 		});
+		ctx.labs.place('slow', { palette: true });
+		ctx.labs.place('idea', { palette: true });
 		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'lucide:sparkles' });
 	},
 };
@@ -129,6 +131,53 @@ test.describe('Vault mods', () => {
 			await expect(toasts(page).filter({ hasText: 'Hello mod: Hello from the rail' })).toHaveCount(1);
 			await expect(row).toBeHidden();
 			await expect(button).not.toHaveAttribute('aria-current', 'page');
+		});
+
+		test('Cmd+P runs a placed action and renders its output', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			await pressShortcut(page, 'Mod+p');
+			const search = page.getByPlaceholder('Type a command...');
+			await search.fill('Say hello');
+			await expect(page.getByText('No commands found.')).toBeVisible();
+			await search.fill('Slow job');
+			await expect(page.getByRole('option', { name: /Hello mod: Slow job/ })).toBeVisible();
+			await search.press('Enter');
+
+			const view = page.locator('[data-mod-run]');
+			await expect(search).toBeHidden();
+			await expect(view).toContainText('Slow job');
+			await expect(view).toContainText('Step 1 done');
+			await expect(view.locator('[data-mod-run-progress-label]')).toHaveText('Halfway');
+			await page.evaluate(() => (globalThis as { __slowRelease?: () => void }).__slowRelease?.());
+			await expect(view).toContainText('Step 2 done');
+			await expect(view.locator('[data-mod-run-status]')).toHaveText('Done');
+		});
+
+		test('Cmd+P focuses an input action and creates the rendered note', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			await pressShortcut(page, 'Mod+p');
+			const search = page.getByPlaceholder('Type a command...');
+			await search.fill('New idea note');
+			await expect(page.getByRole('option', { name: /Hello mod: New idea note/ })).toBeVisible();
+			await search.press('Enter');
+			const field = page.locator('[data-mod-input]');
+			await expect(search).toBeHidden();
+			await expect(field).toBeFocused();
+			await expect(field).toHaveAttribute('placeholder', 'Describe the idea');
+			await field.fill('A palette-created idea');
+			await field.press('Enter');
+			await expect(field).toBeHidden();
+			await expect(page.locator('.cm-content')).toContainText('A palette-created idea');
 		});
 
 		test('New idea note asks for text, writes the note and opens it', async ({ vaultPage: page }) => {

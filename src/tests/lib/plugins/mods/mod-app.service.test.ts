@@ -10,10 +10,12 @@ import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { MOD_APP } from '#lib/plugins/mods/mod-app.service.js';
+import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 
 describe('MOD_APP raw extension members', () => {
 	it.each([
 		['railRegistryStore', railRegistryStore],
+		['modCommandsStore', modCommandsStore],
 		['settingsStore', settingsStore],
 		['openOrCreateNote', openOrCreateNote],
 		['saveFileByPath', saveFileByPath],

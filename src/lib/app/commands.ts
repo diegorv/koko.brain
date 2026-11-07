@@ -41,6 +41,7 @@ import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calen
 import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
 import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
 import { hideRailPanels, showRailPanels, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
@@ -370,5 +371,11 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		...railGoToCommands(),
 		...openViewCommands(),
+		...modCommandsStore.list.filter((command) => command.palette).map((command) => ({
+			id: command.id,
+			label: command.label,
+			category: 'Mod',
+			action: command.run,
+		})),
 	];
 }

@@ -70,6 +70,7 @@ import { createOneOnOneNote, openOneOnOnePicker } from '#lib/plugins/one-on-one/
 import { dailyNotePath, openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
+import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
@@ -362,6 +363,146 @@ describe('mods host', () => {
 
 		expect(toast.error).toHaveBeenCalledTimes(2);
 		expect(modsStore.entries[0].state).toBe('error');
+	});
+
+	describe('action commands and labs placement', () => {
+		it('lists every action and disposes the palette mark separately from the action', async () => {
+			writeMod('hello', recordingMod('hello'));
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+			const remove = ctx.addAction({ id: 'greet', title: 'Greet', run: () => {} });
+			expect(ctx.app.modCommandsStore).toBe(modCommandsStore);
+			expect(modCommandsStore.list).toMatchObject([{ id: 'mod:hello:action:greet', label: 'Mod hello: Greet', palette: false }]);
+			expect(() => ctx.labs.place('missing', { palette: true })).toThrow('unknown action id');
+			const unplace = ctx.labs.place('greet', { palette: true });
+			expect(modCommandsStore.list[0].palette).toBe(true);
+			unplace();
+			unplace();
+			expect(modCommandsStore.list[0].palette).toBe(false);
+			remove();
+			expect(modCommandsStore.list).toEqual([]);
+			expect(() => ctx.labs.place('greet', { palette: true })).toThrow('unknown action id');
+		});
+
+		it('cleans commands on unload and failed onload, and leaves only one after reload', async () => {
+			const source = `export default { onload(ctx) {
+				globalThis.__modCtx.hello = ctx;
+				ctx.addAction({ id: 'greet', title: 'Greet', run() {} });
+				ctx.labs.place('greet', { palette: true });
+			} };`;
+			writeMod('hello', source);
+			await startModsHost(VAULT);
+			const stale = modCommandsStore.list[0];
+			for (const listener of fileListeners) listener([`${VAULT}/_system/mods/hello/main.js`]);
+			await vi.waitFor(() => expect(modCommandsStore.list[0]?.run).not.toBe(stale.run));
+			expect(modCommandsStore.list).toHaveLength(1);
+			expect(modCommandsStore.list[0].palette).toBe(true);
+			expect(() => stale.run()).toThrow('unloaded');
+			stopModsHost();
+			expect(modCommandsStore.list).toEqual([]);
+			expect(() => globals.__modCtx.hello.labs.place('greet', { palette: true })).toThrow('unloaded');
+			writeMod('hello', source.replace("ctx.labs.place('greet', { palette: true });", "ctx.labs.place('greet', { palette: true }); throw new Error('bad load');"));
+			await startModsHost(VAULT);
+			expect(modsStore.entries[0].state).toBe('error');
+			expect(modCommandsStore.list).toEqual([]);
+		});
+	});
+
+	describe('lazy non-rail run view', () => {
+		async function prepare(input = false) {
+			let release!: () => void;
+			globals.__modGate = new Promise<void>((resolve) => { release = resolve; });
+			onTestFinished(release);
+			writeMod('hello', `export default { onload(ctx) {
+				ctx.addAction({ id: 'greet', title: 'Greet', ${input ? "input: { placeholder: 'Your name' }," : ''}
+					async run(input, run) {
+						globalThis.__modEvents.push('run:' + input);
+						globalThis.__modRun = run;
+						await globalThis.__modGate;
+					}
+				});
+			} };`);
+			await startModsHost(VAULT);
+			return { command: modCommandsStore.list[0], release };
+		}
+
+		it.each(['log', 'progress'] as const)('reveals at first %s only, leaving Close closed on later output', async (output) => {
+			const { command, release } = await prepare();
+			command.run();
+			expect(modPickerStore.runKey).toBeNull();
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(modsRunsStore.isBusy(command.id)).toBe(true);
+			if (output === 'log') globals.__modRun.log('first');
+			else globals.__modRun.progress(1, 2, 'first');
+			expect(modPickerStore.runKey).toBe(command.id);
+			modPickerStore.close();
+			globals.__modRun.log('second');
+			globals.__modRun.progress(2, 2);
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(modsRunsStore.runFor(command.id)?.lines).toContain('second');
+			release();
+			await vi.waitFor(() => expect(modsRunsStore.runFor(command.id)?.status).toBe('done'));
+		});
+
+		it('reveals a quiet busy run on second invoke without starting another run', async () => {
+			const { command } = await prepare();
+			command.run();
+			command.run();
+			expect(modPickerStore.runKey).toBe(command.id);
+			expect(globals.__modEvents).toEqual(['run:']);
+			modPickerStore.close();
+			globals.__modRun.log('later');
+			expect(modPickerStore.isOpen).toBe(false);
+		});
+
+		it('does not reopen for output after a quiet run has been stopped', async () => {
+			const { command } = await prepare();
+			command.run();
+			modsRunsStore.runFor(command.id)!.stop();
+			globals.__modRun.log('late');
+			globals.__modRun.progress(1, 1);
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(modsRunsStore.runFor(command.id)?.status).toBe('cancelled');
+		});
+
+		it('first output replaces another open input picker', async () => {
+			const { command } = await prepare();
+			command.run();
+			const other = { id: 'other', title: 'Other', input: {}, run: async () => {} };
+			modPickerStore.open('other', 'Other mod', [other]);
+			modPickerStore.askInput(other);
+			globals.__modRun.log('delayed');
+			expect(modPickerStore.modId).toBe('hello');
+			expect(modPickerStore.runKey).toBe(command.id);
+			expect(modPickerStore.inputAction).toBeNull();
+		});
+
+		it('quiet runs hold reload pending until they end, and a second invoke reveals them', async () => {
+			const { command, release } = await prepare();
+			command.run();
+			for (const listener of fileListeners) listener([`${VAULT}/_system/mods/hello/main.js`]);
+			await vi.waitFor(() => expect(modsRunsStore.isReloadPending('hello')).toBe(true));
+			expect(modPickerStore.isOpen).toBe(false);
+			command.run();
+			expect(modPickerStore.runKey).toBe(command.id);
+			expect(modsRunsStore.isReloadPending('hello')).toBe(true);
+			release();
+			await vi.waitFor(() => expect(modCommandsStore.list[0]?.run).not.toBe(command.run));
+			expect(modCommandsStore.list).toHaveLength(1);
+			expect(modsRunsStore.isReloadPending('hello')).toBe(false);
+		});
+
+		it('asks for input and shows the run immediately on submission', async () => {
+			const { command, release } = await prepare(true);
+			command.run();
+			expect(modPickerStore.inputAction?.id).toBe('greet');
+			expect(modPickerStore.runKey).toBeNull();
+			const running = modPickerStore.inputAction!.run('Ada');
+			expect(modPickerStore.runKey).toBe(command.id);
+			expect(globals.__modEvents).toEqual(['run:Ada']);
+			release();
+			await running;
+		});
 	});
 
 	describe('per-mod switch', () => {

@@ -17,6 +17,7 @@ import { loadExternalScript } from '#lib/plugins/queryjs/queryjs.service.js';
 import { createOneOnOneNote, openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 // Owner decision: mods may import the periodic notes plugin for the daily note; listed in PLUGIN_ALLOWLIST.
 import { dailyNotePath, openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+import { modCommandsStore } from './mod-commands.store.svelte';
 
 /**
  * The app's own objects a mod reaches through `ctx.app`: the live objects, not
@@ -52,6 +53,8 @@ export const MOD_APP = {
 	updateNoteFrontmatter,
 	/** The vault's type definitions: `getTypeMetadata(name)`, `typeMetadataMap` */
 	typeDefinitionsStore,
+	/** Every registered mod action, including unmarked actions; rows expose id, label, run and palette. */
+	modCommandsStore,
 	/** Live rail registrations; register each returned cleanup with ctx.register */
 	railRegistryStore,
 	/** Live application settings; raw mutations do not persist themselves */

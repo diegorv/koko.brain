@@ -15,6 +15,7 @@ import { vaultRelativeKey } from '#lib/utils/path.js';
 
 import type { ModActionV1, ModContextV1, ModNotifyKindV1, ModRunV1, ModThemeV1, ModUiV1, ModV1 } from './contract/mod-api.v1';
 import { createModKb, MOD_APP, type ModApp } from './mod-app.service';
+import { modCommandsStore } from './mod-commands.store.svelte';
 import { modDialogsStore, type ModDialogSpec } from './mod-dialogs.store.svelte';
 import { modPickerStore } from './mod-picker.store.svelte';
 import { readModTheme, watchModTheme } from './mod-theme.svelte';
@@ -31,6 +32,11 @@ import { modsStore } from './mods.store.svelte';
  * whenever the internals do, with no compatibility promise.
  */
 export interface ModContext extends ModContextV1 {
+	/** Experimental entry points with no compatibility promise; not part of contract v1. */
+	readonly labs: {
+		/** Places a registered action in the palette until disposed or unloaded. Unknown ids throw. */
+		place(actionId: string, options: { palette: true }): () => void;
+	};
 	/**
 	 * Unstable. The app's own live objects, listed in `MOD_APP`
 	 * (`mod-app.service.ts`). Reading it throws once the mod is unloaded or
@@ -120,6 +126,16 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 
 	const actions = new Map<string, ModActionV1>();
 	const buttonIds = new Set<string>();
+	const revealRuns = new Map<string, () => void>();
+	const actionKey = (id: string) => `mod:${manifest.id}:action:${id}`;
+	const labs: ModContext['labs'] = {
+		place: (actionId, options) => {
+			assertLive();
+			if (!actions.has(actionId)) throw invalid(`unknown action id "${actionId}"`);
+			if (options?.palette !== true) throw invalid('labs.place needs palette: true');
+			return disposable(modCommandsStore.place(actionKey(actionId)));
+		},
+	};
 	const kb = () => createModKb(vaultPath, assertLive);
 
 	/** Checks a dialog's options: a `title`, and a string wherever an optional text field is set */
@@ -199,14 +215,24 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	};
 
 	/**
-	 * Runs a picked action from the picker of the button `buttonKey` and shows
-	 * its run view. Its signal aborts on Stop and at unload; an abort ends the
+	 * Runs an action under its origin's key. Lazy runs reveal only on their first
+	 * output. Its signal aborts on Stop and at unload; an abort ends the
 	 * run cancelled at once, even when the mod's code goes on. A failure is the
 	 * mod's, so it goes to the run, a toast and `debug()`, never Sentry (PRD P9).
 	 */
-	const runAction = async (action: ModActionV1, input: string, buttonKey: string) => {
+	const runAction = async (action: ModActionV1, input: string, buttonKey: string, lazy: boolean) => {
 		const controller = new AbortController();
 		const id = modsRunsStore.start({ modId: manifest.id, buttonKey, title: action.title, stop: () => controller.abort() });
+		let revealed = false;
+		const reveal = () => {
+			revealed = true;
+			modPickerStore.showRun(manifest.id, buttonKey);
+		};
+		const revealOutput = () => {
+			const current = modsRunsStore.runFor(buttonKey);
+			if (!revealed && current?.id === id && current.status === 'running') reveal();
+		};
+		revealRuns.set(buttonKey, reveal);
 		let settle!: () => void;
 		const ended = new Promise<void>((resolve) => {
 			settle = resolve;
@@ -215,6 +241,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		const end = () => {
 			runtime.controller.signal.removeEventListener('abort', abortOnUnload);
 			runtime.runs.delete(ended);
+			if (revealRuns.get(buttonKey) === reveal) revealRuns.delete(buttonKey);
 			settle();
 		};
 		controller.signal.addEventListener('abort', () => {
@@ -223,15 +250,19 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		});
 		runtime.controller.signal.addEventListener('abort', abortOnUnload);
 		runtime.runs.add(ended);
-		modPickerStore.showRun(manifest.id, buttonKey);
+		if (!lazy) reveal();
 
 		const run: ModRunV1 = {
 			signal: controller.signal,
-			log: (text) => modsRunsStore.log(id, String(text)),
+			log: (text) => {
+				modsRunsStore.log(id, String(text));
+				revealOutput();
+			},
 			progress: (done, total, label) => {
 				if (!Number.isFinite(done) || !Number.isFinite(total)) throw invalid('run.progress needs numbers done and total');
 				if (label !== undefined && typeof label !== 'string') throw invalid('run.progress needs a string label');
 				modsRunsStore.progress(id, label === undefined ? { done, total } : { done, total, label });
+				revealOutput();
 			},
 		};
 		try {
@@ -256,9 +287,9 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	 * action skips the list: it runs the action, or opens straight on its text
 	 * field when the action asks for input.
 	 */
-	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined) => {
+	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined, lazy = false) => {
 		if (modsRunsStore.isBusy(buttonKey)) {
-			modPickerStore.showRun(manifest.id, buttonKey);
+			revealRuns.get(buttonKey)?.();
 			return;
 		}
 		const listed = ids ? ids.flatMap((id) => actions.get(id) ?? []) : [...actions.values()];
@@ -267,7 +298,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			title: a.title,
 			description: a.description,
 			input: a.input,
-			run: (input: string) => runAction(a, input, buttonKey),
+			run: (input: string) => runAction(a, input, buttonKey, lazy && !a.input),
 		}));
 		if (rows.length === 1 && !rows[0].input) {
 			void rows[0].run('');
@@ -319,8 +350,18 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				run: action.run,
 			};
 			actions.set(entry.id, entry);
+			const unregister = modCommandsStore.register({
+				id: actionKey(entry.id),
+				label: `${manifest.name}: ${entry.title}`,
+				run: () => {
+					assertLive();
+					if (actions.get(entry.id) !== entry) throw invalid(`unknown action id "${entry.id}"`);
+					openPicker(actionKey(entry.id), entry.title, [entry.id], true);
+				},
+			});
 			return disposable(() => {
 				if (actions.get(entry.id) === entry) actions.delete(entry.id);
+				unregister();
 			});
 		},
 		addRailButton: (button) => {
@@ -393,6 +434,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		workspace: createModWorkspace({ modId: manifest.id, vaultPath, assertLive }),
 		ui,
 		theme,
+		labs,
 		...createModData({ modId: manifest.id, vaultPath, assertLive }),
 		get app() {
 			assertLive();
