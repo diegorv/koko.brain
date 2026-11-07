@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Trace host-managed mod execution in the local session log](issues/01-host-execution-trace.md) | none | in-progress | | |
+| 01 | [Trace host-managed mod execution in the local session log](issues/01-host-execution-trace.md) | none | done | issue/01-host-execution-trace (e320268f4) | 2026-11-07 |
 | 02 | [Preserve run.log messages locally with explicit consent](issues/02-opt-in-run-log-persistence.md) | 01 | todo | | |
 | 03 | [Record content-free outcomes of host-provided mod dialogs](issues/03-content-free-dialog-outcomes.md) | none | in-progress | | |
 | 04 | [Separate verbose renderer diagnostics from ordinary file logs](issues/04-opt-in-renderer-diagnostics.md) | none | todo | | |
@@ -45,3 +45,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-07 20:13 — ledger created (4 Issues)
 - 2026-11-07 20:17 — 01 — start — launched by /relay-lite:run — 0b3eb4a03
 - 2026-11-07 20:17 — 03 — start — launched by /relay-lite:run — 163a3517b
+- 2026-11-07 20:42 — 01 — deliver — Review round 1 APPROVED by Claude, no findings or fixes; full frontend suite passed: 577 files, 13956 tests, 54 skipped, 1 todo; typecheck, 735 targeted tests and 15 mods E2E tests passed. Sync clean, merge merged; worktree and branch removed. Post-review diff contains only Issue bookkeeping. Native WKWebView session-file delivery remains unverified. — e320268f4
