@@ -371,7 +371,7 @@ ctx.addAction({
 | `loading(label, task, { cancellable? })` | what `task` resolves to; rejects when it rejects | Calls `task(signal)` at once and shows `label` with a spinner until it settles. The dialog cannot be dismissed; `cancellable: true` adds **Cancel**, which aborts `signal` and closes the dialog. The promise still follows the task, so stop when `signal.aborted` |
 
 - **One dialog at a time.** A second call, from this mod or another, waits until the first is closed. A dialog opened from an action shows above its run view; closing it returns to the run view while the run goes on (a quiet run that then ends closes it, see above).
-- **Unload.** When the mod unloads, its open and waiting dialogs close as cancelled: `alert` resolves, `confirm` resolves `false`, `prompt` and `pick` resolve `null`, and `loading` aborts its signal. No promise is left hanging. A call after unload rejects with `Mod "<id>" is unloaded`.
+- **Unload.** When the mod unloads, its open and waiting dialogs close as cancelled: `alert` resolves, `confirm` resolves `false`, `prompt` and `pick` resolve `null`, and `loading` aborts its signal. The loading promise still follows its task, which must cooperate with cancellation. A call after unload rejects with `Mod "<id>" is unloaded`.
 - **Bad arguments** reject with `Mod "<id>": ...`, for example `Mod "<id>": ui.confirm needs a non-empty string title` or `ui.loading needs a task function`.
 
 For `pick`, each item needs a non-empty string `id` and `title`, and may have a string `description`. Duplicate ids reject before opening a dialog. Extra fields stay on the original object you receive back:
@@ -390,6 +390,27 @@ if (folder !== null) ctx.log(folder.path);
 The host searches **all items**, then renders at most **100 matches**. An empty search keeps the supplied order; a search ranks fuzzy matches. An empty list or a search with no matches shows `No items found.` and can still be cancelled. Display fields are captured when `pick` is called: filtering does not invoke mod code or read item getters on each keystroke. `pick` is part of contract v1, including its generic `Promise<T | null>` return type.
 
 A custom modal, a form or a layout is the mod's own UI: build it in the DOM with the [theme colors](#ctxtheme-colors), or with a package you bundle (see [Your own UI and packages](#your-own-ui-and-packages)).
+
+#### Local dialog diagnostics
+
+With **Settings > Troubleshooting > Save debug log to file** enabled and a log session active, the host writes JSON records under `[FRONT-END:MOD-UI]` in the local session log. These records use the existing debug logger, not Sentry. Debug mode can also show them in the local developer console; file logging off writes none of these records to disk.
+
+| Event | What the host observed |
+|-------|------------------------|
+| `dialog-queued` | An alert, confirm, prompt, pick or loading request entered the queue |
+| `dialog-opened` | The host component opened that dialog; a request cancelled or completed before display has no opened event |
+| `dialog-closed` | Exactly one terminal transition, with reason `acknowledged` (alert OK), `submitted` (confirm, prompt or pick), `cancel-button`, `escape`, `dismissed` (ordinary close/outside dismissal), `mod-unload`, `reset` or `task-settled` (loading) |
+| `loading-task-settled` | The task returned/resolved (`success`) or threw/rejected (`failure`), independently of whether its dialog was already closed |
+| `dialog-rejected` | Host argument validation rejected a request, with reason `invalid-title`, `invalid-text`, `invalid-items`, `invalid-item`, `invalid-description`, `duplicate-item`, `invalid-label` or `invalid-task`; the public rejection is unchanged |
+| `notification-request` | `ctx.notify` requested a notification with validated kind `info`, `success`, `warning` or `error`; this is **not** evidence it was displayed, read, dismissed or acknowledged |
+
+Dialog lifecycle and loading-task records contain `modId`, a session-local `dialogId`, `kind` and `elapsedMs`. Dialog elapsed time starts at queue insertion (zero for `dialog-queued`); task elapsed time starts immediately before invoking the task. The normal log timestamp records when each event was emitted. Rejection and notification records have mod identity and kind but no dialog ID or elapsed time, because no dialog was created.
+
+A loading close also records `cancellationRequested`: `true` for cancellation transitions, `false` for task settlement. Closure is **not proof of task termination**. The task starts immediately even while its dialog is queued; Cancel, unload or reset can close the dialog while JavaScript continues. Its promise still follows the task, and a later task settlement gets its own event without another dialog-close event. An empty submitted prompt is `submitted`, not cancellation. Empty or unmatched pickers remain open until an actual terminal action.
+
+These automatic records exclude mod display names, dialog titles/messages/labels/placeholders, prompt values and results, picker queries and item IDs/titles/descriptions/extra fields, notification text, task return values, and thrown error messages/stacks. Mod identity is JSON-encoded data, not text interpolated into the tag. There is **no run or action linkage**: `ctx.ui` is shared by the mod, and the host does not guess from the latest active run. Stopping a run does not close its mod's shared dialogs. Mod-owned forms and modals are not instrumented.
+
+This content exclusion applies only to these automatic records. Explicit `ctx.log`, existing mod error logs and other logging facilities have their own behavior; enabling this feature does not certify those logs as content-free.
 
 ### `ctx.theme`: colors
 

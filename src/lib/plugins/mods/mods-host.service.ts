@@ -182,15 +182,25 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	};
 	const kb = () => createModKb(vaultPath, assertLive);
 
+	const invalidDialog = (kind: ModDialogSpec['kind'], reason: string, message: string) => {
+		debug('MOD-UI', { event: 'dialog-rejected', modId: manifest.id, kind, reason });
+		return invalid(message);
+	};
+
 	/** Checks a dialog's options: a `title`, and a string wherever an optional text field is set */
-	const dialogOptions = <T extends { title: string }>(fn: string, options: T, texts: (keyof T & string)[]): T => {
-		if (!isText(options?.title)) throw invalid(`ui.${fn} needs a non-empty string title`);
+	const dialogOptions = <T extends { title: string }>(fn: ModDialogSpec['kind'], options: T, texts: (keyof T & string)[]): T => {
+		if (!isText(options?.title)) throw invalidDialog(fn, 'invalid-title', `ui.${fn} needs a non-empty string title`);
 		for (const field of ['message', ...texts] as (keyof T & string)[]) {
-			if (options[field] !== undefined && typeof options[field] !== 'string') throw invalid(`ui.${fn} needs a string ${field}`);
+			if (options[field] !== undefined && typeof options[field] !== 'string') throw invalidDialog(fn, 'invalid-text', `ui.${fn} needs a string ${field}`);
 		}
 		return options;
 	};
-	const openDialog = <S extends ModDialogSpec>(spec: S) => modDialogsStore.open(manifest.id, manifest.name, spec);
+	const openDialog = <S extends ModDialogSpec>(spec: S) => modDialogsStore.open(manifest.id, manifest.name, spec, (transition) => {
+		debug('MOD-UI', {
+			...transition, modId: manifest.id, kind: spec.kind,
+			...(spec.kind === 'loading' && transition.event === 'dialog-closed' ? { cancellationRequested: transition.reason !== 'task-settled' } : {}),
+		});
+	});
 
 	const ui: ModUiV1 = {
 		alert: async (options) => {
@@ -220,14 +230,14 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		pick: async (options) => {
 			assertLive();
 			const { title, placeholder, items } = dialogOptions('pick', options, ['placeholder']);
-			if (!Array.isArray(items)) throw invalid('ui.pick needs an items array');
+			if (!Array.isArray(items)) throw invalidDialog('pick', 'invalid-items', 'ui.pick needs an items array');
 			const originals = new Map<string, (typeof items)[number]>();
 			// Snapshot only display fields: mod getters must not run while typing or rendering.
 			const rows = items.map((item) => {
 				const { id, title, description } = item ?? {};
-				if (!isText(id) || !isText(title)) throw invalid('ui.pick needs items with non-empty string ids and titles');
-				if (description !== undefined && typeof description !== 'string') throw invalid('ui.pick needs a string item description');
-				if (originals.has(id)) throw invalid(`ui.pick duplicate item id "${id}"`);
+				if (!isText(id) || !isText(title)) throw invalidDialog('pick', 'invalid-item', 'ui.pick needs items with non-empty string ids and titles');
+				if (description !== undefined && typeof description !== 'string') throw invalidDialog('pick', 'invalid-description', 'ui.pick needs a string item description');
+				if (originals.has(id)) throw invalidDialog('pick', 'duplicate-item', `ui.pick duplicate item id "${id}"`);
 				originals.set(id, item);
 				return { id, title, description };
 			});
@@ -236,8 +246,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		},
 		loading: async (label, task, options) => {
 			assertLive();
-			if (!isText(label)) throw invalid('ui.loading needs a non-empty string label');
-			if (typeof task !== 'function') throw invalid('ui.loading needs a task function');
+			if (!isText(label)) throw invalidDialog('loading', 'invalid-label', 'ui.loading needs a non-empty string label');
+			if (typeof task !== 'function') throw invalidDialog('loading', 'invalid-task', 'ui.loading needs a task function');
 			const controller = new AbortController();
 			const abort = () => controller.abort();
 			// The unload aborts at once; Cancel settles the dialog as cancelled.
@@ -246,9 +256,17 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			void dialog.result.then((cancelled) => {
 				if (cancelled) abort();
 			});
+			const startedAt = performance.now();
+			let outcome: 'success' | 'failure' = 'failure';
 			try {
-				return await task(controller.signal);
+				const value = await task(controller.signal);
+				outcome = 'success';
+				return value;
 			} finally {
+				debug('MOD-UI', {
+					event: 'loading-task-settled', modId: manifest.id, dialogId: dialog.id, kind: 'loading',
+					outcome, elapsedMs: performance.now() - startedAt,
+				});
 				runtime.controller.signal.removeEventListener('abort', abort);
 				modDialogsStore.answer<'loading'>(dialog.id, false);
 			}
@@ -396,7 +414,9 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		notify: (message, options) => {
 			assertLive();
 			// Mods are untyped JavaScript: an unknown kind falls back to info.
-			const kind = options?.kind && NOTIFY_KINDS.includes(options.kind) ? options.kind : 'info';
+			const requestedKind = options?.kind;
+			const kind = requestedKind && NOTIFY_KINDS.includes(requestedKind) ? requestedKind : 'info';
+			debug('MOD-UI', { event: 'notification-request', modId: manifest.id, kind });
 			toast[kind](`${manifest.name}: ${message}`);
 		},
 		log: (...args) => {

@@ -4,22 +4,22 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 ## Acceptance criteria
 
-- [ ] Write failing tests through real facade/store/component transitions and the existing local writer. Keep stores and pure logic real, mock external boundaries, and assert both the public result or real state and the serialized diagnostic output.
-- [ ] With frontend file logging enabled and a session active, record queued, opened and terminal events for supported alert, confirm, prompt, pick and loading dialogs. Use mod identity, session-local dialog ID, dialog kind, host-generated outcome/reason codes and timing. A queued dialog cancelled before display must not appear as opened.
-- [ ] Capture terminal reasons at the originating transition: acknowledgement/submission, cancellation through buttons or dismissal, mod unload and reset. Preserve distinctions that the host actually knows; do not reconstruct the cause from null, false or undefined alone. Emit exactly one terminal dialog event.
-- [ ] An empty submitted prompt is a submission, not cancellation. A picker with no items or no matches remains open until a real terminal action. Closing one mod's dialogs does not misattribute or close another mod's queued dialogs.
-- [ ] Loading events distinguish dialog closure and cancellation request from task success/failure. The task starts when the facade currently starts it, including while queued; its existing promise still follows the task. A task settling after cancellation must not create another terminal dialog event or imply that cancellation stopped its JavaScript.
-- [ ] Do not attach a run or action ID by selecting the latest/current active run. The existing shared ctx.ui facade is mod-scoped. Run attribution remains unavailable unless a separate explicit contract is approved; this ticket adds no such contract.
-- [ ] A ctx.notify call emits only a notification-request event with mod identity and the validated notification kind. Do not claim that the notification was displayed, read, dismissed or acknowledged.
-- [ ] Invalid dialog requests produce a content-free rejection diagnostic where the host handles validation, without changing the public rejection. Calls after unload retain their existing failure behavior.
-- [ ] Negative privacy tests seed unique content in dialog titles/messages, prompt values/results, picker query and item IDs/titles/descriptions/extra fields, notification text and thrown errors. None of that content appears in the new automatic metadata records. Encode selected identifiers as data; arbitrary mod-supplied text is not inherently safe metadata.
-- [ ] Cover submit, button cancellation, Escape/ordinary dismissal, queued cancellation, unload, reset, repeated settlement, loading completion/failure/cancellation and invalid input. Assert rendered outcomes and that pending promises retain their existing result semantics.
-- [ ] File logging off produces no new file records. New events stay local and do not use the Sentry-reporting error helper. Reuse the existing logger without changing its global semantics.
-- [ ] Document supported events, content exclusions and absent run linkage. Explain that a notification request is not acknowledgement and that a closed loading dialog is not proof of task termination.
+- [x] Write failing tests through real facade/store/component transitions and the existing local writer. Keep stores and pure logic real, mock external boundaries, and assert both the public result or real state and the serialized diagnostic output.
+- [x] With frontend file logging enabled and a session active, record queued, opened and terminal events for supported alert, confirm, prompt, pick and loading dialogs. Use mod identity, session-local dialog ID, dialog kind, host-generated outcome/reason codes and timing. A queued dialog cancelled before display must not appear as opened.
+- [x] Capture terminal reasons at the originating transition: acknowledgement/submission, cancellation through buttons or dismissal, mod unload and reset. Preserve distinctions that the host actually knows; do not reconstruct the cause from null, false or undefined alone. Emit exactly one terminal dialog event.
+- [x] An empty submitted prompt is a submission, not cancellation. A picker with no items or no matches remains open until a real terminal action. Closing one mod's dialogs does not misattribute or close another mod's queued dialogs.
+- [x] Loading events distinguish dialog closure and cancellation request from task success/failure. The task starts when the facade currently starts it, including while queued; its existing promise still follows the task. A task settling after cancellation must not create another terminal dialog event or imply that cancellation stopped its JavaScript.
+- [x] Do not attach a run or action ID by selecting the latest/current active run. The existing shared ctx.ui facade is mod-scoped. Run attribution remains unavailable unless a separate explicit contract is approved; this ticket adds no such contract.
+- [x] A ctx.notify call emits only a notification-request event with mod identity and the validated notification kind. Do not claim that the notification was displayed, read, dismissed or acknowledged.
+- [x] Invalid dialog requests produce a content-free rejection diagnostic where the host handles validation, without changing the public rejection. Calls after unload retain their existing failure behavior.
+- [x] Negative privacy tests seed unique content in dialog titles/messages, prompt values/results, picker query and item IDs/titles/descriptions/extra fields, notification text and thrown errors. None of that content appears in the new automatic metadata records. Encode selected identifiers as data; arbitrary mod-supplied text is not inherently safe metadata.
+- [x] Cover submit, button cancellation, Escape/ordinary dismissal, queued cancellation, unload, reset, repeated settlement, loading completion/failure/cancellation and invalid input. Assert rendered outcomes and that pending promises retain their existing result semantics.
+- [x] File logging off produces no new file records. New events stay local and do not use the Sentry-reporting error helper. Reuse the existing logger without changing its global semantics.
+- [x] Document supported events, content exclusions and absent run linkage. Explain that a notification request is not acknowledgement and that a closed loading dialog is not proof of task termination.
 
 ## Scope and constraints
 
@@ -34,3 +34,7 @@ Existing uncaught-mod Sentry hardening remains separate work. These records do n
 ## Verification
 
 Frontend gate: `pnpm check` and `pnpm vitest run`, plus the existing mods E2E suite through the repository's E2E wrapper. Verify actual serialized content and rendered dialog results, not only logger calls or container existence.
+
+## Comments
+
+- 2026-11-07, `issue/03-content-free-dialog-outcomes`: Added content-free host dialog lifecycle, rejection and notification-request diagnostics with privacy and result-semantics coverage. Review round 1: APPROVED with a minor store/service separation finding. A fix round moved diagnostic emission into the host service via optional transition callbacks and added a real-writer state-only-dialog regression. Review round 2: APPROVED, finding resolved and no new findings. Earlier full suite: exit 0, 577 files passed; 13,965 tests passed, 0 failed, 54 skipped, 1 todo (`/Users/diegorv/Dev/pet-projects/koko/brain.worktrees/test-logs/mods-observability/03-deliver-b7bb27e0.log`; fresh log used because replacing the prescribed log was denied). Targeted checks: 24 files, 639 tests passed, 0 failed (`/tmp/mod-dialog-targeted.log`). `pnpm check`: 226 files, 0 errors and warnings (`/tmp/mod-dialog-check.log`). Regression red phase: 1 failed, 31 passed (`/tmp/mod-dialog-red.log`); `git diff --check` passed. Ship-only delivery reuses these results. Mods E2E, production bundling and native webview behavior were not verified.

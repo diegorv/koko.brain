@@ -34,16 +34,35 @@ const CANCELLED: ModDialogResults = { alert: undefined, confirm: false, prompt: 
 
 /** Dialogs in call order; the first is the one shown */
 let queue = $state.raw<ModDialog[]>([]);
-/** Resolvers of the dialogs in `queue`, by id; kept apart so the queue holds plain data */
-const resolvers = new Map<number, (value: unknown) => void>();
+/** Content-free state transition delivered synchronously to the owning host. */
+export interface ModDialogTransition {
+	/** Lifecycle transition, ordered before result resolution. */
+	event: 'dialog-queued' | 'dialog-opened' | 'dialog-closed';
+	/** Session-local dialog identity. */
+	dialogId: number;
+	/** Time since the dialog entered the queue. */
+	elapsedMs: number;
+	/** Originating terminal action, when closed. */
+	reason?: string;
+}
+
+/** Resolvers and transition callbacks, kept apart so the queue holds plain data. */
+const resolvers = new Map<number, {
+	resolve: (value: unknown) => void;
+	queuedAt: number;
+	opened: boolean;
+	onTransition?: (transition: ModDialogTransition) => void;
+}>();
 let nextId = 1;
 
-function settle(id: number, value: unknown): void {
-	const resolve = resolvers.get(id);
-	if (!resolve) return;
+function settle(id: number, value: unknown, reason: string): void {
+	const pending = resolvers.get(id);
+	const dialog = queue.find((d) => d.id === id);
+	if (!pending || !dialog) return;
 	resolvers.delete(id);
 	queue = queue.filter((d) => d.id !== id);
-	resolve(value);
+	pending.onTransition?.({ event: 'dialog-closed', dialogId: id, elapsedMs: performance.now() - pending.queuedAt, reason });
+	pending.resolve(value);
 }
 
 /** Reactive queue of the dialogs mods open with `ctx.ui`; one shows at a time */
@@ -61,34 +80,46 @@ export const modDialogsStore = {
 	 * Adds a dialog to the queue; it shows once the dialogs before it settle.
 	 * `result` resolves with what the user answered, or the kind's cancel value.
 	 */
-	open<S extends ModDialogSpec>(modId: string, modName: string, spec: S): { id: number; result: Promise<ModDialogResults[S['kind']]> } {
+	open<S extends ModDialogSpec>(modId: string, modName: string, spec: S, onTransition?: (transition: ModDialogTransition) => void): { id: number; result: Promise<ModDialogResults[S['kind']]> } {
 		const id = nextId++;
 		const result = new Promise<ModDialogResults[S['kind']]>((resolve) => {
-			resolvers.set(id, resolve as (value: unknown) => void);
+			resolvers.set(id, { resolve: resolve as (value: unknown) => void, queuedAt: performance.now(), opened: false, onTransition });
 		});
-		queue = [...queue, { ...spec, id, modId, modName }];
+		const dialog = { ...spec, id, modId, modName };
+		queue = [...queue, dialog];
+		onTransition?.({ event: 'dialog-queued', dialogId: id, elapsedMs: 0 });
 		return { id, result };
+	},
+
+	/** Records the host component opening the current dialog, once per dialog. */
+	markOpened(id: number) {
+		const dialog = queue[0];
+		const pending = resolvers.get(id);
+		if (!dialog || dialog.id !== id || !pending || pending.opened) return;
+		pending.opened = true;
+		pending.onTransition?.({ event: 'dialog-opened', dialogId: id, elapsedMs: performance.now() - pending.queuedAt });
 	},
 
 	/** Settles a dialog with the user's answer and removes it; does nothing for an unknown id */
 	answer<K extends keyof ModDialogResults>(id: number, value: ModDialogResults[K]) {
-		settle(id, value);
+		const dialog = queue.find((d) => d.id === id);
+		if (dialog) settle(id, value, dialog.kind === 'alert' ? 'acknowledged' : dialog.kind === 'loading' ? 'task-settled' : 'submitted');
 	},
 
 	/** Settles a dialog as cancelled and removes it; does nothing for an unknown id */
-	dismiss(id: number) {
+	dismiss(id: number, reason: 'dismissed' | 'cancel-button' | 'escape' = 'dismissed') {
 		const dialog = queue.find((d) => d.id === id);
-		if (dialog) settle(id, CANCELLED[dialog.kind]);
+		if (dialog) settle(id, CANCELLED[dialog.kind], reason);
 	},
 
 	/** Settles every open and queued dialog of `modId` as cancelled (the mod unloaded) */
 	closeForMod(modId: string) {
-		for (const dialog of queue.filter((d) => d.modId === modId)) settle(dialog.id, CANCELLED[dialog.kind]);
+		for (const dialog of queue.filter((d) => d.modId === modId)) settle(dialog.id, CANCELLED[dialog.kind], 'mod-unload');
 	},
 
 	/** Settles every dialog as cancelled and empties the queue (tests) */
 	reset() {
-		for (const dialog of queue) settle(dialog.id, CANCELLED[dialog.kind]);
+		for (const dialog of queue) settle(dialog.id, CANCELLED[dialog.kind], 'reset');
 		queue = [];
 	},
 };

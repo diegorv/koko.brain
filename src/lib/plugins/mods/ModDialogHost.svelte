@@ -54,9 +54,15 @@
 	}
 
 	function focusInitial(e: Event) {
+		if (dialog) modDialogsStore.markOpened(dialog.id);
 		if (!initialFocus) return;
 		e.preventDefault();
 		initialFocus.focus();
+	}
+
+	function handleEscape(e: KeyboardEvent) {
+		e.preventDefault();
+		if (dialog) modDialogsStore.dismiss(dialog.id, 'escape');
 	}
 
 	/** Blocks Esc and outside clicks: a loading dialog closes only with its task or Cancel */
@@ -88,7 +94,7 @@
 				class="gap-4 sm:max-w-md"
 				showCloseButton={dialog.kind !== 'loading'}
 				onOpenAutoFocus={focusInitial}
-				onEscapeKeydown={dialog.kind === 'loading' ? keepOpen : undefined}
+				onEscapeKeydown={dialog.kind === 'loading' ? keepOpen : handleEscape}
 				onInteractOutside={dialog.kind === 'loading' ? keepOpen : undefined}
 				onkeydown={dialog.kind === 'confirm' ? handleConfirmKeydown : undefined}
 				data-mod-dialog={dialog.kind}
@@ -122,7 +128,7 @@
 				{:else if dialog.kind === 'confirm'}
 					{@const id = dialog.id}
 					<Dialog.Footer>
-						<Button variant="outline" onclick={() => modDialogsStore.dismiss(id)} data-mod-dialog-cancel>{dialog.cancelLabel}</Button>
+						<Button variant="outline" onclick={() => modDialogsStore.dismiss(id, 'cancel-button')} data-mod-dialog-cancel>{dialog.cancelLabel}</Button>
 						<Button
 							variant={dialog.destructive ? 'destructive' : 'default'}
 							bind:ref={initialFocus}
@@ -161,7 +167,7 @@
 						{/if}
 					</div>
 					<Dialog.Footer>
-						<Button variant="outline" onclick={() => modDialogsStore.dismiss(id)} data-mod-dialog-cancel>Cancel</Button>
+						<Button variant="outline" onclick={() => modDialogsStore.dismiss(id, 'cancel-button')} data-mod-dialog-cancel>Cancel</Button>
 						<Button onclick={() => modDialogsStore.answer<'prompt'>(id, text)} data-mod-dialog-confirm>OK</Button>
 					</Dialog.Footer>
 				{:else if dialog.kind === 'pick'}
@@ -190,12 +196,12 @@
 						</Command.List>
 					</Command.Root>
 					<Dialog.Footer>
-						<Button variant="outline" onclick={() => modDialogsStore.dismiss(id)} data-mod-dialog-cancel>Cancel</Button>
+						<Button variant="outline" onclick={() => modDialogsStore.dismiss(id, 'cancel-button')} data-mod-dialog-cancel>Cancel</Button>
 					</Dialog.Footer>
 				{:else if dialog.cancellable}
 					{@const id = dialog.id}
 					<Dialog.Footer>
-						<Button variant="outline" bind:ref={initialFocus} onclick={() => modDialogsStore.dismiss(id)} data-mod-dialog-cancel>Cancel</Button>
+						<Button variant="outline" bind:ref={initialFocus} onclick={() => modDialogsStore.dismiss(id, 'cancel-button')} data-mod-dialog-cancel>Cancel</Button>
 					</Dialog.Footer>
 				{/if}
 			</Dialog.Content>
