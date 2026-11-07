@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [`ctx.watch`, `ctx.onNoteSaved`, vault path methods and a raw pack](issues/01-raw-pack-and-watch.md) | none | in-progress | | |
+| 01 | [`ctx.watch`, `ctx.onNoteSaved`, vault path methods and a raw pack](issues/01-raw-pack-and-watch.md) | none | blocked | | |
 | 02 | [`ctx.labs`, opt-in palette rows and a lazy run view](issues/02-labs-and-palette-opt-in.md) | none | todo | | |
 | 03 | [Right click on note rows and folders, with `run.target`](issues/03-right-click-menus.md) | 02 | todo | | |
 | 04 | [`ctx.ui.pick`](issues/04-ui-pick.md) | none | todo | | |
@@ -44,3 +44,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-07 10:06 — ledger created (4 Issues)
 - 2026-11-07 10:09 — 01 — start — launched by /relay-lite:run — 86b9c6c34
+- 2026-11-07 10:43 — 01 — deliver — Blocked: authentic review.md and review-2.md records are missing from the issue branch; after-review refused delivery. No merge or implementation push; full suite not run; worktree retained. — c66d49b73
