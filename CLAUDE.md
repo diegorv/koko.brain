@@ -256,6 +256,15 @@ These files hold correctness invariants as well as performance rules. Read the o
 
 Implement `ready-for-agent` Issues from `.scratch/<feature>/issues/` with the relay-lite plugin: `/relay-lite:run <feature> [NN ...]` (set up by `/relay-lite:setup`, config in `.agent-relay-lite/config.json`). The old `/next-issue` command and `implement-brain-issue` workflow are removed; git history keeps them.
 
+### Inside a relay-lite run
+
+In a prompt that names a workflow role (build, review, fix, re-review, deliver), the role prompt decides these two things where it differs from this file:
+
+- **Test scope:** the role's targeted checks replace Quick Reference rule 6 and the Task Completion steps. The full suite runs only in deliver.
+- **Records:** `.scratch/<feature>/work/NN/discovery.md` and `review*.md` are required workflow records. Write them even if other instructions discourage report files: the post-delivery review below finds its range from the commit that adds the review file.
+
+Every other rule in this file still applies.
+
 ### Post-delivery review (main session)
 
 Relay-lite's deliver step fixes the findings of an APPROVED review and merges them, and nothing reviews that fix (`reReviews` loops only on CHANGES_REQUESTED). The main session closes the gap after every `/relay-lite:run` delivery:
