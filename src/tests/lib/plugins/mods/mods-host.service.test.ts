@@ -1617,6 +1617,45 @@ describe('mods host', () => {
 			await startModsHost(VAULT);
 		});
 
+		it('pick rejects duplicate ids without disturbing the existing dialog queue', async () => {
+			void globals.__modCtx.beta.ui.alert({ title: 'Keep me' });
+			await expect(globals.__modCtx.alpha.ui.pick({ title: 'Choose', items: [
+				{ id: 'same', title: 'First' }, { id: 'same', title: 'Second' },
+			] })).rejects.toThrow('Mod "alpha": ui.pick duplicate item id "same"');
+			expect(modDialogsStore.dialogs).toHaveLength(1);
+			expect(modDialogsStore.current).toMatchObject({ modId: 'beta', title: 'Keep me' });
+		});
+
+		it.each([
+			[undefined, 'a non-empty string title'],
+			[{ title: '', items: [] }, 'a non-empty string title'],
+			[{ title: 'Pick', placeholder: 42, items: [] }, 'a string placeholder'],
+			[{ title: 'Pick', items: null }, 'an items array'],
+			[{ title: 'Pick', items: [null] }, 'items with non-empty string ids and titles'],
+			[{ title: 'Pick', items: [{ id: '', title: 'Title' }] }, 'items with non-empty string ids and titles'],
+			[{ title: 'Pick', items: [{ id: 'id', title: 42 }] }, 'items with non-empty string ids and titles'],
+			[{ title: 'Pick', items: [{ id: 'id', title: 'Title', description: null }] }, 'a string item description'],
+		])('pick rejects malformed options %j', async (options, message) => {
+			await expect(globals.__modCtx.alpha.ui.pick(options as never)).rejects.toThrow(`Mod "alpha": ui.pick needs ${message}`);
+			expect(modDialogsStore.current).toBeNull();
+			expect(modDialogsStore.dialogs).toEqual([]);
+		});
+
+		it('pick queues display data and returns the original object with its extra fields', async () => {
+			const item = { id: 'project', title: 'Project', description: 'A folder', path: 'projects/' };
+			const answer = globals.__modCtx.alpha.ui.pick({ title: 'Choose a folder', placeholder: 'Find a folder', items: [item] });
+
+			expect(modDialogsStore.current).toMatchObject({
+				kind: 'pick', modId: 'alpha', modName: 'Alpha', title: 'Choose a folder', placeholder: 'Find a folder',
+				items: [{ id: 'project', title: 'Project', description: 'A folder' }],
+			});
+			modDialogsStore.answer(modDialogsStore.current!.id, 'project');
+			const picked = await answer;
+			expect(picked).toBe(item);
+			expect(picked?.path).toBe('projects/');
+			expect(modDialogsStore.current).toBeNull();
+		});
+
 		it('confirm shows a dialog with the mod name and defaults, and resolves with the answer', async () => {
 			const answer = globals.__modCtx.alpha.ui.confirm({ title: 'Archive 12 notes?', destructive: true });
 
@@ -1704,6 +1743,22 @@ describe('mods host', () => {
 			await other;
 		});
 
+		it('unload cancels open and queued picks with null and preserves another mod\'s dialog', async () => {
+			const { alpha, beta } = globals.__modCtx;
+			const first = alpha.ui.pick({ title: 'First', items: [{ id: 'a', title: 'Alpha' }] });
+			const queued = alpha.ui.pick({ title: 'Queued', items: [] });
+			const other = beta.ui.alert({ title: 'Keep me' });
+
+			disableMod('alpha');
+
+			expect(await first).toBeNull();
+			expect(await queued).toBeNull();
+			expect(modDialogsStore.current).toMatchObject({ modId: 'beta', title: 'Keep me' });
+			expect(modDialogsStore.dialogs).toHaveLength(1);
+			modDialogsStore.dismiss(modDialogsStore.current!.id);
+			await other;
+		});
+
 		it('an unload aborts the signal of a loading task and settles every dialog when the host stops', async () => {
 			let signal!: AbortSignal;
 			const loading = globals.__modCtx.alpha.ui.loading('Working', async (s) => {
@@ -1728,6 +1783,7 @@ describe('mods host', () => {
 			await expect(ui.alert({ title: 'x' })).rejects.toThrow('Mod "alpha" is unloaded');
 			await expect(ui.confirm({ title: 'x' })).rejects.toThrow('Mod "alpha" is unloaded');
 			await expect(ui.prompt({ title: 'x' })).rejects.toThrow('Mod "alpha" is unloaded');
+			await expect(ui.pick({ title: 'x', items: [] })).rejects.toThrow('Mod "alpha" is unloaded');
 			await expect(ui.loading('x', () => {})).rejects.toThrow('Mod "alpha" is unloaded');
 			expect(modDialogsStore.dialogs).toEqual([]);
 		});

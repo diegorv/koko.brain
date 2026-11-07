@@ -32,6 +32,22 @@ const HELLO_MOD: Record<string, string> = {
 			},
 		});
 		ctx.addAction({
+			id: 'pick-template',
+			title: 'Pick a template',
+			run: async () => {
+				const selected = await ctx.ui.pick({
+					title: 'Choose a template',
+					items: [
+						{ id: 'meeting', title: 'Meeting', content: '# Meeting agenda' },
+						{ id: 'travel', title: 'Travel', content: '# Travel itinerary' },
+					],
+				});
+				if (selected === null) return;
+				const path = await ctx.vault.create('Templates/' + selected.id + '.md', selected.content);
+				await ctx.workspace.openNote(path);
+			},
+		});
+		ctx.addAction({
 			id: 'slow',
 			title: 'Slow job',
 			run: async (input, run) => {
@@ -232,6 +248,33 @@ test.describe('Vault mods', () => {
 			await expect(dialog).toBeHidden();
 			await expect(page.locator('.cm-content')).toContainText('Moonshot');
 			expect(await page.evaluate((p) => window.__e2e.fs.dump()[p], `${TEST_VAULT_PATH}/Projects/Moonshot.md`)).toBe('# Moonshot\n');
+		});
+
+		test('a mod picker searches templates and opens a note from the accepted item', async ({ vaultPage: page }) => {
+			const panel = await openLabs(page);
+			await panel.getByRole('switch', { name: 'Vault mods' }).click();
+			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+			await page.keyboard.press('Escape');
+			await expect(panel).toBeHidden();
+
+			await page.locator('[data-rail-item="mod:hello:main"]').click();
+			await page.locator('[data-mod-action="pick-template"]').click();
+
+			const dialog = page.locator('[data-mod-dialog="pick"]');
+			await expect(dialog).toContainText('Choose a template');
+			await expect(dialog.getByRole('option')).toHaveCount(2);
+			const search = dialog.locator('[data-mod-dialog-field]');
+			await expect(search).toBeFocused();
+			await search.fill('Travel');
+			await expect(dialog.getByRole('option')).toHaveCount(1);
+			await expect(dialog.getByRole('option')).toHaveText('Travel');
+			await search.press('Enter');
+
+			await expect(dialog).toBeHidden();
+			await expect(page.locator('.cm-content')).toContainText('Travel itinerary');
+			expect(await page.evaluate((p) => window.__e2e.fs.dump()[p], `${TEST_VAULT_PATH}/Templates/travel.md`)).toBe(
+				'# Travel itinerary',
+			);
 		});
 
 		test('a long action shows its log in the run view, and Stop cancels a second run', async ({ vaultPage: page }) => {

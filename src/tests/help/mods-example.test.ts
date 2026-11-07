@@ -77,7 +77,7 @@ function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 				seen.opened.push(path);
 			},
 		},
-		ui: { alert: unused, confirm: unused, prompt: unused, loading: unused },
+		ui: { alert: unused, confirm: unused, prompt: unused, pick: unused, loading: unused },
 		loadData: unused,
 		saveData: unused,
 		theme: {

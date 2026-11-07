@@ -320,7 +320,7 @@ A mod that calls `saveData` without ever calling `loadData` replaces whatever th
 
 ### `ctx.ui`: dialogs
 
-Four dialogs in the app's own look: they follow the theme, take focus, and close on **Esc** like the app's dialogs. Each shows the mod's `name` as a small caption above its title, so you always know which mod is asking.
+Dialogs in the app's own look: they follow the theme, take focus, and close on **Esc** like the app's dialogs. Each shows the mod's `name` as a small caption above its title, so you always know which mod is asking.
 
 ```javascript
 ctx.addAction({
@@ -343,13 +343,29 @@ ctx.addAction({
 | `alert({ title, message?, kind? })` | nothing, once dismissed | **Enter** (OK), **Esc**. `kind`: `'info'` (default), `'success'`, `'warning'` or `'error'` sets the icon |
 | `confirm({ title, message?, confirmLabel?, cancelLabel?, destructive? })` | `true` or `false` | **Enter** confirms, **Esc** cancels. Labels default to **OK** and **Cancel**; `destructive: true` styles the confirm button as destructive |
 | `prompt({ title, message?, label?, placeholder?, value?, multiline? })` | the text, or `null` when cancelled | **Enter** submits, **Esc** cancels. With `multiline: true` the field is a text area: **Enter** adds a line and **Cmd+Enter** submits. Enter while an input method is composing (Japanese, Chinese, ...) never submits |
+| `pick({ title, placeholder?, items })` | the original selected item object, or `null` when cancelled | Type to fuzzy-search titles and descriptions; **Up/Down** selects, **Enter** accepts, **Esc** or **Cancel** cancels. Clicking a row accepts it. The search placeholder defaults to `Search items...` |
 | `loading(label, task, { cancellable? })` | what `task` resolves to; rejects when it rejects | Calls `task(signal)` at once and shows `label` with a spinner until it settles. The dialog cannot be dismissed; `cancellable: true` adds **Cancel**, which aborts `signal` and closes the dialog. The promise still follows the task, so stop when `signal.aborted` |
 
 - **One dialog at a time.** A second call, from this mod or another, waits until the first is closed. A dialog opened from an action shows above its run view; closing it returns to the run view while the run goes on (a quiet run that then ends closes it, see above).
-- **Unload.** When the mod unloads, its open and waiting dialogs close as cancelled: `alert` resolves, `confirm` resolves `false`, `prompt` resolves `null`, and `loading` aborts its signal. No promise is left hanging. A call after unload rejects with `Mod "<id>" is unloaded`.
+- **Unload.** When the mod unloads, its open and waiting dialogs close as cancelled: `alert` resolves, `confirm` resolves `false`, `prompt` and `pick` resolve `null`, and `loading` aborts its signal. No promise is left hanging. A call after unload rejects with `Mod "<id>" is unloaded`.
 - **Bad arguments** reject with `Mod "<id>": ...`, for example `Mod "<id>": ui.confirm needs a non-empty string title` or `ui.loading needs a task function`.
 
-The app offers only these four. A custom modal, a form or a layout is the mod's own UI: build it in the DOM with the [theme colors](#ctxtheme-colors), or with a package you bundle (see [Your own UI and packages](#your-own-ui-and-packages)).
+For `pick`, each item needs a non-empty string `id` and `title`, and may have a string `description`. Duplicate ids reject before opening a dialog. Extra fields stay on the original object you receive back:
+
+```javascript
+const folder = await ctx.ui.pick({
+	title: 'Choose a folder',
+	items: [
+		{ id: 'projects', title: 'Projects', description: 'Active work', path: 'Projects/' },
+		{ id: 'archive', title: 'Archive', path: 'Archive/' },
+	],
+});
+if (folder !== null) ctx.log(folder.path);
+```
+
+The host searches **all items**, then renders at most **100 matches**. An empty search keeps the supplied order; a search ranks fuzzy matches. An empty list or a search with no matches shows `No items found.` and can still be cancelled. Display fields are captured when `pick` is called: filtering does not invoke mod code or read item getters on each keystroke. `pick` is part of contract v1, including its generic `Promise<T | null>` return type.
+
+A custom modal, a form or a layout is the mod's own UI: build it in the DOM with the [theme colors](#ctxtheme-colors), or with a package you bundle (see [Your own UI and packages](#your-own-ui-and-packages)).
 
 ### `ctx.theme`: colors
 

@@ -202,6 +202,15 @@ export interface ModUiV1 {
 	confirm: (options: ModConfirmOptionsV1) => Promise<boolean>;
 	/** Asks for text; resolves to it, or to `null` when cancelled */
 	prompt: (options: ModPromptOptionsV1) => Promise<string | null>;
+	/** Fuzzy-selects an item; returns the original object, or null on cancel. Duplicate ids reject. */
+	pick: <T extends { id: string; title: string; description?: string }>(options: {
+		/** Dialog title */
+		title: string;
+		/** Search field hint; defaults to "Search items..." */
+		placeholder?: string;
+		/** Items with unique ids; all are searchable, with at most 100 matches rendered */
+		items: T[];
+	}) => Promise<T | null>;
 	/**
 	 * Runs `task(signal)` at once while a dialog that cannot be dismissed shows
 	 * `label` and a spinner, and resolves or rejects with the task. The signal

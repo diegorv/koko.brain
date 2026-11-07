@@ -89,6 +89,7 @@ const UI_PUBLIC = {
 	alert: true,
 	confirm: true,
 	prompt: true,
+	pick: true,
 	loading: true,
 } satisfies Record<keyof ModUiV1, true>;
 
@@ -114,6 +115,18 @@ const PROMPT_OPTIONS_PUBLIC = {
 	value: true,
 	multiline: true,
 } satisfies Record<keyof ModPromptOptionsV1, true>;
+
+const PICK_OPTIONS_PUBLIC = {
+	title: true,
+	placeholder: true,
+	items: true,
+} satisfies Record<keyof Parameters<ModUiV1['pick']>[0], true>;
+
+const PICK_ITEM_PUBLIC = {
+	id: true,
+	title: true,
+	description: true,
+} satisfies Record<keyof Parameters<ModUiV1['pick']>[0]['items'][number], true>;
 
 const LOADING_OPTIONS_PUBLIC = {
 	cancellable: true,
@@ -236,6 +249,8 @@ describe('mod API contract v1', () => {
 		expect(Object.keys(ALERT_OPTIONS_PUBLIC).sort()).toEqual(['kind', 'message', 'title']);
 		expect(Object.keys(CONFIRM_OPTIONS_PUBLIC).sort()).toEqual(['cancelLabel', 'confirmLabel', 'destructive', 'message', 'title']);
 		expect(Object.keys(PROMPT_OPTIONS_PUBLIC).sort()).toEqual(['label', 'message', 'multiline', 'placeholder', 'title', 'value']);
+		expect(Object.keys(PICK_OPTIONS_PUBLIC).sort()).toEqual(['items', 'placeholder', 'title']);
+		expect(Object.keys(PICK_ITEM_PUBLIC).sort()).toEqual(['description', 'id', 'title']);
 		expect(Object.keys(LOADING_OPTIONS_PUBLIC)).toEqual(['cancellable']);
 	});
 

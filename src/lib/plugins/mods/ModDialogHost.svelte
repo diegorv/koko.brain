@@ -7,8 +7,10 @@
 	import TriangleAlertIcon from '@lucide/svelte/icons/triangle-alert';
 
 	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Command from '#lib/components/ui/command/index.js';
 	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
+	import { fuzzyMatch } from '#lib/utils/fuzzy-match.js';
 
 	import { modDialogsStore, type ModAlertKind } from './mod-dialogs.store.svelte';
 
@@ -25,12 +27,26 @@
 
 	/** Text of the prompt's field */
 	let text = $state('');
+	/** Search text for the current pick dialog */
+	let query = $state('');
+	/** Filter the entire input before bounding the rendered list */
+	const pickItems = $derived.by(() => {
+		if (dialog?.kind !== 'pick') return [];
+		if (!query.trim()) return dialog.items.slice(0, 100);
+		return dialog.items
+			.map((item) => ({ item, ...fuzzyMatch(query.trim(), `${item.title} ${item.description ?? ''}`) }))
+			.filter((result) => result.match)
+			.sort((a, b) => a.score - b.score)
+			.slice(0, 100)
+			.map(({ item }) => item);
+	});
 	/** The button or field that takes focus when a dialog opens */
 	let initialFocus = $state<HTMLElement | null>(null);
 
 	$effect(() => {
 		const shown = dialog;
 		if (shown?.kind === 'prompt') untrack(() => (text = shown.value));
+		if (shown?.kind === 'pick') untrack(() => (query = ''));
 	});
 
 	function handleOpenChange(open: boolean) {
@@ -93,7 +109,7 @@
 					{:else}
 						<Dialog.Title>{dialog.title}</Dialog.Title>
 					{/if}
-					{#if dialog.kind !== 'loading' && dialog.message}
+					{#if 'message' in dialog && dialog.message}
 						<Dialog.Description class="whitespace-pre-wrap">{dialog.message}</Dialog.Description>
 					{/if}
 				</Dialog.Header>
@@ -147,6 +163,34 @@
 					<Dialog.Footer>
 						<Button variant="outline" onclick={() => modDialogsStore.dismiss(id)} data-mod-dialog-cancel>Cancel</Button>
 						<Button onclick={() => modDialogsStore.answer<'prompt'>(id, text)} data-mod-dialog-confirm>OK</Button>
+					</Dialog.Footer>
+				{:else if dialog.kind === 'pick'}
+					{@const id = dialog.id}
+					<Command.Root shouldFilter={false}>
+						<Command.Input
+							placeholder={dialog.placeholder ?? 'Search items...'}
+							aria-label={dialog.title}
+							bind:value={query}
+							bind:ref={initialFocus}
+							data-mod-dialog-field
+						/>
+						<Command.List>
+							{#each pickItems as item (item.id)}
+								<Command.Item value={item.id} onSelect={() => modDialogsStore.answer<'pick'>(id, item.id)}>
+									<div class="flex flex-col gap-0.5">
+										<span>{item.title}</span>
+										{#if item.description}
+											<span class="text-xs text-muted-foreground">{item.description}</span>
+										{/if}
+									</div>
+								</Command.Item>
+							{:else}
+								<Command.Empty>No items found.</Command.Empty>
+							{/each}
+						</Command.List>
+					</Command.Root>
+					<Dialog.Footer>
+						<Button variant="outline" onclick={() => modDialogsStore.dismiss(id)} data-mod-dialog-cancel>Cancel</Button>
 					</Dialog.Footer>
 				{:else if dialog.cancellable}
 					{@const id = dialog.id}

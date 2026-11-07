@@ -6,6 +6,7 @@ export type ModDialogSpec =
 	| { kind: 'alert'; title: string; message?: string; alertKind: ModAlertKind }
 	| { kind: 'confirm'; title: string; message?: string; confirmLabel: string; cancelLabel: string; destructive: boolean }
 	| { kind: 'prompt'; title: string; message?: string; label?: string; placeholder?: string; value: string; multiline: boolean }
+	| { kind: 'pick'; title: string; placeholder?: string; items: { id: string; title: string; description?: string }[] }
 	| { kind: 'loading'; label: string; cancellable: boolean };
 
 /** What each kind settles with: a loading dialog settles with whether it was cancelled */
@@ -13,6 +14,8 @@ export interface ModDialogResults {
 	alert: undefined;
 	confirm: boolean;
 	prompt: string | null;
+	/** Selected item id, mapped back to the mod's original object by the host */
+	pick: string | null;
 	loading: boolean;
 }
 
@@ -27,7 +30,7 @@ export type ModDialog = ModDialogSpec & {
 };
 
 /** The value each kind settles with when it is cancelled (Esc, Cancel, the mod unloaded) */
-const CANCELLED: ModDialogResults = { alert: undefined, confirm: false, prompt: null, loading: true };
+const CANCELLED: ModDialogResults = { alert: undefined, confirm: false, prompt: null, pick: null, loading: true };
 
 /** Dialogs in call order; the first is the one shown */
 let queue = $state.raw<ModDialog[]>([]);

@@ -273,6 +273,97 @@ describe('ModDialogHost', () => {
 		});
 	});
 
+	describe('pick', () => {
+		it('Esc cancels and the next queued pick starts with a fresh search', async () => {
+			const items = [{ id: 'a', title: 'Alpha' }, { id: 'b', title: 'Beta' }];
+			const first = show(() => ctx.ui.pick({ title: 'First', items }));
+			type('Alpha');
+			const second = show(() => ctx.ui.pick({ title: 'Second', items }));
+			expect(field()!.value).toBe('Alpha');
+			pressKey(field()!, 'Escape');
+			expect(await first).toBeNull();
+			expect(title()).toBe('Second');
+			expect(field()!.value).toBe('');
+			expect(field()!.placeholder).toBe('Search items...');
+			expect(shown()!.querySelectorAll('[role="option"]')).toHaveLength(2);
+			button('cancel')!.click();
+			flushSync();
+			expect(await second).toBeNull();
+			expect(shown()).toBeNull();
+		});
+
+		it('supports arrow keys and Enter, and does not submit during composition', async () => {
+			const items = [{ id: 'a', title: 'Alpha' }, { id: 'b', title: 'Beta' }];
+			const result = show(() => ctx.ui.pick({ title: 'Choose', items }));
+			await vi.waitFor(() => expect(shown()!.querySelector('[aria-selected="true"]')?.textContent).toContain('Alpha'));
+			pressKey(field()!, 'ArrowDown');
+			expect(shown()!.querySelector('[aria-selected="true"]')?.textContent).toContain('Beta');
+			pressKey(field()!, 'Enter', { isComposing: true });
+			expect(await settled(result)).toBe('pending');
+			pressKey(field()!, 'Enter');
+			expect(await result).toBe(items[1]);
+		});
+
+		it('shows an empty state for no items or no matches, without selecting on Enter', async () => {
+			const empty = show(() => ctx.ui.pick({ title: 'Empty', items: [] }));
+			expect(shown()!.textContent).toContain('No items found.');
+			pressKey(field()!, 'Enter');
+			expect(await settled(empty)).toBe('pending');
+			pressKey(field()!, 'Escape');
+			expect(await empty).toBeNull();
+
+			const result = show(() => ctx.ui.pick({ title: 'Choose', items: [{ id: 'a', title: 'Alpha' }] }));
+			type('zzzz');
+			expect(shown()!.querySelectorAll('[role="option"]')).toHaveLength(0);
+			expect(shown()!.textContent).toContain('No items found.');
+			pressKey(field()!, 'Enter');
+			expect(await settled(result)).toBe('pending');
+			pressKey(field()!, 'Escape');
+			expect(await result).toBeNull();
+		});
+
+		it('searches descriptions without running mod getters again while typing or selecting', async () => {
+			let reads = 0;
+			const item = {
+				get id() { reads++; return 'a'; },
+				get title() { reads++; return 'Alpha'; },
+				get description() { reads++; return 'Project folder'; },
+				path: 'projects/',
+			};
+			const result = show(() => ctx.ui.pick({ title: 'Choose', items: [item, { id: 'b', title: 'Beta' }] }));
+			const initialReads = reads;
+			expect(initialReads).toBeGreaterThan(0);
+			type('Prj');
+			type('Prjfld');
+			expect(shown()!.querySelectorAll('[role="option"]')).toHaveLength(1);
+			expect(shown()!.textContent).toContain('Project folder');
+			shown()!.querySelector<HTMLElement>('[role="option"]')!.click();
+			flushSync();
+			expect(await result).toBe(item);
+			expect(reads).toBe(initialReads);
+		});
+
+		it('renders at most 100 of 1000 items, searches beyond the cap, and returns the clicked original', async () => {
+			const items = Array.from({ length: 1000 }, (_, i) => ({ id: `item-${i}`, title: `Item ${i}`, path: `notes/${i}.md` }));
+			const result = show(() => ctx.ui.pick({ title: 'Choose a note', placeholder: 'Find a note', items }));
+
+			expect(title()).toBe('Choose a note');
+			expect(caption()).toBe('Hello mod');
+			expect(field()!.placeholder).toBe('Find a note');
+			expect(document.activeElement).toBe(field());
+			expect(shown()!.querySelectorAll('[role="option"]')).toHaveLength(100);
+			expect(shown()!.textContent).not.toContain('Item 900');
+			type('It900');
+			expect(shown()!.querySelectorAll('[role="option"]')).toHaveLength(1);
+			expect(shown()!.textContent).toContain('Item 900');
+			shown()!.querySelector<HTMLElement>('[role="option"]')!.click();
+			flushSync();
+
+			expect(await result).toBe(items[900]);
+			expect(shown()).toBeNull();
+		});
+	});
+
 	describe('loading', () => {
 		it('shows the label and a spinner, has no close button, and ignores Esc', async () => {
 			let release!: () => void;

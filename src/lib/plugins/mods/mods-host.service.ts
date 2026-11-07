@@ -173,6 +173,23 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			const { title, message, label, placeholder, value, multiline } = dialogOptions('prompt', options, ['label', 'placeholder', 'value']);
 			return openDialog({ kind: 'prompt', title, message, label, placeholder, value: value ?? '', multiline: multiline === true }).result;
 		},
+		pick: async (options) => {
+			assertLive();
+			const { title, placeholder, items } = dialogOptions('pick', options, ['placeholder']);
+			if (!Array.isArray(items)) throw invalid('ui.pick needs an items array');
+			const originals = new Map<string, (typeof items)[number]>();
+			// Snapshot only display fields: mod getters must not run while typing or rendering.
+			const rows = items.map((item) => {
+				const { id, title, description } = item ?? {};
+				if (!isText(id) || !isText(title)) throw invalid('ui.pick needs items with non-empty string ids and titles');
+				if (description !== undefined && typeof description !== 'string') throw invalid('ui.pick needs a string item description');
+				if (originals.has(id)) throw invalid(`ui.pick duplicate item id "${id}"`);
+				originals.set(id, item);
+				return { id, title, description };
+			});
+			const id = await openDialog({ kind: 'pick', title, placeholder, items: rows }).result;
+			return id === null ? null : originals.get(id) ?? null;
+		},
 		loading: async (label, task, options) => {
 			assertLive();
 			if (!isText(label)) throw invalid('ui.loading needs a non-empty string label');

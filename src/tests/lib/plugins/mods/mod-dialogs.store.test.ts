@@ -76,6 +76,17 @@ describe('modDialogsStore', () => {
 			expect(await result).toBeNull();
 		});
 
+		it('pick resolves null and exposes the next dialog through both getters', async () => {
+			const { id, result } = modDialogsStore.open('a', 'A', { kind: 'pick', title: 'Choose', items: [] });
+			const next = modDialogsStore.open('b', 'B', alert('Next'));
+			expect(modDialogsStore.current).toMatchObject({ id, kind: 'pick', items: [] });
+			expect(modDialogsStore.dialogs.map((d) => d.id)).toEqual([id, next.id]);
+			modDialogsStore.dismiss(id);
+			expect(await result).toBeNull();
+			expect(modDialogsStore.current).toMatchObject({ id: next.id });
+			expect(modDialogsStore.dialogs.map((d) => d.id)).toEqual([next.id]);
+		});
+
 		it('loading resolves true (cancelled)', async () => {
 			const { id, result } = modDialogsStore.open('a', 'A', loading('Working'));
 			modDialogsStore.dismiss(id);
