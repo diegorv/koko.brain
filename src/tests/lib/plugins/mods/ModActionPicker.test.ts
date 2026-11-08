@@ -24,6 +24,7 @@ import { toast } from 'svelte-sonner';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import ModActionPicker from '#lib/plugins/mods/ModActionPicker.svelte';
+import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import { disableMod, startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
@@ -321,6 +322,119 @@ describe('ModActionPicker', () => {
 			flushSync();
 
 			expect(runView()!.querySelector('[data-mod-reload-pending]')?.textContent).toBe('Reload pending');
+		});
+	});
+
+	describe('the running mark', () => {
+		const quietGlobals = globalThis as unknown as { __modFail: () => void };
+		/** A row's visible text with whitespace collapsed, as a screen reader reads it */
+		const rowText = (id: string) => row(id).textContent!.replace(/\s+/g, ' ').trim();
+		const isMarked = (id: string) => row(id).hasAttribute('data-mod-action-running');
+
+		beforeEach(async () => {
+			stopModsHost();
+			fsFiles.set(
+				`${VAULT}/_system/mods/hello/main.js`,
+				`export default {
+	onload(ctx) {
+		ctx.addAction({ id: 'quiet', title: 'Quiet job', run: (input, run) => new Promise((resolve, reject) => {
+			globalThis.__modRelease = resolve;
+			globalThis.__modFail = () => reject(new Error('broke'));
+			run.signal.addEventListener('abort', () => reject(new Error('stopped')));
+		}) });
+		ctx.addAction({ id: 'noop', title: 'Noop', description: 'Does nothing', run: () => { globalThis.__modEvents.push('noop:run'); } });
+		ctx.addAction({ id: 'ask', title: 'Ask', input: { placeholder: 'Question' }, run: () => {} });
+		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'sparkles' });
+	},
+};`,
+			);
+			await startModsHost(VAULT);
+		});
+
+		/** Starts Quiet job from the palette, which shows no run view until the run writes output */
+		function startQuietFromPalette() {
+			modCommandsStore.list.find((c) => c.id === runKey('quiet'))!.run();
+			flushSync();
+		}
+
+		it('shows Running after the title of a running row, and nothing on idle rows', () => {
+			startQuietFromPalette();
+
+			clickRailButton();
+
+			expect(isMarked('quiet')).toBe(true);
+			expect(rowText('quiet')).toBe('Quiet job Running');
+			expect(isMarked('noop')).toBe(false);
+			expect(rowText('noop')).toBe('Noop Does nothing');
+			expect(isMarked('ask')).toBe(false);
+			expect(rowText('ask')).toBe('Ask');
+		});
+
+		it.each([
+			['done', () => globals.__modRelease()],
+			['failed', () => quietGlobals.__modFail()],
+			['cancelled', () => modsRunsStore.runFor(runKey('quiet'))!.stop()],
+		] as const)('follows a run started elsewhere while the picker stays open, until it ends %s', async (outcome, end) => {
+			clickRailButton();
+			expect(isMarked('quiet')).toBe(false);
+
+			startQuietFromPalette();
+
+			expect(runView()).toBeNull();
+			expect(isMarked('quiet')).toBe(true);
+			expect(rowText('quiet')).toBe('Quiet job Running');
+
+			end();
+			await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('quiet'))?.status).toBe(outcome));
+			flushSync();
+
+			expect(runView()).toBeNull();
+			expect(isMarked('quiet')).toBe(false);
+			expect(rowText('quiet')).toBe('Quiet job');
+		});
+
+		it('is not a search keyword: typing running filters out the running row', async () => {
+			startQuietFromPalette();
+			clickRailButton();
+			const search = document.querySelector<HTMLInputElement>('[data-command-input]')!;
+
+			search.value = 'running';
+			search.dispatchEvent(new Event('input', { bubbles: true }));
+			flushSync();
+			await vi.waitFor(() => expect(rows()).toEqual([]));
+
+			search.value = 'quiet';
+			search.dispatchEvent(new Event('input', { bubbles: true }));
+			flushSync();
+			await vi.waitFor(() => expect(rows().map((el) => el.dataset.modAction)).toEqual(['quiet']));
+			expect(isMarked('quiet')).toBe(true);
+		});
+
+		it('choosing the marked row opens its run view and starts nothing', () => {
+			startQuietFromPalette();
+			clickRailButton();
+			expect(isMarked('quiet')).toBe(true);
+
+			row('quiet').click();
+			flushSync();
+
+			expect(rows()).toEqual([]);
+			expect(status()).toBe('Running');
+			expect(modsRunsStore.runs).toHaveLength(1);
+		});
+
+		it('choosing an unmarked row starts it, or asks for its input', async () => {
+			startQuietFromPalette();
+			clickRailButton();
+
+			row('noop').click();
+			flushSync();
+			await vi.waitFor(() => expect(globals.__modEvents).toEqual(['noop:run']));
+
+			clickRailButton();
+			row('ask').click();
+			flushSync();
+			expect(document.querySelector<HTMLInputElement>('[data-mod-input]')?.placeholder).toBe('Question');
 		});
 	});
 

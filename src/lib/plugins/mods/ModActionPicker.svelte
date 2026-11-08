@@ -167,14 +167,22 @@
 		<Command.List>
 			<Command.Empty>No actions.</Command.Empty>
 			{#each modPickerStore.actions as action (action.id)}
+				{@const busy = action.busy?.() ?? false}
+				<!-- The Running mark is row text, not in value or keywords, so the search never sees it. -->
 				<Command.Item
 					value={action.id}
 					keywords={action.description ? [action.title, action.description] : [action.title]}
 					onSelect={() => pick(action)}
 					data-mod-action={action.id}
+					data-mod-action-running={busy ? '' : undefined}
 				>
 					<div class="flex min-w-0 flex-col">
-						<span>{action.title}</span>
+						<span>
+							{action.title}
+							{#if busy}
+								<span class="ml-1 text-xs text-muted-foreground">{STATUS_LABELS.running}</span>
+							{/if}
+						</span>
 						{#if action.description}
 							<span class="text-xs text-muted-foreground">{action.description}</span>
 						{/if}
