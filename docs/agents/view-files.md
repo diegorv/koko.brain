@@ -4,7 +4,7 @@ How to create and edit a Kokobrain `.view` file by hand (outside the app), so th
 
 `.view` is the only file kind for saved queries. The older `.collection` extension is retired and opens as plain text. One `.view` is both a **menu entry** (listed under Types > Views, pinnable to the rail) and a **table, calendar or linear-calendar** you open in an editor tab. An inline ` ```collection ` block in a note embeds the same format.
 
-Behavior described here is the code at `5f8003d67`. Items marked **(changes: view-engine-fixes/NN)** are scheduled to change in `.scratch/view-engine-fixes/issues/NN-*.md`. When that Issue is done, update the item.
+Behavior described here is the code at `5f8003d67`. Items marked **(changes: open-itens/NNN)** are scheduled to change in `.scratch/open-itens/issues/NNN-*.md`. When that Issue is done, update the item.
 
 ## Vocabulary
 
@@ -79,7 +79,7 @@ Only the exact value types below work. Any other value is ignored, and the defau
 | `type`, `name` | see the contract | required |
 | `filters` | as at the top level | this entry only |
 | `sort` | list of `{ column, direction }`, where `direction` is exactly `ASC` or `DESC` (uppercase, required). `property` is accepted for `column` | order of the rows. It replaces `_sort` and the notes' `_order` pins |
-| `limit` | an integer of at least 1 | applied last, after the row rule and the order. `2.5` keeps 2 rows, `.nan` applies no limit, `.inf` returns everything **(changes: view-engine-fixes/11)** |
+| `limit` | an integer of at least 1 | applied last, after the row rule and the order. `2.5` keeps 2 rows, `.nan` applies no limit, `.inf` returns everything **(changes: open-itens/069)** |
 | `order` | list of column keys | the table columns, in order. Without it the table shows `file.name` plus **every** key of every matched note, `_*` keys included, so always write `order` |
 | `dateProperty` | property name | start date. Required by `calendar` and `linear-calendar` |
 | `endDateProperty` | property name | end date of multi-day notes |
@@ -92,9 +92,9 @@ Only the exact value types below work. Any other value is ignored, and the defau
 - `formula.<name>`;
 - the exact frontmatter key.
 
-`file.tags`, `file.properties`, `note.x`, `property.x` and the alias `type` read empty in columns and sorts, though filters resolve them **(changes: view-engine-fixes/03)**. Sort by `_type`, not `type`.
+`file.tags`, `file.properties`, `note.x`, `property.x` and the alias `type` read empty in columns and sorts, though filters resolve them **(changes: open-itens/067)**. Sort by `_type`, not `type`.
 
-**DESC puts notes without the value first**, including inside a "top N" `limit` **(changes: view-engine-fixes/04)**. For a top N, filter out empty values (`"!isEmpty(priority)"`).
+**DESC puts notes without the value first**, including inside a "top N" `limit` **(changes: open-itens/068)**. For a top N, filter out empty values (`"!isEmpty(priority)"`).
 
 ## Filter expressions
 
@@ -134,10 +134,10 @@ Only the exact value types below work. Any other value is ignored, and the defau
 
 **Errors you see, errors you do not.**
 - An error box shows only for a parse error, an unknown plain function, or a malformed `and`/`or`/`not`.
-- A method that does not exist for the value's type throws on that note, and the note is silently left out (kept, inside `not:`). So `status.lower()` drops every note whose `status` is a number, a list or empty. Guard it with `isType` or `isEmpty`, or compare without methods **(changes: view-engine-fixes/02)**.
-- A YAML **list** of strings under `filters:` matches **every** note on every surface, with no error. A map without `and`/`or`/`not` (an Obsidian `{property, operator, value}` shape) is a filter error in the rail and the `.view` tab and matches every note in inline blocks **(changes: view-engine-fixes/08)**.
+- A method that does not exist for the value's type throws on that note, and the note is silently left out (kept, inside `not:`). So `status.lower()` drops every note whose `status` is a number, a list or empty. Guard it with `isType` or `isEmpty`, or compare without methods **(changes: open-itens/010)**.
+- A YAML **list** of strings under `filters:` matches **every** note on every surface, with no error. A map without `and`/`or`/`not` (an Obsidian `{property, operator, value}` shape) is a filter error in the rail and the `.view` tab and matches every note in inline blocks **(changes: open-itens/141)**.
 
-**Prefer `and:` lists to one `&&` string.** The app's Filter panel edits list items one row each. A compound `&&` string becomes one raw row, and New here then cannot tell the note type **(changes: view-engine-fixes/14)**.
+**Prefer `and:` lists to one `&&` string.** The app's Filter panel edits list items one row each. A compound `&&` string becomes one raw row, and New here then cannot tell the note type **(changes: open-itens/142)**.
 
 ## Which notes a view lists
 
@@ -145,8 +145,8 @@ Only the exact value types below work. Any other value is ignored, and the defau
 - **Archived** notes are out unless a filter (top level or the entry's) cites `archived` or `_archived`. Then the filters decide. `file.hasProperty('archived')` counts as a citation and matches every note, which lets all archived notes back in.
 - **Order:** with an entry `sort`, that order, and no pins. Without it, `_sort` (default `modified`, newest first), with each note's `_order` pin on top.
 - **`limit`** is applied last.
-- **The rail and the `.view` tab** run the filter after a conversion to the Filter panel's rows that is not exact. `x != true` becomes `x == false` (and `x != false` becomes `x == true`), so notes without `x` drop out there but stay in inline blocks. `x == date('X')` becomes `x == 'X'`. `x > '5'` becomes `x > 5`. `{and: []}` becomes an error. An empty `or: []` disappears. **Inline blocks** run the filter as written **(changes: view-engine-fixes/08)**. Stick to the plain shapes in § Recipes, and both agree.
-- **Inline blocks** run `views[0]` only, read no underscore key, keep the query order (no `_sort`, no pins), cap the table at 50 rows and the linear calendar at 3 lanes, show calendars for the current month or year only **(changes: view-engine-fixes/16)**, and render `file.basename` cells empty **(changes: view-engine-fixes/03)**.
+- **The rail and the `.view` tab** run the filter after a conversion to the Filter panel's rows that is not exact. `x != true` becomes `x == false` (and `x != false` becomes `x == true`), so notes without `x` drop out there but stay in inline blocks. `x == date('X')` becomes `x == 'X'`. `x > '5'` becomes `x > 5`. `{and: []}` becomes an error. An empty `or: []` disappears. **Inline blocks** run the filter as written **(changes: open-itens/141)**. Stick to the plain shapes in § Recipes, and both agree.
+- **Inline blocks** run `views[0]` only, read no underscore key, keep the query order (no `_sort`, no pins), cap the table at 50 rows and the linear calendar at 3 lanes, show calendars for the current month or year only **(changes: open-itens/143)**, and render `file.basename` cells empty **(changes: open-itens/067)**.
 
 ## How the app picks up a file
 

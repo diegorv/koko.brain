@@ -35,27 +35,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Tab-strip menu acts on the right tab, and Delete asks first](issues/01-tab-menu-right-tab-and-delete-confirm.md) | 02 | todo | | |
-| 02 | [Filters report unknown methods and per-note failures](issues/02-filters-report-unknown-methods.md) | none | todo | | |
-| 03 | [Columns and sort keys resolve like expressions](issues/03-columns-resolve-like-expressions.md) | 02 | todo | | |
-| 04 | [DESC sort lists notes without a value last](issues/04-desc-sort-nulls-last.md) | 03 | todo | | |
-| 05 | [Linear-calendar bars line up with their day columns](issues/05-linear-calendar-bar-geometry.md) | none | todo | | |
-| 06 | [Calendars say how many notes have no date](issues/06-calendar-undated-count.md) | 01, 03, 11 | todo | | |
-| 07 | [The Filter panel cannot write an empty or unparseable filter](issues/07-filter-panel-safe-writes.md) | 01, 02 | todo | | |
-| 08 | [The rail and the editor run the file's filter; bad shapes are errors](issues/08-run-the-files-filter.md) | 04, 07, 09, 10, 15 | todo | | |
-| 09 | [Rail view switcher for multi-view files](issues/09-rail-view-switcher.md) | 07 | todo | | |
-| 10 | [Rule line names the limit and the sort source](issues/10-rule-line-limit-and-sort.md) | 09 | todo | | |
-| 11 | [Small `.view` tab write feedback](issues/11-editor-write-feedback.md) | 07 | todo | | |
-| 12 | [View writers refresh promptly and fail loudly](issues/12-view-writers-refresh-and-fail-loudly.md) | none | todo | | |
-| 13 | [Properties panel matches the table's columns](issues/13-properties-panel-matches-columns.md) | 06, 11 | todo | | |
-| 14 | [New here infers the type from a compound `&&` filter](issues/14-new-here-type-from-compound-filter.md) | 08 | todo | | |
-| 15 | [`.view` tab keyboard and labels](issues/15-view-tab-keyboard-and-labels.md) | 13 | todo | | |
-| 16 | [Inline blocks choose a view and navigate months](issues/16-inline-block-view-and-month-nav.md) | 03, 06 | todo | | |
-| 17 | [Help docs speak of views, and their examples work](issues/17-help-docs-speak-of-views.md) | 03, 14 | todo | | |
-| 18 | [A `.view` checker for agents](issues/18-view-checker-for-agents.md) | 02 | todo | | |
 
 ## Log
 
 - 2026-11-06 00:10 — ledger created (18 Issues)
 - 2026-11-06 06:41 — ledger updated (blocked by of 07, 08, 11)
 - 2026-11-06 06:45 — ledger updated (blocked by of 06, 07, 11, 13)
+- 2026-11-08 12:00 — ledger updated (moved 18 open Issues to .scratch/open-itens: 01→012, 02→010, 03→067, 04→068, 05→230, 06→138, 07→013, 08→141, 09→136, 10→137, 11→069, 12→070, 13→139, 14→142, 15→140, 16→143, 17→228, 18→144)

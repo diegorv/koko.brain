@@ -45,4 +45,4 @@ expected '---\nstatus: done\nowner: bob\n---...' to be '---\nstatus: draft\nowne
 
 ## Comments
 
-- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/104-meta-bind-button-s-updatemetadata-always-writes.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.
+- 2026-11-06: migrated to `.scratch/open-itens/issues/025-meta-bind-button-s-updatemetadata-always-writes.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

@@ -36,35 +36,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Clicking task text opens the note at the line](issues/01-text-click-opens-note.md) | none | done | issue/01-text-click-opens-note (ce1f0ac3c) | 2026-11-06 |
-| 02 | [Guarded, status-preserving toggle](issues/02-guarded-status-preserving-toggle.md) | 01 | todo | | |
-| 03 | [Task writes reach search and the QueryJS cache](issues/03-task-writes-reach-search.md) | 02 | todo | | |
-| 04 | [The list stays mounted, and the rule explains itself](issues/04-mounted-list-and-rule-sentence.md) | 01 | todo | | |
-| 05 | [Rows show status, dates, priority, recurrence and tags](issues/05-row-chips.md) | 02, 04 | todo | | |
-| 06 | [Open means not done and not cancelled](issues/06-open-closed-rule.md) | 05 | todo | | |
-| 07 | [Quick filters on status, due and priority](issues/07-quick-filters.md) | 06 | todo | | |
-| 08 | [Group and sort by note, folder, due, priority or status](issues/08-group-and-sort.md) | 07 | todo | | |
-| 09 | [Set status, due and priority from the row, with undo](issues/09-row-menu-edits-with-undo.md) | 03, 08 | todo | | |
-| 10 | [Keyboard navigation and accessible rows](issues/10-keyboard-and-a11y.md) | 08 | todo | | |
-| 11 | [Rust records task headings](issues/11-rust-task-headings.md) | none | todo | | |
-| 12 | [Tasks come from the entries snapshot, and the heading rule runs in TS](issues/12-fetch-from-entries-snapshot.md) | 03, 07, 11 | todo | | |
-| 13 | [Sources panel with source cards and default excludes](issues/13-sources-panel-and-excludes.md) | 12 | todo | | |
-| 14 | [Property clause and "Only this / Hide this" actions](issues/14-property-clause-and-group-actions.md) | 08, 13 | todo | | |
-| 15 | [Group by note type, note property or heading](issues/15-group-by-type-property-heading.md) | 14 | todo | | |
-| 16 | [The view's rules survive a restart](issues/16-persist-view-state.md) | 08, 13 | todo | | |
-| 17 | [Saved views and the "To list" migration](issues/17-saved-views-and-to-list-migration.md) | 16 | todo | | |
-| 18 | [Built-in smart lists and their empty states](issues/18-smart-lists-and-empty-states.md) | 07, 17 | todo | | |
-| 19 | [Task tag quick filter](issues/19-task-tag-filter.md) | 07 | todo | | |
-| 20 | [Todoist sync failures are visible and read the HTTP status](issues/20-todoist-sync-errors-visible.md) | none | todo | | |
-| 21 | [A Todoist send is never silently forgotten](issues/21-todoist-send-never-forgotten.md) | 20 | todo | | |
-| 22 | [Todoist link survives edits, and reworded tasks show "possibly sent"](issues/22-todoist-identity-and-possibly-sent.md) | 07, 12, 21 | todo | | |
-| 23 | [Todoist state on each row and as a quick filter](issues/23-todoist-state-on-rows-and-filter.md) | 07, 10, 22 | todo | | |
-| 24 | [Todoist send: full project lists, refresh, the default label and recurring due dates](issues/24-todoist-project-lists-page-and-refresh.md) | 20 | todo | | |
-| 25 | [Say plainly that the Todoist token lives in the vault](issues/25-todoist-token-out-of-vault.md) | none | todo | | |
-| 26 | [Task tags follow the note tag rule](issues/26-task-tags-follow-note-tag-rule.md) | 11 | todo | | |
-| 27 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/27-remove-tasks-in-section-command.md) | 12 | todo | | |
-| 28 | [Lifecycle clause, the archived override and value pickers](issues/28-lifecycle-clause-and-value-pickers.md) | 14 | todo | | |
-| 29 | [The "modified" marker with Save, Revert and Reset](issues/29-modified-marker.md) | 17 | todo | | |
-| 30 | [Todoist links follow renames, and unmatched entries are listed](issues/30-todoist-renames-and-unlinked.md) | 22 | todo | | |
 | 31 | [A `#` inside a link or URL is not a task tag](issues/31-task-tag-boundary.md) | 11 | wontfix | | |
 
 ## Log
@@ -73,3 +44,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 05:55 — 01 — start — launched by /relay-lite:run — 25c903627
 - 2026-11-06 06:19 — 01 — deliver — Rounds 1 and 2 APPROVED (claude); fix round 4cfe3c5c6 added a caret-on-line test; full suite at 4cfe3c5c6: 12954 tests passed, pnpm build ok; merged ce1f0ac3c — ce1f0ac3c
 - 2026-11-06 06:40 — ledger updated (blocked by of 12, 14, 16, 22)
+- 2026-11-08 12:00 — ledger updated (moved 29 open Issues to .scratch/open-itens: 02→021, 03→114, 04→108, 05→109, 06→110, 07→111, 08→112, 09→122, 10→113, 11→074, 12→115, 13→116, 14→117, 15→118, 16→123, 17→124, 18→125, 19→120, 20→072, 21→127, 22→128, 23→129, 24→073, 25→229, 26→075, 27→121, 28→119, 29→126, 30→130)

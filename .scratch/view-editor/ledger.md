@@ -35,14 +35,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Tab rename and delete keep `_rail_view` in sync](issues/01-rail-view-follows-tab-rename.md) | none | todo | | |
-| 02 | [Edit view saves only what the user changed](issues/02-save-only-what-changed.md) | 01 | todo | | |
-| 03 | [Section layout and live Filters preview](issues/03-sections-and-live-preview.md) | 02 | todo | | |
-| 04 | [Edit view opens from anywhere, hidden views included](issues/04-edit-view-from-anywhere.md) | 03 | todo | | |
-| 05 | [Sort & limit section](issues/05-sort-and-limit-section.md) | 04 | todo | | |
-| 06 | [Display section](issues/06-display-section.md) | 05 | todo | | |
-| 07 | [Behavior section](issues/07-behavior-section.md) | 06 | todo | | |
 
 ## Log
 
 - 2026-11-06 00:09 — ledger created (7 Issues)
+- 2026-11-08 12:00 — ledger updated (moved 7 open Issues to .scratch/open-itens: 01→009, 02→011, 03→131, 04→132, 05→133, 06→134, 07→135)

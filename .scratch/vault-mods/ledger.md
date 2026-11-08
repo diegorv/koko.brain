@@ -42,12 +42,6 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | done | issue/05-ctx-vault-and-input (b9e201d91) | 2026-11-06 |
 | 06 | [Long runs: progress, log, Stop, and a busy rail button](issues/06-run-view-and-stop.md) | 04 | done | issue/06-run-view-and-stop (612b4fb84) | 2026-11-06 |
 | 07 | [Mod authoring docs, an example mod and the mods ADR](issues/07-docs-example-adr.md) | 06 | done | issue/07-docs-example-adr (6b3699922) | 2026-11-06 |
-| 08 | [`ctx.http.fetch`, with an MCP Streamable HTTP example mod](issues/08-ctx-http-and-mcp-example.md) | 06, 07 | todo | | |
-| 09 | [Spike: can the app run `claude -p` jobs?](issues/09-spike-claude-cli-from-app.md) | none | todo | | |
-| 10 | [Rust agent runner (`mods_run_agent`)](issues/10-agent-runs.md) | none | todo | | |
-| 11 | [Example mod: idea to PRD and Issues](issues/11-example-idea-to-prd-mod.md) | 05, 06, 13 | todo | | |
-| 12 | [Keep uncaught mod errors out of Sentry](issues/12-mod-errors-out-of-sentry.md) | 02 | todo | | |
-| 13 | [`ctx.agents.run` and the agent setting in Labs](issues/13-ctx-agents-run.md) | 06, 10 | todo | | |
 | 14 | [`ctx.ui` basic dialogs and `ctx.theme` colors](issues/14-ctx-ui-dialogs.md) | 07 | done | issue/14-ctx-ui-dialogs (10e951024) | 2026-11-06 |
 
 ## Log
@@ -70,3 +64,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-06 13:15 — ledger updated (added 14)
 - 2026-11-06 13:17 — 14 — start — launched by /relay-lite:run — d3f496ccd
 - 2026-11-06 13:45 — 14 — deliver — merged to main as 10e951024; review APPROVED x2 (claude); fix round: watchModTheme reads revision/isDark untracked at subscribe so an early theme change is reported (regression test); 2 nits unchanged; full suite + build green after rebase — 10e951024
+- 2026-11-08 12:00 — ledger updated (moved 6 open Issues to .scratch/open-itens: 08→150, 09→190, 10→191, 11→193, 12→032, 13→192)

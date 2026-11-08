@@ -22,4 +22,4 @@ Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw report
 
 ## Comments
 
-- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/129-vault-picked-outside-two-allowed-folders-refused.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.
+- 2026-11-06: migrated to `.scratch/open-itens/issues/083-vault-picked-outside-two-allowed-folders-refused.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

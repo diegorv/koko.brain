@@ -41,7 +41,7 @@ Attack on `draft-freedom.md` (F), `draft-core-risk.md` (C), `draft-velocity.md` 
 - Changes: add those two raw members, incubate in `mods:shared/`, promote when a menu verb actually loses an edit. Owner's "no new behavior for rare failures" points the same way.
 
 **7. C's gate on Issue 12 for the sidebar section cannot be met as written.**
-- Evidence: `.scratch/vault-mods/issues/12-mod-errors-out-of-sentry.md:35`: JSC ignores `sourceURL`, and "Errors from a mod's own `setTimeout`, DOM listener or floating promise stay untagged". So Issue 12 does not cover the case C names. C's "first surface where mod DOM listeners run routinely" (C:98) is also false: hotkeys, habits, focus-timer and bulk-tag use `addEventListener` today.
+- Evidence: `.scratch/open-itens/issues/032-mod-errors-out-of-sentry.md:35`: JSC ignores `sourceURL`, and "Errors from a mod's own `setTimeout`, DOM listener or floating promise stay untagged". So Issue 12 does not cover the case C names. C's "first surface where mod DOM listeners run routinely" (C:98) is also false: hotkeys, habits, focus-timer and bulk-tag use `addEventListener` today.
 - Changes: drop that half of the gate. Keep "the owner names the first panel". Issue 12 stays separate, with its re-triage.
 
 **8. F 07, the editor seam, is the largest risk for something the owner never listed, and its "no fallback" claim is wrong.**

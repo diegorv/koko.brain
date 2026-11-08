@@ -8,7 +8,7 @@
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`.
 
-**Owner decision (2026-11-06):** close it: covered by .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md and 06-open-closed-rule.md, which keep this work inside the Tasks view redesign.
+**Owner decision (2026-11-06):** close it: covered by .scratch/open-itens/issues/021-guarded-status-preserving-toggle.md and 06-open-closed-rule.md, which keep this work inside the Tasks view redesign.
 
 - [ ] Failing test first, in src/tests/lib/features/tasks/tasks.logic.test.ts: filterCompletedTasks on tasks with `checked: true` and status 'in-progress', 'important', 'question' and 'forwarded' plus one 'done' task returns the four open ones and drops the done one. It fails today.
 - [ ] filterCompleted keeps a group whose only task is in-progress; computeTaskStats counts in-progress as pending and cancelled as completed.

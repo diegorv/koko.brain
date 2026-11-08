@@ -136,4 +136,4 @@ AssertionError: expected [] to deeply equal ArrayContaining { 'Archive/Projects/
 
 ## Comments
 
-- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/124-watcher-events-keep-fts5-semantic-rust-indexes.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.
+- 2026-11-06: migrated to `.scratch/open-itens/issues/020-watcher-events-keep-fts5-semantic-rust-indexes.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

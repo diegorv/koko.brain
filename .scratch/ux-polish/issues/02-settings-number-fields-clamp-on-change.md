@@ -27,4 +27,4 @@ Raw-on-input (the EditorSection style) is not used here on purpose: EditorSectio
 
 ## Comments
 
-- 2026-11-06: migrated to `.scratch/audit-2026-11-05/issues/82-retention-days-debounce-delay-accept-typed-values.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.
+- 2026-11-06: migrated to `.scratch/open-itens/issues/201-retention-days-debounce-delay-accept-typed-values.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.
