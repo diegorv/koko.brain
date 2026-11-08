@@ -110,7 +110,7 @@ describe('modPickerStore', () => {
 	});
 
 	describe('run view', () => {
-		const KEY = 'mod:hello:main';
+		const KEY = 'mod:hello:action:idea';
 
 		it('has no run key while closed or on the action list', () => {
 			expect(modPickerStore.runKey).toBeNull();
@@ -118,7 +118,7 @@ describe('modPickerStore', () => {
 			expect(modPickerStore.runKey).toBeNull();
 		});
 
-		it('showRun opens the run view of a button, from the input step or while closed', () => {
+		it('showRun opens the run view of an action, from the input step or while closed', () => {
 			const idea: ModPickerAction = { ...action('idea'), input: {} };
 			modPickerStore.open('hello', 'Hello mod', [idea]);
 			modPickerStore.askInput(idea);

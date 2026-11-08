@@ -69,9 +69,9 @@
 		if (!open) modPickerStore.close();
 	}
 
-	/** Shows the input step for an action with `input`; otherwise runs it with `''`, which switches to its run view */
+	/** Shows the input step for an idle action with `input`; otherwise runs it with `''`, which switches to its run view (a live run's, when busy) */
 	function pick(action: ModPickerAction) {
-		if (action.input) {
+		if (action.input && !action.busy?.()) {
 			modPickerStore.askInput(action);
 			return;
 		}

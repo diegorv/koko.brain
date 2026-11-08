@@ -169,7 +169,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				run: (target) => {
 					assertLive();
 					if (actions.get(actionId) !== action) throw invalid(`unknown action id "${actionId}"`);
-					openPicker(actionKey(actionId), action.title, [actionId], target.on === 'note' ? 'note-menu' : 'folder-menu', true, { ...target });
+					openPicker(action.title, [actionId], target.on === 'note' ? 'note-menu' : 'folder-menu', true, { ...target });
 				},
 			}));
 			const owned = placements.get(actionId)!;
@@ -295,14 +295,21 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	};
 
 	/**
-	 * Runs an action under its origin's key. Lazy runs reveal only on their first
+	 * Runs an action under its run key, whatever entry point started it. While
+	 * the action has a live run, shows that run instead and starts nothing: one
+	 * live run per action. Lazy runs reveal only on their first
 	 * output. Its signal aborts on Stop and at unload; an abort ends the
 	 * run cancelled at once, even when the mod's code goes on. A failure is the
 	 * mod's, so it goes to the run, a toast and `debug()`, never Sentry (PRD P9).
 	 */
-	const runAction = async (action: ModActionV1, input: string, buttonKey: string, origin: ActionOrigin, lazy: boolean, target?: ModRunV1['target']) => {
+	const runAction = async (action: ModActionV1, input: string, origin: ActionOrigin, lazy: boolean, target?: ModRunV1['target']) => {
+		const runKey = actionKey(action.id);
+		if (modsRunsStore.isBusy(runKey)) {
+			revealRuns.get(runKey)?.();
+			return;
+		}
 		const controller = new AbortController();
-		const id = modsRunsStore.start({ modId: manifest.id, buttonKey, title: action.title, stop: () => controller.abort() });
+		const id = modsRunsStore.start({ modId: manifest.id, runKey, title: action.title, stop: () => controller.abort() });
 		const startedAt = performance.now();
 		const identity = { modId: manifest.id, actionId: action.id, runId: id, origin };
 		debug('MOD-HOST', JSON.stringify({ event: 'action-start', ...identity, outcome: 'running', elapsedMs: 0 }));
@@ -318,13 +325,13 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		let revealed = false;
 		const reveal = () => {
 			revealed = true;
-			modPickerStore.showRun(manifest.id, buttonKey);
+			modPickerStore.showRun(manifest.id, runKey);
 		};
 		const revealOutput = () => {
-			const current = modsRunsStore.runFor(buttonKey);
+			const current = modsRunsStore.runFor(runKey);
 			if (!revealed && current?.id === id && current.status === 'running') reveal();
 		};
-		revealRuns.set(buttonKey, reveal);
+		revealRuns.set(runKey, reveal);
 		let settle!: () => void;
 		const ended = new Promise<void>((resolve) => {
 			settle = resolve;
@@ -333,7 +340,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		const end = () => {
 			runtime.controller.signal.removeEventListener('abort', abortOnUnload);
 			runtime.runs.delete(ended);
-			if (revealRuns.get(buttonKey) === reveal) revealRuns.delete(buttonKey);
+			if (revealRuns.get(runKey) === reveal) revealRuns.delete(runKey);
 			settle();
 		};
 		controller.signal.addEventListener('abort', () => {
@@ -351,7 +358,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			signal: controller.signal,
 			log: (text) => {
 				const message = String(text);
-				const current = modsRunsStore.runFor(buttonKey);
+				const current = modsRunsStore.runFor(runKey);
 				if (current?.id !== id || current.status !== 'running') return;
 				modsRunsStore.log(id, message);
 				messageSequence++;
@@ -387,26 +394,23 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	};
 
 	/**
-	 * Opens the picker on the button's actions, resolved now so actions added
-	 * after the button are listed. While a run of the button is live, shows that
-	 * run instead: one live run per button. A button that resolves to a single
-	 * action skips the list: it runs the action, or opens straight on its text
-	 * field when the action asks for input.
+	 * Opens the picker on the listed actions (every action when `ids` is
+	 * undefined), resolved now so actions added after the button are listed.
+	 * A list that resolves to a single action skips the picker: it shows the
+	 * action's live run, runs it, or opens straight on its text field when the
+	 * action asks for input.
 	 */
-	const openPicker = (buttonKey: string, title: string, ids: string[] | undefined, origin: ActionOrigin, lazy = false, target?: ModRunV1['target']) => {
-		if (modsRunsStore.isBusy(buttonKey)) {
-			revealRuns.get(buttonKey)?.();
-			return;
-		}
+	const openPicker = (title: string, ids: string[] | undefined, origin: ActionOrigin, lazy = false, target?: ModRunV1['target']) => {
 		const listed = ids ? ids.flatMap((id) => actions.get(id) ?? []) : [...actions.values()];
 		const rows = listed.map((a) => ({
 			id: a.id,
 			title: a.title,
 			description: a.description,
 			input: a.input,
-			run: (input: string) => runAction(a, input, buttonKey, origin, lazy && !a.input, target),
+			busy: () => modsRunsStore.isBusy(actionKey(a.id)),
+			run: (input: string) => runAction(a, input, origin, lazy && !a.input, target),
 		}));
-		if (rows.length === 1 && !rows[0].input) {
+		if (rows.length === 1 && (!rows[0].input || rows[0].busy())) {
 			void rows[0].run('');
 			return;
 		}
@@ -465,7 +469,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				run: () => {
 					assertLive();
 					if (actions.get(entry.id) !== entry) throw invalid(`unknown action id "${entry.id}"`);
-					openPicker(actionKey(entry.id), entry.title, [entry.id], 'command', true);
+					openPicker(entry.title, [entry.id], 'command', true);
 				},
 			});
 			return disposable(() => {
@@ -495,14 +499,15 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			}
 			const { id, title } = button;
 			const listed = ids ? [...ids] : undefined;
+			// The rail registry's key only; runs are keyed by action, so a button id never names a run.
 			const key = `mod:${manifest.id}:${id}`;
 			const unregister = railRegistryStore.registerAction({
 				key,
 				label: title,
 				icon: button.icon,
 				color: manifest.color,
-				busy: () => modsRunsStore.isBusy(key),
-				run: () => openPicker(key, title, listed, 'rail'),
+				busy: () => (listed ?? [...actions.keys()]).some((actionId) => modsRunsStore.isBusy(actionKey(actionId))),
+				run: () => openPicker(title, listed, 'rail'),
 			});
 			return disposable(() => {
 				buttonIds.delete(id);

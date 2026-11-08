@@ -14,14 +14,14 @@ export interface ModRunProgress {
 	label?: string;
 }
 
-/** One run of a mod action, started from a rail button's picker */
+/** One run of a mod action, from any entry point (rail, palette, menu, command row) */
 export interface ModRunState {
 	/** Unique for the app session */
 	id: number;
 	/** Id of the mod whose action runs */
 	modId: string;
-	/** Rail button key (`mod:<mod>:<button>`) whose picker started it */
-	buttonKey: string;
+	/** The action's run key (`mod:<mod>:action:<action>`): an action has at most one live run */
+	runKey: string;
 	/** The action's title */
 	title: string;
 	/** Running, or how it ended */
@@ -36,7 +36,7 @@ export interface ModRunState {
 	stop: () => void;
 }
 
-/** The newest run of each rail button, in start order */
+/** The newest run of each action, in start order */
 let runs = $state.raw<ModRunState[]>([]);
 /** Ids of mods whose reload waits for their live runs to end (PRD P10) */
 let pendingReloads = $state.raw<string[]>([]);
@@ -51,34 +51,34 @@ function updateLive(id: number, change: (run: ModRunState) => Partial<ModRunStat
 	runs = next;
 }
 
-function findRun(buttonKey: string): ModRunState | null {
-	return runs.find((r) => r.buttonKey === buttonKey) ?? null;
+function findRun(runKey: string): ModRunState | null {
+	return runs.find((r) => r.runKey === runKey) ?? null;
 }
 
-/** Reactive store for mod action runs: the run view and the busy rail buttons read it */
+/** Reactive store for mod action runs, one per action key: the run view and the busy rail buttons read it */
 export const modsRunsStore = {
-	/** The newest run of each rail button, live or ended */
+	/** The newest run of each action, live or ended */
 	get runs() {
 		return runs;
 	},
-	/** The newest run started from a rail button, or null */
-	runFor(buttonKey: string): ModRunState | null {
-		return findRun(buttonKey);
+	/** The newest run of the action with this run key, or null */
+	runFor(runKey: string): ModRunState | null {
+		return findRun(runKey);
 	},
-	/** Whether a run started from a rail button is still going */
-	isBusy(buttonKey: string): boolean {
-		return findRun(buttonKey)?.status === 'running';
+	/** Whether the action with this run key has a live run */
+	isBusy(runKey: string): boolean {
+		return findRun(runKey)?.status === 'running';
 	},
 	/** Whether the mod's reload waits for its live runs to end */
 	isReloadPending(modId: string): boolean {
 		return pendingReloads.includes(modId);
 	},
 
-	/** Adds a running run, replacing the button's previous run; returns its id */
-	start(run: { modId: string; buttonKey: string; title: string; stop: () => void }): number {
+	/** Adds a running run, replacing the action's previous run; returns its id */
+	start(run: { modId: string; runKey: string; title: string; stop: () => void }): number {
 		const id = nextId++;
 		runs = [
-			...runs.filter((r) => r.buttonKey !== run.buttonKey),
+			...runs.filter((r) => r.runKey !== run.runKey),
 			{ ...run, id, status: 'running', lines: [], progress: null, error: null },
 		];
 		return id;

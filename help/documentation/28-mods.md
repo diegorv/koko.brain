@@ -231,16 +231,16 @@ ctx.labs.place('inspect', {
 - Items use `<Mod name>: <Action title>`, alongside the built-ins. The app does not call mod code while rendering menus; there is no `when` callback.
 - A repeated menu placement for the same action replaces its previous menu entry. Disposing an older placement does not remove the replacement. Unloading or removing the action clears its menu entries.
 - Menu runs receive `run.target: { on: 'note' | 'folder', path: string }`. The path is vault-relative and the vault root is `''`. It is captured from the clicked item, not the active editor, and stays the same while entering action input. Rail and palette runs have no `target`; use your own active-note fallback there if needed.
-- Menu and palette invocations share one live run per action. Invoking it again while busy reveals that run, rather than starting another for a different clicked target.
 
 ### Runs: `run.target`, `run.signal`, `run.log`, `run.progress`
 
 Running an action starts a **run**. Its view shows the action's title, its state (**Running**, **Done**, **Failed** or **Cancelled**), a progress bar, the run's log, the error with its stack when it failed, and **Stop** and **Close** buttons.
 
+**An action has at most one live run.** Starting an action that is already running, from a rail button, the palette, a note or folder menu or a raw command row, opens the existing run's view and runs nothing: no second run, no toast. This holds across entry points, for two rail buttons that list the same action, and for a menu run on another note or folder (the live run keeps its own `target`). An action with `input` that is already running opens its run view instead of the text field, and text submitted after the action started elsewhere opens that run instead of starting another. Different actions of one mod run side by side. Once a run ends (**Done**, **Failed** or **Cancelled**), the action can start again at once. A mod that needs parallel work on different targets serializes it itself.
+
 - **From the rail, or with `input`:** the run view opens when the action starts, after any input is submitted.
-- **From a menu, the palette or a raw command row, without `input`:** the view opens only on the first `run.log` or `run.progress`. A quiet run does not interrupt typing. Invoking the same action again while it runs opens its existing view rather than starting another run. After **Close**, later output does not reopen it.
+- **From a menu, the palette or a raw command row, without `input`:** the view opens only on the first `run.log` or `run.progress`. A quiet run does not interrupt typing. Starting the action again while it runs opens its view. After **Close**, later output does not reopen it.
 - **Delayed output can take focus:** the first log or progress opens the modal view even if another picker is open, replacing that picker's input. A quiet run has no visible **Stop** until invoked again. It also holds a mod reload without a visible **Reload pending** indicator until its view is opened. Switching the mod off in Labs aborts it.
-- Rail and non-rail invocations use separate run keys, so the same action can run through both at once.
 
 ```javascript
 ctx.addAction({
@@ -267,7 +267,7 @@ ctx.addAction({
 | `run.progress(done, total, label?)` | Sets the progress bar to `done` of `total`, with an optional label under it. Throws `Mod "<id>": run.progress needs numbers done and total` (or `needs a string label`) on other values |
 
 - **A quiet run closes the view by itself.** When a run ends **Done** without having called `run.log` or `run.progress`, there is nothing to read, so the picker closes: an action that only shows a toast, opens a note or opens a dialog leaves no window behind. An open view that logged or showed progress stays on **Done** until you press **Close** or **Escape**, and so does an open **Failed** or **Cancelled** view. A non-rail run that fails before any output stays hidden and reports its failure through a toast. To keep the view open on a quick action, log a line.
-- **Close** hides the view; the run goes on. While it runs, the mod's rail button shows a busy mark, and clicking it opens the run view again instead of the picker. A button has one live run at a time; two buttons of a mod can run side by side.
+- **Close** hides the view; the run goes on. While any action a rail button lists is running (a button without `actions` lists every action), the button shows a busy mark. Clicking a busy button that resolves to a single action opens that run's view again; one with several actions opens its picker, where choosing a running action opens its run and choosing an idle one starts it.
 - **Stop** aborts `run.signal` and marks the run **Cancelled** at once. It cannot interrupt code that is running: the mod has to check `run.signal.aborted` or pass the signal on. Valid calls to `run.log` and `run.progress` after the run ended are ignored.
 
 ### `ctx.vault`: reading and writing files
@@ -669,7 +669,7 @@ Look for `[FRONT-END:MOD-HOST]` in the session file in `~/Library/Logs/com.diego
 | `action-start` | A host-managed run starts: `modId`, `actionId`, `runId`, `origin`, `outcome: "running"`, `elapsedMs: 0`. |
 | `action-end` | That host run ends once, with the same identifiers and origin, `outcome: "done"`, `"failed"` or `"cancelled"`, and elapsed milliseconds since start. |
 
-`runId` identifies a run **within this app session**, not across restarts or as a globally durable ID. Concurrent runs have different IDs, and a later run on the same button or command gets a new ID. Invoking a busy key reveals the existing run without recording another start. Durations use a monotonic clock, rounded to milliseconds.
+`runId` identifies a run **within this app session**, not across restarts or as a globally durable ID. Every run gets its own ID, so a later run of the same action gets a new one. Starting an action that is already running only reveals its run and records no `action-start`. Durations use a monotonic clock, rounded to milliseconds.
 
 `origin` is `rail`, `note-menu`, `folder-menu` or `command`. Palette selection and programmatic invocation of a command row are both `command`: the host cannot distinguish them. Opening a picker without starting an action produces no action event.
 

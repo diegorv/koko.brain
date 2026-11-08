@@ -613,6 +613,211 @@ describe('mods host', () => {
 		});
 	});
 
+	describe('one live run per action', () => {
+		const key = (id: string) => `mod:one:action:${id}`;
+		const rail = (id: string) => railRegistryStore.actions.find((a) => a.key === `mod:one:${id}`)!;
+		const command = (id: string) => modCommandsStore.list.find((c) => c.id === key(id))!;
+		const menu = () => railRegistryStore.menuItems.find((m) => m.id === key('tag'))!;
+		const pickerRow = (id: string) => modPickerStore.actions.find((a) => a.id === id)!;
+		/** Runs of `id` the mod's code started, as `<id>:<input>` */
+		const bodies = (id: string) => globals.__modEvents.filter((e) => e.startsWith(`${id}:`));
+		const noToast = () => {
+			for (const kind of ['info', 'success', 'warning', 'error'] as const) expect(toast[kind]).not.toHaveBeenCalled();
+		};
+		let release: () => void;
+
+		beforeEach(async () => {
+			globals.__modGate = new Promise<void>((resolve) => { release = resolve; });
+			onTestFinished(() => release());
+			writeMod('one', `export default { onload(ctx) {
+				globalThis.__modCtx.one = ctx;
+				const hold = (id) => async (input, run) => {
+					globalThis.__modEvents.push(id + ':' + input);
+					globalThis.__modRun = run;
+					await globalThis.__modGate;
+				};
+				ctx.addAction({ id: 'tag', title: 'Bulk tag', run: hold('tag') });
+				ctx.addAction({ id: 'review', title: 'Weekly review', run: hold('review') });
+				ctx.addAction({ id: 'ask', title: 'Ask', input: { placeholder: 'Text' }, run: hold('ask') });
+				ctx.addAction({ id: 'boom', title: 'Boom', run: () => { globalThis.__modEvents.push('boom:'); throw new Error('kaboom'); } });
+				ctx.labs.place('tag', { palette: true, menu: { on: ['note', 'folder'] } });
+				ctx.addRailButton({ id: 'tag', title: 'Tag', icon: '', actions: ['tag'] });
+				ctx.addRailButton({ id: 'tag-too', title: 'Tag too', icon: '', actions: ['tag'] });
+				ctx.addRailButton({ id: 'pair', title: 'Pair', icon: '', actions: ['tag', 'review'] });
+				ctx.addRailButton({ id: 'all', title: 'All', icon: '' });
+				ctx.addRailButton({ id: 'ask', title: 'Ask', icon: '', actions: ['ask'] });
+			} };`);
+			await startModsHost(VAULT);
+		});
+
+		const others = {
+			palette: () => command('tag').run(),
+			'note-menu': () => menu().run({ on: 'note', path: 'Work/a.md' }),
+			'folder-menu': () => menu().run({ on: 'folder', path: 'Work' }),
+		};
+
+		it.each(Object.keys(others) as (keyof typeof others)[])('rail first, then %s reveals the rail run and starts nothing', (origin) => {
+			rail('tag').run();
+			expect(modPickerStore.runKey).toBe(key('tag'));
+			modPickerStore.close();
+
+			others[origin]();
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.runKey).toBe(key('tag'));
+			expect(bodies('tag')).toEqual(['tag:']);
+			expect(modsRunsStore.runs.map((r) => [r.runKey, r.status])).toEqual([[key('tag'), 'running']]);
+			noToast();
+		});
+
+		it.each(Object.keys(others) as (keyof typeof others)[])('a quiet %s run started again from the rail opens its view', (origin) => {
+			others[origin]();
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(modsRunsStore.isBusy(key('tag'))).toBe(true);
+
+			rail('tag').run();
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.runKey).toBe(key('tag'));
+			expect(bodies('tag')).toEqual(['tag:']);
+			expect(modsRunsStore.runs).toHaveLength(1);
+			noToast();
+		});
+
+		it('two rail buttons listing one action share its run, and both show busy', () => {
+			rail('tag').run();
+			const first = modsRunsStore.runFor(key('tag'))!.id;
+			modPickerStore.close();
+
+			rail('tag-too').run();
+
+			expect(modPickerStore.runKey).toBe(key('tag'));
+			expect(modsRunsStore.runFor(key('tag'))!.id).toBe(first);
+			expect(bodies('tag')).toEqual(['tag:']);
+			expect(rail('tag').busy?.()).toBe(true);
+			expect(rail('tag-too').busy?.()).toBe(true);
+			noToast();
+		});
+
+		it('a rail button id shaped like an action key does not hold that action', () => {
+			globals.__modCtx.one.addRailButton({ id: 'action:review', title: 'Odd', icon: '', actions: ['tag'] });
+			rail('action:review').run();
+
+			command('review').run();
+
+			expect(bodies('review')).toEqual(['review:']);
+			expect(modsRunsStore.isBusy(key('review'))).toBe(true);
+		});
+
+		it('a menu run on another target still reveals the live run', () => {
+			menu().run({ on: 'note', path: 'Work/a.md' });
+
+			menu().run({ on: 'folder', path: 'Other' });
+
+			expect(globals.__modRun.target).toEqual({ on: 'note', path: 'Work/a.md' });
+			expect(bodies('tag')).toEqual(['tag:']);
+			expect(modPickerStore.runKey).toBe(key('tag'));
+		});
+
+		it('a live action with input opens its run view instead of the text prompt', async () => {
+			rail('ask').run();
+			expect(modPickerStore.inputAction?.id).toBe('ask');
+			void modPickerStore.inputAction!.run('first');
+			modPickerStore.close();
+
+			rail('ask').run();
+
+			expect(modPickerStore.inputAction).toBeNull();
+			expect(modPickerStore.runKey).toBe(key('ask'));
+			modPickerStore.close();
+			command('ask').run();
+			expect(modPickerStore.inputAction).toBeNull();
+			expect(modPickerStore.runKey).toBe(key('ask'));
+			expect(bodies('ask')).toEqual(['ask:first']);
+		});
+
+		it('submitting input after the action started elsewhere reveals that run', async () => {
+			command('ask').run();
+			const prompt = modPickerStore.inputAction!;
+			expect(prompt.id).toBe('ask');
+			rail('ask').run();
+			void modPickerStore.inputAction!.run('rail');
+			modPickerStore.close();
+
+			await prompt.run('palette');
+
+			expect(bodies('ask')).toEqual(['ask:rail']);
+			expect(modPickerStore.runKey).toBe(key('ask'));
+			expect(modsRunsStore.runs).toHaveLength(1);
+			noToast();
+		});
+
+		it('different actions of a mod run side by side, from one button or from two', () => {
+			rail('pair').run();
+			void pickerRow('tag').run('');
+			modPickerStore.close();
+			rail('pair').run();
+			void pickerRow('review').run('');
+
+			expect(bodies('tag')).toEqual(['tag:']);
+			expect(bodies('review')).toEqual(['review:']);
+			expect(modsRunsStore.runs.map((r) => [r.runKey, r.status])).toEqual([[key('tag'), 'running'], [key('review'), 'running']]);
+			expect(rail('ask').busy?.()).toBe(false);
+
+			rail('ask').run();
+			void modPickerStore.inputAction!.run('x');
+			expect(modsRunsStore.runs).toHaveLength(3);
+		});
+
+		it('a busy button with several actions opens its picker: a live row reveals, an idle row starts', () => {
+			command('tag').run();
+			expect(rail('pair').busy?.()).toBe(true);
+			expect(rail('all').busy?.()).toBe(true);
+			expect(rail('ask').busy?.()).toBe(false);
+
+			rail('pair').run();
+
+			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.runKey).toBeNull();
+			expect(modPickerStore.actions.map((a) => [a.id, a.busy?.()])).toEqual([['tag', true], ['review', false]]);
+			void pickerRow('tag').run('');
+			expect(modPickerStore.runKey).toBe(key('tag'));
+			expect(bodies('tag')).toEqual(['tag:']);
+
+			rail('pair').run();
+			void pickerRow('review').run('');
+			expect(modPickerStore.runKey).toBe(key('review'));
+			expect(bodies('review')).toEqual(['review:']);
+		});
+
+		it.each(['done', 'cancelled'] as const)('once a run ends %s, the action starts again at once', async (ending) => {
+			rail('tag').run();
+			const first = modsRunsStore.runFor(key('tag'))!.id;
+			if (ending === 'cancelled') modsRunsStore.runFor(key('tag'))!.stop();
+			else {
+				release();
+				await vi.waitFor(() => expect(modsRunsStore.isBusy(key('tag'))).toBe(false));
+			}
+			expect(rail('tag').busy?.()).toBe(false);
+
+			command('tag').run();
+
+			expect(bodies('tag')).toEqual(['tag:', 'tag:']);
+			expect(modsRunsStore.runFor(key('tag'))).toMatchObject({ status: 'running' });
+			expect(modsRunsStore.runFor(key('tag'))!.id).not.toBe(first);
+		});
+
+		it('once a run fails, the action starts again at once', async () => {
+			command('boom').run();
+			await vi.waitFor(() => expect(modsRunsStore.runFor(key('boom'))?.status).toBe('failed'));
+
+			command('boom').run();
+
+			await vi.waitFor(() => expect(bodies('boom')).toEqual(['boom:', 'boom:']));
+			expect(toast.error).toHaveBeenCalledTimes(2);
+		});
+	});
+
 	describe('per-mod switch', () => {
 		it('lists a disabled mod with its manifest name and never runs or reads its main.js', async () => {
 			writeMod('alpha', recordingMod('alpha'));
@@ -1153,10 +1358,10 @@ describe('mods host', () => {
 			clickButton();
 
 			// Straight to the run view: the list is never shown.
-			expect(modPickerStore.runKey).toBe('mod:hello:main');
+			expect(modPickerStore.runKey).toBe('mod:hello:action:hello');
 			expect(modPickerStore.actions).toEqual([]);
 			await vi.waitFor(() => expect(globals.__modEvents).toEqual(['hello:run']));
-			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:action:hello')?.status).toBe('done'));
 		});
 
 		it('a click on a busy single-action button reopens its run view instead of starting a second run', async () => {
@@ -1176,12 +1381,12 @@ describe('mods host', () => {
 			await startModsHost(VAULT);
 
 			clickButton('mod:gated:main');
-			const first = modsRunsStore.runFor('mod:gated:main')!.id;
+			const first = modsRunsStore.runFor('mod:gated:action:wait')!.id;
 			modPickerStore.close();
 			clickButton('mod:gated:main');
 
-			expect(modPickerStore.runKey).toBe('mod:gated:main');
-			expect(modsRunsStore.runFor('mod:gated:main')!.id).toBe(first);
+			expect(modPickerStore.runKey).toBe('mod:gated:action:wait');
+			expect(modsRunsStore.runFor('mod:gated:action:wait')!.id).toBe(first);
 			expect(globals.__modEvents).toEqual(['wait:run']);
 			release();
 		});
@@ -1488,7 +1693,8 @@ describe('mods host', () => {
 
 	describe('long runs', () => {
 		const MODS = `${VAULT}/_system/mods`;
-		const KEY = 'mod:runner:main';
+		const BUTTON = 'mod:runner:main';
+		const KEY = 'mod:runner:action:slow';
 
 		/**
 		 * A mod whose Slow job logs, sets progress, waits on `__modGate`, and
@@ -1517,7 +1723,7 @@ describe('mods host', () => {
 		}
 
 		let release: () => void;
-		const button = () => railRegistryStore.actions.find((a) => a.key === KEY)!;
+		const button = () => railRegistryStore.actions.find((a) => a.key === BUTTON)!;
 		const run = () => modsRunsStore.runFor(KEY);
 		const loads = () => globals.__modEvents.filter((e) => e.startsWith('runner:'));
 
@@ -1561,14 +1767,19 @@ describe('mods host', () => {
 			expect(globals.__modRun.signal.aborted).toBe(false);
 		});
 
-		it('a click on the busy button reopens its run view instead of the picker', () => {
+		it('a click on the busy button opens its picker, and picking the live action reopens its run view', () => {
 			void startSlowJob();
+			const first = run()!.id;
 			modPickerStore.close();
 
 			button().run();
 
 			expect(modPickerStore.isOpen).toBe(true);
+			expect(modPickerStore.runKey).toBeNull();
+			expect(modPickerStore.actions.map((a) => a.id)).toEqual(['slow', 'noop']);
+			void modPickerStore.actions.find((a) => a.id === 'slow')!.run('');
 			expect(modPickerStore.runKey).toBe(KEY);
+			expect(run()!.id).toBe(first);
 		});
 
 		it('after the run ends, a click opens the picker again', async () => {

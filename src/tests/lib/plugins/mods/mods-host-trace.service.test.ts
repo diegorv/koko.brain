@@ -123,7 +123,7 @@ describe('host execution trace through the real buffered logger', () => {
 		await vi.waitFor(() => expect(modsRunsStore.runs[0]?.status).toBe('done'));
 		const run = modsRunsStore.runs[0];
 		expect(run.lines).toEqual(['', text]);
-		expect(modPickerStore.runKey).toBe(run.buttonKey);
+		expect(modPickerStore.runKey).toBe(run.runKey);
 		const messages = (await records()).filter((record) => record.event === 'run-message');
 		expect(messages).toEqual([
 			{ event: 'run-message', modId: 'quiet', actionId: 'log', runId: run.id, origin: 'command', sequence: 1, timestamp: expect.any(String), text: '' },
@@ -205,10 +205,10 @@ describe('host execution trace through the real buffered logger', () => {
 		one.stop();
 		first.log('cancelled-secret');
 		gate.resolve();
-		await vi.waitFor(() => expect(modsRunsStore.runFor(two.buttonKey)?.status).toBe('done'));
+		await vi.waitFor(() => expect(modsRunsStore.runFor(two.runKey)?.status).toBe('done'));
 		second.log('completed-secret');
-		expect(modsRunsStore.runFor(one.buttonKey)?.lines).toEqual(['one-secret', 'one-again-secret']);
-		expect(modsRunsStore.runFor(two.buttonKey)?.lines).toEqual(['two-secret']);
+		expect(modsRunsStore.runFor(one.runKey)?.lines).toEqual(['one-secret', 'one-again-secret']);
+		expect(modsRunsStore.runFor(two.runKey)?.lines).toEqual(['two-secret']);
 		const messages = (await records()).filter((record) => record.event === 'run-message');
 		expect(messages).toEqual([
 			expect.objectContaining({ modId: 'quiet', actionId: 'one', runId: one.id, sequence: 1, text: 'one-secret' }),
@@ -293,7 +293,7 @@ describe('host execution trace through the real buffered logger', () => {
 		const run = modsRunsStore.runs[0];
 		expect(run.status).toBe('failed');
 		expect(run.error?.message).toBe('secret error');
-		expect(modsRunsStore.isBusy(run.buttonKey)).toBe(false);
+		expect(modsRunsStore.isBusy(run.runKey)).toBe(false);
 		expect(toast.error).toHaveBeenCalledWith('Private title: Secret title failed: secret error');
 		const events = (await records()).filter((record) => record.runId === run.id);
 		expect(events).toHaveLength(2);
@@ -310,8 +310,8 @@ describe('host execution trace through the real buffered logger', () => {
 		modCommandsStore.list[0].run();
 		const old = modsRunsStore.runs[0];
 		old.stop();
-		expect(modsRunsStore.runFor(old.buttonKey)?.status).toBe('cancelled');
-		expect(modsRunsStore.isBusy(old.buttonKey)).toBe(false);
+		expect(modsRunsStore.runFor(old.runKey)?.status).toBe('cancelled');
+		expect(modsRunsStore.isBusy(old.runKey)).toBe(false);
 		expect((await records()).filter((record) => record.runId === old.id && record.event === 'action-end')).toEqual([
 			expect.objectContaining({ outcome: 'cancelled' }),
 		]);
@@ -323,42 +323,45 @@ describe('host execution trace through the real buffered logger', () => {
 		if (settlement === 'resolve') gate.resolve();
 		else gate.reject(new Error('late secret failure'));
 		await Promise.resolve();
-		expect(modsRunsStore.runFor(next.buttonKey)?.status).toBe('running');
+		expect(modsRunsStore.runFor(next.runKey)?.status).toBe('running');
 		expect((await records()).filter((record) => record.runId === old.id && record.event === 'action-end')).toHaveLength(1);
 		expect(toast.error).not.toHaveBeenCalled();
 		expect(captureSentryException).not.toHaveBeenCalled();
 		replacement.resolve();
-		await vi.waitFor(() => expect(modsRunsStore.runFor(next.buttonKey)?.status).toBe('done'));
+		await vi.waitFor(() => expect(modsRunsStore.runFor(next.runKey)?.status).toBe('done'));
 		expect((await records()).filter((record) => record.runId === next.id && record.event === 'action-end')).toEqual([
 			expect.objectContaining({ outcome: 'done' }),
 		]);
 	});
 
-	it('keeps concurrent identities separate and reveals a busy key without another start', async () => {
+	it('keeps concurrent identities separate and reveals a live action without another start', async () => {
 		const gate = deferred();
 		globals.__traceGate = gate.promise;
 		writeMod(`
 			ctx.addAction({ id: 'hold', title: 'Hold', run: () => globalThis.__traceGate });
+			ctx.addAction({ id: 'other', title: 'Other', run: () => globalThis.__traceGate });
 			ctx.addRailButton({ id: 'one', title: 'One', icon: '', actions: ['hold'] });
 			ctx.addRailButton({ id: 'two', title: 'Two', icon: '', actions: ['hold'] });
+			ctx.addRailButton({ id: 'three', title: 'Three', icon: '', actions: ['other'] });
 		`);
 		await startModsHost(VAULT);
 		railRegistryStore.actions[0].run();
+		modPickerStore.close();
 		railRegistryStore.actions[1].run();
+		expect(modPickerStore.isOpen).toBe(true);
+		expect(modsRunsStore.runs).toHaveLength(1);
+		expect(modPickerStore.runKey).toBe(modsRunsStore.runs[0].runKey);
+		railRegistryStore.actions[2].run();
 		const [one, two] = modsRunsStore.runs;
 		expect(one.id).not.toBe(two.id);
-		expect(modsRunsStore.isBusy(one.buttonKey)).toBe(true);
-		expect(modsRunsStore.isBusy(two.buttonKey)).toBe(true);
-		modPickerStore.close();
-		railRegistryStore.actions[0].run();
-		expect(modPickerStore.isOpen).toBe(true);
-		expect(modPickerStore.runKey).toBe(one.buttonKey);
-		expect(modsRunsStore.runs).toHaveLength(2);
-		expect((await records()).filter((record) => record.event === 'action-start')).toHaveLength(2);
+		expect(modsRunsStore.isBusy(one.runKey)).toBe(true);
+		expect(modsRunsStore.isBusy(two.runKey)).toBe(true);
+		const starts = (await records()).filter((record) => record.event === 'action-start');
+		expect(starts.map((record) => [record.actionId, record.runId])).toEqual([['hold', one.id], ['other', two.id]]);
 		one.stop();
 		gate.resolve();
-		await vi.waitFor(() => expect(modsRunsStore.runFor(two.buttonKey)?.status).toBe('done'));
-		expect(modsRunsStore.runFor(one.buttonKey)?.status).toBe('cancelled');
+		await vi.waitFor(() => expect(modsRunsStore.runFor(two.runKey)?.status).toBe('done'));
+		expect(modsRunsStore.runFor(one.runKey)?.status).toBe('cancelled');
 		const events = await records();
 		for (const [id, outcome] of [[one.id, 'cancelled'], [two.id, 'done']]) {
 			expect(events.filter((record) => record.runId === id && record.event === 'action-end')).toEqual([
@@ -428,13 +431,13 @@ describe('host execution trace through the real buffered logger', () => {
 		writeMod();
 		changed();
 		await vi.waitFor(() => expect(modsRunsStore.isReloadPending('quiet')).toBe(true));
-		expect(modsRunsStore.isBusy(run.buttonKey)).toBe(true);
+		expect(modsRunsStore.isBusy(run.runKey)).toBe(true);
 		const waiting = await records();
 		expect(waiting).toContainEqual({ event: 'reload-wait', modId: 'quiet' });
 		expect(waiting.filter((record) => record.event === 'load-attempt')).toHaveLength(1);
 		gate.resolve();
 		await vi.waitFor(async () => expect((await records()).filter((record) => record.outcome === 'loaded')).toHaveLength(2));
-		expect(modsRunsStore.runFor(run.buttonKey)?.status).toBe('done');
+		expect(modsRunsStore.runFor(run.runKey)?.status).toBe('done');
 		expect(modsRunsStore.isReloadPending('quiet')).toBe(false);
 		expect(modsStore.entries[0].state).toBe('loaded');
 		expect((await records()).map((record) => record.event)).toEqual([
@@ -469,8 +472,8 @@ describe('host execution trace through the real buffered logger', () => {
 		else railRegistryStore.menuItems[0].run({ on: origin === 'note-menu' ? 'note' : 'folder', path: 'private/note.md' });
 		await vi.waitFor(() => expect(modsRunsStore.runs[0]?.status).toBe('done'));
 		const run = modsRunsStore.runs[0];
-		expect(modsRunsStore.runFor(run.buttonKey)).toBe(run);
-		expect(modsRunsStore.isBusy(run.buttonKey)).toBe(false);
+		expect(modsRunsStore.runFor(run.runKey)).toBe(run);
+		expect(modsRunsStore.isBusy(run.runKey)).toBe(false);
 		const events = (await records()).filter((record) => record.event === 'action-start' || record.event === 'action-end');
 		expect(events).toEqual([
 			{ event: 'action-start', modId: 'quiet', actionId: 'quiet-action', runId: run.id, origin, outcome: 'running', elapsedMs: 0 },

@@ -34,6 +34,8 @@ Element.prototype.scrollIntoView ??= () => {};
 
 const VAULT = '/vaults/main';
 const globals = globalThis as unknown as { __modEvents: string[]; __modRelease: () => void };
+/** Run key of one of the hello mod's actions */
+const runKey = (actionId: string) => `mod:hello:action:${actionId}`;
 
 describe('ModActionPicker', () => {
 	let target: HTMLElement;
@@ -125,7 +127,7 @@ describe('ModActionPicker', () => {
 		expect(runView()?.textContent).toContain('Say hello');
 
 		await vi.waitFor(() => expect(globals.__modEvents).toEqual(['hello:run']));
-		await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+		await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('hello'))?.status).toBe('done'));
 		flushSync();
 		// No log line and no progress: nothing to read, so the picker closes.
 		expect(modPickerStore.isOpen).toBe(false);
@@ -139,7 +141,7 @@ describe('ModActionPicker', () => {
 		row('counted').click();
 		flushSync();
 
-		await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+		await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('counted'))?.status).toBe('done'));
 		flushSync();
 		expect(modPickerStore.isOpen).toBe(true);
 		expect(status()).toBe('Done');
@@ -184,7 +186,7 @@ describe('ModActionPicker', () => {
 			startSlowJob();
 
 			globals.__modRelease();
-			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+			await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('slow'))?.status).toBe('done'));
 			flushSync();
 
 			expect(logLines()).toEqual(['Reading notes', 'All done']);
@@ -217,7 +219,7 @@ describe('ModActionPicker', () => {
 			expect(document.activeElement).toBe(stopButton());
 
 			globals.__modRelease();
-			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+			await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('slow'))?.status).toBe('done'));
 			flushSync();
 
 			expect(document.activeElement).toBe(closeButton());
@@ -229,7 +231,7 @@ describe('ModActionPicker', () => {
 			pressKey(stopButton()!, 'Enter');
 
 			expect(status()).toBe('Cancelled');
-			expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('cancelled');
+			expect(modsRunsStore.runFor(runKey('slow'))?.status).toBe('cancelled');
 		});
 
 		it('Enter on Close hides the view', () => {
@@ -247,7 +249,7 @@ describe('ModActionPicker', () => {
 			pressKey(stopButton()!, 'Escape');
 
 			expect(modPickerStore.isOpen).toBe(false);
-			expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('running');
+			expect(modsRunsStore.runFor(runKey('slow'))?.status).toBe('running');
 		});
 
 		describe('the log box', () => {
@@ -291,19 +293,25 @@ describe('ModActionPicker', () => {
 
 			expect(modPickerStore.isOpen).toBe(false);
 			expect(runView()).toBeNull();
-			expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('running');
+			expect(modsRunsStore.runFor(runKey('slow'))?.status).toBe('running');
 		});
 
-		it('clicking the busy rail button reopens the run view with its log', () => {
+		it('clicking the busy rail button opens its picker, and choosing the live action reopens its run view', () => {
 			startSlowJob();
 			closeButton()!.click();
 			flushSync();
 
 			clickRailButton();
+			expect(runView()).toBeNull();
+			expect(rows().map((el) => el.dataset.modAction)).toContain('slow');
+
+			row('slow').click();
+			flushSync();
 
 			expect(rows()).toEqual([]);
 			expect(status()).toBe('Running');
 			expect(logLines()).toEqual(['Reading notes']);
+			expect(modsRunsStore.runs).toHaveLength(1);
 		});
 
 		it('says Reload pending while a reload waits for the run', () => {
@@ -338,6 +346,43 @@ describe('ModActionPicker', () => {
 			flushSync();
 		};
 
+		it('picking an action with input that is still running shows its run view instead of the field', async () => {
+			stopModsHost();
+			fsFiles.set(
+				`${VAULT}/_system/mods/hello/main.js`,
+				`export default {
+	onload(ctx) {
+		ctx.addAction({ id: 'ask', title: 'Ask', input: {}, run: async (text, run) => {
+			globalThis.__modEvents.push('ask:' + text);
+			run.log('Asked ' + text);
+			await new Promise((resolve) => { globalThis.__modRelease = resolve; });
+		} });
+		ctx.addAction({ id: 'noop', title: 'Noop', run: () => {} });
+		ctx.addRailButton({ id: 'main', title: 'Hello mod', icon: 'sparkles' });
+	},
+};`,
+			);
+			await startModsHost(VAULT);
+			clickRailButton();
+			row('ask').click();
+			flushSync();
+			const input = field()!;
+			type(input, 'first');
+			press(input, 'Enter');
+			expect(status()).toBe('Running');
+			closeButton()!.click();
+			flushSync();
+
+			clickRailButton();
+			row('ask').click();
+			flushSync();
+
+			expect(field()).toBeNull();
+			expect(status()).toBe('Running');
+			expect(logLines()).toEqual(['Asked first']);
+			expect(globals.__modEvents).toEqual(['ask:first']);
+		});
+
 		it('Enter during IME composition runs nothing and keeps the field open', async () => {
 			const input = openInputStep();
 			type(input, 'かんじ');
@@ -368,7 +413,7 @@ describe('ModActionPicker', () => {
 			press(input, 'Enter');
 
 			await vi.waitFor(() => expect(globals.__modEvents).toEqual(['idea:A flying car']));
-			await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+			await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('idea'))?.status).toBe('done'));
 			flushSync();
 			expect(field()).toBeNull();
 			expect(modPickerStore.isOpen).toBe(false);
@@ -418,7 +463,7 @@ describe('ModActionPicker', () => {
 				type(input, 'A flying car');
 				press(input, 'Enter');
 				await vi.waitFor(() => expect(globals.__modEvents).toEqual(['idea:A flying car']));
-				await vi.waitFor(() => expect(modsRunsStore.runFor('mod:hello:main')?.status).toBe('done'));
+				await vi.waitFor(() => expect(modsRunsStore.runFor(runKey('idea'))?.status).toBe('done'));
 				flushSync();
 
 				expect(openDirect().value).toBe('');

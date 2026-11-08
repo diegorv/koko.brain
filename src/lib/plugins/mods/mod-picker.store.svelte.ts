@@ -8,7 +8,9 @@ export interface ModPickerAction {
 	description?: string;
 	/** Set when the action asks for one line of text before it runs (PRD P8) */
 	input?: { placeholder?: string };
-	/** Runs the action with the typed text (`''` without `input`); the host's wrapper, which shows the run view, reports a failure itself and never rejects */
+	/** Whether the action has a live run; picking it then shows that run instead of the text field */
+	busy?: () => boolean;
+	/** Runs the action with the typed text (`''` without `input`), or shows its live run instead; the host's wrapper, which shows the run view, reports a failure itself and never rejects */
 	run: (input: string) => Promise<void>;
 }
 
@@ -18,7 +20,7 @@ interface OpenPicker {
 	actions: ModPickerAction[];
 	/** The action whose text field is shown, or null on the action list */
 	inputAction: ModPickerAction | null;
-	/** Rail button key whose run the picker shows (its run view); null otherwise */
+	/** Run key (`mod:<mod>:action:<action>`) of the run the picker shows (its run view); null otherwise */
 	runKey: string | null;
 }
 
@@ -47,7 +49,7 @@ export const modPickerStore = {
 	get inputAction() {
 		return current?.inputAction ?? null;
 	},
-	/** Rail button key (`mod:<mod>:<button>`) whose run the picker shows; null otherwise or while closed */
+	/** Run key (`mod:<mod>:action:<action>`) of the run the picker shows; null otherwise or while closed */
 	get runKey() {
 		return current?.runKey ?? null;
 	},
@@ -62,7 +64,7 @@ export const modPickerStore = {
 		if (current) current = { ...current, inputAction: action };
 	},
 
-	/** Shows the run view of a rail button's run, opening the picker if it is closed */
+	/** Shows the run view of an action's run, opening the picker if it is closed */
 	showRun(modId: string, runKey: string) {
 		current = { modId, title: current?.title ?? '', actions: current?.actions ?? [], inputAction: null, runKey };
 	},

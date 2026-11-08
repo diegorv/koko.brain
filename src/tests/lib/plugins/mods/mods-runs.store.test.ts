@@ -2,11 +2,11 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 import { MAX_RUN_LOG_LINES, modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 
-const KEY = 'mod:hello:main';
+const KEY = 'mod:hello:action:slow';
 
-/** Starts a run of the hello mod's button and returns its id */
-function startRun(buttonKey = KEY, stop = vi.fn()): number {
-	return modsRunsStore.start({ modId: 'hello', buttonKey, title: 'Slow job', stop });
+/** Starts a run of the hello mod's Slow job action and returns its id */
+function startRun(runKey = KEY, stop = vi.fn()): number {
+	return modsRunsStore.start({ modId: 'hello', runKey, title: 'Slow job', stop });
 }
 
 describe('modsRunsStore', () => {
@@ -27,7 +27,7 @@ describe('modsRunsStore', () => {
 		expect(modsRunsStore.runFor(KEY)).toMatchObject({
 			id,
 			modId: 'hello',
-			buttonKey: KEY,
+			runKey: KEY,
 			title: 'Slow job',
 			status: 'running',
 			lines: [],
@@ -38,17 +38,17 @@ describe('modsRunsStore', () => {
 		expect(modsRunsStore.runs.map((r) => r.id)).toEqual([id]);
 	});
 
-	it('runFor and isBusy only see the button asked for', () => {
+	it('runFor and isBusy only see the action asked for', () => {
 		startRun();
 
-		expect(modsRunsStore.runFor('mod:hello:other')).toBeNull();
-		expect(modsRunsStore.isBusy('mod:hello:other')).toBe(false);
+		expect(modsRunsStore.runFor('mod:hello:action:other')).toBeNull();
+		expect(modsRunsStore.isBusy('mod:hello:action:other')).toBe(false);
 	});
 
-	it('a new run of a button replaces its ended run and keeps other buttons', () => {
+	it('a new run of an action replaces its ended run and keeps other actions', () => {
 		const first = startRun();
 		modsRunsStore.finish(first);
-		const other = startRun('mod:hello:other');
+		const other = startRun('mod:hello:action:other');
 
 		const second = startRun();
 
@@ -86,7 +86,7 @@ describe('modsRunsStore', () => {
 		expect(modsRunsStore.runFor(KEY)?.progress).toEqual({ done: 2, total: 4 });
 	});
 
-	it('finish ends the run done and frees the button, keeping the log', () => {
+	it('finish ends the run done and frees the action, keeping the log', () => {
 		const id = startRun();
 		modsRunsStore.log(id, 'step');
 
@@ -153,7 +153,7 @@ describe('modsRunsStore', () => {
 		const liveStop = vi.fn();
 		const endedStop = vi.fn();
 		startRun(KEY, liveStop);
-		const ended = startRun('mod:hello:other', endedStop);
+		const ended = startRun('mod:hello:action:other', endedStop);
 		modsRunsStore.finish(ended);
 		modsRunsStore.setReloadPending('hello', true);
 

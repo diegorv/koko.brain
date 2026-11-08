@@ -357,8 +357,8 @@ describe('content-free mod dialog diagnostics', () => {
 	});
 
 	it('does not assign dialogs to either overlapping run or close them when a run is cancelled', async () => {
-		const first = modsRunsStore.start({ modId: 'hello', buttonKey: 'first', title: 'PRIVATE_FIRST_ACTION', stop: () => {} });
-		modsRunsStore.start({ modId: 'hello', buttonKey: 'second', title: 'PRIVATE_SECOND_ACTION', stop: () => {} });
+		const first = modsRunsStore.start({ modId: 'hello', runKey: 'first', title: 'PRIVATE_FIRST_ACTION', stop: () => {} });
+		modsRunsStore.start({ modId: 'hello', runKey: 'second', title: 'PRIVATE_SECOND_ACTION', stop: () => {} });
 		const result = context().ui.prompt({ title: 'PRIVATE_TITLE' });
 		flushSync();
 		modsRunsStore.cancel(first);

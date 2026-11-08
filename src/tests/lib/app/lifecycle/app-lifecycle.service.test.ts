@@ -1736,7 +1736,7 @@ describe('vault mods host', () => {
 
 	it('teardownVault aborts every live mod run and empties the run store', () => {
 		const stop = vi.fn();
-		modsRunsStore.start({ modId: 'hello', buttonKey: 'mod:hello:main', title: 'Slow job', stop });
+		modsRunsStore.start({ modId: 'hello', runKey: 'mod:hello:action:slow', title: 'Slow job', stop });
 
 		teardownVault();
 
