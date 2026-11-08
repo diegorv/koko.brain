@@ -8,7 +8,7 @@ Today the host cannot tell which run opened a dialog. `ctx.ui` is created once p
 
 **Status:** ready-for-agent
 
-**Prerequisite outside this repository:** the mods-repo contract ticket (`kokobrain-mods-src`, `.scratch/run-ui/issues/01-run-ui-contract.md`) is merged in `kokobrain-mods-src`. This Issue bumps the `@kokobrain/mod-core` pin in `package.json:81` to that commit, so `ModRunV1` has `ui`. Do not start it before that commit exists.
+**Prerequisite outside this repository (met):** the mods-repo contract ticket (`kokobrain-mods-src`, `.scratch/run-ui/issues/01-run-ui-contract.md`) is merged there as `328ca55f6add4d18e3c5b1490feee66ce8503b5e` ("feat: run.ui in the mod-core contract and test fake"). This Issue bumps the `@kokobrain/mod-core` pin in `package.json:81` from `e4900cd1d803deb93de2fa6d1444a6c538634ea6` to that SHA, keeping the `&path:/packages/mod-core` suffix, and updates `pnpm-lock.yaml`, so `ModRunV1` has `ui`.
 
 ## Acceptance criteria
 
