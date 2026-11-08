@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { createRequire } from 'node:module';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
 vi.mock('svelte-sonner', () => ({
@@ -24,7 +25,7 @@ import type {
 	ModVaultEntryV1,
 	ModVaultV1,
 	ModWorkspaceV1,
-} from '#lib/plugins/mods/contract/mod-api.v1.js';
+} from '@kokobrain/mod-core/contract';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
@@ -33,7 +34,7 @@ import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 
 /**
  * Freezes the mod-visible surface of the vault mods API (contract v1, see
- * `contract/mod-api.v1.ts`). A failure here means mods see a different API:
+ * `@kokobrain/mod-core/contract`). A failure here means mods see a different API:
  * either restore the member, or follow the compatibility rule in the
  * contract's header and bump `apiVersion`.
  *
@@ -214,6 +215,10 @@ function makeContext(): ModContext {
 }
 
 describe('mod API contract v1', () => {
+	it('consumes the installed TypeScript contract rather than unchecked declarations', () => {
+		expect(createRequire(import.meta.url).resolve('@kokobrain/mod-core/contract')).toMatch(/node_modules\/.*\/src\/contract\/mod-api\.v1\.ts$/);
+	});
+
 	beforeEach(() => {
 		vaultStore._reset();
 		railRegistryStore.reset();
@@ -221,13 +226,14 @@ describe('mod API contract v1', () => {
 		modsRunsStore.reset();
 	});
 
-	it('ctx exposes exactly the contract members, plus the unstable host members app and kb', () => {
+	it('ctx exposes exactly the contract members, plus the unstable host members app, kb and labs', () => {
 		expect(Object.keys(makeContext()).sort()).toEqual([...Object.keys(CONTEXT_PUBLIC), ...HOST_UNSTABLE].sort());
 	});
 
-	it('app and kb stay out of the contract', () => {
+	it('app, kb and labs stay out of the contract', () => {
 		expect(Object.keys(CONTEXT_PUBLIC)).not.toEqual(expect.arrayContaining(['app']));
 		expect(Object.keys(CONTEXT_PUBLIC)).not.toEqual(expect.arrayContaining(['kb']));
+		expect(Object.keys(CONTEXT_PUBLIC)).not.toEqual(expect.arrayContaining(['labs']));
 	});
 
 	it('ctx.mod exposes exactly the contract members', () => {

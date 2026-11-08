@@ -6,6 +6,10 @@ permissions:
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      MODS_REPO_READ_TOKEN:
+        description: "Read-only access to diegorv/koko.brain-mods"
+        required: true
     inputs:
       force_all:
         description: "Bypass the paths filter and run frontend + rust unconditionally"
@@ -67,6 +71,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust: "false"
 
       - name: Run type check
@@ -104,6 +109,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust-targets: ""
 
       - name: Clippy
@@ -137,6 +143,8 @@ jobs:
 
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
 
       # The rust job lints on Linux, where macOS-gated code is compiled out.
       - name: Clippy

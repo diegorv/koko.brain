@@ -2,6 +2,9 @@ name: "Setup Environment"
 description: "Setup pnpm, Node.js, Rust, and dependency caching"
 
 inputs:
+  mods-repo-read-token:
+    description: "Read-only credential for the private mod-core source repository"
+    required: true
   rust:
     description: "Install Rust toolchain"
     required: false
@@ -39,7 +42,9 @@ runs:
 
     - name: Install frontend dependencies
       shell: bash
-      run: pnpm install --frozen-lockfile
+      env:
+        MODS_REPO_READ_TOKEN: ${{ inputs.mods-repo-read-token }}
+      run: bash scripts/install-frontend-deps-ci.sh
 
     - name: Setup Rust
       if: inputs.rust == 'true'

@@ -100,6 +100,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust-cache-key: macos-nightly-aarch64
 
       - name: Compute nightly version

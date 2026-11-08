@@ -78,6 +78,7 @@
   },
   "devDependencies": {
     "@internationalized/date": "^3.12.4",
+    "@kokobrain/mod-core": "git+https://github.com/diegorv/koko.brain-mods.git#e4900cd1d803deb93de2fa6d1444a6c538634ea6&path:/packages/mod-core",
     "@lezer/common": "^1.5.5",
     "@lucide/svelte": "^1.66.0",
     "@playwright/test": "^1.64.1",

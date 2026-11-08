@@ -22,6 +22,10 @@ on:
     - cron: "30 12 * * *"
   workflow_dispatch:
   workflow_call:
+    secrets:
+      MODS_REPO_READ_TOKEN:
+        description: "Read-only access to diegorv/koko.brain-mods"
+        required: true
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true
@@ -37,6 +41,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust: "false"
 
       - name: Audit dependencies (quarantine-aware)

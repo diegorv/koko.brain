@@ -177,6 +177,9 @@ importers:
       '@internationalized/date':
         specifier: ^3.12.4
         version: 3.12.4
+      '@kokobrain/mod-core':
+        specifier: git+https://github.com/diegorv/koko.brain-mods.git#e4900cd1d803deb93de2fa6d1444a6c538634ea6&path:/packages/mod-core
+        version: git+https://github.com/diegorv/koko.brain-mods.git#e4900cd1d803deb93de2fa6d1444a6c538634ea6&path:/packages/mod-core
       '@lezer/common':
         specifier: ^1.5.5
         version: 1.5.5
@@ -508,6 +511,10 @@ packages:
 
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
+
+  '@kokobrain/mod-core@git+https://github.com/diegorv/koko.brain-mods.git#e4900cd1d803deb93de2fa6d1444a6c538634ea6&path:/packages/mod-core':
+    resolution: {commit: e4900cd1d803deb93de2fa6d1444a6c538634ea6, path: /packages/mod-core, repo: https://github.com/diegorv/koko.brain-mods.git, type: git}
+    version: 0.1.0
 
   '@kurkle/color@0.3.4':
     resolution: {integrity: sha512-M5UknZPHRu3DEDWoipU6sE8PdkZ6Z/S+v4dD+Ke8IaNlpdSQah50lz1KtcFBa2vsdOnwbbnxJwVM4wty6udA5w==}
@@ -2680,6 +2687,8 @@ snapshots:
     dependencies:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.6.0
+
+  '@kokobrain/mod-core@git+https://github.com/diegorv/koko.brain-mods.git#e4900cd1d803deb93de2fa6d1444a6c538634ea6&path:/packages/mod-core': {}
 
   '@kurkle/color@0.3.4': {}
 
