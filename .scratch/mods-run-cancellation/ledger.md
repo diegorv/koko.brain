@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Stop ends a run's dialogs through `run.ui`](issues/01-stop-dismisses-run-dialogs.md) | 02 | done | issue/01-stop-dismisses-run-dialogs (bb6867f94) | 2026-11-08 |
 | 02 | [One live run per action across rail, palette and menus](issues/02-one-live-run-per-action.md) | none | done | issue/02-one-live-run-per-action (a187bc2cc) | 2026-11-08 |
-| 03 | [The action picker marks the actions that are running](issues/03-picker-marks-live-actions.md) | none | todo | | |
+| 03 | [The action picker marks the actions that are running](issues/03-picker-marks-live-actions.md) | none | in-progress | | |
 
 ## Log
 
@@ -50,3 +50,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-08 19:20 — 01 — start — launched by /relay-lite:run — 5effebd72
 - 2026-11-08 19:38 — 01 — deliver — round 1 APPROVED by claude with 3 findings fixed in deliver (docs for unawaited run.ui and unload order, pick test name); round 2 APPROVED by claude, no findings; full suite passed (579 files, 14051 tests), pnpm build passed; mods E2E not run — bb6867f94
 - 2026-11-08 19:41 — ledger updated (added 03)
+- 2026-11-08 19:43 — 03 — start — launched by /relay-lite:run — b912a147a
