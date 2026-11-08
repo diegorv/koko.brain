@@ -99,6 +99,7 @@ function fakeRun(seen: Recorded, signal = new AbortController().signal): ModRunV
 		progress: (done, total, label) => {
 			seen.progress.push(`${done}/${total} ${label ?? ''}`.trim());
 		},
+		ui: { alert: unused, confirm: unused, prompt: unused, pick: unused, loading: unused },
 	};
 }
 

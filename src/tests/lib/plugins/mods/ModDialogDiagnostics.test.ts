@@ -19,9 +19,11 @@ import { toast } from 'svelte-sonner';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 import ModDialogHost from '#lib/plugins/mods/ModDialogHost.svelte';
 import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
 import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
+import type { ModRunV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import { createModContext, enableMod, disableMod, stopModsHost, type ModRuntime } from '#lib/plugins/mods/mods-host.service.js';
 import { initLogSession, teardownLogSession } from '#lib/utils/log.service.js';
@@ -73,6 +75,7 @@ describe('content-free mod dialog diagnostics', () => {
 		settingsStore.updateDebugLogToFile(true);
 		vaultStore.open(VAULT);
 		modDialogsStore.reset();
+		railRegistryStore.reset();
 		await initLogSession();
 		component = mount(ModDialogHost, { target: document.body.appendChild(document.createElement('div')) });
 		flushSync();
@@ -375,6 +378,80 @@ describe('content-free mod dialog diagnostics', () => {
 			expect(event).not.toHaveProperty('actionId');
 		}
 		expect(text).not.toContain('PRIVATE_');
+	});
+
+	/** Starts a never-ending action of `ctx` from a one-action rail button; returns its run and the run's id */
+	function startRun(ctx: ReturnType<typeof context>): { run: ModRunV1; runId: number } {
+		let run!: ModRunV1;
+		ctx.addAction({ id: 'job', title: 'PRIVATE_ACTION_TITLE', run: (_input, received) => {
+			run = received;
+			return new Promise(() => {});
+		} });
+		ctx.addRailButton({ id: 'main', title: 'PRIVATE_BUTTON_TITLE', icon: 'sparkles', actions: ['job'] });
+		railRegistryStore.actions.at(-1)!.run();
+		return { run, runId: modsRunsStore.runFor('mod:hello:action:job')!.id };
+	}
+
+	it('records run.ui dialogs with their runId and closes open and queued ones with run-stopped on Stop', async () => {
+		const ctx = context();
+		const { run, runId } = startRun(ctx);
+		const open = run.ui.prompt({ title: 'PRIVATE_TITLE' });
+		flushSync();
+		const openId = modDialogsStore.current!.id;
+		const queued = run.ui.alert({ title: 'PRIVATE_QUEUED' });
+		const queuedId = modDialogsStore.dialogs[1].id;
+		const modScoped = ctx.ui.confirm({ title: 'PRIVATE_MOD_SCOPED' });
+		const modScopedId = modDialogsStore.dialogs[2].id;
+
+		modsRunsStore.runFor('mod:hello:action:job')!.stop();
+		flushSync();
+
+		await expect(open).rejects.toMatchObject({ name: 'AbortError' });
+		await expect(queued).rejects.toMatchObject({ name: 'AbortError' });
+		expect(shown()!.textContent).toContain('PRIVATE_MOD_SCOPED');
+		click('confirm');
+		expect(await modScoped).toBe(true);
+		const { text, events } = await records();
+		expect(events.filter((event) => event.dialogId === openId)).toEqual([
+			{ event: 'dialog-queued', modId: 'hello', runId, dialogId: openId, kind: 'prompt', elapsedMs: 0 },
+			{ event: 'dialog-opened', modId: 'hello', runId, dialogId: openId, kind: 'prompt', elapsedMs: expect.any(Number) },
+			{ event: 'dialog-closed', modId: 'hello', runId, dialogId: openId, kind: 'prompt', elapsedMs: expect.any(Number), reason: 'run-stopped' },
+		]);
+		expect(events.filter((event) => event.dialogId === queuedId).map((event) => [event.event, event.runId, event.reason])).toEqual([
+			['dialog-queued', runId, undefined], ['dialog-closed', runId, 'run-stopped'],
+		]);
+		const own = events.filter((event) => event.dialogId === modScopedId);
+		expect(own.map((event) => event.event)).toEqual(['dialog-queued', 'dialog-opened', 'dialog-closed']);
+		for (const event of own) expect(event).not.toHaveProperty('runId');
+		expect(text).not.toContain('PRIVATE_');
+	});
+
+	it('records a stopped run.ui loading as closed by run-stopped, and its late task under the same runId', async () => {
+		const { run, runId } = startRun(context());
+		let finish!: (value: number) => void;
+		const loading = run.ui.loading('PRIVATE_LABEL', () => new Promise<number>((resolve) => { finish = resolve; }));
+		flushSync();
+		const id = modDialogsStore.current!.id;
+
+		modsRunsStore.runFor('mod:hello:action:job')!.stop();
+		await expect(loading).rejects.toMatchObject({ name: 'AbortError' });
+		finish(42);
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		const { events } = await records();
+		const own = events.filter((event) => event.dialogId === id);
+		expect(own.map((event) => [event.event, event.runId])).toEqual([
+			['dialog-queued', runId], ['dialog-opened', runId], ['dialog-closed', runId], ['loading-task-settled', runId],
+		]);
+		expect(own[2]).toMatchObject({ reason: 'run-stopped', cancellationRequested: true });
+		expect(own[3]).toMatchObject({ outcome: 'success' });
+	});
+
+	it('records a run.ui validation rejection with its runId', async () => {
+		const { run, runId } = startRun(context());
+		await expect(run.ui.confirm({ title: '' })).rejects.toThrow('ui.confirm needs a non-empty string title');
+		const { events } = await records();
+		expect(events).toEqual([{ event: 'dialog-rejected', modId: 'hello', runId, kind: 'confirm', reason: 'invalid-title' }]);
 	});
 
 	it.each(['logging-off', 'no-session'] as const)('writes no automatic records with %s', async (mode) => {

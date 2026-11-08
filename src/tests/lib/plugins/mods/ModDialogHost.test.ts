@@ -9,7 +9,7 @@ import { mount, unmount, flushSync } from 'svelte';
 
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
-import type { ModContextV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
+import type { ModContextV1, ModRunV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import ModActionPicker from '#lib/plugins/mods/ModActionPicker.svelte';
 import ModDialogHost from '#lib/plugins/mods/ModDialogHost.svelte';
 import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
@@ -468,5 +468,194 @@ describe('ModDialogHost', () => {
 		expect(shown()).toBeNull();
 		expect(modPickerStore.isOpen).toBe(true);
 		expect(document.querySelector('[data-mod-run]')).not.toBeNull();
+	});
+	describe('run.ui', () => {
+		let other: ModContextV1;
+
+		beforeEach(() => {
+			other = createModContext({ id: 'other', name: 'Other mod', version: '1.0.0' }, VAULT, {
+				controller: new AbortController(),
+				disposers: [],
+				runs: new Set(),
+				unloaded: false,
+			});
+		});
+
+		/** Starts action `id` from its own one-action rail button and returns the run it receives; the run never ends by itself */
+		function startRun(id = 'job'): ModRunV1 {
+			let received: ModRunV1 | undefined;
+			ctx.addAction({ id, title: id, run: (_input: string, run: ModRunV1) => {
+				received = run;
+				return new Promise(() => {});
+			} });
+			ctx.addRailButton({ id: `button-${id}`, title: id, icon: 'sparkles', actions: [id] });
+			railRegistryStore.actions.find((a) => a.key === `mod:hello:button-${id}`)!.run();
+			return received!;
+		}
+
+		const stop = (id = 'job') => modsRunsStore.runFor(`mod:hello:action:${id}`)!.stop();
+
+		/** Resolves to the rejection of `promise`, or fails when it fulfils */
+		async function rejection(promise: Promise<unknown>): Promise<unknown> {
+			return promise.then((value) => { throw new Error(`expected a rejection, got ${String(value)}`); }, (err: unknown) => err);
+		}
+
+		function expectAbortError(err: unknown) {
+			expect(err).toBeInstanceOf(DOMException);
+			expect((err as DOMException).name).toBe('AbortError');
+		}
+
+		it.each([
+			['alert', (run: ModRunV1) => run.ui.alert({ title: 'Run dialog' })],
+			['confirm', (run: ModRunV1) => run.ui.confirm({ title: 'Run dialog' })],
+			['prompt', (run: ModRunV1) => run.ui.prompt({ title: 'Run dialog' })],
+			['pick', (run: ModRunV1) => run.ui.pick({ title: 'Run dialog', items: [{ id: 'a', title: 'A' }] })],
+		] as const)('Stop closes an open %s, rejects it with an AbortError and shows the next queued dialog at once', async (kind, open) => {
+			const run = startRun();
+			const result = show(() => open(run) as Promise<unknown>);
+			const next = show(() => other.ui.alert({ title: 'Next in line' }));
+			expect(shown()!.getAttribute('data-mod-dialog')).toBe(kind);
+			expect(title()).toBe('Run dialog');
+
+			stop();
+			flushSync();
+
+			expectAbortError(await rejection(result));
+			expect(title()).toBe('Next in line');
+			expect(caption()).toBe('Other mod');
+			expect(modDialogsStore.dialogs.map((d) => d.modId)).toEqual(['other']);
+			expect(await settled(next)).toBe('pending');
+		});
+
+		it('Stop removes a queued run dialog without ever opening it', async () => {
+			const run = startRun();
+			const first = show(() => other.ui.alert({ title: 'First' }));
+			const queued = show(() => run.ui.confirm({ title: 'Queued' }));
+			expect(modDialogsStore.dialogs).toHaveLength(2);
+
+			stop();
+			flushSync();
+
+			expectAbortError(await rejection(queued));
+			expect(modDialogsStore.dialogs.map((d) => d.modId)).toEqual(['other']);
+			expect(title()).toBe('First');
+			button('ok')!.click();
+			flushSync();
+			await first;
+			expect(shown()).toBeNull();
+		});
+
+		it('a run.ui call after Stop rejects with an AbortError at once and queues nothing', async () => {
+			const run = startRun();
+			stop();
+
+			for (const call of [
+				() => run.ui.alert({ title: 'x' }),
+				() => run.ui.confirm({ title: 'x' }),
+				() => run.ui.prompt({ title: 'x' }),
+				() => run.ui.pick({ title: 'x', items: [] }),
+				() => run.ui.loading('x', () => new Promise(() => {})),
+			]) {
+				expectAbortError(await rejection(call() as Promise<unknown>));
+			}
+			// Invalid arguments too: the abort is checked first.
+			expectAbortError(await rejection(run.ui.alert(null as never)));
+			flushSync();
+			expect(modDialogsStore.dialogs).toEqual([]);
+			expect(shown()).toBeNull();
+		});
+
+		it('Stop aborts the signal of a loading task, closes its dialog and rejects without waiting for the task', async () => {
+			const run = startRun();
+			let signal!: AbortSignal;
+			const result = show(() => run.ui.loading('Working', (s) => {
+				signal = s;
+				return new Promise<string>(() => {});
+			}));
+			expect(title()).toBe('Working');
+
+			stop();
+			flushSync();
+
+			expect(signal.aborted).toBe(true);
+			expectAbortError(await rejection(result));
+			expect(shown()).toBeNull();
+		});
+
+		it('Stop leaves the dialogs of another run of the same mod and its ctx.ui dialogs open', async () => {
+			const job = startRun('job');
+			const second = startRun('second');
+			const stopped = show(() => job.ui.prompt({ title: 'Stopped run' }));
+			const otherRun = show(() => second.ui.confirm({ title: 'Other run' }));
+			const modScoped = show(() => ctx.ui.alert({ title: 'Mod scoped' }));
+
+			stop('job');
+			flushSync();
+
+			expectAbortError(await rejection(stopped));
+			expect(title()).toBe('Other run');
+			expect(modDialogsStore.dialogs.map((d) => [d.modId, 'title' in d ? d.title : ''])).toEqual([
+				['hello', 'Other run'], ['hello', 'Mod scoped'],
+			]);
+			button('confirm')!.click();
+			flushSync();
+			expect(await otherRun).toBe(true);
+			expect(title()).toBe('Mod scoped');
+			expect(await settled(modScoped)).toBe('pending');
+		});
+
+		describe('user cancellation still resolves with the cancel value', () => {
+			it('Esc on an alert resolves undefined and Cancel on a confirm resolves false', async () => {
+				const run = startRun();
+				const alert = show(() => run.ui.alert({ title: 'Done' }));
+				pressKey(shown()!, 'Escape');
+				expect(await alert).toBeUndefined();
+
+				const confirm = show(() => run.ui.confirm({ title: 'Sure?' }));
+				button('cancel')!.click();
+				flushSync();
+				expect(await confirm).toBe(false);
+			});
+
+			it('Esc and Cancel on a prompt resolve null', async () => {
+				const run = startRun();
+				const escaped = show(() => run.ui.prompt({ title: 'Name' }));
+				pressKey(field()!, 'Escape');
+				expect(await escaped).toBeNull();
+
+				const cancelled = show(() => run.ui.prompt({ title: 'Name' }));
+				button('cancel')!.click();
+				flushSync();
+				expect(await cancelled).toBeNull();
+			});
+
+			it('closing a pick with its close button resolves null', async () => {
+				const run = startRun();
+				const result = show(() => run.ui.pick({ title: 'Choose', items: [{ id: 'a', title: 'A' }] }));
+				// The close button and an outside click both close through the dialog's onOpenChange(false).
+				shown()!.querySelector<HTMLElement>('.sr-only')!.closest('button')!.click();
+				flushSync();
+				expect(await result).toBeNull();
+				expect(shown()).toBeNull();
+			});
+
+			it("Cancel on a cancellable loading aborts only its task's signal, not the run", async () => {
+				const run = startRun();
+				let signal!: AbortSignal;
+				const result = show(() => run.ui.loading('Working', (s) => new Promise<string>((resolve) => {
+					signal = s;
+					s.addEventListener('abort', () => resolve('cancelled'));
+				}), { cancellable: true }));
+
+				button('cancel')!.click();
+				flushSync();
+
+				expect(await result).toBe('cancelled');
+				expect(signal.aborted).toBe(true);
+				expect(run.signal.aborted).toBe(false);
+				expect(modsRunsStore.runFor('mod:hello:action:job')?.status).toBe('running');
+				expect(shown()).toBeNull();
+			});
+		});
 	});
 });

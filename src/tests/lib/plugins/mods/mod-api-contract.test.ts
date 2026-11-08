@@ -180,6 +180,7 @@ const RUN_PUBLIC = {
 	signal: true,
 	log: true,
 	progress: true,
+	ui: true,
 } satisfies Record<keyof ModRunV1, true>;
 
 const ACTION_INPUT_PUBLIC = {
@@ -293,8 +294,10 @@ describe('mod API contract v1', () => {
 		railRegistryStore.actions[0].run();
 		await modPickerStore.actions[0].run('');
 
-		expect(Object.keys(received!).sort()).toEqual(['log', 'progress', 'signal']);
+		expect(Object.keys(received!).sort()).toEqual(['log', 'progress', 'signal', 'ui']);
 		expect(received).not.toHaveProperty('target');
+		expect(Object.keys(received!.ui).sort()).toEqual(Object.keys(ctx.ui).sort());
+		expect(Object.keys(received!.ui).sort()).toEqual(Object.keys(UI_PUBLIC).sort());
 
 		ctx.labs.place('a', { menu: { on: ['folder'] } });
 		railRegistryStore.menuItems[0].run({ on: 'folder', path: '' });

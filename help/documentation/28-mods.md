@@ -109,7 +109,7 @@ export default new MyMod();
 |--------|--------------|
 | Vault opens, mods on | Each mod loads on its own: one broken mod never blocks another. `onload(ctx)` runs; it may be `async`. |
 | `onload` throws or rejects | The mod is shown as **Error**, a toast names it, and the cleanups it already registered run. |
-| Mod switched off, reloaded, mods turned off, or vault closed | `ctx.signal` and the signal of every live [run](#runs-runsignal-runlog-runprogress) of the mod are aborted (a reload first waits for the runs to end, see below), `onunload()` runs (errors are caught and toasted), then every cleanup registered with `ctx.register`, or returned by `addAction` / `addRailButton`, runs **in reverse order**, even if `onunload` threw. An async `onunload` is not awaited: the cleanups run right after it starts. |
+| Mod switched off, reloaded, mods turned off, or vault closed | `ctx.signal` and the signal of every live [run](#runs-runtarget-runsignal-runlog-runprogress-runui) of the mod are aborted (a reload first waits for the runs to end, see below), `onunload()` runs (errors are caught and toasted), then every cleanup registered with `ctx.register`, or returned by `addAction` / `addRailButton`, runs **in reverse order**, even if `onunload` threw. An async `onunload` is not awaited: the cleanups run right after it starts. |
 | After unload | Every `ctx` function throws `Mod "<id>" is unloaded`. The same happens if the open vault changed, so a slow action started in vault A cannot write into vault B through `ctx.vault`. Objects a mod already took from `ctx.app` are not guarded. |
 
 ### Reload on save
@@ -190,7 +190,7 @@ ctx.addRailButton({
 - **`addAction(action)`** registers an action and returns a function that removes it. A duplicate `id` throws.
   - Without `input`, picking the action calls `run` with the text `''`.
   - With `input`, the picker shows a text field: **Enter** calls `run` with the text, **Esc** cancels without running.
-  - The second argument is the [run](#runs-runsignal-runlog-runprogress): its signal, log and progress bar.
+  - The second argument is the [run](#runs-runtarget-runsignal-runlog-runprogress-runui): its signal, log, progress bar and dialogs.
   - `run` may be async. If it throws or rejects, the run ends **Failed** and a toast shows "`<mod name>`: `<title>` failed: `<message>`"; the error also goes to the debug log, never to Sentry. A rejection after **Stop** is not a failure.
 - **`addRailButton(button)`** adds a button to the rail and returns a function that removes it. Clicking it opens a picker with the button's actions (resolved at click time, so actions added later are listed). When the button resolves to **a single action**, the click skips the list: an action without `input` runs at once, and one with `input` opens straight on its text field. A mod can add several buttons, each with its own `actions` list.
 - **Icons** are `pack:name` or a bare Lucide name. Packs: `lucide`, `feather`, `fa-solid`, `fa-regular`, `fa-brands`, `octicons`, `boxicons`, `coolicons`, `simple-icons`, `tabler`, `remix`, `emoji`. An unknown icon falls back to a default.
@@ -232,7 +232,7 @@ ctx.labs.place('inspect', {
 - A repeated menu placement for the same action replaces its previous menu entry. Disposing an older placement does not remove the replacement. Unloading or removing the action clears its menu entries.
 - Menu runs receive `run.target: { on: 'note' | 'folder', path: string }`. The path is vault-relative and the vault root is `''`. It is captured from the clicked item, not the active editor, and stays the same while entering action input. Rail and palette runs have no `target`; use your own active-note fallback there if needed.
 
-### Runs: `run.target`, `run.signal`, `run.log`, `run.progress`
+### Runs: `run.target`, `run.signal`, `run.log`, `run.progress`, `run.ui`
 
 Running an action starts a **run**. Its view shows the action's title, its state (**Running**, **Done**, **Failed** or **Cancelled**), a progress bar, the run's log, the error with its stack when it failed, and **Stop** and **Close** buttons.
 
@@ -265,10 +265,11 @@ ctx.addAction({
 | `run.signal` | An `AbortSignal` aborted on **Stop**, when the mod unloads (mods turned off, the mod switched off or deleted) and when the vault closes. Not aborted by a reload after a save, which waits for the run. Pass it to `fetch` or check `run.signal.aborted` between steps |
 | `run.log(text)` | Adds a line to the run's log. The run view keeps the last 500 lines |
 | `run.progress(done, total, label?)` | Sets the progress bar to `done` of `total`, with an optional label under it. Throws `Mod "<id>": run.progress needs numbers done and total` (or `needs a string label`) on other values |
+| `run.ui` | The run's own [dialogs](#ctxui-dialogs), with the same methods as `ctx.ui`. **Use it in actions** instead of `ctx.ui`: when `run.signal` aborts, its open and waiting dialogs close and reject with a `DOMException` named `AbortError`, and later calls reject with it at once, so the action stops at its next `await` |
 
 - **A quiet run closes the view by itself.** When a run ends **Done** without having called `run.log` or `run.progress`, there is nothing to read, so the picker closes: an action that only shows a toast, opens a note or opens a dialog leaves no window behind. An open view that logged or showed progress stays on **Done** until you press **Close** or **Escape**, and so does an open **Failed** or **Cancelled** view. A non-rail run that fails before any output stays hidden and reports its failure through a toast. To keep the view open on a quick action, log a line.
 - **Close** hides the view; the run goes on. While any action a rail button lists is running (a button without `actions` lists every action), the button shows a busy mark. Clicking a busy button that resolves to a single action opens that run's view again; one with several actions opens its picker, where choosing a running action opens its run and choosing an idle one starts it.
-- **Stop** aborts `run.signal` and marks the run **Cancelled** at once. It cannot interrupt code that is running: the mod has to check `run.signal.aborted` or pass the signal on. Valid calls to `run.log` and `run.progress` after the run ended are ignored.
+- **Stop** aborts `run.signal` and marks the run **Cancelled** at once. It also closes the run's `run.ui` dialogs, so an action waiting on one stops there with no `run.signal.aborted` check, and the next dialog in the queue shows. It cannot interrupt code that is running: between dialogs the mod has to check `run.signal.aborted` or pass the signal on. A rejection after **Stop**, the `AbortError` included, ends the run **Cancelled**, never **Failed**, with no toast. Valid calls to `run.log` and `run.progress` after the run ended are ignored.
 
 ### `ctx.vault`: reading and writing files
 
@@ -346,18 +347,20 @@ A mod that calls `saveData` without ever calling `loadData` replaces whatever th
 
 Dialogs in the app's own look: they follow the theme, take focus, and close on **Esc** like the app's dialogs. Each shows the mod's `name` as a small caption above its title, so you always know which mod is asking.
 
+There are two sets with the same methods. **In an action, use the run's `run.ui`**: **Stop** closes its dialogs (see below). `ctx.ui` belongs to the mod, not to a run, so **Stop** leaves its dialogs open; use it outside actions, for example in a `ctx.watch` or `ctx.onNoteSaved` callback.
+
 ```javascript
 ctx.addAction({
 	id: 'archive',
 	title: 'Archive old notes',
-	run: async () => {
-		if (!(await ctx.ui.confirm({ title: 'Archive 12 notes?', confirmLabel: 'Archive', destructive: true }))) return;
-		const reason = await ctx.ui.prompt({ title: 'Why?', placeholder: 'Reason' }); // null when cancelled
+	run: async (_text, run) => {
+		if (!(await run.ui.confirm({ title: 'Archive 12 notes?', confirmLabel: 'Archive', destructive: true }))) return;
+		const reason = await run.ui.prompt({ title: 'Why?', placeholder: 'Reason' }); // null when cancelled
 		if (reason === null) return;
-		await ctx.ui.loading('Archiving...', async (signal) => {
+		await run.ui.loading('Archiving...', async (signal) => {
 			/* work; check signal.aborted between steps */
 		});
-		await ctx.ui.alert({ title: 'Done', message: '12 notes archived', kind: 'success' });
+		await run.ui.alert({ title: 'Done', message: '12 notes archived', kind: 'success' });
 	},
 });
 ```
@@ -371,7 +374,9 @@ ctx.addAction({
 | `loading(label, task, { cancellable? })` | what `task` resolves to; rejects when it rejects | Calls `task(signal)` at once and shows `label` with a spinner until it settles. The dialog cannot be dismissed; `cancellable: true` adds **Cancel**, which aborts `signal` and closes the dialog. The promise still follows the task, so stop when `signal.aborted` |
 
 - **One dialog at a time.** A second call, from this mod or another, waits until the first is closed. A dialog opened from an action shows above its run view; closing it returns to the run view while the run goes on (a quiet run that then ends closes it, see above).
-- **Unload.** When the mod unloads, its open and waiting dialogs close as cancelled: `alert` resolves, `confirm` resolves `false`, `prompt` and `pick` resolve `null`, and `loading` aborts its signal. The loading promise still follows its task, which must cooperate with cancellation. A call after unload rejects with `Mod "<id>" is unloaded`.
+- **Cancelling a dialog** (**Esc**, **Cancel**, closing it) resolves it with its cancel value for both sets: `alert` resolves, `confirm` resolves `false`, `prompt` and `pick` resolve `null`. **Cancel** on a `cancellable` loading aborts only its task's signal, not the run.
+- **Stop.** When `run.signal` aborts (**Stop**, or the mod unloading), the run's open and waiting `run.ui` dialogs close and their promises reject with a `DOMException` named `AbortError`; a waiting one never shows, and the next dialog in the queue shows at once. A `run.ui` call after that rejects with the same error at once and opens nothing. `run.ui.loading` also aborts its task's signal and rejects without waiting for the task, **whose JavaScript may still be running**: stop it when `signal.aborted`. Dialogs of another run, of the same mod or not, and the mod's `ctx.ui` dialogs stay open. Let the `AbortError` propagate (catch it only to clean up): the run ends **Cancelled** either way. A `run.ui` call you do not `await` needs a `.catch`, or **Stop** leaves an unhandled rejection.
+- **Unload.** When the mod unloads, its live runs are aborted first, so their `run.ui` dialogs reject as under **Stop**. Its `ctx.ui` dialogs, open and waiting, close as cancelled, and so do `run.ui` dialogs a run opened after it ended: `alert` resolves, `confirm` resolves `false`, `prompt` and `pick` resolve `null`, and `loading` aborts its signal. That loading promise still follows its task, which must cooperate with cancellation. A `ctx.ui` call after unload rejects with `Mod "<id>" is unloaded`.
 - **Bad arguments** reject with `Mod "<id>": ...`, for example `Mod "<id>": ui.confirm needs a non-empty string title` or `ui.loading needs a task function`.
 
 For `pick`, each item needs a non-empty string `id` and `title`, and may have a string `description`. Duplicate ids reject before opening a dialog. Extra fields stay on the original object you receive back:
@@ -399,16 +404,16 @@ With **Settings > Troubleshooting > Save debug log to file** enabled and a log s
 |-------|------------------------|
 | `dialog-queued` | An alert, confirm, prompt, pick or loading request entered the queue |
 | `dialog-opened` | The host component opened that dialog; a request cancelled or completed before display has no opened event |
-| `dialog-closed` | Exactly one terminal transition, with reason `acknowledged` (alert OK), `submitted` (confirm, prompt or pick), `cancel-button`, `escape`, `dismissed` (ordinary close/outside dismissal), `mod-unload`, `reset` or `task-settled` (loading) |
+| `dialog-closed` | Exactly one terminal transition, with reason `acknowledged` (alert OK), `submitted` (confirm, prompt or pick), `cancel-button`, `escape`, `dismissed` (ordinary close/outside dismissal), `mod-unload`, `run-stopped` (a `run.ui` dialog whose run was stopped or whose mod unloaded), `reset` or `task-settled` (loading) |
 | `loading-task-settled` | The task returned/resolved (`success`) or threw/rejected (`failure`), independently of whether its dialog was already closed |
 | `dialog-rejected` | Host argument validation rejected a request, with reason `invalid-title`, `invalid-text`, `invalid-items`, `invalid-item`, `invalid-description`, `duplicate-item`, `invalid-label` or `invalid-task`; the public rejection is unchanged |
 | `notification-request` | `ctx.notify` requested a notification with validated kind `info`, `success`, `warning` or `error`; this is **not** evidence it was displayed, read, dismissed or acknowledged |
 
-Dialog lifecycle and loading-task records contain `modId`, a session-local `dialogId`, `kind` and `elapsedMs`. Dialog elapsed time starts at queue insertion (zero for `dialog-queued`); task elapsed time starts immediately before invoking the task. The normal log timestamp records when each event was emitted. Rejection and notification records have mod identity and kind but no dialog ID or elapsed time, because no dialog was created.
+Dialog lifecycle and loading-task records contain `modId`, a session-local `dialogId`, `kind` and `elapsedMs`, plus `runId` for a `run.ui` dialog. Dialog elapsed time starts at queue insertion (zero for `dialog-queued`); task elapsed time starts immediately before invoking the task. The normal log timestamp records when each event was emitted. Rejection and notification records have mod identity and kind but no dialog ID or elapsed time, because no dialog was created.
 
-A loading close also records `cancellationRequested`: `true` for cancellation transitions, `false` for task settlement. Closure is **not proof of task termination**. The task starts immediately even while its dialog is queued; Cancel, unload or reset can close the dialog while JavaScript continues. Its promise still follows the task, and a later task settlement gets its own event without another dialog-close event. An empty submitted prompt is `submitted`, not cancellation. Empty or unmatched pickers remain open until an actual terminal action.
+A loading close also records `cancellationRequested`: `true` for cancellation transitions, `false` for task settlement. Closure is **not proof of task termination**. The task starts immediately even while its dialog is queued; Cancel, unload, reset or **Stop** can close the dialog while JavaScript continues. Its promise still follows the task (except a `run.ui` loading closed by **Stop**, which rejects with an `AbortError` at once), and a later task settlement gets its own event without another dialog-close event. An empty submitted prompt is `submitted`, not cancellation. Empty or unmatched pickers remain open until an actual terminal action.
 
-These automatic records exclude mod display names, dialog titles/messages/labels/placeholders, prompt values and results, picker queries and item IDs/titles/descriptions/extra fields, notification text, task return values, and thrown error messages/stacks. Mod identity is JSON-encoded data, not text interpolated into the tag. There is **no run or action linkage**: `ctx.ui` is shared by the mod, and the host does not guess from the latest active run. Stopping a run does not close its mod's shared dialogs. Mod-owned forms and modals are not instrumented.
+These automatic records exclude mod display names, dialog titles/messages/labels/placeholders, prompt values and results, picker queries and item IDs/titles/descriptions/extra fields, notification text, task return values, and thrown error messages/stacks. Mod identity is JSON-encoded data, not text interpolated into the tag. Records of `run.ui` dialogs, their validation rejections included, carry the `runId` of the run's `action-start` and `action-end` records (see [Automatic host execution trace](#automatic-host-execution-trace)), and **Stop** closes them with reason `run-stopped`. `ctx.ui` records have **no run or action linkage**: `ctx.ui` belongs to the mod, and the host does not guess from the latest active run. Stopping a run leaves the mod's `ctx.ui` dialogs open. Mod-owned forms and modals are not instrumented.
 
 This content exclusion applies only to these automatic records. Explicit `ctx.log`, existing mod error logs and other logging facilities have their own behavior; enabling this feature does not certify those logs as content-free.
 
@@ -629,7 +634,7 @@ onload(ctx) {
 
 Every error Kokobrain catches, and everything a mod writes with `ctx.log`, goes to the debug log under `MOD:<id>`. To keep it in a file, turn on **Settings → Troubleshooting → Save debug log to file**; lines look like `[10:42:07.123] [FRONT-END:MOD:daily-log] ...` in `~/Library/Logs/com.diegorv.kokobrain/`.
 
-Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, `ctx.theme.onChange`, synchronous `ctx.watch` functions and `ctx.onNoteSaved` callbacks) are never sent to Sentry. The vault adapters also log their rejections under the mod tag. Uncaught errors (the last row above) and failures inside app services can reach Sentry while it is on. That includes `ctx.app` functions and the existing filesystem services called by `ctx.vault.rename`, `move` and `delete`.
+Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, awaited `run.ui` calls, `ctx.theme.onChange`, synchronous `ctx.watch` functions and `ctx.onNoteSaved` callbacks) are never sent to Sentry. The vault adapters also log their rejections under the mod tag. Uncaught errors (the last row above) and failures inside app services can reach Sentry while it is on. That includes `ctx.app` functions and the existing filesystem services called by `ctx.vault.rename`, `move` and `delete`.
 
 > [!NOTE]
 > Stack traces show the mod's frames by function name only (for example `onload@`), without a file and line: the app's web view does not report locations for code evaluated this way.

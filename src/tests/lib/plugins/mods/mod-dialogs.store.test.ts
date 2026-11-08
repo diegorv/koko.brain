@@ -130,6 +130,44 @@ describe('modDialogsStore', () => {
 		expect(modDialogsStore.current).toMatchObject({ id: b1.id });
 	});
 
+	it('open stamps a dialog with its run id; a dialog opened without one has none', () => {
+		modDialogsStore.open('a', 'A', alert('mod'));
+		modDialogsStore.open('a', 'A', alert('run'), undefined, 7);
+
+		expect(modDialogsStore.dialogs[0]).not.toHaveProperty('runId');
+		expect(modDialogsStore.dialogs[1]).toMatchObject({ title: 'run', runId: 7 });
+	});
+
+	it("closeForRun rejects that run's open and queued dialogs with an AbortError and keeps every other dialog", async () => {
+		const reasons: [number, string | undefined][] = [];
+		const record = (t: { event: string; dialogId: number; reason?: string }) => {
+			if (t.event === 'dialog-closed') reasons.push([t.dialogId, t.reason]);
+		};
+		const open = modDialogsStore.open('a', 'A', prompt('open'), record, 1);
+		const otherRun = modDialogsStore.open('a', 'A', confirm('other run'), record, 2);
+		const modScoped = modDialogsStore.open('a', 'A', alert('mod scoped'), record);
+		const queued = modDialogsStore.open('a', 'A', loading('queued'), record, 1);
+		const otherMod = modDialogsStore.open('b', 'B', alert('other mod'), record);
+
+		modDialogsStore.closeForRun(1);
+
+		for (const { result } of [open, queued]) {
+			const err = await result.then(() => null, (e: unknown) => e);
+			expect(err).toBeInstanceOf(DOMException);
+			expect((err as DOMException).name).toBe('AbortError');
+		}
+		expect(reasons).toEqual([[open.id, 'run-stopped'], [queued.id, 'run-stopped']]);
+		expect(modDialogsStore.current).toMatchObject({ id: otherRun.id });
+		expect(modDialogsStore.dialogs.map((d) => d.id)).toEqual([otherRun.id, modScoped.id, otherMod.id]);
+		for (const { result } of [otherRun, modScoped, otherMod]) expect(await settled(result)).toBe('pending');
+	});
+
+	it('closeForRun with no dialog of that run changes nothing', () => {
+		modDialogsStore.open('a', 'A', alert('a1'), undefined, 2);
+		modDialogsStore.closeForRun(1);
+		expect(modDialogsStore.dialogs).toHaveLength(1);
+	});
+
 	it('closeForMod with no dialog of that mod changes nothing', () => {
 		modDialogsStore.open('b', 'B', alert('b1'));
 		modDialogsStore.closeForMod('a');

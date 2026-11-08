@@ -1929,6 +1929,132 @@ describe('mods host', () => {
 		});
 	});
 
+	describe('run.ui', () => {
+		const MODS = `${VAULT}/_system/mods`;
+		const KEY = 'mod:asker:action:ask';
+
+		/**
+		 * A mod whose Ask action opens a `run.ui` prompt and a `ctx.ui` confirm,
+		 * records how each settles in `__modEvents`, and rethrows the prompt's
+		 * rejection. `version` marks its load.
+		 */
+		function askerMod(version: string): string {
+			return `export default {
+	onload(ctx) {
+		globalThis.__modCtx.asker = ctx;
+		globalThis.__modEvents.push('asker:load:${version}');
+		ctx.addAction({ id: 'ask', title: 'Ask', run: async (input, run) => {
+			globalThis.__modRun = run;
+			ctx.ui.confirm({ title: 'Mod scoped' }).then((value) => globalThis.__modEvents.push('ctx-ui:' + value));
+			try {
+				const name = await run.ui.prompt({ title: 'Name' });
+				globalThis.__modEvents.push('answered:' + name);
+			} catch (err) {
+				globalThis.__modEvents.push('run-ui:' + err.name);
+				throw err;
+			}
+		} });
+		ctx.addRailButton({ id: 'main', title: 'Asker', icon: 'sparkles', actions: ['ask'] });
+	},
+};`;
+		}
+
+		const run = () => modsRunsStore.runFor(KEY);
+		const tick = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+		function startAsk(): void {
+			railRegistryStore.actions.find((a) => a.key === 'mod:asker:main')!.run();
+		}
+
+		beforeEach(async () => {
+			fileListeners.clear();
+			writeMod('asker', askerMod('v1'), { name: 'Asker' });
+			await startModsHost(VAULT);
+		});
+
+		it("stamps the run's dialogs with its id and leaves ctx.ui dialogs without one", () => {
+			startAsk();
+
+			expect(modDialogsStore.dialogs).toHaveLength(2);
+			expect(modDialogsStore.dialogs[0]).not.toHaveProperty('runId');
+			expect(modDialogsStore.dialogs[1]).toMatchObject({ kind: 'prompt', title: 'Name', runId: run()!.id });
+		});
+
+		it('Stop rejects the open prompt with an AbortError and ends the run Cancelled, never Failed, with no error toast', async () => {
+			startAsk();
+
+			run()!.stop();
+			await tick();
+
+			expect(globals.__modEvents).toContain('run-ui:AbortError');
+			expect(globals.__modEvents.some((e) => e.startsWith('answered:'))).toBe(false);
+			expect(run()).toMatchObject({ status: 'cancelled' });
+			expect(run()?.error).toBeNull();
+			expect(toast.error).not.toHaveBeenCalled();
+			// The mod's ctx.ui dialog is not the run's: Stop leaves it open.
+			expect(modDialogsStore.dialogs).toMatchObject([{ kind: 'confirm', title: 'Mod scoped' }]);
+			expect(globals.__modEvents.some((e) => e.startsWith('ctx-ui:'))).toBe(false);
+		});
+
+		it('an action whose own code rejects with an AbortError after Stop ends Cancelled with no toast', async () => {
+			writeMod('asker', `export default {
+	onload(ctx) {
+		ctx.addAction({ id: 'ask', title: 'Ask', run: async (input, run) => {
+			await new Promise((resolve) => run.signal.addEventListener('abort', resolve));
+			throw new DOMException('stopped', 'AbortError');
+		} });
+		ctx.addRailButton({ id: 'main', title: 'Asker', icon: 'sparkles', actions: ['ask'] });
+	},
+};`, { name: 'Asker' });
+			await startModsHost(VAULT);
+			startAsk();
+
+			run()!.stop();
+			await tick();
+
+			expect(run()).toMatchObject({ status: 'cancelled' });
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it("unload rejects the run's dialogs with an AbortError and resolves its ctx.ui dialogs as cancelled", async () => {
+			startAsk();
+
+			disableMod('asker');
+			await tick();
+
+			expect(globals.__modEvents).toContain('run-ui:AbortError');
+			expect(globals.__modEvents).toContain('ctx-ui:false');
+			expect(run()?.status).toBe('cancelled');
+			expect(modDialogsStore.dialogs).toEqual([]);
+			expect(toast.error).not.toHaveBeenCalled();
+		});
+
+		it('turning mods off rejects the run dialogs too', async () => {
+			startAsk();
+
+			stopModsHost();
+			await tick();
+
+			expect(globals.__modEvents).toContain('run-ui:AbortError');
+			expect(globals.__modEvents).toContain('ctx-ui:false');
+			expect(modDialogsStore.dialogs).toEqual([]);
+		});
+
+		it('a reload waiting on a run goes on after Stop closes its dialog', async () => {
+			startAsk();
+			writeMod('asker', askerMod('v2'), { name: 'Asker' });
+			for (const listener of fileListeners) listener([`${MODS}/asker/main.js`]);
+			await vi.waitFor(() => expect(modsRunsStore.isReloadPending('asker')).toBe(true));
+
+			run()!.stop();
+
+			await vi.waitFor(() => expect(globals.__modEvents.filter((e) => e.startsWith('asker:load:'))).toEqual(['asker:load:v1', 'asker:load:v2']));
+			expect(globals.__modEvents).toContain('run-ui:AbortError');
+			expect(modsRunsStore.isReloadPending('asker')).toBe(false);
+			expect(modDialogsStore.dialogs).toEqual([]);
+		});
+	});
+
 	describe('ctx.ui', () => {
 		beforeEach(async () => {
 			writeMod('alpha', recordingMod('alpha'), { name: 'Alpha' });

@@ -183,96 +183,122 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	};
 	const kb = () => createModKb(vaultPath, assertLive);
 
-	const invalidDialog = (kind: ModDialogSpec['kind'], reason: string, message: string) => {
-		debug('MOD-UI', { event: 'dialog-rejected', modId: manifest.id, kind, reason });
-		return invalid(message);
-	};
+	/**
+	 * Builds a set of dialogs: `ctx.ui` with no `run`, scoped to the mod, or a
+	 * run's `run.ui`. A run's dialogs carry its id into the queue and the trace;
+	 * once its signal aborts, its calls reject with an `AbortError` before
+	 * anything else, and `runAction` rejects its open and queued dialogs.
+	 */
+	const createUi = (run?: { id: number; signal: AbortSignal }): ModUiV1 => {
+		const runId = run ? { runId: run.id } : {};
+		const assertRunning = () => {
+			if (run?.signal.aborted) throw new DOMException('The run was stopped', 'AbortError');
+		};
+		const invalidDialog = (kind: ModDialogSpec['kind'], reason: string, message: string) => {
+			debug('MOD-UI', { event: 'dialog-rejected', modId: manifest.id, ...runId, kind, reason });
+			return invalid(message);
+		};
 
-	/** Checks a dialog's options: a `title`, and a string wherever an optional text field is set */
-	const dialogOptions = <T extends { title: string }>(fn: ModDialogSpec['kind'], options: T, texts: (keyof T & string)[]): T => {
-		if (!isText(options?.title)) throw invalidDialog(fn, 'invalid-title', `ui.${fn} needs a non-empty string title`);
-		for (const field of ['message', ...texts] as (keyof T & string)[]) {
-			if (options[field] !== undefined && typeof options[field] !== 'string') throw invalidDialog(fn, 'invalid-text', `ui.${fn} needs a string ${field}`);
-		}
-		return options;
-	};
-	const openDialog = <S extends ModDialogSpec>(spec: S) => modDialogsStore.open(manifest.id, manifest.name, spec, (transition) => {
-		debug('MOD-UI', {
-			...transition, modId: manifest.id, kind: spec.kind,
-			...(spec.kind === 'loading' && transition.event === 'dialog-closed' ? { cancellationRequested: transition.reason !== 'task-settled' } : {}),
-		});
-	});
-
-	const ui: ModUiV1 = {
-		alert: async (options) => {
-			assertLive();
-			const { title, message, kind } = dialogOptions('alert', options, []);
-			// Mods are untyped JavaScript: an unknown kind falls back to info, as in notify.
-			const alertKind = kind && NOTIFY_KINDS.includes(kind) ? kind : 'info';
-			await openDialog({ kind: 'alert', title, message, alertKind }).result;
-		},
-		confirm: async (options) => {
-			assertLive();
-			const { title, message, confirmLabel, cancelLabel, destructive } = dialogOptions('confirm', options, ['confirmLabel', 'cancelLabel']);
-			return openDialog({
-				kind: 'confirm',
-				title,
-				message,
-				confirmLabel: confirmLabel || 'OK',
-				cancelLabel: cancelLabel || 'Cancel',
-				destructive: destructive === true,
-			}).result;
-		},
-		prompt: async (options) => {
-			assertLive();
-			const { title, message, label, placeholder, value, multiline } = dialogOptions('prompt', options, ['label', 'placeholder', 'value']);
-			return openDialog({ kind: 'prompt', title, message, label, placeholder, value: value ?? '', multiline: multiline === true }).result;
-		},
-		pick: async (options) => {
-			assertLive();
-			const { title, placeholder, items } = dialogOptions('pick', options, ['placeholder']);
-			if (!Array.isArray(items)) throw invalidDialog('pick', 'invalid-items', 'ui.pick needs an items array');
-			const originals = new Map<string, (typeof items)[number]>();
-			// Snapshot only display fields: mod getters must not run while typing or rendering.
-			const rows = items.map((item) => {
-				const { id, title, description } = item ?? {};
-				if (!isText(id) || !isText(title)) throw invalidDialog('pick', 'invalid-item', 'ui.pick needs items with non-empty string ids and titles');
-				if (description !== undefined && typeof description !== 'string') throw invalidDialog('pick', 'invalid-description', 'ui.pick needs a string item description');
-				if (originals.has(id)) throw invalidDialog('pick', 'duplicate-item', `ui.pick duplicate item id "${id}"`);
-				originals.set(id, item);
-				return { id, title, description };
-			});
-			const id = await openDialog({ kind: 'pick', title, placeholder, items: rows }).result;
-			return id === null ? null : originals.get(id) ?? null;
-		},
-		loading: async (label, task, options) => {
-			assertLive();
-			if (!isText(label)) throw invalidDialog('loading', 'invalid-label', 'ui.loading needs a non-empty string label');
-			if (typeof task !== 'function') throw invalidDialog('loading', 'invalid-task', 'ui.loading needs a task function');
-			const controller = new AbortController();
-			const abort = () => controller.abort();
-			// The unload aborts at once; Cancel settles the dialog as cancelled.
-			runtime.controller.signal.addEventListener('abort', abort);
-			const dialog = openDialog({ kind: 'loading', label, cancellable: options?.cancellable === true });
-			void dialog.result.then((cancelled) => {
-				if (cancelled) abort();
-			});
-			const startedAt = performance.now();
-			let outcome: 'success' | 'failure' = 'failure';
-			try {
-				const value = await task(controller.signal);
-				outcome = 'success';
-				return value;
-			} finally {
-				debug('MOD-UI', {
-					event: 'loading-task-settled', modId: manifest.id, dialogId: dialog.id, kind: 'loading',
-					outcome, elapsedMs: performance.now() - startedAt,
-				});
-				runtime.controller.signal.removeEventListener('abort', abort);
-				modDialogsStore.answer<'loading'>(dialog.id, false);
+		/** Checks a dialog's options: a `title`, and a string wherever an optional text field is set */
+		const dialogOptions = <T extends { title: string }>(fn: ModDialogSpec['kind'], options: T, texts: (keyof T & string)[]): T => {
+			if (!isText(options?.title)) throw invalidDialog(fn, 'invalid-title', `ui.${fn} needs a non-empty string title`);
+			for (const field of ['message', ...texts] as (keyof T & string)[]) {
+				if (options[field] !== undefined && typeof options[field] !== 'string') throw invalidDialog(fn, 'invalid-text', `ui.${fn} needs a string ${field}`);
 			}
-		},
+			return options;
+		};
+		const openDialog = <S extends ModDialogSpec>(spec: S) => modDialogsStore.open(manifest.id, manifest.name, spec, (transition) => {
+			debug('MOD-UI', {
+				...transition, modId: manifest.id, ...runId, kind: spec.kind,
+				...(spec.kind === 'loading' && transition.event === 'dialog-closed' ? { cancellationRequested: transition.reason !== 'task-settled' } : {}),
+			});
+		}, run?.id);
+
+		return {
+			alert: async (options) => {
+				assertRunning();
+				assertLive();
+				const { title, message, kind } = dialogOptions('alert', options, []);
+				// Mods are untyped JavaScript: an unknown kind falls back to info, as in notify.
+				const alertKind = kind && NOTIFY_KINDS.includes(kind) ? kind : 'info';
+				await openDialog({ kind: 'alert', title, message, alertKind }).result;
+			},
+			confirm: async (options) => {
+				assertRunning();
+				assertLive();
+				const { title, message, confirmLabel, cancelLabel, destructive } = dialogOptions('confirm', options, ['confirmLabel', 'cancelLabel']);
+				return openDialog({
+					kind: 'confirm',
+					title,
+					message,
+					confirmLabel: confirmLabel || 'OK',
+					cancelLabel: cancelLabel || 'Cancel',
+					destructive: destructive === true,
+				}).result;
+			},
+			prompt: async (options) => {
+				assertRunning();
+				assertLive();
+				const { title, message, label, placeholder, value, multiline } = dialogOptions('prompt', options, ['label', 'placeholder', 'value']);
+				return openDialog({ kind: 'prompt', title, message, label, placeholder, value: value ?? '', multiline: multiline === true }).result;
+			},
+			pick: async (options) => {
+				assertRunning();
+				assertLive();
+				const { title, placeholder, items } = dialogOptions('pick', options, ['placeholder']);
+				if (!Array.isArray(items)) throw invalidDialog('pick', 'invalid-items', 'ui.pick needs an items array');
+				const originals = new Map<string, (typeof items)[number]>();
+				// Snapshot only display fields: mod getters must not run while typing or rendering.
+				const rows = items.map((item) => {
+					const { id, title, description } = item ?? {};
+					if (!isText(id) || !isText(title)) throw invalidDialog('pick', 'invalid-item', 'ui.pick needs items with non-empty string ids and titles');
+					if (description !== undefined && typeof description !== 'string') throw invalidDialog('pick', 'invalid-description', 'ui.pick needs a string item description');
+					if (originals.has(id)) throw invalidDialog('pick', 'duplicate-item', `ui.pick duplicate item id "${id}"`);
+					originals.set(id, item);
+					return { id, title, description };
+				});
+				const id = await openDialog({ kind: 'pick', title, placeholder, items: rows }).result;
+				return id === null ? null : originals.get(id) ?? null;
+			},
+			loading: async (label, task, options) => {
+				assertRunning();
+				assertLive();
+				if (!isText(label)) throw invalidDialog('loading', 'invalid-label', 'ui.loading needs a non-empty string label');
+				if (typeof task !== 'function') throw invalidDialog('loading', 'invalid-task', 'ui.loading needs a task function');
+				const controller = new AbortController();
+				const abort = () => controller.abort();
+				// The unload and the run's Stop abort at once; Cancel settles the dialog as cancelled.
+				runtime.controller.signal.addEventListener('abort', abort);
+				run?.signal.addEventListener('abort', abort);
+				const dialog = openDialog({ kind: 'loading', label, cancellable: options?.cancellable === true });
+				// Rejects only when the run's Stop rejects the dialog, so the call ends without waiting for the task.
+				const stopped = new Promise<never>((_resolve, reject) => {
+					dialog.result.then((cancelled) => {
+						if (cancelled) abort();
+					}, reject);
+				});
+				const settled = (async () => {
+					const startedAt = performance.now();
+					let outcome: 'success' | 'failure' = 'failure';
+					try {
+						const value = await task(controller.signal);
+						outcome = 'success';
+						return value;
+					} finally {
+						debug('MOD-UI', {
+							event: 'loading-task-settled', modId: manifest.id, ...runId, dialogId: dialog.id, kind: 'loading',
+							outcome, elapsedMs: performance.now() - startedAt,
+						});
+						runtime.controller.signal.removeEventListener('abort', abort);
+						run?.signal.removeEventListener('abort', abort);
+						modDialogsStore.answer<'loading'>(dialog.id, false);
+					}
+				})();
+				return Promise.race([settled, stopped]);
+			},
+		};
 	};
+	const ui = createUi();
 
 	const theme: ModThemeV1 = {
 		get current() {
@@ -299,7 +325,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	 * the action has a live run, shows that run instead and starts nothing: one
 	 * live run per action. Lazy runs reveal only on their first
 	 * output. Its signal aborts on Stop and at unload; an abort ends the
-	 * run cancelled at once, even when the mod's code goes on. A failure is the
+	 * run cancelled at once, even when the mod's code goes on, and rejects
+	 * the run's `run.ui` dialogs with an `AbortError`. A failure is the
 	 * mod's, so it goes to the run, a toast and `debug()`, never Sentry (PRD P9).
 	 */
 	const runAction = async (action: ModActionV1, input: string, origin: ActionOrigin, lazy: boolean, target?: ModRunV1['target']) => {
@@ -345,6 +372,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		};
 		controller.signal.addEventListener('abort', () => {
 			modsRunsStore.cancel(id);
+			modDialogsStore.closeForRun(id);
 			recordEnd('cancelled');
 			end();
 		});
@@ -375,6 +403,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				modsRunsStore.progress(id, label === undefined ? { done, total } : { done, total, label });
 				revealOutput();
 			},
+			ui: createUi({ id, signal: controller.signal }),
 		};
 		try {
 			await action.run(input, run);
