@@ -101,6 +101,36 @@ describe('ModsStatusList', () => {
 		expect(failed.querySelector('details')).toBeNull();
 	});
 
+	it('shows the load time of a loaded mod, and none on error or disabled rows', () => {
+		modsStore.setEntries([
+			{ id: 'slow', folder: 'slow', name: 'Slow', version: '1.0.0', state: 'loaded', loadMs: 42 },
+			{ id: 'quick', folder: 'quick', name: 'Quick', version: '1.0.0', state: 'loaded', loadMs: 0 },
+			{ id: 'bad', folder: 'bad', name: 'bad', version: '', state: 'error', error: { message: 'x' } },
+			{ id: 'off', folder: 'off', name: 'Off', version: '1.0.0', state: 'disabled' },
+		]);
+		const root = render();
+
+		expect(row(root, 'slow').textContent).toContain('Loaded · 42 ms');
+		expect(row(root, 'slow').querySelector('[data-mod-load-ms]')?.getAttribute('data-mod-load-ms')).toBe('42');
+		expect(row(root, 'quick').textContent).toContain('Loaded · < 1 ms');
+		expect(row(root, 'quick').querySelector('[data-mod-load-ms]')?.getAttribute('data-mod-load-ms')).toBe('0');
+		for (const folder of ['bad', 'off']) {
+			expect(row(root, folder).querySelector('[data-mod-load-ms]')).toBeNull();
+			expect(row(root, folder).textContent).not.toContain('ms');
+		}
+	});
+
+	it('shows the new time when a reload replaces the entry', () => {
+		modsStore.setEntries([{ id: 'hello', folder: 'hello', name: 'Hello', version: '1.0.0', state: 'loaded', loadMs: 10 }]);
+		const root = render();
+
+		modsStore.upsertEntry({ id: 'hello', folder: 'hello', name: 'Hello', version: '1.0.0', state: 'loaded', loadMs: 25 });
+		flushSync();
+
+		expect(row(root, 'hello').textContent).toContain('Loaded · 25 ms');
+		expect(row(root, 'hello').textContent).not.toContain('10 ms');
+	});
+
 	it('updates when the store changes', () => {
 		const root = render();
 

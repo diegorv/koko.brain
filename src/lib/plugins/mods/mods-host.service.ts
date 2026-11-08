@@ -682,6 +682,8 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 	}
 	if (!current()) return result('superseded');
 
+	// Labs shows the time of the mod's own code, so the file reads above are left out.
+	const evaluatedAt = performance.now();
 	let module: ModV1;
 	try {
 		module = evaluateModSource(source, manifest.id);
@@ -714,7 +716,14 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 		}
 
 		toastedErrors.delete(`${vaultPath}\n${folder}`);
-		modsStore.upsertEntry({ id: manifest.id, folder, name: manifest.name, version: manifest.version, state: 'loaded' });
+		modsStore.upsertEntry({
+			id: manifest.id,
+			folder,
+			name: manifest.name,
+			version: manifest.version,
+			state: 'loaded',
+			loadMs: Math.round(performance.now() - evaluatedAt),
+		});
 		result('loaded');
 	})();
 	if (waitForOnload) await loading;

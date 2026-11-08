@@ -42,6 +42,7 @@ Open **Settings → Labs** and turn on **Vault mods**.
 - The flag is **per vault and per machine**. It is stored in this computer's app storage, keyed by the vault's path, not in `.kokobrain/settings.json`. A vault copied from somewhere else, or opened at a new path, always starts with mods off.
 - Turning it on loads the mods at once; turning it off unloads them. No restart needed.
 - With mods on, Labs lists every folder under `_system/mods/` with its state: **Loaded**, **Error** (with the message and a **Stack trace** you can expand), or **Disabled**.
+- A loaded mod's row also shows how long it took to load, for example **Loaded · 42 ms** (**< 1 ms** when it rounds to zero). The time runs from evaluating `main.js` (its top-level code) until `onload` finishes, so it counts only the mod's own code, not reading its files. It is wall time, not CPU time: at vault open the mods load together, so a mod whose `onload` awaits something can show time spent waiting while other mods ran. A reload on save loads that mod alone, so its new time measures just that mod. Each reload, or switching the mod off and on, replaces the time.
 
 ### Switching one mod off
 

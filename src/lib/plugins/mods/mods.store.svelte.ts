@@ -12,6 +12,11 @@ export interface ModStatusEntry {
 	state: 'loaded' | 'error' | 'disabled';
 	/** Set when `state` is `'error'`; the message starts with `_system/mods/<folder>: ` */
 	error?: { message: string; stack?: string };
+	/**
+	 * Set only when `state` is `'loaded'`: wall time in whole milliseconds from
+	 * evaluating `main.js` to `onload` settling, without the file reads
+	 */
+	loadMs?: number;
 }
 
 /** One entry per mod folder, sorted by folder */

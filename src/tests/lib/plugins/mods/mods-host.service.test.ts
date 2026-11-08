@@ -87,6 +87,7 @@ interface TestGlobals {
 	__modEvents: string[];
 	__modCtx: Record<string, ModContext>;
 	__modGate: Promise<void>;
+	__clock: number;
 	__modRun: ModRunV1;
 }
 const globals = globalThis as unknown as TestGlobals;
@@ -154,8 +155,8 @@ describe('mods host', () => {
 		await startModsHost(VAULT);
 
 		expect(modsStore.entries).toEqual([
-			{ id: 'alpha', folder: 'alpha', name: 'Mod alpha', version: '1.0.0', state: 'loaded' },
-			{ id: 'beta', folder: 'beta', name: 'Mod beta', version: '1.0.0', state: 'loaded' },
+			{ id: 'alpha', folder: 'alpha', name: 'Mod alpha', version: '1.0.0', state: 'loaded', loadMs: expect.any(Number) },
+			{ id: 'beta', folder: 'beta', name: 'Mod beta', version: '1.0.0', state: 'loaded', loadMs: expect.any(Number) },
 		]);
 		expect(globals.__modEvents).toEqual(expect.arrayContaining(['alpha:load', 'beta:load']));
 	});
@@ -827,7 +828,7 @@ describe('mods host', () => {
 			await startModsHost(VAULT);
 
 			expect(modsStore.entries).toEqual([
-				{ id: 'alpha', folder: 'alpha', name: 'Mod alpha', version: '1.0.0', state: 'loaded' },
+				{ id: 'alpha', folder: 'alpha', name: 'Mod alpha', version: '1.0.0', state: 'loaded', loadMs: expect.any(Number) },
 				{ id: 'beta', folder: 'beta', name: 'Mod beta', version: '1.0.0', state: 'disabled' },
 			]);
 			expect(globals.__modEvents).toEqual(['alpha:load']);
@@ -2254,6 +2255,149 @@ describe('mods host', () => {
 			await expect(ui.loading('', () => {})).rejects.toThrow('Mod "alpha": ui.loading needs a non-empty string label');
 			await expect(ui.loading('Working', 'task' as never)).rejects.toThrow('Mod "alpha": ui.loading needs a task function');
 			expect(modDialogsStore.dialogs).toEqual([]);
+		});
+	});
+
+	describe('load time', () => {
+		const MODS = `${VAULT}/_system/mods`;
+
+		/** A mod whose top-level code and async `onload` each take the given time on the test clock */
+		function timedMod(topLevelMs: number, onloadMs: number): string {
+			return `globalThis.__clock += ${topLevelMs};
+export default {
+	async onload() {
+		await null;
+		globalThis.__clock += ${onloadMs};
+	},
+};`;
+		}
+
+		function emit(paths: string[]): void {
+			for (const listener of fileListeners) listener(paths);
+		}
+
+		const loadMs = (folder: string) => modsStore.entries.find((e) => e.folder === folder)?.loadMs;
+
+		beforeEach(() => {
+			fileListeners.clear();
+			globals.__clock = 0;
+			const clock = vi.spyOn(performance, 'now').mockImplementation(() => globals.__clock);
+			// Every file read costs a second, so a time that counts the reads is obvious.
+			const read = vi.mocked(readTextFile).getMockImplementation()!;
+			vi.mocked(readTextFile).mockImplementation(async (path, options) => {
+				globals.__clock += 1000;
+				return read(path, options);
+			});
+			onTestFinished(() => {
+				clock.mockRestore();
+				vi.mocked(readTextFile).mockImplementation(read);
+			});
+		});
+
+		it('times a loaded mod from its own top-level code to onload settling, without the file reads', async () => {
+			writeMod('alpha', timedMod(5, 37));
+
+			await startModsHost(VAULT);
+
+			expect(modsStore.entries).toEqual([
+				{ id: 'alpha', folder: 'alpha', name: 'Mod alpha', version: '1.0.0', state: 'loaded', loadMs: 42 },
+			]);
+		});
+
+		it('rounds to whole milliseconds, down to 0 under half a millisecond', async () => {
+			writeMod('alpha', timedMod(0, 41.6));
+			await startModsHost(VAULT);
+			// Loaded on its own: at vault open the mods load together and share the clock.
+			writeMod('beta', timedMod(0.1, 0.2));
+			await enableMod(VAULT, 'beta');
+
+			expect(loadMs('alpha')).toBe(42);
+			expect(loadMs('beta')).toBe(0);
+		});
+
+		it('gives error and disabled entries no time', async () => {
+			writeMod(
+				'broken',
+				`export default {
+	onload() {
+		globalThis.__clock += 50;
+		throw new Error('boom');
+	},
+};`,
+			);
+			writeMod('noexport', 'globalThis.__clock += 50;\n');
+			writeMod('off', timedMod(5, 5));
+			writeMod('alpha', timedMod(5, 5));
+			modsEnabledStore.setModEnabled('off', false);
+
+			await startModsHost(VAULT);
+			modsEnabledStore.setModEnabled('alpha', false);
+			disableMod('alpha');
+
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([
+				['alpha', 'disabled'],
+				['broken', 'error'],
+				['noexport', 'error'],
+				['off', 'disabled'],
+			]);
+			for (const entry of modsStore.entries) expect(entry).not.toHaveProperty('loadMs');
+		});
+
+		it('a save of main.js replaces the time with the new load\'s', async () => {
+			writeMod('alpha', timedMod(0, 10));
+			await startModsHost(VAULT);
+			expect(loadMs('alpha')).toBe(10);
+
+			writeMod('alpha', timedMod(0, 25));
+			emit([`${MODS}/alpha/main.js`]);
+
+			await vi.waitFor(() => expect(loadMs('alpha')).toBe(25));
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['alpha', 'loaded']]);
+		});
+
+		it('switching a mod off and on replaces the time with the new load\'s', async () => {
+			writeMod('alpha', timedMod(0, 10));
+			await startModsHost(VAULT);
+
+			modsEnabledStore.setModEnabled('alpha', false);
+			disableMod('alpha');
+			writeMod('alpha', timedMod(0, 30));
+			modsEnabledStore.setModEnabled('alpha', true);
+			await enableMod(VAULT, 'alpha');
+
+			expect(loadMs('alpha')).toBe(30);
+		});
+
+		it('a superseded load does not change the time', async () => {
+			let release!: () => void;
+			globals.__modGate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			onTestFinished(() => release());
+			writeMod('alpha', timedMod(0, 10));
+			await startModsHost(VAULT);
+
+			writeMod(
+				'alpha',
+				`export default {
+	async onload() {
+		globalThis.__modEvents.push('alpha:hang');
+		await globalThis.__modGate;
+		globalThis.__clock += 500;
+	},
+};`,
+			);
+			emit([`${MODS}/alpha/main.js`]);
+			await vi.waitFor(() => expect(globals.__modEvents).toContain('alpha:hang'));
+
+			writeMod('alpha', timedMod(0, 7));
+			emit([`${MODS}/alpha/main.js`]);
+			await vi.waitFor(() => expect(loadMs('alpha')).toBe(7));
+
+			release();
+			await new Promise((resolve) => setTimeout(resolve, 0));
+			expect(loadMs('alpha')).toBe(7);
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['alpha', 'loaded']]);
 		});
 	});
 });

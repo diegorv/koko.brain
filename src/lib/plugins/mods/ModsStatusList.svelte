@@ -52,7 +52,7 @@
 						</span>
 						<span class="flex items-center gap-3">
 							<span class="text-meta {entry.state === 'error' ? 'text-destructive' : 'text-muted-foreground'}">
-								{STATE_LABELS[entry.state]}
+								{STATE_LABELS[entry.state]}{#if entry.loadMs !== undefined}{' · '}<span data-mod-load-ms={entry.loadMs}>{entry.loadMs === 0 ? '< 1' : entry.loadMs} ms</span>{/if}
 							</span>
 							<!-- Reads the saved switch, not the load state, which lags until onload settles. -->
 							<Switch
