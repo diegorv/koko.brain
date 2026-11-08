@@ -634,6 +634,21 @@ Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, 
 > [!NOTE]
 > Stack traces show the mod's frames by function name only (for example `onload@`), without a file and line: the app's web view does not report locations for code evaluated this way.
 
+### Saving run messages
+
+`run.log(text)` always keeps the same single-string API and run-view behavior. To also save its messages locally, turn on **both** switches in **Settings → Troubleshooting**:
+
+1. **Save debug log to file** starts frontend file logging.
+2. **Save mod run messages to file** explicitly permits saving raw run text. It is off by default.
+
+**Messages may contain note text, paths, prompts, API responses or secrets.** This is raw text, not automatic redaction. Inspect the whole log file before sharing it. Turning the option off stops future message persistence; it does not delete content already saved. Existing `ctx.log` and caught-error diagnostics are outside this option and can still contain sensitive content when it is off.
+
+Each accepted message is encoded as one JSON `run-message` record under `[FRONT-END:MOD-HOST]`, with `modId`, `actionId`, `runId`, `origin`, an ISO `timestamp`, a per-run `sequence` starting at 1, and `text`. Empty strings are retained, and newlines are encoded inside `text`, not emitted as unprefixed log lines. No severity is inferred. The containing session file plus `runId` uses the same correlation convention as the host trace below; concurrent runs retain their own identity. Shared `ctx.log` calls do not get an inferred run identity.
+
+Sequence numbers count accepted messages even while saving is off, so saved sequences can have gaps. Enabling persistence never copies earlier in-memory messages. The view still retains only its last 500 entries, but that cap does not truncate the session file. Closing the view does not stop a live run's persistence or cause later output to reopen it. Completed-run replacement or store reset does not erase written messages. Calls after completion or cancellation are ignored in both the view and the file.
+
+Files remain in the existing system app log directory (`~/Library/Logs/com.diegorv.kokobrain/` on macOS), named `YYYY-MM-DD_HH-mm-ss.log`. **Show in Finder** opens the folder. These session files have no automatic retention cleanup; delete unwanted files yourself. Saving requires an active log session and uses the existing best-effort buffer, normally flushed every 250 ms or 50 lines. It is **not crash-proof**: crashes and file-write failures can lose messages. Writer failures do not change an action's result, and this persistence path does not send run text to Sentry. It saves only messages the mod actually emits, not unlogged reasons or proof that an action changed files correctly.
+
 ### Automatic host execution trace
 
 Turn on **Settings → Troubleshooting → Save debug log to file** before reproducing a problem. The host writes records even when a mod never calls `ctx.log`, `run.log` or `run.progress`. Console **Debug mode** alone does not enable file output. Without an active log session, nothing is written; enabling logging later does not replay earlier events.

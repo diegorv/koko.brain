@@ -63,6 +63,28 @@ describe('loadSettings', () => {
 		expect(writeTextFile).toHaveBeenCalled();
 	});
 
+	it.each([undefined, null, false, 'true', 'false', 1, {}, []].map((value) => [value]))('does not opt into raw mod messages from stored value %j', async (value) => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ debugModRunMessages: value }));
+		await loadSettings('/vault');
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls.at(-1)![1] as string).debugModRunMessages).toBe(false);
+	});
+
+	it('round-trips explicit raw message consent and turning it off', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		for (const enabled of [true, false]) {
+			settingsStore.setSettings({ ...settingsStore.settings, debugModRunMessages: enabled });
+			await saveSettings('/vault');
+			const saved = vi.mocked(writeTextFile).mock.calls.at(-1)![1] as string;
+			expect(JSON.parse(saved).debugModRunMessages).toBe(enabled);
+			settingsStore.reset();
+			vi.mocked(readTextFile).mockResolvedValue(saved);
+			await loadSettings('/vault');
+			expect(settingsStore.debugModRunMessages).toBe(enabled);
+		}
+	});
+
 	it('loads and merges periodic notes settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

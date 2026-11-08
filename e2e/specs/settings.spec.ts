@@ -1,5 +1,5 @@
 import type { Locator } from '@playwright/test';
-import { test, expect } from '../fixtures/test-vault';
+import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { pressShortcut } from '../fixtures/helpers';
 
 test.describe('Settings panel', () => {
@@ -58,6 +58,38 @@ test.describe('Settings panel', () => {
 
 		await panel.getByRole('button', { name: 'Send test event' }).click();
 		await expect(panel.getByRole('status')).toContainText('Sentry is not active');
+	});
+
+	test('raw mod message consent is separate, warned, persisted and reversible', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Comma');
+		const panel = page.locator('[role="dialog"][aria-label="Settings"]');
+		await panel.getByRole('button', { name: 'Troubleshooting', exact: true }).click();
+		const consent = panel.getByRole('switch', { name: 'Save mod run messages to file', exact: true });
+		const frontend = panel.locator('.bg-setting-item-bg').filter({ has: page.getByText('Save debug log to file', { exact: true }) }).getByRole('switch');
+		await expect(consent).toHaveAttribute('aria-checked', 'false');
+		await expect(frontend).toHaveAttribute('aria-checked', 'false');
+		await expect(panel).toContainText('note text, paths, prompts, API responses or secrets');
+		await expect(panel).toContainText('Inspect log files before sharing');
+		await expect(panel).toContainText('does not delete content already saved');
+		await consent.click();
+		await expect(consent).toHaveAttribute('aria-checked', 'true');
+		await expect(frontend).toHaveAttribute('aria-checked', 'false');
+		const savedConsent = () => page.evaluate((path) => JSON.parse(window.__e2e.fs.dump()[`${path}/.kokobrain/settings.json`]).debugModRunMessages, TEST_VAULT_PATH);
+		await expect.poll(savedConsent).toBe(true);
+
+		const files = await page.evaluate(() => window.__e2e.fs.dump());
+		await page.reload({ waitUntil: 'networkidle' });
+		await page.waitForFunction(() => window.__e2e?.fs !== undefined);
+		await page.evaluate((saved) => window.__e2e.fs.populate(saved), files);
+		await page.evaluate((path) => window.__e2e.dialog.setOpenResponse(path), TEST_VAULT_PATH);
+		await page.getByRole('button', { name: 'Open Vault' }).click();
+		await expect(page.locator('[data-rail]')).toBeVisible();
+		await pressShortcut(page, 'Mod+Comma');
+		await panel.getByRole('button', { name: 'Troubleshooting', exact: true }).click();
+		await expect(consent).toHaveAttribute('aria-checked', 'true');
+		await consent.click();
+		await expect(consent).toHaveAttribute('aria-checked', 'false');
+		await expect.poll(savedConsent).toBe(false);
 	});
 
 	test('the heading font weight is picked from a Select', async ({ vaultPage: page }) => {

@@ -392,6 +392,8 @@ export interface AppSettings {
 	debugModeTauri: boolean;
 	/** Whether frontend debug logs are also written to a file in .kokobrain/logs/ */
 	debugLogToFile: boolean;
+	/** Explicit consent to save raw mod run messages locally; also requires frontend file logging. */
+	debugModRunMessages: boolean;
 	/** Whether Tauri backend debug logs are also written to a file in .kokobrain/logs/ */
 	debugTauriLogToFile: boolean;
 	/**

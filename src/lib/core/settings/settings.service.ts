@@ -168,6 +168,7 @@ function parseSettings(content: string): AppSettings {
 		debugMode: parsed.debugMode ?? DEFAULT_SETTINGS.debugMode,
 		debugModeTauri: parsed.debugModeTauri ?? DEFAULT_SETTINGS.debugModeTauri,
 		debugLogToFile: parsed.debugLogToFile ?? DEFAULT_SETTINGS.debugLogToFile,
+		debugModRunMessages: parsed.debugModRunMessages === true,
 		debugTauriLogToFile: parsed.debugTauriLogToFile ?? DEFAULT_SETTINGS.debugTauriLogToFile,
 		debugHeartbeat: parsed.debugHeartbeat ?? DEFAULT_SETTINGS.debugHeartbeat,
 		livePreviewProfiling: parsed.livePreviewProfiling ?? DEFAULT_SETTINGS.livePreviewProfiling,

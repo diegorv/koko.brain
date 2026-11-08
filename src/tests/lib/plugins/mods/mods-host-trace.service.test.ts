@@ -31,7 +31,9 @@ vi.mock('#lib/core/filesystem/fs.watcher.js', async (importOriginal) => ({
 	},
 }));
 
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
+import type { ModRunV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { captureSentryException } from '#lib/core/settings/sentry.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -71,7 +73,12 @@ function deferred() {
 	return { promise, resolve, reject };
 }
 
-const globals = globalThis as typeof globalThis & { __traceGate?: Promise<void> };
+const globals = globalThis as typeof globalThis & { __traceGate?: Promise<void>; __messageRuns: ModRunV1[] };
+
+/** Reads the actual serialized bytes delivered to the filesystem boundary. */
+function logOutput(): string {
+	return [...files.entries()].filter(([path]) => path.startsWith('/logs/')).map(([, text]) => text).join('');
+}
 
 describe('host execution trace through the real buffered logger', () => {
 	beforeEach(async () => {
@@ -79,6 +86,7 @@ describe('host execution trace through the real buffered logger', () => {
 		teardownLogSession();
 		await flushLog();
 		files.clear();
+		globals.__messageRuns = [];
 		vi.clearAllMocks();
 		localStorage.clear();
 		modsRunsStore.reset();
@@ -89,6 +97,7 @@ describe('host execution trace through the real buffered logger', () => {
 		vaultStore._reset();
 		vaultStore.open(VAULT);
 		modsEnabledStore.setEnabled(true);
+		settingsStore.updateDebugModRunMessages(false);
 		settingsStore.updateDebugMode(false);
 		settingsStore.updateDebugLogToFile(true);
 		await initLogSession();
@@ -99,6 +108,163 @@ describe('host execution trace through the real buffered logger', () => {
 		teardownLogSession();
 		await flushLog();
 		settingsStore.updateDebugLogToFile(false);
+		settingsStore.updateDebugModRunMessages(false);
+		vi.restoreAllMocks();
+	});
+
+	it('persists opted-in messages as correlated data without changing run-view output', async () => {
+		settingsStore.updateDebugModRunMessages(true);
+		const text = 'sensitive-run-marker\n[FRONT-END:MOD-HOST] forged\r\n"quoted"';
+		writeMod(`ctx.addAction({ id: 'log', title: 'Log', run(input, run) {
+			run.log(''); run.log(${JSON.stringify(text)});
+		} });`);
+		await startModsHost(VAULT);
+		modCommandsStore.list[0].run();
+		await vi.waitFor(() => expect(modsRunsStore.runs[0]?.status).toBe('done'));
+		const run = modsRunsStore.runs[0];
+		expect(run.lines).toEqual(['', text]);
+		expect(modPickerStore.runKey).toBe(run.buttonKey);
+		const messages = (await records()).filter((record) => record.event === 'run-message');
+		expect(messages).toEqual([
+			{ event: 'run-message', modId: 'quiet', actionId: 'log', runId: run.id, origin: 'command', sequence: 1, timestamp: expect.any(String), text: '' },
+			{ event: 'run-message', modId: 'quiet', actionId: 'log', runId: run.id, origin: 'command', sequence: 2, timestamp: expect.any(String), text },
+		]);
+		const output = [...files.entries()].filter(([path]) => path.startsWith('/logs/')).map(([, value]) => value).join('');
+		expect(output.split('\n').filter((line) => line.includes('sensitive-run-marker'))).toHaveLength(1);
+		expect(output).not.toContain('\n[FRONT-END:MOD-HOST] forged');
+		expect(captureSentryException).not.toHaveBeenCalled();
+	});
+
+	it.each(['no-consent', 'no-file-logging', 'no-session'])('keeps run-only secrets out of the file with %s', async (mode) => {
+		settingsStore.updateDebugModRunMessages(mode !== 'no-consent');
+		if (mode === 'no-file-logging') settingsStore.updateDebugLogToFile(false);
+		if (mode === 'no-session') teardownLogSession();
+		writeMod("ctx.addAction({ id: 'log', title: 'Log', run(input, run) { run.log('run-only-secret'); } });");
+		await startModsHost(VAULT);
+		modCommandsStore.list[0].run();
+		await vi.waitFor(() => expect(modsRunsStore.runs[0]?.status).toBe('done'));
+		expect(modsRunsStore.runs[0].lines).toEqual(['run-only-secret']);
+		const events = await records();
+		expect(events.filter((record) => record.event === 'run-message')).toEqual([]);
+		expect(logOutput()).not.toContain('run-only-secret');
+		if (mode === 'no-consent') expect(events).toContainEqual(expect.objectContaining({ event: 'action-end', outcome: 'done' }));
+	});
+
+	it('never replays earlier messages and keeps saving a closed live view until consent is withdrawn', async () => {
+		const gate = deferred();
+		globals.__traceGate = gate.promise;
+		writeMod(`ctx.addAction({ id: 'log', title: 'Log', run(input, run) {
+			globalThis.__messageRuns.push(run); return globalThis.__traceGate;
+		} });`);
+		await startModsHost(VAULT);
+		modCommandsStore.list[0].run();
+		expect(modPickerStore.isOpen).toBe(false);
+		settingsStore.updateDebugModRunMessages(true);
+		expect(modPickerStore.isOpen).toBe(false);
+		settingsStore.updateDebugModRunMessages(false);
+		const facade = globals.__messageRuns[0];
+		facade.log('before-consent-secret');
+		expect(modPickerStore.isOpen).toBe(true);
+		modPickerStore.close();
+		settingsStore.updateDebugModRunMessages(true);
+		facade.log('consented-secret');
+		expect(modPickerStore.isOpen).toBe(false);
+		settingsStore.updateDebugModRunMessages(false);
+		facade.log('after-opt-out-secret');
+		gate.resolve();
+		await vi.waitFor(() => expect(modsRunsStore.runs[0]?.status).toBe('done'));
+		expect(modsRunsStore.runs[0].lines).toEqual(['before-consent-secret', 'consented-secret', 'after-opt-out-secret']);
+		const messages = (await records()).filter((record) => record.event === 'run-message');
+		expect(messages).toEqual([expect.objectContaining({ sequence: 2, text: 'consented-secret' })]);
+		expect(logOutput()).not.toMatch(/before-consent-secret|after-opt-out-secret/);
+		const saved = logOutput();
+		modsRunsStore.reset();
+		expect(modsRunsStore.runs).toEqual([]);
+		await flushLog();
+		expect(logOutput()).toBe(saved);
+	});
+
+	it('keeps interleaved run identity and ordering separate and ignores cancelled and completed output', async () => {
+		settingsStore.updateDebugModRunMessages(true);
+		const gate = deferred();
+		globals.__traceGate = gate.promise;
+		writeMod(`
+			for (const id of ['one', 'two']) ctx.addAction({ id, title: id, run(input, run) {
+				globalThis.__messageRuns.push(run); return globalThis.__traceGate;
+			} });
+			ctx.log('shared-context-diagnostic');
+		`);
+		await startModsHost(VAULT);
+		modCommandsStore.list[0].run();
+		modCommandsStore.list[1].run();
+		const [one, two] = modsRunsStore.runs;
+		const [first, second] = globals.__messageRuns;
+		first.log('one-secret');
+		second.log('two-secret');
+		first.log('one-again-secret');
+		one.stop();
+		first.log('cancelled-secret');
+		gate.resolve();
+		await vi.waitFor(() => expect(modsRunsStore.runFor(two.buttonKey)?.status).toBe('done'));
+		second.log('completed-secret');
+		expect(modsRunsStore.runFor(one.buttonKey)?.lines).toEqual(['one-secret', 'one-again-secret']);
+		expect(modsRunsStore.runFor(two.buttonKey)?.lines).toEqual(['two-secret']);
+		const messages = (await records()).filter((record) => record.event === 'run-message');
+		expect(messages).toEqual([
+			expect.objectContaining({ modId: 'quiet', actionId: 'one', runId: one.id, sequence: 1, text: 'one-secret' }),
+			expect.objectContaining({ modId: 'quiet', actionId: 'two', runId: two.id, sequence: 1, text: 'two-secret' }),
+			expect.objectContaining({ modId: 'quiet', actionId: 'one', runId: one.id, sequence: 2, text: 'one-again-secret' }),
+		]);
+		const output = logOutput();
+		expect(output).not.toMatch(/cancelled-secret|completed-secret/);
+		expect(output.split('\n').filter((line) => line.includes('-secret'))).toHaveLength(3);
+		expect(output.split('\n').find((line) => line.includes('shared-context-diagnostic'))).toMatch(/\[FRONT-END:MOD:quiet\] shared-context-diagnostic$/);
+		expect(JSON.stringify(messages)).not.toContain('shared-context-diagnostic');
+	});
+
+	it('persists beyond the 500-entry view cap and keeps old records after replacement and reset', async () => {
+		settingsStore.updateDebugModRunMessages(true);
+		writeMod(`ctx.addAction({ id: 'many', title: 'Many', run(input, run) {
+			globalThis.__messageRuns.push(run);
+			for (let i = 0; i < 502; i++) run.log('message-' + i);
+		} });`);
+		await startModsHost(VAULT);
+		modCommandsStore.list[0].run();
+		await vi.waitFor(() => expect(modsRunsStore.runs[0]?.status).toBe('done'));
+		const first = modsRunsStore.runs[0];
+		expect(first.lines).toHaveLength(500);
+		expect(first.lines[0]).toBe('message-2');
+		expect(first.lines.at(-1)).toBe('message-501');
+		modCommandsStore.list[0].run();
+		await vi.waitFor(() => expect(modsRunsStore.runs[0]?.status).toBe('done'));
+		expect(modsRunsStore.runs).toHaveLength(1);
+		expect(modsRunsStore.runs[0].id).not.toBe(first.id);
+		globals.__messageRuns[0].log('replaced-secret');
+		modsRunsStore.reset();
+		const messages = (await records()).filter((record) => record.event === 'run-message');
+		expect(messages).toHaveLength(1004);
+		expect(messages[0]).toMatchObject({ runId: first.id, sequence: 1, text: 'message-0' });
+		expect(messages[501]).toMatchObject({ runId: first.id, sequence: 502, text: 'message-501' });
+		expect(modsRunsStore.runs).toEqual([]);
+		expect(logOutput()).not.toContain('replaced-secret');
+	});
+
+	it('does not turn a buffered write failure into an action failure or Sentry event', async () => {
+		settingsStore.updateDebugModRunMessages(true);
+		await flushLog();
+		const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		writeMod("ctx.addAction({ id: 'log', title: 'Log', run(input, run) { run.log('unsaved-secret'); } });");
+		await startModsHost(VAULT);
+		modCommandsStore.list[0].run();
+		await vi.waitFor(() => expect(modsRunsStore.runs[0]?.status).toBe('done'));
+		await expect(flushLog()).resolves.toBeUndefined();
+		expect(modsRunsStore.runs[0].lines).toEqual(['unsaved-secret']);
+		expect(modsRunsStore.runs[0].error).toBeNull();
+		expect(logOutput()).not.toContain('unsaved-secret');
+		expect(consoleError).toHaveBeenCalledWith('Failed to write log:', expect.any(Error));
+		expect(toast.error).not.toHaveBeenCalled();
+		expect(captureSentryException).not.toHaveBeenCalled();
 	});
 
 	it('keeps empty discovery a no-op', async () => {

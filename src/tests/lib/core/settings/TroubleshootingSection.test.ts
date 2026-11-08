@@ -38,6 +38,26 @@ describe('TroubleshootingSection', () => {
 		return target;
 	}
 
+	it('requires separate raw-message consent and explains the sensitivity and opt-out limits', () => {
+		const root = render();
+		const toggle = root.querySelector<HTMLButtonElement>('[role="switch"][aria-label="Save mod run messages to file"]');
+		expect(toggle).not.toBeNull();
+		expect(toggle!.getAttribute('aria-checked')).toBe('false');
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		for (const warning of ['Save debug log to file', 'note text', 'paths', 'prompts', 'API responses', 'secrets', 'Inspect log files before sharing', 'does not delete']) {
+			expect(root.textContent).toContain(warning);
+		}
+		toggle!.click();
+		flushSync();
+		expect(settingsStore.debugModRunMessages).toBe(true);
+		expect(settingsStore.debugLogToFile).toBe(false);
+		expect(toggle!.getAttribute('aria-checked')).toBe('true');
+		toggle!.click();
+		flushSync();
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		expect(toggle!.getAttribute('aria-checked')).toBe('false');
+	});
+
 	it('leaves the build info to the Update page', () => {
 		const root = render();
 

@@ -298,6 +298,7 @@ You set colors interactively from the Tags tab by clicking the dot next to a tag
 |---------|-------------|---------|
 | **Debug Mode (Frontend)** | Logs verbose frontend info to browser DevTools console | Disabled |
 | **Save Debug Log to File** | Writes frontend logs to the system log directory | Disabled |
+| **Save mod run messages to file** (`debugModRunMessages`) | Explicitly permits saving raw `run.log` text locally. Also requires **Save debug log to file** and an active log session | Disabled |
 | **Show in Finder** | Opens the log directory in the system file manager | -- |
 | **Debug Mode (Tauri)** | Forwards Rust backend logs to browser DevTools | Disabled |
 | **Save Tauri Log to File** | Writes backend logs to the system log directory | Disabled |
@@ -306,9 +307,13 @@ You set colors interactively from the Tags tab by clicking the dot next to a tag
 | **Live preview decorators** (`disabledDecorators`) | Turn one off to isolate a rendering problem. A change applies the next time a note opens. Saved by key. Properties block (`frontmatter`), Code blocks (`codeBlock`), Comment blocks (`blockComment`), Tables (`table`), Callouts (`callout`), Collection blocks (`collectionBlock`), QueryJS blocks (`queryjs`), Meta Bind buttons (`metaBindButton`), Mermaid diagrams (`mermaid`), Math blocks (`blockMath`), Audio embeds (`audio`), Video embeds (`video`), Images (`image`), Footnotes (`footnote`), Embedded notes (`wikilinkEmbed`), Meta Bind inputs (`metaBindInput`), Headings (`heading`), Blockquotes (`blockquote`), Checkboxes, list markers, rules, line breaks and inline math (`simpleWidget`), Links and wikilinks (`link`), Hidden formatting marks (`inlineMarks`), Bold, italic, strikethrough, code and highlight styling (`markdownStyle`). | All on |
 
 > [!NOTE]
-> These settings are only useful when diagnosing bugs. Enable them before reproducing an issue, then share the log files when reporting a bug.
+> These settings are only useful when diagnosing bugs. Enable them before reproducing an issue and inspect log files before sharing them.
 >
-> Log files are stored in the system log directory (`~/Library/Logs/` on macOS), not inside the vault.
+> Log files are stored outside the vault in the system app log directory (`~/Library/Logs/com.diegorv.kokobrain/` on macOS), as `YYYY-MM-DD_HH-mm-ss.log` session files. **Show in Finder** opens that folder. There is no automatic retention cleanup for these session files; remove unwanted files yourself.
+
+**Raw mod messages are sensitive.** They may contain note text, paths, prompts, API responses or secrets. **Save debug log to file** alone does not authorize saving `run.log` text: separately enable **Save mod run messages to file**. Messages are saved as emitted, without automatic redaction. Turning the option off stops future message persistence but does not delete content already saved. Enabling it never copies earlier run-view messages. Existing `ctx.log`, caught-error diagnostics and other app logs are unaffected and may contain sensitive content even with this option off.
+
+Messages use the existing best-effort buffered writer, normally flushing every 250 ms or 50 lines. Persistence is not crash-proof: crashes or file-write failures can lose buffered messages. Closing or replacing a run view does not erase saved messages. See [Mods: saving run messages](28-mods.md#saving-run-messages) for correlation and limits.
 
 ## Update
 

@@ -1,0 +1,56 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Write a failing integration test through the real run facade, real stores and existing buffered writer, mocking only external boundaries. Verify actual serialized file output as well as the unchanged run-view state. — `src/tests/lib/plugins/mods/mods-host-trace.service.test.ts:113-136` exercises the real host, run/picker/settings stores, debug helper and buffered writer; its filesystem mock preserves append semantics. An independent negative-control run loading the merge-base host through a temporary Vite plugin failed at line 128 with zero records instead of two, after the UI-state assertions passed. The current host passes all 27 tests in that file. No application source was changed for the probe.
+- [met] Add a persisted boolean setting and a clearly labeled Troubleshooting control with the sensitivity warning. Missing or invalid stored values do not opt the user in. Cover default, enabled round-trip and turning the option off. — `settings.store.svelte.ts:136,181,345` supplies the false default, getter and setter; `settings.service.ts:171` accepts only boolean true. Settings service/store tests cover invalid stored values and true/false round-trips; `TroubleshootingSection.test.ts:41-62` and `e2e/specs/settings.spec.ts:63-93` verify the rendered warning, separate switch, reload persistence and opt-out.
+- [met] Persist accepted run.log entries only when both this opt-in and frontend file logging are enabled and a log session is active. Never copy earlier in-memory entries retroactively when the option is enabled. — `mods-host.service.ts:334-344` checks run acceptance and both settings per call; `utils/debug.ts:17-20` routes to `appendLog`, whose active-session guard is at `utils/log.service.ts:83`. Trace integration tests independently cover no consent, no frontend logging, no active session and enabling consent partway through a run without replay.
+- [met] Each persisted entry carries Issue 01's session/run identity, mod/action identity, timestamp and per-run ordering information. Interleaved runs never borrow each other's identity. Do not infer run identity for shared ctx.log calls. — `mods-host.service.ts:287-289,330-343` captures identity and a sequence counter in each run closure. The session file plus runId retains Issue 01's convention. Trace tests assert interleaved action identities, separate sequence counters, timestamp fields and an unchanged uncorrelated shared-context diagnostic.
+- [met] Preserve empty strings and multiline message content as encoded data within a correlated record, not unprefixed physical log lines that can impersonate lifecycle events. Keep the public single-string log signature unchanged; do not invent severity classification from message text. — The host JSON-encodes the complete record at `mods-host.service.ts:341-343`; the integration test at lines 113-136 checks empty text, CR/LF, quotes and a forged physical-line prefix against serialized output. `contract/mod-api.v1.ts:67` remains `log: (text: string) => void`; there is no severity classifier.
+- [met] The UI still retains its existing last-500-entry behavior, including replacement/reset and ignored output after termination. Closing the view does not stop a live run's persistence. Completed-run replacement or store reset does not remove already-written messages from the session file. — The run store is unchanged. Trace tests persist 1,004 records across two 502-message runs while retaining only the newest run's last 500 UI entries, reject a replaced facade's late output, and retain file bytes after reset. The consent-toggle test closes the live view and confirms later consented output still persists without reopening it.
+- [met] Calls after completion or cancellation do not produce persisted entries, matching the run store's accepted-output behavior. Enabling persistence does not reopen a previously closed run view or change when the lazy view appears. — `mods-host.service.ts:336-337` rejects stale and terminal runs before either sink. Trace tests assert absence of cancelled/completed markers, no eager view on enabling consent, first-output lazy reveal and no reopening after close; existing picker and host suites also pass.
+- [met] With the option off, unique sensitive markers passed only to run.log remain absent from persisted output while lifecycle diagnostics still work. With it on, assert that those markers appear only in the intended correlated message records. Cover concurrent runs, empty/multiline text and late calls. — Trace integration tests check the actual combined file bytes as well as parsed records: off-state secrets are absent with action-end still present; enabled messages match exact correlated records, multiline text occupies one physical record, interleaved runs retain identity and late-call secrets remain absent. Both browser variants independently verify message persistence on/off alongside lifecycle events.
+- [met] Use the existing local buffered writer and failure behavior. Logging must not change the action's result, propagate a file-write failure into the action, or send run text to Sentry. Do not add a separate historical-run database, recovery mechanism or log-file retention system. — The host uses the existing debug-to-appendLog path; no writer, database, Rust or retention code changes. The trace write-failure test verifies successful action completion, unchanged UI text, no toast and no Sentry capture after a rejected write. `sentry.service.ts:27-35,58-84` additionally strips breadcrumbs and excludes console-breadcrumb integrations, so the debug-console route is not an indirect Sentry export.
+- [met] Update Settings and mod documentation with the two required switches, sensitivity warning, existing log-file location/retention behavior and best-effort buffering. Explicitly state that persistence is not crash-proof and turning it off does not delete existing content. — `help/documentation/19-settings.md:301-316` and `help/documentation/28-mods.md:616-630` describe both switches, raw sensitive text, inspection before sharing, the existing macOS app-log directory/session filenames, manual removal, 250 ms/50-line buffering, no replay, no deletion on opt-out and non-crash-proof persistence. They explicitly leave ctx.log and caught-error content outside this option.
+- [met] Add UI coverage for the opt-in and a mod run whose displayed message also reaches the enabled diagnostic sink; verify the disabled case does not persist it. — The rendered component test and Settings browser test exercise the opt-in. `e2e/specs/vault-mods.spec.ts:342-427` runs the real UI in both consent states, asserts displayed Step 1/Step 2 messages and checks filesystem-backed serialized records, including raw-output absence in the disabled case. Both affected browser specs passed independently.
+
+## Findings
+
+None. No correctness, privacy, missing-coverage or scope defect survived verification.
+
+## Standards and spec review
+
+Reviewed `git diff main...HEAD` at branch HEAD `a6220578d36593e06c9dcc4eeb087be599a9958a`, with merge base `4610c58163cd0dd671e22db69064a1ca3733926b`. The feature-level `.scratch/mods-observability/spec.md` does not exist; the Issue, ADR-0015 and ADR-0036 supply the applicable requirements and vocabulary.
+
+The host owns persistence, stores remain reactive state, the existing run API and writer are unchanged, and the diff stays within the allowed Settings/mods/tests/documentation scope. Tests mock external side effects rather than stores or logic. No architecture baseline or composition-root change is present. No additional abstraction or refactor is needed for this small run-local behavior.
+
+## Independent verification
+
+- `pnpm check`: passed, 226 files, zero errors and zero warnings.
+- `pnpm vitest run src/tests/lib/core/settings src/tests/lib/plugins/mods src/tests/lib/utils/debug.test.ts src/tests/lib/utils/log.service.test.ts`: passed, 64 files and 1,377 tests.
+- Negative control: a temporary Vite config loaded the merge-base host without changing application files and ran only `persists opted-in messages as correlated data without changing run-view output`. It failed at the intended serialized-message assertion, exit 1. Removed the temporary config, then reran the whole current `mods-host-trace.service.test.ts`: 27 passed, exit 0. This proves the regression test distinguishes the old implementation; it does not establish the author's historical edit/run order.
+- `bash scripts/e2e.sh e2e/specs/settings.spec.ts e2e/specs/vault-mods.spec.ts`: passed, 24 browser tests, exit 0.
+- `git diff --check`: passed. The worktree was clean after removing the probe and before writing this review.
+- The installed Vitest/Svelte tooling printed its existing `hot` option/no Svelte config warnings; test execution succeeded.
+
+### Test-file inventory
+
+The test verdict rests on these files, not the build report. Names below are relative to the stated directory.
+
+`src/tests/lib/core/settings/`:
+- `AppearanceSection.test.ts`, `BuildInfo.test.ts`, `EditorSection.test.ts`, `FilesSection.test.ts`, `HeadingTypographyEditor.test.ts`, `OneOnOneSection.test.ts`, `QuickCaptureSection.test.ts`, `SettingItem.test.ts`, `ThemeEditor.test.ts`, `ThemePreview.test.ts`, `TodoistSection.test.ts`, `TrashSection.test.ts`, `TroubleshootingSection.test.ts`.
+- `UpdateSection.changelog.test.ts`, `UpdateSection.layout.test.ts`, `UpdateSection.restart.test.ts`, `applied-theme.store.test.ts`, `heading-typography.logic.test.ts`, `rail-pin.logic.test.ts`, `sentry.logic.test.ts`, `sentry.service.test.ts`.
+- `settings-controls.test.ts`, `settings-copy.test.ts`, `settings-headings.test.ts`, `settings-panel.store.test.ts`, `settings-persistence.test.ts`, `settings-text.test.ts`, `settings.logic.test.ts`, `settings.service.test.ts`, `settings.store.reactivity.client.test.ts`, `settings.store.test.ts`.
+- `theme-builder.logic.test.ts`, `theme-catalog.service.test.ts`, `theme-css-contract.test.ts`, `theme-editor.logic.test.ts`, `theme-package.logic.test.ts`, `theme-snapshot.test.ts`, `theme-validation.logic.test.ts`, `theme.logic.test.ts`, `theme.service.test.ts`, `update-check.service.test.ts`.
+
+`src/tests/lib/plugins/mods/`:
+- `ModActionPicker.test.ts`, `ModDialogHost.test.ts`, `ModsStatusList.test.ts`, `mod-api-contract.test.ts`, `mod-app.service.test.ts`, `mod-commands.store.test.ts`, `mod-dialogs.store.test.ts`, `mod-note-saved.test.ts`, `mod-picker.store.test.ts`, `mod-rail-icon.test.ts`, `mod-theme.test.ts`, `mod-vault-paths.test.ts`, `mod-vault.service.test.ts`, `mod-watch.test.ts`.
+- `mods-enabled.logic.test.ts`, `mods-enabled.store.test.ts`, `mods-host-trace.service.test.ts`, `mods-host.service.test.ts`, `mods-runs.store.test.ts`, `mods.logic.test.ts`, `mods.store.test.ts`.
+
+Additional files:
+- `src/tests/lib/utils/debug.test.ts` and `src/tests/lib/utils/log.service.test.ts`.
+- `e2e/specs/settings.spec.ts` and `e2e/specs/vault-mods.spec.ts`.
+
+## Verification limits
+
+The full frontend suite is reserved for deliver and was not run. Browser tests verify real UI/serialization against mocked filesystem boundaries, not native WKWebView delivery. Existing buffering remains best-effort; opting out does not erase previously written sensitive text.

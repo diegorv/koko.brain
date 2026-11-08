@@ -52,6 +52,17 @@
 	</SettingItem>
 
 	<SettingItem
+		label="Save mod run messages to file"
+		description="Save raw run.log text locally. Also requires Save debug log to file. Messages may contain note text, paths, prompts, API responses or secrets. Inspect log files before sharing. Turning this off stops future messages but does not delete content already saved. Existing ctx.log and error diagnostics are unaffected."
+	>
+		<Switch
+			aria-label="Save mod run messages to file"
+			checked={settingsStore.debugModRunMessages}
+			onCheckedChange={(v) => settingsStore.updateDebugModRunMessages(v)}
+		/>
+	</SettingItem>
+
+	<SettingItem
 		label="Heartbeat"
 		description="Log a tick every 250 ms, UI and main-thread stalls, and click-to-paint time. Needs a log file. Leave off unless you are chasing a stall."
 	>

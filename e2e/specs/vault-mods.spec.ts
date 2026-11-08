@@ -339,73 +339,92 @@ test.describe('Vault mods', () => {
 			);
 		});
 
-		test('a long action renders success and cancellation and persists their host traces', async ({ vaultPage: page }) => {
-			// The path API imports native core relatively, outside the Vite core alias.
-			await page.evaluate(() => {
-				Object.assign(window, { __TAURI_INTERNALS__: {
-					invoke: async (command: string) => {
-						if (command === 'plugin:path|resolve_directory') return '/test-logs';
-						throw new Error(`Unexpected native command: ${command}`);
-					},
-				} });
+		for (const persistMessages of [false, true]) {
+			test(`a long action renders success and cancellation with message persistence ${persistMessages ? 'on' : 'off'}`, async ({ vaultPage: page }) => {
+				// The path API imports native core relatively, outside the Vite core alias.
+				await page.evaluate(() => {
+					Object.assign(window, { __TAURI_INTERNALS__: {
+						invoke: async (command: string) => {
+							if (command === 'plugin:path|resolve_directory') return '/test-logs';
+							throw new Error(`Unexpected native command: ${command}`);
+						},
+					} });
+				});
+				const trace = () => page.evaluate(() => Object.entries(window.__e2e.fs.dump())
+					.filter(([path]) => path.startsWith('/test-logs/') && path.endsWith('.log'))
+					.flatMap(([, text]) => text.split('\n'))
+					.filter((line) => line.includes('[FRONT-END:MOD-HOST] '))
+					.map((line) => JSON.parse(line.slice(line.indexOf('[FRONT-END:MOD-HOST] ') + '[FRONT-END:MOD-HOST] '.length))));
+				const panel = await openLabs(page);
+				await panel.getByRole('button', { name: 'Troubleshooting', exact: true }).click();
+				await panel.locator('.bg-setting-item-bg').filter({ has: page.getByText('Save debug log to file', { exact: true }) }).getByRole('switch').click();
+				const consent = panel.getByRole('switch', { name: 'Save mod run messages to file', exact: true });
+				await expect(consent).toHaveAttribute('aria-checked', 'false');
+				if (persistMessages) await consent.click();
+				await panel.getByRole('button', { name: /^labs$/i }).click();
+				await panel.getByRole('switch', { name: 'Vault mods' }).click();
+				await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
+				await page.keyboard.press('Escape');
+				await expect(panel).toBeHidden();
+
+				const button = page.locator('[data-rail-item="mod:hello:main"]');
+				const view = page.locator('[data-mod-run]');
+				const status = view.locator('[data-mod-run-status]');
+				await button.click();
+				await page.locator('[data-mod-action="slow"]').click();
+
+				await expect(view).toContainText('Slow job');
+				await expect(view).toContainText('Step 1 done');
+				await expect(view.locator('[data-mod-run-progress-label]')).toHaveText('Halfway');
+				await expect(status).toHaveText('Running');
+				await expect(button).toHaveAttribute('aria-busy', 'true');
+				// Wait for a real buffer flush before ending the run: later writes must append.
+				await expect.poll(async () => (await trace()).filter((record) => record.event === 'action-start').length).toBe(1);
+
+				await page.evaluate(() => (globalThis as { __slowRelease?: () => void }).__slowRelease?.());
+
+				await expect(view).toContainText('Step 2 done');
+				await expect(status).toHaveText('Done');
+				await expect(button).not.toHaveAttribute('aria-busy');
+				await view.locator('[data-mod-run-close]').click();
+				await expect(view).toBeHidden();
+
+				await button.click();
+				await page.locator('[data-mod-action="slow"]').click();
+				await expect(status).toHaveText('Running');
+				await view.locator('[data-mod-run-stop]').click();
+
+				await expect(status).toHaveText('Cancelled');
+				await expect(button).not.toHaveAttribute('aria-busy');
+				await expect(toasts(page).filter({ hasText: 'Slow job failed' })).toHaveCount(0);
+				await expect.poll(async () => (await trace()).filter((record) => record.event === 'action-end').length).toBe(2);
+				const records = await trace();
+				const starts = records.filter((record) => record.event === 'action-start');
+				expect(starts).toHaveLength(2);
+				expect(starts[0].runId).not.toBe(starts[1].runId);
+				expect(records.filter((record) => record.event === 'action-end')).toEqual([
+					{ event: 'action-end', modId: 'hello', actionId: 'slow', runId: starts[0].runId, origin: 'rail', outcome: 'done', elapsedMs: expect.any(Number) },
+					{ event: 'action-end', modId: 'hello', actionId: 'slow', runId: starts[1].runId, origin: 'rail', outcome: 'cancelled', elapsedMs: expect.any(Number) },
+				]);
+				expect(records).toContainEqual({ event: 'load-attempt', modId: 'hello' });
+				expect(records).toContainEqual(expect.objectContaining({ event: 'load-result', modId: 'hello', outcome: 'loaded' }));
+				expect(JSON.stringify(records.filter((record) => record.event !== 'run-message'))).not.toMatch(/Slow job|Halfway|Step 1 done/);
+				const messages = records.filter((record) => record.event === 'run-message');
+				if (persistMessages) {
+					expect(messages).toEqual([
+						expect.objectContaining({ modId: 'hello', actionId: 'slow', runId: starts[0].runId, sequence: 1, text: 'Step 1 done' }),
+						expect.objectContaining({ modId: 'hello', actionId: 'slow', runId: starts[0].runId, sequence: 2, text: 'Step 2 done' }),
+						expect.objectContaining({ modId: 'hello', actionId: 'slow', runId: starts[1].runId, sequence: 1, text: 'Step 1 done' }),
+					]);
+				} else {
+					expect(messages).toEqual([]);
+					const output = await page.evaluate(() => Object.entries(window.__e2e.fs.dump())
+						.filter(([path]) => path.startsWith('/test-logs/') && path.endsWith('.log'))
+						.map(([, text]) => text).join(''));
+					expect(output).not.toMatch(/Step 1 done|Step 2 done/);
+				}
 			});
-			const trace = () => page.evaluate(() => Object.entries(window.__e2e.fs.dump())
-				.filter(([path]) => path.startsWith('/test-logs/') && path.endsWith('.log'))
-				.flatMap(([, text]) => text.split('\n'))
-				.filter((line) => line.includes('[FRONT-END:MOD-HOST] '))
-				.map((line) => JSON.parse(line.slice(line.indexOf('[FRONT-END:MOD-HOST] ') + '[FRONT-END:MOD-HOST] '.length))));
-			const panel = await openLabs(page);
-			await panel.getByRole('button', { name: 'Troubleshooting', exact: true }).click();
-			await panel.locator('.bg-setting-item-bg').filter({ hasText: 'Save debug log to file' }).getByRole('switch').click();
-			await panel.getByRole('button', { name: /^labs$/i }).click();
-			await panel.getByRole('switch', { name: 'Vault mods' }).click();
-			await expect(panel.locator('[data-mod-folder="hello"]')).toContainText('Loaded');
-			await page.keyboard.press('Escape');
-			await expect(panel).toBeHidden();
-
-			const button = page.locator('[data-rail-item="mod:hello:main"]');
-			const view = page.locator('[data-mod-run]');
-			const status = view.locator('[data-mod-run-status]');
-			await button.click();
-			await page.locator('[data-mod-action="slow"]').click();
-
-			await expect(view).toContainText('Slow job');
-			await expect(view).toContainText('Step 1 done');
-			await expect(view.locator('[data-mod-run-progress-label]')).toHaveText('Halfway');
-			await expect(status).toHaveText('Running');
-			await expect(button).toHaveAttribute('aria-busy', 'true');
-			// Wait for a real buffer flush before ending the run: later writes must append.
-			await expect.poll(async () => (await trace()).filter((record) => record.event === 'action-start').length).toBe(1);
-
-			await page.evaluate(() => (globalThis as { __slowRelease?: () => void }).__slowRelease?.());
-
-			await expect(view).toContainText('Step 2 done');
-			await expect(status).toHaveText('Done');
-			await expect(button).not.toHaveAttribute('aria-busy');
-			await view.locator('[data-mod-run-close]').click();
-			await expect(view).toBeHidden();
-
-			await button.click();
-			await page.locator('[data-mod-action="slow"]').click();
-			await expect(status).toHaveText('Running');
-			await view.locator('[data-mod-run-stop]').click();
-
-			await expect(status).toHaveText('Cancelled');
-			await expect(button).not.toHaveAttribute('aria-busy');
-			await expect(toasts(page).filter({ hasText: 'Slow job failed' })).toHaveCount(0);
-			await expect.poll(async () => (await trace()).filter((record) => record.event === 'action-end').length).toBe(2);
-			const records = await trace();
-			const starts = records.filter((record) => record.event === 'action-start');
-			expect(starts).toHaveLength(2);
-			expect(starts[0].runId).not.toBe(starts[1].runId);
-			expect(records.filter((record) => record.event === 'action-end')).toEqual([
-				{ event: 'action-end', modId: 'hello', actionId: 'slow', runId: starts[0].runId, origin: 'rail', outcome: 'done', elapsedMs: expect.any(Number) },
-				{ event: 'action-end', modId: 'hello', actionId: 'slow', runId: starts[1].runId, origin: 'rail', outcome: 'cancelled', elapsedMs: expect.any(Number) },
-			]);
-			expect(records).toContainEqual({ event: 'load-attempt', modId: 'hello' });
-			expect(records).toContainEqual(expect.objectContaining({ event: 'load-result', modId: 'hello', outcome: 'loaded' }));
-			expect(JSON.stringify(records)).not.toMatch(/Slow job|Halfway|Step 1 done/);
-		});
+		}
 
 		test('turning mods off removes the hello mod rail button', async ({ vaultPage: page }) => {
 			const panel = await openLabs(page);

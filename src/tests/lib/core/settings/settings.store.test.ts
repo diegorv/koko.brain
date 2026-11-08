@@ -12,6 +12,21 @@ describe('settingsStore', () => {
 		expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 	});
 
+	it('keeps mod message consent separate from file logging and resets it to false', () => {
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		settingsStore.updateDebugLogToFile(true);
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		settingsStore.updateDebugModRunMessages(true);
+		expect(settingsStore.debugModRunMessages).toBe(true);
+		expect(settingsStore.settings.debugModRunMessages).toBe(true);
+		settingsStore.updateDebugModRunMessages(false);
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		expect(settingsStore.debugLogToFile).toBe(true);
+		settingsStore.updateDebugModRunMessages(true);
+		settingsStore.reset();
+		expect(settingsStore.debugModRunMessages).toBe(false);
+	});
+
 	describe('dockBadgeInboxCount', () => {
 		it('defaults to true', () => {
 			expect(settingsStore.dockBadgeInboxCount).toBe(true);

@@ -133,6 +133,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	debugMode: false,
 	debugModeTauri: false,
 	debugLogToFile: false,
+	debugModRunMessages: false,
 	debugTauriLogToFile: false,
 	debugHeartbeat: false,
 	livePreviewProfiling: false,
@@ -176,6 +177,8 @@ export const settingsStore = {
 	get debugMode() { return settings.debugMode; },
 	get debugModeTauri() { return settings.debugModeTauri; },
 	get debugLogToFile() { return settings.debugLogToFile; },
+	/** Whether the user consented to local persistence of raw mod run messages. */
+	get debugModRunMessages() { return settings.debugModRunMessages; },
 	get debugTauriLogToFile() { return settings.debugTauriLogToFile; },
 	get debugHeartbeat() { return settings.debugHeartbeat; },
 	get livePreviewProfiling() { return settings.livePreviewProfiling; },
@@ -336,6 +339,11 @@ export const settingsStore = {
 	/** Updates the debug log-to-file flag */
 	updateDebugLogToFile(value: boolean) {
 		settings = { ...settings, debugLogToFile: value };
+	},
+
+	/** Updates explicit consent to persist raw mod run messages locally. */
+	updateDebugModRunMessages(value: boolean) {
+		settings = { ...settings, debugModRunMessages: value };
 	},
 
 	/** Updates the Tauri debug log-to-file flag */

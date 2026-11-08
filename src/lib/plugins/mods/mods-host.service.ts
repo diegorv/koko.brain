@@ -3,6 +3,7 @@ import { toast } from 'svelte-sonner';
 
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { onFileChange } from '#lib/core/filesystem/fs.watcher.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
@@ -344,11 +345,21 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		runtime.runs.add(ended);
 		if (!lazy) reveal();
 
+		let messageSequence = 0;
 		const run: ModRunV1 = {
 			...(target ? { target } : {}),
 			signal: controller.signal,
 			log: (text) => {
-				modsRunsStore.log(id, String(text));
+				const message = String(text);
+				const current = modsRunsStore.runFor(buttonKey);
+				if (current?.id !== id || current.status !== 'running') return;
+				modsRunsStore.log(id, message);
+				messageSequence++;
+				if (settingsStore.debugModRunMessages && settingsStore.debugLogToFile) {
+					debug('MOD-HOST', JSON.stringify({
+						event: 'run-message', ...identity, timestamp: new Date().toISOString(), sequence: messageSequence, text: message,
+					}));
+				}
 				revealOutput();
 			},
 			progress: (done, total, label) => {
