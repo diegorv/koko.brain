@@ -1,8 +1,8 @@
 # 202: Help text that belongs to a settings row sits inside that row through a SettingItem hint prop
 
-**Origin:** `audit-2026-11-05` Issue 90, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 90, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/26-setting-item-hint-prop.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Partially fixed layout tidiness. The UpdateSection item is obsolete, and the Sentry paragraph keeps its current visibility.
+**Migrated from:** `.scratch/archived/ux-polish/issues/26-setting-item-hint-prop.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Partially fixed layout tidiness. The UpdateSection item is obsolete, and the Sentry paragraph keeps its current visibility.
 
 **Audit check at `5f8003d67`:** partially_fixed (polish, low). Done: nightly paragraph gone from UpdateSection (c41976f92) and the three remaining paragraphs share px-4 text-meta text-muted-foreground (ecd4cadc2). Missing: src/lib/core/settings/sections/SettingItem.svelte:4-17 has no hint prop (description rendered at :28 only). Paragraphs still float outside rows: TodoistSection.svelte:31-39 (with openUrl link button), SentrySection.svelte:90-92 (inside {#if settingsStore.sentry.enabled}, after the test-event rows), TypesSection.svelte:54-57. settings-text.test.ts:73-82 pins px-4 on those three pages. No SentrySection.test.ts or TypesSection.test.ts exists.
 
@@ -35,7 +35,7 @@ Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic sta
 
 ## Notes
 
-- Source: review section 2 "Settings row anatomy" (`hint` prop instead of floating paragraphs); `.scratch/ux-polish/work/settings.md` P5; `.scratch/ux-polish/work/typespacing.md` R2.
+- Source: review section 2 "Settings row anatomy" (`hint` prop instead of floating paragraphs); `.scratch/archived/ux-polish/work/settings.md` P5; `.scratch/archived/ux-polish/work/typespacing.md` R2.
 - Out of scope: a page-level description line and group descriptions (no `SettingsPage` wrapper in this cluster), copy changes.
 - Size: S.
 
@@ -52,5 +52,5 @@ Leave in place: the Sentry `role="alert"` and `role="status"` lines (dynamic sta
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/26-setting-item-hint-prop.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/26-setting-item-hint-prop.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: criteria matched to the audit header after the order review.

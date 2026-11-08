@@ -1,6 +1,6 @@
 # 010: Filters report unknown methods and per-note failures
 
-**Origin:** `view-engine-fixes` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** `validateExpression` checks only parsing and plain function names (`src/lib/features/collection/expression/evaluator.ts:300-332`). Methods dispatch on the value's runtime type and throw when absent (`methods.logic.ts:255-269`), and `evaluateFilterCached` turns a throw into `false` (`collection.logic.ts:347-358`). So `file.hasLink('x')`, `x.reverse()`, or `status.lower()` over a numeric `status` drop notes, or all of them, with no error, in the rail, the editor and inline blocks. Inside `not:` the same failure keeps the note instead (`:370-371`).
 

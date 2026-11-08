@@ -1,8 +1,8 @@
 # 210: NoteInfo and the Relationships heading follow the right sidebar section recipe
 
-**Origin:** `audit-2026-11-05` Issue 164, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 164, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**What to build:** Three leftovers from Issue 94's review (`.scratch/audit-2026-11-05/work/94/review.md`, findings 1, 2 and 4), after Issue 94 drew the four right sidebar sections through `SidebarSection` (src/lib/core/layout/SidebarSection.svelte).
+**What to build:** Three leftovers from Issue 94's review (`.scratch/archived/audit-2026-11-05/work/94/review.md`, findings 1, 2 and 4), after Issue 94 drew the four right sidebar sections through `SidebarSection` (src/lib/core/layout/SidebarSection.svelte).
 
 1. NoteInfo (src/lib/features/properties/NoteInfo.svelte:43-46) still draws its own icon-led `text-title` h2, about 36 px against the 30 px of the four section titles, so the sidebar keeps two title edges. Render it through `SidebarSection` (static, not collapsible), or record in the Notes why it stays different.
 2. The "Relationships" sub-heading (src/lib/features/properties/PropertiesView.svelte:244) uses the same `section-label` recipe as the kind labels under it (:249, "Belongs to", "Related to"), so it reads as their sibling. Owner decision below.

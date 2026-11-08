@@ -1,6 +1,6 @@
 # 134: Display section
 
-**Origin:** `view-editor` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-editor` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** how the view looks in Views, on its pin and on its rows. No UI writes `_order` or `_group` today.
 

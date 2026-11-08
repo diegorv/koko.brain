@@ -1,8 +1,8 @@
 # 151: Kanban date proximity has one token-based map, and done cards drop it
 
-**Origin:** `audit-2026-11-05` Issue 68, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 68, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/47-kanban-proximity-token-map.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). A visual fix on daily boards. The checked-card behavior is a recommended but unconfirmed owner decision. Issues 84 and 83 build on it (their old ux-polish numbers were 48 and 63).
+**Migrated from:** `.scratch/archived/ux-polish/issues/47-kanban-proximity-token-map.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). A visual fix on daily boards. The checked-card behavior is a recommended but unconfirmed owner decision. Issues 84 and 83 build on it (their old ux-polish numbers were 48 and 63).
 
 **Audit check at `5f8003d67`:** still_present (ux, medium). Four local raw-palette maps remain and no shared map exists (git log -S'PROXIMITY_CLASSES' only hits the Issue-drafting commit d78dcf38f). src/lib/plugins/kanban/KanbanCard.svelte:118-125 PROXIMITY_BORDER (red-500, yellow-500, orange-400, blue-400); KanbanDatePicker.svelte:20-27 PROXIMITY_BADGE (red-400, yellow-400, orange-400, blue-400); KanbanListView.svelte:48 and KanbanTableView.svelte:69 inline ternaries (red-500, yellow-500, else muted). kanban.logic.ts:687-690 has DateProximity and getDateProximity but no cardProximity or PROXIMITY_CLASSES. Done cards still keep the tone: KanbanCard.svelte:114 `getDateProximity(cardDate, ...)` ignores item.checked, :167 applies PROXIMITY_BORDER[dateProximity] to the card and :216 passes proximity to KanbanDatePicker, while :210 strikes the text through for item.checked. List view (:30, :48) and table view (:37, :69) likewise ignore item.checked. The tokens --destructive, --warning, --type-orange, --type-blue exist in both themes (src/app.css:159/219, 192/265, 184/257, 188/261). The visible part for daily use is a completed overdue card still showing a red left border and red badge on the board, which is common with a real task board.
 
@@ -37,6 +37,6 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/47-kanban-proximity-token-map.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/47-kanban-proximity-token-map.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-06: cross-references updated to the audit numbers 83 and 84 after the order review.

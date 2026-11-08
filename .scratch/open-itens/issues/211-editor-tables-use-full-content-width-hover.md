@@ -1,8 +1,8 @@
 # 211: Editor tables use the full content width, with hover controls overlaid and the gap below the table kept
 
-**Origin:** `audit-2026-11-05` Issue 61, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 61, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/65-editor-table-width.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/medium on the daily tables. The reservation is in the wrapper padding at styles.ts:376-379.
+**Migrated from:** `.scratch/archived/ux-polish/issues/65-editor-table-width.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/medium on the daily tables. The reservation is in the wrapper padding at styles.ts:376-379.
 
 **Audit check at `5f8003d67`:** still_present (polish, medium). src/lib/core/markdown-editor/extensions/live-preview/styles.ts:373-380 .cm-lp-table-wrapper sets paddingRight: '24px' and paddingBottom: '10px'. .cm-lp-table is width: 100% of that content box (:420-421), so every rendered table is 24px narrower than sibling blocks. The add-col (:405-411, right: 0, width 20px) and add-row (:412-419, right: 24px, height 6px) controls are absolutely positioned into that reserved padding. Last change to these lines was 6899ebf2a (fix: shrink the gap below a rendered table, Issue 08). It adjusted the bottom padding and kept the right strip. The owner uses tables daily, so the narrower width shows on every table, though it is cosmetic.
 
@@ -21,10 +21,10 @@
 
 ## Notes
 
-- **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 3 Editor chrome row 3. CLAUDE.md Live Preview rule 11 applies.
+- **Source:** `.scratch/archived/ux-polish/review-2026-11-04.md` Review section 3 Editor chrome row 3. CLAUDE.md Live Preview rule 11 applies.
 - Size: S.
 - **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/65-editor-table-width.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/65-editor-table-width.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

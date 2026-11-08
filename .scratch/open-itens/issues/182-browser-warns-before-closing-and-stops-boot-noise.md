@@ -1,6 +1,6 @@
 # 182: The browser warns before closing with unsaved edits, stops refused calls and Sentry, and explains a 403
 
-**Origin:** `ios-app` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Five fixes found in the owner's browser tests on 2026-11-03 (session log `2026-11-03_11-25-18.log`, read through Issue 09's lines).
 

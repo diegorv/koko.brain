@@ -1,6 +1,6 @@
 # 226: The Periodic Notes help shows format examples that escape literal words with [ ]
 
-**Origin:** `audit-2026-11-05` Issue 77, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 77, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** buildPeriodicNotePath runs `date.format(format)` (src/lib/plugins/periodic-notes/periodic-notes.logic.ts:16). dayjs treats a bare `a` as am/pm and a bare `d` as the weekday digit (node_modules/dayjs/esm/constant.js REGEX_FORMAT), so `journal` renders as `journpml` and `day` gets a digit plus am/pm. The doc's promised path `_notes/2026/02-Feb/journal-17-02-2026.md` (08:104) is never produced, and the am/pm part changes with the time of day, so the same day can resolve to two files. The shipped defaults already escape correctly (settings.store.svelte.ts:10 `_[journal]-[day]-DD-MM-YYYY`). Fix: rewrite the doc 08 examples (:62, :95-104, the wikilink example at :224) with `[ ]` around literal text, add the `[ ]` escape to the token table with a one-line warning that letters like a, d, h, m, s are tokens, and correct the JSDoc example in periodic-notes.logic.ts:7-8.
 

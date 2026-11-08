@@ -1,6 +1,6 @@
 # 070: View writers refresh promptly and fail loudly
 
-**Origin:** `view-engine-fixes` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:**
 - `updateViewToolbarKey`, `updateViewIcon`, `updateViewIconColors` and `removeViewIcon` (`src/lib/features/type-definitions/type-definitions.service.ts:444-456`, `:490-492`, `:518-533`) do not pass `promptIndexRefresh`, so the Views row and pin wait for the 2 s / 10 s entries throttle after an icon or toolbar change. The pin, Show in Views, list properties and Edit view writers already pass it.

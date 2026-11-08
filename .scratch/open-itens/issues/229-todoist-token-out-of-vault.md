@@ -1,6 +1,6 @@
 # 229: Say plainly that the Todoist token lives in the vault
 
-**Origin:** `tasks-view` Issue 25, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 25, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** PRD decision L1 is answered (a): the Todoist API token stays in the vault's `.kokobrain/settings.json` (`src/lib/core/settings/settings.types.ts:243-245`), because the owner does not sync vaults. Nothing moves. What is wrong today is that the docs and the UI say otherwise or say nothing:
 

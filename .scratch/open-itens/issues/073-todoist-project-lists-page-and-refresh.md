@@ -1,6 +1,6 @@
 # 073: Todoist send: full project lists, refresh, the default label and recurring due dates
 
-**Origin:** `tasks-view` Issue 24, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 24, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The send popover lists only the first page of projects and sections (`src/lib/features/tasks/todoist.service.ts:22`, `:42`, which read `results` and ignore the cursor), and the project list is fetched once and never refreshed (`:137-144`), so a project created in Todoist after the first fetch never appears.
 

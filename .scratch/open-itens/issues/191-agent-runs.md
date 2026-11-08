@@ -1,6 +1,6 @@
 # 191: Rust agent runner (`mods_run_agent`)
 
-**Origin:** `vault-mods` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `vault-mods` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** the native half of agent runs. A Rust command that starts a `claude` job, streams its output, and kills it on request. The frontend half (`ctx.agents.run`, the Labs field) is Issue 13. This half touches no frontend mod files, so it can run in parallel with 03 to 06.
 

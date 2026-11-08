@@ -1,8 +1,8 @@
 # 090: Dock Quit, logout and shutdown run the exit flush before the app ends
 
-**Origin:** `audit-2026-11-05` Issue 106, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 106, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The loss is at most the last 2 s of typing, and only when quitting right after typing. The owner checks the result in the app.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/44-dock-quit-logout-skip-save.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The loss is at most the last 2 s of typing, and only when quitting right after typing. The owner checks the result in the app.
 
 **Audit check at `5f8003d67`:** still_present (content, low). src-tauri/src/lib.rs:392-396 handles only RunEvent::ExitRequested; rg finds no applicationShouldTerminate or NSTerminateLater in src-tauri; src-tauri/src/commands/app_exit.rs:7-9 documents that Dock Quit and logout bypass the flush. Loss is bounded by the 2 s debounce / 10 s maxWait (editor.service.ts:227), so only text typed seconds before a logout or Dock Quit is lost.
 
@@ -62,5 +62,5 @@ is added at runtime.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/44-dock-quit-logout-skip-save.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: moved out of the first wave by the owner after the challenge review.

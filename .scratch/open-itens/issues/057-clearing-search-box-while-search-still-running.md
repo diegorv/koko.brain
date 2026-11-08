@@ -1,6 +1,6 @@
 # 057: Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...
 
-**Origin:** `audit-2026-11-05` Issue 48, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 48, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** performSearch bumps searchVersion and, for an empty query, clears the lists and returns before its try block (src/lib/features/search/search.service.ts:127-136), so it never calls setSearching(false). The earlier in-flight call then returns on its version checks and its finally clears isSearching only when searchVersion === version (:271-274), which is now false. isSearching stays true, and SearchPanel.svelte:115-116 checks it before the empty-query hint at :117-118, so the panel shows 'Searching...' over an empty box until another non-empty search completes. Fix direction: the empty-query branch also clears isSearching.
 

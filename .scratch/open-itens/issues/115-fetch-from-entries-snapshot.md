@@ -1,6 +1,6 @@
 # 115: Tasks come from the entries snapshot, and the heading rule runs in TS
 
-**Origin:** `tasks-view` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Source rules need note fields (type, tags, lifecycle, frontmatter) that `get_all_tasks_v2` does not carry (`task.rs:151-166`). The memoized entries snapshot already does (`src/lib/core/vault/vault-entries.service.ts:36`, `NoteEntry.ts:34-103`), shared with QueryJS. Move the view onto it and run the section tag as a TS heading rule over Issue 11's headings. The Rust command `get_tasks_in_section_v2` stops being called here and is removed in Issue 27.
 

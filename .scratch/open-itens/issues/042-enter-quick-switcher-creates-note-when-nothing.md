@@ -1,8 +1,8 @@
 # 042: Enter in the quick switcher creates the note when nothing matches
 
-**Origin:** `audit-2026-11-05` Issue 20, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 20, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md` (audit 2026-11-05). Priority: daily use and UI correctness (bucket 2-ux). Still present, ux/medium. In the daily Cmd+O, type, Enter flow, Enter does nothing when nothing matches.
+**Migrated from:** `.scratch/archived/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md` (audit 2026-11-05). Priority: daily use and UI correctness (bucket 2-ux). Still present, ux/medium. In the daily Cmd+O, type, Enter flow, Enter does nothing when nothing matches.
 
 **Audit check at `5f8003d67`:** still_present (ux, medium). src/lib/features/quick-switcher/QuickSwitcher.svelte:94-103: with no match the Create action is a plain <button onclick={createAndOpenNote}> inside <Command.Empty>. The component has no keydown handler and no Command.Item for it, so Enter has no selected item to act on (bits-ui behavior taken from the Issue, node_modules not read). Only commit touching the branch is the initial one. Typing a new note name and pressing Enter is a normal keyboard flow for an Obsidian-style switcher.
 
@@ -33,4 +33,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

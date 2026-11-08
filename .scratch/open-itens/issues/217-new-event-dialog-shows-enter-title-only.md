@@ -1,8 +1,8 @@
 # 217: The New event dialog shows "Enter a title." only after the title was touched
 
-**Origin:** `audit-2026-11-05` Issue 69, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 69, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/11-event-title-error-after-touch.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present. It is error-timing fine-tuning in a flow the owner does not use daily.
+**Migrated from:** `.scratch/archived/ux-polish/issues/11-event-title-error-after-touch.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present. It is error-timing fine-tuning in a flow the owner does not use daily.
 
 **Audit check at `5f8003d67`:** still_present (ux, medium). Checked at HEAD. src/lib/features/event-calendar/EventForm.svelte:38 derives errors = validateDraft(draft) with no touched gate. The title Input at :69-70 sets aria-invalid and aria-describedby straight from errors.title, and :73-74 renders the message under {#if errors.title}. No titleTouched state or onblur exists in the file. createDraft (event-calendar-form.logic.ts:104) starts with title: '' and validateDraft (:163) sets 'Enter a title.' for an empty trimmed title, so the New event dialog opens with the red message and red border before any input. git log for EventForm.svelte shows only the original feature commits (5fc1f66e4, eb7ab2b1b, fe7430ee2, 03026a540) plus a import-path refactor (87254d850); none add a touched flag. src/tests/lib/features/event-calendar/EventDialog.test.ts:250 only pins the message after typing spaces. Not run (read-only audit).
 
@@ -40,4 +40,4 @@ The date and time messages are not gated: their fields start filled and valid, s
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/11-event-title-error-after-touch.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/11-event-title-error-after-touch.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

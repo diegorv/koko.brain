@@ -1,6 +1,6 @@
 # 114: Task writes reach search and the QueryJS cache
 
-**Origin:** `tasks-view` Issue 03, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 03, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** After a toggle, FTS5 search, the semantic index, the TS per-file consumers and the QueryJS cache only learn about the change through the watcher round trip. The watcher skips a batch whose paths were all saved by the editor in the last 15 s (`src/lib/app/lifecycle/watcher-handler.service.ts:44`, `src/lib/core/editor/editor.hooks.ts:24`, `:68`), and `toggleTask` saves a dirty tab right before the Rust write (`tasks.service.ts:126`). So a toggle on a note saved in the last 15 s never reaches search, and QueryJS blocks keep the old checkbox.
 

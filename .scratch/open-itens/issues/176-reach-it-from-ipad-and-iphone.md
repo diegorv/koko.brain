@@ -1,6 +1,6 @@
 # 176: Reach it from iPad and iPhone over the tailnet
 
-**Origin:** `ios-app` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The owner opens `https://<mac>.<tailnet>.ts.net:<port>` in Safari on the iPad or iPhone and gets the Kokobrain app served by the Mac, through Tailscale Serve, on a port separate from the one t3code already uses. Only the owner's own Tailscale login gets in. When the phone locks or the connection drops, the app says so and offers a reload instead of silently failing.
 

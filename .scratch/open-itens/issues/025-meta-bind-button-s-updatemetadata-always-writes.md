@@ -1,8 +1,8 @@
 # 025: A meta-bind button's updateMetadata always writes the button's own note, also after an open or createNote action
 
-**Origin:** `audit-2026-11-05` Issue 104, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 104, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/48-meta-bind-button-writes-opened-note.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It writes into an unrelated note, but only for a button that puts open or createNote before updateMetadata. It builds on Issue 10's open result.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/48-meta-bind-button-writes-opened-note.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It writes into an unrelated note, but only for a button that puts open or createNote before updateMetadata. It builds on Issue 10's open result.
 
 **Audit check at `5f8003d67`:** still_present (content, low). The click loop runs every action against the same shared view (src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:33-40). open awaits followWikilinkInfo and returns true (:103-120), createNote returns host.createNote (:122-128), and the next updateMetadata calls dispatchMetaBindUpdate(view, ...) (:98-101), which reads view.state.doc at call time (widgets.ts:868-883). No code captures the button note's path.
 
@@ -24,7 +24,7 @@ Fix: pin every `updateMetadata` of one click to the button's note. Capture that 
 
 **Source:** src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:30-37, :82-114, src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:754-768, src/lib/core/markdown-editor/editor-host.ts:33-53, src/lib/app/editor-host.ts:76-98, src/lib/core/markdown-editor/MarkdownEditor.svelte:131, :170-237, src/lib/core/editor/editor.service.ts:98-140, :228-231, src/lib/core/frontmatter/frontmatter-write.service.ts:95-101
 
-- [ ] Failing test comes first. Move `.scratch/editor-data-safety/repro/writes-into-wrong-tab/meta-bind-button-sequence.test.ts` under `src/tests/` (for example `src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-button-sequence.test.ts`)
+- [ ] Failing test comes first. Move `.scratch/archived/editor-data-safety/repro/writes-into-wrong-tab/meta-bind-button-sequence.test.ts` under `src/tests/` (for example `src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-button-sequence.test.ts`)
 - [ ] A button with `[open [[B]], updateMetadata status=done]` leaves B's content unchanged, both when B is already open and when it is opened fresh
 - [ ] The same click sets `status: done` in the button's own note A (assert on A's tab content, or on disk when A is no longer open)
 - [ ] A button with `[createNote, updateMetadata]` writes the metadata into the button's note, not the created note
@@ -33,7 +33,7 @@ Fix: pin every `updateMetadata` of one click to the button's note. Capture that 
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
-Source: editor-data-safety audit, finding F104 (`.scratch/editor-data-safety/audit-2026-11-02.md`; cross-reference in `.scratch/editor-data-safety/xref-file-io-audit.md`: no existing issue covers it, issues 12 and 17 share only the root-cause class). Code re-read at 1351a35d.
+Source: editor-data-safety audit, finding F104 (`.scratch/archived/editor-data-safety/audit-2026-11-02.md`; cross-reference in `.scratch/archived/editor-data-safety/xref-file-io-audit.md`: no existing issue covers it, issues 12 and 17 share only the root-cause class). Code re-read at 1351a35d.
 
 ## Meta-bind button actions after a navigation or create write into whichever note the shared editor shows
 
@@ -45,7 +45,7 @@ Source: editor-data-safety audit, finding F104 (`.scratch/editor-data-safety/aud
 
 **Code trace.** meta-bind-button-widget.ts:33-36 loops over `getButtonActions(this.config)` and stops only on a `false` return. `open` (:90-103) awaits `host.openLink` and falls through to `return true` (:113). editor-host.ts:76-79 awaits `openFileInEditor`, which switches the tab synchronously (editor.service.ts:116) or after `readTextFile` (:124, `addTab` at :140). The Svelte flush runs before the `await import('../widgets')` in the `updateMetadata` branch (:86) resolves, so MarkdownEditor.svelte:230-235 has already replaced the shared view's doc with B. widgets.ts:755 reads `view.state.doc.toString()`, which is B, and :767 dispatches the frontmatter change into B. No code pins the button's note.
 
-**Repro test.** `.scratch/editor-data-safety/repro/writes-into-wrong-tab/meta-bind-button-sequence.test.ts` (copy to `src/tests/audit-repro/writes-into-wrong-tab/` to run, see the repro README). Both cases fail on the bug assertion:
+**Repro test.** `.scratch/archived/editor-data-safety/repro/writes-into-wrong-tab/meta-bind-button-sequence.test.ts` (copy to `src/tests/audit-repro/writes-into-wrong-tab/` to run, see the repro README). Both cases fail on the bug assertion:
 
 ```
 expected '---\nstatus: done\nowner: bob\n---...' to be '---\nstatus: draft\nowner: bob\n---...'
@@ -55,4 +55,4 @@ expected '---\nstatus: done\nowner: bob\n---...' to be '---\nstatus: draft\nowne
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/48-meta-bind-button-writes-opened-note.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/48-meta-bind-button-writes-opened-note.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

@@ -1,6 +1,6 @@
 # 065: A calendar day with more than three notes lets the user reach every note
 
-**Origin:** `audit-2026-11-05` Issue 79, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 79, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** CollectionCalendarView renders only the first MAX_EVENTS_PER_CELL (3) events of a day as buttons (src/lib/features/collection/CollectionCalendarView.svelte:36, :130-160). The rest become a plain `<span>+N more</span>` (:161-165) with no handler, and the day number is not interactive, so the fourth and later notes of that day cannot be opened from the calendar. Make '+N more' a control that shows all of that day's notes, each opening through onClickRecord, for example a popover listing them, or a cell that expands.
 

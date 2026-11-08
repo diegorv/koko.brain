@@ -1,8 +1,8 @@
 # 084: A note whose live-preview widget throws on every render stays editable and in sync with its tab
 
-**Origin:** `audit-2026-11-05` Issue 131, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 131, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/55-persistent-widget-throw-desyncs-tab.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs a widget that throws on every render. The owner decision is recorded below (2026-11-06).
+**Migrated from:** `.scratch/archived/file-io-audit/issues/55-persistent-widget-throw-desyncs-tab.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs a widget that throws on every render. The owner decision is recorded below (2026-11-06).
 
 **Audit check at `5f8003d67`:** still_present (corner, low). src/lib/core/markdown-editor/MarkdownEditor.svelte:168-198 replaceDoc catches the dispatch throw and rebuilds with v.setState (:193). If the rebuild throws too, it is only logged via error() (:194-196). setViewState (:137-149) does the same on the tab-switch path. The JSDoc at :164-165 documents that the view stays desynced. No toast and no fallback to source mode. The trigger needs a widget that throws on every render. The Issue's example, host.assetUrl, is convertFileSrc in production (src/lib/app/editor-host.ts:112-114) and does not throw for a normal path, so no daily-use trigger is known. The consequence (silent dropped typing) is serious if a real widget bug ever hits it.
 
@@ -17,7 +17,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: data-loss-in-tab
-Source: Issue 46 review (.scratch/file-io-audit/work/46/review.md, finding 1), reproduced by the reviewer with a temporary component test
+Source: Issue 46 review (.scratch/archived/file-io-audit/work/46/review.md, finding 1), reproduced by the reviewer with a temporary component test
 
 ## Details
 
@@ -39,5 +39,5 @@ The user gets no signal: `error()` logs to the console and Sentry only.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/55-persistent-widget-throw-desyncs-tab.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/55-persistent-widget-throw-desyncs-tab.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

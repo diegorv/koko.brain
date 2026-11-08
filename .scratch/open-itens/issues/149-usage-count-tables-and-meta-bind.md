@@ -1,6 +1,6 @@
 # 149: Usage stats count table and meta-bind interactions inside notes
 
-**Origin:** `usage-telemetry` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `usage-telemetry` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The owner relies on tables and meta-bind, but both live inside `.md` notes. Counting file opens (Issue 10) never reveals them. This Issue counts **user actions** on them in Live Preview, through the core hook `reportUsage` from Issue 10 (`src/lib/core/usage-hook.ts`). The live-preview code is in `core/` and must not import `features/`.
 

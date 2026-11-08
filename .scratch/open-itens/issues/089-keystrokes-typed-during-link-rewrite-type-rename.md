@@ -1,8 +1,8 @@
 # 089: Keystrokes typed during link rewrite, type rename or watcher reload writes are kept
 
-**Origin:** `audit-2026-11-05` Issue 105, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 105, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It is a race in a window of milliseconds. The calendar-delete part is narrowed by f1b3cde9d.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It is a race in a window of milliseconds. The calendar-delete part is narrowed by f1b3cde9d.
 
 **Audit check at `5f8003d67`:** still_present (content, low). Link rewrite: src/lib/core/filesystem/link-updater.service.ts:54 snapshot, :58 await writeTextFile, :66 syncExternalContentToEditor(..., true, 'none') with the snapshot-based text. Type rename: src/lib/features/type-definitions/type-definitions.service.ts:231-235 same pattern. Watcher reload: editor.service.ts:445-449 re-checks only diskContent === savedContent after the await, not dirtiness. Calendar delete: event-calendar.service.ts:1038 save then :1044 deleteItem -> path-change.service.ts:55-62 saveDirtyTabsUnder re-saves dirty tabs and :159 closes with no await in between, so only a keystroke inside that last save's IPC is lost.
 
@@ -13,7 +13,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: data-loss
-Source: file I/O audit, deep-dive group(s) h03-search-links, h05-calendar-b, h06-type-rename, o07-external-change (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h03-search-links, h05-calendar-b, h06-type-rename, o07-external-change (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Link rewrite on rename overwrites keystrokes typed in the rewritten open note
 
@@ -28,7 +28,7 @@ Source: file I/O audit, deep-dive group(s) h03-search-links, h05-calendar-b, h06
 
 **Evidence.** Traced: link-updater.service.ts:33-35 snapshot, :39 await write, :47 overwrite of tab content/savedContent with the snapshot-based text. Triggers traced: fs.service.ts:201-212 renameItem -> path-change.service.ts:117-149 applyPathChange -> updateLinksAfterRename. Repro: src/tests/repro/h05-calendar-b/link-rewrite-typing.test.ts, 2 tests, both fail with 'expected link to [[new-name]] to contain typed'.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h05-calendar-b/link-rewrite-typing.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h05-calendar-b/link-rewrite-typing.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 FAIL src/tests/repro/h05-calendar-b/link-rewrite-typing.test.ts > keeps a keystroke typed while the rewrite reads a clean open note: AssertionError: expected 'link to [[new-name]]' to contain 'typed'. FAIL > keeps a keystroke typed while the rewrite writes a dirty open note: same assertion. Tests: 2 failed.
@@ -49,7 +49,7 @@ FAIL src/tests/repro/h05-calendar-b/link-rewrite-typing.test.ts > keeps a keystr
 
 **Evidence.** Traced the claim's chain and confirmed it: editor.service.ts:165 captures tab.content, :168 awaits the write, editor.store.svelte.ts:91-96 markSavedByPath sets savedContent to the captured text, then event-calendar.service.ts:1043 -> fs.service.ts:167-190 deleteItem -> path-change.service.ts:125 closes the tab synchronously. Existing test event-calendar.service.test.ts:1902 covers only the no-typing case. Repro: src/tests/repro/h05-calendar-b/calendar-delete-typing.test.ts simulates a keystroke inside the save write mock.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h05-calendar-b/calendar-delete-typing.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h05-calendar-b/calendar-delete-typing.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 FAIL src/tests/repro/h05-calendar-b/calendar-delete-typing.test.ts > keeps a keystroke typed while the calendar delete saves the note (calendar-6): AssertionError: expected false to be true (diskHolds('typed while saving')). Tests: 1 failed.
@@ -70,7 +70,7 @@ FAIL src/tests/repro/h05-calendar-b/calendar-delete-typing.test.ts > keeps a key
 
 **Evidence.** type-definitions.service.ts:216 reads tab.content, :218 awaits writeTextFile, :220 syncExternalContentToEditor overwrites tab.content and bumps externalContentSignal; keystrokes reach the store via onContentChange -> updateContent (editor.store.svelte.ts:84-88) during the await. Line anchors in the claim (218, 130-136) match the code.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h06-type-rename/keystroke-during-type-rename-write.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h06-type-rename/keystroke-during-type-rename-write.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 FAIL: AssertionError: expected '---\n_type: Initiative\n---\n\nhello' to contain '!'
@@ -106,7 +106,7 @@ FAIL: AssertionError: expected '---\n_type: Initiative\n---\n\nhello' to contain
 
 **Limits found while trying to refute.** Not refuted, but downgraded to P3: the window is milliseconds and the loss is visible and small.
 
-**Repro test.** `.scratch/file-io-audit/repro/o07-external-change/reload-race.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o07-external-change/reload-race.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 × external-change-2 / save-pipeline-13 ... AssertionError: expected '# Note\nLine one.\nExternal line.\n' to contain 'abc' at reload-race.test.ts:69 expect(tab.content).toContain('abc')
@@ -127,4 +127,4 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

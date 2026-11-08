@@ -1,6 +1,6 @@
 # 021: Guarded, status-preserving toggle
 
-**Origin:** `tasks-view` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Two defects in one command. `toggle_task_status` flips whatever line number it receives and never checks that the line still holds the task the list showed (`src-tauri/src/commands/vault.rs:760-829`), while the list can be up to 10 s behind disk (open Issue `audit-2026-11-05/122`, migrated from `file-io-audit/24`). And unticking writes a space for every status that is not a space (`src-tauri/src/vault/parsing.rs:1895-1900`), so one click turns an important `[!]`, in-progress `[/]`, question `[?]` or forwarded `[>]` task into `[ ]`.
 
@@ -18,7 +18,7 @@
 - Keep the dirty-tab save and line check at `tasks.service.ts:123-136` as they are.
 - The circle's icon and `aria-label` follow `toggleTarget(task.status)`, not `task.checked` (`TasksView.svelte:206`, `:209`): `Mark task as done` and the open circle when the target is `done`. Without this, until Issue 06 lands, a `[/]` or `[!]` row looks ticked and says "Mark task as not done", while a click now writes `[x]`. Issue 05 later adds the status word.
 - The e2e mock follows: `e2e/mocks/vault-index.ts:486` (`toggleTaskStatus`) takes `(path, lineNumber, expectedText, expectedStatus, target)`, parses the line with the mock's own `TASK_LINE_RE`/`STATUS_BY_CHAR`, returns `stale: true` and the unchanged content when the text or status differs, and otherwise writes the target char; every result it returns carries `stale`. `e2e/mocks/tauri-core.ts:156-160` passes the new args through.
-- `.scratch/file-io-audit/issues/24-stale-task-list-wrong-line.md` is already closed (wontfix, migrated). Its live copy is `.scratch/audit-2026-11-05/issues/122-stale-tasks-list-never-ticks-wrong-task.md`. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/122` and `/34` (with Issue 06) are closed as wontfix, covered by this Issue. Do not edit `.scratch/audit-2026-11-05/`.
+- `.scratch/archived/file-io-audit/issues/24-stale-task-list-wrong-line.md` is already closed (wontfix, migrated). Its live copy is `.scratch/archived/audit-2026-11-05/issues/122-stale-tasks-list-never-ticks-wrong-task.md`. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/122` and `/34` (with Issue 06) are closed as wontfix, covered by this Issue. Do not edit `.scratch/archived/audit-2026-11-05/`.
 
 **Blocked by:** none
 

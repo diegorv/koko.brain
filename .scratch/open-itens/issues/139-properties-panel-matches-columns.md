@@ -1,6 +1,6 @@
 # 139: Properties panel matches the table's columns
 
-**Origin:** `view-engine-fixes` Issue 13, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 13, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** without an `order`, the table infers its columns from the matched records (`src/lib/features/collection/collection.logic.ts:459-477`), but the Properties panel shows every vault property as visible (`visibleColumns = localColumns ?? allColumns`, `CollectionView.svelte:672`). The panel then disagrees with the table, and the first toggle writes every vault property into `order`.
 

@@ -1,6 +1,6 @@
 # 075: Task tags follow the note tag rule
 
-**Origin:** `tasks-view` Issue 26, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 26, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Task tags are ASCII only (`TASK_TAG_RE`, `src-tauri/src/vault/parsing.rs:1574-1578`), so `#revisão` becomes the tag `revis` and leaves `ão` in the description, while note tags accept Unicode and nested `/` (`extract_tags_strict`, `parsing.rs:513`). The ASCII rule came from mirroring the old TS `\w` parser (`git show 9f457365b`, the removed comment), not from a product need (PRD decision B7).
 

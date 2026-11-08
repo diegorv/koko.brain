@@ -1,6 +1,6 @@
 # 121: Remove `get_tasks_in_section_v2` and its disk re-read
 
-**Origin:** `tasks-view` Issue 27, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 27, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** After Issue 12 the Tasks view runs the heading rule in TS over the entries snapshot, and nothing in `src/lib` calls `get_tasks_in_section_v2`. The command still re-reads every task note from disk (`src-tauri/src/commands/vault.rs:736-753`) and keeps a second, case-sensitive heading rule alive in Rust (`parsing.rs:1700-1750`). Remove it (PRD decision B6 (a), "IPC changes").
 

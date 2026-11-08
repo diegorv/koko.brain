@@ -1,8 +1,8 @@
 # 029: Duplicate never overwrites a sibling whose name differs only in case (APFS)
 
-**Origin:** `audit-2026-11-05` Issue 113, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 113, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs case-variant siblings. It is next to N-file-io-07 because both change duplicateItem.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs case-variant siblings. It is next to N-file-io-07 because both change duplicateItem.
 
 **Audit check at `5f8003d67`:** still_present (corner, low). src/lib/core/filesystem/fs.logic.ts:193-223 generateCopyName builds an exact-case Set (:198) and checks candidates against it (:216, :220), while generateUniqueName :233-238 lowercases on purpose for APFS. src/lib/core/filesystem/fs.service.ts:344-358 duplicateItem reads sibling names, calls generateCopyName (:351) and copyFile (:357) with no exists check, and plugin-fs copyFile overwrites the target. Folders fail safely because copyDirectoryRecursive uses a non-recursive mkdir (:330). Trigger needs a sibling 'X copy.md' whose case differs from the duplicated note's name, which is uncommon; the fix is one line.
 
@@ -15,7 +15,7 @@
 **Blocked by:** 028
 Priority: P1
 Severity: data-loss
-Source: file I/O audit, deep-dive group(s) o04-delete-rename (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) o04-delete-rename (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -30,7 +30,7 @@ Source: file I/O audit, deep-dive group(s) o04-delete-rename (raw reports in .sc
 
 **Evidence.** fs.service.ts:266-279 calls generateCopyName(itemName, false, siblingNames), and fs.logic.ts:185/203/206 compares names with exact case. generateUniqueName (fs.logic.ts:216-226) lowercases on purpose for APFS. Fetched plugins-workspace fs-v2.7.1 commands.rs: copy_file -> std::fs::copy, which is documented to overwrite `to`. Folders are safe because mkdir is non-recursive (fs.service.ts:252). Entry point: NoteRowMenu.svelte:67-69.
 
-**Repro test.** `.scratch/file-io-audit/repro/o04-delete-rename/case-insensitive-names.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o04-delete-rename/case-insensitive-names.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected 'source note body' to be 'a different note the user wrote'
@@ -50,5 +50,5 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: Blocked by 112 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.

@@ -1,6 +1,6 @@
 # 188: A repeating error does not burn the Sentry quota
 
-**Origin:** `usage-telemetry` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `usage-telemetry` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Every `error()` call goes to Sentry (`src/lib/utils/debug.ts` line 31). The Developer plan includes 5k errors per month.
 

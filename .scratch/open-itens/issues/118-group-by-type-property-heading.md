@@ -1,6 +1,6 @@
 # 118: Group by note type, note property or heading
 
-**Origin:** `tasks-view` Issue 15, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 15, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The owner organizes typed notes with meta-bind properties, so those are the natural categories. The rows carry `noteType`, `properties` and `headings` since Issue 12. Add three groupings to the Display menu (Issue 08), after Status:
 

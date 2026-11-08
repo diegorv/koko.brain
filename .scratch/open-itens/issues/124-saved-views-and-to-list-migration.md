@@ -1,6 +1,6 @@
 # 124: Saved views and the "To list" migration
 
-**Origin:** `tasks-view` Issue 17, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 17, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** One persisted configuration (Issue 16) cannot hold "To list" next to "All open". Add a list column with saved views and change the default list (PRD "Lists and views", decision B1). The "modified" marker comes in Issue 29.
 

@@ -1,6 +1,6 @@
 # 138: Calendars say how many notes have no date
 
-**Origin:** `view-engine-fixes` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** `groupRecordsByDate` skips records without a parseable start date (`src/lib/features/collection/calendar.logic.ts:109-111`), while the editor's count is `queryResult.records.length` (`CollectionView.svelte:585`) and the inline block's header uses the same length (`collection-block-widget.ts:138`). "12 results" over a calendar with 7 chips gives no hint why.
 

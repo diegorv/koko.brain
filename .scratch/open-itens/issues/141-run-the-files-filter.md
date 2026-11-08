@@ -1,6 +1,6 @@
 # 141: The rail and the editor run the file's filter; bad shapes are errors
 
-**Origin:** `view-engine-fixes` Issue 08, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 08, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** the rail runs `filterGroupsToFilter(parseFilterToGroups(...))` of the file's filters even with no toolbar override (`seedToolbarStateFromDefinition`, `src/lib/features/type-definitions/type-note-list.logic.ts:44-52`; `lens.logic.ts:792-797`), and so does the `.view` tab (`CollectionView.svelte:157-161`, `:258-259`). Inline blocks run the raw value (`collection-block-widget.ts:110`, `:123`). The round trip (`src/lib/features/collection/toolbar/filter.logic.ts`) is not an identity:
 - `x != true` becomes `x == false` (`:404-406`), so notes without `x` drop out in the rail and the tab but stay in inline blocks. Same for `x != false`.

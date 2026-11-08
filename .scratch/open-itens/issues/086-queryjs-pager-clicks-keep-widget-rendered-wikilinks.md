@@ -1,8 +1,8 @@
 # 086: QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text
 
-**Origin:** `audit-2026-11-05` Issue 139, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 139, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/live-preview-audit/issues/04-queryjs-pager-and-cosmetic-render-gaps.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). The owner postponed it on 2026-11-02. It is fully specified.
+**Migrated from:** `.scratch/archived/live-preview-audit/issues/04-queryjs-pager-and-cosmetic-render-gaps.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). The owner postponed it on 2026-11-02. It is fully specified.
 
 **Audit check at `5f8003d67`:** still_present (ux, low). Item 1: src/lib/plugins/queryjs/kb-ui.ts:505-538 creates the Prev/Next buttons with only onclick and no mousedown stopPropagation. QueryjsBlockWidget.ignoreEvent returns false (src/lib/plugins/queryjs/queryjs-block-widget.ts:168-170). The only mousedown stops are on Run (:208) and Retry (:318), and toDOM has no container-level guard. Item 2: inline/handlers/wikilink-handler.ts:19-45 decorates every findWikilinkRanges match with no InlineCode check. plugins/wikilink-embed-plugin.ts:72-74 skips only isInsideBlockContext at the line start. Item 3: plugins/audio-plugin.ts:12-45 (computeAudioBlocks) scans getAllLines with no isInsideBlockContext guard; the video plugin is the same.
 
@@ -27,7 +27,7 @@ Triage note (2026-11-02): this Issue first bundled six items. The three with a c
 
 **Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
 
-**Source:** src/lib/plugins/queryjs/kb-ui.ts:500-540, src/lib/plugins/queryjs/queryjs-block-widget.ts:130-260, src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts, inline/handlers/wikilink-handler.ts, plugins/audio-plugin.ts, plugins/video-plugin.ts, core/is-inside-block-context.ts, plugins/block-comment-field.ts; tests in .scratch/live-preview-audit/repro/interactions/widget-click.test.ts, repro/inline/lp-redraw-inline-audit.test.ts, repro/block-vs-block/block-vs-block-extra.test.ts
+**Source:** src/lib/plugins/queryjs/kb-ui.ts:500-540, src/lib/plugins/queryjs/queryjs-block-widget.ts:130-260, src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts, inline/handlers/wikilink-handler.ts, plugins/audio-plugin.ts, plugins/video-plugin.ts, core/is-inside-block-context.ts, plugins/block-comment-field.ts; tests in .scratch/archived/live-preview-audit/repro/interactions/widget-click.test.ts, repro/inline/lp-redraw-inline-audit.test.ts, repro/block-vs-block/block-vs-block-extra.test.ts
 
 ## Acceptance criteria
 
@@ -38,5 +38,5 @@ Triage note (2026-11-02): this Issue first bundled six items. The three with a c
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/live-preview-audit/issues/04-queryjs-pager-and-cosmetic-render-gaps.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/live-preview-audit/issues/04-queryjs-pager-and-cosmetic-render-gaps.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

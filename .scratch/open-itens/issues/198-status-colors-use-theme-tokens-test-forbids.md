@@ -1,8 +1,8 @@
 # 198: Status colors use theme tokens, and a test forbids raw palette classes
 
-**Origin:** `audit-2026-11-05` Issue 84, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 84, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/48-status-colors-use-tokens.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. Its guard test flags 47's kanban sites, so it cannot go green before 47 lands. Blocker 08 is resolved.
+**Migrated from:** `.scratch/archived/ux-polish/issues/48-status-colors-use-tokens.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. Its guard test flags 47's kanban sites, so it cannot go green before 47 lands. Blocker 08 is resolved.
 
 **Audit check at `5f8003d67`:** still_present (polish, low). rg for palette color utilities outside components/ui: UpdateSection.svelte:252 text-green-500; KanbanLane.svelte:309 and KanbanTableView.svelte:74 and AutoMoveRuleRow.svelte:119 text-green-500; TasksView.svelte:184 text-purple-400 and :252 text-green-400; DiffViewer.svelte:14-15 bg-green-500/15 text-green-300 and bg-red-500/15 text-red-300 (pale on a light theme); BuildInfo.svelte:30-32 stable/nightly/dev with dark: variants. Tokens exist (src/app.css:69 --color-success, :193 and :266 --success, --color-warning). src/tests/lib/architecture/palette-classes.test.ts does not exist. Blocker 08 is resolved; 47 is not delivered (KanbanCard.svelte:118-125 and KanbanDatePicker.svelte:21-24 still use raw shades).
 
@@ -40,5 +40,5 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/48-status-colors-use-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/48-status-colors-use-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: BuildInfo badge tokens named and line numbers updated after the order review.

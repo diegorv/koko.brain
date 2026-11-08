@@ -1,6 +1,6 @@
 # 144: A `.view` checker for agents
 
-**Origin:** `view-engine-fixes` Issue 18, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 18, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** an agent writing a `.view` from outside the app gets feedback only 3 to 12 s later, in the UI, and several mistakes fail silently (a list filter matches everything, an unknown method matches nothing, a quoted `_rail` is ignored). `docs/agents/view-files.md` documents the rules; this gives a check.
 

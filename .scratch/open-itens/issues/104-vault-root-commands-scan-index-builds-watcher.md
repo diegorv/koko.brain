@@ -1,10 +1,10 @@
 # 104: Vault-root commands (scan, index builds, watcher, model init) only accept the open vault
 
-**Origin:** `audit-2026-11-05` Issue 136, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 136, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/audit-2026-11-04/issues/18-confine-vault-root-commands.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Hardening. It is blocked by 16.
+**Migrated from:** `.scratch/archived/audit-2026-11-04/issues/18-confine-vault-root-commands.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Hardening. It is blocked by 16.
 
-**Audit check at `5f8003d67`:** still_present (corner, low). Rust still does not know the open vault root: src-tauri/src/db/mod.rs:17-27 hold only Connection slots, and rg finds no open-root accessor. scan_vault_inner validates only the given path (src-tauri/src/commands/vault.rs:125-132); scan_vault_v2 / scan_vault_v2_cached at vault.rs:1233-1260 and :1320-1382 use canonical_vault_root; build_search_index_inner at src-tauri/src/commands/search_index.rs:57-59; start_vault_watcher (src-tauri/src/commands/watcher.rs:12-23) passes path straight to replace_watcher; init_semantic_search (src-tauri/src/commands/semantic.rs:371), is_semantic_model_available (:399), is_reranker_model_available (:406), build_semantic_index (:483) take the path as given. Blocker 16 (and 05) is still todo in .scratch/audit-2026-11-04/ledger.md. Defence in depth against a compromised renderer, not a daily-use failure.
+**Audit check at `5f8003d67`:** still_present (corner, low). Rust still does not know the open vault root: src-tauri/src/db/mod.rs:17-27 hold only Connection slots, and rg finds no open-root accessor. scan_vault_inner validates only the given path (src-tauri/src/commands/vault.rs:125-132); scan_vault_v2 / scan_vault_v2_cached at vault.rs:1233-1260 and :1320-1382 use canonical_vault_root; build_search_index_inner at src-tauri/src/commands/search_index.rs:57-59; start_vault_watcher (src-tauri/src/commands/watcher.rs:12-23) passes path straight to replace_watcher; init_semantic_search (src-tauri/src/commands/semantic.rs:371), is_semantic_model_available (:399), is_reranker_model_available (:406), build_semantic_index (:483) take the path as given. Blocker 16 (and 05) is still todo in .scratch/archived/audit-2026-11-04/ledger.md. Defence in depth against a compromised renderer, not a daily-use failure.
 
 **Stale in the text below:** Line numbers moved: scan_vault_v2 is now vault.rs:1233-1260 (Issue says :1192-1206), scan_vault_v2_cached :1320-1382 (Issue says :1280-1293), init_semantic_search starts at semantic.rs:371. Still blocked by 16, which is not delivered.
 
@@ -26,7 +26,7 @@
 
 ## Notes
 
-- **Source:** audit 2026-11-04 (`.scratch/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 3 of the parallel plan.
+- **Source:** audit 2026-11-04 (`.scratch/archived/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 3 of the parallel plan.
 - **Finding `read-files-batch-scope`:** real, medium. Root cause: The Rust side does not know which vault is open. read_files_batch accepts whatever root the caller sends, and validate_vault_path only checks that the root canonicalizes to a directory. So the starts_with guard keeps reads inside a root the attacker picked, which breaks the compromised-renderer threat model in ADR-0020. Exploiting it needs script execution in the webview first, so this is a defence-in-depth gap, not a remote exploit.
   Evidence: src-tauri/src/utils/fs.rs:39-47: validate_vault_path checks only canonicalize() and is_dir(). src-tauri/src/commands/files.rs:31 uses that result as vault_root, :49 checks canonical.starts_with(&vault_root), and :63 calls fs::read_to_string directly, so the plugin-fs scope in capabilities/default.json is never consulted. With vault_path='/' or the secret's own parent directory, every path passes. Nothing in src-tauri/src/db/mod.rs:36-99 or commands/db.rs:7-11 keeps the opened root. docs/adr/0020-path-security-absolute-canonicalize.md states the threat model as 'a compromised renderer process is the attacker', and files.rs:19-20 claims the check prevents arbitrary reads in that case. The sweep found the same caller-chosen-root pattern, with worse effects, in toggle_task_status (vault.rs:765/779, which writes any path), create_note/create_folder (vault.rs:983-1022; ensure_safe_write_path at :958-970 blocks only '..'), save_vault_cache, the model downloads, the scan_* commands, build_*_index and start_vault_watcher.
 - **Blocking edge:** Both tickets edit commands/vault.rs and reuse the open-root accessor from Issue 05.
@@ -35,5 +35,5 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/18-confine-vault-root-commands.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/18-confine-vault-root-commands.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: moved out of the first wave by the owner after the challenge review.

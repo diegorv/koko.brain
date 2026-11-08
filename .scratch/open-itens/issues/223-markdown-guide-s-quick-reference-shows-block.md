@@ -1,6 +1,6 @@
 # 223: The Markdown guide's Quick Reference shows block math in the three-line $$ form the editor renders
 
-**Origin:** `audit-2026-11-05` Issue 74, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 74, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** help/documentation/04-markdown.md:748 lists `$$formula$$` as Block math, but blockMathParser (src/lib/core/markdown-editor/extensions/lezer/math-extension.ts:66-68) opens only on a line that is `$$` alone, and inlineMathParser (:19-23) rejects a `$` next to another `$`, so a one-line `$$...$$` produces no node and no widget. The parser behavior is deliberate and pinned by src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/math.test.ts:49-53 ('does not match $$ with content on the same line'); the Math section of the guide (04-markdown.md:464-510) already uses the three-line form. Fix the Quick Reference row to show `$$` / formula / `$$` (or a note that the delimiters go on their own lines). Supporting single-line display math would be a parser change against a pinned test and needs an owner decision first; it is out of scope here.
 

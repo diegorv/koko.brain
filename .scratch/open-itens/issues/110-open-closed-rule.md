@@ -1,6 +1,6 @@
 # 110: Open means not done and not cancelled
 
-**Origin:** `tasks-view` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Rust sets `checked: check_char != ' '` (`src-tauri/src/vault/parsing.rs:1633`), and the view treats `checked` as "completed": hide-completed (on by default, `tasks.store.svelte.ts:10`) filters on it (`tasks.logic.ts:22`, `:40`), stats count it (`:103`), and the row strikes it through (`TasksView.svelte:209`, `:218`). So in-progress, question, forwarded and important tasks are hidden as if done. The calendar already closes only done and cancelled (`EventTaskChip.svelte:16-18`).
 
@@ -29,4 +29,4 @@
 ## Notes
 
 - **Size:** S.
-- `audit-2026-11-05/34` asks for the same open rule and the status-preserving tick of Issue 02. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/34` is (with Issue 02) closed as wontfix, covered by this Issue. Do not edit `.scratch/audit-2026-11-05/`.
+- `audit-2026-11-05/34` asks for the same open rule and the status-preserving tick of Issue 02. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/34` is (with Issue 02) closed as wontfix, covered by this Issue. Do not edit `.scratch/archived/audit-2026-11-05/`.

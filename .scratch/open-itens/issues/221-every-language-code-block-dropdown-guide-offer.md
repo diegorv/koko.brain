@@ -1,6 +1,6 @@
 # 221: Every language the code-block dropdown and the guide offer is syntax-highlighted
 
-**Origin:** `audit-2026-11-05` Issue 73, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 73, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** highlightCode (src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts:5) builds lowlight from the `common` bundle only, which has no powershell, dockerfile, elixir, haskell or scala grammar, so :41 `lowlight.registered(language)` is false and :46 returns escaped plain text. COMMON_LANGUAGES (widgets/code-block-widget.ts:41-42, :45-47) still offers all five, and help/documentation/04-markdown.md:424 lists them as supported. Make the three agree: either register the five grammars on top of `common` (lowlight.register with the highlight.js language modules; highlight.js is only a transitive dependency today, so that means adding it to package.json, or using lowlight's `all` if the bundle cost is acceptable), or drop the five from COMMON_LANGUAGES and the guide. Prefer registering them; do not switch to `all` without checking the bundle size.
 

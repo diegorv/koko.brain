@@ -1,6 +1,6 @@
 # 072: Todoist sync failures are visible and read the HTTP status
 
-**Origin:** `tasks-view` Issue 20, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 20, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Todoist failures are silent, against the repo's error-handling rule (CLAUDE.md "Error Handling > Components"):
 
@@ -37,7 +37,7 @@ Fix:
 
 - **Size:** M.
 - Ships whether or not Todoist is in real use (B3).
-- `audit-2026-11-05/55` (Todoist sync tells the user when it could not reach Todoist) is a subset of this Issue. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/55` is closed as wontfix, covered by this Issue. Do not edit `.scratch/audit-2026-11-05/`.
+- `audit-2026-11-05/55` (Todoist sync tells the user when it could not reach Todoist) is a subset of this Issue. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/55` is closed as wontfix, covered by this Issue. Do not edit `.scratch/archived/audit-2026-11-05/`.
 - The installed SDK is `@doist/todoist-sdk` 15.8.0 (`package.json:33`, the renamed `@doist/todoist-api-typescript`; repo https://github.com/Doist/todoist-sdk-typescript). It calls the unified API v1 (`dist/esm/consts/endpoints.js:7-8`, `/api/v1/`), so it does not target a deprecated API: REST v2 and Sync v9 were shut down on February 10, 2026 (https://groups.google.com/a/doist.com/g/todoist-api/c/brwENjfT_tk). No Issue needs a bump for that.
 - The v1 docs give rate-limit numbers only for `/sync` (1000 partial and 100 full syncs per user per 15 minutes, https://developer.todoist.com/api/v1/#tag/Request-limits), none for `GET /tasks/{id}`. The cap of 3 is a design choice, not a documented limit.
 - An option for the implementer, not part of this spec: `GET /api/v1/tasks` takes `ids` (comma-separated, `limit` up to 200) and returns only active tasks (https://developer.todoist.com/api/v1/#tag/Tasks/operation/get_tasks_api_v1_tasks_get); the SDK's `getTasks({ ids })` joins the array (`dist/esm/clients/task-client.js:49`). One paged call per 200 entries, with every missing id treated as closed, would replace the per-task requests. Whether an id of a completed task is absent from that list is not stated in the docs (from memory, it is).

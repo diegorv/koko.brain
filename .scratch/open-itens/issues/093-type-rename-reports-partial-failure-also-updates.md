@@ -1,8 +1,8 @@
 # 093: Type rename reports partial failure and also updates _type values with a trailing comment
 
-**Origin:** `audit-2026-11-05` Issue 118, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 118, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/34-type-rename-partial-failure.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs a failed note write during a type rename. The Notes say its original sections still lack the behavior to build.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/34-type-rename-partial-failure.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs a failed note write during a type rename. The Notes say its original sections still lack the behavior to build.
 
 **Audit check at `5f8003d67`:** still_present (content, low). (a) propagate_type_rename_inner skips failures with debug_log and returns the count (src-tauri/src/commands/vault.rs:392-446). (b) renameType: the open-tab write loop and `await call('propagate_type_rename', ...)` share one try (src/lib/features/type-definitions/type-definitions.service.ts:229-241), the catch returns at :242-246, and the count is discarded. (c) rewrite_type_line compares the raw value, so 'Project # note' returns None (src-tauri/src/vault/parsing.rs:143-147). (d) the new name is written raw (parsing.rs:148-151; rewriteTypeInFrontmatter at type-definitions.logic.ts:210; `_type: ${typeName}` template at type-definitions.service.ts:79); validateTypeName (type-definitions.logic.ts:168) checks only file-name legality. Rust traced, not run.
 
@@ -15,7 +15,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: stale-state
-Source: file I/O audit, deep-dive group(s) h06-type-rename (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h06-type-rename (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Rust propagate_type_rename skips failing members silently and reports success
 
@@ -43,7 +43,7 @@ Source: file I/O audit, deep-dive group(s) h06-type-rename (raw reports in .scra
 
 **Evidence.** yaml-rust2 scanner.rs (fetched from raw.githubusercontent.com/Ethiraric/yaml-rust2/master/src/scanner.rs, not pinned to Cargo.lock): plain scalar loop breaks on '#' after blanks, so the comment is not part of the scalar. parsing.rs rewrite_type_line: raw_value 'Project # note' is not quoted, normalize_type_casing != 'Project' -> None. Repro run with vitest: rewriteTypeInFrontmatter returns null where the correct output is '---\n_type: Initiative\n---\n\nbody'.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h06-type-rename/trailing-comment-type-value.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h06-type-rename/trailing-comment-type-value.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 FAIL: AssertionError: expected null to be '---\n_type: Initiative\n---\n\nbody' // Object.is equality
@@ -80,7 +80,7 @@ Criteria for the original sections (added 2026-11-06, following the owner decisi
 - [ ] Failing test first, in src-tauri/tests/vault_type_rename_test.rs: when one member write fails, propagate_type_rename returns the paths of the notes it could not update (not only the count); the existing continues_past_write_failures_and_counts_only_successes case changes to the new return shape and the commit message says so. It fails today (failures are only logged).
 - [ ] renameType keeps the rename when some members fail and shows a toast naming the notes that were not updated, plus a log entry through error(); tested in src/tests/lib/features/type-definitions/type-definitions.service.test.ts with only the Tauri APIs mocked.
 - [ ] A failing write to an open member tab no longer aborts propagation: the other members are still rewritten, and the failed tab is listed in the same toast (same test file).
-- [ ] Failing test first: move .scratch/file-io-audit/repro/h06-type-rename/trailing-comment-type-value.test.ts under src/tests/lib/features/type-definitions/ (fix its imports); rewriteTypeInFrontmatter turns '_type: Project # note' into '_type: Initiative' for a rename of Project. It fails today (null). The Rust rewrite_type_line gets the same case in src-tauri/tests/vault_type_rename_test.rs.
+- [ ] Failing test first: move .scratch/archived/file-io-audit/repro/h06-type-rename/trailing-comment-type-value.test.ts under src/tests/lib/features/type-definitions/ (fix its imports); rewriteTypeInFrontmatter turns '_type: Project # note' into '_type: Initiative' for a rename of Project. It fails today (null). The Rust rewrite_type_line gets the same case in src-tauri/tests/vault_type_rename_test.rs.
 
 Criteria for the editor-data-safety amendment (2026-11-02):
 
@@ -90,10 +90,10 @@ Criteria for the editor-data-safety amendment (2026-11-02):
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
-- Finding F78 (.scratch/editor-data-safety/audit-2026-11-02.md; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). No repro test was written for F78 under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/; the first criterion above is the red test to write.
+- Finding F78 (.scratch/archived/editor-data-safety/audit-2026-11-02.md; cross-reference in .scratch/archived/editor-data-safety/xref-file-io-audit.md). No repro test was written for F78 under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/archived/editor-data-safety/repro/; the first criterion above is the red test to write.
 - Verified at the current main: parsing.rs:143-152 (raw value compare, then `None => new_type.to_string()` at :150); type-definitions.logic.ts:194-206 (quote kept, `newType` interpolated raw); type-definitions.service.ts:73; fs.logic.ts:117-124 allows `#`, `[`, `]`, `{`, `&`, `!` and `'`; entry.rs:362-369 accepts only a string `_type`. The quote, number and apostrophe variants are traced from the same lines, not run.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/34-type-rename-partial-failure.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/34-type-rename-partial-failure.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

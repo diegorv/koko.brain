@@ -1,8 +1,8 @@
 # 107: A semantic update still embedding when its note is deleted leaves no chunks for the trashed note
 
-**Origin:** `audit-2026-11-05` Issue 125, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 125, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/54-semantic-update-after-delete.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Narrow: a delete seconds after typing, with the embedder loaded.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/54-semantic-update-after-delete.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Narrow: a delete seconds after typing, with the embedder loaded.
 
 **Audit check at `5f8003d67`:** still_present (corner, low). update_semantic_file (src-tauri/src/commands/semantic.rs:1305-1475) never checks that file_path still exists before its insert transaction (:1414-1460) and the empty-chunks branch (:1314-1323). remove_semantic_file (:1282-1299) is a separate transaction with no ordering against an in-flight embed. The save observer fires update_semantic_file without awaiting (src/lib/features/search/search.service.ts:326), and a delete saves dirty tabs under the path first (src/lib/core/filesystem/path-change.service.ts:55-60), so a slow embed can commit after the remove. Result: stale chunks for a trashed note until the next semantic build cleans orphans. No test exists.
 
@@ -13,7 +13,7 @@
 **Blocked by:** none
 Priority: P3
 Severity: stale-state
-Source: Issue 05 review (.scratch/file-io-audit/work/05/review.md, finding 1), traced only, not reproduced
+Source: Issue 05 review (.scratch/archived/file-io-audit/work/05/review.md, finding 1), traced only, not reproduced
 
 ## Details
 
@@ -27,4 +27,4 @@ Not data loss; recoverable on the next full semantic build.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/54-semantic-update-after-delete.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/54-semantic-update-after-delete.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

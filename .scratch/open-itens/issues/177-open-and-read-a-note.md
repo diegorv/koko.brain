@@ -1,6 +1,6 @@
 # 177: Open and read a note
 
-**Origin:** `ios-app` Issue 05, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 05, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** In the browser, opening a note from the tree shows it in the editor with live preview, exactly as on the desktop: frontmatter, callouts, tables, task lists, wikilinks. Following a wikilink opens the target note. The rail shell works: its navigators (files, types, note list) and the neighbourhood lenses (backlinks, outgoing, belongs-to, has-many, related-to) list their contents. Images are 06; editing is 08.
 

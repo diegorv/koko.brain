@@ -1,8 +1,8 @@
 # 152: A tag may start with a digit and may carry emoji, as in Obsidian
 
-**Origin:** `audit-2026-11-05` Issue 142, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 142, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/tags-obsidian-parity/issues/01-tag-format-matches-obsidian.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). A parity feature created as 'not to be run now'. The owner decided it on 2026-11-06 (below).
+**Migrated from:** `.scratch/archived/tags-obsidian-parity/issues/01-tag-format-matches-obsidian.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). A parity feature created as 'not to be run now'. The owner decided it on 2026-11-06 (below).
 
 **Audit check at `5f8003d67`:** still_present (content, medium). Digit-first and emoji tags are still rejected: src-tauri/src/vault/parsing.rs:468 requires is_alphabetic or '_' first, :477 continuation alphabetic/ASCII digit/_/-//; src/lib/utils/tag-extraction.ts:2 INLINE_TAG_REGEX starts with [\p{L}_]; src/lib/plugins/kanban/kanban.logic.ts:735 keeps its own copy of the regex. INDEX_SCHEMA_VERSION is still 5 (src-tauri/src/vault/index_cache.rs:18), so the bump the Issue requires is still needed when the rule changes. Status needs-triage; no commit implements it.
 
@@ -42,6 +42,6 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/tags-obsidian-parity/issues/01-tag-format-matches-obsidian.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/tags-obsidian-parity/issues/01-tag-format-matches-obsidian.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-06: blocked by 16, 68 and 123 by the owner after the challenge review.

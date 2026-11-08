@@ -1,6 +1,6 @@
 # 111: Quick filters on status, due and priority
 
-**Origin:** `tasks-view` Issue 07, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 07, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The three date chips filter on the note file's mtime (`tasks.logic.ts:76-88`, `TasksView.svelte:31-35`, `:107-117`), not on any task date, and the only other filter is the hide-completed eye (`:121-135`). Replace both with quick filters on task data (PRD assumption A2).
 

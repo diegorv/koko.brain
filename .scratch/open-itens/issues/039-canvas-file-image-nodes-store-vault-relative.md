@@ -1,8 +1,8 @@
 # 039: Canvas file and image nodes store vault-relative paths and resolve both absolute and vault-relative ones
 
-**Origin:** `audit-2026-11-05` Issue 15, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 15, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md` (audit 2026-11-05). Priority: daily use and UI correctness (bucket 2-ux). High likelihood: every picked or dropped node gets an absolute path and fails to load, which is a display failure rather than lost text. Its Blocked-by 13 only avoided a merge conflict in canvas.logic.ts, so it is dropped, and owner decision D7 (b) is recorded.
+**Migrated from:** `.scratch/archived/audit-2026-11-04/issues/17-canvas-node-path-resolution.md` (audit 2026-11-05). Priority: daily use and UI correctness (bucket 2-ux). High likelihood: every picked or dropped node gets an absolute path and fails to load, which is a display failure rather than lost text. Its Blocked-by 13 only avoided a merge conflict in canvas.logic.ts, so it is dropped, and owner decision D7 (b) is recorded.
 
 **Audit check at `5f8003d67`:** still_present (content, high). No resolver exists. src/lib/features/canvas/canvas-image.service.ts:33-34 and src/lib/features/canvas/FileNode.svelte:40 prefix vaultStore.path onto the stored path. src/lib/features/canvas/CanvasFilePicker.svelte:61 passes the absolute file.path to handleSelect, and CanvasInner.svelte:481-496 (handleFileSelected/handleImageSelected) and the drop handler (~:556-575) pass it straight to createFileNode/createImageNode (canvas.logic.ts:353-372). A node added in the app is therefore read at '/vault//vault/...' and shows 'Could not load file' (FileNode.svelte:81). FileNode.svelte:56 opens data.file raw. No commit since f37acb402 touches src/lib/features/canvas.
 
@@ -27,7 +27,7 @@
 
 ## Notes
 
-- **Source:** audit 2026-11-04 (`.scratch/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 3 of the parallel plan.
+- **Source:** audit 2026-11-04 (`.scratch/archived/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 3 of the parallel plan.
 - **Finding `canvas-abs-path`:** real, medium. Root cause: Canvas writers store the absolute FileTreeNode.path in node.file (picker and drag-drop), while both readers prefix vaultStore.path, which gives '/vault//vault/x.md'. FileNode's click handler instead passes data.file raw to openFileInEditor, so a vault-relative path (the JSON Canvas/Obsidian format) fails there. No single resolver handles both forms.
   Evidence: CanvasFilePicker.svelte:21 and :61 return file.path from flattenFileTree (file-entries.logic.ts:21, node.path, which is absolute per the CLAUDE.md absolute-path convention). CanvasInner.svelte:465-476 handleFileSelected/handleImageSelected and :541-559 handleDrop (FilesNavigator.svelte:246 and NoteRow.svelte:70 set an absolute path as text/plain) store it unchanged via createFileNode/createImageNode (canvas.logic.ts:353-372). Readers: FileNode.svelte:40 `${vaultStore.path}/${filePath}` (error UI at :81) and canvas-image.service.ts:33-34 (used by ImageNode.svelte:26). FileNode.svelte:55 openFileInEditor(data.file) with no resolution.
 - **Blocking edge:** Both tickets edit canvas.logic.ts; the edge avoids a merge conflict.
@@ -39,4 +39,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/17-canvas-node-path-resolution.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

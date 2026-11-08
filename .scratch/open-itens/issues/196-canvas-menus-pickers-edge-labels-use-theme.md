@@ -1,8 +1,8 @@
 # 196: Canvas menus, pickers and edge labels use theme tokens
 
-**Origin:** `audit-2026-11-05` Issue 86, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 86, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/44-canvas-overlay-theme-tokens.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. It keeps its Blocked-by 43.
+**Migrated from:** `.scratch/archived/ux-polish/issues/44-canvas-overlay-theme-tokens.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. It keeps its Blocked-by 43.
 
 **Audit check at `5f8003d67`:** still_present (polish, low). Overlay sites unchanged at HEAD: CanvasContextMenu.svelte:183 (border), :206 (hover), :210-211 (danger hover `rgba(251,70,76,0.15)` and `color: #fb464c`), :231; CanvasFilePicker.svelte:91,103,135 (scrim :81, shadow :97); CanvasLinkInput.svelte:91,108,110,151 (scrim :81, shadow :94); CanvasEdge.svelte:66-67 (`var(--card, #2a2e3d)`, `var(--foreground, #fff)`) and :72; CanvasToolbar.svelte:55 (rgba fallback on --xy-controls-button-border-color); ColorPicker.svelte:61,69. --destructive exists in both themes (src/app.css:159,219). canvas-theme-colors.test.ts does not exist. Blocked by Issue 43, which is still open, so the dependency holds. Light-theme only impact, hence low for an owner likely on the dark Default.
 
@@ -38,4 +38,4 @@ Then widen the guard test to the whole folder.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/44-canvas-overlay-theme-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/44-canvas-overlay-theme-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

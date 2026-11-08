@@ -1,8 +1,8 @@
 # 017: An external change to an open note is never overwritten by the next autosave or calendar write
 
-**Origin:** `audit-2026-11-05` Issue 98, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 98, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/08-external-change-overwritten.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Data loss that cannot be recovered, but it needs another editor to write while the tab is dirty, a 2 s window. The fix changes the pinned 'editor always wins' test.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/08-external-change-overwritten.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Data loss that cannot be recovered, but it needs another editor to write while the tab is dirty, a 2 s window. The fix changes the pinned 'editor always wins' test.
 
 **Audit check at `5f8003d67`:** still_present (content, low). src/lib/core/editor/editor.service.ts:187-198 writeTab writes tab.content with writeTextFile(path, content) and no disk/mtime precondition; :428 reloadExternallyChangedTabs skips dirty tabs before any read; src/lib/core/frontmatter/frontmatter-write.service.ts:116-132 tab branch rebuilds from tab.content then saveFileByPath. No conflict handling added since c4bfee07. Owner has no sync tool, so only an occasional external editor while the tab is dirty triggers it.
 
@@ -19,7 +19,7 @@
 **Blocked by:** none
 Priority: P1
 Severity: data-loss
-Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -36,7 +36,7 @@ Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .
 
 **Limits found while trying to refute.** Not refuted. The skip is a documented design choice pinned by editor.service.test.ts ('skips dirty tabs, editor always wins'), but no guard, setting or snapshot keeps the external version.
 
-**Repro test.** `.scratch/file-io-audit/repro/o07-external-change/external-change-overwrite.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o07-external-change/external-change-overwrite.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 × external-change-1 / save-pipeline-8 ... AssertionError: expected false to be true at external-change-overwrite.test.ts:75 expect(externalVersionSurvives()).toBe(true); × calendar-1 ... AssertionError: expected false to be true at :91
@@ -62,6 +62,6 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/08-external-change-overwritten.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/08-external-change-overwritten.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-06: narrowed by the owner after the challenge review; the writeTab part moved to Issue 153.

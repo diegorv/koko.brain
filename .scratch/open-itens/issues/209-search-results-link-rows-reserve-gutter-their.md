@@ -1,8 +1,8 @@
 # 209: Search results and link rows reserve a gutter for their hover actions
 
-**Origin:** `audit-2026-11-05` Issue 92, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 92, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/71-hover-action-gutter.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. It shows only on event notes.
+**Migrated from:** `.scratch/archived/ux-polish/issues/71-hover-action-gutter.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. It shows only on event notes.
 
 **Audit check at `5f8003d67`:** still_present (polish, low). src/lib/features/search/SearchResult.svelte:175-178 places ShowInCalendarButton absolute right-1 bottom-1 over the card with no pr-7 on the snippet/subtitle; src/lib/features/backlinks/LinkItem.svelte:34 places it absolute right-1 top-0.5 over the title row with no gutter. The button renders only when the note is an event (ShowInCalendarButton.svelte:64 {#if isEvent}) and is always visible, not hover-only, so overlap affects event notes only. LayoutSection.svelte:133-165: the Search row has no chevrons and Search/Today rows have no switch, so chevrons land in a different column per row.
 
@@ -21,10 +21,10 @@
 
 ## Notes
 
-- **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 3 Shell layout row 9.
+- **Source:** `.scratch/archived/ux-polish/review-2026-11-04.md` Review section 3 Shell layout row 9.
 - Size: S.
 - **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/71-hover-action-gutter.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/71-hover-action-gutter.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

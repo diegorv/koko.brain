@@ -1,6 +1,6 @@
 # 049: Renaming a kanban lane keeps its card limit, auto-complete and collapsed state
 
-**Origin:** `audit-2026-11-05` Issue 28, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 28, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Lane settings are keyed by lane title (board.settings.laneSettings, src/lib/plugins/kanban/kanban.types.ts:54-55; lookups at src/lib/plugins/kanban/kanban.logic.ts:594-659), but renameLane (kanban.logic.ts:492-499) changes only lane.title. After a rename the lane loses its limit, auto-check on drop and collapsed state, and the old key stays in the %% kanban:settings block, where a lane later given the old title inherits it. Fix direction: renameLane moves the laneSettings entry from the old title to the new one (and drops the old key) in the same board update.
 

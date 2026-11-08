@@ -1,6 +1,6 @@
 # 189: Rust panics in Sentry show function names (deferred)
 
-**Origin:** `usage-telemetry` Issue 11, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `usage-telemetry` Issue 11, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Full symbolication of Rust panic stacks. A shipped panic has frames with only instruction addresses and `<unknown>` functions:
 - `[profile.release]` sets `strip = true` and no `debug` (`src-tauri/Cargo.toml` about line 88);

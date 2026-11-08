@@ -1,8 +1,8 @@
 # 199: Opening Settings moves focus into the drawer, and closing returns it
 
-**Origin:** `audit-2026-11-05` Issue 71, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 71, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/29-settings-drawer-focus-move-and-return.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present. It is keyboard focus fine-tuning, and its blocker 28 is delivered.
+**Migrated from:** `.scratch/archived/ux-polish/issues/29-settings-drawer-focus-move-and-return.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present. It is keyboard focus fine-tuning, and its blocker 28 is delivered.
 
 **Audit check at `5f8003d67`:** still_present (ux, medium). src/lib/app/SettingsPanel.svelte (read whole file): the dialog root has no bind:this, no $effect on settingsPanelStore.isOpen, no focus call and no opener save; the only keyboard code is the window Escape handler in handleKeydown. A grep for 'focus' in SettingsPanel.svelte and settings-panel.store.svelte.ts matches only the nav button focus-visible classes. So Mod+Comma leaves focus in the editor behind the drawer, and after clicking inside Settings and closing it, focus is on body, not on the editor, so the owner must click the editor before typing.
 
@@ -28,11 +28,11 @@ In `src/lib/app/SettingsPanel.svelte`: bind the dialog root; an `$effect` that r
 
 ## Notes
 
-- Source: review section 3 Settings row "Drawer chrome" (no focus move); review section 2 drawer recommendation ("focus move and return"); `.scratch/ux-polish/work/settings.md` P2.
+- Source: review section 3 Settings row "Drawer chrome" (no focus move); review section 2 drawer recommendation ("focus move and return"); `.scratch/archived/ux-polish/work/settings.md` P2.
 - The drawer stays a non-modal `role="dialog"` here; `aria-modal` comes only with the scrim ticket, because claiming modality while the app behind stays clickable would be wrong.
 - Not verified: whether the window Escape handler (about line 104) also fires when a bits-ui Select or Popover inside the panel is open; out of scope.
 - Size: S.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/29-settings-drawer-focus-move-and-return.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/29-settings-drawer-focus-move-and-return.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

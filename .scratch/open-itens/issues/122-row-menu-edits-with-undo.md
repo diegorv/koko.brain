@@ -1,6 +1,6 @@
 # 122: Set status, due and priority from the row, with undo
 
-**Origin:** `tasks-view` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Date filters and due groupings (Issues 07, 08) are only useful if a task can get a due date without typing `📅 2026-11-05` by hand. Add a row menu (PRD assumption A7):
 

@@ -1,6 +1,6 @@
 # 108: The list stays mounted, and the rule explains itself
 
-**Origin:** `tasks-view` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Three things that make the current view hard to use, without changing what it lists.
 
@@ -37,5 +37,5 @@ The section-tag textbox (`:154-163`) stays, with an explicit `aria-label="Sectio
 
 - **Size:** S.
 - Open Issues `audit-2026-11-05/145` (an `EmptyState` primitive; migrated from `ux-polish/59`) and `audit-2026-11-05/146` (move the tasks panel onto it, blocked by 145; migrated from `ux-polish/60`) touch the same empty state. If 145 has landed when this runs, render the empty state through `EmptyState`, and say in the delivery comment that the Tasks part of 146 is covered here, so 146 drops it. Otherwise use a plain `<p>` plus a button, as today.
-- `audit-2026-11-05/35` (the list stays on screen during a refresh) is the same fix as part 1. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/35` is closed as wontfix, covered by this Issue. Do not edit `.scratch/audit-2026-11-05/`.
+- `audit-2026-11-05/35` (the list stays on screen during a refresh) is the same fix as part 1. The owner answered PRD L4 (a) on 2026-11-06: `audit-2026-11-05/35` is closed as wontfix, covered by this Issue. Do not edit `.scratch/archived/audit-2026-11-05/`.
 - Issue 07 replaces `hideCompleted` and `dateFilter` in both functions with the quick filters.

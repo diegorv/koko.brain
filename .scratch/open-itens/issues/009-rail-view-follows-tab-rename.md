@@ -1,6 +1,6 @@
 # 009: Tab rename and delete keep `_rail_view` in sync
 
-**Origin:** `view-editor` Issue 01, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-editor` Issue 01, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** `renameView` and `removeView` (`src/lib/features/collection/yaml-parser.ts:364-407`) never touch `_rail_view`, and `railViewIndex` falls back to `views[0]` (`:142-144`). A double-click rename of the tab the rail runs (`CollectionView.svelte:476`) or a Delete of it silently moves the rail list, its count, its Sort and Filter and Edit view to `views[0]`. The only signal is a grey mark in the navigator (`type-sidebar.logic.ts:426-440`).
 

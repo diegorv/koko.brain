@@ -1,8 +1,8 @@
 # 076: Note writes are atomic: a failed write never leaves the note empty or truncated
 
-**Origin:** `audit-2026-11-05` Issue 107, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 107, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/07-non-atomic-note-writes.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Severe but improbable: it needs a write to fail midway (disk full or a crash).
+**Migrated from:** `.scratch/archived/file-io-audit/issues/07-non-atomic-note-writes.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Severe but improbable: it needs a write to fail midway (disk full or a crash).
 
 **Audit check at `5f8003d67`:** still_present (content, low). Frontend note writers still use plugin-fs writeTextFile (truncate then write_all): src/lib/core/editor/editor.service.ts:194 (writeTab, every save and autosave), src/lib/core/frontmatter/frontmatter-write.service.ts:153 (closed-note rewrite, create:false), src/lib/core/filesystem/link-updater.service.ts:58, src/lib/features/deep-link/deep-link.service.ts:274,293,310,336, src/lib/app/deep-link-actions.ts:71,210, src/lib/features/type-definitions/type-definitions.service.ts:233,430, src/lib/features/file-icons/file-icons.service.ts:101, src/lib/plugins/templates/templates.service.ts:118. The atomic writer src-tauri/src/utils/fs.rs:16-33 write_atomic is used only at src-tauri/src/commands/vault.rs:420 (propagate_type_rename), :779 (toggle_task_status) and :995 (create_note). write_atomic does no sync_all, and a failed tmp write at :27 returns without removing the partial tmp file. No atomic-write command or guard test exists. Trigger needs a full disk or a mid-write I/O error, which is uncommon on a local SSD.
 
@@ -13,7 +13,7 @@
 **Blocked by:** none
 Priority: P1
 Severity: data-loss
-Source: file I/O audit, deep-dive group(s) o08-atomicity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) o08-atomicity (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -30,7 +30,7 @@ Source: file I/O audit, deep-dive group(s) o08-atomicity (raw reports in .scratc
 
 **Limits found while trying to refute.** Partial downgrade from the claimed P0. On a full disk a same-size rewrite often still succeeds because truncation frees the blocks. The crash-mid-write window is microseconds. The open-tab buffer survives and is retried. File History usually holds the last saved version. calendar-3's claim that write_atomic is used only by create_note is inaccurate; it is also used at vault.rs:370 and 683.
 
-**Repro test.** `.scratch/file-io-audit/repro/o08-atomicity/non-atomic-save.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o08-atomicity/non-atomic-save.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 3 failed. 'open tab: ENOSPC during autosave leaves the old note on disk': AssertionError: expected '' to be '# Meeting notes\n\nA long body the us…' at non-atomic-save.test.ts:67 expect(disk.get(NOTE)).toBe(SAVED). 'closed note: a failed frontmatter rewrite (calendar drag) leaves the note on disk': AssertionError: expected '' to be '---\nstart: 2026-11-02\n---\n# Event\…' at :81 expect(disk.get(NOTE)).toBe(base). The body autosave path fails the same way at :92. The fake disk follows the upstream truncate-then-write order.
@@ -58,11 +58,11 @@ Guard: add a test under src/tests/lib/architecture/ (next to raw-invoke.test.ts)
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
-Source: .scratch/editor-data-safety/audit-2026-11-02.md (findings F182 and F54), cross-referenced in .scratch/editor-data-safety/xref-file-io-audit.md. Re-checked on main at 1351a35d.
+Source: .scratch/archived/editor-data-safety/audit-2026-11-02.md (findings F182 and F54), cross-referenced in .scratch/archived/editor-data-safety/xref-file-io-audit.md. Re-checked on main at 1351a35d.
 
-- F182 (P1, rare), main note save truncates the file in place. TRACE finding: the second audit has no repro test for it under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/, so the red test stays `.scratch/file-io-audit/repro/o08-atomicity/non-atomic-save.test.ts`. Its scenario adds the EIO trigger (external drive or network volume dropping mid-write) and the writers this issue's fix text did not name. Verified with a grep for writeTextFile under src/lib; the writer list above is the result. Issue 02 added `saveOpenNoteBeforeWrite` (deep-link.service.ts:246-250), so the cross-reference's deep-link.service.ts:260/279/296/313 are now :278/:297/:314/:331 and deep-link-actions.ts:61/173 are now :63/:175. Issue 01 moved the quit prompt from tauri-listeners.service.ts:53-62 to src/lib/core/vault/exit.service.ts:20 ("Close anyway and lose unsaved changes?"). On the Rust side, note writes already go through write_atomic (vault.rs:370, 683, 899; utils/fs.rs:16); a grep for fs::write and File::create in src-tauri/src found no non-atomic note writer.
+- F182 (P1, rare), main note save truncates the file in place. TRACE finding: the second audit has no repro test for it under /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/archived/editor-data-safety/repro/, so the red test stays `.scratch/archived/file-io-audit/repro/o08-atomicity/non-atomic-save.test.ts`. Its scenario adds the EIO trigger (external drive or network volume dropping mid-write) and the writers this issue's fix text did not name. Verified with a grep for writeTextFile under src/lib; the writer list above is the result. Issue 02 added `saveOpenNoteBeforeWrite` (deep-link.service.ts:246-250), so the cross-reference's deep-link.service.ts:260/279/296/313 are now :278/:297/:314/:331 and deep-link-actions.ts:61/173 are now :63/:175. Issue 01 moved the quit prompt from tauri-listeners.service.ts:53-62 to src/lib/core/vault/exit.service.ts:20 ("Close anyway and lose unsaved changes?"). On the Rust side, note writes already go through write_atomic (vault.rs:370, 683, 899; utils/fs.rs:16); a grep for fs::write and File::create in src-tauri/src found no non-atomic note writer.
 - F54 (P1, rare), closed-note write truncates the file before writing. The cross-reference grades it fully covered by this issue's fix. The one detail the fix text lacked is the `create: false` contract at src/lib/core/frontmatter/frontmatter-write.service.ts:146-149, now in the writer list and the last checklist item. The existing test src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts:205 ('passes a write error through when the note is still there') mocks writeTextFile to reject without touching its fake disk, so it cannot see a truncated file.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/07-non-atomic-note-writes.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/07-non-atomic-note-writes.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

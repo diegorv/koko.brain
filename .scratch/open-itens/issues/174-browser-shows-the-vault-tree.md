@@ -1,6 +1,6 @@
 # 174: Browser shows the vault tree
 
-**Origin:** `ios-app` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Safari on the Mac, pointed at the host from 01, shows the real file tree of the vault the desktop app has open. The browser's IPC calls travel over a WebSocket to the Mac, which runs the same Rust commands the desktop uses. While the browser loads, reloads and closes, the desktop app keeps working exactly as before: the browser's boot must not close the desktop's database, replace its watcher, rescan the index, flip global flags, or write anything into the vault or the Mac's log folder.
 

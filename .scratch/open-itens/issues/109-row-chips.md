@@ -1,6 +1,6 @@
 # 109: Rows show status, dates, priority, recurrence and tags
 
-**Origin:** `tasks-view` Issue 05, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 05, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Rust already sends each task's status and metadata (`src-tauri/src/vault/task.rs:42-130`; `TaskMetadata.ts`), and the row ignores all of it (`TasksView.svelte:197-269`): every non-todo status shows the same checked circle, and the emoji signifiers show as raw text.
 

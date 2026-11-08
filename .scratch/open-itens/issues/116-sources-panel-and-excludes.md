@@ -1,6 +1,6 @@
 # 116: Sources panel with source cards and default excludes
 
-**Origin:** `tasks-view` Issue 13, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 13, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The only sourcing rule is one heading substring in a textbox, and nothing can be excluded (`commands/vault.rs:225` passes no excluded folders), so templates, the system folder, archived notes and type definitions all supply tasks. Replace the textbox with a Sources panel (PRD "Sourcing rules").
 

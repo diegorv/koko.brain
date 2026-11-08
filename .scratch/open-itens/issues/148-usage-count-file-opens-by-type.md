@@ -1,6 +1,6 @@
 # 148: Usage stats count which kinds of files I open and Quick Capture saves
 
-**Origin:** `usage-telemetry` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `usage-telemetry` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The four seams in Issue 07 count commands, shortcuts, rail items and Settings pages. Opening a kanban board, a canvas or a collection view goes through none of them. The owner uses kanban, canvas, tables, meta-bind and Quick Capture. Without this Issue, "Most used" is dominated by Cmd+S and Cmd+W, and those features look unused. Tables and meta-bind are Issue 12.
 

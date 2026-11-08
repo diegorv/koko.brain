@@ -26,7 +26,7 @@ Consequences:
 
 ## Context
 
-The owner wanted to extend Kokobrain from the vault, without an app release: small JavaScript programs that add rail buttons whose actions read and write notes, and later call HTTP APIs or run LLM agents (`.scratch/vault-mods/PRD.md`). Only the owner writes mods, and editing one must not need a restart.
+The owner wanted to extend Kokobrain from the vault, without an app release: small JavaScript programs that add rail buttons whose actions read and write notes, and later call HTTP APIs or run LLM agents (`.scratch/archived/vault-mods/PRD.md`). Only the owner writes mods, and editing one must not need a restart.
 
 Three constraints shaped the design:
 
@@ -45,7 +45,7 @@ Three constraints shaped the design:
 
 ## Alternatives considered
 
-- **A Web Worker runtime with a message broker** (`.scratch/vault-mods/research/opus/D1-security.md` R3): clean unload, a real Stop for synchronous code, no UI freeze, and a place to enforce permissions later. Rejected by the owner for the MVP in favour of the main webview: the worker needs a CSP spike and a broker for every `ctx` member, and raw access to the app's objects (`ctx.app`) cannot cross into a worker. Revisit before mods from anyone else are run.
+- **A Web Worker runtime with a message broker** (`.scratch/archived/vault-mods/research/opus/D1-security.md` R3): clean unload, a real Stop for synchronous code, no UI freeze, and a place to enforce permissions later. Rejected by the owner for the MVP in favour of the main webview: the worker needs a CSP spike and a broker for every `ctx` member, and raw access to the app's objects (`ctx.app`) cannot cross into a worker. Revisit before mods from anyone else are run.
 - **The flag in `.kokobrain/settings.json`**: one less store, and the flag travels with the vault. Rejected: a vault copied or cloned from elsewhere with the flag on would run its mods on open.
 - **Hidden `.kokobrain/mods/`**: keeps mods out of the file tree. Rejected: the watcher drops dot-folder events, so reload on save would need new Rust or polling, and mods could not be edited in Kokobrain.
 - **Real ES modules served by a custom URI scheme from Rust**: relative imports and several files per mod. Rejected for the MVP: a CSP change, an ADR-0003 exception for the dynamic `import()`, a module cache to bust on reload, and no E2E coverage of the scheme.

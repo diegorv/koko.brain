@@ -1,8 +1,8 @@
 # 169: File icons read frontmatter only through Rust
 
-**Origin:** `audit-2026-11-05` Issue 137, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 137, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/architecture-stability/issues/70-icon-index-single-frontmatter-reader.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). A refactor with the owner decision recorded (option A, 2026-11-05).
+**Migrated from:** `.scratch/archived/architecture-stability/issues/70-icon-index-single-frontmatter-reader.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). A refactor with the owner decision recorded (option A, 2026-11-05).
 
 **Audit check at `5f8003d67`:** design_or_refactor (refactor, low). Two readers still exist at HEAD: buildFrontmatterIconIndex reads Rust entries (src/lib/features/file-icons/file-icons.service.ts:~199), while updateFrontmatterIconForFile (file-icons.service.ts:238-243) still parses raw text with extractIconFromFrontmatter / extractIconColorsFromFrontmatter (file-icons.logic.ts:130, :139). Owner chose option A on 2026-11-05; valid architectural work, not a defect on its own.
 
@@ -36,4 +36,4 @@ Make Rust the only reader for this index, in line with "Vault metadata lives in 
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/architecture-stability/issues/70-icon-index-single-frontmatter-reader.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/architecture-stability/issues/70-icon-index-single-frontmatter-reader.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

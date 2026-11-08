@@ -1,6 +1,6 @@
 # 180: Edit and save from the browser
 
-**Origin:** `ios-app` Issue 08, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 08, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The owner edits a note on the iPad or iPhone browser and it saves to the vault on the Mac, through the same autosave the desktop uses. New notes can be created. If the note changed on disk since the version the browser's tab is based on, the save is refused and the browser says so, keeping the typed text in the editor: the browser never overwrites a version it has not seen, and an edit is never dropped silently.
 

@@ -1,8 +1,8 @@
 # 190: Spike: can the app run `claude -p` jobs?
 
-**Origin:** `vault-mods` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `vault-mods` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**What to build:** nothing that ships. A throwaway check, on the owner's Mac, of the assumptions behind the LLM engine the owner chose, the `claude` CLI (PRD "Owner decisions (survey, 2026-11-06)" 2). The output is a findings note, `.scratch/vault-mods/spike-claude-cli.md`, that confirms the CLI or sends Issues 10 and 13 to the Messages API fallback.
+**What to build:** nothing that ships. A throwaway check, on the owner's Mac, of the assumptions behind the LLM engine the owner chose, the `claude` CLI (PRD "Owner decisions (survey, 2026-11-06)" 2). The output is a findings note, `.scratch/archived/vault-mods/spike-claude-cli.md`, that confirms the CLI or sends Issues 10 and 13 to the Messages API fallback.
 
 Check, with the app launched from Finder (not from a terminal):
 

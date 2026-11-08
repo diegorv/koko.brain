@@ -1,6 +1,6 @@
 # 032: Keep uncaught mod errors out of Sentry
 
-**Origin:** `vault-mods` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `vault-mods` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** PRD P9 says mod errors do not go to Sentry. Issues 02 to 05 cover the errors the host catches. This Issue covers the ones it cannot catch: a mod's timer, DOM listener or floating promise that throws. Sentry, when on, keeps `GlobalHandlers` and `BrowserApiErrors` (`src/lib/core/settings/sentry.service.ts:63-70`), so those reach Sentry with their message, which can carry note text or API responses.
 

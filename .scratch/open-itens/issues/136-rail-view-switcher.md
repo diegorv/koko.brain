@@ -1,6 +1,6 @@
 # 136: Rail view switcher for multi-view files
 
-**Origin:** `view-engine-fixes` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** the rail runs only `views[railViewIndex]` (`src/lib/features/rail-shell/lens.logic.ts:792`). With several views in a file, switching what the rail lists means editing `_rail_view` (in view-editor 07's dialog, or by hand).
 

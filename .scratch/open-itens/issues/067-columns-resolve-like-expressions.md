@@ -1,6 +1,6 @@
 # 067: Columns and sort keys resolve like expressions
 
-**Origin:** `view-engine-fixes` Issue 03, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 03, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** `getPropertyValue` resolves only `file.name|basename|path|folder|ext|size|ctime|mtime`, `formula.<name>` and the exact stored key (`src/lib/features/collection/collection.logic.ts:406-424`). `file.tags`, `file.properties`, the `note.` and `property.` prefixes and alias spellings (`type`) read null, though filters resolve them (`evaluator.ts:193-212`). A Tags column shows only dashes, and sorting by an alias does nothing. The help lists `file.tags` as a working field (`help/documentation/12-collection.md:316-325`). The inline block also loses `file.basename` as a column (`collection-block-widget.ts:492-506`).
 

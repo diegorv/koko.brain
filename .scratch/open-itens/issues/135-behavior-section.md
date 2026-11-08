@@ -1,6 +1,6 @@
 # 135: Behavior section
 
-**Origin:** `view-editor` Issue 07, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-editor` Issue 07, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** where the view shows, how a click opens it, and which of its views the rail runs. No UI sets `_visible: false`, `_open_in_editor: true` on an existing file, or `_rail_view` today.
 

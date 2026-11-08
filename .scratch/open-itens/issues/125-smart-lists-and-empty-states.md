@@ -1,6 +1,6 @@
 # 125: Built-in smart lists and their empty states
 
-**Origin:** `tasks-view` Issue 18, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 18, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Built-in lists defined in code, next to "All open" (Issue 17), with empty states that explain themselves. Few of the owner's open tasks carry dates (PRD decision B5), so the only built-in next to "All open" is **No date**, and the empty states lead with how to add a date. Today, Overdue and Next 7 days are left for a later Issue, once dated tasks are common.
 - Each built-in is a `TaskQuery` constant in `task-query.logic.ts`, next to "All open", so an edit follows the same rules as on "All open": session state only (Issue 17), shown as a "modified" override once Issue 29 has landed.

@@ -1,6 +1,6 @@
 # 143: Inline blocks choose a view and navigate months
 
-**Origin:** `view-engine-fixes` Issue 16, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 16, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** an inline ` ```collection ` block always runs `views[0]` (`src/lib/features/collection/collection-block-widget.ts:110`), so a block cannot show a file's second view, and block calendars are built for the current month or year with no navigation (`:188-191`, `:284`).
 

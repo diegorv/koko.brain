@@ -1,6 +1,6 @@
 # 041: DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end
 
-**Origin:** `audit-2026-11-05` Issue 17, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 17, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** sort (src/lib/plugins/queryjs/data-array.ts:119-128) compares raw keys with va < vb ? -1 : va > vb ? 1 : 0. An undefined key compares equal to every value, so the comparator is not transitive and V8's sort leaves the defined values out of order (keys [5, undefined, 3, 1] ascending come out [5, undefined, 1, 3]). A null key coerces to 0 and sorts as a number. Make the comparator a total order: treat undefined and null as missing and place all missing keys together at one end (Dataview-compatible choice: the implementer picks one end and documents it), in both directions, with the defined keys sorted normally. sortBy delegates to sort, so one fix covers both.
 

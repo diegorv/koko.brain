@@ -1,8 +1,8 @@
 # 200: Settings is modal: a scrim closes it on outside click and Tab stays inside
 
-**Origin:** `audit-2026-11-05` Issue 89, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 89, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/30-settings-drawer-modal-scrim.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). It is design work that assumes an unrecorded owner decision, and it is blocked by 29.
+**Migrated from:** `.scratch/archived/ux-polish/issues/30-settings-drawer-modal-scrim.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). It is design work that assumes an unrecorded owner decision, and it is blocked by 29.
 
 **Audit check at `5f8003d67`:** design_or_refactor (ux, low). src/lib/app/SettingsPanel.svelte: no scrim element, no aria-modal, no Tab trap; the drawer is a non-modal fixed z-40 div with role=dialog (transition:fly). The Issue itself says it assumes the owner decision 'make the Settings drawer modal'. The Appearance live preview relies on the app behind staying visible.
 
@@ -31,12 +31,12 @@ In `src/lib/app/SettingsPanel.svelte`:
 
 ## Notes
 
-- Source: review section 2 "Settings row anatomy" (drawer recommendation: light scrim skipped on Appearance, `aria-modal`, outside-click close); `.scratch/ux-polish/work/settings.md` P2 and section 3 point 1.
+- Source: review section 2 "Settings row anatomy" (drawer recommendation: light scrim skipped on Appearance, `aria-modal`, outside-click close); `.scratch/archived/ux-polish/work/settings.md` P2 and section 3 point 1.
 - Owner decision: if the owner keeps the app behind Settings interactive, drop this ticket; the focus ticket already covers the keyboard part.
 - Cross-cluster: when the elevation cluster adds `--overlay-scrim` (review section 4 Issue 3), it may swap `bg-black/30` for that token; this ticket does not wait for it.
 - Size: S.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/30-settings-drawer-modal-scrim.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/30-settings-drawer-modal-scrim.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

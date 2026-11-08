@@ -1,8 +1,8 @@
 # 077: Rename link rewrite skips links inside code blocks and updates self links
 
-**Origin:** `audit-2026-11-05` Issue 108, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 108, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/27-link-rewrite-scope.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Partially fixed: the path-qualified and extension halves are done (99bffdf66, fdf1479c2). What remains needs links inside code blocks.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/27-link-rewrite-scope.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Partially fixed: the path-qualified and extension halves are done (99bffdf66, fdf1479c2). What remains needs links inside code blocks.
 
 **Audit check at `5f8003d67`:** partially_fixed (content, low). Fixed: path-qualified and .md/.markdown targets (99bffdf66; splitTarget at src/lib/core/filesystem/link-updater.logic.ts:25-33 matches on the stem and keeps prefix and extension), and only links that resolve to oldPath are rewritten (fdf1479c2; resolveWikilinkCached check at link-updater.logic.ts:105). Still present at HEAD 47ecf60ef: (a) replaceWikilinks (link-updater.logic.ts:86-118) is one global regex over the whole content with no fence or inline-code skip, so a literal [[Old Note]] inside a code block that resolves to oldPath is rewritten. (b) link-updater.service.ts:47 filters oldPath out of affectedPaths, so a self-link such as [[Old#Heading]] inside the renamed note is never rewritten and dangles after the rename. (Rust lookup_backlinks at src-tauri/src/vault/index.rs:753-763 returns the note itself when it links to itself.) (c) Sources come only from get_backlinks_v2 (service.ts:46). A link that exists only in a dirty tab is missed, but the window is the 2 s autosave debounce, so (c) is near-theoretical. (d) Per-file failures are only logged through error() (service.ts:75-79), with no toast. Triggers for (a) and (b) need a self-link or a literal wikilink in code, which is uncommon. (d) needs a write error.
 
@@ -15,7 +15,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: corruption
-Source: file I/O audit, deep-dive group(s) h03-search-links (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h03-search-links (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 Reviewer note: the code-block part was graded P1. Downgraded to P2: it needs a literal [[Old]] inside a fenced block, and the change is visible in the diff of the rename.
 
@@ -32,7 +32,7 @@ Reviewer note: the code-block part was graded P1. Downgraded to P2: it needs a l
 
 **Evidence.** Repro src/tests/repro/h03-search-links/link-rewrite.test.ts: replaceWikilinks('```md\n[[Old Note]]\n```\n','Old Note','New Note') returns the fence with [[New Note]]. The frontmatter half of the claim is REFUTED: properties.logic.ts:290 is inside parseFrontmatterProperties (computeAndCache), a read-only parse building a Property list. The rename path never parses or re-serializes frontmatter: link-updater.logic.ts imports only stem, and replaceWikilinks is a text regex, so frontmatter key reordering is not reachable from rename.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h03-search-links/link-rewrite.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h03-search-links/link-rewrite.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected '```md\n[[New Note]]\n```\n' to be '```md\n[[Old Note]]\n```\n'
@@ -53,7 +53,7 @@ AssertionError: expected '```md\n[[New Note]]\n```\n' to be '```md\n[[Old Note]]
 
 **Evidence.** Repro: replaceWikilinks('See [[Work/Plan]]','Plan','Roadmap') returns the input unchanged; resolveWikilink of the result against ['/vault/Work/Roadmap.md'] returns null (src/tests/repro/h03-search-links/link-rewrite.test.ts). The link did resolve before: wikilink-resolution.logic.ts:24-31 falls back to the basename. [[Plan.md]]: TS getNoteName (lines 4-8) strips the extension, so it resolves and is not rewritten; Rust note_name_from_target not read (PLAUSIBLE on that side). Self-link and unsaved-link cases: CONFIRMED_BY_TRACE from service.ts:27-28 and the saved-index source set.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h03-search-links/link-rewrite.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h03-search-links/link-rewrite.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected null to be '/vault/Work/Roadmap.md' (path-qualified link does not resolve after rewrite)
@@ -74,4 +74,4 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/27-link-rewrite-scope.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/27-link-rewrite-scope.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

@@ -1,8 +1,8 @@
 # 207: Chrome icon buttons share sizes and use shadcn tooltips
 
-**Origin:** `audit-2026-11-05` Issue 95, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 95, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/66-chrome-icon-buttons.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Design polish. Its blocker 37 is resolved.
+**Migrated from:** `.scratch/archived/ux-polish/issues/66-chrome-icon-buttons.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Design polish. Its blocker 37 is resolved.
 
 **Audit check at `5f8003d67`:** design_or_refactor (polish, low). src/lib/components/ui/button/button.svelte:23-25 has only icon, icon-sm, icon-lg (no icon-xs or icon-chrome); src/lib/utils/text-roles.ts:6 lists only label, meta, row, title (no heading); Rail.svelte:122,144 and NoteActionBar.svelte:148,157,175,188,228 still use native title= for labels. Blocker Issue 37 is done (ledger row 37, 56072aa3d), so it is unblocked. Consistency and tooltip polish, not a defect.
 
@@ -22,11 +22,11 @@
 
 ## Notes
 
-- **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 2 "Icon buttons" and "Type scale".
+- **Source:** `.scratch/archived/ux-polish/review-2026-11-04.md` Review section 2 "Icon buttons" and "Type scale".
 - Size: M.
 - **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/66-chrome-icon-buttons.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/66-chrome-icon-buttons.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: moved out of the first wave by the owner after the challenge review.

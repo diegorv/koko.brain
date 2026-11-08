@@ -1,6 +1,6 @@
 # 128: Todoist link survives edits, and reworded tasks show "possibly sent"
 
-**Origin:** `tasks-view` Issue 22, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 22, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Sent tasks are keyed by `${filePath}:${text}` (`todoist.store.svelte.ts:24-31`), with an absolute path and the raw text including signifiers (`todoist.service.ts:215-223`). Adding a due date or changing priority makes the task look unsent, and one click sends a duplicate. PRD "Identity strategy", decision B4 default (a). Renames and the "Unlinked" list come in Issue 30.
 

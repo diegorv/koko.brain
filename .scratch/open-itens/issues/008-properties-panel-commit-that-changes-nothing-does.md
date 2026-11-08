@@ -1,6 +1,6 @@
 # 008: A Properties panel commit that changes nothing does not arm the skip flag
 
-**Origin:** `audit-2026-11-05` Issue 152, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 152, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Split from Issue 121 on 2026-11-06: the owner kept only its cheap part in the first wave. Read Issue 121 first; its Details and evidence apply here. Only the no-op-commit part of its "Properties panel skip flag" section: in commitChanges (src/lib/features/properties/properties.service.ts), return before arming skipNextParseFor (and before syncExternalContentToEditor) when `newContent === content`. Today such a commit arms the flag, the next editor edit to the frontmatter skips its only re-parse, and the next panel edit rebuilds from the stale store and deletes the typed line, with no undo (addToHistory false).
 

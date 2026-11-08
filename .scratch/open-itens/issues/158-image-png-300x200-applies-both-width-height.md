@@ -1,6 +1,6 @@
 # 158: An image embed with a WIDTHxHEIGHT size (300x200) applies both the width and the height
 
-**Origin:** `audit-2026-11-05` Issue 42, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 42, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** `parseWidth` (src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts:19-23) does `Number(display)`, which is NaN for `300x200`, so the embed gets no size at all. `WikilinkImageEmbedWidget` (widgets.ts:561-590) has only a width field. Parse `W` and `WxH` the way `parseImageAlt` does for standard images (plugins/image-plugin.ts:28-42), add a height to the widget, include it in `eq()`, and apply it as ImageWidget does (widgets.ts:149-153).
 

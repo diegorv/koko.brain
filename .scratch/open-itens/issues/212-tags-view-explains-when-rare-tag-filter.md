@@ -1,8 +1,8 @@
 # 212: The Tags view explains when the rare-tag filter hides everything
 
-**Origin:** `audit-2026-11-05` Issue 63, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 63, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/13-tags-filtered-empty-state.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, polish/medium. It is an empty-state message.
+**Migrated from:** `.scratch/archived/ux-polish/issues/13-tags-filtered-empty-state.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, polish/medium. It is an empty-state message.
 
 **Audit check at `5f8003d67`:** still_present (polish, medium). src/lib/features/tags/TagsView.svelte:15 MIN_COUNT_THRESHOLD = 10, :35-39 displayedTree filters rare tags when hideRareTags (default true, src/lib/features/tags/tags.store.svelte.ts:5), :52-55 header shows the unfiltered totalTagCount, :81-82 renders 'No tags found' for an empty filtered tree. No split message or 'Show all tags' button exists.
 
@@ -36,4 +36,4 @@ The header count keeps meaning "tags in the vault" and does not change.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/13-tags-filtered-empty-state.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/13-tags-filtered-empty-state.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

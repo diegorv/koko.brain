@@ -1,6 +1,6 @@
 # 013: The Filter panel cannot write an empty or unparseable filter
 
-**Origin:** `view-engine-fixes` Issue 07, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 07, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** three ways the live Filter panel writes a filter that breaks the view:
 - **Add filter persists an empty row.** `addFilter` appends `createEmptyFilterRow(...)` (`src/lib/features/collection/toolbar/FilterPanel.svelte:73-85`), and the rail and the editor persist each change at once (`RailNoteList.svelte:304-357`, `CollectionView.svelte:380-388`). The list empties and the file is rewritten before a value is typed.

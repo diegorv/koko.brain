@@ -1,6 +1,6 @@
 # 175: Paths stay inside the vault
 
-**Origin:** `ios-app` Issue 03, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 03, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Nothing the browser sends can read or change a file outside the vault the Mac has open, or the app's own data folders, whatever path it passes. This must hold before the host is reachable from another device (04).
 

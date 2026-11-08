@@ -1,8 +1,8 @@
 # 044: File History follows a note through rename, move, auto-move and suffixed restore
 
-**Origin:** `audit-2026-11-05` Issue 23, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 23, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/23-file-history-keyed-by-path.md` (audit 2026-11-05). Priority: daily use and UI correctness (bucket 2-ux). Still present, medium. Renames are common and leave the history panel empty. Note bytes are untouched, so this is wrong data on screen rather than lost content.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/23-file-history-keyed-by-path.md` (audit 2026-11-05). Priority: daily use and UI correctness (bucket 2-ux). Still present, medium. Renames are common and leave the history panel empty. Note bytes are untouched, so this is wrong data on screen rather than lost content.
 
 **Audit check at `5f8003d67`:** still_present (content, medium). Snapshot keys are vault-relative paths built at src/lib/features/file-history/file-history.service.ts:27 and :115. src/lib/core/filesystem/path-change.service.ts has no history leg (rg 'history' finds only tree-snapshot comments at :132-136). rg for rename_history, rename_snapshots or 'UPDATE snapshots' finds nothing in src-tauri/src or src/lib. So after any rename or move the note shows an empty File History and its old rows age out; a new note at the old path inherits them. Note bytes are not affected. Renames and moves are daily operations for this owner.
 
@@ -13,7 +13,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: stale-state
-Source: file I/O audit, deep-dive group(s) o05-settings-history (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) o05-settings-history (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -28,7 +28,7 @@ Source: file I/O audit, deep-dive group(s) o05-settings-history (raw reports in 
 
 **Evidence.** getRelativePath (file-history.logic.ts:109-118) builds the key; applyPathChange calls diskOp, consumers, updateLinksAfterRename, refreshTree, rename_note and forgetNote, none of which touch snapshots. In src-tauri/src only db/history_repo.rs and db/schema.rs reference the snapshots table (rename_note does not). trash.service.ts:115 restores to a suffixed path when the original is occupied. help/documentation/22-auto-move.md:177,188 tells users to recover moved files with File History.
 
-**Repro test.** `.scratch/file-io-audit/repro/o05-settings-history/file-history-rename.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o05-settings-history/file-history-rename.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected [] to deeply equal [ 1 ] (fileHistoryStore.snapshots ids for the renamed note)
@@ -54,4 +54,4 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/23-file-history-keyed-by-path.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/23-file-history-keyed-by-path.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

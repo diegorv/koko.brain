@@ -1,6 +1,6 @@
 # 225: The personal-week kanban example uses the valid sortMode "checked", and the docs say the sort is per board
 
-**Origin:** `audit-2026-11-05` Issue 76, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 76, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** personal-week.kanban sets "sortMode": "unchecked" (help/examples/kanban-features/personal-week.kanban:24), which is not a KanbanSortMode (src/lib/plugins/kanban/kanban.types.ts:43; the 'Unchecked first' option is "checked", KanbanView.svelte:193). sortItems has no case for it, so nothing is sorted, canReorderItems is false so card and lane dragging are off, and the sort select shows blank. The README (help/examples/kanban-features/README.md:9) repeats the wrong value, and help/documentation/21-kanban.md:176 says the sort mode is per lane while it is a board setting (kanban.types.ts:56-57). Fix the example and README to "checked" and the doc wording to per board.
 

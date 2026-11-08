@@ -1,8 +1,8 @@
 # 201: Retention days and Debounce delay accept typed values and clamp on commit
 
-**Origin:** `audit-2026-11-05` Issue 82, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 82, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/02-settings-number-fields-clamp-on-change.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Ux/low. It is input fine-tuning on fields edited rarely, and the stored value is already clamped.
+**Migrated from:** `.scratch/archived/ux-polish/issues/02-settings-number-fields-clamp-on-change.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Ux/low. It is input fine-tuning on fields edited rarely, and the stored value is already clamped.
 
 **Audit check at `5f8003d67`:** still_present (ux, low). src/lib/core/settings/sections/FileHistorySection.svelte:8-10 (clampRetentionDays) and :38-40 (oninput writes clamp(Number(value)) at once; no onchange). src/lib/features/auto-move/AutoMoveSection.svelte:29-31 (clampDebounce) and :133-136 (oninput writes clampDebounce(Math.round(seconds*1000)); no onchange). Empty field gives Number('')=0, clamps to 1 day or 500 ms, the bound value changes, and Svelte rewrites the field, so clearing then typing '30' gives '130'. git log of both files (ccf65866b, ecd4cadc2, 48bf52fe9, 188c12932) shows copy/style changes only. Read-only audit, not run.
 
@@ -37,4 +37,4 @@ Raw-on-input (the EditorSection style) is not used here on purpose: EditorSectio
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/02-settings-number-fields-clamp-on-change.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/02-settings-number-fields-clamp-on-change.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

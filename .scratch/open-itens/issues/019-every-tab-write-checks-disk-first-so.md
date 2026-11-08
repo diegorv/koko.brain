@@ -1,6 +1,6 @@
 # 019: Every tab write checks the disk first, so an external change is never overwritten without a copy
 
-**Origin:** `audit-2026-11-05` Issue 153, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 153, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Split from Issue 98 on 2026-11-06: the owner kept only its cheap part in the first wave. Read Issue 98 first; its Details and evidence apply here. The read-before-write part: before writeTab writes, compare the disk with the tab baseline; on a difference keep the external bytes (File History snapshot or conflict copy), then save and toast. This is the hot save path, so it lands after the first wave and after Issue 13.
 

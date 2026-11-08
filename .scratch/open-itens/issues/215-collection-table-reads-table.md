@@ -1,8 +1,8 @@
 # 215: The collection table reads as a table
 
-**Origin:** `audit-2026-11-05` Issue 66, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 66, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/62-collection-table-readable.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, polish/medium on daily views. A sticky header has to account for the inner overflow-auto at CollectionTableView.svelte:39.
+**Migrated from:** `.scratch/archived/ux-polish/issues/62-collection-table-readable.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, polish/medium on daily views. A sticky header has to account for the inner overflow-auto at CollectionTableView.svelte:39.
 
 **Audit check at `5f8003d67`:** still_present (polish, medium). Every point still holds at HEAD. The header fallback to the raw key is in collection.logic.ts:456 (resolveColumns toColumn: `definition.properties?.[key]?.displayName ?? key`). Booleans are a native disabled checkbox (CollectionTableView.svelte:64-65). Icon display values render their name as text (:71-72). Cells use whitespace-nowrap with no truncation or title (:61). The thead is not sticky (:41-52).
 
@@ -26,11 +26,11 @@
 
 ## Notes
 
-- **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 3 Feature views row 5.
+- **Source:** `.scratch/archived/ux-polish/review-2026-11-04.md` Review section 3 Feature views row 5.
 - Size: M.
 - **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/62-collection-table-readable.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/62-collection-table-readable.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: narrowed to the visual slice by the owner after the challenge review; the rest moved to Issue 161.

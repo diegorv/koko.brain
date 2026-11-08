@@ -1,8 +1,8 @@
 # 213: Word count and graph stats read correctly for zero and one
 
-**Origin:** `audit-2026-11-05` Issue 64, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 64, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/12-word-count-and-graph-stats-counts.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, a copy fix.
+**Migrated from:** `.scratch/archived/ux-polish/issues/12-word-count-and-graph-stats-counts.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, a copy fix.
 
 **Audit check at `5f8003d67`:** still_present (polish, medium). src/lib/plugins/word-count/WordCount.svelte:33 renders the fixed string '{words} words <sep> {characters} characters <sep> {readingTime} min read' with no zero or singular handling. src/lib/plugins/graph-view/GraphView.svelte:441 prints '{simNodes.length} notes &middot; {simLinks.length} links'. rg finds no formatGraphStats anywhere in src. Every new empty note shows '0 words ... 1 min read' (estimateReadingTime floors at 1, pinned by word-count.logic.test.ts:89).
 
@@ -37,4 +37,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/12-word-count-and-graph-stats-counts.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/12-word-count-and-graph-stats-counts.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

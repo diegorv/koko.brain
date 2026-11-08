@@ -1,6 +1,6 @@
 # 230: Linear-calendar bars line up with their day columns
 
-**Origin:** `view-engine-fixes` Issue 05, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 05, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** the linear calendar's track has 31 columns (`src/lib/features/collection/CollectionLinearCalendarView.svelte:144`, `:163`, `:189-194`), but `getBarLeft` and `getBarWidth` divide by the month's `daysInMonth` (`:67-73`). In February 2026 a bar for day 28 starts at 27/28 = 96.4% of the track while its column starts at 27/31 = 87.1%, about three cells right. Every month shorter than 31 days drifts.
 

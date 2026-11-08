@@ -1,6 +1,6 @@
 # 129: Todoist state on each row and as a quick filter
 
-**Origin:** `tasks-view` Issue 23, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 23, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** After Issue 22 each row has one Todoist state: not sent, sent, possibly sent, closed in Todoist, error. Show it on every row and make it filterable.
 

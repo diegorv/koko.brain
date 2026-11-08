@@ -1,8 +1,8 @@
 # 097: The quick-capture dedupe anchor advances only after the frontend accepts the capture
 
-**Origin:** `audit-2026-11-05` Issue 130, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 130, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/38-quick-capture-dedupe-anchor.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Ux/low. Its main trigger, the destroyed window, goes away with the N-file-io-03 fix. The composer ack (0a1c22a73) can be extended.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/38-quick-capture-dedupe-anchor.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Ux/low. Its main trigger, the destroyed window, goes away with the N-file-io-03 fix. The composer ack (0a1c22a73) can be extended.
 
 **Audit check at `5f8003d67`:** still_present (ux, low). The shortcut path (src-tauri/src/lib.rs:56-88) calls capture_clipboard_now_with, which sets *last_signature = signature at src-tauri/src/quick_capture/commands.rs:110 for every emitted item, before the frontend handles it. The emit at lib.rs:81 ignores the result. The frontend drop at src/lib/plugins/quick-capture/quick-capture.service.ts:104-108 (no vault, toast) and a false from executeAction (:117) return false. Only composer captures report back (:95-97, report_composer_capture_result), and nothing clears the anchor for a failed shortcut capture. A retry on the same clipboard is then deduped (commands.rs:89-92) and does nothing without feedback (Ok with an empty payload list). Mitigation: the text stays on the clipboard. Trigger: a failed shortcut capture (no vault open, or a write error) followed by a retry. Uncommon, but Quick Capture is in daily use.
 
@@ -13,7 +13,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: minor
-Source: file I/O audit, deep-dive group(s) h08-app-json (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h08-app-json (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -45,4 +45,4 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/38-quick-capture-dedupe-anchor.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/38-quick-capture-dedupe-anchor.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

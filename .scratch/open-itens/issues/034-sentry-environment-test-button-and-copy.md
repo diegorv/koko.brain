@@ -1,6 +1,6 @@
 # 034: Sentry events carry an environment, the test button stops claiming delivery, and the copy says what is sent
 
-**Origin:** `usage-telemetry` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `usage-telemetry` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Four small fixes to the existing Sentry integration.
 
@@ -47,7 +47,7 @@
 
 ## Notes
 
-- Source: `.scratch/usage-telemetry/findings-2026-11-05.md` A.3-A.6; `raw/j21.md` (s1-F6/F7, M1), `raw/j22.md` (s7-F4, s7-F9, s8-F7); review 2026-11-06.
+- Source: `.scratch/archived/usage-telemetry/findings-2026-11-05.md` A.3-A.6; `raw/j21.md` (s1-F6/F7, M1), `raw/j22.md` (s7-F4, s7-F9, s8-F7); review 2026-11-06.
 - Owner is the sole recipient of events: paths and hostname in events are acceptable, do not add scrubbers (memory `telemetry-sole-user-note-names-ok`).
 - Out of scope: event volume from repeated `error()` calls (Issue 09), source maps (Issue 04), panic location (Issue 05, after this one), Rust symbols (Issue 11).
 - Size: S/M.

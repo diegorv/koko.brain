@@ -1,6 +1,6 @@
 # 119: Lifecycle clause, the archived override and value pickers
 
-**Origin:** `tasks-view` Issue 28, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 28, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** After Issues 13 and 14 the Sources panel takes folder, type, note tag, heading and property clauses, but every value is typed by hand, and archived notes can never be sourced. Finish the panel (PRD "Sourcing rules", assumption A4).
 

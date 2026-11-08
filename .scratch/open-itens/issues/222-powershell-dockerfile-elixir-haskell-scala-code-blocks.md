@@ -1,6 +1,6 @@
 # 222: PowerShell, Dockerfile, Elixir, Haskell and Scala code blocks are syntax-highlighted
 
-**Origin:** `audit-2026-11-05` Issue 159, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 159, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Split from Issue 73 on 2026-11-06: the owner kept only its cheap part in the first wave. Read Issue 73 first; its Details and evidence apply here. Register the five grammars (highlight.js as a direct dependency, past the quarantine policy) and put them back in COMMON_LANGUAGES and the guide.
 

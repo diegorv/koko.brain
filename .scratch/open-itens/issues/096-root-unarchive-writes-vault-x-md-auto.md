@@ -1,8 +1,8 @@
 # 096: Root unarchive writes vault/x.md, auto-move refuses .. segments, and a case or NFC variant of a path reuses the open tab
 
-**Origin:** `audit-2026-11-05` Issue 109, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 109, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/36-path-normalization.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Its canvas double-prefix section is covered by Issue 17. The rest needs Auto Move (opt-in) or a folder-case mismatch.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/36-path-normalization.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Its canvas double-prefix section is covered by Issue 17. The rest needs Auto Move (opt-in) or a folder-case mismatch.
 
 **Audit check at `5f8003d67`:** still_present (content, medium). (1) Root unarchive: resolveDestination (src/lib/features/auto-move/auto-move.logic.ts:102-130) can return ''. auto-move.service.ts:175 builds `${vaultPath}/${resolvedDest}`, and moveItem (src/lib/core/filesystem/fs.service.ts:309) builds `${targetDirPath}/${fileName}`, giving '<vault>//x.md'. Opt-in through autoMove. (2) Canvas: CanvasFilePicker.svelte:20-23,61 passes flattenFileTree's node.path (absolute, src/lib/core/filesystem/file-entries.logic.ts:21). CanvasInner.svelte:481-495 (picker) and :561-576 (drop) store it unchanged through createFileNode and createImageNode. FileNode.svelte:40 and canvas-image.service.ts:34 then prefix vaultStore.path again, so readTextFile and readFile get '/vault//vault/…' and the preview fails. canvas.types.ts:48 and :73 document the path as vault-relative. This is normal canvas use, and the owner uses canvas daily. (3) No '..' rejection in resolveDestination (only slash collapsing, :129). ensure_safe_write_path (src-tauri/src/commands/vault.rs:958-970) does not cover the TS plugin-fs mkdir and rename. Opt-in, imported data only. (4) findTabIndex (src/lib/core/editor/editor.logic.ts:40-42) uses exact string equality, called from openFileInEditor at editor.service.ts:115 and :129. buildPeriodicNotePath (src/lib/plugins/periodic-notes/periodic-notes.logic.ts:10-22) joins the configured folder as typed. No case or NFC canonicalization exists anywhere.
 
@@ -13,7 +13,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: stale-state
-Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Unarchive to a vault-root note writes non-canonical 'vault//x.md' into the tab and Rust index
 
@@ -28,7 +28,7 @@ Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw report
 
 **Evidence.** Trace: resolveDestination returns '' for '<vault>/_archive/x.md' (logic:115,129); destPath '/vault/' (service:173); moveItem -> '/vault//x.md' (fs.service:51); updateTabAfterRenameOrMove exact match (link-updater.service.ts:76-79); closeTabsForDeletedPath exact match (editor.service.ts:360); saveFileByPath writes tab.path (editor.service.ts:161-170); findTabIndex exact (editor.service.ts:114); rename_note_inner exact-string keys (commands/vault.rs:1001-1019). Repro src/tests/repro/h07-paths-canvas-automove/unarchive-root-path.test.ts FAILED: expected '/vault//x.md' to be '/vault/x.md'; rename called with '/vault//x.md'. Duplicate Rust index entry via watcher: PLAUSIBLE, watcher path not traced.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h07-paths-canvas-automove/unarchive-root-path.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h07-paths-canvas-automove/unarchive-root-path.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 2 failed: AssertionError: expected '/vault//x.md' to be '/vault/x.md' // rename called with ['/vault/_archive/x.md', '/vault//x.md']
@@ -47,7 +47,7 @@ Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw report
 
 **Evidence.** Rust FileNode.path is 'Absolute path on disk' (src-tauri/src/commands/vault.rs:56-60). resolveImageSrc builds `${vaultPath}/${filePath}` (canvas-image.service.ts:34). Repro chains real flattenFileTree and resolveImageSrc: readFile called with '/vault//vault/assets/pic.png', expected '/vault/assets/pic.png'.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h07-paths-canvas-automove/canvas-picked-file-path.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h07-paths-canvas-automove/canvas-picked-file-path.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 1 failed: expected readFile to be called with ['/vault/assets/pic.png'], received ['/vault//vault/assets/pic.png']
@@ -66,7 +66,7 @@ Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw report
 
 **Evidence.** Repro: resolveDestination('Tasks/{status}') with status '../../Other' returns 'Tasks/../../Other'. Scope leg (fetched tauri crates/tauri/src/scope/fs.rs): non-existent paths are not lexically normalized and are matched raw against globs, so '$DOCUMENT/kokobrain-vaults/**' prefix-matches '..' paths; escape is bounded only by OS permissions (beyond kokobrain-vaults is PLAUSIBLE; within it CONFIRMED_BY_TRACE).
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h07-paths-canvas-automove/auto-move-dotdot-destination.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h07-paths-canvas-automove/auto-move-dotdot-destination.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 1 failed: AssertionError: expected [ 'Tasks', '..', '..', 'Other' ] to not include '..'
@@ -96,7 +96,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
 - Finding G3 (P1, rare): "A case (or NFC/NFD) variant of a note's path opens a second editable tab on the same file. That tab never receives watcher reloads, and its next autosave overwrites the other tab's saved edits". It lands in the section "A case or NFC/NFD variant of a note path opens a second tab, and the stale tab overwrites the other" above.
-- No repro test exists for it under .scratch/editor-data-safety/repro/ (the case-insensitive repro there, fs-trash-deeplink/f43-duplicate-case-insensitive.test.ts, belongs to issue 19); the evidence is a code trace.
+- No repro test exists for it under .scratch/archived/editor-data-safety/repro/ (the case-insensitive repro there, fs-trash-deeplink/f43-duplicate-case-insensitive.test.ts, belongs to issue 19); the evidence is a code trace.
 - src/lib/core/editor/editor.logic.ts:39-41: `return tabs.findIndex((t) => t.path === path);`.
 - src/lib/core/editor/editor.service.ts:114 and :128: openFileInEditor looks up the tab with findTabIndex on the path as given, then reads and adds a tab under that path (:124, :140).
 - src/lib/core/editor/editor.service.ts:161-168: saveFileByPath writes `tab.content` to `tab.path` with no check of the disk content.
@@ -108,4 +108,4 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/36-path-normalization.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/36-path-normalization.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

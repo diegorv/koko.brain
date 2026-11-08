@@ -1,6 +1,6 @@
 # 192: `ctx.agents.run` and the agent setting in Labs
 
-**Origin:** `vault-mods` Issue 13, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `vault-mods` Issue 13, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** the frontend half of agent runs, on top of Issue 10's Rust runner. A mod action can start agent jobs, see their output in `run.log`, and stop them with Stop.
 

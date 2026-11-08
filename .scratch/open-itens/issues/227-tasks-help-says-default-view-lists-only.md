@@ -1,6 +1,6 @@
 # 227: The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date
 
-**Origin:** `audit-2026-11-05` Issue 78, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 78, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Doc 10:13 and :29 say every checkbox line in every note is listed. The store default sectionTag is '#to-list' (src/lib/features/tasks/tasks.store.svelte.ts:8, reset at :30), buildTaskIndex then calls get_tasks_in_section_v2 (tasks.service.ts:68-71), which keeps only tasks under a heading containing that tag. The default appears only as a table cell (10:101). The field is not saved, so it returns to #to-list on every app start. The Date filter compares the file's modifiedAt (src/lib/features/tasks/tasks.logic.ts:76-90), while 10:99 says 'Filter tasks by date'. Fix: say in doc 10 that the default view lists only tasks under a heading tagged #to-list, that an empty field lists all tasks, that the field resets on restart, and that the date filter is by note modification date.
 

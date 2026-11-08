@@ -1,6 +1,6 @@
 # 082: A failed Auto Move tells the user which note did not move and why
 
-**Origin:** `audit-2026-11-05` Issue 128, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 128, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** moveItem throws when the target exists or the rename fails (src/lib/core/filesystem/fs.service.ts:307-327, targetExistsError at :272-274 and :312) and only logs through error() (:324), which writes console, Sentry and the optional log file, never a toast. evaluateAndMove catches it with a bare `catch { return; }` (src/lib/features/auto-move/auto-move.service.ts:189-194), also skipping the rule's icon. For a lifecycle rule the note stays flagged `_archived: true` in its old folder, so it leaves the lists and the missing move goes unnoticed. The failure repeats silently on every later save. Fix direction: report the failure in a toast naming the note and destination (moveItem's message already names the clash), without stacking a new toast on every autosave of the same note for the same failure.
 

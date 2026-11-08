@@ -1,8 +1,8 @@
 # 083: A vault picked outside the two allowed folders is refused with a message naming them, never half-working
 
-**Origin:** `audit-2026-11-05` Issue 129, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 129, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/37-vault-outside-allowed-folders.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The owner's vault is inside an allowed root, so this needs an unusual vault location. The fix is a UX choice.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/37-vault-outside-allowed-folders.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The owner's vault is inside an allowed root, so this needs an unusual vault location. The fix is a UX choice.
 
 **Audit check at `5f8003d67`:** still_present (ux, low). openVaultDialog calls open({ directory: true, multiple: false }) at src/lib/core/vault/vault.service.ts:31, and switchVault (:22-27) does no scope check. The static fs scope in src-tauri/capabilities/default.json lists only $DOCUMENT/kokobrain-vaults/** and $HOME/kokobrain-vaults/** (for example lines 40-61 and 69-78). rg finds no allowDirectory or allow_directory call and no persisted-scope plugin in src, src-tauri/src or src-tauri/Cargo.toml. scan_vault bypasses the ACL with std::fs::read_dir (src-tauri/src/commands/vault.rs:139), and ensure_safe_write_path (vault.rs:958-970) checks only that the path is absolute and has no '..'. The onboarding copy at src/routes/(app)/+page.svelte:44 lists the allowed locations, but Open Vault never enforces them. Likelihood is low for this owner: the owner set these locations (c887921c7) and the screen shows them, so the real vault very likely lives there. The failure is no data loss, only a half-working vault.
 
@@ -17,7 +17,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: stale-state
-Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h07-paths-canvas-automove (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -44,5 +44,5 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/37-vault-outside-allowed-folders.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/37-vault-outside-allowed-folders.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

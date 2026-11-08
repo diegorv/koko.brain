@@ -1,8 +1,8 @@
 # 085: read_files_batch only reads inside the vault that is actually open
 
-**Origin:** `audit-2026-11-05` Issue 134, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 134, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/audit-2026-11-04/issues/05-open-vault-root-read-batch.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Hardening against a compromised frontend. It starts the 05, 16, 18 confinement chain.
+**Migrated from:** `.scratch/archived/audit-2026-11-04/issues/05-open-vault-root-read-batch.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Hardening against a compromised frontend. It starts the 05, 16, 18 confinement chain.
 
 **Audit check at `5f8003d67`:** still_present (corner, low). src-tauri/src/commands/files.rs:24-84: read_files_batch takes the caller's vault_path, validate_vault_path at :31, per-path canonicalize at :37 and starts_with(&vault_root) at :49, then fs::read_to_string at :63. Doc comment at :19-20 still claims it prevents arbitrary reads from a compromised frontend. src-tauri/src/commands/db.rs:7-11 open_vault_db validates and opens without recording the root; close_vault_db :15-18 keeps no state. src-tauri/src/utils/fs.rs:59-67 validate_vault_path only canonicalizes and checks is_dir. No open-root accessor exists in src-tauri/src. Defence-in-depth only: exploiting it needs script execution in the webview, so no daily-use trigger.
 
@@ -26,7 +26,7 @@
 
 ## Notes
 
-- **Source:** audit 2026-11-04 (`.scratch/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 1 of the parallel plan.
+- **Source:** audit 2026-11-04 (`.scratch/archived/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 1 of the parallel plan.
 - **Finding `read-files-batch-scope`:** real, medium. Root cause: The Rust side does not know which vault is open. read_files_batch accepts whatever root the caller sends, and validate_vault_path only checks that the root canonicalizes to a directory. So the starts_with guard keeps reads inside a root the attacker picked, which breaks the compromised-renderer threat model in ADR-0020. Exploiting it needs script execution in the webview first, so this is a defence-in-depth gap, not a remote exploit.
   Evidence: src-tauri/src/utils/fs.rs:39-47: validate_vault_path checks only canonicalize() and is_dir(). src-tauri/src/commands/files.rs:31 uses that result as vault_root, :49 checks canonical.starts_with(&vault_root), and :63 calls fs::read_to_string directly, so the plugin-fs scope in capabilities/default.json is never consulted. With vault_path='/' or the secret's own parent directory, every path passes. Nothing in src-tauri/src/db/mod.rs:36-99 or commands/db.rs:7-11 keeps the opened root. docs/adr/0020-path-security-absolute-canonicalize.md states the threat model as 'a compromised renderer process is the attacker', and files.rs:19-20 claims the check prevents arbitrary reads in that case. The sweep found the same caller-chosen-root pattern, with worse effects, in toggle_task_status (vault.rs:765/779, which writes any path), create_note/create_folder (vault.rs:983-1022; ensure_safe_write_path at :958-970 blocks only '..'), save_vault_cache, the model downloads, the scan_* commands, build_*_index and start_vault_watcher.
 - Exploiting this needs script execution in the webview first (CSP has 'unsafe-eval'). This ticket only closes the read_files_batch hole and lays the primitive the other tickets reuse. A record set by open_vault_db is enough because initializeVault returns early when open_vault_db fails (app-lifecycle.service.ts:233-238). Teardown sends close_vault_db before init awaits open_vault_db, and both are sync main-thread commands, so they arrive in order.
@@ -34,4 +34,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/05-open-vault-root-read-batch.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/05-open-vault-root-read-batch.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

@@ -1,6 +1,6 @@
 # 101: File History restores into a board view or a closed tab by path
 
-**Origin:** `audit-2026-11-05` Issue 160, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 160, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Split from Issue 102 on 2026-11-06: the owner kept only its cheap part in the first wave. Read Issue 102 first; its Details and evidence apply here. Restore by path when the dialog file is not the active markdown tab: update a kanban, canvas or collection tab by path and save, or write the file directly when its tab is closed.
 

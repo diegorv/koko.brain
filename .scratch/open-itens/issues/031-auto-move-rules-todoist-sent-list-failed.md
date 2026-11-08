@@ -1,8 +1,8 @@
 # 031: Auto-move rules and the Todoist sent list: a failed load is never saved over the file
 
-**Origin:** `audit-2026-11-05` Issue 116, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 116, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs an unparseable file. It keeps its Blocked-by 03, and it also covers sections 1-2 of Issue 32.
+**Migrated from:** `.scratch/archived/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs an unparseable file. It keeps its Blocked-by 03, and it also covers sections 1-2 of Issue 32.
 
 **Audit check at `5f8003d67`:** still_present (content, low). loadAutoMoveConfig's catch sets DEFAULT_CONFIG with no flag (src/lib/features/auto-move/auto-move.service.ts:61-64); saveAutoMoveConfig writes the store unconditionally (:70-88). loadSentTasks casts JSON.parse and returns [] on error (src/lib/features/tasks/todoist.service.ts:103-118); saveSentTasks writes unconditionally (:124-131). No loadFailed flag in src/lib/features/auto-move.
 
@@ -27,7 +27,7 @@
 
 ## Notes
 
-- **Source:** audit 2026-11-04 (`.scratch/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 2 of the parallel plan.
+- **Source:** audit 2026-11-04 (`.scratch/archived/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 2 of the parallel plan.
 - **Finding `automove-rules`:** real, medium. Root cause: loadAutoMoveConfig handles a read or parse error by setting DEFAULT_CONFIG in the store, the same result as a missing file, and keeps no record of the failure. saveAutoMoveConfig then writes the store over the file after the user's next edit. No toast tells the user the rules were not loaded.
   Evidence: src/lib/features/auto-move/auto-move.service.ts:49-63: readTextFile, then JSON.parse at :54. The catch at :60-62 only logs through error() and calls setConfig({...DEFAULT_CONFIG}). saveAutoMoveConfig :69-81 writes autoMoveStore.rules/excludedFolders unconditionally. Its triggers are AutoMoveSection.svelte addRule, updateRule (debounced), removeRule, moveRuleUp/Down and the excluded-folder edits, all calling saveConfig() at :33-38. Load runs at app-lifecycle.service.ts:292. Test auto-move.service.test.ts:91-100 asserts the silent reset. Same pattern sibling: src/lib/features/tasks/todoist.service.ts:103-118 loadSentTasks returns [] on read or parse failure, and saveSentTasks :124-131 then writes the in-memory list over it, so tasks can be sent to Todoist twice.
 - **Blocking edge:** Reuses the load-outcome policy that Issue 03 establishes for settings.json.
@@ -37,4 +37,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

@@ -1,8 +1,8 @@
 # 220: The Search panel stops repeating the index status the status bar already shows
 
-**Origin:** `audit-2026-11-05` Issue 81, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 81, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. The Issue assumes an owner decision that is not recorded.
+**Migrated from:** `.scratch/archived/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. The Issue assumes an owner decision that is not recorded.
 
 **Audit check at `5f8003d67`:** still_present (polish, low). The panel still renders its own 'Indexed: N notes · M chunks' row with a Loader2 spinner (src/lib/features/search/SearchPanel.svelte:98-111, Loader2 imported at :4), and SearchStatus is still mounted in the status bar (src/lib/app/AppShell.svelte:51, :305). src/tests/lib/features/search/SearchStatus.test.ts still does not exist.
 
@@ -36,5 +36,5 @@ Trace (CLAUDE.md "Removing or Refactoring Code"): the removed block only reads `
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

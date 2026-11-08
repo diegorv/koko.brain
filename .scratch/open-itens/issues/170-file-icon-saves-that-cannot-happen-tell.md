@@ -1,8 +1,8 @@
 # 170: File icon saves that cannot happen tell the user, and clicking the current icon writes nothing
 
-**Origin:** `audit-2026-11-05` Issue 138, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 138, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/architecture-stability/issues/71-icon-save-edge-cases.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). Low-severity edge cases. The Issue says to do it after 70, because 70 changes case 1's symptom.
+**Migrated from:** `.scratch/archived/architecture-stability/issues/71-icon-save-edge-cases.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). Low-severity edge cases. The Issue says to do it after 70, because 70 changes case 1's symptom.
 
 **Audit check at `5f8003d67`:** still_present (corner, low). Case 1: removeFrontmatterIcon returns true without writing when parseFrontmatterProperties yields no icon keys for a block yaml rejects (src/lib/features/file-icons/frontmatter-icon.service.ts:84-90), and removeIconForPath then drops the store entry (file-icons.service.ts:173-177). Case 3: extractViewIcon uses a plain parseYaml (file-icons.logic.ts:190-200), so a repeated key yields null. Case 4: updateViewIconYaml casts parseYaml to a record with no non-mapping guard (src/lib/features/type-definitions/type-sidebar.logic.ts:533-542), unlike updateViewColorsYaml (:553-561). Case 2 not re-run; the no-op guard at type-sidebar.logic.ts:521-531 compares against extractViewIcon's canonical name, consistent with the Issue's description.
 
@@ -35,4 +35,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/architecture-stability/issues/71-icon-save-edge-cases.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/architecture-stability/issues/71-icon-save-edge-cases.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

@@ -1,6 +1,6 @@
 # 142: New here infers the type from a compound `&&` filter
 
-**Origin:** `view-engine-fixes` Issue 14, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 14, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** `viewNoteType` skips raw rows (`src/lib/features/rail-shell/lens.logic.ts:879-893`), and `parseFilterToGroups` keeps a string with `&&` as one raw row (`src/lib/features/collection/toolbar/filter.logic.ts`). The help's own example `filters: 'type == "Project" && status == "active"'` (`help/documentation/25-types-and-relationships.md:396`) therefore makes **New here** create a plain note, which the view does not list.
 

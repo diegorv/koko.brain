@@ -1,6 +1,6 @@
 # 167: Pasting an HTML table keeps the links in its cells
 
-**Origin:** `audit-2026-11-05` Issue 158, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 158, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Split from Issue 41 on 2026-11-06: the owner kept only its cheap part in the first wave. Read Issue 41 first; its Details and evidence apply here. Convert a pasted HTML table to a markdown table with its cell links, instead of leaving it to the TSV path, covering header rows without TH, newlines in cells and pipes.
 

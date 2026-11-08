@@ -1,6 +1,6 @@
 # 150: `ctx.http.fetch`, with an MCP Streamable HTTP example mod
 
-**Origin:** `vault-mods` Issue 08, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `vault-mods` Issue 08, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** a mod can call an HTTP API, and through it an MCP server over Streamable HTTP. Today webview `fetch` is blocked by `connect-src` (`src-tauri/tauri.conf.json:29`) and plugin-http is scoped to Todoist and the theme repo (`src-tauri/capabilities/default.json:223-266`).
 

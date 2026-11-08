@@ -1,6 +1,6 @@
 # 100: Renaming or moving a note updates the file nodes that point at it in canvases
 
-**Origin:** `audit-2026-11-05` Issue 155, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 155, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Split from Issue 31 on 2026-11-06: the owner kept only its cheap part in the first wave. Read Issue 31 first; its Details and evidence apply here. The canvas half: rewrite a canvas file node path on rename and on a pure folder move (updateLinksAfterRename returns early on a same-name move today), in the stored path format Issue 15 settles, and keep an open canvas tab in sync (Issue 06 keys canvas persists by path).
 

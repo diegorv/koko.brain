@@ -1,8 +1,8 @@
 # 030: A session whose settings.json was never loaded never writes it and never purges File History at the default retention
 
-**Origin:** `audit-2026-11-05` Issue 115, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 115, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). 09ec9f363 fixed most of Issue 10. Its remaining read-error overwrite and history-purge legs follow from the same load outcome. It needs a settings read failure. D3 (a) is recorded.
+**Migrated from:** `.scratch/archived/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). 09ec9f363 fixed most of Issue 10. Its remaining read-error overwrite and history-purge legs follow from the same load outcome. It needs a settings read failure. D3 (a) is recorded.
 
 **Audit check at `5f8003d67`:** still_present (corner, low). src/lib/core/settings/settings.service.ts:36 loadSettings returns Promise<void>; :40-48 the exists/readTextFile catch calls useDefaultSettings(), toasts 'the file was left unchanged' (:45) and returns with no outcome. :209-218 resetBrokenSettingsFile returns after a copyFile failure with defaults in the store (toast :216). src/lib/app/lifecycle/app-lifecycle.service.ts:199 awaits loadSettings, :211 startSettingsPersistence(vaultPath) runs unconditionally. src/lib/core/settings/settings-persistence.svelte.ts:50 lastWritten = serialize() (the defaults), :57-62 any diff arms the 500 ms timer, :79-83 flush calls writeSettingsFile, which runs writeTextFile at settings.service.ts:258 with no guard. :96-105 stopSettingsPersistence flushes through the same path. update-check.service.ts:27 writes updates.lastCheckedAt at launch with no user action when autoCheck is on. No 'file-protected' or load-outcome code at HEAD. The last change to settings.service.ts is 09ec9f363 (the backup), and to app-lifecycle.service.ts it is 9d1c8d927 (views), which does not touch this path.
 
@@ -29,7 +29,7 @@
 
 ## Notes
 
-- **Source:** audit 2026-11-04 (`.scratch/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 1 of the parallel plan.
+- **Source:** audit 2026-11-04 (`.scratch/archived/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 1 of the parallel plan.
 - **Finding `settings-unreadable`:** real, medium. Root cause: startSettingsPersistence takes the current store as the on-disk baseline without checking how loadSettings ended. When the read failed, the store holds defaults the file never contained, so the first settings mutation writes defaults plus that change over the unread file.
   Evidence: src/lib/core/settings/settings.service.ts:40-47: the exists/readTextFile catch calls useDefaultSettings(), toasts 'the file was left unchanged' and returns. loadSettings returns void, so the caller cannot tell this case apart. src/lib/app/lifecycle/app-lifecycle.service.ts:199 awaits loadSettings, then :211 calls startSettingsPersistence(vaultPath) unconditionally. The comment at :207-210 assumes the file was read. src/lib/core/settings/settings-persistence.svelte.ts:49 sets lastWritten = serialize(), which is the defaults. The effect at :57 arms the 500 ms timer on any diff, and flush at :82 calls writeSettingsFile, which runs writeTextFile at settings.service.ts:258 with no guard or backup. Test gap: settings.service.test.ts:423-449 stops at loadSettings.
 - **Finding `settings-backup-failed`:** real, low. Root cause: Same root cause as settings-unreadable: resetBrokenSettingsFile returns early when the backup copy fails, leaving defaults in the store, and persistence then starts with defaults as its baseline. The first mutation overwrites the only copy of the broken file.
@@ -40,7 +40,7 @@
 
 ## Audit 2026-11-05 additions
 
-### Merged from `.scratch/file-io-audit/issues/10-settings-load-failure-defaults.md`
+### Merged from `.scratch/archived/file-io-audit/issues/10-settings-load-failure-defaults.md`
 
 That Issue was folded into this one by the audit; its text follows.
 
@@ -51,7 +51,7 @@ That Issue was folded into this one by the audit; its text follows.
 **Blocked by:** none
 Priority: P1
 Severity: data-loss
-Source: file I/O audit, deep-dive group(s) o05-settings-history, o06-trash-settings-io (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) o05-settings-history, o06-trash-settings-io (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 Reviewer note: read settings.service.ts loadSettings: the catch block sets DEFAULT_SETTINGS (retentionDays 7) and saves them; the try block also lands in that catch when only the write-back fails. cleanup_history deletes all snapshots older than retention+30 days.
 
@@ -70,7 +70,7 @@ Reviewer note: read settings.service.ts loadSettings: the catch block sets DEFAU
 
 **Limits found while trying to refute.** Partly downgraded: a user on the default retention (7) loses no extra history. The empty-file case is a separate branch (:45-52), not the catch, but it has the same effect.
 
-**Repro test.** `.scratch/file-io-audit/repro/o05-settings-history/settings-load-failure.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o05-settings-history/settings-load-failure.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 3 failed: truncated file -> AssertionError: expected true to be false (overwritten, original bytes not kept); transient read error -> AssertionError: expected [ Array(1) ] to deeply equal [] (defaults written to settings.json); valid file + write EACCES -> AssertionError: expected 7 to be 365 (settingsStore.history.retentionDays)
@@ -93,7 +93,7 @@ Reviewer note: read settings.service.ts loadSettings: the catch block sets DEFAU
 
 **Limits found while trying to refute.** Kept at P2, not P1: note content is never touched, and the history loss needs both a raised retention and a settings-only write failure while the DB stays writable.
 
-**Repro test.** `.scratch/file-io-audit/repro/o06-trash-settings-io/settings-writeback-failure.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o06-trash-settings-io/settings-writeback-failure.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 × keeps the settings it just read when only the write-back fails: AssertionError: expected 7 to be 365 (settingsStore.history.retentionDays)
@@ -105,5 +105,5 @@ Reviewer note: read settings.service.ts loadSettings: the catch block sets DEFAU
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: purge guard criterion added after the order review (the title promised it).

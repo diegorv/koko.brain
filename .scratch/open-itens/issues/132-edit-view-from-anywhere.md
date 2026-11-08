@@ -1,6 +1,6 @@
 # 132: Edit view opens from anywhere, hidden views included
 
-**Origin:** `view-editor` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-editor` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** today Edit view exists only on a visible Types row (`TypesNavigator.svelte:147-152`, `:312`), and `viewNavigatorRows` skips `_visible: false` (`lens.logic.ts:646-647`). Every New table file starts hidden (`collection.service.ts:18-21`), and 07 lets the dialog hide a view, which would remove its own way back (PRD default D4).
 

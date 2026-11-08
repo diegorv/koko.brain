@@ -1,6 +1,6 @@
 # 178: Images and embeds load
 
-**Origin:** `ios-app` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** In the browser, images and embedded files inside notes show up as they do on the desktop: `![[image.png]]`, markdown images, PDF embeds, audio and video players. The files come from the Mac through the host, never from outside the vault, and no other web page can use the host to probe the vault.
 

@@ -1,6 +1,6 @@
 # 047: Numeric <, <=, > and >= filters never match a note that lacks the property
 
-**Origin:** `audit-2026-11-05` Issue 27, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 27, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** compareValues (src/lib/features/collection/expression/evaluator.ts:708-715) falls back to `toNumber(a) - toNumber(b)`, and toNumber maps null/undefined to 0 (:627-631). A missing property resolves to null (:620), so `missing < 3` is `0 - 3 < 0`, which is true, and the note is listed. The date branch already treats null as NaN, so every comparison is false (dateOperandTime, :689-701). Give the plain number branch the same rule: when either operand is null or undefined, every ordering comparison is false. Arithmetic (`missing + 5`, pinned at evaluator.test.ts:592-594) and `==`/`!=` stay as they are. Sorting uses compareForSort in collection.logic.ts and is not affected.
 

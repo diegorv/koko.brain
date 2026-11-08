@@ -1,6 +1,6 @@
 # 068: DESC sort lists notes without a value last
 
-**Origin:** `view-engine-fixes` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** `compareForSort` puts null last (`src/lib/features/collection/collection.logic.ts:426-434`), but the sort loop negates the result for DESC (`:193-205`), so DESC puts notes with no value first. The comment "null/undefined always sort last" is wrong for DESC. "Sort by priority DESC" opens with every note that has no priority, and the help's "Top 10 by priority" example with `limit` (`help/documentation/12-collection.md:161`) can return 10 notes with no priority.
 

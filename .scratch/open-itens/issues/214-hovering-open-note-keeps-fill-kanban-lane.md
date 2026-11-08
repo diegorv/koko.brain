@@ -1,8 +1,8 @@
 # 214: Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover
 
-**Origin:** `audit-2026-11-05` Issue 65, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 65, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/15-hover-keeps-active-row-and-lane-grip.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, a visual fix on daily rows.
+**Migrated from:** `.scratch/archived/ux-polish/issues/15-hover-keeps-active-row-and-lane-grip.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, a visual fix on daily rows.
 
 **Audit check at `5f8003d67`:** still_present (polish, medium). Part 1: src/lib/features/note-list/NoteRow.svelte:65 has 'hover:bg-primary/10' and '{isActive ? 'bg-primary/25' : ''}' on the same button, so the hover variant overrides the active fill (the cursor usually stays on the row right after clicking it). Part 2: src/lib/plugins/kanban/KanbanLane.svelte:215 declares group/lane, :236 uses unnamed 'group-hover:opacity-60' on the grip, while :356 and :391 already use group-hover/lane. I grepped src/lib/core, app, features/rail-shell, kanban and src/routes for a bare 'group' class: only KanbanCard.svelte:167 (a descendant), EditorTabs, AppearanceSection, HeadingTypographyEditor and +page.svelte:47, none an ancestor of the lane. So the grip stays at opacity-0.
 
@@ -35,4 +35,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/15-hover-keeps-active-row-and-lane-grip.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/15-hover-keeps-active-row-and-lane-grip.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

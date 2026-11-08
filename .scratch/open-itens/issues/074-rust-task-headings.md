@@ -1,6 +1,6 @@
 # 074: Rust records task headings
 
-**Origin:** `tasks-view` Issue 11, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 11, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Heading rules and heading grouping need to know which headings sit above each task. Today only `get_tasks_in_section_v2` knows, by re-reading every task note from disk on each refetch (`src-tauri/src/commands/vault.rs:736-753`, `parsing.rs:1700-1750`). Record headings at index time instead, without copying a heading chain into every task (PRD "Task model", decision B6):
 

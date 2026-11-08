@@ -1,6 +1,6 @@
 # 193: Example mod: idea to PRD and Issues
 
-**Origin:** `vault-mods` Issue 11, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `vault-mods` Issue 11, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/vault-mods/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** the owner's own example as a working mod. A rail button, an action "Idea to PRD" whose input is the idea (or the open note), then a fan-out of Haiku scouts, Opus validators over their output and one synthesis that writes `PRD.md` and `issues/NN-<slug>.md` into a vault folder, the same shape as this feature's research.
 

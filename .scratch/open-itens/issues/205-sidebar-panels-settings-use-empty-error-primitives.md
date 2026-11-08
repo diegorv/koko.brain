@@ -1,8 +1,8 @@
 # 205: Sidebar panels and settings use the empty and error primitives
 
-**Origin:** `audit-2026-11-05` Issue 146, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 146, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/60-panels-use-empty-error-primitives.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). A refactor that needs 59's primitives. The EventCalendarView part is already gone.
+**Migrated from:** `.scratch/archived/ux-polish/issues/60-panels-use-empty-error-primitives.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). A refactor that needs 59's primitives. The EventCalendarView part is already gone.
 
 **Audit check at `5f8003d67`:** design_or_refactor (refactor, low). Blocked by 59, whose primitives do not exist. Raw String(err) still rendered as UI text at src/lib/features/tasks/TodoistPopover.svelte:76,89,107 (shown at :217) and src/lib/features/search/SearchSection.svelte:50,86 (shown at :122,:156). Tauri commands reject with strings, so String(err) is mostly already the message; the owner does not list Todoist or semantic-model downloads as daily use.
 
@@ -21,10 +21,10 @@
 
 ## Notes
 
-- **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 3 Feature views row 6; dropped from Issue 06 as copy and presentation work.
+- **Source:** `.scratch/archived/ux-polish/review-2026-11-04.md` Review section 3 Feature views row 6; dropped from Issue 06 as copy and presentation work.
 - Size: M.
 - **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/60-panels-use-empty-error-primitives.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/60-panels-use-empty-error-primitives.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

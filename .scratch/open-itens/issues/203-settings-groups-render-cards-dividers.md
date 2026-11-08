@@ -1,8 +1,8 @@
 # 203: Settings groups render as cards with dividers
 
-**Origin:** `audit-2026-11-05` Issue 96, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 96, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/70-settings-grouped-cards.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Design polish that ends with the owner's visual check. Its blocker 24 is resolved.
+**Migrated from:** `.scratch/archived/ux-polish/issues/70-settings-grouped-cards.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Design polish that ends with the owner's visual check. Its blocker 24 is resolved.
 
 **Audit check at `5f8003d67`:** design_or_refactor (polish, low). Blocker Issue 24 is resolved (c43c873bd, row anatomy done). src/lib/core/settings/sections/SettingItem.svelte:19-23 still gives every row its own rounded-lg bg-setting-item-bg; sections such as EditorSection.svelte:37 stack rows with flex-col gap-2; no shared group wrapper and no divide-y anywhere in src/lib/core/settings. Owner-check visual restyle, not a defect.
 
@@ -21,12 +21,12 @@
 
 ## Notes
 
-- **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 2 "Settings row anatomy" (deferred there as a separate visual change).
+- **Source:** `.scratch/archived/ux-polish/review-2026-11-04.md` Review section 2 "Settings row anatomy" (deferred there as a separate visual change).
 - Owner check: a visible style change across every settings page.
 - Size: M.
 - **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/70-settings-grouped-cards.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/70-settings-grouped-cards.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: moved out of the first wave by the owner after the challenge review.

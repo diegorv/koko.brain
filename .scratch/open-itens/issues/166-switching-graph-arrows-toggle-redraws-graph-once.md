@@ -1,6 +1,6 @@
 # 166: Switching the graph Arrows toggle redraws the graph at once, also after the layout has settled
 
-**Origin:** `audit-2026-11-05` Issue 59, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 59, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** GraphControls.svelte:131-134 calls graphViewStore.setDisplay({ showArrows }). render() reads display.showArrows (src/lib/plugins/graph-view/GraphView.svelte:154), but render runs only on simulation ticks (:124), resizeCanvas (:274), zoom events (:301-304) and a hovered-node change (:354-358). The $effect at :375-385 tracks mode, filters and centerPath, not display, and the d3 simulation stops ticking once it cools, so the toggle changes nothing on screen until the user zooms, pans or hovers another node. Fix direction: an effect that reads graphViewStore.display and calls render() untracked.
 
@@ -20,7 +20,7 @@
 - **Priority:** daily use and UI correctness (bucket 2-ux). Ux/low. The graph view is not in the owner's daily list.
 - **Trigger:** Open the graph, wait a few seconds for the force layout to settle, then switch Display > Arrows on or off.
 - **Evidence (verified by reading code at `5f8003d67`):** src/lib/plugins/graph-view/GraphControls.svelte:131-134 toggle -> graphViewStore.setDisplay. src/lib/plugins/graph-view/graph-view.store.svelte.ts:5,18,25 display state, getter and setter. src/lib/plugins/graph-view/GraphView.svelte:154 drawArrows read only inside render(); render callers :124 (tick), :274 (resizeCanvas), :303 (zoom), :357 (hover change); :375-385 $effect tracks graphViewStore.mode, filters and centerPath only; :390-395 the vaultIndexVersion effect rebuilds only on index changes. rg 'display' in graph-view finds no other reader.
-- **Related Issues before the audit:** `.scratch/ux-polish/issues/69-native-controls-to-shadcn.md`
+- **Related Issues before the audit:** `.scratch/archived/ux-polish/issues/69-native-controls-to-shadcn.md`
 - **Source:** audit 2026-11-05, domain `shell`, finding `N-shell-05` (from shell-ux-3). Size S.
 
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). Confirmed. GraphControls.svelte:132 calls setDisplay. render() reads display.showArrows (GraphView.svelte:154), but render runs only on tick (:124), resizeCanvas (:274), zoom (:303) and a hover change (:357). The $effect at :375-385 tracks mode, filters and centerPath only. The controls are not on the canvas, so clicking them fires no canvas mousemove, and once the simulation has cooled nothing redraws. Graph view is not daily-use, so likelihood is low.

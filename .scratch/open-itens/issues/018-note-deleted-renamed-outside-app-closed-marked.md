@@ -1,8 +1,8 @@
 # 018: A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave
 
-**Origin:** `audit-2026-11-05` Issue 99, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 99, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/22-external-delete-resurrected.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). No bytes are lost, and it needs an external rename or delete of an open note followed by typing in it.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/22-external-delete-resurrected.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). No bytes are lost, and it needs an external rename or delete of an open note followed by typing in it.
 
 **Audit check at `5f8003d67`:** still_present (content, low). src/lib/core/editor/editor.service.ts:439-441 a rejected reload read logs at debug and keeps the tab; :194 writeTextFile(path, content) with default create:true; the watcher batch (app-lifecycle.service.ts:491-492) never closes or orphans tabs; closeTabsForDeletedPath is called only from path-change.service.ts:159 (in-app ops).
 
@@ -15,7 +15,7 @@
 **Blocked by:** 017
 Priority: P2
 Severity: corruption
-Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -32,7 +32,7 @@ Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .
 
 **Limits found while trying to refute.** Downgraded from data-loss framing to P2: nothing is lost, the file is duplicated or resurrected.
 
-**Repro test.** `.scratch/file-io-audit/repro/o07-external-change/external-delete.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o07-external-change/external-delete.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 3 failed: AssertionError: expected true to be false at external-delete.test.ts:68, :79 and :90, each expect(disk.has(A)).toBe(false), for the external delete plus keystroke, the external rename plus keystroke, and the calendar write after an external delete
@@ -44,7 +44,7 @@ Source: file I/O audit, deep-dive group(s) o07-external-change (raw reports in .
 
 Written by audit 2026-11-05 from the text above and its audit header; the original Issue had none.
 
-- [ ] Failing test first, in src/tests/lib/core/editor/editor.service.test.ts (reloadExternallyChangedTabs describe, real editorStore): a clean tab for '/vault/a.md', readTextFile rejecting with a not-found error, reloadExternallyChangedTabs(['/vault/a.md']) leaves no tab for that path in editorStore.tabs. It fails today (the tab is kept and the next keystroke or calendar write recreates the file). The repro .scratch/file-io-audit/repro/o07-external-change/external-delete.test.ts is moved under src/tests as the matching red cases.
+- [ ] Failing test first, in src/tests/lib/core/editor/editor.service.test.ts (reloadExternallyChangedTabs describe, real editorStore): a clean tab for '/vault/a.md', readTextFile rejecting with a not-found error, reloadExternallyChangedTabs(['/vault/a.md']) leaves no tab for that path in editorStore.tabs. It fails today (the tab is kept and the next keystroke or calendar write recreates the file). The repro .scratch/archived/file-io-audit/repro/o07-external-change/external-delete.test.ts is moved under src/tests as the matching red cases.
 - [ ] A dirty tab hit by the same not-found read stays open with its typed content, is marked orphaned, and autosave is suspended for it: after onContentChange and the autosave timer firing, writeTextFile is not called for that path and the path does not appear on disk. The user sees a prompt or toast saying the file was deleted or moved outside the app.
 - [ ] saveFileByPath (writeTab) writes with { create: false } for tabs opened from existing files, so a save after an external delete or rename rejects and does not recreate the old path. Existing saveFileByPath cases that assert the writeTextFile arguments are updated for the options argument. The three repro scenarios (external delete plus keystroke, external rename plus keystroke, calendar write after an external delete) end with the old path absent from disk.
 - [ ] The calendar tab branch in src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts: a write to an open tab whose file was deleted outside the app does not recreate it.
@@ -53,6 +53,6 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/22-external-delete-resurrected.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/22-external-delete-resurrected.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: Blocked by 98 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.
 - 2026-11-06: added to the first wave after the order review.

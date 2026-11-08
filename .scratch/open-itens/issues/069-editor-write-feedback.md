@@ -1,6 +1,6 @@
 # 069: Small `.view` tab write feedback
 
-**Origin:** `view-engine-fixes` Issue 11, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 11, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:**
 - **Refused tab rename is silent.** `renameView` returns the input for an empty, unchanged or duplicate name (`src/lib/features/collection/yaml-parser.ts:388-407`), and the tab just snaps back (`commitTabRename`, `CollectionView.svelte:470-477`). Show why: "Another view is named …".

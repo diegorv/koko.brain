@@ -1,6 +1,6 @@
 # 033: The privacy scanner stops skipping every line that contains a URL, and PRIVACY.md matches the code
 
-**Origin:** `usage-telemetry` Issue 01, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `usage-telemetry` Issue 01, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The Privacy Check gate (`.github/workflows/privacy.yml`, logic in `.github/actions/scan-external-calls/action.yml`) skips any match that also matches a `skip` regex.
 
@@ -58,7 +58,7 @@ Reproduced on 2026-11-06 with GNU grep 3.8 over the real tree, with two planted 
 
 ## Notes
 
-- Source: `.scratch/usage-telemetry/findings-2026-11-05.md` section "privacy CI gate is broken"; `raw/j22.md` (s8-F1, N3, N4), `raw/j25.md` (M2); review 2026-11-06 (reproduction, CSP single-line problem, dead ERE patterns).
+- Source: `.scratch/archived/usage-telemetry/findings-2026-11-05.md` section "privacy CI gate is broken"; `raw/j22.md` (s8-F1, N3, N4), `raw/j25.md` (M2); review 2026-11-06 (reproduction, CSP single-line problem, dead ERE patterns).
 - Size: M.
 
 ## Comments

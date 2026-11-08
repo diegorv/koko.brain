@@ -1,6 +1,6 @@
 # 187: Release builds upload JS source maps so Sentry stack traces are readable
 
-**Origin:** `usage-telemetry` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `usage-telemetry` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Today no source maps are produced: `vite.config.js` has no `build.sourcemap`, and `build/` has no `.map` files. Nothing uploads them either, so every frontend Sentry event shows minified `tauri://localhost/_app/immutable/...` frames.
 

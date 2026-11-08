@@ -1,6 +1,6 @@
 # 059: New File from Template says the name is taken instead of silently opening the existing note
 
-**Origin:** `audit-2026-11-05` Issue 56, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 56, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** createFileFromTemplate (src/lib/plugins/templates/templates.service.ts:55-69) calls openOrCreateNote, which opens the existing file when exists() is true and skips the template (src/lib/core/note-creator/note-creator.service.ts:87-127). Nothing throws, so TemplatePicker (src/lib/plugins/templates/TemplatePicker.svelte:33-46) shows no message and the user may type into the older note believing it is new. Fix direction: createFileFromTemplate checks for an existing file first and refuses with a clear error, and the picker shows a toast naming the existing note (it may keep the naming step open so the user can choose another name).
 

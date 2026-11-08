@@ -371,4 +371,4 @@ Read these when this reference and the app disagree. Then fix this file.
 - Query, columns and sort: `src/lib/features/collection/collection.logic.ts` (`executeQuery`, `getPropertyValue`).
 - Row rule: `viewRowSet` and `blockRowSet` in `src/lib/features/rail-shell/lens.logic.ts`.
 - User docs: `help/documentation/25-types-and-relationships.md` § View Files, and `help/documentation/12-collection.md`.
-- The research behind this file: `.scratch/view-editor/research/synthesis-reference-facts.md`.
+- The research behind this file: `.scratch/archived/view-editor/research/synthesis-reference-facts.md`.

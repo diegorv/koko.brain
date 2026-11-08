@@ -1,6 +1,6 @@
 # 035: Rust panic events carry the panic location (file:line)
 
-**Origin:** `usage-telemetry` Issue 05, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `usage-telemetry` Issue 05, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/usage-telemetry/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Today a Rust panic reaches Sentry with only its message. `sentry-panic` 0.49.3 builds the event from the payload alone and never reads `info.location()` (`~/.cargo/registry/src/index.crates.io-*/sentry-panic-0.49.3/src/lib.rs` lines 106-133; check the same file for the locked version, 0.49.5 on main). Shipped frames are unsymbolicated (`strip = true`, see Issue 11), so the event cannot tell where the panic happened. Add the location to the exception value, e.g. `called Option::unwrap() on a None value at src/vault/watcher.rs:288:14`. No debug info, no upload and no library paths are needed.
 

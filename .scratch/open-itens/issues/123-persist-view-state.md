@@ -1,6 +1,6 @@
 # 123: The view's rules survive a restart
 
-**Origin:** `tasks-view` Issue 16, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 16, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** Nothing in the Tasks view is persisted (`tasks.store.svelte.ts:4-33`), so every source card, exclude, quick filter, grouping and sort is lost on restart. Store them per vault (PRD assumption A6, "Storage").
 

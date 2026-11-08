@@ -1,8 +1,8 @@
 # 088: A watcher rescan (dropped FSEvents) reloads open tabs before the next save
 
-**Origin:** `audit-2026-11-05` Issue 100, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 100, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/09-fsevents-rescan-ignored.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs dropped FSEvents on top of an external edit.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/09-fsevents-rescan-ignored.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It needs dropped FSEvents on top of an external edit.
 
 **Audit check at `5f8003d67`:** still_present (content, low). src-tauri/src/vault/watcher.rs:269-280 the notify callback forwards event.paths only, nothing reads need_rescan(); src/lib/app/lifecycle/app-lifecycle.service.ts:491-492 passes the directory-only batch to reloadExternallyChangedTabs (exact-path match, editor.service.ts:427) and rebuildAllIndexes, which returns at watcher-handler.service.ts:41-45.
 
@@ -13,7 +13,7 @@
 **Blocked by:** none
 Priority: P1
 Severity: data-loss
-Source: file I/O audit, deep-dive group(s) h02-watcher-bulk (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h02-watcher-bulk (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -42,7 +42,7 @@ Source: file I/O audit, deep-dive group(s) h02-watcher-bulk (raw reports in .scr
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
-- Finding F35 (P1, rare): "Notify's rescan flag is dropped, so a dropped-event burst skips the index rebuild". No repro test exists for it under .scratch/editor-data-safety/repro/; the evidence is a code trace.
+- Finding F35 (P1, rare): "Notify's rescan flag is dropped, so a dropped-event burst skips the index rebuild". No repro test exists for it under .scratch/archived/editor-data-safety/repro/; the evidence is a code trace.
 - src-tauri/src/vault/watcher.rs:254-262: the notify callback loops over `event.paths` and sends each path string; nothing reads `need_rescan()` or the event flag. watcher.rs:36-43: VaultFilesChangedPayload carries only `paths`.
 - src-tauri/Cargo.lock:3178-3179: notify-types 2.1.0, whose src/event.rs:648 defines `Event::need_rescan()` as `matches!(self.flag(), Some(Flag::Rescan))`.
 - src/lib/app/lifecycle/watcher-handler.service.ts:33-36 filters out dot-less basenames, and :41-44 returns when no file path is left.
@@ -51,4 +51,4 @@ Source: file I/O audit, deep-dive group(s) h02-watcher-bulk (raw reports in .scr
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/09-fsevents-rescan-ignored.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/09-fsevents-rescan-ignored.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

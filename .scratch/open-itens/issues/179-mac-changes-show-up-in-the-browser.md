@@ -1,6 +1,6 @@
 # 179: Mac changes show up in the browser
 
-**Origin:** `ios-app` Issue 07, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 07, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** While the browser is open, changes made on the Mac reach it without a reload: a note edited on the Mac updates in the browser when the browser's tab has no unsaved edits, a new or deleted file appears in or leaves the tree, and the panels that refresh on index changes (backlinks, note list, tags, tasks) refresh. After a reconnect the browser refreshes once.
 

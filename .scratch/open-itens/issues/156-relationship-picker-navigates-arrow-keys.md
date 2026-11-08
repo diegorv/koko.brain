@@ -1,8 +1,8 @@
 # 156: The relationship picker navigates with arrow keys
 
-**Origin:** `audit-2026-11-05` Issue 38, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 38, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/68-pickers-arrow-keys.md` (audit 2026-11-05). Priority: daily use and UI correctness (bucket 2-ux). Partially fixed: the kanban picker already has arrow keys, so only RelationshipSearch remains and the title is narrowed to it.
+**Migrated from:** `.scratch/archived/ux-polish/issues/68-pickers-arrow-keys.md` (audit 2026-11-05). Priority: daily use and UI correctness (bucket 2-ux). Partially fixed: the kanban picker already has arrow keys, so only RelationshipSearch remains and the title is narrowed to it.
 
 **Audit check at `5f8003d67`:** partially_fixed (ux, medium). src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:41-65 already exports handleKeydown with ArrowDown/ArrowUp/Enter/Tab/Escape and a selectedIndex highlight (:80). src/lib/features/properties/RelationshipSearch.svelte (input at line ~62, onkeydown handleKeydown at :32-37) only handles Escape: no arrow keys, no highlighted row, results are mouse-only buttons (onmousedown). Still a gap for the relation property picker.
 
@@ -21,7 +21,7 @@
 
 ## Notes
 
-- **Source:** `.scratch/ux-polish/review-2026-11-04.md` Review section 3 Overlays row 11.
+- **Source:** `.scratch/archived/ux-polish/review-2026-11-04.md` Review section 3 Overlays row 11.
 - Size: M.
 - **Triage:** checked by audit 2026-11-05 (header and second opinion); the criteria are narrowed to RelationshipSearch.
 
@@ -29,4 +29,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/68-pickers-arrow-keys.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/68-pickers-arrow-keys.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

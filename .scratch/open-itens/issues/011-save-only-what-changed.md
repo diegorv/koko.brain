@@ -1,6 +1,6 @@
 # 011: Edit view saves only what the user changed
 
-**Origin:** `view-editor` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-editor` Issue 02, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-editor/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** the shared model every section uses: a draft read from the file, a patch of the fields the user changed, and a writer that applies the patch without re-serializing the file. This Issue moves Name and Filters onto it; 03 and 05 to 07 add their fields.
 

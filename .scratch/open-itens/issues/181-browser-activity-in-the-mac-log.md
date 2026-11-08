@@ -1,6 +1,6 @@
 # 181: Browser activity shows up in the Mac log
 
-**Origin:** `ios-app` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 09, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** When the owner tests from Safari (on the Mac at `127.0.0.1` or through Tailscale Serve), the Mac's session log (`~/Library/Logs/com.diegorv.kokobrain/`) shows what the browser did and what went wrong there. Today the host logs only proxied requests (`log_proxied` in `src-tauri/src/remote/server.rs`), so a loopback session leaves no trace, and the browser's own logs (`debug()` / `error()`, uncaught errors, CSP violations) go nowhere: the browser skips the log session (`app-lifecycle.service.ts`, `isRemoteBrowser()`), and its console stays in Safari.
 

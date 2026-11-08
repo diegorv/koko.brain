@@ -1,6 +1,6 @@
 # 140: `.view` tab keyboard and labels
 
-**Origin:** `view-engine-fixes` Issue 15, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 15, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:**
 - The four toolbar icon buttons of the `.view` tab have no `aria-label` or `title` (`src/lib/features/collection/CollectionView.svelte:593-668`).

@@ -1,8 +1,8 @@
 # 195: Canvas nodes, edges and grid draw from theme tokens, so they show on light themes
 
-**Origin:** `audit-2026-11-05` Issue 85, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 85, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/ux-polish/issues/43-canvas-surface-theme-tokens.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. It matters only on light themes. Cite the new shadow lines :777,781.
+**Migrated from:** `.scratch/archived/ux-polish/issues/43-canvas-surface-theme-tokens.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. It matters only on light themes. Cite the new shadow lines :777,781.
 
 **Audit check at `5f8003d67`:** still_present (polish, low). All named surface sites still hardcode white or black alphas: src/lib/features/canvas/FileNode.svelte:102,131,160; TextNode.svelte:94; LinkNode.svelte:140,166,199,201; ImageNode.svelte:71; GroupNode.svelte:31-32; canvas.logic.ts:151 (buildGroupStyle default `rgba(255,255,255,0.05)` / `0.2`); CanvasInner.svelte:728-729,737-738 (add-card button) and :746,749,754,758,759 (--xy-* overrides, comment 'Override Svelte Flow theme for dark mode' at :742). The --foreground token exists for both themes (src/app.css:147 light, :207 dark), --background is available for the minimap mask. src/tests/lib/features/canvas/ has no canvas-theme-colors.test.ts, and git log -S'canvas-theme-colors' finds nothing, so the guard test is unwritten. No commit touching src/lib/features/canvas since the Issue was drafted addresses colors (only f37acb402 'canvas edits persist to their own tab'). Impact is only on light themes (Lavender Haze); Default dark looks the same after the swap, so likelihood is low unless the owner runs a light theme.
 
@@ -36,4 +36,4 @@
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/ux-polish/issues/43-canvas-surface-theme-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/43-canvas-surface-theme-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

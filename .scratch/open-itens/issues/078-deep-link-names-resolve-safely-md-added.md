@@ -1,8 +1,8 @@
 # 078: Deep-link names resolve safely: .md is added unless the name ends in a real extension, name=. stays inside the vault, and overwrite never replaces .kokobrain files
 
-**Origin:** `audit-2026-11-05` Issue 110, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 110, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/25-deep-link-path-safety.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Same fix site: resolveFilePath at utils/path.ts:33-53. It is reachable only from hand-built external URLs, because in-app Copy deep link includes the extension.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/25-deep-link-path-safety.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Same fix site: resolveFilePath at utils/path.ts:33-53. It is reachable only from hand-built external URLs, because in-app Copy deep link includes the extension.
 
 **Audit check at `5f8003d67`:** still_present (corner, low). src/lib/utils/path.ts:33-53 resolveFilePath accepts normalized === base (:42) and appends .md to a last segment without a dot (:47-50), so name=. resolves to <parent>/<vault>.md outside the vault; a segment with a dot (.kokobrain/trash/trash-manifest.json) is kept as is. The overwrite branch src/lib/features/deep-link/deep-link.service.ts:306-320 mkdirs and writeTextFile's the target with no confirmation and no reject of .kokobrain or non-markdown targets. The silent-create branch :322-337 now refuses an existing file (9f5e4dd25), which narrows the name=. silent case to creating a new sibling, but overwrite=true still replaces it. Needs a crafted URL from a local process or a web page; no normal daily trigger.
 
@@ -15,7 +15,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: security
-Source: file I/O audit, deep-dive group(s) o03-deep-link (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) o03-deep-link (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Deep-link overwrite can replace any vault file, including .kokobrain trash manifest and settings.json, without confirmation
 
@@ -30,7 +30,7 @@ Source: file I/O audit, deep-dive group(s) o03-deep-link (raw reports in .scratc
 
 **Evidence.** resolveFilePath keeps the path in the vault, but a segment with a dot is not suffixed with .md, so .kokobrain/trash/trash-manifest.json resolves as is. The overwrite branch writes unconditionally, and resolveAndDispatch/handleDeepLinkUrl (:118-169) has no confirmation. capabilities/default.json allows write-text-file on kokobrain-vaults/** and **/.kokobrain/**. The downstream effects in recovery-7 (orphaned trash, settings reset) were not verified here.
 
-**Repro test.** `.scratch/file-io-audit/repro/o03-deep-link/deep-link-path-safety.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o03-deep-link/deep-link-path-safety.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected '[]' to be '[{"id":"1"}]' (overwrite refuses to rewrite app-owned files under .kokobrain)
@@ -51,7 +51,7 @@ AssertionError: expected '[]' to be '[{"id":"1"}]' (overwrite refuses to rewrite
 
 **Evidence.** normalizePath('/…/Work/.') returns '/…/Work', which equals base and is accepted at :41. The last segment has no dot, so :47-49 returns '/…/kokobrain-vaults/Work.md'. The silent branch (deep-link.service.ts:309-315) writes it. $HOME/kokobrain-vaults/** allows it, and no allow_directory/allow_file exists in src-tauri/src.
 
-**Repro test.** `.scratch/file-io-audit/repro/o03-deep-link/deep-link-path-safety.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o03-deep-link/deep-link-path-safety.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected [ '/Users/me/kokobrain-vaults/Work.md' ] to deeply equal []; AssertionError: expected false to be true (resolveFilePath(VAULT,'.') under VAULT/)
@@ -73,7 +73,7 @@ resolveFilePath (src/lib/utils/path.ts:46-50, re-exported by deep-link.logic.ts:
 
 - **Trigger:** An external launcher (Raycast, Shortcuts, a script) fires kokobrain://new?vault=V&name=Dr.%20Smith (or name=2026.11.05%20Notes, name=v1.2%20plan, with or without append/prepend), or kokobrain://open?file=v1.2%20plan for an existing 'v1.2 plan.md'.
 - **Evidence (verified by reading code at `5f8003d67`):** src/lib/utils/path.ts:46-50 `if (!lastSegment.includes('.')) return `${normalized}.md`` -> src/lib/features/deep-link/deep-link.logic.ts:318 re-export -> src/lib/features/deep-link/deep-link.service.ts:188 open, :253-254 new -> :269/:288 exists(fullPath) false for the extensionless path -> :325-346 create branch writes it -> :324 isMarkdownFile false skips markUnorganized -> src-tauri/src/utils/fs.rs:87,140 is_markdown_filename accepts .md/.markdown/.view only -> help/documentation/23-deep-links.md:60,77. In-app 'Copy deep link' builds file= with the extension (deep-link.logic.ts:321-331), and editor-host createNote uses markdownTarget (src/lib/app/editor-host.ts:87-89,133-136), so only hand-built external URLs hit this.
-- **Related Issues before the audit:** `.scratch/file-io-audit/issues/25-deep-link-path-safety.md`, `.scratch/file-io-audit/issues/53-deep-link-content-fidelity.md`
+- **Related Issues before the audit:** `.scratch/archived/file-io-audit/issues/25-deep-link-path-safety.md`, `.scratch/archived/file-io-audit/issues/53-deep-link-content-fidelity.md`
 - **Second opinion:** upheld (content, low). utils/path.ts:46-50 appends .md only when the last segment has no '.'. So `new` with name 'Dr. Smith' writes the content to an extensionless file 'Dr. Smith', which is not indexed. With append, it misses the existing 'Dr. Smith.md' and creates that extensionless file instead, so the content goes to the wrong file. This contradicts 23-deep-links.md:60,77. It is reachable only from hand-built external URLs: in-app Copy deep link includes the extension. Corrections to apply while implementing: Duplicate of N-file-io-09 (same function, same fix). Merge them.
 - **Source:** audit 2026-11-05, domain `file-io`, finding `N-file-io-06` (from file-io-content-1, file-io-rust-4, file-io-ux-4). Size S.
 
@@ -90,11 +90,11 @@ help/documentation/23-deep-links.md:60,77 says '.md is added automatically if no
 
 - **Trigger:** An Alfred, Raycast or clipper workflow sends kokobrain://new?vault=V&name=Node.js+tips&content=..., or name=Dr.+Smith or name=Meeting+5.30pm, or kokobrain://open?vault=V&file=Dr.+Smith for an existing 'Dr. Smith.md'.
 - **Evidence (verified by reading code at `5f8003d67`):** help/documentation/23-deep-links.md:60,77 (promise) -> src/lib/features/deep-link/deep-link.logic.ts:318 (re-export) -> src/lib/utils/path.ts:46-49 (any '.' in the last segment counts as an extension) -> src/lib/features/deep-link/deep-link.service.ts:254 (new) and :186-190 (open) -> src/lib/core/filesystem/fs.logic.ts:65-68 (isMarkdownFile false for the result). Tests: src/tests/lib/features/deep-link/deep-link.logic.test.ts:894-945 have no dotted-name case. The other caller is src/lib/app/editor-host.ts:153 (openView).
-- **Related Issues before the audit:** `.scratch/file-io-audit/issues/25-deep-link-path-safety.md`
+- **Related Issues before the audit:** `.scratch/archived/file-io-audit/issues/25-deep-link-path-safety.md`
 - **Second opinion:** upheld (content, low). Same confirmed root cause as N-file-io-06: resolveFilePath at utils/path.ts:46-50, called from deep-link.service.ts:188 (open) and :254 (new). 'Node.js tips' becomes an extensionless file that is not a note. The deep-link.logic.test.ts resolveFilePath block at :894 has no dotted-name case. Corrections to apply while implementing: Duplicate of N-file-io-06; merge them.
 - **Source:** audit 2026-11-05, domain `file-io`, finding `N-file-io-09` (from file-io-spec-2). Size S.
 
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/25-deep-link-path-safety.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/25-deep-link-path-safety.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

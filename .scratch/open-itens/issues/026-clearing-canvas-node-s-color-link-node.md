@@ -1,6 +1,6 @@
 # 026: Clearing a canvas node's color or a link node's title is saved to the .canvas file
 
-**Origin:** `audit-2026-11-05` Issue 52, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 52, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** flowNodeToCanvasNode (src/lib/features/canvas/canvas.logic.ts:190-213) starts from the last synced node and copies an editable data field only when it is !== undefined (:205-209). handleSetNodeColor sets data.color to undefined (src/lib/features/canvas/CanvasInner.svelte:411-416) and LinkNode sets label to undefined for an empty title (src/lib/features/canvas/LinkNode.svelte:56), so the old color or label is written back. The node looks cleared until the canvas remounts, then the value returns. Undoing a color set on a node that had none has the same effect. Edges already handle this (canvas.logic.ts:243-250). Fix direction: when the flow node's data has the key with an undefined value, delete that field from the result instead of keeping the original's value, as flowEdgeToCanvasEdge does.
 

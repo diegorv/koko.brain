@@ -1,8 +1,8 @@
 # 092: An unreadable or corrupt trash manifest is backed up, never replaced by a partial list, and trash writers never orphan trashed items
 
-**Origin:** `audit-2026-11-05` Issue 114, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 114, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/audit-2026-11-04/issues/02-trash-manifest-unreadable.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Issue 11's corrupt-load and Empty Trash parts are this Issue, and its phantom entry is the same manifest-rebuild fix. It needs a corrupt manifest. Owner decision D2 (a) is recorded.
+**Migrated from:** `.scratch/archived/audit-2026-11-04/issues/02-trash-manifest-unreadable.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Issue 11's corrupt-load and Empty Trash parts are this Issue, and its phantom entry is the same manifest-rebuild fix. It needs a corrupt manifest. Owner decision D2 (a) is recorded.
 
 **Audit check at `5f8003d67`:** still_present (content, low). src/lib/core/trash/trash.logic.ts:59-66: parseTrashManifest returns [] when JSON.parse throws or the root is not an array. src/lib/core/trash/trash.service.ts:33-35 sets items from that result, and the catch at :37-39 calls setItems([]) on a read error with no rethrow, no toast and no broken flag. The next write rebuilds from the store: moveToTrash :79 saveManifest([item, ...trashStore.items]), restoreItem :137-139, deletePermanently :193, emptyTrash :215. emptyTrash :209-212 runs remove(itemsDir, recursive) first, so unlisted items/<uuid>/ folders are deleted, while the confirm counts only trashStore.count (TrashSection.svelte:50). saveManifest :272-279 overwrites with plain writeTextFile (truncate then write), which is how a truncated manifest appears in the first place. rg finds no manifestBroken, backup or toast in src/lib/core/trash. git log -- src/lib/core/trash shows only restore/indexing fixes (f14c1754d, baf12cca2, ff2b09d07), none for a corrupt load. Tests pin the silent-empty contract: trash.service.test.ts:104-112, trash.logic.test.ts:117-129.
 
@@ -26,7 +26,7 @@
 
 ## Notes
 
-- **Source:** audit 2026-11-04 (`.scratch/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 1 of the parallel plan.
+- **Source:** audit 2026-11-04 (`.scratch/archived/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 1 of the parallel plan.
 - **Finding `trash-manifest`:** real, high. Root cause: loadTrash and parseTrashManifest treat a read error, unparseable JSON and a non-array root the same as a missing manifest (empty list). Nothing records that the file on disk was not loaded, so every later manifest write starts from that empty list and replaces the original.
   Evidence: src/lib/core/trash/trash.logic.ts:58-66: parseTrashManifest returns [] when JSON.parse throws or the root is not an array, with no signal. src/lib/core/trash/trash.service.ts:33-39: readTextFile then setItems(parse), and the catch at :37-39 also calls setItems([]). The next write uses that empty base: moveToTrash :79 saveManifest([item, ...trashStore.items]), restoreItem :139, deletePermanently :192, and emptyTrash :214. emptyTrash :208-210 first runs remove(itemsDir, {recursive:true}), which deletes the orphaned items/<uuid>/ folders the user can no longer see. Callers: app-lifecycle.service.ts:291 and TrashSection.svelte:19. Tests: trash.service.test.ts:105-113 and trash.logic.test.ts:117-129 assert the silent-empty result. Nothing tests a later write. writeTextFile in saveManifest (:276) is not atomic, so a crash during a write can produce a truncated manifest, which is a realistic trigger.
 - **Owner decision (2026-11-04):** D2 (a): back up the unreadable manifest to `trash-manifest.broken-<stamp>.json`, then start a new manifest. Old trashed files stay on disk but are not listed; Empty Trash leaves unlisted `items/` folders alone. Dropping invalid entries inside a valid array is out of scope unless trivial; if left, say so in the commit.
@@ -35,7 +35,7 @@
 
 ## Audit 2026-11-05 additions
 
-### Merged from `.scratch/file-io-audit/issues/11-trash-manifest-stale-rebuild.md`
+### Merged from `.scratch/archived/file-io-audit/issues/11-trash-manifest-stale-rebuild.md`
 
 That Issue was folded into this one by the audit; its text follows.
 
@@ -46,7 +46,7 @@ That Issue was folded into this one by the audit; its text follows.
 **Blocked by:** none
 Priority: P1
 Severity: data-loss
-Source: file I/O audit, deep-dive group(s) o06-trash-settings-io (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) o06-trash-settings-io (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 Reviewer note: the orphaned containers stay on disk under .kokobrain/trash until Empty Trash, so they can be recovered by hand from Finder until then. Empty Trash deleting items the UI never listed is the irreversible part.
 
@@ -65,7 +65,7 @@ Reviewer note: the orphaned containers stay on disk under .kokobrain/trash until
 
 **Limits found while trying to refute.** Downgraded from P0. Nothing is lost until the user explicitly runs Empty Trash, and a corrupt local manifest needs a crash during a microsecond window. The multi-device sync trigger is what keeps this at P1.
 
-**Repro test.** `.scratch/file-io-audit/repro/o06-trash-settings-io/trash-manifest-orphans.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o06-trash-settings-io/trash-manifest-orphans.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 × a transient manifest read failure at load does not make the next delete drop earlier entries: AssertionError: expected [ Array(1) ] to deeply equal ArrayContaining ["a", "b", "c"]
@@ -91,7 +91,7 @@ Reviewer note: the orphaned containers stay on disk under .kokobrain/trash until
 
 **Limits found while trying to refute.** The claim that Empty Trash 'destroys every real item too' is Empty Trash's documented, confirmed behavior, so it is not an extra loss.
 
-**Repro test.** `.scratch/file-io-audit/repro/o06-trash-settings-io/trash-manifest-orphans.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o06-trash-settings-io/trash-manifest-orphans.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 × Delete permanently clears the phantom entry instead of failing forever: AssertionError: promise rejected "Error: failed to get metadata of path: /v…" instead of resolving ❯ Module.deletePermanently src/lib/core/trash/trash.service.ts:188:9
@@ -102,4 +102,4 @@ Reviewer note: the orphaned containers stay on disk under .kokobrain/trash until
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/02-trash-manifest-unreadable.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/02-trash-manifest-unreadable.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

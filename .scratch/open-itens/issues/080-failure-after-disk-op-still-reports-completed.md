@@ -1,8 +1,8 @@
 # 080: A failure after the disk op still reports a completed rename as done and re-keys the index
 
-**Origin:** `audit-2026-11-05` Issue 126, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 126, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/35-path-change-post-disk-failure.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The delete leg is fixed (f618f44ce). The rename leg's only live trigger is VaultIndex lock poisoning.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/35-path-change-post-disk-failure.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The delete leg is fixed (f618f44ce). The rename leg's only live trigger is VaultIndex lock poisoning.
 
 **Audit check at `5f8003d67`:** partially_fixed (corner, low). Delete leg fixed by f618f44ce (Issue 09, 2026-11-03, after c4bfee07). On to===null, applyPathChange (src/lib/core/filesystem/path-change.service.ts:171-235) has no awaited step after diskOp: setFileTree(removeNodeByPath) is synchronous (:172), the consumer fan-out is in try/catch (:176-182), and forgetNote is fire-and-forget (:233-235). The old post-delete refreshTree is gone. Rename leg narrowed: refreshTree (:201) now runs only when the moved node was not in the tree (movedNode null, :198-202). In the normal case the tree is patched in place with moveTreeNode (:199). The only remaining unguarded await before rename_note (:209) is updateLinksAfterRename (:190), whose get_backlinks_v2 call (link-updater.service.ts:46) fails only on a poisoned VaultIndex lock (src-tauri/src/commands/vault.rs:486-488), which needs an earlier panic. A missing try/finally is still a latent fragility, but its trigger is not reachable in daily use.
 
@@ -17,7 +17,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: stale-state
-Source: file I/O audit, deep-dive group(s) h04-calendar-a (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h04-calendar-a (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Details
 
@@ -32,7 +32,7 @@ Source: file I/O audit, deep-dive group(s) h04-calendar-a (raw reports in .scrat
 
 **Evidence.** path-change.service.ts:149 and :153 are outside any try; fs.service.ts:96-98 loadDirectoryTree rethrows; fs.service.ts:216-219 renameItem and :186-188 deleteItem rethrow; link-updater.service.ts:27 get_backlinks_v2 is outside allSettled. vault.rs:91-160 scan_dir propagates per-subfolder read errors via ? at :147. vault.rs:431-438 lock poisoning returns Err. Repro src/tests/repro/h04-calendar-a/calendar-5-post-disk-failure.test.ts: both tests FAIL. Rename: 'expected vi.fn() to be called with arguments: [ rename_note, { from: /vault/Standup.md, to: /vault/Daily.md } ]' (disk did move to Daily.md; calls were get_backlinks_v2 and scan_vault only). Delete: 'expected vi.fn() to be called with arguments: [ remove_note_from_index, { path: /vault/Standup.md } ]' (only scan_vault called; trashStore holds the note).
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h04-calendar-a/calendar-5-post-disk-failure.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h04-calendar-a/calendar-5-post-disk-failure.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 FAIL (both tests) as described in evidence: rename_note not called; remove_note_from_index not called.
@@ -54,5 +54,5 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/35-path-change-post-disk-failure.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/35-path-change-post-disk-failure.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: narrowed by the owner after the challenge review; the rest moved to Issue 162.

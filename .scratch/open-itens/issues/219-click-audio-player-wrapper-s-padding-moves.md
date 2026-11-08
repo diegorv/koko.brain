@@ -1,8 +1,8 @@
 # 219: A click in the audio player wrapper's padding moves the cursor like a click next to the widget
 
-**Origin:** `audit-2026-11-05` Issue 72, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 72, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/live-preview-click-reveal/issues/12-media-wrapper-padding-click.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, polish/low in live preview. The owner's manual check in the app follows the agent's fix.
+**Migrated from:** `.scratch/archived/live-preview-click-reveal/issues/12-media-wrapper-padding-click.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, polish/low in live preview. The owner's manual check in the app follows the agent's fix.
 
 **Audit check at `5f8003d67`:** still_present (polish, low). MediaWidget.toDOM (src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:196-207) still builds the wrapper with no mousedown handling, and ignoreEvent returns true (:215-217). The wrapper padding is styled at styles.ts:274 for both .cm-lp-audio-wrapper and .cm-lp-video-wrapper. Both E2E cases in e2e/specs/live-preview/click-reveal/audio-player.spec.ts:84-86 and :104-106 still carry test.fail(). A video-player.spec.ts exists alongside it for the video check.
 
@@ -33,4 +33,4 @@ Check the video player, which uses the same widget class: if its wrapper padding
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/live-preview-click-reveal/issues/12-media-wrapper-padding-click.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/live-preview-click-reveal/issues/12-media-wrapper-padding-click.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

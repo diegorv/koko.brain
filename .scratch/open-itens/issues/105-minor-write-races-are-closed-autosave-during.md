@@ -1,8 +1,8 @@
 # 105: Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag
 
-**Origin:** `audit-2026-11-05` Issue 121, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 121, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/41-minor-write-races.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Partially fixed (same-path saves serialized in 3df680423). The rest are races in millisecond windows.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/41-minor-write-races.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). Partially fixed (same-path saves serialized in 3df680423). The rest are races in millisecond windows.
 
 **Audit check at `5f8003d67`:** partially_fixed (corner, low). Fixed: same-path saves are now serialized by the per-path queue saveTails in src/lib/core/editor/editor.service.ts:158-179 (commit 3df680423). Still present: retry chains stack, :217-219 setTimeout(saveDirtyTabs, 5000) with no handle, not cleared by saveAllDirtyTabs :276-277 or resetEditor :461-462; autosave during rename, path-change.service.ts:162-171 updateTabAfterRenameOrMove only after await diskOp with timers armed; superseded init, app-lifecycle.service.ts:201-211 no initVersion check between configureSentry and startSettingsPersistence; properties no-op commit still arms the flag, src/lib/features/properties/properties.service.ts:97-100 with no newContent === content check.
 
@@ -13,7 +13,7 @@
 **Blocked by:** none
 Priority: P3
 Severity: stale-state
-Source: file I/O audit, deep-dive group(s) h04-calendar-a, h05-calendar-b, o04-delete-rename, o06-trash-settings-io, o08-atomicity, o10-frontmatter-fidelity (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h04-calendar-a, h05-calendar-b, o04-delete-rename, o06-trash-settings-io, o08-atomicity, o10-frontmatter-fidelity (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Autosave firing during the rename IPC round trip recreates the old path (duplicate note, stale new path)
 
@@ -28,7 +28,7 @@ Source: file I/O audit, deep-dive group(s) h04-calendar-a, h05-calendar-b, o04-d
 
 **Evidence.** fs.service.ts:201-212 renameItem and :228-240 moveItem (auto-move.service.ts:188) -> applyPathChange. updateTabAfterRenameOrMove runs at path-change.service.ts:132, after await diskOp at :127. saveFileByPath(oldPath) (editor.service.ts:161-170) writes the captured old path. Fetched commands.rs: write_text_file defaults to create:true, so old.md is recreated. markSavedByPath(oldPath) (editor.store.svelte.ts:91-96) can mark the tab clean before its path moves.
 
-**Repro test.** `.scratch/file-io-audit/repro/o04-delete-rename/autosave-during-rename.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o04-delete-rename/autosave-during-rename.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected [ '/vault/new.md', '/vault/old.md' ] to deeply equal [ '/vault/new.md' ]; AssertionError: expected { new: 'v1', old: 'v2' } to deeply equal { new: 'v2', old: undefined }
@@ -51,7 +51,7 @@ AssertionError: expected [ '/vault/new.md', '/vault/old.md' ] to deeply equal [ 
 
 **Limits found while trying to refute.** Downgraded to P3. The concurrent-in-flight condition is proven at the TS level, but the on-disk interleave or reorder needs sub-millisecond scheduling on the Rust side. I did not observe it; it is inferred from upstream source. The retry stacking is cosmetic (extra toasts and writes).
 
-**Repro test.** `.scratch/file-io-audit/repro/o08-atomicity/same-path-save-overlap.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o08-atomicity/same-path-save-overlap.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 2 failed. 'a Properties edit while the body save is in flight must not start a second write of the same path': AssertionError: expected 2 to be 1 at same-path-save-overlap.test.ts:70 expect(pending.filter((p) => p.path === NOTE).length).toBe(1). 'repeated failing debounce runs must not stack independent 5 s retry chains': AssertionError: expected 2 to be 1 at :91 expect(writeCalls - before).toBe(1).
@@ -72,7 +72,7 @@ AssertionError: expected [ '/vault/new.md', '/vault/old.md' ] to deeply equal [ 
 
 **Evidence.** event-calendar.service.ts:438-445 holdPath chains without awaiting the previous tail; :1003-1004 duplicateEvent does use joinPath, createNow does not. trash.service.ts:116 exists, :126 rename. Fetched tauri-apps/plugins-workspace tag fs-v2.7.1 plugins/fs/src/commands.rs: pub fn rename (sync) calls std::fs::rename with no destination check; exists is sync. std::fs::rename docs: replaces the original file if to exists. Tauri docs: sync commands run on the main thread, so create_note (vault.rs:888-905) and plugin-fs exists/rename cannot interleave with each other; the claim's 'Order A' (restore rename inside create_note's exists-to-write_atomic gap) is refuted for that reason. Repro: src/tests/repro/h04-calendar-a/calendar-4-create-vs-restore.test.ts test 1 FAILS with 'expected [ '[]', ...(2) ] to include ---\n_type: Event\ndate: 2026-11-10...' (created bytes gone); control test 2 (sequential undo then create) PASSES with 'Standup 1.md' created and both notes kept.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h04-calendar-a/calendar-4-create-vs-restore.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h04-calendar-a/calendar-4-create-vs-restore.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 FAIL (test 1): AssertionError: expected [ '[]', …(2) ] to include '---\n_type: Event\ndate: 2026-11-10\n…'. PASS (test 2 control).
@@ -95,7 +95,7 @@ FAIL (test 1): AssertionError: expected [ '[]', …(2) ] to include '---\n_type:
 
 **Limits found while trying to refute.** Downgraded to P3. The entry window is a millisecond-scale race, reachable only through deep-link or overlapping vault switches; there is no cold-start auto-open that would widen it.
 
-**Repro test.** `.scratch/file-io-audit/repro/o06-trash-settings-io/settings-superseded-init.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o06-trash-settings-io/settings-superseded-init.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 × does not write vault B settings into vault A when init(B) starts while init(A) awaits configureSentry: AssertionError: expected 'B-journal' to be 'A-journal' (A's settings.json periodicNotes.folder)
@@ -146,7 +146,7 @@ FAIL (test 1): AssertionError: expected [ '[]', …(2) ] to include '---\n_type:
 
 **Evidence.** commitChanges (:86-89) arms the flag and rebuilds from propertiesStore. propertiesMatchActiveNote (:64-69) compares only sourcePath, so it accepts the stale store. The test copies the effect line for line, the same way properties-cross-note.test.ts does.
 
-**Repro test.** `.scratch/file-io-audit/repro/o10-frontmatter-fidelity/skip-parse-stale-store.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/o10-frontmatter-fidelity/skip-parse-stale-store.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected [ 'done', 'priority' ] to include 'status' (soft). Then: AssertionError: ---\ndone: true\npriority: high\n---\n# Task\n: expected '---\ndone: true\npriority: high\n---\…' to contain 'status: done'
@@ -165,11 +165,11 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
-- Finding G7 (.scratch/editor-data-safety/audit-2026-11-02.md, audit priority P0, likelihood rare; cross-reference in .scratch/editor-data-safety/xref-file-io-audit.md). Repro test: /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/editor-data-safety/repro/frontmatter-roundtrip/g7-stale-skip-flag.test.ts (copy it to src/tests/audit-repro/frontmatter-roundtrip/ to run, per the README in that folder). It mounts the real PropertiesView on real stores and mocks only Tauri.
+- Finding G7 (.scratch/archived/editor-data-safety/audit-2026-11-02.md, audit priority P0, likelihood rare; cross-reference in .scratch/archived/editor-data-safety/xref-file-io-audit.md). Repro test: /Users/diegorv/Dev/pet-projects/koko/brain/.scratch/archived/editor-data-safety/repro/frontmatter-roundtrip/g7-stale-skip-flag.test.ts (copy it to src/tests/audit-repro/frontmatter-roundtrip/ to run, per the README in that folder). It mounts the real PropertiesView on real stores and mocks only Tauri.
 - Verified at the current main: properties.service.ts:24 (flag), :33-37 (consumed whatever the content), :78-98 (commitChanges arms the flag at :89 with no `newContent !== content` check); PropertiesView.svelte:100-114 (the effect reads only activeTabPath and the tab content); src/lib/core/editor/editor.store.svelte.ts:139-144 (updateTabContentOnly assigns the same string, so nothing re-runs); PropertyField.svelte:61-66 (number field commits `Number(input.value)`).
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/41-minor-write-races.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/41-minor-write-races.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: its no-op-commit criteria moved to Issue 152, in the first wave; the rest of this Issue stays for later.
 - 2026-11-06: status needs-triage: its only criteria moved to Issue 152, and its other sections still need criteria before it runs.

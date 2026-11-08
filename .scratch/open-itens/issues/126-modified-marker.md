@@ -1,6 +1,6 @@
 # 126: The "modified" marker with Save, Revert and Reset
 
-**Origin:** `tasks-view` Issue 29, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 29, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** After Issue 17 an edit to a list lives in the session state and is dropped on a list switch, with no sign that the list on screen differs from the saved one. Show it (PRD "Lists and views").
 

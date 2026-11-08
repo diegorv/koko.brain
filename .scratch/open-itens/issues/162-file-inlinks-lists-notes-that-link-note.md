@@ -1,6 +1,6 @@
 # 162: file.inlinks lists the notes that link to a note whose name contains a dot
 
-**Origin:** `audit-2026-11-05` Issue 53, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 53, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** buildReverseIndex (src/lib/plugins/queryjs/queryjs.logic.ts:47-63) keys each link by getBasename(link.target), and getBasename (:12-17) strips everything after the last dot, so the target 'Dr. Silva' is stored under 'dr' and 'Release v1.2' under 'release v1'. resolveInlinks (:71-87) looks up getBasename of the file path ('dr. silva'), which never matches, so the note has no inlinks; a note named 'Dr.md' receives them instead. Outlinks already resolve targets with resolveWikilinkCached (:140-142), which handles dotted names, so a note's outlinks and its target's inlinks disagree. Fix direction: key the reverse index by the resolved target path, using the same resolution cache ensureCache builds (src/lib/plugins/queryjs/kb-api.ts:445-451), so inlinks are the mirror of outlinks. Update the buildReverseIndex tests whose keys change and say so in the commit.
 

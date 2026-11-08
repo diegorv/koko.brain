@@ -1,6 +1,6 @@
 # 051: Canvas Duplicate places the copy next to the node's current position and size
 
-**Origin:** `audit-2026-11-05` Issue 30, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 30, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** handleDuplicateNode (src/lib/features/canvas/CanvasInner.svelte:362-368) clones node.data, which is the copy of the CanvasNode taken when the node was loaded or created (canvas.logic.ts:129). Moves change node.position and resizes change width/height/measured, never data.x/y/width/height, so the copy appears 20 px off the node's original geometry, possibly far from where the node is now or off screen. Fix direction: build the clone from the node's current geometry (absolute position for a node inside a group, measured size), for example from the node produced by flowToCanvas for the current nodes, then offset it.
 

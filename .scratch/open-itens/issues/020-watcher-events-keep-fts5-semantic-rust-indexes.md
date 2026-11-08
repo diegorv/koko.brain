@@ -1,8 +1,8 @@
 # 020: A failed tree refresh still fans out the burst, and scan_vault skips an unreadable subfolder
 
-**Origin:** `audit-2026-11-05` Issue 124, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 124, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/28-watcher-index-staleness.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The folder-rename section is fixed (fc37b1370). The rest needs external changes or read errors.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/28-watcher-index-staleness.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). The folder-rename section is fixed (fc37b1370). The rest needs external changes or read errors.
 
 **Audit check at `5f8003d67`:** partially_fixed (content, low). Fixed: the folder rename/move section, by fc37b1370 (audit-2026-11-04 Issue 11, done in its ledger): path-change.service.ts awaits rename_in_search_index (src/lib/core/filesystem/path-change.service.ts:92, :156; src-tauri/src/commands/search_index.rs:265-272). Still present: read error treated as delete (src/lib/app/lifecycle/watcher-handler.service.ts:110-114 maps content null to 'delete'; src-tauri/src/commands/files.rs:63-71 returns content None for every read error); self-save skip without a disk check (watcher-handler.service.ts:44); bulk >10 .md batch runs rebuildIndex/buildPropertyIndex/buildFrontmatterIconIndex/notifyContentInvalidated only, no FTS5 or semantic update (:69-78); refreshTree without a guard skips notifyListeners (src/lib/core/filesystem/fs.watcher.ts:175-177 and the other refresh sites); one unreadable subfolder fails the whole scan (vault.rs:139 read_dir ?, :182 recursive scan_dir ?); watcher start failure only logs (fs.watcher.ts:279-283).
 
@@ -17,7 +17,7 @@
 **Blocked by:** none
 Priority: P2
 Severity: stale-state
-Source: file I/O audit, deep-dive group(s) h01-watcher-index, h02-watcher-bulk, h03-search-links (raw reports in .scratch/file-io-audit/deep/raw/), verified at c4bfee07
+Source: file I/O audit, deep-dive group(s) h01-watcher-index, h02-watcher-bulk, h03-search-links (raw reports in .scratch/archived/file-io-audit/deep/raw/), verified at c4bfee07
 
 ## Read error on an existing note is treated as a delete and the note is dropped from Rust index, FTS5 and semantic tables
 
@@ -34,7 +34,7 @@ Source: file I/O audit, deep-dive group(s) h01-watcher-index, h02-watcher-bulk, 
 
 **Limits found while trying to refute.** Sub-cases refuted: symlinked notes are never indexed (utils/fs.rs walk_dir_with_metadata skips all symlinks), so the outside-vault branch cannot drop an indexed note; overlapping batches are prevented by serializeWithRerun (app-lifecycle.service.ts:481).
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h01-watcher-index/read-error-treated-as-delete.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h01-watcher-index/read-error-treated-as-delete.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected [ 'read_files_batch', …(4) ] to not include 'remove_note_from_index'  (1 failed, control passed)
@@ -57,7 +57,7 @@ AssertionError: expected [ 'read_files_batch', …(4) ] to not include 'remove_n
 
 **Limits found while trying to refute.** Partial: the claim's 'until N is touched again' omits the active-tab heal (+layout.svelte:137-157 -> index-updater.service.ts:24-44), which refreshes Rust and TS consumers but not FTS5/semantic. A batch with any non-recent path is processed normally, so the skip only applies when all paths are recent.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h01-watcher-index/self-save-hides-external-change.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h01-watcher-index/self-save-hides-external-change.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected "vi.fn()" to be called with arguments: [ 'read_files_batch', ...] Number of calls: 0 (external rewrite); same for remove_note_from_index on external delete (2 failed)
@@ -78,7 +78,7 @@ AssertionError: expected "vi.fn()" to be called with arguments: [ 'read_files_ba
 
 **Evidence.** watcher-handler.service.ts:53 gates the incremental branch on mdPaths.length <= 10. Full branch :66-75 has no update_search_index_file or update_semantic_file call. backlinks.service.ts:112-117 rebuildIndex -> scan_vault_v2_cached (src-tauri/src/commands/vault.rs:1198-1330) touches only the VaultIndex and cache. buildSearchIndex single caller app-lifecycle.service.ts:421. Repro src/tests/repro/h02-watcher-bulk/fts-bulk-update.test.ts: 12 .md paths produced 0 update_search_index_file calls (expected 12). The VaultIndex part of the claim is refuted for the >10 branch because scan_vault_v2_cached reconciles it. The folder-rename part (children stale after a directory-only batch) is PLAUSIBLE: the early return is confirmed, but whether FSEvents reports the children of a renamed directory is an OS behavior not verified.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h02-watcher-bulk/fts-bulk-update.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h02-watcher-bulk/fts-bulk-update.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 FAIL: AssertionError: expected [] to have a length of 12 but got +0
@@ -97,7 +97,7 @@ FAIL: AssertionError: expected [] to have a length of 12 but got +0
 
 **Evidence.** fs.service.ts:96-98 rethrows; refreshTree (fs.service.ts:105-110) does not catch. vault.rs:96 and :139 propagate read_dir errors with ?, while per-entry symlink_metadata errors are skipped (:114-117). fs.logic.ts:310 returns [vaultPath] for root-level changes, so the incremental branch runs scan_vault on the root, and its catch (fs.watcher.ts:172-176) calls refreshTree again, which rejects. Variant (same id, not a separate bug): fs.watcher.ts:194-209 catches start_vault_watcher failures and only logs them; app-lifecycle.service.ts:499-501 .catch is dead because startWatching never rejects. Vault then runs unwatched with no UI signal. Low reachability, trace only.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h02-watcher-bulk/refresh-failure-fanout.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h02-watcher-bulk/refresh-failure-fanout.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 FAIL: AssertionError: expected "vi.fn()" to be called with arguments: [ [ '/vault/root.md' ] ] Number of calls: 0; plus Unhandled Rejection: Failed to read directory: permission denied
@@ -111,7 +111,7 @@ FAIL: AssertionError: expected "vi.fn()" to be called with arguments: [ [ '/vaul
 
 These criteria cover only the editor-data-safety amendment (2026-11-02). Triage must add criteria for the original sections above before this Issue runs; each section's repro test is its red test.
 
-- [ ] Failing test comes first: copy `.scratch/editor-data-safety/repro/external-writers-vs-dirty-buffer/f158-failed-tree-refresh-drops-burst.test.ts` under `src/tests/` (or extend the moved `refresh-failure-fanout.test.ts` with its two cases: full-refresh path, and incremental scan plus fallback both failing)
+- [ ] Failing test comes first: copy `.scratch/archived/editor-data-safety/repro/external-writers-vs-dirty-buffer/f158-failed-tree-refresh-drops-burst.test.ts` under `src/tests/` (or extend the moved `refresh-failure-fanout.test.ts` with its two cases: full-refresh path, and incremental scan plus fallback both failing)
 - [ ] When refreshTree rejects in any of the three handleChangedPaths branches, the change listeners still receive the burst's paths, and no unhandled rejection is raised
 - [ ] A burst that arrives after stopWatching or a vault switch is still dropped (the watchVersion check holds on the failure path)
 - [ ] A Rust test: scan_vault on a tree with an unreadable subfolder returns the rest of the tree instead of an error
@@ -129,7 +129,7 @@ These criteria cover only the editor-data-safety amendment (2026-11-02). Triage 
 
 **Evidence.** Repro src/tests/repro/h03-search-links/folder-rename-search-index.test.ts: remove_from_search_index for Projects/a.md is sent, but update_search_index_file is never sent for Archive/Projects/a.md or b.md (received []). Full-rebuild watcher branch (watcher-handler.service.ts:66-75) calls rebuildIndex, buildPropertyIndex and buildFrontmatterIconIndex, none of which touch FTS. notify 8.2.1 src/fsevent.rs (fetched from github.com/notify-rs/notify main/notify/src/fsevent.rs): directory renames yield RenameMode::Any for the directory path only, and the rename_dir test expects no child events. Other rows: the watcher incremental branch covers only <=10 .md files.
 
-**Repro test.** `.scratch/file-io-audit/repro/src/tests/repro/h03-search-links/folder-rename-search-index.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
+**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h03-search-links/folder-rename-search-index.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
 
 ```
 AssertionError: expected [] to deeply equal ArrayContaining { 'Archive/Projects/a.md', 'Archive/Projects/b.md' }
@@ -140,7 +140,7 @@ AssertionError: expected [] to deeply equal ArrayContaining { 'Archive/Projects/
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
 - Finding F158 (P1, rare): "A failed tree refresh drops the whole watcher burst: no tab reload, so the next autosave overwrites the external change". It lands in the section "Failed tree refresh skips listener fan-out" above.
-- Repro test: `.scratch/editor-data-safety/repro/external-writers-vs-dirty-buffer/f158-failed-tree-refresh-drops-burst.test.ts` (copy to `src/tests/audit-repro/external-writers-vs-dirty-buffer/` to run, see that folder's README). Its two cases assert the listener still receives the changed note on the full-refresh path (six parent dirs, refreshTree rejects) and on the incremental path (scan_vault and the refreshTree fallback both reject).
+- Repro test: `.scratch/archived/editor-data-safety/repro/external-writers-vs-dirty-buffer/f158-failed-tree-refresh-drops-burst.test.ts` (copy to `src/tests/audit-repro/external-writers-vs-dirty-buffer/` to run, see that folder's README). Its two cases assert the listener still receives the changed note on the full-refresh path (six parent dirs, refreshTree rejects) and on the incremental path (scan_vault and the refreshTree fallback both reject).
 - src/lib/core/filesystem/fs.watcher.ts:137, :149, :175: `await refreshTree()` with no try/catch, so `notifyListeners(changedPaths)` at :139, :151, :177 is skipped; :199 `void handleChangedPaths(payload.paths)` leaves the rejection unhandled.
 - src/lib/core/filesystem/fs.service.ts:96-98: loadDirectoryTree logs and rethrows; refreshTree (:105-110) does not catch.
 - src-tauri/src/commands/vault.rs:96: `fs::read_dir(dir).map_err(...)?`; :139: `Some(scan_dir(&file_path, sort_by, depth + 1)?)`, so one unreadable child fails the whole scan, while :114-117 skips a per-entry `symlink_metadata` error with `continue`.
@@ -148,5 +148,5 @@ AssertionError: expected [] to deeply equal ArrayContaining { 'Archive/Projects/
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/28-watcher-index-staleness.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/28-watcher-index-staleness.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: narrowed by the owner after the challenge review; the other sections moved to Issue 157.

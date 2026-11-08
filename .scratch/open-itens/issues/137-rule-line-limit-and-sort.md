@@ -1,6 +1,6 @@
 # 137: Rule line names the limit and the sort source
 
-**Origin:** `view-engine-fixes` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `view-engine-fixes` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/view-engine-fixes/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** `limit` is applied last (`src/lib/features/rail-shell/lens.logic.ts:720`); the count and search see only the capped list, and the rule line never says so (`RailNoteList.svelte:717`). Picking in the rail sort menu writes the view `sort:`, which silently turns off `_sort` and the `_order` pins (`RailSortMenu.svelte:60-64`; `type-note-list.logic.ts:96-98`).
 

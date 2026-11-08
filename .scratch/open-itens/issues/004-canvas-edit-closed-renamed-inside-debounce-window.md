@@ -1,8 +1,8 @@
 # 004: A canvas edit closed or renamed inside the debounce window reaches its .canvas file
 
-**Origin:** `audit-2026-11-05` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md` (audit 2026-11-05). Priority: content safety (bucket 1-content). Content/medium for a daily canvas user, because the last edit is dropped. Issue 49's bugs 1 and 2 are fixed (f37acb402), and what remains of 49 is exactly this close-within-debounce drop.
+**Migrated from:** `.scratch/archived/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md` (audit 2026-11-05). Priority: content safety (bucket 1-content). Content/medium for a daily canvas user, because the last edit is dropped. Issue 49's bugs 1 and 2 are fixed (f37acb402), and what remains of 49 is exactly this close-within-debounce drop.
 
 **Audit check at `5f8003d67`:** still_present (content, medium). src/lib/core/editor/editor.service.ts:309-328 closeTab checks isTabDirty, which is still clean inside the 300 ms debounce (CanvasInner.svelte:227-239), then calls removeTab at :328. Only after that does the keyed instance's onDestroy (CanvasInner.svelte:246-250) call persistChanges -> onJsonChange(ownPath, json) (:123) -> onContentChangeForPath (editor.service.ts:265-268) -> updateTabContentOnly (editor.store.svelte.ts:139-144), which finds no tab, so the edit is dropped. registerTabCloseListener (editor.service.ts:28) runs after removal (:330), and its only consumer is src/lib/plugins/queryjs/queryjs-ports.ts:16. Rename re-keys EditorView.svelte:83-85, and the flush targets the old ownPath (CanvasInner.svelte:63). src/tests/lib/features/canvas/canvas-tab-switch.test.ts:158-173 asserts only that the neighbour tab is not written, not that A's edit survives.
 
@@ -24,13 +24,13 @@
 
 ## Notes
 
-- **Source:** Issue 01 review, findings 1 and 2 (`.scratch/audit-2026-11-04/work/01/review.md` in Issue 01's branch history). Not a regression: the reviewer's probe drops the edit on main too.
+- **Source:** Issue 01 review, findings 1 and 2 (`.scratch/archived/audit-2026-11-04/work/01/review.md` in Issue 01's branch history). Not a regression: the reviewer's probe drops the edit on main too.
 - Code: src/lib/features/canvas/CanvasInner.svelte (`ownPath`, the onDestroy flush), src/lib/core/editor/editor.service.ts (`onContentChangeForPath`, `closeTab`).
 - **Size:** S to M.
 
 ## Audit 2026-11-05 additions
 
-### Merged from `.scratch/file-io-audit/issues/49-canvas-switch-reuses-instance.md`
+### Merged from `.scratch/archived/file-io-audit/issues/49-canvas-switch-reuses-instance.md`
 
 That Issue was folded into this one by the audit; its text follows.
 
@@ -60,7 +60,7 @@ Fix:
 
 **Source:** src/lib/app/EditorView.svelte:80-81, src/lib/features/canvas/CanvasView.svelte:5-16, src/lib/features/canvas/CanvasInner.svelte:85-115, :208-234, :261-273, src/lib/core/editor/editor.service.ts:228-231, :266-300, src/lib/core/editor/editor.store.svelte.ts:84-88, :139-144
 
-- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Failing test comes first. Move `.scratch/editor-data-safety/repro/writes-into-wrong-tab/canvas-unmount-flush.test.ts` under `src/tests/` (for example `src/tests/lib/features/canvas/canvas-tab-switch.test.ts`)
+- Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Failing test comes first. Move `.scratch/archived/editor-data-safety/repro/writes-into-wrong-tab/canvas-unmount-flush.test.ts` under `src/tests/` (for example `src/tests/lib/features/canvas/canvas-tab-switch.test.ts`)
 - Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): An edit typed less than 300 ms before a canvas-to-canvas switch is kept in the first canvas's tab content and saved to its file
 - Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Cmd+Z right after a canvas-to-canvas switch, with no edit, leaves the second canvas's tab content unchanged
 - Historical (Issue 49, met at HEAD by the keyed EditorView and the by-path persists; the Cmd+W case is the first criterion above): Cmd+W within 300 ms of a canvas edit either prompts or saves the edit to the canvas file
@@ -70,7 +70,7 @@ Fix:
 
 ### Audit evidence (editor-data-safety, 2026-11-02)
 
-Source: editor-data-safety audit, finding F21, with the refuted F5 (`.scratch/editor-data-safety/audit-2026-11-02.md`; cross-reference in `.scratch/editor-data-safety/xref-file-io-audit.md`: no existing issue covers it; `.scratch/file-io-audit/README.md` Refuted section lists the dropped edit as an unclaimed P3 residual, and issue 15 is a different canvas bug). Code re-read at 1351a35d; installed Svelte is 5.57.2.
+Source: editor-data-safety audit, finding F21, with the refuted F5 (`.scratch/archived/editor-data-safety/audit-2026-11-02.md`; cross-reference in `.scratch/archived/editor-data-safety/xref-file-io-audit.md`: no existing issue covers it; `.scratch/archived/file-io-audit/README.md` Refuted section lists the dropped edit as an unclaimed P3 residual, and issue 15 is a different canvas bug). Code re-read at 1351a35d; installed Svelte is 5.57.2.
 
 ### Canvas-to-canvas tab switch drops the pending edit and shares one undo history
 
@@ -82,7 +82,7 @@ Source: editor-data-safety audit, finding F21, with the refuted F5 (`.scratch/ed
 
 **Code trace.** EditorView.svelte:80-81 has no `{#key}` around CanvasView; CanvasView.svelte:12-16 passes only `jsonContent` and `onJsonChange`, no path. CanvasInner.svelte:85-98 sync effect: `syncing = true`, `nodes`/`edges` replaced, `history = pushSnapshot(history, ...)` at :94 onto the existing stack (:101). Debounce effect :212-226: cleanup at :225 clears the pending timer, body returns at :218 on `syncing`. Undo at :262-273 pops to the previous canvas's snapshot and calls `persistWithoutHistory` (:104-109) -> `onJsonChange(json)` -> editor.service.ts:228-231 `editorStore.updateContent` + `scheduleAutoSave('body')` -> editor.store.svelte.ts:84-88 writes `tabs[activeIndex]`. F5: `onDestroy` (:230-234) calls `persistChanges` through the same active-index writer; the guard is Svelte's teardown old-value semantics (sources.js `old_values`, runtime.js `is_destroying_effect`, per the deep dive). Close: editor.service.ts:275 prompts only on `isTabDirty(tab)`, which is false before the debounce fires.
 
-**Repro test.** `.scratch/editor-data-safety/repro/writes-into-wrong-tab/canvas-unmount-flush.test.ts` (copy to `src/tests/audit-repro/writes-into-wrong-tab/` to run, see the repro README). It mounts the real EditorView.svelte. 'F21: an edit typed <300 ms before a canvas-to-canvas switch is kept in the first canvas', 'F21 (shared undo history)' and 'F5 side effect: Cmd+W inside the 300 ms window either prompts or saves the canvas edit' fail on the bug assertion; 'F5: canvas -> note switch', 'F5 (close variant)' and 'F21 (stale flag)' pass and guard the latent dependency.
+**Repro test.** `.scratch/archived/editor-data-safety/repro/writes-into-wrong-tab/canvas-unmount-flush.test.ts` (copy to `src/tests/audit-repro/writes-into-wrong-tab/` to run, see the repro README). It mounts the real EditorView.svelte. 'F21: an edit typed <300 ms before a canvas-to-canvas switch is kept in the first canvas', 'F21 (shared undo history)' and 'F5 side effect: Cmd+W inside the 300 ms window either prompts or saves the canvas edit' fail on the bug assertion; 'F5: canvas -> note switch', 'F5 (close variant)' and 'F21 (stale flag)' pass and guard the latent dependency.
 
 ```
 F21: expected '{..."text": "card A"...}' to contain 'last words'
@@ -97,4 +97,4 @@ F5 side effect: expected false to be true (no write to Board-1.canvas and no ask
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

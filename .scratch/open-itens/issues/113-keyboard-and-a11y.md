@@ -1,6 +1,6 @@
 # 113: Keyboard navigation and accessible rows
 
-**Origin:** `tasks-view` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 10, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** The task list has no keyboard model beyond tabbing through buttons, the task text is a static element with a click handler (the `svelte-ignore` at `TasksView.svelte:216` silences the a11y warnings), and the Todoist trigger is invisible until hover (`TodoistPopover.svelte:113`, `opacity-0`). PRD assumption A8.
 

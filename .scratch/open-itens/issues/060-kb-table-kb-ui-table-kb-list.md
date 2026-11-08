@@ -1,6 +1,6 @@
 # 060: A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link
 
-**Origin:** `audit-2026-11-05` Issue 80, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 80, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** renderValue (src/lib/plugins/queryjs/kb-api.ts:488-523) renders a single KBLink as an <a>, but an array goes to el.textContent = value.map(String).join(', ') (:518-519), and a KBLink is a plain {path, display} object, so each shows as '[object Object]'. A DataArray cell falls to String(value) (:521), whose toString (src/lib/plugins/queryjs/data-array.ts:350-352) does the same. Render array and DataArray cells element by element through renderValue, joined with ', ', so links stay clickable and dates format as they do alone. kb.table, kb.list and kb.ui.table all use this renderer (kb-api.ts:306, :336, kb-ui.ts:443 via kb-api.ts:151).
 

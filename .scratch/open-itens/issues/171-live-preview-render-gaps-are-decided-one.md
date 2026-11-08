@@ -1,8 +1,8 @@
 # 171: `$$` block math right under a paragraph or callout line renders as math
 
-**Origin:** `audit-2026-11-05` Issue 140, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 140, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/live-preview-audit/issues/05-render-gaps-needing-a-decision.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). The owner scheduled item 2 on 2026-11-06; items 1, 3 and 4 stay postponed.
+**Migrated from:** `.scratch/archived/live-preview-audit/issues/05-render-gaps-needing-a-decision.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). The owner scheduled item 2 on 2026-11-06; items 1, 3 and 4 stay postponed.
 
 **Audit check at `5f8003d67`:** still_present (corner, low). Item 1: INPUT_RE is still /`INPUT\[([^\]]+)\]`/g at src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.ts:23, so an option containing `]` ends the match early. Item 2: the BlockMath parser in src/lib/core/markdown-editor/extensions/lezer/math-extension.ts:63-111 still has no endLeaf, so `$$` right after a paragraph line stays paragraph text. Item 3 (stale embeds) was traced only and remains unverified. Item 4 (zero-width-prefixed pipe-less table) was not re-checked and is very low likelihood. None of the relevant files changed for these items (last commits b16a1e520, b27dd3276, bd6b1433a are refactors).
 
@@ -16,7 +16,7 @@
 
 Priority: P3
 
-Split out of Issue 04 at triage (2026-11-02). Evidence in `.scratch/live-preview-audit/repro/` (see `audit-2026-11-02.md`).
+Split out of Issue 04 at triage (2026-11-02). Evidence in `.scratch/archived/live-preview-audit/repro/` (see `audit-2026-11-02.md`).
 
 1. **INPUT option containing `]`.** `INPUT_RE` (src/lib/core/markdown-editor/extensions/live-preview/parsers/meta-bind-input.ts:23) captures `[^\]]+`, so `option(good, [[good]])` ends the match early and the INPUT never becomes a control (CONFIRMED_BY_TEST, repro/inline/lp-redraw-inline-audit.test.ts). Decision: support it with a bracket-balanced scan, or document the limitation.
 2. **`$$` block math right after a paragraph line** (including the first body line of a callout) renders as source; a blank line fixes it (CONFIRMED_BY_TEST, repro/block-vs-block/block-vs-block-extra.test.ts). Decision (2026-11-06): render it, by adding an `endLeaf` for BlockMath. Checking how Obsidian treats `$$` right after a paragraph is a note for the implementer, not a gate.
@@ -36,5 +36,5 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/live-preview-audit/issues/05-render-gaps-needing-a-decision.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/live-preview-audit/issues/05-render-gaps-needing-a-decision.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.

@@ -1,8 +1,8 @@
 # 173: Mac serves the app
 
-**Origin:** `ios-app` Issue 01, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `ios-app` Issue 01, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/ios-app/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**What to build:** An opt-in setting in the desktop app starts a small HTTP server inside Kokobrain that serves the app's own frontend bundle on `127.0.0.1:<port>`. Opening that address in Safari on the Mac loads the Kokobrain UI. Nothing is wired to the vault yet: in the browser the app boots to a visible "not connected" state instead of crashing, because the browser has no Tauri runtime. This is the first step of phase 1 (use Kokobrain from an iPhone/iPad browser through the Mac); see `.scratch/ios-app/architecture-proposal-2026-11-02.md` section "Phase 1 minimum".
+**What to build:** An opt-in setting in the desktop app starts a small HTTP server inside Kokobrain that serves the app's own frontend bundle on `127.0.0.1:<port>`. Opening that address in Safari on the Mac loads the Kokobrain UI. Nothing is wired to the vault yet: in the browser the app boots to a visible "not connected" state instead of crashing, because the browser has no Tauri runtime. This is the first step of phase 1 (use Kokobrain from an iPhone/iPad browser through the Mac); see `.scratch/archived/ios-app/architecture-proposal-2026-11-02.md` section "Phase 1 minimum".
 
 **Blocked by:** none
 

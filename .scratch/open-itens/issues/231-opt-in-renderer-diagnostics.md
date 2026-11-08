@@ -1,6 +1,6 @@
 # 231: Separate verbose renderer diagnostics from ordinary file logs
 
-**Origin:** `mods-observability` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/mods-observability/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `mods-observability` Issue 04, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/mods-observability/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** When explicitly approved for implementation, let a user collect ordinary frontend diagnostics, including mod events, without the verbose Live Preview, tab-switch and QueryJS trace families. Preserve those diagnostics for deliberate renderer investigations rather than deleting them.
 

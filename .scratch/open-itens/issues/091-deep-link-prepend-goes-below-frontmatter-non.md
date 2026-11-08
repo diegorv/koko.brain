@@ -1,8 +1,8 @@
 # 091: Deep-link prepend goes below the frontmatter, and non-silent new keeps <% %> in the sent text
 
-**Origin:** `audit-2026-11-05` Issue 111, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 111, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**Migrated from:** `.scratch/file-io-audit/issues/53-deep-link-content-fidelity.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It is reachable only from external kokobrain:// URLs with prepend. Quick Capture does not use this path.
+**Migrated from:** `.scratch/archived/file-io-audit/issues/53-deep-link-content-fidelity.md` (audit 2026-11-05). Priority: corner case (bucket 4-corner). It is reachable only from external kokobrain:// URLs with prepend. Quick Capture does not use this path.
 
 **Audit check at `5f8003d67`:** still_present (content, low). F129: executeNewAction prepends with `content + '\n' + existing` at src/lib/features/deep-link/deep-link.service.ts:272 (write at :274). executeDailyAction does the same at src/lib/app/deep-link-actions.ts:66-68 (write at :71). FRONTMATTER_REGEX at src/lib/core/frontmatter/properties.logic.ts:38 is anchored at ^, and extractRawFrontmatter (:44-47) returns null once text precedes the block, so the properties drop out. F142: the non-silent create branch (deep-link.service.ts:340-346) passes inlineTemplate: content. openOrCreateNote then runs loadNoteTemplate (src/lib/core/note-creator/note-creator.service.ts:48-63), which always calls processTemplate. The silent branch (:325-339) writes the content raw through applyExplicitOrganization. Quick Capture does not use the prepend path (rg), so this hits only external kokobrain:// links with prepend, or non-silent new with <% %> in the text.
 
@@ -28,7 +28,7 @@ Priority: P2 (no bytes lost; the note's properties stop parsing, or the new note
 
 **Source:** src/lib/features/deep-link/deep-link.service.ts:271-288,327-340, src/lib/app/deep-link-actions.ts:32-67, src/lib/features/deep-link/deep-link.logic.ts, src/lib/core/frontmatter/properties.logic.ts:37-47, src/lib/core/note-creator/note-creator.service.ts:49-64,100-101, src/tests/lib/features/deep-link/deep-link.service.test.ts, src/tests/lib/features/deep-link/deep-link.logic.test.ts
 
-- [ ] Failing tests come first. Move the two `F129` tests and the `F142` test of `.scratch/editor-data-safety/repro/fs-trash-deeplink/deep-link-writes.test.ts` under `src/tests/` and see them fail on the bug assertions. Its `editor.service.js` mock predates Issue 02: add `saveFileByPath: vi.fn(() => Promise.resolve(true))` (deep-link.service.ts:246-249 now calls it before every prepend). The `F126` tests in the same file belong to issue 04 and the `F130` tests to issue 17: leave them
+- [ ] Failing tests come first. Move the two `F129` tests and the `F142` test of `.scratch/archived/editor-data-safety/repro/fs-trash-deeplink/deep-link-writes.test.ts` under `src/tests/` and see them fail on the bug assertions. Its `editor.service.js` mock predates Issue 02: add `saveFileByPath: vi.fn(() => Promise.resolve(true))` (deep-link.service.ts:246-249 now calls it before every prepend). The `F126` tests in the same file belong to issue 04 and the `F130` tests to issue 17: leave them
 - [ ] `new` + `prepend` on `---\n_type: Task\nstatus: open\n---\nBody line\n` writes `---\n_type: Task\nstatus: open\n---\nHi\nBody line\n`, and `parseFrontmatterProperties` of the result returns `_type` and `status`
 - [ ] `daily` + `prepend` on a daily note with the same frontmatter does the same, through the real registered daily handler
 - [ ] A prepend into a note without frontmatter still writes `content + '\n' + existing` (the existing prepend tests at deep-link.service.test.ts:468-505 and :673-689 still pass)
@@ -39,7 +39,7 @@ Priority: P2 (no bytes lost; the note's properties stop parsing, or the new note
 
 ## Audit evidence (editor-data-safety, 2026-11-02)
 
-Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.md`, P2 table), cross-referenced in `.scratch/editor-data-safety/xref-file-io-audit.md` (issue 02 touches the same prepend branches only to save a dirty tab and keeps the `content + '\n' + existing` order; issue 30 covers only the empty `---\n---` block; issue 04 only adds an exists check to the silent branch; nothing mentions `processTemplate` or `inlineTemplate` on deep-link text). Code re-read at 1351a35d, after Issue 02 landed; the line numbers above are current.
+Source: editor-data-safety audit (`.scratch/archived/editor-data-safety/audit-2026-11-02.md`, P2 table), cross-referenced in `.scratch/archived/editor-data-safety/xref-file-io-audit.md` (issue 02 touches the same prepend branches only to save a dirty tab and keeps the `content + '\n' + existing` order; issue 30 covers only the empty `---\n---` block; issue 04 only adds an exists check to the silent branch; nothing mentions `processTemplate` or `inlineTemplate` on deep-link text). Code re-read at 1351a35d, after Issue 02 landed; the line numbers above are current.
 
 ### F129: prepend inserts text above the frontmatter block, detaching the note's properties
 
@@ -51,7 +51,7 @@ Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.
 
 **Code trace.** deep-link.service.ts:267 saves the dirty tab (Issue 02), :275 reads the disk copy, :276 `const newContent = content + '\n' + existing;`, :278 writes it. deep-link-actions.ts:55 saves, :56 reads, :58-60 `action.prepend ? content + '\n' + existing : existing + '\n' + content`, :63 writes. properties.logic.ts:37 `FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---/`, :44-47 `extractRawFrontmatter` returns null when the text before `---` is not empty.
 
-**Repro test.** `.scratch/editor-data-safety/repro/fs-trash-deeplink/deep-link-writes.test.ts`, tests `F129: new + prepend keeps the frontmatter block parseable` and `F129: daily + prepend keeps the frontmatter block parseable`. Failing assertion in both: `expect(parseFrontmatterProperties(written).map((p) => p.key)).toEqual(['_type', 'status'])` receives `[]`. Recorded before Issue 02 landed; the missing `saveFileByPath` mock (first criterion) must be added before it reaches that assertion again.
+**Repro test.** `.scratch/archived/editor-data-safety/repro/fs-trash-deeplink/deep-link-writes.test.ts`, tests `F129: new + prepend keeps the frontmatter block parseable` and `F129: daily + prepend keeps the frontmatter block parseable`. Failing assertion in both: `expect(parseFrontmatterProperties(written).map((p) => p.key)).toEqual(['_type', 'status'])` receives `[]`. Recorded before Issue 02 landed; the missing `saveFileByPath` mock (first criterion) must be added before it reaches that assertion again.
 
 **Fix sketch.** A shared helper: if the note has a frontmatter block, insert the content right after the closing `---` line, keeping the original line endings; otherwise prepend as today. Apply it in both `executeNewAction` and `executeDailyAction`.
 
@@ -63,10 +63,10 @@ Source: editor-data-safety audit (`.scratch/editor-data-safety/audit-2026-11-02.
 
 **Code trace.** deep-link.service.ts:260 `resolveContent(action)`, :334-339 `openOrCreateNote({ filePath, title, inlineTemplate: content || undefined })`. note-creator.service.ts:100 `loadNoteTemplate(...)`, :60 `content = inlineTemplate ?? ''`, :63 `processTemplate(content, title, ...)`. template.ts:28 `template.replace(/<%\s*([\s\S]*?)\s*%>/g, ...)`; `evaluatePart` falls through to `return part` (:215) for an unknown expression, without the delimiters. deep-link.service.ts:331 (silent) `writeTextFile(fullPath, content)` with no processing.
 
-**Repro test.** `.scratch/editor-data-safety/repro/fs-trash-deeplink/deep-link-writes.test.ts`, test `F142: non-silent new stores <% %> content literally`. Failing assertion: `expect(disk.get(`${V}/Snippet.md`)).toBe(snippet)` with `expected 'Hello = user.name!' to be 'Hello <%= user.name %>!'`.
+**Repro test.** `.scratch/archived/editor-data-safety/repro/fs-trash-deeplink/deep-link-writes.test.ts`, test `F142: non-silent new stores <% %> content literally`. Failing assertion: `expect(disk.get(`${V}/Snippet.md`)).toBe(snippet)` with `expected 'Hello = user.name!' to be 'Hello <%= user.name %>!'`.
 
 **Fix sketch.** Write the URI content literally: call `openOrCreateNote` with `buildContent: () => content` and no `inlineTemplate`, or add a raw option to `openOrCreateNote` that skips `processTemplate`.
 
 ## Comments
 
-- 2026-11-06: migrated from `.scratch/file-io-audit/issues/53-deep-link-content-fidelity.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/53-deep-link-content-fidelity.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.

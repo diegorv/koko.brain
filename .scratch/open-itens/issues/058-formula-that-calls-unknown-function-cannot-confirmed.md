@@ -1,6 +1,6 @@
 # 058: A formula that calls an unknown function cannot be confirmed and shows why
 
-**Origin:** `audit-2026-11-05` Issue 51, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 51, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **What to build:** FormulaRow enables Confirm when validateFormulaExpression passes (src/lib/features/collection/toolbar/FormulaRow.svelte:29-34), and that only parses (formula.logic.ts:98-108). Filters use validateExpression (evaluator.ts:306-316), which also rejects an unknown plain function. A confirmed formula with an unknown function throws on every row, executeQuery catches the error and stores null (collection.logic.ts:182-188), and the column shows a dash in every row, the same as a note with no value. Run formulas through the same check as filters (validateExpression) so the edit row shows 'Unknown function: x' and Confirm stays disabled. Errors that only appear at runtime are out of scope.
 
