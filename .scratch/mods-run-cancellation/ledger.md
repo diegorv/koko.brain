@@ -36,10 +36,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Stop ends a run's dialogs through `run.ui`](issues/01-stop-dismisses-run-dialogs.md) | 02 | todo | | |
-| 02 | [One live run per action across rail, palette and menus](issues/02-one-live-run-per-action.md) | none | in-progress | | |
+| 02 | [One live run per action across rail, palette and menus](issues/02-one-live-run-per-action.md) | none | done | issue/02-one-live-run-per-action (a187bc2cc) | 2026-11-08 |
 
 ## Log
 
 - 2026-11-08 18:21 — ledger created (2 Issues)
 - 2026-11-08 18:32 — ledger updated (title of 01; blocked by of 01)
 - 2026-11-08 18:33 — 02 — start — launched by /relay-lite:run — 770d3f9b2
+- 2026-11-08 18:48 — 02 — deliver — APPROVED round 1 by claude, two nits rejected; full suite passed (579 files, 14027 tests); merge first failed on an unpushed main commit, delivered after the owner pushed it via deliver sync (rebased) and deliver merge — a187bc2cc
