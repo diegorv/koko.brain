@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Trace host-managed mod execution in the local session log](issues/01-host-execution-trace.md) | none | done | issue/01-host-execution-trace (e320268f4) | 2026-11-07 |
-| 02 | [Preserve run.log messages locally with explicit consent](issues/02-opt-in-run-log-persistence.md) | 01 | in-progress | | |
+| 02 | [Preserve run.log messages locally with explicit consent](issues/02-opt-in-run-log-persistence.md) | 01 | done | issue/02-opt-in-run-log-persistence (eea4ae3cd) | 2026-11-07 |
 | 03 | [Record content-free outcomes of host-provided mod dialogs](issues/03-content-free-dialog-outcomes.md) | none | done | issue/03-content-free-dialog-outcomes (882ccb2eb) | 2026-11-07 |
 | 04 | [Separate verbose renderer diagnostics from ordinary file logs](issues/04-opt-in-renderer-diagnostics.md) | none | todo | | |
 
@@ -48,3 +48,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-07 20:42 — 01 — deliver — Review round 1 APPROVED by Claude, no findings or fixes; full frontend suite passed: 577 files, 13956 tests, 54 skipped, 1 todo; typecheck, 735 targeted tests and 15 mods E2E tests passed. Sync clean, merge merged; worktree and branch removed. Post-review diff contains only Issue bookkeeping. Native WKWebView session-file delivery remains unverified. — e320268f4
 - 2026-11-07 20:45 — 02 — start — launched by /relay-lite:run — e2f9cfcc7
 - 2026-11-07 20:48 — 03 — deliver — Merged content-free dialog lifecycle diagnostics. Claude review round 1 APPROVED with a minor store/service separation finding; delivery moved diagnostics into the host service and added a state-only regression; Claude round 2 APPROVED with no remaining findings. Full suite: 577 files, 13965 passed, 0 failed, 54 skipped, 1 todo; targeted: 639 passed; pnpm check: 0 errors/warnings. Sync rebased, merge merged; worktree and branch removed. Mods E2E, production build and native webview not verified. — 882ccb2eb
+- 2026-11-07 21:09 — 02 — deliver — Round 1 APPROVED by Claude with no findings or fixes. Full frontend suite passed: 577 files, 13975 tests, 0 failed, 54 skipped, 1 todo; pnpm check, 1377 targeted tests and 24 affected browser tests passed. Sync rebased, merge merged; worktree and branch removed. Verified post-review diff has no changes outside Issue bookkeeping. Native WKWebView unverified; persistence is best-effort and opting out does not erase existing messages. — eea4ae3cd
