@@ -12,7 +12,7 @@
 - [ ] A cycle whose anchored lines fall under 50% of active links (or zero) aborts before any detach or push, with a toast.
 - [ ] Over 10 detaches in one cycle: "pause and ask" (design rule 9).
 - [ ] Absence from an incremental sync never counts as a deletion.
-- [ ] Context change (design rule 8c): a linked task that gains the other context's label (`personal` in a work vault, `Work` in a personal vault) is detached the same way, line kept, logged. A linked task with no context label stays linked.
+- [ ] Tree change (design rule 8c): a linked task moved in Todoist to a project outside the vault's tree (or to the Inbox when the vault does not include it) is detached the same way, line kept, logged.
 - [ ] Gate: frontend.
 
 ## Notes

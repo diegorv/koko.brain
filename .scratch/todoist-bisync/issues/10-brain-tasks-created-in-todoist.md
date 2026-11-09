@@ -1,6 +1,6 @@
 # 10: A task written in the brain is created in Todoist
 
-**What to build:** A new open task line in a project note, or a line tagged `#todoist` anywhere else in the vault, is created in Todoist on the next "Sync now" (in the note's project, or Inbox for `#todoist` lines, which stay in their note). A lost response, a crash or a lost sync state never creates it twice. Design: `.scratch/todoist-bisync/research/design.md` rules 1, 2, 9, 11, 13, Scope.
+**What to build:** A new open task line in a project note, or a line tagged `#todoist` anywhere else in the vault, is created in Todoist on the next "Sync now" (in the note's project, or the vault's root project for `#todoist` lines, which stay in their note). A lost response, a crash or a lost sync state never creates it twice. Design: `.scratch/todoist-bisync/research/design.md` rules 1, 2, 9, 11, 13, Scope.
 
 **Blocked by:** 09
 
