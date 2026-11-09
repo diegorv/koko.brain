@@ -1,0 +1,6 @@
+{
+	"id": "click-counter",
+	"name": "Click counter",
+	"version": "1.0.0",
+	"description": "Example mod: a counter saved with loadData/saveData, a step setting picked from a list, and safe handling of a corrupt data file"
+}

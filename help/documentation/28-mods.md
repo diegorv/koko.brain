@@ -5,6 +5,16 @@ Write small JavaScript programs that live in your vault and extend Kokobrain: ad
 > [!WARNING]
 > Mods run inside the app with its full access: your files, the app's state, and every command the app itself can call. There is no sandbox, like [QueryJS](13-queryjs.md). Only enable mods you wrote or have read.
 
+## Mod author reference
+
+This page is the overview. The complete reference for writing mods is in [mods/](mods/README.md): start there for what to read per task. Key files:
+
+- [Anatomy and loading](mods/01-anatomy-and-loading.md): folder, manifest and `main.js` rules, lifecycle
+- [API reference](mods/13-api-reference.md): every `ctx` and `run` member with its errors
+- [Cookbook](mods/14-cookbook.md): complete recipes
+- [Errors and debugging](mods/15-errors-and-debugging.md): every error message, logs, the debugging workflow
+- [Pitfalls and checklist](mods/16-pitfalls-checklist.md): what to check before handing a mod over
+
 ## What is a mod?
 
 A mod is a folder under `_system/mods/` with two files:
@@ -109,8 +119,8 @@ export default new MyMod();
 | Moment | What happens |
 |--------|--------------|
 | Vault opens, mods on | Each mod loads on its own: one broken mod never blocks another. `onload(ctx)` runs; it may be `async`. |
-| `onload` throws or rejects | The mod is shown as **Error**, a toast names it, and the cleanups it already registered run. |
-| Mod switched off, reloaded, mods turned off, or vault closed | `ctx.signal` and the signal of every live [run](#runs-runtarget-runsignal-runlog-runprogress-runui) of the mod are aborted (a reload first waits for the runs to end, see below), `onunload()` runs (errors are caught and toasted), then every cleanup registered with `ctx.register`, or returned by `addAction` / `addRailButton`, runs **in reverse order**, even if `onunload` threw. An async `onunload` is not awaited: the cleanups run right after it starts. |
+| `onload` throws or rejects | The mod is shown as **Error**, a toast names it, and the cleanups it already registered run. Its `onunload` is not called. |
+| Mod switched off, reloaded, mods turned off, or vault closed | `ctx.signal` and the signal of every live [run](#runs-runtarget-runsignal-runlog-runprogress-runui) of the mod are aborted (a reload first waits for the runs to end, see below), `onunload()` runs (errors are caught and toasted; the mod is already marked unloaded, so every `ctx` call inside `onunload` throws `Mod "<id>" is unloaded`), then every cleanup registered with `ctx.register`, or returned by `addAction` / `addRailButton`, runs **in reverse order**, even if `onunload` threw. An async `onunload` is not awaited: the cleanups run right after it starts. |
 | After unload | Every `ctx` function throws `Mod "<id>" is unloaded`. The same happens if the open vault changed, so a slow action started in vault A cannot write into vault B through `ctx.vault`. Objects a mod already took from `ctx.app` are not guarded. |
 
 ### Reload on save
@@ -167,7 +177,7 @@ ctx.onNoteSaved((path) => ctx.log('Saved:', path));
 
 The returned disposer unsubscribes and cancels pending callbacks; unload does the same automatically. A callback that throws or returns a rejected promise goes to the mod's debug log, not Sentry. Already-running asynchronous callbacks are not cancelled: check `ctx.signal.aborted` after awaiting work.
 
-**Avoid save loops.** `ctx.vault.write` has no equality guard, so a save callback that writes the same note can trigger itself indefinitely. Compare the old and new content before writing. An idempotent `ctx.app.updateNoteFrontmatter` mutation writes nothing when unchanged. Switch off the mod in **Settings → Labs** to stop an asynchronous save loop.
+**Avoid save loops.** `ctx.vault.write` has no equality guard, so a save callback that writes the same note can trigger itself indefinitely. Compare the old and new content before writing. `ctx.app.updateNoteFrontmatter` writes nothing only when the rebuilt text equals the file byte for byte (frontmatter already in the app's canonical form); returning the same properties still rewrites other notes (block lists become `[a, b]`, `type:` becomes `_type:`). To skip the write, throw a sentinel from `mutate` and catch it (see [Cookbook](mods/14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)). Switch off the mod in **Settings → Labs** to stop an asynchronous save loop.
 
 ### Actions and rail buttons
 
@@ -182,7 +192,7 @@ const remove = ctx.addAction({
 
 ctx.addRailButton({
 	id: 'main',                       // unique within the mod
-	title: 'Ideas',                   // tooltip and picker title
+	title: 'Ideas',                   // tooltip; also the picker's screen-reader title
 	icon: 'lucide:lightbulb',         // icon ref
 	actions: ['idea'],                // optional: which actions, in order; all of them when omitted
 });
@@ -268,7 +278,7 @@ ctx.addAction({
 | `run.progress(done, total, label?)` | Sets the progress bar to `done` of `total`, with an optional label under it. Throws `Mod "<id>": run.progress needs numbers done and total` (or `needs a string label`) on other values |
 | `run.ui` | The run's own [dialogs](#ctxui-dialogs), with the same methods as `ctx.ui`. **Use it in actions** instead of `ctx.ui`: when `run.signal` aborts, its open and waiting dialogs close and reject with a `DOMException` named `AbortError`, and later calls reject with it at once, so the action stops at its next `await` |
 
-- **A quiet run closes the view by itself.** When a run ends **Done** without having called `run.log` or `run.progress`, there is nothing to read, so the picker closes: an action that only shows a toast, opens a note or opens a dialog leaves no window behind. An open view that logged or showed progress stays on **Done** until you press **Close** or **Escape**, and so does an open **Failed** or **Cancelled** view. A non-rail run that fails before any output stays hidden and reports its failure through a toast. To keep the view open on a quick action, log a line.
+- **A quiet run closes the view by itself.** When a run ends **Done** without having called `run.log` or `run.progress`, there is nothing to read, so the picker closes: an action that only shows a toast, opens a note or opens a dialog leaves no window behind. An open view that logged or showed progress stays on **Done** until you press **Close** or **Escape**, and so does an open **Failed** or **Cancelled** view. A quiet run (started from a menu, the palette or a raw command row by an action without `input`) that fails before any output stays hidden and reports its failure through a toast. To keep the view open on a quick action, log a line.
 - **Close** hides the view; the run goes on. While any action a rail button lists is running (a button without `actions` lists every action), the button shows a busy mark. Clicking a busy button that resolves to a single action opens that run's view again; one with several actions opens its picker, where choosing a running action opens its run and choosing an idle one starts it.
 - **Stop** aborts `run.signal` and marks the run **Cancelled** at once. It also closes the run's `run.ui` dialogs, so an action waiting on one stops there with no `run.signal.aborted` check, and the next dialog in the queue shows. It cannot interrupt code that is running: between dialogs the mod has to check `run.signal.aborted` or pass the signal on. A rejection after **Stop**, the `AbortError` included, ends the run **Cancelled**, never **Failed**, with no toast. Valid calls to `run.log` and `run.progress` after the run ended are ignored.
 
@@ -289,7 +299,9 @@ Every path is **vault-relative** (`Ideas/Idea.md`). A path that is empty, starts
 
 These path methods use the app's existing rename, move and delete services, including tab updates, link updates and index cleanup. Calls after unload reject; an operation already running inside a filesystem service cannot be cancelled and may finish even if the mod unloads before it resolves.
 
-Notes created or written this way reach search, backlinks and tags at once. `write` also runs the after-save steps of a note saved in the editor (file history, Auto Move); `create` does not. A file of a mod that is not a note skips those steps when written with `write`. For a mod's own state, use [`ctx.saveData`](#ctxloaddata-and-ctxsavedata-the-mods-own-data) instead.
+Errors from the file system pass through unchanged, and they are often bare strings, not `Error` objects: in a `catch`, `err.message` can be `undefined`. Read `err instanceof Error ? err.message : String(err)`.
+
+Notes created or written this way reach the index and full-text search at once; `ctx.kb()` and the panels can take a few seconds to see them (see [`ctx.kb()`](#ctxkb)). `write` also runs the after-save steps of a note saved in the editor (file history, Auto Move, `ctx.onNoteSaved`) for every file it writes, Markdown or not, except a non-note file under `_system/mods/` (anything there not ending in `.md`, `.markdown` or `.view`), which skips them; `create` does not run them. For a mod's own state, use [`ctx.saveData`](#ctxloaddata-and-ctxsavedata-the-mods-own-data) instead.
 
 ### `ctx.loadData` and `ctx.saveData`: the mod's own data
 
@@ -370,7 +382,7 @@ ctx.addAction({
 |--------|-------------|------|
 | `alert({ title, message?, kind? })` | nothing, once dismissed | **Enter** (OK), **Esc**. `kind`: `'info'` (default), `'success'`, `'warning'` or `'error'` sets the icon |
 | `confirm({ title, message?, confirmLabel?, cancelLabel?, destructive? })` | `true` or `false` | **Enter** confirms, **Esc** cancels. Labels default to **OK** and **Cancel**; `destructive: true` styles the confirm button as destructive |
-| `prompt({ title, message?, label?, placeholder?, value?, multiline? })` | the text, or `null` when cancelled | **Enter** submits, **Esc** cancels. With `multiline: true` the field is a text area: **Enter** adds a line and **Cmd+Enter** submits. Enter while an input method is composing (Japanese, Chinese, ...) never submits |
+| `prompt({ title, message?, label?, placeholder?, value?, multiline? })` | the text, or `null` when cancelled | **Enter** submits, **Esc** cancels. With `multiline: true` the field is a text area: **Enter** adds a line and **Cmd+Enter** or **Ctrl+Enter** submits. Enter while an input method is composing (Japanese, Chinese, ...) never submits |
 | `pick({ title, placeholder?, items })` | the original selected item object, or `null` when cancelled | Type to fuzzy-search titles and descriptions; **Up/Down** selects, **Enter** accepts, **Esc** or **Cancel** cancels. Clicking a row accepts it. The search placeholder defaults to `Search items...` |
 | `loading(label, task, { cancellable? })` | what `task` resolves to; rejects when it rejects | Calls `task(signal)` at once and shows `label` with a spinner until it settles. The dialog cannot be dismissed; `cancellable: true` adds **Cancel**, which aborts `signal` and closes the dialog. The promise still follows the task, so stop when `signal.aborted` |
 
@@ -521,14 +533,16 @@ These two members hand a mod the app's own objects. They exist so you can experi
 | `typeDefinitionsStore` | The vault's types: `getTypeMetadata(name)` and `typeMetadataMap` (folder, template, icon, color, archive rule per type) |
 | `modCommandsStore` | `list` contains every mod action as `{ id, label, run, palette }`, including actions not placed in the palette. Call a row's `run()` to invoke it through the host |
 | `railRegistryStore` | Live rail registrations: navigators, lens providers, folder creators, Today sections and actions. Wrap returned unregister functions in `ctx.register(...)`. A raw provider that throws can break its consumer; guard experimental providers yourself |
-| `settingsStore` | Live app settings, including `layout` and `updateLayout(...)`. Raw setters change memory; they do not save settings to disk automatically |
+| `settingsStore` | Live app settings, including `layout` and `updateLayout(...)`. Every change, through a setter or a direct assignment, is saved to the vault's `.kokobrain/settings.json` about 500 ms later: a mod that changes a setting changes the user's settings for good |
 | `openOrCreateNote(options)` | Opens an existing note or creates it and opens it. Takes absolute `filePath`, `title`, optional `templatePath`, `inlineTemplate`, `customVariables`, `contextDate` and `buildContent(content)`. A mod validates its own raw paths; resolves with no value |
 | `saveFileByPath(absolutePath)` | Saves a dirty open tab through the editor save pipeline. Resolves `true` for success or no-op (including no matching tab), `false` on a write failure |
 | `syncExternalContentToEditor(absolutePath, content, markSaved, schedule)` | Updates an open tab and signals CodeMirror. `markSaved: true` treats the bytes as already on disk; it does not write them. `schedule` is `'frontmatter'` (500 ms), `'body'` (2000 ms), or `'none'`. No matching tab is a no-op |
 
 ### `ctx.kb()`
 
-Resolves to a new [QueryJS](13-queryjs.md) `kb` object over a fresh snapshot of the index, so everything in the QueryJS API works: pages, tags, links, tasks and frontmatter. Call it again to see later changes.
+Resolves to a new [QueryJS](13-queryjs.md) `kb` object over the app's current snapshot of the index, so everything in the QueryJS API works: pages, tags, links, tasks and frontmatter. Call it again to see later changes.
+
+Note existence and frontmatter (`_type`, organized, archived, favorite, root tags) are current at once after a save, create or `ctx.vault.write`. The rest (`file.tasks`, `file.tags`, links, size, ctime, mtime) comes from the snapshot the app's panels use, not a fresh read: it refreshes about 2 seconds after a change, and at most once every 10 seconds during a burst. A note the mod changed a moment ago can show its old tasks, tags or links. Calling `ctx.app.vaultStore.requestPromptIndexRefresh()` before the write makes the next index update refresh at once.
 
 ```javascript
 const kb = await ctx.kb();
@@ -631,9 +645,9 @@ onload(ctx) {
 | Loading (manifest, `main.js` syntax, top-level code, `onload`) | The mod shows **Error** in Labs with the message and stack trace, plus a toast. The same message is toasted once, not on every reload |
 | An action's `run` | The run view shows **Failed** with the message and stack, and a toast "`<mod name>`: `<title>` failed: `<message>`" |
 | `onunload` or a cleanup | A toast naming the mod and the phase |
-| A timer, listener or promise the mod started itself | Not caught by Kokobrain: it appears in the developer console (right-click → **Inspect**) |
+| A timer, listener or promise the mod started itself | Not caught by Kokobrain: it appears in the developer console (right-click → **Inspect**, available in development and debug builds; a release build is expected not to have it) |
 
-Every error Kokobrain catches, and everything a mod writes with `ctx.log`, goes to the debug log under `MOD:<id>`. To keep it in a file, turn on **Settings → Troubleshooting → Save debug log to file**; lines look like `[10:42:07.123] [FRONT-END:MOD:daily-log] ...` in `~/Library/Logs/com.diegorv.kokobrain/`.
+Every error Kokobrain catches, and everything a mod writes with `ctx.log`, goes to the debug log under `MOD:<id>`. To keep it in a file, turn on **Settings → Troubleshooting → Save debug log to file**; lines look like `[10:42:07.123] [FRONT-END:MOD:daily-log] ...` in `~/Library/Logs/com.diegorv.kokobrain/`. The time is UTC. With neither that switch nor **Debug mode** on, `ctx.log` writes nothing. An `Error` passed to `ctx.log` is written as `{}`: log `err.message` and `err.stack`. See [Errors and debugging](mods/15-errors-and-debugging.md) for every message.
 
 Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, awaited `run.ui` calls, `ctx.theme.onChange`, synchronous `ctx.watch` functions and `ctx.onNoteSaved` callbacks) are never sent to Sentry. The vault adapters also log their rejections under the mod tag. Uncaught errors (the last row above) and failures inside app services can reach Sentry while it is on. That includes `ctx.app` functions and the existing filesystem services called by `ctx.vault.rename`, `move` and `delete`.
 
@@ -693,7 +707,7 @@ This uses the existing local buffered writer, normally flushing every 250 ms or 
 - **No `import`**, one file per mod; bundle packages with [your own build](#your-own-ui-and-packages).
 - **`export default` declares no name.** The loader turns it into an assignment, so after `export default function foo() {}` or `export default class Foo {}` the rest of the file cannot refer to `foo` or `Foo` (and the loader rejects both, since the default export must be an object). Declare the object first and export it: `const mod = { onload(ctx) { /* ... */ } }; export default mod;`.
 - **Long work** should check `run.signal.aborted` between steps in an action (it aborts on **Stop** and at unload), or `ctx.signal.aborted` in work the mod started outside an action.
-- **`fetch` reaches only the hosts the app's Content Security Policy allows** (`connect-src` in `src-tauri/tauri.conf.json`: GitHub, Todoist, Hugging Face and Sentry). A request to any other host is blocked by the web view.
+- **`fetch` reaches only the hosts the app's Content Security Policy allows** (`connect-src` in `src-tauri/tauri.conf.json`: `https://api.todoist.com`, `https://huggingface.co`, `https://github.com`, `https://objects.githubusercontent.com` and the Sentry ingest hosts). A request to any other host, including `api.github.com` and `raw.githubusercontent.com`, is blocked by the web view.
 - **Raw access is unstable**: a mod that uses `ctx.app` or `ctx.kb` can break when the app changes.
 
 ## Next Steps

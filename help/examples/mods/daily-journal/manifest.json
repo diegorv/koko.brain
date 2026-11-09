@@ -1,0 +1,6 @@
+{
+	"id": "daily-journal",
+	"name": "Daily journal",
+	"version": "1.0.0",
+	"description": "Example mod: appends a timestamped line to today's daily note, from the rail or the command palette"
+}

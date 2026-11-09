@@ -1,0 +1,6 @@
+{
+	"id": "folder-report",
+	"name": "Folder report",
+	"version": "1.0.0",
+	"description": "Example mod: right-click a folder to write a report of its notes, regenerated in place without touching your own text"
+}

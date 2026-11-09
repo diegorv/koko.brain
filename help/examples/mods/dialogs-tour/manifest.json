@@ -1,0 +1,6 @@
+{
+	"id": "dialogs-tour",
+	"name": "Dialogs tour",
+	"version": "1.0.0",
+	"description": "Example mod: a wizard that uses every run.ui dialog (prompt, pick, confirm, loading, alert) to create a note"
+}
