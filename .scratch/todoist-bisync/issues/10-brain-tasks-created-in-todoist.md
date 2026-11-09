@@ -8,7 +8,7 @@
 
 - [ ] Failing tests first (fake `/sync` that can drop a response, real stores).
 - [ ] Scope (decided): open task lines in project notes, plus `#todoist`-tagged lines elsewhere, after ticket 02's exclusions. Also skipped: lines with a user `🆔` lacking `td-` (logged), indented subtasks, frozen anchors.
-- [ ] Anchor first (rule 2): write `🆔 td-<8 base36>` through the writer, insert the link row with `todoist_id` NULL and `pending_uuid`, then send `item_add` (that uuid, a temp_id, `autoParseLabels: false`, description ending with the line `kokobrain:td-<value>`). On ack store the Todoist id.
+- [ ] Anchor first (rule 2): write `🆔 td-<8 base36>` through the writer, insert the link row with `todoist_id` NULL and `pending_uuid`, then send `item_add` (that uuid, a temp_id, `autoParseLabels: false`, description ending with the line `kokobrain:td-<value>`). Labels: the line's tags, plus `personal` when `syncContext` is `'personal'`; nothing extra in a `'work'` vault (the owner's webhook adds `Work`); never `defaultLabel` (design rule 8b). On ack store the Todoist id.
 - [ ] Recurring lines send `due: { date: "<📅>", string: "<recurrence>", lang: "en" }` when a `📅` exists, else `due: { string: "<recurrence>" }`. Never the `"<recurrence> starting <date>"` form that open-itens 073 planned: a rule with `starting` completes for good on the first close (`research/live-check.md`). Non-recurring: `due: { date }`.
 - [ ] Content over 500 characters or with a newline is not created; logged.
 - [ ] Lost response: before any pulled task becomes a new line, it is matched to a pending add by its description `kokobrain:` line (content + project as fallback); it never yields a second line or task.

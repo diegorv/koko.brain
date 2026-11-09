@@ -23,7 +23,7 @@ Ticket 01's runbook, run against the owner's account through `/api/v1/sync` (for
 
 ## Account-specific finding
 
-Every task created through the API got the personal label `Work`, even with `labels: []` in `item_add`. `Work` exists as a personal label in the account. Something on the owner's account adds it (an automation or a setting outside the API); the API call itself did not. Owner to confirm where it comes from.
+Every task created through the API got the personal label `Work`, even with `labels: []` in `item_add`. `Work` exists as a personal label in the account. It comes from the owner's webhook server, `koko-personal-webhooks` (`~/Dev/pet-projects/koko/koko-personal-webhooks`, deployed as `rossini-webhooker-server` behind a Cloudflare Tunnel): its `todoist-automations` rule "Default new tasks to 'Work' unless labeled 'personal' or 'kokobrain'" adds `Work` shortly after a task is created (`src/webhooks/todoist-automations/automation/rules.ts:38-46`, commit `aa76917`). Owner decision (2026-11-09): a per-vault context setting; a `work` vault sends no context label (the webhook adds `Work`), a `personal` vault sends `personal`; `Work` and `personal` are never mapped to tags (design rule 8b).
 
 ## Consequences for the design
 
