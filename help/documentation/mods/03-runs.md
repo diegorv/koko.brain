@@ -66,6 +66,21 @@ A quiet run starts without a view, so it never interrupts the user. Then:
 - Focus is on **Stop** while running and on **Close** once ended, and **Enter** presses the focused button. A user who presses **Enter** in a running view stops the run.
 - When the mod is switched off in Labs, deleted or reloaded, an open run view stays to show how the run ended (usually **Cancelled**). Turning mods off for the vault, or closing the vault, closes it.
 
+## Ending an action
+
+How the action ends decides what the user is left looking at. The run view is a modal: while it shows, the note behind it cannot be typed in.
+
+| The action ends by | Do | Because |
+|--------------------|----|---------|
+| Opening a note (`ctx.workspace.openNote`, `openFileInEditor`, `createTypedNote` then open) | No `run.log` and no `run.progress` anywhere on the success path. Report in a toast if at all | A run that logged or showed progress stays on **Done** on top of the note it just opened, until the user closes it. One without output closes its view by itself |
+| Opening your own panel or form | The same, and open it from a timer after `run` returns (see [Custom UI](08-custom-ui.md#a-themed-modal-dialog)) | The run view is still open while `run` runs |
+| A report the user should read (counts, skipped notes) | `run.log` the lines; the view stays on **Done** | That is what the log is for |
+| A long batch | `run.progress` while it runs; a summary line at the end | Shows **Stop** and the bar; the user closes the view |
+| Nothing to do: already running elsewhere, nothing selected, everything already done | `ctx.notify('Nothing to tag: every note already has it'); return;` | A throw is a failure: **Failed**, a red toast and, from the rail, a view that stays open. "Nothing to do" is not an error |
+| A real refusal: the wrong kind of target, invalid input, a missing note | `throw new Error('Choose a Markdown note')` | The user has to change something; **Failed** says so |
+
+For a long walk before opening a note, use `run.ui.loading` (a dialog that closes with the task, with an optional Cancel) instead of `run.progress`, so the run view never opens. The [folder-report example](../../examples/mods/folder-report/) does this.
+
 ## Log
 
 `run.log(text)`:
@@ -284,7 +299,7 @@ When `run` throws or rejects while `run.signal` is not aborted:
 - A toast shows `<Mod name>: <Action title> failed: <message>`.
 - The mod's debug log gets `<Action title> failed: <message>` followed by the stack (in the file when **Save debug log to file** is on).
 - It is never sent to Sentry.
-- `<message>` is `err.message` for an `Error`, else `String(err)`. Throwing a string gives that string and no stack. Vault and Tauri calls can reject with bare strings, so `err.message` can be `undefined` in your own `catch`: use `err instanceof Error ? err.message : String(err)`.
+- `<message>` is `err.message` for an `Error`, else `String(err)`. Throwing a string gives that string and no stack. `ctx.vault`, `ctx.workspace` and `ctx.app` calls can reject with bare strings (file system errors passed through), so `err.message` can be `undefined` in your own `catch`: use `err instanceof Error ? err.message : String(err)`. `ctx.loadData` and `ctx.saveData` always reject with an `Error`.
 
 A quiet run that fails before any output never opens its view; the toast is all the user sees. To read the stack, use the debug log. WebKit stacks list function names without file and line numbers; see [Errors and debugging](15-errors-and-debugging.md#stack-traces).
 
@@ -323,7 +338,8 @@ export default {
 
 				const entries = await ctx.vault.list(folder);
 				const notes = entries.filter((e) => !e.isFolder && /\.md$/i.test(e.name));
-				if (notes.length === 0) throw new Error(`No notes in ${folder || 'the vault root'}`);
+				// Nothing to do is not a failure: a toast, no Failed run.
+				if (notes.length === 0) return ctx.notify(`No notes in ${folder || 'the vault root'}`);
 
 				// Rejects with AbortError on Stop; resolves false on Cancel.
 				const ok = await run.ui.confirm({

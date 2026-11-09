@@ -45,8 +45,9 @@ async function appendLine(ctx, absolute, line, stopped, viaEditor) {
 	const { activeTab: tab, editorView: view } = ctx.app.editorStore;
 	if (viaEditor && tab && collapse(tab.path) === collapse(absolute) && view?.dom.isConnected) {
 		const text = view.state.doc.toString();
-		// Right after a tab switch the view can still hold the previous note.
-		if (text === tab.content) {
+		// Right after a tab switch the view can still hold the previous note. The view's doc
+		// uses "\n"; the tab keeps a CRLF file's raw text until the first edit.
+		if (text === tab.content.replace(/\r\n?/g, '\n')) {
 			if (stopped()) return null;
 			view.dispatch({ changes: { from: text.length, insert: appendix(text, line) } });
 			return 'editor';

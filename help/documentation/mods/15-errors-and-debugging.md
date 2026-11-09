@@ -78,6 +78,7 @@ Prefixed with `<dir>: ` in Labs and in the toast.
 | `main.js: use exactly one "export default" and no "import"; a mod is one file` | The engine reported a syntax error that mentions `import` or `export`: an `import` statement, `import.meta`, `export const`, `export { }`, or a second `export default` that is not at the start of a line |
 | `main.js: the default export must be an object with an onload function` | The default export is a function, a class, a primitive, `null`, or an object without a function `onload`. Also after a top-level `return;` |
 | The engine's own message | Any other syntax error (a top-level `await`, a missing brace) or an error thrown by the top-level code, for example `<dir>: x is not defined` |
+| `Invalid regular expression: missing /` (V8, for example in a Node.js check of the file); in the app, WebKit's own wording for an unterminated regular expression literal (not verified) | A regular expression literal holds a **literal** line separator (U+2028) or paragraph separator (U+2029). JavaScript treats both as line breaks, so the literal ends there. They are invisible in most editors. The usual cause is a `\u2028` escape that a write tool turned into the real character. Write the class as `\p{Zl}\p{Zp}` with the `u` flag (`/[\p{Zl}\p{Zp}]/u`), which has no escape to expand. The same characters also end a `//` comment early, turning the rest of that line into code |
 
 ### The unloaded guard
 

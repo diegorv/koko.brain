@@ -84,7 +84,10 @@ export default {
 				if (answer === null) return;
 				const name = answer.trim();
 				if (!name) throw new Error('Type a name');
-				if (/[/\\:]/.test(name)) throw new Error('A name cannot hold "/", "\\" or ":"');
+				// Path characters, and those that end a [[link]] target early, so the note stays linkable.
+				if (/[\\/:#|^[\]]/.test(name)) throw new Error('A name cannot hold / \\ : # | ^ [ or ]');
+				// A dotfile leaves the file explorer and the index.
+				if (name.startsWith('.')) throw new Error('A name cannot start with a dot');
 				if (name === current) return;
 
 				if (run.signal.aborted) return;

@@ -201,10 +201,13 @@ const stop = ctx.onNoteSaved((path) => ctx.log('Saved:', path));
 
 Anything else the app writes is not covered by this list: do not rely on it firing.
 
-**Filter the path.** You will see non-note files. Most mods want Markdown notes outside system folders:
+**Filter the path.** You will see non-note files. Most mods want Markdown notes outside the system folder, which is a setting (`_system` by default; see [Vault files: Special folders](04-vault-files.md#special-folders)):
 
 ```javascript
-const isNote = (path) => path.toLowerCase().endsWith('.md') && !path.startsWith('_system/');
+const isNote = (path) => {
+	const system = ctx.app.settingsStore.templates.systemFolder.replace(/^\/+|\/+$/g, '');
+	return path.toLowerCase().endsWith('.md') && !(system && path.startsWith(`${system}/`));
+};
 ```
 
 ### Scheduling
@@ -228,7 +231,9 @@ save -> onNoteSaved(path) -> ctx.vault.write(path) -> onNoteSaved(path) -> ctx.v
 
 `ctx.vault.write` writes even when the content is identical. **Compute the new text, compare it with the current text, and write only when they differ.** The second round then finds nothing to change and the loop ends. `updateNoteFrontmatter` skips the write only when the rebuilt text equals the file byte for byte, so returning the same properties is a guard only for frontmatter already in canonical form; otherwise the note is rewritten (block lists become `[a, b]`, `type:` becomes `_type:`, quotes are dropped) and the save fires again. To skip the write for sure, throw a sentinel from `mutate` and catch it, as in the example below and in the [cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties). To stop a loop that is already running, switch the mod off in **Settings > Labs**.
 
-Example: keep an `updated` date in the frontmatter of notes in one folder. The date has day precision, so the save fired by the write itself finds the value already set and writes nothing.
+Example: keep an `updated` date in the frontmatter of notes in one folder. The date has day precision, so the save fired by the write itself finds the value already set and writes nothing. **That value comparison is what ends the loop.** The `busy` set is not a loop guard: the app calls save callbacks from a `setTimeout(0)` it schedules during the save, and by the time that timer fires, the `await` has resumed and the `finally` has already cleared the path. `busy` only keeps two overlapping calls for one note (two quick saves) from writing at once.
+
+The example also leaves the **active** note alone. `updateNoteFrontmatter` on the note the user is typing in moves their caret (see [Raw app: Known problems](09-raw-app.md#known-problems-caret-and-empty-block)), so a save callback that stamps it would make the next keystroke land in the wrong place. The active note is stamped once the user switches away from it.
 
 ```javascript
 const FOLDER = 'Journal/';
@@ -244,17 +249,19 @@ const today = () => {
 export default {
 	onload(ctx) {
 		const busy = new Set();
+		/** Saved while active: stamped once the user leaves them */
+		const pending = new Set();
+		const absolute = (path) => `${ctx.app.vaultStore.path}/${path}`;
+		const isActive = (path) => ctx.app.editorStore.activeTabPath?.replace(/\/{2,}/g, '/') === absolute(path);
 
-		ctx.onNoteSaved(async (path) => {
-			if (!path.startsWith(FOLDER) || !path.toLowerCase().endsWith('.md') || busy.has(path)) return;
-			const root = ctx.app.vaultStore.path;
-			if (!root) return;
+		const stamp = async (path) => {
+			if (busy.has(path)) return;
 			busy.add(path);
 			try {
 				const date = today();
-				await ctx.app.updateNoteFrontmatter(`${root}/${path}`, (props) => {
+				await ctx.app.updateNoteFrontmatter(absolute(path), (props) => {
 					const current = props.find((p) => p.key === 'updated');
-					// Returning `props` would still rewrite a note whose YAML is not in canonical form: throw instead.
+					// The loop guard. Returning `props` would still rewrite a note whose YAML is not in canonical form: throw instead.
 					if (current && current.value === date) throw UNCHANGED;
 					const next = props.filter((p) => p.key !== 'updated');
 					next.push({ key: 'updated', value: date, type: 'date' });
@@ -268,10 +275,32 @@ export default {
 			} finally {
 				busy.delete(path);
 			}
+		};
+
+		ctx.onNoteSaved(async (path) => {
+			if (!path.startsWith(FOLDER) || !path.toLowerCase().endsWith('.md')) return;
+			if (isActive(path)) {
+				pending.add(path);
+				return;
+			}
+			await stamp(path);
 		});
+
+		ctx.watch(
+			() => ctx.app.editorStore.activeTabPath,
+			() => {
+				for (const path of [...pending]) {
+					if (isActive(path)) continue;
+					pending.delete(path);
+					void stamp(path);
+				}
+			},
+		);
 	},
 };
 ```
+
+`stamp` catches everything, so the `void stamp(path)` in the watch callback cannot leave an unhandled rejection. A note stamped while it is open in a **background** tab gets its old caret offset back when the user returns to it, a few characters off; only a stamp of the active note lands under the user's fingers. A note renamed or moved while pending is stamped at its old path, which fails quietly in the log.
 
 `updateNoteFrontmatter` is **raw** (`ctx.app`): it takes an absolute path, its `mutate` must be pure because it can run twice, and it saves an open tab at once. See [Raw app](09-raw-app.md#updatenotefrontmatter).
 
@@ -280,6 +309,8 @@ The same guard with `ctx.vault.write`:
 ```javascript
 ctx.onNoteSaved(async (path) => {
 	if (!path.startsWith('Inbox/') || !path.endsWith('.md')) return;
+	// A write to the active note would move the user's caret: leave it for a later save.
+	if (ctx.app.editorStore.activeTabPath?.replace(/\/{2,}/g, '/') === `${ctx.app.vaultStore.path}/${path}`) return;
 	try {
 		const text = await ctx.vault.read(path);
 		const next = text.replace(/[ \t]+$/gm, ''); // strip trailing spaces
@@ -292,7 +323,7 @@ ctx.onNoteSaved(async (path) => {
 });
 ```
 
-`ctx.vault.write` refuses a note whose open tab has unsaved changes, which happens when the user keeps typing after the save. Writing into a note the user is editing replaces the editor's text: prefer to act on notes that are not open, or edit through the editor (see [Vault files](04-vault-files.md#editing-a-note-that-may-be-open)).
+`ctx.vault.write` refuses a note whose open tab has unsaved changes, which happens when the user keeps typing after the save. Writing into a clean active note replaces the editor's text and leaves the caret at its old offset, hence the skip: prefer to act on notes that are not active, or edit through the editor (see [Vault files](04-vault-files.md#editing-a-note-that-may-be-open)).
 
 ### Debouncing per path
 
@@ -479,8 +510,16 @@ The app binds these (macOS, Cmd is `metaKey`): Cmd+P, Cmd+O, Cmd+S, Cmd+W, Cmd+N
 
 ### `e.key` vs `e.code`
 
-- `e.code` names the physical key (`KeyJ`, `Digit1`, `BracketLeft`), whatever the keyboard layout and modifiers. **Use it for chords.**
-- `e.key` is the character produced. With Shift it is uppercase (`'J'`); with Option on macOS it is a special character (Option+J gives `'∆'`); on another layout the same key gives another letter. Use it only for keys defined by their character (`'Escape'`, `'Enter'`, `'?'`).
+Match keys the way the app does, so a mod chord behaves like the app's own on every keyboard layout:
+
+- **Letters and digits by `e.key`, lowercased**: `e.key.toLowerCase() === 'j'`. `e.key` is the character the key produces on the user's layout, so the chord follows the letter printed on the key (on an AZERTY keyboard Cmd+A is where the A is). With Shift it is uppercase (`'J'`), hence the `toLowerCase()`.
+- **Punctuation by `e.code`**, the physical key: `BracketLeft`, `Comma`, `Backslash`. The character those keys produce changes with the layout and with Shift (Shift+[ gives `{`), so the app binds them by position.
+- **Option changes `e.key`** on macOS (Option+J gives `'∆'`). A chord with Option has to match `e.code` (`KeyJ`) instead; better, avoid Option chords.
+- Keys named by their meaning (`'Escape'`, `'Enter'`, `'ArrowUp'`) by `e.key`.
+
+### Input methods (IME)
+
+While the user composes text with an input method (Japanese, Chinese, Korean, or the macOS accent popup), key presses belong to the composition. Ignore them: return early when `e.isComposing` is true, or when the editor reports `ctx.app.editorStore.editorView?.composing` (raw). The app's own text fields apply the same rule to Enter.
 
 ### Cmd vs Ctrl on macOS
 
@@ -488,23 +527,57 @@ On macOS, Cmd is `e.metaKey` and Control is `e.ctrlKey`. They are different chor
 
 ### Ignore typing targets
 
-A chord with Cmd is safe while typing (that is the point of it). A shortcut **without** a modifier (a single letter, `?`) must ignore key presses meant as text: inputs, text areas, selects, and editable content, which includes the editor.
+What a shortcut must check depends on what it does:
+
+| Shortcut | Run it when |
+|----------|-------------|
+| A Cmd chord that **opens** something (a dialog, a note, a toggle) | Anywhere, except inside an open dialog. A Cmd chord produces no text, so typing in a field is no reason to skip it |
+| A chord that **inserts text into the editor** (a date, a template line) | Only when `view.hasFocus` is true for the current `editorView`. Not when the target is merely inside the editor |
+| A key **without** a modifier (a single letter, `?`) | Only when the target is not a text field, editable content (which includes the editor) or inside a dialog |
+
+The editor case needs `hasFocus` because the editor's DOM holds more than the text. Live Preview draws widgets inside `view.dom` that have inputs of their own (meta-bind text, select and toggle fields, task checkboxes): a key pressed in one of those has a target inside `view.dom`, and `view.dom.contains(e.target)` is true, but the caret is not in the note. Inserting at `view.state.selection` then writes into the note at a place the user is not looking at. `view.hasFocus` is true only while the editable text itself has focus.
 
 ```javascript
 const isTyping = (target) =>
 	target instanceof HTMLElement &&
 	(target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName));
 const inDialog = (target) => target instanceof Element && target.closest('[role="dialog"]') !== null;
+
+/** The editor view when the user's caret is in the note text, else null. */
+function focusedEditor(ctx) {
+	const view = ctx.app.editorStore.editorView;
+	return view && view.dom.isConnected && view.hasFocus && !view.composing ? view : null;
+}
 ```
 
 Skip keys whose target is inside an open dialog too, as the app does: a shortcut behind a modal would act on the page the user cannot see.
+
+An inserting chord, as a fragment for `onload`. Cmd+Shift+I is not bound by the app or the editor in this version; check the list above before you pick another:
+
+```javascript
+const onInsertDate = (e) => {
+	if (e.defaultPrevented || e.isComposing || !e.metaKey || !e.shiftKey || e.altKey || e.ctrlKey) return;
+	if (e.key.toLowerCase() !== 'i') return;
+	const view = focusedEditor(ctx);
+	if (!view) return; // the caret is not in a note: leave the key alone
+	e.preventDefault();
+	const d = new Date();
+	const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+	view.dispatch(view.state.replaceSelection(date));
+};
+window.addEventListener('keydown', onInsertDate, { signal: ctx.signal });
+```
+
+The dispatch behaves like typing: it replaces the selection, goes into undo history and arms autosave (see [Raw app: editorView](09-raw-app.md#editorstoreeditorview)).
 
 ### Complete example
 
 ```javascript
 /** Cmd+Shift+J: append a timestamped line to an "Inbox log" note. Cmd+Shift+Y: browse the log. */
 const LOG = 'Inbox log.md';
-const CHORDS = { KeyJ: 'append', KeyY: 'show' };
+/** Letters by e.key, lowercased, as the app matches its own shortcuts */
+const CHORDS = { j: 'append', y: 'show' };
+const inDialog = (target) => target instanceof Element && target.closest('[role="dialog"]') !== null;
 
 export default {
 	onload(ctx) {
@@ -537,10 +610,11 @@ export default {
 		};
 
 		const onKeyDown = (e) => {
-			// Exactly Cmd+Shift: the editor and the app keep everything else.
-			if (e.defaultPrevented || !e.metaKey || !e.shiftKey || e.altKey || e.ctrlKey) return;
-			const name = CHORDS[e.code];
-			if (!name) return;
+			// Exactly Cmd+Shift: the editor and the app keep everything else. Never act mid-composition (IME).
+			if (e.defaultPrevented || e.isComposing || !e.metaKey || !e.shiftKey || e.altKey || e.ctrlKey) return;
+			// Both chords open a dialog and insert nothing, so they may run while a text field has focus.
+			const name = CHORDS[e.key.toLowerCase()];
+			if (!name || inDialog(e.target)) return;
 			e.preventDefault();
 			if (e.repeat || busy) return; // holding the chord repeats at ~30 Hz
 			busy = true;
@@ -565,6 +639,8 @@ export default {
 
 Points the example shows:
 
+- Letters matched by `e.key.toLowerCase()`, as the app matches its own, and nothing done while an input method composes.
+- No `hasFocus` check: both chords open a dialog. A chord that inserts into the note needs one (see [Ignore typing targets](#ignore-typing-targets)).
 - `preventDefault()` only after a match, so other keys keep their default.
 - `e.repeat` ignored, and a `busy` flag so a second press does not queue a second dialog (dialogs queue without limit, see [Dialogs](06-dialogs.md#the-queue)).
 - The handler runs the work through a promise so a synchronous throw and a rejection land in the same `catch`. The host never sees errors from a shortcut, unlike an action's, so the mod reports them itself.

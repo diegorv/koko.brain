@@ -7,9 +7,12 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 
 ## Pre-flight checklist
 
+> [!NOTE]
+> **Skip a section that does not apply, as a whole.** A mod with no actions skips "Actions, runs and dialogs"; one that makes no `fetch`, no `ctx.kb()` query or no note edit skips those sections. Check the section's first line against the mod (does it register an action? call `fetch`?), and if the answer is no, write "not applicable" for the section in the handover instead of ticking each item.
+
 ### Loader and files
 
-- [ ] The mod folder is `_system/mods/<id>/` and holds `manifest.json` and `main.js`. Other files in the folder are ignored, and saving them does not reload the mod.
+- [ ] The mod is one folder holding `manifest.json` and `main.js`, named exactly like the manifest `id`. Installed, it lives at `<vault>/_system/mods/<id>/`; while you write it, it may sit anywhere (a scratch folder, a repo) and is copied there to install. Other files in the folder are ignored, and saving them does not reload the mod.
 - [ ] `main.js` has exactly one line that starts with `export default` in column 0, followed by a space and then an object literal or an identifier (`export default {` or `export default mod;`). No indentation, no `export default{`.
 - [ ] No other line in the file starts with `export default`, including lines inside template literals and block comments.
 - [ ] No `import` statement, no `import.meta`, no other `export`. Packages are bundled into the file (see [Types, build and test](12-types-build-and-test.md)).
@@ -36,6 +39,9 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 - [ ] Inside an action, dialogs use `run.ui`, not `ctx.ui`, and long work checks `run.signal`, not `ctx.signal`.
 - [ ] `run.signal.aborted` is checked after every `await` and before every write, so **Stop** never lets a later step run.
 - [ ] A failure the user must see is thrown (the run ends **Failed** with a toast). Information and partial results use `ctx.notify`. Nothing is caught and silently dropped.
+- [ ] A state with nothing to do (already running, nothing selected, nothing found, every note already done) calls `ctx.notify(...)` and returns. It does not throw: a throw ends the run **Failed** with a red toast. Invalid input (an empty field, the wrong kind of target) does throw.
+- [ ] An action that ends by opening a note (`ctx.workspace.openNote`, `openFileInEditor`, `createTypedNote` then open) or a dialog of its own calls no `run.log` and no `run.progress` on its success path, before or after the open: a run with output stays on **Done** on top of what it opened. Use `run.ui.loading` for a long step, and a toast for a result. See [Runs: Ending an action](03-runs.md#ending-an-action).
+- [ ] An event the user must not miss (a timer that ended, a failed background job) is shown with `ctx.ui.alert` or kept on screen, not with `ctx.notify` alone, whose toast is gone after about 4 seconds.
 - [ ] After **Stop**, any report of partial work goes through `ctx.notify` (skipped when `ctx.signal.aborted`): `run.log` and `run.progress` are ignored and `run.ui` rejects by then.
 - [ ] A cancelled `prompt` or `pick` is tested with `=== null`. An empty submitted prompt is `''`, not a cancel.
 - [ ] Every `run.ui` call is awaited, or has a `.catch`, so **Stop** does not leave an unhandled `AbortError`.
@@ -44,7 +50,7 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 
 ### Cleanup
 
-- [ ] Every listener (`window`, `document`, DOM nodes, CodeMirror), `setTimeout`, `setInterval`, `MutationObserver`, inserted DOM node and raw `ctx.app.railRegistryStore` registration has a matching `ctx.register(() => ...)` right where it is created.
+- [ ] Every listener (`window`, `document`, DOM nodes, CodeMirror), `setTimeout`, `setInterval`, `MutationObserver`, inserted DOM node and raw `ctx.app.railRegistryStore` registration that outlives a run is undone at unload: by a `ctx.register(() => ...)` registered as soon as it exists, or by `{ signal: ctx.signal }` on a listener. One `ctx.register` set up front that clears a variable timer (`let timer = null; ctx.register(() => clearTimeout(timer))`) covers every timer stored in that variable. A timer inside a run that ends with the run (a `sleep(ms, run.signal)`, the timeout of `fetchText`) is covered by `run.signal` and its own `finally`, and needs no `ctx.register`.
 - [ ] Every value passed to `ctx.register` is a function.
 - [ ] `onunload`, if present, does not call `ctx`: by the time it runs the mod is already unloaded and every `ctx` call throws. Data is saved when it changes, not at unload.
 - [ ] Callbacks that can run after unload (timers, `fetch` continuations, DOM events) return early when `ctx.signal.aborted`.
@@ -54,7 +60,10 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 - [ ] `ctx.vault`, `ctx.workspace`, `ctx.onNoteSaved` and `run.target` use vault-relative paths (`Notes/Idea.md`, no leading `/`). `ctx.app` members and every `ctx.kb()` path are absolute. Every conversion between the two is explicit.
 - [ ] Absolute paths from the app are normalized before reaching `ctx.vault` (collapse `//`, strip the vault root and the `/` after it).
 - [ ] New files are given their extension explicitly: the host never adds `.md`.
-- [ ] `catch` blocks read `err instanceof Error ? err.message : String(err)`: file system rejections are often bare strings.
+- [ ] Every file name built from user text or fetched text goes through `safeName` ([Vault files](04-vault-files.md#note-names-safename)), and an empty result is refused with a throw. A raw title can hold `/` (another folder), `# | ^ [ ]` (an unlinkable name) or a leading `.` (a hidden dotfile the explorer and index never show).
+- [ ] A "person note", "meeting note" or any "X note" is checked against the vault's types (`typeDefinitionsStore.getTypeMetadata('X')`); when X is a type, the note is made with `createTypedNote` plus `ensureTypeLine` ([Raw app](09-raw-app.md#createtypednote)), not `ctx.vault.create`.
+- [ ] Every wikilink the mod writes follows [Writing a wikilink](04-vault-files.md#writing-a-wikilink): `[[Name]]` by default, `[[Folder/Name.md|Name]]` when the link must pin one file. Never `[[Folder/Name]]` in the belief that the folder pins it: it resolves by name only.
+- [ ] `catch` blocks read the text with `err instanceof Error ? err.message : String(err)`, or the `errorMessage` helper of [Vault files](04-vault-files.md#errors-are-not-always-error-objects) (either is fine): rejections from `ctx.vault`, `ctx.workspace` and `ctx.app` are often bare strings. `loadData` and `saveData` always reject with an `Error`.
 - [ ] `create` versus `write` is decided with `exists`, or both rejections are handled.
 - [ ] `ctx.vault.rename` of a Markdown note is meant to rewrite links in other notes, or the mod copies and deletes instead.
 - [ ] A folder `move` target exists: `move` does not create folders.
@@ -63,9 +72,12 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 
 - [ ] A note that may be open in a tab is edited through the editor when it is the active, clean tab, or through `ctx.vault.write`, which rejects when the tab has unsaved changes. That rejection is handled (skip the note, or ask the user to save).
 - [ ] The active note is captured at the top of `run`, before any `await`, and `run.target` (menu runs) wins over it.
-- [ ] `ctx.app.editorStore.editorView` is re-read at each use, checked for `null`, and checked to show the note expected (`view.state.doc.toString() === activeTab.content`).
+- [ ] `ctx.app.editorStore.editorView` is re-read at each use, checked for `null`, and checked to show the note expected, with the tab's line breaks normalized: `view.state.doc.toString() === activeTab.content.replace(/\r\n?/g, '\n')`. A plain `=== activeTab.content` is false forever on a CRLF note, so the editor route is never taken. The canonical `editNote` ([Vault files](04-vault-files.md#editnote)) does this.
 - [ ] `ctx.app.updateNoteFrontmatter` is called only on `.md` notes, and its `mutate` is pure (it can run twice).
+- [ ] No background trigger (`ctx.onNoteSaved`, a timer, a `ctx.watch` callback) calls `updateNoteFrontmatter`, `ctx.vault.write` or `syncExternalContentToEditor` on the **active** tab: they put the caret back at its old offset, so the user's next keystroke lands in the wrong place. Remember the path and act once the user has switched away ([Cookbook: Stamp a property on save](14-cookbook.md#20-stamp-a-property-on-save-safely)). From an action on the open note, use `updateFrontmatterKeepCaret` ([Raw app: Known problems](09-raw-app.md#known-problems-caret-and-empty-block)).
 - [ ] A `FrontmatterWriteError` with `reason === 'save-failed'` is not toasted a second time.
+- [ ] A generated block the mod owns (between marker comments) passes every piece of copied note text through a neutralizer that turns `<!--` into `&lt;!--`: a copied task that quotes a marker would otherwise break every later run. The handover says that copied `#tags` and `[[links]]` become tags and links of the report note ([Cookbook: owned block](14-cookbook.md#8-generated-report-with-an-owned-block)).
+- [ ] Every change to user data beyond the request is disclosed in the handover: frontmatter rewritten in canonical form (`[a, b]` lists, `_type:`, quotes dropped), CRLF line breaks of the frontmatter turned into LF, files moved or renamed.
 
 ### Events and loops
 
@@ -76,13 +88,17 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 
 ### Index queries
 
-- [ ] Every `ctx.kb()` query is scoped with a quoted folder source (`kb.pages('"Projects"')`) or a `.limit(n)`.
-- [ ] Nothing relies on `ctx.kb()` showing the tasks, tags or links of a note the mod has just written: those follow a snapshot that can lag by seconds (existence and frontmatter are current at once). Read the file instead, or call `ctx.app.vaultStore.requestPromptIndexRefresh()` before the write.
+- [ ] Every `ctx.kb()` query is scoped with a quoted folder source (`kb.pages('"Projects"')`), a `file.folder` predicate in the same chain (for the vault root: `.where((p) => p.file.folder === ctx.app.vaultStore.path)`) or a `.limit(n)`. The scope filters the result; the whole-vault build happens anyway. A whole-vault read that the task really needs carries a comment saying why.
+- [ ] Archived notes are kept unless the request excludes them, and the output says when they were left out.
+- [ ] Nothing relies on `ctx.kb()` showing the tasks, tags or links of a note the mod has just written: those follow a snapshot that refreshes about 2 s after a change and at most once per 10 s (existence and frontmatter are current at once). Read the file instead, or call `ctx.app.vaultStore.requestPromptIndexRefresh()` before the write.
+- [ ] A mod that chooses notes by `file.mtime` or `file.ctime` (archive old notes, list recent ones) leaves out `0` (a note too new for the snapshot) and skips notes open in a tab: a note saved a moment ago can show its previous mtime for up to about 12 s.
+- [ ] "Open task" means what the request means, stated in the output: `!t.completed` is exactly `[ ]` (the Tasks view's open); `[/]`, `[?]`, `[!]` and `[>]` are `completed` too. See [Querying the index: Tasks](10-querying-the-index.md#tasks).
 - [ ] Pages returned by `ctx.kb()` are treated as read-only.
 
 ### Network, data and settings
 
-- [ ] Every `fetch` goes to a host in the app's `connect-src`: `https://api.todoist.com`, `https://huggingface.co`, `https://github.com`, `https://objects.githubusercontent.com` (and Sentry ingest hosts). It passes `run.signal`.
+- [ ] Every `fetch` goes to a host in the app's `connect-src`: `https://api.todoist.com`, `https://huggingface.co`, `https://github.com`, `https://objects.githubusercontent.com` (and Sentry ingest hosts). It passes `run.signal` and has a timeout (use `fetchText` from [Network and platform](11-network-and-platform.md#timeouts)).
+- [ ] Every regular expression that matches line or paragraph separators uses `\p{Zl}\p{Zp}` with the `u` flag, never a `\u` escape of them: a write tool that expands the escape leaves a literal separator in the regex, and the file fails to load.
 - [ ] `loadData` is called before the first `saveData`, and a `ModDataCorruptError` is handled.
 - [ ] No secret (token, password, API key) is written to `ctx.log`, `run.log`, a note, `data.json` or the source.
 - [ ] Any write to `ctx.app.settingsStore` is intended to change the user's settings permanently: it is saved to `.kokobrain/settings.json` about half a second later.
@@ -99,6 +115,7 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 | `main.js: use exactly one "export default" and no "import"; a mod is one file` | An `import`, `import.meta`, `export const` or a second `export default` mid-line | Remove it; bundle packages with a build |
 | `main.js: the default export must be an object with an onload function` | `export default function`, `export default class`, a misspelled `onload`, or a top-level `return` | Export an object or an instance |
 | A load error quoting the engine (for example about `await`) | A top-level `await` | Move it into `onload` or `run` |
+| `Invalid regular expression: missing /` (Node.js) or an unterminated regular expression error, at a regex that looks fine | The regex holds a literal, invisible line or paragraph separator, usually a `\u` escape a write tool expanded | Use `\p{Zl}\p{Zp}` with the `u` flag ([Errors and debugging](15-errors-and-debugging.md#mainjs-evaluation)) |
 | `_system/mods/foo: manifest.json id "bar" does not match the folder name` | `id` and folder differ | Rename one of them |
 | The mod is gone after a save, with an **Error** row | A reload unloads the old code before loading the new one; there is no rollback | Fix the error and save again |
 | A save that did not fix the load error shows no toast | The same load error is not toasted twice in a row for a folder; only a successful load or deleting `manifest.json` clears that memory | Read the Labs row |
@@ -130,6 +147,9 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 | An unhandled `AbortError` in the console on **Stop** | A `run.ui` call that is not awaited | `await` it or add `.catch` |
 | `ctx.ui` dialog stays open after **Stop** | `ctx.ui` belongs to the mod, not the run | Use `run.ui` inside actions |
 | A palette or menu action shows no run view and gives no feedback | Runs without `input` from those entry points stay hidden until they log or show progress | `run.log` a line, or `ctx.notify` the result |
+| The run view stays on **Done** on top of the note the action just opened | The action called `run.log` or `run.progress` before (or after) opening it | No run output on a path that ends by opening a note; report in a toast, use `run.ui.loading` for a long step |
+| A run that found nothing to do ends **Failed** with a red toast | The "nothing to do" case throws | `ctx.notify('Nothing to do: ...'); return;` |
+| The user missed that a timer ended | `ctx.notify` toasts for about 4 seconds | `ctx.ui.alert` from the callback, or a chip left in a "done" state |
 | The run view says **Reload pending** for a long time | A run of the mod is still live (a quiet run counts too) | Press **Stop**; make long work respect `run.signal` |
 | The run fails with `run.progress needs numbers done and total` | `NaN`, `undefined` or a string reached `run.progress` | Pass finite numbers |
 | `run.log` shows `[object Object]` | `run.log` applies `String()` to its argument | `run.log(JSON.stringify(value))` |
@@ -142,7 +162,10 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 |---------|-------|-----|
 | `Invalid vault path "/Users/..."` | An absolute app path passed to `ctx.vault` | Strip `ctx.app.vaultStore.path + '/'` |
 | `Invalid vault path "Notes//Idea.md"` | A path joined from a setting with a trailing slash | Collapse repeated `/` |
-| `err.message` is `undefined` in a `catch` | File system rejections are bare strings | `err instanceof Error ? err.message : String(err)` |
+| `err.message` is `undefined` in a `catch` | File system rejections from `ctx.vault`, `ctx.workspace` and `ctx.app` are bare strings | `err instanceof Error ? err.message : String(err)`, or `errorMessage(err)` |
+| A note the mod created never shows in the explorer or in `ctx.kb()` | Its name starts with `.` (from a title such as `.plan` or an empty title), so it is a dotfile | Build names with `safeName`, refuse `''` |
+| A link the mod wrote opens another note of the same name | `[[Folder/Name]]` resolves by name only; the folder pins nothing | `[[Folder/Name.md\|Name]]` pins one file ([Writing a wikilink](04-vault-files.md#writing-a-wikilink)) |
+| A generated report refuses every run after one refresh, saying its markers were edited | Copied note text contained `<!--` (a task quoting a marker) | Pass copied text through a neutralizer (`<!--` to `&lt;!--`) |
 | `"<path>" has unsaved changes in an open tab` | `ctx.vault.write` on a file whose tab (active or in the background) has unsaved edits | Edit the active clean note through the editor; skip or ask the user to save otherwise |
 | `"<path>" already exists; use write` or `"<path>" does not exist; use create` | `create` and `write` each refuse the other case | Check `exists` first, or catch and switch |
 | Renaming a note rewrote links in other notes | `rename` with a new stem updates wikilinks across the vault, saving those notes | Intended for renames; to move a file without touching links, `create` the copy and `delete` the original |
@@ -157,7 +180,10 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `editorView` is `null`, or edits go nowhere | The active tab is a canvas, kanban, collection or virtual tab, or the stored view was destroyed when such a tab was shown | Re-read `ctx.app.editorStore.editorView` each time; check `view.dom.isConnected` |
-| An edit lands in the previous note right after opening another | The editor swaps documents after `openFileInEditor` resolves | Compare `view.state.doc.toString()` with `activeTab.content` before dispatching, or wait a frame |
+| An edit lands in the previous note right after opening another | The editor swaps documents after `openFileInEditor` resolves | Compare `view.state.doc.toString()` with `activeTab.content.replace(/\r\n?/g, '\n')` before dispatching, or wait a frame |
+| Edits to one particular open note always go to disk (and fail with `has unsaved changes` once the user typed) | The note has CRLF line breaks: the editor's text uses `\n`, the tab keeps `\r\n` until the first edit, so an unnormalized comparison never matches | Normalize the tab's text before comparing, as `editNote` does |
+| After a mod changes the open note's frontmatter, the next keystroke lands in the `---` block | `updateNoteFrontmatter`, `ctx.vault.write` and `syncExternalContentToEditor` put the caret back at its old offset on the active tab | From a background trigger, leave the active note until the user switches away; from an action, `updateFrontmatterKeepCaret` |
+| A note gets a second frontmatter block | Its first lines are an empty `---`/`---` pair, which the app does not read as frontmatter | `updateFrontmatterSafely` ([Raw app: Known problems](09-raw-app.md#known-problems-caret-and-empty-block)) |
 | The action edits a different note than the one the user started from | The active tab was read after an `await` | Capture the path at the top of `run` |
 | A frontmatter block appeared in a `.canvas` or `.js` file | `updateNoteFrontmatter` does not check the extension | Check `.md` first |
 | A side effect in `mutate` happened twice | `updateNoteFrontmatter` may run `mutate` again | Keep `mutate` pure |
@@ -180,6 +206,8 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 |---------|-------|-----|
 | `ctx.kb()` shows old `file.tasks`, `file.tags`, links, size or times of a note just written (existence and frontmatter are current at once) | Those fields come from the app's cached snapshot, refreshed about 2 s after a change and at most every 10 s in a burst | Call `ctx.app.vaultStore.requestPromptIndexRefresh()` before the write, read the file directly, or wait for `vaultIndexVersion` to change |
 | `kb.pages('Projects')` returns the whole vault | An unquoted source is not parsed and filters nothing | `kb.pages('"Projects"')` |
+| A mod archives or lists a note the user edited seconds ago as untouched | `file.mtime` lags a save by up to about 12 s, and is `0` for a brand-new note | Leave out `0`, skip notes open in a tab |
+| A task report misses tasks marked `[/]` or `[!]`, or counts them as done | `task.completed` is `true` for every status but `[ ]` | Decide which statuses count; read them from the text with the app's grammar ([Tasks](10-querying-the-index.md#tasks)) |
 | `kb` paths never match `ctx.vault` paths | `kb` paths are absolute | Convert with the vault root |
 | `kb.current()` is `null` | It is the active tab when `ctx.kb()` was called, and only if that tab is an indexed page | Use `run.target` or pass the path |
 | Notes under `_system/` are missing from `kb.pages()` | The system folder (Settings, `_system` by default) is excluded from pages; `kb.page(path)` still finds them | Use `ctx.vault` for those files |

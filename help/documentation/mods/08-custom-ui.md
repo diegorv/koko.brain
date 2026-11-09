@@ -149,9 +149,8 @@ function el(tag, props = {}, ...children) {
 	return node;
 }
 
-/** Opens the panel and returns a function that closes it. */
-function openPanel(ctx, notes) {
-	const returnFocus = document.activeElement;
+/** Opens the panel and returns a function that closes it. `restoreFocus` runs once the panel has closed. */
+function openPanel(ctx, notes, restoreFocus) {
 	const dialog = el('dialog', { class: PANEL_CLASS, style: PANEL_STYLE, 'aria-label': 'Recent notes' });
 	const close = () => {
 		if (dialog.open) dialog.close();
@@ -180,7 +179,7 @@ function openPanel(ctx, notes) {
 	dialog.addEventListener('keydown', (e) => e.stopPropagation());
 	dialog.addEventListener('close', () => {
 		dialog.remove();
-		if (returnFocus instanceof HTMLElement && returnFocus.isConnected) returnFocus.focus();
+		restoreFocus();
 	});
 	document.body.append(dialog);
 	dialog.showModal();
@@ -190,8 +189,12 @@ function openPanel(ctx, notes) {
 const mod = {
 	onload(ctx) {
 		let closeOpen = null;
-		// One cleanup for whatever is open: ctx.register cannot be undone, so never register per open.
-		ctx.register(() => closeOpen?.());
+		let openTimer = null;
+		// One cleanup for whatever is open or about to open: ctx.register cannot be undone, so never register per open.
+		ctx.register(() => {
+			clearTimeout(openTimer);
+			closeOpen?.();
+		});
 
 		ctx.addAction({
 			id: 'recent',
@@ -203,9 +206,19 @@ const mod = {
 					.filter((entry) => !entry.isFolder && entry.name.endsWith('.md'))
 					.slice(0, 20)
 					.map((entry) => ({ path: entry.path, title: entry.name.slice(0, -3) }));
+				// Captured now: when the panel opens, the run view that holds focus is gone.
+				const returnTo = ctx.app.editorStore.activeTabPath;
+				const restoreFocus = () => {
+					if (ctx.signal.aborted) return;
+					const view = ctx.app.editorStore.editorView;
+					if (returnTo && ctx.app.editorStore.activeTabPath === returnTo && view?.dom.isConnected) view.focus();
+				};
 				closeOpen?.();
-				// Opened as the last step: the action returns, so its run view closes and the panel stands alone.
-				closeOpen = openPanel(ctx, notes);
+				clearTimeout(openTimer);
+				// The run view stays open until this function returns: open the panel once it has closed.
+				openTimer = setTimeout(() => {
+					if (!ctx.signal.aborted) closeOpen = openPanel(ctx, notes, restoreFocus);
+				}, 0);
 			},
 		});
 		ctx.addRailButton({ id: 'main', title: 'Recent notes', icon: 'lucide:history', actions: ['recent'] });
@@ -223,18 +236,124 @@ Rules this pattern encodes:
 | Style buttons and inputs explicitly | The same reset makes buttons transparent with no border, and font inherited |
 | A `<style>` inside the dialog for `::backdrop`, `:hover`, `:focus-visible` | Pseudo-elements and pseudo-classes cannot be set inline; `style-src 'unsafe-inline'` allows the element, and it leaves with the dialog. Prefix class names with something unique: the sheet is global |
 | `keydown` stops propagating at the dialog | App shortcuts (Cmd+S, Cmd+P, `/` and others) listen on `document` in the bubble phase and would fire while the user types in your panel |
-| Remember and restore focus | Return the user to where they were (the editor, a list row) when the panel closes |
+| Decide where focus returns **before** opening, and restore it on close | When an action opens the panel, `document.activeElement` is a button of the closing run view or the rail, not where the user was. Capture what to go back to (the active tab's path) in the action, and on close focus the editor if that note is still active |
 | `autofocus` on the first useful control | `showModal()` focuses the first focusable element, or the one with `autofocus` |
-| One `ctx.register` at `onload`, a `closeOpen` variable | Unload closes the panel; re-running the action replaces it; nothing accumulates |
-| Open it as the last step of an action and return | A run whose action has not returned keeps its run view open beneath the panel. Return, and the view closes itself when the run logged nothing |
-| Guard against a late open | When the action awaited something, check `run.signal.aborted` (or `ctx.signal.aborted` outside an action) before opening, so a panel never opens after unload |
+| One `ctx.register` at `onload`, `closeOpen` and `openTimer` variables | Unload closes the panel and cancels a pending open; re-running the action replaces it; nothing accumulates |
+| Open it **after** the action returned, from a `setTimeout(..., 0)` | The run view stays open until `run` returns, and a run that logged or showed progress keeps it open on **Done**, on top of the panel. So log nothing and show no progress in an action that ends by opening a panel, return, and open from the timer: the view has closed by then |
+| Guard against a late open | Check `run.signal.aborted` after the action's awaits, and `ctx.signal.aborted` in the timer, so a panel never opens after Stop or unload |
+| The panel lives outside the run | Once open, nothing of the run is left: no `run.signal`, no **Stop**, no `run.ui`. Code behind the panel's buttons uses `ctx.signal`, `ctx.ui` and its own inline errors |
 
 > [!WARNING]
-> A modal `<dialog>` makes **everything else inert**, including the app's own dialogs. A `ctx.ui.confirm` called while your panel is open opens behind it and cannot be clicked. Confirm inside your panel (a second button row, a "Click again to delete" state), or close the panel before calling `ctx.ui`. Toasts from `ctx.notify` also show under your backdrop.
+> A modal `<dialog>` makes **everything else inert**, including the app's own dialogs. A `ctx.ui.confirm` called while your panel is open opens behind it and cannot be clicked. Confirm inside your panel (a second button row, a "Click again to delete" state), or close the panel before calling `ctx.ui`. Toasts from `ctx.notify` also show behind your backdrop: dimmed by it and not clickable. While the panel is open, report results and errors inside it (see [A modal form](#a-modal-form)).
 
 Escape fires the dialog's `cancel` event and then `close`. To ask before closing on Escape (unsaved input), call `e.preventDefault()` in a `cancel` listener and handle it yourself.
 
 For a non-modal floating panel, use `dialog.show()` instead of `showModal()`: no backdrop, no inertness, no focus trap, and it is not on the top layer, so give it `z-index` and `position: fixed` yourself.
+
+## A modal form
+
+When `run.ui.prompt` and `run.ui.pick` are not enough (several fields at once, validation as the user types), build a form in the same kind of `<dialog>`. It reuses `el`, `PANEL_CLASS` and `PANEL_STYLE` from [above](#a-themed-modal-dialog). What it adds:
+
+- **Inputs styled with theme variables.** The app's CSS reset leaves an `<input>` with no border, no padding and a transparent background; restate them with `--input`, `--background`, `--foreground` and `--ring`.
+- **Enter submits.** A real `<form>` with a submit button gives Enter-to-submit in every field; its `submit` handler calls `preventDefault()` so the page does not navigate.
+- **Validation before submit, errors inline.** Required fields are checked on submit, and the message shows in the form (`role="alert"`). A toast would be behind the backdrop.
+- **Async submit.** The submit runs with the fields, Cancel and Escape disabled. **Cancel does not abort a submit already running**: the form is outside any run, so nothing would stop a write half done. The form stays open until the submit settles, then closes on success or shows the error and lets the user correct it.
+- **`ctx.signal`, never `run.signal`.** The form opens after its action returned (see above), so the run is over. Check `ctx.signal.aborted` after every `await` in the submit.
+
+```javascript
+const FORM_CSS = `
+	dialog.${PANEL_CLASS} form { display: grid; gap: 12px; }
+	dialog.${PANEL_CLASS} label { display: grid; gap: 4px; font-size: 12px; color: var(--muted-foreground); }
+	dialog.${PANEL_CLASS} input { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--input); background: var(--background); color: var(--foreground); font: inherit; font-size: 14px; }
+	dialog.${PANEL_CLASS} input:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	dialog.${PANEL_CLASS} [role="alert"] { color: var(--destructive); font-size: 12px; min-height: 1em; }
+	dialog.${PANEL_CLASS} button { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); }
+	dialog.${PANEL_CLASS} button.primary { background: var(--primary); color: var(--primary-foreground); border-color: transparent; }
+	dialog.${PANEL_CLASS} button:disabled { opacity: 0.5; }`;
+
+/**
+ * Opens a form. `fields`: [{ name, label, placeholder?, required? }].
+ * `submit(values, signal)` may be async; what it throws is shown in the form.
+ * Returns a function that closes the form at once, submit or not (for unload's cleanup).
+ */
+function openForm(ctx, { title, fields, submitLabel = 'Save', submit, restoreFocus = () => {} }) {
+	let submitting = false;
+	const inputs = fields.map((f) => el('input', { name: f.name, placeholder: f.placeholder ?? '', autocomplete: 'off' }));
+	const error = el('div', { role: 'alert' });
+	const cancel = el('button', { type: 'button' }, 'Cancel');
+	const save = el('button', { type: 'submit', class: 'primary' }, submitLabel);
+	const form = el('form', {},
+		el('h2', { style: 'font-size: 16px; font-weight: 600' }, title),
+		...fields.map((f, i) => el('label', {}, f.label, inputs[i])),
+		error,
+		el('div', { style: 'display: flex; justify-content: flex-end; gap: 8px' }, cancel, save),
+	);
+	const dialog = el('dialog', { class: PANEL_CLASS, style: PANEL_STYLE, 'aria-label': title }, el('style', {}, FORM_CSS), form);
+	const close = () => {
+		if (dialog.open) dialog.close();
+	};
+	const setBusy = (busy) => {
+		submitting = busy;
+		for (const control of [...inputs, cancel, save]) control.disabled = busy;
+	};
+
+	cancel.addEventListener('click', close);
+	// Escape fires `cancel`: refuse it while a submit runs, as the disabled Cancel button does.
+	dialog.addEventListener('cancel', (e) => {
+		if (submitting) e.preventDefault();
+	});
+	dialog.addEventListener('keydown', (e) => e.stopPropagation());
+	form.addEventListener('submit', async (e) => {
+		e.preventDefault();
+		if (submitting) return;
+		const values = Object.fromEntries(fields.map((f, i) => [f.name, inputs[i].value.trim()]));
+		const missing = fields.findIndex((f) => f.required && !values[f.name]);
+		if (missing !== -1) {
+			error.textContent = `${fields[missing].label} is required`;
+			inputs[missing].focus();
+			return;
+		}
+		error.textContent = '';
+		setBusy(true);
+		try {
+			await submit(values, ctx.signal);
+			if (ctx.signal.aborted) return;
+			setBusy(false);
+			close();
+		} catch (err) {
+			if (ctx.signal.aborted) return;
+			setBusy(false);
+			// A Tauri rejection is a bare string, not an Error.
+			error.textContent = typeof err?.message === 'string' ? err.message : String(err);
+		}
+	});
+	dialog.addEventListener('close', () => {
+		dialog.remove();
+		restoreFocus();
+	});
+	document.body.append(dialog);
+	dialog.showModal();
+	inputs[0]?.focus();
+	return close;
+}
+
+// In onload, opened from an action exactly like the panel above (setTimeout after the run returns):
+// closeOpen = openForm(ctx, {
+// 	title: 'New meeting note',
+// 	fields: [{ name: 'title', label: 'Title', required: true }, { name: 'who', label: 'Attendees', placeholder: 'Ada, Grace' }],
+// 	submitLabel: 'Create',
+// 	restoreFocus,
+// 	submit: async ({ title, who }, signal) => {
+// 		const name = safeName(title);
+// 		if (!name) throw new Error('The title needs at least one letter or digit');
+// 		const path = `Meetings/${name}.md`;
+// 		await ctx.vault.create(path, `# ${title}\n\nAttendees: ${who}\n`);
+// 		if (!signal.aborted) await ctx.workspace.openNote(path);
+// 	},
+// });
+```
+
+`safeName` is the canonical file-name helper from [Vault files](04-vault-files.md#note-names-safename). The unload cleanup that calls `closeOpen()` closes the form even during a submit (`close` does not check `submitting`); the submit's own `ctx.signal` checks then stop it from touching the dead form. When the user may want a second try after a failure, keep the typed values, as this form does: only success closes it.
 
 ## Mounting into app regions
 
@@ -282,36 +401,46 @@ function mountInEditor(ctx, badge) {
 
 ## A status-bar chip
 
-A plain `<button>` in the status bar inherits the bar's font, size and color, so it needs no theme code. This complete mod shows a session timer as a chip that appears on Start and is removed on Stop or click. A runnable version with a `ctx.watch` on the active tab and `ctx.theme.onChange` is in [`help/examples/mods/status-chip/`](../../examples/mods/status-chip/).
+An element in the status bar inherits the bar's font, size and color, so it needs no theme code. `createStatusChip` below is the canonical chip: the [status-chip example](../../examples/mods/status-chip/) and the [Cookbook](14-cookbook.md) use this same helper, selector and observer.
+
+- **`<span>` when the chip only shows something, `<button>` only with a click handler.** A button is announced and focused as a control; one that does nothing is a trap for keyboard and screen reader users. `createStatusChip(onClick)` makes a button when it gets a handler and a span without one.
+- **The right group already holds the app's own items**: the save status and the word count of the active note. Do not add a second word count with another definition (the app counts words split on whitespace, after the frontmatter): two numbers that disagree look like a bug. Show something the bar does not.
+- The chip goes **first** in the right group (`prepend`): the bar draws a divider before every item except the first, so the app's items keep theirs.
+
+This complete mod shows a session timer as a chip that appears on Start and is removed on Stop or click. The example adds a `ctx.watch` on the active tab and `ctx.theme.onChange`.
 
 ```javascript
 // App markup (the status bar component), not an API: it can change in any release.
 const STATUS_GROUP_SELECTOR = '[data-status-bar] > .status-bar-group:last-child';
 
-/** A chip in the right status-bar group, re-attached when the app rebuilds the bar. */
-function createChip(onClick) {
-	const chip = document.createElement('button');
-	chip.type = 'button';
-	chip.style.cssText = 'font-variant-numeric: tabular-nums; cursor: pointer;';
-	chip.addEventListener('click', onClick);
+/**
+ * A chip at the start of the right status-bar group, put back when the app
+ * rebuilds the bar. A `<button>` when it has a click handler, else a `<span>`
+ * (display only). Fill `node` yourself; `show()` mounts it, `hide()` removes it.
+ */
+function createStatusChip(onClick) {
+	const node = document.createElement(onClick ? 'button' : 'span');
+	if (onClick) {
+		node.type = 'button';
+		node.style.cursor = 'pointer';
+		node.addEventListener('click', onClick);
+	}
 	let observer = null;
 	let queued = false;
 	const attach = () => {
 		queued = false;
 		// A frame queued before hide() still runs: without the observer check it would re-add a hidden chip.
-		if (observer && !chip.isConnected) document.querySelector(STATUS_GROUP_SELECTOR)?.prepend(chip);
+		if (observer && !node.isConnected) document.querySelector(STATUS_GROUP_SELECTOR)?.prepend(node);
 	};
 	// Runs on every DOM change in the app: stay cheap, and attach at most once per frame.
 	const onMutation = () => {
-		if (queued || chip.isConnected) return;
+		if (queued || node.isConnected) return;
 		queued = true;
 		requestAnimationFrame(attach);
 	};
 	return {
-		show(text, tooltip) {
-			chip.textContent = text;
-			chip.title = tooltip;
-			chip.setAttribute('aria-label', tooltip);
+		node,
+		show() {
 			if (!observer) {
 				observer = new MutationObserver(onMutation);
 				observer.observe(document.body, { childList: true, subtree: true });
@@ -322,7 +451,7 @@ function createChip(onClick) {
 			observer?.disconnect();
 			observer = null;
 			// Removed, not display:none: a hidden first child would leave the bar's divider before the next item.
-			chip.remove();
+			node.remove();
 		},
 	};
 }
@@ -332,12 +461,16 @@ const mod = {
 		let startedAt = 0;
 		let interval = null;
 		const pad = (n) => String(n).padStart(2, '0');
-		const chip = createChip(() => stop());
+		const chip = createStatusChip(() => stop());
+		chip.node.style.fontVariantNumeric = 'tabular-nums';
+		chip.node.title = 'Session timer: click to stop';
+		chip.node.setAttribute('aria-label', 'Session timer: click to stop');
 
 		// Against the clock, not a tick count: a throttled or late interval cannot drift the time shown.
 		const render = () => {
 			const seconds = Math.floor((Date.now() - startedAt) / 1000);
-			chip.show(`${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`, 'Session timer: click to stop');
+			chip.node.textContent = `${pad(Math.floor(seconds / 60))}:${pad(seconds % 60)}`;
+			chip.show();
 		};
 		const stop = () => {
 			if (interval !== null) clearInterval(interval);
@@ -369,9 +502,10 @@ export default mod;
 
 Notes:
 
-- The observer runs only while the chip is shown. A chip that must survive a rebuilt bar while nothing ticks (a paused timer) needs it; a ticking chip would also repair itself on the next `render`.
+- The observer runs only while the chip is shown, and puts the chip back within a frame when the app rebuilds the bar or when the bar appears after the mod loaded. A paused, non-ticking chip needs nothing else.
+- When the timer ends, or anything happens that the user must not miss, do not rely on `ctx.notify` alone: its toast disappears after a few seconds. Leave the chip in a visible "done" state until clicked, or call `ctx.ui.alert` from the callback.
 - To keep state across reloads (the timer survives a restart), store `startedAt` with `ctx.saveData` and restore it in `onload` (see [Mod data](05-mod-data.md#savedatavalue)).
-- To show something about the active note, `ctx.watch(() => ctx.app.editorStore.activeTabPath, update)` is the narrowest read: it changes on tab switches, not keystrokes.
+- To show something about the active note, `ctx.watch(() => ctx.app.editorStore.activeTabPath, update)` is the narrowest read: it changes on tab switches, not keystrokes. For a value derived from its text, watch `activeTabContent` and debounce the work by 300 to 500 ms: `ctx.onNoteSaved` misses changes that reach an open tab without a save through the app (a reload from disk, a link rewrite).
 
 ## Style isolation with shadow DOM
 

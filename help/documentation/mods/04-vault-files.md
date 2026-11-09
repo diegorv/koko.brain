@@ -51,31 +51,97 @@ The check is hygiene against typos, not a sandbox. It does **not** reject backsl
 
 ### Absolute paths and `ctx.app`
 
-Everything under `ctx.app` (tab paths, `openNoteAt`, `updateNoteFrontmatter`, `dailyNotePath`, ...) and every path in `ctx.kb()` is **absolute**. The root is `ctx.app.vaultStore.path` (raw), and the host builds absolute paths as `` `${root}/${path}` ``. Two helpers convert between the forms:
+Everything under `ctx.app` (tab paths, `openNoteAt`, `updateNoteFrontmatter`, `dailyNotePath`, ...) and every path in `ctx.kb()` is **absolute**. The root is `ctx.app.vaultStore.path` (raw, no trailing slash), and the host builds absolute paths as `` `${root}/${path}` ``. These two helpers are the canonical conversion: every page of this reference and the [Cookbook](14-cookbook.md) copies them as they are, with the signature `(ctx, path)`.
 
 ```javascript
-/** Vault-relative path to the app's absolute form. */
+/** Vault-relative path (ctx.vault, run.target, onNoteSaved) to the absolute form ctx.app and ctx.kb() use. */
 function toAbsolute(ctx, path) {
 	return `${ctx.app.vaultStore.path}/${path}`;
 }
 
 /**
  * Absolute app path to the vault-relative form ctx.vault takes. Throws outside the vault.
- * Collapses "//" and drops a leading "/": app paths built from a folder setting with
- * an edge slash can carry them, and ctx.vault rejects both.
+ * Collapses "//" first: app paths built from a folder setting with an edge slash
+ * (a daily-note folder set to "Journal/") carry it, and ctx.vault rejects it.
  */
 function toVaultPath(ctx, absolute) {
-	const prefix = `${ctx.app.vaultStore.path}/`;
-	if (!absolute.startsWith(prefix)) throw new Error(`"${absolute}" is outside the vault`);
-	return absolute.slice(prefix.length).replace(/\/{2,}/g, '/').replace(/^\//, '');
+	const root = ctx.app.vaultStore.path.replace(/\/+$/, '');
+	const path = absolute.replace(/\/{2,}/g, '/');
+	if (!path.startsWith(`${root}/`)) throw new Error(`"${absolute}" is outside the vault`);
+	return path.slice(root.length + 1);
 }
 ```
 
-Typical use: `toVaultPath(ctx, ctx.app.editorStore.activeTab.path)` for the open note, `toAbsolute(ctx, run.target.path)` before calling a `ctx.app` function.
+Typical use: `toVaultPath(ctx, ctx.app.editorStore.activeTab.path)` for the open note, `toAbsolute(ctx, run.target.path)` before calling a `ctx.app` function. Two absolute paths are the same note when they are equal after `.replace(/\/{2,}/g, '/')`; compare them that way, since a tab keeps the `//` spelling it was opened with.
+
+### Note names: `safeName`
+
+A title the user typed or a mod built (a meeting subject, a fetched headline) is not a safe file name as it is. The canonical helper below turns it into one name, without extension; the [Cookbook](14-cookbook.md) copies it. It replaces:
+
+- path separators `/` and `\`, which would put the note in another folder or fail the path check, and `:`, which Finder shows as a slash;
+- `#`, `|`, `^`, `[` and `]`, which end a wikilink target early (`[[A#B]]` links to heading `B` of note `A`), so a note named with them cannot be linked;
+- control characters (newlines from a paste).
+
+It also drops leading dots: a name starting with `.` is a dotfile, which `ctx.vault.list` hides, the file explorer never shows and the index never reads, so the note seems lost. It caps the name at 200 UTF-8 bytes, under the 255-byte limit of a macOS file name, with room for `.md` and a ` 1` the app may add to deduplicate.
+
+```javascript
+/** A title as one safe file name without extension; '' when nothing is left (the caller refuses it). */
+function safeName(title) {
+	const MAX_BYTES = 200;
+	const cleaned = String(title)
+		.replace(/[\\/:#|^[\]]/g, ' ')
+		.replace(/\p{Cc}/gu, ' ')
+		.replace(/\s+/g, ' ')
+		.trim()
+		.replace(/^[.\s]+/, '');
+	const encoder = new TextEncoder();
+	let name = '';
+	let bytes = 0;
+	for (const char of cleaned) {
+		bytes += encoder.encode(char).length;
+		if (bytes > MAX_BYTES) break;
+		name += char;
+	}
+	return name.trim();
+}
+
+// const name = safeName(input);
+// if (!name) throw new Error('Type a title with at least one letter or digit');
+// await ctx.vault.create(`Meetings/${name}.md`, text);
+```
+
+`safeName` does not check for an existing note: `ctx.vault.create` rejects a taken path, and `createTypedNote` deduplicates by itself.
+
+### Writing a wikilink
+
+The app resolves a wikilink target in this order:
+
+1. A target whose last segment has an extension (`[[Folder/Name.md]]`, `[[image.png]]`) names a file: the one at that vault-relative path first, else the first file whose path ends with it.
+2. Otherwise, and when step 1 finds nothing, **by note name**: the file name without its extension, case-insensitive. On a name shared by several notes, the first one in the index wins, and that order is not something a mod can predict.
+3. A target with a folder but no extension (`[[Folder/Name]]`) matches no note name (names have no `/`), so it falls back to its last segment: it resolves **by name only**, exactly like `[[Name]]`. The folder part pins nothing.
+
+So:
+
+| You write | Resolves to |
+|-----------|-------------|
+| `[[Name]]` | The note named `Name`, wherever it is. **The app's own style**: the 1:1 notes, relationships and link rewrites on rename all write this form |
+| `[[Folder/Name]]` | The same as `[[Name]]`: the folder is ignored when another `Name` exists elsewhere |
+| `[[Folder/Name.md\|Name]]` | Exactly `Folder/Name.md`, shown as `Name`. The only form that pins one file |
+
+Write `[[Name]]` by default. Use the pinned form only when two notes may share a name and the link must reach one of them (a generated report that lists the notes of one folder, for example). Build the name with `safeName` when you create the note, so the target holds none of `# | ^ [ ]`. In a pinned link, the alias after `|` is display text; it can hold any character but `]` and `|`.
+
+```javascript
+/** [[Name]] for a vault-relative note path. */
+const wikilink = (path) => `[[${path.split('/').pop().replace(/\.md$/i, '')}]]`;
+/** [[Folder/Name.md|Name]]: pins this exact file, shows its name. */
+const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.md$/i, '')}]]`;
+```
 
 ## Errors are not always `Error` objects
 
 The host's own checks reject with an `Error`. File system failures from `read`, `exists`, `list`, `write`, `delete`, `rename`, `move` and `openNote`, and the Rust failures inside `create`, reject with a **bare string** passed through unchanged (Tauri sends plugin errors across IPC as strings). For those, `err.message` is `undefined`.
+
+Bare strings come from `ctx.vault`, `ctx.workspace` and `ctx.app` calls (the app's functions pass file system errors through as they are). `ctx.loadData` and `ctx.saveData` are the exception: they wrap every failure, so they **always reject with an `Error`** (see [Mod data](05-mod-data.md)). Everything else on `ctx` throws an `Error`.
 
 | Source | Shape |
 |--------|-------|
@@ -128,24 +194,36 @@ Resolves to the folder's **direct children**, files and folders, as `{ name, pat
 - `path` is `folder + '/' + name` (just `name` for `list('')`), built from your argument, so it echoes whatever spelling you passed.
 - **No order.** Entries come in whatever order the OS returns. Sort them yourself when order matters.
 - **Every name starting with `.` is left out**, files and folders alike (`.DS_Store`, `.kokobrain`, `.git`).
-- No filter otherwise: images, `.canvas`, `.view`, `.pdf` and `main.js` files are listed. `list('')` includes `_system` (templates, mods).
+- No filter otherwise: images, `.canvas`, `.view`, `.pdf` and `main.js` files are listed. `list('')` includes the system folder (templates, mods; see [Special folders](#special-folders)).
 - No size, dates, extension or symlink flag. How a symlinked folder reports `isFolder` is unverified.
 - A missing folder or a file path rejects with a bare string.
 
-A recursive walk, iterative so deep trees cannot overflow the stack, with Stop support:
+A recursive walk, iterative so deep trees cannot overflow the stack, with Stop support. One unreadable subfolder (permissions, a folder deleted during the walk) must not lose the rest, so failures are collected per folder; only a failure of the starting folder rejects:
 
 ```javascript
 /**
- * Vault-relative paths of every file under `folder` ('' = vault root), sorted.
+ * Every file under `folder` ('' = vault root): `{ files, failed }`, files sorted.
+ * `failed` lists the subfolders that could not be read, as `{ path, message }`.
  * `skip(path)` returning true leaves out a folder and everything in it.
+ * Rejects when `folder` itself cannot be read, and with AbortError once `signal` aborts.
  */
 async function listFilesDeep(ctx, folder, { signal, skip = () => false } = {}) {
 	const files = [];
+	const failed = [];
 	const pending = [folder];
 	while (pending.length > 0) {
 		signal?.throwIfAborted();
 		const current = pending.pop();
-		for (const entry of await ctx.vault.list(current)) {
+		let entries;
+		try {
+			entries = await ctx.vault.list(current);
+		} catch (err) {
+			if (current === folder) throw err;
+			// A Tauri rejection is a bare string, not an Error.
+			failed.push({ path: current, message: typeof err?.message === 'string' ? err.message : String(err) });
+			continue;
+		}
+		for (const entry of entries) {
 			if (entry.isFolder) {
 				if (!skip(entry.path)) pending.push(entry.path);
 			} else {
@@ -153,15 +231,18 @@ async function listFilesDeep(ctx, folder, { signal, skip = () => false } = {}) {
 			}
 		}
 	}
-	return files.sort((a, b) => a.localeCompare(b));
+	return { files: files.sort((a, b) => a.localeCompare(b)), failed };
 }
 
 // Inside an action: every Markdown note in Projects, leaving out its Archive folder.
-// const notes = (await listFilesDeep(ctx, 'Projects', { signal: run.signal, skip: (p) => p === 'Projects/Archive' }))
-// 	.filter((p) => p.toLowerCase().endsWith('.md'));
+// const { files, failed } = await listFilesDeep(ctx, 'Projects', { signal: run.signal, skip: (p) => p === 'Projects/Archive' });
+// const notes = files.filter((p) => p.toLowerCase().endsWith('.md'));
+// for (const f of failed) run.log(`Could not read ${f.path}: ${f.message}`);
 ```
 
-Walking with `list` reads the disk and costs one call per folder. To find notes by tag, type or frontmatter, [`ctx.kb()`](10-querying-the-index.md) reads the index instead (raw; tasks, tags and links can lag a few seconds behind writes). The [folder-report example](../../examples/mods/folder-report/) uses this walk with progress and Stop.
+Tell the user about `failed` folders: a report or batch that silently skipped a folder looks complete when it is not.
+
+Walking with `list` reads the disk and costs one call per folder. To find notes by tag, type or frontmatter, [`ctx.kb()`](10-querying-the-index.md) reads the index instead (raw; tasks, tags and links can lag a few seconds behind writes). The [folder-report example](../../examples/mods/folder-report/) walks a folder the same way, one `list` per folder, under a cancellable `run.ui.loading` dialog.
 
 ## Writing
 
@@ -179,6 +260,9 @@ What `create` does **not** do: it runs none of the after-save steps. No file his
 > [!TIP]
 > To create a note **from the user's template** (a daily note, a typed note) use the raw app functions (`ctx.app.openOrCreateDailyNote()`, `ctx.app.createTypedNote(...)`, `ctx.app.openOrCreateNote(...)`), described in [Raw app](09-raw-app.md). `create` writes exactly your text.
 
+> [!WARNING]
+> **A "person note", "project note" or "meeting note" is usually a typed note.** When the vault has a type definition for it (check `ctx.app.typeDefinitionsStore.getTypeMetadata('Person')`), create it with [`createTypedNote`](09-raw-app.md#createtypednote). `create` of the same file makes an **untyped** note: it lands where you put it, not in the type's folder, gets no template, and lacks the `_organized: false` that new notes get while Explicit organization is on, so it skips the Inbox and the type's views and features.
+
 A file created inside a dot-folder (`.kokobrain/x.md`) lands on disk but never enters the file explorer. Do not do it.
 
 ### `write(path, content)`
@@ -188,7 +272,7 @@ Overwrites an **existing** file and resolves to `undefined`. Order: path, conten
 1. If nothing exists at the path: rejects `"<path>" does not exist; use create`. (A folder passes this check, then the write fails with a bare string.)
 2. If an open tab holds this file with **unsaved changes**: rejects `"<path>" has unsaved changes in an open tab`, nothing written.
 3. Writes the text in place (not atomic, unlike `create` and `saveData`). A file deleted since the check is not recreated; the write rejects.
-4. If a **clean** tab holds the file, it now shows the new text and stays clean (its saved copy is updated too). If that tab is the active one, the editor replaces its document by a diff, keeping the caret where it can, with no undo entry. No autosave is armed.
+4. If a **clean** tab holds the file, it now shows the new text and stays clean (its saved copy is updated too). If that tab is the active one, the editor replaces its document by a minimal diff with no undo entry, and puts the caret back at its **old character offset**, not mapped through the change (a range selection collapses to that point). Text inserted before the caret therefore moves the caret backwards relative to the user's text: after a write that adds 30 characters of frontmatter, the next keystroke lands 30 characters earlier, often inside the `---` block. A background tab gets the same offset back when the user returns to it. No autosave is armed. To change the **active** note, edit through the editor instead ([below](#editing-a-note-that-may-be-open)), which keeps the caret with the user's text.
 5. Runs the after-save steps, as if the user had saved the file in the editor (see below), unless the file is mod code.
 
 There is **no equality guard**: writing identical text runs the whole pipeline again (index update, QueryJS invalidation, Auto Move check, `onNoteSaved`). Only file history skips it: a snapshot identical to the file's latest one is not stored. Use [`upsertNote`](#generated-notes-upsertnote) to skip identical writes.
@@ -230,9 +314,14 @@ The vault index and full-text search are updated at the call (the update itself 
 
 The check "the editor is really showing this note" matters. The app has one CodeMirror view shared by all tabs, and right after a tab switch (or `openNote`) the active tab can already be the new note while the view still holds the previous document. Dispatching then would put the edit into the wrong note. Comparing the view's text with the tab's `content` catches it; the helper then falls back to the disk route, which is safe: a clean tab takes the written text, and a tab with unsaved edits (one that was already open) makes the write reject.
 
+> [!WARNING]
+> **Compare with line breaks normalized.** CodeMirror's document always uses `\n`, but a tab's `content` keeps the file's raw text (`\r\n` for a note written on Windows or by some sync tools) until the user's first edit. A plain `view.state.doc.toString() === tab.content` is then false for as long as the note is open, and the editor route is never taken. Compare with `tab.content.replace(/\r\n?/g, '\n')`, as `editNote` does. The editor route then hands `edit` the `\n` text, and the note is saved with `\n` line breaks, as it would be after any edit by the user.
+
+Only the editor route keeps the caret with the user's text. `ctx.vault.write`, `updateNoteFrontmatter` and `syncExternalContentToEditor` on the active tab put the caret back at its old offset (see [`write`](#writepath-content)). The disk route of `editNote` reaches the active tab only in the moment while the editor is still switching to it. A mod that changes notes from a background trigger (a save callback, a timer, a watch) and cannot use the editor route, for example to set frontmatter, should leave the active note alone and change it once the user has switched away (see [Events](07-events-and-reactivity.md#avoiding-save-loops)).
+
 ### `editNote`
 
-A complete, self-contained helper. Paste it with `toVaultPath` from [above](#absolute-paths-and-ctxapp).
+The canonical helper for "change note X, which the user may have open"; the [Cookbook](14-cookbook.md) and the examples copy it. Paste it with `toVaultPath` from [Paths](#absolute-paths-and-ctxapp).
 
 ```javascript
 /** The one range that turns `before` into `after`, for a minimal editor change. */
@@ -249,8 +338,8 @@ function changedRange(before, after) {
  * Applies `edit(text) => newText` to a note that may be open in the editor.
  * `absolutePath` is an app path (`${ctx.app.vaultStore.path}/Folder/Note.md`).
  * `edit` must be synchronous and return a string; it runs exactly once.
- * Rejects when the note is missing, when `edit` throws, and when a background
- * tab holds unsaved edits of this note.
+ * Resolves to whether the text changed. Rejects when the note is missing,
+ * when `edit` throws, and when a background tab holds unsaved edits of this note.
  */
 async function editNote(ctx, absolutePath, edit) {
 	const { activeTab: tab, editorView: view } = ctx.app.editorStore;
@@ -258,16 +347,18 @@ async function editNote(ctx, absolutePath, edit) {
 	if (tab && normalized(tab.path) === normalized(absolutePath) && view?.dom.isConnected) {
 		const text = view.state.doc.toString();
 		// An editor not yet showing this note must not take the edit: it would land in another note.
-		if (text === tab.content) {
+		// The view's doc uses "\n"; the tab keeps a CRLF file's raw text until the first edit.
+		if (text === tab.content.replace(/\r\n?/g, '\n')) {
 			const next = edit(text);
-			if (next !== text) view.dispatch({ changes: changedRange(text, next) });
-			return;
+			if (next === text) return false;
+			view.dispatch({ changes: changedRange(text, next) });
+			return true;
 		}
 	}
 	const path = toVaultPath(ctx, absolutePath);
 	const text = await ctx.vault.read(path);
 	const next = edit(text);
-	if (next === text) return;
+	if (next === text) return false;
 	// ctx.vault matches tabs by exact path, so a tab opened at a path with "//" needs both steps by hand.
 	const openTab = () => ctx.app.editorStore.tabs.find((t) => normalized(t.path) === normalized(absolutePath));
 	const before = openTab();
@@ -277,13 +368,15 @@ async function editNote(ctx, absolutePath, edit) {
 	if (after && after.content === after.savedContent && after.content !== next) {
 		ctx.app.syncExternalContentToEditor(after.path, next, true, 'none');
 	}
+	return true;
 }
 ```
 
 Why it is built this way:
 
 - **Read the view and tab right before the change, with no `await` in between.** Both are re-read on every call; never keep `editorView` across an `await` (switching to a canvas, kanban or collection tab and back mounts a new view, and the old one reports `dom.isConnected === false`).
-- **One minimal change, not a whole-document replace.** A full replace would move the caret, put the whole note in undo history and rebuild every Live Preview widget.
+- **One minimal change, not a whole-document replace.** CodeMirror maps the caret through a dispatched change, so it stays with the user's text. A full replace would move the caret, put the whole note in undo history and rebuild every Live Preview widget.
+- **Line breaks are normalized before the comparison.** Without it a CRLF note never takes the editor route (see the warning above).
 - **`edit` runs once and sees the freshest text.** Put last-moment checks inside it: return `text` unchanged to cancel (for example when `run.signal.aborted`, or when the line you would add is already there).
 - **Unchanged text writes nothing**, so a rerun is cheap and does not fire `onNoteSaved`.
 - **Paths with `//` are matched by hand.** The app builds some paths from folder settings (`dailyNotePath` with a folder set to `Journal/` gives `.../Journal//<date>.md`), and the tab then carries that spelling. `ctx.vault.write` compares tab paths exactly, so on its own it would miss that tab's unsaved edits and leave a clean one showing the old text.
@@ -303,7 +396,7 @@ export default {
 			input: { placeholder: 'Line to add' },
 			run: async (input, run) => {
 				const line = input.trim();
-				if (!line) return;
+				if (!line) throw new Error('Type a line');
 				const tab = ctx.app.editorStore.activeTab;
 				if (!tab || !tab.path.toLowerCase().endsWith('.md')) throw new Error('Open a note first');
 				const target = tab.path;
@@ -325,7 +418,7 @@ export default {
 For a vault-relative path (from `run.target`, `list`, `onNoteSaved`) call `editNote(ctx, toAbsolute(ctx, path), edit)`. The [daily-journal example](../../examples/mods/daily-journal/) uses this pattern on today's daily note, and [note-tools](../../examples/mods/note-tools/) uses `run.target` with an active-note fallback.
 
 > [!TIP]
-> To change only frontmatter properties, `ctx.app.updateNoteFrontmatter(absolutePath, mutate)` (raw) handles both open and closed notes, and keeps unsaved body edits. It writes nothing only when the rebuilt text equals the file byte for byte, which holds only for frontmatter already in the app's canonical form; to skip the write, throw a sentinel from `mutate` and catch it (see [the cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)). See [Raw app](09-raw-app.md#updatenotefrontmatter).
+> To change only frontmatter properties, `ctx.app.updateNoteFrontmatter(absolutePath, mutate)` (raw) handles both open and closed notes, and keeps unsaved body edits. It writes nothing only when the rebuilt text equals the file byte for byte, which holds only for frontmatter already in the app's canonical form; to skip the write, throw a sentinel from `mutate` and catch it (see [the cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)). On the **active** note it moves the caret (old offset kept, not mapped), and on a note that starts with an empty `---`/`---` block it adds a second block. Both, with their workarounds, are in [Raw app](09-raw-app.md#updatenotefrontmatter).
 
 ### Checking for unsaved edits before a multi-note change
 
@@ -393,9 +486,10 @@ The temporary name ends in `.renaming-<ms>`, so for that moment the file is not 
 
 Moves a file or folder into `targetFolder` (`''` for the vault root) and resolves to the new vault-relative path, or to the unchanged path when it is already there (never `null`).
 
-- The target folder **must exist**: there is no `mkdir`, and a missing folder fails with a bare string. A folder is created only as a side effect of `create` of a file inside it; `ctx.vault` cannot create an empty folder.
+- The target folder **must exist**: there is no `mkdir`, and a missing folder fails with a bare string. A folder is created only as a side effect of `create` of a file inside it; `ctx.vault` cannot create an empty folder. When a mod needs a folder that may not exist yet (an archive folder, say), settle with the user how it comes to exist: they create it, or the mod creates a note inside it, such as a short index note.
 - A taken name rejects with `"<name>" already exists in this folder`.
-- Links are not rewritten (the note name is unchanged), and the app's link resolution follows the note by name.
+- Open tabs of the file (or of files inside a moved folder) follow it to the new path, **unsaved edits included**: the tab keeps its text and its dirty state, and its next save writes to the new path. Nothing is saved by the move itself.
+- Links are not rewritten (the note name is unchanged), and the app's link resolution follows the note by name. A pinned link (`[[Old/Name.md|Name]]`, see [Writing a wikilink](#writing-a-wikilink)) stops resolving to that exact path, and falls back to the name.
 - Moving a folder into itself fails at the OS level.
 
 ### `delete(path)`
@@ -437,8 +531,8 @@ Opening a mod's own `main.js` and editing it there autosaves and reloads that mo
 
 | Folder | What `ctx.vault` does there |
 |--------|-----------------------------|
-| `_system/mods/<id>/` | Allowed. `write` of a non-note file skips the after-save steps and is seen by the watcher. **Writing, creating, renaming or deleting `main.js` or `manifest.json` reloads that mod** (deleting the folder or the manifest unloads it). A mod can rewrite or trash its own code; the reload waits for its running actions to end. See [Anatomy and loading](01-anatomy-and-loading.md#reload-on-save). |
-| `_system/` (templates and the rest) | Allowed and listed by `list('')`. Notes under the system folder are not pages in `ctx.kb()`. |
+| `_system/mods/<id>/` | Allowed. This path is **fixed**: the mods folder ignores the system folder setting. `write` of a non-note file skips the after-save steps and is seen by the watcher. **Writing, creating, renaming or deleting `main.js` or `manifest.json` reloads that mod** (deleting the folder or the manifest unloads it). A mod can rewrite or trash its own code; the reload waits for its running actions to end. See [Anatomy and loading](01-anatomy-and-loading.md#reload-on-save). |
+| The system folder (templates and the rest) | A setting, not a fixed name: `ctx.app.settingsStore.templates.systemFolder` (raw), `_system` by default, vault-relative. Allowed, and listed by `list('')`. Notes under it are not pages in `ctx.kb()`. The templates folder is another setting, `settingsStore.templates.folder` (`_system/templates` by default). Read both instead of hard-coding them, for example to leave the system folder out of a walk. |
 | `.kokobrain/` | The app's own folder: settings, Trash, mod data. `list` hides its dot entries, the explorer never shows it. Do not write here. `.kokobrain/mods/<id>/data.json` is your data file: use `saveData`, because a `write` to it bypasses the atomic write and runs the full after-save pipeline, adding file history rows. Editing `.kokobrain/trash/trash-manifest.json` can break the Trash view. |
 | Other dot-folders (`.git`, `.obsidian`) | Valid paths, but the app's file permissions only list `.kokobrain` among dot-folders, so reads and writes there may be refused with a bare string (unverified). |
 

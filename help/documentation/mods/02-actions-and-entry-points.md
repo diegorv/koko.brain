@@ -79,6 +79,8 @@ Removing an action does not stop a run of it that is already going. That run end
 - Throw an `Error` for anything the user should see. `throw 'text'` works but has no stack in the **Details** expander.
 - Inside `run`, use `run.ui` for dialogs, check `run.signal.aborted` between steps, and pass `run.signal` to `fetch`. See [Runs](03-runs.md#cancellation-patterns).
 - Never trim-and-ignore silently: the text field passes `''` when the user presses **Enter** on an empty field, so validate `text` and throw a clear error.
+- A state with **nothing to do** (nothing selected, every note already done) is not an error: `ctx.notify(...)` and `return`. A throw would end the run **Failed**. See [Runs: ending an action](03-runs.md#ending-an-action).
+- An action that ends by **opening a note or a dialog** must not call `run.log` or `run.progress` on its success path: the run view would stay on **Done** on top of what it opened.
 
 ## `ctx.addRailButton`
 
@@ -226,7 +228,7 @@ const unplace = ctx.labs.place('word-count', {
 | `menu.on` | `('note' \| 'folder')[]` | required with `menu` | Which menus show the item. `[]` is accepted and shows it nowhere |
 | `menu.files` | `'markdown' \| 'all'` | `'markdown'` | Note menus only: which file rows show the item. Ignored for folders |
 
-At least one of `palette: true` or `menu` is required.
+At least one of `palette: true` or `menu` is required. A menu-only placement, `{ menu: { on: ['note'] } }` with no `palette` key, is valid: the action shows in the menu and not in the palette.
 
 ### Validation
 
@@ -237,7 +239,7 @@ In this order. Messages start with `Mod "<mod-id>": `, except the first.
 | the mod is live | `Mod "<mod-id>" is unloaded` |
 | `actionId` is a live action of **this** mod (you cannot place another mod's action) | `unknown action id "<actionId>"` |
 | `palette` is `true` or `menu` is set (`{}`, `null`, `undefined`, `{ palette: false }` and `{ palette: 'yes' }` all fail here) | `labs.place needs palette: true or menu` |
-| with a `menu`, `palette` is omitted or `true` (for example `{ palette: false, menu: ... }`) | `labs.place needs palette: true` |
+| `palette`, when the key is present, is exactly `true`. Omitting it is fine (a menu-only placement); `{ palette: false, menu: ... }` fails here | `labs.place needs palette: true` |
 | `menu` is an object whose `on` is an array of `'note'` and `'folder'` only (`menu: null`, `on: 'note'`, `on: ['file']` fail) | `labs.place needs menu.on to list note or folder` |
 | `menu.files` is omitted, `'markdown'` or `'all'` | `labs.place needs menu.files to be markdown or all` |
 
@@ -297,29 +299,29 @@ function targetNote(run) {
 		return run.target.path;
 	}
 	const tab = ctx.app.editorStore.activeTab;          // raw: no compatibility promise
-	const root = ctx.app.vaultStore.path.replace(/\/+$/, '');
-	// An app path can carry a doubled slash (a folder setting with an edge slash): collapse it.
-	const absolute = tab ? tab.path.replace(/\/{2,}/g, '/') : '';
-	if (!absolute.startsWith(`${root}/`)) throw new Error('Open a note first');
-	const path = absolute.slice(root.length + 1);
+	// Virtual tabs (Tasks, Graph) have no file in the vault.
+	if (!tab || !tab.path.startsWith(`${ctx.app.vaultStore.path}/`)) throw new Error('Open a note first');
+	const path = toVaultPath(ctx, tab.path);
 	if (!/\.(md|markdown)$/i.test(path)) throw new Error('The active tab is not a Markdown note');
 	return path;
 }
+// toVaultPath, toAbsolute and editNote: the canonical helpers from 04-vault-files.md.
 
 ctx.addAction({
 	id: 'stamp',
 	title: 'Add a timestamp line',
 	run: async (_text, run) => {
 		const path = targetNote(run);                    // before any await
-		const text = await ctx.vault.read(path);
-		if (run.signal.aborted) return;
-		await ctx.vault.write(path, `${text.replace(/\n*$/, '\n')}\n${new Date().toISOString()}\n`);
+		const stamp = new Date().toLocaleString();
+		// Through the editor when the note is the active one, else on disk.
+		await editNote(ctx, toAbsolute(ctx, path), (text) =>
+			run.signal.aborted ? text : `${text.replace(/\n*$/, '\n')}\n${stamp}\n`);
 	},
 });
 ctx.labs.place('stamp', { palette: true, menu: { on: ['note'] } });
 ```
 
-`ctx.vault.write` refuses a note with unsaved changes in an open tab. To edit the note the user is typing in, go through the editor instead: see [Vault files](04-vault-files.md#editing-a-note-that-may-be-open). For `editorStore` and `vaultStore`, see [The raw app](09-raw-app.md#editorstore) and [vaultStore](09-raw-app.md#vaultstore).
+A plain `ctx.vault.read` and `write` would refuse a note with unsaved changes in an open tab, and on the clean active note it would move the user's caret. [`editNote`](04-vault-files.md#editnote) goes through the editor for the active note: see [Vault files](04-vault-files.md#editing-a-note-that-may-be-open). For `editorStore` and `vaultStore`, see [The raw app](09-raw-app.md#editorstore) and [vaultStore](09-raw-app.md#vaultstore).
 
 ## `ctx.app.modCommandsStore`
 
@@ -380,6 +382,14 @@ A `main.js` with a rail button over two actions, a palette entry, a note menu en
 ```javascript
 const REPORT_FOLDER = 'Entry points demo';
 
+/** The canonical helper from 04-vault-files.md: absolute app path to vault-relative, "//" collapsed. */
+function toVaultPath(ctx, absolute) {
+	const root = ctx.app.vaultStore.path.replace(/\/+$/, '');
+	const path = absolute.replace(/\/{2,}/g, '/');
+	if (!path.startsWith(`${root}/`)) throw new Error(`"${absolute}" is outside the vault`);
+	return path.slice(root.length + 1);
+}
+
 export default {
 	onload(ctx) {
 		/** Vault-relative path of the clicked note, else the active Markdown note; call it before any await. */
@@ -389,10 +399,8 @@ export default {
 				return run.target.path;
 			}
 			const tab = ctx.app.editorStore.activeTab;
-			const root = ctx.app.vaultStore.path.replace(/\/+$/, '');
-			const absolute = tab ? tab.path.replace(/\/{2,}/g, '/') : '';
-			if (!absolute.startsWith(`${root}/`)) throw new Error('Open a note first');
-			const path = absolute.slice(root.length + 1);
+			if (!tab || !tab.path.startsWith(`${ctx.app.vaultStore.path}/`)) throw new Error('Open a note first');
+			const path = toVaultPath(ctx, tab.path);
 			if (!/\.(md|markdown)$/i.test(path)) throw new Error('The active tab is not a Markdown note');
 			return path;
 		}
@@ -421,13 +429,16 @@ export default {
 				const entries = await ctx.vault.list(folder);
 				if (run.signal.aborted) return;
 				const notes = entries.filter((e) => !e.isFolder && /\.md$/i.test(e.name));
-				run.log(`${notes.length} notes in ${folder || '(vault root)'}`);
+				if (notes.length === 0) return ctx.notify(`No notes in ${folder || 'the vault root'}`);
 				const name = (folder || 'vault root').replace(/\//g, ' - ');
 				const path = `${REPORT_FOLDER}/${name}.md`;
-				const body = `# ${folder || 'Vault root'}\n\n${notes.map((n) => `- [[${n.path.replace(/\.md$/i, '')}]]`).join('\n')}\n`;
+				// Pinned links ([[Folder/Name.md|Name]]): a note of the same name elsewhere cannot capture them.
+				const links = notes.map((n) => `- [[${n.path}|${n.name.replace(/\.md$/i, '')}]]`);
+				const body = `# ${folder || 'Vault root'}\n\n${links.join('\n')}\n`;
 				if (await ctx.vault.exists(path)) await ctx.vault.write(path, body);
 				else await ctx.vault.create(path, body);
 				if (run.signal.aborted) return;
+				// Last step, with no run.log or run.progress before it: the run view closes and the note shows.
 				await ctx.workspace.openNote(path);
 			},
 		});

@@ -555,6 +555,18 @@ describe('help/examples/mods/daily-journal', () => {
 		expect(fake.files.get(TODAY)).toBe('# Today\n');
 	});
 
+	it('goes through the editor for a CRLF note, whose tab keeps "\\r\\n" while the editor shows "\\n"', async () => {
+		at();
+		const fake = load('daily-journal', { files: { [TODAY]: '# Today\r\nfirst\r\n' } });
+		// CodeMirror normalizes line breaks; the store keeps the raw text until the first edit.
+		const tab = fake.openTab(TODAY, { viewText: '# Today\nfirst\n' });
+		const { run, lines } = fakeRun();
+		await runAction(fake, 'add-entry', 'Lunch', run);
+		expect(lines).toEqual([`Added to ${TODAY} (in the open note)`]);
+		expect(tab.content).toBe('# Today\nfirst\n- 09:05 Lunch\n');
+		expect(fake.files.get(TODAY)).toBe('# Today\r\nfirst\r\n');
+	});
+
 	it('writes on disk when the editor still shows another note', async () => {
 		at();
 		const fake = load('daily-journal', { files: { [TODAY]: '# Today\n' } });
@@ -738,6 +750,9 @@ describe('help/examples/mods/note-tools', () => {
 		const fake = load('note-tools', { files: { [NOTE]: TEXT, 'Notes/B.md': 'b' } });
 		const target = { on: 'note' as const, path: NOTE };
 		await expect(runAction(fake, 'rename', '', fakeRun(['a/b'], target).run)).rejects.toThrow('A name cannot hold');
+		// "#" would end a [[link]] to the note early; a leading dot hides it from the explorer and the index.
+		await expect(runAction(fake, 'rename', '', fakeRun(['Plan #2'], target).run)).rejects.toThrow('A name cannot hold');
+		await expect(runAction(fake, 'rename', '', fakeRun(['.hidden'], target).run)).rejects.toThrow('A name cannot start with a dot');
 		await expect(runAction(fake, 'rename', '', fakeRun(['B'], target).run)).rejects.toThrow('"B.md" already exists in this folder');
 		expect([...fake.files.keys()].sort()).toEqual(['Notes/A.md', 'Notes/B.md']);
 	});
@@ -754,41 +769,49 @@ describe('help/examples/mods/folder-report', () => {
 		expect(fake.buttons).toEqual([]);
 	});
 
-	it('walks the folder, writes the report after a confirm and opens it', async () => {
+	it('walks the folder under a loading dialog, writes the report after a confirm and opens it, leaving no run output', async () => {
 		const fake = load('folder-report', { files: FILES });
-		const { run, progress, lines } = fakeRun([true], target);
+		const { run, progress, lines } = fakeRun(['done', true], target);
 		await runAction(fake, 'report', '', run);
 		const report = fake.files.get(REPORT)!;
 		expect(report).toMatch(/^# Report: Projects\n\nYour notes here are kept/);
-		expect(report).toContain(': 2 notes in 2 folders.\n\n- [[Projects/A]]\n- [[Projects/sub/B]]\n<!-- folder-report:generated:end -->\n');
+		expect(report).toContain(': 2 notes in 2 folders.\n\n- [[Projects/A.md|A]]\n- [[Projects/sub/B.md|B]]\n<!-- folder-report:generated:end -->\n');
 		expect(report).not.toContain('img');
 		expect(report).not.toContain('Other');
-		expect(progress).toEqual(['1/2 Projects', '2/2 Projects/sub']);
-		expect(lines).toEqual([`Wrote ${REPORT}`]);
+		// Output would keep the run view open on Done, on top of the report it opens.
+		expect(progress).toEqual([]);
+		expect(lines).toEqual([]);
 		expect(fake.opened).toEqual([REPORT]);
+	});
+
+	it('writes nothing when the loading dialog is cancelled', async () => {
+		const fake = load('folder-report', { files: FILES });
+		await runAction(fake, 'report', '', fakeRun(['cancel'], target).run);
+		expect(fake.files.has(REPORT)).toBe(false);
+		expect(fake.opened).toEqual([]);
 	});
 
 	it('regenerates only the block and keeps the user text around it', async () => {
 		const before = '# Mine\n\nkeep above\n<!-- folder-report:generated:start v1 -->\nold\n<!-- folder-report:generated:end -->\nkeep below\n';
 		const fake = load('folder-report', { files: { ...FILES, [REPORT]: before } });
-		await runAction(fake, 'report', '', fakeRun([true], target).run);
+		await runAction(fake, 'report', '', fakeRun(['done', true], target).run);
 		const after = fake.files.get(REPORT)!;
 		expect(after.startsWith('# Mine\n\nkeep above\n<!-- folder-report:generated:start v1 -->\nGenerated ')).toBe(true);
-		expect(after.endsWith('- [[Projects/sub/B]]\n<!-- folder-report:generated:end -->\nkeep below\n')).toBe(true);
+		expect(after.endsWith('- [[Projects/sub/B.md|B]]\n<!-- folder-report:generated:end -->\nkeep below\n')).toBe(true);
 		expect(after).not.toContain('\nold\n');
 	});
 
 	it('refuses to guess when the markers were edited', async () => {
 		const edited = '# Mine\n<!-- folder-report:generated:start v1 -->\nold\n';
 		const fake = load('folder-report', { files: { ...FILES, [REPORT]: edited } });
-		await expect(runAction(fake, 'report', '', fakeRun([true], target).run)).rejects.toThrow('The report markers were edited or removed');
+		await expect(runAction(fake, 'report', '', fakeRun(['done', true], target).run)).rejects.toThrow('The report markers were edited or removed');
 		expect(fake.files.get(REPORT)).toBe(edited);
 		expect(fake.opened).toEqual([]);
 	});
 
 	it('writes nothing when the confirm is cancelled', async () => {
 		const fake = load('folder-report', { files: FILES });
-		await runAction(fake, 'report', '', fakeRun([false], target).run);
+		await runAction(fake, 'report', '', fakeRun(['done', false], target).run);
 		expect(fake.files.has(REPORT)).toBe(false);
 	});
 
@@ -807,7 +830,7 @@ describe('help/examples/mods/folder-report', () => {
 
 	it('writes nothing when stopped at the confirm', async () => {
 		const fake = load('folder-report', { files: FILES });
-		await expect(runAction(fake, 'report', '', fakeRun([STOP], target).run)).rejects.toThrow('The run was stopped');
+		await expect(runAction(fake, 'report', '', fakeRun(['done', STOP], target).run)).rejects.toThrow('The run was stopped');
 		expect(fake.files.has(REPORT)).toBe(false);
 	});
 
@@ -939,21 +962,38 @@ describe('help/examples/mods/click-counter', () => {
 });
 
 describe('help/examples/mods/status-chip', () => {
-	/** The status bar's markup the chip depends on */
+	/** The status bar's markup the chip depends on: `[data-status-bar]` with two groups, the right one holding app items */
 	function statusBar(): HTMLElement[] {
+		const bar = document.createElement('div');
+		bar.setAttribute('data-status-bar', '');
 		const groups = [document.createElement('div'), document.createElement('div')];
 		for (const group of groups) {
 			group.className = 'status-bar-group';
-			document.body.append(group);
+			bar.append(group);
 		}
 		groups[1].append(document.createElement('span'));
+		document.body.append(bar);
 		return groups;
 	}
+	/** Lets the MutationObserver report and its animation frame run */
+	const settle = () => vi.advanceTimersByTimeAsync(20);
 	const chip = () => document.querySelector<HTMLButtonElement>('[data-mod-status-chip]');
 	const start = (files: Record<string, string> = {}, app?: Record<string, unknown>) => {
 		vi.useFakeTimers({ now: new Date(2026, 10, 8, 9, 5) });
 		return load('status-chip', { files, app });
 	};
+
+	it('is a button, since it has a click handler, in the right group of the status bar only', () => {
+		const groups = statusBar();
+		const stray = document.createElement('div');
+		stray.className = 'status-bar-group';
+		document.body.append(stray);
+		const fake = start();
+		expect(chip()!.tagName).toBe('BUTTON');
+		expect(chip()!.parentElement).toBe(groups[1]);
+		expect(stray.children).toHaveLength(0);
+		fake.unload();
+	});
 
 	it('mounts first in the right group with the open note, the time and the theme', () => {
 		const groups = statusBar();
@@ -984,34 +1024,37 @@ describe('help/examples/mods/status-chip', () => {
 		fake.unload();
 	});
 
-	it('updates the clock on its timer and comes back when the app replaces the bar', () => {
+	it('updates the clock on its timer and comes back within a frame when the app replaces the bar', async () => {
 		const groups = statusBar();
 		const fake = start();
-		groups.forEach((group) => group.remove());
+		groups[0].parentElement!.remove();
+		await settle();
 		expect(chip()).toBeNull();
 		const replaced = statusBar();
-		vi.advanceTimersByTime(30_000);
+		await settle();
 		expect(replaced[1].firstElementChild).toBe(chip());
 		expect(chip()!.textContent).toBe('No note 09:05');
-		vi.advanceTimersByTime(30_000);
+		vi.advanceTimersByTime(60_000);
 		expect(chip()!.textContent).toBe('No note 09:06');
 		fake.unload();
 	});
 
-	it('loads without a status bar and attaches once one appears', () => {
+	it('loads without a status bar and attaches once one appears', async () => {
 		const fake = start();
 		expect(chip()).toBeNull();
 		statusBar();
-		vi.advanceTimersByTime(30_000);
+		await settle();
 		expect(chip()).not.toBeNull();
 		fake.unload();
 	});
 
-	it('hides and shows from its action, and a hidden chip stays out on the timer', async () => {
+	it('hides and shows from its action, and a hidden chip stays out when the bar is rebuilt', async () => {
 		statusBar();
 		const fake = start();
 		await runAction(fake, 'toggle', '', fakeRun().run);
 		expect(chip()).toBeNull();
+		statusBar();
+		await settle();
 		vi.advanceTimersByTime(30_000);
 		expect(chip()).toBeNull();
 		await runAction(fake, 'toggle', '', fakeRun().run);
@@ -1035,13 +1078,17 @@ describe('help/examples/mods/status-chip', () => {
 		failing.unload();
 	});
 
-	it('removes the chip, the timer, the click listener and its subscriptions at unload', async () => {
+	it('removes the chip, the timer, the observer, the click listener and its subscriptions at unload', async () => {
 		statusBar();
 		const fake = start({ 'A.md': 'a' });
 		const node = chip()!;
 		fake.unload();
 		expect(chip()).toBeNull();
 		expect(vi.getTimerCount()).toBe(0);
+		// A rebuilt bar after unload stays without the chip: the observer is gone.
+		statusBar();
+		await settle();
+		expect(chip()).toBeNull();
 		node.click();
 		await vi.advanceTimersByTimeAsync(0);
 		expect(fake.opened).toEqual([]);

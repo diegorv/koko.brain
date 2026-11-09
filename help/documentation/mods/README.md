@@ -46,9 +46,9 @@ export default {
 				if (run.signal.aborted) return;
 
 				await ctx.vault.create(path, `# Hello, ${clean}\n`);
-				run.log(`Created ${path}`);
 				if (run.signal.aborted) return;
 
+				// The last step, with no run.log or run.progress before it: the run view closes and the note shows.
 				await ctx.workspace.openNote(path);
 			},
 		});
@@ -65,6 +65,8 @@ What this shows:
 - `export default` starts at column 0, once, and exports an object with `onload`.
 - The action asks with `run.ui` (closed by **Stop**), checks `run.signal.aborted` after every `await`, and **throws** on a user error: the host marks the run Failed and shows a toast `Hello world: New greeting note failed: Type a name`.
 - Paths given to `ctx.vault` and `ctx.workspace` are vault-relative.
+- The action ends by opening the note and writes no `run.log` or `run.progress`, so its run view closes by itself instead of staying on top of the note (see [Runs: Ending an action](03-runs.md#ending-an-action)).
+- The file name only loses path characters here. A real mod builds names from user text with [`safeName`](04-vault-files.md#note-names-safename), which also removes wikilink characters and leading dots.
 - No cleanup code: the host removes actions and rail buttons on unload by itself.
 
 A larger, commented example is [hello](../../examples/mods/hello/). A standalone type file for editor checking is [kokobrain-mod.d.ts](../../examples/mods/kokobrain-mod.d.ts) (see [Types, build and test](12-types-build-and-test.md)).
@@ -78,15 +80,15 @@ Break any of these and the mod fails to load, misbehaves, or damages notes.
 3. **Export an object (or a class instance) with an `onload` function.** A function, a class or an object without `onload` is rejected.
 4. **Inside an action, ask with `run.ui`, never `ctx.ui`.** `run.ui` dialogs close when the user presses **Stop**; `ctx.ui` dialogs stay open and keep the action waiting. See [Dialogs](06-dialogs.md#which-set-to-use).
 5. **Check `run.signal.aborted` after every `await` and between steps, and pass `run.signal` to `fetch`.** Stop cannot interrupt running code; it only aborts the signal. A synchronous loop freezes the whole app. See [Runs](03-runs.md#cancellation-patterns).
-6. **Throw to fail an action.** A throw or rejection marks the run Failed and shows a toast with the action title. Do not catch everything and return quietly, and do not toast an error and then return as if it worked.
+6. **Throw to fail an action; notify and return when there is nothing to do.** A throw or rejection marks the run Failed and shows a toast with the action title: use it for errors and invalid input (an empty field, the wrong kind of target). A state with nothing to do (already running, nothing selected, nothing found, already done) is not a failure: `ctx.notify('...')` and `return`. Do not catch an error and return quietly, and do not toast an error and then return as if it worked. See [Runs: Ending an action](03-runs.md#ending-an-action).
 7. **Register a cleanup for everything the host does not track**: timers, DOM listeners, DOM nodes, observers, `window` properties, raw registrations through `ctx.app`. Use `ctx.register(fn)` inside `onload`. See [Events and reactivity](07-events-and-reactivity.md#ctxregister-and-ctxsignal-cleanup-and-order).
 8. **Never call `ctx` from `onunload` or a cleanup.** The mod is already marked unloaded, so every `ctx` function throws. `onunload` is also skipped when `onload` failed. Save state when it changes. See [onunload runs with a dead ctx](01-anatomy-and-loading.md#onunload-runs-with-a-dead-ctx).
-9. **`ctx.vault`, `ctx.workspace`, `ctx.onNoteSaved` and `run.target` use vault-relative paths** (`Projects/Plan.md`: no leading `/`, no `.` or `..`, no empty segment). **`ctx.app` and `ctx.kb()` use absolute paths.** Convert with `` `${ctx.app.vaultStore.path}/${relative}` `` and back by stripping that prefix. See [Vault files](04-vault-files.md#paths).
+9. **`ctx.vault`, `ctx.workspace`, `ctx.onNoteSaved` and `run.target` use vault-relative paths** (`Projects/Plan.md`: no leading `/`, no `.` or `..`, no empty segment). **`ctx.app` and `ctx.kb()` use absolute paths.** Convert with `toAbsolute(ctx, path)` and `toVaultPath(ctx, absolute)` from [Vault files](04-vault-files.md#absolute-paths-and-ctxapp) (the second also collapses the `//` some app paths carry).
 10. **Never edit an open note's file behind the editor.** When the note is open, edit it through the editor (`ctx.app.editorStore.editorView`), which keeps unsaved typing and arms autosave. `ctx.vault.write` rejects a note with unsaved changes in an open tab. See [Vault files](04-vault-files.md#editing-a-note-that-may-be-open).
 11. **Capture the active note before the first `await`.** The user can switch tabs while your action waits on a dialog or a file. Prefer `run.target` when the action was started from a menu.
-12. **Scope every `ctx.kb()` query** to a folder (`kb.pages('"Projects"')`) or a `.limit(n)`: an unscoped `kb.pages()` builds and returns every note of the vault. Tasks, tags and links in the index lag writes by seconds (existence and frontmatter do not). See [Querying the index](10-querying-the-index.md#scoping).
+12. **Scope every `ctx.kb()` query** to a folder (`kb.pages('"Projects"')`), a `file.folder` predicate in the same chain (the vault root: `.where((p) => p.file.folder === ctx.app.vaultStore.path)`) or a `.limit(n)`. The index builds every page either way; the scope filters what the query returns, so private notes outside the task stay out of reports and pickers. A whole-vault read the task really needs is fine, with a comment saying why. Tasks, tags, links, size and mtime in the index lag writes by up to about 12 s (existence and frontmatter do not). See [Querying the index](10-querying-the-index.md#scoping).
 13. **`fetch` only reaches the allowed hosts:** `https://api.todoist.com`, `https://huggingface.co`, `https://github.com`, `https://objects.githubusercontent.com` and the Sentry ingest hosts. Everything else (`api.github.com`, `raw.githubusercontent.com`, any LLM API, `localhost`) is blocked by the app's content security policy. WebSockets and `EventSource` follow the same list: they are blocked only for hosts not on it. See [Network and platform](11-network-and-platform.md#fetch-and-the-csp).
-14. **Read errors with `err instanceof Error ? err.message : String(err)`.** File system errors reach the mod as plain strings, so `err.message` is `undefined`.
+14. **Read errors with `err instanceof Error ? err.message : String(err)`** (or the `errorMessage` helper of [Vault files](04-vault-files.md#errors-are-not-always-error-objects)). File system errors from `ctx.vault`, `ctx.workspace` and `ctx.app` calls reach the mod as plain strings, so `err.message` is `undefined`. `ctx.loadData` and `ctx.saveData` always reject with an `Error`, and so does every other `ctx` member.
 15. **Store data with `ctx.saveData` / `ctx.loadData`**, not in notes or `localStorage`, and never write the same note again from `ctx.onNoteSaved` without a guard (it loops). See [Mod data](05-mod-data.md) and [Events and reactivity](07-events-and-reactivity.md).
 
 ## Stability tiers
@@ -105,7 +107,7 @@ Use the most stable tier that does the job. When you must use raw access, keep i
 
 | I want to | Use | Tier | Not |
 |-----------|-----|------|-----|
-| Show a short message | `ctx.notify(message, { kind })` | stable | It is an in-app toast, never an OS notification |
+| Show a short message | `ctx.notify(message, { kind })` | stable | It is an in-app toast of about 4 s, never an OS notification. For an event the user must not miss, `ctx.ui.alert` or a chip that stays |
 | Ask the user something inside an action | `run.ui.prompt` / `confirm` / `pick` / `alert` / `loading` | stable | `ctx.ui` (does not close on Stop) |
 | Ask the user something outside an action (a timer, a listener) | `ctx.ui.*` | stable | |
 | Report progress of a long action | `run.progress(done, total, label)` and `run.log(text)` | stable | Toasts per step |
@@ -115,7 +117,7 @@ Use the most stable tier that does the job. When you must use raw access, keep i
 | Open a note | `ctx.workspace.openNote(relativePath)` | stable | |
 | Open a note at a line, or by absolute path | `ctx.app.openNoteAt(...)`, `ctx.app.openFileInEditor(absolutePath)` | raw | |
 | Find today's daily note, or create it from its template | `ctx.app.dailyNotePath(date?)`, `ctx.app.openOrCreateDailyNote()` | raw | Building the path by hand |
-| Create a note of a type, with its template | `ctx.app.createTypedNote({ typeName, title })` | raw | `ctx.vault.create` (skips the template) |
+| Create a note of a type, with its template | `ctx.app.createTypedNote({ typeName, title, buildContent: ensureTypeLine(typeName) })` | raw | `ctx.vault.create` (skips the template, the type folder and `_organized: false`) |
 | Query notes, tags, tasks, links, properties | `await ctx.kb()`, then `kb.pages('"Folder"')...` | raw | `ctx.vault.list` over the whole vault |
 | React to a note being saved | `ctx.onNoteSaved(callback)` | stable | Polling files |
 | React to app state (active tab, settings) | `ctx.watch(read, onChange)` | stable (the values read are raw) | `setInterval` polling |
@@ -144,8 +146,19 @@ Use the most stable tier that does the job. When you must use raw access, keep i
 | Add a keyboard shortcut | [Events and reactivity: keyboard shortcuts](07-events-and-reactivity.md#keyboard-shortcuts), [Cookbook: keyboard shortcuts](14-cookbook.md#11-keyboard-shortcuts) |
 | Build a panel, a status bar chip or my own modal | [Custom UI](08-custom-ui.md) ([status-bar chip](08-custom-ui.md#a-status-bar-chip), [themed modal](08-custom-ui.md#a-themed-modal-dialog)) |
 | Use daily notes, typed notes, frontmatter, the editor | [Raw app](09-raw-app.md) |
+| Create a typed note ("a person note", "a meeting note") | [Raw app: `createTypedNote`](09-raw-app.md#createtypednote), [Cookbook: typed note](14-cookbook.md#17-create-a-typed-note-from-an-input-action) |
+| Turn a typed title into a safe file name | [Vault files: `safeName`](04-vault-files.md#note-names-safename) |
+| Write a wikilink | [Vault files: Writing a wikilink](04-vault-files.md#writing-a-wikilink) |
+| Ask the user for a folder | [Cookbook: folder picker](14-cookbook.md#7-pick-a-note-from-the-index-and-a-folder-with-manual-entry) (`pickFolder`), or `run.target` from a folder menu ([Actions: run.target](02-actions-and-entry-points.md#runtarget)) |
+| Change or move many notes, with a confirm, progress and **Stop** | [Cookbook: batch over a folder](14-cookbook.md#9-batch-over-a-folder), [bulk move](14-cookbook.md#10-move-notes-in-bulk-with-collision-handling), [Runs: Stop](03-runs.md#stop) |
+| Generate a report note the user can also write in | [Cookbook: owned block](14-cookbook.md#8-generated-report-with-an-owned-block) |
+| Keep a timer or other state across reloads and restarts | [Cookbook: a timer that survives reloads](14-cookbook.md#13-a-timer-that-survives-reloads), [Mod data](05-mod-data.md) |
+| Stamp a property when a note is saved | [Cookbook: stamp on save](14-cookbook.md#20-stamp-a-property-on-save-safely), [Events: avoiding save loops](07-events-and-reactivity.md#avoiding-save-loops) |
+| Show a live value derived from the active note | [Cookbook: a live stat of the active note](14-cookbook.md#18-a-live-stat-of-the-active-note) |
+| Copy text to the clipboard | [Cookbook: copy to the clipboard](14-cookbook.md#19-copy-to-the-clipboard) |
+| Read tasks and their statuses | [Querying the index: Tasks](10-querying-the-index.md#tasks) |
 | Query notes, tasks and properties | [Querying the index](10-querying-the-index.md) |
-| Call an external API, use the clipboard | [Network and platform](11-network-and-platform.md) |
+| Call an external API | [Network and platform](11-network-and-platform.md) (`fetchText`) |
 | Type-check `main.js`, use TypeScript or packages | [Types, build and test](12-types-build-and-test.md#type-checking-a-plain-mainjs), [building from TypeScript](12-types-build-and-test.md#building-a-mod-from-typescript) |
 | Test a mod | [Types, build and test: testing in vitest](12-types-build-and-test.md#testing-in-vitest) |
 | Look up one member's signature or error | [API reference](13-api-reference.md) |

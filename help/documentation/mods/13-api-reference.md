@@ -21,7 +21,7 @@ Rules that apply to every member, and are not repeated below:
 - **Unloaded.** Every `ctx` function, and reading `ctx.app`, `ctx.kb` or `ctx.theme.current`, throws (or rejects) `Mod "<id>" is unloaded` once the mod is unloaded or the open vault changed. That includes calls made inside `onunload`. Only `ctx.apiVersion`, `ctx.mod` and `ctx.signal` keep working. `run.log` and `run.progress` check the run instead (see [The run](#the-run)).
 - **Argument errors** start with `Mod "<id>": `.
 - **Paths.** `ctx.vault`, `ctx.workspace`, `ctx.onNoteSaved` and `run.target` use vault-relative paths (`Ideas/Idea.md`, no leading `/`). `ctx.app` and `ctx.kb()` use absolute paths (`${ctx.app.vaultStore.path}/Ideas/Idea.md`).
-- **Bare-string rejections.** File system errors from `ctx.vault` reach the mod as the lower layer sent them, often a plain string, not an `Error`: `err.message` can be `undefined`. Use `err instanceof Error ? err.message : String(err)`.
+- **Error shapes.** File system errors from `ctx.vault`, `ctx.workspace` and `ctx.app` calls reach the mod as the lower layer sent them, often a **plain string**, not an `Error`: `err.message` can be `undefined`. Use `err instanceof Error ? err.message : String(err)`, or the `errorMessage` helper of [Vault files](04-vault-files.md#errors-are-not-always-error-objects). The host's own checks (paths, arguments, unloaded) throw an `Error`. `ctx.loadData` and `ctx.saveData` always reject with an `Error`. Everything else on `ctx` throws an `Error`.
 
 ## The mod object
 
@@ -51,7 +51,7 @@ Timers, DOM listeners and anything registered through `ctx.app` are not tracked:
 
 | Member | Signature | Returns | Errors | Tier |
 |--------|-----------|---------|--------|------|
-| `ctx.notify` | `(message: string, options?: { kind?: 'info' \| 'success' \| 'warning' \| 'error' }) => void` | nothing. An in-app toast `<name>: <message>`, about 4 seconds, never an OS notification | throws unloaded. `message` is not validated (`undefined` shows as `undefined`); an unknown `kind` silently becomes `'info'` | stable |
+| `ctx.notify` | `(message: string, options?: { kind?: 'info' \| 'success' \| 'warning' \| 'error' }) => void` | nothing. An in-app toast `<name>: <message>`, about 4 seconds, never an OS notification. Easy to miss: for an event the user must not miss, use `ctx.ui.alert` or keep it on screen ([Network and platform](11-network-and-platform.md#ctxnotify-is-an-in-app-toast)) | throws unloaded. `message` is not validated (`undefined` shows as `undefined`); an unknown `kind` silently becomes `'info'` | stable |
 | `ctx.log` | `(...args: unknown[]) => void` | nothing. Writes under the tag `MOD:<id>` only when Settings > Troubleshooting has Debug mode (devtools console) or Save debug log to file on; otherwise does nothing | throws unloaded. In the file, non-strings are `JSON.stringify`ed: an `Error` becomes `{}` (log `err.message` and `err.stack`). A cyclic object or a BigInt makes it throw while file logging is on (the file writer calls `JSON.stringify` uncaught) | stable |
 
 Log file timestamps are UTC. Details: [Errors and debugging](15-errors-and-debugging.md).
@@ -122,7 +122,7 @@ Details: [Events and reactivity](07-events-and-reactivity.md), [Custom UI](08-cu
 | `move` | `(path: string, targetFolder: string) => Promise<string>` | the new vault-relative path; already there: unchanged, no disk access | `"<fileName>" already exists in this folder`; a missing target folder: raw error (no folder is created) |
 | `delete` | `(path: string) => Promise<void>` | nothing. Moves to the app's Trash (`.kokobrain/trash/`), saving dirty tabs under the path first and closing them | a missing path: raw error; `Could not save "<absolute path>" before moving it to the Trash` (name `PreDeleteSaveError`) |
 
-Side effects worth knowing: renaming a Markdown file to a new name rewrites wikilinks in other notes; `create` and `write` reach the index at once (note existence and frontmatter are current in the next `ctx.kb()`), but `file.tasks`, `file.tags`, links, size and times follow a snapshot that can lag a few seconds; a write to `_system/mods/<id>/main.js` or `manifest.json` reloads that mod. Details: [Vault files](04-vault-files.md).
+Side effects worth knowing: renaming a Markdown file to a new name rewrites wikilinks in other notes; `create` and `write` reach the index at once (note existence and frontmatter are current in the next `ctx.kb()`), but `file.tasks`, `file.tags`, links, size and times follow a snapshot that refreshes about 2 s after a change and at most once per 10 s during a burst (a note saved a moment ago can show its previous size and mtime for up to about 12 s); a write to `_system/mods/<id>/main.js` or `manifest.json` reloads that mod. Details: [Vault files](04-vault-files.md).
 
 ## ctx.workspace
 
@@ -190,7 +190,9 @@ A run that ends Done with no log line and no progress closes its view by itself.
 | `menu.on: ['folder']` | In the Files navigator's folder menu and vault-root menu |
 | `menu.files` | Note rows that show it: `'markdown'` (default: `.md`, `.markdown`) or `'all'`. Ignored for folders |
 
-Errors, in check order: unloaded; `Mod "<id>": unknown action id "<actionId>"` (add the action first); `... labs.place needs palette: true or menu`; `... labs.place needs palette: true` (a `palette` other than `true` next to a `menu`); `... labs.place needs menu.on to list note or folder`; `... labs.place needs menu.files to be markdown or all`.
+At least one of `palette: true` or `menu` is required; either alone is valid. A menu-only placement (`{ menu: { on: ['note'] } }`, no `palette` key) shows the action in the menu and not in the palette.
+
+Errors, in check order: unloaded; `Mod "<id>": unknown action id "<actionId>"` (add the action first); `... labs.place needs palette: true or menu` (neither given); `... labs.place needs palette: true` (a `palette` key present with a value other than `true`, such as `{ palette: false, menu: ... }`; omitting the key is fine); `... labs.place needs menu.on to list note or folder`; `... labs.place needs menu.files to be markdown or all`.
 
 Returns an idempotent disposer for this placement. Removing the action or unloading removes every placement. A second placement with `menu` replaces the action's menu entry. Palette and menu starts run quietly (the run view opens on the first output) unless the action has `input`. Details: [Actions and entry points](02-actions-and-entry-points.md).
 
@@ -200,12 +202,12 @@ Returns an idempotent disposer for this placement. Removing the action or unload
 
 | Member | Use |
 |--------|-----|
-| `kb.pages(source?)` | DataArray of notes: `'"Folder"'` (quotes required, subfolders included), `'#tag'`; no source, or one it cannot parse, means every note. Leaves out `.view` files, type definitions and the system folder (`_system`) |
+| `kb.pages(source?)` | DataArray of notes: `'"Folder"'` (quotes required, subfolders included), `'#tag'`; no source, or one it cannot parse, means every note. For the notes directly in the vault root, `.where((p) => p.file.folder === ctx.app.vaultStore.path)`. Leaves out `.view` files, type definitions and the system folder (a setting, `_system` by default); keeps archived notes |
 | `kb.page(absolutePath)` | One page, or `undefined` |
 | `kb.current()` | The page of the tab that was active when `ctx.kb()` was called, or `null` |
 | `kb.date(...)`, `kb.ui`, `kb.container` | As in QueryJS; render helpers append to a detached `container` |
 
-Paths are absolute; frontmatter keys sit on the page (`p.status`); pages are shared with the app's QueryJS blocks (treat them as read-only). Note existence and frontmatter (`_type`, organized/archived/favorite, root tags) are current at once after a write; `file.tasks`, `file.tags`, links, size, ctime and mtime follow a snapshot that can lag by up to a few seconds (`ctx.app.vaultStore.requestPromptIndexRefresh()` before the write shortens it). Scope every read with a folder source or `.limit(n)`:
+Paths are absolute; frontmatter keys sit on the page (`p.status`); pages are shared with the app's QueryJS blocks (treat them as read-only). Note existence and frontmatter (`_type`, organized/archived/favorite, root tags) are current at once after a write; `file.tasks`, `file.tags`, links, size, ctime and mtime follow a snapshot that refreshes about 2 s after a change and at most once per 10 s during a burst, so a note saved a moment ago can show its previous size and mtime (a new one `0`) for up to about 12 s (`ctx.app.vaultStore.requestPromptIndexRefresh()` before the write shortens it). `task.completed` is `false` only for `[ ]`. Scope every read with a folder source, a `file.folder` predicate or `.limit(n)`: the whole vault is built either way, and the scope filters what the mod gets back:
 
 ```javascript
 const kb = await ctx.kb();

@@ -13,23 +13,7 @@ Stability: everything on this page is **raw**. It is the app's internals as they
 - Anything you subscribe to through `ctx.app` (a CodeMirror DOM listener, a rail registration, a `MutationObserver`, an interval) must be undone with `ctx.register(...)`. See [Events and reactivity](07-events-and-reactivity.md#ctxregisterdispose).
 
 > [!WARNING]
-> `ctx.app` paths are **absolute**. `ctx.vault`, `ctx.workspace`, `ctx.onNoteSaved` and `run.target` use **vault-relative** paths. Convert at every boundary.
-
-```javascript
-/** Absolute path of a vault-relative path. */
-function toAbsolute(ctx, rel) {
-	return `${ctx.app.vaultStore.path.replace(/\/+$/, '')}/${rel}`;
-}
-
-/** Vault-relative path of an absolute app path; throws outside the vault. */
-function toVaultPath(ctx, abs) {
-	const root = ctx.app.vaultStore.path.replace(/\/+$/, '');
-	// A folder setting with an edge slash can leave `//` in an app path.
-	const path = abs.replace(/\/{2,}/g, '/');
-	if (!path.startsWith(`${root}/`)) throw new Error(`Not inside the vault: ${abs}`);
-	return path.slice(root.length + 1);
-}
-```
+> `ctx.app` paths are **absolute**. `ctx.vault`, `ctx.workspace`, `ctx.onNoteSaved` and `run.target` use **vault-relative** paths. Convert at every boundary with the canonical `toAbsolute(ctx, path)` and `toVaultPath(ctx, absolute)` from [Vault files: Absolute paths](04-vault-files.md#absolute-paths-and-ctxapp). The samples on this page use those two, [`safeName`](04-vault-files.md#note-names-safename) for file names built from titles, and [`editNote`](04-vault-files.md#editnote) for edits; paste them from there.
 
 ## Members at a glance
 
@@ -135,7 +119,7 @@ What you need to know before touching it:
 1. **One view for all text tabs.** The editor keeps a single `EditorView` and swaps each tab's state (document, selection, undo history) into it on tab switch. The view object stays the same across switches between notes, but `view.state` belongs to whichever tab is active. Read `view.state` at the moment you use it; never cache `state` or `doc`.
 2. **`null` when the active tab is not rendered as text.** It is `null` with no tabs, on the virtual tabs, on a Kanban or Canvas tab in board mode, and on a `.view` tab in table mode. It is non-null for notes, other text files (including a mod's own `main.js`), and Kanban, Canvas or `.view` tabs switched to source mode.
 3. **It goes stale.** Going from a board, table or virtual tab back to a note mounts a **new** view and destroys the old one. A view you stored earlier is then dead (`view.dom.isConnected === false`). Read `ctx.app.editorStore.editorView` fresh every time, and again after every `await`.
-4. **Right after an open it can still show the previous document.** `openFileInEditor` and `openNoteAt` resolve as soon as the tab is added; CodeMirror swaps the document in a moment later. Until then `view.state.doc` is the previous tab's text, and a dispatch would edit the wrong note. Check `view.state.doc.toString() === activeTab.content` before dispatching (see [Wait for the editor](#wait-for-the-editor-after-opening)).
+4. **Right after an open it can still show the previous document.** `openFileInEditor` and `openNoteAt` resolve as soon as the tab is added; CodeMirror swaps the document in a moment later. Until then `view.state.doc` is the previous tab's text, and a dispatch would edit the wrong note. Check `view.state.doc.toString() === activeTab.content.replace(/\r\n?/g, '\n')` before dispatching (see [Wait for the editor](#wait-for-the-editor-after-opening)). The `replace` is required: the document always uses `\n`, while `content` keeps a CRLF file's raw `\r\n` until the user's first edit, so an unnormalized comparison fails for as long as such a note is open.
 5. **A dispatch behaves like typing.** A document change you dispatch updates `activeTab.content` synchronously, marks the tab dirty, and arms autosave (about 500 ms when the change touches the frontmatter block, about 2 s otherwise, saved within 10 s at most). It adds an undo step, so Cmd+Z undoes it. Call `await ctx.app.saveFileByPath(path)` after the dispatch to save at once.
 6. **No CodeMirror imports.** A mod has no `import`, so it cannot construct CodeMirror effects, annotations, facets or extensions. Use only what the instance offers, with plain-object transaction specs.
 
@@ -158,6 +142,8 @@ interface EditorViewSubset {
 		selection: { main: { from: number; to: number; anchor: number; head: number; empty: boolean } };
 		replaceSelection(text: string): TransactionSpec; // replaces every selection range
 	};
+	readonly hasFocus: boolean;  // true only while the editable text itself has focus (not a widget input inside it)
+	readonly composing: boolean; // true while an input method (IME) composition is in progress
 	dispatch(spec: TransactionSpec): void;
 	focus(): void;
 }
@@ -181,7 +167,8 @@ function activeNoteView(ctx) {
 	const view = ctx.app.editorStore.editorView;
 	if (!tab || !tab.path.toLowerCase().endsWith('.md')) throw new Error('Open a note first');
 	if (!view || !view.dom.isConnected) throw new Error('The note is not shown as text');
-	if (view.state.doc.toString() !== tab.content) throw new Error('The editor is still switching notes; try again');
+	// The doc uses "\n"; a CRLF note's tab content keeps "\r\n" until the first edit.
+	if (view.state.doc.toString() !== tab.content.replace(/\r\n?/g, '\n')) throw new Error('The editor is still switching notes; try again');
 	return { tab, view };
 }
 
@@ -217,7 +204,7 @@ ctx.addAction({
 	input: { placeholder: 'Text' },
 	run: async (input, run) => {
 		const text = input.trim();
-		if (!text) return;
+		if (!text) throw new Error('Type some text');
 		const { tab, view } = activeNoteView(ctx);
 		const doc = view.state.doc;
 		const prefix = doc.length === 0 || doc.sliceString(doc.length - 1) === '\n' ? '' : '\n';
@@ -238,46 +225,9 @@ const line = view.state.doc.lineAt(pos); // { number, from, to, text }
 
 ### Edit a note whether or not it is open
 
-This is the pattern for "change note X": through the editor when X is the active note shown as text (unsaved edits survive and autosave runs), otherwise through `ctx.vault` (which refuses a background tab with unsaved edits, so nothing is lost). `edit` is a pure function from old text to new text.
+This is the pattern for "change note X": through the editor when X is the active note shown as text (unsaved edits survive, the caret stays with the user's text, autosave runs), otherwise through `ctx.vault` (which refuses a background tab with unsaved edits, so nothing is lost). `edit` is a pure function from old text to new text.
 
-```javascript
-/** Applies `edit(text) => text` to a note by absolute path. Resolves to whether it changed anything. */
-async function editNote(ctx, absPath, edit) {
-	// App paths can contain "//" (a daily-note folder set to "Journal/"); the tab keeps that spelling.
-	const same = (a, b) => a.replace(/\/{2,}/g, '/') === b.replace(/\/{2,}/g, '/');
-	const tab = ctx.app.editorStore.activeTab;
-	const view = ctx.app.editorStore.editorView;
-	if (tab && same(tab.path, absPath) && view && view.dom.isConnected && view.state.doc.toString() === tab.content) {
-		const text = tab.content;
-		const next = edit(text);
-		if (next === text) return false;
-		// Dispatch only the changed range, so the caret and undo history stay sensible.
-		let from = 0;
-		while (from < text.length && from < next.length && text[from] === next[from]) from++;
-		let endOld = text.length;
-		let endNew = next.length;
-		while (endOld > from && endNew > from && text[endOld - 1] === next[endNew - 1]) { endOld--; endNew--; }
-		view.dispatch({ changes: { from, to: endOld, insert: next.slice(from, endNew) } });
-		return true;
-	}
-	const rel = toVaultPath(ctx, absPath);
-	const text = await ctx.vault.read(rel);
-	const next = edit(text);
-	if (next === text) return false;
-	// ctx.vault matches tabs by exact path, so a tab opened at a path with "//" needs both steps by hand.
-	const openTab = () => ctx.app.editorStore.tabs.find((t) => same(t.path, absPath));
-	const before = openTab();
-	if (before && before.content !== before.savedContent) throw new Error(`"${rel}" has unsaved changes in an open tab`);
-	await ctx.vault.write(rel, next); // rejects '"<path>" has unsaved changes in an open tab' for an exact-path dirty tab
-	const after = openTab();
-	if (after && after.content === after.savedContent && after.content !== next) {
-		ctx.app.syncExternalContentToEditor(after.path, next, true, 'none');
-	}
-	return true;
-}
-```
-
-There is no `await` between the editor check and the dispatch, so the active note cannot change in between. See [Vault files](04-vault-files.md#editing-a-note-that-may-be-open) for the `ctx.vault` side.
+Use the one canonical helper, [`editNote(ctx, absolutePath, edit)` in Vault files](04-vault-files.md#editnote), with its `changedRange`. It resolves to whether the text changed. It compares the view with the tab's content with line breaks normalized (CRLF notes), matches `//` paths by hand, and never awaits between the editor check and the dispatch, so the active note cannot change in between. Why each step is there is explained on that page.
 
 ### Wait for the editor after opening
 
@@ -289,7 +239,7 @@ async function openAndGetView(ctx, absPath) {
 		const tab = ctx.app.editorStore.activeTab;
 		if (!tab || tab.path !== absPath) return null; // the open failed, or the user switched away
 		const view = ctx.app.editorStore.editorView;
-		if (view && view.dom.isConnected && view.state.doc.toString() === tab.content) return view;
+		if (view && view.dom.isConnected && view.state.doc.toString() === tab.content.replace(/\r\n?/g, '\n')) return view;
 		await new Promise((resolve) => setTimeout(resolve, 20));
 	}
 	return null;
@@ -373,8 +323,8 @@ await ctx.app.updateNoteFrontmatter(abs, (props) => setProp(props, '_organized',
 
 ```ts
 createTypedNote(options: {
-	typeName: string;  // written as `_type`; also selects the type's folder and template
-	title: string;     // file name without `.md`, deduplicated in the target folder
+	typeName: string;  // selects the type's folder and template; written as `_type` only without a template (see below)
+	title: string;     // file name without `.md`, deduplicated in the target folder; pass it through safeName
 	contextDate?: Dayjs; // what `tp.date.now()` in the template resolves to
 	buildContent?: (base: string, target: { fileName: string; title: string; path: string }) => string;
 }): Promise<string>  // the absolute path actually created
@@ -386,8 +336,26 @@ Pipeline:
 2. File name: `<title>.md`, deduplicated case-insensitively against the folder: a second `Idea` becomes `Idea 1.md`, then `Idea 2.md`. The resolved path is what the promise returns.
 3. Content: the type's template (`_template`, vault-relative) rendered with `<% %>` expressions; when there is no template or it cannot be read, `---\n_type: <typeName>\n---\n`.
 4. `buildContent(base, target)` runs on the rendered text, if given. `target.path` is the planned absolute path. A throw propagates and no file is created.
-5. While **Settings, Explicit organization** is on (the default), the final text gets `_organized: false`.
+5. While **Settings, Explicit organization** is on (the default), the final text gets `_organized: false` (unless it already has an `_organized` or `organized` key).
 6. The file is created and indexed. It is **not** opened: call `openFileInEditor(path)`.
+
+> [!WARNING]
+> **`_type` comes from the template when there is one.** Only the fallback content (no template, or an unreadable one) writes `_type: <typeName>`. A type whose template does not set `_type` produces an **untyped** note in the type's folder. Add it in `buildContent` when it is missing, as `ensureTypeLine` below does: it inserts the line right after the opening `---`, so the template's own frontmatter is kept byte for byte, which is how the app adds `_organized: false`.
+
+```javascript
+/** buildContent for createTypedNote: adds `_type: <typeName>` when the rendered template lacks a type key. */
+function ensureTypeLine(typeName) {
+	return (base) => {
+		const block = base.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+		if (block && block[1].split(/\r?\n/).some((line) => /^_?type\s*:/.test(line))) return base;
+		// Also covers an empty "---"/"---" block, which the match above does not see.
+		if (/^---\r?\n/.test(base)) return base.replace(/^---(\r?\n)/, (open, eol) => `${open}_type: ${typeName}${eol}`);
+		return `---\n_type: ${typeName}\n---\n${base}`;
+	};
+}
+```
+
+`ctx.vault.create` is not a substitute: a note created with it is untyped unless your text sets `_type`, lands where you put it rather than in the type's folder, renders no template, and never gets `_organized: false`, so it skips the Inbox. Before creating "a person note", "a meeting note" or any "X note", check whether X is a type of this vault (`typeDefinitionsStore.getTypeMetadata('X')`, first letter uppercased) and use `createTypedNote` when it is.
 
 Failure modes:
 
@@ -397,7 +365,7 @@ Failure modes:
 | Folder creation or file creation fails | rejects `Error('create-failed')` (the cause is logged) |
 | `buildContent` throws | rejects with that error, nothing written |
 | **Unknown `typeName`** | **not an error**: the note lands in the types base folder (the vault root when none is set) with only `_type: <typeName>` frontmatter |
-| Empty title | not rejected: creates `.md` (a hidden-looking file) |
+| Empty title, or a title starting with `.` | not rejected: creates a dotfile (`.md`, `.plan.md`), which the explorer and the index never show. Pass the title through [`safeName`](04-vault-files.md#note-names-safename) and refuse `''` |
 
 Type lookup is exact. Type names are stored with the first letter uppercased (`Task`, not `task`), and only types that have a type definition note are known. Check before creating:
 
@@ -407,17 +375,19 @@ ctx.addAction({
 	title: 'New Task',
 	input: { placeholder: 'Task title' },
 	run: async (input) => {
-		const title = input.trim();
+		const title = safeName(input);
 		if (!title) throw new Error('Type a title');
 		const typeName = 'Task';
 		if (!ctx.app.typeDefinitionsStore.getTypeMetadata(typeName)) {
 			throw new Error(`No type definition for ${typeName}`);
 		}
+		const withType = ensureTypeLine(typeName);
 		const path = await ctx.app.createTypedNote({
 			typeName,
 			title,
-			buildContent: (base) => `${base.replace(/\n*$/, '\n')}\nCreated by a mod.\n`,
+			buildContent: (base) => `${withType(base).replace(/\n*$/, '\n')}\nCreated by a mod.\n`,
 		});
+		// Opening the note is the last step: no run.log or run.progress, so the run view closes by itself.
 		await ctx.app.openFileInEditor(path);
 	},
 });
@@ -521,7 +491,7 @@ ctx.addAction({
 	input: { placeholder: 'What happened?' },
 	run: async (input, run) => {
 		const text = input.trim();
-		if (!text) return;
+		if (!text) throw new Error('Type some text');
 		const now = new Date();
 		const today = ctx.app.dailyNotePath(now);
 		if (!(await ctx.vault.exists(toVaultPath(ctx, today)))) await ctx.app.openOrCreateDailyNote();
@@ -537,7 +507,7 @@ Creating the note through the app (not `ctx.vault.create`) is what applies the d
 
 ## `updateNoteFrontmatter`
 
-**Raw.** Rewrites a note's frontmatter through a list of properties, without losing data.
+**Raw.** Rewrites a note's frontmatter through a list of properties, without losing data (with the two exceptions under [Known problems](#known-problems-caret-and-empty-block)).
 
 ```ts
 interface Property {
@@ -548,13 +518,15 @@ interface Property {
 updateNoteFrontmatter(absolutePath: string, mutate: (props: Property[]) => Property[]): Promise<string>
 ```
 
-- `mutate` receives the current properties in file order (an empty array when the note has no frontmatter) and returns the **new full list**. Add, remove, reorder or replace by returning a different array. Returning an empty list removes the block.
+- `mutate` receives the current properties in file order (an empty array when the note has no frontmatter, and also for an empty `---`/`---` block) and returns the **new full list**. Add, remove, reorder or replace by returning a different array. Returning an empty list removes the block. On a note whose block is an empty `---`/`---` pair, properties you return go into a **new** block in front of it, and the empty pair stays as the first lines of the body: see [Known problems](#known-problems-caret-and-empty-block).
+- Values arrive as the YAML parser reads them: `2026-01-02` as the string `'2026-01-02'` with `type: 'date'`, `3` as the number `3`, `true` as a boolean, `[a, b]` and block lists as string arrays with `type: 'list'`, an empty key as `''`. For tags, see [Frontmatter tags](#frontmatter-tags).
 - The written YAML follows the JavaScript type of `value`. `type: 'list'` writes a flow sequence (`[a, b]`). Strings are quoted when they need it (a wikilink `'[[Project X]]'` is quoted for you). Unchanged numbers and booleans keep their original spelling.
 - Alias keys are canonical both ways: `mutate` receives `type:` from the file as `_type`, and a key you return is written in canonical form. The aliases: `type`, `organized`, `archived`, `favorite`, `order`, `favorite_index`, `sort`, `icon`, `sidebar_label` (and `sidebar label`), `color`, `title_color`, `template`, `view`, `visible`, `list_properties_display`, each written with a leading `_`. Look keys up by the underscored name.
 - One key twice in the returned list (either spelling) is merged, not an error: the first non-empty entry wins and the later one is dropped. Appending `{ key: '_archived', value: true }` to a list that already holds `_archived: false` keeps `false`. Replace the existing entry instead (see `setProp` below).
 - Resolves to the full written text of the note, or to the unchanged text when the rebuilt text equals the file byte for byte (then nothing is written or saved). That holds only for frontmatter already in the app's canonical form: returning the same properties for a note with block lists, `type:` or needless quotes still rewrites it (`[a, b]`, `_type:`, quotes dropped). To skip the write, throw a sentinel from `mutate` and catch it (see the [cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)).
 - **`mutate` must be pure.** It runs a second time when a tab for the note opens during the read. Do not count, log or set flags you latch inside it; if you need a flag, overwrite it on every call.
-- Open note: patches the tab (unsaved body edits are kept) and saves the whole tab at once, flushing pending body edits too. Closed note: reads the file, writes it, then runs the full after-save pipeline (file history, Auto Move, indexing, `ctx.onNoteSaved`). It never re-creates a note deleted during the call.
+- Open note: patches the tab (unsaved body edits are kept) and saves the whole tab at once, flushing pending body edits too. On the **active** tab this moves the caret (see [Known problems](#known-problems-caret-and-empty-block)). Closed note: reads the file, writes it, then runs the full after-save pipeline (file history, Auto Move, indexing, `ctx.onNoteSaved`). It never re-creates a note deleted during the call.
+- The frontmatter block is always written back with `\n` line breaks, also in a CRLF note (the body keeps its own). Tell the user when a mod rewrites frontmatter beyond the keys it was asked to change: canonical form (`[a, b]` lists, `_type:`, quotes dropped) and line breaks count.
 - Concurrent calls on one closed note race; the last write wins. Serialize calls per path.
 - **Markdown only.** It does not check the extension: on a `.canvas`, `.view` or `.js` file it would add a frontmatter block.
 
@@ -607,6 +579,7 @@ async function writeFrontmatter(ctx, abs, mutate) {
 	if (!abs.toLowerCase().endsWith('.md')) throw new Error('Choose a Markdown note');
 	try {
 		ctx.app.vaultStore.requestPromptIndexRefresh();
+		// On the active note this moves the caret: updateFrontmatterKeepCaret (Known problems, below) puts it back.
 		await ctx.app.updateNoteFrontmatter(abs, mutate);
 		return true;
 	} catch (err) {
@@ -636,6 +609,99 @@ ctx.addAction({
 	},
 });
 ```
+
+### Known problems: caret and empty block
+
+Two behaviors of the current app that a mod has to work around. Both are app bugs, so a later version may fix them; the workarounds stay harmless.
+
+**The caret moves on the active note.** When the note is the active tab, `updateNoteFrontmatter` (like `syncExternalContentToEditor` and `ctx.vault.write`) replaces the editor's document and then puts the caret back at its **old character offset**, without mapping it through the change. A selection collapses to that point. Frontmatter sits above the caret, so adding 12 characters there leaves the caret 12 characters earlier relative to the user's text: the next keystroke can land inside the `---` block. A background tab gets the same old offset back when the user returns to it.
+
+- **From a background trigger** (`ctx.onNoteSaved`, a timer, a watch), do not change the active note's frontmatter. Remember its path and do it once the user has switched to another note; [Events: avoiding save loops](07-events-and-reactivity.md#avoiding-save-loops) shows the pattern.
+- **From an action the user started on the open note**, put the caret back yourself. This helper measures the caret from the end of the document, which a change above the caret does not move. It is built from how the editor applies the change, not tested in a running app; check it once in yours.
+
+```javascript
+/** updateNoteFrontmatter, then the caret back where it was relative to the text after it. */
+async function updateFrontmatterKeepCaret(ctx, absolutePath, mutate) {
+	const { activeTab: tab, editorView: view } = ctx.app.editorStore;
+	const shown = tab && tab.path === absolutePath && view?.dom.isConnected ? view : null;
+	const fromEnd = shown ? shown.state.doc.length - shown.state.selection.main.head : null;
+	const written = await ctx.app.updateNoteFrontmatter(absolutePath, mutate);
+	const now = ctx.app.editorStore.editorView;
+	if (shown && now === shown && now.dom.isConnected && ctx.app.editorStore.activeTabPath === absolutePath) {
+		now.dispatch({ selection: { anchor: Math.max(0, now.state.doc.length - fromEnd) } });
+	}
+	return written;
+}
+```
+
+It assumes the caret was below the frontmatter (in the body), which is where it is while the user writes.
+
+**An empty block gets a second block.** The app does not recognize `---` directly followed by `---` (no line between) as frontmatter: `mutate` receives `[]`, and returned properties go into a new block **in front of** the empty pair, which stays at the top of the body:
+
+```
+---
+status: done
+---
+---
+---
+Body
+```
+
+`---`, an empty line, `---` is recognized and works. Some templates produce the empty pair. Remove it first, through `editNote` so an open note is handled too, then update:
+
+```javascript
+const EMPTY_BLOCK = /^---\r?\n---(?:\r?\n|$)/;
+
+/** updateNoteFrontmatter that first drops an empty "---"/"---" block, so no second block is added. */
+async function updateFrontmatterSafely(ctx, absolutePath, mutate) {
+	await editNote(ctx, absolutePath, (text) => text.replace(EMPTY_BLOCK, ''));
+	return ctx.app.updateNoteFrontmatter(absolutePath, mutate);
+}
+```
+
+`editNote` writes nothing when there is no empty block, so the extra call is free on ordinary notes. On the active note it goes through the editor, and its change is saved by the `updateNoteFrontmatter` call right after.
+
+## Frontmatter tags
+
+The `tags` key is read by two different parsers, and they disagree on some spellings. What the index sees decides `file.tags`, the `#tag` source of `ctx.kb()` (`kb.pages('#project')`), the Tags view and tag search. What `updateNoteFrontmatter` sees decides what `mutate` gets.
+
+**The index** reads the frontmatter line by line, not as YAML. It looks for a top-level `tags:` key (exactly that spelling, lowercase) and then:
+
+| Frontmatter | Index tags |
+|-------------|------------|
+| `tags: [a, b]` | `a`, `b` (split on commas, each trimmed) |
+| `tags:` then `  - a` and `  - b` lines | `a`, `b` |
+| `tags: a` | `a` |
+| `tags: a, b` | **one** tag, `a, b`: a value on the same line is never split |
+| `tags: "#a"` or `- "#a"` | `a`: outer quotes, then one leading `#`, are stripped |
+| `tags: #a` | `a`, though YAML reads `#a` as a comment (see below) |
+
+Casing is kept as written. A `#tag` source in `ctx.kb()` matches ignoring case, and a note that has one tag in two casings keeps the first spelling. `/` nests tags: `kb.pages('#project')` also matches `project/alpha`. Tags written in the body (`#tag` after a space or at a line start, outside code) are merged in after the frontmatter ones.
+
+**`updateNoteFrontmatter`** parses real YAML:
+
+| Frontmatter | `mutate` receives |
+|-------------|-------------------|
+| `tags: [a, b]` or a block list | `{ key: 'tags', value: ['a', 'b'], type: 'list' }` |
+| `tags: a` | `{ key: 'tags', value: 'a', type: 'text' }` |
+| `tags: a, b` | `{ value: 'a, b', type: 'text' }`, one string |
+| `- "#b"` (quoted) | the item `'#b'`, with the `#` |
+| `tags: #a` or `tags: a #b` (unquoted `#` after a space) | nothing: it is a YAML comment, and the whole call rejects with reason `comments` before `mutate` runs |
+| `tags:` | `{ value: '', type: 'text' }` |
+
+To write tags, return a list without `#`: `{ key: 'tags', value: ['project', 'project/alpha'], type: 'list' }` writes `tags: [project, project/alpha]`, which both parsers read the same way. A tag that keeps its `#` is written quoted (`"#b"`), which the index also reads as `b`. Normalize what you read before comparing:
+
+```javascript
+/** The tags of a note as updateNoteFrontmatter hands them over, as the index would read them. */
+function readTags(props) {
+	const entry = props.find((p) => p.key === 'tags');
+	if (!entry || entry.value === '') return [];
+	const values = Array.isArray(entry.value) ? entry.value : [String(entry.value)];
+	return values.map((v) => String(v).trim().replace(/^#/, '')).filter(Boolean);
+}
+```
+
+`readTags` returns `tags: a, b` as the single tag `a, b`, as the index does. Ask the user before splitting it into two: that changes what their tag searches match.
 
 ## `typeDefinitionsStore`
 
@@ -850,7 +916,9 @@ openOrCreateNote(options: {
 
 ```javascript
 const root = ctx.app.vaultStore.path;
-const date = new Date().toISOString().slice(0, 10);
+const d = new Date();
+// The local day, as everywhere in the app: toISOString() is the UTC day, which differs late in the evening.
+const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 await ctx.app.openOrCreateNote({
 	filePath: `${root}/Meetings/${date} Standup.md`,
 	title: `${date} Standup`,
@@ -892,7 +960,7 @@ All four arguments are required.
 - `markSaved: true`: sets both `content` and `savedContent`. Use it **after** you wrote these bytes to disk yourself: it does not write them.
 - `markSaved: false`: sets only `content`; the tab becomes dirty.
 - `schedule`: `'frontmatter'` arms the 500 ms autosave, `'body'` the 2 s one, `'none'` arms nothing. With `markSaved: false` and `'none'` the tab stays dirty with no timer: follow with `await saveFileByPath(path)`, or pass `'body'`.
-- Active tab: CodeMirror replaces its document by a minimal diff, keeps the caret (clamped), adds **no** undo step, and does not fire the typing pipeline. Background tab: only the store changes; CodeMirror picks it up on switch.
+- Active tab: CodeMirror replaces its document by a minimal diff, adds **no** undo step, and does not fire the typing pipeline. The caret is put back at its **old character offset** (clamped to the new length), not mapped through the change, and a selection collapses: text inserted above the caret moves it backwards relative to the user's text (see [Known problems](#known-problems-caret-and-empty-block)). Background tab: only the store changes; CodeMirror picks it up on switch, with the same old caret offset.
 - Synchronous; returns nothing.
 
 ```javascript
@@ -903,7 +971,7 @@ if (!abs || !tab) throw new Error('Open a note first');
 ctx.app.syncExternalContentToEditor(abs, tab.content.replace(/\bTODO\b/g, 'DONE'), false, 'body');
 ```
 
-Prefer [`editorView.dispatch`](#safe-edit-patterns) for user-facing edits (undoable, precise) and [`editNote`](#edit-a-note-whether-or-not-it-is-open) when the note may be closed.
+Prefer [`editorView.dispatch`](#safe-edit-patterns) for user-facing edits (undoable, precise, the caret stays with the text) and [`editNote`](#edit-a-note-whether-or-not-it-is-open) when the note may be closed.
 
 ## Choosing a route
 
@@ -911,8 +979,10 @@ Prefer [`editorView.dispatch`](#safe-edit-patterns) for user-facing edits (undoa
 |------|-------|
 | Edit the active note (keep unsaved edits, undoable) | `editorView.dispatch(...)` after the checks in [Safe edit patterns](#safe-edit-patterns) |
 | Edit a note that may be open or closed | [`editNote`](#edit-a-note-whether-or-not-it-is-open) |
-| Change frontmatter | [`updateNoteFrontmatter`](#updatenotefrontmatter) |
-| Create a note from a type | [`createTypedNote`](#createtypednote) + `openFileInEditor` |
+| Change frontmatter | [`updateNoteFrontmatter`](#updatenotefrontmatter); on the active note, mind the [caret](#known-problems-caret-and-empty-block) |
+| Read or write tags | [Frontmatter tags](#frontmatter-tags) |
+| Create a note from a type | [`createTypedNote`](#createtypednote) with `ensureTypeLine`, then `openFileInEditor` |
+| Link to a note | [Writing a wikilink](04-vault-files.md#writing-a-wikilink) |
 | Create today's daily or 1:1 note | [`openOrCreateDailyNote`](#openorcreatedailynote), [`createOneOnOneNote`](#createoneononenote) |
 | Create a note from any template | [`openOrCreateNote`](#openorcreatenote) |
 | Create a plain file with exact content | `ctx.vault.create` ([Vault files](04-vault-files.md#createpath-content)) |

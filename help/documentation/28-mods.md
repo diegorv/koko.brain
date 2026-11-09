@@ -299,7 +299,7 @@ Every path is **vault-relative** (`Ideas/Idea.md`). A path that is empty, starts
 
 These path methods use the app's existing rename, move and delete services, including tab updates, link updates and index cleanup. Calls after unload reject; an operation already running inside a filesystem service cannot be cancelled and may finish even if the mod unloads before it resolves.
 
-Errors from the file system pass through unchanged, and they are often bare strings, not `Error` objects: in a `catch`, `err.message` can be `undefined`. Read `err instanceof Error ? err.message : String(err)`.
+Errors from the file system pass through unchanged, and they are often bare strings, not `Error` objects: in a `catch`, `err.message` can be `undefined`. Read `err instanceof Error ? err.message : String(err)`. The same holds for `ctx.workspace` and `ctx.app` calls; `ctx.loadData` and `ctx.saveData` always reject with an `Error`.
 
 Notes created or written this way reach the index and full-text search at once; `ctx.kb()` and the panels can take a few seconds to see them (see [`ctx.kb()`](#ctxkb)). `write` also runs the after-save steps of a note saved in the editor (file history, Auto Move, `ctx.onNoteSaved`) for every file it writes, Markdown or not, except a non-note file under `_system/mods/` (anything there not ending in `.md`, `.markdown` or `.view`), which skips them; `create` does not run them. For a mod's own state, use [`ctx.saveData`](#ctxloaddata-and-ctxsavedata-the-mods-own-data) instead.
 
@@ -585,6 +585,8 @@ ctx.addAction({
 });
 ```
 
+A title with `/`, `#`, `|`, `[` or `]`, or one starting with a dot, makes a note that cannot be linked or cannot be seen: pass it through `safeName` from [Vault files: Note names](mods/04-vault-files.md#note-names-safename). When the type has a template, `_type` comes from the template only; see [createTypedNote](mods/09-raw-app.md#createtypednote).
+
 ### Set a frontmatter property on the open note
 
 ```javascript
@@ -602,6 +604,8 @@ ctx.addAction({
 	},
 });
 ```
+
+On the active note this puts the caret back at its old character offset, so text added above it shifts the caret relative to the user's text; and a note that starts with an empty `---`/`---` block gets a second block. Both, with workarounds, are in [Raw app: Known problems](mods/09-raw-app.md#known-problems-caret-and-empty-block).
 
 ### Write a report note
 

@@ -37,7 +37,7 @@ Blocked, among everything else not listed:
 | `ws:` / `wss:` WebSockets and `EventSource` streams to unlisted hosts | Blocked: they follow `connect-src` too |
 
 > [!NOTE]
-> The CSP is the first gate, not the only one. For a cross-origin request, the server must also allow the app's origin with CORS response headers, as for any web page. Which of the listed hosts do so for which endpoints is not verified here; the pattern on this page targets the public Hugging Face model API. Test a host in the app before building on it. The app's own Todoist and theme-catalog code does not use the web view's `fetch` at all, but a native HTTP client a mod cannot import.
+> The CSP is the first gate, not the only one. For a cross-origin request, the server must also allow the app's origin (`tauri://localhost`) with CORS response headers, as for any web page. The public Hugging Face model API does: `https://huggingface.co/api/models` answers a request from that origin with `access-control-allow-origin: tauri://localhost`, so its JSON is readable. The other listed hosts are not verified for any endpoint; test a host in the app before building on it. The app's own Todoist and theme-catalog code does not use the web view's `fetch` at all, but a native HTTP client a mod cannot import.
 
 What a blocked request looks like: `fetch` rejects with a `TypeError` and the console shows a CSP violation (visible only where devtools are available, see [Devtools](#devtools)). The `TypeError` message is the engine's and does not say "CSP"; do not match on its text. A CORS refusal and an offline network reject the same way.
 
@@ -54,7 +54,9 @@ Hand `run.signal` to every request made inside an action, so **Stop** and unload
 | `AbortSignal.timeout(ms)` | 16+ | Aborts with a `TimeoutError` `DOMException` |
 | `AbortSignal.any([a, b])` | 17.4+ | Combines `run.signal` and a timeout into one signal |
 
-(Versions from MDN's browser compatibility data.) On an older macOS these are missing, so either feature-detect them or use a plain `AbortController`, which works everywhere and also tells you which of the two fired:
+(Versions from MDN's browser compatibility data.) On an older macOS these are missing, so either feature-detect them or use a plain `AbortController`, which works everywhere and also tells you which of the two fired.
+
+`fetchText` below is **the preferred fetch helper** for mods: copy it as it is (the [Cookbook](14-cookbook.md#14-fetch-from-an-allowed-host) does). It covers Stop and unload through the signal you pass, a timeout, a slow body, and error text that names the host. A bare `fetch(url, { signal: run.signal })` is fine for a quick test, not for a mod you hand over: it waits forever on a stalled server.
 
 ```javascript
 /**
@@ -152,7 +154,7 @@ const mod = {
 			input: { placeholder: 'e.g. embedding, whisper' },
 			run: async (input, run) => {
 				const query = input.trim();
-				if (!query) return;
+				if (!query) throw new Error('Type a search, e.g. embedding');
 				run.progress(0, 1, 'calling the API');
 				const url = `${API}?search=${encodeURIComponent(query)}&sort=downloads&direction=-1&limit=10`;
 				const models = parseModels(await fetchText(url, run.signal, TIMEOUT_MS));
@@ -168,6 +170,8 @@ const mod = {
 export default mod;
 ```
 
+This run reports in its own view (`run.log` and `run.progress`), which stays open on **Done** for the user to read. A run that ends by opening a note writes neither, so its view closes and the note shows: see the [Cookbook](14-cookbook.md#14-fetch-from-an-allowed-host) and [Runs: Ending an action](03-runs.md#ending-an-action).
+
 ### Secrets
 
 There is no secret store for mods. `ctx.saveData` writes plain JSON into the vault (`.kokobrain/mods/<id>/data.json`), `localStorage` is plain text shared with the app and every mod, and the mod's source is a vault file. Do not keep API tokens in notes, frontmatter, mod data, source or logs. `ctx.app.settingsStore` holds the user's own credentials (the Todoist token); a mod has no reason to read them.
@@ -180,7 +184,7 @@ There is no secret store for mods. `ctx.saveData` writes plain JSON into the vau
 |-----|--------|-----------------|
 | `localStorage` | Used by the app; persists across launches | One store for the app, every mod and every vault. Prefix keys (`mod:<id>:...`) and include the vault path when the value is per vault. For mod state, prefer `ctx.loadData` / `ctx.saveData` (see [Mod data](05-mod-data.md#when-localstorage-is-acceptable)) |
 | `sessionStorage`, `indexedDB` | Standard, not verified | Prefer `ctx.saveData` |
-| `navigator.clipboard.writeText(text)` | Used by the app, from clicks and menu items | Call it from a user gesture (a click, a key, a menu item). From a timer or after a long `await` it may be refused; not verified |
+| `navigator.clipboard.writeText(text)` | Used by the app, from clicks, menu items and shortcuts | Call it from a user gesture (a click, a key, a menu item), before any other `await`. From a timer or after a long `await` it may be refused. Whether a mod action started from a menu, the palette or the rail still counts as a gesture is not verified: catch the rejection and fall back to showing the text in `run.ui.prompt`. Recipe: [Cookbook: Copy to the clipboard](14-cookbook.md#19-copy-to-the-clipboard) |
 | `navigator.clipboard.readText()` | Not verified | The app reads the clipboard through its native side instead. Ask the user to paste into `run.ui.prompt` |
 | `crypto.randomUUID()`, `crypto.getRandomValues()` | `randomUUID` used by the app; `getRandomValues` standard | Fine for ids |
 | `structuredClone` | Used by the app | |
@@ -206,7 +210,13 @@ All mod code and the app share one global scope. Do not define globals, patch bu
 - Each toast stays about 4 seconds. There is no dedupe or throttle: ten calls are ten toasts.
 - It throws `Mod "<id>" is unloaded` after unload, so guard late calls (timers, async callbacks) with `if (!ctx.signal.aborted)`.
 
-For something the user must not miss, write it into a note, keep it on screen (a [status-bar chip](08-custom-ui.md#a-status-bar-chip)) or use `ctx.ui.alert` ([Dialogs](06-dialogs.md#alert)). Full behavior in the [API reference](13-api-reference.md#ctx-messages-and-logging).
+A toast is easy to miss: it is gone after about 4 seconds, whether or not the user was looking. For something the user must not miss (a timer that ended, a background job that failed, a reminder), do not rely on `ctx.notify` alone:
+
+- call `ctx.ui.alert({ title, message })` from the callback (a timer, a save callback, a listener: `ctx.ui`, since there is no run), which stays until the user presses OK; or
+- keep the state on screen, for example a [status-bar chip](08-custom-ui.md#a-status-bar-chip) left in a visible "done" state until clicked; or
+- write it into a note.
+
+See [Dialogs](06-dialogs.md#alert). Full behavior in the [API reference](13-api-reference.md#ctx-messages-and-logging).
 
 ## The main thread
 

@@ -19,10 +19,14 @@ function errorMessage(err) {
 	return typeof message === 'string' ? message : String(err);
 }
 
-/** A wikilink to the note, or plain text when its path would break the link syntax */
+/**
+ * A wikilink pinned to this exact file, shown as its name ([[Folder/Name.md|Name]]):
+ * [[Folder/Name]] would resolve by name only and could reach a namesake elsewhere.
+ * Plain text when the path would break the link syntax.
+ */
 function link(path) {
-	const target = path.replace(/\.md$/i, '');
-	return /[[\]|#^\\]/.test(target) ? target : `[[${target}]]`;
+	const name = path.split('/').pop().replace(/\.md$/i, '');
+	return /[[\]|#^\\]/.test(path) ? path : `[[${path}|${name}]]`;
 }
 
 /**
@@ -41,13 +45,16 @@ function replaceBlock(text, block) {
 	return [...lines.slice(0, start), block, ...lines.slice(end + 1)].join('\n');
 }
 
-/** Every Markdown note under `folder`, listing one folder at a time so Stop takes effect between them */
-async function walk(ctx, folder, run) {
+/**
+ * Every Markdown note under `folder`, listing one folder at a time so Cancel and
+ * Stop (both abort `signal`) take effect between them. Null once aborted.
+ */
+async function walk(ctx, folder, signal) {
 	const notes = [];
 	const queue = [folder];
 	let listed = 0;
 	while (queue.length > 0) {
-		if (run.signal.aborted) return null;
+		if (signal.aborted) return null;
 		const current = queue.shift();
 		let entries;
 		try {
@@ -59,7 +66,7 @@ async function walk(ctx, folder, run) {
 			if (entry.isFolder) queue.push(entry.path);
 			else if (/\.md$/i.test(entry.name)) notes.push(entry.path);
 		}
-		run.progress(++listed, listed + queue.length, current);
+		listed++;
 	}
 	return { notes: notes.sort(), folders: listed };
 }
@@ -79,8 +86,10 @@ export default {
 					throw new Error(`"${REPORT_FOLDER}" holds the reports themselves`);
 				}
 
-				const found = await walk(ctx, folder, run);
-				if (!found) return;
+				// A loading dialog, not run.progress: this action ends by opening the report, and a
+				// run that showed progress or logged keeps its view open on Done on top of it.
+				const found = await run.ui.loading(`Reading ${folder}...`, (signal) => walk(ctx, folder, signal), { cancellable: true });
+				if (!found || run.signal.aborted) return;
 				const path = `${REPORT_FOLDER}/${folder.replaceAll('/', ' - ')}.md`;
 				const ok = await run.ui.confirm({
 					title: 'Write the report?',
@@ -110,7 +119,7 @@ export default {
 					if (run.signal.aborted) return;
 					await ctx.vault.create(path, `# Report: ${folder}\n\nYour notes here are kept when the report is regenerated.\n\n${block}\n`);
 				}
-				run.log(`Wrote ${path}`);
+				if (run.signal.aborted) return;
 				await ctx.workspace.openNote(path);
 			},
 		});
