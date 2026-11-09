@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Live check of the Todoist API behaviors the sync relies on](issues/01-live-check-todoist-api.md) | none | done | | |
-| 02 | [Pure task-line patch and anchor helpers](issues/02-task-line-patch-and-anchor-logic.md) | none | todo | | |
+| 02 | [Pure task-line patch and anchor helpers](issues/02-task-line-patch-and-anchor-logic.md) | none | in-progress | | |
 | 03 | [Guarded writer for task lines in notes that are not open](issues/03-guarded-line-writer-closed-notes.md) | 02 | todo | | |
 | 04 | [Guarded writer for task lines in notes that are open in a tab](issues/04-guarded-line-writer-open-tabs.md) | 03 | todo | | |
 | 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | todo | | |
@@ -54,3 +54,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-09 15:48 — ledger created (15 Issues)
+- 2026-11-09 15:49 — 02 — start — launched by /relay-lite:run — 0d72607a4
