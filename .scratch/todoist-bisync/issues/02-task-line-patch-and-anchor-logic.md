@@ -2,7 +2,7 @@
 
 **What to build:** The pure functions every later sync ticket uses to change one task line token by token and to manage `🆔 td-…` anchors, in a `.logic.ts` with no framework imports. Verifiable by unit tests alone. Later tickets compute the new line here; the Rust writer only swaps an expected line for a new one. Design: `.scratch/todoist-bisync/research/design.md` rules 4, 5, 10, 11 and Anchor.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

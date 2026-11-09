@@ -2,7 +2,7 @@
 
 **What to build:** Settings > Todoist gets the sync toggle and folder, the sync state tables exist in `kokobrain.db` behind IPC, the Todoist client moves into the sync feature, and a palette command "Todoist: Check sync connection" runs a full `/sync` and reports how many projects and open tasks the chosen root's tree holds (plus the Inbox when included). Demoable on its own; nothing is written to notes. Design: `.scratch/todoist-bisync/research/design.md` Architecture (Code, State), rules 9 and 13.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** ready-for-agent
 

@@ -2,7 +2,7 @@
 
 **What to build:** The two-way sync (`.scratch/todoist-bisync/research/design.md`) depends on API behaviors the v1 docs do not state. The owner runs the runbook below with their own token against a throwaway project and records the answers in `.scratch/todoist-bisync/research/live-check.md` (a file that outlives this ticket), so tickets 07 to 10 build on facts. Nothing in the app changes.
 
-**Blocked by:** None (can start immediately)
+**Blocked by:** none
 
 **Status:** resolved
 
