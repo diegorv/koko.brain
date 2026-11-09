@@ -11,6 +11,7 @@
 - [ ] Todoist rename: the file is renamed through the app's rename-with-links path (`renameItem`). Brain file rename: `project_update` with the new filename as name.
 - [ ] `is_archived`: the note's tasks stop syncing (links kept); unarchive resumes. `is_deleted`: the note and its links are detached (nothing deleted), logged.
 - [ ] Two notes with the same project id freeze that project, logged.
+- [ ] A project created in Todoist gets a note in this vault only once it holds a task of this vault's context (design rule 8c); a project this vault created keeps its note even while empty. Renames and archive events for projects with no note here are ignored.
 - [ ] Gate: frontend, or Both if IPC changes.
 
 ## Notes

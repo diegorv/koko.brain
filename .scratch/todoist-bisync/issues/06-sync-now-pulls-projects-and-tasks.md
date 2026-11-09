@@ -7,6 +7,7 @@
 **Status:** ready-for-agent
 
 - [ ] Failing tests first with the fake `/sync` from ticket 05 and real stores.
+- [ ] Context filter (design rule 8c): only open tasks carrying this vault's context label (`Work` for a `work` vault, `personal` for a `personal` vault, case-insensitive) are adopted; others are skipped. Test: a work vault and a personal vault on the same fake account each get only their own tasks and only the project notes that hold them.
 - [ ] Project note: filename = project name (illegal filename characters cleaned, collision gets a numeric suffix), frontmatter `todoist_project: <id>`; identity is the frontmatter id. The Inbox project (`inbox_project: true`) is `Inbox.md`. Parent projects ignored (flat).
 - [ ] Pulled open task line: `- [ ] <content> <priority emoji> 📅 <date> 🔁 <due.string> #labels 🆔 td-<todoist id>`, only fields that exist. Labels per rule 8 (whole-name tag match; unmapped kept in `remote_base`). Content that fails ticket 02's round-trip check is written as-is but logged and flagged so later tickets never push it back.
 - [ ] Inserted at the end of the project note (sections come in ticket 12) through the writer from 04. Bases (`local_base`, `remote_base`) and the `sync_token` committed together.
