@@ -115,9 +115,9 @@
 		return () => document.removeEventListener('keydown', onDocumentKeydown);
 	});
 
-	// Load on mount, on every index bump and on every projection setting
-	// change. The snapshot is memoized per index version, so a settings
-	// change re-projects without an IPC.
+	// Load on mount, on every index bump, on every projection setting change
+	// and when archived events are shown or hidden. The snapshot is memoized
+	// per index version, so a re-projection costs no IPC.
 	$effect(() => {
 		void vaultStore.vaultIndexVersion;
 		const ready = vaultStore.indexReady;
@@ -126,6 +126,7 @@
 		void s.defaultColor;
 		void s.eventTypeName;
 		void settingsStore.templates.systemFolder;
+		void eventCalendarViewStore.showArchived;
 		if (!ready) return;
 		untrack(() => {
 			const seq = ++loadSeq;

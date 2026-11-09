@@ -539,7 +539,48 @@ describe('EventCalendarView: needs attention', () => {
 		mountView();
 		await settle();
 
-		expect(text('[data-archived-footer]')).toBe('2 archived events hidden');
+		expect(text('[data-archived-footer]')).toBe('2 archived events hidden Show');
+	});
+
+	it('shows the archived events dimmed from the footer, and hides them again', async () => {
+		vi.mocked(invoke).mockResolvedValue([
+			eventEntry(P('Done'), { date: '2026-11-10', start: '09:00' }, { archived: true }),
+			eventEntry(P('Live'), { date: '2026-11-10', start: '11:00' }),
+		]);
+		mountView();
+		await settle();
+		const block = (name: string) => target.querySelector<HTMLElement>(`[data-event-path="${P(name)}"]`);
+		expect(block('Done')).toBeNull();
+		expect(block('Live')).not.toBeNull();
+
+		target.querySelector<HTMLButtonElement>('[data-archived-toggle]')!.click();
+		await settle();
+		expect(block('Done')?.dataset.archived).toBe('true');
+		expect(block('Live')?.dataset.archived).toBeUndefined();
+		expect(text('[data-archived-footer]')).toBe('1 archived event shown Hide');
+
+		target.querySelector<HTMLButtonElement>('[data-archived-toggle]')!.click();
+		await settle();
+		expect(block('Done')).toBeNull();
+		expect(text('[data-archived-footer]')).toBe('1 archived event hidden Show');
+	});
+
+	it('shows an archived all-day event dimmed in the all-day lane', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Trip'), { date: '2026-11-10', all_day: true }, { archived: true })]);
+		eventCalendarViewStore.setShowArchived(true);
+		mountView();
+		await settle();
+		expect(target.querySelector<HTMLElement>(`[data-all-day-cell="2026-11-10"] [data-event-path="${P('Trip')}"]`)?.dataset.archived).toBe('true');
+	});
+
+	it('shows archived events in the month grid too', async () => {
+		vi.mocked(invoke).mockResolvedValue([eventEntry(P('Done'), { date: '2026-11-10', start: '09:00' }, { archived: true })]);
+		eventCalendarViewStore.setShowArchived(true);
+		mountView();
+		await settle();
+		eventCalendarViewStore.setView('month');
+		flushSync();
+		expect(target.querySelector<HTMLElement>(`[data-month-cell="2026-11-10"] [data-event-path="${P('Done')}"]`)?.dataset.archived).toBe('true');
 	});
 });
 

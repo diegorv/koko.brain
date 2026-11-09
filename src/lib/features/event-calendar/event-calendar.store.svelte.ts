@@ -19,7 +19,7 @@ import type { EventIssue, EventNote, EventProjection, EventState, PendingWrite }
 let snapshot = $state.raw<EventNote[]>([]);
 /** Issues projected from the latest index snapshot. */
 let issues = $state.raw<EventIssue[]>([]);
-/** Archived event notes left out of the latest snapshot. */
+/** Archived event notes of the latest snapshot, whether or not it renders them. */
 let archivedCount = $state(0);
 /** `vaultIndexVersion` the latest snapshot was read at. */
 let snapshotVersion = $state(0);
@@ -90,7 +90,7 @@ export const eventCalendarStore = {
 	get unscheduledIssues() { return unscheduledIssues; },
 	/** Number of Needs-attention issues. */
 	get attentionCount() { return attentionIssues.length; },
-	/** Archived event notes left out of the latest snapshot. */
+	/** Archived event notes of the latest snapshot, whether or not it renders them. */
 	get archivedCount() { return archivedCount; },
 	/** Whether a load is in progress. */
 	get isLoading() { return loading; },

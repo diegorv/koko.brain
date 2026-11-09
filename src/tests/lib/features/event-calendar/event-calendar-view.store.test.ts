@@ -289,6 +289,25 @@ describe('eventCalendarViewStore', () => {
 		});
 	});
 
+	describe('showArchived', () => {
+		it('starts off, setShowArchived turns it on and off, and reset turns it off', () => {
+			expect(eventCalendarViewStore.showArchived).toBe(false);
+			eventCalendarViewStore.setShowArchived(true);
+			expect(eventCalendarViewStore.showArchived).toBe(true);
+			eventCalendarViewStore.setShowArchived(false);
+			expect(eventCalendarViewStore.showArchived).toBe(false);
+			eventCalendarViewStore.setShowArchived(true);
+			eventCalendarViewStore.reset();
+			expect(eventCalendarViewStore.showArchived).toBe(false);
+		});
+
+		it('is not written to settings', () => {
+			const before = JSON.stringify(settingsStore.eventCalendar);
+			eventCalendarViewStore.setShowArchived(true);
+			expect(JSON.stringify(settingsStore.eventCalendar)).toBe(before);
+		});
+	});
+
 	describe('gestureLive', () => {
 		it('setGestureLive sets and clears it', () => {
 			eventCalendarViewStore.setGestureLive(true);
