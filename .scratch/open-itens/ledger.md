@@ -55,7 +55,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 018 | [A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave](issues/018-note-deleted-renamed-outside-app-closed-marked.md) | 017 | todo | | |
 | 019 | [Every tab write checks the disk first, so an external change is never overwritten without a copy](issues/019-every-tab-write-checks-disk-first-so.md) | 017 | todo | | |
 | 020 | [A failed tree refresh still fans out the burst, and scan_vault skips an unreadable subfolder](issues/020-watcher-events-keep-fts5-semantic-rust-indexes.md) | none | todo | | |
-| 021 | [Guarded, status-preserving toggle](issues/021-guarded-status-preserving-toggle.md) | none | todo | | |
+| 021 | [Guarded, status-preserving toggle](issues/021-guarded-status-preserving-toggle.md) | none | in-progress | | |
 | 022 | [An empty --- --- frontmatter block from outside the app is matched, and writers never stack a second block](issues/022-empty-frontmatter-block-from-outside-app-matched.md) | 005 | todo | | |
 | 023 | [File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active](issues/023-file-history-restore-writes-snapshot-into-note.md) | none | todo | | |
 | 024 | [A meta-bind button stops its remaining actions when an open action fails](issues/024-meta-bind-button-stops-remaining-actions-when.md) | none | todo | | |
@@ -271,3 +271,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 ## Log
 
 - 2026-11-08 18:43 — ledger created (232 Issues)
+- 2026-11-09 15:47 — 021 — start — launched by /relay-lite:run — 5395b50e9
