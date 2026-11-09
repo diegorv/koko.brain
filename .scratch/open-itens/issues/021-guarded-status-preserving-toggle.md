@@ -24,22 +24,26 @@
 
 **Blocked by (origin):** closed blockers dropped: tasks-view 01.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the e2e mock changes. Run cargo from the checkout or worktree root so the generated bindings land in the right tree.
 
-- [ ] Failing Rust tests first, in `src-tauri/tests/vault_task_test.rs`, through `toggle_task_status_inner` on a tempdir file and an in-memory `VaultIndex` (set up as `:91-106` does):
+- [x] Failing Rust tests first, in `src-tauri/tests/vault_task_test.rs`, through `toggle_task_status_inner` on a tempdir file and an in-memory `VaultIndex` (set up as `:91-106` does):
   - `- [!] call` with expected text `call`, status `Important`, target `Done` writes `- [x] call`, `stale` false. Fails today (no such arguments; the old function writes `- [ ]`).
   - The line now reads `- [ ] other` while the caller expected `call`: the file bytes are unchanged and `stale` is true.
   - Expected status `Todo` but the line is `- [x] call`: unchanged, `stale` true.
   - A line number past the end: unchanged, `stale` true.
   - An ordered-list task `1. [ ] a` and a task whose description contains a literal `[ ]` still change only the marker (the regression at `parsing.rs:3311` keeps passing under the new function).
-- [ ] TS, `src/tests/lib/features/tasks/tasks.service.test.ts` with the real `tasksStore`: a `stale: true` result refetches, leaves the store holding the fresh groups, and calls `toast.info` with the message above. The file's `svelte-sonner` mock (`:13-15`) gains `info: vi.fn()`, and `makeResult` (`:208-213`) returns `stale: false` unless told otherwise.
-- [ ] The existing `toggleTask` cases at `:215-293` and in `task-toggle-dirty-buffer.test.ts` (which calls `toggleTask(NOTE, 2)` at `:90`, `:108`, `:125`, `:142`, `:152` and fakes `toggle_task_status` in its `invoke` mock at `:11-31`) pass a `TaskItem` and assert the new args; the fake returns `stale: false`.
-- [ ] `src/tests/lib/features/tasks/task-status.logic.test.ts` (new): `toggleTarget` for all seven statuses.
-- [ ] The existing concurrency tests in `vault_task_test.rs:31`, `:91` compile with the new arguments and keep their assertions. Both are `#[ignore]` (timing-dependent, `:22`), so `cargo test` does not run them; the new tests above must not be `#[ignore]`.
+- [x] TS, `src/tests/lib/features/tasks/tasks.service.test.ts` with the real `tasksStore`: a `stale: true` result refetches, leaves the store holding the fresh groups, and calls `toast.info` with the message above. The file's `svelte-sonner` mock (`:13-15`) gains `info: vi.fn()`, and `makeResult` (`:208-213`) returns `stale: false` unless told otherwise.
+- [x] The existing `toggleTask` cases at `:215-293` and in `task-toggle-dirty-buffer.test.ts` (which calls `toggleTask(NOTE, 2)` at `:90`, `:108`, `:125`, `:142`, `:152` and fakes `toggle_task_status` in its `invoke` mock at `:11-31`) pass a `TaskItem` and assert the new args; the fake returns `stale: false`.
+- [x] `src/tests/lib/features/tasks/task-status.logic.test.ts` (new): `toggleTarget` for all seven statuses.
+- [x] The existing concurrency tests in `vault_task_test.rs:31`, `:91` compile with the new arguments and keep their assertions. Both are `#[ignore]` (timing-dependent, `:22`), so `cargo test` does not run them; the new tests above must not be `#[ignore]`.
 
 ## Notes
 
 - **Size:** M. One new boolean on a DTO, no new command.
 - `toggleTarget` follows PRD decision B2's default (a). Under B2 (b) Issue 06 sends forwarded to `todo` too; under (c) it sends every non-todo status to `todo`. Either way Issue 06 changes only that function, so this Issue does not wait on B2.
+
+## Comments
+
+- 2026-11-09, branch `issue/021-guarded-status-preserving-toggle`: `toggle_task_status` now takes `expectedText`, `expectedStatus` and `target`, re-parses the line, and returns `stale: true` without writing when the line changed; `set_task_status_in_content` replaces `toggle_task_in_content`; `toggleTarget` in `task-status.logic.ts`; `toggleTask` takes a `TaskItem`, refetches and toasts on stale. Fix round after review 1: added `toggle_line_zero_is_stale`, reworded the `update_result` doc comment and regenerated `ToggleTaskResult.ts`. Tests: full suite at b57220e67 exit 0 (vitest 583 files, 14195 passed, 54 skipped, 1 todo; cargo 39 binaries ok). Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

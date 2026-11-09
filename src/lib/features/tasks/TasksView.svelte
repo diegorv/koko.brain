@@ -19,8 +19,9 @@
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import { filterByDate, filterCompleted, computeTaskStats, parseTaskTextSegments } from './tasks.logic';
+	import { toggleTarget } from './task-status.logic';
 	import TodoistPopover from './TodoistPopover.svelte';
-	import type { TaskDateFilter } from './tasks.types';
+	import type { TaskDateFilter, TaskItem } from './tasks.types';
 
 	interface Props {
 		/** Opens a task's wikilink target the way an editor click does */
@@ -64,8 +65,8 @@
 		openFileInEditor(filePath);
 	}
 
-	async function handleToggle(filePath: string, lineNumber: number) {
-		await toggleTask(filePath, lineNumber);
+	async function handleToggle(filePath: string, task: TaskItem) {
+		await toggleTask(filePath, task);
 	}
 
 	/** Opens the note at the task's line, unless the click ended a text selection inside the text. */
@@ -205,6 +206,8 @@
 							<!-- Task list -->
 							<div class="space-y-1">
 								{#each group.tasks as task (task.lineNumber)}
+									<!-- The circle follows what a click writes, not `task.checked`: a `[/]` or `[!]` task is checked but a click completes it. -->
+									{@const completes = toggleTarget(task.status) === 'done'}
 									<div
 										data-task-row
 										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors"
@@ -212,13 +215,13 @@
 									>
 										<button
 											class="shrink-0 mt-0.5 cursor-pointer"
-											aria-label={task.checked ? 'Mark task as not done' : 'Mark task as done'}
-											onclick={() => handleToggle(group.filePath, task.lineNumber)}
+											aria-label={completes ? 'Mark task as done' : 'Mark task as not done'}
+											onclick={() => handleToggle(group.filePath, task)}
 										>
-											{#if task.checked}
-												<CircleCheckBig class="size-4 text-primary/60" />
-											{:else}
+											{#if completes}
 												<Circle class="size-4 text-muted-foreground group-hover:text-primary/80 transition-colors" />
+											{:else}
+												<CircleCheckBig class="size-4 text-primary/60" />
 											{/if}
 										</button>
 										<!-- Clicking the text opens the note at the task's line; only the circle toggles. -->

@@ -56,6 +56,17 @@ const STATUS_BY_CHAR: Record<string, TaskStatusV2> = {
 	'!': 'important',
 };
 
+/** The checkbox char Rust's `status_checkbox_char` writes for each status. */
+const CHAR_BY_STATUS: Record<TaskStatusV2, string> = {
+	todo: ' ',
+	done: 'x',
+	cancelled: '-',
+	'in-progress': '/',
+	question: '?',
+	forwarded: '>',
+	important: '!',
+};
+
 let monotonicVersion = 0;
 
 function bumpVersion(): number {
@@ -483,35 +494,38 @@ class VaultIndexImpl {
 		});
 	}
 
-	toggleTaskStatus(path: string, lineNumber: number): ToggleTaskResultV2 {
+	/**
+	 * Rust `toggle_task_status`: writes `target`'s char into the task at
+	 * `lineNumber` only while that line still holds `expectedText` with
+	 * `expectedStatus`; otherwise nothing is written and the result is `stale`.
+	 */
+	toggleTaskStatus(
+		path: string,
+		lineNumber: number,
+		expectedText: string,
+		expectedStatus: TaskStatusV2,
+		target: TaskStatusV2,
+	): ToggleTaskResultV2 {
+		const noop = (updatedContent: string, stale: boolean): ToggleTaskResultV2 => ({
+			updatedContent,
+			updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
+			stale,
+		});
 		const content = virtualFS.readFileSafe(path);
-		if (content === null) {
-			return {
-				updatedContent: '',
-				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
-			};
-		}
+		if (content === null) return noop('', false);
 		const lines = content.split('\n');
 		const idx = lineNumber - 1;
-		if (idx < 0 || idx >= lines.length) {
-			return {
-				updatedContent: content,
-				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
-			};
+		const m = idx >= 0 && idx < lines.length ? lines[idx].match(TASK_LINE_RE) : null;
+		if (!m || m[3] !== expectedText || (STATUS_BY_CHAR[m[2]] ?? 'todo') !== expectedStatus) {
+			return noop(content, true);
 		}
-		const m = lines[idx].match(TASK_LINE_RE);
-		if (!m) {
-			return {
-				updatedContent: content,
-				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
-			};
-		}
-		const next = m[2] === ' ' ? 'x' : ' ';
+		const next = CHAR_BY_STATUS[target];
+		if (m[2] === next) return noop(content, false);
 		lines[idx] = lines[idx].replace(TASK_LINE_RE, `$1- [${next}] $3`);
 		const updated = lines.join('\n');
 		virtualFS.writeFile(path, updated);
 		const result = this.update(path, updated);
-		return { updatedContent: updated, updateResult: result };
+		return { updatedContent: updated, updateResult: result, stale: false };
 	}
 
 	/** Rust `get_index_delta`: the entries and records of `paths` still indexed, sorted by path. */

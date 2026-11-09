@@ -1599,6 +1599,20 @@ pub fn map_checkbox_char(c: char) -> TaskStatus {
 	}
 }
 
+/// The checkbox character written for `status`; the inverse of
+/// `map_checkbox_char` (done writes the lowercase `x`).
+pub fn status_checkbox_char(status: TaskStatus) -> char {
+	match status {
+		TaskStatus::Todo => ' ',
+		TaskStatus::Done => 'x',
+		TaskStatus::Cancelled => '-',
+		TaskStatus::InProgress => '/',
+		TaskStatus::Question => '?',
+		TaskStatus::Forwarded => '>',
+		TaskStatus::Important => '!',
+	}
+}
+
 /// Calculates the indent level from a leading-whitespace string. Tabs count
 /// as 1 indent level; every 2 spaces count as 1 indent level.
 fn calculate_indent(ws: &str) -> usize {
@@ -1616,7 +1630,7 @@ fn calculate_indent(ws: &str) -> usize {
 
 /// Parses a single line as a task item. Returns `None` for non-task lines
 /// or tasks whose text is empty / whitespace-only.
-fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
+pub(crate) fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 	if let Some(caps) = TASK_RE.captures(line) {
 		let check_str = caps.get(2)?.as_str();
 		let check_char = check_str.chars().next()?;
@@ -1861,16 +1875,14 @@ pub fn parse_task_metadata(raw_text: &str) -> TaskMetadata {
 	metadata
 }
 
-/// Toggles a task's checkbox at `line_number` (1-based) inside `content`.
-/// The box flipped is the one in the task marker (`TASK_RE` /
-/// `ORDERED_TASK_RE` group 2), never a stray `[ ]` elsewhere on the line:
-///   - `[ ]` -> `[x]`
-///   - any other status char (`xX-/?!>`) -> `[ ]`
-///   - line with no task marker: unchanged.
+/// Sets the checkbox of the task at `line_number` (1-based) inside `content`
+/// to `status_checkbox_char(status)`. The box written is the one in the task
+/// marker (`TASK_RE` / `ORDERED_TASK_RE` group 2), never a stray `[ ]`
+/// elsewhere on the line. A line with no task marker is left unchanged.
 ///
 /// Out-of-bounds line numbers (0 or past the end) return the original content
 /// untouched.
-pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
+pub fn set_task_status_in_content(content: &str, line_number: usize, status: TaskStatus) -> String {
 	if line_number == 0 {
 		return content.to_string();
 	}
@@ -1880,7 +1892,7 @@ pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
 		return content.to_string();
 	}
 	let line = &lines[idx];
-	// Flip the checkbox at the TASK MARKER (TASK_RE / ORDERED_TASK_RE group 2),
+	// Write the checkbox at the TASK MARKER (TASK_RE / ORDERED_TASK_RE group 2),
 	// NOT a `[ ]`/`[x]` anywhere on the line. A free substring match corrupted
 	// a checked task whose description contained a literal `[ ]` (e.g. a note
 	// about markdown checkbox syntax): it rewrote the description bracket and
@@ -1892,15 +1904,9 @@ pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
 	let Some(box_match) = box_match else {
 		return content.to_string();
 	};
-	// Group 2 is a single char: ' ' -> check, any other state -> uncheck.
-	let toggled = if &line[box_match.start()..box_match.end()] == " " {
-		"x"
-	} else {
-		" "
-	};
 	let mut new_line = String::with_capacity(line.len());
 	new_line.push_str(&line[..box_match.start()]);
-	new_line.push_str(toggled);
+	new_line.push(status_checkbox_char(status));
 	new_line.push_str(&line[box_match.end()..]);
 	lines[idx] = new_line;
 	lines.join("\n")
@@ -3246,90 +3252,115 @@ mod tests {
 		assert_eq!(m.tags, vec!["grocery".to_string()]);
 	}
 
-	// --- toggle_task_in_content ----------------------------------------------------
+	// --- set_task_status_in_content / status_checkbox_char --------------------------
 
 	#[test]
-	fn toggle_task_in_content_unchecked_to_checked() {
+	fn status_checkbox_char_round_trips_every_status() {
+		for status in [
+			TaskStatus::Todo,
+			TaskStatus::Done,
+			TaskStatus::Cancelled,
+			TaskStatus::InProgress,
+			TaskStatus::Question,
+			TaskStatus::Forwarded,
+			TaskStatus::Important,
+		] {
+			assert_eq!(map_checkbox_char(status_checkbox_char(status)), status);
+		}
+		assert_eq!(status_checkbox_char(TaskStatus::Done), 'x');
+	}
+
+	#[test]
+	fn set_task_status_in_content_unchecked_to_checked() {
 		let content = "- [ ] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Done);
 		assert_eq!(result, "- [x] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_checked_lowercase_to_unchecked() {
+	fn set_task_status_in_content_checked_lowercase_to_unchecked() {
 		let content = "- [x] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Todo);
 		assert_eq!(result, "- [ ] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_checked_uppercase_to_unchecked() {
+	fn set_task_status_in_content_checked_uppercase_to_unchecked() {
 		let content = "- [X] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Todo);
 		assert_eq!(result, "- [ ] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_in_progress_to_unchecked() {
+	fn set_task_status_in_content_in_progress_to_unchecked() {
 		let content = "- [/] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Todo);
 		assert_eq!(result, "- [ ] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_cancelled_to_unchecked() {
+	fn set_task_status_in_content_cancelled_to_unchecked() {
 		let content = "- [-] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Todo);
 		assert_eq!(result, "- [ ] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_line_zero_returns_unchanged() {
+	fn set_task_status_in_content_important_to_done() {
+		let result = set_task_status_in_content("- [!] call", 1, TaskStatus::Done);
+		assert_eq!(result, "- [x] call");
+	}
+
+	#[test]
+	fn set_task_status_in_content_line_zero_returns_unchanged() {
 		let content = "- [ ] task";
-		assert_eq!(toggle_task_in_content(content, 0), content);
+		assert_eq!(set_task_status_in_content(content, 0, TaskStatus::Done), content);
 	}
 
 	#[test]
-	fn toggle_task_in_content_line_out_of_bounds_returns_unchanged() {
+	fn set_task_status_in_content_line_out_of_bounds_returns_unchanged() {
 		let content = "- [ ] task\n";
-		assert_eq!(toggle_task_in_content(content, 100), content);
+		assert_eq!(set_task_status_in_content(content, 100, TaskStatus::Done), content);
 	}
 
 	#[test]
-	fn toggle_task_in_content_no_checkbox_returns_unchanged() {
+	fn set_task_status_in_content_no_checkbox_returns_unchanged() {
 		let content = "just a paragraph";
-		assert_eq!(toggle_task_in_content(content, 1), content);
+		assert_eq!(set_task_status_in_content(content, 1, TaskStatus::Done), content);
 	}
 
 	#[test]
-	fn toggle_task_in_content_only_first_match_on_line() {
+	fn set_task_status_in_content_only_first_match_on_line() {
 		let content = "- [ ] foo [ ] bar";
-		assert_eq!(toggle_task_in_content(content, 1), "- [x] foo [ ] bar");
+		assert_eq!(
+			set_task_status_in_content(content, 1, TaskStatus::Done),
+			"- [x] foo [ ] bar"
+		);
 	}
 
 	#[test]
-	fn toggle_task_in_content_checked_with_bracket_in_description() {
+	fn set_task_status_in_content_checked_with_bracket_in_description() {
 		// Regression (#9): a CHECKED task whose description contains a literal
-		// `[ ]` must toggle the CHECKBOX, not the description bracket. The old
+		// `[ ]` must change the CHECKBOX, not the description bracket. The old
 		// `line.contains("[ ]")` substring match rewrote the description's
 		// bracket (-> "[x] ... [x]") and left the real checkbox checked.
 		let content = "- [x] document the [ ] empty checkbox syntax";
 		assert_eq!(
-			toggle_task_in_content(content, 1),
+			set_task_status_in_content(content, 1, TaskStatus::Todo),
 			"- [ ] document the [ ] empty checkbox syntax"
 		);
 	}
 
 	#[test]
-	fn toggle_task_in_content_ordered_task() {
-		assert_eq!(toggle_task_in_content("1. [ ] item", 1), "1. [x] item");
-		assert_eq!(toggle_task_in_content("1. [x] item", 1), "1. [ ] item");
+	fn set_task_status_in_content_ordered_task() {
+		assert_eq!(set_task_status_in_content("1. [ ] item", 1, TaskStatus::Done), "1. [x] item");
+		assert_eq!(set_task_status_in_content("1. [x] item", 1, TaskStatus::Todo), "1. [ ] item");
 	}
 
 	#[test]
-	fn toggle_task_in_content_preserves_other_lines() {
+	fn set_task_status_in_content_preserves_other_lines() {
 		let content = "line one\n- [ ] task on line two\nline three";
-		let result = toggle_task_in_content(content, 2);
+		let result = set_task_status_in_content(content, 2, TaskStatus::Done);
 		assert_eq!(result, "line one\n- [x] task on line two\nline three");
 	}
 

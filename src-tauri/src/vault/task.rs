@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 /// One task list item parsed from a note's body.
 ///
 /// Mirrors `tasks.types.ts::TaskItem`. `line_number` is 1-based to match
-/// the TS contract used by `toggleTask(filePath, lineNumber)`.
+/// the TS contract used by `toggleTask(filePath, task)`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
@@ -189,10 +189,14 @@ pub struct ToggleTaskResult {
 	/// to update `noteIndexStore` and the editor view).
 	pub updated_content: String,
 	/// `UpdateResult` from the `VaultIndex::update_entry` call that ran
-	/// after the disk write. `changed: false` means the line was a no-op
-	/// (out of bounds or no checkbox); the disk file is untouched in that
-	/// case and the content equals the pre-call content.
+	/// after the disk write. `changed: false` means nothing was written (a
+	/// stale line, see `stale`, or `target` already the line's status); the
+	/// disk file is untouched in that case and the content equals the
+	/// pre-call content.
 	pub update_result: crate::vault::index::UpdateResult,
+	/// true when the line no longer held the expected task, so nothing was
+	/// written.
+	pub stale: bool,
 }
 
 #[cfg(test)]

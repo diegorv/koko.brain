@@ -3,8 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 /**
  * Fake disk + fake Rust side. `toggle_task_status` mirrors
  * `toggle_task_status_inner` (src-tauri/src/commands/vault.rs): it reads the
- * file from DISK, flips the `[ ]` marker on the 1-based line, writes it back
- * and returns the toggled text.
+ * file from DISK, writes the `target` char into the `[ ]` marker on the
+ * 1-based line, writes it back and returns the toggled text.
  */
 const disk = new Map<string, string>();
 
@@ -16,14 +16,15 @@ vi.mock('@tauri-apps/api/core', () => ({
 			const original = disk.get(path) ?? '';
 			const lines = original.split('\n');
 			const target = lines[line - 1] ?? '';
-			const toggled = target.replace(/^(\s*[-*+] \[)( )(\])/, '$1x$3');
+			const char = args!.target === 'done' ? 'x' : ' ';
+			const toggled = target.replace(/^(\s*[-*+] \[)( )(\])/, `$1${char}$3`);
 			lines[line - 1] = toggled;
 			const updated = lines.join('\n');
 			if (updated === original) {
-				return { updatedContent: original, updateResult: { changed: false, version: 1, upserted: [], removed: [], fullRescan: false } };
+				return { updatedContent: original, updateResult: { changed: false, version: 1, upserted: [], removed: [], fullRescan: false }, stale: false };
 			}
 			disk.set(path, updated);
-			return { updatedContent: updated, updateResult: { changed: true, version: 2, upserted: [path], removed: [], fullRescan: false } };
+			return { updatedContent: updated, updateResult: { changed: true, version: 2, upserted: [path], removed: [], fullRescan: false }, stale: false };
 		}
 		if (cmd === 'get_all_tasks_v2' || cmd === 'get_tasks_in_section_v2') return [];
 		return undefined;
@@ -51,10 +52,20 @@ import { toast } from 'svelte-sonner';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { onContentChange, resetEditor } from '#lib/core/editor/editor.service.js';
 import { openTasksTab, toggleTask } from '#lib/features/tasks/tasks.service.js';
+import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
 
 const NOTE = '/vault/note.md';
 const SAVED = '# Groceries\n- [ ] buy milk\n';
 const TYPED = '# Groceries\n- [ ] buy milk\nA paragraph the user just typed.\n';
+/** "buy milk" as the Tasks list holds it (line 2 of SAVED). */
+const BUY_MILK: TaskItem = {
+	text: 'buy milk',
+	checked: false,
+	indent: 0,
+	lineNumber: 2,
+	status: 'todo',
+	metadata: { description: 'buy milk', tags: [] },
+};
 
 function noteTab() {
 	return editorStore.tabs.find((t) => t.path === NOTE)!;
@@ -87,7 +98,7 @@ describe('toggleTask on a note with unsaved edits', () => {
 		// Switches to the Tasks tab (switchTab / setActiveIndex does not save)
 		// and ticks "buy milk" (line 2) before the autosave fires.
 		openTasksTab();
-		await toggleTask(NOTE, 2);
+		await toggleTask(NOTE, BUY_MILK);
 
 		// Let the pending autosave run.
 		await vi.advanceTimersByTimeAsync(2500);
@@ -105,7 +116,7 @@ describe('toggleTask on a note with unsaved edits', () => {
 		openTasksTab();
 		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
 
-		await toggleTask(NOTE, 2);
+		await toggleTask(NOTE, BUY_MILK);
 
 		expect(toggleCalls()).toHaveLength(0);
 		expect(disk.get(NOTE)).toBe(SAVED);
@@ -122,7 +133,7 @@ describe('toggleTask on a note with unsaved edits', () => {
 		onContentChange(shifted);
 		openTasksTab();
 
-		await toggleTask(NOTE, 2);
+		await toggleTask(NOTE, BUY_MILK);
 
 		expect(toggleCalls()).toHaveLength(0);
 		// The typing is saved, nothing was toggled.
@@ -139,7 +150,7 @@ describe('toggleTask on a note with unsaved edits', () => {
 		onContentChange(edited);
 		openTasksTab();
 
-		await toggleTask(NOTE, 2);
+		await toggleTask(NOTE, BUY_MILK);
 
 		expect(toggleCalls()).toHaveLength(0);
 		expect(disk.get(NOTE)).toBe(edited);
@@ -149,10 +160,17 @@ describe('toggleTask on a note with unsaved edits', () => {
 	});
 
 	it('does not write before the toggle when the tab is clean', async () => {
-		await toggleTask(NOTE, 2);
+		await toggleTask(NOTE, BUY_MILK);
 
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(toggleCalls()).toHaveLength(1);
+		expect(toggleCalls()[0][1]).toEqual({
+			path: NOTE,
+			lineNumber: 2,
+			expectedText: 'buy milk',
+			expectedStatus: 'todo',
+			target: 'done',
+		});
 		expect(noteTab().content).toBe('# Groceries\n- [x] buy milk\n');
 	});
 });

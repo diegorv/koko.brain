@@ -25,20 +25,21 @@ import TasksView from '#lib/features/tasks/TasksView.svelte';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
+import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 
 const NOTE = '/vault/Projects/2026-Q2.md';
 
-function group(text: string, lineNumber: number): FileTaskGroupV2 {
+function group(text: string, lineNumber: number, status: TaskStatus = 'todo'): FileTaskGroupV2 {
 	return {
 		filePath: NOTE,
 		fileName: '2026-Q2',
 		modifiedAt: 1_700_000_000,
 		tasks: [{
 			text,
-			checked: false,
+			checked: status !== 'todo',
 			indent: 0,
 			lineNumber,
-			status: 'todo',
+			status,
 			metadata: { description: text, tags: [] },
 		}],
 	};
@@ -71,12 +72,12 @@ describe('TasksView row clicks', () => {
 	});
 
 	/** Mounts the view with one task on `lineNumber` (1-based), preceded by blank lines. */
-	async function mountView(text: string, lineNumber = 1): Promise<void> {
+	async function mountView(text: string, lineNumber = 1, status: TaskStatus = 'todo'): Promise<void> {
 		vi.mocked(readTextFile).mockResolvedValue(`${'\n'.repeat(lineNumber - 1)}- [ ] ${text}\n`);
 		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
-			if (cmd === 'get_all_tasks_v2') return [group(text, lineNumber)];
+			if (cmd === 'get_all_tasks_v2') return [group(text, lineNumber, status)];
 			if (cmd === 'toggle_task_status') {
-				return { updatedContent: '', updateResult: { changed: false, version: 1, upserted: [], removed: [], fullRescan: false } };
+				return { updatedContent: '', updateResult: { changed: false, version: 1, upserted: [], removed: [], fullRescan: false }, stale: false };
 			}
 			return undefined;
 		});
@@ -116,7 +117,42 @@ describe('TasksView row clicks', () => {
 		circle.click();
 
 		await vi.waitFor(() => expect(toggleCalls()).toHaveLength(1));
-		expect(toggleCalls()[0][1]).toEqual({ path: NOTE, lineNumber: 1 });
+		expect(toggleCalls()[0][1]).toEqual({
+			path: NOTE,
+			lineNumber: 1,
+			expectedText: 'Ship feature A',
+			expectedStatus: 'todo',
+			target: 'done',
+		});
+	});
+
+	/** The circle button of the only row. */
+	function circleButton(): HTMLButtonElement {
+		const button = document.querySelector<HTMLButtonElement>('[data-task-row] button');
+		if (!button) throw new Error('circle button not found');
+		return button;
+	}
+
+	it('shows the open circle and "Mark task as done" for an important task, which a click completes', async () => {
+		// "Hide completed" hides every checked row, `[!]` included.
+		tasksStore.setHideCompleted(false);
+		await mountView('call', 1, 'important');
+
+		// The open `Circle` icon draws a <circle>; `CircleCheckBig` draws paths only.
+		expect(circleButton().getAttribute('aria-label')).toBe('Mark task as done');
+		expect(circleButton().querySelector('svg circle')).not.toBeNull();
+
+		circleButton().click();
+		await vi.waitFor(() => expect(toggleCalls()).toHaveLength(1));
+		expect(toggleCalls()[0][1]).toMatchObject({ expectedStatus: 'important', target: 'done' });
+	});
+
+	it('shows the ticked circle and "Mark task as not done" for a done task', async () => {
+		tasksStore.setHideCompleted(false);
+		await mountView('call', 1, 'done');
+
+		expect(circleButton().getAttribute('aria-label')).toBe('Mark task as not done');
+		expect(circleButton().querySelector('svg circle')).toBeNull();
 	});
 
 	it('does nothing when the click ends a text selection inside the text', async () => {

@@ -6,7 +6,7 @@ import type { TaskStatus } from "./TaskStatus.js";
  * One task list item parsed from a note's body.
  *
  * Mirrors `tasks.types.ts::TaskItem`. `line_number` is 1-based to match
- * the TS contract used by `toggleTask(filePath, lineNumber)`.
+ * the TS contract used by `toggleTask(filePath, task)`.
  */
 export type Task = { 
 /**

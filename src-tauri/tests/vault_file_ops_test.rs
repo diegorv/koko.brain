@@ -13,6 +13,7 @@ use kokobrain_lib::commands::vault::{
 };
 use kokobrain_lib::vault::entry::NoteEntry;
 use kokobrain_lib::vault::index::VaultIndex;
+use kokobrain_lib::vault::task::TaskStatus;
 use std::collections::BTreeSet;
 use std::fs;
 use tempfile::tempdir;
@@ -344,7 +345,8 @@ fn toggle_task_happy_path_checks_box() {
 	let mut idx = VaultIndex::default();
 	update_note_in_index_inner(&mut idx, path_str.clone(), "# Tasks\n- [ ] Buy milk\n- [ ] Walk dog\n", 0);
 
-	let result = toggle_task_status_inner(&mut idx, &path_str, 2).expect("toggle");
+	let result = toggle_task_status_inner(&mut idx, &path_str, 2, "Buy milk", TaskStatus::Todo, TaskStatus::Done)
+		.expect("toggle");
 	assert!(result.update_result.changed);
 	assert!(result.updated_content.contains("- [x] Buy milk"));
 	let on_disk = fs::read_to_string(&path).expect("read");
@@ -360,7 +362,8 @@ fn toggle_task_noop_no_checkbox_on_line() {
 	fs::write(&path, content).expect("write");
 
 	let mut idx = VaultIndex::default();
-	let result = toggle_task_status_inner(&mut idx, &path_str, 2).expect("toggle");
+	let result = toggle_task_status_inner(&mut idx, &path_str, 2, "Just text", TaskStatus::Todo, TaskStatus::Done)
+		.expect("toggle");
 	assert!(!result.update_result.changed);
 	assert_eq!(result.updated_content, content);
 	assert_eq!(fs::read_to_string(&path).expect("read"), content);
@@ -375,7 +378,8 @@ fn toggle_task_line_out_of_bounds() {
 	fs::write(&path, content).expect("write");
 
 	let mut idx = VaultIndex::default();
-	let result = toggle_task_status_inner(&mut idx, &path_str, 999).expect("toggle");
+	let result = toggle_task_status_inner(&mut idx, &path_str, 999, "Only task", TaskStatus::Todo, TaskStatus::Done)
+		.expect("toggle");
 	assert!(!result.update_result.changed);
 	assert_eq!(result.updated_content, content);
 }
@@ -383,7 +387,14 @@ fn toggle_task_line_out_of_bounds() {
 #[test]
 fn toggle_task_file_not_found() {
 	let mut idx = VaultIndex::default();
-	let result = toggle_task_status_inner(&mut idx, "/nonexistent/path.md", 1);
+	let result = toggle_task_status_inner(
+		&mut idx,
+		"/nonexistent/path.md",
+		1,
+		"task",
+		TaskStatus::Todo,
+		TaskStatus::Done,
+	);
 	assert!(result.is_err());
 	assert!(result.unwrap_err().contains("read failed"));
 }
@@ -402,7 +413,15 @@ fn toggle_task_updates_index_tasks() {
 	let before = idx.entries().get(&path_str).unwrap().tasks.clone();
 	assert!(!before.is_empty(), "should have parsed a task");
 
-	let result = toggle_task_status_inner(&mut idx, &path_str, 1).expect("toggle");
+	let result = toggle_task_status_inner(
+		&mut idx,
+		&path_str,
+		1,
+		"Unchecked task",
+		TaskStatus::Todo,
+		TaskStatus::Done,
+	)
+	.expect("toggle");
 	assert!(result.update_result.changed);
 
 	let after = idx.entries().get(&path_str).unwrap().tasks.clone();
@@ -418,11 +437,13 @@ fn toggle_task_double_toggle_round_trips() {
 	fs::write(&path, original).expect("write");
 
 	let mut idx = VaultIndex::default();
-	toggle_task_status_inner(&mut idx, &path_str, 1).expect("first toggle");
+	toggle_task_status_inner(&mut idx, &path_str, 1, "Toggle me", TaskStatus::Todo, TaskStatus::Done)
+		.expect("first toggle");
 	let after_first = fs::read_to_string(&path).expect("read");
 	assert_ne!(after_first, original);
 
-	toggle_task_status_inner(&mut idx, &path_str, 1).expect("second toggle");
+	toggle_task_status_inner(&mut idx, &path_str, 1, "Toggle me", TaskStatus::Done, TaskStatus::Todo)
+		.expect("second toggle");
 	let after_second = fs::read_to_string(&path).expect("read");
 	assert_eq!(after_second, original, "double toggle should restore original");
 }

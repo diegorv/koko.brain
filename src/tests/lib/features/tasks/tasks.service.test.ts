@@ -11,10 +11,11 @@ vi.mock('#lib/utils/debug.js', () => ({
 }));
 
 vi.mock('svelte-sonner', () => ({
-	toast: { error: vi.fn() },
+	toast: { error: vi.fn(), info: vi.fn() },
 }));
 
 import { invoke } from '@tauri-apps/api/core';
+import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
@@ -28,6 +29,8 @@ import {
 	resetTasks,
 } from '#lib/features/tasks/tasks.service.js';
 import type { FileTaskGroupV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
+import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
+import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 
 function group(filePath: string, modifiedAtSec: number, taskTexts: string[]): FileTaskGroupV2 {
 	return {
@@ -205,21 +208,59 @@ describe('toggleTask', () => {
 		editorStore.reset();
 	});
 
-	function makeResult(updatedContent: string, changed = true): ToggleTaskResultV2 {
+	function makeResult(updatedContent: string, changed = true, stale = false): ToggleTaskResultV2 {
 		return {
 			updatedContent,
 			updateResult: { changed, affected: [], version: 1, upserted: [], removed: [], fullRescan: false },
+			stale,
 		};
 	}
 
-	it('invokes toggle_task_status with the right path/lineNumber', async () => {
+	/** A task as the Tasks list holds it. */
+	function item(text: string, lineNumber = 1, status: TaskStatus = 'todo'): TaskItem {
+		return {
+			text,
+			checked: status !== 'todo',
+			indent: 0,
+			lineNumber,
+			status,
+			metadata: { description: text, tags: [] },
+		};
+	}
+
+	it('invokes toggle_task_status with the line, the expected task and the target status', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [x] task'));
 
-		await toggleTask('/vault/a.md', 1);
+		await toggleTask('/vault/a.md', item('task'));
 
 		expect(invoke).toHaveBeenCalledWith('toggle_task_status', {
 			path: '/vault/a.md',
 			lineNumber: 1,
+			expectedText: 'task',
+			expectedStatus: 'todo',
+			target: 'done',
+		});
+	});
+
+	it('sends done as the target for an important task, and todo for a done one', async () => {
+		vi.mocked(invoke).mockResolvedValue(makeResult('', false));
+
+		await toggleTask('/vault/a.md', item('call', 3, 'important'));
+		await toggleTask('/vault/a.md', item('call', 3, 'done'));
+
+		expect(invoke).toHaveBeenNthCalledWith(1, 'toggle_task_status', {
+			path: '/vault/a.md',
+			lineNumber: 3,
+			expectedText: 'call',
+			expectedStatus: 'important',
+			target: 'done',
+		});
+		expect(invoke).toHaveBeenNthCalledWith(2, 'toggle_task_status', {
+			path: '/vault/a.md',
+			lineNumber: 3,
+			expectedText: 'call',
+			expectedStatus: 'done',
+			target: 'todo',
 		});
 	});
 
@@ -232,7 +273,7 @@ describe('toggleTask', () => {
 			.mockResolvedValueOnce(makeResult('- [x] task'))
 			.mockResolvedValueOnce([toggled]);
 
-		await toggleTask('/vault/a.md', 1);
+		await toggleTask('/vault/a.md', item('task'));
 
 		// The throttled vault-index-updated bump can land 2-10 s later; the
 		// acting view refetches itself so the checkbox reflects the click now.
@@ -242,17 +283,44 @@ describe('toggleTask', () => {
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
+	it('refetches the Tasks store and asks for a new click when the line is stale', async () => {
+		editorStore.addTab({
+			path: '/vault/a.md',
+			name: 'a.md',
+			content: '- [ ] other',
+			savedContent: '- [ ] other',
+		});
+		const fresh = group('/vault/a.md', 100, ['other']);
+		tasksStore.setSectionTag('');
+		vi.mocked(invoke)
+			.mockResolvedValueOnce(makeResult('- [ ] other', /* changed */ false, /* stale */ true))
+			.mockResolvedValueOnce([fresh]);
+		const signalBefore = editorStore.externalContentSignal;
+
+		await toggleTask('/vault/a.md', item('task'));
+
+		expect(invoke).toHaveBeenNthCalledWith(2, 'get_all_tasks_v2');
+		expect(tasksStore.fileTaskGroups).toHaveLength(1);
+		expect(tasksStore.fileTaskGroups[0].tasks[0].text).toBe('other');
+		expect(toast.info).toHaveBeenCalledWith('The task changed on disk, so the list was refreshed. Click it again.');
+		expect(editorStore.externalContentSignal).toBe(signalBefore);
+	});
+
 	it('does not refetch the Tasks store when the toggle is a no-op', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [ ] task', /* changed */ false));
 
-		await toggleTask('/vault/a.md', 1);
+		await toggleTask('/vault/a.md', item('task'));
 
 		expect(invoke).toHaveBeenCalledTimes(1);
 		expect(invoke).toHaveBeenCalledWith('toggle_task_status', {
 			path: '/vault/a.md',
 			lineNumber: 1,
+			expectedText: 'task',
+			expectedStatus: 'todo',
+			target: 'done',
 		});
 		expect(tasksStore.fileTaskGroups).toHaveLength(0);
+		expect(toast.info).not.toHaveBeenCalled();
 	});
 
 	it('bumps externalContentSignal when toggled file is the active tab', async () => {
@@ -265,7 +333,7 @@ describe('toggleTask', () => {
 		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [x] task'));
 
 		const before = editorStore.externalContentSignal;
-		await toggleTask('/vault/a.md', 1);
+		await toggleTask('/vault/a.md', item('task'));
 
 		expect(editorStore.externalContentSignal).toBeGreaterThan(before);
 		expect(editorStore.tabs[0].content).toBe('- [x] task');
@@ -276,7 +344,7 @@ describe('toggleTask', () => {
 		const tabBefore = editorStore.externalContentSignal;
 		vi.mocked(invoke).mockResolvedValueOnce(makeResult('- [ ] task', /* changed */ false));
 
-		await toggleTask('/vault/a.md', 1);
+		await toggleTask('/vault/a.md', item('task'));
 
 		// changed=false → no editor signal bump (no doc replace).
 		expect(editorStore.externalContentSignal).toBe(tabBefore);
@@ -286,7 +354,7 @@ describe('toggleTask', () => {
 		const tabBefore = editorStore.externalContentSignal;
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('disk full'));
 
-		await toggleTask('/vault/a.md', 1);
+		await toggleTask('/vault/a.md', item('task'));
 
 		expect(editorStore.externalContentSignal).toBe(tabBefore);
 	});

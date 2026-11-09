@@ -5,7 +5,7 @@ use kokobrain_lib::commands::vault::{
 	toggle_task_status_inner, update_note_in_index_inner, CachedScanResult, ScanSource,
 };
 use kokobrain_lib::vault::parsing::extract_tasks_from_section;
-use kokobrain_lib::vault::task::FileTaskGroup;
+use kokobrain_lib::vault::task::{FileTaskGroup, TaskStatus};
 use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink, WikiLink};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::index_cache::{
@@ -710,10 +710,19 @@ fn toggle_task_result_wire_shape_matches_ts_interface() {
     let path_str = path.to_string_lossy().to_string();
 
     let mut idx = VaultIndex::default();
-    let result = toggle_task_status_inner(&mut idx, &path_str, 1).unwrap();
+    let result = toggle_task_status_inner(
+        &mut idx,
+        &path_str,
+        1,
+        "Flip me",
+        TaskStatus::Todo,
+        TaskStatus::Done,
+    )
+    .unwrap();
 
     let value = serde_json::to_value(&result).unwrap();
     assert_eq!(value["updatedContent"], "- [x] Flip me\n");
+    assert_eq!(value["stale"], false);
     let update = &value["updateResult"];
     assert_eq!(update["changed"], true);
     assert!(update["affected"].is_array());

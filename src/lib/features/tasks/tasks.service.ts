@@ -4,7 +4,8 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { tasksStore } from './tasks.store.svelte';
-import type { FileTaskGroup } from './tasks.types';
+import { toggleTarget } from './task-status.logic';
+import type { FileTaskGroup, TaskItem } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
 
@@ -97,10 +98,16 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
 }
 
 /**
- * Toggles a task's checked state via the Rust `toggle_task_status`
- * command. Rust does the read → toggle → write → index-update → emit
- * chain — no TS-side index sync remains. The Rust update emits
- * `vault-index-updated`; panels react via `vaultStore.vaultIndexVersion`.
+ * Toggles a task via the Rust `toggle_task_status` command, writing the
+ * status `toggleTarget(task.status)` picks. Rust does the read → check →
+ * write → index-update → emit chain — no TS-side index sync remains. The
+ * Rust update emits `vault-index-updated`; panels react via
+ * `vaultStore.vaultIndexVersion`.
+ *
+ * The list can lag disk by seconds, so Rust writes only when the line at
+ * `task.lineNumber` still holds `task.text` with `task.status`. Otherwise
+ * the result is `stale`: the list is refetched and the user asked to click
+ * again.
  *
  * On a changed result the Tasks store is refetched right away: the version
  * bump is throttled (2 s, up to 10 s during a burst), and the clicked
@@ -118,7 +125,8 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
  * The check compares line text only: if the shift leaves an identical line
  * at `lineNumber` (a duplicated task), that line is the one toggled.
  */
-export async function toggleTask(filePath: string, lineNumber: number): Promise<void> {
+export async function toggleTask(filePath: string, task: TaskItem): Promise<void> {
+	const { lineNumber } = task;
 	try {
 		const tab = editorStore.tabs.find((t) => t.path === filePath);
 		if (tab && isTabDirty(tab)) {
@@ -137,7 +145,15 @@ export async function toggleTask(filePath: string, lineNumber: number): Promise<
 		const result = await call('toggle_task_status', {
 			path: filePath,
 			lineNumber,
+			expectedText: task.text,
+			expectedStatus: task.status,
+			target: toggleTarget(task.status),
 		});
+		if (result.stale) {
+			await buildTaskIndex();
+			toast.info('The task changed on disk, so the list was refreshed. Click it again.');
+			return;
+		}
 		if (!result.updateResult.changed) {
 			return;
 		}

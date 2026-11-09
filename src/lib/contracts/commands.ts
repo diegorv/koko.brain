@@ -23,6 +23,7 @@ import type {
 	SemanticStats,
 	SnapshotInfo,
 	TagAggregate,
+	TaskStatus,
 	ToggleTaskResult,
 	UpdateMetadata,
 	UpdateResult,
@@ -80,8 +81,11 @@ export interface CommandMap {
 	get_all_tasks_v2: { args: NoArgs; result: FileTaskGroup[] };
 	/** Tasks under the sections tagged `sectionTag`. */
 	get_tasks_in_section_v2: { args: { sectionTag: string }; result: FileTaskGroup[] };
-	/** Toggles the task at `lineNumber` of `path`. */
-	toggle_task_status: { args: { path: string; lineNumber: number }; result: ToggleTaskResult };
+	/** Sets the task at `lineNumber` of `path` to `target`; `stale` when the line no longer holds the expected task. */
+	toggle_task_status: {
+		args: { path: string; lineNumber: number; expectedText: string; expectedStatus: TaskStatus; target: TaskStatus };
+		result: ToggleTaskResult;
+	};
 	/** Drops a note from the index. */
 	remove_note_from_index: { args: { path: string }; result: UpdateResult };
 	/** Re-keys the index entries under a renamed path; `null` when nothing matched. */
@@ -229,7 +233,7 @@ export const COMMAND_ARGS = {
 	get_all_tags_v2: [],
 	get_all_tasks_v2: [],
 	get_tasks_in_section_v2: ['sectionTag'],
-	toggle_task_status: ['path', 'lineNumber'],
+	toggle_task_status: ['path', 'lineNumber', 'expectedText', 'expectedStatus', 'target'],
 	remove_note_from_index: ['path'],
 	rename_note: ['from', 'to'],
 	get_all_property_records: [],

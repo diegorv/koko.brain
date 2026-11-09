@@ -1,10 +1,10 @@
 //! Phase 7 — Task integration tests (FS-level, TempDir, VaultIndex).
 //!
 //! Unit tests for `extract_tasks`, `extract_tasks_from_section`,
-//! `parse_task_metadata`, `map_checkbox_char`, and `toggle_task_in_content`
+//! `parse_task_metadata`, `map_checkbox_char`, and `set_task_status_in_content`
 //! live inline in `src/vault/parsing.rs`.
 
-use kokobrain_lib::commands::vault::toggle_task_status_inner;
+use kokobrain_lib::commands::vault::{toggle_task_status_inner, update_note_in_index_inner};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::task::{Task, TaskMetadata, TaskPriority, TaskStatus};
 use std::sync::{Arc, Barrier};
@@ -58,7 +58,14 @@ fn audit_finding_9_toggle_task_loses_concurrent_external_edit() {
 
 		let mut idx = VaultIndex::default();
 		barrier.wait();
-		let _ = toggle_task_status_inner(&mut idx, &path_str, 1);
+		let _ = toggle_task_status_inner(
+			&mut idx,
+			&path_str,
+			1,
+			"Buy milk",
+			TaskStatus::Todo,
+			TaskStatus::Done,
+		);
 		h.join().unwrap();
 
 		let final_content = std::fs::read_to_string(&path).unwrap();
@@ -99,11 +106,164 @@ fn audit_finding_9_toggle_task_no_concurrent_writer_preserves_state() {
 	let path_str = path.to_string_lossy().to_string();
 
 	let mut idx = VaultIndex::default();
-	let result = toggle_task_status_inner(&mut idx, &path_str, 1).unwrap();
+	let result = toggle_task_status_inner(
+		&mut idx,
+		&path_str,
+		1,
+		"Buy milk",
+		TaskStatus::Todo,
+		TaskStatus::Done,
+	)
+	.unwrap();
 
 	let final_content = std::fs::read_to_string(&path).unwrap();
 	assert_eq!(final_content, "- [x] Buy milk\n- [ ] Write tests\n");
 	assert_eq!(result.updated_content, final_content);
+}
+
+// --- toggle_task_status guard and target status --------------------------------
+//
+// The Tasks list can be seconds behind disk, so the command re-parses the line
+// and writes nothing (`stale: true`) unless it still holds the expected task.
+
+/// Writes `content` to a tempdir note and indexes it. Returns the dir guard,
+/// the path and the index.
+fn task_note(content: &str) -> (tempfile::TempDir, String, VaultIndex) {
+	let dir = tempfile::tempdir().unwrap();
+	let path = dir.path().join("note.md");
+	std::fs::write(&path, content).unwrap();
+	let path_str = path.to_string_lossy().to_string();
+	let mut idx = VaultIndex::default();
+	update_note_in_index_inner(&mut idx, path_str.clone(), content, 0);
+	(dir, path_str, idx)
+}
+
+#[test]
+fn toggle_important_task_to_done_writes_x() {
+	let (_dir, path, mut idx) = task_note("- [!] call\n");
+
+	let result = toggle_task_status_inner(
+		&mut idx,
+		&path,
+		1,
+		"call",
+		TaskStatus::Important,
+		TaskStatus::Done,
+	)
+	.unwrap();
+
+	assert_eq!(std::fs::read_to_string(&path).unwrap(), "- [x] call\n");
+	assert_eq!(result.updated_content, "- [x] call\n");
+	assert!(!result.stale);
+	assert!(result.update_result.changed);
+}
+
+#[test]
+fn toggle_with_different_text_on_the_line_is_stale() {
+	let content = "- [ ] other\n";
+	let (_dir, path, mut idx) = task_note(content);
+
+	let result =
+		toggle_task_status_inner(&mut idx, &path, 1, "call", TaskStatus::Todo, TaskStatus::Done)
+			.unwrap();
+
+	assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+	assert_eq!(result.updated_content, content);
+	assert!(result.stale);
+	assert!(!result.update_result.changed);
+}
+
+#[test]
+fn toggle_with_different_status_on_the_line_is_stale() {
+	let content = "- [x] call\n";
+	let (_dir, path, mut idx) = task_note(content);
+
+	let result =
+		toggle_task_status_inner(&mut idx, &path, 1, "call", TaskStatus::Todo, TaskStatus::Done)
+			.unwrap();
+
+	assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+	assert_eq!(result.updated_content, content);
+	assert!(result.stale);
+	assert!(!result.update_result.changed);
+}
+
+#[test]
+fn toggle_past_the_end_is_stale() {
+	let content = "- [ ] call\n";
+	let (_dir, path, mut idx) = task_note(content);
+
+	let result =
+		toggle_task_status_inner(&mut idx, &path, 99, "call", TaskStatus::Todo, TaskStatus::Done)
+			.unwrap();
+
+	assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+	assert_eq!(result.updated_content, content);
+	assert!(result.stale);
+	assert!(!result.update_result.changed);
+}
+
+#[test]
+fn toggle_line_zero_is_stale() {
+	let content = "- [ ] call\n";
+	let (_dir, path, mut idx) = task_note(content);
+
+	let result =
+		toggle_task_status_inner(&mut idx, &path, 0, "call", TaskStatus::Todo, TaskStatus::Done)
+			.unwrap();
+
+	assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+	assert_eq!(result.updated_content, content);
+	assert!(result.stale);
+	assert!(!result.update_result.changed);
+}
+
+#[test]
+fn toggle_ordered_task_changes_only_the_marker() {
+	let (_dir, path, mut idx) = task_note("1. [ ] a\n");
+
+	let result =
+		toggle_task_status_inner(&mut idx, &path, 1, "a", TaskStatus::Todo, TaskStatus::Done)
+			.unwrap();
+
+	assert_eq!(std::fs::read_to_string(&path).unwrap(), "1. [x] a\n");
+	assert!(!result.stale);
+}
+
+#[test]
+fn toggle_task_with_bracket_in_text_changes_only_the_marker() {
+	let (_dir, path, mut idx) = task_note("- [x] document the [ ] empty checkbox syntax\n");
+
+	let result = toggle_task_status_inner(
+		&mut idx,
+		&path,
+		1,
+		"document the [ ] empty checkbox syntax",
+		TaskStatus::Done,
+		TaskStatus::Todo,
+	)
+	.unwrap();
+
+	assert_eq!(
+		std::fs::read_to_string(&path).unwrap(),
+		"- [ ] document the [ ] empty checkbox syntax\n"
+	);
+	assert!(!result.stale);
+}
+
+#[test]
+fn toggle_to_the_current_status_is_a_non_stale_noop() {
+	let content = "- [x] call\n";
+	let (_dir, path, mut idx) = task_note(content);
+
+	let result =
+		toggle_task_status_inner(&mut idx, &path, 1, "call", TaskStatus::Done, TaskStatus::Done)
+			.unwrap();
+
+	assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+	assert_eq!(result.updated_content, content);
+	assert!(!result.stale);
+	assert!(!result.update_result.changed);
 }
 
 // --- Task / TaskStatus / TaskPriority IPC serde contract ----------------------

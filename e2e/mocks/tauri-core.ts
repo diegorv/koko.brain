@@ -164,7 +164,13 @@ function handleGetTasksInSectionV2(args: Args<'get_tasks_in_section_v2'>): FileT
 }
 
 function handleToggleTaskStatus(args: Args<'toggle_task_status'>): ToggleTaskResult {
-	const result = vaultIndex.toggleTaskStatus(args.path, args.lineNumber);
+	const result = vaultIndex.toggleTaskStatus(
+		args.path,
+		args.lineNumber,
+		args.expectedText,
+		args.expectedStatus,
+		args.target,
+	);
 	if (result.updateResult.changed) emitIndexUpdated(result.updateResult);
 	return result;
 }

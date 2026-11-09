@@ -8,6 +8,7 @@ use kokobrain_lib::utils::fs::{
 };
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::parsing::rewrite_type_in_frontmatter;
+use kokobrain_lib::vault::task::TaskStatus;
 use std::fs;
 use tempfile::TempDir;
 
@@ -962,7 +963,8 @@ fn child_toggle_task() {
 	update_note_in_index_inner(&mut idx, path.clone(), &content, 0);
 	let version = idx.version();
 
-	let error = toggle_task_status_inner(&mut idx, &path, 2).expect_err("the write should fail");
+	let error = toggle_task_status_inner(&mut idx, &path, 2, "Buy milk", TaskStatus::Todo, TaskStatus::Done)
+		.expect_err("the write should fail");
 
 	assert!(error.starts_with("write failed for "), "unexpected error: {error}");
 	assert_eq!(idx.version(), version);

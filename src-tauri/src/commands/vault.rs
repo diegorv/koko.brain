@@ -3,8 +3,10 @@ use crate::utils::fs as vault_fs;
 use crate::utils::logger::{debug_log, is_debug_enabled};
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
-use crate::vault::parsing::{extract_tasks_from_section, rewrite_type_in_frontmatter, toggle_task_in_content};
-use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, ToggleTaskResult};
+use crate::vault::parsing::{
+	extract_tasks_from_section, parse_task_line, rewrite_type_in_frontmatter, set_task_status_in_content,
+};
+use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, TaskStatus, ToggleTaskResult};
 use crate::vault::VaultIndexState;
 use serde::Serialize;
 use std::cmp::Ordering;
@@ -753,20 +755,37 @@ pub async fn get_tasks_in_section_v2(
 }
 
 /// Pure-logic implementation behind `toggle_task_status`. Reads the
-/// current file content, toggles the checkbox at `line_number`, writes
-/// the new content back, and returns the diff applied to the `VaultIndex`.
+/// current file content and re-parses the task at `line_number`. When that
+/// line no longer holds a task with `expected_text` and `expected_status`
+/// (the Tasks list can lag disk by seconds), nothing is written and the
+/// result is `stale`. Otherwise the checkbox is set to `target`, the new
+/// content is written back, and the diff applied to the `VaultIndex` is
+/// returned. `Task.text` excludes the checkbox, which is why the status is
+/// compared too.
 /// Tests construct a tmpdir + an in-memory `VaultIndex`, call this
 /// directly, and assert on disk + index state without a Tauri AppHandle.
 pub fn toggle_task_status_inner(
 	idx: &mut VaultIndex,
 	path: &str,
 	line_number: usize,
+	expected_text: &str,
+	expected_status: TaskStatus,
+	target: TaskStatus,
 ) -> Result<ToggleTaskResult, String> {
 	let original = std::fs::read_to_string(path)
 		.map_err(|e| format!("read failed for {}: {}", path, e))?;
-	let updated = toggle_task_in_content(&original, line_number);
+	let holds_expected = line_number
+		.checked_sub(1)
+		.and_then(|i| original.split('\n').nth(i))
+		.and_then(|line| parse_task_line(line, line_number))
+		.is_some_and(|task| task.text == expected_text && task.status == expected_status);
+	let updated = if holds_expected {
+		set_task_status_in_content(&original, line_number, target)
+	} else {
+		original.clone()
+	};
 	if updated == original {
-		// No-op: line out of bounds, no checkbox on the line, etc.
+		// No-op: stale line, or `target` is already the line's status.
 		// Skip the disk write and the index update entirely.
 		return Ok(ToggleTaskResult {
 			updated_content: original,
@@ -774,6 +793,7 @@ pub fn toggle_task_status_inner(
 				version: idx.version(),
 				..Default::default()
 			},
+			stale: !holds_expected,
 		});
 	}
 	vault_fs::write_atomic(path, &updated)?;
@@ -782,6 +802,7 @@ pub fn toggle_task_status_inner(
 	Ok(ToggleTaskResult {
 		updated_content: updated,
 		update_result: result,
+		stale: false,
 	})
 }
 
@@ -792,8 +813,11 @@ pub fn toggle_task_status_inner(
 ///
 /// Flow:
 ///   1. Read file from disk.
-///   2. Toggle line via `toggle_task_in_content`.
-///   3. If unchanged (out of bounds or no checkbox): return no-op result.
+///   2. If the line at `line_number` no longer holds a task with
+///      `expected_text` and `expected_status`: return a no-op result with
+///      `stale: true`.
+///   3. Set the checkbox to `target` via `set_task_status_in_content`; if
+///      that leaves the content unchanged, return a no-op result.
 ///   4. Else: write to disk, update VaultIndex via the Phase 2.6 helper.
 ///   5. Emit `vault-index-updated` after dropping the write lock.
 ///
@@ -806,13 +830,23 @@ pub fn toggle_task_status(
 	state: tauri::State<'_, VaultIndexState>,
 	path: String,
 	line_number: usize,
+	expected_text: String,
+	expected_status: TaskStatus,
+	target: TaskStatus,
 ) -> Result<ToggleTaskResult, String> {
 	let _trace = CmdTrace::new("toggle_task_status");
 	let result = {
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		toggle_task_status_inner(&mut idx, &path, line_number)?
+		toggle_task_status_inner(
+			&mut idx,
+			&path,
+			line_number,
+			&expected_text,
+			expected_status,
+			target,
+		)?
 	};
 	if result.update_result.changed {
 		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result) {
