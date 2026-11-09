@@ -41,6 +41,8 @@ export interface LensNote extends NoteRowNote {
 	subtitle: string;
 	/** Inbox notes (not organized, not archived, not a type definition) render in italics */
 	italic: boolean;
+	/** Whether the note carries `_archived: true`; false for a file that is not a note */
+	archived: boolean;
 	/** The file's kind; only the folder lens lists anything but markdown */
 	kind: FileKind;
 	/** Unix seconds the note was created, or 0 when unknown */

@@ -89,6 +89,7 @@ import { exists, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
+import { reactiveProps } from '../../../fixtures/reactive-props.svelte';
 
 const DEFINITION = '/vault/Project.md';
 const TYPE_LENS = { kind: 'type', target: 'Project' };
@@ -321,6 +322,84 @@ describe('RailNoteList - toolbar', () => {
 		await settle();
 		expect(target.querySelector('[data-note-list-search]')).toBeNull();
 		expect(rowTitles()).toHaveLength(3);
+	});
+
+	describe('archived filter', () => {
+		const WITH_ARCHIVED = [...PROJECT_ENTRIES, entryV2('/vault/shelved.md', { isA: 'Project', archived: true, modifiedAt: 250 })];
+
+		function archivedTrigger(): HTMLButtonElement | null {
+			return target.querySelector<HTMLButtonElement>('[data-note-list-archived]');
+		}
+
+		async function pickArchived(mode: 'active' | 'all' | 'archived') {
+			archivedTrigger()!.click();
+			await settle();
+			document.querySelector<HTMLButtonElement>(`[data-archived-option="${mode}"]`)!.click();
+			await settle();
+		}
+
+		function archivedRowTitles(): string[] {
+			return [...target.querySelectorAll<HTMLElement>('[data-note-row][data-note-row-archived]')].map(
+				(el) => el.querySelector('.truncate')?.textContent?.trim() ?? '',
+			);
+		}
+
+		function ruleText(): string {
+			return target.querySelector('[data-note-list-rule]')?.textContent?.trim() ?? '';
+		}
+
+		it('hides archived notes of a type until the filter shows them, marked, with the rule in words', async () => {
+			setEntries(WITH_ARCHIVED);
+			await mountList(TYPE_LENS);
+			expect(rowTitles()).toEqual(['beta', 'alpha', 'gamma']);
+			expect(ruleText()).toBe('type is Project, not archived');
+
+			await pickArchived('all');
+			expect(rowTitles()).toEqual(['beta', 'shelved', 'alpha', 'gamma']);
+			expect(archivedRowTitles()).toEqual(['shelved']);
+			expect(ruleText()).toBe('type is Project');
+			expect(target.querySelector('[data-note-list-count]')?.textContent).toBe('4');
+
+			await pickArchived('archived');
+			expect(rowTitles()).toEqual(['shelved']);
+			expect(ruleText()).toBe('type is Project, archived');
+		});
+
+		it('saves nothing: no settings entry and no write to the definition', async () => {
+			setEntries(WITH_ARCHIVED);
+			await mountList(TYPE_LENS);
+			await pickArchived('all');
+			expect(settingsStore.layout.railListPrefs).toEqual({});
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(files[DEFINITION]).toBe('---\n_type: Type\n---\n# Project\n');
+		});
+
+		it('goes back to the active notes when the list moves to another lens', async () => {
+			setEntries([...WITH_ARCHIVED, entryV2('/vault/loose.md', { archived: true })]);
+			const props = reactiveProps({ lens: TYPE_LENS as { kind: string; target?: string } });
+			component = mount(RailNoteList, { target, props });
+			await settle();
+			await pickArchived('all');
+			expect(rowTitles()).toContain('shelved');
+
+			props.lens = { kind: 'untyped' };
+			await settle();
+			expect(rowTitles()).not.toContain('loose');
+			expect(ruleText()).toBe('no type, not archived');
+
+			props.lens = TYPE_LENS;
+			await settle();
+			expect(rowTitles()).not.toContain('shelved');
+		});
+
+		it('is offered on Untyped but not on lenses with a fixed lifecycle rule', async () => {
+			await mountList({ kind: 'untyped' });
+			expect(archivedTrigger()).not.toBeNull();
+			unmount(component!);
+			await mountList(INBOX_LENS);
+			expect(target.querySelector('[data-note-list-sort]')).not.toBeNull();
+			expect(archivedTrigger()).toBeNull();
+		});
 	});
 
 	describe('review regressions', () => {

@@ -33,6 +33,7 @@ import {
 	ignoredKeyNotes,
 	isListableNote,
 	sortViewFiles,
+	type ArchivedFilter,
 	type TypeSidebarSelection,
 } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { buildOverriddenQuery, resolveViewListSort, seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
@@ -288,6 +289,7 @@ function toLensNote(entry: NoteEntryV2, vaultPath: string | null): LensNote {
 		isA: entry.isA,
 		subtitle: noteSubtitle(entry, vaultPath),
 		italic: isInboxEntry(entry),
+		archived: entry.archived,
 		kind: 'markdown',
 	};
 }
@@ -341,27 +343,32 @@ function resolveTodayLens(lens: Lens, ctx: LensContext): ResolvedLens {
 	return { label: 'Today', rule: 'note date is today', notes, groups };
 }
 
+/** The rule's ending for each archived filter of a type or Untyped list. */
+const ARCHIVED_RULE_SUFFIX: Record<ArchivedFilter, string> = { active: ', not archived', all: '', archived: ', archived' };
+
 /**
- * Lists a type (or Untyped) lens: not archived, `_order` pins on top, then
- * newest change. Null for the Types item before a pick (no target).
+ * Lists a type (or Untyped) lens: the notes `archived` lets through (default:
+ * not archived), `_order` pins on top, then newest change. Null for the Types
+ * item before a pick (no target).
  */
-function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
+function resolveTypeLens(lens: Lens, ctx: LensContext, archived: ArchivedFilter): ResolvedLens | null {
 	let selection: TypeSidebarSelection;
 	let label: string;
 	let rule: string;
 	if (lens.kind === UNTYPED_LENS.kind) {
 		selection = { kind: 'untyped' };
 		label = 'Untyped';
-		rule = 'no type, not archived';
+		rule = 'no type';
 	} else {
 		if (!lens.target) return null;
 		selection = { kind: 'type', name: lens.target };
 		label = getTypeMetadataFallback(lens.target, ctx.typeMetadataMap).sidebarLabel;
-		rule = `type is ${lens.target}, not archived`;
+		rule = `type is ${lens.target}`;
 	}
+	rule += ARCHIVED_RULE_SUFFIX[archived];
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
 	const byPath = new Map(entries.map((e) => [e.path, e]));
-	const notes = getNotesForSelection(entries, selection).flatMap((n) => {
+	const notes = getNotesForSelection(entries, selection, archived).flatMap((n) => {
 		const entry = byPath.get(n.path);
 		return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
 	});
@@ -421,13 +428,19 @@ function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | 
  * provider registered for it. Returns null when no provider knows the kind,
  * the provider cannot resolve the target, a type lens has no target, a
  * folder lens's folder is not in the tree, or a neighbourhood's note is not
- * in the snapshot.
+ * in the snapshot. `archived` picks which notes a Type or Untyped lens lists
+ * by lifecycle; every other kind ignores it.
  */
-export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly RailLensProvider[] = []): ResolvedLens | null {
+export function resolveLens(
+	lens: Lens,
+	ctx: LensContext,
+	providers: readonly RailLensProvider[] = [],
+	archived: ArchivedFilter = 'active',
+): ResolvedLens | null {
 	const builtIn = BUILT_IN_LENSES.get(lens.kind);
 	if (builtIn) return resolveBuiltIn(builtIn, ctx);
 	if (lens.kind === TODAY_LENS_KIND) return resolveTodayLens(lens, ctx);
-	if (lens.kind === TYPES_LENS.kind || lens.kind === UNTYPED_LENS.kind) return resolveTypeLens(lens, ctx);
+	if (lens.kind === TYPES_LENS.kind || lens.kind === UNTYPED_LENS.kind) return resolveTypeLens(lens, ctx, archived);
 	if (lens.kind === FOLDER_LENS_KIND) return resolveFolderLens(lens, ctx);
 	if (lens.kind === NEIGHBOURHOOD_LENS_KIND) return resolveNeighbourhoodLens(lens, ctx);
 	const provider = providers.find((p) => p.kind === lens.kind);
@@ -959,6 +972,7 @@ function fileToLensNote(node: FileTreeNode, entry: NoteEntryV2 | undefined, vaul
 		isA: null,
 		subtitle: FILE_KIND_LABELS[kind],
 		italic: false,
+		archived: false,
 		kind,
 	};
 }

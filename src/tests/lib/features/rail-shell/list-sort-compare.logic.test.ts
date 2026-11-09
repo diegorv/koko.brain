@@ -16,6 +16,7 @@ function note(overrides: Partial<LensNote> & { path: string }): LensNote {
 		isA: null,
 		subtitle: '',
 		italic: false,
+		archived: false,
 		kind: 'markdown',
 		...overrides,
 	};

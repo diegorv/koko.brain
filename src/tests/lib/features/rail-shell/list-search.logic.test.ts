@@ -18,6 +18,7 @@ function makeNote(overrides: Partial<LensNote> = {}): LensNote {
 		isA: null,
 		subtitle: '',
 		italic: false,
+		archived: false,
 		kind: 'markdown',
 		...overrides,
 	};

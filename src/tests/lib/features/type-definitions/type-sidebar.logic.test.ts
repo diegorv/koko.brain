@@ -316,6 +316,20 @@ describe('getNotesForSelection', () => {
 		expect(notes[0].title).toBe('A');
 	});
 
+	it('keeps archived notes of a type and of Untyped with "all", and only them with "archived"', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 200 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true, modifiedAt: 100 }),
+			entryV2('/v/c.md', { title: 'C', modifiedAt: 200 }),
+			entryV2('/v/d.md', { title: 'D', archived: true, modifiedAt: 100 }),
+		];
+		const project = { kind: 'type', name: 'Project' } as const;
+		expect(getNotesForSelection(entries, project, 'all').map((n) => n.title)).toEqual(['A', 'B']);
+		expect(getNotesForSelection(entries, project, 'archived').map((n) => n.title)).toEqual(['B']);
+		expect(getNotesForSelection(entries, { kind: 'untyped' }, 'all').map((n) => n.title)).toEqual(['C', 'D']);
+		expect(getNotesForSelection(entries, { kind: 'untyped' }, 'archived').map((n) => n.title)).toEqual(['D']);
+	});
+
 	it('sorts a type by most-recently-modified', () => {
 		const entries = [
 			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 100 }),

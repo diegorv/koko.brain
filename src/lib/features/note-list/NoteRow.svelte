@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Component } from 'svelte';
+	import Archive from '@lucide/svelte/icons/archive';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -28,13 +29,15 @@
 		subtitle?: string;
 		/** Renders the title in italics (inbox notes on the rail note list) */
 		italic?: boolean;
+		/** Dims the row and adds an archive mark, for an archived note listed among active ones */
+		archived?: boolean;
 		/** Icon shown when `icon` is empty, e.g. the file kind's on the folder lens */
 		fallbackIcon?: Component;
 		/** Lets the row be dragged with its path as `text/plain` (dropped on a Files navigator folder to move it) */
 		draggable?: boolean;
 	}
 
-	let { note, icon, isActive, listProperties, allPaths, typeName = null, subtitle, italic = false, fallbackIcon = FileText, draggable = false }: Props = $props();
+	let { note, icon, isActive, listProperties, allPaths, typeName = null, subtitle, italic = false, archived = false, fallbackIcon = FileText, draggable = false }: Props = $props();
 	let FallbackIcon = $derived(fallbackIcon);
 
 	const menu = useNoteRowMenuContext();
@@ -62,7 +65,8 @@
 {:else}
 	<button
 		data-note-row
-		class="flex w-full flex-col rounded-md px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {isActive ? 'bg-primary/25' : ''}"
+		data-note-row-archived={archived ? '' : undefined}
+		class="flex w-full flex-col rounded-md px-2 py-2 text-left hover:bg-primary/10 cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {isActive ? 'bg-primary/25' : ''} {archived ? 'opacity-60' : ''}"
 		onclick={() => openFileInEditor(note.path)}
 		oncontextmenu={() => menu.setContextTarget(note)}
 		onkeydown={(e) => { if (e.key === RENAME_SHORTCUT.key) menu.startRename(note); }}
@@ -88,6 +92,9 @@
 					<div class="truncate text-[11px] text-muted-foreground" data-note-row-subtitle>{subtitle}</div>
 				{/if}
 			</div>
+			{#if archived}
+				<Archive class="size-3 shrink-0 mt-1 text-muted-foreground" aria-label="Archived" data-note-row-archived-icon />
+			{/if}
 		</div>
 		{#if typeName || listProperties.length > 0}
 			<div class="flex flex-wrap gap-1 mt-1">

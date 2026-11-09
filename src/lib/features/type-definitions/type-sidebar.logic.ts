@@ -33,6 +33,17 @@ export interface TypeSidebarNote {
 /** Filter mode for the type sidebar. */
 export type SidebarFilter = 'all' | 'inbox' | 'archived';
 
+/**
+ * Which notes a type or Untyped list shows by lifecycle: the active ones (not
+ * archived), all of them, or only the archived ones.
+ */
+export type ArchivedFilter = 'active' | 'all' | 'archived';
+
+function passesArchivedFilter(entry: NoteEntryV2, filter: ArchivedFilter): boolean {
+	if (filter === 'all') return true;
+	return filter === 'archived' ? entry.archived : !entry.archived;
+}
+
 /** Identifiers for the top nav items in the type sidebar. */
 export type NavItemId = 'inbox' | 'all' | 'archive' | 'favorites';
 
@@ -76,22 +87,24 @@ export function isListableNote(entry: NoteEntryV2): boolean {
 }
 
 /**
- * Returns the notes matching the current sidebar selection (type, untyped
- * and the nav lists other than Archive leave archived notes out),
- * most-recently-modified first, with `_order` pins on top.
+ * Returns the notes matching the current sidebar selection,
+ * most-recently-modified first, with `_order` pins on top. A type or untyped
+ * selection keeps the notes `archived` lets through (default: not archived);
+ * the nav lists other than Archive leave archived notes out.
  */
 export function getNotesForSelection(
 	entries: NoteEntryV2[],
 	selection: TypeSidebarSelection,
+	archived: ArchivedFilter = 'active',
 ): TypeSidebarNote[] {
 	let filtered: NoteEntryV2[];
 
 	switch (selection.kind) {
 		case 'type':
-			filtered = entries.filter((e) => e.isA === selection.name && !e.archived && isListableNote(e));
+			filtered = entries.filter((e) => e.isA === selection.name && passesArchivedFilter(e, archived) && isListableNote(e));
 			break;
 		case 'untyped':
-			filtered = entries.filter((e) => !e.isA && !e.archived && isListableNote(e));
+			filtered = entries.filter((e) => !e.isA && passesArchivedFilter(e, archived) && isListableNote(e));
 			break;
 		case 'nav':
 			filtered = filterByNavItem(entries, selection.id);

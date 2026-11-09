@@ -55,6 +55,7 @@
 	} from '#lib/features/type-definitions/type-note-list.logic.js';
 	import NoteRowMenu from '#lib/features/note-list/NoteRowMenu.svelte';
 	import NoteRow from '#lib/features/note-list/NoteRow.svelte';
+	import type { ArchivedFilter } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { acquireCalendarClock } from '#lib/features/event-calendar/event-calendar.service.js';
 	import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 	import { eventCalendarDailyNoteStore } from '#lib/features/event-calendar/event-calendar-daily-note.store.svelte.js';
@@ -85,6 +86,7 @@
 	import type { ListSortConfig } from './list-toolbar.types';
 	import { listSortToSortDef, viewListSort } from './list-view-sort.logic';
 	import { createNoteHere } from './new-note.service';
+	import RailArchivedMenu from './RailArchivedMenu.svelte';
 	import RailListSearch from './RailListSearch.svelte';
 	import RailPropertiesPicker from './RailPropertiesPicker.svelte';
 	import RailSortMenu from './RailSortMenu.svelte';
@@ -139,6 +141,11 @@
 	/** The `.view` path when the lens is a view, else null. */
 	let viewPath = $derived(lens.kind === VIEW_LENS_KIND && lens.target ? lens.target : null);
 
+	/** A type or Untyped list, whose archived notes the user can show; the other lenses keep a fixed lifecycle rule. */
+	let offersArchivedFilter = $derived(lens.kind === 'untyped' || (lens.kind === 'type' && !!lens.target));
+	/** Which notes a type or Untyped list shows by lifecycle. Not saved: every list opens on the active notes. */
+	let archivedFilter = $state<ArchivedFilter>('active');
+
 	/** The last view list resolved, tagged with its view so another view's list never shows. */
 	let viewLoaded = $state<{ path: string; lens: ResolvedLens } | null>(null);
 	let viewLoadGeneration = 0;
@@ -181,7 +188,7 @@
 			return resolveViewLens(viewPath, { kind: 'loading' }, lensContext());
 		}
 		const entriesVersion = typeDefinitionsStore.entriesVersion;
-		const listed = resolveLens(shownLens, lensContext(), railRegistryStore.lensProviders);
+		const listed = resolveLens(shownLens, lensContext(), railRegistryStore.lensProviders, archivedFilter);
 		// The first snapshot is still on its way: Loading, not an empty list.
 		if (entriesVersion === 0 && lensListsEntries(shownLens)) {
 			return { label: listed?.label ?? '', rule: listed?.rule ?? '', notes: [], status: { kind: 'loading' } };
@@ -497,12 +504,13 @@
 	/** Which list this is. A folder or neighbourhood lens keeps its kind while its target moves. */
 	let listIdentity = $derived(`${lens.kind}:${lens.target ?? ''}`);
 
-	// Pre: the new lens must not render one frame through the old lens's query or overlay.
+	// Pre: the new lens must not render one frame through the old lens's query, overlay or archived filter.
 	$effect.pre(() => {
 		void listIdentity;
 		untrack(() => {
 			sortOverlay = null;
 			propertiesOverlay = null;
+			archivedFilter = 'active';
 			closeSearch();
 		});
 	});
@@ -742,6 +750,9 @@
 				<Search class="size-3.5" />
 			</button>
 			<RailPropertiesPicker available={pickableProperties} selected={selectedProperties} onChange={handlePropertiesChange} />
+			{#if offersArchivedFilter}
+				<RailArchivedMenu value={archivedFilter} onChange={(next) => (archivedFilter = next)} />
+			{/if}
 		{/if}
 		{#if viewToolbarReady}
 			<Popover bind:open={sortOpen}>
@@ -907,6 +918,7 @@
 		typeName={typeChipFor(note)}
 		subtitle={note.subtitle}
 		italic={note.italic}
+		archived={offersArchivedFilter && archivedFilter === 'all' && note.archived}
 		fallbackIcon={KIND_ICONS[note.kind]}
 		draggable
 	/>

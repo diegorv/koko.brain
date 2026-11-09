@@ -462,6 +462,46 @@ describe('resolveLens - Type and Untyped', () => {
 		expect(resolveLens({ kind: 'untyped' }, ctx([]))).toEqual({ label: 'Untyped', rule: 'no type, not archived', notes: [] });
 	});
 
+	describe('archived filter', () => {
+		it('lists the archived notes of a type too, with "all", pins first, then newest change', () => {
+			const lens = resolveLens(PROJECT, ctx(entries), [], 'all')!;
+			expect(lens.rule).toBe('type is Project');
+			expect(lens.notes.map((n) => n.title)).toEqual(['pinned', 'shelved', 'beta', 'alpha']);
+		});
+
+		it('lists only the archived notes of a type with "archived"', () => {
+			const lens = resolveLens(PROJECT, ctx(entries), [], 'archived')!;
+			expect(lens.rule).toBe('type is Project, archived');
+			expect(lens.notes.map((n) => n.title)).toEqual(['shelved']);
+		});
+
+		it('applies the same modes to Untyped', () => {
+			expect(resolveLens({ kind: 'untyped' }, ctx(entries), [], 'all')).toMatchObject({ rule: 'no type' });
+			expect(resolveLens({ kind: 'untyped' }, ctx(entries), [], 'all')!.notes.map((n) => n.title)).toEqual([
+				'loose-archived',
+				'loose-new',
+				'loose-old',
+			]);
+			const archived = resolveLens({ kind: 'untyped' }, ctx(entries), [], 'archived')!;
+			expect(archived.rule).toBe('no type, archived');
+			expect(archived.notes.map((n) => n.title)).toEqual(['loose-archived']);
+		});
+
+		it('marks each row with whether its note is archived', () => {
+			const notes = resolveLens(PROJECT, ctx(entries), [], 'all')!.notes;
+			expect(notes.filter((n) => n.archived).map((n) => n.title)).toEqual(['shelved']);
+		});
+
+		it('keeps the system folder out in every mode', () => {
+			const paths = resolveLens(PROJECT, ctx(entries), [], 'all')!.notes.map((n) => n.path);
+			expect(paths).not.toContain(`${VAULT}/_system/templates/Project.md`);
+		});
+
+		it('leaves the navigator counts on the active notes', () => {
+			expect(typeNavigatorRows(ctx(entries), true).find((r) => r.typeName === 'Project')?.count).toBe(3);
+		});
+	});
+
 	describe('typeNavigatorRows', () => {
 		it('lists the visible types in sidebar order, then Untyped when it is shown', () => {
 			const rows = typeNavigatorRows(ctx(entries), true);
