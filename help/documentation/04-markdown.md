@@ -8,7 +8,7 @@ Markdown is a simple way to format text using plain characters. Instead of click
 
 The best part: your `.md` files are just plain text files. They're perfectly readable even outside of Kokobrain, in any text editor. You'll never be locked into a proprietary format.
 
-You don't need to memorize everything on this page at once. Start with **bold**, *italic*, and headings. As you get comfortable, come back to learn more syntax. The [Command Palette](06-command-palette.md) can also help you insert formatting without remembering the exact syntax.
+You don't need to memorize everything on this page at once. Start with **bold**, *italic*, and headings. As you get comfortable, come back to learn more syntax. The [Command Palette](06-search-and-navigation.md#command-palette) can also help you insert formatting without remembering the exact syntax.
 
 ---
 
