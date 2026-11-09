@@ -57,7 +57,7 @@ export const MOD_APP = {
 	modCommandsStore,
 	/** Live rail registrations; register each returned cleanup with ctx.register */
 	railRegistryStore,
-	/** Live application settings; raw mutations do not persist themselves */
+	/** Live application settings; any mutation is written to the settings file after the persistence debounce */
 	settingsStore,
 	/** Opens or creates a note using NoteCreationOptions, including per-call templates and variables */
 	openOrCreateNote,

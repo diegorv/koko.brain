@@ -58,8 +58,10 @@ export interface ModContext extends ModContextV1 {
 	 */
 	readonly app: ModApp;
 	/**
-	 * Unstable. Resolves to a new QueryJS `KBAPI` over a fresh index snapshot
-	 * (pages, tags, links, tasks, frontmatter). Reading or calling it throws once
+	 * Unstable. Resolves to a new QueryJS `KBAPI` over the live property index
+	 * and the app's cached vault entries (pages, tags, links, tasks,
+	 * frontmatter). The cached entries are refreshed on a throttle, so tasks,
+	 * tags and links can lag a recent write. Reading or calling it throws once
 	 * the mod is unloaded or the vault changed.
 	 */
 	readonly kb: () => Promise<KBAPI>;
