@@ -4,16 +4,16 @@
 
 **Blocked by:** None (can start immediately)
 
-**Status:** ready-for-human
+**Status:** resolved
 
-- [ ] `research/live-check.md` records, per runbook step, the relevant JSON and a one-line answer.
-- [ ] Incremental sync after complete / delete / edit / close-recurring (step 5): for each item, whether it arrives and with which `checked`, `is_deleted`, `completed_at`, `due`.
-- [ ] Reopen (step 6): what incremental sync shows.
-- [ ] Full sync after completion (step 5b): T1 absent or present.
-- [ ] Recurring due update (step 7): `is_recurring` after a date-only update, and after `{date, string, lang}` with the original string.
-- [ ] Unknown label on add (step 2): created or not.
-- [ ] Replay of one `item_add` (step 8): second task created or not; `temp_id_mapping` present on the replay or not.
-- [ ] Where an answer contradicts `design.md`, `design.md` and the affected tickets (07-10) are edited in the same commit, listed in its message.
+- [x] `research/live-check.md` records, per runbook step, the relevant JSON and a one-line answer.
+- [x] Incremental sync after complete / delete / edit / close-recurring (step 5): for each item, whether it arrives and with which `checked`, `is_deleted`, `completed_at`, `due`.
+- [x] Reopen (step 6): what incremental sync shows.
+- [x] Full sync after completion (step 5b): T1 absent or present.
+- [x] Recurring due update (step 7): `is_recurring` after a date-only update, and after `{date, string, lang}` with the original string.
+- [x] Unknown label on add (step 2): created or not.
+- [x] Replay of one `item_add` (step 8): second task created or not; `temp_id_mapping` present on the replay or not.
+- [x] Where an answer contradicts `design.md`, `design.md` and the affected tickets (07-10) are edited in the same commit, listed in its message.
 
 ## Runbook
 
