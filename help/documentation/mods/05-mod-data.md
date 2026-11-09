@@ -159,6 +159,8 @@ const DEFAULTS = { version: DATA_VERSION, settings: { folder: 'Inbox', compact: 
 
 /** The mod's state. Rejects, leaving data.json untouched, when it cannot be read or is not this mod's shape. */
 async function loadState(ctx) {
+	// Named in every message: the file the user has to fix.
+	const file = `.kokobrain/mods/${ctx.mod.id}/data.json`;
 	let data;
 	try {
 		data = await ctx.loadData();
@@ -169,9 +171,9 @@ async function loadState(ctx) {
 	}
 	if (data === null) return structuredClone(DEFAULTS);
 	if (typeof data !== 'object' || Array.isArray(data)) {
-		throw new Error('data.json is not in the expected shape; fix or remove it');
+		throw new Error(`${file} is not in the expected shape; fix or remove it`);
 	}
-	return withDefaults(migrate(data));
+	return withDefaults(migrate(data, file));
 }
 ```
 
@@ -204,15 +206,15 @@ This is lenient: a bad value falls back to its default and the next save drops i
 Store a `version` number in the value from the first release. On load, upgrade old versions step by step, and **refuse a version newer than the code knows** (data written by a newer copy of the mod, for example from another machine sharing the vault): saving would downgrade it.
 
 ```javascript
-/** Upgrades stored data to DATA_VERSION one step at a time. Throws for a version this code does not know. */
-function migrate(data) {
+/** Upgrades stored data to DATA_VERSION one step at a time. Throws for a version this code does not know; `file` names data.json. */
+function migrate(data, file) {
 	let current = data;
 	// Version 1 kept the folder at the top level and had no per-note state.
 	if (current.version === 1) {
 		current = { version: 2, settings: { folder: current.folder, compact: false }, notes: {} };
 	}
 	if (current.version !== DATA_VERSION) {
-		throw new Error(`data.json has version ${String(current.version)}, which this version of the mod cannot read`);
+		throw new Error(`${file} has version ${String(current.version)}, which this version of the mod cannot read`);
 	}
 	return current;
 }

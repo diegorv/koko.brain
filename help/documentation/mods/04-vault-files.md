@@ -124,7 +124,7 @@ So:
 
 | You write | Resolves to |
 |-----------|-------------|
-| `[[Name]]` | The note named `Name`, wherever it is. **The app's own style**: the 1:1 notes, relationships and link rewrites on rename all write this form |
+| `[[Name]]` | The note named `Name`, wherever it is. **The app's own style**: the 1:1 notes and relationships write this form. A rename keeps each link's written form (`[[Old]]` becomes `[[New]]`, `[[Folder/Old.md]]` becomes `[[Folder/New.md]]`), and writes the vault-relative path with extension (`[[A/New.md]]`) when another note already owns the new name |
 | `[[Folder/Name]]` | The same as `[[Name]]`: the folder is ignored when another `Name` exists elsewhere |
 | `[[Folder/Name.md\|Name]]` | Exactly `Folder/Name.md`, shown as `Name`. The only form that pins one file |
 
@@ -152,7 +152,7 @@ const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.(
 
 The host's own checks reject with an `Error`. File system failures from `read`, `exists`, `list`, `write`, `delete`, `rename`, `move` and `openNote`, and the Rust failures inside `create`, reject with a **bare string** passed through unchanged (Tauri sends plugin errors across IPC as strings). For those, `err.message` is `undefined`.
 
-Bare strings come from `ctx.vault`, `ctx.workspace` and `ctx.app` calls (the app's functions pass file system errors through as they are). `ctx.loadData` and `ctx.saveData` are the exception: they wrap every failure, so they **always reject with an `Error`** (see [Mod data](05-mod-data.md)). Everything else on `ctx` throws an `Error`.
+Bare strings come from `ctx.vault`, `ctx.workspace` and `ctx.app` calls (the app's functions pass file system errors through as they are). `ctx.loadData` and `ctx.saveData` are the exception: they wrap every failure, so they **always reject with an `Error`** (see [Mod data](05-mod-data.md)). `ctx.kb()` can also reject with a bare string, when the index snapshot read fails in Rust. Everything else on `ctx` throws an `Error`.
 
 | Source | Shape |
 |--------|-------|
@@ -314,7 +314,7 @@ There is a small window between the dirty-tab check and the disk write. Keystrok
 
 ### Index lag
 
-The vault index and full-text search are updated at the call (the update itself is fire-and-forget, so it finishes a moment later). [`ctx.kb()`](10-querying-the-index.md) sees a new note and its frontmatter (`_type`, organized/archived/favorite, root tags) at once. Only `file.tasks`, `file.tags`, links, size, ctime and mtime follow a throttled snapshot that refreshes about 2 s after an isolated change and at most once per 10 s during a burst. A mod that writes and immediately reads those from `ctx.kb()` may not see its own change: keep what you wrote in memory instead of re-querying, or see [Querying the index](10-querying-the-index.md#seeing-your-own-write) for `vaultStore.requestPromptIndexRefresh()` (raw).
+The vault index and full-text search are updated at the call (the update itself is fire-and-forget, so it finishes a moment later). [`ctx.kb()`](10-querying-the-index.md) sees a new note and its frontmatter (`_type`, organized/archived/favorite, root tags) at once. Only `file.tasks`, `file.tags`, links, size, ctime and mtime follow a throttled snapshot that refreshes about 2 s after a change, up to about 10 s during a burst. A mod that writes and immediately reads those from `ctx.kb()` may not see its own change: keep what you wrote in memory instead of re-querying, or see [Querying the index](10-querying-the-index.md#seeing-your-own-write) for `vaultStore.requestPromptIndexRefresh()` (raw).
 
 ## Editing a note that may be open
 

@@ -74,7 +74,7 @@ To watch two values, combine them into a string key, or use two watches.
 
 - `editorStore.activeTabPath` changes when the user switches tabs. Cheap.
 - `editorStore.activeTab.content` or `activeTabContent` changes on **every keystroke**. A `read` that touches it re-runs per key press, and an `onChange` that does work per change runs per key press too.
-- `vaultStore.vaultIndexVersion` changes after the app refreshes its view of the index (usually about 2 s after a change, and at most about once every 10 s during a burst of changes).
+- `vaultStore.vaultIndexVersion` changes after the app refreshes its view of the index (about 2 s after a change, up to about 10 s during a burst).
 
 Do the expensive part in `onChange`, debounced, never in `read`.
 
@@ -513,7 +513,7 @@ The app binds these (macOS, Cmd is `metaKey`): Cmd+P, Cmd+O, Cmd+S, Cmd+W, Cmd+N
 Match keys the way the app does, so a mod chord behaves like the app's own on every keyboard layout:
 
 - **Letters and digits by `e.key`, lowercased**: `e.key.toLowerCase() === 'j'`. `e.key` is the character the key produces on the user's layout, so the chord follows the letter printed on the key (on an AZERTY keyboard Cmd+A is where the A is). With Shift it is uppercase (`'J'`), hence the `toLowerCase()`.
-- **Punctuation by `e.code`**, the physical key: `BracketLeft`, `Comma`, `Backslash`. The character those keys produce changes with the layout and with Shift (Shift+[ gives `{`), so the app binds them by position.
+- **Brackets, comma and backslash by `e.code`**, the physical key: `BracketLeft`, `BracketRight`, `Comma`, `Backslash`. The character those keys produce changes with the layout and with Shift (Shift+[ gives `{`), so the app binds them by position. Other punctuation goes by `e.key`: the zoom chords match `=`, `+` and `-` (and `0`) as characters.
 - **Option changes `e.key`** on macOS (Option+J gives `'∆'`). A chord with Option has to match `e.code` (`KeyJ`) instead; better, avoid Option chords.
 - Keys named by their meaning (`'Escape'`, `'Enter'`, `'ArrowUp'`) by `e.key`.
 

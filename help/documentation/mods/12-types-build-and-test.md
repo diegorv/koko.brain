@@ -747,7 +747,7 @@ export function loadMod(file: string): Mod {
 }
 ```
 
-The same function loads a built bundle, which makes a cheap smoke test for the build output. A test of the example [hello mod](../../examples/mods/hello/main.js), which creates a note from its input, logs, reports progress and opens it:
+The same function loads a built bundle, which makes a cheap smoke test for the build output. A test of the example [hello mod](../../examples/mods/hello/main.js), which creates a note from its input and opens it, with no run output so its run view closes on success:
 
 ```ts
 import { describe, expect, it } from 'vitest';
@@ -755,15 +755,15 @@ import { fakeCtx, fakeRun } from './fake-ctx';
 import { loadMod } from './load-mod';
 
 describe('hello main.js', () => {
-	it('creates the note, reports progress and opens it', async () => {
+	it('creates the note and opens it, with no run output', async () => {
 		const fake = fakeCtx();
 		loadMod('path/to/hello/main.js').onload(fake.ctx);
 		const { run, logs, progressed } = fakeRun();
 		await fake.actions.get('new-note')!.run('Idea', run);
 		expect(fake.files.get('Hello mod/Idea.md')).toBe('# Idea\n\nCreated by the hello mod.\n');
 		expect(fake.opened).toEqual(['Hello mod/Idea.md']);
-		expect(logs).toEqual(['Created Hello mod/Idea.md']);
-		expect(progressed.at(-1)).toEqual([2, 2, 'Done']);
+		expect(logs).toEqual([]);
+		expect(progressed).toEqual([]);
 	});
 
 	it('stops after the write when Stop comes during it', async () => {

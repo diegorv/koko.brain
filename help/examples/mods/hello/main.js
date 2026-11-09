@@ -4,6 +4,30 @@
 /** The notes this mod creates go here, so it never touches your own folders */
 const FOLDER = 'Hello mod';
 
+/**
+ * A title as one safe file name without extension; '' when nothing is left (the caller refuses it).
+ * Replaces path separators, ":", the characters that end a [[link]] target (# | ^ [ ]) and control
+ * characters; drops leading dots (a dotfile is hidden); caps the name at 200 UTF-8 bytes.
+ */
+function safeName(title) {
+	const MAX_BYTES = 200;
+	const cleaned = String(title)
+		.replace(/[\\/:#|^[\]]/g, ' ')
+		.replace(/\p{Cc}/gu, ' ')
+		.replace(/\s+/g, ' ')
+		.trim()
+		.replace(/^[.\s]+/, '');
+	const encoder = new TextEncoder();
+	let name = '';
+	let bytes = 0;
+	for (const char of cleaned) {
+		bytes += encoder.encode(char).length;
+		if (bytes > MAX_BYTES) break;
+		name += char;
+	}
+	return name.trim();
+}
+
 export default {
 	onload(ctx) {
 		ctx.addAction({
@@ -20,21 +44,17 @@ export default {
 			input: { placeholder: 'Note title' },
 			run: async (text, run) => {
 				const title = text.trim();
+				const name = safeName(title);
 				// Enter on an empty field runs the action with ''.
-				if (!title) throw new Error('Type a title');
-				// A "/" would make a subfolder; ":" and "\" are awkward in file names.
-				const path = `${FOLDER}/${title.replace(/[/\\:]/g, '-')}.md`;
+				if (!name) throw new Error('Type a title with at least one letter or digit');
+				const path = `${FOLDER}/${name}.md`;
 
 				// Stop aborts run.signal: check it between steps.
 				if (run.signal.aborted) return;
-				run.progress(0, 2, 'Creating the note');
 				await ctx.vault.create(path, `# ${title}\n\nCreated by the hello mod.\n`);
-				run.log(`Created ${path}`);
-
 				if (run.signal.aborted) return;
-				run.progress(1, 2, 'Opening it');
+				// No run.log or run.progress: a run with output stays open on Done, on top of the note.
 				await ctx.workspace.openNote(path);
-				run.progress(2, 2, 'Done');
 			},
 		});
 

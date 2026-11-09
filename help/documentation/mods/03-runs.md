@@ -79,7 +79,7 @@ How the action ends decides what the user is left looking at. The run view is a 
 | Nothing to do: already running elsewhere, nothing selected, everything already done | `ctx.notify('Nothing to tag: every note already has it'); return;` | A throw is a failure: **Failed**, a red toast and, from the rail, a view that stays open. "Nothing to do" is not an error |
 | A real refusal: the wrong kind of target, invalid input, a missing note | `throw new Error('Choose a Markdown note')` | The user has to change something; **Failed** says so |
 
-For a long walk before opening a note, use `run.ui.loading` (a dialog that closes with the task, with an optional Cancel) instead of `run.progress`, so the run view never opens. The [folder-report example](../../examples/mods/folder-report/) does this.
+For a long walk before opening a note, use `run.ui.loading` (a dialog that closes with the task, with an optional Cancel) instead of `run.progress`, so a quiet run (palette, menus, `modCommandsStore`) never opens its view. A rail start opens the view when the run starts whatever the action does; it closes by itself on **Done** only when nothing was logged and no progress was shown. The [folder-report example](../../examples/mods/folder-report/) does this.
 
 ## Log
 
@@ -191,7 +191,7 @@ try {
 
 ### Check between steps
 
-Check `run.signal.aborted` after every `await` that can take time and before every write. `return` on abort, so the code after the loop (success toasts, summaries) does not run:
+Check `run.signal.aborted` after every `await` that can take time and before every write. `return` on abort, so the code after the loop (success toasts, summaries) does not run. A loop whose stopped work must be reported breaks to one aborted exit instead (see [Reporting partial work](#reporting-partial-work)):
 
 ```javascript
 for (const [i, entry] of files.entries()) {
@@ -272,12 +272,24 @@ Timers, watchers and save callbacks are not runs: they have no `run.signal` and 
 
 ## Reporting partial work
 
-After Stop, the run view says **Cancelled**, `run.log` is ignored and `run.ui` rejects. If the action already changed something, the only way left to tell the user is a toast. Use a `warning` that says what was done and what was not:
+After Stop, the run view says **Cancelled**, `run.log` is ignored and `run.ui` rejects. If the action already changed something, the only way left to tell the user is a toast. Use a `warning` that says what was done and what was not.
+
+Give the loop **one aborted exit**: inside the loop, `break` on abort (never `return`, which skips the report), and right after the loop, one check that always reports and returns:
 
 ```javascript
+let changed = 0;
+for (const path of paths) {
+	if (run.signal.aborted) break;
+	const text = await ctx.vault.read(path);
+	if (run.signal.aborted) break;
+	if (text.includes(TAG)) continue;
+	await ctx.vault.write(path, `${text.replace(/\n*$/, '\n')}\n${TAG}\n`);
+	changed++;
+}
 if (run.signal.aborted) {
+	// Every break above lands here, so a stopped run always reports.
 	if (changed > 0 && !ctx.signal.aborted) {
-		ctx.notify(`Stopped: ${changed} of ${total} notes tagged; the rest were not touched`, { kind: 'warning' });
+		ctx.notify(`Stopped: ${changed} of ${paths.length} notes tagged; the rest were not touched`, { kind: 'warning' });
 	}
 	return;
 }

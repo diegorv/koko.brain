@@ -307,7 +307,7 @@ interface VaultStore {
 ```
 
 - `path` equals the vault your mod was loaded in; the host checks that on every `ctx.app` read.
-- `vaultIndexVersion` changes when the app refreshes its index snapshot (throttled: about 2 s after a change, at most once per 10 s in a burst). Watching it tells you the snapshot moved; see [Querying the index](10-querying-the-index.md#freshness-and-lag).
+- `vaultIndexVersion` changes when the app refreshes its index snapshot (throttled: about 2 s after a change, up to about 10 s during a burst). Watching it tells you the snapshot moved; see [Querying the index](10-querying-the-index.md#freshness-and-lag).
 - `indexReady` is false while the vault is still being indexed at startup. A mod that queries the index in `onload` can wait for it with `ctx.watch(() => ctx.app.vaultStore.indexReady, ...)` (the callback does not fire at subscription, so check the current value first).
 - `requestPromptIndexRefresh()` sets a one-shot flag: the **next** `vault-index-updated` event refreshes at once instead of after the throttle, then the flag clears. Call it right before a write whose effect should show quickly in the sidebar, or in the `ctx.kb()` fields that follow the throttled snapshot (tasks, `file.tags`, links; frontmatter is current at once, see [Freshness and lag](10-querying-the-index.md#freshness-and-lag)). Any index event consumes it, not necessarily yours.
 - Internal, never call: `open`, `close`, `removeRecent`, `_reset`, `takePromptIndexRefresh`, `bumpVaultIndexVersion`, `markIndexReady`, `resetIndexReady`. `recentVaults` is readable but is the app's list, not the vault's.
@@ -462,7 +462,7 @@ dailyNotePath(date?: Date): string  // default: now
 
 - Returns the absolute path of that day's daily note from **Settings, Periodic Notes** (folder default `_notes`, daily format default `YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY`, `.md` appended). It only computes: the note may not exist.
 - Throws `Error('No vault is open')` without a vault (cannot happen in a live mod).
-- Uses the local calendar day of `date`. Capture `new Date()` once at the start of a run so a run that crosses midnight stays on one day.
+- Uses the local calendar day of `date`. Read `new Date()` once, after the run's last dialog, and use it for both the path and any timestamp, so they name the same day. A date read before a dialog can be yesterday's by the time the user answers.
 
 ```javascript
 const yesterday = new Date();
@@ -480,9 +480,28 @@ await ctx.app.openFileInEditor(abs);
 openOrCreateDailyNote(): Promise<void>
 ```
 
-- Opens **today's** daily note, creating it from the daily template (with the navigation variables the template expects) when missing. No date parameter.
+- Opens **today's** daily note, creating it from the daily template (with the navigation variables the template expects) when missing. No date parameter: "today" is the day at the moment of the call.
 - No vault: resolves without doing anything. A creation failure rejects.
 - Other days: compute `dailyNotePath(date)` and open it with `openFileInEditor` when it exists. Creating another day's note through `openOrCreateNote` is possible, but without a dayjs `contextDate` its template's dates render as today and the navigation variables are missing. Weekly, monthly and other periodic notes are not exposed.
+
+A run that computed `dailyNotePath(now)` and then crosses midnight before this call creates the **next** day's note, and the path it holds still does not exist. `ensureDailyNote` checks for that after creating; the [Cookbook](14-cookbook.md) copies it:
+
+```javascript
+/**
+ * Absolute path of the daily note of `date`, created from the daily template when missing.
+ * openOrCreateDailyNote creates the note of the day it runs on: when midnight passed since
+ * `date` was read, the note it made is another day's, and this rejects instead of going on.
+ */
+async function ensureDailyNote(ctx, date) {
+	const path = ctx.app.dailyNotePath(date);
+	if (await ctx.vault.exists(toVaultPath(ctx, path))) return path;
+	await ctx.app.openOrCreateDailyNote();
+	if (!(await ctx.vault.exists(toVaultPath(ctx, path)))) {
+		throw new Error('The day changed while the daily note was being created; run it again');
+	}
+	return path;
+}
+```
 
 ```javascript
 ctx.addAction({
@@ -493,8 +512,7 @@ ctx.addAction({
 		const text = input.trim();
 		if (!text) throw new Error('Type some text');
 		const now = new Date();
-		const today = ctx.app.dailyNotePath(now);
-		if (!(await ctx.vault.exists(toVaultPath(ctx, today)))) await ctx.app.openOrCreateDailyNote();
+		const today = await ensureDailyNote(ctx, now);
 		if (run.signal.aborted) return;
 		const time = now.toTimeString().slice(0, 5);
 		await editNote(ctx, today, (doc) => `${doc.replace(/\n*$/, '\n')}- ${time} ${text}\n`);
@@ -524,17 +542,48 @@ updateNoteFrontmatter(absolutePath: string, mutate: (props: Property[]) => Prope
 - For a value the user typed, convert it first, because the string is written as a string: `'3'` is written `"3"` and `'true'` is written `"true"` (both stay text), even with `type: 'number'` or `type: 'boolean'`. A string shaped like a date, `'2026-01-02'`, is written unquoted with either type and reads back as a date. So turn `'3'` into the number `3` and `'true'` into `true` when you want a number or a boolean, and keep a date as its `YYYY-MM-DD` string:
 
 ```javascript
-/** A typed value as a Property: numbers, true/false and YYYY-MM-DD dates get their type; anything else is text. */
+/**
+ * A typed value as a Property: true/false, YYYY-MM-DD dates and numbers get their type; anything else is text.
+ * A number only when it reads back with the same spelling (String(Number(v)) === v), as the app's own
+ * select options do: `007`, `1.50` and `1e3` stay text, so nothing is written with another spelling.
+ */
 function typedProperty(key, text) {
 	const value = text.trim();
-	if (/^-?\d+(\.\d+)?$/.test(value) && Number.isSafeInteger(Math.trunc(Number(value)))) return { key, value: Number(value), type: 'number' };
+	const n = Number(value);
+	if (value !== '' && Number.isFinite(n) && String(n) === value && (!Number.isInteger(n) || Number.isSafeInteger(n))) {
+		return { key, value: n, type: 'number' };
+	}
 	if (value === 'true' || value === 'false') return { key, value: value === 'true', type: 'boolean' };
 	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return { key, value, type: 'date' };
 	return { key, value, type: 'text' };
 }
 ```
 
-- There is no read-only twin of `updateNoteFrontmatter` and no frontmatter parser in `ctx`, so a "how many notes will change" preview before a batch reads the values another way: from the index (`p[key]` on a `ctx.kb()` page, which [lags behind saves](10-querying-the-index.md#freshness-and-lag)), or by matching `^key:` lines in what `ctx.vault.read` returns, counting anything unusual (a list, a nested value, a comment) as "left alone". The write itself is the only judge of a refusal; report its `reason` per note.
+- There is no read-only twin of `updateNoteFrontmatter` and no frontmatter parser in `ctx`, so a "how many notes will change" preview before a batch reads the values another way: from the index (`p[key]` on a `ctx.kb()` page, which [lags behind saves](10-querying-the-index.md#freshness-and-lag)), or by matching `^key:` lines in what `ctx.vault.read` returns. Count a note the write would refuse as "left alone", with `mayRefuseFrontmatter` below, so the confirm does not promise more changes than the batch makes. The write itself is the only judge of a refusal; report its `reason` per note.
+
+```javascript
+/**
+ * Whether updateNoteFrontmatter may refuse this note's frontmatter as lossy, read from the raw text
+ * for a "how many notes will change" preview. Conservative: any block line with a comment, a YAML
+ * anchor or alias, or an indented mapping, or a top-level key written twice, counts as a refusal.
+ */
+function mayRefuseFrontmatter(text) {
+	const block = /^---\r?\n([\s\S]*?)\r?\n---\r?(?:\n|$)/.exec(text);
+	if (!block) return false;
+	const keys = new Set();
+	for (const line of block[1].split(/\r?\n/)) {
+		if (/(^|\s)#/.test(line)) return true; // a comment
+		if (/(^|[\s:[,-])[&*][^\s,\]]/.test(line)) return true; // an anchor or alias
+		if (/^\s*-\s+[^\s'"][^:]*:(\s|$)/.test(line) || /^\s+[^\s'"-][^:]*:(\s|$)/.test(line)) return true; // a nested mapping
+		const top = /^([^\s#'"-][^:]*):(\s|$)/.exec(line);
+		if (top) {
+			if (keys.has(top[1])) return true; // a repeated key
+			keys.add(top[1]);
+		}
+	}
+	return false;
+}
+```
 - Alias keys are canonical both ways: `mutate` receives `type:` from the file as `_type`, and a key you return is written in canonical form. The aliases: `type`, `organized`, `archived`, `favorite`, `order`, `favorite_index`, `sort`, `icon`, `sidebar_label` (and `sidebar label`), `color`, `title_color`, `template`, `view`, `visible`, `list_properties_display`, each written with a leading `_`. Look keys up by the underscored name.
 - One key twice in the returned list (either spelling) is merged, not an error: the first non-empty entry wins and the later one is dropped. Appending `{ key: '_archived', value: true }` to a list that already holds `_archived: false` keeps `false`. Replace the existing entry instead (see `setProp` below).
 - Resolves to the full written text of the note, or to the unchanged text when the rebuilt text equals the file byte for byte (then nothing is written or saved). That holds only for frontmatter already in the app's canonical form: returning the same properties for a note with block lists, `type:` or needless quotes still rewrites it (`[a, b]`, `_type:`, quotes dropped). To skip the write, throw a sentinel from `mutate` and catch it (see the [cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)).

@@ -409,10 +409,12 @@ type Fake = ReturnType<typeof fakeContext>;
  * while that dialog is open: the dialog rejects with an AbortError, as the
  * host's `run.ui` does, and every later call rejects at once. `loading`
  * consumes one answer too: `'done'` lets the task finish, `'cancel'` presses
- * its Cancel first.
+ * its Cancel first. `cancel()` presses Cancel while the task runs: like the
+ * host, the dialog then still resolves with whatever the task returns.
  */
 function fakeRun(answers: Answer[] = [], target?: { on: 'note' | 'folder'; path: string }) {
 	const controller = new AbortController();
+	let loadingController: AbortController | null = null;
 	const queue = [...answers];
 	const lines: string[] = [];
 	const progress: string[] = [];
@@ -455,6 +457,7 @@ function fakeRun(answers: Answer[] = [], target?: { on: 'note' | 'folder'; path:
 			loading: async (_label: string, task: (signal: AbortSignal) => unknown) => {
 				if (controller.signal.aborted) throw stopped();
 				const local = new AbortController();
+				loadingController = local;
 				controller.signal.addEventListener('abort', () => local.abort());
 				const answer = queue.shift();
 				if (answer === 'cancel') local.abort();
@@ -468,7 +471,7 @@ function fakeRun(answers: Answer[] = [], target?: { on: 'note' | 'folder'; path:
 			},
 		},
 	};
-	return { run, lines, progress, alerts, stop: () => controller.abort() };
+	return { run, lines, progress, alerts, stop: () => controller.abort(), cancel: () => loadingController?.abort() };
 }
 
 /** Evaluates an example's `main.js` with the real loader and runs its `onload` against a fresh fake */
@@ -543,7 +546,8 @@ describe('help/examples/mods/daily-journal', () => {
 		const { run, lines } = fakeRun();
 		await runAction(fake, 'add-entry', '  Walked the dog ', run);
 		expect(fake.files.get(TODAY)).toBe('# Today\n- 09:05 Walked the dog\n');
-		expect(lines).toEqual([`Added to ${TODAY} (on disk)`]);
+		expect(lines).toEqual([]);
+		expect(fake.toasts).toEqual([{ message: `Added to ${TODAY} (on disk)`, kind: 'success' }]);
 	});
 
 	it('goes through the editor when it shows the note, keeping unsaved edits', async () => {
@@ -560,9 +564,8 @@ describe('help/examples/mods/daily-journal', () => {
 		const fake = load('daily-journal', { files: { [TODAY]: '# Today\r\nfirst\r\n' } });
 		// CodeMirror normalizes line breaks; the store keeps the raw text until the first edit.
 		const tab = fake.openTab(TODAY, { viewText: '# Today\nfirst\n' });
-		const { run, lines } = fakeRun();
-		await runAction(fake, 'add-entry', 'Lunch', run);
-		expect(lines).toEqual([`Added to ${TODAY} (in the open note)`]);
+		await runAction(fake, 'add-entry', 'Lunch', fakeRun().run);
+		expect(fake.toasts).toEqual([{ message: `Added to ${TODAY} (in the open note)`, kind: 'success' }]);
 		expect(tab.content).toBe('# Today\nfirst\n- 09:05 Lunch\n');
 		expect(fake.files.get(TODAY)).toBe('# Today\r\nfirst\r\n');
 	});
@@ -576,14 +579,24 @@ describe('help/examples/mods/daily-journal', () => {
 		expect(fake.viewDoc).toBe('# Today\n- 09:05 Lunch\n');
 	});
 
-	it('creates and opens a missing daily note after a confirm, then appends', async () => {
+	it('appends in the note\'s line ending on disk, so a CRLF note stays CRLF', async () => {
+		at();
+		const fake = load('daily-journal', { files: { [TODAY]: '# Today\r\nfirst' } });
+		await runAction(fake, 'add-entry', 'Lunch', fakeRun().run);
+		expect(fake.files.get(TODAY)).toBe('# Today\r\nfirst\r\n- 09:05 Lunch\r\n');
+	});
+
+	it('creates and opens a missing daily note after a confirm, then appends, leaving no run output', async () => {
 		at();
 		const fake = load('daily-journal');
-		const { run, lines } = fakeRun([true]);
+		const { run, lines, progress } = fakeRun([true]);
 		await runAction(fake, 'add-entry', 'Coffee', run);
 		expect(fake.opened).toEqual([TODAY]);
+		// Output would keep the run view open on Done, on top of the note just opened.
+		expect(lines).toEqual([]);
+		expect(progress).toEqual([]);
 		// The editor may still show the previous note right after the create.
-		expect(lines).toEqual([`Added to ${TODAY} (on disk)`]);
+		expect(fake.toasts).toEqual([{ message: `Added to ${TODAY} (on disk)`, kind: 'success' }]);
 		expect(fake.files.get(TODAY)).toBe('# Daily\n- 09:05 Coffee\n');
 		expect(fake.tabs[0].content).toBe('# Daily\n- 09:05 Coffee\n');
 	});
@@ -746,13 +759,18 @@ describe('help/examples/mods/note-tools', () => {
 		expect(fake.toasts).toEqual([]);
 	});
 
-	it('refuses a name with a slash and a name that is taken', async () => {
+	it('renames to a name that stays linkable and visible', async () => {
+		const fake = load('note-tools', { files: { [NOTE]: TEXT } });
+		// "#" would end a [[link]] to the note early; a leading dot hides it from the explorer and the index.
+		await runAction(fake, 'rename', '', fakeRun(['.Plan #2: a/b'], { on: 'note', path: NOTE }).run);
+		expect([...fake.files.keys()]).toEqual(['Notes/Plan 2 a b.md']);
+		expect(fake.toasts).toEqual([{ message: 'Renamed to Notes/Plan 2 a b.md', kind: 'success' }]);
+	});
+
+	it('refuses a name with nothing left for a file name and a name that is taken', async () => {
 		const fake = load('note-tools', { files: { [NOTE]: TEXT, 'Notes/B.md': 'b' } });
 		const target = { on: 'note' as const, path: NOTE };
-		await expect(runAction(fake, 'rename', '', fakeRun(['a/b'], target).run)).rejects.toThrow('A name cannot hold');
-		// "#" would end a [[link]] to the note early; a leading dot hides it from the explorer and the index.
-		await expect(runAction(fake, 'rename', '', fakeRun(['Plan #2'], target).run)).rejects.toThrow('A name cannot hold');
-		await expect(runAction(fake, 'rename', '', fakeRun(['.hidden'], target).run)).rejects.toThrow('A name cannot start with a dot');
+		await expect(runAction(fake, 'rename', '', fakeRun(['../#'], target).run)).rejects.toThrow('Type a name');
 		await expect(runAction(fake, 'rename', '', fakeRun(['B'], target).run)).rejects.toThrow('"B.md" already exists in this folder');
 		expect([...fake.files.keys()].sort()).toEqual(['Notes/A.md', 'Notes/B.md']);
 	});
@@ -789,6 +807,43 @@ describe('help/examples/mods/folder-report', () => {
 		await runAction(fake, 'report', '', fakeRun(['cancel'], target).run);
 		expect(fake.files.has(REPORT)).toBe(false);
 		expect(fake.opened).toEqual([]);
+	});
+
+	it('writes nothing when the loading dialog is cancelled during the last listing', async () => {
+		// "Other" has no subfolder, so its first listing is also its last.
+		const fake = load('folder-report', { files: FILES });
+		const { run, cancel } = fakeRun(['done', true], { on: 'folder', path: 'Other' });
+		const list = fake.ctx.vault.list;
+		fake.ctx.vault.list = async (folder) => {
+			const entries = await list(folder);
+			cancel();
+			return entries;
+		};
+		await runAction(fake, 'report', '', run);
+		expect(fake.files.has('Folder report/Other.md')).toBe(false);
+		expect(fake.opened).toEqual([]);
+	});
+
+	it('regenerates the block of a CRLF report and keeps its line endings', async () => {
+		const before = '# Mine\r\nkeep above\r\n<!-- folder-report:generated:start v1 -->\r\nold\r\n<!-- folder-report:generated:end -->\r\nkeep below\r\n';
+		const fake = load('folder-report', { files: { ...FILES, [REPORT]: before } });
+		await runAction(fake, 'report', '', fakeRun(['done', true], target).run);
+		const after = fake.files.get(REPORT)!;
+		expect(after.startsWith('# Mine\r\nkeep above\r\n<!-- folder-report:generated:start v1 -->\r\nGenerated ')).toBe(true);
+		expect(after.endsWith('- [[Projects/sub/B.md|B]]\r\n<!-- folder-report:generated:end -->\r\nkeep below\r\n')).toBe(true);
+		expect(after.replaceAll('\r\n', '')).not.toContain('\n');
+	});
+
+	it('regenerates a report the editor shows through the editor, so the caret stays with the text', async () => {
+		const before = '# Mine\n<!-- folder-report:generated:start v1 -->\nold\n<!-- folder-report:generated:end -->\nkeep below\n';
+		const fake = load('folder-report', { files: { ...FILES, [REPORT]: before } });
+		const tab = fake.openTab(REPORT);
+		await runAction(fake, 'report', '', fakeRun(['done', true], target).run);
+		// Autosave writes it later; a vault.write would have put the caret back at its old offset.
+		expect(fake.files.get(REPORT)).toBe(before);
+		expect(fake.viewDoc).toContain('- [[Projects/sub/B.md|B]]\n<!-- folder-report:generated:end -->\nkeep below\n');
+		expect(tab.content).toBe(fake.viewDoc);
+		expect(fake.opened).toEqual([REPORT]);
 	});
 
 	it('regenerates only the block and keeps the user text around it', async () => {
@@ -883,6 +938,13 @@ describe('help/examples/mods/dialogs-tour', () => {
 		await expect(runAction(fake, 'tour', '', fakeRun(answers('Lake day', 'calm', 'x', true, STOP)).run)).rejects.toThrow('The run was stopped');
 		await new Promise((resolve) => setTimeout(resolve, 0));
 		expect(fake.files.size).toBe(0);
+	});
+
+	it('names the file so the note stays linkable and visible, keeping the typed title as the heading', async () => {
+		const fake = load('dialogs-tour');
+		await runAction(fake, 'tour', '', fakeRun(answers('.Lake #2: [day]')).run);
+		expect([...fake.files.keys()]).toEqual(['Dialogs tour/Lake 2 day.md']);
+		expect(fake.files.get('Dialogs tour/Lake 2 day.md')).toMatch(/^# \.Lake #2: \[day\]\n/);
 	});
 
 	it('fails on a taken name and an empty title', async () => {

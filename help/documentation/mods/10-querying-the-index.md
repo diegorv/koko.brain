@@ -39,14 +39,34 @@ interface KB {
 | Page data | Source | After a write by the app or a mod |
 |-----------|--------|------------------------------------|
 | Which notes exist, `file.path`/`name`/`folder`, frontmatter keys, `_type`, `organized`/`archived`/`favorite`, root `tags` | The property index | Current at once: the next `ctx.kb()` call sees it |
-| `file.tasks`, `file.tags`, `file.outlinks`, `file.inlinks` | The index snapshot | Throttled: refreshed about **2 s** after a change, at most once per **10 s** during a burst |
+| `file.tasks`, `file.tags`, `file.outlinks`, `file.inlinks` | The index snapshot | Throttled: refreshed about **2 s** after a change, up to about **10 s** during a burst |
 
-- `file.size`, `file.ctime` and `file.mtime` also come from the snapshot side. A note created a moment ago shows `0` for them until the snapshot refreshes, and an **existing** note saved a moment ago still shows its **previous** size and mtime: for up to about 12 s (the 10 s throttle plus the time the save takes to reach the index), the index can report a note just edited as unchanged. What to do about it depends on what the selection is for:
+- `file.size`, `file.ctime` and `file.mtime` also come from the snapshot side. A note created a moment ago shows `0` for them until the snapshot refreshes, and an **existing** note saved a moment ago still shows its **previous** size and mtime: about 2 s after a change, up to about 10 s during a burst, the index can report a note just edited as unchanged. What to do about it depends on what the selection is for:
   - **Choosing notes to change, move or delete** (archive notes untouched for 90 days): leave out `0` values and skip notes open in a tab, since those are the ones the user may be changing right now. A wrong "untouched" there costs the user a note.
-  - **Showing notes** (a "recently edited" list): keep notes open in a tab and sort a `0` as "just now" (or put open tabs first): leaving them out hides the very note the user just edited. A stale position in a list costs nothing.
+  - **Showing notes** (a "recently edited" list): sort a `0` as "just now", and put the folder's notes open in a tab first. Both are required: the index alone puts the note the user is editing at its old position, or leaves out one too new for it. A stale position for the other notes costs nothing.
+
+```javascript
+/**
+ * The newest `n` notes under vault-relative `folder` as absolute paths:
+ * the ones open in a tab first, then the index's order by mtime (0 = just now).
+ */
+async function recentNotes(ctx, folder, n) {
+	const kb = await ctx.kb();
+	const indexed = kb.pages(`"${folder}"`)
+		.sort((p) => p.file.mtime || Number.MAX_SAFE_INTEGER, 'desc')
+		.limit(n)
+		.array()
+		.map((p) => p.file.path);
+	const prefix = `${ctx.app.vaultStore.path}/${folder}/`;
+	const open = ctx.app.editorStore.tabs
+		.map((tab) => tab.path)
+		.filter((path) => path.startsWith(prefix) && /\.(md|markdown)$/i.test(path));
+	return [...new Set([...open, ...indexed])].slice(0, n);
+}
+```
 - A `kb` object keeps the page set it read first for its whole life. Call `ctx.kb()` again to see later changes.
 
-So right after `ctx.vault.create`, `ctx.vault.write`, `createTypedNote` or `updateNoteFrontmatter`, a new `ctx.kb()` lists the note with its new frontmatter, but its tasks, tags and links can be 2 to 10 s old (a new note has none yet). The index also follows the editor: the active note's text, saved or not, reaches the property index about 1 s after typing stops. For the exact current text read `ctx.app.editorStore.activeTab.content`.
+So right after `ctx.vault.create`, `ctx.vault.write`, `createTypedNote` or `updateNoteFrontmatter`, a new `ctx.kb()` lists the note with its new frontmatter, but its tasks, tags and links lag: about 2 s after a change, up to about 10 s during a burst (a new note has none yet). The index also follows the editor: the active note's text, saved or not, reaches the property index about 1 s after typing stops. For the exact current text read `ctx.app.editorStore.activeTab.content`.
 
 At startup, before the vault's first index build, the index can be empty. A mod that queries in `onload` should check `ctx.app.vaultStore.indexReady` first and wait for it:
 
@@ -161,7 +181,7 @@ interface Page {
 		inlinks: { path: string; display: string }[];  // notes linking here
 		outlinks: { path: string; display: string }[]; // resolved targets this note links to
 		size: number;       // bytes
-		ctime: number;      // creation time, ms
+		ctime: number;      // file system birth time, ms (see below: not the note's creation date)
 		mtime: number;      // modification time, ms
 		tasks: Task[];
 	};
@@ -178,7 +198,7 @@ interface Page {
 }
 
 interface Task {
-	text: string;       // the text after the checkbox and its one whitespace character, untrimmed
+	text: string;       // the text after the checkbox and its one whitespace character, untrimmed (in a CRLF note it ends in '\r')
 	completed: boolean; // false only for [ ]; true for every other status: [x] [X] [-] [/] [?] [>] [!]
 	line: number;       // 1-based line in the file
 	path: string;       // absolute path of the note
@@ -195,6 +215,7 @@ Details that bite:
 - `completed` is not "done": it is `false` only for `[ ]`. `[/]` (in progress), `[?]` (question), `[!]` (important) and `[>]` (forwarded) are `true`, like `[x]`. See [Tasks](#tasks) for the full grammar and how to tell the statuses apart.
 - `inlinks` are matched by the target's file name, so two notes with the same name share backlinks. `outlinks` are resolved the way the app resolves wikilinks; `display` is the link's alias, or its target text.
 - Tags have no `#` and keep their case as written; compare case-insensitively.
+- `file.ctime` is the file system's birth time of the file, not when the note was written. Copying the vault, restoring a backup, syncing it to another machine, or an external editor that saves through a new file resets it to that moment (the app's own saves keep it on macOS). When the vault's notes carry a `created` property (a template that stamps the date), sort and filter by that instead, and use `ctime` only as the fallback.
 
 ## Tasks
 
@@ -202,11 +223,13 @@ Details that bite:
 
 A line is a task when it is, in order:
 
-1. Any indentation (spaces or tabs).
+1. Any indentation (any Unicode whitespace, in practice spaces or tabs).
 2. A list marker: `-`, `*` or `+`, or a number and a dot (`1.`, `12.`). `1)` is not a marker.
-3. **One** whitespace character (a space or a tab). `-  [ ]` with two spaces is not a task.
+3. **One** whitespace character: any Unicode whitespace (a space, a tab, a no-break space). `-  [ ]` with two spaces is not a task.
 4. A checkbox: `[`, one status character from the table below, `]`. Any other character inside (`[o]`, `[ x]`) makes the line plain text.
-5. **One** whitespace character, then the text. A task whose text is empty or only whitespace is not listed.
+5. **One** whitespace character (any Unicode whitespace again), then the text. A task whose text is empty or only whitespace is not listed.
+
+The note is split on `\n` only, so in a CRLF note every line, and every `task.text`, ends in `\r`. Trim it (`t.text.replace(/\r$/, '')`) before comparing or writing the text elsewhere.
 
 Lines inside fenced code are skipped. A fence is a line starting (after spaces or tabs) with three backticks or three tildes, and it is **closed only by a fence of the same kind**: a `~~~` line inside a backtick block neither closes it nor counts as a task. An unclosed fence hides every task below it. The frontmatter is not skipped, but its lines rarely look like tasks.
 
@@ -406,7 +429,7 @@ ctx.addAction({
 		const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
 		const kb = await ctx.kb();
 		const items = kb.pages(source)
-			// mtime lags a save by up to about 12 s and is 0 for a note too new for the snapshot:
+			// mtime lags a save (about 2 s, up to about 10 s in a burst) and is 0 for a note too new for the snapshot:
 			// a list only shows notes, so that one is kept and shown first (see Freshness and lag).
 			.where((p) => p.file.mtime === 0 || p.file.mtime >= since)
 			.sort((p) => p.file.mtime || Number.MAX_SAFE_INTEGER, 'desc')

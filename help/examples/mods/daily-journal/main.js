@@ -28,9 +28,12 @@ function toVaultPath(vaultRoot, absolute) {
 	return collapse(absolute.slice(prefix.length)).replace(/^\//, '');
 }
 
-/** What goes after `text` so that `line` ends up as its last line */
-function appendix(text, line) {
-	return `${text === '' || text.endsWith('\n') ? '' : '\n'}${line}\n`;
+/** `text` with `lines` added at the end, each on its own line, in the note's line ending: a CRLF note stays CRLF. */
+function appendLines(text, lines) {
+	if (lines.length === 0) return text;
+	const eol = text.includes('\r\n') ? '\r\n' : '\n';
+	const gap = text === '' || text.endsWith('\n') ? '' : eol;
+	return `${text}${gap}${lines.join(eol)}${eol}`;
 }
 
 /**
@@ -49,7 +52,7 @@ async function appendLine(ctx, absolute, line, stopped, viaEditor) {
 		// uses "\n"; the tab keeps a CRLF file's raw text until the first edit.
 		if (text === tab.content.replace(/\r\n?/g, '\n')) {
 			if (stopped()) return null;
-			view.dispatch({ changes: { from: text.length, insert: appendix(text, line) } });
+			view.dispatch({ changes: { from: text.length, insert: appendLines(text, [line]).slice(text.length) } });
 			return 'editor';
 		}
 	}
@@ -61,7 +64,7 @@ async function appendLine(ctx, absolute, line, stopped, viaEditor) {
 		throw new Error(`Cannot read ${path}: ${errorMessage(err)}`);
 	}
 	if (stopped()) return null;
-	const next = text + appendix(text, line);
+	const next = appendLines(text, [line]);
 	// ctx.vault matches tabs by exact path, so a tab opened at a path with "//" needs both steps by hand.
 	const openTab = () => ctx.app.editorStore.tabs.find((t) => collapse(t.path) === collapse(absolute));
 	const before = openTab();
@@ -106,7 +109,8 @@ export default {
 				// the previous note (an equal template passes the content check), so
 				// write it on disk.
 				const route = await appendLine(ctx, absolute, `- ${localTime(now)} ${entry}`, () => run.signal.aborted, existed);
-				if (route) run.log(`Added to ${path} (${route === 'editor' ? 'in the open note' : 'on disk'})`);
+				// A toast, not run.log: a run with output stays open on Done, covering a note it just opened.
+				if (route) ctx.notify(`Added to ${path} (${route === 'editor' ? 'in the open note' : 'on disk'})`, { kind: 'success' });
 			},
 		});
 		ctx.labs.place(ACTION_ID, { palette: true });

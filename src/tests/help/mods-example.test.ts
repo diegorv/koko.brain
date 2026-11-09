@@ -140,19 +140,28 @@ describe('help/examples/mods/hello', () => {
 		expect(seen.toasts).toEqual(['Hello from a mod']);
 	});
 
-	it('new-note creates the note, reports progress and opens it', async () => {
+	it('new-note creates the note and opens it, with no run output so the run view closes', async () => {
 		const { seen } = loadHello();
 		await action(seen, 'new-note').run('  Trip / plan  ', fakeRun(seen));
-		expect([...seen.files.keys()]).toEqual(['Hello mod/Trip - plan.md']);
-		expect(seen.files.get('Hello mod/Trip - plan.md')).toBe('# Trip / plan\n\nCreated by the hello mod.\n');
-		expect(seen.opened).toEqual(['Hello mod/Trip - plan.md']);
-		expect(seen.progress).toEqual(['0/2 Creating the note', '1/2 Opening it', '2/2 Done']);
-		expect(seen.lines).toEqual(['Created Hello mod/Trip - plan.md']);
+		expect([...seen.files.keys()]).toEqual(['Hello mod/Trip plan.md']);
+		expect(seen.files.get('Hello mod/Trip plan.md')).toBe('# Trip / plan\n\nCreated by the hello mod.\n');
+		expect(seen.opened).toEqual(['Hello mod/Trip plan.md']);
+		// Output would keep the run view open on Done, on top of the note just opened.
+		expect(seen.progress).toEqual([]);
+		expect(seen.lines).toEqual([]);
 	});
 
-	it('new-note rejects an empty title and writes nothing', async () => {
+	it('new-note names the file so the note stays linkable and visible', async () => {
+		const { seen } = loadHello();
+		// "#" would end a [[link]] to the note early; a leading dot hides it from the explorer and the index.
+		await action(seen, 'new-note').run('.Plan #2: [draft]', fakeRun(seen));
+		expect([...seen.files.keys()]).toEqual(['Hello mod/Plan 2 draft.md']);
+	});
+
+	it('new-note rejects an empty title, or one with nothing left for a file name, and writes nothing', async () => {
 		const { seen } = loadHello();
 		await expect(action(seen, 'new-note').run('   ', fakeRun(seen))).rejects.toThrow('Type a title');
+		await expect(action(seen, 'new-note').run('../#', fakeRun(seen))).rejects.toThrow('Type a title');
 		expect(seen.files.size).toBe(0);
 	});
 

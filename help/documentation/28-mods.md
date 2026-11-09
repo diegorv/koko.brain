@@ -43,7 +43,7 @@ export default {
 
 A button with a sparkles icon appears in the rail. Clicking it runs **Say hello**, which shows a toast "Hello" prefixed with the mod's `name` from its manifest. A button with one action runs it at once (or, if the action asks for text, opens straight on its text field); with several, it opens a picker to choose one.
 
-The repository's `help/examples/mods/hello/` is a complete example. It has a toast action and an action that asks for a title, reports progress, creates a note and opens it. Copy the folder to `_system/mods/hello/` in your vault to try it.
+The repository's `help/examples/mods/hello/` is a complete example. It has a toast action and an action that asks for a title, creates a note and opens it. Copy the folder to `_system/mods/hello/` in your vault to try it.
 
 ## Turning mods on
 

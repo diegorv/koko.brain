@@ -36,6 +36,30 @@ function targetNote(ctx, run) {
 	return path;
 }
 
+/**
+ * A title as one safe file name without extension; '' when nothing is left (the caller refuses it).
+ * Replaces path separators, ":", the characters that end a [[link]] target (# | ^ [ ]) and control
+ * characters; drops leading dots (a dotfile is hidden); caps the name at 200 UTF-8 bytes.
+ */
+function safeName(title) {
+	const MAX_BYTES = 200;
+	const cleaned = String(title)
+		.replace(/[\\/:#|^[\]]/g, ' ')
+		.replace(/\p{Cc}/gu, ' ')
+		.replace(/\s+/g, ' ')
+		.trim()
+		.replace(/^[.\s]+/, '');
+	const encoder = new TextEncoder();
+	let name = '';
+	let bytes = 0;
+	for (const char of cleaned) {
+		bytes += encoder.encode(char).length;
+		if (bytes > MAX_BYTES) break;
+		name += char;
+	}
+	return name.trim();
+}
+
 /** Pure, as updateNoteFrontmatter requires: it can run twice for one call */
 function toggled(props) {
 	const on = props.some((p) => p.key === PROPERTY && p.value === true);
@@ -82,12 +106,9 @@ export default {
 				const answer = await run.ui.prompt({ title: 'Rename note', label: 'New name', value: current });
 				// null is Cancel; '' is an empty submit.
 				if (answer === null) return;
-				const name = answer.trim();
-				if (!name) throw new Error('Type a name');
-				// Path characters, and those that end a [[link]] target early, so the note stays linkable.
-				if (/[\\/:#|^[\]]/.test(name)) throw new Error('A name cannot hold / \\ : # | ^ [ or ]');
-				// A dotfile leaves the file explorer and the index.
-				if (name.startsWith('.')) throw new Error('A name cannot start with a dot');
+				// The toast reports the name actually used.
+				const name = safeName(answer);
+				if (!name) throw new Error('Type a name with at least one letter or digit');
 				if (name === current) return;
 
 				if (run.signal.aborted) return;

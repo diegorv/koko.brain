@@ -53,7 +53,8 @@ const pad2 = (n) => String(n).padStart(2, '0');
 /** HH:mm in local time */
 const localTime = (d) => `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
 
-// toVaultPath, changedRange and editNote: copied from 04 § Absolute paths and § editNote.
+// toVaultPath, changedRange, editNote and appendLines: copied from 04 § Absolute paths, § editNote and § Using it.
+// ensureDailyNote: from 09 § openOrCreateDailyNote.
 
 /**
  * Absolute app path to the vault-relative form ctx.vault takes. Throws outside the vault.
@@ -114,10 +115,27 @@ async function editNote(ctx, absolutePath, edit) {
 	return true;
 }
 
-/** `text` with `lines` added at the end, each on its own line */
+/** `text` with `lines` added at the end, each on its own line, in the note's line ending: a CRLF note stays CRLF. */
 function appendLines(text, lines) {
 	if (lines.length === 0) return text;
-	return `${text}${text === '' || text.endsWith('\n') ? '' : '\n'}${lines.join('\n')}\n`;
+	const eol = text.includes('\r\n') ? '\r\n' : '\n';
+	const gap = text === '' || text.endsWith('\n') ? '' : eol;
+	return `${text}${gap}${lines.join(eol)}${eol}`;
+}
+
+/**
+ * Absolute path of the daily note of `date`, created from the daily template when missing.
+ * openOrCreateDailyNote creates the note of the day it runs on: when midnight passed since
+ * `date` was read, the note it made is another day's, and this rejects instead of going on.
+ */
+async function ensureDailyNote(ctx, date) {
+	const path = ctx.app.dailyNotePath(date);
+	if (await ctx.vault.exists(toVaultPath(ctx, path))) return path;
+	await ctx.app.openOrCreateDailyNote();
+	if (!(await ctx.vault.exists(toVaultPath(ctx, path)))) {
+		throw new Error('The day changed while the daily note was being created; run it again');
+	}
+	return path;
 }
 
 export default {
@@ -132,11 +150,8 @@ export default {
 				// Enter on an empty field runs the action with '': a refusal the user must see.
 				if (!text) throw new Error('Type what happened');
 				const now = new Date();
-				const today = ctx.app.dailyNotePath(now);
-				if (!(await ctx.vault.exists(toVaultPath(ctx, today)))) {
-					// The app applies the daily template; ctx.vault.create would write a bare file.
-					await ctx.app.openOrCreateDailyNote();
-				}
+				// The app applies the daily template; ctx.vault.create would write a bare file.
+				const today = await ensureDailyNote(ctx, now);
 				if (run.signal.aborted) return;
 				await editNote(ctx, today, (note) => appendLines(note, [`- ${localTime(now)} ${text}`]));
 				ctx.notify('Logged');
@@ -150,8 +165,8 @@ export default {
 
 Why it is written this way:
 
-- `now` is read once, before any await, so the timestamp and the note's date come from the same instant. `dailyNotePath` only computes a path from Settings > Periodic Notes; the note may not exist.
-- `openOrCreateDailyNote` is today only and takes no date. It creates the note from the user's daily template and opens it; `ctx.vault.create` would skip the template.
+- `now` is read once, after the last dialog (here there is none: the input came first), so the timestamp and the note's date come from the same instant. `dailyNotePath` only computes a path from Settings > Periodic Notes; the note may not exist.
+- `openOrCreateDailyNote` is today only and takes no date. It creates the note from the user's daily template and opens it; `ctx.vault.create` would skip the template. `ensureDailyNote` (from [09 § openOrCreateDailyNote](09-raw-app.md#openorcreatedailynote)) re-checks the path after creating, so a run that crosses midnight stops instead of logging into a note that is not there.
 - `editNote` is the safe way to change a note the user may be typing in: `ctx.vault.write` refuses a tab with unsaved edits (`"<path>" has unsaved changes in an open tab`), while a CodeMirror dispatch keeps them and arms autosave.
 - The check that the editor shows the tab's text (line breaks normalized, so a CRLF note still takes the editor route) matters right after `openOrCreateDailyNote`: the new tab is active, but the editor may still show the previous note for a frame. The edit then goes to disk, and the clean tab picks up the new text.
 - A Stop after the note was created leaves it without the line. That is harmless here; recipe 3 shows how to report partial work.
@@ -238,8 +253,9 @@ function addDays(d, n) {
 	return next;
 }
 
-// toVaultPath, changedRange, editNote and hasUnsavedTab: copied from 04 § Absolute paths, § editNote
-// and § Checking for unsaved edits. openTasks: the task grammar of 10 § Tasks.
+// toVaultPath, changedRange, editNote, hasUnsavedTab and appendLines: copied from 04 § Absolute paths,
+// § editNote, § Checking for unsaved edits and § Using it. ensureDailyNote: from 09 § openOrCreateDailyNote.
+// openTasks: the task grammar of 10 § Tasks.
 
 /**
  * Absolute app path to the vault-relative form ctx.vault takes. Throws outside the vault.
@@ -307,9 +323,27 @@ function hasUnsavedTab(ctx, path) {
 		tab.path.startsWith(`${root}/`) && toVaultPath(ctx, tab.path) === path && tab.content !== tab.savedContent);
 }
 
+/** `text` with `lines` added at the end, each on its own line, in the note's line ending: a CRLF note stays CRLF. */
 function appendLines(text, lines) {
 	if (lines.length === 0) return text;
-	return `${text}${text === '' || text.endsWith('\n') ? '' : '\n'}${lines.join('\n')}\n`;
+	const eol = text.includes('\r\n') ? '\r\n' : '\n';
+	const gap = text === '' || text.endsWith('\n') ? '' : eol;
+	return `${text}${gap}${lines.join(eol)}${eol}`;
+}
+
+/**
+ * Absolute path of the daily note of `date`, created from the daily template when missing.
+ * openOrCreateDailyNote creates the note of the day it runs on: when midnight passed since
+ * `date` was read, the note it made is another day's, and this rejects instead of going on.
+ */
+async function ensureDailyNote(ctx, date) {
+	const path = ctx.app.dailyNotePath(date);
+	if (await ctx.vault.exists(toVaultPath(ctx, path))) return path;
+	await ctx.app.openOrCreateDailyNote();
+	if (!(await ctx.vault.exists(toVaultPath(ctx, path)))) {
+		throw new Error('The day changed while the daily note was being created; run it again');
+	}
+	return path;
 }
 
 /** Task status by checkbox character, as the app maps it. */
@@ -370,7 +404,6 @@ export default {
 			run: async (_input, run) => {
 				const now = new Date();
 				const yesterday = ctx.app.dailyNotePath(addDays(now, -1));
-				const today = ctx.app.dailyNotePath(now);
 				const yesterdayPath = toVaultPath(ctx, yesterday);
 				if (!(await ctx.vault.exists(yesterdayPath))) throw new Error('There is no daily note for yesterday');
 				// Before any write: the write to yesterday would refuse these edits only after today changed.
@@ -383,7 +416,7 @@ export default {
 				}
 				if (run.signal.aborted) return;
 
-				if (!(await ctx.vault.exists(toVaultPath(ctx, today)))) await ctx.app.openOrCreateDailyNote();
+				const today = await ensureDailyNote(ctx, now);
 				if (run.signal.aborted) return;
 				let added = 0;
 				await editNote(ctx, today, (text) => {
@@ -889,7 +922,10 @@ function cleanFolder(text) {
 	return segments.join('/');
 }
 
-/** Every folder below the vault root, breadth first; null once `signal` aborts */
+/**
+ * Every folder below the vault root, breadth first; null once `signal` aborts.
+ * A subfolder that cannot be read is listed without its children; only a failure of the root rejects.
+ */
 async function listFolders(ctx, signal) {
 	// Never offered: the system folder (a setting, `_system` by default) holds mods, templates and type definitions.
 	const system = ctx.app.settingsStore.templates.systemFolder.replace(/^\/+|\/+$/g, '');
@@ -900,7 +936,9 @@ async function listFolders(ctx, signal) {
 		// Chunks keep a level with thousands of folders from flooding the IPC bridge and delaying Cancel.
 		for (let i = 0; i < level.length; i += LIST_CHUNK) {
 			if (signal.aborted) return null;
-			const lists = await Promise.all(level.slice(i, i + LIST_CHUNK).map((folder) => ctx.vault.list(folder)));
+			// Caught per folder: one unreadable folder (permissions, deleted meanwhile) must not fail the whole pick.
+			const lists = await Promise.all(level.slice(i, i + LIST_CHUNK).map((folder) =>
+				folder === '' ? ctx.vault.list(folder) : ctx.vault.list(folder).catch(() => [])));
 			for (const entry of lists.flat()) {
 				if (entry.isFolder && entry.path !== system) next.push(entry.path);
 			}
@@ -1151,7 +1189,7 @@ Why it is written this way:
 - `replaceOwnedBlock` refuses rather than guesses when markers are missing, duplicated or edited, and the marker key (`v1 Projects`) names the version and subject, so a report of another subject is never overwritten. An ordinary note at that path is refused too.
 - `create` and the merge are split on purpose: `create` refuses an existing path, `write` refuses a missing one. When the report is the active tab, the merge goes through the editor and keeps the user's unsaved text.
 - `stopped` also checks `ctx.signal` (mod unload) and is consulted inside the merge callback, so no write starts after Stop; the warning toast says the result was kept.
-- `file.mtime` comes from the index snapshot, which refreshes about 2 s after a change and at most once per 10 s: a note saved a moment ago can still show its previous mtime (and a brand-new one `0`) for up to about 12 s. The report only shows notes, so it keeps the `0` ones (sorted first) rather than hide the newest note; a recipe that changes or moves notes by mtime leaves them out instead ([Freshness and lag](10-querying-the-index.md#freshness-and-lag)). Links use the pinned form (`[[Folder/Name.md|Name]]`) so they resolve to the exact file even when two notes share a name.
+- `file.mtime` comes from the index snapshot, which refreshes about 2 s after a change, up to about 10 s during a burst: until then a note saved a moment ago still shows its previous mtime (and a brand-new one `0`). The report only shows notes, so it keeps the `0` ones (sorted first) rather than hide the newest note; a recipe that changes or moves notes by mtime leaves them out instead ([Freshness and lag](10-querying-the-index.md#freshness-and-lag)). Links use the pinned form (`[[Folder/Name.md|Name]]`) so they resolve to the exact file even when two notes share a name.
 - **Text copied into the block goes through `inert`.** A block that quotes note text (task lines, titles, excerpts) can carry `<!--`, for example a task that mentions the end marker; `replaceOwnedBlock` then sees a third marker mention and refuses every later run. `inert` turns `<!--` into `&lt;!--`, which opens no comment and no longer counts as a marker.
 - **Copied text also brings its tags and links.** A `#tag` or `[[link]]` inside quoted text becomes a tag or link of the report note: it shows in tag search, the Tags view and the backlinks of the linked note. That is often what the user wants from a report; when it is not, leave the text out or say so in the handover.
 - **Copied text that must stay plain text** (a note name in a heading or a list item, a task quoted as a sample) goes through `markdownText` instead of `inert`. It escapes the Markdown punctuation with a backslash, so `Odd #1` gives no tag and `[[x]]` no link (the index needs `#` after a space and two adjacent `[`; Live Preview hides the backslash), puts line breaks as spaces so the text stays on its line, and turns `<` into `&lt;`, which covers what `inert` does:
@@ -1708,7 +1746,7 @@ export default {
 			try {
 				const data = await ctx.loadData();
 				if (!live() || data === null) return;
-				if (!isTimerData(data)) throw new Error('data.json is not in the expected shape; fix or remove it');
+				if (!isTimerData(data)) throw new Error(`.kokobrain/mods/${ctx.mod.id}/data.json is not in the expected shape; fix or remove it`);
 				if (data.session === null) return;
 				if (data.session.deadlineMs <= Date.now()) {
 					ctx.notify('A focus block ended while the app was closed', { kind: 'warning' });
@@ -2138,25 +2176,29 @@ function safeName(title) {
 	return name.trim();
 }
 
-/** Validates and migrates stored data; throws for anything else, so it is never saved over */
-function parseSettings(data) {
+/**
+ * Stored data as settings, field by field: a missing or wrongly typed field falls back to its default.
+ * Throws, so nothing is saved over it, for data that is not an object or was written by a newer copy
+ * of the mod. `file` is the vault-relative path of data.json, for the message.
+ */
+function parseSettings(data, file) {
 	if (data === null) return { ...DEFAULTS };
-	if (typeof data !== 'object' || Array.isArray(data)) throw new Error('data.json is not in the expected shape; fix or remove it');
+	if (typeof data !== 'object' || Array.isArray(data)) throw new Error(`${file} is not in the expected shape; fix or remove it`);
 	// Data from a newer copy of the mod: a save would downgrade it.
 	if (typeof data.version === 'number' && data.version > DEFAULTS.version) {
-		throw new Error(`data.json has version ${data.version}, which this version of the mod cannot read`);
+		throw new Error(`${file} has version ${data.version}, which this version of the mod cannot read`);
 	}
-	// Version 1 had only `folder`.
-	if (data.version === 1 && typeof data.folder === 'string') return { ...DEFAULTS, folder: data.folder };
-	if (data.version === 2 && typeof data.folder === 'string' && typeof data.datePrefix === 'boolean') {
-		return { version: 2, folder: data.folder, datePrefix: data.datePrefix };
-	}
-	throw new Error('data.json is not in the expected shape; fix or remove it');
+	// Version 1 had only `folder`: its missing datePrefix takes the default like any other bad field.
+	return {
+		version: DEFAULTS.version,
+		folder: (typeof data.folder === 'string' && cleanFolder(data.folder)) || DEFAULTS.folder,
+		datePrefix: typeof data.datePrefix === 'boolean' ? data.datePrefix : DEFAULTS.datePrefix,
+	};
 }
 
 async function loadSettings(ctx) {
 	try {
-		return parseSettings(await ctx.loadData());
+		return parseSettings(await ctx.loadData(), `.kokobrain/mods/${ctx.mod.id}/data.json`);
 	} catch (err) {
 		// Only a corrupt file is safe to replace: the host moved it aside byte for byte.
 		if (err?.name !== 'ModDataCorruptError') throw err;
@@ -2226,8 +2268,8 @@ export default {
 Why it is written this way:
 
 - Settings are read at the start of each action instead of cached at `onload`, so an edit is seen at once and there is no load-order question. `loadData` and `saveData` share one queue per mod, so a load after a save sees the saved value.
-- Only `null` means "nothing stored". A corrupt file (`err.name === 'ModDataCorruptError'`) was moved aside by the host, so defaults are safe; any other read failure is rethrown, and the host would refuse `saveData` anyway until a later load succeeds. Valid JSON of an unknown shape throws, because `loadData` does not move it aside and the first save would replace it.
-- The stored object carries a `version`, and `parseSettings` is the one place that migrates old shapes forward and refuses a newer one. It is the [Mod data](05-mod-data.md#which-pattern-to-use) pattern folded into one function, which suits a few flat fields; for nested state or several versions, split it into `migrate` and `withDefaults` as there.
+- Only `null` means "nothing stored". A corrupt file (`err.name === 'ModDataCorruptError'`) was moved aside by the host, so defaults are safe; any other read failure is rethrown, and the host would refuse `saveData` anyway until a later load succeeds. Valid JSON that is not an object throws, because `loadData` does not move it aside and the first save would replace it. Each message names `.kokobrain/mods/<id>/data.json`, the file the user has to fix.
+- The stored object carries a `version`, and `parseSettings` is the one place that reads old shapes and refuses a newer one. Inside an object it is lenient per field, as settings should be: one bad or missing value falls back to its default and the next save drops it, instead of locking the user out of every setting. It is the [Mod data](05-mod-data.md#which-pattern-to-use) pattern folded into one function, which suits a few flat fields; for nested state or several versions, split it into `migrate` and `withDefaults` as there.
 - Each change is saved immediately, in call order. `saveData` writes `.kokobrain/mods/<id>/data.json` atomically and outside the index, search, file history and Auto Move, so frequent saves are cheap. It is not a secret store.
 - In the picker, the current value is the row's description, and Escape (`null`) ends the loop. A prompt submitted empty resolves `''`, not `null`, which `cleanFolder` turns into the "Not a folder path" alert.
 - The file name goes through `safeName` (path and wikilink characters, leading dots, a byte cap), and an empty result is refused with a throw, like any other invalid input. The heading keeps the title as typed.

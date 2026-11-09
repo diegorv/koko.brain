@@ -3,7 +3,8 @@
 // reference: help/documentation/mods/README.md
 //
 // Right-click a folder in Files and pick "Folder report: Report on this folder".
-// ctx.labs (the menu placement) is experimental, with no compatibility promise.
+// Uses ctx.app (the editor, to update a report that is open) and ctx.labs (the
+// menu placement): both are raw or experimental, with no compatibility promise.
 
 /** Reports go here, so the mod never writes into the folders it reads */
 const REPORT_FOLDER = 'Folder report';
@@ -36,13 +37,81 @@ function link(path) {
  */
 function replaceBlock(text, block) {
 	const lines = text.split('\n');
-	const start = lines.indexOf(START);
-	const end = lines.indexOf(END);
-	const count = (marker) => lines.filter((line) => line === marker).length;
+	// A CRLF note keeps "\r" at the end of each line.
+	const bare = lines.map((line) => line.replace(/\r$/, ''));
+	const start = bare.indexOf(START);
+	const end = bare.indexOf(END);
+	const count = (marker) => bare.filter((line) => line === marker).length;
 	if (start < 0 || end < start || count(START) !== 1 || count(END) !== 1) {
 		throw new Error('The report markers were edited or removed; restore them or delete the report note');
 	}
-	return [...lines.slice(0, start), block, ...lines.slice(end + 1)].join('\n');
+	// The start marker is never the last line, so its ending is the note's.
+	const cr = lines[start].endsWith('\r') ? '\r' : '';
+	return [...lines.slice(0, start), ...block.split('\n').map((line) => line + cr), ...lines.slice(end + 1)].join('\n');
+}
+
+/** Vault-relative path (ctx.vault, run.target, onNoteSaved) to the absolute form ctx.app and ctx.kb() use. */
+function toAbsolute(ctx, path) {
+	return `${ctx.app.vaultStore.path}/${path}`;
+}
+
+/**
+ * Absolute app path to the vault-relative form ctx.vault takes. Throws outside the vault.
+ * Collapses "//" first: app paths built from a folder setting with an edge slash
+ * (a daily-note folder set to "Journal/") carry it, and ctx.vault rejects it.
+ */
+function toVaultPath(ctx, absolute) {
+	const root = ctx.app.vaultStore.path.replace(/\/+$/, '');
+	const path = absolute.replace(/\/{2,}/g, '/');
+	if (!path.startsWith(`${root}/`)) throw new Error(`"${absolute}" is outside the vault`);
+	return path.slice(root.length + 1);
+}
+
+/** The one range that turns `before` into `after`, for a minimal editor change. */
+function changedRange(before, after) {
+	const max = Math.min(before.length, after.length);
+	let from = 0;
+	while (from < max && before[from] === after[from]) from++;
+	let tail = 0;
+	while (tail < max - from && before[before.length - 1 - tail] === after[after.length - 1 - tail]) tail++;
+	return { from, to: before.length - tail, insert: after.slice(from, after.length - tail) };
+}
+
+/**
+ * Applies `edit(text) => newText` to a note that may be open in the editor.
+ * `absolutePath` is an app path (`${ctx.app.vaultStore.path}/Folder/Note.md`).
+ * `edit` must be synchronous and return a string; it runs exactly once.
+ * Resolves to whether the text changed. Rejects when the note is missing,
+ * when `edit` throws, and when a background tab holds unsaved edits of this note.
+ */
+async function editNote(ctx, absolutePath, edit) {
+	const { activeTab: tab, editorView: view } = ctx.app.editorStore;
+	const normalized = (path) => path.replace(/\/{2,}/g, '/');
+	if (tab && normalized(tab.path) === normalized(absolutePath) && view?.dom.isConnected) {
+		const text = view.state.doc.toString();
+		// An editor not yet showing this note must not take the edit: it would land in another note.
+		// The view's doc uses "\n"; the tab keeps a CRLF file's raw text until the first edit.
+		if (text === tab.content.replace(/\r\n?/g, '\n')) {
+			const next = edit(text);
+			if (next === text) return false;
+			view.dispatch({ changes: changedRange(text, next) });
+			return true;
+		}
+	}
+	const path = toVaultPath(ctx, absolutePath);
+	const text = await ctx.vault.read(path);
+	const next = edit(text);
+	if (next === text) return false;
+	// ctx.vault matches tabs by exact path, so a tab opened at a path with "//" needs both steps by hand.
+	const openTab = () => ctx.app.editorStore.tabs.find((t) => normalized(t.path) === normalized(absolutePath));
+	const before = openTab();
+	if (before && before.content !== before.savedContent) throw new Error(`"${path}" has unsaved changes in an open tab`);
+	await ctx.vault.write(path, next);
+	const after = openTab();
+	if (after && after.content === after.savedContent && after.content !== next) {
+		ctx.app.syncExternalContentToEditor(after.path, next, true, 'none');
+	}
+	return true;
 }
 
 /**
@@ -68,6 +137,8 @@ async function walk(ctx, folder, signal) {
 		}
 		listed++;
 	}
+	// A Cancel during the last listing still resolves the dialog with this value.
+	if (signal.aborted) return null;
 	return { notes: notes.sort(), folders: listed };
 }
 
@@ -110,11 +181,9 @@ export default {
 
 				if (run.signal.aborted) return;
 				if (await ctx.vault.exists(path)) {
-					const before = await ctx.vault.read(path);
-					const after = replaceBlock(before, block);
-					if (run.signal.aborted) return;
-					// write refuses a note with unsaved edits in an open tab, so nothing typed is lost.
-					if (after !== before) await ctx.vault.write(path, after);
+					// Through the editor when it shows the report, so the caret stays with the user's
+					// text; on disk otherwise, refused when a background tab holds unsaved edits.
+					await editNote(ctx, toAbsolute(ctx, path), (text) => (run.signal.aborted ? text : replaceBlock(text, block)));
 				} else {
 					if (run.signal.aborted) return;
 					await ctx.vault.create(path, `# Report: ${folder}\n\nYour notes here are kept when the report is regenerated.\n\n${block}\n`);

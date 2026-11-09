@@ -17,6 +17,30 @@ const MOODS = [
 	{ id: 'tired', title: 'Tired', description: 'Running low', tag: 'mood/tired' },
 ];
 
+/**
+ * A title as one safe file name without extension; '' when nothing is left (the caller refuses it).
+ * Replaces path separators, ":", the characters that end a [[link]] target (# | ^ [ ]) and control
+ * characters; drops leading dots (a dotfile is hidden); caps the name at 200 UTF-8 bytes.
+ */
+function safeName(title) {
+	const MAX_BYTES = 200;
+	const cleaned = String(title)
+		.replace(/[\\/:#|^[\]]/g, ' ')
+		.replace(/\p{Cc}/gu, ' ')
+		.replace(/\s+/g, ' ')
+		.trim()
+		.replace(/^[.\s]+/, '');
+	const encoder = new TextEncoder();
+	let name = '';
+	let bytes = 0;
+	for (const char of cleaned) {
+		bytes += encoder.encode(char).length;
+		if (bytes > MAX_BYTES) break;
+		name += char;
+	}
+	return name.trim();
+}
+
 /** Ends the tour on a user cancel; a toast, because a run without output closes by itself */
 function cancelled(ctx, step) {
 	ctx.notify(`Cancelled at the ${step} step; nothing was written`);
@@ -37,8 +61,8 @@ export default {
 				});
 				// '' is an empty submit, not a cancel: test for null.
 				if (title === null) return cancelled(ctx, 'title');
-				const name = title.trim().replace(/[/\\:]/g, '-');
-				if (!name) throw new Error('Type a title');
+				const name = safeName(title);
+				if (!name) throw new Error('Type a title with at least one letter or digit');
 
 				const mood = await run.ui.pick({ title: 'Step 2 of 5: pick a mood', items: MOODS });
 				if (mood === null) return cancelled(ctx, 'mood');
