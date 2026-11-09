@@ -25,18 +25,36 @@
  * File system rejections are bare strings, as in the app, but their OS text
  * is approximate, and paths are case-sensitive here (APFS is not).
  *
- * The script never writes to disk and never sends a request.
+ * Isolation. The script re-runs itself as a child Node process under the
+ * permission model (`--permission --allow-fs-read=*`): the child can read
+ * files but cannot write any, open a network connection (Node 25 and later),
+ * start a process or a worker, whatever the mod's code does. Inside the child
+ * the mod runs in its own `node:vm` realm, where the app's `mods.logic.ts` is
+ * compiled too, so the real `evaluateModSource` builds the mod's function
+ * there. That realm's globals are what the web view offers (the recording
+ * DOM proxies, the fake `fetch`, the tracked timers, web APIs such as `URL`
+ * and `TextDecoder`) and no Node global: `process`, `Buffer`, `require`,
+ * `setImmediate` are ReferenceErrors and `import()` rejects. Patching
+ * `Array.prototype` or `console` there changes only the mod's realm. The
+ * realm is not a sandbox: `ctx` and the values it returns are the checker's
+ * objects, so code that climbs their constructors reaches the checker's realm;
+ * the permission model still holds then. The parent process runs no mod code
+ * and kills the child when its event loop stops turning for HANG_MS (a
+ * synchronous loop that never ends, or promise callbacks that keep queueing
+ * each other), reporting which part did not finish.
  *
  * Exit code: 0 when there is no error (warnings allowed) and a run did not
- * fail (with --expect-fail: did fail), 1 otherwise, 2 on bad usage or a repo
- * it cannot read.
+ * fail (with --expect-fail: did fail), 1 otherwise, 2 on bad usage, a repo
+ * it cannot read, or a crash of the checker itself.
  */
+import { AsyncLocalStorage } from 'node:async_hooks';
+import { spawn } from 'node:child_process';
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
 import * as nodeModule from 'node:module';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { parseArgs } from 'node:util';
+import { parseArgs, types } from 'node:util';
 import vm from 'node:vm';
 
 const LOGIC_FILE = 'src/lib/plugins/mods/mods.logic.ts';
@@ -80,13 +98,81 @@ const FRONTMATTER_FILE = 'src/lib/core/frontmatter/properties.logic.ts';
 const DAILY_DEFAULTS = { folder: '_notes', format: 'YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY' };
 /** `settingsStore.templates.systemFolder` under --run: the app's default */
 const SYSTEM_FOLDER = '_system';
+/** Set in the child process the script starts for itself; see the header */
+const CHILD_ENV = 'KOKOBRAIN_CHECK_MOD_CHILD';
+/** How long the child's event loop may stay blocked before the parent kills it */
+const HANG_MS = 5000;
+/** How often the child tells the parent that its event loop still turns */
+const BEAT_MS = 200;
+/** How many times one onNoteSaved callback may be re-triggered by its own saves before it counts as a loop */
+const SAVE_LOOP_LIMIT = 10;
+/** Web APIs of the web view that Node has too; the mod's realm gets Node's implementation */
+const WEB_GLOBALS = [
+	'URL', 'URLSearchParams', 'TextEncoder', 'TextDecoder', 'AbortController', 'AbortSignal', 'DOMException',
+	'Event', 'EventTarget', 'CustomEvent', 'MessageChannel', 'MessagePort', 'MessageEvent', 'BroadcastChannel',
+	'structuredClone', 'atob', 'btoa', 'queueMicrotask', 'crypto', 'performance', 'Blob', 'File', 'FormData',
+	'Headers', 'Request', 'Response', 'ReadableStream', 'WritableStream', 'TransformStream', 'TextEncoderStream',
+	'TextDecoderStream', 'CompressionStream', 'DecompressionStream',
+];
+/** Network classes of the web view; each becomes a recording proxy, so nothing connects */
+const NETWORK_GLOBALS = ['WebSocket', 'EventSource', 'XMLHttpRequest'];
+/** The `console` methods the mod's realm gets, each calling the checker's console */
+const CONSOLE_METHODS = ['log', 'info', 'warn', 'error', 'debug', 'trace', 'dir', 'table', 'group', 'groupCollapsed', 'groupEnd', 'time', 'timeEnd', 'timeLog', 'assert', 'count', 'countReset'];
 
 const errors = [];
 const warnings = [];
 
-/** The message of anything thrown, as the host reads it */
+/**
+ * The `Error` and `TypeError` of the mod's realm, set once it exists, so an
+ * error the fake `ctx` throws is `instanceof Error` in mod code as in the app
+ */
+let realm = { Error, TypeError };
+
+/** What the child is running now, for the parent's message when it stops answering */
+let phase = 'startup';
+
+/** Sets the phase and tells the parent at once: a loop that blocks right after leaves no other chance */
+function setPhase(next) {
+	if (next === phase) return;
+	phase = next;
+	process.send?.({ phase }, () => {});
+}
+
+/**
+ * Runs `fn` as phase `name` and restores the phase after its synchronous part.
+ * Used around each entry into mod code that does not go through `settle`.
+ */
+function inPhase(name, fn) {
+	const before = phase;
+	setPhase(name);
+	try {
+		return fn();
+	} finally {
+		setPhase(before);
+	}
+}
+
+/**
+ * The message of anything thrown, as the host reads it, for an Error of any
+ * realm. A value String() cannot convert (a null-prototype object, a symbol
+ * in a template) is described instead of crashing the check.
+ */
 function messageOf(err) {
-	return err instanceof Error ? err.message : String(err);
+	try {
+		return err instanceof Error || types.isNativeError(err) ? String(err.message) : String(err);
+	} catch {
+		return '(a thrown value with no string form; throw an Error so the app can show a message)';
+	}
+}
+
+/** Whether an uncaught error is the checker's own: an Error of its realm with no frame from the mod's main.js */
+function isCheckerCrash(err) {
+	if (!(err instanceof Error)) return false;
+	try {
+		return !String(err.stack).includes('kokobrain-mods/');
+	} catch {
+		return true;
+	}
 }
 
 const USAGE = `usage: node check-mod.mjs <mod-folder> [--repo <brain-checkout>]
@@ -125,7 +211,17 @@ note: no template) use them; updateNoteFrontmatter(path, mutate) runs the app's
 properties.logic.ts on the in-memory note, with its no-op, refusals and
 FrontmatterWriteError reasons; syncExternalContentToEditor and saveFileByPath
 are recorded no-ops (no tab is open). Any other member, and ctx.kb(), throws
-"not modelled by --run".`;
+"not modelled by --run"; a name MOD_APP lacks is undefined, as in the app.
+
+The vault under --run: files are read as bytes and decoded like the app (a
+BOM dropped, invalid UTF-8 replaced; data.json parsed from its bytes). A path
+with a dot segment other than .kokobrain is refused as the app's file system
+scope refuses it ("forbidden path: ..."). vault.list returns entries in
+reverse name order: the app returns the OS directory order, which is not
+sorted, so sort the entries when order matters. vault.write (outside the mods
+folder) and updateNoteFrontmatter fire the onNoteSaved callbacks one timer
+turn later, as the app's save does; a callback its own saves re-trigger
+${SAVE_LOOP_LIMIT} times is reported as a save loop.`;
 
 /** Parses argv; exits 2 on bad usage */
 function parseCli(argv) {
@@ -403,17 +499,49 @@ function staticChecks(ts, source, connectSrc, appMembers) {
 	const docVars = new Set();
 	/** `const NAME = 'text'` anywhere in the file, so a selector held in a constant is still shown */
 	const constStrings = new Map();
+	/** `const NAME = { ... }`, so `addAction(spec)` with the spec in a constant is still checked */
+	const constObjects = new Map();
+	/** `const NAME = () => ...` and `function NAME() {}`, so a callback passed by name is still checked */
+	const namedFunctions = new Map();
+	/** Names bound to `ctx.vault` (`const { vault } = ctx`, `const v = ctx.vault`) */
+	const vaultNames = new Set();
+	/** Names bound to the result of `ctx.kb()`, and `kb` itself */
+	const kbNames = new Set(['kb']);
+	/** The parameter names of `onload`: what `ctx` is called in this file */
+	const ctxNames = new Set();
+	const isFunctionNode = (node) => Boolean(node) && (ts.isArrowFunction(node) || ts.isFunctionExpression(node) || ts.isFunctionDeclaration(node) || ts.isMethodDeclaration(node));
 	const collectConsts = (node) => {
 		if (ts.isVariableDeclarationList(node) && (node.flags & ts.NodeFlags.Const)) {
 			for (const d of node.declarations) {
-				if (ts.isIdentifier(d.name) && d.initializer && (ts.isStringLiteral(d.initializer) || ts.isNoSubstitutionTemplateLiteral(d.initializer))) {
-					constStrings.set(d.name.text, d.initializer.text);
+				const init = d.initializer;
+				if (!init) continue;
+				if (ts.isIdentifier(d.name)) {
+					if (ts.isStringLiteral(init) || ts.isNoSubstitutionTemplateLiteral(init)) constStrings.set(d.name.text, init.text);
+					if (ts.isObjectLiteralExpression(init)) constObjects.set(d.name.text, init);
+					if (isFunctionNode(init)) namedFunctions.set(d.name.text, init);
+					if (ts.isPropertyAccessExpression(init) && init.name.text === 'vault') vaultNames.add(d.name.text);
+					const call = ts.isAwaitExpression(init) ? init.expression : init;
+					if (ts.isCallExpression(call) && ts.isPropertyAccessExpression(call.expression) && call.expression.name.text === 'kb') kbNames.add(d.name.text);
+				} else if (ts.isObjectBindingPattern(d.name)) {
+					for (const el of d.name.elements) {
+						const key = el.propertyName ?? el.name;
+						if (ts.isIdentifier(key) && key.text === 'vault' && ts.isIdentifier(el.name)) vaultNames.add(el.name.text);
+					}
 				}
 			}
 		}
+		if (ts.isFunctionDeclaration(node) && node.name) namedFunctions.set(node.name.text, node);
+		const onloadFn = (ts.isMethodDeclaration(node) && node.name.getText(file) === 'onload') ? node
+			: (ts.isPropertyAssignment(node) && node.name.getText(file) === 'onload' && isFunctionNode(node.initializer)) ? node.initializer
+			: null;
+		if (onloadFn?.parameters[0] && ts.isIdentifier(onloadFn.parameters[0].name)) ctxNames.add(onloadFn.parameters[0].name.text);
 		ts.forEachChild(node, collectConsts);
 	};
 	collectConsts(file);
+	/** Whether `node` names the mod's `ctx` (any identifier when no onload parameter was found) */
+	const isCtx = (node) => ts.isIdentifier(node) && (ctxNames.size === 0 || ctxNames.has(node.text));
+	/** A function node, or the function a name refers to in this file */
+	const resolveFunction = (node) => (node && ts.isIdentifier(node) ? namedFunctions.get(node.text) ?? null : node);
 	let dynamicNetwork = false;
 
 	/** Checks the URL argument of fetch, WebSocket or EventSource */
@@ -453,7 +581,10 @@ function staticChecks(ts, source, connectSrc, appMembers) {
 		else if (ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg)) {
 			const src = arg.text.trim();
 			const folder = src.match(/^(["'])(.*)\1$/)?.[2];
-			if (src === '') problem = 'has an empty source, so it returns every note in the vault';
+			// A quoted folder joined with `and` (a tag and a folder, say) is a scope; `or` widens it again.
+			const scopedCombination = folder === undefined && /"[^"/][^"]*"/.test(src) && !/\bor\b/i.test(src);
+			if (scopedCombination) problem = null;
+			else if (src === '') problem = 'has an empty source, so it returns every note in the vault';
 			else if (folder === '' || folder === '/') problem = `source ${JSON.stringify(src)} is the whole vault`;
 			else if (folder === undefined && src.startsWith('#')) problem = 'has a tag source, which filters across the whole vault and is not a scope';
 			else if (folder === undefined) problem = `source ${JSON.stringify(src)} is unquoted, so it filters nothing (write '"${src}"')`;
@@ -510,16 +641,59 @@ function staticChecks(ts, source, connectSrc, appMembers) {
 		}
 	};
 
-	/** Warnings about one action's `run` function */
-	const checkActionBody = (fn, id) => {
+	/** The innermost function around `node` */
+	const scopeOf = (node) => {
+		let n = node.parent;
+		while (n && !ts.isFunctionLike(n)) n = n.parent;
+		return n;
+	};
+	/** The functions from `node` out to `fn`, innermost first: the scopes whose awaits come before `node` runs */
+	const scopeChain = (node, fn) => {
+		const chain = [];
+		for (let f = scopeOf(node); f; f = f === fn ? null : scopeOf(f)) chain.push(f);
+		return chain;
+	};
+	/** Whether `inner` lies inside `outer` */
+	const within = (inner, outer) => inner.getStart(file) >= outer.getStart(file) && inner.end <= outer.end;
+	/**
+	 * Whether `output` sits on a branch that leaves the action before `open`:
+	 * inside a block that returns or throws and does not hold `open`
+	 */
+	const onExitBranch = (output, open, fn) => {
+		for (let n = output.parent; n && n !== fn.body; n = n.parent) {
+			if (ts.isBlock(n) && !within(open, n) && n.statements.some((s) => ts.isReturnStatement(s) || ts.isThrowStatement(s))) return true;
+		}
+		return false;
+	};
+	/** The written member of a vault or frontmatter write call (`write`, `updateNoteFrontmatter`), or null */
+	const writeName = (call) => {
+		const callee = call.expression;
+		if (!ts.isPropertyAccessExpression(callee)) return null;
+		const name = callee.name.text;
+		if (name === 'updateNoteFrontmatter') return name;
+		if (!VAULT_WRITES.includes(name)) return null;
+		const base = callee.expression;
+		const isVault = (ts.isPropertyAccessExpression(base) && base.name.text === 'vault') || (ts.isIdentifier(base) && vaultNames.has(base.text));
+		return isVault ? `vault.${name}` : null;
+	};
+
+	/** Warnings about one action's `run` function; `ctxName` is the `ctx` its addAction was called on */
+	const checkActionBody = (fn, id, ctxName) => {
 		const runName = fn.parameters[1] && ts.isIdentifier(fn.parameters[1].name) ? fn.parameters[1].name.text : null;
 		const nodes = descendants(fn);
 		const calls = nodes.filter(ts.isCallExpression);
 
+		for (const node of nodes) {
+			if (ts.isPropertyAccessExpression(node) && node.name.text === 'ui' && ts.isIdentifier(node.expression) && node.expression.text === ctxName) {
+				warnings.push(`main.js:${lineOf(node)}: ${ctxName}.ui inside action "${id}": use run.ui, which Stop closes (06-dialogs.md#which-set-to-use)`);
+			}
+		}
+
 		// An action that logs or shows progress keeps its run view open when it ends done.
-		const hasOutput = calls.some((c) => isRunCall(c, runName, 'log') || isRunCall(c, runName, 'progress'));
-		if (hasOutput && ts.isBlock(fn.body)) {
+		const outputs = calls.filter((c) => isRunCall(c, runName, 'log') || isRunCall(c, runName, 'progress'));
+		if (outputs.length > 0 && ts.isBlock(fn.body)) {
 			for (const call of calls.filter((c) => OPEN_CALLS.includes(calleeName(c)))) {
+				if (outputs.every((o) => onExitBranch(o, call, fn))) continue;
 				let stmt = call;
 				while (stmt && !ts.isBlock(stmt.parent)) stmt = stmt.parent;
 				if (stmt && stmt !== fn && endsAction(stmt, fn, runName)) {
@@ -535,14 +709,25 @@ function staticChecks(ts, source, connectSrc, appMembers) {
 			|| (ts.isCallExpression(n) && calleeName(n) === 'throwIfAborted'));
 		const unchecked = [];
 		for (const call of calls) {
-			const callee = call.expression;
-			if (!ts.isPropertyAccessExpression(callee) || !VAULT_WRITES.includes(callee.name.text)) continue;
-			if (!ts.isPropertyAccessExpression(callee.expression) || callee.expression.name.text !== 'vault') continue;
+			const written = writeName(call);
+			if (!written) continue;
 			const start = call.getStart(file);
-			const before = awaits.filter((a) => a.end <= start).sort((a, b) => a.end - b.end).pop();
-			if (!before) continue;
-			if (checks.some((c) => c.getStart(file) >= before.end && c.getStart(file) < start)) continue;
-			unchecked.push(`vault.${callee.name.text} on line ${lineOf(call)} (await on line ${lineOf(before)})`);
+			// An await in a helper defined beside the write does not run before it; one in an enclosing function does.
+			const chain = scopeChain(call, fn);
+			const inScope = awaits.filter((a) => chain.includes(scopeOf(a)));
+			const before = inScope.filter((a) => a.end <= start).sort((a, b) => a.end - b.end).pop();
+			if (before && !checks.some((c) => c.getStart(file) >= before.end && c.getStart(file) < start)) {
+				unchecked.push(`${written} on line ${lineOf(call)} (await on line ${lineOf(before)})`);
+				continue;
+			}
+			// In a loop, the previous turn's await (the write's own included) also comes before the write.
+			let loop = call.parent;
+			while (loop && loop !== fn && !ts.isIterationStatement(loop, false)) loop = loop.parent;
+			if (!loop || loop === fn || !chain.includes(scopeOf(loop) ?? fn)) continue;
+			const loopAwait = inScope.find((a) => within(a, loop));
+			if (loopAwait && !checks.some((c) => within(c, loop))) {
+				unchecked.push(`${written} on line ${lineOf(call)} (the loop's await on line ${lineOf(loopAwait)}, from the previous turn)`);
+			}
 		}
 		if (unchecked.length > 0) {
 			warnings.push(`action "${id}" writes after an await with no signal.aborted check between, so a Stop during that await does not stop the write: ${unchecked.join(', ')} (03-runs.md#check-between-steps)`);
@@ -550,11 +735,24 @@ function staticChecks(ts, source, connectSrc, appMembers) {
 	};
 
 	/** Warns when a save or watch callback edits frontmatter without skipping the active note */
-	const checkCallback = (fn, kind) => {
-		if (!fn || !(ts.isArrowFunction(fn) || ts.isFunctionExpression(fn))) return;
-		const text = fn.getText(file);
-		if (!text.includes('updateNoteFrontmatter') || /activeTab/.test(text)) return;
+	const checkCallback = (arg, kind) => {
+		const fn = resolveFunction(arg);
+		if (!isFunctionNode(fn)) return;
+		const nodes = descendants(fn);
+		const writes = nodes.some((n) => ts.isIdentifier(n) && n.text === 'updateNoteFrontmatter');
+		// Identifiers only: a comment or a string that mentions activeTab is no check.
+		const skipsActive = nodes.some((n) => ts.isIdentifier(n) && /^activeTab/.test(n.text));
+		if (!writes || skipsActive) return;
 		warnings.push(`main.js:${lineOf(fn)}: a ${kind} callback calls updateNoteFrontmatter with no activeTabPath check: on the note the user is typing in, the rewrite moves the caret; skip the active note or stamp it after the tab changes (09-raw-app.md#updatenotefrontmatter)`);
+	};
+
+	/** Whether `node` is the result of `ctx.kb()`: a name bound to it, or `(await ctx.kb())` */
+	const isKbObject = (node) => {
+		if (ts.isIdentifier(node)) return kbNames.has(node.text);
+		let inner = node;
+		while (ts.isParenthesizedExpression(inner)) inner = inner.expression;
+		if (ts.isAwaitExpression(inner)) inner = inner.expression;
+		return ts.isCallExpression(inner) && calleeName(inner) === 'kb';
 	};
 
 	/** Whether `node` reads `<x>.doc.toString()` or a variable holding it */
@@ -563,24 +761,22 @@ function staticChecks(ts, source, connectSrc, appMembers) {
 		return ts.isCallExpression(node) && /\bdoc\.toString$/.test(node.expression.getText(file));
 	};
 
-	const visit = (node, action) => {
+	const visit = (node) => {
 		if (ts.isCallExpression(node)) {
 			const callee = node.expression;
 			const name = calleeName(node);
 			if (ts.isPropertyAccessExpression(callee)) {
 				if (name === 'addAction' && ts.isIdentifier(callee.expression)) {
-					const spec = node.arguments[0];
+					const arg = node.arguments[0];
+					const spec = arg && ts.isIdentifier(arg) ? constObjects.get(arg.text) : arg;
 					const props = spec && ts.isObjectLiteralExpression(spec) ? spec.properties : [];
 					const idProp = props.find((p) => ts.isPropertyAssignment(p) && p.name.getText(file) === 'id');
 					const id = idProp && ts.isStringLiteral(idProp.initializer) ? idProp.initializer.text : '?';
 					const runProp = props.find((p) => p.name?.getText(file) === 'run');
 					const runFn = !runProp ? null : ts.isMethodDeclaration(runProp) ? runProp : runProp.initializer;
-					if (runFn && (ts.isArrowFunction(runFn) || ts.isFunctionExpression(runFn) || ts.isMethodDeclaration(runFn))) checkActionBody(runFn, id);
-					const inner = { ctxName: callee.expression.text, id };
-					node.arguments.forEach((arg) => visit(arg, inner));
-					return;
+					if (runFn && (ts.isArrowFunction(runFn) || ts.isFunctionExpression(runFn) || ts.isMethodDeclaration(runFn))) checkActionBody(runFn, id, callee.expression.text);
 				}
-				if (name === 'pages' || name === 'pagePaths') checkKbRead(node, name);
+				if ((name === 'pages' || name === 'pagePaths') && isKbObject(callee.expression)) checkKbRead(node, name);
 				if (name === 'kb') used.kb = true;
 				if (name === 'onNoteSaved') checkCallback(node.arguments[0], 'ctx.onNoteSaved');
 				if (name === 'watch' && node.arguments.length === 2) checkCallback(node.arguments[1], 'ctx.watch');
@@ -624,14 +820,11 @@ function staticChecks(ts, source, connectSrc, appMembers) {
 		}
 		if (ts.isPropertyAccessExpression(node)) {
 			const base = node.expression;
-			if (ts.isPropertyAccessExpression(base) && base.name.text === 'app' && ts.isIdentifier(base.expression)) {
+			if (ts.isPropertyAccessExpression(base) && base.name.text === 'app' && isCtx(base.expression)) {
 				const member = node.name.text;
 				if (!used.app.has(member)) used.app.set(member, lineOf(node));
 			}
 			if (node.name.text === 'labs' && ts.isIdentifier(base)) used.labs = true;
-			if (action && node.name.text === 'ui' && ts.isIdentifier(base) && base.text === action.ctxName) {
-				warnings.push(`main.js:${lineOf(node)}: ${action.ctxName}.ui inside action "${action.id}": use run.ui, which Stop closes (06-dialogs.md#which-set-to-use)`);
-			}
 		}
 		if (ts.isIdentifier(node) && ['document', 'window'].includes(node.text)
 			&& !(ts.isPropertyAccessExpression(node.parent) && node.parent.name === node)) used.globals.add(node.text);
@@ -639,9 +832,9 @@ function staticChecks(ts, source, connectSrc, appMembers) {
 			const url = node.text.match(/^(?:https?|wss?):\/\/[^\s/'"`?#]+/)?.[0];
 			if (url) urls.push({ url, line: lineOf(node) });
 		}
-		ts.forEachChild(node, (child) => visit(child, action));
+		ts.forEachChild(node, visit);
 	};
-	visit(file, null);
+	visit(file);
 
 	for (const [member, line] of used.app) {
 		if (!appMembers.has(member)) warnings.push(`main.js:${line}: ctx.app.${member} is not a member of ctx.app (MOD_APP in ${APP_FILE}): in the app it is undefined`);
@@ -692,7 +885,7 @@ function createRecorder(appMembers) {
 	const unmodelled = new Map();
 	const modelled = new Set();
 	return {
-		raw, browser, unknownApp, appWrites, listeners, unmodelled, modelled, blocked: false,
+		raw, browser, unknownApp, appWrites, listeners, unmodelled, modelled, appMembers, blocked: false,
 		/** Records a read of a `ctx.app` member that --run models; it never throws */
 		use(path) {
 			raw.add(path.split('.').slice(0, 3).join('.'));
@@ -704,10 +897,9 @@ function createRecorder(appMembers) {
 				if (this.blocked) {
 					const member = `ctx.${segments.slice(0, 3).join('.')}`;
 					unmodelled.set(member, (unmodelled.get(member) ?? 0) + 1);
-					throw new Error(`not modelled by --run: ${member}; verify this part in the app`);
+					throw new realm.Error(`not modelled by --run: ${member}; verify this part in the app`);
 				}
 				raw.add(segments.slice(0, 3).join('.'));
-				if (segments[0] === 'app' && segments.length === 2 && !appMembers.has(segments[1].replace(/\(\)$/, ''))) unknownApp.add(segments[1]);
 			} else {
 				browser.add(segments.slice(0, 2).join('.'));
 			}
@@ -725,7 +917,9 @@ function createRecorder(appMembers) {
  * A proxy that stands for any raw object: every member read is another proxy
  * (the same one for the same key), calls and `new` return fresh proxies,
  * writes are kept. It is never thenable, iterates as empty, and converts to
- * `''` or `0`, so mod code runs through it without a real app or DOM.
+ * `''` or `0`, so mod code runs through it without a real app or DOM. The
+ * `ctx.app` proxy (path `app`) is the exception: a name MOD_APP lacks reads
+ * as undefined, as in the app, so a read through it throws there too.
  */
 function rawProxy(path, recorder) {
 	const children = new Map();
@@ -749,6 +943,10 @@ function rawProxy(path, recorder) {
 			if (key === 'length' || key === 'size') return 0;
 			if (key === 'toString' || key === 'valueOf' || key === 'toJSON') return () => '';
 			if (key === 'addEventListener' || key === 'removeEventListener') return listenerMethod(key);
+			if (path === 'app' && !recorder.appMembers.has(key)) {
+				recorder.unknownApp.add(key);
+				return undefined;
+			}
 			const child = `${path}.${key}`;
 			recorder.touch(child);
 			if (!children.has(key)) children.set(key, rawProxy(child, recorder));
@@ -759,7 +957,7 @@ function rawProxy(path, recorder) {
 			stored.set(key, value);
 			return true;
 		},
-		has: () => true,
+		has: (_target, key) => path !== 'app' || typeof key !== 'string' || recorder.appMembers.has(key),
 		apply: () => rawProxy(`${path}()`, recorder),
 		construct: () => rawProxy(`new ${path}`, recorder),
 	});
@@ -790,62 +988,86 @@ function modelledObject(path, members, recorder) {
 }
 
 /**
- * Wraps the global timers so the check knows which ones the mod left running
- * after unload. Callbacks still fire; a throw inside one becomes a warning.
+ * The timers of the mod's realm: the checker's own, wrapped so the check
+ * knows which ones the mod left running after unload. Like the web view's,
+ * they return numeric ids. Callbacks still fire; a throw inside one becomes
+ * a warning. `real` stays the checker's, for its own waits.
  */
 function trackTimers() {
 	const real = { setTimeout, setInterval, clearTimeout, clearInterval };
+	/** id -> { kind, handle } of each timer still pending */
 	const active = new Map();
+	let nextId = 1;
 	const guarded = (fn, args) => {
 		if (typeof fn !== 'function') return;
-		try {
-			const result = fn(...args);
-			if (result && typeof result.catch === 'function') result.catch((err) => warnings.push(`a timer callback rejected: ${messageOf(err)}`));
-		} catch (err) {
-			warnings.push(`a timer callback threw: ${messageOf(err)}`);
-		}
+		inPhase('a timer callback', () => {
+			try {
+				const result = fn(...args);
+				if (result && typeof result.catch === 'function') result.catch((err) => warnings.push(`a timer callback rejected: ${messageOf(err)}`));
+			} catch (err) {
+				warnings.push(`a timer callback threw: ${messageOf(err)}`);
+			}
+		});
 	};
-	globalThis.setTimeout = (fn, ms, ...args) => {
-		const handle = real.setTimeout(() => {
-			active.delete(handle);
-			guarded(fn, args);
-		}, ms);
-		active.set(handle, 'setTimeout');
-		return handle;
+	const clear = (id) => {
+		const timer = active.get(id);
+		if (!timer) return;
+		active.delete(id);
+		real.clearInterval(timer.handle);
 	};
-	globalThis.setInterval = (fn, ms, ...args) => {
-		const handle = real.setInterval(() => guarded(fn, args), ms);
-		active.set(handle, 'setInterval');
-		return handle;
+	const forMod = {
+		setTimeout: (fn, ms, ...args) => {
+			const id = nextId++;
+			const handle = real.setTimeout(() => {
+				active.delete(id);
+				guarded(fn, args);
+			}, ms);
+			active.set(id, { kind: 'setTimeout', handle });
+			return id;
+		},
+		setInterval: (fn, ms, ...args) => {
+			const id = nextId++;
+			active.set(id, { kind: 'setInterval', handle: real.setInterval(() => guarded(fn, args), ms) });
+			return id;
+		},
+		clearTimeout: clear,
+		clearInterval: clear,
 	};
-	globalThis.clearTimeout = (handle) => {
-		active.delete(handle);
-		real.clearTimeout(handle);
-	};
-	globalThis.clearInterval = (handle) => {
-		active.delete(handle);
-		real.clearInterval(handle);
-	};
-	return { real, active };
+	return { real, active, forMod };
 }
 
-/** Installs the browser globals and a `fetch` that records instead of sending */
-function installBrowser(recorder, connectSrc, calls) {
-	for (const name of BROWSER_GLOBALS) {
-		try {
-			Object.defineProperty(globalThis, name, { value: rawProxy(name, recorder), configurable: true, writable: true });
-		} catch {
-			// A non-configurable Node global stays as it is.
-		}
-	}
-	globalThis.fetch = async (input) => {
+/**
+ * The realm mod code runs in (see the header): a `node:vm` context whose
+ * globals are the browser proxies, the network stand-ins, a `fetch` that
+ * records instead of sending, the tracked timers, Node's web APIs and a
+ * `console` of its own. The app's mods.logic.ts is compiled into it, so its
+ * `evaluateModSource` runs `new Function` there: the mod's top-level code and
+ * everything it defines belong to that realm. Returns that logic module and
+ * the realm's error classes.
+ */
+function createModRealm(ts, repo, recorder, connectSrc, calls, timers) {
+	const sandbox = {};
+	for (const name of [...BROWSER_GLOBALS, ...NETWORK_GLOBALS]) sandbox[name] = rawProxy(name, recorder);
+	for (const name of WEB_GLOBALS) if (name in globalThis) sandbox[name] = globalThis[name];
+	sandbox.console = Object.fromEntries(CONSOLE_METHODS.map((name) => [name, (...args) => console[name](...args)]));
+	Object.assign(sandbox, timers.forMod);
+	sandbox.fetch = async (input) => {
 		const url = typeof input === 'string' ? input : String(input?.url ?? input);
 		calls.push(`fetch(${url})`);
 		if (connectAllowed(url, connectSrc) === false) {
 			warnings.push(`mod code fetched ${url}, which the app's CSP connect-src blocks (allowed: ${allowedHosts(connectSrc)})`);
 		}
-		throw new TypeError('check-mod sends no network requests');
+		throw new realm.TypeError('check-mod sends no network requests');
 	};
+	const context = vm.createContext(sandbox, { name: 'kokobrain mod' });
+	const fileName = join(repo, LOGIC_FILE);
+	const { outputText } = ts.transpileModule(readFileSync(fileName, 'utf8'), {
+		fileName,
+		compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+	});
+	const load = vm.runInContext(`(function (exports) {${outputText}\nreturn exports;})`, context, { filename: fileName });
+	const logic = load(vm.runInContext('({})', context));
+	return { logic, errors: vm.runInContext('({ Error, TypeError })', context) };
 }
 
 /**
@@ -881,10 +1103,43 @@ function osError(op, path, reason) {
 const ENOENT = 'No such file or directory (os error 2)';
 
 /**
+ * Throws the rejection of the app's file system scope for a path it refuses.
+ * The fs plugin's globs (src-tauri/capabilities/default.json) match no
+ * segment that starts with a dot, unix's default `require_literal_leading_dot`,
+ * except the `.kokobrain` the scope lists by name. Release builds reject with
+ * `forbidden path: <absolute path>` as a bare string.
+ */
+function assertInScope(path) {
+	if (path.split('/').some((s) => s.startsWith('.') && s !== '.kokobrain')) throw `forbidden path: ${FAKE_ROOT}/${path}`;
+}
+
+/** The text of a memory vault file as the app reads it: TextDecoder drops a BOM and replaces invalid UTF-8 */
+function textOf(value) {
+	return typeof value === 'string' ? value : new TextDecoder().decode(value);
+}
+
+/** The bytes of a memory vault file: seeds hold their bytes, writes hold strings saved as UTF-8 */
+function bytesOf(value) {
+	return typeof value === 'string' ? Buffer.from(value, 'utf8') : value;
+}
+
+/** The text of a file for a diff, with a BOM kept so the diff shows it (`﻿`) */
+function diffTextOf(value) {
+	return typeof value === 'string' ? value : new TextDecoder('utf-8', { ignoreBOM: true }).decode(value);
+}
+
+/**
+ * Tracks which onNoteSaved callback a save comes from, across its awaits, so
+ * a save made by a callback that re-triggers the same callback is counted
+ */
+const saveOrigin = new AsyncLocalStorage();
+
+/**
  * An in-memory vault seeded from `seedDir`, with the host's `ctx.vault`
  * checks and messages (mod-vault.service.ts, fs.service.ts). Nothing is
- * written to disk. `ops` lists every call; each change is marked when it
- * came after Stop.
+ * written to disk. A seeded file holds its bytes, a written one a string.
+ * `ops` lists every call; each change is marked when it came after Stop or
+ * from an onNoteSaved callback. `notifySaved` is set by the fake `ctx`.
  */
 function createMemoryVault(seedDir) {
 	const files = new Map();
@@ -899,16 +1154,26 @@ function createMemoryVault(seedDir) {
 				if (name === '.git') continue;
 				folders.add(childRel);
 				walk(childAbs, childRel);
-			} else if (info.isFile()) files.set(childRel, readFileSync(childAbs, 'utf8'));
+			} else if (info.isFile()) files.set(childRel, readFileSync(childAbs));
 		}
 	};
 	if (seedDir) walk(seedDir, '');
-	return { files, folders, seedFiles: new Map(files), seedFolders: new Set(folders), ops: [], opened: [], stopped: false };
+	return {
+		files, folders, seedFiles: new Map(files), seedFolders: new Set(folders), ops: [], opened: [], stopped: false,
+		notifySaved: () => {},
+	};
+}
+
+/** Records a change in the memory vault's op list and the call list, marked when it came after Stop or from an onNoteSaved callback */
+function recordChange(mem, record, text) {
+	const shown = saveOrigin.getStore() ? `${text} (from an onNoteSaved callback)` : text;
+	mem.ops.push({ text: shown, change: true, afterStop: mem.stopped });
+	record(shown);
 }
 
 /** Builds `ctx.vault`, `ctx.workspace` and mod data over a memory vault */
 function memoryVaultApi(mem, modId, logic, assertLive, record) {
-	const invalid = (message) => new Error(`Mod "${modId}": ${message}`);
+	const invalid = (message) => new realm.Error(`Mod "${modId}": ${message}`);
 	const { files, folders } = mem;
 	const exists = (path) => files.has(path) || folders.has(path);
 	const check = (path) => {
@@ -918,10 +1183,7 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 	const assertContent = (op, content) => {
 		if (typeof content !== 'string') throw invalid(`vault.${op} needs string content`);
 	};
-	const change = (text) => {
-		mem.ops.push({ text, change: true, afterStop: mem.stopped });
-		record(text);
-	};
+	const change = (text) => recordChange(mem, record, text);
 	const note = (text) => {
 		mem.ops.push({ text, change: false });
 		record(text);
@@ -960,30 +1222,35 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 		read: async (path) => {
 			check(path);
 			note(`vault.read(${path})`);
-			if (files.has(path)) return files.get(path);
+			assertInScope(path);
+			if (files.has(path)) return textOf(files.get(path));
 			throw osError('read', path, folders.has(path) ? 'Is a directory (os error 21)' : ENOENT);
 		},
 		exists: async (path) => {
 			check(path);
 			note(`vault.exists(${path})`);
+			assertInScope(path);
 			return exists(path);
 		},
 		list: async (folder) => {
 			assertLive();
 			if (folder !== '') logic.assertVaultPath(folder);
 			note(`vault.list(${folder})`);
+			if (folder !== '') assertInScope(folder);
 			if (folder !== '' && !folders.has(folder)) throw osError('list', folder, files.has(folder) ? 'Not a directory (os error 20)' : ENOENT);
 			const children = [...folders].map((p) => [p, true]).concat([...files.keys()].map((p) => [p, false]))
 				.filter(([p]) => parentOf(p) === folder);
+			// Reverse name order stands in for the OS directory order the app returns, which is not sorted either.
 			return children
 				.map(([p, isFolder]) => ({ name: p.split('/').pop(), path: p, isFolder }))
 				.filter((e) => !e.name.startsWith('.'))
-				.sort((a, b) => a.path.localeCompare(b.path));
+				.sort((a, b) => b.path.localeCompare(a.path));
 		},
 		create: async (path, content) => {
 			check(path);
 			assertContent('create', content);
-			if (exists(path)) throw new Error(`"${path}" already exists; use write`);
+			assertInScope(path);
+			if (exists(path)) throw new realm.Error(`"${path}" already exists; use write`);
 			assertLive();
 			makeParents(path);
 			files.set(path, content);
@@ -993,11 +1260,14 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 		write: async (path, content) => {
 			check(path);
 			assertContent('write', content);
-			if (!exists(path)) throw new Error(`"${path}" does not exist; use create`);
+			assertInScope(path);
+			if (!exists(path)) throw new realm.Error(`"${path}" does not exist; use create`);
 			assertLive();
 			if (folders.has(path)) throw osError('write', path, 'Is a directory (os error 21)');
 			files.set(path, content);
 			change(`vault.write(${path})`);
+			// The app's write skips the after-save path for a mod's own files, onNoteSaved included.
+			if (!logic.isModCodePath(`${FAKE_ROOT}/${path}`, FAKE_ROOT)) mem.notifySaved(path);
 		},
 		rename: async (path, newName) => {
 			check(path);
@@ -1006,7 +1276,9 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 			const parent = parentOf(path);
 			const target = parent ? `${parent}/${newName}` : newName;
 			if (target === path) return path;
-			if (exists(target)) throw new Error(`"${newName}" already exists in this folder`);
+			assertInScope(target);
+			if (exists(target)) throw new realm.Error(`"${newName}" already exists in this folder`);
+			assertInScope(path);
 			if (!exists(path)) throw osError('rename', path, ENOENT);
 			moveTree(path, target);
 			change(`vault.rename(${path} -> ${target})`);
@@ -1019,7 +1291,9 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 			const name = path.split('/').pop();
 			const target = targetFolder === '' ? name : `${targetFolder}/${name}`;
 			if (target === path) return path;
-			if (exists(target)) throw new Error(`"${name}" already exists in this folder`);
+			assertInScope(target);
+			if (exists(target)) throw new realm.Error(`"${name}" already exists in this folder`);
+			assertInScope(path);
 			if (!exists(path)) throw osError('move', path, ENOENT);
 			if (targetFolder !== '' && !folders.has(targetFolder)) throw osError('move', targetFolder, ENOENT);
 			if (targetFolder === path || targetFolder.startsWith(`${path}/`)) throw osError('move', path, 'Invalid argument (os error 22)');
@@ -1030,6 +1304,7 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 		},
 		delete: async (path) => {
 			check(path);
+			assertInScope(path);
 			if (!exists(path)) throw osError('delete', path, ENOENT);
 			for (const key of [...files.keys()]) if (key === path || key.startsWith(`${path}/`)) files.delete(key);
 			for (const key of [...folders]) if (key === path || key.startsWith(`${path}/`)) folders.delete(key);
@@ -1041,7 +1316,8 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 	const workspace = {
 		openNote: async (path) => {
 			check(path);
-			if (!exists(path)) throw new Error(`"${path}" does not exist`);
+			assertInScope(path);
+			if (!exists(path)) throw new realm.Error(`"${path}" does not exist`);
 			mem.opened.push(path);
 			record(`openNote(${path})`);
 		},
@@ -1058,7 +1334,7 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 				saveBlocked = false;
 				return null;
 			}
-			const parsed = logic.parseModData([...Buffer.from(files.get(dataPath), 'utf8')]);
+			const parsed = logic.parseModData([...bytesOf(files.get(dataPath))]);
 			if (parsed.ok) {
 				saveBlocked = false;
 				return parsed.value;
@@ -1067,7 +1343,7 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 			moveTree(dataPath, corruptPath);
 			saveBlocked = false;
 			change(`loadData moved a corrupt data.json to ${corruptPath}`);
-			throw Object.assign(new Error(`Mod "${modId}": data.json is not valid JSON; its content was kept in ${corruptPath}`), { name: 'ModDataCorruptError', corruptPath });
+			throw Object.assign(new realm.Error(`Mod "${modId}": data.json is not valid JSON; its content was kept in ${corruptPath}`), { name: 'ModDataCorruptError', corruptPath });
 		},
 		saveData: async (value) => {
 			assertLive();
@@ -1086,14 +1362,12 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 	return { vault, workspace, data };
 }
 
-/** Like the app's FrontmatterWriteError (frontmatter-write.service.ts): `reason` says why the write refused or failed */
-class FrontmatterWriteError extends Error {
-	constructor(reason, path) {
-		super(`Frontmatter write ${reason}: ${path}`);
-		this.name = 'FrontmatterWriteError';
-		this.reason = reason;
-		this.path = path;
-	}
+/**
+ * Like the app's FrontmatterWriteError (frontmatter-write.service.ts), an
+ * Error of the mod's realm: `reason` says why the write refused or failed
+ */
+function frontmatterWriteError(reason, path) {
+	return Object.assign(new realm.Error(`Frontmatter write ${reason}: ${path}`), { name: 'FrontmatterWriteError', reason, path });
 }
 
 /**
@@ -1104,10 +1378,7 @@ class FrontmatterWriteError extends Error {
  * proxy, which throws inside an action.
  */
 function memoryApp(mem, runLogic, dailyFolder, recorder, raw, record) {
-	const change = (text) => {
-		mem.ops.push({ text, change: true, afterStop: mem.stopped });
-		record(text);
-	};
+	const change = (text) => recordChange(mem, record, text);
 	/** The vault-relative path of an absolute app path, or null outside the vault; the OS collapses `//` */
 	const relative = (absolute) => {
 		const path = String(absolute).replace(/\/{2,}/g, '/');
@@ -1156,15 +1427,20 @@ function memoryApp(mem, runLogic, dailyFolder, recorder, raw, record) {
 		// The flow of updateNoteFrontmatter for a note with no open tab.
 		app.updateNoteFrontmatter = async (absolute, mutate) => {
 			const path = relative(absolute);
-			if (path === null || !mem.files.has(path)) {
+			if (path === null) {
+				record(`updateNoteFrontmatter(${absolute}) (outside the vault: the file system scope refuses it)`);
+				throw `forbidden path: ${absolute}`;
+			}
+			assertInScope(path);
+			if (!mem.files.has(path)) {
 				record(`updateNoteFrontmatter(${absolute}) (read failed: no such note)`);
 				throw `failed to open file at path: ${absolute} with error: ${ENOENT}`;
 			}
-			const base = mem.files.get(path);
+			const base = textOf(mem.files.get(path));
 			const lossy = fm.detectLossyFrontmatter(base);
 			if (lossy !== null) {
 				record(`updateNoteFrontmatter(${path}) (refused: ${lossy})`);
-				throw new FrontmatterWriteError(lossy, absolute);
+				throw frontmatterWriteError(lossy, absolute);
 			}
 			const next = fm.rebuildContent(mutate(fm.parseFrontmatterProperties(base)), fm.extractBody(base), base);
 			if (next === base) {
@@ -1173,10 +1449,11 @@ function memoryApp(mem, runLogic, dailyFolder, recorder, raw, record) {
 			}
 			if (!mem.files.has(path)) {
 				record(`updateNoteFrontmatter(${path}) (the note is gone)`);
-				throw new FrontmatterWriteError('missing', absolute);
+				throw frontmatterWriteError('missing', absolute);
 			}
 			mem.files.set(path, next);
 			change(`updateNoteFrontmatter(${path})`);
+			mem.notifySaved(path);
 			return next;
 		};
 	}
@@ -1204,14 +1481,14 @@ function memoryApp(mem, runLogic, dailyFolder, recorder, raw, record) {
  * vault, workspace and mod data work on that memory vault; without it they
  * record the call and return empty values.
  */
-function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem) {
+function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem, timers) {
 	const id = manifest.id;
 	const runtime = { controller: new AbortController(), disposers: [], labels: new WeakMap(), unloaded: false };
-	const state = { actions: new Map(), buttons: new Map(), placements: [], subscriptions: [], toasts: [], logs: [], dialogs: [] };
+	const state = { actions: new Map(), buttons: new Map(), placements: [], subscriptions: [], toasts: [], logs: [], dialogs: [], saveRuns: [] };
 	const assertLive = () => {
-		if (runtime.unloaded) throw new Error(`Mod "${id}" is unloaded`);
+		if (runtime.unloaded) throw new realm.Error(`Mod "${id}" is unloaded`);
 	};
-	const invalid = (message) => new Error(`Mod "${id}": ${message}`);
+	const invalid = (message) => new realm.Error(`Mod "${id}": ${message}`);
 	const isText = (value) => typeof value === 'string' && value.length > 0;
 	/** Like the host's: a cleanup that runs once, whether the mod or the unload calls it */
 	const disposable = (dispose, label) => {
@@ -1231,6 +1508,48 @@ function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem) {
 		state.subscriptions.push(kind);
 		return disposable(() => {}, kind);
 	};
+
+	/** The live onNoteSaved callbacks, and the promises of the ones still running */
+	const saveObservers = [];
+	const saveCallbacks = new Set();
+	/**
+	 * Like the host's after-save observer: a save queues each callback with
+	 * setTimeout 0, out of the save's own call. A save made inside a callback
+	 * (across its awaits) is one level deeper; a callback re-triggered
+	 * SAVE_LOOP_LIMIT levels deep is a save loop and stops here.
+	 */
+	const notifySaved = (path) => {
+		const origin = saveOrigin.getStore();
+		for (const observer of [...saveObservers]) {
+			const depth = origin?.observer === observer ? origin.depth + 1 : 0;
+			if (depth >= SAVE_LOOP_LIMIT) {
+				if (!observer.looped) {
+					observer.looped = true;
+					errors.push(`onNoteSaved callback #${observer.number} is a save loop: its own save of ${path} triggered it again ${SAVE_LOOP_LIMIT} times in a row, and in the app it never stops (vault.write and updateNoteFrontmatter fire onNoteSaved); write only when the new text differs from the current one (07-events-and-reactivity.md#avoiding-save-loops)`);
+				}
+				continue;
+			}
+			const timer = timers.real.setTimeout(() => {
+				observer.pending.delete(timer);
+				if (runtime.unloaded) return;
+				state.saveRuns.push(`#${observer.number} ${path}${depth > 0 ? ` (re-triggered, level ${depth})` : ''}`);
+				const running = saveOrigin.run({ observer, depth }, () => inPhase('an onNoteSaved callback', () => {
+					try {
+						return Promise.resolve(observer.callback(path));
+					} catch (err) {
+						return Promise.reject(err);
+					}
+				}));
+				const settled = running.catch((err) => warnings.push(`onNoteSaved callback #${observer.number} failed for ${path} (the app only logs "onNoteSaved callback failed"): ${messageOf(err)}`));
+				saveCallbacks.add(settled);
+				settled.finally(() => saveCallbacks.delete(settled));
+			}, 0);
+			observer.pending.add(timer);
+		}
+	};
+	if (mem) mem.notifySaved = notifySaved;
+	/** Whether a queued or running onNoteSaved callback is left */
+	const savesPending = () => saveCallbacks.size > 0 || saveObservers.some((o) => o.pending.size > 0);
 
 	const checkIcon = (buttonId, icon) => {
 		const trimmed = icon.trim();
@@ -1526,7 +1845,14 @@ function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem) {
 		onNoteSaved: (callback) => {
 			assertLive();
 			if (typeof callback !== 'function') throw invalid('onNoteSaved needs a callback function');
-			return subscribe('onNoteSaved');
+			const observer = { number: saveObservers.length + 1, callback, pending: new Set(), looped: false };
+			saveObservers.push(observer);
+			state.subscriptions.push('onNoteSaved');
+			return disposable(() => {
+				saveObservers.splice(saveObservers.indexOf(observer), 1);
+				for (const timer of observer.pending) timers.real.clearTimeout(timer);
+				observer.pending.clear();
+			}, 'onNoteSaved');
 		},
 		vault,
 		workspace,
@@ -1567,7 +1893,7 @@ function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem) {
 			return Reflect.get(target, key, receiver);
 		},
 	});
-	return { ctx: guarded, state, runtime, unknownCtx, invalid, createUi };
+	return { ctx: guarded, state, runtime, unknownCtx, invalid, createUi, savesPending };
 }
 
 /**
@@ -1576,6 +1902,7 @@ function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem) {
  */
 async function unload(mod, fake, dir, callOnunload, timers) {
 	const { runtime } = fake;
+	setPhase('the unload (ctx.signal listeners, onunload, cleanups)');
 	runtime.unloaded = true;
 	runtime.controller.abort();
 	if (callOnunload && typeof mod.onunload === 'function') {
@@ -1679,7 +2006,7 @@ function describeUsage(used, recorder, state) {
 
 /** A line as printed in a diff: \r and other control characters made visible, tabs kept */
 function visibleLine(line) {
-	return line.replace(/[\x00-\x08\x0b-\x1f\x7f\u2028\u2029]/g, (c) => (c === '\r' ? '\\r' : `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`));
+	return line.replace(/[\x00-\x08\x0b-\x1f\x7f\u2028\u2029\ufeff]/g, (c) => (c === '\r' ? '\\r' : `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`));
 }
 
 /** A line diff of `before` and `after`: changed lines with 2 lines of context, at most `max` lines */
@@ -1717,15 +2044,16 @@ function lineDiff(before, after, max = 60) {
 /** The file changes of the memory vault against its seed */
 function describeChanges(mem) {
 	const lines = [];
-	for (const [path, text] of mem.files) {
+	for (const [path, value] of mem.files) {
+		const text = diffTextOf(value);
 		if (!mem.seedFiles.has(path)) {
 			const added = text === '' ? [] : (text.endsWith('\n') ? text.slice(0, -1) : text).split('\n');
 			lines.push(`  + ${path} (new, ${added.length === 0 ? 'empty' : `${added.length} line${added.length === 1 ? '' : 's'}`})`);
 			lines.push(...added.slice(0, 40).map((l) => `    + ${visibleLine(l)}`));
 			if (added.length > 40) lines.push(`    ... ${added.length - 40} more lines`);
-		} else if (mem.seedFiles.get(path) !== text) {
+		} else if (mem.seedFiles.get(path) !== value && !bytesOf(mem.seedFiles.get(path)).equals(bytesOf(value))) {
 			lines.push(`  ~ ${path}`);
-			lines.push(...lineDiff(mem.seedFiles.get(path), text));
+			lines.push(...lineDiff(diffTextOf(mem.seedFiles.get(path)), text));
 		}
 	}
 	for (const path of mem.seedFiles.keys()) if (!mem.files.has(path)) lines.push(`  - ${path} (gone: deleted, renamed or moved)`);
@@ -1778,14 +2106,23 @@ async function runOne(fake, entry, args, mem, recorder, timers, manifest, calls,
 	const startToasts = fake.state.toasts.length;
 	const startLogs = fake.state.logs.length;
 	const startDialogs = fake.state.dialogs.length;
+	const startSaveRuns = fake.state.saveRuns.length;
 	recorder.blocked = true;
 	const startedAt = performance.now();
 	// After Stop the host stops waiting; the code goes on, so its late writes get a grace period to show.
 	const graceAfterStop = new Promise((done) => {
 		controller.signal.addEventListener('abort', () => timers.real.setTimeout(() => done({ pendingAfterStop: true }), STOP_GRACE_MS));
 	});
+	setPhase(`the run of action "${entry.id}"`);
 	const result = await Promise.race([settle((async () => entry.run(args.input, run))(), timers), graceAfterStop]);
 	const elapsed = Math.round(performance.now() - startedAt);
+	// The onNoteSaved callbacks the run's saves queued run after it, as in the app; their changes belong to the report.
+	const savesDeadline = performance.now() + SETTLE_MS;
+	while (!result.timeout && fake.savesPending() && performance.now() < savesDeadline) {
+		await new Promise((done) => timers.real.setTimeout(done, 5));
+	}
+	if (fake.savesPending()) warnings.push(`onNoteSaved callbacks were still queued or running ${SETTLE_MS / 1000} s after the run`);
+	setPhase('the report');
 	recorder.blocked = false;
 	fake.runtime.controller.signal.removeEventListener('abort', onUnload);
 	if (status === 'running') {
@@ -1820,6 +2157,8 @@ async function runOne(fake, entry, args, mem, recorder, timers, manifest, calls,
 	if (mem.answers.length > 0 && !(status === 'failed' && mem.answers.index === 0)) warnings.push(`--answers has ${mem.answers.length} answer(s) left over: ${JSON.stringify([...mem.answers])}`);
 	if (lines.length > 0) out.push(...lines.map((l, k) => `${k === 0 ? 'log         ' : '            '}${l}`));
 	if (progressLog.length > 0) out.push(`progress    ${progressLog.join('; ')}`);
+	const saveRuns = fake.state.saveRuns.slice(startSaveRuns);
+	if (saveRuns.length > 0) out.push(`onNoteSaved ran ${saveRuns.length}x after the run's saves: ${saveRuns.length > 12 ? `${saveRuns.slice(0, 12).join(', ')}, and ${saveRuns.length - 12} more` : saveRuns.join(', ')}`);
 	const toasts = fake.state.toasts.slice(startToasts);
 	if (toasts.length > 0) out.push(...toasts.map((t, k) => `${k === 0 ? 'toasts      ' : '            '}${t}`));
 	const logs = fake.state.logs.slice(startLogs);
@@ -1914,24 +2253,32 @@ async function main() {
 			warnings.push(`static checks skipped: ${messageOf(err)}`);
 		}
 		const timers = trackTimers();
-		installBrowser(recorder, connectSrc, calls);
-		process.on('unhandledRejection', (err) => warnings.push(`unhandled rejection from mod code: ${messageOf(err)}`));
-		process.on('uncaughtException', (err) => warnings.push(`uncaught error from mod code: ${messageOf(err)}`));
+		const modRealm = createModRealm(ts, repo, recorder, connectSrc, calls, timers);
+		realm = modRealm.errors;
 
 		let mod = null;
 		try {
-			mod = logic.evaluateModSource(source, id);
-			report.push('main.js     evaluated by the app loader');
+			setPhase('the top-level code of main.js');
+			mod = modRealm.logic.evaluateModSource(source, id);
+			report.push('main.js     evaluated by the app loader, in a realm with only the web view\'s globals');
 		} catch (err) {
-			const location = err instanceof SyntaxError ? syntaxLocation(source, /^export\s+default\s+/m) : null;
+			let isSyntax = false;
+			try {
+				isSyntax = err?.name === 'SyntaxError';
+			} catch {
+				// A thrown value whose name cannot be read is no syntax error.
+			}
+			const location = isSyntax ? syntaxLocation(source, /^export\s+default\s+/m) : null;
 			const hint = loaderHint(messageOf(err), source, location, separators);
 			errors.push(`${dir}: ${messageOf(err)}${hint ? `\n    hint: ${hint}` : ''}`);
 		}
 
 		if (mod) {
-			const fake = createFakeContext(manifest, logic, recorder, iconPacks, calls, mem);
+			const fake = createFakeContext(manifest, modRealm.logic, recorder, iconPacks, calls, mem, timers);
 			const startedAt = performance.now();
+			setPhase('onload');
 			const result = await settle((async () => mod.onload(fake.ctx))(), timers);
+			setPhase('the checks after onload');
 			const elapsed = Math.round(performance.now() - startedAt);
 			const loaded = result.ok === true;
 			if (result.timeout) errors.push(`${dir}: onload did not settle within ${SETTLE_MS / 1000} s, so the Labs row never shows Loaded`);
@@ -1967,7 +2314,7 @@ async function main() {
 			const cleanups = await unload(mod, fake, dir, loaded, timers);
 			report.push(`unload      ${cleanups.length} cleanup${cleanups.length === 1 ? '' : 's'} ran${loaded && typeof mod.onunload === 'function' ? ' after onunload' : ''}${cleanups.length > 0 ? ':' : ''}`);
 			report.push(...cleanups.map((c) => `              ${c}`));
-			for (const kind of timers.active.values()) {
+			for (const { kind } of timers.active.values()) {
 				warnings.push(`a ${kind} from the mod is still pending after unload: clear it in a ctx.register cleanup (07-events-and-reactivity.md#timers)`);
 			}
 			for (const l of recorder.listeners) {
@@ -1976,8 +2323,11 @@ async function main() {
 			}
 			report.push(...runLines);
 		}
-		for (const handle of timers.active.keys()) timers.real.clearInterval(handle);
+		for (const { handle } of timers.active.values()) timers.real.clearInterval(handle);
+		// Node reports an unhandled rejection only between macrotasks, and every await above may settle as a microtask.
+		await new Promise((done) => timers.real.setTimeout(done, 0));
 	}
+	setPhase('the report');
 
 	console.log(report.join('\n'));
 	if (warnings.length > 0) console.log(`\nwarnings (${warnings.length}):\n${warnings.map((w) => `  - ${w}`).join('\n')}`);
@@ -1991,4 +2341,95 @@ async function main() {
 	return errors.length > 0 || runBad ? 1 : 0;
 }
 
-process.exit(await main());
+/** Prints a crash of the checker itself and exits 2 */
+function crash(err) {
+	let text;
+	try {
+		text = err?.stack ?? messageOf(err);
+	} catch {
+		text = messageOf(err);
+	}
+	console.error(`check-mod: internal error: the checker itself failed, not the mod: ${text}`);
+	process.exit(2);
+}
+
+/**
+ * The child: beats to the parent while its event loop turns, runs `main`,
+ * and tells its own crashes (exit 2) from stray errors of mod code (warnings).
+ */
+async function runChild() {
+	setInterval(() => process.send?.({ phase }, () => {}), BEAT_MS).unref();
+	const stray = (kind) => (err) => {
+		if (isCheckerCrash(err)) crash(err);
+		warnings.push(`${kind} from mod code: ${messageOf(err)}`);
+	};
+	process.on('unhandledRejection', stray('unhandled rejection'));
+	process.on('uncaughtException', stray('uncaught error'));
+	let code;
+	try {
+		code = await main();
+	} catch (err) {
+		crash(err);
+	}
+	process.exit(code);
+}
+
+/**
+ * The parent: checks the usage, starts the child under the permission model,
+ * and kills it when it stops beating for HANG_MS. Resolves the exit code.
+ */
+function supervise() {
+	const argv = process.argv.slice(2);
+	const args = parseCli(argv);
+	if (!process.allowedNodeEnvironmentFlags.has('--permission')) {
+		console.error(`check-mod: Node ${process.version} has no --permission flag; use Node 22.13 or later`);
+		return Promise.resolve(2);
+	}
+	return new Promise((done) => {
+		const child = spawn(process.execPath, [...process.execArgv, '--permission', '--allow-fs-read=*', fileURLToPath(import.meta.url), ...argv], {
+			stdio: ['ignore', 'inherit', 'inherit', 'ipc'],
+			env: { ...process.env, [CHILD_ENV]: '1' },
+		});
+		let lastBeat = performance.now();
+		let lastPhase = 'startup';
+		let killed = false;
+		child.on('message', (message) => {
+			lastBeat = performance.now();
+			if (typeof message?.phase === 'string') lastPhase = message.phase;
+		});
+		const watchdog = setInterval(() => {
+			if (performance.now() - lastBeat < HANG_MS) return;
+			killed = true;
+			clearInterval(watchdog);
+			child.kill('SIGKILL');
+			if (lastPhase === 'startup') {
+				console.error(`check-mod: the checker stopped responding for ${HANG_MS} ms during its startup, before any mod code ran`);
+				done(2);
+				return;
+			}
+			const dir = `_system/mods/${basename(resolve(args.folder))}`;
+			console.log(`check-mod ${resolve(args.folder)}`);
+			console.log(`\nerrors (1):\n  - ${dir}: the mod's code did not finish in ${HANG_MS} ms (during ${lastPhase}): it never let the event loop turn, a loop that never ends or promise callbacks that keep queueing each other; the check stopped it, and in the app it freezes the window`);
+			console.log('\nFAIL: 1 error, 0 warnings (the rest of the report was lost with the stopped process)');
+			done(1);
+		}, BEAT_MS);
+		child.on('error', (err) => {
+			clearInterval(watchdog);
+			console.error(`check-mod: cannot start the checker process: ${messageOf(err)}`);
+			done(2);
+		});
+		child.on('exit', (code, signal) => {
+			clearInterval(watchdog);
+			if (killed) return;
+			if (code === null) {
+				console.error(`check-mod: the checker process ended by ${signal}`);
+				done(2);
+				return;
+			}
+			done(code);
+		});
+	});
+}
+
+if (process.env[CHILD_ENV] === '1') await runChild();
+else process.exit(await supervise());
