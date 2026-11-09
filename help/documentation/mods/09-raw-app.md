@@ -520,7 +520,21 @@ updateNoteFrontmatter(absolutePath: string, mutate: (props: Property[]) => Prope
 
 - `mutate` receives the current properties in file order (an empty array when the note has no frontmatter, and also for an empty `---`/`---` block) and returns the **new full list**. Add, remove, reorder or replace by returning a different array. Returning an empty list removes the block. On a note whose block is an empty `---`/`---` pair, properties you return go into a **new** block in front of it, and the empty pair stays as the first lines of the body: see [Known problems](#known-problems-caret-and-empty-block).
 - Values arrive as the YAML parser reads them: `2026-01-02` as the string `'2026-01-02'` with `type: 'date'`, `3` as the number `3`, `true` as a boolean, `[a, b]` and block lists as string arrays with `type: 'list'`, an empty key as `''`. For tags, see [Frontmatter tags](#frontmatter-tags).
-- The written YAML follows the JavaScript type of `value`. `type: 'list'` writes a flow sequence (`[a, b]`). Strings are quoted when they need it (a wikilink `'[[Project X]]'` is quoted for you). Unchanged numbers and booleans keep their original spelling.
+- The written YAML follows the JavaScript type of `value`, not `type`. `type: 'list'` writes a flow sequence (`[a, b]`). Strings are quoted when they need it (a wikilink `'[[Project X]]'` is quoted for you). Unchanged numbers and booleans keep their original spelling.
+- For a value the user typed, convert it first, because the string is written as a string: `'3'` is written `"3"` and `'true'` is written `"true"` (both stay text), even with `type: 'number'` or `type: 'boolean'`. A string shaped like a date, `'2026-01-02'`, is written unquoted with either type and reads back as a date. So turn `'3'` into the number `3` and `'true'` into `true` when you want a number or a boolean, and keep a date as its `YYYY-MM-DD` string:
+
+```javascript
+/** A typed value as a Property: numbers, true/false and YYYY-MM-DD dates get their type; anything else is text. */
+function typedProperty(key, text) {
+	const value = text.trim();
+	if (/^-?\d+(\.\d+)?$/.test(value) && Number.isSafeInteger(Math.trunc(Number(value)))) return { key, value: Number(value), type: 'number' };
+	if (value === 'true' || value === 'false') return { key, value: value === 'true', type: 'boolean' };
+	if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return { key, value, type: 'date' };
+	return { key, value, type: 'text' };
+}
+```
+
+- There is no read-only twin of `updateNoteFrontmatter` and no frontmatter parser in `ctx`, so a "how many notes will change" preview before a batch reads the values another way: from the index (`p[key]` on a `ctx.kb()` page, which [lags behind saves](10-querying-the-index.md#freshness-and-lag)), or by matching `^key:` lines in what `ctx.vault.read` returns, counting anything unusual (a list, a nested value, a comment) as "left alone". The write itself is the only judge of a refusal; report its `reason` per note.
 - Alias keys are canonical both ways: `mutate` receives `type:` from the file as `_type`, and a key you return is written in canonical form. The aliases: `type`, `organized`, `archived`, `favorite`, `order`, `favorite_index`, `sort`, `icon`, `sidebar_label` (and `sidebar label`), `color`, `title_color`, `template`, `view`, `visible`, `list_properties_display`, each written with a leading `_`. Look keys up by the underscored name.
 - One key twice in the returned list (either spelling) is merged, not an error: the first non-empty entry wins and the later one is dropped. Appending `{ key: '_archived', value: true }` to a list that already holds `_archived: false` keeps `false`. Replace the existing entry instead (see `setProp` below).
 - Resolves to the full written text of the note, or to the unchanged text when the rebuilt text equals the file byte for byte (then nothing is written or saved). That holds only for frontmatter already in the app's canonical form: returning the same properties for a note with block lists, `type:` or needless quotes still rewrites it (`[a, b]`, `_type:`, quotes dropped). To skip the write, throw a sentinel from `mutate` and catch it (see the [cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)).
@@ -768,7 +782,8 @@ ctx.addAction({
 	id: 'run-other',
 	title: 'Run the journal action',
 	run: () => {
-		const row = ctx.app.modCommandsStore.list.find((c) => c.id === 'mod:daily-journal:action:log');
+		// The daily-journal example registers its action as 'add-entry' (help/examples/mods/daily-journal/main.js).
+		const row = ctx.app.modCommandsStore.list.find((c) => c.id === 'mod:daily-journal:action:add-entry');
 		if (!row) throw new Error('The daily-journal mod is not loaded');
 		row.run();
 	},

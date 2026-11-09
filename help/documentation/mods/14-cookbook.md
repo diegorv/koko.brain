@@ -737,7 +737,7 @@ function toVaultPath(ctx, absolute) {
 }
 
 /** [[Folder/Name.md|Name]]: pins this exact file, shows its name. Copied from 04 § Writing a wikilink. */
-const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.md$/i, '')}]]`;
+const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.(md|markdown)$/i, '')}]]`;
 
 /**
  * Whether `target` can sit between [[ and ]] as one link to itself: none of the characters that end
@@ -962,6 +962,7 @@ Why it is written this way:
 - `run.ui.loading` runs the task at once under a spinner. Cancel only aborts the task's signal and the call still waits for the task, so `listFolders` checks the signal per chunk and resolves `null`. A run Stop rejects the call at once with an `AbortError`, which the host treats as a cancelled run.
 - The manual row has `path: null`, so `picked.path` tells the two kinds of row apart. `cleanFolder` makes typed text vault-relative, and `exists` confirms it (it is also true for a file; a file path then simply yields no notes).
 - `ctx.vault.list` returns direct children only, unsorted, without dot entries; the walk sorts at the end. `list('')` is the only way to list the root, and it includes the system folder, whose name is read from `settingsStore.templates.systemFolder` rather than hard-coded.
+- **That read is the picker's only raw member**, and it puts a mod that is otherwise stable into the raw tier. For a stable-only picker, replace it with the literal `const system = '_system';`: the cost is that a vault whose system folder was renamed in Settings lists that folder among the choices (the walk then also descends into it), and the default `_system` is never offered either way.
 - One unreadable folder fails the whole listing here (`Promise.all`). For a walk that keeps going and reports the folders it could not read, use `listFilesDeep` from [Vault files](04-vault-files.md#listfolder), as recipe 9 does.
 - The source string needs matching quotes (`'"Projects"'`) and is never empty here: `'""'` and unparsed strings mean every page of the vault.
 - The pick shows the first 100 items in supplied order until the user types; all items stay searchable, which is why the newest notes come first.
@@ -1041,9 +1042,9 @@ async function editNote(ctx, absolutePath, edit) {
 }
 
 /** [[Folder/Name.md|Name]]: pins this exact file, shows its name. */
-const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.md$/i, '')}]]`;
+const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.(md|markdown)$/i, '')}]]`;
 
-/** Whether `target` can sit between [[ and ]] as one link to itself (see recipe 6). */
+/** Whether `target` can sit between [[ and ]] as one link to itself. Copied from 04 § Writing a wikilink. */
 function isSafeWikilinkTarget(target) {
 	return !/[[\]|#^\\<>\p{Cc}\p{Zl}\p{Zp}]/u.test(target) && target.trim() === target;
 }
@@ -1120,9 +1121,9 @@ export default {
 				const kb = await ctx.kb();
 				if (stopped()) return;
 				const pages = kb.pages(`"${SOURCE}"`)
-					// mtime 0: a note so new the index has no times for it yet.
-					.where((p) => p.file.mtime > 0 && p.file.mtime >= since)
-					.sort((p) => p.file.mtime, 'desc')
+					// mtime 0: a note so new the index has no times for it yet; a report only shows it, so it is kept, first.
+					.where((p) => p.file.mtime === 0 || p.file.mtime >= since)
+					.sort((p) => p.file.mtime || Number.MAX_SAFE_INTEGER, 'desc')
 					.limit(LIMIT)
 					.array();
 				const markers = ownedMarkers(ctx.mod.id, `v1 ${SOURCE}`);
@@ -1150,9 +1151,20 @@ Why it is written this way:
 - `replaceOwnedBlock` refuses rather than guesses when markers are missing, duplicated or edited, and the marker key (`v1 Projects`) names the version and subject, so a report of another subject is never overwritten. An ordinary note at that path is refused too.
 - `create` and the merge are split on purpose: `create` refuses an existing path, `write` refuses a missing one. When the report is the active tab, the merge goes through the editor and keeps the user's unsaved text.
 - `stopped` also checks `ctx.signal` (mod unload) and is consulted inside the merge callback, so no write starts after Stop; the warning toast says the result was kept.
-- `file.mtime` comes from the index snapshot, which refreshes about 2 s after a change and at most once per 10 s: a note saved a moment ago can still show its previous mtime (and a brand-new one `0`) for up to about 12 s. Links use the pinned form (`[[Folder/Name.md|Name]]`) so they resolve to the exact file even when two notes share a name.
+- `file.mtime` comes from the index snapshot, which refreshes about 2 s after a change and at most once per 10 s: a note saved a moment ago can still show its previous mtime (and a brand-new one `0`) for up to about 12 s. The report only shows notes, so it keeps the `0` ones (sorted first) rather than hide the newest note; a recipe that changes or moves notes by mtime leaves them out instead ([Freshness and lag](10-querying-the-index.md#freshness-and-lag)). Links use the pinned form (`[[Folder/Name.md|Name]]`) so they resolve to the exact file even when two notes share a name.
 - **Text copied into the block goes through `inert`.** A block that quotes note text (task lines, titles, excerpts) can carry `<!--`, for example a task that mentions the end marker; `replaceOwnedBlock` then sees a third marker mention and refuses every later run. `inert` turns `<!--` into `&lt;!--`, which opens no comment and no longer counts as a marker.
 - **Copied text also brings its tags and links.** A `#tag` or `[[link]]` inside quoted text becomes a tag or link of the report note: it shows in tag search, the Tags view and the backlinks of the linked note. That is often what the user wants from a report; when it is not, leave the text out or say so in the handover.
+- **Copied text that must stay plain text** (a note name in a heading or a list item, a task quoted as a sample) goes through `markdownText` instead of `inert`. It escapes the Markdown punctuation with a backslash, so `Odd #1` gives no tag and `[[x]]` no link (the index needs `#` after a space and two adjacent `[`; Live Preview hides the backslash), puts line breaks as spaces so the text stays on its line, and turns `<` into `&lt;`, which covers what `inert` does:
+
+```javascript
+/** Copied text for one line of generated Markdown: no tag, link, emphasis, table cell, HTML comment or line break of its own. */
+function markdownText(text) {
+	return String(text)
+		.replace(/[\r\n\p{Zl}\p{Zp}]+/gu, ' ')
+		.replace(/[\\`*_[\]#|~=]/g, '\\$&')
+		.replace(/</g, '&lt;');
+}
+```
 - Archived notes stay in the report, marked `(archived)`: drop them only when the request says to.
 
 ## 9. Batch over a folder
@@ -1495,8 +1507,7 @@ export default {
 			}
 		};
 		// Bubble phase: the editor and the app's own shortcuts handle a key first and mark it defaultPrevented.
-		window.addEventListener('keydown', onKeyDown);
-		ctx.register(() => window.removeEventListener('keydown', onKeyDown));
+		window.addEventListener('keydown', onKeyDown, { signal: ctx.signal });
 	},
 };
 ```
@@ -1505,7 +1516,7 @@ Why it is written this way:
 
 - Going through the `modCommandsStore` row (instead of calling a function directly) gives the shortcut the same run as the palette: a run view on output, Stop, the error toast, and the one-live-run rule. `row.run()` returns nothing and cannot pass input; an action with `input` opens its text field.
 - Rows are looked up at keypress time because `list` returns fresh objects on every read and a reloaded mod has new callbacks; a stale row throws `Mod "<id>" is unloaded`.
-- The listener is removed through `ctx.register`; the host does not track DOM listeners, so without it the old listener would keep firing after a reload.
+- The listener is removed by `{ signal: ctx.signal }`, which aborts at unload; the host does not track DOM listeners, so without it the old listener would keep firing after a reload.
 - A shortcut runs outside any action, so its errors are caught and toasted here; the host never sees them. Cmd+Shift+J and Cmd+Shift+Y are not used by the app's global shortcuts today, but the mod does no conflict detection.
 - Letters are matched by `e.key.toLowerCase()`, like the app's own shortcuts, so the chord follows the letter printed on the key. A chord that **inserts text** into the note must also require `view.hasFocus` on the current editor view, or a key pressed in a Live Preview widget's input would write into the note (see [Events: Ignore typing targets](07-events-and-reactivity.md#ignore-typing-targets)).
 
@@ -1951,13 +1962,13 @@ function errorMessage(err) {
 	return typeof message === 'string' ? message : String(err);
 }
 
-/** Whether `target` can sit between [[ and ]] as one link to itself (see recipe 6). */
+/** Whether `target` can sit between [[ and ]] as one link to itself. Copied from 04 § Writing a wikilink. */
 function isSafeWikilinkTarget(target) {
 	return !/[[\]|#^\\<>\p{Cc}\p{Zl}\p{Zp}]/u.test(target) && target.trim() === target;
 }
 
 /** [[Folder/Name.md|Name]]: pins this exact file, shows its name. Copied from 04 § Writing a wikilink. */
-const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.md$/i, '')}]]`;
+const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.(md|markdown)$/i, '')}]]`;
 
 /** Creates or overwrites a generated note; resolves whether it wrote. Not a merge: replaces the whole file. Copied from 04 § upsertNote. */
 async function upsertNote(ctx, path, text) {
@@ -2131,6 +2142,10 @@ function safeName(title) {
 function parseSettings(data) {
 	if (data === null) return { ...DEFAULTS };
 	if (typeof data !== 'object' || Array.isArray(data)) throw new Error('data.json is not in the expected shape; fix or remove it');
+	// Data from a newer copy of the mod: a save would downgrade it.
+	if (typeof data.version === 'number' && data.version > DEFAULTS.version) {
+		throw new Error(`data.json has version ${data.version}, which this version of the mod cannot read`);
+	}
 	// Version 1 had only `folder`.
 	if (data.version === 1 && typeof data.folder === 'string') return { ...DEFAULTS, folder: data.folder };
 	if (data.version === 2 && typeof data.folder === 'string' && typeof data.datePrefix === 'boolean') {
@@ -2212,7 +2227,7 @@ Why it is written this way:
 
 - Settings are read at the start of each action instead of cached at `onload`, so an edit is seen at once and there is no load-order question. `loadData` and `saveData` share one queue per mod, so a load after a save sees the saved value.
 - Only `null` means "nothing stored". A corrupt file (`err.name === 'ModDataCorruptError'`) was moved aside by the host, so defaults are safe; any other read failure is rethrown, and the host would refuse `saveData` anyway until a later load succeeds. Valid JSON of an unknown shape throws, because `loadData` does not move it aside and the first save would replace it.
-- The stored object carries a `version`, and `parseSettings` is the one place that migrates old shapes forward.
+- The stored object carries a `version`, and `parseSettings` is the one place that migrates old shapes forward and refuses a newer one. It is the [Mod data](05-mod-data.md#which-pattern-to-use) pattern folded into one function, which suits a few flat fields; for nested state or several versions, split it into `migrate` and `withDefaults` as there.
 - Each change is saved immediately, in call order. `saveData` writes `.kokobrain/mods/<id>/data.json` atomically and outside the index, search, file history and Auto Move, so frequent saves are cheap. It is not a secret store.
 - In the picker, the current value is the row's description, and Escape (`null`) ends the loop. A prompt submitted empty resolves `''`, not `null`, which `cleanFolder` turns into the "Not a folder path" alert.
 - The file name goes through `safeName` (path and wikilink characters, leading dots, a byte cap), and an empty result is refused with a throw, like any other invalid input. The heading keeps the title as typed.
@@ -2463,7 +2478,7 @@ function toVaultPath(ctx, absolute) {
 }
 
 /** [[Name]] for a vault-relative note path. Copied from 04 § Writing a wikilink. */
-const wikilink = (path) => `[[${path.split('/').pop().replace(/\.md$/i, '')}]]`;
+const wikilink = (path) => `[[${path.split('/').pop().replace(/\.(md|markdown)$/i, '')}]]`;
 
 export default {
 	onload(ctx) {

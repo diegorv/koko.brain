@@ -24,11 +24,11 @@ Every other rule is in the [golden rules](../../../help/documentation/mods/READM
 Run it as `node <skill-dir>/scripts/check-mod.mjs <mod-folder>`, with `<skill-dir>` the absolute path of this skill's folder (the base directory shown when the skill loaded), so it works from any working directory and for a mod folder anywhere. It uses the app's loader from the checkout it lives in; `--repo <checkout>` picks another. `--help` lists every option. It never writes to disk and never sends a request.
 
 - **Check mode** (no `--run`) loads the folder with the app's real `parseModManifest` and `evaluateModSource`, runs `onload` against a fake `ctx` that applies the host's registration rules and messages, unloads it, and prints the registrations, the tiers, the members the source uses, the members `onload` touched, and each cleanup the unload ran. Static warnings cover action bodies and callbacks without running them.
-- **Run mode** (`--run <action-id>`) then runs that one action body against an in-memory vault seeded from `--vault <fixture-folder>`, with `--input`, `--target note:<path>|folder:<path>` and `--answers '<json array>'` (one answer per dialog in order; `"STOP"` presses Stop there). It prints the outcome (done, failed, cancelled), the log, progress, toasts, dialogs, the note it opened and every file change as a diff. `ctx.app` and `ctx.kb()` are not modelled: touching one throws `not modelled by --run: ctx.app.<member>`, and that path needs the app.
+- **Run mode** (`--run <action-id>`) then runs that one action body against an in-memory vault seeded from `--vault <fixture-folder>`, with `--input`, `--target note:<path>|folder:<path>` and `--answers '<json array>'` (one answer per dialog in order; `"STOP"` presses Stop there). It prints the outcome (done, failed, cancelled), the log, progress, toasts, dialogs, the note it opened and every file change as a diff. It models the `ctx.app` members actions read first (the vault root, an editor with no open tab, the system and daily note settings, the daily note, `updateNoteFrontmatter` through the app's own frontmatter code); `--help` lists them and the fixed values. Any other `ctx.app` member, and `ctx.kb()`, throws `not modelled by --run: ctx.<member>`, and that path needs the app.
 
 The checker is **green** when it prints `PASS` and exits 0. Errors fail it. Each warning is either fixed or named in the handover with its reason.
 
-Each part of a mod ends at one **verification level**, which the handover states: **ran** (an action body under `--run`, with the fixture and answers used), **static** (only the checker's warnings and the checklist saw it: watch, save and theme callbacks, key handlers, DOM code, timers), or **app** (it needs `ctx.app`, `ctx.kb()` or the real UI, so only the app shows it works).
+Each part of a mod ends at one **verification level**, which the handover states: **ran** (an action body under `--run`, with the fixture and answers used), **static** (only the checker's warnings and the checklist saw it: watch, save and theme callbacks, key handlers, DOM code, timers), or **app** (it needs an unmodelled `ctx.app` member, `ctx.kb()` or the real UI, so only the app shows it works).
 
 ## Steps
 
@@ -49,6 +49,11 @@ Ask what the request leaves open, these above all:
 - which folders it writes to, and whether they exist: `ctx.vault` cannot create an empty folder;
 - whether the app already shows this value or does this job (the status bar already counts words);
 - which entry points and triggers were asked for. Add only those.
+
+Two kinds of request need more before any code:
+
+- **It depends on another mod** (runs its action, reads its data): read that mod's `main.js` and take its action ids and data shape from there, never from memory or a doc example. List the dependency, with the ids used, in the handover.
+- **The reference cannot do it** (a section on the Today screen, a navigator, anything the [task guide](../../../help/documentation/mods/README.md#task-guide) marks not possible from plain JS): say so to the user first, then offer the closest thing it can do. When the user cannot be asked, build that substitute, and open the handover with what was asked, why it is not possible, and what was built instead.
 
 When the user cannot be asked (they are away, or the run is unattended), take the reading closest to the request, write each choice down as an assumption, and carry the list to the handover.
 
@@ -82,7 +87,11 @@ Done when the checker is green and every warning is fixed or written down with i
 
 ### 5. Run each action body
 
-Build a fixture vault under `/tmp` with the notes and folders each action expects, then run every action with `--run`: the main path, plus each branch that writes or refuses (the target already exists, a folder is missing, the user cancels at a dialog, `"STOP"` at the first dialog). Read the changes as the user would see them in their notes, and check that nothing changes after Stop. A run that stops at `not modelled by --run` marks that path **app**.
+Build a fixture vault under `/tmp` with the notes and folders each action expects (`mkdir` for an empty folder; seeded mod data goes in `<fixture>/.kokobrain/mods/<id>/data.json`), then run every action with `--run`: the main path, plus each branch that writes or refuses (the target already exists, a folder is missing, the user cancels at a dialog, `"STOP"` at the first dialog). Read the changes as the user would see them in their notes, and check that nothing changes after Stop.
+
+- `--answers` holds one answer for every dialog, an `alert` included, in the order they open. A `loading` takes none: Stop during one with `--stop-at-loading <n>`.
+- A branch that is meant to fail (a refusal that throws) runs with `--expect-fail`, which makes it green only when the run ends failed.
+- A run that stops at `not modelled by --run` marks that path **app**.
 
 A passive mod has no action to run: its triggers stay at **static** or **app**. For a mod that needs more, [12 § Testing in vitest](../../../help/documentation/mods/12-types-build-and-test.md#testing-in-vitest) builds a fake `ctx` for a test suite.
 
@@ -90,20 +99,20 @@ Done when every action body is **ran** on its main path and its writing branches
 
 ### 6. Walk the pre-flight checklist
 
-Go through [16 § Pre-flight checklist](../../../help/documentation/mods/16-pitfalls-checklist.md#pre-flight-checklist) item by item against the final `main.js` and `manifest.json`, action bodies and callbacks included. Mark each item pass, fixed or not applicable; most items are one search through the file. Fix what fails, then run the checker and the step 5 runs again.
+Go through [16 § Pre-flight checklist](../../../help/documentation/mods/16-pitfalls-checklist.md#pre-flight-checklist) against the final `main.js` and `manifest.json`, action bodies and callbacks included. A section that does not apply is marked not applicable as a whole; in every other section mark each item pass, fixed or not applicable. Most items are one search through the file. Fix what fails, then run the checker and the step 5 runs again.
 
 For a review, this list is the report: each failed item with its `main.js` line and the fix, plus the checker's errors and warnings and what each `--run` showed. Change the files only when the user asks.
 
-Done when every checklist item is marked and the checker is still green.
+Done when every section is marked not applicable or has each of its items marked, and the checker is still green.
 
 ### 7. Hand over
 
 Tell the user:
 
-- where the folder is, and the install steps from [01 § Enabling mods](../../../help/documentation/mods/01-anatomy-and-loading.md#enabling-mods), ending at the mod's Labs row showing **Loaded**;
+- where the folder is, and the install steps from [01 § Installing a mod](../../../help/documentation/mods/01-anatomy-and-loading.md#installing-a-mod), from the copy into `_system/mods/` to the mod's Labs row showing **Loaded**;
 - how to use each action: its rail button, palette entry or menu item, and what it asks; for a passive mod, what triggers it (the key chord, which saves, which state change) and how to switch it off (its switch in Labs);
 - every change to user data beyond what was asked: files and folders it creates, notes it rewrites, frontmatter it re-serializes, line endings it changes;
 - which unstable or raw members it uses, since those can break on an app update;
-- the verification level of each action body and trigger, each warning left with its reason, and every assumption from step 1.
+- the verification level of each action body and trigger, each warning left with its reason, every assumption from step 1, and each mod it depends on.
 
 Done when the user can install and run the mod from the message alone, and knows which parts only the app can prove.

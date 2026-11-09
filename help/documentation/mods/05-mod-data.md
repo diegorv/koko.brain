@@ -220,6 +220,17 @@ function migrate(data) {
 
 A migrated value is only in memory until the next save. Save it right after loading if the old format must not linger, or simply let the first ordinary save write the new format.
 
+### Which pattern to use
+
+Both this page and [Cookbook recipe 16](14-cookbook.md#16-settings-in-mod-data-edited-through-dialogs) follow one pattern; use it for every mod with data:
+
+1. One load function is the only reader of `loadData`: `null` gives defaults, `ModDataCorruptError` gives defaults plus a warning, any other rejection is rethrown.
+2. Valid JSON that is not an object is refused with a throw.
+3. Old versions are upgraded one step at a time, and a version newer than the code is refused with a throw.
+4. The result is checked field by field: leniently (each bad field falls back to its default, `withDefaults`) for settings, strictly (a throw) for data the user would miss.
+
+For a few flat settings, fold the four steps into one `parseSettings(data)` as recipe 16 does. For nested state or more than one old version, keep `loadState`, `migrate` and `withDefaults` apart as above.
+
 ### Load once, retry on failure
 
 Load lazily on first use and keep the state in memory. A failed load is forgotten so the next action retries, which also clears the refusal state when the retry succeeds:

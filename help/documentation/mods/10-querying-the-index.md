@@ -41,7 +41,9 @@ interface KB {
 | Which notes exist, `file.path`/`name`/`folder`, frontmatter keys, `_type`, `organized`/`archived`/`favorite`, root `tags` | The property index | Current at once: the next `ctx.kb()` call sees it |
 | `file.tasks`, `file.tags`, `file.outlinks`, `file.inlinks` | The index snapshot | Throttled: refreshed about **2 s** after a change, at most once per **10 s** during a burst |
 
-- `file.size`, `file.ctime` and `file.mtime` also come from the snapshot side. A note created a moment ago shows `0` for them until the snapshot refreshes, and an **existing** note saved a moment ago still shows its **previous** size and mtime: for up to about 12 s (the 10 s throttle plus the time the save takes to reach the index), the index can report a note just edited as unchanged. A mod that picks notes by `mtime` or `ctime` (archive notes untouched for 90 days, list recent ones) should leave out `0` values and skip notes open in a tab, since those are the ones the user may be changing right now.
+- `file.size`, `file.ctime` and `file.mtime` also come from the snapshot side. A note created a moment ago shows `0` for them until the snapshot refreshes, and an **existing** note saved a moment ago still shows its **previous** size and mtime: for up to about 12 s (the 10 s throttle plus the time the save takes to reach the index), the index can report a note just edited as unchanged. What to do about it depends on what the selection is for:
+  - **Choosing notes to change, move or delete** (archive notes untouched for 90 days): leave out `0` values and skip notes open in a tab, since those are the ones the user may be changing right now. A wrong "untouched" there costs the user a note.
+  - **Showing notes** (a "recently edited" list): keep notes open in a tab and sort a `0` as "just now" (or put open tabs first): leaving them out hides the very note the user just edited. A stale position in a list costs nothing.
 - A `kb` object keeps the page set it read first for its whole life. Call `ctx.kb()` again to see later changes.
 
 So right after `ctx.vault.create`, `ctx.vault.write`, `createTypedNote` or `updateNoteFrontmatter`, a new `ctx.kb()` lists the note with its new frontmatter, but its tasks, tags and links can be 2 to 10 s old (a new note has none yet). The index also follows the editor: the active note's text, saved or not, reaches the property index about 1 s after typing stops. For the exact current text read `ctx.app.editorStore.activeTab.content`.
@@ -274,6 +276,8 @@ function folderSource(folder) {
 }
 ```
 
+A folder name holding `"` or `'` needs no escaping: the source is read as its first and last characters (the matching quotes) around everything between them, so `folderSource('Say "hi"')` gives `'"Say "hi""'`, which selects the folder `Say "hi"`. The match ignores case, so on a vault with both `Projects` and `projects/` folders the source selects both.
+
 A page's path passes straight to `ctx.app.openFileInEditor(page.file.path)` and `ctx.app.updateNoteFrontmatter(page.file.path, ...)`, and needs `toVaultPath` for `ctx.vault.read(...)` and `ctx.workspace.openNote(...)`. For the notes directly in the vault root, where `folderSource` refuses, use `.where((p) => p.file.folder === ctx.app.vaultStore.path)` instead (see [Scoping](#scoping)).
 
 ## Examples
@@ -402,11 +406,12 @@ ctx.addAction({
 		const since = Date.now() - 7 * 24 * 60 * 60 * 1000;
 		const kb = await ctx.kb();
 		const items = kb.pages(source)
-			// mtime can lag a save by up to about 12 s (0 for a brand-new note): see Freshness and lag.
-			.where((p) => p.file.mtime >= since)
-			.sort((p) => p.file.mtime, 'desc')
+			// mtime lags a save by up to about 12 s and is 0 for a note too new for the snapshot:
+			// a list only shows notes, so that one is kept and shown first (see Freshness and lag).
+			.where((p) => p.file.mtime === 0 || p.file.mtime >= since)
+			.sort((p) => p.file.mtime || Number.MAX_SAFE_INTEGER, 'desc')
 			.limit(100)
-			.map((p) => ({ id: p.file.path, title: p.file.basename, description: new Date(p.file.mtime).toLocaleString() }))
+			.map((p) => ({ id: p.file.path, title: p.file.basename, description: p.file.mtime ? new Date(p.file.mtime).toLocaleString() : 'just now' }))
 			.array();
 		if (items.length === 0) return ctx.notify('Nothing changed here in the last 7 days');
 		const picked = await run.ui.pick({ title: 'Changed in the last 7 days', items });

@@ -130,11 +130,22 @@ So:
 
 Write `[[Name]]` by default. Use the pinned form only when two notes may share a name and the link must reach one of them (a generated report that lists the notes of one folder, for example). Build the name with `safeName` when you create the note, so the target holds none of `# | ^ [ ]`. In a pinned link, the alias after `|` is display text; it can hold any character but `]` and `|`.
 
+A path the mod did not name itself (a listed or picked note) can hold those characters. Check it with `isSafeWikilinkTarget` before linking, and write a note that fails as plain text instead (`Folder/Odd #1.md (not linked: unsafe name)`): the app reads `#` as a heading anchor, `^` as a block reference and `|` as an alias, so such a link reaches another note or none.
+
 ```javascript
+/**
+ * Whether `target` can sit between [[ and ]] as one link to itself: none of the characters that end
+ * a target ([ ] | # ^), no backslash or angle brackets, no control or line/paragraph separator
+ * characters, no edge spaces. \p{...} classes, not \u escapes: some write tools turn those into
+ * literal separators, which break the regex literal.
+ */
+function isSafeWikilinkTarget(target) {
+	return !/[[\]|#^\\<>\p{Cc}\p{Zl}\p{Zp}]/u.test(target) && target.trim() === target;
+}
 /** [[Name]] for a vault-relative note path. */
-const wikilink = (path) => `[[${path.split('/').pop().replace(/\.md$/i, '')}]]`;
+const wikilink = (path) => `[[${path.split('/').pop().replace(/\.(md|markdown)$/i, '')}]]`;
 /** [[Folder/Name.md|Name]]: pins this exact file, shows its name. */
-const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.md$/i, '')}]]`;
+const pinnedWikilink = (path) => `[[${path}|${path.split('/').pop().replace(/\.(md|markdown)$/i, '')}]]`;
 ```
 
 ## Errors are not always `Error` objects
@@ -379,6 +390,7 @@ Why it is built this way:
 - **Line breaks are normalized before the comparison.** Without it a CRLF note never takes the editor route (see the warning above).
 - **`edit` runs once and sees the freshest text.** Put last-moment checks inside it: return `text` unchanged to cancel (for example when `run.signal.aborted`, or when the line you would add is already there).
 - **Unchanged text writes nothing**, so a rerun is cheap and does not fire `onNoteSaved`.
+- **`edit` sees the note's own line breaks on the disk route.** There it gets the file's raw text, `\r\n` throughout for a CRLF note, while the editor route hands it `\n` text. An `edit` that adds lines with a hard-coded `\n` leaves a CRLF file with mixed line endings; build added text with the note's line ending, as `appendLines` below does. (After the user's first edit in the app the note is saved with `\n` anyway.)
 - **Paths with `//` are matched by hand.** The app builds some paths from folder settings (`dailyNotePath` with a folder set to `Journal/` gives `.../Journal//<date>.md`), and the tab then carries that spelling. `ctx.vault.write` compares tab paths exactly, so on its own it would miss that tab's unsaved edits and leave a clean one showing the old text.
 
 The editor route and the `//` handling go through `ctx.app.editorStore` and `ctx.app.syncExternalContentToEditor`, which are **raw**. The rest of the disk route uses only stable APIs.
@@ -404,13 +416,21 @@ export default {
 				if (!ok || run.signal.aborted) return;
 				await editNote(ctx, target, (text) => {
 					if (run.signal.aborted || text.includes(line)) return text;
-					return `${text}${text === '' || text.endsWith('\n') ? '' : '\n'}${line}\n`;
+					return appendLines(text, [line]);
 				});
 				ctx.notify('Added', { kind: 'success' });
 			},
 		});
 	},
 };
+
+/** `text` with `lines` added at the end, each on its own line, in the note's line ending: a CRLF note stays CRLF. */
+function appendLines(text, lines) {
+	if (lines.length === 0) return text;
+	const eol = text.includes('\r\n') ? '\r\n' : '\n';
+	const gap = text === '' || text.endsWith('\n') ? '' : eol;
+	return `${text}${gap}${lines.join(eol)}${eol}`;
+}
 
 // changedRange, editNote and toVaultPath from above go here, in the same file.
 ```

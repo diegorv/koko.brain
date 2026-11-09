@@ -573,6 +573,7 @@ function drawBars(canvas, values, colors) {
 	});
 }
 
+// canvas.style.cssText = 'display: block; width: 100%; height: 200px;'; // required, see below
 // const paint = ({ colors }) => drawBars(canvas, values, colors);
 // paint(ctx.theme.current);
 // const stopTheme = ctx.theme.onChange(paint);
@@ -580,6 +581,160 @@ function drawBars(canvas, values, colors) {
 // resize.observe(canvas);
 // ctx.register(() => { stopTheme(); resize.disconnect(); canvas.remove(); });
 ```
+
+Two things `drawBars` relies on:
+
+- **The canvas has a CSS width and height.** Without one, its displayed size follows its pixel size: `drawBars` sets `canvas.width` to the displayed width times `devicePixelRatio`, which makes the canvas larger, which fires the `ResizeObserver`, which paints again, larger each time. Give it `width` and `height` in CSS (`100%` and a fixed height work).
+- **Every color it uses is non-empty.** A color the theme does not define reads as `''` (a custom theme can leave keys out), and a canvas ignores `fillStyle = ''`, so the bars are drawn in whatever color was set before. Fall back per key: `colors.primary || '#2563eb'`.
+
+### A complete chart panel
+
+A themed `<dialog>` with a bar chart that repaints on theme changes and resizes, opened after the action ends (the rules are those of [A themed modal dialog](#a-themed-modal-dialog)). It charts the notes per subfolder of `Projects`.
+
+```javascript
+const FOLDER = 'Projects';
+const CHART_CLASS = 'mod-chart-example';
+/** Used for a theme color that reads as '' (not defined by a custom theme) */
+const FALLBACK = { border: '#d4d4d8', primary: '#2563eb', mutedForeground: '#71717a' };
+
+const DIALOG_STYLE = `
+	position: fixed; inset: 0; margin: auto;
+	width: min(560px, calc(100vw - 32px)); padding: 16px; border-radius: 12px;
+	border: 1px solid var(--border); background: var(--popover); color: var(--popover-foreground);
+	font: inherit; font-size: 14px;`;
+const DIALOG_CSS = `
+	dialog.${CHART_CLASS}::backdrop { background: rgb(0 0 0 / 0.45); }
+	dialog.${CHART_CLASS} button { padding: 4px 12px; border-radius: 6px; border: 1px solid var(--border); }
+	dialog.${CHART_CLASS} button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }`;
+
+/** The colors the chart paints with, each non-empty */
+function chartColors(colors) {
+	return Object.fromEntries(Object.entries(FALLBACK).map(([key, fallback]) => [key, colors[key] || fallback]));
+}
+
+/** Paints one bar per row, labels under the bars, at the canvas's CSS size */
+function drawBars(canvas, rows, colors) {
+	const ratio = window.devicePixelRatio || 1;
+	const { width, height } = canvas.getBoundingClientRect();
+	if (width === 0 || height === 0) return;
+	canvas.width = Math.round(width * ratio);
+	canvas.height = Math.round(height * ratio);
+	const g = canvas.getContext('2d');
+	g.scale(ratio, ratio);
+	g.clearRect(0, 0, width, height);
+	const labelHeight = 18;
+	const plot = height - labelHeight;
+	const max = Math.max(1, ...rows.map((row) => row.value));
+	const barWidth = width / rows.length;
+	g.font = '12px system-ui, sans-serif';
+	g.textAlign = 'center';
+	rows.forEach((row, i) => {
+		const barHeight = (row.value / max) * (plot - 16);
+		g.fillStyle = colors.primary;
+		g.fillRect(i * barWidth + 4, plot - barHeight, Math.max(1, barWidth - 8), barHeight);
+		g.fillStyle = colors.mutedForeground;
+		g.fillText(String(row.value), i * barWidth + barWidth / 2, plot - barHeight - 4);
+		g.fillText(row.label.length > 12 ? `${row.label.slice(0, 11)}...` : row.label, i * barWidth + barWidth / 2, height - 4);
+	});
+	g.strokeStyle = colors.border;
+	g.beginPath();
+	g.moveTo(0, plot - 0.5);
+	g.lineTo(width, plot - 0.5);
+	g.stroke();
+}
+
+/** Opens the chart and returns a function that closes it */
+function openChart(ctx, rows, restoreFocus) {
+	const dialog = document.createElement('dialog');
+	dialog.className = CHART_CLASS;
+	dialog.style.cssText = DIALOG_STYLE;
+	dialog.setAttribute('aria-label', `Notes per folder in ${FOLDER}`);
+	const style = document.createElement('style');
+	style.textContent = DIALOG_CSS;
+	const heading = document.createElement('h2');
+	heading.style.cssText = 'font-size: 16px; font-weight: 600; margin-bottom: 12px';
+	heading.textContent = `Notes per folder in ${FOLDER}`;
+	const canvas = document.createElement('canvas');
+	// The CSS size keeps the ResizeObserver from looping (see above).
+	canvas.style.cssText = 'display: block; width: 100%; height: 240px; margin-bottom: 12px';
+	canvas.setAttribute('role', 'img');
+	canvas.setAttribute('aria-label', rows.map((row) => `${row.label}: ${row.value}`).join(', '));
+	const close = document.createElement('button');
+	close.type = 'button';
+	close.textContent = 'Close';
+	close.autofocus = true;
+	close.addEventListener('click', () => dialog.close());
+	const footer = document.createElement('div');
+	footer.style.cssText = 'display: flex; justify-content: flex-end';
+	footer.append(close);
+	dialog.append(style, heading, canvas, footer);
+
+	// ctx.theme.current throws once the mod is unloaded; a resize can still arrive before the close event.
+	const paint = () => {
+		if (!ctx.signal.aborted) drawBars(canvas, rows, chartColors(ctx.theme.current.colors));
+	};
+	const stopTheme = ctx.theme.onChange(paint);
+	const resize = new ResizeObserver(paint);
+	dialog.addEventListener('keydown', (e) => e.stopPropagation());
+	dialog.addEventListener('close', () => {
+		stopTheme();
+		resize.disconnect();
+		dialog.remove();
+		restoreFocus();
+	});
+	document.body.append(dialog);
+	dialog.showModal();
+	resize.observe(canvas);
+	paint();
+	return () => {
+		if (dialog.open) dialog.close();
+	};
+}
+
+export default {
+	onload(ctx) {
+		let closeOpen = null;
+		let openTimer = null;
+		ctx.register(() => {
+			clearTimeout(openTimer);
+			closeOpen?.();
+		});
+
+		ctx.addAction({
+			id: 'chart',
+			title: `Chart notes per folder in ${FOLDER}`,
+			run: async (_input, run) => {
+				// Captured before any await: where focus goes back to when the chart closes.
+				const returnTo = ctx.app.editorStore.activeTabPath;
+				const folders = (await ctx.vault.list(FOLDER)).filter((entry) => entry.isFolder);
+				const rows = [];
+				for (const folder of folders) {
+					if (run.signal.aborted) return;
+					const entries = await ctx.vault.list(folder.path);
+					rows.push({ label: folder.name, value: entries.filter((e) => !e.isFolder && /\.(md|markdown)$/i.test(e.name)).length });
+				}
+				if (run.signal.aborted) return;
+				if (rows.length === 0) return ctx.notify(`${FOLDER} has no subfolders`);
+				rows.sort((a, b) => a.label.localeCompare(b.label));
+				const restoreFocus = () => {
+					if (ctx.signal.aborted) return;
+					const view = ctx.app.editorStore.editorView;
+					if (returnTo && ctx.app.editorStore.activeTabPath === returnTo && view?.dom.isConnected) view.focus();
+				};
+				closeOpen?.();
+				clearTimeout(openTimer);
+				// No run.log or progress: the run view closes when run returns, then the chart opens.
+				openTimer = setTimeout(() => {
+					if (!ctx.signal.aborted) closeOpen = openChart(ctx, rows, restoreFocus);
+				}, 0);
+			},
+		});
+		ctx.addRailButton({ id: 'main', title: 'Notes per folder', icon: 'lucide:chart-column', actions: ['chart'] });
+	},
+};
+```
+
+`stopTheme` runs when the chart closes and again at unload (the host's cleanup); a disposer from `ctx` runs once, so the second call does nothing. The canvas's `aria-label` carries the numbers for a screen reader.
 
 Values arrive in the theme's own syntax (hex or `oklch()` for the built-in themes, anything CSS accepts for custom ones). A library that only understands hex or `rgb()` needs a conversion. A 1x1 canvas converts any color the engine parses:
 

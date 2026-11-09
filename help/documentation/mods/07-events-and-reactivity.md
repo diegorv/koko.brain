@@ -453,7 +453,7 @@ const onFocus = () => {
 window.addEventListener('focus', onFocus, { signal: ctx.signal });
 ```
 
-- Pass `{ signal: ctx.signal }`, or remove the listener in `ctx.register`. A listener left behind keeps running after unload, and its `ctx` calls throw; after a reload there are two copies.
+- Pass `{ signal: ctx.signal }`: this is the preferred style, one argument on the same line, so it cannot be forgotten. Use `ctx.register(() => target.removeEventListener(...))` only when the listener must also go away before unload (then keep the remover and call it yourself too), or when the target's own `addEventListener` takes no options. A listener left behind keeps running after unload, and its `ctx` calls throw; after a reload there are two copies.
 - Listen on `window` or `document`, not on app elements: the app re-renders its own markup, and its classes and structure are not an API (see [Custom UI](08-custom-ui.md#mounting-into-app-regions)).
 - Errors thrown in a listener are uncaught errors: the host never sees them, no run fails, no toast shows. Catch them and report with `ctx.log` or `ctx.notify`.
 

@@ -5,6 +5,7 @@
  *   node check-mod.mjs <mod-folder> [--repo <brain-checkout>]
  *   node check-mod.mjs <mod-folder> --run <action-id> [--vault <fixture-folder>]
  *       [--input <text>] [--answers '<json array>'] [--target note:<path>|folder:<path>]
+ *       [--daily-folder <folder>] [--expect-fail] [--stop-at-loading <n>]
  *
  * Check mode loads the folder with the app's real loader (`parseModManifest`,
  * `evaluateModSource` from src/lib/plugins/mods/mods.logic.ts), runs `onload`
@@ -16,17 +17,22 @@
  * vault seeded from `--vault` (read from disk, never written: every change
  * stays in memory and is printed at the end). `ctx.vault`, `ctx.workspace`,
  * mod data, `run.*` and the dialogs follow the host's rules and messages;
- * `--answers` scripts the dialogs in order. `ctx.app` and `ctx.kb()` are not
- * modelled: touching either inside the action throws `not modelled by --run`.
+ * `--answers` scripts the dialogs in order. `ctx.app` is modelled only for the
+ * members `memoryApp` lists (the vault root, an editor with no open tab, two
+ * settings, the daily note, and `updateNoteFrontmatter` through the app's own
+ * properties.logic.ts); every other member, and `ctx.kb()`, throws
+ * `not modelled by --run` inside the action.
  * File system rejections are bare strings, as in the app, but their OS text
  * is approximate, and paths are case-sensitive here (APFS is not).
  *
  * The script never writes to disk and never sends a request.
  *
  * Exit code: 0 when there is no error (warnings allowed) and a run did not
- * fail, 1 otherwise, 2 on bad usage or a repo it cannot read.
+ * fail (with --expect-fail: did fail), 1 otherwise, 2 on bad usage or a repo
+ * it cannot read.
  */
 import { existsSync, lstatSync, readdirSync, readFileSync } from 'node:fs';
+import * as nodeModule from 'node:module';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -66,8 +72,14 @@ const THEME_KEYS = [
 ];
 /** What a dialog resolves to on Esc, as in mod-dialogs.store.svelte.ts */
 const CANCELLED = { alert: undefined, confirm: false, prompt: null, pick: null };
-/** The stand-in absolute vault root in bare-string file system errors */
+/** The stand-in absolute vault root: `ctx.app.vaultStore.path` under --run, and the root in bare-string file system errors */
 const FAKE_ROOT = '/vault';
+/** The app's pure frontmatter logic, which `updateNoteFrontmatter` runs under --run */
+const FRONTMATTER_FILE = 'src/lib/core/frontmatter/properties.logic.ts';
+/** The app's default daily note settings (settings.store.svelte.ts), which `dailyNotePath` uses under --run */
+const DAILY_DEFAULTS = { folder: '_notes', format: 'YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY' };
+/** `settingsStore.templates.systemFolder` under --run: the app's default */
+const SYSTEM_FOLDER = '_system';
 
 const errors = [];
 const warnings = [];
@@ -80,16 +92,40 @@ function messageOf(err) {
 const USAGE = `usage: node check-mod.mjs <mod-folder> [--repo <brain-checkout>]
        node check-mod.mjs <mod-folder> --run <action-id> [--vault <fixture-folder>]
            [--input <text>] [--answers '<json array>'] [--target note:<path>|folder:<path>]
+           [--daily-folder <folder>] [--expect-fail] [--stop-at-loading <n>]
 
 --repo     the Kokobrain checkout whose loader is used; default: the checkout this
            script lives in, else the current directory
 --run      run one action body after onload, against an in-memory vault
---vault    folder whose files seed the in-memory vault (read only; default: empty)
+--vault    folder whose files seed the in-memory vault (read only; default: empty).
+           Every file and folder in it is seeded, empty folders included (but git
+           keeps no empty folder, so a committed fixture loses them). Mod data goes
+           in <vault>/.kokobrain/mods/<mod-id>/data.json
 --input    the text the action receives (default '')
 --answers  JSON array, one answer per dialog in order: prompt a string or null,
-           confirm true or false, pick an item id or null, alert anything;
-           "STOP" presses Stop at that dialog; with no answer left a dialog gets Esc
---target   run.target: note:<path>, folder:<path>, or folder: for the vault root`;
+           confirm true or false, pick an item id or null, alert anything (an
+           alert takes one too); "STOP" presses Stop at that dialog; with no answer
+           left a dialog gets Esc. A loading takes no answer and is skipped here
+--stop-at-loading <n>  presses Stop while the task of the nth loading (1 for
+           the first, run.ui or ctx.ui) runs: run.ui.loading then rejects with
+           AbortError and its task's signal aborts
+--target   run.target: note:<path>, folder:<path>, or folder: for the vault root
+--daily-folder  the daily note folder dailyNotePath uses (default ${DAILY_DEFAULTS.folder};
+           '' for the vault root); the file name format is the app's default
+           ${DAILY_DEFAULTS.format}
+--expect-fail   the run is meant to fail (a deliberate refusal): exit 0 when it
+           ends failed, 1 when it ends any other way
+
+ctx.app under --run: vaultStore.path is ${FAKE_ROOT} (also isOpen and indexReady:
+true); editorStore has no open tab (tabs [], activeIndex -1, activeTab,
+activeTabPath, activeTabContent and editorView null); settingsStore.templates.
+systemFolder is ${SYSTEM_FOLDER} and settingsStore.periodicNotes holds the daily folder
+and format; dailyNotePath(date?) and openOrCreateDailyNote() (creates an empty
+note: no template) use them; updateNoteFrontmatter(path, mutate) runs the app's
+properties.logic.ts on the in-memory note, with its no-op, refusals and
+FrontmatterWriteError reasons; syncExternalContentToEditor and saveFileByPath
+are recorded no-ops (no tab is open). Any other member, and ctx.kb(), throws
+"not modelled by --run".`;
 
 /** Parses argv; exits 2 on bad usage */
 function parseCli(argv) {
@@ -105,6 +141,9 @@ function parseCli(argv) {
 				input: { type: 'string' },
 				answers: { type: 'string' },
 				target: { type: 'string' },
+				'daily-folder': { type: 'string' },
+				'expect-fail': { type: 'boolean' },
+				'stop-at-loading': { type: 'string' },
 				help: { type: 'boolean', short: 'h' },
 			},
 		});
@@ -114,7 +153,7 @@ function parseCli(argv) {
 	const { values, positionals } = parsed;
 	if (values.help) usage(0);
 	if (positionals.length !== 1) usage(2, 'pass exactly one mod folder');
-	const runOnly = ['vault', 'input', 'answers', 'target'].filter((k) => values[k] !== undefined);
+	const runOnly = ['vault', 'input', 'answers', 'target', 'daily-folder', 'expect-fail', 'stop-at-loading'].filter((k) => values[k] !== undefined);
 	if (values.run === undefined && runOnly.length > 0) usage(2, `--${runOnly[0]} needs --run`);
 	let answers = [];
 	if (values.answers !== undefined) {
@@ -132,7 +171,16 @@ function parseCli(argv) {
 		if (m[1] === 'note' && m[2] === '') usage(2, '--target note: needs a path');
 		target = { on: m[1], path: m[2] };
 	}
-	return { folder: positionals[0], repo: values.repo, run: values.run, vault: values.vault, input: values.input ?? '', answers, target };
+	const dailyFolder = values['daily-folder'] ?? DAILY_DEFAULTS.folder;
+	let stopAtLoading = null;
+	if (values['stop-at-loading'] !== undefined) {
+		stopAtLoading = Number(values['stop-at-loading']);
+		if (!Number.isInteger(stopAtLoading) || stopAtLoading < 1) usage(2, '--stop-at-loading takes a loading number, 1 for the first');
+	}
+	return {
+		folder: positionals[0], repo: values.repo, run: values.run, vault: values.vault, input: values.input ?? '', answers, target,
+		dailyFolder, expectFail: values['expect-fail'] === true, stopAtLoading,
+	};
 }
 
 /** Prints the usage (and why, on bad usage) and exits */
@@ -204,6 +252,55 @@ async function loadIconIndex(repo) {
 			return { known: false, close };
 		},
 	};
+}
+
+/**
+ * The app's pure logic that the modelled `ctx.app` members run under --run:
+ * properties.logic.ts (frontmatter) and periodic-notes.logic.ts (the daily
+ * note path), plus dayjs. Their imports need what Vite does and Node does not:
+ * `#lib/x.js` naming a `.ts` file, extensionless `dayjs/plugin/x`, and
+ * TypeScript beyond type stripping (parameter properties), so a module hook
+ * resolves and transpiles `.ts` files under `src/`. Resolves `{ error }` when
+ * the logic cannot load; the members that need it then stay unmodelled.
+ */
+async function loadRunLogic(repo, ts) {
+	if (typeof nodeModule.registerHooks !== 'function') return { error: `Node ${process.version} has no module.registerHooks` };
+	const srcUrl = pathToFileURL(join(repo, 'src/')).href;
+	nodeModule.registerHooks({
+		resolve(specifier, context, next) {
+			try {
+				return next(specifier, context);
+			} catch (err) {
+				if (!context.parentURL?.startsWith(srcUrl)) throw err;
+				const tries = specifier.endsWith('.js') ? [`${specifier.slice(0, -3)}.ts`] : [`${specifier}.ts`, `${specifier}.js`];
+				for (const attempt of tries) {
+					try {
+						return next(attempt, context);
+					} catch {
+						// The next spelling may resolve.
+					}
+				}
+				throw err;
+			}
+		},
+		load(url, context, next) {
+			if (!url.startsWith(srcUrl) || !url.endsWith('.ts')) return next(url, context);
+			const fileName = fileURLToPath(url);
+			const { outputText } = ts.transpileModule(readFileSync(fileName, 'utf8'), {
+				fileName,
+				compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
+			});
+			return { format: 'module', source: outputText, shortCircuit: true };
+		},
+	});
+	try {
+		const frontmatter = await import(pathToFileURL(join(repo, FRONTMATTER_FILE)).href);
+		const periodic = await import(pathToFileURL(join(repo, 'src/lib/plugins/periodic-notes/periodic-notes.logic.ts')).href);
+		const dayjs = createRequire(join(repo, 'package.json'))('dayjs');
+		return { frontmatter, periodic, dayjs };
+	} catch (err) {
+		return { error: messageOf(err) };
+	}
 }
 
 /** The `connect-src` sources of the app's CSP, from tauri.conf.json */
@@ -593,8 +690,14 @@ function createRecorder(appMembers) {
 	const appWrites = new Set();
 	const listeners = [];
 	const unmodelled = new Map();
+	const modelled = new Set();
 	return {
-		raw, browser, unknownApp, appWrites, listeners, unmodelled, blocked: false,
+		raw, browser, unknownApp, appWrites, listeners, unmodelled, modelled, blocked: false,
+		/** Records a read of a `ctx.app` member that --run models; it never throws */
+		use(path) {
+			raw.add(path.split('.').slice(0, 3).join('.'));
+			if (this.blocked) modelled.add(`ctx.${path}`);
+		},
 		touch(path) {
 			const segments = path.split('.');
 			if (segments[0] === 'app' || segments[0] === 'kb()') {
@@ -661,6 +764,29 @@ function rawProxy(path, recorder) {
 		construct: () => rawProxy(`new ${path}`, recorder),
 	});
 	return self;
+}
+
+/**
+ * A `ctx.app` object (or part of one) that --run models: the keys of
+ * `members` are read as they are; any other key is a raw read, which throws
+ * `not modelled by --run` inside an action. Writes are raw too.
+ */
+function modelledObject(path, members, recorder) {
+	return new Proxy(members, {
+		get(target, key) {
+			if (typeof key === 'symbol' || key === 'then') return undefined;
+			if (Object.hasOwn(target, key)) {
+				recorder.use(`${path}.${key}`);
+				return target[key];
+			}
+			recorder.touch(`${path}.${key}`);
+			return rawProxy(`${path}.${key}`, recorder);
+		},
+		set(_target, key) {
+			recorder.write(`${path}.${String(key)}`);
+			return true;
+		},
+	});
 }
 
 /**
@@ -777,7 +903,7 @@ function createMemoryVault(seedDir) {
 		}
 	};
 	if (seedDir) walk(seedDir, '');
-	return { files, folders, seedFiles: new Map(files), seedFolders: new Set(folders), ops: [], stopped: false };
+	return { files, folders, seedFiles: new Map(files), seedFolders: new Set(folders), ops: [], opened: [], stopped: false };
 }
 
 /** Builds `ctx.vault`, `ctx.workspace` and mod data over a memory vault */
@@ -958,6 +1084,117 @@ function memoryVaultApi(mem, modId, logic, assertLive, record) {
 		},
 	};
 	return { vault, workspace, data };
+}
+
+/** Like the app's FrontmatterWriteError (frontmatter-write.service.ts): `reason` says why the write refused or failed */
+class FrontmatterWriteError extends Error {
+	constructor(reason, path) {
+		super(`Frontmatter write ${reason}: ${path}`);
+		this.name = 'FrontmatterWriteError';
+		this.reason = reason;
+		this.path = path;
+	}
+}
+
+/**
+ * The `ctx.app` of --run over a memory vault: the members listed here, as the
+ * app has them with a vault open at FAKE_ROOT and no note open in a tab.
+ * `runLogic` is from loadRunLogic; without it the daily note and frontmatter
+ * members stay unmodelled. Every other member goes to `raw`, the recording
+ * proxy, which throws inside an action.
+ */
+function memoryApp(mem, runLogic, dailyFolder, recorder, raw, record) {
+	const change = (text) => {
+		mem.ops.push({ text, change: true, afterStop: mem.stopped });
+		record(text);
+	};
+	/** The vault-relative path of an absolute app path, or null outside the vault; the OS collapses `//` */
+	const relative = (absolute) => {
+		const path = String(absolute).replace(/\/{2,}/g, '/');
+		return path.startsWith(`${FAKE_ROOT}/`) ? path.slice(FAKE_ROOT.length + 1) : null;
+	};
+	const makeParents = (path) => {
+		const segments = parentOf(path).split('/').filter(Boolean);
+		for (let i = 1; i <= segments.length; i++) mem.folders.add(segments.slice(0, i).join('/'));
+	};
+	const daily = { format: DAILY_DEFAULTS.format };
+	const app = {
+		vaultStore: modelledObject('app.vaultStore', { path: FAKE_ROOT, name: 'vault', isOpen: true, indexReady: true }, recorder),
+		editorStore: modelledObject('app.editorStore', {
+			tabs: Object.freeze([]), activeIndex: -1, activeTab: null, activeTabPath: null, activeTabContent: null, editorView: null,
+		}, recorder),
+		settingsStore: modelledObject('app.settingsStore', {
+			templates: modelledObject('app.settingsStore.templates', { systemFolder: SYSTEM_FOLDER }, recorder),
+			periodicNotes: modelledObject('app.settingsStore.periodicNotes', {
+				folder: dailyFolder,
+				daily: modelledObject('app.settingsStore.periodicNotes.daily', daily, recorder),
+			}, recorder),
+		}, recorder),
+		// No tab is open, so both act on nothing, as the app's do then.
+		syncExternalContentToEditor: (path) => {
+			record(`syncExternalContentToEditor(${path}) (no open tab: no-op)`);
+		},
+		saveFileByPath: async (path) => {
+			record(`saveFileByPath(${path}) (no open tab: true)`);
+			return true;
+		},
+	};
+	if (runLogic.frontmatter) {
+		const { periodic, dayjs, frontmatter: fm } = runLogic;
+		app.dailyNotePath = (date = new Date()) => periodic.buildPeriodicNotePath(FAKE_ROOT, dailyFolder, daily.format, dayjs(date));
+		app.openOrCreateDailyNote = async () => {
+			const absolute = app.dailyNotePath();
+			const path = relative(absolute);
+			if (!mem.files.has(path)) {
+				makeParents(path);
+				mem.files.set(path, '');
+				change(`openOrCreateDailyNote() created ${path} (empty: the app applies the daily template)`);
+			}
+			record(`openOrCreateDailyNote() opened ${path} (the editor model still has no open tab)`);
+			mem.opened.push(path);
+		};
+		// The flow of updateNoteFrontmatter for a note with no open tab.
+		app.updateNoteFrontmatter = async (absolute, mutate) => {
+			const path = relative(absolute);
+			if (path === null || !mem.files.has(path)) {
+				record(`updateNoteFrontmatter(${absolute}) (read failed: no such note)`);
+				throw `failed to open file at path: ${absolute} with error: ${ENOENT}`;
+			}
+			const base = mem.files.get(path);
+			const lossy = fm.detectLossyFrontmatter(base);
+			if (lossy !== null) {
+				record(`updateNoteFrontmatter(${path}) (refused: ${lossy})`);
+				throw new FrontmatterWriteError(lossy, absolute);
+			}
+			const next = fm.rebuildContent(mutate(fm.parseFrontmatterProperties(base)), fm.extractBody(base), base);
+			if (next === base) {
+				record(`updateNoteFrontmatter(${path}) (no change: resolved to the unchanged text)`);
+				return base;
+			}
+			if (!mem.files.has(path)) {
+				record(`updateNoteFrontmatter(${path}) (the note is gone)`);
+				throw new FrontmatterWriteError('missing', absolute);
+			}
+			mem.files.set(path, next);
+			change(`updateNoteFrontmatter(${path})`);
+			return next;
+		};
+	}
+	// Unlike modelledObject, an unmodelled top-level member goes to `raw`, which also flags names MOD_APP lacks.
+	return new Proxy(app, {
+		get(target, key) {
+			if (typeof key === 'symbol' || key === 'then') return undefined;
+			if (Object.hasOwn(target, key)) {
+				recorder.use(`app.${key}`);
+				return target[key];
+			}
+			return raw[key];
+		},
+		set(_target, key, value) {
+			raw[key] = value;
+			return true;
+		},
+	});
 }
 
 /**
@@ -1157,8 +1394,10 @@ function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem) {
 				assertLive();
 				if (!isText(label)) throw invalid('ui.loading needs a non-empty string label');
 				if (typeof task !== 'function') throw invalid('ui.loading needs a task function');
-				state.dialogs.push({ set, kind: 'loading', title: label, answer: opts?.cancellable === true ? '(cancellable, not cancelled)' : '' });
+				const shown = { set, kind: 'loading', title: label, answer: opts?.cancellable === true ? '(cancellable, not cancelled)' : '(takes no answer)' };
+				state.dialogs.push(shown);
 				calls.push(`${set}.loading()`);
+				const stopHere = Boolean(mem?.stop) && ++mem.loadings === mem.stopAtLoading;
 				const controller = new AbortController();
 				const abort = () => controller.abort();
 				runtime.controller.signal.addEventListener('abort', abort);
@@ -1176,6 +1415,10 @@ function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem) {
 						run?.signal.removeEventListener('abort', abort);
 					}
 				})();
+				if (stopHere) {
+					shown.answer = `STOP while its task runs (--stop-at-loading ${mem.stopAtLoading})${run ? '' : '; a ctx.ui loading does not close on Stop'}`;
+					mem.stop();
+				}
 				return Promise.race([settled, stopped]);
 			},
 		};
@@ -1314,7 +1557,9 @@ function createFakeContext(manifest, logic, recorder, iconPacks, calls, mem) {
 			};
 		},
 	};
-	const appProxy = rawProxy('app', recorder);
+	const appProxy = mem
+		? memoryApp(mem, mem.runLogic, mem.dailyFolder, recorder, rawProxy('app', recorder), (text) => calls.push(text))
+		: rawProxy('app', recorder);
 	const unknownCtx = new Set();
 	const guarded = new Proxy(ctx, {
 		get(target, key, receiver) {
@@ -1504,6 +1749,8 @@ async function runOne(fake, entry, args, mem, recorder, timers, manifest, calls,
 	const progressLog = [];
 	mem.answers = Object.assign([...args.answers], { index: 0 });
 	mem.opened = [];
+	mem.loadings = 0;
+	mem.stopAtLoading = args.stopAtLoading;
 	mem.stop = () => controller.abort();
 	controller.signal.addEventListener('abort', () => {
 		mem.stopped = true;
@@ -1569,7 +1816,8 @@ async function runOne(fake, entry, args, mem, recorder, timers, manifest, calls,
 	else if (status === 'cancelled' && !result.timeout) out.push(`            the action's promise ${result.ok ? 'resolved' : `rejected (${messageOf(result.error)}), dropped as the host does after Stop`}`);
 	const dialogs = fake.state.dialogs.slice(startDialogs);
 	dialogs.forEach((d, k) => out.push(`${k === 0 ? 'dialogs    ' : '           '} ${k + 1}. ${d.set}.${d.kind} "${d.title}" -> ${d.answer}`));
-	if (mem.answers.length > 0) warnings.push(`--answers has ${mem.answers.length} answer(s) left over: ${JSON.stringify([...mem.answers])}`);
+	// A run that failed before any dialog took an answer leaves them all over; that says nothing new.
+	if (mem.answers.length > 0 && !(status === 'failed' && mem.answers.index === 0)) warnings.push(`--answers has ${mem.answers.length} answer(s) left over: ${JSON.stringify([...mem.answers])}`);
 	if (lines.length > 0) out.push(...lines.map((l, k) => `${k === 0 ? 'log         ' : '            '}${l}`));
 	if (progressLog.length > 0) out.push(`progress    ${progressLog.join('; ')}`);
 	const toasts = fake.state.toasts.slice(startToasts);
@@ -1584,6 +1832,8 @@ async function runOne(fake, entry, args, mem, recorder, timers, manifest, calls,
 	}
 	const afterStop = mem.ops.filter((o) => o.change && o.afterStop);
 	if (afterStop.length > 0) warnings.push(`changes after Stop: ${afterStop.map((o) => o.text).join(', ')}; check run.signal.aborted before each write`);
+	if (recorder.modelled.size > 0) out.push(`app         modelled by --run: ${deepest(recorder.modelled).join(', ')}`);
+	if (args.stopAtLoading !== null && mem.loadings < args.stopAtLoading) warnings.push(`--stop-at-loading ${args.stopAtLoading}: the run showed ${mem.loadings} loading(s), so Stop was never pressed`);
 	for (const [member, count] of recorder.unmodelled) {
 		out.push(`not modelled ${member} (touched ${count}x): the run threw there; verify this path in the app`);
 	}
@@ -1592,7 +1842,7 @@ async function runOne(fake, entry, args, mem, recorder, timers, manifest, calls,
 	const ops = mem.ops.filter((o) => o.change);
 	if (ops.length > 0) out.push(...ops.map((o) => `  ${o.text}${o.afterStop ? '   (after Stop)' : ''}`));
 	out.push(...changes);
-	return { lines: out, failed: status === 'failed' || status === 'timeout' };
+	return { lines: out, failed: status === 'failed' || status === 'timeout', status };
 }
 
 /** Checks one mod folder (and runs one action with --run) and prints the report; returns the exit code */
@@ -1610,7 +1860,7 @@ async function main() {
 			usage(2, `--target: ${messageOf(err)}; run.target paths are vault-relative`);
 		}
 	}
-	const ts =createRequire(join(repo, 'package.json'))('typescript');
+	const ts = createRequire(join(repo, 'package.json'))('typescript');
 	const connectSrc = readConnectSrc(repo);
 	const iconPacks = readIconPacks(repo);
 	const iconIndex = await loadIconIndex(repo);
@@ -1619,11 +1869,16 @@ async function main() {
 	const report = [`check-mod ${folderPath}`, `repo        ${repo}`];
 	const calls = [];
 	let runFailed = false;
+	let runStatus = null;
 	let mem = null;
 	if (args.run !== undefined) {
 		if (args.vault !== undefined && !existsSync(args.vault)) usage(2, `--vault ${args.vault} does not exist`);
 		mem = createMemoryVault(args.vault ? resolve(args.vault) : null);
-		report.push(`vault       ${args.vault ? `${resolve(args.vault)} (read only), ${mem.files.size} files` : 'empty'}, in memory`);
+		mem.runLogic = await loadRunLogic(repo, ts);
+		mem.dailyFolder = args.dailyFolder;
+		report.push(`vault       ${args.vault ? `${resolve(args.vault)} (read only), ${mem.files.size} files` : 'empty'}, in memory at ${FAKE_ROOT} (ctx.app.vaultStore.path)`);
+		report.push(`daily note  folder ${JSON.stringify(args.dailyFolder)}, format ${DAILY_DEFAULTS.format}`);
+		if (mem.runLogic.error) warnings.push(`the app's frontmatter and daily note logic did not load (${mem.runLogic.error}), so dailyNotePath, openOrCreateDailyNote and updateNoteFrontmatter are not modelled`);
 	}
 
 	let manifest = null;
@@ -1705,6 +1960,7 @@ async function main() {
 					const outcome = await runOne(fake, entry, args, mem, recorder, timers, manifest, calls, used);
 					runLines = outcome.lines;
 					runFailed = outcome.failed;
+					runStatus = outcome.status;
 				}
 			}
 
@@ -1726,9 +1982,13 @@ async function main() {
 	console.log(report.join('\n'));
 	if (warnings.length > 0) console.log(`\nwarnings (${warnings.length}):\n${warnings.map((w) => `  - ${w}`).join('\n')}`);
 	if (errors.length > 0) console.log(`\nerrors (${errors.length}):\n${errors.map((e) => `  - ${e}`).join('\n')}`);
-	const verdict = errors.length > 0 ? 'FAIL' : runFailed ? 'RUN FAILED' : 'PASS';
+	// --expect-fail turns a failed run into the pass and any other outcome into the failure.
+	const runBad = args.expectFail ? runStatus !== 'failed' : runFailed;
+	const verdict = errors.length > 0 ? 'FAIL'
+		: args.expectFail ? (runBad ? `RUN DID NOT FAIL (--expect-fail; it ended ${runStatus ?? 'without running'})` : 'PASS (the run failed, as --expect-fail expects)')
+		: runFailed ? 'RUN FAILED' : 'PASS';
 	console.log(`\n${verdict}: ${errors.length} error${errors.length === 1 ? '' : 's'}, ${warnings.length} warning${warnings.length === 1 ? '' : 's'}`);
-	return errors.length > 0 || runFailed ? 1 : 0;
+	return errors.length > 0 || runBad ? 1 : 0;
 }
 
 process.exit(await main());

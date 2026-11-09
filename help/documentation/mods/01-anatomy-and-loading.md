@@ -364,6 +364,15 @@ Each reload evaluates `main.js` again, so top-level variables and closures start
 
 ## Enabling mods
 
+### Installing a mod
+
+1. Copy the mod folder (named as its `id`, holding `manifest.json` and `main.js`) so the files sit at `<vault>/_system/mods/<id>/`. From a terminal: `mkdir -p "<vault>/_system/mods" && cp -R <mod-folder> "<vault>/_system/mods/"`. The path is fixed: the app reads mods from `_system/mods/` even when the system folder setting names another folder.
+2. Turn on **Settings > Labs > Vault mods** for that vault, if it is off ([The Vault mods flag](#the-vault-mods-flag)).
+3. In the mod's row under **Settings > Labs**, leave its switch on (a new mod is on by default: [The per-mod switch](#the-per-mod-switch)).
+4. The row shows **Loaded** ([Labs status rows](#labs-status-rows)). An **Error** row names the cause; fix the file in the vault and save, and the mod reloads.
+
+To update an installed mod, copy the new `main.js` over the old one: the save reloads it ([Reload on save](#reload-on-save)).
+
 ### The Vault mods flag
 
 **Settings > Labs > Vault mods** turns mods on for the open vault. Turning it on loads every mod; turning it off unloads every mod (runs are aborted). No restart is needed.

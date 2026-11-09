@@ -276,7 +276,7 @@ ctx.onNoteSaved(async (path) => {
 
 - **Stop** (or the unload of the mod, which aborts every live run first) closes every open and queued dialog of that run. Their promises **reject** with `DOMException` `AbortError` (`The run was stopped`). Dialogs of other runs, of this mod or others, and the mod's `ctx.ui` dialogs stay.
 - Any later `run.ui` call on that run rejects with the same error at once and opens nothing.
-- A rejection after the run's signal aborted is not a failure: the run already ended **Cancelled**, and the host neither toasts nor logs it. **Let the `AbortError` propagate.** Catch it only to clean up, then rethrow or return.
+- A rejection after the run's signal aborted is not a failure: the run already ended **Cancelled**, and the host neither toasts nor logs it. **Let the `AbortError` propagate.** Catch it only to clean up, then rethrow or return. The rejection also skips every line after the `await`, including a "Stopped: N done" toast after the loop: put that report in a `finally` ([Runs: Reporting partial work](03-runs.md#reporting-partial-work)).
 - User cancel is not an abort: Esc or Cancel on a `run.ui` dialog still resolves the cancel value (`undefined`, `false`, `null`). Handle both:
 
 ```javascript

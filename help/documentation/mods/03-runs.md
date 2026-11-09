@@ -283,6 +283,25 @@ if (run.signal.aborted) {
 }
 ```
 
+- **A loop that awaits `run.ui` needs a `try`/`finally` (or `catch`) for this report.** Stop while a dialog is open rejects that `await` with `AbortError`, so control never reaches the `if (run.signal.aborted)` check after it, and the report is skipped. "Check `run.signal.aborted` after every `await`" covers the other awaits; a `run.ui` call needs no check of its own (it rejects instead of resolving), but code that must run after a Stop has to sit in a `finally`:
+
+```javascript
+let moved = 0;
+try {
+	for (const note of notes) {
+		const picked = await run.ui.pick({ title: note.name, items }); // rejects with AbortError on Stop
+		if (picked === null || run.signal.aborted) return;
+		await ctx.vault.move(note.path, picked.id);
+		moved++;
+	}
+} finally {
+	// Runs on Stop during the pick too; the AbortError still propagates after it.
+	if (run.signal.aborted && moved > 0 && !ctx.signal.aborted) {
+		ctx.notify(`Stopped: ${moved} of ${notes.length} notes moved; the rest stay where they were`, { kind: 'warning' });
+	}
+}
+```
+
 - Guard with `!ctx.signal.aborted`: when the abort came from an unload, `ctx.notify` throws `Mod "<id>" is unloaded` (harmless, since it is swallowed, but it skips whatever follows).
 - Say nothing when nothing changed: **Cancelled** is already the right message.
 - Order writes so that a Stop at any point leaves a consistent state: one write per note, the destination before the source (copy, then mark the original), and a rerun that skips what is already done. Then the warning can simply say "run it again to finish".
