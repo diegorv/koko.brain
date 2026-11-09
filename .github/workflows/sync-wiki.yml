@@ -6,6 +6,7 @@ on:
     paths:
       - "help/documentation/**"
       - "help/examples/**"
+      - "scripts/sync-wiki-docs.mjs"
 
   workflow_dispatch:
 concurrency:
@@ -35,44 +36,8 @@ jobs:
           cd wiki
 
           find . -maxdepth 1 -name '*.md' -delete
-
-          declare -A LINK_MAP
-
-          for f in ../help/documentation/*.md; do
-            filename=$(basename "$f")
-            [ "$filename" = "README.md" ] && continue
-
-            clean=$(echo "$filename" \
-              | sed 's/^[0-9]*-//' \
-              | sed 's/\.md$//' \
-              | sed 's/-/ /g' \
-              | sed 's/\b\(.\)/\u\1/g')
-
-            wiki_link=$(echo "$clean" | sed 's/ /-/g')
-            LINK_MAP["$filename"]="$wiki_link"
-          done
-
-          for f in ../help/documentation/*.md; do
-            filename=$(basename "$f")
-
-            if [ "$filename" = "README.md" ]; then
-              dest="Home.md"
-            else
-              clean=$(echo "$filename" \
-                | sed 's/^[0-9]*-//' \
-                | sed 's/\.md$//' \
-                | sed 's/-/ /g' \
-                | sed 's/\b\(.\)/\u\1/g')
-              dest="${clean}.md"
-            fi
-
-            cp "$f" "$dest"
-
-            for old_name in "${!LINK_MAP[@]}"; do
-              wiki_link="${LINK_MAP[$old_name]}"
-              sed -i "s|(${old_name})|(${wiki_link})|g" "$dest"
-            done
-          done
+          node ../scripts/sync-wiki-docs.mjs ../help/documentation . \
+            "${{ github.server_url }}/${{ github.repository }}/blob/${{ github.ref_name }}/help/documentation/"
 
       - name: Sync examples to wiki
         run: |
