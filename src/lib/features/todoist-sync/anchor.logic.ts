@@ -21,7 +21,7 @@ const ANCHOR_CHARS = '0123456789abcdefghijklmnopqrstuvwxyz';
 const ANCHOR_RANDOM_LENGTH = 8;
 
 /** The values of every `🆔` token on the line, in order. */
-function idValues(line: string): string[] {
+export function idValues(line: string): string[] {
 	return [...line.matchAll(ID_TOKEN_RE)].map((m) => m[1]);
 }
 

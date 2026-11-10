@@ -15,7 +15,7 @@ export type ClosedNoteWriteResult =
 	| { kind: 'unchanged'; content: string }
 	/** A check failed and nothing was written. */
 	| { kind: 'stale'; stale: TaskLinesStale }
-	/** The note has an open tab; it goes through the tab instead (ticket 04). */
+	/** The note has an open tab; it goes through the tab instead (`writeTaskLinesToNote`). */
 	| { kind: 'open-tab' };
 
 /**
