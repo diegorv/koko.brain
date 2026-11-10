@@ -51,7 +51,7 @@ jobs:
             ServiceWorker\.register
             import.*\b(axios|got|node-fetch|ky|superagent|undici|needle|request)\b
             require\s*\(\s*["\x27](axios|got|node-fetch|ky|superagent|undici|needle|request)["\x27]\)
-            @doist/todoist-api-typescript
+            @doist/todoist-sdk
             @tauri-apps/plugin-http
             @sentry/browser
             https?://
@@ -74,7 +74,7 @@ jobs:
           known: |
             cdn\.jsdelivr\.net/npm/chart\.js
             todoist\.com
-            @doist/todoist-api-typescript
+            @doist/todoist-sdk
             @tauri-apps/plugin-http
             @sentry/browser
             ingest(\.us|\.de)?\.sentry\.io

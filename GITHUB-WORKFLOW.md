@@ -183,7 +183,7 @@ Greps the source tree for unauthorized external network calls. Backs the project
   - Browser network APIs (`navigator.sendBeacon`, `RTCPeerConnection`, `navigator.geolocation`)
   - External resource loaders (`script.src =`, `iframe.src =`, `new Image().src =`, workers, service workers)
   - Hardcoded `https?://` URLs
-- Exits non-zero on any match that does not appear in the KNOWN list (currently: `cdn.jsdelivr.net/npm/chart.js`, `todoist.com`, `@doist/todoist-api-typescript`, `@tauri-apps/plugin-http`, `huggingface.co/Xenova/bge-m3`).
+- Exits non-zero on any match that does not appear in the KNOWN list (currently: `cdn.jsdelivr.net/npm/chart.js`, `todoist.com`, `@doist/todoist-sdk`, `@tauri-apps/plugin-http`, `huggingface.co/Xenova/bge-m3`).
 
 **Opt-out marker**
 
