@@ -4,9 +4,9 @@
 
 **Blocked by:** 02
 
-**Waits on:** `.scratch/open-itens` ticket 114 (Task writes reach search and the QueryJS cache), itself blocked by open-itens 021. Both must be merged on main before this ticket starts; it reuses 114's after-task-write steps.
+**Waits on:** `.scratch/open-itens` ticket 114 (Task writes reach search and the QueryJS cache), itself blocked by open-itens 021. Both are merged on main (021 `fc8741157`, 114 `108a60047`); this ticket reuses 114's after-task-write steps.
 
-**Status:** needs-info (until open-itens 114 is on main; then ready-for-agent)
+**Status:** ready-for-agent
 
 - [ ] Failing tests first: Rust unit tests for the pure content functions; TS tests with real stores, mocking only `invoke` and plugin-fs.
 - [ ] Rust command, all-or-nothing per file: a batch of `{anchor, expected_line, new_line}` replacements, `{after_heading | end, lines}` inserts and `{anchor, expected_line}` removals. Returns `stale` and writes nothing when an anchor is missing, appears twice, or its line differs; refuses an insert whose anchor already exists in the file. A move within one file is one call.
