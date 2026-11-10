@@ -287,18 +287,30 @@ function tokenize(text: string): Token[] {
 }
 
 /**
+ * The block id that ends a task text (` ^id`, trailing whitespace allowed),
+ * without its space; null without one. Only the end of the line counts
+ * (`live-preview/parsers/block-reference.ts`). The parser keeps it in the
+ * description, but it is no part of the Todoist content.
+ */
+export function trailingBlockId(text: string): string | null {
+	return / (\^[\w-]+)\s*$/u.exec(text)?.[1] ?? null;
+}
+
+/**
  * Replaces the description words of a task line (design rule 4). Links count
  * as words, since the parser keeps them in the description; the span from
  * the first to the last word is replaced. Returns a conflict instead of a
  * line when a tag, link or signifier sits between the first and the last
  * word, since replacing the span would lose it; also when there is no word.
  * Tokens before the first word (`- [ ] #todoist Call Bob`) or after the last
- * stay in place. Returns null for a non-task line.
+ * stay in place, and so does a block id that ends the line. Returns null for
+ * a non-task line.
  */
 export function replaceDescription(line: string, description: string): DescriptionPatch | null {
 	const parts = splitTaskLine(line);
 	if (!parts) return null;
 	const tokens = tokenize(parts.text);
+	if (trailingBlockId(parts.text) !== null && tokens.at(-1)?.kind === 'word') tokens.pop();
 	const wordIndexes = tokens.flatMap((t, i) => (t.kind === 'word' || t.kind === 'link' ? [i] : []));
 	if (wordIndexes.length === 0) return { kind: 'conflict', reason: 'no-description' };
 	const first = wordIndexes[0];

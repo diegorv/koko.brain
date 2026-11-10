@@ -349,6 +349,13 @@ describe('replaceDescription', () => {
 		});
 	});
 
+	it('keeps a block id that ends the line last, outside the replaced words', () => {
+		expect(replaceDescription('- [ ] Call Bob 🆔 td-x1 ^abc', 'Ring Bob')).toEqual({ kind: 'line', line: '- [ ] Ring Bob 🆔 td-x1 ^abc' });
+		expect(replaceDescription('- [ ] Call Bob ^abc-1  ', 'Ring Bob')).toEqual({ kind: 'line', line: '- [ ] Ring Bob ^abc-1  ' });
+		expect(replaceDescription('- [ ] Call ^abc Bob 🆔 td-x1', 'Ring')).toEqual({ kind: 'line', line: '- [ ] Ring 🆔 td-x1' });
+		expect(replaceDescription('- [ ] 🆔 td-x1 ^abc', 'x')).toEqual({ kind: 'conflict', reason: 'no-description' });
+	});
+
 	it('replaces a link that is the first word, since it is part of the description', () => {
 		expect(replaceDescription('- [ ] [[Bob]] call today', '[[Bob]] call tomorrow')).toEqual({
 			kind: 'line',

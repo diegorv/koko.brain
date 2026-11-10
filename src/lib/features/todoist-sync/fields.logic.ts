@@ -19,7 +19,7 @@ import {
 	type RemoteBase,
 	type ScannedLine,
 } from './pull.logic.js';
-import { contentRoundTripProblem, replaceDescription, type PriorityEmoji } from './task-line.logic.js';
+import { contentRoundTripProblem, replaceDescription, trailingBlockId, type PriorityEmoji } from './task-line.logic.js';
 
 /**
  * Todoist's limit on task content (design rule 13), counted here in code
@@ -143,6 +143,10 @@ type FieldPatch = Pick<LineChange, 'description' | 'dueDate' | 'priority' | 'add
  * A link whose content the round-trip check flagged (`remote_base`, or a
  * `local_base` holding raw inserted content) pushes nothing.
  *
+ * A block id that ends the line (` ^abc`) is no part of the content: the
+ * text is compared and pushed without it, and Todoist text written into the
+ * line leaves it last.
+ *
  * "Close or reopen planned" means a command in `completion.commands`: when
  * the caller drops commands over the cap, those links get field sync this
  * cycle, and their status base is left as stored, so the push is planned
@@ -221,6 +225,11 @@ function planLink(
 	excludedLabels: ReadonlySet<string>,
 ): LinkPlan {
 	const fields = line.fields!;
+	// The description as Todoist content: a block id ending the line is left out, also from a base that kept it (a create's).
+	const blockId = trailingBlockId(line.line);
+	const contentOf = (text: string) => (blockId !== null && text.endsWith(` ${blockId}`) ? text.slice(0, -blockId.length - 1) : text);
+	const description = contentOf(fields.description);
+	const baseDescription = contentOf(localBase.description);
 	const patch: FieldPatch = {};
 	// The marker is kept only while the line still holds that same unsendable text (set again below).
 	const { unpushedDescription, ...kept } = localBase;
@@ -237,7 +246,7 @@ function planLink(
 		remote.contentProblem = problem;
 		if (problem) {
 			log.push({ kind: 'content-roundtrip', anchor, message: `The new Todoist content does not survive a parse back (${problem}); the line keeps its text` });
-		} else if (fields.description === item.content) {
+		} else if (description === item.content) {
 			local.description = item.content;
 		} else if (contentRoundTripProblem(localBase.description) !== null) {
 			// The line was inserted from content that failed the round trip (`pulledTask` keeps it raw in
@@ -249,13 +258,13 @@ function planLink(
 			});
 		} else {
 			const replaced = replaceDescription(`- [ ] ${line.line}`, item.content);
-			const brainChanged = fields.description !== localBase.description;
+			const brainChanged = description !== baseDescription;
 			if (replaced?.kind === 'line') {
-				if (brainChanged) conflict('text', fields.description);
+				if (brainChanged) conflict('text', description);
 				patch.description = item.content;
 				local.description = item.content;
 			} else {
-				const brain = brainChanged ? `; the brain text changed too and is not sent: ${JSON.stringify(fields.description)}` : '';
+				const brain = brainChanged ? `; the brain text changed too and is not sent: ${JSON.stringify(description)}` : '';
 				log.push({
 					kind: 'description-conflict',
 					anchor,
@@ -263,9 +272,9 @@ function planLink(
 				});
 				// Neither side's text wins: the brain text is taken as seen so it is not pushed over Todoist's later.
 				// An unsendable one is kept in the marker, and the base takes Todoist's text so a revert is pushed.
-				if (contentRoundTripProblem(fields.description) === null) local.description = fields.description;
+				if (contentRoundTripProblem(description) === null) local.description = description;
 				else {
-					local.unpushedDescription = fields.description;
+					local.unpushedDescription = description;
 					local.description = item.content;
 				}
 			}
@@ -336,8 +345,8 @@ function planLink(
 	const okLocal: Partial<LocalBase> = {};
 	const okRemote: Partial<RemoteBase> = {};
 
-	if (!contentChanged && fields.description !== local.description) {
-		const text = fields.description;
+	if (!contentChanged && description !== contentOf(local.description)) {
+		const text = description;
 		const problem = [...text].length > MAX_CONTENT_LENGTH ? 'over 500 characters' : contentRoundTripProblem(text);
 		if (text === remote.content) {
 			local.description = text;

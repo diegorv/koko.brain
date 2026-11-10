@@ -66,23 +66,25 @@ export interface DetachPlan {
 }
 
 /**
- * Plans the detaches of one cycle. Per link not yet detached that has a
- * Todoist id:
+ * Plans the detaches of one cycle. Per link not yet detached:
  * - its item reported deleted, in a project reported deleted (the item's
  *   project, else the one in `remote_base`), or in a known, live project
  *   outside the vault's tree, or its line moved out of sync scope
  *   (`outOfScope`): detached at once;
  * - no line in the scan: one more miss, detached on the third in a row;
  * - its line back after a miss: the count resets.
- * An item the pulls did not report counts as unchanged, never as deleted.
- * A detach clears `pending_cmd`, so nothing is sent for it.
+ * A pending add (no Todoist id yet) has no item and no `remote_base`, so
+ * only its misses count: a line deleted before Todoist got the task
+ * detaches like any other. An item the pulls did not report counts as
+ * unchanged, never as deleted. A detach clears `pending_cmd`, so nothing is
+ * sent for it.
  */
 export function planDetach(input: DetachInput): DetachPlan {
 	const plan: DetachPlan = { links: [], detached: [], log: [] };
 	const deletedProjects = new Set(input.projects.filter((p) => p.isDeleted).map((p) => p.id));
 	for (const link of input.links) {
-		if (isDetached(link) || link.todoistId === null) continue;
-		const item = input.items.get(link.todoistId);
+		if (isDetached(link)) continue;
+		const item = link.todoistId === null ? undefined : input.items.get(link.todoistId);
 		const hasLine = (input.occurrences.get(link.anchor)?.length ?? 0) > 0;
 		const projectId = item?.projectId ?? (link.remoteBase ? (JSON.parse(link.remoteBase) as { projectId?: string }).projectId : undefined);
 		let reason: string | null = null;

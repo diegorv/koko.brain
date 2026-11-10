@@ -359,6 +359,31 @@ export function pairPendingAdds(input: PairInput): PairPlan {
 	return plan;
 }
 
+/** A brain-born anchor, as `generateAnchor` makes it: `td-` plus 8 base36 chars. */
+const BRAIN_BORN_ANCHOR = /^td-[0-9a-z]{8}$/u;
+
+/**
+ * One `orphan-anchor` entry per brain-born anchor in the scan that no link
+ * owns and no item names in its `kokobrain:` line, at its first line. Such a
+ * line is left by a cycle that stopped after writing the anchor and before
+ * storing its pending add (a crash, a vault switch): it is never created,
+ * since it carries an anchor, so the entry tells the user how to recover.
+ * @param owned - anchors with a link row, this cycle's pairs included
+ */
+export function orphanAnchorLog(occurrences: ReadonlyMap<string, readonly ScannedLine[]>, owned: ReadonlySet<string>, items: Iterable<PullItem>): TodoistSyncLogInput[] {
+	const named = new Set<string | null>([...items].map((i) => kokobrainAnchor(i.description)));
+	const log: TodoistSyncLogInput[] = [];
+	for (const [anchor, lines] of occurrences) {
+		if (!BRAIN_BORN_ANCHOR.test(anchor) || owned.has(anchor) || named.has(anchor)) continue;
+		log.push({
+			kind: 'orphan-anchor',
+			anchor,
+			message: `${lines[0].relPath}:${lines[0].lineNumber}: the line's 🆔 ${anchor} has no sync link and no Todoist task, so it does not sync; remove its 🆔 to create it in Todoist`,
+		});
+	}
+	return log;
+}
+
 /**
  * Appends the anchor token to a task line (before a trailing block id and
  * trailing whitespace), for a line that carries no `🆔` yet. Null for a line

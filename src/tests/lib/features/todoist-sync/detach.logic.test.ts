@@ -169,13 +169,25 @@ describe('planDetach: vault side', () => {
 		expect(planDetach(input([link('a')], seen('td-a'), [item('a')]))).toEqual({ links: [], detached: [], log: [] });
 	});
 
-	it('leaves detached links and links without a Todoist id alone', () => {
-		const detached = link('a', { missCount: 3 });
-		const pendingAdd = link('b', { todoistId: null });
-
-		const plan = planDetach(input([detached, pendingAdd], seen(), [item('a', { isDeleted: true })]));
+	it('leaves detached links alone', () => {
+		const plan = planDetach(input([link('a', { missCount: 3 })], seen(), [item('a', { isDeleted: true })]));
 
 		expect(plan).toEqual({ links: [], detached: [], log: [] });
+	});
+
+	it('counts misses for a pending add (no Todoist id yet) and detaches it on the third, clearing its command', () => {
+		const pending = (missCount: number) => link('b', { todoistId: null, remoteBase: null, pendingUuid: 'u', pendingCmd: '{"type":"item_add"}', missCount });
+
+		expect(planDetach(input([pending(0)], seen())).links).toEqual([pending(1)]);
+		expect(planDetach(input([pending(1)], seen('td-b'))).links).toEqual([pending(0)]);
+		const three = planDetach(input([pending(2)], seen()));
+
+		expect(three.links).toEqual([{ ...pending(3), pendingCmd: null }]);
+		expect(three.detached).toEqual(['td-b']);
+		expect(three.log).toEqual([expect.objectContaining({ kind: 'detach', anchor: 'td-b', message: expect.stringContaining('not found in the vault') })]);
+		// Detached, it leaves the brake's denominator: 1 of 2 active lines seen instead of 1 of 3.
+		expect(belowLineBrake([link('a'), link('c'), pending(2)], seen('td-a'))).toBe(true);
+		expect(belowLineBrake([link('a'), link('c'), ...three.links], seen('td-a'))).toBe(false);
 	});
 
 	it('detaches a deleted item at once even when its line is gone too', () => {

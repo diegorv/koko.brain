@@ -3,6 +3,7 @@ import type { TodoistTaskLink } from '#lib/contracts/index.js';
 import {
 	ackedLink,
 	addAnchor,
+	orphanAnchorLog,
 	pairPendingAdds,
 	parsePendingAdd,
 	planCreates,
@@ -421,6 +422,28 @@ describe('pairPendingAdds', () => {
 
 		expect(out.links).toEqual([]);
 		expect(out.heldItemIds.size).toBe(0);
+	});
+});
+
+describe('orphanAnchorLog', () => {
+	const at = (anchor: string, lineNumber = 4) => line(`Call Bob 🆔 ${anchor}`, { lineNumber });
+
+	it('logs a brain-born anchor with no link and no item naming it, once, at its first line', () => {
+		const occurrences = new Map([['td-abcd1234', [at('td-abcd1234', 7), at('td-abcd1234', 9)]]]);
+
+		expect(orphanAnchorLog(occurrences, new Set(), [])).toEqual([
+			{ kind: 'orphan-anchor', anchor: 'td-abcd1234', message: expect.stringMatching(/^Todoist\/Work\.md:7: .*remove its 🆔 to create it in Todoist$/u) },
+		]);
+	});
+
+	it('skips an owned anchor, one an item names in its kokobrain: line, and anchors that are not brain-born', () => {
+		const occurrences = new Map(['td-owned123', 'td-named123', 'td-w1', 'td-ABCD1234', 'td-abcd12345'].map((a) => [a, [at(a)]]));
+
+		expect(orphanAnchorLog(occurrences, new Set(['td-owned123']), [item('x', { description: 'notes\nkokobrain:td-named123' })])).toEqual([]);
+	});
+
+	it('logs nothing for an empty scan', () => {
+		expect(orphanAnchorLog(new Map(), new Set(), [])).toEqual([]);
 	});
 });
 

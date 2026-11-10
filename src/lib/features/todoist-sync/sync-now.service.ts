@@ -34,7 +34,16 @@ import {
 	type LineChange,
 	type PlannedCommand,
 } from './completion.logic.js';
-import { ackedLink, addAnchor, pairPendingAdds, planCreates, type CreatePlan, type PendingAdd, type PlannedCreate } from './create.logic.js';
+import {
+	ackedLink,
+	addAnchor,
+	orphanAnchorLog,
+	pairPendingAdds,
+	planCreates,
+	type CreatePlan,
+	type PendingAdd,
+	type PlannedCreate,
+} from './create.logic.js';
 import { belowLineBrake, DETACH_AFTER_MISSES, isDetached, planDetach } from './detach.logic.js';
 import { planFields, type PlannedUpdate } from './fields.logic.js';
 import { readNoteContent, writeTaskLinesToNote } from './note-writer.service.js';
@@ -455,6 +464,10 @@ async function cycle(
 		...completion.log,
 		...moves.log,
 		...(mode === 'manual' ? creates.log : []),
+		// Rebuild mode logs every unpaired line as `unmatched` already.
+		...(mode === 'manual' && plan.mode === 'normal'
+			? orphanAnchorLog(scan.occurrences, new Set([...current.keys(), ...plan.pairedLinks.map((l) => l.anchor)]), items.values())
+			: []),
 	];
 	for (const note of plan.createNotes) {
 		assertVault(vaultRoot);

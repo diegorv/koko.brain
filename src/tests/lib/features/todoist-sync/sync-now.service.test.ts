@@ -785,6 +785,20 @@ describe('syncNow: edits from Todoist', () => {
 		expect(remoteBase('td-w2').due).toMatchObject({ string: 'every 2 weeks' });
 	});
 
+	it('keeps a trailing block id last when the content changes; the next cycle is quiet', async () => {
+		await syncNow('manual');
+		edit('Todoist/Work.md', W1_OPEN, `${W1_OPEN} ^abc`);
+		server.updateItem('w1', { content: 'Plan the launch' });
+
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan the launch 🔺 #deep 🆔 td-w1 ^abc\n');
+		expect(commandRequests()).toEqual([]);
+		expect(vault.log).toEqual([]);
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+		expect(commandRequests()).toEqual([]);
+	});
+
 	it('writes a content change and a completion of the same task as one patch', async () => {
 		await syncNow('manual');
 		server.updateItem('w1', { content: 'Planned', checked: true });
@@ -820,6 +834,23 @@ describe('syncNow: edits from the brain', () => {
 		expect(commandRequests()).toHaveLength(1);
 		expect(vault.files).toEqual(files);
 		expect(vault.writes).toHaveLength(writes);
+		expect(vault.log).toEqual([]);
+	});
+
+	it('pushes a text edit on a line ending in a block id without it; the next cycle is quiet', async () => {
+		await syncNow('manual');
+		edit('Todoist/Work.md', W1_OPEN, `${W1_OPEN} ^abc`);
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+		edit('Todoist/Work.md', `${W1_OPEN} ^abc`, '- [ ] Plan more 🔺 #deep 🆔 td-w1 ^abc');
+
+		await syncNow('manual');
+
+		expect(commandRequests().flatMap((r) => r.commands!)).toEqual([expect.objectContaining({ type: 'item_update', args: { id: 'w1', content: 'Plan more' } })]);
+		expect(server.item('w1')).toMatchObject({ content: 'Plan more' });
+		const files = new Map(vault.files);
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+		expect(commandRequests()).toHaveLength(1);
+		expect(vault.files).toEqual(files);
 		expect(vault.log).toEqual([]);
 	});
 
@@ -1706,6 +1737,34 @@ describe('syncNow: a create whose response is lost', () => {
 		expect(vault.links.get(anchor)!.todoistId).toBe(itemsNamed('Call Bob')[0].id);
 	});
 
+	it('detaches a pending add whose line was deleted after 3 missing scans, and never sends it', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob');
+		fake.current = {
+			fetch(url, init) {
+				if (String(init?.body).includes('"commands"')) return Promise.reject(new TypeError('Network request failed'));
+				return server.fetch(url, init);
+			},
+		};
+		expect((await syncNow('manual')).ok).toBe(false);
+		const anchor = bornAnchor('Todoist/Work.md', '- [ ] Call Bob');
+		edit('Todoist/Work.md', `- [ ] Call Bob 🆔 ${anchor}\n`, '');
+		fake.current = server;
+
+		await syncNow('manual');
+		await syncNow('manual');
+		expect(missCount(anchor)).toBe(2);
+		expect(detachLog(anchor)).toEqual([]);
+		await syncNow('manual');
+
+		expect(vault.links.get(anchor)).toMatchObject({ todoistId: null, pendingCmd: null, missCount: 3 });
+		expect(detachLog(anchor)).toEqual([expect.objectContaining({ message: expect.stringContaining('not found in the vault') })]);
+		addToWork(`- [ ] Call Bob 🆔 ${anchor}`);
+		await syncNow('manual');
+		expect(adds()).toEqual([]);
+		expect(itemsNamed('Call Bob')).toEqual([]);
+	});
+
 	it('pairs brain-born tasks by their kokobrain: line in rebuild mode after the sync state is lost', async () => {
 		await syncNow('manual');
 		addToWork('- [ ] Call Bob');
@@ -1741,6 +1800,21 @@ describe('syncNow: creates that never happen', () => {
 
 		expect(adds()).toEqual([]);
 		expect(vault.links.get('td-w1')!.missCount).toBe(3);
+	});
+
+	it('logs a brain-born anchor with no link and no task on manual cycles only, and never creates it', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Orphan 🆔 td-zzzzzzzz');
+		const orphanLog = () => vault.log.filter((e) => e.kind === 'orphan-anchor');
+
+		await syncNow('auto');
+		await syncNow('auto');
+		expect(orphanLog()).toEqual([]);
+		await syncNow('manual');
+
+		expect(orphanLog()).toEqual([expect.objectContaining({ anchor: 'td-zzzzzzzz', message: expect.stringContaining('remove its 🆔') })]);
+		expect(adds()).toEqual([]);
+		expect(vault.links.has('td-zzzzzzzz')).toBe(false);
 	});
 
 	it('treats a refused item_add as terminal: logged, the line detached and kept, never resent', async () => {

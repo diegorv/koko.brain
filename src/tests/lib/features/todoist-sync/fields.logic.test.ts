@@ -204,6 +204,27 @@ describe('planFields: content', () => {
 		expect(written(plan, text)).toBe('- [ ] Plan C 🔺 📅 2026-11-13 #deep 🆔 td-a');
 		expect(plan.log).toEqual([expect.objectContaining({ kind: 'conflict', message: expect.stringContaining('Plan B') })]);
 	});
+
+	it('keeps a trailing block id last on the line and out of the bases', () => {
+		const text = `${LINE} ^abc`;
+		const plan = planFields(input(link(), [line(text, { description: 'Plan ^abc' })], [item({ content: 'Plan the launch' })]), EMPTY);
+
+		expect(written(plan, text)).toBe('- [ ] Plan the launch 🔺 📅 2026-11-13 #deep 🆔 td-a ^abc');
+		expect(local(plan.links[0]).description).toBe('Plan the launch');
+		expect(plan.log).toEqual([]);
+		expect(rerun(plan, line('Plan the launch 🔺 📅 2026-11-13 #deep 🆔 td-a ^abc', { description: 'Plan the launch ^abc' }), item({ content: 'Plan the launch' }))).toEqual(EMPTY);
+	});
+
+	it('pulls a Todoist text edit without a conflict when the local base of a create kept the block id', () => {
+		const text = `${LINE} ^abc`;
+		const plan = planFields(
+			input(link({ local: localBase({ description: 'Plan ^abc' }) }), [line(text, { description: 'Plan ^abc' })], [item({ content: 'Plan the launch' })]),
+			EMPTY,
+		);
+
+		expect(written(plan, text)).toBe('- [ ] Plan the launch 🔺 📅 2026-11-13 #deep 🆔 td-a ^abc');
+		expect(plan.log).toEqual([]);
+	});
 });
 
 describe('planFields: due', () => {
@@ -397,6 +418,29 @@ describe('planFields: pushes from the brain', () => {
 
 		expect(plan.updates).toEqual([]);
 		expect(local(plan.links[0]).description).toBe('Plan');
+	});
+
+	it('pushes the text without a block id that ends the line; the echo next cycle plans nothing', () => {
+		const text = 'Plan more 🔺 📅 2026-11-13 #deep 🆔 td-a ^abc';
+		const scanned = line(text, { description: 'Plan more ^abc' });
+		const plan = planFields(input(link(), [scanned], [item()]), EMPTY);
+
+		const u = update(plan);
+		expect(u.args).toEqual({ id: 'a', content: 'Plan more' });
+		expect(planFields(input(u.okLink, [scanned], [item({ content: 'Plan more' })]), EMPTY)).toEqual(EMPTY);
+	});
+
+	it('pushes nothing for a block id added at the end, or kept raw in the local base of a create', () => {
+		const text = `${LINE} ^abc`;
+
+		expect(planFields(input(link(), [line(text, { description: 'Plan ^abc' })], [item()]), EMPTY)).toEqual(EMPTY);
+		expect(planFields(input(link({ local: localBase({ description: 'Plan ^abc' }) }), [line(text, { description: 'Plan ^abc' })], [item()]), EMPTY)).toEqual(EMPTY);
+	});
+
+	it('pushes a ^word that does not end the line as part of the text', () => {
+		const plan = planFields(input(link(), [line('Plan ^abc 🔺 📅 2026-11-13 #deep 🆔 td-a', { description: 'Plan ^abc' })], [item()]), EMPTY);
+
+		expect(update(plan).args).toEqual({ id: 'a', content: 'Plan ^abc' });
 	});
 
 	it('keeps the time of a timed due and the timezone when the 📅 moves', () => {
