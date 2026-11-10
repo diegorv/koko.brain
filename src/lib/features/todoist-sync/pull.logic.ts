@@ -199,7 +199,7 @@ const ALWAYS_EXCLUDED_LABELS = ['todoist', 'work', 'personal'];
 const DUE_DATE_RE = /^\d{4}-\d{2}-\d{2}/u;
 
 /** Todoist priority -> line emoji (`PRIORITY_EMOJIS` order). */
-const PRIORITY_EMOJI: Partial<Record<TaskPriority, PriorityEmoji>> = { highest: '🔺', high: '⏫', medium: '🔼' };
+export const PRIORITY_EMOJI: Partial<Record<TaskPriority, PriorityEmoji>> = { highest: '🔺', high: '⏫', medium: '🔼' };
 
 /**
  * The sync folder as used for paths: trimmed, empty and `.` segments dropped
@@ -275,6 +275,11 @@ export function excludedLabelSet(defaultLabel: string): Set<string> {
 	return set;
 }
 
+/** The labels written as tags (rule 8): a whole tag name, not excluded (compared lower-cased). */
+export function mappedLabels(labels: readonly string[], excludedLabels: ReadonlySet<string>): string[] {
+	return labels.filter((l) => isTaskTagName(l) && !excludedLabels.has(l.toLowerCase()));
+}
+
 /**
  * The line for an open Todoist task, with its bases:
  * `- [ ] <content> <priority> 📅 <date> 🔁 <rule> #tags 🆔 td-<id>`, only
@@ -282,26 +287,37 @@ export function excludedLabelSet(defaultLabel: string): Set<string> {
  * tag name and it is not excluded; the rest stay in `unmappedLabels`.
  * Content that would not survive a parse back is written as-is (a newline
  * becomes a space, which a line cannot hold) and flagged. CR and LF in the
- * recurrence text become spaces; a due whose date does not start with
- * `YYYY-MM-DD` is left out of the line and flagged as `dueProblem`.
+ * recurrence text become spaces; recurrence text holding a signifier emoji
+ * or `#` is left out (the `📅` stays) and flagged as `recurrenceProblem`,
+ * since the parser would read those as the line's metadata. A due whose
+ * date does not start with `YYYY-MM-DD` is left out of the line and flagged
+ * as `dueProblem`.
  */
 export function pulledTask(
 	item: PullItem,
 	excludedLabels: ReadonlySet<string>,
-): { line: string; localBase: LocalBase; remoteBase: RemoteBase; contentProblem: RoundTripProblem | null; dueProblem: boolean } {
+): {
+	line: string;
+	localBase: LocalBase;
+	remoteBase: RemoteBase;
+	contentProblem: RoundTripProblem | null;
+	dueProblem: boolean;
+	recurrenceProblem: boolean;
+} {
 	const contentProblem = contentRoundTripProblem(item.content);
 	const content = item.content.replace(/\r\n|\r|\n/gu, ' ');
-	const tags = item.labels.filter((l) => isTaskTagName(l) && !excludedLabels.has(l.toLowerCase()));
+	const tags = mappedLabels(item.labels, excludedLabels);
 	const unmappedLabels = item.labels.filter((l) => !tags.includes(l));
 	const priority = mapPriorityFromTodoist(item.priority);
 	const dueProblem = item.due !== null && !DUE_DATE_RE.test(item.due.date);
 	const due = dueProblem ? null : item.due;
 	const dueDate = due ? due.date.slice(0, 10) : null;
+	const recurrenceProblem = Boolean(due?.isRecurring) && !isSafeRecurrenceText(due!.string);
 	const parts = [
 		content,
 		priority ? PRIORITY_EMOJI[priority] : undefined,
 		dueDate ? `📅 ${dueDate}` : undefined,
-		due?.isRecurring ? `🔁 ${due.string.replace(/\r\n|\r|\n/gu, ' ')}` : undefined,
+		due?.isRecurring && !recurrenceProblem ? `🔁 ${due.string.replace(/\r\n|\r|\n/gu, ' ')}` : undefined,
 		...tags.map((t) => `#${t}`),
 		anchorToken(anchorForTodoistId(item.id)),
 	].filter((p): p is string => p !== undefined && p !== '');
@@ -311,7 +327,13 @@ export function pulledTask(
 		remoteBase: remoteBaseOf(item, unmappedLabels, contentProblem),
 		contentProblem,
 		dueProblem,
+		recurrenceProblem,
 	};
+}
+
+/** Whether a Todoist `due.string` can be written after `🔁`: no signifier emoji and no `#` the parser would read as metadata. */
+function isSafeRecurrenceText(text: string): boolean {
+	return !hasSignifier(text) && !text.includes('#');
 }
 
 function remoteBaseOf(item: PullItem, unmappedLabels: string[], contentProblem: RoundTripProblem | null): RemoteBase {
@@ -441,6 +463,13 @@ export function planPull(input: PullInput): PullPlan {
 		}
 		if (task.dueProblem) {
 			plan.log.push({ kind: 'due-dropped', anchor: own, message: `Todoist task ${item.id} has a due date that is not YYYY-MM-DD; the due is left out` });
+		}
+		if (task.recurrenceProblem) {
+			plan.log.push({
+				kind: 'recurrence-dropped',
+				anchor: own,
+				message: `The recurrence of Todoist task ${item.id} holds a task signifier or #; the 🔁 text is left out of the line`,
+			});
 		}
 		if (task.contentProblem) {
 			plan.log.push({

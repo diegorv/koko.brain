@@ -140,6 +140,17 @@ describe('planCompletion: brain changes', () => {
 		expect(plan.log).toEqual([expect.objectContaining({ kind: 'close-dropped', anchor: 'td-a' })]);
 	});
 
+	it('still closes a non-recurring task whose due Todoist moved', () => {
+		const once: PullDue = { date: '2026-11-13', string: 'Nov 13', isRecurring: false };
+		const l = link({ local: localBase({ dueDate: '2026-11-13' }), remote: remoteBase({ due: once }) });
+
+		const plan = planCompletion(input(l, [line('x')], [item({ due: { ...once, date: '2026-11-20' } })]));
+
+		expect(plan.commands).toEqual([expect.objectContaining({ pending: expect.objectContaining({ type: 'item_close' }) })]);
+		expect(plan.lineChanges).toEqual([]);
+		expect(plan.log).toEqual([]);
+	});
+
 	it('logs a pending command cleared because the line no longer wants it', () => {
 		const plan = planCompletion(input(link({ pendingCmd: JSON.stringify({ uuid: 'u', type: 'item_close' }) }), [line(' ')], [item()]));
 
@@ -326,6 +337,21 @@ describe('applyLineChange', () => {
 
 	it('removes the 📅 for a null date', () => {
 		expect(applyLineChange('- [x] A 📅 2026-11-13 🆔 td-a', change({ expected: line('x', { line: 'A 📅 2026-11-13 🆔 td-a' }), dueDate: null }))).toBe('- [ ] A 🆔 td-a');
+	});
+
+	it('patches the description, priority and tags, each as one token', () => {
+		const raw = '- [x] #todoist A 🔺 #old 🆔 td-a';
+		const expected = line('x', { line: '#todoist A 🔺 #old 🆔 td-a' });
+
+		expect(applyLineChange(raw, change({ expected, status: null, description: 'A and B', priority: '⏫', removeTags: ['OLD'], addTags: ['new'] }))).toBe(
+			'- [x] #todoist A and B ⏫ #new 🆔 td-a',
+		);
+		expect(applyLineChange(raw, change({ expected, status: null, priority: null }))).toBe('- [x] #todoist A #old 🆔 td-a');
+	});
+
+	it('refuses a description that no longer fits the line', () => {
+		const raw = '- [x] A #mid B 🆔 td-a';
+		expect(applyLineChange(raw, change({ expected: line('x', { line: 'A #mid B 🆔 td-a' }), status: null, description: 'C' }))).toBeNull();
 	});
 
 	it('accepts X for a line scanned as x, and refuses a line edited since the scan', () => {

@@ -290,10 +290,10 @@ function tokenize(text: string): Token[] {
  * Replaces the description words of a task line (design rule 4). Links count
  * as words, since the parser keeps them in the description; the span from
  * the first to the last word is replaced. Returns a conflict instead of a
- * line when a tag, link or unmapped signifier sits before the last word, or
- * a mapped one (`📅`, priority, `🆔`) sits between the first and last word,
- * since replacing the span would lose it; also when there is no word.
- * Returns null for a non-task line.
+ * line when a tag, link or signifier sits between the first and the last
+ * word, since replacing the span would lose it; also when there is no word.
+ * Tokens before the first word (`- [ ] #todoist Call Bob`) or after the last
+ * stay in place. Returns null for a non-task line.
  */
 export function replaceDescription(line: string, description: string): DescriptionPatch | null {
 	const parts = splitTaskLine(line);
@@ -303,11 +303,7 @@ export function replaceDescription(line: string, description: string): Descripti
 	if (wordIndexes.length === 0) return { kind: 'conflict', reason: 'no-description' };
 	const first = wordIndexes[0];
 	const last = wordIndexes[wordIndexes.length - 1];
-	const midSentence = tokens.some(
-		(t, i) =>
-			(i < last && (t.kind === 'tag' || t.kind === 'link' || t.kind === 'unmapped')) ||
-			(i > first && i < last && t.kind === 'mapped')
-	);
+	const midSentence = tokens.some((t, i) => i > first && i < last && t.kind !== 'word');
 	if (midSentence) return { kind: 'conflict', reason: 'mid-sentence' };
 	const { text } = parts;
 	const newText = text.slice(0, tokens[first].start) + description + text.slice(tokens[last].end);

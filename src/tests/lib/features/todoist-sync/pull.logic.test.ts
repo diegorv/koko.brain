@@ -216,6 +216,16 @@ describe('pulledTask', () => {
 		expect(out.dueProblem).toBe(false);
 	});
 
+	it('leaves out recurrence text holding a signifier or #, keeps the 📅, and flags it', () => {
+		for (const string of ['every day 🆔 td-b', 'every day ⏳ 2026-01-01', 'every day #urgent']) {
+			const out = pulledTask(item('h', 'work', 'H', { due: { date: '2026-11-10', string, isRecurring: true } }), EXCLUDED);
+			expect(out.line).toBe('- [ ] H 📅 2026-11-10 🆔 td-h');
+			expect(out.recurrenceProblem).toBe(true);
+			expect(out.remoteBase.due).toMatchObject({ string, isRecurring: true });
+		}
+		expect(pulledTask(item('i', 'work', 'I', { due: { date: '2026-11-10', string: 'every day', isRecurring: true } }), EXCLUDED).recurrenceProblem).toBe(false);
+	});
+
 	it('drops a due whose date is not YYYY-MM-DD and flags it', () => {
 		const out = pulledTask(item('g', 'work', 'G', { due: { date: 'soon\n- [ ] x', string: 'every day', isRecurring: true } }), EXCLUDED);
 		expect(out.line).toBe('- [ ] G 🆔 td-g');
@@ -529,12 +539,12 @@ describe('planPull: hardening', () => {
 		]);
 	});
 
-	it('skips and logs a line whose first 🆔 is not the item anchor', () => {
+	it('leaves recurrence text holding 🆔 out of the line, so the line still reads back as its anchor, and logs it', () => {
 		const due = { date: '2026-11-10', string: 'every day 🆔 td-b', isRecurring: true };
 		const plan = planPull(input({ items: [item('a', 'work', 'A', { due })], links: [link('td-x', 'x')], notes: NOTES }));
 
-		expect(plan.inserts).toEqual([]);
-		expect(plan.log).toEqual([expect.objectContaining({ kind: 'anchor-mismatch', anchor: 'td-a' })]);
+		expect(plan.inserts).toEqual([expect.objectContaining({ lines: ['- [ ] A 📅 2026-11-10 🆔 td-a'] })]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'recurrence-dropped', anchor: 'td-a' })]);
 	});
 
 	it('logs a dropped due', () => {

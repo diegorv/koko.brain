@@ -9,12 +9,17 @@
 import type { TodoistSyncLogInput, TodoistTaskLink } from '#lib/contracts/index.js';
 import { assertSingleLine, type LocalBase, type PullDue, type PullItem, type RemoteBase, type ScannedLine } from './pull.logic.js';
 import {
+	addTag,
 	isClosedStatus,
 	nextStatusChar,
+	removeTag,
+	replaceDescription,
 	setDueDate,
+	setPriority,
 	setTaskStatus,
 	taskLineStatus,
 	taskLineText,
+	type PriorityEmoji,
 	type TaskLineState,
 } from './task-line.logic.js';
 
@@ -41,6 +46,14 @@ export interface LineChange {
 	status: TaskLineState | null;
 	/** New `📅` date, null to remove it, or undefined to keep it. */
 	dueDate?: string | null;
+	/** New description text through `replaceDescription`, or undefined to keep it. */
+	description?: string;
+	/** New priority emoji, null to remove it, or undefined to keep it. */
+	priority?: PriorityEmoji | null;
+	/** Tags to add before the anchor. */
+	addTags?: string[];
+	/** Tags to remove, case-insensitively. */
+	removeTags?: string[];
 }
 
 /** A command to send for one link. */
@@ -86,12 +99,12 @@ export interface CompletionInput {
 }
 
 /** `YYYY-MM-DD` of a due, or null. */
-function dueDay(due: PullDue | null): string | null {
+export function dueDay(due: PullDue | null): string | null {
 	return due && /^\d{4}-\d{2}-\d{2}/u.test(due.date) ? due.date.slice(0, 10) : null;
 }
 
 /** A copy of a due for `remote_base`, the shape `pulledTask` stores. */
-function baseDue(due: PullDue | null): PullDue | null {
+export function baseDue(due: PullDue | null): PullDue | null {
 	if (!due) return null;
 	return {
 		date: due.date,
@@ -128,9 +141,9 @@ function localBaseFromLine(line: ScannedLine): LocalBase | null {
  * - both changed and agree: only the bases move; disagree: Todoist wins,
  *   the brain value is logged;
  * - remote only: the line takes Todoist's status;
- * - local close: `item_close`, unless the remote due moved since the base
- *   (Todoist already closed a recurring occurrence), then the close is
- *   dropped, the line takes Todoist's state and it is logged;
+ * - local close: `item_close`, unless the task is recurring and its remote
+ *   due moved since the base (Todoist already closed an occurrence), then
+ *   the close is dropped, the line takes Todoist's state and it is logged;
  * - local reopen: `item_uncomplete`;
  * - an open recurring item whose date moved gets the new `📅` (rule 7).
  *
@@ -170,8 +183,8 @@ export function planCompletion(input: CompletionInput): CompletionPlan {
 			}
 		} else if (remoteChanged) {
 			status = todoistState;
-		} else if (localChanged && lineClosed && dueMoved) {
-			// Todoist moved the due (for a recurring task: closed an occurrence), so this close would act on a stale one.
+		} else if (localChanged && lineClosed && dueMoved && item.due?.isRecurring) {
+			// Todoist closed an occurrence (or moved it), so this close would act on a stale one.
 			dropped = true;
 			status = todoistState;
 			plan.log.push({ kind: 'close-dropped', anchor: link.anchor, message: 'The brain close was dropped: the Todoist due moved since the last sync' });
@@ -216,7 +229,7 @@ export function planCompletion(input: CompletionInput): CompletionPlan {
  * The item as its `remote_base` last saw it, for a link whose item an
  * incremental pull did not report (so it did not change).
  */
-function unchangedItem(id: string, base: RemoteBase): PullItem {
+export function unchangedItem(id: string, base: RemoteBase): PullItem {
 	return {
 		id,
 		projectId: base.projectId,
@@ -233,7 +246,8 @@ function unchangedItem(id: string, base: RemoteBase): PullItem {
 	};
 }
 
-function sameLink(a: TodoistTaskLink, b: TodoistTaskLink): boolean {
+/** Whether storing `a` over `b` would change nothing: same note, pending command and bases. */
+export function sameLink(a: TodoistTaskLink, b: TodoistTaskLink): boolean {
 	return (
 		a.noteRelPath === b.noteRelPath &&
 		a.pendingCmd === b.pendingCmd &&
@@ -309,14 +323,24 @@ export function terminalLink(link: TodoistTaskLink, line: ScannedLine): TodoistT
  * Applies a line change to the raw line, or returns null when the raw line
  * no longer holds the scanned text and open/closed state (edited since the
  * scan; an index line only knows the canonical status char, so `X` scans as
- * `x`). Throws when the result would hold a line break.
+ * `x`). The description goes first, on the text the plan checked it
+ * against. Throws when the result would hold a line break.
  */
 export function applyLineChange(raw: string, change: LineChange): string | null {
 	const status = taskLineStatus(raw);
 	if (status === null || taskLineText(raw) !== change.expected.line) return null;
 	if (isClosedStatus(status) !== isClosedStatus(change.expected.status)) return null;
-	let out = change.status ? setTaskStatus(raw, change.status)! : raw;
+	let out = raw;
+	if (change.description !== undefined) {
+		const patch = replaceDescription(out, change.description);
+		if (patch?.kind !== 'line') return null;
+		out = patch.line;
+	}
+	if (change.status) out = setTaskStatus(out, change.status)!;
 	if (change.dueDate !== undefined) out = setDueDate(out, change.dueDate)!;
+	if (change.priority !== undefined) out = setPriority(out, change.priority)!;
+	for (const tag of change.removeTags ?? []) out = removeTag(out, tag)!;
+	for (const tag of change.addTags ?? []) out = addTag(out, tag)!;
 	assertSingleLine(out);
 	return out;
 }

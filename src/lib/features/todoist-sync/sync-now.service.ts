@@ -16,6 +16,7 @@ import {
 	type PlannedCommand,
 } from './completion.logic.js';
 import { belowLineBrake, isDetached, planDetach } from './detach.logic.js';
+import { planFields } from './fields.logic.js';
 import { readNoteContent, writeTaskLinesToNote } from './note-writer.service.js';
 import {
 	excludedLabelSet,
@@ -85,9 +86,10 @@ const COMMANDS_PER_REQUEST = 100;
  * (`planPull`). Then deletion (`planDetach`): a link whose task was deleted
  * or moved out of the tree in Todoist, or whose line was missing from 3
  * scans in a row, is detached (kept, never synced again; neither side is
- * deleted). Then completion (`planCompletion`) for the links still attached:
- * lines patched from
- * Todoist, and the links committed with the `sync_token`, close and reopen
+ * deleted). Then completion (`planCompletion`) and the content, due,
+ * priority and label edits made in Todoist (`planFields`) for the links
+ * still attached: lines patched from Todoist, and the links committed with
+ * the `sync_token`, close and reopen
  * pushes stored as `pending_cmd` first. The commands go out in their own
  * requests; after Todoist acknowledges them an incremental pull rewrites
  * those lines (`planAck`). A rerun inserts and rewrites nothing.
@@ -180,6 +182,7 @@ async function cycle(
 	const links = await call('todoist_read_links', { vaultPath: vaultRoot });
 	const scan = await scanVault(vaultRoot, settingsStore.templates.folder);
 	if (belowLineBrake(links, scan.occurrences)) throw new SyncStop(LINES_MISSING, { kind: 'lines-missing' });
+	const excludedLabels = excludedLabelSet(defaultLabel);
 	const plan = planPull({
 		folder,
 		projects,
@@ -189,7 +192,7 @@ async function cycle(
 		links,
 		occurrences: scan.occurrences,
 		notes: scan.notes,
-		excludedLabels: excludedLabelSet(defaultLabel),
+		excludedLabels,
 	});
 	let detach = planDetach({ links: [...byAnchor(links, plan.updatedLinks).values()], occurrences: scan.occurrences, items, treeIds, projects });
 	let skippedDetaches = 0;
@@ -204,8 +207,10 @@ async function cycle(
 		}
 	}
 	const current = byAnchor(links, [...plan.updatedLinks, ...detach.links]);
+	// A detached link never syncs again, so neither planner may see it: not even when its task is back in the tree.
+	const attached = [...current.values()].filter((l) => !isDetached(l));
 	let completion = planCompletion({
-		links: [...current.values()].filter((l) => !isDetached(l)),
+		links: attached,
 		occurrences: scan.occurrences,
 		items,
 		incremental: changes !== null,
@@ -215,7 +220,7 @@ async function cycle(
 	let skippedPushes = 0;
 	if (completion.commands.length > CLOSE_REOPEN_CAP) {
 		if (mode === 'auto') {
-			// Their links stay as stored, so the lines still differ from `local_base` and the next cycle plans the same pushes.
+			// Their status bases stay as stored (`planFields` moves only field bases), so the next cycle plans the same pushes.
 			skippedPushes = completion.commands.length;
 			const skipped = new Set(completion.commands.map((c) => c.anchor));
 			completion = { ...completion, commands: [], links: completion.links.filter((l) => !skipped.has(l.anchor)) };
@@ -224,6 +229,10 @@ async function cycle(
 			throw new SyncStop(CANCELLED, { kind: 'error' });
 		}
 	}
+	completion = planFields(
+		{ links: attached, occurrences: scan.occurrences, items, incremental: changes !== null, treeIds, excludedLabels },
+		completion,
+	);
 
 	const log: TodoistSyncLogInput[] = [...plan.log, ...detach.log, ...completion.log];
 	for (const note of plan.createNotes) {

@@ -340,9 +340,25 @@ describe('replaceDescription', () => {
 		expect(replaceDescription('- [ ] Buy milk', 'Pay $& now')).toEqual({ kind: 'line', line: '- [ ] Pay $& now' });
 	});
 
-	it('returns a conflict for a tag before the last word', () => {
+	it('keeps a tag or unmapped signifier before the first word in place (design rule 4)', () => {
+		expect(replaceDescription('- [ ] #todoist Call Bob', 'Call Bob Smith')).toEqual({ kind: 'line', line: '- [ ] #todoist Call Bob Smith' });
+		expect(replaceDescription('- [ ] ⛔ abc Buy milk', 'Buy bread')).toEqual({ kind: 'line', line: '- [ ] ⛔ abc Buy bread' });
+		expect(replaceDescription('- [ ] ⏳ 2026-01-01 #shop Buy milk 🆔 td-x1', 'Buy bread')).toEqual({
+			kind: 'line',
+			line: '- [ ] ⏳ 2026-01-01 #shop Buy bread 🆔 td-x1',
+		});
+	});
+
+	it('replaces a link that is the first word, since it is part of the description', () => {
+		expect(replaceDescription('- [ ] [[Bob]] call today', '[[Bob]] call tomorrow')).toEqual({
+			kind: 'line',
+			line: '- [ ] [[Bob]] call tomorrow',
+		});
+	});
+
+	it('returns a conflict for a tag between the first and the last word', () => {
 		expect(replaceDescription('- [ ] Buy #shop milk', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
-		expect(replaceDescription('- [ ] #shop Buy milk', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
+		expect(replaceDescription('- [ ] #todoist Buy #shop milk', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
 	});
 
 	it('returns a conflict for a link before the last word', () => {
@@ -354,9 +370,9 @@ describe('replaceDescription', () => {
 		expect(replaceDescription('- [ ] Open https://x.io now', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
 	});
 
-	it('returns a conflict for an unmapped signifier before the last word', () => {
+	it('returns a conflict for an unmapped signifier between the first and the last word', () => {
 		expect(replaceDescription('- [ ] Buy ⏳ 2026-01-01 milk', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
-		expect(replaceDescription('- [ ] ⛔ abc Buy milk', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
+		expect(replaceDescription('- [ ] Buy ⛔ abc milk', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
 	});
 
 	it('returns a conflict for a mapped signifier inside the description', () => {

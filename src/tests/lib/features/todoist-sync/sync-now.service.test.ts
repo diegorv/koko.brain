@@ -639,6 +639,125 @@ describe('syncNow: completion on both sides', () => {
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Report 📅 2026-11-20 🔁 every week 🆔 td-w2');
 		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'close-dropped', anchor: 'td-w2' }));
 	});
+
+	it('closes a non-recurring task rescheduled in Todoist and checked in the brain; the line keeps [x]', async () => {
+		server.updateItem('w1', { due: { is_recurring: false, string: 'Nov 13', date: '2026-11-13', lang: 'en' } });
+		await syncNow();
+		const open = '- [ ] Plan 🔺 📅 2026-11-13 #deep 🆔 td-w1';
+		edit('Todoist/Work.md', open, open.replace('[ ]', '[x]'));
+		server.updateItem('w1', { due: { is_recurring: false, string: 'Nov 20', date: '2026-11-20', lang: 'en' } });
+
+		await syncNow();
+
+		expect(commandRequests()[0].commands).toEqual([expect.objectContaining({ type: 'item_close', args: { id: 'w1' } })]);
+		expect(server.item('w1')).toMatchObject({ checked: true });
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Plan 🔺');
+		expect(vault.log).not.toContainEqual(expect.objectContaining({ kind: 'close-dropped' }));
+	});
+});
+
+describe('syncNow: edits from Todoist', () => {
+	it('writes a content change into the description and keeps the rest of the line', async () => {
+		await syncNow();
+		server.updateItem('w1', { content: 'Plan the launch' });
+
+		const outcome = await syncNow();
+
+		expect(outcome.message).toBe('Todoist sync done: 1 line updated.');
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan the launch 🔺 #deep 🆔 td-w1');
+		expect(localBase('td-w1').description).toBe('Plan the launch');
+		expect(remoteBase('td-w1').content).toBe('Plan the launch');
+		expect(commandRequests()).toEqual([]);
+	});
+
+	it('writes due, priority and label changes as token patches', async () => {
+		await syncNow();
+		server.updateItem('w1', { priority: 2, labels: ['next', 'Work'], due: { is_recurring: false, string: 'Nov 20', date: '2026-11-20', lang: 'en' } });
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan 🔼 📅 2026-11-20 #next 🆔 td-w1');
+		expect(localBase('td-w1')).toMatchObject({ priority: 'medium', dueDate: '2026-11-20', tags: ['next'] });
+		expect(remoteBase('td-w1')).toMatchObject({ priority: 2, labels: ['next', 'Work'], unmappedLabels: ['Work'], due: { date: '2026-11-20' } });
+	});
+
+	it('writes nothing on a second cycle with no change', async () => {
+		await syncNow();
+		server.updateItem('w1', { content: 'Plan more', priority: 3, labels: ['Work'], due: { is_recurring: false, string: 'Nov 20', date: '2026-11-20', lang: 'en' } });
+		await syncNow();
+		const writes = vault.writes.length;
+		const files = new Map(vault.files);
+
+		const outcome = await syncNow();
+
+		expect(outcome.message).toBe('Todoist sync done: nothing new.');
+		expect(vault.writes).toHaveLength(writes);
+		expect(vault.files).toEqual(files);
+	});
+
+	it('writes nothing to the line when the webhook only adds Work', async () => {
+		await syncNow();
+		const writes = vault.writes.length;
+		server.updateItem('q1', { labels: ['Work'] });
+
+		await syncNow();
+
+		expect(vault.writes).toHaveLength(writes);
+		expect(vault.files.get('Todoist/Q4.md')).toContain('- [ ] Ship 🆔 td-q1');
+		expect(remoteBase('td-q1')).toMatchObject({ labels: ['Work'], unmappedLabels: ['Work'] });
+	});
+
+	it('keeps a leading #todoist when the content changes', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, '- [ ] #todoist Plan 🔺 #deep 🆔 td-w1');
+		server.updateItem('w1', { content: 'Plan more' });
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] #todoist Plan more 🔺 #deep 🆔 td-w1');
+	});
+
+	it('leaves a line with a tag inside its text alone, and logs the Todoist text', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan #deep it 🔺 🆔 td-w1');
+		await syncNow();
+		server.updateItem('w1', { content: 'Plan it all' });
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan #deep it 🔺 🆔 td-w1');
+		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'description-conflict', anchor: 'td-w1', message: expect.stringContaining('Plan it all') }));
+	});
+
+	it('does not write content that fails the round trip, and logs it', async () => {
+		await syncNow();
+		server.updateItem('w1', { content: 'Fix #42' });
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_OPEN);
+		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'content-roundtrip', anchor: 'td-w1' }));
+	});
+
+	it('never rewrites the 🔁 text of a recurring task when Todoist changes its rule', async () => {
+		await syncNow();
+		server.updateItem('w2', { due: { ...WEEKLY, string: 'every 2 weeks', date: '2026-11-27' } });
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Report 📅 2026-11-27 🔁 every week 🆔 td-w2');
+		expect(remoteBase('td-w2').due).toMatchObject({ string: 'every 2 weeks' });
+	});
+
+	it('writes a content change and a completion of the same task as one patch', async () => {
+		await syncNow();
+		server.updateItem('w1', { content: 'Planned', checked: true });
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Planned 🔺 #deep 🆔 td-w1');
+		expect(localBase('td-w1')).toMatchObject({ status: 'x', description: 'Planned' });
+	});
 });
 
 describe('syncNow: completion commands', () => {
@@ -708,6 +827,19 @@ describe('syncNow: completion commands', () => {
 		expect(commandRequests()).toEqual([]);
 		expect(vault.links.get('td-w1')!.frozen).toBe(true);
 	});
+
+	it('writes no Todoist edit into a duplicated anchor and keeps its bases', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, `${W1_OPEN}\n${W1_OPEN}`);
+		server.updateItem('w1', { content: 'Plan the launch', priority: 1 });
+		const files = new Map(vault.files);
+
+		await syncNow();
+
+		expect(vault.files).toEqual(files);
+		expect(vault.links.get('td-w1')!.frozen).toBe(true);
+		expect(remoteBase('td-w1')).toMatchObject({ content: 'Plan', priority: 4 });
+	});
 });
 
 describe('syncNow: close/reopen cap', () => {
@@ -774,6 +906,29 @@ describe('syncNow: close/reopen cap', () => {
 		expect(server.item('c1')!.checked).toBe(true);
 	});
 
+	it('keeps a skipped close when an automatic cycle writes a Todoist edit of that task: the next run still pushes it', async () => {
+		await checkMany(26);
+		server.updateItem('c1', { content: 'Chore one', priority: 4 });
+
+		const outcome = await syncNow('auto');
+
+		expect(outcome).toMatchObject({ ok: true, skippedPushes: 26 });
+		expect(commandRequests()).toEqual([]);
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Chore one 🔺 🆔 td-c1');
+		expect(localBase('td-c1')).toMatchObject({ status: ' ', description: 'Chore one', priority: 'highest' });
+		expect(remoteBase('td-c1')).toMatchObject({ checked: false, content: 'Chore one', priority: 4 });
+		expect(vault.links.get('td-c1')!.pendingCmd).toBeNull();
+
+		vi.mocked(ask).mockResolvedValue(true);
+		await syncNow();
+
+		expect(commandRequests().map((r) => r.commands!.length)).toEqual([26]);
+		expect(commandRequests()[0].commands).toContainEqual(expect.objectContaining({ type: 'item_close', args: { id: 'c1' } }));
+		expect(server.item('c1')).toMatchObject({ checked: true, content: 'Chore one' });
+		expect(localBase('td-c1').status).toBe('x');
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Chore one 🔺 🆔 td-c1');
+	});
+
 	it('does not skip at 25 in an automatic cycle', async () => {
 		await checkMany(25);
 
@@ -828,6 +983,18 @@ describe('syncNow: a task deleted in Todoist', () => {
 		expect(commandRequests()).toEqual([]);
 		expect(missCount('td-w1')).toBe(3);
 	});
+
+	it('writes no Todoist edit made together with the deletion', async () => {
+		await syncNow();
+		server.updateItem('w1', { content: 'Plan the launch', priority: 1, is_deleted: true });
+		const files = new Map(vault.files);
+
+		await syncNow();
+
+		expect(vault.files).toEqual(files);
+		expect(missCount('td-w1')).toBe(3);
+		expect(remoteBase('td-w1')).toMatchObject({ content: 'Plan', priority: 4 });
+	});
 });
 
 describe('syncNow: a task moved out of the vault tree', () => {
@@ -864,6 +1031,21 @@ describe('syncNow: a task moved out of the vault tree', () => {
 		expect(missCount('td-w1')).toBe(0);
 		expect(missCount('td-w2')).toBe(0);
 		expect(vault.log.filter((e) => e.kind === 'detach')).toEqual([]);
+	});
+
+	it('never patches a detached line, even when its task moves back into the tree and is edited there', async () => {
+		await syncNow();
+		server.updateItem('w1', { project_id: 'personal' });
+		await syncNow();
+		const detached = vault.links.get('td-w1')!;
+		server.updateItem('w1', { project_id: 'work', content: 'Plan the launch', priority: 1, labels: ['next'] });
+		const files = new Map(vault.files);
+
+		await syncNow();
+
+		expect(vault.files).toEqual(files);
+		expect(vault.links.get('td-w1')).toEqual(detached);
+		expect(commandRequests()).toEqual([]);
 	});
 });
 

@@ -69,12 +69,24 @@ const STATUS: Record<string, TaskStatus> = {
 
 const PRIORITIES: Record<string, TaskPriority> = { '🔺': 'highest', '⏫': 'high', '🔼': 'medium', '🔽': 'low', '⏬': 'lowest' };
 
-/** A rough stand-in for Rust task metadata: `📅`, priority, tags, and the text before the first signifier or tag as the description. */
+/**
+ * A rough stand-in for Rust `parse_task_metadata`: `📅`, priority, tags, and
+ * as the description the text with dates, priorities, the recurrence text,
+ * id, depends-on, on-completion and tags removed, spaces collapsed.
+ */
 function metadataOf(text: string): TaskMetadata {
 	const dueDate = /📅\s*(\d{4}-\d{2}-\d{2})/u.exec(text)?.[1];
 	const priority = Object.entries(PRIORITIES).find(([emoji]) => text.includes(emoji))?.[1];
+	const description = text
+		.replace(/[📅⏳🛫➕✅❌]\s*\d{4}-\d{2}-\d{2}/gu, '')
+		.replace(/🔁[^📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🆔⛔🏁#]*/gu, '')
+		.replace(/[🔺⏫🔼🔽⏬]/gu, '')
+		.replace(/(?:🆔|⛔|🏁)\s*\S+/gu, '')
+		.replace(/#[A-Za-z0-9_][A-Za-z0-9_-]*/gu, '')
+		.replace(/\s+/gu, ' ')
+		.trim();
 	return {
-		description: text.split(/\s(?:[📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🔁🆔⛔🏁]|#)/u)[0].trim(),
+		description,
 		...(dueDate ? { dueDate } : {}),
 		...(priority ? { priority } : {}),
 		tags: [...text.matchAll(/#([A-Za-z0-9_][A-Za-z0-9_-]*)/gu)].map((m) => m[1]),
