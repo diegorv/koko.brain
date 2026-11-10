@@ -38,7 +38,7 @@ function link(id: string, extra: Partial<TodoistTaskLink> = {}): TodoistTaskLink
 }
 
 function line(anchor: string): ScannedLine {
-	return { relPath: 'Todoist/Work.md', lineNumber: 1, line: `T 🆔 ${anchor}`, status: ' ', fields: null };
+	return { relPath: 'Todoist/Work.md', lineNumber: 1, line: `T 🆔 ${anchor}`, status: ' ', fields: null, indent: 0, recurrence: null };
 }
 
 /** Occurrences with one line for each anchor given. */

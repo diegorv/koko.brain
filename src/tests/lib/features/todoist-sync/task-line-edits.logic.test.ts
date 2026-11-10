@@ -119,6 +119,48 @@ describe('applyTaskLineEdits: replace and remove', () => {
 	});
 });
 
+describe('applyTaskLineEdits: replace by line number (first anchor)', () => {
+	const attach = (lineNumber: number, anchor: string, expectedLine: string, newLine: string): TaskLineReplace => ({
+		...replace(anchor, expectedLine, newLine),
+		lineNumber,
+	});
+
+	it('writes the first anchor onto a line that still matches', () => {
+		const e = edits([attach(2, 'td-new', '- [ ] Call Bob', '- [ ] Call Bob 🆔 td-new')], [], []);
+
+		expect(applied(`# Inbox\n- [ ] Call Bob\n${A}\n`, e)).toBe(`# Inbox\n- [ ] Call Bob 🆔 td-new\n${A}\n`);
+	});
+
+	it('is stale when the line changed or moved', () => {
+		const content = '- [ ] Call Bob today\n';
+		for (const r of [
+			attach(1, 'td-new', '- [ ] Call Bob', '- [ ] Call Bob 🆔 td-new'),
+			attach(2, 'td-new', '- [ ] Call Bob today', '- [ ] Call Bob today 🆔 td-new'),
+			attach(0, 'td-new', '- [ ] Call Bob today', '- [ ] Call Bob today 🆔 td-new'),
+		]) {
+			expect(stale(content, edits([r], [], []))).toEqual({ reason: 'lineDiffers', subject: 'td-new' });
+		}
+	});
+
+	it('refuses an anchor already in the note', () => {
+		const e = edits([attach(1, 'td-new', '- [ ] Call Bob', '- [ ] Call Bob 🆔 td-new')], [], []);
+
+		expect(stale('- [ ] Call Bob\n- [ ] Other 🆔 td-new\n', e).reason).toBe('anchorExists');
+	});
+
+	it('mixes with anchored replacements and removals', () => {
+		const e = edits([attach(2, 'td-new', '- [ ] Call Bob', '- [ ] Call Bob 🆔 td-new')], [], [remove('td-a', A)]);
+
+		expect(applied(`${A}\n- [ ] Call Bob\n${B}\n`, e)).toBe(`- [ ] Call Bob 🆔 td-new\n${B}\n`);
+	});
+
+	it('throws when the new line does not carry its anchor', () => {
+		const e = edits([attach(1, 'td-new', '- [ ] Call Bob', '- [ ] Call Bob')], [], []);
+
+		expect(() => applyTaskLineEdits('- [ ] Call Bob\n', e)).toThrow();
+	});
+});
+
 describe('applyTaskLineEdits: insert', () => {
 	it('puts an end insert after the last non-blank line', () => {
 		const e = edits([], [insert(null, ['- [ ] New 🆔 td-c'])], []);

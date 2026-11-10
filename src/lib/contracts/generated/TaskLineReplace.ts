@@ -2,6 +2,7 @@
 
 /**
  * Replaces the one line that carries `anchor`, if it still equals `expected_line`.
+ * With `line_number`, writes a line's first anchor instead (design rule 2).
  */
 export type TaskLineReplace = { 
 /**
@@ -15,4 +16,10 @@ expectedLine: string,
 /**
  * The whole line to write in its place.
  */
-newLine: string, };
+newLine: string, 
+/**
+ * 1-based line of a line that carries no anchor yet: that line is
+ * replaced if it still equals `expected_line` and no line of the note
+ * carries `anchor`, which `new_line` must carry.
+ */
+lineNumber?: number, };

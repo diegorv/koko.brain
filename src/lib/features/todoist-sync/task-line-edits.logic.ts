@@ -28,9 +28,13 @@ const HEADING_RE = /^(#{1,6})\s+([^\n]*)$/u;
  * locate the same line are stale as `anchorDuplicated`. Anchors inside code
  * fences count too: being stale is the safe side.
  *
+ * A replacement with `lineNumber` writes a line's first anchor: that line
+ * must still equal `expectedLine`, and no line may carry the anchor yet.
+ *
  * Throws on a batch the caller built wrong: a new or inserted line with a
- * line break, an anchor named by two replacements or removals, or the same
- * anchor in two inserted lines.
+ * line break, an anchor named by two replacements or removals, the same
+ * anchor in two inserted lines, or a line-number replacement whose new line
+ * does not carry its anchor.
  */
 export function applyTaskLineEdits(content: string, edits: TaskLineEdits): TaskLineEditOutcome {
 	validate(edits);
@@ -42,12 +46,12 @@ export function applyTaskLineEdits(content: string, edits: TaskLineEdits): TaskL
 	const replaced: [number, string][] = [];
 	const removed: number[] = [];
 	const taken = new Set<number>();
-	const located: [string, string, string | null][] = [
-		...edits.replace.map((r): [string, string, string | null] => [r.anchor, r.expectedLine, r.newLine]),
-		...edits.remove.map((r): [string, string, string | null] => [r.anchor, r.expectedLine, null]),
+	const located: [string, string, string | null, number | undefined][] = [
+		...edits.replace.map((r): [string, string, string | null, number | undefined] => [r.anchor, r.expectedLine, r.newLine, r.lineNumber]),
+		...edits.remove.map((r): [string, string, string | null, number | undefined] => [r.anchor, r.expectedLine, null, undefined]),
 	];
-	for (const [anchor, expected, newLine] of located) {
-		const at = locate(lines, anchor, expected);
+	for (const [anchor, expected, newLine, lineNumber] of located) {
+		const at = lineNumber === undefined ? locate(lines, anchor, expected) : locateUnanchored(lines, lineNumber, anchor, expected);
 		if (typeof at !== 'number') return { kind: 'stale', stale: at };
 		if (taken.has(at)) return staleOutcome('anchorDuplicated', anchor);
 		taken.add(at);
@@ -83,6 +87,11 @@ function validate(edits: TaskLineEdits): void {
 		if (named.has(anchor)) throw new Error(`Anchor ${anchor} is named by two edits`);
 		named.add(anchor);
 	}
+	for (const r of edits.replace) {
+		if (r.lineNumber !== undefined && !idValues(r.newLine).includes(r.anchor)) {
+			throw new Error(`The new line for ${r.anchor} does not carry it: ${JSON.stringify(r.newLine)}`);
+		}
+	}
 	const inserted = new Set<string>();
 	for (const anchor of edits.insert.flatMap((i) => i.lines.flatMap(idValues))) {
 		if (inserted.has(anchor)) throw new Error(`Anchor ${anchor} is inserted twice`);
@@ -97,6 +106,14 @@ function locate(lines: readonly string[], anchor: string, expected: string): num
 	if (hits.length > 1) return stale('anchorDuplicated', anchor);
 	if (lines[hits[0]] !== expected) return stale('lineDiffers', anchor);
 	return hits[0];
+}
+
+/** The index of 1-based line `lineNumber`, if it equals `expected` and no line carries `anchor` yet. */
+function locateUnanchored(lines: readonly string[], lineNumber: number, anchor: string, expected: string): number | TaskLinesStale {
+	const at = lineNumber - 1;
+	if (at < 0 || lines[at] !== expected) return stale('lineDiffers', anchor);
+	if (lines.some((line) => idValues(line).includes(anchor))) return stale('anchorExists', anchor);
+	return at;
 }
 
 /**

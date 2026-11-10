@@ -117,6 +117,22 @@ describe('fake Todoist /sync', () => {
 		expect(server.item('timed')!.due).toEqual({ date: '2026-11-20T09:00:00', string: '2026-11-20T09:00:00', is_recurring: false, datetime: '2026-11-20T09:00:00', timezone: null, lang: null });
 	});
 
+	it('adds an item with its due like live-check R, keeping only item fields', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+		const add = (tempId: string, due?: Record<string, string>) =>
+			createCommand('item_add', { content: tempId, projectId: 'p1', labels: ['deep'], priority: 3, autoParseLabels: false, ...(due ? { due } : {}) }, tempId);
+		const commands = [add('plain'), add('dated', { date: '2026-11-16' }), add('weekly', { date: '2026-11-16', string: 'every week', lang: 'en' }), add('rule', { string: 'every month' })];
+
+		const res = await client().sync({ commands });
+		const added = (tempId: string) => server.item(res.tempIdMapping![tempId])!;
+
+		expect(added('plain')).toMatchObject({ content: 'plain', labels: ['deep'], priority: 3, due: null });
+		expect(added('plain')).not.toHaveProperty('auto_parse_labels');
+		expect(added('dated').due).toEqual({ date: '2026-11-16', string: '2026-11-16', is_recurring: false, datetime: null, timezone: null, lang: null });
+		expect(added('weekly').due).toEqual({ date: '2026-11-16', string: 'every week', is_recurring: true, datetime: null, timezone: null, lang: 'en' });
+		expect(added('rule').due).toEqual({ date: '2026-12-01', string: 'every month', is_recurring: true, datetime: null, timezone: null, lang: 'en' });
+	});
+
 	it('closes and reopens through hand-built commands', async () => {
 		server.addProject({ id: 'p1', name: 'Work' });
 		server.addItem({ id: 'i1', project_id: 'p1', content: 'A' });

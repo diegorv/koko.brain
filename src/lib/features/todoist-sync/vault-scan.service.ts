@@ -41,8 +41,9 @@ function fieldsOf(task: Task): LineFields {
  * task index (`get_all_tasks_v2`, read directly rather than through the
  * throttled entries snapshot), except for notes open in a tab, whose current
  * text (unsaved edits included) is read through `readNoteContent` instead.
- * A tab line takes its parsed fields from the index task of the same note
- * with the same text; a line edited since the last save has none.
+ * A tab line takes its parsed fields and recurrence from the index task of
+ * the same note with the same text; a line edited since the last save has
+ * none.
  * Paths outside sync scope (design rule 11) are dropped. Project notes are
  * found by their `todoist_project` frontmatter in `get_all_property_records`.
  * @param vaultRoot - absolute root of the open vault
@@ -60,24 +61,41 @@ export async function scanVault(vaultRoot: string, templatesFolder: string): Pro
 	const openNotes = new Set(tabPaths);
 
 	const lines: ScannedLine[] = [];
-	const indexedFields = new Map<string, Map<string, LineFields>>();
+	const indexed = new Map<string, Map<string, Task>>();
 	for (const group of groups) {
 		const relPath = relative(group.filePath);
 		if (relPath === null || !inScope(relPath)) continue;
 		if (openNotes.has(relPath)) {
-			indexedFields.set(relPath, new Map(group.tasks.map((t) => [t.text, fieldsOf(t)])));
+			indexed.set(relPath, new Map(group.tasks.map((t) => [t.text, t])));
 			continue;
 		}
 		for (const task of group.tasks) {
-			lines.push({ relPath, lineNumber: task.lineNumber, line: task.text, status: STATUS_CHAR[task.status], fields: fieldsOf(task) });
+			lines.push({
+				relPath,
+				lineNumber: task.lineNumber,
+				line: task.text,
+				status: STATUS_CHAR[task.status],
+				fields: fieldsOf(task),
+				indent: task.indent,
+				recurrence: task.metadata.recurrence?.text ?? null,
+			});
 		}
 	}
 	for (const relPath of openNotes) {
 		if (!inScope(relPath)) continue;
 		const content = await readNoteContent(vaultRoot, relPath);
-		const fields = indexedFields.get(relPath);
+		const tasks = indexed.get(relPath);
 		for (const task of extractTaskLines(content)) {
-			lines.push({ relPath, lineNumber: task.lineNumber, line: task.text, status: task.status, fields: fields?.get(task.text) ?? null });
+			const match = tasks?.get(task.text);
+			lines.push({
+				relPath,
+				lineNumber: task.lineNumber,
+				line: task.text,
+				status: task.status,
+				fields: match ? fieldsOf(match) : null,
+				indent: task.indent,
+				recurrence: match?.metadata.recurrence?.text ?? null,
+			});
 		}
 	}
 

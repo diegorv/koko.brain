@@ -9,7 +9,7 @@ import TodoistSyncStatus from '#lib/features/todoist-sync/TodoistSyncStatus.svel
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
 
-const PULL = { kind: 'pull' as const, mode: 'normal' as const, notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0 };
+const PULL = { kind: 'pull' as const, mode: 'normal' as const, notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 };
 
 describe('TodoistSyncStatus', () => {
 	let component: Record<string, unknown> | null = null;

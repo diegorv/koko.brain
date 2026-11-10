@@ -9,6 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 
 /// Replaces the one line that carries `anchor`, if it still equals `expected_line`.
+/// With `line_number`, writes a line's first anchor instead (design rule 2).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
@@ -19,6 +20,12 @@ pub struct TaskLineReplace {
 	pub expected_line: String,
 	/// The whole line to write in its place.
 	pub new_line: String,
+	/// 1-based line of a line that carries no anchor yet: that line is
+	/// replaced if it still equals `expected_line` and no line of the note
+	/// carries `anchor`, which `new_line` must carry.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
+	pub line_number: Option<u32>,
 }
 
 /// Inserts lines under a heading, or at the end of the note.
@@ -144,8 +151,9 @@ pub enum TaskLineEditOutcome {
 /// is the safe side.
 ///
 /// Errors on a batch the caller built wrong: a new or inserted line with a
-/// line break, an anchor named by two replacements or removals, or the same
-/// anchor in two inserted lines.
+/// line break, an anchor named by two replacements or removals, the same
+/// anchor in two inserted lines, or a line-number replacement whose new line
+/// does not carry its anchor.
 pub fn apply_task_line_edits(content: &str, edits: &TaskLineEdits) -> Result<TaskLineEditOutcome, String> {
 	validate(edits)?;
 	let is_empty = edits.replace.is_empty() && edits.insert.is_empty() && edits.remove.is_empty();
@@ -161,10 +169,14 @@ pub fn apply_task_line_edits(content: &str, edits: &TaskLineEdits) -> Result<Tas
 	let located = edits
 		.replace
 		.iter()
-		.map(|r| (&r.anchor, &r.expected_line, Some(r.new_line.as_str())))
-		.chain(edits.remove.iter().map(|r| (&r.anchor, &r.expected_line, None)));
-	for (anchor, expected, new_line) in located {
-		let at = match locate(&lines, anchor, expected) {
+		.map(|r| (&r.anchor, &r.expected_line, Some(r.new_line.as_str()), r.line_number))
+		.chain(edits.remove.iter().map(|r| (&r.anchor, &r.expected_line, None, None)));
+	for (anchor, expected, new_line, line_number) in located {
+		let found = match line_number {
+			Some(n) => locate_unanchored(&lines, n, anchor, expected),
+			None => locate(&lines, anchor, expected),
+		};
+		let at = match found {
 			Ok(at) => at,
 			Err(stale) => return Ok(TaskLineEditOutcome::Stale(stale)),
 		};
@@ -223,6 +235,11 @@ fn validate(edits: &TaskLineEdits) -> Result<(), String> {
 			return Err(format!("Anchor {} is named by two edits", anchor));
 		}
 	}
+	for r in edits.replace.iter().filter(|r| r.line_number.is_some()) {
+		if !anchors(&r.new_line).any(|a| a == r.anchor) {
+			return Err(format!("The new line for {} does not carry it: {:?}", r.anchor, r.new_line));
+		}
+	}
 	let mut inserted = HashSet::new();
 	for anchor in edits.insert.iter().flat_map(|i| i.lines.iter().flat_map(|l| anchors(l))) {
 		if !inserted.insert(anchor) {
@@ -248,6 +265,19 @@ fn locate(lines: &[String], anchor: &str, expected: &str) -> Result<usize, TaskL
 	}
 	if line != expected {
 		return Err(stale(TaskLinesStaleReason::LineDiffers, anchor));
+	}
+	Ok(at)
+}
+
+/// The index of 1-based line `line_number`, if it equals `expected` and no
+/// line carries `anchor` yet.
+fn locate_unanchored(lines: &[String], line_number: u32, anchor: &str, expected: &str) -> Result<usize, TaskLinesStale> {
+	let at = (line_number as usize).wrapping_sub(1);
+	if lines.get(at).is_none_or(|l| l != expected) {
+		return Err(stale(TaskLinesStaleReason::LineDiffers, anchor));
+	}
+	if lines.iter().any(|l| anchors(l).any(|a| a == anchor)) {
+		return Err(stale(TaskLinesStaleReason::AnchorExists, anchor));
 	}
 	Ok(at)
 }

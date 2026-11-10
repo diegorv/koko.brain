@@ -6,6 +6,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 import {
 	autoCycleDelay,
+	autoSyncCreateCapMessage,
 	autoSyncDetachCapMessage,
 	autoSyncFailureMessage,
 	autoSyncFieldCapMessage,
@@ -38,6 +39,7 @@ interface Session {
 const OVER_CAP_TOAST_ID = 'todoist-sync-over-cap';
 const DETACH_CAP_TOAST_ID = 'todoist-sync-detach-cap';
 const FIELD_CAP_TOAST_ID = 'todoist-sync-field-cap';
+const CREATE_CAP_TOAST_ID = 'todoist-sync-create-cap';
 
 const SKIPPED: SyncNowOutcome = { ok: false, message: 'Automatic Todoist sync waits for the first sync.' };
 const STOPPED: SyncNowOutcome = { ok: false, message: 'The Todoist sync was stopped before it ran.' };
@@ -62,6 +64,8 @@ let overCapToasted = false;
 let detachCapToasted = false;
 /** Whether the field push over-cap toast is showing; cleared by a successful cycle that skipped no field push. */
 let fieldCapToasted = false;
+/** Whether the create over-cap toast is showing; cleared by a successful cycle that skipped no create. */
+let createCapToasted = false;
 
 /**
  * Starts the automatic sync for the vault at `vaultPath`: a cycle now (the
@@ -72,7 +76,7 @@ let fieldCapToasted = false;
  * is one Todoist rejected, when another vault is open, and until the sync
  * state has `first_run_done` (design rule 9). A failure shows a persistent
  * toast once per kind until a cycle succeeds. An automatic cycle over the
- * close/reopen or the detach cap never asks: it skips that action class and
+ * close/reopen, field push, detach or create cap never asks: it skips that action class and
  * shows a persistent toast once per class, until a cycle succeeds without
  * skipping it. Replaces a running
  * session.
@@ -98,7 +102,8 @@ export function startAutoSync(vaultPath: string): void {
 
 /**
  * Stops the automatic sync: no trigger fires any more, a queued follow-up is
- * dropped (a waiting "Sync now" resolves as stopped), and the rate-limit,
+ * dropped (a waiting "Sync now" resolves as stopped), the persistent
+ * failure and over-cap toasts it shows are dismissed, and the rate-limit,
  * rejected-token and toast state is cleared. A cycle in progress finishes;
  * its writes stay guarded by `syncNow`'s vault recheck.
  */
@@ -114,10 +119,17 @@ export function stopAutoSync(): void {
 	lastEndedAt = Number.NEGATIVE_INFINITY;
 	blockedUntil = 0;
 	rejectedToken = null;
+	// The toasts belong to this vault: dismissed, so the next vault starts with none on screen.
+	for (const k of toastedKinds) toast.dismiss(toastId(k));
 	toastedKinds.clear();
+	if (overCapToasted) toast.dismiss(OVER_CAP_TOAST_ID);
+	if (detachCapToasted) toast.dismiss(DETACH_CAP_TOAST_ID);
+	if (fieldCapToasted) toast.dismiss(FIELD_CAP_TOAST_ID);
+	if (createCapToasted) toast.dismiss(CREATE_CAP_TOAST_ID);
 	overCapToasted = false;
 	detachCapToasted = false;
 	fieldCapToasted = false;
+	createCapToasted = false;
 }
 
 /**
@@ -229,6 +241,7 @@ function handleOutcome(outcome: SyncNowOutcome, kind: CycleKind, token: string):
 		overCapToasted = capToast(OVER_CAP_TOAST_ID, overCapToasted, outcome.skippedPushes, autoSyncOverCapMessage);
 		detachCapToasted = capToast(DETACH_CAP_TOAST_ID, detachCapToasted, outcome.skippedDetaches, autoSyncDetachCapMessage);
 		fieldCapToasted = capToast(FIELD_CAP_TOAST_ID, fieldCapToasted, outcome.skippedFieldPushes, autoSyncFieldCapMessage);
+		createCapToasted = capToast(CREATE_CAP_TOAST_ID, createCapToasted, outcome.skippedCreates, autoSyncCreateCapMessage);
 		return;
 	}
 	const failure = outcome.failure;

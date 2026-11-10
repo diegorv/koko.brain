@@ -73,6 +73,8 @@ function line(status: string, extra: Partial<ScannedLine> = {}): ScannedLine {
 		line: 'A 🆔 td-a',
 		status,
 		fields: { description: 'A', dueDate: null, priority: null, tags: [] },
+		indent: 0,
+		recurrence: null,
 		...extra,
 	};
 }

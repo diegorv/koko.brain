@@ -123,6 +123,10 @@ export interface ScannedLine {
 	status: string;
 	/** The line's fields as the Rust parser reads them; null when the index has not parsed this text yet. */
 	fields: LineFields | null;
+	/** Indent level: tabs + spaces / 2 (Rust `calculate_indent`); 0 for a top-level task. */
+	indent: number;
+	/** The `🔁` text as the parser reads it; null without one, or when `fields` is null. */
+	recurrence: string | null;
 }
 
 /** The parsed fields of a line that a `local_base` keeps besides the status. */
@@ -197,6 +201,8 @@ export interface PullCounts {
 	linesUpdated: number;
 	/** Close, reopen and field update commands Todoist acknowledged. */
 	todoistUpdated: number;
+	/** Brain-born tasks Todoist created (`item_add` acknowledged). */
+	todoistCreated: number;
 }
 
 /** Labels kept out of the tag mapping besides `defaultLabel` (design rule 8): the scope tag and the context labels. */
@@ -240,11 +246,12 @@ export function projectNoteBaseName(name: string): string {
 }
 
 /**
- * Every task line of a note's content with its 1-based number, its text and
- * its status char, skipping code fences like Rust `extract_tasks`.
+ * Every task line of a note's content with its 1-based number, its text, its
+ * status char and its indent level (Rust `calculate_indent`: tabs + spaces /
+ * 2), skipping code fences like Rust `extract_tasks`.
  */
-export function extractTaskLines(content: string): { lineNumber: number; text: string; status: string }[] {
-	const out: { lineNumber: number; text: string; status: string }[] = [];
+export function extractTaskLines(content: string): { lineNumber: number; text: string; status: string; indent: number }[] {
+	const out: { lineNumber: number; text: string; status: string; indent: number }[] = [];
 	let fence: string | null = null;
 	content.split('\n').forEach((line, i) => {
 		const marker = codeFence(line);
@@ -255,9 +262,17 @@ export function extractTaskLines(content: string): { lineNumber: number; text: s
 		}
 		if (fence !== null) return;
 		const text = taskLineText(line);
-		if (text !== null) out.push({ lineNumber: i + 1, text, status: taskLineStatus(line)! });
+		if (text !== null) out.push({ lineNumber: i + 1, text, status: taskLineStatus(line)!, indent: indentLevel(line) });
 	});
 	return out;
+}
+
+/** Rust `calculate_indent` over the line's leading whitespace. */
+function indentLevel(line: string): number {
+	const ws = /^\s*/u.exec(line)![0];
+	const tabs = [...ws].filter((c) => c === '\t').length;
+	const spaces = [...ws].filter((c) => c === ' ').length;
+	return tabs + Math.floor(spaces / 2);
 }
 
 /**
@@ -584,6 +599,7 @@ export function formatPullResult(counts: PullCounts): string {
 		counts.linksPaired > 0 ? `${plural(counts.linksPaired, 'link')} paired` : '',
 		counts.linesUpdated > 0 ? `${plural(counts.linesUpdated, 'line')} updated` : '',
 		counts.todoistUpdated > 0 ? `${plural(counts.todoistUpdated, 'task')} updated in Todoist` : '',
+		counts.todoistCreated > 0 ? `${plural(counts.todoistCreated, 'task')} created in Todoist` : '',
 	].filter((p) => p !== '');
 	return `Todoist sync done: ${parts.length > 0 ? parts.join(', ') : 'nothing new'}.`;
 }

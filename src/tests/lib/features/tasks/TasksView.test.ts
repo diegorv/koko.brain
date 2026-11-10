@@ -16,7 +16,7 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 // (CLAUDE.md rule 1).
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn(() => Promise.resolve(vi.fn())), emit: vi.fn() }));
-vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn() }));
+vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn(), exists: vi.fn(async () => false) }));
 
 import { mount, unmount, flushSync } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
@@ -24,12 +24,16 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import TasksView from '#lib/features/tasks/TasksView.svelte';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 
 const NOTE = '/vault/Projects/2026-Q2.md';
 
-function group(text: string, lineNumber: number, status: TaskStatus = 'todo'): FileTaskGroupV2 {
+function group(text: string, lineNumber: number, status: TaskStatus = 'todo', tags: string[] = []): FileTaskGroupV2 {
 	return {
 		filePath: NOTE,
 		fileName: '2026-Q2',
@@ -40,7 +44,7 @@ function group(text: string, lineNumber: number, status: TaskStatus = 'todo'): F
 			indent: 0,
 			lineNumber,
 			status,
-			metadata: { description: text, tags: [] },
+			metadata: { description: text, tags },
 		}],
 	};
 }
@@ -183,5 +187,83 @@ describe('TasksView row clicks', () => {
 		expect(onOpenWikilink).toHaveBeenCalledWith('Welcome');
 		expect(editorStore.tabs.some((t) => t.path === NOTE)).toBe(false);
 		expect(toggleCalls()).toHaveLength(0);
+	});
+});
+
+describe('TasksView: the old "Send to Todoist" action', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+		settingsStore.reset();
+		collectionStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		settingsStore.updateTodoist({ apiToken: 'token' });
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		vaultStore.close();
+		document.body.innerHTML = '';
+	});
+
+	/** Mounts the view with one open task in {@link NOTE}. */
+	async function mountWith(text: string, tags: string[] = []): Promise<void> {
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => (cmd === 'get_all_tasks_v2' ? [group(text, 1, 'todo', tags)] : undefined));
+		component = mount(TasksView, { target, props: { onOpenWikilink: vi.fn() } });
+		flushSync();
+		await vi.waitFor(() => {
+			flushSync();
+			if (!document.querySelector('[data-task-row]')) throw new Error('task row not rendered');
+		});
+	}
+
+	const sendButton = () => document.querySelector('[data-task-row] [title="Send to Todoist"]');
+
+	/** Marks {@link NOTE} as a Todoist project note in the property index. */
+	function makeProjectNote() {
+		const record = { path: NOTE, properties: new Map<string, unknown>([['todoist_project', 'work']]) } as PropertyIndexRecord;
+		collectionStore.setPropertyIndex(new Map([[NOTE, record]]));
+	}
+
+	it('stays for a line the sync does not own', async () => {
+		settingsStore.updateTodoist({ syncEnabled: true, syncRootProjectId: 'work' });
+		await mountWith('Ship feature A');
+
+		expect(sendButton()).not.toBeNull();
+	});
+
+	it('is hidden for an anchored line, even with the sync off', async () => {
+		await mountWith('Ship feature A 🆔 td-w1');
+
+		expect(sendButton()).toBeNull();
+	});
+
+	it('is hidden, with the sync on, for a #todoist line and for a line of a project note', async () => {
+		settingsStore.updateTodoist({ syncEnabled: true, syncRootProjectId: 'work' });
+		await mountWith('Ship feature A #todoist', ['todoist']);
+		expect(sendButton()).toBeNull();
+		unmount(component!);
+		document.body.innerHTML = '';
+		target = document.body.appendChild(document.createElement('div'));
+
+		makeProjectNote();
+		await mountWith('Ship feature A');
+		expect(sendButton()).toBeNull();
+	});
+
+	it('stays for a #todoist line or a project note line while the sync is off', async () => {
+		makeProjectNote();
+		await mountWith('Ship feature A #todoist', ['todoist']);
+
+		expect(sendButton()).not.toBeNull();
 	});
 });

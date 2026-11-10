@@ -29,6 +29,7 @@
 		"search -> event-calendar",
 		"search -> rail-shell",
 		"tags -> search",
+		"tasks -> collection",
 		"tasks -> todoist-sync",
 		"type-definitions -> collection",
 		"type-definitions -> file-icons"

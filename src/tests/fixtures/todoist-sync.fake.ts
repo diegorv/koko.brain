@@ -19,7 +19,8 @@
  * `item_close` on a recurring item rolls its date forward, unless the rule
  * says `starting`, which completes it for good (`research/live-check.md` R).
  * An `item_update` of `due` keeps the recurrence only when it sends the rule
- * as `string` (live-check 7).
+ * as `string` (live-check 7); an `item_add` stores only item fields, and a
+ * due sent as a rule alone gets its first date.
  *
  * Extend this file when an engine ticket needs another command or resource.
  */
@@ -140,10 +141,14 @@ export interface FakeTodoist {
 	updateItem(id: string, patch: Partial<FakeItem>): FakeItem;
 	/** The stored item, or undefined. */
 	item(id: string): FakeItem | undefined;
+	/** Every stored item, deleted ones included, in insertion order. */
+	items(): FakeItem[];
 	/** Queues a failure for the next `times` requests (default 1). */
 	failNext(failure: FakeFailure, times?: number): void;
 	/** Answers every later command on item `id` with a 400 `sync_status`, applying nothing. */
 	refuseCommandsFor(id: string): void;
+	/** Answers every later `item_add` into project `projectId` with a 400 `sync_status`, applying nothing. */
+	refuseAddsIn(projectId: string): void;
 }
 
 const USER_ID = 'u1';
@@ -179,6 +184,19 @@ function updatedDue(before: FakeItem['due'], sent: UpdateDue | null): FakeItem['
 	};
 }
 
+/**
+ * The due an `item_add` leaves (live-check R): a date, with or without a
+ * rule, as {@link updatedDue}; a rule alone (`{string}`) starts on its next
+ * occurrence after the fake's clock day, as Todoist picks the first date.
+ */
+function addedDue(sent: UpdateDue | null | undefined): FakeItem['due'] {
+	if (!sent) return null;
+	if (sent.date === undefined && sent.string !== undefined) {
+		return { date: nextOccurrence(STAMP.slice(0, 10), sent.string), string: sent.string, is_recurring: true, datetime: null, timezone: null, lang: sent.lang ?? 'en' };
+	}
+	return updatedDue(null, sent);
+}
+
 /** Creates an empty fake server accepting the token `test-token`. */
 export function createFakeTodoist(): FakeTodoist {
 	let version = 1;
@@ -190,6 +208,7 @@ export function createFakeTodoist(): FakeTodoist {
 	const failures: FakeFailure[] = [];
 	const requests: FakeRequest[] = [];
 	const refused = new Set<string>();
+	const refusedProjects = new Set<string>();
 
 	const bump = () => ++version;
 
@@ -232,6 +251,9 @@ export function createFakeTodoist(): FakeTodoist {
 	function apply(cmd: FakeCommand): { status: unknown; id?: string } {
 		const args = cmd.args;
 		if (typeof args.id === 'string' && refused.has(args.id)) return { status: commandError('Invalid argument value') };
+		if (cmd.type === 'item_add' && typeof args.project_id === 'string' && refusedProjects.has(args.project_id)) {
+			return { status: commandError('Invalid argument value') };
+		}
 		const existing = typeof args.id === 'string' ? items.get(args.id) : undefined;
 		switch (cmd.type) {
 			case 'item_add': {
@@ -239,8 +261,10 @@ export function createFakeTodoist(): FakeTodoist {
 					return { status: commandError('content and project_id required') };
 				}
 				const id = String(nextId++);
-				const { content, project_id, ...rest } = args as Record<string, unknown> & { content: string; project_id: string };
-				storeItem(newItem({ ...(rest as Partial<FakeItem>), id, content, project_id }));
+				// Only item fields are stored; command options such as `auto_parse_labels` are not.
+				const known = ['description', 'priority', 'labels', 'section_id', 'parent_id', 'child_order'] as const;
+				const fields = Object.fromEntries(known.filter((k) => k in args).map((k) => [k, args[k]])) as Partial<FakeItem>;
+				storeItem(newItem({ ...fields, id, content: args.content, project_id: args.project_id, due: addedDue(args.due as UpdateDue | null | undefined) }));
 				return { status: 'ok', id };
 			}
 			case 'item_update': {
@@ -412,12 +436,20 @@ export function createFakeTodoist(): FakeTodoist {
 			return items.get(id)?.row;
 		},
 
+		items() {
+			return [...items.values()].map(({ row }) => row);
+		},
+
 		failNext(failure, times = 1) {
 			for (let i = 0; i < times; i++) failures.push(failure);
 		},
 
 		refuseCommandsFor(id) {
 			refused.add(id);
+		},
+
+		refuseAddsIn(projectId) {
+			refusedProjects.add(projectId);
 		},
 	};
 	return fake;

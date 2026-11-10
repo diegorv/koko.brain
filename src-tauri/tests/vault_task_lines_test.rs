@@ -17,6 +17,15 @@ fn replace(anchor: &str, expected: &str, new_line: &str) -> TaskLineReplace {
 		anchor: anchor.into(),
 		expected_line: expected.into(),
 		new_line: new_line.into(),
+		line_number: None,
+	}
+}
+
+/// Writes the first anchor onto line `line_number` (1-based), which has none yet.
+fn attach(line_number: u32, anchor: &str, expected: &str, new_line: &str) -> TaskLineReplace {
+	TaskLineReplace {
+		line_number: Some(line_number),
+		..replace(anchor, expected, new_line)
 	}
 }
 
@@ -169,6 +178,61 @@ fn any_edit_on_a_crlf_note_is_stale() {
 	assert_eq!(applied(content, &edits(vec![], vec![], vec![])), content);
 }
 
+// --- pure: replace by line number (first anchor) -------------------------------
+
+#[test]
+fn a_line_number_replace_writes_the_first_anchor_onto_a_line_that_still_matches() {
+	let content = format!("# Inbox\n- [ ] Call Bob\n{}\n", A);
+	let e = edits(vec![attach(2, "td-new", "- [ ] Call Bob", "- [ ] Call Bob 🆔 td-new")], vec![], vec![]);
+
+	assert_eq!(applied(&content, &e), format!("# Inbox\n- [ ] Call Bob 🆔 td-new\n{}\n", A));
+}
+
+#[test]
+fn a_line_number_replace_on_a_line_that_changed_or_moved_is_stale() {
+	let content = "- [ ] Call Bob today\n";
+	for e in [
+		edits(vec![attach(1, "td-new", "- [ ] Call Bob", "- [ ] Call Bob 🆔 td-new")], vec![], vec![]),
+		edits(vec![attach(2, "td-new", "- [ ] Call Bob today", "- [ ] Call Bob today 🆔 td-new")], vec![], vec![]),
+		edits(vec![attach(0, "td-new", "- [ ] Call Bob today", "- [ ] Call Bob today 🆔 td-new")], vec![], vec![]),
+	] {
+		assert_eq!(
+			stale(content, &e),
+			TaskLinesStale {
+				reason: TaskLinesStaleReason::LineDiffers,
+				subject: "td-new".into(),
+			}
+		);
+	}
+}
+
+#[test]
+fn a_line_number_replace_whose_anchor_is_already_in_the_note_is_refused() {
+	let content = "- [ ] Call Bob\n- [ ] Other 🆔 td-new\n";
+	let e = edits(vec![attach(1, "td-new", "- [ ] Call Bob", "- [ ] Call Bob 🆔 td-new")], vec![], vec![]);
+
+	assert_eq!(stale(content, &e).reason, TaskLinesStaleReason::AnchorExists);
+}
+
+#[test]
+fn a_line_number_replace_mixes_with_anchored_replacements_and_removals() {
+	let content = format!("{}\n- [ ] Call Bob\n{}\n", A, B);
+	let e = edits(
+		vec![attach(2, "td-new", "- [ ] Call Bob", "- [ ] Call Bob 🆔 td-new")],
+		vec![],
+		vec![remove("td-a", A)],
+	);
+
+	assert_eq!(applied(&content, &e), format!("- [ ] Call Bob 🆔 td-new\n{}\n", B));
+}
+
+#[test]
+fn a_line_number_replace_whose_new_line_lacks_its_anchor_is_an_error() {
+	let e = edits(vec![attach(1, "td-new", "- [ ] Call Bob", "- [ ] Call Bob")], vec![], vec![]);
+
+	assert!(apply_task_line_edits("- [ ] Call Bob\n", &e).is_err());
+}
+
 // --- pure: insert --------------------------------------------------------------
 
 #[test]
@@ -305,6 +369,7 @@ fn edits_deserialize_from_the_camel_case_ts_shape() {
 	.unwrap();
 
 	assert_eq!(e.replace[0].new_line, "y");
+	assert_eq!(e.replace[0].line_number, None);
 	assert_eq!(e.insert[0].after_heading, None);
 	assert_eq!(e.remove[0].expected_line, "w");
 }

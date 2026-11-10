@@ -18,6 +18,9 @@
 	import { initTodoist, syncTodoistTasks } from './todoist.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+	import { isInSyncScope } from '#lib/features/todoist-sync/anchor.logic.js';
+	import { syncOwnsTaskLine } from '#lib/features/todoist-sync/create.logic.js';
 	import { filterByDate, filterCompleted, computeTaskStats, parseTaskTextSegments } from './tasks.logic';
 	import { toggleTarget } from './task-status.logic';
 	import TodoistPopover from './TodoistPopover.svelte';
@@ -77,6 +80,19 @@
 	}
 
 	let hasTodoistToken = $derived(settingsStore.todoist.apiToken.length > 0);
+
+	/** Whether the two-way Todoist sync owns the line, so the old Send action is hidden for it. */
+	function syncOwnsLine(filePath: string, task: TaskItem): boolean {
+		const { syncEnabled, syncRootProjectId } = settingsStore.todoist;
+		const root = vaultStore.path;
+		const relPath = root !== null && filePath.startsWith(`${root}/`) ? filePath.slice(root.length + 1) : null;
+		const project = collectionStore.propertyIndex.get(filePath)?.properties.get('todoist_project');
+		return syncOwnsTaskLine(task.text, task.metadata.tags, {
+			syncOn: syncEnabled && syncRootProjectId !== '',
+			inSyncScope: relPath !== null && isInSyncScope(relPath, settingsStore.templates.folder),
+			projectNote: (typeof project === 'string' || typeof project === 'number') && String(project).trim() !== '',
+		});
+	}
 
 	onMount(() => {
 		initTodoist();
@@ -273,7 +289,7 @@
 														<Cloud class="size-3 shrink-0 mt-1 text-muted-foreground" />
 													</a>
 												{/if}
-											{:else}
+											{:else if !syncOwnsLine(group.filePath, task)}
 												<TodoistPopover taskText={task.text} filePath={group.filePath} metadata={task.metadata} />
 											{/if}
 										{/if}

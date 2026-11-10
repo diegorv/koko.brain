@@ -349,6 +349,34 @@ describe('over the field push cap', () => {
 	});
 });
 
+describe('over the create cap', () => {
+	const CREATE_CAP = 'Todoist automatic sync skipped creating 26 tasks from new task lines: more than 25 in one sync. Run "Todoist: Sync now" to confirm them.';
+	const adds = () => server.requests.flatMap((r) => r.commands ?? []).filter((c) => c.type === 'item_add');
+
+	it('never asks in an automatic cycle: it creates nothing and toasts once; "Sync now" asks and dismisses it', async () => {
+		startAutoSync(ROOT);
+		await settle();
+		for (let i = 1; i <= 26; i++) vault.files.set('Todoist/Work.md', `${vault.files.get('Todoist/Work.md')!}- [ ] New ${i}\n`);
+
+		await advance(30_000);
+		focusWindow();
+		await settle();
+		await advance(5 * MINUTE);
+
+		expect(cycles()).toBe(3);
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(adds()).toEqual([]);
+		expect(toast.warning).toHaveBeenCalledTimes(1);
+		expect(toast.warning).toHaveBeenCalledWith(CREATE_CAP, { id: 'todoist-sync-create-cap', duration: Infinity, closeButton: true });
+
+		vi.mocked(ask).mockResolvedValue(true);
+		await syncNowFromUi();
+
+		expect(adds()).toHaveLength(26);
+		expect(toast.dismiss).toHaveBeenCalledWith('todoist-sync-create-cap');
+	});
+});
+
 describe('over the detach cap', () => {
 	const DETACH_CAP = 'Todoist automatic sync skipped detaching 11 deleted or moved tasks: more than 10 in one sync. Run "Todoist: Sync now" to confirm them.';
 
@@ -536,6 +564,35 @@ describe('stop and vault switch', () => {
 		await advance(15 * MINUTE);
 
 		expect(cycles()).toBe(1);
+	});
+
+	it('dismisses the failure and over-cap toasts it shows, so the next vault does not inherit them', async () => {
+		for (let i = 1; i <= 26; i++) server.addItem({ id: `c${i}`, project_id: 'work', content: `Chore ${i}`, child_order: 10 + i });
+		startAutoSync(ROOT);
+		await settle();
+		vault.files.set('Todoist/Work.md', vault.files.get('Todoist/Work.md')!.replace(/- \[ \] Chore/gu, '- [x] Chore'));
+		await advance(30_000);
+		focusWindow();
+		await settle();
+		server.failNext({ kind: 'server-error' });
+		await advance(5 * MINUTE);
+		expect(toast.warning).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ id: 'todoist-sync-over-cap' }));
+		expect(toast.error).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ id: 'todoist-sync-unreachable' }));
+		vi.mocked(toast.dismiss).mockClear();
+
+		stopAutoSync();
+
+		expect(vi.mocked(toast.dismiss).mock.calls.map(([id]) => id).sort()).toEqual(['todoist-sync-over-cap', 'todoist-sync-unreachable']);
+	});
+
+	it('dismisses nothing it did not show', async () => {
+		startAutoSync(ROOT);
+		await settle();
+		vi.mocked(toast.dismiss).mockClear();
+
+		stopAutoSync();
+
+		expect(toast.dismiss).not.toHaveBeenCalled();
 	});
 
 	it('drops the follow-up queued during a cycle when stopped', async () => {

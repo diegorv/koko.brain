@@ -58,7 +58,7 @@ function occurrences(lines: Pick<ScannedLine, 'relPath' | 'lineNumber' | 'line'>
 	for (const l of lines) {
 		const anchor = /🆔 (td-\S+)/u.exec(l.line)?.[1];
 		if (!anchor) continue;
-		map.set(anchor, [...(map.get(anchor) ?? []), { status: ' ', fields: null, ...l }]);
+		map.set(anchor, [...(map.get(anchor) ?? []), { status: ' ', fields: null, indent: 0, recurrence: null, ...l }]);
 	}
 	return map;
 }
@@ -126,11 +126,12 @@ describe('projectNoteBaseName', () => {
 });
 
 describe('extractTaskLines', () => {
-	it('returns the text and status of every task line outside code fences, 1-based', () => {
-		const content = ['# Head', '- [ ] One 🆔 td-a', '```', '- [ ] Fenced', '```', '  1. [x] Two', 'plain'].join('\n');
+	it('returns the text, status and indent of every task line outside code fences, 1-based', () => {
+		const content = ['# Head', '- [ ] One 🆔 td-a', '```', '- [ ] Fenced', '```', '  1. [x] Two', '\t   - [ ] Three', 'plain'].join('\n');
 		expect(extractTaskLines(content)).toEqual([
-			{ lineNumber: 2, text: 'One 🆔 td-a', status: ' ' },
-			{ lineNumber: 6, text: 'Two', status: 'x' },
+			{ lineNumber: 2, text: 'One 🆔 td-a', status: ' ', indent: 0 },
+			{ lineNumber: 6, text: 'Two', status: 'x', indent: 1 },
+			{ lineNumber: 7, text: 'Three', status: ' ', indent: 2 },
 		]);
 	});
 
@@ -244,34 +245,34 @@ describe('assertSingleLine', () => {
 
 describe('formatPullResult', () => {
 	it('lists what was written, singular or plural', () => {
-		expect(formatPullResult({ mode: 'normal', notesCreated: 1, tasksInserted: 2, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 1, tasksInserted: 2, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
 			'Todoist sync done: 1 note created, 2 tasks added.',
 		);
-		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 1, linksPaired: 1, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 1, linksPaired: 1, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
 			'Todoist sync done: 1 task added, 1 link paired.',
 		);
 	});
 
 	it('says nothing new when nothing was written', () => {
-		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
 			'Todoist sync done: nothing new.',
 		);
 	});
 
 	it('lists lines updated from Todoist and tasks updated in Todoist', () => {
-		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 2, todoistUpdated: 1 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 2, todoistUpdated: 1, todoistCreated: 0 })).toBe(
 			'Todoist sync done: 2 lines updated, 1 task updated in Todoist.',
 		);
 	});
 
 	it('reports a rebuild by its paired links', () => {
-		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 1, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 1, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
 			'Todoist sync rebuilt 1 link from the vault; nothing was created.',
 		);
 	});
 
 	it('says why new tasks stay out when a rebuild paired nothing but left anchored lines unmatched', () => {
-		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
 			'Todoist sync rebuilt 0 links from the vault; nothing was created. 2 anchored lines have no open Todoist task: ' +
 				'new Todoist tasks come in only after a line pairs or those 🆔 anchors are removed.',
 		);

@@ -66,6 +66,8 @@ function line(text = LINE, fields: Partial<ScannedLine['fields']> = {}, status =
 		line: text,
 		status,
 		fields: { description: 'Plan', dueDate: '2026-11-13', priority: 'highest', tags: ['deep'], ...fields },
+		indent: 0,
+		recurrence: null,
 	};
 }
 

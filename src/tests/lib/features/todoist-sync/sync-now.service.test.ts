@@ -1,7 +1,7 @@
 // "Todoist: Sync now" over the real sync service, writers and stores: the
 // fake Todoist /sync behind the plugin-http fetch, and an in-memory vault
 // behind invoke.
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, expectTypeOf, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 import { createFakeTodoist, type FakeTodoist } from '../../../fixtures/todoist-sync.fake';
 import { createFakeVault, type FakeVault } from '../../../fixtures/todoist-vault.fake';
@@ -38,7 +38,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
-import { syncNow } from '#lib/features/todoist-sync/sync-now.service.js';
+import { syncNow, type SyncMode } from '#lib/features/todoist-sync/sync-now.service.js';
 
 let server: FakeTodoist;
 let vault: FakeVault;
@@ -101,9 +101,16 @@ afterEach(() => {
 	vaultStore.close();
 });
 
+describe('syncNow: mode', () => {
+	it('takes the mode as a required argument, so no caller runs a manual cycle by default', () => {
+		// Checked by `pnpm check`: an optional `mode?` would make the tuple `[mode?: SyncMode]`.
+		expectTypeOf(syncNow).parameters.toEqualTypeOf<[mode: SyncMode]>();
+	});
+});
+
 describe('syncNow: first run', () => {
 	it('creates one note per tree project and writes each open task as an anchored line', async () => {
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 3 notes created, 3 tasks added.' });
 		expect(Object.fromEntries(vault.files)).toEqual({
@@ -116,17 +123,20 @@ describe('syncNow: first run', () => {
 	});
 
 	it('sends nothing to Todoist: one full /sync with no commands', async () => {
-		await syncNow();
+		await syncNow('manual');
 
 		expect(server.requests).toEqual([{ sync_token: '*', resource_types: ['projects', 'items'] }]);
 	});
 
-	it('commits the bases of every inserted line together with the sync token', async () => {
-		await syncNow();
+	it('commits the bases of every inserted line together with the sync token and first_run_done', async () => {
+		await syncNow('manual');
 
 		expect(vault.commits).toHaveLength(1);
 		const [commit] = vault.commits;
-		expect(commit.kv).toEqual([{ key: 'sync_token', value: `v${server.version}` }]);
+		expect(commit.kv).toEqual([
+			{ key: 'sync_token', value: `v${server.version}` },
+			{ key: 'first_run_done', value: '1' },
+		]);
 		expect(commit.upsertLinks.map((l) => [l.anchor, l.todoistId, l.noteRelPath])).toEqual([
 			['td-w1', 'w1', 'Todoist/Work.md'],
 			['td-w2', 'w2', 'Todoist/Work.md'],
@@ -140,7 +150,7 @@ describe('syncNow: first run', () => {
 	it('normalizes the sync folder before use', async () => {
 		settingsStore.updateTodoist({ syncFolder: '  Areas/Todoist/ ' });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect([...vault.files.keys()]).toEqual(['Areas/Todoist/Work.md', 'Areas/Todoist/Acme.md', 'Areas/Todoist/Q4.md']);
 	});
@@ -148,7 +158,7 @@ describe('syncNow: first run', () => {
 	it('logs content that does not survive a parse back, and still writes it', async () => {
 		server.addItem({ id: 'h1', project_id: 'work', content: 'Fix #12', child_order: 3 });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Fix #12 🆔 td-h1');
 		expect(vault.log).toEqual([expect.objectContaining({ kind: 'content-roundtrip', anchor: 'td-h1' })]);
@@ -160,13 +170,13 @@ describe('syncNow: first run', () => {
 describe('syncNow: tree filter', () => {
 	it('gives two vaults on one account only their own tree, and the Inbox only to the vault that includes it', async () => {
 		const work = vault;
-		await syncNow();
+		await syncNow('manual');
 
 		const personal = createFakeVault('/personal-vault');
 		openVault(personal);
 		settingsStore.reset();
 		settingsStore.updateTodoist({ apiToken: server.token, syncEnabled: true, syncRootProjectId: 'personal', syncIncludeInbox: true });
-		await syncNow();
+		await syncNow('manual');
 
 		expect([...work.files.keys()].sort()).toEqual(['Todoist/Acme.md', 'Todoist/Q4.md', 'Todoist/Work.md']);
 		expect([...work.links.keys()].sort()).toEqual(['td-q1', 'td-w1', 'td-w2']);
@@ -180,11 +190,11 @@ describe('syncNow: tree filter', () => {
 
 describe('syncNow: re-run', () => {
 	it('inserts nothing and rewrites nothing unchanged', async () => {
-		await syncNow();
+		await syncNow('manual');
 		const files = new Map(vault.files);
 		const writes = vault.writes.length;
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
 		expect(vault.files).toEqual(files);
@@ -193,37 +203,37 @@ describe('syncNow: re-run', () => {
 	});
 
 	it('finds an existing project note by its frontmatter id after a rename', async () => {
-		await syncNow();
+		await syncNow('manual');
 		vault.files.set('Areas/My job.md', vault.files.get('Todoist/Work.md')!);
 		vault.files.delete('Todoist/Work.md');
 		server.addItem({ id: 'w3', project_id: 'work', content: 'Hire', child_order: 3 });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.has('Todoist/Work.md')).toBe(false);
 		expect(vault.files.get('Areas/My job.md')).toBe(`${WORK_NOTE}- [ ] Hire 🆔 td-w3\n`);
 	});
 
 	it('reads open-tab content and freezes a link whose anchor was duplicated there', async () => {
-		await syncNow();
+		await syncNow('manual');
 		const path = '/work-vault/Notes/Day.md';
 		const unsaved = '- [ ] Plan 🔺 #deep 🆔 td-w1\n';
 		vault.files.set('Notes/Day.md', '');
 		editorStore.addTab({ path, name: 'Day.md', content: unsaved, savedContent: '' });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.links.get('td-w1')!.frozen).toBe(true);
 		expect(vault.log).toEqual([expect.objectContaining({ kind: 'frozen', anchor: 'td-w1' })]);
 	});
 
 	it('inserts into a project note open in a tab through the tab, not the disk', async () => {
-		await syncNow();
+		await syncNow('manual');
 		const path = '/work-vault/Todoist/Work.md';
 		editorStore.addTab({ path, name: 'Work.md', content: `${WORK_NOTE}typed, unsaved\n`, savedContent: WORK_NOTE });
 		server.addItem({ id: 'w3', project_id: 'work', content: 'Hire', child_order: 3 });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(editorStore.tabs[0].content).toBe(`${WORK_NOTE}typed, unsaved\n- [ ] Hire 🆔 td-w3\n`);
 		expect(vault.files.get('Todoist/Work.md')).toBe(WORK_NOTE);
@@ -231,10 +241,10 @@ describe('syncNow: re-run', () => {
 	});
 
 	it('ignores anchored lines in excluded folders', async () => {
-		await syncNow();
+		await syncNow('manual');
 		vault.files.set('_system/templates/Task.md', '- [ ] Plan 🆔 td-w1\n');
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.links.get('td-w1')!.frozen).toBe(false);
 	});
@@ -242,12 +252,12 @@ describe('syncNow: re-run', () => {
 
 describe('syncNow: rebuild mode', () => {
 	it('pairs anchored lines with an empty link table, creates nothing and logs the unmatched', async () => {
-		await syncNow();
+		await syncNow('manual');
 		vault.links.clear();
 		server.addItem({ id: 'w3', project_id: 'work', content: 'New in Todoist', child_order: 3 });
 		const files = new Map(vault.files);
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({ ok: true, message: 'Todoist sync rebuilt 3 links from the vault; nothing was created.' });
 		expect(vault.files).toEqual(files);
@@ -259,7 +269,7 @@ describe('syncNow: rebuild mode', () => {
 	it('says why nothing comes in when a rebuild pairs no line', async () => {
 		vault.files.set('Notes/Old.md', '- [ ] Old 🆔 td-gone\n');
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome.message).toBe(
 			'Todoist sync rebuilt 0 links from the vault; nothing was created. 1 anchored line has no open Todoist task: ' +
@@ -271,12 +281,12 @@ describe('syncNow: rebuild mode', () => {
 
 describe('syncNow: stale insert', () => {
 	it('keeps the sync token out of the commit when an insert went stale', async () => {
-		await syncNow();
+		await syncNow('manual');
 		// The scan skips code fences but the writer still sees this anchor, so the insert goes stale.
 		vault.files.set('Todoist/Work.md', `${WORK_NOTE}\`\`\`\n- [ ] Hire 🆔 td-w3\n\`\`\`\n`);
 		server.addItem({ id: 'w3', project_id: 'work', content: 'Hire', child_order: 3 });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.commits[1].kv).toEqual([]);
 		expect(vault.links.has('td-w3')).toBe(false);
@@ -288,20 +298,20 @@ describe('syncNow: refusals and safety', () => {
 	it('refuses before the vault index is ready, without calling Todoist', async () => {
 		vaultStore.resetIndexReady();
 
-		expect(await syncNow()).toEqual({ ok: false, message: 'The vault is still indexing. Try again when it finishes.' });
+		expect(await syncNow('manual')).toEqual({ ok: false, message: 'The vault is still indexing. Try again when it finishes.' });
 		expect(server.requests).toEqual([]);
 		expect(vault.writes).toEqual([]);
 	});
 
 	it('refuses while sync is off, without a token or without a root project', async () => {
 		settingsStore.updateTodoist({ syncEnabled: false });
-		expect(await syncNow()).toEqual({ ok: false, message: 'Turn on Todoist sync in Settings > Todoist first.' });
+		expect(await syncNow('manual')).toEqual({ ok: false, message: 'Turn on Todoist sync in Settings > Todoist first.' });
 
 		settingsStore.updateTodoist({ syncEnabled: true, apiToken: '' });
-		expect(await syncNow()).toEqual({ ok: false, message: 'Add your Todoist API token in Settings > Todoist first.' });
+		expect(await syncNow('manual')).toEqual({ ok: false, message: 'Add your Todoist API token in Settings > Todoist first.' });
 
 		settingsStore.updateTodoist({ apiToken: server.token, syncRootProjectId: '' });
-		expect(await syncNow()).toEqual({ ok: false, message: 'Choose a sync root project in Settings > Todoist first.' });
+		expect(await syncNow('manual')).toEqual({ ok: false, message: 'Choose a sync root project in Settings > Todoist first.' });
 		expect(server.requests).toEqual([]);
 	});
 
@@ -309,7 +319,7 @@ describe('syncNow: refusals and safety', () => {
 		const message = 'The Todoist sync folder must be a folder inside the vault. Fix it in Settings > Todoist.';
 		for (const syncFolder of ['/Users/me/Todoist', '../Todoist', 'a/../b']) {
 			settingsStore.updateTodoist({ syncFolder });
-			expect(await syncNow()).toEqual({ ok: false, message });
+			expect(await syncNow('manual')).toEqual({ ok: false, message });
 		}
 		expect(server.requests).toEqual([]);
 		expect(vault.writes).toEqual([]);
@@ -318,7 +328,7 @@ describe('syncNow: refusals and safety', () => {
 	it('refuses while another run is in progress', async () => {
 		todoistSyncStore.start();
 
-		expect(await syncNow()).toEqual({ ok: false, message: 'A Todoist sync is already running.' });
+		expect(await syncNow('manual')).toEqual({ ok: false, message: 'A Todoist sync is already running.' });
 		expect(server.requests).toEqual([]);
 	});
 
@@ -333,7 +343,7 @@ describe('syncNow: refusals and safety', () => {
 			},
 		};
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({
 			ok: false,
@@ -350,7 +360,7 @@ describe('syncNow: refusals and safety', () => {
 	});
 
 	it('leaves the store reset by the vault teardown alone when the old run stops', async () => {
-		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, finishedAt: 1 });
+		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, finishedAt: 1 });
 		fake.current = {
 			async fetch(url, init) {
 				const response = await server.fetch(url, init);
@@ -360,7 +370,7 @@ describe('syncNow: refusals and safety', () => {
 			},
 		};
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(todoistSyncStore.status).toBe('idle');
 		expect(todoistSyncStore.lastError).toBeNull();
@@ -376,7 +386,7 @@ describe('syncNow: refusals and safety', () => {
 			return out;
 		});
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toMatchObject({ ok: false, message: 'The vault changed during the Todoist sync; nothing more was written.' });
 		expect(first.writes).toEqual(['Todoist/Work.md']);
@@ -388,7 +398,7 @@ describe('syncNow: refusals and safety', () => {
 	it('maps a Todoist failure to its fixed message and logs the raw error', async () => {
 		server.failNext({ kind: 'unauthorized' });
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({
 			ok: false,
@@ -401,10 +411,10 @@ describe('syncNow: refusals and safety', () => {
 
 	it('reports a 429 with its retry_after, and an unreachable server, as failure kinds', async () => {
 		server.failNext({ kind: 'rate-limit', retryAfter: 42 });
-		expect((await syncNow()).failure).toEqual({ kind: 'rate-limit', retryAfter: 42 });
+		expect((await syncNow('manual')).failure).toEqual({ kind: 'rate-limit', retryAfter: 42 });
 
 		server.failNext({ kind: 'server-error' });
-		expect((await syncNow()).failure).toEqual({ kind: 'unreachable' });
+		expect((await syncNow('manual')).failure).toEqual({ kind: 'unreachable' });
 	});
 
 	it('reports an unexpected error as the generic failure kind', async () => {
@@ -413,19 +423,19 @@ describe('syncNow: refusals and safety', () => {
 			return vault.invoke(cmd, args as Record<string, unknown> | undefined);
 		});
 
-		expect(await syncNow()).toEqual({ ok: false, message: 'Todoist sync failed. Details are in the log.', failure: { kind: 'error' } });
+		expect(await syncNow('manual')).toEqual({ ok: false, message: 'Todoist sync failed. Details are in the log.', failure: { kind: 'error' } });
 	});
 
 	it('gives a refusal no failure kind', async () => {
 		settingsStore.updateTodoist({ syncEnabled: false });
 
-		expect((await syncNow()).failure).toBeUndefined();
+		expect((await syncNow('manual')).failure).toBeUndefined();
 	});
 
 	it('reports a root project that is gone from Todoist', async () => {
 		settingsStore.updateTodoist({ syncRootProjectId: 'gone' });
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({
 			ok: false,
@@ -455,11 +465,11 @@ const remoteBase = (anchor: string) => JSON.parse(vault.links.get(anchor)!.remot
 
 describe('syncNow: completion from the brain', () => {
 	it('closes a task checked in the brain with item_close, sent alone after the pulls, and moves the bases on the ack', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
 		const before = server.requests.length;
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 task updated in Todoist.' });
 		expect(server.item('w1')).toMatchObject({ checked: true });
@@ -477,12 +487,12 @@ describe('syncNow: completion from the brain', () => {
 	});
 
 	it('sends nothing on the next run once the close is acknowledged', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
-		await syncNow();
+		await syncNow('manual');
 		const files = new Map(vault.files);
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome.message).toBe('Todoist sync done: nothing new.');
 		expect(commandRequests()).toHaveLength(1);
@@ -490,12 +500,12 @@ describe('syncNow: completion from the brain', () => {
 	});
 
 	it('reopens a task unchecked in the brain with item_uncomplete', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_DONE, W1_OPEN);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests().at(-1)!.commands).toEqual([expect.objectContaining({ type: 'item_uncomplete', args: { id: 'w1' } })]);
 		expect(server.item('w1')).toMatchObject({ checked: false });
@@ -504,22 +514,22 @@ describe('syncNow: completion from the brain', () => {
 	});
 
 	it('treats [-] as closed and [/] as open', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, '- [/] Plan 🔺 #deep 🆔 td-w1');
-		await syncNow();
+		await syncNow('manual');
 		expect(commandRequests()).toEqual([]);
 
 		edit('Todoist/Work.md', '- [/] Plan', '- [-] Plan');
-		await syncNow();
+		await syncNow('manual');
 		expect(server.item('w1')).toMatchObject({ checked: true });
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [-] Plan 🔺 #deep 🆔 td-w1');
 	});
 
 	it('rolls a recurring task closed in the brain: the line reopens with the next 📅', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W2_OPEN, W2_DONE);
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(commandRequests()[0].commands).toEqual([expect.objectContaining({ type: 'item_close', args: { id: 'w2' } })]);
 		expect(server.item('w2')).toMatchObject({ checked: false, due: { date: '2026-11-20' } });
@@ -528,17 +538,17 @@ describe('syncNow: completion from the brain', () => {
 		expect(remoteBase('td-w2').due).toMatchObject({ date: '2026-11-20', string: 'every week' });
 		expect(outcome.message).toBe('Todoist sync done: 1 line updated, 1 task updated in Todoist.');
 
-		await syncNow();
+		await syncNow('manual');
 		expect(commandRequests()).toHaveLength(1);
 	});
 
 	it('rewrites a recurring line through its open tab after the ack', async () => {
-		await syncNow();
+		await syncNow('manual');
 		const path = '/work-vault/Todoist/Work.md';
 		const unsaved = WORK_NOTE.replace(W2_OPEN, W2_DONE);
 		editorStore.addTab({ path, name: 'Work.md', content: unsaved, savedContent: WORK_NOTE });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(server.item('w2')).toMatchObject({ checked: false, due: { date: '2026-11-20' } });
 		expect(editorStore.tabs[0].content).toContain('- [ ] Report 📅 2026-11-20 🔁 every week 🆔 td-w2');
@@ -547,10 +557,10 @@ describe('syncNow: completion from the brain', () => {
 
 	it('logs a recurring task that a close completed for good (a starting <date> rule)', async () => {
 		server.updateItem('w2', { due: { ...WEEKLY, string: 'every week starting 13 Nov 2026' } });
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', '- [ ] Report', '- [x] Report');
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(server.item('w2')).toMatchObject({ checked: true, due: null });
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Report 📅 2026-11-13');
@@ -560,54 +570,54 @@ describe('syncNow: completion from the brain', () => {
 
 describe('syncNow: completion from Todoist', () => {
 	it('checks the line of a task completed in Todoist, and unchecks it when reopened there', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { checked: true, completed_at: '2026-11-09T10:00:00Z' });
 
-		expect((await syncNow()).message).toBe('Todoist sync done: 1 line updated.');
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: 1 line updated.');
 		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
 		expect(localBase('td-w1').status).toBe('x');
 		expect(commandRequests()).toEqual([]);
 
 		server.updateItem('w1', { checked: false, completed_at: null });
-		await syncNow();
+		await syncNow('manual');
 		expect(vault.files.get('Todoist/Work.md')).toContain(W1_OPEN);
 		expect(commandRequests()).toEqual([]);
 	});
 
 	it('keeps an open status other than a space when Todoist reopens, and - when it closes', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, '- [/] Plan 🔺 #deep 🆔 td-w1');
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { checked: true });
-		await syncNow();
+		await syncNow('manual');
 		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
 
 		edit('Todoist/Work.md', W1_DONE, '- [-] Plan 🔺 #deep 🆔 td-w1');
-		await syncNow();
+		await syncNow('manual');
 		expect(commandRequests()).toEqual([]);
 		server.updateItem('w1', { checked: false });
-		await syncNow();
+		await syncNow('manual');
 		expect(vault.files.get('Todoist/Work.md')).toContain(W1_OPEN);
 	});
 
 	it('moves the 📅 of a recurring task Todoist rolled forward, leaving the line open', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w2', { due: { ...WEEKLY, date: '2026-11-20' } });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Report 📅 2026-11-20 🔁 every week 🆔 td-w2');
 		expect(commandRequests()).toEqual([]);
 	});
 
 	it('reaches a line in a closed note and one in an open tab', async () => {
-		await syncNow();
+		await syncNow('manual');
 		const path = '/work-vault/Todoist/Q4.md';
 		editorStore.addTab({ path, name: 'Q4.md', content: vault.files.get('Todoist/Q4.md')!, savedContent: vault.files.get('Todoist/Q4.md')! });
 		server.updateItem('w1', { checked: true });
 		server.updateItem('q1', { checked: true });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
 		expect(editorStore.tabs[0].content).toContain('- [x] Ship 🆔 td-q1');
@@ -616,11 +626,11 @@ describe('syncNow: completion from Todoist', () => {
 
 describe('syncNow: completion on both sides', () => {
 	it('only moves the bases when both sides closed the task', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
 		server.updateItem('w1', { checked: true });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(localBase('td-w1').status).toBe('x');
@@ -628,11 +638,11 @@ describe('syncNow: completion on both sides', () => {
 	});
 
 	it('drops a brain close when Todoist rolled the recurring task meanwhile: the line takes the new date, logged', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W2_OPEN, W2_DONE);
 		server.updateItem('w2', { due: { ...WEEKLY, date: '2026-11-20' } });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(server.item('w2')!.due!.date).toBe('2026-11-20');
@@ -642,12 +652,12 @@ describe('syncNow: completion on both sides', () => {
 
 	it('closes a non-recurring task rescheduled in Todoist and checked in the brain; the line keeps [x]', async () => {
 		server.updateItem('w1', { due: { is_recurring: false, string: 'Nov 13', date: '2026-11-13', lang: 'en' } });
-		await syncNow();
+		await syncNow('manual');
 		const open = '- [ ] Plan 🔺 📅 2026-11-13 #deep 🆔 td-w1';
 		edit('Todoist/Work.md', open, open.replace('[ ]', '[x]'));
 		server.updateItem('w1', { due: { is_recurring: false, string: 'Nov 20', date: '2026-11-20', lang: 'en' } });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests()[0].commands).toEqual([expect.objectContaining({ type: 'item_close', args: { id: 'w1' } })]);
 		expect(server.item('w1')).toMatchObject({ checked: true });
@@ -658,10 +668,10 @@ describe('syncNow: completion on both sides', () => {
 
 describe('syncNow: edits from Todoist', () => {
 	it('writes a content change into the description and keeps the rest of the line', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { content: 'Plan the launch' });
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome.message).toBe('Todoist sync done: 1 line updated.');
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan the launch 🔺 #deep 🆔 td-w1');
@@ -671,10 +681,10 @@ describe('syncNow: edits from Todoist', () => {
 	});
 
 	it('writes due, priority and label changes as token patches', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { priority: 2, labels: ['next', 'Work'], due: { is_recurring: false, string: 'Nov 20', date: '2026-11-20', lang: 'en' } });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan 🔼 📅 2026-11-20 #next 🆔 td-w1');
 		expect(localBase('td-w1')).toMatchObject({ priority: 'medium', dueDate: '2026-11-20', tags: ['next'] });
@@ -682,13 +692,13 @@ describe('syncNow: edits from Todoist', () => {
 	});
 
 	it('writes nothing on a second cycle with no change', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { content: 'Plan more', priority: 3, labels: ['Work'], due: { is_recurring: false, string: 'Nov 20', date: '2026-11-20', lang: 'en' } });
-		await syncNow();
+		await syncNow('manual');
 		const writes = vault.writes.length;
 		const files = new Map(vault.files);
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome.message).toBe('Todoist sync done: nothing new.');
 		expect(vault.writes).toHaveLength(writes);
@@ -696,11 +706,11 @@ describe('syncNow: edits from Todoist', () => {
 	});
 
 	it('writes nothing to the line when the webhook only adds Work', async () => {
-		await syncNow();
+		await syncNow('manual');
 		const writes = vault.writes.length;
 		server.updateItem('q1', { labels: ['Work'] });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.writes).toHaveLength(writes);
 		expect(vault.files.get('Todoist/Q4.md')).toContain('- [ ] Ship 🆔 td-q1');
@@ -708,52 +718,52 @@ describe('syncNow: edits from Todoist', () => {
 	});
 
 	it('keeps a leading #todoist when the content changes', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, '- [ ] #todoist Plan 🔺 #deep 🆔 td-w1');
 		server.updateItem('w1', { content: 'Plan more' });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] #todoist Plan more 🔺 #deep 🆔 td-w1');
 	});
 
 	it('leaves a line with a tag inside its text alone, and logs the Todoist text', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan #deep it 🔺 🆔 td-w1');
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { content: 'Plan it all' });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan #deep it 🔺 🆔 td-w1');
 		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'description-conflict', anchor: 'td-w1', message: expect.stringContaining('Plan it all') }));
 	});
 
 	it('does not write content that fails the round trip, and logs it', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { content: 'Fix #42' });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain(W1_OPEN);
 		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'content-roundtrip', anchor: 'td-w1' }));
 	});
 
 	it('never rewrites the 🔁 text of a recurring task when Todoist changes its rule', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w2', { due: { ...WEEKLY, string: 'every 2 weeks', date: '2026-11-27' } });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Report 📅 2026-11-27 🔁 every week 🆔 td-w2');
 		expect(remoteBase('td-w2').due).toMatchObject({ string: 'every 2 weeks' });
 	});
 
 	it('writes a content change and a completion of the same task as one patch', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { content: 'Planned', checked: true });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Planned 🔺 #deep 🆔 td-w1');
 		expect(localBase('td-w1')).toMatchObject({ status: 'x', description: 'Planned' });
@@ -764,10 +774,10 @@ const W1_EDITED = '- [ ] Plan the launch ⏫ 📅 2026-11-20 #next 🆔 td-w1';
 
 describe('syncNow: edits from the brain', () => {
 	it('pushes text, 📅, priority and tag edits as one item_update; the echo next cycle sends and writes nothing', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, W1_EDITED);
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome.message).toBe('Todoist sync done: 1 task updated in Todoist.');
 		expect(commandRequests()).toHaveLength(1);
@@ -780,7 +790,7 @@ describe('syncNow: edits from the brain', () => {
 		const files = new Map(vault.files);
 		const writes = vault.writes.length;
 
-		expect((await syncNow()).message).toBe('Todoist sync done: nothing new.');
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
 		expect(commandRequests()).toHaveLength(1);
 		expect(vault.files).toEqual(files);
 		expect(vault.writes).toHaveLength(writes);
@@ -788,24 +798,24 @@ describe('syncNow: edits from the brain', () => {
 	});
 
 	it('moves the date of a recurring task and keeps its rule in Todoist', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W2_OPEN, '- [ ] Report 📅 2026-11-16 🔁 every week 🆔 td-w2');
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests()[0].commands![0].args).toEqual({ id: 'w2', due: { date: '2026-11-16', string: 'every week', lang: 'en' } });
 		expect(server.item('w2')!.due).toMatchObject({ date: '2026-11-16', string: 'every week', is_recurring: true });
-		await syncNow();
+		await syncNow('manual');
 		expect(commandRequests()).toHaveLength(1);
 	});
 
 	it('lets Todoist win a field changed on both sides: the line takes the Todoist value, the brain value is logged', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan ⏫ #deep 🆔 td-w1');
 		server.updateItem('w1', { priority: 2 });
 
-		await syncNow();
-		await syncNow();
+		await syncNow('manual');
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan 🔼 #deep 🆔 td-w1');
@@ -813,11 +823,11 @@ describe('syncNow: edits from the brain', () => {
 	});
 
 	it('does not send text over 500 characters, and logs it once', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, `- [ ] ${'x'.repeat(501)} 🔺 #deep 🆔 td-w1`);
 
-		await syncNow();
-		await syncNow();
+		await syncNow('manual');
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(vault.log).toEqual([expect.objectContaining({ kind: 'content-not-pushed', anchor: 'td-w1' })]);
@@ -825,32 +835,32 @@ describe('syncNow: edits from the brain', () => {
 
 	it('never pushes a line inserted from content that failed the round trip', async () => {
 		server.addItem({ id: 'h1', project_id: 'work', content: 'Fix #12', child_order: 3 });
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', '- [ ] Fix #12 🆔 td-h1', '- [ ] Fix #12 ⏫ 🆔 td-h1');
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(server.item('h1')!.priority).toBe(1);
 	});
 
 	it('treats a refused item_update as terminal: logged, the line kept, not retried', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.refuseCommandsFor('w1');
 		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan ⏫ #deep 🆔 td-w1');
 
-		expect((await syncNow()).ok).toBe(true);
+		expect((await syncNow('manual')).ok).toBe(true);
 
 		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'command-error', anchor: 'td-w1', message: expect.stringContaining('item_update') }));
 		expect(localBase('td-w1').priority).toBe('high');
 		expect(remoteBase('td-w1').priority).toBe(4);
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan ⏫ #deep 🆔 td-w1');
-		await syncNow();
+		await syncNow('manual');
 		expect(commandRequests()).toHaveLength(1);
 	});
 
 	it('keeps the bases when the push does not reach Todoist, and sends it again next cycle', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan ⏫ #deep 🆔 td-w1');
 		let offline = true;
 		fake.current = {
@@ -860,18 +870,18 @@ describe('syncNow: edits from the brain', () => {
 			},
 		};
 
-		expect((await syncNow()).ok).toBe(false);
+		expect((await syncNow('manual')).ok).toBe(false);
 		expect(localBase('td-w1').priority).toBe('highest');
 
 		offline = false;
-		await syncNow();
+		await syncNow('manual');
 
 		expect(server.item('w1')!.priority).toBe(3);
 		expect(localBase('td-w1').priority).toBe('high');
 	});
 
 	it('sends no push for a line whose Todoist patch went stale, and keeps the token', async () => {
-		await syncNow();
+		await syncNow('manual');
 		const token = vault.kv.get('sync_token');
 		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan more 🔺 #deep 🆔 td-w1');
 		server.updateItem('w1', { priority: 3 });
@@ -882,7 +892,7 @@ describe('syncNow: edits from the brain', () => {
 			return out;
 		});
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(vault.kv.get('sync_token')).toBe(token);
@@ -890,18 +900,18 @@ describe('syncNow: edits from the brain', () => {
 	});
 
 	it('withholds the sync token when a refused close hides a Todoist edit of the same task, so the next cycle still writes it', async () => {
-		await syncNow();
+		await syncNow('manual');
 		const token = vault.kv.get('sync_token');
 		server.refuseCommandsFor('w1');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
 		server.updateItem('w1', { content: 'Plan more' });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'command-error', anchor: 'td-w1' }));
 		expect(vault.kv.get('sync_token')).toBe(token);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Plan more 🔺 #deep 🆔 td-w1');
 		expect(vault.kv.get('sync_token')).not.toBe(token);
@@ -912,7 +922,7 @@ describe('syncNow: field push cap', () => {
 	/** Adds `n` open tasks to Work, syncs them in, and gives each one a priority in the brain. */
 	async function editMany(n: number) {
 		for (let i = 1; i <= n; i++) server.addItem({ id: `e${i}`, project_id: 'work', content: `Chore ${i}`, child_order: 10 + i });
-		await syncNow();
+		await syncNow('manual');
 		vault.files.set('Todoist/Work.md', vault.files.get('Todoist/Work.md')!.replace(/- \[ \] Chore \d+/gu, '$& ⏫'));
 	}
 
@@ -922,7 +932,7 @@ describe('syncNow: field push cap', () => {
 		const files = new Map(vault.files);
 		const commits = vault.commits.length;
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('51 tasks'), expect.objectContaining({ title: 'Todoist sync' }));
 		expect(outcome).toEqual({ ok: false, message: 'Todoist sync cancelled; nothing was changed.', failure: { kind: 'error' } });
@@ -935,7 +945,7 @@ describe('syncNow: field push cap', () => {
 		await editMany(101);
 		vi.mocked(ask).mockResolvedValue(true);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests().map((r) => r.commands!.length)).toEqual([100, 1]);
 		expect(server.item('e101')!.priority).toBe(3);
@@ -944,7 +954,7 @@ describe('syncNow: field push cap', () => {
 	it('does not ask at 50', async () => {
 		await editMany(50);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vi.mocked(ask)).not.toHaveBeenCalled();
 		expect(commandRequests()[0].commands).toHaveLength(50);
@@ -963,7 +973,7 @@ describe('syncNow: field push cap', () => {
 		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
 
 		vi.mocked(ask).mockResolvedValue(true);
-		expect(await syncNow()).not.toHaveProperty('skippedFieldPushes');
+		expect(await syncNow('manual')).not.toHaveProperty('skippedFieldPushes');
 		expect(commandRequests().map((r) => r.commands!.length)).toEqual([51]);
 		expect(server.item('e1')!.priority).toBe(3);
 	});
@@ -971,7 +981,7 @@ describe('syncNow: field push cap', () => {
 
 describe('syncNow: completion commands', () => {
 	it('keeps the pending uuid when the command request fails, and resends the same uuid next run', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
 		let offline = true;
 		fake.current = {
@@ -981,7 +991,7 @@ describe('syncNow: completion commands', () => {
 			},
 		};
 
-		const failed = await syncNow();
+		const failed = await syncNow('manual');
 
 		expect(failed).toEqual({ ok: false, message: 'Could not reach Todoist. Check your connection and try again.', failure: { kind: 'unreachable' } });
 		const pending = JSON.parse(vault.links.get('td-w1')!.pendingCmd!);
@@ -989,7 +999,7 @@ describe('syncNow: completion commands', () => {
 		expect(server.item('w1')!.checked).toBe(false);
 
 		offline = false;
-		await syncNow();
+		await syncNow('manual');
 
 		expect(server.requests.filter((r) => r.commands).map((r) => r.commands![0].uuid)).toEqual([pending.uuid]);
 		expect(server.item('w1')!.checked).toBe(true);
@@ -997,53 +1007,53 @@ describe('syncNow: completion commands', () => {
 	});
 
 	it('treats a 400 sync_status as terminal: pending cleared, logged, not retried', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.refuseCommandsFor('w1');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome.ok).toBe(true);
 		expect(vault.links.get('td-w1')!.pendingCmd).toBeNull();
 		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'command-error', anchor: 'td-w1' }));
 		expect(localBase('td-w1').status).toBe('x');
 
-		await syncNow();
+		await syncNow('manual');
 		expect(commandRequests()).toHaveLength(1);
 	});
 
 	it('fills a null local base from the line on the first run after a rebuild, then pushes the next change', async () => {
-		await syncNow();
+		await syncNow('manual');
 		vault.links.clear();
-		await syncNow();
+		await syncNow('manual');
 		expect(vault.links.get('td-w1')!.localBase).toBeNull();
 
-		await syncNow();
+		await syncNow('manual');
 		expect(localBase('td-w1')).toMatchObject({ status: ' ', description: 'Plan' });
 		expect(commandRequests()).toEqual([]);
 
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
-		await syncNow();
+		await syncNow('manual');
 		expect(server.item('w1')!.checked).toBe(true);
 	});
 
 	it('does not push for a duplicated anchor', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, `${W1_DONE}\n${W1_DONE}`);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(vault.links.get('td-w1')!.frozen).toBe(true);
 	});
 
 	it('writes no Todoist edit into a duplicated anchor and keeps its bases', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, `${W1_OPEN}\n${W1_OPEN}`);
 		server.updateItem('w1', { content: 'Plan the launch', priority: 1 });
 		const files = new Map(vault.files);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files).toEqual(files);
 		expect(vault.links.get('td-w1')!.frozen).toBe(true);
@@ -1055,7 +1065,7 @@ describe('syncNow: close/reopen cap', () => {
 	/** Adds `n` open tasks to Work, syncs them in, and checks every one in the brain. */
 	async function checkMany(n: number) {
 		for (let i = 1; i <= n; i++) server.addItem({ id: `c${i}`, project_id: 'work', content: `Chore ${i}`, child_order: 10 + i });
-		await syncNow();
+		await syncNow('manual');
 		vault.files.set('Todoist/Work.md', vault.files.get('Todoist/Work.md')!.replace(/- \[ \] Chore/gu, '- [x] Chore'));
 	}
 
@@ -1065,7 +1075,7 @@ describe('syncNow: close/reopen cap', () => {
 		const files = new Map(vault.files);
 		const commits = vault.commits.length;
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('26 tasks'), expect.objectContaining({ title: 'Todoist sync' }));
 		expect(outcome).toEqual({ ok: false, message: 'Todoist sync cancelled; nothing was changed.', failure: { kind: 'error' } });
@@ -1078,7 +1088,7 @@ describe('syncNow: close/reopen cap', () => {
 		await checkMany(101);
 		vi.mocked(ask).mockResolvedValue(true);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests().map((r) => r.commands!.length)).toEqual([100, 1]);
 		expect(server.item('c101')!.checked).toBe(true);
@@ -1087,7 +1097,7 @@ describe('syncNow: close/reopen cap', () => {
 	it('does not ask at 25', async () => {
 		await checkMany(25);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vi.mocked(ask)).not.toHaveBeenCalled();
 		expect(commandRequests()[0].commands).toHaveLength(25);
@@ -1110,7 +1120,7 @@ describe('syncNow: close/reopen cap', () => {
 		expect(todoistSyncStore.status).toBe('idle');
 
 		vi.mocked(ask).mockResolvedValue(true);
-		expect(await syncNow()).not.toHaveProperty('skippedPushes');
+		expect(await syncNow('manual')).not.toHaveProperty('skippedPushes');
 		expect(commandRequests().map((r) => r.commands!.length)).toEqual([26]);
 		expect(server.item('c1')!.checked).toBe(true);
 	});
@@ -1129,7 +1139,7 @@ describe('syncNow: close/reopen cap', () => {
 		expect(vault.links.get('td-c1')!.pendingCmd).toBeNull();
 
 		vi.mocked(ask).mockResolvedValue(true);
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests().map((r) => r.commands!.length)).toEqual([26]);
 		expect(commandRequests()[0].commands).toContainEqual(expect.objectContaining({ type: 'item_close', args: { id: 'c1' } }));
@@ -1155,11 +1165,11 @@ const removeW1 = () => edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
 
 describe('syncNow: a task deleted in Todoist', () => {
 	it('detaches the link: the line keeps its text and anchor, logged once', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { is_deleted: true });
 		const files = new Map(vault.files);
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
 		expect(vault.files).toEqual(files);
@@ -1168,13 +1178,13 @@ describe('syncNow: a task deleted in Todoist', () => {
 	});
 
 	it('never syncs the detached line again: no command, no create, no second log', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { is_deleted: true });
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
 
-		await syncNow();
-		await syncNow();
+		await syncNow('manual');
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(server.item('w1')).toMatchObject({ is_deleted: true, checked: false });
@@ -1183,22 +1193,22 @@ describe('syncNow: a task deleted in Todoist', () => {
 	});
 
 	it('drops a close checked in the brain while Todoist deleted the task', async () => {
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
 		server.updateItem('w1', { is_deleted: true });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(commandRequests()).toEqual([]);
 		expect(missCount('td-w1')).toBe(3);
 	});
 
 	it('writes no Todoist edit made together with the deletion', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { content: 'Plan the launch', priority: 1, is_deleted: true });
 		const files = new Map(vault.files);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files).toEqual(files);
 		expect(missCount('td-w1')).toBe(3);
@@ -1208,11 +1218,11 @@ describe('syncNow: a task deleted in Todoist', () => {
 
 describe('syncNow: a task moved out of the vault tree', () => {
 	it('detaches a task moved to a project outside the tree, line kept, logged', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { project_id: 'personal' });
 		const files = new Map(vault.files);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files).toEqual(files);
 		expect(missCount('td-w1')).toBe(3);
@@ -1220,10 +1230,10 @@ describe('syncNow: a task moved out of the vault tree', () => {
 	});
 
 	it('detaches a task moved to the Inbox when the vault does not include it', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { project_id: 'inbox' });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(missCount('td-w1')).toBe(3);
 		expect(detachLog('td-w1')).toHaveLength(1);
@@ -1231,11 +1241,11 @@ describe('syncNow: a task moved out of the vault tree', () => {
 
 	it('keeps a task moved to the Inbox when the vault includes it, or within the tree', async () => {
 		settingsStore.updateTodoist({ syncIncludeInbox: true });
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { project_id: 'inbox' });
 		server.updateItem('w2', { project_id: 'q4' });
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(missCount('td-w1')).toBe(0);
 		expect(missCount('td-w2')).toBe(0);
@@ -1243,14 +1253,14 @@ describe('syncNow: a task moved out of the vault tree', () => {
 	});
 
 	it('never patches a detached line, even when its task moves back into the tree and is edited there', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w1', { project_id: 'personal' });
-		await syncNow();
+		await syncNow('manual');
 		const detached = vault.links.get('td-w1')!;
 		server.updateItem('w1', { project_id: 'work', content: 'Plan the launch', priority: 1, labels: ['next'] });
 		const files = new Map(vault.files);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vault.files).toEqual(files);
 		expect(vault.links.get('td-w1')).toEqual(detached);
@@ -1260,57 +1270,57 @@ describe('syncNow: a task moved out of the vault tree', () => {
 
 describe('syncNow: a synced line deleted in the vault', () => {
 	it('detaches after 3 cycles in a row without the line; the Todoist task stays open and is not inserted again', async () => {
-		await syncNow();
+		await syncNow('manual');
 		removeW1();
 
-		await syncNow();
+		await syncNow('manual');
 		expect(missCount('td-w1')).toBe(1);
-		await syncNow();
+		await syncNow('manual');
 		expect(missCount('td-w1')).toBe(2);
 		expect(detachLog('td-w1')).toEqual([]);
-		await syncNow();
+		await syncNow('manual');
 
 		expect(missCount('td-w1')).toBe(3);
 		expect(detachLog('td-w1')).toEqual([expect.objectContaining({ message: expect.stringContaining('not found in the vault') })]);
 		expect(server.item('w1')).toMatchObject({ checked: false, is_deleted: false });
-		await syncNow();
+		await syncNow('manual');
 		expect(vault.files.get('Todoist/Work.md')).not.toContain('td-w1');
 		expect(commandRequests()).toEqual([]);
 	});
 
 	it('resets the count when the line reappears', async () => {
-		await syncNow();
+		await syncNow('manual');
 		removeW1();
-		await syncNow();
-		await syncNow();
+		await syncNow('manual');
+		await syncNow('manual');
 		vault.files.set('Todoist/Work.md', WORK_NOTE);
 
-		await syncNow();
+		await syncNow('manual');
 		expect(missCount('td-w1')).toBe(0);
 
 		removeW1();
-		await syncNow();
-		await syncNow();
+		await syncNow('manual');
+		await syncNow('manual');
 		expect(missCount('td-w1')).toBe(2);
 		expect(detachLog('td-w1')).toEqual([]);
 	});
 
 	it('counts no miss in a cycle refused before the index is ready', async () => {
-		await syncNow();
+		await syncNow('manual');
 		removeW1();
-		await syncNow();
-		await syncNow();
+		await syncNow('manual');
+		await syncNow('manual');
 		vaultStore.resetIndexReady();
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(missCount('td-w1')).toBe(2);
 	});
 
 	it('never counts a task absent from the incremental pulls, or a closed one gone from the full sync, as deleted', async () => {
-		await syncNow();
+		await syncNow('manual');
 		server.updateItem('w2', { checked: true });
-		for (let i = 0; i < 4; i++) await syncNow();
+		for (let i = 0; i < 4; i++) await syncNow('manual');
 
 		expect([...vault.links.values()].map((l) => l.missCount)).toEqual([0, 0, 0]);
 		expect(vault.log.filter((e) => e.kind === 'detach')).toEqual([]);
@@ -1321,7 +1331,7 @@ describe('syncNow: the line brake', () => {
 	const BRAKE = 'Todoist sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.';
 
 	it('aborts before any write, detach or push when fewer than half of the synced lines are found', async () => {
-		await syncNow();
+		await syncNow('manual');
 		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n');
 		edit('Todoist/Q4.md', '- [ ] Ship', '- [x] Ship');
 		server.addItem({ id: 'w3', project_id: 'work', content: 'New' });
@@ -1329,7 +1339,7 @@ describe('syncNow: the line brake', () => {
 		const commits = vault.commits.length;
 		const logged = vault.log.length;
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(outcome).toEqual({ ok: false, message: BRAKE, failure: { kind: 'lines-missing' } });
 		expect(vault.files).toEqual(files);
@@ -1341,20 +1351,20 @@ describe('syncNow: the line brake', () => {
 	});
 
 	it('aborts when no synced line is found at all', async () => {
-		await syncNow();
+		await syncNow('manual');
 		vault.files.clear();
 
-		expect(await syncNow()).toEqual({ ok: false, message: BRAKE, failure: { kind: 'lines-missing' } });
+		expect(await syncNow('manual')).toEqual({ ok: false, message: BRAKE, failure: { kind: 'lines-missing' } });
 		expect(vault.files.size).toBe(0);
 	});
 
 	it('runs at exactly half, counting the misses', async () => {
 		server.addItem({ id: 'w3', project_id: 'work', content: 'Extra', child_order: 3 });
-		await syncNow();
+		await syncNow('manual');
 		edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
 		edit('Todoist/Work.md', '- [ ] Extra 🆔 td-w3\n', '');
 
-		expect((await syncNow()).ok).toBe(true);
+		expect((await syncNow('manual')).ok).toBe(true);
 		expect(missCount('td-w1')).toBe(1);
 	});
 });
@@ -1363,7 +1373,7 @@ describe('syncNow: detach cap', () => {
 	/** Adds `n` open tasks to Work, syncs them in, and deletes every one in Todoist. */
 	async function deleteMany(n: number) {
 		for (let i = 1; i <= n; i++) server.addItem({ id: `d${i}`, project_id: 'work', content: `Old ${i}`, child_order: 10 + i });
-		await syncNow();
+		await syncNow('manual');
 		for (let i = 1; i <= n; i++) server.updateItem(`d${i}`, { is_deleted: true });
 	}
 
@@ -1372,7 +1382,7 @@ describe('syncNow: detach cap', () => {
 		vi.mocked(ask).mockResolvedValue(false);
 		const commits = vault.commits.length;
 
-		const outcome = await syncNow();
+		const outcome = await syncNow('manual');
 
 		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('detach 11 tasks'), expect.objectContaining({ title: 'Todoist sync' }));
 		expect(outcome).toEqual({ ok: false, message: 'Todoist sync cancelled; nothing was changed.', failure: { kind: 'error' } });
@@ -1384,7 +1394,7 @@ describe('syncNow: detach cap', () => {
 		await deleteMany(11);
 		vi.mocked(ask).mockResolvedValue(true);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(missCount('td-d1')).toBe(3);
 		expect(missCount('td-d11')).toBe(3);
@@ -1394,7 +1404,7 @@ describe('syncNow: detach cap', () => {
 	it('does not ask at 10', async () => {
 		await deleteMany(10);
 
-		await syncNow();
+		await syncNow('manual');
 
 		expect(vi.mocked(ask)).not.toHaveBeenCalled();
 		expect(missCount('td-d10')).toBe(3);
@@ -1414,7 +1424,414 @@ describe('syncNow: detach cap', () => {
 		expect(vault.commits.at(-1)!.kv).toEqual([]);
 
 		vi.mocked(ask).mockResolvedValue(true);
-		expect(await syncNow()).not.toHaveProperty('skippedDetaches');
+		expect(await syncNow('manual')).not.toHaveProperty('skippedDetaches');
 		expect(missCount('td-d1')).toBe(3);
+	});
+});
+
+/** The `item_add` commands Todoist received, in order. */
+const adds = () => commandRequests().flatMap((r) => r.commands!.filter((c) => c.type === 'item_add'));
+/** The brain-born anchor the line starting with `prefix` got in `relPath`. */
+function bornAnchor(relPath: string, prefix: string): string {
+	const line = vault.files.get(relPath)!.split('\n').find((l) => l.startsWith(prefix));
+	const anchor = /🆔 (td-[0-9a-z]{8})$/u.exec(line ?? '')?.[1];
+	if (!anchor) throw new Error(`No brain-born anchor on ${JSON.stringify(line)}`);
+	return anchor;
+}
+/** Todoist items whose content is `content`. */
+const itemsNamed = (content: string) => server.items().filter((i) => i.content === content);
+/** Appends `line` to the Work project note, as an edit in the brain. */
+const addToWork = (line: string) => vault.files.set('Todoist/Work.md', `${vault.files.get('Todoist/Work.md')!}${line}\n`);
+
+describe('syncNow: brain-born tasks', () => {
+	it('creates a new line of a project note in its project: anchor and pending link stored before item_add is sent', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob ⏫ 📅 2026-11-16 #deep');
+		let seenAtSend: { line: string | undefined; link: unknown } | null = null;
+		fake.current = {
+			fetch(url, init) {
+				if (String(init?.body).includes('"item_add"')) {
+					const line = vault.files.get('Todoist/Work.md')!.split('\n').find((l) => l.startsWith('- [ ] Call Bob'));
+					const anchor = /🆔 (\S+)/u.exec(line ?? '')?.[1];
+					seenAtSend = { line, link: anchor ? vault.links.get(anchor) : undefined };
+				}
+				return server.fetch(url, init);
+			},
+		};
+
+		const outcome = await syncNow('manual');
+
+		const anchor = bornAnchor('Todoist/Work.md', '- [ ] Call Bob');
+		expect(vault.files.get('Todoist/Work.md')).toContain(`- [ ] Call Bob ⏫ 📅 2026-11-16 #deep 🆔 ${anchor}`);
+		expect(seenAtSend!.line).toContain(anchor);
+		expect(seenAtSend!.link).toMatchObject({ todoistId: null, pendingUuid: expect.any(String) });
+		expect(adds()).toEqual([
+			{
+				type: 'item_add',
+				uuid: (seenAtSend!.link as { pendingUuid: string }).pendingUuid,
+				temp_id: anchor,
+				args: {
+					content: 'Call Bob',
+					description: `kokobrain:${anchor}`,
+					project_id: 'work',
+					priority: 3,
+					labels: ['deep'],
+					due: { date: '2026-11-16' },
+					auto_parse_labels: false,
+				},
+			},
+		]);
+		const [created] = itemsNamed('Call Bob');
+		expect(created).toMatchObject({ project_id: 'work', description: `kokobrain:${anchor}`, labels: ['deep'], priority: 3 });
+		expect(vault.links.get(anchor)).toMatchObject({ todoistId: created.id, pendingUuid: null, pendingCmd: null, noteRelPath: 'Todoist/Work.md' });
+		expect(remoteBase(anchor)).toMatchObject({ content: 'Call Bob', projectId: 'work', priority: 3, labels: ['deep'] });
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 task created in Todoist.' });
+	});
+
+	it('creates nothing more on the next cycles, and a later edit of the line is pushed as an item_update', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob');
+		await syncNow('manual');
+		const anchor = bornAnchor('Todoist/Work.md', '- [ ] Call Bob');
+		server.updateItem(itemsNamed('Call Bob')[0].id, { labels: ['Work'] });
+
+		const quiet = await syncNow('manual');
+		edit('Todoist/Work.md', `Call Bob 🆔 ${anchor}`, `Call Bob 🔼 🆔 ${anchor}`);
+		await syncNow('manual');
+
+		expect(quiet).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+		expect(adds()).toHaveLength(1);
+		expect(itemsNamed('Call Bob')).toHaveLength(1);
+		expect(itemsNamed('Call Bob')[0]).toMatchObject({ priority: 2, labels: ['Work'] });
+		expect(vault.files.get('Todoist/Work.md')!.match(/Call Bob/gu)).toHaveLength(1);
+	});
+
+	it('creates a #todoist line outside the project notes in the root project; the line stays in its note', async () => {
+		await syncNow('manual');
+		vault.files.set('Notes/Day.md', '# Day\n- [ ] Call Bob #todoist\n');
+
+		await syncNow('manual');
+
+		const anchor = bornAnchor('Notes/Day.md', '- [ ] Call Bob');
+		expect(vault.files.get('Notes/Day.md')).toBe(`# Day\n- [ ] Call Bob #todoist 🆔 ${anchor}\n`);
+		expect(itemsNamed('Call Bob')[0]).toMatchObject({ project_id: 'work', labels: [] });
+		expect(vault.files.get('Todoist/Work.md')).not.toContain('Call Bob');
+	});
+
+	it('creates a line of a project note open in a tab through the tab', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob');
+		const path = '/work-vault/Todoist/Work.md';
+		const content = vault.files.get('Todoist/Work.md')!;
+		editorStore.addTab({ path, name: 'Work.md', content, savedContent: content });
+
+		await syncNow('manual');
+
+		const tab = editorStore.tabs[0].content;
+		expect(tab).toMatch(/- \[ \] Call Bob 🆔 td-[0-9a-z]{8}\n$/u);
+		expect(vault.files.get('Todoist/Work.md')).toBe(content);
+		expect(itemsNamed('Call Bob')).toHaveLength(1);
+	});
+
+	it('creates nothing for closed lines, subtasks, other notes, excluded folders and lines with a user 🆔; logs the 🆔 and long text', async () => {
+		await syncNow('manual');
+		addToWork('- [x] Done already');
+		addToWork('\t- [ ] A subtask');
+		addToWork('- [ ] Mine 🆔 abc');
+		addToWork(`- [ ] ${'x'.repeat(501)}`);
+		vault.files.set('Notes/Day.md', '- [ ] Not synced\n');
+		vault.files.set('_system/templates/Task.md', '- [ ] Template #todoist\n');
+		const files = new Map(vault.files);
+
+		await syncNow('manual');
+
+		expect(adds()).toEqual([]);
+		expect(vault.files).toEqual(files);
+		expect(vault.log).toEqual([
+			expect.objectContaining({ kind: 'create-skipped', message: expect.stringContaining('🆔') }),
+			expect.objectContaining({ kind: 'create-skipped', message: expect.stringContaining('over 500 characters') }),
+		]);
+	});
+
+	it('logs skipped lines only on a manual cycle, so automatic cycles do not fill the sync log', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Mine 🆔 abc');
+
+		await syncNow('auto');
+		await syncNow('auto');
+
+		expect(vault.log).toEqual([]);
+		await syncNow('manual');
+		expect(vault.log).toEqual([expect.objectContaining({ kind: 'create-skipped' })]);
+	});
+
+	it('writes the anchor before a trailing block id and leaves the block id out of the Todoist content', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob ^blk-1');
+
+		await syncNow('manual');
+		const quiet = await syncNow('manual');
+
+		const line = vault.files.get('Todoist/Work.md')!.split('\n').find((l) => l.startsWith('- [ ] Call Bob'));
+		const anchor = /🆔 (td-[0-9a-z]{8}) \^blk-1$/u.exec(line ?? '')?.[1];
+		expect(anchor).toBeDefined();
+		expect(adds().map((c) => c.args.content)).toEqual(['Call Bob']);
+		expect(itemsNamed('Call Bob')).toHaveLength(1);
+		expect(vault.links.get(anchor!)!.todoistId).toBe(itemsNamed('Call Bob')[0].id);
+		expect(quiet).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+	});
+
+	it('sends a recurring line as date + rule, and one without a 📅 as the rule alone; that line gets Todoist first date', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Pay 📅 2026-11-16 🔁 every week');
+		addToWork('- [ ] Rent 🔁 every month');
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		expect(adds().map((c) => c.args.due)).toEqual([{ date: '2026-11-16', string: 'every week', lang: 'en' }, { string: 'every month' }]);
+		expect(itemsNamed('Pay')[0].due).toMatchObject({ is_recurring: true, string: 'every week', date: '2026-11-16' });
+		const rent = bornAnchor('Todoist/Work.md', '- [ ] Rent');
+		expect(vault.files.get('Todoist/Work.md')).toContain(`- [ ] Rent 🔁 every month 📅 2026-12-01 🆔 ${rent}`);
+		expect(adds()).toHaveLength(2);
+	});
+
+	it('adds the personal label in a personal vault, and no context label in a work vault', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Work thing #deep');
+		await syncNow('manual');
+		settingsStore.updateTodoist({ syncContext: 'personal' });
+		addToWork('- [ ] Home thing #deep');
+		await syncNow('manual');
+
+		expect(adds().map((c) => c.args.labels)).toEqual([['deep'], ['deep', 'personal']]);
+	});
+});
+
+describe('syncNow: a create whose response is lost', () => {
+	/** Applies every command request, then loses its response (the SDK retries replay the uuid). */
+	function loseCommandResponses(): () => void {
+		let losing = true;
+		fake.current = {
+			async fetch(url, init) {
+				const response = await server.fetch(url, init);
+				if (losing && String(init?.body).includes('"commands"')) throw new TypeError('Network request failed');
+				return response;
+			},
+		};
+		return () => (losing = false);
+	}
+
+	it('pairs the task the next pull brings by its kokobrain: line: no second task, no second line', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob');
+		const restore = loseCommandResponses();
+		expect((await syncNow('manual')).ok).toBe(false);
+		const anchor = bornAnchor('Todoist/Work.md', '- [ ] Call Bob');
+		expect(vault.links.get(anchor)).toMatchObject({ todoistId: null, pendingUuid: expect.any(String) });
+		expect(itemsNamed('Call Bob')).toHaveLength(1);
+		restore();
+		const sentBefore = adds().length;
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		expect(adds()).toHaveLength(sentBefore);
+		expect(itemsNamed('Call Bob')).toHaveLength(1);
+		expect(vault.links.get(anchor)).toMatchObject({ todoistId: itemsNamed('Call Bob')[0].id, pendingUuid: null, pendingCmd: null });
+		expect(vault.files.get('Todoist/Work.md')!.match(/Call Bob/gu)).toHaveLength(1);
+	});
+
+	it('pairs by content and project when the kokobrain: line was removed in Todoist', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob');
+		const restore = loseCommandResponses();
+		await syncNow('manual');
+		restore();
+		server.updateItem(itemsNamed('Call Bob')[0].id, { description: 'notes typed in Todoist' });
+
+		await syncNow('manual');
+
+		const anchor = bornAnchor('Todoist/Work.md', '- [ ] Call Bob');
+		expect(itemsNamed('Call Bob')).toHaveLength(1);
+		expect(vault.links.get(anchor)!.todoistId).toBe(itemsNamed('Call Bob')[0].id);
+		expect(vault.files.get('Todoist/Work.md')!.match(/Call Bob/gu)).toHaveLength(1);
+	});
+
+	it('resends the same uuid when the request never reached Todoist, creating the task once', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob');
+		let offline = true;
+		fake.current = {
+			fetch(url, init) {
+				if (offline && String(init?.body).includes('"commands"')) return Promise.reject(new TypeError('Network request failed'));
+				return server.fetch(url, init);
+			},
+		};
+		expect((await syncNow('manual')).ok).toBe(false);
+		const anchor = bornAnchor('Todoist/Work.md', '- [ ] Call Bob');
+		const uuid = vault.links.get(anchor)!.pendingUuid;
+		offline = false;
+
+		await syncNow('manual');
+
+		expect(new Set(adds().map((c) => c.uuid))).toEqual(new Set([uuid]));
+		expect(itemsNamed('Call Bob')).toHaveLength(1);
+		expect(vault.links.get(anchor)!.todoistId).toBe(itemsNamed('Call Bob')[0].id);
+	});
+
+	it('pairs brain-born tasks by their kokobrain: line in rebuild mode after the sync state is lost', async () => {
+		await syncNow('manual');
+		addToWork('- [ ] Call Bob');
+		await syncNow('manual');
+		const anchor = bornAnchor('Todoist/Work.md', '- [ ] Call Bob');
+		vault.links.clear();
+		vault.kv.clear();
+		const files = new Map(vault.files);
+
+		const rebuilt = await syncNow('manual');
+		await syncNow('manual');
+
+		expect(rebuilt.message).toBe('Todoist sync rebuilt 4 links from the vault; nothing was created.');
+		expect(adds()).toHaveLength(1);
+		expect(itemsNamed('Call Bob')).toHaveLength(1);
+		expect(vault.files).toEqual(files);
+		expect(vault.links.get(anchor)!.todoistId).toBe(itemsNamed('Call Bob')[0].id);
+	});
+});
+
+describe('syncNow: creates that never happen', () => {
+	it('never sends item_add for a detached line that comes back, or an anchored line without a link row', async () => {
+		await syncNow('manual');
+		server.updateItem('w1', { is_deleted: true });
+		await syncNow('manual');
+		removeW1();
+		await syncNow('manual');
+		addToWork(W1_OPEN);
+		addToWork('- [ ] Orphan 🆔 td-zzzzzzzz');
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		expect(adds()).toEqual([]);
+		expect(vault.links.get('td-w1')!.missCount).toBe(3);
+	});
+
+	it('treats a refused item_add as terminal: logged, the line detached and kept, never resent', async () => {
+		await syncNow('manual');
+		server.refuseAddsIn('work');
+		addToWork('- [ ] Call Bob');
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		const anchor = bornAnchor('Todoist/Work.md', '- [ ] Call Bob');
+		expect(adds()).toHaveLength(1);
+		expect(vault.links.get(anchor)).toMatchObject({ todoistId: null, pendingUuid: null, pendingCmd: null, missCount: 3 });
+		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'command-error', anchor, message: expect.stringContaining('item_add') }));
+	});
+
+	it('creates nothing in rebuild mode, and leaves first_run_done for the normal cycle that previews', async () => {
+		vault.files.set('Notes/Old.md', '- [ ] Old 🆔 td-gone\n- [ ] Call Bob #todoist\n');
+
+		await syncNow('manual');
+
+		expect(adds()).toEqual([]);
+		expect(vault.files.get('Notes/Old.md')).toBe('- [ ] Old 🆔 td-gone\n- [ ] Call Bob #todoist\n');
+		expect(vault.kv.has('first_run_done')).toBe(false);
+	});
+});
+
+describe('syncNow: the first run is a preview', () => {
+	beforeEach(() => {
+		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n- [ ] Call Bob\n- [ ] Write spec\n');
+	});
+
+	it('asks with the count before sending anything; Cancel sends nothing and leaves first_run_done unset', async () => {
+		vi.mocked(ask).mockResolvedValue(false);
+		const files = new Map(vault.files);
+
+		const outcome = await syncNow('manual');
+
+		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('create 2 tasks in Todoist'), expect.objectContaining({ title: 'Todoist sync' }));
+		expect(outcome).toEqual({ ok: false, message: 'Todoist sync cancelled; nothing was changed.', failure: { kind: 'error' } });
+		expect(commandRequests()).toEqual([]);
+		expect(vault.files).toEqual(files);
+		expect(vault.kv.has('first_run_done')).toBe(false);
+	});
+
+	it('creates them once confirmed, and sets first_run_done with the state', async () => {
+		vi.mocked(ask).mockResolvedValue(true);
+
+		const outcome = await syncNow('manual');
+
+		expect(adds().map((c) => c.args.content)).toEqual(['Call Bob', 'Write spec']);
+		expect(vault.kv.get('first_run_done')).toBe('1');
+		expect(outcome.message).toBe('Todoist sync done: 2 notes created, 3 tasks added, 2 tasks created in Todoist.');
+	});
+
+	it('sets first_run_done without asking when the first run creates nothing', async () => {
+		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n');
+
+		await syncNow('manual');
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(vault.kv.get('first_run_done')).toBe('1');
+	});
+
+	it('never creates, asks or sets first_run_done in an automatic cycle before the first run', async () => {
+		const outcome = await syncNow('auto');
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(adds()).toEqual([]);
+		expect(outcome).toMatchObject({ ok: true, skippedCreates: 2 });
+		expect(vault.kv.has('first_run_done')).toBe(false);
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Call Bob\n');
+	});
+});
+
+describe('syncNow: create cap', () => {
+	/** After the first run, adds `n` new lines to the Work note. */
+	async function writeMany(n: number) {
+		await syncNow('manual');
+		for (let i = 1; i <= n; i++) addToWork(`- [ ] New ${i}`);
+	}
+
+	it('asks before more than 25 creates; Cancel changes nothing', async () => {
+		await writeMany(26);
+		vi.mocked(ask).mockResolvedValue(false);
+		const files = new Map(vault.files);
+
+		const outcome = await syncNow('manual');
+
+		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('create 26 tasks'), expect.objectContaining({ title: 'Todoist sync' }));
+		expect(outcome.ok).toBe(false);
+		expect(commandRequests()).toEqual([]);
+		expect(vault.files).toEqual(files);
+	});
+
+	it('creates them all on Sync, and does not ask at 25', async () => {
+		await writeMany(25);
+		await syncNow('manual');
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		for (let i = 26; i <= 52; i++) addToWork(`- [ ] New ${i}`);
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await syncNow('manual');
+
+		expect(adds()).toHaveLength(52);
+	});
+
+	it('never asks in an automatic cycle: it skips the creates and runs the rest', async () => {
+		await writeMany(26);
+		server.updateItem('w1', { checked: true });
+
+		const outcome = await syncNow('auto');
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 line updated.', skippedCreates: 26 });
+		expect(adds()).toEqual([]);
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] New 1\n');
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
 	});
 });

@@ -53,7 +53,7 @@ export interface FakeVault {
 
 const NO_CHANGE = { changed: false, affected: [], version: 1, upserted: [], removed: [], fullRescan: false };
 
-const TASK_RE = /^\s*(?:[-*+]|\d+\.)\s\[([xX \-/?!>])\]\s([^\n]*)$/u;
+const TASK_RE = /^(\s*)(?:[-*+]|\d+\.)\s\[([xX \-/?!>])\]\s([^\n]*)$/u;
 
 /** Rust `parse_status`. */
 const STATUS: Record<string, TaskStatus> = {
@@ -70,13 +70,15 @@ const STATUS: Record<string, TaskStatus> = {
 const PRIORITIES: Record<string, TaskPriority> = { '🔺': 'highest', '⏫': 'high', '🔼': 'medium', '🔽': 'low', '⏬': 'lowest' };
 
 /**
- * A rough stand-in for Rust `parse_task_metadata`: `📅`, priority, tags, and
- * as the description the text with dates, priorities, the recurrence text,
- * id, depends-on, on-completion and tags removed, spaces collapsed.
+ * A rough stand-in for Rust `parse_task_metadata`: `📅`, priority, tags, the
+ * `🔁` text, and as the description the text with dates, priorities, the
+ * recurrence text, id, depends-on, on-completion and tags removed, spaces
+ * collapsed.
  */
 function metadataOf(text: string): TaskMetadata {
 	const dueDate = /📅\s*(\d{4}-\d{2}-\d{2})/u.exec(text)?.[1];
 	const priority = Object.entries(PRIORITIES).find(([emoji]) => text.includes(emoji))?.[1];
+	const recurrence = /🔁\s*([^📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🆔⛔🏁#]*)/u.exec(text)?.[1].trim();
 	const description = text
 		.replace(/[📅⏳🛫➕✅❌]\s*\d{4}-\d{2}-\d{2}/gu, '')
 		.replace(/🔁[^📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🆔⛔🏁#]*/gu, '')
@@ -89,6 +91,7 @@ function metadataOf(text: string): TaskMetadata {
 		description,
 		...(dueDate ? { dueDate } : {}),
 		...(priority ? { priority } : {}),
+		...(recurrence ? { recurrence: { text: recurrence } } : {}),
 		tags: [...text.matchAll(/#([A-Za-z0-9_][A-Za-z0-9_-]*)/gu)].map((m) => m[1]),
 	};
 }
@@ -172,12 +175,12 @@ export function createFakeVault(root: string, files: Record<string, string> = {}
 				const m = fence === null ? TASK_RE.exec(line) : null;
 				if (!m) return;
 				tasks.push({
-					text: m[2],
-					checked: m[1] !== ' ',
-					indent: 0,
+					text: m[3],
+					checked: m[2] !== ' ',
+					indent: [...m[1]].filter((c) => c === '\t').length + Math.floor([...m[1]].filter((c) => c === ' ').length / 2),
 					lineNumber: i + 1,
-					status: STATUS[m[1]],
-					metadata: metadataOf(m[2]),
+					status: STATUS[m[2]],
+					metadata: metadataOf(m[3]),
 				});
 			});
 			if (tasks.length > 0) groups.push({ filePath: `${root}/${rel}`, fileName: rel, modifiedAt: 0, tasks });
