@@ -11,7 +11,7 @@ setupLocalStorage();
 
 const { fake, toast } = vi.hoisted(() => ({
 	fake: { current: null as { fetch(url: string, init?: RequestInit): Promise<Response> } | null },
-	toast: { success: vi.fn(), error: vi.fn(), dismiss: vi.fn() },
+	toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn(), dismiss: vi.fn() },
 }));
 
 vi.mock('@tauri-apps/plugin-http', () => ({
@@ -19,6 +19,7 @@ vi.mock('@tauri-apps/plugin-http', () => ({
 }));
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn() }));
+vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 vi.mock('svelte-sonner', () => ({ toast }));
 vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
@@ -28,6 +29,8 @@ vi.mock('#lib/utils/debug.js', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
+import { ask } from '@tauri-apps/plugin-dialog';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { resetEditor } from '#lib/core/editor/editor.service.js';
 import { notifyAfterSave, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -55,8 +58,12 @@ async function advance(ms: number): Promise<void> {
 	await settle();
 }
 
-/** Number of /sync requests Todoist received. */
-const cycles = () => server.requests.length;
+/**
+ * Number of cycles that reached Todoist: each one starts with exactly one
+ * full sync (`sync_token: '*'`); later requests of the same cycle (the
+ * incremental pull, command batches) are not counted.
+ */
+const cycles = () => server.requests.filter((r) => r.sync_token === '*').length;
 
 /** Holds every /sync request until `release()`; returns the release. */
 function holdRequests(): () => void {
@@ -95,6 +102,11 @@ beforeEach(() => {
 	vault = createFakeVault(ROOT);
 	vault.kv.set('first_run_done', '1');
 	vi.mocked(invoke).mockImplementation((cmd, args) => vault.invoke(cmd, args as Record<string, unknown> | undefined));
+	vi.mocked(readTextFile).mockImplementation(async (path) => {
+		const content = vault.files.get(String(path).slice(vault.root.length + 1));
+		if (content === undefined) throw new Error(`No such file: ${String(path)}`);
+		return content;
+	});
 	vaultStore.open(ROOT);
 	vaultStore.markIndexReady();
 	settingsStore.updateTodoist({ apiToken: server.token, syncEnabled: true, syncRootProjectId: 'work', syncIntervalMinutes: 5 });
@@ -253,6 +265,53 @@ describe('one cycle at a time', () => {
 
 		expect(cycles()).toBe(2);
 		expect(toast.success).toHaveBeenCalledWith('Todoist sync done: nothing new.');
+	});
+});
+
+describe('over the close/reopen cap', () => {
+	const OVER_CAP = 'Todoist automatic sync skipped closing or reopening 26 tasks: more than 25 in one sync. Run "Todoist: Sync now" to confirm them.';
+
+	/** Syncs 26 more Work tasks in automatically, then checks each one in the brain. */
+	async function checkMany() {
+		for (let i = 1; i <= 26; i++) server.addItem({ id: `c${i}`, project_id: 'work', content: `Chore ${i}`, child_order: 10 + i });
+		startAutoSync(ROOT);
+		await settle();
+		vault.files.set('Todoist/Work.md', vault.files.get('Todoist/Work.md')!.replace(/- \[ \] Chore/gu, '- [x] Chore'));
+	}
+
+	const commandRequests = () => server.requests.filter((r) => r.commands);
+
+	it('never asks in an automatic cycle: it sends no close/reopen and toasts once', async () => {
+		await checkMany();
+
+		await advance(30_000);
+		focusWindow();
+		await settle();
+		await advance(5 * MINUTE);
+
+		expect(cycles()).toBe(3);
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(commandRequests()).toEqual([]);
+		expect(server.item('c1')!.checked).toBe(false);
+		expect(toast.error).not.toHaveBeenCalled();
+		expect(toast.warning).toHaveBeenCalledTimes(1);
+		expect(toast.warning).toHaveBeenCalledWith(OVER_CAP, { id: 'todoist-sync-over-cap', duration: Infinity, closeButton: true });
+	});
+
+	it('"Sync now" still asks, and once the pushes ran the toast is dismissed', async () => {
+		await checkMany();
+		await advance(30_000);
+		focusWindow();
+		await settle();
+		expect(toast.warning).toHaveBeenCalledTimes(1);
+
+		vi.mocked(ask).mockResolvedValue(true);
+		await syncNowFromUi();
+
+		expect(vi.mocked(ask)).toHaveBeenCalledTimes(1);
+		expect(commandRequests().map((r) => r.commands!.length)).toEqual([26]);
+		expect(server.item('c1')!.checked).toBe(true);
+		expect(toast.dismiss).toHaveBeenCalledWith('todoist-sync-over-cap');
 	});
 });
 

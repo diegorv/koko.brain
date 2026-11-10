@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
 
-const PULL = { mode: 'normal' as const, notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0 };
+const PULL = { mode: 'normal' as const, notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0 };
 
 describe('todoistSyncStore', () => {
 	beforeEach(() => {

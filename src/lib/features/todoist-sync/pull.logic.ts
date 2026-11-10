@@ -8,13 +8,15 @@
 
 import type { TaskPriority, TodoistSyncLogInput, TodoistTaskLink } from '#lib/contracts/index.js';
 import { canonicalizeScalar } from '#lib/core/frontmatter/yaml-quoting.logic.js';
-import { anchorForTodoistId, anchorToken } from './anchor.logic.js';
+import { anchorForTodoistId, anchorToken, readAnchor } from './anchor.logic.js';
 import { mapPriorityFromTodoist } from './priority.logic.js';
 import { treeProjectIds, type ScopeProject } from './sync-scope.logic.js';
 import { codeFence } from './task-line-edits.logic.js';
 import {
 	contentRoundTripProblem,
+	hasSignifier,
 	isTaskTagName,
+	taskLineStatus,
 	taskLineText,
 	type PriorityEmoji,
 	type RoundTripProblem,
@@ -110,7 +112,14 @@ export interface ScannedLine {
 	lineNumber: number;
 	/** The task text, without the `- [ ] ` prefix. */
 	line: string;
+	/** The status char (for an index line, the canonical char of its parsed status). */
+	status: string;
+	/** The line's fields as the Rust parser reads them; null when the index has not parsed this text yet. */
+	fields: LineFields | null;
 }
+
+/** The parsed fields of a line that a `local_base` keeps besides the status. */
+export type LineFields = Omit<LocalBase, 'status'>;
 
 /** An indexed note, and the Todoist project its frontmatter names when it is in sync scope. */
 export interface ScannedNote {
@@ -165,7 +174,7 @@ export interface PullPlan {
 	log: TodoistSyncLogInput[];
 }
 
-/** What a pull wrote. */
+/** What a sync cycle wrote: the pull, then the completion sync. */
 export interface PullCounts {
 	/** Whether the pull ran in rebuild mode. */
 	mode: PullPlan['mode'];
@@ -177,10 +186,17 @@ export interface PullCounts {
 	linksPaired: number;
 	/** Rebuild only: anchored lines left unmatched (`PullPlan.linesUnmatched`). */
 	linesUnmatched: number;
+	/** Synced lines patched from Todoist (status, recurring `📅`). */
+	linesUpdated: number;
+	/** Close and reopen commands Todoist acknowledged. */
+	todoistUpdated: number;
 }
 
 /** Labels kept out of the tag mapping besides `defaultLabel` (design rule 8): the scope tag and the context labels. */
 const ALWAYS_EXCLUDED_LABELS = ['todoist', 'work', 'personal'];
+
+/** What a Todoist `due.date` must start with to be written as `📅`. */
+const DUE_DATE_RE = /^\d{4}-\d{2}-\d{2}/u;
 
 /** Todoist priority -> line emoji (`PRIORITY_EMOJIS` order). */
 const PRIORITY_EMOJI: Partial<Record<TaskPriority, PriorityEmoji>> = { highest: '🔺', high: '⏫', medium: '🔼' };
@@ -217,11 +233,11 @@ export function projectNoteBaseName(name: string): string {
 }
 
 /**
- * Every task line of a note's content with its 1-based number and its text,
- * skipping code fences like Rust `extract_tasks`.
+ * Every task line of a note's content with its 1-based number, its text and
+ * its status char, skipping code fences like Rust `extract_tasks`.
  */
-export function extractTaskLines(content: string): { lineNumber: number; text: string }[] {
-	const out: { lineNumber: number; text: string }[] = [];
+export function extractTaskLines(content: string): { lineNumber: number; text: string; status: string }[] {
+	const out: { lineNumber: number; text: string; status: string }[] = [];
 	let fence: string | null = null;
 	content.split('\n').forEach((line, i) => {
 		const marker = codeFence(line);
@@ -232,14 +248,24 @@ export function extractTaskLines(content: string): { lineNumber: number; text: s
 		}
 		if (fence !== null) return;
 		const text = taskLineText(line);
-		if (text !== null) out.push({ lineNumber: i + 1, text });
+		if (text !== null) out.push({ lineNumber: i + 1, text, status: taskLineStatus(line)! });
 	});
 	return out;
 }
 
-/** The anchor a brain-born task's description names on its own `kokobrain:td-...` line, or null. */
+/**
+ * The anchor a brain-born task's description names on its own
+ * `kokobrain:td-...` line, or null. Only the brain-born format (`td-` plus 8
+ * base36 chars, `generateAnchor`) counts, so a description can never claim a
+ * `td-<todoist id>` anchor.
+ */
 export function kokobrainAnchor(description: string): string | null {
-	return /^kokobrain:(td-\S+)\s*$/mu.exec(description)?.[1] ?? null;
+	return /^kokobrain:(td-[0-9a-z]{8})\s*$/mu.exec(description)?.[1] ?? null;
+}
+
+/** Throws when a line planned for a note holds CR or LF: the writers would refuse it, and the line would split. */
+export function assertSingleLine(line: string): void {
+	if (/[\r\n]/u.test(line)) throw new Error(`A planned task line holds a line break: ${JSON.stringify(line)}`);
 }
 
 /** Lower-cased labels never written as tags: the scope tag, the context labels and `defaultLabel`. */
@@ -255,23 +281,27 @@ export function excludedLabelSet(defaultLabel: string): Set<string> {
  * the fields that exist. A label becomes a tag only when its whole name is a
  * tag name and it is not excluded; the rest stay in `unmappedLabels`.
  * Content that would not survive a parse back is written as-is (a newline
- * becomes a space, which a line cannot hold) and flagged.
+ * becomes a space, which a line cannot hold) and flagged. CR and LF in the
+ * recurrence text become spaces; a due whose date does not start with
+ * `YYYY-MM-DD` is left out of the line and flagged as `dueProblem`.
  */
 export function pulledTask(
 	item: PullItem,
 	excludedLabels: ReadonlySet<string>,
-): { line: string; localBase: LocalBase; remoteBase: RemoteBase; contentProblem: RoundTripProblem | null } {
+): { line: string; localBase: LocalBase; remoteBase: RemoteBase; contentProblem: RoundTripProblem | null; dueProblem: boolean } {
 	const contentProblem = contentRoundTripProblem(item.content);
 	const content = item.content.replace(/\r\n|\r|\n/gu, ' ');
 	const tags = item.labels.filter((l) => isTaskTagName(l) && !excludedLabels.has(l.toLowerCase()));
 	const unmappedLabels = item.labels.filter((l) => !tags.includes(l));
 	const priority = mapPriorityFromTodoist(item.priority);
-	const dueDate = item.due ? item.due.date.slice(0, 10) : null;
+	const dueProblem = item.due !== null && !DUE_DATE_RE.test(item.due.date);
+	const due = dueProblem ? null : item.due;
+	const dueDate = due ? due.date.slice(0, 10) : null;
 	const parts = [
 		content,
 		priority ? PRIORITY_EMOJI[priority] : undefined,
 		dueDate ? `📅 ${dueDate}` : undefined,
-		item.due?.isRecurring ? `🔁 ${item.due.string}` : undefined,
+		due?.isRecurring ? `🔁 ${due.string.replace(/\r\n|\r|\n/gu, ' ')}` : undefined,
 		...tags.map((t) => `#${t}`),
 		anchorToken(anchorForTodoistId(item.id)),
 	].filter((p): p is string => p !== undefined && p !== '');
@@ -280,6 +310,7 @@ export function pulledTask(
 		localBase: { description: content, status: ' ', dueDate, priority, tags },
 		remoteBase: remoteBaseOf(item, unmappedLabels, contentProblem),
 		contentProblem,
+		dueProblem,
 	};
 }
 
@@ -356,14 +387,30 @@ export function planPull(input: PullInput): PullPlan {
 	const paired = new Set<string>();
 	const inserts = new Map<string, PlannedInsert>();
 
-	for (const item of items) {
-		if (linkedIds.has(item.id)) continue;
+	// The item's own `td-<id>` first, then its description's brain-born anchor.
+	const unlinked = items.filter((i) => !linkedIds.has(i.id));
+	const foundAnchor = new Map<string, string>();
+	const claims = new Map<string, number>();
+	for (const item of unlinked) {
+		const found = [anchorForTodoistId(item.id), kokobrainAnchor(item.description)].find(
+			(a): a is string => a !== null && occurrenceCount(a) > 0,
+		);
+		if (!found) continue;
+		foundAnchor.set(item.id, found);
+		claims.set(found, (claims.get(found) ?? 0) + 1);
+	}
+
+	for (const item of unlinked) {
 		const kb = kokobrainAnchor(item.description);
 		const own = anchorForTodoistId(item.id);
-		const found = [kb, own].find((a): a is string => a !== null && occurrenceCount(a) > 0);
+		const found = foundAnchor.get(item.id);
 		if (found) {
-			if (ownedAnchors.has(found) || paired.has(found)) {
+			if (ownedAnchors.has(found)) {
 				plan.log.push({ kind: 'anchor-conflict', anchor: found, message: `Todoist task ${item.id} carries an anchor another link owns` });
+				continue;
+			}
+			if (claims.get(found)! > 1) {
+				plan.log.push({ kind: 'anchor-conflict', anchor: found, message: `Todoist task ${item.id} claims an anchor another task claims too; neither is paired` });
 				continue;
 			}
 			paired.add(found);
@@ -382,6 +429,19 @@ export function planPull(input: PullInput): PullPlan {
 		const relPath = targets.get(item.projectId);
 		if (!relPath) continue;
 		const task = pulledTask(item, input.excludedLabels);
+		if (hasSignifier(item.content)) {
+			// The parser keeps the first `🆔` and reads the other signifiers as metadata.
+			plan.log.push({ kind: 'content-skipped', anchor: own, message: `Content of Todoist task ${item.id} holds a task signifier; it is not inserted` });
+			continue;
+		}
+		assertSingleLine(task.line);
+		if (readAnchor(task.line) !== own) {
+			plan.log.push({ kind: 'anchor-mismatch', anchor: own, message: `The line for Todoist task ${item.id} would not read back as ${own}; it is not inserted` });
+			continue;
+		}
+		if (task.dueProblem) {
+			plan.log.push({ kind: 'due-dropped', anchor: own, message: `Todoist task ${item.id} has a due date that is not YYYY-MM-DD; the due is left out` });
+		}
 		if (task.contentProblem) {
 			plan.log.push({
 				kind: 'content-roundtrip',
@@ -486,6 +546,8 @@ export function formatPullResult(counts: PullCounts): string {
 		counts.notesCreated > 0 ? `${plural(counts.notesCreated, 'note')} created` : '',
 		counts.tasksInserted > 0 ? `${plural(counts.tasksInserted, 'task')} added` : '',
 		counts.linksPaired > 0 ? `${plural(counts.linksPaired, 'link')} paired` : '',
+		counts.linesUpdated > 0 ? `${plural(counts.linesUpdated, 'line')} updated` : '',
+		counts.todoistUpdated > 0 ? `${plural(counts.todoistUpdated, 'task')} updated in Todoist` : '',
 	].filter((p) => p !== '');
 	return `Todoist sync done: ${parts.length > 0 ? parts.join(', ') : 'nothing new'}.`;
 }

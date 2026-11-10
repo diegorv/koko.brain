@@ -1,10 +1,21 @@
+import { TodoistSyncError, type SyncCommand, type TodoistApi } from '@doist/todoist-sdk';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { call } from '#lib/contracts/ipc.js';
-import type { TodoistTaskLink } from '#lib/contracts/index.js';
+import type { TaskLineReplace, TodoistSyncLogInput, TodoistTaskLink } from '#lib/contracts/index.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
+import { idValues } from './anchor.logic.js';
 import { createNoteFile } from './closed-note-writer.service.js';
-import { writeTaskLinesToNote } from './note-writer.service.js';
+import {
+	applyLineChange,
+	planAck,
+	planCompletion,
+	terminalLink,
+	type LineChange,
+	type PlannedCommand,
+} from './completion.logic.js';
+import { readNoteContent, writeTaskLinesToNote } from './note-writer.service.js';
 import {
 	excludedLabelSet,
 	formatPullResult,
@@ -12,6 +23,7 @@ import {
 	planPull,
 	type PullCounts,
 	type PullItem,
+	type ScannedLine,
 } from './pull.logic.js';
 import { classifyTodoistError, syncErrorMessage, treeProjectIds, type TodoistFailure } from './sync-scope.logic.js';
 import { createTodoistClient } from './todoist-client.js';
@@ -27,9 +39,14 @@ export type SyncFailure = TodoistFailure | { kind: 'root-missing' } | { kind: 'v
 /**
  * The outcome of "Sync now", with the message to show. `failure` is set only
  * when a run started and failed; a refusal (sync off, index not ready, a run
- * already in progress, ...) has none.
+ * already in progress, ...) has none. `skippedPushes` is set only when an
+ * automatic cycle left out its close and reopen pushes for being over the
+ * cap: how many it planned.
  */
-export type SyncNowOutcome = { ok: boolean; message: string; failure?: SyncFailure };
+export type SyncNowOutcome = { ok: boolean; message: string; failure?: SyncFailure; skippedPushes?: number };
+
+/** Who started a cycle: "Sync now" (`manual`) or a scheduler trigger (`auto`). */
+export type SyncMode = 'manual' | 'auto';
 
 /** A run stopped by a fixed, user-facing reason; the message is shown as-is. */
 class SyncStop extends Error {
@@ -43,23 +60,38 @@ class SyncStop extends Error {
 
 const VAULT_SWITCHED = 'The vault changed during the Todoist sync; nothing more was written.';
 const ROOT_MISSING = 'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.';
+const CANCELLED = 'Todoist sync cancelled; nothing was changed.';
+
+/** Close and reopen pushes one cycle sends without asking (design rule 9). */
+const CLOSE_REOPEN_CAP = 25;
+/** Sync API limit on commands per request (design rule 13). */
+const COMMANDS_PER_REQUEST = 100;
 
 /**
- * Runs one "Sync now" cycle, pull only (nothing is sent to Todoist): one full
- * `/sync` of projects and items, a scan of the vault, then project notes
- * created and open tasks of the vault's tree inserted as anchored lines
- * (`planPull`), and the new links committed in one transaction with the
- * `sync_token`. A rerun inserts and rewrites nothing.
+ * Runs one "Sync now" cycle. The pull: one full `/sync` of projects and
+ * items plus, with a stored token, an incremental one for items (the full
+ * one leaves closed items out), a scan of the vault, project notes created
+ * and open tasks of the vault's tree inserted as anchored lines
+ * (`planPull`). Then completion (`planCompletion`): lines patched from
+ * Todoist, and the links committed with the `sync_token`, close and reopen
+ * pushes stored as `pending_cmd` first. The commands go out in their own
+ * requests; after Todoist acknowledges them an incremental pull rewrites
+ * those lines (`planAck`). A rerun inserts and rewrites nothing.
  *
  * Refuses before the vault index is ready, while sync is off, without a
  * token or root project, with a sync folder that is absolute or climbs out
- * with `..`, and while another run is in progress. The vault path is captured
- * at the start and rechecked before every write; after a vault switch the
- * run stops, writes nothing more and leaves `todoistSyncStore` to the next
- * vault (design rule 9). Otherwise status and result go to
- * `todoistSyncStore`; a failure is logged raw and reduced to a fixed message.
+ * with `..`, and while another run is in progress. Over 25 close/reopen
+ * pushes, a manual cycle asks before writing anything ("Cancel" stops the
+ * run with the state untouched); an automatic one never asks: it runs
+ * without those pushes, their links left as stored, and reports how many it
+ * skipped (design rule 9). The vault path is captured at the start and
+ * rechecked before every write; after a vault switch the run stops, writes
+ * nothing more and leaves `todoistSyncStore` to the next vault (design rule
+ * 9). Otherwise
+ * status and result go to `todoistSyncStore`; a failure is logged raw and
+ * reduced to a fixed message.
  */
-export async function syncNow(): Promise<SyncNowOutcome> {
+export async function syncNow(mode: SyncMode = 'manual'): Promise<SyncNowOutcome> {
 	const { apiToken, syncEnabled, syncRootProjectId, syncFolder } = settingsStore.todoist;
 	const vaultRoot = vaultStore.path;
 	if (vaultRoot === null || !vaultStore.indexReady) {
@@ -76,10 +108,11 @@ export async function syncNow(): Promise<SyncNowOutcome> {
 
 	todoistSyncStore.start();
 	try {
-		const counts = await pull(vaultRoot, folder);
-		debug('TODOIST', 'sync now:', counts);
+		const { skippedPushes, ...counts } = await cycle(vaultRoot, folder, mode);
+		debug('TODOIST', `sync now (${mode}):`, counts, { skippedPushes });
 		todoistSyncStore.succeed({ kind: 'pull', ...counts, finishedAt: Date.now() });
-		return { ok: true, message: formatPullResult(counts) };
+		const message = formatPullResult(counts);
+		return skippedPushes > 0 ? { ok: true, message, skippedPushes } : { ok: true, message };
 	} catch (err) {
 		if (!(err instanceof SyncStop)) error('TODOIST', 'sync failed:', err);
 		const stop = err instanceof SyncStop ? err : new SyncStop('Todoist sync failed. Details are in the log.', { kind: 'error' });
@@ -91,18 +124,33 @@ export async function syncNow(): Promise<SyncNowOutcome> {
 	}
 }
 
-async function pull(vaultRoot: string, folder: string): Promise<PullCounts> {
-	const { apiToken, syncRootProjectId, syncIncludeInbox, defaultLabel } = settingsStore.todoist;
-	let res;
+/** A Todoist request whose failure stops the run with its fixed message. */
+async function request<T>(run: () => Promise<T>): Promise<T> {
 	try {
-		res = await createTodoistClient(apiToken).sync({ syncToken: '*', resourceTypes: ['projects', 'items'] });
+		return await run();
 	} catch (err) {
 		error('TODOIST', 'sync failed:', err);
 		const failure = classifyTodoistError(err);
 		throw new SyncStop(syncErrorMessage(failure), failure);
 	}
-	const projects = res.projects ?? [];
-	if (!treeProjectIds(projects, syncRootProjectId, syncIncludeInbox)) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
+}
+
+async function cycle(vaultRoot: string, folder: string, mode: SyncMode): Promise<PullCounts & { skippedPushes: number }> {
+	const { apiToken, syncRootProjectId, syncIncludeInbox, defaultLabel } = settingsStore.todoist;
+	const client = createTodoistClient(apiToken);
+	const full = await request(() => client.sync({ syncToken: '*', resourceTypes: ['projects', 'items'] }));
+	const projects = full.projects ?? [];
+	const treeIds = treeProjectIds(projects, syncRootProjectId, syncIncludeInbox);
+	if (!treeIds) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
+
+	assertVault(vaultRoot);
+	const kv = await call('todoist_read_kv', { vaultPath: vaultRoot });
+	const storedToken = kv.find((e) => e.key === 'sync_token')?.value ?? null;
+	const changes = storedToken === null ? null : await request(() => client.sync({ syncToken: storedToken, resourceTypes: ['items'] }));
+	// The incremental pull ran last, so its items are the newest; it also carries the closed ones.
+	const items = new Map<string, PullItem>();
+	for (const item of [...((full.items ?? []) as PullItem[]), ...((changes?.items ?? []) as PullItem[])]) items.set(item.id, item);
+	const token = changes?.syncToken ?? full.syncToken;
 
 	assertVault(vaultRoot);
 	const links = await call('todoist_read_links', { vaultPath: vaultRoot });
@@ -110,7 +158,7 @@ async function pull(vaultRoot: string, folder: string): Promise<PullCounts> {
 	const plan = planPull({
 		folder,
 		projects,
-		items: (res.items ?? []) as PullItem[],
+		items: [...items.values()],
 		rootId: syncRootProjectId,
 		includeInbox: syncIncludeInbox,
 		links,
@@ -118,50 +166,233 @@ async function pull(vaultRoot: string, folder: string): Promise<PullCounts> {
 		notes: scan.notes,
 		excludedLabels: excludedLabelSet(defaultLabel),
 	});
+	const current = byAnchor(links, plan.updatedLinks);
+	let completion = planCompletion({
+		links: [...current.values()],
+		occurrences: scan.occurrences,
+		items,
+		incremental: changes !== null,
+		treeIds,
+		newUuid: () => crypto.randomUUID(),
+	});
+	let skippedPushes = 0;
+	if (completion.commands.length > CLOSE_REOPEN_CAP) {
+		if (mode === 'auto') {
+			// Their links stay as stored, so the lines still differ from `local_base` and the next cycle plans the same pushes.
+			skippedPushes = completion.commands.length;
+			const skipped = new Set(completion.commands.map((c) => c.anchor));
+			completion = { ...completion, commands: [], links: completion.links.filter((l) => !skipped.has(l.anchor)) };
+		} else if (!(await confirmOverCap(completion.commands.length))) {
+			// Not a Todoist failure; `error` keeps the scheduler's fixed kinds.
+			throw new SyncStop(CANCELLED, { kind: 'error' });
+		}
+	}
 
-	const commit: TodoistTaskLink[] = [...plan.updatedLinks, ...plan.pairedLinks];
-	const log = [...plan.log];
-	let tasksInserted = 0;
-	let anyStale = false;
+	const log: TodoistSyncLogInput[] = [...plan.log, ...completion.log];
 	for (const note of plan.createNotes) {
 		assertVault(vaultRoot);
 		await createNoteFile(vaultRoot, `${vaultRoot}/${note.relPath}`, note.content);
 	}
+	const batches = new Map<string, NoteBatch>();
+	const batch = (relPath: string) => batches.get(relPath) ?? batches.set(relPath, { inserts: [], insertLinks: [], changes: [] }).get(relPath)!;
 	for (const insert of plan.inserts) {
-		assertVault(vaultRoot);
-		const out = await writeTaskLinesToNote(vaultRoot, insert.relPath, {
-			replace: [],
-			remove: [],
-			insert: [{ afterHeading: null, lines: insert.lines }],
-		});
-		if (out.kind === 'stale') {
-			// Its links and the sync token are not stored, so an incremental pull
-			// from the token cannot skip these items; the next run retries them.
-			anyStale = true;
-			log.push({ kind: 'stale', anchor: null, message: `${insert.relPath}: ${out.stale.reason} ${out.stale.subject}` });
-			continue;
-		}
-		commit.push(...insert.links);
-		tasksInserted += insert.lines.length;
+		batch(insert.relPath).inserts.push(...insert.lines);
+		batch(insert.relPath).insertLinks.push(...insert.links);
 	}
+	const changedAnchors = new Set(completion.lineChanges.map((c) => c.anchor));
+	const completionLinks = byAnchor([], completion.links);
+	for (const change of completion.lineChanges) {
+		batch(change.relPath).changes.push({ change, link: completionLinks.get(change.anchor)!, fallback: null });
+	}
+	const written = await writeBatches(vaultRoot, batches, log);
 
+	const commit = byAnchor([], [...plan.updatedLinks, ...plan.pairedLinks, ...completion.links.filter((l) => !changedAnchors.has(l.anchor))]);
+	for (const link of written.links) commit.set(link.anchor, link);
 	assertVault(vaultRoot);
 	await call('todoist_commit_state', {
 		vaultPath: vaultRoot,
 		commit: {
-			kv: res.syncToken && !anyStale ? [{ key: 'sync_token', value: res.syncToken }] : [],
-			upsertLinks: commit,
+			// Without this cycle's bases for every change, an incremental pull from the new token would never report it again.
+			kv: token && !written.anyStale ? [{ key: 'sync_token', value: token }] : [],
+			upsertLinks: [...commit.values()],
 			deleteAnchors: [],
 		},
 	});
 	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
+
+	let todoistUpdated = 0;
+	let linesUpdated = written.linesUpdated;
+	if (completion.commands.length > 0) {
+		const stored = byAnchor([...current.values()], completion.links);
+		const acked = await pushCompletions(client, vaultRoot, completion.commands, stored, scan.occurrences, token ?? '*');
+		todoistUpdated = acked.todoistUpdated;
+		linesUpdated += acked.linesUpdated;
+	}
 	return {
 		mode: plan.mode,
 		notesCreated: plan.createNotes.length,
-		tasksInserted,
+		tasksInserted: written.tasksInserted,
 		linksPaired: plan.pairedLinks.length,
 		linesUnmatched: plan.linesUnmatched,
+		linesUpdated,
+		todoistUpdated,
+		skippedPushes,
 	};
+}
+
+/**
+ * Sends the close and reopen commands, at most 100 per request and never in
+ * the same request as a pull (design rule 13), then pulls the items changed
+ * since `token` and rewrites each acknowledged line from its item. A 4xx
+ * status other than 429 is terminal: `pending_cmd` is cleared and logged.
+ * Any other failed status keeps `pending_cmd` for the next cycle, which
+ * resends the same uuid.
+ */
+async function pushCompletions(
+	client: TodoistApi,
+	vaultRoot: string,
+	commands: PlannedCommand[],
+	stored: Map<string, TodoistTaskLink>,
+	occurrences: Map<string, ScannedLine[]>,
+	token: string,
+): Promise<{ todoistUpdated: number; linesUpdated: number }> {
+	const statuses: Record<string, unknown> = {};
+	for (let i = 0; i < commands.length; i += COMMANDS_PER_REQUEST) {
+		const batch: SyncCommand[] = commands
+			.slice(i, i + COMMANDS_PER_REQUEST)
+			.map((c) => ({ type: c.pending.type, uuid: c.pending.uuid, args: { id: c.todoistId } }));
+		try {
+			Object.assign(statuses, (await client.sync({ commands: batch })).syncStatus ?? {});
+		} catch (err) {
+			if (!(err instanceof TodoistSyncError)) {
+				error('TODOIST', 'sending completion commands failed:', err);
+				const failure = classifyTodoistError(err);
+				throw new SyncStop(syncErrorMessage(failure), failure);
+			}
+			Object.assign(statuses, err.syncStatus);
+		}
+	}
+
+	const acked = commands.filter((c) => statuses[c.pending.uuid] === 'ok');
+	const after = acked.length > 0 ? await request(() => client.sync({ syncToken: token, resourceTypes: ['items'] })) : null;
+	const items = new Map(((after?.items ?? []) as PullItem[]).map((i) => [i.id, i]));
+
+	const log: TodoistSyncLogInput[] = [];
+	const direct: TodoistTaskLink[] = [];
+	const batches = new Map<string, NoteBatch>();
+	for (const command of commands) {
+		const status = statuses[command.pending.uuid];
+		const link = stored.get(command.anchor)!;
+		const line = occurrences.get(command.anchor)![0];
+		if (status === 'ok') {
+			const ack = planAck(link, line, items.get(command.todoistId));
+			log.push(...ack.log);
+			if (!ack.lineChange) {
+				direct.push(ack.link);
+				continue;
+			}
+			const b = batches.get(line.relPath) ?? { inserts: [], insertLinks: [], changes: [] };
+			b.changes.push({ change: ack.lineChange, link: ack.link, fallback: ack.staleLink });
+			batches.set(line.relPath, b);
+		} else if (isTerminal(status)) {
+			direct.push(terminalLink(link, line));
+			log.push({ kind: 'command-error', anchor: command.anchor, message: `Todoist refused ${command.pending.type}: ${JSON.stringify(status)}` });
+		} else if (status !== undefined) {
+			error('TODOIST', `${command.pending.type} for ${command.anchor} failed; it is resent next cycle:`, status);
+		}
+	}
+	const written = await writeBatches(vaultRoot, batches, log);
+	assertVault(vaultRoot);
+	await call('todoist_commit_state', {
+		vaultPath: vaultRoot,
+		commit: { kv: [], upsertLinks: [...direct, ...written.links], deleteAnchors: [] },
+	});
+	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
+	return { todoistUpdated: acked.length, linesUpdated: written.linesUpdated };
+}
+
+/** What one note gets in a cycle: inserted lines with their links, and line patches with the link each one stores. */
+interface NoteBatch {
+	inserts: string[];
+	insertLinks: TodoistTaskLink[];
+	/** `fallback` is stored instead of `link` when the patch cannot be applied; null stores nothing. */
+	changes: { change: LineChange; link: TodoistTaskLink; fallback: TodoistTaskLink | null }[];
+}
+
+/**
+ * Writes each note's batch through the guarded writer, all or nothing per
+ * note. A patch whose line was edited since the scan, or a note that went
+ * stale, keeps its links out (or stores their fallbacks) and is logged.
+ */
+async function writeBatches(
+	vaultRoot: string,
+	batches: Map<string, NoteBatch>,
+	log: TodoistSyncLogInput[],
+): Promise<{ links: TodoistTaskLink[]; tasksInserted: number; linesUpdated: number; anyStale: boolean }> {
+	const out = { links: [] as TodoistTaskLink[], tasksInserted: 0, linesUpdated: 0, anyStale: false };
+	const fallBack = (changes: NoteBatch['changes']) => {
+		for (const c of changes) if (c.fallback) out.links.push(c.fallback);
+	};
+	for (const [relPath, note] of batches) {
+		assertVault(vaultRoot);
+		const replace: TaskLineReplace[] = [];
+		const applied: NoteBatch['changes'] = [];
+		if (note.changes.length > 0) {
+			const lines = (await readNoteContent(vaultRoot, relPath)).split('\n');
+			for (const c of note.changes) {
+				const hits = lines.filter((l) => idValues(l).includes(c.change.anchor));
+				const newLine = hits.length === 1 ? applyLineChange(hits[0], c.change) : null;
+				if (newLine === null) {
+					out.anyStale = true;
+					log.push({ kind: 'stale', anchor: c.change.anchor, message: `${relPath}: the line changed since the scan; it is retried next cycle` });
+					fallBack([c]);
+					continue;
+				}
+				applied.push(c);
+				if (newLine !== hits[0]) replace.push({ anchor: c.change.anchor, expectedLine: hits[0], newLine });
+			}
+		}
+		if (note.inserts.length > 0 || replace.length > 0) {
+			assertVault(vaultRoot);
+			const result = await writeTaskLinesToNote(vaultRoot, relPath, {
+				replace,
+				remove: [],
+				insert: note.inserts.length > 0 ? [{ afterHeading: null, lines: note.inserts }] : [],
+			});
+			if (result.kind === 'stale') {
+				out.anyStale = true;
+				log.push({ kind: 'stale', anchor: null, message: `${relPath}: ${result.stale.reason} ${result.stale.subject}` });
+				fallBack(applied);
+				continue;
+			}
+		}
+		out.links.push(...note.insertLinks, ...applied.map((c) => c.link));
+		out.tasksInserted += note.inserts.length;
+		out.linesUpdated += replace.length;
+	}
+	return out;
+}
+
+function isTerminal(status: unknown): boolean {
+	const code = (status as { httpCode?: unknown } | null)?.httpCode;
+	return typeof code === 'number' && code >= 400 && code < 500 && code !== 429;
+}
+
+/** The links by anchor, later lists replacing earlier entries. */
+function byAnchor(base: TodoistTaskLink[], overrides: TodoistTaskLink[]): Map<string, TodoistTaskLink> {
+	const map = new Map(base.map((l) => [l.anchor, l]));
+	for (const link of overrides) map.set(link.anchor, link);
+	return map;
+}
+
+/** "Pause and ask" of design rule 9 for a manual cycle. */
+async function confirmOverCap(count: number): Promise<boolean> {
+	return ask(`This Todoist sync would close or reopen ${count} tasks in Todoist, more than ${CLOSE_REOPEN_CAP} in one sync. Continue?`, {
+		title: 'Todoist sync',
+		kind: 'warning',
+		okLabel: 'Sync',
+		cancelLabel: 'Cancel',
+	});
 }
 
 function assertVault(vaultRoot: string): void {

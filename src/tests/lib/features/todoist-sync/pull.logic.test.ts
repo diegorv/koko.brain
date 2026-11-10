@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { TodoistTaskLink } from '#lib/contracts/index.js';
 import {
+	assertSingleLine,
 	excludedLabelSet,
 	extractTaskLines,
 	formatPullResult,
@@ -52,12 +53,12 @@ function link(anchor: string, todoistId: string, extra: Partial<TodoistTaskLink>
 	};
 }
 
-function occurrences(lines: ScannedLine[]): Map<string, ScannedLine[]> {
+function occurrences(lines: Pick<ScannedLine, 'relPath' | 'lineNumber' | 'line'>[]): Map<string, ScannedLine[]> {
 	const map = new Map<string, ScannedLine[]>();
 	for (const l of lines) {
 		const anchor = /🆔 (td-\S+)/u.exec(l.line)?.[1];
 		if (!anchor) continue;
-		map.set(anchor, [...(map.get(anchor) ?? []), l]);
+		map.set(anchor, [...(map.get(anchor) ?? []), { status: ' ', fields: null, ...l }]);
 	}
 	return map;
 }
@@ -125,11 +126,11 @@ describe('projectNoteBaseName', () => {
 });
 
 describe('extractTaskLines', () => {
-	it('returns the text of every task line outside code fences, 1-based', () => {
+	it('returns the text and status of every task line outside code fences, 1-based', () => {
 		const content = ['# Head', '- [ ] One 🆔 td-a', '```', '- [ ] Fenced', '```', '  1. [x] Two', 'plain'].join('\n');
 		expect(extractTaskLines(content)).toEqual([
-			{ lineNumber: 2, text: 'One 🆔 td-a' },
-			{ lineNumber: 6, text: 'Two' },
+			{ lineNumber: 2, text: 'One 🆔 td-a', status: ' ' },
+			{ lineNumber: 6, text: 'Two', status: 'x' },
 		]);
 	});
 
@@ -146,7 +147,14 @@ describe('kokobrainAnchor', () => {
 	it('returns null without one', () => {
 		expect(kokobrainAnchor('')).toBeNull();
 		expect(kokobrainAnchor('kokobrain:td-')).toBeNull();
-		expect(kokobrainAnchor('see kokobrain:td-x')).toBeNull();
+		expect(kokobrainAnchor('see kokobrain:td-ab12cd34')).toBeNull();
+	});
+
+	it('accepts only the brain-born format, so a description cannot claim a td-<todoist id> anchor', () => {
+		expect(kokobrainAnchor('kokobrain:td-6hxGCqmrqCMqj7mj')).toBeNull();
+		expect(kokobrainAnchor('kokobrain:td-w1')).toBeNull();
+		expect(kokobrainAnchor('kokobrain:td-AB12CD34')).toBeNull();
+		expect(kokobrainAnchor('kokobrain:td-ab12cd345')).toBeNull();
 	});
 });
 
@@ -201,32 +209,59 @@ describe('pulledTask', () => {
 		expect(out.line).toBe('- [ ] One two 🆔 td-e');
 		expect(out.contentProblem).toBe('newline');
 	});
+
+	it('turns CR and LF in the recurrence text into spaces', () => {
+		const out = pulledTask(item('f', 'work', 'F', { due: { date: '2026-11-10', string: 'every\r\nday\rnow\nplease', isRecurring: true } }), EXCLUDED);
+		expect(out.line).toBe('- [ ] F 📅 2026-11-10 🔁 every day now please 🆔 td-f');
+		expect(out.dueProblem).toBe(false);
+	});
+
+	it('drops a due whose date is not YYYY-MM-DD and flags it', () => {
+		const out = pulledTask(item('g', 'work', 'G', { due: { date: 'soon\n- [ ] x', string: 'every day', isRecurring: true } }), EXCLUDED);
+		expect(out.line).toBe('- [ ] G 🆔 td-g');
+		expect(out.localBase.dueDate).toBeNull();
+		expect(out.dueProblem).toBe(true);
+	});
+});
+
+describe('assertSingleLine', () => {
+	it('throws on a planned line holding CR or LF', () => {
+		expect(() => assertSingleLine('- [ ] a\nb')).toThrow();
+		expect(() => assertSingleLine('- [ ] a\rb')).toThrow();
+		expect(() => assertSingleLine('- [ ] a b')).not.toThrow();
+	});
 });
 
 describe('formatPullResult', () => {
 	it('lists what was written, singular or plural', () => {
-		expect(formatPullResult({ mode: 'normal', notesCreated: 1, tasksInserted: 2, linksPaired: 0, linesUnmatched: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 1, tasksInserted: 2, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0 })).toBe(
 			'Todoist sync done: 1 note created, 2 tasks added.',
 		);
-		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 1, linksPaired: 1, linesUnmatched: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 1, linksPaired: 1, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0 })).toBe(
 			'Todoist sync done: 1 task added, 1 link paired.',
 		);
 	});
 
 	it('says nothing new when nothing was written', () => {
-		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0 })).toBe(
 			'Todoist sync done: nothing new.',
 		);
 	});
 
+	it('lists lines updated from Todoist and tasks updated in Todoist', () => {
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 2, todoistUpdated: 1 })).toBe(
+			'Todoist sync done: 2 lines updated, 1 task updated in Todoist.',
+		);
+	});
+
 	it('reports a rebuild by its paired links', () => {
-		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 1, linesUnmatched: 2 })).toBe(
+		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 1, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0 })).toBe(
 			'Todoist sync rebuilt 1 link from the vault; nothing was created.',
 		);
 	});
 
 	it('says why new tasks stay out when a rebuild paired nothing but left anchored lines unmatched', () => {
-		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 2 })).toBe(
+		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0 })).toBe(
 			'Todoist sync rebuilt 0 links from the vault; nothing was created. 2 anchored lines have no open Todoist task: ' +
 				'new Todoist tasks come in only after a line pairs or those 🆔 anchors are removed.',
 		);
@@ -394,10 +429,10 @@ describe('planPull', () => {
 	it('rebuilds an empty link table from anchored lines: pairs, creates nothing, logs the unmatched', () => {
 		const plan = planPull(
 			input({
-				items: [item('a', 'work', 'A'), item('new', 'ops', 'New'), item('kb', 'work', 'Brain-born', { description: 'kokobrain:td-zz' })],
+				items: [item('a', 'work', 'A'), item('new', 'ops', 'New'), item('kb', 'work', 'Brain-born', { description: 'kokobrain:td-zz000000' })],
 				occurrences: occurrences([
 					{ relPath: 'Todoist/Work.md', lineNumber: 4, line: 'A 🆔 td-a' },
-					{ relPath: 'Notes/Day.md', lineNumber: 2, line: 'Brain-born 🆔 td-zz' },
+					{ relPath: 'Notes/Day.md', lineNumber: 2, line: 'Brain-born 🆔 td-zz000000' },
 					{ relPath: 'Notes/Day.md', lineNumber: 3, line: 'Orphan 🆔 td-gone' },
 				]),
 				notes: [{ relPath: 'Todoist/Work.md', projectId: 'work' }],
@@ -409,14 +444,14 @@ describe('planPull', () => {
 		expect(plan.inserts).toEqual([]);
 		expect(plan.pairedLinks.map((l) => [l.anchor, l.todoistId])).toEqual([
 			['td-a', 'a'],
-			['td-zz', 'kb'],
+			['td-zz000000', 'kb'],
 		]);
 		expect(plan.log.filter((e) => e.kind === 'unmatched').map((e) => e.anchor)).toEqual(['td-new', 'td-gone']);
 		expect(plan.linesUnmatched).toBe(1);
 	});
 
 	it('enters rebuild mode for a kokobrain: item even with no anchored line', () => {
-		const plan = planPull(input({ items: [item('kb', 'work', 'B', { description: 'kokobrain:td-zz' }), item('a', 'work', 'A')] }));
+		const plan = planPull(input({ items: [item('kb', 'work', 'B', { description: 'kokobrain:td-zz000000' }), item('a', 'work', 'A')] }));
 
 		expect(plan.mode).toBe('rebuild');
 		expect(plan.createNotes).toEqual([]);
@@ -426,7 +461,7 @@ describe('planPull', () => {
 	it('never inserts a kokobrain: item whose line is missing in normal mode', () => {
 		const plan = planPull(
 			input({
-				items: [item('kb', 'work', 'B', { description: 'kokobrain:td-zz' })],
+				items: [item('kb', 'work', 'B', { description: 'kokobrain:td-zz000000' })],
 				links: [link('td-a', 'a')],
 				notes: [
 					{ relPath: 'Todoist/Work.md', projectId: 'work' },
@@ -436,7 +471,7 @@ describe('planPull', () => {
 		);
 
 		expect(plan.inserts).toEqual([]);
-		expect(plan.log).toEqual([expect.objectContaining({ kind: 'unmatched', anchor: 'td-zz' })]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'unmatched', anchor: 'td-zz000000' })]);
 	});
 
 	it('logs content that fails the round trip', () => {
@@ -460,5 +495,102 @@ describe('planPull', () => {
 		expect(plan.pairedLinks).toEqual([]);
 		expect(plan.inserts).toEqual([]);
 		expect(plan.log).toEqual([expect.objectContaining({ kind: 'anchor-conflict', anchor: 'td-a' })]);
+	});
+});
+
+describe('planPull: hardening', () => {
+	const NOTES = [
+		{ relPath: 'Todoist/Work.md', projectId: 'work' },
+		{ relPath: 'Todoist/Ops.md', projectId: 'ops' },
+	];
+
+	it('skips and logs content holding 🆔, since the parser would read that anchor', () => {
+		const plan = planPull(input({ items: [item('a', 'work', 'Call 🆔 td-b'), item('c', 'work', 'C')], links: [link('td-x', 'x')], notes: NOTES }));
+
+		expect(plan.inserts).toEqual([expect.objectContaining({ lines: ['- [ ] C 🆔 td-c'] })]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'content-skipped', anchor: 'td-a' })]);
+	});
+
+	it('skips and logs content holding any other signifier', () => {
+		const plan = planPull(input({ items: [item('a', 'work', 'Due 📅 2026-01-01')], links: [link('td-x', 'x')], notes: NOTES }));
+
+		expect(plan.inserts).toEqual([]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'content-skipped', anchor: 'td-a' })]);
+	});
+
+	it('skips content holding a signifier even when another round-trip problem comes first', () => {
+		const items = [item('a', 'work', 'Fix #12 📅 2020-01-01'), item('b', 'work', 'A\n⛔ b')];
+		const plan = planPull(input({ items, links: [link('td-x', 'x')], notes: NOTES }));
+
+		expect(plan.inserts).toEqual([]);
+		expect(plan.log).toEqual([
+			expect.objectContaining({ kind: 'content-skipped', anchor: 'td-a' }),
+			expect.objectContaining({ kind: 'content-skipped', anchor: 'td-b' }),
+		]);
+	});
+
+	it('skips and logs a line whose first 🆔 is not the item anchor', () => {
+		const due = { date: '2026-11-10', string: 'every day 🆔 td-b', isRecurring: true };
+		const plan = planPull(input({ items: [item('a', 'work', 'A', { due })], links: [link('td-x', 'x')], notes: NOTES }));
+
+		expect(plan.inserts).toEqual([]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'anchor-mismatch', anchor: 'td-a' })]);
+	});
+
+	it('logs a dropped due', () => {
+		const due = { date: 'garbage', string: 'every day', isRecurring: true };
+		const plan = planPull(input({ items: [item('a', 'work', 'A', { due })], links: [link('td-x', 'x')], notes: NOTES }));
+
+		expect(plan.inserts).toEqual([expect.objectContaining({ lines: ['- [ ] A 🆔 td-a'] })]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'due-dropped', anchor: 'td-a' })]);
+	});
+
+	it('never pairs through a description that names a td-<todoist id> anchor', () => {
+		const plan = planPull(
+			input({
+				items: [item('b', 'work', 'B', { description: 'kokobrain:td-a' })],
+				links: [link('td-x', 'x')],
+				occurrences: occurrences([{ relPath: 'Notes/Day.md', lineNumber: 1, line: 'A 🆔 td-a' }]),
+				notes: NOTES,
+			}),
+		);
+
+		expect(plan.pairedLinks).toEqual([]);
+		expect(plan.inserts).toEqual([expect.objectContaining({ lines: ['- [ ] B 🆔 td-b'] })]);
+	});
+
+	it('in rebuild mode pairs an item by its own td-<id> before its description anchor', () => {
+		const plan = planPull(
+			input({
+				items: [item('12345678', 'work', 'A', { description: 'kokobrain:td-abcdefgh' })],
+				occurrences: occurrences([
+					{ relPath: 'Notes/Day.md', lineNumber: 1, line: 'Brain 🆔 td-abcdefgh' },
+					{ relPath: 'Todoist/Work.md', lineNumber: 4, line: 'A 🆔 td-12345678' },
+				]),
+				notes: NOTES,
+			}),
+		);
+
+		expect(plan.mode).toBe('rebuild');
+		expect(plan.pairedLinks.map((l) => [l.anchor, l.todoistId])).toEqual([['td-12345678', '12345678']]);
+	});
+
+	it('pairs neither of two items that claim the same anchor, and logs both', () => {
+		const plan = planPull(
+			input({
+				items: [
+					item('a', 'work', 'A', { description: 'kokobrain:td-abcdefgh' }),
+					item('b', 'work', 'B', { description: 'kokobrain:td-abcdefgh' }),
+				],
+				occurrences: occurrences([{ relPath: 'Notes/Day.md', lineNumber: 1, line: 'Brain 🆔 td-abcdefgh' }]),
+				notes: NOTES,
+			}),
+		);
+
+		expect(plan.pairedLinks).toEqual([]);
+		expect(plan.log.filter((e) => e.kind === 'anchor-conflict').map((e) => e.message)).toEqual([
+			expect.stringContaining('task a'),
+			expect.stringContaining('task b'),
+		]);
 	});
 });

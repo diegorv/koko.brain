@@ -2,12 +2,16 @@ import { describe, it, expect } from 'vitest';
 import {
 	addTag,
 	contentRoundTripProblem,
+	hasSignifier,
+	isClosedStatus,
 	isTaskTagName,
+	nextStatusChar,
 	removeTag,
 	replaceDescription,
 	setDueDate,
 	setPriority,
 	setTaskStatus,
+	taskLineStatus,
 	taskLineText,
 } from '#lib/features/todoist-sync/task-line.logic.js';
 
@@ -27,6 +31,31 @@ describe('taskLineText', () => {
 	it('returns null for a non-task line', () => {
 		expect(taskLineText('- plain item')).toBeNull();
 		expect(taskLineText('')).toBeNull();
+	});
+});
+
+describe('taskLineStatus', () => {
+	it('returns the status char of a task line, or null for a non-task line', () => {
+		expect(taskLineStatus('\t- [/] Call Bob')).toBe('/');
+		expect(taskLineStatus('3. [X] Done')).toBe('X');
+		expect(taskLineStatus('- plain item')).toBeNull();
+	});
+});
+
+describe('isClosedStatus', () => {
+	it('counts x, X and - as closed, every other status as open (design rule 5)', () => {
+		expect(['x', 'X', '-'].map(isClosedStatus)).toEqual([true, true, true]);
+		expect([' ', '/', '?', '!', '>'].map(isClosedStatus)).toEqual([false, false, false, false, false]);
+	});
+});
+
+describe('nextStatusChar', () => {
+	it('is the char setTaskStatus writes', () => {
+		for (const c of [' ', 'x', 'X', '-', '/', '?', '!', '>']) {
+			for (const state of ['open', 'closed'] as const) {
+				expect(`- [${nextStatusChar(c, state)}] A`).toBe(setTaskStatus(`- [${c}] A`, state));
+			}
+		}
 	});
 });
 
@@ -393,5 +422,18 @@ describe('contentRoundTripProblem', () => {
 	it('flags empty or whitespace-only content', () => {
 		expect(contentRoundTripProblem('')).toBe('empty');
 		expect(contentRoundTripProblem('   ')).toBe('empty');
+	});
+});
+
+describe('hasSignifier', () => {
+	it('finds every signifier emoji, whatever else the content holds', () => {
+		for (const emoji of ['📅', '⏳', '🛫', '➕', '✅', '❌', '🔺', '⏫', '🔼', '🔽', '⏬', '🔁', '🆔', '⛔', '🏁']) {
+			expect(hasSignifier(`Fix #12\n${emoji} b`)).toBe(true);
+		}
+	});
+
+	it('is false for content without one', () => {
+		expect(hasSignifier('Deploy 🚀 #v2\nnext')).toBe(false);
+		expect(hasSignifier('')).toBe(false);
 	});
 });

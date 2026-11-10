@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	autoCycleDelay,
 	autoSyncFailureMessage,
+	autoSyncOverCapMessage,
 	formatClockTime,
 	formatLogTime,
 	hasAnchoredLine,
@@ -67,6 +68,14 @@ describe('autoSyncFailureMessage', () => {
 			'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.',
 		);
 		expect(autoSyncFailureMessage('error')).toBe('Todoist automatic sync failed. Details are in the log.');
+	});
+});
+
+describe('autoSyncOverCapMessage', () => {
+	it('names the skipped count and how to confirm it', () => {
+		expect(autoSyncOverCapMessage(40)).toBe(
+			'Todoist automatic sync skipped closing or reopening 40 tasks: more than 25 in one sync. Run "Todoist: Sync now" to confirm them.',
+		);
 	});
 });
 

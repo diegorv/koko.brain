@@ -7,6 +7,7 @@ import { error } from '#lib/utils/debug.js';
 import {
 	autoCycleDelay,
 	autoSyncFailureMessage,
+	autoSyncOverCapMessage,
 	hasAnchoredLine,
 	isFirstRunDone,
 	rateLimitWaitMs,
@@ -32,6 +33,8 @@ interface Session {
 	unsubscribeSave: () => void;
 }
 
+const OVER_CAP_TOAST_ID = 'todoist-sync-over-cap';
+
 const SKIPPED: SyncNowOutcome = { ok: false, message: 'Automatic Todoist sync waits for the first sync.' };
 const STOPPED: SyncNowOutcome = { ok: false, message: 'The Todoist sync was stopped before it ran.' };
 
@@ -49,6 +52,8 @@ let blockedUntil = 0;
 let rejectedToken: string | null = null;
 /** Failure kinds whose persistent toast is showing; cleared by a successful cycle. */
 const toastedKinds = new Set<AutoSyncFailureKind>();
+/** Whether the over-cap toast is showing; cleared by a successful cycle that skipped nothing. */
+let overCapToasted = false;
 
 /**
  * Starts the automatic sync for the vault at `vaultPath`: a cycle now (the
@@ -58,7 +63,10 @@ const toastedKinds = new Set<AutoSyncFailureKind>();
  * not before a 429's wait ends; they skip while sync is off, while the token
  * is one Todoist rejected, when another vault is open, and until the sync
  * state has `first_run_done` (design rule 9). A failure shows a persistent
- * toast once per kind until a cycle succeeds. Replaces a running session.
+ * toast once per kind until a cycle succeeds. An automatic cycle over the
+ * close/reopen cap never asks: it skips those pushes and shows a persistent
+ * toast once, until a cycle succeeds without skipping. Replaces a running
+ * session.
  */
 export function startAutoSync(vaultPath: string): void {
 	stopAutoSync();
@@ -98,6 +106,7 @@ export function stopAutoSync(): void {
 	blockedUntil = 0;
 	rejectedToken = null;
 	toastedKinds.clear();
+	overCapToasted = false;
 }
 
 /**
@@ -159,7 +168,7 @@ async function runCycle(kind: CycleKind): Promise<SyncNowOutcome> {
 	running = true;
 	const s = session;
 	const token = settingsStore.todoist.apiToken;
-	const outcome = kind === 'auto' && !(await autoCycleAllowed(s!)) ? SKIPPED : await syncNow();
+	const outcome = kind === 'auto' && !(await autoCycleAllowed(s!)) ? SKIPPED : await syncNow(kind);
 	running = false;
 	// A cycle that outlived its session (vault switch) leaves the next session's state alone.
 	if (s === session) {
@@ -206,6 +215,13 @@ function handleOutcome(outcome: SyncNowOutcome, kind: CycleKind, token: string):
 	if (outcome.ok) {
 		for (const k of toastedKinds) toast.dismiss(toastId(k));
 		toastedKinds.clear();
+		if (outcome.skippedPushes === undefined && overCapToasted) {
+			overCapToasted = false;
+			toast.dismiss(OVER_CAP_TOAST_ID);
+		} else if (outcome.skippedPushes !== undefined && !overCapToasted) {
+			overCapToasted = true;
+			toast.warning(autoSyncOverCapMessage(outcome.skippedPushes), { id: OVER_CAP_TOAST_ID, duration: Infinity, closeButton: true });
+		}
 		return;
 	}
 	const failure = outcome.failure;

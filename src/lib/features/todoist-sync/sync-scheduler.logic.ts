@@ -54,6 +54,11 @@ export function autoSyncFailureMessage(kind: AutoSyncFailureKind): string {
 	}
 }
 
+/** The toast of an automatic cycle that skipped `count` close/reopen pushes over the cap (design rule 9). */
+export function autoSyncOverCapMessage(count: number): string {
+	return `Todoist automatic sync skipped closing or reopening ${count} tasks: more than 25 in one sync. Run "Todoist: Sync now" to confirm them.`;
+}
+
 const pad2 = (n: number) => String(n).padStart(2, '0');
 
 /** A local time as `HH:MM`. */

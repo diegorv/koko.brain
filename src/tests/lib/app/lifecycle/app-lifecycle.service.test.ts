@@ -1814,7 +1814,7 @@ describe('Todoist automatic sync', () => {
 	});
 
 	it('teardownVault stops it and resets the sync store', () => {
-		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, finishedAt: 1 });
+		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, finishedAt: 1 });
 
 		teardownVault();
 

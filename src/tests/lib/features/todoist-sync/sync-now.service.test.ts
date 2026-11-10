@@ -18,6 +18,7 @@ vi.mock('@tauri-apps/plugin-http', () => ({
 }));
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn() }));
+vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 vi.mock('svelte-sonner', () => ({ toast }));
 vi.mock('#lib/utils/debug.js', () => ({
 	debug: vi.fn(),
@@ -27,6 +28,8 @@ vi.mock('#lib/utils/debug.js', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
+import { ask } from '@tauri-apps/plugin-dialog';
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { error } from '#lib/utils/debug.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { resetEditor } from '#lib/core/editor/editor.service.js';
@@ -83,6 +86,11 @@ beforeEach(() => {
 	fake.current = server;
 	seedAccount();
 	vi.mocked(invoke).mockImplementation((cmd, args) => vault.invoke(cmd, args as Record<string, unknown> | undefined));
+	vi.mocked(readTextFile).mockImplementation(async (path) => {
+		const content = vault.files.get(String(path).slice(vault.root.length + 1));
+		if (content === undefined) throw new Error(`No such file: ${String(path)}`);
+		return content;
+	});
 	openVault(createFakeVault('/work-vault'));
 	settingsStore.updateTodoist({ apiToken: server.token, syncEnabled: true, syncRootProjectId: 'work' });
 });
@@ -342,7 +350,7 @@ describe('syncNow: refusals and safety', () => {
 	});
 
 	it('leaves the store reset by the vault teardown alone when the old run stops', async () => {
-		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, finishedAt: 1 });
+		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, finishedAt: 1 });
 		fake.current = {
 			async fetch(url, init) {
 				const response = await server.fetch(url, init);
@@ -427,3 +435,352 @@ describe('syncNow: refusals and safety', () => {
 		expect(vault.writes).toEqual([]);
 	});
 });
+
+/** Replaces `from` with `to` in a vault note, as an edit in the brain. */
+function edit(relPath: string, from: string, to: string) {
+	const content = vault.files.get(relPath)!;
+	expect(content).toContain(from);
+	vault.files.set(relPath, content.replace(from, to));
+}
+
+const W1_OPEN = '- [ ] Plan 🔺 #deep 🆔 td-w1';
+const W1_DONE = '- [x] Plan 🔺 #deep 🆔 td-w1';
+const W2_OPEN = '- [ ] Report 📅 2026-11-13 🔁 every week 🆔 td-w2';
+const W2_DONE = '- [x] Report 📅 2026-11-13 🔁 every week 🆔 td-w2';
+const WEEKLY = { is_recurring: true, string: 'every week', date: '2026-11-13', lang: 'en' };
+
+const commandRequests = () => server.requests.filter((r) => r.commands);
+const localBase = (anchor: string) => JSON.parse(vault.links.get(anchor)!.localBase!);
+const remoteBase = (anchor: string) => JSON.parse(vault.links.get(anchor)!.remoteBase!);
+
+describe('syncNow: completion from the brain', () => {
+	it('closes a task checked in the brain with item_close, sent alone after the pulls, and moves the bases on the ack', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		const before = server.requests.length;
+
+		const outcome = await syncNow();
+
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 task updated in Todoist.' });
+		expect(server.item('w1')).toMatchObject({ checked: true });
+		const sent = server.requests.slice(before);
+		expect(sent.map((r) => (r.commands ? 'commands' : r.sync_token === '*' ? 'full' : 'incremental'))).toEqual(['full', 'incremental', 'commands', 'incremental']);
+		const [cmd] = sent[2].commands!;
+		expect(cmd).toMatchObject({ type: 'item_close', args: { id: 'w1' } });
+		expect(sent[2].sync_token).toBeUndefined();
+		// The uuid was stored before the request went out, and cleared after the ack.
+		expect(JSON.parse(vault.commits[1].upsertLinks.find((l) => l.anchor === 'td-w1')!.pendingCmd!)).toEqual({ uuid: cmd.uuid, type: 'item_close' });
+		expect(vault.links.get('td-w1')!.pendingCmd).toBeNull();
+		expect(localBase('td-w1').status).toBe('x');
+		expect(remoteBase('td-w1').checked).toBe(true);
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+	});
+
+	it('sends nothing on the next run once the close is acknowledged', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		await syncNow();
+		const files = new Map(vault.files);
+
+		const outcome = await syncNow();
+
+		expect(outcome.message).toBe('Todoist sync done: nothing new.');
+		expect(commandRequests()).toHaveLength(1);
+		expect(vault.files).toEqual(files);
+	});
+
+	it('reopens a task unchecked in the brain with item_uncomplete', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		await syncNow();
+		edit('Todoist/Work.md', W1_DONE, W1_OPEN);
+
+		await syncNow();
+
+		expect(commandRequests().at(-1)!.commands).toEqual([expect.objectContaining({ type: 'item_uncomplete', args: { id: 'w1' } })]);
+		expect(server.item('w1')).toMatchObject({ checked: false });
+		expect(remoteBase('td-w1').checked).toBe(false);
+		expect(localBase('td-w1').status).toBe(' ');
+	});
+
+	it('treats [-] as closed and [/] as open', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, '- [/] Plan 🔺 #deep 🆔 td-w1');
+		await syncNow();
+		expect(commandRequests()).toEqual([]);
+
+		edit('Todoist/Work.md', '- [/] Plan', '- [-] Plan');
+		await syncNow();
+		expect(server.item('w1')).toMatchObject({ checked: true });
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [-] Plan 🔺 #deep 🆔 td-w1');
+	});
+
+	it('rolls a recurring task closed in the brain: the line reopens with the next 📅', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W2_OPEN, W2_DONE);
+
+		const outcome = await syncNow();
+
+		expect(commandRequests()[0].commands).toEqual([expect.objectContaining({ type: 'item_close', args: { id: 'w2' } })]);
+		expect(server.item('w2')).toMatchObject({ checked: false, due: { date: '2026-11-20' } });
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Report 📅 2026-11-20 🔁 every week 🆔 td-w2');
+		expect(localBase('td-w2')).toMatchObject({ status: ' ', dueDate: '2026-11-20' });
+		expect(remoteBase('td-w2').due).toMatchObject({ date: '2026-11-20', string: 'every week' });
+		expect(outcome.message).toBe('Todoist sync done: 1 line updated, 1 task updated in Todoist.');
+
+		await syncNow();
+		expect(commandRequests()).toHaveLength(1);
+	});
+
+	it('rewrites a recurring line through its open tab after the ack', async () => {
+		await syncNow();
+		const path = '/work-vault/Todoist/Work.md';
+		const unsaved = WORK_NOTE.replace(W2_OPEN, W2_DONE);
+		editorStore.addTab({ path, name: 'Work.md', content: unsaved, savedContent: WORK_NOTE });
+
+		await syncNow();
+
+		expect(server.item('w2')).toMatchObject({ checked: false, due: { date: '2026-11-20' } });
+		expect(editorStore.tabs[0].content).toContain('- [ ] Report 📅 2026-11-20 🔁 every week 🆔 td-w2');
+		expect(vault.files.get('Todoist/Work.md')).toBe(WORK_NOTE);
+	});
+
+	it('logs a recurring task that a close completed for good (a starting <date> rule)', async () => {
+		server.updateItem('w2', { due: { ...WEEKLY, string: 'every week starting 13 Nov 2026' } });
+		await syncNow();
+		edit('Todoist/Work.md', '- [ ] Report', '- [x] Report');
+
+		await syncNow();
+
+		expect(server.item('w2')).toMatchObject({ checked: true, due: null });
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Report 📅 2026-11-13');
+		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'recurring-completed', anchor: 'td-w2' }));
+	});
+});
+
+describe('syncNow: completion from Todoist', () => {
+	it('checks the line of a task completed in Todoist, and unchecks it when reopened there', async () => {
+		await syncNow();
+		server.updateItem('w1', { checked: true, completed_at: '2026-11-09T10:00:00Z' });
+
+		expect((await syncNow()).message).toBe('Todoist sync done: 1 line updated.');
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+		expect(localBase('td-w1').status).toBe('x');
+		expect(commandRequests()).toEqual([]);
+
+		server.updateItem('w1', { checked: false, completed_at: null });
+		await syncNow();
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_OPEN);
+		expect(commandRequests()).toEqual([]);
+	});
+
+	it('keeps an open status other than a space when Todoist reopens, and - when it closes', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, '- [/] Plan 🔺 #deep 🆔 td-w1');
+		await syncNow();
+		server.updateItem('w1', { checked: true });
+		await syncNow();
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+
+		edit('Todoist/Work.md', W1_DONE, '- [-] Plan 🔺 #deep 🆔 td-w1');
+		await syncNow();
+		expect(commandRequests()).toEqual([]);
+		server.updateItem('w1', { checked: false });
+		await syncNow();
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_OPEN);
+	});
+
+	it('moves the 📅 of a recurring task Todoist rolled forward, leaving the line open', async () => {
+		await syncNow();
+		server.updateItem('w2', { due: { ...WEEKLY, date: '2026-11-20' } });
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Report 📅 2026-11-20 🔁 every week 🆔 td-w2');
+		expect(commandRequests()).toEqual([]);
+	});
+
+	it('reaches a line in a closed note and one in an open tab', async () => {
+		await syncNow();
+		const path = '/work-vault/Todoist/Q4.md';
+		editorStore.addTab({ path, name: 'Q4.md', content: vault.files.get('Todoist/Q4.md')!, savedContent: vault.files.get('Todoist/Q4.md')! });
+		server.updateItem('w1', { checked: true });
+		server.updateItem('q1', { checked: true });
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+		expect(editorStore.tabs[0].content).toContain('- [x] Ship 🆔 td-q1');
+	});
+});
+
+describe('syncNow: completion on both sides', () => {
+	it('only moves the bases when both sides closed the task', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		server.updateItem('w1', { checked: true });
+
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(localBase('td-w1').status).toBe('x');
+		expect(remoteBase('td-w1').checked).toBe(true);
+	});
+
+	it('drops a brain close when Todoist rolled the recurring task meanwhile: the line takes the new date, logged', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W2_OPEN, W2_DONE);
+		server.updateItem('w2', { due: { ...WEEKLY, date: '2026-11-20' } });
+
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(server.item('w2')!.due!.date).toBe('2026-11-20');
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Report 📅 2026-11-20 🔁 every week 🆔 td-w2');
+		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'close-dropped', anchor: 'td-w2' }));
+	});
+});
+
+describe('syncNow: completion commands', () => {
+	it('keeps the pending uuid when the command request fails, and resends the same uuid next run', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		let offline = true;
+		fake.current = {
+			fetch(url, init) {
+				if (offline && String(init?.body).includes('"commands"')) return Promise.reject(new TypeError('Network request failed'));
+				return server.fetch(url, init);
+			},
+		};
+
+		const failed = await syncNow();
+
+		expect(failed).toEqual({ ok: false, message: 'Could not reach Todoist. Check your connection and try again.', failure: { kind: 'unreachable' } });
+		const pending = JSON.parse(vault.links.get('td-w1')!.pendingCmd!);
+		expect(pending.type).toBe('item_close');
+		expect(server.item('w1')!.checked).toBe(false);
+
+		offline = false;
+		await syncNow();
+
+		expect(server.requests.filter((r) => r.commands).map((r) => r.commands![0].uuid)).toEqual([pending.uuid]);
+		expect(server.item('w1')!.checked).toBe(true);
+		expect(vault.links.get('td-w1')!.pendingCmd).toBeNull();
+	});
+
+	it('treats a 400 sync_status as terminal: pending cleared, logged, not retried', async () => {
+		await syncNow();
+		server.refuseCommandsFor('w1');
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+
+		const outcome = await syncNow();
+
+		expect(outcome.ok).toBe(true);
+		expect(vault.links.get('td-w1')!.pendingCmd).toBeNull();
+		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'command-error', anchor: 'td-w1' }));
+		expect(localBase('td-w1').status).toBe('x');
+
+		await syncNow();
+		expect(commandRequests()).toHaveLength(1);
+	});
+
+	it('fills a null local base from the line on the first run after a rebuild, then pushes the next change', async () => {
+		await syncNow();
+		vault.links.clear();
+		await syncNow();
+		expect(vault.links.get('td-w1')!.localBase).toBeNull();
+
+		await syncNow();
+		expect(localBase('td-w1')).toMatchObject({ status: ' ', description: 'Plan' });
+		expect(commandRequests()).toEqual([]);
+
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		await syncNow();
+		expect(server.item('w1')!.checked).toBe(true);
+	});
+
+	it('does not push for a duplicated anchor', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, `${W1_DONE}\n${W1_DONE}`);
+
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(vault.links.get('td-w1')!.frozen).toBe(true);
+	});
+});
+
+describe('syncNow: close/reopen cap', () => {
+	/** Adds `n` open tasks to Work, syncs them in, and checks every one in the brain. */
+	async function checkMany(n: number) {
+		for (let i = 1; i <= n; i++) server.addItem({ id: `c${i}`, project_id: 'work', content: `Chore ${i}`, child_order: 10 + i });
+		await syncNow();
+		vault.files.set('Todoist/Work.md', vault.files.get('Todoist/Work.md')!.replace(/- \[ \] Chore/gu, '- [x] Chore'));
+	}
+
+	it('asks before more than 25 close/reopen pushes; Cancel changes nothing', async () => {
+		await checkMany(26);
+		vi.mocked(ask).mockResolvedValue(false);
+		const files = new Map(vault.files);
+		const commits = vault.commits.length;
+
+		const outcome = await syncNow();
+
+		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('26 tasks'), expect.objectContaining({ title: 'Todoist sync' }));
+		expect(outcome).toEqual({ ok: false, message: 'Todoist sync cancelled; nothing was changed.', failure: { kind: 'error' } });
+		expect(commandRequests()).toEqual([]);
+		expect(vault.files).toEqual(files);
+		expect(vault.commits).toHaveLength(commits);
+	});
+
+	it('runs uncapped on Sync, at most 100 commands per request', async () => {
+		await checkMany(101);
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await syncNow();
+
+		expect(commandRequests().map((r) => r.commands!.length)).toEqual([100, 1]);
+		expect(server.item('c101')!.checked).toBe(true);
+	});
+
+	it('does not ask at 25', async () => {
+		await checkMany(25);
+
+		await syncNow();
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(commandRequests()[0].commands).toHaveLength(25);
+	});
+
+	it('never asks in an automatic cycle: it skips the close/reopen pushes and runs the rest', async () => {
+		await checkMany(26);
+		server.updateItem('w1', { checked: true });
+
+		const outcome = await syncNow('auto');
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 line updated.', skippedPushes: 26 });
+		expect(commandRequests()).toEqual([]);
+		expect(server.item('c1')!.checked).toBe(false);
+		expect(vault.links.get('td-c1')!.pendingCmd).toBeNull();
+		expect(localBase('td-c1').status).toBe(' ');
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Chore 1 🆔 td-c1');
+		expect(todoistSyncStore.status).toBe('idle');
+
+		vi.mocked(ask).mockResolvedValue(true);
+		expect(await syncNow()).not.toHaveProperty('skippedPushes');
+		expect(commandRequests().map((r) => r.commands!.length)).toEqual([26]);
+		expect(server.item('c1')!.checked).toBe(true);
+	});
+
+	it('does not skip at 25 in an automatic cycle', async () => {
+		await checkMany(25);
+
+		const outcome = await syncNow('auto');
+
+		expect(outcome).not.toHaveProperty('skippedPushes');
+		expect(commandRequests()[0].commands).toHaveLength(25);
+	});
+});
+

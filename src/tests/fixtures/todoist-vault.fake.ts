@@ -14,7 +14,7 @@
  * ```
  *
  * Its task parser is a small stand-in for Rust `extract_tasks` (bullet and
- * ordered tasks, code fences skipped).
+ * ordered tasks, code fences skipped, every status char, rough metadata).
  */
 
 import type {
@@ -22,6 +22,9 @@ import type {
 	NoteRecord,
 	TaskLineEdits,
 	TaskLinesWriteResult,
+	TaskMetadata,
+	TaskPriority,
+	TaskStatus,
 	TodoistKvEntry,
 	TodoistStateCommit,
 	TodoistSyncLogEntry,
@@ -51,6 +54,32 @@ export interface FakeVault {
 const NO_CHANGE = { changed: false, affected: [], version: 1, upserted: [], removed: [], fullRescan: false };
 
 const TASK_RE = /^\s*(?:[-*+]|\d+\.)\s\[([xX \-/?!>])\]\s([^\n]*)$/u;
+
+/** Rust `parse_status`. */
+const STATUS: Record<string, TaskStatus> = {
+	' ': 'todo',
+	x: 'done',
+	X: 'done',
+	'-': 'cancelled',
+	'/': 'in-progress',
+	'?': 'question',
+	'>': 'forwarded',
+	'!': 'important',
+};
+
+const PRIORITIES: Record<string, TaskPriority> = { '🔺': 'highest', '⏫': 'high', '🔼': 'medium', '🔽': 'low', '⏬': 'lowest' };
+
+/** A rough stand-in for Rust task metadata: `📅`, priority, tags, and the text before the first signifier or tag as the description. */
+function metadataOf(text: string): TaskMetadata {
+	const dueDate = /📅\s*(\d{4}-\d{2}-\d{2})/u.exec(text)?.[1];
+	const priority = Object.entries(PRIORITIES).find(([emoji]) => text.includes(emoji))?.[1];
+	return {
+		description: text.split(/\s(?:[📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🔁🆔⛔🏁]|#)/u)[0].trim(),
+		...(dueDate ? { dueDate } : {}),
+		...(priority ? { priority } : {}),
+		tags: [...text.matchAll(/#([A-Za-z0-9_][A-Za-z0-9_-]*)/gu)].map((m) => m[1]),
+	};
+}
 
 /** Creates a vault at `root` holding `files` (vault-relative path -> content). */
 export function createFakeVault(root: string, files: Record<string, string> = {}): FakeVault {
@@ -135,8 +164,8 @@ export function createFakeVault(root: string, files: Record<string, string> = {}
 					checked: m[1] !== ' ',
 					indent: 0,
 					lineNumber: i + 1,
-					status: m[1] === ' ' ? 'todo' : 'done',
-					metadata: { description: m[2], tags: [] },
+					status: STATUS[m[1]],
+					metadata: metadataOf(m[2]),
 				});
 			});
 			if (tasks.length > 0) groups.push({ filePath: `${root}/${rel}`, fileName: rel, modifiedAt: 0, tasks });

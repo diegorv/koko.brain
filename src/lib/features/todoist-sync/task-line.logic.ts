@@ -110,6 +110,26 @@ export function taskLineText(line: string): string | null {
 	return splitTaskLine(line)?.text ?? null;
 }
 
+/** The status char of a task line, or null when the line is no task. */
+export function taskLineStatus(line: string): string | null {
+	return splitTaskLine(line)?.status ?? null;
+}
+
+/** Whether a status char means closed (design rule 5): `x`, `X` or `-`. `[/] [?] [!] [>]` are open. */
+export function isClosedStatus(status: string): boolean {
+	return status === 'x' || status === 'X' || status === '-';
+}
+
+/**
+ * The status char {@link setTaskStatus} writes over `status`: closing keeps
+ * `x`, `X` and `-`, otherwise `x`; opening keeps ` / ? ! >`, otherwise a space.
+ */
+export function nextStatusChar(status: string, state: TaskLineState): string {
+	const closed = isClosedStatus(status);
+	if (state === 'closed') return closed ? status : 'x';
+	return closed ? ' ' : status;
+}
+
 function joinTaskLine(parts: TaskLineParts): string {
 	return parts.prefix + parts.status + parts.separator + parts.text;
 }
@@ -164,10 +184,7 @@ function insertToken(text: string, token: string): string {
 export function setTaskStatus(line: string, state: TaskLineState): string | null {
 	const parts = splitTaskLine(line);
 	if (!parts) return null;
-	const { status } = parts;
-	const closed = status === 'x' || status === 'X' || status === '-';
-	if (state === 'closed') return joinTaskLine({ ...parts, status: closed ? status : 'x' });
-	return joinTaskLine({ ...parts, status: closed ? ' ' : status });
+	return joinTaskLine({ ...parts, status: nextStatusChar(parts.status, state) });
 }
 
 /**
@@ -308,7 +325,18 @@ export function contentRoundTripProblem(content: string): RoundTripProblem | nul
 	if (/[\r\n]/u.test(content)) return 'newline';
 	if (content.trim() === '') return 'empty';
 	if (content.includes('#')) return 'hash';
-	if (new RegExp(`[${SIGNIFIER_CHARS}]`, 'u').test(content)) return 'signifier';
+	if (hasSignifier(content)) return 'signifier';
 	if (/\s{2,}/u.test(content) || content !== content.trim()) return 'whitespace';
 	return null;
+}
+
+const SIGNIFIER_RE = new RegExp(`[${SIGNIFIER_CHARS}]`, 'u');
+
+/**
+ * Whether the text holds a signifier emoji (`🆔` included), whatever other
+ * round-trip problem it has: a line holding one would parse back with
+ * metadata or an anchor that is not the item's.
+ */
+export function hasSignifier(text: string): boolean {
+	return SIGNIFIER_RE.test(text);
 }

@@ -16,6 +16,8 @@
  * N, deleted resources included (with `is_deleted: true`). Commands answer
  * with `sync_status` keyed by uuid and `temp_id_mapping` keyed by temp_id;
  * a replayed uuid returns its first outcome without applying it again.
+ * `item_close` on a recurring item rolls its date forward, unless the rule
+ * says `starting`, which completes it for good (`research/live-check.md` R).
  *
  * Extend this file when an engine ticket needs another command or resource.
  */
@@ -138,10 +140,21 @@ export interface FakeTodoist {
 	item(id: string): FakeItem | undefined;
 	/** Queues a failure for the next `times` requests (default 1). */
 	failNext(failure: FakeFailure, times?: number): void;
+	/** Answers every later command on item `id` with a 400 `sync_status`, applying nothing. */
+	refuseCommandsFor(id: string): void;
 }
 
 const USER_ID = 'u1';
 const STAMP = '2026-11-01T10:00:00.000000Z';
+
+/** The next date of a recurring due: `every week` +7 days, `every month` +1 month, anything else +1 day. A time part is kept. */
+function nextOccurrence(date: string, rule: string): string {
+	const d = new Date(`${date.slice(0, 10)}T00:00:00Z`);
+	if (/\bweek\b/iu.test(rule)) d.setUTCDate(d.getUTCDate() + 7);
+	else if (/\bmonth\b/iu.test(rule)) d.setUTCMonth(d.getUTCMonth() + 1);
+	else d.setUTCDate(d.getUTCDate() + 1);
+	return d.toISOString().slice(0, 10) + date.slice(10);
+}
 
 /** Creates an empty fake server accepting the token `test-token`. */
 export function createFakeTodoist(): FakeTodoist {
@@ -153,6 +166,7 @@ export function createFakeTodoist(): FakeTodoist {
 	const outcomes = new Map<string, { status: unknown; tempId?: string; id?: string }>();
 	const failures: FakeFailure[] = [];
 	const requests: FakeRequest[] = [];
+	const refused = new Set<string>();
 
 	const bump = () => ++version;
 
@@ -194,6 +208,7 @@ export function createFakeTodoist(): FakeTodoist {
 	/** Applies one command; returns its `sync_status` value and any new id. */
 	function apply(cmd: FakeCommand): { status: unknown; id?: string } {
 		const args = cmd.args;
+		if (typeof args.id === 'string' && refused.has(args.id)) return { status: commandError('Invalid argument value') };
 		const existing = typeof args.id === 'string' ? items.get(args.id) : undefined;
 		switch (cmd.type) {
 			case 'item_add': {
@@ -213,7 +228,13 @@ export function createFakeTodoist(): FakeTodoist {
 			}
 			case 'item_close': {
 				if (!existing) return { status: commandError('Item not found', 404) };
-				storeItem({ ...existing.row, checked: true, completed_at: STAMP });
+				const due = existing.row.due;
+				// live-check R: a plain recurring rule rolls forward; one with `starting <date>` completes for good.
+				if (due?.is_recurring && !/\bstarting\b/iu.test(due.string)) {
+					storeItem({ ...existing.row, due: { ...due, date: nextOccurrence(due.date, due.string) } });
+				} else {
+					storeItem({ ...existing.row, checked: true, completed_at: STAMP, due: due?.is_recurring ? null : due });
+				}
 				return { status: 'ok' };
 			}
 			case 'item_uncomplete': {
@@ -369,6 +390,10 @@ export function createFakeTodoist(): FakeTodoist {
 
 		failNext(failure, times = 1) {
 			for (let i = 0; i < times; i++) failures.push(failure);
+		},
+
+		refuseCommandsFor(id) {
+			refused.add(id);
 		},
 	};
 	return fake;

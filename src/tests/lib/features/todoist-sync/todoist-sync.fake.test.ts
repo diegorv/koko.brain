@@ -108,6 +108,19 @@ describe('fake Todoist /sync', () => {
 		expect(server.item('i1')?.checked).toBe(false);
 	});
 
+	it('rolls a recurring item forward on item_close, and completes a starting <date> rule for good', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+		server.addItem({ id: 'd', project_id: 'p1', content: 'D', due: { is_recurring: true, string: 'every day', date: '2026-11-10', lang: 'en' } });
+		server.addItem({ id: 'w', project_id: 'p1', content: 'W', due: { is_recurring: true, string: 'every week', date: '2026-11-13T09:00:00', lang: 'en' } });
+		server.addItem({ id: 's', project_id: 'p1', content: 'S', due: { is_recurring: true, string: 'every week starting 16 Nov 2026', date: '2026-11-16', lang: 'en' } });
+
+		await client().sync({ commands: ['d', 'w', 's'].map((id) => ({ type: 'item_close', uuid: `u-${id}`, args: { id } }) as never) });
+
+		expect(server.item('d')).toMatchObject({ checked: false, due: { date: '2026-11-11', is_recurring: true } });
+		expect(server.item('w')).toMatchObject({ checked: false, due: { date: '2026-11-20T09:00:00' } });
+		expect(server.item('s')).toMatchObject({ checked: true, due: null });
+	});
+
 	it('replays a uuid without applying it twice', async () => {
 		server.addProject({ id: 'p1', name: 'Work' });
 		const add = createCommand('item_add', { content: 'Once', projectId: 'p1' }, 'tmp-1');
@@ -132,6 +145,17 @@ describe('fake Todoist /sync', () => {
 		expect(syncErr.syncStatus[ok.uuid]).toBe('ok');
 		expect(syncErr.syncStatus[bad.uuid]).toMatchObject({ httpCode: 404 });
 		expect(syncErr.tempIdMapping['tmp-1']).toBeDefined();
+	});
+
+	it('refuses every command on an item marked with refuseCommandsFor, applying nothing', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+		server.addItem({ id: 'i1', project_id: 'p1', content: 'A' });
+		server.refuseCommandsFor('i1');
+
+		const err = await client().sync({ commands: [{ type: 'item_close', uuid: 'u1', args: { id: 'i1' } } as never] }).catch((e: unknown) => e);
+
+		expect((err as TodoistSyncError).syncStatus.u1).toMatchObject({ httpCode: 400 });
+		expect(server.item('i1')?.checked).toBe(false);
 	});
 
 	it('answers 429 with error_extra.retry_after in the response data', async () => {
