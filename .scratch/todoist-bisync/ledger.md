@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Guarded writer for task lines in notes that are open in a tab](issues/04-guarded-line-writer-open-tabs.md) | 03 | done | issue/04-guarded-line-writer-open-tabs (af9115203) | 2026-11-09 |
 | 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | done | issue/05-sync-settings-state-and-connection-check (e982782b8) | 2026-11-09 |
 | 06 | ["Todoist: Sync now" pulls every project and its open tasks into project notes](issues/06-sync-now-pulls-projects-and-tasks.md) | 04, 05 | done | issue/06-sync-now-pulls-projects-and-tasks (12fefe60a) | 2026-11-09 |
-| 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | todo | | |
+| 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | done | issue/07-completion-syncs-both-ways (e5583a987) | 2026-11-09 |
 | 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | todo | | |
 | 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | todo | | |
 | 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | todo | | |
@@ -69,3 +69,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 22:38 — 14 — start — launched by /relay-lite:run — c78e5afe2
 - 2026-11-09 23:08 — 14 — deliver — round 1 CHANGES_REQUESTED by claude (4 findings), fix round test-first (429 refusal on queued Sync now, no fail() on vault switch, first_run_done recheck, after-save idle when sync off); round 2 APPROVED; round 3 APPROVED with no findings; full suite passed (602 files, 14557 tests) — c548b66a7
 - 2026-11-09 23:14 — 07 — deliver — approved and full suite passed, but deliver sync conflicted with Issue 14 in sync-now.service.ts and its test; rebase aborted, worktree kept at 7f0fbabb4 — 132c082c0
+- 2026-11-09 23:30 — 07 — deliver — finished by hand after the sync conflict with Issue 14: rebased, conflicts resolved, integration fixes (tests aligned to extended PullCounts, automatic cycles skip over-cap pushes instead of asking); opus integration review APPROVED with 2 minor (carried to Issue 10); full suite passed (603 files, 14631 tests) — e5583a987
