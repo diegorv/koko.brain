@@ -51,7 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | done | issue/14-sync-runs-on-its-own (c548b66a7) | 2026-11-09 |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14 | todo | | |
 | 16 | [A sync stopped by the line brake has a way past it](issues/16-line-brake-recovery.md) | 13 | todo | | |
-| 17 | [Block ids, orphan anchors and dropped pending adds are handled in every sync path](issues/17-block-ids-and-orphan-anchors.md) | 10 | todo | | |
+| 17 | [Block ids, orphan anchors and dropped pending adds are handled in every sync path](issues/17-block-ids-and-orphan-anchors.md) | 10 | in-progress | | |
 
 ## Log
 
@@ -87,3 +87,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 02:20 — 11 — deliver — round 1 APPROVED by claude with findings, fix round (project id written to an open tab, case-only rename, temp id across requests, merged tree ids, JSDoc), finding 4 (pending project_add lost on rename after a lost response) left for a follow-up; round 2 APPROVED with no findings; full suite passed (607 files, 14870 tests) — c064777eb
 - 2026-11-10 02:20 — 12 — start — launched by /relay-lite:run — 89c433d0b
 - 2026-11-10 03:21 — 12 — deliver — round 1 CHANGES_REQUESTED by claude, fixes (Todoist section kept for an unlinked line, level-2 headings only, empty ## skipped, terminal section_add logged on manual cycles); round 2 APPROVED, one fix (brain rename row written after Todoist creates the section); round 3 APPROVED with no findings; full suite passed (608 files, 14937 tests; cargo 1430) — 847c02d94
+- 2026-11-10 03:22 — 17 — start — launched by /relay-lite:run — 2c5b71778
