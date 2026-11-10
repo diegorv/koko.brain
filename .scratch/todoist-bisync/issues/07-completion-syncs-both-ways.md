@@ -14,6 +14,10 @@
 - [ ] Both sides changed completion: Todoist wins; the brain value is logged.
 - [ ] Over 25 close/reopen pushes in one cycle: "pause and ask" as defined in design rule 9.
 - [ ] Where `research/live-check.md` contradicts a criterion, follow the recorded fact and say so in the commit.
+- [ ] Pull hardening, from a security review of Issue 06's merged `pull.logic.ts` (verified on main at `12fefe60a`), each with a failing test first:
+  - `due.string` gets CR/LF turned into spaces before it is written after `🔁` (`:274`), and `due.date` must match `^\d{4}-\d{2}-\d{2}` or the due is dropped and logged (`:269`). As a backstop, no planned line may contain `\n` or `\r` (the plan throws in tests).
+  - Content containing `🆔` (or any other signifier the round-trip check flags) is not inserted as-is: the item is skipped and logged, since the parser keeps the first `🆔` on a line and would read the wrong anchor. Before planning an insert, assert `readAnchor(line) === anchorForTodoistId(item.id)`.
+  - `kokobrainAnchor` accepts only the brain-born format `kokobrain:td-[0-9a-z]{8}` (`:241`); a description can never claim a `td-<todoist id>` anchor. In rebuild mode the item's own `td-<id>` wins over its description anchor, and when two items claim the same anchor neither is paired and both are logged (`:361`).
 - [ ] Gate: frontend, or Both if IPC changes.
 
 ## Notes
