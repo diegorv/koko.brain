@@ -497,6 +497,40 @@ describe('evaluate', () => {
 			expect(evaluateExpression("file.inFolder('/other')", ctx)).toBe(false);
 		});
 
+		describe('file.inFolder() with a vault path', () => {
+			const noteIn = (folder: string): EvalContext => ({
+				...makeCtx({}, {}, { folder, path: `${folder}/n.md` }),
+				vaultPath: '/v',
+			});
+
+			it('resolves a vault-relative folder against the vault path, subfolders included', () => {
+				const ctx = noteIn('/v/work/topics/AWS');
+				expect(evaluateExpression('file.inFolder("work/topics/AWS")', ctx)).toBe(true);
+				expect(evaluateExpression('file.inFolder("work")', ctx)).toBe(true);
+				expect(evaluateExpression('file.inFolder("work/topics/GCP")', ctx)).toBe(false);
+			});
+
+			it('does not match a sibling folder that shares the prefix', () => {
+				expect(evaluateExpression('file.inFolder("/v/work")', noteIn('/v/workshop'))).toBe(false);
+				expect(evaluateExpression('file.inFolder("work")', noteIn('/v/workshop'))).toBe(false);
+				expect(evaluateExpression('file.inFolder("/v/work")', noteIn('/v/work'))).toBe(true);
+			});
+
+			it('ignores a trailing slash and letter case', () => {
+				const ctx = noteIn('/v/Work/Topics');
+				expect(evaluateExpression('file.inFolder("work/topics/")', ctx)).toBe(true);
+				expect(evaluateExpression('file.inFolder("WORK")', ctx)).toBe(true);
+				expect(evaluateExpression('file.inFolder("/V/work/")', ctx)).toBe(true);
+			});
+
+			it('matches nothing for a relative folder when there is no vault path', () => {
+				const ctx = makeCtx({}, {}, { folder: '/v/work', path: '/v/work/n.md' });
+				expect(() => evaluateExpression('file.inFolder("work")', ctx)).not.toThrow();
+				expect(evaluateExpression('file.inFolder("work")', ctx)).toBe(false);
+				expect(evaluateExpression('file.inFolder("/v/work")', ctx)).toBe(true);
+			});
+		});
+
 		it('evaluates file.hasProperty()', () => {
 			const ctx = makeCtx({ status: 'active' });
 			expect(evaluateExpression("file.hasProperty('status')", ctx)).toBe(true);

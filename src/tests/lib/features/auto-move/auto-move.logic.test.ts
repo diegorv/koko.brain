@@ -50,8 +50,18 @@ describe('findMatchingRule', () => {
 		];
 		const record = makeRecord({ tags: ['test', 'archive'] });
 
-		const result = findMatchingRule(rules, record);
+		const result = findMatchingRule(rules, record, '/vault');
 		expect(result?.id).toBe('r1');
+	});
+
+	it('resolves a relative file.inFolder against the vault path', () => {
+		const rules = [makeRule({ id: 'inbox', expression: 'file.inFolder("Inbox")' })];
+		const inInbox = makeRecord({ path: '/vault/Inbox/sub/n.md', folder: '/vault/Inbox/sub' });
+		const sibling = makeRecord({ path: '/vault/Inboxes/n.md', folder: '/vault/Inboxes' });
+
+		expect(findMatchingRule(rules, inInbox, '/vault')?.id).toBe('inbox');
+		expect(findMatchingRule(rules, sibling, '/vault')).toBeNull();
+		expect(findMatchingRule(rules, inInbox, '/other-vault')).toBeNull();
 	});
 
 	it('returns null when no rules match', () => {
@@ -60,12 +70,12 @@ describe('findMatchingRule', () => {
 		];
 		const record = makeRecord({ tags: ['other'] });
 
-		expect(findMatchingRule(rules, record)).toBeNull();
+		expect(findMatchingRule(rules, record, '/vault')).toBeNull();
 	});
 
 	it('returns null for empty rules array', () => {
 		const record = makeRecord({ tags: ['test'] });
-		expect(findMatchingRule([], record)).toBeNull();
+		expect(findMatchingRule([], record, '/vault')).toBeNull();
 	});
 
 	it('skips disabled rules', () => {
@@ -75,7 +85,7 @@ describe('findMatchingRule', () => {
 		];
 		const record = makeRecord({ tags: ['test'] });
 
-		const result = findMatchingRule(rules, record);
+		const result = findMatchingRule(rules, record, '/vault');
 		expect(result?.id).toBe('r2');
 	});
 
@@ -86,7 +96,7 @@ describe('findMatchingRule', () => {
 		];
 		const record = makeRecord({ tags: ['test'] });
 
-		const result = findMatchingRule(rules, record);
+		const result = findMatchingRule(rules, record, '/vault');
 		expect(result?.id).toBe('r2');
 	});
 
@@ -97,7 +107,7 @@ describe('findMatchingRule', () => {
 		];
 		const record = makeRecord({ tags: ['general', 'specific'] });
 
-		const result = findMatchingRule(rules, record);
+		const result = findMatchingRule(rules, record, '/vault');
 		expect(result?.id).toBe('r1');
 		expect(result?.destination).toBe('General');
 	});
@@ -110,7 +120,7 @@ describe('findMatchingRule', () => {
 			makeRule({ expression: "status == 'done'" }),
 		];
 
-		expect(findMatchingRule(rules, record)).not.toBeNull();
+		expect(findMatchingRule(rules, record, '/vault')).not.toBeNull();
 	});
 
 	it('supports complex boolean expressions', () => {
@@ -121,7 +131,7 @@ describe('findMatchingRule', () => {
 			makeRule({ expression: "file.hasTag('project') && status == 'active'" }),
 		];
 
-		expect(findMatchingRule(rules, record)).not.toBeNull();
+		expect(findMatchingRule(rules, record, '/vault')).not.toBeNull();
 	});
 
 	it('handles expression returning falsy but non-null (0, empty string)', () => {
@@ -132,7 +142,7 @@ describe('findMatchingRule', () => {
 			makeRule({ expression: 'count' }), // evaluates to 0, which is falsy
 		];
 
-		expect(findMatchingRule(rules, record)).toBeNull();
+		expect(findMatchingRule(rules, record, '/vault')).toBeNull();
 	});
 
 	describe('onError reporting', () => {
@@ -144,7 +154,7 @@ describe('findMatchingRule', () => {
 			const rules = [makeRule({ id: 'bad', expression: throwing })];
 
 			expect(
-				findMatchingRule(rules, makeRecord(), (rule, err) =>
+				findMatchingRule(rules, makeRecord(), '/vault', (rule, err) =>
 					reported.push({ id: rule.id, message: (err as Error).message }),
 				),
 			).toBeNull();
@@ -160,7 +170,7 @@ describe('findMatchingRule', () => {
 			];
 			const record = makeRecord({ tags: ['test'] });
 
-			const result = findMatchingRule(rules, record, (rule) => reported.push(rule.id));
+			const result = findMatchingRule(rules, record, '/vault', (rule) => reported.push(rule.id));
 
 			expect(result?.id).toBe('good');
 			expect(reported).toEqual(['bad']);
@@ -170,7 +180,7 @@ describe('findMatchingRule', () => {
 			const reported: string[] = [];
 			const rules = [makeRule({ id: 'r1', expression: "file.hasTag('test')" })];
 
-			findMatchingRule(rules, makeRecord({ tags: ['test'] }), (rule) => reported.push(rule.id));
+			findMatchingRule(rules, makeRecord({ tags: ['test'] }), '/vault', (rule) => reported.push(rule.id));
 
 			expect(reported).toEqual([]);
 		});
@@ -181,7 +191,7 @@ describe('findMatchingRule', () => {
 				makeRule({ id: 'good', expression: "file.hasTag('test')" }),
 			];
 
-			expect(findMatchingRule(rules, makeRecord({ tags: ['test'] }))?.id).toBe('good');
+			expect(findMatchingRule(rules, makeRecord({ tags: ['test'] }), '/vault')?.id).toBe('good');
 		});
 	});
 });

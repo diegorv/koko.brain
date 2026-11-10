@@ -36,7 +36,7 @@ function run(yaml: string, index: Map<string, PropertyIndexRecord>): string[] {
 	const parsed = parseCollectionYaml(yaml);
 	if (!parsed.success) throw new Error(parsed.error);
 	const view = parsed.definition.views[0];
-	const result = executeQuery(parsed.definition, view, index);
+	const result = executeQuery(parsed.definition, view, index, null);
 	return result.records.map((r) => r.path);
 }
 

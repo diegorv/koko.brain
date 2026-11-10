@@ -6,6 +6,7 @@ import { getViewRowSetPort } from '#lib/features/collection/view-row-set.port.js
 import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { sanitizeHtml } from '#lib/utils/sanitize.js';
 import type { PropertyIndexRecord, CollectionViewDef, QueryResult } from '#lib/features/collection/collection.types.js';
 import {
@@ -120,7 +121,7 @@ export class CollectionBlockWidget extends WidgetType {
 		const rowSet: QueryRowSet | undefined = port
 			? (records, v, d) => port.blockRows(records, v, d)
 			: undefined;
-		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex, rowSet);
+		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex, vaultStore.path, rowSet);
 		collectionCache.set(this.yamlContent, { version: this.version, view: viewWithDefaults, result });
 
 		this.renderView(container, viewWithDefaults, result);

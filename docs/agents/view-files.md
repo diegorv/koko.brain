@@ -119,7 +119,7 @@ Only the exact value types below work. Any other value is ignored, and the defau
 **`file.*`**
 - Fields: `name` (with extension), `basename`, `path`, `folder` (absolute), `ext`, `size`, `ctime`, `mtime` (Dates), `tags`, `properties`. A just-created note's `ctime`/`mtime` read as 1970 until the index catches up.
 - `file.hasTag('a', 'b')` matches any listed tag exactly, ignoring case. Write tags **without `#`**. Nested tags do not match their parent.
-- `file.inFolder(path)` takes an **absolute** folder path and is a prefix test (`/v/Proj` also matches `/v/Projects2`). For a vault-relative scope, prefer `contains(file.path, '/Areas/Work/')`.
+- `file.inFolder(path)` takes a **vault-relative** folder (`'Areas/Work'`) and matches that folder and its subfolders, ignoring case and a trailing `/`. The match stops at folder boundaries (`'Proj'` does not match `Projects2/`). An absolute path (starting with `/`) also works, with the same boundary rule.
 - `file.hasProperty(key)` is always true for `archived`, `organized`, `favorite` and `tags`.
 - `file.asLink(display?)` returns the note as a `[[path]]` string.
 - Any other `file.` method does not exist (`hasLink`, `links`).
@@ -349,7 +349,7 @@ Each of these breaks a view or changes what it lists, usually with no error. Rev
 7. A query `sort:` list or `order:` list at the **top level**: it folds into `_sort` / `_order` and is ignored. Put them inside an entry of `views`.
 8. `filters:` written as a YAML list of strings (every note matches), or as a map without `and`/`or`/`not` (an error in the rail, every note inline).
 9. A method that does not exist (`hasLink`, `reverse`, `containsAll`) or does not exist for the value's type: notes silently drop out.
-10. `file.hasTag('#x')` never matches. `file.inFolder('Projects')`, a relative path, never matches.
+10. `file.hasTag('#x')` never matches.
 11. A column or sort key `file.tags`, `note.x`, `property.x` or `type`: empty cells, no ordering.
 12. Arithmetic on a raw frontmatter date (`due - today()`): NaN, and a NaN filter keeps every row.
 13. `!a == b` parses as `(!a) == b`, and `===` is a parse error.

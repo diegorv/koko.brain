@@ -8,6 +8,9 @@ import { parse } from '#lib/features/collection/expression/parser.js';
  * Uses first-match-wins semantics (rules are evaluated in order).
  * Only evaluates enabled rules. Invalid expressions are skipped gracefully.
  *
+ * @param vaultPath - The vault's absolute path, which a relative
+ * `file.inFolder()` resolves against. Required: without it a relative folder
+ * rule would silently match nothing.
  * @param onError - Reports a rule whose expression threw. Optional so this
  * module stays framework-free; the service passes a logger. Without it a
  * broken rule is indistinguishable from a rule that simply did not match,
@@ -17,12 +20,13 @@ import { parse } from '#lib/features/collection/expression/parser.js';
 export function findMatchingRule(
 	rules: AutoMoveRule[],
 	record: PropertyIndexRecord,
+	vaultPath: string,
 	onError?: (rule: AutoMoveRule, err: unknown) => void,
 ): AutoMoveRule | null {
 	for (const rule of rules) {
 		if (!rule.enabled) continue;
 		try {
-			const ctx: EvalContext = { record, formulas: {} };
+			const ctx: EvalContext = { record, formulas: {}, vaultPath };
 			const result = evaluateExpression(rule.expression, ctx);
 			if (result) return rule;
 		} catch (err) {

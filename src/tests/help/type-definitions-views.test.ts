@@ -48,12 +48,12 @@ function listed(viewFile: string, notes: PropertyIndexRecord[]): { sidebar: stri
 	const view = definition.views[0];
 	const index = new Map(notes.map((n) => [n.path, n]));
 	// TypeSidebar counts with the parsed definition as is.
-	const sidebar = executeQuery(definition, view, index).records.map((r) => r.path);
+	const sidebar = executeQuery(definition, view, index, null).records.map((r) => r.path);
 	// TypeNoteList round-trips the filters through the toolbar groups first.
 	const seed = seedToolbarStateFromDefinition(definition, view);
 	const query = buildOverriddenQuery(definition, view, seed.globalFilters, seed.viewFilters, seed.sort);
 	if (!query) throw new Error(`${viewFile} has no view`);
-	const list = executeQuery(query.definition, query.view, index).records.map((r) => r.path);
+	const list = executeQuery(query.definition, query.view, index, null).records.map((r) => r.path);
 	return { sidebar: sidebar.sort(), list: list.sort() };
 }
 

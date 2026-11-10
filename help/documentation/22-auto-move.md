@@ -51,6 +51,11 @@ file.hasTag("archived")
 Move notes that have the tag `archived`.
 
 ```
+file.inFolder("Inbox") && status == "done"
+```
+Move finished notes out of the `Inbox` folder (and its subfolders). The folder is relative to the vault root, like the destination; `Inbox` does not match `Inbox-old`. See [`file.inFolder()`](12-collection.md#fileinfolder-takes-a-vault-relative-folder).
+
+```
 priority == "high" && project == "work"
 ```
 Move notes matching both conditions.

@@ -182,7 +182,7 @@ describe('registerAppPorts', () => {
 			const parsed = parseCollectionYaml(RECENT_VIEW_YAML);
 			if (!parsed.success) throw new Error('fixture');
 			const view = parsed.definition.views[0];
-			const matched = executeQuery(parsed.definition, { ...view, limit: undefined }, recentIndex()).records;
+			const matched = executeQuery(parsed.definition, { ...view, limit: undefined }, recentIndex(), VAULT).records;
 			const rows = port!.rows(RECENT_VIEW, matched, view, parsed.definition);
 			expect(rows.map((r) => r.path)).toEqual(RECENT_NEWEST_THREE);
 			// The definition reaches the row set: a global filter citing archived keeps the archived note.

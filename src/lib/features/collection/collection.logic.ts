@@ -124,14 +124,20 @@ export type QueryRowSet = (
  * Pipeline: collect -> filter -> compute formulas -> sort -> limit -> select columns.
  * With `rowSet`, it replaces the limit step (it applies `limit` itself) and the
  * columns are resolved from the rows it returns.
+ *
+ * @param vaultPath - The open vault's absolute path, which a relative
+ * `file.inFolder()` resolves against. Required so no caller can forget it: a
+ * relative folder with no vault path matches nothing.
  */
 export function executeQuery(
 	definition: CollectionDefinition,
 	view: CollectionViewDef,
 	index: Map<string, PropertyIndexRecord>,
+	vaultPath: string | null,
 	rowSet?: QueryRowSet,
 ): QueryResult {
 	const formulas = definition.formulas ?? {};
+	const vault = vaultPath ?? undefined;
 
 	// A filter that cannot run fails the whole query, before any record is read,
 	// so a typo is reported instead of looking like "no notes match".
@@ -159,7 +165,7 @@ export function executeQuery(
 
 	// 2. Filter — combine global + view filters with AND
 	records = records.filter((record) => {
-		const ctx: EvalContext = { record, formulas };
+		const ctx: EvalContext = { record, formulas, vaultPath: vault };
 		if (definition.filters && !evaluateFilterCached(definition.filters, ctx, parseCache)) {
 			return false;
 		}
@@ -180,7 +186,7 @@ export function executeQuery(
 				continue;
 			}
 			try {
-				const ctx: EvalContext = { record, formulas };
+				const ctx: EvalContext = { record, formulas, vaultPath: vault };
 				const value = evaluate(ast, ctx);
 				record.properties.set(`formula.${formulaName}`, value);
 			} catch {

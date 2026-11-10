@@ -51,8 +51,9 @@ of the templates finds its scripts only when
 ## Collection blocks and `.view` files
 
 Gap: a filter cannot refer to the note or file that holds it, and
-`file.inFolder("name")` compares against the absolute folder, so a relative
-name never matches. The closest scope is the example folder's name:
+`file.inFolder("name")` resolves `name` from the vault root, so it only
+scopes an example folder that sits at a known place in the vault. The
+closest scope that survives nesting is the example folder's name:
 
 ```yaml
 filters:

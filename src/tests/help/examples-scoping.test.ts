@@ -424,7 +424,7 @@ describe('auto-move-features rules stay inside the example folder', () => {
 			const record = buildNoteRecord(`${root}/Inbox/note.md`, catchAll);
 			const rel = root.slice(vault.length + 1);
 			for (const rule of rules) {
-				expect(findMatchingRule([{ ...rule, enabled: true }], record), rule.name).not.toBeNull();
+				expect(findMatchingRule([{ ...rule, enabled: true }], record, vault), rule.name).not.toBeNull();
 				const destination = resolveDestination(rule.destination, record, vault);
 				expect(destination.startsWith(`${rel}/`), `${rule.name} -> ${destination}`).toBe(true);
 			}
@@ -443,7 +443,7 @@ describe('auto-move-features rules stay inside the example folder', () => {
 		for (const path of outside) {
 			const record = buildNoteRecord(path, catchAll);
 			const enabled = rules.map((rule) => ({ ...rule, enabled: true }));
-			expect(findMatchingRule(enabled, record)?.name ?? null, path).toBeNull();
+			expect(findMatchingRule(enabled, record, vault)?.name ?? null, path).toBeNull();
 		}
 	});
 
@@ -458,7 +458,7 @@ describe('auto-move-features rules stay inside the example folder', () => {
 		expect(notes.sort()).toEqual(Object.keys(expected).sort());
 		for (const name of notes) {
 			const record = buildNoteRecord(`${nested}/Inbox/${name}`, readFileSync(join(dir, 'Inbox', name), 'utf-8'));
-			expect(findMatchingRule(rules, record)?.name, name).toBe(expected[name]);
+			expect(findMatchingRule(rules, record, vault)?.name, name).toBe(expected[name]);
 		}
 	});
 });

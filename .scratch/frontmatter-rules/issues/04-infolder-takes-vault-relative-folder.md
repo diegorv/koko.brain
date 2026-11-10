@@ -4,7 +4,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -27,12 +27,12 @@
 
 ### Acceptance
 
-- [ ] Failing test first, in the evaluator test file under `src/tests/lib/features/collection/expression/`: with `vaultPath: '/v'`, a note at `/v/work/topics/AWS/n.md` matches `file.inFolder("work/topics/AWS")` and `file.inFolder("work")`. It fails today.
-- [ ] `file.inFolder("/v/work")` does not match `/v/workshop/n.md`, and does match `/v/work/n.md`.
-- [ ] A trailing slash and different letter case still match.
-- [ ] A relative argument with no `vaultPath` matches nothing and does not throw.
-- [ ] A Collection query test passes a vault path through and filters by a relative folder.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in the evaluator test file under `src/tests/lib/features/collection/expression/`: with `vaultPath: '/v'`, a note at `/v/work/topics/AWS/n.md` matches `file.inFolder("work/topics/AWS")` and `file.inFolder("work")`. It fails today.
+- [x] `file.inFolder("/v/work")` does not match `/v/workshop/n.md`, and does match `/v/work/n.md`.
+- [x] A trailing slash and different letter case still match.
+- [x] A relative argument with no `vaultPath` matches nothing and does not throw.
+- [x] A Collection query test passes a vault path through and filters by a relative folder.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Notes
 
@@ -41,3 +41,5 @@
 - Research: `.scratch/frontmatter-rules/research/validation-02.md` M11, `completeness-critic.md` G5.
 
 ## Comments
+
+- 2026-11-10, branch `issue/04-infolder-takes-vault-relative-folder`: `file.inFolder` resolves a relative argument against `EvalContext.vaultPath` and matches the folder or its subfolders only (no sibling prefix matches), ignoring case and a trailing slash. `executeQuery` and `findMatchingRule` take the vault path, passed by every caller. Docs updated. Full suite: 606 files passed, 14906 tests passed, 54 skipped, 1 todo (exit 0). Review round 1: APPROVED (two nits, both resolved with no change).

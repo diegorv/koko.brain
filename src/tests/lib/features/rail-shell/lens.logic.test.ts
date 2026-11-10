@@ -1381,6 +1381,16 @@ describe('View lens', () => {
 			expect(lens.notes.map((n) => n.title)).toEqual(['a', 'b', 'c']);
 		});
 
+		it("resolves a relative file.inFolder against the context's vault path", () => {
+			const inWork: CollectionDefinition = {
+				filters: 'file.inFolder("Work")',
+				views: [{ type: 'table', name: 'Projects' }],
+			};
+			const paths = (c: LensContext) => queryViewLens(inWork, null, index, VIEW, c)?.paths.sort();
+			expect(paths(ctx(entries))).toEqual([`${VAULT}/Work/a.md`, `${VAULT}/Work/b.md`, `${VAULT}/Work/c.md`]);
+			expect(paths({ ...ctx(entries), vaultPath: null })).toEqual([]);
+		});
+
 		it('applies the toolbar overrides instead of the saved filters and sort', () => {
 			const person = groups('_type == "Person"');
 			const result = queryViewLens(def(), {
@@ -1552,7 +1562,7 @@ describe('View lens', () => {
 			const unfiltered: CollectionDefinition = { views: [{ type: 'table', name: 'All' }] };
 
 			it('an unfiltered view lists the plain notes and no .view file', () => {
-				const matched = executeQuery(unfiltered, unfiltered.views[0], withViews).records.map((r) => r.path);
+				const matched = executeQuery(unfiltered, unfiltered.views[0], withViews, VAULT).records.map((r) => r.path);
 				expect(matched).toEqual(expect.arrayContaining([VIEW, OTHER_VIEW]));
 				const result = queryViewLens(unfiltered, null, withViews, VIEW, ctx(viewEntries));
 				const paths = resolveViewLens(VIEW, viewLoadFromQuery(result), ctx(viewEntries)).notes.map((n) => n.path);
@@ -1561,7 +1571,7 @@ describe('View lens', () => {
 			});
 
 			it('a filtered view lists no .view file, even one its filter matches', () => {
-				const matched = executeQuery(def(), def().views[0], withViews).records.map((r) => r.path);
+				const matched = executeQuery(def(), def().views[0], withViews, VAULT).records.map((r) => r.path);
 				expect(matched).toEqual(expect.arrayContaining([VIEW, OTHER_VIEW]));
 				const result = queryViewLens(def(), null, withViews, VIEW, ctx(viewEntries));
 				const lens = resolveViewLens(VIEW, viewLoadFromQuery(result), ctx(viewEntries));
@@ -1576,7 +1586,7 @@ describe('View lens', () => {
 				views: [{ type: 'table', name: 'Projects', filters: { and: [{ not: ['rank == 3'] }] } }],
 			};
 			const c = ctx(entries);
-			const expected = executeQuery(nested, nested.views[0], index, (records, view, d) => viewRowSet(records, view, VIEW, c, d)).records.map((r) => r.path);
+			const expected = executeQuery(nested, nested.views[0], index, VAULT, (records, view, d) => viewRowSet(records, view, VIEW, c, d)).records.map((r) => r.path);
 			expect(expected.length).toBeGreaterThan(0);
 			expect(queryViewLens(nested, null, index, VIEW, c)?.paths).toEqual(expected);
 		});
@@ -1657,21 +1667,21 @@ describe('View lens', () => {
 		it('gives the three newest plain notes, newest first, to the editor and to the rail', () => {
 			expect([...index.keys()].slice(0, 5).every((p) => !p.match(/\/n\d\.md$/))).toBe(true);
 			const c = ctx(entries);
-			const editor = executeQuery(definition, definition.views[0], index, (records, view, d) => viewRowSet(records, view, VIEW, c, d));
+			const editor = executeQuery(definition, definition.views[0], index, VAULT, (records, view, d) => viewRowSet(records, view, VIEW, c, d));
 			expect(editor.records.map((r) => r.path)).toEqual(NEWEST_THREE);
 			const rail = resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(definition, null, index, VIEW, c)), c);
 			expect(rail.notes.map((n) => n.path)).toEqual(NEWEST_THREE);
 		});
 
 		it('applies limit after the exclusions and the ordering, not before', () => {
-			const plain = executeQuery(definition, definition.views[0], index);
+			const plain = executeQuery(definition, definition.views[0], index, VAULT);
 			expect(plain.records.map((r) => r.path)).toEqual([`${VAULT}/old.md`, `${VAULT}/_system/templates/t.md`, `${VAULT}/types/Project.md`]);
 		});
 
 		it('resolves columns from the rows it keeps', () => {
 			const withStatus = new Map(index);
 			withStatus.set(`${VAULT}/old.md`, buildNoteRecord(`${VAULT}/old.md`, '---\n_archived: true\nonly_old: 1\n---\n', index.get(`${VAULT}/old.md`)!.mtime));
-			const result = executeQuery(definition, definition.views[0], withStatus, (records, view, d) => viewRowSet(records, view, VIEW, ctx(entries), d));
+			const result = executeQuery(definition, definition.views[0], withStatus, VAULT, (records, view, d) => viewRowSet(records, view, VIEW, ctx(entries), d));
 			expect(result.columns.map((col) => col.key)).not.toContain('only_old');
 		});
 
@@ -1702,7 +1712,7 @@ describe('View lens', () => {
 			);
 			const c = ctx(pinned);
 			const expected = [`${VAULT}/n5.md`, `${VAULT}/n4.md`, `${VAULT}/n3.md`];
-			const editor = executeQuery(sorted, sorted.views[0], index, (records, view, d) => viewRowSet(records, view, VIEW, c, d));
+			const editor = executeQuery(sorted, sorted.views[0], index, VAULT, (records, view, d) => viewRowSet(records, view, VIEW, c, d));
 			expect(editor.records.map((r) => r.path)).toEqual(expected);
 			const rail = resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(sorted, null, index, VIEW, c)), c);
 			expect(rail.notes.map((n) => n.path)).toEqual(expected);
@@ -1837,7 +1847,7 @@ describe('blockRowSet (an inline collection block)', () => {
 	/** Runs the block's first view the way the widget does; no entries are passed, the rule reads records only. */
 	function block(definition: CollectionDefinition, systemFolder = '_system'): string[] {
 		const c = ctx([], systemFolder);
-		return executeQuery(definition, definition.views[0], index, (records, view, d) => blockRowSet(records, view, d, c)).records.map((r) => r.path);
+		return executeQuery(definition, definition.views[0], index, VAULT, (records, view, d) => blockRowSet(records, view, d, c)).records.map((r) => r.path);
 	}
 
 	it('leaves out archived, system-folder, type-definition and .view records and keeps the query order', () => {
@@ -2234,7 +2244,7 @@ describe('type definitions and .view files in the lenses', () => {
 		};
 		const index = new Map<string, PropertyIndexRecord>(Object.entries(files).map(([p, c]) => [p, buildNoteRecord(p, c)]));
 		const active: CollectionDefinition = { filters: 'status == "active"', views: [{ type: 'table', name: 'Active' }] };
-		expect(executeQuery(active, active.views[0], index).records.map((r) => r.path).sort()).toEqual([`${VAULT}/alpha.md`, DEF]);
+		expect(executeQuery(active, active.views[0], index, VAULT).records.map((r) => r.path).sort()).toEqual([`${VAULT}/alpha.md`, DEF]);
 		const c = ctx([definition, entryV2(`${VAULT}/alpha.md`), view]);
 		const lens = resolveViewLens(VIEW, viewLoadFromQuery(queryViewLens(active, null, index, VIEW, c)), c);
 		expect(lens.notes.map((n) => n.path)).toEqual([`${VAULT}/alpha.md`]);

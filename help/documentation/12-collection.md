@@ -323,7 +323,7 @@ These functions render rich content inside table cells:
 | `file.tags` | Array of tags |
 | `file.properties` | All frontmatter as an object |
 | `file.hasTag(tag)` | Check if note has a tag |
-| `file.inFolder(path)` | Check if note is in a folder |
+| `file.inFolder(path)` | Check if note is in a folder or its subfolders; `path` is vault-relative (`"work/people"`) or absolute |
 | `file.hasProperty(key)` | Check if frontmatter key exists |
 | `file.asLink()` | Render as a wikilink |
 
@@ -406,23 +406,30 @@ Prefer the flag spelling (`archived`, `organized`, `favorite`) when you mean lif
 
 In a `.view` or an inline block, a filter that cites either spelling of `archived` decides on archived notes itself: the list no longer leaves them out, so `archived == true` lists the archived notes, and in a `.view` the rule line under the list header drops "not archived" (see [Archived Note Filtering](25-types-and-relationships.md#archived-note-filtering)). The name counts wherever it appears in the expression (`!_archived`, `note.archived`, `isEmpty(archived)`, `_archived.isEmpty()`), and so does `file.hasProperty('archived')` or `file.hasProperty('_archived')`. A string is not a citation, so `status == 'archived'` and `file.hasTag('archived')` keep the default, and neither is a formula the filter uses: a formula that reads `archived` does not count, and neither does a formula named `archived` (`formula.archived`).
 
-#### `file.inFolder()` takes the absolute folder path
+#### `file.inFolder()` takes a vault-relative folder
 
-`file.inFolder("…")` matches by checking that the note's absolute parent folder starts with the argument string. It does NOT accept vault-relative paths.
+`file.inFolder("work/people")` matches notes in the vault folder `work/people` and in its subfolders. Write the folder as the file explorer shows it, from the vault root. This is the recommended form: it keeps working when the vault moves.
 
 ```yaml
-# Folder of a note in vault/work/people on macOS
-# /Users/you/vaults/my-vault/vault/work/people
+# Vault at /Users/you/vaults/my-vault
 
-filters: 'file.inFolder("/Users/you/vaults/my-vault/vault/work/people")'  # matches
-filters: 'file.inFolder("vault/work/people")'                              # zero matches
+filters: 'file.inFolder("work/people")'    # notes in work/people and its subfolders
+filters: 'file.inFolder("work")'           # everything under work/
+filters: 'file.inFolder("Work/People/")'   # same as the first: case and a trailing / are ignored
 ```
 
-For vault-relative or path-segment matching, use `contains()` on `file.folder` or `file.path`:
+The match stops at folder boundaries, so `file.inFolder("work")` does not match notes in `workshop/`.
+
+An absolute folder (one that starts with `/`) still works, with the same boundary rule:
 
 ```yaml
-filters: 'contains(file.folder, "vault/work/people")'   # works regardless of vault root
-filters: 'contains(file.path, "people")'                # any path containing "people"
+filters: 'file.inFolder("/Users/you/vaults/my-vault/work/people")'   # matches, siblings such as people-old do not
+```
+
+For path-segment matching anywhere in the vault, use `contains()` on `file.folder` or `file.path`:
+
+```yaml
+filters: 'contains(file.path, "people")'   # any path containing "people"
 ```
 
 ---

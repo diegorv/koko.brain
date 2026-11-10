@@ -539,7 +539,7 @@ describe('parseFilterToGroups / filterGroupsToFilter', () => {
 			filters: filterGroupsToFilter([{ conjunction: 'and', rows: [blank] }]),
 			views: [{ type: 'table', name: 'T' }],
 		};
-		const result = executeQuery(def, def.views[0], makeIndex([makeRecord('/vault/a.md')]));
+		const result = executeQuery(def, def.views[0], makeIndex([makeRecord('/vault/a.md')]), null);
 		expect(result.filterError).toBeUndefined();
 		expect(result.records).toHaveLength(1);
 	});
@@ -625,7 +625,7 @@ describe('nested filter objects in a filter list', () => {
 		expect(roundTrip).toEqual({ and: ['x == 1', '(null)'] });
 		const def: CollectionDefinition = { filters: roundTrip!, views: [{ type: 'table', name: 'T' }] };
 		const index = makeIndex([makeRecord('/vault/a.md', { x: 1 })]);
-		expect(executeQuery(def, def.views[0], index).records).toEqual([]);
+		expect(executeQuery(def, def.views[0], index, null).records).toEqual([]);
 	});
 
 	describe('an and / or / not value that is not a list', () => {
@@ -633,7 +633,7 @@ describe('nested filter objects in a filter list', () => {
 		const index = makeIndex([makeRecord('/vault/a.md', { x: 1, status: 'a' })]);
 		const viaToolbar = (f: CollectionFilter) => {
 			const def: CollectionDefinition = { filters: roundTrip(f), views: [{ type: 'table', name: 'T' }] };
-			return executeQuery(def, def.views[0], index);
+			return executeQuery(def, def.views[0], index, null);
 		};
 
 		it.each([
@@ -697,7 +697,7 @@ describe('nested filter objects in a filter list', () => {
 		]);
 		const paths = (filters: CollectionFilter | string) => {
 			const def: CollectionDefinition = { filters, views: [{ type: 'table', name: 'T' }] };
-			return executeQuery(def, def.views[0], index).records.map((r) => r.path);
+			return executeQuery(def, def.views[0], index, null).records.map((r) => r.path);
 		};
 		const oracle: CollectionFilter = {
 			and: [{ or: ["status == 'active'", "status == 'done'"] }, { not: ['priority < 3'] }],

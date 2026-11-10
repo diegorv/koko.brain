@@ -284,7 +284,7 @@ describe('property index producer parity: type and relationships', () => {
 		const def = { filters: "_type == 'Person'" } as CollectionDefinition;
 		const view: CollectionViewDef = { type: 'table', name: 'People' };
 		const paths = () =>
-			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+			executeQuery(def, view, collectionStore.propertyIndex, null).records.map((r) => r.path);
 		expect(paths()).toEqual(['/vault/ada.md']);
 
 		updateNoteInIndex('/vault/ada.md', content);
@@ -303,7 +303,7 @@ describe('property index producer parity: type and relationships', () => {
 		const def = { filters: '_type == kind' } as CollectionDefinition;
 		const view: CollectionViewDef = { type: 'table', name: 'People' };
 		const paths = () =>
-			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+			executeQuery(def, view, collectionStore.propertyIndex, null).records.map((r) => r.path);
 		expect(paths()).toEqual(['/vault/ada.md']);
 
 		updateNoteInIndex('/vault/ada.md', '---\ntype: person\nkind: Person\n---\n');
@@ -317,7 +317,7 @@ describe('property index producer parity: type and relationships', () => {
 		const def = { filters: "_related_to.contains('Carol')" } as CollectionDefinition;
 		const view: CollectionViewDef = { type: 'table', name: 'Linked' };
 		const paths = () =>
-			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+			executeQuery(def, view, collectionStore.propertyIndex, null).records.map((r) => r.path);
 		expect(paths()).toEqual(['/vault/ada.md']);
 
 		updateNoteInIndex('/vault/ada.md', content);

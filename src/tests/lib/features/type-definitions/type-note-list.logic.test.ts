@@ -473,7 +473,7 @@ describe('view list order (query + sidebar notes)', () => {
 
 	function listTitles(localSort: SortDef[], frontmatterSort: string): string[] {
 		const q = buildOverriddenQuery(def, def.views[0], [], [], localSort)!;
-		const result = executeQuery(q.definition, q.view, index);
+		const result = executeQuery(q.definition, q.view, index, null);
 		const paths = new Set(result.records.map((r) => r.path));
 		return getNotesForViewPaths(entries, paths, resolveViewListSort(q.view, frontmatterSort)).map(
 			(n) => n.title,

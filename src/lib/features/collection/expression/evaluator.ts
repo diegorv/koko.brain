@@ -13,6 +13,8 @@ export interface EvalContext {
 	record: PropertyIndexRecord;
 	/** Formula definitions: name to expression string */
 	formulas: Record<string, string>;
+	/** Absolute vault path, which a relative `file.inFolder()` argument resolves against */
+	vaultPath?: string;
 }
 
 const MAX_FORMULA_DEPTH = 10;
@@ -570,8 +572,16 @@ function evaluateFileMethod(method: string, args: ASTNode[], ctx: EvalContext, d
 			return needles.some((needle) => tags.some((t) => String(t).toLowerCase() === needle));
 		}
 		case 'inFolder': {
-			const folder = String(evaluate(args[0], ctx, depth) ?? '');
-			return ctx.record.folder.toLowerCase().startsWith(folder.toLowerCase());
+			const arg = String(evaluate(args[0], ctx, depth) ?? '');
+			const trimmed = arg.replace(/\/+$/, '');
+			// A relative folder is vault-relative; without a vault path it cannot be resolved.
+			let target: string;
+			if (arg.startsWith('/')) target = trimmed;
+			else if (ctx.vaultPath === undefined) return false;
+			else target = trimmed ? `${ctx.vaultPath}/${trimmed}` : ctx.vaultPath;
+			const folder = ctx.record.folder.toLowerCase();
+			const wanted = target.toLowerCase();
+			return folder === wanted || folder.startsWith(wanted + '/');
 		}
 		case 'hasProperty': {
 			const propName = String(evaluate(args[0], ctx, depth) ?? '');

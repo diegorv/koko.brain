@@ -66,9 +66,9 @@ describe('collection-features samples', () => {
 	function run(label: string, definition: CollectionDefinition, view: CollectionViewDef) {
 		if (label.endsWith('.view')) {
 			const viewPath = `${ROOT}/${label}`;
-			return executeQuery(definition, view, index, (records, v, d) => viewRowSet(records, v, viewPath, { entries, vaultPath: VAULT, systemFolder: '_system' }, d));
+			return executeQuery(definition, view, index, VAULT, (records, v, d) => viewRowSet(records, v, viewPath, { entries, vaultPath: VAULT, systemFolder: '_system' }, d));
 		}
-		return executeQuery(definition, view, index, (records, v, d) => blockRowSet(records, v, d, { vaultPath: VAULT, systemFolder: '_system' }));
+		return executeQuery(definition, view, index, VAULT, (records, v, d) => blockRowSet(records, v, d, { vaultPath: VAULT, systemFolder: '_system' }));
 	}
 
 	it('finds the .view files and the inline blocks (scanner sanity)', () => {

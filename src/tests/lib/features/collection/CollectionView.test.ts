@@ -433,13 +433,34 @@ views:
 
 	it('renders the same rows as executeQuery on the raw definition', () => {
 		const def = rawDefinition(NESTED);
-		const expected = executeQuery(def, def.views[0], collectionStore.propertyIndex).records.map((r) => r.name);
+		const expected = executeQuery(def, def.views[0], collectionStore.propertyIndex, null).records.map((r) => r.name);
 		expect(expected.length).toBeGreaterThan(0);
 
 		component = mount(CollectionViewHarness, { target, props: { initialYaml: NESTED } });
 		flushSync();
 
 		expect(renderedNames()).toEqual(expected);
+	});
+
+	it('resolves a relative file.inFolder filter against the open vault', () => {
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/work/w.md', makeRecord('/vault/work/w.md', {})],
+				['/vault/workshop/s.md', makeRecord('/vault/workshop/s.md', {})],
+			]),
+		);
+		vaultStore.open('/vault');
+		try {
+			component = mount(CollectionViewHarness, {
+				target,
+				props: { initialYaml: `filters: 'file.inFolder("work")'\nviews:\n  - type: table\n    name: "All"\n` },
+			});
+			flushSync();
+
+			expect(renderedNames()).toEqual(['w.md']);
+		} finally {
+			vaultStore.close();
+		}
 	});
 
 	it('keeps both nested objects in the YAML across a sort, a filter edit and a column change', () => {

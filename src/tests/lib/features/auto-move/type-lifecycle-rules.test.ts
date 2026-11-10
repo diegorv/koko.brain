@@ -151,49 +151,49 @@ describe('generateLifecycleRules - evaluated against real note records', () => {
 		const rules = generateLifecycleRules(archiveMap);
 		const record = recordFor('/vault/Projects/alpha.md', 'type: Project\n_archived: true');
 
-		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Archive');
+		expect(findMatchingRule(rules, record, '/vault')?.name).toBe('[Project] Archive');
 	});
 
 	it('matches the archive rule for a note written with the canonical `_type` key', () => {
 		const rules = generateLifecycleRules(archiveMap);
 		const record = recordFor('/vault/Projects/alpha.md', '_type: Project\n_archived: true');
 
-		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Archive');
+		expect(findMatchingRule(rules, record, '/vault')?.name).toBe('[Project] Archive');
 	});
 
 	it('matches the unarchive rule when an archived-folder note flips _archived to false', () => {
 		const rules = generateLifecycleRules(archiveMap);
 		const record = recordFor('/vault/Projects/_archive/alpha.md', 'type: Project\n_archived: false');
 
-		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Unarchive');
+		expect(findMatchingRule(rules, record, '/vault')?.name).toBe('[Project] Unarchive');
 	});
 
 	it('does not re-archive a note already inside the archive folder', () => {
 		const rules = generateLifecycleRules(archiveMap);
 		const record = recordFor('/vault/Projects/_archive/alpha.md', 'type: Project\n_archived: true');
 
-		expect(findMatchingRule(rules, record)).toBeNull();
+		expect(findMatchingRule(rules, record, '/vault')).toBeNull();
 	});
 
 	it('ignores notes of a different type', () => {
 		const rules = generateLifecycleRules(archiveMap);
 		const record = recordFor('/vault/People/bob.md', 'type: Person\n_archived: true');
 
-		expect(findMatchingRule(rules, record)).toBeNull();
+		expect(findMatchingRule(rules, record, '/vault')).toBeNull();
 	});
 
 	it('ignores notes of the right type that are not archived', () => {
 		const rules = generateLifecycleRules(archiveMap);
 		const record = recordFor('/vault/Projects/alpha.md', 'type: Project\n_archived: false');
 
-		expect(findMatchingRule(rules, record)).toBeNull();
+		expect(findMatchingRule(rules, record, '/vault')).toBeNull();
 	});
 
 	it('matches regardless of the casing the user wrote the type in', () => {
 		const rules = generateLifecycleRules(archiveMap);
 		const record = recordFor('/vault/Projects/alpha.md', 'type: project\n_archived: true');
 
-		expect(findMatchingRule(rules, record)?.name).toBe('[Project] Archive');
+		expect(findMatchingRule(rules, record, '/vault')?.name).toBe('[Project] Archive');
 	});
 
 	// A vault is mostly untyped notes. With a `.lower()` in the expression each
@@ -220,6 +220,6 @@ describe('generateLifecycleRules - evaluated against real note records', () => {
 		);
 		const record = recordFor('/vault/Events/kickoff.md', 'type: Event\n_archived: true');
 
-		expect(findMatchingRule(rules, record)?.name).toBe('[Event] Archive');
+		expect(findMatchingRule(rules, record, '/vault')?.name).toBe('[Event] Archive');
 	});
 });

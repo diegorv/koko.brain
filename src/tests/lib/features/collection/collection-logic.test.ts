@@ -132,13 +132,46 @@ describe('executeQuery', () => {
 	const index = makeIndex(records);
 
 	it('returns all records when no filters', () => {
-		const result = executeQuery(baseDef(), baseView(), index);
+		const result = executeQuery(baseDef(), baseView(), index, null);
 		expect(result.records).toHaveLength(4);
+	});
+
+	describe('file.inFolder with a vault-relative folder', () => {
+		const folderIndex = makeIndex([
+			makeRecord('/vault/work/topics/AWS/n.md'),
+			makeRecord('/vault/work/plan.md'),
+			makeRecord('/vault/workshop/w.md'),
+			makeRecord('/vault/home.md'),
+		]);
+		const paths = (result: ReturnType<typeof executeQuery>) => result.records.map((r) => r.path).sort();
+
+		it('resolves a global filter against the vault path, subfolders included', () => {
+			const def = baseDef({ filters: 'file.inFolder("work")' });
+			expect(paths(executeQuery(def, baseView(), folderIndex, '/vault'))).toEqual([
+				'/vault/work/plan.md',
+				'/vault/work/topics/AWS/n.md',
+			]);
+		});
+
+		it('resolves a view filter and a formula the same way', () => {
+			const def = baseDef({ formulas: { aws: 'file.inFolder("work/topics/AWS")' } });
+			const view = baseView({ filters: 'file.inFolder("work/topics/AWS/")' });
+			const result = executeQuery(def, view, folderIndex, '/vault');
+			expect(paths(result)).toEqual(['/vault/work/topics/AWS/n.md']);
+			expect(result.records[0].properties.get('formula.aws')).toBe(true);
+		});
+
+		it('matches nothing for a relative folder when no vault is open', () => {
+			const def = baseDef({ filters: 'file.inFolder("work")' });
+			const result = executeQuery(def, baseView(), folderIndex, null);
+			expect(result.records).toEqual([]);
+			expect(result.filterError).toBeUndefined();
+		});
 	});
 
 	it('filters with a simple string expression', () => {
 		const def = baseDef({ filters: "status == 'active'" });
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records).toHaveLength(2);
 		expect(result.records.every((r) => r.properties.get('status') === 'active')).toBe(true);
 	});
@@ -147,7 +180,7 @@ describe('executeQuery', () => {
 		const def = baseDef({
 			filters: { and: ["status == 'active'", 'priority > 3'] },
 		});
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records).toHaveLength(1);
 		expect(result.records[0].name).toBe('a.md');
 	});
@@ -156,7 +189,7 @@ describe('executeQuery', () => {
 		const def = baseDef({
 			filters: { or: ["status == 'active'", "status == 'done'"] },
 		});
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records).toHaveLength(3);
 	});
 
@@ -164,7 +197,7 @@ describe('executeQuery', () => {
 		const def = baseDef({
 			filters: { not: ["status == 'archived'"] },
 		});
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records).toHaveLength(3);
 		expect(result.records.every((r) => r.properties.get('status') !== 'archived')).toBe(true);
 	});
@@ -172,7 +205,7 @@ describe('executeQuery', () => {
 	it('combines global and view filters with AND', () => {
 		const def = baseDef({ filters: "status == 'active'" });
 		const view = baseView({ filters: 'priority > 3' });
-		const result = executeQuery(def, view, index);
+		const result = executeQuery(def, view, index, null);
 		expect(result.records).toHaveLength(1);
 		expect(result.records[0].name).toBe('a.md');
 	});
@@ -186,25 +219,25 @@ describe('executeQuery', () => {
 				],
 			},
 		});
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records).toHaveLength(2);
 	});
 
 	it('sorts by string ASC', () => {
 		const view = baseView({ sort: [{ column: 'file.name', direction: 'ASC' }] });
-		const result = executeQuery(baseDef(), view, index);
+		const result = executeQuery(baseDef(), view, index, null);
 		expect(result.records.map((r) => r.name)).toEqual(['a.md', 'b.md', 'c.md', 'd.md']);
 	});
 
 	it('sorts by string DESC', () => {
 		const view = baseView({ sort: [{ column: 'file.name', direction: 'DESC' }] });
-		const result = executeQuery(baseDef(), view, index);
+		const result = executeQuery(baseDef(), view, index, null);
 		expect(result.records.map((r) => r.name)).toEqual(['d.md', 'c.md', 'b.md', 'a.md']);
 	});
 
 	it('sorts by number', () => {
 		const view = baseView({ sort: [{ column: 'priority', direction: 'ASC' }] });
-		const result = executeQuery(baseDef(), view, index);
+		const result = executeQuery(baseDef(), view, index, null);
 		expect(result.records.map((r) => r.properties.get('priority'))).toEqual([1, 3, 4, 5]);
 	});
 
@@ -215,7 +248,7 @@ describe('executeQuery', () => {
 			makeRecord('/vault/mid.md', {}, { mtime: 2000 }),
 		];
 		const view = baseView({ sort: [{ column: 'file.mtime', direction: 'ASC' }] });
-		const result = executeQuery(baseDef(), view, makeIndex(dateRecords));
+		const result = executeQuery(baseDef(), view, makeIndex(dateRecords), null);
 		expect(result.records.map((r) => r.name)).toEqual(['old.md', 'mid.md', 'new.md']);
 	});
 
@@ -231,13 +264,13 @@ describe('executeQuery', () => {
 				{ column: 'priority', direction: 'DESC' },
 			],
 		});
-		const result = executeQuery(baseDef(), view, makeIndex(multiRecords));
+		const result = executeQuery(baseDef(), view, makeIndex(multiRecords), null);
 		expect(result.records.map((r) => r.name)).toEqual(['b.md', 'a.md', 'c.md']);
 	});
 
 	it('applies limit', () => {
 		const view = baseView({ limit: 2 });
-		const result = executeQuery(baseDef(), view, index);
+		const result = executeQuery(baseDef(), view, index, null);
 		expect(result.records).toHaveLength(2);
 	});
 
@@ -245,7 +278,7 @@ describe('executeQuery', () => {
 		const view = baseView({ limit: 1, sort: [{ column: 'priority', direction: 'DESC' }] });
 		const seen: string[][] = [];
 		const def = baseDef({ filters: "status != 'done'" });
-		const result = executeQuery(def, view, index, (matched, v, d) => {
+		const result = executeQuery(def, view, index, null, (matched, v, d) => {
 			seen.push(matched.map((r) => r.name));
 			expect(v).toBe(view);
 			expect(d).toBe(def);
@@ -257,14 +290,14 @@ describe('executeQuery', () => {
 
 	it('resolves the columns from the rows the row set keeps', () => {
 		const extra = makeIndex([...records, makeRecord('/vault/e.md', { only_e: 1 })]);
-		const kept = executeQuery(baseDef(), baseView(), extra, (matched) => matched.filter((r) => r.name !== 'e.md'));
+		const kept = executeQuery(baseDef(), baseView(), extra, null, (matched) => matched.filter((r) => r.name !== 'e.md'));
 		expect(kept.columns.map((c) => c.key)).not.toContain('only_e');
-		expect(executeQuery(baseDef(), baseView(), extra).columns.map((c) => c.key)).toContain('only_e');
+		expect(executeQuery(baseDef(), baseView(), extra, null).columns.map((c) => c.key)).toContain('only_e');
 	});
 
 	it('runs no row set when a filter does not parse', () => {
 		const rowSet = vi.fn((matched: PropertyIndexRecord[]) => matched);
-		const result = executeQuery(baseDef({ filters: "status = 'x'" }), baseView(), index, rowSet);
+		const result = executeQuery(baseDef({ filters: "status = 'x'" }), baseView(), index, null, rowSet);
 		expect(result.filterError).toBeDefined();
 		expect(rowSet).not.toHaveBeenCalled();
 	});
@@ -272,7 +305,7 @@ describe('executeQuery', () => {
 	it('computes simple formulas', () => {
 		const def = baseDef({ formulas: { doubled: 'priority * 2' } });
 		const view = baseView({ order: ['file.name', 'formula.doubled'] });
-		const result = executeQuery(def, view, index);
+		const result = executeQuery(def, view, index, null);
 		expect(result.records[0].properties.get('formula.doubled')).toBe(
 			(result.records[0].properties.get('priority') as number) * 2,
 		);
@@ -283,27 +316,27 @@ describe('executeQuery', () => {
 			formulas: { doubled: 'priority * 2', quadrupled: 'formula.doubled * 2' },
 		});
 		const singleIndex = makeIndex([makeRecord('/vault/a.md', { priority: 5 })]);
-		const result = executeQuery(def, baseView(), singleIndex);
+		const result = executeQuery(def, baseView(), singleIndex, null);
 		expect(result.records[0].properties.get('formula.quadrupled')).toBe(20);
 	});
 
 	it('handles circular formula gracefully', () => {
 		const def = baseDef({ formulas: { a: 'formula.b', b: 'formula.a' } });
 		const singleIndex = makeIndex([makeRecord('/vault/a.md')]);
-		const result = executeQuery(def, baseView(), singleIndex);
+		const result = executeQuery(def, baseView(), singleIndex, null);
 		// Should not throw, just set null
 		expect(result.records[0].properties.get('formula.a')).toBeNull();
 	});
 
 	it('uses view.order for column selection', () => {
 		const view = baseView({ order: ['file.name', 'status', 'priority'] });
-		const result = executeQuery(baseDef(), view, index);
+		const result = executeQuery(baseDef(), view, index, null);
 		expect(result.columns.map((c) => c.key)).toEqual(['file.name', 'status', 'priority']);
 		expect(result.columns.map((c) => c.displayName)).toEqual(['file.name', 'status', 'priority']);
 	});
 
 	it('infers columns when order is absent', () => {
-		const result = executeQuery(baseDef(), baseView(), index);
+		const result = executeQuery(baseDef(), baseView(), index, null);
 		const keys = result.columns.map((c) => c.key);
 		expect(keys[0]).toBe('file.name');
 		expect(keys).toContain('status');
@@ -315,7 +348,7 @@ describe('executeQuery', () => {
 			properties: { status: { displayName: 'Status' } },
 		});
 		const view = baseView({ order: ['status'] });
-		const result = executeQuery(def, view, index);
+		const result = executeQuery(def, view, index, null);
 		expect(result.columns).toEqual([{ key: 'status', displayName: 'Status' }]);
 	});
 
@@ -327,7 +360,7 @@ describe('executeQuery', () => {
 		const originalProps = new Map(sharedRecords[0].properties);
 
 		const def = baseDef({ formulas: { doubled: 'priority * 2' } });
-		executeQuery(def, baseView(), sharedIndex);
+		executeQuery(def, baseView(), sharedIndex, null);
 
 		// The original record in the shared index should NOT have formula.doubled
 		const originalRecord = sharedIndex.get('/vault/a.md')!;
@@ -342,7 +375,7 @@ describe('executeQuery', () => {
 			makeRecord('/vault/medium.md', {}, { size: 2000 }),
 		];
 		const view = baseView({ sort: [{ column: 'file.size', direction: 'ASC' }] });
-		const result = executeQuery(baseDef(), view, makeIndex(sizeRecords));
+		const result = executeQuery(baseDef(), view, makeIndex(sizeRecords), null);
 		expect(result.records.map((r) => r.name)).toEqual(['small.md', 'medium.md', 'big.md']);
 	});
 
@@ -353,7 +386,7 @@ describe('executeQuery', () => {
 			makeRecord('/vault/middle.md', {}, { ctime: 2000 }),
 		];
 		const view = baseView({ sort: [{ column: 'file.ctime', direction: 'DESC' }] });
-		const result = executeQuery(baseDef(), view, makeIndex(ctimeRecords));
+		const result = executeQuery(baseDef(), view, makeIndex(ctimeRecords), null);
 		expect(result.records.map((r) => r.name)).toEqual(['newest.md', 'middle.md', 'oldest.md']);
 	});
 
@@ -364,7 +397,7 @@ describe('executeQuery', () => {
 			makeRecord('/vault/mid.md', {}, { mtime: 2000 }),
 		];
 		const def = baseDef({ filters: 'file.mtime > 1500' });
-		const result = executeQuery(def, baseView(), makeIndex(dateRecords));
+		const result = executeQuery(def, baseView(), makeIndex(dateRecords), null);
 		expect(result.records.map((r) => r.name).sort()).toEqual(['mid.md', 'new.md']);
 	});
 
@@ -375,7 +408,7 @@ describe('executeQuery', () => {
 			makeRecord('/vault/medium.md', {}, { size: 2000 }),
 		];
 		const def = baseDef({ filters: 'file.size >= 2000' });
-		const result = executeQuery(def, baseView(), makeIndex(sizeRecords));
+		const result = executeQuery(def, baseView(), makeIndex(sizeRecords), null);
 		expect(result.records.map((r) => r.name).sort()).toEqual(['big.md', 'medium.md']);
 	});
 
@@ -385,12 +418,12 @@ describe('executeQuery', () => {
 
 		// First query with formula "score"
 		const def1 = baseDef({ formulas: { score: 'priority * 2' } });
-		const result1 = executeQuery(def1, baseView(), sharedIndex);
+		const result1 = executeQuery(def1, baseView(), sharedIndex, null);
 		expect(result1.records[0].properties.has('formula.score')).toBe(true);
 
 		// Second query with formula "rating" (renamed from "score")
 		const def2 = baseDef({ formulas: { rating: 'priority * 3' } });
-		const result2 = executeQuery(def2, baseView(), sharedIndex);
+		const result2 = executeQuery(def2, baseView(), sharedIndex, null);
 		expect(result2.records[0].properties.has('formula.rating')).toBe(true);
 		expect(result2.records[0].properties.has('formula.score')).toBe(false);
 	});
@@ -408,7 +441,7 @@ function matchingDateOperators(props: Record<string, unknown>): string[] {
 	const index = makeIndex([makeRecord('/vault/a.md', props)]);
 	return DATE_OPERATORS.filter((op) => {
 		const view = baseView({ filters: `due ${op} date('2026-03-01')` });
-		return executeQuery(baseDef(), view, index).records.length === 1;
+		return executeQuery(baseDef(), view, index, null).records.length === 1;
 	});
 }
 
@@ -419,7 +452,7 @@ describe('executeQuery date filters on frontmatter dates', () => {
 			makeRecord('/vault/late.md', { due: '2026-03-10' }),
 		]);
 		const view = baseView({ filters: "due < date('2026-03-01')" });
-		const result = executeQuery(baseDef(), view, index);
+		const result = executeQuery(baseDef(), view, index, null);
 		expect(result.records.map((r) => r.name)).toEqual(['early.md']);
 	});
 
@@ -630,7 +663,7 @@ describe('executeQuery edge cases', () => {
 			sort: [{ column: 'priority', direction: 'ASC' }],
 		};
 		const def: CollectionDefinition = { views: [view] };
-		const result = executeQuery(def, view, makeIndex(records));
+		const result = executeQuery(def, view, makeIndex(records), null);
 		const names = result.records.map((r) => r.name);
 		// Records with values first (sorted), null/undefined last
 		expect(names[0]).toBe('b.md'); // priority=1
@@ -651,7 +684,7 @@ describe('executeQuery edge cases', () => {
 			sort: [{ column: 'priority', direction: 'DESC' }],
 		};
 		const def: CollectionDefinition = { views: [view] };
-		const result = executeQuery(def, view, makeIndex(records));
+		const result = executeQuery(def, view, makeIndex(records), null);
 		const names = result.records.map((r) => r.name);
 		expect(names[0]).toBe('a.md'); // null sorts first in DESC
 		expect(names[1]).toBe('c.md'); // priority=3
@@ -661,7 +694,7 @@ describe('executeQuery edge cases', () => {
 	it('handles empty index gracefully', () => {
 		const view = baseView();
 		const def = baseDef();
-		const result = executeQuery(def, view, new Map());
+		const result = executeQuery(def, view, new Map(), null);
 		expect(result.records).toEqual([]);
 		expect(result.columns).toEqual([{ key: 'file.name', displayName: 'file.name' }]);
 	});
@@ -708,7 +741,7 @@ describe('executeQuery — formula error handling', () => {
 		const index = makeIndex([makeRecord('/vault/a.md', { priority: 5 })]);
 		const def = baseDef({ formulas: { broken: '@@@ not parseable' } });
 
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 
 		expect(result.records[0].properties.get('formula.broken')).toBeNull();
 	});
@@ -717,7 +750,7 @@ describe('executeQuery — formula error handling', () => {
 		const index = makeIndex([makeRecord('/vault/a.md', { priority: 5 })]);
 		const def = baseDef({ formulas: { broken: '@@@', doubled: 'priority * 2' } });
 
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 
 		expect(result.records[0].properties.get('formula.broken')).toBeNull();
 		expect(result.records[0].properties.get('formula.doubled')).toBe(10);
@@ -732,7 +765,7 @@ describe('executeQuery — filter expressions that do not parse', () => {
 	]);
 
 	it('reports a .view filter that does not parse instead of returning no rows silently', () => {
-		const result = executeQuery(baseDef({ filters: BAD }), baseView(), index);
+		const result = executeQuery(baseDef({ filters: BAD }), baseView(), index, null);
 
 		expect(result.records).toEqual([]);
 		expect(result.filterError).toContain(BAD);
@@ -746,40 +779,40 @@ describe('executeQuery — filter expressions that do not parse', () => {
 		['a not item', baseDef({ filters: { not: [BAD] } }), baseView()],
 		['a nested object', baseDef(), baseView({ filters: { and: [{ or: [{ not: [BAD] }] }] } })],
 	])('reports the error from %s', (_where, def, view) => {
-		const result = executeQuery(def, view, index);
+		const result = executeQuery(def, view, index, null);
 
 		expect(result.records).toEqual([]);
 		expect(result.filterError).toContain(BAD);
 	});
 
 	it('reports the error over an empty property index', () => {
-		const result = executeQuery(baseDef({ filters: BAD }), baseView(), new Map());
+		const result = executeQuery(baseDef({ filters: BAD }), baseView(), new Map(), null);
 
 		expect(result.records).toEqual([]);
 		expect(result.filterError).toContain(BAD);
 	});
 
 	it('reports a bad and item placed after a sibling that is false for every record', () => {
-		const result = executeQuery(baseDef({ filters: { and: ['priority > 99', BAD] } }), baseView(), index);
+		const result = executeQuery(baseDef({ filters: { and: ['priority > 99', BAD] } }), baseView(), index, null);
 
 		expect(result.filterError).toContain(BAD);
 	});
 
 	it('reports an unclosed quote', () => {
-		const result = executeQuery(baseDef({ filters: "status == 'active" }), baseView(), index);
+		const result = executeQuery(baseDef({ filters: "status == 'active" }), baseView(), index, null);
 
 		expect(result.filterError).toContain("status == 'active");
 	});
 
 	it('reports a blank item written in the YAML', () => {
-		const result = executeQuery(baseDef({ filters: { and: ['  '] } }), baseView(), index);
+		const result = executeQuery(baseDef({ filters: { and: ['  '] } }), baseView(), index, null);
 
 		expect(result.records).toEqual([]);
 		expect(result.filterError).toBeDefined();
 	});
 
 	it('names an unknown function', () => {
-		const result = executeQuery(baseDef({ filters: 'foo(1) == 2' }), baseView(), index);
+		const result = executeQuery(baseDef({ filters: 'foo(1) == 2' }), baseView(), index, null);
 
 		expect(result.records).toEqual([]);
 		expect(result.filterError).toContain('foo');
@@ -790,6 +823,7 @@ describe('executeQuery — filter expressions that do not parse', () => {
 			baseDef({ filters: { and: ["status == 'active'", 'contains(file.name, "a")'] } }),
 			baseView({ filters: 'file.hasTag("x") || priority > 0' }),
 			index,
+			null,
 		);
 
 		expect(result.filterError).toBeUndefined();
@@ -805,7 +839,7 @@ describe('executeQuery — filter expressions that do not parse', () => {
 	])('reports %s as a filter error naming the key, without throwing', (_what, filters, key) => {
 		const def = baseDef({ filters: filters as unknown as CollectionDefinition['filters'] });
 
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 
 		expect(result.records).toEqual([]);
 		expect(result.filterError).toContain(`"${key}"`);

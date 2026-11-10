@@ -14,6 +14,7 @@
 	import { getViewRowSetPort } from './view-row-set.port';
 	import { collectionStore } from './collection.store.svelte';
 	import { openFileInEditor, reloadExternallyChangedTabs } from '#lib/core/editor/editor.service.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { error } from '#lib/utils/debug.js';
 	import type { QueryResult, PropertyIndexRecord, SortDef, CollectionViewDef } from './collection.types';
 	import type { FilterGroup, FormulaEntry } from './toolbar/toolbar.types';
@@ -269,6 +270,7 @@
 			defWithFilters,
 			viewWithOverrides,
 			collectionStore.propertyIndex,
+			vaultStore.path,
 			rowSet ? (records, view, def) => rowSet.rows(filePath, records, view, def) : undefined,
 		);
 	});

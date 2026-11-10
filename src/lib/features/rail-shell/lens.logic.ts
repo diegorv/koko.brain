@@ -806,7 +806,7 @@ export function queryViewLens(
 	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);
 	const query = buildOverriddenQuery(definition, view, state.globalFilters, state.viewFilters, state.sort);
 	if (!query) return null;
-	const { records, filterError } = executeQuery(query.definition, query.view, propertyIndex, (matched, v, d) =>
+	const { records, filterError } = executeQuery(query.definition, query.view, propertyIndex, ctx.vaultPath, (matched, v, d) =>
 		viewRowSet(matched, v, viewPath, ctx, d),
 	);
 	return {

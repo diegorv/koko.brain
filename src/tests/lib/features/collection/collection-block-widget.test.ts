@@ -19,6 +19,7 @@ import {
 	LINEAR_CALENDAR_LANE_CAP,
 } from '#lib/features/collection/collection-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { barTextColor, COLOR_PALETTE } from '#lib/features/collection/linear-calendar.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 
@@ -170,6 +171,24 @@ describe('CollectionBlockWidget — query data cache', () => {
 
 		expect(dom.querySelector('.cm-lp-collection-header')?.textContent).toBe('All (2)');
 		expect(dom.querySelectorAll('tbody tr').length).toBe(2);
+	});
+
+	it('resolves a relative file.inFolder filter against the open vault', () => {
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/work/w.md', { ...recordAt('/vault/work/w.md', 'w.md'), folder: '/vault/work' }],
+				['/vault/workshop/s.md', { ...recordAt('/vault/workshop/s.md', 's.md'), folder: '/vault/workshop' }],
+			]),
+		);
+		const yaml = `filters: 'file.inFolder("work")'\n${YAML}`;
+		vaultStore.open('/vault');
+		try {
+			const dom = new CollectionBlockWidget(yaml).toDOM();
+			const names = [...dom.querySelectorAll('tbody tr td:first-child')].map((td) => td.textContent);
+			expect(names).toEqual(['w.md']);
+		} finally {
+			vaultStore._reset();
+		}
 	});
 
 	it('never hands the same DOM node to two widgets with the same block', () => {
