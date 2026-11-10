@@ -15,6 +15,7 @@
 - [ ] Rebuild mode (ticket 06) also pairs by the description `kokobrain:` line, so a lost sync state never duplicates brain-born tasks.
 - [ ] First run is a preview: a dialog shows how many tasks would be created; nothing is sent until confirmed; `first_run_done` set after. Later: over 25 creates per cycle -> "pause and ask".
 - [ ] The Tasks view's old Send action is hidden for lines in scope or anchored.
+- [ ] Before this ticket sets `first_run_done` (which turns automatic cycles on), two minor findings of Issue 07's integration review are fixed: `syncNow(mode)` takes `mode` as a required argument (no `'manual'` default), and `stopAutoSync` dismisses the persistent over-cap and failure toasts it shows before clearing their flags, so a vault switch does not leave the previous vault's toast on screen. Each with a test.
 - [ ] Gate: frontend.
 
 ## Notes
