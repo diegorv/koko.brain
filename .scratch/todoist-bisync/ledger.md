@@ -52,7 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14, 16, 17, 18 | todo | | |
 | 16 | [A sync stopped by the line brake has a way past it](issues/16-line-brake-recovery.md) | 13 | done | issue/16-line-brake-recovery (8a75b18f1) | 2026-11-10 |
 | 17 | [Block ids, orphan anchors and dropped pending adds are handled in every sync path](issues/17-block-ids-and-orphan-anchors.md) | 10 | done | issue/17-block-ids-and-orphan-anchors (63de014e0) | 2026-11-10 |
-| 18 | [Every sync cycle leaves a record you can read later](issues/18-every-cycle-leaves-a-record.md) | 14 | in-progress | | |
+| 18 | [Every sync cycle leaves a record you can read later](issues/18-every-cycle-leaves-a-record.md) | 14 | done | issue/18-every-cycle-leaves-a-record (da4312c35) | 2026-11-10 |
 
 ## Log
 
@@ -94,3 +94,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 03:44 — 16 — start — launched by /relay-lite:run — 60e4f0158
 - 2026-11-10 03:57 — 16 — deliver — round 1 APPROVED by claude with one finding, fixed (dialog wording holds for any count); round 2 APPROVED with no findings; full suite passed (608 files, 14958 tests) — 8a75b18f1
 - 2026-11-10 03:57 — 18 — start — launched by /relay-lite:run — b7dfdd1db
+- 2026-11-10 04:25 — 18 — deliver — round 1 APPROVED by claude with 3 findings, fix round (help sentence, JSDoc), fold limit accepted; round 2 APPROVED with 1 nit (limit stated in the Issue); full suite passed (609 files, 14989 tests; cargo 1432) — da4312c35
