@@ -2,7 +2,7 @@
 
 **What to build:** With sync enabled, it runs after the vault opens, every few minutes, when the app window regains focus, and shortly after a note with synced tasks is saved, without the Tasks view open. Failures show a persistent toast, a status bar item shows the last sync and any error, and "Todoist: Show sync log" lists recent log entries. Design: `.scratch/todoist-bisync/research/design.md` Triggers, rules 9, 13.
 
-**Blocked by:** 09
+**Blocked by:** 06
 
 **Status:** ready-for-agent
 
@@ -16,5 +16,7 @@
 - [ ] Gate: frontend.
 
 ## Notes
+
+- Blocked by 06 instead of 09 (owner, 2026-11-09): the triggers only need a working cycle. Until Issue 10 sets `first_run_done`, automatic cycles stay idle by design (rule 9), so only "Sync now" runs; the tests set `first_run_done` themselves.
 
 - Size: M.
