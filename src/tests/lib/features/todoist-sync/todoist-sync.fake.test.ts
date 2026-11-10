@@ -38,6 +38,19 @@ describe('fake Todoist /sync', () => {
 		expect(res.items?.map((i) => [i.id, i.content, i.labels])).toEqual([['i1', 'Write spec', ['Work']]]);
 	});
 
+	it('leaves checked items out of a full sync but sends them incrementally', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+		server.addItem({ id: 'open', project_id: 'p1', content: 'Open' });
+		server.addItem({ id: 'done', project_id: 'p1', content: 'Done', checked: true });
+		const first = await client().sync({ syncToken: '*', resourceTypes: ['items'] });
+
+		server.updateItem('open', { checked: true });
+		const next = await client().sync({ syncToken: first.syncToken!, resourceTypes: ['items'] });
+
+		expect(first.items?.map((i) => i.id)).toEqual(['open']);
+		expect(next.items?.map((i) => [i.id, i.checked])).toEqual([['open', true]]);
+	});
+
 	it('returns only the resource types asked for', async () => {
 		server.addProject({ id: 'p1', name: 'Work' });
 		server.addItem({ id: 'i1', project_id: 'p1', content: 'A' });

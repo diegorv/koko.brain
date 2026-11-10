@@ -122,7 +122,7 @@ function afterLastNonBlank(lines: readonly string[], from: number, to: number): 
 }
 
 /** Rust `detect_code_fence`: the fence marker a line opens or closes, if any. */
-function codeFence(line: string): string | null {
+export function codeFence(line: string): string | null {
 	const trimmed = line.replace(/^[ \t]+/u, '');
 	if (trimmed.startsWith('```')) return '```';
 	if (trimmed.startsWith('~~~')) return '~~~';

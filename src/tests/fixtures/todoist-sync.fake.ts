@@ -11,7 +11,8 @@
  *
  * Wire format is the API's (snake_case JSON); the SDK camel-cases it. Every
  * resource carries the version of its last change, and a `sync_token` is
- * `v<N>`: `*` returns every live resource, `v<N>` returns what changed after
+ * `v<N>`: `*` returns every live resource (no checked items, as the real API
+ * does), `v<N>` returns what changed after
  * N, deleted resources included (with `is_deleted: true`). Commands answer
  * with `sync_status` keyed by uuid and `temp_id_mapping` keyed by temp_id;
  * a replayed uuid returns its first outcome without applying it again.
@@ -267,7 +268,8 @@ export function createFakeTodoist(): FakeTodoist {
 			const wants = (type: string) => types.has(type) || types.has('all');
 			if (wants('projects')) response.projects = since(projects, from);
 			if (wants('sections')) response.sections = since(sections, from);
-			if (wants('items')) response.items = since(items, from);
+			// A full sync returns only uncompleted items (live-check 5b).
+			if (wants('items')) response.items = since(items, from).filter((i) => from !== null || !i.checked);
 			response.full_sync = from === null;
 			response.sync_token = `v${version}`;
 		}

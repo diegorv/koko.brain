@@ -1,9 +1,21 @@
+import type { PullCounts } from './pull.logic.js';
+
 /** Where the sync is: idle, running a cycle or check, or stopped on an error. */
 export type TodoistSyncStatus = 'idle' | 'syncing' | 'error';
 
 /** The outcome of the last successful run. */
-export interface TodoistSyncResult {
-	/** What ran; the engine tickets add their own kinds. */
+export type TodoistSyncResult = TodoistCheckResult | TodoistPullResult;
+
+/** A successful "Sync now" pull. */
+export interface TodoistPullResult extends PullCounts {
+	kind: 'pull';
+	/** `Date.now()` when the run finished. */
+	finishedAt: number;
+}
+
+/** A successful connection check. */
+export interface TodoistCheckResult {
+	/** What ran. */
 	kind: 'check';
 	/** Projects in the vault's tree, the Inbox included when it is. */
 	projects: number;

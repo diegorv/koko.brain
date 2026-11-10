@@ -8,6 +8,7 @@ import {
 	setDueDate,
 	setPriority,
 	setTaskStatus,
+	taskLineText,
 } from '#lib/features/todoist-sync/task-line.logic.js';
 
 /**
@@ -16,6 +17,18 @@ import {
  */
 const RICH =
 	'\t- [ ] Call [[Bob]] about [plan](https://x.io/p) ⏳ 2026-01-02 🛫 2026-01-01 ➕ 2025-12-31 ✅ 2026-01-03 ❌ 2026-01-04 🔁 every week ⛔ abc,def 🏁 delete 📅 2026-11-10 🔼 #work 🆔 td-abc12345 trailing words';
+
+describe('taskLineText', () => {
+	it('returns the text after the status of a bullet or ordered task', () => {
+		expect(taskLineText('\t- [/] Call Bob 🆔 td-a')).toBe('Call Bob 🆔 td-a');
+		expect(taskLineText('3. [x] Done')).toBe('Done');
+	});
+
+	it('returns null for a non-task line', () => {
+		expect(taskLineText('- plain item')).toBeNull();
+		expect(taskLineText('')).toBeNull();
+	});
+});
 
 describe('setTaskStatus', () => {
 	it('closes an open task with x', () => {

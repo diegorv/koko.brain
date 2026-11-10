@@ -42,7 +42,7 @@ export async function writeTaskLinesToClosedNote(
 	try {
 		let result = await call('write_task_lines', { vaultRoot, relPath, edits });
 		if (result.outcome === 'missing') {
-			await createEmptyNote(vaultRoot, path);
+			await createNoteFile(vaultRoot, path, '');
 			result = await call('write_task_lines', { vaultRoot, relPath, edits });
 		}
 		switch (result.outcome) {
@@ -63,12 +63,19 @@ export async function writeTaskLinesToClosedNote(
 	}
 }
 
-/** Creates an empty note the way the note creator does, minus opening it. */
-async function createEmptyNote(vaultRoot: string, path: string): Promise<void> {
+/**
+ * Creates a note holding `content` the way the note creator does, minus
+ * opening it: parent folders, `create_note` (which fails when the file
+ * exists), then the `create` note-change source and the explorer tree.
+ * @param vaultRoot - absolute root of the open vault
+ * @param path - absolute path of the new Markdown note
+ * @param content - the note's text
+ */
+export async function createNoteFile(vaultRoot: string, path: string, content: string): Promise<void> {
 	await call('create_folder', { path: path.slice(0, path.lastIndexOf('/')) });
-	await call('create_note', { path, content: '' });
+	await call('create_note', { path, content });
 	markRecentSave(path);
 	// `create_note` already indexed the note; Rust accepts only Markdown paths here.
-	void applyNoteChange({ kind: 'upsert', source: 'create', path, content: '', vaultPath: vaultRoot });
+	void applyNoteChange({ kind: 'upsert', source: 'create', path, content, vaultPath: vaultRoot });
 	addToTree(path);
 }

@@ -26,3 +26,21 @@ export function mapPriorityToTodoist(priority?: TaskPriority): number {
 			return 1;
 	}
 }
+
+/**
+ * Maps a Todoist priority back to ours, the inverse of
+ * {@link mapPriorityToTodoist} for 4, 3 and 2. Todoist's 1 (Normal), and
+ * any other value, is no priority: null.
+ */
+export function mapPriorityFromTodoist(priority: number): TaskPriority | null {
+	switch (priority) {
+		case 4:
+			return 'highest';
+		case 3:
+			return 'high';
+		case 2:
+			return 'medium';
+		default:
+			return null;
+	}
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { mapPriorityToTodoist } from '#lib/features/todoist-sync/priority.logic.js';
+import { mapPriorityFromTodoist, mapPriorityToTodoist } from '#lib/features/todoist-sync/priority.logic.js';
 
 describe('mapPriorityToTodoist', () => {
 	it('maps highest to 4', () => {
@@ -28,5 +28,15 @@ describe('mapPriorityToTodoist', () => {
 
 	it('maps undefined to 1', () => {
 		expect(mapPriorityToTodoist(undefined)).toBe(1);
+	});
+});
+
+describe('mapPriorityFromTodoist', () => {
+	it('maps 4, 3 and 2 back to highest, high and medium', () => {
+		expect([4, 3, 2].map(mapPriorityFromTodoist)).toEqual(['highest', 'high', 'medium']);
+	});
+
+	it('maps 1 and unknown values to no priority', () => {
+		expect([1, 0, 5].map(mapPriorityFromTodoist)).toEqual([null, null, null]);
 	});
 });

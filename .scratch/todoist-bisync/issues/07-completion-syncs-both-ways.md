@@ -19,3 +19,5 @@
 ## Notes
 
 - Size: M.
+- From Issue 06's review (finding 3): a link paired by rebuild or by an anchored line already in the vault stores `local_base: null`, since Issue 06 has no TS line parser. Define what null means here, for example: fill `local_base` from the line on the first cycle and push nothing for that link in that cycle. Issue 09 uses the same rule.
+- From Issue 06's review (finding 1): a rebuild that pairs no line leaves the link table empty, so every run stays a rebuild and new Todoist tasks never come in; Issue 06 only says so in the toast. How rebuild mode ends (rule 1) is an owner call.

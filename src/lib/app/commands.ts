@@ -39,6 +39,7 @@ import {
 } from '#lib/features/event-calendar/event-calendar.service.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
+import { syncNowFromUi } from '#lib/features/todoist-sync/sync-now.service.js';
 import { checkSyncConnectionFromUi } from '#lib/features/todoist-sync/todoist-sync.service.js';
 import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
@@ -245,6 +246,12 @@ export function getBuiltInCommands(): AppCommand[] {
 			label: 'Todoist: Check sync connection',
 			category: 'Todoist',
 			action: () => checkSyncConnectionFromUi(),
+		},
+		{
+			id: 'todoist:sync-now',
+			label: 'Todoist: Sync now',
+			category: 'Todoist',
+			action: () => syncNowFromUi(),
 		},
 		{
 			id: 'tags:toggle',

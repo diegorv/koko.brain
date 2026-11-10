@@ -102,6 +102,14 @@ function splitTaskLine(line: string): TaskLineParts | null {
 	return null;
 }
 
+/**
+ * The text of a task line after `[ ] ` (Rust `Task.text`), or null when the
+ * line is no task.
+ */
+export function taskLineText(line: string): string | null {
+	return splitTaskLine(line)?.text ?? null;
+}
+
 function joinTaskLine(parts: TaskLineParts): string {
 	return parts.prefix + parts.status + parts.separator + parts.text;
 }

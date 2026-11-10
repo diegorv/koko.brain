@@ -36,7 +36,7 @@ import {
 	registerNoteChangeConsumer,
 } from '#lib/core/filesystem/note-change.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { writeTaskLinesToClosedNote } from '#lib/features/todoist-sync/closed-note-writer.service.js';
+import { createNoteFile, writeTaskLinesToClosedNote } from '#lib/features/todoist-sync/closed-note-writer.service.js';
 import type { TaskLineEdits, TaskLinesWriteResult } from '#lib/contracts/index.js';
 
 const LINE = '- [ ] Buy milk 🆔 td-a';
@@ -192,6 +192,28 @@ describe('writeTaskLinesToClosedNote', () => {
 			'Refusing to write task lines: /other is not the open vault',
 		);
 		expect(error).toHaveBeenCalled();
+		expect(upserts).toEqual([]);
+	});
+
+	it('createNoteFile creates a note with content and announces it as a create', async () => {
+		mockCommands();
+		const content = '---\ntodoist_project: p1\n---\n';
+
+		await createNoteFile('/vault', '/vault/Todoist/Work.md', content);
+
+		expect(invoke).toHaveBeenCalledWith('create_folder', { path: '/vault/Todoist' });
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: '/vault/Todoist/Work.md', content });
+		expect(upserts).toEqual([['/vault/Todoist/Work.md', content]]);
+		expect(fsStore.fileTree.find((n) => n.path === '/vault/Todoist')?.children?.map((n) => n.path)).toEqual(['/vault/Todoist/Work.md']);
+		expect(areAllRecentSaves(['/vault/Todoist/Work.md'])).toBe(true);
+	});
+
+	it('createNoteFile rejects when create_note fails', async () => {
+		vi.mocked(invoke).mockImplementation((cmd: string) =>
+			cmd === 'create_note' ? Promise.reject('File already exists: /vault/a.md') : Promise.resolve(undefined),
+		);
+
+		await expect(createNoteFile('/vault', '/vault/a.md', '')).rejects.toBe('File already exists: /vault/a.md');
 		expect(upserts).toEqual([]);
 	});
 });
