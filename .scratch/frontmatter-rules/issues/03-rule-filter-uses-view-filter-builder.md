@@ -2,7 +2,7 @@
 
 **What to build:** a rule's filter is edited with the same visual filter builder as a view, with "all", "any" and "none" groups, instead of the one-line expression field. The rule stores the same filter shape a view stores. Read `.scratch/frontmatter-rules/PRD.md` first.
 
-**Blocked by:** 02 (same component)
+**Blocked by:** 02
 
 **Status:** ready-for-agent
 

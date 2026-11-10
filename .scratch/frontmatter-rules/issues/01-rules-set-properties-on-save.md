@@ -16,7 +16,9 @@
 }
 ```
 
-**Blocked by:** `.scratch/open-itens/issues/001-caret-selection-follow-their-text-when-frontmatter.md`
+**Blocked by:** none
+
+**Requires first (other feature):** open-itens Issue 001, `.scratch/open-itens/issues/001-caret-selection-follow-their-text-when-frontmatter.md`, delivered to `main`. The rule usually writes into the note being edited, and without 001 the caret lands inside the `---` block. Do not launch this Issue until 001 is `done` in `.scratch/open-itens/ledger.md`.
 
 **Status:** ready-for-agent
 
