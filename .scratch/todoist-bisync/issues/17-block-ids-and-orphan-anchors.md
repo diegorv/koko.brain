@@ -19,3 +19,4 @@
 ## Notes
 
 - Size: S. Merged from three review nits because each is a few lines.
+- Known limitation, not in scope (rare race, recorded from Issue 11's review finding 4, `projects.logic.ts:271` at `c064777eb`): a brain-born note renamed while its `project_add` is unacknowledged after a lost response drops the pending add and sends a new one under the new name. If the first was applied, Todoist gets a second project, and the note's lines keep a `pending_cmd` naming the dropped temp id; the resend gets a 404 and those lines are detached. Cheapest fix if it ever happens: match the moved pending add by its lines' anchors instead of by path.
