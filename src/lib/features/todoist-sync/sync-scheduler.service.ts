@@ -6,6 +6,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 import {
 	autoCycleDelay,
+	autoSyncDetachCapMessage,
 	autoSyncFailureMessage,
 	autoSyncOverCapMessage,
 	hasAnchoredLine,
@@ -34,6 +35,7 @@ interface Session {
 }
 
 const OVER_CAP_TOAST_ID = 'todoist-sync-over-cap';
+const DETACH_CAP_TOAST_ID = 'todoist-sync-detach-cap';
 
 const SKIPPED: SyncNowOutcome = { ok: false, message: 'Automatic Todoist sync waits for the first sync.' };
 const STOPPED: SyncNowOutcome = { ok: false, message: 'The Todoist sync was stopped before it ran.' };
@@ -54,6 +56,8 @@ let rejectedToken: string | null = null;
 const toastedKinds = new Set<AutoSyncFailureKind>();
 /** Whether the over-cap toast is showing; cleared by a successful cycle that skipped nothing. */
 let overCapToasted = false;
+/** Whether the detach over-cap toast is showing; cleared by a successful cycle that skipped no detach. */
+let detachCapToasted = false;
 
 /**
  * Starts the automatic sync for the vault at `vaultPath`: a cycle now (the
@@ -64,8 +68,9 @@ let overCapToasted = false;
  * is one Todoist rejected, when another vault is open, and until the sync
  * state has `first_run_done` (design rule 9). A failure shows a persistent
  * toast once per kind until a cycle succeeds. An automatic cycle over the
- * close/reopen cap never asks: it skips those pushes and shows a persistent
- * toast once, until a cycle succeeds without skipping. Replaces a running
+ * close/reopen or the detach cap never asks: it skips that action class and
+ * shows a persistent toast once per class, until a cycle succeeds without
+ * skipping it. Replaces a running
  * session.
  */
 export function startAutoSync(vaultPath: string): void {
@@ -107,6 +112,7 @@ export function stopAutoSync(): void {
 	rejectedToken = null;
 	toastedKinds.clear();
 	overCapToasted = false;
+	detachCapToasted = false;
 }
 
 /**
@@ -215,13 +221,8 @@ function handleOutcome(outcome: SyncNowOutcome, kind: CycleKind, token: string):
 	if (outcome.ok) {
 		for (const k of toastedKinds) toast.dismiss(toastId(k));
 		toastedKinds.clear();
-		if (outcome.skippedPushes === undefined && overCapToasted) {
-			overCapToasted = false;
-			toast.dismiss(OVER_CAP_TOAST_ID);
-		} else if (outcome.skippedPushes !== undefined && !overCapToasted) {
-			overCapToasted = true;
-			toast.warning(autoSyncOverCapMessage(outcome.skippedPushes), { id: OVER_CAP_TOAST_ID, duration: Infinity, closeButton: true });
-		}
+		overCapToasted = capToast(OVER_CAP_TOAST_ID, overCapToasted, outcome.skippedPushes, autoSyncOverCapMessage);
+		detachCapToasted = capToast(DETACH_CAP_TOAST_ID, detachCapToasted, outcome.skippedDetaches, autoSyncDetachCapMessage);
 		return;
 	}
 	const failure = outcome.failure;
@@ -232,6 +233,20 @@ function handleOutcome(outcome: SyncNowOutcome, kind: CycleKind, token: string):
 		toastedKinds.add(failure.kind);
 		toast.error(autoSyncFailureMessage(failure.kind), { id: toastId(failure.kind), duration: Infinity, closeButton: true });
 	}
+}
+
+/**
+ * Shows the persistent over-cap toast `id` once when a successful cycle
+ * skipped an action class, and dismisses it after one that skipped none.
+ * Returns whether the toast is showing.
+ */
+function capToast(id: string, shown: boolean, skipped: number | undefined, message: (count: number) => string): boolean {
+	if (skipped === undefined) {
+		if (shown) toast.dismiss(id);
+		return false;
+	}
+	if (!shown) toast.warning(message(skipped), { id, duration: Infinity, closeButton: true });
+	return true;
 }
 
 function toastId(kind: AutoSyncFailureKind): string {

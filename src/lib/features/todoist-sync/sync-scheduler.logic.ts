@@ -8,7 +8,7 @@ import { readAnchor } from './anchor.logic.js';
 import { extractTaskLines } from './pull.logic.js';
 
 /** Failure kinds an automatic cycle reports in a persistent toast. */
-export type AutoSyncFailureKind = 'invalid-token' | 'rate-limit' | 'unreachable' | 'root-missing' | 'error';
+export type AutoSyncFailureKind = 'invalid-token' | 'rate-limit' | 'unreachable' | 'root-missing' | 'lines-missing' | 'error';
 
 /** Wait after a 429 whose response carries no `retry_after`. */
 const DEFAULT_RATE_LIMIT_WAIT_S = 60;
@@ -49,6 +49,8 @@ export function autoSyncFailureMessage(kind: AutoSyncFailureKind): string {
 			return 'Could not reach Todoist. Automatic sync will retry later.';
 		case 'root-missing':
 			return 'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.';
+		case 'lines-missing':
+			return 'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.';
 		case 'error':
 			return 'Todoist automatic sync failed. Details are in the log.';
 	}
@@ -57,6 +59,11 @@ export function autoSyncFailureMessage(kind: AutoSyncFailureKind): string {
 /** The toast of an automatic cycle that skipped `count` close/reopen pushes over the cap (design rule 9). */
 export function autoSyncOverCapMessage(count: number): string {
 	return `Todoist automatic sync skipped closing or reopening ${count} tasks: more than 25 in one sync. Run "Todoist: Sync now" to confirm them.`;
+}
+
+/** The toast of an automatic cycle that skipped `count` detaches over the cap (design rule 9). */
+export function autoSyncDetachCapMessage(count: number): string {
+	return `Todoist automatic sync skipped detaching ${count} deleted or moved tasks: more than 10 in one sync. Run "Todoist: Sync now" to confirm them.`;
 }
 
 const pad2 = (n: number) => String(n).padStart(2, '0');

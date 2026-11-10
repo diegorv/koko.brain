@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	autoCycleDelay,
 	autoSyncFailureMessage,
+	autoSyncDetachCapMessage,
 	autoSyncOverCapMessage,
 	formatClockTime,
 	formatLogTime,
@@ -67,6 +68,9 @@ describe('autoSyncFailureMessage', () => {
 		expect(autoSyncFailureMessage('root-missing')).toBe(
 			'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.',
 		);
+		expect(autoSyncFailureMessage('lines-missing')).toBe(
+			'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.',
+		);
 		expect(autoSyncFailureMessage('error')).toBe('Todoist automatic sync failed. Details are in the log.');
 	});
 });
@@ -75,6 +79,14 @@ describe('autoSyncOverCapMessage', () => {
 	it('names the skipped count and how to confirm it', () => {
 		expect(autoSyncOverCapMessage(40)).toBe(
 			'Todoist automatic sync skipped closing or reopening 40 tasks: more than 25 in one sync. Run "Todoist: Sync now" to confirm them.',
+		);
+	});
+});
+
+describe('autoSyncDetachCapMessage', () => {
+	it('names the skipped count and how to confirm it', () => {
+		expect(autoSyncDetachCapMessage(12)).toBe(
+			'Todoist automatic sync skipped detaching 12 deleted or moved tasks: more than 10 in one sync. Run "Todoist: Sync now" to confirm them.',
 		);
 	});
 });

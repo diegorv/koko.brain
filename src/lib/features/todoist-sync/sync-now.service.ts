@@ -15,6 +15,7 @@ import {
 	type LineChange,
 	type PlannedCommand,
 } from './completion.logic.js';
+import { belowLineBrake, isDetached, planDetach } from './detach.logic.js';
 import { readNoteContent, writeTaskLinesToNote } from './note-writer.service.js';
 import {
 	excludedLabelSet,
@@ -32,18 +33,24 @@ import { scanVault } from './vault-scan.service.js';
 
 /**
  * Why a run that started failed: a Todoist failure, the root project gone
- * from Todoist, a vault switch mid-run, or anything else (`error`).
+ * from Todoist, a vault switch mid-run, the line brake (`lines-missing`,
+ * design rule 9), or anything else (`error`).
  */
-export type SyncFailure = TodoistFailure | { kind: 'root-missing' } | { kind: 'vault-switched' } | { kind: 'error' };
+export type SyncFailure =
+	| TodoistFailure
+	| { kind: 'root-missing' }
+	| { kind: 'vault-switched' }
+	| { kind: 'lines-missing' }
+	| { kind: 'error' };
 
 /**
  * The outcome of "Sync now", with the message to show. `failure` is set only
  * when a run started and failed; a refusal (sync off, index not ready, a run
- * already in progress, ...) has none. `skippedPushes` is set only when an
- * automatic cycle left out its close and reopen pushes for being over the
- * cap: how many it planned.
+ * already in progress, ...) has none. `skippedPushes` and `skippedDetaches`
+ * are set only when an automatic cycle left out its close and reopen pushes,
+ * or its detaches, for being over their cap: how many it planned.
  */
-export type SyncNowOutcome = { ok: boolean; message: string; failure?: SyncFailure; skippedPushes?: number };
+export type SyncNowOutcome = { ok: boolean; message: string; failure?: SyncFailure; skippedPushes?: number; skippedDetaches?: number };
 
 /** Who started a cycle: "Sync now" (`manual`) or a scheduler trigger (`auto`). */
 export type SyncMode = 'manual' | 'auto';
@@ -61,9 +68,12 @@ class SyncStop extends Error {
 const VAULT_SWITCHED = 'The vault changed during the Todoist sync; nothing more was written.';
 const ROOT_MISSING = 'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.';
 const CANCELLED = 'Todoist sync cancelled; nothing was changed.';
+const LINES_MISSING = 'Todoist sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.';
 
 /** Close and reopen pushes one cycle sends without asking (design rule 9). */
 const CLOSE_REOPEN_CAP = 25;
+/** Detaches one cycle makes without asking (design rule 9). */
+const DETACH_CAP = 10;
 /** Sync API limit on commands per request (design rule 13). */
 const COMMANDS_PER_REQUEST = 100;
 
@@ -72,7 +82,11 @@ const COMMANDS_PER_REQUEST = 100;
  * items plus, with a stored token, an incremental one for items (the full
  * one leaves closed items out), a scan of the vault, project notes created
  * and open tasks of the vault's tree inserted as anchored lines
- * (`planPull`). Then completion (`planCompletion`): lines patched from
+ * (`planPull`). Then deletion (`planDetach`): a link whose task was deleted
+ * or moved out of the tree in Todoist, or whose line was missing from 3
+ * scans in a row, is detached (kept, never synced again; neither side is
+ * deleted). Then completion (`planCompletion`) for the links still attached:
+ * lines patched from
  * Todoist, and the links committed with the `sync_token`, close and reopen
  * pushes stored as `pending_cmd` first. The commands go out in their own
  * requests; after Todoist acknowledges them an incremental pull rewrites
@@ -80,11 +94,13 @@ const COMMANDS_PER_REQUEST = 100;
  *
  * Refuses before the vault index is ready, while sync is off, without a
  * token or root project, with a sync folder that is absolute or climbs out
- * with `..`, and while another run is in progress. Over 25 close/reopen
- * pushes, a manual cycle asks before writing anything ("Cancel" stops the
- * run with the state untouched); an automatic one never asks: it runs
- * without those pushes, their links left as stored, and reports how many it
- * skipped (design rule 9). The vault path is captured at the start and
+ * with `..`, and while another run is in progress. Stops before any write
+ * when fewer than half of the attached links have a line in the scan (the
+ * line brake). Over 10 detaches or 25 close/reopen pushes, a manual cycle
+ * asks before writing anything ("Cancel" stops the run with the state
+ * untouched); an automatic one never asks: it runs without that action
+ * class, those links left as stored, and reports how many it skipped
+ * (design rule 9). The vault path is captured at the start and
  * rechecked before every write; after a vault switch the run stops, writes
  * nothing more and leaves `todoistSyncStore` to the next vault (design rule
  * 9). Otherwise
@@ -108,11 +124,15 @@ export async function syncNow(mode: SyncMode = 'manual'): Promise<SyncNowOutcome
 
 	todoistSyncStore.start();
 	try {
-		const { skippedPushes, ...counts } = await cycle(vaultRoot, folder, mode);
-		debug('TODOIST', `sync now (${mode}):`, counts, { skippedPushes });
+		const { skippedPushes, skippedDetaches, ...counts } = await cycle(vaultRoot, folder, mode);
+		debug('TODOIST', `sync now (${mode}):`, counts, { skippedPushes, skippedDetaches });
 		todoistSyncStore.succeed({ kind: 'pull', ...counts, finishedAt: Date.now() });
-		const message = formatPullResult(counts);
-		return skippedPushes > 0 ? { ok: true, message, skippedPushes } : { ok: true, message };
+		return {
+			ok: true,
+			message: formatPullResult(counts),
+			...(skippedPushes > 0 ? { skippedPushes } : {}),
+			...(skippedDetaches > 0 ? { skippedDetaches } : {}),
+		};
 	} catch (err) {
 		if (!(err instanceof SyncStop)) error('TODOIST', 'sync failed:', err);
 		const stop = err instanceof SyncStop ? err : new SyncStop('Todoist sync failed. Details are in the log.', { kind: 'error' });
@@ -135,7 +155,11 @@ async function request<T>(run: () => Promise<T>): Promise<T> {
 	}
 }
 
-async function cycle(vaultRoot: string, folder: string, mode: SyncMode): Promise<PullCounts & { skippedPushes: number }> {
+async function cycle(
+	vaultRoot: string,
+	folder: string,
+	mode: SyncMode,
+): Promise<PullCounts & { skippedPushes: number; skippedDetaches: number }> {
 	const { apiToken, syncRootProjectId, syncIncludeInbox, defaultLabel } = settingsStore.todoist;
 	const client = createTodoistClient(apiToken);
 	const full = await request(() => client.sync({ syncToken: '*', resourceTypes: ['projects', 'items'] }));
@@ -155,6 +179,7 @@ async function cycle(vaultRoot: string, folder: string, mode: SyncMode): Promise
 	assertVault(vaultRoot);
 	const links = await call('todoist_read_links', { vaultPath: vaultRoot });
 	const scan = await scanVault(vaultRoot, settingsStore.templates.folder);
+	if (belowLineBrake(links, scan.occurrences)) throw new SyncStop(LINES_MISSING, { kind: 'lines-missing' });
 	const plan = planPull({
 		folder,
 		projects,
@@ -166,9 +191,21 @@ async function cycle(vaultRoot: string, folder: string, mode: SyncMode): Promise
 		notes: scan.notes,
 		excludedLabels: excludedLabelSet(defaultLabel),
 	});
-	const current = byAnchor(links, plan.updatedLinks);
+	let detach = planDetach({ links: [...byAnchor(links, plan.updatedLinks).values()], occurrences: scan.occurrences, items, treeIds, projects });
+	let skippedDetaches = 0;
+	if (detach.detached.length > DETACH_CAP) {
+		if (mode === 'auto') {
+			// Left as stored, so the next cycle plans the same detaches; miss counts below the threshold still move.
+			skippedDetaches = detach.detached.length;
+			const skipped = new Set(detach.detached);
+			detach = { links: detach.links.filter((l) => !skipped.has(l.anchor)), detached: [], log: [] };
+		} else if (!(await confirmDetaches(detach.detached.length))) {
+			throw new SyncStop(CANCELLED, { kind: 'error' });
+		}
+	}
+	const current = byAnchor(links, [...plan.updatedLinks, ...detach.links]);
 	let completion = planCompletion({
-		links: [...current.values()],
+		links: [...current.values()].filter((l) => !isDetached(l)),
 		occurrences: scan.occurrences,
 		items,
 		incremental: changes !== null,
@@ -188,7 +225,7 @@ async function cycle(vaultRoot: string, folder: string, mode: SyncMode): Promise
 		}
 	}
 
-	const log: TodoistSyncLogInput[] = [...plan.log, ...completion.log];
+	const log: TodoistSyncLogInput[] = [...plan.log, ...detach.log, ...completion.log];
 	for (const note of plan.createNotes) {
 		assertVault(vaultRoot);
 		await createNoteFile(vaultRoot, `${vaultRoot}/${note.relPath}`, note.content);
@@ -206,14 +243,18 @@ async function cycle(vaultRoot: string, folder: string, mode: SyncMode): Promise
 	}
 	const written = await writeBatches(vaultRoot, batches, log);
 
-	const commit = byAnchor([], [...plan.updatedLinks, ...plan.pairedLinks, ...completion.links.filter((l) => !changedAnchors.has(l.anchor))]);
+	const commit = byAnchor(
+		[],
+		[...plan.updatedLinks, ...plan.pairedLinks, ...detach.links, ...completion.links.filter((l) => !changedAnchors.has(l.anchor))],
+	);
 	for (const link of written.links) commit.set(link.anchor, link);
 	assertVault(vaultRoot);
 	await call('todoist_commit_state', {
 		vaultPath: vaultRoot,
 		commit: {
-			// Without this cycle's bases for every change, an incremental pull from the new token would never report it again.
-			kv: token && !written.anyStale ? [{ key: 'sync_token', value: token }] : [],
+			// Without this cycle's bases for every change, an incremental pull from the new token would never report it again
+			// (a deletion is reported only by an incremental pull, so skipped detaches keep the token out too).
+			kv: token && !written.anyStale && skippedDetaches === 0 ? [{ key: 'sync_token', value: token }] : [],
 			upsertLinks: [...commit.values()],
 			deleteAnchors: [],
 		},
@@ -237,6 +278,7 @@ async function cycle(vaultRoot: string, folder: string, mode: SyncMode): Promise
 		linesUpdated,
 		todoistUpdated,
 		skippedPushes,
+		skippedDetaches,
 	};
 }
 
@@ -393,6 +435,14 @@ async function confirmOverCap(count: number): Promise<boolean> {
 		okLabel: 'Sync',
 		cancelLabel: 'Cancel',
 	});
+}
+
+/** "Pause and ask" of design rule 9 for a manual cycle over the detach cap. */
+async function confirmDetaches(count: number): Promise<boolean> {
+	return ask(
+		`This Todoist sync would detach ${count} tasks deleted or moved on one side, more than ${DETACH_CAP} in one sync. Their lines and Todoist tasks are kept but stop syncing. Continue?`,
+		{ title: 'Todoist sync', kind: 'warning', okLabel: 'Sync', cancelLabel: 'Cancel' },
+	);
 }
 
 function assertVault(vaultRoot: string): void {

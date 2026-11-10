@@ -784,3 +784,246 @@ describe('syncNow: close/reopen cap', () => {
 	});
 });
 
+const missCount = (anchor: string) => vault.links.get(anchor)!.missCount;
+const detachLog = (anchor: string) => vault.log.filter((e) => e.kind === 'detach' && e.anchor === anchor);
+/** Deletes the w1 line from the Work note, as an edit in the brain. */
+const removeW1 = () => edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
+
+describe('syncNow: a task deleted in Todoist', () => {
+	it('detaches the link: the line keeps its text and anchor, logged once', async () => {
+		await syncNow();
+		server.updateItem('w1', { is_deleted: true });
+		const files = new Map(vault.files);
+
+		const outcome = await syncNow();
+
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+		expect(vault.files).toEqual(files);
+		expect(vault.links.get('td-w1')).toMatchObject({ todoistId: 'w1', missCount: 3, pendingCmd: null });
+		expect(detachLog('td-w1')).toEqual([expect.objectContaining({ message: expect.stringContaining('deleted in Todoist') })]);
+	});
+
+	it('never syncs the detached line again: no command, no create, no second log', async () => {
+		await syncNow();
+		server.updateItem('w1', { is_deleted: true });
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+
+		await syncNow();
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(server.item('w1')).toMatchObject({ is_deleted: true, checked: false });
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+		expect(detachLog('td-w1')).toHaveLength(1);
+	});
+
+	it('drops a close checked in the brain while Todoist deleted the task', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		server.updateItem('w1', { is_deleted: true });
+
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(missCount('td-w1')).toBe(3);
+	});
+});
+
+describe('syncNow: a task moved out of the vault tree', () => {
+	it('detaches a task moved to a project outside the tree, line kept, logged', async () => {
+		await syncNow();
+		server.updateItem('w1', { project_id: 'personal' });
+		const files = new Map(vault.files);
+
+		await syncNow();
+
+		expect(vault.files).toEqual(files);
+		expect(missCount('td-w1')).toBe(3);
+		expect(detachLog('td-w1')).toEqual([expect.objectContaining({ message: expect.stringContaining('outside') })]);
+	});
+
+	it('detaches a task moved to the Inbox when the vault does not include it', async () => {
+		await syncNow();
+		server.updateItem('w1', { project_id: 'inbox' });
+
+		await syncNow();
+
+		expect(missCount('td-w1')).toBe(3);
+		expect(detachLog('td-w1')).toHaveLength(1);
+	});
+
+	it('keeps a task moved to the Inbox when the vault includes it, or within the tree', async () => {
+		settingsStore.updateTodoist({ syncIncludeInbox: true });
+		await syncNow();
+		server.updateItem('w1', { project_id: 'inbox' });
+		server.updateItem('w2', { project_id: 'q4' });
+
+		await syncNow();
+
+		expect(missCount('td-w1')).toBe(0);
+		expect(missCount('td-w2')).toBe(0);
+		expect(vault.log.filter((e) => e.kind === 'detach')).toEqual([]);
+	});
+});
+
+describe('syncNow: a synced line deleted in the vault', () => {
+	it('detaches after 3 cycles in a row without the line; the Todoist task stays open and is not inserted again', async () => {
+		await syncNow();
+		removeW1();
+
+		await syncNow();
+		expect(missCount('td-w1')).toBe(1);
+		await syncNow();
+		expect(missCount('td-w1')).toBe(2);
+		expect(detachLog('td-w1')).toEqual([]);
+		await syncNow();
+
+		expect(missCount('td-w1')).toBe(3);
+		expect(detachLog('td-w1')).toEqual([expect.objectContaining({ message: expect.stringContaining('not found in the vault') })]);
+		expect(server.item('w1')).toMatchObject({ checked: false, is_deleted: false });
+		await syncNow();
+		expect(vault.files.get('Todoist/Work.md')).not.toContain('td-w1');
+		expect(commandRequests()).toEqual([]);
+	});
+
+	it('resets the count when the line reappears', async () => {
+		await syncNow();
+		removeW1();
+		await syncNow();
+		await syncNow();
+		vault.files.set('Todoist/Work.md', WORK_NOTE);
+
+		await syncNow();
+		expect(missCount('td-w1')).toBe(0);
+
+		removeW1();
+		await syncNow();
+		await syncNow();
+		expect(missCount('td-w1')).toBe(2);
+		expect(detachLog('td-w1')).toEqual([]);
+	});
+
+	it('counts no miss in a cycle refused before the index is ready', async () => {
+		await syncNow();
+		removeW1();
+		await syncNow();
+		await syncNow();
+		vaultStore.resetIndexReady();
+
+		await syncNow();
+
+		expect(missCount('td-w1')).toBe(2);
+	});
+
+	it('never counts a task absent from the incremental pulls, or a closed one gone from the full sync, as deleted', async () => {
+		await syncNow();
+		server.updateItem('w2', { checked: true });
+		for (let i = 0; i < 4; i++) await syncNow();
+
+		expect([...vault.links.values()].map((l) => l.missCount)).toEqual([0, 0, 0]);
+		expect(vault.log.filter((e) => e.kind === 'detach')).toEqual([]);
+	});
+});
+
+describe('syncNow: the line brake', () => {
+	const BRAKE = 'Todoist sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.';
+
+	it('aborts before any write, detach or push when fewer than half of the synced lines are found', async () => {
+		await syncNow();
+		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n');
+		edit('Todoist/Q4.md', '- [ ] Ship', '- [x] Ship');
+		server.addItem({ id: 'w3', project_id: 'work', content: 'New' });
+		const files = new Map(vault.files);
+		const commits = vault.commits.length;
+		const logged = vault.log.length;
+
+		const outcome = await syncNow();
+
+		expect(outcome).toEqual({ ok: false, message: BRAKE, failure: { kind: 'lines-missing' } });
+		expect(vault.files).toEqual(files);
+		expect(vault.commits).toHaveLength(commits);
+		expect(vault.log).toHaveLength(logged);
+		expect(commandRequests()).toEqual([]);
+		expect([...vault.links.values()].map((l) => l.missCount)).toEqual([0, 0, 0]);
+		expect(todoistSyncStore.status).toBe('error');
+	});
+
+	it('aborts when no synced line is found at all', async () => {
+		await syncNow();
+		vault.files.clear();
+
+		expect(await syncNow()).toEqual({ ok: false, message: BRAKE, failure: { kind: 'lines-missing' } });
+		expect(vault.files.size).toBe(0);
+	});
+
+	it('runs at exactly half, counting the misses', async () => {
+		server.addItem({ id: 'w3', project_id: 'work', content: 'Extra', child_order: 3 });
+		await syncNow();
+		edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
+		edit('Todoist/Work.md', '- [ ] Extra 🆔 td-w3\n', '');
+
+		expect((await syncNow()).ok).toBe(true);
+		expect(missCount('td-w1')).toBe(1);
+	});
+});
+
+describe('syncNow: detach cap', () => {
+	/** Adds `n` open tasks to Work, syncs them in, and deletes every one in Todoist. */
+	async function deleteMany(n: number) {
+		for (let i = 1; i <= n; i++) server.addItem({ id: `d${i}`, project_id: 'work', content: `Old ${i}`, child_order: 10 + i });
+		await syncNow();
+		for (let i = 1; i <= n; i++) server.updateItem(`d${i}`, { is_deleted: true });
+	}
+
+	it('asks before more than 10 detaches; Cancel changes nothing', async () => {
+		await deleteMany(11);
+		vi.mocked(ask).mockResolvedValue(false);
+		const commits = vault.commits.length;
+
+		const outcome = await syncNow();
+
+		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('detach 11 tasks'), expect.objectContaining({ title: 'Todoist sync' }));
+		expect(outcome).toEqual({ ok: false, message: 'Todoist sync cancelled; nothing was changed.', failure: { kind: 'error' } });
+		expect(vault.commits).toHaveLength(commits);
+		expect(missCount('td-d1')).toBe(0);
+	});
+
+	it('detaches them all on Sync', async () => {
+		await deleteMany(11);
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await syncNow();
+
+		expect(missCount('td-d1')).toBe(3);
+		expect(missCount('td-d11')).toBe(3);
+		expect(vault.log.filter((e) => e.kind === 'detach')).toHaveLength(11);
+	});
+
+	it('does not ask at 10', async () => {
+		await deleteMany(10);
+
+		await syncNow();
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(missCount('td-d10')).toBe(3);
+	});
+
+	it('never asks in an automatic cycle: it skips the detaches and runs the rest', async () => {
+		await deleteMany(11);
+		server.updateItem('w1', { checked: true });
+
+		const outcome = await syncNow('auto');
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 line updated.', skippedDetaches: 11 });
+		expect(missCount('td-d1')).toBe(0);
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+		// Deletions come only from an incremental pull: the token stays where it was, so the next cycle sees them again.
+		expect(vault.commits.at(-1)!.kv).toEqual([]);
+
+		vi.mocked(ask).mockResolvedValue(true);
+		expect(await syncNow()).not.toHaveProperty('skippedDetaches');
+		expect(missCount('td-d1')).toBe(3);
+	});
+});

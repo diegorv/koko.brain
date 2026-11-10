@@ -16,6 +16,7 @@
 - [ ] First run is a preview: a dialog shows how many tasks would be created; nothing is sent until confirmed; `first_run_done` set after. Later: over 25 creates per cycle -> "pause and ask".
 - [ ] The Tasks view's old Send action is hidden for lines in scope or anchored.
 - [ ] Before this ticket sets `first_run_done` (which turns automatic cycles on), two minor findings of Issue 07's integration review are fixed: `syncNow(mode)` takes `mode` as a required argument (no `'manual'` default), and `stopAutoSync` dismisses the persistent over-cap and failure toasts it shows before clearing their flags, so a vault switch does not leave the previous vault's toast on screen. Each with a test.
+- [ ] A line whose anchor already has a link row, detached ones (`isDetached`, Issue 13) included, is never sent as `item_add`: a detached line that comes back stays detached. With a test.
 - [ ] Gate: frontend.
 
 ## Notes

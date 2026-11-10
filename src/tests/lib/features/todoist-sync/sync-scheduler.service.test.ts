@@ -315,6 +315,72 @@ describe('over the close/reopen cap', () => {
 	});
 });
 
+describe('over the detach cap', () => {
+	const DETACH_CAP = 'Todoist automatic sync skipped detaching 11 deleted or moved tasks: more than 10 in one sync. Run "Todoist: Sync now" to confirm them.';
+
+	/** Syncs 11 more Work tasks in automatically, then deletes each one in Todoist. */
+	async function deleteMany() {
+		for (let i = 1; i <= 11; i++) server.addItem({ id: `d${i}`, project_id: 'work', content: `Old ${i}`, child_order: 10 + i });
+		startAutoSync(ROOT);
+		await settle();
+		for (let i = 1; i <= 11; i++) server.updateItem(`d${i}`, { is_deleted: true });
+	}
+
+	it('never asks in an automatic cycle: it detaches nothing and toasts once', async () => {
+		await deleteMany();
+
+		await advance(30_000);
+		focusWindow();
+		await settle();
+		await advance(5 * MINUTE);
+
+		expect(cycles()).toBe(3);
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(vault.links.get('td-d1')!.missCount).toBe(0);
+		expect(toast.error).not.toHaveBeenCalled();
+		expect(toast.warning).toHaveBeenCalledTimes(1);
+		expect(toast.warning).toHaveBeenCalledWith(DETACH_CAP, { id: 'todoist-sync-detach-cap', duration: Infinity, closeButton: true });
+	});
+
+	it('"Sync now" still asks, and once the detaches ran the toast is dismissed', async () => {
+		await deleteMany();
+		await advance(30_000);
+		focusWindow();
+		await settle();
+		expect(toast.warning).toHaveBeenCalledTimes(1);
+
+		vi.mocked(ask).mockResolvedValue(true);
+		await syncNowFromUi();
+
+		expect(vi.mocked(ask)).toHaveBeenCalledTimes(1);
+		expect(vault.links.get('td-d1')!.missCount).toBe(3);
+		expect(toast.dismiss).toHaveBeenCalledWith('todoist-sync-detach-cap');
+	});
+});
+
+describe('the line brake', () => {
+	it('stops an automatic cycle that finds too few synced lines, with a persistent toast, and "Sync now" with an error toast', async () => {
+		startAutoSync(ROOT);
+		await settle();
+		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n');
+
+		await advance(30_000);
+		focusWindow();
+		await settle();
+
+		expect(cycles()).toBe(2);
+		expect(toast.error).toHaveBeenCalledWith(
+			'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.',
+			{ id: 'todoist-sync-lines-missing', duration: Infinity, closeButton: true },
+		);
+		expect(vault.links.get('td-w1')!.missCount).toBe(0);
+
+		await syncNowFromUi();
+		expect(toast.error).toHaveBeenLastCalledWith('Todoist sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.');
+		expect(vault.files.get('Todoist/Work.md')).toBe('---\ntodoist_project: work\n---\n');
+	});
+});
+
 describe('Todoist failures', () => {
 	it('waits retry_after seconds after a 429 before the next cycle', async () => {
 		server.failNext({ kind: 'rate-limit', retryAfter: 90 });
