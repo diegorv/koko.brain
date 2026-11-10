@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | done | issue/05-sync-settings-state-and-connection-check (e982782b8) | 2026-11-09 |
 | 06 | ["Todoist: Sync now" pulls every project and its open tasks into project notes](issues/06-sync-now-pulls-projects-and-tasks.md) | 04, 05 | done | issue/06-sync-now-pulls-projects-and-tasks (12fefe60a) | 2026-11-09 |
 | 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | done | issue/07-completion-syncs-both-ways (e5583a987) | 2026-11-09 |
-| 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | in-progress | | |
+| 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | blocked | | |
 | 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | todo | | |
 | 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | todo | | |
 | 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | todo | | |
@@ -75,3 +75,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 23:31 — 13 — start — launched by /relay-lite:run — 86fbbe3fc
 - 2026-11-09 23:53 — 13 — deliver — round 1 APPROVED by claude with findings, fix round (moved-out-of-tree only for a known live project outside the tree, Issue 10 criterion that a detached anchor is never re-created, nit), follow-up Issue 16 opened (line-brake recovery, owner decision); round 2 APPROVED with no findings; full suite passed (604 files, 14670 tests) — d933ffa9c
 - 2026-11-09 23:53 — ledger updated (added 16)
+- 2026-11-09 23:54 — 08 — deliver — approved and full suite passed, but deliver sync conflicted with Issue 13 in sync-now.service.ts; rebase aborted, worktree kept — 44593a4a0
