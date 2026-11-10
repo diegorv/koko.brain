@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Live check of the Todoist API behaviors the sync relies on](issues/01-live-check-todoist-api.md) | none | done | | |
 | 02 | [Pure task-line patch and anchor helpers](issues/02-task-line-patch-and-anchor-logic.md) | none | done | issue/02-task-line-patch-and-anchor-logic (61e9e5c1c) | 2026-11-09 |
 | 03 | [Guarded writer for task lines in notes that are not open](issues/03-guarded-line-writer-closed-notes.md) | 02 | done | issue/03-guarded-line-writer-closed-notes (1dbeac3ca) | 2026-11-09 |
-| 04 | [Guarded writer for task lines in notes that are open in a tab](issues/04-guarded-line-writer-open-tabs.md) | 03 | todo | | |
+| 04 | [Guarded writer for task lines in notes that are open in a tab](issues/04-guarded-line-writer-open-tabs.md) | 03 | in-progress | | |
 | 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | done | issue/05-sync-settings-state-and-connection-check (e982782b8) | 2026-11-09 |
 | 06 | ["Todoist: Sync now" pulls every project and its open tasks into project notes](issues/06-sync-now-pulls-projects-and-tasks.md) | 04, 05 | todo | | |
 | 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | todo | | |
@@ -60,3 +60,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 21:18 — 03 — start — launched by /relay-lite:run — fe8d80ca6
 - 2026-11-09 21:46 — 05 — deliver — round 1 APPROVED by claude, fix round (vault-mismatch test opens the other vault, interval clamp returns 5 for non-numbers), syncFolder normalization and fake checked-item drop deferred; round 2 APPROVED with no findings; full suite passed (vitest 591 files, 14365 tests; cargo 1365) — e982782b8
 - 2026-11-09 21:50 — 03 — deliver — round 1 APPROVED by claude with findings, fix round (same-line anchors stale, CRLF notes stale, empty batch on a missing note creates nothing, indexing rule 2 lists write_task_lines); round 2 APPROVED with no findings; full suite passed (vitest 587 files, 14307 tests; cargo 1394) — 1dbeac3ca
+- 2026-11-09 21:50 — 04 — start — launched by /relay-lite:run — 7bbcbfed8
