@@ -2,7 +2,7 @@
 
 **What to build:** The one-way send popover, the per-task completion polling and the `todoist-sent.json` reads and writes are removed, so the two-way sync is the only Todoist path; the user guide and a new ADR describe it; the open tickets it superseded are closed or rewritten. Design: `.scratch/todoist-bisync/research/design.md` (Old send/sync, Open-ticket impact).
 
-**Blocked by:** 10, 12, 13, 14
+**Blocked by:** 10, 12, 13, 14, 16, 17, 18
 
 **Status:** ready-for-agent
 
