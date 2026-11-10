@@ -99,6 +99,12 @@ describe('TodoistSection', () => {
 		expect(settingsStore.todoist.apiToken).toBe('secret-token');
 	});
 
+	it('says where the token comes from and that it is stored in the vault', () => {
+		const text = row('api-token').textContent ?? '';
+		expect(text).toContain('Personal API token from Todoist Settings → Integrations → Developer');
+		expect(text).toContain("Stored in this vault's .kokobrain folder. Exclude .kokobrain from sync tools.");
+	});
+
 	it('typing in the label field stores the default label', () => {
 		expect(settingsStore.todoist.defaultLabel).toBe('');
 		type(fields()[1], 'inbox');

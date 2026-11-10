@@ -6,6 +6,14 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-11-06): the Todoist API token is stored in the vault
+
+The Todoist API token (`todoist.apiToken`, `src/lib/core/settings/settings.types.ts`) is stored in plain text in the vault's `.kokobrain/settings.json`, next to the other per-vault settings. This is an accepted exception to the Consequences line that says keys must not be written to the vault (PRD L1, answered (a) by the owner on 2026-11-06): the owner does not sync vaults, so the token stays with the vault it belongs to.
+
+That Consequences line also points at the bundle-ID macOS Keychain service of ADR-0013. ADR-0013 is superseded and the app no longer has a Keychain service, so nothing reads keys from the OS keychain today.
+
+Anyone who syncs a vault must exclude `.kokobrain/` from the sync tool, as the Consequences already say for the model: otherwise the token is copied with the vault. The Todoist settings row and the Tasks and Todoist help page say so.
+
 ## Context
 
 A note-taking app needs persistent artifacts that are not notes: the SQLite database (FTS5 index, file-history snapshots, semantic chunk embeddings), the ONNX model files (~542 MB for BGE-M3), and assorted cached metadata. Those artifacts have to live somewhere durable.

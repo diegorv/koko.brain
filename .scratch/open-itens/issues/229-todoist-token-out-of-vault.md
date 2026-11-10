@@ -11,16 +11,20 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD L1 (a): keep the token in the vault and document it (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, `src/tests/lib/core/settings/TodoistSection.test.ts` with the real settings store: the token field shows the storage sentence. Fails today.
-- [ ] The help doc and ADR changes are prose only; `src/tests/help/` still passes.
+- [x] Failing test first, `src/tests/lib/core/settings/TodoistSection.test.ts` with the real settings store: the token field shows the storage sentence. Fails today.
+- [x] The help doc and ADR changes are prose only; `src/tests/help/` still passes.
 
 ## Notes
 
 - **Size:** XS.
 - The old (b1) design, a Rust command pair under the app config dir, is in git history (commit 8dac7a537) if the owner ever starts syncing vaults.
+
+## Comments
+
+- 2026-11-09, branch `issue/229-todoist-token-out-of-vault`: the Todoist settings row now says the token is stored in this vault's `.kokobrain` folder, and that the folder should be excluded from sync tools (new test in `src/tests/lib/features/todoist-sync/TodoistSection.test.ts`). The `apiToken` JSDoc, a 2026-11-06 amendment to ADR-0019 and one sentence in the Tasks and Todoist help page say the same. Tests: `pnpm check` passed, and the full `pnpm vitest run` passed (591 files, 14373 passed, 54 skipped, 1 todo). Review round 1: APPROVED, with two optional nits, both rejected with reasons in the review's Resolution section.

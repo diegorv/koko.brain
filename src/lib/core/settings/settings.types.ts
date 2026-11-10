@@ -247,7 +247,10 @@ export interface SearchSettings {
 
 /** Configuration for the Todoist integration */
 export interface TodoistSettings {
-	/** Todoist personal API token (from Settings → Integrations → Developer) */
+	/**
+	 * Todoist personal API token (from Settings → Integrations → Developer).
+	 * Stored in plain text in the vault's `.kokobrain/settings.json`; see ADR-0019's 2026-11-06 amendment.
+	 */
 	apiToken: string;
 	/** Label name applied to every task created by the app (empty = none) */
 	defaultLabel: string;

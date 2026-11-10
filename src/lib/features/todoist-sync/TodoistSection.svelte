@@ -70,18 +70,20 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Todoist</h2>
 
-	<SettingItem
-		label="API token"
-		description="Personal API token from Todoist Settings → Integrations → Developer"
-		layout="stacked"
-	>
-		<Input
-			type="password"
-			value={todoist.apiToken}
-			oninput={(e) => handleTokenChange((e.currentTarget as HTMLInputElement).value)}
-			placeholder="Paste your token here"
-		/>
-	</SettingItem>
+	<div data-setting="api-token">
+		<SettingItem
+			label="API token"
+			description="Personal API token from Todoist Settings → Integrations → Developer. Stored in this vault's .kokobrain folder. Exclude .kokobrain from sync tools."
+			layout="stacked"
+		>
+			<Input
+				type="password"
+				value={todoist.apiToken}
+				oninput={(e) => handleTokenChange((e.currentTarget as HTMLInputElement).value)}
+				placeholder="Paste your token here"
+			/>
+		</SettingItem>
+	</div>
 
 	<p class="px-4 text-meta text-muted-foreground">
 		Get your token at
