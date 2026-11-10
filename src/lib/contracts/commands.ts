@@ -24,6 +24,11 @@ import type {
 	SnapshotInfo,
 	TagAggregate,
 	TaskStatus,
+	TodoistKvEntry,
+	TodoistStateCommit,
+	TodoistSyncLogEntry,
+	TodoistSyncLogInput,
+	TodoistTaskLink,
 	ToggleTaskResult,
 	UpdateMetadata,
 	UpdateResult,
@@ -48,6 +53,19 @@ export interface CommandMap {
 	compute_diff: { args: { oldContent: string; newContent: string }; result: DiffLine[] };
 	/** Prunes old snapshots; resolves to the deleted row count. */
 	cleanup_history: { args: { retentionDays: number }; result: number };
+	/**
+	 * Todoist sync kv rows, sorted by key (`commands/todoist.rs`). Every
+	 * `todoist_*` command refuses a `vaultPath` that is not the open vault.
+	 */
+	todoist_read_kv: { args: { vaultPath: string }; result: TodoistKvEntry[] };
+	/** Todoist task links, sorted by anchor. */
+	todoist_read_links: { args: { vaultPath: string }; result: TodoistTaskLink[] };
+	/** Writes kv rows, link upserts and link deletes in one transaction. */
+	todoist_commit_state: { args: { vaultPath: string; commit: TodoistStateCommit }; result: null };
+	/** Appends sync log entries, keeping the newest 1000 rows. */
+	todoist_append_log: { args: { vaultPath: string; entries: TodoistSyncLogInput[] }; result: null };
+	/** The newest `limit` sync log rows (default all), newest first. */
+	todoist_read_log: { args: { vaultPath: string; limit?: number }; result: TodoistSyncLogEntry[] };
 	/** Recursive file tree of `path` (`commands/vault.rs`). */
 	scan_vault: { args: { path: string; sortBy: string }; result: FileNode[] };
 	/** Rust-only: registered but not invoked from TS (TS uses `scan_vault_v2_cached`). */
@@ -218,6 +236,11 @@ export const COMMAND_ARGS = {
 	get_snapshot_content: ['snapshotId'],
 	compute_diff: ['oldContent', 'newContent'],
 	cleanup_history: ['retentionDays'],
+	todoist_read_kv: ['vaultPath'],
+	todoist_read_links: ['vaultPath'],
+	todoist_commit_state: ['vaultPath', 'commit'],
+	todoist_append_log: ['vaultPath', 'entries'],
+	todoist_read_log: ['vaultPath', 'limit?'],
 	scan_vault: ['path', 'sortBy'],
 	scan_vault_v2: ['path'],
 	scan_vault_v2_cached: ['path'],

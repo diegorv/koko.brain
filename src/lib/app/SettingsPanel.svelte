@@ -11,7 +11,7 @@
 	import AutoMoveSection from '#lib/features/auto-move/AutoMoveSection.svelte';
 	import EventCalendarSection from '#lib/features/event-calendar/EventCalendarSection.svelte';
 	import TrashSection from '#lib/core/settings/sections/TrashSection.svelte';
-	import TodoistSection from '#lib/core/settings/sections/TodoistSection.svelte';
+	import TodoistSection from '#lib/features/todoist-sync/TodoistSection.svelte';
 	import SentrySection from '#lib/core/settings/sections/SentrySection.svelte';
 	import TroubleshootingSection from '#lib/core/settings/sections/TroubleshootingSection.svelte';
 	import UpdateSection from '#lib/core/settings/sections/UpdateSection.svelte';

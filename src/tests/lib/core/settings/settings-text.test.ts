@@ -73,7 +73,7 @@ describe('Settings text', () => {
 	it('aligns a note after a row with the text inside the row', () => {
 		const notes = [
 			'src/lib/core/settings/sections/TypesSection.svelte',
-			'src/lib/core/settings/sections/TodoistSection.svelte',
+			'src/lib/features/todoist-sync/TodoistSection.svelte',
 			'src/lib/core/settings/sections/SentrySection.svelte',
 		];
 		for (const path of notes) {

@@ -125,6 +125,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	todoist: {
 		apiToken: '',
 		defaultLabel: '',
+		syncEnabled: false,
+		syncFolder: 'Todoist',
+		syncIntervalMinutes: 5,
+		syncContext: 'work',
+		syncRootProjectId: '',
+		syncIncludeInbox: false,
 	},
 	sentry: {
 		enabled: false,

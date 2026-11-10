@@ -939,6 +939,22 @@ describe('loadSettings', () => {
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings.todoist.apiToken).toBe('token123');
+		expect(settingsStore.settings.todoist.syncFolder).toBe('Todoist');
+		expect(settingsStore.settings.todoist.syncIntervalMinutes).toBe(5);
+	});
+
+	it('normalizes a hand-edited todoist sync interval and context on load', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({ todoist: { syncIntervalMinutes: 0, syncContext: 'office', syncRootProjectId: 'p1' } }),
+		);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.todoist.syncIntervalMinutes).toBe(1);
+		expect(settingsStore.settings.todoist.syncContext).toBe('work');
+		expect(settingsStore.settings.todoist.syncRootProjectId).toBe('p1');
 	});
 
 	it('merges quickCapture settings with defaults', async () => {

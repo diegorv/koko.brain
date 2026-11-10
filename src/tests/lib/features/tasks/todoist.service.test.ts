@@ -11,7 +11,7 @@ const { mockGetProjects, mockGetSections, mockAddTask, mockGetTask } = vi.hoiste
 	mockGetTask: vi.fn(),
 }));
 
-vi.mock('#lib/features/tasks/todoist-client.js', () => ({
+vi.mock('#lib/features/todoist-sync/todoist-client.js', () => ({
 	createTodoistClient: () => ({
 		getProjects: mockGetProjects,
 		getSections: mockGetSections,

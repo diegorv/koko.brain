@@ -396,6 +396,16 @@ function handleComputeDiff(): DiffLine[] {
 	return [];
 }
 
+// ─── Todoist sync state (empty store, writes dropped) ──────────────────────
+
+function handleTodoistReadEmpty(): [] {
+	return [];
+}
+
+function handleTodoistWriteNoop(): null {
+	return null;
+}
+
 // ─── System (debug, fonts, memory) ─────────────────────────────────────────
 
 function handleSetTauriDebugMode(): null {
@@ -508,6 +518,13 @@ const HANDLERS: Handlers = {
 	get_snapshot_content: handleGetSnapshotContent,
 	save_snapshot: handleSaveSnapshot,
 	compute_diff: handleComputeDiff,
+
+	// Todoist sync state
+	todoist_read_kv: handleTodoistReadEmpty,
+	todoist_read_links: handleTodoistReadEmpty,
+	todoist_commit_state: handleTodoistWriteNoop,
+	todoist_append_log: handleTodoistWriteNoop,
+	todoist_read_log: handleTodoistReadEmpty,
 
 	// System
 	set_tauri_debug_mode: handleSetTauriDebugMode,

@@ -287,6 +287,25 @@ describe('settingsStore', () => {
 			expect(settingsStore.todoist.apiToken).toBe('abc123');
 		});
 
+		it('todoist sync keys default to off, Todoist/, 5 minutes, work, no root, no Inbox', () => {
+			expect(settingsStore.todoist).toMatchObject({
+				syncEnabled: false,
+				syncFolder: 'Todoist',
+				syncIntervalMinutes: 5,
+				syncContext: 'work',
+				syncRootProjectId: '',
+				syncIncludeInbox: false,
+			});
+		});
+
+		it('updateTodoist sets one sync key and keeps the others', () => {
+			settingsStore.updateTodoist({ syncRootProjectId: 'p1' });
+			settingsStore.updateTodoist({ syncContext: 'personal' });
+			expect(settingsStore.todoist.syncRootProjectId).toBe('p1');
+			expect(settingsStore.todoist.syncContext).toBe('personal');
+			expect(settingsStore.todoist.syncFolder).toBe('Todoist');
+		});
+
 		it('keeps Sentry disabled with no DSN by default', () => {
 			expect(settingsStore.sentry).toEqual({ enabled: false, dsn: '' });
 		});

@@ -2,6 +2,7 @@ pub mod fts_repo;
 pub mod history_repo;
 pub mod schema;
 pub mod semantic_repo;
+pub mod todoist_repo;
 
 use crate::utils::logger::debug_log;
 use rusqlite::Connection;
@@ -124,6 +125,59 @@ where
 {
 	let db = DB.lock().map_err(|e| format!("Lock error: {e}"))?;
 	let conn = db.as_ref().ok_or("Database not open")?;
+	run_transaction(conn, label, f)
+}
+
+/// [`with_db`] for a caller that names the vault it believes is open: refuses
+/// with an error when `vault_path` is not the vault whose database is open, so
+/// a background job that outlived a vault switch cannot write into the next
+/// vault's database. The check runs under the same lock as `f`.
+pub fn with_vault_db<F, T>(vault_path: &str, f: F) -> Result<T, String>
+where
+	F: FnOnce(&Connection) -> Result<T, String>,
+{
+	let db = DB.lock().map_err(|e| format!("Lock error: {e}"))?;
+	let conn = db.as_ref().ok_or("Database not open")?;
+	ensure_open_vault(conn, vault_path)?;
+	f(conn)
+}
+
+/// [`with_db_transaction`] with the open-vault check of [`with_vault_db`].
+pub fn with_vault_db_transaction<F, T>(vault_path: &str, label: &str, f: F) -> Result<T, String>
+where
+	F: FnOnce(&Connection) -> Result<T, String>,
+{
+	let db = DB.lock().map_err(|e| format!("Lock error: {e}"))?;
+	let conn = db.as_ref().ok_or("Database not open")?;
+	ensure_open_vault(conn, vault_path)?;
+	run_transaction(conn, label, f)
+}
+
+/// Compares the canonical `<vault_path>/.kokobrain/kokobrain.db` with the
+/// canonical file of the open connection. Both sides are canonicalized, so a
+/// symlinked or `/var` vs `/private/var` spelling of the same vault passes.
+fn ensure_open_vault(conn: &Connection, vault_path: &str) -> Result<(), String> {
+	let refused = || format!("{vault_path} is not the open vault");
+	let open = conn.path().filter(|p| !p.is_empty()).ok_or("Database has no file path")?;
+	let open = Path::new(open)
+		.canonicalize()
+		.map_err(|e| format!("Failed to resolve the open database path: {e}"))?;
+	let expected = Path::new(vault_path)
+		.join(".kokobrain")
+		.join("kokobrain.db")
+		.canonicalize()
+		.map_err(|_| refused())?;
+	if open != expected {
+		return Err(refused());
+	}
+	Ok(())
+}
+
+/// Runs `f` between BEGIN IMMEDIATE and COMMIT, rolling back on error.
+fn run_transaction<F, T>(conn: &Connection, label: &str, f: F) -> Result<T, String>
+where
+	F: FnOnce(&Connection) -> Result<T, String>,
+{
 	debug_log("DB", format!("BEGIN — {label}"));
 	conn.execute_batch("BEGIN IMMEDIATE")
 		.map_err(|e| format!("Failed to begin transaction: {e}"))?;

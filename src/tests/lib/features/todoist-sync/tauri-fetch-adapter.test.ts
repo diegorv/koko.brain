@@ -8,7 +8,7 @@ vi.mock('@tauri-apps/plugin-http', () => ({
 	fetch: mockFetch,
 }));
 
-import { createTauriFetchAdapter } from '#lib/features/tasks/tauri-fetch-adapter.js';
+import { createTauriFetchAdapter } from '#lib/features/todoist-sync/tauri-fetch-adapter.js';
 
 describe('createTauriFetchAdapter', () => {
 	beforeEach(() => {

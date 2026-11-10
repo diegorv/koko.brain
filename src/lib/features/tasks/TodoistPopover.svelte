@@ -6,7 +6,7 @@
 	import Send from '@lucide/svelte/icons/send';
 	import { todoistStore } from './todoist.store.svelte';
 	import { loadProjects, loadSections, sendTaskToTodoist } from './todoist.service';
-	import { mapPriorityToTodoist } from './todoist-bridge.logic';
+	import { mapPriorityToTodoist } from '#lib/features/todoist-sync/priority.logic.js';
 	import type { TaskMetadata } from './task-metadata.types';
 
 	let {

@@ -559,6 +559,62 @@ describe('normalizeSettings', () => {
 
 		expect(settings.editor.fontSize).toBe(999);
 	});
+
+	it('keeps a valid todoist branch by identity', () => {
+		const settings = fixture();
+		expect(normalizeSettings(settings).todoist).toBe(settings.todoist);
+	});
+
+	it('forces the todoist sync interval to a whole number of at least 1 minute', () => {
+		const at = (value: number) => {
+			const settings = fixture();
+			settings.todoist.syncIntervalMinutes = value;
+			return normalizeSettings(settings).todoist.syncIntervalMinutes;
+		};
+		expect(at(0)).toBe(1);
+		expect(at(-3)).toBe(1);
+		expect(at(2.6)).toBe(3);
+		expect(at(Number.NaN)).toBe(5);
+		expect(at(15)).toBe(15);
+	});
+
+	it('restores the default todoist sync interval when settings.json holds a non-number', () => {
+		const at = (value: unknown) => {
+			const settings = fixture();
+			(settings.todoist as { syncIntervalMinutes: unknown }).syncIntervalMinutes = value;
+			return normalizeSettings(settings).todoist.syncIntervalMinutes;
+		};
+		expect(at(null)).toBe(5);
+		expect(at('10')).toBe(5);
+	});
+
+	it('resets an unknown todoist sync context to work', () => {
+		const settings = fixture();
+		(settings.todoist as { syncContext: string }).syncContext = 'office';
+		expect(normalizeSettings(settings).todoist.syncContext).toBe('work');
+		settings.todoist.syncContext = 'personal';
+		expect(normalizeSettings(settings).todoist.syncContext).toBe('personal');
+	});
+
+	it('trims the todoist sync folder and restores Todoist when it is empty', () => {
+		const settings = fixture();
+		settings.todoist.syncFolder = '  Projects/Todoist  ';
+		expect(normalizeSettings(settings).todoist.syncFolder).toBe('Projects/Todoist');
+		settings.todoist.syncFolder = '   ';
+		expect(normalizeSettings(settings).todoist.syncFolder).toBe('Todoist');
+	});
+
+	it('coerces non-boolean todoist sync flags and a non-string root to their defaults', () => {
+		const settings = fixture();
+		const raw = settings.todoist as unknown as Record<string, unknown>;
+		raw.syncEnabled = 'yes';
+		raw.syncIncludeInbox = 1;
+		raw.syncRootProjectId = 42;
+		const { todoist } = normalizeSettings(settings);
+		expect(todoist.syncEnabled).toBe(false);
+		expect(todoist.syncIncludeInbox).toBe(false);
+		expect(todoist.syncRootProjectId).toBe('');
+	});
 });
 
 describe('migrateTypeScale', () => {

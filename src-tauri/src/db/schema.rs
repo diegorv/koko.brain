@@ -58,6 +58,37 @@ pub fn create_tables(conn: &Connection) -> Result<(), String> {
 			key   TEXT PRIMARY KEY,
 			value TEXT NOT NULL
 		);
+
+		-- Todoist sync: scalar state (sync_token, user_id, vault_id, first_run_done)
+		CREATE TABLE IF NOT EXISTS todoist_kv (
+			key   TEXT PRIMARY KEY,
+			value TEXT NOT NULL
+		);
+
+		-- Todoist sync: one row per anchored task line. The bases are JSON text;
+		-- todoist_id is NULL until a brain-born task's item_add is acknowledged.
+		CREATE TABLE IF NOT EXISTS todoist_task_link (
+			anchor        TEXT PRIMARY KEY,
+			todoist_id    TEXT,
+			note_rel_path TEXT NOT NULL,
+			local_base    TEXT,
+			remote_base   TEXT,
+			pending_uuid  TEXT,
+			pending_cmd   TEXT,
+			miss_count    INTEGER NOT NULL DEFAULT 0,
+			frozen        INTEGER NOT NULL DEFAULT 0
+		);
+		CREATE INDEX IF NOT EXISTS idx_todoist_task_link_todoist_id
+			ON todoist_task_link(todoist_id);
+
+		-- Todoist sync: bounded event log (newest rows kept, see todoist_repo)
+		CREATE TABLE IF NOT EXISTS todoist_sync_log (
+			id         INTEGER PRIMARY KEY AUTOINCREMENT,
+			created_at INTEGER NOT NULL,
+			kind       TEXT NOT NULL,
+			anchor     TEXT,
+			message    TEXT NOT NULL
+		);
 	",
 	)
 	.map_err(|e| format!("Failed to create tables: {e}"))?;

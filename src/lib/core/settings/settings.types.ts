@@ -1,4 +1,4 @@
-import type { EVENT_CALENDAR_COLORS, EVENT_CALENDAR_VIEW_MODES } from './settings.logic';
+import type { EVENT_CALENDAR_COLORS, EVENT_CALENDAR_VIEW_MODES, TODOIST_SYNC_CONTEXTS } from './settings.logic';
 
 /** Supported periodic note types */
 export type PeriodType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
@@ -251,7 +251,26 @@ export interface TodoistSettings {
 	apiToken: string;
 	/** Label name applied to every task created by the app (empty = none) */
 	defaultLabel: string;
+	/** Whether the two-way sync runs for this vault */
+	syncEnabled: boolean;
+	/** Vault-relative folder holding one note per synced Todoist project */
+	syncFolder: string;
+	/** Minutes between automatic sync cycles (at least 1) */
+	syncIntervalMinutes: number;
+	/**
+	 * Which context this vault is. A brain-born task in a `work` vault is sent
+	 * with no context label, so the owner's webhook adds `Work`; in a
+	 * `personal` vault it is sent with the label `personal`.
+	 */
+	syncContext: TodoistSyncContext;
+	/** Todoist project whose tree (itself and every nested project) this vault syncs; empty = sync off */
+	syncRootProjectId: string;
+	/** Whether the Todoist Inbox is synced in addition to the root's tree */
+	syncIncludeInbox: boolean;
 }
+
+/** One of the vault contexts in `TODOIST_SYNC_CONTEXTS` */
+export type TodoistSyncContext = (typeof TODOIST_SYNC_CONTEXTS)[number];
 
 /** Configuration for the optional Sentry error-monitoring integration. */
 export interface SentrySettings {

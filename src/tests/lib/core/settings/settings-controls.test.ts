@@ -16,7 +16,7 @@ const RAW_BUTTONS: Record<string, number> = {
 	// Navigation row, one tag in an `{#each}`.
 	'src/lib/app/SettingsPanel.svelte': 1,
 	// Inline text links.
-	'src/lib/core/settings/sections/TodoistSection.svelte': 1,
+	'src/lib/features/todoist-sync/TodoistSection.svelte': 1,
 	'src/lib/core/settings/sections/UpdateSection.svelte': 1,
 	// Tabs of the colour groups.
 	'src/lib/core/settings/sections/ThemeEditor.svelte': 1,
