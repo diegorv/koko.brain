@@ -17,7 +17,7 @@ vi.mock('@tauri-apps/plugin-http', () => ({
 	fetch: (url: string, init?: RequestInit) => fake.current!.fetch(url, init),
 }));
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
-vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn() }));
+vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn(), exists: vi.fn(), rename: vi.fn() }));
 vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
 vi.mock('svelte-sonner', () => ({ toast }));
 vi.mock('#lib/utils/debug.js', () => ({
@@ -29,7 +29,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
-import { readTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { error } from '#lib/utils/debug.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { resetEditor } from '#lib/core/editor/editor.service.js';
@@ -91,6 +91,15 @@ beforeEach(() => {
 		if (content === undefined) throw new Error(`No such file: ${String(path)}`);
 		return content;
 	});
+	const rel = (path: string | URL) => String(path).slice(vault.root.length + 1);
+	vi.mocked(writeTextFile).mockImplementation(async (path, data) => {
+		vault.files.set(rel(path), String(data));
+	});
+	vi.mocked(exists).mockImplementation(async (path) => vault.files.has(rel(path)));
+	vi.mocked(rename).mockImplementation(async (from, to) => {
+		vault.files.set(rel(to), vault.files.get(rel(from))!);
+		vault.files.delete(rel(from));
+	});
 	openVault(createFakeVault('/work-vault'));
 	settingsStore.updateTodoist({ apiToken: server.token, syncEnabled: true, syncRootProjectId: 'work' });
 });
@@ -128,7 +137,7 @@ describe('syncNow: first run', () => {
 		expect(server.requests).toEqual([{ sync_token: '*', resource_types: ['projects', 'items'] }]);
 	});
 
-	it('commits the bases of every inserted line together with the sync token and first_run_done', async () => {
+	it('commits the bases of every inserted line and project together with the sync token and first_run_done', async () => {
 		await syncNow('manual');
 
 		expect(vault.commits).toHaveLength(1);
@@ -136,7 +145,17 @@ describe('syncNow: first run', () => {
 		expect(commit.kv).toEqual([
 			{ key: 'sync_token', value: `v${server.version}` },
 			{ key: 'first_run_done', value: '1' },
+			{ key: 'projects', value: expect.any(String) },
 		]);
+		expect(JSON.parse(commit.kv[2].value)).toEqual({
+			bases: {
+				work: { name: 'Work', relPath: 'Todoist/Work.md' },
+				acme: { name: 'Acme', relPath: 'Todoist/Acme.md' },
+				q4: { name: 'Q4', relPath: 'Todoist/Q4.md' },
+			},
+			pending: [],
+			refused: [],
+		});
 		expect(commit.upsertLinks.map((l) => [l.anchor, l.todoistId, l.noteRelPath])).toEqual([
 			['td-w1', 'w1', 'Todoist/Work.md'],
 			['td-w2', 'w2', 'Todoist/Work.md'],
@@ -360,7 +379,7 @@ describe('syncNow: refusals and safety', () => {
 	});
 
 	it('leaves the store reset by the vault teardown alone when the old run stops', async () => {
-		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, finishedAt: 1 });
+		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, projectsRenamed: 0, finishedAt: 1 });
 		fake.current = {
 			async fetch(url, init) {
 				const response = await server.fetch(url, init);
@@ -1833,5 +1852,390 @@ describe('syncNow: create cap', () => {
 		expect(adds()).toEqual([]);
 		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] New 1\n');
 		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+	});
+});
+
+/** The stored project state (`todoist_kv` row `projects`). */
+const projectState = () => JSON.parse(vault.kv.get('projects')!) as { bases: Record<string, { name: string; relPath: string; detached?: boolean }>; pending: unknown[]; refused: string[] };
+/** Every command Todoist received, in order. */
+const sentCommands = () => commandRequests().flatMap((r) => r.commands!);
+const projectsNamed = (name: string) => server.projects().filter((p) => p.name === name);
+/** The `todoist_project` id written to a note's frontmatter. */
+const noteProjectId = (relPath: string) => /^---\ntodoist_project: (\S+)\n---\n/u.exec(vault.files.get(relPath) ?? '')?.[1];
+
+describe('syncNow: a note becomes a Todoist project', () => {
+	it('sends project_add under the root and its tasks with the temp id in one request, then writes the id to the note', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Launch.md', '- [ ] Outline\n- [ ] Rehearse\n');
+
+		const outcome = await syncNow('manual');
+
+		const [request] = commandRequests();
+		expect(request.commands!.map((c) => c.type)).toEqual(['project_add', 'item_add', 'item_add']);
+		const [projectAdd, ...itemAdds] = request.commands!;
+		expect(projectAdd).toMatchObject({ args: { name: 'Launch', parent_id: 'work' }, temp_id: expect.any(String), uuid: expect.any(String) });
+		expect(itemAdds.map((c) => c.args.project_id)).toEqual([projectAdd.temp_id, projectAdd.temp_id]);
+		const [launch] = projectsNamed('Launch');
+		expect(launch.parent_id).toBe('work');
+		expect(itemsNamed('Outline')[0].project_id).toBe(launch.id);
+		expect(noteProjectId('Todoist/Launch.md')).toBe(launch.id);
+		const plan = bornAnchor('Todoist/Launch.md', '- [ ] Outline');
+		expect(remoteBase(plan).projectId).toBe(launch.id);
+		expect(projectState().bases[launch.id]).toMatchObject({ name: 'Launch', relPath: 'Todoist/Launch.md' });
+		expect(projectState().pending).toEqual([]);
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 2 tasks created in Todoist, 1 project created in Todoist.' });
+	});
+
+	it('writes the id to the tab of an open note without saving it: the file stays as it was', async () => {
+		await syncNow('manual');
+		const content = '- [ ] Outline\n';
+		vault.files.set('Todoist/Launch.md', content);
+		const path = '/work-vault/Todoist/Launch.md';
+		editorStore.addTab({ path, name: 'Launch.md', content, savedContent: content });
+
+		await syncNow('manual');
+
+		const [launch] = projectsNamed('Launch');
+		const tab = editorStore.tabs.find((t) => t.path === path)!;
+		expect(tab.content).toMatch(new RegExp(`^---\\ntodoist_project: ${launch.id}\\n---\\n- \\[ \\] Outline 🆔 td-`, 'u'));
+		expect(tab.savedContent).toBe(content);
+		expect(vault.files.get('Todoist/Launch.md')).toBe(content);
+		expect(projectState().bases[launch.id]).toMatchObject({ name: 'Launch', relPath: 'Todoist/Launch.md' });
+	});
+
+	it('sends a line with the real project id when its project_add went out in an earlier request of the cycle', async () => {
+		await syncNow('manual');
+		for (let i = 1; i <= 100; i++) addToWork(`- [ ] New ${i}`);
+		vault.files.set('Todoist/Zed.md', '- [ ] Outline\n');
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await syncNow('manual');
+
+		const [first, second] = commandRequests();
+		const [zed] = projectsNamed('Zed');
+		const projectAdd = first.commands!.find((c) => c.type === 'project_add')!;
+		const outline = second.commands!.find((c) => c.args.content === 'Outline')!;
+		expect(outline.args.project_id).toBe(zed.id);
+		expect(outline.args.project_id).not.toBe(projectAdd.temp_id);
+		expect(itemsNamed('Outline')[0].project_id).toBe(zed.id);
+		expect(vault.links.get(bornAnchor('Todoist/Zed.md', '- [ ] Outline'))).toMatchObject({ todoistId: itemsNamed('Outline')[0].id, missCount: 0 });
+	});
+
+	it('resends a line with the real project id after its project was acknowledged in an earlier cycle', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Launch.md', '- [ ] Outline\n');
+		let failLines = true;
+		fake.current = {
+			async fetch(url, init) {
+				const body = JSON.parse(String(init?.body ?? '{}')) as { commands?: { type: string; uuid: string }[] };
+				if (!failLines || !body.commands?.some((c) => c.type === 'project_add')) return server.fetch(url, init);
+				failLines = false;
+				// The project is created; its lines get a non-terminal failure and are resent next cycle.
+				const held = body.commands.filter((c) => c.type === 'item_add');
+				const response = await server.fetch(url, { ...init, body: JSON.stringify({ ...body, commands: body.commands.filter((c) => c.type !== 'item_add') }) });
+				const json = (await response.json()) as { sync_status: Record<string, unknown> };
+				for (const c of held) json.sync_status[c.uuid] = { error: 'Service unavailable', error_code: 0, error_extra: {}, error_tag: 'SERVICE_UNAVAILABLE', http_code: 503 };
+				return new Response(JSON.stringify(json), { status: 200, headers: { 'content-type': 'application/json' } });
+			},
+		};
+		await syncNow('manual');
+		const [launch] = projectsNamed('Launch');
+		expect(noteProjectId('Todoist/Launch.md')).toBe(launch.id);
+		expect(itemsNamed('Outline')).toEqual([]);
+
+		await syncNow('manual');
+
+		const resend = adds().at(-1)!;
+		expect(resend.args.project_id).toBe(launch.id);
+		expect(itemsNamed('Outline')).toHaveLength(1);
+		expect(itemsNamed('Outline')[0].project_id).toBe(launch.id);
+		expect(vault.links.get(bornAnchor('Todoist/Launch.md', '- [ ] Outline'))).toMatchObject({ todoistId: itemsNamed('Outline')[0].id, missCount: 0, pendingCmd: null });
+	});
+
+	it('stores the pending project_add before sending it', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Launch.md', '- [ ] Outline\n');
+		let pendingAtSend: unknown[] | null = null;
+		fake.current = {
+			fetch(url, init) {
+				if (String(init?.body).includes('"project_add"')) pendingAtSend = projectState().pending;
+				return server.fetch(url, init);
+			},
+		};
+
+		await syncNow('manual');
+
+		expect(pendingAtSend).toEqual([expect.objectContaining({ relPath: 'Todoist/Launch.md', args: { name: 'Launch', parentId: 'work' } })]);
+	});
+
+	it('creates nothing more on the next cycles: no second project, no second note', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Launch.md', '- [ ] Outline\n');
+		await syncNow('manual');
+		const files = new Map(vault.files);
+		const sent = sentCommands().length;
+
+		const quiet = await syncNow('manual');
+
+		expect(quiet).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+		expect(sentCommands()).toHaveLength(sent);
+		expect(vault.files).toEqual(files);
+		expect(projectsNamed('Launch')).toHaveLength(1);
+	});
+
+	it('resolves a lost project_add response by the resend: one project, one note, its tasks paired', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Launch.md', '- [ ] Outline\n');
+		let losing = true;
+		fake.current = {
+			async fetch(url, init) {
+				const response = await server.fetch(url, init);
+				if (losing && String(init?.body).includes('"commands"')) throw new TypeError('Network request failed');
+				return response;
+			},
+		};
+		expect((await syncNow('manual')).ok).toBe(false);
+		losing = false;
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		const [launch] = projectsNamed('Launch');
+		expect(projectsNamed('Launch')).toHaveLength(1);
+		expect(itemsNamed('Outline')).toHaveLength(1);
+		expect([...vault.files.keys()].filter((p) => p.startsWith('Todoist/Launch'))).toEqual(['Todoist/Launch.md']);
+		expect(noteProjectId('Todoist/Launch.md')).toBe(launch.id);
+		const plan = bornAnchor('Todoist/Launch.md', '- [ ] Outline');
+		expect(vault.links.get(plan)).toMatchObject({ todoistId: itemsNamed('Outline')[0].id, pendingCmd: null });
+		expect(remoteBase(plan).projectId).toBe(launch.id);
+	});
+
+	it('creates no project for a note in a subfolder, outside the sync folder, or one that names a project already', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Sub/Deep.md', '- [ ] Deep\n');
+		vault.files.set('Notes/Day.md', '- [ ] Elsewhere\n');
+		vault.files.set('Todoist/Other.md', '---\ntodoist_project: personal\n---\n- [ ] Other\n');
+
+		await syncNow('manual');
+
+		expect(sentCommands()).toEqual([]);
+		expect(server.projects()).toHaveLength(5);
+	});
+
+	it('refuses a note Todoist refuses for good: logged, its lines detached, never sent again', async () => {
+		await syncNow('manual');
+		server.refuseProjectCommands();
+		vault.files.set('Todoist/Launch.md', '- [ ] Outline\n');
+
+		await syncNow('manual');
+		const sent = sentCommands().length;
+		await syncNow('manual');
+
+		expect(sentCommands()).toHaveLength(sent);
+		expect(projectState().refused).toEqual(['Todoist/Launch.md']);
+		expect(missCount(bornAnchor('Todoist/Launch.md', '- [ ] Outline'))).toBe(3);
+		expect(vault.log.filter((e) => e.kind === 'command-error').map((e) => e.message)).toEqual([
+			expect.stringContaining('project_add for Todoist/Launch.md'),
+			expect.stringContaining('item_add'),
+		]);
+	});
+
+	it('leaves a new project out of an automatic cycle over the cap, counted as skipped creates', async () => {
+		await syncNow('manual');
+		for (let i = 1; i <= 26; i++) vault.files.set(`Todoist/New ${i}.md`, '');
+
+		const outcome = await syncNow('auto');
+
+		expect(outcome.skippedCreates).toBe(26);
+		expect(sentCommands()).toEqual([]);
+		expect(projectState().pending).toEqual([]);
+	});
+});
+
+describe('syncNow: project renames', () => {
+	it('renames the note through the path-change service after a Todoist rename', async () => {
+		await syncNow('manual');
+		const content = vault.files.get('Todoist/Q4.md');
+		server.updateProject('q4', { name: 'Q4: Launch' });
+
+		const outcome = await syncNow('manual');
+
+		expect(vault.files.has('Todoist/Q4.md')).toBe(false);
+		expect(vault.files.get('Todoist/Q4- Launch.md')).toBe(content);
+		expect(invoke).toHaveBeenCalledWith('rename_note', { from: '/work-vault/Todoist/Q4.md', to: '/work-vault/Todoist/Q4- Launch.md' });
+		expect(projectState().bases.q4).toEqual({ name: 'Q4: Launch', relPath: 'Todoist/Q4- Launch.md' });
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 project renamed.' });
+		expect(await syncNow('manual')).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+		expect(sentCommands()).toEqual([]);
+	});
+
+	it('keeps syncing the renamed note: a later Todoist edit reaches its line', async () => {
+		await syncNow('manual');
+		server.updateProject('q4', { name: 'Quarter' });
+		await syncNow('manual');
+		server.updateItem('q1', { content: 'Ship it' });
+
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Quarter.md')).toContain('- [ ] Ship it 🆔 td-q1');
+	});
+
+	it('sends project_update with the new file name after a note rename, once', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Q4 Plan.md', vault.files.get('Todoist/Q4.md')!);
+		vault.files.delete('Todoist/Q4.md');
+
+		const outcome = await syncNow('manual');
+		await syncNow('manual');
+
+		expect(sentCommands().map((c) => [c.type, c.args])).toEqual([['project_update', { id: 'q4', name: 'Q4 Plan' }]]);
+		expect(server.project('q4')!.name).toBe('Q4 Plan');
+		expect(projectState().bases.q4).toEqual({ name: 'Q4 Plan', relPath: 'Todoist/Q4 Plan.md' });
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 project renamed.' });
+	});
+
+	it('lets Todoist win when both sides renamed, logging the note name', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Mine.md', vault.files.get('Todoist/Q4.md')!);
+		vault.files.delete('Todoist/Q4.md');
+		server.updateProject('q4', { name: 'Theirs' });
+
+		await syncNow('manual');
+
+		expect(vault.files.has('Todoist/Theirs.md')).toBe(true);
+		expect(vault.files.has('Todoist/Mine.md')).toBe(false);
+		expect(server.project('q4')!.name).toBe('Theirs');
+		expect(vault.log).toEqual([expect.objectContaining({ kind: 'conflict', message: expect.stringContaining('Mine') })]);
+	});
+});
+
+describe('syncNow: archived and deleted projects', () => {
+	it('writes no Todoist edit to the note of an archived project, links kept, and resumes on unarchive', async () => {
+		await syncNow('manual');
+		server.updateProject('q4', { is_archived: true });
+		server.updateItem('q1', { priority: 4 });
+		const files = new Map(vault.files);
+
+		await syncNow('manual');
+
+		expect(vault.files).toEqual(files);
+		expect(missCount('td-q1')).toBe(0);
+		expect(vault.log.filter((e) => e.kind === 'detach')).toEqual([]);
+
+		server.updateProject('q4', { is_archived: false });
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Q4.md')).toContain('- [ ] Ship 🔺 🆔 td-q1');
+	});
+
+	it('sends no brain edit of an archived project, and sends it on unarchive', async () => {
+		await syncNow('manual');
+		server.updateProject('q4', { is_archived: true });
+		edit('Todoist/Q4.md', '- [ ] Ship', '- [x] Ship');
+
+		await syncNow('manual');
+		expect(sentCommands()).toEqual([]);
+		expect(projectState().bases.q4).toEqual({ name: 'Q4', relPath: 'Todoist/Q4.md' });
+
+		server.updateProject('q4', { is_archived: false });
+		await syncNow('manual');
+
+		expect(sentCommands().map((c) => [c.type, c.args.id])).toEqual([['item_close', 'q1']]);
+	});
+
+	it('detaches the note and the links of a deleted project, deleting nothing, logged', async () => {
+		await syncNow('manual');
+		server.updateProject('q4', { is_deleted: true });
+		const files = new Map(vault.files);
+
+		await syncNow('manual');
+
+		expect(vault.files).toEqual(files);
+		expect(missCount('td-q1')).toBe(3);
+		expect(projectState().bases.q4).toMatchObject({ detached: true });
+		expect(vault.log.filter((e) => e.kind === 'detach').map((e) => [e.anchor, e.message.includes('deleted')])).toEqual([
+			[null, true],
+			['td-q1', true],
+		]);
+	});
+
+	it('detaches the note of a project deleted between the two pulls of one cycle', async () => {
+		await syncNow('manual');
+		let deleteAfterFullPull = true;
+		fake.current = {
+			async fetch(url, init) {
+				const response = await server.fetch(url, init);
+				if (deleteAfterFullPull && String(init?.body).includes('"sync_token":"*"')) {
+					deleteAfterFullPull = false;
+					server.updateProject('q4', { is_deleted: true });
+				}
+				return response;
+			},
+		};
+
+		await syncNow('manual');
+
+		expect(missCount('td-q1')).toBe(3);
+		expect(projectState().bases.q4).toMatchObject({ detached: true });
+	});
+});
+
+describe('syncNow: two notes naming one project', () => {
+	it('freezes the project: nothing of it syncs either way, logged', async () => {
+		await syncNow('manual');
+		vault.files.set('Notes/Copy.md', '---\ntodoist_project: work\n---\n');
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		server.updateItem('w2', { content: 'Report v2' });
+		const files = new Map(vault.files);
+
+		await syncNow('manual');
+
+		expect(vault.files).toEqual(files);
+		expect(sentCommands()).toEqual([]);
+		expect(vault.log).toEqual([expect.objectContaining({ kind: 'duplicate-project-note' })]);
+	});
+});
+
+describe('syncNow: projects moving across the tree', () => {
+	it('detaches the note and links of a project moved out of the tree, deleting nothing, logged', async () => {
+		await syncNow('manual');
+		server.updateProject('q4', { parent_id: 'personal' });
+		const files = new Map(vault.files);
+
+		await syncNow('manual');
+
+		expect(vault.files).toEqual(files);
+		expect(missCount('td-q1')).toBe(3);
+		expect(projectState().bases.q4).toMatchObject({ detached: true });
+		expect(vault.log.filter((e) => e.kind === 'detach').map((e) => e.anchor)).toEqual([null, 'td-q1']);
+		expect(vault.log.find((e) => e.anchor === null)!.message).toContain('outside');
+	});
+
+	it('gives a project moved into the tree a note with its tasks', async () => {
+		server.addProject({ id: 'side', name: 'Side', parent_id: 'personal' });
+		server.addItem({ id: 's1', project_id: 'side', content: 'Side task' });
+		await syncNow('manual');
+		expect(vault.files.has('Todoist/Side.md')).toBe(false);
+		server.updateProject('side', { parent_id: 'work' });
+
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Side.md')).toBe('---\ntodoist_project: side\n---\n- [ ] Side task 🆔 td-s1\n');
+	});
+
+	it('ignores projects outside the tree: created, renamed or deleted there', async () => {
+		await syncNow('manual');
+		const files = new Map(vault.files);
+		const state = vault.kv.get('projects');
+		server.addProject({ id: 'side', name: 'Side', parent_id: 'personal' });
+		server.updateProject('personal', { name: 'Home' });
+		server.updateProject('inbox', { is_deleted: true });
+
+		const outcome = await syncNow('manual');
+
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+		expect(vault.files).toEqual(files);
+		expect(vault.kv.get('projects')).toBe(state);
+		expect(vault.log).toEqual([]);
 	});
 });

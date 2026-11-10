@@ -133,6 +133,51 @@ describe('fake Todoist /sync', () => {
 		expect(added('rule').due).toEqual({ date: '2026-12-01', string: 'every month', is_recurring: true, datetime: null, timezone: null, lang: 'en' });
 	});
 
+	it('adds a project and items that name its temp id in the same request', async () => {
+		server.addProject({ id: 'root', name: 'Work' });
+		const project = createCommand('project_add', { name: 'Launch', parentId: 'root' }, 'tmp-p');
+		const item = createCommand('item_add', { content: 'Plan', projectId: 'tmp-p' }, 'tmp-i');
+
+		const res = await client().sync({ commands: [project, item] });
+
+		const projectId = res.tempIdMapping!['tmp-p'];
+		expect(server.project(projectId)).toMatchObject({ name: 'Launch', parent_id: 'root', is_archived: false });
+		expect(server.item(res.tempIdMapping!['tmp-i'])).toMatchObject({ content: 'Plan', project_id: projectId });
+		const again = await client().sync({ commands: [project, item] });
+		expect(again.tempIdMapping).toEqual(res.tempIdMapping);
+		const err = await client().sync({ commands: [createCommand('item_add', { content: 'Lost', projectId: 'tmp-p' })] }).catch((e: unknown) => e);
+		expect(Object.values((err as TodoistSyncError).syncStatus)[0]).toMatchObject({ httpCode: 404 });
+	});
+
+	it('renames a project through project_update, and refuses an unknown one', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+
+		const ok = createCommand('project_update', { id: 'p1', name: 'Job' });
+		await client().sync({ commands: [ok] });
+		const err = await client().sync({ commands: [createCommand('project_update', { id: 'nope', name: 'X' })] }).catch((e: unknown) => e);
+
+		expect(server.project('p1')?.name).toBe('Job');
+		expect(Object.values((err as TodoistSyncError).syncStatus)[0]).toMatchObject({ httpCode: 404 });
+	});
+
+	it('leaves archived projects out of a full sync, and reports archive and delete incrementally', async () => {
+		server.addProject({ id: 'a', name: 'A' });
+		server.addProject({ id: 'b', name: 'B' });
+		server.addProject({ id: 'c', name: 'C' });
+		const first = await client().sync({ syncToken: '*', resourceTypes: ['projects'] });
+
+		server.updateProject('a', { is_archived: true });
+		server.updateProject('b', { is_deleted: true });
+		const next = await client().sync({ syncToken: first.syncToken!, resourceTypes: ['projects'] });
+		const full = await client().sync({ syncToken: '*', resourceTypes: ['projects'] });
+
+		expect(next.projects?.map((p) => [p.id, p.isArchived, p.isDeleted])).toEqual([
+			['a', true, false],
+			['b', false, true],
+		]);
+		expect(full.projects?.map((p) => p.id)).toEqual(['c']);
+	});
+
 	it('closes and reopens through hand-built commands', async () => {
 		server.addProject({ id: 'p1', name: 'Work' });
 		server.addItem({ id: 'i1', project_id: 'p1', content: 'A' });

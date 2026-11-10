@@ -158,6 +158,8 @@ export interface PullInput {
 	notes: ScannedNote[];
 	/** Lower-cased label names never written as tags (`excludedLabelSet`). */
 	excludedLabels: ReadonlySet<string>;
+	/** Tree projects that get no new note this cycle (`heldProjectIds`): their tasks wait. */
+	heldProjectIds: ReadonlySet<string>;
 }
 
 /** New lines for one note and the links to store once they are written. */
@@ -203,6 +205,10 @@ export interface PullCounts {
 	todoistUpdated: number;
 	/** Brain-born tasks Todoist created (`item_add` acknowledged). */
 	todoistCreated: number;
+	/** Brain-born projects Todoist created (`project_add` acknowledged, note id written). */
+	projectsCreated: number;
+	/** Project renames carried over: notes renamed after Todoist, Todoist projects after notes. */
+	projectsRenamed: number;
 }
 
 /** Labels kept out of the tag mapping besides `defaultLabel` (design rule 8): the scope tag and the context labels. */
@@ -544,9 +550,9 @@ function treeOrder(items: PullItem[]): PullItem[] {
 
 /**
  * Project id -> the note its lines go to: the one note whose frontmatter
- * names it, or (outside rebuild mode) a new note in the folder, the Inbox
- * first so it gets `Inbox.md`. A project with two or more notes gets none
- * (logged). New notes are added to `plan.createNotes`.
+ * names it, or (outside rebuild mode, and not for a held project) a new note
+ * in the folder, the Inbox first so it gets `Inbox.md`. A project with two
+ * or more notes gets none (logged). New notes are added to `plan.createNotes`.
  */
 function projectTargets(input: PullInput, treeIds: Set<string>, plan: PullPlan): Map<string, string> {
 	const byId = new Map<string, string[]>();
@@ -573,7 +579,7 @@ function projectTargets(input: PullInput, treeIds: Set<string>, plan: PullPlan):
 			});
 			continue;
 		}
-		if (plan.mode === 'rebuild') continue;
+		if (plan.mode === 'rebuild' || input.heldProjectIds.has(project.id)) continue;
 		const base = project.inboxProject ? 'Inbox' : projectNoteBaseName(project.name);
 		let relPath = `${input.folder}/${base}.md`;
 		for (let n = 2; taken.has(relPath.toLowerCase()); n++) relPath = `${input.folder}/${base} ${n}.md`;
@@ -600,6 +606,8 @@ export function formatPullResult(counts: PullCounts): string {
 		counts.linesUpdated > 0 ? `${plural(counts.linesUpdated, 'line')} updated` : '',
 		counts.todoistUpdated > 0 ? `${plural(counts.todoistUpdated, 'task')} updated in Todoist` : '',
 		counts.todoistCreated > 0 ? `${plural(counts.todoistCreated, 'task')} created in Todoist` : '',
+		counts.projectsCreated > 0 ? `${plural(counts.projectsCreated, 'project')} created in Todoist` : '',
+		counts.projectsRenamed > 0 ? `${plural(counts.projectsRenamed, 'project')} renamed` : '',
 	].filter((p) => p !== '');
 	return `Todoist sync done: ${parts.length > 0 ? parts.join(', ') : 'nothing new'}.`;
 }

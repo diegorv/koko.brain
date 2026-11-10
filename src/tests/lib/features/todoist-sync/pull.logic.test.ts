@@ -76,6 +76,7 @@ function input(extra: Partial<PullInput> = {}): PullInput {
 		occurrences: new Map(),
 		notes: [],
 		excludedLabels: EXCLUDED,
+		heldProjectIds: new Set(),
 		...extra,
 	};
 }
@@ -245,34 +246,40 @@ describe('assertSingleLine', () => {
 
 describe('formatPullResult', () => {
 	it('lists what was written, singular or plural', () => {
-		expect(formatPullResult({ mode: 'normal', notesCreated: 1, tasksInserted: 2, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 1, tasksInserted: 2, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, projectsRenamed: 0 })).toBe(
 			'Todoist sync done: 1 note created, 2 tasks added.',
 		);
-		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 1, linksPaired: 1, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 1, linksPaired: 1, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, projectsRenamed: 0 })).toBe(
 			'Todoist sync done: 1 task added, 1 link paired.',
 		);
 	});
 
 	it('says nothing new when nothing was written', () => {
-		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, projectsRenamed: 0 })).toBe(
 			'Todoist sync done: nothing new.',
 		);
 	});
 
 	it('lists lines updated from Todoist and tasks updated in Todoist', () => {
-		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 2, todoistUpdated: 1, todoistCreated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 2, todoistUpdated: 1, todoistCreated: 0, projectsCreated: 0, projectsRenamed: 0 })).toBe(
 			'Todoist sync done: 2 lines updated, 1 task updated in Todoist.',
 		);
 	});
 
+	it('lists projects created in Todoist and projects renamed', () => {
+		expect(
+			formatPullResult({ mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 2, projectsCreated: 1, projectsRenamed: 2 }),
+		).toBe('Todoist sync done: 2 tasks created in Todoist, 1 project created in Todoist, 2 projects renamed.');
+	});
+
 	it('reports a rebuild by its paired links', () => {
-		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 1, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 1, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, projectsRenamed: 0 })).toBe(
 			'Todoist sync rebuilt 1 link from the vault; nothing was created.',
 		);
 	});
 
 	it('says why new tasks stay out when a rebuild paired nothing but left anchored lines unmatched', () => {
-		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0 })).toBe(
+		expect(formatPullResult({ mode: 'rebuild', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 2, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, projectsRenamed: 0 })).toBe(
 			'Todoist sync rebuilt 0 links from the vault; nothing was created. 2 anchored lines have no open Todoist task: ' +
 				'new Todoist tasks come in only after a line pairs or those 🆔 anchors are removed.',
 		);
@@ -307,6 +314,13 @@ describe('planPull', () => {
 			['td-b', 'b', 'Todoist/Work.md'],
 		]);
 		expect(JSON.parse(plan.inserts[0].links[0].localBase!)).toMatchObject({ description: 'First' });
+	});
+
+	it('creates no note for a held project and inserts none of its tasks', () => {
+		const plan = planPull(input({ items: [item('c', 'ops', 'Ops task')], heldProjectIds: new Set(['ops']) }));
+
+		expect(plan.createNotes.map((n) => n.projectId)).toEqual(['work']);
+		expect(plan.inserts).toEqual([]);
 	});
 
 	it('writes each subtask after its parent, since childOrder counts among siblings', () => {

@@ -42,6 +42,7 @@ function input(lines: ScannedLine[], extra: Partial<CreateInput> = {}): CreateIn
 		links: [],
 		treeIds: new Set(['work', 'acme']),
 		rootId: 'work',
+		pendingProjects: new Map(),
 		excludedLabels: EXCLUDED,
 		syncContext: 'work',
 		occurrences: new Map(),
@@ -135,6 +136,20 @@ describe('planCreates: scope', () => {
 
 		expect(create.command.args).toMatchObject({ content: 'Call Bob', projectId: 'work', labels: [] });
 		expect(create.link.noteRelPath).toBe('Notes/Day.md');
+	});
+
+	it('creates a line of a brain-born project note with its temp id as project', () => {
+		const l = line('Plan', { relPath: 'Todoist/Launch.md' });
+
+		const [create] = planCreates(input([l], { pendingProjects: new Map([['Todoist/Launch.md', 'tmp-p']]) })).creates;
+
+		expect(create.command.args.projectId).toBe('tmp-p');
+	});
+
+	it('creates no #todoist line while the root project is frozen', () => {
+		const l = line('Call Bob #todoist', { relPath: 'Notes/Day.md', fields: fields('Call Bob', { tags: ['todoist'] }) });
+
+		expect(planCreates(input([l], { treeIds: new Set(['acme']) })).creates).toEqual([]);
 	});
 
 	it('leaves out lines in other notes without #todoist, closed lines, indented subtasks and lines the index has not parsed', () => {
@@ -341,6 +356,15 @@ describe('pairPendingAdds', () => {
 
 		expect(out.links).toEqual([ackedLink(link, command, '1001', EXCLUDED)]);
 		expect(out.heldItemIds.size).toBe(0);
+	});
+
+	it('stores the project the item is in, for an add sent with a brain-born project temp id', () => {
+		const sent = add('td-pending2', 'Plan', 'tmp-p');
+		const pulled = item('1002', { content: 'Plan', description: 'kokobrain:td-pending2', projectId: 'p77' });
+
+		const out = pairPendingAdds({ links: [pendingLink('td-pending2', sent)], items: [pulled], excludedLabels: EXCLUDED });
+
+		expect(JSON.parse(out.links[0].remoteBase!).projectId).toBe('p77');
 	});
 
 	it('falls back to content + project when the description lost its kokobrain: line', () => {

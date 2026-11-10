@@ -73,10 +73,12 @@ export interface CreateInput {
 	links: TodoistTaskLink[];
 	/** Anchor -> every in-scope line carrying it. */
 	occurrences: Map<string, ScannedLine[]>;
-	/** Project ids of the vault's tree. */
+	/** Project ids of the vault's tree, frozen projects left out. */
 	treeIds: ReadonlySet<string>;
 	/** The root project, where `#todoist` lines outside project notes go. */
 	rootId: string;
+	/** Note path -> temp id of its brain-born project sent this cycle: its lines are added with the temp id as project. */
+	pendingProjects: ReadonlyMap<string, string>;
 	/** Lower-cased label names never sent from tags (`excludedLabelSet`). */
 	excludedLabels: ReadonlySet<string>;
 	/** The vault context (design rule 8b). */
@@ -135,8 +137,10 @@ function pendingAddOf(link: TodoistTaskLink): PendingAdd | null {
  * Plans the creates of one cycle (design Scope, rules 2 and 10). A line is
  * created when it is an open (rule 5), top-level task line the index has
  * parsed, carries no `🆔` at all, and sits in a project note of the tree
- * (created in that project) or carries `#todoist` (created in the root
- * project; the line stays in its note). A line with a user `🆔` (no `td-`)
+ * (created in that project), in the note of a brain-born project sent this
+ * cycle (created with its temp id), or carries `#todoist` (created in the
+ * root project, unless the root is frozen; the line stays in its note). A
+ * line with a user `🆔` (no `td-`)
  * is logged and left out; an anchored line is never created, whether or not
  * it has a link row, so a detached line that comes back stays detached.
  * Content over 500 characters, or that would not survive a parse back, is
@@ -153,7 +157,8 @@ export function planCreates(input: CreateInput): CreatePlan {
 
 	for (const line of input.lines) {
 		if (line.fields === null || isClosedStatus(line.status) || line.indent > 0) continue;
-		const projectId = noteProjects.get(line.relPath) ?? (line.fields.tags.some((t) => t.toLowerCase() === SCOPE_TAG) ? input.rootId : null);
+		const tagged = input.treeIds.has(input.rootId) && line.fields.tags.some((t) => t.toLowerCase() === SCOPE_TAG);
+		const projectId = noteProjects.get(line.relPath) ?? input.pendingProjects.get(line.relPath) ?? (tagged ? input.rootId : null);
 		if (projectId === null) continue;
 		const where = `${line.relPath}:${line.lineNumber}`;
 		if (idValues(line.line).length > 0) {
@@ -239,14 +244,22 @@ function addArgs(line: ScannedLine, content: string, anchor: string, projectId: 
  * The link of an acknowledged add: the Todoist id stored, the pending add
  * cleared, and `remote_base` at the values sent, so the next pull's diff
  * brings in only what Todoist did with them (the first date of a rule sent
- * without one, a label added by the owner's webhook).
+ * without one, a label added by the owner's webhook). `projectId` is the
+ * real id of the project the task landed in, for a command sent with a
+ * project's temp id.
  */
-export function ackedLink(link: TodoistTaskLink, command: PendingAdd, todoistId: string, excludedLabels: ReadonlySet<string>): TodoistTaskLink {
+export function ackedLink(
+	link: TodoistTaskLink,
+	command: PendingAdd,
+	todoistId: string,
+	excludedLabels: ReadonlySet<string>,
+	projectId: string = command.args.projectId,
+): TodoistTaskLink {
 	const { args } = command;
 	const tags = mappedLabels(args.labels, excludedLabels);
 	const remote: RemoteBase = {
 		content: args.content,
-		projectId: args.projectId,
+		projectId,
 		sectionId: null,
 		parentId: null,
 		checked: false,
@@ -323,7 +336,7 @@ export function pairPendingAdds(input: PairInput): PairPlan {
 	for (const [anchor, items] of matches) {
 		const { link, command } = pending.get(anchor)!;
 		if (items.length === 1 && !plan.heldItemIds.has(items[0].id)) {
-			plan.links.push(ackedLink(link, command, items[0].id, input.excludedLabels));
+			plan.links.push(ackedLink(link, command, items[0].id, input.excludedLabels, items[0].projectId));
 			continue;
 		}
 		for (const item of items) plan.heldItemIds.add(item.id);

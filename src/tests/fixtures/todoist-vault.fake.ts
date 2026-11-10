@@ -3,7 +3,7 @@
  * for Todoist sync engine tests. It answers the Rust commands the engine
  * calls: the task and property-record reads, `write_task_lines` (through
  * the real `applyTaskLineEdits`, the TS port of the Rust batch), `create_note`
- * and `create_folder`, and the five `todoist_*` state commands (`todoist_read_log`
+ * and `create_folder`, `scan_vault` (an empty tree), and the five `todoist_*` state commands (`todoist_read_log`
  * lists `log` newest first, ids from 1 in append order). Like Rust, it
  * refuses a `vaultRoot` / `vaultPath` that is not its root. Any other command
  * resolves to `[]` for a `get_*` read and `undefined` otherwise.
@@ -119,6 +119,9 @@ export function createFakeVault(root: string, files: Record<string, string> = {}
 					return writeTaskLines(String(args.relPath), args.edits as TaskLineEdits);
 				case 'create_folder':
 					return undefined;
+				case 'scan_vault':
+					// An empty tree: the rename path rescans when the note is not in the explorer tree.
+					return [];
 				case 'create_note': {
 					const rel = relative(String(args.path));
 					if (vault.files.has(rel)) throw new Error(`File already exists: ${String(args.path)}`);

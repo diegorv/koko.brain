@@ -29,17 +29,17 @@ export interface DetachInput {
 	items: Map<string, PullItem>;
 	/** Project ids of the vault's tree. */
 	treeIds: ReadonlySet<string>;
-	/** Every project of the full pull, archived and deleted ones included. */
+	/** Every project of the full and incremental pulls, archived and deleted ones included. */
 	projects: ScopeProject[];
 }
 
 /**
  * Whether `projectId` is a live project whose live ancestors never reach the
  * tree. An unknown project (created after the full pull) or one that is, or
- * sits under, an archived or deleted project is not: Issue 11 resumes a link
- * on unarchive, so neither may detach it for good.
+ * sits under, an archived or deleted project is not: a link resumes on
+ * unarchive, so neither may detach it for good.
  */
-function isLiveOutsideTree(projectId: string, projects: ScopeProject[], treeIds: ReadonlySet<string>): boolean {
+export function isLiveOutsideTree(projectId: string, projects: ScopeProject[], treeIds: ReadonlySet<string>): boolean {
 	const byId = new Map(projects.map((p) => [p.id, p]));
 	const visited = new Set<string>();
 	let id: string | null | undefined = projectId;
@@ -66,8 +66,9 @@ export interface DetachPlan {
 /**
  * Plans the detaches of one cycle. Per link not yet detached that has a
  * Todoist id:
- * - its item reported deleted, or in a known, live project outside the
- *   vault's tree: detached at once;
+ * - its item reported deleted, in a project reported deleted (the item's
+ *   project, else the one in `remote_base`), or in a known, live project
+ *   outside the vault's tree: detached at once;
  * - no line in the scan: one more miss, detached on the third in a row;
  * - its line back after a miss: the count resets.
  * An item the pulls did not report counts as unchanged, never as deleted.
@@ -75,12 +76,15 @@ export interface DetachPlan {
  */
 export function planDetach(input: DetachInput): DetachPlan {
 	const plan: DetachPlan = { links: [], detached: [], log: [] };
+	const deletedProjects = new Set(input.projects.filter((p) => p.isDeleted).map((p) => p.id));
 	for (const link of input.links) {
 		if (isDetached(link) || link.todoistId === null) continue;
 		const item = input.items.get(link.todoistId);
 		const hasLine = (input.occurrences.get(link.anchor)?.length ?? 0) > 0;
+		const projectId = item?.projectId ?? (link.remoteBase ? (JSON.parse(link.remoteBase) as { projectId?: string }).projectId : undefined);
 		let reason: string | null = null;
 		if (item?.isDeleted) reason = `Todoist task ${link.todoistId} was deleted in Todoist`;
+		else if (projectId !== undefined && deletedProjects.has(projectId)) reason = `The project of Todoist task ${link.todoistId} was deleted in Todoist`;
 		else if (item && isLiveOutsideTree(item.projectId, input.projects, input.treeIds)) reason = `Todoist task ${link.todoistId} moved to a project outside the vault's tree`;
 		else if (!hasLine && link.missCount + 1 >= DETACH_AFTER_MISSES) {
 			reason = `The line was not found in the vault in ${DETACH_AFTER_MISSES} syncs in a row`;

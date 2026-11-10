@@ -2,6 +2,17 @@ import { TodoistSyncError, type SyncCommand, type TodoistApi } from '@doist/todo
 import { ask } from '@tauri-apps/plugin-dialog';
 import { call } from '#lib/contracts/ipc.js';
 import type { TaskLineReplace, TodoistSyncLogInput, TodoistTaskLink } from '#lib/contracts/index.js';
+import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { renameItem } from '#lib/core/filesystem/fs.service.js';
+import { FrontmatterWriteError, updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
+import {
+	detectLossyFrontmatter,
+	extractBody,
+	parseFrontmatterProperties,
+	rebuildContent,
+} from '#lib/core/frontmatter/properties.logic.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
@@ -20,6 +31,16 @@ import { belowLineBrake, DETACH_AFTER_MISSES, isDetached, planDetach } from './d
 import { planFields, type PlannedUpdate } from './fields.logic.js';
 import { readNoteContent, writeTaskLinesToNote } from './note-writer.service.js';
 import {
+	heldProjectIds,
+	planProjects,
+	projectStateEntry,
+	readProjectState,
+	type PendingProject,
+	type PlannedNoteRename,
+	type PlannedProjectUpdate,
+	type ProjectState,
+} from './projects.logic.js';
+import {
 	excludedLabelSet,
 	formatPullResult,
 	normalizeSyncFolder,
@@ -29,7 +50,7 @@ import {
 	type ScannedLine,
 } from './pull.logic.js';
 import { isFirstRunDone } from './sync-scheduler.logic.js';
-import { classifyTodoistError, syncErrorMessage, treeProjectIds, type TodoistFailure } from './sync-scope.logic.js';
+import { classifyTodoistError, syncErrorMessage, treeProjectIds, type ScopeProject, type TodoistFailure } from './sync-scope.logic.js';
 import { taskLineText } from './task-line.logic.js';
 import { createTodoistClient } from './todoist-client.js';
 import { todoistSyncStore } from './todoist-sync.store.svelte.js';
@@ -115,8 +136,15 @@ const COMMANDS_PER_REQUEST = 100;
  * written and its pending link committed with the rest, then its `item_add`
  * goes out, together with the pending adds of earlier cycles; a pending add
  * whose response was lost pairs with its task in the next pull
- * (`pairPendingAdds`) before the pull may insert it. A rerun inserts,
- * rewrites and sends nothing.
+ * (`pairPendingAdds`) before the pull may insert it. Projects
+ * (`planProjects`): a new note directly in the sync folder goes out as a
+ * `project_add` under the root in the same request as its lines'
+ * `item_add`s, which name its temp id, and gets the project id in its
+ * frontmatter; a note rename goes out as `project_update`; a Todoist rename
+ * renames the note last, through the app's rename path; a project named by
+ * two notes is frozen; a deleted project, or one moved out of the tree,
+ * detaches its note and its links. A rerun inserts, rewrites and sends
+ * nothing.
  *
  * Refuses before the vault index is ready, while sync is off, without a
  * token or root project, with a sync folder that is absolute or climbs out
@@ -125,7 +153,7 @@ const COMMANDS_PER_REQUEST = 100;
  * line brake). Before `first_run_done`, a manual cycle with creates shows
  * their count and creates nothing until confirmed; the first manual cycle
  * in normal mode that commits sets `first_run_done`. Over 10 detaches, 25 close/reopen
- * pushes, 50 field pushes or 25 creates, a manual cycle
+ * pushes, 50 field pushes or 25 creates (projects and tasks), a manual cycle
  * asks before writing anything ("Cancel" stops the run with the state
  * untouched); an automatic one never asks: it runs without that action
  * class, those links left as stored, and reports how many it skipped
@@ -194,17 +222,21 @@ async function cycle(
 	const { apiToken, syncRootProjectId, syncIncludeInbox, defaultLabel, syncContext } = settingsStore.todoist;
 	const client = createTodoistClient(apiToken);
 	const full = await request(() => client.sync({ syncToken: '*', resourceTypes: ['projects', 'items'] }));
-	const projects = full.projects ?? [];
-	const treeIds = treeProjectIds(projects, syncRootProjectId, syncIncludeInbox);
-	if (!treeIds) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
+	if (!treeProjectIds(full.projects ?? [], syncRootProjectId, syncIncludeInbox)) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
 
 	assertVault(vaultRoot);
 	const kv = await call('todoist_read_kv', { vaultPath: vaultRoot });
 	const storedToken = kv.find((e) => e.key === 'sync_token')?.value ?? null;
-	const changes = storedToken === null ? null : await request(() => client.sync({ syncToken: storedToken, resourceTypes: ['items'] }));
-	// The incremental pull ran last, so its items are the newest; it also carries the closed ones.
+	const changes = storedToken === null ? null : await request(() => client.sync({ syncToken: storedToken, resourceTypes: ['items', 'projects'] }));
+	// The incremental pull ran last, so its rows are the newest; it also carries the closed items and the archived and deleted projects.
 	const items = new Map<string, PullItem>();
 	for (const item of [...((full.items ?? []) as PullItem[]), ...((changes?.items ?? []) as PullItem[])]) items.set(item.id, item);
+	const projectsById = new Map<string, ScopeProject>();
+	for (const project of [...(full.projects ?? []), ...(changes?.projects ?? [])]) projectsById.set(project.id, project);
+	const projects = [...projectsById.values()];
+	// From the merged rows, as `planPull` builds its tree: a project deleted between the two pulls is out of it.
+	const treeIds = treeProjectIds(projects, syncRootProjectId, syncIncludeInbox);
+	if (!treeIds) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
 	const token = changes?.syncToken ?? full.syncToken;
 
 	assertVault(vaultRoot);
@@ -216,6 +248,7 @@ async function cycle(
 	// Pending adds whose response was lost pair with their task first, so the pull never inserts it as a second line.
 	const adoption = pairPendingAdds({ links: storedLinks, items: [...items.values()], excludedLabels });
 	const links = [...byAnchor(storedLinks, adoption.links).values()];
+	const storedProjects = readProjectState(kv);
 	const plan = planPull({
 		folder,
 		projects,
@@ -226,7 +259,24 @@ async function cycle(
 		occurrences: scan.occurrences,
 		notes: scan.notes,
 		excludedLabels,
+		heldProjectIds: heldProjectIds(storedProjects, projects, treeIds, scan.notes),
 	});
+	const projectPlan = planProjects({
+		folder,
+		projects,
+		treeIds,
+		rootId: syncRootProjectId,
+		notes: scan.notes,
+		createdNotes: plan.createNotes,
+		templatesFolder: settingsStore.templates.folder,
+		state: storedProjects,
+		// Rebuild mode creates nothing (design rule 1).
+		allowAdds: plan.mode === 'normal',
+		newUuid: () => crypto.randomUUID(),
+		newTempId: () => crypto.randomUUID(),
+	});
+	// A project named by two notes is frozen (design rule 10): none of its tasks sync either way.
+	const syncTreeIds = new Set([...treeIds].filter((id) => !projectPlan.frozenProjectIds.has(id)));
 	let detach = planDetach({ links: [...byAnchor(links, plan.updatedLinks).values()], occurrences: scan.occurrences, items, treeIds, projects });
 	let skippedDetaches = 0;
 	if (detach.detached.length > DETACH_CAP) {
@@ -247,7 +297,7 @@ async function cycle(
 		occurrences: scan.occurrences,
 		items,
 		incremental: changes !== null,
-		treeIds,
+		treeIds: syncTreeIds,
 		newUuid: () => crypto.randomUUID(),
 	});
 	let skippedPushes = 0;
@@ -263,7 +313,7 @@ async function cycle(
 		}
 	}
 	const fields = planFields(
-		{ links: attached, occurrences: scan.occurrences, items, incremental: changes !== null, treeIds, excludedLabels, newUuid: () => crypto.randomUUID() },
+		{ links: attached, occurrences: scan.occurrences, items, incremental: changes !== null, treeIds: syncTreeIds, excludedLabels, newUuid: () => crypto.randomUUID() },
 		completion,
 	);
 	completion = fields;
@@ -287,8 +337,9 @@ async function cycle(
 					notes: scan.notes,
 					links: [...current.values()],
 					occurrences: scan.occurrences,
-					treeIds,
+					treeIds: syncTreeIds,
 					rootId: syncRootProjectId,
+					pendingProjects: new Map([...projectPlan.resends, ...projectPlan.adds].map((p) => [p.relPath, p.tempId])),
 					excludedLabels,
 					syncContext,
 					takenAnchors: new Set([...scan.occurrences.keys(), ...current.keys(), ...plan.inserts.flatMap((i) => i.links.map((l) => l.anchor))]),
@@ -296,19 +347,32 @@ async function cycle(
 					newAnchor: (taken) => generateAnchor(taken),
 				});
 	let skippedCreates = 0;
-	const newCreates = creates.creates.length;
+	let projectAdds = projectPlan.adds;
+	const newCreates = creates.creates.length + projectAdds.length;
 	if (newCreates > 0 && (!firstRunDone || newCreates > CREATE_CAP)) {
+		const what = createCounts(projectAdds.length, creates.creates.length);
 		// An automatic cycle never runs before the first run (the scheduler), and never asks.
 		if (mode === 'auto') {
 			skippedCreates = newCreates;
 			creates = { ...creates, creates: [] };
-		} else if (!(await (firstRunDone ? confirmCreates(newCreates) : confirmFirstRun(newCreates)))) {
+			projectAdds = [];
+		} else if (!(await (firstRunDone ? confirmCreates(what) : confirmFirstRun(what)))) {
 			throw new SyncStop(CANCELLED, { kind: 'error' });
 		}
 	}
+	// The pending adds are stored before they are sent (design rule 2); the state moves on as the cycle's commands are answered.
+	const projectState: ProjectState = { ...projectPlan.state, pending: [...projectPlan.state.pending, ...projectAdds] };
+	const projectStateChanged = JSON.stringify(projectState) !== JSON.stringify(storedProjects);
 
 	// Skipped lines are planned again every cycle: logged on automatic ones they would fill the capped sync log.
-	const log: TodoistSyncLogInput[] = [...adoption.log, ...plan.log, ...detach.log, ...completion.log, ...(mode === 'manual' ? creates.log : [])];
+	const log: TodoistSyncLogInput[] = [
+		...adoption.log,
+		...plan.log,
+		...projectPlan.log,
+		...detach.log,
+		...completion.log,
+		...(mode === 'manual' ? creates.log : []),
+	];
 	for (const note of plan.createNotes) {
 		assertVault(vaultRoot);
 		await createNoteFile(vaultRoot, `${vaultRoot}/${note.relPath}`, note.content);
@@ -347,6 +411,7 @@ async function cycle(
 		...(token && !written.anyStale && skippedDetaches === 0 && !fields.withholdToken ? [{ key: 'sync_token', value: token }] : []),
 		// The first manual cycle past the preview turns automatic cycles on; a rebuild, which plans no create, is no preview.
 		...(mode === 'manual' && !firstRunDone && plan.mode === 'normal' ? [{ key: 'first_run_done', value: '1' }] : []),
+		...(projectStateChanged ? [projectStateEntry(projectState)] : []),
 	];
 	assertVault(vaultRoot);
 	await call('todoist_commit_state', {
@@ -368,7 +433,18 @@ async function cycle(
 	const ready = updates.filter((u) => !changedAnchors.has(u.anchor) || storedAnchors.has(u.anchor));
 	if (ready.length > 0) todoistUpdated += await pushFields(client, vaultRoot, ready);
 	const adds = [...written.created.map((c) => ({ link: c.link, command: c.command })), ...creates.resends];
-	const todoistCreated = adds.length > 0 ? await pushCreates(client, vaultRoot, adds, excludedLabels) : 0;
+	const projectCommands = [...projectPlan.resends, ...projectAdds];
+	const pushed =
+		adds.length > 0 || projectCommands.length > 0
+			? await pushCreates(client, vaultRoot, projectCommands, adds, excludedLabels, projectState)
+			: { todoistCreated: 0, projectsCreated: 0 };
+	// Renames go last: every line write of this cycle used the note paths of the scan.
+	let projectsRenamed = projectPlan.updates.length > 0 ? await pushProjectUpdates(client, vaultRoot, projectPlan.updates, projectState) : 0;
+	projectsRenamed += await renameProjectNotes(vaultRoot, projectPlan.renames, projectState);
+	if (projectPlan.updates.length > 0 || projectPlan.renames.length > 0) {
+		assertVault(vaultRoot);
+		await call('todoist_commit_state', { vaultPath: vaultRoot, commit: { kv: [projectStateEntry(projectState)], upsertLinks: [], deleteAnchors: [] } });
+	}
 	return {
 		mode: plan.mode,
 		notesCreated: plan.createNotes.length,
@@ -377,7 +453,9 @@ async function cycle(
 		linesUnmatched: plan.linesUnmatched,
 		linesUpdated,
 		todoistUpdated,
-		todoistCreated,
+		todoistCreated: pushed.todoistCreated,
+		projectsCreated: pushed.projectsCreated,
+		projectsRenamed,
 		skippedPushes,
 		skippedDetaches,
 		skippedFieldPushes,
@@ -478,26 +556,65 @@ async function pushFields(client: TodoistApi, vaultRoot: string, updates: Planne
 }
 
 /**
- * Sends the creates of brain-born lines as `item_add` commands, each with
- * the uuid and temp id stored in its `pending_cmd`, so a resend after a lost
- * response is applied once (live-check 8). Stores each link by its answer:
- * `ok` stores the Todoist id from `temp_id_mapping` ({@link ackedLink}); a
- * terminal 4xx detaches the link (the line keeps its anchor and never
- * syncs; removing the `🆔` makes it a new line) and is logged; any other
- * failure keeps the pending add for a resend next cycle. Returns how many
- * Todoist created.
+ * Sends the brain-born projects as `project_add` commands under the root,
+ * then the creates of brain-born lines as `item_add` commands, in the same
+ * requests, each with the uuid and temp id stored before (a project's in the
+ * project state, a line's in its `pending_cmd`), so a resend after a lost
+ * response is applied once (live-check 8). A line of a brain-born project
+ * names the project's temp id as its project.
+ *
+ * A project `ok` gets its id written to the note's `todoist_project` and
+ * its base stored; a failed write keeps the pending add, whose resend
+ * returns the same id. A terminal 4xx refuses the note for good (logged);
+ * any other failure keeps it for a resend. Each line link is stored by its
+ * answer: `ok` stores the Todoist id from `temp_id_mapping` and the real
+ * project id ({@link ackedLink}); a terminal 4xx detaches the link (the line
+ * keeps its anchor and never syncs; removing the `🆔` makes it a new line)
+ * and is logged; any other failure keeps the pending add for a resend next
+ * cycle. `state` is updated in place and committed with the links.
  */
 async function pushCreates(
 	client: TodoistApi,
 	vaultRoot: string,
+	projectAdds: PendingProject[],
 	adds: { link: TodoistTaskLink; command: PendingAdd }[],
 	excludedLabels: ReadonlySet<string>,
-): Promise<number> {
+	state: ProjectState,
+): Promise<{ todoistCreated: number; projectsCreated: number }> {
+	// A line resent after its project was acknowledged in an earlier cycle still names the project's temp id.
+	const known: Record<string, string> = {};
+	for (const [id, base] of Object.entries(state.bases)) if (base.tempId) known[base.tempId] = id;
 	const { statuses, tempIds } = await sendCommands(
 		client,
-		adds.map(({ command }) => ({ type: command.type, uuid: command.uuid, tempId: command.tempId, args: { ...command.args } })),
+		[
+			...projectAdds.map((p) => ({ type: 'project_add' as const, uuid: p.uuid, tempId: p.tempId, args: { ...p.args } })),
+			...adds.map(({ command }) => ({ type: command.type, uuid: command.uuid, tempId: command.tempId, args: { ...command.args } })),
+		],
+		known,
 	);
 	const log: TodoistSyncLogInput[] = [];
+	let projectsCreated = 0;
+	for (const project of projectAdds) {
+		const status = statuses[project.uuid];
+		const id = tempIds[project.tempId];
+		const settle = () => (state.pending = state.pending.filter((p) => p.uuid !== project.uuid));
+		if (status === 'ok' && id !== undefined) {
+			if (!(await writeProjectId(vaultRoot, project.relPath, id, log))) continue;
+			settle();
+			state.bases[id] = { name: project.args.name, relPath: project.relPath, tempId: project.tempId };
+			projectsCreated++;
+		} else if (isTerminal(status)) {
+			settle();
+			state.refused.push(project.relPath);
+			log.push({
+				kind: 'command-error',
+				anchor: null,
+				message: `Todoist refused project_add for ${project.relPath}: ${JSON.stringify(status)}; the note is not created as a project again under this name`,
+			});
+		} else if (status !== undefined) {
+			error('TODOIST', `project_add for ${project.relPath} got ${JSON.stringify(status)} without a Todoist id; it is resent next cycle`);
+		}
+	}
 	const links: TodoistTaskLink[] = [];
 	let created = 0;
 	for (const { link, command } of adds) {
@@ -505,7 +622,8 @@ async function pushCreates(
 		const id = tempIds[command.tempId];
 		if (status === 'ok' && id !== undefined) {
 			created++;
-			links.push(ackedLink(link, command, id, excludedLabels));
+			const projectId = tempIds[command.args.projectId] ?? known[command.args.projectId] ?? command.args.projectId;
+			links.push(ackedLink(link, command, id, excludedLabels, projectId));
 		} else if (isTerminal(status)) {
 			links.push({ ...link, missCount: DETACH_AFTER_MISSES, pendingUuid: null, pendingCmd: null });
 			log.push({
@@ -518,26 +636,132 @@ async function pushCreates(
 		}
 	}
 	assertVault(vaultRoot);
-	await call('todoist_commit_state', { vaultPath: vaultRoot, commit: { kv: [], upsertLinks: links, deleteAnchors: [] } });
+	await call('todoist_commit_state', {
+		vaultPath: vaultRoot,
+		commit: { kv: projectAdds.length > 0 ? [projectStateEntry(state)] : [], upsertLinks: links, deleteAnchors: [] },
+	});
 	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
-	return created;
+	return { todoistCreated: created, projectsCreated };
+}
+
+/**
+ * Writes a brain-born project's id to its note's `todoist_project`. A note
+ * with a tab gets it in the tab's content only, left to the autosave (design
+ * rule 12: the sync never saves the user's tab); a closed note goes through
+ * the frontmatter writer. Returns false when the write failed (logged); a
+ * vault switch stops the run.
+ */
+async function writeProjectId(vaultRoot: string, relPath: string, id: string, log: TodoistSyncLogInput[]): Promise<boolean> {
+	assertVault(vaultRoot);
+	const path = `${vaultRoot}/${relPath}`;
+	const withId = (props: Property[]): Property[] => [
+		...props.filter((p) => p.key !== 'todoist_project'),
+		{ key: 'todoist_project', value: id, type: 'text' },
+	];
+	try {
+		const tab = editorStore.tabs.find((t) => t.path === path);
+		if (tab) {
+			const lossy = detectLossyFrontmatter(tab.content);
+			if (lossy !== null) throw new FrontmatterWriteError(lossy, path);
+			const next = rebuildContent(withId(parseFrontmatterProperties(tab.content)), extractBody(tab.content), tab.content);
+			if (next !== tab.content) syncExternalContentToEditor(path, next, false, 'body');
+			return true;
+		}
+		await updateNoteFrontmatter(path, withId);
+		return true;
+	} catch (err) {
+		assertVault(vaultRoot);
+		error('TODOIST', `writing todoist_project ${id} to ${relPath} failed:`, err);
+		log.push({ kind: 'stale', anchor: null, message: `${relPath}: the Todoist project id ${id} could not be written to the note; it is retried next cycle` });
+		return false;
+	}
+}
+
+/**
+ * Sends the note renames as `project_update` commands. `ok` moves the base
+ * to the note's name; a terminal 4xx moves it to the note's path with
+ * Todoist's name (logged, not retried); any other failure leaves it, so the
+ * next cycle sends the update again. Returns how many Todoist renamed.
+ */
+async function pushProjectUpdates(client: TodoistApi, vaultRoot: string, updates: PlannedProjectUpdate[], state: ProjectState): Promise<number> {
+	const { statuses } = await sendCommands(
+		client,
+		updates.map((u) => ({ type: 'project_update' as const, uuid: u.uuid, args: { id: u.projectId, name: u.name } })),
+	);
+	const log: TodoistSyncLogInput[] = [];
+	let renamed = 0;
+	for (const update of updates) {
+		const status = statuses[update.uuid];
+		const base = state.bases[update.projectId];
+		if (status === 'ok') {
+			renamed++;
+			state.bases[update.projectId] = { ...base, name: update.name, relPath: update.relPath };
+		} else if (isTerminal(status)) {
+			state.bases[update.projectId] = { ...base, name: update.remoteName, relPath: update.relPath };
+			log.push({
+				kind: 'command-error',
+				anchor: null,
+				message: `Todoist refused renaming project ${update.projectId} to ${JSON.stringify(update.name)}: ${JSON.stringify(status)}; the names stay apart`,
+			});
+		} else if (status !== undefined) {
+			error('TODOIST', `project_update for ${update.projectId} failed; it is sent again next cycle:`, status);
+		}
+	}
+	assertVault(vaultRoot);
+	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
+	return renamed;
+}
+
+/**
+ * Renames project notes after their Todoist rename, through the app's
+ * rename path (`renameItem`: links to the note are rewritten, tabs and
+ * indexes follow). A failed rename is logged and left to the next cycle.
+ * Returns how many notes were renamed.
+ */
+async function renameProjectNotes(vaultRoot: string, renames: PlannedNoteRename[], state: ProjectState): Promise<number> {
+	const log: TodoistSyncLogInput[] = [];
+	let renamed = 0;
+	for (const rename of renames) {
+		assertVault(vaultRoot);
+		try {
+			await renameItem(`${vaultRoot}/${rename.from}`, rename.to.slice(rename.to.lastIndexOf('/') + 1));
+		} catch (err) {
+			assertVault(vaultRoot);
+			error('TODOIST', `renaming ${rename.from} to ${rename.to} failed:`, err);
+			log.push({ kind: 'stale', anchor: null, message: `${rename.from}: renaming it to ${rename.to} after Todoist failed; it is retried next cycle` });
+			continue;
+		}
+		renamed++;
+		state.bases[rename.projectId] = { ...state.bases[rename.projectId], name: rename.name, relPath: rename.to };
+	}
+	assertVault(vaultRoot);
+	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
+	return renamed;
 }
 
 /**
  * Sends commands at most 100 per request, never in the same request as a
  * pull (design rule 13), and returns every `sync_status` by uuid and every
  * created id by temp id. A failed command arrives as a status; a failed
- * request stops the run.
+ * request stops the run. A `projectId` naming a temp id that an earlier
+ * request (or `known`) resolved is sent as the real id: a temp id holds
+ * only within its own request.
  */
 async function sendCommands(
 	client: TodoistApi,
 	commands: SyncCommand[],
+	known: Record<string, string> = {},
 ): Promise<{ statuses: Record<string, unknown>; tempIds: Record<string, string> }> {
 	const statuses: Record<string, unknown> = {};
 	const tempIds: Record<string, string> = {};
+	const resolved = { ...known };
+	const withRealProject = (command: SyncCommand): SyncCommand => {
+		const projectId = (command.args as { projectId?: unknown }).projectId;
+		return typeof projectId === 'string' && resolved[projectId] ? ({ ...command, args: { ...command.args, projectId: resolved[projectId] } } as SyncCommand) : command;
+	};
 	for (let i = 0; i < commands.length; i += COMMANDS_PER_REQUEST) {
 		try {
-			const res = await client.sync({ commands: commands.slice(i, i + COMMANDS_PER_REQUEST) });
+			const res = await client.sync({ commands: commands.slice(i, i + COMMANDS_PER_REQUEST).map(withRealProject) });
 			Object.assign(statuses, res.syncStatus ?? {});
 			Object.assign(tempIds, res.tempIdMapping ?? {});
 		} catch (err) {
@@ -549,6 +773,7 @@ async function sendCommands(
 			Object.assign(statuses, err.syncStatus);
 			Object.assign(tempIds, err.tempIdMapping);
 		}
+		Object.assign(resolved, tempIds);
 	}
 	return { statuses, tempIds };
 }
@@ -664,17 +889,24 @@ async function confirmDetaches(count: number): Promise<boolean> {
 	);
 }
 
+/** What a cycle would create, e.g. `1 project and 3 tasks`. */
+function createCounts(projects: number, tasks: number): string {
+	const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
+	if (projects === 0) return count(tasks, 'task');
+	return tasks === 0 ? count(projects, 'project') : `${count(projects, 'project')} and ${count(tasks, 'task')}`;
+}
+
 /** The first-run preview of design rule 9: nothing is created before the user confirms the count. */
-async function confirmFirstRun(count: number): Promise<boolean> {
+async function confirmFirstRun(what: string): Promise<boolean> {
 	return ask(
-		`This first Todoist sync would create ${count} ${count === 1 ? 'task' : 'tasks'} in Todoist from task lines in the vault. Nothing is sent until you continue. Continue?`,
+		`This first Todoist sync would create ${what} in Todoist from notes and task lines in the vault. Nothing is sent until you continue. Continue?`,
 		{ title: 'Todoist sync', kind: 'warning', okLabel: 'Create', cancelLabel: 'Cancel' },
 	);
 }
 
 /** "Pause and ask" of design rule 9 for a manual cycle over the create cap. */
-async function confirmCreates(count: number): Promise<boolean> {
-	return ask(`This Todoist sync would create ${count} tasks in Todoist from new task lines, more than ${CREATE_CAP} in one sync. Continue?`, {
+async function confirmCreates(what: string): Promise<boolean> {
+	return ask(`This Todoist sync would create ${what} in Todoist from new notes and task lines, more than ${CREATE_CAP} in one sync. Continue?`, {
 		title: 'Todoist sync',
 		kind: 'warning',
 		okLabel: 'Sync',

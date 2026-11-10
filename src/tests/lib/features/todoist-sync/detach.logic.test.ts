@@ -97,18 +97,26 @@ describe('planDetach: Todoist side', () => {
 		expect(plan).toEqual({ links: [], detached: [], log: [] });
 	});
 
-	it('keeps a link whose item is in an archived or deleted project, or one under an archived parent', () => {
-		const projects = [
-			...PROJECTS,
-			project('old', { parentId: 'work', isArchived: true }),
-			project('under-old', { parentId: 'old' }),
-			project('gone', { isDeleted: true }),
-		];
-		const items = [item('a', { projectId: 'old' }), item('b', { projectId: 'under-old' }), item('c', { projectId: 'gone' })];
+	it('keeps a link whose item is in an archived project, or one under an archived parent', () => {
+		const projects = [...PROJECTS, project('old', { parentId: 'work', isArchived: true }), project('under-old', { parentId: 'old' })];
+		const items = [item('a', { projectId: 'old' }), item('b', { projectId: 'under-old' })];
 
-		const plan = planDetach(input([link('a'), link('b'), link('c')], seen('td-a', 'td-b', 'td-c'), items, projects));
+		const plan = planDetach(input([link('a'), link('b')], seen('td-a', 'td-b'), items, projects));
 
 		expect(plan).toEqual({ links: [], detached: [], log: [] });
+	});
+
+	it('detaches a link whose project was deleted, by the item or, when the pull did not report it, by remote_base', () => {
+		const projects = [...PROJECTS, project('gone', { isDeleted: true })];
+		const byBase = link('b', { remoteBase: JSON.stringify({ projectId: 'gone' }) });
+
+		const plan = planDetach(input([link('a'), byBase, link('c')], seen('td-a', 'td-b', 'td-c'), [item('a', { projectId: 'gone' })], projects));
+
+		expect(plan.detached).toEqual(['td-a', 'td-b']);
+		expect(plan.log).toEqual([
+			expect.objectContaining({ kind: 'detach', anchor: 'td-a', message: expect.stringContaining('project of Todoist task a was deleted') }),
+			expect.objectContaining({ kind: 'detach', anchor: 'td-b' }),
+		]);
 	});
 
 	it('detaches a link whose item moved under a live project outside the tree', () => {

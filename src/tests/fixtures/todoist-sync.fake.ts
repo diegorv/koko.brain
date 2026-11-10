@@ -20,7 +20,11 @@
  * says `starting`, which completes it for good (`research/live-check.md` R).
  * An `item_update` of `due` keeps the recurrence only when it sends the rule
  * as `string` (live-check 7); an `item_add` stores only item fields, and a
- * due sent as a rule alone gets its first date.
+ * due sent as a rule alone gets its first date. `project_add` and
+ * `project_update` (name only) change projects; a temp id is resolved only
+ * in the request that created it, so a client that splits its commands
+ * over requests must send the real id. A full sync leaves archived projects
+ * out ("active resource data", API docs); an incremental one reports them.
  *
  * Extend this file when an engine ticket needs another command or resource.
  */
@@ -137,6 +141,12 @@ export interface FakeTodoist {
 	addSection(section: Partial<FakeSection> & { id: string; project_id: string; name: string }): FakeSection;
 	/** Adds or replaces an item; returns the stored row. */
 	addItem(item: Partial<FakeItem> & { id: string; project_id: string; content: string }): FakeItem;
+	/** Changes a project as if edited in Todoist, bumping its version. */
+	updateProject(id: string, patch: Partial<FakeProject>): FakeProject;
+	/** The stored project, or undefined. */
+	project(id: string): FakeProject | undefined;
+	/** Every stored project, deleted and archived ones included, in insertion order. */
+	projects(): FakeProject[];
 	/** Changes an item as if edited in Todoist, bumping its version. */
 	updateItem(id: string, patch: Partial<FakeItem>): FakeItem;
 	/** The stored item, or undefined. */
@@ -149,6 +159,8 @@ export interface FakeTodoist {
 	refuseCommandsFor(id: string): void;
 	/** Answers every later `item_add` into project `projectId` with a 400 `sync_status`, applying nothing. */
 	refuseAddsIn(projectId: string): void;
+	/** Answers every later `project_add` and `project_update` with a 400 `sync_status`, applying nothing. */
+	refuseProjectCommands(): void;
 }
 
 const USER_ID = 'u1';
@@ -209,6 +221,7 @@ export function createFakeTodoist(): FakeTodoist {
 	const requests: FakeRequest[] = [];
 	const refused = new Set<string>();
 	const refusedProjects = new Set<string>();
+	let refuseProjects = false;
 
 	const bump = () => ++version;
 
@@ -247,9 +260,37 @@ export function createFakeTodoist(): FakeTodoist {
 		return { error, error_code: 20, error_extra: {}, error_tag: 'INVALID_ARGUMENT', http_code: httpCode };
 	}
 
-	/** Applies one command; returns its `sync_status` value and any new id. */
+	function storeProject(row: FakeProject): FakeProject {
+		projects.set(row.id, { row, v: bump() });
+		return row;
+	}
+
+	function newProject(fields: Partial<FakeProject> & { id: string; name: string }): FakeProject {
+		return {
+			can_assign_tasks: false,
+			child_order: 1,
+			color: 'charcoal',
+			created_at: STAMP,
+			is_archived: false,
+			is_deleted: false,
+			is_favorite: false,
+			is_frozen: false,
+			updated_at: STAMP,
+			view_style: 'list',
+			default_order: 0,
+			description: '',
+			is_collapsed: false,
+			is_shared: false,
+			parent_id: null,
+			inbox_project: false,
+			...fields,
+		};
+	}
+
+	/** Applies one command (temp ids of this request already resolved); returns its `sync_status` value and any new id. */
 	function apply(cmd: FakeCommand): { status: unknown; id?: string } {
 		const args = cmd.args;
+		if (cmd.type.startsWith('project_')) return applyProject(cmd);
 		if (typeof args.id === 'string' && refused.has(args.id)) return { status: commandError('Invalid argument value') };
 		if (cmd.type === 'item_add' && typeof args.project_id === 'string' && refusedProjects.has(args.project_id)) {
 			return { status: commandError('Invalid argument value') };
@@ -260,6 +301,7 @@ export function createFakeTodoist(): FakeTodoist {
 				if (typeof args.content !== 'string' || typeof args.project_id !== 'string') {
 					return { status: commandError('content and project_id required') };
 				}
+				if (!projects.has(args.project_id)) return { status: commandError('Project not found', 404) };
 				const id = String(nextId++);
 				// Only item fields are stored; command options such as `auto_parse_labels` are not.
 				const known = ['description', 'priority', 'labels', 'section_id', 'parent_id', 'child_order'] as const;
@@ -300,6 +342,34 @@ export function createFakeTodoist(): FakeTodoist {
 		}
 	}
 
+	function applyProject(cmd: FakeCommand): { status: unknown; id?: string } {
+		const args = cmd.args;
+		if (refuseProjects) return { status: commandError('Invalid argument value') };
+		switch (cmd.type) {
+			case 'project_add': {
+				if (typeof args.name !== 'string') return { status: commandError('name required') };
+				const parent = typeof args.parent_id === 'string' ? args.parent_id : null;
+				if (parent !== null && !projects.has(parent)) return { status: commandError('Parent project not found', 404) };
+				const id = `p${nextId++}`;
+				storeProject(newProject({ id, name: args.name, parent_id: parent }));
+				return { status: 'ok', id };
+			}
+			case 'project_update': {
+				const existing = typeof args.id === 'string' ? projects.get(args.id) : undefined;
+				if (!existing || existing.row.is_deleted) return { status: commandError('Project not found', 404) };
+				storeProject({ ...existing.row, ...(typeof args.name === 'string' ? { name: args.name } : {}), updated_at: STAMP });
+				return { status: 'ok' };
+			}
+			default:
+				return { status: commandError(`Unknown command ${cmd.type}`) };
+		}
+	}
+
+	/** `args` with every string value that is a temp id of this request replaced by its real id. */
+	function resolveTempIds(args: Record<string, unknown>, mapping: Record<string, string>): Record<string, unknown> {
+		return Object.fromEntries(Object.entries(args).map(([k, v]) => [k, typeof v === 'string' && v in mapping ? mapping[v] : v]));
+	}
+
 	function since<T>(map: Map<string, { row: T & { is_deleted: boolean }; v: number }>, from: number | null): T[] {
 		return [...map.values()]
 			.filter(({ row, v }) => (from === null ? !row.is_deleted : v > from))
@@ -316,7 +386,7 @@ export function createFakeTodoist(): FakeTodoist {
 		for (const cmd of body.commands ?? []) {
 			let outcome = outcomes.get(cmd.uuid);
 			if (!outcome) {
-				const result = apply(cmd);
+				const result = apply({ ...cmd, args: resolveTempIds(cmd.args, tempIdMapping) });
 				outcome = { status: result.status, tempId: cmd.temp_id, id: result.id };
 				outcomes.set(cmd.uuid, outcome);
 			}
@@ -335,7 +405,7 @@ export function createFakeTodoist(): FakeTodoist {
 			if (from !== null && Number.isNaN(from)) return json(400, commandError('Invalid sync token'));
 			const types = new Set(body.resource_types ?? []);
 			const wants = (type: string) => types.has(type) || types.has('all');
-			if (wants('projects')) response.projects = since(projects, from);
+			if (wants('projects')) response.projects = since(projects, from).filter((p) => from !== null || !p.is_archived);
 			if (wants('sections')) response.sections = since(sections, from);
 			// A full sync returns only uncompleted items (live-check 5b).
 			if (wants('items')) response.items = since(items, from).filter((i) => from !== null || !i.checked);
@@ -382,27 +452,21 @@ export function createFakeTodoist(): FakeTodoist {
 		},
 
 		addProject(project) {
-			const row: FakeProject = {
-				can_assign_tasks: false,
-				child_order: 1,
-				color: 'charcoal',
-				created_at: STAMP,
-				is_archived: false,
-				is_deleted: false,
-				is_favorite: false,
-				is_frozen: false,
-				updated_at: STAMP,
-				view_style: 'list',
-				default_order: 0,
-				description: '',
-				is_collapsed: false,
-				is_shared: false,
-				parent_id: null,
-				inbox_project: false,
-				...project,
-			};
-			projects.set(row.id, { row, v: bump() });
-			return row;
+			return storeProject(newProject(project));
+		},
+
+		updateProject(id, patch) {
+			const existing = projects.get(id);
+			if (!existing) throw new Error(`fake Todoist: no project ${id}`);
+			return storeProject({ ...existing.row, ...patch });
+		},
+
+		project(id) {
+			return projects.get(id)?.row;
+		},
+
+		projects() {
+			return [...projects.values()].map(({ row }) => row);
 		},
 
 		addSection(section) {
@@ -450,6 +514,10 @@ export function createFakeTodoist(): FakeTodoist {
 
 		refuseAddsIn(projectId) {
 			refusedProjects.add(projectId);
+		},
+
+		refuseProjectCommands() {
+			refuseProjects = true;
 		},
 	};
 	return fake;
