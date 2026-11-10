@@ -132,7 +132,7 @@ export type FakeFailure =
 /** The fake server. */
 export interface FakeTodoist {
 	/** The plugin-http `fetch` the adapter calls. */
-	fetch(url: string, init?: RequestInit): Promise<Response>;
+	fetch(url: string, init?: RequestInit): Promise<Response>; // privacy-ok: in-memory fake of api.todoist.com for tests, no network
 	/** Bearer token the server accepts; any other gets 401. */
 	token: string;
 	/** Current version; the next full or incremental sync returns `v<version>`. */
@@ -477,7 +477,7 @@ export function createFakeTodoist(): FakeTodoist {
 		},
 		requests,
 
-		async fetch(url: string, init?: RequestInit): Promise<Response> {
+		async fetch(url: string, init?: RequestInit): Promise<Response> { // privacy-ok: in-memory fake of api.todoist.com for tests, no network
 			if (!url.endsWith('/api/v1/sync')) throw new Error(`fake Todoist: unexpected URL ${url}`);
 			const body = JSON.parse(String(init?.body ?? '{}')) as FakeRequest;
 			requests.push(body);
