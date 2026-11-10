@@ -41,14 +41,14 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Guarded writer for task lines in notes that are open in a tab](issues/04-guarded-line-writer-open-tabs.md) | 03 | done | issue/04-guarded-line-writer-open-tabs (af9115203) | 2026-11-09 |
 | 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | done | issue/05-sync-settings-state-and-connection-check (e982782b8) | 2026-11-09 |
 | 06 | ["Todoist: Sync now" pulls every project and its open tasks into project notes](issues/06-sync-now-pulls-projects-and-tasks.md) | 04, 05 | done | issue/06-sync-now-pulls-projects-and-tasks (12fefe60a) | 2026-11-09 |
-| 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | todo | | |
+| 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | in-progress | | |
 | 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | todo | | |
 | 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | todo | | |
 | 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | todo | | |
 | 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | todo | | |
 | 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | todo | | |
 | 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | todo | | |
-| 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | todo | | |
+| 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | in-progress | | |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14 | todo | | |
 
 ## Log
@@ -65,3 +65,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 22:08 — 06 — start — launched by /relay-lite:run — 77d9638af
 - 2026-11-09 22:09 — ledger updated (blocked by of 14)
 - 2026-11-09 22:37 — 06 — deliver — round 1 APPROVED by claude, fix round (rebuild-mode toast, sync_token not committed after a stale insert, vault-switch test, folder normalization, outline order, JSDoc), points 3 and 6 recorded for owner/Issue 07; round 2 APPROVED, one nit left (trailing backslash in syncFolder); full suite passed (597 files, 14494 tests) — 12fefe60a
+- 2026-11-09 22:38 — 07 — start — launched by /relay-lite:run — c78e5afe2
+- 2026-11-09 22:38 — 14 — start — launched by /relay-lite:run — c78e5afe2
