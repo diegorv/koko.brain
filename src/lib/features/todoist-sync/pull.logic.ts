@@ -78,6 +78,13 @@ export interface LocalBase {
 	priority: TaskPriority | null;
 	/** Tags on the line, without `#`. */
 	tags: string[];
+	/**
+	 * Brain text already logged as not sendable (over the length limit, or
+	 * failing the round trip), so it is logged once. Kept apart from
+	 * `description`: a `description` that fails the round trip marks a line
+	 * inserted from raw Todoist content.
+	 */
+	unpushedDescription?: string;
 }
 
 /** `remote_base` JSON: the raw Todoist values last seen. */
@@ -188,7 +195,7 @@ export interface PullCounts {
 	linesUnmatched: number;
 	/** Synced lines patched from Todoist (status, recurring `📅`). */
 	linesUpdated: number;
-	/** Close and reopen commands Todoist acknowledged. */
+	/** Close, reopen and field update commands Todoist acknowledged. */
 	todoistUpdated: number;
 }
 

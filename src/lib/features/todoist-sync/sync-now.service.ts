@@ -16,7 +16,7 @@ import {
 	type PlannedCommand,
 } from './completion.logic.js';
 import { belowLineBrake, isDetached, planDetach } from './detach.logic.js';
-import { planFields } from './fields.logic.js';
+import { planFields, type PlannedUpdate } from './fields.logic.js';
 import { readNoteContent, writeTaskLinesToNote } from './note-writer.service.js';
 import {
 	excludedLabelSet,
@@ -47,11 +47,19 @@ export type SyncFailure =
 /**
  * The outcome of "Sync now", with the message to show. `failure` is set only
  * when a run started and failed; a refusal (sync off, index not ready, a run
- * already in progress, ...) has none. `skippedPushes` and `skippedDetaches`
- * are set only when an automatic cycle left out its close and reopen pushes,
- * or its detaches, for being over their cap: how many it planned.
+ * already in progress, ...) has none. `skippedPushes`, `skippedDetaches` and
+ * `skippedFieldPushes` are set only when an automatic cycle left out its
+ * close and reopen pushes, its detaches, or its field pushes, for being over
+ * their cap: how many it planned.
  */
-export type SyncNowOutcome = { ok: boolean; message: string; failure?: SyncFailure; skippedPushes?: number; skippedDetaches?: number };
+export type SyncNowOutcome = {
+	ok: boolean;
+	message: string;
+	failure?: SyncFailure;
+	skippedPushes?: number;
+	skippedDetaches?: number;
+	skippedFieldPushes?: number;
+};
 
 /** Who started a cycle: "Sync now" (`manual`) or a scheduler trigger (`auto`). */
 export type SyncMode = 'manual' | 'auto';
@@ -75,6 +83,8 @@ const LINES_MISSING = 'Todoist sync stopped: fewer than half of the synced task 
 const CLOSE_REOPEN_CAP = 25;
 /** Detaches one cycle makes without asking (design rule 9). */
 const DETACH_CAP = 10;
+/** Field pushes (`item_update` commands, one per task) one cycle sends without asking (design rule 9). */
+const FIELD_PUSH_CAP = 50;
 /** Sync API limit on commands per request (design rule 13). */
 const COMMANDS_PER_REQUEST = 100;
 
@@ -87,18 +97,20 @@ const COMMANDS_PER_REQUEST = 100;
  * or moved out of the tree in Todoist, or whose line was missing from 3
  * scans in a row, is detached (kept, never synced again; neither side is
  * deleted). Then completion (`planCompletion`) and the content, due,
- * priority and label edits made in Todoist (`planFields`) for the links
+ * priority and label edits made on either side (`planFields`) for the links
  * still attached: lines patched from Todoist, and the links committed with
  * the `sync_token`, close and reopen
  * pushes stored as `pending_cmd` first. The commands go out in their own
  * requests; after Todoist acknowledges them an incremental pull rewrites
- * those lines (`planAck`). A rerun inserts and rewrites nothing.
+ * those lines (`planAck`). Then the brain's field edits go out as
+ * `item_update` commands, and their bases are stored by Todoist's answer.
+ * A rerun inserts, rewrites and sends nothing.
  *
  * Refuses before the vault index is ready, while sync is off, without a
  * token or root project, with a sync folder that is absolute or climbs out
  * with `..`, and while another run is in progress. Stops before any write
  * when fewer than half of the attached links have a line in the scan (the
- * line brake). Over 10 detaches or 25 close/reopen pushes, a manual cycle
+ * line brake). Over 10 detaches, 25 close/reopen pushes or 50 field pushes, a manual cycle
  * asks before writing anything ("Cancel" stops the run with the state
  * untouched); an automatic one never asks: it runs without that action
  * class, those links left as stored, and reports how many it skipped
@@ -126,14 +138,15 @@ export async function syncNow(mode: SyncMode = 'manual'): Promise<SyncNowOutcome
 
 	todoistSyncStore.start();
 	try {
-		const { skippedPushes, skippedDetaches, ...counts } = await cycle(vaultRoot, folder, mode);
-		debug('TODOIST', `sync now (${mode}):`, counts, { skippedPushes, skippedDetaches });
+		const { skippedPushes, skippedDetaches, skippedFieldPushes, ...counts } = await cycle(vaultRoot, folder, mode);
+		debug('TODOIST', `sync now (${mode}):`, counts, { skippedPushes, skippedDetaches, skippedFieldPushes });
 		todoistSyncStore.succeed({ kind: 'pull', ...counts, finishedAt: Date.now() });
 		return {
 			ok: true,
 			message: formatPullResult(counts),
 			...(skippedPushes > 0 ? { skippedPushes } : {}),
 			...(skippedDetaches > 0 ? { skippedDetaches } : {}),
+			...(skippedFieldPushes > 0 ? { skippedFieldPushes } : {}),
 		};
 	} catch (err) {
 		if (!(err instanceof SyncStop)) error('TODOIST', 'sync failed:', err);
@@ -161,7 +174,7 @@ async function cycle(
 	vaultRoot: string,
 	folder: string,
 	mode: SyncMode,
-): Promise<PullCounts & { skippedPushes: number; skippedDetaches: number }> {
+): Promise<PullCounts & { skippedPushes: number; skippedDetaches: number; skippedFieldPushes: number }> {
 	const { apiToken, syncRootProjectId, syncIncludeInbox, defaultLabel } = settingsStore.todoist;
 	const client = createTodoistClient(apiToken);
 	const full = await request(() => client.sync({ syncToken: '*', resourceTypes: ['projects', 'items'] }));
@@ -229,10 +242,22 @@ async function cycle(
 			throw new SyncStop(CANCELLED, { kind: 'error' });
 		}
 	}
-	completion = planFields(
-		{ links: attached, occurrences: scan.occurrences, items, incremental: changes !== null, treeIds, excludedLabels },
+	const fields = planFields(
+		{ links: attached, occurrences: scan.occurrences, items, incremental: changes !== null, treeIds, excludedLabels, newUuid: () => crypto.randomUUID() },
 		completion,
 	);
+	completion = fields;
+	let updates = fields.updates;
+	let skippedFieldPushes = 0;
+	if (updates.length > FIELD_PUSH_CAP) {
+		if (mode === 'auto') {
+			// Their bases move only on `ok`, so the next cycle plans the same pushes.
+			skippedFieldPushes = updates.length;
+			updates = [];
+		} else if (!(await confirmFieldPushes(updates.length))) {
+			throw new SyncStop(CANCELLED, { kind: 'error' });
+		}
+	}
 
 	const log: TodoistSyncLogInput[] = [...plan.log, ...detach.log, ...completion.log];
 	for (const note of plan.createNotes) {
@@ -262,8 +287,9 @@ async function cycle(
 		vaultPath: vaultRoot,
 		commit: {
 			// Without this cycle's bases for every change, an incremental pull from the new token would never report it again
-			// (a deletion is reported only by an incremental pull, so skipped detaches keep the token out too).
-			kv: token && !written.anyStale && skippedDetaches === 0 ? [{ key: 'sync_token', value: token }] : [],
+			// (a deletion is reported only by an incremental pull, so skipped detaches keep the token out too; so does a
+			// Todoist edit of a task whose close or reopen goes out now, which the field sync left to the next cycle).
+			kv: token && !written.anyStale && skippedDetaches === 0 && !fields.withholdToken ? [{ key: 'sync_token', value: token }] : [],
 			upsertLinks: [...commit.values()],
 			deleteAnchors: [],
 		},
@@ -278,6 +304,10 @@ async function cycle(
 		todoistUpdated = acked.todoistUpdated;
 		linesUpdated += acked.linesUpdated;
 	}
+	// A push whose line patch went stale would store bases for a line that was never written.
+	const storedAnchors = new Set(written.links.map((l) => l.anchor));
+	const ready = updates.filter((u) => !changedAnchors.has(u.anchor) || storedAnchors.has(u.anchor));
+	if (ready.length > 0) todoistUpdated += await pushFields(client, vaultRoot, ready);
 	return {
 		mode: plan.mode,
 		notesCreated: plan.createNotes.length,
@@ -288,6 +318,7 @@ async function cycle(
 		todoistUpdated,
 		skippedPushes,
 		skippedDetaches,
+		skippedFieldPushes,
 	};
 }
 
@@ -307,22 +338,10 @@ async function pushCompletions(
 	occurrences: Map<string, ScannedLine[]>,
 	token: string,
 ): Promise<{ todoistUpdated: number; linesUpdated: number }> {
-	const statuses: Record<string, unknown> = {};
-	for (let i = 0; i < commands.length; i += COMMANDS_PER_REQUEST) {
-		const batch: SyncCommand[] = commands
-			.slice(i, i + COMMANDS_PER_REQUEST)
-			.map((c) => ({ type: c.pending.type, uuid: c.pending.uuid, args: { id: c.todoistId } }));
-		try {
-			Object.assign(statuses, (await client.sync({ commands: batch })).syncStatus ?? {});
-		} catch (err) {
-			if (!(err instanceof TodoistSyncError)) {
-				error('TODOIST', 'sending completion commands failed:', err);
-				const failure = classifyTodoistError(err);
-				throw new SyncStop(syncErrorMessage(failure), failure);
-			}
-			Object.assign(statuses, err.syncStatus);
-		}
-	}
+	const statuses = await sendCommands(
+		client,
+		commands.map((c) => ({ type: c.pending.type, uuid: c.pending.uuid, args: { id: c.todoistId } })),
+	);
 
 	const acked = commands.filter((c) => statuses[c.pending.uuid] === 'ok');
 	const after = acked.length > 0 ? await request(() => client.sync({ syncToken: token, resourceTypes: ['items'] })) : null;
@@ -360,6 +379,61 @@ async function pushCompletions(
 	});
 	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
 	return { todoistUpdated: acked.length, linesUpdated: written.linesUpdated };
+}
+
+/**
+ * Sends the field pushes as `item_update` commands and stores each link's
+ * bases by its answer: `ok` moves both to the pushed values, so the echo in
+ * the next pull is no remote change; a terminal 4xx moves only `local_base`
+ * to the line (not retried) and is logged; any other failure stores nothing,
+ * so the next cycle plans the push again. Returns how many Todoist accepted.
+ */
+async function pushFields(client: TodoistApi, vaultRoot: string, updates: PlannedUpdate[]): Promise<number> {
+	const statuses = await sendCommands(
+		client,
+		updates.map((u) => ({ type: 'item_update', uuid: u.uuid, args: { ...u.args } })),
+	);
+	const log: TodoistSyncLogInput[] = [];
+	const links: TodoistTaskLink[] = [];
+	let acked = 0;
+	for (const update of updates) {
+		const status = statuses[update.uuid];
+		if (status === 'ok') {
+			acked++;
+			links.push(update.okLink);
+		} else if (isTerminal(status)) {
+			links.push(update.refusedLink);
+			log.push({ kind: 'command-error', anchor: update.anchor, message: `Todoist refused item_update: ${JSON.stringify(status)}` });
+		} else if (status !== undefined) {
+			error('TODOIST', `item_update for ${update.anchor} failed; it is planned again next cycle:`, status);
+		}
+	}
+	assertVault(vaultRoot);
+	await call('todoist_commit_state', { vaultPath: vaultRoot, commit: { kv: [], upsertLinks: links, deleteAnchors: [] } });
+	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
+	return acked;
+}
+
+/**
+ * Sends commands at most 100 per request, never in the same request as a
+ * pull (design rule 13), and returns every `sync_status` by uuid. A failed
+ * command arrives as a status; a failed request stops the run.
+ */
+async function sendCommands(client: TodoistApi, commands: SyncCommand[]): Promise<Record<string, unknown>> {
+	const statuses: Record<string, unknown> = {};
+	for (let i = 0; i < commands.length; i += COMMANDS_PER_REQUEST) {
+		try {
+			Object.assign(statuses, (await client.sync({ commands: commands.slice(i, i + COMMANDS_PER_REQUEST) })).syncStatus ?? {});
+		} catch (err) {
+			if (!(err instanceof TodoistSyncError)) {
+				error('TODOIST', 'sending commands failed:', err);
+				const failure = classifyTodoistError(err);
+				throw new SyncStop(syncErrorMessage(failure), failure);
+			}
+			Object.assign(statuses, err.syncStatus);
+		}
+	}
+	return statuses;
 }
 
 /** What one note gets in a cycle: inserted lines with their links, and line patches with the link each one stores. */
@@ -452,6 +526,16 @@ async function confirmDetaches(count: number): Promise<boolean> {
 		`This Todoist sync would detach ${count} tasks deleted or moved on one side, more than ${DETACH_CAP} in one sync. Their lines and Todoist tasks are kept but stop syncing. Continue?`,
 		{ title: 'Todoist sync', kind: 'warning', okLabel: 'Sync', cancelLabel: 'Cancel' },
 	);
+}
+
+/** "Pause and ask" of design rule 9 for a manual cycle over the field push cap. */
+async function confirmFieldPushes(count: number): Promise<boolean> {
+	return ask(`This Todoist sync would update ${count} tasks in Todoist with edits made in the brain, more than ${FIELD_PUSH_CAP} in one sync. Continue?`, {
+		title: 'Todoist sync',
+		kind: 'warning',
+		okLabel: 'Sync',
+		cancelLabel: 'Cancel',
+	});
 }
 
 function assertVault(vaultRoot: string): void {

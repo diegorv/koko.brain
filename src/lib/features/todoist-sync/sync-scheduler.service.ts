@@ -8,6 +8,7 @@ import {
 	autoCycleDelay,
 	autoSyncDetachCapMessage,
 	autoSyncFailureMessage,
+	autoSyncFieldCapMessage,
 	autoSyncOverCapMessage,
 	hasAnchoredLine,
 	isFirstRunDone,
@@ -36,6 +37,7 @@ interface Session {
 
 const OVER_CAP_TOAST_ID = 'todoist-sync-over-cap';
 const DETACH_CAP_TOAST_ID = 'todoist-sync-detach-cap';
+const FIELD_CAP_TOAST_ID = 'todoist-sync-field-cap';
 
 const SKIPPED: SyncNowOutcome = { ok: false, message: 'Automatic Todoist sync waits for the first sync.' };
 const STOPPED: SyncNowOutcome = { ok: false, message: 'The Todoist sync was stopped before it ran.' };
@@ -58,6 +60,8 @@ const toastedKinds = new Set<AutoSyncFailureKind>();
 let overCapToasted = false;
 /** Whether the detach over-cap toast is showing; cleared by a successful cycle that skipped no detach. */
 let detachCapToasted = false;
+/** Whether the field push over-cap toast is showing; cleared by a successful cycle that skipped no field push. */
+let fieldCapToasted = false;
 
 /**
  * Starts the automatic sync for the vault at `vaultPath`: a cycle now (the
@@ -113,6 +117,7 @@ export function stopAutoSync(): void {
 	toastedKinds.clear();
 	overCapToasted = false;
 	detachCapToasted = false;
+	fieldCapToasted = false;
 }
 
 /**
@@ -223,6 +228,7 @@ function handleOutcome(outcome: SyncNowOutcome, kind: CycleKind, token: string):
 		toastedKinds.clear();
 		overCapToasted = capToast(OVER_CAP_TOAST_ID, overCapToasted, outcome.skippedPushes, autoSyncOverCapMessage);
 		detachCapToasted = capToast(DETACH_CAP_TOAST_ID, detachCapToasted, outcome.skippedDetaches, autoSyncDetachCapMessage);
+		fieldCapToasted = capToast(FIELD_CAP_TOAST_ID, fieldCapToasted, outcome.skippedFieldPushes, autoSyncFieldCapMessage);
 		return;
 	}
 	const failure = outcome.failure;

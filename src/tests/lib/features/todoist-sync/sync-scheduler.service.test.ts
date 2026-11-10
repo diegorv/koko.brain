@@ -315,6 +315,40 @@ describe('over the close/reopen cap', () => {
 	});
 });
 
+describe('over the field push cap', () => {
+	const FIELD_CAP = 'Todoist automatic sync skipped sending brain edits of 51 tasks: more than 50 in one sync. Run "Todoist: Sync now" to confirm them.';
+	const commandRequests = () => server.requests.filter((r) => r.commands);
+
+	/** Syncs 51 more Work tasks in automatically, then gives each one a priority in the brain. */
+	async function editMany() {
+		for (let i = 1; i <= 51; i++) server.addItem({ id: `e${i}`, project_id: 'work', content: `Chore ${i}`, child_order: 10 + i });
+		startAutoSync(ROOT);
+		await settle();
+		vault.files.set('Todoist/Work.md', vault.files.get('Todoist/Work.md')!.replace(/- \[ \] Chore \d+/gu, '$& ⏫'));
+	}
+
+	it('never asks in an automatic cycle: it sends no item_update and toasts once; "Sync now" asks and dismisses it', async () => {
+		await editMany();
+
+		await advance(30_000);
+		focusWindow();
+		await settle();
+		await advance(5 * MINUTE);
+
+		expect(cycles()).toBe(3);
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(commandRequests()).toEqual([]);
+		expect(toast.warning).toHaveBeenCalledTimes(1);
+		expect(toast.warning).toHaveBeenCalledWith(FIELD_CAP, { id: 'todoist-sync-field-cap', duration: Infinity, closeButton: true });
+
+		vi.mocked(ask).mockResolvedValue(true);
+		await syncNowFromUi();
+
+		expect(commandRequests().map((r) => r.commands!.length)).toEqual([51]);
+		expect(toast.dismiss).toHaveBeenCalledWith('todoist-sync-field-cap');
+	});
+});
+
 describe('over the detach cap', () => {
 	const DETACH_CAP = 'Todoist automatic sync skipped detaching 11 deleted or moved tasks: more than 10 in one sync. Run "Todoist: Sync now" to confirm them.';
 

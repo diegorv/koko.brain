@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { TodoistTaskLink } from '#lib/contracts/index.js';
 import { applyLineChange, type CompletionPlan } from '#lib/features/todoist-sync/completion.logic.js';
-import { planFields, type FieldsInput } from '#lib/features/todoist-sync/fields.logic.js';
+import { planFields, type FieldsInput, type FieldsPlan } from '#lib/features/todoist-sync/fields.logic.js';
 import { excludedLabelSet, type LocalBase, type PullItem, type RemoteBase, type ScannedLine } from '#lib/features/todoist-sync/pull.logic.js';
 
 const LINE = 'Plan 🔺 📅 2026-11-13 #deep 🆔 td-a';
@@ -77,11 +77,12 @@ function input(l: TodoistTaskLink, lines: ScannedLine[], items: PullItem[], extr
 		incremental: true,
 		treeIds: new Set(['work']),
 		excludedLabels: excludedLabelSet(''),
+		newUuid: () => 'uuid-1',
 		...extra,
 	};
 }
 
-const EMPTY: CompletionPlan = { lineChanges: [], links: [], commands: [], log: [] };
+const EMPTY: FieldsPlan = { lineChanges: [], links: [], commands: [], log: [], updates: [], withholdToken: false };
 const local = (l: TodoistTaskLink) => JSON.parse(l.localBase!) as LocalBase;
 const remote = (l: TodoistTaskLink) => JSON.parse(l.remoteBase!) as RemoteBase;
 
@@ -128,6 +129,30 @@ describe('planFields: content', () => {
 		expect(plan.log).toEqual([expect.objectContaining({ kind: 'description-conflict', anchor: 'td-a', message: expect.stringContaining('Buy oat milk') })]);
 		expect(local(plan.links[0]).description).toBe('Buy milk');
 		expect(remote(plan.links[0]).content).toBe('Buy oat milk');
+	});
+
+	it('logs a mid-sentence brain text that fails the round trip without marking the line as raw inserted', () => {
+		const text = 'Fix C# #shop bug 🆔 td-a';
+		const l = link({ local: localBase({ description: 'Fix bug', dueDate: null, priority: null, tags: ['shop'] }), remote: remoteBase({ content: 'Fix bug', priority: 1, due: null, labels: ['shop'], unmappedLabels: [] }) });
+		const scanned = (priority: 'high' | null) => line(text, { description: 'Fix C# bug', dueDate: null, priority, tags: ['shop'] });
+
+		const plan = planFields(input(l, [scanned(null)], [item({ content: 'Fix the bug', priority: 1, due: null, labels: ['shop'] })]), EMPTY);
+		expect(local(plan.links[0])).toMatchObject({ description: 'Fix the bug', unpushedDescription: 'Fix C# bug' });
+
+		const next = planFields(input(plan.links[0], [scanned('high')], [item({ content: 'Fix the bug', priority: 1, due: null, labels: ['shop'] })]), EMPTY);
+		expect(update(next).args).toEqual({ id: 'a', priority: 3 });
+		expect(next.log).toEqual([]);
+	});
+
+	it('pushes a line reverted to the old text after a mid-sentence brain text failed the round trip', () => {
+		const l = link({ local: localBase({ description: 'Fix bug', dueDate: null, priority: null, tags: ['shop'] }), remote: remoteBase({ content: 'Fix bug', priority: 1, due: null, labels: ['shop'], unmappedLabels: [] }) });
+		const i = item({ content: 'Fix the bug', priority: 1, due: null, labels: ['shop'] });
+
+		const plan = planFields(input(l, [line('Fix C# #shop bug 🆔 td-a', { description: 'Fix C# bug', dueDate: null, priority: null, tags: ['shop'] })], [i]), EMPTY);
+		const reverted = planFields(input(plan.links[0], [line('Fix #shop bug 🆔 td-a', { description: 'Fix bug', dueDate: null, priority: null, tags: ['shop'] })], [i]), EMPTY);
+
+		expect(update(reverted).args).toEqual({ id: 'a', content: 'Fix bug' });
+		expect(reverted.log).toEqual([]);
 	});
 
 	it('does not write content that fails the round trip, and logs it', () => {
@@ -299,9 +324,206 @@ describe('planFields: labels', () => {
 	});
 });
 
+/** The one planned push. */
+function update(plan: FieldsPlan) {
+	expect(plan.updates).toHaveLength(1);
+	return plan.updates[0];
+}
+
+/** Plans a cycle where only the brain line changed: Todoist still matches the bases. */
+function brainEdit(fields: Partial<ScannedLine['fields']>, extra: { local?: LocalBase; remote?: RemoteBase; item?: Partial<PullItem> } = {}) {
+	return planFields(input(link(extra), [line(LINE, fields)], [item(extra.item)]), EMPTY);
+}
+
+describe('planFields: pushes from the brain', () => {
+	it('pushes a text edit as item_update content; the bases move only on ok', () => {
+		const plan = brainEdit({ description: 'Plan the launch' });
+
+		const u = update(plan);
+		expect(u).toMatchObject({ anchor: 'td-a', todoistId: 'a', uuid: 'uuid-1', args: { id: 'a', content: 'Plan the launch' } });
+		expect(plan.lineChanges).toEqual([]);
+		expect(plan.links).toEqual([]);
+		expect(local(u.okLink).description).toBe('Plan the launch');
+		expect(remote(u.okLink).content).toBe('Plan the launch');
+		expect(local(u.refusedLink).description).toBe('Plan the launch');
+		expect(remote(u.refusedLink).content).toBe('Plan');
+	});
+
+	it('pushes every changed field of one line in one command', () => {
+		const plan = brainEdit({ description: 'Plan more', priority: 'high', dueDate: '2026-11-20', tags: ['deep', 'next'] });
+
+		expect(update(plan).args).toEqual({ id: 'a', content: 'Plan more', priority: 3, due: { date: '2026-11-20' }, labels: ['deep', 'Work', 'next'] });
+		expect(local(update(plan).okLink)).toMatchObject({ description: 'Plan more', priority: 'high', dueDate: '2026-11-20', tags: ['deep', 'next'] });
+		expect(remote(update(plan).okLink)).toMatchObject({ content: 'Plan more', priority: 3, labels: ['deep', 'Work', 'next'], due: { date: '2026-11-20' } });
+	});
+
+	it('does not queue text over 500 characters or that fails the round trip, and logs it once', () => {
+		for (const description of ['x'.repeat(501), 'Fix C# bug']) {
+			const plan = brainEdit({ description });
+
+			expect(plan.updates).toEqual([]);
+			expect(plan.log).toEqual([expect.objectContaining({ kind: 'content-not-pushed', anchor: 'td-a' })]);
+			expect(local(plan.links[0])).toMatchObject({ description: 'Plan', unpushedDescription: description });
+			expect(remote(plan.links[0]).content).toBe('Plan');
+			expect(planFields(input(plan.links[0], [line(LINE, { description })], [item()]), EMPTY)).toEqual(EMPTY);
+		}
+		expect(update(brainEdit({ description: 'x'.repeat(500) })).args.content).toHaveLength(500);
+	});
+
+	it('keeps syncing the other fields of a line whose brain text was not sent, both ways', () => {
+		const text = 'Fix C# bug 🔺 📅 2026-11-13 #deep 🆔 td-a';
+		const first = brainEdit({ description: 'Fix C# bug' });
+		expect(first.log).toEqual([expect.objectContaining({ kind: 'content-not-pushed' })]);
+
+		const priority = planFields(input(first.links[0], [line(text, { description: 'Fix C# bug', priority: 'high' })], [item()]), EMPTY);
+		expect(update(priority).args).toEqual({ id: 'a', priority: 3 });
+		expect(priority.log).toEqual([]);
+
+		const content = planFields(input(first.links[0], [line(text, { description: 'Fix C# bug' })], [item({ content: 'Review spec' })]), EMPTY);
+		expect(written(content, text)).toBe('- [ ] Review spec 🔺 📅 2026-11-13 #deep 🆔 td-a');
+		expect(content.log).toEqual([expect.objectContaining({ kind: 'conflict', message: expect.stringContaining('Fix C# bug') })]);
+		expect(local(content.links[0]).description).toBe('Review spec');
+	});
+
+	it('never pushes a line flagged by the round-trip check', () => {
+		expect(brainEdit({ priority: 'high' }, { remote: remoteBase({ content: 'Fix #42', contentProblem: 'hash' }), item: { content: 'Fix #42' } }).updates).toEqual([]);
+		expect(brainEdit({ priority: 'high' }, { local: localBase({ description: 'Fix #42' }) }).updates).toEqual([]);
+	});
+
+	it('only moves the local base when the brain already matches Todoist', () => {
+		const plan = brainEdit({ description: 'Plan' }, { local: localBase({ description: 'Old' }) });
+
+		expect(plan.updates).toEqual([]);
+		expect(local(plan.links[0]).description).toBe('Plan');
+	});
+
+	it('keeps the time of a timed due and the timezone when the 📅 moves', () => {
+		const due = { date: '2026-11-13T09:00:00Z', string: 'Nov 13 9am', isRecurring: false, datetime: '2026-11-13T09:00:00Z', timezone: 'Europe/Lisbon', lang: 'en' };
+
+		const plan = brainEdit({ dueDate: '2026-11-20' }, { remote: remoteBase({ due }), item: { due } });
+
+		expect(update(plan).args.due).toEqual({ date: '2026-11-20T09:00:00Z', timezone: 'Europe/Lisbon' });
+		expect(remote(update(plan).okLink).due).toMatchObject({ date: '2026-11-20T09:00:00Z', datetime: '2026-11-20T09:00:00Z', isRecurring: false });
+	});
+
+	it('sends a recurring due as date + the remote rule + lang, never a bare date', () => {
+		const weekly = { date: '2026-11-13', string: 'every week', isRecurring: true, datetime: null, timezone: null, lang: 'en' };
+
+		const plan = brainEdit({ dueDate: '2026-11-20' }, { remote: remoteBase({ due: weekly }), item: { due: weekly } });
+
+		expect(update(plan).args.due).toEqual({ date: '2026-11-20', string: 'every week', lang: 'en' });
+		expect(remote(update(plan).okLink).due).toMatchObject({ date: '2026-11-20', string: 'every week', isRecurring: true });
+	});
+
+	it('removes the due of a task whose 📅 was removed, but never of a recurring one (logged once)', () => {
+		expect(update(brainEdit({ dueDate: null })).args).toEqual({ id: 'a', due: null });
+		expect(remote(update(brainEdit({ dueDate: null })).okLink).due).toBeNull();
+
+		const weekly = { date: '2026-11-13', string: 'every week', isRecurring: true, datetime: null, timezone: null, lang: 'en' };
+		const plan = brainEdit({ dueDate: null }, { remote: remoteBase({ due: weekly }), item: { due: weekly } });
+		expect(plan.updates).toEqual([]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'due-not-pushed', anchor: 'td-a' })]);
+		expect(local(plan.links[0]).dueDate).toBeNull();
+	});
+
+	it('compares priorities in Todoist terms: 🔽 and ⏬ never push, a removed emoji pushes Normal', () => {
+		const none = { local: localBase({ priority: null }), remote: remoteBase({ priority: 1 }), item: { priority: 1 } };
+		expect(brainEdit({ priority: 'low' }, none).updates).toEqual([]);
+		expect(brainEdit({ priority: 'lowest' }, none).updates).toEqual([]);
+		expect(update(brainEdit({ priority: null })).args).toEqual({ id: 'a', priority: 1 });
+		expect(update(brainEdit({ priority: 'medium' }, none)).args).toEqual({ id: 'a', priority: 2 });
+	});
+
+	it('always re-sends unmapped and context labels, and never pushes the scope tag', () => {
+		const labels = ['deep', 'Work', 'personal', 'two words', 'brain'];
+		const extra = { remote: remoteBase({ labels, unmappedLabels: ['Work', 'personal', 'two words', 'brain'] }), item: { labels } };
+
+		const removed = planFields(input(link(extra), [line(LINE, { tags: ['todoist'] })], [item(extra.item)], { excludedLabels: excludedLabelSet('brain') }), EMPTY);
+		expect(update(removed).args.labels).toEqual(['Work', 'personal', 'two words', 'brain']);
+
+		const added = planFields(input(link(extra), [line(LINE, { tags: ['DEEP', 'next', 'todoist'] })], [item(extra.item)], { excludedLabels: excludedLabelSet('brain') }), EMPTY);
+		expect(update(added).args.labels).toEqual([...labels, 'next']);
+	});
+
+	it('treats a tag edit that only changes case as no change', () => {
+		expect(brainEdit({ tags: ['Deep'] }).updates).toEqual([]);
+	});
+
+	it('sends one label for new line tags that differ only by case', () => {
+		expect(update(brainEdit({ tags: ['deep', 'next', 'Next'] })).args.labels).toEqual(['deep', 'Work', 'next']);
+	});
+
+	it('pushes the brain field next to a Todoist edit of another field', () => {
+		const plan = planFields(input(link(), [line(LINE, { description: 'Plan more' })], [item({ priority: 3 })]), EMPTY);
+
+		expect(written(plan)).toBe('- [ ] Plan ⏫ 📅 2026-11-13 #deep 🆔 td-a');
+		expect(update(plan).args).toEqual({ id: 'a', content: 'Plan more' });
+		expect(remote(update(plan).okLink)).toMatchObject({ priority: 3, content: 'Plan more' });
+		expect(local(update(plan).okLink)).toMatchObject({ priority: 'high', description: 'Plan more' });
+	});
+
+	it('sees the echo of its own push as no change', () => {
+		const pushed = brainEdit({ description: 'Plan more', dueDate: '2026-11-20', priority: 'high', tags: ['next'] });
+		const after = line('Plan more ⏫ 📅 2026-11-20 #next 🆔 td-a', { description: 'Plan more', dueDate: '2026-11-20', priority: 'high', tags: ['next'] });
+		const echo = item({ content: 'Plan more', priority: 3, labels: ['Work', 'next'], due: { date: '2026-11-20', string: 'Nov 20', isRecurring: false, lang: 'en' } });
+
+		const next = planFields(input(update(pushed).okLink, [after], [echo]), EMPTY);
+
+		expect(next.lineChanges).toEqual([]);
+		expect(next.updates).toEqual([]);
+		expect(next.log).toEqual([]);
+	});
+});
+
+describe('planFields: both sides changed the same field', () => {
+	it('lets Todoist win the priority and the due: the line is patched, the brain value logged, nothing pushed', () => {
+		const plan = planFields(input(link(), [line(LINE, { priority: 'medium', dueDate: '2026-11-15' })], [item({ priority: 3, due: { date: '2026-11-20', string: 'Nov 20', isRecurring: false } })]), EMPTY);
+
+		expect(written(plan)).toBe('- [ ] Plan ⏫ 📅 2026-11-20 #deep 🆔 td-a');
+		expect(plan.updates).toEqual([]);
+		expect(plan.log).toEqual([
+			expect.objectContaining({ kind: 'conflict', message: expect.stringContaining('2026-11-15') }),
+			expect.objectContaining({ kind: 'conflict', message: expect.stringContaining('medium') }),
+		]);
+	});
+
+	it('lets Todoist win the tags: the line takes the Todoist tags, the brain tags are logged', () => {
+		const text = 'Plan 🔺 📅 2026-11-13 #mine 🆔 td-a';
+		const plan = planFields(input(link(), [line(text, { tags: ['mine'] })], [item({ labels: ['theirs', 'Work'] })]), EMPTY);
+
+		expect(written(plan, text)).toBe('- [ ] Plan 🔺 📅 2026-11-13 #theirs 🆔 td-a');
+		expect(plan.updates).toEqual([]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'conflict', message: expect.stringContaining('mine') })]);
+		expect(local(plan.links[0]).tags).toEqual(['theirs']);
+	});
+
+	it('logs no conflict when both sides reached the same value (a push whose answer was lost)', () => {
+		const plan = planFields(input(link(), [line(LINE, { description: 'Plan more', priority: 'high', tags: ['next'] })], [item({ content: 'Plan more', priority: 3, labels: ['next', 'Work'] })]), EMPTY);
+
+		expect(plan.lineChanges).toEqual([]);
+		expect(plan.updates).toEqual([]);
+		expect(plan.log).toEqual([]);
+		expect(local(plan.links[0])).toMatchObject({ description: 'Plan more', priority: 'high', tags: ['next'] });
+	});
+
+	it('keeps a brain text edit out of Todoist when the Todoist text could not be written (mid-sentence), logging it', () => {
+		const text = 'Buy #shop milk now 🆔 td-a';
+		const l = link({ local: localBase({ description: 'Buy milk', dueDate: null, priority: null, tags: ['shop'] }), remote: remoteBase({ content: 'Buy milk', priority: 1, due: null, labels: ['shop'], unmappedLabels: [] }) });
+		const i = item({ content: 'Buy oat milk', priority: 1, due: null, labels: ['shop'] });
+		const scanned = line(text, { description: 'Buy milk now', dueDate: null, priority: null, tags: ['shop'] });
+
+		const plan = planFields(input(l, [scanned], [i]), EMPTY);
+
+		expect(plan.lineChanges).toEqual([]);
+		expect(plan.updates).toEqual([]);
+		expect(plan.log).toEqual([expect.objectContaining({ kind: 'description-conflict', message: expect.stringMatching(/Buy oat milk.*Buy milk now/u) })]);
+		expect(planFields(input(plan.links[0], [scanned], [i]), EMPTY).updates).toEqual([]);
+	});
+});
+
 describe('planFields: guards and merge', () => {
-	it('does nothing when nothing changed in Todoist, whatever the line holds', () => {
-		expect(planFields(input(link(), [line('Other 🔽 #x 🆔 td-a', { description: 'Other', priority: 'low', dueDate: null, tags: ['x'] })], [item()]), EMPTY)).toEqual(EMPTY);
+	it('does nothing when neither side changed', () => {
+		expect(planFields(input(link(), [line()], [item()]), EMPTY)).toEqual(EMPTY);
 		expect(planFields(input(link(), [line()], []), EMPTY)).toEqual(EMPTY);
 	});
 
@@ -317,7 +539,31 @@ describe('planFields: guards and merge', () => {
 	it('leaves a link with a close or reopen planned this cycle to the next cycle', () => {
 		const completion: CompletionPlan = { ...EMPTY, links: [link()], commands: [{ anchor: 'td-a', todoistId: 'a', pending: { uuid: 'u', type: 'item_close' } }] };
 
-		expect(planFields(input(link(), [line(LINE, {}, 'x')], [item({ content: 'New' })]), completion)).toEqual(completion);
+		expect(planFields(input(link(), [line(LINE, {}, 'x')], [item({ content: 'New' })]), completion)).toEqual({ ...completion, updates: [], withholdToken: true });
+	});
+
+	it('withholds the sync token only when a link with a close or reopen has a Todoist field edit this cycle', () => {
+		const completion: CompletionPlan = { ...EMPTY, links: [link()], commands: [{ anchor: 'td-a', todoistId: 'a', pending: { uuid: 'u', type: 'item_close' } }] };
+		const closed = [line(LINE, {}, 'x')];
+
+		expect(planFields(input(link(), closed, [item()]), completion).withholdToken).toBe(false);
+		expect(planFields(input(link(), closed, [item({ checked: true })]), completion).withholdToken).toBe(false);
+		for (const edit of [{ content: 'New' }, { priority: 1 }, { labels: ['deep'] }, { due: null }]) {
+			expect(planFields(input(link(), closed, [item(edit)]), completion).withholdToken).toBe(true);
+		}
+	});
+
+	it('reads the line as the completion patch leaves it: a recurring 📅 completion moves is no brain edit', () => {
+		const weekly = { date: '2026-11-13', string: 'every week', isRecurring: true, datetime: null, timezone: null, lang: 'en' };
+		const rolled = { ...weekly, date: '2026-11-20' };
+		const l = link({ remote: remoteBase({ due: weekly }) });
+		const moved = { ...l, localBase: JSON.stringify(localBase({ dueDate: '2026-11-20' })), remoteBase: JSON.stringify(remoteBase({ due: rolled })) };
+		const completion: CompletionPlan = { ...EMPTY, links: [moved], lineChanges: [{ anchor: 'td-a', relPath: 'Todoist/Work.md', expected: line(), status: null, dueDate: '2026-11-20' }] };
+
+		const plan = planFields(input(l, [line()], [item({ due: rolled })]), completion);
+
+		expect(plan.updates).toEqual([]);
+		expect(written(plan)).toBe('- [ ] Plan 🔺 📅 2026-11-20 #deep 🆔 td-a');
 	});
 
 	it('merges with the completion plan: one change per line, on the bases completion moved', () => {

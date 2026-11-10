@@ -96,6 +96,27 @@ describe('fake Todoist /sync', () => {
 		expect(server.item('i1')?.content).toBe('A2');
 	});
 
+	it('updates a due like live-check 7: a bare date drops the recurrence, date + string + lang keeps it, null removes it', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+		const weekly = { is_recurring: true, string: 'every week', date: '2026-11-13', lang: 'en' };
+		for (const id of ['bare', 'kept', 'gone']) server.addItem({ id, project_id: 'p1', content: id, due: weekly });
+		server.addItem({ id: 'timed', project_id: 'p1', content: 'T' });
+
+		await client().sync({
+			commands: [
+				createCommand('item_update', { id: 'bare', due: { date: '2026-11-20' } }),
+				createCommand('item_update', { id: 'kept', due: { date: '2026-11-20', string: 'every week', lang: 'en' } }),
+				createCommand('item_update', { id: 'gone', due: null }),
+				createCommand('item_update', { id: 'timed', due: { date: '2026-11-20T09:00:00' } }),
+			],
+		});
+
+		expect(server.item('bare')!.due).toEqual({ date: '2026-11-20', string: '2026-11-20', is_recurring: false, datetime: null, timezone: null, lang: 'en' });
+		expect(server.item('kept')!.due).toEqual({ date: '2026-11-20', string: 'every week', is_recurring: true, datetime: null, timezone: null, lang: 'en' });
+		expect(server.item('gone')!.due).toBeNull();
+		expect(server.item('timed')!.due).toEqual({ date: '2026-11-20T09:00:00', string: '2026-11-20T09:00:00', is_recurring: false, datetime: '2026-11-20T09:00:00', timezone: null, lang: null });
+	});
+
 	it('closes and reopens through hand-built commands', async () => {
 		server.addProject({ id: 'p1', name: 'Work' });
 		server.addItem({ id: 'i1', project_id: 'p1', content: 'A' });

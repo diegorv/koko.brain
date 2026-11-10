@@ -18,6 +18,8 @@
  * a replayed uuid returns its first outcome without applying it again.
  * `item_close` on a recurring item rolls its date forward, unless the rule
  * says `starting`, which completes it for good (`research/live-check.md` R).
+ * An `item_update` of `due` keeps the recurrence only when it sends the rule
+ * as `string` (live-check 7).
  *
  * Extend this file when an engine ticket needs another command or resource.
  */
@@ -156,6 +158,27 @@ function nextOccurrence(date: string, rule: string): string {
 	return d.toISOString().slice(0, 10) + date.slice(10);
 }
 
+/** An `item_update` due as sent (snake_case). */
+type UpdateDue = { date?: string; string?: string; timezone?: string | null; lang?: string };
+
+/**
+ * The due an `item_update` leaves (live-check 7): without a `string` the
+ * date becomes the text and the recurrence is gone; with one, the rule is
+ * whatever `string` says (`every ...` repeats). `null` removes the due.
+ */
+function updatedDue(before: FakeItem['due'], sent: UpdateDue | null): FakeItem['due'] {
+	if (sent === null || sent.date === undefined) return null;
+	const text = sent.string ?? sent.date;
+	return {
+		date: sent.date,
+		string: text,
+		is_recurring: /\bevery\b/iu.test(text),
+		datetime: sent.date.includes('T') ? sent.date : null,
+		timezone: sent.timezone ?? null,
+		lang: sent.lang ?? before?.lang ?? null,
+	};
+}
+
 /** Creates an empty fake server accepting the token `test-token`. */
 export function createFakeTodoist(): FakeTodoist {
 	let version = 1;
@@ -223,6 +246,7 @@ export function createFakeTodoist(): FakeTodoist {
 			case 'item_update': {
 				if (!existing) return { status: commandError('Item not found', 404) };
 				const { id: _id, ...patch } = args;
+				if ('due' in patch) patch.due = updatedDue(existing.row.due, patch.due as UpdateDue | null);
 				storeItem({ ...existing.row, ...(patch as Partial<FakeItem>), updated_at: STAMP });
 				return { status: 'ok' };
 			}

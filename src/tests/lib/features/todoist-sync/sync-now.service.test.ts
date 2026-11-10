@@ -760,6 +760,215 @@ describe('syncNow: edits from Todoist', () => {
 	});
 });
 
+const W1_EDITED = '- [ ] Plan the launch ⏫ 📅 2026-11-20 #next 🆔 td-w1';
+
+describe('syncNow: edits from the brain', () => {
+	it('pushes text, 📅, priority and tag edits as one item_update; the echo next cycle sends and writes nothing', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, W1_EDITED);
+
+		const outcome = await syncNow();
+
+		expect(outcome.message).toBe('Todoist sync done: 1 task updated in Todoist.');
+		expect(commandRequests()).toHaveLength(1);
+		expect(commandRequests()[0].commands).toEqual([
+			expect.objectContaining({ type: 'item_update', args: { id: 'w1', content: 'Plan the launch', priority: 3, due: { date: '2026-11-20' }, labels: ['Work', 'next'] } }),
+		]);
+		expect(server.item('w1')).toMatchObject({ content: 'Plan the launch', priority: 3, labels: ['Work', 'next'], due: { date: '2026-11-20', is_recurring: false } });
+		expect(localBase('td-w1')).toMatchObject({ description: 'Plan the launch', priority: 'high', dueDate: '2026-11-20', tags: ['next'] });
+		expect(remoteBase('td-w1')).toMatchObject({ content: 'Plan the launch', priority: 3, labels: ['Work', 'next'], unmappedLabels: ['Work'] });
+		const files = new Map(vault.files);
+		const writes = vault.writes.length;
+
+		expect((await syncNow()).message).toBe('Todoist sync done: nothing new.');
+		expect(commandRequests()).toHaveLength(1);
+		expect(vault.files).toEqual(files);
+		expect(vault.writes).toHaveLength(writes);
+		expect(vault.log).toEqual([]);
+	});
+
+	it('moves the date of a recurring task and keeps its rule in Todoist', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W2_OPEN, '- [ ] Report 📅 2026-11-16 🔁 every week 🆔 td-w2');
+
+		await syncNow();
+
+		expect(commandRequests()[0].commands![0].args).toEqual({ id: 'w2', due: { date: '2026-11-16', string: 'every week', lang: 'en' } });
+		expect(server.item('w2')!.due).toMatchObject({ date: '2026-11-16', string: 'every week', is_recurring: true });
+		await syncNow();
+		expect(commandRequests()).toHaveLength(1);
+	});
+
+	it('lets Todoist win a field changed on both sides: the line takes the Todoist value, the brain value is logged', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan ⏫ #deep 🆔 td-w1');
+		server.updateItem('w1', { priority: 2 });
+
+		await syncNow();
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan 🔼 #deep 🆔 td-w1');
+		expect(vault.log).toEqual([expect.objectContaining({ kind: 'conflict', anchor: 'td-w1', message: expect.stringContaining('"high"') })]);
+	});
+
+	it('does not send text over 500 characters, and logs it once', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, `- [ ] ${'x'.repeat(501)} 🔺 #deep 🆔 td-w1`);
+
+		await syncNow();
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(vault.log).toEqual([expect.objectContaining({ kind: 'content-not-pushed', anchor: 'td-w1' })]);
+	});
+
+	it('never pushes a line inserted from content that failed the round trip', async () => {
+		server.addItem({ id: 'h1', project_id: 'work', content: 'Fix #12', child_order: 3 });
+		await syncNow();
+		edit('Todoist/Work.md', '- [ ] Fix #12 🆔 td-h1', '- [ ] Fix #12 ⏫ 🆔 td-h1');
+
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(server.item('h1')!.priority).toBe(1);
+	});
+
+	it('treats a refused item_update as terminal: logged, the line kept, not retried', async () => {
+		await syncNow();
+		server.refuseCommandsFor('w1');
+		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan ⏫ #deep 🆔 td-w1');
+
+		expect((await syncNow()).ok).toBe(true);
+
+		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'command-error', anchor: 'td-w1', message: expect.stringContaining('item_update') }));
+		expect(localBase('td-w1').priority).toBe('high');
+		expect(remoteBase('td-w1').priority).toBe(4);
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Plan ⏫ #deep 🆔 td-w1');
+		await syncNow();
+		expect(commandRequests()).toHaveLength(1);
+	});
+
+	it('keeps the bases when the push does not reach Todoist, and sends it again next cycle', async () => {
+		await syncNow();
+		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan ⏫ #deep 🆔 td-w1');
+		let offline = true;
+		fake.current = {
+			fetch(url, init) {
+				if (offline && String(init?.body).includes('"commands"')) return Promise.reject(new TypeError('Network request failed'));
+				return server.fetch(url, init);
+			},
+		};
+
+		expect((await syncNow()).ok).toBe(false);
+		expect(localBase('td-w1').priority).toBe('highest');
+
+		offline = false;
+		await syncNow();
+
+		expect(server.item('w1')!.priority).toBe(3);
+		expect(localBase('td-w1').priority).toBe('high');
+	});
+
+	it('sends no push for a line whose Todoist patch went stale, and keeps the token', async () => {
+		await syncNow();
+		const token = vault.kv.get('sync_token');
+		edit('Todoist/Work.md', W1_OPEN, '- [ ] Plan more 🔺 #deep 🆔 td-w1');
+		server.updateItem('w1', { priority: 3 });
+		vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+			const out = await vault.invoke(cmd, args as Record<string, unknown> | undefined);
+			// Typed after the scan, before the write.
+			if (cmd === 'get_all_tasks_v2') edit('Todoist/Work.md', 'Plan more', 'Plan more now');
+			return out;
+		});
+
+		await syncNow();
+
+		expect(commandRequests()).toEqual([]);
+		expect(vault.kv.get('sync_token')).toBe(token);
+		expect(localBase('td-w1').description).toBe('Plan');
+	});
+
+	it('withholds the sync token when a refused close hides a Todoist edit of the same task, so the next cycle still writes it', async () => {
+		await syncNow();
+		const token = vault.kv.get('sync_token');
+		server.refuseCommandsFor('w1');
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		server.updateItem('w1', { content: 'Plan more' });
+
+		await syncNow();
+
+		expect(vault.log).toContainEqual(expect.objectContaining({ kind: 'command-error', anchor: 'td-w1' }));
+		expect(vault.kv.get('sync_token')).toBe(token);
+
+		await syncNow();
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [x] Plan more 🔺 #deep 🆔 td-w1');
+		expect(vault.kv.get('sync_token')).not.toBe(token);
+	});
+});
+
+describe('syncNow: field push cap', () => {
+	/** Adds `n` open tasks to Work, syncs them in, and gives each one a priority in the brain. */
+	async function editMany(n: number) {
+		for (let i = 1; i <= n; i++) server.addItem({ id: `e${i}`, project_id: 'work', content: `Chore ${i}`, child_order: 10 + i });
+		await syncNow();
+		vault.files.set('Todoist/Work.md', vault.files.get('Todoist/Work.md')!.replace(/- \[ \] Chore \d+/gu, '$& ⏫'));
+	}
+
+	it('asks before more than 50 field pushes; Cancel changes nothing', async () => {
+		await editMany(51);
+		vi.mocked(ask).mockResolvedValue(false);
+		const files = new Map(vault.files);
+		const commits = vault.commits.length;
+
+		const outcome = await syncNow();
+
+		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('51 tasks'), expect.objectContaining({ title: 'Todoist sync' }));
+		expect(outcome).toEqual({ ok: false, message: 'Todoist sync cancelled; nothing was changed.', failure: { kind: 'error' } });
+		expect(commandRequests()).toEqual([]);
+		expect(vault.files).toEqual(files);
+		expect(vault.commits).toHaveLength(commits);
+	});
+
+	it('runs uncapped on Sync, at most 100 commands per request', async () => {
+		await editMany(101);
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await syncNow();
+
+		expect(commandRequests().map((r) => r.commands!.length)).toEqual([100, 1]);
+		expect(server.item('e101')!.priority).toBe(3);
+	});
+
+	it('does not ask at 50', async () => {
+		await editMany(50);
+
+		await syncNow();
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(commandRequests()[0].commands).toHaveLength(50);
+	});
+
+	it('never asks in an automatic cycle: it skips the field pushes and runs the rest', async () => {
+		await editMany(51);
+		server.updateItem('w1', { checked: true });
+
+		const outcome = await syncNow('auto');
+
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(outcome).toEqual({ ok: true, message: 'Todoist sync done: 1 line updated.', skippedFieldPushes: 51 });
+		expect(commandRequests()).toEqual([]);
+		expect(localBase('td-e1').priority).toBeNull();
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_DONE);
+
+		vi.mocked(ask).mockResolvedValue(true);
+		expect(await syncNow()).not.toHaveProperty('skippedFieldPushes');
+		expect(commandRequests().map((r) => r.commands!.length)).toEqual([51]);
+		expect(server.item('e1')!.priority).toBe(3);
+	});
+});
+
 describe('syncNow: completion commands', () => {
 	it('keeps the pending uuid when the command request fails, and resends the same uuid next run', async () => {
 		await syncNow();

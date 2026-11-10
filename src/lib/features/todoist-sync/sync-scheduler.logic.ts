@@ -61,6 +61,11 @@ export function autoSyncOverCapMessage(count: number): string {
 	return `Todoist automatic sync skipped closing or reopening ${count} tasks: more than 25 in one sync. Run "Todoist: Sync now" to confirm them.`;
 }
 
+/** The toast of an automatic cycle that skipped the field pushes of `count` tasks over the cap (design rule 9). */
+export function autoSyncFieldCapMessage(count: number): string {
+	return `Todoist automatic sync skipped sending brain edits of ${count} tasks: more than 50 in one sync. Run "Todoist: Sync now" to confirm them.`;
+}
+
 /** The toast of an automatic cycle that skipped `count` detaches over the cap (design rule 9). */
 export function autoSyncDetachCapMessage(count: number): string {
 	return `Todoist automatic sync skipped detaching ${count} deleted or moved tasks: more than 10 in one sync. Run "Todoist: Sync now" to confirm them.`;

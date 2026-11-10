@@ -3,6 +3,7 @@ import {
 	autoCycleDelay,
 	autoSyncFailureMessage,
 	autoSyncDetachCapMessage,
+	autoSyncFieldCapMessage,
 	autoSyncOverCapMessage,
 	formatClockTime,
 	formatLogTime,
@@ -79,6 +80,14 @@ describe('autoSyncOverCapMessage', () => {
 	it('names the skipped count and how to confirm it', () => {
 		expect(autoSyncOverCapMessage(40)).toBe(
 			'Todoist automatic sync skipped closing or reopening 40 tasks: more than 25 in one sync. Run "Todoist: Sync now" to confirm them.',
+		);
+	});
+});
+
+describe('autoSyncFieldCapMessage', () => {
+	it('names the skipped count and how to confirm it', () => {
+		expect(autoSyncFieldCapMessage(60)).toBe(
+			'Todoist automatic sync skipped sending brain edits of 60 tasks: more than 50 in one sync. Run "Todoist: Sync now" to confirm them.',
 		);
 	});
 });
