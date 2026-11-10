@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Pure task-line patch and anchor helpers](issues/02-task-line-patch-and-anchor-logic.md) | none | done | issue/02-task-line-patch-and-anchor-logic (61e9e5c1c) | 2026-11-09 |
 | 03 | [Guarded writer for task lines in notes that are not open](issues/03-guarded-line-writer-closed-notes.md) | 02 | in-progress | | |
 | 04 | [Guarded writer for task lines in notes that are open in a tab](issues/04-guarded-line-writer-open-tabs.md) | 03 | todo | | |
-| 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | in-progress | | |
+| 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | done | issue/05-sync-settings-state-and-connection-check (e982782b8) | 2026-11-09 |
 | 06 | ["Todoist: Sync now" pulls every project and its open tasks into project notes](issues/06-sync-now-pulls-projects-and-tasks.md) | 04, 05 | todo | | |
 | 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | todo | | |
 | 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | todo | | |
@@ -58,3 +58,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 16:09 — 02 — deliver — round 1 APPROVED by claude with findings, fix round (parser tag rule, space before anchor insert, CRLF, empty content, bare td-), finding 4 deferred to owner before 08; round 2 APPROVED by claude, one nit (CRLF + recurrence gives a conflict) left; full suite passed (584 files, 14278 tests) — 61e9e5c1c
 - 2026-11-09 21:08 — 05 — start — launched by /relay-lite:run — 36f920e4f
 - 2026-11-09 21:18 — 03 — start — launched by /relay-lite:run — fe8d80ca6
+- 2026-11-09 21:46 — 05 — deliver — round 1 APPROVED by claude, fix round (vault-mismatch test opens the other vault, interval clamp returns 5 for non-numbers), syncFolder normalization and fake checked-item drop deferred; round 2 APPROVED with no findings; full suite passed (vitest 591 files, 14365 tests; cargo 1365) — e982782b8
