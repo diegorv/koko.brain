@@ -50,6 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | done | issue/13-deleted-tasks-detach (d933ffa9c) | 2026-11-09 |
 | 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | done | issue/14-sync-runs-on-its-own (c548b66a7) | 2026-11-09 |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14 | todo | | |
+| 16 | [A sync stopped by the line brake has a way past it](issues/16-line-brake-recovery.md) | 13 | todo | | |
 
 ## Log
 
@@ -73,3 +74,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 23:31 — 08 — start — launched by /relay-lite:run — 86fbbe3fc
 - 2026-11-09 23:31 — 13 — start — launched by /relay-lite:run — 86fbbe3fc
 - 2026-11-09 23:53 — 13 — deliver — round 1 APPROVED by claude with findings, fix round (moved-out-of-tree only for a known live project outside the tree, Issue 10 criterion that a detached anchor is never re-created, nit), follow-up Issue 16 opened (line-brake recovery, owner decision); round 2 APPROVED with no findings; full suite passed (604 files, 14670 tests) — d933ffa9c
+- 2026-11-09 23:53 — ledger updated (added 16)
