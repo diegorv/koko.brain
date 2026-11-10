@@ -65,7 +65,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 028 | [Duplicate saves the note's unsaved typing before copying it](issues/028-duplicate-saves-note-s-unsaved-typing-before.md) | none | todo | | |
 | 029 | [Duplicate never overwrites a sibling whose name differs only in case (APFS)](issues/029-duplicate-never-overwrites-sibling-whose-name-differs.md) | 028 | todo | | |
 | 030 | [A session whose settings.json was never loaded never writes it and never purges File History at the default retention](issues/030-session-whose-settings-json-was-never-loaded.md) | none | todo | | |
-| 031 | [Auto-move rules and the Todoist sent list: a failed load is never saved over the file](issues/031-auto-move-rules-todoist-sent-list-failed.md) | 030 | todo | | |
+| 031 | [Auto-move rules: a failed load is never saved over the file](issues/031-auto-move-rules-todoist-sent-list-failed.md) | 030 | todo | | |
 | 032 | [Keep uncaught mod errors out of Sentry](issues/032-mod-errors-out-of-sentry.md) | none | todo | | |
 | 033 | [The privacy scanner stops skipping every line that contains a URL, and PRIVACY.md matches the code](issues/033-privacy-scanner-skips-every-url.md) | none | todo | | |
 | 034 | [Sentry events carry an environment, the test button stops claiming delivery, and the copy says what is sent](issues/034-sentry-environment-test-button-and-copy.md) | none | todo | | |
@@ -106,8 +106,8 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 069 | [Small `.view` tab write feedback](issues/069-editor-write-feedback.md) | 013 | todo | | |
 | 070 | [View writers refresh promptly and fail loudly](issues/070-view-writers-refresh-and-fail-loudly.md) | none | todo | | |
 | 071 | [.view toolbar and icon writes keep the file's YAML comments](issues/071-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
-| 072 | [Todoist sync failures are visible and read the HTTP status](issues/072-todoist-sync-errors-visible.md) | none | todo | | |
-| 073 | [Todoist send: full project lists, refresh, the default label and recurring due dates](issues/073-todoist-project-lists-page-and-refresh.md) | 072 | todo | | |
+| 072 | [Todoist sync failures are visible and read the HTTP status](issues/072-todoist-sync-errors-visible.md) | none | wontfix | | |
+| 073 | [Todoist send: full project lists, refresh, the default label and recurring due dates](issues/073-todoist-project-lists-page-and-refresh.md) | none | wontfix | | |
 | 074 | [Rust records task headings](issues/074-rust-task-headings.md) | none | todo | | |
 | 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | todo | | |
 | 076 | [Note writes are atomic: a failed write never leaves the note empty or truncated](issues/076-note-writes-are-atomic-failed-write-never.md) | none | todo | | |
@@ -161,10 +161,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 124 | [Saved views and the "To list" migration](issues/124-saved-views-and-to-list-migration.md) | 123 | todo | | |
 | 125 | [Built-in smart lists and their empty states](issues/125-smart-lists-and-empty-states.md) | 111, 124 | todo | | |
 | 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | 124 | todo | | |
-| 127 | [A Todoist send is never silently forgotten](issues/127-todoist-send-never-forgotten.md) | 072, 031 | todo | | |
-| 128 | [Todoist link survives edits, and reworded tasks show "possibly sent"](issues/128-todoist-identity-and-possibly-sent.md) | 111, 115, 127, 031 | todo | | |
-| 129 | [Todoist state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 111, 113, 128 | todo | | |
-| 130 | [Todoist links follow renames, and unmatched entries are listed](issues/130-todoist-renames-and-unlinked.md) | 128 | todo | | |
+| 127 | [A Todoist send is never silently forgotten](issues/127-todoist-send-never-forgotten.md) | none | wontfix | | |
+| 128 | [Todoist link survives edits, and reworded tasks show "possibly sent"](issues/128-todoist-identity-and-possibly-sent.md) | none | wontfix | | |
+| 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 111, 113 | todo | | |
+| 130 | [Todoist links follow renames, and unmatched entries are listed](issues/130-todoist-renames-and-unlinked.md) | none | wontfix | | |
 | 131 | [Section layout and live Filters preview](issues/131-sections-and-live-preview.md) | 011 | todo | | |
 | 132 | [Edit view opens from anywhere, hidden views included](issues/132-edit-view-from-anywhere.md) | 131 | todo | | |
 | 133 | [Sort & limit section](issues/133-sort-and-limit-section.md) | 132 | todo | | |
@@ -277,3 +277,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 21:18 — 114 — deliver — round 1 APPROVED by claude with one minor (no test of consumer-before-invalidation order), fixed with a probe test; round 2 APPROVED by claude with no findings; full suite passed (585 files, 14296 tests) — 108a60047
 - 2026-11-09 21:47 — 229 — start — launched by /relay-lite:run — ca684abbe
 - 2026-11-09 21:54 — 229 — deliver — round 1 APPROVED by claude, two optional nits rejected with reasons (ADR cross-reference kept, settings table fact out of scope); full suite passed (591 files, 14373 tests) — 8ab6672fa
+- 2026-11-10 04:50 — ledger updated (title of 006, 006, 031, 129; link of 006, 006; blocked by of 006, 006, 129)
+- 2026-11-10 04:50 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 073, 127, 128, 130; wontfix 072, 073, 127, 128, 130)
