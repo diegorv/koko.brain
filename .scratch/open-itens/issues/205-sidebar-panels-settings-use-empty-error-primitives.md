@@ -4,11 +4,11 @@
 
 **Migrated from:** `.scratch/archived/ux-polish/issues/60-panels-use-empty-error-primitives.md` (audit 2026-11-05). Priority: later (refactor, deferred, feature) (bucket 5-later). A refactor that needs 59's primitives. The EventCalendarView part is already gone.
 
-**Audit check at `5f8003d67`:** design_or_refactor (refactor, low). Blocked by 59, whose primitives do not exist. Raw String(err) still rendered as UI text at src/lib/features/tasks/TodoistPopover.svelte:76,89,107 (shown at :217) and src/lib/features/search/SearchSection.svelte:50,86 (shown at :122,:156). Tauri commands reject with strings, so String(err) is mostly already the message; the owner does not list Todoist or semantic-model downloads as daily use.
+**Audit check at `5f8003d67`:** design_or_refactor (refactor, low). Blocked by 59, whose primitives do not exist. Raw String(err) still rendered as UI text at src/lib/features/search/SearchSection.svelte:50,86 (shown at :122,:156). Tauri commands reject with strings, so String(err) is mostly already the message; the owner does not list semantic-model downloads as daily use.
 
-**Stale in the text below:** EventCalendarView no longer renders raw String(err) as panel copy: lines 140 and 212 use err.message in a toast description, and line 242 shows eventCalendarStore.loadError with role=alert. Only TodoistPopover and SearchSection still match the Issue text.
+**Stale in the text below:** EventCalendarView no longer renders raw String(err) as panel copy: lines 140 and 212 use err.message in a toast description, and line 242 shows eventCalendarStore.loadError with role=alert. Only SearchSection still matches the Issue text.
 
-**What to build:** Move the sidebar panels (tags, tasks, backlinks, outgoing links, table of contents, search) and the settings sections that show empty or error text onto `EmptyState` and `InlineAlert`. Replace raw `String(err)` UI copy in TodoistPopover, SearchSection and EventCalendarView with a fixed message plus the error in the log.
+**What to build:** Move the sidebar panels (tags, tasks, backlinks, outgoing links, table of contents, search) and the settings sections that show empty or error text onto `EmptyState` and `InlineAlert`. Replace raw `String(err)` UI copy in SearchSection and EventCalendarView with a fixed message plus the error in the log.
 
 **Blocked by:** 204
 
@@ -28,3 +28,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/60-panels-use-empty-error-primitives.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-10: the TodoistPopover mentions were removed: `todoist-bisync` Issue 15 deleted `TodoistPopover.svelte`.

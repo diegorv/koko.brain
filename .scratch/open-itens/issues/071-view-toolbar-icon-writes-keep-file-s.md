@@ -40,27 +40,6 @@ AssertionError: expected false to be true (configWrites.length === 0 || original
 
 **Fix sketch.** Track a load-failed flag in the store; refuse saveAutoMoveConfig while set (surface a toast), or copy the unreadable file aside before the first write.
 
-## Unparseable todoist-sent.json is overwritten by the next send or sync
-
-- Verdict: CONFIRMED_BY_TEST (deep dive priority P2, severity corruption)
-- Claims covered: feature-writers-12
-
-**How a user hits it.** Needs an unparseable sent-tasks file: a torn in-place write after a crash (plugin write is truncate plus write_all, no rename, no sync), or a hand edit. Then the next sendTaskToTodoist or syncTodoistTasks rewrites it with only the store contents. Rare.
-
-**Recoverable from.** none from the app; the Todoist tasks still exist but the filePath to task-id links are overwritten, so re-sending creates duplicate Todoist tasks
-
-**Root cause.** src/lib/features/tasks/todoist.service.ts:114-117 (loadSentTasks returns [] on parse error) feeding initTodoist :238-244 and saveSentTasks :124-131 via sendTaskToTodoist :215-224 and syncTodoistTasks :281.
-
-**Evidence.** Repro src/tests/repro/h08-app-json/todoist-corrupt-overwrite.test.ts FAILS: after initTodoist on a truncated file and one sendTaskToTodoist, writeTextFile wrote /test-vault/.kokobrain/todoist-sent.json and the original bytes were not kept elsewhere. Third-party: raw.githubusercontent.com tauri-apps/plugins-workspace v2 plugins/fs/src/commands.rs shows write_file_inner opens the target with truncate and write_all in place, no rename, no sync_all.
-
-**Repro test.** `.scratch/archived/file-io-audit/repro/src/tests/repro/h08-app-json/todoist-corrupt-overwrite.test.ts` fails on the bug assertion at c4bfee07. When fixing, move it under `src/tests/` as the red test.
-
-```
-AssertionError: expected false to be true (sentWrites.length === 0 || originalKeptElsewhere)
-```
-
-**Fix sketch.** Same as the auto-move case: do not write over a file that failed to parse (flag the load failure and block saves, or copy the file aside first).
-
 ## .view toolbar and icon writes drop YAML comments; a toolbar write under a dirty open tab is reverted by autosave
 
 - Verdict: CONFIRMED_BY_TEST (deep dive priority P2, severity corruption)
@@ -98,3 +77,4 @@ Written by audit 2026-11-05 from the text above and its audit header; the origin
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/file-io-audit/issues/32-app-json-corrupt-overwrite.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-10: the "Unparseable todoist-sent.json is overwritten by the next send or sync" section was removed: `todoist-bisync` Issue 15 deleted `todoist.service.ts`, and the two-way sync never reads or writes that file. The audit check above still names it as (2); that part no longer applies.

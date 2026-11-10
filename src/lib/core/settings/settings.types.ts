@@ -252,7 +252,7 @@ export interface TodoistSettings {
 	 * Stored in plain text in the vault's `.kokobrain/settings.json`; see ADR-0019's 2026-11-06 amendment.
 	 */
 	apiToken: string;
-	/** Label name applied to every task created by the app (empty = none) */
+	/** Todoist label the sync never writes as a tag nor removes from a task (empty = none) */
 	defaultLabel: string;
 	/** Whether the two-way sync runs for this vault */
 	syncEnabled: boolean;

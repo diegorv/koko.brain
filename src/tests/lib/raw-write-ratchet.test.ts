@@ -41,7 +41,6 @@ const ALLOWED: Record<string, string[]> = {
 		'recent icons JSON in .kokobrain, not a note',
 		'folder-note placeholder; applyNoteChange follows',
 	],
-	'src/lib/features/tasks/todoist.service.ts': ['sent-tasks JSON in .kokobrain, not a note'],
 	'src/lib/features/type-definitions/type-definitions.service.ts': [
 		'renameType rewrites _type in open tabs; applyNoteChange follows',
 		'rewriteViewFile writes a .view with no open tab; markRecentSave and applyNoteChange follow (an open tab saves through the editor)',

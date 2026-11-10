@@ -20,14 +20,12 @@ vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: 
 
 import { mount, unmount, flushSync } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
-import { readTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import TasksView from '#lib/features/tasks/TasksView.svelte';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 
@@ -190,7 +188,7 @@ describe('TasksView row clicks', () => {
 	});
 });
 
-describe('TasksView: the old "Send to Todoist" action', () => {
+describe('TasksView: the two-way sync is the only Todoist path', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 
@@ -201,7 +199,6 @@ describe('TasksView: the old "Send to Todoist" action', () => {
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 		settingsStore.reset();
-		collectionStore.reset();
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		settingsStore.updateTodoist({ apiToken: 'token' });
@@ -216,8 +213,8 @@ describe('TasksView: the old "Send to Todoist" action', () => {
 	});
 
 	/** Mounts the view with one open task in {@link NOTE}. */
-	async function mountWith(text: string, tags: string[] = []): Promise<void> {
-		vi.mocked(invoke).mockImplementation(async (cmd: string) => (cmd === 'get_all_tasks_v2' ? [group(text, 1, 'todo', tags)] : undefined));
+	async function mountWith(text: string): Promise<void> {
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => (cmd === 'get_all_tasks_v2' ? [group(text, 1)] : undefined));
 		component = mount(TasksView, { target, props: { onOpenWikilink: vi.fn() } });
 		flushSync();
 		await vi.waitFor(() => {
@@ -226,44 +223,21 @@ describe('TasksView: the old "Send to Todoist" action', () => {
 		});
 	}
 
-	const sendButton = () => document.querySelector('[data-task-row] [title="Send to Todoist"]');
-
-	/** Marks {@link NOTE} as a Todoist project note in the property index. */
-	function makeProjectNote() {
-		const record = { path: NOTE, properties: new Map<string, unknown>([['todoist_project', 'work']]) } as PropertyIndexRecord;
-		collectionStore.setPropertyIndex(new Map([[NOTE, record]]));
-	}
-
-	it('stays for a line the sync does not own', async () => {
-		settingsStore.updateTodoist({ syncEnabled: true, syncRootProjectId: 'work' });
+	it('shows no Send to Todoist action, no toolbar Sync button and no Todoist badge, with a token set', async () => {
 		await mountWith('Ship feature A');
 
-		expect(sendButton()).not.toBeNull();
+		expect(document.querySelector('[title="Send to Todoist"]')).toBeNull();
+		expect(document.querySelector('[title="Sync task status from Todoist"]')).toBeNull();
+		// The badges were links to the Todoist task; this row's text has no URL.
+		expect(document.querySelector('[data-task-row] a')).toBeNull();
 	});
 
-	it('is hidden for an anchored line, even with the sync off', async () => {
-		await mountWith('Ship feature A 🆔 td-w1');
-
-		expect(sendButton()).toBeNull();
-	});
-
-	it('is hidden, with the sync on, for a #todoist line and for a line of a project note', async () => {
-		settingsStore.updateTodoist({ syncEnabled: true, syncRootProjectId: 'work' });
-		await mountWith('Ship feature A #todoist', ['todoist']);
-		expect(sendButton()).toBeNull();
-		unmount(component!);
-		document.body.innerHTML = '';
-		target = document.body.appendChild(document.createElement('div'));
-
-		makeProjectNote();
+	it('never reads todoist-sent.json', async () => {
 		await mountWith('Ship feature A');
-		expect(sendButton()).toBeNull();
-	});
+		await new Promise((r) => setTimeout(r, 0));
 
-	it('stays for a #todoist line or a project note line while the sync is off', async () => {
-		makeProjectNote();
-		await mountWith('Ship feature A #todoist', ['todoist']);
-
-		expect(sendButton()).not.toBeNull();
+		const sentFile = '/vault/.kokobrain/todoist-sent.json';
+		expect(vi.mocked(exists).mock.calls.some(([p]) => p === sentFile)).toBe(false);
+		expect(vi.mocked(readTextFile).mock.calls.some(([p]) => p === sentFile)).toBe(false);
 	});
 });

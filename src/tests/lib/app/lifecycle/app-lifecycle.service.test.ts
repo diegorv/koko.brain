@@ -289,7 +289,6 @@ import {
 } from '#lib/features/search/search.service.js';
 import { toast } from 'svelte-sonner';
 import { initializeVault, teardownVault } from '#lib/app/lifecycle/app-lifecycle.service.js';
-import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -1164,15 +1163,6 @@ describe('teardownVault', () => {
 
 		// Abandon the hanging init so it can never complete in later tests.
 		teardownVault();
-	});
-
-	it('resets todoist store to prevent cross-vault data leakage', () => {
-		todoistStore.setProjects([{ id: '1', name: 'Old Vault Project' }] as any);
-		expect(todoistStore.projects.length).toBe(1);
-
-		teardownVault();
-
-		expect(todoistStore.projects).toEqual([]);
 	});
 
 	it('resets lifecycle filter store to prevent stale archived paths', () => {

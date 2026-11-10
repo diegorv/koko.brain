@@ -129,12 +129,12 @@ Everything Kokobrain creates lives inside your vault folder. Here is what each f
 |---------------|---------|
 | `*.md` files | Your notes -- plain Markdown text files |
 | `.kokobrain/settings.json` | Vault-specific settings (theme, editor preferences, etc.) |
-| `.kokobrain/kokobrain.db` | File history snapshots and full-text search index (SQLite) |
+| `.kokobrain/kokobrain.db` | File history snapshots, full-text search index and Todoist sync state (SQLite) |
 | `.kokobrain/recent-icons.json` | Recently used icons in the icon picker |
 | `.kokobrain/trash/` | Trash manifest and deleted files |
 | `.kokobrain/folder-order.json` | Custom folder ordering |
 | `.kokobrain/auto-move-rules.json` | Auto-move rule configuration |
-| `.kokobrain/todoist-sent.json` | Tracks which tasks were sent to Todoist |
+| `.kokobrain/todoist-sent.json` | Left by the old "Send to Todoist" action in vaults that used it; no longer read or written, safe to delete |
 
 The `.kokobrain/` folder is hidden by default in Finder. You can safely back it up alongside your notes. If you ever delete it, the only things you lose are settings and history -- your notes remain untouched.
 

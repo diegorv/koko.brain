@@ -95,17 +95,19 @@
 		</button>
 	</p>
 
-	<SettingItem
-		label="Default label"
-		description="Added to every task created from the app. Todoist creates the label automatically if it doesn't exist. Leave empty for none."
-	>
-		<Input
-			type="text"
-			value={todoist.defaultLabel}
-			oninput={(e) => handleDefaultLabelChange((e.currentTarget as HTMLInputElement).value)}
-			placeholder="e.g. inbox"
-		/>
-	</SettingItem>
+	<div data-setting="default-label">
+		<SettingItem
+			label="Default label"
+			description="A Todoist label the sync never writes as a tag and never removes from a task. Leave empty for none."
+		>
+			<Input
+				type="text"
+				value={todoist.defaultLabel}
+				oninput={(e) => handleDefaultLabelChange((e.currentTarget as HTMLInputElement).value)}
+				placeholder="e.g. inbox"
+			/>
+		</SettingItem>
+	</div>
 
 	<h3 class="section-label mt-6 mb-2">Sync</h3>
 

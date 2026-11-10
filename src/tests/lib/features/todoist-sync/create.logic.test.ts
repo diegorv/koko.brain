@@ -7,7 +7,6 @@ import {
 	pairPendingAdds,
 	parsePendingAdd,
 	planCreates,
-	syncOwnsTaskLine,
 	type CreateInput,
 	type PendingAdd,
 } from '#lib/features/todoist-sync/create.logic.js';
@@ -461,24 +460,5 @@ describe('addAnchor', () => {
 
 	it('returns null for a line that is no task', () => {
 		expect(addAnchor('Call Bob', 'td-a')).toBeNull();
-	});
-});
-
-describe('syncOwnsTaskLine', () => {
-	const on = { syncOn: true, inSyncScope: true, projectNote: false };
-
-	it('is true for an anchored line, whatever the settings', () => {
-		expect(syncOwnsTaskLine('Plan 🆔 td-w1', [], { syncOn: false, inSyncScope: false, projectNote: false })).toBe(true);
-	});
-
-	it('is true, with sync on, for a line of a project note or a #todoist line', () => {
-		expect(syncOwnsTaskLine('Plan', [], { ...on, projectNote: true })).toBe(true);
-		expect(syncOwnsTaskLine('Plan #Todoist', ['Todoist'], on)).toBe(true);
-	});
-
-	it('is false with sync off, outside the sync scope, or for any other line', () => {
-		expect(syncOwnsTaskLine('Plan #todoist', ['todoist'], { ...on, syncOn: false })).toBe(false);
-		expect(syncOwnsTaskLine('Plan #todoist', ['todoist'], { ...on, inSyncScope: false })).toBe(false);
-		expect(syncOwnsTaskLine('Plan', [], on)).toBe(false);
 	});
 });

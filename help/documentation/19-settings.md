@@ -248,11 +248,18 @@ Rules and excluded folders are managed in the Auto Move settings section and sto
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **API token** | Your personal Todoist API token | -- |
+| **API token** (`todoist.apiToken`) | Your personal Todoist API token. Stored in plain text in this vault's `.kokobrain/settings.json`, so exclude `.kokobrain` from any sync tool you use on the vault. | -- |
+| **Default label** (`todoist.defaultLabel`) | A Todoist label the sync never writes as a tag and never removes from a task. | Empty |
+| **Sync with Todoist** (`todoist.syncEnabled`) | Keeps the root project's tasks and this vault's notes in sync both ways. | Disabled (`false`) |
+| **Root project** (`todoist.syncRootProjectId`) | The Todoist project this vault syncs, with every project nested under it. **Load projects** fetches the list. With none chosen, the sync stays off. | None |
+| **Include Inbox** (`todoist.syncIncludeInbox`) | Also syncs the Todoist Inbox, into `Inbox.md` in the sync folder. Turn it on in one vault only. | Disabled (`false`) |
+| **Vault context** (`todoist.syncContext`) | **Work** sends new tasks with no context label; **Personal** sends them with the label `personal`. | Work (`work`) |
+| **Sync folder** (`todoist.syncFolder`) | Vault folder for the project notes, one note per Todoist project. | `Todoist` |
+| **Sync interval** (`todoist.syncIntervalMinutes`) | Minutes between automatic syncs, at least 1. | `5` |
 
 Get your token from: [todoist.com/prefs/integrations](https://todoist.com/prefs/integrations) > Developer > API token.
 
-See [Tasks & Todoist](10-tasks-and-todoist.md) for details on the integration.
+See [Tasks & Todoist](10-tasks-and-todoist.md#todoist-sync) for how the sync works.
 
 ## QueryJS
 

@@ -68,7 +68,6 @@ import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-
 import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one-today.service.js';
 import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
 import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
-import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { startAutoSync, stopAutoSync } from '#lib/features/todoist-sync/sync-scheduler.service.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
@@ -671,7 +670,6 @@ export function teardownVault(): void {
 	resetDeepLink();
 	resetPeriodicNotes();
 	resetTrash();
-	todoistStore.reset();
 	todoistSyncStore.reset();
 	lifecycleFilterStore.reset();
 	typeDefinitionsStore.reset();

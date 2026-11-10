@@ -1,29 +1,18 @@
 <script lang="ts">
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import { onDestroy, untrack } from 'svelte';
 	import Circle from '@lucide/svelte/icons/circle';
 	import CircleCheckBig from '@lucide/svelte/icons/circle-check-big';
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import Hash from '@lucide/svelte/icons/hash';
-	import Cloud from '@lucide/svelte/icons/cloud';
-	import CloudCheck from '@lucide/svelte/icons/cloud-check';
-	import RefreshCcw from '@lucide/svelte/icons/refresh-ccw';
-	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
-	import { todoistStore } from './todoist.store.svelte';
-	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
-	import { initTodoist, syncTodoistTasks } from './todoist.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
-	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-	import { isInSyncScope } from '#lib/features/todoist-sync/anchor.logic.js';
-	import { syncOwnsTaskLine } from '#lib/features/todoist-sync/create.logic.js';
 	import { filterByDate, filterCompleted, computeTaskStats, parseTaskTextSegments } from './tasks.logic';
 	import { toggleTarget } from './task-status.logic';
-	import TodoistPopover from './TodoistPopover.svelte';
 	import type { TaskDateFilter, TaskItem } from './tasks.types';
 
 	interface Props {
@@ -79,25 +68,6 @@
 		void openNoteAt(filePath, { kind: 'line', line: lineNumber });
 	}
 
-	let hasTodoistToken = $derived(settingsStore.todoist.apiToken.length > 0);
-
-	/** Whether the two-way Todoist sync owns the line, so the old Send action is hidden for it. */
-	function syncOwnsLine(filePath: string, task: TaskItem): boolean {
-		const { syncEnabled, syncRootProjectId } = settingsStore.todoist;
-		const root = vaultStore.path;
-		const relPath = root !== null && filePath.startsWith(`${root}/`) ? filePath.slice(root.length + 1) : null;
-		const project = collectionStore.propertyIndex.get(filePath)?.properties.get('todoist_project');
-		return syncOwnsTaskLine(task.text, task.metadata.tags, {
-			syncOn: syncEnabled && syncRootProjectId !== '',
-			inSyncScope: relPath !== null && isInSyncScope(relPath, settingsStore.templates.folder),
-			projectNote: (typeof project === 'string' || typeof project === 'number') && String(project).trim() !== '',
-		});
-	}
-
-	onMount(() => {
-		initTodoist();
-	});
-
 	// Refetch task groups whenever the Rust `VaultIndex` version bumps
 	// (save, watcher event, toggle, or remove_note_from_index). Phase 7.6.
 	$effect(() => {
@@ -106,14 +76,6 @@
 			void buildTaskIndex();
 		});
 	});
-
-	async function handleSync() {
-		try {
-			await syncTodoistTasks();
-		} catch (err) {
-			console.error('Failed to sync Todoist tasks:', err);
-		}
-	}
 
 	function formatDate(timestamp: number): string {
 		if (!timestamp) return '';
@@ -158,23 +120,6 @@
 				{/if}
 			</button>
 		</div>
-
-		{#if hasTodoistToken}
-			<div class="flex items-center gap-1">
-				<button
-					class="p-1 rounded-md transition-colors cursor-pointer text-muted-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-					onclick={handleSync}
-					disabled={todoistStore.isSyncing}
-					title="Sync task status from Todoist"
-				>
-					{#if todoistStore.isSyncing}
-						<Loader2 class="size-3.5 animate-spin" />
-					{:else}
-						<RefreshCcw class="size-3.5" />
-					{/if}
-				</button>
-			</div>
-		{/if}
 
 		<div class="flex items-center gap-1 relative">
 			<Hash class="size-3 text-muted-foreground absolute left-1.5 pointer-events-none" />
@@ -266,33 +211,6 @@
 												{/if}
 											{/each}
 										</span>
-										{#if hasTodoistToken}
-											{#if todoistStore.isSent(group.filePath, task.text)}
-												{@const completed = todoistStore.isCompletedInTodoist(group.filePath, task.text)}
-												{@const url = todoistStore.getTodoistUrl(group.filePath, task.text)}
-												{#if completed}
-													<a
-														href={url}
-														target="_blank"
-														rel="noopener noreferrer"
-														title="Completed in Todoist"
-													>
-														<CloudCheck class="size-3 shrink-0 mt-1 text-green-400" />
-													</a>
-												{:else}
-													<a
-														href={url}
-														target="_blank"
-														rel="noopener noreferrer"
-														title="Open in Todoist"
-													>
-														<Cloud class="size-3 shrink-0 mt-1 text-muted-foreground" />
-													</a>
-												{/if}
-											{:else if !syncOwnsLine(group.filePath, task)}
-												<TodoistPopover taskText={task.text} filePath={group.filePath} metadata={task.metadata} />
-											{/if}
-										{/if}
 									</div>
 								{/each}
 							</div>

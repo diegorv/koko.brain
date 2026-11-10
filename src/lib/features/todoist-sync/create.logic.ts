@@ -397,28 +397,3 @@ export function addAnchor(line: string, anchor: string): string | null {
 	const body = text.slice(0, text.length - trailing.length);
 	return `${head}${body} ${anchorToken(anchor)}${trailing}`;
 }
-
-/** What {@link syncOwnsTaskLine} knows about the line's note. */
-export interface LineOwnerContext {
-	/** Whether the sync is on with a root project chosen. */
-	syncOn: boolean;
-	/** Whether the note's path may hold synced lines (`isInSyncScope`). */
-	inSyncScope: boolean;
-	/** Whether the note's frontmatter names a Todoist project (`todoist_project`). */
-	projectNote: boolean;
-}
-
-/**
- * Whether the two-way sync owns a task line, so the Tasks view's old "Send
- * to Todoist" action is hidden for it: an anchored line always; with the
- * sync on and the note in sync scope, a line of a project note or one
- * tagged `#todoist`. Approximates {@link planCreates}' scope without the
- * vault's project tree.
- * @param text - the task text after `[ ] `
- * @param tags - the line's parsed tags
- */
-export function syncOwnsTaskLine(text: string, tags: readonly string[], context: LineOwnerContext): boolean {
-	if (readAnchor(text) !== null) return true;
-	if (!context.syncOn || !context.inSyncScope) return false;
-	return context.projectNote || tags.some((t) => t.toLowerCase() === SCOPE_TAG);
-}

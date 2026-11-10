@@ -105,6 +105,12 @@ describe('TodoistSection', () => {
 		expect(text).toContain("Stored in this vault's .kokobrain folder. Exclude .kokobrain from sync tools.");
 	});
 
+	it('says the default label stays out of the note tags and is never removed by the sync', () => {
+		const text = row('default-label').textContent ?? '';
+		expect(text).toContain('A Todoist label the sync never writes as a tag and never removes from a task. Leave empty for none.');
+		expect(text).not.toContain('Added to every task');
+	});
+
 	it('typing in the label field stores the default label', () => {
 		expect(settingsStore.todoist.defaultLabel).toBe('');
 		type(fields()[1], 'inbox');

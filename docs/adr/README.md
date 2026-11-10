@@ -141,3 +141,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0034](0034-derived-allowed-behind-store-getters.md) | Stores expose getters; a getter may return a module-level `$derived`                 | active |
 | [0035](0035-remote-theme-catalog.md) | Themes beyond the built-ins come from a public catalog, installed as color-only source packages | active |
 | [0036](0036-vault-mods-trust-loader-storage.md) | Vault mods: trust, loader and storage                                                | active |
+| [0037](0037-todoist-two-way-sync.md) | Todoist two-way sync: anchored lines, two-base merge, Todoist wins, detach only      | active |
