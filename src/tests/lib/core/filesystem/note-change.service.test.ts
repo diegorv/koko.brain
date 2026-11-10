@@ -80,6 +80,7 @@ describe('applyNoteChange', () => {
 			['create', false, false],
 			['fs', false, false],
 			['restore', true, true],
+			['task', false, true],
 		])('source %s: rust=%s mark=%s', async (source, firesRust, marks) => {
 			await applyNoteChange({ kind: 'upsert', source, path: '/vault/a.md', content: CONTENT });
 
@@ -119,6 +120,15 @@ describe('applyNoteChange', () => {
 			await applyNoteChange({ kind: 'upsert', source: 'watcher', path: '/vault/a.md', content: CONTENT });
 
 			expectAllConsumersIndexed('/vault/a.md');
+		});
+
+		it('task runs the consumers even on an already-indexed signature', async () => {
+			markIndexed('/vault/a.md', CONTENT);
+
+			await applyNoteChange({ kind: 'upsert', source: 'task', path: '/vault/a.md', content: CONTENT });
+
+			expectAllConsumersIndexed('/vault/a.md');
+			expect(invokedCommands()).not.toContain('update_note_in_index');
 		});
 
 		it('runs the consumers SYNCHRONOUSLY for the save source', () => {
@@ -213,7 +223,7 @@ describe('applyNoteChange', () => {
 		});
 
 		it('never touches FTS when no vaultPath is supplied', async () => {
-			for (const source of ['save', 'edit', 'create', 'fs'] as const) {
+			for (const source of ['save', 'edit', 'create', 'fs', 'task'] as const) {
 				await applyNoteChange({ kind: 'upsert', source, path: '/vault/a.md', content: `${source}` });
 			}
 

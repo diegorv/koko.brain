@@ -1,4 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+// `vaultStore.open` persists the recent-vaults list.
+setupLocalStorage();
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
@@ -18,6 +22,12 @@ import { invoke } from '@tauri-apps/api/core';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { areAllRecentSaves, resetHooks } from '#lib/core/editor/editor.hooks.js';
+import {
+	registerContentInvalidationListener,
+	registerNoteChangeConsumer,
+} from '#lib/core/filesystem/note-change.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import {
 	buildTaskIndex,
@@ -357,6 +367,93 @@ describe('toggleTask', () => {
 		await toggleTask('/vault/a.md', item('task'));
 
 		expect(editorStore.externalContentSignal).toBe(tabBefore);
+	});
+
+	describe('after a task write', () => {
+		let upserts: [string, string][] = [];
+		let invalidations = 0;
+		/** `upserts.length` at each invalidation, to pin the consumer fan-out ahead of the signal. */
+		let upsertsAtInvalidation: number[] = [];
+		let unregister: (() => void)[] = [];
+
+		/** Answers every command, so the note-change owner's `.catch` chains get a promise. */
+		function mockToggle(result: ToggleTaskResultV2): void {
+			vi.mocked(invoke).mockImplementation((cmd: string) =>
+				Promise.resolve(cmd === 'toggle_task_status' ? result : cmd.startsWith('get_') ? [] : undefined),
+			);
+		}
+
+		beforeEach(() => {
+			upserts = [];
+			invalidations = 0;
+			upsertsAtInvalidation = [];
+			resetHooks();
+			vaultStore.open('/vault');
+			unregister = [
+				registerNoteChangeConsumer({
+					name: 'probe',
+					upsert: (path, content) => upserts.push([path, content]),
+					remove: () => {},
+				}),
+				registerContentInvalidationListener('probe', () => {
+					invalidations++;
+					upsertsAtInvalidation.push(upserts.length);
+				}),
+			];
+		});
+
+		afterEach(() => {
+			for (const u of unregister) u();
+			unregister = [];
+			vaultStore.close();
+			resetHooks();
+			vi.mocked(invoke).mockReset();
+		});
+
+		it('reaches search, the per-file consumers, the invalidation signal and the watcher self-save guard', async () => {
+			mockToggle(makeResult('- [x] task'));
+
+			await toggleTask('/vault/a.md', item('task'));
+
+			expect(invoke).toHaveBeenCalledWith('update_search_index_file', {
+				filePath: 'a.md',
+				content: '- [x] task',
+				vaultPath: '/vault',
+			});
+			expect(upserts).toEqual([['/vault/a.md', '- [x] task']]);
+			expect(invalidations).toBe(1);
+			expect(areAllRecentSaves(['/vault/a.md'])).toBe(true);
+		});
+
+		it('runs the per-file consumers before the invalidation signal fires', async () => {
+			mockToggle(makeResult('- [x] task'));
+
+			await toggleTask('/vault/a.md', item('task'));
+
+			expect(upsertsAtInvalidation).toEqual([1]);
+		});
+
+		it('does not refresh the Rust index, which the task command already updated', async () => {
+			mockToggle(makeResult('- [x] task'));
+
+			await toggleTask('/vault/a.md', item('task'));
+
+			expect(vi.mocked(invoke).mock.calls.map((c) => c[0])).not.toContain('update_note_in_index');
+		});
+
+		it.each([
+			['a no-op', makeResult('- [ ] task', /* changed */ false)],
+			['a stale', makeResult('- [ ] other', /* changed */ false, /* stale */ true)],
+		])('%s toggle reaches neither search, the consumers nor the signal', async (_label, result) => {
+			mockToggle(result);
+
+			await toggleTask('/vault/a.md', item('task'));
+
+			expect(vi.mocked(invoke).mock.calls.map((c) => c[0])).not.toContain('update_search_index_file');
+			expect(upserts).toEqual([]);
+			expect(invalidations).toBe(0);
+			expect(areAllRecentSaves(['/vault/a.md'])).toBe(false);
+		});
 	});
 });
 

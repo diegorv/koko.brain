@@ -18,16 +18,20 @@ Add one helper every task write goes through, and give it its own `applyNoteChan
 
 **Blocked by:** 021
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in `src/tests/lib/features/tasks/tasks.service.test.ts`, with real stores, mocking only `invoke`: open the vault with `vaultStore.open('/vault')` (it writes the recent-vaults list, so call `setupLocalStorage()` from `src/tests/fixtures/localStorage.fixture` first, as `note-action-bar.service.test.ts:2-5` does), register a real consumer through `registerNoteChangeConsumer` and a real listener through `registerContentInvalidationListener` (unregister both in `afterEach`). After a changed toggle on `/vault/a.md`: `update_search_index_file` is invoked with `{ filePath: 'a.md', content: <updated content>, vaultPath: '/vault' }`, the consumer's `upsert` received the updated content, the listener fired once, and `areAllRecentSaves(['/vault/a.md'])` is true. Fails today.
-- [ ] `update_note_in_index` is not invoked by the toggle (Rust already indexed the note).
-- [ ] `src/tests/lib/core/filesystem/note-change.service.test.ts`: the per-source table at `:75-82` gains `['task', false, true]`; a `task` upsert on an already-indexed signature still runs the consumers; the FTS leg fires only when `vaultPath` is given (add `'task'` to the list at `:216`).
-- [ ] A no-op toggle (`changed: false`) and a `stale: true` toggle invoke neither `update_search_index_file` nor the consumer nor the listener.
+- [x] Failing test first, in `src/tests/lib/features/tasks/tasks.service.test.ts`, with real stores, mocking only `invoke`: open the vault with `vaultStore.open('/vault')` (it writes the recent-vaults list, so call `setupLocalStorage()` from `src/tests/fixtures/localStorage.fixture` first, as `note-action-bar.service.test.ts:2-5` does), register a real consumer through `registerNoteChangeConsumer` and a real listener through `registerContentInvalidationListener` (unregister both in `afterEach`). After a changed toggle on `/vault/a.md`: `update_search_index_file` is invoked with `{ filePath: 'a.md', content: <updated content>, vaultPath: '/vault' }`, the consumer's `upsert` received the updated content, the listener fired once, and `areAllRecentSaves(['/vault/a.md'])` is true. Fails today.
+- [x] `update_note_in_index` is not invoked by the toggle (Rust already indexed the note).
+- [x] `src/tests/lib/core/filesystem/note-change.service.test.ts`: the per-source table at `:75-82` gains `['task', false, true]`; a `task` upsert on an already-indexed signature still runs the consumers; the FTS leg fires only when `vaultPath` is given (add `'task'` to the list at `:216`).
+- [x] A no-op toggle (`changed: false`) and a `stale: true` toggle invoke neither `update_search_index_file` nor the consumer nor the listener.
 
 ## Notes
 
 - **Size:** S.
 - Issues 09 and 12 call or change `afterTaskWrite`; nothing else should duplicate its steps.
+
+## Comments
+
+- 2026-11-09, branch `issue/114-task-writes-reach-search`: `afterTaskWrite` now fans a changed task toggle out through `applyNoteChange` with source `task` (FTS update, per-file consumers) before the content invalidation signal, and records the recent save; no-op and stale toggles do nothing. Fix round: the tasks test pins consumer-before-invalidation order. Tests: targeted tasks.service.test.ts 32/32, `pnpm check` 0 errors; full suite at a74e8c07d exit 0, 585 files, 14296 passed, 54 skipped. Reviews: round 1 APPROVED, round 2 APPROVED.

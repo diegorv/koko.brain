@@ -3,6 +3,9 @@ import { call } from '#lib/contracts/ipc.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { applyNoteChange, notifyContentInvalidated } from '#lib/core/filesystem/note-change.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { tasksStore } from './tasks.store.svelte';
 import { toggleTarget } from './task-status.logic';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
@@ -100,9 +103,10 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
 /**
  * Toggles a task via the Rust `toggle_task_status` command, writing the
  * status `toggleTarget(task.status)` picks. Rust does the read → check →
- * write → index-update → emit chain — no TS-side index sync remains. The
- * Rust update emits `vault-index-updated`; panels react via
- * `vaultStore.vaultIndexVersion`.
+ * write → `VaultIndex` update → emit chain. The Rust update emits
+ * `vault-index-updated`; panels react via `vaultStore.vaultIndexVersion`.
+ * Search, the per-file consumers and the content caches are refreshed by
+ * `afterTaskWrite`.
  *
  * The list can lag disk by seconds, so Rust writes only when the line at
  * `task.lineNumber` still holds `task.text` with `task.status`. Otherwise
@@ -113,9 +117,9 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
  * bump is throttled (2 s, up to 10 s during a burst), and the clicked
  * checkbox must not look unclicked until then.
  *
- * The open editor tab still gets `syncExternalContentToEditor` so the
- * checkbox toggle is visible without waiting for the watcher to
- * round-trip the file change.
+ * The open editor tab gets `syncExternalContentToEditor` (in
+ * `afterTaskWrite`) so the checkbox toggle is visible without waiting for
+ * the watcher to round-trip the file change.
  *
  * Rust toggles the DISK copy and the sync marks the tab saved, so a dirty
  * open tab is saved first or its unsaved typing would be overwritten. If
@@ -157,17 +161,43 @@ export async function toggleTask(filePath: string, task: TaskItem): Promise<void
 		if (!result.updateResult.changed) {
 			return;
 		}
-		const updatedContent = result.updatedContent;
-		// Sync the open tab (if any) with the new content + bump the external
-		// signal so MarkdownEditor.svelte dispatches the doc replace when this
-		// path matches the active tab.
-		// `'none'`: Rust already wrote the toggled line to disk.
-		syncExternalContentToEditor(filePath, updatedContent, true, 'none');
-		await buildTaskIndex();
+		await afterTaskWrite(filePath, result.updatedContent);
 	} catch (err) {
 		error('TASKS', 'Failed to toggle task:', err);
 		toast.error('Failed to save task change.');
 	}
+}
+
+/**
+ * Settles a note a Rust task command already wrote to disk and indexed in
+ * `VaultIndex`. Every task write goes through here, so none of these steps
+ * is duplicated at a call site.
+ *
+ * The watcher is no fallback: it skips a batch whose paths were all saved in
+ * the last 15 s, which a toggle on a just-saved note is (`toggleTask` saves a
+ * dirty tab first). So the FTS5 / semantic tables, the per-file consumers and
+ * the content caches are refreshed here, through the note-change owner.
+ *
+ * The `task` source has no yield, so the consumer fan-out has finished before
+ * `notifyContentInvalidated()` clears the QueryJS cache, as in `notifyAfterSave`.
+ * @param path - absolute path of the written note
+ * @param updatedContent - the note's content after the write
+ */
+async function afterTaskWrite(path: string, updatedContent: string): Promise<void> {
+	// Sync the open tab (if any) and bump the external signal so
+	// MarkdownEditor.svelte replaces the doc when this is the active tab.
+	// `'none'`: Rust already wrote the content to disk.
+	syncExternalContentToEditor(path, updatedContent, true, 'none');
+	markRecentSave(path);
+	void applyNoteChange({
+		kind: 'upsert',
+		source: 'task',
+		path,
+		content: updatedContent,
+		vaultPath: vaultStore.path ?? undefined,
+	});
+	notifyContentInvalidated();
+	await buildTaskIndex();
 }
 
 /** Returns the 1-based `lineNumber` line of `content` (undefined past the end). */
