@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | todo | | |
 | 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | todo | | |
 | 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | todo | | |
-| 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 09 | todo | | |
+| 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | todo | | |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14 | todo | | |
 
 ## Log
@@ -63,3 +63,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 21:50 — 04 — start — launched by /relay-lite:run — 7bbcbfed8
 - 2026-11-09 22:08 — 04 — deliver — round 1 APPROVED by claude with findings, fix round (shared anchor id helper, a mock dropped, guard fallback test); round 2 APPROVED with no findings; full suite passed (595 files, 14424 tests) — af9115203
 - 2026-11-09 22:08 — 06 — start — launched by /relay-lite:run — 77d9638af
+- 2026-11-09 22:09 — ledger updated (blocked by of 14)
