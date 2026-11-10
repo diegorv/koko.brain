@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Live check of the Todoist API behaviors the sync relies on](issues/01-live-check-todoist-api.md) | none | done | | |
 | 02 | [Pure task-line patch and anchor helpers](issues/02-task-line-patch-and-anchor-logic.md) | none | done | issue/02-task-line-patch-and-anchor-logic (61e9e5c1c) | 2026-11-09 |
-| 03 | [Guarded writer for task lines in notes that are not open](issues/03-guarded-line-writer-closed-notes.md) | 02 | todo | | |
+| 03 | [Guarded writer for task lines in notes that are not open](issues/03-guarded-line-writer-closed-notes.md) | 02 | in-progress | | |
 | 04 | [Guarded writer for task lines in notes that are open in a tab](issues/04-guarded-line-writer-open-tabs.md) | 03 | todo | | |
 | 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | in-progress | | |
 | 06 | ["Todoist: Sync now" pulls every project and its open tasks into project notes](issues/06-sync-now-pulls-projects-and-tasks.md) | 04, 05 | todo | | |
@@ -57,3 +57,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 15:49 — 02 — start — launched by /relay-lite:run — 0d72607a4
 - 2026-11-09 16:09 — 02 — deliver — round 1 APPROVED by claude with findings, fix round (parser tag rule, space before anchor insert, CRLF, empty content, bare td-), finding 4 deferred to owner before 08; round 2 APPROVED by claude, one nit (CRLF + recurrence gives a conflict) left; full suite passed (584 files, 14278 tests) — 61e9e5c1c
 - 2026-11-09 21:08 — 05 — start — launched by /relay-lite:run — 36f920e4f
+- 2026-11-09 21:18 — 03 — start — launched by /relay-lite:run — fe8d80ca6
