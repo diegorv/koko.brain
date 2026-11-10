@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | done | issue/08-todoist-edits-reach-the-note (36e7a849c) | 2026-11-10 |
 | 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | done | issue/09-note-edits-reach-todoist (9abec5039) | 2026-11-10 |
 | 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | done | issue/10-brain-tasks-created-in-todoist (13f3f2758) | 2026-11-10 |
-| 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | todo | | |
+| 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | in-progress | | |
 | 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | todo | | |
 | 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | done | issue/13-deleted-tasks-detach (d933ffa9c) | 2026-11-09 |
 | 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | done | issue/14-sync-runs-on-its-own (c548b66a7) | 2026-11-09 |
@@ -83,3 +83,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 00:42 — 10 — start — launched by /relay-lite:run — 23da5bd43
 - 2026-11-10 01:34 — 10 — deliver — round 1 APPROVED by claude with findings, fix round (anchor before a trailing ^block-id, block id stripped from item_add, create-skipped logged only on manual cycles), findings 3 and 4 left as follow-ups; round 2 APPROVED with one nit on Issue 09 code (follow-up); full suite passed (606 files, 14820 tests) — 13f3f2758
 - 2026-11-10 01:35 — ledger updated (added 17)
+- 2026-11-10 01:35 — 11 — start — launched by /relay-lite:run — 1bbbd420f
