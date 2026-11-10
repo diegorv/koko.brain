@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | done | issue/07-completion-syncs-both-ways (e5583a987) | 2026-11-09 |
 | 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | done | issue/08-todoist-edits-reach-the-note (36e7a849c) | 2026-11-10 |
 | 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | done | issue/09-note-edits-reach-todoist (9abec5039) | 2026-11-10 |
-| 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | in-progress | | |
+| 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | done | issue/10-brain-tasks-created-in-todoist (13f3f2758) | 2026-11-10 |
 | 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | todo | | |
 | 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | todo | | |
 | 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | done | issue/13-deleted-tasks-detach (d933ffa9c) | 2026-11-09 |
@@ -80,3 +80,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 00:04 — 09 — start — launched by /relay-lite:run — 6cc2e613f
 - 2026-11-10 00:42 — 09 — deliver — round 1 CHANGES_REQUESTED by claude, fixes (unpushedDescription marker, single description-conflict log, 500 code points, case-insensitive tag dedupe); round 2 APPROVED, one more fix (reverted line pushed); round 3 APPROVED with no findings; full suite passed (605 files, 14751 tests) — 9abec5039
 - 2026-11-10 00:42 — 10 — start — launched by /relay-lite:run — 23da5bd43
+- 2026-11-10 01:34 — 10 — deliver — round 1 APPROVED by claude with findings, fix round (anchor before a trailing ^block-id, block id stripped from item_add, create-skipped logged only on manual cycles), findings 3 and 4 left as follow-ups; round 2 APPROVED with one nit on Issue 09 code (follow-up); full suite passed (606 files, 14820 tests) — 13f3f2758
