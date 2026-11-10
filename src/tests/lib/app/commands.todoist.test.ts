@@ -125,3 +125,36 @@ describe('palette "Todoist: Sync now"', () => {
 		expect(server.requests).toEqual([]);
 	});
 });
+
+describe('palette "Todoist: Show sync log"', () => {
+	const showLogCommand = () => getBuiltInCommands().find((c) => c.id === 'todoist:show-sync-log');
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		todoistSyncStore.reset();
+	});
+
+	it('is listed under its label in the Todoist category', () => {
+		expect(showLogCommand()).toMatchObject({ label: 'Todoist: Show sync log', category: 'Todoist' });
+	});
+
+	it("opens the dialog on the open vault's newest log entries", async () => {
+		const vault = createFakeVault('/vault');
+		await vault.invoke('todoist_append_log', {
+			vaultPath: '/vault',
+			entries: [
+				{ kind: 'frozen', anchor: 'td-1', message: 'first' },
+				{ kind: 'unmatched', anchor: 'td-2', message: 'second' },
+			],
+		});
+		vi.mocked(invoke).mockImplementation((cmd, args) => vault.invoke(cmd, args as Record<string, unknown> | undefined));
+		vaultStore.open('/vault');
+
+		await showLogCommand()!.action();
+
+		expect(todoistSyncStore.logOpen).toBe(true);
+		expect(todoistSyncStore.logEntries.map((e) => e.message)).toEqual(['second', 'first']);
+	});
+});

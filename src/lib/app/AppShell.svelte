@@ -50,6 +50,7 @@
 	import SearchStatus from '#lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '#lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '#lib/features/search/SemanticIndexStatus.svelte';
+	import TodoistSyncStatus from '#lib/features/todoist-sync/TodoistSyncStatus.svelte';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 	import { hidesRightSidebar, isRightSidebarShown } from '#lib/core/layout/layout.logic.js';
@@ -304,6 +305,7 @@
 				<SemanticIndexStatus />
 			{/snippet}
 			{#snippet right()}
+				<TodoistSyncStatus />
 				<SaveStatus />
 				<WordCount />
 			{/snippet}

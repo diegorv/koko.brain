@@ -69,6 +69,8 @@ import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one
 import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
 import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
+import { startAutoSync, stopAutoSync } from '#lib/features/todoist-sync/sync-scheduler.service.js';
+import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { registerFileHistoryHook, closeFileHistory } from '#lib/features/file-history/file-history.service.js';
@@ -164,6 +166,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// Same window: the previous vault's mods (or a start still loading them)
 	// must not run on into the next vault.
 	stopModsHost();
+	// Same window: the previous vault's Todoist triggers must not fire into the next vault.
+	stopAutoSync();
+	// A previous-vault run stopped by the switch leaves the store syncing
+	// (`syncNow` does not fail it), which would refuse every later run.
+	todoistSyncStore.reset();
 	if (unsubscribeFileHistory) {
 		unsubscribeFileHistory();
 		unsubscribeFileHistory = null;
@@ -535,6 +542,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		startModsHost(vaultPath).catch((err) => {
 			error('LIFECYCLE', 'Failed to start vault mods:', err);
 		});
+		// Its first cycle needs the index ready (step 4); it does nothing while sync is off.
+		startAutoSync(vaultPath);
 	}, 0);
 
 	debug('LIFECYCLE', `initializeVault complete in ${(performance.now() - initStart).toFixed(1)}ms:`, vaultPath);
@@ -582,6 +591,7 @@ export function teardownVault(): void {
 	unregisterNoteChangeConsumers = [];
 	// A no-op when nothing is loaded: this teardown also runs at boot with no vault.
 	stopModsHost();
+	stopAutoSync();
 	unregisterCalendarDailyNote?.();
 	unregisterCalendarDailyNote = null;
 	// ── Stop background processes ────────────────────────────────────
@@ -662,6 +672,7 @@ export function teardownVault(): void {
 	resetPeriodicNotes();
 	resetTrash();
 	todoistStore.reset();
+	todoistSyncStore.reset();
 	lifecycleFilterStore.reset();
 	typeDefinitionsStore.reset();
 	neighbourhoodStore.reset();

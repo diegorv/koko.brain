@@ -1,3 +1,4 @@
+import type { TodoistSyncLogEntry } from '#lib/contracts/index.js';
 import type { PullCounts } from './pull.logic.js';
 
 /** Where the sync is: idle, running a cycle or check, or stopped on an error. */
@@ -33,6 +34,12 @@ let status = $state<TodoistSyncStatus>('idle');
 let lastResult = $state<TodoistSyncResult | null>(null);
 /** Fixed user-facing message of the last failure, null after a success or a new start. */
 let lastError = $state<string | null>(null);
+/** `finishedAt` of the last successful pull; a connection check leaves it alone. */
+let lastSyncedAt = $state<number | null>(null);
+/** Whether the sync log dialog is open. */
+let logOpen = $state(false);
+/** Sync log rows the open dialog lists, newest first. */
+let logEntries = $state<TodoistSyncLogEntry[]>([]);
 
 /** Sync status and last result for the UI. */
 export const todoistSyncStore = {
@@ -41,6 +48,9 @@ export const todoistSyncStore = {
 	get isSyncing() { return status === 'syncing'; },
 	get lastResult() { return lastResult; },
 	get lastError() { return lastError; },
+	get lastSyncedAt() { return lastSyncedAt; },
+	get logOpen() { return logOpen; },
+	get logEntries() { return logEntries; },
 
 	/** Marks a run as started and clears the previous error. */
 	start() {
@@ -51,6 +61,7 @@ export const todoistSyncStore = {
 	/** Stores a successful run's result and returns to idle. */
 	succeed(result: TodoistSyncResult) {
 		lastResult = result;
+		if (result.kind === 'pull') lastSyncedAt = result.finishedAt;
 		lastError = null;
 		status = 'idle';
 	},
@@ -61,10 +72,25 @@ export const todoistSyncStore = {
 		status = 'error';
 	},
 
-	/** @internal Resets all state (for testing only). */
+	/** Opens the sync log dialog on `entries` (newest first). */
+	openLog(entries: TodoistSyncLogEntry[]) {
+		logEntries = entries;
+		logOpen = true;
+	},
+
+	/** Closes the sync log dialog and drops its rows. */
+	closeLog() {
+		logOpen = false;
+		logEntries = [];
+	},
+
+	/** Resets all state (tests, and vault teardown). */
 	reset() {
 		status = 'idle';
 		lastResult = null;
 		lastError = null;
+		lastSyncedAt = null;
+		logOpen = false;
+		logEntries = [];
 	},
 };

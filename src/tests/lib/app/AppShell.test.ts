@@ -422,3 +422,15 @@ describe('AppShell New view from the Files navigator', () => {
 		expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: '/vault/Work/Reading.view' });
 	});
 });
+
+describe('AppShell status bar', () => {
+	it('shows the Todoist sync item only while Todoist sync is on', async () => {
+		await mountShell();
+		const item = () => target.querySelector('[data-status-bar] [data-todoist-sync-status]');
+		expect(item()).toBeNull();
+
+		settingsStore.updateTodoist({ syncEnabled: true });
+		await settle();
+		expect(item()?.textContent?.trim()).toBe('Todoist not synced yet');
+	});
+});

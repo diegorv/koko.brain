@@ -3,7 +3,8 @@
  * for Todoist sync engine tests. It answers the Rust commands the engine
  * calls: the task and property-record reads, `write_task_lines` (through
  * the real `applyTaskLineEdits`, the TS port of the Rust batch), `create_note`
- * and `create_folder`, and the five `todoist_*` state commands. Like Rust, it
+ * and `create_folder`, and the five `todoist_*` state commands (`todoist_read_log`
+ * lists `log` newest first, ids from 1 in append order). Like Rust, it
  * refuses a `vaultRoot` / `vaultPath` that is not its root. Any other command
  * resolves to `[]` for a `get_*` read and `undefined` otherwise.
  *
@@ -23,6 +24,7 @@ import type {
 	TaskLinesWriteResult,
 	TodoistKvEntry,
 	TodoistStateCommit,
+	TodoistSyncLogEntry,
 	TodoistSyncLogInput,
 	TodoistTaskLink,
 } from '#lib/contracts/index.js';
@@ -52,6 +54,7 @@ const TASK_RE = /^\s*(?:[-*+]|\d+\.)\s\[([xX \-/?!>])\]\s([^\n]*)$/u;
 
 /** Creates a vault at `root` holding `files` (vault-relative path -> content). */
 export function createFakeVault(root: string, files: Record<string, string> = {}): FakeVault {
+	const logTimes: number[] = [];
 	const vault: FakeVault = {
 		root,
 		files: new Map(Object.entries(files)),
@@ -92,8 +95,17 @@ export function createFakeVault(root: string, files: Record<string, string> = {}
 					return null;
 				}
 				case 'todoist_append_log':
-					vault.log.push(...(args.entries as TodoistSyncLogInput[]));
+					for (const entry of args.entries as TodoistSyncLogInput[]) {
+						vault.log.push(entry);
+						logTimes.push(Date.now());
+					}
 					return null;
+				case 'todoist_read_log': {
+					const rows = vault.log.map(
+						(entry, i): TodoistSyncLogEntry => ({ id: i + 1, createdAt: logTimes[i] ?? 0, ...entry }),
+					);
+					return rows.reverse().slice(0, (args.limit as number | undefined) ?? rows.length);
+				}
 				default:
 					return cmd.startsWith('get_') ? [] : undefined;
 			}

@@ -236,6 +236,14 @@ vi.mock('#lib/plugins/mods/mods-host.service.js', () => ({
 	stopModsHost: vi.fn(),
 }));
 
+// The scheduler's triggers are covered by sync-scheduler.service.test.ts;
+// here only the lifecycle's start and stop calls.
+vi.mock('#lib/features/todoist-sync/sync-scheduler.service.js', () => ({
+	startAutoSync: vi.fn(),
+	stopAutoSync: vi.fn(),
+	syncNowFromUi: vi.fn(),
+}));
+
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { error as debugError } from '#lib/utils/debug.js';
@@ -298,6 +306,8 @@ import { resolveAndDispatch } from '#lib/features/deep-link/deep-link.service.js
 import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
 import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
 import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
+import { startAutoSync, stopAutoSync } from '#lib/features/todoist-sync/sync-scheduler.service.js';
+import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1761,5 +1771,81 @@ describe('vault mods host', () => {
 		expect(stopModsHost).toHaveBeenCalledTimes(1);
 		expect(vi.mocked(stopModsHost).mock.invocationCallOrder[0])
 			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+	});
+});
+
+describe('Todoist automatic sync', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		backlinksStore.reset();
+		settingsStore.reset();
+		searchStore.reset();
+		// Invalidates any Step 9 timer an earlier test left pending.
+		teardownVault();
+		vi.clearAllMocks();
+	});
+
+	it('starts for the opened vault in the post-open step, not during the open', async () => {
+		await initializeVault('/vault');
+
+		expect(startAutoSync).not.toHaveBeenCalled();
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(startAutoSync).toHaveBeenCalledTimes(1);
+		expect(startAutoSync).toHaveBeenCalledWith('/vault');
+	});
+
+	it('does not start for a superseded init', async () => {
+		vi.useFakeTimers();
+		try {
+			await initializeVault('/vault-a');
+			teardownVault();
+			await vi.advanceTimersByTimeAsync(100);
+			expect(startAutoSync).not.toHaveBeenCalled();
+
+			await initializeVault('/vault-b');
+			await vi.advanceTimersByTimeAsync(100);
+			expect(startAutoSync).toHaveBeenCalledTimes(1);
+			expect(startAutoSync).toHaveBeenCalledWith('/vault-b');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('teardownVault stops it and resets the sync store', () => {
+		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, finishedAt: 1 });
+
+		teardownVault();
+
+		expect(stopAutoSync).toHaveBeenCalledTimes(1);
+		expect(todoistSyncStore.lastSyncedAt).toBeNull();
+	});
+
+	it('a re-init stops it before loading the next vault settings, on both entry paths', async () => {
+		await initializeVault('/vault-a');
+		vi.clearAllMocks();
+		await initializeVault('/vault-b');
+		expect(stopAutoSync).toHaveBeenCalled();
+		expect(vi.mocked(stopAutoSync).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+
+		// Double-switch path: this init skips teardownVault and only the entry stop runs.
+		teardownVault();
+		vi.clearAllMocks();
+		await initializeVault('/vault-c');
+		expect(stopAutoSync).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(stopAutoSync).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+	});
+
+	it('an init that skips teardownVault still resets a sync store left syncing by the previous vault', async () => {
+		// A "Sync now" of the previous vault, stopped by the switch, leaves the store syncing.
+		todoistSyncStore.start();
+
+		await initializeVault('/vault-c');
+
+		expect(todoistSyncStore.isSyncing).toBe(false);
+		expect(todoistSyncStore.status).toBe('idle');
 	});
 });

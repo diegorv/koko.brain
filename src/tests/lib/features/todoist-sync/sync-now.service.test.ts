@@ -35,7 +35,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
-import { syncNow, syncNowFromUi } from '#lib/features/todoist-sync/sync-now.service.js';
+import { syncNow } from '#lib/features/todoist-sync/sync-now.service.js';
 
 let server: FakeTodoist;
 let vault: FakeVault;
@@ -327,12 +327,36 @@ describe('syncNow: refusals and safety', () => {
 
 		const outcome = await syncNow();
 
-		expect(outcome).toEqual({ ok: false, message: 'The vault changed during the Todoist sync; nothing more was written.' });
+		expect(outcome).toEqual({
+			ok: false,
+			message: 'The vault changed during the Todoist sync; nothing more was written.',
+			failure: { kind: 'vault-switched' },
+		});
 		expect(first.writes).toEqual([]);
 		expect(second.writes).toEqual([]);
 		expect(first.commits).toEqual([]);
 		expect(second.commits).toEqual([]);
-		expect(todoistSyncStore.status).toBe('error');
+		// The store is left to the vault teardown, which resets it.
+		expect(todoistSyncStore.status).toBe('syncing');
+		expect(todoistSyncStore.lastError).toBeNull();
+	});
+
+	it('leaves the store reset by the vault teardown alone when the old run stops', async () => {
+		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, finishedAt: 1 });
+		fake.current = {
+			async fetch(url, init) {
+				const response = await server.fetch(url, init);
+				openVault(createFakeVault('/other-vault'));
+				todoistSyncStore.reset();
+				return response;
+			},
+		};
+
+		await syncNow();
+
+		expect(todoistSyncStore.status).toBe('idle');
+		expect(todoistSyncStore.lastError).toBeNull();
+		expect(todoistSyncStore.lastSyncedAt).toBeNull();
 	});
 
 	it('stops after the first note when the vault switches between writes', async () => {
@@ -346,7 +370,7 @@ describe('syncNow: refusals and safety', () => {
 
 		const outcome = await syncNow();
 
-		expect(outcome).toEqual({ ok: false, message: 'The vault changed during the Todoist sync; nothing more was written.' });
+		expect(outcome).toMatchObject({ ok: false, message: 'The vault changed during the Todoist sync; nothing more was written.' });
 		expect(first.writes).toEqual(['Todoist/Work.md']);
 		expect(second.writes).toEqual([]);
 		expect(first.commits).toEqual([]);
@@ -358,9 +382,36 @@ describe('syncNow: refusals and safety', () => {
 
 		const outcome = await syncNow();
 
-		expect(outcome).toEqual({ ok: false, message: 'Todoist rejected the API token. Check it in Settings > Todoist.' });
+		expect(outcome).toEqual({
+			ok: false,
+			message: 'Todoist rejected the API token. Check it in Settings > Todoist.',
+			failure: { kind: 'invalid-token' },
+		});
 		expect(vi.mocked(error)).toHaveBeenCalledWith('TODOIST', 'sync failed:', expect.objectContaining({ httpStatusCode: 401 }));
 		expect(vault.writes).toEqual([]);
+	});
+
+	it('reports a 429 with its retry_after, and an unreachable server, as failure kinds', async () => {
+		server.failNext({ kind: 'rate-limit', retryAfter: 42 });
+		expect((await syncNow()).failure).toEqual({ kind: 'rate-limit', retryAfter: 42 });
+
+		server.failNext({ kind: 'server-error' });
+		expect((await syncNow()).failure).toEqual({ kind: 'unreachable' });
+	});
+
+	it('reports an unexpected error as the generic failure kind', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+			if (cmd === 'todoist_read_links') throw new Error('db locked');
+			return vault.invoke(cmd, args as Record<string, unknown> | undefined);
+		});
+
+		expect(await syncNow()).toEqual({ ok: false, message: 'Todoist sync failed. Details are in the log.', failure: { kind: 'error' } });
+	});
+
+	it('gives a refusal no failure kind', async () => {
+		settingsStore.updateTodoist({ syncEnabled: false });
+
+		expect((await syncNow()).failure).toBeUndefined();
 	});
 
 	it('reports a root project that is gone from Todoist', async () => {
@@ -368,21 +419,11 @@ describe('syncNow: refusals and safety', () => {
 
 		const outcome = await syncNow();
 
-		expect(outcome).toEqual({ ok: false, message: 'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.' });
+		expect(outcome).toEqual({
+			ok: false,
+			message: 'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.',
+			failure: { kind: 'root-missing' },
+		});
 		expect(vault.writes).toEqual([]);
-	});
-});
-
-describe('syncNowFromUi', () => {
-	it('shows the result in a success toast', async () => {
-		await syncNowFromUi();
-		expect(toast.success).toHaveBeenCalledWith('Todoist sync done: 3 notes created, 3 tasks added.');
-	});
-
-	it('shows a refused sync folder in an error toast', async () => {
-		settingsStore.updateTodoist({ syncFolder: '../x' });
-		await syncNowFromUi();
-		expect(toast.error).toHaveBeenCalledWith('The Todoist sync folder must be a folder inside the vault. Fix it in Settings > Todoist.');
-		expect(toast.success).not.toHaveBeenCalled();
 	});
 });

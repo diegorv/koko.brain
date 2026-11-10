@@ -9,6 +9,7 @@
 	import ModActionPicker from '#lib/plugins/mods/ModActionPicker.svelte';
 	import ModDialogHost from '#lib/plugins/mods/ModDialogHost.svelte';
 	import FileHistoryDialog from '#lib/features/file-history/FileHistoryDialog.svelte';
+	import TodoistSyncLogDialog from '#lib/features/todoist-sync/TodoistSyncLogDialog.svelte';
 	import { getBuiltInCommands } from '#lib/app/commands.js';
 </script>
 
@@ -21,3 +22,4 @@
 <ModActionPicker />
 <ModDialogHost />
 <FileHistoryDialog />
+<TodoistSyncLogDialog />

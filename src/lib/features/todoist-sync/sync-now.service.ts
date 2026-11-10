@@ -1,4 +1,3 @@
-import { toast } from 'svelte-sonner';
 import { call } from '#lib/contracts/ipc.js';
 import type { TodoistTaskLink } from '#lib/contracts/index.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -14,16 +13,33 @@ import {
 	type PullCounts,
 	type PullItem,
 } from './pull.logic.js';
-import { classifyTodoistError, syncErrorMessage, treeProjectIds } from './sync-scope.logic.js';
+import { classifyTodoistError, syncErrorMessage, treeProjectIds, type TodoistFailure } from './sync-scope.logic.js';
 import { createTodoistClient } from './todoist-client.js';
 import { todoistSyncStore } from './todoist-sync.store.svelte.js';
 import { scanVault } from './vault-scan.service.js';
 
-/** The outcome of "Sync now", with the message to show. */
-export type SyncNowOutcome = { ok: boolean; message: string };
+/**
+ * Why a run that started failed: a Todoist failure, the root project gone
+ * from Todoist, a vault switch mid-run, or anything else (`error`).
+ */
+export type SyncFailure = TodoistFailure | { kind: 'root-missing' } | { kind: 'vault-switched' } | { kind: 'error' };
+
+/**
+ * The outcome of "Sync now", with the message to show. `failure` is set only
+ * when a run started and failed; a refusal (sync off, index not ready, a run
+ * already in progress, ...) has none.
+ */
+export type SyncNowOutcome = { ok: boolean; message: string; failure?: SyncFailure };
 
 /** A run stopped by a fixed, user-facing reason; the message is shown as-is. */
-class SyncStop extends Error {}
+class SyncStop extends Error {
+	constructor(
+		message: string,
+		readonly failure: SyncFailure,
+	) {
+		super(message);
+	}
+}
 
 const VAULT_SWITCHED = 'The vault changed during the Todoist sync; nothing more was written.';
 const ROOT_MISSING = 'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.';
@@ -39,7 +55,8 @@ const ROOT_MISSING = 'The sync root project was not found in Todoist. Choose it 
  * token or root project, with a sync folder that is absolute or climbs out
  * with `..`, and while another run is in progress. The vault path is captured
  * at the start and rechecked before every write; after a vault switch the
- * run stops and writes nothing more (design rule 9). Status and result go to
+ * run stops, writes nothing more and leaves `todoistSyncStore` to the next
+ * vault (design rule 9). Otherwise status and result go to
  * `todoistSyncStore`; a failure is logged raw and reduced to a fixed message.
  */
 export async function syncNow(): Promise<SyncNowOutcome> {
@@ -65,17 +82,13 @@ export async function syncNow(): Promise<SyncNowOutcome> {
 		return { ok: true, message: formatPullResult(counts) };
 	} catch (err) {
 		if (!(err instanceof SyncStop)) error('TODOIST', 'sync failed:', err);
-		const message = err instanceof SyncStop ? err.message : 'Todoist sync failed. Details are in the log.';
-		todoistSyncStore.fail(message);
-		return { ok: false, message };
+		const stop = err instanceof SyncStop ? err : new SyncStop('Todoist sync failed. Details are in the log.', { kind: 'error' });
+		// After a vault switch the store belongs to the next vault: the
+		// lifecycle resets it when the next vault initializes, and this
+		// run's error is not that vault's.
+		if (stop.failure.kind !== 'vault-switched') todoistSyncStore.fail(stop.message);
+		return { ok: false, message: stop.message, failure: stop.failure };
 	}
-}
-
-/** Palette entry point: runs "Sync now" and shows its message in a toast. */
-export async function syncNowFromUi(): Promise<void> {
-	const { ok, message } = await syncNow();
-	if (ok) toast.success(message);
-	else toast.error(message);
 }
 
 async function pull(vaultRoot: string, folder: string): Promise<PullCounts> {
@@ -85,10 +98,11 @@ async function pull(vaultRoot: string, folder: string): Promise<PullCounts> {
 		res = await createTodoistClient(apiToken).sync({ syncToken: '*', resourceTypes: ['projects', 'items'] });
 	} catch (err) {
 		error('TODOIST', 'sync failed:', err);
-		throw new SyncStop(syncErrorMessage(classifyTodoistError(err)));
+		const failure = classifyTodoistError(err);
+		throw new SyncStop(syncErrorMessage(failure), failure);
 	}
 	const projects = res.projects ?? [];
-	if (!treeProjectIds(projects, syncRootProjectId, syncIncludeInbox)) throw new SyncStop(ROOT_MISSING);
+	if (!treeProjectIds(projects, syncRootProjectId, syncIncludeInbox)) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
 
 	assertVault(vaultRoot);
 	const links = await call('todoist_read_links', { vaultPath: vaultRoot });
@@ -151,5 +165,5 @@ async function pull(vaultRoot: string, folder: string): Promise<PullCounts> {
 }
 
 function assertVault(vaultRoot: string): void {
-	if (vaultStore.path !== vaultRoot) throw new SyncStop(VAULT_SWITCHED);
+	if (vaultStore.path !== vaultRoot) throw new SyncStop(VAULT_SWITCHED, { kind: 'vault-switched' });
 }
