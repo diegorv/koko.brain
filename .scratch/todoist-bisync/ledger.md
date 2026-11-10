@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | ["Todoist: Sync now" pulls every project and its open tasks into project notes](issues/06-sync-now-pulls-projects-and-tasks.md) | 04, 05 | done | issue/06-sync-now-pulls-projects-and-tasks (12fefe60a) | 2026-11-09 |
 | 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | done | issue/07-completion-syncs-both-ways (e5583a987) | 2026-11-09 |
 | 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | done | issue/08-todoist-edits-reach-the-note (36e7a849c) | 2026-11-10 |
-| 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | in-progress | | |
+| 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | done | issue/09-note-edits-reach-todoist (9abec5039) | 2026-11-10 |
 | 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | todo | | |
 | 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | todo | | |
 | 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | todo | | |
@@ -78,3 +78,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 23:54 — 08 — deliver — approved and full suite passed, but deliver sync conflicted with Issue 13 in sync-now.service.ts; rebase aborted, worktree kept — 44593a4a0
 - 2026-11-10 00:04 — 08 — deliver — finished by hand after the sync conflict with Issue 13: rebased, additive conflicts resolved, integration fix (detached links no longer reach planFields) with regression tests; opus integration review APPROVED with 1 minor (carried to Issue 09); full suite passed (605 files, 14712 tests) — 36e7a849c
 - 2026-11-10 00:04 — 09 — start — launched by /relay-lite:run — 6cc2e613f
+- 2026-11-10 00:42 — 09 — deliver — round 1 CHANGES_REQUESTED by claude, fixes (unpushedDescription marker, single description-conflict log, 500 code points, case-insensitive tag dedupe); round 2 APPROVED, one more fix (reverted line pushed); round 3 APPROVED with no findings; full suite passed (605 files, 14751 tests) — 9abec5039
