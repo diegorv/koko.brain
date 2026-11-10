@@ -51,6 +51,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | done | issue/14-sync-runs-on-its-own (c548b66a7) | 2026-11-09 |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14 | todo | | |
 | 16 | [A sync stopped by the line brake has a way past it](issues/16-line-brake-recovery.md) | 13 | todo | | |
+| 17 | [Block ids, orphan anchors and dropped pending adds are handled in every sync path](issues/17-block-ids-and-orphan-anchors.md) | 10 | todo | | |
 
 ## Log
 
@@ -81,3 +82,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 00:42 — 09 — deliver — round 1 CHANGES_REQUESTED by claude, fixes (unpushedDescription marker, single description-conflict log, 500 code points, case-insensitive tag dedupe); round 2 APPROVED, one more fix (reverted line pushed); round 3 APPROVED with no findings; full suite passed (605 files, 14751 tests) — 9abec5039
 - 2026-11-10 00:42 — 10 — start — launched by /relay-lite:run — 23da5bd43
 - 2026-11-10 01:34 — 10 — deliver — round 1 APPROVED by claude with findings, fix round (anchor before a trailing ^block-id, block id stripped from item_add, create-skipped logged only on manual cycles), findings 3 and 4 left as follow-ups; round 2 APPROVED with one nit on Issue 09 code (follow-up); full suite passed (606 files, 14820 tests) — 13f3f2758
+- 2026-11-10 01:35 — ledger updated (added 17)
