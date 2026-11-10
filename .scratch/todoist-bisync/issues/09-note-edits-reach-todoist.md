@@ -14,6 +14,7 @@
 - [ ] Conflict per field: Todoist wins, the line is patched to the Todoist value, the brain value is logged.
 - [ ] Over 50 field pushes in one cycle: "pause and ask" (design rule 9).
 - [ ] Bases move only after `ok`; the echo of our own write is not seen as a remote change.
+- [ ] From Issue 08's integration review (minor, verified on main at `36e7a849c`): when a link pushes a close/reopen, `planFields` skips it (`fields.logic.ts:81`) and the `sync_token` is committed before the push (`sync-now.service.ts:266`). If Todoist then rejects the push with a terminal 4xx, a Todoist field edit made in the same cycle is never seen again. Withhold the token when a pushed anchor's item differs from `remote_base` in content, due, priority or labels (as `skippedDetaches` does), with a failing test first.
 - [ ] Gate: frontend.
 
 ## Notes
