@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | todo | | |
 | 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | todo | | |
 | 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | todo | | |
-| 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | in-progress | | |
+| 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | done | issue/14-sync-runs-on-its-own (c548b66a7) | 2026-11-09 |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14 | todo | | |
 
 ## Log
@@ -67,3 +67,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 22:37 — 06 — deliver — round 1 APPROVED by claude, fix round (rebuild-mode toast, sync_token not committed after a stale insert, vault-switch test, folder normalization, outline order, JSDoc), points 3 and 6 recorded for owner/Issue 07; round 2 APPROVED, one nit left (trailing backslash in syncFolder); full suite passed (597 files, 14494 tests) — 12fefe60a
 - 2026-11-09 22:38 — 07 — start — launched by /relay-lite:run — c78e5afe2
 - 2026-11-09 22:38 — 14 — start — launched by /relay-lite:run — c78e5afe2
+- 2026-11-09 23:08 — 14 — deliver — round 1 CHANGES_REQUESTED by claude (4 findings), fix round test-first (429 refusal on queued Sync now, no fail() on vault switch, first_run_done recheck, after-save idle when sync off); round 2 APPROVED; round 3 APPROVED with no findings; full suite passed (602 files, 14557 tests) — c548b66a7
