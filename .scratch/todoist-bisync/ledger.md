@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | todo | | |
 | 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | todo | | |
 | 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | todo | | |
-| 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | in-progress | | |
+| 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | done | issue/13-deleted-tasks-detach (d933ffa9c) | 2026-11-09 |
 | 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | done | issue/14-sync-runs-on-its-own (c548b66a7) | 2026-11-09 |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14 | todo | | |
 
@@ -72,3 +72,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 23:30 — 07 — deliver — finished by hand after the sync conflict with Issue 14: rebased, conflicts resolved, integration fixes (tests aligned to extended PullCounts, automatic cycles skip over-cap pushes instead of asking); opus integration review APPROVED with 2 minor (carried to Issue 10); full suite passed (603 files, 14631 tests) — e5583a987
 - 2026-11-09 23:31 — 08 — start — launched by /relay-lite:run — 86fbbe3fc
 - 2026-11-09 23:31 — 13 — start — launched by /relay-lite:run — 86fbbe3fc
+- 2026-11-09 23:53 — 13 — deliver — round 1 APPROVED by claude with findings, fix round (moved-out-of-tree only for a known live project outside the tree, Issue 10 criterion that a detached anchor is never re-created, nit), follow-up Issue 16 opened (line-brake recovery, owner decision); round 2 APPROVED with no findings; full suite passed (604 files, 14670 tests) — d933ffa9c
