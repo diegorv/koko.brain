@@ -70,7 +70,7 @@ src/lib/
   features/           # Built-in features: auto-move, backlinks, canvas, collection,
                       #   command-palette, copy-block-link, deep-link, dock-badge, event-calendar,
                       #   file-history, file-icons, note-action-bar, note-list, outgoing-links,
-                      #   properties, quick-switcher, rail-shell, search, tags, tasks,
+                      #   properties, quick-switcher, rail-shell, search, tags, tasks, todoist-sync,
                       #   type-definitions
   plugins/            # Optional modules: calendar, graph-view, kanban, one-on-one, periodic-notes,
                       #   queryjs, quick-capture, table-of-contents, templates, word-count

@@ -43,7 +43,7 @@ Kokobrain's features, grouped by area. Each item links to the matching page of t
 - **Canvas**: an infinite visual board with text, file, link and image nodes (JSON Canvas 1.0) ([guide](../help/documentation/11-canvas.md))
 - **Collection**: table and calendar views of notes, queried by frontmatter properties, as `.view` files or inline blocks ([guide](../help/documentation/12-collection.md))
 - **QueryJS**: a JavaScript API for programmatic vault queries ([guide](../help/documentation/13-queryjs.md))
-- **Tasks**: an aggregated view with custom statuses and Todoist sync ([guide](../help/documentation/10-tasks-and-todoist.md))
+- **Tasks**: an aggregated view with custom statuses and two-way Todoist sync of a project tree ([tasks guide](../help/documentation/10-tasks-and-todoist.md), [sync guide](../help/documentation/29-todoist-sync.md))
 - **Kanban**: drag-and-drop boards with lanes, cards, dates, colors and tags ([guide](../help/documentation/21-kanban.md))
 - **Calendar**: day, week and month views of your Event notes; create, drag and resize events, each one a plain Markdown note ([guide](../help/documentation/27-calendar.md))
 - **Periodic notes**: daily, weekly, monthly and quarterly notes with templates and a calendar ([guide](../help/documentation/08-periodic-notes-and-calendar.md))

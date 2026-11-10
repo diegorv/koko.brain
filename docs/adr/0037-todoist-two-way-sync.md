@@ -43,8 +43,12 @@ Scope is the sync folder's project notes plus `#todoist` lines elsewhere, with t
 
 ## Consequences
 
-- The anchor is visible text the user must not copy or edit; a copied line freezes its task until one copy is removed. The guide says so (`help/documentation/10-tasks-and-todoist.md`).
+- The anchor is visible text the user must not copy or edit; a copied line freezes its task until one copy is removed. The guide says so (`help/documentation/29-todoist-sync.md`, "The anchor").
 - Subtask nesting, comments, Todoist descriptions, reminders, deadlines, `⏳`/`🛫` and task order do not sync. The `🔁` text is sent only at creation: Todoist owns the rule, and a due push on a recurring task always resends `{date, string, lang}` because a date-only update drops the rule.
 - Links are never retired on their own: a task closed long ago keeps its attached link, so deleting many old `[x]` lines trips the line brake until a manual "Sync now" is confirmed and those links detach over 3 cycles.
 - Losing `kokobrain.db` costs the bases and the log, not the pairing: rebuild mode re-pairs by anchor and back-link and creates nothing.
+- Known limits, accepted rather than handled:
+  - A note with CRLF line endings is never written: any edit on it is stale, logged as `stale` and retried every cycle (`task-line-edits.logic.ts`, `applyTaskLineEdits`), so Todoist changes do not reach it.
+  - A note renamed while its `project_add` is unanswered (a lost response) drops the pending add: a second Todoist project can appear, and the old temp id resolves to nothing, so that note's task lines detach (`projects.logic.ts`, pending adds matched by path). Rare and recoverable by hand.
+  - Only quiet automatic cycles fold in the sync log (`cycle-log.logic.ts`). Event rows are never folded, so a cycle that logs the same event every run writes an event row and a cycle row each time and can fill the 1000-row cap.
 - Revisit when a second vault must sync the same tree, when Todoist offers an idempotent REST write, or when the anchor can move into a hidden parsed field.

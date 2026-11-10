@@ -19,7 +19,7 @@ default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-in
 | Source | What it is |
 |--------|-----------|
 | `ipc:`, `http://ipc.localhost` | The app's bridge to its native side (see [Tauri internals](#tauri-internals)) |
-| `https://api.todoist.com` | Todoist REST API (the app's Todoist integration) |
+| `https://api.todoist.com` | Todoist Sync API (the app's two-way Todoist sync) |
 | `https://huggingface.co` | Hugging Face, including the public model API under `https://huggingface.co/api/` |
 | `https://github.com` | github.com itself (not its API host) |
 | `https://objects.githubusercontent.com` | GitHub release downloads |

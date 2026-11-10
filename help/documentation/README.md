@@ -47,6 +47,7 @@ After that, explore any topic that interests you.
 | 26 | [Theming](26-theming.md) | Color themes, region layout, CSS variables, creating custom themes |
 | 27 | [Calendar](27-calendar.md) | Calendar tab: day/week/month views of Event notes, creating and moving events, the event note schema |
 | 28 | [Vault Mods](28-mods.md) | JavaScript mods in `_system/mods/`: rail buttons, actions, file access, raw app access, reload on save (Labs); the full mod author reference is in [mods/](mods/README.md) |
+| 29 | [Todoist Sync](29-todoist-sync.md) | Two-way sync with a Todoist project tree: setup, project notes, the task line and its anchor, completion, moves and sections, detaching, safety limits, the sync log, troubleshooting, privacy |
 
 ## Embedded Local Files (`file://` images)
 

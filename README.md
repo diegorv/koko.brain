@@ -39,7 +39,7 @@ Every note is a plain `.md` file in a folder you choose. No cloud storage, no ac
 
 ### 🔒 Private by design
 
-Full-text and semantic search run on your Mac. The models are downloaded once and run offline. No analytics, no tracking, no account; error reporting is opt-in. See [PRIVACY.md](PRIVACY.md).
+Full-text and semantic search run on your Mac. The models are downloaded once and run offline. No analytics, no tracking, no account; error reporting and Todoist sync are opt-in. See [PRIVACY.md](PRIVACY.md).
 
 </td>
 <td width="33%" valign="top">
@@ -90,7 +90,7 @@ A Tauri 2 shell with a Rust core indexes the vault, keeps backlinks, tags and ta
 </td>
 <td width="33%" valign="top">
 📋 <a href="help/documentation/21-kanban.md"><b>Kanban</b></a> and <a href="help/documentation/10-tasks-and-todoist.md"><b>Tasks</b></a><br />
-<sub>Boards, custom task statuses and Todoist sync.</sub>
+<sub>Boards, custom task statuses and <a href="help/documentation/29-todoist-sync.md">two-way Todoist sync</a>.</sub>
 </td>
 <td width="33%" valign="top">
 📅 <a href="help/documentation/27-calendar.md"><b>Calendar</b></a><br />

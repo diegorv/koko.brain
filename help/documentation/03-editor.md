@@ -147,6 +147,7 @@ At the bottom of the window, the status bar shows contextual information about y
 - **Semantic index status** — appears only when semantic search is enabled in Settings. It reflects the current note with one of three states: **Loading model...** while the embedding model is still loading, **Indexed (1 chunk)** or **Indexed (N chunks)** once the note has been embedded (showing how many chunks it produced), or **Not indexed** when the model is ready but this note has no chunks yet
 
 **Right side:**
+- **Todoist sync status** — appears only when **Sync with Todoist** is on in Settings. It reads **Todoist synced 14:05** (the local time of the last successful sync), **Todoist syncing** while a sync runs, **Todoist not synced yet** until the first successful sync since the app started, or **Todoist sync error** in red (hover for the reason). See [Todoist Sync](29-todoist-sync.md)
 - **Save status** — "Modified" when you have unsaved changes, or "Saved"
 - **Word count** — three metrics (YAML frontmatter is excluded from counts, only shown for markdown files):
   - **Word count**: total number of words in the note
