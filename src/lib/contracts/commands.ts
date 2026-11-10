@@ -27,6 +27,7 @@ import type {
 	TaskLinesWriteResult,
 	TaskStatus,
 	TodoistKvEntry,
+	TodoistSectionLink,
 	TodoistStateCommit,
 	TodoistSyncLogEntry,
 	TodoistSyncLogInput,
@@ -62,7 +63,9 @@ export interface CommandMap {
 	todoist_read_kv: { args: { vaultPath: string }; result: TodoistKvEntry[] };
 	/** Todoist task links, sorted by anchor. */
 	todoist_read_links: { args: { vaultPath: string }; result: TodoistTaskLink[] };
-	/** Writes kv rows, link upserts and link deletes in one transaction. */
+	/** Todoist section links, sorted by section id. */
+	todoist_read_sections: { args: { vaultPath: string }; result: TodoistSectionLink[] };
+	/** Writes kv rows, link and section link upserts and deletes in one transaction. */
 	todoist_commit_state: { args: { vaultPath: string; commit: TodoistStateCommit }; result: null };
 	/** Appends sync log entries, keeping the newest 1000 rows. */
 	todoist_append_log: { args: { vaultPath: string; entries: TodoistSyncLogInput[] }; result: null };
@@ -245,6 +248,7 @@ export const COMMAND_ARGS = {
 	cleanup_history: ['retentionDays'],
 	todoist_read_kv: ['vaultPath'],
 	todoist_read_links: ['vaultPath'],
+	todoist_read_sections: ['vaultPath'],
 	todoist_commit_state: ['vaultPath', 'commit'],
 	todoist_append_log: ['vaultPath', 'entries'],
 	todoist_read_log: ['vaultPath', 'limit?'],

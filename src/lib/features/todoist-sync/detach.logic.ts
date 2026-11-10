@@ -31,6 +31,8 @@ export interface DetachInput {
 	treeIds: ReadonlySet<string>;
 	/** Every project of the full and incremental pulls, archived and deleted ones included. */
 	projects: ScopeProject[];
+	/** Anchors whose line was moved out of sync scope (`outOfScopeAnchors`). */
+	outOfScope?: ReadonlySet<string>;
 }
 
 /**
@@ -68,7 +70,8 @@ export interface DetachPlan {
  * Todoist id:
  * - its item reported deleted, in a project reported deleted (the item's
  *   project, else the one in `remote_base`), or in a known, live project
- *   outside the vault's tree: detached at once;
+ *   outside the vault's tree, or its line moved out of sync scope
+ *   (`outOfScope`): detached at once;
  * - no line in the scan: one more miss, detached on the third in a row;
  * - its line back after a miss: the count resets.
  * An item the pulls did not report counts as unchanged, never as deleted.
@@ -86,6 +89,7 @@ export function planDetach(input: DetachInput): DetachPlan {
 		if (item?.isDeleted) reason = `Todoist task ${link.todoistId} was deleted in Todoist`;
 		else if (projectId !== undefined && deletedProjects.has(projectId)) reason = `The project of Todoist task ${link.todoistId} was deleted in Todoist`;
 		else if (item && isLiveOutsideTree(item.projectId, input.projects, input.treeIds)) reason = `Todoist task ${link.todoistId} moved to a project outside the vault's tree`;
+		else if (input.outOfScope?.has(link.anchor)) reason = 'The line moved to a note out of sync scope (no project note and no #todoist); the task is not moved in Todoist';
 		else if (!hasLine && link.missCount + 1 >= DETACH_AFTER_MISSES) {
 			reason = `The line was not found in the vault in ${DETACH_AFTER_MISSES} syncs in a row`;
 		}

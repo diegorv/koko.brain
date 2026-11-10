@@ -217,6 +217,13 @@ describe('applyTaskLineEdits: insert', () => {
 		expect(s).toEqual({ reason: 'headingDuplicated', subject: 'Work' });
 	});
 
+	it('matches only a ## heading: a # or ### heading of the same text is neither the target nor a duplicate', () => {
+		const e = edits([], [insert('Work', ['- [ ] t 🆔 td-c'])], []);
+
+		expect(applied('# Work\n### Work\n## Work\n', e)).toBe('# Work\n### Work\n## Work\n- [ ] t 🆔 td-c\n');
+		expect(stale('# Work\n### Work\n', e)).toEqual({ reason: 'headingMissing', subject: 'Work' });
+	});
+
 	it('refuses to insert an anchor already in the note', () => {
 		const s = stale(`${A}\n`, edits([], [insert(null, ['- [ ] again 🆔 td-a'])], []));
 
@@ -233,6 +240,65 @@ describe('applyTaskLineEdits: insert', () => {
 		const e = edits([], [insert(null, ['', '## Work', '- [ ] t 🆔 td-c'])], []);
 
 		expect(applied('# P\n', e)).toBe('# P\n\n## Work\n- [ ] t 🆔 td-c\n');
+	});
+});
+
+describe('applyTaskLineEdits: insert before the sections', () => {
+	const N = '- [ ] New 🆔 td-c';
+	const top = (lines: string[]): TaskLineInsert => ({ afterHeading: null, beforeSections: true, lines });
+
+	it('puts the lines after the last non-blank line above the first ## heading', () => {
+		const content = '---\nx: 1\n---\n- [ ] top\n\n## Work\n- [ ] w\n';
+
+		expect(applied(content, edits([], [top([N])], []))).toBe(`---\nx: 1\n---\n- [ ] top\n${N}\n\n## Work\n- [ ] w\n`);
+	});
+
+	it('puts them right below the frontmatter, or first, when nothing is above the first section', () => {
+		expect(applied('---\nx: 1\n---\n## Work\n', edits([], [top([N])], []))).toBe(`---\nx: 1\n---\n${N}\n## Work\n`);
+		expect(applied('## Work\n- w\n', edits([], [top([N])], []))).toBe(`${N}\n## Work\n- w\n`);
+	});
+
+	it('puts them at the end of a note with no ## heading outside code fences; # and ### headings do not count', () => {
+		expect(applied('# P\n### Sub\n- s\n', edits([], [top([N])], []))).toBe(`# P\n### Sub\n- s\n${N}\n`);
+		expect(applied('```\n## Work\n```\n', edits([], [top([N])], []))).toBe(`\`\`\`\n## Work\n\`\`\`\n${N}\n`);
+	});
+
+	it('throws when the insert also names a heading', () => {
+		const e = edits([], [{ afterHeading: 'Work', beforeSections: true, lines: [N] }], []);
+
+		expect(() => applyTaskLineEdits('## Work\n', e)).toThrow();
+	});
+});
+
+describe('applyTaskLineEdits: rename headings', () => {
+	const N = '- [ ] New 🆔 td-c';
+
+	it('renames a heading, keeping its # run, before the other edits', () => {
+		const e: TaskLineEdits = { ...edits([], [insert('Job', [N])], []), renameHeadings: [{ from: 'Work', to: 'Job' }] };
+
+		expect(applied('##   Work  \n- [ ] a\n### Sub\n', e)).toBe(`## Job\n- [ ] a\n${N}\n### Sub\n`);
+	});
+
+	it('is stale when the heading is missing or appears twice, and on a CRLF note', () => {
+		const e: TaskLineEdits = { ...edits([], [], []), renameHeadings: [{ from: 'Work', to: 'Job' }] };
+
+		expect(stale('## Home\n', e)).toEqual({ reason: 'headingMissing', subject: 'Work' });
+		expect(stale('## Work\n## Work\n', e)).toEqual({ reason: 'headingDuplicated', subject: 'Work' });
+		expect(stale('## Work\r\n', e)).toEqual({ reason: 'crlfLineEndings', subject: '' });
+	});
+
+	it('renames only a ## heading', () => {
+		const e: TaskLineEdits = { ...edits([], [], []), renameHeadings: [{ from: 'Work', to: 'Job' }] };
+
+		expect(applied('# Work\n## Work\n### Work\n', e)).toBe('# Work\n## Job\n### Work\n');
+		expect(stale('### Work\n', e)).toEqual({ reason: 'headingMissing', subject: 'Work' });
+	});
+
+	it('throws on a new heading text that is empty or holds a line break', () => {
+		for (const to of ['', '  ', 'a\nb']) {
+			const e: TaskLineEdits = { ...edits([], [], []), renameHeadings: [{ from: 'Work', to }] };
+			expect(() => applyTaskLineEdits('## Work\n', e)).toThrow();
+		}
 	});
 });
 

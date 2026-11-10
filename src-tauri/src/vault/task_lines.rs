@@ -28,18 +28,39 @@ pub struct TaskLineReplace {
 	pub line_number: Option<u32>,
 }
 
-/// Inserts lines under a heading, or at the end of the note.
+/// Inserts lines under a heading, above the note's sections, or at the end
+/// of the note.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskLineInsert {
-	/// Text of the heading the lines go under (without the `#` run, trimmed,
-	/// exact match). The lines go after the last non-blank line before the
+	/// Text of the `##` heading the lines go under (without the `#` run,
+	/// trimmed, exact match; a heading of another level is not matched). The
+	/// lines go after the last non-blank line before the
 	/// next heading. `null` puts them after the last non-blank line of the note.
 	#[serde(default)]
 	pub after_heading: Option<String>,
+	/// With `true` (and `after_heading` null), the lines go after the last
+	/// non-blank line above the note's first `##` heading, or at the end of a
+	/// note that has none: lines that belong to no section stay out of the
+	/// last one.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
+	pub before_sections: Option<bool>,
 	/// Whole lines to insert, in order.
 	pub lines: Vec<String>,
+}
+
+/// Renames the one `##` heading whose text is `from` (as `after_heading`
+/// matches it) to `to`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskHeadingRename {
+	/// The heading text now.
+	pub from: String,
+	/// The heading text to write; not empty, no line break.
+	pub to: String,
 }
 
 /// Removes the one line that carries `anchor`, if it still equals `expected_line`.
@@ -53,9 +74,10 @@ pub struct TaskLineRemove {
 	pub expected_line: String,
 }
 
-/// One note's batch, applied all or nothing. Replacements and removals are
-/// located in the content as read; the inserts then run in order against the
-/// result, so a move within one note is a removal plus an insert.
+/// One note's batch, applied all or nothing. Heading renames run first;
+/// replacements and removals are then located in the content as read; the
+/// inserts then run in order against the result, so a move within one note
+/// is a removal plus an insert.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
@@ -66,6 +88,10 @@ pub struct TaskLineEdits {
 	pub insert: Vec<TaskLineInsert>,
 	/// Lines to drop.
 	pub remove: Vec<TaskLineRemove>,
+	/// Headings to rename, applied before everything else.
+	#[serde(default, skip_serializing_if = "Option::is_none")]
+	#[ts(optional)]
+	pub rename_headings: Option<Vec<TaskHeadingRename>>,
 }
 
 /// Why a batch was not applied.
@@ -81,7 +107,7 @@ pub enum TaskLinesStaleReason {
 	LineDiffers,
 	/// An inserted line's anchor is already in the note.
 	AnchorExists,
-	/// No heading has the insert's text.
+	/// No heading has the insert's or the rename's text.
 	HeadingMissing,
 	/// Two or more headings have it.
 	HeadingDuplicated,
@@ -152,15 +178,26 @@ pub enum TaskLineEditOutcome {
 ///
 /// Errors on a batch the caller built wrong: a new or inserted line with a
 /// line break, an anchor named by two replacements or removals, the same
-/// anchor in two inserted lines, or a line-number replacement whose new line
-/// does not carry its anchor.
+/// anchor in two inserted lines, a line-number replacement whose new line
+/// does not carry its anchor, an insert both before the sections and after
+/// a heading, or a heading renamed to an empty text or one with a line break.
 pub fn apply_task_line_edits(content: &str, edits: &TaskLineEdits) -> Result<TaskLineEditOutcome, String> {
 	validate(edits)?;
-	let is_empty = edits.replace.is_empty() && edits.insert.is_empty() && edits.remove.is_empty();
+	let renames = edits.rename_headings.as_deref().unwrap_or_default();
+	let is_empty = edits.replace.is_empty() && edits.insert.is_empty() && edits.remove.is_empty() && renames.is_empty();
 	if !is_empty && content.contains("\r\n") {
 		return Ok(TaskLineEditOutcome::Stale(stale(TaskLinesStaleReason::CrlfLineEndings, "")));
 	}
 	let mut lines: Vec<String> = content.split('\n').map(String::from).collect();
+
+	for rename in renames {
+		let at = match unique_heading(&heading_indexes(&lines), &rename.from) {
+			Ok(at) => at,
+			Err(stale) => return Ok(TaskLineEditOutcome::Stale(stale)),
+		};
+		let hashes = lines[at].chars().take_while(|c| *c == '#').count();
+		lines[at] = format!("{} {}", "#".repeat(hashes), rename.to);
+	}
 
 	// Locate every replacement and removal before changing anything.
 	let mut replaced: Vec<(usize, &str)> = Vec::new();
@@ -207,6 +244,7 @@ pub fn apply_task_line_edits(content: &str, edits: &TaskLineEdits) -> Result<Tas
 	}
 	for insert in &edits.insert {
 		let at = match &insert.after_heading {
+			None if insert.before_sections == Some(true) => before_sections(&lines),
 			None => after_last_non_blank(&lines, 0, lines.len()).unwrap_or(0),
 			Some(heading) => match section_end(&lines, heading) {
 				Ok(at) => at,
@@ -244,6 +282,14 @@ fn validate(edits: &TaskLineEdits) -> Result<(), String> {
 	for anchor in edits.insert.iter().flat_map(|i| i.lines.iter().flat_map(|l| anchors(l))) {
 		if !inserted.insert(anchor) {
 			return Err(format!("Anchor {} is inserted twice", anchor));
+		}
+	}
+	if let Some(i) = edits.insert.iter().find(|i| i.before_sections == Some(true) && i.after_heading.is_some()) {
+		return Err(format!("An insert goes both before the sections and after heading {:?}", i.after_heading));
+	}
+	for rename in edits.rename_headings.iter().flatten() {
+		if rename.to.trim().is_empty() || rename.to.contains(['\n', '\r']) {
+			return Err(format!("Heading {:?} may not be renamed to {:?}", rename.from, rename.to));
 		}
 	}
 	Ok(())
@@ -286,15 +332,32 @@ fn locate_unanchored(lines: &[String], line_number: u32, anchor: &str, expected:
 /// between it and the next heading of any level, or right below it.
 fn section_end(lines: &[String], heading: &str) -> Result<usize, TaskLinesStale> {
 	let headings = heading_indexes(lines);
-	let mut matches = headings.iter().filter(|(_, text)| text == heading);
-	let Some(&(at, _)) = matches.next() else {
+	let at = unique_heading(&headings, heading)?;
+	let end = headings.iter().map(|(i, _, _)| *i).find(|i| *i > at).unwrap_or(lines.len());
+	Ok(after_last_non_blank(lines, at + 1, end).unwrap_or(at + 1))
+}
+
+/// The index of the one `##` heading whose text is `heading` (a section
+/// heading; other levels are not sections).
+fn unique_heading(headings: &[(usize, usize, String)], heading: &str) -> Result<usize, TaskLinesStale> {
+	let mut matches = headings.iter().filter(|(_, level, text)| *level == 2 && text == heading);
+	let Some(&(at, _, _)) = matches.next() else {
 		return Err(stale(TaskLinesStaleReason::HeadingMissing, heading));
 	};
 	if matches.next().is_some() {
 		return Err(stale(TaskLinesStaleReason::HeadingDuplicated, heading));
 	}
-	let end = headings.iter().map(|(i, _)| *i).find(|i| *i > at).unwrap_or(lines.len());
-	Ok(after_last_non_blank(lines, at + 1, end).unwrap_or(at + 1))
+	Ok(at)
+}
+
+/// Where lines of no section go: after the last non-blank line above the
+/// first `##` heading, or right below the frontmatter (or first) when there
+/// is none above it; the end of the note without a `##` heading.
+fn before_sections(lines: &[String]) -> usize {
+	let Some(first) = heading_indexes(lines).iter().find(|(_, level, _)| *level == 2).map(|(i, _, _)| *i) else {
+		return after_last_non_blank(lines, 0, lines.len()).unwrap_or(0);
+	};
+	after_last_non_blank(lines, 0, first).unwrap_or(0)
 }
 
 /// The index after the last non-blank line in `lines[from..to]`, if any.
@@ -302,8 +365,8 @@ fn after_last_non_blank(lines: &[String], from: usize, to: usize) -> Option<usiz
 	(from..to).rev().find(|i| !lines[*i].trim().is_empty()).map(|i| i + 1)
 }
 
-/// `(index, trimmed text)` of every heading outside frontmatter and code fences.
-fn heading_indexes(lines: &[String]) -> Vec<(usize, String)> {
+/// `(index, level, trimmed text)` of every heading outside frontmatter and code fences.
+fn heading_indexes(lines: &[String]) -> Vec<(usize, usize, String)> {
 	let mut out = Vec::new();
 	let mut start = 0;
 	if lines.first().is_some_and(|l| l.trim_end() == "---") {
@@ -325,7 +388,8 @@ fn heading_indexes(lines: &[String]) -> Vec<(usize, String)> {
 			continue;
 		}
 		if let Some(caps) = HEADING_RE.captures(line) {
-			out.push((i, caps.get(2).map_or("", |m| m.as_str()).trim().to_string()));
+			let level = caps.get(1).map_or(0, |m| m.as_str().len());
+			out.push((i, level, caps.get(2).map_or("", |m| m.as_str()).trim().to_string()));
 		}
 	}
 	out

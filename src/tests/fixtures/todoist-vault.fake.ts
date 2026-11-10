@@ -3,7 +3,7 @@
  * for Todoist sync engine tests. It answers the Rust commands the engine
  * calls: the task and property-record reads, `write_task_lines` (through
  * the real `applyTaskLineEdits`, the TS port of the Rust batch), `create_note`
- * and `create_folder`, `scan_vault` (an empty tree), and the five `todoist_*` state commands (`todoist_read_log`
+ * and `create_folder`, `scan_vault` (an empty tree), and the six `todoist_*` state commands (`todoist_read_log`
  * lists `log` newest first, ids from 1 in append order). Like Rust, it
  * refuses a `vaultRoot` / `vaultPath` that is not its root. Any other command
  * resolves to `[]` for a `get_*` read and `undefined` otherwise.
@@ -26,6 +26,7 @@ import type {
 	TaskPriority,
 	TaskStatus,
 	TodoistKvEntry,
+	TodoistSectionLink,
 	TodoistStateCommit,
 	TodoistSyncLogEntry,
 	TodoistSyncLogInput,
@@ -41,6 +42,8 @@ export interface FakeVault {
 	readonly files: Map<string, string>;
 	readonly kv: Map<string, string>;
 	readonly links: Map<string, TodoistTaskLink>;
+	/** Section links by section id. */
+	readonly sections: Map<string, TodoistSectionLink>;
 	/** Every appended sync log entry. */
 	readonly log: TodoistSyncLogInput[];
 	/** Every `todoist_commit_state` commit received. */
@@ -104,6 +107,7 @@ export function createFakeVault(root: string, files: Record<string, string> = {}
 		files: new Map(Object.entries(files)),
 		kv: new Map(),
 		links: new Map(),
+		sections: new Map(),
 		log: [],
 		commits: [],
 		writes: [],
@@ -133,12 +137,18 @@ export function createFakeVault(root: string, files: Record<string, string> = {}
 					return [...vault.kv].sort(([a], [b]) => a.localeCompare(b)).map(([key, value]): TodoistKvEntry => ({ key, value }));
 				case 'todoist_read_links':
 					return [...vault.links.values()].sort((a, b) => a.anchor.localeCompare(b.anchor)).map((l) => ({ ...l }));
+				case 'todoist_read_sections':
+					return [...vault.sections.values()]
+						.sort((a, b) => a.todoistSectionId.localeCompare(b.todoistSectionId))
+						.map((s) => ({ ...s }));
 				case 'todoist_commit_state': {
 					const commit = structuredClone(args.commit as TodoistStateCommit);
 					vault.commits.push(commit);
 					for (const { key, value } of commit.kv) vault.kv.set(key, value);
 					for (const link of commit.upsertLinks) vault.links.set(link.anchor, link);
 					for (const anchor of commit.deleteAnchors) vault.links.delete(anchor);
+					for (const section of commit.upsertSections ?? []) vault.sections.set(section.todoistSectionId, section);
+					for (const id of commit.deleteSectionIds ?? []) vault.sections.delete(id);
 					return null;
 				}
 				case 'todoist_append_log':

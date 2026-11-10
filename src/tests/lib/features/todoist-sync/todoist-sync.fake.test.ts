@@ -160,6 +160,56 @@ describe('fake Todoist /sync', () => {
 		expect(Object.values((err as TodoistSyncError).syncStatus)[0]).toMatchObject({ httpCode: 404 });
 	});
 
+	it('adds a section through section_add, and refuses one in an unknown project', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+
+		const res = await client().sync({ commands: [createCommand('section_add', { projectId: 'p1', name: 'Next' }, 'tmp-s')] });
+		const err = await client().sync({ commands: [createCommand('section_add', { projectId: 'nope', name: 'X' })] }).catch((e: unknown) => e);
+
+		expect(server.section(res.tempIdMapping!['tmp-s'])).toMatchObject({ project_id: 'p1', name: 'Next', is_deleted: false });
+		expect(Object.values((err as TodoistSyncError).syncStatus)[0]).toMatchObject({ httpCode: 404 });
+	});
+
+	it('refuses every section_add after refuseSectionAdds, adding nothing', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+		server.refuseSectionAdds();
+
+		const err = await client().sync({ commands: [createCommand('section_add', { projectId: 'p1', name: 'Next' })] }).catch((e: unknown) => e);
+
+		expect(Object.values((err as TodoistSyncError).syncStatus)[0]).toMatchObject({ httpCode: 400 });
+		expect(server.sections()).toEqual([]);
+	});
+
+	it('moves an item into a section (and its project), or to the root of a project, through item_move', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+		server.addProject({ id: 'p2', name: 'Home' });
+		server.addSection({ id: 's2', project_id: 'p2', name: 'Next' });
+		server.addItem({ id: 'i1', project_id: 'p1', content: 'Plan' });
+
+		await client().sync({ commands: [createCommand('item_move', { id: 'i1', sectionId: 's2' })] });
+		expect(server.item('i1')).toMatchObject({ project_id: 'p2', section_id: 's2' });
+
+		await client().sync({ commands: [createCommand('item_move', { id: 'i1', projectId: 'p2' })] });
+		expect(server.item('i1')).toMatchObject({ project_id: 'p2', section_id: null });
+
+		const err = await client().sync({ commands: [createCommand('item_move', { id: 'i1', sectionId: 'nope' })] }).catch((e: unknown) => e);
+		expect(Object.values((err as TodoistSyncError).syncStatus)[0]).toMatchObject({ httpCode: 404 });
+	});
+
+	it('reports a section edited in Todoist incrementally, and leaves archived sections out of a full sync', async () => {
+		server.addProject({ id: 'p1', name: 'Work' });
+		server.addSection({ id: 's1', project_id: 'p1', name: 'Next' });
+		server.addSection({ id: 's2', project_id: 'p1', name: 'Old', is_archived: true });
+		const token = (await client().sync({ syncToken: '*', resourceTypes: ['sections'] })).syncToken!;
+
+		server.updateSection('s1', { name: 'Now' });
+		const full = await client().sync({ syncToken: '*', resourceTypes: ['sections'] });
+		const changes = await client().sync({ syncToken: token, resourceTypes: ['sections'] });
+
+		expect(full.sections?.map((s) => s.name)).toEqual(['Now']);
+		expect(changes.sections?.map((s) => [s.id, s.name])).toEqual([['s1', 'Now']]);
+	});
+
 	it('leaves archived projects out of a full sync, and reports archive and delete incrementally', async () => {
 		server.addProject({ id: 'a', name: 'A' });
 		server.addProject({ id: 'b', name: 'B' });

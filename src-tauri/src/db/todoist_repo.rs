@@ -1,5 +1,6 @@
 //! SQL over the Todoist sync tables (`todoist_kv`, `todoist_task_link`,
-//! `todoist_sync_log`), created in `schema::create_tables`.
+//! `todoist_section_link`, `todoist_sync_log`), created in
+//! `schema::create_tables`.
 
 use rusqlite::{params, Connection};
 
@@ -42,8 +43,22 @@ pub struct TodoistTaskLink {
 	pub frozen: bool,
 }
 
+/// One `todoist_section_link` row: a Todoist section and the `##` heading of
+/// its project note.
+#[derive(serde::Serialize, serde::Deserialize, Debug, Clone, PartialEq, Eq, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TodoistSectionLink {
+	/// Todoist section id, the primary key.
+	pub todoist_section_id: String,
+	/// Todoist project the section belongs to.
+	pub project_id: String,
+	/// The heading text (without `## `) as last written or seen.
+	pub heading: String,
+}
+
 /// One state commit applied in a single transaction: kv rows (the `sync_token`
-/// among them), link upserts and link deletes.
+/// among them), link upserts and deletes, section link upserts and deletes.
 #[derive(serde::Deserialize, Debug, Clone, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
@@ -54,6 +69,14 @@ pub struct TodoistStateCommit {
 	pub upsert_links: Vec<TodoistTaskLink>,
 	/// Anchors whose links are deleted.
 	pub delete_anchors: Vec<String>,
+	/// Section links to insert or replace, keyed by section id.
+	#[serde(default)]
+	#[ts(optional)]
+	pub upsert_sections: Option<Vec<TodoistSectionLink>>,
+	/// Section ids whose links are deleted.
+	#[serde(default)]
+	#[ts(optional)]
+	pub delete_section_ids: Option<Vec<String>>,
 }
 
 /// A sync log entry to append; the time is set when it is stored.
@@ -159,7 +182,31 @@ pub fn apply_commit(conn: &Connection, commit: &TodoistStateCommit) -> Result<()
 		conn.execute("DELETE FROM todoist_task_link WHERE anchor = ?1", [anchor])
 			.map_err(|e| format!("Failed to delete todoist_task_link: {e}"))?;
 	}
+	for section in commit.upsert_sections.iter().flatten() {
+		conn.execute(
+			"INSERT OR REPLACE INTO todoist_section_link (todoist_section_id, project_id, heading) VALUES (?1, ?2, ?3)",
+			params![section.todoist_section_id, section.project_id, section.heading],
+		)
+		.map_err(|e| format!("Failed to write todoist_section_link: {e}"))?;
+	}
+	for id in commit.delete_section_ids.iter().flatten() {
+		conn.execute("DELETE FROM todoist_section_link WHERE todoist_section_id = ?1", [id])
+			.map_err(|e| format!("Failed to delete todoist_section_link: {e}"))?;
+	}
 	Ok(())
+}
+
+/// Every section link, sorted by section id.
+pub fn read_sections(conn: &Connection) -> Result<Vec<TodoistSectionLink>, String> {
+	let mut stmt = conn
+		.prepare("SELECT todoist_section_id, project_id, heading FROM todoist_section_link ORDER BY todoist_section_id")
+		.map_err(|e| format!("Failed to prepare todoist_section_link query: {e}"))?;
+	let rows = stmt
+		.query_map([], |row| {
+			Ok(TodoistSectionLink { todoist_section_id: row.get(0)?, project_id: row.get(1)?, heading: row.get(2)? })
+		})
+		.map_err(|e| format!("Failed to read todoist_section_link: {e}"))?;
+	rows.collect::<Result<_, _>>().map_err(|e| format!("Failed to read todoist_section_link row: {e}"))
 }
 
 /// Appends `entries` stamped with `created_at`, then drops every row older

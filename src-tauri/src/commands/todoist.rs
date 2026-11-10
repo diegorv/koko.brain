@@ -11,7 +11,7 @@ use crate::db::todoist_repo::{self, SYNC_LOG_LIMIT};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub use crate::db::todoist_repo::{
-	TodoistKvEntry, TodoistStateCommit, TodoistSyncLogEntry, TodoistSyncLogInput, TodoistTaskLink,
+	TodoistKvEntry, TodoistSectionLink, TodoistStateCommit, TodoistSyncLogEntry, TodoistSyncLogInput, TodoistTaskLink,
 };
 
 /// Runs `f` on the blocking pool and flattens the join error into the result.
@@ -35,8 +35,14 @@ pub async fn todoist_read_links(vault_path: String) -> Result<Vec<TodoistTaskLin
 	blocking(move || db::with_vault_db(&vault_path, todoist_repo::read_links)).await
 }
 
-/// Writes kv rows (the `sync_token` among them), link upserts and link
-/// deletes in one transaction: all of it lands, or none of it.
+/// Every `todoist_section_link` row, sorted by section id.
+#[tauri::command]
+pub async fn todoist_read_sections(vault_path: String) -> Result<Vec<TodoistSectionLink>, String> {
+	blocking(move || db::with_vault_db(&vault_path, todoist_repo::read_sections)).await
+}
+
+/// Writes kv rows (the `sync_token` among them), link and section link
+/// upserts and deletes in one transaction: all of it lands, or none of it.
 #[tauri::command]
 pub async fn todoist_commit_state(vault_path: String, commit: TodoistStateCommit) -> Result<(), String> {
 	blocking(move || {

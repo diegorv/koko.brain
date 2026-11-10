@@ -43,6 +43,8 @@ export interface ItemAddArgs {
 	description: string;
 	/** Project the task goes to. */
 	projectId: string;
+	/** Section the task goes to: the one linked to the `##` heading above the line, when there is one. */
+	sectionId?: string;
 	/** Todoist priority, 1 to 4. */
 	priority: number;
 	/** The line's tags (excluded labels left out), plus `personal` in a personal vault. */
@@ -89,6 +91,8 @@ export interface CreateInput {
 	newUuid: () => string;
 	/** Makes a brain-born anchor not in `taken` (`generateAnchor`). */
 	newAnchor: (taken: ReadonlySet<string>) => string;
+	/** The live section linked to the `##` heading above a line of a project note; null (or absent) for none. */
+	sectionOf?: (line: ScannedLine) => string | null;
 }
 
 /** A line to create: its anchor is written first, then its pending link is stored, then the command is sent (rule 2). */
@@ -147,6 +151,9 @@ function pendingAddOf(link: TodoistTaskLink): PendingAdd | null {
  * logged and left out. A note named by two project notes' id is left out,
  * as the pull leaves it.
  *
+ * A line under a `##` heading linked to a section (`sectionOf`) is created
+ * in that section; its `local_base` keeps the place it is created in.
+ *
  * Pending adds of earlier cycles (not detached, not frozen, with exactly one
  * line) are listed for a resend with their stored command.
  */
@@ -177,8 +184,11 @@ export function planCreates(input: CreateInput): CreatePlan {
 		const anchor = input.newAnchor(taken);
 		taken.add(anchor);
 		const uuid = input.newUuid();
-		const command: PendingAdd = { type: 'item_add', uuid, tempId: anchor, args: addArgs(line, content, anchor, projectId, input) };
-		const local: LocalBase = { ...line.fields, status: line.status };
+		const sectionId = noteProjects.has(line.relPath) ? (input.sectionOf?.(line) ?? null) : null;
+		const args = addArgs(line, content, anchor, projectId, input);
+		if (sectionId !== null) args.sectionId = sectionId;
+		const command: PendingAdd = { type: 'item_add', uuid, tempId: anchor, args };
+		const local: LocalBase = { ...line.fields, status: line.status, location: { projectId, sectionId } };
 		plan.creates.push({
 			anchor,
 			line,
@@ -260,7 +270,7 @@ export function ackedLink(
 	const remote: RemoteBase = {
 		content: args.content,
 		projectId,
-		sectionId: null,
+		sectionId: args.sectionId ?? null,
 		parentId: null,
 		checked: false,
 		priority: args.priority,

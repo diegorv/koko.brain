@@ -332,6 +332,7 @@ pub fn run() {
             commands::history::cleanup_history,
             commands::todoist::todoist_read_kv,
             commands::todoist::todoist_read_links,
+            commands::todoist::todoist_read_sections,
             commands::todoist::todoist_commit_state,
             commands::todoist::todoist_append_log,
             commands::todoist::todoist_read_log,

@@ -134,7 +134,7 @@ describe('syncNow: first run', () => {
 	it('sends nothing to Todoist: one full /sync with no commands', async () => {
 		await syncNow('manual');
 
-		expect(server.requests).toEqual([{ sync_token: '*', resource_types: ['projects', 'items'] }]);
+		expect(server.requests).toEqual([{ sync_token: '*', resource_types: ['projects', 'sections', 'items'] }]);
 	});
 
 	it('commits the bases of every inserted line and project together with the sync token and first_run_done', async () => {
@@ -162,7 +162,14 @@ describe('syncNow: first run', () => {
 			['td-q1', 'q1', 'Todoist/Q4.md'],
 		]);
 		const w1 = commit.upsertLinks[0];
-		expect(JSON.parse(w1.localBase!)).toEqual({ description: 'Plan', status: ' ', dueDate: null, priority: 'highest', tags: ['deep'] });
+		expect(JSON.parse(w1.localBase!)).toEqual({
+			description: 'Plan',
+			status: ' ',
+			dueDate: null,
+			priority: 'highest',
+			tags: ['deep'],
+			location: { projectId: 'work', sectionId: null },
+		});
 		expect(JSON.parse(w1.remoteBase!)).toMatchObject({ content: 'Plan', priority: 4, labels: ['deep', 'Work'], unmappedLabels: ['Work'] });
 	});
 
@@ -379,7 +386,7 @@ describe('syncNow: refusals and safety', () => {
 	});
 
 	it('leaves the store reset by the vault teardown alone when the old run stops', async () => {
-		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, projectsRenamed: 0, finishedAt: 1 });
+		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, headingsWritten: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, sectionsCreated: 0, projectsRenamed: 0, finishedAt: 1 });
 		fake.current = {
 			async fetch(url, init) {
 				const response = await server.fetch(url, init);
@@ -2237,5 +2244,367 @@ describe('syncNow: projects moving across the tree', () => {
 		expect(vault.files).toEqual(files);
 		expect(vault.kv.get('projects')).toBe(state);
 		expect(vault.log).toEqual([]);
+	});
+});
+
+/** A section `sn` named Next in the Work project, holding `w3` (Hire). */
+function seedNextSection() {
+	server.addSection({ id: 'sn', project_id: 'work', name: 'Next' });
+	server.addItem({ id: 'w3', project_id: 'work', section_id: 'sn', content: 'Hire', child_order: 3 });
+}
+
+const HIRE = '- [ ] Hire 🆔 td-w3';
+const sectionsNamed = (name: string) => server.sections().filter((s) => s.name === name);
+
+describe('syncNow: sections from Todoist', () => {
+	it('writes a section as a ## heading with its tasks under it, the tasks of no section above the sections', async () => {
+		seedNextSection();
+
+		const outcome = await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toBe(`${WORK_NOTE}\n## Next\n${HIRE}\n`);
+		expect([...vault.sections.values()]).toEqual([{ todoistSectionId: 'sn', projectId: 'work', heading: 'Next' }]);
+		expect(localBase('td-w3').location).toEqual({ projectId: 'work', sectionId: 'sn' });
+		expect(localBase('td-w1').location).toEqual({ projectId: 'work', sectionId: null });
+		expect(outcome.message).toBe('Todoist sync done: 3 notes created, 4 tasks added, 1 heading written.');
+		expect(await syncNow('manual')).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+	});
+
+	it('appends a section added later at the end of the note, and a new task of no section above the sections', async () => {
+		await syncNow('manual');
+		server.addSection({ id: 'sl', project_id: 'work', name: 'Later' });
+		server.addItem({ id: 'w3', project_id: 'work', section_id: 'sl', content: 'Hire', child_order: 3 });
+		server.addItem({ id: 'w4', project_id: 'work', content: 'Call', child_order: 4 });
+
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toBe(`${WORK_NOTE}- [ ] Call 🆔 td-w4\n\n## Later\n${HIRE}\n`);
+		expect(vault.sections.get('sl')).toEqual({ todoistSectionId: 'sl', projectId: 'work', heading: 'Later' });
+	});
+
+	it('renames the heading of a section renamed in Todoist, its tasks staying under it', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		server.updateSection('sn', { name: 'Now' });
+
+		const outcome = await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toBe(`${WORK_NOTE}\n## Now\n${HIRE}\n`);
+		expect(vault.sections.get('sn')).toEqual({ todoistSectionId: 'sn', projectId: 'work', heading: 'Now' });
+		expect(outcome.message).toBe('Todoist sync done: 1 heading written.');
+		expect(await syncNow('manual')).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+		expect(sentCommands()).toEqual([]);
+	});
+
+	it('pairs a section with a heading of the same text instead of writing a second one', async () => {
+		await syncNow('manual');
+		vault.files.set('Todoist/Work.md', `${WORK_NOTE}\n## Next\n`);
+		seedNextSection();
+
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toBe(`${WORK_NOTE}\n## Next\n${HIRE}\n`);
+		expect(vault.sections.get('sn')?.heading).toBe('Next');
+		expect(sentCommands()).toEqual([]);
+	});
+
+	it('writes the ## heading of a section whose name a ### heading of the note has, and keeps writing the note', async () => {
+		await syncNow('manual');
+		addToWork('### Next');
+		seedNextSection();
+
+		await syncNow('manual');
+		server.addItem({ id: 'w4', project_id: 'work', content: 'Call', child_order: 4 });
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toBe(`${WORK_NOTE}### Next\n- [ ] Call 🆔 td-w4\n\n## Next\n${HIRE}\n`);
+		expect(vault.log.filter((e) => e.kind === 'stale')).toEqual([]);
+	});
+
+	it('writes no heading in rebuild mode, but pairs one that is there', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		server.addSection({ id: 'sl', project_id: 'work', name: 'Later' });
+		vault.links.clear();
+		vault.sections.clear();
+		const files = new Map(vault.files);
+
+		await syncNow('manual');
+
+		expect(vault.files).toEqual(files);
+		expect([...vault.sections.keys()]).toEqual(['sn']);
+	});
+});
+
+describe('syncNow: task moves from Todoist', () => {
+	it('moves the line of a task moved into a section under its heading, same anchor, in one write', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		const writes = vault.writes.length;
+		server.updateItem('w1', { section_id: 'sn' });
+
+		const outcome = await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toBe(`---\ntodoist_project: work\n---\n${W2_OPEN}\n\n## Next\n${HIRE}\n${W1_OPEN}\n`);
+		expect(vault.writes.slice(writes)).toEqual(['Todoist/Work.md']);
+		expect(localBase('td-w1').location).toEqual({ projectId: 'work', sectionId: 'sn' });
+		expect(remoteBase('td-w1')).toMatchObject({ projectId: 'work', sectionId: 'sn' });
+		expect(outcome.message).toBe('Todoist sync done: 1 line updated.');
+		expect(await syncNow('manual')).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+		expect(sentCommands()).toEqual([]);
+	});
+
+	it('moves the line of a task taken out of its section above the sections', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		server.updateItem('w3', { section_id: null });
+
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toBe(`${WORK_NOTE}${HIRE}\n\n## Next\n`);
+		expect(sentCommands()).toEqual([]);
+	});
+
+	it('moves the line of a task moved to another project into its note: inserted there first, then removed here', async () => {
+		await syncNow('manual');
+		const writes = vault.writes.length;
+		server.updateItem('w1', { project_id: 'acme' });
+
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Acme.md')).toBe(`---\ntodoist_project: acme\n---\n${W1_OPEN}\n`);
+		expect(vault.files.get('Todoist/Work.md')).toBe(`---\ntodoist_project: work\n---\n${W2_OPEN}\n`);
+		expect(vault.writes.slice(writes)).toEqual(['Todoist/Acme.md', 'Todoist/Work.md']);
+		expect(vault.links.get('td-w1')).toMatchObject({ noteRelPath: 'Todoist/Acme.md', missCount: 0, frozen: false });
+		expect(sentCommands()).toEqual([]);
+		expect(await syncNow('manual')).toEqual({ ok: true, message: 'Todoist sync done: nothing new.' });
+	});
+
+	it('lets Todoist win a task moved on both sides, logging the brain place', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
+		addToWork(W1_OPEN);
+		server.updateItem('w1', { project_id: 'acme' });
+
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Acme.md')).toBe(`---\ntodoist_project: acme\n---\n${W1_OPEN}\n`);
+		expect(vault.files.get('Todoist/Work.md')).not.toContain('td-w1');
+		expect(sentCommands()).toEqual([]);
+		expect(vault.log).toEqual([expect.objectContaining({ kind: 'conflict', anchor: 'td-w1' })]);
+	});
+});
+
+describe('syncNow: sections and moves from the brain', () => {
+	it('creates a new ## heading that has a task line as a section, and moves its new task into it next cycle', async () => {
+		await syncNow('manual');
+		addToWork('');
+		addToWork('## Errands');
+		addToWork('- [ ] Buy milk');
+		addToWork('## Empty');
+
+		const outcome = await syncNow('manual');
+
+		const [errands] = sectionsNamed('Errands');
+		expect(errands).toMatchObject({ project_id: 'work' });
+		expect(sectionsNamed('Empty')).toEqual([]);
+		expect(vault.sections.get(errands.id)).toEqual({ todoistSectionId: errands.id, projectId: 'work', heading: 'Errands' });
+		expect(itemsNamed('Buy milk')[0]).toMatchObject({ project_id: 'work', section_id: null });
+		expect(outcome.message).toBe('Todoist sync done: 1 task created in Todoist, 1 section created in Todoist.');
+
+		await syncNow('manual');
+
+		expect(itemsNamed('Buy milk')[0]).toMatchObject({ project_id: 'work', section_id: errands.id });
+		expect(sentCommands().map((c) => c.type)).toEqual(['item_add', 'section_add', 'item_move']);
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+		expect(sentCommands()).toHaveLength(3);
+	});
+
+	it('creates a new line under a linked heading in its section', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		addToWork('- [ ] Interview');
+
+		await syncNow('manual');
+
+		expect(adds().map((c) => c.args)).toEqual([expect.objectContaining({ content: 'Interview', project_id: 'work', section_id: 'sn' })]);
+		expect(itemsNamed('Interview')[0]).toMatchObject({ section_id: 'sn' });
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+	});
+
+	it('moves a task to the section its line moved under; the echo next cycle sends and writes nothing', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
+		addToWork(W1_OPEN);
+
+		const outcome = await syncNow('manual');
+
+		expect(sentCommands().map((c) => [c.type, c.args])).toEqual([['item_move', { id: 'w1', section_id: 'sn' }]]);
+		expect(server.item('w1')).toMatchObject({ project_id: 'work', section_id: 'sn' });
+		expect(outcome.message).toBe('Todoist sync done: 1 task updated in Todoist.');
+		const files = new Map(vault.files);
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+		expect(sentCommands()).toHaveLength(1);
+		expect(vault.files).toEqual(files);
+	});
+
+	it('moves a task out of its section when its line moves above the sections', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		vault.files.set('Todoist/Work.md', `${WORK_NOTE}${HIRE}\n\n## Next\n`);
+
+		await syncNow('manual');
+
+		expect(sentCommands().map((c) => [c.type, c.args])).toEqual([['item_move', { id: 'w3', project_id: 'work' }]]);
+		expect(server.item('w3')).toMatchObject({ project_id: 'work', section_id: null });
+	});
+
+	it('moves a task to the project of the note its line moved into', async () => {
+		await syncNow('manual');
+		edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
+		vault.files.set('Todoist/Acme.md', `${vault.files.get('Todoist/Acme.md')!}${W1_OPEN}\n`);
+
+		await syncNow('manual');
+
+		expect(sentCommands().map((c) => [c.type, c.args])).toEqual([['item_move', { id: 'w1', project_id: 'acme' }]]);
+		expect(server.item('w1')).toMatchObject({ project_id: 'acme' });
+		expect(vault.links.get('td-w1')).toMatchObject({ noteRelPath: 'Todoist/Acme.md' });
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+	});
+
+	it('creates a renamed heading as a new section, keeps the old link (logged), and moves its tasks next cycle', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		edit('Todoist/Work.md', '## Next', '## Soon');
+
+		await syncNow('manual');
+
+		const [soon] = sectionsNamed('Soon');
+		expect(soon).toMatchObject({ project_id: 'work' });
+		expect(server.section('sn')).toMatchObject({ name: 'Next', is_deleted: false });
+		expect(vault.sections.get('sn')).toMatchObject({ heading: 'Next' });
+		expect(vault.log).toEqual([expect.objectContaining({ kind: 'section-renamed', message: expect.stringContaining('"Next"') })]);
+
+		await syncNow('manual');
+
+		expect(server.item('w3')).toMatchObject({ section_id: soon.id });
+		expect(vault.files.get('Todoist/Work.md')).toBe(`${WORK_NOTE}\n## Soon\n${HIRE}\n`);
+	});
+
+	/** Moves `w1`'s line from the top of the Work note under a new `## Today` heading. */
+	function moveW1UnderToday() {
+		edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
+		addToWork('');
+		addToWork('## Today');
+		addToWork(W1_OPEN);
+	}
+	const TODAY_NOTE = `---\ntodoist_project: work\n---\n${W2_OPEN}\n\n## Today\n${W1_OPEN}\n`;
+
+	it('moves a task whose link has no place yet into the section created for the heading its line sits under', async () => {
+		await syncNow('manual');
+		for (const [anchor, link] of vault.links) {
+			const { location: _, ...local } = JSON.parse(link.localBase!);
+			vault.links.set(anchor, { ...link, localBase: JSON.stringify(local) });
+		}
+		moveW1UnderToday();
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		const [today] = sectionsNamed('Today');
+		expect(server.item('w1')).toMatchObject({ project_id: 'work', section_id: today.id });
+		expect(vault.files.get('Todoist/Work.md')).toBe(TODAY_NOTE);
+		expect(sentCommands().map((c) => c.type)).toEqual(['section_add', 'item_move']);
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+	});
+
+	it('moves a task into the section of its new heading after a rebuild, then a normal cycle', async () => {
+		await syncNow('manual');
+		vault.links.clear();
+		vault.sections.clear();
+		moveW1UnderToday();
+
+		await syncNow('manual');
+		expect(sentCommands()).toEqual([]);
+		await syncNow('manual');
+		await syncNow('manual');
+
+		const [today] = sectionsNamed('Today');
+		expect(server.item('w1')).toMatchObject({ project_id: 'work', section_id: today.id });
+		expect(vault.files.get('Todoist/Work.md')).toBe(TODAY_NOTE);
+		expect(sentCommands().map((c) => c.type)).toEqual(['section_add', 'item_move']);
+		expect((await syncNow('manual')).message).toBe('Todoist sync done: nothing new.');
+	});
+
+	it('logs a refused section_add on a manual cycle only, so automatic retries do not fill the sync log', async () => {
+		await syncNow('manual');
+		addToWork('## Errands');
+		addToWork('- [ ] Buy milk');
+		server.refuseSectionAdds();
+
+		await syncNow('manual');
+		await syncNow('auto');
+		await syncNow('auto');
+
+		expect(sentCommands().filter((c) => c.type === 'section_add')).toHaveLength(3);
+		expect(vault.log.filter((e) => e.kind === 'command-error')).toEqual([expect.objectContaining({ message: expect.stringContaining('"Errands"') })]);
+		expect(vault.sections.size).toBe(0);
+	});
+
+	it('logs a brain-renamed heading only once Todoist creates its section, so refused retries write no rename rows', async () => {
+		seedNextSection();
+		await syncNow('manual');
+		edit('Todoist/Work.md', '## Next', '## Soon');
+		server.refuseSectionAdds();
+
+		await syncNow('manual');
+		await syncNow('auto');
+		await syncNow('auto');
+
+		expect(sentCommands().filter((c) => c.type === 'section_add')).toHaveLength(3);
+		expect(vault.log.map((e) => e.kind)).toEqual(['command-error']);
+	});
+
+	it('counts a new section as a create: an automatic cycle over the cap skips it', async () => {
+		await syncNow('manual');
+		for (let i = 1; i <= 26; i++) addToWork(`## S${i}\n- [ ] T${i} 🆔 td-x${i}`);
+
+		const outcome = await syncNow('auto');
+
+		expect(outcome.skippedCreates).toBe(26);
+		expect(sentCommands()).toEqual([]);
+	});
+});
+
+describe('syncNow: a line moved out of the sync scope', () => {
+	it('detaches a line moved to a note that is no project note and has no #todoist; nothing moves in Todoist', async () => {
+		await syncNow('manual');
+		edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
+		vault.files.set('Notes/Day.md', `${W1_OPEN}\n`);
+
+		await syncNow('manual');
+
+		expect(missCount('td-w1')).toBe(3);
+		expect(detachLog('td-w1')).toEqual([expect.objectContaining({ message: expect.stringContaining('scope') })]);
+		expect(sentCommands()).toEqual([]);
+		expect(server.item('w1')).toMatchObject({ project_id: 'work', section_id: null });
+		expect(vault.files.get('Notes/Day.md')).toBe(`${W1_OPEN}\n`);
+	});
+
+	it('keeps a line moved to another note with #todoist linked, moving nothing either way', async () => {
+		await syncNow('manual');
+		edit('Todoist/Work.md', `${W1_OPEN}\n`, '');
+		vault.files.set('Notes/Day.md', '- [ ] Plan 🔺 #deep #todoist 🆔 td-w1\n');
+		server.updateItem('w1', { project_id: 'acme' });
+
+		await syncNow('manual');
+
+		expect(missCount('td-w1')).toBe(0);
+		expect(sentCommands()).toEqual([]);
+		expect(vault.files.get('Notes/Day.md')).toBe('- [ ] Plan 🔺 #deep #todoist 🆔 td-w1\n');
+		expect(vault.files.get('Todoist/Acme.md')).not.toContain('td-w1');
+		expect(remoteBase('td-w1')).toMatchObject({ projectId: 'acme' });
 	});
 });

@@ -119,7 +119,7 @@ describe('planCreates: scope', () => {
 			anchor: 'td-00000001',
 			todoistId: null,
 			noteRelPath: 'Todoist/Acme.md',
-			localBase: JSON.stringify({ description: 'Call Bob', dueDate: null, priority: null, tags: [], status: ' ' }),
+			localBase: JSON.stringify({ description: 'Call Bob', dueDate: null, priority: null, tags: [], status: ' ', location: { projectId: 'acme', sectionId: null } }),
 			remoteBase: null,
 			pendingUuid: 'uuid-1',
 			pendingCmd: JSON.stringify(create.command),
@@ -136,6 +136,26 @@ describe('planCreates: scope', () => {
 
 		expect(create.command.args).toMatchObject({ content: 'Call Bob', projectId: 'work', labels: [] });
 		expect(create.link.noteRelPath).toBe('Notes/Day.md');
+	});
+
+	it('creates a line under a heading linked to a section in that section, and keeps the place in local_base', () => {
+		const l = line('Call Bob');
+		const sectionOf = (scanned: ScannedLine) => (scanned.lineNumber === 4 ? 'sn' : null);
+
+		const [create] = planCreates(input([l], { sectionOf })).creates;
+
+		expect(create.command.args).toMatchObject({ projectId: 'work', sectionId: 'sn' });
+		expect(JSON.parse(create.link.localBase!).location).toEqual({ projectId: 'work', sectionId: 'sn' });
+		expect(JSON.parse(ackedLink(create.link, create.command, 'i1', EXCLUDED).remoteBase!)).toMatchObject({ projectId: 'work', sectionId: 'sn' });
+	});
+
+	it('creates a #todoist line outside project notes in no section', () => {
+		const l = line('Call Bob #todoist', { relPath: 'Notes/Day.md', fields: fields('Call Bob', { tags: ['todoist'] }) });
+
+		const [create] = planCreates(input([l], { sectionOf: () => 'sn' })).creates;
+
+		expect(create.command.args.sectionId).toBeUndefined();
+		expect(JSON.parse(create.link.localBase!).location).toEqual({ projectId: 'work', sectionId: null });
 	});
 
 	it('creates a line of a brain-born project note with its temp id as project', () => {

@@ -1,7 +1,15 @@
 import { TodoistSyncError, type SyncCommand, type TodoistApi } from '@doist/todoist-sdk';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { call } from '#lib/contracts/ipc.js';
-import type { TaskLineReplace, TodoistSyncLogInput, TodoistTaskLink } from '#lib/contracts/index.js';
+import type {
+	TaskLineEdits,
+	TaskLineInsert,
+	TaskLineRemove,
+	TaskLineReplace,
+	TodoistSectionLink,
+	TodoistSyncLogInput,
+	TodoistTaskLink,
+} from '#lib/contracts/index.js';
 import { syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { renameItem } from '#lib/core/filesystem/fs.service.js';
@@ -48,7 +56,23 @@ import {
 	type PullCounts,
 	type PullItem,
 	type ScannedLine,
+	type ScannedNote,
 } from './pull.logic.js';
+import {
+	noteOutline,
+	outOfScopeAnchors,
+	placeInsert,
+	planMoves,
+	planSections,
+	type LineNote,
+	type PlannedHeadingAppend,
+	type PlannedHeadingRename,
+	type PlannedLineMove,
+	type PlannedMove,
+	type PlannedSectionAdd,
+	type PullSection,
+	type SectionNote,
+} from './sections.logic.js';
 import { isFirstRunDone } from './sync-scheduler.logic.js';
 import { classifyTodoistError, syncErrorMessage, treeProjectIds, type ScopeProject, type TodoistFailure } from './sync-scope.logic.js';
 import { taskLineText } from './task-line.logic.js';
@@ -117,8 +141,8 @@ const CREATE_CAP = 25;
 const COMMANDS_PER_REQUEST = 100;
 
 /**
- * Runs one "Sync now" cycle. The pull: one full `/sync` of projects and
- * items plus, with a stored token, an incremental one for items (the full
+ * Runs one "Sync now" cycle. The pull: one full `/sync` of projects,
+ * sections and items plus, with a stored token, an incremental one (the full
  * one leaves closed items out), a scan of the vault, project notes created
  * and open tasks of the vault's tree inserted as anchored lines
  * (`planPull`). Then deletion (`planDetach`): a link whose task was deleted
@@ -143,8 +167,14 @@ const COMMANDS_PER_REQUEST = 100;
  * frontmatter; a note rename goes out as `project_update`; a Todoist rename
  * renames the note last, through the app's rename path; a project named by
  * two notes is frozen; a deleted project, or one moved out of the tree,
- * detaches its note and its links. A rerun inserts, rewrites and sends
- * nothing.
+ * detaches its note and its links. Sections (`planSections`): a Todoist
+ * section is a `##` heading of its project note, appended when new and
+ * renamed after Todoist; a brain heading with a task line and no section
+ * goes out as `section_add`. Moves (`planMoves`): a task Todoist moved to
+ * another section or project moves its line (insert first, then remove);
+ * a line the brain moved under another heading or into another project
+ * note goes out as `item_move`; a line moved out of sync scope detaches. A
+ * rerun inserts, rewrites and sends nothing.
  *
  * Refuses before the vault index is ready, while sync is off, without a
  * token or root project, with a sync folder that is absolute or climbs out
@@ -153,7 +183,7 @@ const COMMANDS_PER_REQUEST = 100;
  * line brake). Before `first_run_done`, a manual cycle with creates shows
  * their count and creates nothing until confirmed; the first manual cycle
  * in normal mode that commits sets `first_run_done`. Over 10 detaches, 25 close/reopen
- * pushes, 50 field pushes or 25 creates (projects and tasks), a manual cycle
+ * pushes, 50 field pushes (moves included) or 25 creates (projects, sections and tasks), a manual cycle
  * asks before writing anything ("Cancel" stops the run with the state
  * untouched); an automatic one never asks: it runs without that action
  * class, those links left as stored, and reports how many it skipped
@@ -221,19 +251,22 @@ async function cycle(
 ): Promise<PullCounts & { skippedPushes: number; skippedDetaches: number; skippedFieldPushes: number; skippedCreates: number }> {
 	const { apiToken, syncRootProjectId, syncIncludeInbox, defaultLabel, syncContext } = settingsStore.todoist;
 	const client = createTodoistClient(apiToken);
-	const full = await request(() => client.sync({ syncToken: '*', resourceTypes: ['projects', 'items'] }));
+	const full = await request(() => client.sync({ syncToken: '*', resourceTypes: ['projects', 'sections', 'items'] }));
 	if (!treeProjectIds(full.projects ?? [], syncRootProjectId, syncIncludeInbox)) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
 
 	assertVault(vaultRoot);
 	const kv = await call('todoist_read_kv', { vaultPath: vaultRoot });
 	const storedToken = kv.find((e) => e.key === 'sync_token')?.value ?? null;
-	const changes = storedToken === null ? null : await request(() => client.sync({ syncToken: storedToken, resourceTypes: ['items', 'projects'] }));
+	const changes =
+		storedToken === null ? null : await request(() => client.sync({ syncToken: storedToken, resourceTypes: ['items', 'projects', 'sections'] }));
 	// The incremental pull ran last, so its rows are the newest; it also carries the closed items and the archived and deleted projects.
 	const items = new Map<string, PullItem>();
 	for (const item of [...((full.items ?? []) as PullItem[]), ...((changes?.items ?? []) as PullItem[])]) items.set(item.id, item);
 	const projectsById = new Map<string, ScopeProject>();
 	for (const project of [...(full.projects ?? []), ...(changes?.projects ?? [])]) projectsById.set(project.id, project);
 	const projects = [...projectsById.values()];
+	const sectionsById = new Map<string, PullSection>();
+	for (const section of [...(full.sections ?? []), ...(changes?.sections ?? [])]) sectionsById.set(section.id, section);
 	// From the merged rows, as `planPull` builds its tree: a project deleted between the two pulls is out of it.
 	const treeIds = treeProjectIds(projects, syncRootProjectId, syncIncludeInbox);
 	if (!treeIds) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
@@ -242,6 +275,7 @@ async function cycle(
 	assertVault(vaultRoot);
 	const firstRunDone = isFirstRunDone(kv);
 	const storedLinks = await call('todoist_read_links', { vaultPath: vaultRoot });
+	const storedSections = await call('todoist_read_sections', { vaultPath: vaultRoot });
 	const scan = await scanVault(vaultRoot, settingsStore.templates.folder);
 	if (belowLineBrake(storedLinks, scan.occurrences)) throw new SyncStop(LINES_MISSING, { kind: 'lines-missing' });
 	const excludedLabels = excludedLabelSet(defaultLabel);
@@ -277,7 +311,31 @@ async function cycle(
 	});
 	// A project named by two notes is frozen (design rule 10): none of its tasks sync either way.
 	const syncTreeIds = new Set([...treeIds].filter((id) => !projectPlan.frozenProjectIds.has(id)));
-	let detach = planDetach({ links: [...byAnchor(links, plan.updatedLinks).values()], occurrences: scan.occurrences, items, treeIds, projects });
+	assertVault(vaultRoot);
+	const pendingProjectNotes = new Set([...projectPlan.adds, ...projectPlan.resends].map((p) => p.relPath));
+	const lineNotes = await readLineNotes(vaultRoot, scan.notes, syncTreeIds, pendingProjectNotes);
+	const sectionNotes: SectionNote[] = [
+		...[...lineNotes].flatMap(([relPath, n]) => (n.kind === 'project' ? [{ projectId: n.projectId, relPath, outline: n.outline }] : [])),
+		...plan.createNotes.map((n) => ({ projectId: n.projectId, relPath: n.relPath, outline: noteOutline(n.content) })),
+	];
+	const sectionPlan = planSections({
+		sections: [...sectionsById.values()],
+		links: storedSections,
+		notes: sectionNotes,
+		// Rebuild mode only pairs (design rule 1).
+		allowWrites: plan.mode === 'normal',
+		newUuid: () => crypto.randomUUID(),
+		newTempId: () => crypto.randomUUID(),
+	});
+	const linksBeforeDetach = [...byAnchor(links, plan.updatedLinks).values()];
+	let detach = planDetach({
+		links: linksBeforeDetach,
+		occurrences: scan.occurrences,
+		items,
+		treeIds,
+		projects,
+		outOfScope: outOfScopeAnchors(linksBeforeDetach, scan.occurrences, lineNotes),
+	});
 	let skippedDetaches = 0;
 	if (detach.detached.length > DETACH_CAP) {
 		if (mode === 'auto') {
@@ -317,14 +375,31 @@ async function cycle(
 		completion,
 	);
 	completion = fields;
+	// A link with another line change or push this cycle moves in the next one: its place bases are left as stored.
+	const busy = new Set([...fields.lineChanges.map((c) => c.anchor), ...fields.commands.map((c) => c.anchor), ...fields.updates.map((u) => u.anchor)]);
+	const projectNotes = new Map(sectionNotes.map((n) => [n.projectId, n.relPath]));
+	const moves = planMoves({
+		links: [...byAnchor(attached, fields.links).values()],
+		skip: busy,
+		occurrences: scan.occurrences,
+		items,
+		treeIds: syncTreeIds,
+		notes: lineNotes,
+		scannedSections: sectionPlan.scannedSections,
+		targetHeadings: sectionPlan.targetHeadings,
+		projectNotes,
+		newUuid: () => crypto.randomUUID(),
+	});
 	let updates = fields.updates;
+	let movePushes = moves.pushes;
 	let skippedFieldPushes = 0;
-	if (updates.length > FIELD_PUSH_CAP) {
+	if (updates.length + movePushes.length > FIELD_PUSH_CAP) {
 		if (mode === 'auto') {
 			// Their bases move only on `ok`, so the next cycle plans the same pushes.
-			skippedFieldPushes = updates.length;
+			skippedFieldPushes = updates.length + movePushes.length;
 			updates = [];
-		} else if (!(await confirmFieldPushes(updates.length))) {
+			movePushes = [];
+		} else if (!(await confirmFieldPushes(updates.length + movePushes.length))) {
 			throw new SyncStop(CANCELLED, { kind: 'error' });
 		}
 	}
@@ -345,17 +420,24 @@ async function cycle(
 					takenAnchors: new Set([...scan.occurrences.keys(), ...current.keys(), ...plan.inserts.flatMap((i) => i.links.map((l) => l.anchor))]),
 					newUuid: () => crypto.randomUUID(),
 					newAnchor: (taken) => generateAnchor(taken),
+					sectionOf: (line) => {
+						const note = lineNotes.get(line.relPath);
+						const heading = note?.kind === 'project' ? note.outline.lineHeadings.get(line.lineNumber) : null;
+						return note?.kind === 'project' && heading ? (sectionPlan.scannedSections.get(note.projectId)?.get(heading) ?? null) : null;
+					},
 				});
 	let skippedCreates = 0;
 	let projectAdds = projectPlan.adds;
-	const newCreates = creates.creates.length + projectAdds.length;
+	let sectionAdds = sectionPlan.adds;
+	const newCreates = creates.creates.length + projectAdds.length + sectionAdds.length;
 	if (newCreates > 0 && (!firstRunDone || newCreates > CREATE_CAP)) {
-		const what = createCounts(projectAdds.length, creates.creates.length);
+		const what = createCounts(projectAdds.length, sectionAdds.length, creates.creates.length);
 		// An automatic cycle never runs before the first run (the scheduler), and never asks.
 		if (mode === 'auto') {
 			skippedCreates = newCreates;
 			creates = { ...creates, creates: [] };
 			projectAdds = [];
+			sectionAdds = [];
 		} else if (!(await (firstRunDone ? confirmCreates(what) : confirmFirstRun(what)))) {
 			throw new SyncStop(CANCELLED, { kind: 'error' });
 		}
@@ -371,6 +453,7 @@ async function cycle(
 		...projectPlan.log,
 		...detach.log,
 		...completion.log,
+		...moves.log,
 		...(mode === 'manual' ? creates.log : []),
 	];
 	for (const note of plan.createNotes) {
@@ -378,12 +461,17 @@ async function cycle(
 		await createNoteFile(vaultRoot, `${vaultRoot}/${note.relPath}`, note.content);
 	}
 	const batches = new Map<string, NoteBatch>();
-	const batch = (relPath: string) =>
-		batches.get(relPath) ?? batches.set(relPath, { inserts: [], insertLinks: [], changes: [], creates: [] }).get(relPath)!;
+	const batch = (relPath: string) => batches.get(relPath) ?? batches.set(relPath, emptyBatch()).get(relPath)!;
+	for (const append of sectionPlan.appends) batch(append.relPath).appends.push(append);
+	for (const rename of sectionPlan.renames) batch(rename.relPath).renames.push(rename);
 	for (const insert of plan.inserts) {
-		batch(insert.relPath).inserts.push(...insert.lines);
-		batch(insert.relPath).insertLinks.push(...insert.links);
+		insert.lines.forEach((line, i) => {
+			const placed = placeInsert(line, insert.links[i], sectionPlan.targetHeadings);
+			batch(insert.relPath).inserts.push(placed.insert);
+			batch(insert.relPath).insertLinks.push(placed.link);
+		});
 	}
+	for (const move of moves.lineMoves) batch(move.to).moveIns.push(move);
 	const changedAnchors = new Set(completion.lineChanges.map((c) => c.anchor));
 	const completionLinks = byAnchor([], completion.links);
 	for (const change of completion.lineChanges) {
@@ -400,8 +488,10 @@ async function cycle(
 			...plan.pairedLinks,
 			...detach.links,
 			...completion.links.filter((l) => !changedAnchors.has(l.anchor)),
+			...moves.links,
 		],
 	);
+	const sectionCommit = [...sectionPlan.paired, ...written.sections];
 	// A create's pending link is among them: it is stored with its anchor before the `item_add` goes out (design rule 2).
 	for (const link of written.links) commit.set(link.anchor, link);
 	const kvCommit = [
@@ -416,7 +506,7 @@ async function cycle(
 	assertVault(vaultRoot);
 	await call('todoist_commit_state', {
 		vaultPath: vaultRoot,
-		commit: { kv: kvCommit, upsertLinks: [...commit.values()], deleteAnchors: [] },
+		commit: { kv: kvCommit, upsertLinks: [...commit.values()], deleteAnchors: [], ...(sectionCommit.length > 0 ? { upsertSections: sectionCommit } : {}) },
 	});
 	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
 
@@ -438,6 +528,8 @@ async function cycle(
 		adds.length > 0 || projectCommands.length > 0
 			? await pushCreates(client, vaultRoot, projectCommands, adds, excludedLabels, projectState)
 			: { todoistCreated: 0, projectsCreated: 0 };
+	const sectionsCreated = sectionAdds.length > 0 ? await pushSections(client, vaultRoot, sectionAdds, mode === 'manual') : 0;
+	if (movePushes.length > 0) todoistUpdated += await pushFields(client, vaultRoot, movePushes, 'item_move');
 	// Renames go last: every line write of this cycle used the note paths of the scan.
 	let projectsRenamed = projectPlan.updates.length > 0 ? await pushProjectUpdates(client, vaultRoot, projectPlan.updates, projectState) : 0;
 	projectsRenamed += await renameProjectNotes(vaultRoot, projectPlan.renames, projectState);
@@ -452,9 +544,11 @@ async function cycle(
 		linksPaired: plan.pairedLinks.length,
 		linesUnmatched: plan.linesUnmatched,
 		linesUpdated,
+		headingsWritten: written.headingsWritten,
 		todoistUpdated,
 		todoistCreated: pushed.todoistCreated,
 		projectsCreated: pushed.projectsCreated,
+		sectionsCreated,
 		projectsRenamed,
 		skippedPushes,
 		skippedDetaches,
@@ -502,7 +596,7 @@ async function pushCompletions(
 				direct.push(ack.link);
 				continue;
 			}
-			const b = batches.get(line.relPath) ?? { inserts: [], insertLinks: [], changes: [], creates: [] };
+			const b = batches.get(line.relPath) ?? emptyBatch();
 			b.changes.push({ change: ack.lineChange, link: ack.link, fallback: ack.staleLink });
 			batches.set(line.relPath, b);
 		} else if (isTerminal(status)) {
@@ -523,16 +617,22 @@ async function pushCompletions(
 }
 
 /**
- * Sends the field pushes as `item_update` commands and stores each link's
- * bases by its answer: `ok` moves both to the pushed values, so the echo in
- * the next pull is no remote change; a terminal 4xx moves only `local_base`
- * to the line (not retried) and is logged; any other failure stores nothing,
- * so the next cycle plans the push again. Returns how many Todoist accepted.
+ * Sends the field pushes as `item_update` commands (or the moves as
+ * `item_move`) and stores each link's bases by its answer: `ok` moves both
+ * to the pushed values, so the echo in the next pull is no remote change; a
+ * terminal 4xx moves only `local_base` to the line (not retried) and is
+ * logged; any other failure stores nothing, so the next cycle plans the
+ * push again. Returns how many Todoist accepted.
  */
-async function pushFields(client: TodoistApi, vaultRoot: string, updates: PlannedUpdate[]): Promise<number> {
+async function pushFields(
+	client: TodoistApi,
+	vaultRoot: string,
+	updates: (PlannedUpdate | PlannedMove)[],
+	type: 'item_update' | 'item_move' = 'item_update',
+): Promise<number> {
 	const { statuses } = await sendCommands(
 		client,
-		updates.map((u) => ({ type: 'item_update', uuid: u.uuid, args: { ...u.args } })),
+		updates.map((u) => ({ type, uuid: u.uuid, args: { ...u.args } })),
 	);
 	const log: TodoistSyncLogInput[] = [];
 	const links: TodoistTaskLink[] = [];
@@ -544,9 +644,9 @@ async function pushFields(client: TodoistApi, vaultRoot: string, updates: Planne
 			links.push(update.okLink);
 		} else if (isTerminal(status)) {
 			links.push(update.refusedLink);
-			log.push({ kind: 'command-error', anchor: update.anchor, message: `Todoist refused item_update: ${JSON.stringify(status)}` });
+			log.push({ kind: 'command-error', anchor: update.anchor, message: `Todoist refused ${type}: ${JSON.stringify(status)}` });
 		} else if (status !== undefined) {
-			error('TODOIST', `item_update for ${update.anchor} failed; it is planned again next cycle:`, status);
+			error('TODOIST', `${type} for ${update.anchor} failed; it is planned again next cycle:`, status);
 		}
 	}
 	assertVault(vaultRoot);
@@ -642,6 +742,71 @@ async function pushCreates(
 	});
 	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
 	return { todoistCreated: created, projectsCreated };
+}
+
+/**
+ * Sends the brain's new `##` headings as `section_add` commands. `ok` stores
+ * the section link and writes the add's brain-rename row, if any; a
+ * terminal 4xx is logged (on a manual cycle only: the
+ * heading is planned again every cycle, so automatic ones would fill the
+ * capped sync log); any other failure stores nothing. Neither needs a
+ * pending state: the next cycle pairs a section whose response was lost
+ * with its heading by name, and plans the rest again. Returns how many
+ * Todoist created.
+ */
+async function pushSections(client: TodoistApi, vaultRoot: string, adds: PlannedSectionAdd[], logRefusals: boolean): Promise<number> {
+	const { statuses, tempIds } = await sendCommands(
+		client,
+		adds.map((a) => ({ type: 'section_add' as const, uuid: a.uuid, tempId: a.tempId, args: { projectId: a.projectId, name: a.heading } })),
+	);
+	const sections: TodoistSectionLink[] = [];
+	const log: TodoistSyncLogInput[] = [];
+	for (const add of adds) {
+		const status = statuses[add.uuid];
+		const id = tempIds[add.tempId];
+		if (status === 'ok' && id !== undefined) {
+			sections.push({ todoistSectionId: id, projectId: add.projectId, heading: add.heading });
+			if (add.renamed) log.push(add.renamed);
+		} else if (isTerminal(status)) {
+			if (logRefusals) log.push({ kind: 'command-error', anchor: null, message: `Todoist refused section_add for ${JSON.stringify(add.heading)} in ${add.relPath}: ${JSON.stringify(status)}` });
+		} else if (status !== undefined) {
+			error('TODOIST', `section_add for ${add.relPath} ${JSON.stringify(add.heading)} failed; it is planned again next cycle:`, status);
+		}
+	}
+	assertVault(vaultRoot);
+	if (sections.length > 0) {
+		await call('todoist_commit_state', { vaultPath: vaultRoot, commit: { kv: [], upsertLinks: [], deleteAnchors: [], upsertSections: sections } });
+	}
+	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
+	return sections.length;
+}
+
+/**
+ * What each indexed note is to an anchored line: the one note of a tree
+ * project (not frozen) is a project note, read for its outline; a note
+ * with no `todoist_project` is another note, unless it is about to become a
+ * project. Any other note (a second note of a project, one of a project
+ * outside the tree) is left out: its lines neither move nor detach.
+ */
+async function readLineNotes(
+	vaultRoot: string,
+	notes: ScannedNote[],
+	treeIds: ReadonlySet<string>,
+	pendingProjectNotes: ReadonlySet<string>,
+): Promise<Map<string, LineNote>> {
+	const count = new Map<string, number>();
+	for (const note of notes) if (note.projectId !== null) count.set(note.projectId, (count.get(note.projectId) ?? 0) + 1);
+	const out = new Map<string, LineNote>();
+	for (const note of notes) {
+		if (note.projectId === null) {
+			if (!pendingProjectNotes.has(note.relPath)) out.set(note.relPath, { kind: 'other' });
+			continue;
+		}
+		if (!treeIds.has(note.projectId) || count.get(note.projectId) !== 1) continue;
+		assertVault(vaultRoot);
+		out.set(note.relPath, { kind: 'project', projectId: note.projectId, outline: noteOutline(await readNoteContent(vaultRoot, note.relPath)) });
+	}
+	return out;
 }
 
 /**
@@ -780,15 +945,25 @@ async function sendCommands(
 
 /**
  * What one note gets in a cycle: inserted lines with their links, line
- * patches with the link each one stores, and the brain-born lines that get
- * their first anchor (their pending link is stored only when it is written).
+ * patches with the link each one stores, the brain-born lines that get
+ * their first anchor (their pending link is stored only when it is written),
+ * the headings written for sections, and the lines moved into it.
  */
 interface NoteBatch {
-	inserts: string[];
+	inserts: TaskLineInsert[];
 	insertLinks: TodoistTaskLink[];
 	/** `fallback` is stored instead of `link` when the patch cannot be applied; null stores nothing. */
 	changes: { change: LineChange; link: TodoistTaskLink; fallback: TodoistTaskLink | null }[];
 	creates: PlannedCreate[];
+	/** Appended at the end of the note before every insert. */
+	appends: PlannedHeadingAppend[];
+	renames: PlannedHeadingRename[];
+	/** A line from this note is removed in the same batch; one from another note is removed there after this note is written. */
+	moveIns: PlannedLineMove[];
+}
+
+function emptyBatch(): NoteBatch {
+	return { inserts: [], insertLinks: [], changes: [], creates: [], appends: [], renames: [], moveIns: [] };
 }
 
 /**
@@ -796,14 +971,35 @@ interface NoteBatch {
  * note. A patch whose line was edited since the scan, or a note that went
  * stale, keeps its links out (or stores their fallbacks) and is logged. A
  * create whose line changed since the scan is left to the next cycle,
- * logged; `created` lists the creates whose anchor was written.
+ * logged; `created` lists the creates whose anchor was written. A line moved
+ * to another note is removed from its note only once the target note took
+ * it (design Sections: insert first, then remove); a removal that fails
+ * leaves the line in both notes, which freezes the link next cycle.
+ * `sections` lists the links of the headings written.
  */
 async function writeBatches(
 	vaultRoot: string,
 	batches: Map<string, NoteBatch>,
 	log: TodoistSyncLogInput[],
-): Promise<{ links: TodoistTaskLink[]; created: PlannedCreate[]; tasksInserted: number; linesUpdated: number; anyStale: boolean }> {
-	const out = { links: [] as TodoistTaskLink[], created: [] as PlannedCreate[], tasksInserted: 0, linesUpdated: 0, anyStale: false };
+): Promise<{
+	links: TodoistTaskLink[];
+	created: PlannedCreate[];
+	sections: TodoistSectionLink[];
+	tasksInserted: number;
+	linesUpdated: number;
+	headingsWritten: number;
+	anyStale: boolean;
+}> {
+	const out = {
+		links: [] as TodoistTaskLink[],
+		created: [] as PlannedCreate[],
+		sections: [] as TodoistSectionLink[],
+		tasksInserted: 0,
+		linesUpdated: 0,
+		headingsWritten: 0,
+		anyStale: false,
+	};
+	const removals = new Map<string, TaskLineRemove[]>();
 	const fallBack = (changes: NoteBatch['changes']) => {
 		for (const c of changes) if (c.fallback) out.links.push(c.fallback);
 	};
@@ -837,13 +1033,19 @@ async function writeBatches(
 				if (newLine !== hits[0]) replace.push({ anchor: c.change.anchor, expectedLine: hits[0], newLine });
 			}
 		}
-		if (note.inserts.length > 0 || replace.length > 0) {
+		const edits: TaskLineEdits = {
+			replace,
+			remove: note.moveIns.filter((m) => m.from === relPath).map((m) => ({ anchor: m.anchor, expectedLine: m.line })),
+			insert: [
+				...note.appends.map((a): TaskLineInsert => ({ afterHeading: null, lines: ['', `## ${a.link.heading}`] })),
+				...note.inserts,
+				...note.moveIns.map((m): TaskLineInsert => (m.heading === null ? { afterHeading: null, beforeSections: true, lines: [m.line] } : { afterHeading: m.heading, lines: [m.line] })),
+			],
+			...(note.renames.length > 0 ? { renameHeadings: note.renames.map((r) => ({ from: r.from, to: r.link.heading })) } : {}),
+		};
+		if (edits.insert.length > 0 || replace.length > 0 || note.renames.length > 0) {
 			assertVault(vaultRoot);
-			const result = await writeTaskLinesToNote(vaultRoot, relPath, {
-				replace,
-				remove: [],
-				insert: note.inserts.length > 0 ? [{ afterHeading: null, lines: note.inserts }] : [],
-			});
+			const result = await writeTaskLinesToNote(vaultRoot, relPath, edits);
 			if (result.kind === 'stale') {
 				out.anyStale = true;
 				log.push({ kind: 'stale', anchor: null, message: `${relPath}: ${result.stale.reason} ${result.stale.subject}` });
@@ -851,10 +1053,27 @@ async function writeBatches(
 				continue;
 			}
 		}
-		out.links.push(...note.insertLinks, ...applied.map((c) => c.link), ...anchored.map((c) => c.link));
+		out.links.push(...note.insertLinks, ...applied.map((c) => c.link), ...anchored.map((c) => c.link), ...note.moveIns.map((m) => m.link));
 		out.created.push(...anchored);
+		out.sections.push(...note.appends.map((a) => a.link), ...note.renames.map((r) => r.link));
 		out.tasksInserted += note.inserts.length;
-		out.linesUpdated += replace.length - anchored.length;
+		out.linesUpdated += replace.length - anchored.length + note.moveIns.length;
+		out.headingsWritten += note.appends.length + note.renames.length;
+		for (const move of note.moveIns) {
+			if (move.from !== relPath) removals.set(move.from, [...(removals.get(move.from) ?? []), { anchor: move.anchor, expectedLine: move.line }]);
+		}
+	}
+	for (const [relPath, remove] of removals) {
+		assertVault(vaultRoot);
+		const result = await writeTaskLinesToNote(vaultRoot, relPath, { replace: [], insert: [], remove });
+		if (result.kind === 'stale') {
+			out.anyStale = true;
+			log.push({
+				kind: 'stale',
+				anchor: null,
+				message: `${relPath}: a line moved to another note was not removed here (${result.stale.reason} ${result.stale.subject}); it is in both notes and its link freezes`,
+			});
+		}
 	}
 	return out;
 }
@@ -889,11 +1108,11 @@ async function confirmDetaches(count: number): Promise<boolean> {
 	);
 }
 
-/** What a cycle would create, e.g. `1 project and 3 tasks`. */
-function createCounts(projects: number, tasks: number): string {
+/** What a cycle would create, e.g. `1 project, 2 sections and 3 tasks`. */
+function createCounts(projects: number, sections: number, tasks: number): string {
 	const count = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
-	if (projects === 0) return count(tasks, 'task');
-	return tasks === 0 ? count(projects, 'project') : `${count(projects, 'project')} and ${count(tasks, 'task')}`;
+	const parts = [count(projects, 'project'), count(sections, 'section'), count(tasks, 'task')].filter((p) => !p.startsWith('0 '));
+	return parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1)}` : (parts[0] ?? count(0, 'task'));
 }
 
 /** The first-run preview of design rule 9: nothing is created before the user confirms the count. */

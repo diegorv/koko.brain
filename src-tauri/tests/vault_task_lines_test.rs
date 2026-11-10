@@ -5,8 +5,8 @@
 use kokobrain_lib::commands::vault::{collect_v2_entries, write_task_lines_inner};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::task_lines::{
-	apply_task_line_edits, TaskLineEditOutcome, TaskLineEdits, TaskLineInsert, TaskLineRemove,
-	TaskLineReplace, TaskLinesOutcome, TaskLinesStale, TaskLinesStaleReason,
+	apply_task_line_edits, TaskHeadingRename, TaskLineEditOutcome, TaskLineEdits, TaskLineInsert,
+	TaskLineRemove, TaskLineReplace, TaskLinesOutcome, TaskLinesStale, TaskLinesStaleReason,
 };
 use serde_json::{json, to_value};
 
@@ -39,7 +39,23 @@ fn remove(anchor: &str, expected: &str) -> TaskLineRemove {
 fn insert(after_heading: Option<&str>, lines: &[&str]) -> TaskLineInsert {
 	TaskLineInsert {
 		after_heading: after_heading.map(String::from),
+		before_sections: None,
 		lines: lines.iter().map(|l| l.to_string()).collect(),
+	}
+}
+
+/// Inserts `lines` above the note's first `##` heading.
+fn insert_top(lines: &[&str]) -> TaskLineInsert {
+	TaskLineInsert {
+		before_sections: Some(true),
+		..insert(None, lines)
+	}
+}
+
+fn rename(from: &str, to: &str) -> TaskHeadingRename {
+	TaskHeadingRename {
+		from: from.into(),
+		to: to.into(),
 	}
 }
 
@@ -52,6 +68,14 @@ fn edits(
 		replace,
 		insert,
 		remove,
+		rename_headings: None,
+	}
+}
+
+fn with_renames(e: TaskLineEdits, renames: Vec<TaskHeadingRename>) -> TaskLineEdits {
+	TaskLineEdits {
+		rename_headings: Some(renames),
+		..e
 	}
 }
 
@@ -305,6 +329,14 @@ fn insert_after_a_heading_that_appears_twice_is_stale() {
 }
 
 #[test]
+fn insert_after_a_heading_matches_only_a_level_two_heading() {
+	let e = edits(vec![], vec![insert(Some("Work"), &["- [ ] t 🆔 td-c"])], vec![]);
+
+	assert_eq!(applied("# Work\n### Work\n## Work\n", &e), "# Work\n### Work\n## Work\n- [ ] t 🆔 td-c\n");
+	assert_eq!(stale("# Work\n### Work\n", &e).reason, TaskLinesStaleReason::HeadingMissing);
+}
+
+#[test]
 fn insert_of_an_anchor_already_in_the_file_is_refused() {
 	let content = format!("{}\n", A);
 	let s = stale(&content, &edits(vec![], vec![insert(None, &["- [ ] again 🆔 td-a"])], vec![]));
@@ -331,6 +363,78 @@ fn lines_without_an_anchor_can_be_inserted() {
 	let e = edits(vec![], vec![insert(None, &["", "## Work", "- [ ] t 🆔 td-c"])], vec![]);
 
 	assert_eq!(applied("# P\n", &e), "# P\n\n## Work\n- [ ] t 🆔 td-c\n");
+}
+
+// --- pure: insert before the sections ------------------------------------------
+
+const N: &str = "- [ ] New 🆔 td-c";
+
+#[test]
+fn a_before_sections_insert_goes_after_the_last_non_blank_line_above_the_first_section() {
+	let content = "---\nx: 1\n---\n- [ ] top\n\n## Work\n- [ ] w\n";
+
+	assert_eq!(
+		applied(content, &edits(vec![], vec![insert_top(&[N])], vec![])),
+		format!("---\nx: 1\n---\n- [ ] top\n{N}\n\n## Work\n- [ ] w\n")
+	);
+}
+
+#[test]
+fn a_before_sections_insert_goes_below_the_frontmatter_or_first_when_nothing_is_above() {
+	let e = edits(vec![], vec![insert_top(&[N])], vec![]);
+
+	assert_eq!(applied("---\nx: 1\n---\n## Work\n", &e), format!("---\nx: 1\n---\n{N}\n## Work\n"));
+	assert_eq!(applied("## Work\n- w\n", &e), format!("{N}\n## Work\n- w\n"));
+}
+
+#[test]
+fn a_before_sections_insert_goes_to_the_end_without_a_level_two_heading() {
+	let e = edits(vec![], vec![insert_top(&[N])], vec![]);
+
+	assert_eq!(applied("# P\n### Sub\n- s\n", &e), format!("# P\n### Sub\n- s\n{N}\n"));
+	assert_eq!(applied("```\n## Work\n```\n", &e), format!("```\n## Work\n```\n{N}\n"));
+}
+
+#[test]
+fn a_before_sections_insert_that_also_names_a_heading_is_an_error() {
+	let mut top = insert_top(&[N]);
+	top.after_heading = Some("Work".into());
+
+	assert!(apply_task_line_edits("## Work\n", &edits(vec![], vec![top], vec![])).is_err());
+}
+
+// --- pure: rename headings ------------------------------------------------------
+
+#[test]
+fn a_rename_keeps_the_hash_run_and_runs_before_the_other_edits() {
+	let e = with_renames(edits(vec![], vec![insert(Some("Job"), &[N])], vec![]), vec![rename("Work", "Job")]);
+
+	assert_eq!(applied("##   Work  \n- [ ] a\n### Sub\n", &e), format!("## Job\n- [ ] a\n{N}\n### Sub\n"));
+}
+
+#[test]
+fn a_rename_of_a_missing_or_doubled_heading_or_on_a_crlf_note_is_stale() {
+	let e = with_renames(edits(vec![], vec![], vec![]), vec![rename("Work", "Job")]);
+
+	assert_eq!(stale("## Home\n", &e).reason, TaskLinesStaleReason::HeadingMissing);
+	assert_eq!(stale("## Work\n## Work\n", &e).reason, TaskLinesStaleReason::HeadingDuplicated);
+	assert_eq!(stale("## Work\r\n", &e).reason, TaskLinesStaleReason::CrlfLineEndings);
+}
+
+#[test]
+fn a_rename_matches_only_a_level_two_heading() {
+	let e = with_renames(edits(vec![], vec![], vec![]), vec![rename("Work", "Job")]);
+
+	assert_eq!(applied("# Work\n## Work\n### Work\n", &e), "# Work\n## Job\n### Work\n");
+	assert_eq!(stale("### Work\n", &e).reason, TaskLinesStaleReason::HeadingMissing);
+}
+
+#[test]
+fn a_rename_to_an_empty_text_or_one_with_a_line_break_is_an_error() {
+	for to in ["", "  ", "a\nb"] {
+		let e = with_renames(edits(vec![], vec![], vec![]), vec![rename("Work", to)]);
+		assert!(apply_task_line_edits("## Work\n", &e).is_err(), "{to:?}");
+	}
 }
 
 // --- pure: invalid batches -----------------------------------------------------
@@ -371,7 +475,19 @@ fn edits_deserialize_from_the_camel_case_ts_shape() {
 	assert_eq!(e.replace[0].new_line, "y");
 	assert_eq!(e.replace[0].line_number, None);
 	assert_eq!(e.insert[0].after_heading, None);
+	assert_eq!(e.insert[0].before_sections, None);
 	assert_eq!(e.remove[0].expected_line, "w");
+	assert_eq!(e.rename_headings, None);
+
+	let e: TaskLineEdits = serde_json::from_value(json!({
+		"replace": [],
+		"insert": [{ "afterHeading": null, "beforeSections": true, "lines": ["z"] }],
+		"remove": [],
+		"renameHeadings": [{ "from": "A", "to": "B" }],
+	}))
+	.unwrap();
+	assert_eq!(e.insert[0].before_sections, Some(true));
+	assert_eq!(e.rename_headings, Some(vec![rename("A", "B")]));
 }
 
 #[test]

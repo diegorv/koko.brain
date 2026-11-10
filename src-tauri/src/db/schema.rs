@@ -81,6 +81,14 @@ pub fn create_tables(conn: &Connection) -> Result<(), String> {
 		CREATE INDEX IF NOT EXISTS idx_todoist_task_link_todoist_id
 			ON todoist_task_link(todoist_id);
 
+		-- Todoist sync: one row per Todoist section, tied to the ## heading text
+		-- of its project note.
+		CREATE TABLE IF NOT EXISTS todoist_section_link (
+			todoist_section_id TEXT PRIMARY KEY,
+			project_id         TEXT NOT NULL,
+			heading            TEXT NOT NULL
+		);
+
 		-- Todoist sync: bounded event log (newest rows kept, see todoist_repo)
 		CREATE TABLE IF NOT EXISTS todoist_sync_log (
 			id         INTEGER PRIMARY KEY AUTOINCREMENT,

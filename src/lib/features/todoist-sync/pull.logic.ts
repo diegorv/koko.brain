@@ -85,6 +85,21 @@ export interface LocalBase {
 	 * inserted from raw Todoist content.
 	 */
 	unpushedDescription?: string;
+	/**
+	 * Where the line put the task when last written or seen: the project of
+	 * its note and the section of its `##` heading. Absent until a cycle
+	 * places it (links made before sections synced, rebuilt links); then the
+	 * line is moved to Todoist's place, or the base just set when they agree.
+	 */
+	location?: TaskPlace;
+}
+
+/** Where a task is in Todoist: its project and its section, null for none. */
+export interface TaskPlace {
+	/** Project id. */
+	projectId: string;
+	/** Section id, or null. */
+	sectionId: string | null;
 }
 
 /** `remote_base` JSON: the raw Todoist values last seen. */
@@ -199,14 +214,18 @@ export interface PullCounts {
 	linksPaired: number;
 	/** Rebuild only: anchored lines left unmatched (`PullPlan.linesUnmatched`). */
 	linesUnmatched: number;
-	/** Synced lines patched from Todoist (status, recurring `📅`). */
+	/** Synced lines patched or moved from Todoist (status, recurring `📅`, section or project). */
 	linesUpdated: number;
+	/** `##` headings written for Todoist sections: appended for a new section, renamed after a section rename. */
+	headingsWritten: number;
 	/** Close, reopen and field update commands Todoist acknowledged. */
 	todoistUpdated: number;
 	/** Brain-born tasks Todoist created (`item_add` acknowledged). */
 	todoistCreated: number;
 	/** Brain-born projects Todoist created (`project_add` acknowledged, note id written). */
 	projectsCreated: number;
+	/** Brain-born `##` headings Todoist created as sections (`section_add` acknowledged). */
+	sectionsCreated: number;
 	/** Project renames carried over: notes renamed after Todoist, Todoist projects after notes. */
 	projectsRenamed: number;
 }
@@ -604,9 +623,11 @@ export function formatPullResult(counts: PullCounts): string {
 		counts.tasksInserted > 0 ? `${plural(counts.tasksInserted, 'task')} added` : '',
 		counts.linksPaired > 0 ? `${plural(counts.linksPaired, 'link')} paired` : '',
 		counts.linesUpdated > 0 ? `${plural(counts.linesUpdated, 'line')} updated` : '',
+		counts.headingsWritten > 0 ? `${plural(counts.headingsWritten, 'heading')} written` : '',
 		counts.todoistUpdated > 0 ? `${plural(counts.todoistUpdated, 'task')} updated in Todoist` : '',
 		counts.todoistCreated > 0 ? `${plural(counts.todoistCreated, 'task')} created in Todoist` : '',
 		counts.projectsCreated > 0 ? `${plural(counts.projectsCreated, 'project')} created in Todoist` : '',
+		counts.sectionsCreated > 0 ? `${plural(counts.sectionsCreated, 'section')} created in Todoist` : '',
 		counts.projectsRenamed > 0 ? `${plural(counts.projectsRenamed, 'project')} renamed` : '',
 	].filter((p) => p !== '');
 	return `Todoist sync done: ${parts.length > 0 ? parts.join(', ') : 'nothing new'}.`;

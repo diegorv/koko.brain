@@ -528,6 +528,7 @@ const HANDLERS: Handlers = {
 	// Todoist sync state
 	todoist_read_kv: handleTodoistReadEmpty,
 	todoist_read_links: handleTodoistReadEmpty,
+	todoist_read_sections: handleTodoistReadEmpty,
 	todoist_commit_state: handleTodoistWriteNoop,
 	todoist_append_log: handleTodoistWriteNoop,
 	todoist_read_log: handleTodoistReadEmpty,

@@ -23,7 +23,8 @@ export type TaskLineEditOutcome =
 const HEADING_RE = /^(#{1,6})\s+([^\n]*)$/u;
 
 /**
- * Applies `edits` to `content`. Any edit on a CRLF note is stale. A line
+ * Applies `edits` to `content`. Heading renames run first, keeping the `#`
+ * run. Any edit on a CRLF note is stale. A line
  * carries an anchor when any of its `🆔` values equals it; two edits that
  * locate the same line are stale as `anchorDuplicated`. Anchors inside code
  * fences count too: being stale is the safe side.
@@ -31,16 +32,28 @@ const HEADING_RE = /^(#{1,6})\s+([^\n]*)$/u;
  * A replacement with `lineNumber` writes a line's first anchor: that line
  * must still equal `expectedLine`, and no line may carry the anchor yet.
  *
+ * An insert with `beforeSections` goes after the last non-blank line above
+ * the first `##` heading (the note's end without one).
+ *
  * Throws on a batch the caller built wrong: a new or inserted line with a
  * line break, an anchor named by two replacements or removals, the same
- * anchor in two inserted lines, or a line-number replacement whose new line
- * does not carry its anchor.
+ * anchor in two inserted lines, a line-number replacement whose new line
+ * does not carry its anchor, an insert both before the sections and after a
+ * heading, or a heading renamed to an empty text or one with a line break.
  */
 export function applyTaskLineEdits(content: string, edits: TaskLineEdits): TaskLineEditOutcome {
 	validate(edits);
-	const isEmpty = edits.replace.length === 0 && edits.insert.length === 0 && edits.remove.length === 0;
+	const renames = edits.renameHeadings ?? [];
+	const isEmpty = edits.replace.length === 0 && edits.insert.length === 0 && edits.remove.length === 0 && renames.length === 0;
 	if (!isEmpty && content.includes('\r\n')) return staleOutcome('crlfLineEndings', '');
 	const lines = content.split('\n');
+
+	for (const rename of renames) {
+		const at = uniqueHeading(headingIndexes(lines), rename.from);
+		if (typeof at !== 'number') return { kind: 'stale', stale: at };
+		const hashes = /^#*/u.exec(lines[at])![0];
+		lines[at] = `${hashes} ${rename.to}`;
+	}
 
 	// Locate every replacement and removal before changing anything.
 	const replaced: [number, string][] = [];
@@ -67,7 +80,7 @@ export function applyTaskLineEdits(content: string, edits: TaskLineEdits): TaskL
 	for (const insert of edits.insert) {
 		let at: number;
 		if (insert.afterHeading === null) {
-			at = afterLastNonBlank(lines, 0, lines.length) ?? 0;
+			at = insert.beforeSections === true ? beforeSections(lines) : (afterLastNonBlank(lines, 0, lines.length) ?? 0);
 		} else {
 			const end = sectionEnd(lines, insert.afterHeading);
 			if (typeof end !== 'number') return { kind: 'stale', stale: end };
@@ -97,6 +110,13 @@ function validate(edits: TaskLineEdits): void {
 		if (inserted.has(anchor)) throw new Error(`Anchor ${anchor} is inserted twice`);
 		inserted.add(anchor);
 	}
+	const both = edits.insert.find((i) => i.beforeSections === true && i.afterHeading !== null);
+	if (both) throw new Error(`An insert goes both before the sections and after heading ${JSON.stringify(both.afterHeading)}`);
+	for (const rename of edits.renameHeadings ?? []) {
+		if (rename.to.trim() === '' || /[\n\r]/u.test(rename.to)) {
+			throw new Error(`Heading ${JSON.stringify(rename.from)} may not be renamed to ${JSON.stringify(rename.to)}`);
+		}
+	}
 }
 
 /** The index of the one line carrying `anchor`, if it equals `expected`. */
@@ -122,12 +142,29 @@ function locateUnanchored(lines: readonly string[], lineNumber: number, anchor: 
  */
 function sectionEnd(lines: readonly string[], heading: string): number | TaskLinesStale {
 	const headings = headingIndexes(lines);
-	const matches = headings.filter(([, text]) => text === heading);
-	if (matches.length === 0) return stale('headingMissing', heading);
-	if (matches.length > 1) return stale('headingDuplicated', heading);
-	const at = matches[0][0];
+	const at = uniqueHeading(headings, heading);
+	if (typeof at !== 'number') return at;
 	const end = headings.find(([i]) => i > at)?.[0] ?? lines.length;
 	return afterLastNonBlank(lines, at + 1, end) ?? at + 1;
+}
+
+/** The index of the one `##` heading whose text is `heading` (a section heading; other levels are not sections). */
+function uniqueHeading(headings: readonly [number, number, string][], heading: string): number | TaskLinesStale {
+	const matches = headings.filter(([, level, text]) => level === 2 && text === heading);
+	if (matches.length === 0) return stale('headingMissing', heading);
+	if (matches.length > 1) return stale('headingDuplicated', heading);
+	return matches[0][0];
+}
+
+/**
+ * Where lines of no section go: after the last non-blank line above the
+ * first `##` heading, or right below the frontmatter (or first) when there
+ * is none above it; the end of the note without a `##` heading.
+ */
+function beforeSections(lines: readonly string[]): number {
+	const first = headingIndexes(lines).find(([, level]) => level === 2)?.[0];
+	if (first === undefined) return afterLastNonBlank(lines, 0, lines.length) ?? 0;
+	return afterLastNonBlank(lines, 0, first) ?? 0;
 }
 
 /** The index after the last non-blank line in `lines[from..to)`, if any. */
@@ -146,9 +183,9 @@ export function codeFence(line: string): string | null {
 	return null;
 }
 
-/** `[index, trimmed text]` of every heading outside frontmatter and code fences. */
-function headingIndexes(lines: readonly string[]): [number, string][] {
-	const out: [number, string][] = [];
+/** `[index, level, trimmed text]` of every heading outside frontmatter and code fences. */
+export function headingIndexes(lines: readonly string[]): [number, number, string][] {
+	const out: [number, number, string][] = [];
 	let start = 0;
 	if (lines.length > 0 && lines[0].trimEnd() === '---') {
 		const close = lines.findIndex((l, i) => i > 0 && l.trimEnd() === '---');
@@ -164,7 +201,7 @@ function headingIndexes(lines: readonly string[]): [number, string][] {
 		}
 		if (fence !== null) continue;
 		const m = HEADING_RE.exec(lines[i]);
-		if (m) out.push([i, m[2].trim()]);
+		if (m) out.push([i, m[1].length, m[2].trim()]);
 	}
 	return out;
 }

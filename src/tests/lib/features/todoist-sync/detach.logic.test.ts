@@ -136,6 +136,14 @@ describe('planDetach: Todoist side', () => {
 });
 
 describe('planDetach: vault side', () => {
+	it('detaches a link whose line moved out of sync scope at once, clearing the pending command, logged', () => {
+		const plan = planDetach({ ...input([link('a', { pendingCmd: '{}' }), link('b')], seen('td-a', 'td-b')), outOfScope: new Set(['td-a']) });
+
+		expect(plan.detached).toEqual(['td-a']);
+		expect(plan.links).toEqual([link('a', { missCount: 3, pendingCmd: null })]);
+		expect(plan.log).toEqual([{ kind: 'detach', anchor: 'td-a', message: expect.stringContaining('out of sync scope') }]);
+	});
+
 	it('counts a miss for a line not in the scan, and detaches on the third one, logged', () => {
 		const one = planDetach(input([link('a')], seen(), [item('a')]));
 		expect(one.links).toEqual([link('a', { missCount: 1 })]);
