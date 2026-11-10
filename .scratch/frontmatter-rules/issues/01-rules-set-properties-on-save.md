@@ -18,7 +18,7 @@
 
 **Blocked by:** none
 
-**Requires first (other feature):** open-itens Issue 001, `.scratch/open-itens/issues/001-caret-selection-follow-their-text-when-frontmatter.md`, delivered to `main`. The rule usually writes into the note being edited, and without 001 the caret lands inside the `---` block. Do not launch this Issue until 001 is `done` in `.scratch/open-itens/ledger.md`.
+**Related (other feature):** open-itens Issue 001, `.scratch/open-itens/issues/001-caret-selection-follow-their-text-when-frontmatter.md`. The rule usually writes into the note being edited, and without 001 the caret lands inside the `---` block. The owner chose on 2026-11-10 to build this Issue in parallel with 001. No rule has property consequences until a user writes them, and Settings cannot until Issue 02 ships, so landing first is harmless. Do not work around the caret here, and do not edit 001's files.
 
 **Status:** ready-for-agent
 
