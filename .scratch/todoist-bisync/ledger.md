@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | done | issue/13-deleted-tasks-detach (d933ffa9c) | 2026-11-09 |
 | 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | done | issue/14-sync-runs-on-its-own (c548b66a7) | 2026-11-09 |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14, 16, 17, 18 | todo | | |
-| 16 | [A sync stopped by the line brake has a way past it](issues/16-line-brake-recovery.md) | 13 | todo | | |
+| 16 | [A sync stopped by the line brake has a way past it](issues/16-line-brake-recovery.md) | 13 | in-progress | | |
 | 17 | [Block ids, orphan anchors and dropped pending adds are handled in every sync path](issues/17-block-ids-and-orphan-anchors.md) | 10 | done | issue/17-block-ids-and-orphan-anchors (63de014e0) | 2026-11-10 |
 | 18 | [Every sync cycle leaves a record you can read later](issues/18-every-cycle-leaves-a-record.md) | 14 | todo | | |
 
@@ -91,3 +91,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 03:22 — 17 — start — launched by /relay-lite:run — 2c5b71778
 - 2026-11-10 03:40 — ledger updated (added 18; blocked by of 15)
 - 2026-11-10 03:44 — 17 — deliver — round 1 APPROVED by claude, fix round (block-id test after a Todoist edit, orphan-anchor message), finding 3 rejected (rare create edge case); round 2 APPROVED with no findings; full suite passed (608 files, 14951 tests) — 63de014e0
+- 2026-11-10 03:44 — 16 — start — launched by /relay-lite:run — 60e4f0158
