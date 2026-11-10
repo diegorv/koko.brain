@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 001 | [The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note](issues/001-caret-selection-follow-their-text-when-frontmatter.md) | none | todo | | |
+| 001 | [The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note](issues/001-caret-selection-follow-their-text-when-frontmatter.md) | none | in-progress | | |
 | 002 | [Keyboard edits next to the hidden frontmatter never change its fences](issues/002-keyboard-edits-next-hidden-frontmatter-never-change.md) | none | todo | | |
 | 003 | [Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working](issues/003-closing-main-window-never-leaves-windowless-app.md) | none | todo | | |
 | 004 | [A canvas edit closed or renamed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | none | todo | | |
@@ -279,3 +279,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 21:54 — 229 — deliver — round 1 APPROVED by claude, two optional nits rejected with reasons (ADR cross-reference kept, settings table fact out of scope); full suite passed (591 files, 14373 tests) — 8ab6672fa
 - 2026-11-10 04:50 — ledger updated (title of 006, 006, 031, 129; link of 006, 006; blocked by of 006, 006, 129)
 - 2026-11-10 04:50 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 073, 127, 128, 130; wontfix 072, 073, 127, 128, 130)
+- 2026-11-10 19:20 — 001 — start — launched by /relay-lite:run — bb259e72c
