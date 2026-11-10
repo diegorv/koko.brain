@@ -71,7 +71,7 @@ describe('autoSyncFailureMessage', () => {
 			'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.',
 		);
 		expect(autoSyncFailureMessage('lines-missing')).toBe(
-			'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.',
+			'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed. If you deleted them, run "Todoist: Sync now" to confirm.',
 		);
 		expect(autoSyncFailureMessage('error')).toBe('Todoist automatic sync failed. Details are in the log.');
 	});

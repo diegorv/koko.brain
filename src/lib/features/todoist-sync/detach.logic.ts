@@ -118,3 +118,8 @@ export function belowLineBrake(links: TodoistTaskLink[], occurrences: Map<string
 	const seen = active.filter((l) => (occurrences.get(l.anchor)?.length ?? 0) > 0).length;
 	return active.length > 0 && seen * 2 < active.length;
 }
+
+/** How many active (not detached) links have no line in the scan: the count the line brake's dialog names. */
+export function missingLineCount(links: TodoistTaskLink[], occurrences: Map<string, ScannedLine[]>): number {
+	return links.filter((l) => !isDetached(l) && (occurrences.get(l.anchor)?.length ?? 0) === 0).length;
+}

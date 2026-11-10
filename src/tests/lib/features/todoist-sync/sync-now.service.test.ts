@@ -1387,17 +1387,25 @@ describe('syncNow: a synced line deleted in the vault', () => {
 describe('syncNow: the line brake', () => {
 	const BRAKE = 'Todoist sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.';
 
-	it('aborts before any write, detach or push when fewer than half of the synced lines are found', async () => {
+	/** Syncs Work in, then empties its note: 1 of the 3 synced lines (Q4's) is left. */
+	async function underBrake() {
 		await syncNow('manual');
 		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n');
+	}
+
+	it('asks on a manual cycle, naming the missing lines; No aborts before any write, detach or push', async () => {
+		await underBrake();
 		edit('Todoist/Q4.md', '- [ ] Ship', '- [x] Ship');
 		server.addItem({ id: 'w3', project_id: 'work', content: 'New' });
+		vi.mocked(ask).mockResolvedValue(false);
 		const files = new Map(vault.files);
 		const commits = vault.commits.length;
 		const logged = vault.log.length;
 
 		const outcome = await syncNow('manual');
 
+		expect(vi.mocked(ask)).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('Synced task lines missing from the vault: 2 of 3.'), expect.objectContaining({ title: 'Todoist sync' }));
 		expect(outcome).toEqual({ ok: false, message: BRAKE, failure: { kind: 'lines-missing' } });
 		expect(vault.files).toEqual(files);
 		expect(vault.commits).toHaveLength(commits);
@@ -1407,12 +1415,54 @@ describe('syncNow: the line brake', () => {
 		expect(todoistSyncStore.status).toBe('error');
 	});
 
-	it('aborts when no synced line is found at all', async () => {
+	it('aborts when no synced line is found at all and No is chosen', async () => {
 		await syncNow('manual');
 		vault.files.clear();
+		vi.mocked(ask).mockResolvedValue(false);
 
 		expect(await syncNow('manual')).toEqual({ ok: false, message: BRAKE, failure: { kind: 'lines-missing' } });
+		expect(vi.mocked(ask)).toHaveBeenCalledWith(expect.stringContaining('Synced task lines missing from the vault: 3 of 3.'), expect.anything());
 		expect(vault.files.size).toBe(0);
+	});
+
+	it('never asks on an automatic cycle: it aborts with nothing counted', async () => {
+		await underBrake();
+		vi.mocked(ask).mockResolvedValue(true);
+		const commits = vault.commits.length;
+
+		expect(await syncNow('auto')).toEqual({ ok: false, message: BRAKE, failure: { kind: 'lines-missing' } });
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(vault.commits).toHaveLength(commits);
+		expect([...vault.links.values()].map((l) => l.missCount)).toEqual([0, 0, 0]);
+	});
+
+	it('runs the cycle on Yes and counts the misses', async () => {
+		await underBrake();
+		vi.mocked(ask).mockResolvedValue(true);
+
+		expect((await syncNow('manual')).ok).toBe(true);
+		expect(missCount('td-w1')).toBe(1);
+		expect(missCount('td-w2')).toBe(1);
+		expect(missCount('td-q1')).toBe(0);
+		expect(vault.files.get('Todoist/Work.md')).toBe('---\ntodoist_project: work\n---\n');
+	});
+
+	it('detaches the missing links after 3 manual cycles past it; the next cycle, manual or automatic, runs without asking', async () => {
+		await underBrake();
+		vi.mocked(ask).mockResolvedValue(true);
+		for (let i = 0; i < 3; i++) expect((await syncNow('manual')).ok).toBe(true);
+
+		expect(vi.mocked(ask)).toHaveBeenCalledTimes(3);
+		expect(missCount('td-w1')).toBe(3);
+		expect(missCount('td-w2')).toBe(3);
+		expect(vault.log.filter((e) => e.kind === 'detach').map((e) => e.anchor)).toEqual(['td-w1', 'td-w2']);
+		expect(server.item('w1')).toMatchObject({ checked: false, is_deleted: false });
+
+		vi.mocked(ask).mockClear();
+		expect((await syncNow('auto')).ok).toBe(true);
+		expect((await syncNow('manual')).ok).toBe(true);
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
+		expect(vault.files.get('Todoist/Work.md')).toBe('---\ntodoist_project: work\n---\n');
 	});
 
 	it('runs at exactly half, counting the misses', async () => {

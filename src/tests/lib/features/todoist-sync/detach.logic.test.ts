@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { TodoistTaskLink } from '#lib/contracts/index.js';
-import { belowLineBrake, isDetached, planDetach, type DetachInput } from '#lib/features/todoist-sync/detach.logic.js';
+import { belowLineBrake, isDetached, missingLineCount, planDetach, type DetachInput } from '#lib/features/todoist-sync/detach.logic.js';
 import type { PullItem, ScannedLine } from '#lib/features/todoist-sync/pull.logic.js';
 import type { ScopeProject } from '#lib/features/todoist-sync/sync-scope.logic.js';
 
@@ -223,5 +223,22 @@ describe('belowLineBrake', () => {
 		const links = [link('a'), link('b', { missCount: 3 }), link('c', { missCount: 3 })];
 
 		expect(belowLineBrake(links, seen('td-a'))).toBe(false);
+	});
+});
+
+describe('missingLineCount', () => {
+	it('counts the active links without a line in the scan', () => {
+		const links = [link('a'), link('b', { missCount: 1 }), link('c')];
+
+		expect(missingLineCount(links, seen('td-a'))).toBe(2);
+		expect(missingLineCount(links, seen('td-a', 'td-b', 'td-c'))).toBe(0);
+	});
+
+	it('is zero without links', () => {
+		expect(missingLineCount([], seen())).toBe(0);
+	});
+
+	it('leaves detached links out', () => {
+		expect(missingLineCount([link('a'), link('b', { missCount: 3 })], seen())).toBe(1);
 	});
 });

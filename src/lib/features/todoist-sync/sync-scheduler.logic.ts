@@ -50,7 +50,7 @@ export function autoSyncFailureMessage(kind: AutoSyncFailureKind): string {
 		case 'root-missing':
 			return 'The sync root project was not found in Todoist. Choose it again in Settings > Todoist.';
 		case 'lines-missing':
-			return 'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.';
+			return 'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed. If you deleted them, run "Todoist: Sync now" to confirm.';
 		case 'error':
 			return 'Todoist automatic sync failed. Details are in the log.';
 	}

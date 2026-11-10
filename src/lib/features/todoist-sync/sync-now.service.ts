@@ -44,7 +44,7 @@ import {
 	type PendingAdd,
 	type PlannedCreate,
 } from './create.logic.js';
-import { belowLineBrake, DETACH_AFTER_MISSES, isDetached, planDetach } from './detach.logic.js';
+import { belowLineBrake, DETACH_AFTER_MISSES, isDetached, missingLineCount, planDetach } from './detach.logic.js';
 import { planFields, type PlannedUpdate } from './fields.logic.js';
 import { readNoteContent, writeTaskLinesToNote } from './note-writer.service.js';
 import {
@@ -187,9 +187,11 @@ const COMMANDS_PER_REQUEST = 100;
  *
  * Refuses before the vault index is ready, while sync is off, without a
  * token or root project, with a sync folder that is absolute or climbs out
- * with `..`, and while another run is in progress. Stops before any write
- * when fewer than half of the attached links have a line in the scan (the
- * line brake). Before `first_run_done`, a manual cycle with creates shows
+ * with `..`, and while another run is in progress. When fewer than half of
+ * the attached links have a line in the scan (the line brake), an automatic
+ * cycle stops before any write; a manual one asks, naming the missing
+ * count, and stops before any write on "Cancel" or runs and counts the
+ * misses on "Sync". Before `first_run_done`, a manual cycle with creates shows
  * their count and creates nothing until confirmed; the first manual cycle
  * in normal mode that commits sets `first_run_done`. Over 10 detaches, 25 close/reopen
  * pushes, 50 field pushes (moves included) or 25 creates (projects, sections and tasks), a manual cycle
@@ -286,7 +288,10 @@ async function cycle(
 	const storedLinks = await call('todoist_read_links', { vaultPath: vaultRoot });
 	const storedSections = await call('todoist_read_sections', { vaultPath: vaultRoot });
 	const scan = await scanVault(vaultRoot, settingsStore.templates.folder);
-	if (belowLineBrake(storedLinks, scan.occurrences)) throw new SyncStop(LINES_MISSING, { kind: 'lines-missing' });
+	// A manual yes counts the misses, so links whose lines were deleted on purpose detach over 3 cycles past the brake.
+	if (belowLineBrake(storedLinks, scan.occurrences) && (mode === 'auto' || !(await confirmLineBrake(storedLinks, scan.occurrences)))) {
+		throw new SyncStop(LINES_MISSING, { kind: 'lines-missing' });
+	}
 	const excludedLabels = excludedLabelSet(defaultLabel);
 	// Pending adds whose response was lost pair with their task first, so the pull never inserts it as a second line.
 	const adoption = pairPendingAdds({ links: storedLinks, items: [...items.values()], excludedLabels });
@@ -1111,6 +1116,18 @@ async function confirmOverCap(count: number): Promise<boolean> {
 		okLabel: 'Sync',
 		cancelLabel: 'Cancel',
 	});
+}
+
+/**
+ * "Pause and ask" of design rule 9 for a manual cycle at the line brake.
+ * Continuing counts a miss for every missing line; the third detaches it.
+ */
+async function confirmLineBrake(links: TodoistTaskLink[], occurrences: Map<string, ScannedLine[]>): Promise<boolean> {
+	const active = links.filter((l) => !isDetached(l)).length;
+	return ask(
+		`Synced task lines missing from the vault: ${missingLineCount(links, occurrences)} of ${active}. If you deleted them, continue: after ${DETACH_AFTER_MISSES} syncs in a row without a line, its link is detached and its Todoist task is kept. If they should be there (a folder moved, a vault half synced), cancel and restore them first. Continue?`,
+		{ title: 'Todoist sync', kind: 'warning', okLabel: 'Sync', cancelLabel: 'Cancel' },
+	);
 }
 
 /** "Pause and ask" of design rule 9 for a manual cycle over the detach cap. */

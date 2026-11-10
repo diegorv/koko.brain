@@ -421,7 +421,8 @@ describe('over the detach cap', () => {
 });
 
 describe('the line brake', () => {
-	it('stops an automatic cycle that finds too few synced lines, with a persistent toast, and "Sync now" with an error toast', async () => {
+	/** Syncs Work in automatically, empties its note, and lets an automatic cycle hit the brake. */
+	async function autoUnderBrake() {
 		startAutoSync(ROOT);
 		await settle();
 		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n');
@@ -429,17 +430,36 @@ describe('the line brake', () => {
 		await advance(30_000);
 		focusWindow();
 		await settle();
+	}
+
+	it('stops an automatic cycle that finds too few synced lines, with a persistent toast, without asking; "Sync now" Cancel shows an error toast', async () => {
+		await autoUnderBrake();
 
 		expect(cycles()).toBe(2);
+		expect(vi.mocked(ask)).not.toHaveBeenCalled();
 		expect(toast.error).toHaveBeenCalledWith(
-			'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.',
+			'Todoist automatic sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed. If you deleted them, run "Todoist: Sync now" to confirm.',
 			{ id: 'todoist-sync-lines-missing', duration: Infinity, closeButton: true },
 		);
 		expect(vault.links.get('td-w1')!.missCount).toBe(0);
 
+		vi.mocked(ask).mockResolvedValue(false);
 		await syncNowFromUi();
+		expect(vi.mocked(ask)).toHaveBeenCalledTimes(1);
 		expect(toast.error).toHaveBeenLastCalledWith('Todoist sync stopped: fewer than half of the synced task lines were found in the vault. Nothing was changed.');
 		expect(vault.files.get('Todoist/Work.md')).toBe('---\ntodoist_project: work\n---\n');
+		expect(vault.links.get('td-w1')!.missCount).toBe(0);
+	});
+
+	it('"Sync now" confirmed past the brake counts the misses and dismisses the persistent toast', async () => {
+		await autoUnderBrake();
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await syncNowFromUi();
+
+		expect(vi.mocked(ask)).toHaveBeenCalledTimes(1);
+		expect(vault.links.get('td-w1')!.missCount).toBe(1);
+		expect(toast.dismiss).toHaveBeenCalledWith('todoist-sync-lines-missing');
 	});
 });
 
