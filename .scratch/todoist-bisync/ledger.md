@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | done | issue/09-note-edits-reach-todoist (9abec5039) | 2026-11-10 |
 | 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | done | issue/10-brain-tasks-created-in-todoist (13f3f2758) | 2026-11-10 |
 | 11 | [Projects sync both ways](issues/11-projects-sync-both-ways.md) | 10 | done | issue/11-projects-sync-both-ways (c064777eb) | 2026-11-10 |
-| 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | todo | | |
+| 12 | [Sections and task moves sync both ways](issues/12-sections-and-moves-sync.md) | 11 | in-progress | | |
 | 13 | [A task deleted on either side is detached, never deleted on the other](issues/13-deleted-tasks-detach.md) | 07 | done | issue/13-deleted-tasks-detach (d933ffa9c) | 2026-11-09 |
 | 14 | [The sync runs on its own and reports failures](issues/14-sync-runs-on-its-own.md) | 06 | done | issue/14-sync-runs-on-its-own (c548b66a7) | 2026-11-09 |
 | 15 | [Retire the old send/sync path and document the two-way sync](issues/15-retire-old-send-and-document.md) | 10, 12, 13, 14 | todo | | |
@@ -85,3 +85,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 01:35 — ledger updated (added 17)
 - 2026-11-10 01:35 — 11 — start — launched by /relay-lite:run — 1bbbd420f
 - 2026-11-10 02:20 — 11 — deliver — round 1 APPROVED by claude with findings, fix round (project id written to an open tab, case-only rename, temp id across requests, merged tree ids, JSDoc), finding 4 (pending project_add lost on rename after a lost response) left for a follow-up; round 2 APPROVED with no findings; full suite passed (607 files, 14870 tests) — c064777eb
+- 2026-11-10 02:20 — 12 — start — launched by /relay-lite:run — 89c433d0b
