@@ -30,7 +30,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { ask } from '@tauri-apps/plugin-dialog';
 import { exists, readTextFile, rename, writeTextFile } from '@tauri-apps/plugin-fs';
-import { error } from '#lib/utils/debug.js';
+import { debug, error } from '#lib/utils/debug.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { resetEditor } from '#lib/core/editor/editor.service.js';
 import { resetHooks } from '#lib/core/editor/editor.hooks.js';
@@ -38,6 +38,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
+import { parseCycle, type CycleTrigger } from '#lib/features/todoist-sync/cycle-log.logic.js';
 import { syncNow, type SyncMode } from '#lib/features/todoist-sync/sync-now.service.js';
 
 let server: FakeTodoist;
@@ -112,8 +113,8 @@ afterEach(() => {
 
 describe('syncNow: mode', () => {
 	it('takes the mode as a required argument, so no caller runs a manual cycle by default', () => {
-		// Checked by `pnpm check`: an optional `mode?` would make the tuple `[mode?: SyncMode]`.
-		expectTypeOf(syncNow).parameters.toEqualTypeOf<[mode: SyncMode]>();
+		// Checked by `pnpm check`: an optional `mode?` would make the tuple `[mode?: SyncMode, ...]`.
+		expectTypeOf(syncNow).parameters.toEqualTypeOf<[mode: SyncMode, trigger?: CycleTrigger]>();
 	});
 });
 
@@ -2730,5 +2731,143 @@ describe('syncNow: a line moved out of the sync scope', () => {
 		expect(vault.files.get('Notes/Day.md')).toBe('- [ ] Plan 🔺 #deep #todoist 🆔 td-w1\n');
 		expect(vault.files.get('Todoist/Acme.md')).not.toContain('td-w1');
 		expect(remoteBase('td-w1')).toMatchObject({ projectId: 'acme' });
+	});
+});
+
+describe('syncNow: every cycle leaves a record', () => {
+	const record = (i = -1) => parseCycle(vault.cycles.at(i)!.message)!;
+	/** Every `debug` line, as one string per call. */
+	const debugLines = () => vi.mocked(debug).mock.calls.map((args) => args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
+
+	it('writes one cycle row for a manual cycle: mode, trigger, start, duration, counts, commands and the token', async () => {
+		const before = Date.now();
+
+		await syncNow('manual');
+
+		expect(vault.cycles).toHaveLength(1);
+		expect(vault.cycles[0]).toMatchObject({ kind: 'cycle', anchor: null });
+		expect(record()).toMatchObject({
+			mode: 'manual',
+			trigger: 'manual',
+			outcome: 'ok',
+			counts: { mode: 'normal', notesCreated: 3, tasksInserted: 3, linesUpdated: 0, todoistUpdated: 0, todoistCreated: 0, detached: 0 },
+			skipped: { pushes: 0, detaches: 0, fieldPushes: 0, creates: 0 },
+			commands: {},
+			tokenAdvanced: true,
+			repeats: 1,
+		});
+		expect(record().startedAt).toBeGreaterThanOrEqual(before);
+		expect(record().durationMs).toBeGreaterThanOrEqual(0);
+	});
+
+	it('counts the commands sent by type, and the trigger the scheduler names', async () => {
+		await syncNow('manual');
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		edit('Todoist/Work.md', 'Report 📅', 'Report weekly 📅');
+
+		await syncNow('auto', 'focus');
+
+		expect(record()).toMatchObject({ mode: 'auto', trigger: 'focus', outcome: 'ok', commands: { item_close: 1, item_update: 1 }, counts: { todoistUpdated: 2 } });
+	});
+
+	it('writes a cycle row for a failed cycle, naming the failure kind', async () => {
+		server.failNext({ kind: 'unauthorized' });
+
+		await syncNow('manual');
+
+		expect(vault.cycles).toHaveLength(1);
+		expect(record()).toMatchObject({ outcome: 'invalid-token', counts: null, skipped: null, commands: {}, tokenAdvanced: false });
+	});
+
+	it('writes a cycle row for a cancelled cycle', async () => {
+		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n- [ ] Call Bob\n');
+		vi.mocked(ask).mockResolvedValue(false);
+
+		await syncNow('manual');
+
+		expect(record()).toMatchObject({ outcome: 'cancelled', counts: null, commands: {} });
+	});
+
+	it('writes nothing for a cycle refused before it starts, or stopped by a vault switch', async () => {
+		vaultStore.resetIndexReady();
+		await syncNow('manual');
+		vaultStore.markIndexReady();
+		settingsStore.updateTodoist({ syncEnabled: false });
+		await syncNow('auto', 'interval');
+		settingsStore.updateTodoist({ syncEnabled: true });
+		todoistSyncStore.start();
+		await syncNow('manual');
+		todoistSyncStore.reset();
+		expect(vault.cycles).toEqual([]);
+
+		const first = vault;
+		const second = createFakeVault('/other-vault');
+		fake.current = {
+			async fetch(url, init) {
+				const response = await server.fetch(url, init);
+				openVault(second);
+				return response;
+			},
+		};
+		await syncNow('manual');
+
+		expect(first.cycles).toEqual([]);
+		expect(second.cycles).toEqual([]);
+	});
+
+	it('keeps one row for a run of automatic cycles that changed nothing, and a new one once a cycle does', async () => {
+		await syncNow('manual');
+		for (let i = 0; i < 4; i++) await syncNow('auto', 'interval');
+
+		expect(vault.cycles).toHaveLength(2);
+		expect(record()).toMatchObject({ mode: 'auto', outcome: 'ok', repeats: 4 });
+
+		server.updateItem('w1', { content: 'Plan more' });
+		await syncNow('auto', 'interval');
+		await syncNow('auto', 'interval');
+
+		expect(vault.cycles.map((r) => parseCycle(r.message)!.repeats)).toEqual([1, 4, 1, 1]);
+		expect(record(-2)).toMatchObject({ counts: { linesUpdated: 1 } });
+	});
+
+	it('does not fold a quiet cycle over an event logged after the last cycle row', async () => {
+		await syncNow('manual');
+		await syncNow('auto', 'interval');
+		await vault.invoke('todoist_append_log', { vaultPath: vault.root, entries: [{ kind: 'stale', anchor: null, message: 'x' }] });
+
+		await syncNow('auto', 'interval');
+
+		expect(vault.cycles.map((r) => parseCycle(r.message)!.repeats)).toEqual([1, 1, 1]);
+		expect(vault.log.map((e) => e.message)).toEqual(['x']);
+	});
+
+	it('logs each pull with its kind and item count, and each command batch and its statuses by anchor and uuid', async () => {
+		await syncNow('manual');
+		edit('Todoist/Work.md', W1_OPEN, W1_DONE);
+		vi.mocked(debug).mockClear();
+
+		await syncNow('manual');
+
+		const lines = debugLines();
+		const uuid = commandRequests().at(-1)!.commands![0].uuid;
+		expect(lines).toContainEqual(expect.stringMatching(/^TODOIST pull full: \d+ items$/));
+		expect(lines).toContainEqual(expect.stringMatching(/^TODOIST pull incremental: \d+ items$/));
+		expect(lines).toContainEqual(`TODOIST send 1 command: item_close td-w1 ${uuid}`);
+		expect(lines).toContainEqual(`TODOIST sync_status: ${uuid} "ok"`);
+	});
+
+	it('keeps task content and note text out of the debug lines and the cycle row', async () => {
+		vault.files.set('Todoist/Work.md', '---\ntodoist_project: work\n---\n- [ ] Call Bob secretly\n');
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await syncNow('manual');
+
+		expect(adds().map((c) => c.args.content)).toEqual(['Call Bob secretly']);
+		const anchor = [...vault.links.values()].find((l) => !['w1', 'w2', 'q1'].includes(l.todoistId!))!.anchor;
+		const lines = debugLines();
+		expect(lines).toContainEqual(expect.stringContaining(`item_add ${anchor} `));
+		for (const text of [...lines, ...vault.cycles.map((r) => r.message)]) {
+			for (const content of ['Call Bob', 'Plan', 'Report', 'Ship']) expect(text).not.toContain(content);
+		}
 	});
 });

@@ -4,7 +4,8 @@
  * calls: the task and property-record reads, `write_task_lines` (through
  * the real `applyTaskLineEdits`, the TS port of the Rust batch), `create_note`
  * and `create_folder`, `scan_vault` (an empty tree), and the six `todoist_*` state commands (`todoist_read_log`
- * lists `log` newest first, ids from 1 in append order). Like Rust, it
+ * lists the stored rows newest first, ids from 1 in append order; an entry
+ * whose `replaceId` names the newest row rewrites it, as in Rust). Like Rust, it
  * refuses a `vaultRoot` / `vaultPath` that is not its root. Any other command
  * resolves to `[]` for a `get_*` read and `undefined` otherwise.
  *
@@ -44,8 +45,10 @@ export interface FakeVault {
 	readonly links: Map<string, TodoistTaskLink>;
 	/** Section links by section id. */
 	readonly sections: Map<string, TodoistSectionLink>;
-	/** Every appended sync log entry. */
-	readonly log: TodoistSyncLogInput[];
+	/** The stored sync log rows other than `cycle` ones, oldest first. */
+	readonly log: TodoistSyncLogEntry[];
+	/** The stored `cycle` rows, oldest first. */
+	readonly cycles: TodoistSyncLogEntry[];
 	/** Every `todoist_commit_state` commit received. */
 	readonly commits: TodoistStateCommit[];
 	/** Vault-relative paths of every note created or written, in order. */
@@ -101,14 +104,19 @@ function metadataOf(text: string): TaskMetadata {
 
 /** Creates a vault at `root` holding `files` (vault-relative path -> content). */
 export function createFakeVault(root: string, files: Record<string, string> = {}): FakeVault {
-	const logTimes: number[] = [];
+	const rows: TodoistSyncLogEntry[] = [];
 	const vault: FakeVault = {
 		root,
 		files: new Map(Object.entries(files)),
 		kv: new Map(),
 		links: new Map(),
 		sections: new Map(),
-		log: [],
+		get log() {
+			return rows.filter((r) => r.kind !== 'cycle');
+		},
+		get cycles() {
+			return rows.filter((r) => r.kind === 'cycle');
+		},
 		commits: [],
 		writes: [],
 		async invoke(cmd, args = {}) {
@@ -152,17 +160,14 @@ export function createFakeVault(root: string, files: Record<string, string> = {}
 					return null;
 				}
 				case 'todoist_append_log':
-					for (const entry of args.entries as TodoistSyncLogInput[]) {
-						vault.log.push(entry);
-						logTimes.push(Date.now());
+					for (const { replaceId, ...entry } of structuredClone(args.entries as TodoistSyncLogInput[])) {
+						const row: TodoistSyncLogEntry = { id: rows.length + 1, createdAt: Date.now(), ...entry };
+						if (replaceId !== undefined && replaceId === rows.at(-1)?.id) rows[rows.length - 1] = { ...row, id: replaceId };
+						else rows.push(row);
 					}
 					return null;
-				case 'todoist_read_log': {
-					const rows = vault.log.map(
-						(entry, i): TodoistSyncLogEntry => ({ id: i + 1, createdAt: logTimes[i] ?? 0, ...entry }),
-					);
-					return rows.reverse().slice(0, (args.limit as number | undefined) ?? rows.length);
-				}
+				case 'todoist_read_log':
+					return rows.map((r) => ({ ...r })).reverse().slice(0, (args.limit as number | undefined) ?? rows.length);
 				default:
 					return cmd.startsWith('get_') ? [] : undefined;
 			}

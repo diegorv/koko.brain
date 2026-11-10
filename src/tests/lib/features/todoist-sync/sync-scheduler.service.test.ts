@@ -38,6 +38,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
+import { parseCycle } from '#lib/features/todoist-sync/cycle-log.logic.js';
 import { startAutoSync, stopAutoSync, syncNowFromUi } from '#lib/features/todoist-sync/sync-scheduler.service.js';
 
 const MINUTE = 60_000;
@@ -229,6 +230,53 @@ describe('automatic triggers', () => {
 		await advance(10_000);
 
 		expect(cycles()).toBe(0);
+	});
+});
+
+describe('the cycle row names its trigger', () => {
+	const trigger = () => parseCycle(vault.cycles.at(-1)!.message)!.trigger;
+
+	it('vault-open, interval, focus, after-save and manual', async () => {
+		startAutoSync(ROOT);
+		await settle();
+		expect(trigger()).toBe('vault-open');
+
+		await advance(5 * MINUTE);
+		expect(trigger()).toBe('interval');
+
+		await advance(MINUTE);
+		focusWindow();
+		await settle();
+		expect(trigger()).toBe('focus');
+
+		await advance(MINUTE);
+		notifyAfterSave(`${ROOT}/Notes/Day.md`, ANCHORED);
+		await advance(5000);
+		expect(trigger()).toBe('after-save');
+
+		await syncNowFromUi();
+		expect(trigger()).toBe('manual');
+		expect(vault.cycles.map((r) => parseCycle(r.message)!.mode)).toEqual(['auto', 'auto', 'manual']);
+	});
+
+	it('keeps the trigger of a cycle deferred by the gap, or queued behind a running one', async () => {
+		const release = holdRequests();
+		startAutoSync(ROOT);
+		await settle();
+		focusWindow();
+		release();
+		await settle();
+		await advance(30_000);
+		expect(cycles()).toBe(2);
+		expect(trigger()).toBe('focus');
+
+		await advance(MINUTE);
+		notifyAfterSave(`${ROOT}/Notes/Day.md`, ANCHORED);
+		await advance(5000);
+		focusWindow();
+		await advance(30_000);
+		expect(cycles()).toBe(4);
+		expect(trigger()).toBe('focus');
 	});
 });
 

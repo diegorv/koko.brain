@@ -26,6 +26,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { generateAnchor, idValues } from './anchor.logic.js';
 import { createNoteFile } from './closed-note-writer.service.js';
+import type { CycleRun, CycleTrigger } from './cycle-log.logic.js';
 import {
 	applyLineChange,
 	planAck,
@@ -82,6 +83,7 @@ import {
 	type PullSection,
 	type SectionNote,
 } from './sections.logic.js';
+import { logCycle } from './sync-log.service.js';
 import { isFirstRunDone } from './sync-scheduler.logic.js';
 import { classifyTodoistError, syncErrorMessage, treeProjectIds, type ScopeProject, type TodoistFailure } from './sync-scope.logic.js';
 import { taskLineText } from './task-line.logic.js';
@@ -122,6 +124,17 @@ export type SyncNowOutcome = {
 
 /** Who started a cycle: "Sync now" (`manual`) or a scheduler trigger (`auto`). */
 export type SyncMode = 'manual' | 'auto';
+
+/** The `/sync` call a cycle makes, through {@link tracedClient}. */
+type SyncClient = Pick<TodoistApi, 'sync'>;
+
+/** What a cycle records as it runs, for its `cycle` log row. */
+interface CycleTrace {
+	/** Commands sent, by type. */
+	commands: Record<string, number>;
+	/** Whether a `sync_token` other than the stored one was committed. */
+	tokenAdvanced: boolean;
+}
 
 /** A run stopped by a fixed, user-facing reason; the message is shown as-is. */
 class SyncStop extends Error {
@@ -204,8 +217,15 @@ const COMMANDS_PER_REQUEST = 100;
  * 9). Otherwise
  * status and result go to `todoistSyncStore`; a failure is logged raw and
  * reduced to a fixed message.
+ *
+ * Every run that starts, `trigger` naming what started it, writes one
+ * `cycle` row to the sync log (`logCycle`), also when it fails or is
+ * cancelled; a refusal, and a run stopped by a vault switch, write none.
+ * Each pull and each command batch with its statuses goes to
+ * `debug('TODOIST', ...)` by kind, anchor or note path, and uuid, never
+ * with task content.
  */
-export async function syncNow(mode: SyncMode): Promise<SyncNowOutcome> {
+export async function syncNow(mode: SyncMode, trigger: CycleTrigger = 'manual'): Promise<SyncNowOutcome> {
 	const { apiToken, syncEnabled, syncRootProjectId, syncFolder } = settingsStore.todoist;
 	const vaultRoot = vaultStore.path;
 	if (vaultRoot === null || !vaultStore.indexReady) {
@@ -221,10 +241,15 @@ export async function syncNow(mode: SyncMode): Promise<SyncNowOutcome> {
 	if (todoistSyncStore.isSyncing) return { ok: false, message: 'A Todoist sync is already running.' };
 
 	todoistSyncStore.start();
+	const startedAt = Date.now();
+	const trace: CycleTrace = { commands: {}, tokenAdvanced: false };
+	const record = (outcome: string, counts: CycleRun['counts'], skipped: CycleRun['skipped']) =>
+		logCycle(vaultRoot, { mode, trigger, startedAt, durationMs: Date.now() - startedAt, outcome, counts, skipped, ...trace });
 	try {
-		const { skippedPushes, skippedDetaches, skippedFieldPushes, skippedCreates, ...counts } = await cycle(vaultRoot, folder, mode);
+		const { skippedPushes, skippedDetaches, skippedFieldPushes, skippedCreates, detached, ...counts } = await cycle(vaultRoot, folder, mode, trace);
 		debug('TODOIST', `sync now (${mode}):`, counts, { skippedPushes, skippedDetaches, skippedFieldPushes, skippedCreates });
 		todoistSyncStore.succeed({ kind: 'pull', ...counts, finishedAt: Date.now() });
+		await record('ok', { ...counts, detached }, { pushes: skippedPushes, detaches: skippedDetaches, fieldPushes: skippedFieldPushes, creates: skippedCreates });
 		return {
 			ok: true,
 			message: formatPullResult(counts),
@@ -239,7 +264,11 @@ export async function syncNow(mode: SyncMode): Promise<SyncNowOutcome> {
 		// After a vault switch the store belongs to the next vault: the
 		// lifecycle resets it when the next vault initializes, and this
 		// run's error is not that vault's.
-		if (stop.failure.kind !== 'vault-switched') todoistSyncStore.fail(stop.message);
+		if (stop.failure.kind !== 'vault-switched') {
+			todoistSyncStore.fail(stop.message);
+			// A cancel carries the `error` kind for the scheduler; its row says what happened.
+			await record(stop.message === CANCELLED ? 'cancelled' : stop.failure.kind, null, null);
+		}
 		return { ok: false, message: stop.message, failure: stop.failure };
 	}
 }
@@ -255,13 +284,31 @@ async function request<T>(run: () => Promise<T>): Promise<T> {
 	}
 }
 
+/**
+ * Wraps `client.sync` so `trace` counts every command sent, by type, and
+ * each pull goes to the debug log with its kind and item count.
+ */
+function tracedClient(client: TodoistApi, trace: CycleTrace): SyncClient {
+	return {
+		async sync(request, requestId) {
+			for (const command of request.commands ?? []) trace.commands[command.type] = (trace.commands[command.type] ?? 0) + 1;
+			const response = await client.sync(request, requestId);
+			if (request.syncToken !== undefined) {
+				debug('TODOIST', `pull ${request.syncToken === '*' ? 'full' : 'incremental'}: ${response.items?.length ?? 0} items`);
+			}
+			return response;
+		},
+	};
+}
+
 async function cycle(
 	vaultRoot: string,
 	folder: string,
 	mode: SyncMode,
-): Promise<PullCounts & { skippedPushes: number; skippedDetaches: number; skippedFieldPushes: number; skippedCreates: number }> {
+	trace: CycleTrace,
+): Promise<PullCounts & { detached: number; skippedPushes: number; skippedDetaches: number; skippedFieldPushes: number; skippedCreates: number }> {
 	const { apiToken, syncRootProjectId, syncIncludeInbox, defaultLabel, syncContext } = settingsStore.todoist;
-	const client = createTodoistClient(apiToken);
+	const client = tracedClient(createTodoistClient(apiToken), trace);
 	const full = await request(() => client.sync({ syncToken: '*', resourceTypes: ['projects', 'sections', 'items'] }));
 	if (!treeProjectIds(full.projects ?? [], syncRootProjectId, syncIncludeInbox)) throw new SyncStop(ROOT_MISSING, { kind: 'root-missing' });
 
@@ -512,11 +559,12 @@ async function cycle(
 	const sectionCommit = [...sectionPlan.paired, ...written.sections];
 	// A create's pending link is among them: it is stored with its anchor before the `item_add` goes out (design rule 2).
 	for (const link of written.links) commit.set(link.anchor, link);
+	// Without this cycle's bases for every change, an incremental pull from the new token would never report it again
+	// (a deletion is reported only by an incremental pull, so skipped detaches keep the token out too; so does a
+	// Todoist edit of a task whose close or reopen goes out now, which the field sync left to the next cycle).
+	const commitToken = token && !written.anyStale && skippedDetaches === 0 && !fields.withholdToken ? token : null;
 	const kvCommit = [
-		// Without this cycle's bases for every change, an incremental pull from the new token would never report it again
-		// (a deletion is reported only by an incremental pull, so skipped detaches keep the token out too; so does a
-		// Todoist edit of a task whose close or reopen goes out now, which the field sync left to the next cycle).
-		...(token && !written.anyStale && skippedDetaches === 0 && !fields.withholdToken ? [{ key: 'sync_token', value: token }] : []),
+		...(commitToken ? [{ key: 'sync_token', value: commitToken }] : []),
 		// The first manual cycle past the preview turns automatic cycles on; a rebuild, which plans no create, is no preview.
 		...(mode === 'manual' && !firstRunDone && plan.mode === 'normal' ? [{ key: 'first_run_done', value: '1' }] : []),
 		...(projectStateChanged ? [projectStateEntry(projectState)] : []),
@@ -526,6 +574,7 @@ async function cycle(
 		vaultPath: vaultRoot,
 		commit: { kv: kvCommit, upsertLinks: [...commit.values()], deleteAnchors: [], ...(sectionCommit.length > 0 ? { upsertSections: sectionCommit } : {}) },
 	});
+	trace.tokenAdvanced = commitToken !== null && commitToken !== storedToken;
 	if (log.length > 0) await call('todoist_append_log', { vaultPath: vaultRoot, entries: log });
 
 	let todoistUpdated = 0;
@@ -568,6 +617,7 @@ async function cycle(
 		projectsCreated: pushed.projectsCreated,
 		sectionsCreated,
 		projectsRenamed,
+		detached: detach.detached.length,
 		skippedPushes,
 		skippedDetaches,
 		skippedFieldPushes,
@@ -584,7 +634,7 @@ async function cycle(
  * resends the same uuid.
  */
 async function pushCompletions(
-	client: TodoistApi,
+	client: SyncClient,
 	vaultRoot: string,
 	commands: PlannedCommand[],
 	stored: Map<string, TodoistTaskLink>,
@@ -593,7 +643,7 @@ async function pushCompletions(
 ): Promise<{ todoistUpdated: number; linesUpdated: number }> {
 	const { statuses } = await sendCommands(
 		client,
-		commands.map((c) => ({ type: c.pending.type, uuid: c.pending.uuid, args: { id: c.todoistId } })),
+		commands.map((c) => ({ ref: c.anchor, command: { type: c.pending.type, uuid: c.pending.uuid, args: { id: c.todoistId } } })),
 	);
 
 	const acked = commands.filter((c) => statuses[c.pending.uuid] === 'ok');
@@ -643,14 +693,14 @@ async function pushCompletions(
  * push again. Returns how many Todoist accepted.
  */
 async function pushFields(
-	client: TodoistApi,
+	client: SyncClient,
 	vaultRoot: string,
 	updates: (PlannedUpdate | PlannedMove)[],
 	type: 'item_update' | 'item_move' = 'item_update',
 ): Promise<number> {
 	const { statuses } = await sendCommands(
 		client,
-		updates.map((u) => ({ type, uuid: u.uuid, args: { ...u.args } })),
+		updates.map((u) => ({ ref: u.anchor, command: { type, uuid: u.uuid, args: { ...u.args } } })),
 	);
 	const log: TodoistSyncLogInput[] = [];
 	const links: TodoistTaskLink[] = [];
@@ -692,7 +742,7 @@ async function pushFields(
  * cycle. `state` is updated in place and committed with the links.
  */
 async function pushCreates(
-	client: TodoistApi,
+	client: SyncClient,
 	vaultRoot: string,
 	projectAdds: PendingProject[],
 	adds: { link: TodoistTaskLink; command: PendingAdd }[],
@@ -705,8 +755,8 @@ async function pushCreates(
 	const { statuses, tempIds } = await sendCommands(
 		client,
 		[
-			...projectAdds.map((p) => ({ type: 'project_add' as const, uuid: p.uuid, tempId: p.tempId, args: { ...p.args } })),
-			...adds.map(({ command }) => ({ type: command.type, uuid: command.uuid, tempId: command.tempId, args: { ...command.args } })),
+			...projectAdds.map((p) => ({ ref: p.relPath, command: { type: 'project_add' as const, uuid: p.uuid, tempId: p.tempId, args: { ...p.args } } })),
+			...adds.map(({ link, command }) => ({ ref: link.anchor, command: { type: command.type, uuid: command.uuid, tempId: command.tempId, args: { ...command.args } } })),
 		],
 		known,
 	);
@@ -772,10 +822,10 @@ async function pushCreates(
  * with its heading by name, and plans the rest again. Returns how many
  * Todoist created.
  */
-async function pushSections(client: TodoistApi, vaultRoot: string, adds: PlannedSectionAdd[], logRefusals: boolean): Promise<number> {
+async function pushSections(client: SyncClient, vaultRoot: string, adds: PlannedSectionAdd[], logRefusals: boolean): Promise<number> {
 	const { statuses, tempIds } = await sendCommands(
 		client,
-		adds.map((a) => ({ type: 'section_add' as const, uuid: a.uuid, tempId: a.tempId, args: { projectId: a.projectId, name: a.heading } })),
+		adds.map((a) => ({ ref: a.relPath, command: { type: 'section_add' as const, uuid: a.uuid, tempId: a.tempId, args: { projectId: a.projectId, name: a.heading } } })),
 	);
 	const sections: TodoistSectionLink[] = [];
 	const log: TodoistSyncLogInput[] = [];
@@ -866,10 +916,10 @@ async function writeProjectId(vaultRoot: string, relPath: string, id: string, lo
  * Todoist's name (logged, not retried); any other failure leaves it, so the
  * next cycle sends the update again. Returns how many Todoist renamed.
  */
-async function pushProjectUpdates(client: TodoistApi, vaultRoot: string, updates: PlannedProjectUpdate[], state: ProjectState): Promise<number> {
+async function pushProjectUpdates(client: SyncClient, vaultRoot: string, updates: PlannedProjectUpdate[], state: ProjectState): Promise<number> {
 	const { statuses } = await sendCommands(
 		client,
-		updates.map((u) => ({ type: 'project_update' as const, uuid: u.uuid, args: { id: u.projectId, name: u.name } })),
+		updates.map((u) => ({ ref: u.projectId, command: { type: 'project_update' as const, uuid: u.uuid, args: { id: u.projectId, name: u.name } } })),
 	);
 	const log: TodoistSyncLogInput[] = [];
 	let renamed = 0;
@@ -928,11 +978,13 @@ async function renameProjectNotes(vaultRoot: string, renames: PlannedNoteRename[
  * created id by temp id. A failed command arrives as a status; a failed
  * request stops the run. A `projectId` naming a temp id that an earlier
  * request (or `known`) resolved is sent as the real id: a temp id holds
- * only within its own request.
+ * only within its own request. Each batch goes to the debug log as type,
+ * `ref` (an anchor, note path or project id: never content) and uuid, and
+ * its answer as the status per uuid.
  */
 async function sendCommands(
-	client: TodoistApi,
-	commands: SyncCommand[],
+	client: SyncClient,
+	commands: { ref: string; command: SyncCommand }[],
 	known: Record<string, string> = {},
 ): Promise<{ statuses: Record<string, unknown>; tempIds: Record<string, string> }> {
 	const statuses: Record<string, unknown> = {};
@@ -943,9 +995,12 @@ async function sendCommands(
 		return typeof projectId === 'string' && resolved[projectId] ? ({ ...command, args: { ...command.args, projectId: resolved[projectId] } } as SyncCommand) : command;
 	};
 	for (let i = 0; i < commands.length; i += COMMANDS_PER_REQUEST) {
+		const batch = commands.slice(i, i + COMMANDS_PER_REQUEST);
+		debug('TODOIST', `send ${batch.length} command${batch.length === 1 ? '' : 's'}: ${batch.map((c) => `${c.command.type} ${c.ref} ${c.command.uuid}`).join(', ')}`);
+		let answered: Record<string, unknown>;
 		try {
-			const res = await client.sync({ commands: commands.slice(i, i + COMMANDS_PER_REQUEST).map(withRealProject) });
-			Object.assign(statuses, res.syncStatus ?? {});
+			const res = await client.sync({ commands: batch.map((c) => withRealProject(c.command)) });
+			answered = res.syncStatus ?? {};
 			Object.assign(tempIds, res.tempIdMapping ?? {});
 		} catch (err) {
 			if (!(err instanceof TodoistSyncError)) {
@@ -953,9 +1008,11 @@ async function sendCommands(
 				const failure = classifyTodoistError(err);
 				throw new SyncStop(syncErrorMessage(failure), failure);
 			}
-			Object.assign(statuses, err.syncStatus);
+			answered = err.syncStatus;
 			Object.assign(tempIds, err.tempIdMapping);
 		}
+		debug('TODOIST', `sync_status: ${Object.entries(answered).map(([uuid, status]) => `${uuid} ${JSON.stringify(status)}`).join(', ')}`);
+		Object.assign(statuses, answered);
 		Object.assign(resolved, tempIds);
 	}
 	return { statuses, tempIds };

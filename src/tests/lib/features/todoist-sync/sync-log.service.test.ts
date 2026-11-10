@@ -16,7 +16,8 @@ import { invoke } from '@tauri-apps/api/core';
 import { error } from '#lib/utils/debug.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
-import { showSyncLog } from '#lib/features/todoist-sync/sync-log.service.js';
+import { parseCycle, type CycleRun } from '#lib/features/todoist-sync/cycle-log.logic.js';
+import { logCycle, showSyncLog } from '#lib/features/todoist-sync/sync-log.service.js';
 
 let vault: FakeVault;
 
@@ -83,5 +84,43 @@ describe('showSyncLog', () => {
 		expect(toast.error).toHaveBeenCalledWith('Could not read the Todoist sync log. Details are in the log.');
 		expect(vi.mocked(error)).toHaveBeenCalledWith('TODOIST', 'reading the sync log failed:', expect.any(Error));
 		expect(todoistSyncStore.logOpen).toBe(false);
+	});
+});
+
+describe('logCycle', () => {
+	const quiet: CycleRun = {
+		mode: 'auto',
+		trigger: 'interval',
+		startedAt: 1000,
+		durationMs: 5,
+		outcome: 'unreachable',
+		counts: null,
+		skipped: null,
+		commands: {},
+		tokenAdvanced: false,
+	};
+
+	it('appends a cycle row, and folds the next quiet automatic cycle into it', async () => {
+		await logCycle('/vault', quiet);
+		await logCycle('/vault', { ...quiet, startedAt: 2000 });
+
+		expect(vault.cycles).toHaveLength(1);
+		expect(parseCycle(vault.cycles[0].message)).toMatchObject({ startedAt: 2000, firstStartedAt: 1000, repeats: 2 });
+	});
+
+	it('appends after an event row', async () => {
+		await logCycle('/vault', quiet);
+		await appendLog([{ kind: 'stale', anchor: null, message: 'x' }]);
+		await logCycle('/vault', quiet);
+
+		expect(vault.cycles.map((r) => parseCycle(r.message)!.repeats)).toEqual([1, 1]);
+	});
+
+	it('logs a failed write and does not throw', async () => {
+		vi.mocked(invoke).mockRejectedValue(new Error('db closed'));
+
+		await expect(logCycle('/vault', quiet)).resolves.toBeUndefined();
+
+		expect(vi.mocked(error)).toHaveBeenCalledWith('TODOIST', 'writing the sync cycle row failed:', expect.any(Error));
 	});
 });

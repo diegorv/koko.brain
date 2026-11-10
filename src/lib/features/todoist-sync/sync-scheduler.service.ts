@@ -4,6 +4,7 @@ import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
+import type { CycleTrigger } from './cycle-log.logic.js';
 import {
 	autoCycleDelay,
 	autoSyncCreateCapMessage,
@@ -17,14 +18,15 @@ import {
 	type AutoSyncFailureKind,
 } from './sync-scheduler.logic.js';
 import { syncErrorMessage } from './sync-scope.logic.js';
-import { syncNow, type SyncNowOutcome } from './sync-now.service.js';
+import { syncNow, type SyncMode, type SyncNowOutcome } from './sync-now.service.js';
 
 /** Minimum time between the end of a cycle and the next automatic one (design rule 13). */
 const MIN_GAP_MS = 30_000;
 /** Delay after saving a note with anchored lines before its cycle. */
 const SAVE_DELAY_MS = 5_000;
 
-type CycleKind = 'auto' | 'manual';
+/** What starts an automatic cycle. */
+type AutoTrigger = Exclude<CycleTrigger, 'manual'>;
 
 /** The automatic triggers of one open vault. */
 interface Session {
@@ -47,8 +49,8 @@ const STOPPED: SyncNowOutcome = { ok: false, message: 'The Todoist sync was stop
 let session: Session | null = null;
 /** Whether a cycle (automatic or manual) is in progress. */
 let running = false;
-/** The one cycle queued by triggers that arrived during a cycle; manual wins over auto. */
-let followUp: CycleKind | null = null;
+/** The one cycle queued by triggers that arrived during a cycle, by its first trigger; manual wins over auto. */
+let followUp: CycleTrigger | null = null;
 /** "Sync now" calls waiting for the queued manual follow-up. */
 let manualWaiters: ((outcome: SyncNowOutcome) => void)[] = [];
 let lastEndedAt = Number.NEGATIVE_INFINITY;
@@ -92,12 +94,12 @@ export function startAutoSync(vaultPath: string): void {
 		if (s.saveTimer !== null) clearTimeout(s.saveTimer);
 		s.saveTimer = setTimeout(() => {
 			s.saveTimer = null;
-			requestAutoCycle();
+			requestAutoCycle('after-save');
 		}, SAVE_DELAY_MS);
 	});
-	window.addEventListener('focus', requestAutoCycle);
+	window.addEventListener('focus', onFocus);
 	scheduleInterval(s);
-	requestAutoCycle();
+	requestAutoCycle('vault-open');
 }
 
 /**
@@ -113,7 +115,7 @@ export function stopAutoSync(): void {
 	session = null;
 	for (const timer of [s.intervalTimer, s.dueTimer, s.saveTimer]) if (timer !== null) clearTimeout(timer);
 	s.unsubscribeSave();
-	window.removeEventListener('focus', requestAutoCycle);
+	window.removeEventListener('focus', onFocus);
 	followUp = null;
 	for (const resolve of manualWaiters.splice(0)) resolve(STOPPED);
 	lastEndedAt = Number.NEGATIVE_INFINITY;
@@ -163,35 +165,41 @@ function rateLimitRefusal(): SyncNowOutcome | null {
 function scheduleInterval(s: Session): void {
 	s.intervalTimer = setTimeout(() => {
 		scheduleInterval(s);
-		requestAutoCycle();
+		requestAutoCycle('interval');
 	}, settingsStore.todoist.syncIntervalMinutes * 60_000);
 }
 
-function requestAutoCycle(): void {
+function onFocus(): void {
+	requestAutoCycle('focus');
+}
+
+/** Runs, defers or queues an automatic cycle; a deferred or queued one keeps the first trigger that asked for it. */
+function requestAutoCycle(trigger: AutoTrigger): void {
 	const s = session;
 	if (s === null) return;
 	if (running) {
-		followUp ??= 'auto';
+		followUp ??= trigger;
 		return;
 	}
 	const wait = autoCycleDelay(Date.now(), lastEndedAt, blockedUntil, MIN_GAP_MS);
 	if (wait > 0) {
 		s.dueTimer ??= setTimeout(() => {
 			s.dueTimer = null;
-			requestAutoCycle();
+			requestAutoCycle(trigger);
 		}, wait);
 		return;
 	}
 	const { syncEnabled, apiToken } = settingsStore.todoist;
 	if (!syncEnabled || apiToken === rejectedToken || vaultStore.path !== s.vaultPath) return;
-	void runCycle('auto');
+	void runCycle(trigger);
 }
 
-async function runCycle(kind: CycleKind): Promise<SyncNowOutcome> {
+async function runCycle(trigger: CycleTrigger): Promise<SyncNowOutcome> {
 	running = true;
 	const s = session;
 	const token = settingsStore.todoist.apiToken;
-	const outcome = kind === 'auto' && !(await autoCycleAllowed(s!)) ? SKIPPED : await syncNow(kind);
+	const kind: SyncMode = trigger === 'manual' ? 'manual' : 'auto';
+	const outcome = kind === 'auto' && !(await autoCycleAllowed(s!)) ? SKIPPED : await syncNow(kind, trigger);
 	running = false;
 	// A cycle that outlived its session (vault switch) leaves the next session's state alone.
 	if (s === session) {
@@ -209,8 +217,8 @@ async function runCycle(kind: CycleKind): Promise<SyncNowOutcome> {
 		void run.then((o) => {
 			for (const resolve of waiters) resolve(o);
 		});
-	} else if (next === 'auto') {
-		requestAutoCycle();
+	} else if (next !== null) {
+		requestAutoCycle(next);
 	}
 	return outcome;
 }
@@ -234,7 +242,7 @@ async function firstRunDone(vaultPath: string): Promise<boolean> {
 	}
 }
 
-function handleOutcome(outcome: SyncNowOutcome, kind: CycleKind, token: string): void {
+function handleOutcome(outcome: SyncNowOutcome, kind: SyncMode, token: string): void {
 	if (outcome.ok) {
 		for (const k of toastedKinds) toast.dismiss(toastId(k));
 		toastedKinds.clear();

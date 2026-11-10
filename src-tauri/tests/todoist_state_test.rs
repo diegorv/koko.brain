@@ -60,7 +60,7 @@ fn section_commit(upsert: Vec<TodoistSectionLink>, delete: Vec<&str>) -> Todoist
 }
 
 fn log(kind: &str, message: &str) -> TodoistSyncLogInput {
-	TodoistSyncLogInput { kind: kind.into(), anchor: None, message: message.into() }
+	TodoistSyncLogInput { kind: kind.into(), anchor: None, message: message.into(), replace_id: None }
 }
 
 #[test]
@@ -295,13 +295,48 @@ async fn log_keeps_the_anchor_and_a_timestamp() {
 	let _guard = TEST_LOCK.lock().unwrap();
 	let (_tmp, root) = setup();
 
-	let entry = TodoistSyncLogInput { kind: "conflict".into(), anchor: Some("td-a".into()), message: "lost: x".into() };
+	let entry = TodoistSyncLogInput { kind: "conflict".into(), anchor: Some("td-a".into()), message: "lost: x".into(), replace_id: None };
 	todoist_append_log(root.clone(), vec![entry]).await.unwrap();
 
 	let rows = todoist_read_log(root, None).await.unwrap();
 	assert_eq!(rows.len(), 1);
 	assert_eq!(rows[0].anchor.as_deref(), Some("td-a"));
 	assert!(rows[0].created_at > 0);
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn log_replace_id_rewrites_the_newest_row_in_place() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let (_tmp, root) = setup();
+
+	todoist_append_log(root.clone(), vec![log("detach", "event"), log("cycle", "first")]).await.unwrap();
+	let newest = todoist_read_log(root.clone(), Some(1)).await.unwrap()[0].clone();
+
+	let replace = TodoistSyncLogInput { replace_id: Some(newest.id), ..log("cycle", "second") };
+	todoist_append_log(root.clone(), vec![replace]).await.unwrap();
+
+	let rows = todoist_read_log(root.clone(), None).await.unwrap();
+	assert_eq!(rows.iter().map(|e| (e.id, e.message.as_str())).collect::<Vec<_>>(), vec![(newest.id, "second"), (newest.id - 1, "event")]);
+	assert!(rows[0].created_at >= newest.created_at);
+
+	db::close_database().unwrap();
+}
+
+#[tokio::test]
+async fn log_replace_id_of_an_older_row_appends_instead() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	let (_tmp, root) = setup();
+
+	todoist_append_log(root.clone(), vec![log("cycle", "first"), log("detach", "event")]).await.unwrap();
+	let older = todoist_read_log(root.clone(), None).await.unwrap()[1].clone();
+
+	let replace = TodoistSyncLogInput { replace_id: Some(older.id), ..log("cycle", "second") };
+	todoist_append_log(root.clone(), vec![replace]).await.unwrap();
+
+	let rows = todoist_read_log(root.clone(), None).await.unwrap();
+	assert_eq!(rows.iter().map(|e| e.message.as_str()).collect::<Vec<_>>(), vec!["second", "event", "first"]);
 
 	db::close_database().unwrap();
 }

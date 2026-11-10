@@ -139,6 +139,15 @@ Kokobrain can sync tasks with [Todoist](https://todoist.com), a popular task man
 > [!WARNING]
 > Completing a task in Kokobrain does not automatically complete it in Todoist, and vice versa. Use the sync button to update statuses.
 
+### Troubleshooting the sync
+
+Run **Todoist: Show sync log** from the Command Palette to see what the sync did in this vault, newest first. The line at the top sums up the last sync cycle. Use **All**, **Cycles** and **Events** to narrow the list.
+
+- A **cycle** row is one sync run. It says whether it was manual or automatic, what started it (manual, vault-open, interval, focus or after-save), the outcome (ok, cancelled, or the failure, such as `unreachable` or `invalid-token`), how long it took, what changed (notes created, tasks inserted, lines updated, tasks updated or created in Todoist, links detached), what it skipped for being over a cap, the commands it sent by type, and whether the sync token moved on. Automatic runs that change nothing share one row, which counts them ("5 cycles since ...").
+- Every other row is an **event**: a conflict, a detached or frozen task, a skipped line, a command Todoist refused.
+
+To see each command sent to Todoist and its answer, turn on **Settings > Troubleshooting > Save debug log to file**. The log file (in `~/Library/Logs/com.diegorv.kokobrain/`) then gets a `TODOIST` line for each pull, each command batch (command type, task anchor or note path, and uuid) and each answer per uuid. Neither the cycle rows nor these lines hold task text or note content.
+
 ---
 
 ## Next Steps

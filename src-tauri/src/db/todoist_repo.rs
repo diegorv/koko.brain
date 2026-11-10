@@ -90,6 +90,12 @@ pub struct TodoistSyncLogInput {
 	pub anchor: Option<String>,
 	/// Human-readable text.
 	pub message: String,
+	/// Id of a row this entry replaces in place (time, kind, anchor and
+	/// message), so a run of quiet sync cycles keeps one row. Honoured only
+	/// while that row is still the newest; otherwise the entry is appended.
+	#[serde(default)]
+	#[ts(optional)]
+	pub replace_id: Option<i64>,
 }
 
 /// One stored `todoist_sync_log` row.
@@ -210,9 +216,22 @@ pub fn read_sections(conn: &Connection) -> Result<Vec<TodoistSectionLink>, Strin
 }
 
 /// Appends `entries` stamped with `created_at`, then drops every row older
-/// than the newest [`SYNC_LOG_LIMIT`]. Run it inside a transaction.
+/// than the newest [`SYNC_LOG_LIMIT`]. An entry with a `replace_id` naming
+/// the newest row rewrites that row instead. Run it inside a transaction.
 pub fn append_log(conn: &Connection, entries: &[TodoistSyncLogInput], created_at: i64) -> Result<(), String> {
 	for entry in entries {
+		if let Some(id) = entry.replace_id {
+			let replaced = conn
+				.execute(
+					"UPDATE todoist_sync_log SET created_at = ?2, kind = ?3, anchor = ?4, message = ?5
+					 WHERE id = ?1 AND id = (SELECT MAX(id) FROM todoist_sync_log)",
+					params![id, created_at, entry.kind, entry.anchor, entry.message],
+				)
+				.map_err(|e| format!("Failed to rewrite todoist_sync_log: {e}"))?;
+			if replaced > 0 {
+				continue;
+			}
+		}
 		conn.execute(
 			"INSERT INTO todoist_sync_log (created_at, kind, anchor, message) VALUES (?1, ?2, ?3, ?4)",
 			params![created_at, entry.kind, entry.anchor, entry.message],

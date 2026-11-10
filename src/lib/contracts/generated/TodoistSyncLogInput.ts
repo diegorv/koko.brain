@@ -15,4 +15,10 @@ anchor: string | null,
 /**
  * Human-readable text.
  */
-message: string, };
+message: string, 
+/**
+ * Id of a row this entry replaces in place (time, kind, anchor and
+ * message), so a run of quiet sync cycles keeps one row. Honoured only
+ * while that row is still the newest; otherwise the entry is appended.
+ */
+replaceId?: number, };
