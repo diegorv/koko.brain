@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Guarded writer for task lines in notes that are open in a tab](issues/04-guarded-line-writer-open-tabs.md) | 03 | done | issue/04-guarded-line-writer-open-tabs (af9115203) | 2026-11-09 |
 | 05 | [Sync settings, sync state store and a connection check](issues/05-sync-settings-state-and-connection-check.md) | none | done | issue/05-sync-settings-state-and-connection-check (e982782b8) | 2026-11-09 |
 | 06 | ["Todoist: Sync now" pulls every project and its open tasks into project notes](issues/06-sync-now-pulls-projects-and-tasks.md) | 04, 05 | done | issue/06-sync-now-pulls-projects-and-tasks (12fefe60a) | 2026-11-09 |
-| 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | blocked | | |
+| 07 | [Completing or reopening a task syncs both ways, recurring tasks included](issues/07-completion-syncs-both-ways.md) | 01, 06 | todo | | |
 | 08 | [Edits made in Todoist reach the note](issues/08-todoist-edits-reach-the-note.md) | 07 | todo | | |
 | 09 | [Edits made in the note reach Todoist](issues/09-note-edits-reach-todoist.md) | 08 | todo | | |
 | 10 | [A task written in the brain is created in Todoist](issues/10-brain-tasks-created-in-todoist.md) | 09 | todo | | |
