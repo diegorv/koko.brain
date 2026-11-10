@@ -148,7 +148,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 111 | [Quick filters on status, due and priority](issues/111-quick-filters.md) | 110 | todo | | |
 | 112 | [Group and sort by note, folder, due, priority or status](issues/112-group-and-sort.md) | 111 | todo | | |
 | 113 | [Keyboard navigation and accessible rows](issues/113-keyboard-and-a11y.md) | 112 | todo | | |
-| 114 | [Task writes reach search and the QueryJS cache](issues/114-task-writes-reach-search.md) | 021 | in-progress | | |
+| 114 | [Task writes reach search and the QueryJS cache](issues/114-task-writes-reach-search.md) | 021 | done | issue/114-task-writes-reach-search (108a60047) | 2026-11-09 |
 | 115 | [Tasks come from the entries snapshot, and the heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 114, 111, 074 | todo | | |
 | 116 | [Sources panel with source cards and default excludes](issues/116-sources-panel-and-excludes.md) | 115 | todo | | |
 | 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 116 | todo | | |
@@ -274,3 +274,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 15:47 — 021 — start — launched by /relay-lite:run — 5395b50e9
 - 2026-11-09 16:08 — 021 — deliver — round 1 APPROVED by claude, fix round (line-zero stale test, update_result doc comment + regenerated ToggleTaskResult.ts), round 2 APPROVED by claude with no findings; full suite passed (vitest 583 files, 14195 tests; cargo 39 binaries) — fc8741157
 - 2026-11-09 21:08 — 114 — start — launched by /relay-lite:run — cacfb7f7c
+- 2026-11-09 21:18 — 114 — deliver — round 1 APPROVED by claude with one minor (no test of consumer-before-invalidation order), fixed with a probe test; round 2 APPROVED by claude with no findings; full suite passed (585 files, 14296 tests) — 108a60047
