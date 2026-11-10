@@ -6,19 +6,19 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, added by the owner on 2026-11-06 after the challenge review (`raw/first-wave-challenge.json`).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts (it already mounts the real MarkdownEditor and calls syncExternalContentToEditor): open '---\ntitle: x\n---\nHello world\n', put the caret at the index of 'world', call syncExternalContentToEditor(path, '---\ntitle: x\n_favorite: true\n---\nHello world\n', false, 'none') and flushSync; the selection head equals the new doc().indexOf('world'). It fails today (the head keeps the old offset).
-- [ ] A text removal above the caret (Cmd+E turning `false` into `true`) moves the caret back by the removed length, so it stays before the same character.
-- [ ] A non-empty selection in the body survives a frontmatter rewrite with both ends mapped, not collapsed.
-- [ ] A change entirely below the caret leaves the caret where it was.
-- [ ] A background tab rewritten above its saved caret (task toggle or link rewrite while another tab is active) shows the caret on the same text when the user switches back.
-- [ ] The existing CRLF case 'an external sync that shortens a CRLF note below the cursor lands in the view' and the undo-mapping cases in the same file still pass.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, in src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts (it already mounts the real MarkdownEditor and calls syncExternalContentToEditor): open '---\ntitle: x\n---\nHello world\n', put the caret at the index of 'world', call syncExternalContentToEditor(path, '---\ntitle: x\n_favorite: true\n---\nHello world\n', false, 'none') and flushSync; the selection head equals the new doc().indexOf('world'). It fails today (the head keeps the old offset).
+- [x] A text removal above the caret (Cmd+E turning `false` into `true`) moves the caret back by the removed length, so it stays before the same character.
+- [x] A non-empty selection in the body survives a frontmatter rewrite with both ends mapped, not collapsed.
+- [x] A change entirely below the caret leaves the caret where it was.
+- [x] A background tab rewritten above its saved caret (task toggle or link rewrite while another tab is active) shows the caret on the same text when the user switches back.
+- [x] The existing CRLF case 'an external sync that shortens a CRLF note below the cursor lands in the view' and the undo-mapping cases in the same file still pass.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -32,3 +32,4 @@
 ## Comments
 
 - 2026-11-06: added to the first wave by the owner after the challenge review.
+- 2026-11-10 (branch issue/001-caret-selection-follow-their-text-when-frontmatter): MarkdownEditor.svelte replaceDoc no longer passes an explicit selection, so CodeMirror maps the caret and selection through the docDiff changes (active tab sync and the background tab's saved state). Five caret cases added to undo-history-across-notes.test.ts. Review round 1: APPROVED, two nits resolved with no change. Full suite: 606 files passed, 14900 tests passed, 54 skipped, 1 todo, exit 0.

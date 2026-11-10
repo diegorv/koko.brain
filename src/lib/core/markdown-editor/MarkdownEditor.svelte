@@ -154,9 +154,14 @@
 	 * Turns the doc into `content` (no history entry) and never throws. Only
 	 * the changed regions are replaced (`docDiff`), so the undo events of the
 	 * user's own edits map through them and an undo lands where it was made.
+	 * The transaction carries no `selection`: CodeMirror reads an explicit one
+	 * as post-change offsets and does not map it, so the caret would keep its
+	 * old offset and a range would collapse. Without one the current selection
+	 * maps through the changes and stays on the same text.
 	 * When the change is too large to diff, the note's history is dropped
-	 * instead (a fresh state keeping the current language), so no undo event
-	 * is left to replay at a position the mapping cannot place.
+	 * instead (a fresh state keeping the current language, with the caret at
+	 * `cursorPos` clamped), so no undo event is left to replay at a position
+	 * the mapping cannot place.
 	 * CodeMirror commits the new state before it builds widget DOM, so a widget
 	 * whose `toDOM` throws escapes `dispatch` with `view.state` on the new doc
 	 * while `contentDOM` still shows the old one; the next replace then
@@ -183,7 +188,6 @@
 		}
 		const spec = (c: ChangeSpec) => ({
 			changes: c,
-			selection: EditorSelection.cursor(Math.min(cursorPos, text.length)),
 			annotations: Transaction.addToHistory.of(false),
 		});
 		try {
@@ -205,10 +209,12 @@
 	 * state (`freshState`). A revisit takes the state saved when the user left
 	 * the tab and brings it up to date in one update with no history entry:
 	 * the content the store holds now (a background write may have changed it;
-	 * `docDiff` maps the history through it), the cursor, and the current
-	 * theme, editor mode and `langEffects`, since a saved state keeps the
-	 * compartment values it had when it was left. A background write too large
-	 * to diff drops the saved state for a fresh one, as `replaceDoc` does.
+	 * `docDiff` maps the history and the saved selection through it, so the
+	 * caret comes back on the same text), and the current theme, editor mode
+	 * and `langEffects`, since a saved state keeps the compartment values it
+	 * had when it was left. `cursorPos` places the caret only in a fresh state.
+	 * A background write too large to diff drops the saved state for a fresh
+	 * one, as `replaceDoc` does.
 	 * If building the state throws, the tab gets a fresh state with the cursor
 	 * at 0, so the view does not stay on the previous tab's doc.
 	 */
@@ -223,7 +229,6 @@
 				saved && changes
 					? saved.update({
 							changes,
-							selection: EditorSelection.cursor(Math.min(cursorPos, text.length)),
 							annotations: Transaction.addToHistory.of(false),
 							effects: [
 								editorThemeCompartment.reconfigure(
