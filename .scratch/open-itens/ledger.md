@@ -263,7 +263,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 226 | [The Periodic Notes help shows format examples that escape literal words with [ ]](issues/226-periodic-notes-help-shows-format-examples-that.md) | none | todo | | |
 | 227 | [The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date](issues/227-tasks-help-says-default-view-lists-only.md) | none | todo | | |
 | 228 | [Help docs speak of views, and their examples work](issues/228-help-docs-speak-of-views.md) | 067, 142 | todo | | |
-| 229 | [Say plainly that the Todoist token lives in the vault](issues/229-todoist-token-out-of-vault.md) | none | in-progress | | |
+| 229 | [Say plainly that the Todoist token lives in the vault](issues/229-todoist-token-out-of-vault.md) | none | done | issue/229-todoist-token-out-of-vault (8ab6672fa) | 2026-11-09 |
 | 230 | [Linear-calendar bars line up with their day columns](issues/230-linear-calendar-bar-geometry.md) | none | todo | | |
 | 231 | [Separate verbose renderer diagnostics from ordinary file logs](issues/231-opt-in-renderer-diagnostics.md) | none | todo | | |
 | 232 | [Future: icon colors customizable in Settings > Appearance](issues/232-future-custom-icon-colors.md) | none | todo | | |
@@ -276,3 +276,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-09 21:08 — 114 — start — launched by /relay-lite:run — cacfb7f7c
 - 2026-11-09 21:18 — 114 — deliver — round 1 APPROVED by claude with one minor (no test of consumer-before-invalidation order), fixed with a probe test; round 2 APPROVED by claude with no findings; full suite passed (585 files, 14296 tests) — 108a60047
 - 2026-11-09 21:47 — 229 — start — launched by /relay-lite:run — ca684abbe
+- 2026-11-09 21:54 — 229 — deliver — round 1 APPROVED by claude, two optional nits rejected with reasons (ADR cross-reference kept, settings table fact out of scope); full suite passed (591 files, 14373 tests) — 8ab6672fa
