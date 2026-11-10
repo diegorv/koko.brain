@@ -175,6 +175,11 @@ function handleToggleTaskStatus(args: Args<'toggle_task_status'>): ToggleTaskRes
 	return result;
 }
 
+/** No E2E spec drives the Todoist sync, so the guarded line writer is not mocked. */
+function handleWriteTaskLines(): never {
+	throw new Error('write_task_lines is not available in E2E');
+}
+
 function handleUpdateNoteInIndex(args: Args<'update_note_in_index'>): UpdateResultV2 {
 	const path = args.path;
 	const result = takeHookResult(path) ?? vaultIndex.update(path, args.content);
@@ -477,6 +482,7 @@ const HANDLERS: Handlers = {
 	get_all_tasks_v2: handleGetAllTasksV2,
 	get_tasks_in_section_v2: handleGetTasksInSectionV2,
 	toggle_task_status: handleToggleTaskStatus,
+	write_task_lines: handleWriteTaskLines,
 	update_note_in_index: handleUpdateNoteInIndex,
 	remove_note_from_index: handleRemoveNoteFromIndex,
 	rename_note: handleRenameNote,

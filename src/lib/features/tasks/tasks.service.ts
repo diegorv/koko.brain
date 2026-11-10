@@ -1,11 +1,9 @@
 import { toast } from 'svelte-sonner';
 import { call } from '#lib/contracts/ipc.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
-import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
-import { applyNoteChange, notifyContentInvalidated } from '#lib/core/filesystem/note-change.service.js';
-import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settleTaskWrite } from '#lib/core/filesystem/task-write.service.js';
 import { tasksStore } from './tasks.store.svelte';
 import { toggleTarget } from './task-status.logic';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
@@ -118,7 +116,7 @@ export async function updateSectionTagFilter(tag: string): Promise<void> {
  * checkbox must not look unclicked until then.
  *
  * The open editor tab gets `syncExternalContentToEditor` (in
- * `afterTaskWrite`) so the checkbox toggle is visible without waiting for
+ * `settleTaskWrite`) so the checkbox toggle is visible without waiting for
  * the watcher to round-trip the file change.
  *
  * Rust toggles the DISK copy and the sync marks the tab saved, so a dirty
@@ -169,34 +167,14 @@ export async function toggleTask(filePath: string, task: TaskItem): Promise<void
 }
 
 /**
- * Settles a note a Rust task command already wrote to disk and indexed in
- * `VaultIndex`. Every task write goes through here, so none of these steps
- * is duplicated at a call site.
- *
- * The watcher is no fallback: it skips a batch whose paths were all saved in
- * the last 15 s, which a toggle on a just-saved note is (`toggleTask` saves a
- * dirty tab first). So the FTS5 / semantic tables, the per-file consumers and
- * the content caches are refreshed here, through the note-change owner.
- *
- * The `task` source has no yield, so the consumer fan-out has finished before
- * `notifyContentInvalidated()` clears the QueryJS cache, as in `notifyAfterSave`.
+ * Settles a note a Rust task command wrote (`settleTaskWrite`), then
+ * refetches the Tasks store right away instead of waiting for the throttled
+ * version bump.
  * @param path - absolute path of the written note
  * @param updatedContent - the note's content after the write
  */
 async function afterTaskWrite(path: string, updatedContent: string): Promise<void> {
-	// Sync the open tab (if any) and bump the external signal so
-	// MarkdownEditor.svelte replaces the doc when this is the active tab.
-	// `'none'`: Rust already wrote the content to disk.
-	syncExternalContentToEditor(path, updatedContent, true, 'none');
-	markRecentSave(path);
-	void applyNoteChange({
-		kind: 'upsert',
-		source: 'task',
-		path,
-		content: updatedContent,
-		vaultPath: vaultStore.path ?? undefined,
-	});
-	notifyContentInvalidated();
+	settleTaskWrite(path, updatedContent);
 	await buildTaskIndex();
 }
 

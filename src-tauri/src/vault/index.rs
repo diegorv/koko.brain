@@ -343,6 +343,13 @@ impl VaultIndex {
 		self.version
 	}
 
+	/// The canonical root of the vault the index was last built for by
+	/// `build_with_root` (`scan_vault_v2*`), i.e. the open vault; `None`
+	/// before the first scan or after a plain `build`.
+	pub fn vault_root(&self) -> Option<&str> {
+		self.vault_root.as_deref()
+	}
+
 	/// Total number of indexed entries.
 	pub fn len(&self) -> usize {
 		self.entries.len()

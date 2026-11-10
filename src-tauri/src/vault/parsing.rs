@@ -1436,8 +1436,9 @@ static ORDERED_TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Regex for a markdown heading line. Group 1 is the `#` run (its length is
 /// the heading level), group 2 the heading text. Used by
-/// `extract_tasks_from_section` to find section boundaries.
-static HEADING_RE: LazyLock<Regex> =
+/// `extract_tasks_from_section` to find section boundaries, and by
+/// `task_lines` to find the heading an insert goes under.
+pub(crate) static HEADING_RE: LazyLock<Regex> =
 	LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.*)$").expect("HEADING_RE"));
 
 // --- Date signifiers -----------------------------------------------------
@@ -1546,8 +1547,9 @@ static RECURRENCE_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(&pattern).expect("recurrence regex")
 });
 
-/// ID regex: 🆔 + optional space + non-whitespace identifier.
-static ID_RE: LazyLock<Regex> = LazyLock::new(|| {
+/// ID regex: 🆔 + optional space + non-whitespace identifier. `task_lines`
+/// reads every match of it as an anchor occurrence.
+pub(crate) static ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(&format!(r"{}\s*(\S+)", emoji_pattern(ID_EMOJI))).expect("id regex")
 });
 
@@ -1674,7 +1676,7 @@ pub(crate) fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 /// Detects a fenced-code-block opener / closer at the start of `line`.
 /// Returns the fence string (`"```"` or `"~~~"`) when matched, else `None`.
 /// Only spaces and tabs may precede the fence.
-fn detect_code_fence(line: &str) -> Option<&str> {
+pub(crate) fn detect_code_fence(line: &str) -> Option<&str> {
 	let trimmed = line.trim_start_matches([' ', '\t']);
 	if trimmed.starts_with("```") {
 		Some("```")

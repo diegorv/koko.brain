@@ -13,8 +13,8 @@ import { debug, error } from '#lib/utils/debug.js';
  * - `create`  - the note creator, right after Rust's `create_note`
  * - `fs`      - the file explorer's create / delete / rename / move
  * - `restore` - Trash restore, after the rename back
- * - `task`    - a task write a Rust task command (`toggle_task_status`)
- *               already made on disk and indexed
+ * - `task`    - a task write a Rust task command (`toggle_task_status`,
+ *               `write_task_lines`) already made on disk and indexed
  */
 export type NoteChangeSource = 'save' | 'edit' | 'watcher' | 'create' | 'fs' | 'restore' | 'task';
 

@@ -7,6 +7,9 @@ use crate::vault::parsing::{
 	extract_tasks_from_section, parse_task_line, rewrite_type_in_frontmatter, set_task_status_in_content,
 };
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, TaskStatus, ToggleTaskResult};
+use crate::vault::task_lines::{
+	apply_task_line_edits, TaskLineEditOutcome, TaskLineEdits, TaskLinesOutcome, TaskLinesWriteResult,
+};
 use crate::vault::VaultIndexState;
 use serde::Serialize;
 use std::cmp::Ordering;
@@ -856,6 +859,119 @@ pub fn toggle_task_status(
 					"toggle_task_status: vault-index-updated emit failed: {}",
 					emit_err,
 				),
+			);
+		}
+	}
+	Ok(result)
+}
+
+/// Joins a vault-relative note path onto the canonical `root`. Refuses a
+/// path that is empty, absolute, holds a `.` or `..` segment, is not `.md` /
+/// `.markdown`, or reaches outside `root` through a symlink (checked on the
+/// file, or on its nearest existing ancestor when it does not exist yet).
+fn confined_note_path(root: &Path, rel_path: &str) -> Result<std::path::PathBuf, String> {
+	let rel = Path::new(rel_path);
+	let plain = rel.components().next().is_some()
+		&& rel.components().all(|c| matches!(c, std::path::Component::Normal(_)));
+	if !plain || !vault_fs::is_search_indexed_filename(rel_path) {
+		return Err(format!("Refusing a note path that is not vault-relative Markdown: {:?}", rel_path));
+	}
+	let path = root.join(rel);
+	let existing = path
+		.ancestors()
+		.find(|p| fs::symlink_metadata(p).is_ok())
+		.ok_or_else(|| format!("No existing ancestor for {}", path.display()))?;
+	let canonical = existing
+		.canonicalize()
+		.map_err(|e| format!("Failed to resolve {}: {}", existing.display(), e))?;
+	if !canonical.starts_with(root) {
+		return Err(format!("Refusing a note path outside the vault: {:?}", rel_path));
+	}
+	Ok(path)
+}
+
+/// Pure-logic implementation behind `write_task_lines`: checks the root,
+/// confines the path, applies `edits` through `apply_task_line_edits`, and
+/// writes and indexes the note only when the batch changed it. A missing note
+/// is never created here: the caller creates it through `create_note`, so the
+/// explorer and the note-change owner see a `create`, then calls again.
+pub fn write_task_lines_inner(
+	idx: &mut VaultIndex,
+	vault_root: &str,
+	rel_path: &str,
+	edits: &TaskLineEdits,
+) -> Result<TaskLinesWriteResult, String> {
+	let root = vault_fs::validate_vault_path(vault_root)?;
+	if idx.vault_root() != Some(root.to_string_lossy().as_ref()) {
+		return Err(format!("Refusing to write task lines: {} is not the open vault", vault_root));
+	}
+	let path = confined_note_path(&root, rel_path)?;
+	let path_str = path.to_string_lossy().to_string();
+	let original = match fs::read_to_string(&path) {
+		Ok(content) => Some(content),
+		Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+		Err(e) => return Err(format!("read failed for {}: {}", path_str, e)),
+	};
+	let no_write = |outcome, content, stale| TaskLinesWriteResult {
+		outcome,
+		content,
+		stale,
+		update_result: UpdateResult {
+			version: idx.version(),
+			..Default::default()
+		},
+	};
+	let updated = match apply_task_line_edits(original.as_deref().unwrap_or(""), edits)? {
+		TaskLineEditOutcome::Stale(stale) => return Ok(no_write(TaskLinesOutcome::Stale, None, Some(stale))),
+		TaskLineEditOutcome::Applied(updated) => updated,
+	};
+	let Some(original) = original else {
+		// A batch that adds no text would only create an empty note.
+		if updated.trim().is_empty() {
+			return Ok(no_write(TaskLinesOutcome::Unchanged, None, None));
+		}
+		return Ok(no_write(TaskLinesOutcome::Missing, None, None));
+	};
+	if updated == original {
+		return Ok(no_write(TaskLinesOutcome::Unchanged, Some(original), None));
+	}
+	vault_fs::write_atomic(&path_str, &updated)?;
+	let mtime = read_file_mtime_secs(&path_str).unwrap_or(0);
+	let update_result = update_note_in_index_inner(idx, path_str, &updated, mtime);
+	Ok(TaskLinesWriteResult {
+		outcome: TaskLinesOutcome::Written,
+		content: Some(updated),
+		stale: None,
+		update_result,
+	})
+}
+
+/// Tauri command: replaces, inserts and removes task lines in the note at
+/// `rel_path` under `vault_root`, all or nothing, located by `🆔 td-…`
+/// anchor plus the expected line (todoist-bisync design rule 12). Refuses a
+/// root other than the open vault. Writes atomically, updates the
+/// `VaultIndex` and emits `vault-index-updated` like `toggle_task_status`,
+/// with the lock dropped first.
+#[tauri::command]
+pub fn write_task_lines(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	vault_root: String,
+	rel_path: String,
+	edits: TaskLineEdits,
+) -> Result<TaskLinesWriteResult, String> {
+	let _trace = CmdTrace::new("write_task_lines");
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		write_task_lines_inner(&mut idx, &vault_root, &rel_path, &edits)?
+	};
+	if result.update_result.changed {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result) {
+			debug_log(
+				"VAULT-V2",
+				format!("write_task_lines: vault-index-updated emit failed: {}", emit_err),
 			);
 		}
 	}

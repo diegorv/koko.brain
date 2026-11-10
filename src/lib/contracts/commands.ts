@@ -23,6 +23,8 @@ import type {
 	SemanticStats,
 	SnapshotInfo,
 	TagAggregate,
+	TaskLineEdits,
+	TaskLinesWriteResult,
 	TaskStatus,
 	TodoistKvEntry,
 	TodoistStateCommit,
@@ -103,6 +105,11 @@ export interface CommandMap {
 	toggle_task_status: {
 		args: { path: string; lineNumber: number; expectedText: string; expectedStatus: TaskStatus; target: TaskStatus };
 		result: ToggleTaskResult;
+	};
+	/** Applies anchor-located task-line edits to `relPath` under the open vault `vaultRoot`, all or nothing. */
+	write_task_lines: {
+		args: { vaultRoot: string; relPath: string; edits: TaskLineEdits };
+		result: TaskLinesWriteResult;
 	};
 	/** Drops a note from the index. */
 	remove_note_from_index: { args: { path: string }; result: UpdateResult };
@@ -257,6 +264,7 @@ export const COMMAND_ARGS = {
 	get_all_tasks_v2: [],
 	get_tasks_in_section_v2: ['sectionTag'],
 	toggle_task_status: ['path', 'lineNumber', 'expectedText', 'expectedStatus', 'target'],
+	write_task_lines: ['vaultRoot', 'relPath', 'edits'],
 	remove_note_from_index: ['path'],
 	rename_note: ['from', 'to'],
 	get_all_property_records: [],
