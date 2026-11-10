@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Auto Move rules set properties on save](issues/01-rules-set-properties-on-save.md) | none | todo | | |
+| 01 | [Auto Move rules set properties on save](issues/01-rules-set-properties-on-save.md) | none | in-progress | | |
 | 02 | [Rule consequences in Settings](issues/02-rule-consequences-in-settings.md) | 01 | todo | | |
 | 03 | [The rule filter uses the view filter builder](issues/03-rule-filter-uses-view-filter-builder.md) | 02 | todo | | |
 | 04 | [`file.inFolder` takes a vault-relative folder](issues/04-infolder-takes-vault-relative-folder.md) | none | in-progress | | |
@@ -45,3 +45,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-10 19:21 — ledger created (5 Issues)
 - 2026-11-10 19:22 — 04 — start — launched by /relay-lite:run — d28a43b53
+- 2026-11-10 19:24 — 01 — start — launched by /relay-lite:run — 1244d2a48
