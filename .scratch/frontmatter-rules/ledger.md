@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Auto Move rules set properties on save](issues/01-rules-set-properties-on-save.md) | none | blocked | | |
+| 01 | [Auto Move rules set properties on save](issues/01-rules-set-properties-on-save.md) | none | done | issue/01-rules-set-properties-on-save (397eaa08a) | 2026-11-10 |
 | 02 | [Rule consequences in Settings](issues/02-rule-consequences-in-settings.md) | 01 | todo | | |
 | 03 | [The rule filter uses the view filter builder](issues/03-rule-filter-uses-view-filter-builder.md) | 02 | todo | | |
 | 04 | [`file.inFolder` takes a vault-relative folder](issues/04-infolder-takes-vault-relative-folder.md) | none | done | issue/04-infolder-takes-vault-relative-folder (107bcf35a) | 2026-11-10 |
@@ -48,3 +48,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 19:24 — 01 — start — launched by /relay-lite:run — 1244d2a48
 - 2026-11-10 19:37 — 04 — deliver — review APPROVED round 1 (claude), 2 nits rejected with reasons; full suite 606 files / 14906 tests passed; squash merged and pushed — 107bcf35a
 - 2026-11-10 19:47 — 01 — deliver — blocked: deliver sync rebase conflict in auto-move.service.ts against main (Issue 04 landed first); reviews APPROVED x2; worktree kept — f88836ee0
+- 2026-11-10 21:58 — 01 — start — main session resumed blocked delivery: hand rebase onto Issue 04 (vaultPath threaded into findMatchingRules, test dd63de1ce), opus review could not refute — 397eaa08a
+- 2026-11-10 21:58 — 01 — deliver — reviews APPROVED x2 (claude) + fix round; hand rebase; full suite 607 files / 14967 tests passed; squash merged and pushed — 397eaa08a
