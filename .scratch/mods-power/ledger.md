@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Mods match notes with the view and rule expression engine (`ctx.query`)](issues/04-expression-engine-for-mods.md) | 02 | done | issue/04-expression-engine-for-mods (136793f37) | 2026-11-11 |
 | 05 | [Mods get `ctx.onNoteMoved` for renames and moves](issues/05-note-path-events.md) | 04, 06 | done | issue/05-note-path-events (c3d500fcf) | 2026-11-11 |
 | 06 | [Mod callback errors show in the Labs row and in one toast](issues/06-visible-callback-errors.md) | none | done | issue/06-visible-callback-errors (5e2d103ed) | 2026-11-11 |
-| 07 | [A mod declares its settings in the manifest and Labs edits them](issues/07-manifest-declared-settings.md) | 06 | in-progress | | |
+| 07 | [A mod declares its settings in the manifest and Labs edits them](issues/07-manifest-declared-settings.md) | 06 | done | issue/07-manifest-declared-settings (4dcddac96) | 2026-11-11 |
 | 08 | [Mods get `ctx.onNoteCreated` for new notes](issues/08-on-note-created.md) | 05 | done | issue/08-on-note-created (17effbaa2) | 2026-11-11 |
 
 ## Log
@@ -62,3 +62,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-11 10:15 — 08 — start — launched by /relay-lite:run — d80d84390
 - 2026-11-11 10:38 — 08 — deliver — merged as 17effbaa2; reviews APPROVED (claude) x2, docs fix on notes created at vault open; full suite passed (614 files, 15500 tests); Issue has no acceptance checklist, status set resolved by the main session — 17effbaa2
 - 2026-11-11 10:47 — 07 — start — launched by /relay-lite:run — 30fd697a2
+- 2026-11-11 11:11 — 07 — deliver — merged as 4dcddac96; reviews APPROVED (claude) x2, round-1 fixes: stale settings read dropped (with test), rename; one finding noted not fixed; full suite passed (614 files, 15564 tests) — 4dcddac96
