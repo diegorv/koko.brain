@@ -76,7 +76,7 @@ The doc-example test parses JSON only from the "Overview" and "Examples" section
   - While the action runs, a rule's call is dropped (`mods-host.service.ts:338-341`). The text is static per rule, so the next matching save sends it again.
   - The loop hazard is unchanged in kind: an action's write is an ordinary save that re-runs rules (`22-auto-organize.md:470-476`). An input-driven append action makes it easier to hit; the existing warning covers it. Item 2 (`ignoreOwnWrites`) is about `onNoteSaved` and does not break rule loops; do not cite it as a fix.
 - **Security:** no new trust boundary under ADR 0036. The text comes from the owner's `.kokobrain/auto-organize-rules.json` and goes to a mod that already runs with full trust.
-- **Ordering:** independent of the other mods-power items. It shares `mods-host.service.ts` with items 1, 2, 5 and 6, but only the rule registration in `addAction` (`:509-515`), which none of them should touch.
+- **Ordering:** independent of the other mods-power items. It shares `mods-host.service.ts` with items 2, 4, 5, 6 and 7, but only the rule registration in `addAction` (`:509-515`), which none of them should touch. Run it serially with 06 to avoid rebase churn in that file.
 - **Not verified:** whether Vitest's `toHaveBeenCalledWith` with one argument fails on a call with a trailing second argument (from memory); the Acceptance sidesteps it by updating the two assertions. No UI was run.
 
 ## Comments

@@ -13,17 +13,19 @@ export default {
 };
 ```
 
-**Blocked by:** none
+**Blocked by:** 02
 
-**Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/03-expression-engine-for-mods.md` delivered and pushed to `origin/main` of `diegorv/koko.brain-mods`, with its full SHA in that Issue's Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency" (steps 3-6). Check first that every contract change between the pinned `328ca55f6add4d18e3c5b1490feee66ce8503b5e` (`package.json:81`) and the adopted SHA is either this one or already implemented here: `git -C <mods> diff 328ca55..<sha> -- packages/mod-core/src/contract`. Another item's unimplemented member would fail `pnpm check`; stop and report instead of implementing it.
+**Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/03-expression-engine-for-mods.md` delivered and pushed to `origin/main` of `diegorv/koko.brain-mods`, with its full SHA in that Issue's Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency" (steps 3-6).
 
-**Status:** ready-for-agent
+**Status:** needs-info
 
-**Gate:** frontend, with a dependency change: `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm vitest run`, `pnpm build` (`package.json` and `pnpm-lock.yaml` change). Then the mods workspace's `KOKOBRAIN_HOST_ROOT=<this checkout> pnpm verify` (`docs/MOD-CORE.md` step 6).
+Set `ready-for-agent` when mods Issue 03's full SHA is in its Comments. Launch by explicit number only.
+
+**Gate:** frontend, with a dependency change: `pnpm install --frozen-lockfile`, `pnpm check`, `pnpm vitest run`, `pnpm build` (`package.json` and `pnpm-lock.yaml` change). Then the mods workspace's `pnpm check:package <temp consumer>` and `KOKOBRAIN_HOST_ROOT=<this checkout> pnpm verify` (`docs/MOD-CORE.md` steps 2 and 6).
 
 ### Behavior
 
-1. **Adopt the contract.** `pnpm add -D '@kokobrain/mod-core@github:diegorv/koko.brain-mods#<full-sha>&path:/packages/mod-core'`. Inspect the lockfile: repository, commit and path match; no credentials, workspace links or personal paths (`docs/MOD-CORE.md` step 4). `src/lib/plugins/mods/contract/mod-api.v1.ts` is `export type *` and needs no edit.
+1. **Adopt the contract.** Adopt exactly the SHA recorded in mods Issue 03's Comments, never a later one. Before installing, `git -C /Users/diegorv/kokobrain-vaults/kokobrain-mods-src diff <pin in package.json> <sha> -- packages/mod-core/src/contract` must show only this Issue's change plus members already on this repo's `main`; otherwise stop and record it under Comments. Then `pnpm add -D '@kokobrain/mod-core@github:diegorv/koko.brain-mods#<full-sha>&path:/packages/mod-core'`. Inspect the lockfile: repository, commit and path match; no credentials, workspace links or personal paths (`docs/MOD-CORE.md` step 4). `src/lib/plugins/mods/contract/mod-api.v1.ts` is `export type *` and needs no edit.
 2. **New file `src/lib/plugins/mods/mod-query.service.ts`**, `createModQuery({ modId, vaultPath, assertLive }: ModVaultScope): ModQueryV1`, reusing `ModVaultScope` (`src/lib/plugins/mods/mod-vault.service.ts:18-26`). Both members are `async`, so every throw is a rejection. Shared steps, in this order:
    1. `assertLive()`.
    2. `expression` is a string with non-whitespace text, else `Mod "<id>": query.<op> needs a non-empty expression`. An empty string must not reach the engine: `findFilterError` treats `''` as no filter (`collection.logic.ts:233-235`), which matches every note.
@@ -70,7 +72,7 @@ export default {
 - [ ] `src/tests/lib/plugins/mods/mod-api-contract.test.ts`: `query: true` in `CONTEXT_PUBLIC` (`:46-63`), a `QUERY_PUBLIC satisfies Record<keyof ModQueryV1, true>`, and a "ctx.query exposes exactly the contract members" case like `:244-246`. `HOST_UNSTABLE` (`:66`) unchanged.
 - [ ] `src/tests/help/mods-types.test.ts`: `ModQueryV1` in `STABLE_TYPES` (`:25-47`) and an `expectTypeOf` equality like `:85`. `src/tests/help/mods-example.test.ts`: `query: unused` in the typed literal (`:38-40`). `mods-examples.test.ts` needs nothing (untyped literal cast at `:481`).
 - [ ] Docs above updated.
-- [ ] Gate above passes, including `pnpm build` and the mods workspace's `pnpm verify`.
+- [ ] Gate above passes, including `pnpm build` and the mods workspace's `pnpm check:package` and `pnpm verify`.
 
 ## Notes
 
@@ -85,7 +87,8 @@ export default {
 - **Cut:** object filters, `limit` and `sort` (`executeQuery` scans every record before limiting, `collection.logic.ts:150,214-218`), formulas, a disk fallback in `matches`, a shallow record copy (`evaluateListHigherOrder` restores in `finally`, `evaluator.ts:541,556`), rejecting `.view` paths, returning records.
 - **Accepted limits (documented, no core change):** epoch times and size `0` for a note created this session (`collection.service.ts:155-160`); a moved or renamed note missing until the `vault-index-updated` delta (`src/lib/core/filesystem/path-change.service.ts:209,234`); method typos match nothing (`validateExpression` checks plain functions only, `evaluator.ts:300-317`); a synchronous full scan per `notes()` call; ReDoS through `string.matches`, the same exposure views have. Mods are fully trusted (`docs/adr/0036-vault-mods-trust-loader-storage.md:41`), and `ctx.app`/`ctx.kb()` already expose the raw index, so no new capability.
 - **Out of scope, file separately:** the `whenIndexReady` example in `help/documentation/mods/10-querying-the-index.md:71-82` watches `ctx.app.vaultStore.indexReady`, but `ctx.kb()` reads the property index, which is built later (`app-lifecycle.service.ts:419-428`). That is a docs bug for `ctx.kb()`, not for this Issue.
-- **Ordering:** independent of items 3 and 6 (host only). Items 1, 2 and 5 also change the contract and the pinned host lists: one adoption at a time. Item 5's Issue must document the rename window above for `onNoteMoved`. With item 6, a `matches` rejection inside `onNoteSaved` becomes a visible callback error, which is why the docs say to check the extension first.
+- **Ordering:** Contract Issues land in the mods repo in the order 01, 02, 03, 04; each brain Issue adopts its own mods SHA in the order brain 01, 02, 04, 05. No batching. Blocked by 02 because mods 03's SHA already carries mods 01 and 02, which brain 01 and 02 implement. Independent of items 3 and 6 (host only). Brain 05 documents the rename window above for `onNoteMoved`. Full order: `.scratch/mods-power/PRD.md`.
+- Line numbers are from `c2bed3463`; locate each edit by the quoted text after earlier mods-power Issues land. With item 6, a `matches` rejection inside `onNoteSaved` becomes a visible callback error, which is why the docs say to check the extension first.
 - **Not verified:** that `executeQuery` on a one-entry Map gives the same answer as a full run for that note (the code path was read; the tests pin it); the delay from a rename to the index delta; nothing was run.
 
 ## Comments
