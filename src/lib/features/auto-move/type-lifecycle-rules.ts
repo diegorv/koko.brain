@@ -16,11 +16,13 @@ import type { AutoMoveRule } from './auto-move.types';
  * `{parent}`, so no unarchive rule is generated and the archive rule omits the
  * static folder guard (the service's isAlreadyInDestination check prevents
  * re-archiving against the dynamically resolved destination).
+ *
+ * Their filters are expression strings, never filter objects.
  */
 export function generateLifecycleRules(
 	typeMetadataMap: Map<string, TypeMetadata>,
-): AutoMoveRule[] {
-	const rules: AutoMoveRule[] = [];
+): Array<AutoMoveRule & { expression: string }> {
+	const rules: Array<AutoMoveRule & { expression: string }> = [];
 
 	for (const [typeName, metadata] of typeMetadataMap) {
 		if (!metadata.archiveTo) continue;

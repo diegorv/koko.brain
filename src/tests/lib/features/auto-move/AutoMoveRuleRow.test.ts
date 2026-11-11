@@ -121,8 +121,28 @@ describe('AutoMoveRuleRow consequences', () => {
 		return el;
 	}
 
-	function filterInput(): HTMLInputElement {
-		return document.querySelector<HTMLInputElement>('input[aria-label="Filter"]')!;
+	function filterBox(): HTMLElement {
+		return document.querySelector<HTMLElement>('[data-rule-filter]')!;
+	}
+
+	/** The value inputs of the builder's visual rows, in order. */
+	function valueInputs(): HTMLInputElement[] {
+		return [...filterBox().querySelectorAll<HTMLInputElement>('input[placeholder="Value..."]')];
+	}
+
+	/** The builder's raw-expression inputs, in order. */
+	function rawInputs(): HTMLInputElement[] {
+		return [...filterBox().querySelectorAll<HTMLInputElement>('input[placeholder="Expression..."]')];
+	}
+
+	/** A synthetic click (detail 0, the keyboard path in bits-ui) opens the menu; then the item is picked. */
+	async function pickMenuItem(trigger: HTMLElement, text: string) {
+		trigger.click();
+		await settle();
+		const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) => el.textContent?.trim() === text);
+		if (!item) throw new Error(`menu item "${text}" not found`);
+		item.click();
+		await settle();
 	}
 
 	/** Types `text` into `el` without leaving it. */
@@ -354,27 +374,132 @@ describe('AutoMoveRuleRow consequences', () => {
 		});
 	});
 
-	describe('filter', () => {
-		it('does not save while typing, only on change', async () => {
+	describe('filter builder', () => {
+		const COMPLEX = '(status == "done" && _type == "project") || file.hasTag("archive")';
+
+		it('adding two rows in an "any" group saves { or: [..] }', async () => {
 			const onupdate = await render(BLANK);
 
-			type(filterInput(), "status == 'do");
-			type(filterInput(), "status == 'done'");
+			button('Add filter').click();
+			await settle();
+			commit(valueInputs()[0], 'Alpha');
+			button('Add filter').click();
+			await settle();
+			commit(valueInputs()[1], 'Beta');
+			await pickMenuItem(button('All the following are true'), 'Any of the following are true');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: { or: ["file.name == 'Alpha'", "file.name == 'Beta'"] } });
+		});
+
+		it('adds an expression row and saves what is typed in it', async () => {
+			const onupdate = await render(BLANK);
+
+			button('Add expression').click();
+			await settle();
+			expect(rawInputs().map((i) => i.value)).toEqual(['']);
 			expect(onupdate).not.toHaveBeenCalled();
 
-			filterInput().dispatchEvent(new Event('change', { bubbles: true }));
+			commit(rawInputs()[0], "file.hasTag('x')");
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: "file.hasTag('x')" });
+		});
+
+		it('adds an expression row to the first group', async () => {
+			const onupdate = await render({ ...BLANK, expression: { or: ["status == 'done'", "status == 'dropped'"] } });
+
+			button('Add expression').click();
+			await settle();
+			commit(rawInputs()[0], "file.hasTag('x')");
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', {
+				expression: { or: ["status == 'done'", "status == 'dropped'", "file.hasTag('x')"] },
+			});
+		});
+
+		it('saves a row only once it has a value, and says so', async () => {
+			const onupdate = await render(BLANK);
+
+			button('Add filter').click();
+			await settle();
+
+			expect(onupdate).not.toHaveBeenCalled();
+			expect(document.querySelector('[data-rule-filter-error]')?.textContent).toContain('Every filter needs a value');
+			expect(matchCount()).toBeNull();
+
+			commit(valueInputs()[0], 'Alpha');
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: "file.name == 'Alpha'" });
+			expect(document.querySelector('[data-rule-filter-error]')).toBeNull();
+		});
+
+		it('saves a value on change, not on every keystroke', async () => {
+			const onupdate = await render({ ...BLANK, expression: "status == 'done'" });
+
+			type(valueInputs()[0], 'dro');
+			type(valueInputs()[0], 'dropped');
+			expect(onupdate).not.toHaveBeenCalled();
+			valueInputs()[0].dispatchEvent(new Event('change', { bubbles: true }));
 			flushSync();
 
 			expect(onupdate).toHaveBeenCalledTimes(1);
-			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: "status == 'done'" });
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: "status == 'dropped'" });
 		});
 
-		it('shows the parse error while typing', async () => {
+		it('shows a stored string as one row', async () => {
+			setIndex(buildNoteRecord(`${VAULT}/a.md`, '---\nstatus: done\n---\n'));
+			await render({ ...BLANK, expression: "status == 'done'" });
+
+			expect(valueInputs().map((i) => i.value)).toEqual(['done']);
+			expect(rawInputs()).toEqual([]);
+			expect(button('status')).toBeTruthy();
+		});
+
+		it('shows a stored object filter as its groups', async () => {
+			await render({ ...BLANK, expression: { or: ["status == 'done'", "status == 'dropped'"] } });
+
+			expect(button('Any of the following are true')).toBeTruthy();
+			expect(valueInputs().map((i) => i.value)).toEqual(['done', 'dropped']);
+		});
+
+		it('shows an empty filter as no rows', async () => {
 			await render(BLANK);
 
-			type(filterInput(), "status == 'do");
+			expect(valueInputs()).toEqual([]);
+			expect(rawInputs()).toEqual([]);
+		});
 
-			expect(document.body.textContent).toMatch(/Unterminated|Expected|Unexpected/i);
+		it('shows a complex string as a raw row and saves it back unchanged', async () => {
+			const onupdate = await render({ ...BLANK, expression: COMPLEX });
+
+			expect(rawInputs().map((i) => i.value)).toEqual([COMPLEX]);
+			expect(valueInputs()).toEqual([]);
+
+			button('Add filter').click();
+			await settle();
+			commit(valueInputs()[0], 'x');
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: { and: [COMPLEX, "file.name == 'x'"] } });
+
+			// The new row's remove button is the last icon-only button in the builder.
+			const removes = [...filterBox().querySelectorAll<HTMLButtonElement>('button')].filter((b) => b.textContent?.trim() === '' && b.querySelector('svg'));
+			removes[removes.length - 1].click();
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: COMPLEX });
+		});
+
+		it('saves an empty builder as an empty string', async () => {
+			const onupdate = await render({ ...BLANK, expression: "status == 'done'" });
+
+			const remove = [...filterBox().querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.trim() === '' && b.querySelector('svg'))!;
+			remove.click();
+			await settle();
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { expression: '' });
+		});
+
+		it('shows the parse error of a raw row while typing', async () => {
+			await render({ ...BLANK, expression: COMPLEX });
+
+			type(rawInputs()[0], "status == 'do");
+
+			expect(filterBox().textContent).toMatch(/Unterminated|Expected|Unexpected/i);
 			expect(matchCount()).toBeNull();
 		});
 	});
@@ -390,6 +515,13 @@ describe('AutoMoveRuleRow consequences', () => {
 			expect(matchCount()).toBe('Matches 1 note now');
 		});
 
+		it('counts an object filter', async () => {
+			setIndex(done(), open());
+			await render({ ...BLANK, expression: { or: ["status == 'done'", "status == 'open'"] } });
+
+			expect(matchCount()).toBe('Matches 2 notes now');
+		});
+
 		it('shows 0 for an empty filter', async () => {
 			setIndex(done(), open());
 			await render(BLANK);
@@ -397,23 +529,14 @@ describe('AutoMoveRuleRow consequences', () => {
 			expect(matchCount()).toBe('Matches 0 notes now');
 		});
 
-		it('counts a typed filter once the user stops typing', async () => {
-			setIndex(done(), open());
-			await render(BLANK);
-
-			type(filterInput(), 'status != null');
-
-			await vi.waitFor(() => expect(matchCount()).toBe('Matches 2 notes now'));
-		});
-
-		it('hides the previous count while the typed filter is not counted yet', async () => {
+		it('hides the previous count while the typed filter is not counted yet, then counts it', async () => {
 			setIndex(done(), open());
 			await render({ ...BLANK, expression: "status == 'done'" });
 
-			type(filterInput(), 'status != null');
+			type(valueInputs()[0], 'open');
 			expect(matchCount()).toBeNull();
 
-			await vi.waitFor(() => expect(matchCount()).toBe('Matches 2 notes now'));
+			await vi.waitFor(() => expect(matchCount()).toBe('Matches 1 note now'));
 		});
 	});
 

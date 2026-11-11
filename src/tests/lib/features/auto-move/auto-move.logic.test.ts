@@ -17,11 +17,14 @@ import {
 	isBooleanOnlyKey,
 	isRefusedKey,
 	ruleValueEditor,
+	filterProblem,
+	hasBlankValue,
 } from '#lib/features/auto-move/auto-move.logic.js';
+import type { FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
-import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import type { FilterItem, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRule(overrides: Partial<AutoMoveRule> = {}): AutoMoveRule {
 	return {
@@ -438,6 +441,150 @@ describe('findMatchingRules', () => {
 	});
 });
 
+describe('object filters', () => {
+	const VAULT = '/vault';
+	const note = (status: string) => makeRecord({ tags: ['test'], properties: new Map([['status', status]]) });
+	const matches = (expression: FilterItem, record: PropertyIndexRecord) =>
+		findMatchingRule([makeRule({ expression })], record, VAULT) !== null;
+
+	it('or: matches when at least one item is true', () => {
+		const filter = { or: ["status == 'done'", "status == 'dropped'"] };
+		expect(matches(filter, note('dropped'))).toBe(true);
+		expect(matches(filter, note('active'))).toBe(false);
+	});
+
+	it('and: matches when every item is true', () => {
+		const filter = { and: ["status == 'done'", "file.hasTag('test')"] };
+		expect(matches(filter, note('done'))).toBe(true);
+		expect(matches(filter, makeRecord({ properties: new Map([['status', 'done']]) }))).toBe(false);
+	});
+
+	it('not: matches when no item is true', () => {
+		const filter = { not: ["status == 'done'", "status == 'dropped'"] };
+		expect(matches(filter, note('active'))).toBe(true);
+		expect(matches(filter, note('dropped'))).toBe(false);
+	});
+
+	it('combines groups by AND and allows nesting', () => {
+		const filter = { and: [{ or: ["status == 'done'", "status == 'dropped'"] }], not: ["file.hasTag('keep')"] };
+		expect(matches(filter, note('done'))).toBe(true);
+		expect(matches(filter, makeRecord({ tags: ['keep'], properties: new Map([['status', 'done']]) }))).toBe(false);
+		expect(matches(filter, note('active'))).toBe(false);
+	});
+
+	it('findMatchingRules takes object filters and strings in one list', () => {
+		const rules = [
+			makeRule({ id: 'obj', expression: { or: ["status == 'done'", "status == 'dropped'"] } }),
+			makeRule({ id: 'str', expression: "status == 'dropped'" }),
+		];
+		expect(findMatchingRules(rules, note('dropped'), VAULT).map((r) => r.id)).toEqual(['obj', 'str']);
+	});
+
+	it('a string rule still matches as before, and one that throws is still reported', () => {
+		const reported: string[] = [];
+		const rules = [
+			makeRule({ id: 'bad', expression: "missing.lower() == 'x'" }),
+			makeRule({ id: 'good', expression: "status == 'done'" }),
+		];
+		expect(findMatchingRules(rules, note('done'), VAULT, (rule) => reported.push(rule.id)).map((r) => r.id)).toEqual(['good']);
+		expect(reported).toEqual(['bad']);
+	});
+
+	describe('a broken or empty object filter matches no note and is reported', () => {
+		const cases: Array<[string, FilterItem]> = [
+			['an unparsable not leaf', { not: ['status =='] }],
+			['a not leaf with a blank value', { not: ["file.name == ''"] }],
+			['an empty object', {}],
+			['an empty and', { and: [] }],
+			['an unknown function', { or: ['nope(status)'] }],
+			['a blank leaf', { or: ['  '] }],
+			['a broken nested leaf', { and: [{ or: ['status =='] }] }],
+			['a null item', { and: [null as unknown as string] }],
+			['a non-list group', { or: "status == 'done'" as unknown as string[] }],
+		];
+
+		it.each(cases)('%s', (_label, expression) => {
+			const reported: Array<{ id: string; message: string }> = [];
+			const rules = [makeRule({ id: 'broken', expression })];
+			for (const record of [note('done'), note('active'), makeRecord()]) {
+				expect(findMatchingRules(rules, record, VAULT, (rule, err) => reported.push({ id: rule.id, message: (err as Error).message }))).toEqual([]);
+			}
+			expect(reported).toHaveLength(3);
+			expect(reported[0].id).toBe('broken');
+			expect(reported[0].message).toBe(filterProblem(expression));
+		});
+
+		it('findMatchingRule reports it too', () => {
+			const reported: string[] = [];
+			expect(findMatchingRule([makeRule({ id: 'empty', expression: {} })], note('done'), VAULT, (rule) => reported.push(rule.id))).toBeNull();
+			expect(reported).toEqual(['empty']);
+		});
+
+		it('a JSON value that is no filter at all is reported, not thrown', () => {
+			const reported: string[] = [];
+			const rules = [makeRule({ id: 'num', expression: 42 as unknown as string })];
+			expect(findMatchingRules(rules, note('done'), VAULT, (rule) => reported.push(rule.id))).toEqual([]);
+			expect(reported).toEqual(['num']);
+		});
+	});
+});
+
+describe('filterProblem', () => {
+	it('is null for a valid object filter', () => {
+		expect(filterProblem({ or: ["status == 'done'", 'isEmpty(status)'], not: [{ and: ['priority > 3'] }] })).toBeNull();
+	});
+
+	it('is null for a valid string, unary operators included', () => {
+		expect(filterProblem("status == 'done'")).toBeNull();
+		expect(filterProblem('isEmpty(status)')).toBeNull();
+		expect(filterProblem('archived == true')).toBeNull();
+	});
+
+	it('names a filter with no conditions', () => {
+		expect(filterProblem({})).toBe('Filter has no conditions');
+		expect(filterProblem({ and: [], or: [] })).toBe('Filter has no conditions');
+		expect(filterProblem({ and: [{}] })).toBe('Filter has no conditions');
+		// A nested empty object is true for every note, so `or` would match them all.
+		expect(filterProblem({ or: ["status == 'x'", {}] })).toBe('Filter has no conditions');
+	});
+
+	it('names a row with a blank value', () => {
+		expect(filterProblem({ not: ["file.name == ''"] })).toBe('Every filter needs a value');
+		expect(filterProblem("status != ''")).toBe('Every filter needs a value');
+		expect(filterProblem({ or: ["contains(tags, ' ')"] })).toBe('Every filter needs a value');
+	});
+
+	it('gives the parse error of a broken leaf', () => {
+		expect(filterProblem({ not: ['status =='] })).toBe(validateExpression('status =='));
+		expect(filterProblem({ or: ['nope(status)'] })).toBe('Unknown function: nope');
+		expect(filterProblem({ or: [''] })).toBe('Expression cannot be empty');
+	});
+
+	it('names a value that is not a filter', () => {
+		expect(filterProblem({ and: [null as unknown as string] })).toBe('Filter is not a list of conditions');
+		expect(filterProblem({ or: 'x' as unknown as string[] })).toBe('Filter is not a list of conditions');
+		expect(filterProblem(null as unknown as string)).toBe('Filter is not a list of conditions');
+		expect(filterProblem(["status == 'done'"] as unknown as string)).toBe('Filter is not a list of conditions');
+	});
+});
+
+describe('hasBlankValue', () => {
+	const row = (overrides: Partial<FilterRow>): FilterRow => ({ id: 'r', property: 'status', operator: 'is', value: '', ...overrides });
+
+	it('is true for a valued operator with a blank value', () => {
+		expect(hasBlankValue(row({ value: '  ' }))).toBe(true);
+	});
+
+	it('is false once the row has a value', () => {
+		expect(hasBlankValue(row({ value: 'done' }))).toBe(false);
+	});
+
+	it('is false for an operator that takes no value and for an expression row', () => {
+		expect(hasBlankValue(row({ operator: 'is_empty' }))).toBe(false);
+		expect(hasBlankValue(row({ raw: '' }))).toBe(false);
+	});
+});
+
 describe('findMoveRule', () => {
 	it('returns the first rule with a non-blank destination', () => {
 		const rules = [
@@ -616,6 +763,17 @@ describe('countMatchingNotes', () => {
 	it('resolves a relative file.inFolder against the vault path, like the save path', () => {
 		const inbox = makeRecord({ path: '/vault/Inbox/n.md', folder: '/vault/Inbox' });
 		expect(countMatchingNotes("file.inFolder('Inbox')", index(inbox, done), VAULT)).toBe(1);
+	});
+
+	it('counts an object filter', () => {
+		const dropped = makeRecord({ path: '/vault/c.md', properties: new Map([['status', 'dropped']]) });
+		expect(countMatchingNotes({ or: ["status == 'done'", "status == 'dropped'"] }, index(done, open, dropped), VAULT)).toBe(2);
+		expect(countMatchingNotes({ not: ["status == 'done'"] }, index(done, open, dropped), VAULT)).toBe(2);
+	});
+
+	it('is null for a broken or empty object filter', () => {
+		expect(countMatchingNotes({ not: ["file.name == ''"] }, index(done, open), VAULT)).toBeNull();
+		expect(countMatchingNotes({}, index(done, open), VAULT)).toBeNull();
 	});
 });
 

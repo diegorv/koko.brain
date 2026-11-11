@@ -143,6 +143,17 @@ describe('auto-move.service', () => {
 			expect(autoMoveStore.rules).toEqual([plain, { ...plain, id: 'r2' }]);
 		});
 
+		it('loads a string expression and an object filter unchanged', async () => {
+			const old = { id: 'r1', name: 'Old', expression: "status == 'done'", destination: 'Archive', enabled: true };
+			const builder = { ...old, id: 'r2', expression: { or: ["status == 'done'", "status == 'dropped'"] } };
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ rules: [old, builder], excludedFolders: [] }));
+
+			await loadAutoMoveConfig('/vault');
+
+			expect(autoMoveStore.rules).toEqual([old, builder]);
+		});
+
 		it('handles missing rules field gracefully', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ excludedFolders: ['_system'] }));
@@ -277,6 +288,64 @@ describe('auto-move.service', () => {
 			await vi.advanceTimersByTimeAsync(100);
 
 			expect(moveItem).toHaveBeenCalledWith('/vault/notes/note.md', '/vault/Archive');
+
+			vi.useRealTimers();
+			vaultStore.close();
+		});
+
+		it('moves a note an object filter matches, and not one it does not', async () => {
+			vi.useFakeTimers();
+			vaultStore.open('/vault');
+			autoMoveStore.setConfig({
+				rules: [{ id: 'r1', name: 'Closed', expression: { or: ["status == 'done'", "status == 'dropped'"] }, destination: 'Archive', enabled: true }],
+				excludedFolders: [],
+			});
+			vi.mocked(exists).mockResolvedValue(true);
+			let capturedObserver: ((path: string, content: string) => void) | null = null;
+			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
+				capturedObserver = observer;
+				return vi.fn();
+			});
+			registerAutoMoveHook();
+
+			const active = '---\nstatus: active\n---\n';
+			vi.mocked(readTextFile).mockResolvedValue(active);
+			capturedObserver!('/vault/notes/a.md', active);
+			await vi.advanceTimersByTimeAsync(100);
+			expect(moveItem).not.toHaveBeenCalled();
+
+			const dropped = '---\nstatus: dropped\n---\n';
+			vi.mocked(readTextFile).mockResolvedValue(dropped);
+			capturedObserver!('/vault/notes/b.md', dropped);
+			await vi.advanceTimersByTimeAsync(100);
+			expect(moveItem).toHaveBeenCalledWith('/vault/notes/b.md', '/vault/Archive');
+
+			vi.useRealTimers();
+			vaultStore.close();
+		});
+
+		it('reports an empty object filter and moves nothing', async () => {
+			vi.useFakeTimers();
+			vaultStore.open('/vault');
+			autoMoveStore.setConfig({
+				rules: [{ id: 'r1', name: 'Unfinished', expression: { not: ["file.name == ''"] }, destination: 'Archive', enabled: true }],
+				excludedFolders: [],
+			});
+			vi.mocked(exists).mockResolvedValue(true);
+			let capturedObserver: ((path: string, content: string) => void) | null = null;
+			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
+				capturedObserver = observer;
+				return vi.fn();
+			});
+			registerAutoMoveHook();
+
+			const content = '---\nstatus: active\n---\n';
+			vi.mocked(readTextFile).mockResolvedValue(content);
+			capturedObserver!('/vault/notes/a.md', content);
+			await vi.advanceTimersByTimeAsync(100);
+
+			expect(moveItem).not.toHaveBeenCalled();
+			expect(error).toHaveBeenCalledWith('AUTO-MOVE', expect.stringContaining('Rule "Unfinished" failed to evaluate'), expect.objectContaining({ message: 'Every filter needs a value' }));
 
 			vi.useRealTimers();
 			vaultStore.close();

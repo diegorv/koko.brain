@@ -8,10 +8,70 @@ import {
 	normalizeTypeCasing,
 	parseFrontmatterProperties,
 } from '#lib/core/frontmatter/properties.logic.js';
-import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
-import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
+import { evaluateFilter } from '#lib/features/collection/collection.logic.js';
+import type { FilterItem, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import {
+	evaluateExpression,
+	validateExpression as findExpressionError,
+	type EvalContext,
+} from '#lib/features/collection/expression/evaluator.js';
 import { parse } from '#lib/features/collection/expression/parser.js';
+import { isFilterObject, isUnaryOperator, parseExpressionToRow } from '#lib/features/collection/toolbar/filter.logic.js';
+import type { FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
+
+/** The message for a filter row that compares against a blank value, as the view dialog words it. */
+export const BLANK_VALUE_ERROR = 'Every filter needs a value';
+
+/**
+ * Why an object filter must match nothing, or null when it can run: a value
+ * that is not a filter object (`and` / `or` / `not` not lists, a null item),
+ * an object with no condition at any depth, a condition that does not parse
+ * or names an unknown function, or one the builder shows as a row with a
+ * blank value. `evaluateFilter` would treat each of these as false, and
+ * inside `not` as true, or treat an empty object as true for every note.
+ * A string gets the condition checks only.
+ */
+export function filterProblem(filter: FilterItem): string | null {
+	if (typeof filter === 'string') {
+		if (!filter.trim()) return 'Expression cannot be empty';
+		const parseError = findExpressionError(filter);
+		if (parseError !== undefined) return parseError;
+		if (hasBlankValue(parseExpressionToRow(filter))) return BLANK_VALUE_ERROR;
+		return null;
+	}
+	// The JSON config is not validated, and a list passes the shared shape check.
+	if (Array.isArray(filter) || !isFilterObject(filter)) return 'Filter is not a list of conditions';
+	const items = [...(filter.and ?? []), ...(filter.or ?? []), ...(filter.not ?? [])];
+	if (items.length === 0) return 'Filter has no conditions';
+	for (const item of items) {
+		const problem = filterProblem(item);
+		if (problem !== null) return problem;
+	}
+	return null;
+}
+
+/**
+ * True for a builder row shown as property, operator and value whose operator
+ * needs a value and has none: saved, it would compare against `''`, which
+ * most notes match. Expression rows and `is empty`-style operators never are.
+ */
+export function hasBlankValue(row: FilterRow): boolean {
+	return row.raw === undefined && !isUnaryOperator(row.operator) && row.value.trim() === '';
+}
+
+/**
+ * Whether a rule's filter is true for the note. A string runs as an
+ * expression and throws when it does not parse or fails to evaluate; an
+ * object runs through the Collection filter (`evaluateFilter`) and throws
+ * the `filterProblem` message when it is broken or empty.
+ */
+function ruleMatches(expression: FilterItem, ctx: EvalContext): boolean {
+	if (typeof expression === 'string') return Boolean(evaluateExpression(expression, ctx));
+	const problem = filterProblem(expression);
+	if (problem !== null) throw new Error(problem);
+	return evaluateFilter(expression, ctx);
+}
 
 /**
  * Evaluates all rules against a PropertyIndexRecord and returns the first matching rule.
@@ -21,7 +81,7 @@ import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
  * @param vaultPath - The vault's absolute path, which a relative
  * `file.inFolder()` resolves against. Required: without it a relative folder
  * rule would silently match nothing.
- * @param onError - Reports a rule whose expression threw. Optional so this
+ * @param onError - Reports a rule whose filter threw or is broken. Optional so this
  * module stays framework-free; the service passes a logger. Without it a
  * broken rule is indistinguishable from a rule that simply did not match,
  * which is how a generated lifecycle rule that threw on every note shipped
@@ -36,9 +96,7 @@ export function findMatchingRule(
 	for (const rule of rules) {
 		if (!rule.enabled) continue;
 		try {
-			const ctx: EvalContext = { record, formulas: {}, vaultPath };
-			const result = evaluateExpression(rule.expression, ctx);
-			if (result) return rule;
+			if (ruleMatches(rule.expression, { record, formulas: {}, vaultPath })) return rule;
 		} catch (err) {
 			// Skip rules with invalid expressions, but do not do it silently.
 			onError?.(rule, err);
@@ -49,8 +107,8 @@ export function findMatchingRule(
 }
 
 /**
- * Every enabled rule whose expression is true, in list order. A rule whose
- * expression throws is skipped and reported through `onError`.
+ * Every enabled rule whose filter is true, in list order. A rule whose
+ * filter throws or is broken is skipped and reported through `onError`.
  *
  * @param vaultPath - The vault's absolute path, which a relative
  * `file.inFolder()` resolves against. Required, as in `findMatchingRule`.
@@ -65,7 +123,7 @@ export function findMatchingRules(
 	for (const rule of rules) {
 		if (!rule.enabled) continue;
 		try {
-			if (evaluateExpression(rule.expression, { record, formulas: {}, vaultPath })) matched.push(rule);
+			if (ruleMatches(rule.expression, { record, formulas: {}, vaultPath })) matched.push(rule);
 		} catch (err) {
 			onError?.(rule, err);
 		}
@@ -74,17 +132,22 @@ export function findMatchingRules(
 }
 
 /**
- * How many notes in `index` a rule with this expression matches now, with the
- * matcher a save uses. 0 for a blank expression, null when it does not parse.
+ * How many notes in `index` a rule with this filter matches now, with the
+ * matcher a save uses. 0 for a blank expression, null when a string does not
+ * parse or an object filter is broken (`filterProblem`).
  * `.view` records are left out: they are not notes.
  */
 export function countMatchingNotes(
-	expression: string,
+	expression: FilterItem,
 	index: Map<string, PropertyIndexRecord>,
 	vaultPath: string,
 ): number | null {
-	if (!expression.trim()) return 0;
-	if (validateExpression(expression) !== null) return null;
+	if (typeof expression === 'string') {
+		if (!expression.trim()) return 0;
+		if (validateExpression(expression) !== null) return null;
+	} else if (filterProblem(expression) !== null) {
+		return null;
+	}
 	const probe: AutoMoveRule[] = [{ id: '', name: '', expression, destination: '', enabled: true }];
 	let count = 0;
 	for (const [path, record] of index) {

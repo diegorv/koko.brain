@@ -289,6 +289,14 @@ export function createEmptyFilterRow(property: string, type: PropertyType): Filt
 	};
 }
 
+/**
+ * Creates an expression row with no text yet. `filterGroupsToFilter` drops it
+ * until text is typed into it.
+ */
+export function createEmptyExpressionRow(): FilterRow {
+	return { id: uid(), property: '', operator: 'is', value: '', raw: '' };
+}
+
 // --- Internal helpers ---
 
 /** Converts a FilterItem (string or nested CollectionFilter) to a FilterRow */
@@ -317,7 +325,7 @@ function jsonRow(value: unknown): FilterRow {
  * True for a non-null object whose `and` / `or` / `not`, where present, are
  * lists. YAML can hand over a null list entry or a scalar / map under a key.
  */
-function isFilterObject(item: unknown): item is CollectionFilter {
+export function isFilterObject(item: unknown): item is CollectionFilter {
 	if (typeof item !== 'object' || item === null) return false;
 	const filter = item as Record<string, unknown>;
 	return (['and', 'or', 'not'] as const).every((key) => filter[key] === undefined || Array.isArray(filter[key]));

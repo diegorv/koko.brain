@@ -4,7 +4,7 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -27,12 +27,12 @@
 
 ### Acceptance
 
-- [ ] Failing test first, in `auto-move.logic.test.ts`: a rule whose expression is `{ or: ["status == 'done'", "status == 'dropped'"] }` matches a note with `status: dropped` and does not match one with `status: active`. It fails today: `findMatchingRule` only takes an expression string.
-- [ ] `{ and: [...] }` and `{ not: [...] }` cases; a string rule still matches as before; a string rule that throws is still reported through `onError`.
-- [ ] `{ not: ["status =="] }`, `{ not: ["file.name == ''"] }`, `{}` and `{ and: [] }` match no note and are reported through `onError`.
-- [ ] `AutoMoveRuleRow.test.ts`: adding two rows in an "any" group saves `{ or: [..] }`; a stored string shows as one row; a complex string shows as a raw row and saves back unchanged.
-- [ ] An old config with string expressions loads and matches as before.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in `auto-move.logic.test.ts`: a rule whose expression is `{ or: ["status == 'done'", "status == 'dropped'"] }` matches a note with `status: dropped` and does not match one with `status: active`. It fails today: `findMatchingRule` only takes an expression string.
+- [x] `{ and: [...] }` and `{ not: [...] }` cases; a string rule still matches as before; a string rule that throws is still reported through `onError`.
+- [x] `{ not: ["status =="] }`, `{ not: ["file.name == ''"] }`, `{}` and `{ and: [] }` match no note and are reported through `onError`.
+- [x] `AutoMoveRuleRow.test.ts`: adding two rows in an "any" group saves `{ or: [..] }`; a stored string shows as one row; a complex string shows as a raw row and saves back unchanged.
+- [x] An old config with string expressions loads and matches as before.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Notes
 
@@ -40,3 +40,5 @@
 - Research: `.scratch/frontmatter-rules/research/scout-01-expression-engine.md`, `validation-01.md`.
 
 ## Comments
+
+- 2026-11-10, branch `issue/03-rule-filter-uses-view-filter-builder`: auto-move rules now edit their filter with the view filter builder and store `{ and | or | not }` groups as well as strings. Fix round after review 1: add-expression row, shared filter shape check and blank-value rule, docs on the runtime-error limit; deliver fixed `text-xs` on the add-expression button (AutoMoveRuleRow.svelte). Tests: full suite 15053 passed, 54 skipped, 1 todo, exit=0 (03-deliver-2.log); pnpm check 0 errors. Reviews: round 1 CHANGES_REQUESTED, round 2 APPROVED, round 3 APPROVED.

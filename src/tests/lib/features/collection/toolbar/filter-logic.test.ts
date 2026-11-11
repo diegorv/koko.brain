@@ -8,6 +8,8 @@ import {
 	getAllKnownProperties,
 	inferPropertyType,
 	createEmptyFilterRow,
+	createEmptyExpressionRow,
+	isFilterObject,
 	isUnaryOperator,
 } from '#lib/features/collection/toolbar/filter.logic.js';
 import { executeQuery } from '#lib/features/collection/collection.logic.js';
@@ -898,6 +900,30 @@ describe('inferPropertyType', () => {
 			makeRecord('/vault/b.md', { count: 42 }),
 		]);
 		expect(inferPropertyType('count', index)).toBe('number');
+	});
+});
+
+describe('isFilterObject', () => {
+	it('accepts an object whose and / or / not are lists', () => {
+		expect(isFilterObject({ and: ['a'], not: [] })).toBe(true);
+		expect(isFilterObject({})).toBe(true);
+	});
+
+	it('rejects null, a scalar and a key that is not a list', () => {
+		expect(isFilterObject(null)).toBe(false);
+		expect(isFilterObject('a')).toBe(false);
+		expect(isFilterObject({ or: 'a' })).toBe(false);
+	});
+});
+
+describe('createEmptyExpressionRow', () => {
+	it('creates a blank expression row that writes nothing until typed', () => {
+		const row = createEmptyExpressionRow();
+		expect(row.raw).toBe('');
+		expect(row.id).toBeTruthy();
+		expect(createEmptyExpressionRow().id).not.toBe(row.id);
+		expect(filterGroupsToFilter([{ conjunction: 'and', rows: [row] }])).toBeUndefined();
+		expect(filterGroupsToFilter([{ conjunction: 'and', rows: [{ ...row, raw: "file.hasTag('x')" }] }])).toBe("file.hasTag('x')");
 	});
 });
 

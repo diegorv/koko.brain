@@ -29,8 +29,11 @@ export interface AutoMoveRule {
 	id: string;
 	/** Human-readable label for the rule */
 	name: string;
-	/** Expression string evaluated against PropertyIndexRecord (uses collection expression system) */
-	expression: string;
+	/**
+	 * The rule's filter, the shape a view stores: an expression string, or an
+	 * `and` / `or` / `not` object evaluated by the Collection filter.
+	 */
+	expression: import('#lib/features/collection/collection.types.js').FilterItem;
 	/**
 	 * Destination folder path relative to vault root (e.g. "Archive/done").
 	 * Blank means the rule never moves the note; a template that resolves to

@@ -6,8 +6,6 @@
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
 	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
-	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
-	import CircleXIcon from '@lucide/svelte/icons/circle-x';
 	import ImageIcon from '@lucide/svelte/icons/image';
 	import PlusIcon from '@lucide/svelte/icons/plus';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
@@ -15,11 +13,19 @@
 	import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
-	import { getAllKnownProperties } from '#lib/features/collection/toolbar/filter.logic.js';
+	import {
+		createEmptyExpressionRow,
+		filterGroupsToFilter,
+		getAllKnownProperties,
+		parseFilterToGroups,
+	} from '#lib/features/collection/toolbar/filter.logic.js';
+	import FilterPanel from '#lib/features/collection/toolbar/FilterPanel.svelte';
+	import type { FilterItem } from '#lib/features/collection/collection.types.js';
+	import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import type { AutoMoveRule, RuleProperty } from './auto-move.types';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
-	import { countMatchingNotes, isRefusedKey, sanitizeRuleProperties, validateExpression } from './auto-move.logic';
+	import { BLANK_VALUE_ERROR, countMatchingNotes, hasBlankValue, isRefusedKey, sanitizeRuleProperties } from './auto-move.logic';
 	import AutoMoveRuleProperty from './AutoMoveRuleProperty.svelte';
 
 	let {
@@ -44,15 +50,23 @@
 	const COUNT_DELAY_MS = 300;
 
 	/**
-	 * The filter as typed. It reaches the rule only on change or blur: a rule
-	 * runs on every save, so a half-typed filter must never be live.
+	 * The filter builder's groups as edited. They reach the rule only through
+	 * `commitFilter`: a rule runs on every save, so a half-typed filter must
+	 * never be live. Not re-read from the rule after a save: a one-row "any"
+	 * group saves as a plain string and would come back as "all".
 	 */
-	let filterDraft = $derived(rule.expression);
-	let expressionError = $derived(validateExpression(filterDraft));
+	let groups = $state.raw<FilterGroup[]>(untrack(() => toGroups(rule.expression)));
+	/** The filter the builder shows, in the shape the rule stores; `''` (matches nothing) when it has no rows */
+	let filterDraft = $derived<FilterItem>(filterGroupsToFilter(groups) ?? '');
+	/** A visual row with no value, which `filterProblem` would also refuse */
+	let blankValue = $derived(groups.some((g) => g.rows.some(hasBlankValue)));
+	let availableProperties = $derived(getAllKnownProperties(collectionStore.propertyIndex));
+	/** Set by an `input` event inside the builder, so the change it reports is saved on `change`, not per keystroke */
+	let typing = false;
 	let iconPickerOpen = $state(false);
 
 	/** The filter the match count was last computed for, behind the typing by `COUNT_DELAY_MS` */
-	let countedFilter = $state(untrack(() => rule.expression));
+	let countedFilter = $state.raw<FilterItem>(untrack(() => filterDraft));
 	$effect(() => {
 		const value = filterDraft;
 		const timer = setTimeout(() => (countedFilter = value), COUNT_DELAY_MS);
@@ -71,8 +85,35 @@
 	);
 	let keyListId = $derived(`auto-move-keys-${rule.id}`);
 
-	function commitExpression() {
-		if (filterDraft !== rule.expression) onupdate(rule.id, { expression: filterDraft });
+	/** The builder groups for a stored filter; a blank string is an empty builder, not a blank raw row. */
+	function toGroups(filter: FilterItem): FilterGroup[] {
+		return typeof filter === 'string' && !filter.trim() ? [] : parseFilterToGroups(filter);
+	}
+
+	function handleFiltersChange(next: FilterGroup[]) {
+		groups = next;
+		if (typing) {
+			typing = false;
+			return;
+		}
+		commitFilter();
+	}
+
+	/**
+	 * Appends a blank expression row to the first group, or to a new "all"
+	 * group. It lives here, not in the shared FilterPanel, so views keep their
+	 * builder as is. Nothing is saved until text is typed into the row.
+	 */
+	function addExpression() {
+		const [first, ...rest] = groups;
+		const row = createEmptyExpressionRow();
+		groups = first ? [{ ...first, rows: [...first.rows, row] }, ...rest] : [{ conjunction: 'and', rows: [row] }];
+	}
+
+	/** Saves the builder's filter unless a row still has no value. */
+	function commitFilter() {
+		if (blankValue) return;
+		if (JSON.stringify(filterDraft) !== JSON.stringify(rule.expression)) onupdate(rule.id, { expression: filterDraft });
 	}
 
 	function setProperties(next: RuleProperty[]) {
@@ -141,32 +182,34 @@
 		</Button>
 	</div>
 
-	<!-- Expression input -->
+	<!-- Filter builder -->
 	<div class="flex flex-col gap-1">
-		<div class="flex items-center gap-2">
-			<span class="w-24 shrink-0 text-meta text-muted-foreground">Expression</span>
-			<div class="relative flex-1">
-				<Input
-					class="pr-7 font-mono {expressionError && filterDraft.trim() ? 'border-destructive' : ''}"
-					aria-label="Filter"
-					value={filterDraft}
-					placeholder="file.hasTag('archive') && status == 'done'"
-					oninput={(e) => (filterDraft = (e.currentTarget as HTMLInputElement).value)}
-					onchange={commitExpression}
+		<div class="flex items-start gap-2">
+			<span class="w-24 shrink-0 text-meta text-muted-foreground">Filter</span>
+			<!-- Value and raw-expression inputs report every keystroke; they save when left. -->
+			<div class="min-w-0 flex-1" data-rule-filter oninputcapture={() => (typing = true)} onchange={commitFilter}>
+				<FilterPanel
+					showGlobal={false}
+					globalFilters={[]}
+					viewFilters={groups}
+					{availableProperties}
+					propertyIndex={collectionStore.propertyIndex}
+					onGlobalFiltersChange={() => {}}
+					onViewFiltersChange={handleFiltersChange}
 				/>
-				{#if filterDraft.trim()}
-					<div class="absolute right-2 top-1/2 -translate-y-1/2">
-						{#if expressionError}
-							<CircleXIcon class="size-3.5 text-destructive" />
-						{:else}
-							<CircleCheckIcon class="size-3.5 text-green-500" />
-						{/if}
-					</div>
-				{/if}
 			</div>
 		</div>
-		{#if expressionError && filterDraft.trim()}
-			<p class="ml-[6.5rem] text-meta text-destructive">{expressionError}</p>
+		<Button
+			variant="ghost"
+			size="sm"
+			class="ml-[6.5rem] h-7 w-fit gap-1 px-2 text-muted-foreground"
+			onclick={addExpression}
+		>
+			<PlusIcon class="size-3" />
+			Add expression
+		</Button>
+		{#if blankValue}
+			<p class="ml-[6.5rem] text-meta text-destructive" data-rule-filter-error>{BLANK_VALUE_ERROR}</p>
 		{:else if matchCount !== null && countedFilter === filterDraft}
 			<p class="ml-[6.5rem] text-meta text-muted-foreground" data-match-count>
 				Matches {matchCount} {matchCount === 1 ? 'note' : 'notes'} now

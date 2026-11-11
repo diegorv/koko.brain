@@ -27,7 +27,7 @@ Each rule consists of:
 | Field | Description |
 |-------|-------------|
 | **Name** | A human-readable label for the rule (e.g. "Archive completed projects") |
-| **Expression** | A condition written in the Collection expression language (see below) |
+| **Filter** | The notes the rule applies to, built with the same filter builder as a view (see [Building the Filter](#building-the-filter)) |
 | **Move to folder** (optional) | Target folder path, relative to the vault root. Supports `{variable}` templates (see below). Leave it empty for a rule that does not move the note |
 | **Properties** (optional) | Properties written to the note's frontmatter when the rule matches (see [Setting Properties](#setting-properties)) |
 | **Enabled** | Individual toggle — you can disable a rule without deleting it. A new rule starts disabled |
@@ -40,7 +40,7 @@ If the note is already in the destination folder, Kokobrain skips the move but s
 ## Creating a Rule in Settings
 
 1. Open **Settings** (`Cmd+,`) → **Auto Move** and click **Add rule**. The new rule starts **disabled**, so it changes nothing while you write it.
-2. Give it a **name** and type its **Expression**. The field is saved when you leave it or press Enter, not on every keystroke. Under it, **Matches N notes now** counts the notes the filter matches right now. Check it: a count close to all your notes usually means a typo, such as a misspelled property name.
+2. Give it a **name** and build its **Filter**. Adding, removing or changing a condition is saved at once; a value you type is saved when you leave the field or press Enter, not on every keystroke. A condition with no value is not saved, and Settings shows **Every filter needs a value** until you fill it in. Under the filter, **Matches N notes now** counts the notes it matches right now. Check it: a count close to all your notes usually means a typo, such as a misspelled property name.
 3. Under **Then**, pick what the rule does:
    - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
    - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value**, and pick the mode, **if missing** (the default) or **always**. The **×** button removes the property.
@@ -115,9 +115,52 @@ Things to know:
 - A mod that writes the same property as an `always` rule when a note is saved will fight it.
 - Icons and colors are best set with properties (`_icon`, `_color`, `_title_color`). The legacy **Icon** option of a rule clears the colors it does not set.
 
+## Building the Filter
+
+The filter is edited with the same builder as a [Collection](12-collection.md) view's filters. Click **Add filter** to add a condition, pick a property and an operator, and type a value. Conditions sit in a group, and the group's menu says how they combine:
+
+| Group | The rule matches a note when | Saved as |
+|-------|------------------------------|----------|
+| **All the following are true** | every condition is true | `"and": [...]` |
+| **Any of the following are true** | at least one condition is true | `"or": [...]` |
+| **None of the following are true** | no condition is true | `"not": [...]` |
+
+The exception: a filter whose only group is **All** or **Any** and holds a single condition is saved as that condition's plain string, and opens again as **All**.
+
+One example of each, as stored in `.kokobrain/auto-move-rules.json`:
+
+```json
+"expression": { "and": ["status == 'done'", "file.hasTag('project')"] }
+```
+Finished notes tagged `project`.
+
+```json
+"expression": { "or": ["status == 'done'", "status == 'dropped'"] }
+```
+Notes that are done or dropped.
+
+```json
+"expression": { "not": ["file.hasTag('keep')"] }
+```
+Notes without the tag `keep`.
+
+For a condition the property, operator and value fields cannot express, such as `file.hasTag('project')` or `file.inFolder('Inbox')`, click **Add expression** below the builder and type the condition as text. The row joins the first group, or starts an **All** group when there is none, and is saved when you leave the field.
+
+When a filter has several groups, a note must pass all of them. To mix "and" and "or" in one condition, such as `(A and B) or C`, write it as an expression row:
+
+```
+(status == "done" && _type == "project") || file.hasTag("archive")
+```
+
+A condition the builder cannot show as property, operator and value, such as the one above, appears as an expression row you edit as text. A rule saved with a plain expression string, as rules were before the builder, keeps working and shows as one row.
+
+A filter with no conditions matches no note, and so does one with a condition that does not parse or has no value. Kokobrain logs such a rule as failed instead of applying it to every note.
+
+> A condition that parses but fails when it runs, such as a misspelled method (`status.lowr()`) or a method on a property the note lacks, counts as false and is not logged. In a **None of the following are true** group, false means the rule matches, so such a typo applies the rule to every note. Check the match count under the builder before you leave a rule enabled.
+
 ## Writing Expressions
 
-Expressions use the same language as [Collection](12-collection.md) filters. They are evaluated against the note's frontmatter properties and metadata.
+Each condition, and each expression row, uses the same language as [Collection](12-collection.md) filters. It is evaluated against the note's frontmatter properties and metadata.
 
 ### Common examples
 
