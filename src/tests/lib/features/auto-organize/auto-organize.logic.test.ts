@@ -17,6 +17,7 @@ import {
 	isBooleanOnlyKey,
 	isRefusedKey,
 	ruleValueEditor,
+	parseRuleItems,
 	filterProblem,
 	hasBlankValue,
 } from '#lib/features/auto-organize/auto-organize.logic.js';
@@ -683,6 +684,51 @@ describe('sanitizeRuleProperties', () => {
 			{ key: 'archived', value: false, mode: 'always' },
 		])).toEqual([{ key: 'archived', value: false, mode: 'always' }]);
 	});
+
+	it('keeps a remove without a value, on any key but todoist_project, and strips a stray value', () => {
+		expect(sanitizeRuleProperties([
+			{ key: 'status', mode: 'remove' },
+			{ key: 'tags', value: 'draft', mode: 'remove' },
+			{ key: '_archived', mode: 'remove' },
+			{ key: 'favorite', value: 'yes', mode: 'remove' },
+			{ key: 'todoist_project', mode: 'remove' },
+			{ key: ' ', mode: 'remove' },
+		])).toEqual([
+			{ key: 'status', mode: 'remove' },
+			{ key: 'tags', mode: 'remove' },
+			{ key: '_archived', mode: 'remove' },
+			{ key: 'favorite', mode: 'remove' },
+		]);
+	});
+
+	it('keeps an add with text or a list of text holding a non-blank item', () => {
+		const valid = [
+			{ key: 'tags', value: 'work', mode: 'add' },
+			{ key: 'projects', value: ['[[A]]', ' '], mode: 'add' },
+		];
+		expect(sanitizeRuleProperties(valid)).toEqual(valid);
+	});
+
+	it('drops an add with no item left, or a value that is not text', () => {
+		expect(sanitizeRuleProperties([
+			{ key: 'tags', value: true, mode: 'add' },
+			{ key: 'tags', value: 3, mode: 'add' },
+			{ key: 'tags', value: '  ', mode: 'add' },
+			{ key: 'tags', value: [], mode: 'add' },
+			{ key: 'tags', value: ['', ' '], mode: 'add' },
+			{ key: 'tags', value: '#', mode: 'add' },
+			{ key: 'tags', mode: 'add' },
+			{ key: 'todoist_project', value: 'Work', mode: 'add' },
+			{ key: '_archived', value: 'x', mode: 'add' },
+		])).toEqual([]);
+	});
+
+	it('still requires a value for if-missing and always', () => {
+		expect(sanitizeRuleProperties([
+			{ key: 'status', mode: 'always' },
+			{ key: 'status', mode: 'if-missing' },
+		])).toEqual([]);
+	});
 });
 
 describe('ownedProperties', () => {
@@ -741,29 +787,48 @@ describe('isRefusedKey', () => {
 
 describe('ruleValueEditor', () => {
 	it('picks a yes/no switch for a boolean-only key or a boolean value', () => {
-		expect(ruleValueEditor('_archived', false)).toBe('boolean');
-		expect(ruleValueEditor('archived', 'x')).toBe('boolean');
-		expect(ruleValueEditor('pinned', true)).toBe('boolean');
+		expect(ruleValueEditor('_archived', false, 'always')).toBe('boolean');
+		expect(ruleValueEditor('archived', 'x', 'always')).toBe('boolean');
+		expect(ruleValueEditor('pinned', true, 'always')).toBe('boolean');
 	});
 
 	it('picks the icon picker for _icon and its alias', () => {
-		expect(ruleValueEditor('_icon', 'lucide:star')).toBe('icon');
-		expect(ruleValueEditor('icon', '')).toBe('icon');
+		expect(ruleValueEditor('_icon', 'lucide:star', 'always')).toBe('icon');
+		expect(ruleValueEditor('icon', '', 'always')).toBe('icon');
 	});
 
 	it('picks the color controls for _color and _title_color', () => {
-		expect(ruleValueEditor('_color', '#ef4444')).toBe('color');
-		expect(ruleValueEditor('title_color', '')).toBe('color');
+		expect(ruleValueEditor('_color', '#ef4444', 'always')).toBe('color');
+		expect(ruleValueEditor('title_color', '', 'always')).toBe('color');
 	});
 
 	it('leaves numbers and lists to the JSON', () => {
-		expect(ruleValueEditor('priority', 2)).toBe('json');
-		expect(ruleValueEditor('tags', ['a'])).toBe('json');
+		expect(ruleValueEditor('priority', 2, 'always')).toBe('json');
+		expect(ruleValueEditor('tags', ['a'], 'always')).toBe('json');
 	});
 
 	it('uses text for any other key, including an empty one', () => {
-		expect(ruleValueEditor('status', 'done')).toBe('text');
-		expect(ruleValueEditor('', '')).toBe('text');
+		expect(ruleValueEditor('status', 'done', 'always')).toBe('text');
+		expect(ruleValueEditor('', '', 'always')).toBe('text');
+	});
+
+	it('shows no value for remove and the items field for add, whatever the key', () => {
+		expect(ruleValueEditor('_archived', undefined, 'remove')).toBe('none');
+		expect(ruleValueEditor('status', 'x', 'remove')).toBe('none');
+		expect(ruleValueEditor('tags', ['a'], 'add')).toBe('items');
+		expect(ruleValueEditor('_icon', '', 'add')).toBe('items');
+	});
+});
+
+describe('parseRuleItems', () => {
+	it('splits on commas, trims, and leaves out blank items', () => {
+		expect(parseRuleItems('a, , b ,c')).toEqual(['a', 'b', 'c']);
+		expect(parseRuleItems('[[A]]')).toEqual(['[[A]]']);
+	});
+
+	it('is [] for an empty or blank field', () => {
+		expect(parseRuleItems('')).toEqual([]);
+		expect(parseRuleItems(' , ')).toEqual([]);
 	});
 });
 
@@ -858,6 +923,58 @@ describe('propertiesToWrite', () => {
 	it('returns [] when nothing is owned', () => {
 		expect(propertiesToWrite([prop('x', 'a')], [])).toEqual([]);
 	});
+
+	describe('remove', () => {
+		const remove = (key: string) => ownedProperties([makeRule({ properties: [{ key, mode: 'remove' }] })]);
+
+		it('writes when the key is there, empty value included', () => {
+			expect(propertiesToWrite([prop('x', 'a')], remove('x'))).toHaveLength(1);
+			expect(propertiesToWrite([prop('x', '')], remove('x'))).toHaveLength(1);
+			expect(propertiesToWrite([prop('_archived', false, 'boolean')], remove('archived'))).toHaveLength(1);
+		});
+
+		it('writes nothing when the key is absent', () => {
+			expect(propertiesToWrite([prop('y', 'a')], remove('x'))).toEqual([]);
+			expect(propertiesToWrite([], remove('x'))).toEqual([]);
+		});
+	});
+
+	describe('add', () => {
+		const add = (key: string, value: string | string[]) => ownedProperties([makeRule({ properties: [{ key, value, mode: 'add' }] })]);
+
+		it('writes when an item is missing, and not when every item is there', () => {
+			expect(propertiesToWrite([prop('x', ['a'], 'list')], add('x', 'b'))).toHaveLength(1);
+			expect(propertiesToWrite([prop('x', ['a', 'b'], 'list')], add('x', ['b', 'a']))).toEqual([]);
+			expect(propertiesToWrite([prop('x', 'a')], add('x', 'a'))).toEqual([]);
+		});
+
+		it('writes on an absent or empty key', () => {
+			expect(propertiesToWrite([], add('x', 'a'))).toHaveLength(1);
+			expect(propertiesToWrite([prop('x', '')], add('x', 'a'))).toHaveLength(1);
+			expect(propertiesToWrite([prop('x', [], 'list')], add('x', 'a'))).toHaveLength(1);
+		});
+
+		it('compares items as exact strings, tags without a leading #', () => {
+			expect(propertiesToWrite([prop('x', ['A'], 'list')], add('x', 'a'))).toHaveLength(1);
+			expect(propertiesToWrite([prop('x', ['#a'], 'list')], add('x', 'a'))).toHaveLength(1);
+			expect(propertiesToWrite([prop('tags', ['#a'], 'list')], add('tags', 'a'))).toEqual([]);
+			expect(propertiesToWrite([prop('tags', ['a'], 'list')], add('tags', '#a'))).toEqual([]);
+		});
+
+		it('skips a number or a boolean value and reports it', () => {
+			const skipped: string[] = [];
+			const onSkip = (p: { key: string }) => skipped.push(p.key);
+			expect(propertiesToWrite([prop('n', 3, 'number')], add('n', 'a'), onSkip)).toEqual([]);
+			expect(propertiesToWrite([prop('b', true, 'boolean')], add('b', 'a'), onSkip)).toEqual([]);
+			expect(skipped).toEqual(['n', 'b']);
+		});
+
+		it('does not report a list or text value', () => {
+			const skipped: string[] = [];
+			propertiesToWrite([prop('x', 'a'), prop('y', ['a'], 'list')], [...add('x', 'b'), ...add('y', 'b')], (p) => skipped.push(p.key));
+			expect(skipped).toEqual([]);
+		});
+	});
 });
 
 describe('applyPropertyWrites', () => {
@@ -885,6 +1002,40 @@ describe('applyPropertyWrites', () => {
 	it('returns the input for no writes', () => {
 		const current: Property[] = [{ key: 'x', value: 'a', type: 'text' }];
 		expect(applyPropertyWrites(current, [])).toBe(current);
+	});
+
+	it('removes a key, matched by its canonical form', () => {
+		const writes = ownedProperties([makeRule({ properties: [{ key: 'archived', mode: 'remove' }] })]);
+		const current: Property[] = [
+			{ key: '_archived', value: true, type: 'boolean' },
+			{ key: 'other', value: 'kept', type: 'text' },
+		];
+		expect(applyPropertyWrites(current, writes)).toEqual([{ key: 'other', value: 'kept', type: 'text' }]);
+	});
+
+	it('adds trimmed, missing items in order and keeps the existing order', () => {
+		const writes = ownedProperties([makeRule({ properties: [{ key: 'x', value: [' c ', 'a', '', 'd', 'c'], mode: 'add' }] })]);
+		expect(applyPropertyWrites([{ key: 'x', value: ['b', 'a'], type: 'list' }], writes)).toEqual([
+			{ key: 'x', value: ['b', 'a', 'c', 'd'], type: 'list' },
+		]);
+	});
+
+	it('adds to a single string, an empty value and an absent key', () => {
+		const writes = (key: string) => ownedProperties([makeRule({ properties: [{ key, value: 'new', mode: 'add' }] })]);
+		expect(applyPropertyWrites([{ key: 'x', value: 'old', type: 'text' }], writes('x'))).toEqual([
+			{ key: 'x', value: ['old', 'new'], type: 'list' },
+		]);
+		expect(applyPropertyWrites([{ key: 'x', value: '', type: 'text' }], writes('x'))).toEqual([
+			{ key: 'x', value: ['new'], type: 'list' },
+		]);
+		expect(applyPropertyWrites([], writes('x'))).toEqual([{ key: 'x', value: ['new'], type: 'list' }]);
+	});
+
+	it('adds a tag without its leading #', () => {
+		const writes = ownedProperties([makeRule({ properties: [{ key: 'tags', value: ['#work', '#a'], mode: 'add' }] })]);
+		expect(applyPropertyWrites([{ key: 'tags', value: ['a'], type: 'list' }], writes)).toEqual([
+			{ key: 'tags', value: ['a', 'work'], type: 'list' },
+		]);
 	});
 });
 

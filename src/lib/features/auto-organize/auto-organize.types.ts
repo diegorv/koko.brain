@@ -10,17 +10,25 @@ export interface AutoOrganizeIcon {
 	textColor?: string;
 }
 
-/** A property a matching rule writes to the note's frontmatter */
+/** A literal rule property value; its JSON type decides the YAML type written */
+export type RuleValue = string | number | boolean | string[];
+
+/** A property a matching rule writes to, or removes from, the note's frontmatter */
 export interface RuleProperty {
 	/** Frontmatter key; compared by its canonical form (`icon` is `_icon`) */
 	key: string;
-	/** Literal value; its JSON type decides the YAML type written */
-	value: string | number | boolean | string[];
+	/**
+	 * The value to write. Required by `if-missing` and `always`; for `add`, the
+	 * items, a text or a list of text; absent for `remove`, which ignores it.
+	 */
+	value?: RuleValue;
 	/**
 	 * `if-missing` writes only when the key is absent, null, `''` or `[]`;
-	 * `always` writes whenever the current value differs.
+	 * `always` writes whenever the current value differs;
+	 * `remove` deletes the key when the note has it;
+	 * `add` appends the items the list does not hold yet.
 	 */
-	mode: 'if-missing' | 'always';
+	mode: 'if-missing' | 'always' | 'remove' | 'add';
 }
 
 /** A single auto-organize rule: a filter plus a move and/or property consequences */

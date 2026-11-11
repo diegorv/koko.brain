@@ -165,6 +165,34 @@ describe('auto-organize.service', () => {
 			]);
 		});
 
+		it('drops an add whose value is a boolean, and keeps a remove without its value', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+				rules: [{
+					id: 'r1',
+					name: 'Tag',
+					expression: 'true',
+					destination: '',
+					enabled: true,
+					properties: [
+						{ key: 'tags', value: true, mode: 'add' },
+						{ key: 'tags', value: 'work', mode: 'add' },
+						{ key: 'status', value: 'draft', mode: 'remove' },
+						{ key: '_archived', mode: 'remove' },
+					],
+				}],
+				excludedFolders: [],
+			}));
+
+			await loadAutoOrganizeConfig('/vault');
+
+			expect(autoOrganizeStore.rules[0].properties).toEqual([
+				{ key: 'tags', value: 'work', mode: 'add' },
+				{ key: 'status', mode: 'remove' },
+				{ key: '_archived', mode: 'remove' },
+			]);
+		});
+
 		it('loads a rule without properties unchanged, and drops a non-array properties field', async () => {
 			const plain = { id: 'r1', name: 'Test', expression: 'true', destination: 'Archive', enabled: true };
 			vi.mocked(exists).mockResolvedValue(true);
@@ -779,6 +807,121 @@ describe('auto-organize.service', () => {
 				await saveAndRun(active, NOTE, '---\nstatus: active\n---\nbody');
 				expect(writeTextFile).not.toHaveBeenCalled();
 			});
+		});
+
+		describe('add', () => {
+			const work = [rule('r1', [{ key: 'tags', value: 'work', mode: 'add' }])];
+
+			it('appends a missing item and keeps the other tags', async () => {
+				await saveAndRun(work, NOTE, '---\ntags: [a]\n---\nbody');
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'tags', value: ['a', 'work'], type: 'list' },
+				]);
+			});
+
+			it('does not write a list that already holds every item', async () => {
+				await saveAndRun(work, NOTE, '---\ntags: [a, work]\n---\nbody');
+				expect(writeTextFile).not.toHaveBeenCalled();
+			});
+
+			it('creates the list when the key is absent', async () => {
+				await saveAndRun(
+					[rule('r1', [{ key: 'projects', value: ['[[A]]', '[[B]]'], mode: 'add' }])],
+					NOTE,
+					'---\nstatus: open\n---\nbody',
+				);
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'status', value: 'open', type: 'text' },
+					{ key: 'projects', value: ['[[A]]', '[[B]]'], type: 'list' },
+				]);
+			});
+
+			it('turns a single string into a list: the old string, then the new items', async () => {
+				await saveAndRun(work, NOTE, '---\ntags: a\n---\nbody');
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'tags', value: ['a', 'work'], type: 'list' },
+				]);
+			});
+
+			it('compares tags without a leading #, and leaves inline tags in the body alone', async () => {
+				await saveAndRun(
+					[rule('r1', [{ key: 'tags', value: ['#work', 'home'], mode: 'add' }])],
+					NOTE,
+					'---\ntags: ["#work"]\n---\nbody #inline',
+				);
+				const written = lastWrite(NOTE)!;
+				expect(parseFrontmatterProperties(written)).toEqual([
+					{ key: 'tags', value: ['#work', 'home'], type: 'list' },
+				]);
+				expect(written.endsWith('\nbody #inline')).toBe(true);
+			});
+
+			it('writes nothing on a number and logs the skip once per rule', async () => {
+				const counter = [rule('r1', [{ key: 'count', value: 'x', mode: 'add' }])];
+				await saveAndRun(counter, NOTE, '---\ncount: 3\n---\nbody');
+				await saveAndRun(counter, NOTE, '---\ncount: 3\n---\nbody');
+
+				expect(writeTextFile).not.toHaveBeenCalled();
+				expect(error).toHaveBeenCalledTimes(1);
+				expect(error).toHaveBeenCalledWith(
+					'AUTO-ORGANIZE',
+					`Rule "Rule r1" cannot add to count on ${NOTE}: the value is not a list or text`,
+				);
+			});
+		});
+
+		describe('remove', () => {
+			it('deletes the key, whatever its value', async () => {
+				await saveAndRun(
+					[rule('r1', [{ key: 'status', mode: 'remove' }])],
+					NOTE,
+					'---\nstatus: ""\nother: kept\n---\nbody',
+				);
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'other', value: 'kept', type: 'text' },
+				]);
+			});
+
+			it('does not write a note without the key', async () => {
+				await saveAndRun([rule('r1', [{ key: 'status', mode: 'remove' }])], NOTE, '---\nother: kept\n---\nbody');
+				expect(writeTextFile).not.toHaveBeenCalled();
+			});
+
+			it('drops _archived through its alias', async () => {
+				await saveAndRun(
+					[rule('r1', [{ key: 'archived', mode: 'remove' }])],
+					NOTE,
+					'---\n_archived: true\nstatus: done\n---\nbody',
+				);
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'status', value: 'done', type: 'text' },
+				]);
+			});
+
+			it('on tags clears every frontmatter tag, whatever value the entry holds', async () => {
+				await saveAndRun(
+					[rule('r1', [{ key: 'tags', value: 'draft', mode: 'remove' }])],
+					NOTE,
+					'---\ntags: [draft, keep]\nstatus: done\n---\nbody #inline',
+				);
+				const written = lastWrite(NOTE)!;
+				expect(parseFrontmatterProperties(written)).toEqual([
+					{ key: 'status', value: 'done', type: 'text' },
+				]);
+				expect(written.endsWith('\nbody #inline')).toBe(true);
+			});
+		});
+
+		it('a higher if-missing rule on tags blocks a lower add on tags', async () => {
+			await saveAndRun(
+				[
+					rule('r1', [{ key: 'tags', value: ['first'], mode: 'if-missing' }]),
+					rule('r2', [{ key: 'tags', value: 'work', mode: 'add' }]),
+				],
+				NOTE,
+				'---\ntags: [a]\n---\nbody',
+			);
+			expect(writeTextFile).not.toHaveBeenCalled();
 		});
 
 		it('writes the higher rule\'s value when two matching rules set one key', async () => {

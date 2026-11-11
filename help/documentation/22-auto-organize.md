@@ -59,7 +59,7 @@ Each rule consists of:
 2. Give it a **name** and build its **Filter**. Adding, removing or changing a condition is saved at once; a value you type is saved when you leave the field or press Enter, not on every keystroke. A condition with no value is not saved, and Settings shows **Every filter needs a value** until you fill it in. Under the filter, **Matches N notes now** counts the notes it matches right now. Check it: a count close to all your notes usually means a typo, such as a misspelled property name.
 3. Under **Then**, pick what the rule does:
    - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
-   - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value**, and pick the mode, **if missing** (the default) or **always**. The **×** button removes the property.
+   - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value**, and pick the mode: **if missing** (the default), **always**, **remove** or **add to list** (see [Set properties](#set-properties)). A **remove** row has no value field; an **add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
 4. Turn the rule's toggle on when it is ready.
 
 A rule with no folder and no property does nothing. Settings says so under the rule, and still saves it.
@@ -189,7 +189,7 @@ A Collection view counts such a condition as false instead, so inside **None of 
 A rule can do two things when its filter matches, in any combination:
 
 - **[Move to folder](#move-to-folder):** moves the note to a destination folder, which can depend on the note ([Dynamic Destinations](#dynamic-destinations)). Notes in [Excluded Folders](#excluded-folders) are never checked.
-- **[Set properties](#set-properties):** writes frontmatter properties, `if-missing` or `always`. Icons and colors are properties (`_icon`, `_color`, `_title_color`).
+- **[Set properties](#set-properties):** writes frontmatter properties (`if-missing` or `always`), removes them (`remove`) or adds items to a list (`add`). Icons and colors are properties (`_icon`, `_color`, `_title_color`).
 - **[Icon (legacy)](#icon-legacy):** the older way to give a moved note an icon. Use properties instead.
 
 ### Move to folder
@@ -245,12 +245,37 @@ Files inside excluded folders are skipped entirely: no evaluation, no moves, no 
 
 A rule can set properties on the notes it matches, with or without moving them. Each property has a **key**, a **value** and a **mode**:
 
-| Mode | Writes the value when |
+| Mode | Changes the note when |
 |------|----------------------|
 | `if-missing` | the note does not have the property, or it is empty (`""`, an empty list, or no value). `false` and `0` count as set |
 | `always` | the note's value is different. A list is replaced as a whole |
+| `remove` | the note has the property, whatever its value. The property is deleted. A `remove` has no value, and any value it has is ignored |
+| `add` | an item is missing from the list. Each missing item is appended, and the items already there keep their order |
 
 The value is written with its own type: `true` and `false` as booleans, numbers as numbers, `["a", "b"]` as a list, and anything in quotes as text. A link such as `[[AWS]]` is written in quotes, so it stays a link.
+
+**`remove`** deletes the property:
+
+```json
+{ "key": "status", "mode": "remove" }
+```
+
+A note with `status: draft` loses the `status` line. A note without `status` is not written.
+
+**`add`** adds items to a list property without replacing it. Its value is one item (`"work"`) or a list of items (`["work", "q3"]`):
+
+```json
+{ "key": "tags", "value": "work", "mode": "add" }
+```
+
+`tags: [a]` becomes `tags: [a, work]`, and `tags: [a, work]` is left unchanged. Items compare as exact text. If the note has no value, a new list is created with the items; a single text value becomes a list, that value first. A number or a yes/no value is never turned into a list: the rule writes nothing to it, and Kokobrain logs it once per rule. Items are trimmed and blank items are ignored, and an `add` with no item left is ignored.
+
+On `tags`, `add` compares tags without a leading `#`, so `#work` and `work` are the same tag, and adds them without it. Both `add` and `remove` change only the frontmatter `tags` list: inline `#tags` in the note's body are never touched.
+
+> [!WARNING]
+> `remove` on `tags` deletes **every** frontmatter tag, not one tag. Removing a single tag is not supported. `{ "key": "tags", "value": "draft", "mode": "remove" }` does not remove `draft`: it ignores the value and clears the whole `tags` list.
+
+`remove` on `_organized`, `_archived` or `_favorite` puts the note back to the default: organized, not archived, not a favorite. It does not move a note out of its type's archive folder: the [unarchive rule](#automatic-unarchiving) looks for `_archived: false`, and a note without the key does not have it. To unarchive a note, use `always` with `_archived: false`.
 
 In Settings, the value field adapts to the key:
 
@@ -261,17 +286,19 @@ In Settings, the value field adapts to the key:
 | `_color`, `_title_color` | **Pick color** opens the icon picker's colors. On a `_color` row, pick from the **Icon** colors; on a `_title_color` row, from the **Text** colors |
 | Any other key | Text. Pick **Yes/no** in the type menu next to the key for a `true` / `false` value |
 
-Numbers and lists have no editor in Settings. Write them in `.kokobrain/auto-organize-rules.json` (see [Configuration File](#configuration-file)); Settings shows them read-only.
+A **remove** row has no value field. An **add to list** row has one text field, whatever the key: type the items separated by commas, such as `work, q3`.
+
+For **if missing** and **always**, numbers and lists have no editor in Settings. Write them in `.kokobrain/auto-organize-rules.json` (see [Configuration File](#configuration-file)); Settings shows them read-only.
 
 **Icons and colors** are properties like any other: `_icon` (`pack:name`), `_color` (the icon's color: a palette name such as `red`, `green` or `gray`, or a CSS color) and `_title_color` (the title's color). See [File Icons](02-file-explorer.md#frontmatter-icons).
 
 How properties combine:
 
-- Every matching rule applies its properties, top to bottom. When two matching rules set the same property, the higher rule wins, even when its `if-missing` writes nothing because the note already has a value.
+- Every matching rule applies its properties, top to bottom. When two matching rules set the same property, the higher rule wins, even when its `if-missing` writes nothing because the note already has a value. This holds for every mode: two rules cannot both `add` to one property, and only the higher one's items are added.
 - `icon` and `_icon` (and the other [frontmatter key aliases](25-types-and-relationships.md#frontmatter-key-aliases)) are the same property.
 - When the rule also moves the note, the move happens first and the properties are written at the new location. If the move fails, nothing is written.
 - A note the rules leave unchanged is never rewritten.
-- `todoist_project` cannot be set by a rule, and `_organized`, `_archived` and `_favorite` accept only `true` or `false`. Entries that break these rules are ignored.
+- `todoist_project` cannot be set or removed by a rule, and `_organized`, `_archived` and `_favorite` accept only `true` or `false` (or `remove`). Entries that break these rules are ignored.
 
 Rules never write properties to:
 

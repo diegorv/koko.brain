@@ -1,4 +1,4 @@
-import type { AutoOrganizeRule, RuleProperty } from './auto-organize.types';
+import type { AutoOrganizeRule, RuleProperty, RuleValue } from './auto-organize.types';
 import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
 import { isMarkdownFile, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import {
@@ -194,16 +194,22 @@ export function isBooleanOnlyKey(key: string): boolean {
 	return BOOLEAN_ONLY_KEYS.has(canonicalizeKey(key));
 }
 
-/** The Settings editor for a rule property's value. */
-export type RuleValueEditor = 'text' | 'boolean' | 'icon' | 'color' | 'json';
+/**
+ * The Settings editor for a rule property's value. `items` is the
+ * comma-separated field of an `add`, `none` the missing field of a `remove`.
+ */
+export type RuleValueEditor = 'text' | 'boolean' | 'icon' | 'color' | 'json' | 'items' | 'none';
 
 /**
- * Which editor Settings shows for a property value: a yes/no switch for a
- * boolean-only key or a boolean, the icon picker for `_icon`, its color
- * controls for `_color` and `_title_color`, none (`json`) for numbers and
- * lists, which only the config file edits, and text otherwise.
+ * Which editor Settings shows for a property value: none for `remove`, the
+ * items field for `add`, else a yes/no switch for a boolean-only key or a
+ * boolean, the icon picker for `_icon`, its color controls for `_color` and
+ * `_title_color`, none (`json`) for numbers and lists, which only the config
+ * file edits, and text otherwise.
  */
-export function ruleValueEditor(key: string, value: RuleProperty['value']): RuleValueEditor {
+export function ruleValueEditor(key: string, value: RuleValue | undefined, mode: RuleProperty['mode']): RuleValueEditor {
+	if (mode === 'remove') return 'none';
+	if (mode === 'add') return 'items';
 	const canonical = canonicalizeKey(key);
 	if (BOOLEAN_ONLY_KEYS.has(canonical) || typeof value === 'boolean') return 'boolean';
 	if (typeof value !== 'string') return 'json';
@@ -212,29 +218,85 @@ export function ruleValueEditor(key: string, value: RuleProperty['value']): Rule
 	return 'text';
 }
 
-/** True when `value` is a valid `RuleProperty` value: text, number, boolean or a list of text. */
-function isRulePropertyValue(value: unknown): value is RuleProperty['value'] {
-	if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') return true;
-	return Array.isArray(value) && value.every((item) => typeof item === 'string');
+/** The items of a comma-separated Settings field: trimmed, blank ones left out. */
+export function parseRuleItems(text: string): string[] {
+	return text
+		.split(',')
+		.map((item) => item.trim())
+		.filter((item) => item !== '');
+}
+
+/** True for text or a list of text. */
+function isTextOrTextList(value: unknown): value is string | string[] {
+	return typeof value === 'string' || (Array.isArray(value) && value.every((item) => typeof item === 'string'));
+}
+
+/** True when `value` is a valid `if-missing` / `always` value: text, number, boolean or a list of text. */
+function isRulePropertyValue(value: unknown): value is RuleValue {
+	return typeof value === 'number' || typeof value === 'boolean' || isTextOrTextList(value);
+}
+
+/**
+ * The items an `add` on canonical `key` appends: trimmed, blank ones left out,
+ * and on `tags` without a leading `#`, the way the tag readers compare them.
+ */
+function addItems(key: string, value: RuleValue | undefined): string[] {
+	const raw = typeof value === 'string' ? [value] : Array.isArray(value) ? value : [];
+	return raw.map((item) => withoutTagHash(key, item.trim())).filter((item) => item !== '');
+}
+
+/** `item` without one leading `#` when `key` is `tags`, else unchanged. */
+function withoutTagHash(key: string, item: string): string {
+	return key === 'tags' ? item.replace(/^#/, '') : item;
+}
+
+/**
+ * The list an `add` of `items` leaves on canonical `key`: a new list when the
+ * value is absent or empty, a single string followed by the new items, or the
+ * list with the missing items appended in order. Null when every item is
+ * already there; `'not-a-list'` for a number or a boolean, which an `add`
+ * never overwrites. Items compare as exact strings, `tags` without a leading `#`.
+ */
+function listAfterAdd(key: string, existing: Property['value'] | undefined, items: string[]): string[] | null | 'not-a-list' {
+	let base: string[];
+	if (existing === undefined || isEmptyPropertyValue(existing)) base = [];
+	else if (Array.isArray(existing)) base = existing;
+	else if (typeof existing === 'string') base = [existing];
+	else return 'not-a-list';
+	const held = new Set(base.map((item) => withoutTagHash(key, item)));
+	const next = [...base];
+	for (const item of items) {
+		if (held.has(item)) continue;
+		held.add(item);
+		next.push(item);
+	}
+	return next.length === base.length ? null : next;
 }
 
 /**
  * The valid entries of a rule's `properties` as loaded from JSON: a non-array
  * is none, and an entry with a blank key, an unknown mode, a value of another
  * type, the key `todoist_project`, or a non-boolean lifecycle value is dropped.
+ * An `add` needs text or a list of text with at least one non-blank item. A
+ * `remove` needs no value, and is returned without one: a stray value would
+ * read as "remove this item", which `remove` never does.
  */
 export function sanitizeRuleProperties(raw: unknown): RuleProperty[] {
 	if (!Array.isArray(raw)) return [];
-	return raw.filter((entry): entry is RuleProperty => {
-		if (entry === null || typeof entry !== 'object') return false;
+	return raw.flatMap((entry): RuleProperty[] => {
+		if (entry === null || typeof entry !== 'object') return [];
 		const { key, value, mode } = entry as Record<string, unknown>;
-		if (typeof key !== 'string' || key.trim() === '') return false;
-		if (mode !== 'if-missing' && mode !== 'always') return false;
-		if (!isRulePropertyValue(value)) return false;
+		if (typeof key !== 'string' || key.trim() === '') return [];
 		const canonical = canonicalizeKey(key);
-		if (REFUSED_KEYS.has(canonical)) return false;
-		if (BOOLEAN_ONLY_KEYS.has(canonical) && typeof value !== 'boolean') return false;
-		return true;
+		if (REFUSED_KEYS.has(canonical)) return [];
+		if (mode === 'remove') return [{ key, mode }];
+		const validValue =
+			mode === 'add'
+				? isTextOrTextList(value) && addItems(canonical, value).length > 0
+				: (mode === 'if-missing' || mode === 'always') && isRulePropertyValue(value);
+		if (!validValue) return [];
+		if (BOOLEAN_ONLY_KEYS.has(canonical) && typeof value !== 'boolean') return [];
+		return [entry as RuleProperty];
 	});
 }
 
@@ -265,7 +327,7 @@ export function ownedProperties(matched: AutoOrganizeRule[]): OwnedProperty[] {
 }
 
 /** True when two property values are equal; lists compare item by item. */
-function sameValue(a: Property['value'] | undefined, b: RuleProperty['value']): boolean {
+function sameValue(a: Property['value'] | undefined, b: RuleValue | undefined): boolean {
 	if (Array.isArray(a) || Array.isArray(b)) {
 		if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
 		return a.every((item, i) => item === b[i]);
@@ -276,18 +338,37 @@ function sameValue(a: Property['value'] | undefined, b: RuleProperty['value']): 
 /**
  * The owned properties that would change `current` (parsed frontmatter):
  * `if-missing` when the key is absent or empty (`false` and `0` are present),
- * `always` when the value differs.
+ * `always` when the value differs, `remove` when the key is there whatever its
+ * value, `add` when an item is missing from the list.
+ *
+ * @param onSkip - Called for an `add` the current value refuses (a number or
+ * a boolean); it writes nothing.
  */
-export function propertiesToWrite(current: Property[], owned: OwnedProperty[]): OwnedProperty[] {
+export function propertiesToWrite(
+	current: Property[],
+	owned: OwnedProperty[],
+	onSkip?: (property: OwnedProperty) => void,
+): OwnedProperty[] {
 	return owned.filter((property) => {
 		const existing = current.find((p) => canonicalizeKey(p.key) === property.key);
-		if (property.mode === 'if-missing') return !existing || isEmptyPropertyValue(existing.value);
-		return !sameValue(existing?.value, property.value);
+		switch (property.mode) {
+			case 'if-missing':
+				return !existing || isEmptyPropertyValue(existing.value);
+			case 'always':
+				return !sameValue(existing?.value, property.value);
+			case 'remove':
+				return existing !== undefined;
+			case 'add': {
+				const list = listAfterAdd(property.key, existing?.value, addItems(property.key, property.value));
+				if (list === 'not-a-list') onSkip?.(property);
+				return Array.isArray(list);
+			}
+		}
 	});
 }
 
 /** The frontmatter type for a rule value: its JSON type decides the YAML type. */
-function propertyType(value: RuleProperty['value']): PropertyType {
+function propertyType(value: RuleValue): PropertyType {
 	if (Array.isArray(value)) return 'list';
 	if (typeof value === 'boolean') return 'boolean';
 	if (typeof value === 'number') return 'number';
@@ -295,13 +376,28 @@ function propertyType(value: RuleProperty['value']): PropertyType {
 }
 
 /**
- * `current` with each write applied: an existing key is replaced in place,
- * a new key is appended. Returns a new array.
+ * `current` with each write applied: a `remove` deletes the key, an `add`
+ * writes the merged list, any other write sets its value. An existing key is
+ * replaced in place, a new key is appended. Returns a new array.
  */
 export function applyPropertyWrites(current: Property[], writes: OwnedProperty[]): Property[] {
 	let next = current;
-	for (const { key, value } of writes) {
-		const written: Property = { key, value, type: propertyType(value) };
+	for (const property of writes) {
+		const { key } = property;
+		if (property.mode === 'remove') {
+			next = next.filter((p) => canonicalizeKey(p.key) !== key);
+			continue;
+		}
+		let written: Property;
+		if (property.mode === 'add') {
+			const list = listAfterAdd(key, next.find((p) => canonicalizeKey(p.key) === key)?.value, addItems(key, property.value));
+			if (!Array.isArray(list)) continue;
+			written = { key, value: list, type: 'list' };
+		} else {
+			// `sanitizeRuleProperties`, which every owned property passed, requires a value for these modes.
+			const value = property.value!;
+			written = { key, value, type: propertyType(value) };
+		}
 		next = next.some((p) => canonicalizeKey(p.key) === key)
 			? next.map((p) => (canonicalizeKey(p.key) === key ? written : p))
 			: [...next, written];

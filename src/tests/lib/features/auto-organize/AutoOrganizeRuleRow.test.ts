@@ -213,7 +213,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 				{ key: 'b', value: '2', mode: 'always' },
 			] });
 
-			button('Remove property').click();
+			button('Delete row').click();
 			await settle();
 
 			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'b', value: '2', mode: 'always' }] });
@@ -273,6 +273,7 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			await settle();
 
 			expect(document.querySelector('[data-refused-key]')?.textContent).toContain('todoist_project');
+			expect(document.querySelector('[data-refused-key]')?.textContent).toContain('never sets or removes');
 		});
 
 		it('resets a yes/no value when the key is renamed to _icon, so the icon picker shows', async () => {
@@ -317,6 +318,97 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 			expect(onupdate).not.toHaveBeenCalled();
 			expect(field(propertyRows()[0], 'Property value').value).toBe('done');
+		});
+
+		it('saves a remove row without a value and shows no value field', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'status', value: 'done', mode: 'always' }] });
+
+			await choose(propertyRows()[0], 'Property mode', 'remove');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'status', mode: 'remove' }] });
+			expect(propertyRows()[0].querySelector('[aria-label="Property value"]')).toBeNull();
+			expect(propertyRows()[0].querySelector('[aria-label="Property type"]')).toBeNull();
+		});
+
+		it('keeps a remove row on a lifecycle key without a value when the key is renamed', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'status', mode: 'remove' }] });
+
+			commit(field(propertyRows()[0], 'Property key'), '_archived');
+			await settle();
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: '_archived', mode: 'remove' }] });
+			expect(propertyRows()[0].querySelector('[aria-label="Property value"]')).toBeNull();
+		});
+
+		it('gives a remove row a value again when it goes back to always', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: '_archived', mode: 'remove' }] });
+
+			await choose(propertyRows()[0], 'Property mode', 'always');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: '_archived', value: false, mode: 'always' }] });
+		});
+
+		it('turns a text value into list items when the row becomes add to list', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: 'work', mode: 'always' }] });
+
+			await choose(propertyRows()[0], 'Property mode', 'add to list');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'tags', value: ['work'], mode: 'add' }] });
+			expect(field(propertyRows()[0], 'Property value').value).toBe('work');
+		});
+
+		it('turns an empty add row back into an editable text value when it goes to always', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: [], mode: 'add' }] });
+
+			await choose(propertyRows()[0], 'Property mode', 'always');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'tags', value: '', mode: 'always' }] });
+			expect(field(propertyRows()[0], 'Property value').disabled).toBe(false);
+		});
+
+		it('turns a one-item add row back into its text when it goes to if missing', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: ['work'], mode: 'add' }] });
+
+			await choose(propertyRows()[0], 'Property mode', 'if missing');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'tags', value: 'work', mode: 'if-missing' }] });
+			expect(field(propertyRows()[0], 'Property value').value).toBe('work');
+		});
+
+		it('does not offer add to list on a lifecycle key', async () => {
+			await render({ ...BLANK, properties: [{ key: '_archived', value: false, mode: 'always' }] });
+			const trigger = propertyRows()[0].querySelector<HTMLElement>('[data-slot="select-trigger"][aria-label="Property mode"]')!;
+			trigger.focus();
+			trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			flushSync();
+
+			const options = await vi.waitFor(() => {
+				const found = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => o.textContent?.trim());
+				if (!found.includes('remove')) throw new Error('mode menu not open');
+				return found;
+			});
+			expect(options).not.toContain('add to list');
+		});
+
+		it('turns an add row renamed to a lifecycle key into an if missing yes/no', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: ['work'], mode: 'add' }] });
+
+			commit(field(propertyRows()[0], 'Property key'), '_archived');
+			await settle();
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: '_archived', value: false, mode: 'if-missing' }] });
+			expect(propertyRows()[0].querySelector('[aria-label="Property value"][role="switch"]')).not.toBeNull();
+		});
+
+		it('saves comma-separated add items as a list, trimmed and without blanks', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: ['a'], mode: 'add' }] });
+			const items = field(propertyRows()[0], 'Property value');
+			expect(items.disabled).toBe(false);
+
+			commit(items, 'work, , home ');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'tags', value: ['work', 'home'], mode: 'add' }] });
+			expect(field(propertyRows()[0], 'Property value').value).toBe('work, home');
 		});
 
 		it('shows a number or list read-only, to be edited in the JSON', async () => {

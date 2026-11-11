@@ -4,7 +4,7 @@
 
 **Blocked by:** 13
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -31,13 +31,13 @@ The help page, `22-auto-organize.md` after Issue 06: the modes table gets `remov
 
 ### Acceptance
 
-- [ ] Failing test first, in the service test: a rule with `{ key: 'tags', value: 'work', mode: 'add' }` turns `tags: [a]` into `tags: [a, work]`, and leaves `tags: [a, work]` unchanged.
-- [ ] `add` on an absent key creates the list, and `add` on a single string turns it into a list. On a number it writes nothing and logs once.
-- [ ] `remove` deletes the key and does not write a note that lacks it. A remove on `_archived` drops the key.
-- [ ] Ownership: a higher `if-missing` rule on `tags` blocks a lower `add`.
-- [ ] Settings: the new modes are saved; a `remove` row has no value field.
-- [ ] Load: an `add` with a boolean value is dropped.
-- [ ] Docs updated. Frontend gate passes.
+- [x] Failing test first, in the service test: a rule with `{ key: 'tags', value: 'work', mode: 'add' }` turns `tags: [a]` into `tags: [a, work]`, and leaves `tags: [a, work]` unchanged.
+- [x] `add` on an absent key creates the list, and `add` on a single string turns it into a list. On a number it writes nothing and logs once.
+- [x] `remove` deletes the key and does not write a note that lacks it. A remove on `_archived` drops the key.
+- [x] Ownership: a higher `if-missing` rule on `tags` blocks a lower `add`.
+- [x] Settings: the new modes are saved; a `remove` row has no value field.
+- [x] Load: an `add` with a boolean value is dropped.
+- [x] Docs updated. Frontend gate passes.
 
 ## Review amendments (2026-11-10)
 
@@ -55,3 +55,5 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
 - Ordering: Issues 07 to 12 each change the planner, service or Settings row. They are chained to avoid conflicts.
 
 ## Comments
+
+- 2026-11-10, branch `issue/07-property-actions-remove-and-add-to-list`: rule properties gain `remove` (deletes the key) and `add` (adds items to a list, creating or converting it); Settings offers both modes, a `remove` row has no value field, and rows leaving `add` are fitted back; loader drops an `add` with a boolean value; docs updated. Tests: pnpm check 0 errors; targeted auto-organize tests 321 passed; full suite at b8d26a3ab exit 0 (609 files, 15133 passed). Reviews: round 1 APPROVED (review.md), fix round ran, round 2 APPROVED (review-2.md) with one nit on one-item list flattening, shipped as is.

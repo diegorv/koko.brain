@@ -48,6 +48,9 @@ const writingPaths = new Set<string>();
 /** Rule ids whose property write failure was already logged this session. */
 const reportedWriteFailures = new Set<string>();
 
+/** Rule ids whose `add` refused by a note's value was already logged this session. */
+const reportedAddSkips = new Set<string>();
+
 /** Default empty config */
 const DEFAULT_CONFIG: AutoOrganizeConfig = {
 	rules: [],
@@ -312,7 +315,10 @@ async function writeRuleProperties(
 			debug('AUTO-ORGANIZE', `Skipped properties for ${targetPath}: ${skip}`);
 			return;
 		}
-		const writes = propertiesToWrite(parseFrontmatterProperties(current), owned);
+		// Skips are reported on this pass only: `mutate` below may run twice.
+		const writes = propertiesToWrite(parseFrontmatterProperties(current), owned, (skipped) =>
+			reportAddSkip(targetPath, skipped),
+		);
 		if (writes.length === 0) return;
 		involved = writes;
 		await updateNoteFrontmatter(targetPath, (props) => applyPropertyWrites(props, propertiesToWrite(props, owned)));
@@ -334,6 +340,13 @@ function reportWriteFailure(targetPath: string, involved: OwnedProperty[], err: 
 	error('AUTO-ORGANIZE', `Rule ${names} failed to set properties on ${targetPath}:`, err);
 }
 
+/** Logs an `add` the note's value refuses (a number or a boolean) once per rule per session. */
+function reportAddSkip(targetPath: string, skipped: OwnedProperty): void {
+	if (reportedAddSkips.has(skipped.rule.id)) return;
+	reportedAddSkips.add(skipped.rule.id);
+	error('AUTO-ORGANIZE', `Rule "${skipped.rule.name}" cannot add to ${skipped.key} on ${targetPath}: the value is not a list or text`);
+}
+
 /** Resets all auto-organize state (called during vault teardown) */
 export function resetAutoOrganize(): void {
 	// Unsubscribe hook if active
@@ -348,6 +361,7 @@ export function resetAutoOrganize(): void {
 	debounceTimers.clear();
 	writingPaths.clear();
 	reportedWriteFailures.clear();
+	reportedAddSkips.clear();
 	autoOrganizeStore.reset();
 	debug('AUTO-ORGANIZE', 'Reset complete');
 }
