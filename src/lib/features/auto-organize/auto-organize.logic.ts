@@ -64,13 +64,19 @@ export function hasBlankValue(row: FilterRow): boolean {
  * Whether a rule's filter is true for the note. A string runs as an
  * expression and throws when it does not parse or fails to evaluate; an
  * object runs through the Collection filter (`evaluateFilter`) and throws
- * the `filterProblem` message when it is broken or empty.
+ * the `filterProblem` message when it is broken or empty, or the error of
+ * the first condition that fails to evaluate on this note (an unknown method,
+ * a method on a missing property). `filterProblem` cannot see those ahead of
+ * time, and `evaluateFilter` alone would count them as false, so inside `not`
+ * the rule would match.
  */
 function ruleMatches(expression: FilterItem, ctx: EvalContext): boolean {
 	if (typeof expression === 'string') return Boolean(evaluateExpression(expression, ctx));
 	const problem = filterProblem(expression);
 	if (problem !== null) throw new Error(problem);
-	return evaluateFilter(expression, ctx);
+	return evaluateFilter(expression, ctx, (err) => {
+		throw err;
+	});
 }
 
 /**

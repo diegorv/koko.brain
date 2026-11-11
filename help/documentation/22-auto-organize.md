@@ -162,10 +162,9 @@ Each trap below shows a filter that looks right but is wrong, and the form that 
 |-------|-------|
 | `stauts == null` | `status == null` |
 
-**A method on a missing property fails.** `status.lower() == "done"` throws on a note without `status`, because there is no value to call `.lower()` on.
+**A method on a missing property fails.** `status.lower() == "done"` throws on a note without `status`, because there is no value to call `.lower()` on. The rule is skipped for that note and the failure is logged, whether the filter is a single expression or built in the builder, and even inside **None of the following are true**. Notes that have `status` are still checked as usual. A misspelled method such as `status.lowr()` fails the same way, on every note, and **Matches N notes now** shows 0.
 
-- In a rule whose filter is a single expression, the rule is skipped for that note and the failure is logged.
-- In the builder (a filter saved as `and` / `or` / `not`), the failing condition counts as false. Inside **None of the following are true**, false means the rule matches, so the rule applies to every note without the property. Kokobrain does not report it yet (a known problem, tracked as frontmatter-rules Issue 13). The same goes for a misspelled method such as `status.lowr()`.
+A Collection view counts such a condition as false instead, so inside **None of the following are true** the view shows every note without the property.
 
 | Wrong | Right |
 |-------|-------|

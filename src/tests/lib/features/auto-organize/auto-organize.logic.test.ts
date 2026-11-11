@@ -490,6 +490,44 @@ describe('object filters', () => {
 		expect(reported).toEqual(['bad']);
 	});
 
+	describe('a leaf that throws when evaluated skips the rule for that note and is reported', () => {
+		const findWithReports = (expression: FilterItem, record: PropertyIndexRecord) => {
+			const reported: Array<{ id: string; err: unknown }> = [];
+			const matched = findMatchingRules([makeRule({ id: 'leaf', expression })], record, VAULT, (rule, err) =>
+				reported.push({ id: rule.id, err }),
+			);
+			return { matched, reported };
+		};
+
+		it.each<[string, FilterItem]>([
+			['an unknown method inside not', { not: ['status.nosuch()'] }],
+			['a method on a missing property inside not', { not: ["status.lower() == 'x'"] }],
+			['a nested failing leaf', { and: [{ not: ["status.lower() == 'x'"] }] }],
+			['a failing leaf inside or', { or: ["status.lower() == 'x'", 'true'] }],
+		])('%s', (_label, expression) => {
+			const { matched, reported } = findWithReports(expression, makeRecord());
+			expect(matched).toEqual([]);
+			expect(reported).toHaveLength(1);
+			expect(reported[0].id).toBe('leaf');
+			expect(reported[0].err).toBeInstanceOf(Error);
+		});
+
+		it('still matches a note the leaf does not throw on: the rule is not marked broken', () => {
+			const expression = { not: ["status.lower() == 'x'"] };
+			expect(findWithReports(expression, makeRecord()).matched).toEqual([]);
+			const { matched, reported } = findWithReports(expression, note('y'));
+			expect(matched.map((r) => r.id)).toEqual(['leaf']);
+			expect(reported).toEqual([]);
+		});
+
+		it('findMatchingRule reports it too', () => {
+			const reported: string[] = [];
+			const rule = makeRule({ id: 'leaf', expression: { not: ['status.nosuch()'] } });
+			expect(findMatchingRule([rule], makeRecord(), VAULT, (r) => reported.push(r.id))).toBeNull();
+			expect(reported).toEqual(['leaf']);
+		});
+	});
+
 	describe('a broken or empty object filter matches no note and is reported', () => {
 		const cases: Array<[string, FilterItem]> = [
 			['an unparsable not leaf', { not: ['status =='] }],
@@ -774,6 +812,12 @@ describe('countMatchingNotes', () => {
 	it('is null for a broken or empty object filter', () => {
 		expect(countMatchingNotes({ not: ["file.name == ''"] }, index(done, open), VAULT)).toBeNull();
 		expect(countMatchingNotes({}, index(done, open), VAULT)).toBeNull();
+	});
+
+	it('does not count a note an object filter leaf throws on', () => {
+		const bare = makeRecord({ path: '/vault/c.md' });
+		expect(countMatchingNotes({ not: ["status.lower() == 'x'"] }, index(done, open, bare), VAULT)).toBe(2);
+		expect(countMatchingNotes({ not: ['status.nosuch()'] }, index(done, open, bare), VAULT)).toBe(0);
 	});
 });
 

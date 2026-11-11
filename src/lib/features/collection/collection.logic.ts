@@ -319,13 +319,19 @@ function astCitesArchived(node: ASTNode): boolean {
 
 /**
  * Evaluates a filter item (string expression or recursive filter object) against a note record.
+ * A leaf that fails to parse or throws when evaluated counts as false.
+ *
+ * @param onLeafError - Receives each such leaf's error before it counts as false.
+ * A callback that throws stops the whole evaluation, so a failing leaf inside `not`
+ * cannot turn into a match.
  */
-export function evaluateFilter(filter: FilterItem, ctx: EvalContext): boolean {
+export function evaluateFilter(filter: FilterItem, ctx: EvalContext, onLeafError?: (err: unknown) => void): boolean {
 	if (typeof filter === 'string') {
 		try {
 			const ast = parse(filter);
 			return toTruthy(evaluate(ast, ctx));
-		} catch {
+		} catch (err) {
+			onLeafError?.(err);
 			return false;
 		}
 	}
@@ -334,13 +340,13 @@ export function evaluateFilter(filter: FilterItem, ctx: EvalContext): boolean {
 	let result = true;
 
 	if (filterObj.and) {
-		result = filterObj.and.every((item) => evaluateFilter(item, ctx));
+		result = filterObj.and.every((item) => evaluateFilter(item, ctx, onLeafError));
 	}
 	if (result && filterObj.or) {
-		result = filterObj.or.some((item) => evaluateFilter(item, ctx));
+		result = filterObj.or.some((item) => evaluateFilter(item, ctx, onLeafError));
 	}
 	if (result && filterObj.not) {
-		result = filterObj.not.every((item) => !evaluateFilter(item, ctx));
+		result = filterObj.not.every((item) => !evaluateFilter(item, ctx, onLeafError));
 	}
 
 	return result;

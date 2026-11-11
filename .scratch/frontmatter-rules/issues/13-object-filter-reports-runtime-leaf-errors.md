@@ -29,3 +29,5 @@ Paths use the post-06 names (`features/auto-organize/`). Acceptance: `{ not: ["s
 - The help page (`help/documentation/22-auto-move.md`, Building the Filter) states the limit until this lands.
 
 ## Comments
+
+- 2026-11-10, branch `issue/13-object-filter-reports-runtime-leaf-errors`: `evaluateFilter` takes an optional `onLeafError`; Auto Organize uses it so a throwing leaf inside an object filter fails the whole rule for that note and reports via `onError` once per rule per session; views unchanged. Tests: `pnpm check` 0 errors; full suite at 1efee1797 exit 0 (609 files, 15094 passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED, round 2 APPROVED (nit: Issue has no `- [ ]` criteria, so `relay review-ticks` exited 1 and ticked nothing; status left for the main session).

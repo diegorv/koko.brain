@@ -176,6 +176,13 @@ describe('executeQuery', () => {
 		expect(result.records.every((r) => r.properties.get('status') === 'active')).toBe(true);
 	});
 
+	it('counts a filter leaf that throws when evaluated as false, so not keeps every record', () => {
+		const view = baseView({ filters: { not: ['status.nosuch()'] } });
+		const result = executeQuery(baseDef(), view, index, null);
+		expect(result.records).toHaveLength(4);
+		expect(result.filterError).toBeUndefined();
+	});
+
 	it('filters with and conjunction', () => {
 		const def = baseDef({
 			filters: { and: ["status == 'active'", 'priority > 3'] },
@@ -497,6 +504,30 @@ describe('evaluateFilter', () => {
 		const record = makeRecord('/vault/test.md');
 		const ctx = { record, formulas: {} };
 		expect(evaluateFilter('invalid @@@', ctx)).toBe(false);
+	});
+
+	it('counts a leaf that throws when evaluated as false without an onLeafError callback', () => {
+		const ctx = { record: makeRecord('/vault/test.md'), formulas: {} };
+		expect(evaluateFilter({ and: ['status.nosuch()'] }, ctx)).toBe(false);
+		expect(evaluateFilter({ not: ['status.nosuch()'] }, ctx)).toBe(true);
+	});
+
+	it('passes a leaf error to onLeafError, through nested groups', () => {
+		const ctx = { record: makeRecord('/vault/test.md'), formulas: {} };
+		const errors: unknown[] = [];
+		expect(evaluateFilter({ and: [{ not: ["status.lower() == 'x'"] }] }, ctx, (err) => errors.push(err))).toBe(true);
+		expect(errors).toHaveLength(1);
+		expect(errors[0]).toBeInstanceOf(Error);
+	});
+
+	it('stops the evaluation when onLeafError throws', () => {
+		const ctx = { record: makeRecord('/vault/test.md'), formulas: {} };
+		const failure = new Error('rule failed');
+		expect(() =>
+			evaluateFilter({ not: ['status.nosuch()'] }, ctx, () => {
+				throw failure;
+			}),
+		).toThrow(failure);
 	});
 
 	it('evaluates an and filter object (all must match)', () => {
