@@ -56,7 +56,7 @@ Set `ready-for-agent` when mods Issue 03's full SHA is in its Comments. Launch b
 - `help/documentation/28-mods.md`: a `### ctx.query` subsection under "The `ctx` reference" (`:135`), after `ctx.vault` (`:294`), with the example above and a link to `10-querying-the-index.md`.
 - `help/documentation/mods/15-errors-and-debugging.md`: the "`ctx.vault`, `ctx.workspace` ... call rejects" row (`:20`) also names `ctx.query`.
 - `help/documentation/mods/01-anatomy-and-loading.md:300`: `every ctx.query.*` in the list of what rejects after unload.
-- `help/examples/mods/kokobrain-mod.d.ts`: `ModQueryV1` and `ModContextV1.query`, identical to the contract.
+- `help/examples/mods/kokobrain-mod.d.ts`: `ModQueryV1` and `ModContextV1.query`, identical to the contract. If mods Issue 03's Comments say its Behavior 3 (own-write JSDoc follow-up) changed the contract, copy the changed `onNoteSaved` and `ModVaultV1.updateFrontmatter` JSDoc too.
 
 `src/tests/scripts/sync-wiki-docs.test.ts` pins page names and links, not headings (`:9-32`), so new sections are safe.
 
