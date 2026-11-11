@@ -1,38 +1,39 @@
-# 12: A rule can undo its properties when a note stops matching
+# 12: Document the two-rule pattern for values that switch back
 
-**What to build:** an opt-in per rule. When a note that matched stops matching, the rule restores the properties it set to their previous values. Example: `status == "blocked"` sets a red `_color`; when the status changes, the color goes back to what it was. Today nothing is reverted (PRD Decision 7). Read the PRD and Issues 01 and 07 first.
+**What to build:** documentation only. Rules never revert what they wrote when a note stops matching (PRD Decision 7). A pair of rules covers the common case without any memory: one rule for the state, one for its opposite. The owner chose on 2026-11-10 to document this pattern instead of building an undo.
 
 **Blocked by:** 11
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-### Proposal
+**Gate:** frontend only: `pnpm vitest run src/tests/help` (docs and an example only).
 
-- `AutoOrganizeRule` gets `revertWhenUnmatched?: boolean`. It applies to property consequences only. A move, a rename, a created note or a mod action is never undone.
-- **Memory of what the rule changed.** When the rule writes a key, it records the key's previous value for that note, or "absent". This needs state the note does not carry today. Options:
-  - a vault file `.kokobrain/auto-organize-state.json`, keyed by note path and rule id. Paths change on rename and move, so path changes must re-key it;
-  - a hidden frontmatter key in the note, such as `_rule_applied: [rule-id]`. It is visible in the YAML, but it travels with the note;
-  - the vault index.
-- **On a save where the rule no longer matches** and the note is in the state: restore each recorded key, but only while it still holds the value the rule wrote. If the user changed it since, keep the user's value and drop the record.
-- The restore is one more write in the same run, inside the skip set.
+### Behavior
 
-### Questions for triage
+1. The help page (`help/documentation/22-auto-organize.md`) gets a section, "Switching a value back", with the pattern:
 
-1. **Where to store** the memory: in a vault state file, in a hidden frontmatter key, or in the index? This is the main decision.
-2. **Other writers:** if a second rule now owns the key, which one wins?
-3. **Rule edits:** what happens to the stored records when the rule itself is edited or deleted? Revert everything, or forget silently?
-4. **Notes edited outside the app,** where no save runs the rules: accept that they stay as they are until their next save in the app?
-5. Is this worth its cost? Two rules covering both states, one for `status == "blocked"` and one for `status != "blocked"`, give the same effect with no memory, when the "off" value is known. Document that pattern instead, and keep this Issue only for when the previous value really is unknown?
+   ```
+   status == "blocked"   ->  _color: red      (always)
+   status != "blocked"   ->  remove _color    (Issue 07's remove mode)
+   ```
 
-### Acceptance (draft)
+   Also a variant that sets a known default instead of removing, such as `_icon`.
+2. The section says when the pattern does **not** work: when the value before the rule is unknown, for example a color the user picked by hand. The second rule removes it or overwrites it. The text says this plainly.
+3. It reminds the reader that the higher rule wins a key (Issue 01), so the two rules must have exclusive filters, and shows how to write them with `!` or `!=`.
+4. The pattern is added to `help/examples/auto-organize-features/.kokobrain/auto-organize-rules.json` and evaluated by the examples test, as Issue 06 does for its examples.
 
-- [ ] A note that stops matching gets its recorded keys restored, including removing a key that was absent before.
-- [ ] A key the user changed after the rule wrote it is not touched.
-- [ ] Moves and renames keep the record attached to the note.
-- [ ] Docs explain the opt-in and the two-rule alternative. Frontend gate passes.
+### Acceptance
+
+- [ ] The section exists with both variants and the "unknown previous value" limit.
+- [ ] The example pair is in the examples config, and a test evaluates it on a `blocked` note and an `active` note, with the expected `_color` result for each.
+- [ ] `pnpm vitest run src/tests/help` passes.
 
 ## Notes
 
-- **Origin:** owner request on 2026-11-10, after the MVP. It is the largest of these Issues, because it is the only one that needs persistent state.
+- **Owner decision, 2026-11-10 survey:** "only document the pair".
+- If an undo is ever built, the same survey recorded these answers:
+  - memory in `.kokobrain/auto-organize-state.json`;
+  - a rule that matches now beats the undo;
+  - an edited or deleted rule's memory is forgotten silently.
 
 ## Comments

@@ -1,40 +1,58 @@
 # 09: A rule can create a note
 
-**What to build:** a new consequence, **create note**. When a note matches, the rule creates another note, for example a meeting follow-up, a project's tasks page, or a hub note for a folder that does not exist yet. Read the PRD and Issues 01, 07 and 08 first.
+**What to build:** a new consequence, **create note**. When a note matches, the rule creates another note, for example:
+- a meeting follow-up;
+- a project's tasks page;
+- a hub note for a topic.
+
+Read the PRD and Issues 01, 07 and 08 first.
 
 **Blocked by:** 08
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-### Proposal
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- `AutoOrganizeRule` gets `createNote?: { path: string; template?: string; properties?: RuleProperty[]; ifExists: 'skip' }`.
-  - `path` is vault-relative and supports the destination `{variable}` templates (`resolveDestination`), for example `{parent}/{basename} follow-up.md`.
-  - `template` is a note in the templates folder, applied as the template system already does.
-  - `properties` are written into the new note's frontmatter, with literal or computed values (Issue 08).
-- **Create only when the target does not exist.** An existing file is never overwritten, and the rule writes nothing to it. This keeps the action idempotent: the next save of the source note finds the file and does nothing.
-- The new note is created through `createFile` (`src/lib/core/filesystem/fs.service.ts:198`), so the Rust index learns about it. It is not opened.
-- The created note's own after-save must not run the rules. Its creation is part of this run (Issue 01, no chaining). It is evaluated at its own first save.
-- Gates: never create inside `_system`, the templates folder or an excluded folder. Never create a path outside the vault (`..`).
+### Behavior
 
-### Questions for triage
+1. **Type.** `AutoOrganizeRule` gets `createNote?: { path: string; template?: string; properties?: RuleProperty[]; open?: boolean }`.
+   - `path` is vault-relative, ends in `.md`, and supports the destination `{variable}` templates (`resolveDestination`), for example `{parent}/{basename} follow-up.md`.
+   - `template` is a note in the templates folder, applied the way the template system already does.
+   - `properties` go into the new note's frontmatter, with literal or computed values (Issue 08). The variables and `file.*` fields refer to the **source** note.
+   - `open` defaults to `false`.
+2. **Only when missing.** If the target exists, nothing is created and nothing is written to it. This keeps the action idempotent: the next save of the source finds the file and stops.
+3. **Folder.** A missing target folder is created, as the move does.
+4. **Creation.** Create through `createFile` (`src/lib/core/filesystem/fs.service.ts:198`), so the Rust index learns about the note. Open it in a background tab only when `open` is true.
+5. **No chaining.** The created note is not evaluated by the rules in the same run. It is evaluated at its own first save (Issue 01, Behavior 9).
+6. **Several rules.** Every matching rule with `createNote` creates its note. One run creates at most **5** notes; past that it creates none of the rest, and logs once per rule per session.
+7. **Gates.** Never create:
+   - inside `_system`, the templates folder or an excluded folder;
+   - at a path that leaves the vault (`..`, absolute paths).
+8. **Settings.** A "Create note" consequence on the rule row, with the path, the template picker, the properties rows (Issue 02's editor) and an "Open it" toggle. Next to the match count, show "Would create N notes now": the matching notes whose resolved target does not exist yet.
+9. **Linking source and target** is not automatic. The help page shows how to do it with a property consequence on the source, using a computed value (Issue 08).
 
-1. Should the new note be opened in a tab, or created silently?
-2. Should the source note get a link to the new one, for example a property `follow_up: "[[...]]"`? That could be a property consequence on the source using a computed value.
-3. What should happen when the target folder is missing: create it, as the move does, or skip?
-4. With several matching rules that each create a note, should all of them run, or only the first?
-5. Does a rule that creates a note need extra protection against a broad filter? A typo could create one note per note in the vault. The recommended answer: Settings shows "Would create N notes now" next to the match count, and a cap per run.
+### Docs
 
-### Acceptance (draft)
+The help page gets a "Creating notes" section with the follow-up example, the "only when missing" rule, the cap, the gates and the linking recipe.
 
-- [ ] A matching save creates the note at the resolved path with the template and properties applied; a second save does not create or change anything.
-- [ ] An existing target is untouched.
+### Acceptance
+
+- [ ] Failing test first: a matching save creates the note at the resolved path, with the template and properties; a second save creates and changes nothing.
+- [ ] An existing target is untouched. A missing folder is created.
+- [ ] `open: true` opens a tab; the default does not.
+- [ ] A run with 6 matching create rules creates 5 notes and logs the rest.
 - [ ] Gates and the `..` guard hold.
-- [ ] The created note's after-save does not run rules in the same run.
-- [ ] Docs and Settings updated. Frontend gate passes.
+- [ ] The created note's after-save does not run the rules in the same run.
+- [ ] Settings shows "Would create N notes now".
+- [ ] Docs updated. Frontend gate passes.
 
 ## Notes
 
-- **Origin:** owner request on 2026-11-10, after the MVP.
+- **Owner decisions, 2026-11-10 survey:**
+  - opening is a per-rule choice;
+  - the link from the source is an optional property;
+  - a missing folder is created;
+  - every matching rule creates its note, with a count in Settings and a cap per run.
+- The cap of 5 is a starting value, not measured.
 
 ## Comments
