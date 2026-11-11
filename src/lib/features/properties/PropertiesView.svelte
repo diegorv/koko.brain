@@ -23,6 +23,7 @@
 	import type { PropertyType } from '#lib/core/frontmatter/properties.types.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { resolveIconForPath, resolveIconForType } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { propertiesStore } from './properties.store.svelte';
 	import {
@@ -264,7 +265,7 @@
 											{#if linkResolved?.icon}
 												<IconRenderer icon={linkResolved.icon} class="size-3.5 shrink-0" color={linkResolved.color} />
 											{:else}
-												<FileText class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
+												<FileText class="size-3.5 shrink-0 text-right-sidebar-muted-fg" style={iconColorStyle(linkResolved?.color)} />
 											{/if}
 											<span class="truncate">{link.display}</span>
 										</button>

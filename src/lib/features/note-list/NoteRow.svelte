@@ -6,6 +6,7 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import type { ResolvedIcon } from '#lib/features/file-icons/icon-resolver.js';
 	import { resolveWikilink } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { splitPropertyIntoPills } from '#lib/features/type-definitions/type-sidebar.logic.js';
@@ -52,7 +53,7 @@
 		{#if icon?.icon}
 			<IconRenderer icon={icon.icon} class="size-4 shrink-0" color={icon.color} />
 		{:else}
-			<FallbackIcon class="size-4 shrink-0 text-muted-foreground" />
+			<FallbackIcon class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(icon?.color)} />
 		{/if}
 		<input
 			bind:this={menu.rename.input}
@@ -82,7 +83,7 @@
 			{#if icon?.icon}
 				<IconRenderer icon={icon.icon} class="size-4 shrink-0 mt-0.5" color={icon.color} />
 			{:else}
-				<FallbackIcon class="size-4 shrink-0 mt-0.5 text-muted-foreground" data-note-row-fallback-icon />
+				<FallbackIcon class="size-4 shrink-0 mt-0.5 text-muted-foreground" style={iconColorStyle(icon?.color)} data-note-row-fallback-icon />
 			{/if}
 			<div class="min-w-0 flex-1">
 				<div data-note-row-title class="truncate text-row font-medium {isActive ? 'text-primary' : ''} {italic ? 'italic' : ''}" style:color={!isActive && icon?.titleColor ? icon.titleColor : undefined}>

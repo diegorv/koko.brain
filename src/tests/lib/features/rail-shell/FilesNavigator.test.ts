@@ -18,6 +18,7 @@ import type { Lens } from '#lib/features/rail-shell/rail-shell.types.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 
 const VAULT = '/vault';
 const WORK = `${VAULT}/Work`;
@@ -60,6 +61,7 @@ describe('FilesNavigator', () => {
 		vaultStore.open(VAULT);
 		fsStore.reset();
 		fsStore.setFileTree(TREE);
+		fileIconsStore.reset();
 		onPick.mockReset();
 		onToggle.mockReset();
 		target = document.body.appendChild(document.createElement('div'));
@@ -69,6 +71,17 @@ describe('FilesNavigator', () => {
 		if (component) unmount(component);
 		component = null;
 		document.body.innerHTML = '';
+	});
+
+	it("draws a folder's default icon in its own color when it has no icon, closed and open", () => {
+		fileIconsStore.updateFrontmatterIcon(WORK, { color: '#ef4444' });
+		mountNavigator();
+		expect(folder(WORK).querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
+		expect(folder(`${VAULT}/Personal`).querySelector('svg')!.getAttribute('style')).toBeNull();
+		unmount(component!);
+
+		mountNavigator(FILES_LENS, [WORK]);
+		expect(folder(WORK).querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
 	});
 
 	it('paints the navigator column tone', () => {

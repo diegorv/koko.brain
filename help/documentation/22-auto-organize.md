@@ -336,7 +336,7 @@ A **remove** row has no value field. An **add to list** row has one text field, 
 
 For **if missing** and **always**, numbers and lists have no editor in Settings. Write them in `.kokobrain/auto-organize-rules.json` (see [Configuration File](#configuration-file)); Settings shows them read-only.
 
-**Icons and colors** are properties like any other: `_icon` (`pack:name`), `_color` (the icon's color: a palette name such as `red`, `green` or `gray`, or a CSS color) and `_title_color` (the title's color). See [File Icons](02-file-explorer.md#frontmatter-icons).
+**Icons and colors** are properties like any other: `_icon` (`pack:name`), `_color` (the icon's color: a palette name such as `red`, `green` or `gray`, or a CSS color; on a note with no `_icon` it colors the default note icon) and `_title_color` (the title's color). See [File Icons](02-file-explorer.md#frontmatter-icons).
 
 How properties combine:
 

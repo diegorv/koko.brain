@@ -22,6 +22,7 @@
 	import NoteActionBar from '#lib/features/note-action-bar/NoteActionBar.svelte';
 	import { showTableOfContents } from '#lib/plugins/table-of-contents/toc.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { isMarkdownNoteTab, isVirtualTab } from '#lib/core/editor/editor.logic.js';
 	import type { EditorTab } from '#lib/core/editor/editor.types.js';
@@ -57,7 +58,7 @@
 	{#if resolved?.icon}
 		<IconRenderer icon={resolved.icon} class="size-3.5 shrink-0" color={resolved.color} />
 	{:else}
-		<FileText class="size-3.5 shrink-0 text-muted-foreground" />
+		<FileText class="size-3.5 shrink-0 text-muted-foreground" style={iconColorStyle(resolved?.color)} />
 	{/if}
 {/snippet}
 

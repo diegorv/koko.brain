@@ -42,6 +42,7 @@
 	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 	import { createCollectionFile } from '#lib/features/collection/collection.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -483,9 +484,9 @@
 				{#if resolved?.icon}
 					<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
 				{:else if open}
-					<FolderOpen class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+					<FolderOpen class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
 				{:else}
-					<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+					<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
 				{/if}
 				<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{node.name}</span>
 			</button>

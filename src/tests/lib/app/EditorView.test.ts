@@ -132,6 +132,17 @@ describe('EditorView tab icons', () => {
 		expect(noteTab.querySelector<HTMLElement>('span.truncate')!.style.color).toBe('rgb(255, 136, 0)');
 	});
 
+	it("draws a note tab's default icon in the note's own color when it has no icon", () => {
+		fileIconsStore.updateFrontmatterIcon('/vault/plain.md', { color: '#ef4444' });
+		editorStore.addTab({ path: '/vault/plain.md', name: 'plain', content: '', savedContent: '' });
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+
+		const tab = [...target.querySelectorAll<HTMLElement>('[role="tab"]')].find((el) => el.textContent?.includes('plain'))!;
+		expect(tab.querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
+	});
+
 	it('shows a virtual tab with its fixed icon, not a resolved one', () => {
 		const [, tagsTab] = render();
 

@@ -14,6 +14,7 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import RelationshipSearch from '#lib/features/properties/RelationshipSearch.svelte';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 
 const file = (path: string): FileTreeNode => ({ name: path.split('/').pop()!, path, isDirectory: false });
 
@@ -22,6 +23,7 @@ describe('RelationshipSearch', () => {
 
 	beforeEach(() => {
 		fsStore.reset();
+		fileIconsStore.reset();
 		vaultStore._reset();
 		vaultStore.open('/vault');
 	});
@@ -51,6 +53,14 @@ describe('RelationshipSearch', () => {
 		fsStore.setFileTree([file('/vault/Projects.md'), file('/vault/Views/Projects.view'), file('/vault/Views/Board.VIEW')]);
 
 		expect(await offered('Pro')).toEqual(['Projects']);
+	});
+
+	it("draws an offered note's default icon in its own color when it has no icon", async () => {
+		fsStore.setFileTree([file('/vault/Projects.md')]);
+		fileIconsStore.updateFrontmatterIcon('/vault/Projects.md', { color: '#ef4444' });
+
+		expect(await offered('Pro')).toEqual(['Projects']);
+		expect(document.querySelector('.max-h-48 button svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
 	});
 
 	it('offers nothing when the tree is empty', async () => {

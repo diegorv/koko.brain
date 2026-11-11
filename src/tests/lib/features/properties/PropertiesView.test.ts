@@ -51,6 +51,7 @@ describe('PropertiesView relationship links', () => {
 		fsStore.reset();
 		resetProperties();
 		editorStore.reset();
+		fileIconsStore.reset();
 	});
 
 	afterEach(() => {
@@ -78,6 +79,22 @@ describe('PropertiesView relationship links', () => {
 		expect(link).toBeDefined();
 		link!.click();
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/b/foo.png');
+	});
+
+	it("draws a linked note's default icon in its own color when it has no icon", () => {
+		fsStore.setFileTree([
+			{ name: 'foo.png', path: '/vault/b/foo.png', isDirectory: false },
+			{ name: 'note.md', path: NOTE, isDirectory: false },
+		]);
+		fileIconsStore.updateFrontmatterIcon('/vault/b/foo.png', { color: '#ef4444' });
+		editorStore.addTab({ path: NOTE, name: 'note.md', content: NOTE_BODY, savedContent: NOTE_BODY });
+
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(PropertiesView, { target });
+		flushSync();
+
+		const link = [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'b/foo.png')!;
+		expect(link.querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
 	});
 });
 

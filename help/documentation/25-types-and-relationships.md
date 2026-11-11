@@ -46,12 +46,12 @@ The note's title becomes the type name (e.g., a note titled "Project" with `type
 
 ### Type Definition Fields
 
-This table is the reference for every key a type definition reads. A value of the wrong kind (for example `_order: "1"` or `_visible: "false"`) is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible` and `_rail` the type's row in the Types navigator also shows a mark whose tooltip names the key (`_sort` is checked against the `.view` sort values even though it has no effect here). `_color` applies only together with `_icon`; `_title_color` also works without it.
+This table is the reference for every key a type definition reads. A value of the wrong kind (for example `_order: "1"` or `_visible: "false"`) is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible` and `_rail` the type's row in the Types navigator also shows a mark whose tooltip names the key (`_sort` is checked against the `.view` sort values even though it has no effect here). `_color` colors the type's icon; without `_icon` it colors the default icon of the type's row and of its notes that have no icon of their own. `_title_color` also works without `_icon`.
 
 | Field | Value | Default | Effect |
 |-------|-------|---------|--------|
 | `_icon` | Lucide icon name (`rocket`) or `pack:name` | none (the default icon) | Icon of the type's row, of its pin, and of every note of the type that has no icon of its own (note list, editor tabs) |
-| `_color` | Palette name (`red`, `blue`, ...) or a CSS color | none | Color of that icon |
+| `_color` | Palette name (`red`, `blue`, ...) or a CSS color | none | Color of that icon, or of the default icon when there is no `_icon` |
 | `_title_color` | CSS color | none | Text color of the type's row and of the titles of its notes |
 | `_order` | Number | `50`; with no definition or no `_order`, `Project` is 1, `Person` 2, `Event` 3, `Topic` 4, `Task` 5 and `Note` 99 | Position of the type's row in the Types navigator (lower first), and of its pin among the pins |
 | `_sidebar_label` | Text | the name plus `s` (`Projects`) | Label of the type's row, of its pin and of its note list header |
@@ -402,7 +402,7 @@ The `filters` value is a filter expression using the same [Collection expression
 
 This is the reference for every key a `.view` file reads. The keys sit at the top level of the `.view` YAML document (not inside a `---` frontmatter block). An inline ` ```collection ` block reads the same `filters`, `formulas`, `properties`, `views` and per-view keys, and none of the underscore keys.
 
-**Menu keys (top level).** A value of the wrong kind is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible`, `_rail` and `_rail_view` the view's row in Views also shows a mark whose tooltip names the key. `_color` applies only together with `_icon`; `_title_color` also works without it. Writing a key from the app (Pin to rail, Change icon, Edit view, the Sort and Filter panels) rewrites the file, so comments in it are not kept.
+**Menu keys (top level).** A value of the wrong kind is ignored and the default applies; for `_order`, `_sort`, `_open_in_editor`, `_group`, `_visible`, `_rail` and `_rail_view` the view's row in Views also shows a mark whose tooltip names the key. `_color` colors the view's icon, or its default icon when there is no `_icon`; `_title_color` also works without `_icon`. Writing a key from the app (Pin to rail, Change icon, Edit view, the Sort and Filter panels) rewrites the file, so comments in it are not kept.
 
 | Field | Value | Default | Effect |
 |-------|-------|---------|--------|
@@ -412,7 +412,7 @@ This is the reference for every key a `.view` file reads. The keys sit at the to
 | `_open_in_editor` | `true` or `false` | `false` | `true`: a click on the view (its row, its pin, its **Open view** command) opens the `.view` in the editor instead of the note list |
 | `_list_properties_display` | List of property names | none | Properties shown as pills on the rows of the view's list |
 | `_icon` | Lucide icon name or `pack:name` | none (a table icon) | Icon of the view's row and of its pin |
-| `_color` | Palette name or a CSS color | none | Color of that icon |
+| `_color` | Palette name or a CSS color | none | Color of that icon, or of the table icon when there is no `_icon` |
 | `_title_color` | CSS color | none | Text color of the view's row |
 | `_group` | Text | none | Subheading the view is listed under in Views. Views without one come first; groups follow in name order (`Week 2` before `Week 10`), and names are case-sensitive |
 | `_visible` | `true` or `false` | `true` | `false`: Views does not list the view. The palette has no **Open view** command for it either. It stays a file: the Files navigator lists it, the Quick Switcher finds it by file name, a pin keeps it on the rail, and its name stays taken in the **New view** and **Edit view** dialogs. **New table** writes `false`; **Show in Views** removes the key |

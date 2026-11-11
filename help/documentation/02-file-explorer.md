@@ -145,7 +145,7 @@ _title_color: "#3498db"
 | Field | Description |
 |-------|-------------|
 | `_icon` | Icon in `pack:name` format (e.g. `lucide:star`). A bare name like `star` defaults to the Lucide pack. |
-| `_color` | Icon color. A palette name (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `gray`) uses the active theme's shade of that color; any other value (a hex or HSL color) is used as it is. |
+| `_color` | Icon color. A palette name (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `gray`) uses the active theme's shade of that color; any other value (a hex or HSL color) is used as it is. Without `_icon`, it colors the default icon (the note, folder or type icon) instead. |
 | `_title_color` | Tab title text color in the editor. |
 
 These fields are also written automatically when you use the icon picker UI. The legacy `icon` field (without underscore) is accepted as an alias for `_icon`.

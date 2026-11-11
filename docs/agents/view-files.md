@@ -54,7 +54,7 @@ Only the exact value types below work. Any other value is ignored, and the defau
 | `_rail` | boolean `true` | unpinned | pins the view to the rail, whatever `_visible` says. Pins sort by `_order`, then label, then path | |
 | `_rail_view` | a string equal to one entry's `name`, exact and case-sensitive | the first entry | which entry the rail list, the navigator count, the rail's Sort and Filter and Edit view run. The first entry of that name wins. A name no entry has runs `views[0]`, and the row gets a mark. The `.view` tab and inline blocks never read it | |
 | `_icon` | a Lucide icon name (`rocket`) or `pack:name` | table icon | icon of the row and the pin. An unknown name shows the default icon | `icon` |
-| `_color` | palette name or CSS color | none | icon color. It has no effect without `_icon` | `color` |
+| `_color` | palette name or CSS color | none | icon color. Without `_icon` it colors the default table icon | `color` |
 | `_title_color` | CSS color, **quoted** (`"#3498db"`) | none | text color of the row. It works without `_icon`. An unquoted `#...` is a YAML comment, so the value is empty | `title_color` |
 | `_list_properties_display` | list of property names | none | value pills on the rail list rows. It reads only frontmatter keys, so `file.*` and `formula.*` never render | `list_properties_display` |
 

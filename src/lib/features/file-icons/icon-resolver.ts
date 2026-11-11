@@ -33,7 +33,7 @@ export function registerTypeIconLookup(lookup: TypeIconLookup): () => void {
 /**
  * Result of icon resolution: the one answer to how an item looks, read by every
  * place that shows one. Without `icon` the caller keeps its own default icon and
- * still applies `titleColor`.
+ * still applies `color` to it (`iconColorStyle`) and `titleColor` to the title.
  */
 export interface ResolvedIcon {
 	/** The normalized icon ready for rendering; absent when only colors apply */

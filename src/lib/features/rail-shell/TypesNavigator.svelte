@@ -26,6 +26,7 @@
 	import { error as logError } from '#lib/utils/debug.js';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -288,7 +289,7 @@
 							{#if resolved?.icon}
 								<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
 							{:else}
-								<FileText class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+								<FileText class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
 							{/if}
 							<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
 							<span class="ml-auto flex shrink-0 items-center gap-1 pr-1">
@@ -418,7 +419,7 @@
 		{#if resolved?.icon}
 			<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
 		{:else}
-			<Table class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+			<Table class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
 		{/if}
 		<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{row.label}</span>
 		<span class="ml-auto flex shrink-0 items-center gap-1 pr-1">

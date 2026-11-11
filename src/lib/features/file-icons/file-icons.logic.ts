@@ -222,6 +222,17 @@ export function iconColorCss(color: string | undefined): string | undefined {
 	return (TYPE_PALETTE_NAMES as readonly string[]).includes(name) ? `var(--type-${name})` : color;
 }
 
+/**
+ * The inline `style` that colors an item's default icon, a Lucide component drawn in
+ * `currentColor`, with the item's `_color` when it has no icon of its own: the same color
+ * `IconRenderer` gives a custom icon. Undefined without a usable color, so the default icon
+ * keeps its muted class color.
+ */
+export function iconColorStyle(color: string | undefined): string | undefined {
+	const css = iconColorCss(color);
+	return css ? `color: ${css}` : undefined;
+}
+
 /** Filters icons by a search query matching name or keywords */
 export function filterIcons(icons: NormalizedIcon[], query: string): NormalizedIcon[] {
 	if (!query.trim()) return icons;

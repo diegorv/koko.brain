@@ -166,6 +166,13 @@ describe('TypesNavigator', () => {
 		document.body.innerHTML = '';
 	});
 
+	it("draws a type's default icon in its definition's color when the definition has no icon", async () => {
+		fileIconsStore.updateFrontmatterIcon('/vault/Project.md', { color: '#ef4444' });
+		await mountNavigator();
+		expect(rowEl('Project').querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
+		expect(rowEl('Meeting').querySelector('svg')!.getAttribute('style')).toBeNull();
+	});
+
 	it('lists the types with their counts, then Untyped', async () => {
 		await mountNavigator();
 		expect(rowEls().map((el) => el.querySelector('.truncate')?.textContent?.trim())).toEqual(['Projects', 'Meetings', 'Untyped']);
@@ -464,6 +471,12 @@ describe('TypesNavigator', () => {
 		afterEach(() => {
 			vi.useRealTimers();
 			fsStore.reset();
+		});
+
+		it("draws a view's default table icon in its own color when it has no icon", async () => {
+			fileIconsStore.updateFrontmatterIcon(PROJECTS, { color: '#ef4444' });
+			await mountWithViews();
+			expect(viewEl(PROJECTS).querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
 		});
 
 		it('lists the views above the types, in _order', async () => {

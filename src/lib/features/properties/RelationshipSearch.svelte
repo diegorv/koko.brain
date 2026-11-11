@@ -8,6 +8,7 @@
 	import { isLinkTargetFile } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { relativePath } from '#lib/utils/path.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 
 	interface Props {
@@ -72,7 +73,7 @@
 							{#if resolved?.icon}
 								<IconRenderer icon={resolved.icon} class="size-3.5 shrink-0" color={resolved.color} />
 							{:else}
-								<FileText class="size-3.5 text-muted-foreground shrink-0" />
+								<FileText class="size-3.5 text-muted-foreground shrink-0" style={iconColorStyle(resolved?.color)} />
 							{/if}
 							<div class="flex flex-col min-w-0">
 								<span class="text-[13px] truncate">{file.nameWithoutExt}</span>

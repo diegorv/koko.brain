@@ -9,6 +9,7 @@ import {
 	extractViewIcon,
 	parseIconValuePermissive,
 	iconColorCss,
+	iconColorStyle,
 } from '#lib/features/file-icons/file-icons.logic.js';
 import type { NormalizedIcon, RecentIcon } from '#lib/features/file-icons/file-icons.types.js';
 import type { FrontmatterValue } from '#lib/types/vault-v2.types.js';
@@ -631,6 +632,22 @@ describe('extractViewIcon', () => {
 	it('returns null when the body is not a mapping', () => {
 		expect(extractViewIcon('- lucide:star\n')).toBeNull();
 		expect(extractViewIcon('just a scalar\n')).toBeNull();
+	});
+});
+
+describe('iconColorStyle', () => {
+	it('is the color declaration for a palette name or a CSS color', () => {
+		expect(iconColorStyle('red')).toBe('color: var(--type-red)');
+		expect(iconColorStyle('#ef4444')).toBe('color: #ef4444');
+	});
+
+	it('is undefined without a color, so the default icon keeps its muted color', () => {
+		expect(iconColorStyle(undefined)).toBeUndefined();
+		expect(iconColorStyle('')).toBeUndefined();
+	});
+
+	it('is undefined for an unsafe value', () => {
+		expect(iconColorStyle('red; background-image: url(https://example.com/x)')).toBeUndefined();
 	});
 });
 

@@ -91,6 +91,40 @@ async function settle(rounds = 4) {
 	}
 }
 
+describe('NoteRow default icon color', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		fsStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		fsStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	it("draws the default icon in the note's own color when it has a color but no icon", () => {
+		component = mount(NoteRowMenuHarness, { target, props: { notes, icons: { [ALPHA]: { color: '#ef4444' } } } });
+		flushSync();
+		const alpha = [...target.querySelectorAll<HTMLElement>('[data-note-row]')].find((el) => el.textContent?.includes('Alpha'))!;
+		const beta = [...target.querySelectorAll<HTMLElement>('[data-note-row]')].find((el) => el.textContent?.includes('Beta'))!;
+		expect(alpha.querySelector('[data-note-row-fallback-icon]')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
+		expect(beta.querySelector('[data-note-row-fallback-icon]')!.getAttribute('style')).toBeNull();
+	});
+
+	it('keeps the color on the default icon while the note is being renamed', () => {
+		fsStore.setRenamingPath(ALPHA);
+		component = mount(NoteRowMenuHarness, { target, props: { notes, icons: { [ALPHA]: { color: 'red' } } } });
+		flushSync();
+		const input = target.querySelector('input')!;
+		expect(input.previousElementSibling!.getAttribute('style')).toContain('var(--type-red)');
+	});
+});
+
 describe('NoteRowMenu', () => {
 	let target: HTMLElement;
 	let component: { setNotes: (next: NoteRowNote[]) => void } | null = null;
