@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 12 | todo | | |
 | 11 | [A rule can rename the note](issues/11-rule-action-rename-note.md) | 09 | todo | | |
 | 12 | [Document the two-rule pattern for values that switch back](issues/12-undo-when-note-stops-matching.md) | 11 | todo | | |
-| 13 | [An object rule filter reports a condition that fails at runtime](issues/13-object-filter-reports-runtime-leaf-errors.md) | 06 | todo | | |
+| 13 | [An object rule filter reports a condition that fails at runtime](issues/13-object-filter-reports-runtime-leaf-errors.md) | 06 | in-progress | | |
 
 ## Log
 
@@ -70,3 +70,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 22:54 — ledger updated (added 13; blocked by of 05, 07, 10, 11)
 - 2026-11-10 22:54 — 06 — start — launched by /relay-lite:run — 73cd5b9d3
 - 2026-11-10 23:15 — 06 — deliver — reviews APPROVED x2 (claude) with a fix round; full suite 609 files / 15083 tests passed; squash merged and pushed — b63dfb4ff
+- 2026-11-10 23:16 — 13 — start — launched by /relay-lite:run — ea561a269
