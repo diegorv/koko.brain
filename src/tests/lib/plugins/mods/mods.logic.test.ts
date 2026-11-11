@@ -7,6 +7,7 @@ import {
 	evaluateModSource,
 	isModCodePath,
 	mapModChanges,
+	mergeModSettings,
 	parseModData,
 	parseModManifest,
 	serializeModData,
@@ -319,6 +320,115 @@ describe('parseModManifest', () => {
 		])('rejects %s', (_name, ruleActions) => {
 			expect(errorOf(withRuleActions(ruleActions))).toBe(ERROR);
 		});
+	});
+
+	describe('settings', () => {
+		const withSettings = (settings: unknown, extra: Record<string, unknown> = {}) => manifest({ ...VALID, ...extra, settings });
+		const PREFIX = '_system/mods/hello: manifest.json ';
+		const FOLDER = { key: 'folder', type: 'string', label: 'Target folder', default: 'Inbox' } as const;
+		const COMPACT = { key: 'compact', type: 'boolean', label: 'Compact view' } as const;
+
+		it('keeps a valid list of fields as written', () => {
+			expect(parseModManifest(withSettings([FOLDER, COMPACT, { key: 'on', type: 'boolean', label: 'On', default: true }]), 'hello')).toEqual({
+				ok: true,
+				manifest: { ...VALID, settings: [FOLDER, COMPACT, { key: 'on', type: 'boolean', label: 'On', default: true }] },
+			});
+		});
+
+		it('keeps an empty list, and gives no key without one', () => {
+			expect(parseModManifest(withSettings([]), 'hello')).toEqual({ ok: true, manifest: { ...VALID, settings: [] } });
+			const result = parseModManifest(manifest(VALID), 'hello');
+			if (!result.ok) throw new Error('expected a valid manifest');
+			expect('settings' in result.manifest).toBe(false);
+		});
+
+		it('drops unknown keys inside a field', () => {
+			expect(parseModManifest(withSettings([{ ...COMPACT, description: 'x', options: [1] }]), 'hello')).toEqual({
+				ok: true,
+				manifest: { ...VALID, settings: [COMPACT] },
+			});
+		});
+
+		it.each([
+			['a string', 'folder'],
+			['null', null],
+			['an object', { folder: FOLDER }],
+		])('rejects %s as the list', (_name, settings) => {
+			expect(errorOf(withSettings(settings))).toBe(`${PREFIX}settings must be a list of fields`);
+		});
+
+		it.each([
+			['a string', 'folder'],
+			['null', null],
+			['an array', [FOLDER]],
+		])('rejects %s as an item', (_name, item) => {
+			expect(errorOf(withSettings([COMPACT, item]))).toBe(`${PREFIX}settings[1] must be an object`);
+		});
+
+		it.each(['__proto__', '1x', '', 'my-key', 'a b', 'x_y', 3])('rejects %j as a key', (key) => {
+			expect(errorOf(withSettings([{ ...COMPACT, key }]))).toBe(
+				`${PREFIX}settings[0].key must be letters and digits, starting with a letter`,
+			);
+		});
+
+		it('accepts letters and digits after a first letter', () => {
+			expect(parseModManifest(withSettings([{ ...COMPACT, key: 'aB3' }]), 'hello').ok).toBe(true);
+		});
+
+		it('rejects a key used twice', () => {
+			expect(errorOf(withSettings([COMPACT, FOLDER, { ...FOLDER, label: 'Again' }]))).toBe(
+				`${PREFIX}settings[2].key "folder" is used twice`,
+			);
+		});
+
+		it.each(['number', 'select', undefined, true])('rejects %j as a type', (type) => {
+			expect(errorOf(withSettings([{ ...COMPACT, type }]))).toBe(`${PREFIX}settings[0].type must be "boolean" or "string"`);
+		});
+
+		it.each(['', undefined, 3])('rejects %j as a label', (label) => {
+			expect(errorOf(withSettings([{ ...COMPACT, label }]))).toBe(`${PREFIX}settings[0].label must be a non-empty string`);
+		});
+
+		it('rejects a default not of the field type', () => {
+			expect(errorOf(withSettings([{ ...COMPACT, default: 'yes' }]))).toBe(`${PREFIX}settings[0].default must be a boolean`);
+			expect(errorOf(withSettings([{ ...FOLDER, default: false }]))).toBe(`${PREFIX}settings[0].default must be a string`);
+			expect(errorOf(withSettings([{ ...FOLDER, default: null }]))).toBe(`${PREFIX}settings[0].default must be a string`);
+		});
+
+		it('reports the first failure: the earlier checks, then the first bad field, then its first bad part', () => {
+			expect(errorOf(withSettings('bad', { ruleActions: 'bad' }))).toBe(`${PREFIX}ruleActions must be a list of action ids`);
+			expect(errorOf(withSettings('bad', { color: 'red' }))).toBe(`${PREFIX}color must be an object with light and dark`);
+			expect(errorOf(withSettings([{ ...COMPACT, label: '' }, { ...COMPACT, key: '1x' }]))).toBe(
+				`${PREFIX}settings[0].label must be a non-empty string`,
+			);
+			expect(errorOf(withSettings([{ key: '1x', type: 'number', label: '' }]))).toBe(
+				`${PREFIX}settings[0].key must be letters and digits, starting with a letter`,
+			);
+			expect(errorOf(withSettings([{ key: 'a', type: 'number', label: '' }]))).toBe(`${PREFIX}settings[0].type must be "boolean" or "string"`);
+		});
+	});
+});
+
+describe('mergeModSettings', () => {
+	it('applies the patch to an empty object when nothing is stored', () => {
+		expect(mergeModSettings(null, { folder: 'Work' })).toEqual({ ok: true, value: { folder: 'Work' } });
+	});
+
+	it('keeps every key the mod saved and lets the patch win', () => {
+		const stored = { count: 3, folder: 'Inbox', nested: { a: 1 } };
+		const result = mergeModSettings(stored, { folder: 'Work', compact: true });
+
+		expect(result).toEqual({ ok: true, value: { count: 3, folder: 'Work', nested: { a: 1 }, compact: true } });
+		expect(stored).toEqual({ count: 3, folder: 'Inbox', nested: { a: 1 } });
+	});
+
+	it.each([
+		['an array', [1, 2]],
+		['a string', 'text'],
+		['a number', 3],
+		['a boolean', true],
+	])('refuses %s', (_name, stored) => {
+		expect(mergeModSettings(stored, { folder: 'Work' })).toEqual({ ok: false, reason: 'not an object' });
 	});
 });
 

@@ -25,7 +25,7 @@ const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
 
 **Related (other repo):** the mods workspace build check `checkManifest` (`/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/scripts/mod-loader.ts:46-74`) is a hand copy of `parseModManifest`. It ignores unknown keys, so it lets a manifest with a bad `settings` list deploy, and the host then refuses it. Mirroring the check there, with fixtures in `test/host-integration/manifest-check.test.ts`, is a workspace script edit. File it as a mods-repo Issue at triage if the owner wants it; it does not block this one.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Priority:** low (nice to have; the owner chose to build it on 2026-11-11)
 
@@ -80,13 +80,13 @@ const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
 
 ### Acceptance
 
-- [ ] Failing test first, in `src/tests/lib/plugins/mods/mods-host.service.test.ts` (pattern of `reload on file change`, `:1040`): a loaded mod whose `data.json` holds `{ "count": 3 }` and whose manifest declares a string field `folder`; `saveModSetting(vault, folder, 'folder', 'Work')` unloads the mod, writes `{ "count": 3, "folder": "Work" }`, and the new instance's `loadData` returns it. It fails today, because `saveModSetting` does not exist.
-- [ ] `mods-host.service.test.ts`: the write waits for a live run to end; an in-flight old-instance `saveData` lands before the host's read (Behavior 7); a corrupt, array or unreadable `data.json` is not written, a toast names the folder and the key, and the mod still loads; a write failure toasts, and no `debug` call contains the value; two quick saves give one merged write; `disableMod` and `stopModsHost` drop a pending patch; the loaded entry carries `settings`, the error and disabled entries do not.
-- [ ] `src/tests/lib/plugins/mods/mods.logic.test.ts` (next to `ruleActions`, `:295`): valid list kept; `[]`; not an array; item not an object; bad key incl. `__proto__` and `1x`; duplicate key; unknown type; empty label; wrong-type default; unknown field keys dropped; first failure wins after the existing checks. `mergeModSettings`: `null` gives the patch; an object keeps unknown keys; an array, a string and a number refuse.
-- [ ] `src/tests/lib/plugins/mods/mods.store.test.ts`: `settings` survives `upsertEntry`.
-- [ ] `src/tests/lib/plugins/mods/ModsStatusList.test.ts` (mock `readModSettings` and `saveModSetting` in the existing `mods-host.service.js` mock, `:9-12`): fields only on loaded rows with `settings`; stored values shown, defaults for absent or wrongly typed keys; a switch click calls `saveModSetting` at once; a text field calls it on `change` and not on `input`; a refused read shows the line and no fields.
-- [ ] Docs above updated.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in `src/tests/lib/plugins/mods/mods-host.service.test.ts` (pattern of `reload on file change`, `:1040`): a loaded mod whose `data.json` holds `{ "count": 3 }` and whose manifest declares a string field `folder`; `saveModSetting(vault, folder, 'folder', 'Work')` unloads the mod, writes `{ "count": 3, "folder": "Work" }`, and the new instance's `loadData` returns it. It fails today, because `saveModSetting` does not exist.
+- [x] `mods-host.service.test.ts`: the write waits for a live run to end; an in-flight old-instance `saveData` lands before the host's read (Behavior 7); a corrupt, array or unreadable `data.json` is not written, a toast names the folder and the key, and the mod still loads; a write failure toasts, and no `debug` call contains the value; two quick saves give one merged write; `disableMod` and `stopModsHost` drop a pending patch; the loaded entry carries `settings`, the error and disabled entries do not.
+- [x] `src/tests/lib/plugins/mods/mods.logic.test.ts` (next to `ruleActions`, `:295`): valid list kept; `[]`; not an array; item not an object; bad key incl. `__proto__` and `1x`; duplicate key; unknown type; empty label; wrong-type default; unknown field keys dropped; first failure wins after the existing checks. `mergeModSettings`: `null` gives the patch; an object keeps unknown keys; an array, a string and a number refuse.
+- [x] `src/tests/lib/plugins/mods/mods.store.test.ts`: `settings` survives `upsertEntry`.
+- [x] `src/tests/lib/plugins/mods/ModsStatusList.test.ts` (mock `readModSettings` and `saveModSetting` in the existing `mods-host.service.js` mock, `:9-12`): fields only on loaded rows with `settings`; stored values shown, defaults for absent or wrongly typed keys; a switch click calls `saveModSetting` at once; a text field calls it on `change` and not on `input`; a refused read shows the line and no fields.
+- [x] Docs above updated.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Notes
 
@@ -105,3 +105,5 @@ const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
 - **Not verified:** that `Switch` and `Input` (`src/lib/components/ui/`) forward `aria-label` and `onchange` is inferred from their use (`ModsStatusList.svelte:58-63`, `AutoOrganizeRuleRow.svelte:280-284,382`), not read in their source. The interplay of a setting save with a watcher reload of the same folder is believed safe because both go through one serialized runner (`mods-host.service.ts:830-841`); not tested. No test, build or UI was run.
 
 ## Comments
+
+- 2026-11-11, branch `issue/07-manifest-declared-settings`: mods declare a `settings` field list in `manifest.json` (validated in `parseModManifest`), the host merges edits into `data.json` with `saveModSetting` (reload of the mod, serialized with watcher reloads), and the Labs row renders switch/text fields for loaded mods. Review round 1 APPROVED with fixes applied (stale read guard in `ModsStatusList.svelte`, `parsedFields` rename; drain limit for instances unloaded in an earlier pass noted, not changed). Review round 2 APPROVED, no findings. Full suite at a01373a29: exit 0, 614 files, 15564 passed, 54 skipped, 1 todo. `pnpm check` 0 errors.

@@ -1,3 +1,5 @@
+import type { ModSettingField } from './mods.logic';
+
 /** Load state of one folder under `_system/mods/`, shown in Settings > Labs */
 export interface ModStatusEntry {
 	/** Manifest id; the folder name when the manifest could not be read */
@@ -17,6 +19,8 @@ export interface ModStatusEntry {
 	 * evaluating `main.js` to `onload` settling, without the file reads
 	 */
 	loadMs?: number;
+	/** Set only when `state` is `'loaded'` and the manifest declares settings: the fields Labs shows controls for */
+	settings?: ModSettingField[];
 }
 
 /** The last error a loaded mod's host-called callback threw or rejected with, shown in its Labs row */

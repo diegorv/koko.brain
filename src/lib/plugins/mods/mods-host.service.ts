@@ -1,6 +1,7 @@
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 
+import { call } from '#lib/contracts/ipc.js';
 import { addAfterSaveObserver, addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import { onFileChange } from '#lib/core/filesystem/fs.watcher.js';
 import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
@@ -27,7 +28,17 @@ import { createModData, createModVault, createModWorkspace, isOwnWrite } from '.
 import { watchModValue } from './mod-watch.svelte';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
 import { modsRunsStore } from './mods-runs.store.svelte';
-import { errorText, evaluateModSource, mapModChanges, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
+import {
+	errorText,
+	evaluateModSource,
+	mapModChanges,
+	mergeModSettings,
+	MODS_DIR,
+	parseModData,
+	parseModManifest,
+	serializeModData,
+	type ModManifest,
+} from './mods.logic';
 import { modsStore, type ModCallbackError } from './mods.store.svelte';
 
 /**
@@ -80,6 +91,11 @@ export interface ModRuntime {
 	runs: Set<Promise<void>>;
 	/** Set at unload; every `ctx` function throws afterwards */
 	unloaded: boolean;
+	/**
+	 * Resolves once every `ctx.loadData` / `ctx.saveData` call queued so far
+	 * has settled; never rejects. Set by `createModContext`.
+	 */
+	dataSettled?: () => Promise<void>;
 }
 
 interface LiveMod extends ModRuntime {
@@ -105,6 +121,11 @@ const folderEpochs = new Map<string, number>();
 const reloadRunners = new Map<string, () => Promise<void>>();
 /** Per folder, wakes a reload that waits for live runs, so it sees a newer request */
 const reloadWakers = new Map<string, () => void>();
+/**
+ * Per folder, Labs setting values the folder's next reload writes into
+ * `data.json`; dropped at switch-off, when the manifest is gone, and at stop
+ */
+const pendingSettings = new Map<string, Record<string, boolean | string>>();
 /** Detaches the host's watcher listener; null while stopped */
 let unsubscribeFileChange: (() => void) | null = null;
 /** Mods whose `onload` was called and that are not unloaded yet, in load order */
@@ -478,6 +499,9 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		if (rows.length === 1) modPickerStore.askInput(rows[0]);
 	};
 
+	const data = createModData({ modId: manifest.id, vaultPath, assertLive });
+	runtime.dataSettled = data.settled;
+
 	return {
 		apiVersion: 1,
 		mod: { id: manifest.id, name: manifest.name, version: manifest.version, dir: `${MODS_DIR}/${manifest.id}` },
@@ -677,7 +701,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		ui,
 		theme,
 		labs,
-		...createModData({ modId: manifest.id, vaultPath, assertLive }),
+		loadData: data.loadData,
+		saveData: data.saveData,
 		get app() {
 			assertLive();
 			return MOD_APP;
@@ -822,6 +847,7 @@ async function loadMod(vaultPath: string, folder: string, startGeneration: numbe
 			version: manifest.version,
 			state: 'loaded',
 			loadMs: Math.round(performance.now() - evaluatedAt),
+			...(manifest.settings ? { settings: manifest.settings } : {}),
 		});
 		result('loaded');
 	})();
@@ -899,12 +925,95 @@ async function reloadFolder(vaultPath: string, folder: string, startGeneration: 
 	liveMods = liveMods.filter((m) => m.folder !== folder);
 	for (const live of running) unloadMod(live, true);
 	if (!present) {
+		pendingSettings.delete(folder);
 		modsStore.removeEntry(folder);
 		toastedErrors.delete(`${vaultPath}\n${folder}`);
 		return;
 	}
-	if (modsEnabledStore.disabledMods.includes(folder)) await listDisabledMod(vaultPath, folder, startGeneration);
-	else await loadMod(vaultPath, folder, startGeneration, false);
+	if (modsEnabledStore.disabledMods.includes(folder)) {
+		await listDisabledMod(vaultPath, folder, startGeneration);
+		return;
+	}
+	if (pendingSettings.has(folder)) {
+		// A saveData of the old instance already past its liveness check is still writing:
+		// a host write before it lands would lose it, or be lost to it.
+		await Promise.all(running.map((m) => m.dataSettled?.()));
+		// Whoever superseded this pass loads the mod, and a newer request's pass writes the value.
+		if (!current()) return;
+		await writePendingSettings(vaultPath, folder);
+	}
+	await loadMod(vaultPath, folder, startGeneration, false);
+}
+
+/** `data.json` of a folder's mod as a value (`null` without a file), or why it cannot be read */
+async function readModData(vaultPath: string, folder: string): Promise<{ ok: true; value: unknown } | { ok: false; reason: string }> {
+	let bytes: number[] | null;
+	try {
+		bytes = await call('read_mod_data', { vaultPath, modId: folder });
+	} catch (err) {
+		debug(`MOD:${folder}`, 'reading data.json for Labs settings failed:', errorText(err));
+		return { ok: false, reason: 'unreadable' };
+	}
+	if (bytes === null) return { ok: true, value: null };
+	const parsed = parseModData(bytes);
+	return parsed.ok ? parsed : { ok: false, reason: 'not valid JSON' };
+}
+
+/**
+ * Writes the folder's pending Labs values into its `data.json`, keeping every
+ * other key. Call it only while no instance of the mod is live. On any failure
+ * the file is left as it was, and a toast names the folder and the keys;
+ * nothing logs a value.
+ */
+async function writePendingSettings(vaultPath: string, folder: string): Promise<void> {
+	const patch = pendingSettings.get(folder);
+	if (!patch) return;
+	pendingSettings.delete(folder);
+	const keys = Object.keys(patch);
+	const named = `${keys.length === 1 ? 'setting' : 'settings'} ${keys.map((k) => `"${k}"`).join(', ')}`;
+	const fail = (reason: string, err?: unknown) => {
+		debug(`MOD:${folder}`, `saving Labs ${named} failed:`, err === undefined ? reason : errorText(err));
+		toast.error(`${MODS_DIR}/${folder}: cannot save ${named}: ${reason}`);
+	};
+	const read = await readModData(vaultPath, folder);
+	if (!read.ok) return fail(`data.json is ${read.reason}`);
+	const merged = mergeModSettings(read.value, patch);
+	if (!merged.ok) return fail(`data.json is ${merged.reason}`);
+	try {
+		await call('write_mod_data', { vaultPath, modId: folder, content: serializeModData(merged.value) });
+	} catch (err) {
+		fail(messageOf(err), err);
+	}
+}
+
+/**
+ * The values of a folder's mod for its Labs settings row: its `data.json`
+ * object, an empty one without a file, or why it cannot be shown (`unreadable`,
+ * `not valid JSON`, `not an object`). Never moves a corrupt file aside: that
+ * stays the mod's `loadData` job.
+ */
+export async function readModSettings(
+	vaultPath: string,
+	folder: string,
+): Promise<{ ok: true; values: Record<string, unknown> } | { ok: false; reason: string }> {
+	const read = await readModData(vaultPath, folder);
+	if (!read.ok) return read;
+	const merged = mergeModSettings(read.value, {});
+	return merged.ok ? { ok: true, values: merged.value } : merged;
+}
+
+/**
+ * Saves one Labs setting of a loaded mod. The value joins the folder's
+ * pending values (last value per key wins) and the mod reloads: after its
+ * live runs end and it unloads, the host merges the values into `data.json`,
+ * then loads it, so the new instance's `loadData` sees them. Quick edits
+ * share one reload. Does nothing while mods are off or when `vaultPath` is
+ * not the open vault.
+ */
+export function saveModSetting(vaultPath: string, folder: string, key: string, value: boolean | string): void {
+	if (vaultStore.path !== vaultPath || !modsEnabledStore.enabled) return;
+	pendingSettings.set(folder, { ...pendingSettings.get(folder), [key]: value });
+	requestReload(vaultPath, folder, generation);
 }
 
 /**
@@ -1006,6 +1115,8 @@ export async function enableMod(vaultPath: string, folder: string): Promise<void
  */
 export function disableMod(folder: string): void {
 	folderEpochs.set(folder, (folderEpochs.get(folder) ?? 0) + 1);
+	// The row no longer shows the fields, so an edit not written yet is dropped.
+	pendingSettings.delete(folder);
 	const live = liveMods.find((m) => m.folder === folder);
 	if (live) {
 		liveMods = liveMods.filter((m) => m !== live);
@@ -1035,6 +1146,8 @@ export function stopModsHost(): void {
 	unsubscribeFileChange = null;
 	reloadRunners.clear();
 	reloadWakers.clear();
+	// So a value never reaches another vault, or a mod the host no longer runs.
+	pendingSettings.clear();
 	const mods = liveMods;
 	liveMods = [];
 	for (const live of mods.reverse()) unloadMod(live, true);

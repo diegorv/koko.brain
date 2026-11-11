@@ -155,6 +155,23 @@ export interface ModManifest {
 	 * A rule runs them with no one at the keyboard, so they must not prompt.
 	 */
 	ruleActions?: string[];
+	/** Optional settings Labs shows a control for; each value is a top-level key of the mod's `data.json` */
+	settings?: ModSettingField[];
+}
+
+/**
+ * One setting a mod declares in its manifest. Labs edits it; the value is
+ * stored as `data.json[key]`, where the mod reads it with `ctx.loadData()`.
+ */
+export interface ModSettingField {
+	/** The top-level `data.json` key: letters and digits, starting with a letter, unique in the list */
+	key: string;
+	/** The value's type, and so its control: a switch or a text field */
+	type: 'boolean' | 'string';
+	/** Text Labs shows next to the control */
+	label: string;
+	/** Shown in Labs while `data.json` has no value of the field's type; never written by the host */
+	default?: boolean | string;
 }
 
 /** Result of `parseModManifest`: the manifest, or an error naming the folder and the field */
@@ -165,6 +182,8 @@ const MOD_ID_MAX_LENGTH = 64;
 const MIN_APP_VERSION_PATTERN = /^\d+\.\d+\.\d+$/;
 /** Hex only: a color reaches an inline style */
 const HEX_COLOR_PATTERN = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i;
+/** Starts with a letter, so `__proto__` is refused without a denylist */
+const SETTING_KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9]*$/;
 
 /**
  * Validates the text of `_system/mods/<folder>/manifest.json`. Every error
@@ -185,7 +204,7 @@ export function parseModManifest(text: string, folder: string): ModManifestResul
 	if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return fail('must be a JSON object');
 	const fields = raw as Record<string, unknown>;
 
-	const { id, name, version, description, author, minAppVersion, color, ruleActions } = fields;
+	const { id, name, version, description, author, minAppVersion, color, ruleActions, settings } = fields;
 	if (typeof id !== 'string') return fail('id must be a string');
 	if (id.length > MOD_ID_MAX_LENGTH) return fail(`id must be at most ${MOD_ID_MAX_LENGTH} characters`);
 	if (!MOD_ID_PATTERN.test(id)) {
@@ -219,7 +238,43 @@ export function parseModManifest(text: string, folder: string): ModManifestResul
 		}
 		manifest.ruleActions = [...ruleActions];
 	}
+	if (settings !== undefined) {
+		if (!Array.isArray(settings)) return fail('settings must be a list of fields');
+		const parsedFields: ModSettingField[] = [];
+		const keys = new Set<string>();
+		for (const [index, item] of settings.entries()) {
+			const at = `settings[${index}]`;
+			if (typeof item !== 'object' || item === null || Array.isArray(item)) return fail(`${at} must be an object`);
+			const { key, type, label, default: fallback } = item as Record<string, unknown>;
+			if (typeof key !== 'string' || !SETTING_KEY_PATTERN.test(key)) {
+				return fail(`${at}.key must be letters and digits, starting with a letter`);
+			}
+			if (keys.has(key)) return fail(`${at}.key "${key}" is used twice`);
+			keys.add(key);
+			if (type !== 'boolean' && type !== 'string') return fail(`${at}.type must be "boolean" or "string"`);
+			if (typeof label !== 'string' || label === '') return fail(`${at}.label must be a non-empty string`);
+			if (fallback !== undefined && typeof fallback !== type) return fail(`${at}.default must be a ${type}`);
+			const field: ModSettingField = { key, type, label };
+			if (fallback !== undefined) field.default = fallback as boolean | string;
+			parsedFields.push(field);
+		}
+		manifest.settings = parsedFields;
+	}
 	return { ok: true, manifest };
+}
+
+/**
+ * The mod's stored data with Labs setting values applied: no data (`null`)
+ * becomes an object, and an object keeps every key the mod saved. Any other
+ * value is refused, so the host never replaces data it does not understand.
+ */
+export function mergeModSettings(
+	stored: unknown,
+	patch: Record<string, boolean | string>,
+): { ok: true; value: Record<string, unknown> } | { ok: false; reason: string } {
+	if (stored === null) return { ok: true, value: { ...patch } };
+	if (typeof stored !== 'object' || Array.isArray(stored)) return { ok: false, reason: 'not an object' };
+	return { ok: true, value: { ...stored, ...patch } };
 }
 
 const EXPORT_DEFAULT = /^export\s+default\s+/m;

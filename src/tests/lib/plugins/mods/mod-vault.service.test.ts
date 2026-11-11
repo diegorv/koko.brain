@@ -693,6 +693,29 @@ describe('ctx.vault and ctx.workspace', () => {
 
 				await expect(load).resolves.toEqual({ n: 1 });
 			});
+
+			it('the runtime data queue settles once every queued call has, and never rejects', async () => {
+				expect(runtime.dataSettled).toBeTypeOf('function');
+				await expect(runtime.dataSettled!()).resolves.toBeUndefined();
+				const releases = holdWrites();
+				const saves = Promise.allSettled([ctx.saveData({ n: 1 }), ctx.saveData({ n: 2 })]);
+				let settled = false;
+				void runtime.dataSettled!().then(() => (settled = true));
+				await flush();
+				expect(settled).toBe(false);
+
+				// The unload makes the queued second save reject; the queue still settles.
+				runtime.unloaded = true;
+				releases[0]();
+				await flush();
+
+				expect((await saves).map((r) => r.status === 'rejected' && (r.reason as Error).message)).toEqual([
+					'Mod "ideas" is unloaded',
+					'Mod "ideas" is unloaded',
+				]);
+				await vi.waitFor(() => expect(settled).toBe(true));
+				expect(writes()).toHaveLength(1);
+			});
 		});
 
 		describe('unload', () => {

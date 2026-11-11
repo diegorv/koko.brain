@@ -55,6 +55,16 @@ describe('modsStore', () => {
 		});
 	});
 
+	it('keeps the settings fields of a loaded entry', () => {
+		const settings = [
+			{ key: 'folder', type: 'string', label: 'Target folder', default: 'Inbox' },
+			{ key: 'compact', type: 'boolean', label: 'Compact view' },
+		] as const;
+		modsStore.upsertEntry({ ...HELLO, settings: [...settings] });
+
+		expect(modsStore.entries[0].settings).toEqual(settings);
+	});
+
 	it('removes the entry of a folder and keeps the others', () => {
 		modsStore.setEntries([HELLO, BROKEN]);
 

@@ -39,7 +39,11 @@ What a mod folder contains, how Kokobrain validates `manifest.json`, exactly how
 	"author": "Me",
 	"minAppVersion": "1.2.3",
 	"color": { "light": "#2563eb", "dark": "#60a5fa" },
-	"ruleActions": ["append"]
+	"ruleActions": ["append"],
+	"settings": [
+		{ "key": "folder", "type": "string", "label": "Target folder", "default": "Inbox" },
+		{ "key": "compact", "type": "boolean", "label": "Compact view" }
+	]
 }
 ```
 
@@ -55,11 +59,12 @@ What a mod folder contains, how Kokobrain validates `manifest.json`, exactly how
 | `minAppVersion` | no | String matching `^\d+\.\d+\.\d+$` (`1.2.3-beta` and `1.2` fail) | Validated only. Never compared with the app version |
 | `color` | no | Object with both `light` and `dark`, each `#rgb` or `#rrggbb` (case-insensitive) | Icon color of every rail button of the mod: `light` on light themes, `dark` on dark ones, following theme changes at once |
 | `ruleActions` | no | Array of non-empty strings, the local ids of the mod's actions (empty array allowed) | The actions an [Auto Organize rule](../22-auto-organize.md#running-a-mod-action) can run. An id the mod never registers is ignored. See [Actions a rule can run](02-actions-and-entry-points.md#actions-a-rule-can-run) |
+| `settings` | no | Array of field objects (empty array allowed). Each field: `key`, a string matching `^[a-zA-Z][a-zA-Z0-9]*$`, unique in the list; `type`, `"boolean"` or `"string"`; `label`, a non-empty string; `default`, optional, of the field's type | A switch (`boolean`) or a text field (`string`) per field in the mod's [Labs row](#labs-status-rows). The value is the top-level `data.json` key `key`, read by the mod with `ctx.loadData()`. See [Declared settings](05-mod-data.md#declared-settings) |
 
-- Unknown top-level keys are dropped silently, and so are unknown keys inside `color`.
+- Unknown top-level keys are dropped silently, and so are unknown keys inside `color` and inside a `settings` field.
 - "Present" means the key exists with any value other than `undefined`. `null` is a value: `"author": null` fails with `author must be a string`.
 - Colors are stored as written (not normalized). `#rgba`, `#rrggbbaa`, color names, `rgb()` and `oklch()` are rejected.
-- `description`, `author`, `minAppVersion` and `ruleActions` are not visible to the mod: `ctx.mod` is only `{ id, name, version, dir }`, with `dir` = `_system/mods/<id>`.
+- `description`, `author`, `minAppVersion`, `ruleActions` and `settings` are not visible to the mod: `ctx.mod` is only `{ id, name, version, dir }`, with `dir` = `_system/mods/<id>`. The mod reads its settings' values from `ctx.loadData()`, not their definitions.
 
 ### Validation order and messages
 
@@ -82,6 +87,18 @@ Checks run in this order and the first failure wins. Every message is `_system/m
 | 13 | `color.light` is not a string matching the hex pattern | `color.light must be a hex color like #d946ef` |
 | 14 | `color.dark` is not a string matching the hex pattern | `color.dark must be a hex color like #d946ef` |
 | 15 | `ruleActions` is present and not an array of non-empty strings | `ruleActions must be a list of action ids` |
+| 16 | `settings` is present and not an array | `settings must be a list of fields` |
+
+Then each field of `settings` in order, `N` its index from 0. The first bad field stops the checks, and its checks run in this order:
+
+| # | Check | Message tail (verbatim) |
+|---|-------|-------------------------|
+| 17 | The item is not an object (or is `null` or an array) | `settings[N] must be an object` |
+| 18 | `key` is not a string matching `^[a-zA-Z][a-zA-Z0-9]*$` (so `__proto__`, `1x`, `my-key` fail) | `settings[N].key must be letters and digits, starting with a letter` |
+| 19 | `key` is used by an earlier field | `settings[N].key "<key>" is used twice` |
+| 20 | `type` is not `"boolean"` or `"string"` | `settings[N].type must be "boolean" or "string"` |
+| 21 | `label` is not a string or is `""` | `settings[N].label must be a non-empty string` |
+| 22 | `default` is present and not of the field's type | `settings[N].default must be a <type>` |
 
 Example:
 
@@ -342,6 +359,7 @@ While mods are on, the host listens to the vault file watcher. It sees saves fro
 | `_system/mods/` itself, or `_system/`, created, deleted or renamed | **Every** mod reloads, changed or not: the host lists the folder again and reloads every folder on disk and every folder it knew |
 | Anything inside a dot-folder (for example `.kokobrain/`) | Never reported by the watcher |
 | `main.js` or `manifest.json` of a switched-off mod | The row is refreshed from the manifest; `main.js` is not run |
+| A [declared setting](05-mod-data.md#declared-settings) changed in the mod's Labs row | Reload of that mod, which writes the value into `data.json` between the unload and the load (no watcher event: `.kokobrain/` is never reported) |
 
 Typing in `main.js` inside Kokobrain triggers the editor's autosave (2 s after the last keystroke, at most 10 s into continuous typing), and each save reloads the mod. Half-typed code shows the same error repeatedly; see [Toast dedupe](#toast-dedupe).
 
@@ -352,7 +370,8 @@ Typing in `main.js` inside Kokobrain triggers the editor's autosave (2 s after t
 3. The old instance **unloads** (the full [unload order](#unload-order), with `onunload`).
 4. If the manifest is gone, the row is removed and the reload ends.
 5. If the mod is switched off, it is listed as **Disabled**.
-6. Otherwise the files are read, evaluated, and `onload` is called. The reload does not wait for the new `onload` to settle, so a hanging `onload` never blocks the next reload.
+6. Otherwise, if a Labs setting edit is waiting, the host waits for the old instance's `loadData` / `saveData` calls already under way to settle, then merges the values into `data.json` (see [Declared settings](05-mod-data.md#declared-settings)). A failure leaves `data.json` as it was, shows a toast, and the reload goes on.
+7. Then the files are read, evaluated, and `onload` is called. The reload does not wait for the new `onload` to settle, so a hanging `onload` never blocks the next reload.
 
 Reloads of one mod never overlap. Saves that arrive during a reload collapse into one more reload that reads the newest files. Reloads of different mods are independent.
 
@@ -417,6 +436,17 @@ The list under **Vault mods** appears only while the flag is on. With no mod fol
 - On a first load, the row appears only when `onload` settles. A load overtaken by a newer one (a save, a switch, a stop) does not touch the row.
 - An Error row uses the manifest's id, name and version when the manifest was valid, else the folder name and an empty version.
 - Manifest errors and thrown non-`Error` values (`throw 'x'`) have no stack.
+
+### Settings fields
+
+A **Loaded** row whose manifest declares [`settings`](#fields) lists one control per field below the row, labelled with the field's `label`: a switch for `boolean`, a text field for `string`. Error and Disabled rows show no fields.
+
+- The values are read from the mod's `data.json` when the row appears and again after each reload. A key that is absent, or holds a value of another type, shows the field's `default` (`false` or empty without one). Defaults are only shown, never written.
+- A switch saves at once. A text field saves on change (leaving the field or pressing Enter), never per keystroke. A value equal to the one shown saves nothing.
+- Each save reloads the mod ([The reload sequence](#the-reload-sequence)), so it waits for the mod's live runs. Until the reload's read, the row shows the value you set.
+- When `data.json` cannot be read, is not valid JSON, or does not hold an object, the row shows `Settings unavailable: data.json is unreadable` (or `is not valid JSON`, `is not an object`) and no fields. The app never moves or rewrites that file; the mod's own `loadData` handles an invalid one.
+- When the write fails, a toast says `_system/mods/<id>: cannot save setting "<key>": <reason>`, `data.json` is left as it was, and the mod still loads. The debug log names the key, never the value.
+- An edit not yet written (the mod still has a live run) is dropped when the mod is switched off, its manifest is deleted, Vault mods is turned off, or another vault opens.
 
 ### Load time
 

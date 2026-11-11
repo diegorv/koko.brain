@@ -86,12 +86,23 @@ A mod that is switched off is still listed (with its manifest name) but its `mai
 | `minAppVersion` | no | Looks like `1.2.3`; checked for shape, not enforced |
 | `color` | no | The icon color of all the mod's rail buttons: an object with both `light` and `dark`, each `#rgb` or `#rrggbb`. `light` applies on light themes and `dark` on dark ones, and it follows a theme change at once. Without `color`, a button uses the default color |
 | `ruleActions` | no | A list of the mod's action ids that an [Auto Organize rule](22-auto-organize.md#running-a-mod-action) can run, such as `["summarize"]` (see [Actions run by a rule](#actions-run-by-a-rule)) |
+| `settings` | no | A list of fields Labs shows in the mod's row, such as `[{ "key": "folder", "type": "string", "label": "Target folder", "default": "Inbox" }]`. Each has a `key` (letters and digits, starting with a letter, unique), a `type` (`boolean` or `string`), a non-empty `label` and an optional `default` of that type (see [Settings in Labs](#settings-in-labs)) |
 
 Unknown keys are ignored. A broken manifest shows the mod as **Error** in Labs with a message that names the folder and the field, for example:
 
 ```
 _system/mods/foo: manifest.json id "bar" does not match the folder name
 ```
+
+### Settings in Labs
+
+When a loaded mod's manifest has `settings`, its Labs row shows a switch for each `boolean` field and a text field for each `string` field. A text field saves when you leave it or press Enter, not on each keystroke. A value you set is stored as a top-level key of the mod's own `data.json`, so the mod reads it with `ctx.loadData()`:
+
+```javascript
+const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
+```
+
+Each change reloads the mod (after its live runs end), so the new instance reads the new value. The row shows the field's `default` while `data.json` has no value for the key; the app never writes defaults, so the mod applies the same fallback in its code. If `data.json` cannot be read, is not valid JSON or does not hold an object, the row says `Settings unavailable` and shows no fields. A mod that declares settings must keep keys it does not know when it saves; see [Declared settings](mods/05-mod-data.md#declared-settings).
 
 ## Writing `main.js`
 

@@ -1,6 +1,6 @@
 # Mod Data: `loadData` and `saveData`
 
-Each mod has one JSON value of its own, stored in the vault and read back with `ctx.loadData()`. Use it for settings, counters, caches and any state the mod changes often. This page gives the exact rules (format, ordering, corrupt files, the refusal state, unload) and the patterns that build on them: defaults, schema migration, debounced saves and per-note state. It ends with when `localStorage` is an acceptable alternative.
+Each mod has one JSON value of its own, stored in the vault and read back with `ctx.loadData()`. Use it for settings, counters, caches and any state the mod changes often. Settings the user should edit in Labs are declared in the manifest and land in the same value; see [Declared settings](#declared-settings). This page gives the exact rules (format, ordering, corrupt files, the refusal state, unload) and the patterns that build on them: defaults, schema migration, debounced saves and per-note state. It ends with when `localStorage` is an acceptable alternative.
 
 | Member | Stability |
 |--------|-----------|
@@ -26,7 +26,7 @@ Unlike `ctx.vault`, these two **always reject with a real `Error`**: file system
 - **Plain text, not a secret store.** Anyone with the vault folder can read it. Do not put API tokens or passwords in it.
 - **No size limit**, but the whole value is serialized and the whole file rewritten on every save. Keep it small; recompute large caches instead of storing them.
 
-Edits to `data.json` made by hand while the mod is loaded are not noticed (the watcher ignores the folder). The mod's next `saveData` replaces them with its in-memory value. Edit the file with the mod switched off, or have the mod re-read it in an action.
+Edits to `data.json` made by hand while the mod is loaded are not noticed (the watcher ignores the folder). The mod's next `saveData` replaces them with its in-memory value. Edit the file with the mod switched off, or have the mod re-read it in an action. A Labs edit of a [declared setting](#declared-settings) follows the same rule on its own: the app writes the file only while the mod is unloaded, as part of a reload.
 
 > [!WARNING]
 > Do not read or write `data.json` with `ctx.vault`. A `ctx.vault.write` to it skips the atomic write, the queue and the corrupt-file protection, and, because the file is not under `_system/mods/`, runs the full after-save pipeline (a file history row per write that changes the content).
@@ -130,6 +130,22 @@ Once the mod unloads (switched off, reloaded after an edit, deleted, mods turned
 - An I/O error that happens after the unload is reported as the unload error.
 
 `onunload()` runs **after** the mod is marked unloaded, so `saveData` already rejects there, and so does it inside a `ctx.signal` abort listener. A mod cannot flush state on the way out. Save when the state changes; see [Debounced saves](#debounced-saves) for what that means for batching.
+
+## Declared settings
+
+A mod can list settings in its manifest (`settings`, see [Fields](01-anatomy-and-loading.md#fields)); Labs then shows a switch or a text field for each in the mod's row. The values live in this same `data.json`:
+
+- **Each declared `key` is a top-level key of the value.** A field `{ "key": "folder", ... }` is `data.json`'s `folder`. Read it with `loadData`, as any other key:
+
+  ```javascript
+  const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
+  ```
+
+- **Save what you loaded.** `saveData` replaces the whole file, so a mod that declares `settings` must keep top-level keys it does not know: `saveData({ ...loaded, ...mine })`. A mod that saves a fresh object, or whose load keeps only its own keys, drops the user's values on its next save; one whose load rejects unknown keys stops loading its data once a value is set.
+- **Apply the defaults in code.** The manifest's `default` is only what Labs shows while the key is absent or of another type; the app never writes it. Use the same fallback in the mod, as above.
+- **An edit reloads the mod.** Labs waits for the mod's live runs (like a save of `main.js`), unloads it, waits for its `loadData` / `saveData` calls already under way, merges the new values into `data.json` keeping every other key, and loads it again. The new instance's `loadData` returns them. There is no change callback.
+- **The app never replaces data it cannot read.** When `data.json` cannot be read, is not valid JSON or does not hold an object (an array, a string), Labs shows `Settings unavailable: data.json is <reason>` and no fields, and a save toasts and leaves the file as it was. The app never moves a corrupt file aside: your `loadData` still does that.
+- **Plain text, not a secret store** ([above](#where-the-data-lives)) applies to these values too. There is no password field.
 
 ## Error reference
 

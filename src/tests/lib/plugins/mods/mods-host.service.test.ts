@@ -78,7 +78,15 @@ import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import type { ModRunV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
-import { disableMod, enableMod, startModsHost, stopModsHost, type ModContext } from '#lib/plugins/mods/mods-host.service.js';
+import {
+	disableMod,
+	enableMod,
+	readModSettings,
+	saveModSetting,
+	startModsHost,
+	stopModsHost,
+	type ModContext,
+} from '#lib/plugins/mods/mods-host.service.js';
 import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -2597,6 +2605,307 @@ export default {
 			await new Promise((resolve) => setTimeout(resolve, 0));
 			expect(loadMs('alpha')).toBe(7);
 			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['alpha', 'loaded']]);
+		});
+	});
+
+	describe('Labs settings', () => {
+		const MODS = `${VAULT}/_system/mods`;
+		const FIELDS = [
+			{ key: 'folder', type: 'string', label: 'Target folder', default: 'Inbox' },
+			{ key: 'compact', type: 'boolean', label: 'Compact view' },
+		];
+
+		/** `data.json` text per mod id, behind the `read_mod_data` / `write_mod_data` IPC mock */
+		const dataFiles = new Map<string, string>();
+		/** Set by a test to make the next `read_mod_data` or `write_mod_data` reject */
+		let readError: Error | null;
+		let writeError: Error | null;
+		/** While set, `write_mod_data` waits for it before writing */
+		let writeHold: Promise<void> | null;
+
+		/**
+		 * A mod that records each load with what `loadData` returned (or its
+		 * error), and whose one action, run from its rail button, waits on `__modGate`
+		 */
+		const prefsMod = `export default {
+	async onload(ctx) {
+		globalThis.__modCtx.prefs = ctx;
+		let data;
+		try { data = await ctx.loadData(); } catch (err) { data = 'error: ' + err.message; }
+		globalThis.__modEvents.push('prefs:load:' + JSON.stringify(data));
+		ctx.addAction({ id: 'slow', title: 'Slow', run: async () => { await globalThis.__modGate; } });
+		ctx.addRailButton({ id: 'main', title: 'Prefs', icon: 'sparkles' });
+	},
+	onunload() { globalThis.__modEvents.push('prefs:unload'); },
+};`;
+
+		function emit(paths: string[]): void {
+			for (const listener of fileListeners) listener(paths);
+		}
+
+		const loads = () => globals.__modEvents.filter((e) => e.startsWith('prefs:load:'));
+		const writes = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'write_mod_data');
+		const reads = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'read_mod_data');
+		const stored = () => JSON.parse(dataFiles.get('prefs') ?? 'null') as unknown;
+		/** Lets every pending promise and zero-delay timer run */
+		const settle = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+		beforeEach(() => {
+			fileListeners.clear();
+			dataFiles.clear();
+			readError = null;
+			writeError = null;
+			writeHold = null;
+			const original = vi.mocked(invoke).getMockImplementation()!;
+			vi.mocked(invoke).mockImplementation(async (cmd, args) => {
+				const { modId, content } = (args ?? {}) as { modId: string; content?: string };
+				if (cmd === 'read_mod_data') {
+					if (readError) throw readError;
+					const text = dataFiles.get(modId);
+					return text === undefined ? null : [...new TextEncoder().encode(text)];
+				}
+				if (cmd === 'write_mod_data') {
+					if (writeHold) await writeHold;
+					if (writeError) throw writeError;
+					dataFiles.set(modId, content!);
+					return null;
+				}
+				return original(cmd, args);
+			});
+			onTestFinished(() => {
+				vi.mocked(invoke).mockImplementation(original);
+			});
+			writeMod('prefs', prefsMod, { name: 'Prefs', settings: FIELDS });
+		});
+
+		it('saveModSetting unloads the mod, merges the value into data.json, and the new instance loads it', async () => {
+			dataFiles.set('prefs', '{ "count": 3 }');
+			await startModsHost(VAULT);
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+
+			await vi.waitFor(() => expect(loads()).toHaveLength(2));
+			expect(globals.__modEvents).toEqual(['prefs:load:{"count":3}', 'prefs:unload', 'prefs:load:{"count":3,"folder":"Work"}']);
+			expect(stored()).toEqual({ count: 3, folder: 'Work' });
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['prefs', 'loaded']]);
+		});
+
+		it('writes into a mod with no data.json yet', async () => {
+			await startModsHost(VAULT);
+
+			saveModSetting(VAULT, 'prefs', 'compact', true);
+
+			await vi.waitFor(() => expect(loads()).toEqual(['prefs:load:null', 'prefs:load:{"compact":true}']));
+			expect(stored()).toEqual({ compact: true });
+		});
+
+		it('the loaded entry carries the settings fields; error and disabled entries do not', async () => {
+			writeMod('broken', 'const nothing = 1;\n', { settings: FIELDS });
+			writeMod('off', prefsMod, { settings: FIELDS });
+			writeMod('plain', recordingMod('plain'));
+			modsEnabledStore.setModEnabled('off', false);
+			await startModsHost(VAULT);
+
+			const entry = (folder: string) => modsStore.entries.find((e) => e.folder === folder)!;
+			expect(entry('prefs')).toMatchObject({ state: 'loaded', settings: FIELDS });
+			expect(entry('broken')).toMatchObject({ state: 'error' });
+			expect(entry('broken')).not.toHaveProperty('settings');
+			expect(entry('off')).toMatchObject({ state: 'disabled' });
+			expect(entry('off')).not.toHaveProperty('settings');
+			expect(entry('plain')).toMatchObject({ state: 'loaded' });
+			expect(entry('plain')).not.toHaveProperty('settings');
+
+			modsEnabledStore.setModEnabled('prefs', false);
+			disableMod('prefs');
+			expect(entry('prefs')).toMatchObject({ state: 'disabled' });
+			expect(entry('prefs')).not.toHaveProperty('settings');
+		});
+
+		it('waits for a live run to end before it writes', async () => {
+			let release!: () => void;
+			globals.__modGate = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			onTestFinished(() => release());
+			await startModsHost(VAULT);
+			railRegistryStore.actions.find((a) => a.key === 'mod:prefs:main')!.run();
+			expect(modsRunsStore.isBusy('mod:prefs:action:slow')).toBe(true);
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+			await settle();
+			await settle();
+
+			expect(writes()).toEqual([]);
+			expect(globals.__modEvents).not.toContain('prefs:unload');
+
+			release();
+			await vi.waitFor(() => expect(loads()).toEqual(['prefs:load:null', 'prefs:load:{"folder":"Work"}']));
+			expect(stored()).toEqual({ folder: 'Work' });
+		});
+
+		it('an old-instance saveData already writing lands before the host reads data.json', async () => {
+			dataFiles.set('prefs', '{"count":3}');
+			await startModsHost(VAULT);
+			let release!: () => void;
+			writeHold = new Promise<void>((resolve) => {
+				release = resolve;
+			});
+			const saving = globals.__modCtx.prefs.saveData({ count: 4 });
+			saving.catch(() => {});
+			await vi.waitFor(() => expect(writes()).toHaveLength(1));
+			const readsBefore = reads().length;
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+			await vi.waitFor(() => expect(globals.__modEvents).toContain('prefs:unload'));
+			await settle();
+			expect(reads()).toHaveLength(readsBefore);
+
+			writeHold = null;
+			release();
+			await vi.waitFor(() => expect(loads()).toHaveLength(2));
+			expect(stored()).toEqual({ count: 4, folder: 'Work' });
+			expect(loads()[1]).toBe('prefs:load:{"count":4,"folder":"Work"}');
+		});
+
+		it.each([
+			['not valid JSON', '{oops'],
+			['not an object', '[1, 2]'],
+			['not an object', '"text"'],
+		])('leaves a data.json that is %s untouched, toasts the folder and the key, and still loads the mod', async (reason, text) => {
+			await startModsHost(VAULT);
+			dataFiles.set('prefs', text);
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+
+			await vi.waitFor(() => expect(loads()).toHaveLength(2));
+			expect(writes()).toEqual([]);
+			expect(dataFiles.get('prefs')).toBe(text);
+			expect(toast.error).toHaveBeenCalledWith(`_system/mods/prefs: cannot save setting "folder": data.json is ${reason}`);
+			await vi.waitFor(() => expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['prefs', 'loaded']]));
+			expect(error).not.toHaveBeenCalled();
+		});
+
+		it('leaves an unreadable data.json untouched, toasts, and still loads the mod', async () => {
+			dataFiles.set('prefs', '{"count":3}');
+			await startModsHost(VAULT);
+			readError = new Error('permission denied');
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+
+			await vi.waitFor(() => expect(loads()).toHaveLength(2));
+			expect(writes()).toEqual([]);
+			expect(dataFiles.get('prefs')).toBe('{"count":3}');
+			expect(toast.error).toHaveBeenCalledWith('_system/mods/prefs: cannot save setting "folder": data.json is unreadable');
+			expect(modsStore.entries.map((e) => [e.folder, e.state])).toEqual([['prefs', 'loaded']]);
+		});
+
+		it('a failed write toasts, keeps data.json, still loads the mod, and logs no value', async () => {
+			dataFiles.set('prefs', '{"count":3}');
+			await startModsHost(VAULT);
+			writeError = new Error('disk full');
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'PRIVATE_SETTING_VALUE');
+
+			await vi.waitFor(() => expect(loads()).toHaveLength(2));
+			expect(toast.error).toHaveBeenCalledWith('_system/mods/prefs: cannot save setting "folder": disk full');
+			expect(dataFiles.get('prefs')).toBe('{"count":3}');
+			expect(loads()[1]).toBe('prefs:load:{"count":3}');
+			expect(JSON.stringify(vi.mocked(debug).mock.calls)).toContain('folder');
+			expect(JSON.stringify(vi.mocked(debug).mock.calls)).not.toContain('PRIVATE_SETTING_VALUE');
+			expect(error).not.toHaveBeenCalled();
+		});
+
+		it('two quick saves give one merged write and one reload', async () => {
+			dataFiles.set('prefs', '{"count":3}');
+			await startModsHost(VAULT);
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+			saveModSetting(VAULT, 'prefs', 'compact', true);
+			saveModSetting(VAULT, 'prefs', 'folder', 'Home');
+
+			await vi.waitFor(() => expect(loads()).toHaveLength(2));
+			await settle();
+			expect(writes()).toHaveLength(1);
+			expect(stored()).toEqual({ count: 3, folder: 'Home', compact: true });
+			expect(globals.__modEvents.filter((e) => e === 'prefs:unload')).toHaveLength(1);
+		});
+
+		it('a mod switched off drops its pending value', async () => {
+			await startModsHost(VAULT);
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+			modsEnabledStore.setModEnabled('prefs', false);
+			disableMod('prefs');
+			await settle();
+			modsEnabledStore.setModEnabled('prefs', true);
+			await enableMod(VAULT, 'prefs');
+			emit([`${MODS}/prefs/main.js`]);
+
+			await vi.waitFor(() => expect(loads()).toHaveLength(3));
+			expect(writes()).toEqual([]);
+			expect(loads()).toEqual(['prefs:load:null', 'prefs:load:null', 'prefs:load:null']);
+		});
+
+		it('a stop drops a pending value', async () => {
+			await startModsHost(VAULT);
+
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+			stopModsHost();
+			await settle();
+			await startModsHost(VAULT);
+			emit([`${MODS}/prefs/main.js`]);
+
+			await vi.waitFor(() => expect(loads()).toHaveLength(3));
+			expect(writes()).toEqual([]);
+		});
+
+		it('a deleted mod drops its pending value', async () => {
+			await startModsHost(VAULT);
+			dataFiles.set('prefs', '{"count":3}');
+
+			for (const key of [...fsFiles.keys()]) if (key.startsWith(`${MODS}/prefs/`)) fsFiles.delete(key);
+			saveModSetting(VAULT, 'prefs', 'folder', 'Work');
+			await vi.waitFor(() => expect(modsStore.entries).toEqual([]));
+			writeMod('prefs', prefsMod, { name: 'Prefs', settings: FIELDS });
+			emit([`${MODS}/prefs/main.js`]);
+
+			await vi.waitFor(() => expect(loads()).toHaveLength(2));
+			expect(writes()).toEqual([]);
+		});
+
+		it('does nothing for a vault that is not open', async () => {
+			await startModsHost(VAULT);
+
+			saveModSetting('/vaults/other', 'prefs', 'folder', 'Work');
+			await settle();
+
+			expect(globals.__modEvents).not.toContain('prefs:unload');
+			expect(writes()).toEqual([]);
+		});
+
+		describe('readModSettings', () => {
+			it('returns the stored object, or an empty one without data.json', async () => {
+				expect(await readModSettings(VAULT, 'prefs')).toEqual({ ok: true, values: {} });
+				dataFiles.set('prefs', '{"folder":"Work","count":3}');
+				expect(await readModSettings(VAULT, 'prefs')).toEqual({ ok: true, values: { folder: 'Work', count: 3 } });
+			});
+
+			it.each([
+				['not valid JSON', '{oops'],
+				['not an object', '[1]'],
+				['not an object', '3'],
+			])('refuses data.json that is %s and leaves it in place', async (reason, text) => {
+				dataFiles.set('prefs', text);
+
+				expect(await readModSettings(VAULT, 'prefs')).toEqual({ ok: false, reason });
+				expect(dataFiles.get('prefs')).toBe(text);
+			});
+
+			it('refuses an unreadable data.json', async () => {
+				readError = new Error('permission denied');
+
+				expect(await readModSettings(VAULT, 'prefs')).toEqual({ ok: false, reason: 'unreadable' });
+			});
 		});
 	});
 });

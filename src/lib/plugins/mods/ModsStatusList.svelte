@@ -1,12 +1,15 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { toast } from 'svelte-sonner';
 
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { error } from '#lib/utils/debug.js';
 
 	import { modsEnabledStore } from './mods-enabled.store.svelte';
-	import { disableMod, enableMod } from './mods-host.service';
+	import { disableMod, enableMod, readModSettings, saveModSetting } from './mods-host.service';
+	import type { ModSettingField } from './mods.logic';
 	import { modsStore, type ModStatusEntry } from './mods.store.svelte';
 
 	const STATE_LABELS: Record<ModStatusEntry['state'], string> = {
@@ -35,6 +38,48 @@
 		} else if (!enabled) {
 			disableMod(entry.folder);
 		}
+	}
+
+	type SettingsRead = Awaited<ReturnType<typeof readModSettings>>;
+	/** Per folder, the last read of the mod's setting values, with the edits committed since */
+	let settingsReads = $state.raw<Record<string, SettingsRead>>({});
+	/** Per folder, the entry the last read was for: a reload upserts a new entry, which reads again */
+	const readFor = new Map<string, ModStatusEntry>();
+	/** Per folder, the edits committed so far: a read that started before the latest one would overwrite its value */
+	const commits = new Map<string, number>();
+
+	$effect(() => {
+		const vaultPath = vaultStore.path;
+		const withSettings = modsStore.entries.filter((e) => e.state === 'loaded' && e.settings?.length);
+		untrack(() => {
+			if (vaultPath === null) return;
+			for (const entry of withSettings) {
+				if (readFor.get(entry.folder) === entry) continue;
+				readFor.set(entry.folder, entry);
+				const startedAt = commits.get(entry.folder) ?? 0;
+				void readModSettings(vaultPath, entry.folder).then((result) => {
+					if (readFor.get(entry.folder) !== entry || (commits.get(entry.folder) ?? 0) !== startedAt) return;
+					settingsReads = { ...settingsReads, [entry.folder]: result };
+				});
+			}
+		});
+	});
+
+	/** The stored value when it has the field's type, else the field's default; the host never writes defaults */
+	function settingValue(field: ModSettingField, values: Record<string, unknown>): boolean | string {
+		const value = values[field.key];
+		if (typeof value === field.type) return value as boolean | string;
+		return field.default ?? (field.type === 'boolean' ? false : '');
+	}
+
+	/** Saves a changed value, which reloads the mod; the row shows it until the reload's read */
+	function commitSetting(entry: ModStatusEntry, field: ModSettingField, value: boolean | string) {
+		const read = settingsReads[entry.folder];
+		const vaultPath = vaultStore.path;
+		if (!read?.ok || vaultPath === null || settingValue(field, read.values) === value) return;
+		commits.set(entry.folder, (commits.get(entry.folder) ?? 0) + 1);
+		settingsReads = { ...settingsReads, [entry.folder]: { ok: true, values: { ...read.values, [field.key]: value } } };
+		saveModSetting(vaultPath, entry.folder, field.key, value);
 	}
 </script>
 
@@ -83,6 +128,37 @@
 								<summary class="cursor-pointer">Stack trace</summary>
 								<pre class="overflow-x-auto whitespace-pre-wrap">{callbackError.stack}</pre>
 							</details>
+						{/if}
+					{/if}
+					{#if entry.state === 'loaded' && entry.settings?.length}
+						{@const read = settingsReads[entry.folder]}
+						{#if read && !read.ok}
+							<!-- No fields: a write would replace data the host cannot read. -->
+							<p class="text-meta text-muted-foreground" data-mod-settings-unavailable>
+								Settings unavailable: data.json is {read.reason}
+							</p>
+						{:else if read}
+							<div class="flex flex-col gap-1 pt-1" data-mod-settings>
+								{#each entry.settings as field (field.key)}
+									{@const value = settingValue(field, read.values)}
+									<div class="flex items-center justify-between gap-4">
+										<span class="text-meta text-muted-foreground">{field.label}</span>
+										{#if field.type === 'boolean'}
+											<Switch
+												aria-label="Setting {field.label} of {entry.name}"
+												bind:checked={() => value === true, (v) => commitSetting(entry, field, v)}
+											/>
+										{:else}
+											<Input
+												class="h-7 max-w-56"
+												aria-label="Setting {field.label} of {entry.name}"
+												value={value as string}
+												onchange={(e) => commitSetting(entry, field, (e.currentTarget as HTMLInputElement).value)}
+											/>
+										{/if}
+									</div>
+								{/each}
+							</div>
 						{/if}
 					{/if}
 				</li>

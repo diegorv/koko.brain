@@ -201,7 +201,10 @@ export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope):
  * here reaches `applyNoteChange`, `notifyAfterSave` or the file tree: this file
  * is not a note, and the watcher ignores its folder (Indexing rule 5).
  */
-export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): Pick<ModContextV1, 'loadData' | 'saveData'> {
+export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): Pick<ModContextV1, 'loadData' | 'saveData'> & {
+	/** Resolves once every call queued so far has settled; never rejects. Host only, not on `ctx`. */
+	settled: () => Promise<void>;
+} {
 	const tag = `MOD:${modId}`;
 	const dir = `${MOD_DATA_DIR}/${modId}`;
 	const dataPath = `${vaultPath}/${dir}/data.json`;
@@ -276,6 +279,7 @@ export function createModData({ modId, vaultPath, assertLive }: ModVaultScope): 
 				assertLive();
 			});
 		},
+		settled: () => tail.then(() => {}),
 	};
 }
 
