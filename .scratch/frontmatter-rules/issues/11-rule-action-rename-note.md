@@ -62,6 +62,7 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
 5. **Order:** the full order is in the PRD. After a rename, the destination, the Issue 08 values and the Issue 09 path resolve with the **new** name and path. Add a docs line: a volatile name combined with a create-note rule creates one note per save.
 6. **Rule matching:** widen the early return (`auto-move.service.ts:255`) and the "does nothing" hint so a rename-only rule acts.
 7. **Docs:** add "Rename" to the Actions list on the help page.
+8. **Carried over from Issue 09's review (open nit):** `AutoOrganizeRuleRow.svelte:350` shows the create-note template error only after a refused commit. It does not show it for a stored, hand-edited template that the loader dropped. This Issue adds the rename field to the same row, so make both fields show the loader's verdict for their stored value as soon as the row renders. Add a row test for each.
 
 ## Notes
 
