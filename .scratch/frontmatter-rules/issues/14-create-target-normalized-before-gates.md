@@ -6,7 +6,7 @@ Found by the automated security review of Issue 09's squash (`a58f6b696`) on 202
 
 **Blocked by:** 11
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -23,14 +23,16 @@ Found by the automated security review of Issue 09's squash (`a58f6b696`) on 202
 
 ### Acceptance
 
-- [ ] Failing test first, in `auto-organize.logic.test.ts`: `createTargetProblem('./_system/x.md', '/vault', ['_system'], [])` returns `inside _system/`. It returns null today.
-- [ ] `_system//x.md`, `a/./../x.md` and `./Excluded/x.md` (with `Excluded` excluded) are refused.
-- [ ] `notes/./x.md` is accepted and normalized to `notes/x.md`.
-- [ ] A service test: a create rule whose target is `./notes/x.md` creates `/vault/notes/x.md`. A second rule with `notes/x.md` in the same run does not create a second note.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in `auto-organize.logic.test.ts`: `createTargetProblem('./_system/x.md', '/vault', ['_system'], [])` returns `inside _system/`. It returns null today.
+- [x] `_system//x.md`, `a/./../x.md` and `./Excluded/x.md` (with `Excluded` excluded) are refused.
+- [x] `notes/./x.md` is accepted and normalized to `notes/x.md`.
+- [x] A service test: a create rule whose target is `./notes/x.md` creates `/vault/notes/x.md`. A second rule with `notes/x.md` in the same run does not create a second note.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Notes
 
 - Ordered after 11, because 11 edits the same file; 12 now waits for 14.
 
 ## Comments
+
+- 2026-11-11, branch `issue/14-create-target-normalized-before-gates`: a create-note target is normalized (`./`, `//`, `..`) before the `_system/`, excluded-folder and duplicate gates, and the note is created at the normalized path. Typecheck exit 0, `auto-organize.logic.test.ts` exit 0, full suite at 29341e401 exit 0 (609/609 files, 15300 passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED, round 2 APPROVED (after a JSDoc reflow fix).

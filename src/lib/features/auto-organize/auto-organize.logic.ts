@@ -353,10 +353,22 @@ export function sanitizeCreateNote(raw: unknown): RuleCreateNote | undefined {
 }
 
 /**
+ * Vault-relative `target` without its empty and `.` segments, or null when
+ * any segment is `..`. The file system resolves `./_system/x.md` and
+ * `_system//x.md` into `_system/`, so a path is gated in this form.
+ */
+export function normalizeVaultRelativePath(target: string): string | null {
+	const segments = target.split('/').filter((s) => s !== '' && s !== '.');
+	if (segments.includes('..')) return null;
+	return segments.join('/');
+}
+
+/**
  * Why a rule must not create a note at vault-relative `target`, or null when
  * it may: a `..` segment (a frontmatter variable can bring one in), no file
  * name (a variable that resolves empty), or inside one of `protectedFolders`
- * or `excludedFolders`, matched case-insensitively.
+ * or `excludedFolders`, matched case-insensitively. The checks run on
+ * `normalizeVaultRelativePath(target)`, the path a run creates the note at.
  */
 export function createTargetProblem(
 	target: string,
@@ -364,14 +376,15 @@ export function createTargetProblem(
 	protectedFolders: string[],
 	excludedFolders: string[],
 ): string | null {
-	if (target.split('/').includes('..')) return 'leaves the vault';
-	if (target.slice(target.lastIndexOf('/') + 1).replace(/\.md$/i, '').trim() === '') return 'has no file name';
-	const lower = target.toLowerCase();
+	const normalized = normalizeVaultRelativePath(target);
+	if (normalized === null) return 'leaves the vault';
+	if (normalized.slice(normalized.lastIndexOf('/') + 1).replace(/\.md$/i, '').trim() === '') return 'has no file name';
+	const lower = normalized.toLowerCase();
 	for (const folder of protectedFolders) {
 		const rel = folder.trim().replace(/^\/+|\/+$/g, '');
 		if (rel && lower.startsWith(`${rel}/`.toLowerCase())) return `inside ${rel}/`;
 	}
-	if (isInExcludedFolder(`${vaultPath}/${target}`, vaultPath, excludedFolders)) return 'inside an excluded folder';
+	if (isInExcludedFolder(`${vaultPath}/${normalized}`, vaultPath, excludedFolders)) return 'inside an excluded folder';
 	return null;
 }
 
@@ -386,10 +399,11 @@ export interface CreateGates {
 /**
  * How many notes a rule with this filter and `createNote` would create now:
  * the distinct resolved targets of the matching notes in `index` that pass
- * the gates and are not in the index (compared case-insensitively). A source
- * in a gated folder is left out, as a run skips it. Targets resolve at the
- * source's current folder, before any move the rule makes. 0 for a
- * blank filter, null when the filter is broken (as `countMatchingNotes`).
+ * the gates and are not in the index (compared normalized and
+ * case-insensitively). A source in a gated folder is left out, as a run
+ * skips it. Targets resolve at the source's current folder, before any move
+ * the rule makes. 0 for a blank filter, null when the filter is broken (as
+ * `countMatchingNotes`).
  */
 export function countNotesToCreate(
 	expression: FilterItem,
@@ -413,7 +427,7 @@ export function countNotesToCreate(
 		if (isInGatedFolder(path, vaultPath, gates)) continue;
 		const target = resolveDestination(createNote.path, record, vaultPath);
 		if (createTargetProblem(target, vaultPath, gates.protectedFolders, gates.excludedFolders) !== null) continue;
-		const abs = `${vaultPath}/${target}`.toLowerCase();
+		const abs = `${vaultPath}/${normalizeVaultRelativePath(target)}`.toLowerCase();
 		if (!existing.has(abs)) targets.add(abs);
 	}
 	return targets.size;

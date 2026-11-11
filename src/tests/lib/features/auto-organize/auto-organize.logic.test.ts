@@ -27,6 +27,7 @@ import {
 	ruleRecordStats,
 	sanitizeCreateNote,
 	createTargetProblem,
+	normalizeVaultRelativePath,
 	countNotesToCreate,
 	renameProblem,
 	sanitizeRename,
@@ -1347,6 +1348,37 @@ describe('createTargetProblem', () => {
 		expect(createTargetProblem('templates/a.md', VAULT, PROTECTED, [])).toBe('inside Templates/');
 		expect(createTargetProblem('archive/2026/a.md', VAULT, PROTECTED, ['Archive'])).toBe('inside an excluded folder');
 	});
+
+	it('gates the normalized target, so a . segment or a doubled slash cannot reach a gated folder', () => {
+		expect(createTargetProblem('./_system/x.md', VAULT, ['_system'], [])).toBe('inside _system/');
+		expect(createTargetProblem('_system//x.md', VAULT, ['_system'], [])).toBe('inside _system/');
+		expect(createTargetProblem('a/./../x.md', VAULT, PROTECTED, [])).toBe('leaves the vault');
+		expect(createTargetProblem('./Excluded/x.md', VAULT, PROTECTED, ['Excluded'])).toBe('inside an excluded folder');
+		expect(createTargetProblem('notes/./.md', VAULT, PROTECTED, [])).toBe('has no file name');
+	});
+
+	it('accepts a target whose normalized form passes the gates', () => {
+		expect(createTargetProblem('notes/./x.md', VAULT, PROTECTED, [])).toBeNull();
+	});
+});
+
+describe('normalizeVaultRelativePath', () => {
+	it('drops empty and . segments', () => {
+		expect(normalizeVaultRelativePath('notes/./x.md')).toBe('notes/x.md');
+		expect(normalizeVaultRelativePath('./notes//x.md')).toBe('notes/x.md');
+		expect(normalizeVaultRelativePath('notes/x.md')).toBe('notes/x.md');
+		expect(normalizeVaultRelativePath('a..b/.x.md')).toBe('a..b/.x.md');
+	});
+
+	it('is empty for a target with no segment left', () => {
+		expect(normalizeVaultRelativePath('')).toBe('');
+		expect(normalizeVaultRelativePath('././/')).toBe('');
+	});
+
+	it('is null when any segment is ..', () => {
+		expect(normalizeVaultRelativePath('../x.md')).toBeNull();
+		expect(normalizeVaultRelativePath('a/./../x.md')).toBeNull();
+	});
 });
 
 describe('countNotesToCreate', () => {
@@ -1371,6 +1403,12 @@ describe('countNotesToCreate', () => {
 	it('counts one target that several notes resolve to once', () => {
 		const idx = index(meeting('/vault/m/A.md'), meeting('/vault/m/B.md'));
 		expect(countNotesToCreate("type == 'meeting'", { path: '{folder}/Index.md' }, idx, VAULT, GATES)).toBe(1);
+	});
+
+	it('compares the normalized target, so a ./ twin of an existing note is not counted', () => {
+		const idx = index(meeting('/vault/m/A.md'), buildNoteRecord('/vault/notes/x.md', ''));
+		expect(countNotesToCreate("type == 'meeting'", { path: './notes/x.md' }, idx, VAULT, GATES)).toBe(0);
+		expect(countNotesToCreate("type == 'meeting'", { path: './_system/x.md' }, idx, VAULT, GATES)).toBe(0);
 	});
 
 	it('leaves out targets the gates refuse', () => {

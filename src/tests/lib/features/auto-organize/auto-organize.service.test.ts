@@ -1474,9 +1474,18 @@ describe('auto-organize.service', () => {
 				expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', `Rule "Rule c6" did not create a note for ${SOURCE}: a run creates at most 5 notes`);
 			});
 
+			it('creates at the normalized path, so a target and its ./ twin create one note', async () => {
+				await run([creator('c1', { path: './notes/x.md' }), creator('c2', { path: 'notes/x.md' })]);
+
+				expect(createFile).toHaveBeenCalledTimes(1);
+				expect(createFile).toHaveBeenCalledWith('/vault/notes', 'x.md', '');
+				expect([...disk.keys()].filter((p) => p !== SOURCE)).toEqual(['/vault/notes/x.md']);
+			});
+
 			describe('gates', () => {
 				it.each([
 					['the system folder', '_system/{basename}.md', [] as string[], '_system/note.md: inside _system/'],
+					['the system folder through a ./ segment', './_system/{basename}.md', [], './_system/note.md: inside _system/'],
 					['the templates folder', 'Templates/{basename}.md', [], 'Templates/note.md: inside Templates/'],
 					['an excluded folder', 'Archive/{basename}.md', ['Archive'], 'Archive/note.md: inside an excluded folder'],
 				])('never creates inside %s', async (_label, path, excluded, reason) => {

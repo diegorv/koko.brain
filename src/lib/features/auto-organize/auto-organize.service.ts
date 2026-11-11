@@ -21,6 +21,7 @@ import {
 	isInExcludedFolder,
 	isAlreadyInDestination,
 	isRefusedKey,
+	normalizeVaultRelativePath,
 	numberedName,
 	ownedProperties,
 	propertiesToWrite,
@@ -467,7 +468,8 @@ async function createRuleNotes(
 			debug('AUTO-ORGANIZE', `Rule "${rule.name}" did not create ${target}: ${problem}`);
 			continue;
 		}
-		const targetPath = `${vaultPath}/${target}`;
+		// The path the gates passed, so `./x.md` and `x.md` are one target.
+		const targetPath = `${vaultPath}/${normalizeVaultRelativePath(target)}`;
 		if (creatingPaths.has(targetPath)) continue;
 		creatingPaths.add(targetPath);
 		try {
