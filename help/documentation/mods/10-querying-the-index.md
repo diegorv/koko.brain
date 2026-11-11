@@ -4,6 +4,34 @@
 
 Stability: **raw**. `ctx.kb()` exposes the QueryJS `kb` object, which has its own versioned contract (`kb.version === 1`, see [API version and compatibility](../13-queryjs.md#api-version-and-compatibility)), but the way a mod reaches it has no compatibility promise.
 
+## `ctx.query` or `ctx.kb()`
+
+[`ctx.query`](13-api-reference.md#ctxquery) is **stable** and takes the filter language of views, inline collection blocks and Auto Organize rules: `await ctx.query.matches('status == "done"', path)` answers for one note, `await ctx.query.notes('file.hasTag("project")')` lists the matching notes as sorted vault-relative paths. `ctx.kb()` is raw and returns pages with every field. Use `ctx.query` to decide which notes to act on; use `ctx.kb()` when you need the fields themselves (tasks, links, backlinks).
+
+What to know about `ctx.query`:
+
+- Inside an expression `file.path` and `file.folder` are absolute. Use `file.inFolder("Ideas")`, which takes a vault-relative folder.
+- `notes()` lists like an inline collection block: it leaves out notes in the system folder, `.view` files, type definitions, and archived notes unless the expression cites `archived` (`archived == true`). `ctx.kb().pages()` keeps archived notes.
+- `matches()` applies none of those rules: it answers for any indexed note, archived, system-folder and `.view` ones included. A `true` from `matches(e, path)` does not mean `path` is in `notes(e)`: when templates or archived notes must not count, say so in the expression.
+- Both reject until the vault's notes are indexed, which can still be the case in `onload`: catch the rejection and retry later.
+- A typo in a method name (`file.hasTagg("x")`) matches nothing and does not reject, because methods are checked only when they run. A typo in a plain function (`contans(...)`) or a syntax error rejects.
+- Put a negation inside the expression (`!file.hasTag("x")`). Never compute "everything except `notes(e)`" in JavaScript and act on it: a typo or an error would turn into "every note".
+- `file.mtime`, `file.ctime` and `file.size` are `0` (1970) for a note created this session until the index refreshes, a few seconds later. Never pick notes to move or delete by them.
+- After a move or rename, the note is missing from `notes()` and `matches()` rejects for its new path until the index refreshes.
+- Inside `onNoteSaved`, check the extension first: `matches` rejects for a non-Markdown path.
+- `notes()` scans every note on the UI thread: debounce it in `onNoteSaved`, as for `ctx.kb()` (see [Cost](#cost)).
+
+```js
+ctx.onNoteSaved(async (path) => {
+	if (!path.endsWith('.md')) return;
+	try {
+		if (await ctx.query.matches('type == "meeting" && status == "done"', path)) ctx.notify(`Done: ${path}`);
+	} catch (err) {
+		ctx.log('query failed:', err instanceof Error ? err.message : String(err));
+	}
+});
+```
+
 ## What `ctx.kb()` returns
 
 ```ts

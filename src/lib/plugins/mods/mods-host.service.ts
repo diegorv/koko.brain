@@ -21,6 +21,7 @@ import { modCommandsStore } from './mod-commands.store.svelte';
 import { modDialogsStore, type ModDialogSpec } from './mod-dialogs.store.svelte';
 import { modPickerStore } from './mod-picker.store.svelte';
 import { readModTheme, watchModTheme } from './mod-theme.svelte';
+import { createModQuery } from './mod-query.service';
 import { createModData, createModVault, createModWorkspace, isOwnWrite } from './mod-vault.service';
 import { watchModValue } from './mod-watch.svelte';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
@@ -621,6 +622,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		},
 		vault: createModVault({ modId: manifest.id, vaultPath, assertLive }),
 		workspace: createModWorkspace({ modId: manifest.id, vaultPath, assertLive }),
+		query: createModQuery({ modId: manifest.id, vaultPath, assertLive }),
 		ui,
 		theme,
 		labs,

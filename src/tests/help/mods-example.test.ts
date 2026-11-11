@@ -73,6 +73,7 @@ function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 			},
 			updateFrontmatter: unused,
 		},
+		query: { matches: unused, notes: unused },
 		workspace: {
 			openNote: async (path) => {
 				seen.opened.push(path);

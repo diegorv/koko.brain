@@ -17,7 +17,7 @@ export default {
 
 **Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/03-expression-engine-for-mods.md` delivered and pushed to `origin/main` of `diegorv/koko.brain-mods`, with its full SHA in that Issue's Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency" (steps 3-6).
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Set `ready-for-agent` when mods Issue 03's full SHA is in its Comments. Launch by explicit number only.
 
@@ -62,16 +62,16 @@ Set `ready-for-agent` when mods Issue 03's full SHA is in its Comments. Launch b
 
 ### Acceptance
 
-- [ ] Failing test first, new `src/tests/lib/plugins/mods/mod-query.service.test.ts`: with a real `collectionStore` filled by `setPropertyIndex` from real `buildNoteRecord` records (`collection.logic.ts:22`), `createModQuery(...).matches('status == "done"', 'Ideas/a.md')` resolves `true` for a note with `status: done` and `false` for `status: todo`. It fails today (the module does not exist).
-- [ ] `matches`: by property, tag (`file.hasTag`), relative `file.inFolder("Ideas")`, `type == "person"`. An evaluation error (`status.lower() == "done"` on a note without `status`) resolves `false`. Empty or whitespace expression, a parse error (`status ==`) and an unknown function reject with the messages above. A path with no record, and a `.canvas` path, reject `is not an indexed note`. A bad path rejects `Invalid vault path`. A `.view` path evaluates.
-- [ ] `notes`: vault-relative and sorted; leaves out a `.view`, a note under `_system/`, a `_type: Type` note and an archived note; keeps the archived note when the expression cites `archived`; the evaluation error above leaves that note out; parse errors reject and never resolve `[]`. The test registers a real port wrapping `blockRowSet` (as `boot.ts:61-65` does) and unregisters it in `afterEach`; with no port, `notes` rejects `is not available yet`.
-- [ ] Readiness: after `collectionStore.reset()`, both reject `not indexed yet`.
-- [ ] Freshness pinned: a record written by the real `updateNoteInIndex` (`src/lib/features/collection/collection.service.ts:152-162`) is matched at once, and for a new path `matches('file.size == 0', p)` is `true` (the documented limit).
-- [ ] Guards: after `runtime.unloaded = true`, and after `vaultStore.open('/other')`, both reject `Mod "<id>" is unloaded`.
-- [ ] Wiring through the real host, in `src/tests/lib/plugins/mods/mod-note-saved.test.ts`: with the collection note-change consumer registered (`registerCollectionNoteChangeConsumer`, `collection.service.ts:182`) and the index ready, a mod calls `ctx.query.matches` inside its `onNoteSaved` after a real `saveFileByPath`, and sees the saved frontmatter.
-- [ ] `src/tests/lib/plugins/mods/mod-api-contract.test.ts`: `query: true` in `CONTEXT_PUBLIC` (`:46-63`), a `QUERY_PUBLIC satisfies Record<keyof ModQueryV1, true>`, and a "ctx.query exposes exactly the contract members" case like `:244-246`. `HOST_UNSTABLE` (`:66`) unchanged.
-- [ ] `src/tests/help/mods-types.test.ts`: `ModQueryV1` in `STABLE_TYPES` (`:25-47`) and an `expectTypeOf` equality like `:85`. `src/tests/help/mods-example.test.ts`: `query: unused` in the typed literal (`:38-40`). `mods-examples.test.ts` needs nothing (untyped literal cast at `:481`).
-- [ ] Docs above updated.
+- [x] Failing test first, new `src/tests/lib/plugins/mods/mod-query.service.test.ts`: with a real `collectionStore` filled by `setPropertyIndex` from real `buildNoteRecord` records (`collection.logic.ts:22`), `createModQuery(...).matches('status == "done"', 'Ideas/a.md')` resolves `true` for a note with `status: done` and `false` for `status: todo`. It fails today (the module does not exist).
+- [x] `matches`: by property, tag (`file.hasTag`), relative `file.inFolder("Ideas")`, `type == "person"`. An evaluation error (`status.lower() == "done"` on a note without `status`) resolves `false`. Empty or whitespace expression, a parse error (`status ==`) and an unknown function reject with the messages above. A path with no record, and a `.canvas` path, reject `is not an indexed note`. A bad path rejects `Invalid vault path`. A `.view` path evaluates.
+- [x] `notes`: vault-relative and sorted; leaves out a `.view`, a note under `_system/`, a `_type: Type` note and an archived note; keeps the archived note when the expression cites `archived`; the evaluation error above leaves that note out; parse errors reject and never resolve `[]`. The test registers a real port wrapping `blockRowSet` (as `boot.ts:61-65` does) and unregisters it in `afterEach`; with no port, `notes` rejects `is not available yet`.
+- [x] Readiness: after `collectionStore.reset()`, both reject `not indexed yet`.
+- [x] Freshness pinned: a record written by the real `updateNoteInIndex` (`src/lib/features/collection/collection.service.ts:152-162`) is matched at once, and for a new path `matches('file.size == 0', p)` is `true` (the documented limit).
+- [x] Guards: after `runtime.unloaded = true`, and after `vaultStore.open('/other')`, both reject `Mod "<id>" is unloaded`.
+- [x] Wiring through the real host, in `src/tests/lib/plugins/mods/mod-note-saved.test.ts`: with the collection note-change consumer registered (`registerCollectionNoteChangeConsumer`, `collection.service.ts:182`) and the index ready, a mod calls `ctx.query.matches` inside its `onNoteSaved` after a real `saveFileByPath`, and sees the saved frontmatter.
+- [x] `src/tests/lib/plugins/mods/mod-api-contract.test.ts`: `query: true` in `CONTEXT_PUBLIC` (`:46-63`), a `QUERY_PUBLIC satisfies Record<keyof ModQueryV1, true>`, and a "ctx.query exposes exactly the contract members" case like `:244-246`. `HOST_UNSTABLE` (`:66`) unchanged.
+- [x] `src/tests/help/mods-types.test.ts`: `ModQueryV1` in `STABLE_TYPES` (`:25-47`) and an `expectTypeOf` equality like `:85`. `src/tests/help/mods-example.test.ts`: `query: unused` in the typed literal (`:38-40`). `mods-examples.test.ts` needs nothing (untyped literal cast at `:481`).
+- [x] Docs above updated.
 - [ ] Gate above passes, including `pnpm build` and the mods workspace's `pnpm check:package` and `pnpm verify`.
 
 ## Notes
@@ -92,3 +92,5 @@ Set `ready-for-agent` when mods Issue 03's full SHA is in its Comments. Launch b
 - **Not verified:** that `executeQuery` on a one-entry Map gives the same answer as a full run for that note (the code path was read; the tests pin it); the delay from a rename to the index delta; nothing was run.
 
 ## Comments
+
+- 2026-11-11, branch `issue/04-expression-engine-for-mods`: adds `ctx.query` (`matches`, `notes`) in `src/lib/plugins/mods/mod-query.service.ts`, wired into the mod context and contract, with docs. Fix round after review 1: JSDoc and `10-querying-the-index.md` now say `matches` and `notes` agree on evaluation errors only and `matches` applies no row rule. Tests: `pnpm check` 0 errors; targeted files pass; full suite at 7606f3574 exit 0 (612 files, 15450 passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED (1 minor finding, fixed), round 2 APPROVED (no findings). The mods workspace `check:package`/`verify` gate was not run, so that criterion stays unticked.

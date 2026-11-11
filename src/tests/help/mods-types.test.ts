@@ -33,6 +33,7 @@ const STABLE_TYPES = [
 	'ModVaultEntryV1',
 	'ModPropertyV1',
 	'ModVaultV1',
+	'ModQueryV1',
 	'ModWorkspaceV1',
 	'ModAlertOptionsV1',
 	'ModConfirmOptionsV1',
@@ -81,10 +82,11 @@ describe('help/examples/mods/kokobrain-mod.d.ts', () => {
 		expectTypeOf<Doc.ModRailButtonV1>().toEqualTypeOf<App.ModRailButtonV1>();
 	});
 
-	it('has the vault and workspace types of the contract', () => {
+	it('has the vault, query and workspace types of the contract', () => {
 		expectTypeOf<Doc.ModVaultEntryV1>().toEqualTypeOf<App.ModVaultEntryV1>();
 		expectTypeOf<Doc.ModPropertyV1>().toEqualTypeOf<App.ModPropertyV1>();
 		expectTypeOf<Doc.ModVaultV1>().toEqualTypeOf<App.ModVaultV1>();
+		expectTypeOf<Doc.ModQueryV1>().toEqualTypeOf<App.ModQueryV1>();
 		expectTypeOf<Doc.ModWorkspaceV1>().toEqualTypeOf<App.ModWorkspaceV1>();
 	});
 

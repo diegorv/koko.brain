@@ -25,6 +25,9 @@ import { addAfterSaveObserver, notifyAfterSave, resetHooks } from '#lib/core/edi
 import { saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
+import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import { disableMod, startModsHost, stopModsHost, type ModContext } from '#lib/plugins/mods/mods-host.service.js';
 import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
@@ -72,6 +75,25 @@ describe('ctx.onNoteSaved', () => {
 		expect(events).toEqual(['before', 'after']);
 		await vi.advanceTimersByTimeAsync(0);
 		expect(events).toEqual(['before', 'after', 'Ideas/Note.md']);
+	});
+
+	it('ctx.query inside onNoteSaved sees the frontmatter of the save that reported it', async () => {
+		const unregister = registerCollectionNoteChangeConsumer();
+		try {
+			collectionStore.setPropertyIndex(new Map([[PATH, buildNoteRecord(PATH, 'old')]]));
+			const seen: boolean[] = [];
+			globals.__saveCtx.onNoteSaved(async (path) => {
+				seen.push(await globals.__saveCtx.query.matches('status == "done"', path));
+			});
+			editorStore.addTab({ path: PATH, name: 'Note.md', content: '---\nstatus: done\n---\n# Note', savedContent: 'old' });
+
+			expect(await saveFileByPath(PATH)).toBe(true);
+			await vi.advanceTimersByTimeAsync(0);
+			expect(seen).toEqual([true]);
+		} finally {
+			unregister();
+			collectionStore.reset();
+		}
 	});
 
 	it('passes the saved content with the path, one call per save in order', async () => {

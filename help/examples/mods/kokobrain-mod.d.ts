@@ -382,6 +382,26 @@ export interface ModDataCorruptErrorV1 extends Error {
 	corruptPath: string;
 }
 
+/**
+ * Read-only matching with the filter expressions of views and Auto Organize
+ * rules. The expression language is the app's and evolves with it: this
+ * promises the function shapes and the rules below, not every function name.
+ * Paths in and out are vault-relative, but inside an expression `file.path`
+ * and `file.folder` are absolute: write `file.inFolder("Ideas")`, not
+ * `file.path == "Ideas/A.md"`. Both reject `Mod "<id>": query.<op>: ...`
+ * when the expression is empty, does not parse or calls an unknown function,
+ * and before the vault's notes are indexed (retry later). An error while
+ * evaluating it on one note (an unknown method, a method on a missing
+ * property) counts as no match for that note. Results follow the app's
+ * index, which lags a write in file times and sizes and after a move.
+ */
+export interface ModQueryV1 {
+	/** Resolves to whether the indexed note at `path` matches `expression`. Also rejects `Invalid vault path "<path>"`, and `"<path>" is not an indexed note` when the index has no record for it (a non-Markdown file, a missing file, a note just moved) */
+	matches: (expression: string, path: string) => Promise<boolean>;
+	/** Resolves to the sorted paths of the notes matching `expression`, listed like an inline collection block: no system-folder note, `.view` or type definition, and no archived note unless the expression cites `archived` */
+	notes: (expression: string) => Promise<string[]>;
+}
+
 /** What a mod's `onload` receives. Every function throws once the mod is unloaded or the vault changed. */
 export interface ModContextV1 {
 	/** Contract version, `1` */
@@ -439,6 +459,8 @@ export interface ModContextV1 {
 	) => () => void;
 	/** Reads and writes vault files by vault-relative path */
 	vault: ModVaultV1;
+	/** Read-only queries over the vault's notes */
+	query: ModQueryV1;
 	/** Opens notes */
 	workspace: ModWorkspaceV1;
 	/** The app's alert, confirm, prompt and loading dialogs */

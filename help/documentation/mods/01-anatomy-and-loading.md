@@ -298,7 +298,7 @@ Notes:
 
 | Works | Throws `Mod "<id>" is unloaded` (the async ones reject with it) |
 |-------|----------------------------------|
-| `ctx.signal` (already aborted), `ctx.mod`, `ctx.apiVersion`, objects you took from `ctx.app` earlier | `ctx.notify`, `ctx.log`, `ctx.register`, `ctx.saveData`, `ctx.loadData`, every `ctx.vault.*`, `ctx.workspace.*`, `ctx.ui.*`, `ctx.theme.current`, `ctx.theme.onChange`, `ctx.addAction`, `ctx.addRailButton`, `ctx.watch`, `ctx.onNoteSaved`, `ctx.labs.place`, reading `ctx.app` or `ctx.kb`, calling `ctx.kb()` |
+| `ctx.signal` (already aborted), `ctx.mod`, `ctx.apiVersion`, objects you took from `ctx.app` earlier | `ctx.notify`, `ctx.log`, `ctx.register`, `ctx.saveData`, `ctx.loadData`, every `ctx.vault.*`, `ctx.query.*`, `ctx.workspace.*`, `ctx.ui.*`, `ctx.theme.current`, `ctx.theme.onChange`, `ctx.addAction`, `ctx.addRailButton`, `ctx.watch`, `ctx.onNoteSaved`, `ctx.labs.place`, reading `ctx.app` or `ctx.kb`, calling `ctx.kb()` |
 
 So a mod cannot save state, write a note, log or toast from `onunload`. Save state when it changes (see [Mod data](05-mod-data.md)). Use `onunload` and cleanups only for work that needs no `ctx`: removing DOM nodes, clearing timers, removing listeners.
 

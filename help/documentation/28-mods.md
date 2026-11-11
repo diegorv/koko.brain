@@ -312,6 +312,28 @@ Errors from the file system pass through unchanged, and they are often bare stri
 
 Notes created or written this way reach the index and full-text search at once; `ctx.kb()` and the panels can take a few seconds to see them (see [`ctx.kb()`](#ctxkb)). `write` also runs the after-save steps of a note saved in the editor (file history, Auto Organize, `ctx.onNoteSaved`) for every file it writes, Markdown or not, except a non-note file under `_system/mods/` (anything there not ending in `.md`, `.markdown` or `.view`), which skips them; `create` does not run them. For a mod's own state, use [`ctx.saveData`](#ctxloaddata-and-ctxsavedata-the-mods-own-data) instead.
 
+### `ctx.query`: matching notes
+
+**Stable**, read-only. Matches notes with the filter expressions of views, inline collection blocks and Auto Organize rules. Paths in and out are vault-relative; inside an expression use `file.inFolder("Ideas")`, since `file.path` and `file.folder` are absolute there.
+
+| Method | Resolves to | Notes |
+|--------|-------------|-------|
+| `matches(expression, path)` | `true` / `false` | Whether the indexed note at `path` matches. Rejects for a path the index has no record for (a non-Markdown file, a missing file, a note just moved) |
+| `notes(expression)` | sorted vault-relative paths | Lists like an inline collection block: no system-folder note, `.view` or type definition, no archived note unless the expression cites `archived` |
+
+```js
+export default {
+	onload(ctx) {
+		ctx.onNoteSaved(async (path) => {
+			if (!path.endsWith('.md')) return;
+			if (await ctx.query.matches('type == "meeting" && status == "done"', path)) ctx.notify(`Done: ${path}`);
+		});
+	},
+};
+```
+
+Both reject on an empty or invalid expression and until the vault's notes are indexed. An error while evaluating the expression on one note counts as no match. File times and sizes lag a write by a few seconds. Details, and when to use `ctx.kb()` instead: [Querying the index](mods/10-querying-the-index.md#ctxquery-or-ctxkb).
+
 ### `ctx.loadData` and `ctx.saveData`: the mod's own data
 
 Each mod has one JSON value of its own, kept at `<vault>/.kokobrain/mods/<mod-id>/data.json`. Use it for state a mod updates often: a save reaches neither the index, search, file history, Auto Organize, the file tree nor the caches, so it costs one small file write.

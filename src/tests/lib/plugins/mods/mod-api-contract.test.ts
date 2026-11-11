@@ -15,6 +15,7 @@ import type {
 	ModInfoV1,
 	ModLoadingOptionsV1,
 	ModPromptOptionsV1,
+	ModQueryV1,
 	ModRailButtonV1,
 	ModRunV1,
 	ModThemeColorsV1,
@@ -55,6 +56,7 @@ const CONTEXT_PUBLIC = {
 	addAction: true,
 	addRailButton: true,
 	vault: true,
+	query: true,
 	workspace: true,
 	ui: true,
 	theme: true,
@@ -82,6 +84,11 @@ const VAULT_ENTRY_PUBLIC = {
 	path: true,
 	isFolder: true,
 } satisfies Record<keyof ModVaultEntryV1, true>;
+
+const QUERY_PUBLIC = {
+	matches: true,
+	notes: true,
+} satisfies Record<keyof ModQueryV1, true>;
 
 const WORKSPACE_PUBLIC = {
 	openNote: true,
@@ -244,6 +251,10 @@ describe('mod API contract v1', () => {
 
 	it('ctx.vault exposes exactly the contract members', () => {
 		expect(Object.keys(makeContext().vault).sort()).toEqual(Object.keys(VAULT_PUBLIC).sort());
+	});
+
+	it('ctx.query exposes exactly the contract members', () => {
+		expect(Object.keys(makeContext().query).sort()).toEqual(Object.keys(QUERY_PUBLIC).sort());
 	});
 
 	it('ctx.workspace exposes exactly the contract members', () => {

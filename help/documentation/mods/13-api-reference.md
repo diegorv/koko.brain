@@ -20,7 +20,7 @@ Rules that apply to every member, and are not repeated below:
 
 - **Unloaded.** Every `ctx` function, and reading `ctx.app`, `ctx.kb` or `ctx.theme.current`, throws (or rejects) `Mod "<id>" is unloaded` once the mod is unloaded or the open vault changed. That includes calls made inside `onunload`. Only `ctx.apiVersion`, `ctx.mod` and `ctx.signal` keep working. `run.log` and `run.progress` check the run instead (see [The run](#the-run)).
 - **Argument errors** start with `Mod "<id>": `.
-- **Paths.** `ctx.vault`, `ctx.workspace`, `ctx.onNoteSaved` and `run.target` use vault-relative paths (`Ideas/Idea.md`, no leading `/`). `ctx.app` and `ctx.kb()` use absolute paths (`${ctx.app.vaultStore.path}/Ideas/Idea.md`).
+- **Paths.** `ctx.vault`, `ctx.query`, `ctx.workspace`, `ctx.onNoteSaved` and `run.target` use vault-relative paths (`Ideas/Idea.md`, no leading `/`). `ctx.app` and `ctx.kb()` use absolute paths (`${ctx.app.vaultStore.path}/Ideas/Idea.md`).
 - **Error shapes.** File system errors from `ctx.vault`, `ctx.workspace` and `ctx.app` calls, and a failed index read in `ctx.kb()`, reach the mod as the lower layer sent them, often a **plain string**, not an `Error`: `err.message` can be `undefined`. Use `err instanceof Error ? err.message : String(err)`, or the `errorMessage` helper of [Vault files](04-vault-files.md#errors-are-not-always-error-objects). The host's own checks (paths, arguments, unloaded) throw an `Error`. `ctx.loadData` and `ctx.saveData` always reject with an `Error`. Everything else on `ctx` throws an `Error`.
 
 ## The mod object
@@ -126,6 +126,17 @@ Details: [Events and reactivity](07-events-and-reactivity.md), [Custom UI](08-cu
 | `delete` | `(path: string) => Promise<void>` | nothing. Moves to the app's Trash (`.kokobrain/trash/`), saving dirty tabs under the path first and closing them | a missing path: raw error; `Could not save "<absolute path>" before moving it to the Trash` (name `PreDeleteSaveError`) |
 
 Side effects worth knowing: renaming a Markdown file to a new name rewrites wikilinks in other notes; `create` and `write` reach the index at once (note existence and frontmatter are current in the next `ctx.kb()`), but `file.tasks`, `file.tags`, links, size and times follow a snapshot that refreshes about 2 s after a change, up to about 10 s during a burst (until then a note saved a moment ago shows its previous size and mtime); a write to `_system/mods/<id>/main.js` or `manifest.json` reloads that mod. Details: [Vault files](04-vault-files.md).
+
+## ctx.query
+
+**stable**. Read-only matching with the filter expressions of views, inline collection blocks and Auto Organize rules: `status == "done"`, `file.hasTag("project")`, `file.inFolder("Ideas")`. Paths in and out are vault-relative, but inside an expression `file.path` and `file.folder` are absolute: write `file.inFolder("Ideas")`. Both members are async, so every failure rejects. Both reject `Mod "<id>": query.<op> needs a non-empty expression` for an empty or non-string expression, `Mod "<id>": query.<op>: Invalid filter "<expression>": <reason>` when it does not parse or calls an unknown function, and `Mod "<id>": query.<op>: the vault's notes are not indexed yet` before the index is built (catch and retry later). An error while evaluating the expression on one note (a method on a missing property, an unknown method) counts as no match for that note.
+
+| Member | Signature | Resolves to | Rejects with (besides the rules above) |
+|--------|-----------|-------------|-----------------------------------------|
+| `matches` | `(expression: string, path: string) => Promise<boolean>` | whether the indexed note at `path` matches | `Invalid vault path "<path>"`; `Mod "<id>": query.matches: "<path>" is not an indexed note` (a non-Markdown file, a missing file, a note just moved) |
+| `notes` | `(expression: string) => Promise<string[]>` | the sorted vault-relative paths of the matching notes, listed like an inline collection block: no system-folder note, `.view` or type definition, no archived note unless the expression cites `archived` | `Mod "<id>": query.notes is not available yet` |
+
+Results follow the app's index, which lags a write in file times and sizes and after a move. Details: [Querying the index](10-querying-the-index.md#ctxquery-or-ctxkb).
 
 ## ctx.workspace
 
@@ -263,7 +274,12 @@ Messages the mod itself can catch, by prefix. Load, unload and toast messages ar
 | `Mod "<id>": ui.<method> needs ...`, `ui.pick duplicate item id "<x>"` | `ctx.ui`, `run.ui` |
 | `The run was stopped` (`DOMException`, name `AbortError`) | `run.ui` after Stop or unload |
 | `Mod "<id>": run.progress needs numbers done and total` / `... a string label` | `run.progress` |
-| `Invalid vault path "<path>"` | `ctx.vault`, `ctx.workspace` |
+| `Invalid vault path "<path>"` | `ctx.vault`, `ctx.workspace`, `query.matches` |
+| `Mod "<id>": query.<op> needs a non-empty expression` | `ctx.query` |
+| `Mod "<id>": query.<op>: Invalid filter "<expression>": <reason>` | `ctx.query` |
+| `Mod "<id>": query.<op>: the vault's notes are not indexed yet` | `ctx.query` |
+| `Mod "<id>": query.matches: "<path>" is not an indexed note` | `query.matches` |
+| `Mod "<id>": query.notes is not available yet` | `query.notes` |
 | `Mod "<id>": vault.create needs string content` / `vault.write needs string content` | `vault.create`, `vault.write` |
 | `"<path>" already exists; use write` | `vault.create` |
 | `"<path>" does not exist; use create` | `vault.write` |
