@@ -45,6 +45,9 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
 
+      - name: Ubuntu mirror fallback
+        uses: ./.github/actions/ubuntu-mirror-fallback
+
       - name: Install Playwright chromium
         if: steps.pw-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps chromium

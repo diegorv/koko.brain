@@ -1,0 +1,33 @@
+name: "Ubuntu mirror fallback"
+description: >-
+  Points apt at a mirror outside ubuntu.com when the runner cannot resolve
+  the Ubuntu archive hosts. Does nothing when they resolve.
+
+runs:
+  using: composite
+  steps:
+    - name: Use a fallback Ubuntu mirror when ubuntu.com does not resolve
+      shell: bash
+      run: |
+        # GitHub's ubuntu-24.04 image reads its mirrors from
+        # /etc/apt/apt-mirrors.txt (azure.archive, archive and security
+        # .ubuntu.com). When DNS for those hosts fails, every apt-get fails
+        # with "Temporary failure resolving" (actions/runner-images#15296,
+        # #15297). mirrors.edge.kernel.org carries the full archive,
+        # -security included, under another domain.
+        hosts=(azure.archive.ubuntu.com archive.ubuntu.com security.ubuntu.com)
+        failed=()
+        for host in "${hosts[@]}"; do
+          getent ahosts "$host" >/dev/null || failed+=("$host")
+        done
+        if [ "${#failed[@]}" -eq 0 ]; then
+          echo "Ubuntu mirrors resolve; apt sources unchanged."
+          exit 0
+        fi
+        mirror="https://mirrors.edge.kernel.org/ubuntu/"
+        echo "::warning::Cannot resolve ${failed[*]}; apt uses ${mirror} for this job."
+        echo "$mirror" | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+        for file in /etc/apt/sources.list /etc/apt/sources.list.d/*.sources /etc/apt/sources.list.d/*.list; do
+          [ -f "$file" ] || continue
+          sudo sed -i -E "s#https?://(azure\.archive|archive|security)\.ubuntu\.com/ubuntu/?#${mirror}#g" "$file"
+        done

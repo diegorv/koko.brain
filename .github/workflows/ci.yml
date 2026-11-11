@@ -92,6 +92,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
 
+      - name: Ubuntu mirror fallback
+        uses: ./.github/actions/ubuntu-mirror-fallback
+
       - name: Install Tauri Linux dependencies
         run: |
           sudo apt-get update
