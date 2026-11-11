@@ -10,7 +10,7 @@ ctx.onNoteMoved(({ from, to }) => ctx.log('Moved:', from, '->', to));
 
 **Requires first (other repo):** mods Issue 04 (`/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/04-note-path-events.md`) delivered and pushed, with its full SHA recorded under its Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency" (`:35-50`), in the same commit as the host code: the freeze tests fail on the new SHA until the host implements the member.
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 Set `ready-for-agent` when mods Issue 04's full SHA is in its Comments. Launch by explicit number only.
 

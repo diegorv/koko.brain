@@ -17,7 +17,7 @@ export default {
 
 **Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/03-expression-engine-for-mods.md` delivered and pushed to `origin/main` of `diegorv/koko.brain-mods`, with its full SHA in that Issue's Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency" (steps 3-6).
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 Set `ready-for-agent` when mods Issue 03's full SHA is in its Comments. Launch by explicit number only.
 

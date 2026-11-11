@@ -14,7 +14,7 @@ ctx.onNoteSaved(async (path, content) => {
 
 **Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/02-on-note-saved-own-writes.md` delivered and pushed: the contract signature `onNoteSaved: (callback: (path: string, content: string) => void, options?: { ignoreOwnWrites?: boolean }) => () => void`. This Issue adopts that commit's full SHA per `docs/MOD-CORE.md` "Updating the dependency", in the same commit as the host change: after the bump alone, `callback(relative)` (`src/lib/plugins/mods/mods-host.service.ts:579`) fails `pnpm check`.
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 Set `ready-for-agent` when mods Issue 02's full SHA is in its Comments. Launch by explicit number only.
 
