@@ -103,6 +103,8 @@ export interface AutoOrganizeRule {
 export interface RuleRunAction {
 	/** The action's id, `mod:<mod>:action:<action>`; the mod must list the action in its manifest's `ruleActions` */
 	id: string;
+	/** The text passed to an action that declares `input`; ignored by any other action */
+	input?: string;
 }
 
 /** Persisted auto-organize configuration stored in .kokobrain/auto-organize-rules.json */

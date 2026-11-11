@@ -373,9 +373,10 @@ async function evaluateAndMove(savedPath: string, content: string, vaultPath: st
 
 /**
  * Starts `rule.runAction` on the note at `targetPath`, its path at the end of
- * the run, unless the property gates skip the note. Not awaited: an action
- * may run for minutes, or wait on a dialog nobody answers, and the run must
- * still end. Its failures are the mod's, reported by the mods host.
+ * the run, with the rule's text (`''` without one), unless the property
+ * gates skip the note. Not awaited: an action may run for minutes, or wait on
+ * a dialog nobody answers, and the run must still end. Its failures are the
+ * mod's, reported by the mods host.
  */
 function runRuleAction(rule: AutoOrganizeRule, targetPath: string, content: string, vaultPath: string): void {
 	const skip = propertyWriteSkipReason(targetPath, content, vaultPath, [
@@ -386,7 +387,7 @@ function runRuleAction(rule: AutoOrganizeRule, targetPath: string, content: stri
 		debug('AUTO-ORGANIZE', `Skipped mod action for ${targetPath}: ${skip}`);
 		return;
 	}
-	const { id } = sanitizeRunAction(rule.runAction)!;
+	const { id, input } = sanitizeRunAction(rule.runAction)!;
 	const action = ruleActionsStore.get(id);
 	if (!action) {
 		if (!reportedMissingActions.has(rule.id)) {
@@ -398,7 +399,7 @@ function runRuleAction(rule: AutoOrganizeRule, targetPath: string, content: stri
 	const path = vaultRelativeKey(vaultPath, targetPath);
 	if (path === null) return;
 	debug('AUTO-ORGANIZE', `Running mod action ${id} on ${path} (rule: ${rule.name})`);
-	action.run({ on: 'note', path }).catch((err: unknown) => debug('AUTO-ORGANIZE', `Mod action ${id} failed on ${path}:`, err));
+	action.run({ on: 'note', path }, input ?? '').catch((err: unknown) => debug('AUTO-ORGANIZE', `Mod action ${id} failed on ${path}:`, err));
 }
 
 /**

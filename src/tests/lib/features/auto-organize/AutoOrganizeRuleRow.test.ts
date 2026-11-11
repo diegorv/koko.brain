@@ -1011,10 +1011,14 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		const SUMMARIZE = 'mod:ai:action:summarize';
 		const actionLabel = () => document.querySelector('[aria-label="Mod action"] [data-slot="select-value"]')?.textContent?.trim();
 
-		/** Registers a rule action under `id`, labelled `label`. */
-		function registerAction(id: string, label: string) {
-			ruleActionsStore.register({ id, label, run: async () => {} });
+		/** Registers a rule action under `id`, labelled `label`, asking for text when given `input`. */
+		function registerAction(id: string, label: string, input?: { placeholder?: string }) {
+			ruleActionsStore.register({ id, label, input, run: async () => {} });
 		}
+
+		const inputField = () => document.querySelector<HTMLInputElement>('input[aria-label="Mod action input"]');
+		/** The `runAction` of the last update, its keys as written */
+		const lastRunAction = (onupdate: ReturnType<typeof vi.fn>) => (onupdate.mock.lastCall![1] as Partial<AutoOrganizeRule>).runAction;
 
 		/** Opens the mod action Select and returns its options' text. */
 		async function openOptions(): Promise<(string | undefined)[]> {
@@ -1081,6 +1085,81 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 			expect(actionLabel()).toBe('AI: Summarize');
 			expect(document.querySelector('[data-run-action-missing]')).toBeNull();
+		});
+
+		describe('input', () => {
+			const TAG = 'mod:ai:action:tag';
+
+			it('shows no field for an action that asks for no text', async () => {
+				registerAction(SUMMARIZE, 'AI: Summarize');
+				await render({ ...BLANK, runAction: { id: SUMMARIZE } });
+
+				expect(inputField()).toBeNull();
+			});
+
+			it('shows the field, with its placeholder and the stored text, for an action that asks for text', async () => {
+				registerAction(TAG, 'AI: Tag', { placeholder: 'Tag name' });
+				await render({ ...BLANK, runAction: { id: TAG, input: 'meeting-notes' } });
+
+				expect(inputField()?.placeholder).toBe('Tag name');
+				expect(inputField()?.value).toBe('meeting-notes');
+			});
+
+			it('saves the text on change, as typed, and never per keystroke', async () => {
+				registerAction(TAG, 'AI: Tag', {});
+				const onupdate = await render({ ...BLANK, runAction: { id: TAG } });
+
+				type(inputField()!, ' x');
+				expect(onupdate).not.toHaveBeenCalled();
+				commit(inputField()!, ' x');
+				await settle();
+				expect(onupdate).toHaveBeenCalledTimes(1);
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { runAction: { id: TAG, input: ' x' } });
+			});
+
+			it('shows an empty field for a hand-edited non-text input, as a run passes no text', async () => {
+				registerAction(TAG, 'AI: Tag', {});
+				await render({ ...BLANK, runAction: { id: TAG, input: 3 as unknown as string } });
+
+				expect(inputField()?.value).toBe('');
+			});
+
+			it('writes nothing when the committed text is unchanged', async () => {
+				registerAction(TAG, 'AI: Tag', {});
+				const onupdate = await render({ ...BLANK, runAction: { id: TAG, input: 'x' } });
+
+				commit(inputField()!, 'x');
+				await settle();
+				expect(onupdate).not.toHaveBeenCalled();
+			});
+
+			it('clearing the field saves the action with no input key', async () => {
+				registerAction(TAG, 'AI: Tag', {});
+				const onupdate = await render({ ...BLANK, runAction: { id: TAG, input: 'x' } });
+
+				commit(inputField()!, '');
+				await settle();
+				expect(onupdate).toHaveBeenCalledTimes(1);
+				expect(lastRunAction(onupdate)).toStrictEqual({ id: TAG });
+			});
+
+			it('picking another action saves only its id, dropping the text', async () => {
+				registerAction(TAG, 'AI: Tag', {});
+				registerAction(SUMMARIZE, 'AI: Summarize', {});
+				const onupdate = await render({ ...BLANK, runAction: { id: TAG, input: 'x' } });
+
+				await choose(document.body, 'Mod action', 'AI: Summarize');
+				expect(lastRunAction(onupdate)).toStrictEqual({ id: SUMMARIZE });
+				expect(inputField()?.value).toBe('');
+			});
+
+			it('shows no field for a saved action that is not loaded, and leaves its text alone', async () => {
+				const onupdate = await render({ ...BLANK, runAction: { id: TAG, input: 'x' } });
+
+				expect(document.querySelector('[data-run-action-missing]')).not.toBeNull();
+				expect(inputField()).toBeNull();
+				expect(onupdate).not.toHaveBeenCalled();
+			});
 		});
 	});
 

@@ -432,20 +432,55 @@ describe('mods host', () => {
 			expect(ruleActionsStore.list).toEqual([]);
 		});
 
-		it('runs the action with the note target and no input, quietly, and settles when the run ends', async () => {
+		it('runs an action that declares input with the rule\'s text and the note target, quietly, and settles when the run ends', async () => {
 			writeMod('hello', recordingMod('hello'), { ruleActions: ['tag'] });
 			await startModsHost(VAULT);
 			const received: { input: string; run: ModRunV1 }[] = [];
 			globals.__modCtx.hello.addAction({ id: 'tag', title: 'Tag', input: {}, run: (input, run) => { received.push({ input, run }); } });
 
-			await ruleActionsStore.get('mod:hello:action:tag')!.run({ on: 'note', path: 'Work/alpha.md' });
+			await ruleActionsStore.get('mod:hello:action:tag')!.run({ on: 'note', path: 'Work/alpha.md' }, 'hello');
 
 			expect(received).toHaveLength(1);
-			expect(received[0].input).toBe('');
+			expect(received[0].input).toBe('hello');
 			expect(received[0].run.target).toEqual({ on: 'note', path: 'Work/alpha.md' });
+			expect(Object.keys(received[0].run.target!)).toEqual(['on', 'path']);
 			expect(modPickerStore.isOpen).toBe(false);
 			expect(modsRunsStore.runFor('mod:hello:action:tag')?.status).toBe('done');
 			expect(vi.mocked(debug).mock.calls.map(([, json]) => json).filter((json) => typeof json === 'string' && json.includes('"origin":"rule"'))).toHaveLength(2);
+		});
+
+		it('runs an action that declares no input with \'\', even when the rule passes text', async () => {
+			writeMod('hello', recordingMod('hello'), { ruleActions: ['tag'] });
+			await startModsHost(VAULT);
+			const received: string[] = [];
+			globals.__modCtx.hello.addAction({ id: 'tag', title: 'Tag', run: (input) => { received.push(input); } });
+
+			await ruleActionsStore.get('mod:hello:action:tag')!.run({ on: 'note', path: 'Work/alpha.md' }, 'stray text');
+
+			expect(received).toEqual(['']);
+		});
+
+		it('lists the input a declaring action asks for, with its placeholder, and none for one that asks for nothing', async () => {
+			writeMod('hello', recordingMod('hello'), { ruleActions: ['tag', 'archive'] });
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+			ctx.addAction({ id: 'tag', title: 'Tag', input: { placeholder: 'Tag name' }, run() {} });
+			ctx.addAction({ id: 'archive', title: 'Archive', run() {} });
+
+			expect(ruleActionsStore.get('mod:hello:action:tag')?.input).toEqual({ placeholder: 'Tag name' });
+			expect(ruleActionsStore.get('mod:hello:action:archive')?.input).toBeUndefined();
+		});
+
+		it('keeps the rule\'s text out of every debug line', async () => {
+			writeMod('hello', recordingMod('hello'), { ruleActions: ['tag'] });
+			await startModsHost(VAULT);
+			globals.__modCtx.hello.addAction({ id: 'tag', title: 'Tag', input: {}, run() {} });
+
+			await ruleActionsStore.get('mod:hello:action:tag')!.run({ on: 'note', path: 'Work/alpha.md' }, 'private-rule-text');
+
+			const logged = vi.mocked(debug).mock.calls.map((args) => JSON.stringify(args));
+			expect(logged.length).toBeGreaterThan(0);
+			expect(logged.filter((line) => line.includes('private-rule-text'))).toEqual([]);
 		});
 
 		it('does not start a second run, or show the live one, while the action is running', async () => {
@@ -458,8 +493,8 @@ describe('mods host', () => {
 			globals.__modCtx.hello.addAction({ id: 'tag', title: 'Tag', run: () => { calls++; return gate; } });
 			const action = ruleActionsStore.get('mod:hello:action:tag')!;
 
-			const first = action.run({ on: 'note', path: 'a.md' });
-			await action.run({ on: 'note', path: 'b.md' });
+			const first = action.run({ on: 'note', path: 'a.md' }, '');
+			await action.run({ on: 'note', path: 'b.md' }, '');
 
 			expect(calls).toBe(1);
 			expect(modPickerStore.isOpen).toBe(false);

@@ -1489,8 +1489,23 @@ describe('sanitizeRunAction', () => {
 		['a bare string', 'mod:ai:action:summarize'],
 		['a blank id', { id: '  ' }],
 		['an id that is not text', { id: 3 }],
+		['a blank id with a text input', { id: ' ', input: 'x' }],
 	])('drops %s', (_label, raw) => {
 		expect(sanitizeRunAction(raw)).toBeUndefined();
+	});
+
+	it('keeps a text input as typed, surrounding whitespace included, next to the trimmed id', () => {
+		expect(sanitizeRunAction({ id: ' mod:ai:action:tag ', input: 'meeting-notes' })).toStrictEqual({ id: 'mod:ai:action:tag', input: 'meeting-notes' });
+		expect(sanitizeRunAction({ id: 'mod:ai:action:tag', input: '  two words ' })).toStrictEqual({ id: 'mod:ai:action:tag', input: '  two words ' });
+	});
+
+	it.each([
+		['an empty input', ''],
+		['a number', 3],
+		['null', null],
+		['an array', ['x']],
+	])('omits %s, keeping the id', (_label, input) => {
+		expect(sanitizeRunAction({ id: 'mod:ai:action:tag', input })).toStrictEqual({ id: 'mod:ai:action:tag' });
 	});
 });
 

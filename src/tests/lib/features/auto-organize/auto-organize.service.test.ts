@@ -1884,7 +1884,7 @@ describe('auto-organize.service', () => {
 			const NOT_LOADED = `Rule "Rule r1" cannot run mod action ${ACTION}: no loaded mod lists it in ruleActions`;
 
 			/** Registers a fake rule action under `id` and returns its run mock. */
-			function fakeAction(id = ACTION, run: (target: { on: 'note'; path: string }) => Promise<void> = async () => {}) {
+			function fakeAction(id = ACTION, run: (target: { on: 'note'; path: string }, input: string) => Promise<void> = async () => {}) {
 				const mock = vi.fn(run);
 				ruleActionsStore.register({ id, label: 'AI: Summarize', run: mock });
 				return mock;
@@ -1917,9 +1917,30 @@ describe('auto-organize.service', () => {
 				);
 
 				expect(action).toHaveBeenCalledTimes(1);
-				expect(action).toHaveBeenCalledWith({ on: 'note', path: 'Archive/note.md' });
+				expect(action).toHaveBeenCalledWith({ on: 'note', path: 'Archive/note.md' }, '');
 				expect(lastWrite('/vault/Archive/note.md')).toContain('x: 1');
 				expect(writesBefore).toBe(1);
+			});
+
+			it('passes the rule\'s text to the action, on the moved note at its final path', async () => {
+				const action = fakeAction();
+
+				await saveAndRun(
+					[runner('r1', ACTION, { destination: 'Archive', runAction: { id: ACTION, input: 'x' } })],
+					NOTE,
+					CONTENT,
+				);
+
+				expect(action).toHaveBeenCalledTimes(1);
+				expect(action).toHaveBeenCalledWith({ on: 'note', path: 'Archive/note.md' }, 'x');
+			});
+
+			it('passes the rule\'s text to an action run in place', async () => {
+				const action = fakeAction();
+
+				await saveAndRun([runner('r1', ACTION, { runAction: { id: ACTION, input: 'x' } })], NOTE, CONTENT);
+
+				expect(action).toHaveBeenCalledWith({ on: 'note', path: 'notes/note.md' }, 'x');
 			});
 
 			it('runs the action of a rule whose only consequence is the action, in place', async () => {
@@ -1927,7 +1948,7 @@ describe('auto-organize.service', () => {
 
 				await saveAndRun([runner('r1')], NOTE, CONTENT);
 
-				expect(action).toHaveBeenCalledWith({ on: 'note', path: 'notes/note.md' });
+				expect(action).toHaveBeenCalledWith({ on: 'note', path: 'notes/note.md' }, '');
 				expect(moveItem).not.toHaveBeenCalled();
 				expect(writeTextFile).not.toHaveBeenCalled();
 			});

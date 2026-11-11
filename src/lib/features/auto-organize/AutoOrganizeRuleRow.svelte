@@ -122,6 +122,8 @@
 	);
 	/** True when the saved action is not registered: no loaded mod lists it in `ruleActions` */
 	let actionMissing = $derived(actionId !== undefined && !ruleActionsStore.list.some((a) => a.id === actionId));
+	/** The text the saved action asks for; undefined when it asks for none or is not loaded, so no field shows */
+	let actionInput = $derived(actionId !== undefined ? ruleActionsStore.get(actionId)?.input : undefined);
 	/** The mod action choices: none, every registered rule action, and a saved one that is not loaded */
 	let actionOptions = $derived([
 		{ value: NO_ACTION, label: 'None' },
@@ -255,6 +257,12 @@
 	function setRunAction(value: string) {
 		if (value === actionValue) return;
 		onupdate(rule.id, { runAction: value === NO_ACTION ? undefined : { id: value } });
+	}
+
+	/** Saves the mod action field's text as typed; empty saves the action with no text, unchanged saves nothing */
+	function commitActionInput(value: string) {
+		if (actionId === undefined || value === (rule.runAction?.input ?? '')) return;
+		onupdate(rule.id, { runAction: value === '' ? { id: actionId } : { id: actionId, input: value } });
 	}
 
 	function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
@@ -500,6 +508,14 @@
 					{/each}
 				</Select.Content>
 			</Select.Root>
+			{#if actionInput}
+				<Input
+					aria-label="Mod action input"
+					value={sanitizeRunAction(rule.runAction)?.input ?? ''}
+					placeholder={actionInput.placeholder}
+					onchange={(e) => commitActionInput((e.currentTarget as HTMLInputElement).value)}
+				/>
+			{/if}
 			{#if actionMissing}
 				<p class="text-meta text-destructive" data-run-action-missing>
 					No loaded mod lists this action in its ruleActions, so the rule skips it.

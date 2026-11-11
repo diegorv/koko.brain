@@ -76,7 +76,7 @@ Returns a disposer (idempotent) that removes the action, its `labs.place` placem
 
 When `run` throws or rejects while the run's signal is not aborted: the run ends Failed, toast `<name>: <title> failed: <message>`. After Stop or unload any rejection is dropped silently. One live run per action: starting it again while it runs reveals the live run instead. Details: [Actions and entry points](02-actions-and-entry-points.md), [Runs](03-runs.md).
 
-An id listed in the manifest's `ruleActions` is also offered to Auto Organize rules. A rule calls `run('', run)` with `run.target = { on: 'note', path }`, the matched note at the end of the save, does not wait for it, and while the action runs a rule's call starts nothing and reveals nothing. Such an action must not open dialogs: nobody clicked. Details: [Actions a rule can run](02-actions-and-entry-points.md#actions-a-rule-can-run).
+An id listed in the manifest's `ruleActions` is also offered to Auto Organize rules. A rule calls `run(text, run)` with `run.target = { on: 'note', path }`, the matched note at the end of the save, and `text` the rule's text for an action with `input` (`''` otherwise). It does not wait for the run, and while the action runs a rule's call starts nothing and reveals nothing. Such an action must not open dialogs: nobody clicked. Details: [Actions a rule can run](02-actions-and-entry-points.md#actions-a-rule-can-run).
 
 ### ctx.addRailButton
 

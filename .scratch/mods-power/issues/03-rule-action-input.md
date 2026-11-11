@@ -17,7 +17,7 @@
 
 **Requires first (other repo):** nothing. The mods contract already types the text: `run: (input: string, run: ModRunV1) => unknown` (`/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/packages/mod-core/src/contract/mod-api.v1.ts:103`), and its comment "`''` without `input`" (`:99`) stays true under this design. No mods-repo edit and no mod-core SHA adoption.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -55,14 +55,14 @@ The doc-example test parses JSON only from the "Overview" and "Examples" section
 
 ### Acceptance
 
-- [ ] Failing test first, in `src/tests/lib/plugins/mods/mods-host.service.test.ts` (`rule actions`, `:413`): a mod action with `input: {}` listed in `ruleActions`, run through `ruleActionsStore.get(id)!.run({ on: 'note', path: 'Work/alpha.md' }, 'hello')`, receives `'hello'`. It fails today, because the host passes `''` (`mods-host.service.ts:514`). The existing test at `:436-451` that pins `''` for this case is the behavior being changed: update it, do not delete its other assertions.
-- [ ] Mods host: an action without `input` receives `''` when the rule passes text. `ruleActionsStore.list` exposes `input` (with its placeholder) for a declaring action and none otherwise. `run.target` has no `input` key. No `debug` call contains the text.
-- [ ] `auto-organize.logic.test.ts` (`sanitizeRunAction`, `:1481`): keeps a text `input`, keeps surrounding whitespace, drops `''`, a number, null and an array; id trimming and the blank-id case unchanged.
-- [ ] `auto-organize.service.test.ts` (`run mod action`, around `:1880`), through the real `ruleActionsStore`: a rule with `input: 'x'` calls the action with `({ on: 'note', path }, 'x')`; a rule without input calls it with `''`. The two assertions at `:1920` and `:1930` gain the `''` argument (an update for the changed signature, not a weaker check). The moved-note case still gets the final path and the text.
-- [ ] `src/tests/lib/core/rule-actions/rule-actions.store.test.ts`: a registered action keeps `input`, and `run` receives the second argument.
-- [ ] `AutoOrganizeRuleRow.test.ts` (`Run mod action`, `:1010`): no field for an action without `input`; the field with the placeholder for one with it; `change` commits `{ runAction: { id, input: 'x' } }`; typing alone (an `input` event) calls no `onupdate`; clearing the field commits `{ runAction: { id } }`; picking another action commits `{ id }` only; for a not-loaded action there is no field and no `onupdate`.
-- [ ] Docs above updated.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in `src/tests/lib/plugins/mods/mods-host.service.test.ts` (`rule actions`, `:413`): a mod action with `input: {}` listed in `ruleActions`, run through `ruleActionsStore.get(id)!.run({ on: 'note', path: 'Work/alpha.md' }, 'hello')`, receives `'hello'`. It fails today, because the host passes `''` (`mods-host.service.ts:514`). The existing test at `:436-451` that pins `''` for this case is the behavior being changed: update it, do not delete its other assertions.
+- [x] Mods host: an action without `input` receives `''` when the rule passes text. `ruleActionsStore.list` exposes `input` (with its placeholder) for a declaring action and none otherwise. `run.target` has no `input` key. No `debug` call contains the text.
+- [x] `auto-organize.logic.test.ts` (`sanitizeRunAction`, `:1481`): keeps a text `input`, keeps surrounding whitespace, drops `''`, a number, null and an array; id trimming and the blank-id case unchanged.
+- [x] `auto-organize.service.test.ts` (`run mod action`, around `:1880`), through the real `ruleActionsStore`: a rule with `input: 'x'` calls the action with `({ on: 'note', path }, 'x')`; a rule without input calls it with `''`. The two assertions at `:1920` and `:1930` gain the `''` argument (an update for the changed signature, not a weaker check). The moved-note case still gets the final path and the text.
+- [x] `src/tests/lib/core/rule-actions/rule-actions.store.test.ts`: a registered action keeps `input`, and `run` receives the second argument.
+- [x] `AutoOrganizeRuleRow.test.ts` (`Run mod action`, `:1010`): no field for an action without `input`; the field with the placeholder for one with it; `change` commits `{ runAction: { id, input: 'x' } }`; typing alone (an `input` event) calls no `onupdate`; clearing the field commits `{ runAction: { id } }`; picking another action commits `{ id }` only; for a not-loaded action there is no field and no `onupdate`.
+- [x] Docs above updated.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Notes
 
@@ -80,3 +80,5 @@ The doc-example test parses JSON only from the "Overview" and "Examples" section
 - **Not verified:** whether Vitest's `toHaveBeenCalledWith` with one argument fails on a call with a trailing second argument (from memory); the Acceptance sidesteps it by updating the two assertions. No UI was run.
 
 ## Comments
+
+- 2026-11-11, branch `issue/03-rule-action-input`: an Auto Organize rule can store a text `input` for its mod action; the host passes it as the action's second argument (`''` when the rule has none or the action declares no `input`), and the rule row shows a text field with the action's placeholder for actions that declare `input`. Fix round: the field reads the sanitized input, so a hand-edited non-text value shows empty. Tests: full suite at c8584b37f passed (611 files, 15404 tests, 54 skipped, 1 todo); `pnpm check` 0 errors. Reviews: round 1 APPROVED (review.md), round 2 APPROVED (review-2.md).

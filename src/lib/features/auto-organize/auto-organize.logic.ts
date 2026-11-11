@@ -603,11 +603,16 @@ export function sanitizeRename(raw: unknown): RuleRename | undefined {
 	return name !== undefined ? { name: name.trim() } : { expr: expr!.trim() };
 }
 
-/** A rule's `runAction` as loaded from JSON, its id trimmed, or undefined without a non-blank text `id`. */
+/**
+ * A rule's `runAction` as loaded from JSON, its id trimmed and its `input`
+ * kept as typed when it is non-empty text, or undefined without a non-blank
+ * text `id`.
+ */
 export function sanitizeRunAction(raw: unknown): RuleRunAction | undefined {
 	if (raw === null || typeof raw !== 'object') return undefined;
-	const { id } = raw as Record<string, unknown>;
-	return typeof id === 'string' && id.trim() !== '' ? { id: id.trim() } : undefined;
+	const { id, input } = raw as Record<string, unknown>;
+	if (typeof id !== 'string' || id.trim() === '') return undefined;
+	return typeof input === 'string' && input !== '' ? { id: id.trim(), input } : { id: id.trim() };
 }
 
 /**

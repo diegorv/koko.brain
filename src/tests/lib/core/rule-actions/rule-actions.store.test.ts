@@ -18,9 +18,20 @@ describe('ruleActionsStore', () => {
 		ruleActionsStore.register(second);
 
 		expect(ruleActionsStore.list.map((a) => a.id)).toEqual(['mod:a:action:one', 'mod:b:action:two']);
-		await ruleActionsStore.get('mod:b:action:two')!.run({ on: 'note', path: 'notes/a.md' });
-		expect(second.run).toHaveBeenCalledWith({ on: 'note', path: 'notes/a.md' });
+		await ruleActionsStore.get('mod:b:action:two')!.run({ on: 'note', path: 'notes/a.md' }, '');
+		expect(second.run).toHaveBeenCalledWith({ on: 'note', path: 'notes/a.md' }, '');
 		expect(first.run).not.toHaveBeenCalled();
+	});
+
+	it('keeps the input a registered action asks for, and hands run the rule\'s text', async () => {
+		const tag = { ...action('mod:a:action:tag'), input: { placeholder: 'Tag name' } };
+		ruleActionsStore.register(tag);
+
+		const found = ruleActionsStore.get('mod:a:action:tag')!;
+		expect(found.input).toEqual({ placeholder: 'Tag name' });
+		expect(ruleActionsStore.list[0].input).toEqual({ placeholder: 'Tag name' });
+		await found.run({ on: 'note', path: 'notes/a.md' }, 'meeting-notes');
+		expect(tag.run).toHaveBeenCalledWith({ on: 'note', path: 'notes/a.md' }, 'meeting-notes');
 	});
 
 	it('a registration replaces one with the same id, and an old cleanup leaves the replacement', () => {

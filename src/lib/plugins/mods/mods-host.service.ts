@@ -506,12 +506,15 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 					openPicker(entry.title, [entry.id], 'command', true);
 				},
 			});
-			// Lazy and with no input: a rule runs it with nobody at the keyboard.
+			// Lazy and with the rule's text, never a field: a rule runs it with nobody
+			// at the keyboard. An action without `input` gets '' as the contract says,
+			// even when the stored rule carries text.
 			const unregisterRule = manifest.ruleActions?.includes(entry.id)
 				? ruleActionsStore.register({
 					id: actionKey(entry.id),
 					label: `${manifest.name}: ${entry.title}`,
-					run: (target) => runAction(entry, '', 'rule', true, { ...target }),
+					input: entry.input,
+					run: (target, input) => runAction(entry, entry.input ? input : '', 'rule', true, { ...target }),
 				})
 				: null;
 			return disposable(() => {

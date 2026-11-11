@@ -64,7 +64,7 @@ Each rule consists of:
    - **Rename:** pick **Name** for a name template such as `{year}-{month} Meeting`, or **Expression** to compute the name, such as `title`. Leave it empty for a rule that does not rename notes. A name built from the note's own name is not saved, and Settings says why (see [Renaming notes](#renaming-notes)).
    - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
    - **Create note:** the path of a note to create, such as `{folder}/{basename} follow-up.md`. Leave it empty for a rule that creates nothing. Once a path is set, pick a **template**, add the new note's properties with **Add note property**, and turn on **Open it** to open the note in a tab (see [Creating notes](#creating-notes)).
-   - **Run mod action:** pick an action of a loaded mod, or **None**. Only the actions a mod offers to rules are listed (see [Running a mod action](#running-a-mod-action)).
+   - **Run mod action:** pick an action of a loaded mod, or **None**. Only the actions a mod offers to rules are listed (see [Running a mod action](#running-a-mod-action)). When the action asks for text, a field under it holds the text the rule passes.
    - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value** or switch the row to an **Expression** (see [Computed values](#computed-values)), and pick the mode: **if missing** (the default), **always**, **remove** or **add to list** (see [Set properties](#set-properties)). A **remove** row has no value field; an **add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
 4. Turn the rule's toggle on when it is ready.
 
@@ -454,7 +454,7 @@ A rule can run an action of a [vault mod](28-mods.md) on the note it matched. It
   "name": "Summarize finished meetings",
   "expression": "type == \"meeting\" && status == \"done\" && summarized != true",
   "destination": "",
-  "runAction": { "id": "mod:ai-tools:action:summarize" },
+  "runAction": { "id": "mod:ai-tools:action:summarize", "input": "three bullet points" },
   "enabled": true
 }
 ```
@@ -462,6 +462,7 @@ A rule can run an action of a [vault mod](28-mods.md) on the note it matched. It
 - **Only actions a mod offers to rules.** The mod lists them in its `manifest.json` under `ruleActions` (see [Actions a rule can run](mods/02-actions-and-entry-points.md#actions-a-rule-can-run)). Settings lists only those, from the mods that are loaded.
 - **When:** last, after the rename, the move, the properties and the notes to create, once per save. Only the **first** matching rule with a mod action runs it; a later rule's action does not run in its place.
 - **The note** reaches the action as `run.target`, `{ on: "note", path }`, with the vault-relative path where the note ends the save.
+- **Text for the action.** When the action asks for text, Settings shows a field under **Run mod action**; the rule passes that text, as typed, at every run (`input` in the JSON). An action that asks for no text gets none. The text is plain JSON in the vault: do not put secrets in it.
 - **Not loaded.** When no loaded mod offers the action (the mod is off, failed to load, or does not list the action), the rule skips it and Kokobrain logs it once per rule. Settings shows the id with **(not loaded)**. The rest of the rule still runs.
 - **Already running.** An action runs once at a time. When a save matches while it is still running, it is not started again for that save.
 - **Never on** a note in the system folder (`_system` by default) or the templates folder, a type definition, a file that is not Markdown, or frontmatter Kokobrain cannot rewrite (the notes [Set properties](#set-properties) skips). If the rename or the move fails, the action does not run.

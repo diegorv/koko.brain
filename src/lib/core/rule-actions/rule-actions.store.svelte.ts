@@ -19,8 +19,16 @@ export interface RuleAction {
 	id: string;
 	/** Mod name and action title, shown in Settings */
 	label: string;
-	/** Starts the action on the note; settles when its run ends */
-	run: (target: RuleActionTarget) => Promise<void>;
+	/**
+	 * Starts the action on the note with the rule's text, `''` when the rule
+	 * has none; settles when its run ends
+	 */
+	run: (target: RuleActionTarget, input: string) => Promise<void>;
+	/** Present when the action asks for text, so Settings shows a field for the rule's text */
+	input?: {
+		/** Hint shown in the empty field */
+		placeholder?: string;
+	};
 }
 
 /** Registered actions; raw state preserves identity for cleanup */
