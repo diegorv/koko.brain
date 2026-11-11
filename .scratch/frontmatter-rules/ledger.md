@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [A rule can create a note](issues/09-rule-action-create-note.md) | 08 | todo | | |
 | 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 09 | todo | | |
 | 11 | [A rule can rename the note](issues/11-rule-action-rename-note.md) | 10 | todo | | |
-| 12 | [A rule can undo its properties when a note stops matching](issues/12-undo-when-note-stops-matching.md) | 11 | todo | | |
+| 12 | [Document the two-rule pattern for values that switch back](issues/12-undo-when-note-stops-matching.md) | 11 | todo | | |
 
 ## Log
 
@@ -64,3 +64,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 22:22 — ledger updated (title of 06)
 - 2026-11-10 22:25 — ledger updated (title of 06)
 - 2026-11-10 22:29 — ledger updated (added 07, 08, 09, 10, 11, 12)
+- 2026-11-10 22:36 — ledger updated (title of 12)
