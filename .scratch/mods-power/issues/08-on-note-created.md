@@ -8,15 +8,21 @@ ctx.onNoteCreated(({ path }) => ctx.log('Created:', path));
 
 **Blocked by:** 05
 
-**Requires first (other repo):** a future mods Issue 05 that adds `onNoteCreated` and its payload type to `packages/mod-core/src/contract/mod-api.v1.ts`, delivered and pushed, with its full SHA in its Comments. Not filed yet: a contract member the host does not implement fails the host's freeze tests (`src/tests/lib/plugins/mods/mod-api-contract.test.ts:46-63`, `src/tests/help/mods-types.test.ts:25-52`), so it must not land ahead of the owner's answers.
+**Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/05-note-created-event.md` delivered and pushed (it adds `ModNoteCreatedV1` and `ModContextV1.onNoteCreated`), with its full SHA in its Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency", in the same commit as the host code: the freeze tests fail on the new SHA until the host implements the member.
 
 **Status:** needs-info
 
-Owner decisions needed (questions 1 and 2 below). After they are answered, file mods Issue 05, then set this Issue `ready-for-agent` when that Issue's full SHA is in its Comments. Launch by explicit number only.
+Owner decisions taken on 2026-11-11 (see "Owner questions"). Mods Issue 05 is filed. Set this Issue `ready-for-agent` when that Issue's full SHA is in its Comments. Launch by explicit number only.
 
 **Gate:** frontend with a dependency change: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus the mods workspace's `pnpm check:package <temp consumer>` and `KOKOBRAIN_HOST_ROOT=<this checkout> pnpm verify` (`docs/MOD-CORE.md` steps 2 and 6). If question 1 adds notifier calls in `app/` or `features/` write paths, follow `docs/agents/indexing-watcher-rules.md`.
 
-## Owner questions
+## Owner questions (answered 2026-11-11)
+
+- **Answer to 1: no.** Quick Capture captures, deep links, the icon picker's folder note and empty template files are not reported; they reach mods through `onNoteSaved`. No notifier is added to those write paths. The docs list which creators are covered.
+- **Answer to 2: after.** Each creator calls the created-note notifier only when it is done, including its tab-open step (for `openOrCreateNote`, after `openFileInEditor`; for `createFile` callers that open the file, after they open it), so a mod's write reaches the open tab and is not lost to its autosave.
+
+The questions as asked:
+
 
 1. **Do Quick Capture captures count as created notes?** Quick Capture does not use `create_note`. `executeCaptureAction` (`src/lib/app/deep-link-actions.ts:213-225`) and the deep-link overwrite and silent-create paths (`src/lib/features/deep-link/deep-link.service.ts:306-317, 325-337`) create the file with `writeTextFile` + `notifyAfterSave` + `addToTree`, so they fire `onNoteSaved`, not a created event. The file-icon folder note (`src/lib/features/file-icons/file-icons.service.ts:99-104`) and empty template files (`src/lib/plugins/templates/templates.service.ts:118`) do the same. Covering captures means notifier calls at about three more write sites: a behavior change in write paths (`item-05-validation.md:24-30`, R1). Until then `onNoteSaved` covers captures.
 2. **Should the event fire after each creator's tab-open step?** Firing from the `create`/`fs` branch of `applyNoteChange` runs the mod before `openOrCreateNote` opens the tab (`src/lib/core/note-creator/note-creator.service.ts:118-127`, `src/lib/core/editor/editor.service.ts:125-141`). A mod's `ctx.vault.write` in that gap finds no tab, and the tab then opens clean with the bytes read before the write, so the user's next autosave overwrites the mod's write (`item-05-validation.md:32-40`, R2). Firing after each creator's open step closes the gap for that creator; `createFile` callers open the file after it returns (`src/lib/app/commands.ts:134`, `QuickSwitcher.svelte:49`), so the end of `createFile` is not enough.

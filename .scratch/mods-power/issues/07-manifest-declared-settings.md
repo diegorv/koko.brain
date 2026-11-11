@@ -27,7 +27,7 @@ const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
 
 **Status:** needs-triage
 
-**Priority:** low (nice to have, not prioritized by the owner on 2026-11-11)
+**Priority:** low (nice to have, not prioritized by the owner on 2026-11-11; the owner confirmed at triage on 2026-11-11 to keep it low and leave it in needs-triage)
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
