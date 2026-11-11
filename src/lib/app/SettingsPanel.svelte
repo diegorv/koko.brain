@@ -8,7 +8,7 @@
 	import SearchSection from '#lib/features/search/SearchSection.svelte';
 	import LayoutSection from '#lib/features/rail-shell/LayoutSection.svelte';
 	import FileHistorySection from '#lib/core/settings/sections/FileHistorySection.svelte';
-	import AutoMoveSection from '#lib/features/auto-move/AutoMoveSection.svelte';
+	import AutoOrganizeSection from '#lib/features/auto-organize/AutoOrganizeSection.svelte';
 	import EventCalendarSection from '#lib/features/event-calendar/EventCalendarSection.svelte';
 	import TrashSection from '#lib/core/settings/sections/TrashSection.svelte';
 	import TodoistSection from '#lib/features/todoist-sync/TodoistSection.svelte';
@@ -51,7 +51,7 @@
 		files: FolderIcon,
 		search: SearchIcon,
 		'file-history': HistoryIcon,
-		'auto-move': FolderOutputIcon,
+		'auto-organize': FolderOutputIcon,
 		trash: Trash2Icon,
 		todoist: CircleCheckIcon,
 		sentry: ShieldAlertIcon,
@@ -78,7 +78,7 @@
 		files: FilesSection,
 		search: SearchSection,
 		'file-history': FileHistorySection,
-		'auto-move': AutoMoveSection,
+		'auto-organize': AutoOrganizeSection,
 		trash: TrashSection,
 		todoist: TodoistSection,
 		sentry: SentrySection,

@@ -393,7 +393,7 @@ export interface ModContextV1 {
 	loadData: () => Promise<unknown>;
 	/**
 	 * Saves `data` as `<vault>/.kokobrain/mods/<id>/data.json`, atomically, off the
-	 * index, search, file history and Auto Move. Calls land in order, so the last
+	 * index, search, file history and Auto Organize. Calls land in order, so the last
 	 * one wins; `data` is read at the call. Rejects `Mod "<id>": ...` when JSON
 	 * cannot represent it or the last load could not read or move the file, and with an `Error` when the
 	 * write fails. A mod that never loads replaces whatever the file held.

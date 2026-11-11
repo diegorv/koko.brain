@@ -1,4 +1,4 @@
-import type { AutoMoveRule, RuleProperty } from './auto-move.types';
+import type { AutoOrganizeRule, RuleProperty } from './auto-organize.types';
 import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
 import { isMarkdownFile, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import {
@@ -88,11 +88,11 @@ function ruleMatches(expression: FilterItem, ctx: EvalContext): boolean {
  * unnoticed.
  */
 export function findMatchingRule(
-	rules: AutoMoveRule[],
+	rules: AutoOrganizeRule[],
 	record: PropertyIndexRecord,
 	vaultPath: string,
-	onError?: (rule: AutoMoveRule, err: unknown) => void,
-): AutoMoveRule | null {
+	onError?: (rule: AutoOrganizeRule, err: unknown) => void,
+): AutoOrganizeRule | null {
 	for (const rule of rules) {
 		if (!rule.enabled) continue;
 		try {
@@ -114,12 +114,12 @@ export function findMatchingRule(
  * `file.inFolder()` resolves against. Required, as in `findMatchingRule`.
  */
 export function findMatchingRules(
-	rules: AutoMoveRule[],
+	rules: AutoOrganizeRule[],
 	record: PropertyIndexRecord,
 	vaultPath: string,
-	onError?: (rule: AutoMoveRule, err: unknown) => void,
-): AutoMoveRule[] {
-	const matched: AutoMoveRule[] = [];
+	onError?: (rule: AutoOrganizeRule, err: unknown) => void,
+): AutoOrganizeRule[] {
+	const matched: AutoOrganizeRule[] = [];
 	for (const rule of rules) {
 		if (!rule.enabled) continue;
 		try {
@@ -148,7 +148,7 @@ export function countMatchingNotes(
 	} else if (filterProblem(expression) !== null) {
 		return null;
 	}
-	const probe: AutoMoveRule[] = [{ id: '', name: '', expression, destination: '', enabled: true }];
+	const probe: AutoOrganizeRule[] = [{ id: '', name: '', expression, destination: '', enabled: true }];
 	let count = 0;
 	for (const [path, record] of index) {
 		if (isViewFile(path)) continue;
@@ -161,7 +161,7 @@ export function countMatchingNotes(
  * The rule that moves the note: the first one with a non-blank destination.
  * A rule with a blank destination never moves.
  */
-export function findMoveRule(matched: AutoMoveRule[]): AutoMoveRule | null {
+export function findMoveRule(matched: AutoOrganizeRule[]): AutoOrganizeRule | null {
 	return matched.find((rule) => rule.destination.trim() !== '') ?? null;
 }
 
@@ -237,7 +237,7 @@ export interface OwnedProperty extends RuleProperty {
 	/** Canonical key */
 	key: string;
 	/** The rule that owns the key for this run */
-	rule: AutoMoveRule;
+	rule: AutoOrganizeRule;
 }
 
 /**
@@ -247,7 +247,7 @@ export interface OwnedProperty extends RuleProperty {
  * Entries `sanitizeRuleProperties` drops are ignored: Settings keeps an
  * unfinished row (a blank key) in the live rule until the config is reloaded.
  */
-export function ownedProperties(matched: AutoMoveRule[]): OwnedProperty[] {
+export function ownedProperties(matched: AutoOrganizeRule[]): OwnedProperty[] {
 	const byKey = new Map<string, OwnedProperty>();
 	for (const rule of matched) {
 		for (const property of sanitizeRuleProperties(rule.properties)) {

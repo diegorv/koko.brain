@@ -40,7 +40,7 @@ After that, explore any topic that interests you.
 | 19 | [Settings](19-settings.md) | Complete reference for all app settings |
 | 20 | [Keyboard Shortcuts](20-keyboard-shortcuts.md) | Full shortcut reference card |
 | 21 | [Kanban Board](21-kanban.md) | Drag-and-drop task boards with lanes, cards, dates, colors, and tags |
-| 22 | [Auto Move](22-auto-move.md) | Automatically move notes to folders based on expression rules |
+| 22 | [Auto Organize](22-auto-organize.md) | Move notes and set their properties, icons and colors with rules |
 | 23 | [Deep Links](23-deep-links.md) | Open notes and trigger actions from outside the app via `kokobrain://` URLs |
 | 24 | [Meta-Bind](24-meta-bind.md) | Interactive inline inputs and action buttons that read/write frontmatter |
 | 25 | [Types & Relationships](25-types-and-relationships.md) | Note types, relationships, lifecycle, the Types navigator, `.view` files and pins, the type and view key reference |

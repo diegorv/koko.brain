@@ -1,0 +1,94 @@
+{
+	"Finished projects": {
+		"matches": [
+			{
+				"path": "work/Gateway.md",
+				"content": "---\ntype: project\nstatus: done\n---\n\n# Gateway\n",
+				"destination": "Projects/Done/{year}",
+				"writes": [
+					{ "key": "_icon", "value": "lucide:circle-check" },
+					{ "key": "_color", "value": "green" }
+				]
+			}
+		],
+		"misses": [
+			{ "path": "work/Gateway.md", "content": "---\ntype: project\nstatus: active\n---\n" },
+			{ "path": "work/Shopping.md", "content": "---\ntype: list\nstatus: done\n---\n" }
+		]
+	},
+	"AWS topic notes": {
+		"matches": [
+			{
+				"path": "work/topics/AWS/EC2 pricing.md",
+				"content": "---\ntitle: EC2 pricing\n---\n\nNotes.\n",
+				"writes": [{ "key": "_belongs_to", "value": "[[AWS]]" }]
+			},
+			{
+				"path": "work/topics/AWS/S3/Lifecycle.md",
+				"content": "---\n_belongs_to: \"[[S3]]\"\n---\n",
+				"writes": []
+			}
+		],
+		"misses": [
+			{ "path": "work/topics/AWS-old/EC2.md", "content": "# EC2\n" },
+			{ "path": "work/topics/GCP/GKE.md", "content": "# GKE\n" }
+		]
+	},
+	"Blocked notes in red": {
+		"matches": [
+			{
+				"path": "work/Migrate DB.md",
+				"content": "---\nstatus: blocked\n_icon: lucide:star\n---\n",
+				"writes": [
+					{ "key": "_icon", "value": "lucide:ban" },
+					{ "key": "_color", "value": "red" }
+				]
+			}
+		],
+		"misses": [{ "path": "work/Migrate DB.md", "content": "---\nstatus: active\n---\n" }]
+	},
+	"Meeting notes": {
+		"matches": [
+			{
+				"path": "meetings/Planning.md",
+				"content": "---\ntype: Meeting\n---\n",
+				"writes": [
+					{ "key": "_icon", "value": "lucide:users" },
+					{ "key": "_belongs_to", "value": "[[Meetings]]" }
+				]
+			},
+			{
+				"path": "people/Ana.md",
+				"content": "---\ntags: [1on1]\nicon: lucide:user\n---\n",
+				"writes": [{ "key": "_belongs_to", "value": "[[Meetings]]" }]
+			}
+		],
+		"misses": [{ "path": "people/Ana.md", "content": "---\ntags: [person]\n---\n" }]
+	},
+	"Archive done notes": {
+		"matches": [
+			{
+				"path": "work/Ship v2.md",
+				"content": "---\nstatus: done\n---\n",
+				"destination": "Archive",
+				"writes": [{ "key": "_color", "value": "gray" }]
+			}
+		],
+		"misses": [{ "path": "work/Ship v2.md", "content": "---\nstatus: dropped\n---\n" }]
+	},
+	"Closed notes": {
+		"matches": [
+			{
+				"path": "work/A.md",
+				"content": "---\nstatus: done\n---\n",
+				"writes": [{ "key": "_title_color", "value": "gray" }]
+			},
+			{
+				"path": "work/B.md",
+				"content": "---\nstatus: dropped\n_title_color: gray\n---\n",
+				"writes": []
+			}
+		],
+		"misses": [{ "path": "work/C.md", "content": "---\nstatus: active\n---\n" }]
+	}
+}

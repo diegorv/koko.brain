@@ -283,9 +283,9 @@ export interface SentrySettings {
 	dsn: string;
 }
 
-/** Settings for the auto-move feature, persisted inside AppSettings */
-export interface AutoMoveSettings {
-	/** Whether auto-move is globally enabled */
+/** Settings for the auto-organize feature, persisted inside AppSettings */
+export interface AutoOrganizeSettings {
+	/** Whether auto-organize is globally enabled */
 	enabled: boolean;
 	/** Debounce delay in milliseconds after save before evaluating rules */
 	debounceMs: number;
@@ -356,7 +356,7 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'layout' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'files' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update' | 'labs';
+export type SettingsSection = 'appearance' | 'layout' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'files' | 'search' | 'file-history' | 'auto-organize' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update' | 'labs';
 
 /** One of the event colors in `EVENT_CALENDAR_COLORS` */
 export type EventCalendarColor = (typeof EVENT_CALENDAR_COLORS)[number];
@@ -404,8 +404,8 @@ export interface AppSettings {
 	todoist: TodoistSettings;
 	/** Optional Sentry error-monitoring configuration */
 	sentry: SentrySettings;
-	/** Auto-move feature configuration */
-	autoMove: AutoMoveSettings;
+	/** Auto Organize feature configuration */
+	autoOrganize: AutoOrganizeSettings;
 	/** Event calendar configuration */
 	eventCalendar: EventCalendarSettings;
 	/** Whether debug messages are logged to the browser console */

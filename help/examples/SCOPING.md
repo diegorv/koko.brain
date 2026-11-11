@@ -75,7 +75,7 @@ holds every note whose `type` matches, across the vault, and type names are glob
 types merge with the vault's own types of the same name. A `.view` file
 with a filter is the scoped alternative (see above).
 
-## Auto-move rules (`auto-move-rules.json`)
+## Auto Organize rules (`auto-organize-rules.json`)
 
 Rules run on every note in the vault. Scope the expression by folder name
 and make the destination relative to the note with `{folder}` or
@@ -84,14 +84,14 @@ and make the destination relative to the note with `{folder}` or
 ```json
 {
   "name": "Move recipes to Cooking folder",
-  "expression": "file.hasTag('recipe') && file.folder.endsWith('/auto-move-features/Inbox')",
+  "expression": "file.hasTag('recipe') && file.folder.endsWith('/auto-organize-features/Inbox')",
   "destination": "{parent}/Cooking"
 }
 ```
 
-For a note in `auto-move-features/Inbox/` this moves it to
-`auto-move-features/Cooking/`. Scope to the source subfolder, not the
-example root: for a note directly in `auto-move-features/`, `{parent}` is
+For a note in `auto-organize-features/Inbox/` this moves it to
+`auto-organize-features/Cooking/`. Scope to the source subfolder, not the
+example root: for a note directly in `auto-organize-features/`, `{parent}` is
 the folder above the example and the note would leave it.
 
 ## Kanban, canvas
@@ -119,7 +119,7 @@ paths come from the example folder.
 
 The guard test scans `queryjs` / `dataviewjs` blocks and `.js` scripts that
 call `kb.pages` / `kb.pagePaths`, every view of `collection` blocks and
-`.view` files, and every auto-move rule. A QueryJS read
+`.view` files, and every Auto Organize rule. A QueryJS read
 passes with a non-empty folder source, or a limit or `file.folder` /
 `file.path` predicate in its own method chain. A collection view passes
 with a limit or a path predicate at the top of its filters, in an `and:`,

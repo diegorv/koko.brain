@@ -11,7 +11,7 @@ These are concept-level inspirations, mostly from Obsidian community plugins I u
 | Feature | Inspired by |
 |---------|-------------|
 | Collection | [Obsidian Bases](https://help.obsidian.md/bases) |
-| Auto-move | [obsidian-auto-note-mover](https://github.com/farux/obsidian-auto-note-mover) |
+| Auto Organize | [obsidian-auto-note-mover](https://github.com/farux/obsidian-auto-note-mover) |
 | QueryJS | [obsidian-dataview](https://github.com/blacksmithgu/obsidian-dataview) |
 | Templates | [Templater](https://github.com/SilentVoid13/Templater) |
 | Calendar | [oz-calendar](https://github.com/ozntel/oz-calendar) |

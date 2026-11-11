@@ -9,8 +9,8 @@ Same engine, same rule list, same config file, same Settings section, same trigg
 Made by the owner on 2026-11-10. Do not reopen them.
 
 1. **One engine.** The filter is the Collection filter: `FilterItem` (`CollectionFilter | string`, `features/collection/collection.types.ts`) evaluated by `evaluateFilter` (`collection.logic.ts:317`). A rule's conditions combine with all / any / none, exactly as in a view. A plain expression string keeps working, and `&&`, `||`, `!` and parentheses work inside it.
-2. **Extend Auto Move in place.** No second feature, no second rule list, no new config file. Rules stay in `.kokobrain/auto-move-rules.json`.
-3. **Trigger: save only**, through the existing after-save observer and debounce (`auto-move.service.ts:94-127`). Editing a property is a save, so it is covered. Moving, renaming or creating a note is not a save and is out of the MVP. Those notes get their consequences at their next save.
+2. **Extend Auto Organize in place.** No second feature, no second rule list, no new config file. Rules stay in one file, `.kokobrain/auto-organize-rules.json` since Issue 06 renamed the feature to Auto Organize (no migration from `auto-move-rules.json`).
+3. **Trigger: save only**, through the existing after-save observer and debounce (`registerAutoOrganizeHook` in `auto-organize.service.ts`). Editing a property is a save, so it is covered. Moving, renaming or creating a note is not a save and is out of the MVP. Those notes get their consequences at their next save.
 4. **Consequences:**
    - **Move to folder:** as today. It is optional now. An empty destination means "do not move".
    - **Set property:** `{ key, value, mode }`. The mode `if-missing` writes only when the key is absent, `null`, `''` or `[]`. The mode `always` writes whenever the value differs. Values are literals: text, number, boolean or list.
@@ -18,7 +18,7 @@ Made by the owner on 2026-11-10. Do not reopen them.
 6. **No chaining.** The saves caused by a run's own writes do not run the rules again. That covers both writes, the legacy icon included. A rule whose filter depends on another rule's output applies at the next save. This is the whole loop protection. The run reads the note as it is when the timer fires, not as it was when it was saved.
 7. **Nothing is reverted** when a note stops matching. With `always`, the rule owns the key: a manual change is rewritten at the next save. The help page says so.
 8. **Existing notes are not backfilled.** A new rule applies to a note at its next save. The help page says so.
-9. **Errors:** a failed property write is logged with `error('AUTO-MOVE', ...)` once per rule per session, never toasted. A failed move writes nothing for that run. Move-failure toasts stay with open-itens Issue 082.
+9. **Errors:** a failed property write is logged with `error('AUTO-ORGANIZE', ...)` once per rule per session, never toasted. A failed move writes nothing for that run. Move-failure toasts stay with open-itens Issue 082.
 10. **Never written by a rule:**
     - non-Markdown files;
     - `_system` (`settingsStore.templates.systemFolder`), like lists, the calendar and QueryJS;

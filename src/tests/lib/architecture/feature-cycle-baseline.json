@@ -1,9 +1,9 @@
 {
 	"featureCycleEdges": [],
 	"featurePairs": [
-		"auto-move -> collection",
-		"auto-move -> file-icons",
-		"auto-move -> type-definitions",
+		"auto-organize -> collection",
+		"auto-organize -> file-icons",
+		"auto-organize -> type-definitions",
 		"backlinks -> event-calendar",
 		"deep-link -> search",
 		"dock-badge -> type-definitions",

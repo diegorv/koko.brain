@@ -23,4 +23,4 @@ A make-ahead breakfast that takes five minutes the night before.
 3. Top in the morning and eat cold.
 
 **This note matches the "Move recipes to Cooking folder" rule** and will
-be moved to `Cooking/` the next time auto-move evaluates after a save.
+be moved to `Cooking/` the next time Auto Organize evaluates after a save.

@@ -7,7 +7,7 @@ import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { detectLossyFrontmatter, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { autoMoveStore } from './auto-move.store.svelte';
+import { autoOrganizeStore } from './auto-organize.store.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
@@ -22,17 +22,17 @@ import {
 	resolveDestination,
 	sanitizeRuleProperties,
 	type OwnedProperty,
-} from './auto-move.logic';
-import type { AutoMoveConfig, AutoMoveRule } from './auto-move.types';
+} from './auto-organize.logic';
+import type { AutoOrganizeConfig, AutoOrganizeRule } from './auto-organize.types';
 import { generateLifecycleRules } from './type-lifecycle-rules';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 
 /** Internal directory inside the vault for metadata */
 const SETTINGS_DIR = '.kokobrain';
-const CONFIG_FILE = 'auto-move-rules.json';
+const CONFIG_FILE = 'auto-organize-rules.json';
 
-/** Per-file debounce timers for auto-move evaluation */
+/** Per-file debounce timers for auto-organize evaluation */
 const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 /** Current unsubscribe function for the after-save hook (null if not registered) */
@@ -49,56 +49,56 @@ const writingPaths = new Set<string>();
 const reportedWriteFailures = new Set<string>();
 
 /** Default empty config */
-const DEFAULT_CONFIG: AutoMoveConfig = {
+const DEFAULT_CONFIG: AutoOrganizeConfig = {
 	rules: [],
 	excludedFolders: [],
 };
 
-/** Resolves the full path to the auto-move config file */
+/** Resolves the full path to the auto-organize config file */
 function getConfigPath(vaultPath: string): string {
 	return `${vaultPath}/${SETTINGS_DIR}/${CONFIG_FILE}`;
 }
 
 /**
- * Loads auto-move config from .kokobrain/auto-move-rules.json.
+ * Loads auto-organize config from .kokobrain/auto-organize-rules.json.
  * If the file doesn't exist, initializes with empty defaults.
  */
-export async function loadAutoMoveConfig(vaultPath: string): Promise<void> {
+export async function loadAutoOrganizeConfig(vaultPath: string): Promise<void> {
 	const filePath = getConfigPath(vaultPath);
 	try {
 		const fileExists = await exists(filePath);
 		if (!fileExists) {
-			autoMoveStore.setConfig({ ...DEFAULT_CONFIG });
+			autoOrganizeStore.setConfig({ ...DEFAULT_CONFIG });
 			return;
 		}
 		const content = await readTextFile(filePath);
 		if (!content.trim()) {
-			autoMoveStore.setConfig({ ...DEFAULT_CONFIG });
+			autoOrganizeStore.setConfig({ ...DEFAULT_CONFIG });
 			return;
 		}
-		const parsed = JSON.parse(content) as Partial<AutoMoveConfig>;
-		autoMoveStore.setConfig({
+		const parsed = JSON.parse(content) as Partial<AutoOrganizeConfig>;
+		autoOrganizeStore.setConfig({
 			rules: Array.isArray(parsed.rules) ? parsed.rules.map(withValidProperties) : [],
 			excludedFolders: Array.isArray(parsed.excludedFolders) ? parsed.excludedFolders : [],
 		});
-		debug('AUTO-MOVE', `Loaded config: ${autoMoveStore.rules.length} rules, ${autoMoveStore.excludedFolders.length} excluded folders`);
+		debug('AUTO-ORGANIZE', `Loaded config: ${autoOrganizeStore.rules.length} rules, ${autoOrganizeStore.excludedFolders.length} excluded folders`);
 	} catch (err) {
-		error('AUTO-MOVE', 'Failed to load config:', err);
-		autoMoveStore.setConfig({ ...DEFAULT_CONFIG });
+		error('AUTO-ORGANIZE', 'Failed to load config:', err);
+		autoOrganizeStore.setConfig({ ...DEFAULT_CONFIG });
 	}
 }
 
 /** A loaded rule with its invalid property entries dropped; a non-array `properties` is removed. */
-function withValidProperties(rule: AutoMoveRule): AutoMoveRule {
+function withValidProperties(rule: AutoOrganizeRule): AutoOrganizeRule {
 	if (rule === null || typeof rule !== 'object' || !('properties' in rule)) return rule;
 	const { properties, ...rest } = rule;
 	return Array.isArray(properties) ? { ...rest, properties: sanitizeRuleProperties(properties) } : rest;
 }
 
 /**
- * Saves current auto-move config to disk.
+ * Saves current auto-organize config to disk.
  */
-export async function saveAutoMoveConfig(vaultPath: string): Promise<void> {
+export async function saveAutoOrganizeConfig(vaultPath: string): Promise<void> {
 	const dirPath = `${vaultPath}/${SETTINGS_DIR}`;
 	const filePath = getConfigPath(vaultPath);
 	try {
@@ -106,14 +106,14 @@ export async function saveAutoMoveConfig(vaultPath: string): Promise<void> {
 		if (!dirExists) {
 			await mkdir(dirPath);
 		}
-		const config: AutoMoveConfig = {
-			rules: autoMoveStore.rules,
-			excludedFolders: autoMoveStore.excludedFolders,
+		const config: AutoOrganizeConfig = {
+			rules: autoOrganizeStore.rules,
+			excludedFolders: autoOrganizeStore.excludedFolders,
 		};
 		await writeTextFile(filePath, JSON.stringify(config, null, 2));
-		debug('AUTO-MOVE', 'Config saved');
+		debug('AUTO-ORGANIZE', 'Config saved');
 	} catch (err) {
-		error('AUTO-MOVE', 'Failed to save config:', err);
+		error('AUTO-ORGANIZE', 'Failed to save config:', err);
 		throw err;
 	}
 }
@@ -122,22 +122,22 @@ export async function saveAutoMoveConfig(vaultPath: string): Promise<void> {
  * Registers the after-save observer that triggers debounced rule evaluation.
  * Returns an unsubscribe function.
  */
-export function registerAutoMoveHook(): () => void {
-	debug('AUTO-MOVE', 'Registering after-save hook');
+export function registerAutoOrganizeHook(): () => void {
+	debug('AUTO-ORGANIZE', 'Registering after-save hook');
 	return addAfterSaveObserver((filePath) => {
 		if (writingPaths.has(filePath)) return;
 		if (isViewFile(filePath)) return;
-		if (!settingsStore.autoMove.enabled) return;
+		if (!settingsStore.autoOrganize.enabled) return;
 
-		const hasUserRules = autoMoveStore.enabledRules.length > 0;
+		const hasUserRules = autoOrganizeStore.enabledRules.length > 0;
 		const hasLifecycleRules = typeDefinitionsStore.typeMetadataMap.size > 0;
 		if (!hasUserRules && !hasLifecycleRules) return;
 
 		const vaultPath = vaultStore.path;
 		if (!vaultPath) return;
 
-		if (isInExcludedFolder(filePath, vaultPath, autoMoveStore.excludedFolders)) {
-			debug('AUTO-MOVE', 'Skipping excluded folder:', filePath);
+		if (isInExcludedFolder(filePath, vaultPath, autoOrganizeStore.excludedFolders)) {
+			debug('AUTO-ORGANIZE', 'Skipping excluded folder:', filePath);
 			return;
 		}
 
@@ -147,33 +147,33 @@ export function registerAutoMoveHook(): () => void {
 
 		const timer = setTimeout(async () => {
 			debounceTimers.delete(filePath);
-			if (!settingsStore.autoMove.enabled) return;
+			if (!settingsStore.autoOrganize.enabled) return;
 			try {
 				const content = await readCurrentContent(filePath);
 				if (content === null) return;
 				await evaluateAndMove(filePath, content, vaultPath);
 			} catch (err) {
-				error('AUTO-MOVE', 'Failed to evaluate/move:', err);
+				error('AUTO-ORGANIZE', 'Failed to evaluate/move:', err);
 			}
-		}, settingsStore.autoMove.debounceMs);
+		}, settingsStore.autoOrganize.debounceMs);
 
 		debounceTimers.set(filePath, timer);
 	});
 }
 
 /**
- * Dynamically enables or disables the auto-move after-save hook.
- * Called from the Settings UI when the user toggles auto-move on/off.
+ * Dynamically enables or disables the auto-organize after-save hook.
+ * Called from the Settings UI when the user toggles auto-organize on/off.
  * Returns the current unsubscribe function (or null if disabled).
  */
-export function toggleAutoMoveHook(enabled: boolean): (() => void) | null {
+export function toggleAutoOrganizeHook(enabled: boolean): (() => void) | null {
 	if (enabled && !currentUnsubscribe) {
-		debug('AUTO-MOVE', 'Dynamically registering after-save hook');
-		currentUnsubscribe = registerAutoMoveHook();
+		debug('AUTO-ORGANIZE', 'Dynamically registering after-save hook');
+		currentUnsubscribe = registerAutoOrganizeHook();
 		return currentUnsubscribe;
 	}
 	if (!enabled && currentUnsubscribe) {
-		debug('AUTO-MOVE', 'Dynamically unregistering after-save hook');
+		debug('AUTO-ORGANIZE', 'Dynamically unregistering after-save hook');
 		currentUnsubscribe();
 		currentUnsubscribe = null;
 	}
@@ -191,7 +191,7 @@ async function readCurrentContent(filePath: string): Promise<string | null> {
 		return await readTextFile(filePath);
 	} catch (err) {
 		if (!(await exists(filePath).catch(() => true))) {
-			debug('AUTO-MOVE', 'Note vanished before evaluation:', filePath);
+			debug('AUTO-ORGANIZE', 'Note vanished before evaluation:', filePath);
 			return null;
 		}
 		throw err;
@@ -207,13 +207,13 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 	const record = buildNoteRecord(filePath, content, Date.now(), Date.now());
 
 	const lifecycleRules = generateLifecycleRules(typeDefinitionsStore.typeMetadataMap);
-	const allRules = [...autoMoveStore.enabledRules, ...lifecycleRules];
+	const allRules = [...autoOrganizeStore.enabledRules, ...lifecycleRules];
 
 	const matched = findMatchingRules(allRules, record, vaultPath, (failed, err) =>
-		error('AUTO-MOVE', `Rule "${failed.name}" failed to evaluate on ${filePath}:`, err),
+		error('AUTO-ORGANIZE', `Rule "${failed.name}" failed to evaluate on ${filePath}:`, err),
 	);
 	if (matched.length === 0) {
-		debug('AUTO-MOVE', 'No matching rule for:', filePath);
+		debug('AUTO-ORGANIZE', 'No matching rule for:', filePath);
 		return;
 	}
 
@@ -223,7 +223,7 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 	if (rule) {
 		const resolvedDest = resolveDestination(rule.destination, record, vaultPath);
 		if (isAlreadyInDestination(filePath, vaultPath, resolvedDest)) {
-			debug('AUTO-MOVE', 'Already in destination, skipping move:', filePath);
+			debug('AUTO-ORGANIZE', 'Already in destination, skipping move:', filePath);
 		} else {
 			// Ensure destination folder exists
 			const destPath = `${vaultPath}/${resolvedDest}`;
@@ -231,14 +231,14 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 				const destExists = await exists(destPath);
 				if (!destExists) {
 					await mkdir(destPath, { recursive: true });
-					debug('AUTO-MOVE', 'Created destination folder:', destPath);
+					debug('AUTO-ORGANIZE', 'Created destination folder:', destPath);
 				}
 			} catch (err) {
-				error('AUTO-MOVE', 'Failed to create destination folder:', err);
+				error('AUTO-ORGANIZE', 'Failed to create destination folder:', err);
 				return;
 			}
 
-			debug('AUTO-MOVE', `Moving "${filePath}" to "${destPath}" (rule: ${rule.name})`);
+			debug('AUTO-ORGANIZE', `Moving "${filePath}" to "${destPath}" (rule: ${rule.name})`);
 			let newPath: string | null;
 			try {
 				newPath = await moveItem(filePath, destPath);
@@ -271,20 +271,20 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
  * Applies the moving rule's legacy `icon` field. Returns true when it wrote,
  * so the property write re-reads the note.
  */
-async function applyLegacyIcon(rule: AutoMoveRule, content: string, vaultPath: string, targetPath: string): Promise<boolean> {
+async function applyLegacyIcon(rule: AutoOrganizeRule, content: string, vaultPath: string, targetPath: string): Promise<boolean> {
 	const icon = rule.icon!;
 	// The icon write would refuse this frontmatter and toast on every autosave;
 	// skip it quietly instead.
 	const lossy = detectLossyFrontmatter(content);
 	if (lossy !== null) {
-		debug('AUTO-MOVE', `Skipped icon for ${targetPath}: frontmatter is ${lossy}`);
+		debug('AUTO-ORGANIZE', `Skipped icon for ${targetPath}: frontmatter is ${lossy}`);
 		return false;
 	}
 	try {
 		await setIconForPath(vaultPath, targetPath, icon.iconPack, icon.iconName, icon.color, icon.textColor);
-		debug('AUTO-MOVE', `Applied icon "${icon.iconPack}:${icon.iconName}" to ${targetPath}`);
+		debug('AUTO-ORGANIZE', `Applied icon "${icon.iconPack}:${icon.iconName}" to ${targetPath}`);
 	} catch (err) {
-		error('AUTO-MOVE', 'Failed to apply icon:', err);
+		error('AUTO-ORGANIZE', 'Failed to apply icon:', err);
 	}
 	return true;
 }
@@ -309,14 +309,14 @@ async function writeRuleProperties(
 			settingsStore.templates.folder,
 		]);
 		if (skip !== null) {
-			debug('AUTO-MOVE', `Skipped properties for ${targetPath}: ${skip}`);
+			debug('AUTO-ORGANIZE', `Skipped properties for ${targetPath}: ${skip}`);
 			return;
 		}
 		const writes = propertiesToWrite(parseFrontmatterProperties(current), owned);
 		if (writes.length === 0) return;
 		involved = writes;
 		await updateNoteFrontmatter(targetPath, (props) => applyPropertyWrites(props, propertiesToWrite(props, owned)));
-		debug('AUTO-MOVE', `Set properties on ${targetPath}`);
+		debug('AUTO-ORGANIZE', `Set properties on ${targetPath}`);
 	} catch (err) {
 		reportWriteFailure(targetPath, involved, err);
 	}
@@ -326,16 +326,16 @@ async function writeRuleProperties(
 function reportWriteFailure(targetPath: string, involved: OwnedProperty[], err: unknown): void {
 	const fresh = [...new Set(involved.map((p) => p.rule))].filter((r) => !reportedWriteFailures.has(r.id));
 	if (fresh.length === 0) {
-		debug('AUTO-MOVE', `Property write failed again on ${targetPath}:`, err);
+		debug('AUTO-ORGANIZE', `Property write failed again on ${targetPath}:`, err);
 		return;
 	}
 	for (const r of fresh) reportedWriteFailures.add(r.id);
 	const names = fresh.map((r) => `"${r.name}"`).join(', ');
-	error('AUTO-MOVE', `Rule ${names} failed to set properties on ${targetPath}:`, err);
+	error('AUTO-ORGANIZE', `Rule ${names} failed to set properties on ${targetPath}:`, err);
 }
 
-/** Resets all auto-move state (called during vault teardown) */
-export function resetAutoMove(): void {
+/** Resets all auto-organize state (called during vault teardown) */
+export function resetAutoOrganize(): void {
 	// Unsubscribe hook if active
 	if (currentUnsubscribe) {
 		currentUnsubscribe();
@@ -348,6 +348,6 @@ export function resetAutoMove(): void {
 	debounceTimers.clear();
 	writingPaths.clear();
 	reportedWriteFailures.clear();
-	autoMoveStore.reset();
-	debug('AUTO-MOVE', 'Reset complete');
+	autoOrganizeStore.reset();
+	debug('AUTO-ORGANIZE', 'Reset complete');
 }

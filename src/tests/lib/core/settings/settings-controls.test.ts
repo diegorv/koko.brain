@@ -21,7 +21,7 @@ const RAW_BUTTONS: Record<string, number> = {
 	// Tabs of the colour groups.
 	'src/lib/core/settings/sections/ThemeEditor.svelte': 1,
 	// The remove mark inside a folder chip.
-	'src/lib/features/auto-move/AutoMoveSection.svelte': 1,
+	'src/lib/features/auto-organize/AutoOrganizeSection.svelte': 1,
 	// Colour swatch, one tag in an `{#each}`.
 	'src/lib/features/event-calendar/EventColorSwatches.svelte': 1,
 };

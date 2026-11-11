@@ -133,7 +133,7 @@ Everything Kokobrain creates lives inside your vault folder. Here is what each f
 | `.kokobrain/recent-icons.json` | Recently used icons in the icon picker |
 | `.kokobrain/trash/` | Trash manifest and deleted files |
 | `.kokobrain/folder-order.json` | Custom folder ordering |
-| `.kokobrain/auto-move-rules.json` | Auto-move rule configuration |
+| `.kokobrain/auto-organize-rules.json` | Auto Organize rule configuration |
 | `.kokobrain/todoist-sent.json` | Left by the old "Send to Todoist" action in vaults that used it; no longer read or written, safe to delete |
 
 The `.kokobrain/` folder is hidden by default in Finder. You can safely back it up alongside your notes. If you ever delete it, you lose settings (including the Todoist token and root project), history and the Todoist sync state -- your notes remain untouched. After you set Todoist up again, the next **Todoist: Sync now** pairs open task lines with their Todoist tasks by their anchors and creates nothing; closed lines stay unlinked. See [Starting over](29-todoist-sync.md#starting-over).

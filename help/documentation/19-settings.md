@@ -6,7 +6,7 @@ A complete reference for all application settings. Open Settings with `Cmd+,` or
 
 Settings are stored per vault in `.kokobrain/settings.json` inside the vault folder. Each vault can have different settings, so you can tailor the experience to each project or area of your life.
 
-The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Layout), **Notes** (Types, Periodic Notes, Quick Capture, 1:1 Notes, Calendar), **Vault** (Files & Folders, File History, Auto Move, Trash), **Tools** (Search, QueryJS), **Integrations** (Todoist), **Advanced** (Sentry, Troubleshooting, Update), and **Labs** (experimental features).
+The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Layout), **Notes** (Types, Periodic Notes, Quick Capture, 1:1 Notes, Calendar), **Vault** (Files & Folders, File History, Auto Organize, Trash), **Tools** (Search, QueryJS), **Integrations** (Todoist), **Advanced** (Sentry, Troubleshooting, Update), and **Labs** (experimental features).
 
 The Labs settings are the exception: they are stored on this machine, keyed by the vault's path, not in `settings.json`. See [Labs](#labs).
 
@@ -233,16 +233,16 @@ The Trash section shows all items that have been moved to the Trash. For each it
 - **Delete permanently** — remove the item from disk (cannot be undone)
 - **Empty Trash** — permanently delete all trashed items at once
 
-## Auto Move
+## Auto Organize
 
-Configuration for automatic file organization. See [Auto Move](22-auto-move.md) for a detailed explanation.
+Configuration for automatic note organization: a rule can move a note to a folder, set its properties (including its icon and color), or both. See [Auto Organize](22-auto-organize.md) for a detailed explanation.
 
 | Setting | Description | Default |
 |---------|-------------|---------|
-| **Enable Auto Move** | Globally enable or disable the auto-move feature. Type definitions' `_archive_to` rules need it on too. | Disabled |
-| **Debounce delay** | Seconds to wait after save before evaluating rules (0.5–30); stored in milliseconds as `autoMove.debounceMs` | `3` (`3000` ms) |
+| **Enable Auto Organize** | Globally enable or disable Auto Organize. Type definitions' `_archive_to` rules need it on too. | Disabled |
+| **Debounce delay** | Seconds to wait after save before evaluating rules (0.5–30); stored in milliseconds as `autoOrganize.debounceMs` | `3` (`3000` ms) |
 
-Rules and excluded folders are managed in the Auto Move settings section and stored in `.kokobrain/auto-move-rules.json` inside the vault. This file is separate from `settings.json`.
+Rules and excluded folders are managed in the Auto Organize settings section and stored in `.kokobrain/auto-organize-rules.json` inside the vault. This file is separate from `settings.json`.
 
 ## Todoist
 

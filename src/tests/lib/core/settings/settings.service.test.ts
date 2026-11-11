@@ -85,6 +85,17 @@ describe('loadSettings', () => {
 		}
 	});
 
+	it('ignores a legacy autoMove key: no fallback to the old settings name', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ autoMove: { enabled: true, debounceMs: 500 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.autoOrganize.enabled).toBe(false);
+		expect(settingsStore.autoOrganize.debounceMs).toBe(DEFAULT_SETTINGS.autoOrganize.debounceMs);
+	});
+
 	it('loads and merges periodic notes settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

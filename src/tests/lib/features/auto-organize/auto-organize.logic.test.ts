@@ -19,14 +19,14 @@ import {
 	ruleValueEditor,
 	filterProblem,
 	hasBlankValue,
-} from '#lib/features/auto-move/auto-move.logic.js';
+} from '#lib/features/auto-organize/auto-organize.logic.js';
 import type { FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
-import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
+import type { AutoOrganizeRule } from '#lib/features/auto-organize/auto-organize.types.js';
 import type { FilterItem, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
-function makeRule(overrides: Partial<AutoMoveRule> = {}): AutoMoveRule {
+function makeRule(overrides: Partial<AutoOrganizeRule> = {}): AutoOrganizeRule {
 	return {
 		id: overrides.id ?? 'rule-1',
 		name: overrides.name ?? 'Test rule',

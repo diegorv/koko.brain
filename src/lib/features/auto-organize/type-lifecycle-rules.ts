@@ -1,8 +1,8 @@
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
-import type { AutoMoveRule } from './auto-move.types';
+import type { AutoOrganizeRule } from './auto-organize.types';
 
 /**
- * Generates auto-move rules from type definitions that have `archiveTo` configured.
+ * Generates auto-organize rules from type definitions that have `archiveTo` configured.
  *
  * Every type with `archiveTo` gets an archive rule (move to the archive
  * destination when `_archived` becomes true).
@@ -21,8 +21,8 @@ import type { AutoMoveRule } from './auto-move.types';
  */
 export function generateLifecycleRules(
 	typeMetadataMap: Map<string, TypeMetadata>,
-): Array<AutoMoveRule & { expression: string }> {
-	const rules: Array<AutoMoveRule & { expression: string }> = [];
+): Array<AutoOrganizeRule & { expression: string }> {
+	const rules: Array<AutoOrganizeRule & { expression: string }> = [];
 
 	for (const [typeName, metadata] of typeMetadataMap) {
 		if (!metadata.archiveTo) continue;

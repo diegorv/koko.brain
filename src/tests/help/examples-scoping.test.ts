@@ -3,8 +3,8 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
 
-import { findMatchingRule, resolveDestination } from '#lib/features/auto-move/auto-move.logic.js';
-import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
+import { findMatchingRule, resolveDestination } from '#lib/features/auto-organize/auto-organize.logic.js';
+import type { AutoOrganizeRule } from '#lib/features/auto-organize/auto-organize.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import { filterGroupsToFilter, parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
@@ -228,7 +228,7 @@ function findOffenders(files: ExampleFile[]): Offender[] {
 		} else if (path.endsWith('.view')) {
 			for (const view of unscopedCollectionViews(text)) out.push({ path, site: `view "${view}"` });
 			for (const filter of unroundTrippedFilters(text)) out.push({ path, site: `filter the toolbar does not round-trip in ${filter}` });
-		} else if (path.endsWith('auto-move-rules.json')) {
+		} else if (path.endsWith('auto-organize-rules.json')) {
 			const config = JSON.parse(text) as { rules?: { name: string; expression: string }[] };
 			for (const rule of config.rules ?? []) {
 				if (!PATH_PREDICATE_RE.test(rule.expression)) out.push({ path, site: `rule "${rule.name}"` });
@@ -348,15 +348,15 @@ describe('findOffenders (classifier)', () => {
 		expect(findOffenders([md('collection', yaml)])).toHaveLength(1);
 	});
 
-	it('flags an auto-move rule without a path predicate', () => {
+	it('flags an auto-organize rule without a path predicate', () => {
 		const text = JSON.stringify({
 			rules: [
 				{ name: 'Any', expression: "file.hasTag('recipe')" },
-				{ name: 'Here', expression: "file.hasTag('recipe') && file.folder.contains('/auto-move-features')" },
+				{ name: 'Here', expression: "file.hasTag('recipe') && file.folder.contains('/auto-organize-features')" },
 			],
 		});
-		expect(findOffenders([{ path: 'a/auto-move-rules.json', text }])).toEqual([
-			{ path: 'a/auto-move-rules.json', site: 'rule "Any"' },
+		expect(findOffenders([{ path: 'a/auto-organize-rules.json', text }])).toEqual([
+			{ path: 'a/auto-organize-rules.json', site: 'rule "Any"' },
 		]);
 	});
 });
@@ -402,12 +402,12 @@ describe('help/examples query scoping', () => {
 	});
 });
 
-describe('auto-move-features rules stay inside the example folder', () => {
-	const dir = join(EXAMPLES, 'auto-move-features');
-	const rules = (JSON.parse(readFileSync(join(dir, 'auto-move-rules.json'), 'utf-8')) as { rules: AutoMoveRule[] })
+describe('auto-organize-features rules stay inside the example folder', () => {
+	const dir = join(EXAMPLES, 'auto-organize-features');
+	const rules = (JSON.parse(readFileSync(join(dir, 'auto-organize-rules.json'), 'utf-8')) as { rules: AutoOrganizeRule[] })
 		.rules;
 	const vault = '/vault';
-	const nested = `${vault}/Resources/help/examples/auto-move-features`;
+	const nested = `${vault}/Resources/help/examples/auto-organize-features`;
 	/** Satisfies every rule's non-path condition, so only the folder scope decides. */
 	const catchAll = [
 		'---',
@@ -420,7 +420,7 @@ describe('auto-move-features rules stay inside the example folder', () => {
 	].join('\n');
 
 	it('every rule, enabled or not, matches a note in its Inbox and moves it inside the folder', () => {
-		for (const root of [`${vault}/auto-move-features`, nested]) {
+		for (const root of [`${vault}/auto-organize-features`, nested]) {
 			const record = buildNoteRecord(`${root}/Inbox/note.md`, catchAll);
 			const rel = root.slice(vault.length + 1);
 			for (const rule of rules) {

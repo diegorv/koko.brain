@@ -263,7 +263,7 @@ Source mode is helpful when you want to make bulk edits, copy a view configurati
 
 ## Expression Language Reference
 
-The filter and formula expressions used in Collection (and in Auto Move rules) support a rich set of functions, methods, and operators.
+The filter and formula expressions used in Collection (and in Auto Organize rules) support a rich set of functions, methods, and operators.
 
 ### Operators
 

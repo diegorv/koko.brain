@@ -301,11 +301,11 @@ These path methods use the app's existing rename, move and delete services, incl
 
 Errors from the file system pass through unchanged, and they are often bare strings, not `Error` objects: in a `catch`, `err.message` can be `undefined`. Read `err instanceof Error ? err.message : String(err)`. The same holds for `ctx.workspace` and `ctx.app` calls; `ctx.loadData` and `ctx.saveData` always reject with an `Error`.
 
-Notes created or written this way reach the index and full-text search at once; `ctx.kb()` and the panels can take a few seconds to see them (see [`ctx.kb()`](#ctxkb)). `write` also runs the after-save steps of a note saved in the editor (file history, Auto Move, `ctx.onNoteSaved`) for every file it writes, Markdown or not, except a non-note file under `_system/mods/` (anything there not ending in `.md`, `.markdown` or `.view`), which skips them; `create` does not run them. For a mod's own state, use [`ctx.saveData`](#ctxloaddata-and-ctxsavedata-the-mods-own-data) instead.
+Notes created or written this way reach the index and full-text search at once; `ctx.kb()` and the panels can take a few seconds to see them (see [`ctx.kb()`](#ctxkb)). `write` also runs the after-save steps of a note saved in the editor (file history, Auto Organize, `ctx.onNoteSaved`) for every file it writes, Markdown or not, except a non-note file under `_system/mods/` (anything there not ending in `.md`, `.markdown` or `.view`), which skips them; `create` does not run them. For a mod's own state, use [`ctx.saveData`](#ctxloaddata-and-ctxsavedata-the-mods-own-data) instead.
 
 ### `ctx.loadData` and `ctx.saveData`: the mod's own data
 
-Each mod has one JSON value of its own, kept at `<vault>/.kokobrain/mods/<mod-id>/data.json`. Use it for state a mod updates often: a save reaches neither the index, search, file history, Auto Move, the file tree nor the caches, so it costs one small file write.
+Each mod has one JSON value of its own, kept at `<vault>/.kokobrain/mods/<mod-id>/data.json`. Use it for state a mod updates often: a save reaches neither the index, search, file history, Auto Organize, the file tree nor the caches, so it costs one small file write.
 
 ```javascript
 ctx.addAction({

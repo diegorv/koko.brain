@@ -588,7 +588,7 @@ function mayRefuseFrontmatter(text) {
 - One key twice in the returned list (either spelling) is merged, not an error: the first non-empty entry wins and the later one is dropped. Appending `{ key: '_archived', value: true }` to a list that already holds `_archived: false` keeps `false`. Replace the existing entry instead (see `setProp` below).
 - Resolves to the full written text of the note, or to the unchanged text when the rebuilt text equals the file byte for byte (then nothing is written or saved). That holds only for frontmatter already in the app's canonical form: returning the same properties for a note with block lists, `type:` or needless quotes still rewrites it (`[a, b]`, `_type:`, quotes dropped). To skip the write, throw a sentinel from `mutate` and catch it (see the [cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)).
 - **`mutate` must be pure.** It runs a second time when a tab for the note opens during the read. Do not count, log or set flags you latch inside it; if you need a flag, overwrite it on every call.
-- Open note: patches the tab (unsaved body edits are kept) and saves the whole tab at once, flushing pending body edits too. On the **active** tab this moves the caret (see [Known problems](#known-problems-caret-and-empty-block)). Closed note: reads the file, writes it, then runs the full after-save pipeline (file history, Auto Move, indexing, `ctx.onNoteSaved`). It never re-creates a note deleted during the call.
+- Open note: patches the tab (unsaved body edits are kept) and saves the whole tab at once, flushing pending body edits too. On the **active** tab this moves the caret (see [Known problems](#known-problems-caret-and-empty-block)). Closed note: reads the file, writes it, then runs the full after-save pipeline (file history, Auto Organize, indexing, `ctx.onNoteSaved`). It never re-creates a note deleted during the call.
 - The frontmatter block is always written back with `\n` line breaks, also in a CRLF note (the body keeps its own). Tell the user when a mod rewrites frontmatter beyond the keys it was asked to change: canonical form (`[a, b]` lists, `_type:`, quotes dropped) and line breaks count.
 - Concurrent calls on one closed note race; the last write wins. Serialize calls per path.
 - **Markdown only.** It does not check the extension: on a `.canvas`, `.view` or `.js` file it would add a frontmatter block.
@@ -924,7 +924,7 @@ The rail calls `busy` while rendering and re-renders when app state it read chan
 
 Getters (each returns the live sub-object of `settingsStore.settings`):
 
-`periodicNotes`, `quickCapture`, `oneOnOne`, `layout`, `folderNotes`, `editor`, `templates`, `appearance`, `history`, `search`, `autoMove`, `eventCalendar`, `todoist`, `sentry`, `debugMode`, `debugModeTauri`, `debugLogToFile`, `debugModRunMessages`, `debugTauriLogToFile`, `debugHeartbeat`, `livePreviewProfiling`, `disabledDecorators`, `tagColors`, `queryjs`, `updates`, `explicitOrganization`, `showUntypedNotes`, `typesBaseFolder`, `dockBadgeInboxCount`, and `settings` (the whole object).
+`periodicNotes`, `quickCapture`, `oneOnOne`, `layout`, `folderNotes`, `editor`, `templates`, `appearance`, `history`, `search`, `autoOrganize`, `eventCalendar`, `todoist`, `sentry`, `debugMode`, `debugModeTauri`, `debugLogToFile`, `debugModRunMessages`, `debugTauriLogToFile`, `debugHeartbeat`, `livePreviewProfiling`, `disabledDecorators`, `tagColors`, `queryjs`, `updates`, `explicitOrganization`, `showUntypedNotes`, `typesBaseFolder`, `dockBadgeInboxCount`, and `settings` (the whole object).
 
 Useful reads (defaults in parentheses; paths vault-relative unless noted):
 
@@ -942,7 +942,7 @@ Useful reads (defaults in parentheses; paths vault-relative unless noted):
 | `layout.railFolder`, `layout.railExpandedFolders` | Files navigator state (absolute paths) |
 | `layout.rightSidebarVisible`, `layout.railCollapsed` | Layout state |
 
-Setters, for completeness: `updateLayout(partial)` (merges into `layout` in place, no validation), `updatePeriodicNotes`, `updateQuickCapture`, `updateOneOnOne`, `updateFolderNotes`, `updateEditor`, `updateTemplates`, `updateAppearance`, `updateHistory`, `updateSearch`, `updateAutoMove`, and the other `update*` methods (shallow merges); `setSettings(all)` replaces everything. Several `layout` fields are loaded without validation, so a wrong shape can corrupt the sidebar state until the user fixes the settings file. If you must write (for example `updateLayout({ rightSidebarVisible: true })`), write only documented fields with the exact type they have today, and tell the user in your mod's description.
+Setters, for completeness: `updateLayout(partial)` (merges into `layout` in place, no validation), `updatePeriodicNotes`, `updateQuickCapture`, `updateOneOnOne`, `updateFolderNotes`, `updateEditor`, `updateTemplates`, `updateAppearance`, `updateHistory`, `updateSearch`, `updateAutoOrganize`, and the other `update*` methods (shallow merges); `setSettings(all)` replaces everything. Several `layout` fields are loaded without validation, so a wrong shape can corrupt the sidebar state until the user fixes the settings file. If you must write (for example `updateLayout({ rightSidebarVisible: true })`), write only documented fields with the exact type they have today, and tell the user in your mod's description.
 
 ```javascript
 // Read-only use: list the person notes of the configured people folders for a custom picker.
@@ -1002,7 +1002,7 @@ saveFileByPath(absolutePath: string): Promise<boolean>
 - Saves an **open** tab's current content when it is dirty. Saves of one path are queued, never parallel; a queued save writes the tab's content as it is when its turn comes.
 - Resolves `true` when written, or when there is nothing to do (no tab for that path, a virtual tab, not dirty). It cannot save a closed file: use `ctx.vault.write` or `updateNoteFrontmatter`.
 - Resolves `false` on a write failure (never rejects): the app logs it and shows the toast `Failed to save file.`. Do not toast again.
-- After a successful write: marks the tab saved and runs the after-save pipeline (file history, Auto Move, indexing, `ctx.onNoteSaved`).
+- After a successful write: marks the tab saved and runs the after-save pipeline (file history, Auto Organize, indexing, `ctx.onNoteSaved`).
 
 ```javascript
 const path = ctx.app.editorStore.activeTabPath;

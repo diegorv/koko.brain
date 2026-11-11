@@ -1,5 +1,5 @@
 /** Icon assignment applied to moved files */
-export interface AutoMoveIcon {
+export interface AutoOrganizeIcon {
 	/** Icon pack identifier */
 	iconPack: import('#lib/features/file-icons/file-icons.types.js').IconPackId;
 	/** Icon name within the pack (or emoji character) */
@@ -23,8 +23,8 @@ export interface RuleProperty {
 	mode: 'if-missing' | 'always';
 }
 
-/** A single auto-move rule: a filter plus a move and/or property consequences */
-export interface AutoMoveRule {
+/** A single auto-organize rule: a filter plus a move and/or property consequences */
+export interface AutoOrganizeRule {
 	/** Unique identifier (timestamp-based) */
 	id: string;
 	/** Human-readable label for the rule */
@@ -43,15 +43,15 @@ export interface AutoMoveRule {
 	/** Whether this rule is active */
 	enabled: boolean;
 	/** Optional icon to apply to the file after moving */
-	icon?: AutoMoveIcon;
+	icon?: AutoOrganizeIcon;
 	/** Properties written to the note when the rule matches, in list order */
 	properties?: RuleProperty[];
 }
 
-/** Persisted auto-move configuration stored in .kokobrain/auto-move-rules.json */
-export interface AutoMoveConfig {
+/** Persisted auto-organize configuration stored in .kokobrain/auto-organize-rules.json */
+export interface AutoOrganizeConfig {
 	/** Ordered list of rules: the first matching rule with a destination moves, a higher rule's property wins */
-	rules: AutoMoveRule[];
-	/** Folder paths (vault-relative) excluded from auto-move evaluation */
+	rules: AutoOrganizeRule[];
+	/** Folder paths (vault-relative) excluded from auto-organize evaluation */
 	excludedFolders: string[];
 }

@@ -60,7 +60,7 @@ This table is the reference for every key a type definition reads. A value of th
 | `_folder` | Vault-relative folder | none (vault root) | Folder new notes of the type are created in (see [Creating Notes from Types](#creating-notes-from-types)) |
 | `_list_properties_display` | List of property names | none | Properties shown as pills on the rows of the type's notes, in every note list but a view's, unless the list saved its own selection |
 | `_list_sort` | `<option>:<direction>`: `modified:desc`, `title:asc`, `property:budget:asc` | none | Order of the type's note list, saved by its Sort dropdown. Options: `modified`, `created`, `title`, `status`, `property:<key>`; directions `asc` and `desc`. A value that does not read back is ignored and the list keeps its own order, with no mark in the Types navigator |
-| `_archive_to` | Destination template (e.g. `{folder}/_archive`) | none | Where an archived note of the type is moved. Needs **Auto Move** on (see [Auto Move](22-auto-move.md#type-driven-lifecycle-rules)) |
+| `_archive_to` | Destination template (e.g. `{folder}/_archive`) | none | Where an archived note of the type is moved. Needs **Auto Organize** on (see [Auto Organize](22-auto-organize.md#type-driven-lifecycle-rules)) |
 | `_hub` | `true` or `false` | `false` | `true` makes the type's notes hubs: the [note action bar](03-editor.md#note-action-bar) offers **New linked note**, which creates a note in the hub's folder with `_belongs_to` linking the hub |
 | `_rail` | `true` | none | Pins the type to the rail (see [Pinned Rail Items](#pinned-rail-items)) |
 | `_sort` | -- | -- | Not applied: a type's list sorts by its `_list_sort` when one is saved, else by most recently modified (see [Sort Mode](#sort-mode)) |
@@ -264,7 +264,7 @@ Notes have three lifecycle states controlled by frontmatter flags:
 
 ### Auto-Archive via Type Definitions
 
-If a type definition includes `_archive_to`, Kokobrain automatically moves notes to the specified destination when archived. It moves them back when unarchived only when `_archive_to` has the form `{folder}/<folder name>`, such as `{folder}/_archive`, where the note's old folder is the archive's parent; with any other destination (for example `archive/{year}`) an unarchived note stays where it is. No manual auto-move rules needed, but **Auto Move must be on** (Settings > Auto Move > Enable Auto Move, off by default): with it off, `_archive_to` moves nothing.
+If a type definition includes `_archive_to`, Kokobrain automatically moves notes to the specified destination when archived. It moves them back when unarchived only when `_archive_to` has the form `{folder}/<folder name>`, such as `{folder}/_archive`, where the note's old folder is the archive's parent; with any other destination (for example `archive/{year}`) an unarchived note stays where it is. No manual Auto Organize rules needed, but **Auto Organize must be on** (Settings > Auto Organize > Enable Auto Organize, off by default): with it off, `_archive_to` moves nothing.
 
 ```yaml
 ---
@@ -273,7 +273,7 @@ _archive_to: "{folder}/_archive"
 ---
 ```
 
-With this configuration, archiving a Project in `work/squad-payments/` moves it to `work/squad-payments/_archive/`. Unarchiving moves it back. See [Auto Move — Type-Driven Lifecycle Rules](22-auto-move.md#type-driven-lifecycle-rules) for details.
+With this configuration, archiving a Project in `work/squad-payments/` moves it to `work/squad-payments/_archive/`. Unarchiving moves it back. See [Auto Organize — Type-Driven Lifecycle Rules](22-auto-organize.md#type-driven-lifecycle-rules) for details.
 
 ### Lifecycle Actions
 
@@ -342,7 +342,7 @@ Kokobrain recognizes alternative spellings for system metadata keys:
 | `visible` | `_visible` | `false` hides a type's row in the Types navigator; in a `.view`, `false` hides the view from Views |
 | `list_properties_display` | `_list_properties_display` | Properties shown on note list rows |
 
-You can use either form in your frontmatter. The app normalizes them internally. The type-folder field `_folder` and the auto-move destination field `_archive_to` have no short alias -- write them with the leading underscore.
+You can use either form in your frontmatter. The app normalizes them internally. The type-folder field `_folder` and the Auto Organize destination field `_archive_to` have no short alias -- write them with the leading underscore.
 
 > [!IMPORTANT]
 > The `type` alias for the canonical `_type` is recognised both on the frontmatter side AND as an identifier in filter expressions (`.view` files and inline `collection` blocks). The remaining aliases (`icon`, `color`, `sort`, `template`, etc.) are recognised only on the frontmatter side -- in filters, use the canonical name. The three lifecycle flags are a separate case: `organized` / `archived` / `favorite` are always-present normalised booleans in filter expressions, not aliases of `_organized` / `_archived` / `_favorite`, and `organized` defaults to `true`. See [Collection > Filter Gotchas](12-collection.md#archived-and-_archived-are-different-fields-not-aliases). The `type` / `_type` identifier also compares case-insensitively for `==` / `!=`, so `type == "person"` and `type == "Person"` both match a note with `type: person`. The legacy `is_a` / `is a` spellings are no longer recognised. See [Collection > Filter Gotchas](12-collection.md#filter-gotchas) for details.

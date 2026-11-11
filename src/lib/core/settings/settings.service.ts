@@ -152,9 +152,9 @@ function parseSettings(content: string): AppSettings {
 			...DEFAULT_SETTINGS.search,
 			...parsed.search,
 		},
-		autoMove: {
-			...DEFAULT_SETTINGS.autoMove,
-			...parsed.autoMove,
+		autoOrganize: {
+			...DEFAULT_SETTINGS.autoOrganize,
+			...parsed.autoOrganize,
 		},
 		eventCalendar: { ...DEFAULT_SETTINGS.eventCalendar, ...parsed.eventCalendar },
 		todoist: {

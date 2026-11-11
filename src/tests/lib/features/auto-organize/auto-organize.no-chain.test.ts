@@ -35,9 +35,9 @@ import { notifyAfterSave, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { autoMoveStore } from '#lib/features/auto-move/auto-move.store.svelte.js';
-import { registerAutoMoveHook, resetAutoMove } from '#lib/features/auto-move/auto-move.service.js';
-import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
+import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
+import { registerAutoOrganizeHook, resetAutoOrganize } from '#lib/features/auto-organize/auto-organize.service.js';
+import type { AutoOrganizeRule } from '#lib/features/auto-organize/auto-organize.types.js';
 // `setIconForPath` loads this lazily; loaded here, its import resolves from the
 // module cache inside the fake-timer window.
 import '#lib/features/file-icons/frontmatter-icon.service.js';
@@ -57,7 +57,7 @@ async function drain(): Promise<void> {
 	await vi.advanceTimersByTimeAsync(20_000);
 }
 
-describe('auto-move rule writes never schedule another run', () => {
+describe('auto-organize rule writes never schedule another run', () => {
 	let unsubscribe: () => void;
 
 	beforeEach(() => {
@@ -65,23 +65,23 @@ describe('auto-move rule writes never schedule another run', () => {
 		files.clear();
 		vi.mocked(writeTextFile).mockClear();
 		resetHooks();
-		resetAutoMove();
+		resetAutoOrganize();
 		clearLocalStorage();
-		settingsStore.updateAutoMove({ enabled: true, debounceMs: DEBOUNCE });
+		settingsStore.updateAutoOrganize({ enabled: true, debounceMs: DEBOUNCE });
 		vaultStore.open('/vault');
-		unsubscribe = registerAutoMoveHook();
+		unsubscribe = registerAutoOrganizeHook();
 	});
 
 	afterEach(() => {
 		unsubscribe();
-		resetAutoMove();
+		resetAutoOrganize();
 		resetHooks();
 		vaultStore.close();
 		vi.useRealTimers();
 	});
 
-	function setRules(rules: AutoMoveRule[]): void {
-		autoMoveStore.setConfig({ rules, excludedFolders: [] });
+	function setRules(rules: AutoOrganizeRule[]): void {
+		autoOrganizeStore.setConfig({ rules, excludedFolders: [] });
 	}
 
 	it('a rule whose filter depends on another rule\'s output does not apply in the same save', async () => {

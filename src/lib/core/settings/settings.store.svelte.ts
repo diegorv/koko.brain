@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, AutoMoveSettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, AutoOrganizeSettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings } from './settings.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
 
@@ -107,7 +107,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	search: {
 		semanticSearchEnabled: false,
 	},
-	autoMove: {
+	autoOrganize: {
 		enabled: false,
 		debounceMs: 3000,
 	},
@@ -176,7 +176,7 @@ export const settingsStore = {
 	get appearance() { return settings.appearance; },
 	get history() { return settings.history; },
 	get search() { return settings.search; },
-	get autoMove() { return settings.autoMove; },
+	get autoOrganize() { return settings.autoOrganize; },
 	get eventCalendar() { return settings.eventCalendar; },
 	get todoist() { return settings.todoist; },
 	get sentry() { return settings.sentry; },
@@ -300,11 +300,11 @@ export const settingsStore = {
 		};
 	},
 
-	/** Partially updates auto-move settings, merging with existing values */
-	updateAutoMove(value: Partial<AutoMoveSettings>) {
+	/** Partially updates auto-organize settings, merging with existing values */
+	updateAutoOrganize(value: Partial<AutoOrganizeSettings>) {
 		settings = {
 			...settings,
-			autoMove: { ...settings.autoMove, ...value },
+			autoOrganize: { ...settings.autoOrganize, ...value },
 		};
 	},
 

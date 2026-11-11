@@ -246,7 +246,7 @@ describe('toggleActiveNoteOrganized', () => {
 });
 
 describe('toggleActiveNoteArchived', () => {
-	it('archives the note, keeping _organized, and runs the after-save hooks that auto-move uses', async () => {
+	it('archives the note, keeping _organized, and runs the after-save hooks that auto-organize uses', async () => {
 		const saved: string[] = [];
 		addAfterSaveObserver((path, content) => saved.push(`${path}\n${content}`));
 		openNote(A, '---\n_organized: true\n---\nBody\n');

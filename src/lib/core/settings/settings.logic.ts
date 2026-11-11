@@ -276,7 +276,7 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		sections: [
 			{ id: 'files', label: 'Files & Folders' },
 			{ id: 'file-history', label: 'File History' },
-			{ id: 'auto-move', label: 'Auto Move' },
+			{ id: 'auto-organize', label: 'Auto Organize' },
 			{ id: 'trash', label: 'Trash' },
 		],
 	},

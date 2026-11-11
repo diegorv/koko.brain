@@ -23,10 +23,10 @@
 	import type { FilterItem } from '#lib/features/collection/collection.types.js';
 	import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import type { AutoMoveRule, RuleProperty } from './auto-move.types';
+	import type { AutoOrganizeRule, RuleProperty } from './auto-organize.types';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
-	import { BLANK_VALUE_ERROR, countMatchingNotes, hasBlankValue, isRefusedKey, sanitizeRuleProperties } from './auto-move.logic';
-	import AutoMoveRuleProperty from './AutoMoveRuleProperty.svelte';
+	import { BLANK_VALUE_ERROR, countMatchingNotes, hasBlankValue, isRefusedKey, sanitizeRuleProperties } from './auto-organize.logic';
+	import AutoOrganizeRuleProperty from './AutoOrganizeRuleProperty.svelte';
 
 	let {
 		rule,
@@ -37,10 +37,10 @@
 		onmoveup,
 		onmovedown,
 	}: {
-		rule: AutoMoveRule;
+		rule: AutoOrganizeRule;
 		isFirst: boolean;
 		isLast: boolean;
-		onupdate: (id: string, updates: Partial<AutoMoveRule>) => void;
+		onupdate: (id: string, updates: Partial<AutoOrganizeRule>) => void;
 		onremove: (id: string) => void;
 		onmoveup: (id: string) => void;
 		onmovedown: (id: string) => void;
@@ -83,7 +83,7 @@
 			? getAllKnownProperties(collectionStore.propertyIndex).filter((key) => !key.startsWith('file.') && !isRefusedKey(key))
 			: [],
 	);
-	let keyListId = $derived(`auto-move-keys-${rule.id}`);
+	let keyListId = $derived(`auto-organize-keys-${rule.id}`);
 
 	/** The builder groups for a stored filter; a blank string is an empty builder, not a blank raw row. */
 	function toGroups(filter: FilterItem): FilterGroup[] {
@@ -249,7 +249,7 @@
 		<span class="w-24 shrink-0 pt-2 text-meta text-muted-foreground">Set properties</span>
 		<div class="flex min-w-0 flex-1 flex-col gap-2">
 			{#each properties as property, i (i)}
-				<AutoMoveRuleProperty
+				<AutoOrganizeRuleProperty
 					{property}
 					listId={keyListId}
 					onchange={(next) => setProperties(properties.map((p, j) => (j === i ? next : p)))}

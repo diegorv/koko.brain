@@ -34,28 +34,28 @@ import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { moveItem } from '#lib/core/filesystem/fs.service.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { debug, error } from '#lib/utils/debug.js';
-import { autoMoveStore } from '#lib/features/auto-move/auto-move.store.svelte.js';
+import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
-import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
+import type { AutoOrganizeRule } from '#lib/features/auto-organize/auto-organize.types.js';
 import {
-	loadAutoMoveConfig,
-	saveAutoMoveConfig,
-	registerAutoMoveHook,
-	toggleAutoMoveHook,
-	resetAutoMove,
-} from '#lib/features/auto-move/auto-move.service.js';
+	loadAutoOrganizeConfig,
+	saveAutoOrganizeConfig,
+	registerAutoOrganizeHook,
+	toggleAutoOrganizeHook,
+	resetAutoOrganize,
+} from '#lib/features/auto-organize/auto-organize.service.js';
 
-describe('auto-move.service', () => {
+describe('auto-organize.service', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
-		resetAutoMove();
-		settingsStore.updateAutoMove({ enabled: true, debounceMs: 50 });
+		resetAutoOrganize();
+		settingsStore.updateAutoOrganize({ enabled: true, debounceMs: 50 });
 	});
 
-	describe('loadAutoMoveConfig', () => {
+	describe('loadAutoOrganizeConfig', () => {
 		it('loads config from disk into store', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
@@ -65,42 +65,77 @@ describe('auto-move.service', () => {
 				excludedFolders: ['_templates'],
 			}));
 
-			await loadAutoMoveConfig('/vault');
+			await loadAutoOrganizeConfig('/vault');
 
-			expect(autoMoveStore.rules).toHaveLength(1);
-			expect(autoMoveStore.rules[0].id).toBe('r1');
-			expect(autoMoveStore.excludedFolders).toEqual(['_templates']);
-			expect(autoMoveStore.isConfigLoaded).toBe(true);
+			expect(autoOrganizeStore.rules).toHaveLength(1);
+			expect(autoOrganizeStore.rules[0].id).toBe('r1');
+			expect(autoOrganizeStore.excludedFolders).toEqual(['_templates']);
+			expect(autoOrganizeStore.isConfigLoaded).toBe(true);
+		});
+
+		describe('config file name', () => {
+			const rulesJson = JSON.stringify({
+				rules: [{ id: 'r1', name: 'Test', expression: 'true', destination: 'Archive', enabled: true }],
+				excludedFolders: ['_templates'],
+			});
+			/** A vault holding only the file at `present`, with `rulesJson` in it. */
+			function vaultWith(present: string) {
+				vi.mocked(exists).mockImplementation(async (path) => path === present);
+				vi.mocked(readTextFile).mockImplementation(async (path) => {
+					if (path === present) return rulesJson;
+					throw new Error(`not found: ${path}`);
+				});
+			}
+
+			it('loads the rules from .kokobrain/auto-organize-rules.json', async () => {
+				vaultWith('/vault/.kokobrain/auto-organize-rules.json');
+
+				await loadAutoOrganizeConfig('/vault');
+
+				expect(autoOrganizeStore.rules.map((r) => r.id)).toEqual(['r1']);
+				expect(autoOrganizeStore.excludedFolders).toEqual(['_templates']);
+			});
+
+			it('loads no rules from a vault holding only the old auto-move-rules.json', async () => {
+				vaultWith('/vault/.kokobrain/auto-move-rules.json');
+
+				await loadAutoOrganizeConfig('/vault');
+
+				expect(autoOrganizeStore.rules).toEqual([]);
+				expect(autoOrganizeStore.excludedFolders).toEqual([]);
+				expect(autoOrganizeStore.isConfigLoaded).toBe(true);
+				expect(readTextFile).not.toHaveBeenCalled();
+			});
 		});
 
 		it('initializes with empty defaults when file does not exist', async () => {
 			vi.mocked(exists).mockResolvedValue(false);
 
-			await loadAutoMoveConfig('/vault');
+			await loadAutoOrganizeConfig('/vault');
 
-			expect(autoMoveStore.rules).toEqual([]);
-			expect(autoMoveStore.excludedFolders).toEqual([]);
-			expect(autoMoveStore.isConfigLoaded).toBe(true);
+			expect(autoOrganizeStore.rules).toEqual([]);
+			expect(autoOrganizeStore.excludedFolders).toEqual([]);
+			expect(autoOrganizeStore.isConfigLoaded).toBe(true);
 		});
 
 		it('initializes with empty defaults when file is empty', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(readTextFile).mockResolvedValue('   ');
 
-			await loadAutoMoveConfig('/vault');
+			await loadAutoOrganizeConfig('/vault');
 
-			expect(autoMoveStore.rules).toEqual([]);
-			expect(autoMoveStore.isConfigLoaded).toBe(true);
+			expect(autoOrganizeStore.rules).toEqual([]);
+			expect(autoOrganizeStore.isConfigLoaded).toBe(true);
 		});
 
 		it('handles corrupt JSON gracefully', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(readTextFile).mockResolvedValue('not valid json{{{');
 
-			await loadAutoMoveConfig('/vault');
+			await loadAutoOrganizeConfig('/vault');
 
-			expect(autoMoveStore.rules).toEqual([]);
-			expect(autoMoveStore.isConfigLoaded).toBe(true);
+			expect(autoOrganizeStore.rules).toEqual([]);
+			expect(autoOrganizeStore.isConfigLoaded).toBe(true);
 		});
 
 		it('drops property entries on todoist_project and a text value on _archived', async () => {
@@ -122,9 +157,9 @@ describe('auto-move.service', () => {
 				excludedFolders: [],
 			}));
 
-			await loadAutoMoveConfig('/vault');
+			await loadAutoOrganizeConfig('/vault');
 
-			expect(autoMoveStore.rules[0].properties).toEqual([
+			expect(autoOrganizeStore.rules[0].properties).toEqual([
 				{ key: 'archived', value: true, mode: 'if-missing' },
 				{ key: '_belongs_to', value: '[[AWS]]', mode: 'if-missing' },
 			]);
@@ -138,9 +173,9 @@ describe('auto-move.service', () => {
 				excludedFolders: [],
 			}));
 
-			await loadAutoMoveConfig('/vault');
+			await loadAutoOrganizeConfig('/vault');
 
-			expect(autoMoveStore.rules).toEqual([plain, { ...plain, id: 'r2' }]);
+			expect(autoOrganizeStore.rules).toEqual([plain, { ...plain, id: 'r2' }]);
 		});
 
 		it('loads a string expression and an object filter unchanged', async () => {
@@ -149,37 +184,37 @@ describe('auto-move.service', () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ rules: [old, builder], excludedFolders: [] }));
 
-			await loadAutoMoveConfig('/vault');
+			await loadAutoOrganizeConfig('/vault');
 
-			expect(autoMoveStore.rules).toEqual([old, builder]);
+			expect(autoOrganizeStore.rules).toEqual([old, builder]);
 		});
 
 		it('handles missing rules field gracefully', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ excludedFolders: ['_system'] }));
 
-			await loadAutoMoveConfig('/vault');
+			await loadAutoOrganizeConfig('/vault');
 
-			expect(autoMoveStore.rules).toEqual([]);
-			expect(autoMoveStore.excludedFolders).toEqual(['_system']);
+			expect(autoOrganizeStore.rules).toEqual([]);
+			expect(autoOrganizeStore.excludedFolders).toEqual(['_system']);
 		});
 	});
 
-	describe('saveAutoMoveConfig', () => {
+	describe('saveAutoOrganizeConfig', () => {
 		it('saves current store state to disk', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(writeTextFile).mockResolvedValue(undefined as never);
 
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{ id: 'r1', name: 'Test', expression: 'true', destination: 'Archive', enabled: true }],
 				excludedFolders: ['_system'],
 			});
 
-			await saveAutoMoveConfig('/vault');
+			await saveAutoOrganizeConfig('/vault');
 
 			expect(writeTextFile).toHaveBeenCalledTimes(1);
 			const [path, content] = vi.mocked(writeTextFile).mock.calls[0];
-			expect(path).toBe('/vault/.kokobrain/auto-move-rules.json');
+			expect(path).toBe('/vault/.kokobrain/auto-organize-rules.json');
 			const parsed = JSON.parse(content as string);
 			expect(parsed.rules).toHaveLength(1);
 			expect(parsed.excludedFolders).toEqual(['_system']);
@@ -190,7 +225,7 @@ describe('auto-move.service', () => {
 			vi.mocked(mkdir).mockResolvedValue(undefined as never);
 			vi.mocked(writeTextFile).mockResolvedValue(undefined as never);
 
-			await saveAutoMoveConfig('/vault');
+			await saveAutoOrganizeConfig('/vault');
 
 			expect(mkdir).toHaveBeenCalledWith('/vault/.kokobrain');
 		});
@@ -199,38 +234,38 @@ describe('auto-move.service', () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(writeTextFile).mockRejectedValue(new Error('Permission denied'));
 
-			await expect(saveAutoMoveConfig('/vault')).rejects.toThrow('Permission denied');
+			await expect(saveAutoOrganizeConfig('/vault')).rejects.toThrow('Permission denied');
 		});
 
 		it('throws when mkdir fails and does not write the config file', async () => {
 			vi.mocked(exists).mockResolvedValue(false);
 			vi.mocked(mkdir).mockRejectedValue(new Error('EACCES: permission denied'));
 
-			await expect(saveAutoMoveConfig('/vault')).rejects.toThrow('EACCES: permission denied');
+			await expect(saveAutoOrganizeConfig('/vault')).rejects.toThrow('EACCES: permission denied');
 			expect(writeTextFile).not.toHaveBeenCalled();
 		});
 	});
 
-	describe('registerAutoMoveHook', () => {
+	describe('registerAutoOrganizeHook', () => {
 		it('registers an after-save observer and returns unsubscribe', () => {
 			const unsubscribe = vi.fn();
 			vi.mocked(addAfterSaveObserver).mockReturnValue(unsubscribe);
 
-			const result = registerAutoMoveHook();
+			const result = registerAutoOrganizeHook();
 
 			expect(addAfterSaveObserver).toHaveBeenCalledTimes(1);
 			expect(result).toBe(unsubscribe);
 		});
 
-		it('observer skips when auto-move is disabled', () => {
-			settingsStore.updateAutoMove({ enabled: false });
+		it('observer skips when auto-organize is disabled', () => {
+			settingsStore.updateAutoOrganize({ enabled: false });
 			let capturedObserver: ((path: string, content: string) => void) | null = null;
 			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
 				capturedObserver = observer;
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('content');
 			capturedObserver!('/vault/note.md', 'content');
 
@@ -246,7 +281,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('content');
 			capturedObserver!('/vault/note.md', 'content');
 
@@ -260,7 +295,7 @@ describe('auto-move.service', () => {
 			vaultStore.open('/vault');
 
 			// Add a rule that matches any file with tag 'archive'
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{ id: 'r1', name: 'Archive', expression: "file.hasTag('archive')", destination: 'Archive', enabled: true }],
 				excludedFolders: [],
 			});
@@ -274,7 +309,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 
 			// Simulate saving a file with 'archive' tag in frontmatter
 			const content = '---\ntags:\n  - archive\n---\n# My Note';
@@ -296,7 +331,7 @@ describe('auto-move.service', () => {
 		it('moves a note an object filter matches, and not one it does not', async () => {
 			vi.useFakeTimers();
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{ id: 'r1', name: 'Closed', expression: { or: ["status == 'done'", "status == 'dropped'"] }, destination: 'Archive', enabled: true }],
 				excludedFolders: [],
 			});
@@ -306,7 +341,7 @@ describe('auto-move.service', () => {
 				capturedObserver = observer;
 				return vi.fn();
 			});
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 
 			const active = '---\nstatus: active\n---\n';
 			vi.mocked(readTextFile).mockResolvedValue(active);
@@ -327,7 +362,7 @@ describe('auto-move.service', () => {
 		it('reports an empty object filter and moves nothing', async () => {
 			vi.useFakeTimers();
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{ id: 'r1', name: 'Unfinished', expression: { not: ["file.name == ''"] }, destination: 'Archive', enabled: true }],
 				excludedFolders: [],
 			});
@@ -337,7 +372,7 @@ describe('auto-move.service', () => {
 				capturedObserver = observer;
 				return vi.fn();
 			});
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 
 			const content = '---\nstatus: active\n---\n';
 			vi.mocked(readTextFile).mockResolvedValue(content);
@@ -345,7 +380,7 @@ describe('auto-move.service', () => {
 			await vi.advanceTimersByTimeAsync(100);
 
 			expect(moveItem).not.toHaveBeenCalled();
-			expect(error).toHaveBeenCalledWith('AUTO-MOVE', expect.stringContaining('Rule "Unfinished" failed to evaluate'), expect.objectContaining({ message: 'Every filter needs a value' }));
+			expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', expect.stringContaining('Rule "Unfinished" failed to evaluate'), expect.objectContaining({ message: 'Every filter needs a value' }));
 
 			vi.useRealTimers();
 			vaultStore.close();
@@ -355,7 +390,7 @@ describe('auto-move.service', () => {
 			vi.useFakeTimers();
 
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{ id: 'r1', name: 'Tidy', expression: "file.folder == '/vault/inbox'", destination: 'Archive', enabled: true }],
 				excludedFolders: [],
 			});
@@ -369,7 +404,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 
 			vi.mocked(readTextFile).mockResolvedValue('_sidebar_label: Projects\n');
 			capturedObserver!('/vault/inbox/Projects.view', '_sidebar_label: Projects\n');
@@ -390,7 +425,7 @@ describe('auto-move.service', () => {
 			vi.useFakeTimers();
 
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{ id: 'r1', name: 'Test', expression: 'true', destination: 'Archive', enabled: true }],
 				excludedFolders: ['_templates'],
 			});
@@ -401,7 +436,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('content');
 			capturedObserver!('/vault/_templates/note.md', 'content');
 
@@ -417,7 +452,7 @@ describe('auto-move.service', () => {
 			vi.useFakeTimers();
 
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{
 					id: 'r1',
 					name: 'Archive',
@@ -437,7 +472,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('---\ntags:\n  - archive\n---\n');
 			capturedObserver!('/vault/Archive/note.md', '---\ntags:\n  - archive\n---\n');
 
@@ -456,7 +491,7 @@ describe('auto-move.service', () => {
 			vi.useFakeTimers();
 
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{
 					id: 'r1',
 					name: 'Archive',
@@ -474,7 +509,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('---\n# keep me\ntags:\n  - archive\n---\n');
 			capturedObserver!('/vault/Archive/note.md', '---\n# keep me\ntags:\n  - archive\n---\n');
 
@@ -482,7 +517,7 @@ describe('auto-move.service', () => {
 
 			expect(moveItem).not.toHaveBeenCalled();
 			expect(setIconForPath).not.toHaveBeenCalled();
-			expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped icon for /vault/Archive/note.md: frontmatter is comments');
+			expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped icon for /vault/Archive/note.md: frontmatter is comments');
 
 			vi.useRealTimers();
 			vaultStore.close();
@@ -492,7 +527,7 @@ describe('auto-move.service', () => {
 			vi.useFakeTimers();
 
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{
 					id: 'r1',
 					name: 'Archive',
@@ -512,7 +547,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('---\n# keep me\ntags:\n  - archive\n---\n');
 			capturedObserver!('/vault/notes/note.md', '---\n# keep me\ntags:\n  - archive\n---\n');
 
@@ -520,7 +555,7 @@ describe('auto-move.service', () => {
 
 			expect(moveItem).toHaveBeenCalledWith('/vault/notes/note.md', '/vault/Archive');
 			expect(setIconForPath).not.toHaveBeenCalled();
-			expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped icon for /vault/Archive/note.md: frontmatter is comments');
+			expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped icon for /vault/Archive/note.md: frontmatter is comments');
 
 			vi.useRealTimers();
 			vaultStore.close();
@@ -530,7 +565,7 @@ describe('auto-move.service', () => {
 			vi.useFakeTimers();
 
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{
 					id: 'r1',
 					name: 'Archive',
@@ -550,7 +585,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('---\ntags:\n  - archive\n---\n');
 			capturedObserver!('/vault/notes/note.md', '---\ntags:\n  - archive\n---\n');
 
@@ -567,7 +602,7 @@ describe('auto-move.service', () => {
 			vi.useFakeTimers();
 
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{
 					id: 'r1',
 					name: 'Archive',
@@ -589,7 +624,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('---\ntags:\n  - archive\n---\n');
 			capturedObserver!('/vault/notes/note.md', '---\ntags:\n  - archive\n---\n');
 
@@ -597,7 +632,7 @@ describe('auto-move.service', () => {
 
 			expect(moveItem).toHaveBeenCalledWith('/vault/notes/note.md', '/vault/Archive');
 			expect(setIconForPath).toHaveBeenCalledWith('/vault', '/vault/Archive/note.md', 'lucide', 'archive', undefined, undefined);
-			expect(error).toHaveBeenCalledWith('AUTO-MOVE', 'Failed to apply icon:', failure);
+			expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Failed to apply icon:', failure);
 
 			vi.useRealTimers();
 			vaultStore.close();
@@ -607,7 +642,7 @@ describe('auto-move.service', () => {
 			vi.useFakeTimers();
 
 			vaultStore.open('/vault');
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{ id: 'r1', name: 'Archive', expression: "file.hasTag('archive')", destination: 'Archive', enabled: true }],
 				excludedFolders: [],
 			});
@@ -618,7 +653,7 @@ describe('auto-move.service', () => {
 				return vi.fn();
 			});
 
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			vi.mocked(readTextFile).mockResolvedValue('---\ntags:\n  - archive\n---\n');
 			capturedObserver!('/vault/Archive/note.md', '---\ntags:\n  - archive\n---\n');
 
@@ -640,7 +675,7 @@ describe('auto-move.service', () => {
 				captured = observer;
 				return vi.fn();
 			});
-			registerAutoMoveHook();
+			registerAutoOrganizeHook();
 			return captured!;
 		}
 
@@ -663,7 +698,7 @@ describe('auto-move.service', () => {
 		});
 
 		it('a rule with no destination writes its property in place and does not move the note', async () => {
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{
 					id: 'r1',
 					name: 'AWS topic notes',
@@ -691,13 +726,13 @@ describe('auto-move.service', () => {
 		});
 
 		/** A rule matching every note, with no destination unless given. */
-		function rule(id: string, properties: AutoMoveRule['properties'], overrides: Partial<AutoMoveRule> = {}): AutoMoveRule {
+		function rule(id: string, properties: AutoOrganizeRule['properties'], overrides: Partial<AutoOrganizeRule> = {}): AutoOrganizeRule {
 			return { id, name: `Rule ${id}`, expression: 'true', destination: '', enabled: true, properties, ...overrides };
 		}
 
 		/** Loads `rules`, saves `path` with `content` on disk, and runs past the debounce. */
-		async function saveAndRun(rules: AutoMoveRule[], path: string, content: string): Promise<void> {
-			autoMoveStore.setConfig({ rules, excludedFolders: [] });
+		async function saveAndRun(rules: AutoOrganizeRule[], path: string, content: string): Promise<void> {
+			autoOrganizeStore.setConfig({ rules, excludedFolders: [] });
 			vi.mocked(readTextFile).mockResolvedValue(content);
 			captureObserver()(path, content);
 			await vi.advanceTimersByTimeAsync(100);
@@ -815,7 +850,7 @@ describe('auto-move.service', () => {
 		});
 
 		it('evaluates the note as it is when the timer fires, not as it was saved', async () => {
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [rule('r1', [{ key: 'x', value: 1, mode: 'always' }], { expression: 'status == "done"' })],
 				excludedFolders: [],
 			});
@@ -833,7 +868,7 @@ describe('auto-move.service', () => {
 		});
 
 		it('evaluates the open tab content over the disk content', async () => {
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [rule('r1', [{ key: 'x', value: 1, mode: 'always' }], { expression: 'status == "done"' })],
 				excludedFolders: [],
 			});
@@ -861,7 +896,7 @@ describe('auto-move.service', () => {
 		});
 
 		it('a note deleted before the timer fires produces no write and no error log', async () => {
-			autoMoveStore.setConfig({ rules: [rule('r1', [{ key: 'x', value: 1, mode: 'always' }])], excludedFolders: [] });
+			autoOrganizeStore.setConfig({ rules: [rule('r1', [{ key: 'x', value: 1, mode: 'always' }])], excludedFolders: [] });
 			vi.mocked(readTextFile).mockRejectedValue(new Error('failed to open file: No such file or directory'));
 			vi.mocked(exists).mockResolvedValue(false);
 
@@ -872,12 +907,12 @@ describe('auto-move.service', () => {
 			expect(error).not.toHaveBeenCalled();
 		});
 
-		it('turning Auto Move off before the timer fires prevents the write', async () => {
-			autoMoveStore.setConfig({ rules: [rule('r1', [{ key: 'x', value: 1, mode: 'always' }])], excludedFolders: [] });
+		it('turning Auto Organize off before the timer fires prevents the write', async () => {
+			autoOrganizeStore.setConfig({ rules: [rule('r1', [{ key: 'x', value: 1, mode: 'always' }])], excludedFolders: [] });
 			vi.mocked(readTextFile).mockResolvedValue('---\nstatus: done\n---\n');
 
 			captureObserver()(NOTE, '---\nstatus: done\n---\n');
-			settingsStore.updateAutoMove({ enabled: false });
+			settingsStore.updateAutoOrganize({ enabled: false });
 			await vi.advanceTimersByTimeAsync(100);
 
 			expect(readTextFile).not.toHaveBeenCalled();
@@ -900,7 +935,7 @@ describe('auto-move.service', () => {
 			await saveAndRun(rules, NOTE, '---\nstatus: done\n---\n');
 
 			expect(error).toHaveBeenCalledTimes(1);
-			expect(error).toHaveBeenCalledWith('AUTO-MOVE', `Rule "Rule r1" failed to set properties on ${NOTE}:`, failure);
+			expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', `Rule "Rule r1" failed to set properties on ${NOTE}:`, failure);
 		});
 
 		describe('gates', () => {
@@ -914,38 +949,38 @@ describe('auto-move.service', () => {
 			it('does not write a .canvas file', async () => {
 				await saveAndRun(stamp, '/vault/notes/board.canvas', '{"nodes":[],"edges":[]}');
 				expect(writeTextFile).not.toHaveBeenCalled();
-				expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped properties for /vault/notes/board.canvas: not Markdown');
+				expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped properties for /vault/notes/board.canvas: not Markdown');
 			});
 
 			it('does not write a note under the system folder', async () => {
 				await saveAndRun(stamp, '/vault/_system/lists/note.md', '---\nstatus: done\n---\n');
 				expect(writeTextFile).not.toHaveBeenCalled();
-				expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped properties for /vault/_system/lists/note.md: inside _system/');
+				expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped properties for /vault/_system/lists/note.md: inside _system/');
 			});
 
 			it('does not write a note in a templates folder set outside the system folder', async () => {
 				settingsStore.updateTemplates({ folder: 'Templates' });
 				await saveAndRun(stamp, '/vault/Templates/Meeting.md', '---\nstatus: done\n---\n');
 				expect(writeTextFile).not.toHaveBeenCalled();
-				expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped properties for /vault/Templates/Meeting.md: inside Templates/');
+				expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped properties for /vault/Templates/Meeting.md: inside Templates/');
 			});
 
 			it('does not write a type definition note', async () => {
 				await saveAndRun(stamp, '/vault/Project.md', '---\n_type: Type\n---\n# Project\n');
 				expect(writeTextFile).not.toHaveBeenCalled();
-				expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped properties for /vault/Project.md: type definition');
+				expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped properties for /vault/Project.md: type definition');
 			});
 
 			it('does not write lossy frontmatter', async () => {
 				await saveAndRun(stamp, NOTE, '---\n# keep me\nstatus: done\n---\n');
 				expect(writeTextFile).not.toHaveBeenCalled();
-				expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped properties for /vault/notes/note.md: frontmatter is comments');
+				expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped properties for /vault/notes/note.md: frontmatter is comments');
 			});
 
 			it('does not write an empty --- block', async () => {
 				await saveAndRun(stamp, NOTE, '---\n---\nbody');
 				expect(writeTextFile).not.toHaveBeenCalled();
-				expect(debug).toHaveBeenCalledWith('AUTO-MOVE', 'Skipped properties for /vault/notes/note.md: frontmatter block is unreadable');
+				expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped properties for /vault/notes/note.md: frontmatter block is unreadable');
 			});
 
 			it('still writes a sibling note outside the gated folders', async () => {
@@ -956,12 +991,12 @@ describe('auto-move.service', () => {
 		});
 	});
 
-	describe('toggleAutoMoveHook', () => {
+	describe('toggleAutoOrganizeHook', () => {
 		it('registers hook when enabled and not already registered', () => {
 			const unsubscribe = vi.fn();
 			vi.mocked(addAfterSaveObserver).mockReturnValue(unsubscribe);
 
-			const result = toggleAutoMoveHook(true);
+			const result = toggleAutoOrganizeHook(true);
 
 			expect(addAfterSaveObserver).toHaveBeenCalledTimes(1);
 			expect(result).toBe(unsubscribe);
@@ -970,8 +1005,8 @@ describe('auto-move.service', () => {
 		it('does not double-register when called twice with enabled=true', () => {
 			vi.mocked(addAfterSaveObserver).mockReturnValue(vi.fn());
 
-			toggleAutoMoveHook(true);
-			toggleAutoMoveHook(true);
+			toggleAutoOrganizeHook(true);
+			toggleAutoOrganizeHook(true);
 
 			expect(addAfterSaveObserver).toHaveBeenCalledTimes(1);
 		});
@@ -980,35 +1015,35 @@ describe('auto-move.service', () => {
 			const unsubscribe = vi.fn();
 			vi.mocked(addAfterSaveObserver).mockReturnValue(unsubscribe);
 
-			toggleAutoMoveHook(true);
-			toggleAutoMoveHook(false);
+			toggleAutoOrganizeHook(true);
+			toggleAutoOrganizeHook(false);
 
 			expect(unsubscribe).toHaveBeenCalledTimes(1);
 		});
 
 		it('does nothing when disabling an already-disabled hook', () => {
-			// Ensure clean state (resetAutoMove clears currentUnsubscribe)
-			resetAutoMove();
+			// Ensure clean state (resetAutoOrganize clears currentUnsubscribe)
+			resetAutoOrganize();
 
-			const result = toggleAutoMoveHook(false);
+			const result = toggleAutoOrganizeHook(false);
 
 			expect(result).toBeNull();
 			expect(addAfterSaveObserver).not.toHaveBeenCalled();
 		});
 	});
 
-	describe('resetAutoMove', () => {
+	describe('resetAutoOrganize', () => {
 		it('clears store state', () => {
-			autoMoveStore.setConfig({
+			autoOrganizeStore.setConfig({
 				rules: [{ id: 'r1', name: 'Test', expression: 'true', destination: 'Archive', enabled: true }],
 				excludedFolders: ['_system'],
 			});
 
-			resetAutoMove();
+			resetAutoOrganize();
 
-			expect(autoMoveStore.rules).toEqual([]);
-			expect(autoMoveStore.excludedFolders).toEqual([]);
-			expect(autoMoveStore.isConfigLoaded).toBe(false);
+			expect(autoOrganizeStore.rules).toEqual([]);
+			expect(autoOrganizeStore.excludedFolders).toEqual([]);
+			expect(autoOrganizeStore.isConfigLoaded).toBe(false);
 		});
 	});
 });

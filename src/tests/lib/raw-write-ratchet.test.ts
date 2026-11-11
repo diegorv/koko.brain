@@ -29,7 +29,7 @@ const ALLOWED: Record<string, string[]> = {
 	'src/lib/core/editor/editor.service.ts': ['the editor save; notifyAfterSave follows'],
 	'src/lib/core/settings/settings.service.ts': ['settings JSON in .kokobrain, not a note'],
 	'src/lib/core/trash/trash.service.ts': ['trash manifest JSON, not a note'],
-	'src/lib/features/auto-move/auto-move.service.ts': ['auto-move config JSON in .kokobrain, not a note'],
+	'src/lib/features/auto-organize/auto-organize.service.ts': ['auto-organize config JSON in .kokobrain, not a note'],
 	'src/lib/features/deep-link/deep-link.service.ts': [
 		'deep-link prepend to an existing note; notifyAfterSave follows',
 		'deep-link append to an existing note; notifyAfterSave follows',

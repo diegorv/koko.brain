@@ -266,7 +266,7 @@ Creates a **new** file at exactly `path` and resolves to `path` as you passed it
 - Writes `content` verbatim as UTF-8 through a temp file renamed into place. No template, no frontmatter, no trailing newline added.
 - Works for any extension. A `.md` / `.markdown` file is added to the vault index, full-text search and the semantic index at once; other files only go into the explorer.
 
-What `create` does **not** do: it runs none of the after-save steps. No file history snapshot, no Auto Move evaluation, no `ctx.onNoteSaved` callbacks (in this mod or any other), and no vault-wide cache invalidation, so a QueryJS block may show the old result until the next index refresh or save. It does not open the file.
+What `create` does **not** do: it runs none of the after-save steps. No file history snapshot, no Auto Organize evaluation, no `ctx.onNoteSaved` callbacks (in this mod or any other), and no vault-wide cache invalidation, so a QueryJS block may show the old result until the next index refresh or save. It does not open the file.
 
 > [!TIP]
 > To create a note **from the user's template** (a daily note, a typed note) use the raw app functions (`ctx.app.openOrCreateDailyNote()`, `ctx.app.createTypedNote(...)`, `ctx.app.openOrCreateNote(...)`), described in [Raw app](09-raw-app.md). `create` writes exactly your text.
@@ -286,7 +286,7 @@ Overwrites an **existing** file and resolves to `undefined`. Order: path, conten
 4. If a **clean** tab holds the file, it now shows the new text and stays clean (its saved copy is updated too). If that tab is the active one, the editor replaces its document by a minimal diff with no undo entry, and puts the caret back at its **old character offset**, not mapped through the change (a range selection collapses to that point). Text inserted before the caret therefore moves the caret backwards relative to the user's text: after a write that adds 30 characters of frontmatter, the next keystroke lands 30 characters earlier, often inside the `---` block. A background tab gets the same offset back when the user returns to it. No autosave is armed. To change the **active** note, edit through the editor instead ([below](#editing-a-note-that-may-be-open)), which keeps the caret with the user's text.
 5. Runs the after-save steps, as if the user had saved the file in the editor (see below), unless the file is mod code.
 
-There is **no equality guard**: writing identical text runs the whole pipeline again (index update, QueryJS invalidation, Auto Move check, `onNoteSaved`). Only file history skips it: a snapshot identical to the file's latest one is not stored. Use [`upsertNote`](#generated-notes-upsertnote) to skip identical writes.
+There is **no equality guard**: writing identical text runs the whole pipeline again (index update, QueryJS invalidation, Auto Organize check, `onNoteSaved`). Only file history skips it: a snapshot identical to the file's latest one is not stored. Use [`upsertNote`](#generated-notes-upsertnote) to skip identical writes.
 
 > [!WARNING]
 > A save callback that writes the note it was told about calls itself again. `ctx.onNoteSaved` fires for `ctx.vault.write`, including the mod's own. Compare old and new text before writing. See [Events](07-events-and-reactivity.md#avoiding-save-loops).
@@ -302,15 +302,15 @@ There is a small window between the dirty-tab check and the disk write. Keystrok
 | File explorer | yes (new entry) | already there | already there | no (dot-folder) |
 | Clean open tab updated | n/a | yes | yes | n/a |
 | File history snapshot | no | **yes, for any file type** (skipped when identical to the latest snapshot) | no | no |
-| Auto Move evaluation | no | yes (any file but `.view`), when Auto Move is on and has rules or type definitions | no | no |
+| Auto Organize evaluation | no | yes (any file but `.view`), when Auto Organize is on and has rules or type definitions | no | no |
 | `ctx.onNoteSaved` of every mod | no | **yes, for any file type** | no | no |
 | Vault-wide caches dropped (QueryJS results, unlinked mentions, kanban) | no | yes | no | no |
 | Reloads the mod when the file is its `main.js` or `manifest.json` | yes | n/a | **yes** | n/a |
 
-"Mod code" means a file under `<vault>/_system/mods/` whose name does not end in `.md`, `.markdown` or `.view`. Everything else gets the full after-save pipeline, so writing `Data/state.json` or `board.canvas` adds a file history snapshot, may trigger an Auto Move rule and fires `onNoteSaved` with that path. Filter by extension in save callbacks.
+"Mod code" means a file under `<vault>/_system/mods/` whose name does not end in `.md`, `.markdown` or `.view`. Everything else gets the full after-save pipeline, so writing `Data/state.json` or `board.canvas` adds a file history snapshot, may trigger an Auto Organize rule and fires `onNoteSaved` with that path. Filter by extension in save callbacks.
 
 > [!NOTE]
-> **Auto Move can move the note you just wrote.** When Auto Move is on and has rules (its own, or the lifecycle rules of type definitions), `write` schedules a rule check after its debounce. A note that matches a rule moves to another folder, so a path you hold may stop existing a moment later. Re-check with `exists` before a later write, or catch the `does not exist; use create` rejection.
+> **Auto Organize can move the note you just wrote.** When Auto Organize is on and has rules (its own, or the lifecycle rules of type definitions), `write` schedules a rule check after its debounce. A note that matches a rule moves to another folder, so a path you hold may stop existing a moment later. Re-check with `exists` before a later write, or catch the `does not exist; use create` rejection.
 
 ### Index lag
 

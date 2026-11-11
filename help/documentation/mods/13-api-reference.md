@@ -152,7 +152,7 @@ One dialog shows at a time across all mods; later calls queue. Every method is a
 
 ## ctx.loadData and ctx.saveData
 
-**stable**. The mod's JSON data at `<vault>/.kokobrain/mods/<id>/data.json`, out of the index, search, file history and Auto Move. Both go through one queue per mod, in call order; a call that reaches the head after unload rejects `Mod "<id>" is unloaded` without touching the disk.
+**stable**. The mod's JSON data at `<vault>/.kokobrain/mods/<id>/data.json`, out of the index, search, file history and Auto Organize. Both go through one queue per mod, in call order; a call that reaches the head after unload rejects `Mod "<id>" is unloaded` without touching the disk.
 
 | Member | Signature | Resolves to | Rejects with |
 |--------|-----------|-------------|--------------|

@@ -26,5 +26,5 @@ on `(path, content)` rather than just `content`.
 
 **This note matches the "Tag-as-bug → Bug Tracker" rule** (`status` is
 `open`, not `closed`) and will be moved to `Inbox/Bugs/` the next time
-auto-move evaluates. Once `status` flips to `closed`, the rule no longer
+Auto Organize evaluates. Once `status` flips to `closed`, the rule no longer
 matches and the file stays where it is.

@@ -44,7 +44,7 @@ export function setBooleanFlag(
 /**
  * Sets the organized flag. `_archived` is left as-is: restoring an archived
  * note is its own action, so a Cmd+E slip cannot unarchive a note (and fire
- * its type's unarchive auto-move).
+ * its type's unarchive auto-organize).
  */
 export function toggleOrganized(properties: Property[], organized: boolean): Property[] {
 	return setBooleanFlag(properties, '_organized', organized);

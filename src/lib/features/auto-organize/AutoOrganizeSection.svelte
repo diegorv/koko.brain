@@ -8,11 +8,11 @@
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
-	import AutoMoveRuleRow from './AutoMoveRuleRow.svelte';
-	import { autoMoveStore } from './auto-move.store.svelte';
-	import { saveAutoMoveConfig, toggleAutoMoveHook } from './auto-move.service';
-	import { generateRuleId } from './auto-move.logic';
-	import type { AutoMoveRule } from './auto-move.types';
+	import AutoOrganizeRuleRow from './AutoOrganizeRuleRow.svelte';
+	import { autoOrganizeStore } from './auto-organize.store.svelte';
+	import { saveAutoOrganizeConfig, toggleAutoOrganizeHook } from './auto-organize.service';
+	import { generateRuleId } from './auto-organize.logic';
+	import type { AutoOrganizeRule } from './auto-organize.types';
 	import { error } from '#lib/utils/debug.js';
 	import { clamp } from '#lib/utils/clamp.js';
 
@@ -32,8 +32,8 @@
 
 	function saveConfig() {
 		if (vaultStore.path) {
-			saveAutoMoveConfig(vaultStore.path).catch((err) =>
-				error('AUTO-MOVE', 'Failed to save config:', err),
+			saveAutoOrganizeConfig(vaultStore.path).catch((err) =>
+				error('AUTO-ORGANIZE', 'Failed to save config:', err),
 			);
 		}
 	}
@@ -47,7 +47,7 @@
 	}
 
 	function addRule() {
-		const rule: AutoMoveRule = {
+		const rule: AutoOrganizeRule = {
 			id: generateRuleId(),
 			name: '',
 			expression: '',
@@ -55,67 +55,67 @@
 			// A rule runs on every save, so it stays off until the user finishes it.
 			enabled: false,
 		};
-		autoMoveStore.addRule(rule);
+		autoOrganizeStore.addRule(rule);
 		saveConfig();
 	}
 
-	function updateRule(id: string, updates: Partial<AutoMoveRule>) {
-		autoMoveStore.updateRule(id, updates);
+	function updateRule(id: string, updates: Partial<AutoOrganizeRule>) {
+		autoOrganizeStore.updateRule(id, updates);
 		saveConfigDebounced();
 	}
 
 	function removeRule(id: string) {
-		autoMoveStore.removeRule(id);
+		autoOrganizeStore.removeRule(id);
 		saveConfig();
 	}
 
 	function moveRuleUp(id: string) {
-		const rules = [...autoMoveStore.rules];
+		const rules = [...autoOrganizeStore.rules];
 		const idx = rules.findIndex((r) => r.id === id);
 		if (idx <= 0) return;
 		[rules[idx - 1], rules[idx]] = [rules[idx], rules[idx - 1]];
-		autoMoveStore.reorderRules(rules);
+		autoOrganizeStore.reorderRules(rules);
 		saveConfig();
 	}
 
 	function moveRuleDown(id: string) {
-		const rules = [...autoMoveStore.rules];
+		const rules = [...autoOrganizeStore.rules];
 		const idx = rules.findIndex((r) => r.id === id);
 		if (idx < 0 || idx >= rules.length - 1) return;
 		[rules[idx], rules[idx + 1]] = [rules[idx + 1], rules[idx]];
-		autoMoveStore.reorderRules(rules);
+		autoOrganizeStore.reorderRules(rules);
 		saveConfig();
 	}
 
 	function addExcludedFolder() {
 		const folder = newExcludedFolder.trim();
 		if (!folder) return;
-		if (autoMoveStore.excludedFolders.includes(folder)) return;
-		autoMoveStore.setExcludedFolders([...autoMoveStore.excludedFolders, folder]);
+		if (autoOrganizeStore.excludedFolders.includes(folder)) return;
+		autoOrganizeStore.setExcludedFolders([...autoOrganizeStore.excludedFolders, folder]);
 		newExcludedFolder = '';
 		saveConfig();
 	}
 
 	function removeExcludedFolder(folder: string) {
-		autoMoveStore.setExcludedFolders(
-			autoMoveStore.excludedFolders.filter((f) => f !== folder),
+		autoOrganizeStore.setExcludedFolders(
+			autoOrganizeStore.excludedFolders.filter((f) => f !== folder),
 		);
 		saveConfig();
 	}
 </script>
 
 <div class="flex flex-col gap-2">
-	<h2 class="mb-4 text-lg font-semibold">Auto Move</h2>
+	<h2 class="mb-4 text-lg font-semibold">Auto Organize</h2>
 
 	<SettingItem
-		label="Enable Auto Move"
+		label="Enable Auto Organize"
 		description="Automatically move notes to folders based on rules when saved"
 	>
 		<Switch
-			checked={settingsStore.autoMove.enabled}
+			checked={settingsStore.autoOrganize.enabled}
 			onCheckedChange={(enabled) => {
-				settingsStore.updateAutoMove({ enabled });
-				toggleAutoMoveHook(enabled);
+				settingsStore.updateAutoOrganize({ enabled });
+				toggleAutoOrganizeHook(enabled);
 			}}
 		/>
 	</SettingItem>
@@ -130,11 +130,11 @@
 			min={0.5}
 			max={30}
 			step={0.5}
-			value={String(settingsStore.autoMove.debounceMs / 1000)}
+			value={String(settingsStore.autoOrganize.debounceMs / 1000)}
 			oninput={(e) => {
 				const seconds = Number((e.currentTarget as HTMLInputElement).value);
 				const ms = clampDebounce(Math.round(seconds * 1000));
-				settingsStore.updateAutoMove({ debounceMs: ms });
+				settingsStore.updateAutoOrganize({ debounceMs: ms });
 			}}
 		/>
 	</SettingItem>
@@ -153,17 +153,17 @@
 		Expressions use the same syntax as Collection filters (e.g. <code class="rounded-xs bg-muted px-1">file.hasTag('archive')</code>).
 	</p>
 
-	{#if autoMoveStore.rules.length === 0}
+	{#if autoOrganizeStore.rules.length === 0}
 		<div class="rounded-lg border border-dashed border-border p-6 text-center text-meta text-muted-foreground">
 			No rules configured. Click "Add rule" to create one.
 		</div>
 	{:else}
 		<div class="flex flex-col gap-2">
-			{#each autoMoveStore.rules as rule, i (rule.id)}
-				<AutoMoveRuleRow
+			{#each autoOrganizeStore.rules as rule, i (rule.id)}
+				<AutoOrganizeRuleRow
 					{rule}
 					isFirst={i === 0}
-					isLast={i === autoMoveStore.rules.length - 1}
+					isLast={i === autoOrganizeStore.rules.length - 1}
 					onupdate={updateRule}
 					onremove={removeRule}
 					onmoveup={moveRuleUp}
@@ -199,9 +199,9 @@
 			</Button>
 		</div>
 
-		{#if autoMoveStore.excludedFolders.length > 0}
+		{#if autoOrganizeStore.excludedFolders.length > 0}
 			<div class="flex flex-wrap gap-1.5">
-				{#each autoMoveStore.excludedFolders as folder}
+				{#each autoOrganizeStore.excludedFolders as folder}
 					<span class="inline-flex items-center gap-1 rounded-md bg-muted px-2 py-1 text-label">
 						{folder}
 						<button

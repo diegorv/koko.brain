@@ -23,4 +23,4 @@ team has been onboarded. Closing this note out.
   the privacy gain.
 
 **This note matches the "Archive done projects" rule** and will be moved
-to `Archive/Projects/` the next time auto-move evaluates after a save.
+to `Archive/Projects/` the next time Auto Organize evaluates after a save.

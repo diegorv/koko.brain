@@ -219,10 +219,10 @@ vi.mock('#lib/features/command-palette/command-palette.service.js', () => ({
 	resetCommandPalette: vi.fn(),
 }));
 
-vi.mock('#lib/features/auto-move/auto-move.service.js', () => ({
-	loadAutoMoveConfig: vi.fn(() => Promise.resolve()),
-	toggleAutoMoveHook: vi.fn(),
-	resetAutoMove: vi.fn(),
+vi.mock('#lib/features/auto-organize/auto-organize.service.js', () => ({
+	loadAutoOrganizeConfig: vi.fn(() => Promise.resolve()),
+	toggleAutoOrganizeHook: vi.fn(),
+	resetAutoOrganize: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
@@ -272,7 +272,7 @@ import { registerTypesNavigatorPathChangeConsumer } from '#lib/features/rail-she
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
-import { loadAutoMoveConfig, resetAutoMove, toggleAutoMoveHook } from '#lib/features/auto-move/auto-move.service.js';
+import { loadAutoOrganizeConfig, resetAutoOrganize, toggleAutoOrganizeHook } from '#lib/features/auto-organize/auto-organize.service.js';
 import { autoOpenDailyNote, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -481,18 +481,18 @@ describe('initializeVault', () => {
 		expect(loadRecentIcons).toHaveBeenCalledWith('/vault');
 	});
 
-	it('finishes the bookmarks migration before the vault scan and the auto-move hook', async () => {
+	it('finishes the bookmarks migration before the vault scan and the auto-organize hook', async () => {
 		let releaseMigration: () => void = () => {};
 		vi.mocked(migrateBookmarksToFavorites).mockImplementationOnce(
 			() => new Promise<void>((resolve) => { releaseMigration = resolve; }),
 		);
-		settingsStore.updateAutoMove({ enabled: true });
+		settingsStore.updateAutoOrganize({ enabled: true });
 
 		const init = initializeVault('/vault');
 		await new Promise((r) => setTimeout(r, 0));
 		expect(migrateBookmarksToFavorites).toHaveBeenCalledWith('/vault');
 		expect(buildIndex).not.toHaveBeenCalled();
-		expect(toggleAutoMoveHook).not.toHaveBeenCalled();
+		expect(toggleAutoOrganizeHook).not.toHaveBeenCalled();
 
 		releaseMigration();
 		await init;
@@ -1644,7 +1644,7 @@ describe('lifecycle order', () => {
 			registerTypesNavigatorPathChangeConsumer,
 			registerNeighbourhoodPathChangeConsumer,
 		);
-		const loads = firstCalls(migrateBookmarksToFavorites, loadRecentIcons, loadTrash, loadAutoMoveConfig);
+		const loads = firstCalls(migrateBookmarksToFavorites, loadRecentIcons, loadTrash, loadAutoOrganizeConfig);
 		const watcher = firstCalls(onFileChange, startWatching);
 
 		expect(Math.max(...consumers)).toBeLessThan(Math.min(...loads));
@@ -1673,7 +1673,7 @@ describe('lifecycle order', () => {
 			resetCollection,
 			resetQuickSwitcher,
 			resetCommandPalette,
-			resetAutoMove,
+			resetAutoOrganize,
 			resetPeriodicNotes,
 			resetTrash,
 		));

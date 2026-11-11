@@ -49,7 +49,7 @@ On the right:
 | Star | Toggle Favorite (`_favorite`), `Cmd+D`. Filled when on. |
 | Check circle | Toggle Organized (`_organized`), `Cmd+E`. Filled when on. |
 | Code | **Raw**: toggle source mode (see [Editor Modes](#editor-modes)), `Cmd+\`. Highlighted while on. |
-| More (`...`) | **Copy deeplink** (a `kokobrain://open?vault=...&file=...` link that opens this note, see [Deep Links](23-deep-links.md)), **Archive this note** / **Restore this archived note** (`_archived`; a type's `_archive_to` folder applies, see [Auto Move](22-auto-move.md#type-driven-lifecycle-rules)), and **Delete this note** (moves it to the Trash after a confirmation). |
+| More (`...`) | **Copy deeplink** (a `kokobrain://open?vault=...&file=...` link that opens this note, see [Deep Links](23-deep-links.md)), **Archive this note** / **Restore this archived note** (`_archived`; a type's `_archive_to` folder applies, see [Auto Organize](22-auto-organize.md#type-driven-lifecycle-rules)), and **Delete this note** (moves it to the Trash after a confirmation). |
 
 These actions start in More:
 

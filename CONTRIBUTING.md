@@ -180,7 +180,7 @@ src/lib/
                         #   trash, layout, keybindings, status bar, note creator, zoom
   features/             # Always loaded: search, backlinks, tags, properties, tasks, canvas,
                         #   collection, file-history, file-icons, copy-block-link,
-                        #   auto-move, command-palette, quick-switcher, folder-notes,
+                        #   auto-organize, command-palette, quick-switcher, folder-notes,
                         #   outgoing-links, deep-link, views
   plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
                         #   graph-view, queryjs, word-count, kanban, one-on-one

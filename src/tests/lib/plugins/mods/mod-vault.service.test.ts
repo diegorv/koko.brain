@@ -507,7 +507,7 @@ describe('ctx.vault and ctx.workspace', () => {
 			expect(writes()).toEqual([]);
 		});
 
-		it('neither call reaches the index, search, history, Auto Move, the file tree or the vault-wide invalidation', async () => {
+		it('neither call reaches the index, search, history, Auto Organize, the file tree or the vault-wide invalidation', async () => {
 			const saved: string[] = [];
 			addAfterSaveObserver((path) => saved.push(path));
 			let invalidated = 0;

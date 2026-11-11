@@ -4,7 +4,7 @@
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`. Nothing under `src-tauri/` uses the name.
 
@@ -65,13 +65,13 @@
 
 ### Acceptance
 
-- [ ] Failing test first: a Settings test asserts that the navigation shows "Auto Organize" under the section id `auto-organize`.
-- [ ] A service test asserts that the rules load from `.kokobrain/auto-organize-rules.json`, and that a vault holding only `auto-move-rules.json` loads no rules.
-- [ ] A case-insensitive grep for `auto-move`, `automove`, `auto_move` and `Auto Move` over `src/`, `help/`, `e2e/` and `scripts/` finds only the "Formerly called Auto Move" line and the `.scratch` history.
-- [ ] `feature-cycle-baseline.json` has the same number of entries, with `auto-organize` in place of `auto-move`, and `layer-rules.test.ts` passes.
-- [ ] `src/tests/help/` and `src/tests/scripts/sync-wiki-docs.test.ts` pass with the renamed page and examples.
-- [ ] `22-auto-organize.md` has the overview example, the Filters section with the reference and every trap in Behavior 7, the Actions section, and the five complete examples. Each example rule is valid: put them in `help/examples/auto-organize-features/.kokobrain/auto-organize-rules.json` (or a test fixture), and have `examples-scoping.test.ts` or a new test parse and evaluate each against a sample note.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first: a Settings test asserts that the navigation shows "Auto Organize" under the section id `auto-organize`.
+- [x] A service test asserts that the rules load from `.kokobrain/auto-organize-rules.json`, and that a vault holding only `auto-move-rules.json` loads no rules.
+- [x] A case-insensitive grep for `auto-move`, `automove`, `auto_move` and `Auto Move` over `src/`, `help/`, `e2e/` and `scripts/` finds only the "Formerly called Auto Move" line and the `.scratch` history.
+- [x] `feature-cycle-baseline.json` has the same number of entries, with `auto-organize` in place of `auto-move`, and `layer-rules.test.ts` passes.
+- [x] `src/tests/help/` and `src/tests/scripts/sync-wiki-docs.test.ts` pass with the renamed page and examples.
+- [x] `22-auto-organize.md` has the overview example, the Filters section with the reference and every trap in Behavior 7, the Actions section, and the five complete examples. Each example rule is valid: put them in `help/examples/auto-organize-features/.kokobrain/auto-organize-rules.json` (or a test fixture), and have `examples-scoping.test.ts` or a new test parse and evaluate each against a sample note.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Review amendments (2026-11-10)
 
@@ -97,3 +97,5 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
 - Large but mechanical: about 62 files mention the name. Behavior 7 is docs only. It was merged in on the owner's request, to rewrite the help page once.
 
 ## Comments
+
+- 2026-11-10, branch issue/06-rename-auto-move-to-auto-organize: Auto Move renamed to Auto Organize in code, settings, help and docs (rules file now `.kokobrain/auto-organize-rules.json`); help page documents filters, actions and five validated example rules. Review round 1 APPROVED (findings fixed in 9029957eb), round 2 APPROVED (two nits: settings legacy-key test is covered by the grep allow-list; README icon note left optional). Tests: pnpm check 0 errors; full suite at 9029957eb 609 files, 15083 passed, 54 skipped, exit=0.

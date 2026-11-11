@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { generateLifecycleRules } from '#lib/features/auto-move/type-lifecycle-rules.js';
-import { findMatchingRule } from '#lib/features/auto-move/auto-move.logic.js';
+import { generateLifecycleRules } from '#lib/features/auto-organize/type-lifecycle-rules.js';
+import { findMatchingRule } from '#lib/features/auto-organize/auto-organize.logic.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -142,7 +142,7 @@ describe('generateLifecycleRules - evaluated against real note records', () => {
 		['Project', makeTypeMetadata({ name: 'Project', archiveTo: '{folder}/_archive' })],
 	]);
 
-	/** Builds a record the same way auto-move.service.ts::evaluateAndMove does. */
+	/** Builds a record the same way auto-organize.service.ts::evaluateAndMove does. */
 	function recordFor(path: string, frontmatter: string): PropertyIndexRecord {
 		return buildNoteRecord(path, `---\n${frontmatter}\n---\n\nbody\n`);
 	}

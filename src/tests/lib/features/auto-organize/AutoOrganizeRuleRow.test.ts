@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
 import { mount, unmount, flushSync, tick } from 'svelte';
-import AutoMoveRuleRow from '#lib/features/auto-move/AutoMoveRuleRow.svelte';
-import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
+import AutoOrganizeRuleRow from '#lib/features/auto-organize/AutoOrganizeRuleRow.svelte';
+import type { AutoOrganizeRule } from '#lib/features/auto-organize/auto-organize.types.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import Harness from '../../../fixtures/AutoMoveRuleRowHarness.svelte';
+import Harness from '../../../fixtures/AutoOrganizeRuleRowHarness.svelte';
 
 // The icon grid's bits-ui ScrollArea observes its size; jsdom has no ResizeObserver.
 globalThis.ResizeObserver ??= class {
@@ -31,7 +31,7 @@ function dialogContent(): HTMLElement | null {
 	return document.querySelector<HTMLElement>('[data-slot="dialog-content"]');
 }
 
-const RULE: AutoMoveRule = {
+const RULE: AutoOrganizeRule = {
 	id: 'r1',
 	name: 'Archive',
 	expression: '',
@@ -40,7 +40,7 @@ const RULE: AutoMoveRule = {
 	icon: { iconPack: 'lucide', iconName: 'star', color: '#ef4444' },
 };
 
-describe('AutoMoveRuleRow icon picker', () => {
+describe('AutoOrganizeRuleRow icon picker', () => {
 	let component: Record<string, unknown> | null = null;
 
 	afterEach(() => {
@@ -52,7 +52,7 @@ describe('AutoMoveRuleRow icon picker', () => {
 	async function openPicker() {
 		const onupdate = vi.fn();
 		const target = document.body.appendChild(document.createElement('div'));
-		component = mount(AutoMoveRuleRow, {
+		component = mount(AutoOrganizeRuleRow, {
 			target,
 			props: { rule: RULE, isFirst: true, isLast: true, onupdate, onremove: () => {}, onmoveup: () => {}, onmovedown: () => {} },
 		});
@@ -78,9 +78,9 @@ describe('AutoMoveRuleRow icon picker', () => {
 
 const VAULT = '/vault';
 
-const BLANK: AutoMoveRule = { id: 'r1', name: 'Rule', expression: '', destination: '', enabled: false };
+const BLANK: AutoOrganizeRule = { id: 'r1', name: 'Rule', expression: '', destination: '', enabled: false };
 
-describe('AutoMoveRuleRow consequences', () => {
+describe('AutoOrganizeRuleRow consequences', () => {
 	let component: Record<string, unknown> | null = null;
 
 	beforeEach(() => {
@@ -97,7 +97,7 @@ describe('AutoMoveRuleRow consequences', () => {
 	});
 
 	/** Mounts the row on `rule`, its updates merged back into it like the store does. */
-	async function render(rule: AutoMoveRule) {
+	async function render(rule: AutoOrganizeRule) {
 		const onupdate = vi.fn();
 		const target = document.body.appendChild(document.createElement('div'));
 		component = mount(Harness, { target, props: { initial: rule, onupdate } });

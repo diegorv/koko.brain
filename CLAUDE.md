@@ -67,7 +67,7 @@ src/lib/
   components/ui/      # shadcn-svelte components (generated via CLI)
   core/               # Essential: app-lifecycle, editor, filesystem, frontmatter, keybindings, layout,
                       #   markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
-  features/           # Built-in features: auto-move, backlinks, canvas, collection,
+  features/           # Built-in features: auto-organize, backlinks, canvas, collection,
                       #   command-palette, copy-block-link, deep-link, dock-badge, event-calendar,
                       #   file-history, file-icons, note-action-bar, note-list, outgoing-links,
                       #   properties, quick-switcher, rail-shell, search, tags, tasks, todoist-sync,

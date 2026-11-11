@@ -12,8 +12,8 @@
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
-	import type { RuleProperty } from './auto-move.types';
-	import { isBooleanOnlyKey, isRefusedKey, ruleValueEditor } from './auto-move.logic';
+	import type { RuleProperty } from './auto-organize.types';
+	import { isBooleanOnlyKey, isRefusedKey, ruleValueEditor } from './auto-organize.logic';
 
 	/** One property consequence of a rule: key, value editor, mode and remove. */
 	let {
@@ -134,7 +134,7 @@
 				aria-label="Property value"
 				disabled
 				value={JSON.stringify(property.value)}
-				title="Numbers and lists are edited in .kokobrain/auto-move-rules.json"
+				title="Numbers and lists are edited in .kokobrain/auto-organize-rules.json"
 			/>
 		{:else}
 			<Input

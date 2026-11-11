@@ -370,7 +370,7 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-move', 'trash', 'search', 'queryjs', 'todoist', 'labs', 'sentry', 'troubleshooting', 'update']);
+		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-organize', 'trash', 'search', 'queryjs', 'todoist', 'labs', 'sentry', 'troubleshooting', 'update']);
 	});
 
 	it('lists Labs first in the Advanced group', () => {
@@ -386,7 +386,12 @@ describe('SETTINGS_SECTION_GROUPS', () => {
 	it('lists Files & Folders first in the Vault group', () => {
 		const vault = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Vault');
 		expect(vault?.sections[0]).toEqual({ id: 'files', label: 'Files & Folders' });
-		expect(vault?.sections.map((s) => s.id)).toEqual(['files', 'file-history', 'auto-move', 'trash']);
+		expect(vault?.sections.map((s) => s.id)).toEqual(['files', 'file-history', 'auto-organize', 'trash']);
+	});
+
+	it('shows Auto Organize in the Vault group under the auto-organize id', () => {
+		const vault = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Vault');
+		expect(vault?.sections).toContainEqual({ id: 'auto-organize', label: 'Auto Organize' });
 	});
 
 	it('keeps Search and QueryJS in Tools', () => {

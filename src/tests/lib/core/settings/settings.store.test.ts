@@ -257,10 +257,10 @@ describe('settingsStore', () => {
 			expect(settingsStore.search.semanticSearchEnabled).toBe(true);
 		});
 
-		it('updateAutoMove merges with existing', () => {
-			settingsStore.updateAutoMove({ enabled: true });
-			expect(settingsStore.autoMove.enabled).toBe(true);
-			expect(settingsStore.autoMove.debounceMs).toBe(DEFAULT_SETTINGS.autoMove.debounceMs);
+		it('updateAutoOrganize merges with existing', () => {
+			settingsStore.updateAutoOrganize({ enabled: true });
+			expect(settingsStore.autoOrganize.enabled).toBe(true);
+			expect(settingsStore.autoOrganize.debounceMs).toBe(DEFAULT_SETTINGS.autoOrganize.debounceMs);
 		});
 
 		it('updateEventCalendar merges with existing', () => {

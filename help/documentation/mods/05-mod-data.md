@@ -20,7 +20,7 @@ Unlike `ctx.vault`, these two **always reject with a real `Error`**: file system
 - **File:** `<vault>/.kokobrain/mods/<mod-id>/data.json`, where `<mod-id>` is the manifest `id` (which equals the mod's folder name). Renaming the mod starts it with no data; the old folder stays.
 - **Per vault.** The same mod in two vaults has two separate files. The data travels with the vault folder.
 - **Format on disk:** `JSON.stringify(value, ..., '\t')` plus a final newline. Readable and hand-editable.
-- **Invisible to the rest of the app.** `.kokobrain/` is a dot-folder: a save reaches neither the vault index, search, file history, Auto Move, the file explorer, `ctx.onNoteSaved` nor the watcher. A save costs one small file write and cannot trigger anything.
+- **Invisible to the rest of the app.** `.kokobrain/` is a dot-folder: a save reaches neither the vault index, search, file history, Auto Organize, the file explorer, `ctx.onNoteSaved` nor the watcher. A save costs one small file write and cannot trigger anything.
 - **Not cleaned up.** Deleting a mod folder leaves its data; delete `.kokobrain/mods/<mod-id>/` to remove it. Corrupt copies (below) pile up in the same folder until you delete them.
 - **Not in git** if your `.gitignore` lists `.kokobrain/`. Kokobrain does not write a `.gitignore`.
 - **Plain text, not a secret store.** Anyone with the vault folder can read it. Do not put API tokens or passwords in it.
@@ -313,7 +313,7 @@ function createSaver(ctx, delayMs = 500) {
 
 A common shape is `notes: { "<vault-relative path>": { ... } }`. Use the paths the host gives you (`run.target.path`, `ctx.onNoteSaved`, `ctx.vault.list`, or `toVaultPath` on a tab path), so keys match exactly; keys are case-sensitive even where the filesystem is not.
 
-Paths change, and **a mod is not told**: the user renames or moves a note, Auto Move moves it after a save, or it is deleted. There is no rename event in `ctx`. Handle it explicitly:
+Paths change, and **a mod is not told**: the user renames or moves a note, Auto Organize moves it after a save, or it is deleted. There is no rename event in `ctx`. Handle it explicitly:
 
 - **When the mod itself renames or moves a note**, re-key with the path `ctx.vault.rename` / `move` resolves to:
 

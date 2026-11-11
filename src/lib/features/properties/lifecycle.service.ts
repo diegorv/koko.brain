@@ -86,7 +86,7 @@ export function toggleActiveNoteOrganized(): Promise<void> {
 
 /**
  * Archives the active note, or restores it when archived. The save runs the
- * after-save hooks, so auto-move applies a type's `_archive_to` folder.
+ * after-save hooks, so auto-organize applies a type's `_archive_to` folder.
  */
 export function toggleActiveNoteArchived(): Promise<void> {
 	return updateActiveNote((props) => toggleArchived(props, getLifecycleState(props) !== 'archived'));

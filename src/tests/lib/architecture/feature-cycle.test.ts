@@ -118,10 +118,10 @@ describe('feature cycle failures (synthetic pairs)', () => {
 	});
 
 	it('a new cycle outside the existing one fails', () => {
-		const { unlisted } = checkFeatureCycles([...pairs, 'auto-move -> dock-badge', 'dock-badge -> auto-move'], cycle);
+		const { unlisted } = checkFeatureCycles([...pairs, 'auto-organize -> dock-badge', 'dock-badge -> auto-organize'], cycle);
 		expect(unlisted.map((m: string) => m.split(' is inside')[0])).toEqual([
-			'features/auto-move -> features/dock-badge',
-			'features/dock-badge -> features/auto-move',
+			'features/auto-organize -> features/dock-badge',
+			'features/dock-badge -> features/auto-organize',
 		]);
 	});
 

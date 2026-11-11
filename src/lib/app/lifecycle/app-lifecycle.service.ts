@@ -74,7 +74,7 @@ import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { registerFileHistoryHook, closeFileHistory } from '#lib/features/file-history/file-history.service.js';
 import { executePendingAction, resetDeepLink } from '#lib/features/deep-link/deep-link.service.js';
-import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '#lib/features/auto-move/auto-move.service.js';
+import { loadAutoOrganizeConfig, toggleAutoOrganizeHook, resetAutoOrganize } from '#lib/features/auto-organize/auto-organize.service.js';
 import { buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
 import { applyFolderOrder } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -293,14 +293,14 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// ── Step 3: Load user data (parallel) ────────────────────────────
 	// The bookmarks migration runs before the step 4 scan so the scan indexes
 	// the `_favorite` flags it writes, and before step 6 registers the
-	// auto-move hook, so favoriting a note cannot move it.
+	// auto-organize hook, so favoriting a note cannot move it.
 	const t3 = perfStart();
 	try {
 		await Promise.all([
 			migrateBookmarksToFavorites(vaultPath),
 			loadRecentIcons(vaultPath),
 			loadTrash(vaultPath),
-			loadAutoMoveConfig(vaultPath),
+			loadAutoOrganizeConfig(vaultPath),
 		]);
 	} catch (err) {
 		error('LIFECYCLE', 'Failed to load user data (icons/trash):', err);
@@ -440,11 +440,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		});
 	unsubscribeSearchIndex = registerSearchIndexHook();
 
-	if (settingsStore.autoMove.enabled) {
-		debug('LIFECYCLE', 'Auto-move enabled — registering after-save hook');
-		toggleAutoMoveHook(true);
+	if (settingsStore.autoOrganize.enabled) {
+		debug('LIFECYCLE', 'Auto Organize enabled — registering after-save hook');
+		toggleAutoOrganizeHook(true);
 	} else {
-		debug('LIFECYCLE', 'Auto-move disabled — skipping hook registration');
+		debug('LIFECYCLE', 'Auto Organize disabled — skipping hook registration');
 	}
 
 	// Semantic search: if enabled but model is missing, disable and notify.
@@ -666,7 +666,7 @@ export function teardownVault(): void {
 	resetCollection();
 	resetQuickSwitcher();
 	resetCommandPalette();
-	resetAutoMove();
+	resetAutoOrganize();
 	resetDeepLink();
 	resetPeriodicNotes();
 	resetTrash();
