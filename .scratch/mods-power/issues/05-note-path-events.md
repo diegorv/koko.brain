@@ -10,7 +10,7 @@ ctx.onNoteMoved(({ from, to }) => ctx.log('Moved:', from, '->', to));
 
 **Requires first (other repo):** mods Issue 04 (`/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/04-note-path-events.md`) delivered and pushed, with its full SHA recorded under its Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency" (`:35-50`), in the same commit as the host code: the freeze tests fail on the new SHA until the host implements the member.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Set `ready-for-agent` when mods Issue 04's full SHA is in its Comments. Launch by explicit number only.
 
@@ -45,17 +45,17 @@ Set `ready-for-agent` when mods Issue 04's full SHA is in its Comments. Launch b
 
 ### Acceptance
 
-- [ ] Failing test first: a new `src/tests/lib/plugins/mods/mod-note-moved.test.ts`, set up like `mod-vault-paths.test.ts` (in-memory disk under the mocked `@tauri-apps/plugin-fs`, mocked `invoke`, real fs services and stores) with fake timers as in `mod-note-saved.test.ts`. Seed `/vault/Ideas/Note.md` in the tree and on disk, and `/vault/Other.md` holding `[[Note]]`, with `get_backlinks_v2` returning `Other.md`. A mod calls `ctx.onNoteMoved(cb)`; `renameItem('/vault/Ideas/Note.md', 'Renamed.md')`; after the timers run, `cb` was called once with `{ from: 'Ideas/Note.md', to: 'Ideas/Renamed.md' }`. Inside `cb`, `findNodeByPath(fsStore.fileTree, '/vault/Ideas/Renamed.md')` is not null and `Other.md` on disk already reads `[[Renamed]]`. These two checks prove delivery from `settled`, not from `pathChanged`. It fails today: `ctx.onNoteMoved` is not a function.
-- [ ] Same file: a move to another folder and to the vault root (`ctx.vault.move(path, '')`) report the right relative paths; a folder move is reported once as `{ from: 'Ideas', to: 'Archive/Ideas' }`; the mod's own `ctx.vault.rename` reaches its own callback; the event has exactly the keys `from` and `to`.
-- [ ] Same file, nothing reported: a delete, a no-op move, a failed disk rename, and a rename whose `get_backlinks_v2` rejects (the documented limit).
-- [ ] Same file, lifetime: the disposer cancels a pending callback and stops later ones; unload does the same and a later `ctx.onNoteMoved` throws `unloaded`; a vault switch between the move and the timer drops the callback; a sync throw and an async rejection are recorded under `modsStore.callbackErrorFor(<id>).callback === 'onNoteMoved'`, land in `debug(tag, 'onNoteMoved callback failed:', ...)` and never in `error`, and the per-load toast is shared with the other callbacks (one toast per load in total); a non-function callback throws `onNoteMoved needs a callback function`.
-- [ ] `src/tests/lib/core/filesystem/fs.service.test.ts`, block `path-change consumers` (`:1296`): `settled` receives `(from, to)` once for a rename and once for a folder move; when it runs, `invoke` was already called with `rename_note` and `rename_in_search_index`; it is not called for a delete, for a failed `diskOp`, or when `updateLinksAfterRename` rejects; a throwing `settled` is logged as `error('FS', 'thrower settled failed:', ...)` and a later consumer's `settled` still runs; the existing consumers without `settled` pass unchanged.
-- [ ] `src/tests/lib/plugins/mods/mod-api-contract.test.ts`: `onNoteMoved: true` in `CONTEXT_PUBLIC` (`:46-63`); `ModNoteMovedV1` imported; a `NOTE_MOVED_PUBLIC = { from: true, to: true } satisfies Record<keyof ModNoteMovedV1, true>` with an `Object.keys` assertion in the style of `:257-262`. The runtime key check at `:231` passes.
-- [ ] `src/tests/help/mods-types.test.ts`: `'ModNoteMovedV1'` in `STABLE_TYPES` (`:24-46`) and an `expectTypeOf<Doc.ModNoteMovedV1>().toEqualTypeOf<App.ModNoteMovedV1>()` near `:108`.
-- [ ] `package.json` and `pnpm-lock.yaml` pin the new SHA; the lockfile checks of `docs/MOD-CORE.md` step 4 hold.
-- [ ] `src/tests/help/mods-example.test.ts`: `onNoteMoved: unused` after `onNoteSaved` (`:46`) in the typed `ModContextV1` literal.
-- [ ] Docs above updated. `src/tests/scripts/sync-wiki-docs.test.ts` still passes.
-- [ ] Gate: `pnpm check`, `pnpm vitest run`, `pnpm build`, and the mods workspace's `pnpm verify` with `KOKOBRAIN_HOST_ROOT` set to this checkout.
+- [x] Failing test first: a new `src/tests/lib/plugins/mods/mod-note-moved.test.ts`, set up like `mod-vault-paths.test.ts` (in-memory disk under the mocked `@tauri-apps/plugin-fs`, mocked `invoke`, real fs services and stores) with fake timers as in `mod-note-saved.test.ts`. Seed `/vault/Ideas/Note.md` in the tree and on disk, and `/vault/Other.md` holding `[[Note]]`, with `get_backlinks_v2` returning `Other.md`. A mod calls `ctx.onNoteMoved(cb)`; `renameItem('/vault/Ideas/Note.md', 'Renamed.md')`; after the timers run, `cb` was called once with `{ from: 'Ideas/Note.md', to: 'Ideas/Renamed.md' }`. Inside `cb`, `findNodeByPath(fsStore.fileTree, '/vault/Ideas/Renamed.md')` is not null and `Other.md` on disk already reads `[[Renamed]]`. These two checks prove delivery from `settled`, not from `pathChanged`. It fails today: `ctx.onNoteMoved` is not a function.
+- [x] Same file: a move to another folder and to the vault root (`ctx.vault.move(path, '')`) report the right relative paths; a folder move is reported once as `{ from: 'Ideas', to: 'Archive/Ideas' }`; the mod's own `ctx.vault.rename` reaches its own callback; the event has exactly the keys `from` and `to`.
+- [x] Same file, nothing reported: a delete, a no-op move, a failed disk rename, and a rename whose `get_backlinks_v2` rejects (the documented limit).
+- [x] Same file, lifetime: the disposer cancels a pending callback and stops later ones; unload does the same and a later `ctx.onNoteMoved` throws `unloaded`; a vault switch between the move and the timer drops the callback; a sync throw and an async rejection are recorded under `modsStore.callbackErrorFor(<id>).callback === 'onNoteMoved'`, land in `debug(tag, 'onNoteMoved callback failed:', ...)` and never in `error`, and the per-load toast is shared with the other callbacks (one toast per load in total); a non-function callback throws `onNoteMoved needs a callback function`.
+- [x] `src/tests/lib/core/filesystem/fs.service.test.ts`, block `path-change consumers` (`:1296`): `settled` receives `(from, to)` once for a rename and once for a folder move; when it runs, `invoke` was already called with `rename_note` and `rename_in_search_index`; it is not called for a delete, for a failed `diskOp`, or when `updateLinksAfterRename` rejects; a throwing `settled` is logged as `error('FS', 'thrower settled failed:', ...)` and a later consumer's `settled` still runs; the existing consumers without `settled` pass unchanged.
+- [x] `src/tests/lib/plugins/mods/mod-api-contract.test.ts`: `onNoteMoved: true` in `CONTEXT_PUBLIC` (`:46-63`); `ModNoteMovedV1` imported; a `NOTE_MOVED_PUBLIC = { from: true, to: true } satisfies Record<keyof ModNoteMovedV1, true>` with an `Object.keys` assertion in the style of `:257-262`. The runtime key check at `:231` passes.
+- [x] `src/tests/help/mods-types.test.ts`: `'ModNoteMovedV1'` in `STABLE_TYPES` (`:24-46`) and an `expectTypeOf<Doc.ModNoteMovedV1>().toEqualTypeOf<App.ModNoteMovedV1>()` near `:108`.
+- [x] `package.json` and `pnpm-lock.yaml` pin the new SHA; the lockfile checks of `docs/MOD-CORE.md` step 4 hold.
+- [x] `src/tests/help/mods-example.test.ts`: `onNoteMoved: unused` after `onNoteSaved` (`:46`) in the typed `ModContextV1` literal.
+- [x] Docs above updated. `src/tests/scripts/sync-wiki-docs.test.ts` still passes.
+- [x] Gate: `pnpm check`, `pnpm vitest run`, `pnpm build`, and the mods workspace's `pnpm verify` with `KOKOBRAIN_HOST_ROOT` set to this checkout.
 
 ## Notes
 
@@ -74,3 +74,5 @@ Set `ready-for-agent` when mods Issue 04's full SHA is in its Comments. Launch b
 - **Not verified:** whether `vi.runAllTimersAsync` (or an equivalent) drains the async disk mocks before the `settled` timer in the new test; the help-doc tests were not read.
 
 ## Comments
+
+- 2026-11-11, branch `issue/05-note-path-events`: path-change consumers gain a `settled(from, to)` step run after the move, backlink rewrite and index updates complete; mods get `ctx.onNoteMoved(cb)` with `{ from, to }` vault-relative paths, delivered from `settled`, with disposer, unload, vault-switch and error handling shared with other callbacks; docs and the mod API contract/type tests updated. Fix round: the `callModCallback` JSDoc was rewrapped (d407e5c6f). Tests: `pnpm check` exit 0, `pnpm vitest run src/tests/lib/plugins/mods` exit 0, full suite at d407e5c6f exit 0 (613 files, 15469 passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED, round 2 APPROVED.

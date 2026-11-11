@@ -3,6 +3,7 @@ import { toast } from 'svelte-sonner';
 
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { onFileChange } from '#lib/core/filesystem/fs.watcher.js';
+import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
 import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -131,11 +132,12 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	// Per ctx, so per load: a reload, a switch off and on, or a reopened vault toasts again.
 	let toasted = false;
 	/**
-	 * Runs a mod callback the host calls on its own (`onNoteSaved`, `watch`,
-	 * `theme.onChange`). A throw or a rejection goes to `debug()`; while this
-	 * instance is live, also to the mod's Labs row, and the first one to a
-	 * toast. Never Sentry: the error is the mod's (PRD P9). Run inside the
-	 * caller's `untrack`, so the store write subscribes no effect.
+	 * Runs a mod callback the host calls on its own (`onNoteSaved`,
+	 * `onNoteMoved`, `watch`, `theme.onChange`). A throw or a rejection goes
+	 * to `debug()`; while this instance is live, also to the mod's Labs row,
+	 * and the first one to a toast. Never Sentry: the error is the mod's
+	 * (PRD P9). Run inside the caller's `untrack`, so the store write
+	 * subscribes no effect.
 	 */
 	const callModCallback = (name: ModCallbackError['callback'], call: () => unknown) => {
 		const report = (err: unknown) => {
@@ -616,6 +618,34 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			});
 			return disposable(() => {
 				unsubscribe();
+				for (const timer of pending) clearTimeout(timer);
+				pending.clear();
+			});
+		},
+		onNoteMoved: (callback) => {
+			assertLive();
+			if (typeof callback !== 'function') throw invalid('onNoteMoved needs a callback function');
+			const pending = new Set<ReturnType<typeof setTimeout>>();
+			const unregister = registerPathChangeConsumer({
+				name: `mod:${manifest.id}:onNoteMoved`,
+				// Only `settled` delivers: at `pathChanged` the link rewrite has not run,
+				// so a mod write to a backlinking note would be overwritten by it.
+				pathChanged: () => {},
+				settled: (fromPath, toPath) => {
+					const from = vaultRelativeKey(vaultPath, fromPath);
+					const to = vaultRelativeKey(vaultPath, toPath);
+					if (from === null || to === null || runtime.unloaded || vaultStore.path !== vaultPath) return;
+					// Leave the path-change owner before running any mod code.
+					const timer = setTimeout(() => {
+						pending.delete(timer);
+						if (runtime.unloaded || vaultStore.path !== vaultPath) return;
+						callModCallback('onNoteMoved', () => callback({ from, to }));
+					}, 0);
+					pending.add(timer);
+				},
+			});
+			return disposable(() => {
+				unregister();
 				for (const timer of pending) clearTimeout(timer);
 				pending.clear();
 			});

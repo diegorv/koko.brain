@@ -53,6 +53,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { findNodeByPath } from '#lib/core/filesystem/fs.logic.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1381,6 +1382,106 @@ describe('path-change consumers', () => {
 
 		expect(changes).toEqual([['/vault/old.md', '/vault/new.md']]);
 		expect(error).toHaveBeenCalledWith('FS', 'thrower path change failed:', expect.any(Error));
+	});
+
+	describe('settled', () => {
+		/** Every `(from, to)` the settled step received, with the IPC commands issued before it. */
+		let settled: { from: string; to: string; commandsBefore: string[] }[];
+		let unregisterSettled: () => void;
+
+		beforeEach(() => {
+			settled = [];
+			unregisterSettled = registerPathChangeConsumer({
+				name: 'settler',
+				pathChanged: () => {},
+				settled: (from, to) => {
+					settled.push({ from, to, commandsBefore: vi.mocked(invoke).mock.calls.map(([c]) => c) });
+				},
+			});
+		});
+
+		afterEach(() => {
+			unregisterSettled();
+		});
+
+		it('receives a rename once, after the Rust and search re-keys', async () => {
+			vi.mocked(rename).mockResolvedValue(undefined);
+
+			await renameItem('/vault/old.md', 'new.md');
+
+			expect(settled.map(({ from, to }) => [from, to])).toEqual([['/vault/old.md', '/vault/new.md']]);
+			expect(settled[0].commandsBefore).toEqual(expect.arrayContaining(['rename_note', 'rename_in_search_index']));
+		});
+
+		it('receives a folder move once, for the folder, after the tree is re-keyed', async () => {
+			seedDirWithTwoChildren();
+			vi.mocked(rename).mockResolvedValue(undefined);
+			let treeHadMovedChild = false;
+			unregisterSettled();
+			unregisterSettled = registerPathChangeConsumer({
+				name: 'settler',
+				pathChanged: () => {},
+				settled: (from, to) => {
+					settled.push({ from, to, commandsBefore: vi.mocked(invoke).mock.calls.map(([c]) => c) });
+					treeHadMovedChild = findNodeByPath(fsStore.fileTree, '/vault/archive/dir/a.md') !== null;
+				},
+			});
+
+			await moveItem('/vault/dir', '/vault/archive');
+
+			expect(settled.map(({ from, to }) => [from, to])).toEqual([['/vault/dir', '/vault/archive/dir']]);
+			expect(settled[0].commandsBefore).toEqual(expect.arrayContaining(['rename_note', 'rename_in_search_index']));
+			expect(treeHadMovedChild).toBe(true);
+		});
+
+		it('is not called for a delete', async () => {
+			await deleteItem('/vault/note.md');
+
+			expect(changes).toEqual([['/vault/note.md', null]]);
+			expect(settled).toEqual([]);
+		});
+
+		it('is not called when the disk operation fails', async () => {
+			vi.mocked(rename).mockRejectedValueOnce(new Error('permission denied'));
+
+			await expect(renameItem('/vault/old.md', 'new.md')).rejects.toThrow('permission denied');
+
+			expect(settled).toEqual([]);
+		});
+
+		it('is not called when the link rewrite rejects', async () => {
+			vi.mocked(rename).mockResolvedValue(undefined);
+			vi.mocked(updateLinksAfterRename).mockRejectedValueOnce(new Error('backlinks failed'));
+
+			await expect(renameItem('/vault/old.md', 'new.md')).rejects.toThrow('backlinks failed');
+
+			expect(changes).toEqual([['/vault/old.md', '/vault/new.md']]);
+			expect(settled).toEqual([]);
+		});
+
+		it('isolates a throwing settled step: it is logged and a later consumer still settles', async () => {
+			vi.mocked(rename).mockResolvedValue(undefined);
+			unregisterSettled();
+			const unregisterThrower = registerPathChangeConsumer({
+				name: 'thrower',
+				pathChanged: () => {},
+				settled: () => { throw new Error('boom'); },
+			});
+			unregisterSettled = registerPathChangeConsumer({
+				name: 'settler',
+				pathChanged: () => {},
+				settled: (from, to) => { settled.push({ from, to, commandsBefore: [] }); },
+			});
+
+			try {
+				expect(await renameItem('/vault/old.md', 'new.md')).toBe('/vault/new.md');
+			} finally {
+				unregisterThrower();
+			}
+
+			expect(settled.map(({ from, to }) => [from, to])).toEqual([['/vault/old.md', '/vault/new.md']]);
+			expect(error).toHaveBeenCalledWith('FS', 'thrower settled failed:', expect.any(Error));
+		});
 	});
 });
 

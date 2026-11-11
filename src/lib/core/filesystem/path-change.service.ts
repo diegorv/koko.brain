@@ -46,6 +46,16 @@ export interface PathChangeConsumer {
 	 * @param to - absolute path it landed on, or `null` for a deletion
 	 */
 	pathChanged(from: string, to: string | null): void;
+	/**
+	 * Called once per rename or move, after `applyPathChange` finished every
+	 * step: the link rewrite, the tree re-key, `rename_note`,
+	 * `rename_in_search_index` and the removal sweep. Never for a delete,
+	 * never when `diskOp` failed, and not when the change rejected part way
+	 * (the link rewrite's `get_backlinks_v2` is not caught).
+	 * @param from - absolute path the item left
+	 * @param to - absolute path it landed on
+	 */
+	settled?(from: string, to: string): void;
 }
 
 /**
@@ -66,9 +76,11 @@ const pathChangeConsumers: PathChangeConsumer[] = [];
 
 /**
  * Registers a consumer to follow every path change. Returns an unregister
- * function. A consumer has one of two lifetimes: vault-lifetime (wired by
- * `initializeVault`, unregistered in `teardownVault`) or app-lifetime (wired
- * once by `app/boot.ts::registerAppPorts`, never unregistered).
+ * function. A consumer has one of three lifetimes: vault-lifetime (wired by
+ * `initializeVault`, unregistered in `teardownVault`), app-lifetime (wired
+ * once by `app/boot.ts::registerAppPorts`, never unregistered) or
+ * mod-lifetime (registered by a mod's subscription, unregistered by its
+ * disposer or the mod's unload).
  */
 export function registerPathChangeConsumer(consumer: PathChangeConsumer): () => void {
 	pathChangeConsumers.push(consumer);
@@ -232,5 +244,15 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 	// stale keys.
 	for (const path of [from, ...childPaths]) {
 		forgetNote(path);
+	}
+
+	if (to !== null) {
+		for (const consumer of [...pathChangeConsumers]) {
+			try {
+				consumer.settled?.(from, to);
+			} catch (err) {
+				error('FS', `${consumer.name} settled failed:`, err);
+			}
+		}
 	}
 }

@@ -1,11 +1,12 @@
 # Events and reactivity
 
-Actions run when the user asks. Everything else a mod does, it does in response to something: the active note changed, a note was saved, the theme changed, a key was pressed, a timer fired. This page covers the host's three subscriptions (`ctx.watch`, `ctx.onNoteSaved`, `ctx.theme.onChange`), the cleanup tools (`ctx.register`, `ctx.signal`), and the browser's own events and timers, which the host does not track for you.
+Actions run when the user asks. Everything else a mod does, it does in response to something: the active note changed, a note was saved or moved, the theme changed, a key was pressed, a timer fired. This page covers the host's four subscriptions (`ctx.watch`, `ctx.onNoteSaved`, `ctx.onNoteMoved`, `ctx.theme.onChange`), the cleanup tools (`ctx.register`, `ctx.signal`), and the browser's own events and timers, which the host does not track for you.
 
 | Member | Stability | Use it for |
 |--------|-----------|------------|
 | `ctx.watch(read, onChange)` | **stable** (the state you read through `ctx.app` is **raw**) | Reacting to app state: active tab, index version, settings |
 | `ctx.onNoteSaved(callback)` | **stable** | Reacting to a save through the app |
+| `ctx.onNoteMoved(callback)` | **stable** | Following a file or folder the app renamed or moved |
 | `ctx.theme.onChange(callback)` / `ctx.theme.current` | **stable** | Repainting UI that cannot use CSS variables |
 | `ctx.register(dispose)` | **stable** | Undoing anything the host does not track |
 | `ctx.signal` | **stable** | Knowing the mod is unloading, aborting work, auto-removing listeners |
@@ -364,6 +365,59 @@ ctx.onNoteSaved((path) => {
 });
 ```
 
+## `ctx.onNoteMoved`: reacting to renames and moves
+
+```javascript
+const stop = ctx.onNoteMoved(({ from, to }) => ctx.log('Moved:', from, '->', to));
+```
+
+`ctx.onNoteMoved(callback)` calls `callback({ from, to })` after the app renamed or moved a file or folder. Both paths are **vault-relative**, with `/` separators; the event has no other field. A rename and a move are the same event: compare the folders yourself if you need to tell them apart. It returns a disposer; unload also disposes it.
+
+- **When it runs.** Once the move is complete: links in other notes are already rewritten and the file tree already uses `to`, so the callback can read and write the moved note and the notes that link to it. `ctx.query` may not see the note at `to` until the app's index refreshes, a few seconds later.
+- **Folders.** A folder is reported once, for the folder, not once per file: every path under `from + '/'` is now under `to + '/'`. Match stored paths by prefix (see the example below).
+- **Any file type**, as `onNoteSaved`: notes, canvases, `.view` files, images.
+
+### Which moves fire it
+
+| Move | Fires |
+|------|-------|
+| Rename or drag and drop in the file explorer | yes |
+| An Auto Organize rule moving a note | yes |
+| `ctx.vault.rename` and `ctx.vault.move` of any mod, this one included | yes |
+| A delete, to the Trash or not | no |
+| A move to the folder the item is already in, or a rename to the same name | no (nothing moves) |
+| A rename or move that failed on disk | no |
+| A rename whose link rewrite failed (the app could not list the backlinks) | no |
+| Moves made outside the app (Finder, `git`, sync tools), noticed by the file watcher | no |
+| Restoring from the Trash | no |
+| Duplicating a file or folder | no |
+
+### Scheduling and errors
+
+Each move schedules **one** `setTimeout(0)` call, with a fresh event object. Disposal, unload and a vault switch cancel pending calls as for [`onNoteSaved`](#scheduling); a call already running is not cancelled. A synchronous throw or a rejected promise is logged as `onNoteMoved callback failed: <message>` under `MOD:<id>`, shows as **Last callback error** in the mod's Labs row, and shares the one toast per load with the other callbacks. Never Sentry.
+
+### Avoiding move loops
+
+A callback that renames or moves again fires itself again. Auto Organize can also move a note a mod just wrote, and a mod that answers that move by writing can start a cycle with the rule. Compare before acting, and switch the mod off in **Settings > Labs** to stop a loop that is already running.
+
+### Example: keep stored paths current
+
+A mod that stores note paths in its data remaps them by prefix, so a folder move carries every stored path under it:
+
+```javascript
+ctx.onNoteMoved(async ({ from, to }) => {
+	try {
+		const data = (await ctx.loadData()) ?? { pinned: [] };
+		const remap = (path) =>
+			path === from ? to : path.startsWith(`${from}/`) ? to + path.slice(from.length) : path;
+		const pinned = data.pinned.map(remap);
+		if (pinned.some((path, i) => path !== data.pinned[i])) await ctx.saveData({ ...data, pinned });
+	} catch (err) {
+		ctx.log('could not remap pinned notes:', err);
+	}
+});
+```
+
 ## `ctx.theme`: following theme changes
 
 ### Prefer CSS variables
@@ -433,7 +487,7 @@ Everything you create through `ctx` is undone at unload: actions, rail buttons, 
 
 - Adds `dispose` to the mod's cleanup list. Returns nothing, and cannot be undone. Calling it after unload throws `Mod "<id>" is unloaded`.
 - The argument is **not checked**: a non-function is accepted, then fails at unload as a cleanup error.
-- The cleanup list is **one list shared with** every registration that returns a disposer (`addAction`, `addRailButton`, `labs.place`, `watch`, `onNoteSaved`, `theme.onChange`). At unload it runs **in reverse order of registration** across all of them. A disposer you already called yourself is removed from the list and does not run again; a `ctx.register` callback is not wrapped this way, so make it safe to run after you already cleaned up.
+- The cleanup list is **one list shared with** every registration that returns a disposer (`addAction`, `addRailButton`, `labs.place`, `watch`, `onNoteSaved`, `onNoteMoved`, `theme.onChange`). At unload it runs **in reverse order of registration** across all of them. A disposer you already called yourself is removed from the list and does not run again; a `ctx.register` callback is not wrapped this way, so make it safe to run after you already cleaned up.
 - Each cleanup runs in its own `try`/`catch`. A throwing one is logged (`cleanup failed: <message>`) and toasted as `_system/mods/<id>: cleanup failed: <message>`, and the rest still run.
 
 Register the cleanup **right after** creating the resource, so a throw later in `onload` cannot leak it.

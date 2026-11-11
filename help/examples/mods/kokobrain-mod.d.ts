@@ -402,6 +402,14 @@ export interface ModQueryV1 {
 	notes: (expression: string) => Promise<string[]>;
 }
 
+/** A rename or move the app made */
+export interface ModNoteMovedV1 {
+	/** Vault-relative path the file or folder left */
+	from: string;
+	/** Vault-relative path it landed on */
+	to: string;
+}
+
 /** What a mod's `onload` receives. Every function throws once the mod is unloaded or the vault changed. */
 export interface ModContextV1 {
 	/** Contract version, `1` */
@@ -457,6 +465,25 @@ export interface ModContextV1 {
 		callback: (path: string, content: string) => void,
 		options?: { ignoreOwnWrites?: boolean },
 	) => () => void;
+	/**
+	 * In a later timer, reports a file or folder the app renamed or moved, with
+	 * vault-relative paths: from the file explorer, drag and drop, Auto Organize,
+	 * or `ctx.vault.rename` and `ctx.vault.move` of any mod, this one included.
+	 * Callback failures go to the mod's debug log. Returns a disposer; unload
+	 * also unsubscribes and cancels pending callbacks.
+	 *
+	 * It runs once the move is complete: links in other notes are already
+	 * rewritten and the file tree already uses `to`. `ctx.query` may not see the
+	 * note at `to` until the app's index refreshes, a few seconds later.
+	 *
+	 * A folder is reported once, for the folder: every path under `from + '/'`
+	 * is now under `to + '/'`. Not called for deletes, for moves made outside
+	 * the app (Finder, git, sync), or for a Trash restore.
+	 *
+	 * A callback that renames or moves again can loop; switching off the mod in
+	 * Labs stops it.
+	 */
+	onNoteMoved: (callback: (event: ModNoteMovedV1) => void) => () => void;
 	/** Reads and writes vault files by vault-relative path */
 	vault: ModVaultV1;
 	/** Read-only queries over the vault's notes */

@@ -18,6 +18,7 @@ Every error message the mod host produces, where each kind of failure shows up, 
 | `ctx.watch` callback throws or rejects | **Last callback error** with the message, and **Stack trace** when an `Error` was thrown | `<name>: watch callback failed: <message>`, once per load (see [below](#callback-errors-are-toasted-once-per-load)) | | `watch callback failed: ...` | With Debug mode | No |
 | `ctx.theme.onChange` callback throws or rejects | **Last callback error**, as above | `<name>: theme.onChange callback failed: <message>`, once per load | | `theme.onChange callback failed: ...` | With Debug mode | No |
 | `ctx.onNoteSaved` callback throws or rejects | **Last callback error**, as above | `<name>: onNoteSaved callback failed: <message>`, once per load | | `onNoteSaved callback failed: ...` | With Debug mode | No |
+| `ctx.onNoteMoved` callback throws or rejects | **Last callback error**, as above | `<name>: onNoteMoved callback failed: <message>`, once per load | | `onNoteMoved callback failed: ...` | With Debug mode | No |
 | A `ctx.vault`, `ctx.query`, `ctx.workspace`, `loadData` or `saveData` call rejects | (reaches your code) | | (if uncaught in an action: **Failed**) | `vault.<op> "<path>" failed: ...`, `workspace.openNote "<path>" failed: ...`, `loadData failed: ...`, `saveData failed: ...` | With Debug mode | No |
 | A timer, DOM listener or un-awaited promise the mod started | | | | | Uncaught error | Can be |
 | An app service reached through `ctx.app`, or the filesystem services behind `ctx.vault.rename`, `move`, `delete` | | The app's own toast, if any (for example `Failed to open file.`) | | Under the app's own tag, when the service logs | Usually (`console.error`) | Can be |
@@ -34,7 +35,7 @@ The host remembers the last load error toasted for each vault and folder, and do
 
 ### Callback errors are toasted once per load
 
-A failing `ctx.onNoteSaved`, `ctx.watch` or `ctx.theme.onChange` callback toasts once per loaded instance of the mod: the first failure toasts, later ones of that instance do not. The Labs row of a loaded mod always shows the latest one, with the callback's name and the time, under **Last callback error**. A reload, switching the mod off and on, or reopening the vault loads a new instance, which clears the row and toasts again on its first failure. A rejection from the old instance that settles after the reload goes only to the session log. To show every failure, catch in the callback and call `ctx.notify`.
+A failing `ctx.onNoteSaved`, `ctx.onNoteMoved`, `ctx.watch` or `ctx.theme.onChange` callback toasts once per loaded instance of the mod: the first failure toasts, later ones of that instance do not. The Labs row of a loaded mod always shows the latest one, with the callback's name and the time, under **Last callback error**. A reload, switching the mod off and on, or reopening the vault loads a new instance, which clears the row and toasts again on its first failure. A rejection from the old instance that settles after the reload goes only to the session log. To show every failure, catch in the callback and call `ctx.notify`.
 
 ## Error message catalog
 
@@ -104,6 +105,7 @@ Every message starts with `Mod "<id>": `. The `ctx.ui`, `run.ui`, `ctx.vault` an
 | A menu item or a `modCommandsStore` row whose action was removed or replaced | `unknown action id "<actionId>"` |
 | `watch` | `watch needs a read function` · `watch needs a callback function` |
 | `onNoteSaved` | `onNoteSaved needs a callback function` · `onNoteSaved needs options to be an object` · `onNoteSaved needs options.ignoreOwnWrites to be a boolean` |
+| `onNoteMoved` | `onNoteMoved needs a callback function` |
 | `theme.onChange` | `theme.onChange needs a callback function` |
 | `run.progress` | `run.progress needs numbers done and total` (any non-finite value: a string, `NaN`, `Infinity`, `undefined`) · `run.progress needs a string label`. Checked even after the run ended |
 | `ui.alert`, `ui.confirm`, `ui.prompt`, `ui.pick` | `ui.<method> needs a non-empty string title` · `ui.<method> needs a string <field>`, where `<field>` is `message`, plus `confirmLabel` and `cancelLabel` (confirm), `label`, `placeholder` and `value` (prompt), `placeholder` (pick). `null` is not accepted for these fields |
@@ -248,7 +250,7 @@ try {
 
 | Tag (as written in the file) | Written by |
 |------------------------------|------------|
-| `[FRONT-END:MOD:<id>]` | `ctx.log`, and the host's reports about this mod: `<title> failed: ...`, `onunload failed: ...`, `cleanup failed: ...`, load errors (tagged with the folder name when the manifest could not be read), `watch read failed: ...`, `watch callback failed: ...`, `theme.onChange callback failed: ...`, `onNoteSaved callback failed: ...`, `vault.<op> "<path>" failed: ...`, `workspace.openNote "<path>" failed: ...`, `loadData failed: ...`, `saveData failed: ...`, `data.json is not valid JSON; moved to <name>`, `cannot load icon pack <pack>: ...`, `disabled mod listed by folder name: ...` |
+| `[FRONT-END:MOD:<id>]` | `ctx.log`, and the host's reports about this mod: `<title> failed: ...`, `onunload failed: ...`, `cleanup failed: ...`, load errors (tagged with the folder name when the manifest could not be read), `watch read failed: ...`, `watch callback failed: ...`, `theme.onChange callback failed: ...`, `onNoteSaved callback failed: ...`, `onNoteMoved callback failed: ...`, `vault.<op> "<path>" failed: ...`, `workspace.openNote "<path>" failed: ...`, `loadData failed: ...`, `saveData failed: ...`, `data.json is not valid JSON; moved to <name>`, `cannot load icon pack <pack>: ...`, `disabled mod listed by folder name: ...` |
 | `[FRONT-END:MOD-HOST]` | The host execution trace and saved run messages, one JSON object per line |
 | `[FRONT-END:MOD-UI]` | Dialog and notification records, one JSON object per line, without any text the mod passed |
 | `[ERROR:FRONT-END:MODS]`, `[ERROR:FRONT-END:LABS]`, `[ERROR:FRONT-END:LIFECYCLE]` | Host failures: a reload that failed, listing the mods folder again, starting mods, saving a Labs switch, loading a mod switched on in Labs |
