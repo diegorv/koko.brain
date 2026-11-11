@@ -13,13 +13,15 @@ await ctx.vault.updateFrontmatter('Projects/Alpha.md', (props) => [
 
 **Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/01-stable-update-frontmatter.md` delivered and pushed (it adds `ModPropertyV1` and `ModVaultV1.updateFrontmatter` to `packages/mod-core/src/contract/mod-api.v1.ts`), and its full commit SHA recorded in that Issue's Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency". The install needs Git read access to the private mods repository (`docs/MOD-CORE.md` "Local installation"); an agent without it stops and reports, it does not edit the lockfile by hand.
 
-**Status:** ready-for-agent
+**Status:** needs-info
 
-**Gate:** frontend with a dependency change: `pnpm check` + `pnpm vitest run` + `pnpm build` (CLAUDE.md rule 6: `package.json` and `pnpm-lock.yaml` change). Then the mods workspace's `pnpm verify` with `KOKOBRAIN_HOST_ROOT` set to this checkout (`docs/MOD-CORE.md` step 6).
+Set `ready-for-agent` when mods Issue 01's full SHA is in its Comments. Launch by explicit number only.
+
+**Gate:** frontend with a dependency change: `pnpm check` + `pnpm vitest run` + `pnpm build` (CLAUDE.md rule 6: `package.json` and `pnpm-lock.yaml` change). Then the mods workspace's `pnpm check:package <temp consumer>` and `pnpm verify` with `KOKOBRAIN_HOST_ROOT` set to this checkout (`docs/MOD-CORE.md` steps 2 and 6).
 
 ### Behavior
 
-1. **SHA bump and implementation in one commit.** `package.json:81` and `pnpm-lock.yaml:180-182` move from `328ca55f6add4d18e3c5b1490feee66ce8503b5e` to the new full SHA, using the `pnpm add -D` command in `docs/MOD-CORE.md` step 3, then the lockfile inspection of step 4. They land with Behavior 2-4: `createModVault` returns `ModVaultV1` (`src/lib/plugins/mods/mod-vault.service.ts:33`) and `VAULT_PUBLIC` is `satisfies Record<keyof ModVaultV1, true>` (`src/tests/lib/plugins/mods/mod-api-contract.test.ts:68-77`), so `pnpm check` fails between a bump and the member.
+1. **SHA bump and implementation in one commit.** Adopt exactly the SHA recorded in mods Issue 01's Comments, never a later one. Before installing, `git -C /Users/diegorv/kokobrain-vaults/kokobrain-mods-src diff <pin in package.json> <sha> -- packages/mod-core/src/contract` must show only this Issue's change plus members already on this repo's `main`; otherwise stop and record it under Comments. `package.json:81` and `pnpm-lock.yaml:180-182` move from `328ca55f6add4d18e3c5b1490feee66ce8503b5e` to the new full SHA, using the `pnpm add -D` command in `docs/MOD-CORE.md` step 3, then the lockfile inspection of step 4. They land with Behavior 2-4: `createModVault` returns `ModVaultV1` (`src/lib/plugins/mods/mod-vault.service.ts:33`) and `VAULT_PUBLIC` is `satisfies Record<keyof ModVaultV1, true>` (`src/tests/lib/plugins/mods/mod-api-contract.test.ts:68-77`), so `pnpm check` fails between a bump and the member.
 2. **The member.** In `createModVault` (`src/lib/plugins/mods/mod-vault.service.ts:55-137`), after `write` (`:118-136`), so a later item can treat the three write members in one place:
    - `const abs = toAbsolute(path)` (`:36-40`: live guard, `assertVaultPath`, `${vaultPath}/${path}`, Indexing rule 9).
    - `if (!isMarkdownFile(abs)) throw new Error(\`Mod "${modId}": vault.updateFrontmatter needs a Markdown note\`)` (`isMarkdownFile`, already imported at `:8`, is `.md` / `.markdown`, `src/lib/core/filesystem/fs.logic.ts:65-68`). This is a data-safety check: a file without `---` has no lossy reason (`src/lib/core/frontmatter/properties.logic.ts:405-407`), and `rebuildContent` prepends a YAML block (`properties.logic.ts:689-697`), which would corrupt a `.canvas`, a `.view` or a mod's `main.js`.
@@ -55,9 +57,10 @@ await ctx.vault.updateFrontmatter('Projects/Alpha.md', (props) => [
 - [ ] After `runtime.unloaded = true` the call rejects `Mod "ideas" is unloaded` and writes nothing. An unload during the write (set `runtime.unloaded` inside a `writeTextFile` mock implementation) rejects with the unload message.
 - [ ] No adapter test re-tests the core writer's behaviors already covered in `src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts` beyond the cases above.
 - [ ] `mod-api-contract.test.ts`, `mods-types.test.ts` and `kokobrain-mod.d.ts` updated as in Behavior 3-4.
+- [ ] `src/tests/help/mods-example.test.ts`: `updateFrontmatter: unused` in the `vault` literal (`:59-74`). The literal is typed `ModContextV1` (`:40`), so `pnpm check` fails without it.
 - [ ] `package.json` and `pnpm-lock.yaml` name the new SHA; the lockfile has no credentials, workspace links or personal paths (`docs/MOD-CORE.md` step 4).
 - [ ] Docs above updated.
-- [ ] Gate passes: `pnpm check`, `pnpm vitest run`, `pnpm build`, and the mods workspace's `KOKOBRAIN_HOST_ROOT=<this checkout> pnpm verify`.
+- [ ] Gate passes: `pnpm check`, `pnpm vitest run`, `pnpm build`, and the mods workspace's `pnpm check:package <temp consumer>` and `KOKOBRAIN_HOST_ROOT=<this checkout> pnpm verify`.
 
 ## Notes
 
@@ -68,12 +71,13 @@ await ctx.vault.updateFrontmatter('Projects/Alpha.md', (props) => [
   - One exported contract type (`ModPropertyV1`), no typed error or reason union: each exported type costs a `.d.ts` copy, a `STABLE_TYPES` entry and an `expectTypeOf` line here.
   - No version gate: `minAppVersion` is parsed, never compared (`src/lib/plugins/mods/mods.logic.ts:150,199-206`). A mod using the member on an older app fails with "not a function" at call time.
 - **Accepted limits (documented, not fixed):**
-  - A tab opened with `//` in its path is missed (`findTab` compares exactly, `frontmatter-write.service.ts:80-82`): disk is written, and that tab's next save puts the old frontmatter back. `vault.write` has the same hole (`mod-vault.service.ts:124`). A small follow-up can fix both members in the adapter.
-  - Each changing write fires the mod's own `onNoteSaved` (`src/lib/plugins/mods/mods-host.service.ts:566-591`). A non-idempotent `mutate` (a timestamp) loops. Item 2 (`ignoreOwnWrites`) is the fix and depends on this Issue: it can only mark writes that go through `ctx.vault`.
+  - A tab opened with `//` in its path is missed (`findTab` compares exactly, `frontmatter-write.service.ts:80-82`): disk is written, and that tab's next save puts the old frontmatter back. `vault.write` has the same hole (`mod-vault.service.ts:124`). The follow-up is `.scratch/mods-host-robustness/issues/02-mod-write-guard-normalizes-paths.md`, which covers `vault.write` and should also cover `ctx.vault.updateFrontmatter` once this Issue lands.
+  - Each changing write fires the mod's own `onNoteSaved` (`src/lib/plugins/mods/mods-host.service.ts:566-591`). A non-idempotent `mutate` (a timestamp) loops. Item 2 (brain 02) extends the own-write marker to this member.
   - A `vault-changed` thrown after the bytes are on disk (`frontmatter-write.service.ts:24-26`), and the adapter's `assertLive()` after the await then reports the unload. Same as the other members.
 - **Security:** no new capability. Full-trust mods already have `ctx.vault.write` and raw `ctx.app` (ADR 0036); `assertVaultPath` is hygiene (`mods.logic.ts:63-68`).
-- **Ordering:** run this before item 2. Contract-changing items (4, 5, 7) each bump the same `package.json`, lockfile, `.d.ts` and `mods-types.test.ts` lines: run them after this one, never in parallel relay workflows.
+- **Ordering:** Contract Issues land in the mods repo in the order 01, 02, 03, 04; each brain Issue adopts its own mods SHA in the order brain 01, 02, 04, 05. No batching. The contract-changing items are 1, 2, 4 and 5 (item 7 changes no contract). Full order: `.scratch/mods-power/PRD.md`.
 - **Out of scope:** migrating `portent`, `operations`, `bulk-tag`, `inbox-triage` and `help/examples/mods/note-tools/main.js` to the stable member; a `check-mod.mjs` lint; the caret test; the `//` tab fix; the empty `---` block bug.
+- **Scope versus the owner's text (for triage):** the owner's item names "the editNote helper's raw editorStore/vaultStore use for frontmatter edits"; this Issue and mods Issue 01 leave `editNote` unchanged (Decisions above, `item-01-validation.md:21`).
 - **Not verified:** whether `pnpm add` with the Git URL works in a relay worktree without the owner's credential setup.
 
 ## Comments
