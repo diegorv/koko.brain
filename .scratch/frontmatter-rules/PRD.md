@@ -53,6 +53,12 @@ Not now. Each needs its own Issue if wanted later:
 | 04 | `file.inFolder` takes a vault-relative folder | none |
 | 05 | Also evaluate on move and rename (`needs-triage`, after the MVP) | 01 |
 | 06 | Rename Auto Move to Auto Organize everywhere (no migration), and document filters and actions | 03 |
+| 07 | Property actions can remove a property or add items to a list | 06 |
+| 08 | Property values can be computed with the expression engine (`needs-triage`) | 07 |
+| 09 | A rule can create a note (`needs-triage`) | 08 |
+| 10 | A rule can run a mod action (`needs-triage`) | 09 |
+| 11 | A rule can rename the note (`needs-triage`) | 10 |
+| 12 | A rule can undo its properties when a note stops matching (`needs-triage`) | 11 |
 
 open-itens 001 (the caret follows its text when the frontmatter is rewritten) blocks 01, because the rule usually writes into the note being edited. Without 001, the caret lands inside the `---` block.
 
