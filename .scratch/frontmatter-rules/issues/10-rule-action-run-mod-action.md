@@ -4,7 +4,7 @@
 
 **Blocked by:** 12
 
-**Status:** needs-info
+**Status:** ready-for-agent
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -26,21 +26,21 @@
 
 ### Acceptance
 
-- [ ] Failing test first: a matching save invokes a fake rule-enabled action once, with `{ notePath }` equal to the note's final path.
+- [ ] Failing test first: a matching save invokes a fake rule-enabled action once, with `run.target` equal to `{ on: 'note', path: <final vault-relative path> }`.
 - [ ] An action without the opt-in is not invoked and logs once; a missing action logs once and does not throw.
 - [ ] `layer-rules.test.ts` passes with no new baseline entry.
-- [ ] A mod action written for the old API, with no argument, still runs.
+- [ ] A rule-invoked action that opens a dialog through `run.ui` does not hang the run: document that rule actions must not prompt, and test that a run whose action awaits nothing completes.
 - [ ] Settings lists only rule-enabled actions.
-- [ ] ADR 0036 is amended, and the mods docs and the help pages are updated. Frontend gate passes.
+- [ ] The mods docs and the help pages are updated. Frontend gate passes.
 
 ## Review amendments (2026-11-10)
 
 From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/issue-review-10*.md` and `issue-review-cross.md`. **These override the Behavior and Acceptance above where they differ.** The run order and the shared gates are in `PRD.md`, "Run order and gates for Issues 07-13".
 
-**Status note:** `needs-info`. Behavior 3 needs a change to the mod contract in the private repository `diegorv/koko.brain-mods` (`ModActionV1.run`, contract line 103). The owner commits and pushes it, then this repo adopts it by SHA (`docs/MOD-CORE.md` "Updating the dependency", `package.json:81`). Moved to the end of the chain, so it does not block 11 and 12.
+**Contract decision (main session, 2026-11-11, after the owner authorized Issue 10):** no change to the mod contract and no `koko.brain-mods` commit. `ModRunV1` already carries the note: `run.target?: { on: 'note' | 'folder'; path: string }`, which is vault-relative (`mod-api.v1.ts:43-49` in mod-core). The host's `runAction` already takes it (`src/lib/plugins/mods/mods-host.service.ts:334,387`). The rule invokes the action with `target: { on: 'note', path: <vault-relative path of the matched note at the end of the run> }` and `input: ''`. This replaces Behavior 3's `{ notePath }` argument and amendments 1 and 2 below: the mod reads `run.target.path`, the same field a note-menu invocation fills. Gate: frontend only, with no lockfile change and no `pnpm build`. ADR 0036 is not amended. The mods docs (`help/documentation/mods/`, API reference and cookbook) say that a rule invocation fills `run.target` with `on: 'note'`, and that a mod which needs to tell the two apart lists the action in `ruleActions` and treats it as rule-safe: no dialogs, because nobody clicked.
 
-1. **The note path is vault-relative**, not absolute. The mod API rejects a leading `/` (`mods.logic.ts:69-73`), and `run.target.path` and `onNoteSaved` are vault-relative. Use the path at the end of the run, after any Issue 11 rename and the move.
-2. **The contract change is additive to v1,** with no `apiVersion` bump (ADR 0036:13, contract header): an optional third `run` parameter, `context?: { notePath }`.
+1. **The note path is vault-relative** (still holds: it is `run.target.path`), not absolute. The mod API rejects a leading `/` (`mods.logic.ts:69-73`), and `run.target.path` and `onNoteSaved` are vault-relative. Use the path at the end of the run, after any Issue 11 rename and the move.
+2. *(Superseded by the contract decision above: no contract change.)* **The contract change is additive to v1,** with no `apiVersion` bump (ADR 0036:13, contract header): an optional third `run` parameter, `context?: { notePath }`.
    - Gate: add `pnpm build`, because the lockfile changes.
    - Blocked by: the mod-core commit, whose SHA goes in Notes.
 3. **Opt-in:** the manifest declares no actions; actions are registered at runtime (`mods-host.service.ts:472-512`). Use an optional manifest list, `"ruleActions": ["<local action id>"]`, validated by `parseModManifest` (`mods.logic.ts:138-210`). Settings offers the actions that are both listed there and registered by a loaded mod. Drop the "or the equivalent field" clause.

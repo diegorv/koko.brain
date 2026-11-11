@@ -56,7 +56,7 @@ Not now. Each needs its own Issue if wanted later:
 | 07 | Property actions can remove a property or add items to a list | 13 |
 | 08 | Property values can be computed with the expression engine | 07 |
 | 09 | A rule can create a note | 08 |
-| 10 | A rule can run a mod action (`needs-info`: mod-core commit by the owner) | 12 |
+| 10 | A rule can run a mod action (uses the existing `run.target`, no contract change) | 12 |
 | 11 | A rule can rename the note | 09 |
 | 12 | Document the two-rule pattern for values that switch back (docs only) | 14 |
 | 13 | An object rule filter reports a condition that fails at runtime (safety; found in Issue 03 review) | 06 |
@@ -94,7 +94,7 @@ After a rename, every later step resolves with the new name and path. A failed r
 
 A rule whose only consequence is a rename, a create or an action must still act. Widen the service's early return and the Settings "does nothing" hint each time.
 
-**Chain:** 06, 13, 07, 08, 09, 11, 14, 12, then 10. Issue 10 is `needs-info`: it needs a mod-core contract commit the owner pushes. Issue 05 stays `needs-triage`.
+**Chain:** 06, 13, 07, 08, 09, 11, 14, 12, then 10. Issue 10 uses the existing `run.target` field, so it needs no mod-core change. Issue 05 stays `needs-triage`.
 
 ## Superseded
 
