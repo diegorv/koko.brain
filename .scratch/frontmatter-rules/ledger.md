@@ -46,8 +46,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [A rule can create a note](issues/09-rule-action-create-note.md) | 08 | done | issue/09-rule-action-create-note (a58f6b696) | 2026-11-11 |
 | 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 12 | todo | | |
 | 11 | [A rule can rename the note](issues/11-rule-action-rename-note.md) | 09 | in-progress | | |
-| 12 | [Document the two-rule pattern for values that switch back](issues/12-undo-when-note-stops-matching.md) | 11 | todo | | |
+| 12 | [Document the two-rule pattern for values that switch back](issues/12-undo-when-note-stops-matching.md) | 14 | todo | | |
 | 13 | [An object rule filter reports a condition that fails at runtime](issues/13-object-filter-reports-runtime-leaf-errors.md) | 06 | done | issue/13-object-filter-reports-runtime-leaf-errors (179cca328) | 2026-11-10 |
+| 14 | [Normalize a create-note target before its gates run](issues/14-create-target-normalized-before-gates.md) | 11 | todo | | |
 
 ## Log
 
@@ -79,3 +80,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-11 00:10 — 09 — start — launched by /relay-lite:run — 385ac3bf3
 - 2026-11-11 00:33 — 09 — deliver — reviews APPROVED x2 (claude) with a fix round; full suite 609 files / 15243 tests passed; one open nit (template error not shown for a stored invalid template); squash merged and pushed — a58f6b696
 - 2026-11-11 00:33 — 11 — start — launched by /relay-lite:run — 0ae76a2d7
+- 2026-11-11 00:35 — ledger updated (added 14; blocked by of 12)
