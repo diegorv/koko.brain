@@ -116,7 +116,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 079 | [An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json](issues/079-auto-move-rule-edit-made-just-before.md) | 031 | todo | | |
 | 080 | [A failure after the disk op still reports a completed rename as done and re-keys the index](issues/080-failure-after-disk-op-still-reports-completed.md) | none | todo | | |
 | 081 | [A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes](issues/081-note-unquoted-wikilink-value-up-home-accepts.md) | none | todo | | |
-| 082 | [A failed Auto Move tells the user which note did not move and why](issues/082-failed-auto-move-tells-user-which-note.md) | 031 | todo | | |
+| 082 | [A failed Auto Move tells the user which note did not move and why](issues/082-failed-auto-move-tells-user-which-note.md) | 031, 233 | todo | | |
 | 083 | [A vault picked outside the two allowed folders is refused with a message naming them, never half-working](issues/083-vault-picked-outside-two-allowed-folders-refused.md) | none | todo | | |
 | 084 | [A note whose live-preview widget throws on every render stays editable and in sync with its tab](issues/084-note-whose-live-preview-widget-throws-every.md) | none | todo | | |
 | 085 | [read_files_batch only reads inside the vault that is actually open](issues/085-read-files-batch-only-reads-inside-vault.md) | none | todo | | |
@@ -267,6 +267,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 230 | [Linear-calendar bars line up with their day columns](issues/230-linear-calendar-bar-geometry.md) | none | todo | | |
 | 231 | [Separate verbose renderer diagnostics from ordinary file logs](issues/231-opt-in-renderer-diagnostics.md) | none | todo | | |
 | 232 | [Future: icon colors customizable in Settings > Appearance](issues/232-future-custom-icon-colors.md) | none | todo | | |
+| 233 | [An Auto Organize move into a folder that already has the name lands the note as `<name> 2`](issues/233-auto-organize-move-collision-numbers-the-note.md) | none | todo | | |
 
 ## Log
 
@@ -281,3 +282,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 04:50 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 073, 127, 128, 130; wontfix 072, 073, 127, 128, 130)
 - 2026-11-10 19:20 — 001 — start — launched by /relay-lite:run — bb259e72c
 - 2026-11-10 19:29 — 001 — deliver — review APPROVED round 1 (claude), no fix round; full suite 606 files / 14900 tests passed; squash merged and pushed — 13291dfa0
+- 2026-11-11 11:59 — ledger updated (added 233; title of 006, 006; link of 006, 006; blocked by of 006, 006, 082)
