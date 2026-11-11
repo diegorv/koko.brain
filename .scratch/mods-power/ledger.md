@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [`ctx.onNoteSaved` passes the saved content and can ignore the mod's own writes](issues/02-on-note-saved-own-writes.md) | 01, 06 | done | issue/02-on-note-saved-own-writes (7898fad95) | 2026-11-11 |
 | 03 | [An Auto Organize rule passes a text to its mod action](issues/03-rule-action-input.md) | none | done | issue/03-rule-action-input (2ddd34167) | 2026-11-11 |
 | 04 | [Mods match notes with the view and rule expression engine (`ctx.query`)](issues/04-expression-engine-for-mods.md) | 02 | done | issue/04-expression-engine-for-mods (136793f37) | 2026-11-11 |
-| 05 | [Mods get `ctx.onNoteMoved` for renames and moves](issues/05-note-path-events.md) | 04, 06 | todo | | |
+| 05 | [Mods get `ctx.onNoteMoved` for renames and moves](issues/05-note-path-events.md) | 04, 06 | in-progress | | |
 | 06 | [Mod callback errors show in the Labs row and in one toast](issues/06-visible-callback-errors.md) | none | done | issue/06-visible-callback-errors (5e2d103ed) | 2026-11-11 |
 | 07 | [A mod declares its settings in the manifest and Labs edits them](issues/07-manifest-declared-settings.md) | 06 | todo | | |
 | 08 | [Mods get `ctx.onNoteCreated` for new notes](issues/08-on-note-created.md) | 05 | todo | | |
@@ -57,3 +57,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-11 09:39 — 02 — deliver — merged as 7898fad95; reviews APPROVED (claude) x2 after a fix round; full suite passed (611 files, 15429 tests); pnpm build not run by deliver — 7898fad95
 - 2026-11-11 09:40 — 04 — start — launched by /relay-lite:run — a67559950
 - 2026-11-11 09:55 — 04 — deliver — merged as 136793f37; reviews APPROVED (claude) x2, round-1 minor finding fixed (JSDoc and docs); full suite passed (612 files, 15450 tests) — 136793f37
+- 2026-11-11 09:55 — 05 — start — launched by /relay-lite:run — 80a11fe77
