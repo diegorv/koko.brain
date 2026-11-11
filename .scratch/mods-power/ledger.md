@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Mods write frontmatter through stable `ctx.vault.updateFrontmatter`](issues/01-stable-update-frontmatter.md) | none | done | issue/01-stable-update-frontmatter (bf7299b0f) | 2026-11-11 |
 | 02 | [`ctx.onNoteSaved` passes the saved content and can ignore the mod's own writes](issues/02-on-note-saved-own-writes.md) | 01, 06 | todo | | |
-| 03 | [An Auto Organize rule passes a text to its mod action](issues/03-rule-action-input.md) | none | in-progress | | |
+| 03 | [An Auto Organize rule passes a text to its mod action](issues/03-rule-action-input.md) | none | done | issue/03-rule-action-input (2ddd34167) | 2026-11-11 |
 | 04 | [Mods match notes with the view and rule expression engine (`ctx.query`)](issues/04-expression-engine-for-mods.md) | 02 | todo | | |
 | 05 | [Mods get `ctx.onNoteMoved` for renames and moves](issues/05-note-path-events.md) | 04, 06 | todo | | |
 | 06 | [Mod callback errors show in the Labs row and in one toast](issues/06-visible-callback-errors.md) | none | todo | | |
@@ -50,3 +50,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-11 08:37 — 01 — start — launched by /relay-lite:run — 6d59dafcd
 - 2026-11-11 08:51 — 01 — deliver — merged as bf7299b0f; reviews APPROVED (claude) x2, round-1 nit fixed in help/documentation/mods/04-vault-files.md; full suite passed (611 files, 15384 tests) — bf7299b0f
 - 2026-11-11 08:51 — 03 — start — launched by /relay-lite:run — 91efc9644
+- 2026-11-11 09:06 — 03 — deliver — merged as 2ddd34167; reviews APPROVED (claude) x2, round-1 finding fixed in AutoOrganizeRuleRow.svelte with a test (c8584b37f); full suite passed (611 files, 15404 tests) — 2ddd34167
