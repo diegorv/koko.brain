@@ -55,6 +55,8 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
 7. **Real stats** (Behavior 5): a record whose `mtime` or `ctime` is `<= 0` counts as missing, so use the fallback. A new note's index record is 0 until the Rust delta lands (`collection.service.ts:153-160`), and `created: file.ctime` would otherwise stamp 1970. The values are "as of the last index refresh". Drop the claim that this fixes `file.mtime` filters, and keep the help-page trap for `file.mtime`.
 8. **Tests** with `today() + "7d"` pin a date range with no DST change (for example 2026-06-10). The help page gets one line: durations are fixed hours, so across a DST change the result can be a day off.
 
+9. **Carried over from Issue 07's review (open nit):** in Settings, `fitted` (`src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:64`) turns any one-item list into a plain value when the key is renamed or the mode is switched. That also catches a hand-written `always` list, which silently changes the rule. Only flatten a list that came from `add` mode. Add a test: an `always` row with `["a"]` keeps its list after a key rename.
+
 ## Notes
 
 - **Owner decisions, 2026-11-10 survey:**
