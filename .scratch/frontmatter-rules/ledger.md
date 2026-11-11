@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [`file.inFolder` takes a vault-relative folder](issues/04-infolder-takes-vault-relative-folder.md) | none | done | issue/04-infolder-takes-vault-relative-folder (107bcf35a) | 2026-11-10 |
 | 05 | [Auto Move also evaluates a note when it is moved or renamed into a folder](issues/05-auto-move-evaluates-on-move-and-rename.md) | 06 | todo | | |
 | 06 | [Rename Auto Move to Auto Organize everywhere, and document filters and actions](issues/06-rename-auto-move-to-auto-organize.md) | 03 | done | issue/06-rename-auto-move-to-auto-organize (b63dfb4ff) | 2026-11-10 |
-| 07 | [Property actions can remove a property or add items to a list](issues/07-property-actions-remove-and-add-to-list.md) | 13 | todo | | |
+| 07 | [Property actions can remove a property or add items to a list](issues/07-property-actions-remove-and-add-to-list.md) | 13 | in-progress | | |
 | 08 | [Property values can be computed with the expression engine](issues/08-computed-property-values.md) | 07 | todo | | |
 | 09 | [A rule can create a note](issues/09-rule-action-create-note.md) | 08 | todo | | |
 | 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 12 | todo | | |
@@ -72,3 +72,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 23:15 — 06 — deliver — reviews APPROVED x2 (claude) with a fix round; full suite 609 files / 15083 tests passed; squash merged and pushed — b63dfb4ff
 - 2026-11-10 23:16 — 13 — start — launched by /relay-lite:run — ea561a269
 - 2026-11-10 23:26 — 13 — deliver — reviews APPROVED x2 (claude) with a fix round; full suite 609 files / 15094 tests passed; squash merged and pushed; Status set to resolved by main session (no checklist in Issue) — 179cca328
+- 2026-11-10 23:26 — 07 — start — launched by /relay-lite:run — 280629105
