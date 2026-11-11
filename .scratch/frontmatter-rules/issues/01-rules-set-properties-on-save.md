@@ -20,7 +20,7 @@
 
 **Related (other feature):** open-itens Issue 001, `.scratch/open-itens/issues/001-caret-selection-follow-their-text-when-frontmatter.md`. The rule usually writes into the note being edited, and without 001 the caret lands inside the `---` block. The owner chose on 2026-11-10 to build this Issue in parallel with 001. No rule has property consequences until a user writes them, and Settings cannot until Issue 02 ships, so landing first is harmless. Do not work around the caret here, and do not edit 001's files.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -77,22 +77,22 @@
 
 ### Acceptance
 
-- [ ] Failing test first, in `src/tests/lib/features/auto-move/auto-move.service.test.ts`: a rule `file.folder == '/vault/topics/AWS'`, `destination: ''` and `properties: [{ key: '_belongs_to', value: '[[AWS]]', mode: 'if-missing' }]`. Save `/vault/topics/AWS/note.md` with `---\n_organized: false\n---\nbody` and advance past the debounce. The file stays at the same path, its frontmatter has `_belongs_to: "[[AWS]]"`, and `moveItem` is not called. It fails today, because the note is moved to the vault root.
-- [ ] `if-missing`: a note with `_belongs_to: "[[Other]]"` is unchanged; a note with `_belongs_to: ""` gets the value.
-- [ ] `always`: a note with `status: paused` and an always rule `status: active` ends with `status: active`. A note already at `active` is not written.
-- [ ] Two matching rules on the same key: the higher one's value is written. A higher `if-missing` rule whose key is present blocks a lower `always` rule on that key.
-- [ ] A rule with properties and no destination does not block a later rule with a destination: the note gets the properties and moves.
-- [ ] A rule with a destination and properties moves first, then writes at the new path. A failed move writes nothing.
-- [ ] No chaining, with the real `editor.hooks` and the real `updateNoteFrontmatter`, mocking only the Tauri fs plugin and `call`. Rule A sets `_belongs_to: "[[AWS]]"`; rule B has the filter `_belongs_to.contains("AWS")` and sets `x: 1`. After one save and two debounces, `x` is absent and no timer is pending.
-- [ ] No loop: a moving rule with a legacy icon and no color, plus a matching rule setting `_color: red` with `always`. After one save and three debounces, `_color` is `red`, and no timer is pending.
-- [ ] Fresh content: when the note's content changes between the save and the timer, the run evaluates the new content. A note deleted before the timer fires produces no write and no error log.
-- [ ] Turning Auto Move off before the timer fires prevents the write.
-- [ ] A boolean value is written as `true`, not `"true"`.
-- [ ] Load: entries on `todoist_project`, and `_archived: "true"` given as text, are dropped. A config without `properties` loads and behaves as before.
-- [ ] Gates: a `.canvas` file, a note under `_system/`, a note in a templates folder set outside `_system`, a type definition note, lossy frontmatter (a YAML comment) and an empty `---\n---` block are not written.
-- [ ] `auto-move.logic.test.ts` covers the pure planner (which rules match, which one moves, which property values win and which are missing), with happy path, empty and null inputs.
-- [ ] `22-auto-move.md` documents the points above.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in `src/tests/lib/features/auto-move/auto-move.service.test.ts`: a rule `file.folder == '/vault/topics/AWS'`, `destination: ''` and `properties: [{ key: '_belongs_to', value: '[[AWS]]', mode: 'if-missing' }]`. Save `/vault/topics/AWS/note.md` with `---\n_organized: false\n---\nbody` and advance past the debounce. The file stays at the same path, its frontmatter has `_belongs_to: "[[AWS]]"`, and `moveItem` is not called. It fails today, because the note is moved to the vault root.
+- [x] `if-missing`: a note with `_belongs_to: "[[Other]]"` is unchanged; a note with `_belongs_to: ""` gets the value.
+- [x] `always`: a note with `status: paused` and an always rule `status: active` ends with `status: active`. A note already at `active` is not written.
+- [x] Two matching rules on the same key: the higher one's value is written. A higher `if-missing` rule whose key is present blocks a lower `always` rule on that key.
+- [x] A rule with properties and no destination does not block a later rule with a destination: the note gets the properties and moves.
+- [x] A rule with a destination and properties moves first, then writes at the new path. A failed move writes nothing.
+- [x] No chaining, with the real `editor.hooks` and the real `updateNoteFrontmatter`, mocking only the Tauri fs plugin and `call`. Rule A sets `_belongs_to: "[[AWS]]"`; rule B has the filter `_belongs_to.contains("AWS")` and sets `x: 1`. After one save and two debounces, `x` is absent and no timer is pending.
+- [x] No loop: a moving rule with a legacy icon and no color, plus a matching rule setting `_color: red` with `always`. After one save and three debounces, `_color` is `red`, and no timer is pending.
+- [x] Fresh content: when the note's content changes between the save and the timer, the run evaluates the new content. A note deleted before the timer fires produces no write and no error log.
+- [x] Turning Auto Move off before the timer fires prevents the write.
+- [x] A boolean value is written as `true`, not `"true"`.
+- [x] Load: entries on `todoist_project`, and `_archived: "true"` given as text, are dropped. A config without `properties` loads and behaves as before.
+- [x] Gates: a `.canvas` file, a note under `_system/`, a note in a templates folder set outside `_system`, a type definition note, lossy frontmatter (a YAML comment) and an empty `---\n---` block are not written.
+- [x] `auto-move.logic.test.ts` covers the pure planner (which rules match, which one moves, which property values win and which are missing), with happy path, empty and null inputs.
+- [x] `22-auto-move.md` documents the points above.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Notes
 
@@ -110,3 +110,6 @@
   More in `.scratch/frontmatter-rules/research/`.
 
 ## Comments
+
+- 2026-11-10, branch `issue/01-rules-set-properties-on-save`: Auto Move rules can set frontmatter properties on save (`if-missing` / `always`), with a pure planner, no chaining or loops, gates for canvas, `_system`, templates, type definitions and lossy frontmatter, and docs in `22-auto-move.md`. Review round 1 APPROVED with three fixes (type casing normalized in the type-definition gate, open-tab content test, case-insensitive protected folders); round 2 APPROVED with no findings. Full suite at 068365cca: 607 files, 14950 passed, 54 skipped, 1 todo, exit=0; `pnpm check` 0 errors.
+- 2026-11-10, main session: deliver sync hit a rebase conflict in `auto-move.service.ts` because Issue 04 landed first (required `vaultPath` on `findMatchingRule`). Rebased by hand: `findMatchingRules` takes a required `vaultPath` and passes it into the EvalContext, and the service passes it, so a relative `file.inFolder` works in rules. Test `dd63de1ce` covers it (fails without the fix). Opus adversarial review of the resolution: could not refute (range-diff: only the feat commit changed, by the vaultPath param). Targeted auto-move, collection and architecture tests (47 files, 1350 tests) and `pnpm check` (0 errors) pass; full suite 607 files, 14967 tests passed.

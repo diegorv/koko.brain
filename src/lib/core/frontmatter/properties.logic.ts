@@ -461,7 +461,7 @@ export function detectLossyFrontmatter(content: string): LossyFrontmatterReason 
 }
 
 /** True when a property value carries no data (empty string, null, or empty list). */
-function isEmptyPropertyValue(value: Property['value']): boolean {
+export function isEmptyPropertyValue(value: Property['value']): boolean {
 	if (value === '' || value === null || value === undefined) return true;
 	if (Array.isArray(value) && value.length === 0) return true;
 	return false;

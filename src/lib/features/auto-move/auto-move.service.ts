@@ -4,12 +4,26 @@ import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { moveItem } from '#lib/core/filesystem/fs.service.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
-import { detectLossyFrontmatter } from '#lib/core/frontmatter/properties.logic.js';
+import { detectLossyFrontmatter, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
+import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { autoMoveStore } from './auto-move.store.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { findMatchingRule, isInExcludedFolder, isAlreadyInDestination, resolveDestination } from './auto-move.logic';
-import type { AutoMoveConfig } from './auto-move.types';
+import {
+	applyPropertyWrites,
+	findMatchingRules,
+	findMoveRule,
+	isInExcludedFolder,
+	isAlreadyInDestination,
+	ownedProperties,
+	propertiesToWrite,
+	propertyWriteSkipReason,
+	resolveDestination,
+	sanitizeRuleProperties,
+	type OwnedProperty,
+} from './auto-move.logic';
+import type { AutoMoveConfig, AutoMoveRule } from './auto-move.types';
 import { generateLifecycleRules } from './type-lifecycle-rules';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
@@ -23,6 +37,16 @@ const debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
 
 /** Current unsubscribe function for the after-save hook (null if not registered) */
 let currentUnsubscribe: (() => void) | null = null;
+
+/**
+ * Target paths of runs in their write phase. The after-saves fired by a run's
+ * own writes (legacy icon and properties) must not schedule a new evaluation:
+ * that is the whole chaining and loop protection.
+ */
+const writingPaths = new Set<string>();
+
+/** Rule ids whose property write failure was already logged this session. */
+const reportedWriteFailures = new Set<string>();
 
 /** Default empty config */
 const DEFAULT_CONFIG: AutoMoveConfig = {
@@ -54,7 +78,7 @@ export async function loadAutoMoveConfig(vaultPath: string): Promise<void> {
 		}
 		const parsed = JSON.parse(content) as Partial<AutoMoveConfig>;
 		autoMoveStore.setConfig({
-			rules: Array.isArray(parsed.rules) ? parsed.rules : [],
+			rules: Array.isArray(parsed.rules) ? parsed.rules.map(withValidProperties) : [],
 			excludedFolders: Array.isArray(parsed.excludedFolders) ? parsed.excludedFolders : [],
 		});
 		debug('AUTO-MOVE', `Loaded config: ${autoMoveStore.rules.length} rules, ${autoMoveStore.excludedFolders.length} excluded folders`);
@@ -62,6 +86,13 @@ export async function loadAutoMoveConfig(vaultPath: string): Promise<void> {
 		error('AUTO-MOVE', 'Failed to load config:', err);
 		autoMoveStore.setConfig({ ...DEFAULT_CONFIG });
 	}
+}
+
+/** A loaded rule with its invalid property entries dropped; a non-array `properties` is removed. */
+function withValidProperties(rule: AutoMoveRule): AutoMoveRule {
+	if (rule === null || typeof rule !== 'object' || !('properties' in rule)) return rule;
+	const { properties, ...rest } = rule;
+	return Array.isArray(properties) ? { ...rest, properties: sanitizeRuleProperties(properties) } : rest;
 }
 
 /**
@@ -93,7 +124,8 @@ export async function saveAutoMoveConfig(vaultPath: string): Promise<void> {
  */
 export function registerAutoMoveHook(): () => void {
 	debug('AUTO-MOVE', 'Registering after-save hook');
-	return addAfterSaveObserver((filePath, content) => {
+	return addAfterSaveObserver((filePath) => {
+		if (writingPaths.has(filePath)) return;
 		if (isViewFile(filePath)) return;
 		if (!settingsStore.autoMove.enabled) return;
 
@@ -115,7 +147,10 @@ export function registerAutoMoveHook(): () => void {
 
 		const timer = setTimeout(async () => {
 			debounceTimers.delete(filePath);
+			if (!settingsStore.autoMove.enabled) return;
 			try {
+				const content = await readCurrentContent(filePath);
+				if (content === null) return;
 				await evaluateAndMove(filePath, content, vaultPath);
 			} catch (err) {
 				error('AUTO-MOVE', 'Failed to evaluate/move:', err);
@@ -146,72 +181,157 @@ export function toggleAutoMoveHook(enabled: boolean): (() => void) | null {
 }
 
 /**
- * Evaluates rules against a saved file and moves it if a rule matches.
- * Uses buildNoteRecord directly from the saved content for freshness.
+ * The note as it is now: the open tab's content, else the file on disk.
+ * Null when the note vanished since the save.
+ */
+async function readCurrentContent(filePath: string): Promise<string | null> {
+	const tab = editorStore.tabs.find((t) => t.path === filePath);
+	if (tab) return tab.content;
+	try {
+		return await readTextFile(filePath);
+	} catch (err) {
+		if (!(await exists(filePath).catch(() => true))) {
+			debug('AUTO-MOVE', 'Note vanished before evaluation:', filePath);
+			return null;
+		}
+		throw err;
+	}
+}
+
+/**
+ * Evaluates rules against a note's current content: the first matching rule
+ * with a destination moves it, then, at the new path, the moving rule's legacy
+ * icon and every matching rule's properties are written.
  */
 async function evaluateAndMove(filePath: string, content: string, vaultPath: string): Promise<void> {
-	// Build a fresh PropertyIndexRecord from the saved content
 	const record = buildNoteRecord(filePath, content, Date.now(), Date.now());
 
 	const lifecycleRules = generateLifecycleRules(typeDefinitionsStore.typeMetadataMap);
 	const allRules = [...autoMoveStore.enabledRules, ...lifecycleRules];
 
-	const rule = findMatchingRule(allRules, record, vaultPath, (failed, err) =>
+	const matched = findMatchingRules(allRules, record, vaultPath, (failed, err) =>
 		error('AUTO-MOVE', `Rule "${failed.name}" failed to evaluate on ${filePath}:`, err),
 	);
-	if (!rule) {
+	if (matched.length === 0) {
 		debug('AUTO-MOVE', 'No matching rule for:', filePath);
 		return;
 	}
 
-	const resolvedDest = resolveDestination(rule.destination, record, vaultPath);
-	const alreadyInDest = isAlreadyInDestination(filePath, vaultPath, resolvedDest);
+	const rule = findMoveRule(matched);
 	let targetPath = filePath;
 
-	if (alreadyInDest) {
-		debug('AUTO-MOVE', 'Already in destination, skipping move:', filePath);
-	} else {
-		// Ensure destination folder exists
-		const destPath = `${vaultPath}/${resolvedDest}`;
-		try {
-			const destExists = await exists(destPath);
-			if (!destExists) {
-				await mkdir(destPath, { recursive: true });
-				debug('AUTO-MOVE', 'Created destination folder:', destPath);
+	if (rule) {
+		const resolvedDest = resolveDestination(rule.destination, record, vaultPath);
+		if (isAlreadyInDestination(filePath, vaultPath, resolvedDest)) {
+			debug('AUTO-MOVE', 'Already in destination, skipping move:', filePath);
+		} else {
+			// Ensure destination folder exists
+			const destPath = `${vaultPath}/${resolvedDest}`;
+			try {
+				const destExists = await exists(destPath);
+				if (!destExists) {
+					await mkdir(destPath, { recursive: true });
+					debug('AUTO-MOVE', 'Created destination folder:', destPath);
+				}
+			} catch (err) {
+				error('AUTO-MOVE', 'Failed to create destination folder:', err);
+				return;
 			}
-		} catch (err) {
-			error('AUTO-MOVE', 'Failed to create destination folder:', err);
-			return;
-		}
 
-		debug('AUTO-MOVE', `Moving "${filePath}" to "${destPath}" (rule: ${rule.name})`);
-		let newPath: string | null;
-		try {
-			newPath = await moveItem(filePath, destPath);
-		} catch {
-			// `moveItem` already logged the cause.
-			return;
+			debug('AUTO-MOVE', `Moving "${filePath}" to "${destPath}" (rule: ${rule.name})`);
+			let newPath: string | null;
+			try {
+				newPath = await moveItem(filePath, destPath);
+			} catch {
+				// `moveItem` already logged the cause.
+				return;
+			}
+			if (!newPath) return;
+			targetPath = newPath;
 		}
-		if (!newPath) return;
-		targetPath = newPath;
 	}
 
-	// Apply icon to the file if the rule has one configured (even if already in destination)
-	if (rule.icon) {
-		// The icon write would refuse this frontmatter and toast on every autosave;
-		// skip it quietly instead.
-		const lossy = detectLossyFrontmatter(content);
-		if (lossy !== null) {
-			debug('AUTO-MOVE', `Skipped icon for ${targetPath}: frontmatter is ${lossy}`);
+	const owned = ownedProperties(matched);
+	if (!rule?.icon && owned.length === 0) return;
+
+	writingPaths.add(targetPath);
+	try {
+		// The legacy icon goes first, so an explicit `_color` property beats
+		// its color removal (`frontmatter-icon.service.ts::withIconColors`).
+		const iconWritten = rule?.icon ? await applyLegacyIcon(rule, content, vaultPath, targetPath) : false;
+		if (owned.length > 0) {
+			await writeRuleProperties(targetPath, iconWritten ? null : content, vaultPath, owned);
+		}
+	} finally {
+		writingPaths.delete(targetPath);
+	}
+}
+
+/**
+ * Applies the moving rule's legacy `icon` field. Returns true when it wrote,
+ * so the property write re-reads the note.
+ */
+async function applyLegacyIcon(rule: AutoMoveRule, content: string, vaultPath: string, targetPath: string): Promise<boolean> {
+	const icon = rule.icon!;
+	// The icon write would refuse this frontmatter and toast on every autosave;
+	// skip it quietly instead.
+	const lossy = detectLossyFrontmatter(content);
+	if (lossy !== null) {
+		debug('AUTO-MOVE', `Skipped icon for ${targetPath}: frontmatter is ${lossy}`);
+		return false;
+	}
+	try {
+		await setIconForPath(vaultPath, targetPath, icon.iconPack, icon.iconName, icon.color, icon.textColor);
+		debug('AUTO-MOVE', `Applied icon "${icon.iconPack}:${icon.iconName}" to ${targetPath}`);
+	} catch (err) {
+		error('AUTO-MOVE', 'Failed to apply icon:', err);
+	}
+	return true;
+}
+
+/**
+ * Writes the owned properties that change the note, in one frontmatter write.
+ * A note the rules leave unchanged is never rewritten.
+ * @param content - the note's current content, or null to read it again
+ */
+async function writeRuleProperties(
+	targetPath: string,
+	content: string | null,
+	vaultPath: string,
+	owned: OwnedProperty[],
+): Promise<void> {
+	let involved = owned;
+	try {
+		const current = content ?? (await readCurrentContent(targetPath));
+		if (current === null) return;
+		const skip = propertyWriteSkipReason(targetPath, current, vaultPath, [
+			settingsStore.templates.systemFolder,
+			settingsStore.templates.folder,
+		]);
+		if (skip !== null) {
+			debug('AUTO-MOVE', `Skipped properties for ${targetPath}: ${skip}`);
 			return;
 		}
-		try {
-			await setIconForPath(vaultPath, targetPath, rule.icon.iconPack, rule.icon.iconName, rule.icon.color, rule.icon.textColor);
-			debug('AUTO-MOVE', `Applied icon "${rule.icon.iconPack}:${rule.icon.iconName}" to ${targetPath}`);
-		} catch (err) {
-			error('AUTO-MOVE', 'Failed to apply icon:', err);
-		}
+		const writes = propertiesToWrite(parseFrontmatterProperties(current), owned);
+		if (writes.length === 0) return;
+		involved = writes;
+		await updateNoteFrontmatter(targetPath, (props) => applyPropertyWrites(props, propertiesToWrite(props, owned)));
+		debug('AUTO-MOVE', `Set properties on ${targetPath}`);
+	} catch (err) {
+		reportWriteFailure(targetPath, involved, err);
 	}
+}
+
+/** Logs a failed property write once per rule per session, naming the rules not yet reported. */
+function reportWriteFailure(targetPath: string, involved: OwnedProperty[], err: unknown): void {
+	const fresh = [...new Set(involved.map((p) => p.rule))].filter((r) => !reportedWriteFailures.has(r.id));
+	if (fresh.length === 0) {
+		debug('AUTO-MOVE', `Property write failed again on ${targetPath}:`, err);
+		return;
+	}
+	for (const r of fresh) reportedWriteFailures.add(r.id);
+	const names = fresh.map((r) => `"${r.name}"`).join(', ');
+	error('AUTO-MOVE', `Rule ${names} failed to set properties on ${targetPath}:`, err);
 }
 
 /** Resets all auto-move state (called during vault teardown) */
@@ -226,6 +346,8 @@ export function resetAutoMove(): void {
 		clearTimeout(timer);
 	}
 	debounceTimers.clear();
+	writingPaths.clear();
+	reportedWriteFailures.clear();
 	autoMoveStore.reset();
 	debug('AUTO-MOVE', 'Reset complete');
 }

@@ -6,7 +6,15 @@ import {
 	validateExpression,
 	generateRuleId,
 	resolveDestination,
+	findMatchingRules,
+	findMoveRule,
+	sanitizeRuleProperties,
+	ownedProperties,
+	propertiesToWrite,
+	applyPropertyWrites,
+	propertyWriteSkipReason,
 } from '#lib/features/auto-move/auto-move.logic.js';
+import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import type { AutoMoveRule } from '#lib/features/auto-move/auto-move.types.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -18,6 +26,7 @@ function makeRule(overrides: Partial<AutoMoveRule> = {}): AutoMoveRule {
 		expression: overrides.expression ?? "file.hasTag('test')",
 		destination: overrides.destination ?? 'Archive',
 		enabled: overrides.enabled ?? true,
+		...(overrides.properties ? { properties: overrides.properties } : {}),
 	};
 }
 
@@ -390,5 +399,228 @@ describe('generateRuleId', () => {
 	it('generates unique ids', () => {
 		const ids = new Set(Array.from({ length: 10 }, () => generateRuleId()));
 		expect(ids.size).toBe(10);
+	});
+});
+
+describe('findMatchingRules', () => {
+	it('returns every enabled matching rule in list order', () => {
+		const rules = [
+			makeRule({ id: 'r1', expression: "file.hasTag('test')" }),
+			makeRule({ id: 'r2', expression: "file.hasTag('other')" }),
+			makeRule({ id: 'r3', expression: "file.hasTag('test')", enabled: false }),
+			makeRule({ id: 'r4', expression: 'true' }),
+		];
+		expect(findMatchingRules(rules, makeRecord({ tags: ['test'] }), '/vault').map((r) => r.id)).toEqual(['r1', 'r4']);
+	});
+
+	it('returns [] for no rules', () => {
+		expect(findMatchingRules([], makeRecord(), '/vault')).toEqual([]);
+	});
+
+	it('skips a rule whose expression throws and reports it', () => {
+		const reported: string[] = [];
+		const rules = [makeRule({ id: 'bad', expression: '((' }), makeRule({ id: 'good', expression: 'true' })];
+		expect(findMatchingRules(rules, makeRecord(), '/vault', (rule) => reported.push(rule.id)).map((r) => r.id)).toEqual(['good']);
+		expect(reported).toEqual(['bad']);
+	});
+
+	it('resolves a relative file.inFolder against the vault path', () => {
+		const rules = [makeRule({ id: 'aws', expression: 'file.inFolder("work/topics/AWS")', destination: '' })];
+		const inside = makeRecord({ path: '/vault/work/topics/AWS/n.md', folder: '/vault/work/topics/AWS' });
+		const sibling = makeRecord({ path: '/vault/work/topics/AWSX/n.md', folder: '/vault/work/topics/AWSX' });
+		expect(findMatchingRules(rules, inside, '/vault').map((r) => r.id)).toEqual(['aws']);
+		expect(findMatchingRules(rules, sibling, '/vault')).toEqual([]);
+		expect(findMatchingRules(rules, inside, '/other-vault')).toEqual([]);
+	});
+});
+
+describe('findMoveRule', () => {
+	it('returns the first rule with a non-blank destination', () => {
+		const rules = [
+			makeRule({ id: 'r1', destination: '' }),
+			makeRule({ id: 'r2', destination: '   ' }),
+			makeRule({ id: 'r3', destination: 'Archive' }),
+			makeRule({ id: 'r4', destination: 'Other' }),
+		];
+		expect(findMoveRule(rules)?.id).toBe('r3');
+	});
+
+	it('returns null when no rule has a destination, or for no rules', () => {
+		expect(findMoveRule([makeRule({ destination: '' })])).toBeNull();
+		expect(findMoveRule([])).toBeNull();
+	});
+
+	it('keeps a template that resolves to the vault root as a move', () => {
+		expect(findMoveRule([makeRule({ destination: '{parent}' })])?.destination).toBe('{parent}');
+	});
+});
+
+describe('sanitizeRuleProperties', () => {
+	it('keeps valid entries of every value type', () => {
+		const valid = [
+			{ key: '_belongs_to', value: '[[AWS]]', mode: 'if-missing' },
+			{ key: 'priority', value: 2, mode: 'always' },
+			{ key: '_organized', value: true, mode: 'if-missing' },
+			{ key: 'tags', value: ['a', 'b'], mode: 'always' },
+		];
+		expect(sanitizeRuleProperties(valid)).toEqual(valid);
+	});
+
+	it('returns [] for a missing, null or non-array value', () => {
+		expect(sanitizeRuleProperties(undefined)).toEqual([]);
+		expect(sanitizeRuleProperties(null)).toEqual([]);
+		expect(sanitizeRuleProperties({ key: 'x' })).toEqual([]);
+	});
+
+	it('drops a blank key, a missing or unknown mode, and a value of another type', () => {
+		expect(sanitizeRuleProperties([
+			null,
+			'x',
+			{ key: '  ', value: 'a', mode: 'always' },
+			{ key: 'a', value: 'a' },
+			{ key: 'a', value: 'a', mode: 'sometimes' },
+			{ key: 'a', value: { nested: true }, mode: 'always' },
+			{ key: 'a', value: null, mode: 'always' },
+			{ key: 'a', value: [1, 2], mode: 'always' },
+		])).toEqual([]);
+	});
+
+	it('drops todoist_project and a non-boolean lifecycle value, by canonical key', () => {
+		expect(sanitizeRuleProperties([
+			{ key: 'todoist_project', value: 'Work', mode: 'always' },
+			{ key: '_archived', value: 'true', mode: 'always' },
+			{ key: 'organized', value: 'false', mode: 'if-missing' },
+			{ key: 'favorite', value: 1, mode: 'always' },
+			{ key: 'archived', value: false, mode: 'always' },
+		])).toEqual([{ key: 'archived', value: false, mode: 'always' }]);
+	});
+});
+
+describe('ownedProperties', () => {
+	it('gives each canonical key to the first rule that names it', () => {
+		const r1 = makeRule({ id: 'r1', properties: [{ key: 'icon', value: 'lucide:star', mode: 'if-missing' }] });
+		const r2 = makeRule({ id: 'r2', properties: [
+			{ key: '_icon', value: 'lucide:cloud', mode: 'always' },
+			{ key: 'status', value: 'active', mode: 'always' },
+		] });
+		const owned = ownedProperties([r1, r2]);
+		expect(owned.map((p) => [p.key, p.value, p.rule.id])).toEqual([
+			['_icon', 'lucide:star', 'r1'],
+			['status', 'active', 'r2'],
+		]);
+	});
+
+	it('returns [] for rules without properties, or no rules', () => {
+		expect(ownedProperties([makeRule(), makeRule({ properties: [] })])).toEqual([]);
+		expect(ownedProperties([])).toEqual([]);
+	});
+});
+
+describe('propertiesToWrite', () => {
+	const prop = (key: string, value: Property['value'], type: Property['type'] = 'text'): Property => ({ key, value, type });
+	const own = (key: string, value: Property['value'], mode: 'if-missing' | 'always') =>
+		ownedProperties([makeRule({ properties: [{ key, value, mode }] })]);
+
+	it('if-missing writes an absent, empty or empty-list key', () => {
+		expect(propertiesToWrite([], own('x', 'v', 'if-missing'))).toHaveLength(1);
+		expect(propertiesToWrite([prop('x', '')], own('x', 'v', 'if-missing'))).toHaveLength(1);
+		expect(propertiesToWrite([prop('x', [], 'list')], own('x', 'v', 'if-missing'))).toHaveLength(1);
+		expect(propertiesToWrite([prop('x', null as unknown as string)], own('x', 'v', 'if-missing'))).toHaveLength(1);
+	});
+
+	it('if-missing leaves a present value, false and 0 included', () => {
+		expect(propertiesToWrite([prop('x', 'other')], own('x', 'v', 'if-missing'))).toEqual([]);
+		expect(propertiesToWrite([prop('x', false, 'boolean')], own('x', true, 'if-missing'))).toEqual([]);
+		expect(propertiesToWrite([prop('x', 0, 'number')], own('x', 1, 'if-missing'))).toEqual([]);
+	});
+
+	it('always writes a differing value and skips an equal one', () => {
+		expect(propertiesToWrite([prop('x', 'paused')], own('x', 'active', 'always'))).toHaveLength(1);
+		expect(propertiesToWrite([prop('x', 'active')], own('x', 'active', 'always'))).toEqual([]);
+		expect(propertiesToWrite([prop('x', '1')], own('x', 1, 'always'))).toHaveLength(1);
+	});
+
+	it('always compares lists item by item', () => {
+		expect(propertiesToWrite([prop('x', ['a', 'b'], 'list')], own('x', ['a', 'b'], 'always'))).toEqual([]);
+		expect(propertiesToWrite([prop('x', ['b', 'a'], 'list')], own('x', ['a', 'b'], 'always'))).toHaveLength(1);
+		expect(propertiesToWrite([prop('x', 'a')], own('x', ['a'], 'always'))).toHaveLength(1);
+	});
+
+	it('matches an aliased current key by its canonical form', () => {
+		expect(propertiesToWrite([prop('icon', 'lucide:book')], own('_icon', 'lucide:cloud', 'if-missing'))).toEqual([]);
+	});
+
+	it('returns [] when nothing is owned', () => {
+		expect(propertiesToWrite([prop('x', 'a')], [])).toEqual([]);
+	});
+});
+
+describe('applyPropertyWrites', () => {
+	it('replaces an existing key in place and appends a new one, typed by the value', () => {
+		const writes = ownedProperties([makeRule({ properties: [
+			{ key: 'status', value: 'active', mode: 'always' },
+			{ key: 'done', value: true, mode: 'always' },
+			{ key: 'n', value: 3, mode: 'always' },
+			{ key: 'tags', value: ['a'], mode: 'always' },
+		] })]);
+		const current: Property[] = [
+			{ key: 'status', value: 'paused', type: 'text' },
+			{ key: 'other', value: 'kept', type: 'text' },
+		];
+		expect(applyPropertyWrites(current, writes)).toEqual([
+			{ key: 'status', value: 'active', type: 'text' },
+			{ key: 'other', value: 'kept', type: 'text' },
+			{ key: 'done', value: true, type: 'boolean' },
+			{ key: 'n', value: 3, type: 'number' },
+			{ key: 'tags', value: ['a'], type: 'list' },
+		]);
+		expect(current[0].value).toBe('paused');
+	});
+
+	it('returns the input for no writes', () => {
+		const current: Property[] = [{ key: 'x', value: 'a', type: 'text' }];
+		expect(applyPropertyWrites(current, [])).toBe(current);
+	});
+});
+
+describe('propertyWriteSkipReason', () => {
+	const folders = ['_system', 'Templates'];
+
+	it('allows a plain note, a note without frontmatter, and an empty note', () => {
+		expect(propertyWriteSkipReason('/vault/a.md', '---\nx: 1\n---\nbody', '/vault', folders)).toBeNull();
+		expect(propertyWriteSkipReason('/vault/a.md', '# body', '/vault', folders)).toBeNull();
+		expect(propertyWriteSkipReason('/vault/a.md', '', '/vault', folders)).toBeNull();
+	});
+
+	it('refuses non-Markdown files', () => {
+		expect(propertyWriteSkipReason('/vault/b.canvas', '{}', '/vault', folders)).toBe('not Markdown');
+		expect(propertyWriteSkipReason('/vault/b.kanban', '', '/vault', folders)).toBe('not Markdown');
+	});
+
+	it('refuses notes inside a protected folder, matched as a folder prefix', () => {
+		expect(propertyWriteSkipReason('/vault/_system/t.md', '', '/vault', folders)).toBe('inside _system/');
+		expect(propertyWriteSkipReason('/vault/Templates/deep/t.md', '', '/vault', ['/Templates/'])).toBe('inside Templates/');
+		expect(propertyWriteSkipReason('/vault/_system2/t.md', '', '/vault', folders)).toBeNull();
+		expect(propertyWriteSkipReason('/vault/t.md', '', '/vault', ['', '  '])).toBeNull();
+	});
+
+	it('matches a protected folder case-insensitively', () => {
+		expect(propertyWriteSkipReason('/vault/_system/t.md', '', '/vault', ['_System'])).toBe('inside _System/');
+		expect(propertyWriteSkipReason('/vault/templates/t.md', '', '/vault', ['Templates'])).toBe('inside Templates/');
+	});
+
+	it('refuses lossy frontmatter and a --- start with no readable block', () => {
+		expect(propertyWriteSkipReason('/vault/a.md', '---\n# c\nx: 1\n---\n', '/vault', folders)).toBe('frontmatter is comments');
+		expect(propertyWriteSkipReason('/vault/a.md', '---\n---\nbody', '/vault', folders)).toBe('frontmatter block is unreadable');
+		expect(propertyWriteSkipReason('/vault/a.md', '---\nx: 1\nbody', '/vault', folders)).toBe('frontmatter block is unreadable');
+	});
+
+	it('refuses a type definition, by canonical key', () => {
+		expect(propertyWriteSkipReason('/vault/P.md', '---\ntype: Type\n---\n', '/vault', folders)).toBe('type definition');
+		expect(propertyWriteSkipReason('/vault/P.md', '---\n_type: Project\n---\n', '/vault', folders)).toBeNull();
+	});
+
+	it('refuses a type definition whose _type is lowercase, as the app normalizes its casing', () => {
+		expect(propertyWriteSkipReason('/vault/P.md', '---\n_type: type\n---\n', '/vault', folders)).toBe('type definition');
 	});
 });
