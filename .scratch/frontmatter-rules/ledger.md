@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [The rule filter uses the view filter builder](issues/03-rule-filter-uses-view-filter-builder.md) | 02 | in-progress | | |
 | 04 | [`file.inFolder` takes a vault-relative folder](issues/04-infolder-takes-vault-relative-folder.md) | none | done | issue/04-infolder-takes-vault-relative-folder (107bcf35a) | 2026-11-10 |
 | 05 | [Auto Move also evaluates a note when it is moved or renamed into a folder](issues/05-auto-move-evaluates-on-move-and-rename.md) | 01 | todo | | |
-| 06 | [Rename Auto Move to Auto Organize in the app and the help](issues/06-rename-auto-move-to-auto-organize.md) | 03 | todo | | |
+| 06 | [Rename Auto Move to Auto Organize everywhere](issues/06-rename-auto-move-to-auto-organize.md) | 03 | todo | | |
 
 ## Log
 
@@ -55,3 +55,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 22:19 — 02 — deliver — reviews APPROVED x2 (claude), fix round for 5 round-1 findings; full suite 608 files / 15010 tests passed; squash merged and pushed — a314c98e3
 - 2026-11-10 22:19 — 03 — start — launched by /relay-lite:run — 543bf10de
 - 2026-11-10 22:20 — ledger updated (added 06)
+- 2026-11-10 22:22 — ledger updated (title of 06)
