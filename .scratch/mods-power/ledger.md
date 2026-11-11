@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Mods write frontmatter through stable `ctx.vault.updateFrontmatter`](issues/01-stable-update-frontmatter.md) | none | done | issue/01-stable-update-frontmatter (bf7299b0f) | 2026-11-11 |
-| 02 | [`ctx.onNoteSaved` passes the saved content and can ignore the mod's own writes](issues/02-on-note-saved-own-writes.md) | 01, 06 | in-progress | | |
+| 02 | [`ctx.onNoteSaved` passes the saved content and can ignore the mod's own writes](issues/02-on-note-saved-own-writes.md) | 01, 06 | done | issue/02-on-note-saved-own-writes (7898fad95) | 2026-11-11 |
 | 03 | [An Auto Organize rule passes a text to its mod action](issues/03-rule-action-input.md) | none | done | issue/03-rule-action-input (2ddd34167) | 2026-11-11 |
 | 04 | [Mods match notes with the view and rule expression engine (`ctx.query`)](issues/04-expression-engine-for-mods.md) | 02 | todo | | |
 | 05 | [Mods get `ctx.onNoteMoved` for renames and moves](issues/05-note-path-events.md) | 04, 06 | todo | | |
@@ -54,3 +54,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-11 09:07 — 06 — start — launched by /relay-lite:run — d15a83160
 - 2026-11-11 09:24 — 06 — deliver — merged as 5e2d103ed; review APPROVED (claude), one test nit declined with reason in review.md; full suite passed (611 files, 15419 tests) — 5e2d103ed
 - 2026-11-11 09:24 — 02 — start — launched by /relay-lite:run — 8f8601ffd
+- 2026-11-11 09:39 — 02 — deliver — merged as 7898fad95; reviews APPROVED (claude) x2 after a fix round; full suite passed (611 files, 15429 tests); pnpm build not run by deliver — 7898fad95
