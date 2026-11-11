@@ -42,7 +42,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 05 | [Auto Move also evaluates a note when it is moved or renamed into a folder](issues/05-auto-move-evaluates-on-move-and-rename.md) | 06 | todo | | |
 | 06 | [Rename Auto Move to Auto Organize everywhere, and document filters and actions](issues/06-rename-auto-move-to-auto-organize.md) | 03 | done | issue/06-rename-auto-move-to-auto-organize (b63dfb4ff) | 2026-11-10 |
 | 07 | [Property actions can remove a property or add items to a list](issues/07-property-actions-remove-and-add-to-list.md) | 13 | done | issue/07-property-actions-remove-and-add-to-list (95177de96) | 2026-11-10 |
-| 08 | [Property values can be computed with the expression engine](issues/08-computed-property-values.md) | 07 | in-progress | | |
+| 08 | [Property values can be computed with the expression engine](issues/08-computed-property-values.md) | 07 | done | issue/08-computed-property-values (869d1a34b) | 2026-11-11 |
 | 09 | [A rule can create a note](issues/09-rule-action-create-note.md) | 08 | todo | | |
 | 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 12 | todo | | |
 | 11 | [A rule can rename the note](issues/11-rule-action-rename-note.md) | 09 | todo | | |
@@ -75,3 +75,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 23:26 — 07 — start — launched by /relay-lite:run — 280629105
 - 2026-11-10 23:44 — 07 — deliver — reviews APPROVED x2 (claude) with a fix round; full suite 609 files / 15133 tests passed; one open nit (one-item list flattened on key/mode change in Settings); squash merged and pushed — 95177de96
 - 2026-11-10 23:45 — 08 — start — launched by /relay-lite:run — 68b4e6d91
+- 2026-11-11 00:10 — 08 — deliver — reviews APPROVED x2 (claude) with a fix round; full suite 609 files / 15194 tests passed; one open nit (key rename refused after a refused expression); squash merged and pushed — 869d1a34b
