@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Auto Move rules set properties on save](issues/01-rules-set-properties-on-save.md) | none | done | issue/01-rules-set-properties-on-save (397eaa08a) | 2026-11-10 |
 | 02 | [Rule consequences in Settings](issues/02-rule-consequences-in-settings.md) | 01 | done | issue/02-rule-consequences-in-settings (a314c98e3) | 2026-11-10 |
-| 03 | [The rule filter uses the view filter builder](issues/03-rule-filter-uses-view-filter-builder.md) | 02 | in-progress | | |
+| 03 | [The rule filter uses the view filter builder](issues/03-rule-filter-uses-view-filter-builder.md) | 02 | done | issue/03-rule-filter-uses-view-filter-builder (054ace345) | 2026-11-10 |
 | 04 | [`file.inFolder` takes a vault-relative folder](issues/04-infolder-takes-vault-relative-folder.md) | none | done | issue/04-infolder-takes-vault-relative-folder (107bcf35a) | 2026-11-10 |
 | 05 | [Auto Move also evaluates a note when it is moved or renamed into a folder](issues/05-auto-move-evaluates-on-move-and-rename.md) | 01 | todo | | |
 | 06 | [Rename Auto Move to Auto Organize everywhere, and document filters and actions](issues/06-rename-auto-move-to-auto-organize.md) | 03 | todo | | |
@@ -65,3 +65,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 22:25 — ledger updated (title of 06)
 - 2026-11-10 22:29 — ledger updated (added 07, 08, 09, 10, 11, 12)
 - 2026-11-10 22:36 — ledger updated (title of 12)
+- 2026-11-10 22:46 — 03 — deliver — review CHANGES_REQUESTED then APPROVED x2 (claude); fixes: expression row, shared filter shape check, docs, type-scale class; full suite 608 files / 15053 tests passed; squash merged and pushed — 054ace345
