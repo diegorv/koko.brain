@@ -46,7 +46,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 09 | [A rule can create a note](issues/09-rule-action-create-note.md) | 08 | done | issue/09-rule-action-create-note (a58f6b696) | 2026-11-11 |
 | 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 12 | todo | | |
 | 11 | [A rule can rename the note](issues/11-rule-action-rename-note.md) | 09 | done | issue/11-rule-action-rename-note (7f698c59b) | 2026-11-11 |
-| 12 | [Document the two-rule pattern for values that switch back](issues/12-undo-when-note-stops-matching.md) | 14 | todo | | |
+| 12 | [Document the two-rule pattern for values that switch back](issues/12-undo-when-note-stops-matching.md) | 14 | in-progress | | |
 | 13 | [An object rule filter reports a condition that fails at runtime](issues/13-object-filter-reports-runtime-leaf-errors.md) | 06 | done | issue/13-object-filter-reports-runtime-leaf-errors (179cca328) | 2026-11-10 |
 | 14 | [Normalize a create-note target before its gates run](issues/14-create-target-normalized-before-gates.md) | 11 | done | issue/14-create-target-normalized-before-gates (47a934bd1) | 2026-11-11 |
 
@@ -84,3 +84,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-11 00:59 — 11 — deliver — review CHANGES_REQUESTED then APPROVED (claude) after a fix round; full suite 609 files / 15292 tests passed; squash merged and pushed — 7f698c59b
 - 2026-11-11 01:00 — 14 — start — launched by /relay-lite:run — 946deb9fe
 - 2026-11-11 01:09 — 14 — deliver — reviews APPROVED x2 (claude) with a JSDoc fix round; full suite 609 files / 15300 tests passed; squash merged and pushed — 47a934bd1
+- 2026-11-11 01:09 — 12 — start — launched by /relay-lite:run — dd400e2a5
