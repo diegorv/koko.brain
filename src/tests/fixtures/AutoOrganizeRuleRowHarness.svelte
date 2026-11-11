@@ -18,6 +18,11 @@
 		rule = { ...rule, ...updates };
 		onupdate(id, updates);
 	}
+
+	/** Replaces the rule from outside the row, as a config reload does, without reporting an update. */
+	export function replace(next: AutoOrganizeRule) {
+		rule = next;
+	}
 </script>
 
 <AutoOrganizeRuleRow

@@ -56,7 +56,19 @@ export interface RuleCreateNote {
 	open?: boolean;
 }
 
-/** A single auto-organize rule: a filter plus a move, property and create-note consequences */
+/**
+ * The name a matching rule gives the note, without its extension: exactly
+ * one of `name` and `expr`. Neither may read the note's own name, which would
+ * change it again at every save.
+ */
+export interface RuleRename {
+	/** A file-name template with the destination `{variable}` syntax (e.g. `{year}-{month} Meeting`) */
+	name?: string;
+	/** An expression, evaluated against the note like the rule's filter, whose result is the name */
+	expr?: string;
+}
+
+/** A single auto-organize rule: a filter plus rename, move, property and create-note consequences */
 export interface AutoOrganizeRule {
 	/** Unique identifier (timestamp-based) */
 	id: string;
@@ -81,6 +93,8 @@ export interface AutoOrganizeRule {
 	properties?: RuleProperty[];
 	/** A note created when the rule matches, unless it exists already */
 	createNote?: RuleCreateNote;
+	/** The note's new name; only the first matching rule with one renames */
+	rename?: RuleRename;
 }
 
 /** Persisted auto-organize configuration stored in .kokobrain/auto-organize-rules.json */

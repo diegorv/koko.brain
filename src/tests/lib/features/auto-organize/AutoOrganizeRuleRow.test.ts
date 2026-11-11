@@ -8,7 +8,29 @@ import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
+import { loadAutoOrganizeConfig } from '#lib/features/auto-organize/auto-organize.service.js';
+import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import Harness from '../../../fixtures/AutoOrganizeRuleRowHarness.svelte';
+
+vi.mock('@tauri-apps/plugin-fs', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@tauri-apps/plugin-fs')>()),
+	exists: vi.fn(),
+	readTextFile: vi.fn(),
+}));
+
+vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/utils/debug.js')>()),
+	error: vi.fn(),
+}));
+
+/** `rule` as the Settings section gets it: written to the config file and read back by the loader. */
+async function loaded(rule: AutoOrganizeRule): Promise<AutoOrganizeRule> {
+	vi.mocked(exists).mockResolvedValue(true);
+	vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ rules: [rule], excludedFolders: [] }));
+	await loadAutoOrganizeConfig(VAULT);
+	return autoOrganizeStore.rules[0];
+}
 
 // The icon grid's bits-ui ScrollArea observes its size; jsdom has no ResizeObserver.
 globalThis.ResizeObserver ??= class {
@@ -821,6 +843,23 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			expect(document.querySelector('[data-create-template-error]')?.textContent).toContain('not saved');
 		});
 
+		it('says when a stored template is outside the vault, as soon as the row renders', async () => {
+			await render({ ...BLANK, createNote: { path: FOLLOW_UP, template: '../outside.md' } });
+
+			expect(document.querySelector('[data-create-template-error]')?.textContent).toContain('inside the vault');
+		});
+
+		it('shows a hand-edited template outside the vault after the loader read it, and keeps it on the next edit', async () => {
+			const onupdate = await render(await loaded({ ...BLANK, createNote: { path: FOLLOW_UP, template: '../outside.md' } }));
+
+			expect(createField('Create note template').value).toBe('../outside.md');
+			expect(document.querySelector('[data-create-template-error]')?.textContent).toContain('inside the vault');
+
+			document.querySelector<HTMLElement>('[aria-label="Open it"][role="switch"]')!.click();
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { createNote: { path: FOLLOW_UP, template: '../outside.md', open: true } });
+		});
+
 		it('says when the path is not a note path', async () => {
 			await render({ ...BLANK, createNote: { path: 'notes/x.txt' } });
 
@@ -844,6 +883,90 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			await render({ ...BLANK, expression: "status == 'done'" });
 
 			expect(createCount()).toBeNull();
+		});
+	});
+
+	describe('Rename', () => {
+		const renameField = () => document.querySelector<HTMLInputElement>('input[aria-label="Rename to"]')!;
+		const renameError = () => document.querySelector('[data-rename-error]')?.textContent?.trim() ?? null;
+		const GROWS = "The name uses the note's own name, so it would change at every save";
+
+		it('saves a name template on change and removes the consequence when it is cleared', async () => {
+			const onupdate = await render(BLANK);
+
+			type(renameField(), '{year}-{month} Meeting');
+			expect(onupdate).not.toHaveBeenCalled();
+			commit(renameField(), ' {year}-{month} Meeting ');
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { rename: { name: '{year}-{month} Meeting' } });
+
+			commit(renameField(), '');
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { rename: undefined });
+		});
+
+		it('switches the name to an expression and saves it as expr', async () => {
+			const onupdate = await render({ ...BLANK, rename: { name: 'title' } });
+
+			await choose(document.body, 'Rename source', 'Expression');
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { rename: { expr: 'title' } });
+
+			commit(renameField(), 'meeting_date');
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { rename: { expr: 'meeting_date' } });
+		});
+
+		it("does not save a name built from the note's own name, and says why", async () => {
+			const onupdate = await render(BLANK);
+
+			commit(renameField(), '{year} {basename}');
+			await settle();
+			expect(onupdate).not.toHaveBeenCalled();
+			expect(renameError()).toBe(GROWS);
+
+			commit(renameField(), '{year} Meeting');
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { rename: { name: '{year} Meeting' } });
+			expect(renameError()).toBeNull();
+		});
+
+		it('does not save an expression the validator refuses, or one that reads file.basename', async () => {
+			const onupdate = await render({ ...BLANK, rename: { expr: 'title' } });
+
+			commit(renameField(), 'title +');
+			await settle();
+			expect(renameError()).not.toBeNull();
+
+			commit(renameField(), 'file.basename');
+			await settle();
+			expect(renameError()).toBe(GROWS);
+			expect(onupdate).not.toHaveBeenCalled();
+		});
+
+		it('says what is wrong with a stored rename the loader would drop, as soon as the row renders', async () => {
+			await render({ ...BLANK, rename: { name: '{basename} x' } });
+
+			expect(renameError()).toBe(GROWS);
+			expect(hint()).not.toBeNull();
+		});
+
+		it('shows a hand-edited rename after the loader read it, with why a run ignores it', async () => {
+			await render(await loaded({ ...BLANK, rename: { name: '{basename} x' } }));
+
+			expect(renameField().value).toBe('{basename} x');
+			expect(renameError()).toBe(GROWS);
+		});
+
+		it('follows a stored rename that switches between name and expression while the row is mounted', async () => {
+			const sourceLabel = () => document.querySelector('[aria-label="Rename source"] [data-slot="select-value"]')?.textContent?.trim();
+			const rule: AutoOrganizeRule = { ...BLANK, rename: { name: 'Weekly' } };
+			await render(rule);
+			expect(sourceLabel()).toBe('Name');
+
+			(component as unknown as { replace: (next: AutoOrganizeRule) => void }).replace({ ...rule, rename: { expr: 'title' } });
+			await settle();
+			expect(sourceLabel()).toBe('Expression');
+			expect(renameField().value).toBe('title');
 		});
 	});
 
@@ -904,6 +1027,12 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 		it('hides once the rule creates a note', async () => {
 			await render({ ...BLANK, createNote: { path: '{folder}/{basename} follow-up.md' } });
+
+			expect(hint()).toBeNull();
+		});
+
+		it('hides once the rule renames the note', async () => {
+			await render({ ...BLANK, rename: { name: 'Weekly' } });
 
 			expect(hint()).toBeNull();
 		});

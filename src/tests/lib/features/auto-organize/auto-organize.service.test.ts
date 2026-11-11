@@ -19,6 +19,7 @@ vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	moveItem: vi.fn(() => Promise.resolve('/vault/Archive/note.md')),
 	createFile: vi.fn(),
+	renameItem: vi.fn(),
 }));
 
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
@@ -32,7 +33,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
-import { createFile, moveItem } from '#lib/core/filesystem/fs.service.js';
+import { createFile, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
@@ -1496,7 +1497,7 @@ describe('auto-organize.service', () => {
 					expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Rule "Rule c1" did not create ../../x.md: leaves the vault');
 				});
 
-				it('drops a configured path that starts with / on load', async () => {
+				it('keeps a configured path or template a run refuses as stored on load, and creates nothing from it', async () => {
 					vi.mocked(exists).mockResolvedValue(true);
 					vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
 						rules: [
@@ -1506,6 +1507,8 @@ describe('auto-organize.service', () => {
 								id: 'r3', name: 'Ok', expression: 'true', destination: '', enabled: true,
 								createNote: { path: 'x.md', properties: [{ key: 'status', mode: 'remove' }, { key: 'todoist_project', value: 'W', mode: 'always' }, { key: 'a', value: 1, mode: 'always' }] },
 							},
+							{ id: 'r4', name: 'Out', expression: 'true', destination: '', enabled: true, createNote: { path: 'y.md', template: '../t.md', open: true } },
+							{ id: 'r5', name: 'Junk', expression: 'true', destination: '', enabled: true, createNote: 'x.md' },
 						],
 						excludedFolders: [],
 					}));
@@ -1513,11 +1516,17 @@ describe('auto-organize.service', () => {
 					await loadAutoOrganizeConfig('/vault');
 
 					expect(autoOrganizeStore.rules.map((r) => r.createNote)).toEqual([
-						undefined,
-						undefined,
+						{ path: '/etc/x.md' },
+						{ path: 'x.txt' },
 						{ path: 'x.md', properties: [{ key: 'a', value: 1, mode: 'always' }] },
+						{ path: 'y.md', template: '../t.md', open: true },
+						undefined,
 					]);
-					expect(autoOrganizeStore.rules.map((r) => 'createNote' in r)).toEqual([false, false, true]);
+					expect(autoOrganizeStore.rules.map((r) => 'createNote' in r)).toEqual([true, true, true, true, false]);
+
+					const refused = autoOrganizeStore.rules.filter((r) => r.id !== 'r3');
+					await run(refused);
+					expect(createFile).not.toHaveBeenCalled();
 				});
 
 				it('creates nothing for a source the property gates skip', async () => {
@@ -1613,6 +1622,248 @@ describe('auto-organize.service', () => {
 
 				expect(createFile).toHaveBeenCalledTimes(2);
 				expect(lastWrite(SOURCE)).toContain('seen: true');
+			});
+		});
+
+		describe('rename', () => {
+			const SOURCE = '/vault/notes/old.md';
+			const MEETING = '---\ntype: meeting\n---\nbody';
+			const MONTHLY = { name: '{year}-{month} Meeting' };
+			/** Files on the in-memory disk, by absolute path */
+			let disk: Map<string, string>;
+			const originalTemplates = { ...settingsStore.templates };
+
+			/** Moves `from` to `to` on the in-memory disk. */
+			function moveOnDisk(from: string, to: string): string {
+				disk.set(to, disk.get(from)!);
+				disk.delete(from);
+				return to;
+			}
+
+			beforeEach(() => {
+				vi.setSystemTime(new Date(2026, 10, 10, 9, 5));
+				disk = new Map();
+				vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)));
+				vi.mocked(readTextFile).mockImplementation(async (p) => {
+					const content = disk.get(String(p));
+					if (content === undefined) throw new Error(`not found: ${p}`);
+					return content;
+				});
+				vi.mocked(writeTextFile).mockImplementation(async (p, content) => {
+					disk.set(String(p), String(content));
+				});
+				vi.mocked(renameItem).mockImplementation(async (from, name) => moveOnDisk(from, `${from.slice(0, from.lastIndexOf('/'))}/${name}`));
+				vi.mocked(moveItem).mockImplementation(async (from, dir) => moveOnDisk(from, `${dir}/${from.slice(from.lastIndexOf('/') + 1)}`));
+			});
+
+			afterEach(() => {
+				settingsStore.updateTemplates(originalTemplates);
+				editorStore.reset();
+			});
+
+			/** A rule matching meeting notes, whose only consequence is `rename` unless given. */
+			function renamer(id: string, rename: AutoOrganizeRule['rename'], overrides: Partial<AutoOrganizeRule> = {}): AutoOrganizeRule {
+				return rule(id, undefined, { expression: "type == 'meeting'", rename, ...overrides });
+			}
+
+			/** Saves `path` with `content` on the in-memory disk and runs past the debounce. */
+			async function run(rules: AutoOrganizeRule[], path = SOURCE, content = MEETING): Promise<void> {
+				autoOrganizeStore.setConfig({ rules, excludedFolders: [] });
+				disk.set(path, content);
+				captureObserver()(path, content);
+				await vi.advanceTimersByTimeAsync(100);
+			}
+
+			it('renames a matching note from a name template, and leaves it alone at the next save', async () => {
+				const rules = [renamer('n1', MONTHLY)];
+
+				await run(rules);
+
+				expect(renameItem).toHaveBeenCalledWith(SOURCE, '2026-11 Meeting.md');
+				expect(disk.get('/vault/notes/2026-11 Meeting.md')).toBe(MEETING);
+
+				await run(rules, '/vault/notes/2026-11 Meeting.md');
+				expect(renameItem).toHaveBeenCalledTimes(1);
+			});
+
+			it('takes the first free numbered name on a clash, and leaves that name alone later', async () => {
+				disk.set('/vault/notes/2026-11 Meeting.md', 'other');
+				disk.set('/vault/notes/2026-11 Meeting 2.md', 'other');
+				const rules = [renamer('n1', MONTHLY)];
+
+				await run(rules);
+
+				expect(renameItem).toHaveBeenCalledWith(SOURCE, '2026-11 Meeting 3.md');
+
+				await run(rules, '/vault/notes/2026-11 Meeting 3.md');
+				expect(renameItem).toHaveBeenCalledTimes(1);
+			});
+
+			it('renames, moves and writes the properties at the final path in one run, reading the new name', async () => {
+				const rules = [renamer('n1', { name: 'Weekly' }, {
+					destination: 'Archive',
+					properties: [
+						{ key: 'status', value: 'done', mode: 'always' },
+						{ key: 'title', expr: 'file.basename', mode: 'always' },
+					],
+				})];
+
+				await run(rules);
+
+				expect(renameItem).toHaveBeenCalledWith(SOURCE, 'Weekly.md');
+				expect(moveItem).toHaveBeenCalledWith('/vault/notes/Weekly.md', '/vault/Archive');
+				expect([...disk.keys()]).toEqual(['/vault/Archive/Weekly.md']);
+				expect(parseFrontmatterProperties(disk.get('/vault/Archive/Weekly.md')!)).toEqual([
+					{ key: '_type', value: 'meeting', type: 'text' },
+					{ key: 'status', value: 'done', type: 'text' },
+					{ key: 'title', value: 'Weekly', type: 'text' },
+				]);
+				expect(writeTextFile).toHaveBeenCalledTimes(1);
+			});
+
+			it('picks the free name in the destination folder when the rule also moves the note', async () => {
+				disk.set('/vault/Archive/Weekly.md', 'other');
+
+				await run([renamer('n1', { name: 'Weekly' }, { destination: 'Archive' })]);
+
+				expect(renameItem).toHaveBeenCalledWith(SOURCE, 'Weekly 2.md');
+				expect(disk.has('/vault/Archive/Weekly 2.md')).toBe(true);
+				expect(disk.get('/vault/Archive/Weekly.md')).toBe('other');
+			});
+
+			it('renames a note that already has the name when that name is taken in the destination', async () => {
+				disk.set('/vault/Archive/Weekly.md', 'other');
+
+				await run([renamer('n1', { name: 'Weekly' }, { destination: 'Archive' })], '/vault/notes/Weekly.md');
+
+				expect(renameItem).toHaveBeenCalledWith('/vault/notes/Weekly.md', 'Weekly 2.md');
+				expect(moveItem).toHaveBeenCalledWith('/vault/notes/Weekly 2.md', '/vault/Archive');
+			});
+
+			it('picks a name free in the current folder too when the rule moves the note', async () => {
+				disk.set('/vault/notes/Weekly.md', 'other');
+
+				await run([renamer('n1', { name: 'Weekly' }, { destination: 'Archive' })]);
+
+				expect(renameItem).toHaveBeenCalledWith(SOURCE, 'Weekly 2.md');
+				expect(disk.has('/vault/Archive/Weekly 2.md')).toBe(true);
+			});
+
+			it('resolves the destination with the new name', async () => {
+				await run([renamer('n1', { name: 'Weekly' }, { destination: 'Meetings/{basename}' })]);
+
+				expect(moveItem).toHaveBeenCalledWith('/vault/notes/Weekly.md', '/vault/Meetings/Weekly');
+			});
+
+			it('keeps the note\'s own extension', async () => {
+				await run([renamer('n1', { name: 'Weekly' })], '/vault/notes/old.markdown');
+
+				expect(renameItem).toHaveBeenCalledWith('/vault/notes/old.markdown', 'Weekly.markdown');
+			});
+
+			it('renames from an expression', async () => {
+				await run([renamer('n1', { expr: 'title' })], SOURCE, '---\ntype: meeting\ntitle: "Sync: 1/2"\n---\n');
+
+				expect(renameItem).toHaveBeenCalledWith(SOURCE, 'Sync- 1-2.md');
+			});
+
+			it('renames nothing for an expression with no usable result, logs it once, and still runs the rest', async () => {
+				const rules = [renamer('n1', { expr: 'tags' }, { properties: [{ key: 'seen', value: true, mode: 'if-missing' }] })];
+				const content = '---\ntype: meeting\ntags: [a, b]\n---\n';
+
+				await run(rules, SOURCE, content);
+				await run(rules, SOURCE, content);
+
+				expect(renameItem).not.toHaveBeenCalled();
+				expect(disk.get(SOURCE)).toContain('seen: true');
+				expect(error).toHaveBeenCalledTimes(1);
+				expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', `Rule "Rule n1" could not compute a name for ${SOURCE}: the result is not text, a number or a date`);
+			});
+
+			it('renames nothing for a name that resolves empty', async () => {
+				await run([renamer('n1', { name: '{status}' })]);
+
+				expect(renameItem).not.toHaveBeenCalled();
+				expect(error).not.toHaveBeenCalled();
+			});
+
+			it('only the first matching rule with a rename renames', async () => {
+				await run([renamer('n1', { name: 'First' }), renamer('n2', { name: 'Second' })]);
+
+				expect(renameItem).toHaveBeenCalledTimes(1);
+				expect(renameItem).toHaveBeenCalledWith(SOURCE, 'First.md');
+			});
+
+			it('a failed rename skips the move and the properties', async () => {
+				vi.mocked(renameItem).mockRejectedValueOnce(new Error('disk full'));
+
+				await run([renamer('n1', { name: 'Weekly' }, { destination: 'Archive', properties: [{ key: 'seen', value: true, mode: 'if-missing' }] })]);
+
+				expect(moveItem).not.toHaveBeenCalled();
+				expect(writeTextFile).not.toHaveBeenCalled();
+				expect(disk.get(SOURCE)).toBe(MEETING);
+			});
+
+			describe('open note with unsaved edits', () => {
+				it('is not renamed in that run, while the move still happens', async () => {
+					editorStore.addTab({ path: SOURCE, name: 'old.md', content: MEETING, savedContent: '---\ntype: meeting\n---\n' });
+
+					await run([renamer('n1', { name: 'Weekly' }, { destination: 'Archive' })]);
+
+					expect(renameItem).not.toHaveBeenCalled();
+					expect(moveItem).toHaveBeenCalledWith(SOURCE, '/vault/Archive');
+					expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', `Skipped renaming ${SOURCE}: it has unsaved edits`);
+				});
+
+				it('is renamed at the next save with no pending edit', async () => {
+					const rules = [renamer('n1', { name: 'Weekly' })];
+					editorStore.addTab({ path: SOURCE, name: 'old.md', content: MEETING, savedContent: '---\ntype: meeting\n---\n' });
+
+					await run(rules);
+					expect(renameItem).not.toHaveBeenCalled();
+
+					editorStore.markSavedByPath(SOURCE, MEETING);
+					await run(rules);
+					expect(renameItem).toHaveBeenCalledWith(SOURCE, 'Weekly.md');
+				});
+			});
+
+			describe('gates', () => {
+				it.each([
+					['a file that is not Markdown', '/vault/notes/Board.canvas', '{}', 'not Markdown'],
+					['a note in the system folder', '/vault/_system/lists/x.md', MEETING, 'inside _system/'],
+					['a note in the templates folder', '/vault/Templates/x.md', MEETING, 'inside Templates/'],
+					['a type definition', '/vault/types/Meeting.md', '---\n_type: Type\n---\n', 'type definition'],
+					['a Todoist project note', SOURCE, '---\ntype: meeting\ntodoist_project: Work\n---\n', 'a Todoist project note'],
+				])('never renames %s', async (_label, path, content, reason) => {
+					settingsStore.updateTemplates({ folder: 'Templates' });
+
+					await run([renamer('n1', { name: 'Weekly' }, { expression: 'true' })], path, content);
+
+					expect(renameItem).not.toHaveBeenCalled();
+					expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', `Skipped renaming ${path}: ${reason}`);
+				});
+			});
+
+			it('loads a valid rename trimmed, and keeps as stored and logs one a run refuses, which renames nothing', async () => {
+				vi.mocked(exists).mockResolvedValue(true);
+				vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+					rules: [
+						{ id: 'r1', name: 'Ok', expression: 'true', destination: '', enabled: true, rename: { name: ' Weekly ' } },
+						{ id: 'r2', name: 'Grows', expression: 'true', destination: '', enabled: true, rename: { name: '{year} {basename}' } },
+						{ id: 'r3', name: 'Both', expression: 'true', destination: '', enabled: true, rename: { name: 'a', expr: 'b' } },
+					],
+					excludedFolders: [],
+				}));
+
+				await loadAutoOrganizeConfig('/vault');
+
+				expect(autoOrganizeStore.rules.map((r) => r.rename)).toEqual([{ name: 'Weekly' }, { name: '{year} {basename}' }, { name: 'a', expr: 'b' }]);
+				expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', `Rule "Grows" ignores its rename: The name uses the note's own name, so it would change at every save`);
+				expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Rule "Both" ignores its rename: Set a name or an expression, not both');
+
+				await run(autoOrganizeStore.rules.slice(1));
+				expect(renameItem).not.toHaveBeenCalled();
 			});
 		});
 	});

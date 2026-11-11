@@ -19,24 +19,32 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	}),
 	exists: vi.fn(async (path: string) => files.has(path) || [...files.keys()].some((p) => p.startsWith(`${path}/`))),
 	mkdir: vi.fn(async () => {}),
-	rename: vi.fn(),
+	rename: vi.fn(async (from: string, to: string) => {
+		files.set(to, files.get(from)!);
+		files.delete(from);
+	}),
 	remove: vi.fn(),
 	copyFile: vi.fn(),
 	readDir: vi.fn(async () => []),
 }));
 
+/** Notes that link to each note, by absolute path, as Rust `get_backlinks_v2` returns them. */
+const backlinks = new Map<string, string[]>();
+
 vi.mock('#lib/contracts/ipc.js', () => ({
 	// `create_note` writes the note, as the Rust command does.
 	call: vi.fn(async (command: string, args?: { path: string; content: string }) => {
 		if (command === 'create_note' && args) files.set(args.path, args.content);
+		if (command === 'get_backlinks_v2' && args) return (backlinks.get(args.path) ?? []).map((path) => ({ path }));
 		return undefined;
 	}),
 	listen: vi.fn(async () => () => {}),
 }));
 
-import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { notifyAfterSave, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
@@ -67,7 +75,10 @@ describe('auto-organize rule writes never schedule another run', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		files.clear();
+		backlinks.clear();
+		fsStore.reset();
 		vi.mocked(writeTextFile).mockClear();
+		vi.mocked(rename).mockClear();
 		resetHooks();
 		resetAutoOrganize();
 		clearLocalStorage();
@@ -154,6 +165,86 @@ describe('auto-organize rule writes never schedule another run', () => {
 		expect(files.get(created)).toBe('');
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	describe('rename', () => {
+		const NOTE = '/vault/notes/old.md';
+		const RENAMED = '/vault/notes/2026-11 Meeting.md';
+		const LINKER = '/vault/notes/linker.md';
+		const MONTHLY: AutoOrganizeRule = {
+			id: 'monthly',
+			name: 'Monthly meeting name',
+			expression: "type == 'meeting'",
+			destination: '',
+			enabled: true,
+			rename: { name: '{year}-{month} Meeting' },
+		};
+
+		beforeEach(() => {
+			vi.setSystemTime(new Date(2026, 10, 10, 9, 0));
+			files.set(NOTE, '---\ntype: meeting\n---\nbody');
+			files.set(LINKER, 'See [[old]].');
+			backlinks.set(NOTE, [LINKER]);
+			const file = (path: string) => ({ name: path.slice(path.lastIndexOf('/') + 1), path, isDirectory: false });
+			fsStore.setFileTree([{ name: 'notes', path: '/vault/notes', isDirectory: true, children: [file(LINKER), file(NOTE)] }]);
+		});
+
+		it('a matching save renames the note and rewrites the links to it, and a second save does nothing', async () => {
+			setRules([MONTHLY]);
+
+			notifyAfterSave(NOTE, files.get(NOTE)!);
+			for (let i = 0; i < 3; i++) await vi.advanceTimersByTimeAsync(DEBOUNCE + 10);
+
+			expect(files.has(NOTE)).toBe(false);
+			expect(files.get(RENAMED)).toBe('---\ntype: meeting\n---\nbody');
+			expect(files.get(LINKER)).toBe('See [[2026-11 Meeting]].');
+			expect(rename).toHaveBeenCalledTimes(1);
+
+			notifyAfterSave(RENAMED, files.get(RENAMED)!);
+			await drain();
+
+			expect(rename).toHaveBeenCalledTimes(1);
+			expect(files.get(RENAMED)).toBe('---\ntype: meeting\n---\nbody');
+			expect(vi.getTimerCount()).toBe(0);
+		});
+
+		it('the backlink rewrite after a rename does not run the rules on the rewritten notes', async () => {
+			setRules([
+				MONTHLY,
+				{
+					id: 'stamp',
+					name: 'Stamp every note',
+					expression: 'true',
+					destination: '',
+					enabled: true,
+					properties: [{ key: 'x', value: 1, mode: 'always' }],
+				},
+			]);
+
+			notifyAfterSave(NOTE, files.get(NOTE)!);
+			for (let i = 0; i < 3; i++) await vi.advanceTimersByTimeAsync(DEBOUNCE + 10);
+			await drain();
+
+			expect(files.get(LINKER)).toBe('See [[2026-11 Meeting]].');
+			expect(vi.mocked(writeTextFile).mock.calls.filter(([p]) => p === LINKER)).toHaveLength(1);
+			expect(frontmatter(RENAMED)).toEqual({ _type: 'meeting', x: 1 });
+			expect(vi.getTimerCount()).toBe(0);
+		});
+
+		it('a rule that renames, moves and sets a property ends at the final path in one run, and nothing runs again', async () => {
+			const FINAL = '/vault/Archive/2026-11 Meeting.md';
+			setRules([{ ...MONTHLY, destination: 'Archive', properties: [{ key: 'x', value: 1, mode: 'always' }] }]);
+
+			notifyAfterSave(NOTE, files.get(NOTE)!);
+			for (let i = 0; i < 3; i++) await vi.advanceTimersByTimeAsync(DEBOUNCE + 10);
+			await drain();
+
+			expect(files.has(NOTE)).toBe(false);
+			expect(files.has(RENAMED)).toBe(false);
+			expect(frontmatter(FINAL)).toEqual({ _type: 'meeting', x: 1 });
+			expect(vi.mocked(writeTextFile).mock.calls.filter(([p]) => p === FINAL)).toHaveLength(1);
+			expect(vi.getTimerCount()).toBe(0);
+		});
 	});
 
 	it('a legacy icon with no color and an always _color property do not rewrite each other', async () => {

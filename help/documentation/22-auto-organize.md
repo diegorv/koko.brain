@@ -10,7 +10,7 @@ Automatically move notes into folders and set their properties, icons and colors
 
 ## Overview
 
-Auto Organize watches every file save. When a note is saved, Kokobrain evaluates your rules against that note's content and properties. A rule is a **filter** (which notes it applies to) plus one or more **actions**: move the note to a folder, set properties in its frontmatter, or both. No manual drag-and-drop or typing. A `.view` file is never moved, even when a rule matches it.
+Auto Organize watches every file save. When a note is saved, Kokobrain evaluates your rules against that note's content and properties. A rule is a **filter** (which notes it applies to) plus one or more **actions**: rename the note, move it to a folder, set properties in its frontmatter, or any mix of them. No manual drag-and-drop or typing. A `.view` file is never moved, even when a rule matches it.
 
 This rule, as stored in `.kokobrain/auto-organize-rules.json`, reads: **when** a note's type is Project and its status is `done`, **move it to** `Projects/Done/<current year>` **and set** its icon to a check mark and the icon's color to green.
 
@@ -40,7 +40,7 @@ When disabled, no files are ever moved or changed, regardless of how many rules 
 
 ## How Rules Work
 
-Rules are evaluated in order, top to bottom, against the note as it is a few seconds after the save (see [Debounce Delay](#debounce-delay)). **Every matching rule applies its properties**, and **the first matching rule with a destination moves the note**. A later rule with a destination does not move it again.
+Rules are evaluated in order, top to bottom, against the note as it is a few seconds after the save (see [Debounce Delay](#debounce-delay)). **Every matching rule applies its properties**, **the first matching rule with a new name renames the note**, and **the first matching rule with a destination moves it**. A later rule with a name or a destination does not rename or move it again. In one save the note is renamed first, then moved, then its properties are written at its final path, then the notes to create are created.
 
 Each rule consists of:
 
@@ -48,6 +48,7 @@ Each rule consists of:
 |-------|-------------|
 | **Name** | A human-readable label for the rule (e.g. "Archive completed projects") |
 | **Filter** | The notes the rule applies to, built with the same filter builder as a view (see [Filters](#filters)) |
+| **Rename** (optional) | The note's new name, from a name template or an expression (see [Renaming notes](#renaming-notes)) |
 | **Move to folder** (optional) | Target folder path, relative to the vault root. Supports `{variable}` templates (see [Dynamic Destinations](#dynamic-destinations)). Leave it empty for a rule that does not move the note |
 | **Properties** (optional) | Properties written to the note's frontmatter when the rule matches (see [Set properties](#set-properties)) |
 | **Create note** (optional) | Another note created when the rule matches, if it does not exist yet (see [Creating notes](#creating-notes)) |
@@ -59,12 +60,13 @@ Each rule consists of:
 1. Open **Settings** (`Cmd+,`) → **Auto Organize** and click **Add rule**. The new rule starts **disabled**, so it changes nothing while you write it.
 2. Give it a **name** and build its **Filter**. Adding, removing or changing a condition is saved at once; a value you type is saved when you leave the field or press Enter, not on every keystroke. A condition with no value is not saved, and Settings shows **Every filter needs a value** until you fill it in. Under the filter, **Matches N notes now** counts the notes it matches right now. Check it: a count close to all your notes usually means a typo, such as a misspelled property name.
 3. Under **Then**, pick what the rule does:
+   - **Rename:** pick **Name** for a name template such as `{year}-{month} Meeting`, or **Expression** to compute the name, such as `title`. Leave it empty for a rule that does not rename notes. A name built from the note's own name is not saved, and Settings says why (see [Renaming notes](#renaming-notes)).
    - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
    - **Create note:** the path of a note to create, such as `{folder}/{basename} follow-up.md`. Leave it empty for a rule that creates nothing. Once a path is set, pick a **template**, add the new note's properties with **Add note property**, and turn on **Open it** to open the note in a tab (see [Creating notes](#creating-notes)).
    - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value** or switch the row to an **Expression** (see [Computed values](#computed-values)), and pick the mode: **if missing** (the default), **always**, **remove** or **add to list** (see [Set properties](#set-properties)). A **remove** row has no value field; an **add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
 4. Turn the rule's toggle on when it is ready.
 
-A rule with no folder, no property and no note to create does nothing. Settings says so under the rule, and still saves it.
+A rule with no new name, no folder, no property and no note to create does nothing. Settings says so under the rule, and still saves it.
 
 > [!TIP]
 > Open [Collection](12-collection.md) to experiment with a filter before adding it as a rule. A Collection view uses the same expression engine, so you can check which notes it matches there first.
@@ -190,6 +192,7 @@ A Collection view counts such a condition as false instead, so inside **None of 
 
 A rule can do these things when its filter matches, in any combination:
 
+- **[Rename](#renaming-notes):** renames the note from a name template or an expression, such as `2026-11 Meeting` for a meeting note. Links to it are updated.
 - **[Move to folder](#move-to-folder):** moves the note to a destination folder, which can depend on the note ([Dynamic Destinations](#dynamic-destinations)). Notes in [Excluded Folders](#excluded-folders) are never checked.
 - **[Set properties](#set-properties):** writes frontmatter properties (`if-missing` or `always`), removes them (`remove`) or adds items to a list (`add`). A value can be [computed](#computed-values) from the note. Icons and colors are properties (`_icon`, `_color`, `_title_color`).
 - **[Create note](#creating-notes):** creates another note, such as a meeting follow-up, when it does not exist yet, from a template and with its own properties.
@@ -395,7 +398,7 @@ Saving `work/Standup.md` with `type: meeting` creates `work/Standup follow-up.md
 Things to know:
 
 - Every matching rule creates its note. One save creates at most **5** notes; past that, the rest are not created, and Kokobrain logs it once per rule.
-- A note is never created inside the system folder (`_system` by default), the templates folder or an [excluded folder](#excluded-folders), or at a path that leaves the vault (a `..` in the path, which a property such as `{status}` can bring in), or at a path with no file name (`{status}.md` on a note without `status`). A path or template that starts with `/`, or a template with a `..`, is ignored when the rules load, and Settings does not save one.
+- A note is never created inside the system folder (`_system` by default), the templates folder or an [excluded folder](#excluded-folders), or at a path that leaves the vault (a `..` in the path, which a property such as `{status}` can bring in), or at a path with no file name (`{status}.md` on a note without `status`). A path or template that starts with `/`, or a template with a `..`, creates nothing. Settings shows why next to one written in the file, and does not save one typed there.
 - A rule creates nothing for a note it would not write properties to (see [Set properties](#set-properties)): the system and templates folders, type definitions and frontmatter Kokobrain cannot rewrite.
 - **The new note is not checked against the rules when it is created.** The rules check it at its first save, like any other note.
 - **A note that would match its own rule is not created.** With a filter such as `type == "meeting"` and a template that sets `type: meeting`, or a path inside the folder the filter checks, every follow-up would create its own follow-up. Kokobrain creates nothing and logs it once per rule. Give the follow-up a different type, or put it outside the filtered folder.
@@ -408,6 +411,35 @@ In Settings, under the filter, **Would create N notes now** estimates the notes 
 ```json
 { "key": "follow_up", "expr": "[\"[[\", file.basename, \" follow-up]]\"].join(\"\")", "mode": "if-missing" }
 ```
+
+### Renaming notes
+
+A rule can rename a note when it matches. Its `rename` has either a `name`, a file-name template with the same `{variable}`s as a destination (see [Dynamic Destinations](#dynamic-destinations)), or an `expr`, an expression computed from the note like a [computed value](#computed-values). The note keeps its extension (`.md`).
+
+```json
+{
+  "id": "rule-1710000000000-m3t1n",
+  "name": "Name meetings by month",
+  "expression": "type == \"meeting\"",
+  "destination": "",
+  "rename": { "name": "{year}-{month} Meeting" },
+  "enabled": true
+}
+```
+
+Saving `work/standup.md` with `type: meeting` in November 2026 renames it to `work/2026-11 Meeting.md`. `{year}` and `{month}` are the month of the save, not of the note: saved again in December, the same note is renamed to `2026-12 Meeting.md`. A name from a property works the same way: `"rename": { "expr": "title" }` names the note after its `title`, and a name built from a date property, such as `"expr": "meeting_date"`, stays the same whenever the note is saved.
+
+- **Links follow.** Every `[[link]]` to the note is updated, and an open tab follows it. The notes whose links are updated are not checked against the rules for that.
+- **Order:** the rename comes first, then the move, then the properties, then the notes to create, all in the same save. Every later step reads the **new** name: a destination with `{basename}`, a computed `file.basename` and a create-note path all use it.
+- **A name that is taken** gets a number: `2026-11 Meeting 2.md`, then `2026-11 Meeting 3.md`, the first free one. When the rule also moves the note, the name must be free in the folder the note ends in, so the move never fails on it.
+- **Already named.** A note named `<name>.md` or `<name> N.md`, in any letter case, is left alone, so `2026-11 Meeting 2` is not renamed again at its next save. A note you named `2026-11 Meeting 5` yourself counts as named too.
+- **Never from its own name.** A name that uses `{basename}`, or an expression that reads `file.basename`, `file.name` or `file.path`, would rename the note again at every save, and the name would keep growing. Such a rename renames nothing. Settings shows why next to one written in the file, and does not save one typed there.
+- **Characters** a file name cannot hold (`/ \ : * ? " < > |`) become `-`, spaces at both ends are trimmed, and leading dots are dropped. A name that ends up empty, such as `{status}` on a note without `status`, renames nothing.
+- **Expression results:** text is used as is, a number as its digits, a date as `YYYY-MM-DD`, and with `now()` as `YYYY-MM-DD HH-mm`. A list, yes/no or no value renames nothing, and Kokobrain logs it once per rule.
+- **The note you are typing in** is not renamed while it has unsaved edits. It is renamed at a later save, once nothing is pending. The rest of the rule still runs.
+- **Names that change on their own.** A name built from `now()` or `file.mtime` is different at every save, so the note is renamed at every save, and one built from `{year}` or `{month}` changes when the month of the save does. That is allowed. Combined with a [create note](#creating-notes) whose path uses `{basename}`, it creates a new note at every save.
+- A note is never renamed in the system folder (`_system` by default) or the templates folder, nor when it is a type definition, a note with a `todoist_project` property (Todoist would rename the project), a file that is not Markdown, or frontmatter Kokobrain cannot rewrite (the notes [Set properties](#set-properties) skips).
+- If the rename fails, nothing else in the rule runs for that save.
 
 ### Icon (legacy)
 

@@ -3,6 +3,7 @@
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
 	import TrashIcon from '@lucide/svelte/icons/trash-2';
 	import ChevronUpIcon from '@lucide/svelte/icons/chevron-up';
 	import ChevronDownIcon from '@lucide/svelte/icons/chevron-down';
@@ -24,7 +25,7 @@
 	import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-	import type { AutoOrganizeRule, RuleCreateNote, RuleProperty } from './auto-organize.types';
+	import type { AutoOrganizeRule, RuleCreateNote, RuleProperty, RuleRename } from './auto-organize.types';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import {
 		BLANK_VALUE_ERROR,
@@ -34,7 +35,9 @@
 		isRefusedKey,
 		isValidCreatePath,
 		isValidTemplatePath,
+		renameProblem,
 		sanitizeCreateNote,
+		sanitizeRename,
 		sanitizeRuleProperties,
 	} from './auto-organize.logic';
 	import { autoOrganizeStore } from './auto-organize.store.svelte';
@@ -100,9 +103,12 @@
 
 	let properties = $derived(rule.properties ?? []);
 	let createProperties = $derived(rule.createNote?.properties ?? []);
-	/** True when the rule neither moves, sets nor creates anything, so it does nothing */
+	/** True when the rule neither renames, moves, sets nor creates anything, so it does nothing */
 	let doesNothing = $derived(
-		!rule.destination.trim() && sanitizeRuleProperties(rule.properties).length === 0 && validCreate === undefined,
+		!rule.destination.trim() &&
+			sanitizeRuleProperties(rule.properties).length === 0 &&
+			validCreate === undefined &&
+			sanitizeRename(rule.rename) === undefined,
 	);
 	/** Known note properties for the key field; `file.*` fields are read-only and refused keys never written */
 	let keySuggestions = $derived(
@@ -152,14 +158,18 @@
 	}
 
 	/**
-	 * Set when the typed path or template is refused and kept unsaved: the
-	 * loader drops a `createNote` with an invalid path or template, with its
+	 * Set when the typed path or template is refused and kept unsaved: a run
+	 * ignores a `createNote` with an invalid path or template, with its
 	 * template, properties and "Open it".
 	 */
 	let pathRefused = $state(false);
 	let templateRefused = $state(false);
-	/** True when the path field shows a path the loader would refuse */
+	/** True when the path field shows a path a run would refuse */
 	let pathInvalid = $derived(pathRefused || (rule.createNote !== undefined && !isValidCreatePath(rule.createNote.path)));
+	/** True when the template field shows a template a run would refuse */
+	let templateInvalid = $derived(
+		templateRefused || (rule.createNote?.template !== undefined && !isValidTemplatePath(rule.createNote.template)),
+	);
 
 	/** Saves the create-note path; a blank path removes the consequence. An invalid path is not saved. */
 	function commitCreatePath(raw: string) {
@@ -182,6 +192,44 @@
 
 	function setCreateProperties(next: RuleProperty[]) {
 		updateCreateNote({ properties: next });
+	}
+
+	const RENAME_SOURCES = { name: 'Name', expr: 'Expression' } as const;
+	/** Whether the rename field holds a name template or an expression */
+	let renameSource = $state<keyof typeof RENAME_SOURCES>(untrack(() => (rule.rename?.expr !== undefined ? 'expr' : 'name')));
+	/** The kind of the stored rename; a choice made on a blank field holds until the stored kind changes */
+	let storedRenameSource = $derived<keyof typeof RENAME_SOURCES>(rule.rename?.expr !== undefined ? 'expr' : 'name');
+	/** The rename field's text since the last save, which the rule does not hold yet; null when it shows the rule's */
+	let renameDraft = $state<string | null>(null);
+	$effect(() => {
+		const stored = storedRenameSource;
+		if (untrack(() => renameDraft) === null) renameSource = stored;
+	});
+	/** Why the last typed rename was not saved; cleared by the next save */
+	let renameRefusal = $state<string | null>(null);
+	/** The refusal, else why a run ignores the stored rename */
+	let renameError = $derived(renameRefusal ?? (rule.rename !== undefined ? renameProblem(rule.rename) : null));
+
+	/** Saves the rename field's text as `source`; blank removes the rename, a refused one is shown and not saved. */
+	function commitRename(raw: string, source: keyof typeof RENAME_SOURCES) {
+		const text = raw.trim();
+		if (text === '') {
+			renameRefusal = null;
+			renameDraft = null;
+			if (rule.rename !== undefined) onupdate(rule.id, { rename: undefined });
+			return;
+		}
+		const next: RuleRename = source === 'expr' ? { expr: text } : { name: text };
+		renameRefusal = renameProblem(next);
+		if (renameRefusal !== null) return;
+		renameDraft = null;
+		if (JSON.stringify(next) !== JSON.stringify(rule.rename)) onupdate(rule.id, { rename: next });
+	}
+
+	function setRenameSource(source: keyof typeof RENAME_SOURCES) {
+		if (source === renameSource) return;
+		renameSource = source;
+		commitRename(renameDraft ?? rule.rename?.name ?? rule.rename?.expr ?? '', source);
 	}
 
 	function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
@@ -283,6 +331,38 @@
 	<!-- Then: the rule's consequences -->
 	<span class="text-meta font-medium text-muted-foreground">Then</span>
 
+	<div class="flex items-start gap-2">
+		<span class="w-24 shrink-0 pt-2 text-meta text-muted-foreground">Rename</span>
+		<div class="flex min-w-0 flex-1 flex-col gap-1">
+			<div class="flex items-center gap-2">
+				<Select.Root
+					type="single"
+					value={renameSource}
+					onValueChange={(v) => setRenameSource(v as keyof typeof RENAME_SOURCES)}
+				>
+					<Select.Trigger class="w-28 shrink-0" aria-label="Rename source">
+						<span data-slot="select-value">{RENAME_SOURCES[renameSource]}</span>
+					</Select.Trigger>
+					<Select.Content>
+						<Select.Item value="name" label={RENAME_SOURCES.name} />
+						<Select.Item value="expr" label={RENAME_SOURCES.expr} />
+					</Select.Content>
+				</Select.Root>
+				<Input
+					class="flex-1"
+					aria-label="Rename to"
+					value={rule.rename?.name ?? rule.rename?.expr ?? ''}
+					placeholder={renameSource === 'expr' ? 'Empty: do not rename, e.g. title' : 'Empty: do not rename, e.g. {year}-{month} Meeting'}
+					oninput={(e) => (renameDraft = (e.currentTarget as HTMLInputElement).value)}
+					onchange={(e) => commitRename((e.currentTarget as HTMLInputElement).value, renameSource)}
+				/>
+			</div>
+			{#if renameError !== null}
+				<p class="text-meta text-destructive" data-rename-error>{renameError}</p>
+			{/if}
+		</div>
+	</div>
+
 	<!-- Destination folder + icon row -->
 	<div class="flex items-center gap-2">
 		<span class="w-24 shrink-0 text-meta text-muted-foreground">Move to folder</span>
@@ -347,7 +427,7 @@
 					placeholder="Template note, e.g. _system/templates/Follow-up.md (empty: no template)"
 					onchange={(e) => commitCreateTemplate((e.currentTarget as HTMLInputElement).value)}
 				/>
-				{#if templateRefused}
+				{#if templateInvalid}
 					<p class="text-meta text-destructive" data-create-template-error>
 						The template must be inside the vault: no .. and not starting with /. It is not saved.
 					</p>
@@ -384,7 +464,7 @@
 
 	{#if doesNothing}
 		<p class="text-meta text-destructive" data-rule-hint>
-			This rule does nothing: set a folder to move to, a property to set or a note to create.
+			This rule does nothing: set a new name, a folder to move to, a property to set or a note to create.
 		</p>
 	{/if}
 

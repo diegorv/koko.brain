@@ -1,7 +1,8 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
-import { createFile, moveItem } from '#lib/core/filesystem/fs.service.js';
+import { createFile, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
+import { isTabDirty } from '#lib/core/editor/editor.logic.js';
 import { loadNoteTemplate } from '#lib/core/note-creator/note-creator.service.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
@@ -16,15 +17,21 @@ import {
 	createTargetProblem,
 	findMatchingRules,
 	findMoveRule,
+	isAlreadyNamed,
 	isInExcludedFolder,
 	isAlreadyInDestination,
+	isRefusedKey,
+	numberedName,
 	ownedProperties,
 	propertiesToWrite,
 	propertyWriteSkipReason,
+	renameProblem,
+	renameTarget,
 	resolveComputedProperties,
 	resolveDestination,
 	ruleRecordStats,
 	sanitizeCreateNote,
+	sanitizeRename,
 	sanitizeRuleProperties,
 	type OwnedProperty,
 } from './auto-organize.logic';
@@ -60,6 +67,9 @@ const reportedAddSkips = new Set<string>();
 
 /** Rule ids whose computed value failed and was already logged this session. */
 const reportedComputeFailures = new Set<string>();
+
+/** Rule ids whose computed name failed and was already logged this session. */
+const reportedRenameFailures = new Set<string>();
 
 /** `<problem>:<rule id>` pairs of create-note problems already logged this session. */
 const reportedCreateProblems = new Set<string>();
@@ -117,11 +127,14 @@ export async function loadAutoOrganizeConfig(vaultPath: string): Promise<void> {
 /**
  * A loaded rule with its invalid property entries dropped; a non-array
  * `properties` is removed. A computed value refused for its mode is logged.
- * An invalid `createNote` is removed, its own properties are loaded the same way.
+ * A `createNote` or `rename` that a run refuses is kept as stored (a
+ * `createNote` only with a text `path` and template), so Settings shows why
+ * and the next Settings save does not erase it. Runs and the Settings row
+ * sanitize both again before use. A refused `rename` is logged with the reason.
  */
 function withValidProperties(rule: AutoOrganizeRule): AutoOrganizeRule {
 	if (rule === null || typeof rule !== 'object') return rule;
-	const { properties, createNote, ...rest } = rule;
+	const { properties, createNote, rename, ...rest } = rule;
 	const loaded: AutoOrganizeRule = rest;
 	if (Array.isArray(properties)) {
 		loaded.properties = sanitizeRuleProperties(properties, (key, reason) =>
@@ -131,6 +144,23 @@ function withValidProperties(rule: AutoOrganizeRule): AutoOrganizeRule {
 	if ('createNote' in rule) {
 		const valid = sanitizeCreateNote(createNote);
 		if (valid) loaded.createNote = valid;
+		else if (createNote !== null && typeof createNote === 'object') {
+			const { path, template, properties: noteProperties, open } = createNote as unknown as Record<string, unknown>;
+			if (typeof path === 'string' && (template === undefined || typeof template === 'string')) {
+				loaded.createNote = { path };
+				if (template !== undefined) loaded.createNote.template = template;
+				if (Array.isArray(noteProperties)) loaded.createNote.properties = sanitizeRuleProperties(noteProperties).filter((p) => p.mode !== 'remove');
+				if (open === true) loaded.createNote.open = true;
+			}
+		}
+	}
+	if ('rename' in rule) {
+		const problem = renameProblem(rename);
+		if (problem === null) loaded.rename = sanitizeRename(rename);
+		else {
+			loaded.rename = rename;
+			error('AUTO-ORGANIZE', `Rule "${rule.name}" ignores its rename: ${problem}`);
+		}
 	}
 	return loaded;
 }
@@ -240,26 +270,40 @@ async function readCurrentContent(filePath: string): Promise<string | null> {
 
 /**
  * Evaluates rules against a note's current content: the first matching rule
- * with a destination moves it, then, at the new path, the moving rule's legacy
- * icon and every matching rule's properties are written, and every matching
- * rule's `createNote` is created.
+ * with a `rename` renames it, the first matching rule with a destination
+ * moves it, then, at the final path, the moving rule's legacy icon and every
+ * matching rule's properties are written, and every matching rule's
+ * `createNote` is created. A failed rename or move stops the run.
  */
-async function evaluateAndMove(filePath: string, content: string, vaultPath: string): Promise<void> {
-	const stats = ruleRecordStats(collectionStore.propertyIndex.get(filePath), content, Date.now());
-	const record = buildNoteRecord(filePath, content, ...stats);
+async function evaluateAndMove(savedPath: string, content: string, vaultPath: string): Promise<void> {
+	const stats = ruleRecordStats(collectionStore.propertyIndex.get(savedPath), content, Date.now());
+	let record = buildNoteRecord(savedPath, content, ...stats);
 
 	const lifecycleRules = generateLifecycleRules(typeDefinitionsStore.typeMetadataMap);
 	const allRules = [...autoOrganizeStore.enabledRules, ...lifecycleRules];
 
 	const matched = findMatchingRules(allRules, record, vaultPath, (failed, err) =>
-		error('AUTO-ORGANIZE', `Rule "${failed.name}" failed to evaluate on ${filePath}:`, err),
+		error('AUTO-ORGANIZE', `Rule "${failed.name}" failed to evaluate on ${savedPath}:`, err),
 	);
 	if (matched.length === 0) {
-		debug('AUTO-ORGANIZE', 'No matching rule for:', filePath);
+		debug('AUTO-ORGANIZE', 'No matching rule for:', savedPath);
 		return;
 	}
 
 	const rule = findMoveRule(matched);
+
+	// The rename goes first; every later step reads the note at its new name.
+	let filePath = savedPath;
+	const renamer = matched.find((r) => sanitizeRename(r.rename) !== undefined);
+	if (renamer) {
+		const renamed = await applyRename(renamer, savedPath, content, record, stats, rule, vaultPath);
+		if (renamed === null) return;
+		if (renamed !== savedPath) {
+			filePath = renamed;
+			record = buildNoteRecord(filePath, content, ...stats);
+		}
+	}
+
 	let targetPath = filePath;
 
 	if (rule) {
@@ -312,6 +356,81 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 		}
 	} finally {
 		writingPaths.delete(targetPath);
+	}
+}
+
+/**
+ * Renames the note at `filePath` to the name `rule.rename` gives it, through
+ * `renameItem`, so links to it are rewritten and its tab follows. Returns the
+ * note's path after it (`filePath` when nothing is renamed), or null when the
+ * rename failed (`renameItem` logged it).
+ *
+ * Nothing is renamed for a note the property gates skip, a Todoist project
+ * note (Todoist sync pushes the name), an open note with unsaved edits (it is
+ * renamed at a later save), or a name that is empty or fails to compute.
+ * A note that already carries the name, or `<name> N`, keeps it unless that
+ * name is taken in the folder `moveRule` sends it to. Otherwise the note
+ * takes the first free name among `<name>`, `<name> 2`, `<name> 3`..., free
+ * in the folder it ends in and, when the run moves it, in its current folder.
+ * @param moveRule - the rule that moves the note in this run, or null
+ */
+async function applyRename(
+	rule: AutoOrganizeRule,
+	filePath: string,
+	content: string,
+	record: PropertyIndexRecord,
+	stats: [number, number, number],
+	moveRule: AutoOrganizeRule | null,
+	vaultPath: string,
+): Promise<string | null> {
+	const protectedFolders = [settingsStore.templates.systemFolder, settingsStore.templates.folder];
+	const skip =
+		propertyWriteSkipReason(filePath, content, vaultPath, protectedFolders) ??
+		([...record.properties.keys()].some(isRefusedKey) ? 'a Todoist project note' : null);
+	if (skip !== null) {
+		debug('AUTO-ORGANIZE', `Skipped renaming ${filePath}: ${skip}`);
+		return filePath;
+	}
+	const tab = editorStore.tabs.find((t) => t.path === filePath);
+	if (tab && isTabDirty(tab)) {
+		debug('AUTO-ORGANIZE', `Skipped renaming ${filePath}: it has unsaved edits`);
+		return filePath;
+	}
+	const target = renameTarget(sanitizeRename(rule.rename)!, record, vaultPath);
+	if (target === null) return filePath;
+	if ('failure' in target) {
+		if (!reportedRenameFailures.has(rule.id)) {
+			reportedRenameFailures.add(rule.id);
+			error('AUTO-ORGANIZE', `Rule "${rule.name}" could not compute a name for ${filePath}: ${target.failure}`);
+		}
+		return filePath;
+	}
+
+	const folder = filePath.slice(0, filePath.lastIndexOf('/'));
+	const { basename, ext } = record;
+	/** The folder the note at `path` ends this run in. */
+	const finalFolder = (path: string): string => {
+		if (!moveRule) return folder;
+		const dest = resolveDestination(moveRule.destination, buildNoteRecord(path, content, ...stats), vaultPath);
+		if (isAlreadyInDestination(path, vaultPath, dest)) return folder;
+		return dest ? `${vaultPath}/${dest}` : vaultPath;
+	};
+
+	if (isAlreadyNamed(basename, target.name)) {
+		const final = finalFolder(filePath);
+		if (final === folder || !(await exists(`${final}/${basename}${ext}`))) return filePath;
+	}
+	for (let n = 1; ; n++) {
+		const fileName = `${numberedName(target.name, n)}${ext}`;
+		const final = finalFolder(`${folder}/${fileName}`);
+		if (await exists(`${final}/${fileName}`)) continue;
+		if (final !== folder && (await exists(`${folder}/${fileName}`))) continue;
+		debug('AUTO-ORGANIZE', `Renaming "${filePath}" to "${fileName}" (rule: ${rule.name})`);
+		try {
+			return await renameItem(filePath, fileName);
+		} catch {
+			return null;
+		}
 	}
 }
 
@@ -561,6 +680,7 @@ export function resetAutoOrganize(): void {
 	reportedAddSkips.clear();
 	reportedComputeFailures.clear();
 	reportedCreateProblems.clear();
+	reportedRenameFailures.clear();
 	creatingPaths.clear();
 	autoOrganizeStore.reset();
 	debug('AUTO-ORGANIZE', 'Reset complete');

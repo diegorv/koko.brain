@@ -8,7 +8,7 @@ Read the PRD and Issues 01 and 08 first, and `docs/agents/indexing-watcher-rules
 
 **Blocked by:** 09
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -36,12 +36,12 @@ The help page gets a "Renaming notes" section with the meeting example, the orde
 
 ### Acceptance
 
-- [ ] Failing test first: a matching save renames the note, links to it are rewritten, and a second save does nothing.
-- [ ] A clash renames to `<name> 2.md`; a later save leaves `<name> 2.md` alone.
-- [ ] Rename, move and properties land at the final path in one run, with no re-trigger.
-- [ ] A dirty open note is not renamed in that run; it is renamed at the next clean save.
-- [ ] A test pins that the backlink rewrite after a rename does not run the rules on the rewritten notes.
-- [ ] Docs and Settings (a "Rename" consequence with a name or expression field) updated. Frontend gate passes.
+- [x] Failing test first: a matching save renames the note, links to it are rewritten, and a second save does nothing.
+- [x] A clash renames to `<name> 2.md`; a later save leaves `<name> 2.md` alone.
+- [x] Rename, move and properties land at the final path in one run, with no re-trigger.
+- [x] A dirty open note is not renamed in that run; it is renamed at the next clean save.
+- [x] A test pins that the backlink rewrite after a rename does not run the rules on the rewritten notes.
+- [x] Docs and Settings (a "Rename" consequence with a name or expression field) updated. Frontend gate passes.
 
 ## Review amendments (2026-11-10)
 
@@ -75,3 +75,5 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
   Behavior 4's "already named" rule is required by the suffix choice; it is not a new decision.
 
 ## Comments
+
+- 2026-11-11, branch `issue/11-rule-action-rename-note`: a rule can rename the note (rename action with name/expression field, clash suffix, dirty-note wait, rename+move+properties in one run, link-rewriter saves skipped, docs and Settings). Full suite: 609 files, 15292 passed, 54 skipped, 1 todo. Reviews: round 1 CHANGES_REQUESTED, fix round ran, round 2 APPROVED with no findings.

@@ -1,4 +1,4 @@
-import type { AutoOrganizeRule, RuleCreateNote, RuleProperty, RuleValue } from './auto-organize.types';
+import type { AutoOrganizeRule, RuleCreateNote, RuleProperty, RuleRename, RuleValue } from './auto-organize.types';
 import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
 import { isMarkdownFile, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import {
@@ -436,6 +436,11 @@ const VOLATILE_FILE_FIELDS = new Set(['mtime', 'ctime', 'size']);
  * `now()`, `file.mtime`, `file.ctime` and `file.size`. None when it does not parse.
  */
 export function volatileInputs(expr: string): string[] {
+	return inputsRead(expr, VOLATILE_FILE_FIELDS);
+}
+
+/** `now()` and the `file.<field>` reads of `expr` for `fileFields`, in reading order; none when it does not parse. */
+function inputsRead(expr: string, fileFields: Set<string>): string[] {
 	let ast: ASTNode;
 	try {
 		ast = parse(expr);
@@ -443,37 +448,37 @@ export function volatileInputs(expr: string): string[] {
 		return [];
 	}
 	const found = new Set<string>();
-	collectVolatileInputs(ast, found);
+	collectInputs(ast, fileFields, found);
 	return [...found];
 }
 
-function collectVolatileInputs(node: ASTNode, found: Set<string>): void {
-	const visitAll = (nodes: ASTNode[]) => nodes.forEach((n) => collectVolatileInputs(n, found));
+function collectInputs(node: ASTNode, fileFields: Set<string>, found: Set<string>): void {
+	const visitAll = (nodes: ASTNode[]) => nodes.forEach((n) => collectInputs(n, fileFields, found));
 	switch (node.type) {
 		case 'call': {
 			if (node.callee === 'now') found.add('now()');
 			// A static path such as `file.mtime.format()` is one dotted callee.
 			const [namespace, field] = node.callee.split('.');
-			if (namespace === 'file' && VOLATILE_FILE_FIELDS.has(field)) found.add(`file.${field}`);
+			if (namespace === 'file' && fileFields.has(field)) found.add(`file.${field}`);
 			visitAll(node.args);
 			return;
 		}
 		case 'methodCall':
-			collectVolatileInputs(node.receiver, found);
+			collectInputs(node.receiver, fileFields, found);
 			visitAll(node.args);
 			return;
 		case 'member':
-			if (node.object.type === 'identifier' && node.object.name === 'file' && VOLATILE_FILE_FIELDS.has(node.property)) {
+			if (node.object.type === 'identifier' && node.object.name === 'file' && fileFields.has(node.property)) {
 				found.add(`file.${node.property}`);
 			} else {
-				collectVolatileInputs(node.object, found);
+				collectInputs(node.object, fileFields, found);
 			}
 			return;
 		case 'binary':
 			visitAll([node.left, node.right]);
 			return;
 		case 'unary':
-			collectVolatileInputs(node.operand, found);
+			collectInputs(node.operand, fileFields, found);
 			return;
 		case 'array':
 			visitAll(node.elements);
@@ -548,6 +553,116 @@ export function computeRuleValue(property: RuleProperty, ctx: EvalContext): Comp
 	}
 	if (property.mode === 'add' && !isTextOrTextList(value)) return { failure: 'add needs text or a list of text' };
 	return { value };
+}
+
+/** The `file.*` fields that hold the note's own name. */
+const NAME_FILE_FIELDS = new Set(['basename', 'name', 'path']);
+
+/** Why a rename that reads the note's own name is refused. */
+const SELF_NAMED = "The name uses the note's own name, so it would change at every save";
+
+/**
+ * Why a rule's `rename` cannot be used, or null: not an object, both or
+ * neither of `name` and `expr`, a blank or non-text one, an `expr` the
+ * evaluator's validator refuses, or a name read from the note's own name
+ * (`{basename}`, `file.basename`, `file.name`, `file.path`), which would
+ * rename the note again at every save.
+ */
+export function renameProblem(raw: unknown): string | null {
+	if (raw === null || typeof raw !== 'object') return 'Rename needs a name or an expression';
+	const { name, expr } = raw as Record<string, unknown>;
+	if ((name === undefined) === (expr === undefined)) return 'Set a name or an expression, not both';
+	if (name !== undefined) {
+		if (typeof name !== 'string' || name.trim() === '') return 'The name cannot be empty';
+		return name.includes('{basename}') ? SELF_NAMED : null;
+	}
+	if (typeof expr !== 'string' || expr.trim() === '') return 'Expression cannot be empty';
+	const parseError = findExpressionError(expr);
+	if (parseError !== undefined) return parseError;
+	return inputsRead(expr, NAME_FILE_FIELDS).some((input) => input.startsWith('file.')) ? SELF_NAMED : null;
+}
+
+/** A rule's `rename` as loaded from JSON, trimmed, or undefined when `renameProblem` refuses it. */
+export function sanitizeRename(raw: unknown): RuleRename | undefined {
+	if (raw === undefined || renameProblem(raw) !== null) return undefined;
+	const { name, expr } = raw as RuleRename;
+	return name !== undefined ? { name: name.trim() } : { expr: expr!.trim() };
+}
+
+/**
+ * `text` as a file name: each character a file name cannot hold
+ * (`/ \ : * ? " < > |` and control characters) becomes `-`, then spaces are
+ * trimmed and leading dots dropped, which would hide the note. May be `''`.
+ */
+export function toFileName(text: string): string {
+	return text
+		.replace(/[/\\:*?"<>|\x00-\x1F]/g, '-')
+		.trim()
+		.replace(/^\.+/, '')
+		.trim();
+}
+
+/** `date` as the local `YYYY-MM-DD`, with ` HH-mm` when `withTime` (a file name cannot hold `:`). */
+function localDateName(date: Date, withTime: boolean): string {
+	const pad = (n: number) => String(n).padStart(2, '0');
+	const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+	return withTime ? `${day} ${pad(date.getHours())}-${pad(date.getMinutes())}` : day;
+}
+
+/**
+ * The name, without extension, `rename` gives the note in `record`, or why
+ * it gives none, or null when it resolves to an empty name (nothing to do).
+ * A `name` resolves its `{variable}`s as a destination does. An `expr`
+ * result that is text is used as is, a finite number as its text, a valid
+ * date as its local `YYYY-MM-DD`, or `YYYY-MM-DD HH-mm` when it reads
+ * `now()`; anything else (a list, yes/no, no value, a throw) is a failure.
+ * The result then goes through `toFileName`.
+ */
+export function renameTarget(
+	rename: RuleRename,
+	record: PropertyIndexRecord,
+	vaultPath: string,
+): { name: string } | { failure: string } | null {
+	let text: string;
+	if (rename.name !== undefined) {
+		text = resolveDestination(rename.name, record, vaultPath);
+	} else {
+		const expr = rename.expr ?? '';
+		let result: unknown;
+		try {
+			result = evaluateExpression(expr, { record, formulas: {}, vaultPath });
+		} catch (err) {
+			return { failure: err instanceof Error ? err.message : String(err) };
+		}
+		if (result === null || result === undefined) return { failure: 'the expression has no value' };
+		if (result instanceof Date) {
+			if (Number.isNaN(result.getTime())) return { failure: 'the expression gives an invalid date' };
+			text = localDateName(result, volatileInputs(expr).includes('now()'));
+		} else if (typeof result === 'number' && Number.isFinite(result)) {
+			text = String(result);
+		} else if (typeof result === 'string') {
+			text = result;
+		} else {
+			return { failure: 'the result is not text, a number or a date' };
+		}
+	}
+	const name = toFileName(text);
+	return name === '' ? null : { name };
+}
+
+/**
+ * True when a note named `basename` already carries `name`: the name itself
+ * or `<name> N` for any number N, compared case-insensitively. A rename that
+ * found the name taken picked a numbered one, which must not move on again.
+ */
+export function isAlreadyNamed(basename: string, name: string): boolean {
+	const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+	return new RegExp(`^${escaped}( \\d+)?$`, 'i').test(basename);
+}
+
+/** The `n`th name a rename tries: `name`, then `name 2`, `name 3` and so on. */
+export function numberedName(name: string, n: number): string {
+	return n === 1 ? name : `${name} ${n}`;
 }
 
 /**

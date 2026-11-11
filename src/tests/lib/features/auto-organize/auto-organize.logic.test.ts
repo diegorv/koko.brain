@@ -28,6 +28,12 @@ import {
 	sanitizeCreateNote,
 	createTargetProblem,
 	countNotesToCreate,
+	renameProblem,
+	sanitizeRename,
+	renameTarget,
+	toFileName,
+	isAlreadyNamed,
+	numberedName,
 	type OwnedProperty,
 } from '#lib/features/auto-organize/auto-organize.logic.js';
 import type { FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
@@ -1389,5 +1395,123 @@ describe('countNotesToCreate', () => {
 		const idx = index(meeting('/vault/m/A.md'));
 		expect(countNotesToCreate('', followUp, idx, VAULT, GATES)).toBe(0);
 		expect(countNotesToCreate("type == 'meeting", followUp, idx, VAULT, GATES)).toBeNull();
+	});
+});
+
+describe('renameProblem', () => {
+	it('accepts a name template or an expression', () => {
+		expect(renameProblem({ name: '{year}-{month} Meeting' })).toBeNull();
+		expect(renameProblem({ expr: 'title' })).toBeNull();
+	});
+
+	it('refuses both fields, neither, a blank value and a non-object', () => {
+		expect(renameProblem({ name: 'A', expr: 'b' })).toBe('Set a name or an expression, not both');
+		expect(renameProblem({})).toBe('Set a name or an expression, not both');
+		expect(renameProblem({ name: '  ' })).toBe('The name cannot be empty');
+		expect(renameProblem({ expr: '' })).toBe('Expression cannot be empty');
+		expect(renameProblem({ name: 3 })).toBe('The name cannot be empty');
+		expect(renameProblem('Meeting')).toBe('Rename needs a name or an expression');
+		expect(renameProblem(null)).toBe('Rename needs a name or an expression');
+	});
+
+	it("refuses a name built from the note's own name, which would grow at every save", () => {
+		const grows = "The name uses the note's own name, so it would change at every save";
+		expect(renameProblem({ name: '{year} {basename}' })).toBe(grows);
+		expect(renameProblem({ expr: 'file.basename + " x"' })).toBe(grows);
+		expect(renameProblem({ expr: 'file.name.slice(0, 3)' })).toBe(grows);
+		expect(renameProblem({ expr: 'file.path' })).toBe(grows);
+		expect(renameProblem({ expr: 'file.folder' })).toBeNull();
+	});
+
+	it('refuses an expression the validator refuses', () => {
+		expect(renameProblem({ expr: 'title +' })).not.toBeNull();
+		expect(renameProblem({ expr: 'nope(1)' })).toContain('nope');
+	});
+});
+
+describe('sanitizeRename', () => {
+	it('keeps a valid rename trimmed, and drops an invalid one', () => {
+		expect(sanitizeRename({ name: ' Meeting ' })).toEqual({ name: 'Meeting' });
+		expect(sanitizeRename({ expr: ' title ' })).toEqual({ expr: 'title' });
+		expect(sanitizeRename({ name: '{basename} x' })).toBeUndefined();
+		expect(sanitizeRename(undefined)).toBeUndefined();
+		expect(sanitizeRename({ name: 'A', expr: 'b' })).toBeUndefined();
+	});
+});
+
+describe('toFileName', () => {
+	it('replaces the characters a file name cannot hold with -', () => {
+		expect(toFileName('a/b\\c:d*e?f"g<h>i|j')).toBe('a-b-c-d-e-f-g-h-i-j');
+		expect(toFileName('tab\there')).toBe('tab-here');
+	});
+
+	it('trims spaces and drops leading dots, so the note is never hidden', () => {
+		expect(toFileName('  ..Meeting  ')).toBe('Meeting');
+		expect(toFileName(' . ')).toBe('');
+	});
+});
+
+describe('renameTarget', () => {
+	const VAULT = '/vault';
+	const record = buildNoteRecord('/vault/work/old.md', '---\ntitle: Weekly sync\ncount: 3\ntags: [a, b]\ndone: true\nwhen: 2026-03-04\n---\n');
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 10, 10, 9, 5, 7));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('resolves a name template with the destination variables', () => {
+		expect(renameTarget({ name: '{year}-{month} Meeting' }, record, VAULT)).toEqual({ name: '2026-11 Meeting' });
+		expect(renameTarget({ name: '{folder}: notes' }, record, VAULT)).toEqual({ name: 'work- notes' });
+	});
+
+	it('writes a text or number result as text', () => {
+		expect(renameTarget({ expr: 'title' }, record, VAULT)).toEqual({ name: 'Weekly sync' });
+		expect(renameTarget({ expr: 'count' }, record, VAULT)).toEqual({ name: '3' });
+		expect(renameTarget({ expr: '"a/b: c"' }, record, VAULT)).toEqual({ name: 'a-b- c' });
+	});
+
+	it('writes a date as the local YYYY-MM-DD, and YYYY-MM-DD HH-mm with now()', () => {
+		expect(renameTarget({ expr: 'today()' }, record, VAULT)).toEqual({ name: '2026-11-10' });
+		expect(renameTarget({ expr: 'now()' }, record, VAULT)).toEqual({ name: '2026-11-10 09-05' });
+	});
+
+	it('fails on a list, a boolean, no value or a throw', () => {
+		expect(renameTarget({ expr: 'tags' }, record, VAULT)).toEqual({ failure: expect.any(String) });
+		expect(renameTarget({ expr: 'done' }, record, VAULT)).toEqual({ failure: expect.any(String) });
+		expect(renameTarget({ expr: 'missing' }, record, VAULT)).toEqual({ failure: 'the expression has no value' });
+		expect(renameTarget({ expr: 'title.nope()' }, record, VAULT)).toEqual({ failure: expect.any(String) });
+	});
+
+	it('does nothing for an empty result', () => {
+		expect(renameTarget({ name: '{status}' }, record, VAULT)).toBeNull();
+		expect(renameTarget({ expr: '"  "' }, record, VAULT)).toBeNull();
+	});
+});
+
+describe('isAlreadyNamed', () => {
+	it('is true for the name or the name with a number, in any case', () => {
+		expect(isAlreadyNamed('Meeting', 'Meeting')).toBe(true);
+		expect(isAlreadyNamed('meeting', 'Meeting')).toBe(true);
+		expect(isAlreadyNamed('Meeting 2', 'Meeting')).toBe(true);
+		expect(isAlreadyNamed('Meeting 17', 'Meeting')).toBe(true);
+	});
+
+	it('is false for any other name, and reads the name literally', () => {
+		expect(isAlreadyNamed('Meeting x', 'Meeting')).toBe(false);
+		expect(isAlreadyNamed('Meeting2', 'Meeting')).toBe(false);
+		expect(isAlreadyNamed('old', 'Meeting')).toBe(false);
+		expect(isAlreadyNamed('a+b 2', 'a+b')).toBe(true);
+		expect(isAlreadyNamed('aab', 'a+b')).toBe(false);
+	});
+});
+
+describe('numberedName', () => {
+	it('is the name first, then the name with 2, 3 and so on', () => {
+		expect([1, 2, 3].map((n) => numberedName('Meeting', n))).toEqual(['Meeting', 'Meeting 2', 'Meeting 3']);
 	});
 });
