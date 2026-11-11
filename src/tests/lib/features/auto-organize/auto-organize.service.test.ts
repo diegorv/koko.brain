@@ -2038,6 +2038,175 @@ describe('auto-organize.service', () => {
 				});
 			});
 		});
+		describe('every consequence in one run', () => {
+			const SOURCE = '/vault/notes/old.md';
+			const FINAL = '/vault/Archive/Weekly.md';
+			const FOLLOW_UP = '/vault/Archive/Weekly follow-up.md';
+			const ACTION = 'mod:ai:action:summarize';
+			const CONTENT = '---\ntype: meeting\ntags: [x]\n---\nbody';
+			/** Files on the in-memory disk, by absolute path */
+			let disk: Map<string, string>;
+			/** Folders on the in-memory disk */
+			let folders: Set<string>;
+			/** Each consequence, in the order the run performed it */
+			let steps: string[];
+			let action: import('vitest').Mock<(target: { on: 'note'; path: string }) => Promise<void>>;
+
+			/** Moves `from` to `to` on the in-memory disk. */
+			function moveOnDisk(from: string, to: string): string {
+				disk.set(to, disk.get(from)!);
+				disk.delete(from);
+				return to;
+			}
+
+			beforeEach(() => {
+				disk = new Map();
+				folders = new Set(['/vault', '/vault/notes']);
+				steps = [];
+				vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)) || folders.has(String(p)));
+				vi.mocked(readTextFile).mockImplementation(async (p) => {
+					const content = disk.get(String(p));
+					if (content === undefined) throw new Error(`not found: ${p}`);
+					return content;
+				});
+				vi.mocked(writeTextFile).mockImplementation(async (p, content) => {
+					steps.push(`write ${p}`);
+					disk.set(String(p), String(content));
+				});
+				vi.mocked(mkdir).mockImplementation(async (p) => {
+					folders.add(String(p));
+				});
+				vi.mocked(renameItem).mockImplementation(async (from, name) => {
+					steps.push(`rename ${name}`);
+					return moveOnDisk(from, `${from.slice(0, from.lastIndexOf('/'))}/${name}`);
+				});
+				vi.mocked(moveItem).mockImplementation(async (from, dir) => {
+					steps.push(`move ${dir}`);
+					return moveOnDisk(from, `${dir}/${from.slice(from.lastIndexOf('/') + 1)}`);
+				});
+				// Record the call, then run the real icon write: it goes through the same frontmatter writer.
+				vi.mocked(setIconForPath).mockImplementation(async (...args) => {
+					steps.push(`icon ${args[1]}`);
+					const real = await vi.importActual<typeof import('#lib/features/file-icons/file-icons.service.js')>('#lib/features/file-icons/file-icons.service.js');
+					return real.setIconForPath(...args);
+				});
+				vi.mocked(createFile).mockImplementation(async (parent, name, content = '') => {
+					steps.push(`create ${parent}/${name}`);
+					disk.set(`${parent}/${name}`, content);
+					return `${parent}/${name}`;
+				});
+				ruleActionsStore.reset();
+				action = vi.fn(async (target: { on: 'note'; path: string }) => {
+					steps.push(`action ${target.path}`);
+				});
+				ruleActionsStore.register({ id: ACTION, label: 'AI: Summarize', run: action });
+			});
+
+			afterEach(() => {
+				ruleActionsStore.reset();
+				editorStore.reset();
+			});
+
+			/**
+			 * Saves `path` with its content on the in-memory disk and runs past the debounce. The real icon
+			 * writer loads its module with a dynamic import, so the run waits for that before it goes on.
+			 */
+			async function run(rules: AutoOrganizeRule[], path: string, content: string): Promise<void> {
+				autoOrganizeStore.setConfig({ rules, excludedFolders: [] });
+				disk.set(path, content);
+				captureObserver()(path, content);
+				for (let i = 0; i < 5; i++) {
+					await vi.advanceTimersByTimeAsync(100);
+					await vi.dynamicImportSettled();
+				}
+			}
+
+			/** One meeting rule with every consequence: rename, move, legacy icon, properties, create note and a mod action. */
+			const everything: AutoOrganizeRule = rule('all', [
+				{ key: 'status', value: 'done', mode: 'always' },
+				{ key: 'tags', value: 'archived', mode: 'add' },
+				{ key: 'title', expr: 'file.basename', mode: 'always' },
+			], {
+				expression: "type == 'meeting'",
+				rename: { name: 'Weekly' },
+				destination: 'Archive',
+				icon: { iconPack: 'lucide', iconName: 'calendar' },
+				createNote: { path: '{folder}/{basename} follow-up.md', properties: [{ key: 'status', value: 'todo', mode: 'if-missing' }] },
+				runAction: { id: ACTION },
+			});
+
+			it('runs rename, move, icon, properties, create note and the mod action in that order; the note and its follow-up end in Archive', async () => {
+				await run([everything], SOURCE, CONTENT);
+
+				expect(steps).toEqual([
+					'rename Weekly.md',
+					'move /vault/Archive',
+					`icon ${FINAL}`,
+					`write ${FINAL}`,
+					`write ${FINAL}`,
+					`create ${FOLLOW_UP}`,
+					'action Archive/Weekly.md',
+				]);
+				expect([...disk.keys()].sort()).toEqual([FOLLOW_UP, FINAL].sort());
+				expect(parseFrontmatterProperties(disk.get(FINAL)!)).toEqual([
+					{ key: '_type', value: 'meeting', type: 'text' },
+					{ key: 'tags', value: ['x', 'archived'], type: 'list' },
+					// The icon write lands before the property write, so its key comes first.
+					{ key: '_icon', value: 'lucide:calendar', type: 'text' },
+					{ key: 'status', value: 'done', type: 'text' },
+					{ key: 'title', value: 'Weekly', type: 'text' },
+				]);
+				expect(disk.get(FINAL)!.endsWith('body')).toBe(true);
+				expect(parseFrontmatterProperties(disk.get(FOLLOW_UP)!)).toEqual([{ key: 'status', value: 'todo', type: 'text' }]);
+			});
+
+			it('at the next save re-applies the icon, which writes nothing, and runs the action again; nothing else changes', async () => {
+				await run([everything], SOURCE, CONTENT);
+				steps = [];
+
+				await run([everything], FINAL, disk.get(FINAL)!);
+
+				expect(steps).toEqual([`icon ${FINAL}`, 'action Archive/Weekly.md']);
+				expect([...disk.keys()].sort()).toEqual([FOLLOW_UP, FINAL].sort());
+				expect(action).toHaveBeenCalledTimes(2);
+			});
+
+			it('a failed move stops the run after the rename: no icon, properties, note or action', async () => {
+				vi.mocked(moveItem).mockRejectedValue(new Error('disk full'));
+
+				await run([everything], SOURCE, CONTENT);
+
+				expect(moveItem).toHaveBeenCalledWith('/vault/notes/Weekly.md', '/vault/Archive');
+				expect(steps).toEqual(['rename Weekly.md']);
+				expect([...disk.keys()]).toEqual(['/vault/notes/Weekly.md']);
+				expect(disk.get('/vault/notes/Weekly.md')).toBe(CONTENT);
+				expect(action).not.toHaveBeenCalled();
+			});
+
+			it('combines the consequences of different matching rules on one note', async () => {
+				const rules = [
+					rule('props', [{ key: 'reviewed', value: true, mode: 'if-missing' }], {
+						expression: "type == 'meeting'",
+						createNote: { path: '{folder}/{basename} follow-up.md' },
+					}),
+					rule('mover', undefined, { expression: 'file.hasTag("x")', destination: 'Archive', runAction: { id: ACTION } }),
+					rule('namer', undefined, { expression: "type == 'meeting'", rename: { name: 'Weekly' } }),
+				];
+
+				await run(rules, SOURCE, CONTENT);
+
+				expect(steps).toEqual([
+					'rename Weekly.md',
+					'move /vault/Archive',
+					`write ${FINAL}`,
+					`create ${FOLLOW_UP}`,
+					'action Archive/Weekly.md',
+				]);
+				expect(parseFrontmatterProperties(disk.get(FINAL)!)).toContainEqual({ key: 'reviewed', value: true, type: 'boolean' });
+				expect(disk.has(FOLLOW_UP)).toBe(true);
+			});
+		});
+
 	});
 
 	describe('toggleAutoOrganizeHook', () => {
