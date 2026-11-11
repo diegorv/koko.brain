@@ -100,6 +100,7 @@ const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
 - **No loop:** `.kokobrain/` writes produce no watcher event (`docs/agents/indexing-watcher-rules.md` rule 5), so the host's write triggers no reload or index update, and nothing fires back into the mod.
 - **Mods that would break if they opted in:** `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/examples/persisted-preferences.ts:9-16` throws on any extra key, and `mods/habits/src/habits.logic.ts:51-59` (`parseState`) keeps only its own keys. Neither declares settings; the docs rule above covers new ones.
 - **Ordering:** after 06, which also changes the `ModsStatusList.svelte` row and its test. Independent of the contract items (01, 02, 04, 05) and of 03.
+- Line numbers are from `c2bed3463`; locate each edit by the quoted text after earlier mods-power Issues land.
 - **Cut:** a `ctx.settings` member, `onChange`, a settings store or service file, a `description` field, `number`/select/password types, host-written defaults, E2E, an ADR amendment (no new command, file or trust boundary under ADR 0036).
 - **Not verified:** that `Switch` and `Input` (`src/lib/components/ui/`) forward `aria-label` and `onchange` is inferred from their use (`ModsStatusList.svelte:58-63`, `AutoOrganizeRuleRow.svelte:280-284,382`), not read in their source. The interplay of a setting save with a watcher reload of the same folder is believed safe because both go through one serialized runner (`mods-host.service.ts:830-841`); not tested. No test, build or UI was run.
 
