@@ -365,7 +365,7 @@
 					value={renameSource}
 					onValueChange={(v) => setRenameSource(v as keyof typeof RENAME_SOURCES)}
 				>
-					<Select.Trigger class="w-28 shrink-0" aria-label="Rename source">
+					<Select.Trigger class="w-32 shrink-0" aria-label="Rename source">
 						<span data-slot="select-value">{RENAME_SOURCES[renameSource]}</span>
 					</Select.Trigger>
 					<Select.Content>

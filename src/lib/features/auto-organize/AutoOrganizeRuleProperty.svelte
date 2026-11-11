@@ -214,7 +214,12 @@
 	}
 </script>
 
-<div class="flex items-center gap-2" data-rule-property>
+<!--
+	The row wraps: when a usable value cell does not fit beside the controls before it,
+	the cell, the mode and the delete button move to a second line instead of shrinking.
+	A remove row's cell is empty, so it takes no minimum width and stays on one line.
+-->
+<div class="flex flex-wrap items-center gap-2" data-rule-property>
 	<Input
 		class="w-36 shrink-0"
 		aria-label="Property key"
@@ -230,7 +235,7 @@
 			value={isExpr ? 'expr' : 'value'}
 			onValueChange={(v) => setSource(v as keyof typeof SOURCE_LABELS)}
 		>
-			<Select.Trigger class="w-28 shrink-0" aria-label="Property source">
+			<Select.Trigger class="w-32 shrink-0" aria-label="Property source">
 				<span data-slot="select-value">{SOURCE_LABELS[isExpr ? 'expr' : 'value']}</span>
 			</Select.Trigger>
 			<Select.Content>
@@ -256,7 +261,7 @@
 		</Select.Root>
 	{/if}
 
-	<div class="flex min-w-0 flex-1 items-center">
+	<div class={['flex flex-1 items-center', editor === 'none' && !isExpr ? 'min-w-0 basis-0' : 'min-w-48 basis-48']}>
 		{#if isExpr}
 			<Input
 				aria-label="Property expression"
@@ -273,7 +278,7 @@
 			/>
 		{:else if editor === 'icon'}
 			{@const icon = resolvedIcon()}
-			<Button variant="outline" class="min-w-0" title="Pick icon" onclick={() => (pickerOpen = true)}>
+			<Button variant="outline" class="min-w-0 max-w-full shrink" title="Pick icon" onclick={() => (pickerOpen = true)}>
 				{#if icon}
 					<IconRenderer {icon} class="size-3.5" />
 				{:else}
@@ -282,7 +287,7 @@
 				<span class="truncate">{property.value || 'Pick icon'}</span>
 			</Button>
 		{:else if editor === 'color'}
-			<Button variant="outline" class="min-w-0" title="Pick color" onclick={() => (pickerOpen = true)}>
+			<Button variant="outline" class="min-w-0 max-w-full shrink" title="Pick color" onclick={() => (pickerOpen = true)}>
 				<span
 					class="size-3.5 shrink-0 rounded-full border"
 					style="background-color: {property.value || 'currentColor'}"
