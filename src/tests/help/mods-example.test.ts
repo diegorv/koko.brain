@@ -71,6 +71,7 @@ function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 			write: async (path, content) => {
 				seen.files.set(path, content);
 			},
+			updateFrontmatter: unused,
 		},
 		workspace: {
 			openNote: async (path) => {

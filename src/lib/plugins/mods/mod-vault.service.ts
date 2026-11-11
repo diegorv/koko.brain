@@ -8,6 +8,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
 import { addToTree, deleteItem, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { debug } from '#lib/utils/debug.js';
 import { relativePath } from '#lib/utils/path.js';
 
@@ -133,6 +134,16 @@ export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope):
 			// Marks the self-save, runs applyNoteChange, the invalidation signal and the after-save
 			// observers, which include search's FTS5 / semantic update.
 			notifyAfterSave(abs, content);
+		},
+		updateFrontmatter: async (path, mutate) => {
+			const abs = toAbsolute(path);
+			// Data safety: the rebuild prepends a YAML block to a file without one, which would corrupt
+			// a .canvas, a .view or a mod's main.js.
+			if (!isMarkdownFile(abs)) throw new Error(`Mod "${modId}": vault.updateFrontmatter needs a Markdown note`);
+			// The core writer owns the after-save path (tab save or notifyAfterSave) and leaves
+			// serialization per path to the caller, as the contract tells the mod.
+			await logged('updateFrontmatter', path, () => updateNoteFrontmatter(abs, mutate));
+			assertLive();
 		},
 	};
 }

@@ -144,6 +144,16 @@ export interface ModVaultEntryV1 {
 	isFolder: boolean;
 }
 
+/** One frontmatter property, as `ctx.vault.updateFrontmatter` hands them to `mutate` */
+export interface ModPropertyV1 {
+	/** The YAML key, e.g. `status` */
+	key: string;
+	/** The parsed value; a `list` property holds a `string[]` */
+	value: string | number | boolean | string[];
+	/** The value's type, detected from the YAML on read and used to write it back */
+	type: 'text' | 'list' | 'number' | 'date' | 'boolean';
+}
+
 /**
  * Vault file access for a mod. Every path is vault-relative (`Ideas/Idea.md`):
  * a path that is empty, starts with `/`, or has an empty, `.` or `..` segment
@@ -168,6 +178,36 @@ export interface ModVaultV1 {
 	 * `"<path>" has unsaved changes in an open tab` instead of losing the user's edits.
 	 */
 	write: (path: string, content: string) => Promise<void>;
+	/**
+	 * Rewrites the frontmatter of the Markdown note at `path` (`.md`, `.markdown`)
+	 * and leaves its body as it is. Any other file rejects with
+	 * `Mod "<id>": vault.updateFrontmatter needs a Markdown note`, nothing written;
+	 * a missing note rejects with the read error.
+	 *
+	 * `mutate` gets the current properties in file order and returns the new full
+	 * list. It must be pure: it can run twice.
+	 *
+	 * Nothing is written when the rebuilt note equals the file byte for byte. The
+	 * first write may normalize the YAML (a block list becomes a flow list), so
+	 * returning the same array does not promise that nothing is written.
+	 *
+	 * An open tab keeps its unsaved body edits and is saved at once; unlike
+	 * `write`, a dirty tab is not refused. A tab whose path holds `//` (a daily
+	 * note under a folder setting ending in `/`) is not found, as with `write`.
+	 *
+	 * A refused or failed write rejects with an `Error` whose `name` is
+	 * `FrontmatterWriteError` and whose
+	 * `reason` is one of `unparseable`, `nested`, `comments`, `duplicate-keys`,
+	 * `alias-collision`, `anchors` (lossy frontmatter, nothing written),
+	 * `save-failed` (the editor already showed a toast; show no other),
+	 * `vault-changed` or `missing`. `writeFailureText(err)` from
+	 * `@kokobrain/mod-core/errors` turns it into text for the user.
+	 *
+	 * Concurrent calls on one note race and the last write wins: call it one note
+	 * at a time. It is a save, so it fires `onNoteSaved`, the mod's own included:
+	 * a callback that writes the note it was told about can loop.
+	 */
+	updateFrontmatter: (path: string, mutate: (props: ModPropertyV1[]) => ModPropertyV1[]) => Promise<void>;
 	/** Renames a file or folder within its parent; newName is one name, including any extension. Resolves to the new relative path. */
 	rename: (path: string, newName: string) => Promise<string>;
 	/** Moves a file or folder into targetFolder ('' for the vault root). Resolves to its relative path, unchanged if already there. */

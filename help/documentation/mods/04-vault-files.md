@@ -293,6 +293,38 @@ There is **no equality guard**: writing identical text runs the whole pipeline a
 
 There is a small window between the dirty-tab check and the disk write. Keystrokes typed in it are replaced by the written text. The host does not guard it; editing through the editor (below) avoids it for the active note.
 
+### `updateFrontmatter(path, mutate)`
+
+Rewrites the frontmatter of an existing **Markdown** note (`.md`, `.markdown`) and leaves its body as it is. Resolves to `undefined`.
+
+```javascript
+await ctx.vault.updateFrontmatter('Projects/Alpha.md', (props) => [
+	...props.filter((p) => p.key !== 'status'),
+	{ key: 'status', value: 'active', type: 'text' },
+]);
+```
+
+`mutate` gets the current properties in file order, each `{ key, value, type }` (`ModPropertyV1`; `type` is `text`, `list`, `number`, `date` or `boolean`, and a `list` holds a `string[]`), and returns the new full list.
+
+- **Markdown only.** Any other file rejects `Mod "<id>": vault.updateFrontmatter needs a Markdown note` and nothing is read or written: the rewrite adds a YAML block to a file without one, which would break a `.canvas`, a `.view` or a `main.js`. A missing note rejects with the raw read error.
+- **`mutate` must be pure.** It can run twice (when a tab for the note opens during the read). Do not count calls or touch outside state in it.
+- **Returning the same array does not mean no write.** Nothing is written only when the rebuilt note equals the file byte for byte. The first write may normalize the YAML (a block list becomes a flow list), so the first call on a note can write even when you changed nothing. To skip a write, compare the values yourself first.
+- **A dirty tab is not refused**, unlike `write`: the tab keeps its unsaved body edits, takes the new frontmatter and is saved at once. On the **active** note the caret keeps its old character offset, as with `write`, so a longer frontmatter moves it back relative to the user's text.
+- **One note at a time.** Concurrent calls on the same note race and the last write wins. Await each call before the next on that note.
+- **It is a save**, so it fires `ctx.onNoteSaved`, the mod's own included. A save callback that sets a property on the note it was told about calls itself again; check the current value before writing (see [Events](07-events-and-reactivity.md#avoiding-save-loops)).
+- **A tab whose path holds `//`** (see [below](#editing-a-note-that-may-be-open)) is not found, as with `write`: the disk is written, and that tab's next save puts the old frontmatter back.
+
+A refused or failed write rejects with an `Error` named `FrontmatterWriteError` whose `reason` says why:
+
+| `reason` | Meaning |
+|----------|---------|
+| `unparseable`, `nested`, `comments`, `duplicate-keys`, `alias-collision`, `anchors` | the frontmatter cannot be rewritten without losing data; nothing written |
+| `save-failed` | saving the open tab failed; the editor already showed a toast, so show no other |
+| `vault-changed` | the vault switched during the write; the new text may already be on disk |
+| `missing` | the note was moved or deleted during the write |
+
+`writeFailureText(err)` from `@kokobrain/mod-core/errors` turns the error into text for the user.
+
 ### What each write updates
 
 | | `create` | `write` (any file outside `_system/mods/`) | `write` to mod code under `_system/mods/` | `saveData` |
@@ -438,7 +470,7 @@ function appendLines(text, lines) {
 For a vault-relative path (from `run.target`, `list`, `onNoteSaved`) call `editNote(ctx, toAbsolute(ctx, path), edit)`. The [daily-journal example](../../examples/mods/daily-journal/) uses this pattern on today's daily note, and [note-tools](../../examples/mods/note-tools/) uses `run.target` with an active-note fallback.
 
 > [!TIP]
-> To change only frontmatter properties, `ctx.app.updateNoteFrontmatter(absolutePath, mutate)` (raw) handles both open and closed notes, and keeps unsaved body edits. It writes nothing only when the rebuilt text equals the file byte for byte, which holds only for frontmatter already in the app's canonical form; to skip the write, throw a sentinel from `mutate` and catch it (see [the cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)). On the **active** note it moves the caret (old offset kept, not mapped), and on a note that starts with an empty `---`/`---` block it adds a second block. Both, with their workarounds, are in [Raw app](09-raw-app.md#updatenotefrontmatter).
+> To change only frontmatter properties, use [`ctx.vault.updateFrontmatter(path, mutate)`](#updatefrontmatterpath-mutate) (stable, vault-relative path). It handles both open and closed notes and keeps unsaved body edits. The raw `ctx.app.updateNoteFrontmatter(absolutePath, mutate)` does the same with an absolute path and no compatibility promise. Both write nothing only when the rebuilt text equals the file byte for byte, which holds only for frontmatter already in the app's canonical form; to skip the write, throw a sentinel from `mutate` and catch it (see [the cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)). On the **active** note either one moves the caret (old offset kept, not mapped), and on a note that starts with an empty `---`/`---` block it adds a second block. These two problems, with their workarounds, are in [Raw app](09-raw-app.md#updatenotefrontmatter).
 
 ### Checking for unsaved edits before a multi-note change
 

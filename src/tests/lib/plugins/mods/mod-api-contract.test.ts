@@ -71,6 +71,7 @@ const VAULT_PUBLIC = {
 	list: true,
 	create: true,
 	write: true,
+	updateFrontmatter: true,
 	rename: true,
 	move: true,
 	delete: true,

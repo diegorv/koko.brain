@@ -13,7 +13,7 @@ await ctx.vault.updateFrontmatter('Projects/Alpha.md', (props) => [
 
 **Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/01-stable-update-frontmatter.md` delivered and pushed (it adds `ModPropertyV1` and `ModVaultV1.updateFrontmatter` to `packages/mod-core/src/contract/mod-api.v1.ts`), and its full commit SHA recorded in that Issue's Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency". The install needs Git read access to the private mods repository (`docs/MOD-CORE.md` "Local installation"); an agent without it stops and reports, it does not edit the lockfile by hand.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Mods Issue 01 is delivered: squash commit `4195eaab9b5f950d80b2d358de383329acb93ea6` on `origin/main` of the mods repo (mods ledger row 01; its Comments name "the squash commit on main from this delivery" without the hash). Launch by explicit number only.
 
@@ -49,18 +49,18 @@ Mods Issue 01 is delivered: squash commit `4195eaab9b5f950d80b2d358de383329acb93
 
 ### Acceptance
 
-- [ ] Failing test first, in `src/tests/lib/plugins/mods/mod-vault.service.test.ts` (`ctx.vault and ctx.workspace`, `:103`, a new `describe('updateFrontmatter')` after `write` at `:171`): with `${VAULT}/Note.md` holding `---\nstatus: draft\n---\nbody`, `ctx.vault.updateFrontmatter('Note.md', (props) => props.map((p) => p.key === 'status' ? { ...p, value: 'active' } : p))` resolves to `undefined`, the file reads `status: active` with the body `body` untouched, and an after-save observer (`addAfterSaveObserver`) saw `${VAULT}/Note.md`. It fails today, because `ctx.vault.updateFrontmatter` is not a function.
-- [ ] An open dirty tab (`editorStore.addTab({ path, content: <frontmatter + 'typing'>, savedContent: <old> })`): the call resolves, the tab keeps the body edit `typing` with the new frontmatter, and the disk holds the same text (proves the delegate is the tab-aware writer; contrast with `write`'s refusal at `:241-255`).
-- [ ] Lossy frontmatter (a YAML comment): rejects with `name: 'FrontmatterWriteError'` and `reason: 'comments'`, the file is unchanged, no after-save observer ran.
-- [ ] `Board.canvas` and `_system/mods/x/main.js` reject with `Mod "ideas": vault.updateFrontmatter needs a Markdown note`; nothing read or written (`writeTextFile` not called).
-- [ ] An invalid path (`'/Note.md'`) rejects with `Invalid vault path "/Note.md"`. A missing note rejects with the read error and writes nothing.
-- [ ] After `runtime.unloaded = true` the call rejects `Mod "ideas" is unloaded` and writes nothing. An unload during the write (set `runtime.unloaded` inside a `writeTextFile` mock implementation) rejects with the unload message.
-- [ ] No adapter test re-tests the core writer's behaviors already covered in `src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts` beyond the cases above.
-- [ ] `mod-api-contract.test.ts`, `mods-types.test.ts` and `kokobrain-mod.d.ts` updated as in Behavior 3-4.
-- [ ] `src/tests/help/mods-example.test.ts`: `updateFrontmatter: unused` in the `vault` literal (`:59-74`). The literal is typed `ModContextV1` (`:40`), so `pnpm check` fails without it.
-- [ ] `package.json` and `pnpm-lock.yaml` name the new SHA; the lockfile has no credentials, workspace links or personal paths (`docs/MOD-CORE.md` step 4).
-- [ ] Docs above updated.
-- [ ] Gate passes: `pnpm check`, `pnpm vitest run`, `pnpm build`, and the mods workspace's `pnpm check:package <temp consumer>` and `KOKOBRAIN_HOST_ROOT=<this checkout> pnpm verify`.
+- [x] Failing test first, in `src/tests/lib/plugins/mods/mod-vault.service.test.ts` (`ctx.vault and ctx.workspace`, `:103`, a new `describe('updateFrontmatter')` after `write` at `:171`): with `${VAULT}/Note.md` holding `---\nstatus: draft\n---\nbody`, `ctx.vault.updateFrontmatter('Note.md', (props) => props.map((p) => p.key === 'status' ? { ...p, value: 'active' } : p))` resolves to `undefined`, the file reads `status: active` with the body `body` untouched, and an after-save observer (`addAfterSaveObserver`) saw `${VAULT}/Note.md`. It fails today, because `ctx.vault.updateFrontmatter` is not a function.
+- [x] An open dirty tab (`editorStore.addTab({ path, content: <frontmatter + 'typing'>, savedContent: <old> })`): the call resolves, the tab keeps the body edit `typing` with the new frontmatter, and the disk holds the same text (proves the delegate is the tab-aware writer; contrast with `write`'s refusal at `:241-255`).
+- [x] Lossy frontmatter (a YAML comment): rejects with `name: 'FrontmatterWriteError'` and `reason: 'comments'`, the file is unchanged, no after-save observer ran.
+- [x] `Board.canvas` and `_system/mods/x/main.js` reject with `Mod "ideas": vault.updateFrontmatter needs a Markdown note`; nothing read or written (`writeTextFile` not called).
+- [x] An invalid path (`'/Note.md'`) rejects with `Invalid vault path "/Note.md"`. A missing note rejects with the read error and writes nothing.
+- [x] After `runtime.unloaded = true` the call rejects `Mod "ideas" is unloaded` and writes nothing. An unload during the write (set `runtime.unloaded` inside a `writeTextFile` mock implementation) rejects with the unload message.
+- [x] No adapter test re-tests the core writer's behaviors already covered in `src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts` beyond the cases above.
+- [x] `mod-api-contract.test.ts`, `mods-types.test.ts` and `kokobrain-mod.d.ts` updated as in Behavior 3-4.
+- [x] `src/tests/help/mods-example.test.ts`: `updateFrontmatter: unused` in the `vault` literal (`:59-74`). The literal is typed `ModContextV1` (`:40`), so `pnpm check` fails without it.
+- [x] `package.json` and `pnpm-lock.yaml` name the new SHA; the lockfile has no credentials, workspace links or personal paths (`docs/MOD-CORE.md` step 4).
+- [x] Docs above updated.
+- [x] Gate passes: `pnpm check`, `pnpm vitest run`, `pnpm build`, and the mods workspace's `pnpm check:package <temp consumer>` and `KOKOBRAIN_HOST_ROOT=<this checkout> pnpm verify`.
 
 ## Notes
 
@@ -81,3 +81,5 @@ Mods Issue 01 is delivered: squash commit `4195eaab9b5f950d80b2d358de383329acb93
 - **Not verified:** whether `pnpm add` with the Git URL works in a relay worktree without the owner's credential setup.
 
 ## Comments
+
+- 2026-11-11, `issue/01-stable-update-frontmatter`: added stable `ctx.vault.updateFrontmatter` (delegates to the tab-aware core frontmatter writer), types/contract tests, mods package SHA bump and docs. Review round 1 APPROVED (one nit: tip referents in `help/documentation/mods/04-vault-files.md:473`, fixed); review round 2 APPROVED, no findings. Tests: `pnpm check` 0 errors; full suite at 811e0092a exit 0, 611 files, 15384 passed, 54 skipped, 1 todo.

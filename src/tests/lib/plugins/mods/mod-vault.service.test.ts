@@ -83,7 +83,7 @@ vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { rename, writeTextFile } from '@tauri-apps/plugin-fs';
+import { readTextFile, rename, writeTextFile } from '@tauri-apps/plugin-fs';
 
 import { addAfterSaveObserver, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -93,7 +93,7 @@ import { registerContentInvalidationListener } from '#lib/core/filesystem/note-c
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug } from '#lib/utils/debug.js';
 import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
-import type { ModContextV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
+import type { ModContextV1, ModPropertyV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { createModContext, type ModRuntime } from '#lib/plugins/mods/mods-host.service.js';
 
 const VAULT = '/vaults/main';
@@ -251,6 +251,102 @@ describe('ctx.vault and ctx.workspace', () => {
 			expect(editorStore.activeTab).toMatchObject({ content: 'typing', savedContent: 'old' });
 			expect(writeTextFile).not.toHaveBeenCalled();
 			expect(saved).toEqual([]);
+		});
+	});
+
+	// The core writer's own behaviors are covered in frontmatter-write.service.test.ts;
+	// these cases pin the adapter: path, Markdown check, unload guard, delegation.
+	describe('updateFrontmatter', () => {
+		const NOTE = `${VAULT}/Note.md`;
+		const DRAFT = '---\nstatus: draft\n---\n';
+		const ACTIVE = '---\nstatus: active\n---\n';
+		const activate = (props: ModPropertyV1[]) => props.map((p) => (p.key === 'status' ? { ...p, value: 'active' } : p));
+		const realWrite = vi.mocked(writeTextFile).getMockImplementation()!;
+
+		it('rewrites the frontmatter of a closed note, keeps the body and runs the after-save observers', async () => {
+			disk.files.set(NOTE, `${DRAFT}body`);
+			const saved: string[] = [];
+			addAfterSaveObserver((p) => saved.push(p));
+
+			await expect(ctx.vault.updateFrontmatter('Note.md', activate)).resolves.toBeUndefined();
+
+			expect(disk.files.get(NOTE)).toBe(`${ACTIVE}body`);
+			expect(saved).toEqual([NOTE]);
+		});
+
+		it('keeps the body edits of an open dirty tab and saves the tab', async () => {
+			disk.files.set(NOTE, `${DRAFT}body`);
+			editorStore.addTab({ path: NOTE, name: 'Note.md', content: `${DRAFT}typing`, savedContent: `${DRAFT}body` });
+
+			await expect(ctx.vault.updateFrontmatter('Note.md', activate)).resolves.toBeUndefined();
+
+			expect(editorStore.activeTab).toMatchObject({ content: `${ACTIVE}typing`, savedContent: `${ACTIVE}typing` });
+			expect(disk.files.get(NOTE)).toBe(`${ACTIVE}typing`);
+		});
+
+		it('rejects lossy frontmatter with the core error and writes nothing', async () => {
+			const text = '---\n# managed by script\nstatus: draft\n---\nbody';
+			disk.files.set(NOTE, text);
+			const saved: string[] = [];
+			addAfterSaveObserver((p) => saved.push(p));
+
+			await expect(ctx.vault.updateFrontmatter('Note.md', activate)).rejects.toMatchObject({
+				name: 'FrontmatterWriteError',
+				reason: 'comments',
+			});
+
+			expect(disk.files.get(NOTE)).toBe(text);
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(saved).toEqual([]);
+		});
+
+		it.each(['Board.canvas', '_system/mods/x/main.js'])('rejects %s, which is no Markdown note, and touches nothing', async (path) => {
+			disk.files.set(`${VAULT}/${path}`, '{}');
+
+			await expect(ctx.vault.updateFrontmatter(path, activate)).rejects.toThrow(
+				'Mod "ideas": vault.updateFrontmatter needs a Markdown note',
+			);
+
+			expect(readTextFile).not.toHaveBeenCalled();
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(disk.files.get(`${VAULT}/${path}`)).toBe('{}');
+		});
+
+		it('rejects an invalid vault path', async () => {
+			await expect(ctx.vault.updateFrontmatter('/Note.md', activate)).rejects.toThrow('Invalid vault path "/Note.md"');
+
+			expect(readTextFile).not.toHaveBeenCalled();
+		});
+
+		it('rejects a missing note with the read error and writes nothing', async () => {
+			await expect(ctx.vault.updateFrontmatter('Missing.md', activate)).rejects.toThrow(
+				`No such file: ${VAULT}/Missing.md`,
+			);
+
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(disk.files.has(`${VAULT}/Missing.md`)).toBe(false);
+		});
+
+		it('rejects after unload and touches nothing', async () => {
+			disk.files.set(NOTE, `${DRAFT}body`);
+			runtime.unloaded = true;
+
+			await expect(ctx.vault.updateFrontmatter('Note.md', activate)).rejects.toThrow('Mod "ideas" is unloaded');
+
+			expect(readTextFile).not.toHaveBeenCalled();
+			expect(disk.files.get(NOTE)).toBe(`${DRAFT}body`);
+		});
+
+		it('rejects with the unload when the mod is unloaded during the write', async () => {
+			disk.files.set(NOTE, `${DRAFT}body`);
+			vi.mocked(writeTextFile).mockImplementationOnce(async (...args) => {
+				runtime.unloaded = true;
+				return realWrite(...args);
+			});
+
+			await expect(ctx.vault.updateFrontmatter('Note.md', activate)).rejects.toThrow('Mod "ideas" is unloaded');
+
+			expect(writeTextFile).toHaveBeenCalledTimes(1);
 		});
 	});
 

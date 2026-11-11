@@ -29,7 +29,7 @@ Stability: everything on this page is **raw**. It is the app's internals as they
 | `openOneOnOnePicker(onSelect?)` | function | `Promise<void>` | [openOneOnOnePicker](#openoneononepicker) |
 | `dailyNotePath(date?)` | function | `string` (absolute path) | [dailyNotePath](#dailynotepath) |
 | `openOrCreateDailyNote()` | function | `Promise<void>` | [openOrCreateDailyNote](#openorcreatedailynote) |
-| `updateNoteFrontmatter(absolutePath, mutate)` | function | `Promise<string>` (written text) | [updateNoteFrontmatter](#updatenotefrontmatter) |
+| `updateNoteFrontmatter(absolutePath, mutate)` | function | `Promise<string>` (written text); prefer the stable `ctx.vault.updateFrontmatter` with a vault-relative path | [updateNoteFrontmatter](#updatenotefrontmatter) |
 | `typeDefinitionsStore` | store | | [typeDefinitionsStore](#typedefinitionsstore) |
 | `modCommandsStore` | store | | [modCommandsStore](#modcommandsstore) |
 | `railRegistryStore` | store | | [railRegistryStore](#railregistrystore) |
@@ -526,6 +526,8 @@ Creating the note through the app (not `ctx.vault.create`) is what applies the d
 ## `updateNoteFrontmatter`
 
 **Raw.** Rewrites a note's frontmatter through a list of properties, without losing data (with the two exceptions under [Known problems](#known-problems-caret-and-empty-block)).
+
+Prefer the stable [`ctx.vault.updateFrontmatter(path, mutate)`](04-vault-files.md#updatefrontmatterpath-mutate): the same writer with a vault-relative path, Markdown notes only.
 
 ```ts
 interface Property {

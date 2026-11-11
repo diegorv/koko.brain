@@ -120,6 +120,7 @@ Details: [Events and reactivity](07-events-and-reactivity.md), [Custom UI](08-cu
 | `list` | `(folder: string) => Promise<{ name, path, isFolder }[]>` | direct children, unsorted, names starting with `.` left out; `''` is the root; `path` is `folder + '/' + name` | a missing folder or a file: raw error |
 | `create` | `(path: string, content: string) => Promise<string>` | `path` as passed. Creates missing parent folders; adds no extension | `Mod "<id>": vault.create needs string content`; `"<path>" already exists; use write` (file or folder there) |
 | `write` | `(path: string, content: string) => Promise<void>` | nothing. Overwrites in place (not atomic); a clean open tab shows the new text | `Mod "<id>": vault.write needs string content`; `"<path>" does not exist; use create`; `"<path>" has unsaved changes in an open tab` |
+| `updateFrontmatter` | `(path: string, mutate: (props: ModPropertyV1[]) => ModPropertyV1[]) => Promise<void>` | nothing. A Markdown note only (`.md`, `.markdown`); body left as it is. An open tab keeps its unsaved body edits and is saved at once. Nothing is written when the rebuilt note equals the file | `Mod "<id>": vault.updateFrontmatter needs a Markdown note`; a missing note: raw read error; name `FrontmatterWriteError` with a `reason`: lossy frontmatter (`unparseable`, `nested`, `comments`, `duplicate-keys`, `alias-collision`, `anchors`; nothing written), `save-failed`, `vault-changed`, `missing` |
 | `rename` | `(path: string, newName: string) => Promise<string>` | the new vault-relative path; unchanged name: no disk access | `Invalid vault path "<newName>"`; `Mod "<id>": vault.rename needs a single name` (a `/` in `newName`); `"<newName>" already exists in this folder` |
 | `move` | `(path: string, targetFolder: string) => Promise<string>` | the new vault-relative path; already there: unchanged, no disk access | `"<fileName>" already exists in this folder`; a missing target folder: raw error (no folder is created) |
 | `delete` | `(path: string) => Promise<void>` | nothing. Moves to the app's Trash (`.kokobrain/trash/`), saving dirty tabs under the path first and closing them | a missing path: raw error; `Could not save "<absolute path>" before moving it to the Trash` (name `PreDeleteSaveError`) |
@@ -265,6 +266,8 @@ Messages the mod itself can catch, by prefix. Load, unload and toast messages ar
 | `"<path>" already exists; use write` | `vault.create` |
 | `"<path>" does not exist; use create` | `vault.write` |
 | `"<path>" has unsaved changes in an open tab` | `vault.write` |
+| `Mod "<id>": vault.updateFrontmatter needs a Markdown note` | `vault.updateFrontmatter` |
+| `Frontmatter write <reason>: <absolute path>` (name `FrontmatterWriteError`) | `vault.updateFrontmatter`, `app.updateNoteFrontmatter` |
 | `Mod "<id>": vault.rename needs a single name` | `vault.rename` |
 | `"<name>" already exists in this folder` | `vault.rename`, `vault.move` |
 | `Could not save "<absolute path>" before moving it to the Trash` | `vault.delete` |
