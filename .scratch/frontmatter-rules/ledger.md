@@ -41,6 +41,12 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [`file.inFolder` takes a vault-relative folder](issues/04-infolder-takes-vault-relative-folder.md) | none | done | issue/04-infolder-takes-vault-relative-folder (107bcf35a) | 2026-11-10 |
 | 05 | [Auto Move also evaluates a note when it is moved or renamed into a folder](issues/05-auto-move-evaluates-on-move-and-rename.md) | 01 | todo | | |
 | 06 | [Rename Auto Move to Auto Organize everywhere, and document filters and actions](issues/06-rename-auto-move-to-auto-organize.md) | 03 | todo | | |
+| 07 | [Property actions can remove a property or add items to a list](issues/07-property-actions-remove-and-add-to-list.md) | 06 | todo | | |
+| 08 | [Property values can be computed with the expression engine](issues/08-computed-property-values.md) | 07 | todo | | |
+| 09 | [A rule can create a note](issues/09-rule-action-create-note.md) | 08 | todo | | |
+| 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 09 | todo | | |
+| 11 | [A rule can rename the note](issues/11-rule-action-rename-note.md) | 10 | todo | | |
+| 12 | [A rule can undo its properties when a note stops matching](issues/12-undo-when-note-stops-matching.md) | 11 | todo | | |
 
 ## Log
 
@@ -57,3 +63,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 22:20 — ledger updated (added 06)
 - 2026-11-10 22:22 — ledger updated (title of 06)
 - 2026-11-10 22:25 — ledger updated (title of 06)
+- 2026-11-10 22:29 — ledger updated (added 07, 08, 09, 10, 11, 12)
