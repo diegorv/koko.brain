@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [The rule filter uses the view filter builder](issues/03-rule-filter-uses-view-filter-builder.md) | 02 | done | issue/03-rule-filter-uses-view-filter-builder (054ace345) | 2026-11-10 |
 | 04 | [`file.inFolder` takes a vault-relative folder](issues/04-infolder-takes-vault-relative-folder.md) | none | done | issue/04-infolder-takes-vault-relative-folder (107bcf35a) | 2026-11-10 |
 | 05 | [Auto Move also evaluates a note when it is moved or renamed into a folder](issues/05-auto-move-evaluates-on-move-and-rename.md) | 06 | todo | | |
-| 06 | [Rename Auto Move to Auto Organize everywhere, and document filters and actions](issues/06-rename-auto-move-to-auto-organize.md) | 03 | in-progress | | |
+| 06 | [Rename Auto Move to Auto Organize everywhere, and document filters and actions](issues/06-rename-auto-move-to-auto-organize.md) | 03 | done | issue/06-rename-auto-move-to-auto-organize (b63dfb4ff) | 2026-11-10 |
 | 07 | [Property actions can remove a property or add items to a list](issues/07-property-actions-remove-and-add-to-list.md) | 13 | todo | | |
 | 08 | [Property values can be computed with the expression engine](issues/08-computed-property-values.md) | 07 | todo | | |
 | 09 | [A rule can create a note](issues/09-rule-action-create-note.md) | 08 | todo | | |
@@ -69,3 +69,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 22:46 — 03 — deliver — review CHANGES_REQUESTED then APPROVED x2 (claude); fixes: expression row, shared filter shape check, docs, type-scale class; full suite 608 files / 15053 tests passed; squash merged and pushed — 054ace345
 - 2026-11-10 22:54 — ledger updated (added 13; blocked by of 05, 07, 10, 11)
 - 2026-11-10 22:54 — 06 — start — launched by /relay-lite:run — 73cd5b9d3
+- 2026-11-10 23:15 — 06 — deliver — reviews APPROVED x2 (claude) with a fix round; full suite 609 files / 15083 tests passed; squash merged and pushed — b63dfb4ff
