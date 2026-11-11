@@ -4,7 +4,7 @@
 
 **Blocked by:** 14
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm vitest run src/tests/help` (docs and an example only).
 
@@ -24,9 +24,9 @@
 
 ### Acceptance
 
-- [ ] The section exists with both variants and the "unknown previous value" limit.
-- [ ] The example pair is in the examples config, and a test evaluates it on a `blocked` note and an `active` note, with the expected `_color` result for each.
-- [ ] `pnpm vitest run src/tests/help` passes.
+- [x] The section exists with both variants and the "unknown previous value" limit.
+- [x] The example pair is in the examples config, and a test evaluates it on a `blocked` note and an `active` note, with the expected `_color` result for each.
+- [x] `pnpm vitest run src/tests/help` passes.
 
 ## Review amendments (2026-11-10)
 
@@ -44,3 +44,5 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
   - an edited or deleted rule's memory is forgotten silently.
 
 ## Comments
+
+- 2026-11-11, branch `issue/12-undo-when-note-stops-matching`: documented the two-rule switch-back pattern (exclusive filters, unknown-previous-value limit, list-order note) in the auto-organize help page, with a test fixture under `src/tests/help/` that evaluates the pair on a `blocked` and an `active` note; round-1 fix added the scope and missing-status cases. Tests: `pnpm check` 0 errors; `pnpm vitest run src/tests/help` 12 files, 379 tests passed; full suite at 008660643 passed (610 files, 15317 passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED, round 2 APPROVED (no findings).

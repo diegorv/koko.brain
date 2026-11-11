@@ -468,7 +468,7 @@ Each example is a complete rule, as stored in `.kokobrain/auto-organize-rules.js
 
 ### Only set an icon and color: blocked notes stand out
 
-**When** a note's status is `blocked`, **set** its icon to `lucide:ban` and the icon's color to red. When the status changes, the icon stays: add a second rule for the other statuses to reset it.
+**When** a note's status is `blocked`, **set** its icon to `lucide:ban` and the icon's color to red. When the status changes, the icon stays: add a second rule for the other statuses to reset it (see [Switching a value back](#switching-a-value-back)).
 
 ```json
 {
@@ -535,6 +535,94 @@ Each example is a complete rule, as stored in `.kokobrain/auto-organize-rules.js
   "enabled": true
 }
 ```
+
+## Switching a value back
+
+A rule never undoes what it wrote. When a note stops matching, for example when its status goes from `blocked` to `active`, the color the rule set stays. To switch it back, add a second rule for the opposite state:
+
+```
+status == "blocked"   ->  _color: red      (always)
+status != "blocked"   ->  remove _color    (remove)
+```
+
+The first rule colors blocked notes red. The second removes the color from every other note at its next save.
+
+As complete rules, limited to projects (see [When the pattern does not work](#when-the-pattern-does-not-work) for why):
+
+```json
+{
+  "id": "rule-1710000000006-r1e2d",
+  "name": "Blocked projects in red",
+  "expression": "type == \"project\" && status == \"blocked\"",
+  "destination": "",
+  "properties": [
+    { "key": "_color", "value": "red", "mode": "always" }
+  ],
+  "enabled": true
+}
+```
+
+```json
+{
+  "id": "rule-1710000000007-n1r2d",
+  "name": "Other projects lose the red",
+  "expression": "type == \"project\" && status != \"blocked\"",
+  "destination": "",
+  "properties": [
+    { "key": "_color", "mode": "remove" }
+  ],
+  "enabled": true
+}
+```
+
+A project with `status: blocked` gets `_color: red`. Change its status to `active` and save: the second rule matches instead and removes `_color`. A project with no `status` matches the second rule too, because a missing status is not `"blocked"`.
+
+### Setting a default instead
+
+When the value should go back to a known default instead of disappearing, the second rule sets that default with `always`. Here a blocked project shows a ban icon, and every other project a folder icon:
+
+```json
+{
+  "id": "rule-1710000000008-b1a2n",
+  "name": "Blocked projects get a ban icon",
+  "expression": "type == \"project\" && status == \"blocked\"",
+  "destination": "",
+  "properties": [
+    { "key": "_icon", "value": "lucide:ban", "mode": "always" }
+  ],
+  "enabled": true
+}
+```
+
+```json
+{
+  "id": "rule-1710000000009-f1l2d",
+  "name": "Other projects get the folder icon",
+  "expression": "type == \"project\" && !(status == \"blocked\")",
+  "destination": "",
+  "properties": [
+    { "key": "_icon", "value": "lucide:folder", "mode": "always" }
+  ],
+  "enabled": true
+}
+```
+
+### Keep the two filters exclusive
+
+When two matching rules set the same property, the higher rule wins (see [Set properties](#set-properties)). If both filters of a pair can match the same note, the higher rule's value is the one the note keeps, and the pair does not switch. Write the second filter as the opposite of the first, in one of two ways:
+
+- with `!=`: `status != "blocked"` is the opposite of `status == "blocked"`;
+- with `!( )` around the condition: `!(status == "blocked")`. This works for any condition, such as `!file.hasTag("blocked")`.
+
+Keep a shared part, such as `type == "project"`, outside the `!( )`. `!(type == "project" && status == "blocked")` also matches every note that is not a project.
+
+Another rule that sets the same property takes part too, and its place in the list decides. The [examples](#examples) "Blocked notes in red" and "Archive done notes" set `_color` on blocked and done notes. Placed above the pair, "Archive done notes" keeps its gray on a done project. Placed below it, "Other projects lose the red" owns `_color` on that project and removes the gray.
+
+### When the pattern does not work
+
+The second rule does not know the value a note had before the first rule changed it. It removes or overwrites whatever is there. A color you picked by hand, such as `_color: blue` on an active project, is removed at the project's next save, because the project is not blocked. In the default variant, an icon you picked by hand becomes the folder icon.
+
+So use a pair only on a property that no one sets by hand on the notes its filters match. Keep the filters narrow, as `type == "project"` does above: `status != "blocked"` alone is true for every note without a `status`, so that rule would remove the icon color of every note anyone saves that is not blocked.
 
 ## Debounce Delay
 

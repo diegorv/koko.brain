@@ -1,0 +1,114 @@
+{
+	"pairs": [
+		{
+			"rules": [
+				{
+					"id": "rule-1710000000006-r1e2d",
+					"name": "Blocked projects in red",
+					"expression": "type == \"project\" && status == \"blocked\"",
+					"destination": "",
+					"properties": [{ "key": "_color", "value": "red", "mode": "always" }],
+					"enabled": true
+				},
+				{
+					"id": "rule-1710000000007-n1r2d",
+					"name": "Other projects lose the red",
+					"expression": "type == \"project\" && status != \"blocked\"",
+					"destination": "",
+					"properties": [{ "key": "_color", "mode": "remove" }],
+					"enabled": true
+				}
+			],
+			"notes": [
+				{
+					"path": "work/Migrate DB.md",
+					"content": "---\ntype: project\nstatus: blocked\n---\n",
+					"matched": ["Blocked projects in red"],
+					"writes": [{ "key": "_color", "value": "red", "mode": "always" }]
+				},
+				{
+					"path": "work/Migrate DB.md",
+					"content": "---\ntype: project\nstatus: active\n_color: red\n---\n",
+					"matched": ["Other projects lose the red"],
+					"writes": [{ "key": "_color", "mode": "remove" }]
+				},
+				{
+					"path": "work/Migrate DB.md",
+					"content": "---\ntype: project\nstatus: active\n---\n",
+					"matched": ["Other projects lose the red"],
+					"writes": []
+				},
+				{
+					"path": "work/No status.md",
+					"content": "---\ntype: project\n_color: red\n---\n",
+					"matched": ["Other projects lose the red"],
+					"writes": [{ "key": "_color", "mode": "remove" }]
+				},
+				{
+					"path": "work/Picked by hand.md",
+					"content": "---\ntype: project\nstatus: active\n_color: blue\n---\n",
+					"matched": ["Other projects lose the red"],
+					"writes": [{ "key": "_color", "mode": "remove" }]
+				},
+				{
+					"path": "work/Not a project.md",
+					"content": "---\nstatus: active\n_color: blue\n---\n",
+					"matched": [],
+					"writes": []
+				},
+				{
+					"path": "work/Blocked task.md",
+					"content": "---\nstatus: blocked\n---\n",
+					"matched": [],
+					"writes": []
+				}
+			]
+		},
+		{
+			"rules": [
+				{
+					"id": "rule-1710000000008-b1a2n",
+					"name": "Blocked projects get a ban icon",
+					"expression": "type == \"project\" && status == \"blocked\"",
+					"destination": "",
+					"properties": [{ "key": "_icon", "value": "lucide:ban", "mode": "always" }],
+					"enabled": true
+				},
+				{
+					"id": "rule-1710000000009-f1l2d",
+					"name": "Other projects get the folder icon",
+					"expression": "type == \"project\" && !(status == \"blocked\")",
+					"destination": "",
+					"properties": [{ "key": "_icon", "value": "lucide:folder", "mode": "always" }],
+					"enabled": true
+				}
+			],
+			"notes": [
+				{
+					"path": "work/Migrate DB.md",
+					"content": "---\ntype: project\nstatus: blocked\n_icon: lucide:folder\n---\n",
+					"matched": ["Blocked projects get a ban icon"],
+					"writes": [{ "key": "_icon", "value": "lucide:ban", "mode": "always" }]
+				},
+				{
+					"path": "work/Migrate DB.md",
+					"content": "---\ntype: project\nstatus: active\n_icon: lucide:ban\n---\n",
+					"matched": ["Other projects get the folder icon"],
+					"writes": [{ "key": "_icon", "value": "lucide:folder", "mode": "always" }]
+				},
+				{
+					"path": "work/Picked by hand.md",
+					"content": "---\ntype: project\nstatus: active\n_icon: lucide:star\n---\n",
+					"matched": ["Other projects get the folder icon"],
+					"writes": [{ "key": "_icon", "value": "lucide:folder", "mode": "always" }]
+				},
+				{
+					"path": "work/No status.md",
+					"content": "---\ntype: project\n---\n",
+					"matched": ["Other projects get the folder icon"],
+					"writes": [{ "key": "_icon", "value": "lucide:folder", "mode": "always" }]
+				}
+			]
+		}
+	]
+}
