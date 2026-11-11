@@ -2,7 +2,7 @@
 
 **What to build:** documentation only. Rules never revert what they wrote when a note stops matching (PRD Decision 7). A pair of rules covers the common case without any memory: one rule for the state, one for its opposite. The owner chose on 2026-11-10 to document this pattern instead of building an undo.
 
-**Blocked by:** 11
+**Blocked by:** 14
 
 **Status:** ready-for-agent
 
