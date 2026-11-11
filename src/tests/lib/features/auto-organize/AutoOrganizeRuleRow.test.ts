@@ -512,6 +512,20 @@ describe('AutoOrganizeRuleRow consequences', () => {
 				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'updated', expr: 'file.basename', mode: 'if-missing' }] });
 			});
 
+			it('saves a key rename while the typed expression is refused, keeping the stored expression', async () => {
+				const onupdate = await render({ ...BLANK, properties: [{ key: 'updated', expr: 'file.basename', mode: 'always' }] });
+
+				commit(field(propertyRows()[0], 'Property expression'), 'now()');
+				await settle();
+				commit(field(propertyRows()[0], 'Property key'), 'stamp');
+				await settle();
+
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'stamp', expr: 'file.basename', mode: 'always' }] });
+				expect(field(propertyRows()[0], 'Property key').value).toBe('stamp');
+				expect(field(propertyRows()[0], 'Property expression').value).toBe('now()');
+				expect(exprError()).toBe('now() changes on every save, so it works only with "if missing"');
+			});
+
 			it('keeps the expression when the key is renamed', async () => {
 				const onupdate = await render({ ...BLANK, properties: [{ key: 'title', expr: 'file.basename', mode: 'always' }] });
 
@@ -721,6 +735,118 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		});
 	});
 
+	describe('Create note', () => {
+		const FOLLOW_UP = '{folder}/{basename} follow-up.md';
+		const createField = (label: string) => document.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`)!;
+		const createCount = () => document.querySelector('[data-create-count]')?.textContent?.trim() ?? null;
+
+		it('saves the path on change and removes the consequence when the path is cleared', async () => {
+			const onupdate = await render(BLANK);
+			expect(createField('Create note template')).toBeNull();
+
+			commit(createField('Create note path'), ` ${FOLLOW_UP} `);
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { createNote: { path: FOLLOW_UP } });
+			expect(createField('Create note template')).not.toBeNull();
+
+			commit(createField('Create note path'), '');
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { createNote: undefined });
+		});
+
+		it('saves the template, the open toggle and the note properties', async () => {
+			const onupdate = await render({ ...BLANK, createNote: { path: FOLLOW_UP } });
+
+			commit(createField('Create note template'), '_system/templates/Follow-up.md');
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { createNote: { path: FOLLOW_UP, template: '_system/templates/Follow-up.md' } });
+
+			document.querySelector<HTMLElement>('[aria-label="Open it"][role="switch"]')!.click();
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', {
+				createNote: { path: FOLLOW_UP, template: '_system/templates/Follow-up.md', open: true },
+			});
+
+			button('Add note property').click();
+			await settle();
+			const [row] = propertyRows();
+			commit(field(row, 'Property key'), 'status');
+			commit(field(row, 'Property value'), 'todo');
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', {
+				createNote: {
+					path: FOLLOW_UP,
+					template: '_system/templates/Follow-up.md',
+					open: true,
+					properties: [{ key: 'status', value: 'todo', mode: 'if-missing' }],
+				},
+			});
+		});
+
+		it('does not offer remove on a note property', async () => {
+			await render({ ...BLANK, createNote: { path: FOLLOW_UP, properties: [{ key: 'status', value: 'todo', mode: 'if-missing' }] } });
+
+			const trigger = propertyRows()[0].querySelector<HTMLElement>('[data-slot="select-trigger"][aria-label="Property mode"]')!;
+			trigger.focus();
+			trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			flushSync();
+			const options = await vi.waitFor(() => {
+				const found = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => o.textContent?.trim());
+				if (found.length === 0) throw new Error('menu not open');
+				return found;
+			});
+			expect(options).toEqual(['if missing', 'always', 'add to list']);
+		});
+
+		it('does not save a path the loader would refuse, and says so', async () => {
+			const onupdate = await render({ ...BLANK, createNote: { path: FOLLOW_UP, template: 'T.md' } });
+
+			commit(createField('Create note path'), 'notes/x');
+			await settle();
+			expect(onupdate).not.toHaveBeenCalled();
+			expect(document.querySelector('[data-create-error]')?.textContent).toContain('not saved');
+
+			commit(createField('Create note path'), 'notes/x.md');
+			await settle();
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { createNote: { path: 'notes/x.md', template: 'T.md' } });
+			expect(document.querySelector('[data-create-error]')).toBeNull();
+		});
+
+		it('does not save a template outside the vault, and says so', async () => {
+			const onupdate = await render({ ...BLANK, createNote: { path: FOLLOW_UP } });
+
+			commit(createField('Create note template'), '../outside.md');
+			await settle();
+			expect(onupdate).not.toHaveBeenCalled();
+			expect(document.querySelector('[data-create-template-error]')?.textContent).toContain('not saved');
+		});
+
+		it('says when the path is not a note path', async () => {
+			await render({ ...BLANK, createNote: { path: 'notes/x.txt' } });
+
+			expect(document.querySelector('[data-create-error]')?.textContent).toContain('must end in .md');
+			expect(hint()).not.toBeNull();
+		});
+
+		it('shows how many notes it would create now, leaving out targets that exist', async () => {
+			setIndex(
+				buildNoteRecord(`${VAULT}/m/A.md`, '---\ntype: meeting\n---\n'),
+				buildNoteRecord(`${VAULT}/m/B.md`, '---\ntype: meeting\n---\n'),
+				buildNoteRecord(`${VAULT}/m/B follow-up.md`, ''),
+			);
+			await render({ ...BLANK, expression: "type == 'meeting'", createNote: { path: FOLLOW_UP } });
+
+			expect(matchCount()).toBe('Matches 2 notes now');
+			expect(createCount()).toBe('Would create 1 note now');
+		});
+
+		it('shows no create count without a note to create', async () => {
+			await render({ ...BLANK, expression: "status == 'done'" });
+
+			expect(createCount()).toBeNull();
+		});
+	});
+
 	describe('match count', () => {
 		const done = () => buildNoteRecord(`${VAULT}/a.md`, '---\nstatus: done\n---\n');
 		const open = () => buildNoteRecord(`${VAULT}/b.md`, '---\nstatus: open\n---\n');
@@ -772,6 +898,12 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 		it('hides once the rule has a property with a key', async () => {
 			await render({ ...BLANK, properties: [{ key: 'status', value: 'done', mode: 'always' }] });
+
+			expect(hint()).toBeNull();
+		});
+
+		it('hides once the rule creates a note', async () => {
+			await render({ ...BLANK, createNote: { path: '{folder}/{basename} follow-up.md' } });
 
 			expect(hint()).toBeNull();
 		});

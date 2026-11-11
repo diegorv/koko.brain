@@ -23,9 +23,21 @@
 	import type { FilterItem } from '#lib/features/collection/collection.types.js';
 	import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import type { AutoOrganizeRule, RuleProperty } from './auto-organize.types';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import type { AutoOrganizeRule, RuleCreateNote, RuleProperty } from './auto-organize.types';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
-	import { BLANK_VALUE_ERROR, countMatchingNotes, hasBlankValue, isRefusedKey, sanitizeRuleProperties } from './auto-organize.logic';
+	import {
+		BLANK_VALUE_ERROR,
+		countMatchingNotes,
+		countNotesToCreate,
+		hasBlankValue,
+		isRefusedKey,
+		isValidCreatePath,
+		isValidTemplatePath,
+		sanitizeCreateNote,
+		sanitizeRuleProperties,
+	} from './auto-organize.logic';
+	import { autoOrganizeStore } from './auto-organize.store.svelte';
 	import AutoOrganizeRuleProperty from './AutoOrganizeRuleProperty.svelte';
 
 	let {
@@ -74,12 +86,27 @@
 	});
 	let matchCount = $derived(countMatchingNotes(countedFilter, collectionStore.propertyIndex, vaultStore.path ?? ''));
 
+	/** The rule's `createNote` as a run uses it; undefined when it has none or its path is invalid */
+	let validCreate = $derived(sanitizeCreateNote(rule.createNote));
+	/** How many notes the counted filter would create now; null without a valid `createNote` or a valid filter */
+	let createCount = $derived(
+		validCreate
+			? countNotesToCreate(countedFilter, validCreate, collectionStore.propertyIndex, vaultStore.path ?? '', {
+					protectedFolders: [settingsStore.templates.systemFolder, settingsStore.templates.folder],
+					excludedFolders: autoOrganizeStore.excludedFolders,
+				})
+			: null,
+	);
+
 	let properties = $derived(rule.properties ?? []);
-	/** True when the rule neither moves nor sets anything, so it does nothing */
-	let doesNothing = $derived(!rule.destination.trim() && sanitizeRuleProperties(rule.properties).length === 0);
+	let createProperties = $derived(rule.createNote?.properties ?? []);
+	/** True when the rule neither moves, sets nor creates anything, so it does nothing */
+	let doesNothing = $derived(
+		!rule.destination.trim() && sanitizeRuleProperties(rule.properties).length === 0 && validCreate === undefined,
+	);
 	/** Known note properties for the key field; `file.*` fields are read-only and refused keys never written */
 	let keySuggestions = $derived(
-		properties.length > 0
+		properties.length > 0 || createProperties.length > 0
 			? getAllKnownProperties(collectionStore.propertyIndex).filter((key) => !key.startsWith('file.') && !isRefusedKey(key))
 			: [],
 	);
@@ -122,6 +149,39 @@
 
 	function addProperty() {
 		setProperties([...properties, { key: '', value: '', mode: 'if-missing' }]);
+	}
+
+	/**
+	 * Set when the typed path or template is refused and kept unsaved: the
+	 * loader drops a `createNote` with an invalid path or template, with its
+	 * template, properties and "Open it".
+	 */
+	let pathRefused = $state(false);
+	let templateRefused = $state(false);
+	/** True when the path field shows a path the loader would refuse */
+	let pathInvalid = $derived(pathRefused || (rule.createNote !== undefined && !isValidCreatePath(rule.createNote.path)));
+
+	/** Saves the create-note path; a blank path removes the consequence. An invalid path is not saved. */
+	function commitCreatePath(raw: string) {
+		const path = raw.trim();
+		pathRefused = path !== '' && !isValidCreatePath(path);
+		if (pathRefused || path === (rule.createNote?.path ?? '')) return;
+		onupdate(rule.id, { createNote: path ? { ...rule.createNote, path } : undefined });
+	}
+
+	function updateCreateNote(changes: Partial<RuleCreateNote>) {
+		if (rule.createNote) onupdate(rule.id, { createNote: { ...rule.createNote, ...changes } });
+	}
+
+	function commitCreateTemplate(raw: string) {
+		const template = raw.trim();
+		templateRefused = !isValidTemplatePath(template);
+		if (templateRefused || template === (rule.createNote?.template ?? '')) return;
+		updateCreateNote({ template: template || undefined });
+	}
+
+	function setCreateProperties(next: RuleProperty[]) {
+		updateCreateNote({ properties: next });
 	}
 
 	function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
@@ -211,9 +271,12 @@
 		{#if blankValue}
 			<p class="ml-[6.5rem] text-meta text-destructive" data-rule-filter-error>{BLANK_VALUE_ERROR}</p>
 		{:else if matchCount !== null && countedFilter === filterDraft}
-			<p class="ml-[6.5rem] text-meta text-muted-foreground" data-match-count>
-				Matches {matchCount} {matchCount === 1 ? 'note' : 'notes'} now
-			</p>
+			<div class="ml-[6.5rem] flex flex-wrap gap-x-3 text-meta text-muted-foreground">
+				<p data-match-count>Matches {matchCount} {matchCount === 1 ? 'note' : 'notes'} now</p>
+				{#if createCount !== null}
+					<p data-create-count>Would create {createCount} {createCount === 1 ? 'note' : 'notes'} now</p>
+				{/if}
+			</div>
 		{/if}
 	</div>
 
@@ -263,9 +326,65 @@
 		</div>
 	</div>
 
+	<div class="flex items-start gap-2">
+		<span class="w-24 shrink-0 pt-2 text-meta text-muted-foreground">Create note</span>
+		<div class="flex min-w-0 flex-1 flex-col gap-2">
+			<Input
+				aria-label="Create note path"
+				value={rule.createNote?.path ?? ''}
+				placeholder={'Empty: do not create, e.g. {folder}/{basename} follow-up.md'}
+				onchange={(e) => commitCreatePath((e.currentTarget as HTMLInputElement).value)}
+			/>
+			{#if pathInvalid}
+				<p class="text-meta text-destructive" data-create-error>
+					The path must end in .md and must not start with /. It is not saved.
+				</p>
+			{/if}
+			{#if rule.createNote}
+				<Input
+					aria-label="Create note template"
+					value={rule.createNote.template ?? ''}
+					placeholder="Template note, e.g. _system/templates/Follow-up.md (empty: no template)"
+					onchange={(e) => commitCreateTemplate((e.currentTarget as HTMLInputElement).value)}
+				/>
+				{#if templateRefused}
+					<p class="text-meta text-destructive" data-create-template-error>
+						The template must be inside the vault: no .. and not starting with /. It is not saved.
+					</p>
+				{/if}
+				{#each createProperties as property, i (i)}
+					<AutoOrganizeRuleProperty
+						{property}
+						listId={keyListId}
+						allowRemove={false}
+						onchange={(next) => setCreateProperties(createProperties.map((p, j) => (j === i ? next : p)))}
+						onremove={() => setCreateProperties(createProperties.filter((_, j) => j !== i))}
+					/>
+				{/each}
+				<Button
+					variant="outline"
+					size="sm"
+					class="self-start"
+					onclick={() => setCreateProperties([...createProperties, { key: '', value: '', mode: 'if-missing' }])}
+				>
+					<PlusIcon class="size-3.5" />
+					Add note property
+				</Button>
+				<label class="flex items-center gap-2 text-meta">
+					<Switch
+						aria-label="Open it"
+						checked={rule.createNote.open === true}
+						onCheckedChange={(open) => updateCreateNote({ open: open || undefined })}
+					/>
+					Open it
+				</label>
+			{/if}
+		</div>
+	</div>
+
 	{#if doesNothing}
 		<p class="text-meta text-destructive" data-rule-hint>
-			This rule does nothing: set a folder to move to or a property to set.
+			This rule does nothing: set a folder to move to, a property to set or a note to create.
 		</p>
 	{/if}
 

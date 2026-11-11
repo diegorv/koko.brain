@@ -50,6 +50,7 @@ Each rule consists of:
 | **Filter** | The notes the rule applies to, built with the same filter builder as a view (see [Filters](#filters)) |
 | **Move to folder** (optional) | Target folder path, relative to the vault root. Supports `{variable}` templates (see [Dynamic Destinations](#dynamic-destinations)). Leave it empty for a rule that does not move the note |
 | **Properties** (optional) | Properties written to the note's frontmatter when the rule matches (see [Set properties](#set-properties)) |
+| **Create note** (optional) | Another note created when the rule matches, if it does not exist yet (see [Creating notes](#creating-notes)) |
 | **Enabled** | Individual toggle: you can disable a rule without deleting it. A new rule starts disabled |
 | **Icon** (optional, legacy) | An icon applied to the file after it is moved (see [Icon (legacy)](#icon-legacy)) |
 
@@ -59,10 +60,11 @@ Each rule consists of:
 2. Give it a **name** and build its **Filter**. Adding, removing or changing a condition is saved at once; a value you type is saved when you leave the field or press Enter, not on every keystroke. A condition with no value is not saved, and Settings shows **Every filter needs a value** until you fill it in. Under the filter, **Matches N notes now** counts the notes it matches right now. Check it: a count close to all your notes usually means a typo, such as a misspelled property name.
 3. Under **Then**, pick what the rule does:
    - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
+   - **Create note:** the path of a note to create, such as `{folder}/{basename} follow-up.md`. Leave it empty for a rule that creates nothing. Once a path is set, pick a **template**, add the new note's properties with **Add note property**, and turn on **Open it** to open the note in a tab (see [Creating notes](#creating-notes)).
    - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value** or switch the row to an **Expression** (see [Computed values](#computed-values)), and pick the mode: **if missing** (the default), **always**, **remove** or **add to list** (see [Set properties](#set-properties)). A **remove** row has no value field; an **add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
 4. Turn the rule's toggle on when it is ready.
 
-A rule with no folder and no property does nothing. Settings says so under the rule, and still saves it.
+A rule with no folder, no property and no note to create does nothing. Settings says so under the rule, and still saves it.
 
 > [!TIP]
 > Open [Collection](12-collection.md) to experiment with a filter before adding it as a rule. A Collection view uses the same expression engine, so you can check which notes it matches there first.
@@ -186,10 +188,11 @@ A Collection view counts such a condition as false instead, so inside **None of 
 
 ## Actions
 
-A rule can do two things when its filter matches, in any combination:
+A rule can do these things when its filter matches, in any combination:
 
 - **[Move to folder](#move-to-folder):** moves the note to a destination folder, which can depend on the note ([Dynamic Destinations](#dynamic-destinations)). Notes in [Excluded Folders](#excluded-folders) are never checked.
 - **[Set properties](#set-properties):** writes frontmatter properties (`if-missing` or `always`), removes them (`remove`) or adds items to a list (`add`). A value can be [computed](#computed-values) from the note. Icons and colors are properties (`_icon`, `_color`, `_title_color`).
+- **[Create note](#creating-notes):** creates another note, such as a meeting follow-up, when it does not exist yet, from a template and with its own properties.
 - **[Icon (legacy)](#icon-legacy):** the older way to give a moved note an icon. Use properties instead.
 
 ### Move to folder
@@ -356,6 +359,55 @@ Things to know:
 - A rule's write cannot be undone with `Cmd+Z`. To restore a version from [File History](15-file-history.md), disable the rule first, or it writes again at the next save.
 - Renaming a note or a type does not update the values inside rules. A `[[link]]` value goes stale.
 - A mod that writes the same property as an `always` rule when a note is saved will fight it.
+
+### Creating notes
+
+A rule can create another note when a note matches: a meeting follow-up, a project's tasks page, a hub note for a topic. Its `createNote` has a `path`, and optionally a `template`, `properties` and `open`:
+
+```json
+{
+  "id": "rule-1710000000000-f0l1w",
+  "name": "Meeting follow-ups",
+  "expression": "type == \"meeting\"",
+  "destination": "",
+  "createNote": {
+    "path": "{folder}/{basename} follow-up.md",
+    "template": "_system/templates/Follow-up.md",
+    "properties": [
+      { "key": "status", "value": "todo", "mode": "if-missing" },
+      { "key": "meeting", "expr": "[\"[[\", file.basename, \"]]\"].join(\"\")", "mode": "if-missing" }
+    ],
+    "open": true
+  },
+  "enabled": true
+}
+```
+
+Saving `work/Standup.md` with `type: meeting` creates `work/Standup follow-up.md` from the template, with `status: todo` and `meeting: "[[Standup]]"`, and opens it in a tab behind the one you are in.
+
+- **`path`** is relative to the vault root and ends in `.md`. It takes the same `{variable}` templates as a destination (see [Dynamic Destinations](#dynamic-destinations)), read from the saved note. Use `{folder}` for the saved note's folder: `{parent}` is the folder above it. A missing folder is created.
+- **`template`** is the path of a note, relative to the vault root, whose content the new note starts with. Its `<% %>` expressions are filled in as for any [template](09-quick-notes-and-templates.md), with the new note's name as its title. If the template does not exist, nothing is created, and Kokobrain logs it once per rule.
+- **`properties`** are written to the new note's frontmatter, over the template's, with the same modes as [Set properties](#set-properties), except `remove`. A [computed value](#computed-values) and its `file.*` fields read the **saved note**, not the new one.
+- **`open`**: `true` opens the new note in a tab without leaving the one you are in. It is `false` by default.
+
+**Only when missing.** If a note exists at the path, nothing is created and the existing note is not changed. That is why the next save of the meeting does not create a second follow-up.
+
+Things to know:
+
+- Every matching rule creates its note. One save creates at most **5** notes; past that, the rest are not created, and Kokobrain logs it once per rule.
+- A note is never created inside the system folder (`_system` by default), the templates folder or an [excluded folder](#excluded-folders), or at a path that leaves the vault (a `..` in the path, which a property such as `{status}` can bring in), or at a path with no file name (`{status}.md` on a note without `status`). A path or template that starts with `/`, or a template with a `..`, is ignored when the rules load, and Settings does not save one.
+- A rule creates nothing for a note it would not write properties to (see [Set properties](#set-properties)): the system and templates folders, type definitions and frontmatter Kokobrain cannot rewrite.
+- **The new note is not checked against the rules when it is created.** The rules check it at its first save, like any other note.
+- **A note that would match its own rule is not created.** With a filter such as `type == "meeting"` and a template that sets `type: meeting`, or a path inside the folder the filter checks, every follow-up would create its own follow-up. Kokobrain creates nothing and logs it once per rule. Give the follow-up a different type, or put it outside the filtered folder.
+- When the rule also moves the note, the move happens first, and the path is read from the note at its new location. If the move fails, nothing is created.
+
+In Settings, under the filter, **Would create N notes now** estimates the notes the rule would create right now: the different paths its matching notes outside the protected and excluded folders give that do not exist yet and are not in a protected or excluded folder. It reads each path at the note's current folder, before any move the rule makes, so it can differ from what a save creates.
+
+**Linking the two notes** is not automatic. The new note can link back with a computed property, as `meeting` does above. For a link from the saved note to the new one, add a property to the same rule, which the saved note gets:
+
+```json
+{ "key": "follow_up", "expr": "[\"[[\", file.basename, \" follow-up]]\"].join(\"\")", "mode": "if-missing" }
+```
 
 ### Icon (legacy)
 

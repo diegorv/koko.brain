@@ -1,10 +1,11 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
-import { moveItem } from '#lib/core/filesystem/fs.service.js';
+import { createFile, moveItem } from '#lib/core/filesystem/fs.service.js';
+import { loadNoteTemplate } from '#lib/core/note-creator/note-creator.service.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
-import { detectLossyFrontmatter, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
+import { detectLossyFrontmatter, extractBody, parseFrontmatterProperties, rebuildContent } from '#lib/core/frontmatter/properties.logic.js';
 import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { autoOrganizeStore } from './auto-organize.store.svelte';
@@ -12,6 +13,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
 	applyPropertyWrites,
+	createTargetProblem,
 	findMatchingRules,
 	findMoveRule,
 	isInExcludedFolder,
@@ -22,6 +24,7 @@ import {
 	resolveComputedProperties,
 	resolveDestination,
 	ruleRecordStats,
+	sanitizeCreateNote,
 	sanitizeRuleProperties,
 	type OwnedProperty,
 } from './auto-organize.logic';
@@ -57,6 +60,19 @@ const reportedAddSkips = new Set<string>();
 
 /** Rule ids whose computed value failed and was already logged this session. */
 const reportedComputeFailures = new Set<string>();
+
+/** `<problem>:<rule id>` pairs of create-note problems already logged this session. */
+const reportedCreateProblems = new Set<string>();
+
+/**
+ * Notes a run is creating, until `createFile` settles. `createFile` renames a
+ * clash instead of refusing it, so two sources saved together would otherwise
+ * both create their shared target, the second as `X 1.md`.
+ */
+const creatingPaths = new Set<string>();
+
+/** The most notes one run creates; the cap guards against a broad rule. */
+const MAX_CREATES_PER_RUN = 5;
 
 /** Default empty config */
 const DEFAULT_CONFIG: AutoOrganizeConfig = {
@@ -101,15 +117,22 @@ export async function loadAutoOrganizeConfig(vaultPath: string): Promise<void> {
 /**
  * A loaded rule with its invalid property entries dropped; a non-array
  * `properties` is removed. A computed value refused for its mode is logged.
+ * An invalid `createNote` is removed, its own properties are loaded the same way.
  */
 function withValidProperties(rule: AutoOrganizeRule): AutoOrganizeRule {
-	if (rule === null || typeof rule !== 'object' || !('properties' in rule)) return rule;
-	const { properties, ...rest } = rule;
-	if (!Array.isArray(properties)) return rest;
-	const valid = sanitizeRuleProperties(properties, (key, reason) =>
-		error('AUTO-ORGANIZE', `Rule "${rule.name}" ignores ${key}: ${reason}`),
-	);
-	return { ...rest, properties: valid };
+	if (rule === null || typeof rule !== 'object') return rule;
+	const { properties, createNote, ...rest } = rule;
+	const loaded: AutoOrganizeRule = rest;
+	if (Array.isArray(properties)) {
+		loaded.properties = sanitizeRuleProperties(properties, (key, reason) =>
+			error('AUTO-ORGANIZE', `Rule "${rule.name}" ignores ${key}: ${reason}`),
+		);
+	}
+	if ('createNote' in rule) {
+		const valid = sanitizeCreateNote(createNote);
+		if (valid) loaded.createNote = valid;
+	}
+	return loaded;
 }
 
 /**
@@ -218,7 +241,8 @@ async function readCurrentContent(filePath: string): Promise<string | null> {
 /**
  * Evaluates rules against a note's current content: the first matching rule
  * with a destination moves it, then, at the new path, the moving rule's legacy
- * icon and every matching rule's properties are written.
+ * icon and every matching rule's properties are written, and every matching
+ * rule's `createNote` is created.
  */
 async function evaluateAndMove(filePath: string, content: string, vaultPath: string): Promise<void> {
 	const stats = ruleRecordStats(collectionStore.propertyIndex.get(filePath), content, Date.now());
@@ -270,7 +294,8 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 	}
 
 	const owned = ownedProperties(matched);
-	if (!rule?.icon && owned.length === 0) return;
+	const creators = matched.filter((r) => sanitizeCreateNote(r.createNote) !== undefined);
+	if (!rule?.icon && owned.length === 0 && creators.length === 0) return;
 
 	writingPaths.add(targetPath);
 	try {
@@ -280,9 +305,154 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 		if (owned.length > 0) {
 			await writeRuleProperties(targetPath, iconWritten ? null : content, vaultPath, owned, record);
 		}
+		if (creators.length > 0) {
+			// The variables and `file.*` read the source where it is now.
+			const source = targetPath === filePath ? record : buildNoteRecord(targetPath, content, ...stats);
+			await createRuleNotes(creators, targetPath, content, source, vaultPath);
+		}
 	} finally {
 		writingPaths.delete(targetPath);
 	}
+}
+
+/**
+ * Creates each rule's `createNote` that does not exist yet, in rule order, at
+ * most `MAX_CREATES_PER_RUN` per run. Nothing is created for a source the
+ * property gates skip. The new notes are not evaluated by the rules here:
+ * `createFile` fires no after-save, so they are evaluated at their first save.
+ * @param source - the source note's record, which the path and `expr` read
+ */
+async function createRuleNotes(
+	creators: AutoOrganizeRule[],
+	sourcePath: string,
+	content: string,
+	source: PropertyIndexRecord,
+	vaultPath: string,
+): Promise<void> {
+	const protectedFolders = [settingsStore.templates.systemFolder, settingsStore.templates.folder];
+	const skip = propertyWriteSkipReason(sourcePath, content, vaultPath, protectedFolders);
+	if (skip !== null) {
+		debug('AUTO-ORGANIZE', `Skipped creating notes for ${sourcePath}: ${skip}`);
+		return;
+	}
+	let created = 0;
+	for (const rule of creators) {
+		if (created >= MAX_CREATES_PER_RUN) {
+			reportCreateProblem('cap', rule, `did not create a note for ${sourcePath}: a run creates at most ${MAX_CREATES_PER_RUN} notes`);
+			continue;
+		}
+		const createNote = sanitizeCreateNote(rule.createNote)!;
+		const target = resolveDestination(createNote.path, source, vaultPath);
+		const problem = createTargetProblem(target, vaultPath, protectedFolders, autoOrganizeStore.excludedFolders);
+		if (problem !== null) {
+			debug('AUTO-ORGANIZE', `Rule "${rule.name}" did not create ${target}: ${problem}`);
+			continue;
+		}
+		const targetPath = `${vaultPath}/${target}`;
+		if (creatingPaths.has(targetPath)) continue;
+		creatingPaths.add(targetPath);
+		try {
+			if (await createRuleNote(rule, createNote, targetPath, source, vaultPath)) created++;
+		} catch (err) {
+			reportCreateProblem('failed', rule, `failed to create ${targetPath}:`, err);
+		} finally {
+			creatingPaths.delete(targetPath);
+		}
+	}
+}
+
+/**
+ * Creates one rule's note at `targetPath` unless it exists: the template,
+ * then the rule's properties over its frontmatter. Returns true when it created.
+ */
+async function createRuleNote(
+	rule: AutoOrganizeRule,
+	createNote: NonNullable<AutoOrganizeRule['createNote']>,
+	targetPath: string,
+	source: PropertyIndexRecord,
+	vaultPath: string,
+): Promise<boolean> {
+	if (await exists(targetPath)) {
+		debug('AUTO-ORGANIZE', `Rule "${rule.name}" did not create ${targetPath}: it exists`);
+		return false;
+	}
+	const slash = targetPath.lastIndexOf('/');
+	const parent = targetPath.slice(0, slash);
+	const fileName = targetPath.slice(slash + 1);
+	const title = fileName.replace(/\.[^.]+$/, '');
+
+	let initial = '';
+	if (createNote.template) {
+		const templatePath = `${vaultPath}/${createNote.template}`;
+		if (!(await exists(templatePath))) {
+			reportCreateProblem('template', rule, `did not create ${targetPath}: template ${createNote.template} not found`);
+			return false;
+		}
+		initial = await loadNoteTemplate({ templatePath, title });
+	}
+
+	const content = withRuleProperties(rule, createNote, initial, targetPath, source, vaultPath);
+	if (content === null) return false;
+
+	// A note that would match its own rule would create its own follow-up at every save.
+	const stats = ruleRecordStats(undefined, content, Date.now());
+	if (findMatchingRules([rule], buildNoteRecord(targetPath, content, ...stats), vaultPath).length > 0) {
+		reportCreateProblem('self-match', rule, `did not create ${targetPath}: the new note would match the rule itself`);
+		return false;
+	}
+
+	if (!(await exists(parent))) await mkdir(parent, { recursive: true });
+	const createdPath = await createFile(parent, fileName, content);
+	debug('AUTO-ORGANIZE', `Rule "${rule.name}" created ${createdPath}`);
+	if (createNote.open) openInBackground(createdPath, content);
+	return true;
+}
+
+/**
+ * `initial` with the rule's `createNote.properties` written over its
+ * frontmatter, or null when they cannot be: the template's frontmatter would
+ * lose something in the rewrite.
+ */
+function withRuleProperties(
+	rule: AutoOrganizeRule,
+	createNote: NonNullable<AutoOrganizeRule['createNote']>,
+	initial: string,
+	targetPath: string,
+	source: PropertyIndexRecord,
+	vaultPath: string,
+): string | null {
+	const owned = ownedProperties([{ ...rule, properties: createNote.properties }]);
+	if (owned.length === 0) return initial;
+	const current = parseFrontmatterProperties(initial);
+	const resolved = resolveComputedProperties(current, owned, { record: source, formulas: {}, vaultPath }, (failed, reason) =>
+		reportComputeFailure(targetPath, failed, reason),
+	);
+	const writes = propertiesToWrite(current, resolved);
+	if (writes.length === 0) return initial;
+	const lossy = detectLossyFrontmatter(initial);
+	if (lossy !== null) {
+		reportCreateProblem('lossy', rule, `did not create ${targetPath}: the template's frontmatter is ${lossy}`);
+		return null;
+	}
+	return rebuildContent(applyPropertyWrites(current, writes), extractBody(initial), initial);
+}
+
+/** Opens a created note in a tab without leaving the active one. */
+function openInBackground(path: string, content: string): void {
+	if (editorStore.tabs.some((t) => t.path === path)) return;
+	const active = editorStore.activeIndex;
+	editorStore.addTab({ path, name: path.slice(path.lastIndexOf('/') + 1), content, savedContent: content });
+	// With no tab open there is nothing to stay on, and the new tab stays active.
+	if (active >= 0) editorStore.setActiveIndex(active);
+}
+
+/** Logs a create-note problem of kind `problem` once per rule per session. */
+function reportCreateProblem(problem: string, rule: AutoOrganizeRule, message: string, err?: unknown): void {
+	const id = `${problem}:${rule.id}`;
+	if (reportedCreateProblems.has(id)) return;
+	reportedCreateProblems.add(id);
+	if (err === undefined) error('AUTO-ORGANIZE', `Rule "${rule.name}" ${message}`);
+	else error('AUTO-ORGANIZE', `Rule "${rule.name}" ${message}`, err);
 }
 
 /**
@@ -390,6 +560,8 @@ export function resetAutoOrganize(): void {
 	reportedWriteFailures.clear();
 	reportedAddSkips.clear();
 	reportedComputeFailures.clear();
+	reportedCreateProblems.clear();
+	creatingPaths.clear();
 	autoOrganizeStore.reset();
 	debug('AUTO-ORGANIZE', 'Reset complete');
 }

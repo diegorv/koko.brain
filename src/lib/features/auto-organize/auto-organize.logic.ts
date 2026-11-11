@@ -1,4 +1,4 @@
-import type { AutoOrganizeRule, RuleProperty, RuleValue } from './auto-organize.types';
+import type { AutoOrganizeRule, RuleCreateNote, RuleProperty, RuleValue } from './auto-organize.types';
 import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
 import { isMarkdownFile, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import {
@@ -317,6 +317,115 @@ export function sanitizeRuleProperties(
 		if (BOOLEAN_ONLY_KEYS.has(canonical) && typeof value !== 'boolean') return [];
 		return [entry as RuleProperty];
 	});
+}
+
+/** True when `path` (trimmed) is a Markdown note path that does not start with `/`. */
+export function isValidCreatePath(path: string): boolean {
+	const trimmed = path.trim();
+	return isMarkdownFile(trimmed) && !trimmed.startsWith('/');
+}
+
+/** True when `template` (trimmed) stays inside the vault: no `..` segment and no leading `/`. */
+export function isValidTemplatePath(template: string): boolean {
+	const trimmed = template.trim();
+	return !trimmed.startsWith('/') && !trimmed.split('/').includes('..');
+}
+
+/**
+ * A rule's `createNote` as loaded from JSON, or undefined when it has no
+ * string `path` that `isValidCreatePath` accepts, or a template that
+ * `isValidTemplatePath` refuses. Path and template are stored trimmed. A
+ * blank `template` and an `open` other than `true` are left out; `properties`
+ * load like a rule's, without `remove`, which means nothing on a new note.
+ */
+export function sanitizeCreateNote(raw: unknown): RuleCreateNote | undefined {
+	if (raw === null || typeof raw !== 'object') return undefined;
+	const { path, template, properties, open } = raw as Record<string, unknown>;
+	if (typeof path !== 'string' || !isValidCreatePath(path)) return undefined;
+	const valid: RuleCreateNote = { path: path.trim() };
+	if (typeof template === 'string' && template.trim() !== '') {
+		if (!isValidTemplatePath(template)) return undefined;
+		valid.template = template.trim();
+	}
+	if (Array.isArray(properties)) valid.properties = sanitizeRuleProperties(properties).filter((p) => p.mode !== 'remove');
+	if (open === true) valid.open = true;
+	return valid;
+}
+
+/**
+ * Why a rule must not create a note at vault-relative `target`, or null when
+ * it may: a `..` segment (a frontmatter variable can bring one in), no file
+ * name (a variable that resolves empty), or inside one of `protectedFolders`
+ * or `excludedFolders`, matched case-insensitively.
+ */
+export function createTargetProblem(
+	target: string,
+	vaultPath: string,
+	protectedFolders: string[],
+	excludedFolders: string[],
+): string | null {
+	if (target.split('/').includes('..')) return 'leaves the vault';
+	if (target.slice(target.lastIndexOf('/') + 1).replace(/\.md$/i, '').trim() === '') return 'has no file name';
+	const lower = target.toLowerCase();
+	for (const folder of protectedFolders) {
+		const rel = folder.trim().replace(/^\/+|\/+$/g, '');
+		if (rel && lower.startsWith(`${rel}/`.toLowerCase())) return `inside ${rel}/`;
+	}
+	if (isInExcludedFolder(`${vaultPath}/${target}`, vaultPath, excludedFolders)) return 'inside an excluded folder';
+	return null;
+}
+
+/** The folders a created note must stay out of. */
+export interface CreateGates {
+	/** The system and templates folders, vault-relative */
+	protectedFolders: string[];
+	/** The excluded folders, vault-relative */
+	excludedFolders: string[];
+}
+
+/**
+ * How many notes a rule with this filter and `createNote` would create now:
+ * the distinct resolved targets of the matching notes in `index` that pass
+ * the gates and are not in the index (compared case-insensitively). A source
+ * in a gated folder is left out, as a run skips it. Targets resolve at the
+ * source's current folder, before any move the rule makes. 0 for a
+ * blank filter, null when the filter is broken (as `countMatchingNotes`).
+ */
+export function countNotesToCreate(
+	expression: FilterItem,
+	createNote: RuleCreateNote,
+	index: Map<string, PropertyIndexRecord>,
+	vaultPath: string,
+	gates: CreateGates,
+): number | null {
+	if (typeof expression === 'string') {
+		if (!expression.trim()) return 0;
+		if (validateExpression(expression) !== null) return null;
+	} else if (filterProblem(expression) !== null) {
+		return null;
+	}
+	const existing = new Set([...index.keys()].map((p) => p.toLowerCase()));
+	const probe: AutoOrganizeRule[] = [{ id: '', name: '', expression, destination: '', enabled: true }];
+	const targets = new Set<string>();
+	for (const [path, record] of index) {
+		if (isViewFile(path)) continue;
+		if (findMatchingRules(probe, record, vaultPath).length === 0) continue;
+		if (isInGatedFolder(path, vaultPath, gates)) continue;
+		const target = resolveDestination(createNote.path, record, vaultPath);
+		if (createTargetProblem(target, vaultPath, gates.protectedFolders, gates.excludedFolders) !== null) continue;
+		const abs = `${vaultPath}/${target}`.toLowerCase();
+		if (!existing.has(abs)) targets.add(abs);
+	}
+	return targets.size;
+}
+
+function isInGatedFolder(path: string, vaultPath: string, gates: CreateGates): boolean {
+	const lower = path.toLowerCase();
+	for (const folder of gates.protectedFolders) {
+		const rel = folder.trim().replace(/^\/+|\/+$/g, '');
+		if (rel && lower.startsWith(`${vaultPath}/${rel}/`.toLowerCase())) return true;
+	}
+	return isInExcludedFolder(path, vaultPath, gates.excludedFolders);
 }
 
 /** The `file.*` fields that change on every save. */

@@ -18,6 +18,7 @@ vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 	moveItem: vi.fn(() => Promise.resolve('/vault/Archive/note.md')),
+	createFile: vi.fn(),
 }));
 
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
@@ -31,7 +32,7 @@ vi.mock('#lib/utils/debug.js', () => ({
 
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
-import { moveItem } from '#lib/core/filesystem/fs.service.js';
+import { createFile, moveItem } from '#lib/core/filesystem/fs.service.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
@@ -1326,6 +1327,292 @@ describe('auto-organize.service', () => {
 				settingsStore.updateTemplates({ folder: 'Templates' });
 				await saveAndRun(stamp, '/vault/Templates-old/note.md', '---\nstatus: done\n---\n');
 				expect(lastWrite('/vault/Templates-old/note.md')).toContain('x: 1');
+			});
+		});
+
+		describe('create note', () => {
+			const SOURCE = '/vault/notes/note.md';
+			const TARGET = '/vault/notes/note follow-up.md';
+			const FOLLOW_UP = '{folder}/{basename} follow-up.md';
+			const SOURCE_CONTENT = '---\nstatus: open\n---\nbody';
+			/** Files on the in-memory disk, by absolute path */
+			let disk: Map<string, string>;
+			/** Folders on the in-memory disk */
+			let folders: Set<string>;
+			const originalTemplates = { ...settingsStore.templates };
+
+			beforeEach(() => {
+				disk = new Map();
+				folders = new Set(['/vault', '/vault/notes', '/vault/_system/templates']);
+				vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)) || folders.has(String(p)));
+				vi.mocked(readTextFile).mockImplementation(async (p) => {
+					const content = disk.get(String(p));
+					if (content === undefined) throw new Error(`not found: ${p}`);
+					return content;
+				});
+				vi.mocked(mkdir).mockImplementation(async (p) => {
+					folders.add(String(p));
+				});
+				vi.mocked(createFile).mockImplementation(async (parent, name, content = '') => {
+					const path = `${parent}/${name}`;
+					disk.set(path, content);
+					return path;
+				});
+			});
+
+			afterEach(() => {
+				settingsStore.updateTemplates(originalTemplates);
+				editorStore.reset();
+			});
+
+			/** A rule matching an open note, whose only consequence is `createNote`. */
+			function creator(id: string, createNote: AutoOrganizeRule['createNote'], overrides: Partial<AutoOrganizeRule> = {}): AutoOrganizeRule {
+				return rule(id, undefined, { expression: "status == 'open'", createNote, ...overrides });
+			}
+
+			/** Saves `path` with `content` on the in-memory disk and runs past the debounce. */
+			async function run(rules: AutoOrganizeRule[], path = SOURCE, content = SOURCE_CONTENT, excludedFolders: string[] = []): Promise<void> {
+				autoOrganizeStore.setConfig({ rules, excludedFolders });
+				disk.set(path, content);
+				captureObserver()(path, content);
+				await vi.advanceTimersByTimeAsync(100);
+			}
+
+			it('creates the note at the resolved path with the template and properties, and changes nothing at the next save', async () => {
+				disk.set('/vault/_system/templates/Follow-up.md', '---\ntype: follow-up\n---\n# <% tp.file.title %>\n');
+				const rules = [creator('c1', {
+					path: FOLLOW_UP,
+					template: '_system/templates/Follow-up.md',
+					properties: [
+						{ key: 'source', expr: '["[[", file.basename, "]]"].join("")', mode: 'if-missing' },
+						{ key: 'status', value: 'todo', mode: 'always' },
+					],
+				})];
+
+				await run(rules);
+
+				expect(createFile).toHaveBeenCalledTimes(1);
+				expect(vi.mocked(createFile).mock.calls[0].slice(0, 2)).toEqual(['/vault/notes', 'note follow-up.md']);
+				const created = disk.get(TARGET)!;
+				expect(parseFrontmatterProperties(created)).toEqual([
+					{ key: '_type', value: 'follow-up', type: 'text' },
+					{ key: 'source', value: '[[note]]', type: 'text' },
+					{ key: 'status', value: 'todo', type: 'text' },
+				]);
+				expect(created.endsWith('\n# note follow-up\n')).toBe(true);
+				expect(writeTextFile).not.toHaveBeenCalled();
+
+				await run(rules);
+
+				expect(createFile).toHaveBeenCalledTimes(1);
+				expect(disk.get(TARGET)).toBe(created);
+				expect(writeTextFile).not.toHaveBeenCalled();
+			});
+
+			it('creates an empty note without a template or properties', async () => {
+				await run([creator('c1', { path: FOLLOW_UP })]);
+
+				expect(createFile).toHaveBeenCalledWith('/vault/notes', 'note follow-up.md', '');
+			});
+
+			it('leaves an existing target untouched', async () => {
+				disk.set(TARGET, 'mine');
+
+				await run([creator('c1', { path: FOLLOW_UP, properties: [{ key: 'status', value: 'todo', mode: 'always' }] })]);
+
+				expect(createFile).not.toHaveBeenCalled();
+				expect(writeTextFile).not.toHaveBeenCalled();
+				expect(disk.get(TARGET)).toBe('mine');
+			});
+
+			it('creates a missing target folder', async () => {
+				await run([creator('c1', { path: 'Follow-ups/{basename}.md' })]);
+
+				expect(mkdir).toHaveBeenCalledWith('/vault/Follow-ups', { recursive: true });
+				expect(createFile).toHaveBeenCalledWith('/vault/Follow-ups', 'note.md', '');
+			});
+
+			it('resolves the path against the note at its new folder after a move', async () => {
+				vi.mocked(moveItem).mockResolvedValue('/vault/Archive/note.md');
+
+				await run([creator('c1', { path: FOLLOW_UP }, { destination: 'Archive' })]);
+
+				expect(moveItem).toHaveBeenCalledTimes(1);
+				expect(createFile).toHaveBeenCalledWith('/vault/Archive', 'note follow-up.md', '');
+			});
+
+			it('creates nothing when the move fails', async () => {
+				vi.mocked(moveItem).mockRejectedValueOnce(new Error('disk full'));
+
+				await run([creator('c1', { path: FOLLOW_UP }, { destination: 'Archive' })]);
+
+				expect(createFile).not.toHaveBeenCalled();
+			});
+
+			it('opens the note in a background tab with open: true, and not by default', async () => {
+				editorStore.addTab({ path: SOURCE, name: 'note.md', content: SOURCE_CONTENT, savedContent: SOURCE_CONTENT });
+
+				await run([creator('c1', { path: FOLLOW_UP })]);
+				expect(editorStore.tabs.map((t) => t.path)).toEqual([SOURCE]);
+
+				disk.delete(TARGET);
+				await run([creator('c1', { path: FOLLOW_UP, open: true })]);
+				expect(editorStore.tabs.map((t) => t.path)).toEqual([SOURCE, TARGET]);
+				expect(editorStore.activeTabPath).toBe(SOURCE);
+				expect(editorStore.tabs[1].content).toBe(disk.get(TARGET));
+			});
+
+			it('creates at most 5 notes in one run and logs the rest once', async () => {
+				const rules = [1, 2, 3, 4, 5, 6].map((i) => creator(`c${i}`, { path: `{folder}/{basename} ${i}.md` }));
+
+				await run(rules);
+
+				expect(createFile).toHaveBeenCalledTimes(5);
+				expect(disk.has('/vault/notes/note 6.md')).toBe(false);
+				expect(error).toHaveBeenCalledTimes(1);
+				expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', `Rule "Rule c6" did not create a note for ${SOURCE}: a run creates at most 5 notes`);
+			});
+
+			describe('gates', () => {
+				it.each([
+					['the system folder', '_system/{basename}.md', [] as string[], '_system/note.md: inside _system/'],
+					['the templates folder', 'Templates/{basename}.md', [], 'Templates/note.md: inside Templates/'],
+					['an excluded folder', 'Archive/{basename}.md', ['Archive'], 'Archive/note.md: inside an excluded folder'],
+				])('never creates inside %s', async (_label, path, excluded, reason) => {
+					settingsStore.updateTemplates({ folder: 'Templates' });
+
+					await run([creator('c1', { path })], SOURCE, SOURCE_CONTENT, excluded);
+
+					expect(createFile).not.toHaveBeenCalled();
+					expect(mkdir).not.toHaveBeenCalled();
+					expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', `Rule "Rule c1" did not create ${reason}`);
+				});
+
+				it('refuses a target a frontmatter variable takes out of the vault, before any folder is created', async () => {
+					await run([creator('c1', { path: '{status}/x.md' }, { expression: 'true' })], SOURCE, '---\nstatus: ../..\n---\nbody');
+
+					expect(createFile).not.toHaveBeenCalled();
+					expect(mkdir).not.toHaveBeenCalled();
+					expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Rule "Rule c1" did not create ../../x.md: leaves the vault');
+				});
+
+				it('drops a configured path that starts with / on load', async () => {
+					vi.mocked(exists).mockResolvedValue(true);
+					vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+						rules: [
+							{ id: 'r1', name: 'Abs', expression: 'true', destination: '', enabled: true, createNote: { path: '/etc/x.md' } },
+							{ id: 'r2', name: 'Txt', expression: 'true', destination: '', enabled: true, createNote: { path: 'x.txt' } },
+							{
+								id: 'r3', name: 'Ok', expression: 'true', destination: '', enabled: true,
+								createNote: { path: 'x.md', properties: [{ key: 'status', mode: 'remove' }, { key: 'todoist_project', value: 'W', mode: 'always' }, { key: 'a', value: 1, mode: 'always' }] },
+							},
+						],
+						excludedFolders: [],
+					}));
+
+					await loadAutoOrganizeConfig('/vault');
+
+					expect(autoOrganizeStore.rules.map((r) => r.createNote)).toEqual([
+						undefined,
+						undefined,
+						{ path: 'x.md', properties: [{ key: 'a', value: 1, mode: 'always' }] },
+					]);
+					expect(autoOrganizeStore.rules.map((r) => 'createNote' in r)).toEqual([false, false, true]);
+				});
+
+				it('creates nothing for a source the property gates skip', async () => {
+					await run([creator('c1', { path: 'Follow-ups/{basename}.md' })], '/vault/_system/lists/note.md');
+
+					expect(createFile).not.toHaveBeenCalled();
+					expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', 'Skipped creating notes for /vault/_system/lists/note.md: inside _system/');
+				});
+			});
+
+			it('creates one note when two sources that resolve to it run together', async () => {
+				folders.add('/vault/m');
+				vi.mocked(createFile).mockImplementation(async (parent, name, content = '') => {
+					await new Promise((resolve) => setTimeout(resolve, 20));
+					disk.set(`${parent}/${name}`, content);
+					return `${parent}/${name}`;
+				});
+				autoOrganizeStore.setConfig({ rules: [creator('c1', { path: '{folder}/Index.md' })], excludedFolders: [] });
+				disk.set('/vault/m/A.md', SOURCE_CONTENT);
+				disk.set('/vault/m/B.md', SOURCE_CONTENT);
+				const observer = captureObserver();
+
+				observer('/vault/m/A.md', SOURCE_CONTENT);
+				observer('/vault/m/B.md', SOURCE_CONTENT);
+				await vi.advanceTimersByTimeAsync(200);
+
+				expect(createFile).toHaveBeenCalledTimes(1);
+				expect(disk.has('/vault/m/Index.md')).toBe(true);
+			});
+
+			it('creates nothing when the new note would match the rule itself, and logs it once', async () => {
+				const rules = [creator('c1', { path: FOLLOW_UP }, { expression: "file.inFolder('notes')" })];
+
+				await run(rules);
+				await run(rules);
+
+				expect(createFile).not.toHaveBeenCalled();
+				expect(error).toHaveBeenCalledTimes(1);
+				expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', `Rule "Rule c1" did not create ${TARGET}: the new note would match the rule itself`);
+			});
+
+			it('creates nothing when the template makes the new note match the rule', async () => {
+				disk.set('/vault/_system/templates/Meeting.md', '---\ntype: meeting\n---\n');
+
+				await run(
+					[creator('c1', { path: 'Follow-ups/{basename}.md', template: '_system/templates/Meeting.md' }, { expression: "type == 'meeting'" })],
+					SOURCE,
+					'---\ntype: meeting\n---\nbody',
+				);
+
+				expect(createFile).not.toHaveBeenCalled();
+				expect(mkdir).not.toHaveBeenCalled();
+				expect(error).toHaveBeenCalledWith(
+					'AUTO-ORGANIZE',
+					'Rule "Rule c1" did not create /vault/Follow-ups/note.md: the new note would match the rule itself',
+				);
+			});
+
+			it('creates nothing when the template is missing, and logs it once', async () => {
+				const rules = [creator('c1', { path: FOLLOW_UP, template: '_system/templates/Nope.md' })];
+
+				await run(rules);
+				await run(rules);
+
+				expect(createFile).not.toHaveBeenCalled();
+				expect(error).toHaveBeenCalledTimes(1);
+				expect(error).toHaveBeenCalledWith(
+					'AUTO-ORGANIZE',
+					`Rule "Rule c1" did not create ${TARGET}: template _system/templates/Nope.md not found`,
+				);
+			});
+
+			it('logs a failed create once per rule', async () => {
+				const failure = new Error('disk full');
+				vi.mocked(createFile).mockRejectedValue(failure);
+				const rules = [creator('c1', { path: FOLLOW_UP })];
+
+				await run(rules);
+				await run(rules);
+
+				expect(error).toHaveBeenCalledTimes(1);
+				expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', `Rule "Rule c1" failed to create ${TARGET}:`, failure);
+			});
+
+			it('every matching rule creates its note, after the properties are written', async () => {
+				const rules = [
+					rule('p1', [{ key: 'seen', value: true, mode: 'if-missing' }]),
+					creator('c1', { path: '{folder}/{basename} a.md' }),
+					creator('c2', { path: '{folder}/{basename} b.md' }),
+				];
+
+				await run(rules);
+
+				expect(createFile).toHaveBeenCalledTimes(2);
+				expect(lastWrite(SOURCE)).toContain('seen: true');
 			});
 		});
 	});

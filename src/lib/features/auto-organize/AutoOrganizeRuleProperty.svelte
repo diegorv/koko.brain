@@ -32,6 +32,7 @@
 	let {
 		property,
 		listId,
+		allowRemove = true,
 		onchange,
 		onremove,
 	}: {
@@ -39,6 +40,8 @@
 		property: RuleProperty;
 		/** Id of the `<datalist>` holding the key suggestions */
 		listId: string;
+		/** Whether the mode menu offers `remove`; a created note's properties have nothing to remove */
+		allowRemove?: boolean;
 		/** Called with the edited property, on change or blur, never per keystroke */
 		onchange: (property: RuleProperty) => void;
 		/** Called when the row is removed */
@@ -122,7 +125,14 @@
 	function commitKey(raw: string) {
 		const key = raw.trim();
 		if (key === property.key) return;
-		save(fitted(key, property.value, property.mode, property.mode, draftExpr));
+		const next = fitted(key, property.value, property.mode, property.mode, draftExpr);
+		if (refusedExpr !== null && next.expr !== undefined && exprProblem(next.expr, next.mode) !== null) {
+			// The draft is still refused: rename with the stored expression, so the
+			// key field never shows a key the rule does not hold. The draft and its error stay.
+			onchange(fitted(key, property.value, property.mode, property.mode, property.expr));
+			return;
+		}
+		save(next);
 	}
 
 	function setMode(mode: RuleProperty['mode']) {
@@ -251,7 +261,7 @@
 			<Input
 				aria-label="Property expression"
 				class="font-mono"
-				value={property.expr}
+				value={draftExpr}
 				placeholder="Expression, e.g. file.basename"
 				onchange={(e) => commitExpr((e.currentTarget as HTMLInputElement).value)}
 			/>
@@ -316,7 +326,9 @@
 		<Select.Content>
 			<Select.Item value="if-missing" label={MODE_LABELS['if-missing']} />
 			<Select.Item value="always" label={MODE_LABELS.always} />
-			<Select.Item value="remove" label={MODE_LABELS.remove} />
+			{#if allowRemove}
+				<Select.Item value="remove" label={MODE_LABELS.remove} />
+			{/if}
 			{#if !isBooleanOnlyKey(property.key)}
 				<Select.Item value="add" label={MODE_LABELS.add} />
 			{/if}

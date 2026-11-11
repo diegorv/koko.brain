@@ -9,7 +9,7 @@ Read the PRD and Issues 01, 07 and 08 first.
 
 **Blocked by:** 08
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -37,14 +37,14 @@ The help page gets a "Creating notes" section with the follow-up example, the "o
 
 ### Acceptance
 
-- [ ] Failing test first: a matching save creates the note at the resolved path, with the template and properties; a second save creates and changes nothing.
-- [ ] An existing target is untouched. A missing folder is created.
-- [ ] `open: true` opens a tab; the default does not.
-- [ ] A run with 6 matching create rules creates 5 notes and logs the rest.
-- [ ] Gates and the `..` guard hold.
-- [ ] The created note's after-save does not run the rules in the same run.
-- [ ] Settings shows "Would create N notes now".
-- [ ] Docs updated. Frontend gate passes.
+- [x] Failing test first: a matching save creates the note at the resolved path, with the template and properties; a second save creates and changes nothing.
+- [x] An existing target is untouched. A missing folder is created.
+- [x] `open: true` opens a tab; the default does not.
+- [x] A run with 6 matching create rules creates 5 notes and logs the rest.
+- [x] Gates and the `..` guard hold.
+- [x] The created note's after-save does not run the rules in the same run.
+- [x] Settings shows "Would create N notes now".
+- [x] Docs updated. Frontend gate passes.
 
 ## Review amendments (2026-11-10)
 
@@ -76,3 +76,5 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
 - The cap of 5 is a starting value, not measured.
 
 ## Comments
+
+- 2026-11-11, branch `issue/09-rule-action-create-note`: a rule can create a note (path, template, properties, optional open, cap of 5 per run, Settings count, help docs; Issue 08 key-rename nit fixed). Fix round after review 1 added template validation and 7 tests. Full suite at 36c84ce22: exit 0, 609 files, 15243 tests passed, 54 skipped, 1 todo. Reviews: round 1 APPROVED, round 2 APPROVED (one nit on stored-template error display, not fixed).

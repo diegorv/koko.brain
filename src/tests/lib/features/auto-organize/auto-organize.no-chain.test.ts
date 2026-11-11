@@ -26,7 +26,11 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 }));
 
 vi.mock('#lib/contracts/ipc.js', () => ({
-	call: vi.fn(async () => undefined),
+	// `create_note` writes the note, as the Rust command does.
+	call: vi.fn(async (command: string, args?: { path: string; content: string }) => {
+		if (command === 'create_note' && args) files.set(args.path, args.content);
+		return undefined;
+	}),
 	listen: vi.fn(async () => () => {}),
 }));
 
@@ -116,6 +120,39 @@ describe('auto-organize rule writes never schedule another run', () => {
 		await drain();
 		expect(frontmatter(path).x).toBeUndefined();
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
+		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	it('a note a rule creates is not evaluated by the rules in the same run', async () => {
+		setRules([
+			{
+				id: 'follow-up',
+				name: 'Follow-up',
+				expression: "file.basename == 'meeting'",
+				destination: '',
+				enabled: true,
+				createNote: { path: '{folder}/{basename} follow-up.md' },
+			},
+			{
+				id: 'stamp',
+				name: 'Stamp follow-ups',
+				expression: 'file.basename.endsWith("follow-up")',
+				destination: '',
+				enabled: true,
+				properties: [{ key: 'x', value: 1, mode: 'always' }],
+			},
+		]);
+		const path = '/vault/notes/meeting.md';
+		const created = '/vault/notes/meeting follow-up.md';
+		files.set(path, '---\nstatus: open\n---\nbody');
+
+		notifyAfterSave(path, files.get(path)!);
+		for (let i = 0; i < 3; i++) await vi.advanceTimersByTimeAsync(DEBOUNCE + 10);
+
+		expect(files.get(created)).toBe('');
+		await drain();
+		expect(files.get(created)).toBe('');
+		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(vi.getTimerCount()).toBe(0);
 	});
 

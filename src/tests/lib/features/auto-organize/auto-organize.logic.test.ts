@@ -25,6 +25,9 @@ import {
 	computeRuleValue,
 	resolveComputedProperties,
 	ruleRecordStats,
+	sanitizeCreateNote,
+	createTargetProblem,
+	countNotesToCreate,
 	type OwnedProperty,
 } from '#lib/features/auto-organize/auto-organize.logic.js';
 import type { FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
@@ -1252,5 +1255,139 @@ describe('ruleRecordStats', () => {
 		expect(ruleRecordStats(undefined, 'abc', 99)).toEqual([99, 99, 3]);
 		expect(ruleRecordStats(indexed(20, 0, 512), 'é', 99)).toEqual([99, 99, 2]);
 		expect(ruleRecordStats(indexed(0, 10, 512), '', 99)).toEqual([99, 99, 0]);
+	});
+});
+
+describe('sanitizeCreateNote', () => {
+	it('keeps a Markdown path, a template, the valid properties and open: true', () => {
+		expect(sanitizeCreateNote({
+			path: '{folder}/{basename} follow-up.md',
+			template: '_system/templates/Follow-up.md',
+			properties: [{ key: 'status', value: 'todo', mode: 'if-missing' }],
+			open: true,
+		})).toEqual({
+			path: '{folder}/{basename} follow-up.md',
+			template: '_system/templates/Follow-up.md',
+			properties: [{ key: 'status', value: 'todo', mode: 'if-missing' }],
+			open: true,
+		});
+	});
+
+	it('is undefined without an object or a string path ending in .md', () => {
+		expect(sanitizeCreateNote(undefined)).toBeUndefined();
+		expect(sanitizeCreateNote(null)).toBeUndefined();
+		expect(sanitizeCreateNote('x.md')).toBeUndefined();
+		expect(sanitizeCreateNote({})).toBeUndefined();
+		expect(sanitizeCreateNote({ path: 42 })).toBeUndefined();
+		expect(sanitizeCreateNote({ path: 'notes/x.txt' })).toBeUndefined();
+		expect(sanitizeCreateNote({ path: '   ' })).toBeUndefined();
+	});
+
+	it('drops a path that starts with /', () => {
+		expect(sanitizeCreateNote({ path: '/etc/x.md' })).toBeUndefined();
+	});
+
+	it('stores the trimmed path', () => {
+		expect(sanitizeCreateNote({ path: '  notes/x.md ' })).toEqual({ path: 'notes/x.md' });
+	});
+
+	it('drops a template with a .. segment or a leading /', () => {
+		expect(sanitizeCreateNote({ path: 'x.md', template: '../outside.md' })).toBeUndefined();
+		expect(sanitizeCreateNote({ path: 'x.md', template: 'a/../../b.md' })).toBeUndefined();
+		expect(sanitizeCreateNote({ path: 'x.md', template: '/etc/t.md' })).toBeUndefined();
+		expect(sanitizeCreateNote({ path: 'x.md', template: ' t/a..b.md ' })).toEqual({ path: 'x.md', template: 't/a..b.md' });
+	});
+
+	it('drops a blank template, a non-true open and non-array properties', () => {
+		expect(sanitizeCreateNote({ path: 'x.md', template: ' ', open: 'yes', properties: 'no' })).toEqual({ path: 'x.md' });
+		expect(sanitizeCreateNote({ path: 'x.md', open: false })).toEqual({ path: 'x.md' });
+	});
+
+	it('loads properties with the property rules, and drops remove', () => {
+		expect(sanitizeCreateNote({
+			path: 'x.md',
+			properties: [
+				{ key: 'todoist_project', value: 'Work', mode: 'always' },
+				{ key: '_archived', value: 'true', mode: 'if-missing' },
+				{ key: 'status', mode: 'remove' },
+				{ key: 'source', expr: 'file.basename', mode: 'if-missing' },
+			],
+		})).toEqual({ path: 'x.md', properties: [{ key: 'source', expr: 'file.basename', mode: 'if-missing' }] });
+	});
+});
+
+describe('createTargetProblem', () => {
+	const VAULT = '/vault';
+	const PROTECTED = ['_system', 'Templates'];
+
+	it('is null for a target inside the vault, outside the gated folders', () => {
+		expect(createTargetProblem('notes/a follow-up.md', VAULT, PROTECTED, ['Archive'])).toBeNull();
+		expect(createTargetProblem('Templates-old/a.md', VAULT, PROTECTED, [])).toBeNull();
+		expect(createTargetProblem('a..b.md', VAULT, PROTECTED, [])).toBeNull();
+	});
+
+	it('refuses a target with a .. segment', () => {
+		expect(createTargetProblem('../outside.md', VAULT, PROTECTED, [])).toBe('leaves the vault');
+		expect(createTargetProblem('notes/../../x.md', VAULT, PROTECTED, [])).toBe('leaves the vault');
+	});
+
+	it('refuses a target with no file name', () => {
+		expect(createTargetProblem('.md', VAULT, PROTECTED, [])).toBe('has no file name');
+		expect(createTargetProblem('notes/ .md', VAULT, PROTECTED, [])).toBe('has no file name');
+	});
+
+	it('refuses the system, templates and excluded folders, case-insensitively', () => {
+		expect(createTargetProblem('_system/lists/a.md', VAULT, PROTECTED, [])).toBe('inside _system/');
+		expect(createTargetProblem('templates/a.md', VAULT, PROTECTED, [])).toBe('inside Templates/');
+		expect(createTargetProblem('archive/2026/a.md', VAULT, PROTECTED, ['Archive'])).toBe('inside an excluded folder');
+	});
+});
+
+describe('countNotesToCreate', () => {
+	const VAULT = '/vault';
+	const GATES = { protectedFolders: ['_system'], excludedFolders: [] as string[] };
+	const meeting = (path: string) => buildNoteRecord(path, '---\ntype: meeting\n---\n');
+	function index(...records: PropertyIndexRecord[]): Map<string, PropertyIndexRecord> {
+		return new Map(records.map((r) => [r.path, r]));
+	}
+	const followUp = { path: '{folder}/{basename} follow-up.md' };
+
+	it('counts the matching notes whose target does not exist yet', () => {
+		const idx = index(meeting('/vault/m/A.md'), meeting('/vault/m/B.md'), buildNoteRecord('/vault/m/B follow-up.md', ''));
+		expect(countNotesToCreate("type == 'meeting'", followUp, idx, VAULT, GATES)).toBe(1);
+	});
+
+	it('compares existing paths case-insensitively', () => {
+		const idx = index(meeting('/vault/m/A.md'), buildNoteRecord('/vault/m/a FOLLOW-UP.md', ''));
+		expect(countNotesToCreate("type == 'meeting'", followUp, idx, VAULT, GATES)).toBe(0);
+	});
+
+	it('counts one target that several notes resolve to once', () => {
+		const idx = index(meeting('/vault/m/A.md'), meeting('/vault/m/B.md'));
+		expect(countNotesToCreate("type == 'meeting'", { path: '{folder}/Index.md' }, idx, VAULT, GATES)).toBe(1);
+	});
+
+	it('leaves out targets the gates refuse', () => {
+		const idx = index(meeting('/vault/m/A.md'));
+		expect(countNotesToCreate("type == 'meeting'", { path: '_system/{basename}.md' }, idx, VAULT, GATES)).toBe(0);
+		const climbing = index(buildNoteRecord('/vault/m/A.md', '---\nstatus: ../..\n---\n'));
+		expect(countNotesToCreate('true', { path: '{status}/x.md' }, climbing, VAULT, GATES)).toBe(0);
+	});
+
+	it('leaves out sources in a protected or excluded folder, which a run skips', () => {
+		const idx = index(meeting('/vault/_system/A.md'), meeting('/vault/Archive/B.md'), meeting('/vault/m/C.md'));
+		const gates = { protectedFolders: ['_system'], excludedFolders: ['Archive'] };
+		expect(countNotesToCreate("type == 'meeting'", { path: 'out/{basename}.md' }, idx, VAULT, gates)).toBe(1);
+	});
+
+	it('leaves out a target with no file name', () => {
+		const idx = index(meeting('/vault/m/A.md'));
+		expect(countNotesToCreate("type == 'meeting'", { path: '{status}.md' }, idx, VAULT, GATES)).toBe(0);
+	});
+
+	it('is 0 for a blank filter and null for one that does not parse', () => {
+		const idx = index(meeting('/vault/m/A.md'));
+		expect(countNotesToCreate('', followUp, idx, VAULT, GATES)).toBe(0);
+		expect(countNotesToCreate("type == 'meeting", followUp, idx, VAULT, GATES)).toBeNull();
 	});
 });

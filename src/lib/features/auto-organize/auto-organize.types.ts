@@ -37,7 +37,26 @@ export interface RuleProperty {
 	mode: 'if-missing' | 'always' | 'remove' | 'add';
 }
 
-/** A single auto-organize rule: a filter plus a move and/or property consequences */
+/** A note a matching rule creates when it does not exist yet */
+export interface RuleCreateNote {
+	/**
+	 * Vault-relative path of the new note, ending in `.md`. Supports the
+	 * destination `{variable}` templates, resolved against the source note
+	 * (e.g. `{folder}/{basename} follow-up.md`).
+	 */
+	path: string;
+	/** Vault-relative path of the template note the new note starts from */
+	template?: string;
+	/**
+	 * Properties written to the new note's frontmatter, over the template's.
+	 * `expr` and the variables read the source note. `remove` is not allowed.
+	 */
+	properties?: RuleProperty[];
+	/** Opens the new note in a background tab; false by default */
+	open?: boolean;
+}
+
+/** A single auto-organize rule: a filter plus a move, property and create-note consequences */
 export interface AutoOrganizeRule {
 	/** Unique identifier (timestamp-based) */
 	id: string;
@@ -60,6 +79,8 @@ export interface AutoOrganizeRule {
 	icon?: AutoOrganizeIcon;
 	/** Properties written to the note when the rule matches, in list order */
 	properties?: RuleProperty[];
+	/** A note created when the rule matches, unless it exists already */
+	createNote?: RuleCreateNote;
 }
 
 /** Persisted auto-organize configuration stored in .kokobrain/auto-organize-rules.json */
