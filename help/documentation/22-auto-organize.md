@@ -59,7 +59,7 @@ Each rule consists of:
 2. Give it a **name** and build its **Filter**. Adding, removing or changing a condition is saved at once; a value you type is saved when you leave the field or press Enter, not on every keystroke. A condition with no value is not saved, and Settings shows **Every filter needs a value** until you fill it in. Under the filter, **Matches N notes now** counts the notes it matches right now. Check it: a count close to all your notes usually means a typo, such as a misspelled property name.
 3. Under **Then**, pick what the rule does:
    - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
-   - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value**, and pick the mode: **if missing** (the default), **always**, **remove** or **add to list** (see [Set properties](#set-properties)). A **remove** row has no value field; an **add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
+   - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value** or switch the row to an **Expression** (see [Computed values](#computed-values)), and pick the mode: **if missing** (the default), **always**, **remove** or **add to list** (see [Set properties](#set-properties)). A **remove** row has no value field; an **add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
 4. Turn the rule's toggle on when it is ready.
 
 A rule with no folder and no property does nothing. Settings says so under the rule, and still saves it.
@@ -176,11 +176,11 @@ A Collection view counts such a condition as false instead, so inside **None of 
 |-------|-------|
 | `total-spent > 100` (reads a property named `total-spent`) | `total - spent > 100` |
 
-**The file's dates and size mean nothing in a rule.** A rule sees `file.mtime` and `file.ctime` as the moment of the save, and `file.size` as `0`. Do not filter rules on them.
+**The file's dates and size lag one save behind.** A rule reads `file.mtime`, `file.ctime` and `file.size` from the note's entry in the vault index, as of its last refresh: usually the previous save, not this one. A note the index has not picked up yet, such as one created a few seconds ago, gets the moment of the save for both dates and its current length for the size. Do not filter rules on `file.mtime`: the save that makes a note fresh still sees its old date.
 
 | Wrong | Right |
 |-------|-------|
-| `file.ctime < date("2026-01-01")` | a frontmatter date, such as `created < date("2026-01-01")` |
+| `file.mtime < today() - "30d"` (also matches the note you are editing) | a frontmatter date, such as `reviewed < today() - "30d"` |
 
 **Date conditions are checked only when the note is saved.** `due < today()` does not fire at midnight: a note whose `due` passes overnight is organized at its next save.
 
@@ -189,7 +189,7 @@ A Collection view counts such a condition as false instead, so inside **None of 
 A rule can do two things when its filter matches, in any combination:
 
 - **[Move to folder](#move-to-folder):** moves the note to a destination folder, which can depend on the note ([Dynamic Destinations](#dynamic-destinations)). Notes in [Excluded Folders](#excluded-folders) are never checked.
-- **[Set properties](#set-properties):** writes frontmatter properties (`if-missing` or `always`), removes them (`remove`) or adds items to a list (`add`). Icons and colors are properties (`_icon`, `_color`, `_title_color`).
+- **[Set properties](#set-properties):** writes frontmatter properties (`if-missing` or `always`), removes them (`remove`) or adds items to a list (`add`). A value can be [computed](#computed-values) from the note. Icons and colors are properties (`_icon`, `_color`, `_title_color`).
 - **[Icon (legacy)](#icon-legacy):** the older way to give a moved note an icon. Use properties instead.
 
 ### Move to folder
@@ -276,6 +276,43 @@ On `tags`, `add` compares tags without a leading `#`, so `#work` and `work` are 
 > `remove` on `tags` deletes **every** frontmatter tag, not one tag. Removing a single tag is not supported. `{ "key": "tags", "value": "draft", "mode": "remove" }` does not remove `draft`: it ignores the value and clears the whole `tags` list.
 
 `remove` on `_organized`, `_archived` or `_favorite` puts the note back to the default: organized, not archived, not a favorite. It does not move a note out of its type's archive folder: the [unarchive rule](#automatic-unarchiving) looks for `_archived: false`, and a note without the key does not have it. To unarchive a note, use `always` with `_archived: false`.
+
+#### Computed values
+
+Instead of a `value`, a property can have an `expr`: an expression, written in the same language as the [filter](#what-a-filter-can-use) and evaluated against the same note. Its result is written. An entry has a `value` or an `expr`, never both; one with both or neither is ignored.
+
+```json
+{ "key": "due", "expr": "today() + \"7d\"", "mode": "if-missing" }
+```
+
+```json
+{ "key": "title", "expr": "file.basename", "mode": "if-missing" }
+```
+
+```json
+{ "key": "area", "expr": "file.folder.split(\"/\").slice(-1).join(\"\")", "mode": "always" }
+```
+
+The first gives a new note a due date one week ahead, the second copies the file name into `title`, and the third writes the name of the note's folder (`Alpha` for `projects/Alpha/note.md`).
+
+The result is written with its own type: text, a number, `true` / `false` and a list of text as they are. A date is written as the local day, `2026-06-17`. When the expression uses `now()`, the time is written too: `2026-06-10T15:04:05`. With `add`, the result must be text or a list of text, and its items are added. On `_organized`, `_archived` and `_favorite`, only a `true` / `false` result is written.
+
+When the expression fails, nothing is written to that property, and Kokobrain logs it once per rule. It fails when it has an error (an unknown method such as `.last()`), when its result is empty (a property the note does not have), when it is not a number (`NaN`), when it is an invalid date (`date("junk")`), or when it has the wrong type for the key or the mode. The property still belongs to the rule, so a lower rule does not write it either.
+
+**Values that change on every save** work only with `if-missing`. An expression that uses `now()`, `file.mtime`, `file.ctime` or `file.size` would rewrite the note on every save with `always`, and append an item on every save with `add`. Such an entry is ignored, and logged, when the rules load, and Settings does not save it. With `if-missing` it is written once, for example to stamp a creation date:
+
+```json
+{ "key": "created", "expr": "file.ctime", "mode": "if-missing" }
+```
+
+Things to know:
+
+- `+` adds numbers and durations, not text: `"Note " + file.basename` is `NaN`, so nothing is written. Build text with a list: `["Note ", file.basename].join("")`.
+- Durations are fixed lengths: across a daylight-saving change, `today() + "7d"` can land one day early.
+- The expression sees the note as the filter does, before the rule moves it. In a rule that also moves the note, `file.folder` and `file.path` are the old location.
+- `file.mtime`, `file.ctime` and `file.size` lag one save behind (see [Traps](#traps)).
+
+In Settings, the menu next to the key switches a row between **Value** and **Expression**. An expression is checked when you leave the field: an error, or a value that changes on every save with **always** or **add to list**, is shown under the row and not saved. Under a valid expression, a line such as **Result for Alpha: projects** shows what it gives for the note open in the editor (here `Alpha`), or **no value** when it fails there.
 
 In Settings, the value field adapts to the key:
 

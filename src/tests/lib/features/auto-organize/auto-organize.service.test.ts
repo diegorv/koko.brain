@@ -39,7 +39,9 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
-import type { AutoOrganizeRule } from '#lib/features/auto-organize/auto-organize.types.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
+import type { AutoOrganizeRule, RuleProperty } from '#lib/features/auto-organize/auto-organize.types.js';
 import {
 	loadAutoOrganizeConfig,
 	saveAutoOrganizeConfig,
@@ -191,6 +193,75 @@ describe('auto-organize.service', () => {
 				{ key: 'status', mode: 'remove' },
 				{ key: '_archived', mode: 'remove' },
 			]);
+		});
+
+		it('keeps an expr entry, drops one with both value and expr or neither, and drops a blank expr', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+				rules: [{
+					id: 'r1',
+					name: 'Stamp',
+					expression: 'true',
+					destination: '',
+					enabled: true,
+					properties: [
+						{ key: 'title', expr: 'file.basename', mode: 'always' },
+						{ key: 'both', value: 'x', expr: 'file.basename', mode: 'always' },
+						{ key: 'neither', mode: 'if-missing' },
+						{ key: 'blank', expr: '  ', mode: 'if-missing' },
+						{ key: 'number', expr: 3, mode: 'if-missing' },
+						{ key: '_archived', expr: 'true', mode: 'add' },
+						{ key: 'gone', expr: 'file.basename', mode: 'remove' },
+					],
+				}],
+				excludedFolders: [],
+			}));
+
+			await loadAutoOrganizeConfig('/vault');
+
+			expect(autoOrganizeStore.rules[0].properties).toEqual([
+				{ key: 'title', expr: 'file.basename', mode: 'always' },
+				{ key: 'gone', mode: 'remove' },
+			]);
+			expect(error).not.toHaveBeenCalled();
+		});
+
+		it('drops an always or add expr that reads now(), file.mtime, file.ctime or file.size, and logs it', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+				rules: [{
+					id: 'r1',
+					name: 'Stamp',
+					expression: 'true',
+					destination: '',
+					enabled: true,
+					properties: [
+						{ key: 'updated', expr: 'now()', mode: 'always' },
+						{ key: 'seen', expr: 'file.mtime.format("YYYY")', mode: 'add' },
+						{ key: 'born', expr: 'file.ctime', mode: 'always' },
+						{ key: 'bytes', expr: 'file.size * 2', mode: 'always' },
+						{ key: 'created', expr: 'file.ctime', mode: 'if-missing' },
+						{ key: 'stamped', expr: 'now()', mode: 'if-missing' },
+					],
+				}],
+				excludedFolders: [],
+			}));
+
+			await loadAutoOrganizeConfig('/vault');
+
+			expect(autoOrganizeStore.rules[0].properties).toEqual([
+				{ key: 'created', expr: 'file.ctime', mode: 'if-missing' },
+				{ key: 'stamped', expr: 'now()', mode: 'if-missing' },
+			]);
+			expect(error).toHaveBeenCalledTimes(4);
+			expect(error).toHaveBeenCalledWith(
+				'AUTO-ORGANIZE',
+				'Rule "Stamp" ignores updated: now() changes on every save, so it works only with "if missing"',
+			);
+			expect(error).toHaveBeenCalledWith(
+				'AUTO-ORGANIZE',
+				'Rule "Stamp" ignores seen: file.mtime changes on every save, so it works only with "if missing"',
+			);
 		});
 
 		it('loads a rule without properties unchanged, and drops a non-array properties field', async () => {
@@ -909,6 +980,131 @@ describe('auto-organize.service', () => {
 					{ key: 'status', value: 'done', type: 'text' },
 				]);
 				expect(written.endsWith('\nbody #inline')).toBe(true);
+			});
+		});
+
+		describe('computed values', () => {
+			beforeEach(() => {
+				// No DST change in the week after, so "7d" is seven calendar days.
+				vi.setSystemTime(new Date(2026, 5, 10, 15, 4, 5));
+			});
+
+			afterEach(() => {
+				collectionStore.reset();
+			});
+
+			/** One rule with one computed property. */
+			function computed(key: string, expr: string, mode: RuleProperty['mode'] = 'if-missing'): AutoOrganizeRule[] {
+				return [rule('r1', [{ key, expr, mode }])];
+			}
+
+			it('writes the note\'s base name from file.basename', async () => {
+				await saveAndRun(computed('title', 'file.basename'), NOTE, '---\nstatus: open\n---\nbody');
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'status', value: 'open', type: 'text' },
+					{ key: 'title', value: 'note', type: 'text' },
+				]);
+			});
+
+			it('writes today() + "7d" as the local date seven days ahead', async () => {
+				await saveAndRun(computed('due', 'today() + "7d"'), NOTE, '# body\n');
+				const written = lastWrite(NOTE)!;
+				expect(written).toContain('due: 2026-06-17\n');
+				expect(parseFrontmatterProperties(written)).toEqual([{ key: 'due', value: '2026-06-17', type: 'date' }]);
+			});
+
+			it('writes an expression with now() as the local date and time', async () => {
+				await saveAndRun(computed('stamped', 'now()'), NOTE, '# body\n');
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'stamped', value: '2026-06-10T15:04:05', type: 'date' },
+				]);
+			});
+
+			it('writes the note\'s folder name with split, slice and join', async () => {
+				const path = '/vault/projects/Alpha/note.md';
+				await saveAndRun(computed('area', 'file.folder.split("/").slice(-1).join("")'), path, '# body\n');
+				expect(parseFrontmatterProperties(lastWrite(path)!)).toEqual([{ key: 'area', value: 'Alpha', type: 'text' }]);
+			});
+
+			it.each([
+				['throws', 'file.folder.split("/").last()'],
+				['returns null', 'missing_key'],
+				['returns NaN, as + on text does', '"Note " + file.basename'],
+				['returns an invalid date', 'date("junk")'],
+			])('writes nothing for an expression that %s, and logs it once per rule', async (_case, expr) => {
+				const rules = computed('title', expr);
+				await saveAndRun(rules, NOTE, '---\nstatus: open\n---\nbody');
+				await saveAndRun(rules, NOTE, '---\nstatus: open\n---\nbody');
+
+				expect(writeTextFile).not.toHaveBeenCalled();
+				expect(error).toHaveBeenCalledTimes(1);
+				expect(vi.mocked(error).mock.calls[0][1]).toMatch(`Rule "Rule r1" could not compute title on ${NOTE}: `);
+			});
+
+			it('writes a boolean result on _archived, and nothing for a text result', async () => {
+				const content = '---\nstatus: done\n---\nbody';
+				await saveAndRun(computed('_archived', 'status == "done"'), NOTE, content);
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'status', value: 'done', type: 'text' },
+					{ key: '_archived', value: true, type: 'boolean' },
+				]);
+
+				vi.mocked(writeTextFile).mockClear();
+				await saveAndRun(computed('_archived', 'status'), NOTE, content);
+				expect(writeTextFile).not.toHaveBeenCalled();
+				expect(error).toHaveBeenCalledTimes(1);
+			});
+
+			it('adds the items of a text list result', async () => {
+				await saveAndRun(computed('tags', 'file.folder.split("/").slice(-1)', 'add'), NOTE, '---\ntags: [a]\n---\nbody');
+				expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toEqual([
+					{ key: 'tags', value: ['a', 'notes'], type: 'list' },
+				]);
+			});
+
+			it('writes nothing for an add whose result is a number', async () => {
+				await saveAndRun(computed('tags', '1 + 1', 'add'), NOTE, '---\ntags: [a]\n---\nbody');
+				expect(writeTextFile).not.toHaveBeenCalled();
+				expect(error).toHaveBeenCalledTimes(1);
+			});
+
+			it('a failing expression still owns its key, so a lower rule does not write it', async () => {
+				await saveAndRun(
+					[rule('r1', [{ key: 'title', expr: 'missing_key', mode: 'always' }]), rule('r2', [{ key: 'title', value: 'x', mode: 'always' }])],
+					NOTE,
+					'# body\n',
+				);
+				expect(writeTextFile).not.toHaveBeenCalled();
+			});
+
+			describe('file stats', () => {
+				const CONTENT = '---\nstatus: open\n---\nbody';
+
+				it('reads file.size and file.mtime from the note\'s index record', async () => {
+					collectionStore.setPropertyIndex(new Map([[NOTE, buildNoteRecord(NOTE, CONTENT, 1_700_000_000_000, 1_600_000_000_000, 512)]]));
+					await saveAndRun(
+						[rule('r1', [{ key: 'stamp', expr: 'number(file.mtime)', mode: 'if-missing' }], { expression: 'file.size == 512' })],
+						NOTE,
+						CONTENT,
+					);
+					expect(parseFrontmatterProperties(lastWrite(NOTE)!)).toContainEqual({ key: 'stamp', value: 1_700_000_000_000, type: 'number' });
+				});
+
+				it.each([
+					['has no index record', null],
+					['has an index record with zero stats', 0],
+				])('uses the save time and the content length when the note %s', async (_case, stats) => {
+					if (stats !== null) collectionStore.setPropertyIndex(new Map([[NOTE, buildNoteRecord(NOTE, CONTENT, stats, stats, stats)]]));
+					const saved = Date.now();
+					await saveAndRun(
+						[rule('r1', [{ key: 'stamp', expr: 'number(file.ctime)', mode: 'if-missing' }], { expression: `file.size == ${CONTENT.length}` })],
+						NOTE,
+						CONTENT,
+					);
+					const stamp = parseFrontmatterProperties(lastWrite(NOTE)!).find((p) => p.key === 'stamp')?.value as number;
+					expect(stamp).toBeGreaterThanOrEqual(saved);
+					expect(stamp).toBeLessThanOrEqual(Date.now());
+				});
 			});
 		});
 

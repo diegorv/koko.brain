@@ -15,6 +15,7 @@ import {
 	validateExpression as findExpressionError,
 	type EvalContext,
 } from '#lib/features/collection/expression/evaluator.js';
+import type { ASTNode } from '#lib/features/collection/expression/expression.types.js';
 import { parse } from '#lib/features/collection/expression/parser.js';
 import { isFilterObject, isUnaryOperator, parseExpressionToRow } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
@@ -278,18 +279,36 @@ function listAfterAdd(key: string, existing: Property['value'] | undefined, item
  * is none, and an entry with a blank key, an unknown mode, a value of another
  * type, the key `todoist_project`, or a non-boolean lifecycle value is dropped.
  * An `add` needs text or a list of text with at least one non-blank item. A
- * `remove` needs no value, and is returned without one: a stray value would
- * read as "remove this item", which `remove` never does.
+ * `remove` needs no value, and is returned without one or an `expr`: a stray
+ * value would read as "remove this item", which `remove` never does.
+ * Any other entry has exactly one of `value` and a non-blank `expr`. An
+ * `always` or `add` whose `expr` reads an input that changes on every save is
+ * dropped and reported through `onRefused`, as is no other drop: a blank
+ * `expr` is a row Settings has just switched to an expression.
  */
-export function sanitizeRuleProperties(raw: unknown): RuleProperty[] {
+export function sanitizeRuleProperties(
+	raw: unknown,
+	onRefused?: (key: string, reason: string) => void,
+): RuleProperty[] {
 	if (!Array.isArray(raw)) return [];
 	return raw.flatMap((entry): RuleProperty[] => {
 		if (entry === null || typeof entry !== 'object') return [];
-		const { key, value, mode } = entry as Record<string, unknown>;
+		const { key, value, expr, mode } = entry as Record<string, unknown>;
 		if (typeof key !== 'string' || key.trim() === '') return [];
 		const canonical = canonicalizeKey(key);
 		if (REFUSED_KEYS.has(canonical)) return [];
 		if (mode === 'remove') return [{ key, mode }];
+		if (expr !== undefined) {
+			if (value !== undefined || typeof expr !== 'string' || expr.trim() === '') return [];
+			if (mode !== 'if-missing' && mode !== 'always' && mode !== 'add') return [];
+			if (mode === 'add' && BOOLEAN_ONLY_KEYS.has(canonical)) return [];
+			const volatile = volatileProblem(expr, mode);
+			if (volatile !== null) {
+				onRefused?.(key, volatile);
+				return [];
+			}
+			return [entry as RuleProperty];
+		}
 		const validValue =
 			mode === 'add'
 				? isTextOrTextList(value) && addItems(canonical, value).length > 0
@@ -298,6 +317,172 @@ export function sanitizeRuleProperties(raw: unknown): RuleProperty[] {
 		if (BOOLEAN_ONLY_KEYS.has(canonical) && typeof value !== 'boolean') return [];
 		return [entry as RuleProperty];
 	});
+}
+
+/** The `file.*` fields that change on every save. */
+const VOLATILE_FILE_FIELDS = new Set(['mtime', 'ctime', 'size']);
+
+/**
+ * The inputs `expr` reads that change on every save, in reading order:
+ * `now()`, `file.mtime`, `file.ctime` and `file.size`. None when it does not parse.
+ */
+export function volatileInputs(expr: string): string[] {
+	let ast: ASTNode;
+	try {
+		ast = parse(expr);
+	} catch {
+		return [];
+	}
+	const found = new Set<string>();
+	collectVolatileInputs(ast, found);
+	return [...found];
+}
+
+function collectVolatileInputs(node: ASTNode, found: Set<string>): void {
+	const visitAll = (nodes: ASTNode[]) => nodes.forEach((n) => collectVolatileInputs(n, found));
+	switch (node.type) {
+		case 'call': {
+			if (node.callee === 'now') found.add('now()');
+			// A static path such as `file.mtime.format()` is one dotted callee.
+			const [namespace, field] = node.callee.split('.');
+			if (namespace === 'file' && VOLATILE_FILE_FIELDS.has(field)) found.add(`file.${field}`);
+			visitAll(node.args);
+			return;
+		}
+		case 'methodCall':
+			collectVolatileInputs(node.receiver, found);
+			visitAll(node.args);
+			return;
+		case 'member':
+			if (node.object.type === 'identifier' && node.object.name === 'file' && VOLATILE_FILE_FIELDS.has(node.property)) {
+				found.add(`file.${node.property}`);
+			} else {
+				collectVolatileInputs(node.object, found);
+			}
+			return;
+		case 'binary':
+			visitAll([node.left, node.right]);
+			return;
+		case 'unary':
+			collectVolatileInputs(node.operand, found);
+			return;
+		case 'array':
+			visitAll(node.elements);
+			return;
+	}
+}
+
+/**
+ * Why an `expr` cannot be used with `mode`, or null: an `always` would
+ * rewrite the note, and an `add` append an item, on every save when the
+ * expression reads an input that changes each time (`volatileInputs`).
+ */
+function volatileProblem(expr: string, mode: RuleProperty['mode']): string | null {
+	if (mode !== 'always' && mode !== 'add') return null;
+	const [input] = volatileInputs(expr);
+	return input === undefined ? null : `${input} changes on every save, so it works only with "if missing"`;
+}
+
+/**
+ * Why Settings must not save `expr` with `mode`, or null: blank, refused by
+ * the evaluator's validator (a parse error or an unknown function), or
+ * reading an input that changes on every save with `always` or `add`.
+ */
+export function exprProblem(expr: string, mode: RuleProperty['mode']): string | null {
+	if (!expr.trim()) return 'Expression cannot be empty';
+	return findExpressionError(expr) ?? volatileProblem(expr, mode);
+}
+
+/** The value an `expr` property writes, or why it writes nothing. */
+export type ComputedValue = { value: RuleValue } | { failure: string };
+
+/** `date` as the local `YYYY-MM-DD`, with `THH:mm:ss` when `withTime`. */
+function localDateText(date: Date, withTime: boolean): string {
+	const pad = (n: number) => String(n).padStart(2, '0');
+	const day = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+	return withTime ? `${day}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}` : day;
+}
+
+/**
+ * Evaluates `property.expr` against the note in `ctx` and converts the result
+ * to the value written. Text, a finite number, a boolean and a list of text
+ * are written as they are; a valid date as its local `YYYY-MM-DD`, or
+ * `YYYY-MM-DDTHH:mm:ss` when the expression reads `now()` (never the UTC
+ * `toISOString`, which would also read back as text). Anything else is a
+ * failure: a throw, null, `NaN` (`+` adds text as numbers), an invalid date,
+ * a non-boolean on a lifecycle key, or a result an `add` cannot append.
+ */
+export function computeRuleValue(property: RuleProperty, ctx: EvalContext): ComputedValue {
+	const expr = property.expr ?? '';
+	let result: unknown;
+	try {
+		result = evaluateExpression(expr, ctx);
+	} catch (err) {
+		return { failure: err instanceof Error ? err.message : String(err) };
+	}
+	let value: RuleValue;
+	if (result === null || result === undefined) return { failure: 'the expression has no value' };
+	if (result instanceof Date) {
+		if (Number.isNaN(result.getTime())) return { failure: 'the expression gives an invalid date' };
+		value = localDateText(result, volatileInputs(expr).includes('now()'));
+	} else if (typeof result === 'number') {
+		if (!Number.isFinite(result)) return { failure: `the expression gives ${result}` };
+		value = result;
+	} else if (typeof result === 'boolean' || isTextOrTextList(result)) {
+		value = result;
+	} else {
+		return { failure: 'the result is not text, a number, yes/no, a date or a list of text' };
+	}
+	const canonical = canonicalizeKey(property.key);
+	if (BOOLEAN_ONLY_KEYS.has(canonical) && typeof value !== 'boolean') {
+		return { failure: `${canonical} accepts only true or false` };
+	}
+	if (property.mode === 'add' && !isTextOrTextList(value)) return { failure: 'add needs text or a list of text' };
+	return { value };
+}
+
+/**
+ * `owned` with each `expr` replaced by its result as `value`, so the two
+ * passes of a frontmatter write see one value. An `if-missing` whose key
+ * `current` already holds is left out unevaluated, as it writes nothing.
+ * An entry whose expression fails is left out and reported through `onFail`;
+ * its key stays owned, so a lower rule does not write it either.
+ */
+export function resolveComputedProperties(
+	current: Property[],
+	owned: OwnedProperty[],
+	ctx: EvalContext,
+	onFail?: (property: OwnedProperty, reason: string) => void,
+): OwnedProperty[] {
+	return owned.flatMap((property): OwnedProperty[] => {
+		if (property.expr === undefined || property.mode === 'remove') return [property];
+		if (property.mode === 'if-missing') {
+			const existing = current.find((p) => canonicalizeKey(p.key) === property.key);
+			if (existing && !isEmptyPropertyValue(existing.value)) return [];
+		}
+		const computed = computeRuleValue(property, ctx);
+		if ('failure' in computed) {
+			onFail?.(property, computed.failure);
+			return [];
+		}
+		const { expr: _expr, ...literal } = property;
+		return [{ ...literal, value: computed.value }];
+	});
+}
+
+/**
+ * The `mtime`, `ctime` and `size` a rule's note record gets: the index
+ * record's, as of its last refresh, when both its times are above 0 (a note
+ * created this session has zero stats until the Rust delta lands, and
+ * `file.ctime` would read 1970); else `now`, `now` and the content's UTF-8 length.
+ */
+export function ruleRecordStats(
+	indexed: PropertyIndexRecord | undefined,
+	content: string,
+	now: number,
+): [mtime: number, ctime: number, size: number] {
+	if (indexed && indexed.mtime > 0 && indexed.ctime > 0) return [indexed.mtime, indexed.ctime, indexed.size];
+	return [now, now, new TextEncoder().encode(content).length];
 }
 
 /** A property consequence of one run, owned by the rule that named its key first. */

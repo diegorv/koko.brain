@@ -7,6 +7,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import Harness from '../../../fixtures/AutoOrganizeRuleRowHarness.svelte';
 
 // The icon grid's bits-ui ScrollArea observes its size; jsdom has no ResizeObserver.
@@ -417,6 +418,130 @@ describe('AutoOrganizeRuleRow consequences', () => {
 			const value = field(propertyRows()[0], 'Property value');
 			expect(value.disabled).toBe(true);
 			expect(value.value).toBe('2');
+		});
+
+		it('keeps an always list of one item when the key is renamed', async () => {
+			const onupdate = await render({ ...BLANK, properties: [{ key: 'tags', value: ['a'], mode: 'always' }] });
+
+			commit(field(propertyRows()[0], 'Property key'), 'labels');
+
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'labels', value: ['a'], mode: 'always' }] });
+		});
+
+		describe('computed values', () => {
+			afterEach(() => {
+				editorStore.reset();
+			});
+
+			const exprError = () => document.querySelector('[data-expr-error]')?.textContent?.trim() ?? null;
+			const preview = () => document.querySelector('[data-expr-preview]')?.textContent?.trim() ?? null;
+
+			it('switches a row to an expression and saves the expr in place of the value', async () => {
+				const onupdate = await render({ ...BLANK, properties: [{ key: 'title', value: 'x', mode: 'if-missing' }] });
+
+				await choose(propertyRows()[0], 'Property source', 'Expression');
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'title', expr: '', mode: 'if-missing' }] });
+				expect(propertyRows()[0].querySelector('[aria-label="Property value"]')).toBeNull();
+				expect(propertyRows()[0].querySelector('[aria-label="Property type"]')).toBeNull();
+
+				commit(field(propertyRows()[0], 'Property expression'), 'file.basename');
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'title', expr: 'file.basename', mode: 'if-missing' }] });
+			});
+
+			it('switches an expression row back to a value', async () => {
+				const onupdate = await render({ ...BLANK, properties: [{ key: 'title', expr: 'file.basename', mode: 'always' }] });
+
+				await choose(propertyRows()[0], 'Property source', 'Value');
+
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'title', value: '', mode: 'always' }] });
+				expect(field(propertyRows()[0], 'Property value').value).toBe('');
+			});
+
+			it('shows the validator error for an invalid expression and does not save it', async () => {
+				const onupdate = await render({ ...BLANK, properties: [{ key: 'title', expr: 'file.basename', mode: 'if-missing' }] });
+
+				commit(field(propertyRows()[0], 'Property expression'), 'nope(1)');
+				await settle();
+
+				expect(onupdate).not.toHaveBeenCalled();
+				expect(exprError()).toBe('Unknown function: nope');
+			});
+
+			it('refuses now() with always, as typed or by a mode change, and accepts it with if missing', async () => {
+				const onupdate = await render({ ...BLANK, properties: [{ key: 'updated', expr: 'file.basename', mode: 'always' }] });
+
+				commit(field(propertyRows()[0], 'Property expression'), 'now()');
+				await settle();
+				expect(onupdate).not.toHaveBeenCalled();
+				expect(exprError()).toBe('now() changes on every save, so it works only with "if missing"');
+
+				await choose(propertyRows()[0], 'Property mode', 'if missing');
+				commit(field(propertyRows()[0], 'Property expression'), 'now()');
+				await settle();
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'updated', expr: 'now()', mode: 'if-missing' }] });
+				expect(exprError()).toBeNull();
+
+				onupdate.mockClear();
+				await choose(propertyRows()[0], 'Property mode', 'always');
+				expect(onupdate).not.toHaveBeenCalled();
+				expect(exprError()).toBe('now() changes on every save, so it works only with "if missing"');
+			});
+
+			it('saves a refused expression with the mode the user switches to', async () => {
+				const onupdate = await render({ ...BLANK, properties: [{ key: 'updated', expr: 'file.basename', mode: 'always' }] });
+
+				commit(field(propertyRows()[0], 'Property expression'), 'now()');
+				await settle();
+				await choose(propertyRows()[0], 'Property mode', 'if missing');
+
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'updated', expr: 'now()', mode: 'if-missing' }] });
+				expect(field(propertyRows()[0], 'Property expression').value).toBe('now()');
+				expect(exprError()).toBeNull();
+			});
+
+			it('drops a refused draft when the stored expression is typed back', async () => {
+				const onupdate = await render({ ...BLANK, properties: [{ key: 'updated', expr: 'file.basename', mode: 'always' }] });
+
+				commit(field(propertyRows()[0], 'Property expression'), 'now()');
+				await settle();
+				commit(field(propertyRows()[0], 'Property expression'), 'file.basename');
+				await settle();
+				expect(exprError()).toBeNull();
+
+				await choose(propertyRows()[0], 'Property mode', 'if missing');
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'updated', expr: 'file.basename', mode: 'if-missing' }] });
+			});
+
+			it('keeps the expression when the key is renamed', async () => {
+				const onupdate = await render({ ...BLANK, properties: [{ key: 'title', expr: 'file.basename', mode: 'always' }] });
+
+				commit(field(propertyRows()[0], 'Property key'), 'name');
+
+				expect(onupdate).toHaveBeenLastCalledWith('r1', { properties: [{ key: 'name', expr: 'file.basename', mode: 'always' }] });
+			});
+
+			it('shows no source switch on a remove row', async () => {
+				await render({ ...BLANK, properties: [{ key: 'title', mode: 'remove' }] });
+				expect(propertyRows()[0].querySelector('[aria-label="Property source"]')).toBeNull();
+			});
+
+			it('previews the result for the active note, and no value when it has none', async () => {
+				const path = `${VAULT}/projects/Alpha.md`;
+				const content = '---\nstatus: open\n---\nbody';
+				editorStore.addTab({ path, name: 'Alpha.md', content, savedContent: content });
+				await render({ ...BLANK, properties: [{ key: 'title', expr: 'file.folder.split("/").slice(-1).join("")', mode: 'if-missing' }] });
+
+				expect(preview()).toBe('Result for Alpha: projects');
+
+				commit(field(propertyRows()[0], 'Property expression'), 'missing_key');
+				await settle();
+				expect(preview()).toBe('Result for Alpha: no value');
+			});
+
+			it('shows no preview without an open note', async () => {
+				await render({ ...BLANK, properties: [{ key: 'title', expr: 'file.basename', mode: 'if-missing' }] });
+				expect(preview()).toBeNull();
+			});
 		});
 
 		it('opens the icon picker for _icon and saves its choice as pack:name', { timeout: 15_000 }, async () => {

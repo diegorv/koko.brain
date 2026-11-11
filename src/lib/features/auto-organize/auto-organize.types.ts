@@ -18,10 +18,16 @@ export interface RuleProperty {
 	/** Frontmatter key; compared by its canonical form (`icon` is `_icon`) */
 	key: string;
 	/**
-	 * The value to write. Required by `if-missing` and `always`; for `add`, the
-	 * items, a text or a list of text; absent for `remove`, which ignores it.
+	 * The value to write. `if-missing`, `always` and `add` need it or `expr`,
+	 * never both; for `add`, the items, a text or a list of text. `remove`
+	 * ignores it.
 	 */
 	value?: RuleValue;
+	/**
+	 * An expression, evaluated against the note like the rule's filter, whose
+	 * result is written instead of `value`. `remove` ignores it.
+	 */
+	expr?: string;
 	/**
 	 * `if-missing` writes only when the key is absent, null, `''` or `[]`;
 	 * `always` writes whenever the current value differs;

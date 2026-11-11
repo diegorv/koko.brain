@@ -91,6 +91,18 @@ describe('Auto Organize help page examples', () => {
 		expect(RULES.some((r) => typeof r.expression === 'object' && Array.isArray(r.expression.or))).toBe(true);
 	});
 
+	it('shows computed property entries that survive loading', () => {
+		const start = PAGE.indexOf('\n#### Computed values\n');
+		expect(start).not.toBe(-1);
+		const rest = PAGE.slice(start + 1);
+		const body = rest.slice(0, rest.slice(1).search(/\n#{2,4} /) + 1);
+		const entries = jsonBlocks(body) as RuleProperty[];
+
+		expect(entries.length).toBeGreaterThanOrEqual(4);
+		expect(entries.every((e) => typeof e.expr === 'string')).toBe(true);
+		expect(sanitizeRuleProperties(entries)).toEqual(entries);
+	});
+
 	for (const rule of RULES) {
 		describe(rule.name, () => {
 			it('is a valid, enabled rule whose properties survive loading', () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import {
 	findMatchingRule,
 	isInExcludedFolder,
@@ -20,11 +20,17 @@ import {
 	parseRuleItems,
 	filterProblem,
 	hasBlankValue,
+	volatileInputs,
+	exprProblem,
+	computeRuleValue,
+	resolveComputedProperties,
+	ruleRecordStats,
+	type OwnedProperty,
 } from '#lib/features/auto-organize/auto-organize.logic.js';
 import type { FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
-import type { AutoOrganizeRule } from '#lib/features/auto-organize/auto-organize.types.js';
+import type { AutoOrganizeRule, RuleProperty } from '#lib/features/auto-organize/auto-organize.types.js';
 import type { FilterItem, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 
 function makeRule(overrides: Partial<AutoOrganizeRule> = {}): AutoOrganizeRule {
@@ -729,6 +735,41 @@ describe('sanitizeRuleProperties', () => {
 			{ key: 'status', mode: 'if-missing' },
 		])).toEqual([]);
 	});
+
+	it('keeps an entry with exactly one of value and a non-blank expr', () => {
+		const valid = [
+			{ key: 'title', expr: 'file.basename', mode: 'always' },
+			{ key: 'tags', expr: 'file.folder', mode: 'add' },
+			{ key: '_archived', expr: 'status == "done"', mode: 'if-missing' },
+		];
+		expect(sanitizeRuleProperties(valid)).toEqual(valid);
+		expect(sanitizeRuleProperties([
+			{ key: 'a', value: 'x', expr: 'file.basename', mode: 'always' },
+			{ key: 'a', expr: '', mode: 'always' },
+			{ key: 'a', expr: 3, mode: 'always' },
+			{ key: 'a', expr: 'file.basename', mode: 'sometimes' },
+			{ key: '_archived', expr: 'true', mode: 'add' },
+			{ key: 'todoist_project', expr: 'file.basename', mode: 'always' },
+		])).toEqual([]);
+	});
+
+	it('strips the expr of a remove', () => {
+		expect(sanitizeRuleProperties([{ key: 'a', expr: 'file.basename', mode: 'remove' }])).toEqual([{ key: 'a', mode: 'remove' }]);
+	});
+
+	it('drops a volatile expr with always or add and reports it, keeps it with if-missing', () => {
+		const refused: string[] = [];
+		expect(sanitizeRuleProperties([
+			{ key: 'a', expr: 'now()', mode: 'always' },
+			{ key: 'b', expr: 'file.size', mode: 'add' },
+			{ key: 'c', expr: 'file.ctime', mode: 'if-missing' },
+			{ key: 'd', expr: '', mode: 'always' },
+		], (key, reason) => refused.push(`${key}: ${reason}`))).toEqual([{ key: 'c', expr: 'file.ctime', mode: 'if-missing' }]);
+		expect(refused).toEqual([
+			'a: now() changes on every save, so it works only with "if missing"',
+			'b: file.size changes on every save, so it works only with "if missing"',
+		]);
+	});
 });
 
 describe('ownedProperties', () => {
@@ -1078,5 +1119,138 @@ describe('propertyWriteSkipReason', () => {
 
 	it('refuses a type definition whose _type is lowercase, as the app normalizes its casing', () => {
 		expect(propertyWriteSkipReason('/vault/P.md', '---\n_type: type\n---\n', '/vault', folders)).toBe('type definition');
+	});
+});
+
+describe('volatileInputs', () => {
+	it.each([
+		['now()', ['now()']],
+		['now().format("YYYY")', ['now()']],
+		['file.mtime', ['file.mtime']],
+		['file.mtime.format("YYYY")', ['file.mtime']],
+		['file.size * 2', ['file.size']],
+		['if(status == "x", file.ctime, today())', ['file.ctime']],
+		['[file.basename, now()]', ['now()']],
+		['file.basename', []],
+		['today() + "7d"', []],
+		['status ==', []],
+	])('%s reads %j', (expr, inputs) => {
+		expect(volatileInputs(expr)).toEqual(inputs);
+	});
+});
+
+describe('exprProblem', () => {
+	it('accepts a valid expression', () => {
+		expect(exprProblem('file.basename', 'always')).toBeNull();
+	});
+
+	it('refuses a blank expression', () => {
+		expect(exprProblem('  ', 'if-missing')).toBe('Expression cannot be empty');
+	});
+
+	it('reports the validator error for a parse error or an unknown function', () => {
+		expect(exprProblem('status ==', 'if-missing')).not.toBeNull();
+		expect(exprProblem('nope(1)', 'if-missing')).toBe('Unknown function: nope');
+	});
+
+	it('refuses a volatile input with always or add, and accepts it with if-missing', () => {
+		expect(exprProblem('now()', 'always')).toBe('now() changes on every save, so it works only with "if missing"');
+		expect(exprProblem('file.size', 'add')).toBe('file.size changes on every save, so it works only with "if missing"');
+		expect(exprProblem('file.ctime', 'if-missing')).toBeNull();
+	});
+});
+
+describe('computeRuleValue', () => {
+	const record = buildNoteRecord('/vault/projects/Alpha/note.md', '---\nstatus: done\ntags: [a, b]\n---\n', 1, 1, 10);
+	const ctx = { record, formulas: {}, vaultPath: '/vault' };
+	const compute = (expr: string, key = 'x', mode: RuleProperty['mode'] = 'always') => computeRuleValue({ key, expr, mode }, ctx);
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(new Date(2026, 5, 10, 15, 4, 5));
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	it('returns text, a number, a boolean and a list of text as they are', () => {
+		expect(compute('file.basename')).toEqual({ value: 'note' });
+		expect(compute('1 + 2')).toEqual({ value: 3 });
+		expect(compute('status == "done"')).toEqual({ value: true });
+		expect(compute('tags')).toEqual({ value: ['a', 'b'] });
+	});
+
+	it('writes a date as the local day, and with now() as the local date and time', () => {
+		expect(compute('today() + "7d"', 'x', 'if-missing')).toEqual({ value: '2026-06-17' });
+		expect(compute('date("2026-01-05")', 'x', 'if-missing')).toEqual({ value: '2026-01-05' });
+		expect(compute('now()', 'x', 'if-missing')).toEqual({ value: '2026-06-10T15:04:05' });
+	});
+
+	it.each([
+		['a throw', 'file.folder.split("/").last()'],
+		['null', 'missing_key'],
+		['NaN', '"a" + "b"'],
+		['an invalid date', 'date("junk")'],
+		['a list holding a number', '[1, "a"]'],
+	])('fails on %s', (_case, expr) => {
+		expect(compute(expr)).toHaveProperty('failure');
+	});
+
+	it('accepts only a boolean on a lifecycle key', () => {
+		expect(compute('true', '_archived')).toEqual({ value: true });
+		expect(compute('status', 'archived')).toEqual({ failure: '_archived accepts only true or false' });
+	});
+
+	it('accepts only text or a list of text for add', () => {
+		expect(compute('file.basename', 'tags', 'add')).toEqual({ value: 'note' });
+		expect(compute('1 + 1', 'tags', 'add')).toEqual({ failure: 'add needs text or a list of text' });
+	});
+});
+
+describe('resolveComputedProperties', () => {
+	const rule = makeRule({ id: 'r1' });
+	const record = buildNoteRecord('/vault/note.md', '', 1, 1, 0);
+	const ctx = { record, formulas: {}, vaultPath: '/vault' };
+	const owned = (property: RuleProperty): OwnedProperty => ({ ...property, rule });
+
+	it('replaces an expr with its value and keeps a literal as it is', () => {
+		const literal = owned({ key: 'status', value: 'open', mode: 'always' });
+		expect(resolveComputedProperties([], [literal, owned({ key: 'title', expr: 'file.basename', mode: 'always' })], ctx)).toEqual([
+			literal,
+			{ key: 'title', value: 'note', mode: 'always', rule },
+		]);
+	});
+
+	it('leaves out a failing expr and reports it', () => {
+		const failing = owned({ key: 'title', expr: 'missing_key', mode: 'always' });
+		const failures: string[] = [];
+		expect(resolveComputedProperties([], [failing], ctx, (p, reason) => failures.push(`${p.key}: ${reason}`))).toEqual([]);
+		expect(failures).toEqual(['title: the expression has no value']);
+	});
+
+	it('does not evaluate an if-missing whose key the note holds', () => {
+		const onFail = vi.fn();
+		const present: Property[] = [{ key: 'title', value: 'kept', type: 'text' }];
+		expect(resolveComputedProperties(present, [owned({ key: 'title', expr: 'missing_key', mode: 'if-missing' })], ctx, onFail)).toEqual([]);
+		expect(onFail).not.toHaveBeenCalled();
+	});
+
+	it('returns an empty list for no owned properties', () => {
+		expect(resolveComputedProperties([], [], ctx)).toEqual([]);
+	});
+});
+
+describe('ruleRecordStats', () => {
+	const indexed = (mtime: number, ctime: number, size: number) => buildNoteRecord('/vault/n.md', '', mtime, ctime, size);
+
+	it('takes the index record\'s stats when both times are above 0', () => {
+		expect(ruleRecordStats(indexed(20, 10, 512), 'abc', 99)).toEqual([20, 10, 512]);
+	});
+
+	it('falls back to now and the UTF-8 length without a record, or with a zero time', () => {
+		expect(ruleRecordStats(undefined, 'abc', 99)).toEqual([99, 99, 3]);
+		expect(ruleRecordStats(indexed(20, 0, 512), 'é', 99)).toEqual([99, 99, 2]);
+		expect(ruleRecordStats(indexed(0, 10, 512), '', 99)).toEqual([99, 99, 0]);
 	});
 });

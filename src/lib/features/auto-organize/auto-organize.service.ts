@@ -19,13 +19,17 @@ import {
 	ownedProperties,
 	propertiesToWrite,
 	propertyWriteSkipReason,
+	resolveComputedProperties,
 	resolveDestination,
+	ruleRecordStats,
 	sanitizeRuleProperties,
 	type OwnedProperty,
 } from './auto-organize.logic';
 import type { AutoOrganizeConfig, AutoOrganizeRule } from './auto-organize.types';
 import { generateLifecycleRules } from './type-lifecycle-rules';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { debug, error } from '#lib/utils/debug.js';
 
 /** Internal directory inside the vault for metadata */
@@ -50,6 +54,9 @@ const reportedWriteFailures = new Set<string>();
 
 /** Rule ids whose `add` refused by a note's value was already logged this session. */
 const reportedAddSkips = new Set<string>();
+
+/** Rule ids whose computed value failed and was already logged this session. */
+const reportedComputeFailures = new Set<string>();
 
 /** Default empty config */
 const DEFAULT_CONFIG: AutoOrganizeConfig = {
@@ -91,11 +98,18 @@ export async function loadAutoOrganizeConfig(vaultPath: string): Promise<void> {
 	}
 }
 
-/** A loaded rule with its invalid property entries dropped; a non-array `properties` is removed. */
+/**
+ * A loaded rule with its invalid property entries dropped; a non-array
+ * `properties` is removed. A computed value refused for its mode is logged.
+ */
 function withValidProperties(rule: AutoOrganizeRule): AutoOrganizeRule {
 	if (rule === null || typeof rule !== 'object' || !('properties' in rule)) return rule;
 	const { properties, ...rest } = rule;
-	return Array.isArray(properties) ? { ...rest, properties: sanitizeRuleProperties(properties) } : rest;
+	if (!Array.isArray(properties)) return rest;
+	const valid = sanitizeRuleProperties(properties, (key, reason) =>
+		error('AUTO-ORGANIZE', `Rule "${rule.name}" ignores ${key}: ${reason}`),
+	);
+	return { ...rest, properties: valid };
 }
 
 /**
@@ -207,7 +221,8 @@ async function readCurrentContent(filePath: string): Promise<string | null> {
  * icon and every matching rule's properties are written.
  */
 async function evaluateAndMove(filePath: string, content: string, vaultPath: string): Promise<void> {
-	const record = buildNoteRecord(filePath, content, Date.now(), Date.now());
+	const stats = ruleRecordStats(collectionStore.propertyIndex.get(filePath), content, Date.now());
+	const record = buildNoteRecord(filePath, content, ...stats);
 
 	const lifecycleRules = generateLifecycleRules(typeDefinitionsStore.typeMetadataMap);
 	const allRules = [...autoOrganizeStore.enabledRules, ...lifecycleRules];
@@ -263,7 +278,7 @@ async function evaluateAndMove(filePath: string, content: string, vaultPath: str
 		// its color removal (`frontmatter-icon.service.ts::withIconColors`).
 		const iconWritten = rule?.icon ? await applyLegacyIcon(rule, content, vaultPath, targetPath) : false;
 		if (owned.length > 0) {
-			await writeRuleProperties(targetPath, iconWritten ? null : content, vaultPath, owned);
+			await writeRuleProperties(targetPath, iconWritten ? null : content, vaultPath, owned, record);
 		}
 	} finally {
 		writingPaths.delete(targetPath);
@@ -296,12 +311,14 @@ async function applyLegacyIcon(rule: AutoOrganizeRule, content: string, vaultPat
  * Writes the owned properties that change the note, in one frontmatter write.
  * A note the rules leave unchanged is never rewritten.
  * @param content - the note's current content, or null to read it again
+ * @param record - the record the filters ran on, which computed values read
  */
 async function writeRuleProperties(
 	targetPath: string,
 	content: string | null,
 	vaultPath: string,
 	owned: OwnedProperty[],
+	record: PropertyIndexRecord,
 ): Promise<void> {
 	let involved = owned;
 	try {
@@ -315,13 +332,16 @@ async function writeRuleProperties(
 			debug('AUTO-ORGANIZE', `Skipped properties for ${targetPath}: ${skip}`);
 			return;
 		}
-		// Skips are reported on this pass only: `mutate` below may run twice.
-		const writes = propertiesToWrite(parseFrontmatterProperties(current), owned, (skipped) =>
-			reportAddSkip(targetPath, skipped),
+		const currentProps = parseFrontmatterProperties(current);
+		// Computed once here: `mutate` below may run twice, and `now()` must not differ between its runs.
+		const resolved = resolveComputedProperties(currentProps, owned, { record, formulas: {}, vaultPath }, (failed, reason) =>
+			reportComputeFailure(targetPath, failed, reason),
 		);
+		// Skips are reported on this pass only: `mutate` below may run twice.
+		const writes = propertiesToWrite(currentProps, resolved, (skipped) => reportAddSkip(targetPath, skipped));
 		if (writes.length === 0) return;
 		involved = writes;
-		await updateNoteFrontmatter(targetPath, (props) => applyPropertyWrites(props, propertiesToWrite(props, owned)));
+		await updateNoteFrontmatter(targetPath, (props) => applyPropertyWrites(props, propertiesToWrite(props, resolved)));
 		debug('AUTO-ORGANIZE', `Set properties on ${targetPath}`);
 	} catch (err) {
 		reportWriteFailure(targetPath, involved, err);
@@ -347,6 +367,13 @@ function reportAddSkip(targetPath: string, skipped: OwnedProperty): void {
 	error('AUTO-ORGANIZE', `Rule "${skipped.rule.name}" cannot add to ${skipped.key} on ${targetPath}: the value is not a list or text`);
 }
 
+/** Logs a computed value that writes nothing (a throw, no value, a wrong type) once per rule per session. */
+function reportComputeFailure(targetPath: string, failed: OwnedProperty, reason: string): void {
+	if (reportedComputeFailures.has(failed.rule.id)) return;
+	reportedComputeFailures.add(failed.rule.id);
+	error('AUTO-ORGANIZE', `Rule "${failed.rule.name}" could not compute ${failed.key} on ${targetPath}: ${reason}`);
+}
+
 /** Resets all auto-organize state (called during vault teardown) */
 export function resetAutoOrganize(): void {
 	// Unsubscribe hook if active
@@ -362,6 +389,7 @@ export function resetAutoOrganize(): void {
 	writingPaths.clear();
 	reportedWriteFailures.clear();
 	reportedAddSkips.clear();
+	reportedComputeFailures.clear();
 	autoOrganizeStore.reset();
 	debug('AUTO-ORGANIZE', 'Reset complete');
 }
