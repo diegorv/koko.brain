@@ -25,9 +25,9 @@ const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
 
 **Related (other repo):** the mods workspace build check `checkManifest` (`/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/scripts/mod-loader.ts:46-74`) is a hand copy of `parseModManifest`. It ignores unknown keys, so it lets a manifest with a bad `settings` list deploy, and the host then refuses it. Mirroring the check there, with fixtures in `test/host-integration/manifest-check.test.ts`, is a workspace script edit. File it as a mods-repo Issue at triage if the owner wants it; it does not block this one.
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-**Priority:** low (nice to have, not prioritized by the owner on 2026-11-11; the owner confirmed at triage on 2026-11-11 to keep it low and leave it in needs-triage)
+**Priority:** low (nice to have; the owner chose to build it on 2026-11-11)
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -91,7 +91,7 @@ const { folder = 'Inbox', compact = false } = (await ctx.loadData()) ?? {};
 ## Notes
 
 - **Research:** `.scratch/mods-power/research/item-07-host.md` and `item-07-validation.md`, which wins where they differ. Code read at `c2bed3463`.
-- **Owner decisions** (needs-triage; Behavior follows the recommended choice of each):
+- **Owner decisions** (the owner accepted the recommended choice of each on 2026-11-11; Behavior follows them):
   1. **Storage and read path.** Recommended: declared keys in `data.json`, read with `loadData`, no contract change; the author must keep unknown keys when saving. Alternative (scout's option B): a separate settings file and a new `ctx` member, which costs a mod-core contract edit and SHA bump, `pnpm build`, the d.ts and contract conformance tests, and two new Rust commands (Both gate, ADR 0036 amendment). Choosing B replaces this Issue and adds a mods-repo contract Issue that blocks it.
   2. **Types in v1.** Recommended: `boolean` and `string` only; a mod parses a number from a string. Adding `number` needs a rule for empty and invalid input.
   3. **In-flight write (Behavior 7).** Recommended: await the old instance's data queue, since data is at risk. Alternative: accept the one-IPC window.
