@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Property actions can remove a property or add items to a list](issues/07-property-actions-remove-and-add-to-list.md) | 13 | done | issue/07-property-actions-remove-and-add-to-list (95177de96) | 2026-11-10 |
 | 08 | [Property values can be computed with the expression engine](issues/08-computed-property-values.md) | 07 | done | issue/08-computed-property-values (869d1a34b) | 2026-11-11 |
 | 09 | [A rule can create a note](issues/09-rule-action-create-note.md) | 08 | done | issue/09-rule-action-create-note (a58f6b696) | 2026-11-11 |
-| 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 12 | in-progress | | |
+| 10 | [A rule can run a mod action](issues/10-rule-action-run-mod-action.md) | 12 | done | issue/10-rule-action-run-mod-action (0af1b2b27) | 2026-11-11 |
 | 11 | [A rule can rename the note](issues/11-rule-action-rename-note.md) | 09 | done | issue/11-rule-action-rename-note (7f698c59b) | 2026-11-11 |
 | 12 | [Document the two-rule pattern for values that switch back](issues/12-undo-when-note-stops-matching.md) | 14 | done | issue/12-undo-when-note-stops-matching (f96c767b9) | 2026-11-11 |
 | 13 | [An object rule filter reports a condition that fails at runtime](issues/13-object-filter-reports-runtime-leaf-errors.md) | 06 | done | issue/13-object-filter-reports-runtime-leaf-errors (179cca328) | 2026-11-10 |
@@ -87,3 +87,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-11 01:09 — 12 — start — launched by /relay-lite:run — dd400e2a5
 - 2026-11-11 01:18 — 12 — deliver — reviews APPROVED x2 (claude) with a test fix round; full suite 610 files / 15317 tests passed; squash merged and pushed — f96c767b9
 - 2026-11-11 05:38 — 10 — start — launched by /relay-lite:run — 28380fbd6
+- 2026-11-11 06:01 — 10 — deliver — reviews APPROVED x2 (claude) with a fix round; full suite 611 files / 15360 tests passed; squash merged and pushed — 0af1b2b27
