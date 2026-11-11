@@ -10,7 +10,7 @@ ctx.onNoteCreated(({ path }) => ctx.log('Created:', path));
 
 **Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/05-note-created-event.md` delivered and pushed (it adds `ModNoteCreatedV1` and `ModContextV1.onNoteCreated`), with its full SHA in its Comments. This Issue adopts that SHA per `docs/MOD-CORE.md` "Updating the dependency", in the same commit as the host code: the freeze tests fail on the new SHA until the host implements the member.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Owner decisions taken on 2026-11-11 (see "Owner questions"). Mods Issue 05 is filed. Set this Issue `ready-for-agent` when that Issue's full SHA is in its Comments. Launch by explicit number only.
 
