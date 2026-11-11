@@ -52,7 +52,8 @@
 			name: '',
 			expression: '',
 			destination: '',
-			enabled: true,
+			// A rule runs on every save, so it stays off until the user finishes it.
+			enabled: false,
 		};
 		autoMoveStore.addRule(rule);
 		saveConfig();

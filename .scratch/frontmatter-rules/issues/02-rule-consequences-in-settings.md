@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -29,16 +29,16 @@
 
 ### Acceptance
 
-- [ ] Failing test first, in `src/tests/lib/features/auto-move/AutoMoveRuleRow.test.ts`: adding a property row, typing key `status` and value `done`, and choosing `always` saves `properties: [{ key: 'status', value: 'done', mode: 'always' }]`.
-- [ ] Removing a row and editing a row's value are covered.
-- [ ] `_archived` shows a checkbox and saves a boolean.
-- [ ] The `_icon` key opens the icon picker, and its choice saves `pack:name`.
-- [ ] A new rule is created disabled.
-- [ ] Typing in the filter does not save until change or blur.
-- [ ] The match count shows the number of index records the filter matches, and 0 for an empty filter.
-- [ ] The "does nothing" hint shows for a rule with an empty destination and no properties, and hides otherwise.
-- [ ] `22-auto-move.md` shows the Settings flow.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in `src/tests/lib/features/auto-move/AutoMoveRuleRow.test.ts`: adding a property row, typing key `status` and value `done`, and choosing `always` saves `properties: [{ key: 'status', value: 'done', mode: 'always' }]`.
+- [x] Removing a row and editing a row's value are covered.
+- [x] `_archived` shows a checkbox and saves a boolean.
+- [x] The `_icon` key opens the icon picker, and its choice saves `pack:name`.
+- [x] A new rule is created disabled.
+- [x] Typing in the filter does not save until change or blur.
+- [x] The match count shows the number of index records the filter matches, and 0 for an empty filter.
+- [x] The "does nothing" hint shows for a rule with an empty destination and no properties, and hides otherwise.
+- [x] `22-auto-move.md` shows the Settings flow.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Notes
 
@@ -46,3 +46,5 @@
 - Research: `.scratch/frontmatter-rules/research/scout-11-settings-ui-persistence.md`.
 
 ## Comments
+
+- 2026-11-10, branch `issue/02-rule-consequences-in-settings`: Settings rule rows edit property consequences (key/value/mode rows, `_archived` checkbox, `_icon` picker, color), new rules start disabled, filter saves on change/blur with a live match count, "does nothing" hint, `22-auto-move.md` Settings flow. Round 1 fixes: refused key `todoist_project` hidden from suggestions with inline note, value reset on rename to `_icon`/color, docs color line, `ruleValueEditor` JSDoc, stale match count hidden. Tests: `pnpm check` 0 errors; targeted 67 files / 1391 tests passed; full suite at df6f08597 exit 0 (608 files, 15010 passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED, round 2 APPROVED (fix round ran).

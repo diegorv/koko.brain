@@ -1,6 +1,6 @@
 import type { AutoMoveRule, RuleProperty } from './auto-move.types';
 import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
-import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
+import { isMarkdownFile, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import {
 	detectLossyFrontmatter,
 	extractRawFrontmatter,
@@ -74,6 +74,27 @@ export function findMatchingRules(
 }
 
 /**
+ * How many notes in `index` a rule with this expression matches now, with the
+ * matcher a save uses. 0 for a blank expression, null when it does not parse.
+ * `.view` records are left out: they are not notes.
+ */
+export function countMatchingNotes(
+	expression: string,
+	index: Map<string, PropertyIndexRecord>,
+	vaultPath: string,
+): number | null {
+	if (!expression.trim()) return 0;
+	if (validateExpression(expression) !== null) return null;
+	const probe: AutoMoveRule[] = [{ id: '', name: '', expression, destination: '', enabled: true }];
+	let count = 0;
+	for (const [path, record] of index) {
+		if (isViewFile(path)) continue;
+		if (findMatchingRules(probe, record, vaultPath).length > 0) count++;
+	}
+	return count;
+}
+
+/**
  * The rule that moves the note: the first one with a non-blank destination.
  * A rule with a blank destination never moves.
  */
@@ -87,12 +108,40 @@ export function findMoveRule(matched: AutoMoveRule[]): AutoMoveRule | null {
  */
 const REFUSED_KEYS = new Set(['todoist_project']);
 
+/** True when `key` (or its alias) is one a rule never sets. */
+export function isRefusedKey(key: string): boolean {
+	return REFUSED_KEYS.has(canonicalizeKey(key));
+}
+
 /**
  * Lifecycle keys that accept only a real boolean: a text `"false"` reads as
  * the default in Rust and TS (`vault/entry.rs`, `properties/lifecycle.logic.ts`),
  * which would send a note out of the Inbox or never archive it.
  */
 const BOOLEAN_ONLY_KEYS = new Set(['_organized', '_archived', '_favorite']);
+
+/** True when `key` (or its alias) accepts only a boolean value. */
+export function isBooleanOnlyKey(key: string): boolean {
+	return BOOLEAN_ONLY_KEYS.has(canonicalizeKey(key));
+}
+
+/** The Settings editor for a rule property's value. */
+export type RuleValueEditor = 'text' | 'boolean' | 'icon' | 'color' | 'json';
+
+/**
+ * Which editor Settings shows for a property value: a yes/no switch for a
+ * boolean-only key or a boolean, the icon picker for `_icon`, its color
+ * controls for `_color` and `_title_color`, none (`json`) for numbers and
+ * lists, which only the config file edits, and text otherwise.
+ */
+export function ruleValueEditor(key: string, value: RuleProperty['value']): RuleValueEditor {
+	const canonical = canonicalizeKey(key);
+	if (BOOLEAN_ONLY_KEYS.has(canonical) || typeof value === 'boolean') return 'boolean';
+	if (typeof value !== 'string') return 'json';
+	if (canonical === '_icon') return 'icon';
+	if (canonical === '_color' || canonical === '_title_color') return 'color';
+	return 'text';
+}
 
 /** True when `value` is a valid `RuleProperty` value: text, number, boolean or a list of text. */
 function isRulePropertyValue(value: unknown): value is RuleProperty['value'] {
@@ -132,11 +181,13 @@ export interface OwnedProperty extends RuleProperty {
  * The property consequences of the matching rules, one per canonical key, in
  * rule order then list order. The first rule that names a key owns it, even
  * when its `if-missing` ends up writing nothing; a lower rule's value is ignored.
+ * Entries `sanitizeRuleProperties` drops are ignored: Settings keeps an
+ * unfinished row (a blank key) in the live rule until the config is reloaded.
  */
 export function ownedProperties(matched: AutoMoveRule[]): OwnedProperty[] {
 	const byKey = new Map<string, OwnedProperty>();
 	for (const rule of matched) {
-		for (const property of rule.properties ?? []) {
+		for (const property of sanitizeRuleProperties(rule.properties)) {
 			const key = canonicalizeKey(property.key);
 			if (!byKey.has(key)) byKey.set(key, { ...property, key, rule });
 		}

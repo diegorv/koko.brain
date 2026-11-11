@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -8,13 +9,18 @@
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
 	import CircleXIcon from '@lucide/svelte/icons/circle-x';
 	import ImageIcon from '@lucide/svelte/icons/image';
+	import PlusIcon from '@lucide/svelte/icons/plus';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-	import type { AutoMoveRule } from './auto-move.types';
+	import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+	import { getAllKnownProperties } from '#lib/features/collection/toolbar/filter.logic.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+	import type { AutoMoveRule, RuleProperty } from './auto-move.types';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
-	import { validateExpression } from './auto-move.logic';
+	import { countMatchingNotes, isRefusedKey, sanitizeRuleProperties, validateExpression } from './auto-move.logic';
+	import AutoMoveRuleProperty from './AutoMoveRuleProperty.svelte';
 
 	let {
 		rule,
@@ -34,12 +40,47 @@
 		onmovedown: (id: string) => void;
 	} = $props();
 
-	let expressionError = $state<string | null>(null);
+	/** How long the filter must stay unchanged before its match count is recomputed */
+	const COUNT_DELAY_MS = 300;
+
+	/**
+	 * The filter as typed. It reaches the rule only on change or blur: a rule
+	 * runs on every save, so a half-typed filter must never be live.
+	 */
+	let filterDraft = $derived(rule.expression);
+	let expressionError = $derived(validateExpression(filterDraft));
 	let iconPickerOpen = $state(false);
 
-	function handleExpressionChange(value: string) {
-		expressionError = validateExpression(value);
-		onupdate(rule.id, { expression: value });
+	/** The filter the match count was last computed for, behind the typing by `COUNT_DELAY_MS` */
+	let countedFilter = $state(untrack(() => rule.expression));
+	$effect(() => {
+		const value = filterDraft;
+		const timer = setTimeout(() => (countedFilter = value), COUNT_DELAY_MS);
+		return () => clearTimeout(timer);
+	});
+	let matchCount = $derived(countMatchingNotes(countedFilter, collectionStore.propertyIndex, vaultStore.path ?? ''));
+
+	let properties = $derived(rule.properties ?? []);
+	/** True when the rule neither moves nor sets anything, so it does nothing */
+	let doesNothing = $derived(!rule.destination.trim() && sanitizeRuleProperties(rule.properties).length === 0);
+	/** Known note properties for the key field; `file.*` fields are read-only and refused keys never written */
+	let keySuggestions = $derived(
+		properties.length > 0
+			? getAllKnownProperties(collectionStore.propertyIndex).filter((key) => !key.startsWith('file.') && !isRefusedKey(key))
+			: [],
+	);
+	let keyListId = $derived(`auto-move-keys-${rule.id}`);
+
+	function commitExpression() {
+		if (filterDraft !== rule.expression) onupdate(rule.id, { expression: filterDraft });
+	}
+
+	function setProperties(next: RuleProperty[]) {
+		onupdate(rule.id, { properties: next });
+	}
+
+	function addProperty() {
+		setProperties([...properties, { key: '', value: '', mode: 'if-missing' }]);
 	}
 
 	function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
@@ -103,15 +144,17 @@
 	<!-- Expression input -->
 	<div class="flex flex-col gap-1">
 		<div class="flex items-center gap-2">
-			<span class="w-20 shrink-0 text-meta text-muted-foreground">Expression</span>
+			<span class="w-24 shrink-0 text-meta text-muted-foreground">Expression</span>
 			<div class="relative flex-1">
 				<Input
-					class="pr-7 font-mono {expressionError ? 'border-destructive' : ''}"
-					value={rule.expression}
+					class="pr-7 font-mono {expressionError && filterDraft.trim() ? 'border-destructive' : ''}"
+					aria-label="Filter"
+					value={filterDraft}
 					placeholder="file.hasTag('archive') && status == 'done'"
-					oninput={(e) => handleExpressionChange((e.currentTarget as HTMLInputElement).value)}
+					oninput={(e) => (filterDraft = (e.currentTarget as HTMLInputElement).value)}
+					onchange={commitExpression}
 				/>
-				{#if rule.expression.trim()}
+				{#if filterDraft.trim()}
 					<div class="absolute right-2 top-1/2 -translate-y-1/2">
 						{#if expressionError}
 							<CircleXIcon class="size-3.5 text-destructive" />
@@ -122,18 +165,25 @@
 				{/if}
 			</div>
 		</div>
-		{#if expressionError && rule.expression.trim()}
-			<p class="ml-[5.5rem] text-meta text-destructive">{expressionError}</p>
+		{#if expressionError && filterDraft.trim()}
+			<p class="ml-[6.5rem] text-meta text-destructive">{expressionError}</p>
+		{:else if matchCount !== null && countedFilter === filterDraft}
+			<p class="ml-[6.5rem] text-meta text-muted-foreground" data-match-count>
+				Matches {matchCount} {matchCount === 1 ? 'note' : 'notes'} now
+			</p>
 		{/if}
 	</div>
 
+	<!-- Then: the rule's consequences -->
+	<span class="text-meta font-medium text-muted-foreground">Then</span>
+
 	<!-- Destination folder + icon row -->
 	<div class="flex items-center gap-2">
-		<span class="w-20 shrink-0 text-meta text-muted-foreground">Destination</span>
+		<span class="w-24 shrink-0 text-meta text-muted-foreground">Move to folder</span>
 		<Input
 			class="flex-1"
 			value={rule.destination}
-			placeholder="Archive/done"
+			placeholder="Empty: do not move"
 			oninput={(e) => onupdate(rule.id, { destination: (e.currentTarget as HTMLInputElement).value })}
 		/>
 		<Button
@@ -151,6 +201,36 @@
 			{/if}
 		</Button>
 	</div>
+
+	<div class="flex items-start gap-2">
+		<span class="w-24 shrink-0 pt-2 text-meta text-muted-foreground">Set properties</span>
+		<div class="flex min-w-0 flex-1 flex-col gap-2">
+			{#each properties as property, i (i)}
+				<AutoMoveRuleProperty
+					{property}
+					listId={keyListId}
+					onchange={(next) => setProperties(properties.map((p, j) => (j === i ? next : p)))}
+					onremove={() => setProperties(properties.filter((_, j) => j !== i))}
+				/>
+			{/each}
+			<Button variant="outline" size="sm" class="self-start" onclick={addProperty}>
+				<PlusIcon class="size-3.5" />
+				Add property
+			</Button>
+		</div>
+	</div>
+
+	{#if doesNothing}
+		<p class="text-meta text-destructive" data-rule-hint>
+			This rule does nothing: set a folder to move to or a property to set.
+		</p>
+	{/if}
+
+	<datalist id={keyListId}>
+		{#each keySuggestions as key (key)}
+			<option value={key}></option>
+		{/each}
+	</datalist>
 </div>
 
 <IconPicker

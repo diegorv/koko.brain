@@ -28,14 +28,36 @@ Each rule consists of:
 |-------|-------------|
 | **Name** | A human-readable label for the rule (e.g. "Archive completed projects") |
 | **Expression** | A condition written in the Collection expression language (see below) |
-| **Destination** (optional) | Target folder path, relative to the vault root. Supports `{variable}` templates (see below). Leave it empty for a rule that does not move the note |
+| **Move to folder** (optional) | Target folder path, relative to the vault root. Supports `{variable}` templates (see below). Leave it empty for a rule that does not move the note |
 | **Properties** (optional) | Properties written to the note's frontmatter when the rule matches (see [Setting Properties](#setting-properties)) |
-| **Enabled** | Individual toggle — you can disable a rule without deleting it |
+| **Enabled** | Individual toggle — you can disable a rule without deleting it. A new rule starts disabled |
 | **Icon** (optional) | An icon applied to the file after it is moved |
 
 An empty destination does not move the note. A destination template that resolves to an empty path, such as `{parent}` on a note in a top-level folder, moves the note to the vault root.
 
 If the note is already in the destination folder, Kokobrain skips the move but still applies the icon if one is configured.
+
+## Creating a Rule in Settings
+
+1. Open **Settings** (`Cmd+,`) → **Auto Move** and click **Add rule**. The new rule starts **disabled**, so it changes nothing while you write it.
+2. Give it a **name** and type its **Expression**. The field is saved when you leave it or press Enter, not on every keystroke. Under it, **Matches N notes now** counts the notes the filter matches right now. Check it: a count close to all your notes usually means a typo, such as a misspelled property name.
+3. Under **Then**, pick what the rule does:
+   - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
+   - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value**, and pick the mode, **if missing** (the default) or **always**. The **×** button removes the property.
+4. Turn the rule's toggle on when it is ready.
+
+A rule with no folder and no property does nothing. Settings says so under the rule, and still saves it.
+
+The value field adapts to the key:
+
+| Key | Value field |
+|-----|-------------|
+| `_organized`, `_archived`, `_favorite` | A yes/no toggle. These keys accept only `true` or `false` |
+| `_icon` | **Pick icon** opens the icon picker. The icon is saved as `pack:name`, such as `lucide:cloud` |
+| `_color`, `_title_color` | **Pick color** opens the icon picker's colors. On a `_color` row, pick from the **Icon** colors; on a `_title_color` row, from the **Text** colors |
+| Any other key | Text. Pick **Yes/no** in the type menu next to the key for a `true` / `false` value |
+
+Numbers and lists have no editor in Settings. Write them in `.kokobrain/auto-move-rules.json` (see below); Settings shows them read-only.
 
 ## Setting Properties
 

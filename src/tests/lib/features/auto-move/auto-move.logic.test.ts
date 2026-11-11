@@ -13,6 +13,10 @@ import {
 	propertiesToWrite,
 	applyPropertyWrites,
 	propertyWriteSkipReason,
+	countMatchingNotes,
+	isBooleanOnlyKey,
+	isRefusedKey,
+	ruleValueEditor,
 } from '#lib/features/auto-move/auto-move.logic.js';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
@@ -513,6 +517,105 @@ describe('ownedProperties', () => {
 	it('returns [] for rules without properties, or no rules', () => {
 		expect(ownedProperties([makeRule(), makeRule({ properties: [] })])).toEqual([]);
 		expect(ownedProperties([])).toEqual([]);
+	});
+
+	it('ignores entries the loader would drop, such as an unfinished Settings row', () => {
+		const rule = makeRule({ properties: [
+			{ key: '', value: 'x', mode: 'always' },
+			{ key: 'todoist_project', value: 'Work', mode: 'always' },
+			{ key: '_archived', value: 'yes', mode: 'always' },
+			{ key: 'status', value: 'done', mode: 'always' },
+		] });
+		expect(ownedProperties([rule]).map((p) => p.key)).toEqual(['status']);
+	});
+});
+
+describe('isBooleanOnlyKey', () => {
+	it('is true for the lifecycle keys and their aliases', () => {
+		for (const key of ['_organized', '_archived', '_favorite', 'organized', 'archived', 'favorite']) {
+			expect(isBooleanOnlyKey(key)).toBe(true);
+		}
+	});
+
+	it('is false for other keys and the empty key', () => {
+		expect(isBooleanOnlyKey('status')).toBe(false);
+		expect(isBooleanOnlyKey('')).toBe(false);
+	});
+});
+
+describe('isRefusedKey', () => {
+	it('is true for todoist_project', () => {
+		expect(isRefusedKey('todoist_project')).toBe(true);
+	});
+
+	it('is false for other keys and the empty key', () => {
+		expect(isRefusedKey('status')).toBe(false);
+		expect(isRefusedKey('')).toBe(false);
+	});
+});
+
+describe('ruleValueEditor', () => {
+	it('picks a yes/no switch for a boolean-only key or a boolean value', () => {
+		expect(ruleValueEditor('_archived', false)).toBe('boolean');
+		expect(ruleValueEditor('archived', 'x')).toBe('boolean');
+		expect(ruleValueEditor('pinned', true)).toBe('boolean');
+	});
+
+	it('picks the icon picker for _icon and its alias', () => {
+		expect(ruleValueEditor('_icon', 'lucide:star')).toBe('icon');
+		expect(ruleValueEditor('icon', '')).toBe('icon');
+	});
+
+	it('picks the color controls for _color and _title_color', () => {
+		expect(ruleValueEditor('_color', '#ef4444')).toBe('color');
+		expect(ruleValueEditor('title_color', '')).toBe('color');
+	});
+
+	it('leaves numbers and lists to the JSON', () => {
+		expect(ruleValueEditor('priority', 2)).toBe('json');
+		expect(ruleValueEditor('tags', ['a'])).toBe('json');
+	});
+
+	it('uses text for any other key, including an empty one', () => {
+		expect(ruleValueEditor('status', 'done')).toBe('text');
+		expect(ruleValueEditor('', '')).toBe('text');
+	});
+});
+
+describe('countMatchingNotes', () => {
+	const VAULT = '/vault';
+	function index(...records: PropertyIndexRecord[]): Map<string, PropertyIndexRecord> {
+		return new Map(records.map((r) => [r.path, r]));
+	}
+	const done = makeRecord({ path: '/vault/a.md', properties: new Map([['status', 'done']]) });
+	const open = makeRecord({ path: '/vault/b.md', properties: new Map([['status', 'open']]) });
+
+	it('counts the index records the filter matches', () => {
+		expect(countMatchingNotes("status == 'done'", index(done, open), VAULT)).toBe(1);
+		expect(countMatchingNotes('stauts == null', index(done, open), VAULT)).toBe(2);
+	});
+
+	it('is 0 for an empty or blank filter', () => {
+		expect(countMatchingNotes('', index(done, open), VAULT)).toBe(0);
+		expect(countMatchingNotes('   ', index(done, open), VAULT)).toBe(0);
+	});
+
+	it('is 0 for an empty index', () => {
+		expect(countMatchingNotes("status == 'done'", new Map(), VAULT)).toBe(0);
+	});
+
+	it('is null for a filter that does not parse', () => {
+		expect(countMatchingNotes("status == 'done", index(done), VAULT)).toBeNull();
+	});
+
+	it('leaves out .view records, which are not notes', () => {
+		const view = makeRecord({ path: '/vault/v.view', ext: '.view', properties: new Map([['status', 'done']]) });
+		expect(countMatchingNotes("status == 'done'", index(done, view), VAULT)).toBe(1);
+	});
+
+	it('resolves a relative file.inFolder against the vault path, like the save path', () => {
+		const inbox = makeRecord({ path: '/vault/Inbox/n.md', folder: '/vault/Inbox' });
+		expect(countMatchingNotes("file.inFolder('Inbox')", index(inbox, done), VAULT)).toBe(1);
 	});
 });
 
