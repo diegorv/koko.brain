@@ -52,7 +52,7 @@ Not now. Each needs its own Issue if wanted later:
 | 03 | The rule filter uses the view filter builder | 02 |
 | 04 | `file.inFolder` takes a vault-relative folder | none |
 | 05 | Also evaluate on move and rename (`needs-triage`, after the MVP) | 01 |
-| 06 | Rename Auto Move to Auto Organize in the app and the help | 03 |
+| 06 | Rename Auto Move to Auto Organize everywhere (no migration) | 03 |
 
 open-itens 001 (the caret follows its text when the frontmatter is rewritten) blocks 01, because the rule usually writes into the note being edited. Without 001, the caret lands inside the `---` block.
 
