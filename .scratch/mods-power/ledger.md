@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Mods write frontmatter through stable `ctx.vault.updateFrontmatter`](issues/01-stable-update-frontmatter.md) | none | in-progress | | |
+| 01 | [Mods write frontmatter through stable `ctx.vault.updateFrontmatter`](issues/01-stable-update-frontmatter.md) | none | done | issue/01-stable-update-frontmatter (bf7299b0f) | 2026-11-11 |
 | 02 | [`ctx.onNoteSaved` passes the saved content and can ignore the mod's own writes](issues/02-on-note-saved-own-writes.md) | 01, 06 | todo | | |
 | 03 | [An Auto Organize rule passes a text to its mod action](issues/03-rule-action-input.md) | none | todo | | |
 | 04 | [Mods match notes with the view and rule expression engine (`ctx.query`)](issues/04-expression-engine-for-mods.md) | 02 | todo | | |
@@ -48,3 +48,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-11 08:27 — ledger created (8 Issues)
 - 2026-11-11 08:37 — 01 — start — launched by /relay-lite:run — 6d59dafcd
+- 2026-11-11 08:51 — 01 — deliver — merged as bf7299b0f; reviews APPROVED (claude) x2, round-1 nit fixed in help/documentation/mods/04-vault-files.md; full suite passed (611 files, 15384 tests) — bf7299b0f
