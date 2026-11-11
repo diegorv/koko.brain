@@ -42,6 +42,19 @@ The help page gets a "Computed values" section with the three examples above and
 - [ ] Settings: the switch saves `expr`, an invalid expression shows the validator's error, and the preview shows the active note's result.
 - [ ] Docs updated. Frontend gate passes.
 
+## Review amendments (2026-11-10)
+
+From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/issue-review-08*.md` and `issue-review-cross.md`. **These override the Behavior and Acceptance above where they differ.** The run order and the shared gates are in `PRD.md`, "Run order and gates for Issues 07-13".
+
+1. **Failures** (Behavior 3) also include a non-finite number (`NaN`) and an invalid date. `"a" + "b"` is `NaN`, because `+` does not join text (`evaluator.ts:248-251,277`). The help page says to use `["a", "b"].join("")`. Add an acceptance case.
+2. **Volatile values** (Behavior 4): refuse `now()`, `file.mtime`, `file.ctime` **and `file.size`** with `always` **or `add`**. With `add`, each save would append a new item.
+3. **Lifecycle keys:** on `_organized`, `_archived` and `_favorite`, only a boolean result is written. Any other result is a failure (PRD Decision 10).
+4. **`add` with `expr`** (amends Issue 07 Behavior 1): an `add` needs a `value` or an `expr`. Only a string or `string[]` result is added; any other result is a failure. `remove` rows show no value/expression switch.
+5. **Dates** (Behavior 2): written as the **local** `YYYY-MM-DD`, or the local `YYYY-MM-DDTHH:mm:ss` when the expression uses `now()`. Never `toISOString()`: that is UTC, and it is read back as text (`properties.logic.ts:40`).
+6. **Example fixed:** `.last()` does not exist (`methods.logic.ts:140-169,269`). Use `file.folder.split("/").slice(-1).join("")`, and add an acceptance case for it.
+7. **Real stats** (Behavior 5): a record whose `mtime` or `ctime` is `<= 0` counts as missing, so use the fallback. A new note's index record is 0 until the Rust delta lands (`collection.service.ts:153-160`), and `created: file.ctime` would otherwise stamp 1970. The values are "as of the last index refresh". Drop the claim that this fixes `file.mtime` filters, and keep the help-page trap for `file.mtime`.
+8. **Tests** with `today() + "7d"` pin a date range with no DST change (for example 2026-06-10). The help page gets one line: durations are fixed hours, so across a DST change the result can be a day off.
+
 ## Notes
 
 - **Owner decisions, 2026-11-10 survey:**

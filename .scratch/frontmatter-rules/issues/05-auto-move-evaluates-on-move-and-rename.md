@@ -1,8 +1,8 @@
 # 05: Auto Move also evaluates a note when it is moved or renamed into a folder
 
-**What to build:** Today Auto Move runs only from the after-save hook (`auto-move.service.ts:96`). A note dragged into a folder, or renamed, is not evaluated until its next save, so a rule's property consequences (Issue 01) for that folder are not applied, and a move rule does not route it. The proposal: also evaluate after a user move or rename, with the same debounce and the same rules.
+**What to build:** (Names after Issue 06: Auto Organize, `features/auto-organize/`.) Today Auto Move runs only from the after-save hook (`auto-move.service.ts:96`). A note dragged into a folder, or renamed, is not evaluated until its next save, so a rule's property consequences (Issue 01) for that folder are not applied, and a move rule does not route it. The proposal: also evaluate after a user move or rename, with the same debounce and the same rules.
 
-**Blocked by:** 01
+**Blocked by:** 06
 
 **Status:** needs-triage
 

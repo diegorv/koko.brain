@@ -73,6 +73,23 @@
 - [ ] `22-auto-organize.md` has the overview example, the Filters section with the reference and every trap in Behavior 7, the Actions section, and the five complete examples. Each example rule is valid: put them in `help/examples/auto-organize-features/.kokobrain/auto-organize-rules.json` (or a test fixture), and have `examples-scoping.test.ts` or a new test parse and evaluate each against a sample note.
 - [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
+## Review amendments (2026-11-10)
+
+From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/issue-review-06*.md` and `issue-review-cross.md`. **These override the Behavior and Acceptance above where they differ.** The run order and the shared gates are in `PRD.md`, "Run order and gates for Issues 07-13".
+
+1. **Examples are not put in the shipped example rules file.** Users copy `help/examples/auto-organize-features/auto-organize-rules.json` into their vaults (README there), and its rules must stay folder-scoped (`SCOPING.md`, `examples-scoping.test.ts:231-235,405,420-430`). The file is flat, not under `.kokobrain/`. The five help examples (Behavior 7) are checked from a test fixture under `src/tests/help/`. Each one is parsed and run through `findMatchingRules`, `ownedProperties` and `propertiesToWrite` against a sample note.
+2. **Trap 1 corrected:**
+   - in a filter, the underscore is required only for `_icon`, `_color` and `_title_color`. `type` is aliased (`evaluator.ts:95-97`);
+   - `organized`, `archived` and `favorite` always exist as derived true/false flags (`collection.logic.ts:61-65`). They are the recommended spelling for "is it archived" (`12-collection.md:389-401`). `_archived` is the raw value and is null when absent;
+   - drop "no `archived == true`" from the examples rule.
+3. **Trap 3 is scoped:**
+   - a single-expression rule whose condition throws is skipped and reported;
+   - in a builder (object) filter, a throwing condition counts as false. Inside "none", that makes it match: point to Issue 03's note on the page and to Issue 13, which fixes it.
+4. **Trap 4 reworded:** a property name may contain letters, digits, `_`, and a hyphen before a letter (`due-date`). It may not start with a digit. Write `a - b` with spaces to subtract (`tokenizer.ts:143-151`).
+5. **The grep acceptance** allow-lists the "Formerly called Auto Move" line and the legacy-file test (which names `auto-move-rules.json`). Drop the `.scratch` clause.
+6. **PRD.** The delivering agent updates `PRD.md` Decisions 2 and 9 to the new names (`auto-organize-rules.json`, `AUTO-ORGANIZE`).
+7. **Rename table:** add `src/tests/fixtures/AutoMoveRuleRowHarness.svelte` (from Issue 03) and the link in `docs/FEATURES.md:36`. Grep `docs/` too.
+
 ## Notes
 
 - **Origin:** the owner chose the name "Auto Organize" on 2026-11-10, from Automations, Note Rules, Rules and Auto Organize. The owner then asked for a full rename with no migration: no vault uses Auto Move today, so nothing is lost.

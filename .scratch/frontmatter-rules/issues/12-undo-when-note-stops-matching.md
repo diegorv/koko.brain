@@ -28,6 +28,13 @@
 - [ ] The example pair is in the examples config, and a test evaluates it on a `blocked` note and an `active` note, with the expected `_color` result for each.
 - [ ] `pnpm vitest run src/tests/help` passes.
 
+## Review amendments (2026-11-10)
+
+From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/issue-review-12*.md` and `issue-review-cross.md`. **These override the Behavior and Acceptance above where they differ.** The run order and the shared gates are in `PRD.md`, "Run order and gates for Issues 07-13".
+
+1. **Fixture, not the shipped example file.** The pair goes in a test fixture under `src/tests/help/`. The shipped `help/examples/auto-organize-features/auto-organize-rules.json` is flat and must stay folder-scoped. The test runs `findMatchingRules`, `ownedProperties` and `propertiesToWrite` on a `blocked` note and an `active` note.
+2. **The help-page pair uses exclusive filters.** It also notes that another rule owning `_color` (such as Issue 06's examples) wins by list order.
+
 ## Notes
 
 - **Owner decision, 2026-11-10 survey:** "only document the pair".

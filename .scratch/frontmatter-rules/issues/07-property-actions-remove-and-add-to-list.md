@@ -2,7 +2,7 @@
 
 **What to build:** two more modes for a rule's property consequences (Issue 01). `remove` deletes a property from the note. `add` adds items to a list property without replacing it. Example: give every note in `work/` the tag `work` while keeping its other tags. Read `.scratch/frontmatter-rules/PRD.md` and Issue 01 first. Paths below use the names after Issue 06 (`features/auto-organize/`).
 
-**Blocked by:** 06
+**Blocked by:** 13
 
 **Status:** ready-for-agent
 
@@ -38,6 +38,16 @@ The help page, `22-auto-organize.md` after Issue 06: the modes table gets `remov
 - [ ] Settings: the new modes are saved; a `remove` row has no value field.
 - [ ] Load: an `add` with a boolean value is dropped.
 - [ ] Docs updated. Frontend gate passes.
+
+## Review amendments (2026-11-10)
+
+From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/issue-review-07*.md` and `issue-review-cross.md`. **These override the Behavior and Acceptance above where they differ.** The run order and the shared gates are in `PRD.md`, "Run order and gates for Issues 07-13".
+
+1. **`remove` on `tags` clears the whole key.** Removing a single tag is not supported. The `#`-less comparison applies to `add` only. The help page says so plainly, with a warning: `{ key: 'tags', value: 'draft', mode: 'remove' }` deletes every tag.
+2. **Blank items:** `add` items are trimmed and blank items are ignored. An `add` with no item left is dropped on load. Settings splits on commas the same way.
+3. **`remove` on `_archived` does not unarchive the folder.** The unarchive lifecycle rule needs `_archived == false` (`type-lifecycle-rules.ts:52`), so a note in its archive folder stays there. The help page tells users to set `always _archived: false` to unarchive.
+4. **Behavior 3, last case:** "a number, a boolean or a map" becomes "a number or a boolean". A nested map makes the note lossy, and the whole note is skipped earlier (`properties.logic.ts:286-296,431-433`).
+5. **Issue 08** (computed values) defines how `add` treats an expression result.
 
 ## Notes
 

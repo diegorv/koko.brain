@@ -2,9 +2,9 @@
 
 **What to build:** a new consequence, **run mod action**. When a note matches, the rule invokes an action that a vault mod registered for rules, passing the matched note, so a mod can do what the built-in actions cannot. Read the PRD, Issue 01, ADR 0036 and `help/documentation/28-mods.md` first.
 
-**Blocked by:** 09
+**Blocked by:** 12
 
-**Status:** ready-for-agent
+**Status:** needs-info
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -32,6 +32,23 @@
 - [ ] A mod action written for the old API, with no argument, still runs.
 - [ ] Settings lists only rule-enabled actions.
 - [ ] ADR 0036 is amended, and the mods docs and the help pages are updated. Frontend gate passes.
+
+## Review amendments (2026-11-10)
+
+From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/issue-review-10*.md` and `issue-review-cross.md`. **These override the Behavior and Acceptance above where they differ.** The run order and the shared gates are in `PRD.md`, "Run order and gates for Issues 07-13".
+
+**Status note:** `needs-info`. Behavior 3 needs a change to the mod contract in the private repository `diegorv/koko.brain-mods` (`ModActionV1.run`, contract line 103). The owner commits and pushes it, then this repo adopts it by SHA (`docs/MOD-CORE.md` "Updating the dependency", `package.json:81`). Moved to the end of the chain, so it does not block 11 and 12.
+
+1. **The note path is vault-relative**, not absolute. The mod API rejects a leading `/` (`mods.logic.ts:69-73`), and `run.target.path` and `onNoteSaved` are vault-relative. Use the path at the end of the run, after any Issue 11 rename and the move.
+2. **The contract change is additive to v1,** with no `apiVersion` bump (ADR 0036:13, contract header): an optional third `run` parameter, `context?: { notePath }`.
+   - Gate: add `pnpm build`, because the lockfile changes.
+   - Blocked by: the mod-core commit, whose SHA goes in Notes.
+3. **Opt-in:** the manifest declares no actions; actions are registered at runtime (`mods-host.service.ts:472-512`). Use an optional manifest list, `"ruleActions": ["<local action id>"]`, validated by `parseModManifest` (`mods.logic.ts:138-210`). Settings offers the actions that are both listed there and registered by a loaded mod. Drop the "or the equivalent field" clause.
+4. **Outside the skip set.** The action is invoked after the `finally` that releases the run's skip set. Its saves are ordinary saves, not the run's own writes. The early return at `auto-move.service.ts:255` must let an action-only rule through.
+5. **Gates:** invoke only when `propertyWriteSkipReason` returns null for the final path. No templates, `_system`, type definitions or non-Markdown files. Test that a matching note in the templates folder does not invoke it.
+6. **Loops** (Behavior 6) do not need an `always` rule. `ctx.vault.write` has no equality guard, so an action that writes the matched note runs again about every 3 s while the note matches, and an appending action grows the note without bound. The docs state this, and give the fixes: a marker property, or an idempotent write. Add a test that a writing fake action schedules exactly one more evaluation.
+7. **PRD:** the `core/` registry supersedes PRD line 5 ("Nothing new is added to core/"), which scoped the MVP only.
+8. **Docs:** add "Run mod action" to the Actions list on the help page.
 
 ## Notes
 

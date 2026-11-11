@@ -51,16 +51,49 @@ Not now. Each needs its own Issue if wanted later:
 | 02 | Rule consequences in Settings | 01 |
 | 03 | The rule filter uses the view filter builder | 02 |
 | 04 | `file.inFolder` takes a vault-relative folder | none |
-| 05 | Also evaluate on move and rename (`needs-triage`, after the MVP) | 01 |
+| 05 | Also evaluate on move and rename (`needs-triage`, after the MVP) | 06 |
 | 06 | Rename Auto Move to Auto Organize everywhere (no migration), and document filters and actions | 03 |
-| 07 | Property actions can remove a property or add items to a list | 06 |
+| 07 | Property actions can remove a property or add items to a list | 13 |
 | 08 | Property values can be computed with the expression engine | 07 |
 | 09 | A rule can create a note | 08 |
-| 10 | A rule can run a mod action | 09 |
-| 11 | A rule can rename the note | 10 |
+| 10 | A rule can run a mod action (`needs-info`: mod-core commit by the owner) | 12 |
+| 11 | A rule can rename the note | 09 |
 | 12 | Document the two-rule pattern for values that switch back (docs only) | 11 |
+| 13 | An object rule filter reports a condition that fails at runtime (safety; found in Issue 03 review) | 06 |
 
 open-itens 001 (the caret follows its text when the frontmatter is rewritten) blocks 01, because the rule usually writes into the note being edited. Without 001, the caret lands inside the `---` block.
+
+## Run order and gates for Issues 07-13
+
+Issues 06-13 come after the MVP. Where they change an MVP decision, they supersede it:
+- **Issue 06:** Decision 2's file name and Decision 9's `AUTO-MOVE` tag become `auto-organize-rules.json` and `AUTO-ORGANIZE`.
+- **Issues 07 and 08:** Decision 4 ("values are literals") widens to `remove`, `add` and computed values.
+- **Issue 10:** line 5 ("Nothing new is added to `core/`") gives way to a small registry in `core/`. The mod action's own saves are ordinary saves, outside Decision 6's skip set.
+- **Issues 07, 08, 09 and 11:** the "Out of the MVP" items they implement are in scope.
+
+**One run, in this order:**
+1. rename (11);
+2. move;
+3. the legacy icon;
+4. properties, in one write (01, 07, 08);
+5. create note (09).
+
+Steps 1-5 happen inside the skip set. Then:
+
+6. run mod action (10), after the skip set is released.
+
+After a rename, every later step resolves with the new name and path. A failed rename or move skips every later step of that run.
+
+**Shared gates.** Every action except the move runs only when the note passes Issue 01's Behavior 10 gates (`propertyWriteSkipReason`):
+- Markdown only;
+- not `_system`;
+- not the templates folder;
+- not a type definition;
+- frontmatter that is not lossy.
+
+A rule whose only consequence is a rename, a create or an action must still act. Widen the service's early return and the Settings "does nothing" hint each time.
+
+**Chain:** 06, 13, 07, 08, 09, 11, 12, then 10. Issue 10 is `needs-info`: it needs a mod-core contract commit the owner pushes. Issue 05 stays `needs-triage`.
 
 ## Superseded
 
