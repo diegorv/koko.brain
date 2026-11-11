@@ -291,6 +291,35 @@ describe('parseModManifest', () => {
 			expect(errorOf(withColor({ light: '#abc', dark: value }))).toBe(DARK_ERROR);
 		});
 	});
+
+	describe('ruleActions', () => {
+		const withRuleActions = (ruleActions: unknown) => manifest({ ...VALID, ruleActions });
+		const ERROR = '_system/mods/hello: manifest.json ruleActions must be a list of action ids';
+
+		it('keeps a list of action ids as written', () => {
+			expect(parseModManifest(withRuleActions(['summarize', 'tag']), 'hello')).toEqual({
+				ok: true,
+				manifest: { ...VALID, ruleActions: ['summarize', 'tag'] },
+			});
+		});
+
+		it('keeps an empty list, and gives no key without one', () => {
+			expect(parseModManifest(withRuleActions([]), 'hello')).toEqual({ ok: true, manifest: { ...VALID, ruleActions: [] } });
+			const result = parseModManifest(manifest(VALID), 'hello');
+			if (!result.ok) throw new Error('expected a valid manifest');
+			expect('ruleActions' in result.manifest).toBe(false);
+		});
+
+		it.each([
+			['a string', 'summarize'],
+			['null', null],
+			['an object', { summarize: true }],
+			['a number in the list', ['summarize', 3]],
+			['an empty id', ['']],
+		])('rejects %s', (_name, ruleActions) => {
+			expect(errorOf(withRuleActions(ruleActions))).toBe(ERROR);
+		});
+	});
 });
 
 describe('evaluateModSource', () => {

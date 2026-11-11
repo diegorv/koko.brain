@@ -45,6 +45,7 @@ import { rename, writeTextFile } from '@tauri-apps/plugin-fs';
 import { notifyAfterSave, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
@@ -165,6 +166,50 @@ describe('auto-organize rule writes never schedule another run', () => {
 		expect(files.get(created)).toBe('');
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(vi.getTimerCount()).toBe(0);
+	});
+
+	describe('run mod action', () => {
+		afterEach(() => ruleActionsStore.reset());
+
+		it('the saves a mod action makes are ordinary saves: a write to the note schedules exactly one more evaluation', async () => {
+			const path = '/vault/notes/note.md';
+			files.set(path, '---\nstatus: open\n---\nbody');
+			const calls: string[] = [];
+			// Writes the note on its first call only, as `ctx.vault.write` does: the file, then the after-save.
+			ruleActionsStore.register({
+				id: 'mod:ai:action:summarize',
+				label: 'AI: Summarize',
+				run: async (target) => {
+					calls.push(target.path);
+					if (calls.length > 1) return;
+					const next = `${files.get(path)}\nsummary`;
+					files.set(path, next);
+					notifyAfterSave(path, next);
+				},
+			});
+			setRules([
+				{
+					id: 'summarize',
+					name: 'Summarize',
+					expression: 'true',
+					destination: '',
+					enabled: true,
+					runAction: { id: 'mod:ai:action:summarize' },
+				},
+			]);
+
+			notifyAfterSave(path, files.get(path)!);
+			await vi.advanceTimersByTimeAsync(DEBOUNCE + 10);
+			expect(calls).toEqual(['notes/note.md']);
+
+			await vi.advanceTimersByTimeAsync(DEBOUNCE + 10);
+			expect(calls).toEqual(['notes/note.md', 'notes/note.md']);
+
+			await drain();
+			expect(calls).toHaveLength(2);
+			expect(files.get(path)).toBe('---\nstatus: open\n---\nbody\nsummary');
+			expect(vi.getTimerCount()).toBe(0);
+		});
 	});
 
 	describe('rename', () => {

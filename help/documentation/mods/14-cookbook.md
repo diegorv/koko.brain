@@ -41,6 +41,7 @@ Each recipe gives the goal, the stability of what it uses, the code, and the rea
 | 18 | [A live stat of the active note](#18-a-live-stat-of-the-active-note) | stable `watch`, raw editor, app DOM |
 | 19 | [Copy to the clipboard](#19-copy-to-the-clipboard) | browser clipboard, unstable menu |
 | 20 | [Stamp a property on save, safely](#20-stamp-a-property-on-save-safely) | stable `onNoteSaved`, raw frontmatter |
+| 21 | [An action an Auto Organize rule runs](#21-an-action-an-auto-organize-rule-runs) | manifest `ruleActions`, stable `run.target` + vault, raw frontmatter |
 
 ## 1. Append a timestamped line to the daily note
 
@@ -2651,6 +2652,144 @@ Why it is written this way:
 - `stamp` catches everything, so `void stamp(path)` cannot leave an unhandled rejection. Lossy frontmatter (comments, nested values, anchors) is refused by the app with nothing written, and logged here.
 - The first stamp rewrites the note's frontmatter in the app's canonical form (`[a, b]` lists, `_type:`, needless quotes dropped, `\n` line breaks). Tell the user, since it changes more than the `updated` line.
 - A note renamed or moved while pending is stamped at its old path, which fails quietly in the log.
+
+## 21. An action an Auto Organize rule runs
+
+Goal: when a meeting note is marked done, append a one-line summary of its open tasks and mark it, once, from an [Auto Organize rule](../22-auto-organize.md#running-a-mod-action).
+
+Uses: the manifest's `ruleActions`, stable `run.target`, `ctx.vault`; raw `ctx.app.editorStore` and `ctx.app.syncExternalContentToEditor` through `editNote`.
+
+`manifest.json`:
+
+```json
+{ "id": "meeting-tools", "name": "Meeting tools", "version": "1.0.0", "ruleActions": ["summarize"] }
+```
+
+`main.js`:
+
+```javascript
+const FRONTMATTER = /^---\r?\n([\s\S]*?\r?\n)?---[ \t]*(?:\r?\n|$)/;
+
+// toAbsolute, toVaultPath, changedRange and editNote: copied from 04 § Absolute paths and § editNote.
+
+/** Vault-relative path (ctx.vault, run.target, onNoteSaved) to the absolute form ctx.app and ctx.kb() use. */
+function toAbsolute(ctx, path) {
+	return `${ctx.app.vaultStore.path}/${path}`;
+}
+
+/**
+ * Absolute app path to the vault-relative form ctx.vault takes. Throws outside the vault.
+ * Collapses "//" first: app paths built from a folder setting with an edge slash
+ * (a daily-note folder set to "Journal/") carry it, and ctx.vault rejects it.
+ */
+function toVaultPath(ctx, absolute) {
+	const root = ctx.app.vaultStore.path.replace(/\/+$/, '');
+	const path = absolute.replace(/\/{2,}/g, '/');
+	if (!path.startsWith(`${root}/`)) throw new Error(`"${absolute}" is outside the vault`);
+	return path.slice(root.length + 1);
+}
+
+/** The one range that turns `before` into `after`, for a minimal editor change. */
+function changedRange(before, after) {
+	const max = Math.min(before.length, after.length);
+	let from = 0;
+	while (from < max && before[from] === after[from]) from++;
+	let tail = 0;
+	while (tail < max - from && before[before.length - 1 - tail] === after[after.length - 1 - tail]) tail++;
+	return { from, to: before.length - tail, insert: after.slice(from, after.length - tail) };
+}
+
+/**
+ * Applies `edit(text) => newText` to a note that may be open in the editor.
+ * `absolutePath` is an app path (`${ctx.app.vaultStore.path}/Folder/Note.md`).
+ * `edit` must be synchronous and return a string; it runs exactly once.
+ * Resolves to whether the text changed. Rejects when the note is missing,
+ * when `edit` throws, and when a background tab holds unsaved edits of this note.
+ */
+async function editNote(ctx, absolutePath, edit) {
+	const { activeTab: tab, editorView: view } = ctx.app.editorStore;
+	const normalized = (path) => path.replace(/\/{2,}/g, '/');
+	if (tab && normalized(tab.path) === normalized(absolutePath) && view?.dom.isConnected) {
+		const text = view.state.doc.toString();
+		// An editor not yet showing this note must not take the edit: it would land in another note.
+		// The view's doc uses "\n"; the tab keeps a CRLF file's raw text until the first edit.
+		if (text === tab.content.replace(/\r\n?/g, '\n')) {
+			const next = edit(text);
+			if (next === text) return false;
+			view.dispatch({ changes: changedRange(text, next) });
+			return true;
+		}
+	}
+	const path = toVaultPath(ctx, absolutePath);
+	const text = await ctx.vault.read(path);
+	const next = edit(text);
+	if (next === text) return false;
+	// ctx.vault matches tabs by exact path, so a tab opened at a path with "//" needs both steps by hand.
+	const openTab = () => ctx.app.editorStore.tabs.find((t) => normalized(t.path) === normalized(absolutePath));
+	const before = openTab();
+	if (before && before.content !== before.savedContent) throw new Error(`"${path}" has unsaved changes in an open tab`);
+	await ctx.vault.write(path, next);
+	const after = openTab();
+	if (after && after.content === after.savedContent && after.content !== next) {
+		ctx.app.syncExternalContentToEditor(after.path, next, true, 'none');
+	}
+	return true;
+}
+
+/**
+ * Appends the open-task count and sets `summarized: true`, as one change.
+ * Returns `text` unchanged for a note already summarized, so editNote writes nothing.
+ */
+function summarize(text) {
+	const match = FRONTMATTER.exec(text);
+	if (!match) throw new Error('The note has no frontmatter');
+	const props = (match[1] ?? '').split(/\r?\n/).filter((line) => line !== '');
+	// The marker the rule's filter excludes: a note already summarized is left alone.
+	if (props.some((line) => /^summarized:\s*true\s*$/.test(line))) return text;
+	const body = text.slice(match[0].length);
+	const open = body.split('\n').filter((line) => /^\s*- \[ \] /.test(line)).length;
+	const head = ['---', ...props.filter((line) => !/^summarized\s*:/.test(line)), 'summarized: true', '---'].join('\n');
+	return `${head}\n${body.replace(/\s*$/, '')}\n\nOpen tasks at close: ${open}\n`;
+}
+
+export default {
+	onload(ctx) {
+		ctx.addAction({
+			id: 'summarize',
+			title: 'Summarize open tasks',
+			run: async (_text, run) => {
+				// A rule and a note menu both give { on: 'note', path }; anything else is refused.
+				if (run.target?.on !== 'note') throw new Error('Choose a note');
+				const { path } = run.target;
+				await editNote(ctx, toAbsolute(ctx, path), summarize);
+			},
+		});
+	},
+};
+```
+
+The rule, in `.kokobrain/auto-organize-rules.json`:
+
+```json
+{
+	"id": "rule-1710000000000-s5m4r",
+	"name": "Summarize finished meetings",
+	"expression": "type == \"meeting\" && status == \"done\" && summarized != true",
+	"destination": "",
+	"runAction": { "id": "mod:meeting-tools:action:summarize" },
+	"enabled": true
+}
+```
+
+Why it is written this way:
+
+- **The marker ends the loop.** The change is an ordinary save, so the rules check the note again a few seconds later. By then `summarized: true` is set and the filter excludes it, so the action does not run again. Without the marker, the action would append a new line every few seconds for as long as the note stays done. The check in `summarize` covers a note menu click on a note already summarized: it returns the text unchanged and `editNote` writes nothing.
+- **One change, not two.** The summary line and the marker go into the note in the same edit. With two writes, a failure after the first would leave the line without the marker, and the note would grow by one line on every round.
+- **The caret stays with the user's text.** A rule fires a few seconds after an editor save, so the matched note is usually the active tab. `editNote` changes it through the editor there, as if the user had typed it. `ctx.vault.write` and `updateNoteFrontmatter` would put the caret back at its old offset, and the frontmatter line added above it would move the next keystroke earlier, often into the `---` block (see [Vault files: `write`](04-vault-files.md#writepath-content)).
+- **No dialog.** Nobody clicked: the rule runs the action a few seconds after the save. A `run.ui` or `ctx.ui` call would wait for an answer nobody gives.
+- `run.target` is read before any `await`, as in every action.
+- **A background tab with unsaved edits** of the note makes `editNote` reject with `has unsaved changes in an open tab`: the run ends **Failed** with a toast, nothing is written, and the rule tries again at the note's next save. The active tab takes the edit and autosave writes it.
+- The frontmatter is edited as text, one `key: value` line per property. A `summarized:` line already there (`summarized: false`) is replaced.
 
 ## See also
 

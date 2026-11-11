@@ -85,6 +85,7 @@ A mod that is switched off is still listed (with its manifest name) but its `mai
 | `author` | no | String |
 | `minAppVersion` | no | Looks like `1.2.3`; checked for shape, not enforced |
 | `color` | no | The icon color of all the mod's rail buttons: an object with both `light` and `dark`, each `#rgb` or `#rrggbb`. `light` applies on light themes and `dark` on dark ones, and it follows a theme change at once. Without `color`, a button uses the default color |
+| `ruleActions` | no | A list of the mod's action ids that an [Auto Organize rule](22-auto-organize.md#running-a-mod-action) can run, such as `["summarize"]` (see [Actions run by a rule](#actions-run-by-a-rule)) |
 
 Unknown keys are ignored. A broken manifest shows the mod as **Error** in Labs with a message that names the folder and the field, for example:
 
@@ -205,6 +206,14 @@ ctx.addRailButton({
   - `run` may be async. If it throws or rejects, the run ends **Failed** and a toast shows "`<mod name>`: `<title>` failed: `<message>`"; the error also goes to the debug log, never to Sentry. A rejection after **Stop** is not a failure.
 - **`addRailButton(button)`** adds a button to the rail and returns a function that removes it. Clicking it opens a picker with the button's actions (resolved at click time, so actions added later are listed). When the button resolves to **a single action**, the click skips the list: an action without `input` runs at once, and one with `input` opens straight on its text field. A mod can add several buttons, each with its own `actions` list.
 - **Icons** are `pack:name` or a bare Lucide name. Packs: `lucide`, `feather`, `fa-solid`, `fa-regular`, `fa-brands`, `octicons`, `boxicons`, `coolicons`, `simple-icons`, `tabler`, `remix`, `emoji`. An unknown icon falls back to a default.
+
+### Actions run by a rule
+
+An [Auto Organize rule](22-auto-organize.md#running-a-mod-action) can run an action on the note it matched, for what the built-in rule actions cannot do. List the action's id in the manifest's `ruleActions`; Settings then offers it under the rule's **Run mod action**. The rule calls the action with no text (`''`) and `run.target = { on: 'note', path }`, the note's vault-relative path at the end of the save: the same shape a note menu click gives, so the action cannot tell the two apart. Write a listed action to be safe for both:
+
+- **No dialogs.** The rule runs it a few seconds after a save, with nobody at the keyboard. The rule does not wait for it, so a dialog nobody answers does not block saving; it only leaves the run open until **Stop**.
+- **Writing the note runs the rules again.** `ctx.vault.write` has no equality guard and runs Auto Organize, so an action that writes the note it was given runs again a few seconds later, for as long as the note matches the rule. An action that appends grows the note at every round, and one that writes a key an `always` rule owns fights the rule. Set a marker property the rule's filter excludes (`summarized != true`), or write only when the text changes. See [Cookbook: an action an Auto Organize rule runs](mods/14-cookbook.md#21-an-action-an-auto-organize-rule-runs).
+- **One run at a time.** A save that matches while the action is still running starts nothing.
 
 ### `ctx.labs.place`: palette and right-click menus
 

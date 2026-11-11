@@ -9,6 +9,7 @@ import type { PropertyIndexRecord } from '#lib/features/collection/collection.ty
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
+import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
 import { loadAutoOrganizeConfig } from '#lib/features/auto-organize/auto-organize.service.js';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import Harness from '../../../fixtures/AutoOrganizeRuleRowHarness.svelte';
@@ -1006,6 +1007,83 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		});
 	});
 
+	describe('Run mod action', () => {
+		const SUMMARIZE = 'mod:ai:action:summarize';
+		const actionLabel = () => document.querySelector('[aria-label="Mod action"] [data-slot="select-value"]')?.textContent?.trim();
+
+		/** Registers a rule action under `id`, labelled `label`. */
+		function registerAction(id: string, label: string) {
+			ruleActionsStore.register({ id, label, run: async () => {} });
+		}
+
+		/** Opens the mod action Select and returns its options' text. */
+		async function openOptions(): Promise<(string | undefined)[]> {
+			const trigger = document.querySelector<HTMLElement>('[data-slot="select-trigger"][aria-label="Mod action"]')!;
+			trigger.focus();
+			trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			flushSync();
+			return vi.waitFor(() => {
+				const found = [...document.querySelectorAll<HTMLElement>('[role="option"]')].map((o) => o.textContent?.trim());
+				if (found.length === 0) throw new Error('menu not open');
+				return found;
+			});
+		}
+
+		afterEach(() => ruleActionsStore.reset());
+
+		it('offers None and the registered rule actions only', async () => {
+			registerAction(SUMMARIZE, 'AI: Summarize');
+			registerAction('mod:ai:action:tag', 'AI: Tag');
+			await render(BLANK);
+
+			expect(actionLabel()).toBe('None');
+			expect(await openOptions()).toEqual(['None', 'AI: Summarize', 'AI: Tag']);
+		});
+
+		it('lists an action a mod registers after the row opened', async () => {
+			await render(BLANK);
+			registerAction(SUMMARIZE, 'AI: Summarize');
+			await settle();
+
+			expect(await openOptions()).toEqual(['None', 'AI: Summarize']);
+		});
+
+		it('saves the picked action, and None removes it', async () => {
+			registerAction(SUMMARIZE, 'AI: Summarize');
+			const onupdate = await render(BLANK);
+
+			await choose(document.body, 'Mod action', 'AI: Summarize');
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { runAction: { id: SUMMARIZE } });
+			expect(actionLabel()).toBe('AI: Summarize');
+
+			await choose(document.body, 'Mod action', 'None');
+			expect(onupdate).toHaveBeenLastCalledWith('r1', { runAction: undefined });
+		});
+
+		it('keeps showing a saved action no loaded mod lists, and says so', async () => {
+			await render({ ...BLANK, runAction: { id: SUMMARIZE } });
+
+			expect(actionLabel()).toBe(`${SUMMARIZE} (not loaded)`);
+			expect(document.querySelector('[data-run-action-missing]')).not.toBeNull();
+			expect(await openOptions()).toEqual(['None', `${SUMMARIZE} (not loaded)`]);
+		});
+
+		it('shows a saved action whose id is "none" as that action, not as None', async () => {
+			await render({ ...BLANK, runAction: { id: 'none' } });
+
+			expect(actionLabel()).toBe('none (not loaded)');
+			expect(await openOptions()).toEqual(['None', 'none (not loaded)']);
+		});
+
+		it('says nothing once the saved action is loaded', async () => {
+			registerAction(SUMMARIZE, 'AI: Summarize');
+			await render({ ...BLANK, runAction: { id: SUMMARIZE } });
+
+			expect(actionLabel()).toBe('AI: Summarize');
+			expect(document.querySelector('[data-run-action-missing]')).toBeNull();
+		});
+	});
+
 	describe('does-nothing hint', () => {
 		it('shows for a rule with no destination and no properties', async () => {
 			await render(BLANK);
@@ -1033,6 +1111,12 @@ describe('AutoOrganizeRuleRow consequences', () => {
 
 		it('hides once the rule renames the note', async () => {
 			await render({ ...BLANK, rename: { name: 'Weekly' } });
+
+			expect(hint()).toBeNull();
+		});
+
+		it('hides once the rule runs a mod action', async () => {
+			await render({ ...BLANK, runAction: { id: 'mod:ai:action:summarize' } });
 
 			expect(hint()).toBeNull();
 		});

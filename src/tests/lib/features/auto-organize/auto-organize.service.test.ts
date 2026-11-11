@@ -41,6 +41,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
+import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import type { AutoOrganizeRule, RuleProperty } from '#lib/features/auto-organize/auto-organize.types.js';
@@ -1873,6 +1874,168 @@ describe('auto-organize.service', () => {
 
 				await run(autoOrganizeStore.rules.slice(1));
 				expect(renameItem).not.toHaveBeenCalled();
+			});
+		});
+
+		describe('run mod action', () => {
+			const ACTION = 'mod:ai:action:summarize';
+			const CONTENT = '---\nstatus: done\n---\nbody';
+			const originalTemplates = { ...settingsStore.templates };
+			const NOT_LOADED = `Rule "Rule r1" cannot run mod action ${ACTION}: no loaded mod lists it in ruleActions`;
+
+			/** Registers a fake rule action under `id` and returns its run mock. */
+			function fakeAction(id = ACTION, run: (target: { on: 'note'; path: string }) => Promise<void> = async () => {}) {
+				const mock = vi.fn(run);
+				ruleActionsStore.register({ id, label: 'AI: Summarize', run: mock });
+				return mock;
+			}
+
+			/** A rule matching every note whose only consequence is running `id`, unless given. */
+			function runner(id: string, actionId = ACTION, overrides: Partial<AutoOrganizeRule> = {}): AutoOrganizeRule {
+				return rule(id, undefined, { runAction: { id: actionId }, ...overrides });
+			}
+
+			beforeEach(() => {
+				ruleActionsStore.reset();
+			});
+
+			afterEach(() => {
+				settingsStore.updateTemplates(originalTemplates);
+				ruleActionsStore.reset();
+			});
+
+			it('runs the action once, after the move and the property writes, on the note at its final vault-relative path', async () => {
+				let writesBefore = -1;
+				const action = fakeAction(ACTION, async () => {
+					writesBefore = vi.mocked(writeTextFile).mock.calls.length;
+				});
+
+				await saveAndRun(
+					[runner('r1', ACTION, { destination: 'Archive', properties: [{ key: 'x', value: 1, mode: 'always' }] })],
+					NOTE,
+					CONTENT,
+				);
+
+				expect(action).toHaveBeenCalledTimes(1);
+				expect(action).toHaveBeenCalledWith({ on: 'note', path: 'Archive/note.md' });
+				expect(lastWrite('/vault/Archive/note.md')).toContain('x: 1');
+				expect(writesBefore).toBe(1);
+			});
+
+			it('runs the action of a rule whose only consequence is the action, in place', async () => {
+				const action = fakeAction();
+
+				await saveAndRun([runner('r1')], NOTE, CONTENT);
+
+				expect(action).toHaveBeenCalledWith({ on: 'note', path: 'notes/note.md' });
+				expect(moveItem).not.toHaveBeenCalled();
+				expect(writeTextFile).not.toHaveBeenCalled();
+			});
+
+			it('runs only the first matching rule\'s action', async () => {
+				const first = fakeAction('mod:ai:action:first');
+				const second = fakeAction('mod:ai:action:second');
+
+				await saveAndRun(
+					[rule('r0', [{ key: 'x', value: 1, mode: 'always' }]), runner('r1', 'mod:ai:action:first'), runner('r2', 'mod:ai:action:second')],
+					NOTE,
+					CONTENT,
+				);
+
+				expect(first).toHaveBeenCalledTimes(1);
+				expect(second).not.toHaveBeenCalled();
+			});
+
+			it('logs an action no loaded mod lists once per rule, runs nothing, and does not throw', async () => {
+				const other = fakeAction('mod:ai:action:other');
+
+				await saveAndRun([runner('r1')], NOTE, CONTENT);
+				await saveAndRun([runner('r1')], NOTE, CONTENT);
+
+				expect(other).not.toHaveBeenCalled();
+				expect(vi.mocked(error).mock.calls.filter(([, message]) => message === NOT_LOADED)).toHaveLength(1);
+				expect(error).not.toHaveBeenCalledWith('AUTO-ORGANIZE', 'Failed to evaluate/move:', expect.anything());
+			});
+
+			it('does not run a later rule\'s action when the first matching rule\'s action is not loaded', async () => {
+				const second = fakeAction('mod:ai:action:second');
+
+				await saveAndRun([runner('r1'), runner('r2', 'mod:ai:action:second')], NOTE, CONTENT);
+
+				expect(second).not.toHaveBeenCalled();
+				expect(error).toHaveBeenCalledWith('AUTO-ORGANIZE', NOT_LOADED);
+			});
+
+			it('a rejected action does not fail the run', async () => {
+				const action = fakeAction(ACTION, async () => {
+					throw new Error('boom');
+				});
+
+				await saveAndRun([runner('r1')], NOTE, CONTENT);
+
+				expect(action).toHaveBeenCalledTimes(1);
+				expect(error).not.toHaveBeenCalledWith('AUTO-ORGANIZE', 'Failed to evaluate/move:', expect.anything());
+			});
+
+			it('an action that never settles (a dialog nobody answers) does not hold the note: its next save runs the rules again', async () => {
+				const action = fakeAction(ACTION, () => new Promise<void>(() => {}));
+				const rules = [runner('r1', ACTION, { properties: [{ key: 'x', value: 1, mode: 'always' }] })];
+
+				await saveAndRun(rules, NOTE, CONTENT);
+				await saveAndRun(rules, NOTE, '---\nstatus: done\nx: 2\n---\nbody');
+
+				expect(action).toHaveBeenCalledTimes(2);
+				expect(lastWrite(NOTE)).toContain('x: 1');
+				expect(vi.mocked(writeTextFile).mock.calls.filter(([p]) => p === NOTE)).toHaveLength(2);
+			});
+
+			it('ends the run while the action it started is still pending', async () => {
+				const action = fakeAction(ACTION, () => new Promise<void>(() => {}));
+				autoOrganizeStore.setConfig({ rules: [runner('r1')], excludedFolders: [] });
+				vi.mocked(readTextFile).mockResolvedValue(CONTENT);
+				const setTimeoutSpy = vi.spyOn(globalThis, 'setTimeout');
+				try {
+					captureObserver()(NOTE, CONTENT);
+					// Run the debounced callback by hand, so its own promise can be watched.
+					const debounced = setTimeoutSpy.mock.calls.at(-1)![0] as () => Promise<void>;
+					clearTimeout(setTimeoutSpy.mock.results.at(-1)!.value as ReturnType<typeof setTimeout>);
+					let settled = false;
+					void debounced().then(() => {
+						settled = true;
+					});
+					await vi.advanceTimersByTimeAsync(100);
+
+					expect(action).toHaveBeenCalledTimes(1);
+					expect(settled).toBe(true);
+				} finally {
+					setTimeoutSpy.mockRestore();
+				}
+			});
+
+			it('a failed move runs no action', async () => {
+				const action = fakeAction();
+				vi.mocked(moveItem).mockRejectedValueOnce(new Error('clash'));
+
+				await saveAndRun([runner('r1', ACTION, { destination: 'Archive' })], NOTE, CONTENT);
+
+				expect(action).not.toHaveBeenCalled();
+			});
+
+			describe('gates', () => {
+				it.each([
+					['a note in the templates folder', '/vault/Templates/Meeting.md', CONTENT, 'inside Templates/'],
+					['a note in the system folder', '/vault/_system/lists/x.md', CONTENT, 'inside _system/'],
+					['a file that is not Markdown', '/vault/notes/Board.canvas', '{}', 'not Markdown'],
+					['a type definition', '/vault/Project.md', '---\n_type: Type\n---\n', 'type definition'],
+				])('runs no action on %s', async (_label, path, content, reason) => {
+					settingsStore.updateTemplates({ folder: 'Templates' });
+					const action = fakeAction();
+
+					await saveAndRun([runner('r1')], path, content);
+
+					expect(action).not.toHaveBeenCalled();
+					expect(debug).toHaveBeenCalledWith('AUTO-ORGANIZE', `Skipped mod action for ${path}: ${reason}`);
+				});
 			});
 		});
 	});

@@ -39,7 +39,7 @@ Details: [Anatomy and loading](01-anatomy-and-loading.md).
 | Member | Signature | Returns | Errors | Tier |
 |--------|-----------|---------|--------|------|
 | `ctx.apiVersion` | property | `1` | none | stable |
-| `ctx.mod` | property | `{ id, name, version, dir }`; `dir` is `_system/mods/<id>`. The manifest's `description`, `author` and `minAppVersion` are not exposed | none | stable |
+| `ctx.mod` | property | `{ id, name, version, dir }`; `dir` is `_system/mods/<id>`. The manifest's `description`, `author`, `minAppVersion` and `ruleActions` are not exposed | none | stable |
 | `ctx.signal` | property | `AbortSignal`, aborted at unload, before `onunload`. One signal for the whole mod (inside an action prefer `run.signal`) | none | stable |
 | `ctx.register` | `(dispose: () => void) => void` | nothing; cannot be undone | throws unloaded. Not validated: a non-function fails at unload as a cleanup failure | stable |
 
@@ -75,6 +75,8 @@ Errors, in check order: `Mod "<id>": addAction needs a non-empty string id`, `..
 Returns a disposer (idempotent) that removes the action, its `labs.place` placements and its command row; the id can then be added again. The host keeps a copy: changing the object later has no effect.
 
 When `run` throws or rejects while the run's signal is not aborted: the run ends Failed, toast `<name>: <title> failed: <message>`. After Stop or unload any rejection is dropped silently. One live run per action: starting it again while it runs reveals the live run instead. Details: [Actions and entry points](02-actions-and-entry-points.md), [Runs](03-runs.md).
+
+An id listed in the manifest's `ruleActions` is also offered to Auto Organize rules. A rule calls `run('', run)` with `run.target = { on: 'note', path }`, the matched note at the end of the save, does not wait for it, and while the action runs a rule's call starts nothing and reveals nothing. Such an action must not open dialogs: nobody clicked. Details: [Actions a rule can run](02-actions-and-entry-points.md#actions-a-rule-can-run).
 
 ### ctx.addRailButton
 
@@ -167,7 +169,7 @@ The second argument of `action.run`. **stable**.
 
 | Member | Signature | Behavior and errors |
 |--------|-----------|---------------------|
-| `run.target` | `{ on: 'note' \| 'folder', path: string }` or absent | Only for menu invocations (`ctx.labs.place` with `menu`): the clicked note or folder, vault-relative, `''` for the vault root. The key is absent (not `undefined`) for rail, palette and command-row runs |
+| `run.target` | `{ on: 'note' \| 'folder', path: string }` or absent | For menu invocations (`ctx.labs.place` with `menu`): the clicked note or folder, vault-relative, `''` for the vault root. For an Auto Organize rule: `{ on: 'note', path }`, the matched note, the same shape as a note menu click. The key is absent (not `undefined`) for rail, palette and command-row runs |
 | `run.signal` | `AbortSignal` | Aborted on Stop, mod unload and vault close; not on a reload after save (which waits for the run) and not when the run ends. Check `run.signal.aborted` between steps: Stop cannot interrupt running code |
 | `run.log` | `(text: string) => void` | Adds a line (`String(text)`) to the run view, which keeps the last 500. Ignored once the run ended or was stopped. Never throws. For a palette, menu or `modCommandsStore` command-row run without `input`, the first line opens the run view |
 | `run.progress` | `(done: number, total: number, label?: string) => void` | Sets the bar (`done / total`, clamped for display; `total <= 0` shows 0%). Throws `Mod "<id>": run.progress needs numbers done and total` (any non-finite value) or `Mod "<id>": run.progress needs a string label`, even after the run ended; an uncaught throw fails the run. A valid call after the end is ignored |

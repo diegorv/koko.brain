@@ -4,7 +4,7 @@
 
 **Blocked by:** 12
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -26,12 +26,12 @@
 
 ### Acceptance
 
-- [ ] Failing test first: a matching save invokes a fake rule-enabled action once, with `run.target` equal to `{ on: 'note', path: <final vault-relative path> }`.
-- [ ] An action without the opt-in is not invoked and logs once; a missing action logs once and does not throw.
-- [ ] `layer-rules.test.ts` passes with no new baseline entry.
-- [ ] A rule-invoked action that opens a dialog through `run.ui` does not hang the run: document that rule actions must not prompt, and test that a run whose action awaits nothing completes.
-- [ ] Settings lists only rule-enabled actions.
-- [ ] The mods docs and the help pages are updated. Frontend gate passes.
+- [x] Failing test first: a matching save invokes a fake rule-enabled action once, with `run.target` equal to `{ on: 'note', path: <final vault-relative path> }`.
+- [x] An action without the opt-in is not invoked and logs once; a missing action logs once and does not throw.
+- [x] `layer-rules.test.ts` passes with no new baseline entry.
+- [x] A rule-invoked action that opens a dialog through `run.ui` does not hang the run: document that rule actions must not prompt, and test that a run whose action awaits nothing completes.
+- [x] Settings lists only rule-enabled actions.
+- [x] The mods docs and the help pages are updated. Frontend gate passes.
 
 ## Review amendments (2026-11-10)
 
@@ -60,3 +60,5 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
 - None of the owner's mods uses `onNoteSaved` (checked on 2026-11-10).
 
 ## Comments
+
+- 2026-11-11, branch `issue/10-rule-action-run-mod-action`: a rule can run a mod action listed in the mod's `ruleActions` manifest opt-in, with `run.target` set to the note's final path; the run does not await the action. Review fixes: recipe 21 uses one `editNote` call, a test proves the run ends while the action is pending, the pitfalls checklist has a `ruleActions` item, and the no-action sentinel cannot collide with a saved id. Full suite at 2eb40be3d: 611 files, 15360 tests passed, exit=0; `pnpm check` 0 errors. Reviews: round 1 APPROVED, round 2 APPROVED.

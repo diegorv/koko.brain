@@ -10,7 +10,7 @@ Automatically move notes into folders and set their properties, icons and colors
 
 ## Overview
 
-Auto Organize watches every file save. When a note is saved, Kokobrain evaluates your rules against that note's content and properties. A rule is a **filter** (which notes it applies to) plus one or more **actions**: rename the note, move it to a folder, set properties in its frontmatter, or any mix of them. No manual drag-and-drop or typing. A `.view` file is never moved, even when a rule matches it.
+Auto Organize watches every file save. When a note is saved, Kokobrain evaluates your rules against that note's content and properties. A rule is a **filter** (which notes it applies to) plus one or more **actions**: rename the note, move it to a folder, set properties in its frontmatter, create another note, run a mod action, or any mix of them. No manual drag-and-drop or typing. A `.view` file is never moved, even when a rule matches it.
 
 This rule, as stored in `.kokobrain/auto-organize-rules.json`, reads: **when** a note's type is Project and its status is `done`, **move it to** `Projects/Done/<current year>` **and set** its icon to a check mark and the icon's color to green.
 
@@ -40,7 +40,7 @@ When disabled, no files are ever moved or changed, regardless of how many rules 
 
 ## How Rules Work
 
-Rules are evaluated in order, top to bottom, against the note as it is a few seconds after the save (see [Debounce Delay](#debounce-delay)). **Every matching rule applies its properties**, **the first matching rule with a new name renames the note**, and **the first matching rule with a destination moves it**. A later rule with a name or a destination does not rename or move it again. In one save the note is renamed first, then moved, then its properties are written at its final path, then the notes to create are created.
+Rules are evaluated in order, top to bottom, against the note as it is a few seconds after the save (see [Debounce Delay](#debounce-delay)). **Every matching rule applies its properties**, **the first matching rule with a new name renames the note**, and **the first matching rule with a destination moves it**. A later rule with a name or a destination does not rename or move it again. In one save the note is renamed first, then moved, then its properties are written at its final path, then the notes to create are created. Last, **the first matching rule with a mod action runs it** on the note at its final path.
 
 Each rule consists of:
 
@@ -52,6 +52,7 @@ Each rule consists of:
 | **Move to folder** (optional) | Target folder path, relative to the vault root. Supports `{variable}` templates (see [Dynamic Destinations](#dynamic-destinations)). Leave it empty for a rule that does not move the note |
 | **Properties** (optional) | Properties written to the note's frontmatter when the rule matches (see [Set properties](#set-properties)) |
 | **Create note** (optional) | Another note created when the rule matches, if it does not exist yet (see [Creating notes](#creating-notes)) |
+| **Run mod action** (optional) | A vault mod's action run on the note (see [Running a mod action](#running-a-mod-action)) |
 | **Enabled** | Individual toggle: you can disable a rule without deleting it. A new rule starts disabled |
 | **Icon** (optional, legacy) | An icon applied to the file after it is moved (see [Icon (legacy)](#icon-legacy)) |
 
@@ -63,10 +64,11 @@ Each rule consists of:
    - **Rename:** pick **Name** for a name template such as `{year}-{month} Meeting`, or **Expression** to compute the name, such as `title`. Leave it empty for a rule that does not rename notes. A name built from the note's own name is not saved, and Settings says why (see [Renaming notes](#renaming-notes)).
    - **Move to folder:** the destination folder. Leave it empty for a rule that does not move notes.
    - **Create note:** the path of a note to create, such as `{folder}/{basename} follow-up.md`. Leave it empty for a rule that creates nothing. Once a path is set, pick a **template**, add the new note's properties with **Add note property**, and turn on **Open it** to open the note in a tab (see [Creating notes](#creating-notes)).
+   - **Run mod action:** pick an action of a loaded mod, or **None**. Only the actions a mod offers to rules are listed (see [Running a mod action](#running-a-mod-action)).
    - **Set properties:** click **Add property** for each property. Type or pick the **key** (the field suggests the properties your notes already use), set the **value** or switch the row to an **Expression** (see [Computed values](#computed-values)), and pick the mode: **if missing** (the default), **always**, **remove** or **add to list** (see [Set properties](#set-properties)). A **remove** row has no value field; an **add to list** row takes the items separated by commas. The **×** button deletes the row from the rule.
 4. Turn the rule's toggle on when it is ready.
 
-A rule with no new name, no folder, no property and no note to create does nothing. Settings says so under the rule, and still saves it.
+A rule with no new name, no folder, no property, no note to create and no mod action does nothing. Settings says so under the rule, and still saves it.
 
 > [!TIP]
 > Open [Collection](12-collection.md) to experiment with a filter before adding it as a rule. A Collection view uses the same expression engine, so you can check which notes it matches there first.
@@ -196,6 +198,7 @@ A rule can do these things when its filter matches, in any combination:
 - **[Move to folder](#move-to-folder):** moves the note to a destination folder, which can depend on the note ([Dynamic Destinations](#dynamic-destinations)). Notes in [Excluded Folders](#excluded-folders) are never checked.
 - **[Set properties](#set-properties):** writes frontmatter properties (`if-missing` or `always`), removes them (`remove`) or adds items to a list (`add`). A value can be [computed](#computed-values) from the note. Icons and colors are properties (`_icon`, `_color`, `_title_color`).
 - **[Create note](#creating-notes):** creates another note, such as a meeting follow-up, when it does not exist yet, from a template and with its own properties.
+- **[Run mod action](#running-a-mod-action):** runs an action of a [vault mod](28-mods.md) on the note, for what the built-in actions cannot do.
 - **[Icon (legacy)](#icon-legacy):** the older way to give a moved note an icon. Use properties instead.
 
 ### Move to folder
@@ -440,6 +443,37 @@ Saving `work/standup.md` with `type: meeting` in November 2026 renames it to `wo
 - **Names that change on their own.** A name built from `now()` or `file.mtime` is different at every save, so the note is renamed at every save, and one built from `{year}` or `{month}` changes when the month of the save does. That is allowed. Combined with a [create note](#creating-notes) whose path uses `{basename}`, it creates a new note at every save.
 - A note is never renamed in the system folder (`_system` by default) or the templates folder, nor when it is a type definition, a note with a `todoist_project` property (Todoist would rename the project), a file that is not Markdown, or frontmatter Kokobrain cannot rewrite (the notes [Set properties](#set-properties) skips).
 - If the rename fails, nothing else in the rule runs for that save.
+
+### Running a mod action
+
+A rule can run an action of a [vault mod](28-mods.md) on the note it matched. Its `runAction` names the action by its id, `mod:<mod id>:action:<action id>`:
+
+```json
+{
+  "id": "rule-1710000000000-s5m4r",
+  "name": "Summarize finished meetings",
+  "expression": "type == \"meeting\" && status == \"done\" && summarized != true",
+  "destination": "",
+  "runAction": { "id": "mod:ai-tools:action:summarize" },
+  "enabled": true
+}
+```
+
+- **Only actions a mod offers to rules.** The mod lists them in its `manifest.json` under `ruleActions` (see [Actions a rule can run](mods/02-actions-and-entry-points.md#actions-a-rule-can-run)). Settings lists only those, from the mods that are loaded.
+- **When:** last, after the rename, the move, the properties and the notes to create, once per save. Only the **first** matching rule with a mod action runs it; a later rule's action does not run in its place.
+- **The note** reaches the action as `run.target`, `{ on: "note", path }`, with the vault-relative path where the note ends the save.
+- **Not loaded.** When no loaded mod offers the action (the mod is off, failed to load, or does not list the action), the rule skips it and Kokobrain logs it once per rule. Settings shows the id with **(not loaded)**. The rest of the rule still runs.
+- **Already running.** An action runs once at a time. When a save matches while it is still running, it is not started again for that save.
+- **Never on** a note in the system folder (`_system` by default) or the templates folder, a type definition, a file that is not Markdown, or frontmatter Kokobrain cannot rewrite (the notes [Set properties](#set-properties) skips). If the rename or the move fails, the action does not run.
+- **Nobody is at the keyboard.** The action runs a few seconds after you save, so it must not open dialogs. The rule does not wait for it: an action that waits for an answer, or runs for minutes, never holds up the save or the next one.
+- **A failing action** shows the mod's error toast, as when you start it from the palette.
+
+> [!WARNING]
+> **An action that writes the note it was run on runs again.** Its write is an ordinary save, so the rules check the note again a few seconds later, and while the note still matches, the action runs again. An action that appends text (a log line, a summary) grows the note at every round, and with an `always` rule on a key the action writes, the two rewrite each other. Break the loop in one of two ways:
+> - **A marker.** The action sets a property, such as `summarized: true`, and the rule's filter excludes it, as in `summarized != true` above.
+> - **No change, no write.** The action writes only when the text it computes differs from the note's. Writing the same text still counts as a save.
+>
+> Never let the action write a key that an `always` rule owns.
 
 ### Icon (legacy)
 
@@ -693,6 +727,14 @@ You can inspect or back up the rules file manually:
       "properties": [
         { "key": "_belongs_to", "value": "[[AWS]]", "mode": "if-missing" }
       ],
+      "enabled": true
+    },
+    {
+      "id": "rule-1710000000000-s5m4r",
+      "name": "Summarize finished meetings",
+      "expression": "type == \"meeting\" && status == \"done\" && summarized != true",
+      "destination": "",
+      "runAction": { "id": "mod:ai-tools:action:summarize" },
       "enabled": true
     }
   ],

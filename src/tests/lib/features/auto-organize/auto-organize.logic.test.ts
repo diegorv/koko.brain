@@ -31,6 +31,7 @@ import {
 	countNotesToCreate,
 	renameProblem,
 	sanitizeRename,
+	sanitizeRunAction,
 	renameTarget,
 	toFileName,
 	isAlreadyNamed,
@@ -1474,6 +1475,22 @@ describe('sanitizeRename', () => {
 		expect(sanitizeRename({ name: '{basename} x' })).toBeUndefined();
 		expect(sanitizeRename(undefined)).toBeUndefined();
 		expect(sanitizeRename({ name: 'A', expr: 'b' })).toBeUndefined();
+	});
+});
+
+describe('sanitizeRunAction', () => {
+	it('keeps an action id trimmed', () => {
+		expect(sanitizeRunAction({ id: ' mod:ai:action:summarize ' })).toEqual({ id: 'mod:ai:action:summarize' });
+	});
+
+	it.each([
+		['undefined', undefined],
+		['null', null],
+		['a bare string', 'mod:ai:action:summarize'],
+		['a blank id', { id: '  ' }],
+		['an id that is not text', { id: 3 }],
+	])('drops %s', (_label, raw) => {
+		expect(sanitizeRunAction(raw)).toBeUndefined();
 	});
 });
 

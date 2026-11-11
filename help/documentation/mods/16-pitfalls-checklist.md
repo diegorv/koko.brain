@@ -26,6 +26,7 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 - [ ] `name` and `version` are non-empty strings.
 - [ ] `description` and `author`, if present, are strings (not `null`). `minAppVersion`, if present, looks like `1.2.3`.
 - [ ] `color`, if present, has both `light` and `dark`, each `#rgb` or `#rrggbb`.
+- [ ] `ruleActions`, if present, is an array of non-empty action ids, each one an `addAction` id of this mod. Each listed action is rule-safe: no `run.ui` or `ctx.ui` dialog, and no write to the matched note without a marker or a no-change check that stops the next round (see [Cookbook](14-cookbook.md#21-an-action-an-auto-organize-rule-runs)).
 
 ### Registration
 

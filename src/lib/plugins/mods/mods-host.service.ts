@@ -3,6 +3,7 @@ import { toast } from 'svelte-sonner';
 
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { onFileChange } from '#lib/core/filesystem/fs.watcher.js';
+import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
@@ -85,8 +86,8 @@ interface LiveMod extends ModRuntime {
 	module: ModV1;
 }
 
-/** Entry point known by the host; command includes palette and programmatic calls. */
-type ActionOrigin = 'rail' | 'note-menu' | 'folder-menu' | 'command';
+/** Entry point known by the host; command includes palette and programmatic calls, rule an Auto Organize rule. */
+type ActionOrigin = 'rail' | 'note-menu' | 'folder-menu' | 'command' | 'rule';
 
 const NOTIFY_KINDS: readonly ModNotifyKindV1[] = ['info', 'success', 'warning', 'error'];
 
@@ -325,7 +326,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	/**
 	 * Runs an action under its run key, whatever entry point started it. While
 	 * the action has a live run, shows that run instead and starts nothing: one
-	 * live run per action. Lazy runs reveal only on their first
+	 * live run per action. A rule's call starts nothing either, but shows
+	 * nothing: nobody clicked. Lazy runs reveal only on their first
 	 * output. Its signal aborts on Stop and at unload; an abort ends the
 	 * run cancelled at once, even when the mod's code goes on, and rejects
 	 * the run's `run.ui` dialogs with an `AbortError`. A failure is the
@@ -334,7 +336,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	const runAction = async (action: ModActionV1, input: string, origin: ActionOrigin, lazy: boolean, target?: ModRunV1['target']) => {
 		const runKey = actionKey(action.id);
 		if (modsRunsStore.isBusy(runKey)) {
-			revealRuns.get(runKey)?.();
+			if (origin === 'rule') debug('MOD-HOST', JSON.stringify({ event: 'action-busy', modId: manifest.id, actionId: action.id, origin }));
+			else revealRuns.get(runKey)?.();
 			return;
 		}
 		const controller = new AbortController();
@@ -503,11 +506,20 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 					openPicker(entry.title, [entry.id], 'command', true);
 				},
 			});
+			// Lazy and with no input: a rule runs it with nobody at the keyboard.
+			const unregisterRule = manifest.ruleActions?.includes(entry.id)
+				? ruleActionsStore.register({
+					id: actionKey(entry.id),
+					label: `${manifest.name}: ${entry.title}`,
+					run: (target) => runAction(entry, '', 'rule', true, { ...target }),
+				})
+				: null;
 			return disposable(() => {
 				if (actions.get(entry.id) === entry) actions.delete(entry.id);
 				for (const off of placements.get(entry.id) ?? []) off();
 				placements.delete(entry.id);
 				unregister();
+				unregisterRule?.();
 			});
 		},
 		addRailButton: (button) => {

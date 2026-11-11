@@ -10,7 +10,7 @@ How an action is registered and started is in [Actions and entry points](02-acti
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `run.target` | `{ on: 'note' \| 'folder', path: string }`, optional | The clicked menu target. The key is absent for rail, palette and `modCommandsStore` runs. See [run.target](02-actions-and-entry-points.md#runtarget) |
+| `run.target` | `{ on: 'note' \| 'folder', path: string }`, optional | The clicked menu target, or the note an [Auto Organize rule](02-actions-and-entry-points.md#actions-a-rule-can-run) matched. The key is absent for rail, palette and `modCommandsStore` runs. See [run.target](02-actions-and-entry-points.md#runtarget) |
 | `run.signal` | `AbortSignal` | Aborted by **Stop**, and when the mod unloads (switched off, deleted, mods turned off for the vault, vault closed or switched). **Not** aborted by a reload after you save the mod: the reload waits for the run. Not aborted when the run ends normally |
 | `run.log(text)` | `(text: string) => void` | Adds one entry to the run's log. See [Log](#log) |
 | `run.progress(done, total, label?)` | `(done: number, total: number, label?: string) => void` | Sets the progress bar. Throws on bad arguments. See [Progress](#progress) |

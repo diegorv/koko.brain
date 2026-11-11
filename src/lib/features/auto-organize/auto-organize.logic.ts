@@ -1,4 +1,4 @@
-import type { AutoOrganizeRule, RuleCreateNote, RuleProperty, RuleRename, RuleValue } from './auto-organize.types';
+import type { AutoOrganizeRule, RuleCreateNote, RuleProperty, RuleRename, RuleRunAction, RuleValue } from './auto-organize.types';
 import type { Property, PropertyType } from '#lib/core/frontmatter/properties.types.js';
 import { isMarkdownFile, isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import {
@@ -601,6 +601,13 @@ export function sanitizeRename(raw: unknown): RuleRename | undefined {
 	if (raw === undefined || renameProblem(raw) !== null) return undefined;
 	const { name, expr } = raw as RuleRename;
 	return name !== undefined ? { name: name.trim() } : { expr: expr!.trim() };
+}
+
+/** A rule's `runAction` as loaded from JSON, its id trimmed, or undefined without a non-blank text `id`. */
+export function sanitizeRunAction(raw: unknown): RuleRunAction | undefined {
+	if (raw === null || typeof raw !== 'object') return undefined;
+	const { id } = raw as Record<string, unknown>;
+	return typeof id === 'string' && id.trim() !== '' ? { id: id.trim() } : undefined;
 }
 
 /**

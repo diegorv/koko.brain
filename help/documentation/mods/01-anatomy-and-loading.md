@@ -38,7 +38,8 @@ What a mod folder contains, how Kokobrain validates `manifest.json`, exactly how
 	"description": "Appends a timestamped line to today's daily note",
 	"author": "Me",
 	"minAppVersion": "1.2.3",
-	"color": { "light": "#2563eb", "dark": "#60a5fa" }
+	"color": { "light": "#2563eb", "dark": "#60a5fa" },
+	"ruleActions": ["append"]
 }
 ```
 
@@ -53,11 +54,12 @@ What a mod folder contains, how Kokobrain validates `manifest.json`, exactly how
 | `author` | no | String (empty allowed) | Validated only |
 | `minAppVersion` | no | String matching `^\d+\.\d+\.\d+$` (`1.2.3-beta` and `1.2` fail) | Validated only. Never compared with the app version |
 | `color` | no | Object with both `light` and `dark`, each `#rgb` or `#rrggbb` (case-insensitive) | Icon color of every rail button of the mod: `light` on light themes, `dark` on dark ones, following theme changes at once |
+| `ruleActions` | no | Array of non-empty strings, the local ids of the mod's actions (empty array allowed) | The actions an [Auto Organize rule](../22-auto-organize.md#running-a-mod-action) can run. An id the mod never registers is ignored. See [Actions a rule can run](02-actions-and-entry-points.md#actions-a-rule-can-run) |
 
 - Unknown top-level keys are dropped silently, and so are unknown keys inside `color`.
 - "Present" means the key exists with any value other than `undefined`. `null` is a value: `"author": null` fails with `author must be a string`.
 - Colors are stored as written (not normalized). `#rgba`, `#rrggbbaa`, color names, `rgb()` and `oklch()` are rejected.
-- `description`, `author` and `minAppVersion` are not visible to the mod: `ctx.mod` is only `{ id, name, version, dir }`, with `dir` = `_system/mods/<id>`.
+- `description`, `author`, `minAppVersion` and `ruleActions` are not visible to the mod: `ctx.mod` is only `{ id, name, version, dir }`, with `dir` = `_system/mods/<id>`.
 
 ### Validation order and messages
 
@@ -79,6 +81,7 @@ Checks run in this order and the first failure wins. Every message is `_system/m
 | 12 | `color` is present and not an object (or is `null` or an array) | `color must be an object with light and dark` |
 | 13 | `color.light` is not a string matching the hex pattern | `color.light must be a hex color like #d946ef` |
 | 14 | `color.dark` is not a string matching the hex pattern | `color.dark must be a hex color like #d946ef` |
+| 15 | `ruleActions` is present and not an array of non-empty strings | `ruleActions must be a list of action ids` |
 
 Example:
 

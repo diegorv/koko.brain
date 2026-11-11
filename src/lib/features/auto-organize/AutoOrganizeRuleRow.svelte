@@ -25,6 +25,7 @@
 	import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
 	import type { AutoOrganizeRule, RuleCreateNote, RuleProperty, RuleRename } from './auto-organize.types';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import {
@@ -39,6 +40,7 @@
 		sanitizeCreateNote,
 		sanitizeRename,
 		sanitizeRuleProperties,
+		sanitizeRunAction,
 	} from './auto-organize.logic';
 	import { autoOrganizeStore } from './auto-organize.store.svelte';
 	import AutoOrganizeRuleProperty from './AutoOrganizeRuleProperty.svelte';
@@ -63,6 +65,11 @@
 
 	/** How long the filter must stay unchanged before its match count is recomputed */
 	const COUNT_DELAY_MS = 300;
+	/**
+	 * The mod action Select's value for "no action". `sanitizeRunAction` trims
+	 * every saved id, so none starts with a space, even a hand-edited one.
+	 */
+	const NO_ACTION = ' none';
 
 	/**
 	 * The filter builder's groups as edited. They reach the rule only through
@@ -103,13 +110,25 @@
 
 	let properties = $derived(rule.properties ?? []);
 	let createProperties = $derived(rule.createNote?.properties ?? []);
-	/** True when the rule neither renames, moves, sets nor creates anything, so it does nothing */
+	/** The rule's mod action id as a run reads it; undefined when it has none */
+	let actionId = $derived(sanitizeRunAction(rule.runAction)?.id);
+	/** True when the rule neither renames, moves, sets, creates nor runs anything, so it does nothing */
 	let doesNothing = $derived(
 		!rule.destination.trim() &&
 			sanitizeRuleProperties(rule.properties).length === 0 &&
 			validCreate === undefined &&
-			sanitizeRename(rule.rename) === undefined,
+			sanitizeRename(rule.rename) === undefined &&
+			actionId === undefined,
 	);
+	/** True when the saved action is not registered: no loaded mod lists it in `ruleActions` */
+	let actionMissing = $derived(actionId !== undefined && !ruleActionsStore.list.some((a) => a.id === actionId));
+	/** The mod action choices: none, every registered rule action, and a saved one that is not loaded */
+	let actionOptions = $derived([
+		{ value: NO_ACTION, label: 'None' },
+		...ruleActionsStore.list.map((a) => ({ value: a.id, label: a.label })),
+		...(actionMissing ? [{ value: actionId!, label: `${actionId} (not loaded)` }] : []),
+	]);
+	let actionValue = $derived(actionId ?? NO_ACTION);
 	/** Known note properties for the key field; `file.*` fields are read-only and refused keys never written */
 	let keySuggestions = $derived(
 		properties.length > 0 || createProperties.length > 0
@@ -230,6 +249,12 @@
 		if (source === renameSource) return;
 		renameSource = source;
 		commitRename(renameDraft ?? rule.rename?.name ?? rule.rename?.expr ?? '', source);
+	}
+
+	/** Saves the picked mod action; `NO_ACTION` removes it */
+	function setRunAction(value: string) {
+		if (value === actionValue) return;
+		onupdate(rule.id, { runAction: value === NO_ACTION ? undefined : { id: value } });
 	}
 
 	function handleIconSelect(pack: IconPackId, name: string, color?: string, textColor?: string) {
@@ -462,9 +487,30 @@
 		</div>
 	</div>
 
+	<div class="flex items-start gap-2">
+		<span class="w-24 shrink-0 pt-2 text-meta text-muted-foreground">Run mod action</span>
+		<div class="flex min-w-0 flex-1 flex-col gap-1">
+			<Select.Root type="single" value={actionValue} onValueChange={setRunAction}>
+				<Select.Trigger class="w-full" aria-label="Mod action">
+					<span data-slot="select-value">{actionOptions.find((o) => o.value === actionValue)?.label}</span>
+				</Select.Trigger>
+				<Select.Content>
+					{#each actionOptions as option (option.value)}
+						<Select.Item value={option.value} label={option.label} />
+					{/each}
+				</Select.Content>
+			</Select.Root>
+			{#if actionMissing}
+				<p class="text-meta text-destructive" data-run-action-missing>
+					No loaded mod lists this action in its ruleActions, so the rule skips it.
+				</p>
+			{/if}
+		</div>
+	</div>
+
 	{#if doesNothing}
 		<p class="text-meta text-destructive" data-rule-hint>
-			This rule does nothing: set a new name, a folder to move to, a property to set or a note to create.
+			This rule does nothing: set a new name, a folder to move to, a property to set, a note to create or a mod action to run.
 		</p>
 	{/if}
 

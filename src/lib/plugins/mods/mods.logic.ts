@@ -150,6 +150,11 @@ export interface ModManifest {
 	minAppVersion?: string;
 	/** Optional icon color of all the mod's rail buttons, one hex value per theme mode */
 	color?: { light: string; dark: string };
+	/**
+	 * Optional local ids of the mod's actions an Auto Organize rule may run.
+	 * A rule runs them with no one at the keyboard, so they must not prompt.
+	 */
+	ruleActions?: string[];
 }
 
 /** Result of `parseModManifest`: the manifest, or an error naming the folder and the field */
@@ -180,7 +185,7 @@ export function parseModManifest(text: string, folder: string): ModManifestResul
 	if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return fail('must be a JSON object');
 	const fields = raw as Record<string, unknown>;
 
-	const { id, name, version, description, author, minAppVersion, color } = fields;
+	const { id, name, version, description, author, minAppVersion, color, ruleActions } = fields;
 	if (typeof id !== 'string') return fail('id must be a string');
 	if (id.length > MOD_ID_MAX_LENGTH) return fail(`id must be at most ${MOD_ID_MAX_LENGTH} characters`);
 	if (!MOD_ID_PATTERN.test(id)) {
@@ -207,6 +212,12 @@ export function parseModManifest(text: string, folder: string): ModManifestResul
 		if (typeof light !== 'string' || !HEX_COLOR_PATTERN.test(light)) return fail('color.light must be a hex color like #d946ef');
 		if (typeof dark !== 'string' || !HEX_COLOR_PATTERN.test(dark)) return fail('color.dark must be a hex color like #d946ef');
 		manifest.color = { light, dark };
+	}
+	if (ruleActions !== undefined) {
+		if (!Array.isArray(ruleActions) || !ruleActions.every((a) => typeof a === 'string' && a !== '')) {
+			return fail('ruleActions must be a list of action ids');
+		}
+		manifest.ruleActions = [...ruleActions];
 	}
 	return { ok: true, manifest };
 }

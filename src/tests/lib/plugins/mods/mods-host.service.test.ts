@@ -70,6 +70,7 @@ import { createOneOnOneNote, openOneOnOnePicker } from '#lib/plugins/one-on-one/
 import { dailyNotePath, openOrCreateDailyNote } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
+import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
 import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
@@ -406,6 +407,72 @@ describe('mods host', () => {
 			await startModsHost(VAULT);
 			expect(modsStore.entries[0].state).toBe('error');
 			expect(modCommandsStore.list).toEqual([]);
+		});
+	});
+
+	describe('rule actions', () => {
+		it('registers only the actions the manifest lists in ruleActions, and drops them with the action', async () => {
+			writeMod('hello', recordingMod('hello'), { ruleActions: ['tag'] });
+			await startModsHost(VAULT);
+			const ctx = globals.__modCtx.hello;
+			const removeTag = ctx.addAction({ id: 'tag', title: 'Tag', run() {} });
+			ctx.addAction({ id: 'greet', title: 'Greet', run() {} });
+
+			expect(ruleActionsStore.list).toMatchObject([{ id: 'mod:hello:action:tag', label: 'Mod hello: Tag' }]);
+			expect(ruleActionsStore.get('mod:hello:action:greet')).toBeUndefined();
+
+			removeTag();
+			expect(ruleActionsStore.list).toEqual([]);
+		});
+
+		it('registers nothing for a mod without ruleActions', async () => {
+			writeMod('hello', recordingMod('hello'));
+			await startModsHost(VAULT);
+			globals.__modCtx.hello.addAction({ id: 'tag', title: 'Tag', run() {} });
+			expect(ruleActionsStore.list).toEqual([]);
+		});
+
+		it('runs the action with the note target and no input, quietly, and settles when the run ends', async () => {
+			writeMod('hello', recordingMod('hello'), { ruleActions: ['tag'] });
+			await startModsHost(VAULT);
+			const received: { input: string; run: ModRunV1 }[] = [];
+			globals.__modCtx.hello.addAction({ id: 'tag', title: 'Tag', input: {}, run: (input, run) => { received.push({ input, run }); } });
+
+			await ruleActionsStore.get('mod:hello:action:tag')!.run({ on: 'note', path: 'Work/alpha.md' });
+
+			expect(received).toHaveLength(1);
+			expect(received[0].input).toBe('');
+			expect(received[0].run.target).toEqual({ on: 'note', path: 'Work/alpha.md' });
+			expect(modPickerStore.isOpen).toBe(false);
+			expect(modsRunsStore.runFor('mod:hello:action:tag')?.status).toBe('done');
+			expect(vi.mocked(debug).mock.calls.map(([, json]) => json).filter((json) => typeof json === 'string' && json.includes('"origin":"rule"'))).toHaveLength(2);
+		});
+
+		it('does not start a second run, or show the live one, while the action is running', async () => {
+			writeMod('hello', recordingMod('hello'), { ruleActions: ['tag'] });
+			await startModsHost(VAULT);
+			let release!: () => void;
+			const gate = new Promise<void>((resolve) => { release = resolve; });
+			onTestFinished(release);
+			let calls = 0;
+			globals.__modCtx.hello.addAction({ id: 'tag', title: 'Tag', run: () => { calls++; return gate; } });
+			const action = ruleActionsStore.get('mod:hello:action:tag')!;
+
+			const first = action.run({ on: 'note', path: 'a.md' });
+			await action.run({ on: 'note', path: 'b.md' });
+
+			expect(calls).toBe(1);
+			expect(modPickerStore.isOpen).toBe(false);
+			release();
+			await first;
+		});
+
+		it('drops the rule actions when the mod unloads', async () => {
+			writeMod('hello', `export default { onload(ctx) { ctx.addAction({ id: 'tag', title: 'Tag', run() {} }); } };`, { ruleActions: ['tag'] });
+			await startModsHost(VAULT);
+			expect(ruleActionsStore.list).toHaveLength(1);
+			stopModsHost();
+			expect(ruleActionsStore.list).toEqual([]);
 		});
 	});
 

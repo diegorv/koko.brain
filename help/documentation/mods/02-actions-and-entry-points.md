@@ -15,6 +15,7 @@ Stability tags used here: **stable** (contract v1, `ModContextV1`), **unstable**
 | Rail note list row menu | `ctx.labs.place(id, { menu: { on: ['note'] } })` | unstable | `{ on: 'note', path }` | on the first `run.log` or `run.progress` | at Enter in the text field |
 | Files navigator folder and vault-root menu | `ctx.labs.place(id, { menu: { on: ['folder'] } })` | unstable | `{ on: 'folder', path }` | on the first `run.log` or `run.progress` | at Enter in the text field |
 | Code (another mod, a shortcut) | `ctx.app.modCommandsStore.list[i].run()` | raw | absent | on the first `run.log` or `run.progress` | at Enter in the text field |
+| Auto Organize rule | `ruleActions` in `manifest.json`, then a rule's **Run mod action** | manifest | `{ on: 'note', path }` | on the first `run.log` or `run.progress` | never: the action runs with `''` and no text field |
 
 A registered action has no entry point until you give it one: it is not in the palette, not on the rail and not in any menu. It is only reachable through `ctx.app.modCommandsStore`. A rail button without `actions` counts as an entry point for every action of the mod, including ones added after it.
 
@@ -280,12 +281,13 @@ Everything is validated before anything registers: a failing call leaves no pale
 |--------------|--------------|
 | Note row menu | `{ on: 'note', path: 'Folder/Note.md' }` |
 | Folder menu | `{ on: 'folder', path: 'Folder' }`, or `{ on: 'folder', path: '' }` for the vault root |
+| Auto Organize rule | `{ on: 'note', path: 'Folder/Note.md' }`, the note's path at the end of the save (after the rule's rename and move) |
 | Rail button, palette, `modCommandsStore` row | the `target` key is **absent** (not `undefined`: `'target' in run` is false) |
 
 - The path is vault-relative with no leading slash, ready for `ctx.vault` and `ctx.workspace` (see [Vault files](04-vault-files.md#vault-relative-paths)).
 - The target is copied **at the menu click**, before any text field opens. It stays the clicked note or folder while the user types, while dialogs are open and for the whole run, whatever the user opens in the editor meanwhile.
 - Selecting a menu item for an action that is already running shows the live run, which keeps **its** target. The new click's target is discarded.
-- The entry point itself (`rail`, `command`, `note-menu`, `folder-menu`) is not exposed to mods; it appears only in the host's debug trace. `run.target` is the only signal you get.
+- The entry point itself (`rail`, `command`, `note-menu`, `folder-menu`, `rule`) is not exposed to mods; it appears only in the host's debug trace. `run.target` is the only signal you get, and a rule's target looks exactly like a note menu click's.
 
 ### Active-note fallback
 
@@ -322,6 +324,21 @@ ctx.labs.place('stamp', { palette: true, menu: { on: ['note'] } });
 ```
 
 A plain `ctx.vault.read` and `write` would refuse a note with unsaved changes in an open tab, and on the clean active note it would move the user's caret. [`editNote`](04-vault-files.md#editnote) goes through the editor for the active note: see [Vault files](04-vault-files.md#editing-a-note-that-may-be-open). For `editorStore` and `vaultStore`, see [The raw app](09-raw-app.md#editorstore) and [vaultStore](09-raw-app.md#vaultstore).
+
+## Actions a rule can run
+
+An [Auto Organize rule](../22-auto-organize.md#running-a-mod-action) can run a mod action on the note it matched, a few seconds after the note is saved. A mod offers an action to rules by listing its id in `manifest.json`:
+
+```json
+{ "id": "ai-tools", "name": "AI tools", "version": "1.0.0", "ruleActions": ["summarize"] }
+```
+
+- **Opt-in per action.** Only the ids in `ruleActions` are offered, and only while the mod is loaded and the action registered (`ctx.addAction`). Removing the action or unloading the mod takes it out of the rules' list. A rule that names any other action skips it and logs it once.
+- **The call:** the host wrapper with input `''` and `run.target = { on: 'note', path }`, the note's vault-relative path at the end of the save. The run view opens only on the first `run.log` or `run.progress`, as from the palette. An action with `input` gets `''`: no text field opens.
+- **Busy:** while the action has a live run, a rule's call starts nothing and shows nothing.
+- **No contract change.** It is the same `run(input, run)` and the same `run.target` as a note menu click, so you cannot tell the two apart. Write a listed action to be **rule-safe** for every target: nobody clicked, so it must not open `run.ui` or `ctx.ui` dialogs. The rule does not wait for the run, so a dialog nobody answers only leaves the run open until **Stop**.
+- **Its writes are saves.** A write to the note it was run on runs the rules again, and the action again while the note matches. Set a marker property the rule's filter excludes, or skip a write that changes nothing (see [Auto Organize](../22-auto-organize.md#running-a-mod-action)).
+- **Failures** end the run **Failed** with the usual toast.
 
 ## `ctx.app.modCommandsStore`
 

@@ -9,6 +9,7 @@ import { buildNoteRecord } from '#lib/features/collection/collection.logic.js';
 import { detectLossyFrontmatter, extractBody, parseFrontmatterProperties, rebuildContent } from '#lib/core/frontmatter/properties.logic.js';
 import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
 import { autoOrganizeStore } from './auto-organize.store.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -34,6 +35,7 @@ import {
 	sanitizeCreateNote,
 	sanitizeRename,
 	sanitizeRuleProperties,
+	sanitizeRunAction,
 	type OwnedProperty,
 } from './auto-organize.logic';
 import type { AutoOrganizeConfig, AutoOrganizeRule } from './auto-organize.types';
@@ -42,6 +44,7 @@ import { typeDefinitionsStore } from '#lib/features/type-definitions/type-defini
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { debug, error } from '#lib/utils/debug.js';
+import { vaultRelativeKey } from '#lib/utils/path.js';
 
 /** Internal directory inside the vault for metadata */
 const SETTINGS_DIR = '.kokobrain';
@@ -71,6 +74,9 @@ const reportedComputeFailures = new Set<string>();
 
 /** Rule ids whose computed name failed and was already logged this session. */
 const reportedRenameFailures = new Set<string>();
+
+/** Rule ids whose mod action was not loaded, already logged this session. */
+const reportedMissingActions = new Set<string>();
 
 /** `<problem>:<rule id>` pairs of create-note problems already logged this session. */
 const reportedCreateProblems = new Set<string>();
@@ -274,7 +280,8 @@ async function readCurrentContent(filePath: string): Promise<string | null> {
  * with a `rename` renames it, the first matching rule with a destination
  * moves it, then, at the final path, the moving rule's legacy icon and every
  * matching rule's properties are written, and every matching rule's
- * `createNote` is created. A failed rename or move stops the run.
+ * `createNote` is created; last, the first matching rule with a `runAction`
+ * starts it. A failed rename or move stops the run.
  */
 async function evaluateAndMove(savedPath: string, content: string, vaultPath: string): Promise<void> {
 	const stats = ruleRecordStats(collectionStore.propertyIndex.get(savedPath), content, Date.now());
@@ -340,24 +347,58 @@ async function evaluateAndMove(savedPath: string, content: string, vaultPath: st
 
 	const owned = ownedProperties(matched);
 	const creators = matched.filter((r) => sanitizeCreateNote(r.createNote) !== undefined);
-	if (!rule?.icon && owned.length === 0 && creators.length === 0) return;
-
-	writingPaths.add(targetPath);
-	try {
-		// The legacy icon goes first, so an explicit `_color` property beats
-		// its color removal (`frontmatter-icon.service.ts::withIconColors`).
-		const iconWritten = rule?.icon ? await applyLegacyIcon(rule, content, vaultPath, targetPath) : false;
-		if (owned.length > 0) {
-			await writeRuleProperties(targetPath, iconWritten ? null : content, vaultPath, owned, record);
+	if (rule?.icon || owned.length > 0 || creators.length > 0) {
+		writingPaths.add(targetPath);
+		try {
+			// The legacy icon goes first, so an explicit `_color` property beats
+			// its color removal (`frontmatter-icon.service.ts::withIconColors`).
+			const iconWritten = rule?.icon ? await applyLegacyIcon(rule, content, vaultPath, targetPath) : false;
+			if (owned.length > 0) {
+				await writeRuleProperties(targetPath, iconWritten ? null : content, vaultPath, owned, record);
+			}
+			if (creators.length > 0) {
+				// The variables and `file.*` read the source where it is now.
+				const source = targetPath === filePath ? record : buildNoteRecord(targetPath, content, ...stats);
+				await createRuleNotes(creators, targetPath, content, source, vaultPath);
+			}
+		} finally {
+			writingPaths.delete(targetPath);
 		}
-		if (creators.length > 0) {
-			// The variables and `file.*` read the source where it is now.
-			const source = targetPath === filePath ? record : buildNoteRecord(targetPath, content, ...stats);
-			await createRuleNotes(creators, targetPath, content, source, vaultPath);
-		}
-	} finally {
-		writingPaths.delete(targetPath);
 	}
+
+	// Outside the write phase: the action's own saves are ordinary saves.
+	const actionRule = matched.find((r) => sanitizeRunAction(r.runAction) !== undefined);
+	if (actionRule) runRuleAction(actionRule, targetPath, content, vaultPath);
+}
+
+/**
+ * Starts `rule.runAction` on the note at `targetPath`, its path at the end of
+ * the run, unless the property gates skip the note. Not awaited: an action
+ * may run for minutes, or wait on a dialog nobody answers, and the run must
+ * still end. Its failures are the mod's, reported by the mods host.
+ */
+function runRuleAction(rule: AutoOrganizeRule, targetPath: string, content: string, vaultPath: string): void {
+	const skip = propertyWriteSkipReason(targetPath, content, vaultPath, [
+		settingsStore.templates.systemFolder,
+		settingsStore.templates.folder,
+	]);
+	if (skip !== null) {
+		debug('AUTO-ORGANIZE', `Skipped mod action for ${targetPath}: ${skip}`);
+		return;
+	}
+	const { id } = sanitizeRunAction(rule.runAction)!;
+	const action = ruleActionsStore.get(id);
+	if (!action) {
+		if (!reportedMissingActions.has(rule.id)) {
+			reportedMissingActions.add(rule.id);
+			error('AUTO-ORGANIZE', `Rule "${rule.name}" cannot run mod action ${id}: no loaded mod lists it in ruleActions`);
+		}
+		return;
+	}
+	const path = vaultRelativeKey(vaultPath, targetPath);
+	if (path === null) return;
+	debug('AUTO-ORGANIZE', `Running mod action ${id} on ${path} (rule: ${rule.name})`);
+	action.run({ on: 'note', path }).catch((err: unknown) => debug('AUTO-ORGANIZE', `Mod action ${id} failed on ${path}:`, err));
 }
 
 /**
@@ -683,6 +724,7 @@ export function resetAutoOrganize(): void {
 	reportedComputeFailures.clear();
 	reportedCreateProblems.clear();
 	reportedRenameFailures.clear();
+	reportedMissingActions.clear();
 	creatingPaths.clear();
 	autoOrganizeStore.reset();
 	debug('AUTO-ORGANIZE', 'Reset complete');

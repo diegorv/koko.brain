@@ -95,6 +95,14 @@ export interface AutoOrganizeRule {
 	createNote?: RuleCreateNote;
 	/** The note's new name; only the first matching rule with one renames */
 	rename?: RuleRename;
+	/** A mod action run on the note; only the first matching rule with one runs it */
+	runAction?: RuleRunAction;
+}
+
+/** A mod action a matching rule runs on the note, after every other consequence */
+export interface RuleRunAction {
+	/** The action's id, `mod:<mod>:action:<action>`; the mod must list the action in its manifest's `ruleActions` */
+	id: string;
 }
 
 /** Persisted auto-organize configuration stored in .kokobrain/auto-organize-rules.json */
