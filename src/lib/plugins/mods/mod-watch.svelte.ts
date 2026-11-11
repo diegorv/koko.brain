@@ -6,8 +6,9 @@ import { errorText } from './mods.logic';
 
 /**
  * Watches a tracked read, comparing with its untracked subscription baseline.
- * The handler and logging are untracked. A failed read retains the last good
- * value; without one, the first successful read establishes the baseline.
+ * The handler and logging are untracked; the caller handles errors from the
+ * handler, which must not throw. A failed read retains the last good value;
+ * without one, the first successful read establishes the baseline.
  */
 export function watchModValue<T>(tag: string, read: () => T, onChange: (value: T) => void): () => void {
 	let value: T;
@@ -31,11 +32,7 @@ export function watchModValue<T>(tag: string, read: () => T, onChange: (value: T
 			value = next;
 			hasValue = true;
 			if (!changed) return;
-			try {
-				untrack(() => onChange(next));
-			} catch (err) {
-				untrack(() => debug(tag, 'watch callback failed:', errorText(err)));
-			}
+			untrack(() => onChange(next));
 		});
 	});
 }

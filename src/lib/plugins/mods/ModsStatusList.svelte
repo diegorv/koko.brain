@@ -44,6 +44,7 @@
 	{:else}
 		<ul class="flex flex-col gap-1">
 			{#each modsStore.entries as entry (entry.folder)}
+				{@const callbackError = entry.state === 'loaded' ? modsStore.callbackErrorFor(entry.folder) : null}
 				<li class="flex flex-col gap-0.5 py-1" data-mod-folder={entry.folder} data-mod-state={entry.state}>
 					<div class="flex items-center justify-between gap-4">
 						<span class="text-row text-settings-text">
@@ -69,6 +70,18 @@
 							<details class="text-meta text-muted-foreground">
 								<summary class="cursor-pointer">Stack trace</summary>
 								<pre class="overflow-x-auto whitespace-pre-wrap">{entry.error.stack}</pre>
+							</details>
+						{/if}
+					{/if}
+					{#if callbackError}
+						<!-- Absolute time: a relative one would go stale without a ticking state. -->
+						<p class="text-meta text-destructive break-words" data-mod-callback-error={callbackError.callback}>
+							Last callback error ({callbackError.callback}, <time datetime={new Date(callbackError.at).toISOString()}>{new Date(callbackError.at).toLocaleTimeString()}</time>): {callbackError.message}
+						</p>
+						{#if callbackError.stack}
+							<details class="text-meta text-muted-foreground">
+								<summary class="cursor-pointer">Stack trace</summary>
+								<pre class="overflow-x-auto whitespace-pre-wrap">{callbackError.stack}</pre>
 							</details>
 						{/if}
 					{/if}

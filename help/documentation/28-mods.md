@@ -51,7 +51,7 @@ Open **Settings → Labs** and turn on **Vault mods**.
 
 - The flag is **per vault and per machine**. It is stored in this computer's app storage, keyed by the vault's path, not in `.kokobrain/settings.json`. A vault copied from somewhere else, or opened at a new path, always starts with mods off.
 - Turning it on loads the mods at once; turning it off unloads them. No restart needed.
-- With mods on, Labs lists every folder under `_system/mods/` with its state: **Loaded**, **Error** (with the message and a **Stack trace** you can expand), or **Disabled**.
+- With mods on, Labs lists every folder under `_system/mods/` with its state: **Loaded**, **Error** (with the message and a **Stack trace** you can expand), or **Disabled**. A loaded mod's row also shows its **Last callback error**, when an `onNoteSaved`, `watch` or `theme.onChange` callback failed since it loaded.
 - A loaded mod's row also shows how long it took to load, for example **Loaded · 42 ms** (**< 1 ms** when it rounds to zero). The time runs from evaluating `main.js` (its top-level code) until `onload` finishes, so it counts only the mod's own code, not reading its files. It is wall time, not CPU time: at vault open the mods load together, so a mod whose `onload` awaits something can show time spent waiting while other mods ran. A reload on save loads that mod alone, so its new time measures just that mod. Each reload, or switching the mod off and on, replaces the time.
 
 ### Switching one mod off
@@ -164,7 +164,7 @@ ctx.watch(
 
 The baseline is read at subscription, so a change before the first effect flush is still reported. Reads in `onChange` do not become dependencies. Several writes before a flush may produce one callback for the final value, not one per write. Return a primitive or a stable object identity: returning a fresh object looks like a change even if its fields are equal.
 
-A synchronous throw in either function goes to the mod's debug log, not Sentry. A failed read keeps the last good value; if the initial read failed, the first successful read establishes the baseline without notifying. Recovery needs a reactive dependency read before the throw. A read that always throws before touching reactive state cannot wake up again by itself.
+A synchronous throw in either function goes to the mod's debug log, not Sentry. A throw or a rejected promise from `onChange` also shows as **Last callback error** in the mod's Labs row and in one toast per load. A failed read keeps the last good value; if the initial read failed, the first successful read establishes the baseline without notifying. Recovery needs a reactive dependency read before the throw. A read that always throws before touching reactive state cannot wake up again by itself.
 
 **Keep the read narrow.** Reading `activeTab.content` re-runs per keystroke; `activeTabPath` does not. A handler that calls `ctx.kb()` and reads pages after each `vaultIndexVersion` bump rebuilds every page for the changed snapshot. Coalesce that work or refresh only while its result is on screen.
 
@@ -176,7 +176,7 @@ A synchronous throw in either function goes to the mod's debug log, not Sentry. 
 ctx.onNoteSaved((path) => ctx.log('Saved:', path));
 ```
 
-The returned disposer unsubscribes and cancels pending callbacks; unload does the same automatically. A callback that throws or returns a rejected promise goes to the mod's debug log, not Sentry. Already-running asynchronous callbacks are not cancelled: check `ctx.signal.aborted` after awaiting work.
+The returned disposer unsubscribes and cancels pending callbacks; unload does the same automatically. A callback that throws or returns a rejected promise goes to the mod's debug log, its Labs row (**Last callback error**) and one toast per load, not Sentry. Already-running asynchronous callbacks are not cancelled: check `ctx.signal.aborted` after awaiting work.
 
 **Avoid save loops.** `ctx.vault.write` has no equality guard, so a save callback that writes the same note can trigger itself indefinitely. Compare the old and new content before writing. `ctx.app.updateNoteFrontmatter` writes nothing only when the rebuilt text equals the file byte for byte (frontmatter already in the app's canonical form); returning the same properties still rewrites other notes (block lists become `[a, b]`, `type:` becomes `_type:`). To skip the write, throw a sentinel from `mutate` and catch it (see [Cookbook](mods/14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)). Switch off the mod in **Settings → Labs** to stop an asynchronous save loop.
 
@@ -658,11 +658,12 @@ onload(ctx) {
 | Loading (manifest, `main.js` syntax, top-level code, `onload`) | The mod shows **Error** in Labs with the message and stack trace, plus a toast. The same message is toasted once, not on every reload |
 | An action's `run` | The run view shows **Failed** with the message and stack, and a toast "`<mod name>`: `<title>` failed: `<message>`" |
 | `onunload` or a cleanup | A toast naming the mod and the phase |
+| An `onNoteSaved`, `watch` or `theme.onChange` callback | **Last callback error** in the mod's Labs row, with the callback, the time, the message and stack trace, plus a toast "`<mod name>`: `<callback>` callback failed: `<message>`" once per load |
 | A timer, listener or promise the mod started itself | Not caught by Kokobrain: it appears in the developer console (right-click → **Inspect**, available in development and debug builds; a release build is expected not to have it) |
 
 Every error Kokobrain catches, and everything a mod writes with `ctx.log`, goes to the debug log under `MOD:<id>`. To keep it in a file, turn on **Settings → Troubleshooting → Save debug log to file**; lines look like `[10:42:07.123] [FRONT-END:MOD:daily-log] ...` in `~/Library/Logs/com.diegorv.kokobrain/`. The time is UTC. With neither that switch nor **Debug mode** on, `ctx.log` writes nothing. An `Error` passed to `ctx.log` is written as `{}`: log `err.message` and `err.stack`. See [Errors and debugging](mods/15-errors-and-debugging.md) for every message.
 
-Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, awaited `run.ui` calls, `ctx.theme.onChange`, synchronous `ctx.watch` functions and `ctx.onNoteSaved` callbacks) are never sent to Sentry. The vault adapters also log their rejections under the mod tag. Uncaught errors (the last row above) and failures inside app services can reach Sentry while it is on. That includes `ctx.app` functions and the existing filesystem services called by `ctx.vault.rename`, `move` and `delete`.
+Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, awaited `run.ui` calls, `ctx.watch` reads, and `ctx.theme.onChange`, `ctx.watch` and `ctx.onNoteSaved` callbacks, async ones included) are never sent to Sentry. The vault adapters also log their rejections under the mod tag. Uncaught errors (the last row above) and failures inside app services can reach Sentry while it is on. That includes `ctx.app` functions and the existing filesystem services called by `ctx.vault.rename`, `move` and `delete`.
 
 > [!NOTE]
 > Stack traces show the mod's frames by function name only (for example `onload@`), without a file and line: the app's web view does not report locations for code evaluated this way.

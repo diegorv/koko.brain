@@ -198,7 +198,7 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 | `onNoteSaved` gets `.canvas`, `.view` or `main.js` paths | It fires for every file saved through the app's pipeline | Filter with `path.endsWith('.md')` |
 | `ctx.watch` fires on every change of anything, or never | `read` returns a fresh object each time, or reads plain (non-reactive) values | Return a primitive; read app store getters |
 | A watch handler runs on every keystroke | `read` touches `activeTab.content` | Read `activeTabPath` |
-| An unhandled rejection from a watch or theme handler | Async `ctx.watch` and `ctx.theme.onChange` callbacks are not caught by the host | Wrap the body in `try`/`catch` |
+| A watch, theme or save callback keeps failing, but only the first failure toasted | The host toasts a callback error once per load; later ones go to the debug log and replace the Labs row's **Last callback error** | Read the Labs row, or catch in the callback and `ctx.notify` each failure |
 | `ctx.theme.onChange` fires many times while the user edits a custom theme | Every live-preview color edit applies the theme | Debounce expensive repaints |
 
 ### Index queries

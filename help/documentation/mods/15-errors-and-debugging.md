@@ -14,11 +14,11 @@ Every error message the mod host produces, where each kind of failure shows up, 
 | A rejection after **Stop** or unload | | | **Cancelled** | Nothing | Nothing | No |
 | `onunload` throws or its promise rejects | | `_system/mods/<id>: onunload failed: <message>` | | `onunload failed: <message>` plus the stack | With Debug mode | No |
 | A cleanup (from `ctx.register` or a disposer) throws | | `_system/mods/<id>: cleanup failed: <message>` | | `cleanup failed: <message>` plus the stack | With Debug mode | No |
-| `ctx.watch` read or callback throws synchronously | | | | `watch read failed: ...` / `watch callback failed: ...` | With Debug mode | No |
-| `ctx.theme.onChange` callback throws synchronously | | | | `theme.onChange callback failed: ...` | With Debug mode | No |
-| `ctx.onNoteSaved` callback throws or rejects | | | | `onNoteSaved callback failed: ...` | With Debug mode | No |
+| `ctx.watch` read throws | | | | `watch read failed: ...` | With Debug mode | No |
+| `ctx.watch` callback throws or rejects | **Last callback error** with the message, and **Stack trace** when an `Error` was thrown | `<name>: watch callback failed: <message>`, once per load (see [below](#callback-errors-are-toasted-once-per-load)) | | `watch callback failed: ...` | With Debug mode | No |
+| `ctx.theme.onChange` callback throws or rejects | **Last callback error**, as above | `<name>: theme.onChange callback failed: <message>`, once per load | | `theme.onChange callback failed: ...` | With Debug mode | No |
+| `ctx.onNoteSaved` callback throws or rejects | **Last callback error**, as above | `<name>: onNoteSaved callback failed: <message>`, once per load | | `onNoteSaved callback failed: ...` | With Debug mode | No |
 | A `ctx.vault`, `ctx.workspace`, `loadData` or `saveData` call rejects | (reaches your code) | | (if uncaught in an action: **Failed**) | `vault.<op> "<path>" failed: ...`, `workspace.openNote "<path>" failed: ...`, `loadData failed: ...`, `saveData failed: ...` | With Debug mode | No |
-| A rejected promise returned by an async `ctx.watch` or `ctx.theme.onChange` callback | | | | | Unhandled rejection | Can be |
 | A timer, DOM listener or un-awaited promise the mod started | | | | | Uncaught error | Can be |
 | An app service reached through `ctx.app`, or the filesystem services behind `ctx.vault.rename`, `move`, `delete` | | The app's own toast, if any (for example `Failed to open file.`) | | Under the app's own tag, when the service logs | Usually (`console.error`) | Can be |
 | The host itself (mods folder unreadable, a reload that failed) | | | | `ERROR:FRONT-END:MODS`, `ERROR:FRONT-END:LABS`, `ERROR:FRONT-END:LIFECYCLE` | Always | Can be |
@@ -31,6 +31,10 @@ Every error message the mod host produces, where each kind of failure shows up, 
 ### Load errors are toasted once
 
 The host remembers the last load error toasted for each vault and folder, and does not toast the same message again. The Labs row is still updated every time. The memory is cleared only by a successful load of that folder or by deleting its `manifest.json`. It survives switching **Vault mods** off and on, switching the one mod off and on, and reopening the vault in the same app session. When a fix "did nothing", look at the Labs row, not for a toast. Unload, cleanup and action-failure toasts are never deduped.
+
+### Callback errors are toasted once per load
+
+A failing `ctx.onNoteSaved`, `ctx.watch` or `ctx.theme.onChange` callback toasts once per loaded instance of the mod: the first failure toasts, later ones of that instance do not. The Labs row of a loaded mod always shows the latest one, with the callback's name and the time, under **Last callback error**. A reload, switching the mod off and on, or reopening the vault loads a new instance, which clears the row and toasts again on its first failure. A rejection from the old instance that settles after the reload goes only to the session log. To show every failure, catch in the callback and call `ctx.notify`.
 
 ## Error message catalog
 

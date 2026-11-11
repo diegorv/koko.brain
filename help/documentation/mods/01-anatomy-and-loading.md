@@ -236,6 +236,7 @@ To type-check `main.js` with JSDoc, see [Types, build and test](12-types-build-a
 |--------|--------------|
 | Vault opens with mods on, Vault mods turned on in Labs, a mod switched on, a mod folder added | The mod is read, evaluated and `onload(ctx)` is called |
 | `onload` resolves | Labs shows **Loaded** with the load time |
+| A loaded mod's `onNoteSaved`, `watch` or `theme.onChange` callback throws or rejects | Labs shows **Last callback error** under **Loaded**; the first failure of the load also toasts. The next load clears it |
 | `onload` throws or rejects | Registrations made so far are undone, `onunload` is **not** called, Labs shows **Error**, a toast shows the message |
 | `main.js` or `manifest.json` saved | The mod waits for its live runs, unloads, then loads the new files |
 | Mod switched off, mod folder or manifest deleted, Vault mods turned off, vault closed or switched | The mod unloads at once; its live runs are aborted |

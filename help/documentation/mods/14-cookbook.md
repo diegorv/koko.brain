@@ -2132,7 +2132,7 @@ Why it is written this way:
 - `ctx.vault.write` runs the full after-save path, so the mod's own write calls `onNoteSaved` again. Two guards break the loop: the callback ignores the index path, and `upsertNote` skips an identical write, so even a missed path check settles after one round.
 - The callback receives only the vault-relative path, once per save, with no debounce. The timer coalesces bursts (autosave while typing) and is cleared at unload through `ctx.register`; the queue keeps two rebuilds from racing on `create`.
 - The callback filters by folder and extension: `onNoteSaved` also fires for canvases, `.view` files and other files saved in the editor.
-- Errors in a save callback never reach the user on their own (the host logs them to the debug log), so the timer path catches, skips when the mod is unloaded, and toasts.
+- The host shows only the first save callback error of each load in a toast (the rest go to the debug log and the Labs row), so the timer path catches, skips when the mod is unloaded, and toasts every failure.
 - A background rebuild skips the index note while it is the active tab: `ctx.vault.write` into the clean active note replaces the editor's text and puts the caret back at its old offset (see [Vault files: write](04-vault-files.md#writepath-content)). The rebuild runs once the user switches to another tab. The manual action writes at once: the user asked for it.
 - `create`, `rename`, `move`, `delete` and edits made outside the app do not count as saves, so the action covers them. The note list is read from disk with `listFilesDeep`, not the index, so it never lags, and a subfolder that could not be read is named in the note.
 

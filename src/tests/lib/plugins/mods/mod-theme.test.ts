@@ -33,13 +33,14 @@ vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
 }));
 
 import { flushSync } from 'svelte';
+import { toast } from 'svelte-sonner';
 
 import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 import { LAVENDER_HAZE_THEME, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
 import { applyTheme } from '#lib/core/settings/theme.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
-import { debug } from '#lib/utils/debug.js';
+import { debug, error } from '#lib/utils/debug.js';
 import type { ModThemeStateV1 } from '#lib/plugins/mods/contract/mod-api.v1.js';
 import { modDialogsStore } from '#lib/plugins/mods/mod-dialogs.store.svelte.js';
 import { modPickerStore } from '#lib/plugins/mods/mod-picker.store.svelte.js';
@@ -210,6 +211,29 @@ describe('ctx.theme', () => {
 
 		expect(seen).toEqual(['beta', 'beta']);
 		expect(debug).toHaveBeenCalledWith('MOD:alpha', 'theme.onChange callback failed:', expect.stringContaining('bad repaint'));
+	});
+
+	it('records a sync throw and an async rejection under theme.onChange, and another mod still runs', async () => {
+		const seen: string[] = [];
+		globals.__modCtx.alpha.theme.onChange(() => {
+			throw new Error('sync repaint');
+		});
+		globals.__modCtx.beta.theme.onChange(async () => {
+			seen.push('beta');
+			throw new Error('async repaint');
+		});
+		flushSync();
+
+		appliedThemeStore.bumpRevision();
+		flushSync();
+
+		expect(modsStore.callbackErrorFor('alpha')).toMatchObject({ callback: 'theme.onChange', message: 'sync repaint' });
+		await vi.waitFor(() => expect(modsStore.callbackErrorFor('beta')).toMatchObject({ callback: 'theme.onChange', message: 'async repaint' }));
+		expect(seen).toEqual(['beta']);
+		expect(debug).toHaveBeenCalledWith('MOD:beta', 'theme.onChange callback failed:', expect.stringContaining('async repaint'));
+		expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/^Mod alpha: theme\.onChange callback failed: sync repaint/));
+		expect(toast.error).toHaveBeenCalledWith(expect.stringMatching(/^Mod beta: theme\.onChange callback failed: async repaint/));
+		expect(error).not.toHaveBeenCalled();
 	});
 
 	it('onChange needs a function', () => {

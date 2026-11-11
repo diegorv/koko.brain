@@ -55,12 +55,14 @@ vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
 
 import { invoke } from '@tauri-apps/api/core';
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
+import { flushSync } from 'svelte';
 import { toast } from 'svelte-sonner';
 
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 import { updateNoteFrontmatter } from '#lib/core/frontmatter/frontmatter-write.service.js';
+import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -1375,6 +1377,101 @@ describe('mods host', () => {
 			await startModsHost(VAULT);
 
 			expect(fileListeners.size).toBe(1);
+		});
+
+		describe('callback errors', () => {
+			const failGlobals = globalThis as unknown as { __modFail: (folder: string) => unknown };
+
+			/** A mod whose theme callback returns or throws whatever `__modFail` does */
+			function failingMod(folder: string): string {
+				return `export default {
+	onload(ctx) {
+		globalThis.__modEvents.push('${folder}:load');
+		ctx.theme.onChange(() => globalThis.__modFail('${folder}'));
+	},
+};`;
+			}
+
+			function changeTheme(): void {
+				appliedThemeStore.bumpRevision();
+				flushSync();
+			}
+
+			const record = (folder: string) => modsStore.callbackErrorFor(folder);
+			const loads = (folder: string) => globals.__modEvents.filter((e) => e === `${folder}:load`).length;
+
+			beforeEach(() => {
+				failGlobals.__modFail = (folder) => {
+					throw new Error(`${folder} broke`);
+				};
+			});
+
+			it('a reload clears the record and arms the toast again', async () => {
+				writeMod('hello', failingMod('hello'));
+				await startModsHost(VAULT);
+				changeTheme();
+				changeTheme();
+				expect(record('hello')).toMatchObject({ callback: 'theme.onChange', message: 'hello broke' });
+				expect(toast.error).toHaveBeenCalledTimes(1);
+				expect(toast.error).toHaveBeenCalledWith('Mod hello: theme.onChange callback failed: hello broke');
+
+				emit([`${MODS}/hello/main.js`]);
+				await vi.waitFor(() => expect(loads('hello')).toBe(2));
+				expect(record('hello')).toBeNull();
+
+				changeTheme();
+				expect(record('hello')).toMatchObject({ callback: 'theme.onChange', message: 'hello broke' });
+				expect(toast.error).toHaveBeenCalledTimes(2);
+				expect(error).not.toHaveBeenCalled();
+			});
+
+			it('switching the mod off or stopping the host clears the record', async () => {
+				writeMod('alpha', failingMod('alpha'));
+				writeMod('beta', failingMod('beta'));
+				await startModsHost(VAULT);
+				changeTheme();
+				expect(record('alpha')).not.toBeNull();
+				expect(record('beta')).not.toBeNull();
+
+				modsEnabledStore.setModEnabled('alpha', false);
+				disableMod('alpha');
+				expect(record('alpha')).toBeNull();
+				expect(record('beta')).not.toBeNull();
+
+				stopModsHost();
+				expect(record('beta')).toBeNull();
+			});
+
+			it('a rejection that settles after a reload leaves the new instance without a record or a toast', async () => {
+				let rejectLate!: (err: Error) => void;
+				failGlobals.__modFail = () => new Promise((_resolve, reject) => {
+					rejectLate = reject;
+				});
+				writeMod('hello', failingMod('hello'));
+				await startModsHost(VAULT);
+				changeTheme();
+
+				emit([`${MODS}/hello/main.js`]);
+				await vi.waitFor(() => expect(loads('hello')).toBe(2));
+				rejectLate(new Error('late'));
+				await vi.waitFor(() => expect(debug).toHaveBeenCalledWith('MOD:hello', 'theme.onChange callback failed:', expect.stringContaining('late')));
+
+				expect(record('hello')).toBeNull();
+				expect(toast.error).not.toHaveBeenCalled();
+			});
+
+			it('two failing mods each toast once', async () => {
+				writeMod('alpha', failingMod('alpha'));
+				writeMod('beta', failingMod('beta'));
+				await startModsHost(VAULT);
+				changeTheme();
+				changeTheme();
+
+				expect(vi.mocked(toast.error).mock.calls).toEqual([
+					['Mod alpha: theme.onChange callback failed: alpha broke'],
+					['Mod beta: theme.onChange callback failed: beta broke'],
+				]);
+			});
 		});
 	});
 

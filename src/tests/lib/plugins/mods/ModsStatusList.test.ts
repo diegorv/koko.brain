@@ -141,6 +141,62 @@ describe('ModsStatusList', () => {
 		expect(root.textContent).not.toContain('No mods in _system/mods/');
 	});
 
+	describe('last callback error', () => {
+		const AT = Date.UTC(2026, 10, 11, 14, 32, 7);
+		const line = (root: HTMLElement, folder: string) => row(root, folder).querySelector<HTMLElement>('[data-mod-callback-error]');
+
+		it('shows the callback, the time and the message on a loaded row, with the stack in details', () => {
+			modsStore.setEntries([{ id: 'saver', folder: 'saver', name: 'Saver', version: '1.0.0', state: 'loaded' }]);
+			modsStore.recordCallbackError('saver', { callback: 'onNoteSaved', message: 'bad <b>title</b>', stack: 'Error: bad\n    at main.js:4', at: AT });
+			const root = render();
+
+			const p = line(root, 'saver')!;
+			expect(p.getAttribute('data-mod-callback-error')).toBe('onNoteSaved');
+			expect(p.textContent).toContain('Last callback error (onNoteSaved, ');
+			expect(p.textContent).toContain('): bad <b>title</b>');
+			expect(p.querySelector('b')).toBeNull();
+			expect(p.querySelector('time')?.getAttribute('datetime')).toBe(new Date(AT).toISOString());
+			const details = row(root, 'saver').querySelector('details');
+			expect(details?.querySelector('summary')?.textContent?.trim()).toBe('Stack trace');
+			expect(details?.querySelector('pre')?.textContent).toBe('Error: bad\n    at main.js:4');
+		});
+
+		it('shows no stack details without a stack', () => {
+			modsStore.setEntries([{ id: 'saver', folder: 'saver', name: 'Saver', version: '1.0.0', state: 'loaded' }]);
+			modsStore.recordCallbackError('saver', { callback: 'watch', message: 'bad', at: AT });
+			const root = render();
+
+			expect(line(root, 'saver')?.getAttribute('data-mod-callback-error')).toBe('watch');
+			expect(row(root, 'saver').querySelector('details')).toBeNull();
+		});
+
+		it('is not shown on an error or a disabled row', () => {
+			modsStore.setEntries([
+				{ id: 'bad', folder: 'bad', name: 'bad', version: '', state: 'error', error: { message: 'x' } },
+				{ id: 'off', folder: 'off', name: 'Off', version: '1.0.0', state: 'disabled' },
+			]);
+			modsStore.recordCallbackError('bad', { callback: 'watch', message: 'stale', at: AT });
+			modsStore.recordCallbackError('off', { callback: 'watch', message: 'stale', at: AT });
+			const root = render();
+
+			expect(line(root, 'bad')).toBeNull();
+			expect(line(root, 'off')).toBeNull();
+			expect(root.textContent).not.toContain('stale');
+		});
+
+		it('appears when the store is written after mount', () => {
+			modsStore.setEntries([{ id: 'saver', folder: 'saver', name: 'Saver', version: '1.0.0', state: 'loaded' }]);
+			const root = render();
+			expect(line(root, 'saver')).toBeNull();
+
+			modsStore.recordCallbackError('saver', { callback: 'theme.onChange', message: 'late', at: AT });
+			flushSync();
+
+			expect(line(root, 'saver')?.getAttribute('data-mod-callback-error')).toBe('theme.onChange');
+			expect(line(root, 'saver')?.textContent).toContain('late');
+		});
+	});
+
 	describe('per-mod switch', () => {
 		function modSwitch(root: HTMLElement, folder: string): HTMLButtonElement {
 			return row(root, folder).querySelector<HTMLButtonElement>('[role="switch"]')!;

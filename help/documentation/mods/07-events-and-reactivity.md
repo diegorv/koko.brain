@@ -64,9 +64,8 @@ To watch two values, combine them into a string key, or use two watches.
 - A **synchronous** throw in `read` logs `watch read failed: <message>` under the mod's `MOD:<id>` tag and keeps the last good value; `onChange` is not called.
 - If the baseline read threw, the first later successful read sets the baseline **without** calling `onChange`.
 - A `read` that throws **before reading any reactive value** registers no dependency and never runs again. Read your reactive input first, then do what can throw.
-- A synchronous throw in `onChange` logs `watch callback failed: <message>`. The watch stays active.
-- `onChange`'s return value is ignored. **A rejected promise from an `async` `onChange` is not caught** by the host: it becomes an unhandled rejection. Wrap async handlers in `try`/`catch`.
-- None of these go to a toast. Turn on the debug log to see them (see [Errors and debugging](15-errors-and-debugging.md#ctxlog)).
+- A throw in `onChange`, or a rejected promise from an `async` `onChange`, logs `watch callback failed: <message>`. The watch stays active. It also shows as **Last callback error** in the mod's Labs row and in one toast per load (see [Errors and debugging](15-errors-and-debugging.md#callback-errors-are-toasted-once-per-load)). Never Sentry.
+- A failed `read` goes to no toast and no Labs row. Turn on the debug log to see it (see [Errors and debugging](15-errors-and-debugging.md#ctxlog)).
 
 ### Keep reads narrow
 
@@ -219,7 +218,7 @@ const isNote = (path) => {
 
 ### Errors
 
-A synchronous throw **or** a rejected promise from the callback is caught and logged as `onNoteSaved callback failed: <message>` under `MOD:<id>`. No toast, never Sentry. Unlike `ctx.watch`, an async callback is safe here.
+A synchronous throw **or** a rejected promise from the callback is caught and logged as `onNoteSaved callback failed: <message>` under `MOD:<id>`. It also shows as **Last callback error** in the mod's Labs row and in one toast per load. Never Sentry.
 
 ### Avoiding save loops
 
@@ -376,7 +375,7 @@ It fires on every theme application, not only on a real change:
 
 Several applications before one flush give one call. The callback receives the colors as they are at that moment. Keep it cheap: repaint, do not rebuild.
 
-Errors: a synchronous throw is logged as `theme.onChange callback failed: <message>` under `MOD:<id>`. A rejected promise from an `async` callback is **not** caught.
+Errors: a synchronous throw or a rejected promise from an `async` callback is logged as `theme.onChange callback failed: <message>` under `MOD:<id>`, and shows as **Last callback error** in the mod's Labs row and in one toast per load. Never Sentry.
 
 ```javascript
 export default {

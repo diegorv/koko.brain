@@ -13,7 +13,7 @@ Last callback error (onNoteSaved, 14:32:07): Cannot read properties of undefined
 
 **Requires first (other repo):** nothing. The contract types all three callbacks as returning `void` (`/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/packages/mod-core/src/contract/mod-api.v1.ts:309-313,351-362`); an `async` callback already satisfies that, so catching its rejection is host behavior. No `ctx` member is added. The JSDoc "goes to the debug log" (`mod-api.v1.ts:311-312,352,358`) stays true, only incomplete: do not make a contract commit or a mod-core SHA adoption for this Issue.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -58,14 +58,14 @@ Last callback error (onNoteSaved, 14:32:07): Cannot read properties of undefined
 
 ### Acceptance
 
-- [ ] Failing test first, in `src/tests/lib/plugins/mods/mod-note-saved.test.ts` (extend the case at `:71`): after a throwing callback and a rejecting one fire on one save, `modsStore.callbackErrorFor('saver')` holds `{ callback: 'onNoteSaved', message }` of the last report with a numeric `at`, `toast.error` is called exactly once with text starting `Saver: onNoteSaved callback failed:`, the existing `debug` assertions still hold and `error` is never called. It fails today, because the host only calls `debug` (`mods-host.service.ts:570`).
-- [ ] `mods.store.test.ts`: record, replace, unknown folder is `null`, clearing one folder keeps the others, `reset()` empties the map.
-- [ ] `mod-watch.test.ts`: a throwing and an `async` rejecting `onChange` are recorded under `'watch'`, the watch keeps firing on later changes, the watch's `read` is not re-run by the store write, a throwing `read` records nothing. The existing `debug` assertion at `:137` still holds.
-- [ ] `mod-theme.test.ts` (near `:212`): a sync throw and an async rejection from `theme.onChange` are recorded under `'theme.onChange'`; another mod's callback still runs.
-- [ ] `mods-host.service.test.ts`: the record is cleared on reload (a `main.js` change), on disable and on stop; after a reload the toast fires again on the next failure; a rejection that settles after the reload leaves the new instance's record empty and toasts nothing; two mods each toast once on their own.
-- [ ] `ModsStatusList.test.ts`: the `data-mod-callback-error` line with message and `<time datetime>` shows on a loaded row; not on an error or disabled row; it appears when the store is written after mount; the stack trace `<details>` shows only when `stack` is set.
-- [ ] Docs above updated.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in `src/tests/lib/plugins/mods/mod-note-saved.test.ts` (extend the case at `:71`): after a throwing callback and a rejecting one fire on one save, `modsStore.callbackErrorFor('saver')` holds `{ callback: 'onNoteSaved', message }` of the last report with a numeric `at`, `toast.error` is called exactly once with text starting `Saver: onNoteSaved callback failed:`, the existing `debug` assertions still hold and `error` is never called. It fails today, because the host only calls `debug` (`mods-host.service.ts:570`).
+- [x] `mods.store.test.ts`: record, replace, unknown folder is `null`, clearing one folder keeps the others, `reset()` empties the map.
+- [x] `mod-watch.test.ts`: a throwing and an `async` rejecting `onChange` are recorded under `'watch'`, the watch keeps firing on later changes, the watch's `read` is not re-run by the store write, a throwing `read` records nothing. The existing `debug` assertion at `:137` still holds.
+- [x] `mod-theme.test.ts` (near `:212`): a sync throw and an async rejection from `theme.onChange` are recorded under `'theme.onChange'`; another mod's callback still runs.
+- [x] `mods-host.service.test.ts`: the record is cleared on reload (a `main.js` change), on disable and on stop; after a reload the toast fires again on the next failure; a rejection that settles after the reload leaves the new instance's record empty and toasts nothing; two mods each toast once on their own.
+- [x] `ModsStatusList.test.ts`: the `data-mod-callback-error` line with message and `<time datetime>` shows on a loaded row; not on an error or disabled row; it appears when the store is written after mount; the stack trace `<details>` shows only when `stack` is set.
+- [x] Docs above updated.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Notes
 
@@ -80,3 +80,5 @@ Last callback error (onNoteSaved, 14:32:07): Cannot read properties of undefined
 - **Not verified:** whether a `$state.raw` write inside `untrack` within an effect raises a Svelte warning under vitest (expected fine; the `mod-watch.test.ts` acceptance item settles it); whether any test under `src/tests/help/` snapshots the doc text changed above (only `mods-types.test.ts` was read).
 
 ## Comments
+
+- 2026-11-11, branch `issue/06-visible-callback-errors`: `onNoteSaved`, `ctx.watch` and `theme.onChange` failures go through one guarded helper that logs to debug, records the last error per mod in `modsStore` (cleared on unload, reload, disable and stop) and toasts once per loaded instance; the Labs row shows the record on loaded mods; mod docs updated. Review round 1: APPROVED with one optional nit on `mod-watch.test.ts` (declined, reason in the review's Resolution). Full suite at `9bfcf4d4b`: 611 files passed, 15419 tests passed, 54 skipped, 1 todo; `pnpm check` exit 0 (review).

@@ -18,10 +18,13 @@ vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
 	error: vi.fn(),
 }));
 
+import { toast } from 'svelte-sonner';
+
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import { disableMod, startModsHost, stopModsHost, type ModContext } from '#lib/plugins/mods/mods-host.service.js';
+import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 
 const globals = globalThis as unknown as { __watchCtx: ModContext };
@@ -136,6 +139,53 @@ describe('ctx.watch', () => {
 		expect(seen).toEqual(['/vault/Second.md', '/vault/Third.md']);
 		expect(debug).toHaveBeenCalledWith('MOD:watcher', 'watch callback failed:', expect.stringContaining('bad handler'));
 		expect(error).not.toHaveBeenCalled();
+	});
+
+	it('records a throwing and an async rejecting callback under watch, keeps firing, and never re-runs the read for the record', async () => {
+		let reads = 0;
+		const seen: (string | null)[] = [];
+		globals.__watchCtx.watch(() => { reads++; return editorStore.activeTabPath; }, async (path) => {
+			seen.push(path);
+			if (path === '/vault/Async.md') throw new Error('async handler');
+		});
+		globals.__watchCtx.watch(() => editorStore.activeTabPath, (path) => {
+			if (path === '/vault/Sync.md') throw new Error('sync handler');
+		});
+		flushSync();
+
+		openTab('Sync.md');
+		flushSync();
+		await Promise.resolve();
+		expect(modsStore.callbackErrorFor('watcher')).toMatchObject({ callback: 'watch' });
+		const readsAfterFailure = reads;
+		modsStore.recordCallbackError('watcher', { callback: 'watch', message: 'external write', at: 0 });
+		flushSync();
+		expect(reads).toBe(readsAfterFailure);
+
+		openTab('Async.md');
+		flushSync();
+		await vi.waitFor(() => expect(modsStore.callbackErrorFor('watcher')).toMatchObject({ callback: 'watch', message: 'async handler' }));
+
+		openTab('Third.md');
+		flushSync();
+		expect(seen).toEqual(['/vault/Sync.md', '/vault/Async.md', '/vault/Third.md']);
+		expect(debug).toHaveBeenCalledWith('MOD:watcher', 'watch callback failed:', expect.stringContaining('sync handler'));
+		expect(debug).toHaveBeenCalledWith('MOD:watcher', 'watch callback failed:', expect.stringContaining('async handler'));
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(error).not.toHaveBeenCalled();
+	});
+
+	it('records nothing for a throwing read', () => {
+		globals.__watchCtx.watch(() => {
+			const path = editorStore.activeTabPath;
+			if (path) throw new Error('bad read');
+			return path;
+		}, () => {});
+		openTab('Note.md');
+		flushSync();
+		expect(debug).toHaveBeenCalledWith('MOD:watcher', 'watch read failed:', expect.stringContaining('bad read'));
+		expect(modsStore.callbackErrorFor('watcher')).toBeNull();
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('contains a read that throws before tracking anything without inventing a polling dependency', () => {

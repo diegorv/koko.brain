@@ -26,7 +26,7 @@ import { watchModValue } from './mod-watch.svelte';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
 import { modsRunsStore } from './mods-runs.store.svelte';
 import { errorText, evaluateModSource, mapModChanges, MODS_DIR, parseModManifest, type ModManifest } from './mods.logic';
-import { modsStore } from './mods.store.svelte';
+import { modsStore, type ModCallbackError } from './mods.store.svelte';
 
 /**
  * The `ctx` a mod receives: the frozen v1 contract plus raw access to the
@@ -127,6 +127,36 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	// Mods are untyped JavaScript, so what they pass is checked here.
 	const invalid = (message: string) => new Error(`Mod "${manifest.id}": ${message}`);
 	const isText = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+	// Per ctx, so per load: a reload, a switch off and on, or a reopened vault toasts again.
+	let toasted = false;
+	/**
+	 * Runs a mod callback the host calls on its own (`onNoteSaved`, `watch`,
+	 * `theme.onChange`). A throw or a rejection goes to `debug()`; while this
+	 * instance is live, also to the mod's Labs row, and the first one to a
+	 * toast. Never Sentry: the error is the mod's (PRD P9). Run inside the
+	 * caller's `untrack`, so the store write subscribes no effect.
+	 */
+	const callModCallback = (name: ModCallbackError['callback'], call: () => unknown) => {
+		const report = (err: unknown) => {
+			debug(tag, `${name} callback failed:`, errorText(err));
+			// A late rejection from an old instance must not land on the new one's row or toast.
+			if (runtime.unloaded || vaultStore.path !== vaultPath) return;
+			modsStore.recordCallbackError(manifest.id, {
+				callback: name,
+				message: messageOf(err),
+				stack: err instanceof Error ? err.stack : undefined,
+				at: Date.now(),
+			});
+			if (toasted) return;
+			toasted = true;
+			toast.error(`${manifest.name}: ${name} callback failed: ${messageOf(err)}`);
+		};
+		try {
+			void Promise.resolve(call()).catch(report);
+		} catch (err) {
+			report(err);
+		}
+	};
 	/** Wraps a cleanup so it runs once, whether the mod calls it or the unload does */
 	const disposable = (dispose: () => void) => {
 		let done = false;
@@ -311,15 +341,8 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 		onChange: (callback) => {
 			assertLive();
 			if (typeof callback !== 'function') throw invalid('theme.onChange needs a callback function');
-			return disposable(
-				watchModTheme(() => {
-					try {
-						callback(readModTheme());
-					} catch (err) {
-						debug(tag, 'theme.onChange callback failed:', errorText(err));
-					}
-				}),
-			);
+			// readModTheme() inside the guarded call, so a throw from it never escapes into the theme effect.
+			return disposable(watchModTheme(() => callModCallback('theme.onChange', () => callback(readModTheme()))));
 		},
 	};
 
@@ -564,13 +587,12 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			assertLive();
 			if (typeof read !== 'function') throw invalid('watch needs a read function');
 			if (typeof onChange !== 'function') throw invalid('watch needs a callback function');
-			return disposable(watchModValue(tag, read, onChange));
+			return disposable(watchModValue(tag, read, (value) => callModCallback('watch', () => onChange(value))));
 		},
 		onNoteSaved: (callback) => {
 			assertLive();
 			if (typeof callback !== 'function') throw invalid('onNoteSaved needs a callback function');
 			const pending = new Set<ReturnType<typeof setTimeout>>();
-			const report = (err: unknown) => debug(tag, 'onNoteSaved callback failed:', errorText(err));
 			const unsubscribe = addAfterSaveObserver((path) => {
 				const relative = vaultRelativeKey(vaultPath, path);
 				if (relative === null || runtime.unloaded || vaultStore.path !== vaultPath) return;
@@ -578,11 +600,7 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 				const timer = setTimeout(() => {
 					pending.delete(timer);
 					if (runtime.unloaded || vaultStore.path !== vaultPath) return;
-					try {
-						void Promise.resolve(callback(relative)).catch(report);
-					} catch (err) {
-						report(err);
-					}
+					callModCallback('onNoteSaved', () => callback(relative));
 				}, 0);
 				pending.add(timer);
 			});
@@ -624,6 +642,8 @@ function reportUnloadError(live: LiveMod, phase: string, err: unknown): void {
 function unloadMod(live: LiveMod, callOnunload: boolean): void {
 	if (live.unloaded) return;
 	live.unloaded = true;
+	// The one path for reload, switch off, stop and a failed onload, so the next load starts with a clean row.
+	modsStore.clearCallbackError(live.manifest.id);
 	debug('MOD-HOST', JSON.stringify({ event: 'unload', modId: live.manifest.id }));
 	live.controller.abort();
 	modPickerStore.closeForMod(live.manifest.id);

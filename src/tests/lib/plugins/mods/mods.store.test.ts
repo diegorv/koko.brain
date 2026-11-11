@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
-import { modsStore, type ModStatusEntry } from '#lib/plugins/mods/mods.store.svelte.js';
+import { modsStore, type ModCallbackError, type ModStatusEntry } from '#lib/plugins/mods/mods.store.svelte.js';
 
 const HELLO: ModStatusEntry = { id: 'hello', folder: 'hello', name: 'Hello', version: '1.0.0', state: 'loaded' };
 const BROKEN: ModStatusEntry = {
@@ -77,5 +77,41 @@ describe('modsStore', () => {
 		modsStore.reset();
 
 		expect(modsStore.entries).toEqual([]);
+	});
+
+	describe('callback errors', () => {
+		const SAVE_ERROR: ModCallbackError = { callback: 'onNoteSaved', message: 'bad save', stack: 'Error: bad save', at: 1000 };
+		const WATCH_ERROR: ModCallbackError = { callback: 'watch', message: 'bad watch', at: 2000 };
+
+		it('an unknown folder has none', () => {
+			expect(modsStore.callbackErrorFor('missing')).toBeNull();
+		});
+
+		it('records a folder\'s last error and replaces it with the next one', () => {
+			modsStore.recordCallbackError('hello', SAVE_ERROR);
+			expect(modsStore.callbackErrorFor('hello')).toEqual(SAVE_ERROR);
+
+			modsStore.recordCallbackError('hello', WATCH_ERROR);
+			expect(modsStore.callbackErrorFor('hello')).toEqual(WATCH_ERROR);
+		});
+
+		it('clearing one folder keeps the others', () => {
+			modsStore.recordCallbackError('hello', SAVE_ERROR);
+			modsStore.recordCallbackError('broken', WATCH_ERROR);
+
+			modsStore.clearCallbackError('hello');
+			modsStore.clearCallbackError('missing');
+
+			expect(modsStore.callbackErrorFor('hello')).toBeNull();
+			expect(modsStore.callbackErrorFor('broken')).toEqual(WATCH_ERROR);
+		});
+
+		it('reset empties them', () => {
+			modsStore.recordCallbackError('hello', SAVE_ERROR);
+
+			modsStore.reset();
+
+			expect(modsStore.callbackErrorFor('hello')).toBeNull();
+		});
 	});
 });

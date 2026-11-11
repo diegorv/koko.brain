@@ -18,12 +18,15 @@ vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
 	error: vi.fn(),
 }));
 
+import { toast } from 'svelte-sonner';
+
 import { addAfterSaveObserver, notifyAfterSave, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { modsEnabledStore } from '#lib/plugins/mods/mods-enabled.store.svelte.js';
 import { disableMod, startModsHost, stopModsHost, type ModContext } from '#lib/plugins/mods/mods-host.service.js';
+import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 
 const globals = globalThis as unknown as { __saveCtx: ModContext };
@@ -68,7 +71,7 @@ describe('ctx.onNoteSaved', () => {
 		expect(events).toEqual(['before', 'after', 'Ideas/Note.md']);
 	});
 
-	it('contains throws and async rejections in the mod debug log, never Sentry or another observer', async () => {
+	it('contains throws and async rejections in the mod debug log, the Labs record and one toast, never Sentry or another observer', async () => {
 		const seen: string[] = [];
 		globals.__saveCtx.onNoteSaved(() => { throw new Error('bad save handler'); });
 		globals.__saveCtx.onNoteSaved(async () => { throw new Error('bad async handler'); });
@@ -80,6 +83,13 @@ describe('ctx.onNoteSaved', () => {
 		expect(debug).toHaveBeenCalledWith('MOD:saver', 'onNoteSaved callback failed:', expect.stringContaining('bad save handler'));
 		expect(debug).toHaveBeenCalledWith('MOD:saver', 'onNoteSaved callback failed:', expect.stringContaining('bad async handler'));
 		expect(error).not.toHaveBeenCalled();
+		// The sync throw reports at once; the rejection settles a microtask later, so it is the last report.
+		const record = modsStore.callbackErrorFor('saver');
+		expect(record).toMatchObject({ callback: 'onNoteSaved', message: 'bad async handler' });
+		expect(typeof record?.at).toBe('number');
+		expect(record?.stack).toContain('bad async handler');
+		expect(toast.error).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(toast.error).mock.calls[0][0]).toMatch(/^Saver: onNoteSaved callback failed: /);
 	});
 
 	it('disposal cancels pending callbacks and unsubscribes future saves', async () => {

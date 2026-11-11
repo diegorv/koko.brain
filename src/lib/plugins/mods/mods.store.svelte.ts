@@ -19,8 +19,26 @@ export interface ModStatusEntry {
 	loadMs?: number;
 }
 
+/** The last error a loaded mod's host-called callback threw or rejected with, shown in its Labs row */
+export interface ModCallbackError {
+	/** The `ctx` subscription whose callback failed */
+	callback: 'onNoteSaved' | 'watch' | 'theme.onChange';
+	/** The thrown value's message, or the value as a string */
+	message: string;
+	/** The stack, when the thrown value is an `Error` */
+	stack?: string;
+	/** When it failed, from `Date.now()` */
+	at: number;
+}
+
 /** One entry per mod folder, sorted by folder */
 let entries = $state.raw<ModStatusEntry[]>([]);
+/**
+ * Last callback error per mod folder. Kept apart from `entries`: the first
+ * `onload` can subscribe and fail before its entry exists, and `upsertEntry`
+ * replaces the whole entry.
+ */
+let callbackErrors = $state.raw<Record<string, ModCallbackError>>({});
 
 function byFolder(a: ModStatusEntry, b: ModStatusEntry): number {
 	return a.folder < b.folder ? -1 : a.folder > b.folder ? 1 : 0;
@@ -48,8 +66,26 @@ export const modsStore = {
 		entries = entries.filter((e) => e.folder !== folder);
 	},
 
-	/** Empties the list */
+	/** The folder's last callback error, or null */
+	callbackErrorFor(folder: string): ModCallbackError | null {
+		return callbackErrors[folder] ?? null;
+	},
+
+	/** Replaces the folder's last callback error */
+	recordCallbackError(folder: string, err: ModCallbackError) {
+		callbackErrors = { ...callbackErrors, [folder]: err };
+	},
+
+	/** Drops the folder's last callback error, if any; the other folders keep theirs */
+	clearCallbackError(folder: string) {
+		if (!(folder in callbackErrors)) return;
+		const { [folder]: _dropped, ...rest } = callbackErrors;
+		callbackErrors = rest;
+	},
+
+	/** Empties the list and every callback error */
 	reset() {
 		entries = [];
+		callbackErrors = {};
 	},
 };

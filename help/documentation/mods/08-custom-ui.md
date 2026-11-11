@@ -61,7 +61,7 @@ Use `current` only where a CSS variable cannot reach: a `<canvas>`, a chart libr
 
 - It fires on every theme **application**, not only on a real change: loading the vault's settings, switching themes in Settings, updating, uninstalling or deleting one (installing alone does not apply it), saving or cancelling the custom theme editor, re-selecting the same theme, and **every color edit in the theme editor's live preview** (an unsaved draft, with the draft's colors). Keep the callback cheap.
 - Several applications in the same tick give one call, with the colors as they are after the last one.
-- A synchronous throw is caught and logged under `MOD:<id>`. A returned rejected promise is not caught: it becomes an unhandled rejection. Wrap async work in `try/catch`.
+- A throw or a returned rejected promise is caught and logged under `MOD:<id>`, and shows as **Last callback error** in the mod's Labs row and in one toast per load.
 - `callback` must be a function, else it throws `Mod "<id>": theme.onChange needs a callback function`.
 
 ### Light or dark: `mode`
