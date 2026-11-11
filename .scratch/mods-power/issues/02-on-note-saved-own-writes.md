@@ -14,7 +14,7 @@ ctx.onNoteSaved(async (path, content) => {
 
 **Requires first (other repo):** mods Issue `/Users/diegorv/kokobrain-vaults/kokobrain-mods-src/.scratch/mods-power/issues/02-on-note-saved-own-writes.md` delivered and pushed: the contract signature `onNoteSaved: (callback: (path: string, content: string) => void, options?: { ignoreOwnWrites?: boolean }) => () => void`. This Issue adopts that commit's full SHA per `docs/MOD-CORE.md` "Updating the dependency", in the same commit as the host change: after the bump alone, `callback(relative)` (`src/lib/plugins/mods/mods-host.service.ts:579`) fails `pnpm check`.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 Set `ready-for-agent` when mods Issue 02's full SHA is in its Comments. Launch by explicit number only.
 
@@ -56,17 +56,17 @@ State in user terms: the callback is `(path, content)`; `content` is a snapshot,
 
 ### Acceptance
 
-- [ ] Failing test first, in `src/tests/lib/plugins/mods/mod-note-saved.test.ts`: an editor save (`saveFileByPath`, as at `:56-69`) delivers `('Ideas/Note.md', 'edited')`, and two quick saves deliver two calls in order, each with its own content. It fails today: the callback gets only the path (`mods-host.service.ts:579`).
-- [ ] Without options, the mod's own `ctx.vault.write('Ideas/Note.md', 'mine')` still calls back, with `'mine'`.
-- [ ] With `{ ignoreOwnWrites: true }`, the mod's own `vault.write` does not call back; an editor save of the same path in a later tick does, with its content.
-- [ ] `ctx.vault.updateFrontmatter`: with `{ ignoreOwnWrites: true }`, the mod's own call on a closed note and on an open tab does not call back; without the option it does, with the rebuilt text. Two concurrent `updateFrontmatter` calls on one path leave `isOwnWrite` false after both settle: a later editor save calls back.
-- [ ] Cross-mod: mod A writes; mod B with `ignoreOwnWrites` is called, and A (also with the option) is not. The `readDir` mock at `:7` lists two mods.
-- [ ] One mod with two subscriptions, one with the option and one without: only the second hears the own write.
-- [ ] Options: `null`, `true`, `'yes'` throw `onNoteSaved needs options to be an object`; `{ ignoreOwnWrites: 'yes' }` throws `onNoteSaved needs options.ignoreOwnWrites to be a boolean`; `undefined`, `{}` and `{ ignoreOwnWrites: false }` are accepted.
-- [ ] The existing tests at `:56-125` (throws and rejections, disposal, unload, vault switch, non-function callback) still pass with the second argument.
-- [ ] No `debug` or `error` call receives the saved content.
-- [ ] Contract adopted: `package.json` and `pnpm-lock.yaml` name the new SHA and `packages/mod-core`, with no credentials, workspace links or personal paths; `kokobrain-mod.d.ts` matches the contract (`mods-types.test.ts` passes).
-- [ ] Docs above updated.
+- [x] Failing test first, in `src/tests/lib/plugins/mods/mod-note-saved.test.ts`: an editor save (`saveFileByPath`, as at `:56-69`) delivers `('Ideas/Note.md', 'edited')`, and two quick saves deliver two calls in order, each with its own content. It fails today: the callback gets only the path (`mods-host.service.ts:579`).
+- [x] Without options, the mod's own `ctx.vault.write('Ideas/Note.md', 'mine')` still calls back, with `'mine'`.
+- [x] With `{ ignoreOwnWrites: true }`, the mod's own `vault.write` does not call back; an editor save of the same path in a later tick does, with its content.
+- [x] `ctx.vault.updateFrontmatter`: with `{ ignoreOwnWrites: true }`, the mod's own call on a closed note and on an open tab does not call back; without the option it does, with the rebuilt text. Two concurrent `updateFrontmatter` calls on one path leave `isOwnWrite` false after both settle: a later editor save calls back.
+- [x] Cross-mod: mod A writes; mod B with `ignoreOwnWrites` is called, and A (also with the option) is not. The `readDir` mock at `:7` lists two mods.
+- [x] One mod with two subscriptions, one with the option and one without: only the second hears the own write.
+- [x] Options: `null`, `true`, `'yes'` throw `onNoteSaved needs options to be an object`; `{ ignoreOwnWrites: 'yes' }` throws `onNoteSaved needs options.ignoreOwnWrites to be a boolean`; `undefined`, `{}` and `{ ignoreOwnWrites: false }` are accepted.
+- [x] The existing tests at `:56-125` (throws and rejections, disposal, unload, vault switch, non-function callback) still pass with the second argument.
+- [x] No `debug` or `error` call receives the saved content.
+- [x] Contract adopted: `package.json` and `pnpm-lock.yaml` name the new SHA and `packages/mod-core`, with no credentials, workspace links or personal paths; `kokobrain-mod.d.ts` matches the contract (`mods-types.test.ts` passes).
+- [x] Docs above updated.
 - [ ] Gate: `pnpm check`, `pnpm vitest run` and `pnpm build` pass; mods workspace `pnpm check:package <consumer>` and `KOKOBRAIN_HOST_ROOT=<this checkout> pnpm verify` pass.
 
 ## Notes
@@ -92,3 +92,5 @@ State in user terms: the callback is `(path, content)`; `content` is a snapshot,
 - **Not verified:** the `tsc` arity error after a bump-only commit is reasoned, not run. Whether a loader path can create two live contexts with one mod id (a reload racing an enable) was not checked.
 
 ## Comments
+
+- 2026-11-11, branch `issue/02-on-note-saved-own-writes`: `ctx.onNoteSaved` callbacks receive `(path, content)`; `{ ignoreOwnWrites: true }` skips the mod's own `vault.write` and `vault.updateFrontmatter` saves (concurrent-safe marker), with options validation, mods contract SHA bump, and docs. Tests: full suite at 48846aa75 exit 0 (611 files, 15429 passed, 54 skipped, 1 todo); `pnpm check` 0 errors. Reviews: round 1 APPROVED, round 2 APPROVED (fix round ran between them; round-2 nit on `.rejects.toThrow()` matcher was already approved as ship-only). Gate criterion for the mods workspace `check:package`/`verify` and `pnpm build` left unticked by the review.

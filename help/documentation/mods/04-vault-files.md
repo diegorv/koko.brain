@@ -289,7 +289,7 @@ Overwrites an **existing** file and resolves to `undefined`. Order: path, conten
 There is **no equality guard**: writing identical text runs the whole pipeline again (index update, QueryJS invalidation, Auto Organize check, `onNoteSaved`). Only file history skips it: a snapshot identical to the file's latest one is not stored. Use [`upsertNote`](#generated-notes-upsertnote) to skip identical writes.
 
 > [!WARNING]
-> A save callback that writes the note it was told about calls itself again. `ctx.onNoteSaved` fires for `ctx.vault.write`, including the mod's own. Compare old and new text before writing. See [Events](07-events-and-reactivity.md#avoiding-save-loops).
+> A save callback that writes the note it was told about calls itself again. `ctx.onNoteSaved` fires for `ctx.vault.write`, including the mod's own, unless the mod subscribed with `{ ignoreOwnWrites: true }`. That option does not cover other mods, `ctx.app` writes or Auto Organize, so compare old and new text before writing. See [Events](07-events-and-reactivity.md#avoiding-save-loops).
 
 There is a small window between the dirty-tab check and the disk write. Keystrokes typed in it are replaced by the written text. The host does not guard it; editing through the editor (below) avoids it for the active note.
 
@@ -311,7 +311,7 @@ await ctx.vault.updateFrontmatter('Projects/Alpha.md', (props) => [
 - **Returning the same array does not mean no write.** Nothing is written only when the rebuilt note equals the file byte for byte. The first write may normalize the YAML (a block list becomes a flow list), so the first call on a note can write even when you changed nothing. To skip a write, compare the values yourself first.
 - **A dirty tab is not refused**, unlike `write`: the tab keeps its unsaved body edits, takes the new frontmatter and is saved at once. On the **active** note the caret keeps its old character offset, as with `write`, so a longer frontmatter moves it back relative to the user's text.
 - **One note at a time.** Concurrent calls on the same note race and the last write wins. Await each call before the next on that note.
-- **It is a save**, so it fires `ctx.onNoteSaved`, the mod's own included. A save callback that sets a property on the note it was told about calls itself again; check the current value before writing (see [Events](07-events-and-reactivity.md#avoiding-save-loops)).
+- **It is a save**, so it fires `ctx.onNoteSaved`, the mod's own included unless it subscribed with `{ ignoreOwnWrites: true }`. A save callback that sets a property on the note it was told about calls itself again; check the current value before writing (see [Events](07-events-and-reactivity.md#avoiding-save-loops)).
 - **A tab whose path holds `//`** (see [below](#editing-a-note-that-may-be-open)) is not found, as with `write`: the disk is written, and that tab's next save puts the old frontmatter back.
 
 A refused or failed write rejects with an `Error` named `FrontmatterWriteError` whose `reason` says why:

@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 const files = vi.hoisted(() => new Map<string, string>());
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	exists: vi.fn(async (path: string) => [...files.keys()].some((key) => key === path || key.startsWith(`${path}/`))),
-	readDir: vi.fn(async () => [{ name: 'saver', isDirectory: true }]),
+	readDir: vi.fn(async () => [{ name: 'saver', isDirectory: true }, { name: 'other', isDirectory: true }]),
 	readTextFile: vi.fn(async (path: string) => files.get(path)),
 	writeTextFile: vi.fn(async (path: string, content: string) => { files.set(path, content); }),
 }));
@@ -18,6 +18,7 @@ vi.mock('#lib/utils/debug.js', async (importOriginal) => ({
 	error: vi.fn(),
 }));
 
+import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 
 import { addAfterSaveObserver, notifyAfterSave, resetHooks } from '#lib/core/editor/editor.hooks.js';
@@ -29,7 +30,7 @@ import { disableMod, startModsHost, stopModsHost, type ModContext } from '#lib/p
 import { modsStore } from '#lib/plugins/mods/mods.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
 
-const globals = globalThis as unknown as { __saveCtx: ModContext };
+const globals = globalThis as unknown as { __saveCtx: ModContext; __otherCtx: ModContext };
 const PATH = '/vault/Ideas/Note.md';
 
 describe('ctx.onNoteSaved', () => {
@@ -40,6 +41,8 @@ describe('ctx.onNoteSaved', () => {
 		files.clear();
 		files.set('/vault/_system/mods/saver/manifest.json', JSON.stringify({ id: 'saver', name: 'Saver', version: '1.0.0' }));
 		files.set('/vault/_system/mods/saver/main.js', 'export default { onload(ctx) { globalThis.__saveCtx = ctx; } };');
+		files.set('/vault/_system/mods/other/manifest.json', JSON.stringify({ id: 'other', name: 'Other', version: '1.0.0' }));
+		files.set('/vault/_system/mods/other/main.js', 'export default { onload(ctx) { globalThis.__otherCtx = ctx; } };');
 		files.set(PATH, 'old');
 		resetHooks();
 		editorStore.reset();
@@ -69,6 +72,20 @@ describe('ctx.onNoteSaved', () => {
 		expect(events).toEqual(['before', 'after']);
 		await vi.advanceTimersByTimeAsync(0);
 		expect(events).toEqual(['before', 'after', 'Ideas/Note.md']);
+	});
+
+	it('passes the saved content with the path, one call per save in order', async () => {
+		const seen: [string, string][] = [];
+		globals.__saveCtx.onNoteSaved((path, content) => seen.push([path, content]));
+		editorStore.addTab({ path: PATH, name: 'Note.md', content: 'edited', savedContent: 'old' });
+		expect(await saveFileByPath(PATH)).toBe(true);
+		editorStore.updateContent('edited again');
+		expect(await saveFileByPath(PATH)).toBe(true);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(seen).toEqual([
+			['Ideas/Note.md', 'edited'],
+			['Ideas/Note.md', 'edited again'],
+		]);
 	});
 
 	it('contains throws and async rejections in the mod debug log, the Labs record and one toast, never Sentry or another observer', async () => {
@@ -127,6 +144,152 @@ describe('ctx.onNoteSaved', () => {
 		vaultStore.open('/other');
 		await vi.advanceTimersByTimeAsync(0);
 		expect(seen).toEqual([]);
+	});
+
+	describe('own writes', () => {
+		const DRAFT = '---\nstatus: draft\n---\n';
+		const ACTIVE = '---\nstatus: active\n---\n';
+		const activate = (props: { key: string; value: unknown }[]) =>
+			props.map((p) => (p.key === 'status' ? { ...p, value: 'active' } : p)) as never;
+		/** Saves the note through the editor, as a user edit would */
+		const editorSave = async (content: string) => {
+			if (!editorStore.tabs.some((t) => t.path === PATH)) {
+				editorStore.addTab({ path: PATH, name: 'Note.md', content, savedContent: files.get(PATH) ?? '' });
+			} else {
+				editorStore.updateContent(content);
+			}
+			expect(await saveFileByPath(PATH)).toBe(true);
+		};
+
+		it('reports the mod\'s own vault.write without the option, with its content', async () => {
+			const seen: [string, string][] = [];
+			globals.__saveCtx.onNoteSaved((path, content) => seen.push([path, content]));
+			await globals.__saveCtx.vault.write('Ideas/Note.md', 'mine');
+			await vi.advanceTimersByTimeAsync(0);
+			expect(seen).toEqual([['Ideas/Note.md', 'mine']]);
+		});
+
+		it('skips the mod\'s own vault.write with ignoreOwnWrites, and still reports a later editor save', async () => {
+			const seen: [string, string][] = [];
+			globals.__saveCtx.onNoteSaved((path, content) => seen.push([path, content]), { ignoreOwnWrites: true });
+			await globals.__saveCtx.vault.write('Ideas/Note.md', 'mine');
+			await vi.advanceTimersByTimeAsync(0);
+			expect(seen).toEqual([]);
+			await editorSave('typed');
+			await vi.advanceTimersByTimeAsync(0);
+			expect(seen).toEqual([['Ideas/Note.md', 'typed']]);
+		});
+
+		it('skips the mod\'s own updateFrontmatter on a closed note and an open tab with the option, and reports it without', async () => {
+			files.set(PATH, `${DRAFT}body`);
+			const ignoring: string[] = [];
+			const hearing: [string, string][] = [];
+			globals.__saveCtx.onNoteSaved((path) => ignoring.push(path), { ignoreOwnWrites: true });
+			globals.__saveCtx.onNoteSaved((path, content) => hearing.push([path, content]));
+
+			await globals.__saveCtx.vault.updateFrontmatter('Ideas/Note.md', activate);
+			await vi.advanceTimersByTimeAsync(0);
+			expect(files.get(PATH)).toBe(`${ACTIVE}body`);
+
+			files.set(PATH, `${DRAFT}body`);
+			editorStore.addTab({ path: PATH, name: 'Note.md', content: `${DRAFT}body`, savedContent: `${DRAFT}body` });
+			await globals.__saveCtx.vault.updateFrontmatter('Ideas/Note.md', activate);
+			await vi.advanceTimersByTimeAsync(0);
+			expect(editorStore.activeTab?.savedContent).toBe(`${ACTIVE}body`);
+
+			expect(ignoring).toEqual([]);
+			expect(hearing).toEqual([
+				['Ideas/Note.md', `${ACTIVE}body`],
+				['Ideas/Note.md', `${ACTIVE}body`],
+			]);
+		});
+
+		it('keeps two concurrent updateFrontmatter calls on one path from clearing each other, and clears after both settle', async () => {
+			files.set(PATH, `${DRAFT}body`);
+			const seen: string[] = [];
+			globals.__saveCtx.onNoteSaved((_path, content) => seen.push(content), { ignoreOwnWrites: true });
+			const realWrite = vi.mocked(writeTextFile).getMockImplementation()!;
+			let releaseSecond = () => {};
+			vi.mocked(writeTextFile)
+				.mockImplementationOnce(realWrite)
+				.mockImplementationOnce(async (...args) => {
+					await new Promise<void>((resolve) => { releaseSecond = resolve; });
+					return realWrite(...args);
+				});
+
+			const first = globals.__saveCtx.vault.updateFrontmatter('Ideas/Note.md', activate);
+			const second = globals.__saveCtx.vault.updateFrontmatter('Ideas/Note.md', activate);
+			await first;
+			// The first call has settled and released its mark; the second one still holds its own.
+			releaseSecond();
+			await second;
+			await vi.advanceTimersByTimeAsync(0);
+			expect(seen).toEqual([]);
+
+			await editorSave('typed');
+			await vi.advanceTimersByTimeAsync(0);
+			expect(seen).toEqual(['typed']);
+		});
+
+		it('releases the own-write mark when updateFrontmatter rejects, so a later editor save is reported', async () => {
+			// A comment in the frontmatter makes the rebuild lossy, so the write is refused after the mark is taken.
+			files.set(PATH, '---\n# c\nstatus: draft\n---\nbody');
+			const seen: string[] = [];
+			globals.__saveCtx.onNoteSaved((_path, content) => seen.push(content), { ignoreOwnWrites: true });
+			await expect(globals.__saveCtx.vault.updateFrontmatter('Ideas/Note.md', activate)).rejects.toThrow();
+			expect(files.get(PATH)).toBe('---\n# c\nstatus: draft\n---\nbody');
+
+			await editorSave('typed');
+			await vi.advanceTimersByTimeAsync(0);
+			expect(seen).toEqual(['typed']);
+		});
+
+		it('filters only the writing mod: another mod with the option still hears it', async () => {
+			const saver: string[] = [];
+			const other: [string, string][] = [];
+			globals.__saveCtx.onNoteSaved((path) => saver.push(path), { ignoreOwnWrites: true });
+			globals.__otherCtx.onNoteSaved((path, content) => other.push([path, content]), { ignoreOwnWrites: true });
+			await globals.__saveCtx.vault.write('Ideas/Note.md', 'from saver');
+			await vi.advanceTimersByTimeAsync(0);
+			expect(saver).toEqual([]);
+			expect(other).toEqual([['Ideas/Note.md', 'from saver']]);
+		});
+
+		it('applies the option per subscription', async () => {
+			const withOption: string[] = [];
+			const without: string[] = [];
+			globals.__saveCtx.onNoteSaved((path) => withOption.push(path), { ignoreOwnWrites: true });
+			globals.__saveCtx.onNoteSaved((path) => without.push(path));
+			await globals.__saveCtx.vault.write('Ideas/Note.md', 'mine');
+			await vi.advanceTimersByTimeAsync(0);
+			expect(withOption).toEqual([]);
+			expect(without).toEqual(['Ideas/Note.md']);
+		});
+
+		it('never passes the saved content to debug() or error()', async () => {
+			const secret = 'SECRET-NOTE-TEXT';
+			globals.__saveCtx.onNoteSaved(() => { throw new Error('bad handler'); });
+			globals.__saveCtx.onNoteSaved(() => {}, { ignoreOwnWrites: true });
+			await globals.__saveCtx.vault.write('Ideas/Note.md', `${secret} one`);
+			await editorSave(`${secret} two`);
+			await vi.advanceTimersByTimeAsync(0);
+			const logged = [...vi.mocked(debug).mock.calls, ...vi.mocked(error).mock.calls].flat().map(String);
+			expect(logged.some((text) => text.includes(secret))).toBe(false);
+			expect(debug).toHaveBeenCalledWith('MOD:saver', 'onNoteSaved callback failed:', expect.stringContaining('bad handler'));
+		});
+	});
+
+	it('validates options', () => {
+		const ctx = globals.__saveCtx;
+		for (const bad of [null, true, 'yes']) {
+			expect(() => ctx.onNoteSaved(() => {}, bad as never)).toThrow('Mod "saver": onNoteSaved needs options to be an object');
+		}
+		expect(() => ctx.onNoteSaved(() => {}, { ignoreOwnWrites: 'yes' } as never)).toThrow(
+			'Mod "saver": onNoteSaved needs options.ignoreOwnWrites to be a boolean',
+		);
+		expect(() => ctx.onNoteSaved(() => {}, undefined)).not.toThrow();
+		expect(() => ctx.onNoteSaved(() => {}, {})).not.toThrow();
+		expect(() => ctx.onNoteSaved(() => {}, { ignoreOwnWrites: false })).not.toThrow();
 	});
 
 	it('rejects a non-function callback', () => {

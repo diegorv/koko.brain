@@ -172,10 +172,14 @@ Note `schedule()` at load: a watch never reports the starting value, so compute 
 ## `ctx.onNoteSaved`: reacting to saves
 
 ```javascript
-const stop = ctx.onNoteSaved((path) => ctx.log('Saved:', path));
+const stop = ctx.onNoteSaved((path, content) => ctx.log('Saved:', path, typeof content === 'string' ? content.length : 'unknown'));
 ```
 
-`ctx.onNoteSaved(callback)` calls `callback(path)` after a file is saved through the app's after-save pipeline. `path` is **vault-relative**, with `/` separators. The callback gets only the path: no content, no previous content. Read the file yourself if you need it. It returns a disposer; unload also disposes it.
+`ctx.onNoteSaved(callback, options)` calls `callback(path, content)` after a file is saved through the app's after-save pipeline. `path` is **vault-relative**, with `/` separators. `content` is the text that was saved; there is no previous content. It returns a disposer; unload also disposes it.
+
+- **`content` is a snapshot.** By the time your callback runs, a later save may have replaced it. Use it to decide whether to act; to write, read the note again with `ctx.vault.read` right before writing.
+- **`options.ignoreOwnWrites`** (`true` or `false`, default `false`): with `true`, saves made by this mod's own `ctx.vault.write` and `ctx.vault.updateFrontmatter` are not reported to this subscription. See [Avoiding save loops](#avoiding-save-loops) for what it does not skip. `options` must be an object when given (`onNoteSaved needs options to be an object`), and `ignoreOwnWrites` a boolean (`onNoteSaved needs options.ignoreOwnWrites to be a boolean`).
+- **Older apps.** On an app from before `content` and `ignoreOwnWrites`, `content` is `undefined` and the option is ignored. `minAppVersion` is not enforced, so a mod that may run there checks `typeof content === 'string'` and keeps its own loop guard.
 
 ### Which writes fire it
 
@@ -199,6 +203,8 @@ const stop = ctx.onNoteSaved((path) => ctx.log('Saved:', path));
 | A file outside the vault | no |
 
 Anything else the app writes is not covered by this list: do not rely on it firing.
+
+`{ ignoreOwnWrites: true }` skips only the saves this mod makes through `ctx.vault.write` and `ctx.vault.updateFrontmatter`; every other row above still fires, including writes through `ctx.app`, the editor, other mods, and an Auto Organize rule that runs this mod's action.
 
 **Filter the path.** You will see non-note files. Most mods want Markdown notes outside the system folder, which is a setting (`_system` by default; see [Vault files: Special folders](04-vault-files.md#special-folders)):
 
@@ -229,6 +235,18 @@ save -> onNoteSaved(path) -> ctx.vault.write(path) -> onNoteSaved(path) -> ctx.v
 ```
 
 `ctx.vault.write` writes even when the content is identical. **Compute the new text, compare it with the current text, and write only when they differ.** The second round then finds nothing to change and the loop ends. `updateNoteFrontmatter` skips the write only when the rebuilt text equals the file byte for byte, so returning the same properties is a guard only for frontmatter already in canonical form; otherwise the note is rewritten (block lists become `[a, b]`, `type:` becomes `_type:`, quotes are dropped) and the save fires again. To skip the write for sure, throw a sentinel from `mutate` and catch it, as in the example below and in the [cookbook](14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties). To stop a loop that is already running, switch the mod off in **Settings > Labs**.
+
+`ctx.onNoteSaved(callback, { ignoreOwnWrites: true })` keeps the mod from hearing its own `ctx.vault.write` and `ctx.vault.updateFrontmatter` saves, which ends the simplest loop:
+
+```javascript
+ctx.onNoteSaved(async (path, content) => {
+	if (!path.endsWith('.md') || typeof content !== 'string' || content.includes('#seen')) return;
+	const current = await ctx.vault.read(path);
+	if (!current.includes('#seen')) await ctx.vault.write(path, `${current}\n#seen`);
+}, { ignoreOwnWrites: true });
+```
+
+It is not a full loop guard. It does not skip writes through `ctx.app` (such as `ctx.app.updateNoteFrontmatter`), `editNote` on an open tab (saved later by autosave), another mod's writes, or an Auto Organize rule that runs this mod's action: two writers can still answer each other forever. While a `ctx.vault.updateFrontmatter` call of this mod is in flight, an editor save of that same note is skipped too. Keep the comparison before writing; it is what ends every loop.
 
 Example: keep an `updated` date in the frontmatter of notes in one folder. The date has day precision, so the save fired by the write itself finds the value already set and writes nothing. **That value comparison is what ends the loop.** The `busy` set is not a loop guard: the app calls save callbacks from a `setTimeout(0)` it schedules during the save, and by the time that timer fires, the `await` has resumed and the `finally` has already cleared the path. `busy` only keeps two overlapping calls for one note (two quick saves) from writing at once.
 

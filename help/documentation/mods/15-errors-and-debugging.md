@@ -103,7 +103,7 @@ Every message starts with `Mod "<id>": `. The `ctx.ui`, `run.ui`, `ctx.vault` an
 | `labs.place` | `unknown action id "<actionId>"` · `labs.place needs palette: true or menu` · `labs.place needs palette: true` · `labs.place needs menu.on to list note or folder` · `labs.place needs menu.files to be markdown or all` |
 | A menu item or a `modCommandsStore` row whose action was removed or replaced | `unknown action id "<actionId>"` |
 | `watch` | `watch needs a read function` · `watch needs a callback function` |
-| `onNoteSaved` | `onNoteSaved needs a callback function` |
+| `onNoteSaved` | `onNoteSaved needs a callback function` · `onNoteSaved needs options to be an object` · `onNoteSaved needs options.ignoreOwnWrites to be a boolean` |
 | `theme.onChange` | `theme.onChange needs a callback function` |
 | `run.progress` | `run.progress needs numbers done and total` (any non-finite value: a string, `NaN`, `Infinity`, `undefined`) · `run.progress needs a string label`. Checked even after the run ended |
 | `ui.alert`, `ui.confirm`, `ui.prompt`, `ui.pick` | `ui.<method> needs a non-empty string title` · `ui.<method> needs a string <field>`, where `<field>` is `message`, plus `confirmLabel` and `cancelLabel` (confirm), `label`, `placeholder` and `value` (prompt), `placeholder` (pick). `null` is not accepted for these fields |

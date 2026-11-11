@@ -26,6 +26,38 @@ export interface ModVaultScope {
 }
 
 /**
+ * In-flight saves a mod caused through `ctx.vault.write` or
+ * `ctx.vault.updateFrontmatter`, counted per `` `${modId}\n${absolutePath}` ``.
+ * A count, not a flag: two concurrent `updateFrontmatter` calls on one path
+ * must not clear each other's mark. A key is deleted when its count reaches zero.
+ */
+const ownWrites = new Map<string, number>();
+
+/** Marks a save of `abs` by `modId` as its own; call the returned release once, in `finally` */
+function markOwnWrite(modId: string, abs: string): () => void {
+	const key = `${modId}\n${abs}`;
+	ownWrites.set(key, (ownWrites.get(key) ?? 0) + 1);
+	return () => {
+		const left = (ownWrites.get(key) ?? 1) - 1;
+		if (left > 0) ownWrites.set(key, left);
+		else ownWrites.delete(key);
+	};
+}
+
+/**
+ * True while a save of absolute path `abs` caused by mod `modId` through
+ * `ctx.vault.write` or `ctx.vault.updateFrontmatter` is in progress, for
+ * `ctx.onNoteSaved(cb, { ignoreOwnWrites: true })`. `vault.write` holds the mark
+ * only around its synchronous `notifyAfterSave`. `updateFrontmatter` holds it
+ * across its whole await, since core notifies inside its own awaits; the
+ * accepted cost: an editor save of the same note while that call is in flight
+ * is not reported to this mod either.
+ */
+export function isOwnWrite(modId: string, abs: string): boolean {
+	return (ownWrites.get(`${modId}\n${abs}`) ?? 0) > 0;
+}
+
+/**
  * Builds `ctx.vault`. Every call checks the live guard first and before local
  * store updates after awaits. Path operations delegate to the app's filesystem
  * services: once started, those operations cannot be cancelled by unload.
@@ -132,8 +164,14 @@ export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope):
 			// after-save path would mostly clear the vault-wide caches and add a file history row per write.
 			if (isModCodePath(abs, vaultPath)) return;
 			// Marks the self-save, runs applyNoteChange, the invalidation signal and the after-save
-			// observers, which include search's FTS5 / semantic update.
-			notifyAfterSave(abs, content);
+			// observers, which include search's FTS5 / semantic update. Every observer runs
+			// synchronously, so the own-write mark covers exactly this save.
+			const release = markOwnWrite(modId, abs);
+			try {
+				notifyAfterSave(abs, content);
+			} finally {
+				release();
+			}
 		},
 		updateFrontmatter: async (path, mutate) => {
 			const abs = toAbsolute(path);
@@ -141,8 +179,14 @@ export function createModVault({ modId, vaultPath, assertLive }: ModVaultScope):
 			// a .canvas, a .view or a mod's main.js.
 			if (!isMarkdownFile(abs)) throw new Error(`Mod "${modId}": vault.updateFrontmatter needs a Markdown note`);
 			// The core writer owns the after-save path (tab save or notifyAfterSave) and leaves
-			// serialization per path to the caller, as the contract tells the mod.
-			await logged('updateFrontmatter', path, () => updateNoteFrontmatter(abs, mutate));
+			// serialization per path to the caller, as the contract tells the mod. It notifies
+			// inside its own awaits, so the own-write mark spans the whole call.
+			const release = markOwnWrite(modId, abs);
+			try {
+				await logged('updateFrontmatter', path, () => updateNoteFrontmatter(abs, mutate));
+			} finally {
+				release();
+			}
 			assertLive();
 		},
 	};

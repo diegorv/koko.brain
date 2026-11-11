@@ -170,15 +170,15 @@ A synchronous throw in either function goes to the mod's debug log, not Sentry. 
 
 ### `ctx.onNoteSaved`: reacting to saves
 
-`ctx.onNoteSaved(callback)` calls `callback(path)` with the **vault-relative** path of a note saved through the app's after-save pipeline, including `ctx.vault.write`. It does not subscribe to external filesystem edits or to note creation. The callback runs through `setTimeout(0)`, after all synchronous save observers, including observers registered later, so slow mod code cannot delay that save's observer loop. It still runs on the UI thread.
+`ctx.onNoteSaved(callback, options)` calls `callback(path, content)` with the **vault-relative** path of a note saved through the app's after-save pipeline, including `ctx.vault.write`, and the text that was saved. `content` is a snapshot: use it to decide, and read the note again right before writing. With `{ ignoreOwnWrites: true }`, the saves this mod makes through `ctx.vault.write` and `ctx.vault.updateFrontmatter` are not reported; writes through `ctx.app`, editor edits, other mods and an Auto Organize rule running the mod's action still are. On an app older than this option, `content` is `undefined` and the option is ignored, so check `typeof content === 'string'`. It does not subscribe to external filesystem edits or to note creation. The callback runs through `setTimeout(0)`, after all synchronous save observers, including observers registered later, so slow mod code cannot delay that save's observer loop. It still runs on the UI thread.
 
 ```javascript
-ctx.onNoteSaved((path) => ctx.log('Saved:', path));
+ctx.onNoteSaved((path, content) => ctx.log('Saved:', path, typeof content === 'string' ? content.length : 'unknown'));
 ```
 
 The returned disposer unsubscribes and cancels pending callbacks; unload does the same automatically. A callback that throws or returns a rejected promise goes to the mod's debug log, its Labs row (**Last callback error**) and one toast per load, not Sentry. Already-running asynchronous callbacks are not cancelled: check `ctx.signal.aborted` after awaiting work.
 
-**Avoid save loops.** `ctx.vault.write` has no equality guard, so a save callback that writes the same note can trigger itself indefinitely. Compare the old and new content before writing. `ctx.app.updateNoteFrontmatter` writes nothing only when the rebuilt text equals the file byte for byte (frontmatter already in the app's canonical form); returning the same properties still rewrites other notes (block lists become `[a, b]`, `type:` becomes `_type:`). To skip the write, throw a sentinel from `mutate` and catch it (see [Cookbook](mods/14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)). Switch off the mod in **Settings → Labs** to stop an asynchronous save loop.
+**Avoid save loops.** `ctx.vault.write` has no equality guard, so a save callback that writes the same note can trigger itself indefinitely. `ignoreOwnWrites` stops the mod hearing its own `ctx.vault` writes, but not the other writers above. Compare the old and new content before writing. `ctx.app.updateNoteFrontmatter` writes nothing only when the rebuilt text equals the file byte for byte (frontmatter already in the app's canonical form); returning the same properties still rewrites other notes (block lists become `[a, b]`, `type:` becomes `_type:`). To skip the write, throw a sentinel from `mutate` and catch it (see [Cookbook](mods/14-cookbook.md#5-set-toggle-and-remove-frontmatter-properties)). Switch off the mod in **Settings → Labs** to stop an asynchronous save loop.
 
 ### Actions and rail buttons
 

@@ -21,7 +21,7 @@ import { modCommandsStore } from './mod-commands.store.svelte';
 import { modDialogsStore, type ModDialogSpec } from './mod-dialogs.store.svelte';
 import { modPickerStore } from './mod-picker.store.svelte';
 import { readModTheme, watchModTheme } from './mod-theme.svelte';
-import { createModData, createModVault, createModWorkspace } from './mod-vault.service';
+import { createModData, createModVault, createModWorkspace, isOwnWrite } from './mod-vault.service';
 import { watchModValue } from './mod-watch.svelte';
 import { modsEnabledStore } from './mods-enabled.store.svelte';
 import { modsRunsStore } from './mods-runs.store.svelte';
@@ -589,18 +589,27 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			if (typeof onChange !== 'function') throw invalid('watch needs a callback function');
 			return disposable(watchModValue(tag, read, (value) => callModCallback('watch', () => onChange(value))));
 		},
-		onNoteSaved: (callback) => {
+		onNoteSaved: (callback, options) => {
 			assertLive();
 			if (typeof callback !== 'function') throw invalid('onNoteSaved needs a callback function');
+			if (options !== undefined && (typeof options !== 'object' || options === null)) {
+				throw invalid('onNoteSaved needs options to be an object');
+			}
+			const ignoreOwnWrites: unknown = options?.ignoreOwnWrites;
+			if (ignoreOwnWrites !== undefined && typeof ignoreOwnWrites !== 'boolean') {
+				throw invalid('onNoteSaved needs options.ignoreOwnWrites to be a boolean');
+			}
 			const pending = new Set<ReturnType<typeof setTimeout>>();
-			const unsubscribe = addAfterSaveObserver((path) => {
+			const unsubscribe = addAfterSaveObserver((path, content) => {
 				const relative = vaultRelativeKey(vaultPath, path);
 				if (relative === null || runtime.unloaded || vaultStore.path !== vaultPath) return;
+				// Checked now, during the save: the mark is gone by the time the timer runs.
+				if (ignoreOwnWrites === true && isOwnWrite(manifest.id, path)) return;
 				// Leave the synchronous save fan-out before running any mod code.
 				const timer = setTimeout(() => {
 					pending.delete(timer);
 					if (runtime.unloaded || vaultStore.path !== vaultPath) return;
-					callModCallback('onNoteSaved', () => callback(relative));
+					callModCallback('onNoteSaved', () => callback(relative, content));
 				}, 0);
 				pending.add(timer);
 			});

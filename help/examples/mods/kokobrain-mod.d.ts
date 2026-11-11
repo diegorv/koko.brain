@@ -204,8 +204,9 @@ export interface ModVaultV1 {
 	 * `@kokobrain/mod-core/errors` turns it into text for the user.
 	 *
 	 * Concurrent calls on one note race and the last write wins: call it one note
-	 * at a time. It is a save, so it fires `onNoteSaved`, the mod's own included:
-	 * a callback that writes the note it was told about can loop.
+	 * at a time. It is a save, so it fires `onNoteSaved`, the mod's own included
+	 * unless it subscribed with `ignoreOwnWrites`: a callback that writes the
+	 * note it was told about can loop.
 	 */
 	updateFrontmatter: (path: string, mutate: (props: ModPropertyV1[]) => ModPropertyV1[]) => Promise<void>;
 	/** Renames a file or folder within its parent; newName is one name, including any extension. Resolves to the new relative path. */
@@ -410,12 +411,32 @@ export interface ModContextV1 {
 	 */
 	watch: <T>(read: () => T, onChange: (value: T) => void) => () => void;
 	/**
-	 * Reports a saved note's vault-relative path in a later timer, after the
-	 * synchronous save observers. Callback failures go to the mod's debug log.
-	 * Returns a disposer; unload also unsubscribes and cancels pending callbacks.
-	 * Writing again with vault.write can loop; switching off the mod in Labs stops it.
+	 * In a later timer, after the synchronous save observers, reports a saved
+	 * note's vault-relative path and the text that was saved. Callback failures
+	 * go to the mod's debug log. Returns a disposer; unload also unsubscribes and
+	 * cancels pending callbacks.
+	 *
+	 * `content` is a snapshot: by the time the callback runs, a later save may
+	 * have replaced it. Read `content` to decide; to write, read the note again
+	 * right before writing. On an app older than `content` and
+	 * `ignoreOwnWrites`, `content` is `undefined` and the option is ignored
+	 * (`minAppVersion` is not enforced), so check `typeof content === 'string'`.
+	 *
+	 * With `ignoreOwnWrites: true`, saves caused by this mod's own
+	 * `ctx.vault.write` and `ctx.vault.updateFrontmatter` are not reported; while
+	 * an `updateFrontmatter` call is in flight, any save of that note is skipped,
+	 * an editor save included. Edits through `ctx.app` or the editor are saves like any other, including
+	 * `editNote` on the open tab, which saves through autosave; `editNote` on
+	 * disk goes through `ctx.vault.write` and is skipped. The option filters
+	 * only this mod's writes: another mod's write, or an Auto Organize rule
+	 * running this mod's action, can still start a loop. Without the option a
+	 * callback that writes again with `ctx.vault.write` can loop; either way,
+	 * switching off the mod in Labs stops it.
 	 */
-	onNoteSaved: (callback: (path: string) => void) => () => void;
+	onNoteSaved: (
+		callback: (path: string, content: string) => void,
+		options?: { ignoreOwnWrites?: boolean },
+	) => () => void;
 	/** Reads and writes vault files by vault-relative path */
 	vault: ModVaultV1;
 	/** Opens notes */

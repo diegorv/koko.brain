@@ -82,7 +82,7 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 
 ### Events and loops
 
-- [ ] A `ctx.onNoteSaved` callback that writes compares old and new content and writes only on a change, so it cannot trigger itself forever.
+- [ ] A `ctx.onNoteSaved` callback that writes compares old and new content and writes only on a change, so it cannot trigger itself forever. `{ ignoreOwnWrites: true }` skips only the mod's own `ctx.vault.write` and `ctx.vault.updateFrontmatter` saves, not `ctx.app` writes, other mods or Auto Organize: keep the comparison.
 - [ ] `ctx.onNoteSaved` callbacks filter by extension: they also fire for `.canvas`, `.view`, `.js` and other files saved in the app.
 - [ ] `ctx.watch` reads return a primitive or a stable object, read narrow state (`activeTabPath`, not `activeTab.content`), and async handlers catch their own errors.
 - [ ] No synchronous loop can run unbounded. Long synchronous work is split with `await` points.
@@ -194,7 +194,7 @@ Two tools for getting a mod right the first time: a checklist to run over a fini
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| An endless stream of saves | A `ctx.onNoteSaved` callback writes the note it was told about | Write only when the content differs; skip paths the mod just wrote |
+| An endless stream of saves | A `ctx.onNoteSaved` callback writes the note it was told about | Write only when the content differs; subscribe with `{ ignoreOwnWrites: true }` so the mod's own `ctx.vault` writes are not reported |
 | `onNoteSaved` gets `.canvas`, `.view` or `main.js` paths | It fires for every file saved through the app's pipeline | Filter with `path.endsWith('.md')` |
 | `ctx.watch` fires on every change of anything, or never | `read` returns a fresh object each time, or reads plain (non-reactive) values | Return a primitive; read app store getters |
 | A watch handler runs on every keystroke | `read` touches `activeTab.content` | Read `activeTabPath` |
