@@ -282,7 +282,7 @@ An unload runs these steps synchronously, in this order:
 3. **The mod's picker closes** if it shows the action list or a text field. A run view stays open on its Cancelled result (a full stop of the mods host closes it too).
 4. **The mod's `ctx.ui` dialogs close**, open and queued, resolving with their cancel value (`alert`: `undefined`, `confirm`: `false`, `prompt` and `pick`: `null`). See [Dialogs](06-dialogs.md#stop-unload-and-cancellation).
 5. **`onunload()` is called**, unless `onload` failed. A synchronous throw, or a rejection of the promise it returns, toasts `_system/mods/<id>: onunload failed: <message>`. An async `onunload` is **not awaited**.
-6. **Every cleanup runs, in reverse order of registration.** One list holds the functions passed to `ctx.register` and the disposers the host keeps for `addAction`, `addRailButton`, `watch`, `onNoteSaved`, `onNoteMoved`, `theme.onChange` and `labs.place`, so they interleave by when you registered them. A cleanup that throws toasts `_system/mods/<id>: cleanup failed: <message>`, and the loop continues with the next one.
+6. **Every cleanup runs, in reverse order of registration.** One list holds the functions passed to `ctx.register` and the disposers the host keeps for `addAction`, `addRailButton`, `watch`, `onNoteSaved`, `onNoteMoved`, `onNoteCreated`, `theme.onChange` and `labs.place`, so they interleave by when you registered them. A cleanup that throws toasts `_system/mods/<id>: cleanup failed: <message>`, and the loop continues with the next one.
 
 Notes:
 

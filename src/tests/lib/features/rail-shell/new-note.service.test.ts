@@ -14,6 +14,7 @@ vi.mock('#lib/utils/log.service.js', () => ({ appendLog: vi.fn() }));
 import { invoke } from '@tauri-apps/api/core';
 import { readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import { createNoteHere } from '#lib/features/rail-shell/new-note.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -101,6 +102,41 @@ describe('createNoteHere', () => {
 		await expect(createNoteHere(RULE)).rejects.toThrow('disk full');
 		expect(commands()).not.toContain('update_search_index_file');
 		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		['a plain rule', RULE, `${FOLDER}/Untitled.md`],
+		['a typed rule', { typeName: 'Meeting' }, '/vault/Untitled Meeting.md'],
+	])('reports the note of %s after opening it', async (_label, rule, expected) => {
+		let opened = false;
+		vi.mocked(openFileInEditor).mockImplementation(async () => {
+			await Promise.resolve();
+			opened = true;
+		});
+		const created: { path: string; opened: boolean }[] = [];
+		const unsubscribe = addNoteCreatedObserver((path) => created.push({ path, opened }));
+
+		try {
+			await createNoteHere(rule);
+		} finally {
+			unsubscribe();
+		}
+
+		expect(created).toEqual([{ path: expected, opened: true }]);
+	});
+
+	it('reports nothing when the write fails', async () => {
+		vi.mocked(invoke).mockImplementation(tauri({ cmd: 'create_note', err: new Error('disk full') }));
+		const observer = vi.fn();
+		const unsubscribe = addNoteCreatedObserver(observer);
+
+		try {
+			await expect(createNoteHere(RULE)).rejects.toThrow('disk full');
+		} finally {
+			unsubscribe();
+		}
+
+		expect(observer).not.toHaveBeenCalled();
 	});
 });
 

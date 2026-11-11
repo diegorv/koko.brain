@@ -14,6 +14,7 @@ import type {
 	ModContextV1,
 	ModInfoV1,
 	ModLoadingOptionsV1,
+	ModNoteCreatedV1,
 	ModNoteMovedV1,
 	ModPromptOptionsV1,
 	ModQueryV1,
@@ -53,6 +54,7 @@ const CONTEXT_PUBLIC = {
 	watch: true,
 	onNoteSaved: true,
 	onNoteMoved: true,
+	onNoteCreated: true,
 	notify: true,
 	log: true,
 	addAction: true,
@@ -96,6 +98,10 @@ const NOTE_MOVED_PUBLIC = {
 	from: true,
 	to: true,
 } satisfies Record<keyof ModNoteMovedV1, true>;
+
+const NOTE_CREATED_PUBLIC = {
+	path: true,
+} satisfies Record<keyof ModNoteCreatedV1, true>;
 
 const WORKSPACE_PUBLIC = {
 	openNote: true,
@@ -266,6 +272,10 @@ describe('mod API contract v1', () => {
 
 	it('the onNoteMoved event is the contract fields', () => {
 		expect(Object.keys(NOTE_MOVED_PUBLIC).sort()).toEqual(['from', 'to']);
+	});
+
+	it('the onNoteCreated event is the contract fields', () => {
+		expect(Object.keys(NOTE_CREATED_PUBLIC)).toEqual(['path']);
 	});
 
 	it('ctx.workspace exposes exactly the contract members', () => {

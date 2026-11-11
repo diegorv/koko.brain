@@ -55,6 +55,7 @@ import { moveToTrash } from '#lib/core/trash/trash.service.js';
 import { getAllIconPacks, getIconsForPack } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import FilesNavigator from '#lib/features/rail-shell/FilesNavigator.svelte';
 import { pickedFolderLens, parseExpandedFolders, toggleExpandedFolder } from '#lib/features/rail-shell/lens.logic.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
@@ -232,6 +233,32 @@ describe('FilesNavigator folder menu', () => {
 		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${WORK}/Untitled.md`));
 		expect(invoke).toHaveBeenCalledWith('create_note', { path: `${WORK}/Untitled.md`, content: '' });
 		expect(settingsStore.layout.railFolder).toBe(WORK);
+	});
+
+	it('reports the created note after opening it', async () => {
+		let opened = false;
+		vi.mocked(openFileInEditor).mockImplementation(async () => {
+			await Promise.resolve();
+			opened = true;
+		});
+		const created: { path: string; opened: boolean }[] = [];
+		offs.push(addNoteCreatedObserver((path) => created.push({ path, opened })));
+		render();
+		await choose(row(WORK), 'New note');
+
+		await vi.waitFor(() => expect(created).toEqual([{ path: `${WORK}/Untitled.md`, opened: true }]));
+	});
+
+	it.each([['New note'], ['New folder']])('"%s" reports nothing when the create fails, or for a folder', async (label) => {
+		if (label === 'New note') vi.mocked(invoke).mockRejectedValue('Permission denied (os error 13)');
+		const observer = vi.fn();
+		offs.push(addNoteCreatedObserver(observer));
+		render();
+		await choose(row(PERSONAL), label);
+
+		if (label === 'New note') await vi.waitFor(() => expect(toast.error).toHaveBeenCalled());
+		else await vi.waitFor(() => expect(renameInput(`${PERSONAL}/Untitled`)).not.toBeNull());
+		expect(observer).not.toHaveBeenCalled();
 	});
 
 	it('creates the note unorganized while Explicit organization is on', async () => {

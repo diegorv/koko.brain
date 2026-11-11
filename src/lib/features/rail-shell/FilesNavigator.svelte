@@ -16,6 +16,7 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Vault from '@lucide/svelte/icons/vault';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import { notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -119,12 +120,13 @@
 		}
 	}
 
-	/** Creates a file in `dir`, picks `dir` so the note list shows it, and opens it */
+	/** Creates a file in `dir`, picks `dir` so the note list shows it, opens it and reports it to the note-created observers */
 	async function handleNewFile(dir: string, creator: RailFolderCreator) {
 		const path = await runOrToast('create', creator.fileName, () => creator.create(dir));
 		if (!path) return;
 		onPick(lensFor(dir));
 		await openFileInEditor(path);
+		notifyNoteCreated(path);
 	}
 
 	/** Opens the New view dialog to create a `.view` in `dir` */

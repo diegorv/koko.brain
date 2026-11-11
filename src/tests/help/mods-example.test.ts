@@ -45,6 +45,7 @@ function fakeContext(): { ctx: ModContextV1; seen: Recorded } {
 		watch: unused,
 		onNoteSaved: unused,
 		onNoteMoved: unused,
+		onNoteCreated: unused,
 		notify: (message) => {
 			seen.toasts.push(message);
 		},

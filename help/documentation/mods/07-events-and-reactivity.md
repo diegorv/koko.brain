@@ -1,12 +1,13 @@
 # Events and reactivity
 
-Actions run when the user asks. Everything else a mod does, it does in response to something: the active note changed, a note was saved or moved, the theme changed, a key was pressed, a timer fired. This page covers the host's four subscriptions (`ctx.watch`, `ctx.onNoteSaved`, `ctx.onNoteMoved`, `ctx.theme.onChange`), the cleanup tools (`ctx.register`, `ctx.signal`), and the browser's own events and timers, which the host does not track for you.
+Actions run when the user asks. Everything else a mod does, it does in response to something: the active note changed, a note was saved, moved or created, the theme changed, a key was pressed, a timer fired. This page covers the host's five subscriptions (`ctx.watch`, `ctx.onNoteSaved`, `ctx.onNoteMoved`, `ctx.onNoteCreated`, `ctx.theme.onChange`), the cleanup tools (`ctx.register`, `ctx.signal`), and the browser's own events and timers, which the host does not track for you.
 
 | Member | Stability | Use it for |
 |--------|-----------|------------|
 | `ctx.watch(read, onChange)` | **stable** (the state you read through `ctx.app` is **raw**) | Reacting to app state: active tab, index version, settings |
 | `ctx.onNoteSaved(callback)` | **stable** | Reacting to a save through the app |
 | `ctx.onNoteMoved(callback)` | **stable** | Following a file or folder the app renamed or moved |
+| `ctx.onNoteCreated(callback)` | **stable** | Setting up a note the app just created |
 | `ctx.theme.onChange(callback)` / `ctx.theme.current` | **stable** | Repainting UI that cannot use CSS variables |
 | `ctx.register(dispose)` | **stable** | Undoing anything the host does not track |
 | `ctx.signal` | **stable** | Knowing the mod is unloading, aborting work, auto-removing listeners |
@@ -418,6 +419,62 @@ ctx.onNoteMoved(async ({ from, to }) => {
 });
 ```
 
+## `ctx.onNoteCreated`: reacting to new notes
+
+```javascript
+const stop = ctx.onNoteCreated(({ path }) => ctx.log('Created:', path));
+```
+
+`ctx.onNoteCreated(callback)` calls `callback({ path })` after one of the app's note creators made a note. The path is **vault-relative**, with `/` separators; the event has no other field. It returns a disposer; unload also disposes it.
+
+- **When it runs.** Once the creator is done, including opening the note's tab when it opens one. A `ctx.vault.write` from the callback therefore reaches the open tab, and the tab's next autosave keeps it. The note is already in the file tree; `ctx.query` may not see it until the app's index refreshes, a few seconds later.
+- **Any file type** a covered creator makes: the file explorer's New menu also makes canvases, tables (`.view`) and plugin files such as Kanban boards.
+- **An existing note is not reported.** A wikilink, a periodic note or a template whose target already exists only opens it.
+- **Notes created while the vault opens are usually missed.** The app auto-opens the daily note and runs a deep link that launched it in the same step that starts loading mods, so such a note is often created before any mod has subscribed, and it is not reported, without an error. A mod that sets up new daily notes should also check today's note in `onload` and set it up there when it needs it.
+
+### Which creators fire it
+
+| Creator | Fires |
+|---------|-------|
+| File explorer: the New menu of a folder or the vault root (note, canvas, table, plugin file types) | yes |
+| Note list: **+ New here** (plain and typed rules) | yes |
+| Command palette: **New File** | yes |
+| Quick switcher: **Create** | yes |
+| Clicking a wikilink to a missing note | yes |
+| Periodic notes (daily, weekly, monthly, quarterly, yearly), when the note did not exist | yes |
+| **New note from template**, the Cmd+N note composer, **New \<Type\>**, one-on-one notes | yes |
+| A deep link that creates a note, without `silent` or `overwrite` (an `append` or `prepend` to a missing note creates it too) | yes |
+| Quick Capture captures (clipboard shortcut, popover) | no: `onNoteSaved` fires |
+| A deep link with `silent` or `overwrite` | no: `onNoteSaved` fires |
+| A folder note made by the icon picker, an empty template file | no: `onNoteSaved` fires |
+| Notes the app creates without opening them: event calendar events, the note action bar's linked note, Auto Organize, **New view**, **New type** | no |
+| `ctx.vault.create` of any mod, this one included | no |
+| Notes created outside the app (Finder, `git`, sync tools), restoring from the Trash, duplicating | no |
+| A create that failed, or New folder | no |
+| A note created while the vault opens, before mods load: the auto-opened daily note, a deep link that launched the app | usually no: check for it in `onload` |
+
+### Scheduling and errors
+
+Each created note schedules **one** `setTimeout(0)` call, with a fresh event object. Disposal, unload and a vault switch cancel pending calls as for [`onNoteSaved`](#scheduling); a call already running is not cancelled. A synchronous throw or a rejected promise is logged as `onNoteCreated callback failed: <message>` under `MOD:<id>`, shows as **Last callback error** in the mod's Labs row, and shares the one toast per load with the other callbacks. Never Sentry.
+
+### Example: stamp a property on new notes
+
+Writing to the new note is a save, so it also fires `onNoteSaved`, this mod's included unless that subscription passes `ignoreOwnWrites`:
+
+```javascript
+ctx.onNoteCreated(async ({ path }) => {
+	if (!path.endsWith('.md')) return;
+	const today = new Date().toISOString().slice(0, 10);
+	try {
+		await ctx.vault.updateFrontmatter(path, (props) =>
+			props.some((p) => p.key === 'created') ? props : [...props, { key: 'created', value: today, type: 'date' }],
+		);
+	} catch (err) {
+		ctx.log('could not stamp', path, err);
+	}
+});
+```
+
 ## `ctx.theme`: following theme changes
 
 ### Prefer CSS variables
@@ -487,7 +544,7 @@ Everything you create through `ctx` is undone at unload: actions, rail buttons, 
 
 - Adds `dispose` to the mod's cleanup list. Returns nothing, and cannot be undone. Calling it after unload throws `Mod "<id>" is unloaded`.
 - The argument is **not checked**: a non-function is accepted, then fails at unload as a cleanup error.
-- The cleanup list is **one list shared with** every registration that returns a disposer (`addAction`, `addRailButton`, `labs.place`, `watch`, `onNoteSaved`, `onNoteMoved`, `theme.onChange`). At unload it runs **in reverse order of registration** across all of them. A disposer you already called yourself is removed from the list and does not run again; a `ctx.register` callback is not wrapped this way, so make it safe to run after you already cleaned up.
+- The cleanup list is **one list shared with** every registration that returns a disposer (`addAction`, `addRailButton`, `labs.place`, `watch`, `onNoteSaved`, `onNoteMoved`, `onNoteCreated`, `theme.onChange`). At unload it runs **in reverse order of registration** across all of them. A disposer you already called yourself is removed from the list and does not run again; a `ctx.register` callback is not wrapped this way, so make it safe to run after you already cleaned up.
 - Each cleanup runs in its own `try`/`catch`. A throwing one is logged (`cleanup failed: <message>`) and toasted as `_system/mods/<id>: cleanup failed: <message>`, and the rest still run.
 
 Register the cleanup **right after** creating the resource, so a throw later in `onload` cannot leak it.

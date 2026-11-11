@@ -3,6 +3,7 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 	import { toast } from 'svelte-sonner';
 	import { createFile } from '#lib/core/filesystem/fs.service.js';
 	import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
@@ -53,6 +54,7 @@
 		}
 		quickSwitcherStore.addRecentPath(filePath);
 		await openFileInEditor(filePath);
+		notifyNoteCreated(filePath);
 		quickSwitcherStore.close();
 		searchQuery = '';
 	}

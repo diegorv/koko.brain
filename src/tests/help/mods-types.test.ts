@@ -35,6 +35,7 @@ const STABLE_TYPES = [
 	'ModVaultV1',
 	'ModQueryV1',
 	'ModNoteMovedV1',
+	'ModNoteCreatedV1',
 	'ModWorkspaceV1',
 	'ModAlertOptionsV1',
 	'ModConfirmOptionsV1',
@@ -89,6 +90,7 @@ describe('help/examples/mods/kokobrain-mod.d.ts', () => {
 		expectTypeOf<Doc.ModVaultV1>().toEqualTypeOf<App.ModVaultV1>();
 		expectTypeOf<Doc.ModQueryV1>().toEqualTypeOf<App.ModQueryV1>();
 		expectTypeOf<Doc.ModNoteMovedV1>().toEqualTypeOf<App.ModNoteMovedV1>();
+		expectTypeOf<Doc.ModNoteCreatedV1>().toEqualTypeOf<App.ModNoteCreatedV1>();
 		expectTypeOf<Doc.ModWorkspaceV1>().toEqualTypeOf<App.ModWorkspaceV1>();
 	});
 

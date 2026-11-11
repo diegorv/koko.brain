@@ -474,7 +474,7 @@ A mod is a function of `ctx`: give it a fake `ctx` and a fake `run`, call the ac
 - **Dialog answers as a script.** Tests pass the answers up front, in the order the mod asks: `true`/`false` for `confirm`, a string or `null` for `prompt`, an item id or `null` for `pick`. Asking more than the script holds throws.
 - **Unload.** `unload()` aborts `ctx.signal`, then runs every cleanup in reverse, as the app does.
 
-What this fake does not model, on purpose: `ctx.watch`, `ctx.onNoteSaved`, `ctx.onNoteMoved`, `ctx.theme`, `ctx.kb()`, `vault.list`, `vault.rename`, `vault.move`, the dirty-tab refusal of `vault.write`, and the full JSON checks of `saveData` (the app also rejects functions, `NaN` and class instances). Add them when a mod needs them. A test that needs a member of `ctx.app` passes it in (`fakeCtx({ app: { vaultStore: { path: '/vault' } } })`).
+What this fake does not model, on purpose: `ctx.watch`, `ctx.onNoteSaved`, `ctx.onNoteMoved`, `ctx.onNoteCreated`, `ctx.theme`, `ctx.kb()`, `vault.list`, `vault.rename`, `vault.move`, the dirty-tab refusal of `vault.write`, and the full JSON checks of `saveData` (the app also rejects functions, `NaN` and class instances). Add them when a mod needs them. A test that needs a member of `ctx.app` passes it in (`fakeCtx({ app: { vaultStore: { path: '/vault' } } })`).
 
 ### fake-ctx.ts
 
@@ -569,6 +569,7 @@ export function fakeCtx(
 		watch: notModelled('watch'),
 		onNoteSaved: notModelled('onNoteSaved'),
 		onNoteMoved: notModelled('onNoteMoved'),
+		onNoteCreated: notModelled('onNoteCreated'),
 		vault: {
 			read: async (path) => {
 				checkPath(path);

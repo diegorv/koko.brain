@@ -43,3 +43,5 @@ The questions as asked:
 - **Not verified:** whether Tauri resolves `exists` before an earlier `readTextFile` in practice (R2 depends on IPC ordering; `item-05-validation.md:101`).
 
 ## Comments
+
+- 2026-11-11, branch `issue/08-on-note-created`: mods get `ctx.onNoteCreated` for notes made by the covered creators; docs note that notes made at vault open are not reported. Full suite at a16fb6745: 614 files, 15500 tests passed, 54 skipped, 1 todo, exit=0. Targeted: `pnpm check` 0 errors; help and sync-wiki-docs tests passed. Reviews: round 1 APPROVED, round 2 APPROVED (one nit: the Issue has no acceptance-criteria checklist, so `relay review-ticks` ticked nothing and left the status line).

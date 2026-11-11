@@ -25,7 +25,8 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 	openFileInEditor: vi.fn(),
 }));
 
-vi.mock('#lib/core/editor/editor.hooks.js', () => ({
+vi.mock('#lib/core/editor/editor.hooks.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/core/editor/editor.hooks.js')>()),
 	markRecentSave: vi.fn(),
 }));
 
@@ -37,7 +38,7 @@ import dayjs from 'dayjs';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { addNoteCreatedObserver, markRecentSave, resetHooks } from '#lib/core/editor/editor.hooks.js';
 import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -365,6 +366,70 @@ describe('openOrCreateNote', () => {
 		).rejects.toThrow('editor failed');
 
 		expect(consoleSpy).toHaveBeenCalledWith('Failed to open or create note:', expect.any(Error));
+		consoleSpy.mockRestore();
+	});
+});
+
+describe('openOrCreateNote reports a created note', () => {
+	let created: { path: string; tabOpened: boolean }[];
+	let tabOpened: boolean;
+
+	beforeEach(() => {
+		vi.resetAllMocks();
+		resetHooks();
+		clearAllIndexed();
+		vaultStore._reset();
+		created = [];
+		tabOpened = false;
+		addNoteCreatedObserver((path) => created.push({ path, tabOpened }));
+		vi.mocked(openFileInEditor).mockImplementation(async () => {
+			await Promise.resolve();
+			tabOpened = true;
+		});
+	});
+
+	afterEach(() => {
+		resetHooks();
+	});
+
+	it('notifies once, after the tab opened, when it created the note', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+
+		await openOrCreateNote({ filePath: '/vault/New.md', title: 'New' });
+
+		expect(created).toEqual([{ path: '/vault/New.md', tabOpened: true }]);
+	});
+
+	it('does not notify when the note already existed', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+
+		await openOrCreateNote({ filePath: '/vault/Old.md', title: 'Old' });
+
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Old.md');
+		expect(created).toEqual([]);
+	});
+
+	it('does not notify when create_note fails', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_note') throw new Error('write failed');
+		});
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(openOrCreateNote({ filePath: '/vault/New.md', title: 'New' })).rejects.toThrow('write failed');
+
+		expect(created).toEqual([]);
+		consoleSpy.mockRestore();
+	});
+
+	it('does not notify when opening the tab rejects', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		vi.mocked(openFileInEditor).mockRejectedValue(new Error('editor failed'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(openOrCreateNote({ filePath: '/vault/New.md', title: 'New' })).rejects.toThrow('editor failed');
+
+		expect(created).toEqual([]);
 		consoleSpy.mockRestore();
 	});
 });

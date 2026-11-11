@@ -1,4 +1,5 @@
 import { call } from '#lib/contracts/ipc.js';
+import { notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
@@ -14,7 +15,7 @@ import type { NewNoteRule } from './rail-shell.types';
  * `createTypedNote` (the type's folder, dedupe and template, as "New <Type>"
  * does). While Explicit organization is on, both start with
  * `_organized: false` (a typed note through `createTypedNote`). Then the
- * note is opened. Both writes go through
+ * note is opened and reported to the note-created observers. Both writes go through
  * `fs.service::createFile`, which indexes the note through `applyNoteChange`.
  * Returns the created path; any failure is logged and rethrown, and nothing
  * is opened. `createFile` can also reject AFTER the write (its tree refresh
@@ -33,6 +34,7 @@ export async function createNoteHere(rule: NewNoteRule): Promise<string> {
 			path = await createFile(rule.folder, 'Untitled.md', content);
 		}
 		await openFileInEditor(path);
+		notifyNoteCreated(path);
 		return path;
 	} catch (err) {
 		error('RAIL-SHELL', 'createNoteHere failed:', err);

@@ -51,7 +51,7 @@ Open **Settings → Labs** and turn on **Vault mods**.
 
 - The flag is **per vault and per machine**. It is stored in this computer's app storage, keyed by the vault's path, not in `.kokobrain/settings.json`. A vault copied from somewhere else, or opened at a new path, always starts with mods off.
 - Turning it on loads the mods at once; turning it off unloads them. No restart needed.
-- With mods on, Labs lists every folder under `_system/mods/` with its state: **Loaded**, **Error** (with the message and a **Stack trace** you can expand), or **Disabled**. A loaded mod's row also shows its **Last callback error**, when an `onNoteSaved`, `onNoteMoved`, `watch` or `theme.onChange` callback failed since it loaded.
+- With mods on, Labs lists every folder under `_system/mods/` with its state: **Loaded**, **Error** (with the message and a **Stack trace** you can expand), or **Disabled**. A loaded mod's row also shows its **Last callback error**, when an `onNoteSaved`, `onNoteMoved`, `onNoteCreated`, `watch` or `theme.onChange` callback failed since it loaded.
 - A loaded mod's row also shows how long it took to load, for example **Loaded · 42 ms** (**< 1 ms** when it rounds to zero). The time runs from evaluating `main.js` (its top-level code) until `onload` finishes, so it counts only the mod's own code, not reading its files. It is wall time, not CPU time: at vault open the mods load together, so a mod whose `onload` awaits something can show time spent waiting while other mods ran. A reload on save loads that mod alone, so its new time measures just that mod. Each reload, or switching the mod off and on, replaces the time.
 
 ### Switching one mod off
@@ -189,6 +189,16 @@ ctx.onNoteMoved(({ from, to }) => ctx.log('Moved:', from, '->', to));
 ```
 
 A folder is reported once, for the folder: every path under `from + '/'` is now under `to + '/'`. It is not called for deletes, a move to the folder the item is already in, a rename to the same name, a failed rename, moves made outside the app (Finder, git, sync), a Trash restore or a duplicate. The disposer, unload and failures work as for `ctx.onNoteSaved`. A callback that renames or moves again can loop, and Auto Organize can move a note a mod just wrote; switch off the mod in **Settings → Labs** to stop it.
+
+### `ctx.onNoteCreated`: reacting to new notes
+
+`ctx.onNoteCreated(callback)` calls `callback({ path })` with the **vault-relative** path of a note the app's note creators made: the file explorer's New menu, the note list's **+ New here**, the command palette's **New File**, the quick switcher's **Create**, a wikilink to a missing note, periodic notes, **New note from template**, the Cmd+N note composer, **New \<Type\>**, one-on-one notes, and a deep link's default create. It runs through `setTimeout(0)` once the creator is done, its note tab already open, so a `ctx.vault.write` from the callback lands in that tab and is not lost to its next autosave.
+
+```javascript
+ctx.onNoteCreated(({ path }) => ctx.log('Created:', path));
+```
+
+Not reported, because they reach mods through `ctx.onNoteSaved`: Quick Capture captures (clipboard shortcut and popover), a deep link with `silent` or `overwrite`, a folder note made by the icon picker, and an empty template file. Not called either for notes the app creates without opening them (event calendar events, the note action bar, Auto Organize, **New view**, **New type**), for `ctx.vault.create` of a mod, for notes created outside the app (Finder, git, sync), a Trash restore or a duplicate. A note created while the vault opens (the auto-opened daily note, a deep link that launched the app) is usually created before mods load and is then not reported; check for it in `onload`. Writing to the new note from the callback is a save, so it fires `ctx.onNoteSaved`; pass `ignoreOwnWrites` there to skip the mod's own write. The disposer, unload and failures work as for `ctx.onNoteSaved`.
 
 ### Actions and rail buttons
 
@@ -690,12 +700,12 @@ onload(ctx) {
 | Loading (manifest, `main.js` syntax, top-level code, `onload`) | The mod shows **Error** in Labs with the message and stack trace, plus a toast. The same message is toasted once, not on every reload |
 | An action's `run` | The run view shows **Failed** with the message and stack, and a toast "`<mod name>`: `<title>` failed: `<message>`" |
 | `onunload` or a cleanup | A toast naming the mod and the phase |
-| An `onNoteSaved`, `onNoteMoved`, `watch` or `theme.onChange` callback | **Last callback error** in the mod's Labs row, with the callback, the time, the message and stack trace, plus a toast "`<mod name>`: `<callback>` callback failed: `<message>`" once per load |
+| An `onNoteSaved`, `onNoteMoved`, `onNoteCreated`, `watch` or `theme.onChange` callback | **Last callback error** in the mod's Labs row, with the callback, the time, the message and stack trace, plus a toast "`<mod name>`: `<callback>` callback failed: `<message>`" once per load |
 | A timer, listener or promise the mod started itself | Not caught by Kokobrain: it appears in the developer console (right-click → **Inspect**, available in development and debug builds; a release build is expected not to have it) |
 
 Every error Kokobrain catches, and everything a mod writes with `ctx.log`, goes to the debug log under `MOD:<id>`. To keep it in a file, turn on **Settings → Troubleshooting → Save debug log to file**; lines look like `[10:42:07.123] [FRONT-END:MOD:daily-log] ...` in `~/Library/Logs/com.diegorv.kokobrain/`. The time is UTC. With neither that switch nor **Debug mode** on, `ctx.log` writes nothing. An `Error` passed to `ctx.log` is written as `{}`: log `err.message` and `err.stack`. See [Errors and debugging](mods/15-errors-and-debugging.md) for every message.
 
-Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, awaited `run.ui` calls, `ctx.watch` reads, and `ctx.theme.onChange`, `ctx.watch`, `ctx.onNoteSaved` and `ctx.onNoteMoved` callbacks, async ones included) are never sent to Sentry. The vault adapters also log their rejections under the mod tag. Uncaught errors (the last row above) and failures inside app services can reach Sentry while it is on. That includes `ctx.app` functions and the existing filesystem services called by `ctx.vault.rename`, `move` and `delete`.
+Mod errors that the mod host catches (loading, actions, unload, `ctx.loadData`, `ctx.saveData`, `ctx.workspace`, `ctx.ui`, awaited `run.ui` calls, `ctx.watch` reads, and `ctx.theme.onChange`, `ctx.watch`, `ctx.onNoteSaved`, `ctx.onNoteMoved` and `ctx.onNoteCreated` callbacks, async ones included) are never sent to Sentry. The vault adapters also log their rejections under the mod tag. Uncaught errors (the last row above) and failures inside app services can reach Sentry while it is on. That includes `ctx.app` functions and the existing filesystem services called by `ctx.vault.rename`, `move` and `delete`.
 
 > [!NOTE]
 > Stack traces show the mod's frames by function name only (for example `onload@`), without a file and line: the app's web view does not report locations for code evaluated this way.

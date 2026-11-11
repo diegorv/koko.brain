@@ -1,7 +1,7 @@
 import { exists, readDir, readTextFile } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 
-import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { addAfterSaveObserver, addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import { onFileChange } from '#lib/core/filesystem/fs.watcher.js';
 import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
 import { ruleActionsStore } from '#lib/core/rule-actions/rule-actions.store.svelte.js';
@@ -133,11 +133,11 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 	let toasted = false;
 	/**
 	 * Runs a mod callback the host calls on its own (`onNoteSaved`,
-	 * `onNoteMoved`, `watch`, `theme.onChange`). A throw or a rejection goes
-	 * to `debug()`; while this instance is live, also to the mod's Labs row,
-	 * and the first one to a toast. Never Sentry: the error is the mod's
-	 * (PRD P9). Run inside the caller's `untrack`, so the store write
-	 * subscribes no effect.
+	 * `onNoteMoved`, `onNoteCreated`, `watch`, `theme.onChange`). A throw or
+	 * a rejection goes to `debug()`; while this instance is live, also to the
+	 * mod's Labs row, and the first one to a toast. Never Sentry: the error
+	 * is the mod's (PRD P9). Run inside the caller's `untrack`, so the store
+	 * write subscribes no effect.
 	 */
 	const callModCallback = (name: ModCallbackError['callback'], call: () => unknown) => {
 		const report = (err: unknown) => {
@@ -646,6 +646,27 @@ export function createModContext(manifest: ModManifest, vaultPath: string, runti
 			});
 			return disposable(() => {
 				unregister();
+				for (const timer of pending) clearTimeout(timer);
+				pending.clear();
+			});
+		},
+		onNoteCreated: (callback) => {
+			assertLive();
+			if (typeof callback !== 'function') throw invalid('onNoteCreated needs a callback function');
+			const pending = new Set<ReturnType<typeof setTimeout>>();
+			const unsubscribe = addNoteCreatedObserver((filePath) => {
+				const path = vaultRelativeKey(vaultPath, filePath);
+				if (path === null || runtime.unloaded || vaultStore.path !== vaultPath) return;
+				// Leave the creator's call stack before running any mod code.
+				const timer = setTimeout(() => {
+					pending.delete(timer);
+					if (runtime.unloaded || vaultStore.path !== vaultPath) return;
+					callModCallback('onNoteCreated', () => callback({ path }));
+				}, 0);
+				pending.add(timer);
+			});
+			return disposable(() => {
+				unsubscribe();
 				for (const timer of pending) clearTimeout(timer);
 				pending.clear();
 			});

@@ -17,6 +17,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { readDir } from '@tauri-apps/plugin-fs';
 import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -103,5 +104,40 @@ describe('QuickSwitcher - create from the query', () => {
 
 		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to create file.'));
 		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('reports the created note after opening it', async () => {
+		let opened = false;
+		vi.mocked(openFileInEditor).mockImplementation(async () => {
+			await Promise.resolve();
+			opened = true;
+		});
+		const created: { path: string; opened: boolean }[] = [];
+		const unsubscribe = addNoteCreatedObserver((path) => created.push({ path, opened }));
+
+		try {
+			createFromQuery('Ideas');
+			await vi.waitFor(() => expect(created).toEqual([{ path: '/vault/Ideas.md', opened: true }]));
+		} finally {
+			unsubscribe();
+		}
+	});
+
+	it('reports nothing when the note cannot be created', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_note') throw new Error('disk full');
+		});
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+		const observer = vi.fn();
+		const unsubscribe = addNoteCreatedObserver(observer);
+
+		try {
+			createFromQuery('Ideas');
+			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to create file.'));
+		} finally {
+			unsubscribe();
+		}
+
+		expect(observer).not.toHaveBeenCalled();
 	});
 });

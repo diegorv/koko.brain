@@ -22,7 +22,7 @@ export interface ModStatusEntry {
 /** The last error a loaded mod's host-called callback threw or rejected with, shown in its Labs row */
 export interface ModCallbackError {
 	/** The `ctx` subscription whose callback failed */
-	callback: 'onNoteSaved' | 'onNoteMoved' | 'watch' | 'theme.onChange';
+	callback: 'onNoteSaved' | 'onNoteMoved' | 'onNoteCreated' | 'watch' | 'theme.onChange';
 	/** The thrown value's message, or the value as a string */
 	message: string;
 	/** The stack, when the thrown value is an `Error` */

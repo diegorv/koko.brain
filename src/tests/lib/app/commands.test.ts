@@ -82,6 +82,7 @@ import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svel
 import { toast } from 'svelte-sonner';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import { getBuiltInCommands } from '#lib/app/commands.js';
 import { formatShortcut } from '#lib/utils/keybindings.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
@@ -344,6 +345,43 @@ describe('getBuiltInCommands', () => {
 		await expect(newFile.action()).rejects.toThrow('disk full');
 		expect(openFileInEditor).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('new file reports the created note after opening it', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockResolvedValueOnce('/vault/Untitled.md');
+		let opened = false;
+		vi.mocked(openFileInEditor).mockImplementationOnce(async () => {
+			await Promise.resolve();
+			opened = true;
+		});
+		const created: { path: string; opened: boolean }[] = [];
+		const unsubscribe = addNoteCreatedObserver((path) => created.push({ path, opened }));
+		const newFile = getBuiltInCommands().find((c) => c.id === 'file-explorer:new-file')!;
+
+		try {
+			await newFile.action();
+		} finally {
+			unsubscribe();
+		}
+
+		expect(created).toEqual([{ path: '/vault/Untitled.md', opened: true }]);
+	});
+
+	it('new file reports nothing when the create fails', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockRejectedValueOnce(new Error('disk full'));
+		const observer = vi.fn();
+		const unsubscribe = addNoteCreatedObserver(observer);
+		const newFile = getBuiltInCommands().find((c) => c.id === 'file-explorer:new-file')!;
+
+		try {
+			await expect(newFile.action()).rejects.toThrow('disk full');
+		} finally {
+			unsubscribe();
+		}
+
+		expect(observer).not.toHaveBeenCalled();
 	});
 
 	it('new file writes _organized: false while Explicit organization is on', async () => {

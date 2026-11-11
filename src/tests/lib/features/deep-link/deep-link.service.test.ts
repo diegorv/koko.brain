@@ -67,6 +67,7 @@ vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	markRecentSave: vi.fn(),
+	notifyNoteCreated: vi.fn(),
 	notifyAfterSave: vi.fn(),
 }));
 

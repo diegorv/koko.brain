@@ -410,6 +410,12 @@ export interface ModNoteMovedV1 {
 	to: string;
 }
 
+/** A note the app created */
+export interface ModNoteCreatedV1 {
+	/** Vault-relative path of the new note */
+	path: string;
+}
+
 /** What a mod's `onload` receives. Every function throws once the mod is unloaded or the vault changed. */
 export interface ModContextV1 {
 	/** Contract version, `1` */
@@ -484,6 +490,28 @@ export interface ModContextV1 {
 	 * Labs stops it.
 	 */
 	onNoteMoved: (callback: (event: ModNoteMovedV1) => void) => () => void;
+	/**
+	 * In a later timer, reports a note made by one of the app's note creators
+	 * (the file explorer, the command palette, a wikilink, the quick switcher,
+	 * periodic notes and templates), with its vault-relative path. Callback
+	 * failures go to the mod's debug log. Returns a disposer; unload also
+	 * unsubscribes and cancels pending callbacks.
+	 *
+	 * It runs once the creator is done, including opening the note's tab when
+	 * the creator opens one, so a write from the callback reaches the open tab
+	 * and is not lost to its autosave.
+	 *
+	 * Not reported, because they reach mods through `onNoteSaved`: Quick Capture
+	 * captures, deep links, a folder note made by the icon picker, and an empty
+	 * template file. Not called for notes created outside the app (Finder, git,
+	 * sync), for a Trash restore, or for `ctx.vault.create` of a mod; that write
+	 * fires `onNoteSaved` where the app notifies for it.
+	 *
+	 * Writing to the new note from the callback is a save, so it fires
+	 * `onNoteSaved`; subscribe there with `ignoreOwnWrites` to skip this mod's
+	 * own write.
+	 */
+	onNoteCreated: (callback: (event: ModNoteCreatedV1) => void) => () => void;
 	/** Reads and writes vault files by vault-relative path */
 	vault: ModVaultV1;
 	/** Read-only queries over the vault's notes */

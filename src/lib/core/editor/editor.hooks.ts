@@ -91,10 +91,46 @@ export function notifyAfterSave(filePath: string, content: string): void {
 	}
 }
 
+/**
+ * Called with the absolute path of a note an app note creator made, once that
+ * creator is done, its tab-open step included. Errors are caught and logged.
+ */
+export type NoteCreatedObserver = (filePath: string) => void;
+
+/** Registered note-created observers */
+const noteCreatedObservers: NoteCreatedObserver[] = [];
+
+/** Adds a note-created observer. Returns an unsubscribe function. */
+export function addNoteCreatedObserver(observer: NoteCreatedObserver): () => void {
+	noteCreatedObservers.push(observer);
+	return () => {
+		const idx = noteCreatedObservers.indexOf(observer);
+		if (idx >= 0) noteCreatedObservers.splice(idx, 1);
+	};
+}
+
+/**
+ * Notifies the note-created observers. A creator calls it after it has
+ * finished, including opening the note's tab when it opens one: an observer
+ * that writes the note then reaches the open tab instead of losing the write
+ * to the tab's next autosave. Only the creators listed in the mods docs
+ * (`help/documentation/mods/07-events-and-reactivity.md`) call it.
+ */
+export function notifyNoteCreated(filePath: string): void {
+	for (const observer of [...noteCreatedObservers]) {
+		try {
+			observer(filePath);
+		} catch (err) {
+			error('HOOKS', 'noteCreated observer error:', err);
+		}
+	}
+}
+
 /** Removes all hooks and observers. Used in tests and teardown. */
 export function resetHooks(): void {
 	debug('HOOKS', 'Resetting all hooks and observers');
 	afterSaveObservers.length = 0;
+	noteCreatedObservers.length = 0;
 	for (const timer of recentSaves.values()) clearTimeout(timer);
 	recentSaves.clear();
 	clearAllIndexed();

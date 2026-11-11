@@ -8,6 +8,7 @@ import {
 	togglePinActiveTab,
 	openFileInEditor,
 } from '#lib/core/editor/editor.service.js';
+import { notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
 import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -133,6 +134,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				if (!path) return;
 				const filePath = await createFile(path, 'Untitled.md', applyExplicitOrganization('', settingsStore.explicitOrganization));
 				await openFileInEditor(filePath);
+				notifyNoteCreated(filePath);
 			},
 		},
 		{
