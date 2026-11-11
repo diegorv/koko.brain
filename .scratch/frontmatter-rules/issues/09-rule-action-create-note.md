@@ -64,6 +64,7 @@ From the scout and adversarial reviews in `.scratch/frontmatter-rules/research/i
    A `createNote` without a string path ending in `.md` is dropped.
 8. **Placement and gates** follow the PRD run order. A failed move skips the create. Create runs only when the source passes the shared gates. Widen the early return in the service (`auto-move.service.ts:255`) and the Settings "does nothing" hint (`AutoMoveRuleRow.svelte:79`) so a create-only rule acts.
 9. **Docs:** add "Create note" to the Actions list on the help page.
+10. **Carried over from Issue 08's review (open nit):** in `AutoOrganizeRuleProperty.svelte:122-126`, a key rename is refused after an expression was refused, and the field then shows the new key while the old key stays stored. This Issue reuses that editor for `createNote.properties`, so fix it here: either save the key rename even while the expression is refused, or have the field revert to the stored key. Add a row test.
 
 ## Notes
 
