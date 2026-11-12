@@ -33,6 +33,7 @@ import type {
 	NoteRecordV2,
 	FrontmatterValue,
 } from '../../src/lib/types/vault-v2.types';
+import type { TaskTextWriteResult } from '../../src/lib/contracts/index';
 import {
 	parseWikilinks,
 	getNoteName,
@@ -605,6 +606,51 @@ class VaultIndexImpl {
 		virtualFS.writeFile(path, updated);
 		const result = this.update(path, updated);
 		return { updatedContent: updated, updateResult: result, stale: false };
+	}
+
+	/**
+	 * Rust `write_task_text`: replaces the text of the task at `lineNumber` of
+	 * `vaultRoot/relPath` (`TASK_LINE_RE` group 3), keeping the prefix, only
+	 * while that line still holds `expectedText` with `expectedStatus`;
+	 * otherwise nothing is written and the result is `stale`. Throws on a
+	 * `newText` with a line break or blank, as Rust does. The mock does not
+	 * check the root or confine the path.
+	 */
+	writeTaskText(
+		vaultRoot: string,
+		relPath: string,
+		lineNumber: number,
+		expectedText: string,
+		expectedStatus: TaskStatusV2,
+		newText: string,
+	): TaskTextWriteResult {
+		if (/[\r\n]/.test(newText)) throw new Error('Refusing task text holding a line break');
+		if (newText.trim() === '') throw new Error('Refusing blank task text');
+		const path = `${vaultRoot}/${relPath}`;
+		const noop = (updatedContent: string, stale: boolean): TaskTextWriteResult => ({
+			updatedContent,
+			updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
+			stale,
+			task: null,
+		});
+		const content = virtualFS.readFileSafe(path);
+		if (content === null) throw new Error(`read failed for ${path}`);
+		const lines = content.split('\n');
+		const idx = lineNumber - 1;
+		const m = idx >= 0 && idx < lines.length ? lines[idx].match(TASK_LINE_RE) : null;
+		if (!m || m[3] !== expectedText || (STATUS_BY_CHAR[m[2]] ?? 'todo') !== expectedStatus) {
+			return noop(content, true);
+		}
+		if (newText === expectedText) return noop(content, false);
+		lines[idx] = lines[idx].slice(0, lines[idx].length - m[3].length) + newText;
+		const updated = lines.join('\n');
+		virtualFS.writeFile(path, updated);
+		// The write hook already indexed the note; a second `update` would report `changed: false`.
+		const result = lastHookResult.get(path) ?? this.update(path, updated);
+		lastHookResult.delete(path);
+		// One line alone has no heading, as Rust `parse_task_line` gives none.
+		const [task] = parseTasks(lines[idx]).tasks;
+		return { updatedContent: updated, updateResult: result, stale: false, task: task ? { ...task, lineNumber } : null };
 	}
 
 	/** Rust `get_index_delta`: the entries and records of `paths` still indexed, sorted by path. */

@@ -10,13 +10,9 @@
  */
 
 import { findInlineTags, INLINE_TAG_NAME_SOURCE } from '#lib/utils/tag-extraction.js';
-import { ID_EMOJI } from './anchor.logic.js';
+import { insertToken, removeSpans, setDueToken, setPriorityToken, trailingBlockId, type PriorityEmoji, type Span } from '#lib/utils/task-tokens.js';
 
-/** Priority signifiers, highest to lowest (Rust `PRIORITY_EMOJIS`). */
-export const PRIORITY_EMOJIS = ['🔺', '⏫', '🔼', '🔽', '⏬'] as const;
-
-/** One of the priority signifier emojis. */
-export type PriorityEmoji = (typeof PRIORITY_EMOJIS)[number];
+export { PRIORITY_EMOJIS, trailingBlockId, type PriorityEmoji } from '#lib/utils/task-tokens.js';
 
 /** Whether a task line is set open or closed. */
 export type TaskLineState = 'open' | 'closed';
@@ -42,12 +38,6 @@ const TASK_LINE_RES = [
 
 /** Every signifier emoji the parser reads (Rust `DATE_EMOJIS`, `PRIORITY_EMOJIS`, the id/recurrence/depends/completion consts). */
 const SIGNIFIER_CHARS = '📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🔁🆔⛔🏁';
-
-/** `📅` + date, Rust `build_date_regex` for the due emoji. */
-const DUE_RE = /📅️?\s*\d{4}-\d{2}-\d{2}/gu;
-
-/** Any priority emoji, Rust `build_priority_regex`. */
-const PRIORITY_RE = /[🔺⏫🔼🔽⏬]️?/gu;
 
 /** Where the recurrence text stops, Rust `RECURRENCE_RE` alternatives (everything but `🔁`). */
 const RECURRENCE_STOP = `[📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🆔⛔🏁]\\uFE0F?|#[A-Za-z0-9_]`;
@@ -140,47 +130,6 @@ function patchText(line: string, patch: (text: string) => string): string | null
 }
 
 /**
- * Removes `[start, end)` and the whitespace run before it; at the text start,
- * the run after it. A span glued to a word on the left (`milk🔺`) loses
- * only itself, so the word keeps its gap to whatever follows.
- */
-function removeSpan(text: string, start: number, end: number): string {
-	const before = /\s+$/u.exec(text.slice(0, start));
-	if (before) return text.slice(0, start - before[0].length) + text.slice(end);
-	if (start > 0) return text.slice(0, start) + text.slice(end);
-	const after = /^\s+/u.exec(text.slice(end));
-	return text.slice(end + (after ? after[0].length : 0));
-}
-
-/** A `[from, to)` span of task text. */
-interface Span {
-	from: number;
-	to: number;
-}
-
-/** Removes the given spans, right to left so offsets stay valid. */
-function removeSpans(text: string, spans: readonly Span[]): string {
-	return spans.reduceRight((acc, s) => removeSpan(acc, s.from, s.to), text);
-}
-
-/** Removes every match of a global regex. */
-function removeAll(text: string, re: RegExp): string {
-	return removeSpans(text, [...text.matchAll(re)].map((m) => ({ from: m.index, to: m.index + m[0].length })));
-}
-
-/** Inserts a token before the first `🆔`, or at the end before trailing whitespace. */
-function insertToken(text: string, token: string): string {
-	const idIndex = text.indexOf(ID_EMOJI);
-	if (idIndex >= 0) {
-		const gap = idIndex > 0 && !/\s/u.test(text[idIndex - 1]) ? ' ' : '';
-		return `${text.slice(0, idIndex)}${gap}${token} ${text.slice(idIndex)}`;
-	}
-	const trailing = /\s*$/u.exec(text)?.[0] ?? '';
-	const body = text.slice(0, text.length - trailing.length);
-	return body === '' ? token + trailing : `${body} ${token}${trailing}`;
-}
-
-/**
  * Sets the status char per design rule 5. Closing keeps `x`, `X` and `-`,
  * otherwise writes `x`; opening keeps ` / ? ! >`, otherwise writes a space.
  * Returns null for a non-task line.
@@ -192,34 +141,19 @@ export function setTaskStatus(line: string, state: TaskLineState): string | null
 }
 
 /**
- * Sets the `📅 YYYY-MM-DD` due date, or removes every one when `date` is
- * null. An existing date is replaced in place (the parser reads the leftmost);
- * a missing one is inserted before the anchor. Returns null for a non-task line.
+ * Sets the `📅 YYYY-MM-DD` due date of a task line, or removes every one when
+ * `date` is null (`setDueToken`). Returns null for a non-task line.
  */
 export function setDueDate(line: string, date: string | null): string | null {
-	return patchText(line, (text) => {
-		if (date === null) return removeAll(text, DUE_RE);
-		const token = `📅 ${date}`;
-		const m = new RegExp(DUE_RE.source, 'u').exec(text);
-		if (!m) return insertToken(text, token);
-		return text.slice(0, m.index) + token + text.slice(m.index + m[0].length);
-	});
+	return patchText(line, (text) => setDueToken(text, date));
 }
 
 /**
- * Sets the priority emoji, or removes every one when `emoji` is null. The
- * first priority emoji is replaced in place and any other is dropped (the
- * parser picks by list order, not position); a missing one is inserted
- * before the anchor. Returns null for a non-task line.
+ * Sets the priority emoji of a task line, or removes every one when `emoji`
+ * is null (`setPriorityToken`). Returns null for a non-task line.
  */
 export function setPriority(line: string, emoji: PriorityEmoji | null): string | null {
-	return patchText(line, (text) => {
-		if (emoji === null) return removeAll(text, PRIORITY_RE);
-		const first = new RegExp(PRIORITY_RE.source, 'u').exec(text);
-		if (!first) return insertToken(text, emoji);
-		const head = text.slice(0, first.index) + emoji;
-		return head + removeAll(text.slice(first.index + first[0].length), PRIORITY_RE);
-	});
+	return patchText(line, (text) => setPriorityToken(text, emoji));
 }
 
 /**
@@ -297,16 +231,6 @@ function tokenize(text: string): Token[] {
 	}
 	pushWords(cursor, text.length);
 	return tokens;
-}
-
-/**
- * The block id that ends a task text (` ^id`, trailing whitespace allowed),
- * without its space; null without one. Only the end of the line counts
- * (`live-preview/parsers/block-reference.ts`). The parser keeps it in the
- * description, but it is no part of the Todoist content.
- */
-export function trailingBlockId(text: string): string | null {
-	return / (\^[\w-]+)\s*$/u.exec(text)?.[1] ?? null;
 }
 
 /**

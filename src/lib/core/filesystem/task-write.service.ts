@@ -5,7 +5,8 @@ import { applyNoteChange, notifyContentInvalidated } from './note-change.service
 
 /**
  * Settles a note a Rust task command (`toggle_task_status`,
- * `write_task_lines`) already wrote to disk and indexed in `VaultIndex`.
+ * `write_task_lines`, `write_task_text`) already wrote to disk and indexed in
+ * `VaultIndex`.
  * Every task write goes through here, so none of these steps is duplicated
  * at a call site. Lives in `core/` so the Tasks feature and the Todoist sync
  * both call it without importing each other.

@@ -1,0 +1,30 @@
+{
+	"cases": [
+		{ "name": "no due yet", "text": "call Ana", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "call Ana 📅 2026-11-20" },
+		{ "name": "replace a due", "text": "call Ana 📅 2026-11-01 #work", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "call Ana 📅 2026-11-20 #work" },
+		{ "name": "a due with no space after the signifier", "text": "call Ana 📅2026-11-01", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "call Ana 📅 2026-11-20" },
+		{ "name": "clear a due", "text": "call Ana 📅 2026-11-01 #work", "op": { "kind": "due", "date": null }, "expected": "call Ana #work" },
+		{ "name": "clear a due when none", "text": "call Ana #work", "op": { "kind": "due", "date": null }, "expected": "call Ana #work" },
+		{ "name": "a due with a variation selector", "text": "call Ana 📅️ 2026-11-01", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "call Ana 📅 2026-11-20" },
+		{ "name": "clear a due with a variation selector", "text": "call Ana 📅️ 2026-11-01 #work", "op": { "kind": "due", "date": null }, "expected": "call Ana #work" },
+		{ "name": "set a priority on text with none", "text": "call Ana", "op": { "kind": "priority", "priority": "high" }, "expected": "call Ana ⏫" },
+		{ "name": "replace a priority in place", "text": "call Ana 🔼 📅 2026-11-01", "op": { "kind": "priority", "priority": "highest" }, "expected": "call Ana 🔺 📅 2026-11-01" },
+		{ "name": "two priority signifiers present", "text": "call Ana 🔽 #work ⏫", "op": { "kind": "priority", "priority": "medium" }, "expected": "call Ana 🔼 #work" },
+		{ "name": "priority null removes every one", "text": "call Ana ⏫ 🔽 #work", "op": { "kind": "priority", "priority": null }, "expected": "call Ana #work" },
+		{ "name": "due on text ending in a block id", "text": "call Ana ^abc", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "call Ana 📅 2026-11-20 ^abc" },
+		{ "name": "priority on text ending in a block id", "text": "call Ana ^abc-1", "op": { "kind": "priority", "priority": "low" }, "expected": "call Ana 🔽 ^abc-1" },
+		{ "name": "due on text ending in a Todoist anchor and a block id", "text": "call Ana 🆔 td-a1 ^abc", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "call Ana 📅 2026-11-20 🆔 td-a1 ^abc" },
+		{ "name": "due on text with a recurrence", "text": "water plants 🔁 every week", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "water plants 🔁 every week 📅 2026-11-20" },
+		{ "name": "replace a due after a recurrence", "text": "water plants 🔁 every week 📅 2026-11-01", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "water plants 🔁 every week 📅 2026-11-20" },
+		{ "name": "due on text with a recurrence ending in a block id", "text": "water 🔁 every week ^abc", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "water 📅 2026-11-20 🔁 every week ^abc" },
+		{ "name": "priority on text with a recurrence ending in a block id", "text": "water 🔁 every week ^abc", "op": { "kind": "priority", "priority": "high" }, "expected": "water ⏫ 🔁 every week ^abc" },
+		{ "name": "priority on text with a recurrence", "text": "water plants 🔁 every week", "op": { "kind": "priority", "priority": "high" }, "expected": "water plants 🔁 every week ⏫" },
+		{ "name": "due on text with a wikilink holding #", "text": "read [[Note#Heading]]", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "read [[Note#Heading]] 📅 2026-11-20" },
+		{ "name": "scheduled, start, created dates and tags untouched by a due", "text": "plan ⏳ 2026-11-02 🛫 2026-11-03 ➕ 2026-11-01 #work #home", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "plan ⏳ 2026-11-02 🛫 2026-11-03 ➕ 2026-11-01 #work #home 📅 2026-11-20" },
+		{ "name": "scheduled, start, created dates and tags untouched by a priority", "text": "plan ⏳ 2026-11-02 🛫 2026-11-03 ➕ 2026-11-01 #work #home", "op": { "kind": "priority", "priority": "lowest" }, "expected": "plan ⏳ 2026-11-02 🛫 2026-11-03 ➕ 2026-11-01 #work #home ⏬" },
+		{ "name": "due before trailing whitespace", "text": "call Ana  ", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "call Ana 📅 2026-11-20  " },
+		{ "name": "priority before trailing whitespace", "text": "call Ana  ", "op": { "kind": "priority", "priority": "high" }, "expected": "call Ana ⏫  " },
+		{ "name": "due on text that is only a tag", "text": "#errand", "op": { "kind": "due", "date": "2026-11-20" }, "expected": "#errand 📅 2026-11-20" },
+		{ "name": "priority on text that is only a tag", "text": "#errand", "op": { "kind": "priority", "priority": "low" }, "expected": "#errand 🔽" }
+	]
+}

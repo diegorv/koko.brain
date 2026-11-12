@@ -220,6 +220,29 @@ pub struct ToggleTaskResult {
 	pub stale: bool,
 }
 
+/// Result of `write_task_text`: the note content after the call, the index
+/// diff, whether the line was stale, and the re-parsed task. The task carries
+/// the `metadata` (due date, priority) only Rust parses, for the Tasks view's
+/// write overlay.
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskTextWriteResult {
+	/// File content after the call; the pre-call content when nothing was
+	/// written.
+	pub updated_content: String,
+	/// `UpdateResult` of the index update after the write. `changed: false`
+	/// means nothing was written: a stale line, or the new text equals the
+	/// expected text.
+	pub update_result: crate::vault::index::UpdateResult,
+	/// true when the line no longer held the expected task, so nothing was
+	/// written.
+	pub stale: bool,
+	/// `parse_task_line` of the written line; `None` when nothing was written.
+	/// Its `heading` is always absent (the index entry carries it).
+	pub task: Option<Task>,
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

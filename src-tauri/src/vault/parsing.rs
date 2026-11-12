@@ -1991,6 +1991,34 @@ pub fn set_task_status_in_content(content: &str, line_number: usize, status: Tas
 	lines.join("\n")
 }
 
+/// Replaces the text of the task at `line_number` (1-based) inside `content`
+/// with `new_text`: the line up to the start of `TASK_RE` / `ORDERED_TASK_RE`
+/// group 3 (indent, marker, checkbox and the space after it) is kept byte for
+/// byte. A line with no task marker is left unchanged, and so are out-of-bounds
+/// line numbers (0 or past the end). The caller refuses a `new_text` holding a
+/// line break.
+pub fn set_task_text_in_content(content: &str, line_number: usize, new_text: &str) -> String {
+	if line_number == 0 {
+		return content.to_string();
+	}
+	let mut lines: Vec<String> = content.split('\n').map(|s| s.to_string()).collect();
+	let idx = line_number - 1;
+	if idx >= lines.len() {
+		return content.to_string();
+	}
+	let line = &lines[idx];
+	let text_match = TASK_RE
+		.captures(line)
+		.or_else(|| ORDERED_TASK_RE.captures(line))
+		.and_then(|c| c.get(3));
+	let Some(text_match) = text_match else {
+		return content.to_string();
+	};
+	let new_line = format!("{}{}", &line[..text_match.start()], new_text);
+	lines[idx] = new_line;
+	lines.join("\n")
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;

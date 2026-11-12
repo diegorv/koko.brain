@@ -68,6 +68,7 @@ Test mechanics: component tests go in a new `src/tests/lib/features/tasks/TasksV
 - Targeted checks include the source scans that read this feature: `src/tests/lib/pane-toolbar.test.ts`, `menu-item-anatomy.test.ts`, `chrome-type-scale.test.ts`, `chrome-state-styles.test.ts`, `src/tests/lib/architecture/{pure-logic,layer-rules,feature-cycle}.test.ts`, Issue 236's `tasks-palette.test.ts` (or Issue 198's `palette-classes.test.ts` once it has replaced it).
 - jsdom checks bits-ui submenus only by keyboard (ArrowRight on the sub-trigger) or pointer events; use the shared `openMenu` and say in the delivery comment if a submenu needed another recipe. WebKit focus after the dialog closes is not checked by e2e (Chromium only).
 - A rapid second edit before the refetch lands reads the overlaid row, so it is not refused. A Todoist sync that rewrote the line between render and write turns the write into `stale`: no data is lost.
+- The e2e mock's `TASK_LINE_RE` (`e2e/mocks/vault-index.ts`) matches only `-` / `*` LF task lines, so its `writeTaskText` reports `stale` on `+`, ordered (`3. [ ]`) and CRLF lines where Rust writes. Keep this Issue's e2e fixtures to `-` / `*` LF lines (Issue 122 review finding 2).
 
 ## Comments
 

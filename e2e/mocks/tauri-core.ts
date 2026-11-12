@@ -35,6 +35,7 @@ import type {
 	SnapshotInfo,
 	DiffLine,
 	TagAggregate,
+	TaskTextWriteResult,
 	ToggleTaskResult,
 } from '../../src/lib/contracts/index';
 import type { UpdateResultV2 } from '../../src/lib/types/vault-v2.types';
@@ -170,6 +171,19 @@ function handleToggleTaskStatus(args: Args<'toggle_task_status'>): ToggleTaskRes
 		args.expectedText,
 		args.expectedStatus,
 		args.target,
+	);
+	if (result.updateResult.changed) emitIndexUpdated(result.updateResult);
+	return result;
+}
+
+function handleWriteTaskText(args: Args<'write_task_text'>): TaskTextWriteResult {
+	const result = vaultIndex.writeTaskText(
+		args.vaultRoot,
+		args.relPath,
+		args.lineNumber,
+		args.expectedText,
+		args.expectedStatus,
+		args.newText,
 	);
 	if (result.updateResult.changed) emitIndexUpdated(result.updateResult);
 	return result;
@@ -483,6 +497,7 @@ const HANDLERS: Handlers = {
 	get_tasks_in_section_v2: handleGetTasksInSectionV2,
 	toggle_task_status: handleToggleTaskStatus,
 	write_task_lines: handleWriteTaskLines,
+	write_task_text: handleWriteTaskText,
 	update_note_in_index: handleUpdateNoteInIndex,
 	remove_note_from_index: handleRemoveNoteFromIndex,
 	rename_note: handleRenameNote,

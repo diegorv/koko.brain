@@ -5,8 +5,11 @@ use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedM
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{
 	extract_tasks_from_sections, parse_task_line, rewrite_type_in_frontmatter, set_task_status_in_content,
+	set_task_text_in_content,
 };
-use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, TaskStatus, ToggleTaskResult};
+use crate::vault::task::{
+	display_name, FileTaskGroup, TagAggregate, TaskStatus, TaskTextWriteResult, ToggleTaskResult,
+};
 use crate::vault::task_lines::{
 	apply_task_line_edits, TaskLineEditOutcome, TaskLineEdits, TaskLinesOutcome, TaskLinesWriteResult,
 };
@@ -974,6 +977,115 @@ pub fn write_task_lines(
 			debug_log(
 				"VAULT-V2",
 				format!("write_task_lines: vault-index-updated emit failed: {}", emit_err),
+			);
+		}
+	}
+	Ok(result)
+}
+
+/// Pure-logic implementation behind `write_task_text`. Refuses a `new_text`
+/// holding a line break or blank after trimming (it would end or empty the
+/// task line) before anything else, then checks the root and confines the
+/// path as `write_task_lines_inner` does. Guarded like
+/// `toggle_task_status_inner`: the line at `line_number` must still parse as
+/// a task with `expected_text` and `expected_status`, or nothing is written
+/// and the result is `stale`. Otherwise the line keeps its prefix up to the
+/// text (`set_task_text_in_content`) and gets `new_text`; a `new_text` equal
+/// to `expected_text` writes nothing. A missing note is an `Err`.
+pub fn write_task_text_inner(
+	idx: &mut VaultIndex,
+	vault_root: &str,
+	rel_path: &str,
+	line_number: usize,
+	expected_text: &str,
+	expected_status: TaskStatus,
+	new_text: &str,
+) -> Result<TaskTextWriteResult, String> {
+	if new_text.contains(['\n', '\r']) {
+		return Err("Refusing task text holding a line break".to_string());
+	}
+	if new_text.trim().is_empty() {
+		return Err("Refusing blank task text".to_string());
+	}
+	let root = vault_fs::validate_vault_path(vault_root)?;
+	if idx.vault_root() != Some(root.to_string_lossy().as_ref()) {
+		return Err(format!("Refusing to write task text: {} is not the open vault", vault_root));
+	}
+	let path = confined_note_path(&root, rel_path)?;
+	let path_str = path.to_string_lossy().to_string();
+	let original = fs::read_to_string(&path).map_err(|e| format!("read failed for {}: {}", path_str, e))?;
+	let holds_expected = line_number
+		.checked_sub(1)
+		.and_then(|i| original.split('\n').nth(i))
+		.and_then(|line| parse_task_line(line, line_number))
+		.is_some_and(|task| task.text == expected_text && task.status == expected_status);
+	if !holds_expected || new_text == expected_text {
+		return Ok(TaskTextWriteResult {
+			updated_content: original,
+			update_result: UpdateResult {
+				version: idx.version(),
+				..Default::default()
+			},
+			stale: !holds_expected,
+			task: None,
+		});
+	}
+	let updated = set_task_text_in_content(&original, line_number, new_text);
+	vault_fs::write_atomic(&path_str, &updated)?;
+	let mtime = read_file_mtime_secs(&path_str).unwrap_or(0);
+	let task = updated
+		.split('\n')
+		.nth(line_number - 1)
+		.and_then(|line| parse_task_line(line, line_number));
+	let update_result = update_note_in_index_inner(idx, path_str, &updated, mtime);
+	Ok(TaskTextWriteResult {
+		updated_content: updated,
+		update_result,
+		stale: false,
+		task,
+	})
+}
+
+/// Tauri command: rewrites the text of the task at `line_number` of the note
+/// at `rel_path` under the open vault `vault_root`, guarded by the expected
+/// text and status like `toggle_task_status`, and returns the re-parsed task.
+/// It works on any task line, anchored or not, and never stamps a Todoist
+/// anchor. Writes atomically, updates the `VaultIndex` and emits
+/// `vault-index-updated` with the lock dropped first, only when the content
+/// changed.
+// The camelCase args are the IPC contract (`CommandMap.write_task_text`).
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+pub fn write_task_text(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	vault_root: String,
+	rel_path: String,
+	line_number: usize,
+	expected_text: String,
+	expected_status: TaskStatus,
+	new_text: String,
+) -> Result<TaskTextWriteResult, String> {
+	let _trace = CmdTrace::new("write_task_text");
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		write_task_text_inner(
+			&mut idx,
+			&vault_root,
+			&rel_path,
+			line_number,
+			&expected_text,
+			expected_status,
+			&new_text,
+		)?
+	};
+	if result.update_result.changed {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result) {
+			debug_log(
+				"VAULT-V2",
+				format!("write_task_text: vault-index-updated emit failed: {}", emit_err),
 			);
 		}
 	}

@@ -42,6 +42,7 @@ export type { TaskLinesWriteResult } from './generated/TaskLinesWriteResult.js';
 export type { TaskMetadata } from './generated/TaskMetadata.js';
 export type { TaskPriority } from './generated/TaskPriority.js';
 export type { TaskStatus } from './generated/TaskStatus.js';
+export type { TaskTextWriteResult } from './generated/TaskTextWriteResult.js';
 export type { TodoistKvEntry } from './generated/TodoistKvEntry.js';
 export type { TodoistSectionLink } from './generated/TodoistSectionLink.js';
 export type { TodoistStateCommit } from './generated/TodoistStateCommit.js';

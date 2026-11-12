@@ -26,6 +26,7 @@ import type {
 	TaskLineEdits,
 	TaskLinesWriteResult,
 	TaskStatus,
+	TaskTextWriteResult,
 	TodoistKvEntry,
 	TodoistSectionLink,
 	TodoistStateCommit,
@@ -113,6 +114,24 @@ export interface CommandMap {
 	write_task_lines: {
 		args: { vaultRoot: string; relPath: string; edits: TaskLineEdits };
 		result: TaskLinesWriteResult;
+	};
+	/**
+	 * Rewrites the text of the task at `lineNumber` of `relPath` under the open
+	 * vault `vaultRoot`, keeping the line's prefix; `stale` when the line no
+	 * longer holds a task with `expectedText` and `expectedStatus`. Rejects a
+	 * `newText` with a line break or blank. `task` is the re-parsed task, null
+	 * when nothing was written.
+	 */
+	write_task_text: {
+		args: {
+			vaultRoot: string;
+			relPath: string;
+			lineNumber: number;
+			expectedText: string;
+			expectedStatus: TaskStatus;
+			newText: string;
+		};
+		result: TaskTextWriteResult;
 	};
 	/** Drops a note from the index. */
 	remove_note_from_index: { args: { path: string }; result: UpdateResult };
@@ -269,6 +288,7 @@ export const COMMAND_ARGS = {
 	get_tasks_in_section_v2: ['sectionTags'],
 	toggle_task_status: ['path', 'lineNumber', 'expectedText', 'expectedStatus', 'target'],
 	write_task_lines: ['vaultRoot', 'relPath', 'edits'],
+	write_task_text: ['vaultRoot', 'relPath', 'lineNumber', 'expectedText', 'expectedStatus', 'newText'],
 	remove_note_from_index: ['path'],
 	rename_note: ['from', 'to'],
 	get_all_property_records: [],
