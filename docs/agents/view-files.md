@@ -94,8 +94,6 @@ Only the exact value types below work. Any other value is ignored, and the defau
 
 `file.tags`, `file.properties`, `note.x`, `property.x` and the alias `type` read empty in columns and sorts, though filters resolve them **(changes: open-itens/067)**. Sort by `_type`, not `type`.
 
-**DESC puts notes without the value first**, including inside a "top N" `limit` **(changes: open-itens/068)**. For a top N, filter out empty values (`"!isEmpty(priority)"`).
-
 ## Filter expressions
 
 **Syntax**
@@ -353,13 +351,12 @@ Each of these breaks a view or changes what it lists, usually with no error. Rev
 11. A column or sort key `file.tags`, `note.x`, `property.x` or `type`: empty cells, no ordering.
 12. Arithmetic on a raw frontmatter date (`due - today()`): NaN, and a NaN filter keeps every row.
 13. `!a == b` parses as `(!a) == b`, and `===` is a parse error.
-14. DESC with `limit`: notes without the value fill the top.
-15. Renaming or removing the entry `_rail_view` names, without updating `_rail_view`: the rail runs `views[0]`.
-16. Writing a `.view` the user has open with unsaved changes: the app overwrites your edit.
-17. `file.hasProperty('archived')` in a filter: every archived note comes back.
-18. A non-string `dateProperty`, or a quoted or out-of-range `weekStartDay`: the calendar breaks or skews.
-19. No `order` on a table: every frontmatter key of every note becomes a column.
-20. A formula named like a property (`status`): in filters and other formulas, the name reads the formula, not the property.
+14. Renaming or removing the entry `_rail_view` names, without updating `_rail_view`: the rail runs `views[0]`.
+15. Writing a `.view` the user has open with unsaved changes: the app overwrites your edit.
+16. `file.hasProperty('archived')` in a filter: every archived note comes back.
+17. A non-string `dateProperty`, or a quoted or out-of-range `weekStartDay`: the calendar breaks or skews.
+18. No `order` on a table: every frontmatter key of every note becomes a column.
+19. A formula named like a property (`status`): in filters and other formulas, the name reads the formula, not the property.
 
 ## Sources
 

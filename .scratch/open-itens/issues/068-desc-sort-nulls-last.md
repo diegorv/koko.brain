@@ -10,20 +10,20 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** owner, 2026-11-06: notes without the value sort last in both directions, and changing the pinned test is approved. Owner, 2026-11-12: 068 no longer waits for 067 and runs first in the views chain. Nothing open.
 
 **Gate:** frontend: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing tests first, in `src/tests/lib/features/collection/collection-logic.test.ts` § `executeQuery edge cases`:
+- [x] Failing tests first, in `src/tests/lib/features/collection/collection-logic.test.ts` § `executeQuery edge cases`:
   - Rewrite the test "sorts null values first in DESC order (negation flips null placement)" (owner-approved on 2026-11-06) into "sorts null values last in DESC order": records with priority `null`, `1`, `3` sorted `priority DESC` give `['c.md', 'b.md', 'a.md']`. Delete its "Known behavior" comment.
   - A `limit: 2`, `priority DESC` query over records with priorities `1`, `null`, `3`, no `priority` key, `2` returns exactly the records with `3` and `2`.
   - Two levels, `status ASC` then `priority DESC`: within one status, the note without `priority` comes after the ones with it.
   - Run the file and see the rewritten and `limit` tests fail with the null rows first before changing the code. The ASC test "sorts null values last in ASC order" stays green without edits.
-- [ ] `help/documentation/12-collection.md` § Sort Panel gets the bullet "Notes that do not have the sorted property come last, in ascending and in descending order." § Result Limit (`:161`) gets the clause "notes without the sorted property come last, so a descending sort keeps the highest values".
-- [ ] `docs/agents/view-files.md`: remove the DESC item marked `(changes: open-itens/068)` (`:97`) and gotcha 14 (`:356`), and renumber the list.
-- [ ] If Issue 133 (Sort & limit section) has landed with the info line "With DESC, notes without the value come first", remove it. On 2026-11-12 it has not landed and no such line exists (`grep -rn "come first" src/lib help` finds nothing), so this is a check, not a change.
+- [x] `help/documentation/12-collection.md` § Sort Panel gets the bullet "Notes that do not have the sorted property come last, in ascending and in descending order." § Result Limit (`:161`) gets the clause "notes without the sorted property come last, so a descending sort keeps the highest values".
+- [x] `docs/agents/view-files.md`: remove the DESC item marked `(changes: open-itens/068)` (`:97`) and gotcha 14 (`:356`), and renumber the list.
+- [x] If Issue 133 (Sort & limit section) has landed with the info line "With DESC, notes without the value come first", remove it. On 2026-11-12 it has not landed and no such line exists (`grep -rn "come first" src/lib help` finds nothing), so this is a check, not a change.
 
 ## Notes
 
@@ -36,3 +36,4 @@
 
 - 2026-11-06, owner decision: notes without the value sort last in both directions; changing the pinned test "sorts null values first in DESC order (negation flips null placement)" in `collection-logic.test.ts` (at `:704-722` on 2026-11-12) is approved.
 - 2026-11-12: deep dive (`research/deep-dive-2026-11-12/`, refute-068, critique H1). Dropped `Blocked by: 067` (file overlap only) and put 068 first in the views chain. Fixed the line numbers (the old `:640-659` pointed at `getPropertyValue` tests, not the sort test), named the comparator change, added the null-only scope note, a two-level sort case, concrete help wording and the `view-files.md` markers. Renamed "view-editor 05" to Issue 133.
+- 2026-11-12, branch issue/068-desc-sort-nulls-last: the sort comparator puts notes without the sorted value last in ASC and DESC; help and view-files docs updated. Full suite: 633 files passed, 16514 tests passed, 54 skipped. Review round 1: APPROVED, no findings.

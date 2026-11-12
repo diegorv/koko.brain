@@ -79,6 +79,7 @@ The date operators **before**, **after**, **on or before** and **on or after** c
 Control the order in which rows appear:
 
 - Sort by any column in ascending or descending order.
+- Notes that do not have the sorted property come last, in ascending and in descending order.
 - Add multiple sort levels — for example, sort by `status` first, then by `date` within each status group.
 
 ### Properties Panel
@@ -158,7 +159,7 @@ This is useful when you want different perspectives on the same data. For exampl
 
 ## Result Limit
 
-Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings". The limit is taken after the view's `sort`, so set a `sort` to choose which notes are kept; with no `sort`, the first notes of the vault index are kept, in no meaningful order. In a `.view` the limit is taken last, after the list leaves out archived notes (unless a filter cites `archived` or `_archived`) and orders the rest (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). In an inline block it is taken after the block leaves out the notes it never lists (see [Inline Collection](#inline-collection-code-blocks)).
+Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings". The limit is taken after the view's `sort`, so set a `sort` to choose which notes are kept; notes without the sorted property come last, so a descending sort keeps the highest values. With no `sort`, the first notes of the vault index are kept, in no meaningful order. In a `.view` the limit is taken last, after the list leaves out archived notes (unless a filter cites `archived` or `_archived`) and orders the rest (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). In an inline block it is taken after the block leaves out the notes it never lists (see [Inline Collection](#inline-collection-code-blocks)).
 
 ## Inline Collection (Code Blocks)
 

@@ -701,9 +701,7 @@ describe('executeQuery edge cases', () => {
 		expect(names[1]).toBe('d.md'); // priority=3
 	});
 
-	it('sorts null values first in DESC order (negation flips null placement)', () => {
-		// Known behavior: compareForSort returns 1 for null (last in ASC),
-		// but DESC negation (-cmp) makes null sort first.
+	it('sorts null values last in DESC order', () => {
 		const records = [
 			makeRecord('/vault/a.md', { priority: null }),
 			makeRecord('/vault/b.md', { priority: 1 }),
@@ -716,10 +714,47 @@ describe('executeQuery edge cases', () => {
 		};
 		const def: CollectionDefinition = { views: [view] };
 		const result = executeQuery(def, view, makeIndex(records), null);
-		const names = result.records.map((r) => r.name);
-		expect(names[0]).toBe('a.md'); // null sorts first in DESC
-		expect(names[1]).toBe('c.md'); // priority=3
-		expect(names[2]).toBe('b.md'); // priority=1
+		expect(result.records.map((r) => r.name)).toEqual(['c.md', 'b.md', 'a.md']);
+	});
+
+	it('keeps the highest values when a DESC sort is limited', () => {
+		const records = [
+			makeRecord('/vault/a.md', { priority: 1 }),
+			makeRecord('/vault/b.md', { priority: null }),
+			makeRecord('/vault/c.md', { priority: 3 }),
+			makeRecord('/vault/d.md', {}),
+			makeRecord('/vault/e.md', { priority: 2 }),
+		];
+		const view: CollectionViewDef = {
+			type: 'table',
+			name: 'Test',
+			limit: 2,
+			sort: [{ column: 'priority', direction: 'DESC' }],
+		};
+		const def: CollectionDefinition = { views: [view] };
+		const result = executeQuery(def, view, makeIndex(records), null);
+		expect(result.records.map((r) => r.name)).toEqual(['c.md', 'e.md']);
+	});
+
+	it('puts notes without the second sort key last within each first-level group', () => {
+		const records = [
+			makeRecord('/vault/a.md', { status: 'todo' }),
+			makeRecord('/vault/b.md', { status: 'todo', priority: 1 }),
+			makeRecord('/vault/c.md', { status: 'done', priority: 2 }),
+			makeRecord('/vault/d.md', { status: 'todo', priority: 5 }),
+			makeRecord('/vault/e.md', { status: 'done' }),
+		];
+		const view: CollectionViewDef = {
+			type: 'table',
+			name: 'Test',
+			sort: [
+				{ column: 'status', direction: 'ASC' },
+				{ column: 'priority', direction: 'DESC' },
+			],
+		};
+		const def: CollectionDefinition = { views: [view] };
+		const result = executeQuery(def, view, makeIndex(records), null);
+		expect(result.records.map((r) => r.name)).toEqual(['c.md', 'e.md', 'd.md', 'b.md', 'a.md']);
 	});
 
 	it('handles empty index gracefully', () => {

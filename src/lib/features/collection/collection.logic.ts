@@ -201,10 +201,8 @@ export function executeQuery(
 			for (const sortDef of view.sort!) {
 				const aVal = getPropertyValue(a, sortDef.column);
 				const bVal = getPropertyValue(b, sortDef.column);
-				const cmp = compareForSort(aVal, bVal);
-				if (cmp !== 0) {
-					return sortDef.direction === 'DESC' ? -cmp : cmp;
-				}
+				const cmp = compareForSort(aVal, bVal, sortDef.direction === 'DESC');
+				if (cmp !== 0) return cmp;
 			}
 			return 0;
 		});
@@ -435,14 +433,24 @@ export function getPropertyValue(record: PropertyIndexRecord, column: string): u
 	return record.properties.get(column) ?? null;
 }
 
-/** Compares two values for sorting — null/undefined always sort last */
-function compareForSort(a: unknown, b: unknown): number {
+/**
+ * Compares two values for sorting in the given direction. Null and undefined
+ * sort last in both directions: the null check runs before the direction is
+ * applied. Two nulls compare equal, so the next sort level breaks the tie.
+ */
+function compareForSort(a: unknown, b: unknown, descending: boolean): number {
 	const aNull = a === null || a === undefined;
 	const bNull = b === null || b === undefined;
 	if (aNull && bNull) return 0;
 	if (aNull) return 1;
 	if (bNull) return -1;
 
+	const cmp = compareValues(a, b);
+	return descending ? -cmp : cmp;
+}
+
+/** Ascending comparison of two non-null values: dates, booleans, numbers, then strings */
+function compareValues(a: unknown, b: unknown): number {
 	if (a instanceof Date && b instanceof Date) return a.getTime() - b.getTime();
 	if (a instanceof Date) return -1;
 	if (b instanceof Date) return 1;
