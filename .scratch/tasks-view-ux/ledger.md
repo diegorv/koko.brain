@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | done | issue/109-row-chips (89196031e) | 2026-11-12 |
 | 110 | [Open means not done and not cancelled, and each status has its own glyph](issues/110-open-closed-rule.md) | 242 | done | issue/110-open-closed-rule (e420d69e2) | 2026-11-12 |
 | 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | done | issue/111-quick-filters (b1550f521) | 2026-11-12 |
-| 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | todo | | |
+| 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | in-progress | | |
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | done | issue/113-keyboard-and-a11y (16c5d8b73) | 2026-11-12 |
 | 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | done | issue/115-fetch-from-entries-snapshot (115d8d576) | 2026-11-12 |
 | 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | todo | | |
@@ -108,3 +108,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 14:40 — 239 — deliver — round 1 APPROVED by claude, two nits rejected with reasons, no fix round; full suite 621 files / 16002 tests passed; narrow-split look not checked by eye; squash merged and pushed — f51d1e4c7
 - 2026-11-12 14:40 — 113 — start — launched by /relay-lite:run — 78e36717c
 - 2026-11-12 15:01 — 113 — deliver — round 1 APPROVED by claude with a fix round (help line), deliver re-review APPROVED by claude; one finding deferred (repeated Space/Enter); full suite 623 files / 16058 tests passed; squash merged and pushed — 16c5d8b73
+- 2026-11-12 15:01 — 112 — start — launched by /relay-lite:run — a8d04ed83
