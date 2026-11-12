@@ -5,23 +5,19 @@ import { isTaskOpen } from './task-status.logic';
 import type { TaskMetadata } from './task-metadata.types';
 import type { TaskItem } from './tasks.types';
 
-// Audit Tier 4 #16 (2026-04-29): the previous TS-side task scanner —
-// `extractTasks` plus its helpers (`parseTaskLine`, `calculateIndent`,
-// `TASK_RE`, `ORDERED_TASK_RE`, `CODE_FENCE_RE`) — was removed. Phase 7.6
-// migrated production task indexing to the Rust `get_all_tasks_v2` IPC,
-// leaving the TS function exported but unused outside its own tests. Rust
-// owns task parsing now (see `src-tauri/src/vault/parsing.rs::extract_tasks`
-// and `src-tauri/src/vault/task.rs`); the result is consumed via
+// Rust owns task parsing (`src-tauri/src/vault/parsing.rs::extract_tasks`
+// and `src-tauri/src/vault/task.rs`): the tasks reach the view in the
+// entries snapshot (`NoteEntry.tasks`), read by
 // `tasks.service.ts::buildTaskIndex`.
 
 /**
- * Splits the section tag textbox into the tags sent to
- * `get_tasks_in_section_v2`: split on whitespace and commas, a leading `#`
- * added when missing, exact duplicates removed (first-typed order kept).
- * A lone `#` is dropped: it would match every tagged heading, and the
- * debounce can fire mid-typing (`#to-list #`). Matching is case-sensitive,
- * so `#Work` and `#work` stay two tags. An empty result means no section
- * filter.
+ * Splits the section tag textbox into the tags `buildTaskRows` matches
+ * headings against: split on whitespace and commas, a leading `#` added when
+ * missing, exact duplicates removed (first-typed order kept). A lone `#` is
+ * dropped: it would match every tagged heading, and the debounce can fire
+ * mid-typing (`#to-list #`). The split keeps case, so `#Work` and `#work`
+ * stay two tags; the heading match ignores it (`matchesHeading`). An empty
+ * result means no section filter.
  */
 export function parseSectionTags(text: string): string[] {
 	const tags: string[] = [];

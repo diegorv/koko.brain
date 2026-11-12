@@ -1,10 +1,12 @@
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { formatDateWithOffset } from '#lib/utils/date.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
+import { headingChains, matchesHeading } from './task-headings.logic';
 import { TASK_STATUSES, isTaskOpen, statusGlyph } from './task-status.logic';
 import type { TaskPriority, TaskStatus } from './task-metadata.types';
 import { taskRowKey } from './tasks-keys.logic';
 import { compareTaskPaths, noteFolder, noteTaskCounts, parseSectionTags, taskDisplayText } from './tasks.logic';
-import type { FileTaskGroup, TaskItem } from './tasks.types';
+import type { TaskItem } from './tasks.types';
 
 /**
  * One task of the Tasks view, with the fields of its note that the filters and
@@ -28,8 +30,22 @@ export type TaskRow = TaskItem & {
 	noteTaskCount: number;
 	/** The note's open tasks, counted before any quick filter */
 	noteOpenCount: number;
-	/** Line of the nearest earlier task in the same note with a smaller indent */
+	/** Line of the nearest earlier kept task in the same note with a smaller indent */
 	parentLine?: number;
+	/** The note's document type (`NoteEntry.isA`), or null */
+	noteType: string | null;
+	/** The note's tags, without `#` */
+	noteTags: string[];
+	/** The note's archived flag */
+	archived: boolean;
+	/** The note's organized flag */
+	organized: boolean;
+	/** The note's favorite flag */
+	favorite: boolean;
+	/** The note's frontmatter: the snapshot's own object, never to be mutated */
+	properties: NoteEntryV2['frontmatter'];
+	/** The task's heading chain, outermost first (`headingChains`); [] before the first heading */
+	headings: string[];
 };
 
 /** A row the quick filters keep: one that passes, or one `dimmed` because a passing row sits in its subtree */
@@ -175,32 +191,90 @@ export function toggleQuickStatus(statuses: TaskStatus[] | undefined, status: Ta
 	return next.length > 0 ? next : undefined;
 }
 
+/** What the Tasks view itself last wrote to a task line, shown until the snapshot holds it. */
+export interface TaskOverlayEntry {
+	/** The line's task text after the write */
+	text: string;
+	/** The status the write set */
+	status: TaskStatus;
+	/** The index version the write produced (`UpdateResult.version`) */
+	version: number;
+}
+
+/** The view's own writes, keyed by `taskRowKey(filePath, lineNumber)`. */
+export type TaskOverlay = ReadonlyMap<string, TaskOverlayEntry>;
+
 /**
- * Flattens the note groups into rows, keeping the group order and the
- * document order. The note counts cover the whole group.
+ * Builds the Tasks view's rows from the entries snapshot: notes in
+ * `compareTaskPaths` order of their path, tasks in document order.
+ *
+ * A task is kept when its heading chain (`headingChains`) matches one of
+ * `sectionTags` (`matchesHeading`, `'tag'` mode); no tag keeps every task. An
+ * overlay entry for a kept task replaces its text and status, and `checked`
+ * and `open` follow the overlaid status. The note counts and `parentLine`
+ * cover the note's kept tasks only. An entry with no kept task gives no row.
+ *
+ * `entries` is the shared snapshot (QueryJS reads the same objects): it, its
+ * entries, their tasks and their frontmatter are never mutated or reordered.
+ * `properties` is the entry's frontmatter object itself.
+ * @param entries - the `get_all_vault_entries_v2` snapshot, `modifiedAt` in seconds
+ * @param vaultPath - the open vault's path, for `relPath` and `folder`
  */
-export function buildTaskRows(groups: FileTaskGroup[], vaultPath: string | null): TaskRow[] {
+export function buildTaskRows(
+	entries: readonly NoteEntryV2[],
+	vaultPath: string | null,
+	sectionTags: readonly string[],
+	overlay: TaskOverlay,
+): TaskRow[] {
+	const notes = entries.filter((entry) => entry.tasks.length > 0).sort((a, b) => compareTaskPaths(a.path, b.path));
 	const rows: TaskRow[] = [];
-	for (const group of groups) {
-		const relPath = (vaultPath === null ? null : vaultRelativeKey(vaultPath, group.filePath)) ?? group.filePath;
-		const folder = noteFolder(vaultPath, group.filePath);
-		const counts = noteTaskCounts(group.tasks);
+	for (const entry of notes) {
+		const chains = headingChains(entry.taskHeadings);
+		const kept: { task: TaskItem; headings: string[] }[] = [];
+		for (const task of entry.tasks) {
+			const headings = task.heading === undefined ? [] : (chains[task.heading] ?? []);
+			if (!matchesHeading(headings, sectionTags, 'tag')) continue;
+			const written = overlay.get(taskRowKey(entry.path, task.lineNumber));
+			const status = written?.status ?? task.status;
+			kept.push({
+				task: {
+					text: written?.text ?? task.text,
+					checked: status !== 'todo',
+					indent: task.indent,
+					lineNumber: task.lineNumber,
+					status,
+					metadata: task.metadata,
+				},
+				headings,
+			});
+		}
+		if (kept.length === 0) continue;
+		const relPath = (vaultPath === null ? null : vaultRelativeKey(vaultPath, entry.path)) ?? entry.path;
+		const folder = noteFolder(vaultPath, entry.path);
+		const counts = noteTaskCounts(kept.map((k) => k.task));
 		// The tasks above the current one with a smaller indent, nearest last.
 		const ancestors: TaskItem[] = [];
-		for (const task of group.tasks) {
+		for (const { task, headings } of kept) {
 			while (ancestors.length > 0 && ancestors[ancestors.length - 1].indent >= task.indent) ancestors.pop();
 			const parent = ancestors[ancestors.length - 1];
 			rows.push({
 				...task,
-				filePath: group.filePath,
+				filePath: entry.path,
 				relPath,
 				folder,
-				noteTitle: group.fileName,
+				noteTitle: entry.title,
 				open: isTaskOpen(task.status),
-				modifiedAt: group.modifiedAt,
+				modifiedAt: entry.modifiedAt * 1000,
 				noteTaskCount: counts.total,
 				noteOpenCount: counts.open,
 				...(parent ? { parentLine: parent.lineNumber } : {}),
+				noteType: entry.isA,
+				noteTags: entry.tags,
+				archived: entry.archived,
+				organized: entry.organized,
+				favorite: entry.favorite,
+				properties: entry.frontmatter,
+				headings,
 			});
 			ancestors.push(task);
 		}
@@ -619,7 +693,7 @@ const META_STAGES = [
  * tag (no row at all), then the status filter, then Due, Priority, Tag and
  * Search. Each stage keeps the filters of the stages before it.
  * @param rows - the unfiltered store rows (already limited by the section tag
- *   on the Rust side)
+ *   in `buildTaskRows`)
  * @param today - today as `YYYY-MM-DD`, for the due date options
  * @param now - the clock the edited options read, in ms
  */

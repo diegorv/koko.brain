@@ -293,8 +293,8 @@ export function registerVaultIndexUpdatedListener(): () => void {
 		if (payload.fullRescan) pendingFullRescan = true;
 		for (const path of payload.removed) pendingPaths.set(path, false);
 		for (const path of payload.upserted) pendingPaths.set(path, true);
-		// A user's own click that changes what the sidebar lists: the sidebar must follow it
-		// now, and one refresh per click is cheap next to the bursts the throttle is for.
+		// A user's own write that a view must show now (a sidebar lifecycle click, a Tasks status
+		// change): one refresh per click is cheap next to the bursts the throttle is for.
 		if (!cancelled && vaultStore.takePromptIndexRefresh()) {
 			clearTimeout(timer);
 			timer = undefined;

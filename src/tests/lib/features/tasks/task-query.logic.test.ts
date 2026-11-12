@@ -28,32 +28,37 @@ import {
 } from '#lib/features/tasks/task-query.logic.js';
 import type { TaskPriority, TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import { taskDisplayText } from '#lib/features/tasks/tasks.logic.js';
-import type { FileTaskGroup, TaskItem } from '#lib/features/tasks/tasks.types.js';
-import { sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { sevenStatusGroup, taskEntryV2, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../fixtures/timezone.fixture';
 
 const DAY = 24 * 60 * 60 * 1000;
 const TODAY = '2026-11-05';
 const NOW = new Date('2026-11-05T12:00:00Z').getTime();
 
-/** A note group in the store's shape (`modifiedAt` in ms). */
-function group(filePath: string, tasks: TaskItem[], modifiedAt = NOW): FileTaskGroup {
-	return { ...taskGroupV2(filePath, tasks), modifiedAt };
+/** A note's snapshot entry holding `tasks`, with `modifiedAt` given in ms as the rows carry it. */
+function group(filePath: string, tasks: TaskItem[], modifiedAt = NOW): NoteEntryV2 {
+	return taskEntryV2(taskGroupV2(filePath, tasks, modifiedAt / 1000));
 }
+
+/** `buildTaskRows` with no section tag and no overlay. */
+const rowsFrom = (entries: NoteEntryV2[], vaultPath: string | null) => buildTaskRows(entries, vaultPath, [], new Map());
 
 /** A task as Rust sends it, at `indent` on `lineNumber`. */
 const task = (status: TaskStatus, indent: number, lineNumber: number, text = `${status} ${lineNumber}`) =>
 	taskV2(text, { status, indent, lineNumber });
 
 /** Rows of one note under `/vault`. */
-const rowsOf = (tasks: TaskItem[], filePath = '/vault/a.md') => buildTaskRows([group(filePath, tasks)], '/vault');
+const rowsOf = (tasks: TaskItem[], filePath = '/vault/a.md') => rowsFrom([group(filePath, tasks)], '/vault');
 
 /** `[text, dimmed]` per visible row. */
 const shown = (rows: VisibleRow[]) => rows.map((r) => [r.text, r.dimmed]);
 
 describe('applyQuickFilters: the open rule', () => {
 	const statuses = (rows: VisibleRow[]) => rows.map((r) => r.status);
-	const seven = () => buildTaskRows([sevenStatusGroup()], '/vault');
+	const seven = () => rowsFrom([taskEntryV2(sevenStatusGroup())], '/vault');
 
 	it('keeps the five open statuses under Open and drops done and cancelled', () => {
 		expect(statuses(applyQuickFilters(seven(), { show: 'open' }, TODAY, NOW))).toEqual([
@@ -139,7 +144,7 @@ describe('applyQuickFilters: dimming', () => {
 	});
 
 	it('never keeps a done row for a passing row of another note', () => {
-		const rows = buildTaskRows(
+		const rows = rowsFrom(
 			[group('/vault/a.md', [task('done', 0, 1)]), group('/vault/b.md', [task('todo', 1, 1)])],
 			'/vault',
 		);
@@ -162,19 +167,19 @@ describe('applyQuickFilters: dimming', () => {
 
 describe('buildTaskRows', () => {
 	it('sets relPath and folder for a root note and a nested note', () => {
-		const rows = buildTaskRows(
+		const rows = rowsFrom(
 			[group('/vault/Root.md', [task('todo', 0, 1)]), group('/vault/Projects/Clients/B.md', [task('todo', 0, 1)])],
 			'/vault',
 		);
 		expect(rows.map((r) => [r.relPath, r.folder])).toEqual([
-			['Root.md', ''],
 			['Projects/Clients/B.md', 'Projects/Clients'],
+			['Root.md', ''],
 		]);
-		expect(rows.map((r) => r.filePath)).toEqual(['/vault/Root.md', '/vault/Projects/Clients/B.md']);
+		expect(rows.map((r) => r.filePath)).toEqual(['/vault/Projects/Clients/B.md', '/vault/Root.md']);
 	});
 
 	it('keeps the absolute path as relPath and an empty folder outside the vault', () => {
-		const [outside, lookalike] = buildTaskRows(
+		const [outside, lookalike] = rowsFrom(
 			[group('/elsewhere/x.md', [task('todo', 0, 1)]), group('/vault2/x.md', [task('todo', 0, 1)])],
 			'/vault',
 		);
@@ -183,7 +188,7 @@ describe('buildTaskRows', () => {
 	});
 
 	it('keeps the absolute path as relPath and an empty folder with no vault open', () => {
-		const [row] = buildTaskRows([group('/vault/Projects/x.md', [task('todo', 0, 1)])], null);
+		const [row] = rowsFrom([group('/vault/Projects/x.md', [task('todo', 0, 1)])], null);
 		expect([row.relPath, row.folder]).toEqual(['/vault/Projects/x.md', '']);
 	});
 
@@ -194,13 +199,13 @@ describe('buildTaskRows', () => {
 			lineNumber: 4,
 			metadata: { description: 'Ship', dueDate: '2026-11-03', tags: ['work'] },
 		});
-		const [row] = buildTaskRows([group('/vault/Plan.md', [t], 1234)], '/vault');
+		const [row] = rowsFrom([group('/vault/Plan.md', [t], 1234)], '/vault');
 		expect(row).toMatchObject({ ...t, noteTitle: 'Plan', open: true, modifiedAt: 1234, filePath: '/vault/Plan.md' });
 		const [closed] = rowsOf([task('cancelled', 0, 1)]);
 		expect(closed.open).toBe(false);
 	});
 
-	it('counts the note\'s tasks and open tasks over the whole group', () => {
+	it('counts the note\'s tasks and open tasks over its kept tasks', () => {
 		const rows = rowsOf([task('todo', 0, 1), task('done', 0, 2), task('in-progress', 0, 3)]);
 		expect(rows.map((r) => [r.noteTaskCount, r.noteOpenCount])).toEqual([
 			[3, 2],
@@ -210,7 +215,7 @@ describe('buildTaskRows', () => {
 	});
 
 	it('sets parentLine to the nearest earlier task with a smaller indent, never from another note', () => {
-		const rows = buildTaskRows(
+		const rows = rowsFrom(
 			[
 				group('/vault/a.md', [task('todo', 0, 1), task('todo', 1, 2), task('todo', 2, 3), task('todo', 1, 5), task('todo', 0, 6)]),
 				group('/vault/b.md', [task('todo', 1, 1)]),
@@ -220,16 +225,161 @@ describe('buildTaskRows', () => {
 		expect(rows.map((r) => r.parentLine)).toEqual([undefined, 1, 2, 1, undefined, undefined]);
 	});
 
-	it('keeps the group order and the document order', () => {
-		const rows = buildTaskRows(
+	it('sorts the notes by path and keeps the document order', () => {
+		const rows = rowsFrom(
 			[group('/vault/z.md', [task('todo', 0, 3), task('todo', 0, 7)]), group('/vault/a.md', [task('todo', 0, 1)])],
 			'/vault',
 		);
-		expect(rows.map((r) => `${r.relPath}:${r.lineNumber}`)).toEqual(['z.md:3', 'z.md:7', 'a.md:1']);
+		expect(rows.map((r) => `${r.relPath}:${r.lineNumber}`)).toEqual(['a.md:1', 'z.md:3', 'z.md:7']);
 	});
 
-	it('gives no rows for no groups', () => {
-		expect(buildTaskRows([], '/vault')).toEqual([]);
+	it('compares numbers in note paths as numbers', () => {
+		const rows = rowsFrom([group('/vault/note 10.md', [task('todo', 0, 1)]), group('/vault/note 9.md', [task('todo', 0, 1)])], '/vault');
+		expect(rows.map((r) => r.relPath)).toEqual(['note 9.md', 'note 10.md']);
+	});
+
+	it('gives no rows for no entries, and none for an entry without tasks', () => {
+		expect(rowsFrom([], '/vault')).toEqual([]);
+		expect(rowsFrom([entryV2('/vault/empty.md')], '/vault')).toEqual([]);
+	});
+
+	it('fills the note fields from the entry', () => {
+		const frontmatter = { status: 'open', n: 3 };
+		const entry = entryV2('/vault/Projects/Clients/ACME.md', {
+			isA: 'Project',
+			tags: ['work', 'a/b'],
+			archived: true,
+			organized: false,
+			favorite: true,
+			frontmatter,
+			modifiedAt: 1_700_000_000,
+			tasks: [taskV2('Call')],
+		});
+		const [row] = rowsFrom([entry], '/vault');
+		expect(row).toMatchObject({
+			noteType: 'Project',
+			noteTags: ['work', 'a/b'],
+			archived: true,
+			organized: false,
+			favorite: true,
+			relPath: 'Projects/Clients/ACME.md',
+			folder: 'Projects/Clients',
+			noteTitle: 'ACME',
+			modifiedAt: 1_700_000_000_000,
+			headings: [],
+		});
+		expect(row.properties).toBe(frontmatter);
+		expect(row).not.toHaveProperty('key');
+		expect(row).not.toHaveProperty('heading');
+	});
+
+	it('changes neither the snapshot array, its entries, their tasks nor their frontmatter', () => {
+		const entries = [
+			entryV2('/vault/note 10.md', { frontmatter: { a: 1 }, tasks: [taskV2('ten', { status: 'done' })] }),
+			entryV2('/vault/note 9.md', { tasks: [taskV2('nine')] }),
+		];
+		const before = structuredClone(entries);
+		const firstEntry = entries[0];
+		const firstTasks = entries[0].tasks;
+
+		const rows = buildTaskRows(entries, '/vault', [], new Map([['/vault/note 10.md:1', { text: 'ten', status: 'todo', version: 1 }]]));
+
+		expect(rows.map((r) => r.relPath)).toEqual(['note 9.md', 'note 10.md']);
+		expect(entries).toEqual(before);
+		expect(entries[0]).toBe(firstEntry);
+		expect(entries[0].tasks).toBe(firstTasks);
+	});
+
+	describe('section tags', () => {
+		/** One note: `## A #to-list` / `### B #to-list` / `### C` / `## Other`, a task under each, and one before them. */
+		const sections = () =>
+			entryV2('/vault/s.md', {
+				taskHeadings: [
+					{ level: 2, text: 'A #to-list', line: 2 },
+					{ level: 3, text: 'B #to-list', line: 4 },
+					{ level: 3, text: 'C', line: 6 },
+					{ level: 2, text: 'Other', line: 8 },
+				],
+				tasks: [
+					taskV2('before', { lineNumber: 1 }),
+					taskV2('under A', { lineNumber: 3, heading: 0 }),
+					taskV2('under B', { lineNumber: 5, heading: 1, status: 'done' }),
+					taskV2('under C', { lineNumber: 7, heading: 2 }),
+					taskV2('under Other', { lineNumber: 9, heading: 3 }),
+				],
+			});
+
+		it('keeps only the tasks under a tagged heading, and counts those only', () => {
+			const rows = buildTaskRows([sections()], '/vault', ['#to-list'], new Map());
+			expect(rows.map((r) => r.text)).toEqual(['under A', 'under B', 'under C']);
+			expect(rows.map((r) => [r.noteTaskCount, r.noteOpenCount])).toEqual([
+				[3, 2],
+				[3, 2],
+				[3, 2],
+			]);
+			expect(rows.map((r) => r.headings)).toEqual([['A #to-list'], ['A #to-list', 'B #to-list'], ['A #to-list', 'C']]);
+		});
+
+		it('keeps every task with no tag', () => {
+			const rows = buildTaskRows([sections()], '/vault', [], new Map());
+			expect(rows.map((r) => r.text)).toEqual(['before', 'under A', 'under B', 'under C', 'under Other']);
+			expect(rows[4].headings).toEqual(['Other']);
+		});
+
+		it('keeps a task under any of several tags, ignoring case', () => {
+			const rows = buildTaskRows([sections()], '/vault', ['#nope', '#TO-LIST'], new Map());
+			expect(rows.map((r) => r.text)).toEqual(['under A', 'under B', 'under C']);
+		});
+
+		it('gives no row for a note whose tasks are all outside the tags', () => {
+			expect(buildTaskRows([sections()], '/vault', ['#work'], new Map())).toEqual([]);
+		});
+
+		it('sets parentLine over the kept tasks only', () => {
+			const entry = entryV2('/vault/p.md', {
+				taskHeadings: [{ level: 2, text: 'Misc', line: 1 }, { level: 2, text: 'List #to-list', line: 4 }],
+				tasks: [taskV2('outside parent', { lineNumber: 2, heading: 0 }), taskV2('child', { lineNumber: 5, indent: 1, heading: 1 })],
+			});
+			const [row] = buildTaskRows([entry], '/vault', ['#to-list'], new Map());
+			expect(row.text).toBe('child');
+			expect(row.parentLine).toBeUndefined();
+		});
+	});
+
+	describe('overlay', () => {
+		const note = () =>
+			entryV2('/vault/a.md', {
+				tasks: [taskV2('one', { lineNumber: 1 }), taskV2('two', { lineNumber: 2 })],
+			});
+
+		it('changes status, text, checked and open of its row only', () => {
+			const overlay = new Map([['/vault/a.md:2', { text: 'two, edited', status: 'done' as const, version: 3 }]]);
+			const rows = buildTaskRows([note()], '/vault', [], overlay);
+			expect(rows.map((r) => [r.text, r.status, r.checked, r.open])).toEqual([
+				['one', 'todo', false, true],
+				['two, edited', 'done', true, false],
+			]);
+			expect(rows.map((r) => [r.noteTaskCount, r.noteOpenCount])).toEqual([
+				[2, 1],
+				[2, 1],
+			]);
+		});
+
+		it('sets checked from an overlaid todo status', () => {
+			const entry = entryV2('/vault/a.md', { tasks: [taskV2('one', { status: 'done' })] });
+			const [row] = buildTaskRows([entry], '/vault', [], new Map([['/vault/a.md:1', { text: 'one', status: 'todo' as const, version: 3 }]]));
+			expect([row.status, row.checked, row.open]).toEqual(['todo', false, true]);
+		});
+
+		it('applies to no other note at the same line', () => {
+			const other = entryV2('/vault/b.md', { tasks: [taskV2('b one')] });
+			const rows = buildTaskRows([note(), other], '/vault', [], new Map([['/vault/a.md:1', { text: 'one', status: 'done' as const, version: 3 }]]));
+			expect(rows.map((r) => [r.filePath, r.status])).toEqual([
+				['/vault/a.md', 'done'],
+				['/vault/a.md', 'todo'],
+				['/vault/b.md', 'todo'],
+			]);
+		});
 	});
 });
 
@@ -241,33 +391,31 @@ describe('groupTaskRows', () => {
 		taskV2(text, { lineNumber, metadata: { description: text, tags: [], ...meta }, ...extra });
 
 	/**
-	 * Five notes, in an order that is neither path nor `modifiedAt` order.
-	 * Today is 2026-11-05.
+	 * Five notes, in an order that is neither path nor `modifiedAt` order
+	 * (each note's rows built on their own, so `buildTaskRows` does not sort
+	 * them). Today is 2026-11-05.
 	 */
 	const mixed = () =>
 		applyQuickFilters(
-			buildTaskRows(
-				[
-					group('/vault/Projects/x.md', [
-						t('B1', 1, { dueDate: '2026-11-05', priority: 'low' }),
-						t('B2', 2, { priority: 'none' }),
-					], 300),
-					group('/vault/note 10.md', [t('A1', 1, { dueDate: '2026-11-04', priority: 'highest' }), t('A2', 2, { dueDate: '2026-11-06' })], 100),
-					group('/vault/Projects/y.md', [
-						t('C1', 1, { dueDate: '2026-11-07', priority: 'medium' }, { status: 'done' }),
-						t('C2', 2, { dueDate: '2026-11-12', priority: 'lowest' }, { status: 'in-progress' }),
-					], 500),
-					group('/vault/note 9.md', [
-						t('D1', 1, { dueDate: '2026-11-13', priority: 'high' }, { status: 'question' }),
-						t('D2', 2, { dueDate: '2026-11-06' }, { status: 'important' }),
-					], 200),
-					group('/vault/Archive/z.md', [
-						t('E1', 1, {}, { status: 'cancelled' }),
-						t('E2', 2, { dueDate: '2026-11-06' }, { status: 'forwarded' }),
-					], 400),
-				],
-				'/vault',
-			),
+			[
+				group('/vault/Projects/x.md', [
+					t('B1', 1, { dueDate: '2026-11-05', priority: 'low' }),
+					t('B2', 2, { priority: 'none' }),
+				], 300),
+				group('/vault/note 10.md', [t('A1', 1, { dueDate: '2026-11-04', priority: 'highest' }), t('A2', 2, { dueDate: '2026-11-06' })], 100),
+				group('/vault/Projects/y.md', [
+					t('C1', 1, { dueDate: '2026-11-07', priority: 'medium' }, { status: 'done' }),
+					t('C2', 2, { dueDate: '2026-11-12', priority: 'lowest' }, { status: 'in-progress' }),
+				], 500),
+				group('/vault/note 9.md', [
+					t('D1', 1, { dueDate: '2026-11-13', priority: 'high' }, { status: 'question' }),
+					t('D2', 2, { dueDate: '2026-11-06' }, { status: 'important' }),
+				], 200),
+				group('/vault/Archive/z.md', [
+					t('E1', 1, {}, { status: 'cancelled' }),
+					t('E2', 2, { dueDate: '2026-11-06' }, { status: 'forwarded' }),
+				], 400),
+			].flatMap((entry) => rowsFrom([entry], '/vault')),
 			{ show: 'all' },
 			TODAY,
 			NOW,
@@ -351,14 +499,12 @@ describe('groupTaskRows', () => {
 	});
 
 	describe('note group fields and counts', () => {
+		/** Two notes, out of path order: each note's rows are built on their own. */
 		const twoNotes = () =>
-			buildTaskRows(
-				[
-					group('/vault/Projects/b.md', [task('todo', 0, 1), task('todo', 0, 2), task('done', 0, 3)], 5),
-					group('/vault/a.md', [task('todo', 0, 1)], 9),
-				],
-				'/vault',
-			);
+			[
+				group('/vault/Projects/b.md', [task('todo', 0, 1), task('todo', 0, 2), task('done', 0, 3)], 5),
+				group('/vault/a.md', [task('todo', 0, 1)], 9),
+			].flatMap((entry) => rowsFrom([entry], '/vault'));
 
 		it('carries filePath, folder and modifiedAt from the first row', () => {
 			const groups = groupTaskRows(applyQuickFilters(twoNotes(), { show: 'all' }, TODAY, NOW), 'note', SORT, TODAY);
@@ -505,7 +651,7 @@ describe('applyQuickFilters: the Due filter', () => {
 
 	describe('the note edited options', () => {
 		const notes = () =>
-			buildTaskRows(
+			rowsFrom(
 				[
 					group('/vault/a.md', [dueTask(undefined, 1)], NOW - 1 * DAY),
 					group('/vault/b.md', [dueTask(undefined, 1)], NOW - 10 * DAY),
@@ -524,7 +670,7 @@ describe('applyQuickFilters: the Due filter', () => {
 		});
 
 		it('keeps a row exactly at the 7-day cutoff', () => {
-			const rows = buildTaskRows([group('/vault/edge.md', [dueTask(undefined, 1)], NOW - 7 * DAY)], '/vault');
+			const rows = rowsFrom([group('/vault/edge.md', [dueTask(undefined, 1)], NOW - 7 * DAY)], '/vault');
 			expect(kept(rows, 'edited7')).toEqual(['undated 1']);
 		});
 
@@ -723,7 +869,7 @@ describe('applyQuickFilters: the search', () => {
 	});
 
 	it('finds a row by a substring of its note title alone', () => {
-		const rows = buildTaskRows([group('/vault/Quarterly Plan.md', [metaTask('Ship', 1)]), group('/vault/b.md', [metaTask('Ship', 1)])], '/vault');
+		const rows = rowsFrom([group('/vault/Quarterly Plan.md', [metaTask('Ship', 1)]), group('/vault/b.md', [metaTask('Ship', 1)])], '/vault');
 		expect(applyQuickFilters(rows, { show: 'all', search: '  terly pl ' }, TODAY, NOW).map((r) => r.filePath)).toEqual([
 			'/vault/Quarterly Plan.md',
 		]);
@@ -815,7 +961,7 @@ describe('statusFilterLabel', () => {
 describe('taskCountText', () => {
 	const visible = (tasks: TaskItem[][], quick: TaskQuickFilters) =>
 		applyQuickFilters(
-			buildTaskRows(
+			rowsFrom(
 				tasks.map((t, i) => group(`/vault/n${i}.md`, t)),
 				'/vault',
 			),
@@ -959,7 +1105,7 @@ describe('explainEmptyTasks', () => {
 
 	/** Rows of one or more notes, each `[tasks, modifiedAt]`. */
 	function rows(...notes: [TaskItem[], number?][]): TaskRow[] {
-		return buildTaskRows(
+		return rowsFrom(
 			notes.map(([tasks, modifiedAt], i) => group(`/vault/n${i}.md`, tasks, modifiedAt ?? 0)),
 			'/vault',
 		);

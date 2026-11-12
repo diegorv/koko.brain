@@ -5,11 +5,13 @@ import { saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { settleTaskWrite } from '#lib/core/filesystem/task-write.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { getVaultEntries, invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { tasksStore } from './tasks.store.svelte';
-import { buildTaskRows } from './task-query.logic';
+import { buildTaskRows, type TaskOverlayEntry } from './task-query.logic';
 import { statusMenuLabel, toggleTarget } from './task-status.logic';
-import { compareTaskPaths, parseSectionTags, parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
+import { taskRowKey } from './tasks-keys.logic';
+import { parseSectionTags, parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
 import type { TaskStatus } from './task-metadata.types';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
@@ -59,6 +61,14 @@ function fromV2(group: FileTaskGroupV2): FileTaskGroup {
  */
 let latestTaskIndexRequest = 0;
 
+/**
+ * The view's own task writes, keyed by `taskRowKey(filePath, lineNumber)`,
+ * laid over the entries snapshot until a snapshot read at or after the
+ * write's index version holds them (the memo lags the write by the throttled
+ * version bump). Not store state: nothing renders it.
+ */
+const taskOverlay = new Map<string, TaskOverlayEntry>();
+
 /** What the Tasks view shows when the latest refresh failed; the raw error goes to the log. */
 const TASKS_REFRESH_ERROR = 'Tasks could not be refreshed. The log has the details.';
 
@@ -75,39 +85,42 @@ export function getTasksResetGeneration(): number {
 }
 
 /**
- * Fetches the full task index from the Rust `VaultIndex`. When
- * `parseSectionTags(sectionTag)` yields any tag, fans out to
- * `get_tasks_in_section_v2` with that list instead; otherwise calls
- * `get_all_tasks_v2`. Phase 7.6 — Rust now owns task
- * parsing end-to-end (see `src-tauri/src/vault/parsing.rs::extract_tasks`).
- * Groups, and their rows (`buildTaskRows`), are stored in path order
- * (`compareTaskPaths`), not the newest-first order Rust sends, so a toggle
- * that rewrites a note does not move it.
+ * Builds the Tasks store's rows from the memoized entries snapshot
+ * (`getVaultEntries`, one `get_all_vault_entries_v2` per index version,
+ * shared with QueryJS), keeping the tasks under a heading that carries one of
+ * the section tags (`buildTaskRows`), with the view's own writes laid over
+ * it. Calls at one version share one read, so a tag change costs no IPC.
+ * Rows are in path order (`compareTaskPaths`), not the snapshot's order, so a
+ * toggle that rewrites a note does not move it.
+ *
+ * The version is read in the same turn as the snapshot: it is the version
+ * the snapshot was read or patched at (the listener bumps it and patches the
+ * memo in one turn), so every overlay entry at or below it is already in the
+ * snapshot and is dropped.
+ *
  * A call superseded by a newer one (or by `resetTasks`) while in flight
- * leaves the store, the loading flag, `hasLoaded` and error reporting to the
- * newer call. The latest call sets `hasLoaded` once it settles, on success or
- * failure, so the view swaps "Indexing tasks..." for the list or the empty
- * state only after the current vault's first fetch. The latest call's failure
- * sets `tasksStore.error` to a fixed message and leaves the groups as they
- * were; only a later success clears it.
+ * leaves the store, the overlay, the loading flag, `hasLoaded` and error
+ * reporting to the newer call. The latest call sets `hasLoaded` once it
+ * settles, on success or failure, so the view swaps "Indexing tasks..." for
+ * the list or the empty state only after the current vault's first fetch.
+ * The latest call's failure sets `tasksStore.error` to a fixed message and
+ * leaves the rows as they were; only a later success clears it.
  */
 export async function buildTaskIndex(): Promise<void> {
 	const request = ++latestTaskIndexRequest;
 	tasksStore.setLoading(true);
 	try {
 		await timeAsync('TASKS', 'buildTaskIndex', async () => {
-			const sectionTags = parseSectionTags(tasksStore.sectionTag);
-			const v2 = sectionTags.length > 0
-				? await call('get_tasks_in_section_v2', { sectionTags })
-				: await call('get_all_tasks_v2');
+			const version = vaultStore.vaultIndexVersion;
+			const entries = await getVaultEntries();
 			if (request !== latestTaskIndexRequest) return;
-			const groups = v2.map(fromV2).sort((a, b) => compareTaskPaths(a.filePath, b.filePath));
-			tasksStore.setFileTaskGroups(groups);
-			tasksStore.setRows(buildTaskRows(groups, vaultStore.path));
+			for (const [key, written] of taskOverlay) {
+				if (written.version <= version) taskOverlay.delete(key);
+			}
+			const rows = buildTaskRows(entries, vaultStore.path, parseSectionTags(tasksStore.sectionTag), taskOverlay);
+			tasksStore.setRows(rows);
 			tasksStore.setError(null);
-			let total = 0;
-			for (const g of groups) total += g.tasks.length;
-			debug('TASKS', `Tasks: ${groups.length} files, ${total} tasks`);
+			debug('TASKS', `Tasks: ${new Set(rows.map((r) => r.filePath)).size} files, ${rows.length} tasks`);
 		});
 	} catch (err) {
 		if (request === latestTaskIndexRequest) {
@@ -124,12 +137,9 @@ export async function buildTaskIndex(): Promise<void> {
 
 /**
  * Updates the section-tag text (one or more tags), saves it as typed in the
- * vault's settings (`tasksView.sectionTag`), and refetches groups via
- * `buildTaskIndex`. Text holding at least one tag runs the Rust
- * `get_tasks_in_section_v2` scan, which re-reads from disk every note that
- * has tasks, on a blocking thread, to apply heading-level filtering. Typing here is not its only trigger: the
- * store's default tag is non-empty, so the `TasksView` `vaultIndexVersion`
- * effect (which also runs on mount) and each task toggle pay the same scan.
+ * vault's settings (`tasksView.sectionTag`), and rebuilds the rows via
+ * `buildTaskIndex`, which filters the memoized snapshot again: no disk read
+ * and, at an unchanged index version, no IPC.
  */
 export async function updateSectionTagFilter(tag: string): Promise<void> {
 	tasksStore.setSectionTag(tag);
@@ -160,9 +170,12 @@ export function loadSavedTasksView(): void {
  * Writes `target` as the status of `task` via the Rust `toggle_task_status`
  * command, and returns true only when the line was rewritten. Rust does the
  * read → check → write → `VaultIndex` update → emit chain. The Rust update
- * emits `vault-index-updated`; panels react via `vaultStore.vaultIndexVersion`.
- * Search, the per-file consumers and the content caches are refreshed by
- * `afterTaskWrite`.
+ * emits `vault-index-updated` before the command returns, so the prompt
+ * index refresh (`vaultStore.requestPromptIndexRefresh`) is asked for right
+ * before the call, after the dirty-tab save, whose own event would consume
+ * it; when the call throws, is stale or changes nothing, Rust emits nothing
+ * and the request is taken back. Search, the per-file consumers and the
+ * content caches are refreshed by `afterTaskWrite`.
  *
  * A `target` equal to `task.status` returns false before anything runs: no
  * save, no IPC, no Undo dismissal. Rust would not skip it (it rewrites `[X]`
@@ -171,12 +184,13 @@ export function loadSavedTasksView(): void {
  *
  * The list can lag disk by seconds, so Rust writes only when the line at
  * `task.lineNumber` still holds `task.text` with `task.status`. Otherwise
- * the result is `stale`: the list is refetched and the user asked to try
- * again.
+ * the result is `stale`: the list is rebuilt from a fresh snapshot
+ * (`refreshAfterRefusal`) and the user asked to try again.
  *
- * On a changed result the Tasks store is refetched right away: the version
- * bump is throttled (2 s, up to 10 s during a burst), and the clicked
- * checkbox must not look unclicked until then.
+ * On a changed result the write is laid over the snapshot (`afterTaskWrite`)
+ * and the rows rebuilt right away: the snapshot holds the write only after
+ * the throttled version bump, and the clicked checkbox must not look
+ * unclicked until then.
  *
  * The open editor tab gets `syncExternalContentToEditor` (in
  * `settleTaskWrite`) so the change is visible without waiting for the
@@ -186,7 +200,8 @@ export function loadSavedTasksView(): void {
  * open tab is saved first or its unsaved typing would be overwritten. If
  * that save fails nothing is written. `lineNumber` comes from the index of
  * the disk copy, so when the saved typing moved that line the write is
- * skipped and the list refreshed instead of changing whatever line is there.
+ * skipped and the list refreshed from a fresh snapshot instead of changing
+ * whatever line is there.
  * The check compares line text only: if the shift leaves an identical line
  * at `lineNumber` (a duplicated task), that line is the one written.
  */
@@ -208,27 +223,40 @@ export async function setTaskStatus(
 			}
 			const saved = editorStore.tabs.find((t) => t.path === filePath)?.savedContent;
 			if (saved === undefined || lineAt(saved, lineNumber) !== diskLine) {
-				await buildTaskIndex();
+				await refreshAfterRefusal(filePath, lineNumber);
 				toast.info('The note changed, so the list was refreshed. Try again.');
 				return false;
 			}
 		}
-		const result = await call('toggle_task_status', {
-			path: filePath,
-			lineNumber,
-			expectedText: task.text,
-			expectedStatus: task.status,
-			target,
-		});
+		vaultStore.requestPromptIndexRefresh();
+		let result;
+		try {
+			result = await call('toggle_task_status', {
+				path: filePath,
+				lineNumber,
+				expectedText: task.text,
+				expectedStatus: task.status,
+				target,
+			});
+		} catch (err) {
+			vaultStore.takePromptIndexRefresh();
+			throw err;
+		}
+		if (result.stale || !result.updateResult.changed) vaultStore.takePromptIndexRefresh();
 		if (result.stale) {
-			await buildTaskIndex();
+			await refreshAfterRefusal(filePath, lineNumber);
 			toast.info('The task changed on disk, so the list was refreshed. Try again.');
 			return false;
 		}
 		if (!result.updateResult.changed) {
 			return false;
 		}
-		await afterTaskWrite(filePath, result.updatedContent);
+		await afterTaskWrite(filePath, result.updatedContent, {
+			lineNumber,
+			text: task.text,
+			status: target,
+			version: result.updateResult.version,
+		});
 		return true;
 	} catch (err) {
 		error('TASKS', 'Failed to set task status:', err);
@@ -282,14 +310,35 @@ export async function setTaskStatusFromMenu(filePath: string, task: TaskItem, ta
 }
 
 /**
- * Settles a note a Rust task command wrote (`settleTaskWrite`), then
- * refetches the Tasks store right away instead of waiting for the throttled
- * version bump.
+ * Settles a note a Rust task command wrote (`settleTaskWrite`), records the
+ * written line in the overlay and rebuilds the rows right away: the memoized
+ * snapshot holds the write only after the throttled version bump, and the
+ * overlay shows it until then.
  * @param path - absolute path of the written note
  * @param updatedContent - the note's content after the write
+ * @param written - the written line, its text and status after the write, and the version the write produced
  */
-async function afterTaskWrite(path: string, updatedContent: string): Promise<void> {
+async function afterTaskWrite(
+	path: string,
+	updatedContent: string,
+	written: { lineNumber: number; text: string; status: TaskStatus; version: number },
+): Promise<void> {
 	settleTaskWrite(path, updatedContent);
+	taskOverlay.set(taskRowKey(path, written.lineNumber), { text: written.text, status: written.status, version: written.version });
+	await buildTaskIndex();
+}
+
+/**
+ * Rebuilds the rows from a fresh snapshot after a refused write (a stale
+ * line, or saved typing that moved it): the memoized snapshot just proved
+ * stale, and a retry against it would be refused again until the throttled
+ * bump. Drops the overlay entry of that line, which the refusal disproved.
+ * Costs one whole-vault `get_all_vault_entries_v2`, which every other reader
+ * then shares.
+ */
+async function refreshAfterRefusal(filePath: string, lineNumber: number): Promise<void> {
+	taskOverlay.delete(taskRowKey(filePath, lineNumber));
+	invalidateVaultEntries();
 	await buildTaskIndex();
 }
 
@@ -336,12 +385,13 @@ export function toggleTasksTab(): void {
 
 /**
  * Resets all task state. Advancing the request counter discards any
- * `buildTaskIndex` call still in flight, so a scan of the previous vault
- * cannot write into the reset store. Raises `getTasksResetGeneration()` and
- * dismisses a menu write's Undo toast.
+ * `buildTaskIndex` call still in flight, so a read of the previous vault
+ * cannot write into the reset store, and the overlay is cleared with it.
+ * Raises `getTasksResetGeneration()` and dismisses a menu write's Undo toast.
  */
 export function resetTasks(): void {
 	latestTaskIndexRequest++;
+	taskOverlay.clear();
 	tasksResetGeneration++;
 	dismissStatusUndo();
 	tasksStore.reset();

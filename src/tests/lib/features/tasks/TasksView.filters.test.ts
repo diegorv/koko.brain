@@ -12,6 +12,7 @@ vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn(() => Promise.resolve(vi
 vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn(), exists: vi.fn(async () => false) }));
 
 import { unmount, flushSync, tick } from 'svelte';
+import { resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -77,7 +78,8 @@ describe('TasksView: the filter row', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 		vaultStore._reset();

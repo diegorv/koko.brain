@@ -14,6 +14,7 @@ vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: 
 import { unmount, flushSync } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
+import { resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -71,7 +72,8 @@ describe('TasksView: keyboard and accessible rows', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 		vaultStore._reset();

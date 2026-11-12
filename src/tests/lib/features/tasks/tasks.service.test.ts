@@ -44,54 +44,76 @@ import {
 	getTasksResetGeneration,
 	loadSavedTasksView,
 } from '#lib/features/tasks/tasks.service.js';
-import type { FileTaskGroupV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import type { NoteEntryV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
+import { taskV2 } from '../../../fixtures/tasks.fixture';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
-function group(filePath: string, modifiedAtSec: number, taskTexts: string[]): FileTaskGroupV2 {
-	return {
-		filePath,
-		fileName: filePath.split('/').pop()?.replace(/\.md$/, '') ?? '',
+/** A note's snapshot entry with one todo task per text, on lines 1, 2, ... (`modifiedAt` in seconds). */
+function note(path: string, modifiedAtSec: number, texts: string[], overrides: Partial<NoteEntryV2> = {}): NoteEntryV2 {
+	return entryV2(path, {
 		modifiedAt: modifiedAtSec,
-		tasks: taskTexts.map((text, i) => ({
-			text,
-			checked: false,
-			indent: 0,
-			lineNumber: i + 1,
-			status: 'todo',
-			metadata: { description: text, tags: [] },
-		})),
-	};
+		tasks: texts.map((text, i) => taskV2(text, { lineNumber: i + 1 })),
+		...overrides,
+	});
+}
+
+/** The paths of the notes the rows come from, in row order. */
+const rowPaths = () => [...new Set(tasksStore.rows.map((r) => r.filePath))];
+const rowTexts = () => tasksStore.rows.map((r) => r.text);
+
+/**
+ * A note with a task under `## Inbox #to-list`, one under `## Job #work` and
+ * one under `## Misc`, on lines 2, 4 and 6.
+ */
+function sectioned(path = '/vault/a.md'): NoteEntryV2 {
+	return entryV2(path, {
+		taskHeadings: [
+			{ level: 2, text: 'Inbox #to-list', line: 1 },
+			{ level: 2, text: 'Job #work', line: 3 },
+			{ level: 2, text: 'Misc', line: 5 },
+		],
+		tasks: [
+			taskV2('listed', { lineNumber: 2, heading: 0 }),
+			taskV2('work item', { lineNumber: 4, heading: 1 }),
+			taskV2('misc item', { lineNumber: 6, heading: 2 }),
+		],
+	});
+}
+
+/** Starts a test from an empty Tasks state, overlay and snapshot memo. */
+function resetAll(): void {
+	vi.clearAllMocks();
+	resetTasks();
+	invalidateVaultEntries();
+	editorStore.reset();
 }
 
 describe('buildTaskIndex', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
+		resetAll();
 		tasksStore.setSectionTag('');
 	});
 
-	it('populates fileTaskGroups via get_all_tasks_v2 IPC', async () => {
-		const groups: FileTaskGroupV2[] = [
-			group('/vault/a.md', 100, ['task one', 'task two']),
-			group('/vault/b.md', 200, ['done task']),
-		];
-		vi.mocked(invoke).mockResolvedValueOnce(groups);
+	it('fills the rows from the get_all_vault_entries_v2 snapshot', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/a.md', 100, ['task one', 'task two']), note('/vault/b.md', 200, ['done task'])]);
 
 		await buildTaskIndex();
 
-		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
-		expect(tasksStore.fileTaskGroups).toHaveLength(2);
-		expect(tasksStore.fileTaskGroups.flatMap((g) => g.tasks)).toHaveLength(3);
+		expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
+		expect(vi.mocked(invoke).mock.calls.map(([cmd]) => cmd)).toEqual(['get_all_vault_entries_v2']);
+		expect(rowPaths()).toEqual(['/vault/a.md', '/vault/b.md']);
+		expect(rowTexts()).toEqual(['task one', 'task two', 'done task']);
 	});
 
 	it('converts modifiedAt seconds → milliseconds', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 1700000000, ['x'])]);
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/a.md', 1700000000, ['x'])]);
 
 		await buildTaskIndex();
 
-		expect(tasksStore.fileTaskGroups[0].modifiedAt).toBe(1700000000 * 1000);
+		expect(tasksStore.rows[0].modifiedAt).toBe(1700000000 * 1000);
 	});
 
 	it('clears loading state after completion', async () => {
@@ -100,40 +122,47 @@ describe('buildTaskIndex', () => {
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
-	it('handles empty IPC response', async () => {
+	it('handles an empty snapshot', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([]);
 		await buildTaskIndex();
-		expect(tasksStore.fileTaskGroups).toEqual([]);
+		expect(tasksStore.rows).toEqual([]);
 	});
 
-	it('falls back to get_tasks_in_section_v2 when sectionTag is set', async () => {
+	it('keeps only the tasks under a heading carrying the section tag', async () => {
 		tasksStore.setSectionTag('#to-list');
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['filtered'])]);
+		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await buildTaskIndex();
 
-		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#to-list'] });
+		expect(rowTexts()).toEqual(['listed']);
+		expect([tasksStore.rows[0].noteTaskCount, tasksStore.rows[0].noteOpenCount]).toEqual([1, 1]);
 	});
 
-	it('sends every tag parsed from the section tag text', async () => {
+	it('keeps a task under any tag parsed from the section tag text', async () => {
 		tasksStore.setSectionTag('#to-list work');
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['listed'])]);
+		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await buildTaskIndex();
 
-		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#to-list', '#work'] });
-		expect(tasksStore.fileTaskGroups.flatMap((g) => g.tasks.map((t) => t.text))).toEqual(['listed']);
+		expect(rowTexts()).toEqual(['listed', 'work item']);
 	});
 
 	it('lists every task when the section tag text holds no tag', async () => {
 		tasksStore.setSectionTag(' , ');
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['any'])]);
+		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await buildTaskIndex();
 
-		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
-		expect(vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'get_tasks_in_section_v2')).toBe(false);
-		expect(tasksStore.fileTaskGroups.flatMap((g) => g.tasks.map((t) => t.text))).toEqual(['any']);
+		expect(rowTexts()).toEqual(['listed', 'work item', 'misc item']);
+	});
+
+	it('shares one snapshot read between two calls at one index version', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/a.md', 100, ['x'])]);
+
+		await Promise.all([buildTaskIndex(), buildTaskIndex()]);
+
+		expect(invoke).toHaveBeenCalledTimes(1);
+		expect(rowTexts()).toEqual(['x']);
 	});
 
 	it('clears loading state even on IPC error', async () => {
@@ -143,59 +172,61 @@ describe('buildTaskIndex', () => {
 	});
 
 	it('keeps the newer result when an older call resolves last', async () => {
-		let resolveFirst!: (v: FileTaskGroupV2[]) => void;
-		let resolveSecond!: (v: FileTaskGroupV2[]) => void;
+		let resolveFirst!: (v: NoteEntryV2[]) => void;
+		let resolveSecond!: (v: NoteEntryV2[]) => void;
 		vi.mocked(invoke)
 			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)))
 			.mockImplementationOnce(() => new Promise((r) => (resolveSecond = r)));
 
 		const first = buildTaskIndex();
+		invalidateVaultEntries();
 		const second = buildTaskIndex();
-		resolveSecond([group('/vault/new.md', 200, ['new'])]);
+		resolveSecond([note('/vault/new.md', 200, ['new'])]);
 		await second;
 		expect(tasksStore.isLoading).toBe(false);
-		resolveFirst([group('/vault/old.md', 100, ['old'])]);
+		resolveFirst([note('/vault/old.md', 100, ['old'])]);
 		await first;
 
-		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
+		expect(rowPaths()).toEqual(['/vault/new.md']);
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
 	it('stays loading while a newer call is in flight after an older one finishes', async () => {
-		let resolveFirst!: (v: FileTaskGroupV2[]) => void;
-		let resolveSecond!: (v: FileTaskGroupV2[]) => void;
+		let resolveFirst!: (v: NoteEntryV2[]) => void;
+		let resolveSecond!: (v: NoteEntryV2[]) => void;
 		vi.mocked(invoke)
 			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)))
 			.mockImplementationOnce(() => new Promise((r) => (resolveSecond = r)));
 
 		const first = buildTaskIndex();
+		invalidateVaultEntries();
 		const second = buildTaskIndex();
-		resolveFirst([group('/vault/old.md', 100, ['old'])]);
+		resolveFirst([note('/vault/old.md', 100, ['old'])]);
 		await first;
 		expect(tasksStore.isLoading).toBe(true);
-		expect(tasksStore.fileTaskGroups).toEqual([]);
+		expect(tasksStore.rows).toEqual([]);
 
-		resolveSecond([group('/vault/new.md', 200, ['new'])]);
+		resolveSecond([note('/vault/new.md', 200, ['new'])]);
 		await second;
-		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
+		expect(rowPaths()).toEqual(['/vault/new.md']);
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
 	it('drops a call that resolves after resetTasks', async () => {
-		let resolveCall!: (v: FileTaskGroupV2[]) => void;
+		let resolveCall!: (v: NoteEntryV2[]) => void;
 		vi.mocked(invoke).mockImplementationOnce(() => new Promise((r) => (resolveCall = r)));
 
 		const pending = buildTaskIndex();
 		resetTasks();
-		resolveCall([group('/vault/old-vault.md', 100, ['stale'])]);
+		resolveCall([note('/vault/old-vault.md', 100, ['stale'])]);
 		await pending;
 
-		expect(tasksStore.fileTaskGroups).toEqual([]);
+		expect(tasksStore.rows).toEqual([]);
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
 	it('sets hasLoaded after a successful fetch', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/a.md', 100, ['x'])]);
 		expect(tasksStore.hasLoaded).toBe(false);
 
 		await buildTaskIndex();
@@ -212,12 +243,12 @@ describe('buildTaskIndex', () => {
 	});
 
 	it('leaves hasLoaded false when a call resolves after resetTasks', async () => {
-		let resolveCall!: (v: FileTaskGroupV2[]) => void;
+		let resolveCall!: (v: NoteEntryV2[]) => void;
 		vi.mocked(invoke).mockImplementationOnce(() => new Promise((r) => (resolveCall = r)));
 
 		const pending = buildTaskIndex();
 		resetTasks();
-		resolveCall([group('/vault/old-vault.md', 100, ['stale'])]);
+		resolveCall([note('/vault/old-vault.md', 100, ['stale'])]);
 		await pending;
 
 		expect(tasksStore.hasLoaded).toBe(false);
@@ -227,63 +258,67 @@ describe('buildTaskIndex', () => {
 		let rejectFirst!: (e: Error) => void;
 		vi.mocked(invoke)
 			.mockImplementationOnce(() => new Promise((_r, j) => (rejectFirst = j)))
-			.mockResolvedValueOnce([group('/vault/new.md', 200, ['new'])]);
+			.mockResolvedValueOnce([note('/vault/new.md', 200, ['new'])]);
 
 		const first = buildTaskIndex();
+		invalidateVaultEntries();
 		await buildTaskIndex();
 		rejectFirst(new Error('superseded boom'));
 		await first;
 		expect(error).not.toHaveBeenCalled();
 
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('latest boom'));
+		invalidateVaultEntries();
 		await buildTaskIndex();
 		expect(error).toHaveBeenCalledWith('TASKS', 'buildTaskIndex failed:', expect.any(Error));
-		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
+		expect(rowPaths()).toEqual(['/vault/new.md']);
 	});
 });
 
 describe('buildTaskIndex: note order', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
+		resetAll();
 		tasksStore.setSectionTag('');
 	});
 
-	const paths = () => tasksStore.fileTaskGroups.map((g) => g.filePath);
-
-	it('lists notes by path, not in the newest-first order Rust sends', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/B.md', 200, ['b']), group('/vault/A.md', 100, ['a'])]);
+	it('lists notes by path, whatever order the snapshot holds them in', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/B.md', 200, ['b']), note('/vault/A.md', 100, ['a'])]);
 
 		await buildTaskIndex();
 
-		expect(paths()).toEqual(['/vault/A.md', '/vault/B.md']);
+		expect(rowPaths()).toEqual(['/vault/A.md', '/vault/B.md']);
 	});
 
 	it('compares numbers in note paths as numbers', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/note 10.md', 200, ['x']), group('/vault/note 9.md', 100, ['y'])]);
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/note 10.md', 200, ['x']), note('/vault/note 9.md', 100, ['y'])]);
 
 		await buildTaskIndex();
 
-		expect(paths()).toEqual(['/vault/note 9.md', '/vault/note 10.md']);
+		expect(rowPaths()).toEqual(['/vault/note 9.md', '/vault/note 10.md']);
 	});
 
-	it('sorts the section tag fetch too', async () => {
-		tasksStore.setSectionTag('#x');
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/C.md', 300, ['c']), group('/vault/A.md', 100, ['a']), group('/vault/B.md', 200, ['b'])]);
+	it('sorts the notes a section tag keeps too', async () => {
+		tasksStore.setSectionTag('#to-list');
+		vi.mocked(invoke).mockResolvedValueOnce([sectioned('/vault/C.md'), sectioned('/vault/A.md'), sectioned('/vault/B.md')]);
 
 		await buildTaskIndex();
 
-		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#x'] });
-		expect(paths()).toEqual(['/vault/A.md', '/vault/B.md', '/vault/C.md']);
+		expect(rowPaths()).toEqual(['/vault/A.md', '/vault/B.md', '/vault/C.md']);
+	});
+
+	it('leaves the snapshot array in the order it came in', async () => {
+		const snapshot = [note('/vault/B.md', 200, ['b']), note('/vault/A.md', 100, ['a'])];
+		vi.mocked(invoke).mockResolvedValueOnce(snapshot);
+
+		await buildTaskIndex();
+
+		expect(snapshot.map((e) => e.path)).toEqual(['/vault/B.md', '/vault/A.md']);
 	});
 });
 
 describe('buildTaskIndex: rows', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
+		resetAll();
 		tasksStore.setSectionTag('');
 		vaultStore.open('/vault');
 	});
@@ -294,8 +329,8 @@ describe('buildTaskIndex: rows', () => {
 
 	it('stores the rows in the sorted note order with relPath and folder set', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([
-			group('/vault/Projects/B.md', 200, ['b1', 'b2']),
-			group('/vault/A.md', 100, ['a']),
+			note('/vault/Projects/B.md', 200, ['b1', 'b2']),
+			note('/vault/A.md', 100, ['a']),
 		]);
 
 		await buildTaskIndex();
@@ -308,26 +343,36 @@ describe('buildTaskIndex: rows', () => {
 		expect(tasksStore.rows[0].modifiedAt).toBe(100 * 1000);
 	});
 
-	it('writes neither the groups nor the rows from a superseded request', async () => {
-		let resolveFirst!: (v: FileTaskGroupV2[]) => void;
-		let resolveSecond!: (v: FileTaskGroupV2[]) => void;
+	it('carries the note fields of the entry', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			note('/vault/A.md', 100, ['a'], { isA: 'Project', tags: ['work'], favorite: true, frontmatter: { n: 1 } }),
+		]);
+
+		await buildTaskIndex();
+
+		expect(tasksStore.rows[0]).toMatchObject({ noteType: 'Project', noteTags: ['work'], favorite: true, properties: { n: 1 } });
+	});
+
+	it('writes no rows from a superseded request', async () => {
+		let resolveFirst!: (v: NoteEntryV2[]) => void;
+		let resolveSecond!: (v: NoteEntryV2[]) => void;
 		vi.mocked(invoke)
 			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)))
 			.mockImplementationOnce(() => new Promise((r) => (resolveSecond = r)));
 
 		const first = buildTaskIndex();
+		invalidateVaultEntries();
 		const second = buildTaskIndex();
-		resolveSecond([group('/vault/new.md', 200, ['new'])]);
+		resolveSecond([note('/vault/new.md', 200, ['new'])]);
 		await second;
-		resolveFirst([group('/vault/old.md', 100, ['old'])]);
+		resolveFirst([note('/vault/old.md', 100, ['old'])]);
 		await first;
 
-		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
-		expect(tasksStore.rows.map((r) => r.filePath)).toEqual(['/vault/new.md']);
+		expect(rowPaths()).toEqual(['/vault/new.md']);
 	});
 
 	it('leaves the rows empty after resetTasks', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/a.md', 100, ['x'])]);
 		await buildTaskIndex();
 		expect(tasksStore.rows).toHaveLength(1);
 
@@ -337,11 +382,12 @@ describe('buildTaskIndex: rows', () => {
 	});
 
 	it('leaves the rows untouched when the fetch fails', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/a.md', 100, ['x'])]);
 		await buildTaskIndex();
 		const before = tasksStore.rows;
 
 		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
+		invalidateVaultEntries();
 		await buildTaskIndex();
 
 		expect(tasksStore.rows).toBe(before);
@@ -352,25 +398,24 @@ describe('buildTaskIndex: refresh error', () => {
 	const MESSAGE = 'Tasks could not be refreshed. The log has the details.';
 
 	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
+		resetAll();
 		tasksStore.setSectionTag('');
 	});
 
-	it('sets the fixed message when the latest call fails, logging the raw error, and keeps the groups', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+	it('sets the fixed message when the latest call fails, logging the raw error, and keeps the rows', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/a.md', 100, ['x'])]);
 		await buildTaskIndex();
-		const before = tasksStore.fileTaskGroups;
+		const before = tasksStore.rows;
 
 		const raw = new Error('secret path /vault/x');
 		vi.mocked(invoke).mockRejectedValueOnce(raw);
+		invalidateVaultEntries();
 		await buildTaskIndex();
 
 		expect(tasksStore.error).toBe(MESSAGE);
 		expect(tasksStore.error).not.toContain('secret');
 		expect(error).toHaveBeenCalledWith('TASKS', 'buildTaskIndex failed:', raw);
-		expect(tasksStore.fileTaskGroups).toBe(before);
+		expect(tasksStore.rows).toBe(before);
 	});
 
 	it('keeps the error while a new call is in flight and clears it when that call succeeds', async () => {
@@ -378,12 +423,12 @@ describe('buildTaskIndex: refresh error', () => {
 		await buildTaskIndex();
 		expect(tasksStore.error).toBe(MESSAGE);
 
-		let resolveCall!: (v: FileTaskGroupV2[]) => void;
+		let resolveCall!: (v: NoteEntryV2[]) => void;
 		vi.mocked(invoke).mockImplementationOnce(() => new Promise((r) => (resolveCall = r)));
 		const pending = buildTaskIndex();
 		expect(tasksStore.error).toBe(MESSAGE);
 
-		resolveCall([group('/vault/a.md', 100, ['x'])]);
+		resolveCall([note('/vault/a.md', 100, ['x'])]);
 		await pending;
 		expect(tasksStore.error).toBeNull();
 	});
@@ -392,9 +437,10 @@ describe('buildTaskIndex: refresh error', () => {
 		let rejectFirst!: (e: Error) => void;
 		vi.mocked(invoke)
 			.mockImplementationOnce(() => new Promise((_r, j) => (rejectFirst = j)))
-			.mockResolvedValueOnce([group('/vault/new.md', 200, ['new'])]);
+			.mockResolvedValueOnce([note('/vault/new.md', 200, ['new'])]);
 
 		const first = buildTaskIndex();
+		invalidateVaultEntries();
 		await buildTaskIndex();
 		rejectFirst(new Error('superseded boom'));
 		await first;
@@ -403,15 +449,16 @@ describe('buildTaskIndex: refresh error', () => {
 	});
 
 	it('does not clear the error for a superseded call that succeeds', async () => {
-		let resolveFirst!: (v: FileTaskGroupV2[]) => void;
+		let resolveFirst!: (v: NoteEntryV2[]) => void;
 		vi.mocked(invoke)
 			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)))
 			.mockRejectedValueOnce(new Error('latest boom'));
 
 		const first = buildTaskIndex();
+		invalidateVaultEntries();
 		await buildTaskIndex();
 		expect(tasksStore.error).toBe(MESSAGE);
-		resolveFirst([group('/vault/old.md', 100, ['old'])]);
+		resolveFirst([note('/vault/old.md', 100, ['old'])]);
 		await first;
 
 		expect(tasksStore.error).toBe(MESSAGE);
@@ -432,29 +479,38 @@ describe('buildTaskIndex: refresh error', () => {
 
 describe('updateSectionTagFilter', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
+		resetAll();
 		settingsStore.reset();
 	});
 
-	it('sets section tag and refetches via the section IPC', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['work'])]);
+	it('sets the section tag, saves it and lists the tasks under it', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await updateSectionTagFilter('#work');
 
 		expect(tasksStore.sectionTag).toBe('#work');
-		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#work'] });
+		expect(rowTexts()).toEqual(['work item']);
 		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('#work');
 	});
 
-	it('routes through get_all_tasks_v2 when filter cleared', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([]);
+	it('lists every task when the filter is cleared', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await updateSectionTagFilter('');
 
-		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
+		expect(rowTexts()).toEqual(['listed', 'work item', 'misc item']);
 		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('');
+	});
+
+	it('re-reads the memoized snapshot on a tag change, with no second IPC', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
+		await updateSectionTagFilter('#to-list');
+		expect(rowTexts()).toEqual(['listed']);
+
+		await updateSectionTagFilter('#work');
+
+		expect(rowTexts()).toEqual(['work item']);
+		expect(invoke).toHaveBeenCalledTimes(1);
 	});
 
 	it('saves the tag in the settings store before it refetches', async () => {
@@ -510,9 +566,7 @@ describe('loadSavedTasksView', () => {
 
 describe('toggleTask', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
+		resetAll();
 	});
 
 	function makeResult(updatedContent: string, changed = true, stale = false): ToggleTaskResultV2 {
@@ -571,22 +625,20 @@ describe('toggleTask', () => {
 		});
 	});
 
-	it('refetches the Tasks store on a changed toggle without any vaultIndexVersion bump', async () => {
-		const toggled = group('/vault/a.md', 100, ['task']);
-		toggled.tasks[0].checked = true;
-		toggled.tasks[0].status = 'done';
+	it('shows a changed toggle at once from the memoized snapshot, without any vaultIndexVersion bump', async () => {
 		tasksStore.setSectionTag('');
 		vi.mocked(invoke)
-			.mockResolvedValueOnce(makeResult('- [x] task'))
-			.mockResolvedValueOnce([toggled]);
+			.mockResolvedValueOnce([note('/vault/a.md', 100, ['task'])])
+			.mockResolvedValueOnce(makeResult('- [x] task'));
+		await buildTaskIndex();
 
-		await toggleTask('/vault/a.md', item('task'));
+		await toggleTask('/vault/a.md', tasksStore.rows[0]);
 
 		// The throttled vault-index-updated bump can land 2-10 s later; the
-		// acting view refetches itself so the checkbox reflects the click now.
-		expect(invoke).toHaveBeenNthCalledWith(2, 'get_all_tasks_v2');
-		expect(tasksStore.fileTaskGroups).toHaveLength(1);
-		expect(tasksStore.fileTaskGroups[0].tasks[0].checked).toBe(true);
+		// overlay shows the write now, over the snapshot the memo still holds.
+		expect(vi.mocked(invoke).mock.calls.map(([cmd]) => cmd)).toEqual(['get_all_vault_entries_v2', 'toggle_task_status']);
+		expect(tasksStore.rows).toHaveLength(1);
+		expect(tasksStore.rows[0].checked).toBe(true);
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
@@ -597,18 +649,19 @@ describe('toggleTask', () => {
 			content: '- [ ] other',
 			savedContent: '- [ ] other',
 		});
-		const fresh = group('/vault/a.md', 100, ['other']);
 		tasksStore.setSectionTag('');
 		vi.mocked(invoke)
+			.mockResolvedValueOnce([note('/vault/a.md', 100, ['task'])])
 			.mockResolvedValueOnce(makeResult('- [ ] other', /* changed */ false, /* stale */ true))
-			.mockResolvedValueOnce([fresh]);
+			.mockResolvedValueOnce([note('/vault/a.md', 100, ['other'])]);
+		await buildTaskIndex();
 		const signalBefore = editorStore.externalContentSignal;
 
-		await toggleTask('/vault/a.md', item('task'));
+		await toggleTask('/vault/a.md', tasksStore.rows[0]);
 
-		expect(invoke).toHaveBeenNthCalledWith(2, 'get_all_tasks_v2');
-		expect(tasksStore.fileTaskGroups).toHaveLength(1);
-		expect(tasksStore.fileTaskGroups[0].tasks[0].text).toBe('other');
+		// The memo was primed by the first read: the stale result reads the snapshot again.
+		expect(invoke).toHaveBeenNthCalledWith(3, 'get_all_vault_entries_v2');
+		expect(rowTexts()).toEqual(['other']);
 		expect(toast.info).toHaveBeenCalledWith('The task changed on disk, so the list was refreshed. Try again.');
 		expect(editorStore.externalContentSignal).toBe(signalBefore);
 	});
@@ -626,7 +679,7 @@ describe('toggleTask', () => {
 			expectedStatus: 'todo',
 			target: 'done',
 		});
-		expect(tasksStore.fileTaskGroups).toHaveLength(0);
+		expect(tasksStore.rows).toHaveLength(0);
 		expect(toast.info).not.toHaveBeenCalled();
 	});
 
@@ -756,9 +809,7 @@ describe('toggleTask', () => {
 
 describe('setTaskStatus', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
+		resetAll();
 		tasksStore.setSectionTag('');
 	});
 
@@ -808,7 +859,7 @@ describe('setTaskStatus', () => {
 		const written = await setTaskStatus('/vault/a.md', item('task'), 'cancelled');
 
 		expect(written).toBe(false);
-		expect(commands()).toEqual(['toggle_task_status', 'get_all_tasks_v2']);
+		expect(commands()).toEqual(['toggle_task_status', 'get_all_vault_entries_v2']);
 		expect(toast.info).toHaveBeenCalledWith('The task changed on disk, so the list was refreshed. Try again.');
 	});
 
@@ -1033,20 +1084,19 @@ describe('openTasksTab / closeTasksTab / toggleTasksTab', () => {
 
 describe('resetTasks', () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
-		tasksStore.reset();
-		editorStore.reset();
+		resetAll();
+		tasksStore.setSectionTag('');
 	});
 
-	it('clears task groups and closes tab', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+	it('clears the rows and closes tab', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([note('/vault/a.md', 100, ['x'])]);
 		await buildTaskIndex();
 		openTasksTab();
-		expect(tasksStore.fileTaskGroups.length).toBeGreaterThan(0);
+		expect(tasksStore.rows.length).toBeGreaterThan(0);
 
 		resetTasks();
 
-		expect(tasksStore.fileTaskGroups).toEqual([]);
+		expect(tasksStore.rows).toEqual([]);
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
@@ -1057,5 +1107,177 @@ describe('resetTasks', () => {
 		expect(getTasksResetGeneration()).toBe(start + 1);
 		resetTasks();
 		expect(getTasksResetGeneration()).toBe(start + 2);
+	});
+});
+
+describe("the view's own writes: overlay and prompt refresh", () => {
+	const PATH = '/vault/a.md';
+	/** The checkbox char of each status the fake writes, and back. */
+	const CHAR: Partial<Record<TaskStatus, string>> = { todo: ' ', done: 'x', 'in-progress': '/', cancelled: '-' };
+	const STATUS_OF = Object.fromEntries(Object.entries(CHAR).map(([status, char]) => [char, status as TaskStatus]));
+
+	/** Fake disk: file contents by path. */
+	const disk = new Map<string, string>();
+	/** What `get_all_vault_entries_v2` returns; the fake never updates it on a write, as the throttled bump would. */
+	let snapshot: NoteEntryV2[] = [];
+	/** Version of the next write: above the current `vaultIndexVersion`. */
+	let nextVersion = 0;
+	let baseVersion = 0;
+	/** Run inside `toggle_task_status`, before it answers. */
+	let onToggle: (() => void) | null = null;
+	let toggleThrows = false;
+	/** Makes `toggle_task_status` answer unchanged without stale, as Rust does when the write is a no-op. */
+	let unchangedNext = false;
+
+	/**
+	 * A fake Rust over the fake disk. `toggle_task_status` compares the disk
+	 * line with `expectedText` / `expectedStatus` as `toggle_task_status_inner`
+	 * does: a mismatch is `stale`, a target equal to the line is unchanged,
+	 * otherwise the line is rewritten and a version above the current one
+	 * returned.
+	 */
+	function fakeRust(): void {
+		vi.mocked(invoke).mockImplementation(async (cmd: string, raw?: unknown) => {
+			if (cmd === 'get_all_vault_entries_v2') return snapshot;
+			if (cmd !== 'toggle_task_status') return undefined;
+			onToggle?.();
+			if (toggleThrows) throw new Error('disk gone');
+			const args = raw as { path: string; lineNumber: number; expectedText: string; expectedStatus: TaskStatus; target: TaskStatus };
+			const content = disk.get(args.path) ?? '';
+			const lines = content.split('\n');
+			const match = /^(\s*- \[)(.)(\] )(.*)$/.exec(lines[args.lineNumber - 1] ?? '');
+			const unchanged = { changed: false, affected: [], version: vaultStore.vaultIndexVersion, upserted: [], removed: [], fullRescan: false };
+			if (unchangedNext) return { updatedContent: content, updateResult: unchanged, stale: false };
+			if (!match || match[4] !== args.expectedText || STATUS_OF[match[2]] !== args.expectedStatus) {
+				return { updatedContent: content, updateResult: unchanged, stale: true };
+			}
+			if (args.target === args.expectedStatus) return { updatedContent: content, updateResult: unchanged, stale: false };
+			lines[args.lineNumber - 1] = `${match[1]}${CHAR[args.target]}${match[3]}${match[4]}`;
+			const updated = lines.join('\n');
+			disk.set(args.path, updated);
+			return {
+				updatedContent: updated,
+				updateResult: { changed: true, affected: [], version: nextVersion++, upserted: [args.path], removed: [], fullRescan: false },
+				stale: false,
+			};
+		});
+	}
+
+	const toggleCalls = () =>
+		vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'toggle_task_status').map(([, args]) => args as Record<string, unknown>);
+	const snapshotReads = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_vault_entries_v2').length;
+
+	beforeEach(() => {
+		resetAll();
+		tasksStore.setSectionTag('');
+		disk.clear();
+		disk.set(PATH, '- [ ] task');
+		snapshot = [note(PATH, 100, ['task'])];
+		baseVersion = vaultStore.vaultIndexVersion;
+		nextVersion = baseVersion + 1;
+		onToggle = null;
+		toggleThrows = false;
+		unchangedNext = false;
+		fakeRust();
+	});
+
+	afterEach(() => {
+		// The counter is module state: later tests expect overlay versions above it.
+		vaultStore.bumpVaultIndexVersion(baseVersion);
+		vaultStore.takePromptIndexRefresh();
+		vi.mocked(invoke).mockReset();
+	});
+
+	it('shows a toggle at once and lets the row toggle back, with the snapshot still before it', async () => {
+		await buildTaskIndex();
+
+		await toggleTask(PATH, tasksStore.rows[0]);
+
+		expect(tasksStore.rows[0]).toMatchObject({ status: 'done', checked: true, open: false });
+
+		await toggleTask(PATH, tasksStore.rows[0]);
+
+		expect(toggleCalls()[1]).toMatchObject({ expectedText: 'task', expectedStatus: 'done', target: 'todo' });
+		expect(toast.info).not.toHaveBeenCalled();
+		expect(tasksStore.rows[0]).toMatchObject({ status: 'todo', checked: false, open: true });
+		expect(disk.get(PATH)).toBe('- [ ] task');
+	});
+
+	it('asks for a prompt index refresh right before the toggle command', async () => {
+		let requestedAtCall: boolean | undefined;
+		onToggle = () => {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+			// The probe must not consume what it measures.
+			if (requestedAtCall) vaultStore.requestPromptIndexRefresh();
+		};
+		await buildTaskIndex();
+
+		await toggleTask(PATH, tasksStore.rows[0]);
+
+		expect(requestedAtCall).toBe(true);
+	});
+
+	it.each([
+		['a stale result', () => disk.set(PATH, '- [ ] edited elsewhere')],
+		['an unchanged result', () => (unchangedNext = true)],
+		['a thrown call', () => (toggleThrows = true)],
+	])('clears the prompt refresh request after %s, when Rust emits nothing', async (_label, arrange) => {
+		let requestedAtCall: boolean | undefined;
+		onToggle = () => {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+			if (requestedAtCall) vaultStore.requestPromptIndexRefresh();
+		};
+		arrange();
+
+		await setTaskStatus(PATH, { text: 'task', status: 'todo', lineNumber: 1 }, 'done');
+
+		expect(requestedAtCall).toBe(true);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+	});
+
+	it('keeps the written status until a snapshot read at the write version, then shows the snapshot', async () => {
+		nextVersion = baseVersion + 7;
+		await buildTaskIndex();
+		await toggleTask(PATH, tasksStore.rows[0]);
+		expect(tasksStore.rows[0].status).toBe('done');
+
+		vaultStore.bumpVaultIndexVersion(baseVersion + 6);
+		await buildTaskIndex();
+		expect(snapshotReads()).toBe(2);
+		expect(tasksStore.rows[0].status).toBe('done');
+
+		// The snapshot still says todo: at the write's version it must win.
+		vaultStore.bumpVaultIndexVersion(baseVersion + 7);
+		await buildTaskIndex();
+		expect(snapshotReads()).toBe(3);
+		expect(tasksStore.rows[0]).toMatchObject({ status: 'todo', checked: false, open: true });
+	});
+
+	it('reads a fresh snapshot on a stale result and drops the overlay entry of that line', async () => {
+		await buildTaskIndex();
+		await toggleTask(PATH, tasksStore.rows[0]);
+		expect(tasksStore.rows[0]).toMatchObject({ text: 'task', status: 'done' });
+
+		// Another writer replaced the line; the memo still holds the first snapshot.
+		disk.set(PATH, '- [ ] other');
+		snapshot = [note(PATH, 200, ['other'])];
+		await toggleTask(PATH, tasksStore.rows[0]);
+
+		expect(snapshotReads()).toBe(2);
+		expect(tasksStore.rows[0]).toMatchObject({ text: 'other', status: 'todo' });
+		expect(toast.info).toHaveBeenCalledWith('The task changed on disk, so the list was refreshed. Try again.');
+	});
+
+	it('clears the overlay on resetTasks, so it never applies to the next vault at the same key', async () => {
+		await buildTaskIndex();
+		await toggleTask(PATH, tasksStore.rows[0]);
+		expect(tasksStore.rows[0].status).toBe('done');
+
+		resetTasks();
+		invalidateVaultEntries();
+		tasksStore.setSectionTag('');
+		await buildTaskIndex();
+
+		expect(tasksStore.rows[0]).toMatchObject({ text: 'task', status: 'todo' });
 	});
 });

@@ -35,9 +35,10 @@ let indexReady = $state(false);
  */
 let indexReadySuppressed = false;
 /**
- * Set by a user's own click that changes what the sidebar lists (Favorite,
- * Organized, Archive): the next `vault-index-updated` refresh skips its 2-10 s
- * throttle. Not reactive: only the listener reads it, once, by taking it.
+ * Set by a user's own write that a view must show at once (a sidebar
+ * Favorite, Organized or Archive click, a Tasks view status change): the next
+ * `vault-index-updated` refresh skips its 2-10 s throttle. Not reactive:
+ * only the listener reads it, once, by taking it.
  */
 let promptIndexRefresh = false;
 /** Reads the recent vaults list from localStorage (returns [] on failure) */

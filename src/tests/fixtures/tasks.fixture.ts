@@ -1,6 +1,7 @@
 /**
  * Shared Tasks view test data and helpers: tasks and groups shaped as Rust
- * sends them, an `invoke` mock that serves them, and a mounted view.
+ * sends them, the entries snapshot built from them, an `invoke` mock that
+ * serves it, and a mounted view.
  *
  * Prerequisite for `mockTaskFetch` and `mountTasksView`: the test file mocks
  * `@tauri-apps/api/core` (`invoke: vi.fn()`) before importing this fixture.
@@ -9,12 +10,14 @@
 import { vi } from 'vitest';
 import { flushSync, mount, tick } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { TASK_STATUSES } from '#lib/features/tasks/task-status.logic.js';
-import type { FileTaskGroupV2, TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
+import type { FileTaskGroupV2, NoteEntryV2, TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
+import { entryV2 } from './vault-entries.fixture';
 
 /**
- * A task as `get_all_tasks_v2` sends it: `todo` at indent 0 on line 1, with
+ * A task as Rust sends it in `NoteEntry.tasks`: `todo` at indent 0 on line 1, with
  * `metadata.description` equal to `text`. `checked` is `status !== 'todo'`,
  * as Rust sets it, unless `overrides.checked` says otherwise.
  */
@@ -44,6 +47,14 @@ export function taskGroupV2(filePath: string, tasks: TaskV2[], modifiedAtSec = 1
 	}
 	const fileName = (filePath.split('/').pop() ?? filePath).replace(/\.md$/, '');
 	return { filePath, fileName, modifiedAt: modifiedAtSec, tasks };
+}
+
+/**
+ * The entries snapshot entry of one note group: its path, title, tasks and
+ * `modifiedAt` (seconds), with no headings and the `entryV2` defaults.
+ */
+export function taskEntryV2(group: FileTaskGroupV2): NoteEntryV2 {
+	return entryV2(group.filePath, { title: group.fileName, modifiedAt: group.modifiedAt, tasks: group.tasks });
 }
 
 /** Raw line text of each status's task in {@link sevenStatusGroup}. */
@@ -88,18 +99,23 @@ function unchangedToggle(): ToggleTaskResultV2 {
 
 /**
  * Serves the Tasks view's IPC through the mocked `invoke`:
- * `get_all_tasks_v2` returns `groups` (a function is called on every fetch),
- * `get_tasks_in_section_v2` returns `opts.section ?? []`,
- * `toggle_task_status` returns `opts.toggle(args)` or an unchanged result,
- * and any other command returns `undefined`.
+ * `get_all_vault_entries_v2` returns each of `groups` as `taskEntryV2`
+ * (a function is called on every whole-vault read), then `opts.entries` as
+ * given (for headings or note fields), `toggle_task_status` returns
+ * `opts.toggle(args)` or an unchanged result, and any other command returns
+ * `undefined`. Drops the memoized snapshot, so the next read gets these
+ * answers; a later read at the same index version is served the memo.
  */
 export function mockTaskFetch(
 	groups: FileTaskGroupV2[] | (() => Promise<FileTaskGroupV2[]>),
-	opts: { section?: FileTaskGroupV2[]; toggle?: (args: Record<string, unknown>) => ToggleTaskResultV2 } = {},
+	opts: { entries?: NoteEntryV2[]; toggle?: (args: Record<string, unknown>) => ToggleTaskResultV2 } = {},
 ): void {
+	invalidateVaultEntries();
 	vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
-		if (cmd === 'get_all_tasks_v2') return typeof groups === 'function' ? groups() : groups;
-		if (cmd === 'get_tasks_in_section_v2') return opts.section ?? [];
+		if (cmd === 'get_all_vault_entries_v2') {
+			const list = typeof groups === 'function' ? await groups() : groups;
+			return [...list.map(taskEntryV2), ...(opts.entries ?? [])];
+		}
 		if (cmd === 'toggle_task_status') {
 			return opts.toggle ? opts.toggle((args ?? {}) as Record<string, unknown>) : unchangedToggle();
 		}

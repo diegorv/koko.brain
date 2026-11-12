@@ -16,7 +16,7 @@ import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { collapseKey } from '#lib/features/tasks/task-query.logic.js';
-import { buildTaskIndex } from '#lib/features/tasks/tasks.service.js';
+import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import type { FileTaskGroupV2, TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 import { mockTaskFetch, mountTasksView, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 
@@ -78,7 +78,8 @@ describe('TasksView: collapsing groups and the row cap', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 		vaultStore._reset();

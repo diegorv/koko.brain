@@ -21,6 +21,7 @@ import { toast } from 'svelte-sonner';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import type { TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
@@ -91,7 +92,7 @@ async function rightClick(el: Element): Promise<MouseEvent> {
 
 /**
  * Serves one note whose tasks change status as `toggle_task_status` writes
- * them, so a refetch sees each write.
+ * them, so a fresh snapshot read sees each write.
  */
 function statefulTasks(tasks: TaskV2[]): void {
 	mockTaskFetch(async () => [taskGroupV2(NOTE, tasks.map((t) => ({ ...t })))], {
@@ -323,8 +324,9 @@ describe('TasksView: the row menu', () => {
 
 		await rightClick(rowNamed('Task B'));
 		await until(() => expect(openMenuEl()?.contains(document.activeElement)).toBe(true));
-		// Another window deletes Task B; the refetch lands while the menu holds focus.
+		// Another window deletes Task B; the refetch of the next snapshot lands while the menu holds focus.
 		tasks.splice(1, 1);
+		invalidateVaultEntries();
 		await buildTaskIndex();
 		await until(() => expect(rows().map(rowText)).toEqual(['Task A', 'Task C']));
 		expect(openMenuEl()?.contains(document.activeElement)).toBe(true);
@@ -345,6 +347,7 @@ describe('TasksView: the row menu', () => {
 		await openMenu(actionsButton(rowNamed('Task B')));
 		await until(() => expect(openMenuEl()?.contains(document.activeElement)).toBe(true));
 		tasks.splice(1, 1);
+		invalidateVaultEntries();
 		await buildTaskIndex();
 		await until(() => expect(rows().map(rowText)).toEqual(['Task A', 'Task C']));
 		await settleUnmount();

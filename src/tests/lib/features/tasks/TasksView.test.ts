@@ -19,14 +19,24 @@ import { statusGlyph } from '#lib/features/tasks/task-status.logic.js';
 import { DEFAULT_QUICK } from '#lib/features/tasks/task-query.logic.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { preloadPacks } from '#lib/features/file-icons/file-icons.icon-data.js';
-import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
+import type { FileTaskGroupV2, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import { mockTaskFetch, mountTasksView, sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const NOTE = '/vault/Projects/2026-Q2.md';
+
+/** `NOTE` with one todo task per text under `## <heading>`, on lines 2, 3, ... */
+function noteUnder(heading: string, texts: string[], path = NOTE): NoteEntryV2 {
+	return entryV2(path, {
+		taskHeadings: [{ level: 2, text: heading, line: 1 }],
+		tasks: texts.map((text, i) => taskV2(text, { lineNumber: i + 2, heading: 0 })),
+	});
+}
 
 function toggleCalls() {
 	return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'toggle_task_status');
@@ -66,7 +76,8 @@ describe('TasksView row clicks', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 		onOpenWikilink = vi.fn<(target: string) => void>();
@@ -166,7 +177,8 @@ describe('TasksView: status glyphs and the open rule', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 	});
@@ -259,7 +271,8 @@ describe('TasksView: the two-way sync is the only Todoist path', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 		settingsStore.reset();
@@ -314,7 +327,8 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 	});
@@ -360,6 +374,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		expect(document.activeElement).toBe(circle);
 		expect(refreshing()).toBeNull();
 
+		invalidateVaultEntries();
 		const refetch = buildTaskIndex();
 		flushSync();
 		expect(rows()).toHaveLength(2);
@@ -391,7 +406,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 
 	it('names the section tag when nothing sits under it, and Clear tag lists every task', async () => {
 		tasksStore.setSectionTag('#to-list');
-		mockTaskFetch([noteWith(['Ship feature A'])], { section: [] });
+		mockTaskFetch([noteWith(['Ship feature A'])]);
 		await mountView();
 		await until(() => expect(paragraph('No task sits under a heading containing #to-list')).toBeDefined());
 		expect(buttonsNamed('Clear tag')).toHaveLength(1);
@@ -421,6 +436,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		({ component } = await mounting);
 		await until(() => expect(paragraph('No tasks in this vault yet')).toBeDefined());
 
+		invalidateVaultEntries();
 		const refetch = buildTaskIndex();
 		flushSync();
 		expect(paragraph('No tasks in this vault yet')).toBeDefined();
@@ -432,7 +448,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 
 	it('says which tasks it lists, and its Clear tag drops a pending tag edit', async () => {
 		tasksStore.setSectionTag('#to-list');
-		mockTaskFetch([], { section: [noteWith(['Ship feature A'])] });
+		mockTaskFetch([], { entries: [noteUnder('Inbox #to-list', ['Ship feature A'])] });
 		await mountView();
 		await until(() => expect(rows()).toHaveLength(1));
 		const sentence = paragraph('Open tasks under headings containing #to-list');
@@ -449,10 +465,8 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		await new Promise((r) => setTimeout(r, 450));
 		flushSync();
 
-		const xCalls = vi.mocked(invoke).mock.calls.filter(
-			([cmd, args]) => cmd === 'get_tasks_in_section_v2' && (args as { sectionTags?: string[] } | undefined)?.sectionTags?.includes('#x'),
-		);
-		expect(xCalls).toHaveLength(0);
+		// The pending `#x` would have been saved and applied after the debounce.
+		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('');
 		expect(tagInput().value).toBe('');
 		expect(tasksStore.sectionTag).toBe('');
 	});
@@ -498,6 +512,8 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		unmount(component!);
 		component = null;
 
+		// The next snapshot read is still in flight when the view mounts again.
+		invalidateVaultEntries();
 		await mountView();
 		expect(rows()).toHaveLength(1);
 		expect(pageText()).not.toContain('Indexing tasks...');
@@ -518,7 +534,8 @@ describe('TasksView: keeps its place', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		settingsStore.reset();
 		tasksStore.setSectionTag('');
@@ -548,7 +565,8 @@ describe('TasksView: keeps its place', () => {
 		input.value = value;
 		input.dispatchEvent(new Event('input', { bubbles: true }));
 	};
-	const sectionCalls = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_tasks_in_section_v2');
+	/** A note with one task under `## Job #work`, listed only while the section tag is `#work`. */
+	const workNote = () => noteUnder('Job #work', ['work task'], '/vault/W.md');
 
 	it('lists notes by path and keeps a ticked note in its place', async () => {
 		const A = one('/vault/A.md', 'task in A');
@@ -565,14 +583,22 @@ describe('TasksView: keeps its place', () => {
 				}),
 			},
 		);
+		// Every status shows, so the ticked task stays listed.
+		tasksStore.setQuick({ show: 'all' });
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(3));
 		expect(rowTexts()).toEqual(['task in A', 'task in B', 'task in C']);
 
 		rows()[1].querySelector<HTMLButtonElement>('[data-task-toggle]')!.click();
-		await until(() => expect(calls).toBe(2));
+		await until(() => expect(toggleCalls()).toHaveLength(1));
 		await until(() => expect(tasksStore.isLoading).toBe(false));
+		expect(rowTexts()).toEqual(['task in A', 'task in B', 'task in C']);
 
+		// The next snapshot holds the notes in another order.
+		invalidateVaultEntries();
+		await buildTaskIndex();
+		flushSync();
+		expect(calls).toBe(2);
 		expect(rowTexts()).toEqual(['task in A', 'task in B', 'task in C']);
 	});
 
@@ -604,8 +630,9 @@ describe('TasksView: keeps its place', () => {
 
 	it('applies a section tag still waiting on its debounce when the view unmounts', async () => {
 		vi.useFakeTimers();
-		mockTaskFetch([one('/vault/A.md', 'task in A')]);
+		mockTaskFetch([one('/vault/A.md', 'task in A')], { entries: [workNote()] });
 		({ component } = await mountTasksView());
+		expect(tasksStore.rows.map((r) => r.text)).toEqual(['task in A', 'work task']);
 
 		// No vi.waitFor between typing and unmount: it advances the fake clock.
 		type('#work');
@@ -614,25 +641,25 @@ describe('TasksView: keeps its place', () => {
 		await vi.advanceTimersByTimeAsync(0);
 
 		expect(tasksStore.sectionTag).toBe('#work');
-		expect(sectionCalls().map(([, args]) => args)).toEqual([{ sectionTags: ['#work'] }]);
+		expect(tasksStore.rows.map((r) => r.text)).toEqual(['work task']);
 		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('#work');
 	});
 
 	it('drops a pending section tag when resetTasks ran before the view unmounts', async () => {
 		vi.useFakeTimers();
-		mockTaskFetch([one('/vault/A.md', 'task in A')]);
+		mockTaskFetch([one('/vault/A.md', 'task in A')], { entries: [workNote()] });
 		({ component } = await mountTasksView());
 		const savedBefore = settingsStore.tasksView;
 
 		type('#work');
 		resetTasks();
-		const callsAtReset = sectionCalls().length;
 		unmount(component!);
 		component = null;
 		await vi.advanceTimersByTimeAsync(500);
 
 		expect(tasksStore.sectionTag).toBe('#to-list');
-		expect(sectionCalls()).toHaveLength(callsAtReset);
+		// A `#work` rebuild would list the work task.
+		expect(tasksStore.rows).toEqual([]);
 		expect(settingsStore.tasksView).toBe(savedBefore);
 	});
 
@@ -649,7 +676,7 @@ describe('TasksView: keeps its place', () => {
 
 	it('keeps typed text in the textbox while its debounce is pending', async () => {
 		vi.useFakeTimers();
-		mockTaskFetch([one('/vault/A.md', 'task in A')], { section: [] });
+		mockTaskFetch([one('/vault/A.md', 'task in A')]);
 		({ component } = await mountTasksView());
 
 		type('#typed');
@@ -671,7 +698,8 @@ describe('TasksView: a failed refresh says so', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 		// A rejected fetch goes through the real `error()`, which prints it.
@@ -708,6 +736,7 @@ describe('TasksView: a failed refresh says so', () => {
 		await until(() => expect(rows()).toHaveLength(1));
 		expect(alert()).toBeNull();
 
+		invalidateVaultEntries();
 		await buildTaskIndex();
 		flushSync();
 		expect(alertText()).toBe(MESSAGE);
@@ -741,12 +770,16 @@ describe('TasksView: a failed refresh says so', () => {
 
 	it('keeps the old rows under the new rule sentence when the fetch after a tag change fails', async () => {
 		tasksStore.setSectionTag('#a');
+		let calls = 0;
 		mockTaskFetch(async () => {
-			throw new Error('boom');
-		}, { section: [noteWithTask('Ship feature A')] });
+			if (++calls > 1) throw new Error('boom');
+			return [];
+		}, { entries: [noteUnder('List #a', ['Ship feature A'])] });
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(1));
 
+		// The snapshot read after the tag change fails: the memo was dropped in between.
+		invalidateVaultEntries();
 		await updateSectionTagFilter('');
 		flushSync();
 
@@ -768,6 +801,7 @@ describe('TasksView: a failed refresh says so', () => {
 		await until(() => expect(paragraph('The only task is closed')).toBeDefined());
 		expect(alert()).toBeNull();
 
+		invalidateVaultEntries();
 		await buildTaskIndex();
 		flushSync();
 
@@ -786,7 +820,8 @@ describe('TasksView: the note header', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		fileIconsStore.reset();
 		tasksStore.setSectionTag('');
@@ -922,7 +957,8 @@ describe('TasksView: clean row text and metadata chips', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		clearLocalStorage();
-		tasksStore.reset();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
 		editorStore.reset();
 		tasksStore.setSectionTag('');
 		onOpenWikilink = vi.fn<(target: string) => void>();

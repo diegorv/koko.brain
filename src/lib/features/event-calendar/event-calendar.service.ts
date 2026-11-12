@@ -103,8 +103,8 @@ export async function loadEvents(): Promise<void> {
 }
 
 /**
- * Reads the Rust task index (`get_all_tasks_v2`, the IPC the Tasks view
- * uses, without its section-tag filter) and stores its dated tasks in
+ * Reads the Rust task index (`get_all_tasks_v2`, every task of the vault)
+ * and stores its dated tasks in
  * `eventCalendarStore.tasks`. Latest wins: a result or a failure that lands
  * after a newer task load, a reset or a vault switch is discarded (the
  * failure is still logged), so only the current load reaches the caller.

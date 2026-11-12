@@ -41,7 +41,8 @@ test.describe('Tasks view', () => {
 		// The Status menu shows open tasks by default.
 		await expect(page.getByRole('button', { name: /^Status/ })).toHaveText('Status: open');
 		const row = page.locator('[data-task-row]', { hasText: 'Draft the plan' });
-		await expect(row).toBeVisible({ timeout: 5_000 });
+		// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
+		await expect(row).toBeVisible({ timeout: 12_000 });
 		await expect(row.locator('[data-task-toggle]')).toHaveAttribute('data-task-status', 'in-progress');
 		await expect(row.getByRole('button', { name: 'Mark task as done: Draft the plan (in progress)' })).toBeVisible();
 		await expect(page.getByText('Shipped already')).toHaveCount(0);
@@ -182,7 +183,8 @@ test.describe('Tasks view', () => {
 		await page.getByRole('textbox', { name: /section tag/i }).fill('');
 
 		const link = page.getByRole('link', { name: 'Roadmap doc' });
-		await expect(link).toBeVisible({ timeout: 5_000 });
+		// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
+		await expect(link).toBeVisible({ timeout: 12_000 });
 		await expect(link).toHaveAttribute('href', 'https://example.com/doc?id=1');
 		await expect(page.getByText('https://example.com/doc?id=1')).toHaveCount(0);
 
@@ -213,7 +215,8 @@ test.describe('Tasks view', () => {
 			const row = page.locator('[data-task-row]', { hasText: 'Pay rent' });
 			const text = row.locator('[data-task-text]');
 			const due = row.locator('[data-task-chip="due"]');
-			await expect(text).toHaveText('Pay rent', { timeout: 5_000 });
+			// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
+			await expect(text).toHaveText('Pay rent', { timeout: 12_000 });
 			await expect(due).toHaveText('Nov 3');
 			await expect(due).toHaveAttribute('data-overdue', '');
 
@@ -233,7 +236,8 @@ test.describe('Tasks view', () => {
 		}, { p: path, c: content });
 
 		await pressShortcut(page, 'Mod+Shift+T');
-		await expect(page.getByText('Listed by to-list')).toBeVisible({ timeout: 5_000 });
+		// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
+		await expect(page.getByText('Listed by to-list')).toBeVisible({ timeout: 12_000 });
 		await expect(page.getByText('Listed by work')).toHaveCount(0);
 		await expect(page.getByText('Never listed')).toHaveCount(0);
 

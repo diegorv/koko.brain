@@ -1,7 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { DEFAULT_QUICK, DEFAULT_TASK_SORT, buildTaskRows } from '#lib/features/tasks/task-query.logic.js';
-import { taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
+import { taskEntryV2, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+
+/** `buildTaskRows` over `groups`, whose `modifiedAt` is in ms as the rows carry it; no section tag, no overlay. */
+const rowsFrom = (groups: FileTaskGroupV2[], vaultPath: string) =>
+	buildTaskRows(groups.map((g) => taskEntryV2({ ...g, modifiedAt: g.modifiedAt / 1000 })), vaultPath, [], new Map());
 
 describe('tasksStore', () => {
 	beforeEach(() => {
@@ -45,7 +50,7 @@ describe('tasksStore', () => {
 	});
 
 	it('setRows replaces the rows', () => {
-		const rows = buildTaskRows([{ ...taskGroupV2('/vault/a.md', [taskV2('x')]), modifiedAt: Date.now() }], '/vault');
+		const rows = rowsFrom([{ ...taskGroupV2('/vault/a.md', [taskV2('x')]), modifiedAt: Date.now() }], '/vault');
 		tasksStore.setRows(rows);
 		expect(tasksStore.rows).toBe(rows);
 	});
@@ -53,7 +58,7 @@ describe('tasksStore', () => {
 	describe('visibleRows', () => {
 		const DAY = 24 * 60 * 60 * 1000;
 		const rowsOf = () =>
-			buildTaskRows(
+			rowsFrom(
 				[
 					{ ...taskGroupV2('/vault/new.md', [taskV2('Ship', { lineNumber: 1 }), taskV2('Shipped', { status: 'done', lineNumber: 2 })]), modifiedAt: Date.now() - DAY },
 					{ ...taskGroupV2('/vault/old.md', [taskV2('Old', { lineNumber: 1 })]), modifiedAt: Date.now() - 10 * DAY },
@@ -89,7 +94,7 @@ describe('tasksStore', () => {
 
 		describe('priority, tag and search', () => {
 			const metaRows = () =>
-				buildTaskRows(
+				rowsFrom(
 					[
 						{
 							...taskGroupV2('/vault/Plan.md', [
@@ -148,7 +153,7 @@ describe('tasksStore', () => {
 			});
 
 			const dueRows = () =>
-				buildTaskRows(
+				rowsFrom(
 					[
 						{
 							...taskGroupV2('/vault/due.md', [
@@ -220,7 +225,7 @@ describe('tasksStore', () => {
 			taskV2(text, { lineNumber, metadata: { description: text, tags: [], ...(dueDate ? { dueDate } : {}) } });
 
 		const groupedRows = () =>
-			buildTaskRows(
+			rowsFrom(
 				[
 					{ ...taskGroupV2('/vault/b.md', [due('Later', 1, '2026-11-20'), due('Late', 2, '2026-11-04')]), modifiedAt: Date.now() },
 					{ ...taskGroupV2('/vault/a.md', [due('Now', 1, '2026-11-05')]), modifiedAt: Date.now() },
@@ -240,9 +245,10 @@ describe('tasksStore', () => {
 
 		it('groups follow a setRows change and a setGroupBy change', () => {
 			tasksStore.setRows(groupedRows());
+			// `buildTaskRows` puts the notes in path order.
 			expect(groups()).toEqual([
-				['/vault/b.md', ['Later', 'Late']],
 				['/vault/a.md', ['Now']],
+				['/vault/b.md', ['Later', 'Late']],
 			]);
 
 			tasksStore.setGroupBy('due');
@@ -329,7 +335,7 @@ describe('tasksStore', () => {
 	it('reset restores defaults', () => {
 		tasksStore.setFileTaskGroups([{}] as any);
 		tasksStore.setSectionTag('#custom');
-		tasksStore.setRows(buildTaskRows([taskGroupV2('/vault/a.md', [taskV2('x')])], '/vault'));
+		tasksStore.setRows(rowsFrom([taskGroupV2('/vault/a.md', [taskV2('x')])], '/vault'));
 		tasksStore.setQuick({ show: 'all', statuses: ['done'], due: 'overdue' });
 		tasksStore.setLoading(true);
 		tasksStore.setHasLoaded(true);
