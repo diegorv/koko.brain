@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 /// mtime matches without parsing them again, so entries parsed by an
 /// older parser would otherwise survive. Mismatch on load -> discard
 /// cache -> full scan.
-pub const INDEX_SCHEMA_VERSION: u32 = 6;
+pub const INDEX_SCHEMA_VERSION: u32 = 7;
 
 /// Top-level envelope persisted to disk.
 #[derive(Debug, Clone, Serialize, Deserialize)]

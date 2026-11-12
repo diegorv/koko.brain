@@ -8,7 +8,7 @@
  *
  * Parsing reuses the pure TS logic the production code already trusts:
  *   - parseWikilinks/getNoteName/buildResolutionCache from wikilink-resolution.logic.ts
- *   - extractAllTags from utils/tag-extraction.ts
+ *   - extractAllTags and findInlineTags from utils/tag-extraction.ts
  * Frontmatter uses the `yaml` package with post-processing to mirror the
  * Rust subset (nested maps recorded as null).
  *
@@ -39,7 +39,7 @@ import {
 	buildResolutionCache,
 	resolveWikilinkCached,
 } from '../../src/lib/core/filesystem/wikilink-resolution.logic';
-import { extractAllTags } from '../../src/lib/utils/tag-extraction';
+import { extractAllTags, findInlineTags } from '../../src/lib/utils/tag-extraction';
 import { virtualFS } from './virtual-fs';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
@@ -156,9 +156,28 @@ function coerceFrontmatterValue(value: unknown): FrontmatterValue {
 const DUE_DATE_RE = /\u{1F4C5}\u{FE0F}?\s*(\d{4}-\d{2}-\d{2})/u;
 
 /**
+ * The tags and description Rust `parse_task_metadata` gives a task text that
+ * holds no signifier but the 📅 date: tags by the note tag rule
+ * (`findInlineTags`, the TS mirror of `scan_inline_tags`), their spans cut
+ * from the description, then whitespace runs of two or more collapsed to one
+ * space (`MULTI_SPACE_RE`) and the result trimmed.
+ */
+function taskDescriptionAndTags(text: string): { description: string; tags: string[] } {
+	const found = findInlineTags(text);
+	let description = '';
+	let keptFrom = 0;
+	for (const tag of found) {
+		description += text.slice(keptFrom, tag.from);
+		keptFrom = tag.to;
+	}
+	description += text.slice(keptFrom);
+	return { description: description.replace(/\s{2,}/g, ' ').trim(), tags: found.map((t) => t.tag) };
+}
+
+/**
  * Minimal task parser. The Rust source of truth lives in
  * `src-tauri/src/vault/parsing.rs::extract_tasks_and_headings`; this covers
- * checkbox char, indent, lineNumber and the 📅 due date — enough for
+ * checkbox char, indent, lineNumber, the 📅 due date and tags — enough for
  * golden-path tests — plus the note's headings and each task's `heading`
  * with Rust's rules: no headings in fences or in the frontmatter block
  * (skipped by line count, so lines stay whole-file lines), text trimmed,
@@ -195,6 +214,7 @@ function parseTasks(content: string): { tasks: TaskV2[]; taskHeadings: TaskHeadi
 
 		const [, indentStr, statusChar, text] = m;
 		const due = text.match(DUE_DATE_RE);
+		const { description, tags } = taskDescriptionAndTags(due ? text.replace(due[0], '') : text);
 		tasks.push({
 			text,
 			checked: statusChar !== ' ',
@@ -202,9 +222,9 @@ function parseTasks(content: string): { tasks: TaskV2[]; taskHeadings: TaskHeadi
 			lineNumber: i + 1,
 			status: STATUS_BY_CHAR[statusChar] ?? 'todo',
 			metadata: {
-				description: due ? text.replace(due[0], '').replace(/\s+/g, ' ').trim() : text,
+				description,
 				...(due ? { dueDate: due[1] } : {}),
-				tags: [],
+				tags,
 			},
 			...(taskHeadings.length > 0 ? { heading: taskHeadings.length - 1 } : {}),
 		});

@@ -1,7 +1,8 @@
 {
 	"description": [
-		"Task heading parity between the Rust indexer (extract_tasks_and_headings in src-tauri/src/vault/parsing.rs, through NoteEntry::from_content) and the e2e mock parser (parseTasks in e2e/mocks/vault-index.ts).",
-		"Each case gives a note's content and the expected wire fields: taskHeadings (omitted when empty) and each task's text, lineNumber and heading (omitted before the first heading). Both sides assert these exact values."
+		"Task heading and task tag parity between the Rust indexer (extract_tasks_and_headings and parse_task_metadata in src-tauri/src/vault/parsing.rs, through NoteEntry::from_content) and the e2e mock parser (parseTasks in e2e/mocks/vault-index.ts).",
+		"Each case gives a note's content and the expected wire fields: taskHeadings (omitted when empty) and each task's text, lineNumber, heading (omitted before the first heading), metadata.description and metadata.tags. Both sides assert these exact values.",
+		"Task tags follow the note tag rule (scan_inline_tags): # at the text start or after whitespace, a letter or _ first, then letters, ASCII digits, _, - and /, trailing / not part of the tag."
 	],
 	"cases": [
 		{
@@ -14,9 +15,9 @@
 					{ "level": 2, "text": "C", "line": 13 }
 				],
 				"tasks": [
-					{ "text": "a task", "lineNumber": 6, "heading": 0 },
-					{ "text": "b task", "lineNumber": 8, "heading": 1 },
-					{ "text": "c task", "lineNumber": 14, "heading": 2 }
+					{ "text": "a task", "lineNumber": 6, "heading": 0, "description": "a task", "tags": [] },
+					{ "text": "b task", "lineNumber": 8, "heading": 1, "description": "b task", "tags": [] },
+					{ "text": "c task", "lineNumber": 14, "heading": 2, "description": "c task", "tags": [] }
 				]
 			}
 		},
@@ -26,8 +27,8 @@
 			"expected": {
 				"taskHeadings": [{ "level": 1, "text": "Spaced title", "line": 2 }],
 				"tasks": [
-					{ "text": "early", "lineNumber": 1 },
-					{ "text": "late", "lineNumber": 3, "heading": 0 }
+					{ "text": "early", "lineNumber": 1, "description": "early", "tags": [] },
+					{ "text": "late", "lineNumber": 3, "heading": 0, "description": "late", "tags": [] }
 				]
 			}
 		},
@@ -46,7 +47,7 @@
 					{ "level": 2, "text": "Work", "line": 3 },
 					{ "level": 4, "text": "Deep", "line": 5 }
 				],
-				"tasks": [{ "text": "w", "lineNumber": 4, "heading": 2 }]
+				"tasks": [{ "text": "w", "lineNumber": 4, "heading": 2, "description": "w", "tags": [] }]
 			}
 		},
 		{
@@ -54,7 +55,42 @@
 			"content": "~~~\n# x\n```\n- [ ] fenced\n~~~\n# After\n- [ ] t\n",
 			"expected": {
 				"taskHeadings": [{ "level": 1, "text": "After", "line": 6 }],
-				"tasks": [{ "text": "t", "lineNumber": 7, "heading": 0 }]
+				"tasks": [{ "text": "t", "lineNumber": 7, "heading": 0, "description": "t", "tags": [] }]
+			}
+		},
+		{
+			"name": "task tags accept Unicode letters and nested slashes",
+			"content": "- [ ] rever #revisão #work/client\n- [ ] #urgente ligar\n",
+			"expected": {
+				"tasks": [
+					{ "text": "rever #revisão #work/client", "lineNumber": 1, "description": "rever", "tags": ["revisão", "work/client"] },
+					{ "text": "#urgente ligar", "lineNumber": 2, "description": "ligar", "tags": ["urgente"] }
+				]
+			}
+		},
+		{
+			"name": "a digit-first tag, a mid-word hash and a wikilink heading are not task tags",
+			"content": "- [ ] plan #2026\n- [ ] see page#section\n- [ ] read [[Book#Chapter 2]]\n",
+			"expected": {
+				"tasks": [
+					{ "text": "plan #2026", "lineNumber": 1, "description": "plan #2026", "tags": [] },
+					{ "text": "see page#section", "lineNumber": 2, "description": "see page#section", "tags": [] },
+					{ "text": "read [[Book#Chapter 2]]", "lineNumber": 3, "description": "read [[Book#Chapter 2]]", "tags": [] }
+				]
+			}
+		},
+		{
+			"name": "a trailing slash stays in the description and duplicate task tags are kept",
+			"content": "- [ ] file #work/ now #a #a\n",
+			"expected": {
+				"tasks": [{ "text": "file #work/ now #a #a", "lineNumber": 1, "description": "file / now", "tags": ["work", "a", "a"] }]
+			}
+		},
+		{
+			"name": "task tags next to a due date",
+			"content": "- [ ] pagar #casa 📅 2026-01-05\n",
+			"expected": {
+				"tasks": [{ "text": "pagar #casa 📅 2026-01-05", "lineNumber": 1, "description": "pagar", "tags": ["casa"] }]
 			}
 		}
 	]

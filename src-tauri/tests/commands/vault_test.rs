@@ -980,7 +980,7 @@ fn entries_with_subset_parsed_notes(vault: &str) -> Vec<NoteEntry> {
 
 #[test]
 fn cached_inner_discards_a_schema_3_snapshot_and_reparses() {
-    assert_eq!(INDEX_SCHEMA_VERSION, 6);
+    assert_eq!(INDEX_SCHEMA_VERSION, 7);
     let dir = TempDir::new().unwrap();
     fs::write(dir.path().join("a.md"), "---\nnotes: |-\n  one\n  two\n---\nBody").unwrap();
     let vault = dir.path().to_string_lossy().to_string();
@@ -991,7 +991,7 @@ fn cached_inner_discards_a_schema_3_snapshot_and_reparses() {
     assert_eq!(result.source, ScanSource::FullScan);
 
     let snap = read_snapshot(&vault).unwrap().unwrap();
-    assert_eq!(snap.schema_version, 6);
+    assert_eq!(snap.schema_version, 7);
     assert_eq!(
         snap.entries[0].frontmatter.get("notes"),
         Some(&serde_json::json!("one\ntwo"))
@@ -1047,6 +1047,31 @@ fn cached_inner_records_task_headings_a_schema_5_snapshot_lacked() {
     let a = idx.entries().values().next().expect("a.md indexed");
     assert_eq!(a.task_headings.len(), 1);
     assert_eq!(a.tasks[0].heading, Some(0));
+}
+
+#[test]
+fn cached_inner_reparses_the_ascii_task_tags_a_schema_6_snapshot_kept() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "- [ ] rever #revisão\n").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    // A schema-6 parse read ASCII-only task tags; the mtime still matches.
+    let (mut notes, _) = scan_vault_v2_inner(&vault, &VaultIndexState::default()).unwrap();
+    for e in &mut notes {
+        for t in &mut e.tasks {
+            t.metadata.tags = vec!["revis".to_string()];
+            t.metadata.description = "rever ão".to_string();
+        }
+    }
+    write_snapshot_with_version(&vault, 6, notes);
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::FullScan);
+
+    let idx = state.read().unwrap();
+    let a = idx.entries().values().next().expect("a.md indexed");
+    assert_eq!(a.tasks[0].metadata.tags, vec!["revisão".to_string()]);
+    assert_eq!(a.tasks[0].metadata.description, "rever");
 }
 
 #[test]

@@ -431,31 +431,34 @@ fn extract_frontmatter_tags(content: &str) -> Vec<String> {
 	tags
 }
 
-/// Extracts inline `#tag` occurrences from the note body. Mirrors
-/// `utils/tag-extraction.ts::extractInlineTags`:
+/// One inline `#tag` found by `scan_inline_tags`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct InlineTag<'a> {
+	/// Byte offset of the `#`.
+	pub start: usize,
+	/// Byte offset just past the last tag char, trailing `/` excluded.
+	pub end: usize,
+	/// The tag name without `#` and without trailing `/`.
+	pub name: &'a str,
+}
+
+/// Every inline `#tag` in `text`, in order, duplicates included. This is the
+/// one tag rule for note bodies and task text (TS mirror:
+/// `utils/tag-extraction.ts::findInlineTags`):
 ///
-/// 1. Strip frontmatter, fenced code blocks, inline code, HTML comments
-///    (in that order — fenced code MUST come before inline code so
-///    backticks inside fences do not pair with body backticks).
-/// 2. For each `#` preceded by start-of-text or whitespace, consume a tag
-///    matching `[\p{L}_][\p{L}\d_/-]*`. Reject digit-first or empty
-///    captures.
-/// 3. Strip trailing slashes from the captured tag.
-/// 4. Deduplicate case-sensitively (the TS implementation uses `Set`,
-///    matching exact bytes; case-insensitive dedup happens later in
-///    `extract_tags_strict` after merging frontmatter tags).
-fn extract_inline_tags(content: &str) -> Vec<String> {
-	let body = strip_frontmatter(content);
-	let body = strip_fenced_code_blocks(body);
-	let body = strip_inline_code(&body);
-	let body = strip_html_comments(&body);
-
-	let mut tags: Vec<String> = Vec::new();
-	let mut seen: Vec<String> = Vec::new();
+/// - `#` at the start of `text` or after whitespace (a mid-word `#`, as in
+///   `page#section` or `[[Book#Chapter]]`, is not a tag).
+/// - The first char is `\p{L}` or `_` (digit-first rejected), then
+///   `[\p{L}\d_/-]*` with ASCII digits.
+/// - Trailing `/` is not part of the tag.
+///
+/// It does not skip code, comments or frontmatter: callers strip those.
+pub(crate) fn scan_inline_tags(text: &str) -> Vec<InlineTag<'_>> {
+	let mut tags = Vec::new();
 	let mut prev_was_ws_or_start = true;
-	let mut iter = body.char_indices().peekable();
+	let mut iter = text.char_indices().peekable();
 
-	while let Some((_, c)) = iter.next() {
+	while let Some((hash_byte, c)) = iter.next() {
 		let preceding_ok = prev_was_ws_or_start;
 		prev_was_ws_or_start = c.is_whitespace();
 
@@ -488,18 +491,37 @@ fn extract_inline_tags(content: &str) -> Vec<String> {
 		// iteration is the last tag char (never whitespace).
 		prev_was_ws_or_start = false;
 
-		// Strip trailing slashes (TS `.replace(/\/+$/, '')`).
-		let raw = &body[tag_start..tag_end];
-		let trimmed = raw.trim_end_matches('/');
-		if trimmed.is_empty() {
-			continue;
-		}
-		if !seen.iter().any(|t| t == trimmed) {
-			seen.push(trimmed.to_string());
-			tags.push(trimmed.to_string());
-		}
+		// Strip trailing slashes (TS `.replace(/\/+$/, '')`). The first char
+		// is a letter or `_`, so the name is never empty.
+		let name = text[tag_start..tag_end].trim_end_matches('/');
+		tags.push(InlineTag { start: hash_byte, end: tag_start + name.len(), name });
 	}
 
+	tags
+}
+
+/// Extracts inline `#tag` occurrences from the note body. Mirrors
+/// `utils/tag-extraction.ts::extractInlineTags`:
+///
+/// 1. Strip frontmatter, fenced code blocks, inline code, HTML comments
+///    (in that order — fenced code MUST come before inline code so
+///    backticks inside fences do not pair with body backticks).
+/// 2. Find the tags with `scan_inline_tags`.
+/// 3. Deduplicate case-sensitively (the TS implementation uses `Set`,
+///    matching exact bytes; case-insensitive dedup happens later in
+///    `extract_tags_strict` after merging frontmatter tags).
+fn extract_inline_tags(content: &str) -> Vec<String> {
+	let body = strip_frontmatter(content);
+	let body = strip_fenced_code_blocks(body);
+	let body = strip_inline_code(&body);
+	let body = strip_html_comments(&body);
+
+	let mut tags: Vec<String> = Vec::new();
+	for tag in scan_inline_tags(&body) {
+		if !tags.iter().any(|t| t == tag.name) {
+			tags.push(tag.name.to_string());
+		}
+	}
 	tags
 }
 
@@ -1416,9 +1438,8 @@ fn find_double_bracket_close(line: &str, from: usize) -> Option<usize> {
 // The recurrence stop list (next signifier OR an ASCII `#[A-Za-z0-9_]`) is
 // matched but not consumed, so the stop signifier stays in the text for the
 // later extractors (see `RECURRENCE_RE`).
-// Tag extraction inside task metadata uses `#([A-Za-z0-9_][A-Za-z0-9_-]*)` —
-// distinct from `extract_tags_strict`'s Unicode rules — so a hyphen-bearing
-// tag inside a task description (e.g. `#in-progress`) is captured.
+// Task tags follow the note tag rule: `parse_task_metadata` finds them with
+// `scan_inline_tags`, the scanner `extract_inline_tags` uses for note bodies.
 // ============================================================================
 
 /// Regex for an unordered task line: a `-`/`*`/`+` marker, a one-char status
@@ -1574,13 +1595,6 @@ static ON_COMPLETION_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(&format!(r"{}\s*(\S+)", emoji_pattern(ON_COMPLETION_EMOJI)))
 		.expect("on_completion regex")
 });
-
-/// Tag regex inside task metadata: `#word` with optional internal hyphens.
-/// The ASCII class `[A-Za-z0-9_]` is spelled out on purpose: the Rust regex
-/// crate's `\w` is Unicode-aware, and task tags must stay ASCII-only, so `\w`
-/// cannot be used here.
-static TASK_TAG_RE: LazyLock<Regex> =
-	LazyLock::new(|| Regex::new(r"#([A-Za-z0-9_][A-Za-z0-9_-]*)").expect("task tag regex"));
 
 /// Multi-space collapse regex.
 static MULTI_SPACE_RE: LazyLock<Regex> =
@@ -1921,20 +1935,20 @@ pub fn parse_task_metadata(raw_text: &str) -> TaskMetadata {
 		}
 	}
 
-	// Tags — extract from the cleaned text (post-signifier removal). The TS
-	// version does this on `text.trim()` then removes via `text.replace(TAG_RE, '')`.
-	let cleaned_for_tags = text.trim().to_string();
-	let mut tags: Vec<String> = Vec::new();
-	for caps in TASK_TAG_RE.captures_iter(&cleaned_for_tags) {
-		if let Some(m) = caps.get(1) {
-			tags.push(m.as_str().to_string());
-		}
+	// Tags — the note tag rule (`scan_inline_tags`) on the text left after
+	// signifier removal. Each tag's span is cut from the description.
+	let found = scan_inline_tags(&text);
+	metadata.tags = found.iter().map(|t| t.name.to_string()).collect();
+	let mut without_tags = String::with_capacity(text.len());
+	let mut kept_from = 0;
+	for tag in &found {
+		without_tags.push_str(&text[kept_from..tag.start]);
+		kept_from = tag.end;
 	}
-	metadata.tags = tags;
+	without_tags.push_str(&text[kept_from..]);
 
-	// Strip tags from `text`, then collapse multi-spaces and trim.
-	text = TASK_TAG_RE.replace_all(&text, "").to_string();
-	text = MULTI_SPACE_RE.replace_all(&text, " ").to_string();
+	// Collapse multi-spaces and trim.
+	text = MULTI_SPACE_RE.replace_all(&without_tags, " ").to_string();
 	metadata.description = text.trim().to_string();
 
 	metadata
@@ -3340,6 +3354,49 @@ mod tests {
 		let m = parse_task_metadata("Buy milk #grocery #urgent");
 		assert_eq!(m.description, "Buy milk");
 		assert_eq!(m.tags, vec!["grocery".to_string(), "urgent".to_string()]);
+	}
+
+	#[test]
+	fn parse_task_metadata_tags_follow_the_note_tag_rule() {
+		let m = parse_task_metadata("rever #revisão #work/client");
+		assert_eq!(m.tags, vec!["revisão".to_string(), "work/client".to_string()]);
+		assert_eq!(m.description, "rever");
+	}
+
+	#[test]
+	fn parse_task_metadata_digit_first_and_mid_word_hash_are_not_tags() {
+		let m = parse_task_metadata("plan #2026 see page#section");
+		assert!(m.tags.is_empty(), "tags: {:?}", m.tags);
+		assert_eq!(m.description, "plan #2026 see page#section");
+	}
+
+	#[test]
+	fn parse_task_metadata_wikilink_heading_is_not_a_tag() {
+		let m = parse_task_metadata("read [[Book#Chapter 2]]");
+		assert!(m.tags.is_empty(), "tags: {:?}", m.tags);
+		assert_eq!(m.description, "read [[Book#Chapter 2]]");
+	}
+
+	#[test]
+	fn parse_task_metadata_tag_drops_trailing_slash_from_name_only() {
+		let m = parse_task_metadata("file #work/ now");
+		assert_eq!(m.tags, vec!["work".to_string()]);
+		assert_eq!(m.description, "file / now");
+	}
+
+	#[test]
+	fn scan_inline_tags_yields_each_tag_with_its_byte_span() {
+		let text = "a #ação b#x #2026 #n/ #_y";
+		let found: Vec<(usize, usize, &str)> =
+			scan_inline_tags(text).iter().map(|t| (t.start, t.end, t.name)).collect();
+		assert_eq!(found, vec![(2, 9, "ação"), (20, 22, "n"), (24, 27, "_y")]);
+		assert_eq!(&text[2..9], "#ação");
+	}
+
+	#[test]
+	fn scan_inline_tags_of_empty_text_is_empty() {
+		assert!(scan_inline_tags("").is_empty());
+		assert!(scan_inline_tags("#").is_empty());
 	}
 
 	// --- parse_task_metadata: description cleanup ----------------------------------

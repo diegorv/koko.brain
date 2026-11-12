@@ -14,19 +14,23 @@
 
 **Blocked by:** 074
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B7 (a): task tags follow the note tag rule. Issue 31 is closed as wontfix (owner, 2026-11-06).
 
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the e2e mock changes. Run cargo from the checkout or worktree root.
 
-- [ ] Failing Rust test first: `parse_task_metadata("rever #revisão #work/client")` returns tags `revisão` and `work/client` and description `rever`. Fails today.
-- [ ] `#2026` and `page#section` in a task line yield no tag and stay in the description. `read [[Book#Chapter 2]]` yields no tag and keeps the description `read [[Book#Chapter 2]]` (today: tag `Chapter`, description `read [[Book 2]]`, which also reaches Todoist).
-- [ ] The existing tag tests (`parsing.rs:3223` area) keep passing or change on purpose, with the reason in the commit.
-- [ ] A cache written at the previous schema version is rejected and rebuilt.
-- [ ] The parity test from Issue 11 covers the tag cases. If Issue 11 has not landed, add a small tag-only parity fixture (`src/tests/fixtures/task-tags-parity.fixture.json`) read by the Rust test and by a vitest test over the e2e mock parser, and Issue 11 merges it into its own fixture.
+- [x] Failing Rust test first: `parse_task_metadata("rever #revisão #work/client")` returns tags `revisão` and `work/client` and description `rever`. Fails today.
+- [x] `#2026` and `page#section` in a task line yield no tag and stay in the description. `read [[Book#Chapter 2]]` yields no tag and keeps the description `read [[Book#Chapter 2]]` (today: tag `Chapter`, description `read [[Book 2]]`, which also reaches Todoist).
+- [x] The existing tag tests (`parsing.rs:3223` area) keep passing or change on purpose, with the reason in the commit.
+- [x] A cache written at the previous schema version is rejected and rebuilt.
+- [x] The parity test from Issue 11 covers the tag cases. If Issue 11 has not landed, add a small tag-only parity fixture (`src/tests/fixtures/task-tags-parity.fixture.json`) read by the Rust test and by a vitest test over the e2e mock parser, and Issue 11 merges it into its own fixture.
 
 ## Notes
 
 - `audit-2026-11-05/142` is the live copy of `tags-obsidian-parity/01`, which was closed as wontfix and migrated on 2026-11-06; its task-metadata checkbox still reads "Owner decision first".
 - **Size:** S to M. Split out of the old Issue 19, which also held the tag quick filter (now Issue 19 alone).
+
+## Comments
+
+- 2026-11-12, branch `issue/075-task-tags-follow-note-tag-rule`: task tags now use the note tag scanner in `parse_task_metadata` (Unicode, nested, no digit-first, no mid-word or wikilink-heading `#`); `INDEX_SCHEMA_VERSION` 6 -> 7, so each vault rebuilds its index once; the e2e mock parser follows the same rule; the task-headings parity fixture gains tag cases. This covers `audit-2026-11-05/142`'s task-metadata checkbox. Tests: `pnpm vitest run` 616 files, 15696 passed, 0 failed; `cargo test` 1453 passed, 0 failed; `bash scripts/e2e.sh` all specs pass except `tabs.spec.ts` "the active tab scrolls into view in an overflowing strip" (550.19 > 550), which fails the same way on main. Review round 1: APPROVED, no code changes. Follow-ups for the main session: Todoist sync (`isTaskTagName`/`tagMatches`, pull, test fake) still uses the old ASCII rule, so a digit-first label such as `2026` gets dropped from Todoist and pushed as `content #2026` (review finding 1, file before the next release); `RECURRENCE_RE` stops only at an ASCII-first `#`, so `🔁 every week #über` keeps the tag in the recurrence text (finding 2).

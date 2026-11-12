@@ -1,5 +1,6 @@
 //! Pins the task headings the indexer records (`NoteEntry.task_headings`,
-//! `Task.heading`) against the shared parity fixture
+//! `Task.heading`) and each task's description and tags against the shared
+//! parity fixture
 //! (`src/tests/fixtures/task-headings-parity.fixture.json`). The e2e mock
 //! parser is checked against the same fixture in
 //! `src/tests/e2e/task-headings-parity.test.ts`, so the mock cannot drift.
@@ -10,8 +11,9 @@ use serde_json::{json, Map, Value};
 const FIXTURE: &str = include_str!("../../src/tests/fixtures/task-headings-parity.fixture.json");
 
 /// The wire fields the fixture pins: `taskHeadings` when present, and each
-/// task's `text`, `lineNumber` and `heading` when present.
-fn heading_fields(entry: &NoteEntry) -> Value {
+/// task's `text`, `lineNumber`, `heading` when present, and its
+/// `metadata.description` and `metadata.tags`.
+fn parity_fields(entry: &NoteEntry) -> Value {
 	let wire = serde_json::to_value(entry).expect("entry serializes");
 	let mut out = Map::new();
 	if let Some(headings) = wire.get("taskHeadings") {
@@ -28,6 +30,8 @@ fn heading_fields(entry: &NoteEntry) -> Value {
 			if let Some(h) = t.get("heading") {
 				task.insert("heading".to_string(), h.clone());
 			}
+			task.insert("description".to_string(), t["metadata"]["description"].clone());
+			task.insert("tags".to_string(), t["metadata"]["tags"].clone());
 			Value::Object(task)
 		})
 		.collect();
@@ -36,7 +40,7 @@ fn heading_fields(entry: &NoteEntry) -> Value {
 }
 
 #[test]
-fn indexer_records_the_fixture_headings() {
+fn indexer_records_the_fixture_headings_and_tags() {
 	let fixture: Value = serde_json::from_str(FIXTURE).expect("fixture is valid JSON");
 	let cases = fixture["cases"].as_array().expect("cases array");
 	assert!(!cases.is_empty());
@@ -44,6 +48,6 @@ fn indexer_records_the_fixture_headings() {
 		let name = case["name"].as_str().expect("case name");
 		let content = case["content"].as_str().expect("case content");
 		let entry = NoteEntry::from_content("/vault/note.md".to_string(), content, 0);
-		assert_eq!(heading_fields(&entry), case["expected"], "case: {name}");
+		assert_eq!(parity_fields(&entry), case["expected"], "case: {name}");
 	}
 }

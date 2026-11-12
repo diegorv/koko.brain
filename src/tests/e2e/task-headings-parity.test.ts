@@ -7,22 +7,25 @@ import type { NoteEntryV2 } from '../../lib/types/vault-v2.types';
 /**
  * The e2e mock parser against the fixture the Rust indexer is pinned to
  * (`src-tauri/tests/vault_task_headings_parity_test.rs`): the same note
- * gives the same `taskHeadings` and task `heading` fields on both sides.
+ * gives the same `taskHeadings`, task `heading`, description and tags on
+ * both sides.
  */
 
 /** The fields the fixture pins, with absent wire fields left out as Rust omits them. */
-function headingFields(entry: NoteEntryV2) {
+function parityFields(entry: NoteEntryV2) {
 	return {
 		...(entry.taskHeadings !== undefined ? { taskHeadings: entry.taskHeadings } : {}),
 		tasks: entry.tasks.map((t) => ({
 			text: t.text,
 			lineNumber: t.lineNumber,
 			...(t.heading !== undefined ? { heading: t.heading } : {}),
+			description: t.metadata.description,
+			tags: t.metadata.tags,
 		})),
 	};
 }
 
-describe('E2E vault index task headings parity', () => {
+describe('E2E vault index task headings and tags parity', () => {
 	afterEach(() => virtualFS.reset());
 
 	it.each(parity.cases)('$name', ({ content, expected }) => {
@@ -30,7 +33,7 @@ describe('E2E vault index task headings parity', () => {
 		vaultIndex.update('/vault/note.md', content);
 		const entry = vaultIndex.getEntry('/vault/note.md');
 		expect(entry).not.toBeNull();
-		expect(headingFields(entry as NoteEntryV2)).toEqual(expected);
+		expect(parityFields(entry as NoteEntryV2)).toEqual(expected);
 	});
 
 	it('omits taskHeadings for a note without tasks', () => {
