@@ -65,7 +65,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 239 | [Tasks priority and tag filters, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | todo | | |
 | 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | todo | | |
 | 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
-| 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | in-progress | | |
+| 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | done | issue/242-tasks-several-section-tags (3583a1057) | 2026-11-12 |
 | 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234 | todo | | |
 | 244 | [Tasks come from the entries snapshot, with an overlay for the view's own writes](issues/244-tasks-from-entries-snapshot-with-write-overlay.md) | 115, 241 | todo | | |
 | 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | todo | | |
@@ -78,3 +78,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 10:14 — 108 — start — launched by /relay-lite:run — d0a505c94
 - 2026-11-12 10:28 — 108 — deliver — review APPROVED round 1 (claude), three nits rejected with reasons, no fix round; full suite 614 files / 15601 tests passed; reviewer e2e tasks-view.spec.ts 8 passed; squash merged and pushed — 1a9e9eeaf
 - 2026-11-12 10:28 — 242 — start — launched by /relay-lite:run — ca647518e
+- 2026-11-12 10:47 — 242 — deliver — round 1 APPROVED by claude (1 finding fixed: e2e asserts the untagged task stays hidden; 1 nit), deliver re-review APPROVED by claude; full suite 615 files / 15625 tests, cargo 1437 passed, e2e tasks-view.spec.ts 9 passed; squash merged and pushed — 3583a1057
