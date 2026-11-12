@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 074 | [Rust records task headings](issues/074-rust-task-headings.md) | 242 | todo | | |
 | 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | todo | | |
-| 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | in-progress | | |
+| 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | done | issue/108-mounted-list-and-rule-sentence (1a9e9eeaf) | 2026-11-12 |
 | 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | todo | | |
 | 110 | [Open means not done and not cancelled, and each status has its own glyph](issues/110-open-closed-rule.md) | 242 | todo | | |
 | 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | todo | | |
@@ -76,3 +76,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-12 10:09 — ledger created (36 Issues)
 - 2026-11-12 10:14 — 108 — start — launched by /relay-lite:run — d0a505c94
+- 2026-11-12 10:28 — 108 — deliver — review APPROVED round 1 (claude), three nits rejected with reasons, no fix round; full suite 614 files / 15601 tests passed; reviewer e2e tasks-view.spec.ts 8 passed; squash merged and pushed — 1a9e9eeaf
