@@ -27,14 +27,21 @@ const paragraphStarting = (text: string) =>
 const buttonNamed = (name: string) =>
 	Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.trim() === name);
 
-/** The Status menu trigger, found by its visible text. */
-function statusTrigger(): HTMLButtonElement {
+/** A filter menu trigger, found by its visible text's prefix. */
+function triggerStarting(prefix: string): HTMLButtonElement {
 	const button = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((b) =>
-		b.textContent?.trim().startsWith('Status:'),
+		b.textContent?.trim().startsWith(prefix),
 	);
-	if (!button) throw new Error('Status trigger not found');
+	if (!button) throw new Error(`${prefix} trigger not found`);
 	return button;
 }
+
+const statusTrigger = () => triggerStarting('Status:');
+const dueTrigger = () => triggerStarting('Due:');
+
+/** A task due on `dueDate`. */
+const dueTaskV2 = (text: string, dueDate: string, lineNumber: number) =>
+	taskV2(text, { lineNumber, metadata: { description: text, tags: [], dueDate } });
 
 /** The open menu: jsdom never ends the exit animation, so a closed one stays with data-state="closed". */
 const openMenuEl = () => document.querySelector<HTMLElement>('[role="menu"][data-state="open"]');
@@ -200,7 +207,7 @@ describe('TasksView: the filter row', () => {
 		expect(document.querySelector('[data-task-group-subtitle]')?.textContent?.trim()).toBe('Projects/Clients');
 	});
 
-	it('drops the row of a note edited 10 days ago under Last 7 days', async () => {
+	it('drops the row of a note edited 10 days ago under Due > Note edited in the last 7 days', async () => {
 		vi.useFakeTimers({ toFake: ['Date'] });
 		const now = new Date('2026-11-12T12:00:00Z');
 		vi.setSystemTime(now);
@@ -212,9 +219,87 @@ describe('TasksView: the filter row', () => {
 		({ component } = await mountTasksView());
 		await until(() => expect(rowTexts()).toEqual(['Fresh', 'Old']));
 
-		buttonNamed('Last 7 days')!.click();
+		await openMenu(dueTrigger());
+		menuItem('menuitemradio', 'Note edited in the last 7 days').click();
 		await until(() => expect(rowTexts()).toEqual(['Fresh']));
 		expect(countText()).toBe('1 open in 1 note');
+		expect(dueTrigger().textContent?.trim()).toBe('Due: note edited 7 days');
+	});
+
+	it('Due > Overdue lists only the overdue row', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(2026, 10, 5, 12));
+		mockTaskFetch([
+			taskGroupV2(NOTE, [dueTaskV2('Late', '2026-11-04', 1), dueTaskV2('Later', '2026-11-20', 2), taskV2('Someday', { lineNumber: 3 })]),
+		]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rowTexts()).toEqual(['Late', 'Later', 'Someday']));
+		expect(dueTrigger().textContent?.trim()).toBe('Due: any');
+
+		await openMenu(dueTrigger());
+		menuItem('menuitemradio', 'Overdue').click();
+		await until(() => expect(rowTexts()).toEqual(['Late']));
+		expect(tasksStore.quick.due).toBe('overdue');
+		expect(paragraphStarting('Open tasks from every note')?.textContent?.trim().endsWith(', overdue')).toBe(true);
+		expect(dueTrigger().textContent?.trim()).toBe('Due: overdue');
+	});
+
+	it('holds the seven Due options in one radio group, Any checked, the edited ones after a separator', async () => {
+		mockTaskFetch([taskGroupV2(NOTE, [taskV2('Ship', { lineNumber: 1 })])]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rowTexts()).toEqual(['Ship']));
+
+		await openMenu(dueTrigger());
+		const group = openMenuEl()!.querySelector('[role="group"]')!;
+		expect(Array.from(group.querySelectorAll('[role="menuitemradio"]')).map((el) => el.textContent?.trim())).toEqual([
+			'Any',
+			'Overdue',
+			'Today',
+			'Next 7 days',
+			'No date',
+			'Note edited in the last 7 days',
+			'Note edited in the last 30 days',
+		]);
+		expect(group.querySelectorAll('[role="separator"]')).toHaveLength(1);
+		expect(group.querySelectorAll('[role="menuitemradio"][aria-checked="true"]')).toHaveLength(1);
+		expect(menuItem('menuitemradio', 'Any').getAttribute('aria-checked')).toBe('true');
+	});
+
+	it('picking Any stores no due value', async () => {
+		tasksStore.setQuick({ due: 'today' });
+		mockTaskFetch([taskGroupV2(NOTE, [taskV2('Ship', { lineNumber: 1 })])]);
+		({ component } = await mountTasksView());
+		await until(() => expect(paragraphStarting('No task matches the Due filter')).toBeDefined());
+
+		await openMenu(dueTrigger());
+		menuItem('menuitemradio', 'Any').click();
+		await until(() => expect(rowTexts()).toEqual(['Ship']));
+		expect(tasksStore.quick.due).toBeUndefined();
+		expect(dueTrigger().textContent?.trim()).toBe('Due: any');
+	});
+
+	it('Reset Due filter resets only Due, keeping Status at All', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(2026, 10, 5, 12));
+		mockTaskFetch([taskGroupV2(NOTE, [dueTaskV2('Later', '2026-11-20', 1), taskV2('Shipped', { status: 'done', lineNumber: 2 })])]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rowTexts()).toEqual(['Later']));
+
+		await openMenu(statusTrigger());
+		menuItem('menuitemradio', 'All').click();
+		await until(() => expect(rowTexts()).toEqual(['Later', 'Shipped']));
+		await openMenu(dueTrigger());
+		menuItem('menuitemradio', 'Overdue').click();
+		await until(() => expect(paragraphStarting('No task matches the Due filter')).toBeDefined());
+
+		const resets = Array.from(document.querySelectorAll<HTMLButtonElement>('button')).filter(
+			(b) => b.textContent?.trim() === 'Reset Due filter',
+		);
+		expect(resets).toHaveLength(1);
+		resets[0].click();
+		await until(() => expect(rowTexts()).toEqual(['Later', 'Shipped']));
+		expect(dueTrigger().textContent?.trim()).toBe('Due: any');
+		expect(statusTrigger().textContent?.trim()).toBe('Status: all');
 	});
 
 	it('keeps the title, count and spinner in the toolbar and the filters in their own row', async () => {
@@ -229,7 +314,8 @@ describe('TasksView: the filter row', () => {
 		expect(filters.querySelector('[data-task-count]')).toBeNull();
 		expect(filters.contains(statusTrigger())).toBe(true);
 		expect(toolbar.contains(statusTrigger())).toBe(false);
-		expect(filters.contains(buttonNamed('Last 7 days')!)).toBe(true);
+		expect(filters.contains(dueTrigger())).toBe(true);
+		expect(statusTrigger().compareDocumentPosition(dueTrigger()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 		expect(filters.querySelector('input[aria-label="Section tag"]')).not.toBeNull();
 
 		tasksStore.setLoading(true);

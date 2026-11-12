@@ -1,8 +1,9 @@
+import { formatDateWithOffset } from '#lib/utils/date.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import { TASK_STATUSES, isTaskOpen, statusGlyph } from './task-status.logic';
 import type { TaskStatus } from './task-metadata.types';
 import { noteFolder, noteTaskCounts, parseSectionTags } from './tasks.logic';
-import type { FileTaskGroup, TaskDateFilter, TaskItem } from './tasks.types';
+import type { FileTaskGroup, TaskItem } from './tasks.types';
 
 /**
  * One task of the Tasks view, with the fields of its note that the filters and
@@ -22,9 +23,9 @@ export type TaskRow = TaskItem & {
 	open: boolean;
 	/** The note's last-modified time in ms */
 	modifiedAt: number;
-	/** The note's tasks, counted before any quick filter or date cutoff */
+	/** The note's tasks, counted before any quick filter */
 	noteTaskCount: number;
-	/** The note's open tasks, counted before any quick filter or date cutoff */
+	/** The note's open tasks, counted before any quick filter */
 	noteOpenCount: number;
 	/** Line of the nearest earlier task in the same note with a smaller indent */
 	parentLine?: number;
@@ -36,28 +37,40 @@ export type VisibleRow = TaskRow & {
 	dimmed: boolean;
 };
 
+/**
+ * The Due filter's options. `overdue`, `today`, `next7` (today through today
+ * + 7 days) and `none` read the task's due date; `edited7` and `edited30`
+ * read the note's modification time instead.
+ */
+export type DueRange = 'any' | 'overdue' | 'today' | 'next7' | 'none' | 'edited7' | 'edited30';
+
 /** The Tasks view's quick filters */
 export type TaskQuickFilters = {
 	/** Which tasks show when no status is chosen */
 	show: 'open' | 'closed' | 'all';
 	/** Chosen statuses in `TASK_STATUSES` order; when non-empty they win over `show`. Never `[]` once set by a setter */
 	statuses?: TaskStatus[];
+	/** The Due filter; unset means `any`, and choosing Any stores `undefined` */
+	due?: DueRange;
 };
 
 /** The quick filters a fresh Tasks view starts with */
 export const DEFAULT_QUICK: TaskQuickFilters = { show: 'open' };
 
 /** A quick filter field `isQuickFieldDefault` tests */
-export type QuickFilterField = 'status';
+export type QuickFilterField = 'status' | 'due';
 
 /**
  * Whether `field` of `quick` is at its default. The status field is when
- * `show` is `open` and no status is chosen (`statuses` absent or empty).
+ * `show` is `open` and no status is chosen (`statuses` absent or empty); the
+ * due field when `due` is absent or `any`.
  */
 export function isQuickFieldDefault(quick: TaskQuickFilters, field: QuickFilterField): boolean {
 	switch (field) {
 		case 'status':
 			return quick.show === 'open' && !quick.statuses?.length;
+		case 'due':
+			return quick.due === undefined || quick.due === 'any';
 	}
 }
 
@@ -114,14 +127,52 @@ function passesStatus(row: TaskRow, quick: TaskQuickFilters): boolean {
 	return true;
 }
 
+const DAY_MS = 86_400_000;
+
 /**
- * The rows that pass the quick filters, plus each failing row with a passing
- * row in its subtree (the later rows of the same note with a larger indent,
- * up to the next one whose indent is not larger), kept as `dimmed`.
- * Returns new objects; `rows` is never mutated.
+ * The Due filter as a row predicate, built once per call. Due dates are
+ * `YYYY-MM-DD` keys, so plain string comparison orders them; a key Rust sent
+ * without a calendar check still sorts consistently.
+ * @param today - today as `YYYY-MM-DD`
+ * @param now - the clock the edited options' cutoff reads, in ms
  */
-export function applyQuickFilters(rows: TaskRow[], quick: TaskQuickFilters): VisibleRow[] {
-	const passes = rows.map((row) => passesStatus(row, quick));
+function duePredicate(due: DueRange | undefined, today: string, now: number): ((row: TaskRow) => boolean) | null {
+	switch (due) {
+		case undefined:
+		case 'any':
+			return null;
+		case 'overdue':
+			return (row) => row.metadata.dueDate !== undefined && row.metadata.dueDate < today;
+		case 'today':
+			return (row) => row.metadata.dueDate === today;
+		case 'next7': {
+			// Parsed as a local date: `new Date(today)` would read UTC midnight.
+			const end = formatDateWithOffset(today, 'YYYY-MM-DD', 'YYYY-MM-DD', 7);
+			return (row) => row.metadata.dueDate !== undefined && row.metadata.dueDate >= today && row.metadata.dueDate <= end;
+		}
+		case 'none':
+			return (row) => !row.metadata.dueDate;
+		case 'edited7':
+		case 'edited30': {
+			const cutoff = now - (due === 'edited7' ? 7 : 30) * DAY_MS;
+			return (row) => row.modifiedAt >= cutoff;
+		}
+	}
+}
+
+/**
+ * The rows that pass the quick filters (status and Due), plus each failing
+ * row with a passing row in its subtree (the later rows of the same note with
+ * a larger indent, up to the next one whose indent is not larger), kept as
+ * `dimmed`. The edited Due options fold into the same predicate: every row of
+ * a note shares `modifiedAt`, so no failing row is ever kept dimmed for them.
+ * Returns new objects; `rows` is never mutated.
+ * @param today - today as `YYYY-MM-DD`, for the due date options
+ * @param now - the clock the edited options read, in ms
+ */
+export function applyQuickFilters(rows: TaskRow[], quick: TaskQuickFilters, today: string, now: number): VisibleRow[] {
+	const passesDue = duePredicate(quick.due, today, now);
+	const passes = rows.map((row) => passesStatus(row, quick) && (passesDue === null || passesDue(row)));
 	const visible: VisibleRow[] = [];
 	for (let i = 0; i < rows.length; i++) {
 		const row = rows[i];
@@ -138,22 +189,6 @@ export function applyQuickFilters(rows: TaskRow[], quick: TaskQuickFilters): Vis
 		}
 	}
 	return visible;
-}
-
-/** Days covered by a date filter other than `all` */
-function dateFilterDays(dateFilter: Exclude<TaskDateFilter, 'all'>): number {
-	return dateFilter === 'last7days' ? 7 : 30;
-}
-
-/**
- * Drops the rows of notes last edited before the date filter's window
- * (`now` minus 7 or 30 days). Returns `rows` itself for `all`. Every row of a
- * note shares `modifiedAt`, so this commutes with `applyQuickFilters`.
- */
-export function applyEditedCutoff(rows: TaskRow[], dateFilter: TaskDateFilter, now: number): TaskRow[] {
-	if (dateFilter === 'all') return rows;
-	const cutoff = now - dateFilterDays(dateFilter) * 24 * 60 * 60 * 1000;
-	return rows.filter((row) => row.modifiedAt >= cutoff);
 }
 
 /** One note of the Tasks list and its visible rows */
@@ -236,8 +271,6 @@ export interface TaskRuleOptions {
 	sectionTag: string;
 	/** The quick filters */
 	quick: TaskQuickFilters;
-	/** Active date filter */
-	dateFilter: TaskDateFilter;
 }
 
 /** Shows the parsed section tags joined with ` or `; '' when there are none. */
@@ -253,14 +286,25 @@ function describeStatus(quick: TaskQuickFilters): string {
 	return 'All tasks';
 }
 
+/** The sentence's closing words for each Due option other than `any`. */
+const DUE_PHRASES: Record<Exclude<DueRange, 'any'>, string> = {
+	overdue: ', overdue',
+	today: ', due today',
+	next7: ', due in the next 7 days',
+	none: ', with no due date',
+	edited7: ', in notes edited in the last 7 days',
+	edited30: ', in notes edited in the last 30 days',
+};
+
 /**
  * Builds the sentence above the Tasks list that says which tasks it shows,
- * e.g. "Open tasks under headings containing #to-list". No trailing period.
+ * e.g. "Open tasks under headings containing #to-list, overdue". No trailing
+ * period.
  */
-export function describeTaskRule({ sectionTag, quick, dateFilter }: TaskRuleOptions): string {
+export function describeTaskRule({ sectionTag, quick }: TaskRuleOptions): string {
 	const tag = displaySectionTags(sectionTag);
 	const where = tag ? ` under headings containing ${tag}` : ' from every note';
-	const when = dateFilter === 'all' ? '' : `, in notes edited in the last ${dateFilterDays(dateFilter)} days`;
+	const when = quick.due === undefined || quick.due === 'any' ? '' : DUE_PHRASES[quick.due];
 	return `${describeStatus(quick)}${where}${when}`;
 }
 
@@ -268,24 +312,29 @@ export function describeTaskRule({ sectionTag, quick, dateFilter }: TaskRuleOpti
 export interface EmptyTasksExplanation {
 	/** Sentence naming the filter that emptied the list */
 	message: string;
-	/** Button that lifts that filter, when one does */
-	action?: { kind: 'clearTag' | 'showAllStatuses' | 'allTime'; label: string };
+	/** Button that lifts that filter, when one does; `resetQuick` resets only `field` */
+	action?:
+		| { kind: 'clearTag'; label: string }
+		| { kind: 'showAllStatuses'; label: string }
+		| { kind: 'resetQuick'; field: 'due'; label: string };
 }
 
 /**
  * Names the first filter stage that leaves the Tasks list empty: the section
- * tag (no row at all), then the status filter, then the date filter.
+ * tag (no row at all), then the status filter, then the Due filter. Each
+ * stage keeps the filters of the stages before it.
  * @param rows - the unfiltered store rows (already limited by the section tag
  *   on the Rust side)
- * @param now - the clock the date cutoff reads, in ms
+ * @param today - today as `YYYY-MM-DD`, for the due date options
+ * @param now - the clock the edited options read, in ms
  */
 export function explainEmptyTasks({
 	rows,
 	sectionTag,
 	quick,
-	dateFilter,
+	today,
 	now,
-}: TaskRuleOptions & { rows: TaskRow[]; now: number }): EmptyTasksExplanation {
+}: TaskRuleOptions & { rows: TaskRow[]; today: string; now: number }): EmptyTasksExplanation {
 	if (rows.length === 0) {
 		const tag = displaySectionTags(sectionTag);
 		if (tag) {
@@ -297,14 +346,13 @@ export function explainEmptyTasks({
 		return { message: 'No tasks in this vault yet' };
 	}
 
-	const statusDefault = isQuickFieldDefault(quick, 'status');
-
-	// Checked without the date cutoff: when the status filter alone empties
-	// the list, lifting the date filter would not fill it.
-	if (applyQuickFilters(rows, quick).length === 0) {
+	// Checked without the Due filter: when the status filter alone empties
+	// the list, lifting the Due filter would not fill it.
+	const statusOnly: TaskQuickFilters = { show: quick.show, statuses: quick.statuses };
+	if (applyQuickFilters(rows, statusOnly, today, now).length === 0) {
 		const total = rows.length;
 		return {
-			message: statusDefault
+			message: isQuickFieldDefault(quick, 'status')
 				? total === 1
 					? 'The only task is closed'
 					: `All ${total} tasks are closed`
@@ -313,13 +361,12 @@ export function explainEmptyTasks({
 		};
 	}
 
-	if (dateFilter !== 'all' && applyQuickFilters(applyEditedCutoff(rows, dateFilter, now), quick).length === 0) {
-		const days = dateFilterDays(dateFilter);
-		let message: string;
-		if (statusDefault) message = `No open task is in a note edited in the last ${days} days`;
-		else if (quick.show === 'all' && !quick.statuses?.length) message = `No note with tasks was edited in the last ${days} days`;
-		else message = `No task with the chosen status is in a note edited in the last ${days} days`;
-		return { message, action: { kind: 'allTime', label: 'All time' } };
+	const statusAndDue: TaskQuickFilters = { ...statusOnly, due: quick.due };
+	if (!isQuickFieldDefault(quick, 'due') && applyQuickFilters(rows, statusAndDue, today, now).length === 0) {
+		return {
+			message: 'No task matches the Due filter',
+			action: { kind: 'resetQuick', field: 'due', label: 'Reset Due filter' },
+		};
 	}
 
 	// Unreachable from the view, which asks only when its list is empty.

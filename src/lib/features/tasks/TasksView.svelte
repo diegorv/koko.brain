@@ -31,12 +31,13 @@
 		statusFilterLabel,
 		taskCountText,
 		toggleQuickStatus,
+		type DueRange,
 		type EmptyTasksExplanation,
 		type TaskQuickFilters,
 	} from './task-query.logic';
 	import { TASK_STATUSES, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
 	import type { TaskStatus } from './task-metadata.types';
-	import type { TaskDateFilter, TaskItem } from './tasks.types';
+	import type { TaskItem } from './tasks.types';
 
 	interface Props {
 		/** Opens a task's wikilink target the way an editor click does */
@@ -55,10 +56,17 @@
 		'circle-arrow-right': CircleArrowRight,
 	};
 
-	const DATE_FILTERS: { label: string; value: TaskDateFilter }[] = [
-		{ label: 'All time', value: 'all' },
-		{ label: 'Last 7 days', value: 'last7days' },
-		{ label: 'Last 30 days', value: 'last30days' },
+	/** The Due menu's options: `trigger` is the value after `Due: `. The edited options follow a separator. */
+	const DUE_OPTIONS: { label: string; trigger: string; value: DueRange }[] = [
+		{ label: 'Any', trigger: 'any', value: 'any' },
+		{ label: 'Overdue', trigger: 'overdue', value: 'overdue' },
+		{ label: 'Today', trigger: 'today', value: 'today' },
+		{ label: 'Next 7 days', trigger: 'next 7 days', value: 'next7' },
+		{ label: 'No date', trigger: 'no date', value: 'none' },
+	];
+	const DUE_EDITED_OPTIONS: { label: string; trigger: string; value: DueRange }[] = [
+		{ label: 'Note edited in the last 7 days', trigger: 'note edited 7 days', value: 'edited7' },
+		{ label: 'Note edited in the last 30 days', trigger: 'note edited 30 days', value: 'edited30' },
 	];
 
 	const SHOW_OPTIONS: { label: string; value: TaskQuickFilters['show'] }[] = [
@@ -130,7 +138,6 @@
 		describeTaskRule({
 			sectionTag: tasksStore.sectionTag,
 			quick: tasksStore.quick,
-			dateFilter: tasksStore.dateFilter,
 		}),
 	);
 
@@ -140,7 +147,7 @@
 					rows: tasksStore.rows,
 					sectionTag: tasksStore.sectionTag,
 					quick: tasksStore.quick,
-					dateFilter: tasksStore.dateFilter,
+					today,
 					now: Date.now(),
 				})
 			: null,
@@ -158,10 +165,21 @@
 		tasksStore.setQuick({ statuses: toggleQuickStatus(tasksStore.quick.statuses, status) });
 	}
 
-	function runEmptyAction(kind: NonNullable<EmptyTasksExplanation['action']>['kind']) {
-		if (kind === 'clearTag') clearSectionTag();
-		else if (kind === 'showAllStatuses') tasksStore.setQuick({ show: 'all', statuses: undefined });
-		else tasksStore.setDateFilter('all');
+	let dueValue = $derived<DueRange>(tasksStore.quick.due ?? 'any');
+
+	let dueTriggerLabel = $derived(
+		[...DUE_OPTIONS, ...DUE_EDITED_OPTIONS].find((o) => o.value === dueValue)?.trigger ?? dueValue,
+	);
+
+	/** Sets the Due filter; Any stores `undefined`. bits-ui calls it on every pick, the checked radio included. */
+	function pickDue(value: string) {
+		tasksStore.setQuick({ due: value === 'any' ? undefined : (value as DueRange) });
+	}
+
+	function runEmptyAction(action: NonNullable<EmptyTasksExplanation['action']>) {
+		if (action.kind === 'clearTag') clearSectionTag();
+		else if (action.kind === 'showAllStatuses') tasksStore.setQuick({ show: 'all', statuses: undefined });
+		else tasksStore.setQuick({ [action.field]: undefined });
 	}
 
 	function handleFileClick(filePath: string) {
@@ -282,19 +300,30 @@
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 
-		<div class="flex items-center gap-1">
-			{#each DATE_FILTERS as filter (filter.value)}
-				<button
-					class="px-2 py-0.5 text-xs rounded-md transition-colors cursor-pointer
-						{tasksStore.dateFilter === filter.value
-							? 'bg-primary/20 text-primary'
-							: 'text-muted-foreground hover:bg-accent'}"
-					onclick={() => tasksStore.setDateFilter(filter.value)}
-				>
-					{filter.label}
-				</button>
-			{/each}
-		</div>
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+					>
+						<span>Due: {dueTriggerLabel}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-56">
+				<DropdownMenu.RadioGroup value={dueValue} onValueChange={pickDue}>
+					{#each DUE_OPTIONS as option (option.value)}
+						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+					{/each}
+					<DropdownMenu.Separator />
+					{#each DUE_EDITED_OPTIONS as option (option.value)}
+						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+					{/each}
+				</DropdownMenu.RadioGroup>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
 
 		<div class="flex items-center gap-1 relative">
 			<Hash class="size-3 text-muted-foreground absolute left-1.5 pointer-events-none" />
@@ -327,7 +356,7 @@
 						{@const action = emptyExplanation.action}
 						<button
 							class="px-2 py-0.5 text-xs rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
-							onclick={() => runEmptyAction(action.kind)}
+							onclick={() => runEmptyAction(action)}
 						>
 							{action.label}
 						</button>

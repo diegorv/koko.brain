@@ -18,7 +18,7 @@ import { debug, error, timeAsync } from '#lib/utils/debug.js';
  * Converts a `FileTaskGroupV2` (Rust, modifiedAt in seconds) into the
  * TS-side `FileTaskGroup` shape used by the store. Rust `NoteEntry`
  * carries `modifiedAt` in seconds since epoch; the FE filter logic
- * (`applyEditedCutoff`) compares against `Date.now()` which is milliseconds.
+ * (`applyQuickFilters`' Note edited options) compares against `Date.now()`, which is milliseconds.
  * Multiply by 1000 here so the rest of the TS path keeps using ms.
  */
 function fromV2(group: FileTaskGroupV2): FileTaskGroup {

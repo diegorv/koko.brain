@@ -1,19 +1,18 @@
-import { DEFAULT_QUICK, applyEditedCutoff, applyQuickFilters, type TaskQuickFilters, type TaskRow } from './task-query.logic';
-import type { FileTaskGroup, TaskDateFilter } from './tasks.types';
+import { formatNow } from '#lib/utils/date.js';
+import { DEFAULT_QUICK, applyQuickFilters, type TaskQuickFilters, type TaskRow } from './task-query.logic';
+import type { FileTaskGroup } from './tasks.types';
 
 /** All task groups across the vault (unfiltered) */
 let fileTaskGroups = $state<FileTaskGroup[]>([]);
 /** Every task of the fetched groups as a row (unfiltered), replaced whole, never mutated */
 let rows = $state.raw<TaskRow[]>([]);
-/** Active date filter */
-let dateFilter = $state<TaskDateFilter>('all');
 /**
  * Section tag text to filter by, one or more tags separated by spaces or
  * commas (e.g. "#to-list #work"; see `parseSectionTags`). Text with no tag
  * means all tasks.
  */
 let sectionTag = $state('#to-list');
-/** The quick filters (status), replaced whole on every change */
+/** The quick filters (status and Due), replaced whole on every change */
 let quick = $state.raw<TaskQuickFilters>({ ...DEFAULT_QUICK });
 /** True while the task index is being built */
 let isLoading = $state(false);
@@ -32,11 +31,11 @@ let error = $state<string | null>(null);
 let scrollOffset = 0;
 
 /**
- * The rows the list shows: the date cutoff, then the quick filters. The clock
- * is read when the derived re-runs and is not tracked, so a pane left open
- * across a cutoff boundary updates on the next refetch.
+ * The rows the list shows, through the quick filters. The clock (today and
+ * now) is read when the derived re-runs and is not tracked, so a pane left
+ * open past midnight or across an edited cutoff updates on the next refetch.
  */
-const visibleRows = $derived.by(() => applyQuickFilters(applyEditedCutoff(rows, dateFilter, Date.now()), quick));
+const visibleRows = $derived.by(() => applyQuickFilters(rows, quick, formatNow('YYYY-MM-DD'), Date.now()));
 
 export const tasksStore = {
 	get fileTaskGroups() { return fileTaskGroups; },
@@ -44,7 +43,6 @@ export const tasksStore = {
 	get rows() { return rows; },
 	/** The rows the list shows, dimmed parents included (see `applyQuickFilters`) */
 	get visibleRows() { return visibleRows; },
-	get dateFilter() { return dateFilter; },
 	get sectionTag() { return sectionTag; },
 	/** The quick filters */
 	get quick() { return quick; },
@@ -56,7 +54,6 @@ export const tasksStore = {
 	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
 	/** Replaces the rows. */
 	setRows(next: TaskRow[]) { rows = next; },
-	setDateFilter(filter: TaskDateFilter) { dateFilter = filter; },
 	setSectionTag(tag: string) { sectionTag = tag; },
 	/** Merges `partial` into the quick filters; a key set to `undefined` clears that field. */
 	setQuick(partial: Partial<TaskQuickFilters>) { quick = { ...quick, ...partial }; },
@@ -72,7 +69,6 @@ export const tasksStore = {
 	reset() {
 		fileTaskGroups = [];
 		rows = [];
-		dateFilter = 'all';
 		sectionTag = '#to-list';
 		quick = { ...DEFAULT_QUICK };
 		isLoading = false;

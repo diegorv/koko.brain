@@ -27,6 +27,3 @@ export interface FileTaskGroup {
 	/** List of tasks extracted from this file, in document order */
 	tasks: TaskItem[];
 }
-
-/** Available date filter periods */
-export type TaskDateFilter = 'all' | 'last7days' | 'last30days';

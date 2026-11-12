@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { DEFAULT_QUICK, buildTaskRows } from '#lib/features/tasks/task-query.logic.js';
 import { taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
@@ -10,7 +10,6 @@ describe('tasksStore', () => {
 
 	it('starts with default state', () => {
 		expect(tasksStore.fileTaskGroups).toEqual([]);
-		expect(tasksStore.dateFilter).toBe('all');
 		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		expect(tasksStore.rows).toEqual([]);
@@ -23,11 +22,6 @@ describe('tasksStore', () => {
 		const groups = [{ filePath: '/a.md', tasks: [] }] as any;
 		tasksStore.setFileTaskGroups(groups);
 		expect(tasksStore.fileTaskGroups).toBe(groups);
-	});
-
-	it('setDateFilter updates date filter', () => {
-		tasksStore.setDateFilter('last7days');
-		expect(tasksStore.dateFilter).toBe('last7days');
 	});
 
 	it('setSectionTag updates section tag', () => {
@@ -85,12 +79,49 @@ describe('tasksStore', () => {
 			expect(tasksStore.visibleRows.every((r) => !r.dimmed)).toBe(true);
 		});
 
-		it('follows a setDateFilter change', () => {
+		it('follows a quick.due change to a Note edited option', () => {
 			tasksStore.setRows(rowsOf());
-			tasksStore.setDateFilter('last7days');
+			tasksStore.setQuick({ due: 'edited7' });
 			expect(texts()).toEqual(['Ship']);
-			tasksStore.setDateFilter('last30days');
+			tasksStore.setQuick({ due: 'edited30' });
 			expect(texts()).toEqual(['Ship', 'Old']);
+		});
+
+		describe('on a clock faked to 2026-11-05', () => {
+			beforeEach(() => {
+				vi.useFakeTimers({ toFake: ['Date'] });
+				vi.setSystemTime(new Date(2026, 10, 5, 12));
+			});
+
+			afterEach(() => {
+				vi.useRealTimers();
+			});
+
+			const dueRows = () =>
+				buildTaskRows(
+					[
+						{
+							...taskGroupV2('/vault/due.md', [
+								taskV2('Late', { lineNumber: 1, metadata: { description: 'Late', tags: [], dueDate: '2026-11-04' } }),
+								taskV2('Later', { lineNumber: 2, metadata: { description: 'Later', tags: [], dueDate: '2026-11-20' } }),
+								taskV2('Someday', { lineNumber: 3 }),
+							]),
+							modifiedAt: Date.now(),
+						},
+					],
+					'/vault',
+				);
+
+			it('setQuick({ due: overdue }) keeps only the overdue row, and reset clears it', () => {
+				tasksStore.setRows(dueRows());
+				tasksStore.setQuick({ due: 'overdue' });
+				expect(texts()).toEqual(['Late']);
+
+				tasksStore.reset();
+				expect(tasksStore.quick.due).toBeUndefined();
+				tasksStore.setRows(dueRows());
+				expect(texts()).toEqual(['Late', 'Later', 'Someday']);
+			});
 		});
 	});
 
@@ -123,10 +154,9 @@ describe('tasksStore', () => {
 
 	it('reset restores defaults', () => {
 		tasksStore.setFileTaskGroups([{}] as any);
-		tasksStore.setDateFilter('last7days');
 		tasksStore.setSectionTag('#custom');
 		tasksStore.setRows(buildTaskRows([taskGroupV2('/vault/a.md', [taskV2('x')])], '/vault'));
-		tasksStore.setQuick({ show: 'all', statuses: ['done'] });
+		tasksStore.setQuick({ show: 'all', statuses: ['done'], due: 'overdue' });
 		tasksStore.setLoading(true);
 		tasksStore.setHasLoaded(true);
 		tasksStore.setError('failed');
@@ -135,7 +165,6 @@ describe('tasksStore', () => {
 		tasksStore.reset();
 
 		expect(tasksStore.fileTaskGroups).toEqual([]);
-		expect(tasksStore.dateFilter).toBe('all');
 		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(tasksStore.rows).toEqual([]);
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);

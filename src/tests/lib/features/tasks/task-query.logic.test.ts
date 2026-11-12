@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
 	DEFAULT_QUICK,
-	applyEditedCutoff,
 	applyQuickFilters,
 	buildTaskRows,
 	describeTaskRule,
@@ -11,6 +10,7 @@ import {
 	statusFilterLabel,
 	taskCountText,
 	toggleQuickStatus,
+	type DueRange,
 	type TaskQuickFilters,
 	type TaskRow,
 	type VisibleRow,
@@ -18,9 +18,11 @@ import {
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import type { FileTaskGroup, TaskItem } from '#lib/features/tasks/tasks.types.js';
 import { sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../fixtures/timezone.fixture';
 
 const DAY = 24 * 60 * 60 * 1000;
-const NOW = new Date('2026-02-11T12:00:00Z').getTime();
+const TODAY = '2026-11-05';
+const NOW = new Date('2026-11-05T12:00:00Z').getTime();
 
 /** A note group in the store's shape (`modifiedAt` in ms). */
 function group(filePath: string, tasks: TaskItem[], modifiedAt = NOW): FileTaskGroup {
@@ -42,7 +44,7 @@ describe('applyQuickFilters: the open rule', () => {
 	const seven = () => buildTaskRows([sevenStatusGroup()], '/vault');
 
 	it('keeps the five open statuses under Open and drops done and cancelled', () => {
-		expect(statuses(applyQuickFilters(seven(), { show: 'open' }))).toEqual([
+		expect(statuses(applyQuickFilters(seven(), { show: 'open' }, TODAY, NOW))).toEqual([
 			'todo',
 			'in-progress',
 			'question',
@@ -52,22 +54,22 @@ describe('applyQuickFilters: the open rule', () => {
 	});
 
 	it('keeps only done and cancelled under Closed', () => {
-		expect(statuses(applyQuickFilters(seven(), { show: 'closed' }))).toEqual(['done', 'cancelled']);
+		expect(statuses(applyQuickFilters(seven(), { show: 'closed' }, TODAY, NOW))).toEqual(['done', 'cancelled']);
 	});
 
 	it('keeps every row under All', () => {
-		expect(statuses(applyQuickFilters(seven(), { show: 'all' }))).toHaveLength(7);
+		expect(statuses(applyQuickFilters(seven(), { show: 'all' }, TODAY, NOW))).toHaveLength(7);
 	});
 
 	it('lets chosen statuses win over show', () => {
-		expect(statuses(applyQuickFilters(seven(), { show: 'closed', statuses: ['in-progress', 'done'] }))).toEqual([
+		expect(statuses(applyQuickFilters(seven(), { show: 'closed', statuses: ['in-progress', 'done'] }, TODAY, NOW))).toEqual([
 			'in-progress',
 			'done',
 		]);
 	});
 
 	it('falls back to show when statuses is empty', () => {
-		expect(statuses(applyQuickFilters(seven(), { show: 'closed', statuses: [] }))).toEqual(['done', 'cancelled']);
+		expect(statuses(applyQuickFilters(seven(), { show: 'closed', statuses: [] }, TODAY, NOW))).toEqual(['done', 'cancelled']);
 	});
 
 	it('keeps a done parent with an in-progress child, both sent checked, dimming the parent', () => {
@@ -75,7 +77,7 @@ describe('applyQuickFilters: the open rule', () => {
 			taskV2('Parent', { status: 'done', checked: true, indent: 0, lineNumber: 1 }),
 			taskV2('Child', { status: 'in-progress', checked: true, indent: 1, lineNumber: 2 }),
 		]);
-		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK))).toEqual([
+		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK, TODAY, NOW))).toEqual([
 			['Parent', true],
 			['Child', false],
 		]);
@@ -83,20 +85,20 @@ describe('applyQuickFilters: the open rule', () => {
 
 	it('returns new objects and leaves the input rows untouched', () => {
 		const rows = rowsOf([task('todo', 0, 1)]);
-		const [visible] = applyQuickFilters(rows, DEFAULT_QUICK);
+		const [visible] = applyQuickFilters(rows, DEFAULT_QUICK, TODAY, NOW);
 		expect(visible).not.toBe(rows[0]);
 		expect(rows[0]).not.toHaveProperty('dimmed');
 	});
 
 	it('returns nothing for no rows', () => {
-		expect(applyQuickFilters([], DEFAULT_QUICK)).toEqual([]);
+		expect(applyQuickFilters([], DEFAULT_QUICK, TODAY, NOW)).toEqual([]);
 	});
 });
 
 describe('applyQuickFilters: dimming', () => {
 	it('dims each failing ancestor of a passing row', () => {
 		const rows = rowsOf([task('done', 0, 1), task('done', 1, 2), task('todo', 2, 3)]);
-		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK))).toEqual([
+		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK, TODAY, NOW))).toEqual([
 			['done 1', true],
 			['done 2', true],
 			['todo 3', false],
@@ -105,7 +107,7 @@ describe('applyQuickFilters: dimming', () => {
 
 	it('keeps a done parent with an open in-progress child dimmed', () => {
 		const rows = rowsOf([task('done', 0, 1), task('in-progress', 1, 2)]);
-		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK))).toEqual([
+		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK, TODAY, NOW))).toEqual([
 			['done 1', true],
 			['in-progress 2', false],
 		]);
@@ -113,12 +115,12 @@ describe('applyQuickFilters: dimming', () => {
 
 	it('drops a done row followed by a todo row at the same indent', () => {
 		const rows = rowsOf([task('done', 0, 1), task('todo', 0, 2)]);
-		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK))).toEqual([['todo 2', false]]);
+		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK, TODAY, NOW))).toEqual([['todo 2', false]]);
 	});
 
 	it('drops a done row whose subtree ends before a later todo at a smaller or equal indent', () => {
 		const rows = rowsOf([task('done', 1, 1), task('done', 2, 2), task('todo', 0, 3), task('done', 1, 4), task('todo', 1, 5)]);
-		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK))).toEqual([
+		expect(shown(applyQuickFilters(rows, DEFAULT_QUICK, TODAY, NOW))).toEqual([
 			['todo 3', false],
 			['todo 5', false],
 		]);
@@ -129,17 +131,17 @@ describe('applyQuickFilters: dimming', () => {
 			[group('/vault/a.md', [task('done', 0, 1)]), group('/vault/b.md', [task('todo', 1, 1)])],
 			'/vault',
 		);
-		expect(applyQuickFilters(rows, DEFAULT_QUICK).map((r) => [r.filePath, r.text])).toEqual([['/vault/b.md', 'todo 1']]);
+		expect(applyQuickFilters(rows, DEFAULT_QUICK, TODAY, NOW).map((r) => [r.filePath, r.text])).toEqual([['/vault/b.md', 'todo 1']]);
 	});
 
 	it('drops a done parent whose whole subtree is closed, with its subtree', () => {
 		const rows = rowsOf([task('done', 0, 1), task('done', 1, 2), task('cancelled', 2, 3)]);
-		expect(applyQuickFilters(rows, DEFAULT_QUICK)).toEqual([]);
+		expect(applyQuickFilters(rows, DEFAULT_QUICK, TODAY, NOW)).toEqual([]);
 	});
 
 	it('dims an open parent of a passing done row under Closed', () => {
 		const rows = rowsOf([task('todo', 0, 1), task('done', 1, 2)]);
-		expect(shown(applyQuickFilters(rows, { show: 'closed' }))).toEqual([
+		expect(shown(applyQuickFilters(rows, { show: 'closed' }, TODAY, NOW))).toEqual([
 			['todo 1', true],
 			['done 2', false],
 		]);
@@ -230,7 +232,7 @@ describe('rowsByNote', () => {
 		);
 
 	it('groups visible rows by note in first-appearance order', () => {
-		const notes = rowsByNote(applyQuickFilters(twoNotes(), { show: 'all' }));
+		const notes = rowsByNote(applyQuickFilters(twoNotes(), { show: 'all' }, TODAY, NOW));
 		expect(notes.map((n) => [n.filePath, n.noteTitle, n.folder, n.modifiedAt, n.rows.length])).toEqual([
 			['/vault/Projects/b.md', 'b', 'Projects', 5, 3],
 			['/vault/a.md', 'a', '', 9, 1],
@@ -238,13 +240,13 @@ describe('rowsByNote', () => {
 	});
 
 	it('keeps total and open whatever show hides', () => {
-		const [b] = rowsByNote(applyQuickFilters(twoNotes(), { show: 'closed' }));
+		const [b] = rowsByNote(applyQuickFilters(twoNotes(), { show: 'closed' }, TODAY, NOW));
 		expect([b.total, b.open]).toEqual([3, 2]);
 		expect(b.rows.map((r) => r.lineNumber)).toEqual([3]);
 	});
 
 	it('leaves out a note with no visible row', () => {
-		expect(rowsByNote(applyQuickFilters(twoNotes(), { show: 'closed' })).map((n) => n.filePath)).toEqual([
+		expect(rowsByNote(applyQuickFilters(twoNotes(), { show: 'closed' }, TODAY, NOW)).map((n) => n.filePath)).toEqual([
 			'/vault/Projects/b.md',
 		]);
 	});
@@ -254,26 +256,97 @@ describe('rowsByNote', () => {
 	});
 });
 
-describe('applyEditedCutoff', () => {
-	const rows = buildTaskRows(
-		[
-			group('/vault/a.md', [task('todo', 0, 1)], NOW - 1 * DAY),
-			group('/vault/b.md', [task('todo', 0, 1)], NOW - 10 * DAY),
-			group('/vault/c.md', [task('todo', 0, 1)], NOW - 60 * DAY),
-		],
-		'/vault',
-	);
-
-	it('returns the input for all', () => {
-		expect(applyEditedCutoff(rows, 'all', NOW)).toBe(rows);
+/** A todo task on `lineNumber`, due on `dueDate` when given (absent otherwise, as Rust sends it). */
+const dueTask = (dueDate: string | undefined, lineNumber: number, indent = 0) =>
+	taskV2(dueDate ?? `undated ${lineNumber}`, {
+		indent,
+		lineNumber,
+		metadata: { description: dueDate ?? `undated ${lineNumber}`, tags: [], ...(dueDate ? { dueDate } : {}) },
 	});
 
-	it('keeps notes edited in the last 7 days', () => {
-		expect(applyEditedCutoff(rows, 'last7days', NOW).map((r) => r.filePath)).toEqual(['/vault/a.md']);
+describe('applyQuickFilters: the Due filter', () => {
+	/** The text of each visible row, under `show: 'all'` and `due`. */
+	const kept = (rows: TaskRow[], due: DueRange | undefined, today = TODAY, now = NOW) =>
+		applyQuickFilters(rows, { show: 'all', due }, today, now).map((r) => r.text);
+
+	const dated = () => rowsOf([dueTask('2026-11-04', 1), dueTask('2026-11-05', 2), dueTask('2026-11-12', 3), dueTask('2026-11-13', 4), dueTask(undefined, 5)]);
+
+	it('overdue keeps a due date before today and drops today and an undated row', () => {
+		expect(kept(dated(), 'overdue')).toEqual(['2026-11-04']);
 	});
 
-	it('keeps notes edited in the last 30 days', () => {
-		expect(applyEditedCutoff(rows, 'last30days', NOW).map((r) => r.filePath)).toEqual(['/vault/a.md', '/vault/b.md']);
+	it('today keeps only a due date equal to today', () => {
+		expect(kept(dated(), 'today')).toEqual(['2026-11-05']);
+	});
+
+	it('next7 keeps today through today + 7 days and drops the day before, the eighth day and an undated row', () => {
+		expect(kept(dated(), 'next7')).toEqual(['2026-11-05', '2026-11-12']);
+	});
+
+	it('next7 crosses a year end', () => {
+		const rows = rowsOf([dueTask('2027-01-04', 1), dueTask('2027-01-05', 2)]);
+		expect(kept(rows, 'next7', '2026-12-28')).toEqual(['2027-01-04']);
+	});
+
+	describe.runIf(runtimeTimeZoneSwitchWorks())('next7 under America/Sao_Paulo', () => {
+		it('crosses a year end on the local calendar', () => {
+			const rows = rowsOf([dueTask('2027-01-04', 1), dueTask('2027-01-05', 2)]);
+			expect(withTimeZone('America/Sao_Paulo', () => kept(rows, 'next7', '2026-12-28'))).toEqual(['2027-01-04']);
+		});
+	});
+
+	it('none keeps only undated rows', () => {
+		expect(kept(dated(), 'none')).toEqual(['undated 5']);
+	});
+
+	it('undefined and any keep every row', () => {
+		expect(kept(dated(), undefined)).toHaveLength(5);
+		expect(kept(dated(), 'any')).toHaveLength(5);
+	});
+
+	describe('the note edited options', () => {
+		const notes = () =>
+			buildTaskRows(
+				[
+					group('/vault/a.md', [dueTask(undefined, 1)], NOW - 1 * DAY),
+					group('/vault/b.md', [dueTask(undefined, 1)], NOW - 10 * DAY),
+					group('/vault/c.md', [dueTask('2026-11-01', 1)], NOW - 60 * DAY),
+				],
+				'/vault',
+			);
+		const files = (due: DueRange) => applyQuickFilters(notes(), { show: 'all', due }, TODAY, NOW).map((r) => r.filePath);
+
+		it('edited7 keeps the note edited a day ago', () => {
+			expect(files('edited7')).toEqual(['/vault/a.md']);
+		});
+
+		it('edited30 keeps the notes edited 1 and 10 days ago', () => {
+			expect(files('edited30')).toEqual(['/vault/a.md', '/vault/b.md']);
+		});
+
+		it('keeps a row exactly at the 7-day cutoff', () => {
+			const rows = buildTaskRows([group('/vault/edge.md', [dueTask(undefined, 1)], NOW - 7 * DAY)], '/vault');
+			expect(kept(rows, 'edited7')).toEqual(['undated 1']);
+		});
+
+		it('drops an overdue row of a 60-day-old note and keeps an undated row of a recent one', () => {
+			expect(files('edited30')).not.toContain('/vault/c.md');
+			expect(files('edited7')).toEqual(['/vault/a.md']);
+		});
+	});
+
+	it('keeps an undated parent of an overdue child dimmed under overdue', () => {
+		const rows = rowsOf([dueTask(undefined, 1, 0), dueTask('2026-11-04', 2, 1)]);
+		expect(shown(applyQuickFilters(rows, { show: 'all', due: 'overdue' }, TODAY, NOW))).toEqual([
+			['undated 1', true],
+			['2026-11-04', false],
+		]);
+	});
+
+	it('joins the status clause: a done overdue row fails under Open', () => {
+		const rows = rowsOf([taskV2('Late', { status: 'done', lineNumber: 1, metadata: { description: 'Late', tags: [], dueDate: '2026-11-04' } })]);
+		expect(applyQuickFilters(rows, { show: 'open', due: 'overdue' }, TODAY, NOW)).toEqual([]);
+		expect(kept(rows, 'overdue')).toEqual(['Late']);
 	});
 });
 
@@ -287,6 +360,19 @@ describe('isQuickFieldDefault', () => {
 		[{ show: 'open', statuses: ['todo'] }, false],
 	] as [TaskQuickFilters, boolean][])('status of %j is default: %s', (quick, expected) => {
 		expect(isQuickFieldDefault(quick, 'status')).toBe(expected);
+	});
+
+	it.each([
+		[undefined, true],
+		['any', true],
+		['overdue', false],
+		['today', false],
+		['next7', false],
+		['none', false],
+		['edited7', false],
+		['edited30', false],
+	] as [DueRange | undefined, boolean][])('due %s is default: %s', (due, expected) => {
+		expect(isQuickFieldDefault({ show: 'closed', due }, 'due')).toBe(expected);
 	});
 });
 
@@ -332,6 +418,8 @@ describe('taskCountText', () => {
 				'/vault',
 			),
 			quick,
+			TODAY,
+			NOW,
 		);
 
 	it('counts open rows and their notes at the default status', () => {
@@ -371,53 +459,67 @@ describe('describeTaskRule', () => {
 	const ALL: TaskQuickFilters = { show: 'all' };
 
 	it.each([
-		[OPEN, '#to-list', 'all', 'Open tasks under headings containing #to-list'],
-		[ALL, '#to-list', 'all', 'All tasks under headings containing #to-list'],
-		[OPEN, '', 'all', 'Open tasks from every note'],
-		[ALL, '', 'all', 'All tasks from every note'],
-		[OPEN, '#to-list', 'last7days', 'Open tasks under headings containing #to-list, in notes edited in the last 7 days'],
-		[ALL, '#to-list', 'last30days', 'All tasks under headings containing #to-list, in notes edited in the last 30 days'],
-		[OPEN, '', 'last30days', 'Open tasks from every note, in notes edited in the last 30 days'],
-		[ALL, '', 'last7days', 'All tasks from every note, in notes edited in the last 7 days'],
-	] as const)('quick=%j, tag=%j, date=%s gives %j', (quick, sectionTag, dateFilter, expected) => {
-		expect(describeTaskRule({ sectionTag, quick, dateFilter })).toBe(expected);
+		[OPEN, '#to-list', 'Open tasks under headings containing #to-list'],
+		[ALL, '#to-list', 'All tasks under headings containing #to-list'],
+		[OPEN, '', 'Open tasks from every note'],
+		[ALL, '', 'All tasks from every note'],
+	] as const)('quick=%j, tag=%j gives %j', (quick, sectionTag, expected) => {
+		expect(describeTaskRule({ sectionTag, quick })).toBe(expected);
+	});
+
+	it.each([
+		['overdue', ', overdue'],
+		['today', ', due today'],
+		['next7', ', due in the next 7 days'],
+		['none', ', with no due date'],
+		['edited7', ', in notes edited in the last 7 days'],
+		['edited30', ', in notes edited in the last 30 days'],
+	] as [DueRange, string][])('due %s adds %j after the heading part', (due, phrase) => {
+		expect(describeTaskRule({ sectionTag: '#to-list', quick: { show: 'open', due } })).toBe(
+			`Open tasks under headings containing #to-list${phrase}`,
+		);
+		expect(describeTaskRule({ sectionTag: '', quick: { show: 'all', due } })).toBe(`All tasks from every note${phrase}`);
+	});
+
+	it('adds nothing for any', () => {
+		expect(describeTaskRule({ sectionTag: '', quick: { show: 'open', due: 'any' } })).toBe('Open tasks from every note');
 	});
 
 	it('starts with Closed tasks under Closed', () => {
-		expect(describeTaskRule({ sectionTag: '', quick: { show: 'closed' }, dateFilter: 'all' })).toBe('Closed tasks from every note');
+		expect(describeTaskRule({ sectionTag: '', quick: { show: 'closed' } })).toBe('Closed tasks from every note');
 	});
 
 	it('names the chosen statuses in TASK_STATUSES order, joined with or', () => {
-		expect(describeTaskRule({ sectionTag: '#work', quick: { show: 'open', statuses: ['in-progress', 'done'] }, dateFilter: 'last7days' })).toBe(
+		expect(describeTaskRule({ sectionTag: '#work', quick: { show: 'open', statuses: ['in-progress', 'done'], due: 'edited7' } })).toBe(
 			'Tasks that are in progress or done under headings containing #work, in notes edited in the last 7 days',
 		);
 	});
 
 	it('adds the # to a tag typed without one', () => {
-		expect(describeTaskRule({ sectionTag: 'work', quick: OPEN, dateFilter: 'all' })).toBe('Open tasks under headings containing #work');
+		expect(describeTaskRule({ sectionTag: 'work', quick: OPEN })).toBe('Open tasks under headings containing #work');
 	});
 
 	it('trims a tag with surrounding spaces', () => {
-		expect(describeTaskRule({ sectionTag: '  #work  ', quick: OPEN, dateFilter: 'all' })).toBe(
+		expect(describeTaskRule({ sectionTag: '  #work  ', quick: OPEN })).toBe(
 			'Open tasks under headings containing #work',
 		);
 	});
 
 	it('treats a whitespace-only tag as no tag', () => {
-		expect(describeTaskRule({ sectionTag: '   ', quick: OPEN, dateFilter: 'all' })).toBe('Open tasks from every note');
+		expect(describeTaskRule({ sectionTag: '   ', quick: OPEN })).toBe('Open tasks from every note');
 	});
 
 	it('joins several tags with or', () => {
-		expect(describeTaskRule({ sectionTag: '#to-list #work', quick: OPEN, dateFilter: 'all' })).toBe(
+		expect(describeTaskRule({ sectionTag: '#to-list #work', quick: OPEN })).toBe(
 			'Open tasks under headings containing #to-list or #work',
 		);
-		expect(describeTaskRule({ sectionTag: 'a, b c', quick: ALL, dateFilter: 'all' })).toBe(
+		expect(describeTaskRule({ sectionTag: 'a, b c', quick: ALL })).toBe(
 			'All tasks under headings containing #a or #b or #c',
 		);
 	});
 
 	it('treats separators with no tag as no tag', () => {
-		expect(describeTaskRule({ sectionTag: ' , ', quick: OPEN, dateFilter: 'all' })).toBe('Open tasks from every note');
+		expect(describeTaskRule({ sectionTag: ' , ', quick: OPEN })).toBe('Open tasks from every note');
 	});
 });
 
@@ -425,7 +527,8 @@ describe('explainEmptyTasks', () => {
 	const OPEN: TaskQuickFilters = { show: 'open' };
 	const ALL: TaskQuickFilters = { show: 'all' };
 	const SHOW_ALL = { kind: 'showAllStatuses', label: 'Show all' };
-	const ALL_TIME = { kind: 'allTime', label: 'All time' };
+	const RESET_DUE = { kind: 'resetQuick', field: 'due', label: 'Reset Due filter' };
+	const DUE_MESSAGE = 'No task matches the Due filter';
 
 	/** Rows of one or more notes, each `[tasks, modifiedAt]`. */
 	function rows(...notes: [TaskItem[], number?][]): TaskRow[] {
@@ -437,8 +540,8 @@ describe('explainEmptyTasks', () => {
 
 	const open = (lineNumber: number) => task('todo', 0, lineNumber);
 	const done = (lineNumber: number) => task('done', 0, lineNumber);
-	const explain = (r: TaskRow[], quick: TaskQuickFilters, sectionTag = '', dateFilter: 'all' | 'last7days' | 'last30days' = 'all') =>
-		explainEmptyTasks({ rows: r, sectionTag, quick, dateFilter, now: NOW });
+	const explain = (r: TaskRow[], quick: TaskQuickFilters, sectionTag = '') =>
+		explainEmptyTasks({ rows: r, sectionTag, quick, today: TODAY, now: NOW });
 
 	describe('stage 1: no task', () => {
 		it('names the tag and offers to clear it', () => {
@@ -472,7 +575,7 @@ describe('explainEmptyTasks', () => {
 		});
 
 		it('names the tag, not the status filter, for empty rows with a tag', () => {
-			expect(explain([], { show: 'closed', statuses: ['done'] }, '#to-list', 'last7days')).toEqual({
+			expect(explain([], { show: 'closed', statuses: ['done'], due: 'edited7' }, '#to-list')).toEqual({
 				message: 'No task sits under a heading containing #to-list',
 				action: { kind: 'clearTag', label: 'Clear tag' },
 			});
@@ -488,8 +591,16 @@ describe('explainEmptyTasks', () => {
 			expect(explain(rows([[done(1)]]), OPEN)).toEqual({ message: 'The only task is closed', action: SHOW_ALL });
 		});
 
-		it('comes before the date filter when both would empty the list', () => {
-			expect(explain(rows([[done(1)], 0]), OPEN, '', 'last7days')).toEqual({ message: 'The only task is closed', action: SHOW_ALL });
+		it('comes before the Due filter when both would empty the list', () => {
+			expect(explain(rows([[done(1)], 0]), { show: 'open', due: 'edited7' })).toEqual({ message: 'The only task is closed', action: SHOW_ALL });
+		});
+
+		it('wins when every row is closed under Status Open and Due Overdue', () => {
+			const late = taskV2('Late', { status: 'done', lineNumber: 1, metadata: { description: 'Late', tags: [], dueDate: '2026-11-04' } });
+			expect(explain(rows([[late, done(2)]]), { show: 'open', due: 'overdue' })).toEqual({
+				message: 'All 2 tasks are closed',
+				action: SHOW_ALL,
+			});
 		});
 
 		it('says every task is closed for only [x] and [-] tasks', () => {
@@ -509,60 +620,33 @@ describe('explainEmptyTasks', () => {
 		});
 	});
 
-	describe('stage 3: the date filter', () => {
-		it('names open tasks at the default status, when the recent notes hold only closed tasks', () => {
-			expect(explain(rows([[done(1)], NOW], [[open(2)], 0]), OPEN, '', 'last7days')).toEqual({
-				message: 'No open task is in a note edited in the last 7 days',
-				action: ALL_TIME,
+	describe('stage 3: the Due filter', () => {
+		it('names the Due filter for Overdue over open undated rows', () => {
+			expect(explain(rows([[open(1), open(2)]]), { show: 'open', due: 'overdue' })).toEqual({ message: DUE_MESSAGE, action: RESET_DUE });
+		});
+
+		it('names the Due filter when no row passes both Status and Due', () => {
+			const late = taskV2('Late', { status: 'done', lineNumber: 2, metadata: { description: 'Late', tags: [], dueDate: '2026-11-04' } });
+			expect(explain(rows([[open(1), late]]), { show: 'open', due: 'overdue' })).toEqual({ message: DUE_MESSAGE, action: RESET_DUE });
+		});
+
+		it('names the Due filter for an open task in an old note under Note edited in the last 7 days', () => {
+			expect(explain(rows([[open(1)], NOW - 10 * DAY], [[done(1)], NOW - DAY]), { show: 'open', due: 'edited7' })).toEqual({
+				message: DUE_MESSAGE,
+				action: RESET_DUE,
 			});
 		});
 
-		it('names the date stage when a [/] task sits in an old note', () => {
-			const r = rows([[taskV2('Shipped', { status: 'done', lineNumber: 1 }), taskV2('Draft plan', { status: 'in-progress', lineNumber: 2 })], 0]);
-			expect(explain(r, OPEN, '', 'last7days')).toEqual({
-				message: 'No open task is in a note edited in the last 7 days',
-				action: ALL_TIME,
-			});
-		});
-
-		it('gives the date stage, not the status stage, for an old open task and a recent closed one', () => {
-			expect(explain(rows([[open(1)], NOW - 10 * DAY], [[done(1)], NOW - DAY]), OPEN, '', 'last7days')).toEqual({
-				message: 'No open task is in a note edited in the last 7 days',
-				action: ALL_TIME,
-			});
-		});
-
-		it('uses the 30-day wording at the default status', () => {
-			expect(explain(rows([[open(1)]]), OPEN, '', 'last30days')).toEqual({
-				message: 'No open task is in a note edited in the last 30 days',
-				action: ALL_TIME,
-			});
-		});
-
-		it('names notes with tasks under All with no status chosen', () => {
-			expect(explain(rows([[done(1)]]), ALL, '', 'last7days')).toEqual({
-				message: 'No note with tasks was edited in the last 7 days',
-				action: ALL_TIME,
-			});
-			expect(explain(rows([[open(1)]]), ALL, '', 'last30days')).toEqual({
-				message: 'No note with tasks was edited in the last 30 days',
-				action: ALL_TIME,
-			});
-		});
-
-		it('names the chosen status otherwise', () => {
-			expect(explain(rows([[done(1)]]), { show: 'closed' }, '', 'last7days')).toEqual({
-				message: 'No task with the chosen status is in a note edited in the last 7 days',
-				action: ALL_TIME,
-			});
-			expect(explain(rows([[open(1)]]), { show: 'all', statuses: ['todo'] }, '', 'last30days')).toEqual({
-				message: 'No task with the chosen status is in a note edited in the last 30 days',
-				action: ALL_TIME,
+		it('names the Due filter under All and under chosen statuses', () => {
+			expect(explain(rows([[done(1)]]), { show: 'all', due: 'edited30' })).toEqual({ message: DUE_MESSAGE, action: RESET_DUE });
+			expect(explain(rows([[open(1)]]), { show: 'all', statuses: ['todo'], due: 'today' })).toEqual({
+				message: DUE_MESSAGE,
+				action: RESET_DUE,
 			});
 		});
 	});
 
-	it('falls back to "No tasks found" with no action when the date filter is all time', () => {
+	it('falls back to "No tasks found" with no action when the Due filter is any', () => {
 		expect(explain(rows([[open(1)]]), OPEN)).toEqual({ message: 'No tasks found' });
 	});
 });

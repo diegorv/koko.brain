@@ -467,19 +467,19 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		expect(pageText()).toContain('Draft RFC');
 	});
 
-	it('offers All time when every note with tasks is older than the date filter', async () => {
-		tasksStore.setDateFilter('last7days');
+	it('offers Reset Due filter when every note with tasks is older than Note edited in the last 7 days', async () => {
+		tasksStore.setQuick({ due: 'edited7' });
 		const yearAgo = Math.floor(Date.now() / 1000) - 365 * 24 * 60 * 60;
 		mockTaskFetch([noteWith(['Old task'], yearAgo)]);
 		await mountView();
-		const message = 'No open task is in a note edited in the last 7 days';
+		const message = 'No task matches the Due filter';
 		await until(() => expect(paragraph(message)).toBeDefined());
 		const action = paragraph(message)!.nextElementSibling as HTMLButtonElement | null;
-		expect(action?.textContent?.trim()).toBe('All time');
+		expect(action?.textContent?.trim()).toBe('Reset Due filter');
 
 		action!.click();
 		await until(() => expect(rows()).toHaveLength(1));
-		expect(tasksStore.dateFilter).toBe('all');
+		expect(tasksStore.quick.due).toBeUndefined();
 		expect(pageText()).toContain('Old task');
 	});
 
