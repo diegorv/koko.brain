@@ -38,18 +38,18 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 001 | [The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note](issues/001-caret-selection-follow-their-text-when-frontmatter.md) | none | done | issue/001-caret-selection-follow-their-text-when-frontmatter (13291dfa0) | 2026-11-10 |
 | 002 | [Keyboard edits next to the hidden frontmatter never change its fences](issues/002-keyboard-edits-next-hidden-frontmatter-never-change.md) | none | todo | | |
 | 003 | [Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working](issues/003-closing-main-window-never-leaves-windowless-app.md) | none | todo | | |
-| 004 | [A canvas edit closed or renamed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | none | todo | | |
+| 004 | [A canvas edit closed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | 015 | todo | | |
 | 005 | [Setting a folder icon never stacks a second frontmatter block](issues/005-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
 | 006 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/006-kanban-card-lane-title-being-edited-saved.md) | 004 | todo | | |
 | 007 | [Paste, cut and copy inside a meta-bind number or date input act on the input, not the note](issues/007-paste-cut-copy-inside-meta-bind-number.md) | none | todo | | |
 | 008 | [A Properties panel commit that changes nothing does not arm the skip flag](issues/008-properties-panel-commit-that-changes-nothing-does.md) | none | todo | | |
 | 009 | [Tab rename and delete keep `_rail_view` in sync](issues/009-rail-view-follows-tab-rename.md) | none | todo | | |
-| 010 | [Filters report unknown methods and per-note failures](issues/010-filters-report-unknown-methods.md) | none | todo | | |
+| 010 | [Filters report unknown methods](issues/010-filters-report-unknown-methods.md) | none | todo | | |
 | 011 | [Edit view saves only what the user changed](issues/011-save-only-what-changed.md) | 009 | todo | | |
-| 012 | [Tab-strip menu acts on the right tab, and Delete asks first](issues/012-tab-menu-right-tab-and-delete-confirm.md) | 010 | todo | | |
+| 012 | [Tab-strip menu acts on the right tab, and Delete asks first](issues/012-tab-menu-right-tab-and-delete-confirm.md) | 009 | todo | | |
 | 013 | [The Filter panel cannot write an empty or unparseable filter](issues/013-filter-panel-safe-writes.md) | 012, 010 | todo | | |
 | 014 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/014-backlinks-outgoing-links-always-show-open-note.md) | none | todo | | |
-| 015 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/015-closing-tab-unsaved-text-saves-closes-prompt.md) | 004 | todo | | |
+| 015 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/015-closing-tab-unsaved-text-saves-closes-prompt.md) | none | todo | | |
 | 016 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/016-file-history-keeps-snapshot-pre-save-bytes.md) | 015 | todo | | |
 | 017 | [An external change to an open note is never overwritten by the next autosave or calendar write](issues/017-external-change-open-note-never-overwritten-next.md) | none | todo | | |
 | 018 | [A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave](issues/018-note-deleted-renamed-outside-app-closed-marked.md) | 017 | todo | | |
@@ -73,15 +73,15 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 036 | [Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen](issues/036-settings-file-history-automatic-snapshots-takes-effect.md) | none | todo | | |
 | 037 | [update_semantic_file has no queue: bursts pile up, repeat work and embed deleted notes](issues/037-update-semantic-file-queue.md) | none | todo | | |
 | 038 | [Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots](issues/038-canvas-image-nodes-load-their-image-main.md) | none | todo | | |
-| 039 | [Canvas file and image nodes store vault-relative paths and resolve both absolute and vault-relative ones](issues/039-canvas-file-image-nodes-store-vault-relative.md) | none | todo | | |
+| 039 | [Canvas file nodes added in the app load their note, and file nodes resolve both absolute and vault-relative paths](issues/039-canvas-file-image-nodes-store-vault-relative.md) | 004 | todo | | |
 | 040 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/040-kanban-drag-drop-puts-card-lane-exactly.md) | 006 | todo | | |
 | 041 | [DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end](issues/041-dataarray-sort-sortby-keep-items-that-have.md) | none | todo | | |
 | 042 | [Enter in the quick switcher creates the note when nothing matches](issues/042-enter-quick-switcher-creates-note-when-nothing.md) | none | todo | | |
-| 043 | [Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle](issues/043-lens-lists-follow-user-s-own-rename.md) | none | todo | | |
+| 043 | [Lens lists follow the user's own rename, trash, duplicate and create at once, not after the 2 to 10 s index throttle](issues/043-lens-lists-follow-user-s-own-rename.md) | 028 | todo | | |
 | 044 | [File History follows a note through rename, move, auto-move and suffixed restore](issues/044-file-history-follows-note-through-rename-move.md) | none | todo | | |
 | 045 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/045-text-search-tag-path-returns-every-note.md) | none | todo | | |
 | 046 | [Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red](issues/046-outgoing-links-marks-row-broken-only-when.md) | 014 | todo | | |
-| 047 | [Numeric <, <=, > and >= filters never match a note that lacks the property](issues/047-numeric-filters-never-match-note-that-lacks.md) | none | todo | | |
+| 047 | [Numeric <, <=, > and >= filters never match a note that lacks the property](issues/047-numeric-filters-never-match-note-that-lacks.md) | 068 | todo | | |
 | 048 | [Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card](issues/048-kanban-lane-actions-never-turn-raw-into.md) | none | todo | | |
 | 049 | [Renaming a kanban lane keeps its card limit, auto-complete and collapsed state](issues/049-renaming-kanban-lane-keeps-card-limit-auto.md) | 048 | todo | | |
 | 050 | [Canvas file nodes preview the note without its YAML frontmatter](issues/050-canvas-file-nodes-preview-note-without-yaml.md) | none | todo | | |
@@ -95,16 +95,16 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 058 | [A formula that calls an unknown function cannot be confirmed and shows why](issues/058-formula-that-calls-unknown-function-cannot-confirmed.md) | none | todo | | |
 | 059 | [New File from Template says the name is taken instead of silently opening the existing note](issues/059-new-file-from-template-says-name-taken.md) | none | todo | | |
 | 060 | [A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link](issues/060-kb-table-kb-ui-table-kb-list.md) | none | todo | | |
-| 061 | [Live-preview controls change only the text the user asked to change: fence attributes, task markers and tab-indented pastes stay intact](issues/061-live-preview-controls-change-only-text-user.md) | none | todo | | |
-| 062 | [Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content](issues/062-rendered-table-cells-show-links-highlight-underscore.md) | none | todo | | |
+| 061 | [A task checkbox in live preview reacts only to the primary button](issues/061-live-preview-controls-change-only-text-user.md) | none | todo | | |
+| 062 | [Rendered table cells show links, line breaks and escaped pipes as formatted content](issues/062-rendered-table-cells-show-links-highlight-underscore.md) | none | todo | | |
 | 063 | [Standard markdown images with a vault-relative path load from the vault](issues/063-standard-markdown-images-vault-relative-path-load.md) | none | todo | | |
 | 064 | [Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image](issues/064-wikilink-autocomplete-inserts-non-markdown-file-extension.md) | none | todo | | |
 | 065 | [A calendar day with more than three notes lets the user reach every note](issues/065-calendar-day-more-than-three-notes-lets.md) | none | todo | | |
 | 066 | [The status bar note count follows notes created, imported and deleted during the session](issues/066-status-bar-note-count-follows-notes-created.md) | none | todo | | |
 | 067 | [Columns and sort keys resolve like expressions](issues/067-columns-resolve-like-expressions.md) | 010 | todo | | |
-| 068 | [DESC sort lists notes without a value last](issues/068-desc-sort-nulls-last.md) | 067 | todo | | |
+| 068 | [DESC sort lists notes without a value last](issues/068-desc-sort-nulls-last.md) | none | todo | | |
 | 069 | [Small `.view` tab write feedback](issues/069-editor-write-feedback.md) | 013 | todo | | |
-| 070 | [View writers refresh promptly and fail loudly](issues/070-view-writers-refresh-and-fail-loudly.md) | none | todo | | |
+| 070 | [Change icon on a broken .view says why nothing changed](issues/070-view-writers-refresh-and-fail-loudly.md) | none | todo | | |
 | 071 | [.view toolbar and icon writes keep the file's YAML comments](issues/071-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
 | 072 | [Todoist sync failures are visible and read the HTTP status](issues/072-todoist-sync-errors-visible.md) | none | wontfix | | |
 | 073 | [Todoist send: full project lists, refresh, the default label and recurring due dates](issues/073-todoist-project-lists-page-and-refresh.md) | none | wontfix | | |
@@ -144,7 +144,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 127 | [A Todoist send is never silently forgotten](issues/127-todoist-send-never-forgotten.md) | none | wontfix | | |
 | 128 | [Todoist link survives edits, and reworded tasks show "possibly sent"](issues/128-todoist-identity-and-possibly-sent.md) | none | wontfix | | |
 | 130 | [Todoist links follow renames, and unmatched entries are listed](issues/130-todoist-renames-and-unlinked.md) | none | wontfix | | |
-| 131 | [Section layout and live Filters preview](issues/131-sections-and-live-preview.md) | 011 | todo | | |
+| 131 | [Section layout and live Filters preview](issues/131-sections-and-live-preview.md) | 011, 250 | todo | | |
 | 132 | [Edit view opens from anywhere, hidden views included](issues/132-edit-view-from-anywhere.md) | 131 | todo | | |
 | 133 | [Sort & limit section](issues/133-sort-and-limit-section.md) | 132 | todo | | |
 | 134 | [Display section](issues/134-display-section.md) | 133 | todo | | |
@@ -246,6 +246,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 231 | [Separate verbose renderer diagnostics from ordinary file logs](issues/231-opt-in-renderer-diagnostics.md) | none | todo | | |
 | 232 | [Future: icon colors customizable in Settings > Appearance](issues/232-future-custom-icon-colors.md) | none | todo | | |
 | 233 | [An Auto Organize move into a folder that already has the name lands the note as `<name> 2`](issues/233-auto-organize-move-collision-numbers-the-note.md) | none | todo | | |
+| 249 | [Rendered table cells show highlight, underscore emphasis and bold italic](issues/249-table-cells-render-highlight-underscore-emphasis-bold-italic.md) | 062 | todo | | |
+| 250 | [Views say how many notes their filter could not evaluate](issues/250-views-count-notes-filter-could-not-evaluate.md) | 010 | todo | | |
+| 251 | [The code-block language switch keeps the rest of the fence info string](issues/251-code-block-language-switch-keeps-info-string.md) | none | todo | | |
+| 252 | [TSV paste leaves code, frontmatter and tab-indented lines alone](issues/252-tsv-paste-leaves-code-and-indented-lines.md) | none | todo | | |
+| 253 | [Canvas image nodes added in the app store vault-relative paths, and image nodes resolve both absolute and vault-relative ones](issues/253-canvas-image-nodes-store-vault-relative-paths.md) | 038 | todo | | |
 
 ## Log
 
@@ -272,3 +277,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 12:04 — 151 — deliver — round 1 APPROVED by claude with no findings, no fix round; full suite 618 files / 15766 tests passed; squash merged and pushed — 07ec74a68
 - 2026-11-12 12:04 — 198 — start — launched by /relay-lite:run (151 done, tasks-view-ux 236 done) — 0e4af6695
 - 2026-11-12 12:14 — 198 — deliver — round 1 APPROVED by claude (fix round: palette test asserts the ui exclusion; diff contrast deferred to the owner's by-eye check), deliver re-review APPROVED by claude; full suite 618 files / 15771 tests passed; colors not checked by eye; squash merged and pushed — 1198d8e7b
+- 2026-11-12 14:57 — ledger updated (added 249, 250, 251, 252, 253; title of 004, 006, 006, 010, 039, 043, 061, 062, 070; link of 006, 006; blocked by of 004, 006, 006, 012, 015, 039, 043, 047, 068, 131)

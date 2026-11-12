@@ -8,12 +8,13 @@
 
 **Status:** ready-for-agent
 
-**First wave:** yes, picked by the owner on 2026-11-06.
+**Answered:** first wave, picked by the owner on 2026-11-06. Owner, 2026-11-12: approved as a deep-dive addition to the queue. Nothing open.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, in src/tests/lib/features/backlinks/backlinks.service.test.ts: with the real backlinksStore and vaultStore at a fixed vaultIndexVersion, call fetchBacklinksV2('/v/A.md') with get_backlinks_v2 resolving A's entry, then fetchBacklinksV2('/v/B.md') resolving B's entry (activeTabPath following each call), then set activeTabPath back to A and call fetchBacklinksV2('/v/A.md') again; backlinksStore.linkedMentions holds A's entry, not B's. It fails today.
 - [ ] Failing test first, in src/tests/lib/features/outgoing-links/outgoing-links.service.test.ts: fetchOutgoingLinksV2('/v/A.md', content) writes A's links, then outgoingLinksStore.reset(), then fetchOutgoingLinksV2('/v/A.md', content) at the same version and content refills the store with A's links. It fails today.
+- [ ] Failing test first, in backlinks.service.test.ts: fetchBacklinksV2('/v/A.md') writes A's entry, then backlinksStore.reset() (what BacklinksPanel.svelte:36 does on a path change while expanded), then fetchBacklinksV2('/v/A.md') at the same vaultIndexVersion refills linkedMentions with A's entry. It fails today.
 - [ ] Two consecutive calls for the same path at the same version still issue one IPC (the existing 'skips the IPC when vaultIndexVersion has not changed' tests at backlinks.service.test.ts:478 and outgoing-links.service.test.ts:216 stay green).
 - [ ] A version bump, a content length change and resetBacklinks / resetOutgoingLinks still force a refetch (existing tests stay green).
 - [ ] The active-path guard still drops a result whose tab changed mid-IPC, and does not record it as fetched.
@@ -21,7 +22,10 @@
 
 ## Notes
 
-- **Priority:** daily use and UI correctness (bucket 2-ux). Two waves found the same per-path skip cache in front of one shared store. Plain A to B to A browsing shows the wrong note's links. Land it before ux-polish Issue 06, which edits the same fetch functions.
+- **Priority:** UI correctness (bucket 2-ux), impact medium. Two waves found the same per-path skip cache in front of one shared store. Plain A to B to A browsing shows the wrong note's links, but only once the owner expands a panel: Backlinks starts collapsed and re-collapses on every path change (BacklinksPanel.svelte:16, :33-38), and neither panel is on the owner's daily list (deep dive 2026-11-12, critique M1). Display only; nothing is written.
+- **Store resets bypass the services:** both panels call the store's own `reset()` on a path change (BacklinksPanel.svelte:36 `backlinksStore.reset()`, OutgoingLinksPanel.svelte:30-36 `outgoingLinksStore.reset()`), not resetBacklinks / resetOutgoingLinks. A 'last written' record kept only in the service never sees those resets, so it must be cleared by the store's `reset()` too (or live in the store behind a getter, with a test per CLAUDE.md).
+- **Out of scope:** computeUnlinkedMentionsForFile keeps the same per-path Map (`lastFetchedUnlinkedVersion`, backlinks.service.ts:21), but nothing in src/lib or src/routes calls it at HEAD `3ab6de999`. Relationship backlinks have no cache. Leave both alone.
+- **Run order:** no file shared with any other queued Issue (cross-order-files). 046 is blocked by this Issue. Read docs/agents/indexing-watcher-rules.md item 2 before changing the services or panels.
 - **Trigger:** Read-only navigation with no index change in between: open note A, open note B (or follow a wikilink from A), go back to A, then expand Backlinks. Or expand Outgoing links on A, switch to B and back to A, and expand it again. The index version only moves when Rust really changes the index, so plain browsing keeps it fixed.
 - **Evidence (verified by reading code at `5f8003d67`):** src/routes/(app)/+layout.svelte:105-141 fetchBacklinksV2(path) 150 ms after every tab change, panel expanded or not (call at :129) -> src/lib/features/backlinks/backlinks.service.ts:19 per-path Map; :142-150 early return when lastFetchedBacklinksVersion.get(path) === vaultIndexVersion; :163-164 writes the single shared linkedMentions and records the path; :257-263 the only clear (teardown) -> src/lib/features/backlinks/BacklinksPanel.svelte:20-30 expand calls fetchBacklinksV2(path) which is skipped again; :32-38 reset only when expanded and path changed; :68-82 renders whatever linkedMentions holds. Version moves only on a real index change: src-tauri/src/commands/vault.rs:367 emits only if result.changed; src/lib/app/tauri-listeners.service.ts:268 bumpVaultIndexVersion on the throttled refresh. Outgoing: src/lib/features/outgoing-links/outgoing-links.service.ts:16 per-path key map; :65-70 skip; :85 record; :96-99 the only clear (teardown) -> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:30-36 store reset without clearing the key; :18-28 re-expand fetch skipped; :64-65 'No outgoing links'. help/documentation/07-sidebar-panels.md:74 and :92 promise a re-fetch on the next expand.
 - **Related Issues before the audit:** `.scratch/archived/ux-polish/issues/06-link-panels-show-load-error.md`
@@ -38,3 +42,5 @@ Fix direction: make the skip apply only when the store currently holds that path
   - **Source:** audit 2026-11-05, domain `reactivity`, finding `N-reactivity-01` (from reactivity-reactivity-1, reactivity-ux-1, reactivity-lifecycle-1, reactivity-reactivity-2, reactivity-ux-2, reactivity-lifecycle-2). Size S.
 
 ## Comments
+
+- 2026-11-12: deep dive (`.scratch/open-itens/research/deep-dive-2026-11-12/`) confirmed the bug at HEAD and the owner approved it as a queue addition. Impact lowered to medium (critique M1). Added the note that both panels reset the store directly, so the skip record must follow the store's `reset()`. Noted the uncalled unlinked-mentions cache as out of scope. Dropped the stale order note on ux-polish Issue 06, which is wontfix. Added a Backlinks criterion for the store-reset case, matching the existing Outgoing links one.

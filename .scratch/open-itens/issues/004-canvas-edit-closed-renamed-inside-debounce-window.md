@@ -1,42 +1,49 @@
-# 004: A canvas edit closed or renamed inside the debounce window reaches its .canvas file
+# 004: A canvas edit closed inside the debounce window reaches its .canvas file
 
 **Origin:** `audit-2026-11-05` Issue 06, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
 **Migrated from:** `.scratch/archived/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md` (audit 2026-11-05). Priority: content safety (bucket 1-content). Content/medium for a daily canvas user, because the last edit is dropped. Issue 49's bugs 1 and 2 are fixed (f37acb402), and what remains of 49 is exactly this close-within-debounce drop.
 
-**Audit check at `5f8003d67`:** still_present (content, medium). src/lib/core/editor/editor.service.ts:309-328 closeTab checks isTabDirty, which is still clean inside the 300 ms debounce (CanvasInner.svelte:227-239), then calls removeTab at :328. Only after that does the keyed instance's onDestroy (CanvasInner.svelte:246-250) call persistChanges -> onJsonChange(ownPath, json) (:123) -> onContentChangeForPath (editor.service.ts:265-268) -> updateTabContentOnly (editor.store.svelte.ts:139-144), which finds no tab, so the edit is dropped. registerTabCloseListener (editor.service.ts:28) runs after removal (:330), and its only consumer is src/lib/plugins/queryjs/queryjs-ports.ts:16. Rename re-keys EditorView.svelte:83-85, and the flush targets the old ownPath (CanvasInner.svelte:63). src/tests/lib/features/canvas/canvas-tab-switch.test.ts:158-173 asserts only that the neighbour tab is not written, not that A's edit survives.
+**Audit check (re-read at `318b6e9b5`):** still present for the close case. src/lib/core/editor/editor.service.ts:303-332 closeTab checks isTabDirty at :312, which is still clean inside the 300 ms debounce (CanvasInner.svelte:227-241, `pendingPersist = true` at :234), then calls removeTab at :328. Only after that does the keyed instance (EditorView.svelte:84-86) run its onDestroy (CanvasInner.svelte:246-250): persistChanges -> onJsonChange(ownPath, json) (:123) -> onContentChangeForPath (editor.service.ts:265-268) -> updateTabContentOnly (editor.store.svelte.ts:139-144), which finds no tab, so the edit is dropped silently, with no prompt. registerTabCloseListener (editor.service.ts:28) runs after removal (:330), and its only consumer is src/lib/plugins/queryjs/queryjs-ports.ts:16. src/tests/lib/features/canvas/canvas-tab-switch.test.ts:158-173 asserts only that the neighbour tab is not written, not that A's edit survives.
 
-**Stale in the text below:** Accurate at HEAD. The kanban view has the same close-time problem (new Issue in this audit: a kanban card edit committed into its own board), so the pre-close flush mechanism chosen here should be reusable by KanbanView.
+**Stale in the text below:** the merged Issue 49 section is context only. EditorView is keyed and persists go by path, so its line numbers and its "either prompts or saves" wording are superseded by the criteria in this part. The kanban view has the same close-time problem (Issue 006), so the flush API here stays generic for KanbanView to register through.
 
-**What to build:** A canvas edit made less than 300 ms before the canvas tab is closed, or before the canvas file is renamed, is saved into that canvas's .canvas file. Today it is dropped: `closeTab` runs `removeTab` before the keyed CanvasInner's onDestroy flush, so `onContentChangeForPath(path, json)` (via `editorStore.updateTabContentOnly`) finds no tab and writes nothing; the tab was not dirty yet, so no "unsaved changes" prompt fires either. A rename re-keys the instance and the flush targets the old path, which has no tab. Options from the Issue 01 review: flush the canvas before `removeTab` (a pre-close hook the canvas registers), or have the path-scoped writer save a path with no open tab straight to disk.
+**What to build:** A canvas edit made less than 300 ms before the canvas tab is closed is saved into that canvas's .canvas file. Today it is dropped: `closeTab` runs `removeTab` before the keyed CanvasInner's onDestroy flush, so `onContentChangeForPath(path, json)` (via `editorStore.updateTabContentOnly`) finds no tab and writes nothing; the tab was not dirty yet, so no prompt fires either. Fix with a pre-close flush hook, never by writing a path that has no open tab. In src/lib/core/editor/editor.service.ts add `registerPendingEditFlusher(path: string, flush: () => void): () => void` (the returned unregister removes only that function) and `flushPendingEdits(path: string): boolean`, which returns false only when a flusher threw and true otherwise, including when no flusher is registered for `path`. A flusher writes its view's pending edit into the tab of `path`. In closeTab, after the pinned check and only for a non-virtual tab, call `flushPendingEdits(tabPath)` just before Issue 015's save-first step, so what the flush writes into the tab is saved by that step and a successful save closes with no prompt. CanvasInner.svelte registers a flusher for `ownPath` on mount (`if (!pendingPersist) return; clearTimeout(nodesChangeTimer); persistChanges(nodes, edges); pendingPersist = false;`) and unregisters it on destroy; `onDestroy` keeps its own flush for a tab switch and a source-mode toggle. A flusher that throws must not drop the edit silently: `flushPendingEdits` logs it with `error('EDITOR', ...)` and returns false, and closeTab then shows 015's failed-save prompt (Cancel keeps the tab open, the confirm answer closes it), whether or not the tab is dirty. `core/` must not import `features/` (ADR-0003): the registry lives in core and the canvas registers into it.
 
-**Blocked by:** none
+**Blocked by:** 015
 
 **Status:** ready-for-agent
 
+**Answered:** 2026-11-12 (owner): 004 drops the rename case; the edit-before-rename leg is a known limit in Notes, with no new hook in core link-updater code. 004 keeps only the close-tab flush, placed just before 015's save in closeTab, and a flusher that throws must not drop the edit silently. 004 runs after 015. Close saves and does not prompt, per 015's owner decision of 2026-11-06. Nothing open.
+
 **First wave:** yes, added on 2026-11-06 because first-wave Issue 09 is blocked by it.
 
-**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`. Targeted e2e (relay-lite does not run it; run it once before delivery): `bash scripts/e2e.sh e2e/specs/canvas-view.spec.ts e2e/specs/editor.spec.ts`.
 
-- [ ] Failing test first: in src/tests/lib/features/canvas/canvas-tab-switch.test.ts, type into canvas A's card, advance 100 ms, `closeTab(A)`, advance 3000 ms: `writeTextFile` was called with A's path and the typed text, and never with the neighbour's path.
-- [ ] A programmatic rename of A inside the debounce window (auto-move or a watcher-detected rename; a user rename takes longer than the 300 ms debounce) keeps the typed text in the renamed file, through the same pre-close flush. Never by saving to the old path.
+- [ ] Failing test first, in src/tests/lib/features/canvas/canvas-tab-switch.test.ts: type into canvas A's card, advance 100 ms, `await closeTab(tabIndex(A))`, `flushSync()`, advance 3000 ms. Assert: `tabIndex(A) === -1`; `writeTextFile` was called with A's path and content containing the typed text; `ask` was not called (add `vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }))` to the file: today `ask` is unmocked, returns false through the mocked `invoke`, and a flush-only fix would pass a weaker test); `writeTextFile` was never called with the neighbour's path and the neighbour's tab content is unchanged. It fails today.
+- [ ] Closing a canvas with no pending edit closes with no write and no prompt, as today.
+- [ ] Unit tests in src/tests/lib/core/editor/editor.service.test.ts (`describe('closeTab')`, set the `writeTextFile` and `ask` mocks explicitly in each test): a flusher registered for the closing path runs before the dirty check, and when it changes the tab content closeTab writes it, never calls `ask`, and removes the tab; a flusher for another path, an unregistered flusher and a pinned tab's flusher are not called; unregistering one of two flushers for the same path leaves the other registered; a throwing flusher is logged, `ask` is called with 015's failed-save prompt, Cancel keeps the tab, and the confirm answer closes it.
+- [ ] The comment above CanvasInner's onDestroy (CanvasInner.svelte:243-245) says it covers a tab switch and a source-mode toggle, and that a close goes through the registered flusher. It no longer claims to cover quit.
 - [ ] Frontend gate green: pnpm check, pnpm vitest run, pnpm build.
 
 ## Notes
 
 - **Source:** Issue 01 review, findings 1 and 2 (`.scratch/archived/audit-2026-11-04/work/01/review.md` in Issue 01's branch history). Not a regression: the reviewer's probe drops the edit on main too.
-- Code: src/lib/features/canvas/CanvasInner.svelte (`ownPath`, the onDestroy flush), src/lib/core/editor/editor.service.ts (`onContentChangeForPath`, `closeTab`).
-- **Size:** S to M.
+- Code: src/lib/features/canvas/CanvasInner.svelte (`ownPath` at :63, the debounce effect, the onDestroy flush), src/lib/core/editor/editor.service.ts (`onContentChangeForPath`, `closeTab`, the `tabCloseListeners` registry at :15-46 as the pattern to follow).
+- **Size:** S. Risk low: the hook is a no-op when no flusher is registered (every non-canvas tab). closeTab callers: EditorTabs.svelte:89 and :104, closeActiveTab (editor.service.ts:335-339) from global-keybindings.ts:84 (Cmd+W, no textarea exclusion, so Cmd+W typed from a card reaches closeTab) and commands.ts:112.
+- **Unregister by identity:** keep a Set of functions per path, or check identity before removing. On a source-mode toggle or a `{#key}` re-key of the same path, the old instance's destroy and the new instance's mount are adjacent, and a plain `Map<path, fn>` with `delete(path)` could drop the new registration if the order flips.
+- **Known limit, rename (owner, 2026-11-12):** a programmatic rename or move inside the 300 ms window still drops the last edit. Tabs are re-pathed only by `updateTabAfterRenameOrMove` (link-updater.service.ts:93-109, sole caller path-change.service.ts:185); the watcher never re-paths tabs. The routes are auto-organize (auto-organize.service.ts:338, :473; off by default, and it acts at least `debounceMs` after a save) and a vault mod's `vault.rename` / `vault.move` (mod-vault.service.ts:93, :100). A user rename takes longer than 300 ms. Add no hook to core link-updater code for it. Never fix it by saving to the old path: that recreates the renamed-away file.
+- **Out of scope, same window:** quit and vault switch (`saveAllDirtyTabs`, editor.service.ts:275-288, sees only dirty tabs, and quit never runs onDestroy) and delete of a canvas (`saveDirtyTabsUnder` then `closeTabsForDeletedPath`, path-change.service.ts:167-172, editor.service.ts:401-414) still lose an edit typed less than 300 ms earlier. Recorded under the owner's "no core changes for corner cases" rule; do not fold them in.
+- **In-flight keystrokes:** keystrokes typed during the close-time save are 015's re-save (its keystroke criterion); this Issue adds nothing for them.
+- Deep dive: `.scratch/open-itens/research/deep-dive-2026-11-12/dossier-004.md`, `refute-004.md`, `critique.md` (H2).
 
 ## Audit 2026-11-05 additions
 
 ### Merged from `.scratch/archived/file-io-audit/issues/49-canvas-switch-reuses-instance.md`
 
-That Issue was folded into this one by the audit; its text follows.
+Context only, superseded by the criteria above: a close saves and does not prompt (Issue 015 owner decision). That Issue was folded into this one by the audit; its text follows, and its own Status, Blocked by and Gate lines no longer apply.
 
 ### 49: A canvas-to-canvas tab switch reuses one CanvasInner: the last edit is dropped and Cmd+Z writes canvas 1 into canvas 2
-
-**Status:** needs-triage
 
 Priority: P1 (Cmd+Z right after a canvas switch overwrites the second canvas with the first one's content and autosaves it; the dropped edit is at most the last 300 ms of typing)
 
@@ -54,9 +61,7 @@ Fix:
 - Pass the tab path into CanvasView and CanvasInner and make every persist (`persistWithoutHistory`, the debounce timer, the `onDestroy` flush) call a path-keyed writer instead of `onContentChange`: `editorStore.updateTabContentOnly(path, json)` (editor.store.svelte.ts:139-144) plus the body autosave, exposed from editor.service.ts. Then the destroy flush targets its own file without relying on Svelte teardown semantics.
 - Flush a pending canvas persist before `closeTab` runs its dirty check, so a Cmd+W inside the 300 ms window either prompts or saves. `core/` must not import `features/` (ADR-0003), so the canvas registers its flush (for example a per-path before-close hook in editor.service.ts that CanvasInner registers on mount and removes on destroy) instead of editor.service importing the canvas.
 
-**Blocked by:** none
-
-**Gate:** `pnpm check` + `pnpm vitest run` + `pnpm build`
+Issue 49's original Blocked by (none) and Gate (`pnpm check` + `pnpm vitest run` + `pnpm build`), kept for history.
 
 **Source:** src/lib/app/EditorView.svelte:80-81, src/lib/features/canvas/CanvasView.svelte:5-16, src/lib/features/canvas/CanvasInner.svelte:85-115, :208-234, :261-273, src/lib/core/editor/editor.service.ts:228-231, :266-300, src/lib/core/editor/editor.store.svelte.ts:84-88, :139-144
 
@@ -98,3 +103,5 @@ F5 side effect: expected false to be true (no write to Board-1.canvas and no ask
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-12: deep dive edits (owner decisions of 2026-11-12). Retitled: the rename case is dropped and moves to Notes as a known limit, with no hook in link-updater code (critique H2). Blocked by changes from none to 015, which now runs first; the flush sits just before 015's save in closeTab, and a throwing flusher shows 015's failed-save prompt instead of dropping the edit. What to build names the flusher API and drops option 2. Criterion 1 now asserts the tab is gone and `ask` is not called (a flush-only fix passed the old one). Added registry unit tests, the onDestroy comment fix, targeted e2e specs and out-of-scope limits. The merged Issue 49 section is marked context only and its second Status line is removed. Line numbers refreshed at `318b6e9b5`.
+- 2026-11-12: consistency review: What to build now says what `flushPendingEdits` returns (false only when a flusher threw, true with no flusher), so a close with no flusher never reaches the failed-save prompt.

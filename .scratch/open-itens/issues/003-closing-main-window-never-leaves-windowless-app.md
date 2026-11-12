@@ -6,7 +6,9 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** needs-info
+
+**Answered:** 2026-11-12 (owner): parked; the owner prefers to do nothing about this Issue now. The 2026-11-06 decision below (hide on close, show on RunEvent::Reopen) still stands for when it is picked up again. Open then: the deep dive's proposed criteria and `backgroundThrottling` changes, which need an owner answer (see Comments).
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -48,3 +50,4 @@
 ## Comments
 
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
+- 2026-11-12: parked by the owner after the 2026-11-12 deep dive, which ranked it first: the owner prefers to do nothing about it now. Status set to needs-info; the text above is otherwise unchanged. Before it is relaunched, read the deep dive in `.scratch/open-itens/research/deep-dive-2026-11-12/` (SUMMARY.md section 2 "003", critique.md H3 and L2, dossier-003.md, refute-003.md): it proposes `"backgroundThrottling": "disabled"` on the main window (WebKit suspends a hidden view after about 5 minutes), a capabilities config test as the failing-first criterion, a clippy criterion and a cfg-gated Reopen arm with no Rust test, moving the in-app checks to an owner check in Notes, and a rebase warning for the `update-tauri-to-v3` branch. Per the critique, the throttling policy and the criteria moves need an owner answer first.

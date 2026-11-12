@@ -24,11 +24,11 @@
 - New view: definition `{ views: [{ type: 'table', name }] }`, no path, `listSort: 'title'` (the preset of PRD default D6).
 - Schedule in an `$effect` with `untrack` (CLAUDE.md rule 2), debounced 300 ms, dropping a stale run by a sequence number as `loadSeq` does. Re-run on draft changes and when the property index or entries are replaced.
 - States: "Loading..." until `collectionStore.isIndexReady` and `viewEntriesLoaded(...)`; "Finish the filter to see matches" while a row's value is blank (skip the run); the `filterError` text when the query reports one.
-- Next to the count, the number of notes that could not be evaluated ("1 note could not be evaluated"), which `view-engine-fixes/02` adds to the query result.
+- Next to the count, the number of notes that could not be evaluated ("1 note could not be evaluated"), which Issue 250 adds to the query result (split from 010 on 2026-11-12).
 - Save is blocked while `filterError` is set and the filters were touched (PRD default D10).
 - Collapsed summary: "N notes" or "Filter error".
 
-**Blocked by:** 011
+**Blocked by:** 011, 250
 
 **Status:** ready-for-agent
 
@@ -48,6 +48,10 @@
 
 ## Notes
 
-- **Run after (other feature):** view-engine-fixes 02, which adds the per-note failure count and the unknown-method error to `queryViewLens`. relay-lite does not enforce this.
+- **Run after:** Issue 010 (the unknown-method error) and Issue 250 (the per-note failure count on `queryViewLens`). 250 is in Blocked by and is itself blocked by 010.
 - Cost: one in-memory query per debounce, the work of one navigator count without the disk read. Not measured on the owner's vault: check it in the app and report the time in the Comments.
 - **Size:** M.
+
+## Comments
+
+- 2026-11-12: Blocked by gains 250. The per-note failure count this Issue shows moved from 010 (view-engine-fixes 02) to new Issue 250 on 2026-11-12 (owner split, deep dive SUMMARY section 2 "010"). 250 is needs-info, so this Issue waits for the owner's answer there.
