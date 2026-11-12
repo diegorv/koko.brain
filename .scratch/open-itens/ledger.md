@@ -89,7 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 052 | [Renaming a note updates [[links]] in kanban cards](issues/052-renaming-moving-note-updates-links-kanban-cards.md) | none | todo | | |
 | 053 | [A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result](issues/053-queryjs-block-run-seconds-after-save-shows.md) | none | todo | | |
 | 054 | [Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are](issues/054-auto-move-evaluates-moves-only-markdown-notes.md) | none | todo | | |
-| 055 | [HTML link paste keeps bracketed link text and table cells intact](issues/055-html-link-paste-keeps-bracketed-link-text.md) | none | in-progress | | |
+| 055 | [HTML link paste keeps bracketed link text and table cells intact](issues/055-html-link-paste-keeps-bracketed-link-text.md) | none | done | issue/055-html-link-paste-keeps-bracketed-link-text (840da3aa5) | 2026-11-12 |
 | 056 | [Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener](issues/056-cmd-click-reference-link-email-autolink-opens.md) | none | todo | | |
 | 057 | [Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...](issues/057-clearing-search-box-while-search-still-running.md) | none | todo | | |
 | 058 | [A formula that calls an unknown function cannot be confirmed and shows why](issues/058-formula-that-calls-unknown-function-cannot-confirmed.md) | none | todo | | |
@@ -295,3 +295,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:20 — 055 — start — launched by /relay-lite:run (owner picked it from the triage) — 8343db938
 - 2026-11-12 19:22 — 042 — start — launched by /relay-lite:run (owner picked it; no e2e) — afdb3df8d
 - 2026-11-12 19:31 — 068 — deliver — round 1 APPROVED by claude with no findings, no fix round; full suite 633 files / 16514 tests passed; squash merged and pushed — 0b1f5586f
+- 2026-11-12 19:33 — 055 — deliver — round 1 APPROVED by claude, two nits deferred to Issue 167 (unreachable table tags; HTML-email layout tables now skip link conversion); full suite 633 files / 16515 tests passed; squash merged and pushed — 840da3aa5
