@@ -53,7 +53,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | done | issue/122-row-menu-edits-with-undo (befb8f876) | 2026-11-12 |
 | 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | none | wontfix | | |
 | 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | done | issue/124-saved-views-and-to-list-migration (4cb9abb38) | 2026-11-12 |
-| 125 | [A "No date" built-in list, and a "modified" marker with Save, Revert and Reset](issues/125-smart-lists-and-empty-states.md) | 111, 247 | todo | | |
+| 125 | [A "No date" built-in list, and a "modified" marker with Save, Revert and Reset](issues/125-smart-lists-and-empty-states.md) | 111, 247 | in-progress | | |
 | 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | none | wontfix | | |
 | 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 244 | todo | | |
 | 227 | [The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date](issues/227-tasks-help-says-default-view-lists-only.md) | none | wontfix | | |
@@ -136,3 +136,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 18:51 — 124 — deliver — round 1 APPROVED by claude with a fix round (own-exclude test, architecture doc services list, GROUP_KEYS from a Record), deliver re-review APPROVED by claude; open point: Hide this writes session-only own excludes until 247; full suite 632 files / 16453 tests passed; squash merged and pushed — 4cb9abb38
 - 2026-11-12 18:51 — 247 — start — launched by /relay-lite:run — 2f183aec8
 - 2026-11-12 19:07 — 247 — deliver — round 1 APPROVED by claude with a fix round (focus after Escape, Delete and exclude edits; narrow dropdown save test), deliver re-review APPROVED by claude; full suite 633 files / 16460 tests passed; squash merged and pushed — f0ec27a6c
+- 2026-11-12 19:07 — 125 — start — launched by /relay-lite:run — 604932294
