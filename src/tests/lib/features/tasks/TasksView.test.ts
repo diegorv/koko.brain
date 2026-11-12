@@ -520,6 +520,7 @@ describe('TasksView: keeps its place', () => {
 		clearLocalStorage();
 		tasksStore.reset();
 		editorStore.reset();
+		settingsStore.reset();
 		tasksStore.setSectionTag('');
 	});
 
@@ -614,12 +615,14 @@ describe('TasksView: keeps its place', () => {
 
 		expect(tasksStore.sectionTag).toBe('#work');
 		expect(sectionCalls().map(([, args]) => args)).toEqual([{ sectionTags: ['#work'] }]);
+		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('#work');
 	});
 
 	it('drops a pending section tag when resetTasks ran before the view unmounts', async () => {
 		vi.useFakeTimers();
 		mockTaskFetch([one('/vault/A.md', 'task in A')]);
 		({ component } = await mountTasksView());
+		const savedBefore = settingsStore.tasksView;
 
 		type('#work');
 		resetTasks();
@@ -630,6 +633,7 @@ describe('TasksView: keeps its place', () => {
 
 		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(sectionCalls()).toHaveLength(callsAtReset);
+		expect(settingsStore.tasksView).toBe(savedBefore);
 	});
 
 	it('shows a section tag set from outside the textbox', async () => {

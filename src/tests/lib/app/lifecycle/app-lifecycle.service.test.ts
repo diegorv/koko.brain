@@ -189,6 +189,7 @@ vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 vi.mock('#lib/features/tasks/tasks.service.js', () => ({
 	buildTaskIndex: vi.fn(),
 	resetTasks: vi.fn(),
+	loadSavedTasksView: vi.fn(),
 }));
 
 vi.mock('#lib/core/trash/trash.service.js', () => ({
@@ -270,7 +271,7 @@ import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, rese
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
 import { registerTypesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/types-navigator.service.js';
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
-import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
+import { buildTaskIndex, loadSavedTasksView, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
 import { loadAutoOrganizeConfig, resetAutoOrganize, toggleAutoOrganizeHook } from '#lib/features/auto-organize/auto-organize.service.js';
 import { autoOpenDailyNote, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
@@ -334,6 +335,15 @@ describe('initializeVault', () => {
 		// vault's own settings.json on the effect's first run.
 		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0])
 			.toBeLessThan(vi.mocked(startSettingsPersistence).mock.invocationCallOrder[0]);
+	});
+
+	it('loads the saved Tasks view once, after the settings load and before persistence starts', async () => {
+		await initializeVault('/vault');
+
+		expect(loadSavedTasksView).toHaveBeenCalledTimes(1);
+		const loaded = vi.mocked(loadSavedTasksView).mock.invocationCallOrder[0];
+		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0]).toBeLessThan(loaded);
+		expect(loaded).toBeLessThan(vi.mocked(startSettingsPersistence).mock.invocationCallOrder[0]);
 	});
 
 	it('configures Sentry only after this vault settings have loaded', async () => {
@@ -1460,6 +1470,22 @@ describe('state transitions: teardown → reinitialize', () => {
 		// (vault A's init was superseded by vault B's version counter bump)
 		expect(buildIndex).toHaveBeenCalledTimes(1);
 		expect(buildIndex).toHaveBeenCalledWith('/vault-b');
+	});
+
+	it('does not load the saved Tasks view for a superseded init', async () => {
+		let resolveA: () => void;
+		const slowSettingsA = new Promise<'loaded'>((r) => { resolveA = () => r('loaded'); });
+		vi.mocked(loadSettings).mockReturnValueOnce(slowSettingsA);
+
+		const initA = initializeVault('/vault-a');
+		await initializeVault('/vault-b');
+		expect(loadSavedTasksView).toHaveBeenCalledTimes(1);
+
+		// Vault A's settings resolve last; its init was superseded by B's.
+		resolveA!();
+		await initA;
+
+		expect(loadSavedTasksView).toHaveBeenCalledTimes(1);
 	});
 
 	it('saves all dirty tabs before tearing down previous vault on switch', async () => {

@@ -426,4 +426,29 @@ describe('settingsStore', () => {
 			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 		});
 	});
+
+	describe('tasksView', () => {
+		it('has no default: DEFAULT_SETTINGS holds no tasksView key', () => {
+			expect('tasksView' in DEFAULT_SETTINGS).toBe(false);
+			expect(settingsStore.tasksView).toBeUndefined();
+		});
+
+		it('updateTasksView sets the value, whatever its shape', () => {
+			settingsStore.updateTasksView({ version: 1, sectionTag: '#work' });
+			expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#work' });
+			expect(settingsStore.settings.tasksView).toEqual({ version: 1, sectionTag: '#work' });
+
+			settingsStore.updateTasksView(42);
+			expect(settingsStore.tasksView).toBe(42);
+		});
+
+		it('reset() removes the key', () => {
+			settingsStore.updateTasksView({ version: 1, sectionTag: '#work' });
+
+			settingsStore.reset();
+
+			expect(settingsStore.tasksView).toBeUndefined();
+			expect('tasksView' in settingsStore.settings).toBe(false);
+		});
+	});
 });

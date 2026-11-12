@@ -197,6 +197,8 @@ function parseSettings(content: string): AppSettings {
 		showUntypedNotes: parsed.showUntypedNotes ?? DEFAULT_SETTINGS.showUntypedNotes,
 		typesBaseFolder: parsed.typesBaseFolder ?? DEFAULT_SETTINGS.typesBaseFolder,
 		dockBadgeInboxCount: parsed.dockBadgeInboxCount ?? DEFAULT_SETTINGS.dockBadgeInboxCount,
+		// Verbatim, never merged: spreading an invalid value (`42`) would silently rewrite it as `{}`.
+		...(parsed.tasksView !== undefined ? { tasksView: parsed.tasksView } : {}),
 	};
 	return normalizeSettings(merged);
 }

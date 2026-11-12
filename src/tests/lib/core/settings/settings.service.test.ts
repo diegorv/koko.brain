@@ -366,6 +366,41 @@ describe('loadSettings', () => {
 		consoleSpy.mockRestore();
 	});
 
+	describe('tasksView', () => {
+		/** The settings handed to the load write-back */
+		const writeBack = () => JSON.parse(vi.mocked(writeTextFile).mock.calls.at(-1)![1] as string);
+
+		beforeEach(() => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+		});
+
+		it('stays absent when the file has none', async () => {
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ debugMode: true }));
+
+			await loadSettings('/vault');
+
+			expect('tasksView' in settingsStore.settings).toBe(false);
+			expect(writeTextFile).toHaveBeenCalledTimes(1);
+			expect('tasksView' in writeBack()).toBe(false);
+		});
+
+		it.each([
+			[{ version: 1, sectionTag: '#a', extra: { x: 1 } }],
+			[42],
+			[null],
+		])('passes %j through verbatim, in the store and the write-back', async (value) => {
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ tasksView: value }));
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.tasksView).toEqual(value);
+			expect(writeTextFile).toHaveBeenCalledTimes(1);
+			expect(writeBack().tasksView).toEqual(value);
+		});
+	});
+
 	describe('broken settings.json', () => {
 		const BACKUP_RE = /^\/vault\/\.kokobrain\/settings\.broken-\d{8}-\d{6}\.json$/;
 		let consoleSpy: ReturnType<typeof vi.spyOn>;

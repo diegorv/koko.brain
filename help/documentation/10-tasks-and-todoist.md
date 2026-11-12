@@ -104,7 +104,7 @@ The Tasks View toolbar provides several filters to help you focus on what matter
 |--------------------|--------------------------------------|------------------------------------|
 | **Date**           | All time / Last 7 days / Last 30 days | Keep tasks from notes modified in that period (the note's modification date, not a task date) |
 | **Hide closed**    | Toggle                               | Hide done (`- [x]`) and cancelled (`- [-]`) tasks. In progress, question, important and forwarded tasks stay listed |
-| **Section filter** | Text input                           | Keep tasks under a heading containing this tag (e.g. `#to-list`; the `#` is optional). Takes several tags, separated by spaces or commas (e.g. `#to-list #work`), and lists a task when its heading contains any of them. Default: `#to-list`. Empty: every task in the vault |
+| **Section filter** | Text input                           | Keep tasks under a heading containing this tag (e.g. `#to-list`; the `#` is optional). Takes several tags, separated by spaces or commas (e.g. `#to-list #work`), and lists a task when its heading contains any of them. Default: `#to-list`. Empty: every task in the vault. The field is remembered per vault and comes back after a restart. An empty field is not remembered: the next start shows `#to-list`. |
 
 Combine filters to narrow down your view. For example, toggle **Hide closed** on and set the date range to **Last 7 days** to see only recent, unfinished tasks.
 

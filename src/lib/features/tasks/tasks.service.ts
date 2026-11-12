@@ -4,9 +4,10 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { settleTaskWrite } from '#lib/core/filesystem/task-write.service.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { tasksStore } from './tasks.store.svelte';
 import { toggleTarget } from './task-status.logic';
-import { compareTaskPaths, parseSectionTags } from './tasks.logic';
+import { compareTaskPaths, parseSectionTags, parseTasksView, withSectionTag } from './tasks.logic';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
@@ -117,7 +118,8 @@ export async function buildTaskIndex(): Promise<void> {
 }
 
 /**
- * Updates the section-tag text (one or more tags) and refetches groups via
+ * Updates the section-tag text (one or more tags), saves it as typed in the
+ * vault's settings (`tasksView.sectionTag`), and refetches groups via
  * `buildTaskIndex`. Text holding at least one tag runs the Rust
  * `get_tasks_in_section_v2` scan, which re-reads from disk every note that
  * has tasks, on a blocking thread, to apply heading-level filtering. Typing here is not its only trigger: the
@@ -126,7 +128,27 @@ export async function buildTaskIndex(): Promise<void> {
  */
 export async function updateSectionTagFilter(tag: string): Promise<void> {
 	tasksStore.setSectionTag(tag);
+	// Saved as typed into the settings store only: settings persistence writes the
+	// file, and holds the guard for a session whose settings.json was never loaded.
+	settingsStore.updateTasksView(withSectionTag(settingsStore.tasksView, tag));
 	await buildTaskIndex();
+}
+
+/**
+ * Applies the section tags saved in this vault's settings (`tasksView`) to the
+ * Tasks store. Always sets the tag, `#to-list` included, so a vault without a
+ * saved value never keeps the previous vault's tag. An invalid value is logged
+ * and toasted but left in settings untouched: the next section tag change
+ * replaces it. Writes nothing and starts no fetch (the view fetches on mount).
+ */
+export function loadSavedTasksView(): void {
+	const raw = settingsStore.tasksView;
+	const { sectionTag, valid } = parseTasksView(raw);
+	if (!valid) {
+		error('TASKS', 'Invalid tasksView in settings.json:', raw);
+		toast.error('The saved Tasks section tags could not be read, so #to-list is used.');
+	}
+	tasksStore.setSectionTag(sectionTag);
 }
 
 /**

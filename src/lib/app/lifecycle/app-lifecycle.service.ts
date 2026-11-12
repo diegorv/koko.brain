@@ -54,7 +54,7 @@ import {
 	resetFileIcons,
 } from '#lib/features/file-icons/file-icons.service.js';
 import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
-import { resetTasks } from '#lib/features/tasks/tasks.service.js';
+import { loadSavedTasksView, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
 import { registerTypesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/types-navigator.service.js';
@@ -210,6 +210,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	const settingsOutcome = await loadSettings(vaultPath);
 	perfEnd('LIFECYCLE', 'Step 1: loadSettings', t1);
 	if (initVersion !== version) return;
+	loadSavedTasksView();
 	try {
 		await configureSentry(settingsStore.sentry);
 	} catch (err) {

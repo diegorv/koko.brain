@@ -443,6 +443,12 @@ export interface AppSettings {
 	typesBaseFolder: string;
 	/** Whether the inbox count is shown as a red badge on the macOS dock icon */
 	dockBadgeInboxCount: boolean;
+	/**
+	 * The Tasks view's saved state (its section tags). Loaded unvalidated and passed through
+	 * verbatim, so read it only through `parseTasksView` in `features/tasks`. `core/` cannot import
+	 * `features/`, so the type stays `unknown`. Absent means nothing was saved: it has no default.
+	 */
+	tasksView?: unknown;
 }
 
 /**

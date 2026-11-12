@@ -196,6 +196,8 @@ export const settingsStore = {
 	get showUntypedNotes() { return settings.showUntypedNotes; },
 	get typesBaseFolder() { return settings.typesBaseFolder; },
 	get dockBadgeInboxCount() { return settings.dockBadgeInboxCount; },
+	/** The Tasks view's saved state, unvalidated; `undefined` when nothing was saved */
+	get tasksView() { return settings.tasksView; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -398,6 +400,12 @@ export const settingsStore = {
 			...settings,
 			updates: { ...settings.updates, ...value },
 		};
+	},
+
+	/** Replaces the Tasks view's saved state; the store never inspects it */
+	updateTasksView(value: unknown) {
+		// In place, like `updateLayout`: replacing the root re-runs every settings reader.
+		settings.tasksView = value;
 	},
 
 	/** Restores all settings to their defaults */

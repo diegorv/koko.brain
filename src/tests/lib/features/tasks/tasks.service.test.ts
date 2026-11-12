@@ -28,6 +28,7 @@ import {
 	registerNoteChangeConsumer,
 } from '#lib/core/filesystem/note-change.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import {
 	buildTaskIndex,
@@ -38,6 +39,7 @@ import {
 	toggleTasksTab,
 	resetTasks,
 	getTasksResetGeneration,
+	loadSavedTasksView,
 } from '#lib/features/tasks/tasks.service.js';
 import type { FileTaskGroupV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
@@ -361,6 +363,7 @@ describe('updateSectionTagFilter', () => {
 		vi.clearAllMocks();
 		tasksStore.reset();
 		editorStore.reset();
+		settingsStore.reset();
 	});
 
 	it('sets section tag and refetches via the section IPC', async () => {
@@ -370,6 +373,7 @@ describe('updateSectionTagFilter', () => {
 
 		expect(tasksStore.sectionTag).toBe('#work');
 		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#work'] });
+		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('#work');
 	});
 
 	it('routes through get_all_tasks_v2 when filter cleared', async () => {
@@ -378,6 +382,57 @@ describe('updateSectionTagFilter', () => {
 		await updateSectionTagFilter('');
 
 		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
+		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('');
+	});
+
+	it('saves the tag in the settings store before it refetches', async () => {
+		let savedAtFetch: unknown;
+		vi.mocked(invoke).mockImplementationOnce(async () => {
+			savedAtFetch = { ...(settingsStore.tasksView as object) };
+			return [];
+		});
+
+		await updateSectionTagFilter('#a');
+
+		expect(savedAtFetch).toEqual({ version: 1, sectionTag: '#a' });
+	});
+});
+
+describe('loadSavedTasksView', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		tasksStore.reset();
+		settingsStore.reset();
+	});
+
+	it('sets #to-list when nothing was saved, and starts no fetch', () => {
+		tasksStore.setSectionTag('#stale');
+
+		loadSavedTasksView();
+
+		expect(tasksStore.sectionTag).toBe('#to-list');
+		expect(invoke).not.toHaveBeenCalled();
+		expect(settingsStore.tasksView).toBeUndefined();
+	});
+
+	it('sets the saved tag', () => {
+		settingsStore.updateTasksView({ version: 1, sectionTag: '#work' });
+
+		loadSavedTasksView();
+
+		expect(tasksStore.sectionTag).toBe('#work');
+		expect(error).not.toHaveBeenCalled();
+	});
+
+	it('logs and toasts an invalid value, and leaves it in settings', () => {
+		settingsStore.updateTasksView(42);
+
+		loadSavedTasksView();
+
+		expect(tasksStore.sectionTag).toBe('#to-list');
+		expect(error).toHaveBeenCalledWith('TASKS', 'Invalid tasksView in settings.json:', 42);
+		expect(toast.error).toHaveBeenCalledWith('The saved Tasks section tags could not be read, so #to-list is used.');
+		expect(settingsStore.tasksView).toBe(42);
 	});
 });
 

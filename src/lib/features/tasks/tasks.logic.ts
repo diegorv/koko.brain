@@ -146,6 +146,41 @@ export function parseSectionTags(text: string): string[] {
 	return tags;
 }
 
+/** The section tag the Tasks view uses when no usable one was saved */
+const DEFAULT_SECTION_TAG = '#to-list';
+
+/** Whether `value` is a JSON object: not `null`, not an array, not a primitive. */
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Reads the Tasks view's saved state (`settings.json` `tasksView`, unvalidated).
+ * Valid: absent, or an object whose `sectionTag` is absent or a string; `version`
+ * is not checked, so a newer build's value still loads. A saved text holding no
+ * tag (`''`, spaces, commas) gives `#to-list`, as does an invalid value; any
+ * other text comes back as typed, untrimmed.
+ */
+export function parseTasksView(raw: unknown): { sectionTag: string; valid: boolean } {
+	if (raw === undefined) return { sectionTag: DEFAULT_SECTION_TAG, valid: true };
+	if (!isPlainObject(raw)) return { sectionTag: DEFAULT_SECTION_TAG, valid: false };
+	const { sectionTag } = raw;
+	if (sectionTag === undefined) return { sectionTag: DEFAULT_SECTION_TAG, valid: true };
+	if (typeof sectionTag !== 'string') return { sectionTag: DEFAULT_SECTION_TAG, valid: false };
+	return { sectionTag: parseSectionTags(sectionTag).length > 0 ? sectionTag : DEFAULT_SECTION_TAG, valid: true };
+}
+
+/**
+ * Returns the Tasks view's saved state with `sectionTag` set to `sectionTag`, as
+ * typed. Every other key of an object `raw` is kept, so later fields saved under
+ * the same key survive; a numeric `version` is kept, otherwise `1` is written. A
+ * non-object `raw` is replaced wholesale. `raw` is never mutated.
+ */
+export function withSectionTag(raw: unknown, sectionTag: string): Record<string, unknown> {
+	const base = isPlainObject(raw) ? raw : {};
+	return { ...base, version: typeof base.version === 'number' ? base.version : 1, sectionTag };
+}
+
 /** Shows the parsed section tags joined with ` or `; '' when there are none. */
 function displaySectionTags(sectionTag: string): string {
 	return parseSectionTags(sectionTag).join(' or ');
