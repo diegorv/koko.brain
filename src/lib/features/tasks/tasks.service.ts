@@ -12,10 +12,11 @@ import { buildTaskRows, headingSources, tagHeadingCardText, type TaskOverlayEntr
 import { statusMenuLabel, toggleTarget } from './task-status.logic';
 import { taskRowKey } from './tasks-keys.logic';
 import { parseSectionTags, parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
-import type { TaskStatus } from './task-metadata.types';
+import type { TaskMetadata, TaskStatus } from './task-metadata.types';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
+import { vaultRelativeKey } from '#lib/utils/path.js';
 
 /**
  * Converts a `FileTaskGroupV2` (Rust, modifiedAt in seconds) into the
@@ -201,14 +202,7 @@ export function loadSavedTasksView(): void {
  * `settleTaskWrite`) so the change is visible without waiting for the
  * watcher to round-trip the file change.
  *
- * Rust writes the DISK copy and the sync marks the tab saved, so a dirty
- * open tab is saved first or its unsaved typing would be overwritten. If
- * that save fails nothing is written. `lineNumber` comes from the index of
- * the disk copy, so when the saved typing moved that line the write is
- * skipped and the list refreshed from a fresh snapshot instead of changing
- * whatever line is there.
- * The check compares line text only: if the shift leaves an identical line
- * at `lineNumber` (a duplicated task), that line is the one written.
+ * A dirty open tab of the note is saved first (`preflightTaskWrite`).
  */
 export async function setTaskStatus(
 	filePath: string,
@@ -219,20 +213,7 @@ export async function setTaskStatus(
 	dismissStatusUndo();
 	const { lineNumber } = task;
 	try {
-		const tab = editorStore.tabs.find((t) => t.path === filePath);
-		if (tab && isTabDirty(tab)) {
-			const diskLine = lineAt(tab.savedContent, lineNumber);
-			if (!(await saveFileByPath(filePath))) {
-				toast.error('Task not changed: the note could not be saved.');
-				return false;
-			}
-			const saved = editorStore.tabs.find((t) => t.path === filePath)?.savedContent;
-			if (saved === undefined || lineAt(saved, lineNumber) !== diskLine) {
-				await refreshAfterRefusal(filePath, lineNumber);
-				toast.info('The note changed, so the list was refreshed. Try again.');
-				return false;
-			}
-		}
+		if (!(await preflightTaskWrite(filePath, lineNumber))) return false;
 		vaultStore.requestPromptIndexRefresh();
 		let result;
 		try {
@@ -270,6 +251,102 @@ export async function setTaskStatus(
 	}
 }
 
+/**
+ * Runs before a Rust task command writes line `lineNumber` of `filePath`,
+ * and returns false when the write must not run (the refusal is already
+ * shown). Rust writes the DISK copy and the sync marks the tab saved, so a
+ * dirty open tab is saved first or its unsaved typing would be overwritten.
+ * If that save fails nothing is written. `lineNumber` comes from the index of
+ * the disk copy, so when the saved typing moved that line the write is
+ * skipped and the list refreshed from a fresh snapshot instead of changing
+ * whatever line is there.
+ * The check compares line text only: if the shift leaves an identical line
+ * at `lineNumber` (a duplicated task), that line is the one written.
+ */
+async function preflightTaskWrite(filePath: string, lineNumber: number): Promise<boolean> {
+	const tab = editorStore.tabs.find((t) => t.path === filePath);
+	if (!tab || !isTabDirty(tab)) return true;
+	const diskLine = lineAt(tab.savedContent, lineNumber);
+	if (!(await saveFileByPath(filePath))) {
+		toast.error('Task not changed: the note could not be saved.');
+		return false;
+	}
+	const saved = editorStore.tabs.find((t) => t.path === filePath)?.savedContent;
+	if (saved === undefined || lineAt(saved, lineNumber) !== diskLine) {
+		await refreshAfterRefusal(filePath, lineNumber);
+		toast.info('The note changed, so the list was refreshed. Try again.');
+		return false;
+	}
+	return true;
+}
+
+/**
+ * Writes `newText` as the text of `task` (the part after `[ ] `) via the
+ * Rust `write_task_text` command, and returns true only when the line was
+ * rewritten. A `newText` equal to `task.text` returns false before anything
+ * runs: no save, no IPC, no Undo dismissal. Any real write retires the menu's
+ * Undo toast.
+ *
+ * Otherwise it follows `setTaskStatus`: the dirty-tab save
+ * (`preflightTaskWrite`), the prompt index refresh asked for right before the
+ * call and taken back when Rust emits nothing, the `stale` refresh, and the
+ * overlay on a changed result. The overlay entry also carries the metadata
+ * Rust re-parsed from the written line (`TaskTextWriteResult.task`), so the
+ * due and priority chips change before the snapshot holds the write.
+ *
+ * The command takes the open vault and a vault-relative path; a note outside
+ * the open vault is refused like a failed write, before the dirty-tab save.
+ */
+export async function updateTask(
+	filePath: string,
+	task: Pick<TaskItem, 'text' | 'status' | 'lineNumber'>,
+	newText: string,
+): Promise<boolean> {
+	if (newText === task.text) return false;
+	dismissStatusUndo();
+	const { lineNumber } = task;
+	try {
+		const vaultRoot = vaultStore.path;
+		const relPath = vaultRoot === null ? null : vaultRelativeKey(vaultRoot, filePath);
+		if (vaultRoot === null || relPath === null) throw new Error(`Task note is not in the open vault: ${filePath}`);
+		if (!(await preflightTaskWrite(filePath, lineNumber))) return false;
+		vaultStore.requestPromptIndexRefresh();
+		let result;
+		try {
+			result = await call('write_task_text', {
+				vaultRoot,
+				relPath,
+				lineNumber,
+				expectedText: task.text,
+				expectedStatus: task.status,
+				newText,
+			});
+		} catch (err) {
+			vaultStore.takePromptIndexRefresh();
+			throw err;
+		}
+		if (result.stale || !result.updateResult.changed) vaultStore.takePromptIndexRefresh();
+		if (result.stale) {
+			await refreshAfterRefusal(filePath, lineNumber);
+			toast.info('The task changed on disk, so the list was refreshed. Try again.');
+			return false;
+		}
+		if (!result.updateResult.changed) return false;
+		await afterTaskWrite(filePath, result.updatedContent, {
+			lineNumber,
+			text: newText,
+			status: task.status,
+			version: result.updateResult.version,
+			metadata: result.task?.metadata,
+		});
+		return true;
+	} catch (err) {
+		error('TASKS', 'Failed to update task text:', err);
+		toast.error('Failed to save task change.');
+		return false;
+	}
+}
+
 /** Toggles a task: writes `toggleTarget(task.status)` through `setTaskStatus`. Shows no Undo toast. */
 export async function toggleTask(filePath: string, task: TaskItem): Promise<void> {
 	await setTaskStatus(filePath, task, toggleTarget(task.status));
@@ -295,12 +372,38 @@ function dismissStatusUndo(): void {
 export async function setTaskStatusFromMenu(filePath: string, task: TaskItem, target: TaskStatus): Promise<void> {
 	const generation = tasksResetGeneration;
 	if (!(await setTaskStatus(filePath, task, target)) || generation !== tasksResetGeneration) return;
+	holdUndoToast(`Task marked ${statusMenuLabel(target)}`, task, generation, () => {
+		void setTaskStatus(filePath, { text: task.text, lineNumber: task.lineNumber, status: target }, task.status);
+	});
+}
+
+/**
+ * A row menu's text change (due date, priority): `updateTask`, then a toast
+ * with `message` whose Undo writes `task.text` back, expecting `newText`.
+ * The same rules as `setTaskStatusFromMenu`: no toast when nothing was
+ * written or the vault switched during the write, Undo does nothing after a
+ * vault switch and shows no toast of its own.
+ */
+export async function updateTaskFromMenu(filePath: string, task: TaskItem, newText: string, message: string): Promise<void> {
+	const generation = tasksResetGeneration;
+	if (!(await updateTask(filePath, task, newText)) || generation !== tasksResetGeneration) return;
+	holdUndoToast(message, task, generation, () => {
+		void updateTask(filePath, { text: newText, status: task.status, lineNumber: task.lineNumber }, task.text);
+	});
+}
+
+/**
+ * Shows the Undo toast of a menu write of `task` and holds its id, the one
+ * `dismissStatusUndo` retires. `undo` runs only while the reset generation
+ * is still `generation`.
+ */
+function holdUndoToast(message: string, task: TaskItem, generation: number, undo: () => void): void {
 	const forget = (t: { id: string | number }) => {
 		if (statusUndoToastId === t.id) statusUndoToastId = null;
 	};
 	// An overlapping menu write may have stored its id after this write's start-of-write dismiss.
 	dismissStatusUndo();
-	statusUndoToastId = toast(`Task marked ${statusMenuLabel(target)}`, {
+	statusUndoToastId = toast(message, {
 		description: taskDisplayText(task),
 		onDismiss: forget,
 		onAutoClose: forget,
@@ -308,7 +411,7 @@ export async function setTaskStatusFromMenu(filePath: string, task: TaskItem, ta
 			label: 'Undo',
 			onClick: () => {
 				if (generation !== tasksResetGeneration) return;
-				void setTaskStatus(filePath, { text: task.text, lineNumber: task.lineNumber, status: target }, task.status);
+				undo();
 			},
 		},
 	});
@@ -319,17 +422,29 @@ export async function setTaskStatusFromMenu(filePath: string, task: TaskItem, ta
  * written line in the overlay and rebuilds the rows right away: the memoized
  * snapshot holds the write only after the throttled version bump, and the
  * overlay shows it until then.
+ *
+ * A write without `metadata` (a status write) keeps the metadata of the
+ * line's overlay entry when that entry holds the same text: a status change
+ * right after a due edit must not bring back the snapshot's older chips.
  * @param path - absolute path of the written note
  * @param updatedContent - the note's content after the write
- * @param written - the written line, its text and status after the write, and the version the write produced
+ * @param written - the written line, its text and status after the write, the version the write produced, and the re-parsed metadata of a text write
  */
 async function afterTaskWrite(
 	path: string,
 	updatedContent: string,
-	written: { lineNumber: number; text: string; status: TaskStatus; version: number },
+	written: { lineNumber: number; text: string; status: TaskStatus; version: number; metadata?: TaskMetadata },
 ): Promise<void> {
 	settleTaskWrite(path, updatedContent);
-	taskOverlay.set(taskRowKey(path, written.lineNumber), { text: written.text, status: written.status, version: written.version });
+	const key = taskRowKey(path, written.lineNumber);
+	const previous = taskOverlay.get(key);
+	const metadata = written.metadata ?? (previous?.text === written.text ? previous.metadata : undefined);
+	taskOverlay.set(key, {
+		text: written.text,
+		status: written.status,
+		version: written.version,
+		...(metadata ? { metadata } : {}),
+	});
 	await buildTaskIndex();
 }
 

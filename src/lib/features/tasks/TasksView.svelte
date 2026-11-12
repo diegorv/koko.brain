@@ -14,19 +14,23 @@
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { toast } from 'svelte-sonner';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { buildTaskIndex, setTaskSources, setTaskStatusFromMenu, toggleTask } from './tasks.service';
+	import { buildTaskIndex, setTaskSources, setTaskStatusFromMenu, toggleTask, updateTaskFromMenu } from './tasks.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { formatDate, formatNow } from '#lib/utils/date.js';
+	import { setDueToken, setPriorityToken } from '#lib/utils/task-tokens.js';
 	import SourcesPanel from './SourcesPanel.svelte';
 	import {
 		parseTaskTextSegments,
@@ -65,6 +69,7 @@
 		toggleTarget,
 		type StatusGlyphIcon,
 	} from './task-status.logic';
+	import { priorityMenuLabel, prioritySignifier, resolveDuePreset, type DuePreset } from './task-row-edit.logic';
 	import { nextCurrentRow, resolveTaskKey, tabStopRow, taskRowKey } from './tasks-keys.logic';
 	import type { TaskPriority, TaskStatus } from './task-metadata.types';
 	import type { TaskItem } from './tasks.types';
@@ -439,10 +444,12 @@
 	}
 
 	/**
-	 * A closing row menu returns focus to the row it was opened from, or, when
-	 * a write removed that row, to the tab-stop row. The bits-ui default would
-	 * focus the actions button of the tab-stop row, or an element the refetch
-	 * removed. Leaves focus alone when the user moved it out of the view.
+	 * A closing row menu, or the due date dialog, returns focus to the row it
+	 * was opened from, or, when a write removed that row, to the tab-stop row.
+	 * The bits-ui default would focus the actions button of the tab-stop row,
+	 * or an element the refetch removed. Leaves focus alone when the user
+	 * moved it out of the view, including into another dialog such as the
+	 * Command Palette.
 	 */
 	function handleRowMenuCloseFocus(e: Event, key: string) {
 		e.preventDefault();
@@ -451,7 +458,7 @@
 			!active ||
 			active === document.body ||
 			(!!rootEl && rootEl.contains(active)) ||
-			!!active.closest('[role="menu"]');
+			!!active.closest('[role="menu"], [data-task-due-dialog]');
 		if (!free) return;
 		const el = rowElement(key) ?? rowElement(tabStopRow(rendered, order, currentKey));
 		el?.focus({ preventScroll: true });
@@ -459,6 +466,46 @@
 
 	function pickRowStatus(row: GroupedRow, value: string) {
 		void setTaskStatusFromMenu(row.filePath, row, value as TaskStatus);
+	}
+
+	/** The row menu's Due presets, in menu order. */
+	const DUE_PRESETS: { label: string; preset: DuePreset }[] = [
+		{ label: 'Today', preset: 'today' },
+		{ label: 'Tomorrow', preset: 'tomorrow' },
+		{ label: 'In a week', preset: 'week' },
+	];
+
+	/** Sets the row's due date, or clears it when `date` is null, with the menu's Undo toast. */
+	function setRowDue(row: GroupedRow, date: string | null) {
+		const message = date === null ? 'Due cleared' : `Due set to ${date}`;
+		void updateTaskFromMenu(row.filePath, row, setDueToken(row.text, date), message);
+	}
+
+	/** bits-ui calls it on every pick, the checked radio included, which writes nothing. */
+	function pickRowPriority(row: GroupedRow, value: string) {
+		const priority = value as TaskPriority;
+		if (priority === (row.metadata.priority ?? 'none')) return;
+		const newText = setPriorityToken(row.text, prioritySignifier(priority));
+		void updateTaskFromMenu(row.filePath, row, newText, `Priority set to ${priorityMenuLabel(priority)}`);
+	}
+
+	/** Whether the due date dialog is open. */
+	let dueDialogOpen = $state(false);
+	/** The row the due date dialog writes; kept after it closes, for the close focus. */
+	let dueDialogRow = $state<GroupedRow | null>(null);
+	/** The dialog's date as typed, `YYYY-MM-DD`, or '' when cleared. */
+	let dueDraft = $state('');
+
+	function openDueDialog(row: GroupedRow) {
+		dueDialogRow = row;
+		dueDraft = row.metadata.dueDate ?? '';
+		dueDialogOpen = true;
+	}
+
+	function saveDueDialog() {
+		if (!dueDialogRow || dueDraft === '') return;
+		setRowDue(dueDialogRow, dueDraft);
+		dueDialogOpen = false;
 	}
 
 	async function copyTaskText(row: GroupedRow) {
@@ -564,6 +611,30 @@
 			<Menu.RadioItem value={status}>{statusMenuLabel(status)}</Menu.RadioItem>
 		{/each}
 	</Menu.RadioGroup>
+	<Menu.Separator />
+	<Menu.Sub>
+		<Menu.SubTrigger inset>Due</Menu.SubTrigger>
+		<Menu.SubContent class="w-40">
+			{#each DUE_PRESETS as option (option.preset)}
+				<Menu.Item onSelect={() => setRowDue(row, resolveDuePreset(option.preset, today))}>{option.label}</Menu.Item>
+			{/each}
+			<Menu.Item onSelect={() => openDueDialog(row)}>Pick a date</Menu.Item>
+			{#if row.metadata.dueDate}
+				<Menu.Separator />
+				<Menu.Item onSelect={() => setRowDue(row, null)}>Clear</Menu.Item>
+			{/if}
+		</Menu.SubContent>
+	</Menu.Sub>
+	<Menu.Sub>
+		<Menu.SubTrigger inset>Priority</Menu.SubTrigger>
+		<Menu.SubContent class="w-40">
+			<Menu.RadioGroup value={row.metadata.priority ?? 'none'} onValueChange={(value) => pickRowPriority(row, value)}>
+				{#each TASK_PRIORITIES as priority (priority)}
+					<Menu.RadioItem value={priority}>{priorityMenuLabel(priority)}</Menu.RadioItem>
+				{/each}
+			</Menu.RadioGroup>
+		</Menu.SubContent>
+	</Menu.Sub>
 {/snippet}
 
 <!-- A group's collapse chevron. A click never focuses it in WebKit, and collapsing never moves focus by code. -->
@@ -984,4 +1055,35 @@
 			{/if}
 		</div>
 	</ScrollArea>
+
+	<!-- One due date dialog for every row, opened by a row menu's Pick a date. -->
+	<Dialog.Root bind:open={dueDialogOpen}>
+		<Dialog.Content
+			data-task-due-dialog
+			class="sm:max-w-xs"
+			onCloseAutoFocus={(e) => {
+				if (dueDialogRow) handleRowMenuCloseFocus(e, taskRowKey(dueDialogRow.filePath, dueDialogRow.lineNumber));
+			}}
+		>
+			<Dialog.Header>
+				<Dialog.Title>Due date</Dialog.Title>
+				{#if dueDialogRow}
+					<Dialog.Description class="truncate">{taskDisplayText(dueDialogRow)}</Dialog.Description>
+				{/if}
+			</Dialog.Header>
+			<form
+				class="grid gap-4"
+				onsubmit={(e) => {
+					e.preventDefault();
+					saveDueDialog();
+				}}
+			>
+				<Input type="date" aria-label="Due date" data-task-due-input bind:value={dueDraft} />
+				<Dialog.Footer>
+					<Button type="button" variant="outline" onclick={() => (dueDialogOpen = false)}>Cancel</Button>
+					<Button type="submit" disabled={dueDraft === ''}>Save</Button>
+				</Dialog.Footer>
+			</form>
+		</Dialog.Content>
+	</Dialog.Root>
 </div>

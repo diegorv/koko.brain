@@ -15,6 +15,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { TASK_STATUSES } from '#lib/features/tasks/task-status.logic.js';
 import type { FileTaskGroupV2, NoteEntryV2, TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
+import type { TaskTextWriteResult } from '#lib/contracts/index.js';
 import { entryV2 } from './vault-entries.fixture';
 
 /**
@@ -103,13 +104,18 @@ function unchangedToggle(): ToggleTaskResultV2 {
  * `get_all_vault_entries_v2` returns each of `groups` as `taskEntryV2`
  * (a function is called on every whole-vault read), then `opts.entries` as
  * given (for headings or note fields), `toggle_task_status` returns
- * `opts.toggle(args)` or an unchanged result, and any other command returns
- * `undefined`. Drops the memoized snapshot, so the next read gets these
+ * `opts.toggle(args)` or an unchanged result, `write_task_text` returns
+ * `opts.writeText(args)` or an unchanged result, and any other command
+ * returns `undefined`. Drops the memoized snapshot, so the next read gets these
  * answers; a later read at the same index version is served the memo.
  */
 export function mockTaskFetch(
 	groups: FileTaskGroupV2[] | (() => Promise<FileTaskGroupV2[]>),
-	opts: { entries?: NoteEntryV2[]; toggle?: (args: Record<string, unknown>) => ToggleTaskResultV2 } = {},
+	opts: {
+		entries?: NoteEntryV2[];
+		toggle?: (args: Record<string, unknown>) => ToggleTaskResultV2;
+		writeText?: (args: Record<string, unknown>) => TaskTextWriteResult;
+	} = {},
 ): void {
 	invalidateVaultEntries();
 	vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
@@ -119,6 +125,9 @@ export function mockTaskFetch(
 		}
 		if (cmd === 'toggle_task_status') {
 			return opts.toggle ? opts.toggle((args ?? {}) as Record<string, unknown>) : unchangedToggle();
+		}
+		if (cmd === 'write_task_text') {
+			return opts.writeText ? opts.writeText((args ?? {}) as Record<string, unknown>) : { ...unchangedToggle(), task: null };
 		}
 		return undefined;
 	});

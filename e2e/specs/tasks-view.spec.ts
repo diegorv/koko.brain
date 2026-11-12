@@ -219,6 +219,29 @@ test.describe('Tasks view', () => {
 			const dueBox = (await due.boundingBox())!;
 			expect(dueBox.y).toBeGreaterThanOrEqual(textBox.y + textBox.height);
 		});
+
+		test("the row menu's Due > Today and Priority > High write the note", async ({ vaultPage: page }) => {
+			const path = '/test-vault/Projects/2026-Q2.md';
+			const readNote = () => page.evaluate((p) => (window as any).__e2e.fs.readFileSafe(p), path);
+			await pressShortcut(page, 'Mod+Shift+T');
+			await page.getByRole('button', { name: 'Clear', exact: true }).click();
+
+			const row = page.locator('[data-task-row]', { hasText: 'Ship feature A' });
+			await expect(row).toBeVisible({ timeout: 5_000 });
+			await row.getByRole('button', { name: 'Task actions' }).click();
+			await page.getByRole('menuitem', { name: 'Due' }).click();
+			await page.getByRole('menuitem', { name: 'Today' }).click();
+
+			await expect.poll(readNote).toContain('- [ ] Ship feature A 📅 2026-11-05\n');
+			await expect(row.locator('[data-task-chip="due"]')).toHaveText('Nov 5');
+
+			await row.getByRole('button', { name: 'Task actions' }).click();
+			await page.getByRole('menuitem', { name: 'Priority' }).click();
+			await page.getByRole('menuitemradio', { name: 'High', exact: true }).click();
+
+			// The mock task parser fills no priority, so only the file content shows it.
+			await expect.poll(readNote).toContain('- [ ] Ship feature A 📅 2026-11-05 ⏫\n');
+		});
 	});
 
 	test('two heading cards list tasks under either tag', async ({ vaultPage: page }) => {

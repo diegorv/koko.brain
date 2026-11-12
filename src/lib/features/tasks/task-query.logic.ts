@@ -3,7 +3,7 @@ import { formatDateWithOffset } from '#lib/utils/date.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import { headingChains, matchesHeading, type HeadingMatchMode } from './task-headings.logic';
 import { TASK_STATUSES, isTaskOpen, statusGlyph } from './task-status.logic';
-import type { TaskPriority, TaskStatus } from './task-metadata.types';
+import type { TaskMetadata, TaskPriority, TaskStatus } from './task-metadata.types';
 import { taskRowKey } from './tasks-keys.logic';
 import { compareTaskPaths, noteFolder, noteTaskCounts, taskDisplayText } from './tasks.logic';
 import type { TaskItem } from './tasks.types';
@@ -199,6 +199,8 @@ export interface TaskOverlayEntry {
 	status: TaskStatus;
 	/** The index version the write produced (`UpdateResult.version`) */
 	version: number;
+	/** The line's metadata as Rust re-parsed it after a text write; absent when the snapshot's still holds */
+	metadata?: TaskMetadata;
 }
 
 /** The view's own writes, keyed by `taskRowKey(filePath, lineNumber)`. */
@@ -210,8 +212,9 @@ export type TaskOverlay = ReadonlyMap<string, TaskOverlayEntry>;
  * with its heading chain (`headingChains`). The sources and excludes run
  * later, in `selectSourceRows`, which also recounts the note counts.
  *
- * An overlay entry for a task replaces its text and status, and `checked`
- * and `open` follow the overlaid status. The note counts and `parentLine`
+ * An overlay entry for a task replaces its text and status, and its
+ * metadata when the entry carries one; `checked` and `open` follow the
+ * overlaid status. The note counts and `parentLine`
  * cover every task of the note. An entry with no task gives no row.
  *
  * `entries` is the shared snapshot (QueryJS reads the same objects): it, its
@@ -241,7 +244,7 @@ export function buildTaskRows(
 					indent: task.indent,
 					lineNumber: task.lineNumber,
 					status,
-					metadata: task.metadata,
+					metadata: written?.metadata ?? task.metadata,
 				},
 				headings,
 			});

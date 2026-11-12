@@ -39,7 +39,7 @@
 
 **Blocked by:** 122, 241
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** owner, 2026-11-12: split approved, 246 = 122b, blocked by 122 (and by 241). Undo for row-menu writes, never for the circle or Space (owner, 2026-11-12, Issue 241, decided when the menu held only status); extending it to the menu's Due and Priority writes is this plan's reading, for the owner to confirm at triage. PRD A7: row edits cover status, due and priority, with no done-date stamp and no recurrence spawn (owner, 2026-11-06). Open: Issue 122's locator (deep-dive Q5); this Issue follows its decision and stays `needs-triage` with it. Owner, 2026-11-12: confirmed, every row-menu write (status, due, priority) shows the Undo toast; the circle and Space stay without it. Owner, 2026-11-12 (Q5): Issue 122 uses the guarded line-number command.
 
@@ -47,18 +47,18 @@
 
 Test mechanics: component tests go in a new `src/tests/lib/features/tasks/TasksView.row-edit.test.ts`, built on Issue 110's `src/tests/fixtures/tasks.fixture.ts` (`mountTasksView`, `openMenu`, and `mockTaskFetch` to serve tasks; never an inline `invoke` mock of a task fetch command). Real stores. Allowed boundary mocks besides `invoke`: `svelte-sonner` in 241's callable form (`Object.assign(vi.fn(() => 'undo-1'), { error: vi.fn(), info: vi.fn(), dismiss: vi.fn() })`), `#lib/utils/debug.js` or a `console.error` spy. Fake only `Date` (`vi.useFakeTimers({ toFake: ['Date'] })`) where a test needs today. Read menu items only inside `[role="menu"][data-state="open"]`, and await a `requestAnimationFrame` before focus assertions (241's notes).
 
-- [ ] Failing test first, `src/tests/lib/features/tasks/task-row-edit.logic.test.ts`: `resolveDuePreset('tomorrow', '2026-11-05')` is `2026-11-06`, `'week'` is `2026-11-12`, and `'tomorrow'` on `2026-12-31` is `2027-01-01`; the priority map covers all five levels.
-- [ ] `tasks.service.test.ts` with real stores: with `Date` at 2026-11-05, the menu's "Due tomorrow" path sends `write_task_text` with `newText` ending in the due token for `2026-11-06`, `expectedText` the raw text and `expectedStatus` the row's status; Undo sends the old text as `newText` and the new text as `expectedText`. Red first: `updateTask` does not exist.
-- [ ] `tasks.service.test.ts`: `newText === task.text` sends nothing and shows no toast; a `stale` result refetches, shows the stale copy and writes nothing more; a write that resolves after `resetTasks()` shows no toast; Undo with a stale generation sends nothing; a thrown write leaves the prompt-refresh flag cleared.
-- [ ] `tasks.service.test.ts`: with `get_all_vault_entries_v2` still returning the pre-edit snapshot, after the write the row's `metadata.dueDate` is the new date (from the overlay and `TaskTextWriteResult.task`), and once `vaultIndexVersion` reaches the write's version the row reads from the snapshot again.
-- [ ] `task-toggle-dirty-buffer.test.ts`: parallel cases for `updateTask` (typing moved the line, typing edited the line, the pre-save failed), next to the existing `setTaskStatus` cases, which keep passing.
-- [ ] `TasksView.row-edit.test.ts`: Priority > High on a row with no priority sends `newText` ending in the high signifier (U+23EB) and the row's chip then reads `high`; the radio group checks None on a row with no priority.
-- [ ] `TasksView.row-edit.test.ts`: Due > Tomorrow sends the date (clock faked); Clear is offered only on a row with a due date; Pick a date opens the dialog, Save writes the picked date, Cancel writes nothing, and focus returns to the row after the dialog closes.
-- [ ] `TasksView.row-edit.test.ts`: right click on a row shows the same Due and Priority items; Undo from the toast restores the previous chip.
-- [ ] `TasksView.row-edit.test.ts`: under the Open filter and a Due "Today" filter, setting Due > Tomorrow on row B of A, B, C removes it, and focus lands on C's row with `tabindex="0"`.
-- [ ] Issue 241's tests that assert the exact item list of the menu change on purpose to include Due and Priority; no other 241 test changes.
-- [ ] e2e, `e2e/specs/tasks-view.spec.ts`: open a row's menu, choose Due > Today, and the note's file content (read through `__e2e.fs`, as the spec's toggle test does) carries the due token for the test clock's today, and the row shows a due chip. Priority is asserted through the file content only (the mock task parser fills no priority).
-- [ ] `help/documentation/10-tasks-and-todoist.md` describes Due and Priority in the row menu and the Todoist effect above.
+- [x] Failing test first, `src/tests/lib/features/tasks/task-row-edit.logic.test.ts`: `resolveDuePreset('tomorrow', '2026-11-05')` is `2026-11-06`, `'week'` is `2026-11-12`, and `'tomorrow'` on `2026-12-31` is `2027-01-01`; the priority map covers all five levels.
+- [x] `tasks.service.test.ts` with real stores: with `Date` at 2026-11-05, the menu's "Due tomorrow" path sends `write_task_text` with `newText` ending in the due token for `2026-11-06`, `expectedText` the raw text and `expectedStatus` the row's status; Undo sends the old text as `newText` and the new text as `expectedText`. Red first: `updateTask` does not exist.
+- [x] `tasks.service.test.ts`: `newText === task.text` sends nothing and shows no toast; a `stale` result refetches, shows the stale copy and writes nothing more; a write that resolves after `resetTasks()` shows no toast; Undo with a stale generation sends nothing; a thrown write leaves the prompt-refresh flag cleared.
+- [x] `tasks.service.test.ts`: with `get_all_vault_entries_v2` still returning the pre-edit snapshot, after the write the row's `metadata.dueDate` is the new date (from the overlay and `TaskTextWriteResult.task`), and once `vaultIndexVersion` reaches the write's version the row reads from the snapshot again.
+- [x] `task-toggle-dirty-buffer.test.ts`: parallel cases for `updateTask` (typing moved the line, typing edited the line, the pre-save failed), next to the existing `setTaskStatus` cases, which keep passing.
+- [x] `TasksView.row-edit.test.ts`: Priority > High on a row with no priority sends `newText` ending in the high signifier (U+23EB) and the row's chip then reads `high`; the radio group checks None on a row with no priority.
+- [x] `TasksView.row-edit.test.ts`: Due > Tomorrow sends the date (clock faked); Clear is offered only on a row with a due date; Pick a date opens the dialog, Save writes the picked date, Cancel writes nothing, and focus returns to the row after the dialog closes.
+- [x] `TasksView.row-edit.test.ts`: right click on a row shows the same Due and Priority items; Undo from the toast restores the previous chip.
+- [x] `TasksView.row-edit.test.ts`: under the Open filter and a Due "Today" filter, setting Due > Tomorrow on row B of A, B, C removes it, and focus lands on C's row with `tabindex="0"`.
+- [x] Issue 241's tests that assert the exact item list of the menu change on purpose to include Due and Priority; no other 241 test changes.
+- [x] e2e, `e2e/specs/tasks-view.spec.ts`: open a row's menu, choose Due > Today, and the note's file content (read through `__e2e.fs`, as the spec's toggle test does) carries the due token for the test clock's today, and the row shows a due chip. Priority is asserted through the file content only (the mock task parser fills no priority).
+- [x] `help/documentation/10-tasks-and-todoist.md` describes Due and Priority in the row menu and the Todoist effect above.
 
 ## Notes
 
@@ -76,3 +76,4 @@ Test mechanics: component tests go in a new `src/tests/lib/features/tasks/TasksV
 - 2026-11-12: consistency review: `relPath` comes from `vaultRelativeKey` (the old pointer to a `setTaskStatus` precedent was wrong: `toggle_task_status` takes absolute paths); the overlay's `metadata` is named as an optional field on Issue 244's `TaskOverlayEntry`; the Answered line separates the owner's Undo decision from this plan's extension of it to Due and Priority.
 
 - 2026-11-12: owner confirmed Undo for Due and Priority and answered 122's locator; Status ready-for-agent.
+- 2026-11-12: delivered from `issue/246-tasks-row-menu-due-and-priority`. Due and Priority submenus in the Tasks row menu and right-click menu (presets, Pick a date dialog, Clear, five priority levels), `updateTask` service with overlay, stale handling and Undo toast, e2e and help text. Review round 1 APPROVED with two fixes applied (row-menu focus rule limited to menus and the due dialog; outside-vault notes refused before the dirty-tab save); round 2 APPROVED, no findings. Tests: `pnpm check` 0 errors; `src/tests/lib/features/tasks/` 715 passed; full suite at 68a153666 exit 0, 632 files, 16349 passed, 54 skipped, 1 todo.

@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+// `vaultStore.open` persists the recent-vaults list.
+setupLocalStorage();
 
 /**
  * Fake disk + fake Rust side. `toggle_task_status` mirrors
@@ -69,6 +73,21 @@ vi.mock('@tauri-apps/api/core', () => ({
 			disk.set(path, updated);
 			return { updatedContent: updated, updateResult: { changed: true, version: 2, upserted: [path], removed: [], fullRescan: false }, stale: false };
 		}
+		if (cmd === 'write_task_text') {
+			const path = `${args!.vaultRoot as string}/${args!.relPath as string}`;
+			const line = args!.lineNumber as number;
+			const lines = (disk.get(path) ?? '').split('\n');
+			const m = /^(\s*[-*+] \[.\] )(.*)$/.exec(lines[line - 1] ?? '');
+			if (!m || m[2] !== args!.expectedText) {
+				return { updatedContent: disk.get(path) ?? '', updateResult: { changed: false, version: 1, upserted: [], removed: [], fullRescan: false }, stale: true, task: null };
+			}
+			lines[line - 1] = m[1] + (args!.newText as string);
+			const updated = lines.join('\n');
+			disk.set(path, updated);
+			const text = args!.newText as string;
+			const task = { text, checked: false, indent: 0, lineNumber: line, status: 'todo', metadata: { description: text, tags: [] } };
+			return { updatedContent: updated, updateResult: { changed: true, version: 2, upserted: [path], removed: [], fullRescan: false }, stale: false, task };
+		}
 		if (cmd === 'get_all_vault_entries_v2') return entriesOnDisk();
 		return undefined;
 	}),
@@ -97,7 +116,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { onContentChange, resetEditor } from '#lib/core/editor/editor.service.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { buildTaskIndex, openTasksTab, resetTasks, toggleTask } from '#lib/features/tasks/tasks.service.js';
+import { buildTaskIndex, openTasksTab, resetTasks, toggleTask, updateTask } from '#lib/features/tasks/tasks.service.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
 
@@ -120,6 +139,10 @@ function noteTab() {
 
 function toggleCalls() {
 	return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'toggle_task_status');
+}
+
+function writeCalls() {
+	return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'write_task_text');
 }
 
 describe('toggleTask on a note with unsaved edits', () => {
@@ -232,5 +255,99 @@ describe('toggleTask on a note with unsaved edits', () => {
 			target: 'done',
 		});
 		expect(noteTab().content).toBe('# Groceries\n- [x] buy milk\n');
+	});
+});
+
+// `updateTask` runs the same pre-save as `setTaskStatus` (`preflightTaskWrite`).
+describe('updateTask on a note with unsaved edits', () => {
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.clearAllMocks();
+		disk.clear();
+		flagSeen.save = [];
+		flagSeen.toggle = [];
+		resetTasks();
+		invalidateVaultEntries();
+		tasksStore.setSources([]);
+		editorStore.reset();
+		vaultStore.open('/vault');
+		disk.set(NOTE, SAVED);
+		editorStore.addTab({ path: NOTE, name: 'note', content: SAVED, savedContent: SAVED });
+	});
+
+	afterEach(() => {
+		resetEditor();
+		vaultStore.takePromptIndexRefresh();
+		vi.useRealTimers();
+	});
+
+	it('saves the typed text first, then writes the new task text', async () => {
+		onContentChange(TYPED);
+		openTasksTab();
+
+		expect(await updateTask(NOTE, BUY_MILK, 'buy milk ⏫')).toBe(true);
+
+		expect(writeCalls()).toHaveLength(1);
+		expect(writeCalls()[0][1]).toMatchObject({ vaultRoot: '/vault', relPath: 'note.md', lineNumber: 2, expectedText: 'buy milk' });
+		expect(disk.get(NOTE)).toBe('# Groceries\n- [ ] buy milk ⏫\nA paragraph the user just typed.\n');
+		expect(noteTab().content).toBe(disk.get(NOTE));
+		expect(noteTab().savedContent).toBe(disk.get(NOTE));
+	});
+
+	it('writes nothing and keeps the tab dirty when the pre-save fails', async () => {
+		onContentChange(TYPED);
+		openTasksTab();
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+
+		expect(await updateTask(NOTE, BUY_MILK, 'buy milk ⏫')).toBe(false);
+
+		expect(writeCalls()).toHaveLength(0);
+		expect(disk.get(NOTE)).toBe(SAVED);
+		expect(noteTab().content).toBe(TYPED);
+		expect(noteTab().savedContent).toBe(SAVED);
+		expect(toast.error).toHaveBeenCalledWith('Task not changed: the note could not be saved.');
+	});
+
+	it('skips the write when the unsaved typing moved the task to another line', async () => {
+		await buildTaskIndex();
+		const shifted = '# Groceries\nA new first line.\n- [ ] buy milk\n';
+		onContentChange(shifted);
+		openTasksTab();
+
+		expect(await updateTask(NOTE, tasksStore.rows[0], 'buy milk ⏫')).toBe(false);
+
+		expect(writeCalls()).toHaveLength(0);
+		expect(disk.get(NOTE)).toBe(shifted);
+		expect(tasksStore.rows.map((r) => [r.text, r.lineNumber])).toEqual([['buy milk', 3]]);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+		expect(toast.info).toHaveBeenCalledWith('The note changed, so the list was refreshed. Try again.');
+	});
+
+	it('skips the write when the unsaved typing edited the task line itself', async () => {
+		const edited = '# Groceries\n- [ ] buy oat milk\n';
+		onContentChange(edited);
+		openTasksTab();
+
+		expect(await updateTask(NOTE, BUY_MILK, 'buy milk ⏫')).toBe(false);
+
+		expect(writeCalls()).toHaveLength(0);
+		expect(disk.get(NOTE)).toBe(edited);
+		expect(noteTab().savedContent).toBe(edited);
+		expect(toast.info).toHaveBeenCalledWith('The note changed, so the list was refreshed. Try again.');
+	});
+
+	it('refuses a note outside the open vault before saving its dirty tab', async () => {
+		vaultStore.open('/other-vault');
+		onContentChange(TYPED);
+		openTasksTab();
+
+		expect(await updateTask(NOTE, BUY_MILK, 'buy milk ⏫')).toBe(false);
+
+		expect(writeCalls()).toHaveLength(0);
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(disk.get(NOTE)).toBe(SAVED);
+		expect(noteTab().content).toBe(TYPED);
+		expect(noteTab().savedContent).toBe(SAVED);
+		expect(toast.error).toHaveBeenCalledWith('Failed to save task change.');
 	});
 });

@@ -154,7 +154,7 @@ describe('TasksView: the row menu', () => {
 		expect(button.getAttribute('aria-label')).toBe('Task actions');
 		expect(button.className).not.toMatch(/opacity-0|group-hover:opacity|hover:opacity/);
 		await openMenu(button);
-		expect(menuLabels()).toEqual(['Open at line', 'Copy task text', 'Todo', 'In progress', 'Done', 'Cancelled']);
+		expect(menuLabels()).toEqual(['Open at line', 'Copy task text', 'Todo', 'In progress', 'Done', 'Cancelled', 'Due', 'Priority']);
 		expect(checkedStatus()).toBe('Todo');
 
 		menuItem('Cancelled').click();
@@ -266,7 +266,7 @@ describe('TasksView: the row menu', () => {
 
 		expect(keydown(rows()[0], 'ContextMenu').defaultPrevented).toBe(true);
 		await settle();
-		expect(menuLabels()).toEqual(['Open at line', 'Copy task text', 'Todo', 'In progress', 'Done', 'Cancelled']);
+		expect(menuLabels()).toEqual(['Open at line', 'Copy task text', 'Todo', 'In progress', 'Done', 'Cancelled', 'Due', 'Priority']);
 	});
 
 	it("opens the same items on right click, with the right-clicked row's status checked; not on a group header", async () => {
@@ -280,7 +280,7 @@ describe('TasksView: the row menu', () => {
 		expect(openMenuEl()).toBeNull();
 
 		await rightClick(rowNamed('Task B').querySelector('[data-task-text]')!);
-		expect(menuLabels()).toEqual(['Open at line', 'Copy task text', 'Todo', 'In progress', 'Done', 'Cancelled']);
+		expect(menuLabels()).toEqual(['Open at line', 'Copy task text', 'Todo', 'In progress', 'Done', 'Cancelled', 'Due', 'Priority']);
 		expect(checkedStatus()).toBe('Done');
 
 		keydown(openMenuEl()!, 'Escape');
@@ -371,6 +371,28 @@ describe('TasksView: the row menu', () => {
 		await until(() => expect(openMenuEl()).toBeNull());
 
 		expect(document.activeElement).toBe(outside);
+	});
+
+	it('leaves focus in another dialog, such as the Command Palette, when the menu closes', async () => {
+		statefulTasks([taskV2('Task A', { lineNumber: 1 })]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+		const dialog = document.body.appendChild(document.createElement('div'));
+		dialog.setAttribute('role', 'dialog');
+		const input = dialog.appendChild(document.createElement('input'));
+
+		try {
+			await openMenu(actionsButton(rows()[0]));
+			await until(() => expect(openMenuEl()?.contains(document.activeElement)).toBe(true));
+			input.focus();
+			keydown(openMenuEl()!, 'Escape');
+			await settleUnmount();
+			await until(() => expect(openMenuEl()).toBeNull());
+
+			expect(document.activeElement).toBe(input);
+		} finally {
+			dialog.remove();
+		}
 	});
 
 	it('copies the task text without its Todoist anchor and block id', async () => {

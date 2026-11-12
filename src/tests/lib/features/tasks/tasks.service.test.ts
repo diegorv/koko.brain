@@ -37,6 +37,8 @@ import {
 	toggleTask,
 	setTaskStatus,
 	setTaskStatusFromMenu,
+	updateTask,
+	updateTaskFromMenu,
 	openTasksTab,
 	closeTasksTab,
 	toggleTasksTab,
@@ -46,9 +48,12 @@ import {
 } from '#lib/features/tasks/tasks.service.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { headingSources } from '#lib/features/tasks/task-query.logic.js';
+import { resolveDuePreset } from '#lib/features/tasks/task-row-edit.logic.js';
+import { formatNow } from '#lib/utils/date.js';
+import { setDueToken } from '#lib/utils/task-tokens.js';
 import type { NoteEntryV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
-import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
+import type { TaskPriority, TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import { taskV2 } from '../../../fixtures/tasks.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -1307,5 +1312,303 @@ describe("the view's own writes: overlay and prompt refresh", () => {
 		await buildTaskIndex();
 
 		expect(tasksStore.rows[0]).toMatchObject({ text: 'task', status: 'todo' });
+	});
+});
+
+describe('updateTask: a row menu text write through write_task_text', () => {
+	const PATH = '/vault/a.md';
+	const CHAR: Partial<Record<TaskStatus, string>> = { todo: ' ', done: 'x', 'in-progress': '/', cancelled: '-' };
+	const STATUS_OF = Object.fromEntries(Object.entries(CHAR).map(([status, char]) => [char, status as TaskStatus]));
+	const PRIORITY_OF: Record<string, TaskPriority> = { '🔺': 'highest', '⏫': 'high', '🔼': 'medium', '🔽': 'low', '⏬': 'lowest' };
+
+	/** Fake disk: file contents by path. */
+	const disk = new Map<string, string>();
+	/** What `get_all_vault_entries_v2` returns; the fake never updates it on a write, as the throttled bump would. */
+	let snapshot: NoteEntryV2[] = [];
+	let nextVersion = 0;
+	let baseVersion = 0;
+	/** Run inside `write_task_text`, before it answers. */
+	let onWrite: (() => void | Promise<void>) | null = null;
+	let writeThrows = false;
+
+	/** The metadata Rust parses from a task text: due date and priority only, which is all these tests read. */
+	function parsed(text: string): TaskItem['metadata'] {
+		const due = /📅 (\d{4}-\d{2}-\d{2})/u.exec(text)?.[1];
+		const priority = /[🔺⏫🔼🔽⏬]/u.exec(text)?.[0];
+		return {
+			description: text,
+			tags: [],
+			...(due ? { dueDate: due } : {}),
+			...(priority ? { priority: PRIORITY_OF[priority] } : {}),
+		};
+	}
+
+	/**
+	 * A fake Rust over the fake disk. `write_task_text` reads
+	 * `vaultRoot/relPath`, answers `stale` when the line no longer holds
+	 * `expectedText` with `expectedStatus`, unchanged when `newText` equals it,
+	 * and otherwise writes the text after the prefix and returns the re-parsed
+	 * task at a version above the current one. `toggle_task_status` writes the
+	 * status char the same way.
+	 */
+	function fakeRust(): void {
+		vi.mocked(invoke).mockImplementation(async (cmd: string, raw?: unknown) => {
+			if (cmd === 'get_all_vault_entries_v2') return snapshot;
+			const unchanged = { changed: false, affected: [], version: vaultStore.vaultIndexVersion, upserted: [], removed: [], fullRescan: false };
+			const changed = (path: string) => ({ changed: true, affected: [], version: nextVersion++, upserted: [path], removed: [], fullRescan: false });
+			if (cmd === 'toggle_task_status') {
+				const args = raw as { path: string; lineNumber: number; expectedText: string; expectedStatus: TaskStatus; target: TaskStatus };
+				const lines = (disk.get(args.path) ?? '').split('\n');
+				const m = /^(\s*- \[)(.)(\] )(.*)$/.exec(lines[args.lineNumber - 1] ?? '')!;
+				lines[args.lineNumber - 1] = `${m[1]}${CHAR[args.target]}${m[3]}${m[4]}`;
+				disk.set(args.path, lines.join('\n'));
+				return { updatedContent: lines.join('\n'), updateResult: changed(args.path), stale: false };
+			}
+			if (cmd !== 'write_task_text') return undefined;
+			await onWrite?.();
+			if (writeThrows) throw new Error('disk gone');
+			const args = raw as {
+				vaultRoot: string;
+				relPath: string;
+				lineNumber: number;
+				expectedText: string;
+				expectedStatus: TaskStatus;
+				newText: string;
+			};
+			const path = `${args.vaultRoot}/${args.relPath}`;
+			const content = disk.get(path) ?? '';
+			const lines = content.split('\n');
+			const m = /^(\s*- \[)(.)(\] )(.*)$/.exec(lines[args.lineNumber - 1] ?? '');
+			if (!m || m[4] !== args.expectedText || STATUS_OF[m[2]] !== args.expectedStatus) {
+				return { updatedContent: content, updateResult: unchanged, stale: true, task: null };
+			}
+			if (args.newText === args.expectedText) return { updatedContent: content, updateResult: unchanged, stale: false, task: null };
+			lines[args.lineNumber - 1] = `${m[1]}${m[2]}${m[3]}${args.newText}`;
+			const updated = lines.join('\n');
+			disk.set(path, updated);
+			const status = STATUS_OF[m[2]];
+			return {
+				updatedContent: updated,
+				updateResult: changed(path),
+				stale: false,
+				task: { text: args.newText, checked: status !== 'todo', indent: 0, lineNumber: args.lineNumber, status, metadata: parsed(args.newText) },
+			};
+		});
+	}
+
+	const writeCalls = () =>
+		vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'write_task_text').map(([, args]) => args as Record<string, unknown>);
+	const commands = () => vi.mocked(invoke).mock.calls.map((c) => c[0]);
+
+	/** The options of the `n`th (0-based) `toast(...)` call. */
+	function toastOptions(n = 0) {
+		return vi.mocked(toast).mock.calls[n][1] as { description: string; action: { label: string; onClick: () => void } };
+	}
+
+	beforeEach(() => {
+		resetAll();
+		vaultStore.open('/vault');
+		tasksStore.setSources([]);
+		disk.clear();
+		disk.set(PATH, '- [ ] Call Ana ^abc');
+		snapshot = [note(PATH, 100, ['Call Ana ^abc'])];
+		baseVersion = vaultStore.vaultIndexVersion;
+		nextVersion = baseVersion + 1;
+		onWrite = null;
+		writeThrows = false;
+		fakeRust();
+	});
+
+	afterEach(() => {
+		vaultStore.bumpVaultIndexVersion(baseVersion);
+		vaultStore.takePromptIndexRefresh();
+		// Releases a held toast id so the next test starts with none.
+		resetTasks();
+		vi.useRealTimers();
+		vi.mocked(invoke).mockReset();
+	});
+
+	it("sends the menu's Due tomorrow to write_task_text, and Undo sends the old text back", async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(2026, 10, 5, 12));
+		await buildTaskIndex();
+		const row = tasksStore.rows[0];
+		const date = resolveDuePreset('tomorrow', formatNow('YYYY-MM-DD'));
+		const newText = setDueToken(row.text, date);
+
+		await updateTaskFromMenu(PATH, row, newText, `Due set to ${date}`);
+
+		expect(writeCalls()).toEqual([
+			{
+				vaultRoot: '/vault',
+				relPath: 'a.md',
+				lineNumber: 1,
+				expectedText: 'Call Ana ^abc',
+				expectedStatus: 'todo',
+				newText: 'Call Ana 📅 2026-11-06 ^abc',
+			},
+		]);
+		expect(disk.get(PATH)).toBe('- [ ] Call Ana 📅 2026-11-06 ^abc');
+		expect(vi.mocked(toast).mock.calls[0][0]).toBe('Due set to 2026-11-06');
+		expect(toastOptions().description).toBe('Call Ana');
+		expect(toastOptions().action.label).toBe('Undo');
+
+		toastOptions().action.onClick();
+		await vi.waitFor(() => expect(writeCalls()).toHaveLength(2));
+		expect(writeCalls()[1]).toMatchObject({
+			lineNumber: 1,
+			expectedText: 'Call Ana 📅 2026-11-06 ^abc',
+			expectedStatus: 'todo',
+			newText: 'Call Ana ^abc',
+		});
+		await vi.waitFor(() => expect(disk.get(PATH)).toBe('- [ ] Call Ana ^abc'));
+		// Undo shows no second toast.
+		expect(toast).toHaveBeenCalledTimes(1);
+	});
+
+	it('sends nothing and shows no toast when the new text equals the row text', async () => {
+		await buildTaskIndex();
+		editorStore.addTab({ path: PATH, name: 'a.md', content: '- [ ] Call Ana ^abc\ntyped', savedContent: '- [ ] Call Ana ^abc' });
+		vi.mocked(invoke).mockClear();
+
+		expect(await updateTask(PATH, tasksStore.rows[0], 'Call Ana ^abc')).toBe(false);
+		await updateTaskFromMenu(PATH, tasksStore.rows[0], 'Call Ana ^abc', 'Due cleared');
+
+		expect(invoke).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].savedContent).toBe('- [ ] Call Ana ^abc');
+		expect(toast).not.toHaveBeenCalled();
+		expect(toast.dismiss).not.toHaveBeenCalled();
+	});
+
+	it('refetches on a stale line, shows the stale copy and writes nothing more', async () => {
+		await buildTaskIndex();
+		disk.set(PATH, '- [ ] Call Ana tomorrow ^abc');
+		snapshot = [note(PATH, 200, ['Call Ana tomorrow ^abc'])];
+		vi.mocked(invoke).mockClear();
+
+		await updateTaskFromMenu(PATH, tasksStore.rows[0], 'Call Ana 🔼 ^abc', 'Priority set to Medium');
+
+		expect(commands()).toEqual(['write_task_text', 'get_all_vault_entries_v2']);
+		expect(toast.info).toHaveBeenCalledWith('The task changed on disk, so the list was refreshed. Try again.');
+		expect(toast).not.toHaveBeenCalled();
+		expect(disk.get(PATH)).toBe('- [ ] Call Ana tomorrow ^abc');
+		expect(tasksStore.rows[0].text).toBe('Call Ana tomorrow ^abc');
+	});
+
+	it('shows no toast for a write that resolves after resetTasks', async () => {
+		await buildTaskIndex();
+		const row = tasksStore.rows[0];
+		let release!: () => void;
+		onWrite = () => new Promise<void>((r) => (release = r));
+
+		const pending = updateTaskFromMenu(PATH, row, 'Call Ana ⏫ ^abc', 'Priority set to High');
+		await vi.waitFor(() => expect(writeCalls()).toHaveLength(1));
+		resetTasks();
+		release();
+		await pending;
+
+		expect(toast).not.toHaveBeenCalled();
+	});
+
+	it('sends nothing on an Undo clicked after a vault switch', async () => {
+		await buildTaskIndex();
+		await updateTaskFromMenu(PATH, tasksStore.rows[0], 'Call Ana ⏫ ^abc', 'Priority set to High');
+		const onClick = toastOptions().action.onClick;
+
+		resetTasks();
+		onClick();
+		await Promise.resolve();
+
+		expect(writeCalls()).toHaveLength(1);
+	});
+
+	it('asks for a prompt index refresh right before the write command', async () => {
+		let requestedAtCall: boolean | undefined;
+		onWrite = () => {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+			if (requestedAtCall) vaultStore.requestPromptIndexRefresh();
+		};
+		await buildTaskIndex();
+
+		expect(await updateTask(PATH, tasksStore.rows[0], 'Call Ana ⏫ ^abc')).toBe(true);
+
+		expect(requestedAtCall).toBe(true);
+	});
+
+	it.each([
+		['a stale result', () => disk.set(PATH, '- [ ] edited elsewhere')],
+		['a thrown call', () => (writeThrows = true)],
+	])('clears the prompt refresh request after %s, when Rust emits nothing', async (_label, arrange) => {
+		let requestedAtCall: boolean | undefined;
+		onWrite = () => {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+			if (requestedAtCall) vaultStore.requestPromptIndexRefresh();
+		};
+		arrange();
+
+		expect(await updateTask(PATH, { text: 'Call Ana ^abc', status: 'todo', lineNumber: 1 }, 'Call Ana ⏫ ^abc')).toBe(false);
+
+		expect(requestedAtCall).toBe(true);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+	});
+
+	it('logs and toasts a thrown write, and shows no Undo toast', async () => {
+		writeThrows = true;
+		await buildTaskIndex();
+
+		await updateTaskFromMenu(PATH, tasksStore.rows[0], 'Call Ana ⏫ ^abc', 'Priority set to High');
+
+		expect(toast.error).toHaveBeenCalledWith('Failed to save task change.');
+		expect(error).toHaveBeenCalledWith('TASKS', expect.any(String), expect.any(Error));
+		expect(toast).not.toHaveBeenCalled();
+	});
+
+	it('refuses a note outside the open vault without sending the write', async () => {
+		expect(await updateTask('/elsewhere/b.md', { text: 'x', status: 'todo', lineNumber: 1 }, 'x ⏫')).toBe(false);
+
+		expect(writeCalls()).toHaveLength(0);
+		expect(toast.error).toHaveBeenCalledWith('Failed to save task change.');
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+	});
+
+	it('shows the written due date from the re-parsed task until a snapshot read at the write version', async () => {
+		nextVersion = baseVersion + 7;
+		await buildTaskIndex();
+		expect(tasksStore.rows[0].metadata.dueDate).toBeUndefined();
+
+		await updateTask(PATH, tasksStore.rows[0], 'Call Ana 📅 2026-11-06 ^abc');
+		expect(tasksStore.rows[0]).toMatchObject({ text: 'Call Ana 📅 2026-11-06 ^abc', metadata: { dueDate: '2026-11-06' } });
+
+		vaultStore.bumpVaultIndexVersion(baseVersion + 6);
+		await buildTaskIndex();
+		expect(tasksStore.rows[0].metadata.dueDate).toBe('2026-11-06');
+
+		// The snapshot still holds the pre-edit line: at the write's version it wins.
+		vaultStore.bumpVaultIndexVersion(baseVersion + 7);
+		await buildTaskIndex();
+		expect(tasksStore.rows[0].text).toBe('Call Ana ^abc');
+		expect(tasksStore.rows[0].metadata.dueDate).toBeUndefined();
+	});
+
+	it('keeps the written due date when a circle toggle follows the due edit', async () => {
+		await buildTaskIndex();
+		await updateTask(PATH, tasksStore.rows[0], 'Call Ana 📅 2026-11-06 ^abc');
+
+		await toggleTask(PATH, tasksStore.rows[0]);
+
+		expect(tasksStore.rows[0]).toMatchObject({ status: 'done', metadata: { dueDate: '2026-11-06' } });
+	});
+
+	it('dismisses the Undo toast of a status menu write, and a status write dismisses its toast', async () => {
+		await buildTaskIndex();
+		await setTaskStatusFromMenu(PATH, tasksStore.rows[0], 'in-progress');
+		expect(toast.dismiss).not.toHaveBeenCalled();
+
+		await updateTaskFromMenu(PATH, tasksStore.rows[0], 'Call Ana ⏫ ^abc', 'Priority set to High');
+		expect(toast.dismiss).toHaveBeenCalledTimes(1);
+
+		await toggleTask(PATH, tasksStore.rows[0]);
+		expect(toast.dismiss).toHaveBeenCalledTimes(2);
+		expect(toast).toHaveBeenCalledTimes(2);
 	});
 });

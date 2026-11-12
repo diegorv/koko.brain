@@ -365,6 +365,16 @@ describe('buildTaskRows', () => {
 			expect([row.status, row.checked, row.open]).toEqual(['todo', false, true]);
 		});
 
+		it("replaces the row's metadata when the entry carries one, and keeps the snapshot's when it does not", () => {
+			const metadata = { description: 'two', dueDate: '2026-11-06', priority: 'high' as const, tags: [] };
+			const overlay = new Map([
+				['/vault/a.md:1', { text: 'one', status: 'done' as const, version: 3 }],
+				['/vault/a.md:2', { text: 'two 📅 2026-11-06 ⏫', status: 'todo' as const, version: 3, metadata }],
+			]);
+			const rows = buildTaskRows([note()], '/vault', overlay);
+			expect(rows.map((r) => r.metadata)).toEqual([{ description: 'one', tags: [] }, metadata]);
+		});
+
 		it('applies to no other note at the same line', () => {
 			const other = entryV2('/vault/b.md', { tasks: [taskV2('b one')] });
 			const rows = buildTaskRows([note(), other], '/vault', new Map([['/vault/a.md:1', { text: 'one', status: 'done' as const, version: 3 }]]));
