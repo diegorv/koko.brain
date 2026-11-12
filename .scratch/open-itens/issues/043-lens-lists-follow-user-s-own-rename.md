@@ -11,8 +11,7 @@ Fix: call `vaultStore.requestPromptIndexRefresh()` from the user's own entry poi
 
 Do not request it inside applyPathChange, createFile, duplicateItem or any other core filesystem function: auto-organize (auto-organize.service.ts:338 moveItem, :473 renameItem) and vault mods (mod-vault.service.ts:93, :100) reach those too, and their bursts must stay throttled.
 
-**Blocked by:** 028
-
+**Blocked by:** none
 **Status:** ready-for-agent
 
 **Answered:** 2026-11-12, owner: approved as an addition to the queue; the prompt refresh fires only from the owner's own entry points (row menu, F2, Cmd+N, New here), not inside applyPathChange; blocked by 028.
@@ -45,3 +44,5 @@ Do not request it inside applyPathChange, createFile, duplicateItem or any other
 ## Comments
 
 - 2026-11-12: deep dive (validate-s1+s2, cross-tests-relay M3, SUMMARY Q5). Owner chose the user entry points (row menu, F2, Cmd+N, New here) over applyPathChange, so What to build and criteria 1 and 2 now name those call sites, criterion 4 became a guard that core fs functions request nothing, and the unwritable tauri-listeners criterion 3 was dropped. Blocked by 028, targeted e2e specs named in the Gate, known limits recorded in Notes, title trimmed to the operations in scope.
+
+- 2026-11-12: Blocked by 028 dropped: 028 is now polish (owner triage, 2026-11-12) and the link was only a shared test file (`NoteRowMenu.test.ts`), with no logic dependency. Do not run beside tasks-view-ux work that edits the same tests.

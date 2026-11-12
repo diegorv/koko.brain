@@ -77,7 +77,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 040 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/040-kanban-drag-drop-puts-card-lane-exactly.md) | 006 | todo | | |
 | 041 | [DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end](issues/041-dataarray-sort-sortby-keep-items-that-have.md) | none | todo | | |
 | 042 | [Enter in the quick switcher creates the note when nothing matches](issues/042-enter-quick-switcher-creates-note-when-nothing.md) | none | todo | | |
-| 043 | [Lens lists follow the user's own rename, trash, duplicate and create at once, not after the 2 to 10 s index throttle](issues/043-lens-lists-follow-user-s-own-rename.md) | 028 | todo | | |
+| 043 | [Lens lists follow the user's own rename, trash, duplicate and create at once, not after the 2 to 10 s index throttle](issues/043-lens-lists-follow-user-s-own-rename.md) | none | todo | | |
 | 044 | [File History follows a note through rename, move, auto-move and suffixed restore](issues/044-file-history-follows-note-through-rename-move.md) | none | todo | | |
 | 045 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/045-text-search-tag-path-returns-every-note.md) | none | todo | | |
 | 046 | [Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red](issues/046-outgoing-links-marks-row-broken-only-when.md) | 014 | todo | | |
@@ -289,3 +289,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:09 — 254 — start — launched by /relay-lite:run (owner asked for it as a 4th workflow) — 2cfe4f710
 - 2026-11-12 19:12 — 062 — deliver — retry: round 1 APPROVED by claude with a fix round (regex backtracking removed with a timing test; empty url guard), deliver re-review APPROVED by claude; full suite 632 files / 16495 tests passed; squash merged and pushed — 4424b60b4
 - 2026-11-12 19:15 — 004 — deliver — round 1 APPROVED by claude with a fix round (flusher keeps the timer armed when persist throws), deliver re-review APPROVED by claude; full suite 632 files / 16463 tests passed; deliver merge first failed on the owner's unpushed version bump, the main session finished sync and merge after it was pushed — 5cb784f0f
+- 2026-11-12 19:18 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 043)
