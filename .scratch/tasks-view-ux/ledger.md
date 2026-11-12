@@ -57,7 +57,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | 247, 125 | todo | | |
 | 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 244 | todo | | |
 | 227 | [The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date](issues/227-tasks-help-says-default-view-lists-only.md) | none | wontfix | | |
-| 234 | [The Tasks list keeps your place, and a failed refresh says so](issues/234-tasks-groups-keep-their-place.md) | 110 | in-progress | | |
+| 234 | [The Tasks list keeps your place, and a failed refresh says so](issues/234-tasks-groups-keep-their-place.md) | 110 | done | issue/234-tasks-groups-keep-their-place (d52d63db2) | 2026-11-12 |
 | 235 | [A failed Tasks refresh says so](issues/235-tasks-failed-refresh-says-so.md) | none | wontfix | | |
 | 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 234 | todo | | |
 | 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | none | wontfix | | |
@@ -83,3 +83,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:02 — 110 — deliver — round 1 APPROVED by claude, one nit deferred to 111 with reason, no fix round; full suite 615 files / 15660 tests passed; reviewer e2e (tasks-view, event-calendar-tasks) 11 passed; squash merged and pushed — e420d69e2
 - 2026-11-12 11:02 — 234 — start — launched by /relay-lite:run — 7d6098b1a
 - 2026-11-12 11:02 — 074 — start — launched by /relay-lite:run, beside 234 (side track) — 7d6098b1a
+- 2026-11-12 11:23 — 234 — deliver — round 1 APPROVED by claude (fix round: exact alert text, alert over filtered empty state; placement left for owner's visual check), deliver re-review APPROVED by claude; full suite 615 files / 15685 tests passed; squash merged and pushed — d52d63db2
