@@ -975,6 +975,10 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		const done = () => buildNoteRecord(`${VAULT}/a.md`, '---\nstatus: done\n---\n');
 		const open = () => buildNoteRecord(`${VAULT}/b.md`, '---\nstatus: open\n---\n');
 
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
 		it('shows how many index records the filter matches', async () => {
 			setIndex(done(), open());
 			await render({ ...BLANK, expression: "status == 'done'" });
@@ -997,13 +1001,17 @@ describe('AutoOrganizeRuleRow consequences', () => {
 		});
 
 		it('hides the previous count while the typed filter is not counted yet, then counts it', async () => {
+			// Only the count's debounce timer is faked: promises and Svelte's `tick` stay real.
+			vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
 			setIndex(done(), open());
 			await render({ ...BLANK, expression: "status == 'done'" });
 
 			type(valueInputs()[0], 'open');
 			expect(matchCount()).toBeNull();
 
-			await vi.waitFor(() => expect(matchCount()).toBe('Matches 1 note now'));
+			vi.runOnlyPendingTimers();
+			flushSync();
+			expect(matchCount()).toBe('Matches 1 note now');
 		});
 	});
 

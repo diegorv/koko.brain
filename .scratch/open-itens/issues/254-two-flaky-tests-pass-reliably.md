@@ -11,16 +11,16 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** owner, 2026-11-12: fix both in one Issue.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/tabs.spec.ts` (relay-lite's checks do not run e2e: the build step runs this spec and reports its pass count, and the reviewer runs it again as a probe). Do not run the whole e2e suite.
 
-- [ ] The tab-strip test passes three runs in a row (`bash scripts/e2e.sh e2e/specs/tabs.spec.ts`, three times), and the delivery says whether the cause was the app's scroll or layout rounding, with the evidence.
-- [ ] If the cause was the app: a test that fails before the scroll fix shows the active tab fully inside the strip after it.
-- [ ] `AutoOrganizeRuleRow.test.ts` still asserts the same behavior (the previous count hides while the typed filter is not counted, then the new count shows) and no longer waits on real time.
-- [ ] `pnpm vitest run src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts` passes alone, and the full suite passes on the first run.
+- [x] The tab-strip test passes three runs in a row (`bash scripts/e2e.sh e2e/specs/tabs.spec.ts`, three times), and the delivery says whether the cause was the app's scroll or layout rounding, with the evidence.
+- [x] If the cause was the app: a test that fails before the scroll fix shows the active tab fully inside the strip after it.
+- [x] `AutoOrganizeRuleRow.test.ts` still asserts the same behavior (the previous count hides while the typed filter is not counted, then the new count shows) and no longer waits on real time.
+- [x] `pnpm vitest run src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts` passes alone, and the full suite passes on the first run.
 
 ## Notes
 
@@ -30,3 +30,4 @@
 ## Comments
 
 - 2026-11-12: filed by the main session.
+- 2026-11-12: delivered from issue/254-two-flaky-tests-pass-reliably. Tab-strip e2e now allows sub-pixel overhang (layout rounding, not app scroll); AutoOrganizeRuleRow count test drives the debounce with fake timers. Full suite: 633 files, 16460 passed, 54 skipped, exit 0. Review round 1: APPROVED, no findings.

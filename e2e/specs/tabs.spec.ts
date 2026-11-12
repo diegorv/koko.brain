@@ -56,8 +56,12 @@ test.describe('Tabs', () => {
 			await expect(async () => {
 				const s = (await strip.boundingBox())!;
 				const t = (await active.boundingBox())!;
-				expect(t.x).toBeGreaterThanOrEqual(s.x);
-				expect(t.x + t.width).toBeLessThanOrEqual(s.x + s.width);
+				// Tab widths are fractional (text layout), but Chromium snaps scrollLeft to
+				// whole device pixels, so `scrollIntoView` can leave the tab less than 1 px past
+				// the edge (measured: 0.1875 px at DPR 1). An off-strip tab misses by far more.
+				const SUBPIXEL = 1;
+				expect(t.x).toBeGreaterThanOrEqual(s.x - SUBPIXEL);
+				expect(t.x + t.width).toBeLessThanOrEqual(s.x + s.width + SUBPIXEL);
 			}).toPass({ timeout: 5_000 });
 		};
 
