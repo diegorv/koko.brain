@@ -442,7 +442,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		await refetch;
 	});
 
-	it('says which tasks it lists, followed by Edit and Clear, and Clear saves an empty tag text', async () => {
+	it('says which tasks it lists, followed by Edit and Clear, and Clear changes the session only', async () => {
 		settingsStore.reset();
 		tasksStore.setSources(headingSources(['#to-list']));
 		mockTaskFetch([], { entries: [noteUnder('Inbox #to-list', ['Ship feature A'])] });
@@ -460,7 +460,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		buttonsNamed('Clear')[0].click();
 		flushSync();
 
-		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('');
+		expect(settingsStore.tasksView).toBeUndefined();
 		expect(tasksStore.query.sources).toEqual([]);
 	});
 
@@ -1018,7 +1018,7 @@ describe('TasksView: sources and excludes', () => {
 		({ component } = await mountTasksView());
 		await until(() => expect(rowTexts()).toEqual(['real task']));
 
-		tasksStore.setExclude({ ...defaultTaskExcludes(), templatesFolder: false });
+		tasksStore.setGlobalExcludes({ ...defaultTaskExcludes(), templatesFolder: false });
 		flushSync();
 
 		expect(rowTexts()).toEqual(['template task', 'real task']);

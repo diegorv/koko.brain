@@ -136,7 +136,7 @@ describe('TasksView: the Sources panel', () => {
 
 		only('switch', 'Templates folder').click();
 		flushSync();
-		expect(tasksStore.query.exclude.templatesFolder).toBe(false);
+		expect(tasksStore.globalExcludes.templatesFolder).toBe(false);
 
 		type(only('textbox', 'Folder'), '');
 		expect(rowTexts()).toEqual(['template task', 'home task', 'project task']);
@@ -177,21 +177,21 @@ describe('TasksView: the Sources panel', () => {
 		type(only('textbox', 'Excluded folder'), 'Projects');
 		only('button', 'Add excluded folder').click();
 		flushSync();
-		expect(tasksStore.query.exclude.folders).toEqual(['Projects']);
+		expect(tasksStore.globalExcludes.folders).toEqual(['Projects']);
 		expect(rowTexts()).toEqual(['home task']);
 		expect((only('textbox', 'Excluded folder') as HTMLInputElement).value).toBe('');
 
 		type(only('textbox', 'Excluded note'), 'Home/H.md');
 		only('textbox', 'Excluded note').dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
 		flushSync();
-		expect(tasksStore.query.exclude.notes).toEqual(['Home/H.md']);
+		expect(tasksStore.globalExcludes.notes).toEqual(['Home/H.md']);
 
 		type(only('textbox', 'Excluded note tag'), '#x');
 		only('button', 'Add excluded note tag').click();
 		type(only('textbox', 'Excluded type'), 'Meeting');
 		only('button', 'Add excluded type').click();
 		flushSync();
-		expect(tasksStore.query.exclude).toEqual({
+		expect(tasksStore.globalExcludes).toEqual({
 			...defaultTaskExcludes(),
 			folders: ['Projects'],
 			notes: ['Home/H.md'],
@@ -203,10 +203,11 @@ describe('TasksView: the Sources panel', () => {
 		only('button', 'Remove excluded note Home/H.md').click();
 		flushSync();
 		expect(rowTexts()).toEqual(['home task', 'project task']);
+		expect(tasksStore.globalExcludes.folders).toEqual([]);
 		expect(tasksStore.query.exclude.folders).toEqual([]);
 	});
 
-	it('Remove card drops the card and its rows, writes the tag cards to tasksView.sectionTag and keeps focus in the panel', async () => {
+	it('Remove card drops the card and its rows, writes nothing to settings and keeps focus in the panel', async () => {
 		mockTaskFetch(vault());
 		tasksStore.setSources([
 			...headingSources(['#to-list']),
@@ -232,7 +233,7 @@ describe('TasksView: the Sources panel', () => {
 		flushSync();
 		expect(tasksStore.query.sources).toEqual([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
 		expect(rowTexts()).toEqual(['project task']);
-		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '' });
+		expect(settingsStore.tasksView).toBeUndefined();
 		expect(document.activeElement).toBe(only('button', 'Remove card'));
 
 		only('button', 'Remove card').click();
@@ -269,12 +270,12 @@ describe('TasksView: the Sources panel', () => {
 		only('button', 'Remove excluded folder A').focus();
 		only('button', 'Remove excluded folder A').click();
 		flushSync();
-		expect(tasksStore.query.exclude.folders).toEqual(['B']);
+		expect(tasksStore.globalExcludes.folders).toEqual(['B']);
 		expect(document.activeElement).toBe(only('button', 'Remove excluded folder B'));
 
 		only('button', 'Remove excluded folder B').click();
 		flushSync();
-		expect(tasksStore.query.exclude.folders).toEqual([]);
+		expect(tasksStore.globalExcludes.folders).toEqual([]);
 		expect(document.activeElement).toBe(only('textbox', 'Excluded folder'));
 	});
 

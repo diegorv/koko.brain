@@ -5,6 +5,7 @@ import {
 	DEFAULT_QUICK,
 	DEFAULT_TASK_SORT,
 	applyQuickFilters,
+	defaultTaskExcludes,
 	defaultTaskQuery,
 	groupTaskRows,
 	selectSourceRows,
@@ -16,12 +17,23 @@ import {
 	type TaskSortKey,
 	type TaskSource,
 } from './task-query.logic';
+import { TO_LIST_ID, mergeExcludes, toListView, type SavedTaskView, type TaskViewQuery } from './task-views.logic';
 import type { TaskRowRef } from './tasks.types';
 
 /** Every task of the snapshot as a row (unfiltered), replaced whole, never mutated */
 let rows = $state.raw<TaskRow[]>([]);
-/** The sources, excludes and quick filters, replaced whole on every change */
+/**
+ * The session's sources, the active list's own excludes and the quick
+ * filters, replaced whole on every change. Selecting a list copies its query
+ * here; an edit changes only this copy, never the saved view.
+ */
 let query = $state.raw<TaskQuery>(defaultTaskQuery());
+/** The excludes every list applies, saved per vault in `tasksView.globalExcludes` */
+let globalExcludes = $state.raw<TaskExcludes>(defaultTaskExcludes());
+/** The saved views, in list order; before a load, the seeded "To list" view */
+let savedViews = $state.raw<SavedTaskView[]>([toListView('')]);
+/** Id of the list the session query was copied from */
+let activeList = $state<string>(TO_LIST_ID);
 /** What the list groups its rows by */
 let groupBy = $state<TaskGroupKey>('note');
 /** The sort keys of the groups other than Note; fixed at `DEFAULT_TASK_SORT` (no control sets it) */
@@ -53,13 +65,16 @@ let currentRow = $state.raw<TaskRowRef | null>(null);
  */
 let collapsedGroups = $state.raw<ReadonlySet<string>>(new Set());
 
+/** The session query with the global excludes merged into its own (`mergeExcludes`). */
+const effectiveQuery = $derived<TaskQuery>({ ...query, exclude: mergeExcludes(globalExcludes, query.exclude) });
+
 /**
- * The rows the sources and excludes keep (`selectSourceRows`), before the
- * quick filters. Re-runs on a rows, sources, excludes or template folder
- * setting change, with no fetch.
+ * The rows the sources and the merged excludes keep (`selectSourceRows`),
+ * before the quick filters. Re-runs on a rows, sources, excludes or template
+ * folder setting change, with no fetch.
  */
 const sourceRows = $derived.by(() =>
-	selectSourceRows(rows, query.sources, query.exclude, {
+	selectSourceRows(rows, effectiveQuery.sources, effectiveQuery.exclude, {
 		templates: settingsStore.templates.folder,
 		system: settingsStore.templates.systemFolder,
 	}),
@@ -95,8 +110,16 @@ export const tasksStore = {
 	get groupBy() { return groupBy; },
 	/** The sort keys of the groups other than Note */
 	get sort() { return sort; },
-	/** The sources, excludes and quick filters */
+	/** The session's sources, the active list's own excludes and the quick filters */
 	get query() { return query; },
+	/** `query` with the global excludes merged into its own: what the list applies */
+	get effectiveQuery() { return effectiveQuery; },
+	/** The excludes every list applies */
+	get globalExcludes() { return globalExcludes; },
+	/** The saved views, in list order */
+	get savedViews() { return savedViews; },
+	/** Id of the active list (a saved view or a built-in) */
+	get activeList() { return activeList; },
 	/** The quick filters (`query.quick`) */
 	get quick() { return query.quick; },
 	get isLoading() { return isLoading; },
@@ -112,8 +135,20 @@ export const tasksStore = {
 	setRows(next: TaskRow[]) { rows = next; },
 	/** Replaces the source cards. */
 	setSources(sources: TaskSource[]) { query = { ...query, sources }; },
-	/** Replaces the excludes. */
+	/** Replaces the active list's own excludes in the session. */
 	setExclude(exclude: TaskExcludes) { query = { ...query, exclude }; },
+	/** Replaces the global excludes. */
+	setGlobalExcludes(exclude: TaskExcludes) { globalExcludes = exclude; },
+	/** Replaces the saved views. */
+	setSavedViews(views: SavedTaskView[]) { savedViews = views; },
+	/** Sets the active list's id. */
+	setActiveList(id: string) { activeList = id; },
+	/** Copies a list's query into the session: sources, own excludes, quick filters, grouping and sort. */
+	setSession(view: TaskViewQuery) {
+		query = { version: 1, sources: view.sources, exclude: view.exclude, quick: { ...view.quick } };
+		groupBy = view.groupBy;
+		sort = [...view.sort];
+	},
 	/** Merges `partial` into the quick filters; a key set to `undefined` clears that field. */
 	setQuick(partial: Partial<TaskQuickFilters>) { query = { ...query, quick: { ...query.quick, ...partial } }; },
 	/** Puts the quick filters back to `DEFAULT_QUICK`. */
@@ -145,6 +180,9 @@ export const tasksStore = {
 	reset() {
 		rows = [];
 		query = defaultTaskQuery();
+		globalExcludes = defaultTaskExcludes();
+		savedViews = [toListView('')];
+		activeList = TO_LIST_ID;
 		groupBy = 'note';
 		sort = [...DEFAULT_TASK_SORT];
 		isLoading = false;

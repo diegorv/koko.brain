@@ -8,7 +8,7 @@
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { tasksStore } from './tasks.store.svelte';
-	import { setTaskSources } from './tasks.service';
+	import { setTaskExcludes, setTaskSources } from './tasks.service';
 	import type { HeadingMatchMode } from './task-headings.logic';
 	import { sourceSuggestions, type LifecycleState, type PropertyOp, type TaskExcludes, type TaskSource, type TaskSourceClause } from './task-query.logic';
 
@@ -69,7 +69,8 @@
 	let panelEl: HTMLElement | undefined;
 
 	let sources = $derived(tasksStore.query.sources);
-	let exclude = $derived(tasksStore.query.exclude);
+	/** The Excludes section edits the global excludes, which every list applies. */
+	let exclude = $derived(tasksStore.globalExcludes);
 	/** Read only while a suggestions menu is open, so the panel does not walk the rows on every change. */
 	let suggestions = $derived(sourceSuggestions(tasksStore.rows));
 
@@ -217,7 +218,7 @@
 	}
 
 	function setExclude(partial: Partial<TaskExcludes>) {
-		tasksStore.setExclude({ ...exclude, ...partial });
+		setTaskExcludes({ ...exclude, ...partial });
 	}
 
 	/** Adds the list's draft, trimmed, unless it is blank or already listed, and empties the input. */

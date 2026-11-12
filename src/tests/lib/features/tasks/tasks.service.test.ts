@@ -45,9 +45,16 @@ import {
 	resetTasks,
 	getTasksResetGeneration,
 	loadSavedTasksView,
+	selectTaskList,
+	saveTaskView,
+	renameTaskView,
+	duplicateTaskView,
+	deleteTaskView,
+	setTaskExcludes,
 } from '#lib/features/tasks/tasks.service.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
-import { headingSources } from '#lib/features/tasks/task-query.logic.js';
+import { defaultTaskExcludes, emptyTaskExcludes, headingSources } from '#lib/features/tasks/task-query.logic.js';
+import { ALL_OPEN_ID, ALL_OPEN_VIEW, TO_LIST_ID, toListView } from '#lib/features/tasks/task-views.logic.js';
 import { resolveDuePreset } from '#lib/features/tasks/task-row-edit.logic.js';
 import { formatNow } from '#lib/utils/date.js';
 import { setDueToken } from '#lib/utils/task-tokens.js';
@@ -492,7 +499,7 @@ describe('setTaskSources', () => {
 		settingsStore.reset();
 	});
 
-	it('sets the cards, saves the tag cards and lists the tasks under them, with no fetch', async () => {
+	it('sets the cards and lists the tasks under them, with no fetch and no settings write', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 		await buildTaskIndex();
 
@@ -500,12 +507,12 @@ describe('setTaskSources', () => {
 
 		expect(tasksStore.query.sources).toEqual(headingSources(['#work']));
 		expect(visibleTexts()).toEqual(['work item']);
-		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#work' });
+		expect(settingsStore.tasksView).toBeUndefined();
 		expect(invoke).toHaveBeenCalledTimes(1);
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
-	it('lists every task and saves an empty text when the cards are cleared', async () => {
+	it('lists every task when the cards are cleared, and leaves the saved view as it was', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 		await buildTaskIndex();
 
@@ -513,38 +520,20 @@ describe('setTaskSources', () => {
 
 		expect(visibleTexts()).toEqual(['listed', 'work item', 'misc item']);
 		expect(tasksStore.query.sources).toEqual([]);
-		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '' });
+		expect(tasksStore.savedViews).toEqual([toListView('')]);
 	});
 
-	it('leaves settingsStore.tasksView unchanged while the tag cards are unchanged', () => {
+	it('a folder card, a quick filter and a grouping change leave settingsStore.tasksView unchanged', () => {
+		settingsStore.updateTasksView({ version: 1, extra: true });
 		const before = settingsStore.tasksView;
-		const folder = { clauses: [{ kind: 'folder' as const, path: 'Projects' }] };
-		const substring = { clauses: [{ kind: 'heading' as const, text: 'Inbox', match: 'substring' as const }] };
 
-		setTaskSources([...headingSources(['#to-list']), folder]);
-		setTaskSources([...headingSources(['#to-list']), folder, substring]);
-		setTaskSources([...headingSources(['#to-list']), { clauses: [...folder.clauses, ...headingSources(['#x'])[0].clauses] }]);
-		tasksStore.setExclude({ ...tasksStore.query.exclude, archived: false });
+		setTaskSources([...headingSources(['#to-list']), { clauses: [{ kind: 'folder', path: 'Projects' }] }]);
+		tasksStore.setQuick({ show: 'all' });
+		tasksStore.setGroupBy('due');
+		tasksStore.setExclude({ ...tasksStore.query.exclude, folders: ['X'] });
 
 		expect(settingsStore.tasksView).toBe(before);
-	});
-
-	it('does not save an emptied heading card until it holds text', () => {
-		setTaskSources([...headingSources(['#to-list']), ...headingSources([''])]);
-		setTaskSources([...headingSources(['#to-list']), ...headingSources(['#'])]);
-		expect(settingsStore.tasksView).toBeUndefined();
-
-		setTaskSources([...headingSources(['#to-list']), ...headingSources(['#w'])]);
-
-		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#to-list #w' });
-	});
-
-	it('starts no fetch before any rows were loaded', () => {
-		setTaskSources(headingSources(['#a']));
-
-		expect(invoke).not.toHaveBeenCalled();
-		expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
-		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#a' });
+		expect(settingsStore.tasksView).toEqual({ version: 1, extra: true });
 	});
 });
 
@@ -555,23 +544,53 @@ describe('loadSavedTasksView', () => {
 		settingsStore.reset();
 	});
 
-	it('sets the #to-list card when nothing was saved, and starts no fetch', () => {
+	it('seeds and opens the "To list" view when nothing was saved, starts no fetch and writes nothing', () => {
 		tasksStore.setSources([]);
+		tasksStore.setSavedViews([]);
+		tasksStore.setActiveList(ALL_OPEN_ID);
 
 		loadSavedTasksView();
 
+		expect(tasksStore.savedViews).toEqual([toListView('')]);
+		expect(tasksStore.activeList).toBe(TO_LIST_ID);
 		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
+		expect(tasksStore.globalExcludes).toEqual(defaultTaskExcludes());
 		expect(invoke).not.toHaveBeenCalled();
 		expect(settingsStore.tasksView).toBeUndefined();
 	});
 
-	it('sets one heading card per saved tag', () => {
+	it('seeds one heading card per saved tag', () => {
 		settingsStore.updateTasksView({ version: 1, sectionTag: '#work, home' });
 
 		loadSavedTasksView();
 
 		expect(tasksStore.query.sources).toEqual(headingSources(['#work', '#home']));
 		expect(error).not.toHaveBeenCalled();
+	});
+
+	it('opens "All open" for a hand-edited savedViews: [] and does not seed', () => {
+		settingsStore.updateTasksView({ version: 1, savedViews: [], sectionTag: '#a' });
+
+		loadSavedTasksView();
+
+		expect(tasksStore.savedViews).toEqual([]);
+		expect(tasksStore.activeList).toBe(ALL_OPEN_ID);
+		expect(tasksStore.query.sources).toEqual([]);
+		expect(tasksStore.groupBy).toBe('note');
+	});
+
+	it('copies the active view\'s query, grouping and sort into the session', () => {
+		const view = { ...toListView('#a'), id: 'v', name: 'V' };
+		view.query = { ...view.query, quick: { show: 'all' }, groupBy: 'due', sort: ['path'] };
+		settingsStore.updateTasksView({ version: 1, activeList: 'v', savedViews: [toListView(''), view] });
+
+		loadSavedTasksView();
+
+		expect(tasksStore.activeList).toBe('v');
+		expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
+		expect(tasksStore.quick).toEqual({ show: 'all' });
+		expect(tasksStore.groupBy).toBe('due');
+		expect(tasksStore.sort).toEqual(['path']);
 	});
 
 	it('logs and toasts an invalid value, and leaves it in settings', () => {
@@ -581,8 +600,147 @@ describe('loadSavedTasksView', () => {
 
 		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
 		expect(error).toHaveBeenCalledWith('TASKS', 'Invalid tasksView in settings.json:', 42);
-		expect(toast.error).toHaveBeenCalledWith('The saved Tasks section tags could not be read, so #to-list is used.');
+		expect(toast.error).toHaveBeenCalledWith('The saved Tasks views could not be read, so the defaults are used.');
 		expect(settingsStore.tasksView).toBe(42);
+	});
+});
+
+describe('saved view operations', () => {
+	/** The saved views as [id, name] pairs. */
+	const views = () => tasksStore.savedViews.map((v) => [v.id, v.name]);
+	/** `settingsStore.tasksView` as the object the operations write. */
+	const saved = () => settingsStore.tasksView as { activeList: string; savedViews: { id: string; name: string }[] };
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		tasksStore.reset();
+		settingsStore.reset();
+		loadSavedTasksView();
+	});
+
+	it('selectTaskList opens a list, drops the session edit and writes the active list', () => {
+		setTaskSources([]);
+		selectTaskList(ALL_OPEN_ID);
+
+		expect(tasksStore.activeList).toBe(ALL_OPEN_ID);
+		expect(tasksStore.query.sources).toEqual([]);
+		expect(saved().activeList).toBe(ALL_OPEN_ID);
+
+		tasksStore.setQuick({ show: 'all' });
+		selectTaskList(TO_LIST_ID);
+
+		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
+		expect(tasksStore.quick).toEqual({ show: 'open' });
+		expect(saved().activeList).toBe(TO_LIST_ID);
+		expect(saved().savedViews).toEqual([toListView('')]);
+	});
+
+	it('selectTaskList with an unknown id changes nothing', () => {
+		selectTaskList('gone');
+
+		expect(tasksStore.activeList).toBe(TO_LIST_ID);
+		expect(settingsStore.tasksView).toBeUndefined();
+	});
+
+	it('saveTaskView stores the session query under a trimmed name with a new id and makes it active', () => {
+		setTaskSources([{ clauses: [{ kind: 'folder', path: 'P' }] }]);
+		tasksStore.setQuick({ show: 'all', search: 'milk' });
+		tasksStore.setGroupBy('due');
+
+		const id = saveTaskView('  Projects ');
+
+		expect(id).toMatch(/^[0-9a-f-]{36}$/);
+		expect(views()).toEqual([[TO_LIST_ID, 'To list'], [id, 'Projects']]);
+		expect(tasksStore.activeList).toBe(id);
+		expect(tasksStore.savedViews[1].query).toEqual({
+			sources: [{ clauses: [{ kind: 'folder', path: 'P' }] }],
+			exclude: emptyTaskExcludes(),
+			quick: { show: 'all' },
+			groupBy: 'due',
+			sort: ['due', 'priority', 'path'],
+		});
+		expect(saved().activeList).toBe(id);
+		expect(saved().savedViews).toHaveLength(2);
+	});
+
+	it('saveTaskView refuses a blank name', () => {
+		expect(saveTaskView('   ')).toBeNull();
+		expect(views()).toEqual([[TO_LIST_ID, 'To list']]);
+		expect(settingsStore.tasksView).toBeUndefined();
+	});
+
+	it('renameTaskView trims the name and refuses a blank one or an unknown id', () => {
+		expect(renameTaskView(TO_LIST_ID, '  Inbox ')).toBe(true);
+		expect(views()).toEqual([[TO_LIST_ID, 'Inbox']]);
+		expect(saved().savedViews[0].name).toBe('Inbox');
+
+		expect(renameTaskView(TO_LIST_ID, ' ')).toBe(false);
+		expect(renameTaskView(ALL_OPEN_ID, 'X')).toBe(false);
+		expect(views()).toEqual([[TO_LIST_ID, 'Inbox']]);
+	});
+
+	it('duplicateTaskView places "<name> copy" after the original and keeps the active list', () => {
+		const other = saveTaskView('Other')!;
+		selectTaskList(TO_LIST_ID);
+
+		const copy = duplicateTaskView(TO_LIST_ID);
+
+		expect(views()).toEqual([[TO_LIST_ID, 'To list'], [copy, 'To list copy'], [other, 'Other']]);
+		expect(tasksStore.savedViews[1].query).toEqual(tasksStore.savedViews[0].query);
+		expect(tasksStore.activeList).toBe(TO_LIST_ID);
+		expect(saved().savedViews.map((v) => v.name)).toEqual(['To list', 'To list copy', 'Other']);
+		expect(duplicateTaskView(ALL_OPEN_ID)).toBeNull();
+	});
+
+	it('deleteTaskView of the active view selects the first remaining saved view', () => {
+		const other = saveTaskView('Other')!;
+		setTaskSources([]);
+		selectTaskList(TO_LIST_ID);
+
+		expect(deleteTaskView(TO_LIST_ID)).toBe(true);
+
+		expect(views()).toEqual([[other, 'Other']]);
+		expect(tasksStore.activeList).toBe(other);
+		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
+		expect(saved()).toMatchObject({ activeList: other, savedViews: [{ id: other }] });
+	});
+
+	it('deleteTaskView of another view keeps the active list and its session edit', () => {
+		const other = saveTaskView('Other')!;
+		selectTaskList(TO_LIST_ID);
+		tasksStore.setQuick({ show: 'all' });
+
+		expect(deleteTaskView(other)).toBe(true);
+
+		expect(tasksStore.activeList).toBe(TO_LIST_ID);
+		expect(tasksStore.quick).toEqual({ show: 'all' });
+	});
+
+	it('deleteTaskView refuses the last saved view and an unknown id, changing nothing', () => {
+		const before = tasksStore.savedViews;
+
+		expect(deleteTaskView(TO_LIST_ID)).toBe(false);
+		expect(deleteTaskView('gone')).toBe(false);
+
+		expect(tasksStore.savedViews).toBe(before);
+		expect(settingsStore.tasksView).toBeUndefined();
+	});
+
+	it('setTaskExcludes sets the global excludes and writes them, leaving the session\'s own', () => {
+		setTaskExcludes({ ...defaultTaskExcludes(), templatesFolder: false });
+
+		expect(tasksStore.globalExcludes.templatesFolder).toBe(false);
+		expect(tasksStore.query.exclude).toEqual(emptyTaskExcludes());
+		expect((settingsStore.tasksView as { globalExcludes: unknown }).globalExcludes).toEqual({
+			...defaultTaskExcludes(),
+			templatesFolder: false,
+		});
+	});
+
+	it('the built-in "All open" view is never written', () => {
+		selectTaskList(ALL_OPEN_ID);
+
+		expect(saved().savedViews.some((v) => v.id === ALL_OPEN_VIEW.id)).toBe(false);
 	});
 });
 
@@ -1124,7 +1282,7 @@ describe('resetTasks', () => {
 
 	it('writes nothing to settings', () => {
 		settingsStore.reset();
-		setTaskSources(headingSources(['#work']));
+		setTaskExcludes({ ...defaultTaskExcludes(), archived: false });
 		const saved = settingsStore.tasksView;
 
 		resetTasks();

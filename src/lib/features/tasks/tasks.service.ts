@@ -8,10 +8,11 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { getVaultEntries, invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { tasksStore } from './tasks.store.svelte';
-import { buildTaskRows, headingSources, tagHeadingCardText, type TaskOverlayEntry, type TaskSource } from './task-query.logic';
+import { buildTaskRows, type TaskExcludes, type TaskOverlayEntry, type TaskSource } from './task-query.logic';
 import { statusMenuLabel, toggleTarget } from './task-status.logic';
+import { findTaskView, parseTasksViewState, viewQueryOf, withTasksViewState, type SavedTaskView } from './task-views.logic';
 import { taskRowKey } from './tasks-keys.logic';
-import { parseSectionTags, parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
+import { taskDisplayText } from './tasks.logic';
 import type { TaskMetadata, TaskStatus } from './task-metadata.types';
 import type { TaskItem } from './tasks.types';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
@@ -100,38 +101,127 @@ export async function buildTaskIndex(): Promise<void> {
 }
 
 /**
- * Replaces the Tasks query's source cards. When the tag heading cards change
- * (`tagHeadingCardText`), saves their texts in the vault's settings
- * (`tasksView.sectionTag`), which `loadSavedTasksView` reads back; the other
- * cards stay in this session only, until saved views. Starts no fetch: the
- * store re-selects the rows it holds.
+ * Replaces the session's source cards. Writes nothing: the saved views hold
+ * the cards, and only Save view, rename, duplicate and delete change them.
+ * Starts no fetch: the store re-selects the rows it holds.
  */
 export function setTaskSources(sources: TaskSource[]): void {
-	const before = tagHeadingCardText(tasksStore.query.sources);
 	tasksStore.setSources(sources);
-	const after = tagHeadingCardText(sources);
-	if (after === null || after === before) return;
-	// Into the settings store only: settings persistence writes the file, and
-	// holds the guard for a session whose settings.json was never loaded.
-	settingsStore.updateTasksView(withSectionTag(settingsStore.tasksView, after));
 }
 
 /**
- * Sets the Tasks query's sources to one heading card per tag saved in this
- * vault's settings (`tasksView`), or the `#to-list` card when none is. Always
- * sets them, so a vault without a saved value never keeps the previous
- * vault's cards. An invalid value is logged and toasted but left in settings
- * untouched: the next tag card change replaces it. Writes nothing and starts
- * no fetch (the view fetches on mount).
+ * Writes the active list, the global excludes and the saved views into the
+ * vault's settings (`tasksView`, `withTasksViewState`), into the settings
+ * store only: settings persistence writes the file, and holds the guard for a
+ * session whose settings.json was never loaded.
+ */
+function writeTasksViewState(): void {
+	settingsStore.updateTasksView(
+		withTasksViewState(settingsStore.tasksView, {
+			activeList: tasksStore.activeList,
+			globalExcludes: tasksStore.globalExcludes,
+			savedViews: tasksStore.savedViews,
+		}),
+	);
+}
+
+/** Makes `view` the active list and copies its query into the session, dropping any edit. */
+function showList(view: SavedTaskView): void {
+	tasksStore.setActiveList(view.id);
+	tasksStore.setSession(view.query);
+}
+
+/**
+ * Loads this vault's saved Tasks state (`tasksView`, `parseTasksViewState`):
+ * the global excludes, the saved views, and the active list, whose query it
+ * copies into the session. A vault that saved no views gets the seeded "To
+ * list" view. Always sets every field, so a vault without a saved value never
+ * keeps the previous vault's state. An invalid value is logged and toasted
+ * once but left in settings untouched: the next write replaces it. Writes
+ * nothing and starts no fetch (the view fetches on mount).
  */
 export function loadSavedTasksView(): void {
 	const raw = settingsStore.tasksView;
-	const saved = parseTasksView(raw);
-	if (!saved.valid) {
+	const { state, valid } = parseTasksViewState(raw);
+	if (!valid) {
 		error('TASKS', 'Invalid tasksView in settings.json:', raw);
-		toast.error('The saved Tasks section tags could not be read, so #to-list is used.');
+		toast.error('The saved Tasks views could not be read, so the defaults are used.');
 	}
-	tasksStore.setSources(headingSources(parseSectionTags(saved.sectionTag)));
+	tasksStore.setGlobalExcludes(state.globalExcludes);
+	tasksStore.setSavedViews(state.savedViews);
+	// `parseTasksViewState` resolves the active list to a saved view or a built-in.
+	showList(findTaskView(state.activeList, state.savedViews)!);
+}
+
+/** Selects the list with `id` (a saved view or a built-in) and saves it as the active one; an unknown id does nothing. */
+export function selectTaskList(id: string): void {
+	const view = findTaskView(id, tasksStore.savedViews);
+	if (!view) return;
+	showList(view);
+	writeTasksViewState();
+}
+
+/**
+ * Saves the session query (`viewQueryOf`, without the search) as a new view
+ * named `name`, trimmed, after the others, and makes it the active list.
+ * Returns its id, or null for a blank name (nothing changes).
+ */
+export function saveTaskView(name: string): string | null {
+	const trimmed = name.trim();
+	if (!trimmed) return null;
+	const view: SavedTaskView = {
+		id: crypto.randomUUID(),
+		name: trimmed,
+		query: viewQueryOf(tasksStore.query, tasksStore.groupBy, tasksStore.sort),
+	};
+	tasksStore.setSavedViews([...tasksStore.savedViews, view]);
+	tasksStore.setActiveList(view.id);
+	writeTasksViewState();
+	return view.id;
+}
+
+/** Renames the saved view `id` to `name`, trimmed. Returns false, changing nothing, for a blank name or an unknown id. */
+export function renameTaskView(id: string, name: string): boolean {
+	const trimmed = name.trim();
+	if (!trimmed || !tasksStore.savedViews.some((v) => v.id === id)) return false;
+	tasksStore.setSavedViews(tasksStore.savedViews.map((v) => (v.id === id ? { ...v, name: trimmed } : v)));
+	writeTasksViewState();
+	return true;
+}
+
+/**
+ * Adds a copy of the saved view `id`, named `<name> copy`, right after it.
+ * The active list does not change. Returns the copy's id, or null for an unknown id.
+ */
+export function duplicateTaskView(id: string): string | null {
+	const index = tasksStore.savedViews.findIndex((v) => v.id === id);
+	if (index < 0) return null;
+	const original = tasksStore.savedViews[index];
+	const copy: SavedTaskView = { id: crypto.randomUUID(), name: `${original.name} copy`, query: original.query };
+	tasksStore.setSavedViews([...tasksStore.savedViews.slice(0, index + 1), copy, ...tasksStore.savedViews.slice(index + 1)]);
+	writeTasksViewState();
+	return copy.id;
+}
+
+/**
+ * Deletes the saved view `id`; deleting the active one selects the first
+ * remaining saved view. Returns false, changing nothing, for an unknown id
+ * or the last saved view, which cannot be deleted.
+ */
+export function deleteTaskView(id: string): boolean {
+	const views = tasksStore.savedViews;
+	if (views.length <= 1 || !views.some((v) => v.id === id)) return false;
+	const remaining = views.filter((v) => v.id !== id);
+	tasksStore.setSavedViews(remaining);
+	if (tasksStore.activeList === id) showList(remaining[0]);
+	writeTasksViewState();
+	return true;
+}
+
+/** Replaces the global excludes, which every list applies, and saves them. */
+export function setTaskExcludes(exclude: TaskExcludes): void {
+	tasksStore.setGlobalExcludes(exclude);
+	writeTasksViewState();
 }
 
 /**

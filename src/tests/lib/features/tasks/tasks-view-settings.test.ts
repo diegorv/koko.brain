@@ -8,7 +8,7 @@ setupLocalStorage();
 
 // Only the boundaries docs/TESTING.md allows: the disk, IPC, the toast, the
 // theme DOM service, and the log. The settings and tasks stores, loadSettings,
-// persistence, loadSavedTasksView and setTaskSources all run for real.
+// persistence, loadSavedTasksView and the saved view operations all run for real.
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
 	writeTextFile: vi.fn(() => Promise.resolve()),
@@ -38,11 +38,21 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings } from '#lib/core/settings/settings.service.js';
 import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
-import { loadSavedTasksView, setTaskSources } from '#lib/features/tasks/tasks.service.js';
-import { headingSources } from '#lib/features/tasks/task-query.logic.js';
-import { mockTaskFetch, mountTasksView, openMenu } from '../../../fixtures/tasks.fixture';
+import {
+	deleteTaskView,
+	duplicateTaskView,
+	loadSavedTasksView,
+	renameTaskView,
+	saveTaskView,
+	selectTaskList,
+	setTaskExcludes,
+	setTaskSources,
+} from '#lib/features/tasks/tasks.service.js';
+import { defaultTaskExcludes, emptyTaskExcludes, headingSources } from '#lib/features/tasks/task-query.logic.js';
+import { ALL_OPEN_ID, TO_LIST_ID, toListView } from '#lib/features/tasks/task-views.logic.js';
+import { mockTaskFetch, mountTasksView } from '../../../fixtures/tasks.fixture';
 
-const INVALID_TOAST = 'The saved Tasks section tags could not be read, so #to-list is used.';
+const INVALID_TOAST = 'The saved Tasks views could not be read, so the defaults are used.';
 
 /** Path of a vault's settings.json */
 const settingsPath = (vault: string) => `${vault}/.kokobrain/settings.json`;
@@ -54,6 +64,9 @@ function payloads(vault = '/vault'): Record<string, unknown>[] {
 		.mock.calls.filter(([path]) => path === settingsPath(vault))
 		.map(([, content]) => JSON.parse(content as string));
 }
+
+/** The `tasksView` of the last payload written to `vault` */
+const lastTasksView = (vault = '/vault') => payloads(vault).at(-1)!.tasksView as Record<string, unknown>;
 
 /** Lets the Svelte effect flush (microtask), then runs out the persistence debounce */
 async function settle(ms = 500): Promise<void> {
@@ -77,7 +90,10 @@ async function openVault(vault: string, file: Record<string, unknown> | 'unreada
 /** Calls of the mocked `error` logged under the Tasks tag */
 const tasksErrors = () => vi.mocked(error).mock.calls.filter(([tag]) => tag === 'TASKS');
 
-describe('Tasks view section tags saved in settings.json', () => {
+/** The saved views as [id, name] pairs */
+const viewNames = () => tasksStore.savedViews.map((v) => [v.id, v.name]);
+
+describe('Tasks view state saved in settings.json', () => {
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.clearAllMocks();
@@ -97,127 +113,265 @@ describe('Tasks view section tags saved in settings.json', () => {
 		document.body.innerHTML = '';
 	});
 
-	/** Stops persistence, resets both stores and loads `saved` as the next start does. */
+	/**
+	 * A restart: stops persistence, puts both stores in a state unlike the
+	 * defaults and loads `saved` as the next start does.
+	 */
 	async function reload(saved: Record<string, unknown>): Promise<void> {
 		await stopSettingsPersistence();
 		settingsStore.reset();
 		tasksStore.reset();
 		tasksStore.setSources([]);
+		tasksStore.setSavedViews([]);
+		tasksStore.setActiveList('stale');
+		tasksStore.setGlobalExcludes({ ...defaultTaskExcludes(), folders: ['stale'] });
 		vi.mocked(readTextFile).mockResolvedValueOnce(JSON.stringify(saved));
 		await loadSettings('/vault');
 		loadSavedTasksView();
 	}
 
-	it('saves a heading card added next to the default and builds both cards at the next load', async () => {
-		await openVault('/vault', {});
+	describe('the "To list" seed', () => {
+		it.each([
+			['no tasksView', {}],
+			['an empty sectionTag', { tasksView: { version: 1, sectionTag: '' } }],
+			['notes that hold no #to-list heading', { tasksView: { version: 1 } }],
+		])('seeds the #to-list card for %s, quietly, and opens on it', async (_label, file) => {
+			await openVault('/vault', file);
 
-		setTaskSources([...headingSources(['#to-list']), ...headingSources(['#work'])]);
-		await settle();
+			expect(tasksStore.savedViews).toEqual([toListView('')]);
+			expect(tasksStore.activeList).toBe(TO_LIST_ID);
+			expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
+			expect(tasksErrors()).toHaveLength(0);
+			expect(toast.error).not.toHaveBeenCalled();
+		});
 
-		const saved = payloads().at(-1)!;
-		expect(saved.tasksView).toEqual({ version: 1, sectionTag: '#to-list #work' });
+		it('seeds both heading cards from a saved sectionTag "#to-list #work"', async () => {
+			await openVault('/vault', { tasksView: { version: 1, sectionTag: '#to-list #work' } });
 
-		await reload(saved);
+			expect(tasksStore.savedViews).toHaveLength(1);
+			expect(tasksStore.savedViews[0]).toMatchObject({ id: TO_LIST_ID, name: 'To list' });
+			expect(tasksStore.query.sources).toEqual(headingSources(['#to-list', '#work']));
+			expect(tasksStore.activeList).toBe(TO_LIST_ID);
+		});
 
-		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list', '#work']));
+		it('writes nothing at load: the legacy key stays on disk until the first write', async () => {
+			await openVault('/vault', { tasksView: { version: 1, sectionTag: '#a' } });
+			await settle();
+
+			for (const payload of payloads()) expect(payload.tasksView).toEqual({ version: 1, sectionTag: '#a' });
+
+			await reload({ tasksView: { version: 1, sectionTag: '#a' } });
+
+			expect(viewNames()).toEqual([[TO_LIST_ID, 'To list']]);
+			expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
+		});
+
+		it('after a write and a reload holds exactly one "To list"', async () => {
+			await openVault('/vault', { tasksView: { version: 1, sectionTag: '#a' } });
+			selectTaskList(TO_LIST_ID);
+			await settle();
+
+			await reload(payloads().at(-1)!);
+
+			expect(viewNames()).toEqual([[TO_LIST_ID, 'To list']]);
+			expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
+		});
+
+		it('the migrating write drops sectionTag, headingTags and query and keeps an unknown key', async () => {
+			await openVault('/vault', {
+				tasksView: { version: 1, sectionTag: '#a', headingTags: ['#a'], query: { sources: [] }, extra: { x: 1 } },
+			});
+
+			selectTaskList(TO_LIST_ID);
+			await settle();
+
+			expect(lastTasksView()).toEqual({
+				version: 1,
+				extra: { x: 1 },
+				activeList: TO_LIST_ID,
+				globalExcludes: defaultTaskExcludes(),
+				savedViews: [toListView('#a')],
+			});
+		});
+
+		it('a hand-edited savedViews: [] does not seed and opens "All open"', async () => {
+			await openVault('/vault', { tasksView: { version: 1, savedViews: [], sectionTag: '#a' } });
+
+			expect(tasksStore.savedViews).toEqual([]);
+			expect(tasksStore.activeList).toBe(ALL_OPEN_ID);
+			expect(tasksStore.query.sources).toEqual([]);
+		});
+
+		it('an unknown activeList opens the first saved view', async () => {
+			const first = { ...toListView('#first'), id: 'first', name: 'First' };
+			await openVault('/vault', { tasksView: { version: 1, activeList: 'gone', savedViews: [first, toListView('')] } });
+
+			expect(tasksStore.activeList).toBe('first');
+			expect(tasksStore.query.sources).toEqual(headingSources(['#first']));
+		});
 	});
 
-	it('saves a #work heading card built in the Sources panel', async () => {
-		await openVault('/vault', {});
-		mockTaskFetch([]);
-		const { component } = await mountTasksView();
-		const button = (name: string) =>
-			Array.from(document.querySelectorAll<HTMLElement>('button')).filter((b) => (b.getAttribute('aria-label') ?? b.textContent?.trim()) === name);
+	describe('saved view operations round-trip through settings.json', () => {
+		it('save, rename, duplicate and delete each survive a reload', async () => {
+			await openVault('/vault', {});
 
-		button('Edit')[0].click();
-		flushSync();
-		button('Add card')[0].click();
-		flushSync();
-		await openMenu(button('Add clause').at(-1)!);
-		Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitem"]'))
-			.find((el) => el.textContent?.trim() === 'Heading')!
-			.click();
-		flushSync();
-		const inputs = document.querySelectorAll<HTMLInputElement>('input[aria-label="Heading"]');
-		const input = inputs[inputs.length - 1];
-		input.value = '#work';
-		input.dispatchEvent(new Event('input', { bubbles: true }));
-		await settle();
-		unmount(component);
+			setTaskSources([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
+			tasksStore.setGroupBy('due');
+			const id = saveTaskView('Projects')!;
+			await settle();
+			const afterSave = { names: viewNames(), views: tasksStore.savedViews, active: tasksStore.activeList };
 
-		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list', '#work']));
-		expect(payloads().at(-1)!.tasksView).toEqual({ version: 1, sectionTag: '#to-list #work' });
+			await reload(payloads().at(-1)!);
+			expect(tasksStore.savedViews).toEqual(afterSave.views);
+			expect(tasksStore.activeList).toBe(id);
+			expect(tasksStore.query.sources).toEqual([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
+			expect(tasksStore.groupBy).toBe('due');
+
+			startSettingsPersistence('/vault', 'loaded');
+			renameTaskView(id, 'Work');
+			await settle();
+			await reload(payloads().at(-1)!);
+			expect(viewNames()).toEqual([[TO_LIST_ID, 'To list'], [id, 'Work']]);
+
+			startSettingsPersistence('/vault', 'loaded');
+			const copy = duplicateTaskView(TO_LIST_ID)!;
+			await settle();
+			await reload(payloads().at(-1)!);
+			expect(viewNames()).toEqual([[TO_LIST_ID, 'To list'], [copy, 'To list copy'], [id, 'Work']]);
+
+			startSettingsPersistence('/vault', 'loaded');
+			expect(deleteTaskView(id)).toBe(true);
+			await settle();
+			await reload(payloads().at(-1)!);
+			expect(viewNames()).toEqual([[TO_LIST_ID, 'To list'], [copy, 'To list copy']]);
+			expect(tasksStore.activeList).toBe(TO_LIST_ID);
+
+			for (const payload of payloads()) {
+				const tasksView = payload.tasksView as Record<string, unknown> | undefined;
+				if (tasksView === undefined) continue;
+				expect('sectionTag' in tasksView || 'headingTags' in tasksView || 'query' in tasksView).toBe(false);
+			}
+		});
+
+		it('deleting the last saved view returns false and leaves savedViews unchanged', async () => {
+			await openVault('/vault', {});
+			const before = tasksStore.savedViews;
+
+			expect(deleteTaskView(TO_LIST_ID)).toBe(false);
+			await settle();
+
+			expect(tasksStore.savedViews).toBe(before);
+			for (const payload of payloads()) expect('tasksView' in payload).toBe(false);
+		});
+
+		it('saveTaskView stores no search on disk', async () => {
+			await openVault('/vault', {});
+			tasksStore.setQuick({ show: 'all', search: 'milk' });
+
+			saveTaskView('Everything');
+			await settle();
+
+			const views = lastTasksView().savedViews as { query: { quick: Record<string, unknown> } }[];
+			expect(views[1].query.quick).toEqual({ show: 'all' });
+		});
+
+		it('switching from an edited list to another and back restores the saved query, and the saved view is unchanged on disk', async () => {
+			await openVault('/vault', { tasksView: { version: 1, sectionTag: '#a' } });
+			selectTaskList(TO_LIST_ID);
+			await settle();
+			const savedBefore = lastTasksView().savedViews;
+
+			setTaskSources([]);
+			tasksStore.setQuick({ show: 'all' });
+			selectTaskList(ALL_OPEN_ID);
+			selectTaskList(TO_LIST_ID);
+			await settle();
+
+			expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
+			expect(tasksStore.quick).toEqual({ show: 'open' });
+			expect(lastTasksView().savedViews).toEqual(savedBefore);
+		});
+
+		it('a folder card, a quick filter and a grouping change leave settingsStore.tasksView unchanged', async () => {
+			await openVault('/vault', { tasksView: { version: 1, sectionTag: '#a' } });
+			const before = settingsStore.tasksView;
+
+			setTaskSources([...headingSources(['#a']), { clauses: [{ kind: 'folder', path: 'Projects' }] }]);
+			tasksStore.setQuick({ due: 'overdue' });
+			tasksStore.setGroupBy('priority');
+			await settle();
+
+			expect(settingsStore.tasksView).toBe(before);
+			for (const payload of payloads()) expect(payload.tasksView).toEqual({ version: 1, sectionTag: '#a' });
+		});
+
+		it('a restart reopens the last selected list', async () => {
+			await openVault('/vault', {});
+			selectTaskList(ALL_OPEN_ID);
+			await settle();
+
+			await reload(payloads().at(-1)!);
+
+			expect(tasksStore.activeList).toBe(ALL_OPEN_ID);
+			expect(tasksStore.query.sources).toEqual([]);
+		});
 	});
 
-	it('does not save a substring heading card or a folder-plus-heading card, and a reload restores the tag cards only', async () => {
-		await openVault('/vault', { tasksView: { version: 1, sectionTag: '#a' } });
-		const writesBefore = payloads().length;
+	describe('global excludes', () => {
+		it('setTaskExcludes with the templates switch off is written, keeps an unknown key, has no sectionTag, and a fresh load restores it', async () => {
+			await openVault('/vault', { tasksView: { version: 1, sectionTag: '#a', extra: 1 } });
 
-		setTaskSources([
-			...headingSources(['#a']),
-			{ clauses: [{ kind: 'heading', text: 'Inbox', match: 'substring' }] },
-			{ clauses: [{ kind: 'folder', path: 'Projects' }, { kind: 'heading', text: '#b', match: 'tag' }] },
-		]);
-		await settle();
+			setTaskExcludes({ ...defaultTaskExcludes(), templatesFolder: false });
+			await settle();
 
-		for (const payload of payloads().slice(writesBefore)) expect(payload.tasksView).toEqual({ version: 1, sectionTag: '#a' });
-		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#a' });
+			const tasksView = lastTasksView();
+			expect((tasksView.globalExcludes as { templatesFolder: boolean }).templatesFolder).toBe(false);
+			expect(tasksView.extra).toBe(1);
+			expect('sectionTag' in tasksView).toBe(false);
 
-		await reload({ tasksView: settingsStore.tasksView });
+			await reload(payloads().at(-1)!);
 
-		expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
+			expect(tasksStore.globalExcludes).toEqual({ ...defaultTaskExcludes(), templatesFolder: false });
+			expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
+		});
+
+		it('the Sources panel\'s Templates folder switch writes the global excludes', async () => {
+			await openVault('/vault', {});
+			mockTaskFetch([]);
+			const { component } = await mountTasksView();
+			const named = (selector: string, name: string) =>
+				Array.from(document.querySelectorAll<HTMLElement>(selector)).find((el) => (el.getAttribute('aria-label') ?? el.textContent?.trim()) === name)!;
+
+			named('button', 'Edit').click();
+			flushSync();
+			named('[role="switch"]', 'Templates folder').click();
+			flushSync();
+			await settle();
+			unmount(component);
+
+			expect(tasksStore.globalExcludes.templatesFolder).toBe(false);
+			expect(tasksStore.query.exclude).toEqual(emptyTaskExcludes());
+			expect((lastTasksView().globalExcludes as { templatesFolder: boolean }).templatesFolder).toBe(false);
+		});
+
+		it('a field of the wrong type inside globalExcludes falls back to its default, with no toast', async () => {
+			await openVault('/vault', { tasksView: { version: 1, globalExcludes: { archived: 'x', systemFolder: false } } });
+
+			expect(tasksStore.globalExcludes).toEqual({ ...defaultTaskExcludes(), systemFolder: false });
+			expect(tasksStore.globalExcludes.archived).toBe(true);
+			expect(toast.error).not.toHaveBeenCalled();
+			expect(tasksErrors()).toHaveLength(0);
+		});
 	});
 
-	it('saves an empty text on Clear, and a reload gives the #to-list card', async () => {
-		await openVault('/vault', { tasksView: { version: 1, sectionTag: '#a #b' } });
-
-		setTaskSources([]);
-		await settle();
-
-		const saved = payloads().at(-1)!;
-		expect(saved.tasksView).toEqual({ version: 1, sectionTag: '' });
-
-		await reload(saved);
-
-		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
-	});
-
-	it('loads the #to-list card when the file has no tasksView, quietly, and writes none back', async () => {
-		tasksStore.setSources(headingSources(['#stale']));
-
-		await openVault('/vault', { debugMode: false });
-
-		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
-		expect(tasksErrors()).toHaveLength(0);
-		expect(toast.error).not.toHaveBeenCalled();
-		const writeBack = payloads();
-		expect(writeBack).toHaveLength(1);
-		expect('tasksView' in writeBack[0]).toBe(false);
-	});
-
-	it.each([[''], [' , ']])('loads the #to-list card for a saved %j, which holds no tag', async (sectionTag) => {
-		tasksStore.setSources(headingSources(['#stale']));
-
-		await openVault('/vault', { tasksView: { version: 1, sectionTag } });
-
-		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
-		expect(toast.error).not.toHaveBeenCalled();
-	});
-
-	it('builds one heading card per tag of a saved text', async () => {
-		await openVault('/vault', { tasksView: { version: 1, sectionTag: ' #a, b ' } });
-
-		expect(tasksStore.query.sources).toEqual(headingSources(['#a', '#b']));
-	});
-
-	it.each([[42], [null], [[]], ['x'], [{ sectionTag: 5 }]])(
-		'an invalid %j loads the #to-list card, says so, and keeps its bytes until the next tag card change',
+	it.each([[42], [{ version: 1, globalExcludes: 5 }]])(
+		'an invalid tasksView %j loads the defaults plus the seed, logs and toasts once, and keeps its bytes until the next write',
 		async (value) => {
-			tasksStore.setSources(headingSources(['#stale']));
-
 			await openVault('/vault', { tasksView: value });
 
-			expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
+			expect(tasksStore.globalExcludes).toEqual(defaultTaskExcludes());
+			expect(tasksStore.savedViews).toEqual([toListView('')]);
+			expect(tasksStore.activeList).toBe(TO_LIST_ID);
 			expect(tasksErrors()).toEqual([['TASKS', 'Invalid tasksView in settings.json:', value]]);
 			expect(toast.error).toHaveBeenCalledTimes(1);
 			expect(toast.error).toHaveBeenCalledWith(INVALID_TOAST);
@@ -229,56 +383,51 @@ describe('Tasks view section tags saved in settings.json', () => {
 			expect(before.some((p) => (p.layout as { railPanelsVisible: boolean }).railPanelsVisible === false)).toBe(true);
 			for (const payload of before) expect(payload.tasksView).toEqual(value);
 
-			setTaskSources(headingSources(['#work']));
+			setTaskExcludes(defaultTaskExcludes());
 			await settle();
 
-			expect(payloads().at(-1)!.tasksView).toEqual({ version: 1, sectionTag: '#work' });
+			expect(lastTasksView()).toMatchObject({ version: 1, globalExcludes: defaultTaskExcludes(), savedViews: [toListView('')] });
 		},
 	);
 
-	it('keeps unknown keys inside tasksView across a save', async () => {
-		await openVault('/vault', { tasksView: { version: 1, sectionTag: '#a', extra: { x: 1 } } });
-
-		setTaskSources(headingSources(['#b']));
-		await settle();
-
-		expect(payloads().at(-1)!.tasksView).toEqual({ version: 1, sectionTag: '#b', extra: { x: 1 } });
-	});
-
-	it('loads each vault its own tags, and writes a change only to the open vault', async () => {
+	it('loads each vault its own state, and the double-switch path to a vault with none gives the defaults and the seed', async () => {
 		await openVault('/va', { tasksView: { version: 1, sectionTag: '#a' } });
 		expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
 
 		await stopSettingsPersistence();
-		await openVault('/vb', { tasksView: { version: 1, sectionTag: '#b' } });
-		expect(tasksStore.query.sources).toEqual(headingSources(['#b']));
+		const viewB = { ...toListView('#b'), id: 'b', name: 'B' };
+		await openVault('/vb', {
+			tasksView: { version: 1, activeList: 'b', savedViews: [viewB], globalExcludes: { ...defaultTaskExcludes(), folders: ['X'] } },
+		});
+		expect(tasksStore.activeList).toBe('b');
+		expect(tasksStore.globalExcludes.folders).toEqual(['X']);
 
 		// The double-switch path: no resetTasks() between B and C.
 		await stopSettingsPersistence();
 		await openVault('/vc', {});
+		expect(tasksStore.globalExcludes).toEqual(defaultTaskExcludes());
+		expect(tasksStore.savedViews).toEqual([toListView('')]);
+		expect(tasksStore.activeList).toBe(TO_LIST_ID);
 		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
 
-		await stopSettingsPersistence();
-		await openVault('/vb', { tasksView: { version: 1, sectionTag: '#b' } });
-		const writesBefore = vi.mocked(writeTextFile).mock.calls.length;
-		setTaskSources(headingSources(['#b', '#more']));
+		setTaskExcludes({ ...defaultTaskExcludes(), archived: false });
 		await settle();
 
-		const changeWrites = vi.mocked(writeTextFile).mock.calls.slice(writesBefore);
-		expect(changeWrites.length).toBeGreaterThan(0);
-		expect(changeWrites.every(([path]) => path === settingsPath('/vb'))).toBe(true);
-		expect(payloads('/vb').at(-1)!.tasksView).toEqual({ version: 1, sectionTag: '#b #more' });
+		expect(payloads('/vc').at(-1)!.tasksView).toMatchObject({ globalExcludes: { archived: false } });
 		for (const payload of payloads('/va')) expect(payload.tasksView).toEqual({ version: 1, sectionTag: '#a' });
+		for (const payload of payloads('/vb')) expect((payload.tasksView as { activeList: string }).activeList).toBe('b');
 	});
 
 	it('never writes settings.json of a session whose file could not be read', async () => {
 		await openVault('/vault', 'unreadable');
 
-		setTaskSources(headingSources(['#work']));
+		setTaskExcludes({ ...defaultTaskExcludes(), templatesFolder: false });
+		saveTaskView('Mine');
 		await settle();
 		await stopSettingsPersistence();
 
-		expect(tasksStore.query.sources).toEqual(headingSources(['#work']));
+		expect(tasksStore.globalExcludes.templatesFolder).toBe(false);
+		expect(viewNames().map(([, name]) => name)).toEqual(['To list', 'Mine']);
 		expect(payloads()).toHaveLength(0);
 	});
 });

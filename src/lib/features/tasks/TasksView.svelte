@@ -162,13 +162,13 @@
 		return formatNow('YYYY-MM-DD');
 	});
 
-	let ruleSentence = $derived(describeTaskQuery(tasksStore.query));
+	let ruleSentence = $derived(describeTaskQuery(tasksStore.effectiveQuery));
 
 	let emptyExplanation = $derived(
 		groups.length === 0
 			? explainEmptyTasks({
 					rows: tasksStore.rows,
-					query: tasksStore.query,
+					query: tasksStore.effectiveQuery,
 					folders: { templates: settingsStore.templates.folder, system: settingsStore.templates.systemFolder },
 					today,
 					now: Date.now(),

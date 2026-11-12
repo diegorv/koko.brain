@@ -2,7 +2,7 @@
 
 Learn how to track tasks across your vault and sync them with Todoist.
 
-Kokobrain collects the checkbox items in your notes and presents them in a single, unified Tasks View. By default it lists only the tasks under a heading containing `#to-list`; **Clear** next to the sentence above the list shows every task in the vault. You can filter and toggle them there, and a two-way sync keeps chosen tasks and their Todoist copies in step.
+Kokobrain collects the checkbox items in your notes and presents them in a single, unified Tasks View. A vault opens on the **To list** list, which shows only the tasks under a heading containing `#to-list`; **Clear** next to the sentence above the list shows every task in the vault, and the built-in **All open** list shows every open task. You can filter and toggle them there, and a two-way sync keeps chosen tasks and their Todoist copies in step.
 
 ---
 
@@ -116,22 +116,26 @@ The sources decide which notes and headings supply tasks, before the filters run
   - **Lifecycle**: the note is in the **Inbox** (not organized, not archived, and not a type definition, as in the rail's Inbox), **Organized**, **Favorite** or **Archived**. Pick the state in the dropdown; a new Lifecycle clause starts at **Inbox**. A card holding **Archived** lists archived notes even while the **Archived notes** exclude is on; the other excludes still apply, and the other cards still leave archived notes out.
 - **Suggestions**: the arrow button next to a clause's field lists the folders (with their parent folders), types, note tags, tags in headings (as `#tag`), property keys or property values found in the notes that have tasks, excluded notes included. Property values are the ones seen under the key typed in the Key field. Pick one to fill the field, or type a value that is not listed.
 - **Not**: a folder, type or note tag clause with **Not** on matches the notes the clause would not.
-- **Excludes**: tasks from these notes are never listed, whatever the cards say. Four switches are on by default: **Archived notes**, **Type definitions**, **Templates folder** and **System folder** (the two folders set in Settings > Files & Folders). Below them, add folders, notes (by their path in the vault, for example `Inbox/Scratch.md`), note tags and types to leave out, and remove each one with its x button.
+- **Excludes**: tasks from these notes are never listed, on any list, whatever the cards say. They are saved for each vault and survive a restart. Four switches are on by default: **Archived notes**, **Type definitions**, **Templates folder** and **System folder** (the two folders set in Settings > Files & Folders). Below them, add folders, notes (by their path in the vault, for example `Inbox/Scratch.md`), note tags and types to leave out, and remove each one with its x button.
 - **Clear**, after the sentence, removes every card: the list shows every note's tasks, and the excludes still apply.
 
 Group headers make rules from what is on screen. Hover over a header, or move focus into it, to show its actions:
 
 - **Only this folder**, on a folder group under **Group by: Folder**: lists only the tasks of that folder and its subfolders. With no card, it adds a card holding the folder; with cards, it adds the folder to every card, so each card still applies and none lists tasks from outside the folder.
-- **Hide this folder**, on a folder group: adds the folder to the excluded folders, which hides that folder and its subfolders.
-- **Hide this note**, on a note group under **Group by: Note**: adds the note to the excluded notes.
+- **Hide this folder**, on a folder group: hides that folder and its subfolders on the current list, until you switch lists or restart. It does not change the Excludes section, which applies to every list.
+- **Hide this note**, on a note group under **Group by: Note**: hides the note on the current list, the same way.
 - **Only this type**, on a type group under **Group by: Type**: lists only the tasks of notes of that type, adding the type to the cards the way **Only this folder** adds a folder.
-- **Hide this type**, on a type group: adds the type to the excluded types.
+- **Hide this type**, on a type group: hides notes of that type on the current list, the same way.
 
 The Vault root and No type groups have no actions. Nothing is added twice, and the sentence above the list changes at once.
 
 When the list is empty because of the sources, the empty state offers **Edit sources**; when every matching note is excluded, **Edit excludes**, which opens the panel on its first switch.
 
-Only the cards that hold one Heading clause in Tag mode are remembered for each vault after a restart, as their tags. Other cards and the excludes last until you close the app; saved views will keep them. After **Clear**, the next start shows the `#to-list` card again.
+## Lists
+
+The Tasks View shows one list at a time, and each vault remembers which one was open. The first time a vault opens, it gets a saved **To list** list built from the section tags an earlier version saved (one Heading card in Tag mode per tag), or the `#to-list` card when none was saved. **All open** is built in: it lists every open task, grouped by note, and cannot be renamed or deleted.
+
+Changing a list's cards, filters or grouping changes what you see right away, but the saved list stays as it was: the change lasts until you switch to another list or restart, and the list opens as saved the next time. The excludes in the Sources panel are the exception: they are saved at once and apply to every list.
 
 ---
 

@@ -7,6 +7,7 @@ import {
 	collapseKey,
 	defaultTaskExcludes,
 	defaultTaskQuery,
+	emptyTaskExcludes,
 	describeTaskQuery,
 	explainEmptyTasks,
 	DEFAULT_TASK_SORT,
@@ -17,7 +18,6 @@ import {
 	onlyThisFolder,
 	onlyThisType,
 	propertyKeyOptions,
-	tagHeadingCardText,
 	selectSourceRows,
 	sourceSuggestions,
 	groupTaskRows,
@@ -450,41 +450,27 @@ describe('query defaults', () => {
 		expect(headingSources([])).toEqual([]);
 	});
 
-	describe('tagHeadingCardText', () => {
-		const tagCard = (text: string): TaskSource => ({ clauses: [{ kind: 'heading', text, match: 'tag' }] });
-
-		it('joins the trimmed texts of the cards holding one tag heading clause', () => {
-			expect(tagHeadingCardText([tagCard(' #a '), tagCard('b'), tagCard('#c/')])).toBe('#a b #c/');
-		});
-
-		it("is '' for no card", () => {
-			expect(tagHeadingCardText([])).toBe('');
-		});
-
-		it('leaves out substring heading cards, other clause kinds and cards of several clauses', () => {
-			expect(
-				tagHeadingCardText([
-					tagCard('#a'),
-					{ clauses: [{ kind: 'heading', text: 'Inbox', match: 'substring' }] },
-					{ clauses: [{ kind: 'folder', path: 'Projects' }] },
-					{ clauses: [{ kind: 'folder', path: 'Projects' }, ...tagCard('#b').clauses] },
-					{ clauses: [] },
-				]),
-			).toBe('#a');
-		});
-
-		it.each([[''], ['  '], ['#'], [' #/ ']])('is null while a tag heading card holds %j, no tag yet', (text) => {
-			expect(tagHeadingCardText([tagCard('#a'), tagCard(text)])).toBeNull();
-		});
-	});
-
-	it('defaultTaskQuery holds the #to-list card, the default excludes and DEFAULT_QUICK', () => {
+	it('defaultTaskQuery holds the #to-list card, no own exclude and DEFAULT_QUICK', () => {
 		expect(defaultTaskQuery()).toEqual({
 			version: 1,
 			sources: headingSources(['#to-list']),
-			exclude: defaultTaskExcludes(),
+			exclude: emptyTaskExcludes(),
 			quick: DEFAULT_QUICK,
 		});
+	});
+
+	it('emptyTaskExcludes has every switch off and no listed value, fresh each call', () => {
+		expect(emptyTaskExcludes()).toEqual({
+			archived: false,
+			typeDefinitions: false,
+			templatesFolder: false,
+			systemFolder: false,
+			folders: [],
+			notes: [],
+			tags: [],
+			types: [],
+		});
+		expect(emptyTaskExcludes()).not.toBe(emptyTaskExcludes());
 	});
 });
 
@@ -832,7 +818,7 @@ describe('selectSourceRows', () => {
 		expect(rows.map((r) => [r.noteTaskCount, r.noteOpenCount])[0]).toEqual([5, 4]);
 	});
 
-	it('with defaultTaskQuery drops a template task and an archived note\'s task, and keeps one under ## Inbox #to-list', () => {
+	it('with defaultTaskQuery and the default global excludes drops a template task and an archived note\'s task, and keeps one under ## Inbox #to-list', () => {
 		const inbox = (path: string, fields: Partial<NoteEntryV2> = {}) =>
 			entryV2(path, {
 				taskHeadings: [{ level: 2, text: 'Inbox #to-list', line: 1 }],
@@ -845,7 +831,8 @@ describe('selectSourceRows', () => {
 			'/vault',
 			new Map(),
 		);
-		const { sources, exclude } = defaultTaskQuery();
+		const { sources } = defaultTaskQuery();
+		const exclude = defaultTaskExcludes();
 		expect(selectSourceRows(rows, sources, exclude, FOLDERS).map((r) => r.relPath)).toEqual(['Notes/Plan.md']);
 		expect(selectSourceRows(rows, [card({ kind: 'noteTag', tag: '#work' })], exclude, FOLDERS).map((r) => r.relPath)).toEqual([
 			'Notes/Plan.md',
@@ -1933,8 +1920,8 @@ describe('describeTaskQuery', () => {
 	const describeTextbox = (sectionTag: string, quick: TaskQuickFilters) => describeTaskQuery(textbox(sectionTag, quick));
 	const withSources = (sources: TaskSource[], exclude = NO_EXCLUDES): TaskQuery => ({ version: 1, sources, exclude, quick: OPEN });
 
-	it('describes the default query', () => {
-		expect(describeTaskQuery(defaultTaskQuery())).toBe(
+	it('describes the default query with the default global excludes', () => {
+		expect(describeTaskQuery({ ...defaultTaskQuery(), exclude: defaultTaskExcludes() })).toBe(
 			'Open tasks under headings containing #to-list, except archived notes, type definitions, templates, the system folder',
 		);
 	});

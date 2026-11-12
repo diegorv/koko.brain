@@ -370,7 +370,7 @@ export interface TaskQuery {
 	version: 1;
 	/** The source cards; none lists every note */
 	sources: TaskSource[];
-	/** The excludes, which win over the sources */
+	/** The active list's own excludes, added to the global ones (`mergeExcludes`); they win over the sources */
 	exclude: TaskExcludes;
 	/** The quick filters */
 	quick: TaskQuickFilters;
@@ -384,7 +384,7 @@ export interface TaskSourceFolders {
 	system: string;
 }
 
-/** The excludes of a fresh Tasks view: the four switches on, no listed value. */
+/** The global excludes of a vault that saved none: the four switches on, no listed value. */
 export function defaultTaskExcludes(): TaskExcludes {
 	return {
 		archived: true,
@@ -403,26 +403,26 @@ export function headingSources(tags: readonly string[]): TaskSource[] {
 	return tags.map((text) => ({ clauses: [{ kind: 'heading', text, match: 'tag' }] }));
 }
 
-/**
- * What `tasksView.sectionTag` keeps of `sources` until saved views: the
- * trimmed texts of the cards holding exactly one heading clause in tag mode,
- * space-joined ('' for none). Null while one of those cards has no tag yet
- * (empty, or `#` alone), so an emptied card is not saved until it holds text.
- */
-export function tagHeadingCardText(sources: readonly TaskSource[]): string | null {
-	const texts: string[] = [];
-	for (const { clauses } of sources) {
-		const [only] = clauses;
-		if (clauses.length !== 1 || only.kind !== 'heading' || only.match !== 'tag') continue;
-		if (!headingValue(only.text, 'tag')) return null;
-		texts.push(only.text.trim());
-	}
-	return texts.join(' ');
+/** A list's own excludes before any is added: every switch off, no listed value. */
+export function emptyTaskExcludes(): TaskExcludes {
+	return {
+		archived: false,
+		typeDefinitions: false,
+		templatesFolder: false,
+		systemFolder: false,
+		folders: [],
+		notes: [],
+		tags: [],
+		types: [],
+	};
 }
 
-/** The query of a fresh Tasks view: the `#to-list` card, the default excludes and `DEFAULT_QUICK`. */
+/**
+ * The query of a fresh Tasks view, the seeded "To list" view's: the
+ * `#to-list` card, no own exclude (the global ones still apply) and `DEFAULT_QUICK`.
+ */
 export function defaultTaskQuery(): TaskQuery {
-	return { version: 1, sources: headingSources(['#to-list']), exclude: defaultTaskExcludes(), quick: { ...DEFAULT_QUICK } };
+	return { version: 1, sources: headingSources(['#to-list']), exclude: emptyTaskExcludes(), quick: { ...DEFAULT_QUICK } };
 }
 
 /** A vault-relative folder with its outer `/` and spaces trimmed; '' when nothing is left. */

@@ -44,7 +44,7 @@ interface SavedTaskView { id: string; name: string; query: TaskViewQuery }
 
 **Blocked by:** 245, 117
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B1, revised on 2026-11-12 from (a) to (b): the vault opens on the seeded "To list" view, never on every task (owner). The 2026-11-06 answer (a) is superseded. Owner, 2026-11-12: Q1, `#to-list` stays the default and a saved empty section filter is not restored; Q3, only the global excludes and the saved views are stored, and "To list" is seeded from the saved section tags; the merge of Issue 123 into this Issue (owner, 2026-11-12); Q4, deleting the last saved view is not allowed (the plan's default; the owner can override it at review); the split into this Issue (model and migration) and Issue 247 (list column UI).
 
@@ -54,20 +54,20 @@ Tests use Issue 243's harness in `tasks-view-settings.test.ts` (real settings an
 
 **Tests that change on purpose:** Issue 245's write-back cases (`setTaskSources` no longer writes `sectionTag`); the `tasks.store.test.ts` default-query and `reset()` cases (excludes move to `globalExcludes`); Issue 116's exclude cases that set `query.exclude` directly.
 
-- [ ] Failing test first: a vault with no `savedViews` (whatever its notes hold) gets a "To list" view after load, and `activeList` is `to-list`. A saved `sectionTag: '#to-list #work'` seeds both heading cards; nothing saved, or `sectionTag: ''`, seeds the `#to-list` card. After a write and a reload, exactly one "To list" exists. Fails today (no `savedViews`).
-- [ ] Save, rename, duplicate and delete round-trip through `settings.json`: perform each, advance the persistence debounce, reload the written JSON into reset stores, compare. The migrating write has no `headingTags`, `sectionTag` or `query` key and keeps an unknown key.
-- [ ] Deleting the last saved view returns `false` and leaves `savedViews` unchanged. A hand-edited `savedViews: []` does not seed and opens "All open". An unknown `activeList` opens the first saved view.
-- [ ] `mergeExcludes`: a global `archived: true` with an own `false` stays `true`; folder lists unite without duplicates. Through `tasksStore.visibleRows`, a view exclude adds a folder and never brings back an archived note's task.
-- [ ] Switching from an edited list to another and back restores the saved query, and the saved view is unchanged on disk.
-- [ ] `saveTaskView` drops `quick.search` from the stored query.
-- [ ] `setTaskExcludes` with the templates switch off: after the persistence debounce the written `tasksView` holds `globalExcludes.templatesFolder: false`, keeps an unknown key, and has no `sectionTag`; a fresh load restores it in `tasksStore.globalExcludes`.
-- [ ] `tasksView: 42` and `globalExcludes: 5` load the defaults plus the seed, log once, toast once, and every `writeTextFile` payload carries the value unchanged until the next write. `globalExcludes: { archived: 'x' }` loads `archived: true` with no toast.
-- [ ] A folder card, a quick filter and a `groupBy` change on a list leave `settingsStore.tasksView` unchanged.
-- [ ] Loading vault C (no `tasksView`) while the store still holds vault B's state, without `resetTasks()` in between (the double-switch path), gives the defaults and the seed.
-- [ ] Issue 030's protected session: after a load where `readTextFile` rejects, `setTaskExcludes` and `saveTaskView` leave `settings.json` unwritten for the rest of the session.
-- [ ] A restart reopens the last selected list.
-- [ ] The e2e spec passes: the fixture vault opens on "To list", whose `#to-list` card lists no fixture task, and the spec's Clear clicks still list them.
-- [ ] `layer-rules.test.ts` stays green with no new baseline entry.
+- [x] Failing test first: a vault with no `savedViews` (whatever its notes hold) gets a "To list" view after load, and `activeList` is `to-list`. A saved `sectionTag: '#to-list #work'` seeds both heading cards; nothing saved, or `sectionTag: ''`, seeds the `#to-list` card. After a write and a reload, exactly one "To list" exists. Fails today (no `savedViews`).
+- [x] Save, rename, duplicate and delete round-trip through `settings.json`: perform each, advance the persistence debounce, reload the written JSON into reset stores, compare. The migrating write has no `headingTags`, `sectionTag` or `query` key and keeps an unknown key.
+- [x] Deleting the last saved view returns `false` and leaves `savedViews` unchanged. A hand-edited `savedViews: []` does not seed and opens "All open". An unknown `activeList` opens the first saved view.
+- [x] `mergeExcludes`: a global `archived: true` with an own `false` stays `true`; folder lists unite without duplicates. Through `tasksStore.visibleRows`, a view exclude adds a folder and never brings back an archived note's task.
+- [x] Switching from an edited list to another and back restores the saved query, and the saved view is unchanged on disk.
+- [x] `saveTaskView` drops `quick.search` from the stored query.
+- [x] `setTaskExcludes` with the templates switch off: after the persistence debounce the written `tasksView` holds `globalExcludes.templatesFolder: false`, keeps an unknown key, and has no `sectionTag`; a fresh load restores it in `tasksStore.globalExcludes`.
+- [x] `tasksView: 42` and `globalExcludes: 5` load the defaults plus the seed, log once, toast once, and every `writeTextFile` payload carries the value unchanged until the next write. `globalExcludes: { archived: 'x' }` loads `archived: true` with no toast.
+- [x] A folder card, a quick filter and a `groupBy` change on a list leave `settingsStore.tasksView` unchanged.
+- [x] Loading vault C (no `tasksView`) while the store still holds vault B's state, without `resetTasks()` in between (the double-switch path), gives the defaults and the seed.
+- [x] Issue 030's protected session: after a load where `readTextFile` rejects, `setTaskExcludes` and `saveTaskView` leave `settings.json` unwritten for the rest of the session.
+- [x] A restart reopens the last selected list.
+- [x] The e2e spec passes: the fixture vault opens on "To list", whose `#to-list` card lists no fixture task, and the spec's Clear clicks still list them.
+- [x] `layer-rules.test.ts` stays green with no new baseline entry.
 
 ## Notes
 
@@ -83,3 +83,5 @@ Tests use Issue 243's harness in `tasks-view-settings.test.ts` (real settings an
 - 2026-11-12: main session, after the consistency review: `setTaskExcludes` is spelled out: it writes `tasksStore.globalExcludes`.
 
 - 2026-11-12: main session: Issue 123 merged in on the owner's approval. The global excludes, `setTaskExcludes`, the plumbing, the invalid-value rule and the protected-session and double-switch criteria came from 123; its intermediate `headingTags` field is gone, and the seed reads the saved `sectionTag` directly. Blocked by 245 and 117, as 123 was.
+
+- 2026-11-12: delivered from branch `issue/124-saved-views-and-to-list-migration`. Saved Tasks views and global excludes persist in `settings.json`, the "To list" view is seeded from the saved section tags, with service operations for save, rename, duplicate, delete, select and `setTaskExcludes`. Review round 1 APPROVED (findings 3, 4, 5 fixed; 1 left for the owner; 2 no change), round 2 APPROVED with no new findings. Tests: `pnpm check` 0 errors; full suite at 9708c8662 exit 0, 632 files, 16453 passed, 54 skipped, 0 failed.

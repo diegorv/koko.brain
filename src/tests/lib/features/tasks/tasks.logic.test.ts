@@ -3,8 +3,6 @@ import {
 	parseTaskTextSegments,
 	parseSectionTags,
 	compareTaskPaths,
-	parseTasksView,
-	withSectionTag,
 	noteFolder,
 	noteTaskCounts,
 	stripTaskTrailers,
@@ -71,60 +69,6 @@ describe('parseSectionTags', () => {
 		[' , ,', []],
 	] as const)('%j gives %j', (text, expected) => {
 		expect(parseSectionTags(text)).toEqual(expected);
-	});
-});
-
-describe('parseTasksView', () => {
-	it.each([
-		[undefined],
-		[{}],
-		[{ version: 1 }],
-		[{ version: 1, sectionTag: '' }],
-		[{ version: 1, sectionTag: ' , ' }],
-		[{ version: 1, sectionTag: '#' }],
-	])('%j is valid and gives #to-list', (raw) => {
-		expect(parseTasksView(raw)).toEqual({ sectionTag: '#to-list', valid: true });
-	});
-
-	it('restores a saved string as typed, untrimmed', () => {
-		expect(parseTasksView({ version: 1, sectionTag: ' #a, b ' })).toEqual({ sectionTag: ' #a, b ', valid: true });
-	});
-
-	it('does not check the version, so a newer build keeps the field', () => {
-		expect(parseTasksView({ version: 2, sectionTag: '#work', more: true })).toEqual({ sectionTag: '#work', valid: true });
-	});
-
-	it.each([[42], [null], [[]], ['x'], [true], [{ sectionTag: 5 }], [{ sectionTag: null }], [{ sectionTag: ['#a'] }]])(
-		'%j is invalid and gives #to-list',
-		(raw) => {
-			expect(parseTasksView(raw)).toEqual({ sectionTag: '#to-list', valid: false });
-		},
-	);
-});
-
-describe('withSectionTag', () => {
-	it('writes version 1 and the text when nothing was saved', () => {
-		expect(withSectionTag(undefined, '#work')).toEqual({ version: 1, sectionTag: '#work' });
-	});
-
-	it('keeps every other key and a numeric version', () => {
-		const raw = { version: 2, sectionTag: '#a', extra: { x: 1 }, globalExcludes: ['b'] };
-
-		expect(withSectionTag(raw, '#b')).toEqual({ version: 2, sectionTag: '#b', extra: { x: 1 }, globalExcludes: ['b'] });
-		expect(raw.sectionTag).toBe('#a');
-	});
-
-	it('writes version 1 over a non-numeric version', () => {
-		expect(withSectionTag({ version: '1', sectionTag: '#a' }, '#b')).toEqual({ version: 1, sectionTag: '#b' });
-	});
-
-	it('stores the text as typed, empty included', () => {
-		expect(withSectionTag({ version: 1, sectionTag: '#a' }, '')).toEqual({ version: 1, sectionTag: '' });
-		expect(withSectionTag(undefined, ' #a, b ')).toEqual({ version: 1, sectionTag: ' #a, b ' });
-	});
-
-	it.each([[42], [null], [[]], ['x']])('replaces a non-object %j wholesale', (raw) => {
-		expect(withSectionTag(raw, '#work')).toEqual({ version: 1, sectionTag: '#work' });
 	});
 });
 

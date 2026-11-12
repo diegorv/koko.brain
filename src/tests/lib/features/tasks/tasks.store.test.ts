@@ -7,8 +7,10 @@ import {
 	buildTaskRows,
 	defaultTaskExcludes,
 	defaultTaskQuery,
+	emptyTaskExcludes,
 	headingSources,
 } from '#lib/features/tasks/task-query.logic.js';
+import { TO_LIST_ID, mergeExcludes, toListView } from '#lib/features/tasks/task-views.logic.js';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import { taskEntryV2, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -25,6 +27,10 @@ describe('tasksStore', () => {
 	it('starts with default state', () => {
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		expect(tasksStore.query).toEqual(defaultTaskQuery());
+		expect(tasksStore.globalExcludes).toEqual(defaultTaskExcludes());
+		expect(tasksStore.savedViews).toEqual([toListView('')]);
+		expect(tasksStore.activeList).toBe(TO_LIST_ID);
+		expect(tasksStore.effectiveQuery).toEqual({ ...defaultTaskQuery(), exclude: defaultTaskExcludes() });
 		expect(tasksStore.rows).toEqual([]);
 		expect(tasksStore.sourceRows).toEqual([]);
 		expect(tasksStore.visibleRows).toEqual([]);
@@ -38,7 +44,7 @@ describe('tasksStore', () => {
 		expect(tasksStore.query.sources).toEqual(headingSources(['#a', '#b']));
 		tasksStore.setSources([]);
 		expect(tasksStore.query.sources).toEqual([]);
-		expect(tasksStore.query.exclude).toEqual(defaultTaskExcludes());
+		expect(tasksStore.query.exclude).toEqual(emptyTaskExcludes());
 		expect(tasksStore.quick).toEqual({ show: 'all' });
 	});
 
@@ -85,18 +91,50 @@ describe('tasksStore', () => {
 			expect(visible()).toEqual(['Inbox.md', 'Projects/a.md', 'X/n.md']);
 		});
 
-		it('visibleRows follows setExclude', () => {
+		it('visibleRows follows setGlobalExcludes', () => {
 			tasksStore.setRows(vaultRows());
 			tasksStore.setSources([]);
-			tasksStore.setExclude({ ...defaultTaskExcludes(), templatesFolder: false, systemFolder: false });
+			tasksStore.setGlobalExcludes({ ...defaultTaskExcludes(), templatesFolder: false, systemFolder: false });
 			expect(visible()).toEqual(['_system/templates/T.md', 'Inbox.md', 'Projects/a.md', 'X/n.md']);
-			expect(tasksStore.query.exclude.templatesFolder).toBe(false);
+			expect(tasksStore.globalExcludes.templatesFolder).toBe(false);
+		});
+
+		it('a view exclude adds a folder and never brings back an archived note\'s task', () => {
+			tasksStore.setRows(
+				buildTaskRows(
+					[
+						entryV2('/vault/A/live.md', { tasks: [taskV2('A/live.md')] }),
+						entryV2('/vault/B/live.md', { tasks: [taskV2('B/live.md')] }),
+						entryV2('/vault/Old.md', { archived: true, tasks: [taskV2('Old.md')] }),
+					],
+					'/vault',
+					new Map(),
+				),
+			);
+			tasksStore.setSources([]);
+			expect(visible()).toEqual(['A/live.md', 'B/live.md']);
+
+			tasksStore.setExclude({ ...emptyTaskExcludes(), archived: false, folders: ['A'] });
+
+			expect(visible()).toEqual(['B/live.md']);
+			expect(tasksStore.effectiveQuery.exclude).toEqual({ ...defaultTaskExcludes(), folders: ['A'] });
+		});
+
+		it('effectiveQuery merges the global excludes into the session\'s own', () => {
+			tasksStore.setGlobalExcludes({ ...defaultTaskExcludes(), folders: ['G'] });
+			tasksStore.setExclude({ ...emptyTaskExcludes(), folders: ['O'], tags: ['#t'] });
+			expect(tasksStore.effectiveQuery).toEqual({
+				...tasksStore.query,
+				exclude: mergeExcludes(tasksStore.globalExcludes, tasksStore.query.exclude),
+			});
+			expect(tasksStore.effectiveQuery.exclude.folders).toEqual(['G', 'O']);
+			expect(tasksStore.query.exclude.folders).toEqual(['O']);
 		});
 
 		it('visibleRows follows a template folder setting change', () => {
 			tasksStore.setRows(vaultRows());
 			tasksStore.setSources([]);
-			tasksStore.setExclude({ ...defaultTaskExcludes(), systemFolder: false });
+			tasksStore.setGlobalExcludes({ ...defaultTaskExcludes(), systemFolder: false });
 			expect(visible()).toEqual(['Inbox.md', 'Projects/a.md', 'X/n.md']);
 			settingsStore.updateTemplates({ folder: 'X' });
 			expect(visible()).toEqual(['_system/templates/T.md', 'Inbox.md', 'Projects/a.md']);
@@ -118,6 +156,33 @@ describe('tasksStore', () => {
 			expect(tasksStore.rows.map((r) => r.noteTaskCount)).toEqual([2, 2]);
 			expect(tasksStore.visibleRows.map((r) => [r.text, r.noteTaskCount, r.noteOpenCount])).toEqual([['in', 1, 1]]);
 		});
+	});
+
+	it('setSession copies a view query into the session query, grouping and sort', () => {
+		const view = {
+			sources: [{ clauses: [{ kind: 'folder' as const, path: 'P' }] }],
+			exclude: { ...emptyTaskExcludes(), notes: ['n.md'] },
+			quick: { show: 'all' as const, due: 'today' as const },
+			groupBy: 'due' as const,
+			sort: ['path' as const],
+		};
+		tasksStore.setSession(view);
+		expect(tasksStore.query).toEqual({ version: 1, sources: view.sources, exclude: view.exclude, quick: view.quick });
+		expect(tasksStore.groupBy).toBe('due');
+		expect(tasksStore.sort).toEqual(['path']);
+
+		tasksStore.setQuick({ show: 'open' });
+		expect(view.quick.show).toBe('all');
+	});
+
+	it('setGlobalExcludes, setSavedViews and setActiveList replace their fields', () => {
+		const views = [toListView('#a')];
+		tasksStore.setGlobalExcludes(emptyTaskExcludes());
+		tasksStore.setSavedViews(views);
+		tasksStore.setActiveList('x');
+		expect(tasksStore.globalExcludes).toEqual(emptyTaskExcludes());
+		expect(tasksStore.savedViews).toBe(views);
+		expect(tasksStore.activeList).toBe('x');
 	});
 
 	it('setQuick merges into the quick filters', () => {
@@ -430,6 +495,10 @@ describe('tasksStore', () => {
 		tasksStore.setQuick({ show: 'all', statuses: ['done'], due: 'overdue' });
 		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
 		tasksStore.setExclude({ ...defaultTaskExcludes(), archived: false });
+		tasksStore.setGlobalExcludes(emptyTaskExcludes());
+		tasksStore.setSavedViews([]);
+		tasksStore.setActiveList('all-open');
+		tasksStore.setGroupBy('due');
 		tasksStore.setLoading(true);
 		tasksStore.setHasLoaded(true);
 		tasksStore.setError('failed');
@@ -441,6 +510,10 @@ describe('tasksStore', () => {
 		expect(tasksStore.rows).toEqual([]);
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		expect(tasksStore.query).toEqual(defaultTaskQuery());
+		expect(tasksStore.globalExcludes).toEqual(defaultTaskExcludes());
+		expect(tasksStore.savedViews).toEqual([toListView('')]);
+		expect(tasksStore.activeList).toBe(TO_LIST_ID);
+		expect(tasksStore.groupBy).toBe('note');
 		expect(tasksStore.isLoading).toBe(false);
 		expect(tasksStore.hasLoaded).toBe(false);
 		expect(tasksStore.error).toBeNull();
