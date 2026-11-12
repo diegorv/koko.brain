@@ -66,7 +66,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | todo | | |
 | 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
 | 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | done | issue/242-tasks-several-section-tags (3583a1057) | 2026-11-12 |
-| 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234 | in-progress | | |
+| 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234 | done | issue/243-tasks-section-tags-saved-per-vault (fa8578342) | 2026-11-12 |
 | 244 | [Tasks come from the entries snapshot, with an overlay for the view's own writes](issues/244-tasks-from-entries-snapshot-with-write-overlay.md) | 115, 241 | todo | | |
 | 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | todo | | |
 | 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | todo | | |
@@ -87,3 +87,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:23 — 243 — start — launched by /relay-lite:run (open-itens 030 done) — 2aeef7a9d
 - 2026-11-12 11:25 — 074 — deliver — round 1 APPROVED by claude (fix round: e2e mock closes a fence only on its opening marker, tilde-fence fixture, test rename), deliver re-review APPROVED by claude; full suite 616 files / 15667 tests passed on run 2 (run 1: unrelated AutoOrganizeRuleRow waitFor timeout); squash merged and pushed — 16e3db9ed
 - 2026-11-12 11:25 — 075 — start — launched by /relay-lite:run, side track beside 243 — c3868e9fa
+- 2026-11-12 11:37 — 243 — deliver — round 1 APPROVED by claude, one nit rejected (245 removes the duplicated literal), no fix round; full suite 616 files / 15736 tests passed; squash merged and pushed — fa8578342
