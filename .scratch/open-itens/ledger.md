@@ -251,7 +251,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 251 | [The code-block language switch keeps the rest of the fence info string](issues/251-code-block-language-switch-keeps-info-string.md) | none | todo | | |
 | 252 | [TSV paste leaves code, frontmatter and tab-indented lines alone](issues/252-tsv-paste-leaves-code-and-indented-lines.md) | none | todo | | |
 | 253 | [Canvas image nodes added in the app store vault-relative paths, and image nodes resolve both absolute and vault-relative ones](issues/253-canvas-image-nodes-store-vault-relative-paths.md) | 038 | todo | | |
-| 254 | [Two flaky tests pass reliably: the tab-strip scroll e2e and the Auto Organize count test](issues/254-two-flaky-tests-pass-reliably.md) | none | in-progress | | |
+| 254 | [Two flaky tests pass reliably: the tab-strip scroll e2e and the Auto Organize count test](issues/254-two-flaky-tests-pass-reliably.md) | none | done | issue/254-two-flaky-tests-pass-reliably (22a266407) | 2026-11-12 |
 
 ## Log
 
@@ -290,3 +290,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:12 — 062 — deliver — retry: round 1 APPROVED by claude with a fix round (regex backtracking removed with a timing test; empty url guard), deliver re-review APPROVED by claude; full suite 632 files / 16495 tests passed; squash merged and pushed — 4424b60b4
 - 2026-11-12 19:15 — 004 — deliver — round 1 APPROVED by claude with a fix round (flusher keeps the timer armed when persist throws), deliver re-review APPROVED by claude; full suite 632 files / 16463 tests passed; deliver merge first failed on the owner's unpushed version bump, the main session finished sync and merge after it was pushed — 5cb784f0f
 - 2026-11-12 19:18 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 043)
+- 2026-11-12 19:18 — 254 — deliver — round 1 APPROVED by claude with no findings; tab strip: layout rounding, sub-pixel tolerance; AutoOrganizeRuleRow: fake timers; full suite 633 files / 16460 tests passed on the first run; squash merged and pushed — 22a266407
