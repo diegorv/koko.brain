@@ -71,6 +71,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | todo | | |
 | 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | todo | | |
 | 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | todo | | |
+| 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | todo | | |
 
 ## Log
 
@@ -92,3 +93,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:51 — 236 — deliver — round 1 APPROVED by claude with no findings, no fix round; full suite 618 files / 15757 tests passed; header layout and circle geometry not checked by eye; squash merged and pushed — 07181df1c
 - 2026-11-12 11:51 — 109 — start — launched by /relay-lite:run — ec03b5500
 - 2026-11-12 11:55 — 075 — deliver — round 1 APPROVED by claude, 3 findings accepted with no code change (major: Todoist sync keeps the ASCII tag rule, follow-up Issue to file; minor: recurrence vs #über; nit); full suite 616 files / 15696 tests, cargo 1453 passed; e2e: tabs.spec.ts:42 fails the same on main, rest passed; index schema 6 -> 7; squash merged and pushed — 015f8c18f
+- 2026-11-12 11:56 — ledger updated (added 248)
