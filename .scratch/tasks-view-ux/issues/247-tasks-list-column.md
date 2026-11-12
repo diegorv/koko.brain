@@ -15,7 +15,7 @@
 
 **Blocked by:** 124
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B1 (b): the vault opens on the seeded "To list" view (owner, 2026-11-12). Owner, 2026-11-12: Q4, deleting the last saved view is not allowed; the split of Issue 124 into 124 (model and migration) and this Issue (list column UI), blocked by 124.
 
@@ -23,13 +23,13 @@
 
 Component tests go in a new `src/tests/lib/features/tasks/TasksView.lists.test.ts`, serve tasks through Issue 110's `mockTaskFetch` and mount through `mountTasksView` (`src/tests/fixtures/tasks.fixture.ts`), open menus with its `openMenu`, and mock only the allowed boundaries (`invoke`, `@tauri-apps/plugin-fs`, `svelte-sonner`, `theme.service`, `#lib/utils/debug.js` or a `console.error` spy). Stores and `.logic.ts` stay real.
 
-- [ ] Failing test first, `TasksView.lists.test.ts`: the column lists "All open" and "To list", with "To list" marked active after load; clicking "All open" lists every open fixture task and marks it active. Fails today (no column).
-- [ ] "+ Save view" with the name `Work` adds a `Work` row that becomes active; the written `settings.json` (the `plugin-fs` `writeTextFile` mock) holds it in `tasksView.savedViews`.
-- [ ] Rename, Duplicate and Delete through the row menu change the column and the written `savedViews`. With one saved view, its Delete item is `disabled`.
-- [ ] Both renderings exist: inside `[data-task-lists="menu"]`, picking "All open" from the dropdown selects it.
-- [ ] Turning a "Global" switch off changes `globalExcludes` and the list on every list; turning a "This list" switch on hides the matching tasks on the active list only, and switching lists drops it.
-- [ ] e2e: the vault opens on "To list" (the `#to-list` card lists no fixture task); one new test picks "All open" in the column and asserts the fixture tasks. Do not assert persistence across `page.reload` (a reload wipes the e2e virtual FS).
-- [ ] `help/documentation/10-tasks-and-todoist.md`: the list column, "All open", saved views and their row menu, the narrow dropdown, Global and This list excludes, and that unsaved edits last until a list switch or a restart (PRD A12).
+- [x] Failing test first, `TasksView.lists.test.ts`: the column lists "All open" and "To list", with "To list" marked active after load; clicking "All open" lists every open fixture task and marks it active. Fails today (no column).
+- [x] "+ Save view" with the name `Work` adds a `Work` row that becomes active; the written `settings.json` (the `plugin-fs` `writeTextFile` mock) holds it in `tasksView.savedViews`.
+- [x] Rename, Duplicate and Delete through the row menu change the column and the written `savedViews`. With one saved view, its Delete item is `disabled`.
+- [x] Both renderings exist: inside `[data-task-lists="menu"]`, picking "All open" from the dropdown selects it.
+- [x] Turning a "Global" switch off changes `globalExcludes` and the list on every list; turning a "This list" switch on hides the matching tasks on the active list only, and switching lists drops it.
+- [x] e2e: the vault opens on "To list" (the `#to-list` card lists no fixture task); one new test picks "All open" in the column and asserts the fixture tasks. Do not assert persistence across `page.reload` (a reload wipes the e2e virtual FS).
+- [x] `help/documentation/10-tasks-and-todoist.md`: the list column, "All open", saved views and their row menu, the narrow dropdown, Global and This list excludes, and that unsaved edits last until a list switch or a restart (PRD A12).
 
 ## Notes
 
@@ -40,3 +40,4 @@ Component tests go in a new `src/tests/lib/features/tasks/TasksView.lists.test.t
 ## Comments
 
 - 2026-11-12: created by the deep dive's split of Issue 124 (SUMMARY section 4, dossier-123+124 section 5.3). It holds the list column, Save view, the row menu with the last-view Delete disabled (Q4), the narrow dropdown, the Global and This list exclude sections, the e2e update and the help doc.
+- 2026-11-12: delivered from branch issue/247-tasks-list-column. Tasks view gets a list column (All open plus saved views) with Save view, a Rename/Duplicate/Delete row menu (Delete disabled on the last view), a narrow-width dropdown, and Global / This list exclude sections; e2e and help doc updated. Review round 1 APPROVED with 4 minor/nit findings, all fixed (This list refocus test, narrow Save view test, Escape focuses "+ Save view", focus after Delete); round 2 APPROVED with no findings. Tests: pnpm check exit 0; full suite at e9006c87d exit 0, 633 files, 16460 passed, 54 skipped, 1 todo.

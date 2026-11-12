@@ -59,23 +59,33 @@
 	];
 
 	/** The four exclude lists; `noun` names the input, its Add button and each entry's remove button. */
-	const LISTS: { key: 'folders' | 'notes' | 'tags' | 'types'; label: string; noun: string; placeholder: string }[] = [
+	const LISTS: { key: ListKey; label: string; noun: string; placeholder: string }[] = [
 		{ key: 'folders', label: 'Folders', noun: 'excluded folder', placeholder: 'Archive/Old' },
 		{ key: 'notes', label: 'Notes', noun: 'excluded note', placeholder: 'Inbox/Scratch.md' },
 		{ key: 'tags', label: 'Note tags', noun: 'excluded note tag', placeholder: '#someday' },
 		{ key: 'types', label: 'Types', noun: 'excluded type', placeholder: 'Meeting' },
 	];
 
+	type ListKey = 'folders' | 'notes' | 'tags' | 'types';
+
+	/** `global`: the excludes every list applies, saved. `list`: the active list's own, kept until a list switch. */
+	type ExcludeScope = 'global' | 'list';
+
+	/** Appended to every control name of a scope, so the two sections' controls keep distinct accessible names. */
+	const SCOPE_SUFFIX: Record<ExcludeScope, string> = { global: '', list: ' on this list' };
+
 	let panelEl: HTMLElement | undefined;
 
 	let sources = $derived(tasksStore.query.sources);
-	/** The Excludes section edits the global excludes, which every list applies. */
-	let exclude = $derived(tasksStore.globalExcludes);
+	let excludes = $derived<Record<ExcludeScope, TaskExcludes>>({ global: tasksStore.globalExcludes, list: tasksStore.query.exclude });
 	/** Read only while a suggestions menu is open, so the panel does not walk the rows on every change. */
 	let suggestions = $derived(sourceSuggestions(tasksStore.rows));
 
-	/** Text typed into each exclude list's input and not added yet. */
-	let drafts = $state<Record<(typeof LISTS)[number]['key'], string>>({ folders: '', notes: '', tags: '', types: '' });
+	/** Text typed into each exclude list's input and not added yet, per scope. */
+	let drafts = $state<Record<ExcludeScope, Record<ListKey, string>>>({
+		global: { folders: '', notes: '', tags: '', types: '' },
+		list: { folders: '', notes: '', tags: '', types: '' },
+	});
 
 	/** A new clause of `kind` with an empty value, which is inactive until typed into; a lifecycle clause starts at `inbox`. */
 	function emptyClause(kind: ClauseKind): TaskSourceClause {
@@ -217,24 +227,27 @@
 		});
 	}
 
-	function setExclude(partial: Partial<TaskExcludes>) {
-		setTaskExcludes({ ...exclude, ...partial });
+	/** Global excludes are saved (`setTaskExcludes`); the active list's own change only the session. */
+	function setExclude(scope: ExcludeScope, partial: Partial<TaskExcludes>) {
+		const next = { ...excludes[scope], ...partial };
+		if (scope === 'global') setTaskExcludes(next);
+		else tasksStore.setExclude(next);
 	}
 
 	/** Adds the list's draft, trimmed, unless it is blank or already listed, and empties the input. */
-	function addEntry(key: (typeof LISTS)[number]['key']) {
-		const value = drafts[key].trim();
-		drafts[key] = '';
-		if (!value || exclude[key].includes(value)) return;
-		setExclude({ [key]: [...exclude[key], value] });
+	function addEntry(scope: ExcludeScope, key: ListKey) {
+		const value = drafts[scope][key].trim();
+		drafts[scope][key] = '';
+		if (!value || excludes[scope][key].includes(value)) return;
+		setExclude(scope, { [key]: [...excludes[scope][key], value] });
 	}
 
-	function removeEntry(key: (typeof LISTS)[number]['key'], value: string) {
-		const index = exclude[key].indexOf(value);
-		setExclude({ [key]: exclude[key].filter((v) => v !== value) });
+	function removeEntry(scope: ExcludeScope, key: ListKey, value: string) {
+		const index = excludes[scope][key].indexOf(value);
+		setExclude(scope, { [key]: excludes[scope][key].filter((v) => v !== value) });
 		// The next entry, else the previous one, else the list's input.
 		refocus((panel) => {
-			const list = panel.querySelector(`[data-exclude-list="${key}"]`);
+			const list = panel.querySelector(`[data-task-excludes="${scope}"] [data-exclude-list="${key}"]`);
 			const removes = list?.querySelectorAll('[data-remove-entry]');
 			return [removes?.[index], removes?.[index - 1], list?.querySelector('input')];
 		});
@@ -258,6 +271,74 @@
 			{/each}
 		</DropdownMenu.Content>
 	</DropdownMenu.Root>
+{/snippet}
+
+{#snippet excludeSection(scope: ExcludeScope, label: string, title: string, hint: string)}
+	{@const exclude = excludes[scope]}
+	{@const suffix = SCOPE_SUFFIX[scope]}
+	<section data-task-excludes={scope} aria-label={label} class="space-y-2">
+		<div>
+			<h3 class="text-meta font-medium text-foreground">{title}</h3>
+			<p class="text-meta text-muted-foreground">{hint}</p>
+		</div>
+		<div class="flex flex-wrap gap-x-4 gap-y-2">
+			{#each SWITCHES as item (item.key)}
+				<span class="flex items-center gap-1.5 text-meta text-foreground">
+					<Switch
+						aria-label={item.label + suffix}
+						checked={exclude[item.key]}
+						onCheckedChange={(checked) => setExclude(scope, { [item.key]: checked })}
+					/>
+					<span aria-hidden="true">{item.label}</span>
+				</span>
+			{/each}
+		</div>
+		<div class="grid gap-3 @min-[560px]:grid-cols-2">
+			{#each LISTS as list (list.key)}
+				{@const noun = list.noun + suffix}
+				<div class="space-y-1" data-exclude-list={list.key}>
+					<span class="text-meta text-muted-foreground">{list.label}</span>
+					<div class="flex items-center gap-1">
+						<Input
+							type="text"
+							class="h-7 min-w-0 flex-1 text-meta md:text-meta"
+							placeholder={list.placeholder}
+							aria-label={noun.charAt(0).toUpperCase() + noun.slice(1)}
+							bind:value={drafts[scope][list.key]}
+							onkeydown={(e) => {
+								if (e.key === 'Enter') {
+									e.preventDefault();
+									addEntry(scope, list.key);
+								}
+							}}
+						/>
+						<Button variant="ghost" size="sm" class="h-7 px-2 text-meta" aria-label="Add {noun}" onclick={() => addEntry(scope, list.key)}>
+							Add
+						</Button>
+					</div>
+					{#if exclude[list.key].length > 0}
+						<ul class="flex flex-wrap gap-1">
+							{#each exclude[list.key] as value (value)}
+								<li class="flex items-center gap-1 rounded-sm bg-muted px-1.5 text-meta text-foreground">
+									<span>{value}</span>
+									<Button
+										variant="ghost"
+										size="icon-sm"
+										class="size-5 text-muted-foreground"
+										aria-label="Remove {noun} {value}"
+										data-remove-entry
+										onclick={() => removeEntry(scope, list.key, value)}
+									>
+										<X class="size-3" />
+									</Button>
+								</li>
+							{/each}
+						</ul>
+					{/if}
+				</div>
+			{/each}
+		</div>
+	</section>
 {/snippet}
 
 <div bind:this={panelEl} {id} data-task-sources-panel role="region" aria-label="Sources and excludes" class="mb-3 space-y-4 rounded-md border border-border bg-muted/30 p-3">
@@ -410,66 +491,6 @@
 		</Button>
 	</section>
 
-	<section data-task-excludes aria-label="Excludes" class="space-y-2">
-		<div>
-			<h3 class="text-meta font-medium text-foreground">Excludes</h3>
-			<p class="text-meta text-muted-foreground">Never listed, whatever the sources say.</p>
-		</div>
-		<div class="flex flex-wrap gap-x-4 gap-y-2">
-			{#each SWITCHES as item (item.key)}
-				<span class="flex items-center gap-1.5 text-meta text-foreground">
-					<Switch
-						aria-label={item.label}
-						checked={exclude[item.key]}
-						onCheckedChange={(checked) => setExclude({ [item.key]: checked })}
-					/>
-					<span aria-hidden="true">{item.label}</span>
-				</span>
-			{/each}
-		</div>
-		<div class="grid gap-3 @min-[560px]:grid-cols-2">
-			{#each LISTS as list (list.key)}
-				<div class="space-y-1" data-exclude-list={list.key}>
-					<span class="text-meta text-muted-foreground">{list.label}</span>
-					<div class="flex items-center gap-1">
-						<Input
-							type="text"
-							class="h-7 min-w-0 flex-1 text-meta md:text-meta"
-							placeholder={list.placeholder}
-							aria-label={list.noun.charAt(0).toUpperCase() + list.noun.slice(1)}
-							bind:value={drafts[list.key]}
-							onkeydown={(e) => {
-								if (e.key === 'Enter') {
-									e.preventDefault();
-									addEntry(list.key);
-								}
-							}}
-						/>
-						<Button variant="ghost" size="sm" class="h-7 px-2 text-meta" aria-label="Add {list.noun}" onclick={() => addEntry(list.key)}>
-							Add
-						</Button>
-					</div>
-					{#if exclude[list.key].length > 0}
-						<ul class="flex flex-wrap gap-1">
-							{#each exclude[list.key] as value (value)}
-								<li class="flex items-center gap-1 rounded-sm bg-muted px-1.5 text-meta text-foreground">
-									<span>{value}</span>
-									<Button
-										variant="ghost"
-										size="icon-sm"
-										class="size-5 text-muted-foreground"
-										aria-label="Remove {list.noun} {value}"
-										data-remove-entry
-										onclick={() => removeEntry(list.key, value)}
-									>
-										<X class="size-3" />
-									</Button>
-								</li>
-							{/each}
-						</ul>
-					{/if}
-				</div>
-			{/each}
-		</div>
-	</section>
+	{@render excludeSection('global', 'Global excludes', 'Global', 'Never listed on any list, whatever the sources say.')}
+	{@render excludeSection('list', "This list's excludes", 'This list', 'Hidden on this list only, until you switch lists.')}
 </div>

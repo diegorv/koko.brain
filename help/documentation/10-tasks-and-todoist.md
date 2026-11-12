@@ -116,13 +116,15 @@ The sources decide which notes and headings supply tasks, before the filters run
   - **Lifecycle**: the note is in the **Inbox** (not organized, not archived, and not a type definition, as in the rail's Inbox), **Organized**, **Favorite** or **Archived**. Pick the state in the dropdown; a new Lifecycle clause starts at **Inbox**. A card holding **Archived** lists archived notes even while the **Archived notes** exclude is on; the other excludes still apply, and the other cards still leave archived notes out.
 - **Suggestions**: the arrow button next to a clause's field lists the folders (with their parent folders), types, note tags, tags in headings (as `#tag`), property keys or property values found in the notes that have tasks, excluded notes included. Property values are the ones seen under the key typed in the Key field. Pick one to fill the field, or type a value that is not listed.
 - **Not**: a folder, type or note tag clause with **Not** on matches the notes the clause would not.
-- **Excludes**: tasks from these notes are never listed, on any list, whatever the cards say. They are saved for each vault and survive a restart. Four switches are on by default: **Archived notes**, **Type definitions**, **Templates folder** and **System folder** (the two folders set in Settings > Files & Folders). Below them, add folders, notes (by their path in the vault, for example `Inbox/Scratch.md`), note tags and types to leave out, and remove each one with its x button.
+- **Excludes**: tasks from these notes are not listed, whatever the cards say. The panel has two exclude sections with the same controls: four switches (**Archived notes**, **Type definitions**, **Templates folder** and **System folder**, the two folders set in Settings > Files & Folders) and, below them, lists of folders, notes (by their path in the vault, for example `Inbox/Scratch.md`), note tags and types to leave out, each entry removed with its x button.
+  - **Global** applies to every list. Its four switches are on by default, and it is saved for each vault at once, surviving a restart.
+  - **This list** applies to the current list only, on top of Global (it can add excludes, never lift a global one). It starts off and empty, and, like any other change to a list, lasts until you switch lists or restart; **Save view** keeps it in the new view.
 - **Clear**, after the sentence, removes every card: the list shows every note's tasks, and the excludes still apply.
 
 Group headers make rules from what is on screen. Hover over a header, or move focus into it, to show its actions:
 
 - **Only this folder**, on a folder group under **Group by: Folder**: lists only the tasks of that folder and its subfolders. With no card, it adds a card holding the folder; with cards, it adds the folder to every card, so each card still applies and none lists tasks from outside the folder.
-- **Hide this folder**, on a folder group: hides that folder and its subfolders on the current list, until you switch lists or restart. It does not change the Excludes section, which applies to every list.
+- **Hide this folder**, on a folder group: hides that folder and its subfolders on the current list, until you switch lists or restart. It adds the folder to the panel's **This list** excludes, not to **Global**.
 - **Hide this note**, on a note group under **Group by: Note**: hides the note on the current list, the same way.
 - **Only this type**, on a type group under **Group by: Type**: lists only the tasks of notes of that type, adding the type to the cards the way **Only this folder** adds a folder.
 - **Hide this type**, on a type group: hides notes of that type on the current list, the same way.
@@ -133,9 +135,15 @@ When the list is empty because of the sources, the empty state offers **Edit sou
 
 ## Lists
 
-The Tasks View shows one list at a time, and each vault remembers which one was open. The first time a vault opens, it gets a saved **To list** list built from the section tags an earlier version saved (one Heading card in Tag mode per tag), or the `#to-list` card when none was saved. **All open** is built in: it lists every open task, grouped by note, and cannot be renamed or deleted.
+The Tasks View shows one list at a time, and each vault remembers which one was open. The list column, left of the list, shows **All open** first, then your saved views in the order they were saved; the open list is highlighted. Click a list to open it.
 
-Changing a list's cards, filters or grouping changes what you see right away, but the saved list stays as it was: the change lasts until you switch to another list or restart, and the list opens as saved the next time. The excludes in the Sources panel are the exception: they are saved at once and apply to every list.
+The first time a vault opens, it gets a saved **To list** view built from the section tags an earlier version saved (one Heading card in Tag mode per tag), or the `#to-list` card when none was saved, and opens on it. **All open** is built in: it lists every open task, grouped by note, and cannot be renamed or deleted.
+
+- **Save view**, at the end of the column, asks for a name: press Enter to save what you see now (cards, This list excludes, filters and grouping, but not the search) as a new view, which becomes the open list, or Escape to cancel. A blank name saves nothing.
+- Each saved view has a **...** menu, shown when you hover over it or move focus into it: **Rename** (the same name field), **Duplicate** (adds "<name> copy" right after it) and **Delete**. The last saved view cannot be deleted. Deleting the open view opens the first remaining one.
+- In a pane narrower than 720 px, the column becomes a dropdown above the sentence: pick a list there, or pick **Save view**. Rename, Duplicate and Delete need the wider column.
+
+Changing a list's cards, This list excludes, filters or grouping changes what you see right away, but the saved view stays as it was: the change lasts until you switch to another list (clicking the open list again included) or restart, and the list opens as saved the next time. The **Global** excludes are the exception: they are saved at once and apply to every list.
 
 ---
 

@@ -14,14 +14,31 @@ test.describe('Tasks view', () => {
 		// Fixture Daily/2026-05-01.md contains: `- [ ] Reply to email thread`
 		// Projects/2026-Q2.md contains: `- [ ] Ship feature A`, `- [x] Draft RFC`, `- [ ] Review pending PRs`
 		await pressShortcut(page, 'Mod+Shift+T');
-		// The Tasks view starts with one `#to-list` heading card. None of the
-		// fixture tasks live under that tag, so the view shows "No task sits
-		// under a heading containing #to-list" until the sentence's Clear.
+		// The vault opens on the seeded "To list" view, one `#to-list` heading
+		// card. None of the fixture tasks live under that tag, so the view shows
+		// "No task sits under a heading containing #to-list" until the sentence's Clear.
+		const lists = page.locator('[data-task-lists="column"]');
+		await expect(lists.getByRole('button', { name: 'To list', exact: true })).toHaveAttribute('aria-current', 'true');
+		await expect(page.getByText('No task sits under a heading containing #to-list')).toBeVisible({ timeout: 5_000 });
 		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
 		await expect(page.getByText('Reply to email thread')).toBeVisible();
 		await expect(page.getByText('Review pending PRs')).toBeVisible();
+	});
+
+	test('picking "All open" in the list column lists the open fixture tasks', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Shift+T');
+		const lists = page.locator('[data-task-lists="column"]');
+		await expect(lists).toBeVisible();
+		await lists.getByRole('button', { name: 'All open', exact: true }).click();
+
+		await expect(lists.getByRole('button', { name: 'All open', exact: true })).toHaveAttribute('aria-current', 'true');
+		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Reply to email thread')).toBeVisible();
+		await expect(page.getByText('Review pending PRs')).toBeVisible();
+		// Projects/2026-Q2.md's `- [x] Draft RFC` is closed.
+		await expect(page.getByText('Draft RFC')).toHaveCount(0);
 	});
 
 	test('an in-progress task is listed under Status: open', async ({ vaultPage: page }) => {

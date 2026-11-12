@@ -32,6 +32,7 @@
 	import { formatDate, formatNow } from '#lib/utils/date.js';
 	import { setDueToken, setPriorityToken } from '#lib/utils/task-tokens.js';
 	import SourcesPanel from './SourcesPanel.svelte';
+	import TaskLists from './TaskLists.svelte';
 	import {
 		parseTaskTextSegments,
 		stripTaskTrailers,
@@ -1042,107 +1043,111 @@
 		{/if}
 	</div>
 
-	<!-- Content -->
-	<ScrollArea class="flex-1 min-h-0" bind:viewportRef>
-		<div class="p-4">
-			<!-- An empty snapshot read before the vault index is ready is not an empty vault. -->
-			{#if !tasksStore.hasLoaded || (!vaultStore.indexReady && tasksStore.rows.length === 0)}
-				<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
-			{:else}
-				<!-- The sentence row and the panel sit outside the branches below, so an
-				     edit that empties or fills the list keeps the panel and its focus. -->
-				<div class="mb-1 flex flex-wrap items-baseline gap-x-2">
-					<p class="text-xs text-muted-foreground">{ruleSentence}</p>
-					<button
-						type="button"
-						class="text-xs text-primary hover:underline cursor-pointer"
-						aria-expanded={sourcesOpen}
-						aria-controls={sourcesPanelId}
-						onclick={() => (sourcesOpen = !sourcesOpen)}
-					>
-						Edit
-					</button>
-					{#if tasksStore.query.sources.length > 0}
-						<button type="button" class="text-xs text-primary hover:underline cursor-pointer" onclick={() => setTaskSources([])}>
-							Clear
+	<!-- Content: the list column, then the list. Under 720px the column becomes the dropdown above the sentence. -->
+	<div class="flex min-h-0 flex-1">
+		<TaskLists variant="column" />
+		<ScrollArea class="min-h-0 min-w-0 flex-1" bind:viewportRef>
+			<div class="p-4">
+				<TaskLists variant="menu" />
+				<!-- An empty snapshot read before the vault index is ready is not an empty vault. -->
+				{#if !tasksStore.hasLoaded || (!vaultStore.indexReady && tasksStore.rows.length === 0)}
+					<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
+				{:else}
+					<!-- The sentence row and the panel sit outside the branches below, so an
+					     edit that empties or fills the list keeps the panel and its focus. -->
+					<div class="mb-1 flex flex-wrap items-baseline gap-x-2">
+						<p class="text-xs text-muted-foreground">{ruleSentence}</p>
+						<button
+							type="button"
+							class="text-xs text-primary hover:underline cursor-pointer"
+							aria-expanded={sourcesOpen}
+							aria-controls={sourcesPanelId}
+							onclick={() => (sourcesOpen = !sourcesOpen)}
+						>
+							Edit
 						</button>
-					{/if}
-				</div>
-				{#if sourcesOpen}<SourcesPanel id={sourcesPanelId} />{/if}
-				{#if tasksStore.error && tasksStore.rows.length === 0}
-					<!-- No list was loaded: the alert takes the empty state's place. -->
-					{@render refreshAlert(tasksStore.error)}
-				{:else if emptyExplanation}
-					{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
-					<div class="flex flex-col items-center gap-2 py-8">
-						<p class="text-sm text-muted-foreground text-center">{emptyExplanation.message}</p>
-						{#if emptyExplanation.action}
-							{@const action = emptyExplanation.action}
-							<button
-								class="px-2 py-0.5 text-xs rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
-								onclick={() => runEmptyAction(action)}
-							>
-								{action.label}
+						{#if tasksStore.query.sources.length > 0}
+							<button type="button" class="text-xs text-primary hover:underline cursor-pointer" onclick={() => setTaskSources([])}>
+								Clear
 							</button>
 						{/if}
 					</div>
-				{:else}
-					{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
-
-					<!-- One context menu for the whole list; each row's own contextmenu handler sets the row it acts on. -->
-					<ContextMenu.Root>
-						<ContextMenu.Trigger>
-							{#snippet child({ props })}
-								<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the rows take the keys) -->
-								<div
-									{...props}
-									bind:this={listEl}
-									class="space-y-6 mt-3"
-									onkeydown={handleListKeydown}
-									onfocusin={handleListFocusin}
-									oncontextmenu={(e) => handleListContextMenu(e, props.oncontextmenu)}
+					{#if sourcesOpen}<SourcesPanel id={sourcesPanelId} />{/if}
+					{#if tasksStore.error && tasksStore.rows.length === 0}
+						<!-- No list was loaded: the alert takes the empty state's place. -->
+						{@render refreshAlert(tasksStore.error)}
+					{:else if emptyExplanation}
+						{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
+						<div class="flex flex-col items-center gap-2 py-8">
+							<p class="text-sm text-muted-foreground text-center">{emptyExplanation.message}</p>
+							{#if emptyExplanation.action}
+								{@const action = emptyExplanation.action}
+								<button
+									class="px-2 py-0.5 text-xs rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
+									onclick={() => runEmptyAction(action)}
 								>
-									{#each shownGroups as { group, key, collapsed, rows, hidden } (group.key)}
-										<div data-task-group data-task-group-key={group.key}>
-											{@render groupHeader(group, key, collapsed)}
-											<!-- A collapsed group's rows leave the DOM, so the list's keys skip them. -->
-											{#if !collapsed}
-												<div class="space-y-1" role="list" aria-label={group.label}>
-													{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
-														{@render taskRow(row, group.filePath === undefined && tasksStore.groupBy !== 'heading')}
-													{/each}
-												</div>
-												<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->
-												{#if hidden > 0}
-													<button
-														type="button"
-														class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-														onclick={() => revealGroup(key, group)}
-													>
-														Show {hidden} more
-													</button>
-												{/if}
-											{/if}
-										</div>
-									{/each}
-								</div>
-							{/snippet}
-						</ContextMenu.Trigger>
-						<ContextMenu.Content
-							class="w-48"
-							onCloseAutoFocus={(e) => {
-								if (contextRow) handleRowMenuCloseFocus(e, taskRowKey(contextRow.filePath, contextRow.lineNumber));
-							}}
-						>
-							{#if contextRow}
-								{@render rowMenuItems(contextRow, ContextMenu)}
+									{action.label}
+								</button>
 							{/if}
-						</ContextMenu.Content>
-					</ContextMenu.Root>
+						</div>
+					{:else}
+						{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
+
+						<!-- One context menu for the whole list; each row's own contextmenu handler sets the row it acts on. -->
+						<ContextMenu.Root>
+							<ContextMenu.Trigger>
+								{#snippet child({ props })}
+									<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the rows take the keys) -->
+									<div
+										{...props}
+										bind:this={listEl}
+										class="space-y-6 mt-3"
+										onkeydown={handleListKeydown}
+										onfocusin={handleListFocusin}
+										oncontextmenu={(e) => handleListContextMenu(e, props.oncontextmenu)}
+									>
+										{#each shownGroups as { group, key, collapsed, rows, hidden } (group.key)}
+											<div data-task-group data-task-group-key={group.key}>
+												{@render groupHeader(group, key, collapsed)}
+												<!-- A collapsed group's rows leave the DOM, so the list's keys skip them. -->
+												{#if !collapsed}
+													<div class="space-y-1" role="list" aria-label={group.label}>
+														{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
+															{@render taskRow(row, group.filePath === undefined && tasksStore.groupBy !== 'heading')}
+														{/each}
+													</div>
+													<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->
+													{#if hidden > 0}
+														<button
+															type="button"
+															class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+															onclick={() => revealGroup(key, group)}
+														>
+															Show {hidden} more
+														</button>
+													{/if}
+												{/if}
+											</div>
+										{/each}
+									</div>
+								{/snippet}
+							</ContextMenu.Trigger>
+							<ContextMenu.Content
+								class="w-48"
+								onCloseAutoFocus={(e) => {
+									if (contextRow) handleRowMenuCloseFocus(e, taskRowKey(contextRow.filePath, contextRow.lineNumber));
+								}}
+							>
+								{#if contextRow}
+									{@render rowMenuItems(contextRow, ContextMenu)}
+								{/if}
+							</ContextMenu.Content>
+						</ContextMenu.Root>
+					{/if}
 				{/if}
-			{/if}
-		</div>
-	</ScrollArea>
+			</div>
+		</ScrollArea>
+	</div>
 
 	<!-- One due date dialog for every row, opened by a row menu's Pick a date. -->
 	<Dialog.Root bind:open={dueDialogOpen}>
