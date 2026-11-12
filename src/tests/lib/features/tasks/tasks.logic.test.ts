@@ -10,6 +10,7 @@ import {
 	parseSectionTags,
 } from '#lib/features/tasks/tasks.logic.js';
 import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
+import { sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 
 /** Helper to build a TaskItem with sensible defaults for status and metadata */
 function makeTask(
@@ -393,31 +394,24 @@ describe('explainEmptyTasks', () => {
 		});
 	});
 
-	describe('stage 2: every task completed', () => {
-		it('counts the completed tasks', () => {
+	describe('stage 2: every task closed', () => {
+		it('counts the closed tasks', () => {
 			expect(
 				explainEmptyTasks({ groups: [note([done(1), done(2)]), note([done(3)])], sectionTag: '', hideCompleted: true, dateFilter: 'all' }),
-			).toEqual({ message: 'All 3 tasks are completed', action: { kind: 'showCompleted', label: 'Show completed' } });
+			).toEqual({ message: 'All 3 tasks are closed', action: { kind: 'showCompleted', label: 'Show closed' } });
 		});
 
 		it('words a single task on its own', () => {
 			expect(explainEmptyTasks({ groups: [note([done(1)])], sectionTag: '', hideCompleted: true, dateFilter: 'all' })).toEqual({
-				message: 'The only task is completed',
-				action: { kind: 'showCompleted', label: 'Show completed' },
+				message: 'The only task is closed',
+				action: { kind: 'showCompleted', label: 'Show closed' },
 			});
-		});
-
-		it('counts a checked status other than done as completed', () => {
-			const inProgress = makeTask({ text: 'wip', checked: true, indent: 0, lineNumber: 1, status: 'in-progress' });
-			expect(explainEmptyTasks({ groups: [note([inProgress])], sectionTag: '', hideCompleted: true, dateFilter: 'all' }).message).toBe(
-				'The only task is completed',
-			);
 		});
 
 		it('comes before the date filter when both would empty the list', () => {
 			expect(
 				explainEmptyTasks({ groups: [note([done(1)], 0)], sectionTag: '', hideCompleted: true, dateFilter: 'last7days' }),
-			).toEqual({ message: 'The only task is completed', action: { kind: 'showCompleted', label: 'Show completed' } });
+			).toEqual({ message: 'The only task is closed', action: { kind: 'showCompleted', label: 'Show closed' } });
 		});
 	});
 
@@ -455,6 +449,54 @@ describe('explainEmptyTasks', () => {
 	it('falls back to "No tasks found" with no action when the date filter is all time', () => {
 		expect(explainEmptyTasks({ groups: [note([open(1)])], sectionTag: '', hideCompleted: true, dateFilter: 'all' })).toEqual({
 			message: 'No tasks found',
+		});
+	});
+});
+
+describe('the open rule: done and cancelled are closed, every other status is open', () => {
+	const statuses = (groups: FileTaskGroup[]) => groups.flatMap((g) => g.tasks.map((t) => t.status));
+
+	it('filterCompleted keeps the five open statuses and drops done and cancelled', () => {
+		expect(statuses(filterCompleted([sevenStatusGroup()]))).toEqual(['todo', 'in-progress', 'question', 'important', 'forwarded']);
+	});
+
+	it('computeTaskStats counts done and cancelled as completed, the rest as pending', () => {
+		expect(computeTaskStats([sevenStatusGroup()])).toEqual({ total: 7, completed: 2, pending: 5, fileCount: 1 });
+	});
+
+	it('keeps a done parent with an in-progress child, both sent checked', () => {
+		const tasks = [
+			taskV2('Parent', { status: 'done', checked: true, indent: 0, lineNumber: 1 }),
+			taskV2('Child', { status: 'in-progress', checked: true, indent: 1, lineNumber: 2 }),
+		];
+		expect(filterCompletedTasks(tasks).map((t) => t.text)).toEqual(['Parent', 'Child']);
+	});
+
+	describe('explainEmptyTasks with hide-closed on', () => {
+		const note = (...tasks: TaskItem[]) => taskGroupV2('/vault/a.md', tasks, 0);
+
+		it('names the date stage when a [/] task sits in an old note', () => {
+			const groups = [note(taskV2('Shipped', { status: 'done', lineNumber: 1 }), taskV2('Draft plan', { status: 'in-progress', lineNumber: 2 }))];
+			expect(explainEmptyTasks({ groups, sectionTag: '', hideCompleted: true, dateFilter: 'last7days' })).toEqual({
+				message: 'No open task is in a note edited in the last 7 days',
+				action: { kind: 'allTime', label: 'All time' },
+			});
+		});
+
+		it('says every task is closed for only [x] and [-] tasks', () => {
+			const groups = [note(taskV2('Shipped', { status: 'done', lineNumber: 1 }), taskV2('Old idea', { status: 'cancelled', lineNumber: 2 }))];
+			expect(explainEmptyTasks({ groups, sectionTag: '', hideCompleted: true, dateFilter: 'all' })).toEqual({
+				message: 'All 2 tasks are closed',
+				action: { kind: 'showCompleted', label: 'Show closed' },
+			});
+		});
+
+		it('says the only task is closed for one [x] task', () => {
+			const groups = [note(taskV2('Shipped', { status: 'done' }))];
+			expect(explainEmptyTasks({ groups, sectionTag: '', hideCompleted: true, dateFilter: 'all' })).toEqual({
+				message: 'The only task is closed',
+				action: { kind: 'showCompleted', label: 'Show closed' },
+			});
 		});
 	});
 });

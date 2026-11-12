@@ -1,4 +1,5 @@
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
+import { isTaskOpen } from './task-status.logic';
 import type { TaskItem, FileTaskGroup, TaskDateFilter } from './tasks.types';
 
 // Audit Tier 4 #16 (2026-04-29): the previous TS-side task scanner —
@@ -11,25 +12,26 @@ import type { TaskItem, FileTaskGroup, TaskDateFilter } from './tasks.types';
 // `tasks.service.ts::buildTaskIndex`.
 
 /**
- * Checks whether a task at the given index has any unchecked descendants.
- * Descendants are consecutive tasks with indent greater than the parent's indent.
+ * Checks whether a task at the given index has any open descendants
+ * (`isTaskOpen`). Descendants are consecutive tasks with indent greater than
+ * the parent's indent.
  */
-function hasUncheckedDescendants(tasks: TaskItem[], parentIdx: number): boolean {
+function hasOpenDescendants(tasks: TaskItem[], parentIdx: number): boolean {
 	const parentIndent = tasks[parentIdx].indent;
 
 	for (let j = parentIdx + 1; j < tasks.length; j++) {
 		if (tasks[j].indent <= parentIndent) break;
-		if (!tasks[j].checked) return true;
+		if (isTaskOpen(tasks[j].status)) return true;
 	}
 
 	return false;
 }
 
 /**
- * Filters completed tasks while preserving hierarchy.
- * A completed parent is kept if it has any unchecked descendants.
- * A completed task with no unchecked descendants is removed.
- * Unchecked tasks are always kept.
+ * Filters closed tasks (done and cancelled, see `isTaskOpen`) while
+ * preserving hierarchy. A closed parent is kept if it has any open
+ * descendants. A closed task with no open descendants is removed.
+ * Open tasks are always kept.
  */
 export function filterCompletedTasks(tasks: TaskItem[]): TaskItem[] {
 	const result: TaskItem[] = [];
@@ -37,13 +39,13 @@ export function filterCompletedTasks(tasks: TaskItem[]): TaskItem[] {
 	for (let i = 0; i < tasks.length; i++) {
 		const task = tasks[i];
 
-		if (!task.checked) {
+		if (isTaskOpen(task.status)) {
 			result.push(task);
 			continue;
 		}
 
-		// Completed task: keep only if it has unchecked descendants
-		if (hasUncheckedDescendants(tasks, i)) {
+		// Closed task: keep only if it has open descendants
+		if (hasOpenDescendants(tasks, i)) {
 			result.push(task);
 		}
 	}
@@ -52,9 +54,9 @@ export function filterCompletedTasks(tasks: TaskItem[]): TaskItem[] {
 }
 
 /**
- * Filters out completed tasks from groups, preserving parent-child hierarchy.
- * A completed parent task is kept visible if it has any unchecked children.
- * Only hides a family (parent + children) when all are completed.
+ * Filters out closed tasks from groups, preserving parent-child hierarchy.
+ * A closed parent task is kept visible if it has any open children.
+ * Only hides a family (parent + children) when all are closed.
  */
 export function filterCompleted(groups: FileTaskGroup[]): FileTaskGroup[] {
 	const filtered: FileTaskGroup[] = [];
@@ -87,7 +89,10 @@ export function filterByDate(
 	return groups.filter((g) => g.modifiedAt >= cutoff);
 }
 
-/** Computes summary statistics from an array of FileTaskGroups */
+/**
+ * Computes summary statistics from an array of FileTaskGroups: `completed`
+ * counts closed tasks (done and cancelled), `pending` the open ones.
+ */
 export function computeTaskStats(groups: FileTaskGroup[]): {
 	total: number;
 	completed: number;
@@ -100,7 +105,7 @@ export function computeTaskStats(groups: FileTaskGroup[]): {
 	for (const group of groups) {
 		for (const task of group.tasks) {
 			total++;
-			if (task.checked) completed++;
+			if (!isTaskOpen(task.status)) completed++;
 		}
 	}
 
@@ -116,7 +121,7 @@ export function computeTaskStats(groups: FileTaskGroup[]): {
 export interface TaskRuleOptions {
 	/** Raw section tag text, as typed (one or more tags; see `parseSectionTags`) */
 	sectionTag: string;
-	/** Whether completed tasks are hidden */
+	/** Whether closed tasks (done and cancelled) are hidden */
 	hideCompleted: boolean;
 	/** Active date filter */
 	dateFilter: TaskDateFilter;
@@ -185,11 +190,11 @@ export function explainEmptyTasks({
 	dateFilter,
 }: TaskRuleOptions & { groups: FileTaskGroup[] }): EmptyTasksExplanation {
 	let total = 0;
-	let checked = 0;
+	let closed = 0;
 	for (const group of groups) {
 		for (const task of group.tasks) {
 			total++;
-			if (task.checked) checked++;
+			if (!isTaskOpen(task.status)) closed++;
 		}
 	}
 
@@ -204,17 +209,17 @@ export function explainEmptyTasks({
 		return { message: 'No tasks in this vault yet' };
 	}
 
-	// `filterCompleted` keeps every unchecked task, so only an all-checked set
+	// `filterCompleted` keeps every open task, so only an all-closed set
 	// empties the list here.
-	if (hideCompleted && checked === total) {
+	if (hideCompleted && closed === total) {
 		return {
-			message: total === 1 ? 'The only task is completed' : `All ${total} tasks are completed`,
-			action: { kind: 'showCompleted', label: 'Show completed' },
+			message: total === 1 ? 'The only task is closed' : `All ${total} tasks are closed`,
+			action: { kind: 'showCompleted', label: 'Show closed' },
 		};
 	}
 
-	// The view filters by date before it hides completed tasks, so with
-	// hide-completed on the list can be empty while open tasks sit in old notes.
+	// The view filters by date before it hides closed tasks, so with
+	// hide-closed on the list can be empty while open tasks sit in old notes.
 	if (dateFilter !== 'all') {
 		const days = dateFilterDays(dateFilter);
 		return {
@@ -225,8 +230,8 @@ export function explainEmptyTasks({
 		};
 	}
 
-	// Unreachable from the view: past the first two stages an unchecked task
-	// remains (or hide-completed is off), and with no date filter it is listed.
+	// Unreachable from the view: past the first two stages an open task
+	// remains (or hide-closed is off), and with no date filter it is listed.
 	return { message: 'No tasks found' };
 }
 

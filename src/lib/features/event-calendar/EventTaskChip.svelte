@@ -2,6 +2,7 @@
 	import Circle from '@lucide/svelte/icons/circle';
 	import CircleCheckBig from '@lucide/svelte/icons/circle-check-big';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+	import { isTaskOpen } from '#lib/features/tasks/task-status.logic.js';
 	import type { CalendarTask } from './event-calendar-tasks.logic';
 
 	interface Props {
@@ -13,9 +14,8 @@
 
 	let { task, class: className = '' }: Props = $props();
 
-	// Rust's `checked` is true for every status but todo ([/], [!], [?], [>]
-	// too), so the chip reads the status and closes only done and cancelled.
-	let closed = $derived(task.status === 'done' || task.status === 'cancelled');
+	// The Tasks view's open rule: only done and cancelled are closed.
+	let closed = $derived(!isTaskOpen(task.status));
 </script>
 
 <!--

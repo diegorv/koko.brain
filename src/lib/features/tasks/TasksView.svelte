@@ -1,7 +1,12 @@
 <script lang="ts">
-	import { onDestroy, untrack } from 'svelte';
+	import { onDestroy, untrack, type Component } from 'svelte';
 	import Circle from '@lucide/svelte/icons/circle';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import CircleArrowRight from '@lucide/svelte/icons/circle-arrow-right';
 	import CircleCheckBig from '@lucide/svelte/icons/circle-check-big';
+	import CircleDot from '@lucide/svelte/icons/circle-dot';
+	import CircleMinus from '@lucide/svelte/icons/circle-minus';
+	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import Hash from '@lucide/svelte/icons/hash';
@@ -22,7 +27,7 @@
 		parseSectionTags,
 		type EmptyTasksExplanation,
 	} from './tasks.logic';
-	import { toggleTarget } from './task-status.logic';
+	import { isTaskOpen, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
 	import type { TaskDateFilter, TaskItem } from './tasks.types';
 
 	interface Props {
@@ -31,6 +36,16 @@
 	}
 
 	let { onOpenWikilink }: Props = $props();
+
+	const GLYPH_ICONS: Record<StatusGlyphIcon, Component<{ class?: string }>> = {
+		circle: Circle,
+		'circle-dot': CircleDot,
+		'circle-check-big': CircleCheckBig,
+		'circle-minus': CircleMinus,
+		'circle-question-mark': CircleQuestionMark,
+		'circle-alert': CircleAlert,
+		'circle-arrow-right': CircleArrowRight,
+	};
 
 	const DATE_FILTERS: { label: string; value: TaskDateFilter }[] = [
 		{ label: 'All time', value: 'all' },
@@ -154,7 +169,7 @@
 						? 'bg-primary/20 text-primary'
 						: 'text-muted-foreground hover:bg-accent'}"
 				onclick={() => tasksStore.setHideCompleted(!tasksStore.hideCompleted)}
-				title="{tasksStore.hideCompleted ? 'Show' : 'Hide'} completed tasks"
+				title="{tasksStore.hideCompleted ? 'Show' : 'Hide'} closed tasks"
 			>
 				{#if tasksStore.hideCompleted}
 					<EyeOff class="size-3.5" />
@@ -212,7 +227,7 @@
 					{/if}
 				</div>
 				<p class="text-xs text-muted-foreground mb-4">
-					{stats.total} {stats.total === 1 ? 'task' : 'tasks'} in {stats.fileCount} {stats.fileCount === 1 ? 'file' : 'files'}
+					{stats.pending} open in {stats.fileCount} {stats.fileCount === 1 ? 'note' : 'notes'}
 				</p>
 
 				<div class="space-y-6">
@@ -237,28 +252,29 @@
 							<!-- Task list -->
 							<div class="space-y-1">
 								{#each group.tasks as task (task.lineNumber)}
-									<!-- The circle follows what a click writes, not `task.checked`: a `[/]` or `[!]` task is checked but a click completes it. -->
-									{@const completes = toggleTarget(task.status) === 'done'}
+									<!-- The glyph follows the status; the label follows `toggleTarget`, what a click writes. -->
+									{@const glyph = statusGlyph(task.status)}
+									{@const Glyph = GLYPH_ICONS[glyph.icon]}
 									<div
 										data-task-row
 										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors"
 										style="padding-left: {task.indent * 1.25 + 0.25}rem"
 									>
 										<button
+											data-task-toggle
+											data-task-status={task.status}
 											class="shrink-0 mt-0.5 cursor-pointer"
-											aria-label={completes ? 'Mark task as done' : 'Mark task as not done'}
+											aria-label="{toggleTarget(task.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {task.text} ({glyph.word})"
+											title={glyph.word}
 											onclick={() => handleToggle(group.filePath, task)}
 										>
-											{#if completes}
-												<Circle class="size-4 text-muted-foreground group-hover:text-primary/80 transition-colors" />
-											{:else}
-												<CircleCheckBig class="size-4 text-primary/60" />
-											{/if}
+											<Glyph class="size-4 {glyph.tone}" />
 										</button>
 										<!-- Clicking the text opens the note at the task's line; only the circle toggles. -->
 										<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 										<span
-											class="flex-1 min-w-0 break-words text-sm cursor-pointer {task.checked ? 'text-muted-foreground line-through' : 'text-foreground'}"
+											data-task-text
+											class="flex-1 min-w-0 break-words text-sm cursor-pointer {isTaskOpen(task.status) ? 'text-foreground' : 'text-muted-foreground line-through'}"
 											onclick={(e) => handleTextClick(e, group.filePath, task.lineNumber)}
 										>
 											{#each parseTaskTextSegments(task.text) as seg}

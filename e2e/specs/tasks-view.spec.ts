@@ -20,48 +20,54 @@ test.describe('Tasks view', () => {
 		// the filter is cleared.
 		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
 		await sectionTagInput.fill('');
-		await page.waitForTimeout(300);
 
-		await expect(
-			page.getByText(/Ship feature A|Reply to email|Review pending PRs/i).first(),
-		).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Reply to email thread')).toBeVisible();
+		await expect(page.getByText('Review pending PRs')).toBeVisible();
 	});
 
-	test('multiple uncompleted tasks are visible after clearing section tag', async ({ vaultPage: page }) => {
-		await pressShortcut(page, 'Mod+Shift+T');
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
-		await page.waitForTimeout(300);
+	test('an in-progress task is listed with hide-closed on', async ({ vaultPage: page }) => {
+		const path = '/test-vault/In Progress.md';
+		const content = '- [/] Draft the plan\n- [x] Shipped already\n';
+		await page.evaluate(({ p, c }) => {
+			const e2e = window.__e2e;
+			e2e.fs.writeFile(p, c);
+			e2e.events.emit('vault-index-updated', e2e.vaultIndex.update(p, c));
+		}, { p: path, c: content });
 
-		// Fixture has at least 3 unchecked tasks across 2 files
-		const taskTexts = page.locator('text=/Ship feature A|Reply to email|Review pending PRs/i');
-		await expect(taskTexts.first()).toBeVisible({ timeout: 5_000 });
+		await pressShortcut(page, 'Mod+Shift+T');
+		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+
+		// Hide-closed is on by default, so the toggle offers to show them.
+		await expect(page.locator('button[title*="closed"]')).toHaveAttribute('title', 'Show closed tasks');
+		const row = page.locator('[data-task-row]', { hasText: 'Draft the plan' });
+		await expect(row).toBeVisible({ timeout: 5_000 });
+		await expect(row.locator('[data-task-toggle]')).toHaveAttribute('data-task-status', 'in-progress');
+		await expect(row.getByRole('button', { name: 'Mark task as done: Draft the plan (in progress)' })).toBeVisible();
+		await expect(page.getByText('Shipped already')).toHaveCount(0);
 	});
 
 	test('toggling a task persists the checked state', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
 		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
 		await sectionTagInput.fill('');
-		await page.waitForTimeout(500);
 
-		// Disable "hide completed" so toggled tasks stay visible
-		const hideBtn = page.locator('button[title*="completed"]').first();
+		// Show closed tasks so the toggled task stays visible
+		const hideBtn = page.locator('button[title*="closed"]').first();
 		await hideBtn.click();
-		await page.waitForTimeout(300);
+		await expect(hideBtn).toHaveAttribute('title', 'Hide closed tasks');
 
 		// Clicking the circle in the task's row toggles it from unchecked to checked
 		const circle = page
 			.locator('[data-task-row]', { hasText: 'Ship feature A' })
-			.getByRole('button', { name: 'Mark task as done' });
+			.getByRole('button', { name: /^Mark task as done/ });
 		await expect(circle).toBeVisible({ timeout: 5_000 });
 		await circle.click();
-		await page.waitForTimeout(1000);
 
 		// Verify the toggle persisted to virtual FS
-		const content = await page.evaluate(() => {
-			return (window as any).__e2e.fs.readFileSafe('/test-vault/Projects/2026-Q2.md');
-		});
-		expect(content).toContain('- [x] Ship feature A');
+		await expect
+			.poll(() => page.evaluate(() => (window as any).__e2e.fs.readFileSafe('/test-vault/Projects/2026-Q2.md')))
+			.toContain('- [x] Ship feature A');
 	});
 
 	test('task list scrolls when it is taller than the tab', async ({ vaultPage: page }) => {

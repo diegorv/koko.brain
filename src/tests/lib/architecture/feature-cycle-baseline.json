@@ -7,6 +7,7 @@
 		"backlinks -> event-calendar",
 		"deep-link -> search",
 		"dock-badge -> type-definitions",
+		"event-calendar -> tasks",
 		"event-calendar -> type-definitions",
 		"note-action-bar -> deep-link",
 		"note-action-bar -> properties",

@@ -12,7 +12,7 @@ Open the Tasks View with **Cmd+Shift+T**, or search for **"Toggle Tasks View"** 
 
 The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the filters below. With the default section filter, only tasks under a heading containing `#to-list` are listed. Tasks are grouped by their source file and sorted by file modification date, so the most recently edited notes appear first.
 
-A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, every task completed, or no recent note) and offers a button that lifts it: **Clear tag**, **Show completed** or **All time**.
+A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, every task closed, or no recent note) and offers a button that lifts it: **Clear tag**, **Show closed** or **All time**. The line under it counts the open tasks and the notes listed, for example "2 open in 2 notes".
 
 ![Tasks View with grouped tasks](screenshots/tasks-view.png)
 
@@ -36,15 +36,17 @@ There is no special syntax required: any line that starts with `- [ ]` or `- [x]
 
 Kokobrain supports extended task statuses beyond the standard `[ ]` and `[x]`:
 
-| Syntax   | Status      | Meaning                        |
-|----------|-------------|--------------------------------|
-| `- [ ]`  | Todo        | Pending task                   |
-| `- [x]`  | Done        | Completed task                 |
-| `- [/]`  | In Progress | Currently being worked on      |
-| `- [-]`  | Cancelled   | No longer needed               |
-| `- [?]`  | Question    | Needs clarification            |
-| `- [>]`  | Forwarded   | Delegated or moved elsewhere   |
-| `- [!]`  | Important   | High priority marker           |
+| Syntax   | Status      | Meaning                        | Circle in the Tasks View |
+|----------|-------------|--------------------------------|--------------------------|
+| `- [ ]`  | Todo        | Pending task                   | Open circle              |
+| `- [x]`  | Done        | Completed task                 | Check                    |
+| `- [/]`  | In Progress | Currently being worked on      | Circle with a dot        |
+| `- [-]`  | Cancelled   | No longer needed               | Minus                    |
+| `- [?]`  | Question    | Needs clarification            | Question mark            |
+| `- [>]`  | Forwarded   | Delegated or moved elsewhere   | Arrow                    |
+| `- [!]`  | Important   | High priority marker           | Alert                    |
+
+Done and cancelled tasks are *closed*; every other status is *open*. The Tasks View strikes through only closed tasks. Each task's circle shows its status, and the circle's accessible name ends with the status word, for example "Mark task as done: Draft plan (in progress)". Hover the circle to see the word.
 
 ---
 
@@ -101,10 +103,10 @@ The Tasks View toolbar provides several filters to help you focus on what matter
 | Filter             | Options                              | Description                        |
 |--------------------|--------------------------------------|------------------------------------|
 | **Date**           | All time / Last 7 days / Last 30 days | Keep tasks from notes modified in that period (the note's modification date, not a task date) |
-| **Hide completed** | Toggle                               | Hide `- [x]` done tasks           |
+| **Hide closed**    | Toggle                               | Hide done (`- [x]`) and cancelled (`- [-]`) tasks. In progress, question, important and forwarded tasks stay listed |
 | **Section filter** | Text input                           | Keep tasks under a heading containing this tag (e.g. `#to-list`; the `#` is optional). Takes several tags, separated by spaces or commas (e.g. `#to-list #work`), and lists a task when its heading contains any of them. Default: `#to-list`. Empty: every task in the vault |
 
-Combine filters to narrow down your view. For example, toggle **Hide completed** on and set the date range to **Last 7 days** to see only recent, unfinished tasks.
+Combine filters to narrow down your view. For example, toggle **Hide closed** on and set the date range to **Last 7 days** to see only recent, unfinished tasks.
 
 ---
 
