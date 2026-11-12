@@ -63,7 +63,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | none | wontfix | | |
 | 238 | [A Due menu replaces the Tasks date pills](issues/238-tasks-due-filter-replaces-date-pills.md) | 111 | done | issue/238-tasks-due-filter-replaces-date-pills (0cc4c6a0a) | 2026-11-12 |
 | 239 | [Tasks priority and tag filters, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | done | issue/239-tasks-priority-search-reset-narrow (f51d1e4c7) | 2026-11-12 |
-| 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | in-progress | | |
+| 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | done | issue/240-tasks-collapse-groups-and-row-cap (b2ca57f2a) | 2026-11-12 |
 | 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
 | 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | done | issue/242-tasks-several-section-tags (3583a1057) | 2026-11-12 |
 | 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234 | done | issue/243-tasks-section-tags-saved-per-vault (fa8578342) | 2026-11-12 |
@@ -111,3 +111,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 15:01 — 112 — start — launched by /relay-lite:run — a8d04ed83
 - 2026-11-12 15:23 — 112 — deliver — round 1 APPROVED by claude with a fix round (refocus a row recreated in another group, help line), deliver re-review APPROVED by claude; full suite 624 files / 16083 tests passed; squash merged and pushed — fd29df83c
 - 2026-11-12 15:23 — 240 — start — launched by /relay-lite:run — 5495ab2f2
+- 2026-11-12 15:42 — 240 — deliver — round 1 APPROVED by claude with a fix round (no focus move after a mouse collapse), deliver re-review APPROVED by claude; one minor left (Space under Status grouping with Done collapsed sends focus to body); full suite 625 files / 16108 tests passed; squash merged and pushed — b2ca57f2a
