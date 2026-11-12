@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 001 | [The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note](issues/001-caret-selection-follow-their-text-when-frontmatter.md) | none | done | issue/001-caret-selection-follow-their-text-when-frontmatter (13291dfa0) | 2026-11-10 |
 | 002 | [Keyboard edits next to the hidden frontmatter never change its fences](issues/002-keyboard-edits-next-hidden-frontmatter-never-change.md) | none | todo | | |
 | 003 | [Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working](issues/003-closing-main-window-never-leaves-windowless-app.md) | none | todo | | |
-| 004 | [A canvas edit closed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | 015 | in-progress | | |
+| 004 | [A canvas edit closed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | 015 | done | issue/004-canvas-edit-closed-renamed-inside-debounce-window (5cb784f0f) | 2026-11-12 |
 | 005 | [Setting a folder icon never stacks a second frontmatter block](issues/005-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
 | 006 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/006-kanban-card-lane-title-being-edited-saved.md) | 004 | todo | | |
 | 007 | [Paste, cut and copy inside a meta-bind number or date input act on the input, not the note](issues/007-paste-cut-copy-inside-meta-bind-number.md) | none | todo | | |
@@ -288,3 +288,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:08 — ledger updated (added 254; title of 006, 006; link of 006, 006; blocked by of 006, 006)
 - 2026-11-12 19:09 — 254 — start — launched by /relay-lite:run (owner asked for it as a 4th workflow) — 2cfe4f710
 - 2026-11-12 19:12 — 062 — deliver — retry: round 1 APPROVED by claude with a fix round (regex backtracking removed with a timing test; empty url guard), deliver re-review APPROVED by claude; full suite 632 files / 16495 tests passed; squash merged and pushed — 4424b60b4
+- 2026-11-12 19:15 — 004 — deliver — round 1 APPROVED by claude with a fix round (flusher keeps the timer armed when persist throws), deliver re-review APPROVED by claude; full suite 632 files / 16463 tests passed; deliver merge first failed on the owner's unpushed version bump, the main session finished sync and merge after it was pushed — 5cb784f0f
