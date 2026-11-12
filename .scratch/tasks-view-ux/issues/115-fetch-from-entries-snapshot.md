@@ -15,19 +15,19 @@
 
 **Blocked by:** 074
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B6 (a): the heading rule runs in TS over headings that Rust records (owner, 2026-11-06). Owner, 2026-11-12 (Q2): once the heading rule runs in TS, a tag also matches its nested tags: `#to-list` matches a heading tagged `#to-list/today`; `#to-listing` and `(#to-list)` do not. Owner, 2026-11-12: split approved; this Issue is 115a, the heading rule with no caller yet, blocked by 074; Issue 244 is 115b.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`. Targeted checks: the new `src/tests/lib/features/tasks/task-headings.logic.test.ts` and the architecture tests that gate a new `.logic.ts`: `src/tests/lib/architecture/{pure-logic,layer-rules,feature-cycle,ipc-mirrors}.test.ts`. No e2e: nothing the spec sees changes.
 
-- [ ] Failing test first, `src/tests/lib/features/tasks/task-headings.logic.test.ts` (new). Create `task-headings.logic.ts` with the two exports as stubs first, so the first run fails on assertions, not on a missing module.
-- [ ] `headingChains`: `## A` (level 2), `### B` (3), `### C` (3) give `[['A'], ['A', 'B'], ['A', 'C']]`; a skipped level (`# A`, `### B`, `## C`) gives `[['A'], ['A', 'B'], ['A', 'C']]`; a level-1 heading after them starts a new chain; `[]` gives `[]`. The input array is unchanged after the call.
-- [ ] `matchesHeading` in `'tag'` mode, each case with one tag `['#to-list']` and with two tags `['#to-list', '#work']`: `Inbox #to-list`, `Inbox #To-List`, `Inbox #to-list.` and `Inbox #to-list/today` match; `Inbox #to-listing`, `Inbox (#to-list)` and `x#to-list` do not; `to-list` typed without `#` matches like `#to-list`; `[]`, `['']` and `['#']` keep every chain, including `[]` headings; a non-empty tag list never matches `[]` headings; with two tags, a chain holding only `#work` matches.
-- [ ] Parity with today's scan, through chains built by `headingChains` (not hand-written arrays): under `## A #to-list` / `### B #to-list` / `### C`, the `### C` chain matches `#to-list`, with a test comment saying today's Rust drops it; a deeper untagged sub-heading under a tagged heading matches; a sibling `## Other` after a tagged `## A` does not.
-- [ ] Cross-check with Rust: read Issue 074's `src/tests/fixtures/task-headings-parity.fixture.json`, run `headingChains` over its expected `taskHeadings`, and look up each expected task's `heading`. The A, B and C tasks get `['A #to-list']`, `['A #to-list', 'B']` and `['C']` (use the fixture's exact heading texts), and `matchesHeading(..., ['#to-list'], 'tag')` is `true`, `true`, `false`.
-- [ ] `'substring'` mode: `#to-list` matches `Inbox #to-listing` and `Inbox #TO-LIST`, case-insensitive; `to-list` without `#` searches for `#to-list`.
-- [ ] `pure-logic.test.ts`, `layer-rules.test.ts`, `feature-cycle.test.ts` and `ipc-mirrors.test.ts` stay green with no baseline or allowlist entry.
+- [x] Failing test first, `src/tests/lib/features/tasks/task-headings.logic.test.ts` (new). Create `task-headings.logic.ts` with the two exports as stubs first, so the first run fails on assertions, not on a missing module.
+- [x] `headingChains`: `## A` (level 2), `### B` (3), `### C` (3) give `[['A'], ['A', 'B'], ['A', 'C']]`; a skipped level (`# A`, `### B`, `## C`) gives `[['A'], ['A', 'B'], ['A', 'C']]`; a level-1 heading after them starts a new chain; `[]` gives `[]`. The input array is unchanged after the call.
+- [x] `matchesHeading` in `'tag'` mode, each case with one tag `['#to-list']` and with two tags `['#to-list', '#work']`: `Inbox #to-list`, `Inbox #To-List`, `Inbox #to-list.` and `Inbox #to-list/today` match; `Inbox #to-listing`, `Inbox (#to-list)` and `x#to-list` do not; `to-list` typed without `#` matches like `#to-list`; `[]`, `['']` and `['#']` keep every chain, including `[]` headings; a non-empty tag list never matches `[]` headings; with two tags, a chain holding only `#work` matches.
+- [x] Parity with today's scan, through chains built by `headingChains` (not hand-written arrays): under `## A #to-list` / `### B #to-list` / `### C`, the `### C` chain matches `#to-list`, with a test comment saying today's Rust drops it; a deeper untagged sub-heading under a tagged heading matches; a sibling `## Other` after a tagged `## A` does not.
+- [x] Cross-check with Rust: read Issue 074's `src/tests/fixtures/task-headings-parity.fixture.json`, run `headingChains` over its expected `taskHeadings`, and look up each expected task's `heading`. The A, B and C tasks get `['A #to-list']`, `['A #to-list', 'B']` and `['C']` (use the fixture's exact heading texts), and `matchesHeading(..., ['#to-list'], 'tag')` is `true`, `true`, `false`.
+- [x] `'substring'` mode: `#to-list` matches `Inbox #to-listing` and `Inbox #TO-LIST`, case-insensitive; `to-list` without `#` searches for `#to-list`.
+- [x] `pure-logic.test.ts`, `layer-rules.test.ts`, `feature-cycle.test.ts` and `ipc-mirrors.test.ts` stay green with no baseline or allowlist entry.
 
 ## Notes
 
@@ -40,3 +40,4 @@
 ## Comments
 
 - 2026-11-12: split by the deep dive (`SUMMARY.md` section 4 and the 115 list; `refute-115.md` M3, S1, S2; `dossier-115.md` A1, A10). This Issue keeps only the heading rule, with no caller, blocked by 074 alone; the fetch move, the overlay, the test migration and the help text moved to Issue 244. The whole-tag rule is now defined by `findInlineTags`, with the nested-tag match of Q2. The ancestor chain helper is named, it accepts 074's optional fields, `matchesHeading` lives in its own logic file, and the tests cross-check 074's parity fixture. Issue 116 passes `[text]`.
+- 2026-11-12: delivered from `issue/115-fetch-from-entries-snapshot`. Adds `task-headings.logic.ts` (`headingChains`, `matchesHeading` with tag and substring modes) and its test file, cross-checked with Issue 074's parity fixture. Review round 1 APPROVED, round 2 APPROVED (a fix round ran between them). Targeted checks: `pnpm check` 0 errors; heading-rule and 4 architecture test files, 82 tests passed. Full suite run 1: 1 unrelated flaky failure (`AutoOrganizeRuleRow.test.ts`, passed alone); run 2: 15803 passed, exit 0.
