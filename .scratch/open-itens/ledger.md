@@ -102,7 +102,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 065 | [A calendar day with more than three notes lets the user reach every note](issues/065-calendar-day-more-than-three-notes-lets.md) | none | todo | | |
 | 066 | [The status bar note count follows notes created, imported and deleted during the session](issues/066-status-bar-note-count-follows-notes-created.md) | none | todo | | |
 | 067 | [Columns and sort keys resolve like expressions](issues/067-columns-resolve-like-expressions.md) | 010 | todo | | |
-| 068 | [DESC sort lists notes without a value last](issues/068-desc-sort-nulls-last.md) | none | in-progress | | |
+| 068 | [DESC sort lists notes without a value last](issues/068-desc-sort-nulls-last.md) | none | done | issue/068-desc-sort-nulls-last (0b1f5586f) | 2026-11-12 |
 | 069 | [Small `.view` tab write feedback](issues/069-editor-write-feedback.md) | 013 | todo | | |
 | 070 | [Change icon on a broken .view says why nothing changed](issues/070-view-writers-refresh-and-fail-loudly.md) | none | todo | | |
 | 071 | [.view toolbar and icon writes keep the file's YAML comments](issues/071-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
@@ -294,3 +294,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:20 — 068 — start — launched by /relay-lite:run (owner picked it from the triage) — 8343db938
 - 2026-11-12 19:20 — 055 — start — launched by /relay-lite:run (owner picked it from the triage) — 8343db938
 - 2026-11-12 19:22 — 042 — start — launched by /relay-lite:run (owner picked it; no e2e) — afdb3df8d
+- 2026-11-12 19:31 — 068 — deliver — round 1 APPROVED by claude with no findings, no fix round; full suite 633 files / 16514 tests passed; squash merged and pushed — 0b1f5586f
