@@ -14,7 +14,7 @@ import { unmount, flushSync } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
-import { buildTaskIndex, resetTasks, updateSectionTagFilter } from '#lib/features/tasks/tasks.service.js';
+import { buildTaskIndex, resetTasks, setTaskSources } from '#lib/features/tasks/tasks.service.js';
 import { statusGlyph } from '#lib/features/tasks/task-status.logic.js';
 import { DEFAULT_QUICK, defaultTaskExcludes, headingSources } from '#lib/features/tasks/task-query.logic.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -25,7 +25,7 @@ import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte
 import { preloadPacks } from '#lib/features/file-icons/file-icons.icon-data.js';
 import type { FileTaskGroupV2, NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
-import { mockTaskFetch, mountTasksView, sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+import { mockTaskFetch, mountTasksView, openMenu, sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const NOTE = '/vault/Projects/2026-Q2.md';
@@ -87,7 +87,7 @@ describe('TasksView row clicks', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		onOpenWikilink = vi.fn<(target: string) => void>();
 	});
 
@@ -188,7 +188,7 @@ describe('TasksView: status glyphs and the open rule', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 	});
 
 	afterEach(() => {
@@ -282,7 +282,7 @@ describe('TasksView: the two-way sync is the only Todoist path', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		settingsStore.reset();
 		vaultStore._reset();
 		vaultStore.open('/vault');
@@ -338,7 +338,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 	});
 
 	afterEach(() => {
@@ -357,11 +357,6 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 
 	const refreshing = () => document.querySelector('[role="status"][aria-label="Refreshing tasks"]');
 	const pageText = () => document.body.textContent ?? '';
-	const tagInput = () => {
-		const input = document.querySelector<HTMLInputElement>('input[aria-label="Section tag"]');
-		if (!input) throw new Error('section tag textbox not found');
-		return input;
-	};
 	const buttonsNamed = (name: string) =>
 		Array.from(document.querySelectorAll('button')).filter((b) => b.textContent?.trim() === name);
 	const paragraph = (text: string) => Array.from(document.querySelectorAll('p')).find((p) => p.textContent?.trim() === text);
@@ -397,33 +392,26 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		expect(refreshing()).toBeNull();
 	});
 
-	it('names the section tag textbox and hints that it takes several tags', async () => {
-		mockTaskFetch([]);
-		await mountView();
-		expect(tagInput().placeholder).toBe('#tag #tag');
-	});
-
-	it('offers no Clear tag when the section tag text holds no tag', async () => {
-		tasksStore.setSectionTag(' , ');
+	it('offers no Clear when there is no source card, and still offers Edit', async () => {
 		mockTaskFetch([noteWith(['Ship feature A'])]);
 		await mountView();
 		await until(() => expect(rows()).toHaveLength(1));
 		expect(paragraph(`Open tasks from every note${EXCEPT}`)).toBeDefined();
-		expect(buttonsNamed('Clear tag')).toHaveLength(0);
+		expect(buttonsNamed('Clear')).toHaveLength(0);
+		expect(buttonsNamed('Edit')).toHaveLength(1);
 	});
 
-	it('names the section tag when nothing sits under it, and Clear tag lists every task', async () => {
-		tasksStore.setSectionTag('#to-list');
+	it('names the tag card when nothing sits under it, with Edit sources, and Clear lists every task', async () => {
+		tasksStore.setSources(headingSources(['#to-list']));
 		mockTaskFetch([noteWith(['Ship feature A'])]);
 		await mountView();
 		await until(() => expect(paragraph('No task sits under a heading containing #to-list')).toBeDefined());
-		expect(buttonsNamed('Clear tag')).toHaveLength(1);
-		expect(tagInput().value).toBe('#to-list');
+		expect(buttonsNamed('Edit sources')).toHaveLength(1);
+		expect(buttonsNamed('Clear')).toHaveLength(1);
 
-		buttonsNamed('Clear tag')[0].click();
+		buttonsNamed('Clear')[0].click();
 		await until(() => expect(rows()).toHaveLength(1));
-		expect(tagInput().value).toBe('');
-		expect(tasksStore.sectionTag).toBe('');
+		expect(tasksStore.query.sources).toEqual([]);
 		expect(pageText()).toContain('Ship feature A');
 	});
 
@@ -454,29 +442,26 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		await refetch;
 	});
 
-	it('says which tasks it lists, and its Clear tag drops a pending tag edit', async () => {
-		tasksStore.setSectionTag('#to-list');
+	it('says which tasks it lists, followed by Edit and Clear, and Clear saves an empty tag text', async () => {
+		settingsStore.reset();
+		tasksStore.setSources(headingSources(['#to-list']));
 		mockTaskFetch([], { entries: [noteUnder('Inbox #to-list', ['Ship feature A'])] });
 		await mountView();
 		await until(() => expect(rows()).toHaveLength(1));
 		const sentence = paragraph(`Open tasks under headings containing #to-list${EXCEPT}`);
 		expect(sentence).toBeDefined();
-		expect(sentence!.nextElementSibling?.tagName).toBe('BUTTON');
-		expect(sentence!.nextElementSibling?.textContent?.trim()).toBe('Clear tag');
-		expect(buttonsNamed('Clear tag')).toHaveLength(1);
+		const edit = sentence!.nextElementSibling;
+		expect(edit?.tagName).toBe('BUTTON');
+		expect(edit?.textContent?.trim()).toBe('Edit');
+		expect(edit?.nextElementSibling?.textContent?.trim()).toBe('Clear');
+		expect(sentence!.closest('.pane-toolbar')).toBeNull();
 		expect(countText()).toBe('1 open in 1 note');
 
-		const input = tagInput();
-		input.value = '#x';
-		input.dispatchEvent(new Event('input', { bubbles: true }));
-		buttonsNamed('Clear tag')[0].click();
-		await new Promise((r) => setTimeout(r, 450));
+		buttonsNamed('Clear')[0].click();
 		flushSync();
 
-		// The pending `#x` would have been saved and applied after the debounce.
 		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('');
-		expect(tagInput().value).toBe('');
-		expect(tasksStore.sectionTag).toBe('');
+		expect(tasksStore.query.sources).toEqual([]);
 	});
 
 	it('offers Show all when every task is done', async () => {
@@ -546,7 +531,7 @@ describe('TasksView: keeps its place', () => {
 		resetTasks();
 		editorStore.reset();
 		settingsStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 	});
 
 	afterEach(() => {
@@ -563,18 +548,6 @@ describe('TasksView: keeps its place', () => {
 		if (!el) throw new Error('scroll area viewport not found');
 		return el;
 	};
-	const tagInput = () => {
-		const input = document.querySelector<HTMLInputElement>('input[aria-label="Section tag"]');
-		if (!input) throw new Error('section tag textbox not found');
-		return input;
-	};
-	const type = (value: string) => {
-		const input = tagInput();
-		input.value = value;
-		input.dispatchEvent(new Event('input', { bubbles: true }));
-	};
-	/** A note with one task under `## Job #work`, listed only while the section tag is `#work`. */
-	const workNote = () => noteUnder('Job #work', ['work task'], '/vault/W.md');
 
 	it('lists notes by path and keeps a ticked note in its place', async () => {
 		const A = one('/vault/A.md', 'task in A');
@@ -630,74 +603,12 @@ describe('TasksView: keeps its place', () => {
 		unmount(component!);
 		component = null;
 		tasksStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(1));
 		expect(viewport().scrollTop).toBe(0);
 	});
 
-	it('applies a section tag still waiting on its debounce when the view unmounts', async () => {
-		vi.useFakeTimers();
-		mockTaskFetch([one('/vault/A.md', 'task in A')], { entries: [workNote()] });
-		({ component } = await mountTasksView());
-		expect(tasksStore.rows.map((r) => r.text)).toEqual(['task in A', 'work task']);
-
-		// No vi.waitFor between typing and unmount: it advances the fake clock.
-		type('#work');
-		unmount(component!);
-		component = null;
-		await vi.advanceTimersByTimeAsync(0);
-
-		expect(tasksStore.sectionTag).toBe('#work');
-		expect(tasksStore.visibleRows.map((r) => r.text)).toEqual(['work task']);
-		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('#work');
-		// The tag selects from the rows held: the flush starts no fetch.
-		expect(entryReads()).toBe(1);
-	});
-
-	it('drops a pending section tag when resetTasks ran before the view unmounts', async () => {
-		vi.useFakeTimers();
-		mockTaskFetch([one('/vault/A.md', 'task in A')], { entries: [workNote()] });
-		({ component } = await mountTasksView());
-		const savedBefore = settingsStore.tasksView;
-
-		type('#work');
-		resetTasks();
-		unmount(component!);
-		component = null;
-		await vi.advanceTimersByTimeAsync(500);
-
-		expect(tasksStore.sectionTag).toBe('#to-list');
-		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
-		expect(settingsStore.tasksView).toBe(savedBefore);
-	});
-
-	it('shows a section tag set from outside the textbox', async () => {
-		mockTaskFetch([one('/vault/A.md', 'task in A')]);
-		({ component } = await mountTasksView());
-		expect(tagInput().value).toBe('');
-
-		tasksStore.setSectionTag('#x');
-		flushSync();
-
-		expect(tagInput().value).toBe('#x');
-	});
-
-	it('keeps typed text in the textbox while its debounce is pending', async () => {
-		vi.useFakeTimers();
-		mockTaskFetch([one('/vault/A.md', 'task in A')]);
-		({ component } = await mountTasksView());
-
-		type('#typed');
-		tasksStore.setSectionTag('#y');
-		flushSync();
-		expect(tagInput().value).toBe('#typed');
-
-		await vi.advanceTimersByTimeAsync(400);
-		flushSync();
-		expect(tasksStore.sectionTag).toBe('#typed');
-		expect(tagInput().value).toBe('#typed');
-	});
 });
 
 describe('TasksView: a failed refresh says so', () => {
@@ -710,7 +621,7 @@ describe('TasksView: a failed refresh says so', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		// A rejected fetch goes through the real `error()`, which prints it.
 		vi.spyOn(console, 'error').mockImplementation(() => {});
 	});
@@ -778,7 +689,7 @@ describe('TasksView: a failed refresh says so', () => {
 	});
 
 	it('keeps the old rows under the new rule sentence when the fetch after a tag change fails', async () => {
-		tasksStore.setSectionTag('#a');
+		tasksStore.setSources(headingSources(['#a']));
 		let calls = 0;
 		mockTaskFetch(async () => {
 			if (++calls > 1) throw new Error('boom');
@@ -787,8 +698,8 @@ describe('TasksView: a failed refresh says so', () => {
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(1));
 
-		// The snapshot read after the tag change fails: the memo was dropped in between.
-		updateSectionTagFilter('');
+		// The snapshot read after the sources change fails: the memo was dropped in between.
+		setTaskSources([]);
 		invalidateVaultEntries();
 		await buildTaskIndex();
 		flushSync();
@@ -834,7 +745,7 @@ describe('TasksView: the note header', () => {
 		resetTasks();
 		editorStore.reset();
 		fileIconsStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		vaultStore._reset();
 		vaultStore.open('/vault');
 	});
@@ -970,7 +881,7 @@ describe('TasksView: clean row text and metadata chips', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		onOpenWikilink = vi.fn<(target: string) => void>();
 		vi.useFakeTimers({ toFake: ['Date'] });
 		vi.setSystemTime(new Date('2026-11-05T12:00:00'));
@@ -1081,7 +992,7 @@ describe('TasksView: sources and excludes', () => {
 		resetTasks();
 		editorStore.reset();
 		settingsStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		// Rows get their vault-relative folder only inside an open vault.
 		vaultStore.open('/vault');
 	});
@@ -1126,13 +1037,23 @@ describe('TasksView: sources and excludes', () => {
 		expect(paragraph(`Open tasks from notes in folder Projects${EXCEPT}`)).toBeDefined();
 	});
 
-	it('limits the list when #work is typed in the textbox, with no new fetch', async () => {
+	it('limits the list to a #work heading card built in the panel, with no new fetch', async () => {
 		mockTaskFetch([one('/vault/A.md', 'task in A')], { entries: [noteUnder('Job #work', ['work task'], '/vault/W.md')] });
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(2));
 		const reads = entryReads();
+		const button = (name: string) => Array.from(document.querySelectorAll('button')).find((b) => b.textContent?.trim() === name)!;
 
-		const input = document.querySelector<HTMLInputElement>('input[aria-label="Section tag"]')!;
+		button('Edit').click();
+		flushSync();
+		button('Add card').click();
+		flushSync();
+		await openMenu(button('Add clause'));
+		Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitem"]'))
+			.find((el) => el.textContent?.trim() === 'Heading')!
+			.click();
+		flushSync();
+		const input = document.querySelector<HTMLInputElement>('input[aria-label="Heading"]')!;
 		input.value = '#work';
 		input.dispatchEvent(new Event('input', { bubbles: true }));
 

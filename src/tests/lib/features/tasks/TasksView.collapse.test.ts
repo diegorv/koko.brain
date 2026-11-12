@@ -81,7 +81,7 @@ describe('TasksView: collapsing groups and the row cap', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		(document.activeElement as HTMLElement | null)?.blur();

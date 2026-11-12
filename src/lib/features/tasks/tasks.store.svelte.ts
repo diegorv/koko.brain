@@ -7,7 +7,6 @@ import {
 	applyQuickFilters,
 	defaultTaskQuery,
 	groupTaskRows,
-	headingSources,
 	selectSourceRows,
 	type TaskExcludes,
 	type TaskGroupKey,
@@ -17,19 +16,12 @@ import {
 	type TaskSortKey,
 	type TaskSource,
 } from './task-query.logic';
-import { parseSectionTags } from './tasks.logic';
 import type { FileTaskGroup, TaskRowRef } from './tasks.types';
 
 /** All task groups across the vault (unfiltered) */
 let fileTaskGroups = $state<FileTaskGroup[]>([]);
 /** Every task of the snapshot as a row (unfiltered), replaced whole, never mutated */
 let rows = $state.raw<TaskRow[]>([]);
-/**
- * Section tag text as typed, one or more tags separated by spaces or commas
- * (e.g. "#to-list #work"; see `parseSectionTags`). `setSectionTag` turns it
- * into one heading card per tag; text with no tag gives no card (every note).
- */
-let sectionTag = $state('#to-list');
 /** The sources, excludes and quick filters, replaced whole on every change */
 let query = $state.raw<TaskQuery>(defaultTaskQuery());
 /** What the list groups its rows by */
@@ -106,7 +98,6 @@ export const tasksStore = {
 	get groupBy() { return groupBy; },
 	/** The sort keys of the groups other than Note */
 	get sort() { return sort; },
-	get sectionTag() { return sectionTag; },
 	/** The sources, excludes and quick filters */
 	get query() { return query; },
 	/** The quick filters (`query.quick`) */
@@ -123,11 +114,6 @@ export const tasksStore = {
 	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
 	/** Replaces the rows. */
 	setRows(next: TaskRow[]) { rows = next; },
-	/** Sets the section tag text and the sources to one heading card per tag it holds (`headingSources`). */
-	setSectionTag(tag: string) {
-		sectionTag = tag;
-		query = { ...query, sources: headingSources(parseSectionTags(tag)) };
-	},
 	/** Replaces the source cards. */
 	setSources(sources: TaskSource[]) { query = { ...query, sources }; },
 	/** Replaces the excludes. */
@@ -163,7 +149,6 @@ export const tasksStore = {
 	reset() {
 		fileTaskGroups = [];
 		rows = [];
-		sectionTag = '#to-list';
 		query = defaultTaskQuery();
 		groupBy = 'note';
 		sort = [...DEFAULT_TASK_SORT];

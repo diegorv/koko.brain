@@ -11,14 +11,13 @@ import type { TaskItem } from './tasks.types';
 // `tasks.service.ts::buildTaskIndex`.
 
 /**
- * Splits the section tag textbox into the tags whose heading cards
- * (`headingSources`) select the rows: split on whitespace and commas, a
- * leading `#` added when missing, exact duplicates removed (first-typed
- * order kept). A lone `#` is
- * dropped: it would match every tagged heading, and the debounce can fire
- * mid-typing (`#to-list #`). The split keeps case, so `#Work` and `#work`
- * stay two tags; the heading match ignores it (`matchesHeading`). An empty
- * result means no section filter.
+ * Splits a saved section tag text (`tasksView.sectionTag`) into the tags
+ * whose heading cards (`headingSources`) select the rows: split on
+ * whitespace and commas, a leading `#` added when missing, exact duplicates
+ * removed (first order kept). A lone `#` is dropped: it would match every
+ * tagged heading. The split keeps case, so `#Work` and `#work` stay two
+ * tags; the heading match ignores it (`matchesHeading`). An empty result
+ * means no tag.
  */
 export function parseSectionTags(text: string): string[] {
 	const tags: string[] = [];

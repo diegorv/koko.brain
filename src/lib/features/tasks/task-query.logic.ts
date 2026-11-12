@@ -360,6 +360,23 @@ export function headingSources(tags: readonly string[]): TaskSource[] {
 	return tags.map((text) => ({ clauses: [{ kind: 'heading', text, match: 'tag' }] }));
 }
 
+/**
+ * What `tasksView.sectionTag` keeps of `sources` until saved views: the
+ * trimmed texts of the cards holding exactly one heading clause in tag mode,
+ * space-joined ('' for none). Null while one of those cards has no tag yet
+ * (empty, or `#` alone), so an emptied card is not saved until it holds text.
+ */
+export function tagHeadingCardText(sources: readonly TaskSource[]): string | null {
+	const texts: string[] = [];
+	for (const { clauses } of sources) {
+		const [only] = clauses;
+		if (clauses.length !== 1 || only.kind !== 'heading' || only.match !== 'tag') continue;
+		if (!headingValue(only.text, 'tag')) return null;
+		texts.push(only.text.trim());
+	}
+	return texts.join(' ');
+}
+
 /** The query of a fresh Tasks view: the `#to-list` card, the default excludes and `DEFAULT_QUICK`. */
 export function defaultTaskQuery(): TaskQuery {
 	return { version: 1, sources: headingSources(['#to-list']), exclude: defaultTaskExcludes(), quick: { ...DEFAULT_QUICK } };
@@ -871,9 +888,10 @@ function activeCards(sources: readonly TaskSource[]): { clause: TaskSourceClause
 }
 
 /**
- * The tags of the textbox case, as the sentence shows them joined with ` or `:
- * every card holds exactly one active heading clause in tag mode. Null for
- * any other sources, no card included.
+ * The tags of the tag cards case, as the sentence shows them joined with
+ * ` or `: every card holds exactly one active heading clause in tag mode, as
+ * the cards built from saved tags (`headingSources`) do. Null for any other
+ * sources, no card included.
  */
 function textboxTags(sources: readonly TaskSource[]): string | null {
 	const cards = activeCards(sources);
@@ -934,7 +952,8 @@ export interface EmptyTasksExplanation {
 	message: string;
 	/** Button that lifts that filter, when one does; `resetQuick` resets only `field` */
 	action?:
-		| { kind: 'clearTag'; label: string }
+		| { kind: 'editSources'; label: string }
+		| { kind: 'editExcludes'; label: string }
 		| { kind: 'showAllStatuses'; label: string }
 		| { kind: 'resetQuick'; field: 'due' | 'priorities' | 'tags' | 'search'; label: string };
 }
@@ -986,17 +1005,14 @@ export function explainEmptyTasks({
 	const sourced = selectSourceRows(allRows, query.sources, NO_EXCLUDES, folders);
 	if (sourced.length === 0) {
 		const tags = textboxTags(query.sources);
-		if (tags) {
-			return {
-				message: `No task sits under a heading containing ${tags}`,
-				action: { kind: 'clearTag', label: 'Clear tag' },
-			};
-		}
-		return { message: 'No note matches the sources' };
+		return {
+			message: tags ? `No task sits under a heading containing ${tags}` : 'No note matches the sources',
+			action: { kind: 'editSources', label: 'Edit sources' },
+		};
 	}
 
 	const rows = selectSourceRows(sourced, [], query.exclude, folders);
-	if (rows.length === 0) return { message: 'Every matching note is excluded' };
+	if (rows.length === 0) return { message: 'Every matching note is excluded', action: { kind: 'editExcludes', label: 'Edit excludes' } };
 
 	const { quick } = query;
 	// Checked without the Due filter: when the status filter alone empties

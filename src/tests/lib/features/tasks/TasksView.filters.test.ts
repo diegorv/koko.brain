@@ -81,7 +81,7 @@ describe('TasksView: the filter row', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		vaultStore._reset();
 		vaultStore.open('/vault');
 	});
@@ -509,7 +509,7 @@ describe('TasksView: the filter row', () => {
 		expect(toolbar.contains(statusTrigger())).toBe(false);
 		expect(filters.contains(dueTrigger())).toBe(true);
 		expect(statusTrigger().compareDocumentPosition(dueTrigger()) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-		expect(filters.querySelector('input[aria-label="Section tag"]')).not.toBeNull();
+		expect(filters.querySelector('input[type="text"]')).toBeNull();
 
 		tasksStore.setLoading(true);
 		await settle();

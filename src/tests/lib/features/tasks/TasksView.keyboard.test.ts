@@ -75,7 +75,7 @@ describe('TasksView: keyboard and accessible rows', () => {
 		// Also clears the write overlay, which outlives a test.
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		(document.activeElement as HTMLElement | null)?.blur();
@@ -273,22 +273,22 @@ describe('TasksView: keyboard and accessible rows', () => {
 			expect(document.activeElement).toBe(rows()[0]);
 		});
 
-		it('leaves focus in the section tag textbox when the first rows arrive', async () => {
+		it('leaves focus in the search box when the first rows arrive', async () => {
 			const fetch = deferred<FileTaskGroupV2[]>();
 			mockTaskFetch(() => fetch.promise);
 
 			const mounted = mountTasksView();
-			let tagInput: HTMLInputElement | null = null;
+			let search: HTMLInputElement | null = null;
 			await until(() => {
-				tagInput = document.querySelector<HTMLInputElement>('input[aria-label="Section tag"]');
-				expect(tagInput).not.toBeNull();
+				search = document.querySelector<HTMLInputElement>('input[aria-label="Search tasks"]');
+				expect(search).not.toBeNull();
 			});
-			tagInput!.focus();
+			search!.focus();
 			fetch.resolve(twoNotes());
 			({ component } = await mounted);
 			await until(() => expect(rows()).toHaveLength(3));
 
-			expect(document.activeElement).toBe(tagInput);
+			expect(document.activeElement).toBe(search);
 		});
 	});
 });

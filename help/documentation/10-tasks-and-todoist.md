@@ -2,7 +2,7 @@
 
 Learn how to track tasks across your vault and sync them with Todoist.
 
-Kokobrain collects the checkbox items in your notes and presents them in a single, unified Tasks View. By default it lists only the tasks under a heading containing `#to-list`; clear the section filter to list every task in the vault. You can filter and toggle them there, and a two-way sync keeps chosen tasks and their Todoist copies in step.
+Kokobrain collects the checkbox items in your notes and presents them in a single, unified Tasks View. By default it lists only the tasks under a heading containing `#to-list`; **Clear** next to the sentence above the list shows every task in the vault. You can filter and toggle them there, and a two-way sync keeps chosen tasks and their Todoist copies in step.
 
 ---
 
@@ -10,11 +10,11 @@ Kokobrain collects the checkbox items in your notes and presents them in a singl
 
 Open the Tasks View with **Cmd+Shift+T**, or search for **"Toggle Tasks View"** in the Command Palette.
 
-The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the filters below. With the default section filter, only tasks under a heading containing `#to-list` are listed. By default tasks are grouped by their source file, and the notes are listed in path order, with numbers compared as numbers (`note 9` comes before `note 10`). Under the Note grouping, ticking a task does not move its note; under the other groupings a ticked task can move to another group, for example to Done under the Status grouping when done tasks are shown.
+The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the [sources](#sources) and the filters below. With the default source card, only tasks under a heading containing `#to-list` are listed. By default tasks are grouped by their source file, and the notes are listed in path order, with numbers compared as numbers (`note 9` comes before `note 10`). Under the Note grouping, ticking a task does not move its note; under the other groupings a ticked task can move to another group, for example to Done under the Status grouping when done tasks are shown.
 
 The **Display** menu at the end of the toolbar changes the grouping: **Note** (the default), **Folder**, **Due date** (Overdue, Today, Tomorrow, This week, Later, No date), **Priority** or **Status**. Under any grouping other than Note, each group's header shows its row count, and its tasks are listed flat, sorted by due date (undated last), then priority, then note path and line. A task nested under another task shows its parent's text in a small line above it.
 
-A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, no task with the chosen status, or no task that matches the Due, Priority, Tag or Search filter) and offers a button that lifts it: **Clear tag**, **Show all**, or **Reset Due filter**, **Reset Priority filter**, **Reset Tag filter** or **Reset Search filter**. Each of those last four resets only its own filter and leaves the others as they are. The toolbar counts the tasks and the notes listed, for example "2 open in 2 notes", or "3 tasks in 2 notes" when the Status menu is set to something other than Open.
+A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no note the sources match, every matching note excluded, no task with the chosen status, or no task that matches the Due, Priority, Tag or Search filter) and offers a button that lifts it: **Edit sources**, **Edit excludes** (both open the Sources panel), **Show all**, or **Reset Due filter**, **Reset Priority filter**, **Reset Tag filter** or **Reset Search filter**. Each of those last four resets only its own filter and leaves the others as they are. The toolbar counts the tasks and the notes listed, for example "2 open in 2 notes", or "3 tasks in 2 notes" when the Status menu is set to something other than Open.
 
 ![Tasks View with grouped tasks](screenshots/tasks-view.png)
 
@@ -30,7 +30,7 @@ Tasks are standard Markdown checkboxes. Write them anywhere in any note:
 - [x] Send email to team
 ```
 
-There is no special syntax required: any line that starts with `- [ ]` or `- [x]` (including the extended statuses below) is a task. With the default section filter, the Tasks View lists it only when it sits under a heading containing `#to-list`, for example `## Today #to-list`.
+There is no special syntax required: any line that starts with `- [ ]` or `- [x]` (including the extended statuses below) is a task. With the default source card, the Tasks View lists it only when it sits under a heading containing `#to-list`, for example `## Today #to-list`.
 
 ---
 
@@ -98,6 +98,26 @@ This single line tells you that the task is due on March 31, is high priority, w
 
 ---
 
+## Sources
+
+The sources decide which notes and headings supply tasks, before the filters run. The sentence above the list says what they are, for example "Open tasks under headings containing #to-list, except archived notes, type definitions, templates, the system folder". **Edit**, after the sentence, opens the Sources panel between the sentence and the list; every change applies at once.
+
+- **Cards**: a task is listed when it matches any card. **Add card** adds an empty card, which matches every note until it holds a clause; **Remove card** deletes one.
+- **Clauses**: inside a card, a task must match every clause. **Add clause** picks one of four kinds, and **Remove clause** deletes it. A clause with an empty value does nothing, so a new clause never empties the list.
+  - **Folder**: the note is in this vault folder or a folder under it, for example `Projects`.
+  - **Type**: the note's type is this one, whatever the case.
+  - **Note tag**: the note carries this tag or one nested under it (`#work` also matches `#work/client`).
+  - **Heading**: the task sits under a heading, at any depth. **Tag** keeps headings carrying the tag as a whole tag (`#to-list` matches `## Inbox #to-list` and `#to-list/today`, not `#to-listing`); **Contains** keeps headings whose text contains the value with a `#` in front, part of a longer tag included (`to-list` also matches `#to-listing`). The `#` is optional in both modes, and case does not matter.
+- **Not**: a folder, type or note tag clause with **Not** on matches the notes the clause would not.
+- **Excludes**: tasks from these notes are never listed, whatever the cards say. Four switches are on by default: **Archived notes**, **Type definitions**, **Templates folder** and **System folder** (the two folders set in Settings > Files & Folders). Below them, add folders, notes (by their path in the vault, for example `Inbox/Scratch.md`), note tags and types to leave out, and remove each one with its x button.
+- **Clear**, after the sentence, removes every card: the list shows every note's tasks, and the excludes still apply.
+
+When the list is empty because of the sources, the empty state offers **Edit sources**; when every matching note is excluded, **Edit excludes**, which opens the panel on its first switch.
+
+Only the cards that hold one Heading clause in Tag mode are remembered for each vault after a restart, as their tags. Other cards and the excludes last until you close the app; saved views will keep them. After **Clear**, the next start shows the `#to-list` card again.
+
+---
+
 ## Filters
 
 The row under the Tasks View toolbar holds several filters to help you focus on what matters:
@@ -108,13 +128,12 @@ The row under the Tasks View toolbar holds several filters to help you focus on 
 | **Due**            | Any / Overdue / Today / Next 7 days / No date, then Note edited in the last 7 days / Note edited in the last 30 days | **Any** (the default) lists every task. **Overdue**, **Today** and **Next 7 days** read the task's due date (the 📅 signifier): before today, today, or from today through the seventh day after it, both included. **No date** lists tasks with no due date; among the due date options, an undated task matches only **No date**. The two **Note edited** options read the note's modification date instead, not a task date, and keep every task of a note modified in that period. The Due menu does not look at the status: combine it with the Status menu |
 | **Priority**       | highest / high / medium / no priority / low / lowest | Tick one or more levels to list tasks with any of them; none ticked lists every task. **no priority** lists tasks without a priority signifier |
 | **Tag**            | One item per task tag in the list   | Tick one or more tags to list tasks carrying any of them; none ticked lists every task. A tag also matches the tags nested under it: `#work` lists tasks tagged `#work` and `#work/client`, not `#workshop`. Case does not matter |
-| **Section filter** | Text input                           | Keep tasks under a heading carrying this tag (e.g. `#to-list`; the `#` is optional). A heading counts when the task sits under it at any depth: with `## A #to-list` and a `### C` below it, a task under `### C` is kept. The tag must be a whole tag in the heading, separated from the text before it by a space: `#to-list` matches `#to-list` and the nested `#to-list/today`, but not `#to-listing` or `(#to-list)`. Case does not matter (`#To-List` matches). Takes several tags, separated by spaces or commas (e.g. `#to-list #work`), and lists a task when its headings carry any of them. Default: `#to-list`. Empty: every task in the vault. The field is remembered per vault and comes back after a restart. An empty field is not remembered: the next start shows `#to-list`. Whatever the field holds, archived notes, type definitions and the notes in the templates folder and the system folder (Settings > Files & Folders) supply no task, and the sentence above the list names them: "Open tasks under headings containing #to-list, except archived notes, type definitions, templates, the system folder". |
 
 Combine filters to narrow down your view. For example, keep **Status** on **Open** and set **Due** to **Overdue** to see only unfinished tasks past their due date.
 
 The **Search tasks** box in the toolbar lists the tasks whose text or note title contains what you type, as you type, whatever the case. It does not search tags or dates: use the Tag menu for tags.
 
-**Reset filters**, at the end of the filter row, shows while the Status, Due, Priority, Tag or search filter is changed, and puts all of them back to their defaults. It leaves the section filter as it is.
+**Reset filters**, at the end of the filter row, shows while the Status, Due, Priority, Tag or search filter is changed, and puts all of them back to their defaults. It leaves the sources and excludes as they are.
 
 In a pane narrower than 560 px, the Status, Due, Priority and Tag menus fold into one **Filters (n)** menu, where n counts how many of the four are changed.
 
@@ -137,7 +156,7 @@ For a task synced with Todoist, a change between an open status (Todo, In progre
 
 ### Keyboard
 
-Only one task row is in the Tab order at a time. Opening the Tasks View puts focus on the task you were last on, or on the first task, unless you were typing in a field. The keys below work while a task row has focus, not while you type in the search box or the section tag box:
+Only one task row is in the Tab order at a time. Opening the Tasks View puts focus on the task you were last on, or on the first task, unless you were typing in a field. The keys below work while a task row has focus, not while you type in the search box or a field of the Sources panel:
 
 | Key | Action |
 |-----|--------|

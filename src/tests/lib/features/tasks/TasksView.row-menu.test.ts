@@ -131,7 +131,7 @@ describe('TasksView: the row menu', () => {
 		clearLocalStorage();
 		resetTasks();
 		editorStore.reset();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		tasksStore.setQuick({ show: 'all' });
 		vaultStore._reset();
 		vaultStore.open('/vault');

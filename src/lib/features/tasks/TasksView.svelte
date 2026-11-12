@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { flushSync, onDestroy, untrack, type Component } from 'svelte';
+	import { flushSync, untrack, type Component } from 'svelte';
 	import Calendar from '@lucide/svelte/icons/calendar';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
@@ -12,7 +12,6 @@
 	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
 	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import FileText from '@lucide/svelte/icons/file-text';
-	import Hash from '@lucide/svelte/icons/hash';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { toast } from 'svelte-sonner';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
@@ -21,22 +20,16 @@
 	import { tasksStore } from './tasks.store.svelte';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import {
-		buildTaskIndex,
-		getTasksResetGeneration,
-		setTaskStatusFromMenu,
-		toggleTask,
-		updateSectionTagFilter,
-	} from './tasks.service';
+	import { buildTaskIndex, setTaskSources, setTaskStatusFromMenu, toggleTask } from './tasks.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { formatDate, formatNow } from '#lib/utils/date.js';
+	import SourcesPanel from './SourcesPanel.svelte';
 	import {
 		parseTaskTextSegments,
-		parseSectionTags,
 		stripTaskTrailers,
 		taskChips,
 		taskDisplayText,
@@ -121,51 +114,19 @@
 		{ label: 'Status', value: 'status' },
 	];
 
-	/**
-	 * Text typed into the section tag textbox that its debounce has not applied
-	 * yet, or null. The textbox shows it while set and `tasksStore.sectionTag`
-	 * otherwise, so a tag changed from outside shows at once.
-	 */
-	let pendingSectionTag = $state<string | null>(null);
-	/**
-	 * The pending debounce and the text it applies. A plain variable, not
-	 * `pendingSectionTag`: Svelte hands a teardown the value a `$state` had
-	 * when its effect last ran, so `onDestroy` would read null.
-	 */
-	let debounce: { timer: ReturnType<typeof setTimeout>; value: string } | null = null;
+	/** Whether the Sources panel is open. View state: it closes when the view remounts. */
+	let sourcesOpen = $state(false);
+	const uid = $props.id();
+	/** The Sources panel's element id, named by the Edit button's `aria-controls`. */
+	const sourcesPanelId = `${uid}-sources`;
 
-	function handleSectionTagChange(value: string) {
-		pendingSectionTag = value;
-		if (debounce) clearTimeout(debounce.timer);
-		debounce = {
-			value,
-			timer: setTimeout(() => {
-				debounce = null;
-				pendingSectionTag = null;
-				updateSectionTagFilter(value);
-			}, 400),
-		};
+	/** Opens the Sources panel; for `excludes`, also focuses the Excludes section's first switch. */
+	function openSources(section: 'sources' | 'excludes') {
+		sourcesOpen = true;
+		if (section !== 'excludes') return;
+		flushSync();
+		rootEl?.querySelector<HTMLElement>('[data-task-excludes] [role="switch"]')?.focus();
 	}
-
-	/** Empties the section tag, dropping a typed edit still waiting on its debounce. */
-	function clearSectionTag() {
-		if (debounce) clearTimeout(debounce.timer);
-		debounce = null;
-		pendingSectionTag = null;
-		updateSectionTagFilter('');
-	}
-
-	const resetGenerationAtMount = getTasksResetGeneration();
-
-	// A tag typed just before the view unmounts (another tab activated) is
-	// applied instead of dropped. Not after `resetTasks()`: on a vault switch
-	// the view unmounts after the reset, and the old vault's tag would land in
-	// the new vault's store and settings.
-	onDestroy(() => {
-		if (!debounce) return;
-		clearTimeout(debounce.timer);
-		if (getTasksResetGeneration() === resetGenerationAtMount) updateSectionTagFilter(debounce.value);
-	});
 
 	let groups = $derived(tasksStore.groups);
 
@@ -255,7 +216,8 @@
 	);
 
 	function runEmptyAction(action: NonNullable<EmptyTasksExplanation['action']>) {
-		if (action.kind === 'clearTag') clearSectionTag();
+		if (action.kind === 'editSources') openSources('sources');
+		else if (action.kind === 'editExcludes') openSources('excludes');
 		else if (action.kind === 'showAllStatuses') tasksStore.setQuick({ show: 'all', statuses: undefined });
 		else tasksStore.setQuick({ [action.field]: undefined });
 	}
@@ -911,18 +873,6 @@
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 
-		<div class="flex items-center gap-1 relative">
-			<Hash class="size-3 text-muted-foreground absolute left-1.5 pointer-events-none" />
-			<input
-				type="text"
-				value={pendingSectionTag ?? tasksStore.sectionTag}
-				oninput={(e) => handleSectionTagChange(e.currentTarget.value)}
-				placeholder="#tag #tag"
-				aria-label="Section tag"
-				class="h-6 w-40 pl-5 pr-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-			/>
-		</div>
-
 		{#if !quickAtDefault}
 			<button
 				class="h-6 rounded-md px-2 text-xs text-primary hover:bg-accent transition-colors cursor-pointer"
@@ -939,86 +889,98 @@
 			<!-- An empty snapshot read before the vault index is ready is not an empty vault. -->
 			{#if !tasksStore.hasLoaded || (!vaultStore.indexReady && tasksStore.rows.length === 0)}
 				<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
-			{:else if tasksStore.error && tasksStore.rows.length === 0}
-				<!-- No list was loaded: the alert takes the empty state's place. -->
-				<p class="text-xs text-muted-foreground mb-1">{ruleSentence}</p>
-				{@render refreshAlert(tasksStore.error)}
-			{:else if emptyExplanation}
-				<p class="text-xs text-muted-foreground mb-1">{ruleSentence}</p>
-				{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
-				<div class="flex flex-col items-center gap-2 py-8">
-					<p class="text-sm text-muted-foreground text-center">{emptyExplanation.message}</p>
-					{#if emptyExplanation.action}
-						{@const action = emptyExplanation.action}
-						<button
-							class="px-2 py-0.5 text-xs rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
-							onclick={() => runEmptyAction(action)}
-						>
-							{action.label}
-						</button>
-					{/if}
-				</div>
 			{:else}
-				<div class="flex items-baseline gap-2 mb-1">
+				<!-- The sentence row and the panel sit outside the branches below, so an
+				     edit that empties or fills the list keeps the panel and its focus. -->
+				<div class="mb-1 flex flex-wrap items-baseline gap-x-2">
 					<p class="text-xs text-muted-foreground">{ruleSentence}</p>
-					{#if parseSectionTags(tasksStore.sectionTag).length > 0}
-						<button class="text-xs text-primary hover:underline cursor-pointer" onclick={clearSectionTag}>
-							Clear tag
+					<button
+						type="button"
+						class="text-xs text-primary hover:underline cursor-pointer"
+						aria-expanded={sourcesOpen}
+						aria-controls={sourcesPanelId}
+						onclick={() => (sourcesOpen = !sourcesOpen)}
+					>
+						Edit
+					</button>
+					{#if tasksStore.query.sources.length > 0}
+						<button type="button" class="text-xs text-primary hover:underline cursor-pointer" onclick={() => setTaskSources([])}>
+							Clear
 						</button>
 					{/if}
 				</div>
-				{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
-
-				<!-- One context menu for the whole list; each row's own contextmenu handler sets the row it acts on. -->
-				<ContextMenu.Root>
-					<ContextMenu.Trigger>
-						{#snippet child({ props })}
-							<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the rows take the keys) -->
-							<div
-								{...props}
-								bind:this={listEl}
-								class="space-y-6 mt-3"
-								onkeydown={handleListKeydown}
-								onfocusin={handleListFocusin}
-								oncontextmenu={(e) => handleListContextMenu(e, props.oncontextmenu)}
+				{#if sourcesOpen}<SourcesPanel id={sourcesPanelId} />{/if}
+				{#if tasksStore.error && tasksStore.rows.length === 0}
+					<!-- No list was loaded: the alert takes the empty state's place. -->
+					{@render refreshAlert(tasksStore.error)}
+				{:else if emptyExplanation}
+					{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
+					<div class="flex flex-col items-center gap-2 py-8">
+						<p class="text-sm text-muted-foreground text-center">{emptyExplanation.message}</p>
+						{#if emptyExplanation.action}
+							{@const action = emptyExplanation.action}
+							<button
+								class="px-2 py-0.5 text-xs rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
+								onclick={() => runEmptyAction(action)}
 							>
-								{#each shownGroups as { group, key, collapsed, rows, hidden } (group.key)}
-									<div data-task-group data-task-group-key={group.key}>
-										{@render groupHeader(group, key, collapsed)}
-										<!-- A collapsed group's rows leave the DOM, so the list's keys skip them. -->
-										{#if !collapsed}
-											<div class="space-y-1" role="list" aria-label={group.label}>
-												{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
-													{@render taskRow(row, group.filePath === undefined)}
-												{/each}
-											</div>
-											<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->
-											{#if hidden > 0}
-												<button
-													type="button"
-													class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-													onclick={() => revealGroup(key, group)}
-												>
-													Show {hidden} more
-												</button>
-											{/if}
-										{/if}
-									</div>
-								{/each}
-							</div>
-						{/snippet}
-					</ContextMenu.Trigger>
-					<ContextMenu.Content
-						class="w-48"
-						onCloseAutoFocus={(e) => {
-							if (contextRow) handleRowMenuCloseFocus(e, taskRowKey(contextRow.filePath, contextRow.lineNumber));
-						}}
-					>
-						{#if contextRow}
-							{@render rowMenuItems(contextRow, ContextMenu)}
+								{action.label}
+							</button>
 						{/if}
-					</ContextMenu.Content>
-				</ContextMenu.Root>
+					</div>
+				{:else}
+					{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
+
+					<!-- One context menu for the whole list; each row's own contextmenu handler sets the row it acts on. -->
+					<ContextMenu.Root>
+						<ContextMenu.Trigger>
+							{#snippet child({ props })}
+								<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the rows take the keys) -->
+								<div
+									{...props}
+									bind:this={listEl}
+									class="space-y-6 mt-3"
+									onkeydown={handleListKeydown}
+									onfocusin={handleListFocusin}
+									oncontextmenu={(e) => handleListContextMenu(e, props.oncontextmenu)}
+								>
+									{#each shownGroups as { group, key, collapsed, rows, hidden } (group.key)}
+										<div data-task-group data-task-group-key={group.key}>
+											{@render groupHeader(group, key, collapsed)}
+											<!-- A collapsed group's rows leave the DOM, so the list's keys skip them. -->
+											{#if !collapsed}
+												<div class="space-y-1" role="list" aria-label={group.label}>
+													{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
+														{@render taskRow(row, group.filePath === undefined)}
+													{/each}
+												</div>
+												<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->
+												{#if hidden > 0}
+													<button
+														type="button"
+														class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+														onclick={() => revealGroup(key, group)}
+													>
+														Show {hidden} more
+													</button>
+												{/if}
+											{/if}
+										</div>
+									{/each}
+								</div>
+							{/snippet}
+						</ContextMenu.Trigger>
+						<ContextMenu.Content
+							class="w-48"
+							onCloseAutoFocus={(e) => {
+								if (contextRow) handleRowMenuCloseFocus(e, taskRowKey(contextRow.filePath, contextRow.lineNumber));
+							}}
+						>
+							{#if contextRow}
+								{@render rowMenuItems(contextRow, ContextMenu)}
+							{/if}
+						</ContextMenu.Content>
+					</ContextMenu.Root>
+				{/if}
 			{/if}
 		</div>
 	</ScrollArea>

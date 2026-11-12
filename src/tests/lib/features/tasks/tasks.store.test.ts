@@ -24,7 +24,6 @@ describe('tasksStore', () => {
 
 	it('starts with default state', () => {
 		expect(tasksStore.fileTaskGroups).toEqual([]);
-		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		expect(tasksStore.query).toEqual(defaultTaskQuery());
 		expect(tasksStore.rows).toEqual([]);
@@ -40,17 +39,14 @@ describe('tasksStore', () => {
 		expect(tasksStore.fileTaskGroups).toBe(groups);
 	});
 
-	it('setSectionTag updates section tag', () => {
-		tasksStore.setSectionTag('#work');
-		expect(tasksStore.sectionTag).toBe('#work');
-	});
-
-	it('setSectionTag sets one heading card per tag, and none for text with no tag', () => {
-		tasksStore.setSectionTag('#a b');
+	it('setSources replaces the cards and keeps the excludes and quick filters', () => {
+		tasksStore.setQuick({ show: 'all' });
+		tasksStore.setSources(headingSources(['#a', '#b']));
 		expect(tasksStore.query.sources).toEqual(headingSources(['#a', '#b']));
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		expect(tasksStore.query.sources).toEqual([]);
 		expect(tasksStore.query.exclude).toEqual(defaultTaskExcludes());
+		expect(tasksStore.quick).toEqual({ show: 'all' });
 	});
 
 	it('the quick getter follows setQuick and reads query.quick', () => {
@@ -438,7 +434,6 @@ describe('tasksStore', () => {
 
 	it('reset restores defaults', () => {
 		tasksStore.setFileTaskGroups([{}] as any);
-		tasksStore.setSectionTag('#custom');
 		tasksStore.setRows(rowsFrom([taskGroupV2('/vault/a.md', [taskV2('x')])], '/vault'));
 		tasksStore.setQuick({ show: 'all', statuses: ['done'], due: 'overdue' });
 		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
@@ -452,7 +447,6 @@ describe('tasksStore', () => {
 		tasksStore.reset();
 
 		expect(tasksStore.fileTaskGroups).toEqual([]);
-		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(tasksStore.rows).toEqual([]);
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		expect(tasksStore.query).toEqual(defaultTaskQuery());

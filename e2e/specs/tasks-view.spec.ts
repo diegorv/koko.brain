@@ -14,12 +14,10 @@ test.describe('Tasks view', () => {
 		// Fixture Daily/2026-05-01.md contains: `- [ ] Reply to email thread`
 		// Projects/2026-Q2.md contains: `- [ ] Ship feature A`, `- [x] Draft RFC`, `- [ ] Review pending PRs`
 		await pressShortcut(page, 'Mod+Shift+T');
-		// TasksView ships with a "section tag" filter pre-populated to
-		// `#to-list`. None of the fixture tasks live under that tag, so the
-		// view shows "No task sits under a heading containing #to-list" until
-		// the filter is cleared.
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
+		// The Tasks view starts with one `#to-list` heading card. None of the
+		// fixture tasks live under that tag, so the view shows "No task sits
+		// under a heading containing #to-list" until the sentence's Clear.
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
 		await expect(page.getByText('Reply to email thread')).toBeVisible();
@@ -36,7 +34,7 @@ test.describe('Tasks view', () => {
 		}, { p: path, c: content });
 
 		await pressShortcut(page, 'Mod+Shift+T');
-		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 		// The Status menu shows open tasks by default.
 		await expect(page.getByRole('button', { name: /^Status/ })).toHaveText('Status: open');
@@ -50,8 +48,7 @@ test.describe('Tasks view', () => {
 
 	test('toggling a task persists the checked state', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 		// Show every status so the toggled task stays visible
 		const status = page.getByRole('button', { name: /^Status/ });
@@ -74,8 +71,7 @@ test.describe('Tasks view', () => {
 
 	test('Space on a focused circle toggles the task once', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 		const status = page.getByRole('button', { name: /^Status/ });
 		await status.click();
@@ -101,7 +97,7 @@ test.describe('Tasks view', () => {
 	test('a narrow pane folds the four filter menus into Filters (n)', async ({ vaultPage: page }) => {
 		await page.setViewportSize({ width: 500, height: 800 });
 		await pressShortcut(page, 'Mod+Shift+T');
-		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 		// Projects/2026-Q2.md holds `- [x] Draft RFC`, hidden by the default Status: open.
 		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
@@ -125,8 +121,7 @@ test.describe('Tasks view', () => {
 	test('task list scrolls when it is taller than the tab', async ({ vaultPage: page }) => {
 		await page.setViewportSize({ width: 1000, height: 260 });
 		await pressShortcut(page, 'Mod+Shift+T');
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 		await expect(page.getByText(/Ship feature A/i).first()).toBeVisible({ timeout: 5_000 });
 
 		// The viewport must stay inside the window and overflow internally;
@@ -149,7 +144,7 @@ test.describe('Tasks view', () => {
 		await page.setViewportSize({ width: 1000, height: 260 });
 		await openFile(page, 'Welcome.md');
 		await pressShortcut(page, 'Mod+Shift+T');
-		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 		await expect(page.getByText(/Ship feature A/i).first()).toBeVisible({ timeout: 5_000 });
 
 		const viewport = page.locator('[data-slot="scroll-area-viewport"]', { hasText: 'Ship feature A' });
@@ -180,7 +175,7 @@ test.describe('Tasks view', () => {
 		}, { p: path, c: content });
 
 		await pressShortcut(page, 'Mod+Shift+T');
-		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 		const link = page.getByRole('link', { name: 'Roadmap doc' });
 		// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
@@ -210,7 +205,7 @@ test.describe('Tasks view', () => {
 			}, { p: path, c: content });
 
 			await pressShortcut(page, 'Mod+Shift+T');
-			await page.getByRole('textbox', { name: /section tag/i }).fill('');
+			await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 			const row = page.locator('[data-task-row]', { hasText: 'Pay rent' });
 			const text = row.locator('[data-task-text]');
@@ -226,7 +221,7 @@ test.describe('Tasks view', () => {
 		});
 	});
 
-	test('the section tag lists tasks under any of several tags', async ({ vaultPage: page }) => {
+	test('two heading cards list tasks under either tag', async ({ vaultPage: page }) => {
 		const path = '/test-vault/Sections.md';
 		const content = '## Inbox #to-list\n- [ ] Listed by to-list\n## Job #work\n- [ ] Listed by work\n## Misc\n- [ ] Never listed\n';
 		await page.evaluate(({ p, c }) => {
@@ -241,11 +236,16 @@ test.describe('Tasks view', () => {
 		await expect(page.getByText('Listed by work')).toHaveCount(0);
 		await expect(page.getByText('Never listed')).toHaveCount(0);
 
-		await page.getByRole('textbox', { name: /section tag/i }).fill('#to-list #work');
+		await page.getByRole('button', { name: 'Edit', exact: true }).click();
+		await page.getByRole('button', { name: 'Add card', exact: true }).click();
+		await page.getByRole('button', { name: 'Add clause', exact: true }).last().click();
+		await page.getByRole('menuitem', { name: 'Heading', exact: true }).click();
+		await page.getByRole('textbox', { name: 'Heading', exact: true }).last().fill('#work');
 		await expect(page.getByText('Listed by work')).toBeVisible({ timeout: 5_000 });
 		await expect(page.getByText('Listed by to-list')).toBeVisible();
 		await expect(page.getByText('Open tasks under headings containing #to-list or #work')).toBeVisible();
-		await expect(page.getByText('Never listed')).toHaveCount(0);
+		// Scoped to the rows: the open panel's Excludes text also says "never listed".
+		await expect(page.locator('[data-task-row]', { hasText: 'Never listed' })).toHaveCount(0);
 	});
 
 	test('the right sidebar hides while the Tasks tab is active and comes back on a note', async ({ vaultPage: page }) => {

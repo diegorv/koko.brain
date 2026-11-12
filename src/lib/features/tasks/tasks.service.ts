@@ -8,10 +8,10 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { getVaultEntries, invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { tasksStore } from './tasks.store.svelte';
-import { buildTaskRows, type TaskOverlayEntry } from './task-query.logic';
+import { buildTaskRows, headingSources, tagHeadingCardText, type TaskOverlayEntry, type TaskSource } from './task-query.logic';
 import { statusMenuLabel, toggleTarget } from './task-status.logic';
 import { taskRowKey } from './tasks-keys.logic';
-import { parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
+import { parseSectionTags, parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
 import type { TaskStatus } from './task-metadata.types';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
@@ -137,33 +137,38 @@ export async function buildTaskIndex(): Promise<void> {
 }
 
 /**
- * Updates the section-tag text (one or more tags), which sets the heading
- * cards (`tasksStore.setSectionTag`), and saves it as typed in the vault's
- * settings (`tasksView.sectionTag`). Starts no fetch: the store re-selects
- * the rows it holds.
+ * Replaces the Tasks query's source cards. When the tag heading cards change
+ * (`tagHeadingCardText`), saves their texts in the vault's settings
+ * (`tasksView.sectionTag`), which `loadSavedTasksView` reads back; the other
+ * cards stay in this session only, until saved views. Starts no fetch: the
+ * store re-selects the rows it holds.
  */
-export function updateSectionTagFilter(tag: string): void {
-	tasksStore.setSectionTag(tag);
-	// Saved as typed into the settings store only: settings persistence writes the
-	// file, and holds the guard for a session whose settings.json was never loaded.
-	settingsStore.updateTasksView(withSectionTag(settingsStore.tasksView, tag));
+export function setTaskSources(sources: TaskSource[]): void {
+	const before = tagHeadingCardText(tasksStore.query.sources);
+	tasksStore.setSources(sources);
+	const after = tagHeadingCardText(sources);
+	if (after === null || after === before) return;
+	// Into the settings store only: settings persistence writes the file, and
+	// holds the guard for a session whose settings.json was never loaded.
+	settingsStore.updateTasksView(withSectionTag(settingsStore.tasksView, after));
 }
 
 /**
- * Applies the section tags saved in this vault's settings (`tasksView`) to the
- * Tasks store. Always sets the tag, `#to-list` included, so a vault without a
- * saved value never keeps the previous vault's tag. An invalid value is logged
- * and toasted but left in settings untouched: the next section tag change
- * replaces it. Writes nothing and starts no fetch (the view fetches on mount).
+ * Sets the Tasks query's sources to one heading card per tag saved in this
+ * vault's settings (`tasksView`), or the `#to-list` card when none is. Always
+ * sets them, so a vault without a saved value never keeps the previous
+ * vault's cards. An invalid value is logged and toasted but left in settings
+ * untouched: the next tag card change replaces it. Writes nothing and starts
+ * no fetch (the view fetches on mount).
  */
 export function loadSavedTasksView(): void {
 	const raw = settingsStore.tasksView;
-	const { sectionTag, valid } = parseTasksView(raw);
-	if (!valid) {
+	const saved = parseTasksView(raw);
+	if (!saved.valid) {
 		error('TASKS', 'Invalid tasksView in settings.json:', raw);
 		toast.error('The saved Tasks section tags could not be read, so #to-list is used.');
 	}
-	tasksStore.setSectionTag(sectionTag);
+	tasksStore.setSources(headingSources(parseSectionTags(saved.sectionTag)));
 }
 
 /**

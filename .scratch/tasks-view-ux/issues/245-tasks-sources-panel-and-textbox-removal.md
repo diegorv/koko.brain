@@ -24,7 +24,7 @@
 
 **Blocked by:** 116
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B6 (a) (owner, 2026-11-06). Owner, 2026-11-12: Q1, `#to-list` stays the default and the view never defaults to every task, so a saved empty section filter is not restored; the split of Issue 116 into 116 (query) and this Issue (panel, textbox removal), blocked by 116.
 
@@ -34,14 +34,14 @@ Tests mock only the allowed boundaries: `invoke` (tasks served through Issue 110
 
 **Tests that change on purpose** (name them in the commit): Issue 242's e2e test that types two tags (it now builds two heading cards in the panel); every e2e step that fills the section textbox or finds `getByRole('textbox', { name: /section tag/i })`; Issue 243's load and save tests, which move to the query and the heading-card write-back, not deleted; Issue 108's Clear tag and sentence tests; Issue 234's destroy-flush, reset-guard and textbox-sync tests (removed with the textbox); Issue 243's destroy-flush case; every `setSectionTag` call in `src/tests` (become `setSources`).
 
-- [ ] Failing test first, a new `src/tests/lib/features/tasks/TasksView.sources.test.ts` with real stores: click "Edit", "Add card", "Add clause" > "Folder", type `Projects`: only `Projects` tasks are listed and the sentence says so; turn the "Templates folder" switch off: a template task comes back. Fails today (no panel).
-- [ ] Same file: a folder card that matches no note shows "No note matches the sources", and its "Edit sources" action sets the Edit button's `aria-expanded` to `true` and renders the panel. The same for "Every matching note is excluded" and "Edit excludes".
-- [ ] Same file: "Clear" shows only when `sources` is not empty, and clicking it lists every non-excluded task.
-- [ ] `tasks-view-settings.test.ts` (Issue 243's harness): adding a heading card `#work` next to the default writes `tasksView.sectionTag` `#to-list #work`; a reload builds two heading cards. A substring heading card and a folder-plus-heading card are not written back; a reload restores the tag cards only. Clear writes `''`, and a reload gives the `#to-list` card. The invalid-value and vault-switch cases still pass against `query.sources`.
-- [ ] `tasks.service.test.ts`: `setTaskSources` with unchanged tag cards leaves `settingsStore.tasksView` unchanged; `resetTasks()` writes nothing to settings.
-- [ ] No `src/lib` code references `sectionTag` except the `tasksView.sectionTag` parse and write (`grep -rn "sectionTag" src/lib`).
-- [ ] e2e: every step that cleared the textbox clicks the sentence's Clear button and the specs still assert the listed tasks. Issue 242's two-tag test adds a `#work` heading card through the panel and asserts both tagged tasks visible and the untagged one at `toHaveCount(0)`.
-- [ ] `help/documentation/10-tasks-and-todoist.md` replaces the Section filter row of the Filters table with a "Sources" section: cards (OR), clauses (AND), the four clause kinds, Not, the default excludes and the lists, Clear, the rule sentence, and that only tag heading cards are remembered after a restart until saved views come (PRD A12).
+- [x] Failing test first, a new `src/tests/lib/features/tasks/TasksView.sources.test.ts` with real stores: click "Edit", "Add card", "Add clause" > "Folder", type `Projects`: only `Projects` tasks are listed and the sentence says so; turn the "Templates folder" switch off: a template task comes back. Fails today (no panel).
+- [x] Same file: a folder card that matches no note shows "No note matches the sources", and its "Edit sources" action sets the Edit button's `aria-expanded` to `true` and renders the panel. The same for "Every matching note is excluded" and "Edit excludes".
+- [x] Same file: "Clear" shows only when `sources` is not empty, and clicking it lists every non-excluded task.
+- [x] `tasks-view-settings.test.ts` (Issue 243's harness): adding a heading card `#work` next to the default writes `tasksView.sectionTag` `#to-list #work`; a reload builds two heading cards. A substring heading card and a folder-plus-heading card are not written back; a reload restores the tag cards only. Clear writes `''`, and a reload gives the `#to-list` card. The invalid-value and vault-switch cases still pass against `query.sources`.
+- [x] `tasks.service.test.ts`: `setTaskSources` with unchanged tag cards leaves `settingsStore.tasksView` unchanged; `resetTasks()` writes nothing to settings.
+- [x] No `src/lib` code references `sectionTag` except the `tasksView.sectionTag` parse and write (`grep -rn "sectionTag" src/lib`).
+- [x] e2e: every step that cleared the textbox clicks the sentence's Clear button and the specs still assert the listed tasks. Issue 242's two-tag test adds a `#work` heading card through the panel and asserts both tagged tasks visible and the untagged one at `toHaveCount(0)`.
+- [x] `help/documentation/10-tasks-and-todoist.md` replaces the Section filter row of the Filters table with a "Sources" section: cards (OR), clauses (AND), the four clause kinds, Not, the default excludes and the lists, Clear, the rule sentence, and that only tag heading cards are remembered after a restart until saved views come (PRD A12).
 
 ## Notes
 
@@ -53,3 +53,5 @@ Tests mock only the allowed boundaries: `invoke` (tasks served through Issue 110
 ## Comments
 
 - 2026-11-12: created by the deep dive's split of Issue 116 (SUMMARY section 4; cross-persistence H1, M6, M7; cross-state M13; dossier-116). It holds the panel, the textbox removal, the heading-card write-back (only one-tag-heading cards, synchronous, through `updateTasksView`, never `saveSettings`), the repointed 243 loader, the e2e migration and a "Tests that change on purpose" list.
+
+- 2026-11-12, branch `issue/245-tasks-sources-panel-and-textbox-removal`: Sources panel edits the Tasks query (cards OR, clauses AND, Not, default excludes, Clear); section tag textbox removed; tag heading cards persist via `tasksView.sectionTag`. Review round 1 APPROVED (review.md) with findings, fixed in a fix round (panel focus after removal, Remove card test, ghost icon button; 2 findings rejected with reasons); round 2 APPROVED with no findings. Tests: pnpm check 0 errors; full suite at 34880c6ec 630 files, 16315 passed, 54 skipped, exit=0.

@@ -131,7 +131,7 @@ describe('toggleTask on a note with unsaved edits', () => {
 		flagSeen.toggle = [];
 		resetTasks();
 		invalidateVaultEntries();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		editorStore.reset();
 		disk.set(NOTE, SAVED);
 		editorStore.addTab({ path: NOTE, name: 'note', content: SAVED, savedContent: SAVED });

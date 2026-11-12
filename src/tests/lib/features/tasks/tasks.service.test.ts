@@ -33,7 +33,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import {
 	buildTaskIndex,
-	updateSectionTagFilter,
+	setTaskSources,
 	toggleTask,
 	setTaskStatus,
 	setTaskStatusFromMenu,
@@ -45,6 +45,7 @@ import {
 	loadSavedTasksView,
 } from '#lib/features/tasks/tasks.service.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { headingSources } from '#lib/features/tasks/task-query.logic.js';
 import type { NoteEntryV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
@@ -96,7 +97,7 @@ function resetAll(): void {
 describe('buildTaskIndex', () => {
 	beforeEach(() => {
 		resetAll();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 	});
 
 	it('fills the rows from the get_all_vault_entries_v2 snapshot', async () => {
@@ -130,8 +131,8 @@ describe('buildTaskIndex', () => {
 		expect(tasksStore.rows).toEqual([]);
 	});
 
-	it('keeps every task in the rows, and the section tag selects the ones under its heading', async () => {
-		tasksStore.setSectionTag('#to-list');
+	it('keeps every task in the rows, and a tag heading card selects the ones under its heading', async () => {
+		tasksStore.setSources(headingSources(['#to-list']));
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await buildTaskIndex();
@@ -141,8 +142,8 @@ describe('buildTaskIndex', () => {
 		expect([tasksStore.visibleRows[0].noteTaskCount, tasksStore.visibleRows[0].noteOpenCount]).toEqual([1, 1]);
 	});
 
-	it('selects a task under any tag parsed from the section tag text', async () => {
-		tasksStore.setSectionTag('#to-list work');
+	it('selects a task under the heading of any tag card', async () => {
+		tasksStore.setSources(headingSources(['#to-list', '#work']));
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await buildTaskIndex();
@@ -150,8 +151,8 @@ describe('buildTaskIndex', () => {
 		expect(visibleTexts()).toEqual(['listed', 'work item']);
 	});
 
-	it('lists every task when the section tag text holds no tag', async () => {
-		tasksStore.setSectionTag(' , ');
+	it('lists every task when there is no card', async () => {
+		tasksStore.setSources([]);
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await buildTaskIndex();
@@ -281,7 +282,7 @@ describe('buildTaskIndex', () => {
 describe('buildTaskIndex: note order', () => {
 	beforeEach(() => {
 		resetAll();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 	});
 
 	it('lists notes by path, whatever order the snapshot holds them in', async () => {
@@ -300,8 +301,8 @@ describe('buildTaskIndex: note order', () => {
 		expect(rowPaths()).toEqual(['/vault/note 9.md', '/vault/note 10.md']);
 	});
 
-	it('sorts the notes a section tag keeps too', async () => {
-		tasksStore.setSectionTag('#to-list');
+	it('sorts the notes a tag heading card keeps too', async () => {
+		tasksStore.setSources(headingSources(['#to-list']));
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned('/vault/C.md'), sectioned('/vault/A.md'), sectioned('/vault/B.md')]);
 
 		await buildTaskIndex();
@@ -322,7 +323,7 @@ describe('buildTaskIndex: note order', () => {
 describe('buildTaskIndex: rows', () => {
 	beforeEach(() => {
 		resetAll();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		vaultStore.open('/vault');
 	});
 
@@ -402,7 +403,7 @@ describe('buildTaskIndex: refresh error', () => {
 
 	beforeEach(() => {
 		resetAll();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 	});
 
 	it('sets the fixed message when the latest call fails, logging the raw error, and keeps the rows', async () => {
@@ -480,41 +481,64 @@ describe('buildTaskIndex: refresh error', () => {
 	});
 });
 
-describe('updateSectionTagFilter', () => {
+describe('setTaskSources', () => {
 	beforeEach(() => {
 		resetAll();
 		settingsStore.reset();
 	});
 
-	it('sets the section tag, saves it and lists the tasks under it, with no fetch', async () => {
+	it('sets the cards, saves the tag cards and lists the tasks under them, with no fetch', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 		await buildTaskIndex();
 
-		updateSectionTagFilter('#work');
+		setTaskSources(headingSources(['#work']));
 
-		expect(tasksStore.sectionTag).toBe('#work');
+		expect(tasksStore.query.sources).toEqual(headingSources(['#work']));
 		expect(visibleTexts()).toEqual(['work item']);
-		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('#work');
+		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#work' });
 		expect(invoke).toHaveBeenCalledTimes(1);
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
-	it('lists every task when the filter is cleared', async () => {
+	it('lists every task and saves an empty text when the cards are cleared', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 		await buildTaskIndex();
 
-		updateSectionTagFilter('');
+		setTaskSources([]);
 
 		expect(visibleTexts()).toEqual(['listed', 'work item', 'misc item']);
 		expect(tasksStore.query.sources).toEqual([]);
-		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('');
+		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '' });
+	});
+
+	it('leaves settingsStore.tasksView unchanged while the tag cards are unchanged', () => {
+		const before = settingsStore.tasksView;
+		const folder = { clauses: [{ kind: 'folder' as const, path: 'Projects' }] };
+		const substring = { clauses: [{ kind: 'heading' as const, text: 'Inbox', match: 'substring' as const }] };
+
+		setTaskSources([...headingSources(['#to-list']), folder]);
+		setTaskSources([...headingSources(['#to-list']), folder, substring]);
+		setTaskSources([...headingSources(['#to-list']), { clauses: [...folder.clauses, ...headingSources(['#x'])[0].clauses] }]);
+		tasksStore.setExclude({ ...tasksStore.query.exclude, archived: false });
+
+		expect(settingsStore.tasksView).toBe(before);
+	});
+
+	it('does not save an emptied heading card until it holds text', () => {
+		setTaskSources([...headingSources(['#to-list']), ...headingSources([''])]);
+		setTaskSources([...headingSources(['#to-list']), ...headingSources(['#'])]);
+		expect(settingsStore.tasksView).toBeUndefined();
+
+		setTaskSources([...headingSources(['#to-list']), ...headingSources(['#w'])]);
+
+		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#to-list #w' });
 	});
 
 	it('starts no fetch before any rows were loaded', () => {
-		updateSectionTagFilter('#a');
+		setTaskSources(headingSources(['#a']));
 
 		expect(invoke).not.toHaveBeenCalled();
-		expect(tasksStore.sectionTag).toBe('#a');
+		expect(tasksStore.query.sources).toEqual(headingSources(['#a']));
 		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#a' });
 	});
 });
@@ -526,22 +550,22 @@ describe('loadSavedTasksView', () => {
 		settingsStore.reset();
 	});
 
-	it('sets #to-list when nothing was saved, and starts no fetch', () => {
-		tasksStore.setSectionTag('#stale');
+	it('sets the #to-list card when nothing was saved, and starts no fetch', () => {
+		tasksStore.setSources([]);
 
 		loadSavedTasksView();
 
-		expect(tasksStore.sectionTag).toBe('#to-list');
+		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
 		expect(invoke).not.toHaveBeenCalled();
 		expect(settingsStore.tasksView).toBeUndefined();
 	});
 
-	it('sets the saved tag', () => {
-		settingsStore.updateTasksView({ version: 1, sectionTag: '#work' });
+	it('sets one heading card per saved tag', () => {
+		settingsStore.updateTasksView({ version: 1, sectionTag: '#work, home' });
 
 		loadSavedTasksView();
 
-		expect(tasksStore.sectionTag).toBe('#work');
+		expect(tasksStore.query.sources).toEqual(headingSources(['#work', '#home']));
 		expect(error).not.toHaveBeenCalled();
 	});
 
@@ -550,7 +574,7 @@ describe('loadSavedTasksView', () => {
 
 		loadSavedTasksView();
 
-		expect(tasksStore.sectionTag).toBe('#to-list');
+		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
 		expect(error).toHaveBeenCalledWith('TASKS', 'Invalid tasksView in settings.json:', 42);
 		expect(toast.error).toHaveBeenCalledWith('The saved Tasks section tags could not be read, so #to-list is used.');
 		expect(settingsStore.tasksView).toBe(42);
@@ -619,7 +643,7 @@ describe('toggleTask', () => {
 	});
 
 	it('shows a changed toggle at once from the memoized snapshot, without any vaultIndexVersion bump', async () => {
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		vi.mocked(invoke)
 			.mockResolvedValueOnce([note('/vault/a.md', 100, ['task'])])
 			.mockResolvedValueOnce(makeResult('- [x] task'));
@@ -642,7 +666,7 @@ describe('toggleTask', () => {
 			content: '- [ ] other',
 			savedContent: '- [ ] other',
 		});
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		vi.mocked(invoke)
 			.mockResolvedValueOnce([note('/vault/a.md', 100, ['task'])])
 			.mockResolvedValueOnce(makeResult('- [ ] other', /* changed */ false, /* stale */ true))
@@ -803,7 +827,7 @@ describe('toggleTask', () => {
 describe('setTaskStatus', () => {
 	beforeEach(() => {
 		resetAll();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 	});
 
 	afterEach(() => {
@@ -1078,7 +1102,7 @@ describe('openTasksTab / closeTasksTab / toggleTasksTab', () => {
 describe('resetTasks', () => {
 	beforeEach(() => {
 		resetAll();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 	});
 
 	it('clears the rows and closes tab', async () => {
@@ -1091,6 +1115,17 @@ describe('resetTasks', () => {
 
 		expect(tasksStore.rows).toEqual([]);
 		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('writes nothing to settings', () => {
+		settingsStore.reset();
+		setTaskSources(headingSources(['#work']));
+		const saved = settingsStore.tasksView;
+
+		resetTasks();
+
+		expect(settingsStore.tasksView).toBe(saved);
+		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
 	});
 
 	it('raises the reset generation by one on each call', () => {
@@ -1162,7 +1197,7 @@ describe("the view's own writes: overlay and prompt refresh", () => {
 
 	beforeEach(() => {
 		resetAll();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		disk.clear();
 		disk.set(PATH, '- [ ] task');
 		snapshot = [note(PATH, 100, ['task'])];
@@ -1268,7 +1303,7 @@ describe("the view's own writes: overlay and prompt refresh", () => {
 
 		resetTasks();
 		invalidateVaultEntries();
-		tasksStore.setSectionTag('');
+		tasksStore.setSources([]);
 		await buildTaskIndex();
 
 		expect(tasksStore.rows[0]).toMatchObject({ text: 'task', status: 'todo' });

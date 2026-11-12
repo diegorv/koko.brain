@@ -11,6 +11,7 @@ import {
 	explainEmptyTasks,
 	DEFAULT_TASK_SORT,
 	headingSources,
+	tagHeadingCardText,
 	selectSourceRows,
 	groupTaskRows,
 	isQuickFieldDefault,
@@ -412,6 +413,34 @@ describe('query defaults', () => {
 			{ clauses: [{ kind: 'heading', text: '#b', match: 'tag' }] },
 		]);
 		expect(headingSources([])).toEqual([]);
+	});
+
+	describe('tagHeadingCardText', () => {
+		const tagCard = (text: string): TaskSource => ({ clauses: [{ kind: 'heading', text, match: 'tag' }] });
+
+		it('joins the trimmed texts of the cards holding one tag heading clause', () => {
+			expect(tagHeadingCardText([tagCard(' #a '), tagCard('b'), tagCard('#c/')])).toBe('#a b #c/');
+		});
+
+		it("is '' for no card", () => {
+			expect(tagHeadingCardText([])).toBe('');
+		});
+
+		it('leaves out substring heading cards, other clause kinds and cards of several clauses', () => {
+			expect(
+				tagHeadingCardText([
+					tagCard('#a'),
+					{ clauses: [{ kind: 'heading', text: 'Inbox', match: 'substring' }] },
+					{ clauses: [{ kind: 'folder', path: 'Projects' }] },
+					{ clauses: [{ kind: 'folder', path: 'Projects' }, ...tagCard('#b').clauses] },
+					{ clauses: [] },
+				]),
+			).toBe('#a');
+		});
+
+		it.each([[''], ['  '], ['#'], [' #/ ']])('is null while a tag heading card holds %j, no tag yet', (text) => {
+			expect(tagHeadingCardText([tagCard('#a'), tagCard(text)])).toBeNull();
+		});
 	});
 
 	it('defaultTaskQuery holds the #to-list card, the default excludes and DEFAULT_QUICK', () => {
@@ -1471,7 +1500,7 @@ describe('explainEmptyTasks', () => {
 			today: TODAY,
 			now: NOW,
 		});
-	const CLEAR_TAG = { kind: 'clearTag', label: 'Clear tag' };
+	const EDIT_SOURCES = { kind: 'editSources', label: 'Edit sources' };
 
 	describe('stage 1: no task', () => {
 		it('says the vault has no tasks, with no action, whatever the query', () => {
@@ -1490,10 +1519,10 @@ describe('explainEmptyTasks', () => {
 				'/vault',
 			);
 
-		it('names the tag and offers to clear it in the textbox case', () => {
+		it('names the tag and offers to edit the sources in the textbox case', () => {
 			expect(explain(rows([[open(1)]]), ALL, '#to-list')).toEqual({
 				message: 'No task sits under a heading containing #to-list',
-				action: CLEAR_TAG,
+				action: EDIT_SOURCES,
 			});
 		});
 
@@ -1501,10 +1530,10 @@ describe('explainEmptyTasks', () => {
 			expect(explain(rows([[open(1)]]), ALL, ' work ').message).toBe('No task sits under a heading containing #work');
 		});
 
-		it('names several tags joined with or, and offers to clear them', () => {
+		it('names several tags joined with or, and offers to edit the sources', () => {
 			expect(explain(under('Misc #other'), ALL, '#to-list #work')).toEqual({
 				message: 'No task sits under a heading containing #to-list or #work',
-				action: CLEAR_TAG,
+				action: EDIT_SOURCES,
 			});
 		});
 
@@ -1512,17 +1541,18 @@ describe('explainEmptyTasks', () => {
 			expect(explain(rows([[done(1)]]), OPEN, sectionTag)).toEqual({ message: 'The only task is closed', action: { kind: 'showAllStatuses', label: 'Show all' } });
 		});
 
-		it('says no note matches general sources, with no action', () => {
+		it('says no note matches general sources, and offers to edit them', () => {
 			const query: TaskQuery = { version: 1, sources: [{ clauses: [{ kind: 'folder', path: 'Projects' }] }], exclude: defaultTaskExcludes(), quick: OPEN };
 			expect(explainEmptyTasks({ rows: rows([[open(1)]]), query, folders: FOLDERS, today: TODAY, now: NOW })).toEqual({
 				message: 'No note matches the sources',
+				action: EDIT_SOURCES,
 			});
 		});
 
 		it('comes before the excludes and the quick filters', () => {
 			expect(explain(under('Misc', { archived: true, tasks: [taskV2('t', { lineNumber: 2, heading: 0, status: 'done' })] }), OPEN, '#to-list')).toEqual({
 				message: 'No task sits under a heading containing #to-list',
-				action: CLEAR_TAG,
+				action: EDIT_SOURCES,
 			});
 		});
 	});
@@ -1531,8 +1561,10 @@ describe('explainEmptyTasks', () => {
 		const archived = (status: TaskStatus = 'todo') =>
 			rowsFrom([entryV2('/vault/Old.md', { archived: true, tasks: [taskV2('old', { status })] })], '/vault');
 
-		it('says every matching note is excluded, with no action', () => {
-			expect(explain(archived(), OPEN)).toEqual({ message: 'Every matching note is excluded' });
+		const EXCLUDED = { message: 'Every matching note is excluded', action: { kind: 'editExcludes', label: 'Edit excludes' } };
+
+		it('says every matching note is excluded, and offers to edit the excludes', () => {
+			expect(explain(archived(), OPEN)).toEqual(EXCLUDED);
 		});
 
 		it('counts only what the sources kept', () => {
@@ -1543,11 +1575,11 @@ describe('explainEmptyTasks', () => {
 				],
 				'/vault',
 			);
-			expect(explain(r, OPEN, '#to-list')).toEqual({ message: 'Every matching note is excluded' });
+			expect(explain(r, OPEN, '#to-list')).toEqual(EXCLUDED);
 		});
 
 		it('comes before the quick filters', () => {
-			expect(explain(archived('done'), { show: 'open', due: 'overdue' })).toEqual({ message: 'Every matching note is excluded' });
+			expect(explain(archived('done'), { show: 'open', due: 'overdue' })).toEqual(EXCLUDED);
 		});
 
 		it('lets the quick filters run over the kept rows only', () => {
