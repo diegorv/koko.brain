@@ -45,11 +45,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | done | issue/113-keyboard-and-a11y (16c5d8b73) | 2026-11-12 |
 | 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | done | issue/115-fetch-from-entries-snapshot (115d8d576) | 2026-11-12 |
 | 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | done | issue/116-sources-panel-and-excludes (4268ffc27) | 2026-11-12 |
-| 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | todo | | |
+| 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | in-progress | | |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | todo | | |
 | 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | todo | | |
 | 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | none | wontfix | | |
-| 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | todo | | |
+| 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | in-progress | | |
 | 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | done | issue/122-row-menu-edits-with-undo (befb8f876) | 2026-11-12 |
 | 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | none | wontfix | | |
 | 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | todo | | |
@@ -124,3 +124,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 17:29 — 245 — deliver — round 1 APPROVED by claude with a fix round (focus after removing a clause, card or exclude; Remove card test; ghost remove button), deliver re-review APPROVED by claude; full suite 630 files / 16315 tests passed; squash merged and pushed — e2479b35f
 - 2026-11-12 17:29 — 246 — start — launched by /relay-lite:run — 16486a353
 - 2026-11-12 17:52 — 246 — deliver — round 1 APPROVED by claude with a fix round (menu close focus, refuse notes outside the vault before the dirty-tab save), deliver re-review APPROVED by claude; full suite 632 files / 16349 tests passed; squash merged and pushed — 5152ec83c
+- 2026-11-12 17:52 — 117 — start — launched by /relay-lite:run — 86d743b20
+- 2026-11-12 17:52 — 121 — start — launched by /relay-lite:run, beside 117 (cleanup, cargo) — 86d743b20
