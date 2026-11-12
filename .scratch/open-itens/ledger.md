@@ -211,7 +211,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 195 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/195-canvas-nodes-edges-grid-draw-from-theme.md) | none | todo | | |
 | 196 | [Canvas menus, pickers and edge labels use theme tokens](issues/196-canvas-menus-pickers-edge-labels-use-theme.md) | 195 | todo | | |
 | 197 | [Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable](issues/197-kanban-cards-drop-empty-date-row-until.md) | 151 | todo | | |
-| 198 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/198-status-colors-use-theme-tokens-test-forbids.md) | 151 | in-progress | | |
+| 198 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/198-status-colors-use-theme-tokens-test-forbids.md) | 151 | done | issue/198-status-colors-use-theme-tokens-test-forbids (1198d8e7b) | 2026-11-12 |
 | 199 | [Opening Settings moves focus into the drawer, and closing returns it](issues/199-opening-settings-moves-focus-into-drawer-closing.md) | none | todo | | |
 | 200 | [Settings is modal: a scrim closes it on outside click and Tab stays inside](issues/200-settings-modal-scrim-closes-outside-click-tab.md) | 199 | todo | | |
 | 201 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/201-retention-days-debounce-delay-accept-typed-values.md) | none | todo | | |
@@ -271,3 +271,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:54 — 151 — start — launched by /relay-lite:run (unblocks 198) — c8431c668
 - 2026-11-12 12:04 — 151 — deliver — round 1 APPROVED by claude with no findings, no fix round; full suite 618 files / 15766 tests passed; squash merged and pushed — 07ec74a68
 - 2026-11-12 12:04 — 198 — start — launched by /relay-lite:run (151 done, tasks-view-ux 236 done) — 0e4af6695
+- 2026-11-12 12:14 — 198 — deliver — round 1 APPROVED by claude (fix round: palette test asserts the ui exclusion; diff contrast deferred to the owner's by-eye check), deliver re-review APPROVED by claude; full suite 618 files / 15771 tests passed; colors not checked by eye; squash merged and pushed — 1198d8e7b
