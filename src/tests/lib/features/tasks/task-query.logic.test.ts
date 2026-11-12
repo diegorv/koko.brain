@@ -16,6 +16,7 @@ import {
 	onlyThisFolder,
 	tagHeadingCardText,
 	selectSourceRows,
+	sourceSuggestions,
 	groupTaskRows,
 	isQuickFieldDefault,
 	matchesNestedTag,
@@ -311,6 +312,24 @@ describe('buildTaskRows', () => {
 		expect(row).not.toHaveProperty('heading');
 	});
 
+	it('sets inbox by the rule of isInboxEntry: not organized, not archived, not a type definition', () => {
+		const rows = rowsFrom(
+			[
+				entryV2('/vault/a-inbox.md', { tasks: [taskV2('t')] }),
+				entryV2('/vault/b-organized.md', { organized: true, tasks: [taskV2('t')] }),
+				entryV2('/vault/c-archived.md', { archived: true, tasks: [taskV2('t')] }),
+				entryV2('/vault/d-type.md', { isA: 'Type', tasks: [taskV2('t')] }),
+			],
+			'/vault',
+		);
+		expect(rows.map((r) => [r.relPath, r.inbox])).toEqual([
+			['a-inbox.md', true],
+			['b-organized.md', false],
+			['c-archived.md', false],
+			['d-type.md', false],
+		]);
+	});
+
 	it('changes neither the snapshot array, its entries, their tasks nor their frontmatter', () => {
 		const entries = [
 			entryV2('/vault/note 10.md', { frontmatter: { a: 1 }, tasks: [taskV2('ten', { status: 'done' })] }),
@@ -600,6 +619,63 @@ describe('selectSourceRows', () => {
 		});
 	});
 
+	describe('lifecycle clause', () => {
+		const entries = () => [
+			note('inbox.md'),
+			note('organized.md', { organized: true }),
+			note('favorite.md', { organized: true, favorite: true }),
+			note('archived.md', { archived: true }),
+			note('inbox-favorite.md', { favorite: true }),
+			note('type-definition.md', { isA: 'Type' }),
+		];
+		const state = (s: 'inbox' | 'organized' | 'favorite' | 'archived') => select(entries(), [card({ kind: 'lifecycle', state: s })]);
+
+		it('inbox: not organized, not archived and not a type definition', () => {
+			expect(state('inbox')).toEqual(['inbox-favorite.md', 'inbox.md']);
+		});
+
+		it('organized, favorite and archived: that flag is true', () => {
+			expect(state('organized')).toEqual(['favorite.md', 'organized.md']);
+			expect(state('favorite')).toEqual(['favorite.md', 'inbox-favorite.md']);
+			expect(state('archived')).toEqual(['archived.md']);
+		});
+
+		it('ANDs with the other clauses of its card', () => {
+			expect(select(entries(), [card({ kind: 'lifecycle', state: 'inbox' }, { kind: 'noteTag', tag: 'none' })])).toEqual([]);
+		});
+	});
+
+	describe('archived override', () => {
+		const entries = () => [
+			note('Old.md', { archived: true }),
+			note('_system/templates/Old template.md', { archived: true }),
+			note('Projects/Old project.md', { archived: true }),
+			note('Projects/a.md'),
+		];
+		const archivedCard = card({ kind: 'lifecycle', state: 'archived' });
+
+		it('a card holding a lifecycle archived clause brings archived notes back; the templates exclude still wins', () => {
+			expect(select(entries(), [archivedCard], defaultTaskExcludes())).toEqual(['Old.md', 'Projects/Old project.md']);
+		});
+
+		it('keeps the archived exclude for rows matched only by another card', () => {
+			const archivedHere = card({ kind: 'lifecycle', state: 'archived' }, { kind: 'folder', path: 'Nowhere' });
+			expect(select(entries(), [archivedHere, card({ kind: 'folder', path: 'Projects' })], defaultTaskExcludes())).toEqual([
+				'Projects/a.md',
+			]);
+			expect(select(entries(), [], defaultTaskExcludes())).toEqual(['Projects/a.md']);
+		});
+
+		it('keeps the listed excludes winning over it', () => {
+			const exclude = { ...defaultTaskExcludes(), notes: ['Old.md'], folders: ['Projects'] };
+			expect(select(entries(), [archivedCard], exclude)).toEqual([]);
+		});
+
+		it('lifts nothing from a card holding another lifecycle state', () => {
+			expect(select(entries(), [card({ kind: 'lifecycle', state: 'favorite' })], defaultTaskExcludes())).toEqual([]);
+		});
+	});
+
 	describe('heading clause', () => {
 		/** One task under each heading text, in one note. */
 		const under = (...headings: string[]) =>
@@ -775,6 +851,73 @@ describe('selectSourceRows', () => {
 
 	it('returns nothing for no rows', () => {
 		expect(selectSourceRows([], [], defaultTaskExcludes(), FOLDERS)).toEqual([]);
+	});
+});
+
+describe('sourceSuggestions', () => {
+	const rows = () =>
+		rowsFrom(
+			[
+				entryV2('/vault/Projects/ACME/a.md', {
+					tags: ['work', 'Client'],
+					isA: 'Project',
+					frontmatter: { status: 'Active', area: ['Home', 'work'], n: 3, done: false, meta: { x: 1 }, empty: null },
+					taskHeadings: [
+						{ level: 2, text: 'Inbox #to-list', line: 1 },
+						{ level: 3, text: 'Calls', line: 3 },
+					],
+					tasks: [taskV2('a1', { lineNumber: 2, heading: 0 }), taskV2('a2', { lineNumber: 4, heading: 1 })],
+				}),
+				entryV2('/vault/projects/b.md', {
+					tags: ['client', 'home/garden'],
+					isA: 'project',
+					frontmatter: { Status: 'done', status: 'active', area: 'Garden' },
+					taskHeadings: [{ level: 2, text: 'inbox #TO-LIST', line: 1 }],
+					tasks: [taskV2('b1', { lineNumber: 2, heading: 0 })],
+				}),
+				entryV2('/vault/Root.md', { isA: null, tasks: [taskV2('r1')] }),
+			],
+			'/vault',
+		);
+
+	it('lists every folder with its parents, without the root', () => {
+		expect(sourceSuggestions(rows()).folders).toEqual(['Projects', 'Projects/ACME']);
+	});
+
+	it('lists the note tags, types and heading tags, de-duplicated ignoring case and sorted', () => {
+		const s = sourceSuggestions(rows());
+		expect(s.tags).toEqual(['Client', 'home/garden', 'work']);
+		expect(s.types).toEqual(['Project']);
+		expect(s.headingTags).toEqual(['#to-list']);
+	});
+
+	it('offers heading tags that a heading clause matches in both modes, keeping the rows under that heading', () => {
+		for (const text of sourceSuggestions(rows()).headingTags) {
+			for (const match of ['tag', 'substring'] as const) {
+				const kept = selectSourceRows(rows(), [{ clauses: [{ kind: 'heading', text, match }] }], NO_EXCLUDES, FOLDERS);
+				// a2 sits under ### Calls, nested in ## Inbox #to-list; r1 has no heading.
+				expect(kept.map((r) => r.text)).toEqual(['a1', 'a2', 'b1']);
+			}
+		}
+	});
+
+	it('lists the property keys, and the scalar values and list elements seen for each key as strings', () => {
+		const s = sourceSuggestions(rows());
+		// Keys keep each spelling: the property clause matches its key exactly, case included.
+		expect(s.keys).toEqual(['area', 'done', 'empty', 'meta', 'n', 'status', 'Status']);
+		expect(s.values.get('status')).toEqual(['Active']);
+		expect(s.values.get('Status')).toEqual(['done']);
+		expect(s.values.get('area')).toEqual(['Garden', 'Home', 'work']);
+		expect(s.values.get('n')).toEqual(['3']);
+		expect(s.values.get('done')).toEqual(['false']);
+		expect(s.values.get('meta')).toBeUndefined();
+		expect(s.values.get('empty')).toBeUndefined();
+	});
+
+	it('gives empty lists for no rows', () => {
+		const s = sourceSuggestions([]);
+		expect([s.folders, s.tags, s.types, s.headingTags, s.keys]).toEqual([[], [], [], [], []]);
+		expect(s.values.size).toBe(0);
 	});
 });
 
@@ -1630,6 +1773,28 @@ describe('describeTaskQuery', () => {
 		);
 	});
 
+	it('words each lifecycle state', () => {
+		const sources: TaskSource[] = (['inbox', 'organized', 'favorite', 'archived'] as const).map((state) => ({
+			clauses: [{ kind: 'lifecycle', state }],
+		}));
+		expect(describeTaskQuery(withSources(sources))).toBe(
+			'Open tasks from notes in the inbox; or that are organized; or that are favorites; or that are archived',
+		);
+	});
+
+	it('leaves archived notes out of the excludes only when every card holds a lifecycle archived clause', () => {
+		const archived: TaskSource = { clauses: [{ kind: 'lifecycle', state: 'archived' }] };
+		const folder: TaskSource = { clauses: [{ kind: 'folder', path: 'Projects' }] };
+		const rest = ', except type definitions, templates, the system folder';
+		expect(describeTaskQuery(withSources([archived], defaultTaskExcludes()))).toBe(`Open tasks from notes that are archived${rest}`);
+		expect(describeTaskQuery(withSources([archived, archived], defaultTaskExcludes()))).toBe(
+			`Open tasks from notes that are archived; or that are archived${rest}`,
+		);
+		expect(describeTaskQuery(withSources([archived, folder], defaultTaskExcludes()))).toBe(
+			`Open tasks from notes that are archived; or in folder Projects${EXCEPT}`,
+		);
+	});
+
 	it('uses the general wording when a heading card sits beside another card', () => {
 		const sources: TaskSource[] = [...headingSources(['#to-list']), { clauses: [{ kind: 'folder', path: 'Projects' }] }];
 		expect(describeTaskQuery(withSources(sources))).toBe('Open tasks from notes under a heading tagged #to-list; or in folder Projects');
@@ -1787,6 +1952,19 @@ describe('explainEmptyTasks', () => {
 			const r = [...archived('todo'), ...rows([[done(1)]])];
 			expect(explain(r, OPEN)).toEqual({ message: 'The only task is closed', action: { kind: 'showAllStatuses', label: 'Show all' } });
 			expect(explain(r, OPEN, '', NO_EXCLUDES)).toEqual({ message: 'No tasks found' });
+		});
+
+		it('keeps the archived override of a lifecycle archived card, so the status filter is named', () => {
+			const query: TaskQuery = {
+				version: 1,
+				sources: [{ clauses: [{ kind: 'lifecycle', state: 'archived' }] }],
+				exclude: defaultTaskExcludes(),
+				quick: OPEN,
+			};
+			expect(explainEmptyTasks({ rows: archived('done'), query, folders: FOLDERS, today: TODAY, now: NOW })).toEqual({
+				message: 'The only task is closed',
+				action: SHOW_ALL,
+			});
 		});
 	});
 

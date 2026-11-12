@@ -1,6 +1,8 @@
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { formatDateWithOffset } from '#lib/utils/date.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
+import { findInlineTags } from '#lib/utils/tag-extraction.js';
+import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 import { headingChains, matchesHeading, type HeadingMatchMode } from './task-headings.logic';
 import { TASK_STATUSES, isTaskOpen, statusGlyph } from './task-status.logic';
 import type { TaskMetadata, TaskPriority, TaskStatus } from './task-metadata.types';
@@ -42,6 +44,8 @@ export type TaskRow = TaskItem & {
 	organized: boolean;
 	/** The note's favorite flag */
 	favorite: boolean;
+	/** Whether the note is in the lifecycle inbox (`isInboxEntry`) */
+	inbox: boolean;
 	/** The note's frontmatter: the snapshot's own object, never to be mutated */
 	properties: NoteEntryV2['frontmatter'];
 	/** The task's heading chain, outermost first (`headingChains`); [] before the first heading */
@@ -274,6 +278,7 @@ export function buildTaskRows(
 				archived: entry.archived,
 				organized: entry.organized,
 				favorite: entry.favorite,
+				inbox: isInboxEntry(entry),
 				properties: entry.frontmatter,
 				headings,
 			});
@@ -282,6 +287,9 @@ export function buildTaskRows(
 	}
 	return rows;
 }
+
+/** A lifecycle clause's state (see `TaskSourceClause`). */
+export type LifecycleState = 'inbox' | 'organized' | 'favorite' | 'archived';
 
 /** How a property clause compares the note's frontmatter value (see `TaskSourceClause`). */
 export type PropertyOp = 'is' | 'isNot' | 'contains' | 'exists';
@@ -311,7 +319,14 @@ export type TaskSourceClause =
 	 * `contains`: a substring of a scalar or of a list element. `exists`: the
 	 * key is present and its value is not `null`, `''` or `[]`; `value` is ignored.
 	 */
-	| { kind: 'property'; key: string; op: PropertyOp; value?: string };
+	| { kind: 'property'; key: string; op: PropertyOp; value?: string }
+	/**
+	 * The note's lifecycle: `inbox` reads `TaskRow.inbox`, the other states
+	 * the flag of that name. Never inactive, and has no `negate`. A card
+	 * holding an `archived` one lifts the archived exclude for the rows it
+	 * matches (`selectSourceRows`).
+	 */
+	| { kind: 'lifecycle'; state: LifecycleState };
 
 /** A source card: its clauses are ANDed; the cards of a query are ORed. */
 export interface TaskSource {
@@ -489,6 +504,10 @@ function clauseTest(clause: TaskSourceClause): RowTest | null {
 		}
 		case 'property':
 			return propertyTest(clause.key, clause.op, clause.value);
+		case 'lifecycle': {
+			const { state } = clause;
+			return (row) => row[state];
+		}
 	}
 	return clause.negate ? (row) => !test(row) : test;
 }
@@ -522,12 +541,20 @@ function propertyTest(rawKey: string, op: PropertyOp, rawValue: string | undefin
 	}
 }
 
-/** The excludes as one row test, or null when none is active. Values are normalized here, once per call. */
+/** Whether `source` holds a lifecycle `archived` clause, which lifts the archived exclude for the rows it matches. */
+function liftsArchived(source: TaskSource): boolean {
+	return source.clauses.some((c) => c.kind === 'lifecycle' && c.state === 'archived');
+}
+
+/**
+ * The excludes but the archived switch as one row test, or null when none is
+ * active: `selectSourceRows` applies the archived switch per card. Values are
+ * normalized here, once per call.
+ */
 function excludeTest(exclude: TaskExcludes, folders: TaskSourceFolders): RowTest | null {
 	const tests: RowTest[] = [];
-	if (exclude.archived) tests.push((row) => row.archived);
 	// The rule of `isTypeDefinition` (features/type-definitions/type-definitions.logic.ts),
-	// inlined: importing it would add a tasks to type-definitions feature pair.
+	// inlined: it reads an entry's `isA`, and a row carries it as `noteType`.
 	if (exclude.typeDefinitions) tests.push((row) => row.noteType === 'Type');
 	const dropFolders = [
 		...(exclude.templatesFolder ? [folders.templates] : []),
@@ -552,6 +579,10 @@ function excludeTest(exclude: TaskExcludes, folders: TaskSourceFolders): RowTest
  * (see `TaskSourceClause`). The heading clause reads the task's own heading
  * chain; the others read note fields every row of a note shares.
  *
+ * A card holding a lifecycle `archived` clause lifts the archived exclude for
+ * the rows it matches; every other exclude still wins, and a row matched only
+ * by other cards still loses to the archived exclude.
+ *
  * Each kept row is a new object whose `noteTaskCount` and `noteOpenCount`
  * count the kept rows of its note. A source that drops a parent task keeps
  * its child with no dimmed parent above it (`applyQuickFilters` dims only
@@ -565,9 +596,16 @@ export function selectSourceRows(
 	folders: TaskSourceFolders,
 ): TaskRow[] {
 	const excluded = excludeTest(exclude, folders);
-	const cards = sources.map((source) => source.clauses.map(clauseTest).filter((t): t is RowTest => t !== null));
-	const passes = (row: TaskRow) =>
-		!excluded?.(row) && (cards.length === 0 || cards.some((tests) => tests.every((test) => test(row))));
+	const cards = sources.map((source) => ({
+		tests: source.clauses.map(clauseTest).filter((t): t is RowTest => t !== null),
+		keepsArchived: liftsArchived(source),
+	}));
+	const passes = (row: TaskRow) => {
+		if (excluded?.(row)) return false;
+		const dropArchived = exclude.archived && row.archived;
+		if (cards.length === 0) return !dropArchived;
+		return cards.some((card) => (!dropArchived || card.keepsArchived) && card.tests.every((test) => test(row)));
+	};
 	const kept = rows.filter(passes);
 	const counts = new Map<string, { total: number; open: number }>();
 	for (const row of kept) {
@@ -580,6 +618,88 @@ export function selectSourceRows(
 		const c = counts.get(row.filePath)!;
 		return { ...row, noteTaskCount: c.total, noteOpenCount: c.open };
 	});
+}
+
+/** What the Sources panel's value pickers offer, each list sorted case-insensitively. */
+export interface SourceSuggestions {
+	/** Every row's folder and each of its parent folders, without '' */
+	folders: string[];
+	/** The note tags, as the rows hold them (no `#`) */
+	tags: string[];
+	/** The note types, without null */
+	types: string[];
+	/**
+	 * The inline tags in the rows' heading chains, as `#tag`: the heading
+	 * clause matches a tag in both modes, never a heading's whole text
+	 */
+	headingTags: string[];
+	/** The frontmatter keys, de-duplicated by exact spelling: the property clause matches its key case included */
+	keys: string[];
+	/** Under each exact frontmatter key, its scalar values and list elements as `String(value)`; a key with none has no entry */
+	values: ReadonlyMap<string, string[]>;
+}
+
+/**
+ * Collects strings de-duplicated case-insensitively (the first spelling wins),
+ * or by exact string when `exact`; blank ones are skipped.
+ */
+function stringSet(exact = false) {
+	const seen = new Map<string, string>();
+	return {
+		add(value: string) {
+			const key = exact ? value : value.toLowerCase();
+			if (value.trim() && !seen.has(key)) seen.set(key, value);
+		},
+		sorted: () => [...seen.values()].sort(byLowerCase),
+	};
+}
+
+/**
+ * The Sources panel's suggestions from `rows` (`tasksStore.rows`: every note
+ * with tasks, before the sources and excludes), each list but the keys
+ * de-duplicated case-insensitively, the first spelling winning, and sorted. Objects and
+ * `null` give no property value.
+ */
+export function sourceSuggestions(rows: readonly TaskRow[]): SourceSuggestions {
+	const folders = stringSet();
+	const tags = stringSet();
+	const types = stringSet();
+	const headingTags = stringSet();
+	const keys = stringSet(true);
+	const values = new Map<string, ReturnType<typeof stringSet>>();
+	const notes = new Set<string>();
+	for (const row of rows) {
+		for (const heading of row.headings) for (const { tag } of findInlineTags(heading)) headingTags.add(`#${tag}`);
+		// The other fields are the note's, the same on each of its rows.
+		if (notes.has(row.filePath)) continue;
+		notes.add(row.filePath);
+		const parts = row.folder.split('/');
+		for (let i = 1; i <= parts.length; i++) folders.add(parts.slice(0, i).join('/'));
+		for (const tag of row.noteTags) tags.add(tag);
+		if (row.noteType !== null) types.add(row.noteType);
+		for (const [key, value] of Object.entries(row.properties)) {
+			keys.add(key);
+			for (const v of Array.isArray(value) ? value : [value]) {
+				if (typeof v !== 'string' && typeof v !== 'number' && typeof v !== 'boolean') continue;
+				let set = values.get(key);
+				if (!set) values.set(key, (set = stringSet()));
+				set.add(String(v));
+			}
+		}
+	}
+	const sortedValues = new Map<string, string[]>();
+	for (const [key, set] of values) {
+		const list = set.sorted();
+		if (list.length > 0) sortedValues.set(key, list);
+	}
+	return {
+		folders: folders.sorted(),
+		tags: tags.sorted(),
+		types: types.sorted(),
+		headingTags: headingTags.sorted(),
+		keys: keys.sorted(),
+		values: sortedValues,
+	};
 }
 
 /** Whether `row` passes the status filter: a chosen status, else `show`. */
@@ -968,8 +1088,18 @@ function clauseWords(clause: TaskSourceClause): string | null {
 			if (!key || (clause.op !== 'exists' && !value)) return null;
 			return `where ${key} ${PROPERTY_OP_WORDS[clause.op]}${clause.op === 'exists' ? '' : ` ${value}`}`;
 		}
+		case 'lifecycle':
+			return LIFECYCLE_WORDS[clause.state];
 	}
 }
+
+/** Each lifecycle state as the sentence says it, after "from notes". */
+const LIFECYCLE_WORDS: Record<LifecycleState, string> = {
+	inbox: 'in the inbox',
+	organized: 'that are organized',
+	favorite: 'that are favorites',
+	archived: 'that are archived',
+};
 
 /** Each property op as the sentence says it, before the value. */
 const PROPERTY_OP_WORDS: Record<PropertyOp, string> = { is: 'is', isNot: 'is not', contains: 'contains', exists: 'is set' };
@@ -1012,10 +1142,15 @@ function describeSources(sources: readonly TaskSource[]): string {
 	return ` from notes ${cards.map((card) => card.map((c) => c.words).join(' and ')).join('; or ')}`;
 }
 
-/** The sentence's exclude part: the active switches, then each listed value; '' when none is active. */
-function describeExcludes(exclude: TaskExcludes): string {
+/**
+ * The sentence's exclude part: the active switches, then each listed value;
+ * '' when none is active. The archived switch is left out when every card
+ * lifts it (`liftsArchived`), as it then removes nothing.
+ */
+function describeExcludes(exclude: TaskExcludes, sources: readonly TaskSource[]): string {
 	const parts: string[] = [];
-	if (exclude.archived) parts.push('archived notes');
+	const archivedLifted = sources.length > 0 && sources.every(liftsArchived);
+	if (exclude.archived && !archivedLifted) parts.push('archived notes');
 	if (exclude.typeDefinitions) parts.push('type definitions');
 	if (exclude.templatesFolder) parts.push('templates');
 	if (exclude.systemFolder) parts.push('the system folder');
@@ -1040,7 +1175,7 @@ export function describeTaskQuery(query: TaskQuery): string {
 		: `, priority ${quick.priorities!.map(priorityWord).join(' or ')}`;
 	const tagged = isQuickFieldDefault(quick, 'tag') ? '' : `, tagged ${quick.tags!.map((t) => `#${t}`).join(' or ')}`;
 	const matching = isQuickFieldDefault(quick, 'search') ? '' : `, matching "${quick.search!.trim()}"`;
-	return `${describeStatus(quick)}${describeSources(query.sources)}${describeExcludes(query.exclude)}${when}${priority}${tagged}${matching}`;
+	return `${describeStatus(quick)}${describeSources(query.sources)}${describeExcludes(query.exclude, query.sources)}${when}${priority}${tagged}${matching}`;
 }
 
 /** Why the Tasks list is empty, and the one action that would fill it */
@@ -1108,7 +1243,8 @@ export function explainEmptyTasks({
 		};
 	}
 
-	const rows = selectSourceRows(sourced, [], query.exclude, folders);
+	// The sources run again with the excludes: a lifecycle archived card lifts the archived exclude.
+	const rows = selectSourceRows(allRows, query.sources, query.exclude, folders);
 	if (rows.length === 0) return { message: 'Every matching note is excluded', action: { kind: 'editExcludes', label: 'Edit excludes' } };
 
 	const { quick } = query;

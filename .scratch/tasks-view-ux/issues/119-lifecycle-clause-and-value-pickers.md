@@ -16,16 +16,20 @@
 
 **Blocked by:** 117
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B6 (a), so Issue 13 stands as written (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, `task-query.logic.test.ts`: each lifecycle state, including an inbox row that is a type definition (no match); a lifecycle `archived` card bringing an archived note's tasks back while the templates exclude still removes a template in an archived note; the archived exclude still applying to a row matched only by another card. Fails today (no lifecycle clause).
-- [ ] `sourceSuggestions` returns folders (with parents), tags, types, headings, keys and the values for a key from a fixed row set, de-duplicated and sorted.
-- [ ] `TasksView.test.ts` with real stores: picking a folder from a folder clause's suggestions sets that value and limits the list; the property value suggestions list the values seen for the chosen key.
+- [x] Failing test first, `task-query.logic.test.ts`: each lifecycle state, including an inbox row that is a type definition (no match); a lifecycle `archived` card bringing an archived note's tasks back while the templates exclude still removes a template in an archived note; the archived exclude still applying to a row matched only by another card. Fails today (no lifecycle clause).
+- [x] `sourceSuggestions` returns folders (with parents), tags, types, headings, keys and the values for a key from a fixed row set, de-duplicated and sorted.
+- [x] `TasksView.test.ts` with real stores: picking a folder from a folder clause's suggestions sets that value and limits the list; the property value suggestions list the values seen for the chosen key.
 
 ## Notes
 
 - **Size:** M. Split out of Issue 13.
+
+## Comments
+
+- 2026-11-12, branch `issue/119-lifecycle-clause-and-value-pickers`: lifecycle source clause with the archived override, `sourceSuggestions` and value suggestion menus in the Sources panel, help docs. Review round 1 CHANGES_REQUESTED (heading picker suggested texts, key spellings collapsed, archived notes kept in the sentence), fixed; round 2 APPROVED with no findings. Full suite: 631 files, 16394 passed, 54 skipped, 1 todo.

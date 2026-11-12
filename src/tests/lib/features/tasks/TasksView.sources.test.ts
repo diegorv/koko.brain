@@ -67,7 +67,7 @@ async function until(check: () => void): Promise<void> {
 }
 
 /** Clicks Add clause on the last card and picks `kind` in its menu. */
-async function addClause(kind: 'Folder' | 'Type' | 'Note tag' | 'Heading' | 'Property'): Promise<void> {
+async function addClause(kind: 'Folder' | 'Type' | 'Note tag' | 'Heading' | 'Property' | 'Lifecycle'): Promise<void> {
 	await openMenu(named('button', 'Add clause').at(-1)!);
 	const item = Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitem"]')).find(
 		(el) => el.textContent?.trim() === kind,
@@ -420,6 +420,117 @@ describe('TasksView: the Sources panel', () => {
 		expect(named('textbox', 'Property value')).toHaveLength(0);
 		expect(rowTexts()).toEqual(['active project task', 'done project task']);
 		expect(paragraph(`Open tasks from notes where status is set${EXCEPT}`)).toBeDefined();
+	});
+
+	it('lists the archived notes from a lifecycle card set to Archived, with no Not switch', async () => {
+		const old = entryV2('/vault/Old.md', { archived: true, tasks: [taskV2('archived task')] });
+		const organized = entryV2('/vault/Done.md', { organized: true, tasks: [taskV2('organized task')] });
+		mockTaskFetch(vault(), { entries: [old, organized] });
+		tasksStore.setSources([]);
+		({ component } = await mountTasksView());
+		only('button', 'Edit').click();
+		flushSync();
+
+		only('button', 'Add card').click();
+		flushSync();
+		await addClause('Lifecycle');
+		expect(named('switch', 'Not')).toHaveLength(0);
+		expect(rowTexts()).toEqual(['home task', 'project task']);
+
+		await openMenu(only('button', 'State: Inbox'));
+		const archived = Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitemradio"]')).find(
+			(el) => el.textContent?.trim() === 'Archived',
+		);
+		archived!.click();
+		flushSync();
+
+		expect(tasksStore.query.sources).toEqual([{ clauses: [{ kind: 'lifecycle', state: 'archived' }] }]);
+		expect(rowTexts()).toEqual(['archived task']);
+		expect(paragraph('Open tasks from notes that are archived, except type definitions, templates, the system folder')).toBeDefined();
+	});
+
+	describe('value suggestions', () => {
+		/** The texts of the open menu's items. */
+		const menuItems = () =>
+			Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitem"]')).map((el) => el.textContent?.trim());
+
+		/** Clicks the open menu's item reading `text`. */
+		function pick(text: string): void {
+			const item = Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitem"]')).find(
+				(el) => el.textContent?.trim() === text,
+			);
+			if (!item) throw new Error(`no ${text} item in the open menu`);
+			item.click();
+			flushSync();
+		}
+
+		it("picking a folder from a folder clause's suggestions sets the value and limits the list", async () => {
+			mockTaskFetch(vault());
+			tasksStore.setSources([]);
+			({ component } = await mountTasksView());
+			only('button', 'Edit').click();
+			flushSync();
+			only('button', 'Add card').click();
+			flushSync();
+			await addClause('Folder');
+			expect(rowTexts()).toEqual(['home task', 'project task']);
+
+			await openMenu(only('button', 'Suggestions'));
+			// Every note with tasks, the excluded template included, and each parent folder.
+			expect(menuItems()).toEqual(['_system', '_system/templates', 'Home', 'Projects']);
+			pick('Projects');
+
+			expect((only('textbox', 'Folder') as HTMLInputElement).value).toBe('Projects');
+			expect(tasksStore.query.sources).toEqual([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
+			expect(rowTexts()).toEqual(['project task']);
+		});
+
+		it('lists the property keys, and the values seen for the chosen key', async () => {
+			const project = (name: string, frontmatter: NoteEntryV2['frontmatter']) =>
+				entryV2(`/vault/Projects/${name}.md`, { frontmatter, tasks: [taskV2(`${name} task`)] });
+			mockTaskFetch(vault(), {
+				entries: [project('A', { status: 'active', area: 'Home' }), project('B', { status: ['done', 'Active'] }), project('C', { area: 'Work' })],
+			});
+			tasksStore.setSources([]);
+			({ component } = await mountTasksView());
+			only('button', 'Edit').click();
+			flushSync();
+			only('button', 'Add card').click();
+			flushSync();
+			await addClause('Property');
+
+			await openMenu(only('button', 'Key suggestions'));
+			expect(menuItems()).toEqual(['area', 'status']);
+			pick('status');
+			expect((only('textbox', 'Property key') as HTMLInputElement).value).toBe('status');
+
+			await openMenu(only('button', 'Suggestions'));
+			expect(menuItems()).toEqual(['active', 'done']);
+			pick('done');
+
+			expect(tasksStore.query.sources).toEqual([{ clauses: [{ kind: 'property', key: 'status', op: 'is', value: 'done' }] }]);
+			expect(rowTexts()).toEqual(['B task']);
+		});
+
+		it('says there is no suggestion for a key no note holds, and a typed value still applies', async () => {
+			mockTaskFetch(vault());
+			tasksStore.setSources([]);
+			({ component } = await mountTasksView());
+			only('button', 'Edit').click();
+			flushSync();
+			only('button', 'Add card').click();
+			flushSync();
+			await addClause('Folder');
+			type(only('textbox', 'Folder'), 'Home');
+			expect(rowTexts()).toEqual(['home task']);
+
+			await addClause('Property');
+			type(only('textbox', 'Property key'), 'nope');
+			// The folder clause's button comes first; the property value's is the last.
+			expect(named('button', 'Suggestions')).toHaveLength(2);
+			await openMenu(named('button', 'Suggestions').at(-1)!);
+			expect(menuItems()).toEqual(['No suggestions']);
+		});
 	});
 
 	describe('group header actions', () => {

@@ -10,7 +10,7 @@
 	import { tasksStore } from './tasks.store.svelte';
 	import { setTaskSources } from './tasks.service';
 	import type { HeadingMatchMode } from './task-headings.logic';
-	import type { PropertyOp, TaskExcludes, TaskSource, TaskSourceClause } from './task-query.logic';
+	import { sourceSuggestions, type LifecycleState, type PropertyOp, type TaskExcludes, type TaskSource, type TaskSourceClause } from './task-query.logic';
 
 	interface Props {
 		/** The panel's element id, which the view's Edit button names in `aria-controls` */
@@ -28,6 +28,7 @@
 		{ kind: 'noteTag', label: 'Note tag' },
 		{ kind: 'heading', label: 'Heading' },
 		{ kind: 'property', label: 'Property' },
+		{ kind: 'lifecycle', label: 'Lifecycle' },
 	];
 	const KIND_LABEL = Object.fromEntries(CLAUSE_KINDS.map((k) => [k.kind, k.label])) as Record<ClauseKind, string>;
 
@@ -39,6 +40,15 @@
 		{ op: 'exists', label: 'exists' },
 	];
 	const OP_LABEL = Object.fromEntries(PROPERTY_OPS.map((o) => [o.op, o.label])) as Record<PropertyOp, string>;
+
+	/** The lifecycle clause's states, in menu order, with the words its dropdown shows. */
+	const LIFECYCLE_STATES: { state: LifecycleState; label: string }[] = [
+		{ state: 'inbox', label: 'Inbox' },
+		{ state: 'organized', label: 'Organized' },
+		{ state: 'favorite', label: 'Favorite' },
+		{ state: 'archived', label: 'Archived' },
+	];
+	const STATE_LABEL = Object.fromEntries(LIFECYCLE_STATES.map((s) => [s.state, s.label])) as Record<LifecycleState, string>;
 
 	/** The four exclude switches, in display order. */
 	const SWITCHES: { key: 'archived' | 'typeDefinitions' | 'templatesFolder' | 'systemFolder'; label: string }[] = [
@@ -60,11 +70,13 @@
 
 	let sources = $derived(tasksStore.query.sources);
 	let exclude = $derived(tasksStore.query.exclude);
+	/** Read only while a suggestions menu is open, so the panel does not walk the rows on every change. */
+	let suggestions = $derived(sourceSuggestions(tasksStore.rows));
 
 	/** Text typed into each exclude list's input and not added yet. */
 	let drafts = $state<Record<(typeof LISTS)[number]['key'], string>>({ folders: '', notes: '', tags: '', types: '' });
 
-	/** A new clause of `kind` with an empty value, which is inactive until typed into. */
+	/** A new clause of `kind` with an empty value, which is inactive until typed into; a lifecycle clause starts at `inbox`. */
 	function emptyClause(kind: ClauseKind): TaskSourceClause {
 		switch (kind) {
 			case 'folder':
@@ -77,10 +89,12 @@
 				return { kind, text: '', match: 'tag' };
 			case 'property':
 				return { kind, key: '', op: 'is', value: '' };
+			case 'lifecycle':
+				return { kind, state: 'inbox' };
 		}
 	}
 
-	/** The value a clause's text field shows; a property clause's Value field (its Key field reads `key`). */
+	/** The value a clause's text field shows; a property clause's Value field (its Key field reads `key`); a lifecycle clause has none. */
 	function clauseValue(clause: TaskSourceClause): string {
 		switch (clause.kind) {
 			case 'folder':
@@ -93,10 +107,30 @@
 				return clause.text;
 			case 'property':
 				return clause.value ?? '';
+			case 'lifecycle':
+				return '';
 		}
 	}
 
-	/** `clause` with its value set to `value`. */
+	/** The suggestions for a clause's text field; a property clause's for its Value field, read under its trimmed key. */
+	function valueSuggestions(clause: TaskSourceClause): string[] {
+		switch (clause.kind) {
+			case 'folder':
+				return suggestions.folders;
+			case 'type':
+				return suggestions.types;
+			case 'noteTag':
+				return suggestions.tags;
+			case 'heading':
+				return suggestions.headingTags;
+			case 'property':
+				return suggestions.values.get(clause.key.trim()) ?? [];
+			case 'lifecycle':
+				return [];
+		}
+	}
+
+	/** `clause` with its value set to `value`; a lifecycle clause, which has no text value, unchanged. */
 	function withValue(clause: TaskSourceClause, value: string): TaskSourceClause {
 		switch (clause.kind) {
 			case 'folder':
@@ -109,6 +143,8 @@
 				return { ...clause, text: value };
 			case 'property':
 				return { ...clause, value };
+			case 'lifecycle':
+				return clause;
 		}
 	}
 
@@ -127,9 +163,14 @@
 		updateClause(ci, li, (c) => (c.kind === 'heading' ? { ...c, match } : c));
 	}
 
-	/** Sets a folder, type or note tag clause's `negate`; heading and property clauses have none. */
+	/** Sets a folder, type or note tag clause's `negate`; heading, property and lifecycle clauses have none. */
 	function setNegate(ci: number, li: number, negate: boolean) {
-		updateClause(ci, li, (c) => (c.kind === 'heading' || c.kind === 'property' ? c : { ...c, negate }));
+		updateClause(ci, li, (c) => (c.kind === 'heading' || c.kind === 'property' || c.kind === 'lifecycle' ? c : { ...c, negate }));
+	}
+
+	/** Sets a lifecycle clause's state; other kinds have none. */
+	function setState(ci: number, li: number, state: LifecycleState) {
+		updateClause(ci, li, (c) => (c.kind === 'lifecycle' ? { ...c, state } : c));
 	}
 
 	/** Sets a property clause's key or op. Switching to `exists` keeps the value, which it ignores. */
@@ -199,6 +240,25 @@
 	}
 </script>
 
+{#snippet picker(label: string, options: () => string[], choose: (value: string) => void)}
+	<DropdownMenu.Root>
+		<DropdownMenu.Trigger>
+			{#snippet child({ props })}
+				<Button {...props} variant="ghost" size="icon-sm" class="size-7 shrink-0 text-muted-foreground" aria-label={label}>
+					<ChevronDown class="size-3.5" aria-hidden="true" />
+				</Button>
+			{/snippet}
+		</DropdownMenu.Trigger>
+		<DropdownMenu.Content align="start" class="max-h-64 w-56">
+			{#each options() as option (option)}
+				<DropdownMenu.Item onSelect={() => choose(option)}>{option}</DropdownMenu.Item>
+			{:else}
+				<DropdownMenu.Item disabled>No suggestions</DropdownMenu.Item>
+			{/each}
+		</DropdownMenu.Content>
+	</DropdownMenu.Root>
+{/snippet}
+
 <div bind:this={panelEl} {id} data-task-sources-panel role="region" aria-label="Sources and excludes" class="mb-3 space-y-4 rounded-md border border-border bg-muted/30 p-3">
 	<section data-task-sources aria-label="Sources" class="space-y-2">
 		<div>
@@ -219,6 +279,7 @@
 								aria-label="Property key"
 								oninput={(e) => setProperty(ci, li, { key: (e.currentTarget as HTMLInputElement).value })}
 							/>
+							{@render picker('Key suggestions', () => suggestions.keys, (key) => setProperty(ci, li, { key }))}
 							<DropdownMenu.Root>
 								<DropdownMenu.Trigger>
 									{#snippet child({ props })}
@@ -245,7 +306,26 @@
 									aria-label="Property value"
 									oninput={(e) => updateClause(ci, li, (c) => withValue(c, (e.currentTarget as HTMLInputElement).value))}
 								/>
+								{@render picker('Suggestions', () => valueSuggestions(clause), (value) => updateClause(ci, li, (c) => withValue(c, value)))}
 							{/if}
+						{:else if clause.kind === 'lifecycle'}
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger>
+									{#snippet child({ props })}
+										<Button {...props} variant="ghost" size="sm" class="h-7 px-2 text-meta" aria-label="State: {STATE_LABEL[clause.state]}">
+											{STATE_LABEL[clause.state]}
+											<ChevronDown class="size-3" aria-hidden="true" />
+										</Button>
+									{/snippet}
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="start" class="w-32">
+									<DropdownMenu.RadioGroup value={clause.state} onValueChange={(value) => setState(ci, li, value as LifecycleState)}>
+										{#each LIFECYCLE_STATES as option (option.state)}
+											<DropdownMenu.RadioItem value={option.state}>{option.label}</DropdownMenu.RadioItem>
+										{/each}
+									</DropdownMenu.RadioGroup>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
 						{:else}
 							<Input
 								type="text"
@@ -254,6 +334,7 @@
 								aria-label={KIND_LABEL[clause.kind]}
 								oninput={(e) => updateClause(ci, li, (c) => withValue(c, (e.currentTarget as HTMLInputElement).value))}
 							/>
+							{@render picker('Suggestions', () => valueSuggestions(clause), (value) => updateClause(ci, li, (c) => withValue(c, value)))}
 						{/if}
 						{#if clause.kind === 'heading'}
 							<div role="group" aria-label="Heading match" class="flex items-center gap-1">
@@ -276,7 +357,7 @@
 									Contains
 								</Button>
 							</div>
-						{:else if clause.kind !== 'property'}
+						{:else if clause.kind !== 'property' && clause.kind !== 'lifecycle'}
 							<span class="flex items-center gap-1.5 text-meta text-muted-foreground">
 								<Switch
 									aria-label="Not"
