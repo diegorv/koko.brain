@@ -12,6 +12,7 @@ describe('tasksStore', () => {
 		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(tasksStore.hideCompleted).toBe(true);
 		expect(tasksStore.isLoading).toBe(false);
+		expect(tasksStore.hasLoaded).toBe(false);
 	});
 
 	it('setFileTaskGroups updates groups', () => {
@@ -40,12 +41,18 @@ describe('tasksStore', () => {
 		expect(tasksStore.isLoading).toBe(true);
 	});
 
+	it('setHasLoaded updates the loaded flag', () => {
+		tasksStore.setHasLoaded(true);
+		expect(tasksStore.hasLoaded).toBe(true);
+	});
+
 	it('reset restores defaults', () => {
 		tasksStore.setFileTaskGroups([{}] as any);
 		tasksStore.setDateFilter('last7days');
 		tasksStore.setSectionTag('#custom');
 		tasksStore.setHideCompleted(false);
 		tasksStore.setLoading(true);
+		tasksStore.setHasLoaded(true);
 
 		tasksStore.reset();
 
@@ -54,5 +61,6 @@ describe('tasksStore', () => {
 		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(tasksStore.hideCompleted).toBe(true);
 		expect(tasksStore.isLoading).toBe(false);
+		expect(tasksStore.hasLoaded).toBe(false);
 	});
 });

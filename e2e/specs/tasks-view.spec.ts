@@ -16,7 +16,8 @@ test.describe('Tasks view', () => {
 		await pressShortcut(page, 'Mod+Shift+T');
 		// TasksView ships with a "section tag" filter pre-populated to
 		// `#to-list`. None of the fixture tasks live under that tag, so the
-		// view shows "No tasks found" until the filter is cleared.
+		// view shows "No task sits under a heading containing #to-list" until
+		// the filter is cleared.
 		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
 		await sectionTagInput.fill('');
 		await page.waitForTimeout(300);

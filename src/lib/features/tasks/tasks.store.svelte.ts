@@ -10,6 +10,8 @@ let sectionTag = $state('#to-list');
 let hideCompleted = $state(true);
 /** True while the task index is being built */
 let isLoading = $state(false);
+/** True once a fetch for the current vault has settled, on success or failure */
+let hasLoaded = $state(false);
 
 export const tasksStore = {
 	get fileTaskGroups() { return fileTaskGroups; },
@@ -17,12 +19,14 @@ export const tasksStore = {
 	get sectionTag() { return sectionTag; },
 	get hideCompleted() { return hideCompleted; },
 	get isLoading() { return isLoading; },
+	get hasLoaded() { return hasLoaded; },
 
 	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
 	setDateFilter(filter: TaskDateFilter) { dateFilter = filter; },
 	setSectionTag(tag: string) { sectionTag = tag; },
 	setHideCompleted(hide: boolean) { hideCompleted = hide; },
 	setLoading(loading: boolean) { isLoading = loading; },
+	setHasLoaded(loaded: boolean) { hasLoaded = loaded; },
 
 	reset() {
 		fileTaskGroups = [];
@@ -30,5 +34,6 @@ export const tasksStore = {
 		sectionTag = '#to-list';
 		hideCompleted = true;
 		isLoading = false;
+		hasLoaded = false;
 	},
 };

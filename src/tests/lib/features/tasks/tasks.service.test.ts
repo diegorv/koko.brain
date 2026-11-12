@@ -167,6 +167,35 @@ describe('buildTaskIndex', () => {
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
+	it('sets hasLoaded after a successful fetch', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+		expect(tasksStore.hasLoaded).toBe(false);
+
+		await buildTaskIndex();
+
+		expect(tasksStore.hasLoaded).toBe(true);
+	});
+
+	it('sets hasLoaded after a failed fetch', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
+
+		await buildTaskIndex();
+
+		expect(tasksStore.hasLoaded).toBe(true);
+	});
+
+	it('leaves hasLoaded false when a call resolves after resetTasks', async () => {
+		let resolveCall!: (v: FileTaskGroupV2[]) => void;
+		vi.mocked(invoke).mockImplementationOnce(() => new Promise((r) => (resolveCall = r)));
+
+		const pending = buildTaskIndex();
+		resetTasks();
+		resolveCall([group('/vault/old-vault.md', 100, ['stale'])]);
+		await pending;
+
+		expect(tasksStore.hasLoaded).toBe(false);
+	});
+
 	it('reports only the error of the latest call', async () => {
 		let rejectFirst!: (e: Error) => void;
 		vi.mocked(invoke)

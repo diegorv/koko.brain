@@ -2,7 +2,7 @@
 
 Learn how to track tasks across your vault and sync them with Todoist.
 
-Kokobrain scans every Markdown file in your vault for checkbox items and presents them in a single, unified Tasks View. You can filter and toggle them there, and a two-way sync keeps chosen tasks and their Todoist copies in step.
+Kokobrain collects the checkbox items in your notes and presents them in a single, unified Tasks View. By default it lists only the tasks under a heading containing `#to-list`; clear the section filter to list every task in the vault. You can filter and toggle them there, and a two-way sync keeps chosen tasks and their Todoist copies in step.
 
 ---
 
@@ -10,7 +10,9 @@ Kokobrain scans every Markdown file in your vault for checkbox items and present
 
 Open the Tasks View with **Cmd+Shift+T**, or search for **"Toggle Tasks View"** in the Command Palette.
 
-The Tasks View is a *virtual tab* — it is not a file on disk. Instead, it is generated on the fly by scanning every `.md` file in your vault for checkbox lines (`- [ ]`, `- [x]`, and other statuses). Tasks are grouped by their source file and sorted by file modification date, so the most recently edited notes appear first.
+The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the filters below. With the default section filter, only tasks under a heading containing `#to-list` are listed. Tasks are grouped by their source file and sorted by file modification date, so the most recently edited notes appear first.
+
+A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, every task completed, or no recent note) and offers a button that lifts it: **Clear tag**, **Show completed** or **All time**.
 
 ![Tasks View with grouped tasks](screenshots/tasks-view.png)
 
@@ -26,7 +28,7 @@ Tasks are standard Markdown checkboxes. Write them anywhere in any note:
 - [x] Send email to team
 ```
 
-There is no special syntax required — any line that starts with `- [ ]` or `- [x]` (including the extended statuses below) will be picked up automatically.
+There is no special syntax required: any line that starts with `- [ ]` or `- [x]` (including the extended statuses below) is a task. With the default section filter, the Tasks View lists it only when it sits under a heading containing `#to-list`, for example `## Today #to-list`.
 
 ---
 
@@ -98,9 +100,9 @@ The Tasks View toolbar provides several filters to help you focus on what matter
 
 | Filter             | Options                              | Description                        |
 |--------------------|--------------------------------------|------------------------------------|
-| **Date**           | All time / Last 7 days / Last 30 days | Filter tasks by date              |
+| **Date**           | All time / Last 7 days / Last 30 days | Keep tasks from notes modified in that period (the note's modification date, not a task date) |
 | **Hide completed** | Toggle                               | Hide `- [x]` done tasks           |
-| **Section filter** | Text input                           | Filter by heading/section tag (e.g. `#to-list`). Default: `#to-list` |
+| **Section filter** | Text input                           | Keep tasks under a heading containing this tag (e.g. `#to-list`; the `#` is optional). Default: `#to-list`. Empty: every task in the vault |
 
 Combine filters to narrow down your view. For example, toggle **Hide completed** on and set the date range to **Last 7 days** to see only recent, unfinished tasks.
 

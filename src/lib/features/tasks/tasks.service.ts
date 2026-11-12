@@ -60,7 +60,10 @@ let latestTaskIndexRequest = 0;
  * otherwise calls `get_all_tasks_v2`. Phase 7.6 — Rust now owns task
  * parsing end-to-end (see `src-tauri/src/vault/parsing.rs::extract_tasks`).
  * A call superseded by a newer one (or by `resetTasks`) while in flight
- * leaves the store, the loading flag and error reporting to the newer call.
+ * leaves the store, the loading flag, `hasLoaded` and error reporting to the
+ * newer call. The latest call sets `hasLoaded` once it settles, on success or
+ * failure, so the view swaps "Indexing tasks..." for the list or the empty
+ * state only after the current vault's first fetch.
  */
 export async function buildTaskIndex(): Promise<void> {
 	const request = ++latestTaskIndexRequest;
@@ -81,7 +84,10 @@ export async function buildTaskIndex(): Promise<void> {
 	} catch (err) {
 		if (request === latestTaskIndexRequest) error('TASKS', 'buildTaskIndex failed:', err);
 	} finally {
-		if (request === latestTaskIndexRequest) tasksStore.setLoading(false);
+		if (request === latestTaskIndexRequest) {
+			tasksStore.setLoading(false);
+			tasksStore.setHasLoaded(true);
+		}
 	}
 }
 

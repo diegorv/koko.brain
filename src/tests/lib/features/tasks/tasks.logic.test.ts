@@ -5,6 +5,8 @@ import {
 	filterCompletedTasks,
 	computeTaskStats,
 	parseTaskTextSegments,
+	describeTaskRule,
+	explainEmptyTasks,
 } from '#lib/features/tasks/tasks.logic.js';
 import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
 
@@ -264,5 +266,151 @@ describe('parseTaskTextSegments', () => {
 		expect(parseTaskTextSegments('see [label](https://a.com')).toEqual([
 			{ type: 'text', value: 'see [label](https://a.com' },
 		]);
+	});
+});
+
+describe('describeTaskRule', () => {
+	it.each([
+		[true, '#to-list', 'all', 'Open tasks under headings containing #to-list'],
+		[false, '#to-list', 'all', 'All tasks under headings containing #to-list'],
+		[true, '', 'all', 'Open tasks from every note'],
+		[false, '', 'all', 'All tasks from every note'],
+		[true, '#to-list', 'last7days', 'Open tasks under headings containing #to-list, in notes edited in the last 7 days'],
+		[false, '#to-list', 'last30days', 'All tasks under headings containing #to-list, in notes edited in the last 30 days'],
+		[true, '', 'last30days', 'Open tasks from every note, in notes edited in the last 30 days'],
+		[false, '', 'last7days', 'All tasks from every note, in notes edited in the last 7 days'],
+	] as const)('hideCompleted=%s, tag=%j, date=%s gives %j', (hideCompleted, sectionTag, dateFilter, expected) => {
+		expect(describeTaskRule({ sectionTag, hideCompleted, dateFilter })).toBe(expected);
+	});
+
+	it('adds the # to a tag typed without one', () => {
+		expect(describeTaskRule({ sectionTag: 'work', hideCompleted: true, dateFilter: 'all' })).toBe(
+			'Open tasks under headings containing #work',
+		);
+	});
+
+	it('trims a tag with surrounding spaces', () => {
+		expect(describeTaskRule({ sectionTag: '  #work  ', hideCompleted: true, dateFilter: 'all' })).toBe(
+			'Open tasks under headings containing #work',
+		);
+	});
+
+	it('treats a whitespace-only tag as no tag', () => {
+		expect(describeTaskRule({ sectionTag: '   ', hideCompleted: true, dateFilter: 'all' })).toBe('Open tasks from every note');
+	});
+});
+
+describe('explainEmptyTasks', () => {
+	/** A note holding the given tasks. */
+	function note(tasks: TaskItem[], modifiedAt = 0): FileTaskGroup {
+		return { filePath: '/vault/a.md', fileName: 'a', modifiedAt, tasks };
+	}
+
+	const open = (lineNumber: number) => makeTask({ text: `open ${lineNumber}`, checked: false, indent: 0, lineNumber });
+	const done = (lineNumber: number) => makeTask({ text: `done ${lineNumber}`, checked: true, indent: 0, lineNumber });
+
+	describe('stage 1: no task', () => {
+		it('names the tag and offers to clear it', () => {
+			expect(explainEmptyTasks({ groups: [], sectionTag: '#to-list', hideCompleted: false, dateFilter: 'all' })).toEqual({
+				message: 'No task sits under a heading containing #to-list',
+				action: { kind: 'clearTag', label: 'Clear tag' },
+			});
+		});
+
+		it('displays the tag as the sentence does', () => {
+			expect(explainEmptyTasks({ groups: [], sectionTag: ' work ', hideCompleted: false, dateFilter: 'all' }).message).toBe(
+				'No task sits under a heading containing #work',
+			);
+		});
+
+		it('says the vault has no tasks without a tag, with no action', () => {
+			expect(explainEmptyTasks({ groups: [], sectionTag: '', hideCompleted: true, dateFilter: 'all' })).toEqual({
+				message: 'No tasks in this vault yet',
+			});
+		});
+
+		it('treats a whitespace-only tag as no tag', () => {
+			expect(explainEmptyTasks({ groups: [], sectionTag: '  ', hideCompleted: true, dateFilter: 'all' })).toEqual({
+				message: 'No tasks in this vault yet',
+			});
+		});
+
+		it('counts a group that holds no task as no task', () => {
+			expect(explainEmptyTasks({ groups: [note([])], sectionTag: '', hideCompleted: false, dateFilter: 'all' })).toEqual({
+				message: 'No tasks in this vault yet',
+			});
+		});
+
+		it('names the tag, not hide-completed, for an empty result with hide-completed on', () => {
+			expect(explainEmptyTasks({ groups: [], sectionTag: '#to-list', hideCompleted: true, dateFilter: 'last7days' })).toEqual({
+				message: 'No task sits under a heading containing #to-list',
+				action: { kind: 'clearTag', label: 'Clear tag' },
+			});
+		});
+	});
+
+	describe('stage 2: every task completed', () => {
+		it('counts the completed tasks', () => {
+			expect(
+				explainEmptyTasks({ groups: [note([done(1), done(2)]), note([done(3)])], sectionTag: '', hideCompleted: true, dateFilter: 'all' }),
+			).toEqual({ message: 'All 3 tasks are completed', action: { kind: 'showCompleted', label: 'Show completed' } });
+		});
+
+		it('words a single task on its own', () => {
+			expect(explainEmptyTasks({ groups: [note([done(1)])], sectionTag: '', hideCompleted: true, dateFilter: 'all' })).toEqual({
+				message: 'The only task is completed',
+				action: { kind: 'showCompleted', label: 'Show completed' },
+			});
+		});
+
+		it('counts a checked status other than done as completed', () => {
+			const inProgress = makeTask({ text: 'wip', checked: true, indent: 0, lineNumber: 1, status: 'in-progress' });
+			expect(explainEmptyTasks({ groups: [note([inProgress])], sectionTag: '', hideCompleted: true, dateFilter: 'all' }).message).toBe(
+				'The only task is completed',
+			);
+		});
+
+		it('comes before the date filter when both would empty the list', () => {
+			expect(
+				explainEmptyTasks({ groups: [note([done(1)], 0)], sectionTag: '', hideCompleted: true, dateFilter: 'last7days' }),
+			).toEqual({ message: 'The only task is completed', action: { kind: 'showCompleted', label: 'Show completed' } });
+		});
+	});
+
+	describe('stage 3: the date filter', () => {
+		it('names open tasks with hide-completed on, when the recent notes hold only checked tasks', () => {
+			const groups = [note([done(1)], Date.now()), note([open(2)], 0)];
+			expect(explainEmptyTasks({ groups, sectionTag: '', hideCompleted: true, dateFilter: 'last7days' })).toEqual({
+				message: 'No open task is in a note edited in the last 7 days',
+				action: { kind: 'allTime', label: 'All time' },
+			});
+		});
+
+		it('uses the 30-day wording with hide-completed on', () => {
+			expect(explainEmptyTasks({ groups: [note([open(1)])], sectionTag: '', hideCompleted: true, dateFilter: 'last30days' })).toEqual({
+				message: 'No open task is in a note edited in the last 30 days',
+				action: { kind: 'allTime', label: 'All time' },
+			});
+		});
+
+		it('names notes with tasks with hide-completed off', () => {
+			expect(explainEmptyTasks({ groups: [note([done(1)])], sectionTag: '', hideCompleted: false, dateFilter: 'last7days' })).toEqual({
+				message: 'No note with tasks was edited in the last 7 days',
+				action: { kind: 'allTime', label: 'All time' },
+			});
+		});
+
+		it('uses the 30-day wording with hide-completed off', () => {
+			expect(explainEmptyTasks({ groups: [note([open(1)])], sectionTag: '', hideCompleted: false, dateFilter: 'last30days' })).toEqual({
+				message: 'No note with tasks was edited in the last 30 days',
+				action: { kind: 'allTime', label: 'All time' },
+			});
+		});
+	});
+
+	it('falls back to "No tasks found" with no action when the date filter is all time', () => {
+		expect(explainEmptyTasks({ groups: [note([open(1)])], sectionTag: '', hideCompleted: true, dateFilter: 'all' })).toEqual({
+			message: 'No tasks found',
+		});
 	});
 });

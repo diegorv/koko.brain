@@ -5,13 +5,22 @@
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import Hash from '@lucide/svelte/icons/hash';
+	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
-	import { filterByDate, filterCompleted, computeTaskStats, parseTaskTextSegments } from './tasks.logic';
+	import {
+		filterByDate,
+		filterCompleted,
+		computeTaskStats,
+		parseTaskTextSegments,
+		describeTaskRule,
+		explainEmptyTasks,
+		type EmptyTasksExplanation,
+	} from './tasks.logic';
 	import { toggleTarget } from './task-status.logic';
 	import type { TaskDateFilter, TaskItem } from './tasks.types';
 
@@ -39,6 +48,14 @@
 		}, 400);
 	}
 
+	/** Empties the section tag, dropping a typed edit still waiting on its debounce. */
+	function clearSectionTag() {
+		if (debounceTimer) clearTimeout(debounceTimer);
+		debounceTimer = null;
+		sectionTagInput = '';
+		void updateSectionTagFilter('');
+	}
+
 	onDestroy(() => {
 		if (debounceTimer) clearTimeout(debounceTimer);
 	});
@@ -52,6 +69,31 @@
 	});
 
 	let stats = $derived(computeTaskStats(filteredGroups));
+
+	let ruleSentence = $derived(
+		describeTaskRule({
+			sectionTag: tasksStore.sectionTag,
+			hideCompleted: tasksStore.hideCompleted,
+			dateFilter: tasksStore.dateFilter,
+		}),
+	);
+
+	let emptyExplanation = $derived(
+		filteredGroups.length === 0
+			? explainEmptyTasks({
+					groups: tasksStore.fileTaskGroups,
+					sectionTag: tasksStore.sectionTag,
+					hideCompleted: tasksStore.hideCompleted,
+					dateFilter: tasksStore.dateFilter,
+				})
+			: null,
+	);
+
+	function runEmptyAction(kind: NonNullable<EmptyTasksExplanation['action']>['kind']) {
+		if (kind === 'clearTag') clearSectionTag();
+		else if (kind === 'showCompleted') tasksStore.setHideCompleted(false);
+		else tasksStore.setDateFilter('all');
+	}
 
 	function handleFileClick(filePath: string) {
 		openFileInEditor(filePath);
@@ -87,7 +129,7 @@
 	}
 </script>
 
-<div class="flex h-full flex-col bg-card">
+<div class="flex h-full flex-col">
 	<!-- Toolbar -->
 	<div class="pane-toolbar">
 		<div class="flex items-center gap-1">
@@ -128,19 +170,46 @@
 				value={sectionTagInput}
 				oninput={(e) => handleSectionTagChange(e.currentTarget.value)}
 				placeholder="section tag"
+				aria-label="Section tag"
 				class="h-6 w-28 pl-5 pr-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 			/>
 		</div>
+
+		{#if tasksStore.hasLoaded && tasksStore.isLoading}
+			<span role="status" aria-label="Refreshing tasks" class="flex items-center">
+				<Loader2 class="size-3.5 animate-spin text-muted-foreground" />
+			</span>
+		{/if}
 	</div>
 
 	<!-- Content -->
 	<ScrollArea class="flex-1 min-h-0">
 		<div class="p-4">
-			{#if tasksStore.isLoading}
+			{#if !tasksStore.hasLoaded}
 				<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
-			{:else if filteredGroups.length === 0}
-				<p class="text-sm text-muted-foreground text-center py-8">No tasks found</p>
+			{:else if emptyExplanation}
+				<p class="text-xs text-muted-foreground mb-1">{ruleSentence}</p>
+				<div class="flex flex-col items-center gap-2 py-8">
+					<p class="text-sm text-muted-foreground text-center">{emptyExplanation.message}</p>
+					{#if emptyExplanation.action}
+						{@const action = emptyExplanation.action}
+						<button
+							class="px-2 py-0.5 text-xs rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
+							onclick={() => runEmptyAction(action.kind)}
+						>
+							{action.label}
+						</button>
+					{/if}
+				</div>
 			{:else}
+				<div class="flex items-baseline gap-2 mb-1">
+					<p class="text-xs text-muted-foreground">{ruleSentence}</p>
+					{#if tasksStore.sectionTag.trim()}
+						<button class="text-xs text-primary hover:underline cursor-pointer" onclick={clearSectionTag}>
+							Clear tag
+						</button>
+					{/if}
+				</div>
 				<p class="text-xs text-muted-foreground mb-4">
 					{stats.total} {stats.total === 1 ? 'task' : 'tasks'} in {stats.fileCount} {stats.fileCount === 1 ? 'file' : 'files'}
 				</p>

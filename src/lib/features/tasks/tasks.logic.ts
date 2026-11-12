@@ -112,6 +112,110 @@ export function computeTaskStats(groups: FileTaskGroup[]): {
 	};
 }
 
+/** The Tasks view's filters, as the store holds them */
+export interface TaskRuleOptions {
+	/** Raw section tag, as typed (may lack `#` or carry spaces) */
+	sectionTag: string;
+	/** Whether completed tasks are hidden */
+	hideCompleted: boolean;
+	/** Active date filter */
+	dateFilter: TaskDateFilter;
+}
+
+/**
+ * Shows a section tag the way the Rust match reads it: trimmed, with a
+ * leading `#` added when missing. A whitespace-only tag gives ''.
+ */
+function displaySectionTag(sectionTag: string): string {
+	const tag = sectionTag.trim();
+	if (!tag) return '';
+	return tag.startsWith('#') ? tag : `#${tag}`;
+}
+
+/** Days covered by a date filter other than `all` */
+function dateFilterDays(dateFilter: Exclude<TaskDateFilter, 'all'>): number {
+	return dateFilter === 'last7days' ? 7 : 30;
+}
+
+/**
+ * Builds the sentence above the Tasks list that says which tasks it shows,
+ * e.g. "Open tasks under headings containing #to-list". No trailing period.
+ */
+export function describeTaskRule({ sectionTag, hideCompleted, dateFilter }: TaskRuleOptions): string {
+	const tag = displaySectionTag(sectionTag);
+	const which = hideCompleted ? 'Open tasks' : 'All tasks';
+	const where = tag ? ` under headings containing ${tag}` : ' from every note';
+	const when = dateFilter === 'all' ? '' : `, in notes edited in the last ${dateFilterDays(dateFilter)} days`;
+	return `${which}${where}${when}`;
+}
+
+/** Why the Tasks list is empty, and the one action that would fill it */
+export interface EmptyTasksExplanation {
+	/** Sentence naming the filter that emptied the list */
+	message: string;
+	/** Button that lifts that filter, when one does */
+	action?: { kind: 'clearTag' | 'showCompleted' | 'allTime'; label: string };
+}
+
+/**
+ * Names the first filter stage that leaves the Tasks list empty. The view
+ * calls it only when its filtered list is empty; it picks wording and does
+ * not filter again, so it takes no clock.
+ * @param groups - the unfiltered store groups (already limited by the
+ *   section tag on the Rust side)
+ */
+export function explainEmptyTasks({
+	groups,
+	sectionTag,
+	hideCompleted,
+	dateFilter,
+}: TaskRuleOptions & { groups: FileTaskGroup[] }): EmptyTasksExplanation {
+	let total = 0;
+	let checked = 0;
+	for (const group of groups) {
+		for (const task of group.tasks) {
+			total++;
+			if (task.checked) checked++;
+		}
+	}
+
+	if (total === 0) {
+		const tag = displaySectionTag(sectionTag);
+		if (tag) {
+			return {
+				message: `No task sits under a heading containing ${tag}`,
+				action: { kind: 'clearTag', label: 'Clear tag' },
+			};
+		}
+		return { message: 'No tasks in this vault yet' };
+	}
+
+	// `filterCompleted` keeps every unchecked task, so only an all-checked set
+	// empties the list here.
+	if (hideCompleted && checked === total) {
+		return {
+			message: total === 1 ? 'The only task is completed' : `All ${total} tasks are completed`,
+			action: { kind: 'showCompleted', label: 'Show completed' },
+		};
+	}
+
+	// The view filters by date before it hides completed tasks, so with
+	// hide-completed on the list can be empty while open tasks sit in old notes.
+	if (dateFilter !== 'all') {
+		const days = dateFilterDays(dateFilter);
+		return {
+			message: hideCompleted
+				? `No open task is in a note edited in the last ${days} days`
+				: `No note with tasks was edited in the last ${days} days`,
+			action: { kind: 'allTime', label: 'All time' },
+		};
+	}
+
+	// Unreachable from the view: past the first two stages an unchecked task
+	// remains (or hide-completed is off), and with no date filter it is listed.
+	return { message: 'No tasks found' };
+}
+
 
 /** A segment of task text for rich rendering in the Tasks view */
 export type TaskTextSegment =

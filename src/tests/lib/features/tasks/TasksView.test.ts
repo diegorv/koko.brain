@@ -23,6 +23,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import TasksView from '#lib/features/tasks/TasksView.svelte';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
+import { buildTaskIndex } from '#lib/features/tasks/tasks.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -239,5 +240,243 @@ describe('TasksView: the two-way sync is the only Todoist path', () => {
 		const sentFile = '/vault/.kokobrain/todoist-sent.json';
 		expect(vi.mocked(exists).mock.calls.some(([p]) => p === sentFile)).toBe(false);
 		expect(vi.mocked(readTextFile).mock.calls.some(([p]) => p === sentFile)).toBe(false);
+	});
+});
+
+/** A note holding several tasks; `modifiedAt` is in seconds, as Rust sends it. */
+function note(tasks: { text: string; lineNumber: number; status?: TaskStatus }[], modifiedAt = 1_700_000_000): FileTaskGroupV2 {
+	return {
+		filePath: NOTE,
+		fileName: '2026-Q2',
+		modifiedAt,
+		tasks: tasks.map(({ text, lineNumber, status = 'todo' }) => ({
+			text,
+			checked: status !== 'todo',
+			indent: 0,
+			lineNumber,
+			status,
+			metadata: { description: text, tags: [] },
+		})),
+	};
+}
+
+/** A promise with its resolver, for an IPC the test settles by hand. */
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+	let resolve!: (value: T) => void;
+	const promise = new Promise<T>((r) => (resolve = r));
+	return { promise, resolve };
+}
+
+describe('TasksView: loading, the rule sentence and the empty state', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function mountView(): void {
+		component = mount(TasksView, { target, props: { onOpenWikilink: vi.fn() } });
+		flushSync();
+	}
+
+	const rows = () => document.querySelectorAll('[data-task-row]');
+	const refreshing = () => document.querySelector('[role="status"][aria-label="Refreshing tasks"]');
+	const pageText = () => target.textContent ?? '';
+	const tagInput = () => {
+		const input = document.querySelector<HTMLInputElement>('input[aria-label="Section tag"]');
+		if (!input) throw new Error('section tag textbox not found');
+		return input;
+	};
+	const buttonsNamed = (name: string) =>
+		Array.from(document.querySelectorAll('button')).filter((b) => b.textContent?.trim() === name);
+	const paragraph = (text: string) => Array.from(document.querySelectorAll('p')).find((p) => p.textContent?.trim() === text);
+
+	/** Waits, flushing Svelte, until `check` stops throwing. */
+	async function until(check: () => void): Promise<void> {
+		await vi.waitFor(() => {
+			flushSync();
+			check();
+		});
+	}
+
+	it('keeps the rows and their focus during a refetch, with a refreshing status', async () => {
+		const data = [note([{ text: 'first', lineNumber: 1 }, { text: 'second', lineNumber: 2 }])];
+		const next = deferred<FileTaskGroupV2[]>();
+		let calls = 0;
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd !== 'get_all_tasks_v2') return undefined;
+			calls++;
+			return calls === 1 ? data : next.promise;
+		});
+		mountView();
+		await until(() => expect(rows()).toHaveLength(2));
+		const circle = document.querySelector<HTMLButtonElement>('[data-task-row] button');
+		if (!circle) throw new Error('circle button not found');
+		circle.focus();
+		expect(document.activeElement).toBe(circle);
+		expect(refreshing()).toBeNull();
+
+		const refetch = buildTaskIndex();
+		flushSync();
+		expect(rows()).toHaveLength(2);
+		expect(document.activeElement).toBe(circle);
+		expect(refreshing()).not.toBeNull();
+
+		next.resolve(data);
+		await refetch;
+		flushSync();
+		expect(rows()).toHaveLength(2);
+		expect(document.activeElement).toBe(circle);
+		expect(refreshing()).toBeNull();
+	});
+
+	it('names the section tag when nothing sits under it, and Clear tag lists every task', async () => {
+		tasksStore.setSectionTag('#to-list');
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'get_tasks_in_section_v2') return [];
+			if (cmd === 'get_all_tasks_v2') return [note([{ text: 'Ship feature A', lineNumber: 1 }])];
+			return undefined;
+		});
+		mountView();
+		await until(() => expect(paragraph('No task sits under a heading containing #to-list')).toBeDefined());
+		expect(buttonsNamed('Clear tag')).toHaveLength(1);
+		expect(tagInput().value).toBe('#to-list');
+
+		buttonsNamed('Clear tag')[0].click();
+		await until(() => expect(rows()).toHaveLength(1));
+		expect(tagInput().value).toBe('');
+		expect(tasksStore.sectionTag).toBe('');
+		expect(pageText()).toContain('Ship feature A');
+	});
+
+	it('keeps an empty vault\'s empty state during a refetch instead of the loading text', async () => {
+		const next = deferred<FileTaskGroupV2[]>();
+		let calls = 0;
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd !== 'get_all_tasks_v2') return undefined;
+			calls++;
+			return calls === 1 ? [] : next.promise;
+		});
+		mountView();
+		await until(() => expect(paragraph('No tasks in this vault yet')).toBeDefined());
+
+		const refetch = buildTaskIndex();
+		flushSync();
+		expect(paragraph('No tasks in this vault yet')).toBeDefined();
+		expect(pageText()).not.toContain('Indexing tasks...');
+
+		next.resolve([]);
+		await refetch;
+	});
+
+	it('says which tasks it lists, and its Clear tag drops a pending tag edit', async () => {
+		tasksStore.setSectionTag('#to-list');
+		const first = deferred<FileTaskGroupV2[]>();
+		let sectionCalls = 0;
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'get_tasks_in_section_v2') {
+				sectionCalls++;
+				return sectionCalls === 1 ? first.promise : [];
+			}
+			if (cmd === 'get_all_tasks_v2') return [];
+			return undefined;
+		});
+		mountView();
+		expect(pageText()).toContain('Indexing tasks...');
+		expect(pageText()).not.toContain('Open tasks');
+
+		first.resolve([note([{ text: 'Ship feature A', lineNumber: 1 }])]);
+		await until(() => expect(rows()).toHaveLength(1));
+		const sentence = paragraph('Open tasks under headings containing #to-list');
+		expect(sentence).toBeDefined();
+		expect(sentence!.nextElementSibling?.tagName).toBe('BUTTON');
+		expect(sentence!.nextElementSibling?.textContent?.trim()).toBe('Clear tag');
+		expect(buttonsNamed('Clear tag')).toHaveLength(1);
+		expect(sentence!.parentElement?.nextElementSibling?.textContent).toContain('1 task in 1 file');
+
+		const input = tagInput();
+		input.value = '#x';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		buttonsNamed('Clear tag')[0].click();
+		await new Promise((r) => setTimeout(r, 450));
+		flushSync();
+
+		const xCalls = vi.mocked(invoke).mock.calls.filter(
+			([cmd, args]) => cmd === 'get_tasks_in_section_v2' && (args as { sectionTag?: string } | undefined)?.sectionTag === '#x',
+		);
+		expect(xCalls).toHaveLength(0);
+		expect(tagInput().value).toBe('');
+		expect(tasksStore.sectionTag).toBe('');
+	});
+
+	it('offers Show completed when every task is done', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd: string) =>
+			cmd === 'get_all_tasks_v2' ? [note([{ text: 'Draft RFC', lineNumber: 1, status: 'done' }])] : undefined,
+		);
+		mountView();
+		await until(() => expect(paragraph('The only task is completed')).toBeDefined());
+		expect(buttonsNamed('Show completed')).toHaveLength(1);
+
+		buttonsNamed('Show completed')[0].click();
+		await until(() => expect(rows()).toHaveLength(1));
+		expect(tasksStore.hideCompleted).toBe(false);
+		expect(pageText()).toContain('Draft RFC');
+	});
+
+	it('offers All time when every note with tasks is older than the date filter', async () => {
+		tasksStore.setDateFilter('last7days');
+		const yearAgo = Math.floor(Date.now() / 1000) - 365 * 24 * 60 * 60;
+		vi.mocked(invoke).mockImplementation(async (cmd: string) =>
+			cmd === 'get_all_tasks_v2' ? [note([{ text: 'Old task', lineNumber: 1 }], yearAgo)] : undefined,
+		);
+		mountView();
+		const message = 'No open task is in a note edited in the last 7 days';
+		await until(() => expect(paragraph(message)).toBeDefined());
+		const action = paragraph(message)!.nextElementSibling as HTMLButtonElement | null;
+		expect(action?.textContent?.trim()).toBe('All time');
+
+		action!.click();
+		await until(() => expect(rows()).toHaveLength(1));
+		expect(tasksStore.dateFilter).toBe('all');
+		expect(pageText()).toContain('Old task');
+	});
+
+	it('shows the previous rows at once when the view is mounted again', async () => {
+		const data = [note([{ text: 'Ship feature A', lineNumber: 1 }])];
+		const next = deferred<FileTaskGroupV2[]>();
+		let calls = 0;
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd !== 'get_all_tasks_v2') return undefined;
+			calls++;
+			return calls === 1 ? data : next.promise;
+		});
+		mountView();
+		await until(() => expect(rows()).toHaveLength(1));
+		unmount(component!);
+		component = null;
+
+		mountView();
+		expect(rows()).toHaveLength(1);
+		expect(pageText()).not.toContain('Indexing tasks...');
+		await new Promise((r) => setTimeout(r, 0));
+		flushSync();
+		expect(calls).toBe(2);
+		expect(rows()).toHaveLength(1);
+		expect(pageText()).not.toContain('Indexing tasks...');
+
+		next.resolve(data);
+		await until(() => expect(tasksStore.isLoading).toBe(false));
 	});
 });
