@@ -4,7 +4,7 @@ use crate::utils::logger::{debug_log, is_debug_enabled};
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{
-	extract_tasks_from_section, parse_task_line, rewrite_type_in_frontmatter, set_task_status_in_content,
+	extract_tasks_from_sections, parse_task_line, rewrite_type_in_frontmatter, set_task_status_in_content,
 };
 use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, TaskStatus, ToggleTaskResult};
 use crate::vault::task_lines::{
@@ -671,7 +671,7 @@ pub struct SectionTaskCandidate {
 
 /// Picks the notes `tasks_in_section` has to read: those whose index entry
 /// has at least one task. Exact, not a heuristic: `NoteEntry.tasks` is
-/// `extract_tasks` over the full content, and `extract_tasks_from_section`
+/// `extract_tasks` over the full content, and `extract_tasks_from_sections`
 /// runs the same line split, fence logic and `parse_task_line` behind an
 /// extra heading gate, so a note with no tasks has no section tasks.
 pub fn section_task_candidates<'a>(
@@ -688,12 +688,13 @@ pub fn section_task_candidates<'a>(
 }
 
 /// Reads each candidate through `read`, keeps the tasks under headings
-/// that contain `section_tag`, and returns the non-empty groups sorted by
-/// `modified_at` descending. A read failure is logged and the note skipped,
-/// so one vanished file does not fail the whole query.
+/// that contain any of `section_tags` (`extract_tasks_from_sections`), and
+/// returns the non-empty groups sorted by `modified_at` descending. Each
+/// note is read once whatever the tag count. A read failure is logged and
+/// the note skipped, so one vanished file does not fail the whole query.
 pub fn tasks_in_section(
 	candidates: Vec<SectionTaskCandidate>,
-	section_tag: &str,
+	section_tags: &[String],
 	mut read: impl FnMut(&str) -> std::io::Result<String>,
 ) -> Vec<FileTaskGroup> {
 	debug_log(
@@ -715,7 +716,7 @@ pub fn tasks_in_section(
 				continue;
 			}
 		};
-		let tasks = extract_tasks_from_section(&content, section_tag);
+		let tasks = extract_tasks_from_sections(&content, section_tags);
 		if !tasks.is_empty() {
 			out.push(FileTaskGroup {
 				file_name: display_name(&candidate.path),
@@ -730,9 +731,10 @@ pub fn tasks_in_section(
 }
 
 /// Returns tasks across the vault filtered by section heading: only tasks
-/// whose containing heading text contains `section_tag` are emitted. The
-/// `VaultIndex` does not store headings, so this command reads from disk
-/// every note whose index entry has tasks (`section_task_candidates`).
+/// whose containing heading text contains any of `section_tags` (the
+/// frontend's `sectionTags`) are emitted. The `VaultIndex` does not store
+/// headings, so this command reads from disk every note whose index entry
+/// has tasks (`section_task_candidates`).
 ///
 /// Async so Tauri runs it off the app main thread. The candidates are
 /// copied under a brief read guard and the files are read on a blocking
@@ -740,7 +742,7 @@ pub fn tasks_in_section(
 /// `update_note_in_index` (which take `.write()`) do not wait on disk I/O.
 #[tauri::command]
 pub async fn get_tasks_in_section_v2(
-	section_tag: String,
+	section_tags: Vec<String>,
 	state: tauri::State<'_, VaultIndexState>,
 ) -> Result<Vec<FileTaskGroup>, String> {
 	let _trace = CmdTrace::new("get_tasks_in_section_v2");
@@ -751,7 +753,7 @@ pub async fn get_tasks_in_section_v2(
 		section_task_candidates(idx.entries().values())
 	};
 	tokio::task::spawn_blocking(move || {
-		tasks_in_section(candidates, &section_tag, |p| std::fs::read_to_string(p))
+		tasks_in_section(candidates, &section_tags, |p| std::fs::read_to_string(p))
 	})
 	.await
 	.map_err(|e| format!("get_tasks_in_section_v2 task join error: {}", e))

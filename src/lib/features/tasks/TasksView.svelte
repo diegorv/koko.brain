@@ -19,6 +19,7 @@
 		parseTaskTextSegments,
 		describeTaskRule,
 		explainEmptyTasks,
+		parseSectionTags,
 		type EmptyTasksExplanation,
 	} from './tasks.logic';
 	import { toggleTarget } from './task-status.logic';
@@ -169,9 +170,9 @@
 				type="text"
 				value={sectionTagInput}
 				oninput={(e) => handleSectionTagChange(e.currentTarget.value)}
-				placeholder="section tag"
+				placeholder="#tag #tag"
 				aria-label="Section tag"
-				class="h-6 w-28 pl-5 pr-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+				class="h-6 w-40 pl-5 pr-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 			/>
 		</div>
 
@@ -204,7 +205,7 @@
 			{:else}
 				<div class="flex items-baseline gap-2 mb-1">
 					<p class="text-xs text-muted-foreground">{ruleSentence}</p>
-					{#if tasksStore.sectionTag.trim()}
+					{#if parseSectionTags(tasksStore.sectionTag).length > 0}
 						<button class="text-xs text-primary hover:underline cursor-pointer" onclick={clearSectionTag}>
 							Clear tag
 						</button>

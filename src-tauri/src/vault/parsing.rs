@@ -1436,7 +1436,7 @@ static ORDERED_TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Regex for a markdown heading line. Group 1 is the `#` run (its length is
 /// the heading level), group 2 the heading text. Used by
-/// `extract_tasks_from_section` to find section boundaries, and by
+/// `extract_tasks_from_sections` to find section boundaries, and by
 /// `task_lines` to find the heading an insert goes under.
 pub(crate) static HEADING_RE: LazyLock<Regex> =
 	LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.*)$").expect("HEADING_RE"));
@@ -1715,23 +1715,48 @@ pub fn extract_tasks(content: &str) -> Vec<Task> {
 }
 
 /// Extracts tasks only from sections whose heading text contains
-/// `section_tag`. A "section" spans from a heading line until the next
-/// heading of equal-or-higher level. Empty `section_tag` falls through to
-/// `extract_tasks`.
+/// `section_tag`: the one-tag case of `extract_tasks_from_sections`.
+/// Empty `section_tag` falls through to `extract_tasks`.
 pub fn extract_tasks_from_section(content: &str, section_tag: &str) -> Vec<Task> {
-	if section_tag.trim().is_empty() {
+	extract_tasks_from_sections(content, &[section_tag.to_string()])
+}
+
+/// One tag's section state in `extract_tasks_from_sections`.
+struct SectionMatch {
+	/// The tag with its leading `#`.
+	tag: String,
+	/// True while the current line sits inside a heading that contains `tag`.
+	active: bool,
+	/// Level of the heading that opened the active section.
+	level: usize,
+}
+
+/// Extracts tasks under any heading whose text contains one of
+/// `section_tags` (case-sensitive substring, `#` added when missing). A
+/// "section" spans from a heading line until the next heading of
+/// equal-or-higher level. The result is the union of the one-tag results,
+/// each task once, in line order. Blank tags are dropped; with none left it
+/// falls through to `extract_tasks`.
+///
+/// Each tag keeps its own state: a heading that contains one tag re-anchors
+/// only that tag's section level, so a nested `## B #work` does not end an
+/// outer `# A #to-list` section early.
+pub fn extract_tasks_from_sections(content: &str, section_tags: &[String]) -> Vec<Task> {
+	let mut sections: Vec<SectionMatch> = section_tags
+		.iter()
+		.filter(|t| !t.trim().is_empty())
+		.map(|t| SectionMatch {
+			tag: if t.starts_with('#') { t.clone() } else { format!("#{}", t) },
+			active: false,
+			level: 0,
+		})
+		.collect();
+	if sections.is_empty() {
 		return extract_tasks(content);
 	}
-	let tag = if section_tag.starts_with('#') {
-		section_tag.to_string()
-	} else {
-		format!("#{}", section_tag)
-	};
 	let mut out: Vec<Task> = Vec::new();
 	let mut in_code_block = false;
 	let mut fence_char: Option<&str> = None;
-	let mut in_matching_section = false;
-	let mut section_level: usize = 0;
 	for (i, line) in content.split('\n').enumerate() {
 		if let Some(fence) = detect_code_fence(line) {
 			if !in_code_block {
@@ -1749,16 +1774,18 @@ pub fn extract_tasks_from_section(content: &str, section_tag: &str) -> Vec<Task>
 		if let Some(caps) = HEADING_RE.captures(line) {
 			let level = caps.get(1).map(|m| m.as_str().len()).unwrap_or(0);
 			let heading_text = caps.get(2).map(|m| m.as_str()).unwrap_or("");
-			if in_matching_section && level <= section_level {
-				in_matching_section = false;
-			}
-			if heading_text.contains(&tag) {
-				in_matching_section = true;
-				section_level = level;
+			for section in sections.iter_mut() {
+				if section.active && level <= section.level {
+					section.active = false;
+				}
+				if heading_text.contains(&section.tag) {
+					section.active = true;
+					section.level = level;
+				}
 			}
 			continue;
 		}
-		if in_matching_section {
+		if sections.iter().any(|s| s.active) {
 			if let Some(task) = parse_task_line(line, i + 1) {
 				out.push(task);
 			}
@@ -3087,6 +3114,51 @@ mod tests {
 		let tasks = extract_tasks_from_section(content, "#to-list");
 		assert_eq!(tasks.len(), 1);
 		assert_eq!(tasks[0].text, "real task");
+	}
+
+	// --- extract_tasks_from_sections -----------------------------------------------
+
+	/// A level-1 `#to-list` section holding a level-2 `#work` one: `## C`
+	/// closes `#work` but not `#to-list`, so t2 stays listed.
+	const NESTED_SECTIONS: &str = "# A #to-list\n## B #work\n- [ ] t1\n## C\n- [ ] t2\n# D\n- [ ] t3\n";
+
+	fn tags(list: &[&str]) -> Vec<String> {
+		list.iter().map(|t| t.to_string()).collect()
+	}
+
+	#[test]
+	fn extract_tasks_from_sections_is_the_line_ordered_union_of_single_tags() {
+		for order in [["#to-list", "#work"], ["#work", "#to-list"]] {
+			let mut expected: Vec<Task> = order
+				.iter()
+				.flat_map(|t| extract_tasks_from_section(NESTED_SECTIONS, t))
+				.collect();
+			expected.sort_by_key(|t| t.line_number);
+			expected.dedup_by_key(|t| t.line_number);
+
+			let actual = extract_tasks_from_sections(NESTED_SECTIONS, &tags(&order));
+			assert_eq!(actual, expected, "order {order:?}");
+			assert_eq!(actual.iter().map(|t| t.text.as_str()).collect::<Vec<_>>(), vec!["t1", "t2"]);
+		}
+	}
+
+	#[test]
+	fn extract_tasks_from_sections_lists_a_task_under_two_tags_once() {
+		let content = "## Both #to-list #work\n- [ ] once\n## Other\n- [ ] out\n";
+		let tasks = extract_tasks_from_sections(content, &tags(&["#to-list", "#work"]));
+		assert_eq!(tasks.iter().map(|t| t.text.as_str()).collect::<Vec<_>>(), vec!["once"]);
+	}
+
+	#[test]
+	fn extract_tasks_from_sections_drops_blank_tags() {
+		let tasks = extract_tasks_from_sections(NESTED_SECTIONS, &tags(&["", "  ", "#work"]));
+		assert_eq!(tasks, extract_tasks_from_section(NESTED_SECTIONS, "#work"));
+	}
+
+	#[test]
+	fn extract_tasks_from_sections_with_no_tags_returns_every_task() {
+		assert_eq!(extract_tasks_from_sections(NESTED_SECTIONS, &[]), extract_tasks(NESTED_SECTIONS));
+		assert_eq!(extract_tasks_from_sections(NESTED_SECTIONS, &tags(&[" ", ""])), extract_tasks(NESTED_SECTIONS));
 	}
 
 	// --- parse_task_metadata: dates ------------------------------------------------

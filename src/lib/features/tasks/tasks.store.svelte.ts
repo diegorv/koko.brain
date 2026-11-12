@@ -4,7 +4,11 @@ import type { FileTaskGroup, TaskDateFilter } from './tasks.types';
 let fileTaskGroups = $state<FileTaskGroup[]>([]);
 /** Active date filter */
 let dateFilter = $state<TaskDateFilter>('all');
-/** Section tag to filter by (e.g. "#to-list"). Empty string means all tasks. */
+/**
+ * Section tag text to filter by, one or more tags separated by spaces or
+ * commas (e.g. "#to-list #work"; see `parseSectionTags`). Text with no tag
+ * means all tasks.
+ */
 let sectionTag = $state('#to-list');
 /** Whether to hide completed tasks */
 let hideCompleted = $state(true);

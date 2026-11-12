@@ -1072,7 +1072,7 @@ fn tasks_in_section_reads_only_notes_with_tasks() {
 
 	let mut reads: Vec<String> = Vec::new();
 	let candidates = section_task_candidates(idx.entries().values());
-	let groups = tasks_in_section(candidates, "#to-list", |p| {
+	let groups = tasks_in_section(candidates, &["#to-list".to_string()], |p| {
 		reads.push(p.to_string());
 		fs::read_to_string(p)
 	});
@@ -1084,6 +1084,49 @@ fn tasks_in_section_reads_only_notes_with_tasks() {
 }
 
 #[test]
+fn tasks_in_section_lists_tasks_under_any_of_several_tags() {
+	let dir = TempDir::new().unwrap();
+	let mut idx = VaultIndex::default();
+	let a = index_note(
+		&mut idx,
+		&dir,
+		"a.md",
+		"## A #to-list\n- [ ] a1\n- [ ] a2\n## B #work\n- [ ] b1\n## C\n- [ ] c1\n",
+		2,
+	);
+	let nested = index_note(
+		&mut idx,
+		&dir,
+		"nested.md",
+		"# A #to-list\n## B #work\n- [ ] t1\n## C\n- [ ] t2\n## Both #to-list #work\n- [ ] both\n",
+		1,
+	);
+
+	let mut reads: Vec<String> = Vec::new();
+	let section_tags = ["#to-list".to_string(), "#work".to_string()];
+	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), &section_tags, |p| {
+		reads.push(p.to_string());
+		fs::read_to_string(p)
+	});
+
+	reads.sort();
+	let mut expected_reads = vec![a.clone(), nested.clone()];
+	expected_reads.sort();
+	assert_eq!(reads, expected_reads);
+	let listed: Vec<(String, Vec<String>)> = groups
+		.iter()
+		.map(|g| (g.file_path.clone(), g.tasks.iter().map(|t| t.text.clone()).collect()))
+		.collect();
+	assert_eq!(
+		listed,
+		vec![
+			(a, vec!["a1".to_string(), "a2".to_string(), "b1".to_string()]),
+			(nested, vec!["t1".to_string(), "t2".to_string(), "both".to_string()]),
+		]
+	);
+}
+
+#[test]
 fn tasks_in_section_skips_unreadable_notes() {
 	let dir = TempDir::new().unwrap();
 	let mut idx = VaultIndex::default();
@@ -1091,7 +1134,7 @@ fn tasks_in_section_skips_unreadable_notes() {
 	index_note(&mut idx, &dir, "gone.md", "## Todo #to-list\n- [ ] two\n", 1);
 	fs::remove_file(dir.path().join("gone.md")).unwrap();
 
-	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), "#to-list", |p| fs::read_to_string(p));
+	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), &["#to-list".to_string()], |p| fs::read_to_string(p));
 
 	assert_eq!(groups.iter().map(|g| g.file_path.clone()).collect::<Vec<_>>(), vec![a]);
 }
@@ -1099,7 +1142,7 @@ fn tasks_in_section_skips_unreadable_notes() {
 #[test]
 fn tasks_in_section_on_empty_index_returns_empty() {
 	let idx = VaultIndex::default();
-	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), "#to-list", |p| fs::read_to_string(p));
+	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), &["#to-list".to_string()], |p| fs::read_to_string(p));
 	assert!(groups.is_empty());
 }
 
@@ -1130,7 +1173,7 @@ fn tasks_in_section_matches_the_unfiltered_loop() {
 		}
 		expected.sort_by_key(|g| std::cmp::Reverse(g.modified_at));
 
-		let actual = tasks_in_section(section_task_candidates(idx.entries().values()), tag, |p| fs::read_to_string(p));
+		let actual = tasks_in_section(section_task_candidates(idx.entries().values()), &[tag.to_string()], |p| fs::read_to_string(p));
 		assert_eq!(actual, expected, "tag {tag}");
 	}
 }

@@ -102,8 +102,8 @@ export interface CommandMap {
 	get_all_tags_v2: { args: NoArgs; result: TagAggregate[] };
 	/** Tasks grouped by file. */
 	get_all_tasks_v2: { args: NoArgs; result: FileTaskGroup[] };
-	/** Tasks under the sections tagged `sectionTag`. */
-	get_tasks_in_section_v2: { args: { sectionTag: string }; result: FileTaskGroup[] };
+	/** Tasks under the sections whose heading contains any of `sectionTags`. */
+	get_tasks_in_section_v2: { args: { sectionTags: string[] }; result: FileTaskGroup[] };
 	/** Sets the task at `lineNumber` of `path` to `target`; `stale` when the line no longer holds the expected task. */
 	toggle_task_status: {
 		args: { path: string; lineNumber: number; expectedText: string; expectedStatus: TaskStatus; target: TaskStatus };
@@ -266,7 +266,7 @@ export const COMMAND_ARGS = {
 	propagate_type_rename: ['oldType', 'newType'],
 	get_all_tags_v2: [],
 	get_all_tasks_v2: [],
-	get_tasks_in_section_v2: ['sectionTag'],
+	get_tasks_in_section_v2: ['sectionTags'],
 	toggle_task_status: ['path', 'lineNumber', 'expectedText', 'expectedStatus', 'target'],
 	write_task_lines: ['vaultRoot', 'relPath', 'edits'],
 	remove_note_from_index: ['path'],

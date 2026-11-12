@@ -160,7 +160,7 @@ function handleGetAllTasksV2(): FileTaskGroup[] {
 }
 
 function handleGetTasksInSectionV2(args: Args<'get_tasks_in_section_v2'>): FileTaskGroup[] {
-	return vaultIndex.getTasksInSection(args.sectionTag);
+	return vaultIndex.getTasksInSection(args.sectionTags);
 }
 
 function handleToggleTaskStatus(args: Args<'toggle_task_status'>): ToggleTaskResult {

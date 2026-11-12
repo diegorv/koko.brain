@@ -88,7 +88,7 @@ describe('call', () => {
 	it('rejects bad args at compile time', () => {
 		// Compile-time only; the calls never run.
 		const typeOnly = () => {
-			// @ts-expect-error sectionTag is required
+			// @ts-expect-error sectionTags is required
 			void call('get_tasks_in_section_v2', {});
 			// @ts-expect-error sortBy is missing
 			void call('scan_vault', { path: '/vault' });

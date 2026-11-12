@@ -486,12 +486,49 @@ class VaultIndexImpl {
 		return groups.sort((a, b) => b.modifiedAt - a.modifiedAt);
 	}
 
-	getTasksInSection(sectionTag: string): FileTaskGroupV2[] {
-		const target = sectionTag.toLowerCase();
-		return this.getAllTasks().filter((g) => {
-			const entry = this.entries.get(g.filePath);
-			return entry?.tags.some((t) => t.toLowerCase() === target) ?? false;
-		});
+	/**
+	 * Rust `get_tasks_in_section_v2` (`parsing.rs::extract_tasks_from_sections`):
+	 * keeps the tasks under a heading whose text contains any of `sectionTags`
+	 * (case-sensitive substring, `#` added when missing), one state per tag.
+	 * Blank tags and a lone `#` are dropped; with none left every task is
+	 * listed. Fences toggle as in `parseTasks`.
+	 */
+	getTasksInSection(sectionTags: string[]): FileTaskGroupV2[] {
+		const sections = sectionTags
+			.filter((t) => t.trim() && t.trim() !== '#')
+			.map((t) => ({ tag: t.startsWith('#') ? t : `#${t}`, active: false, level: 0 }));
+		if (sections.length === 0) return this.getAllTasks();
+
+		const groups: FileTaskGroupV2[] = [];
+		for (const group of this.getAllTasks()) {
+			const lines = (virtualFS.readFileSafe(group.filePath) ?? '').split('\n');
+			const listed = new Set<number>();
+			let inFence = false;
+			for (const s of sections) s.active = false;
+			for (let i = 0; i < lines.length; i++) {
+				if (/^\s*```/.test(lines[i])) {
+					inFence = !inFence;
+					continue;
+				}
+				if (inFence) continue;
+				const heading = lines[i].match(/^(#{1,6})\s+(.*)$/);
+				if (heading) {
+					const level = heading[1].length;
+					for (const s of sections) {
+						if (s.active && level <= s.level) s.active = false;
+						if (heading[2].includes(s.tag)) {
+							s.active = true;
+							s.level = level;
+						}
+					}
+				} else if (sections.some((s) => s.active)) {
+					listed.add(i + 1);
+				}
+			}
+			const tasks = group.tasks.filter((t) => listed.has(t.lineNumber));
+			if (tasks.length > 0) groups.push({ ...group, tasks });
+		}
+		return groups;
 	}
 
 	/**

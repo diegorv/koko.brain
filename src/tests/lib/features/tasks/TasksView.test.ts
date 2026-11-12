@@ -342,6 +342,23 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		expect(refreshing()).toBeNull();
 	});
 
+	it('names the section tag textbox and hints that it takes several tags', () => {
+		vi.mocked(invoke).mockResolvedValue([]);
+		mountView();
+		expect(tagInput().placeholder).toBe('#tag #tag');
+	});
+
+	it('offers no Clear tag when the section tag text holds no tag', async () => {
+		tasksStore.setSectionTag(' , ');
+		vi.mocked(invoke).mockImplementation(async (cmd: string) =>
+			cmd === 'get_all_tasks_v2' ? [note([{ text: 'Ship feature A', lineNumber: 1 }])] : undefined,
+		);
+		mountView();
+		await until(() => expect(rows()).toHaveLength(1));
+		expect(paragraph('Open tasks from every note')).toBeDefined();
+		expect(buttonsNamed('Clear tag')).toHaveLength(0);
+	});
+
 	it('names the section tag when nothing sits under it, and Clear tag lists every task', async () => {
 		tasksStore.setSectionTag('#to-list');
 		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
@@ -414,7 +431,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		flushSync();
 
 		const xCalls = vi.mocked(invoke).mock.calls.filter(
-			([cmd, args]) => cmd === 'get_tasks_in_section_v2' && (args as { sectionTag?: string } | undefined)?.sectionTag === '#x',
+			([cmd, args]) => cmd === 'get_tasks_in_section_v2' && (args as { sectionTags?: string[] } | undefined)?.sectionTags?.includes('#x'),
 		);
 		expect(xCalls).toHaveLength(0);
 		expect(tagInput().value).toBe('');

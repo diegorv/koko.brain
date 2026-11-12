@@ -114,7 +114,7 @@ export function computeTaskStats(groups: FileTaskGroup[]): {
 
 /** The Tasks view's filters, as the store holds them */
 export interface TaskRuleOptions {
-	/** Raw section tag, as typed (may lack `#` or carry spaces) */
+	/** Raw section tag text, as typed (one or more tags; see `parseSectionTags`) */
 	sectionTag: string;
 	/** Whether completed tasks are hidden */
 	hideCompleted: boolean;
@@ -123,13 +123,27 @@ export interface TaskRuleOptions {
 }
 
 /**
- * Shows a section tag the way the Rust match reads it: trimmed, with a
- * leading `#` added when missing. A whitespace-only tag gives ''.
+ * Splits the section tag textbox into the tags sent to
+ * `get_tasks_in_section_v2`: split on whitespace and commas, a leading `#`
+ * added when missing, exact duplicates removed (first-typed order kept).
+ * A lone `#` is dropped: it would match every tagged heading, and the
+ * debounce can fire mid-typing (`#to-list #`). Matching is case-sensitive,
+ * so `#Work` and `#work` stay two tags. An empty result means no section
+ * filter.
  */
-function displaySectionTag(sectionTag: string): string {
-	const tag = sectionTag.trim();
-	if (!tag) return '';
-	return tag.startsWith('#') ? tag : `#${tag}`;
+export function parseSectionTags(text: string): string[] {
+	const tags: string[] = [];
+	for (const token of text.split(/[\s,]+/)) {
+		if (!token || token === '#') continue;
+		const tag = token.startsWith('#') ? token : `#${token}`;
+		if (!tags.includes(tag)) tags.push(tag);
+	}
+	return tags;
+}
+
+/** Shows the parsed section tags joined with ` or `; '' when there are none. */
+function displaySectionTags(sectionTag: string): string {
+	return parseSectionTags(sectionTag).join(' or ');
 }
 
 /** Days covered by a date filter other than `all` */
@@ -142,7 +156,7 @@ function dateFilterDays(dateFilter: Exclude<TaskDateFilter, 'all'>): number {
  * e.g. "Open tasks under headings containing #to-list". No trailing period.
  */
 export function describeTaskRule({ sectionTag, hideCompleted, dateFilter }: TaskRuleOptions): string {
-	const tag = displaySectionTag(sectionTag);
+	const tag = displaySectionTags(sectionTag);
 	const which = hideCompleted ? 'Open tasks' : 'All tasks';
 	const where = tag ? ` under headings containing ${tag}` : ' from every note';
 	const when = dateFilter === 'all' ? '' : `, in notes edited in the last ${dateFilterDays(dateFilter)} days`;
@@ -180,7 +194,7 @@ export function explainEmptyTasks({
 	}
 
 	if (total === 0) {
-		const tag = displaySectionTag(sectionTag);
+		const tag = displaySectionTags(sectionTag);
 		if (tag) {
 			return {
 				message: `No task sits under a heading containing ${tag}`,

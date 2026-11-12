@@ -6,6 +6,7 @@ import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/e
 import { settleTaskWrite } from '#lib/core/filesystem/task-write.service.js';
 import { tasksStore } from './tasks.store.svelte';
 import { toggleTarget } from './task-status.logic';
+import { parseSectionTags } from './tasks.logic';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
@@ -55,9 +56,10 @@ function fromV2(group: FileTaskGroupV2): FileTaskGroup {
 let latestTaskIndexRequest = 0;
 
 /**
- * Fetches the full task index from the Rust `VaultIndex`. When a
- * `sectionTag` is set, fans out to `get_tasks_in_section_v2` instead;
- * otherwise calls `get_all_tasks_v2`. Phase 7.6 — Rust now owns task
+ * Fetches the full task index from the Rust `VaultIndex`. When
+ * `parseSectionTags(sectionTag)` yields any tag, fans out to
+ * `get_tasks_in_section_v2` with that list instead; otherwise calls
+ * `get_all_tasks_v2`. Phase 7.6 — Rust now owns task
  * parsing end-to-end (see `src-tauri/src/vault/parsing.rs::extract_tasks`).
  * A call superseded by a newer one (or by `resetTasks`) while in flight
  * leaves the store, the loading flag, `hasLoaded` and error reporting to the
@@ -70,9 +72,9 @@ export async function buildTaskIndex(): Promise<void> {
 	tasksStore.setLoading(true);
 	try {
 		await timeAsync('TASKS', 'buildTaskIndex', async () => {
-			const sectionTag = tasksStore.sectionTag.trim();
-			const v2 = sectionTag
-				? await call('get_tasks_in_section_v2', { sectionTag })
+			const sectionTags = parseSectionTags(tasksStore.sectionTag);
+			const v2 = sectionTags.length > 0
+				? await call('get_tasks_in_section_v2', { sectionTags })
 				: await call('get_all_tasks_v2');
 			if (request !== latestTaskIndexRequest) return;
 			const groups = v2.map(fromV2);
@@ -92,10 +94,10 @@ export async function buildTaskIndex(): Promise<void> {
 }
 
 /**
- * Updates the section-tag filter and refetches groups via `buildTaskIndex`.
- * A non-empty tag runs the Rust `get_tasks_in_section_v2` scan, which
- * re-reads from disk every note that has tasks, on a blocking thread, to
- * apply heading-level filtering. Typing here is not its only trigger: the
+ * Updates the section-tag text (one or more tags) and refetches groups via
+ * `buildTaskIndex`. Text holding at least one tag runs the Rust
+ * `get_tasks_in_section_v2` scan, which re-reads from disk every note that
+ * has tasks, on a blocking thread, to apply heading-level filtering. Typing here is not its only trigger: the
  * store's default tag is non-empty, so the `TasksView` `vaultIndexVersion`
  * effect (which also runs on mount) and each task toggle pay the same scan.
  */

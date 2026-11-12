@@ -112,6 +112,27 @@ test.describe('Tasks view', () => {
 		expect(await page.evaluate((p) => (window as any).__e2e.fs.readFileSafe(p), path)).toBe(content);
 	});
 
+	test('the section tag lists tasks under any of several tags', async ({ vaultPage: page }) => {
+		const path = '/test-vault/Sections.md';
+		const content = '## Inbox #to-list\n- [ ] Listed by to-list\n## Job #work\n- [ ] Listed by work\n## Misc\n- [ ] Never listed\n';
+		await page.evaluate(({ p, c }) => {
+			const e2e = window.__e2e;
+			e2e.fs.writeFile(p, c);
+			e2e.events.emit('vault-index-updated', e2e.vaultIndex.update(p, c));
+		}, { p: path, c: content });
+
+		await pressShortcut(page, 'Mod+Shift+T');
+		await expect(page.getByText('Listed by to-list')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Listed by work')).toHaveCount(0);
+		await expect(page.getByText('Never listed')).toHaveCount(0);
+
+		await page.getByRole('textbox', { name: /section tag/i }).fill('#to-list #work');
+		await expect(page.getByText('Listed by work')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Listed by to-list')).toBeVisible();
+		await expect(page.getByText('Open tasks under headings containing #to-list or #work')).toBeVisible();
+		await expect(page.getByText('Never listed')).toHaveCount(0);
+	});
+
 	test('the right sidebar hides while the Tasks tab is active and comes back on a note', async ({ vaultPage: page }) => {
 		const sidebar = page.locator('[data-right-sidebar]');
 		await expect(sidebar).toBeVisible({ timeout: 10_000 });

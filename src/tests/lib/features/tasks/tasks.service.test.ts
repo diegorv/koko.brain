@@ -106,7 +106,28 @@ describe('buildTaskIndex', () => {
 
 		await buildTaskIndex();
 
-		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTag: '#to-list' });
+		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#to-list'] });
+	});
+
+	it('sends every tag parsed from the section tag text', async () => {
+		tasksStore.setSectionTag('#to-list work');
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['listed'])]);
+
+		await buildTaskIndex();
+
+		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#to-list', '#work'] });
+		expect(tasksStore.fileTaskGroups.flatMap((g) => g.tasks.map((t) => t.text))).toEqual(['listed']);
+	});
+
+	it('lists every task when the section tag text holds no tag', async () => {
+		tasksStore.setSectionTag(' , ');
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['any'])]);
+
+		await buildTaskIndex();
+
+		expect(invoke).toHaveBeenCalledWith('get_all_tasks_v2');
+		expect(vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'get_tasks_in_section_v2')).toBe(false);
+		expect(tasksStore.fileTaskGroups.flatMap((g) => g.tasks.map((t) => t.text))).toEqual(['any']);
 	});
 
 	it('clears loading state even on IPC error', async () => {
@@ -228,7 +249,7 @@ describe('updateSectionTagFilter', () => {
 		await updateSectionTagFilter('#work');
 
 		expect(tasksStore.sectionTag).toBe('#work');
-		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTag: '#work' });
+		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#work'] });
 	});
 
 	it('routes through get_all_tasks_v2 when filter cleared', async () => {

@@ -7,6 +7,7 @@ import {
 	parseTaskTextSegments,
 	describeTaskRule,
 	explainEmptyTasks,
+	parseSectionTags,
 } from '#lib/features/tasks/tasks.logic.js';
 import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
 
@@ -269,6 +270,23 @@ describe('parseTaskTextSegments', () => {
 	});
 });
 
+describe('parseSectionTags', () => {
+	it.each([
+		['#to-list #work', ['#to-list', '#work']],
+		['#to-list,work', ['#to-list', '#work']],
+		['  #a   ,  b ', ['#a', '#b']],
+		['#a #a', ['#a']],
+		['a #a', ['#a']],
+		['#Work #work', ['#Work', '#work']],
+		['#to-list #', ['#to-list']],
+		['', []],
+		['   ', []],
+		[' , ,', []],
+	] as const)('%j gives %j', (text, expected) => {
+		expect(parseSectionTags(text)).toEqual(expected);
+	});
+});
+
 describe('describeTaskRule', () => {
 	it.each([
 		[true, '#to-list', 'all', 'Open tasks under headings containing #to-list'],
@@ -297,6 +315,19 @@ describe('describeTaskRule', () => {
 
 	it('treats a whitespace-only tag as no tag', () => {
 		expect(describeTaskRule({ sectionTag: '   ', hideCompleted: true, dateFilter: 'all' })).toBe('Open tasks from every note');
+	});
+
+	it('joins several tags with or', () => {
+		expect(describeTaskRule({ sectionTag: '#to-list #work', hideCompleted: true, dateFilter: 'all' })).toBe(
+			'Open tasks under headings containing #to-list or #work',
+		);
+		expect(describeTaskRule({ sectionTag: 'a, b c', hideCompleted: false, dateFilter: 'all' })).toBe(
+			'All tasks under headings containing #a or #b or #c',
+		);
+	});
+
+	it('treats separators with no tag as no tag', () => {
+		expect(describeTaskRule({ sectionTag: ' , ', hideCompleted: true, dateFilter: 'all' })).toBe('Open tasks from every note');
 	});
 });
 
@@ -331,6 +362,19 @@ describe('explainEmptyTasks', () => {
 
 		it('treats a whitespace-only tag as no tag', () => {
 			expect(explainEmptyTasks({ groups: [], sectionTag: '  ', hideCompleted: true, dateFilter: 'all' })).toEqual({
+				message: 'No tasks in this vault yet',
+			});
+		});
+
+		it('names several tags joined with or, and offers to clear them', () => {
+			expect(explainEmptyTasks({ groups: [], sectionTag: '#to-list #work', hideCompleted: false, dateFilter: 'all' })).toEqual({
+				message: 'No task sits under a heading containing #to-list or #work',
+				action: { kind: 'clearTag', label: 'Clear tag' },
+			});
+		});
+
+		it('treats separators with no tag as no tag, with no action', () => {
+			expect(explainEmptyTasks({ groups: [], sectionTag: ' , ', hideCompleted: true, dateFilter: 'all' })).toEqual({
 				message: 'No tasks in this vault yet',
 			});
 		});
