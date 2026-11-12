@@ -71,7 +71,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | todo | | |
 | 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | todo | | |
 | 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | todo | | |
-| 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | in-progress | | |
+| 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | done | issue/248-todoist-tags-follow-the-new-task-tag-rule (6ff6c3d55) | 2026-11-12 |
 
 ## Log
 
@@ -99,3 +99,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 12:10 — 115 — deliver — round 1 APPROVED by claude with a fix round, deliver re-review APPROVED by claude; full suite 619 files / 15803 tests passed on run 2 (run 1: AutoOrganizeRuleRow waitFor timeout, passes alone); squash merged and pushed — 115d8d576
 - 2026-11-12 12:10 — 111 — start — launched by /relay-lite:run — 61558f7f6
 - 2026-11-12 12:10 — 248 — start — launched by /relay-lite:run, side track beside 111 — 61558f7f6
+- 2026-11-12 12:30 — 248 — deliver — round 1 CHANGES_REQUESTED by claude, fix round, round 2 APPROVED by claude; full suite 619 files / 15861 tests passed; squash merged and pushed — 6ff6c3d55
