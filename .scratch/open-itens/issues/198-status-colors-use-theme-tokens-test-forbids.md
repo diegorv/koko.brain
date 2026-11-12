@@ -13,7 +13,6 @@
 **What to build:** Swap the remaining raw Tailwind palette classes outside `components/ui` for tokens, then lock the rule in with an architecture test:
 - `src/lib/core/settings/sections/UpdateSection.svelte:340` `text-green-500` to `text-success`.
 - `src/lib/plugins/kanban/KanbanLane.svelte:311`, `src/lib/plugins/kanban/KanbanTableView.svelte:74`, `src/lib/features/auto-move/AutoMoveRuleRow.svelte:120`: `text-green-500` to `text-success`.
-- `src/lib/features/tasks/TasksView.svelte:184` `text-purple-400` to `text-primary`; `:252` `text-green-400` to `text-success`.
 - `src/lib/features/file-history/DiffViewer.svelte:14-15`: insert `bg-success/15 text-success`, delete `bg-destructive/15 text-destructive`.
 - `src/lib/core/settings/BuildInfo.svelte:31`: `bg-warning/20 text-warning`, no `dark:` variant.
 - New `src/tests/lib/architecture/palette-classes.test.ts`: scans `.svelte` and `.ts` files under `src/lib` and `src/routes`, skipping `src/lib/components/ui/`, and fails on any Tailwind palette color utility, with or without variant prefixes and `/NN` alpha (prefixes `bg`, `text`, `border` and its side forms, `ring`, `fill`, `stroke`, `outline`, `decoration`, `from`, `via`, `to`; the 22 palette names from `slate` to `rose`; a 2 or 3 digit shade). It prints `file:line` for each hit.
@@ -42,3 +41,5 @@
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/48-status-colors-use-tokens.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: BuildInfo badge tokens named and line numbers updated after the order review.
+
+- 2026-11-12: the Tasks view sites are out of this Issue. Issue 236 removes `text-purple-400` from `TasksView.svelte` with its own check, and the `text-green-400` site no longer exists. The audit notes above still name them; ignore those two. If this Issue runs before 236, the new test would flag `text-purple-400` there: swap it for `text-foreground` in this Issue, and 236 keeps its own check.

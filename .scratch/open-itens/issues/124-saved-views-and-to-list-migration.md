@@ -2,7 +2,7 @@
 
 **Origin:** `tasks-view` Issue 17, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
 
-**What to build:** One persisted configuration (Issue 16) cannot hold "To list" next to "All open". Add a list column with saved views and change the default list (PRD "Lists and views", decision B1). The "modified" marker comes in Issue 29.
+**What to build:** One persisted configuration (Issue 16) cannot hold "To list" next to "All open". Add a list column with saved views and seed "To list" (PRD "Lists and views", decision B1). The default itself already changed in Issue 108: the view lists every note's open tasks with an empty section tag. The "modified" marker comes in Issue 29.
 
 - **List column** left of the list: the built-in "All open" (every note, global excludes, status open, group by note) and the saved views. "+ Save view" stores the current query under a name. Views can be renamed, duplicated and deleted from a row menu. Below 720 px pane width the column becomes a dropdown above the rule sentence.
 - **Who owns what.** Global excludes (Issue 16's `globalExcludes`) apply to every list and view. A view's own `exclude` only adds to them. Sources, quick filters, group and sort belong to the view. Global excludes are edited in a "Global" section of the Sources panel.
@@ -23,9 +23,11 @@
 - [ ] Saving, renaming, duplicating and deleting a view round-trips through `settings.json`.
 - [ ] A view exclude adds to the global ones and never removes one.
 - [ ] Switching from an edited list to another drops the edit, and the saved view is unchanged on disk.
-- [ ] `tasks.store.test.ts` drops its `#to-list` default assertion, on purpose, and the commit says so.
-- [ ] `e2e/specs/tasks-view.spec.ts` no longer needs to clear a section tag before asserting the fixture tasks.
 
 ## Notes
 
 - **Size:** M to L. The "modified" marker was split into Issue 29; the migration stays with the default change.
+
+## Comments
+
+- 2026-11-12: the default flip moved to Issue 108 (owner decision), so the `#to-list` store default and the e2e section-tag clearing are gone before this Issue runs; their two criteria were removed. The seeded "To list" view and B1 (a) opening on "All open" stay here.

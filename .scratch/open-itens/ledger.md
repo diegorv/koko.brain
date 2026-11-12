@@ -142,21 +142,21 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 105 | [Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag](issues/105-minor-write-races-are-closed-autosave-during.md) | none | todo | | |
 | 106 | [Watcher events keep FTS5 and semantic rows current, and a read error is not treated as a delete](issues/106-watcher-events-keep-fts5-semantic-rows-current.md) | 020 | todo | | |
 | 107 | [A semantic update still embedding when its note is deleted leaves no chunks for the trashed note](issues/107-semantic-update-still-embedding-when-note-deleted.md) | none | todo | | |
-| 108 | [The list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | todo | | |
-| 109 | [Rows show status, dates, priority, recurrence and tags](issues/109-row-chips.md) | 021, 108 | todo | | |
-| 110 | [Open means not done and not cancelled](issues/110-open-closed-rule.md) | 109 | todo | | |
-| 111 | [Quick filters on status, due and priority](issues/111-quick-filters.md) | 110 | todo | | |
-| 112 | [Group and sort by note, folder, due, priority or status](issues/112-group-and-sort.md) | 111 | todo | | |
-| 113 | [Keyboard navigation and accessible rows](issues/113-keyboard-and-a11y.md) | 112 | todo | | |
+| 108 | [The list stays mounted, the rule explains itself, and every note's tasks are listed by default](issues/108-mounted-list-and-rule-sentence.md) | none | todo | | |
+| 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 237 | todo | | |
+| 110 | [Open means not done and not cancelled](issues/110-open-closed-rule.md) | 108 | todo | | |
+| 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | todo | | |
+| 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | todo | | |
+| 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | todo | | |
 | 114 | [Task writes reach search and the QueryJS cache](issues/114-task-writes-reach-search.md) | 021 | done | issue/114-task-writes-reach-search (108a60047) | 2026-11-09 |
-| 115 | [Tasks come from the entries snapshot, and the heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 114, 111, 074 | todo | | |
+| 115 | [Tasks come from the entries snapshot, and the heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 239, 074 | todo | | |
 | 116 | [Sources panel with source cards and default excludes](issues/116-sources-panel-and-excludes.md) | 115 | todo | | |
 | 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 116 | todo | | |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | todo | | |
 | 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | todo | | |
-| 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | 111 | todo | | |
+| 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | 239 | todo | | |
 | 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 115 | todo | | |
-| 122 | [Set status, due and priority from the row, with undo](issues/122-row-menu-edits-with-undo.md) | 114, 112, 085 | todo | | |
+| 122 | [Set due and priority from the Tasks row menu, with undo](issues/122-row-menu-edits-with-undo.md) | 241, 085 | todo | | |
 | 123 | [The view's rules survive a restart](issues/123-persist-view-state.md) | 112, 116, 030 | todo | | |
 | 124 | [Saved views and the "To list" migration](issues/124-saved-views-and-to-list-migration.md) | 123 | todo | | |
 | 125 | [Built-in smart lists and their empty states](issues/125-smart-lists-and-empty-states.md) | 111, 124 | todo | | |
@@ -261,13 +261,21 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 224 | [The auto-move example's steps move the notes as written: edit then save, the right default delay, rules loaded after copying the file](issues/224-auto-move-example-s-steps-move-notes.md) | none | todo | | |
 | 225 | [The personal-week kanban example uses the valid sortMode "checked", and the docs say the sort is per board](issues/225-personal-week-kanban-example-uses-valid-sortmode.md) | none | todo | | |
 | 226 | [The Periodic Notes help shows format examples that escape literal words with [ ]](issues/226-periodic-notes-help-shows-format-examples-that.md) | none | todo | | |
-| 227 | [The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date](issues/227-tasks-help-says-default-view-lists-only.md) | none | todo | | |
+| 227 | [The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date](issues/227-tasks-help-says-default-view-lists-only.md) | none | wontfix | | |
 | 228 | [Help docs speak of views, and their examples work](issues/228-help-docs-speak-of-views.md) | 067, 142 | todo | | |
 | 229 | [Say plainly that the Todoist token lives in the vault](issues/229-todoist-token-out-of-vault.md) | none | done | issue/229-todoist-token-out-of-vault (8ab6672fa) | 2026-11-09 |
 | 230 | [Linear-calendar bars line up with their day columns](issues/230-linear-calendar-bar-geometry.md) | none | todo | | |
 | 231 | [Separate verbose renderer diagnostics from ordinary file logs](issues/231-opt-in-renderer-diagnostics.md) | none | todo | | |
 | 232 | [Future: icon colors customizable in Settings > Appearance](issues/232-future-custom-icon-colors.md) | none | todo | | |
 | 233 | [An Auto Organize move into a folder that already has the name lands the note as `<name> 2`](issues/233-auto-organize-move-collision-numbers-the-note.md) | none | todo | | |
+| 234 | [The Tasks list keeps your place](issues/234-tasks-groups-keep-their-place.md) | 110 | todo | | |
+| 235 | [A failed Tasks refresh says so](issues/235-tasks-failed-refresh-says-so.md) | 234 | todo | | |
+| 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 235 | todo | | |
+| 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | 236 | todo | | |
+| 238 | [A Due menu replaces the Tasks date pills](issues/238-tasks-due-filter-replaces-date-pills.md) | 111 | todo | | |
+| 239 | [Tasks priority filter, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | todo | | |
+| 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | todo | | |
+| 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
 
 ## Log
 
@@ -283,3 +291,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 19:20 — 001 — start — launched by /relay-lite:run — bb259e72c
 - 2026-11-10 19:29 — 001 — deliver — review APPROVED round 1 (claude), no fix round; full suite 606 files / 14900 tests passed; squash merged and pushed — 13291dfa0
 - 2026-11-11 11:59 — ledger updated (added 233; title of 006, 006; link of 006, 006; blocked by of 006, 006, 082)
+- 2026-11-12 02:54 — ledger updated (added 234, 235, 236, 237, 238, 239, 240, 241; title of 006, 006, 108, 109, 111, 112, 113, 122; link of 006, 006; blocked by of 006, 006, 109, 110, 111, 112, 113, 115, 120, 122; wontfix 227)

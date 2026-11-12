@@ -11,7 +11,7 @@
 - `applyQuickFilters` evaluates `quick.tags` (with the dimmed-parent rule of Issue 07). The rule sentence (Issue 07's `describeTaskRule`, or `describeTaskQuery` once Issue 13 has landed) adds `, tagged #a or #b` after the priority part. The empty state checks the tag filter after priority and before search: "No task matches the Tag filter" with `{ kind: 'resetQuick', field: 'tags', label: 'Reset' }`. Reset (Issue 07) and the `Filters (n)` count include the tag filter.
 - This Issue works on the tags Rust emits today. Which characters a task tag may hold is Issue 26 (decision B7); the filter needs no change when that rule changes.
 
-**Blocked by:** 111
+**Blocked by:** 239
 
 **Status:** ready-for-agent
 
@@ -24,3 +24,7 @@
 ## Notes
 
 - **Size:** S. The parser half of the old Issue 19 (Unicode task tags) moved to Issue 26, because open Issue `audit-2026-11-05/142` (migrated from `tags-obsidian-parity/01`) asks for an owner decision on the task tag rule first.
+
+## Comments
+
+- 2026-11-12: blocker moved from 111 to 239. Issue 111 was split into 111 (Status), 238 (Due) and 239 (Priority, search, Reset, the `Filters (n)` fold); this Issue extends Reset and the fold, so it waits for 239. Where the text says Issue 07, read 111, 238 and 239; Issue 05 is now 109 (chips) and 237 (glyphs).

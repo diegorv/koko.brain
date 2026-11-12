@@ -1,0 +1,97 @@
+# Scout 15: Tasks view state persistence
+
+Read-only research. Facts are verified by reading code at the current `main`. Opinions are marked as such. Nothing was run.
+
+## Summary
+
+Nothing in the Tasks view persists. `dateFilter`, `sectionTag` and `hideCompleted` are plain module-level `$state` in `tasks.store.svelte.ts`, reset on every vault change, and never written to settings, localStorage or `.kokobrain/`. There is no collapsed-group state and no sort state in the view at all today, so those two are new state, not state to migrate.
+
+The established pattern for a per-vault view preference is a slice of the per-vault `.kokobrain/settings.json` (ADR-0019), held in `settingsStore`, auto-saved by `settings-persistence.svelte.ts`, with `core/settings` typing the value opaquely and a `features/` logic file parsing and validating it. The closest precedent is `layout.railListPrefs` plus `list-prefs.logic.ts`. A planned design for exactly this already exists in `.scratch/open-itens/issues/123-persist-view-state.md` (key `tasksView`, opaque in core), blocked by Issue 030 (a settings file that was never loaded must not be saved over) and by the query-model Issues 112 and 116. A redesign that ships before those can still use the same key and shape, but must scope itself to the simple fields.
+
+## Facts (verified in code)
+
+### The Tasks view holds no persisted state
+
+- Store state is four `$state` cells plus the group list: `dateFilter = 'all'`, `sectionTag = '#to-list'`, `hideCompleted = true`, `isLoading`. `src/lib/features/tasks/tasks.store.svelte.ts:4-12`. No import of settings, no `localStorage`, no Tauri call.
+- `reset()` restores all defaults. `tasks.store.svelte.ts:27-33`. It runs from `resetTasks()` (`src/lib/features/tasks/tasks.service.ts:227-231`), which `teardownVault` calls (`src/lib/app/lifecycle/app-lifecycle.service.ts:664`). `resetTasks` also closes the Tasks tab (`tasks.service.ts:230`).
+- Order in teardown matters: `resetSettings()` runs at `app-lifecycle.service.ts:656`, before `resetTasks()` at `:664`. A settings-backed Tasks store would see defaults during its own reset.
+- Grep of `src/lib` for `tasksStore` finds only `tasks.store.svelte.ts`, `TasksView.svelte` and `tasks.service.ts`. Nothing else reads or writes the view state.
+- Date filter and eye toggle write the store directly from the component (`TasksView.svelte:100`, `:113`). The section tag goes through a local mirror `sectionTagInput` (`TasksView.svelte:31`) debounced 400 ms (`:32-40`) into `updateSectionTagFilter`, which sets the store and refetches (`tasks.service.ts:96-99`). `onDestroy` clears the timer (`TasksView.svelte:42-44`), so a tag typed less than 400 ms before closing is lost.
+- Cmd+Shift+T on the active tab closes it (`toggleTasksTab`, `tasks.service.ts:209-214` region). Because the store is module-level it survives a tab close within a session, so within one session filters do persist across close and reopen. They do not survive an app restart or a vault switch.
+- Open tabs are not restored on startup. Grep of `src/lib/core/editor/*.ts` finds no session/restore logic (scout 04 reached the same result, `scout-04-command-palette-entry.md:41`). The Tasks tab itself does not come back after a restart.
+- Collapsed groups: none. `TasksView.svelte:149-218` renders every group expanded with a non-interactive header. Sort: none. Groups come in the order the IPC returns them; tasks in document order (`tasks.types.ts:26-31`).
+- Existing tests that pin the current defaults: `src/tests/lib/features/tasks/tasks.store.test.ts:8-16` and `:46-58` assert `'#to-list'`, `'all'`, `true` after `reset()`. `tasks.service.test.ts:103-109` and `:201-202` assert the section IPC call with `#to-list` and `#work`. Issue 124 plans to drop the `#to-list` default assertion on purpose (`124-saved-views-and-to-list-migration.md`, checklist).
+
+### How other features persist view preferences
+
+Three mechanisms exist. Ranked by how often they are used for view preferences:
+
+1. **Per-vault `settings.json` slice (the dominant pattern).** The whole `AppSettings` object is serialized to `<vault>/.kokobrain/settings.json`.
+   - Location and rationale: ADR-0019, "App data lives inside the vault at `.kokobrain/`" (`docs/adr/0019-kokobrain-in-vault-data-dir.md`). Portability of the vault folder is the stated reason. `settings.service.ts:12-13` defines `.kokobrain` and `settings.json`.
+   - Save path: `startSettingsPersistence(vaultPath)` installs one `$effect.root` that serializes the whole settings object inside the effect, so every nested leaf is subscribed, and debounces a write 500 ms (`src/lib/core/settings/settings-persistence.svelte.ts:46-67`, constant at `:9`). The only write site is `writeSettingsFile` (`settings.service.ts:243-258` region). Feature code never writes the file itself; it calls a store updater.
+   - Load path: `loadSettings` reads the file, `parseSettings` merges over defaults, and then write-backs the merged result so new default keys land on disk (`settings.service.ts:36-76`).
+   - Examples of view prefs there: `layout.railItem`, `layout.railExpandedFolders`, `layout.railDay`, `layout.railListPrefs` (sort and shown properties per list, `settings.types.ts:36-116`), `eventCalendar.defaultView` and `showWeekends` (`settings.types.ts` EventCalendarSettings), `tagColors`, `disabledDecorators`.
+   - Mutators: `updateLayout` mutates in place with `Object.assign(settings.layout, value)` and the comment says why: replacing the settings root re-runs every settings reader in the app, and layout writes happen on every rail click (`settings.store.svelte.ts:248-254`). Other updaters (for example `updateEventCalendar`, `:312-317`) replace the root with a spread.
+2. **Opaque-in-core, parsed-in-feature, for values `core/` cannot type.** `LayoutSettings.railListPrefs` is typed `Record<string, unknown>` with the comment "`core/` cannot import `features/`, so the type stays `unknown`" and "Loaded unvalidated, so read it only through `parseRailListPrefs`" (`settings.types.ts:112-116`). The feature side is `src/lib/features/rail-shell/list-prefs.logic.ts`:
+   - `parseRailListPrefs(raw)` drops anything that does not read back, never throws, never mutates (`list-prefs.logic.ts:41-52`).
+   - `withListPrefs(raw, key, patch)` returns the next stored record; `null` removes a field, empty entries are deleted (`:58-86`).
+   - The component writes through `settingsStore.updateLayout({ railListPrefs: withListPrefs(...) })` (`src/lib/features/rail-shell/RailNoteList.svelte:462`, `:491`) and reads through `$derived(parseRailListPrefs(...))` (`:378`).
+   - The same shape is used for `railExpandedFolders` (`parseExpandedFolders`, `lens.logic.ts:1015`), `railDay`, `railItem` (`restoreRailItem`).
+   - Layer rule that forces this: `core/` must not import `features/` (`CLAUDE.md` layer table; `src/tests/lib/architecture/layer-rules.test.ts`, baseline `layer-baseline.json` only shrinks).
+3. **`localStorage`, per machine, for state that must not travel with the vault.** Used for recent vaults (`src/lib/core/vault/vault.store.svelte.ts:3-55`), mods enabled flags (`src/lib/plugins/mods/mods-enabled.store.svelte.ts:12-79`), quick switcher recents (`src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:9-20`), command palette recents (`src/lib/features/command-palette/command-palette.store.svelte.ts:5-22`), and the theme CSS vars for secondary windows (`theme.service.ts:9-85`). Pattern: key constant, `try/catch` on every read and write, empty fallback. It is global to the machine (not per vault) unless the key embeds the vault path, as the mods flags do.
+4. **Sidecar JSON in `.kokobrain/`.** `folder-order.json`, `bookmarks.json`, `auto-organize-rules.json` (grep of `.kokobrain/` in `src/lib`). Used for data that is content-like (ordering, rules), not view prefs.
+
+### Other facts that constrain the choice
+
+- `parseSettings` builds the merged object from an explicit list of top-level keys (`settings.service.ts:98-205` region). A new top-level `AppSettings` key that is not added there is dropped on load, and the write-back in `loadSettings` (`:68-73`) then erases it from disk. Layout is different: `mergeLayout` iterates `Object.keys(defaults)` (`settings.logic.ts:17-22`), so a new `layout.*` key only needs a default in `DEFAULT_SETTINGS.layout` (`settings.store.svelte.ts:53-76`).
+- `normalizeSettings` runs on load and on every write (`settings.logic.ts:217+`, `settings.service.ts:265-268`, `settings-persistence.svelte.ts:31-33`). It is the place to clamp or validate a slice, but it is an identity pass for untouched branches.
+- Event calendar shows the "apply a saved default once per session" pattern: `initFromSettings()` reads `settingsStore.eventCalendar.defaultView` the first time and sets a module `initialized` flag (`src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:212-217`, flag restored by `reset()` around `:219+`).
+- The Tags view keeps `sortMode` and `hideRareTags` as plain module `$state`, also non-persistent (`src/lib/features/tags/tags.store.svelte.ts:4-5`). So Tasks is not an outlier among the center views, it is the common unpersisted case. Kanban persists lane `collapsed` inside the board file (`src/lib/plugins/kanban/kanban.types.ts:38-39`), because the board is a document; that is not a view-pref pattern to copy.
+- Settings load happens first in vault init (`app-lifecycle.service.ts:196-211`, "Settings MUST load first") and persistence starts right after (`:222`). Any Tasks state restored from `settingsStore` is therefore ready before the Tasks tab can mount.
+- Risk on the write side: `settings-persistence.svelte.ts` re-serializes and compares the whole settings object on every reactive change. Per-keystroke writes into settings (for example, the section tag input) would run that on every keystroke and arm a 500 ms timer each time. The current Tasks input already debounces 400 ms before touching the store, which sits comfortably inside that.
+- A settings file that failed to load must not be overwritten. That is Issue 030 (`.scratch/open-itens/issues/030-session-whose-settings-json-was-never-loaded.md`, status ready-for-agent, first wave). Today, after an unreadable `settings.json`, the next settings mutation writes defaults over it. Adding Tasks prefs to settings makes this exposure slightly larger (a Tasks click becomes a trigger), so the PRD sequences persistence after it (`.scratch/archived/tasks-view/PRD.md:126`, `:311`).
+
+### Existing plan for this exact problem
+
+- `.scratch/open-itens/issues/123-persist-view-state.md` ("The view's rules survive a restart"): per-vault `tasksView` key in `.kokobrain/settings.json`, through the settings store and service "like the other sections" (`todoist` merge as the model); core types it as an opaque JSON value and `features/tasks` parses and validates it; `{ version: 1, globalExcludes, query }` in that Issue; tolerant read (unknown keys survive, missing keys filled, invalid value falls back to defaults with an `error()` log and a toast, not overwritten until the user changes the view); no new `writeTextFile` site. Status needs-triage, blocked by 112, 116 and 030.
+- `.scratch/open-itens/issues/124-saved-views-and-to-list-migration.md`: extends the shape to `{ version: 1, activeList, globalExcludes, savedViews }`, reopens the last list after restart, and plans the `#to-list` default change (owner decision B1 (a)). Ready-for-agent, blocked by 123.
+- Archived PRD A6: "Per-vault `.kokobrain/settings.json`, key `tasksView`, after `audit-2026-11-05/115` ships" (`.scratch/archived/tasks-view/PRD.md:126`). Display state is listed together with the active list and views (`:311`).
+- Issue 227 (`.scratch/open-itens/issues/227-tasks-help-says-default-view-lists-only.md`) records that the section field "is not saved, so it returns to #to-list on every app start" and plans a docs-only fix.
+
+## Problems and opportunities
+
+1. (Fact) Every restart, and every vault switch, puts the view back to `#to-list` + hide completed + all time. For an owner who has set a different tag, this is a repeated chore. For a vault with no `#to-list` heading it opens on "No tasks found" every time (scout 08).
+2. (Fact) Within one session filters survive tab close/reopen only by accident (module state), which makes the behavior inconsistent: persisted across close, lost across restart.
+3. (Fact) There is no group collapse and no sort in the UI, so persisting them requires adding the features first; persistence is the cheap half.
+4. (Opinion) Not all state deserves the same lifetime. Data filters (date range, section tag or its replacement, hide-completed) and sort/group are vault-level preferences. Collapsed groups are keyed by file path and are high-churn: persisting them forever will accumulate stale paths (renamed or deleted notes) unless pruned.
+5. (Opinion) Settings-file churn: every persisted Tasks tweak triggers the whole-settings serialize and a rewrite of a file that also holds the Todoist token. That is acceptable at human click rates, but not per keystroke or per collapse-all on 200 groups.
+6. (Opinion) Two prior, detailed plans (Issues 123/124) assume a larger query model (sources, excludes, quick filters, saved views). A redesign ticket set that persists only today's four fields would be thrown away or migrated by 123. Better to land a minimal, versioned `tasksView` slice that 123 then widens.
+
+## Recommendations for the redesign
+
+All opinion, grounded in the facts above.
+
+1. **Use the per-vault settings slice, not localStorage.** It matches ADR-0019 (vault carries its own context), the `railListPrefs` / `eventCalendar` precedent, and the already-written Issues 123/124 and PRD A6. localStorage is only right for per-machine data, and a task view's filters are about the vault's content.
+2. **Shape: one top-level key `tasksView`, typed opaque in core, parsed in `features/tasks`.**
+   - `settings.types.ts`: `tasksView: unknown` (or `Record<string, unknown>`) with a doc comment copying the `railListPrefs` wording ("Loaded unvalidated, so read it only through `parseTasksView`"). `DEFAULT_SETTINGS.tasksView = {}`.
+   - Add the key to the explicit merge list in `parseSettings` (`settings.service.ts`), otherwise it is dropped on load and erased by the write-back. Add `tasksView: parsed.tasksView ?? DEFAULT_SETTINGS.tasksView` the way `dockBadgeInboxCount` does.
+   - New `features/tasks/tasks-view-prefs.logic.ts` with `parseTasksView(raw)` (never throws, drops invalid fields, fills defaults, keeps `version`) and `withTasksView(raw, patch)` (returns the next stored value), mirroring `list-prefs.logic.ts`. Pure, so it is unit tested without mocks (no store, no `.logic.ts` mocking, per the project test rules).
+   - Initial fields: `version: 1`, `dateFilter`, `sectionTag`, `hideCompleted`, and later `sort` and `group` as the redesign adds them. Use string unions validated against the known sets (`'all' | 'last7days' | 'last30days'`), not free numbers.
+   - Keep unknown keys through a round trip (Issue 123's requirement) so a newer build's fields are not stripped by an older one.
+3. **Wire the store to settings without a second source of truth.** Either (a) make `tasksStore` getters read `parseTasksView(settingsStore.tasksView)` and its setters call a new `settingsStore.updateTasksView(patch)` that does `Object.assign` in place like `updateLayout` (`settings.store.svelte.ts:248-254`), avoiding a root replacement that re-runs every settings reader; or (b) keep `tasksStore` as the runtime state and add a one-shot `initFromSettings()` plus a debounced write-through, like event calendar (`event-calendar-view.store.svelte.ts:212-217`). Option (a) is simpler and has no sync bug class (opinion); option (b) keeps `tasksStore.reset()` semantics. Under either, a computed getter needs a test (CLAUDE.md store rule).
+4. **Teardown order.** `resetSettings()` runs before `resetTasks()` (`app-lifecycle.service.ts:656` vs `:664`). With option (a), `tasksStore.reset()` should only clear non-persisted state (`fileTaskGroups`, `isLoading`); the persisted fields come back from the next vault's `loadSettings`. Test this ordering explicitly, since Quick Reference rule 4 warns about silent regressions when removing reset calls.
+5. **Debounce rule.** Keep the text input local with its debounce and commit to settings only on the debounced value, as today (`TasksView.svelte:34-40`). Fix the lost-on-close race by flushing the pending value in `onDestroy` instead of clearing it (small, localized; scout 08 flagged it).
+6. **Collapsed groups: session-only first.** Hold a `Set<filePath>` in `tasksStore`, reset on vault change. Persisting it per vault is possible (a list of paths in `tasksView.collapsed`), but add pruning against the current group list on each load, or accept that stale entries accumulate. Opinion: do not persist collapse in the first slice. Ship it if the owner says they collapse the same notes repeatedly.
+7. **Sequence with Issue 030.** Land 030 (settings file never loaded must not be saved over) before or with the first persistence slice, since a Tasks click should not be able to overwrite an unreadable `settings.json`. If the redesign cannot wait, say so in the ticket and keep persistence out of the first slice.
+8. **Do not change the `#to-list` default inside the persistence slice.** The default flip is owner decision B1 (a) in Issue 124. With persistence, a saved empty tag must be distinguishable from "never set": store `sectionTag` as an explicit string including `''` and treat only an absent field as "use the default".
+9. **Tests (project rules).** Real `settingsStore` and real `tasksStore`, mock only `@tauri-apps/plugin-fs`: save then load round trip restores the three fields; a file without `tasksView` loads defaults; `tasksView: 42` loads defaults, logs, and is not written until the next change; unknown keys survive; `layer-rules.test.ts` stays green with no new baseline entry (this is why core stays opaque). Update `tasks.store.test.ts:8-16`, `:46-58` if the store's default source changes.
+10. **Tab restore is out of scope here.** The Tasks tab does not reopen after a restart because no tab is restored at all. Persisting view state does not change that; do not mix the two.
+
+## Open questions for the owner
+
+1. Should the Tasks view reopen with the last-used filters after a restart (scope: per vault, as in PRD A6), or always open on a fixed default such as "all open"? Issue 124 answers "All open by default plus a seeded To list view", which makes "last used" mean "last list", not "last raw fields".
+2. Per vault or global? ADR-0019 and PRD A6 say per vault. A global localStorage key would be simpler, but a `#to-list` tag set in a work vault would leak into a personal one.
+3. Should collapsed groups persist across restarts, or only within the session?
+4. Is it acceptable to land a minimal `tasksView` slice (date filter, tag or its replacement, hide-completed, sort, group) now and let Issue 123 widen it, or should the redesign wait for Issues 112/116/123 and build on the full `TaskQuery`?
+5. Should Issue 030 (never overwrite an unreadable `settings.json`) be a prerequisite of the first persistence ticket?
+6. When the restored section tag matches nothing in a vault, is it acceptable to show the cause in the empty state (and offer Clear) instead of silently falling back to all tasks?

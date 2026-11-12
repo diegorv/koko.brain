@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -24,3 +24,5 @@
 - **Source:** audit 2026-11-05, domain `calendar`, finding `N-calendar-06` (from calendar-spec-3). Size S.
 
 ## Comments
+
+- 2026-11-12: closed as wontfix, covered by Issue 108. The owner chose to make the section tag empty by default, so the help must say the view lists every task, not that it lists only `#to-list` tasks; Issue 108 updates doc 10 with the default, the field reset and the date filter meaning.
