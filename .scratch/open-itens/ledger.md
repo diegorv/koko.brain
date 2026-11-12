@@ -96,7 +96,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 059 | [New File from Template says the name is taken instead of silently opening the existing note](issues/059-new-file-from-template-says-name-taken.md) | none | todo | | |
 | 060 | [A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link](issues/060-kb-table-kb-ui-table-kb-list.md) | none | todo | | |
 | 061 | [A task checkbox in live preview reacts only to the primary button](issues/061-live-preview-controls-change-only-text-user.md) | none | todo | | |
-| 062 | [Rendered table cells show links, line breaks and escaped pipes as formatted content](issues/062-rendered-table-cells-show-links-highlight-underscore.md) | none | in-progress | | |
+| 062 | [Rendered table cells show links, line breaks and escaped pipes as formatted content](issues/062-rendered-table-cells-show-links-highlight-underscore.md) | none | blocked | | |
 | 063 | [Standard markdown images with a vault-relative path load from the vault](issues/063-standard-markdown-images-vault-relative-path-load.md) | none | todo | | |
 | 064 | [Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image](issues/064-wikilink-autocomplete-inserts-non-markdown-file-extension.md) | none | todo | | |
 | 065 | [A calendar day with more than three notes lets the user reach every note](issues/065-calendar-day-more-than-three-notes-lets.md) | none | todo | | |
@@ -281,3 +281,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 15:07 — 015 — start — launched by /relay-lite:run (bug queue rank 1) — f79da7588
 - 2026-11-12 15:10 — 062 — start — launched by /relay-lite:run (bug queue rank 2, part a) — ac7582dbe
 - 2026-11-12 15:18 — 015 — deliver — round 1 APPROVED by claude with a fix round (e2e comment), deliver re-review APPROVED by claude; full suite 623 files / 16061 tests passed; targeted e2e 12 passed, tabs.spec.ts:42 fails the same on main; squash merged and pushed — da26b0dcd
+- 2026-11-12 15:27 — 062 — deliver — blocked: deliver re-review CHANGES_REQUESTED by claude, the link url regex added at deliver (c8b145e07) backtracks exponentially on a long backslash run (9.2 s for 40); fix: drop the bare backslash alternative and add a timing test; worktree kept — 7501d0989
