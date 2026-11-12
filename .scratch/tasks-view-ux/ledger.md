@@ -47,7 +47,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | done | issue/116-sources-panel-and-excludes (4268ffc27) | 2026-11-12 |
 | 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | done | issue/117-property-clause-and-group-actions (2f85150c1) | 2026-11-12 |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | in-progress | | |
-| 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | in-progress | | |
+| 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | done | issue/119-lifecycle-clause-and-value-pickers (711885f97) | 2026-11-12 |
 | 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | none | wontfix | | |
 | 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | done | issue/121-remove-tasks-in-section-command (c4e917f99) | 2026-11-12 |
 | 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | done | issue/122-row-menu-edits-with-undo (befb8f876) | 2026-11-12 |
@@ -130,3 +130,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 18:11 — 118 — start — launched by /relay-lite:run — 2bbbb2ca9
 - 2026-11-12 18:11 — 119 — start — launched by /relay-lite:run, beside 118 and 121 — 2bbbb2ca9
 - 2026-11-12 18:11 — 121 — deliver — round 1 APPROVED by claude, three nits handled in Resolution (stale lines in docs/architecture tasks.md need a follow-up; feature/ios-poc must drop the command on rebase), no fix round; full suite 631 files / 16342 tests passed on run 2 (run 1: AutoOrganizeRuleRow flake); squash merged and pushed — c4e917f99
+- 2026-11-12 18:29 — 119 — deliver — round 1 CHANGES_REQUESTED by claude (heading picker suggests tags, key spellings kept, archived wording), fix round, round 2 APPROVED by claude; full suite 631 files / 16394 tests passed; squash merged and pushed — 711885f97
