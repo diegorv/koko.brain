@@ -6,7 +6,7 @@
 
 Why `write_task_lines` (`todoist-bisync` Issue 03, `src-tauri/src/vault/task_lines.rs`) does not serve: it locates a line by its Todoist anchor (the id signifier U+1F194 followed by `td-...`) and the exact whole line. Its `lineNumber` mode only stamps a first anchor onto an unanchored line, and the new line must carry it (`task_lines.rs` `validate`, `locate_unanchored`). A row can supply neither the anchor nor the whole line: `TaskItem` keeps the indent as a count, drops the list marker and folds `x` and `X` into one status (`parsing.rs` `calculate_indent`, `map_checkbox_char`). Most of the owner's tasks carry no anchor.
 
-**Rust** (the locator is the triage proposal in Notes; names below are fixed here and used by Issue 246)
+**Rust** (the locator is the guarded line-number command, decided by the owner on 2026-11-12, see Notes; names below are fixed here and used by Issue 246)
 - A command `write_task_text { vaultRoot, relPath, lineNumber, expectedText, expectedStatus, newText }` in `src-tauri/src/commands/vault.rs`, next to `write_task_lines`, with a `write_task_text_inner(idx, ...)` the tests call, registered in `src-tauri/src/lib.rs` `generate_handler!`.
   - Confinement as `write_task_lines_inner` does it: `validate_vault_path`, refuse a root other than `VaultIndex::vault_root()`, resolve with `confined_note_path` (so a `..` or absolute `relPath` is an `Err`).
   - Guard as `toggle_task_status_inner` does it: `parse_task_line(line, lineNumber)` on that line; the write proceeds only when it is a task and `task.text == expectedText` and `task.status == expectedStatus`. Otherwise nothing is written and `stale` is true (line 0, past the end, not a task, text or status differs).
@@ -53,9 +53,9 @@ Why `write_task_lines` (`todoist-bisync` Issue 03, `src-tauri/src/vault/task_lin
 
 **Blocked by (origin):** added from the Issue text: audit-2026-11-05 134 (the open-root check, already in `write_task_lines`). 114 dropped (resolved 2026-11-09); 112 replaced by 241. 085 dropped on 2026-11-12: it hardens `read_files_batch`, which this Issue never calls. 241 is reached through 244.
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-**Answered:** owner, 2026-11-12: split approved, 122 = 122a (this Rust Issue, gate Both), 246 = 122b (frontend Due and Priority in the row menu, blocked by 122 and 241). Run order: 122 runs after 244, with 121 and 129 also blocked by 244 (SUMMARY X7). Status changes moved to Issue 241 (synthesis Q7 (a)). Still open: the locator (deep-dive Q5), proposal in Notes; it stays `needs-triage` until the owner decides.
+**Answered:** owner, 2026-11-12: split approved, 122 = 122a (this Rust Issue, gate Both), 246 = 122b (frontend Due and Priority in the row menu, blocked by 122 and 241). Run order: 122 runs after 244, with 121 and 129 also blocked by 244 (SUMMARY X7). Status changes moved to Issue 241 (synthesis Q7 (a)). Still open: the locator (deep-dive Q5), proposal in Notes; it stays `needs-triage` until the owner decides. Owner, 2026-11-12 (Q5): the row edit finds its line with a new guarded command by line number, expected text and expected status, as `toggle_task_status` does, and returns the re-parsed task; it never stamps a Todoist anchor.
 
 **Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml`, then `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings` (the CI command; relay-lite does not run it, so the build step runs it before its last commit), from the checkout or worktree root, + `pnpm check` + `pnpm vitest run`. No e2e: no spec calls the new command until Issue 246, and the mock is covered by the vitest test below.
 
@@ -71,7 +71,7 @@ Why `write_task_lines` (`todoist-bisync` Issue 03, `src-tauri/src/vault/task_lin
 ## Notes
 
 - **Size:** M (Rust command and DTO, fixture and parity test, the patcher move with the Todoist tests as its safety net, contract, mock).
-- **Locator, proposal for triage (deep-dive Q5, not decided):** (a) this command, guarded like `toggle_task_status` (line number, expected text, expected status), which rebuilds the line from its own prefix and works for every task line. The alternative, (b), stamps a `td-` anchor through `write_task_lines`' `lineNumber` mode first; it marks the line as Todoist-linked, collides with the Obsidian Tasks dependency id and ADR-0037 (a copied anchor freezes a link), and still needs the whole expected line, which the row cannot rebuild. The deep dive and the UX research (`synthesis.md` Q8) recommend (a), plus the shared patcher home in `utils` (Q8 (c)) over importing from `todoist-sync` (Q8 (d)). If the owner picks (b), this Issue shrinks to the patcher move and fixture, and Issue 246 changes with it.
+- **Locator, decided by the owner on 2026-11-12 (deep-dive Q5): option (a) below, the guarded command; no anchor is stamped.** (a) this command, guarded like `toggle_task_status` (line number, expected text, expected status), which rebuilds the line from its own prefix and works for every task line. The alternative, (b), stamps a `td-` anchor through `write_task_lines`' `lineNumber` mode first; it marks the line as Todoist-linked, collides with the Obsidian Tasks dependency id and ADR-0037 (a copied anchor freezes a link), and still needs the whole expected line, which the row cannot rebuild. The deep dive and the UX research (`synthesis.md` Q8) recommend (a), plus the shared patcher home in `utils` (Q8 (c)) over importing from `todoist-sync` (Q8 (d)). If the owner picks (b), this Issue shrinks to the patcher move and fixture, and Issue 246 changes with it.
 - Issue 246 calls `write_task_text`, reads `TaskTextWriteResult.task` to overlay the row's `metadata` in Issue 244's overlay, and feeds it text built with `setDueToken` / `setPriorityToken`.
 - The recurrence regex in Rust swallows a following block id into the recurrence text (`RECURRENCE_RE`); inserting before the block id keeps that behavior as it is. Do not change it here.
 - `feature/ios-poc` does not dispatch this command; nothing to tell that branch.
@@ -79,3 +79,5 @@ Why `write_task_lines` (`todoist-bisync` Issue 03, `src-tauri/src/vault/task_lin
 ## Comments
 
 - 2026-11-12: deep dive applied and split (SUMMARY 122, `dossier-122.md`, `cross-rust-ipc.md` F1, F7-F10). The locator gap is described as the code has it (`lineNumber` only stamps an anchor; the row cannot rebuild the whole line), "needs no new Rust command" is gone, and the proposal is a new guarded `write_task_text`. Because 244's overlay lands first, the command returns the re-parsed task in a new `TaskTextWriteResult` DTO. The patchers move to `src/lib/utils/task-tokens.ts` with the block-id rule; `setPriority` replaces in place (no append). Indexing rules 2, 6 and 9 get the new command. Blocked by 244 instead of 241 and 085. Clippy joins the gate. The service, menu items, Undo, date dialog, e2e and help text moved to Issue 246 (122b).
+
+- 2026-11-12: owner answered Q5 (guarded line-number command, no anchor); Status ready-for-agent.

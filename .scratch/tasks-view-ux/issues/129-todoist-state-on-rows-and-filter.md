@@ -51,7 +51,7 @@
 
 **Blocked by:** 244
 
-**Status:** needs-triage
+**Status:** needs-info
 
 **Answered:** owner, 2026-11-12: runs after Issue 244, never beside it or Issue 122 (deep-dive run order, SUMMARY X7). "Open in Todoist" is an item in Issue 241's row menu (2026-11-12). Still open: the error rule (deep-dive Q6), proposal in Notes; this Issue stays `needs-triage` until the owner decides.
 
@@ -85,3 +85,5 @@ Test mechanics: component tests go in a new `src/tests/lib/features/tasks/TasksV
 - 2026-11-12: blocker moved from 111, 113 to 241, the last Issue of the Tasks view chain, so this Issue never runs beside it on the same files. "Open in Todoist" goes in Issue 241's row menu, as a menu item, not as a separate row control. Still needs triage (its error rule).
 - 2026-11-12: deep dive applied (SUMMARY 129, `dossier-129+198+205.md`, `cross-tests-relay.md` H2, M7). Blocked by 244 instead of 241, so it never runs beside the fetch move or 122. The error rule as written is not buildable; the Notes hold a proposal for triage. The `isQueryModified` criterion moved to Issue 126; this Issue extends Issue 239's `isQuickFieldDefault` instead. `TodoistFilter` on `TaskQuickFilters`, the state map as `applyQuickFilters`' fifth argument, precedence frozen, error, pending, linked, a fixed behavior with sync off, token-only icon tones, the state function's signatures, the refresh signal and its stale guards. Own test file on the shared fixture, allowed boundary mocks, source-scan checks.
 - 2026-11-12: consistency review: the sentence part names Issue 116's `describeTaskQuery` as the target when 116 lands first (both follow 244, in either order); `QuickFilterField` gains `'todoist'`.
+
+- 2026-11-12: parked by the owner: they do not use Todoist sync day to day. Do not launch until they ask; the error-rule proposal in Notes stays for that day.

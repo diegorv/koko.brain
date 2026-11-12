@@ -39,9 +39,9 @@
 
 **Blocked by:** 122, 241
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
-**Answered:** owner, 2026-11-12: split approved, 246 = 122b, blocked by 122 (and by 241). Undo for row-menu writes, never for the circle or Space (owner, 2026-11-12, Issue 241, decided when the menu held only status); extending it to the menu's Due and Priority writes is this plan's reading, for the owner to confirm at triage. PRD A7: row edits cover status, due and priority, with no done-date stamp and no recurrence spawn (owner, 2026-11-06). Open: Issue 122's locator (deep-dive Q5); this Issue follows its decision and stays `needs-triage` with it.
+**Answered:** owner, 2026-11-12: split approved, 246 = 122b, blocked by 122 (and by 241). Undo for row-menu writes, never for the circle or Space (owner, 2026-11-12, Issue 241, decided when the menu held only status); extending it to the menu's Due and Priority writes is this plan's reading, for the owner to confirm at triage. PRD A7: row edits cover status, due and priority, with no done-date stamp and no recurrence spawn (owner, 2026-11-06). Open: Issue 122's locator (deep-dive Q5); this Issue follows its decision and stays `needs-triage` with it. Owner, 2026-11-12: confirmed, every row-menu write (status, due, priority) shows the Undo toast; the circle and Space stay without it. Owner, 2026-11-12 (Q5): Issue 122 uses the guarded line-number command.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/tasks-view.spec.ts` because the row menu gains items and the spec gains a due test. relay-lite's configured checks do not run e2e: the build step runs this spec before its last commit and reports its pass count, and the reviewer runs it again as a probe and cites the result. Do not run the whole e2e suite.
 
@@ -73,3 +73,5 @@ Test mechanics: component tests go in a new `src/tests/lib/features/tasks/TasksV
 
 - 2026-11-12: created by the deep-dive split of Issue 122 (SUMMARY 122 and section 4, `dossier-122.md` sections 2-4, `cross-rust-ipc.md` F8). It takes the service, the menu items, Undo, the date dialog, the e2e test and the help text that Issue 122 used to hold; 122 keeps the Rust command and the shared token patchers. `setPriority` replaces in place; the date picker is a Dialog; the overlay carries the re-parsed `metadata`; the dirty-buffer block is shared with `setTaskStatus`; own test file on the shared fixture, allowed boundary mocks, targeted e2e spec Gate, source-scan checks.
 - 2026-11-12: consistency review: `relPath` comes from `vaultRelativeKey` (the old pointer to a `setTaskStatus` precedent was wrong: `toggle_task_status` takes absolute paths); the overlay's `metadata` is named as an optional field on Issue 244's `TaskOverlayEntry`; the Answered line separates the owner's Undo decision from this plan's extension of it to Due and Priority.
+
+- 2026-11-12: owner confirmed Undo for Due and Priority and answered 122's locator; Status ready-for-agent.
