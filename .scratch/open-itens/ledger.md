@@ -96,7 +96,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 059 | [New File from Template says the name is taken instead of silently opening the existing note](issues/059-new-file-from-template-says-name-taken.md) | none | todo | | |
 | 060 | [A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link](issues/060-kb-table-kb-ui-table-kb-list.md) | none | todo | | |
 | 061 | [A task checkbox in live preview reacts only to the primary button](issues/061-live-preview-controls-change-only-text-user.md) | none | todo | | |
-| 062 | [Rendered table cells show links, line breaks and escaped pipes as formatted content](issues/062-rendered-table-cells-show-links-highlight-underscore.md) | none | in-progress | | |
+| 062 | [Rendered table cells show links, line breaks and escaped pipes as formatted content](issues/062-rendered-table-cells-show-links-highlight-underscore.md) | none | done | issue/062-rendered-table-cells-show-links-highlight-underscore (4424b60b4) | 2026-11-12 |
 | 063 | [Standard markdown images with a vault-relative path load from the vault](issues/063-standard-markdown-images-vault-relative-path-load.md) | none | todo | | |
 | 064 | [Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image](issues/064-wikilink-autocomplete-inserts-non-markdown-file-extension.md) | none | todo | | |
 | 065 | [A calendar day with more than three notes lets the user reach every note](issues/065-calendar-day-more-than-three-notes-lets.md) | none | todo | | |
@@ -287,3 +287,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:03 — 004 — start — launched by /relay-lite:run (bug queue rank 3, close case only) — 7886ac046
 - 2026-11-12 19:08 — ledger updated (added 254; title of 006, 006; link of 006, 006; blocked by of 006, 006)
 - 2026-11-12 19:09 — 254 — start — launched by /relay-lite:run (owner asked for it as a 4th workflow) — 2cfe4f710
+- 2026-11-12 19:12 — 062 — deliver — retry: round 1 APPROVED by claude with a fix round (regex backtracking removed with a timing test; empty url guard), deliver re-review APPROVED by claude; full suite 632 files / 16495 tests passed; squash merged and pushed — 4424b60b4
