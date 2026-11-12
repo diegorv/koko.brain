@@ -11,6 +11,7 @@ import { vi } from 'vitest';
 import { flushSync, mount, tick } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { TASK_STATUSES } from '#lib/features/tasks/task-status.logic.js';
 import type { FileTaskGroupV2, NoteEntryV2, TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
@@ -131,14 +132,16 @@ class ResizeObserverStub {
 }
 
 /**
- * Mounts `TasksView` into a fresh target on `document.body` and resolves
- * once `tasksStore.hasLoaded` is true and the DOM is flushed. The caller
- * unmounts `component`.
+ * Marks the vault index ready (the view shows "Indexing tasks..." over an
+ * empty list until it is), mounts `TasksView` into a fresh target on
+ * `document.body` and resolves once `tasksStore.hasLoaded` is true and the
+ * DOM is flushed. The caller unmounts `component`.
  */
 export async function mountTasksView(
 	props: { onOpenWikilink?: (target: string) => void } = {},
 ): Promise<{ target: HTMLElement; component: Record<string, unknown> }> {
 	globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
+	vaultStore.markIndexReady();
 	// Imported here so the logic tests that use this file's builders do not
 	// load the component and its stores.
 	const { default: TasksView } = await import('#lib/features/tasks/TasksView.svelte');

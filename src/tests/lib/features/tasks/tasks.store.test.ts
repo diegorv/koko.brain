@@ -1,12 +1,21 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
-import { DEFAULT_QUICK, DEFAULT_TASK_SORT, buildTaskRows } from '#lib/features/tasks/task-query.logic.js';
+import {
+	DEFAULT_QUICK,
+	DEFAULT_TASK_SORT,
+	buildTaskRows,
+	defaultTaskExcludes,
+	defaultTaskQuery,
+	headingSources,
+} from '#lib/features/tasks/task-query.logic.js';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import { taskEntryV2, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 /** `buildTaskRows` over `groups`, whose `modifiedAt` is in ms as the rows carry it; no section tag, no overlay. */
 const rowsFrom = (groups: FileTaskGroupV2[], vaultPath: string) =>
-	buildTaskRows(groups.map((g) => taskEntryV2({ ...g, modifiedAt: g.modifiedAt / 1000 })), vaultPath, [], new Map());
+	buildTaskRows(groups.map((g) => taskEntryV2({ ...g, modifiedAt: g.modifiedAt / 1000 })), vaultPath, new Map());
 
 describe('tasksStore', () => {
 	beforeEach(() => {
@@ -17,7 +26,9 @@ describe('tasksStore', () => {
 		expect(tasksStore.fileTaskGroups).toEqual([]);
 		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
+		expect(tasksStore.query).toEqual(defaultTaskQuery());
 		expect(tasksStore.rows).toEqual([]);
+		expect(tasksStore.sourceRows).toEqual([]);
 		expect(tasksStore.visibleRows).toEqual([]);
 		expect(tasksStore.isLoading).toBe(false);
 		expect(tasksStore.hasLoaded).toBe(false);
@@ -32,6 +43,92 @@ describe('tasksStore', () => {
 	it('setSectionTag updates section tag', () => {
 		tasksStore.setSectionTag('#work');
 		expect(tasksStore.sectionTag).toBe('#work');
+	});
+
+	it('setSectionTag sets one heading card per tag, and none for text with no tag', () => {
+		tasksStore.setSectionTag('#a b');
+		expect(tasksStore.query.sources).toEqual(headingSources(['#a', '#b']));
+		tasksStore.setSectionTag('');
+		expect(tasksStore.query.sources).toEqual([]);
+		expect(tasksStore.query.exclude).toEqual(defaultTaskExcludes());
+	});
+
+	it('the quick getter follows setQuick and reads query.quick', () => {
+		tasksStore.setQuick({ show: 'all' });
+		expect(tasksStore.quick).toEqual({ show: 'all' });
+		expect(tasksStore.query.quick).toBe(tasksStore.quick);
+		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
+	});
+
+	describe('sources and excludes', () => {
+		beforeEach(() => {
+			settingsStore.reset();
+		});
+
+		afterEach(() => {
+			settingsStore.reset();
+		});
+
+		/** One open task per note, its text the vault-relative path; one under `## Inbox #to-list`. */
+		const vaultRows = () =>
+			buildTaskRows(
+				[
+					entryV2('/vault/Projects/a.md', { tasks: [taskV2('Projects/a.md')] }),
+					entryV2('/vault/_system/templates/T.md', { tasks: [taskV2('_system/templates/T.md')] }),
+					entryV2('/vault/X/n.md', { tasks: [taskV2('X/n.md')] }),
+					entryV2('/vault/Inbox.md', {
+						taskHeadings: [{ level: 2, text: 'Inbox #to-list', line: 1 }],
+						tasks: [taskV2('Inbox.md', { lineNumber: 2, heading: 0 })],
+					}),
+				],
+				'/vault',
+				new Map(),
+			);
+		const visible = () => tasksStore.visibleRows.map((r) => r.text);
+
+		it('visibleRows and sourceRows follow setSources', () => {
+			tasksStore.setRows(vaultRows());
+			expect(visible()).toEqual(['Inbox.md']);
+			tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
+			expect(visible()).toEqual(['Projects/a.md']);
+			expect(tasksStore.sourceRows.map((r) => r.text)).toEqual(['Projects/a.md']);
+			tasksStore.setSources([]);
+			expect(visible()).toEqual(['Inbox.md', 'Projects/a.md', 'X/n.md']);
+		});
+
+		it('visibleRows follows setExclude', () => {
+			tasksStore.setRows(vaultRows());
+			tasksStore.setSources([]);
+			tasksStore.setExclude({ ...defaultTaskExcludes(), templatesFolder: false, systemFolder: false });
+			expect(visible()).toEqual(['_system/templates/T.md', 'Inbox.md', 'Projects/a.md', 'X/n.md']);
+			expect(tasksStore.query.exclude.templatesFolder).toBe(false);
+		});
+
+		it('visibleRows follows a template folder setting change', () => {
+			tasksStore.setRows(vaultRows());
+			tasksStore.setSources([]);
+			tasksStore.setExclude({ ...defaultTaskExcludes(), systemFolder: false });
+			expect(visible()).toEqual(['Inbox.md', 'Projects/a.md', 'X/n.md']);
+			settingsStore.updateTemplates({ folder: 'X' });
+			expect(visible()).toEqual(['_system/templates/T.md', 'Inbox.md', 'Projects/a.md']);
+		});
+
+		it('recounts the note counts over the kept rows', () => {
+			tasksStore.setRows(
+				buildTaskRows(
+					[
+						entryV2('/vault/s.md', {
+							taskHeadings: [{ level: 2, text: 'List #to-list', line: 1 }, { level: 2, text: 'Other', line: 4 }],
+							tasks: [taskV2('in', { lineNumber: 2, heading: 0 }), taskV2('out', { lineNumber: 5, heading: 1 })],
+						}),
+					],
+					'/vault',
+					new Map(),
+				),
+			);
+			expect(tasksStore.rows.map((r) => r.noteTaskCount)).toEqual([2, 2]);
+			expect(tasksStore.visibleRows.map((r) => [r.text, r.noteTaskCount, r.noteOpenCount])).toEqual([['in', 1, 1]]);
+		});
 	});
 
 	it('setQuick merges into the quick filters', () => {
@@ -56,6 +153,11 @@ describe('tasksStore', () => {
 	});
 
 	describe('visibleRows', () => {
+		beforeEach(() => {
+			// The rows below have no heading: list every note.
+			tasksStore.setSources([]);
+		});
+
 		const DAY = 24 * 60 * 60 * 1000;
 		const rowsOf = () =>
 			rowsFrom(
@@ -174,6 +276,7 @@ describe('tasksStore', () => {
 
 				tasksStore.reset();
 				expect(tasksStore.quick.due).toBeUndefined();
+				tasksStore.setSources([]);
 				tasksStore.setRows(dueRows());
 				expect(texts()).toEqual(['Late', 'Later', 'Someday']);
 			});
@@ -212,6 +315,7 @@ describe('tasksStore', () => {
 
 	describe('grouping', () => {
 		beforeEach(() => {
+			tasksStore.setSources([]);
 			vi.useFakeTimers({ toFake: ['Date'] });
 			vi.setSystemTime(new Date('2026-11-05T12:00:00'));
 		});
@@ -337,6 +441,8 @@ describe('tasksStore', () => {
 		tasksStore.setSectionTag('#custom');
 		tasksStore.setRows(rowsFrom([taskGroupV2('/vault/a.md', [taskV2('x')])], '/vault'));
 		tasksStore.setQuick({ show: 'all', statuses: ['done'], due: 'overdue' });
+		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
+		tasksStore.setExclude({ ...defaultTaskExcludes(), archived: false });
 		tasksStore.setLoading(true);
 		tasksStore.setHasLoaded(true);
 		tasksStore.setError('failed');
@@ -349,6 +455,7 @@ describe('tasksStore', () => {
 		expect(tasksStore.sectionTag).toBe('#to-list');
 		expect(tasksStore.rows).toEqual([]);
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
+		expect(tasksStore.query).toEqual(defaultTaskQuery());
 		expect(tasksStore.isLoading).toBe(false);
 		expect(tasksStore.hasLoaded).toBe(false);
 		expect(tasksStore.error).toBeNull();

@@ -63,6 +63,8 @@ function note(path: string, modifiedAtSec: number, texts: string[], overrides: P
 /** The paths of the notes the rows come from, in row order. */
 const rowPaths = () => [...new Set(tasksStore.rows.map((r) => r.filePath))];
 const rowTexts = () => tasksStore.rows.map((r) => r.text);
+/** The texts of the rows the list shows, after the sources, excludes and quick filters. */
+const visibleTexts = () => tasksStore.visibleRows.map((r) => r.text);
 
 /**
  * A note with a task under `## Inbox #to-list`, one under `## Job #work` and
@@ -128,23 +130,24 @@ describe('buildTaskIndex', () => {
 		expect(tasksStore.rows).toEqual([]);
 	});
 
-	it('keeps only the tasks under a heading carrying the section tag', async () => {
+	it('keeps every task in the rows, and the section tag selects the ones under its heading', async () => {
 		tasksStore.setSectionTag('#to-list');
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await buildTaskIndex();
 
-		expect(rowTexts()).toEqual(['listed']);
-		expect([tasksStore.rows[0].noteTaskCount, tasksStore.rows[0].noteOpenCount]).toEqual([1, 1]);
+		expect(rowTexts()).toEqual(['listed', 'work item', 'misc item']);
+		expect(visibleTexts()).toEqual(['listed']);
+		expect([tasksStore.visibleRows[0].noteTaskCount, tasksStore.visibleRows[0].noteOpenCount]).toEqual([1, 1]);
 	});
 
-	it('keeps a task under any tag parsed from the section tag text', async () => {
+	it('selects a task under any tag parsed from the section tag text', async () => {
 		tasksStore.setSectionTag('#to-list work');
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
 
 		await buildTaskIndex();
 
-		expect(rowTexts()).toEqual(['listed', 'work item']);
+		expect(visibleTexts()).toEqual(['listed', 'work item']);
 	});
 
 	it('lists every task when the section tag text holds no tag', async () => {
@@ -483,46 +486,36 @@ describe('updateSectionTagFilter', () => {
 		settingsStore.reset();
 	});
 
-	it('sets the section tag, saves it and lists the tasks under it', async () => {
+	it('sets the section tag, saves it and lists the tasks under it, with no fetch', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
+		await buildTaskIndex();
 
-		await updateSectionTagFilter('#work');
+		updateSectionTagFilter('#work');
 
 		expect(tasksStore.sectionTag).toBe('#work');
-		expect(rowTexts()).toEqual(['work item']);
+		expect(visibleTexts()).toEqual(['work item']);
 		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('#work');
+		expect(invoke).toHaveBeenCalledTimes(1);
+		expect(tasksStore.isLoading).toBe(false);
 	});
 
 	it('lists every task when the filter is cleared', async () => {
 		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
+		await buildTaskIndex();
 
-		await updateSectionTagFilter('');
+		updateSectionTagFilter('');
 
-		expect(rowTexts()).toEqual(['listed', 'work item', 'misc item']);
+		expect(visibleTexts()).toEqual(['listed', 'work item', 'misc item']);
+		expect(tasksStore.query.sources).toEqual([]);
 		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('');
 	});
 
-	it('re-reads the memoized snapshot on a tag change, with no second IPC', async () => {
-		vi.mocked(invoke).mockResolvedValueOnce([sectioned()]);
-		await updateSectionTagFilter('#to-list');
-		expect(rowTexts()).toEqual(['listed']);
+	it('starts no fetch before any rows were loaded', () => {
+		updateSectionTagFilter('#a');
 
-		await updateSectionTagFilter('#work');
-
-		expect(rowTexts()).toEqual(['work item']);
-		expect(invoke).toHaveBeenCalledTimes(1);
-	});
-
-	it('saves the tag in the settings store before it refetches', async () => {
-		let savedAtFetch: unknown;
-		vi.mocked(invoke).mockImplementationOnce(async () => {
-			savedAtFetch = { ...(settingsStore.tasksView as object) };
-			return [];
-		});
-
-		await updateSectionTagFilter('#a');
-
-		expect(savedAtFetch).toEqual({ version: 1, sectionTag: '#a' });
+		expect(invoke).not.toHaveBeenCalled();
+		expect(tasksStore.sectionTag).toBe('#a');
+		expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#a' });
 	});
 });
 

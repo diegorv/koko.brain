@@ -11,7 +11,7 @@ import { tasksStore } from './tasks.store.svelte';
 import { buildTaskRows, type TaskOverlayEntry } from './task-query.logic';
 import { statusMenuLabel, toggleTarget } from './task-status.logic';
 import { taskRowKey } from './tasks-keys.logic';
-import { parseSectionTags, parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
+import { parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
 import type { TaskStatus } from './task-metadata.types';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
@@ -87,9 +87,10 @@ export function getTasksResetGeneration(): number {
 /**
  * Builds the Tasks store's rows from the memoized entries snapshot
  * (`getVaultEntries`, one `get_all_vault_entries_v2` per index version,
- * shared with QueryJS), keeping the tasks under a heading that carries one of
- * the section tags (`buildTaskRows`), with the view's own writes laid over
- * it. Calls at one version share one read, so a tag change costs no IPC.
+ * shared with QueryJS): every task (`buildTaskRows`), with the view's own
+ * writes laid over it. The store's sources and excludes select from these
+ * rows in memory, so a source change needs no call here. Calls at one
+ * version share one read.
  * Rows are in path order (`compareTaskPaths`), not the snapshot's order, so a
  * toggle that rewrites a note does not move it.
  *
@@ -117,7 +118,7 @@ export async function buildTaskIndex(): Promise<void> {
 			for (const [key, written] of taskOverlay) {
 				if (written.version <= version) taskOverlay.delete(key);
 			}
-			const rows = buildTaskRows(entries, vaultStore.path, parseSectionTags(tasksStore.sectionTag), taskOverlay);
+			const rows = buildTaskRows(entries, vaultStore.path, taskOverlay);
 			tasksStore.setRows(rows);
 			tasksStore.setError(null);
 			debug('TASKS', `Tasks: ${new Set(rows.map((r) => r.filePath)).size} files, ${rows.length} tasks`);
@@ -136,17 +137,16 @@ export async function buildTaskIndex(): Promise<void> {
 }
 
 /**
- * Updates the section-tag text (one or more tags), saves it as typed in the
- * vault's settings (`tasksView.sectionTag`), and rebuilds the rows via
- * `buildTaskIndex`, which filters the memoized snapshot again: no disk read
- * and, at an unchanged index version, no IPC.
+ * Updates the section-tag text (one or more tags), which sets the heading
+ * cards (`tasksStore.setSectionTag`), and saves it as typed in the vault's
+ * settings (`tasksView.sectionTag`). Starts no fetch: the store re-selects
+ * the rows it holds.
  */
-export async function updateSectionTagFilter(tag: string): Promise<void> {
+export function updateSectionTagFilter(tag: string): void {
 	tasksStore.setSectionTag(tag);
 	// Saved as typed into the settings store only: settings persistence writes the
 	// file, and holds the guard for a session whose settings.json was never loaded.
 	settingsStore.updateTasksView(withSectionTag(settingsStore.tasksView, tag));
-	await buildTaskIndex();
 }
 
 /**

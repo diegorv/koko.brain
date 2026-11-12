@@ -19,6 +19,7 @@
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import {
 		buildTaskIndex,
@@ -45,7 +46,7 @@
 		GROUP_ROW_CAP,
 		TASK_PRIORITIES,
 		collapseKey,
-		describeTaskRule,
+		describeTaskQuery,
 		explainEmptyTasks,
 		isQuickFieldDefault,
 		priorityWord,
@@ -141,7 +142,7 @@
 			timer: setTimeout(() => {
 				debounce = null;
 				pendingSectionTag = null;
-				void updateSectionTagFilter(value);
+				updateSectionTagFilter(value);
 			}, 400),
 		};
 	}
@@ -151,7 +152,7 @@
 		if (debounce) clearTimeout(debounce.timer);
 		debounce = null;
 		pendingSectionTag = null;
-		void updateSectionTagFilter('');
+		updateSectionTagFilter('');
 	}
 
 	const resetGenerationAtMount = getTasksResetGeneration();
@@ -159,11 +160,11 @@
 	// A tag typed just before the view unmounts (another tab activated) is
 	// applied instead of dropped. Not after `resetTasks()`: on a vault switch
 	// the view unmounts after the reset, and the old vault's tag would land in
-	// the new vault's store and start a fetch.
+	// the new vault's store and settings.
 	onDestroy(() => {
 		if (!debounce) return;
 		clearTimeout(debounce.timer);
-		if (getTasksResetGeneration() === resetGenerationAtMount) void updateSectionTagFilter(debounce.value);
+		if (getTasksResetGeneration() === resetGenerationAtMount) updateSectionTagFilter(debounce.value);
 	});
 
 	let groups = $derived(tasksStore.groups);
@@ -179,19 +180,14 @@
 		return formatNow('YYYY-MM-DD');
 	});
 
-	let ruleSentence = $derived(
-		describeTaskRule({
-			sectionTag: tasksStore.sectionTag,
-			quick: tasksStore.quick,
-		}),
-	);
+	let ruleSentence = $derived(describeTaskQuery(tasksStore.query));
 
 	let emptyExplanation = $derived(
 		groups.length === 0
 			? explainEmptyTasks({
 					rows: tasksStore.rows,
-					sectionTag: tasksStore.sectionTag,
-					quick: tasksStore.quick,
+					query: tasksStore.query,
+					folders: { templates: settingsStore.templates.folder, system: settingsStore.templates.systemFolder },
 					today,
 					now: Date.now(),
 				})
@@ -231,8 +227,8 @@
 		tasksStore.setQuick({ priorities: toggleQuickPriority(tasksStore.quick.priorities, priority) });
 	}
 
-	/** Tags of the unfiltered rows, plus a chosen tag no longer among them so it can be unchecked. */
-	let tagOptions = $derived(tagMenuOptions(tasksStore.rows, tasksStore.quick.tags));
+	/** Tags of the rows the sources and excludes keep, plus a chosen tag no longer among them so it can be unchecked. */
+	let tagOptions = $derived(tagMenuOptions(tasksStore.sourceRows, tasksStore.quick.tags));
 
 	let tagTriggerLabel = $derived.by(() => {
 		const chosen = tasksStore.quick.tags;
@@ -940,7 +936,8 @@
 	<!-- Content -->
 	<ScrollArea class="flex-1 min-h-0" bind:viewportRef>
 		<div class="p-4">
-			{#if !tasksStore.hasLoaded}
+			<!-- An empty snapshot read before the vault index is ready is not an empty vault. -->
+			{#if !tasksStore.hasLoaded || (!vaultStore.indexReady && tasksStore.rows.length === 0)}
 				<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
 			{:else if tasksStore.error && tasksStore.rows.length === 0}
 				<!-- No list was loaded: the alert takes the empty state's place. -->

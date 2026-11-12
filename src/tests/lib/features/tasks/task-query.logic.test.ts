@@ -5,9 +5,13 @@ import {
 	applyQuickFilters,
 	buildTaskRows,
 	collapseKey,
-	describeTaskRule,
+	defaultTaskExcludes,
+	defaultTaskQuery,
+	describeTaskQuery,
 	explainEmptyTasks,
 	DEFAULT_TASK_SORT,
+	headingSources,
+	selectSourceRows,
 	groupTaskRows,
 	isQuickFieldDefault,
 	matchesNestedTag,
@@ -21,13 +25,17 @@ import {
 	type DueRange,
 	type QuickFilterField,
 	type TaskGroup,
+	type TaskExcludes,
 	type TaskGroupKey,
+	type TaskQuery,
 	type TaskQuickFilters,
 	type TaskRow,
+	type TaskSource,
+	type TaskSourceClause,
 	type VisibleRow,
 } from '#lib/features/tasks/task-query.logic.js';
 import type { TaskPriority, TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
-import { taskDisplayText } from '#lib/features/tasks/tasks.logic.js';
+import { parseSectionTags, taskDisplayText } from '#lib/features/tasks/tasks.logic.js';
 import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { sevenStatusGroup, taskEntryV2, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
@@ -43,8 +51,34 @@ function group(filePath: string, tasks: TaskItem[], modifiedAt = NOW): NoteEntry
 	return taskEntryV2(taskGroupV2(filePath, tasks, modifiedAt / 1000));
 }
 
-/** `buildTaskRows` with no section tag and no overlay. */
-const rowsFrom = (entries: NoteEntryV2[], vaultPath: string | null) => buildTaskRows(entries, vaultPath, [], new Map());
+/** `buildTaskRows` with no overlay. */
+const rowsFrom = (entries: NoteEntryV2[], vaultPath: string | null) => buildTaskRows(entries, vaultPath, new Map());
+
+/** One note: `## A #to-list` / `### B #to-list` / `### C` / `## Other`, a task under each, and one before them. */
+const sections = (path = '/vault/s.md', overrides: Partial<NoteEntryV2> = {}) =>
+	entryV2(path, {
+		taskHeadings: [
+			{ level: 2, text: 'A #to-list', line: 2 },
+			{ level: 3, text: 'B #to-list', line: 4 },
+			{ level: 3, text: 'C', line: 6 },
+			{ level: 2, text: 'Other', line: 8 },
+		],
+		tasks: [
+			taskV2('before', { lineNumber: 1 }),
+			taskV2('under A', { lineNumber: 3, heading: 0 }),
+			taskV2('under B', { lineNumber: 5, heading: 1, status: 'done' }),
+			taskV2('under C', { lineNumber: 7, heading: 2 }),
+			taskV2('under Other', { lineNumber: 9, heading: 3 }),
+		],
+		...overrides,
+	});
+
+/** A parent task under `## Misc` and its child under `## List #to-list`. */
+const parentOutside = () =>
+	entryV2('/vault/p.md', {
+		taskHeadings: [{ level: 2, text: 'Misc', line: 1 }, { level: 2, text: 'List #to-list', line: 4 }],
+		tasks: [taskV2('outside parent', { lineNumber: 2, heading: 0 }), taskV2('child', { lineNumber: 5, indent: 1, heading: 1 })],
+	});
 
 /** A task as Rust sends it, at `indent` on `lineNumber`. */
 const task = (status: TaskStatus, indent: number, lineNumber: number, text = `${status} ${lineNumber}`) =>
@@ -282,7 +316,7 @@ describe('buildTaskRows', () => {
 		const firstEntry = entries[0];
 		const firstTasks = entries[0].tasks;
 
-		const rows = buildTaskRows(entries, '/vault', [], new Map([['/vault/note 10.md:1', { text: 'ten', status: 'todo', version: 1 }]]));
+		const rows = buildTaskRows(entries, '/vault', new Map([['/vault/note 10.md:1', { text: 'ten', status: 'todo', version: 1 }]]));
 
 		expect(rows.map((r) => r.relPath)).toEqual(['note 9.md', 'note 10.md']);
 		expect(entries).toEqual(before);
@@ -290,59 +324,18 @@ describe('buildTaskRows', () => {
 		expect(entries[0].tasks).toBe(firstTasks);
 	});
 
-	describe('section tags', () => {
-		/** One note: `## A #to-list` / `### B #to-list` / `### C` / `## Other`, a task under each, and one before them. */
-		const sections = () =>
-			entryV2('/vault/s.md', {
-				taskHeadings: [
-					{ level: 2, text: 'A #to-list', line: 2 },
-					{ level: 3, text: 'B #to-list', line: 4 },
-					{ level: 3, text: 'C', line: 6 },
-					{ level: 2, text: 'Other', line: 8 },
-				],
-				tasks: [
-					taskV2('before', { lineNumber: 1 }),
-					taskV2('under A', { lineNumber: 3, heading: 0 }),
-					taskV2('under B', { lineNumber: 5, heading: 1, status: 'done' }),
-					taskV2('under C', { lineNumber: 7, heading: 2 }),
-					taskV2('under Other', { lineNumber: 9, heading: 3 }),
-				],
-			});
-
-		it('keeps only the tasks under a tagged heading, and counts those only', () => {
-			const rows = buildTaskRows([sections()], '/vault', ['#to-list'], new Map());
-			expect(rows.map((r) => r.text)).toEqual(['under A', 'under B', 'under C']);
-			expect(rows.map((r) => [r.noteTaskCount, r.noteOpenCount])).toEqual([
-				[3, 2],
-				[3, 2],
-				[3, 2],
-			]);
-			expect(rows.map((r) => r.headings)).toEqual([['A #to-list'], ['A #to-list', 'B #to-list'], ['A #to-list', 'C']]);
-		});
-
-		it('keeps every task with no tag', () => {
-			const rows = buildTaskRows([sections()], '/vault', [], new Map());
+	describe('headings', () => {
+		it('keeps every task, with its heading chain', () => {
+			const rows = buildTaskRows([sections()], '/vault', new Map());
 			expect(rows.map((r) => r.text)).toEqual(['before', 'under A', 'under B', 'under C', 'under Other']);
-			expect(rows[4].headings).toEqual(['Other']);
+			expect(rows.map((r) => r.headings)).toEqual([[], ['A #to-list'], ['A #to-list', 'B #to-list'], ['A #to-list', 'C'], ['Other']]);
+			expect(rows.map((r) => [r.noteTaskCount, r.noteOpenCount])[0]).toEqual([5, 4]);
 		});
 
-		it('keeps a task under any of several tags, ignoring case', () => {
-			const rows = buildTaskRows([sections()], '/vault', ['#nope', '#TO-LIST'], new Map());
-			expect(rows.map((r) => r.text)).toEqual(['under A', 'under B', 'under C']);
-		});
-
-		it('gives no row for a note whose tasks are all outside the tags', () => {
-			expect(buildTaskRows([sections()], '/vault', ['#work'], new Map())).toEqual([]);
-		});
-
-		it('sets parentLine over the kept tasks only', () => {
-			const entry = entryV2('/vault/p.md', {
-				taskHeadings: [{ level: 2, text: 'Misc', line: 1 }, { level: 2, text: 'List #to-list', line: 4 }],
-				tasks: [taskV2('outside parent', { lineNumber: 2, heading: 0 }), taskV2('child', { lineNumber: 5, indent: 1, heading: 1 })],
-			});
-			const [row] = buildTaskRows([entry], '/vault', ['#to-list'], new Map());
-			expect(row.text).toBe('child');
-			expect(row.parentLine).toBeUndefined();
+		it('sets parentLine over every task of the note, whatever its heading', () => {
+			const [, child] = buildTaskRows([parentOutside()], '/vault', new Map());
+			expect(child.text).toBe('child');
+			expect(child.parentLine).toBe(2);
 		});
 	});
 
@@ -354,7 +347,7 @@ describe('buildTaskRows', () => {
 
 		it('changes status, text, checked and open of its row only', () => {
 			const overlay = new Map([['/vault/a.md:2', { text: 'two, edited', status: 'done' as const, version: 3 }]]);
-			const rows = buildTaskRows([note()], '/vault', [], overlay);
+			const rows = buildTaskRows([note()], '/vault', overlay);
 			expect(rows.map((r) => [r.text, r.status, r.checked, r.open])).toEqual([
 				['one', 'todo', false, true],
 				['two, edited', 'done', true, false],
@@ -367,19 +360,308 @@ describe('buildTaskRows', () => {
 
 		it('sets checked from an overlaid todo status', () => {
 			const entry = entryV2('/vault/a.md', { tasks: [taskV2('one', { status: 'done' })] });
-			const [row] = buildTaskRows([entry], '/vault', [], new Map([['/vault/a.md:1', { text: 'one', status: 'todo' as const, version: 3 }]]));
+			const [row] = buildTaskRows([entry], '/vault', new Map([['/vault/a.md:1', { text: 'one', status: 'todo' as const, version: 3 }]]));
 			expect([row.status, row.checked, row.open]).toEqual(['todo', false, true]);
 		});
 
 		it('applies to no other note at the same line', () => {
 			const other = entryV2('/vault/b.md', { tasks: [taskV2('b one')] });
-			const rows = buildTaskRows([note(), other], '/vault', [], new Map([['/vault/a.md:1', { text: 'one', status: 'done' as const, version: 3 }]]));
+			const rows = buildTaskRows([note(), other], '/vault', new Map([['/vault/a.md:1', { text: 'one', status: 'done' as const, version: 3 }]]));
 			expect(rows.map((r) => [r.filePath, r.status])).toEqual([
 				['/vault/a.md', 'done'],
 				['/vault/a.md', 'todo'],
 				['/vault/b.md', 'todo'],
 			]);
 		});
+	});
+});
+
+/** No exclude on. */
+const NO_EXCLUDES: TaskExcludes = {
+	archived: false,
+	typeDefinitions: false,
+	templatesFolder: false,
+	systemFolder: false,
+	folders: [],
+	notes: [],
+	tags: [],
+	types: [],
+};
+
+/** The default template and system folder settings. */
+const FOLDERS = { templates: '_system/templates', system: '_system' };
+
+describe('query defaults', () => {
+	it('defaultTaskExcludes turns the four switches on with empty lists', () => {
+		expect(defaultTaskExcludes()).toEqual({
+			archived: true,
+			typeDefinitions: true,
+			templatesFolder: true,
+			systemFolder: true,
+			folders: [],
+			notes: [],
+			tags: [],
+			types: [],
+		});
+		expect(defaultTaskExcludes()).not.toBe(defaultTaskExcludes());
+	});
+
+	it('headingSources gives one card per tag, and none for no tag', () => {
+		expect(headingSources(['#a', '#b'])).toEqual([
+			{ clauses: [{ kind: 'heading', text: '#a', match: 'tag' }] },
+			{ clauses: [{ kind: 'heading', text: '#b', match: 'tag' }] },
+		]);
+		expect(headingSources([])).toEqual([]);
+	});
+
+	it('defaultTaskQuery holds the #to-list card, the default excludes and DEFAULT_QUICK', () => {
+		expect(defaultTaskQuery()).toEqual({
+			version: 1,
+			sources: headingSources(['#to-list']),
+			exclude: defaultTaskExcludes(),
+			quick: DEFAULT_QUICK,
+		});
+	});
+});
+
+describe('selectSourceRows', () => {
+	/** A note with one task whose text is the note's vault-relative path. */
+	const note = (relPath: string, fields: Partial<NoteEntryV2> = {}) =>
+		entryV2(`/vault/${relPath}`, { tasks: [taskV2(relPath)], ...fields });
+
+	/** The texts of the rows `sources` and `exclude` keep. */
+	const select = (entries: NoteEntryV2[], sources: TaskSource[], exclude = NO_EXCLUDES, folders = FOLDERS) =>
+		selectSourceRows(rowsFrom(entries, '/vault'), sources, exclude, folders).map((r) => r.text);
+
+	const card = (...clauses: TaskSourceClause[]): TaskSource => ({ clauses });
+
+	describe('folder clause', () => {
+		const entries = () => [note('Projects/a.md'), note('Projects/ACME/b.md'), note('Projects2/c.md'), note('d.md')];
+
+		it('matches the folder and every folder under it, not a sibling sharing its prefix', () => {
+			expect(select(entries(), [card({ kind: 'folder', path: 'Projects' })])).toEqual(['Projects/a.md', 'Projects/ACME/b.md']);
+		});
+
+		it('trims leading and trailing slashes', () => {
+			expect(select(entries(), [card({ kind: 'folder', path: '/Projects/' })])).toEqual(['Projects/a.md', 'Projects/ACME/b.md']);
+			expect(select(entries(), [card({ kind: 'folder', path: 'Projects/ACME/' })])).toEqual(['Projects/ACME/b.md']);
+		});
+
+		it('is case-sensitive', () => {
+			expect(select(entries(), [card({ kind: 'folder', path: 'projects' })])).toEqual([]);
+		});
+
+		it('keeps the rest when negated', () => {
+			expect(select(entries(), [card({ kind: 'folder', path: 'Projects', negate: true })])).toEqual(['d.md', 'Projects2/c.md']);
+		});
+	});
+
+	describe('type clause', () => {
+		const entries = () => [note('a.md', { isA: 'Project' }), note('b.md', { isA: 'Meeting' }), note('c.md')];
+
+		it('matches the note type, ignoring case; a note with no type never matches', () => {
+			expect(select(entries(), [card({ kind: 'type', type: 'PROJECT' })])).toEqual(['a.md']);
+		});
+
+		it('keeps the other notes, untyped ones included, when negated', () => {
+			expect(select(entries(), [card({ kind: 'type', type: 'project', negate: true })])).toEqual(['b.md', 'c.md']);
+		});
+	});
+
+	describe('note tag clause', () => {
+		const entries = () => [
+			note('a.md', { tags: ['work/client'] }),
+			note('b.md', { tags: ['workshop'] }),
+			note('c.md', { tags: ['Work'] }),
+			note('d.md', { tags: ['#work'] }),
+			note('e.md'),
+		];
+
+		it('matches the tag and its nested tags, ignoring case and a # on either side', () => {
+			expect(select(entries(), [card({ kind: 'noteTag', tag: 'work' })])).toEqual(['a.md', 'c.md', 'd.md']);
+			expect(select(entries(), [card({ kind: 'noteTag', tag: '#work' })])).toEqual(['a.md', 'c.md', 'd.md']);
+		});
+
+		it('keeps the rest when negated', () => {
+			expect(select(entries(), [card({ kind: 'noteTag', tag: '#work', negate: true })])).toEqual(['b.md', 'e.md']);
+		});
+	});
+
+	describe('heading clause', () => {
+		/** One task under each heading text, in one note. */
+		const under = (...headings: string[]) =>
+			entryV2('/vault/h.md', {
+				taskHeadings: headings.map((text, i) => ({ level: 2, text, line: i * 2 + 1 })),
+				tasks: headings.map((text, i) => taskV2(`under ${text}`, { lineNumber: i * 2 + 2, heading: i })),
+			});
+
+		it('reads each task\'s heading chain, per row', () => {
+			expect(select([sections()], [card({ kind: 'heading', text: '#to-list', match: 'tag' })])).toEqual([
+				'under A',
+				'under B',
+				'under C',
+			]);
+		});
+
+		it('matches a nested tag in tag mode, not a longer tag or one in parentheses', () => {
+			const entry = under('A #to-list/today', 'B #to-listing', 'C (#to-list)');
+			expect(select([entry], [card({ kind: 'heading', text: '#to-list', match: 'tag' })])).toEqual(['under A #to-list/today']);
+		});
+
+		it('matches the text with its # anywhere in the heading in substring mode', () => {
+			const entry = under('A #to-list/today', 'B #to-listing', 'C plain to-list');
+			expect(select([entry], [card({ kind: 'heading', text: '#to-list', match: 'substring' })])).toEqual([
+				'under A #to-list/today',
+				'under B #to-listing',
+			]);
+		});
+
+		it('keeps a child under the heading without its parent outside it', () => {
+			expect(select([parentOutside()], [card({ kind: 'heading', text: '#to-list', match: 'tag' })])).toEqual(['child']);
+		});
+	});
+
+	describe('cards and clauses', () => {
+		const entries = () => [
+			note('Projects/a.md', { tags: ['work'] }),
+			note('Projects/b.md'),
+			note('Home/c.md', { tags: ['work'] }),
+			note('Home/d.md', { isA: 'Meeting' }),
+		];
+
+		it('ANDs the clauses of a card', () => {
+			expect(select(entries(), [card({ kind: 'folder', path: 'Projects' }, { kind: 'noteTag', tag: 'work' })])).toEqual(['Projects/a.md']);
+		});
+
+		it('ORs the cards', () => {
+			expect(
+				select(entries(), [
+					card({ kind: 'folder', path: 'Projects' }, { kind: 'noteTag', tag: 'work' }),
+					card({ kind: 'type', type: 'Meeting' }),
+				]),
+			).toEqual(['Home/d.md', 'Projects/a.md']);
+		});
+
+		it('keeps every row for no card and for an empty card', () => {
+			const all = ['Home/c.md', 'Home/d.md', 'Projects/a.md', 'Projects/b.md'];
+			expect(select(entries(), [])).toEqual(all);
+			expect(select(entries(), [card()])).toEqual(all);
+			expect(select(entries(), [card({ kind: 'type', type: 'Nope' }), card()])).toEqual(all);
+		});
+
+		it.each([
+			[{ kind: 'folder', path: '  ' }],
+			[{ kind: 'folder', path: '/', negate: true }],
+			[{ kind: 'type', type: ' ' }],
+			[{ kind: 'type', type: '', negate: true }],
+			[{ kind: 'noteTag', tag: '#' }],
+			[{ kind: 'noteTag', tag: ' # ', negate: true }],
+			[{ kind: 'heading', text: '', match: 'tag' }],
+			[{ kind: 'heading', text: ' #', match: 'substring' }],
+		] as [TaskSourceClause][])('treats the empty clause %j as matching every row', (clause) => {
+			expect(select(entries(), [card(clause)])).toHaveLength(4);
+			expect(select(entries(), [card(clause, { kind: 'folder', path: 'Home' })])).toEqual(['Home/c.md', 'Home/d.md']);
+		});
+	});
+
+	describe('excludes', () => {
+		const entries = () => [
+			note('_system/templates/T.md'),
+			note('_system/S.md'),
+			note('Old.md', { archived: true }),
+			note('Types/Project.md', { isA: 'Type' }),
+			note('Projects/a.md', { tags: ['work/client'], isA: 'Project' }),
+			note('Projects/ACME/b.md'),
+		];
+		const only = (partial: Partial<TaskExcludes>) => ({ ...NO_EXCLUDES, ...partial });
+
+		it('drops archived notes', () => {
+			expect(select(entries(), [], only({ archived: true }))).not.toContain('Old.md');
+			expect(select(entries(), [], only({ archived: true }))).toHaveLength(5);
+		});
+
+		it('drops type definitions (noteType Type)', () => {
+			expect(select(entries(), [], only({ typeDefinitions: true }))).toEqual([
+				'_system/S.md',
+				'_system/templates/T.md',
+				'Old.md',
+				'Projects/a.md',
+				'Projects/ACME/b.md',
+			]);
+		});
+
+		it('drops the templates folder only, or the whole system folder', () => {
+			expect(select(entries(), [], only({ templatesFolder: true }))).not.toContain('_system/templates/T.md');
+			expect(select(entries(), [], only({ templatesFolder: true }))).toContain('_system/S.md');
+			const system = select(entries(), [], only({ systemFolder: true }));
+			expect(system).not.toContain('_system/S.md');
+			expect(system).not.toContain('_system/templates/T.md');
+		});
+
+		it('drops nothing for an empty template or system folder setting', () => {
+			expect(select(entries(), [], only({ templatesFolder: true, systemFolder: true }), { templates: '', system: '' })).toHaveLength(6);
+		});
+
+		it('reads the folder settings with the folder rule', () => {
+			const kept = select(entries(), [], only({ templatesFolder: true }), { templates: '/Projects/', system: '' });
+			expect(kept).not.toContain('Projects/a.md');
+			expect(kept).not.toContain('Projects/ACME/b.md');
+			expect(kept).toHaveLength(4);
+		});
+
+		it('drops listed folders, notes, tags and types', () => {
+			expect(select(entries(), [], only({ folders: ['Projects/ACME'] }))).not.toContain('Projects/ACME/b.md');
+			expect(select(entries(), [], only({ notes: ['Old.md'] }))).not.toContain('Old.md');
+			expect(select(entries(), [], only({ notes: ['old.md'] }))).toContain('Old.md');
+			expect(select(entries(), [], only({ tags: ['#work'] }))).not.toContain('Projects/a.md');
+			expect(select(entries(), [], only({ types: ['project'] }))).not.toContain('Projects/a.md');
+		});
+
+		it('ignores empty list values', () => {
+			expect(select(entries(), [], only({ folders: [' ', '/'], notes: [''], tags: ['#'], types: [''] }))).toHaveLength(6);
+		});
+
+		it('wins over a card that names the excluded folder', () => {
+			expect(select(entries(), [card({ kind: 'folder', path: 'Projects' })], only({ folders: ['Projects/ACME'] }))).toEqual([
+				'Projects/a.md',
+			]);
+			expect(select(entries(), [card({ kind: 'folder', path: '_system' })], only({ systemFolder: true }))).toEqual([]);
+		});
+	});
+
+	it('counts each note\'s tasks and open tasks over its kept rows, leaving the input rows untouched', () => {
+		const rows = rowsFrom([sections()], '/vault');
+		const kept = selectSourceRows(rows, headingSources(['#to-list']), NO_EXCLUDES, FOLDERS);
+		expect(kept.map((r) => [r.text, r.noteTaskCount, r.noteOpenCount])).toEqual([
+			['under A', 3, 2],
+			['under B', 3, 2],
+			['under C', 3, 2],
+		]);
+		expect(rows.map((r) => [r.noteTaskCount, r.noteOpenCount])[0]).toEqual([5, 4]);
+	});
+
+	it('with defaultTaskQuery drops a template task and an archived note\'s task, and keeps one under ## Inbox #to-list', () => {
+		const inbox = (path: string, fields: Partial<NoteEntryV2> = {}) =>
+			entryV2(path, {
+				taskHeadings: [{ level: 2, text: 'Inbox #to-list', line: 1 }],
+				tasks: [taskV2(path, { lineNumber: 2, heading: 0 })],
+				tags: ['work'],
+				...fields,
+			});
+		const rows = buildTaskRows(
+			[inbox('/vault/_system/templates/Daily.md'), inbox('/vault/Old.md', { archived: true }), inbox('/vault/Notes/Plan.md')],
+			'/vault',
+			new Map(),
+		);
+		const { sources, exclude } = defaultTaskQuery();
+		expect(selectSourceRows(rows, sources, exclude, FOLDERS).map((r) => r.relPath)).toEqual(['Notes/Plan.md']);
+		expect(selectSourceRows(rows, [card({ kind: 'noteTag', tag: '#work' })], exclude, FOLDERS).map((r) => r.relPath)).toEqual([
+			'Notes/Plan.md',
+		]);
+	});
+
+	it('returns nothing for no rows', () => {
+		expect(selectSourceRows([], [], defaultTaskExcludes(), FOLDERS)).toEqual([]);
 	});
 });
 
@@ -1002,17 +1284,35 @@ describe('taskCountText', () => {
 	});
 });
 
-describe('describeTaskRule', () => {
+describe('describeTaskQuery', () => {
 	const OPEN: TaskQuickFilters = { show: 'open' };
 	const ALL: TaskQuickFilters = { show: 'all' };
+	/** The default exclude part. */
+	const EXCEPT = ', except archived notes, type definitions, templates, the system folder';
+
+	/** The query the section tag textbox gives for `sectionTag`, with `exclude` (the defaults when absent). */
+	const textbox = (sectionTag: string, quick: TaskQuickFilters, exclude = defaultTaskExcludes()): TaskQuery => ({
+		version: 1,
+		sources: headingSources(parseSectionTags(sectionTag)),
+		exclude,
+		quick,
+	});
+	const describeTextbox = (sectionTag: string, quick: TaskQuickFilters) => describeTaskQuery(textbox(sectionTag, quick));
+	const withSources = (sources: TaskSource[], exclude = NO_EXCLUDES): TaskQuery => ({ version: 1, sources, exclude, quick: OPEN });
+
+	it('describes the default query', () => {
+		expect(describeTaskQuery(defaultTaskQuery())).toBe(
+			'Open tasks under headings containing #to-list, except archived notes, type definitions, templates, the system folder',
+		);
+	});
 
 	it.each([
-		[OPEN, '#to-list', 'Open tasks under headings containing #to-list'],
-		[ALL, '#to-list', 'All tasks under headings containing #to-list'],
-		[OPEN, '', 'Open tasks from every note'],
-		[ALL, '', 'All tasks from every note'],
+		[OPEN, '#to-list', `Open tasks under headings containing #to-list${EXCEPT}`],
+		[ALL, '#to-list', `All tasks under headings containing #to-list${EXCEPT}`],
+		[OPEN, '', `Open tasks from every note${EXCEPT}`],
+		[ALL, '', `All tasks from every note${EXCEPT}`],
 	] as const)('quick=%j, tag=%j gives %j', (quick, sectionTag, expected) => {
-		expect(describeTaskRule({ sectionTag, quick })).toBe(expected);
+		expect(describeTextbox(sectionTag, quick)).toBe(expected);
 	});
 
 	it.each([
@@ -1022,76 +1322,125 @@ describe('describeTaskRule', () => {
 		['none', ', with no due date'],
 		['edited7', ', in notes edited in the last 7 days'],
 		['edited30', ', in notes edited in the last 30 days'],
-	] as [DueRange, string][])('due %s adds %j after the heading part', (due, phrase) => {
-		expect(describeTaskRule({ sectionTag: '#to-list', quick: { show: 'open', due } })).toBe(
-			`Open tasks under headings containing #to-list${phrase}`,
-		);
-		expect(describeTaskRule({ sectionTag: '', quick: { show: 'all', due } })).toBe(`All tasks from every note${phrase}`);
+	] as [DueRange, string][])('due %s adds %j after the exclude part', (due, phrase) => {
+		expect(describeTextbox('#to-list', { show: 'open', due })).toBe(`Open tasks under headings containing #to-list${EXCEPT}${phrase}`);
+		expect(describeTextbox('', { show: 'all', due })).toBe(`All tasks from every note${EXCEPT}${phrase}`);
 	});
 
 	it('adds nothing for any', () => {
-		expect(describeTaskRule({ sectionTag: '', quick: { show: 'open', due: 'any' } })).toBe('Open tasks from every note');
+		expect(describeTextbox('', { show: 'open', due: 'any' })).toBe(`Open tasks from every note${EXCEPT}`);
 	});
 
 	it('starts with Closed tasks under Closed', () => {
-		expect(describeTaskRule({ sectionTag: '', quick: { show: 'closed' } })).toBe('Closed tasks from every note');
+		expect(describeTextbox('', { show: 'closed' })).toBe(`Closed tasks from every note${EXCEPT}`);
 	});
 
 	it('names the chosen statuses in TASK_STATUSES order, joined with or', () => {
-		expect(describeTaskRule({ sectionTag: '#work', quick: { show: 'open', statuses: ['in-progress', 'done'], due: 'edited7' } })).toBe(
-			'Tasks that are in progress or done under headings containing #work, in notes edited in the last 7 days',
+		expect(describeTextbox('#work', { show: 'open', statuses: ['in-progress', 'done'], due: 'edited7' })).toBe(
+			`Tasks that are in progress or done under headings containing #work${EXCEPT}, in notes edited in the last 7 days`,
 		);
 	});
 
 	it('adds the # to a tag typed without one', () => {
-		expect(describeTaskRule({ sectionTag: 'work', quick: OPEN })).toBe('Open tasks under headings containing #work');
+		expect(describeTextbox('work', OPEN)).toBe(`Open tasks under headings containing #work${EXCEPT}`);
 	});
 
 	it('trims a tag with surrounding spaces', () => {
-		expect(describeTaskRule({ sectionTag: '  #work  ', quick: OPEN })).toBe(
-			'Open tasks under headings containing #work',
-		);
+		expect(describeTextbox('  #work  ', OPEN)).toBe(`Open tasks under headings containing #work${EXCEPT}`);
 	});
 
 	it('treats a whitespace-only tag as no tag', () => {
-		expect(describeTaskRule({ sectionTag: '   ', quick: OPEN })).toBe('Open tasks from every note');
+		expect(describeTextbox('   ', OPEN)).toBe(`Open tasks from every note${EXCEPT}`);
 	});
 
 	it('joins several tags with or', () => {
-		expect(describeTaskRule({ sectionTag: '#to-list #work', quick: OPEN })).toBe(
-			'Open tasks under headings containing #to-list or #work',
-		);
-		expect(describeTaskRule({ sectionTag: 'a, b c', quick: ALL })).toBe(
-			'All tasks under headings containing #a or #b or #c',
-		);
+		expect(describeTextbox('#to-list #work', OPEN)).toBe(`Open tasks under headings containing #to-list or #work${EXCEPT}`);
+		expect(describeTextbox('a, b c', ALL)).toBe(`All tasks under headings containing #a or #b or #c${EXCEPT}`);
 	});
 
 	it('treats separators with no tag as no tag', () => {
-		expect(describeTaskRule({ sectionTag: ' , ', quick: OPEN })).toBe('Open tasks from every note');
+		expect(describeTextbox(' , ', OPEN)).toBe(`Open tasks from every note${EXCEPT}`);
 	});
 
 	it.each([
 		[{ priorities: ['high', 'none'] }, ', priority high or no priority'],
 		[{ tags: ['work', 'home/x'] }, ', tagged #work or #home/x'],
 		[{ search: '  invoice ' }, ', matching "invoice"'],
-	] as [Partial<TaskQuickFilters>, string][])('%j adds %j after the heading part', (partial, phrase) => {
-		expect(describeTaskRule({ sectionTag: '#to-list', quick: { show: 'open', ...partial } })).toBe(
-			`Open tasks under headings containing #to-list${phrase}`,
+	] as [Partial<TaskQuickFilters>, string][])('%j adds %j after the exclude part', (partial, phrase) => {
+		expect(describeTextbox('#to-list', { show: 'open', ...partial })).toBe(
+			`Open tasks under headings containing #to-list${EXCEPT}${phrase}`,
 		);
 	});
 
 	it('puts priority, tag and search in that order after the due part', () => {
-		expect(
-			describeTaskRule({
-				sectionTag: '',
-				quick: { show: 'all', due: 'overdue', priorities: ['highest'], tags: ['work'], search: 'call' },
-			}),
-		).toBe('All tasks from every note, overdue, priority highest, tagged #work, matching "call"');
+		expect(describeTextbox('', { show: 'all', due: 'overdue', priorities: ['highest'], tags: ['work'], search: 'call' })).toBe(
+			`All tasks from every note${EXCEPT}, overdue, priority highest, tagged #work, matching "call"`,
+		);
 	});
 
 	it('adds nothing for empty priority, tag and search values', () => {
-		expect(describeTaskRule({ sectionTag: '', quick: { show: 'open', priorities: [], tags: [], search: '  ' } })).toBe(
-			'Open tasks from every note',
+		expect(describeTextbox('', { show: 'open', priorities: [], tags: [], search: '  ' })).toBe(`Open tasks from every note${EXCEPT}`);
+	});
+
+	it('words two general cards, clauses joined with and, cards with ; or', () => {
+		const sources: TaskSource[] = [
+			{ clauses: [{ kind: 'folder', path: '/Projects/' }, { kind: 'noteTag', tag: 'work' }, { kind: 'heading', text: 'to-do', match: 'tag' }] },
+			{
+				clauses: [
+					{ kind: 'folder', path: 'Archive', negate: true },
+					{ kind: 'type', type: 'Meeting' },
+					{ kind: 'type', type: 'Draft', negate: true },
+					{ kind: 'noteTag', tag: '#old', negate: true },
+					{ kind: 'heading', text: '#call', match: 'substring' },
+				],
+			},
+		];
+		expect(describeTaskQuery(withSources(sources))).toBe(
+			'Open tasks from notes in folder Projects and tagged #work and under a heading tagged #to-do; or not in folder Archive and of type Meeting and not of type Draft and not tagged #old and under a heading containing "#call"',
+		);
+	});
+
+	it('uses the general wording when a heading card sits beside another card', () => {
+		const sources: TaskSource[] = [...headingSources(['#to-list']), { clauses: [{ kind: 'folder', path: 'Projects' }] }];
+		expect(describeTaskQuery(withSources(sources))).toBe('Open tasks from notes under a heading tagged #to-list; or in folder Projects');
+	});
+
+	it('leaves inactive clauses out, and says every note when a card has no active clause', () => {
+		expect(describeTaskQuery(withSources([{ clauses: [{ kind: 'folder', path: ' / ' }, { kind: 'type', type: 'Project' }] }]))).toBe(
+			'Open tasks from notes of type Project',
+		);
+		expect(
+			describeTaskQuery(withSources([{ clauses: [{ kind: 'type', type: 'Project' }] }, { clauses: [{ kind: 'noteTag', tag: '#', negate: true }] }])),
+		).toBe('Open tasks from every note');
+		expect(describeTaskQuery(withSources([{ clauses: [] }]))).toBe('Open tasks from every note');
+	});
+
+	it('says every note for no card', () => {
+		expect(describeTaskQuery(withSources([], defaultTaskExcludes()))).toBe(`Open tasks from every note${EXCEPT}`);
+	});
+
+	it('adds no exclude part with every exclude off', () => {
+		expect(describeTaskQuery(textbox('#to-list', OPEN, NO_EXCLUDES))).toBe('Open tasks under headings containing #to-list');
+	});
+
+	it('names the active switches, then each listed folder, note, tag and type', () => {
+		const exclude: TaskExcludes = {
+			...NO_EXCLUDES,
+			archived: true,
+			systemFolder: true,
+			folders: ['/Archive/', ' '],
+			notes: ['Inbox.md'],
+			tags: ['old', '#tmp/x'],
+			types: ['Meeting'],
+		};
+		expect(describeTaskQuery(textbox('', OPEN, exclude))).toBe(
+			'Open tasks from every note, except archived notes, the system folder, folder Archive, note Inbox.md, tag #old, tag #tmp/x, type Meeting',
+		);
+	});
+
+	it('puts the quick filters after the excludes', () => {
+		expect(describeTextbox('#to-list', { show: 'open', due: 'overdue', tags: ['work'] })).toBe(
+			`Open tasks under headings containing #to-list${EXCEPT}, overdue, tagged #work`,
 		);
 	});
 });
@@ -1113,49 +1462,102 @@ describe('explainEmptyTasks', () => {
 
 	const open = (lineNumber: number) => task('todo', 0, lineNumber);
 	const done = (lineNumber: number) => task('done', 0, lineNumber);
-	const explain = (r: TaskRow[], quick: TaskQuickFilters, sectionTag = '') =>
-		explainEmptyTasks({ rows: r, sectionTag, quick, today: TODAY, now: NOW });
+	/** `explainEmptyTasks` for the textbox query of `sectionTag`, with `exclude` (the defaults when absent). */
+	const explain = (r: TaskRow[], quick: TaskQuickFilters, sectionTag = '', exclude = defaultTaskExcludes()) =>
+		explainEmptyTasks({
+			rows: r,
+			query: { version: 1, sources: headingSources(parseSectionTags(sectionTag)), exclude, quick },
+			folders: FOLDERS,
+			today: TODAY,
+			now: NOW,
+		});
+	const CLEAR_TAG = { kind: 'clearTag', label: 'Clear tag' };
 
 	describe('stage 1: no task', () => {
-		it('names the tag and offers to clear it', () => {
-			expect(explain([], ALL, '#to-list')).toEqual({
-				message: 'No task sits under a heading containing #to-list',
-				action: { kind: 'clearTag', label: 'Clear tag' },
-			});
-		});
-
-		it('displays the tag as the sentence does', () => {
-			expect(explain([], ALL, ' work ').message).toBe('No task sits under a heading containing #work');
-		});
-
-		it('says the vault has no tasks without a tag, with no action', () => {
+		it('says the vault has no tasks, with no action, whatever the query', () => {
 			expect(explain([], OPEN, '')).toEqual({ message: 'No tasks in this vault yet' });
-		});
-
-		it('treats a whitespace-only tag as no tag', () => {
-			expect(explain([], OPEN, '  ')).toEqual({ message: 'No tasks in this vault yet' });
-		});
-
-		it('names several tags joined with or, and offers to clear them', () => {
-			expect(explain([], ALL, '#to-list #work')).toEqual({
-				message: 'No task sits under a heading containing #to-list or #work',
-				action: { kind: 'clearTag', label: 'Clear tag' },
-			});
-		});
-
-		it('treats separators with no tag as no tag, with no action', () => {
-			expect(explain([], OPEN, ' , ')).toEqual({ message: 'No tasks in this vault yet' });
-		});
-
-		it('names the tag, not the status filter, for empty rows with a tag', () => {
 			expect(explain([], { show: 'closed', statuses: ['done'], due: 'edited7' }, '#to-list')).toEqual({
-				message: 'No task sits under a heading containing #to-list',
-				action: { kind: 'clearTag', label: 'Clear tag' },
+				message: 'No tasks in this vault yet',
 			});
 		});
 	});
 
-	describe('stage 2: the status filter', () => {
+	describe('stage 2: the sources', () => {
+		/** A note whose one open task sits under `## heading`. */
+		const under = (heading: string, fields: Partial<NoteEntryV2> = {}) =>
+			rowsFrom(
+				[entryV2('/vault/h.md', { taskHeadings: [{ level: 2, text: heading, line: 1 }], tasks: [taskV2('t', { lineNumber: 2, heading: 0 })], ...fields })],
+				'/vault',
+			);
+
+		it('names the tag and offers to clear it in the textbox case', () => {
+			expect(explain(rows([[open(1)]]), ALL, '#to-list')).toEqual({
+				message: 'No task sits under a heading containing #to-list',
+				action: CLEAR_TAG,
+			});
+		});
+
+		it('displays the tag as the sentence does', () => {
+			expect(explain(rows([[open(1)]]), ALL, ' work ').message).toBe('No task sits under a heading containing #work');
+		});
+
+		it('names several tags joined with or, and offers to clear them', () => {
+			expect(explain(under('Misc #other'), ALL, '#to-list #work')).toEqual({
+				message: 'No task sits under a heading containing #to-list or #work',
+				action: CLEAR_TAG,
+			});
+		});
+
+		it.each([['  '], [' , ']])('is skipped for the tag text %j, which holds no tag', (sectionTag) => {
+			expect(explain(rows([[done(1)]]), OPEN, sectionTag)).toEqual({ message: 'The only task is closed', action: { kind: 'showAllStatuses', label: 'Show all' } });
+		});
+
+		it('says no note matches general sources, with no action', () => {
+			const query: TaskQuery = { version: 1, sources: [{ clauses: [{ kind: 'folder', path: 'Projects' }] }], exclude: defaultTaskExcludes(), quick: OPEN };
+			expect(explainEmptyTasks({ rows: rows([[open(1)]]), query, folders: FOLDERS, today: TODAY, now: NOW })).toEqual({
+				message: 'No note matches the sources',
+			});
+		});
+
+		it('comes before the excludes and the quick filters', () => {
+			expect(explain(under('Misc', { archived: true, tasks: [taskV2('t', { lineNumber: 2, heading: 0, status: 'done' })] }), OPEN, '#to-list')).toEqual({
+				message: 'No task sits under a heading containing #to-list',
+				action: CLEAR_TAG,
+			});
+		});
+	});
+
+	describe('stage 3: the excludes', () => {
+		const archived = (status: TaskStatus = 'todo') =>
+			rowsFrom([entryV2('/vault/Old.md', { archived: true, tasks: [taskV2('old', { status })] })], '/vault');
+
+		it('says every matching note is excluded, with no action', () => {
+			expect(explain(archived(), OPEN)).toEqual({ message: 'Every matching note is excluded' });
+		});
+
+		it('counts only what the sources kept', () => {
+			const r = rowsFrom(
+				[
+					entryV2('/vault/_system/templates/T.md', { taskHeadings: [{ level: 2, text: 'Inbox #to-list', line: 1 }], tasks: [taskV2('t', { lineNumber: 2, heading: 0 })] }),
+					entryV2('/vault/Plain.md', { tasks: [taskV2('plain')] }),
+				],
+				'/vault',
+			);
+			expect(explain(r, OPEN, '#to-list')).toEqual({ message: 'Every matching note is excluded' });
+		});
+
+		it('comes before the quick filters', () => {
+			expect(explain(archived('done'), { show: 'open', due: 'overdue' })).toEqual({ message: 'Every matching note is excluded' });
+		});
+
+		it('lets the quick filters run over the kept rows only', () => {
+			const r = [...archived('todo'), ...rows([[done(1)]])];
+			expect(explain(r, OPEN)).toEqual({ message: 'The only task is closed', action: { kind: 'showAllStatuses', label: 'Show all' } });
+			expect(explain(r, OPEN, '', NO_EXCLUDES)).toEqual({ message: 'No tasks found' });
+		});
+	});
+
+	describe('stage 4: the status filter', () => {
 		it('counts the closed tasks at the default status', () => {
 			expect(explain(rows([[done(1), done(2)]], [[done(3)]]), OPEN)).toEqual({ message: 'All 3 tasks are closed', action: SHOW_ALL });
 		});
@@ -1193,7 +1595,7 @@ describe('explainEmptyTasks', () => {
 		});
 	});
 
-	describe('stage 3: the Due filter', () => {
+	describe('stage 5: the Due filter', () => {
 		it('names the Due filter for Overdue over open undated rows', () => {
 			expect(explain(rows([[open(1), open(2)]]), { show: 'open', due: 'overdue' })).toEqual({ message: DUE_MESSAGE, action: RESET_DUE });
 		});
@@ -1219,7 +1621,7 @@ describe('explainEmptyTasks', () => {
 		});
 	});
 
-	describe('stages 4 to 6: Priority, Tag and Search', () => {
+	describe('stages 6 to 8: Priority, Tag and Search', () => {
 		const RESET_PRIORITY = { kind: 'resetQuick', field: 'priorities', label: 'Reset Priority filter' };
 		const RESET_TAG = { kind: 'resetQuick', field: 'tags', label: 'Reset Tag filter' };
 		const RESET_SEARCH = { kind: 'resetQuick', field: 'search', label: 'Reset Search filter' };

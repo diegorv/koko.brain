@@ -1,11 +1,11 @@
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { formatDateWithOffset } from '#lib/utils/date.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
-import { headingChains, matchesHeading } from './task-headings.logic';
+import { headingChains, matchesHeading, type HeadingMatchMode } from './task-headings.logic';
 import { TASK_STATUSES, isTaskOpen, statusGlyph } from './task-status.logic';
 import type { TaskPriority, TaskStatus } from './task-metadata.types';
 import { taskRowKey } from './tasks-keys.logic';
-import { compareTaskPaths, noteFolder, noteTaskCounts, parseSectionTags, taskDisplayText } from './tasks.logic';
+import { compareTaskPaths, noteFolder, noteTaskCounts, taskDisplayText } from './tasks.logic';
 import type { TaskItem } from './tasks.types';
 
 /**
@@ -26,11 +26,11 @@ export type TaskRow = TaskItem & {
 	open: boolean;
 	/** The note's last-modified time in ms */
 	modifiedAt: number;
-	/** The note's tasks, counted before any quick filter */
+	/** The note's tasks the sources and excludes keep (`selectSourceRows`), counted before any quick filter */
 	noteTaskCount: number;
-	/** The note's open tasks, counted before any quick filter */
+	/** The note's open tasks the sources and excludes keep (`selectSourceRows`), counted before any quick filter */
 	noteOpenCount: number;
-	/** Line of the nearest earlier kept task in the same note with a smaller indent */
+	/** Line of the nearest earlier task in the same note with a smaller indent, whether or not the sources keep it */
 	parentLine?: number;
 	/** The note's document type (`NoteEntry.isA`), or null */
 	noteType: string | null;
@@ -205,14 +205,14 @@ export interface TaskOverlayEntry {
 export type TaskOverlay = ReadonlyMap<string, TaskOverlayEntry>;
 
 /**
- * Builds the Tasks view's rows from the entries snapshot: notes in
- * `compareTaskPaths` order of their path, tasks in document order.
+ * Builds the Tasks view's rows from the entries snapshot: every task, notes
+ * in `compareTaskPaths` order of their path, tasks in document order, each
+ * with its heading chain (`headingChains`). The sources and excludes run
+ * later, in `selectSourceRows`, which also recounts the note counts.
  *
- * A task is kept when its heading chain (`headingChains`) matches one of
- * `sectionTags` (`matchesHeading`, `'tag'` mode); no tag keeps every task. An
- * overlay entry for a kept task replaces its text and status, and `checked`
+ * An overlay entry for a task replaces its text and status, and `checked`
  * and `open` follow the overlaid status. The note counts and `parentLine`
- * cover the note's kept tasks only. An entry with no kept task gives no row.
+ * cover every task of the note. An entry with no task gives no row.
  *
  * `entries` is the shared snapshot (QueryJS reads the same objects): it, its
  * entries, their tasks and their frontmatter are never mutated or reordered.
@@ -223,7 +223,6 @@ export type TaskOverlay = ReadonlyMap<string, TaskOverlayEntry>;
 export function buildTaskRows(
 	entries: readonly NoteEntryV2[],
 	vaultPath: string | null,
-	sectionTags: readonly string[],
 	overlay: TaskOverlay,
 ): TaskRow[] {
 	const notes = entries.filter((entry) => entry.tasks.length > 0).sort((a, b) => compareTaskPaths(a.path, b.path));
@@ -233,7 +232,6 @@ export function buildTaskRows(
 		const kept: { task: TaskItem; headings: string[] }[] = [];
 		for (const task of entry.tasks) {
 			const headings = task.heading === undefined ? [] : (chains[task.heading] ?? []);
-			if (!matchesHeading(headings, sectionTags, 'tag')) continue;
 			const written = overlay.get(taskRowKey(entry.path, task.lineNumber));
 			const status = written?.status ?? task.status;
 			kept.push({
@@ -280,6 +278,203 @@ export function buildTaskRows(
 		}
 	}
 	return rows;
+}
+
+/**
+ * One condition of a source card. `negate` flips a folder, type or note tag
+ * clause. A clause whose value is empty after trimming is inactive: it
+ * matches every row and its `negate` is ignored.
+ */
+export type TaskSourceClause =
+	/** The note is in `path` (vault-relative, outer `/` trimmed) or a folder under it; case-sensitive */
+	| { kind: 'folder'; path: string; negate?: boolean }
+	/** The note's type equals `type`, ignoring case; a note with no type never does */
+	| { kind: 'type'; type: string; negate?: boolean }
+	/** A note tag equals `tag` or is nested under it, ignoring case and a leading `#` */
+	| { kind: 'noteTag'; tag: string; negate?: boolean }
+	/** The task's heading chain matches `text` (`matchesHeading`) */
+	| { kind: 'heading'; text: string; match: HeadingMatchMode };
+
+/** A source card: its clauses are ANDed; the cards of a query are ORed. */
+export interface TaskSource {
+	/** The card's conditions; none matches every row */
+	clauses: TaskSourceClause[];
+}
+
+/** What the Tasks view never lists, whatever the sources say. */
+export interface TaskExcludes {
+	/** Drops the tasks of archived notes */
+	archived: boolean;
+	/** Drops the tasks of type definitions (`noteType === 'Type'`) */
+	typeDefinitions: boolean;
+	/** Drops the tasks under the templates folder setting */
+	templatesFolder: boolean;
+	/** Drops the tasks under the system folder setting */
+	systemFolder: boolean;
+	/** Vault-relative folders to drop, each with the folders under it */
+	folders: string[];
+	/** Vault-relative note paths to drop, compared exactly */
+	notes: string[];
+	/** Note tags to drop, with their nested tags */
+	tags: string[];
+	/** Note types to drop, ignoring case */
+	types: string[];
+}
+
+/** Everything that decides which tasks the Tasks view lists, but the grouping and sort. */
+export interface TaskQuery {
+	/** Shape version */
+	version: 1;
+	/** The source cards; none lists every note */
+	sources: TaskSource[];
+	/** The excludes, which win over the sources */
+	exclude: TaskExcludes;
+	/** The quick filters */
+	quick: TaskQuickFilters;
+}
+
+/** The template and system folder settings the excludes read, vault-relative; '' excludes nothing. */
+export interface TaskSourceFolders {
+	/** `settings.templates.folder` */
+	templates: string;
+	/** `settings.templates.systemFolder` */
+	system: string;
+}
+
+/** The excludes of a fresh Tasks view: the four switches on, no listed value. */
+export function defaultTaskExcludes(): TaskExcludes {
+	return {
+		archived: true,
+		typeDefinitions: true,
+		templatesFolder: true,
+		systemFolder: true,
+		folders: [],
+		notes: [],
+		tags: [],
+		types: [],
+	};
+}
+
+/** One card per tag, each holding a heading clause in tag mode; `[]` for no tag. */
+export function headingSources(tags: readonly string[]): TaskSource[] {
+	return tags.map((text) => ({ clauses: [{ kind: 'heading', text, match: 'tag' }] }));
+}
+
+/** The query of a fresh Tasks view: the `#to-list` card, the default excludes and `DEFAULT_QUICK`. */
+export function defaultTaskQuery(): TaskQuery {
+	return { version: 1, sources: headingSources(['#to-list']), exclude: defaultTaskExcludes(), quick: { ...DEFAULT_QUICK } };
+}
+
+/** A vault-relative folder with its outer `/` and spaces trimmed; '' when nothing is left. */
+const folderValue = (path: string) => path.trim().replace(/^\/+|\/+$/g, '');
+
+/** A tag lower-cased, trimmed and without its leading `#`; '' when nothing is left. */
+const tagValue = (tag: string) => tag.trim().replace(/^#/, '').toLowerCase();
+
+/** `text` of a heading clause as `matchesHeading` reads it: trimmed, no leading `#`, and in tag mode no trailing `/`. */
+function headingValue(text: string, match: HeadingMatchMode): string {
+	const name = text.trim().replace(/^#/, '');
+	return match === 'tag' ? name.replace(/\/+$/, '') : name;
+}
+
+/** Whether a row's folder is `folder` (normalized, non-empty) or under it. */
+const inFolder = (rowFolder: string, folder: string) => rowFolder === folder || rowFolder.startsWith(`${folder}/`);
+
+/** Whether a note tag list holds `tag` (normalized, non-empty) or a tag nested under it. */
+const hasNoteTag = (noteTags: readonly string[], tag: string) => noteTags.some((t) => matchesNestedTag(tag, t.replace(/^#/, '')));
+
+type RowTest = (row: TaskRow) => boolean;
+
+/** A clause as a row test, or null when it is inactive. Values are normalized here, once per call. */
+function clauseTest(clause: TaskSourceClause): RowTest | null {
+	let test: RowTest;
+	switch (clause.kind) {
+		case 'folder': {
+			const folder = folderValue(clause.path);
+			if (!folder) return null;
+			test = (row) => inFolder(row.folder, folder);
+			break;
+		}
+		case 'type': {
+			const type = clause.type.trim().toLowerCase();
+			if (!type) return null;
+			test = (row) => row.noteType?.toLowerCase() === type;
+			break;
+		}
+		case 'noteTag': {
+			const tag = tagValue(clause.tag);
+			if (!tag) return null;
+			test = (row) => hasNoteTag(row.noteTags, tag);
+			break;
+		}
+		case 'heading': {
+			const text = headingValue(clause.text, clause.match);
+			if (!text) return null;
+			const tags = [text];
+			return (row) => matchesHeading(row.headings, tags, clause.match);
+		}
+	}
+	return clause.negate ? (row) => !test(row) : test;
+}
+
+/** The excludes as one row test, or null when none is active. Values are normalized here, once per call. */
+function excludeTest(exclude: TaskExcludes, folders: TaskSourceFolders): RowTest | null {
+	const tests: RowTest[] = [];
+	if (exclude.archived) tests.push((row) => row.archived);
+	// The rule of `isTypeDefinition` (features/type-definitions/type-definitions.logic.ts),
+	// inlined: importing it would add a tasks to type-definitions feature pair.
+	if (exclude.typeDefinitions) tests.push((row) => row.noteType === 'Type');
+	const dropFolders = [
+		...(exclude.templatesFolder ? [folders.templates] : []),
+		...(exclude.systemFolder ? [folders.system] : []),
+		...exclude.folders,
+	]
+		.map(folderValue)
+		.filter(Boolean);
+	if (dropFolders.length > 0) tests.push((row) => dropFolders.some((f) => inFolder(row.folder, f)));
+	const notes = new Set(exclude.notes.filter((n) => n.trim()));
+	if (notes.size > 0) tests.push((row) => notes.has(row.relPath));
+	const tags = exclude.tags.map(tagValue).filter(Boolean);
+	if (tags.length > 0) tests.push((row) => tags.some((tag) => hasNoteTag(row.noteTags, tag)));
+	const types = new Set(exclude.types.map((t) => t.trim().toLowerCase()).filter(Boolean));
+	if (types.size > 0) tests.push((row) => row.noteType !== null && types.has(row.noteType.toLowerCase()));
+	return tests.length > 0 ? (row) => tests.some((test) => test(row)) : null;
+}
+
+/**
+ * The rows the sources and excludes keep: a row passes when no exclude
+ * matches it and `sources` is empty or some card has every clause matching
+ * (see `TaskSourceClause`). The heading clause reads the task's own heading
+ * chain; the others read note fields every row of a note shares.
+ *
+ * Each kept row is a new object whose `noteTaskCount` and `noteOpenCount`
+ * count the kept rows of its note. A source that drops a parent task keeps
+ * its child with no dimmed parent above it (`applyQuickFilters` dims only
+ * rows it is given). `rows` is never mutated.
+ * @param folders - the template and system folder settings the two folder switches read
+ */
+export function selectSourceRows(
+	rows: readonly TaskRow[],
+	sources: readonly TaskSource[],
+	exclude: TaskExcludes,
+	folders: TaskSourceFolders,
+): TaskRow[] {
+	const excluded = excludeTest(exclude, folders);
+	const cards = sources.map((source) => source.clauses.map(clauseTest).filter((t): t is RowTest => t !== null));
+	const passes = (row: TaskRow) =>
+		!excluded?.(row) && (cards.length === 0 || cards.some((tests) => tests.every((test) => test(row))));
+	const kept = rows.filter(passes);
+	const counts = new Map<string, { total: number; open: number }>();
+	for (const row of kept) {
+		const c = counts.get(row.filePath) ?? { total: 0, open: 0 };
+		c.total++;
+		if (row.open) c.open++;
+		counts.set(row.filePath, c);
+	}
+	return kept.map((row) => {
+		const c = counts.get(row.filePath)!;
+		return { ...row, noteTaskCount: c.total, noteOpenCount: c.open };
+	});
 }
 
 /** Whether `row` passes the status filter: a chosen status, else `show`. */
@@ -421,9 +616,9 @@ export interface TaskGroup {
 	folder?: string;
 	/** Note groups only: the note's last-modified time in ms */
 	modifiedAt?: number;
-	/** Note groups only: the note's tasks, before any filter */
+	/** Note groups only: the note's tasks the sources and excludes keep, before any quick filter */
 	total?: number;
-	/** Note groups only: the note's open tasks, before any filter */
+	/** Note groups only: the note's open tasks the sources and excludes keep, before any quick filter */
 	open?: number;
 }
 
@@ -622,19 +817,6 @@ export function taskCountText(rows: VisibleRow[], quick: TaskQuickFilters): stri
 	return `${count} ${what} in ${notes.size} ${notes.size === 1 ? 'note' : 'notes'}`;
 }
 
-/** The Tasks view's filters, as the store holds them */
-export interface TaskRuleOptions {
-	/** Raw section tag text, as typed (one or more tags; see `parseSectionTags`) */
-	sectionTag: string;
-	/** The quick filters */
-	quick: TaskQuickFilters;
-}
-
-/** Shows the parsed section tags joined with ` or `; '' when there are none. */
-function displaySectionTags(sectionTag: string): string {
-	return parseSectionTags(sectionTag).join(' or ');
-}
-
 /** The sentence's opening words for the status filter. */
 function describeStatus(quick: TaskQuickFilters): string {
 	if (quick.statuses?.length) return `Tasks that are ${statusWords(quick.statuses).join(' or ')}`;
@@ -653,21 +835,97 @@ const DUE_PHRASES: Record<Exclude<DueRange, 'any'>, string> = {
 	edited30: ', in notes edited in the last 30 days',
 };
 
+/** A tag as the sentence shows it: trimmed, with one leading `#`, case kept. */
+const tagWord = (tag: string) => `#${tag.trim().replace(/^#/, '')}`;
+
+/** A clause in the sentence's words, or null when it is inactive. */
+function clauseWords(clause: TaskSourceClause): string | null {
+	const not = clause.kind !== 'heading' && clause.negate ? 'not ' : '';
+	switch (clause.kind) {
+		case 'folder': {
+			const folder = folderValue(clause.path);
+			return folder ? `${not}in folder ${folder}` : null;
+		}
+		case 'type': {
+			const type = clause.type.trim();
+			return type ? `${not}of type ${type}` : null;
+		}
+		case 'noteTag':
+			return tagValue(clause.tag) ? `${not}tagged ${tagWord(clause.tag)}` : null;
+		case 'heading': {
+			const text = headingValue(clause.text, clause.match);
+			if (!text) return null;
+			return clause.match === 'tag' ? `under a heading tagged #${text}` : `under a heading containing "${clause.text.trim()}"`;
+		}
+	}
+}
+
+/** The active clauses of each card, with their words. */
+function activeCards(sources: readonly TaskSource[]): { clause: TaskSourceClause; words: string }[][] {
+	return sources.map((source) =>
+		source.clauses.flatMap((clause) => {
+			const words = clauseWords(clause);
+			return words === null ? [] : [{ clause, words }];
+		}),
+	);
+}
+
 /**
- * Builds the sentence above the Tasks list that says which tasks it shows,
- * e.g. "Open tasks under headings containing #to-list, overdue, priority
- * high, tagged #work, matching "call"". No trailing period.
+ * The tags of the textbox case, as the sentence shows them joined with ` or `:
+ * every card holds exactly one active heading clause in tag mode. Null for
+ * any other sources, no card included.
  */
-export function describeTaskRule({ sectionTag, quick }: TaskRuleOptions): string {
-	const tag = displaySectionTags(sectionTag);
-	const where = tag ? ` under headings containing ${tag}` : ' from every note';
+function textboxTags(sources: readonly TaskSource[]): string | null {
+	const cards = activeCards(sources);
+	if (cards.length === 0) return null;
+	const tags: string[] = [];
+	for (const card of cards) {
+		const [only] = card;
+		if (card.length !== 1 || only.clause.kind !== 'heading' || only.clause.match !== 'tag') return null;
+		tags.push(`#${headingValue(only.clause.text, 'tag')}`);
+	}
+	return tags.join(' or ');
+}
+
+/** The sentence's source part. */
+function describeSources(sources: readonly TaskSource[]): string {
+	const cards = activeCards(sources);
+	// A card with no active clause matches every row, and the cards are ORed.
+	if (cards.length === 0 || cards.some((card) => card.length === 0)) return ' from every note';
+	const tags = textboxTags(sources);
+	if (tags) return ` under headings containing ${tags}`;
+	return ` from notes ${cards.map((card) => card.map((c) => c.words).join(' and ')).join('; or ')}`;
+}
+
+/** The sentence's exclude part: the active switches, then each listed value; '' when none is active. */
+function describeExcludes(exclude: TaskExcludes): string {
+	const parts: string[] = [];
+	if (exclude.archived) parts.push('archived notes');
+	if (exclude.typeDefinitions) parts.push('type definitions');
+	if (exclude.templatesFolder) parts.push('templates');
+	if (exclude.systemFolder) parts.push('the system folder');
+	for (const folder of exclude.folders.map(folderValue)) if (folder) parts.push(`folder ${folder}`);
+	for (const note of exclude.notes) if (note.trim()) parts.push(`note ${note}`);
+	for (const tag of exclude.tags) if (tagValue(tag)) parts.push(`tag ${tagWord(tag)}`);
+	for (const type of exclude.types) if (type.trim()) parts.push(`type ${type.trim()}`);
+	return parts.length > 0 ? `, except ${parts.join(', ')}` : '';
+}
+
+/**
+ * Builds the sentence above the Tasks list that says which tasks it shows:
+ * the status, the sources, the excludes, then Due, Priority, Tag and Search,
+ * e.g. "Open tasks under headings containing #to-list, except archived notes,
+ * type definitions, templates, the system folder, overdue". No trailing period.
+ */
+export function describeTaskQuery(query: TaskQuery): string {
+	const { quick } = query;
 	const when = quick.due === undefined || quick.due === 'any' ? '' : DUE_PHRASES[quick.due];
 	const priority = isQuickFieldDefault(quick, 'priority')
 		? ''
 		: `, priority ${quick.priorities!.map(priorityWord).join(' or ')}`;
 	const tagged = isQuickFieldDefault(quick, 'tag') ? '' : `, tagged ${quick.tags!.map((t) => `#${t}`).join(' or ')}`;
 	const matching = isQuickFieldDefault(quick, 'search') ? '' : `, matching "${quick.search!.trim()}"`;
-	return `${describeStatus(quick)}${where}${when}${priority}${tagged}${matching}`;
+	return `${describeStatus(quick)}${describeSources(query.sources)}${describeExcludes(query.exclude)}${when}${priority}${tagged}${matching}`;
 }
 
 /** Why the Tasks list is empty, and the one action that would fill it */
@@ -688,33 +946,59 @@ const META_STAGES = [
 	{ field: 'search', key: 'search', name: 'Search' },
 ] as const;
 
+/** Excludes with nothing on, to run the sources alone. */
+const NO_EXCLUDES: TaskExcludes = {
+	archived: false,
+	typeDefinitions: false,
+	templatesFolder: false,
+	systemFolder: false,
+	folders: [],
+	notes: [],
+	tags: [],
+	types: [],
+};
+
 /**
- * Names the first filter stage that leaves the Tasks list empty: the section
- * tag (no row at all), then the status filter, then Due, Priority, Tag and
- * Search. Each stage keeps the filters of the stages before it.
- * @param rows - the unfiltered store rows (already limited by the section tag
- *   in `buildTaskRows`)
+ * Names the first stage of the pipeline that leaves the Tasks list empty: no
+ * task at all, then the sources, then the excludes, then the status filter,
+ * Due, Priority, Tag and Search over the rows the sources and excludes keep.
+ * Each stage keeps the filters of the stages before it.
+ * @param rows - every task row of the snapshot (`tasksStore.rows`)
+ * @param folders - the template and system folder settings the excludes read
  * @param today - today as `YYYY-MM-DD`, for the due date options
  * @param now - the clock the edited options read, in ms
  */
 export function explainEmptyTasks({
-	rows,
-	sectionTag,
-	quick,
+	rows: allRows,
+	query,
+	folders,
 	today,
 	now,
-}: TaskRuleOptions & { rows: TaskRow[]; today: string; now: number }): EmptyTasksExplanation {
-	if (rows.length === 0) {
-		const tag = displaySectionTags(sectionTag);
-		if (tag) {
+}: {
+	rows: readonly TaskRow[];
+	query: TaskQuery;
+	folders: TaskSourceFolders;
+	today: string;
+	now: number;
+}): EmptyTasksExplanation {
+	if (allRows.length === 0) return { message: 'No tasks in this vault yet' };
+
+	const sourced = selectSourceRows(allRows, query.sources, NO_EXCLUDES, folders);
+	if (sourced.length === 0) {
+		const tags = textboxTags(query.sources);
+		if (tags) {
 			return {
-				message: `No task sits under a heading containing ${tag}`,
+				message: `No task sits under a heading containing ${tags}`,
 				action: { kind: 'clearTag', label: 'Clear tag' },
 			};
 		}
-		return { message: 'No tasks in this vault yet' };
+		return { message: 'No note matches the sources' };
 	}
 
+	const rows = selectSourceRows(sourced, [], query.exclude, folders);
+	if (rows.length === 0) return { message: 'Every matching note is excluded' };
+
+	const { quick } = query;
 	// Checked without the Due filter: when the status filter alone empties
 	// the list, lifting the Due filter would not fill it.
 	const statusOnly: TaskQuickFilters = { show: quick.show, statuses: quick.statuses };

@@ -1,29 +1,37 @@
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { formatNow } from '#lib/utils/date.js';
 import { timeSync } from '#lib/utils/debug.js';
 import {
 	DEFAULT_QUICK,
 	DEFAULT_TASK_SORT,
 	applyQuickFilters,
+	defaultTaskQuery,
 	groupTaskRows,
+	headingSources,
+	selectSourceRows,
+	type TaskExcludes,
 	type TaskGroupKey,
+	type TaskQuery,
 	type TaskQuickFilters,
 	type TaskRow,
 	type TaskSortKey,
+	type TaskSource,
 } from './task-query.logic';
+import { parseSectionTags } from './tasks.logic';
 import type { FileTaskGroup, TaskRowRef } from './tasks.types';
 
 /** All task groups across the vault (unfiltered) */
 let fileTaskGroups = $state<FileTaskGroup[]>([]);
-/** Every task of the fetched groups as a row (unfiltered), replaced whole, never mutated */
+/** Every task of the snapshot as a row (unfiltered), replaced whole, never mutated */
 let rows = $state.raw<TaskRow[]>([]);
 /**
- * Section tag text to filter by, one or more tags separated by spaces or
- * commas (e.g. "#to-list #work"; see `parseSectionTags`). Text with no tag
- * means all tasks.
+ * Section tag text as typed, one or more tags separated by spaces or commas
+ * (e.g. "#to-list #work"; see `parseSectionTags`). `setSectionTag` turns it
+ * into one heading card per tag; text with no tag gives no card (every note).
  */
 let sectionTag = $state('#to-list');
-/** The quick filters (status, Due, Priority, Tag and Search), replaced whole on every change */
-let quick = $state.raw<TaskQuickFilters>({ ...DEFAULT_QUICK });
+/** The sources, excludes and quick filters, replaced whole on every change */
+let query = $state.raw<TaskQuery>(defaultTaskQuery());
 /** What the list groups its rows by */
 let groupBy = $state<TaskGroupKey>('note');
 /** The sort keys of the groups other than Note; fixed at `DEFAULT_TASK_SORT` (no control sets it) */
@@ -56,11 +64,24 @@ let currentRow = $state.raw<TaskRowRef | null>(null);
 let collapsedGroups = $state.raw<ReadonlySet<string>>(new Set());
 
 /**
- * The rows the list shows, through the quick filters. The clock (today and
- * now) is read when the derived re-runs and is not tracked, so a pane left
- * open past midnight or across an edited cutoff updates on the next refetch.
+ * The rows the sources and excludes keep (`selectSourceRows`), before the
+ * quick filters. Re-runs on a rows, sources, excludes or template folder
+ * setting change, with no fetch.
  */
-const visibleRows = $derived.by(() => applyQuickFilters(rows, quick, formatNow('YYYY-MM-DD'), Date.now()));
+const sourceRows = $derived.by(() =>
+	selectSourceRows(rows, query.sources, query.exclude, {
+		templates: settingsStore.templates.folder,
+		system: settingsStore.templates.systemFolder,
+	}),
+);
+
+/**
+ * The rows the list shows: `sourceRows` through the quick filters. The clock
+ * (today and now) is read when the derived re-runs and is not tracked, so a
+ * pane left open past midnight or across an edited cutoff updates on the next
+ * refetch.
+ */
+const visibleRows = $derived.by(() => applyQuickFilters(sourceRows, query.quick, formatNow('YYYY-MM-DD'), Date.now()));
 
 /**
  * The list's groups (`groupTaskRows`). Today is read when the derived re-runs
@@ -73,8 +94,10 @@ const groups = $derived.by(() =>
 
 export const tasksStore = {
 	get fileTaskGroups() { return fileTaskGroups; },
-	/** Every fetched task as a row, before any view filter */
+	/** Every task of the snapshot as a row, before any view filter */
 	get rows() { return rows; },
+	/** The rows the sources and excludes keep, before the quick filters */
+	get sourceRows() { return sourceRows; },
 	/** The rows the list shows, dimmed parents included (see `applyQuickFilters`) */
 	get visibleRows() { return visibleRows; },
 	/** The list's groups, in display order */
@@ -84,8 +107,10 @@ export const tasksStore = {
 	/** The sort keys of the groups other than Note */
 	get sort() { return sort; },
 	get sectionTag() { return sectionTag; },
-	/** The quick filters */
-	get quick() { return quick; },
+	/** The sources, excludes and quick filters */
+	get query() { return query; },
+	/** The quick filters (`query.quick`) */
+	get quick() { return query.quick; },
 	get isLoading() { return isLoading; },
 	get hasLoaded() { return hasLoaded; },
 	get error() { return error; },
@@ -98,11 +123,19 @@ export const tasksStore = {
 	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
 	/** Replaces the rows. */
 	setRows(next: TaskRow[]) { rows = next; },
-	setSectionTag(tag: string) { sectionTag = tag; },
+	/** Sets the section tag text and the sources to one heading card per tag it holds (`headingSources`). */
+	setSectionTag(tag: string) {
+		sectionTag = tag;
+		query = { ...query, sources: headingSources(parseSectionTags(tag)) };
+	},
+	/** Replaces the source cards. */
+	setSources(sources: TaskSource[]) { query = { ...query, sources }; },
+	/** Replaces the excludes. */
+	setExclude(exclude: TaskExcludes) { query = { ...query, exclude }; },
 	/** Merges `partial` into the quick filters; a key set to `undefined` clears that field. */
-	setQuick(partial: Partial<TaskQuickFilters>) { quick = { ...quick, ...partial }; },
+	setQuick(partial: Partial<TaskQuickFilters>) { query = { ...query, quick: { ...query.quick, ...partial } }; },
 	/** Puts the quick filters back to `DEFAULT_QUICK`. */
-	resetQuick() { quick = { ...DEFAULT_QUICK }; },
+	resetQuick() { query = { ...query, quick: { ...DEFAULT_QUICK } }; },
 	/** Sets the grouping; the current value changes nothing. */
 	setGroupBy(next: TaskGroupKey) { groupBy = next; },
 	setLoading(loading: boolean) { isLoading = loading; },
@@ -131,7 +164,7 @@ export const tasksStore = {
 		fileTaskGroups = [];
 		rows = [];
 		sectionTag = '#to-list';
-		quick = { ...DEFAULT_QUICK };
+		query = defaultTaskQuery();
 		groupBy = 'note';
 		sort = [...DEFAULT_TASK_SORT];
 		isLoading = false;

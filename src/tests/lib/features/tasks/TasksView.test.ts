@@ -16,7 +16,7 @@ import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { buildTaskIndex, resetTasks, updateSectionTagFilter } from '#lib/features/tasks/tasks.service.js';
 import { statusGlyph } from '#lib/features/tasks/task-status.logic.js';
-import { DEFAULT_QUICK } from '#lib/features/tasks/task-query.logic.js';
+import { DEFAULT_QUICK, defaultTaskExcludes, headingSources } from '#lib/features/tasks/task-query.logic.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
@@ -30,6 +30,9 @@ import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const NOTE = '/vault/Projects/2026-Q2.md';
 
+/** The rule sentence's part for the default excludes. */
+const EXCEPT = ', except archived notes, type definitions, templates, the system folder';
+
 /** `NOTE` with one todo task per text under `## <heading>`, on lines 2, 3, ... */
 function noteUnder(heading: string, texts: string[], path = NOTE): NoteEntryV2 {
 	return entryV2(path, {
@@ -40,6 +43,11 @@ function noteUnder(heading: string, texts: string[], path = NOTE): NoteEntryV2 {
 
 function toggleCalls() {
 	return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'toggle_task_status');
+}
+
+/** How many whole-vault snapshot reads reached IPC. */
+function entryReads(): number {
+	return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_vault_entries_v2').length;
 }
 
 const rows = () => Array.from(document.querySelectorAll<HTMLElement>('[data-task-row]'));
@@ -400,7 +408,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		mockTaskFetch([noteWith(['Ship feature A'])]);
 		await mountView();
 		await until(() => expect(rows()).toHaveLength(1));
-		expect(paragraph('Open tasks from every note')).toBeDefined();
+		expect(paragraph(`Open tasks from every note${EXCEPT}`)).toBeDefined();
 		expect(buttonsNamed('Clear tag')).toHaveLength(0);
 	});
 
@@ -451,7 +459,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		mockTaskFetch([], { entries: [noteUnder('Inbox #to-list', ['Ship feature A'])] });
 		await mountView();
 		await until(() => expect(rows()).toHaveLength(1));
-		const sentence = paragraph('Open tasks under headings containing #to-list');
+		const sentence = paragraph(`Open tasks under headings containing #to-list${EXCEPT}`);
 		expect(sentence).toBeDefined();
 		expect(sentence!.nextElementSibling?.tagName).toBe('BUTTON');
 		expect(sentence!.nextElementSibling?.textContent?.trim()).toBe('Clear tag');
@@ -641,8 +649,10 @@ describe('TasksView: keeps its place', () => {
 		await vi.advanceTimersByTimeAsync(0);
 
 		expect(tasksStore.sectionTag).toBe('#work');
-		expect(tasksStore.rows.map((r) => r.text)).toEqual(['work task']);
+		expect(tasksStore.visibleRows.map((r) => r.text)).toEqual(['work task']);
 		expect((settingsStore.tasksView as { sectionTag: string }).sectionTag).toBe('#work');
+		// The tag selects from the rows held: the flush starts no fetch.
+		expect(entryReads()).toBe(1);
 	});
 
 	it('drops a pending section tag when resetTasks ran before the view unmounts', async () => {
@@ -658,8 +668,7 @@ describe('TasksView: keeps its place', () => {
 		await vi.advanceTimersByTimeAsync(500);
 
 		expect(tasksStore.sectionTag).toBe('#to-list');
-		// A `#work` rebuild would list the work task.
-		expect(tasksStore.rows).toEqual([]);
+		expect(tasksStore.query.sources).toEqual(headingSources(['#to-list']));
 		expect(settingsStore.tasksView).toBe(savedBefore);
 	});
 
@@ -741,7 +750,7 @@ describe('TasksView: a failed refresh says so', () => {
 		flushSync();
 		expect(alertText()).toBe(MESSAGE);
 		expect(rows()).toHaveLength(1);
-		const sentence = paragraph('Open tasks from every note');
+		const sentence = paragraph(`Open tasks from every note${EXCEPT}`);
 		expect(sentence).toBeDefined();
 		expect(sentence!.parentElement?.nextElementSibling).toBe(alert());
 		expect(countText()).toBe('1 open in 1 note');
@@ -764,7 +773,7 @@ describe('TasksView: a failed refresh says so', () => {
 		({ component } = await mountTasksView());
 
 		expect(alertText()).toBe(MESSAGE);
-		expect(paragraph('Open tasks from every note')).toBeDefined();
+		expect(paragraph(`Open tasks from every note${EXCEPT}`)).toBeDefined();
 		expect(paragraph('No tasks in this vault yet')).toBeUndefined();
 	});
 
@@ -779,11 +788,12 @@ describe('TasksView: a failed refresh says so', () => {
 		await until(() => expect(rows()).toHaveLength(1));
 
 		// The snapshot read after the tag change fails: the memo was dropped in between.
+		updateSectionTagFilter('');
 		invalidateVaultEntries();
-		await updateSectionTagFilter('');
+		await buildTaskIndex();
 		flushSync();
 
-		expect(paragraph('Open tasks from every note')).toBeDefined();
+		expect(paragraph(`Open tasks from every note${EXCEPT}`)).toBeDefined();
 		expect(alertText()).toBe(MESSAGE);
 		expect(rows()).toHaveLength(1);
 		expect(document.body.textContent).toContain('Ship feature A');
@@ -1058,5 +1068,92 @@ describe('TasksView: clean row text and metadata chips', () => {
 		chip(rows()[0], 'priority')!.click();
 		await vi.waitFor(() => expect(editorStore.activeTabPath).toBe(NOTE));
 		expect(toggleCalls()).toHaveLength(0);
+	});
+});
+
+describe('TasksView: sources and excludes', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		// Also clears the write overlay, which outlives a test.
+		resetTasks();
+		editorStore.reset();
+		settingsStore.reset();
+		tasksStore.setSectionTag('');
+		// Rows get their vault-relative folder only inside an open vault.
+		vaultStore.open('/vault');
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		vaultStore.close();
+		vaultStore.markIndexReady();
+		settingsStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	const rowTexts = () => rows().map((r) => r.querySelector('[data-task-text]')?.textContent?.trim());
+	const paragraph = (text: string) => Array.from(document.querySelectorAll('p')).find((p) => p.textContent?.trim() === text);
+	const pageText = () => document.body.textContent ?? '';
+	const one = (path: string, text: string) => taskGroupV2(path, [taskV2(text)]);
+
+	it('leaves a template task out by default, and lists it once the templates switch is off', async () => {
+		// A system folder that does not hold the templates folder, so only the templates switch covers it.
+		settingsStore.updateTemplates({ systemFolder: 'System' });
+		mockTaskFetch([one('/vault/_system/templates/T.md', 'template task'), one('/vault/Notes/A.md', 'real task')]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rowTexts()).toEqual(['real task']));
+
+		tasksStore.setExclude({ ...defaultTaskExcludes(), templatesFolder: false });
+		flushSync();
+
+		expect(rowTexts()).toEqual(['template task', 'real task']);
+		expect(entryReads()).toBe(1);
+	});
+
+	it('lists only the tasks of a folder card, and names it in the sentence', async () => {
+		mockTaskFetch([one('/vault/Projects/ACME/P.md', 'project task'), one('/vault/Home/H.md', 'home task')]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(2));
+
+		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
+		flushSync();
+
+		expect(rowTexts()).toEqual(['project task']);
+		expect(paragraph(`Open tasks from notes in folder Projects${EXCEPT}`)).toBeDefined();
+	});
+
+	it('limits the list when #work is typed in the textbox, with no new fetch', async () => {
+		mockTaskFetch([one('/vault/A.md', 'task in A')], { entries: [noteUnder('Job #work', ['work task'], '/vault/W.md')] });
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(2));
+		const reads = entryReads();
+
+		const input = document.querySelector<HTMLInputElement>('input[aria-label="Section tag"]')!;
+		input.value = '#work';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+
+		await until(() => expect(rowTexts()).toEqual(['work task']));
+		expect(entryReads()).toBe(reads);
+		expect(tasksStore.isLoading).toBe(false);
+	});
+
+	it('shows Indexing tasks... and no empty state while the vault index is not ready and no row is held', async () => {
+		mockTaskFetch([]);
+		({ component } = await mountTasksView());
+		await until(() => expect(paragraph('No tasks in this vault yet')).toBeDefined());
+
+		vaultStore.resetIndexReady();
+		flushSync();
+
+		expect(pageText()).toContain('Indexing tasks...');
+		expect(paragraph('No tasks in this vault yet')).toBeUndefined();
+
+		vaultStore.markIndexReady();
+		flushSync();
+		expect(paragraph('No tasks in this vault yet')).toBeDefined();
 	});
 });
