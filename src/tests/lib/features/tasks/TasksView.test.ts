@@ -19,6 +19,8 @@ import { statusGlyph } from '#lib/features/tasks/task-status.logic.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { preloadPacks } from '#lib/features/file-icons/file-icons.icon-data.js';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import { mockTaskFetch, mountTasksView, sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
@@ -775,5 +777,133 @@ describe('TasksView: a failed refresh says so', () => {
 		const empty = alert()!.nextElementSibling;
 		expect(empty?.querySelector('p')?.textContent?.trim()).toBe('The only task is closed');
 		expect(empty?.querySelector('button')?.textContent?.trim()).toBe('Show closed');
+	});
+});
+
+describe('TasksView: the note header', () => {
+	let component: Record<string, unknown> | null = null;
+	const ACME = '/vault/Projects/Clients/ACME.md';
+	const ROOT_NOTE = '/vault/Root.md';
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		tasksStore.reset();
+		editorStore.reset();
+		fileIconsStore.reset();
+		tasksStore.setSectionTag('');
+		vaultStore._reset();
+		vaultStore.open('/vault');
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		vi.useRealTimers();
+		vaultStore.close();
+		document.body.innerHTML = '';
+	});
+
+	/** The header wrapper of the note titled `title`. */
+	function header(title: string): HTMLElement {
+		const group = Array.from(document.querySelectorAll<HTMLElement>('[data-task-group]')).find(
+			(g) => g.querySelector('[data-task-group-title]')?.textContent?.trim() === title,
+		);
+		if (!group) throw new Error(`no task group titled ${title}`);
+		return group;
+	}
+	const part = (title: string, hook: string) => header(title).querySelector<HTMLElement>(`[data-task-group-${hook}]`);
+
+	/** Two open tasks and one done task. */
+	const acme = (modifiedAtSec?: number) =>
+		taskGroupV2(
+			ACME,
+			[
+				taskV2('Call Ana', { lineNumber: 1 }),
+				taskV2('Send quote', { lineNumber: 2 }),
+				taskV2('Sign NDA', { lineNumber: 3, status: 'done', checked: true }),
+			],
+			modifiedAtSec,
+		);
+	const rootNote = (modifiedAtSec?: number) => taskGroupV2(ROOT_NOTE, [taskV2('Water plants')], modifiedAtSec);
+
+	/** Seconds for a mid-month noon UTC instant. */
+	const sec = (iso: string) => Date.parse(iso) / 1000;
+
+	it('shows the title, the folder and "N of M open" counted before hide-closed', async () => {
+		mockTaskFetch([acme(), rootNote()]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(3));
+		expect(tasksStore.hideCompleted).toBe(true);
+
+		expect(part('ACME', 'title')?.textContent?.trim()).toBe('ACME');
+		expect(part('ACME', 'subtitle')?.textContent?.trim()).toBe('Projects/Clients');
+		expect(part('ACME', 'count')?.textContent).toBe('2 of 3 open');
+		expect(part('Root', 'subtitle')).toBeNull();
+		expect(part('Root', 'count')?.textContent).toBe('1 of 1 open');
+
+		tasksStore.setHideCompleted(false);
+		await until(() => expect(rows()).toHaveLength(4));
+		expect(part('ACME', 'subtitle')?.textContent?.trim()).toBe('Projects/Clients');
+		expect(part('ACME', 'count')?.textContent).toBe('2 of 3 open');
+		expect(part('Root', 'subtitle')).toBeNull();
+	});
+
+	it('shows the file icon fallback for a plain note, with a neutral title', async () => {
+		mockTaskFetch([acme()]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(2));
+
+		expect(header('ACME').querySelector('svg.lucide-file-text')).not.toBeNull();
+		const title = part('ACME', 'title')!;
+		expect(title.tagName).toBe('BUTTON');
+		expect(title.classList.contains('text-foreground')).toBe(true);
+		expect(title.querySelector('svg')).toBeNull();
+	});
+
+	it('shows the resolved icon in its color, outside the title, and never tints the title', async () => {
+		await preloadPacks(['emoji']);
+		fileIconsStore.updateFrontmatterIcon(ACME, { iconPack: 'emoji', iconName: '🚀', color: 'red', titleColor: 'red' });
+		mockTaskFetch([acme()]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(2));
+
+		const emoji = Array.from(header('ACME').querySelectorAll('span')).find((s) => s.childElementCount === 0 && s.textContent === '🚀');
+		expect(emoji).toBeDefined();
+		expect(emoji!.getAttribute('style')).toBe('color: var(--type-red);');
+		expect(header('ACME').querySelector('svg.lucide-file-text')).toBeNull();
+		const title = part('ACME', 'title')!;
+		expect(title.textContent?.trim()).toBe('ACME');
+		expect(title.hasAttribute('style')).toBe(false);
+		expect(title.className).not.toMatch(/text-purple/);
+	});
+
+	it('puts the modification date in the title hover text, with the year only when it differs', async () => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date('2026-11-12T12:00:00Z'));
+		mockTaskFetch([
+			taskGroupV2('/vault/A.md', [taskV2('One')], sec('2026-06-15T12:00:00Z')),
+			taskGroupV2('/vault/B.md', [taskV2('Two')], sec('2025-06-15T12:00:00Z')),
+			taskGroupV2('/vault/C.md', [taskV2('Three')], 0),
+		]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(3));
+
+		expect(part('A', 'title')?.getAttribute('title')).toBe('Jun 15');
+		expect(part('B', 'title')?.getAttribute('title')).toBe('Jun 15, 2025');
+		expect(part('C', 'title')?.hasAttribute('title')).toBe(false);
+	});
+
+	it('gives the circle a 24px hit area and the shared focus ring, keeping its size-4 icon', async () => {
+		mockTaskFetch([rootNote()]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+
+		const toggle = document.querySelector<HTMLElement>('[data-task-toggle]')!;
+		for (const token of ['p-1', '-mx-1', '-mb-1', '-mt-0.5', 'rounded-full', 'outline-none', 'focus-visible:ring-[3px]', 'focus-visible:ring-ring/50']) {
+			expect(toggle.classList.contains(token), token).toBe(true);
+		}
+		expect(toggle.classList.contains('mt-0.5')).toBe(false);
+		expect(toggle.querySelector('svg')?.classList.contains('size-4')).toBe(true);
 	});
 });

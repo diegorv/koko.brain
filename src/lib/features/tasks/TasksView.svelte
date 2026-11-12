@@ -9,6 +9,7 @@
 	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
 	import Eye from '@lucide/svelte/icons/eye';
 	import EyeOff from '@lucide/svelte/icons/eye-off';
+	import FileText from '@lucide/svelte/icons/file-text';
 	import Hash from '@lucide/svelte/icons/hash';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
@@ -17,6 +18,10 @@
 	import { buildTaskIndex, getTasksResetGeneration, toggleTask, updateSectionTagFilter } from './tasks.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
+	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
+	import { formatDate } from '#lib/utils/date.js';
 	import {
 		filterByDate,
 		filterCompleted,
@@ -25,6 +30,8 @@
 		describeTaskRule,
 		explainEmptyTasks,
 		parseSectionTags,
+		noteFolder,
+		noteTaskCounts,
 		type EmptyTasksExplanation,
 	} from './tasks.logic';
 	import { isTaskOpen, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
@@ -109,6 +116,15 @@
 
 	let stats = $derived(computeTaskStats(filteredGroups));
 
+	/**
+	 * Each note's counts before the view's own filters, by path: the groups in
+	 * `filteredGroups` are copies with the hidden tasks left out. Every group
+	 * there comes from `fileTaskGroups`, so each has an entry.
+	 */
+	let noteCounts = $derived(
+		new Map(tasksStore.fileTaskGroups.map((group) => [group.filePath, noteTaskCounts(group.tasks)])),
+	);
+
 	let ruleSentence = $derived(
 		describeTaskRule({
 			sectionTag: tasksStore.sectionTag,
@@ -180,13 +196,11 @@
 		viewport.scrollTop = untrack(() => tasksStore.scrollOffset);
 	});
 
-	function formatDate(timestamp: number): string {
-		if (!timestamp) return '';
-		return new Date(timestamp).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-		});
+	/** The title's hover text for a note modified at `timestamp` (ms): `Jun 15`, with the year when not this year. */
+	function modifiedTitle(timestamp: number): string | undefined {
+		if (!timestamp) return undefined;
+		const sameYear = new Date(timestamp).getFullYear() === new Date().getFullYear();
+		return formatDate(timestamp, sameYear ? 'MMM D' : 'MMM D, YYYY');
 	}
 </script>
 
@@ -300,21 +314,35 @@
 
 				<div class="space-y-6">
 					{#each filteredGroups as group (group.filePath)}
-						<div>
-							<!-- File header -->
-							<div class="flex items-baseline gap-2 mb-2">
-								<button
-									class="text-sm font-medium text-purple-400 hover:underline cursor-pointer"
-									onclick={() => handleFileClick(group.filePath)}
-								>
-									{group.fileName}
-								</button>
-								<span class="text-xs text-muted-foreground">
-									({formatDate(group.modifiedAt)})
+						{@const resolved = resolveIconForPath(group.filePath)}
+						{@const folder = noteFolder(vaultStore.path, group.filePath)}
+						{@const counts = noteCounts.get(group.filePath)!}
+						<div data-task-group>
+							<!-- File header. The icon sits outside the button so an emoji stays out of its name. -->
+							<div class="flex items-start gap-2 mb-2">
+								<span class="flex h-5 shrink-0 items-center">
+									{#if resolved?.icon}
+										<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+									{:else}
+										<FileText class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(resolved?.color)} />
+									{/if}
 								</span>
-								<span class="text-xs text-muted-foreground">
-									({group.tasks.length})
-								</span>
+								<div class="min-w-0 flex-1">
+									<div class="flex items-baseline gap-2">
+										<button
+											data-task-group-title
+											class="text-sm font-medium text-foreground hover:underline cursor-pointer"
+											title={modifiedTitle(group.modifiedAt)}
+											onclick={() => handleFileClick(group.filePath)}
+										>
+											{group.fileName}
+										</button>
+										<span data-task-group-count class="text-xs text-muted-foreground">{`${counts.open} of ${counts.total} open`}</span>
+									</div>
+									{#if folder}
+										<p data-task-group-subtitle class="truncate text-xs text-muted-foreground">{folder}</p>
+									{/if}
+								</div>
 							</div>
 
 							<!-- Task list -->
@@ -331,7 +359,7 @@
 										<button
 											data-task-toggle
 											data-task-status={task.status}
-											class="shrink-0 mt-0.5 cursor-pointer"
+											class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 											aria-label="{toggleTarget(task.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {task.text} ({glyph.word})"
 											title={glyph.word}
 											onclick={() => handleToggle(group.filePath, task)}

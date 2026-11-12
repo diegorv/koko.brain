@@ -11,7 +11,10 @@ import {
 	compareTaskPaths,
 	parseTasksView,
 	withSectionTag,
+	noteFolder,
+	noteTaskCounts,
 } from '#lib/features/tasks/tasks.logic.js';
+import { TASK_STATUSES } from '#lib/features/tasks/task-status.logic.js';
 import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
 import { sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 
@@ -576,5 +579,38 @@ describe('the open rule: done and cancelled are closed, every other status is op
 				action: { kind: 'showCompleted', label: 'Show closed' },
 			});
 		});
+	});
+});
+
+describe('noteFolder', () => {
+	it('gives the vault-relative folder of a nested note', () => {
+		expect(noteFolder('/vault', '/vault/Projects/Clients/ACME.md')).toBe('Projects/Clients');
+	});
+
+	it('gives an empty string for a note at the vault root', () => {
+		expect(noteFolder('/vault', '/vault/Root.md')).toBe('');
+	});
+
+	it('gives an empty string for a path outside the vault', () => {
+		expect(noteFolder('/vault', '/elsewhere/x.md')).toBe('');
+	});
+
+	it('gives an empty string when no vault is open', () => {
+		expect(noteFolder(null, '/vault/Projects/x.md')).toBe('');
+	});
+
+	it('gives an empty string for a sibling folder sharing the vault prefix', () => {
+		expect(noteFolder('/vault', '/vault2/x.md')).toBe('');
+	});
+});
+
+describe('noteTaskCounts', () => {
+	it('counts the open statuses and every task', () => {
+		const tasks = TASK_STATUSES.map((status, i) => taskV2(status, { status, lineNumber: i + 1 }));
+		expect(noteTaskCounts(tasks)).toEqual({ open: 5, total: 7 });
+	});
+
+	it('gives zero counts for no tasks', () => {
+		expect(noteTaskCounts([])).toEqual({ open: 0, total: 0 });
 	});
 });

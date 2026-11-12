@@ -1,3 +1,4 @@
+import { vaultRelativeKey } from '#lib/utils/path.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { isTaskOpen } from './task-status.logic';
 import type { TaskItem, FileTaskGroup, TaskDateFilter } from './tasks.types';
@@ -332,4 +333,26 @@ const PATH_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity:
  */
 export function compareTaskPaths(a: string, b: string): number {
 	return PATH_COLLATOR.compare(a, b) || (a < b ? -1 : a > b ? 1 : 0);
+}
+
+/**
+ * The vault-relative folder of a note, e.g. `Projects/Clients` for
+ * `Projects/Clients/ACME.md`. Empty for a note at the vault root, a path
+ * outside the vault and when no vault is open.
+ */
+export function noteFolder(vaultPath: string | null, filePath: string): string {
+	if (vaultPath === null) return '';
+	const key = vaultRelativeKey(vaultPath, filePath);
+	if (key === null) return '';
+	const slash = key.lastIndexOf('/');
+	return slash === -1 ? '' : key.slice(0, slash);
+}
+
+/** A note's open tasks (`isTaskOpen`) and all its tasks. */
+export function noteTaskCounts(tasks: TaskItem[]): { open: number; total: number } {
+	let open = 0;
+	for (const task of tasks) {
+		if (isTaskOpen(task.status)) open++;
+	}
+	return { open, total: tasks.length };
 }

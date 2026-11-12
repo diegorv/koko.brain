@@ -114,7 +114,7 @@ Combine filters to narrow down your view. For example, toggle **Hide closed** on
 
 - **Click a checkbox** — toggles the task status in the actual file. The change is written directly to the `.md` file on disk, so you will see the update the next time you open that note. For a task synced with Todoist, the change goes out at the next interval or focus sync, or with **Todoist: Sync now**: a Tasks View click is not a note save, so it does not start the after-save sync.
 - **Click a task's text**: opens its note with the cursor on the task's line. Clicking the text never changes the task; only the checkbox does. Selecting part of the text to copy it does nothing.
-- **Click a file name** — opens that file in the editor. This lets you quickly jump to the surrounding context of any task.
+- **Click a note's title**: each note's header shows its icon, title, folder and how many of its tasks are open, for example "2 of 3 open" (closed tasks count even while they are hidden). Clicking the title opens the note in the editor, and hovering over it shows when the note was last modified.
 
 ---
 

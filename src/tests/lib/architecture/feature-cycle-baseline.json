@@ -30,6 +30,7 @@
 		"search -> event-calendar",
 		"search -> rail-shell",
 		"tags -> search",
+		"tasks -> file-icons",
 		"type-definitions -> collection",
 		"type-definitions -> file-icons"
 	]
