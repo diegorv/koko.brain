@@ -1,6 +1,6 @@
 # 241: Change a task's status from its row, with Undo
 
-**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`, `synthesis.md` T09, `critique.md` D10 and D15) and its review, then corrected by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-241.md`, `dossier-241.md`, `cross-state-chain.md` M5-M7). The status part of Issue 122, carved out because it needs no Rust change. Issue numbers in this text are open-itens numbers.
+**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`, `synthesis.md` T09, `critique.md` D10 and D15) and its review, then corrected by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-241.md`, `dossier-241.md`, `cross-state-chain.md` M5-M7). The status part of Issue 122, carved out because it needs no Rust change. Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** The circle only flips between open and done. Each row gets a menu that sets any of the common statuses, opens the note at the task, or copies the task text, and a status change from the menu can be undone from a toast.
 

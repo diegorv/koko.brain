@@ -1,6 +1,6 @@
 # 239: Tasks priority and tag filters, search, Reset and a narrow-pane fold
 
-**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`) and its review. The last part of Issue 111's first draft, split out as `critique.md` D4 asked. It absorbs Issue 120 (task tag quick filter), merged on the owner's approval the same day. Revised the same day from the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-239.md`, `refute-239.md`). Issue numbers in this text are open-itens numbers.
+**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`) and its review. The last part of Issue 111's first draft, split out as `critique.md` D4 asked. It absorbs Issue 120 (task tag quick filter), merged on the owner's approval the same day. Revised the same day from the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-239.md`, `refute-239.md`). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** Finish the quick filters: filter by priority and by task tag, search the list, reset every quick filter at once, and keep the filter row usable in a narrow pane.
 

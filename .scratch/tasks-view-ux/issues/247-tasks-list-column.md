@@ -1,6 +1,6 @@
 # 247: A list column picks, saves and manages Tasks views
 
-**Origin:** split from Issue 124 (the PRD's `tasks-view` Issue 17) on 2026-11-12 by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` section 4, `dossier-123+124.md` section 5.3). This is 124b; Issue 124 (124a) builds the saved-view model, storage and migration. The PRD stays in `.scratch/archived/tasks-view/` ("Lists and views"). Issue numbers in this text are open-itens numbers.
+**Origin:** split from Issue 124 (the PRD's `tasks-view` Issue 17) on 2026-11-12 by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` section 4, `dossier-123+124.md` section 5.3). This is 124b; Issue 124 (124a) builds the saved-view model, storage and migration. The PRD stays in `.scratch/archived/tasks-view/` ("Lists and views"). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** After Issue 124 the store holds "All open", the saved views and the active list, but nothing on screen shows or picks them. Add the list column, the view actions and the "Global" excludes section.
 

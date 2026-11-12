@@ -1,6 +1,6 @@
 # 121: Remove `get_tasks_in_section_v2` and its disk re-read
 
-**Origin:** `tasks-view` Issue 27, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Reviewed by the 2026-11-12 deep dive (`.scratch/tasks-view-ux/research/deep-dive/dossier-121.md`, `cross-rust-ipc.md` F1 to F6, F12, F13, `cross-state-chain.md` M11, `SUMMARY.md`). Issue numbers in this text are open-itens numbers.
+**Origin:** `tasks-view` Issue 27, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Reviewed by the 2026-11-12 deep dive (`.scratch/tasks-view-ux/research/deep-dive/dossier-121.md`, `cross-rust-ipc.md` F1 to F6, F12, F13, `cross-state-chain.md` M11, `SUMMARY.md`). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** After Issue 244 the Tasks view runs Issue 115's heading rule in TS over the entries snapshot, and nothing in `src/lib` calls `get_tasks_in_section_v2`. The command still re-reads every task note from disk and keeps a second, case-sensitive heading rule alive in Rust. Remove it and everything that exists only for it (PRD decision B6 (a), "IPC changes"). Find the sites by symbol and grep, not by line number: Issues 242, 074 and 244 move them.
 

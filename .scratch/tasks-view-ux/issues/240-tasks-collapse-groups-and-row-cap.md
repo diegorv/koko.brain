@@ -1,6 +1,6 @@
 # 240: Tasks groups collapse and stay collapsed, and long groups show 50 rows
 
-**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`) and its review. The collapse and volume part of Issue 112's first draft, split out as `critique.md` D4, D7 and D9 asked. Then the deep dive of 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-240.md`, `dossier-240.md`, `cross-state-chain.md` M6). Issue numbers in this text are open-itens numbers.
+**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`) and its review. The collapse and volume part of Issue 112's first draft, split out as `critique.md` D4, D7 and D9 asked. Then the deep dive of 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-240.md`, `dossier-240.md`, `cross-state-chain.md` M6). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** A long list needs to fold. Groups collapse with a chevron and stay collapsed when you glance at a note and come back, and a group with hundreds of tasks shows the first 50.
 

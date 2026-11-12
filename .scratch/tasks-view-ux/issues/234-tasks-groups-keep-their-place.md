@@ -1,6 +1,6 @@
 # 234: The Tasks list keeps your place, and a failed refresh says so
 
-**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`, `synthesis.md` T03 and T07 as corrected by `critique.md` D6, D7 and D18) and its review, then the ticket deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-234.md`, `refute-234.md`). It absorbs Issue 235, merged on the owner's approval the same day. Issue numbers in this text are open-itens numbers.
+**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`, `synthesis.md` T03 and T07 as corrected by `critique.md` D6, D7 and D18) and its review, then the ticket deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-234.md`, `refute-234.md`). It absorbs Issue 235, merged on the owner's approval the same day. Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** Ticking a task in the fifth note leaves that note fifth, leaving the Tasks tab and coming back puts you where you were, and a refresh that fails says so instead of showing a stale or empty list in silence.
 

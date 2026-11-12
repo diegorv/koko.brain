@@ -1,6 +1,6 @@
 # 238: A Due menu replaces the Tasks date pills
 
-**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`) and its review. The Due part of Issue 111's first draft, split out as `critique.md` D4 and D13 asked. Revised the same day from the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-238.md`, `refute-238.md`). Issue numbers in this text are open-itens numbers.
+**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`) and its review. The Due part of Issue 111's first draft, split out as `critique.md` D4 and D13 asked. Revised the same day from the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-238.md`, `refute-238.md`). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** The three date pills (All time, Last 7 days, Last 30 days) filter on the note file's modification time, not on any task date, so "Last 7 days" lists every task of any note edited this week. Replace them with a Due menu on the task's due date (PRD A2). The note-edited filter survives as two options in the same menu.
 

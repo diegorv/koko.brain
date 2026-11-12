@@ -21,7 +21,9 @@ The test, new `src/tests/lib/architecture/palette-classes.test.ts`, copying the 
 
 Once the test passes and covers `src/lib/features/tasks/`, delete Issue 236's `src/tests/lib/features/tasks/tasks-palette.test.ts`, which it duplicates.
 
-**Blocked by:** 151, 236
+**Blocked by:** 151
+
+**Waits on:** Tasks view Issue 236 (`.scratch/tasks-view-ux/issues/236-tasks-group-header-reads-like-a-note.md`), which removes the Tasks view's raw palette class. relay-lite cannot see a blocker in another folder: launch this Issue by number only after 236 is `done` in `.scratch/tasks-view-ux/ledger.md`.
 
 **Status:** ready-for-agent
 
@@ -52,3 +54,5 @@ Once the test passes and covers `src/lib/features/tasks/`, delete Issue 236's `s
 
 - 2026-11-12: the Tasks view sites are out of this Issue. Issue 236 removes `text-purple-400` from `TasksView.svelte` with its own check, and the `text-green-400` site no longer exists. The audit notes above still name them; ignore those two. This Issue waits on 236, so the new test never meets that class, and it never edits the Tasks view, which the Tasks chain edits in series.
 - 2026-11-12: deep dive applied (SUMMARY 198, `dossier-129+198+205.md`, `cross-tests-relay.md` M6, M7, `cross-state-chain.md` L8). The site list is the one at `d2304ac9e` after 151 and 236 (eight hits, by file and symbol); the stale audit line lists and `AutoMoveRuleRow` (the feature is now `auto-organize`) are gone. The by-eye criterion is now a delivery note for the owner. The test gets a pattern self-test and a comment rule, and it replaces Issue 236's `tasks-palette.test.ts`.
+
+- 2026-11-12: the Tasks view Issues moved to `.scratch/tasks-view-ux/issues/`; the 236 edge became a Waits on line.

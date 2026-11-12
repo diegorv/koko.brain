@@ -1,6 +1,6 @@
 # 123: The Tasks excludes and heading tags survive a restart
 
-**Origin:** `tasks-view` Issue 16, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Shrunk on 2026-11-12 by the owner's Q3 after the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-123+124.md`, `cross-persistence-sources.md`). Issue numbers in this text are open-itens numbers.
+**Origin:** `tasks-view` Issue 16, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Shrunk on 2026-11-12 by the owner's Q3 after the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-123+124.md`, `cross-persistence-sources.md`). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** After Issue 245 only the texts of the tag heading cards survive a restart, as the free text `tasksView.sectionTag`; the excludes edited in the Sources panel are lost. Save the global excludes per vault, and move the saved heading tags into a normalized field that Issue 124 seeds the "To list" view from. Nothing else is saved here: other source cards, quick filters, `groupBy`, `sort`, collapsed groups (Issue 240) and the current row (Issue 113) stay session-only. Issue 124 then stores whole queries in saved views.
 
@@ -21,7 +21,9 @@
 
 - `help/documentation/10-tasks-and-todoist.md`, the Sources section (Issue 245): the excludes and the tag heading cards are remembered per vault; other cards and the quick filters are not.
 
-**Blocked by:** 245, 030, 117
+**Blocked by:** 245, 117
+
+**Waits on:** open-itens Issue 030 (`.scratch/open-itens/issues/030-session-whose-settings-json-was-never-loaded.md`, a settings file that was never loaded is never saved over). relay-lite cannot see a blocker in another folder: launch this Issue by number only after 030 is `done` in `.scratch/open-itens/ledger.md`.
 
 **Status:** ready-for-agent
 
@@ -57,3 +59,5 @@ Tests use Issue 243's harness in `tasks-view-settings.test.ts`: the real `loadSe
 - 2026-11-12: deep dive and owner Q3 applied (SUMMARY 123; cross-persistence M2, M3, H1, L1, L3, L4). Shrunk: no `query` is saved, only `globalExcludes` and the normalized `headingTags`, which replace the legacy `sectionTag` at the first write; Issue 124 seeds from them. Reuses Issue 243's plumbing and dropped the `todoist` merge pointer; writes go through `updateTasksView` in service functions, never `saveSettings`, and no `$effect` mirror is used, which removes the stop-and-restart ordering the deep dive asked for. Added the invalid-value rule, the protected-session and double-switch criteria, and what is not saved. Fixed the audit-number line. Blocked by 245 and 030 (112 and 116 dropped: no grouping is saved, and 245 follows 116). Status set to ready-for-agent after Q3.
 
 - 2026-11-12: main session, after the consistency review: also blocked by 117, which unblocks at the same time and edits the same Sources panel; the edge only keeps the two runs apart.
+
+- 2026-11-12: moved to `.scratch/tasks-view-ux/issues/` with the other Tasks view Issues; the 030 edge became a Waits on line, because 030 stays in open-itens.

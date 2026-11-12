@@ -1,6 +1,6 @@
 # 246: Set due and priority from the Tasks row menu, with Undo
 
-**Origin:** split out of Issue 122 on 2026-11-12 by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` 122 and section 4, `dossier-122.md`, `cross-rust-ipc.md` F8), as 122b, the frontend half. The PRD stays in `.scratch/archived/tasks-view/`; the UX research ticket is `synthesis.md` T14. Issue numbers in this text are open-itens numbers.
+**Origin:** split out of Issue 122 on 2026-11-12 by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` 122 and section 4, `dossier-122.md`, `cross-rust-ipc.md` F8), as 122b, the frontend half. The PRD stays in `.scratch/archived/tasks-view/`; the UX research ticket is `synthesis.md` T14. Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** The Due filter and due grouping (Issues 238, 112) are only useful if a task can get a due date without typing the due signifier (U+1F4C5) and a date by hand. Add Due and Priority to the row menu Issue 241 built, next to Status, written through Issue 122's `write_task_text`:
 

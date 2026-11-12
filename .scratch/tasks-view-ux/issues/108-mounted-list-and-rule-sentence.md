@@ -1,6 +1,6 @@
 # 108: The Tasks list stays mounted, and the rule explains itself
 
-**Origin:** `tasks-view` Issue 04, moved here on 2026-11-08 and rewritten on 2026-11-12 from the Tasks view UX research (`.scratch/tasks-view-ux/research/`) and its review, then corrected by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-108.md`, `refute-108.md`). Its PRD stays in `.scratch/archived/tasks-view/`. Issue numbers in this text are open-itens numbers. Line numbers are left out on purpose: the view file has changed since the first draft.
+**Origin:** `tasks-view` Issue 04, moved here on 2026-11-08 and rewritten on 2026-11-12 from the Tasks view UX research (`.scratch/tasks-view-ux/research/`) and its review, then corrected by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-108.md`, `refute-108.md`). Its PRD stays in `.scratch/archived/tasks-view/`. Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`. Line numbers are left out on purpose: the view file has changed since the first draft.
 
 **What to build:** The Tasks view (Cmd+Shift+T, "Toggle Tasks View") looks empty and jumpy. This Issue fixes three things without changing what it lists or what a row looks like. The default section tag stays `#to-list`.
 

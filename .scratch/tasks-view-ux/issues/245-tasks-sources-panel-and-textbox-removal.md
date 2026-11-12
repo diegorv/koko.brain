@@ -1,6 +1,6 @@
 # 245: A Sources panel edits the Tasks query, and the section tag textbox goes
 
-**Origin:** split from Issue 116 (the PRD's `tasks-view` Issue 13) on 2026-11-12 by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` section 4, `dossier-116.md`, `cross-persistence-sources.md`, `cross-state-chain.md` M13). This is 116b; Issue 116 (116a) builds the query, the excludes and the sentence. The PRD stays in `.scratch/archived/tasks-view/` ("Sourcing rules", A4, A12). Issue numbers in this text are open-itens numbers.
+**Origin:** split from Issue 116 (the PRD's `tasks-view` Issue 13) on 2026-11-12 by the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` section 4, `dossier-116.md`, `cross-persistence-sources.md`, `cross-state-chain.md` M13). This is 116b; Issue 116 (116a) builds the query, the excludes and the sentence. The PRD stays in `.scratch/archived/tasks-view/` ("Sourcing rules", A4, A12). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** After Issue 116 the query holds source cards and excludes, but only the section tag textbox edits it, and only as heading cards. Replace the textbox with a Sources panel that edits every clause kind and the excludes.
 

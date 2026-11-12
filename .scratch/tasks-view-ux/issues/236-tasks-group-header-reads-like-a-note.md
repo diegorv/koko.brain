@@ -1,6 +1,6 @@
 # 236: A Tasks group header reads like a note
 
-**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`, `synthesis.md` T05 as corrected by `critique.md` D2, D12 and D20) and its review, then the deep dive of 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-236.md`, `dossier-236.md`). Issue numbers in this text are open-itens numbers. It takes over the Tasks view site of Issue 198.
+**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`, `synthesis.md` T05 as corrected by `critique.md` D2, D12 and D20) and its review, then the deep dive of 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-236.md`, `dossier-236.md`). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`. It takes over the Tasks view site of Issue 198.
 
 **What to build:** Each note's header in the Tasks view looks like the note it stands for, and the view stops using a raw purple.
 

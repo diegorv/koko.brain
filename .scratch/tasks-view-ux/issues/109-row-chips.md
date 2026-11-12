@@ -1,6 +1,6 @@
 # 109: Task rows show clean text with date, priority, recurrence and tag chips
 
-**Origin:** `tasks-view` Issue 05, moved here on 2026-11-08 and rewritten on 2026-11-12 from the Tasks view UX research (`.scratch/tasks-view-ux/research/`) and its review, then the deep dive of 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-109.md`, `dossier-109.md`). The status glyph half moved to Issue 110. Its PRD stays in `.scratch/archived/tasks-view/`. Issue numbers in this text are open-itens numbers. Line numbers are left out on purpose.
+**Origin:** `tasks-view` Issue 05, moved here on 2026-11-08 and rewritten on 2026-11-12 from the Tasks view UX research (`.scratch/tasks-view-ux/research/`) and its review, then the deep dive of 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-109.md`, `dossier-109.md`). The status glyph half moved to Issue 110. Its PRD stays in `.scratch/archived/tasks-view/`. Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`. Line numbers are left out on purpose.
 
 **What to build:** Rust already sends each task's metadata (`src-tauri/src/vault/task.rs`, `TaskMetadata` in `#lib/contracts`), and the row ignores it: the emoji signifiers show as raw text. "Send invoice 📅 2026-11-03 ⏫ #work ^abc123" should read "Send invoice" followed by chips for Nov 3 (overdue), high and #work.
 

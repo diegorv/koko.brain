@@ -1,6 +1,6 @@
 # 112: Group the Tasks list by note, folder, due, priority or status
 
-**Origin:** `tasks-view` Issue 08, moved here on 2026-11-08 and rewritten on 2026-11-12 from the Tasks view UX research (`.scratch/tasks-view-ux/research/`, `critique.md` D4, D6 and D8), then the deep dive of 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-112.md`, `dossier-112.md`, `cross-state-chain.md` H2, M4, M6, L3). Collapse and the 50-row cap moved to Issue 240. Its PRD stays in `.scratch/archived/tasks-view/`. Issue numbers in this text are open-itens numbers.
+**Origin:** `tasks-view` Issue 08, moved here on 2026-11-08 and rewritten on 2026-11-12 from the Tasks view UX research (`.scratch/tasks-view-ux/research/`, `critique.md` D4, D6 and D8), then the deep dive of 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `refute-112.md`, `dossier-112.md`, `cross-state-chain.md` H2, M4, M6, L3). Collapse and the 50-row cap moved to Issue 240. Its PRD stays in `.scratch/archived/tasks-view/`. Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** Tasks are grouped only by note. Add a Display menu with one grouping level (PRD A3), so "what is overdue" or "what is high priority" reads at a glance.
 

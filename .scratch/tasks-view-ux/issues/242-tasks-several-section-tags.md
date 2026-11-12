@@ -1,6 +1,6 @@
 # 242: The Tasks section filter takes several tags
 
-**Origin:** owner request, 2026-11-12, during the Tasks view UX review: keep the `#to-list` filter, and allow more tags instead of listing every task. Reviewed by the 2026-11-12 deep dive (`.scratch/tasks-view-ux/research/deep-dive/dossier-242.md`, `refute-242.md`, `SUMMARY.md`). Issue numbers in this text are open-itens numbers.
+**Origin:** owner request, 2026-11-12, during the Tasks view UX review: keep the `#to-list` filter, and allow more tags instead of listing every task. Reviewed by the 2026-11-12 deep dive (`.scratch/tasks-view-ux/research/deep-dive/dossier-242.md`, `refute-242.md`, `SUMMARY.md`). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** The section tag textbox accepts several tags, for example `#to-list #work`. A task is listed when at least one of the tags, applied alone with today's heading rule, lists it. The default stays `#to-list`.
 

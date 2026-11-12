@@ -1,6 +1,6 @@
 # 243: The Tasks section tags are saved per vault
 
-**Origin:** owner request, 2026-11-12, during the Tasks view UX review. Reviewed by the 2026-11-12 deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-243.md`, `refute-243.md`, `cross-persistence-sources.md`). Issue numbers in this text are open-itens numbers.
+**Origin:** owner request, 2026-11-12, during the Tasks view UX review. Reviewed by the 2026-11-12 deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md`, `dossier-243.md`, `refute-243.md`, `cross-persistence-sources.md`). Issue numbers in this text keep the open-itens numbering: the Tasks view Issues live in `.scratch/tasks-view-ux/issues/`, the others (030, 085, 151, 198, 204, 205 and the rest) in `.scratch/open-itens/issues/`.
 
 **What to build:** The section tags typed in the Tasks view (Issue 242) come back after an app restart, per vault. Today the field is not saved and returns to `#to-list` on every start.
 
@@ -26,7 +26,9 @@
 - `tasksStore.reset()` already restores `#to-list` and is tested (`tasks.store.test.ts`); no change, keep that test.
 - `help/documentation/10-tasks-and-todoist.md`, the Section filter row: "The field is remembered per vault and comes back after a restart. An empty field is not remembered: the next start shows `#to-list`."
 
-**Blocked by:** 234, 030
+**Blocked by:** 234
+
+**Waits on:** open-itens Issue 030 (`.scratch/open-itens/issues/030-session-whose-settings-json-was-never-loaded.md`, a settings file that was never loaded is never saved over). relay-lite cannot see a blocker in another folder: launch this Issue by number only after 030 is `done` in `.scratch/open-itens/ledger.md`.
 
 **Status:** ready-for-agent
 
@@ -60,3 +62,5 @@ Tests mock only the boundaries `docs/TESTING.md` allows: `@tauri-apps/plugin-fs`
 ## Comments
 
 - 2026-11-12: deep dive applied (SUMMARY 243; refute-243 M1-M6, S1-S7; cross-persistence H1, M1, M2, L2; cross-tests M1). Saving now mutates the store through an in-place `updateTasksView` and never calls `saveSettings`; `parseSettings` passes the key through verbatim instead of the `todoist` merge; the loader is named `loadSavedTasksView`, called from `initializeVault`, with the lifecycle mock; "not written" is defined on the bytes; invalid values, the log and the toast are pinned; the allowed boundary mocks are named. Blocked by 234 and 030. Added the protected-session, double-switch, destroy-flush and Q1 criteria. Per the owner's Q1, an empty saved value loads `#to-list` (refute-243 M7's opposite reading is not applied).
+
+- 2026-11-12: moved to `.scratch/tasks-view-ux/issues/` with the other Tasks view Issues; the 030 edge became a Waits on line, because 030 stays in open-itens.
