@@ -51,10 +51,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | none | wontfix | | |
 | 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | todo | | |
 | 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | todo | | |
-| 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | 245, 117 | todo | | |
-| 124 | [Saved Tasks views and the "To list" migration (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 123 | todo | | |
-| 125 | [Built-in smart lists and their empty states](issues/125-smart-lists-and-empty-states.md) | 111, 247 | todo | | |
-| 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | 247, 125 | todo | | |
+| 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | none | wontfix | | |
+| 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | todo | | |
+| 125 | [A "No date" built-in list, and a "modified" marker with Save, Revert and Reset](issues/125-smart-lists-and-empty-states.md) | 111, 247 | todo | | |
+| 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | none | wontfix | | |
 | 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 244 | todo | | |
 | 227 | [The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date](issues/227-tasks-help-says-default-view-lists-only.md) | none | wontfix | | |
 | 234 | [The Tasks list keeps your place, and a failed refresh says so](issues/234-tasks-groups-keep-their-place.md) | 110 | done | issue/234-tasks-groups-keep-their-place (d52d63db2) | 2026-11-12 |
@@ -102,3 +102,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 12:30 — 248 — deliver — round 1 CHANGES_REQUESTED by claude, fix round, round 2 APPROVED by claude; full suite 619 files / 15861 tests passed; squash merged and pushed — 6ff6c3d55
 - 2026-11-12 12:33 — 111 — deliver — round 1 APPROVED by claude with a fix round, deliver re-review APPROVED by claude (one optional nit not applied); full suite 621 files / 15895 tests passed; squash merged and pushed — b1550f521
 - 2026-11-12 12:33 — 238 — start — launched by /relay-lite:run — 8a07b5ca3
+- 2026-11-12 12:34 — ledger updated (title of 124, 125; blocked by of 123, 124, 126; wontfix 123, 126)
