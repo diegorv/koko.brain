@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | todo | | |
 | 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | todo | | |
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | todo | | |
-| 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | todo | | |
+| 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | in-progress | | |
 | 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | todo | | |
 | 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | todo | | |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | todo | | |
@@ -94,3 +94,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:51 — 109 — start — launched by /relay-lite:run — ec03b5500
 - 2026-11-12 11:55 — 075 — deliver — round 1 APPROVED by claude, 3 findings accepted with no code change (major: Todoist sync keeps the ASCII tag rule, follow-up Issue to file; minor: recurrence vs #über; nit); full suite 616 files / 15696 tests, cargo 1453 passed; e2e: tabs.spec.ts:42 fails the same on main, rest passed; index schema 6 -> 7; squash merged and pushed — 015f8c18f
 - 2026-11-12 11:56 — ledger updated (added 248)
+- 2026-11-12 11:56 — 115 — start — launched by /relay-lite:run, side track beside 109 — f0f868d1b
