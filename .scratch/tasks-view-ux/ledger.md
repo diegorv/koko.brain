@@ -61,7 +61,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 235 | [A failed Tasks refresh says so](issues/235-tasks-failed-refresh-says-so.md) | none | wontfix | | |
 | 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 234 | done | issue/236-tasks-group-header-reads-like-a-note (07181df1c) | 2026-11-12 |
 | 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | none | wontfix | | |
-| 238 | [A Due menu replaces the Tasks date pills](issues/238-tasks-due-filter-replaces-date-pills.md) | 111 | todo | | |
+| 238 | [A Due menu replaces the Tasks date pills](issues/238-tasks-due-filter-replaces-date-pills.md) | 111 | in-progress | | |
 | 239 | [Tasks priority and tag filters, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | todo | | |
 | 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | todo | | |
 | 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
@@ -101,3 +101,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 12:10 — 248 — start — launched by /relay-lite:run, side track beside 111 — 61558f7f6
 - 2026-11-12 12:30 — 248 — deliver — round 1 CHANGES_REQUESTED by claude, fix round, round 2 APPROVED by claude; full suite 619 files / 15861 tests passed; squash merged and pushed — 6ff6c3d55
 - 2026-11-12 12:33 — 111 — deliver — round 1 APPROVED by claude with a fix round, deliver re-review APPROVED by claude (one optional nit not applied); full suite 621 files / 15895 tests passed; squash merged and pushed — b1550f521
+- 2026-11-12 12:33 — 238 — start — launched by /relay-lite:run — 8a07b5ca3
