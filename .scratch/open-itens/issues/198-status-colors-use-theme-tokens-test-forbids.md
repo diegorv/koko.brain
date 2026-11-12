@@ -1,40 +1,48 @@
 # 198: Status colors use theme tokens, and a test forbids raw palette classes
 
-**Origin:** `audit-2026-11-05` Issue 84, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `audit-2026-11-05` Issue 84, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the Origin lines use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here. The site list below was re-checked by the Tasks view deep dive at `d2304ac9e` (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` 198, `dossier-129+198+205.md`, `cross-tests-relay.md` M6, M7, `cross-state-chain.md` L8); it replaces the audit's line lists.
 
-**Migrated from:** `.scratch/archived/ux-polish/issues/48-status-colors-use-tokens.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. Its guard test flags 47's kanban sites, so it cannot go green before 47 lands. Blocker 08 is resolved.
+**Migrated from:** `.scratch/archived/ux-polish/issues/48-status-colors-use-tokens.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Polish/low. Its guard test flags 47's kanban sites, so it cannot go green before 47 (here: 151) lands. Blocker 08 is resolved.
 
-**Audit check at `5f8003d67`:** still_present (polish, low). rg for palette color utilities outside components/ui: UpdateSection.svelte:252 text-green-500; KanbanLane.svelte:309 and KanbanTableView.svelte:74 and AutoMoveRuleRow.svelte:119 text-green-500; TasksView.svelte:184 text-purple-400 and :252 text-green-400; DiffViewer.svelte:14-15 bg-green-500/15 text-green-300 and bg-red-500/15 text-red-300 (pale on a light theme); BuildInfo.svelte:30-32 stable/nightly/dev with dark: variants. Tokens exist (src/app.css:69 --color-success, :193 and :266 --success, --color-warning). src/tests/lib/architecture/palette-classes.test.ts does not exist. Blocker 08 is resolved; 47 is not delivered (KanbanCard.svelte:118-125 and KanbanDatePicker.svelte:21-24 still use raw shades).
+**What to build:** Swap the remaining raw Tailwind palette classes outside `components/ui` for theme tokens, then lock the rule in with an architecture test. At `d2304ac9e` the scan finds 19 line hits; Issue 151 removes the Kanban proximity sites (`KanbanCard`, `KanbanDatePicker`, `KanbanListView`, and the proximity chip in `KanbanTableView`) and Issue 236 removes `text-purple-400` from `TasksView.svelte`. The eight hits left for this Issue:
 
-**Stale in the text below:** UpdateSection line is 252, not 340. BuildInfo now has three badges (stable, nightly, dev) on lines 30-32, not only line 31. The architecture test will also flag KanbanDatePicker.svelte:21-24, KanbanListView.svelte:48, KanbanTableView.svelte:69 and KanbanCard.svelte, which are Issue 47's sites, so 48 cannot go green before 47 lands. Mostly cosmetic on the default dark theme.
+- `src/lib/core/settings/BuildInfo.svelte`, `BADGE_CLASSES`: `stable` to `bg-success/20 text-success`, `nightly` to `bg-warning/20 text-warning`, `dev` (violet today) to `bg-primary/20 text-primary`, with no `dark:` variants.
+- `src/lib/core/settings/sections/UpdateSection.svelte`: the "You're up to date" `text-green-500` to `text-success`.
+- `src/lib/plugins/kanban/KanbanLane.svelte`: the `CircleCheck` `text-green-500` to `text-success`.
+- `src/lib/plugins/kanban/KanbanTableView.svelte`: the checked-item cell's `text-green-500` to `text-success`.
+- `src/lib/features/file-history/DiffViewer.svelte`, the line class switch: `insert` to `bg-success/15 text-success`, `delete` to `bg-destructive/15 text-destructive`.
 
-**Note (2026-11-06):** BuildInfo.svelte has three badges at :30-32. Map stable (:30) to the success token, nightly (:31) to warning and dev (:32, violet today) to primary. Current lines: TasksView.svelte :192 and :261, UpdateSection.svelte :252, KanbanLane.svelte :309, AutoMoveRuleRow.svelte :119.
+`src/lib/features/auto-move/AutoMoveRuleRow.svelte`, named by the audit, no longer exists: the feature is now `src/lib/features/auto-organize/`, and `AutoOrganizeRuleRow.svelte` has no palette class. The tokens exist in every theme (`--color-success`, `--color-warning` in `src/app.css`; `theme-builder.logic.ts` and `theme.types.ts` carry both), and `text-success` is already used.
 
-**What to build:** Swap the remaining raw Tailwind palette classes outside `components/ui` for tokens, then lock the rule in with an architecture test:
-- `src/lib/core/settings/sections/UpdateSection.svelte:340` `text-green-500` to `text-success`.
-- `src/lib/plugins/kanban/KanbanLane.svelte:311`, `src/lib/plugins/kanban/KanbanTableView.svelte:74`, `src/lib/features/auto-move/AutoMoveRuleRow.svelte:120`: `text-green-500` to `text-success`.
-- `src/lib/features/file-history/DiffViewer.svelte:14-15`: insert `bg-success/15 text-success`, delete `bg-destructive/15 text-destructive`.
-- `src/lib/core/settings/BuildInfo.svelte:31`: `bg-warning/20 text-warning`, no `dark:` variant.
-- New `src/tests/lib/architecture/palette-classes.test.ts`: scans `.svelte` and `.ts` files under `src/lib` and `src/routes`, skipping `src/lib/components/ui/`, and fails on any Tailwind palette color utility, with or without variant prefixes and `/NN` alpha (prefixes `bg`, `text`, `border` and its side forms, `ring`, `fill`, `stroke`, `outline`, `decoration`, `from`, `via`, `to`; the 22 palette names from `slate` to `rose`, plus `mauve`, `mist`, `olive` and `taupe`, which the installed Tailwind 4 also ships; a 2 or 3 digit shade). It prints `file:line` for each hit.
+The test, new `src/tests/lib/architecture/palette-classes.test.ts`, copying the scan of `src/tests/lib/chrome-state-styles.test.ts` (`readdirSync(..., { recursive: true })`, `.svelte` and `.ts`, skip `src/lib/components/ui/`) and the self-test shape of `src/tests/lib/architecture/raw-invoke.test.ts`:
+- Scans `.svelte` and `.ts` files under `src/lib` and `src/routes`, skipping `src/lib/components/ui/`, and fails on any Tailwind palette color utility, with or without variant prefixes (`dark:`, `hover:` and the like) and `/NN` alpha. Prefixes: `bg`, `text`, `border` and its side forms (`border-x|y|t|b|l|r|s|e`), `ring`, `fill`, `stroke`, `outline`, `decoration`, `from`, `via`, `to`. Palette names: the 22 from `slate` to `rose`, plus `mauve`, `mist`, `olive` and `taupe`, which the installed Tailwind 4 ships (`node_modules/tailwindcss/theme.css`). A 2 or 3 digit shade. It prints `file:line` for each hit.
+- Comments are not stripped. If a comment holds a palette class, reword the comment.
+- A self-test of the pattern. Positives: `text-green-500`, `dark:text-green-400`, `bg-red-500/15`, `hover:bg-amber-500/20`, `border-l-red-500`, `border-t-blue-400`, `ring-violet-500`, `from-pink-400`, `fill-taupe-300`, `text-slate-950`, `bg-red-50`. Negatives: `text-type-orange`, `bg-muted`, `text-white`, `bg-black/50`, `border-l-destructive`, `text-success`, `ring-offset-2`, `bg-green`, `text-green-5`.
+
+Once the test passes and covers `src/lib/features/tasks/`, delete Issue 236's `src/tests/lib/features/tasks/tasks-palette.test.ts`, which it duplicates.
 
 **Blocked by:** 151, 236
 
 **Status:** ready-for-agent
 
-**First wave:** yes, picked by the owner on 2026-11-06.
+**Answered:** first wave, picked by the owner on 2026-11-06. The BuildInfo mapping (stable success, nightly warning, dev primary) comes from the 2026-11-06 order review note. Nothing open.
 
-**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build` (Tailwind must generate `bg-success/15`, `bg-success/20`, `bg-warning/20`, `bg-primary/20`). relay-lite's configured checks do not run `pnpm build`: the build step runs it once before its last commit and reports the result; CI on `main` runs it again after the merge.
 
-- [ ] Failing first: `palette-classes.test.ts` fails on the sites listed above before the swaps and passes after.
-- [ ] No palette class is left outside `components/ui` (the test is the check); the three BuildInfo badges use success, warning and primary with no `dark:` variants.
-- [ ] The commit body records a by-eye check of the diff viewer, the update row and the build badge in both themes.
+- [ ] Failing first: `palette-classes.test.ts` lists the eight sites above before the swaps and passes after. If it lists more, a predecessor left a palette class: stop and report the `file:line` instead of widening this Issue.
+- [ ] The self-test's positives match and its negatives do not.
+- [ ] No palette class is left outside `components/ui` (the test is the check); the three BuildInfo badges use success, warning and primary with no `dark:` variants. `src/tests/lib/core/settings/BuildInfo.test.ts` ("gives each kind of build its own color", "does not style the stable chip as muted") stays green unchanged.
+- [ ] `src/tests/lib/features/tasks/tasks-palette.test.ts` is deleted, and the new test still finds no hit under `src/lib/features/tasks/`.
+- [ ] The delivery comment says the diff viewer, the update row and the build badge were not checked by eye (relay agents cannot run the app); the owner checks them in both themes after the merge.
 
 ## Notes
 
 - **Source:** review-2026-11-04.md section 3 rows 87 and 99, color rules row ("never Tailwind palette classes"); `work/color.md` H4; `work/views.md` P1.
 - **Commit:** the class swaps are CSS-only; the architecture test is their test, so no `Test-Exempt` trailer is needed.
-- **Contrast:** `text-destructive` is about 3.4:1 on Default's card (`work/color.md` M5); lifting destructive-as-text is separate contrast work.
-- **Out of scope:** `text-white` and `bg-black/NN` (not numbered palette shades), `components/ui` internals, the hover and selection recipes.
+- **Contrast:** `text-destructive` is about 3.4:1 on Default's card (`work/color.md` M5); lifting destructive-as-text is separate contrast work. The diff viewer's text was pale `green-300` / `red-300` and becomes the full tokens; `bg-warning/20` on a light theme is darker than the old amber. Only the owner's by-eye check settles these.
+- **Out of scope:** `text-white` and `bg-black/NN` (not numbered palette shades), `components/ui` internals, the hover and selection recipes, and the `shadow-`, `divide-`, `accent-`, `caret-` and `placeholder-` palette forms (none in use at `d2304ac9e`).
+- This Issue never edits the Tasks view, which the Tasks view chain edits in series. After it lands, Tasks view Issues name `palette-classes.test.ts` among their targeted source scans, since a palette class there now fails this test.
+- `UpdateSection.svelte` is also edited by Issues 157 and 202, and `KanbanLane.svelte` by 006, 040, 049, 197 and 214: different lines, but a rebase conflict is possible.
 - **Size:** S.
 
 ## Comments
@@ -43,3 +51,4 @@
 - 2026-11-06: BuildInfo badge tokens named and line numbers updated after the order review.
 
 - 2026-11-12: the Tasks view sites are out of this Issue. Issue 236 removes `text-purple-400` from `TasksView.svelte` with its own check, and the `text-green-400` site no longer exists. The audit notes above still name them; ignore those two. This Issue waits on 236, so the new test never meets that class, and it never edits the Tasks view, which the Tasks chain edits in series.
+- 2026-11-12: deep dive applied (SUMMARY 198, `dossier-129+198+205.md`, `cross-tests-relay.md` M6, M7, `cross-state-chain.md` L8). The site list is the one at `d2304ac9e` after 151 and 236 (eight hits, by file and symbol); the stale audit line lists and `AutoMoveRuleRow` (the feature is now `auto-organize`) are gone. The by-eye criterion is now a delivery note for the owner. The test gets a pattern self-test and a comment rule, and it replaces Issue 236's `tasks-palette.test.ts`.

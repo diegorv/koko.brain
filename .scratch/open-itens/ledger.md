@@ -108,7 +108,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 071 | [.view toolbar and icon writes keep the file's YAML comments](issues/071-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
 | 072 | [Todoist sync failures are visible and read the HTTP status](issues/072-todoist-sync-errors-visible.md) | none | wontfix | | |
 | 073 | [Todoist send: full project lists, refresh, the default label and recurring due dates](issues/073-todoist-project-lists-page-and-refresh.md) | none | wontfix | | |
-| 074 | [Rust records task headings](issues/074-rust-task-headings.md) | none | todo | | |
+| 074 | [Rust records task headings](issues/074-rust-task-headings.md) | 242 | todo | | |
 | 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | todo | | |
 | 076 | [Note writes are atomic: a failed write never leaves the note empty or truncated](issues/076-note-writes-are-atomic-failed-write-never.md) | none | todo | | |
 | 077 | [Rename link rewrite skips links inside code blocks and updates self links](issues/077-rename-link-rewrite-skips-links-inside-code.md) | none | todo | | |
@@ -149,21 +149,21 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | todo | | |
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | todo | | |
 | 114 | [Task writes reach search and the QueryJS cache](issues/114-task-writes-reach-search.md) | 021 | done | issue/114-task-writes-reach-search (108a60047) | 2026-11-09 |
-| 115 | [Tasks come from the entries snapshot, and the heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 241, 074 | todo | | |
-| 116 | [Sources panel with source cards and default excludes](issues/116-sources-panel-and-excludes.md) | 115 | todo | | |
-| 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 116 | todo | | |
+| 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | todo | | |
+| 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | todo | | |
+| 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | todo | | |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | todo | | |
 | 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | todo | | |
 | 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | none | wontfix | | |
-| 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 115 | todo | | |
-| 122 | [Set due and priority from the Tasks row menu, with undo](issues/122-row-menu-edits-with-undo.md) | 241, 085 | todo | | |
-| 123 | [The view's rules survive a restart](issues/123-persist-view-state.md) | 112, 116, 030 | todo | | |
-| 124 | [Saved views and the "To list" migration](issues/124-saved-views-and-to-list-migration.md) | 123 | todo | | |
-| 125 | [Built-in smart lists and their empty states](issues/125-smart-lists-and-empty-states.md) | 111, 124 | todo | | |
-| 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | 124 | todo | | |
+| 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | todo | | |
+| 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | todo | | |
+| 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | 245, 030, 117 | todo | | |
+| 124 | [Saved Tasks views and the "To list" migration (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 123 | todo | | |
+| 125 | [Built-in smart lists and their empty states](issues/125-smart-lists-and-empty-states.md) | 111, 247 | todo | | |
+| 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | 247, 125 | todo | | |
 | 127 | [A Todoist send is never silently forgotten](issues/127-todoist-send-never-forgotten.md) | none | wontfix | | |
 | 128 | [Todoist link survives edits, and reworded tasks show "possibly sent"](issues/128-todoist-identity-and-possibly-sent.md) | none | wontfix | | |
-| 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 241 | todo | | |
+| 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 244 | todo | | |
 | 130 | [Todoist links follow renames, and unmatched entries are listed](issues/130-todoist-renames-and-unlinked.md) | none | wontfix | | |
 | 131 | [Section layout and live Filters preview](issues/131-sections-and-live-preview.md) | 011 | todo | | |
 | 132 | [Edit view opens from anywhere, hidden views included](issues/132-edit-view-from-anywhere.md) | 131 | todo | | |
@@ -277,7 +277,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | todo | | |
 | 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
 | 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | todo | | |
-| 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 242, 030 | todo | | |
+| 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234, 030 | todo | | |
+| 244 | [Tasks come from the entries snapshot, with an overlay for the view's own writes](issues/244-tasks-from-entries-snapshot-with-write-overlay.md) | 115, 241 | todo | | |
+| 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | todo | | |
+| 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | todo | | |
+| 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | todo | | |
 
 ## Log
 
@@ -295,3 +299,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-11 11:59 — ledger updated (added 233; title of 006, 006; link of 006, 006; blocked by of 006, 006, 082)
 - 2026-11-12 02:54 — ledger updated (added 234, 235, 236, 237, 238, 239, 240, 241; title of 006, 006, 108, 109, 111, 112, 113, 122; link of 006, 006; blocked by of 006, 006, 109, 110, 111, 112, 113, 115, 120, 122; wontfix 227)
 - 2026-11-12 07:38 — ledger updated (added 242, 243; title of 006, 006, 108, 110, 234, 239; link of 006, 006; blocked by of 006, 006, 109, 110, 115, 120, 129, 198, 235, 236, 237; wontfix 120, 235, 237)
+- 2026-11-12 10:08 — ledger updated (added 244, 245, 246, 247; title of 006, 006, 115, 116, 122, 123, 124; link of 006, 006; blocked by of 006, 006, 074, 115, 116, 117, 121, 122, 123, 125, 126, 129, 243)

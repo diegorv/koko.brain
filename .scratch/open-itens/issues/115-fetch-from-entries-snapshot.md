@@ -1,48 +1,42 @@
-# 115: Tasks come from the entries snapshot, and the heading rule runs in TS
+# 115: The Tasks heading rule runs in TS
 
-**Origin:** `tasks-view` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. On 2026-11-12 its Issue numbers were translated to open-itens numbers, its blockers re-pointed and its stale line numbers dropped after the Tasks view UX research and review (`.scratch/tasks-view-ux/research/`, `critique.md` D1).
+**Origin:** `tasks-view` Issue 12, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. On 2026-11-12 its Issue numbers were translated to open-itens numbers after the Tasks view UX research (`.scratch/tasks-view-ux/research/`, `critique.md` D1). The same day the deep dive (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` section 4, `dossier-115.md`, `refute-115.md`) split it in two: this Issue is the heading rule (115a), and Issue 244 (115b) moves the fetch onto the entries snapshot and calls it. Issue numbers in this text are open-itens numbers.
 
-**What to build:** Source rules need note fields (type, tags, lifecycle, frontmatter) that `get_all_tasks_v2` does not carry (`src-tauri/src/vault/task.rs`). The memoized entries snapshot already does (`src/lib/core/vault/vault-entries.service.ts`, `NoteEntry.ts`), shared with QueryJS. Move the view onto it and run the section tags (Issue 242) as a TS heading rule over Issue 074's headings. The Rust command `get_tasks_in_section_v2` stops being called here and is removed in Issue 121.
+**What to build:** Today only the Rust command `get_tasks_in_section_v2` knows which heading a task sits under, and it re-reads every task note from disk to find out. Issue 074 records the headings at index time (`NoteEntry.taskHeadings`, `Task.heading`). This Issue adds the pure TS rule that decides, from those fields, whether a task sits under one of the section tags. Nothing calls it yet: Issue 244 wires it into `buildTaskIndex`, and Issue 116 reuses it for its heading source cards. No view, service, store, Rust or e2e change here.
 
-**Fetch and rows**
-- `buildTaskIndex` (`tasks.service.ts`) reads `getVaultEntries()`. `buildTaskRows(entries, vaultPath, overlay)` in `task-query.logic.ts` fills every `TaskRow` field (Issue 111's shape plus the snapshot fields of the PRD "Task model"), with `headings` as the ancestor texts from `taskHeadings` and `Task.heading`. Keep the request-sequence guard and `resetTasks`.
-- `fromV2`, the hand-written `FileTaskGroup` and `TaskItem` types and `tasksStore.fileTaskGroups` stop being used here. Issue 121 deletes them with the Rust command, so this Issue stays one fetch move.
+- **File.** A new `src/lib/features/tasks/task-headings.logic.ts`, pure (ADR-0004): it imports only `findInlineTags` from `#lib/utils/tag-extraction.js` and types. Use the generated `TaskHeading` type (`src/lib/contracts/generated/`, or the re-export in `#lib/types/vault-v2.types.js` if Issue 074 added one); never declare a type named `TaskHeading` or `TaskHeadingV2` under `src/lib` (`ipc-mirrors.test.ts` forbids it). A file of its own, not `task-query.logic.ts`: this Issue waits only on 074, so it can land while the Tasks view chain is still editing `task-query.logic.ts` (Issues 111 to 241).
+- **Ancestor chains.** `headingChains(taskHeadings: readonly TaskHeading[]): string[][]`. `chains[i]` holds the texts of heading `i`'s ancestors, outermost first, ending with heading `i`'s own text. An ancestor is the nearest earlier heading with a strictly lower level, then its ancestor, and so on (one stack pass per note: pop while the top's level is at or above the new heading's level). A task's headings are `chains[task.heading]`, and `[]` when `heading` is absent or null (a task before the first heading). Accept `taskHeadings` and `heading` as optional or nullable, as Issue 074 ships them.
+- **Match.** `matchesHeading(headings: readonly string[], tags: readonly string[], mode: 'tag' | 'substring'): boolean`.
+  - Each tag is trimmed, and a leading `#` is added when missing, as the Rust section match does. A tag that is empty or only `#` after that is inactive. With no active tag the function returns `true`, so an empty list keeps every task.
+  - `'tag'` (the section rule): a heading matches a tag when one of its inline tags, as `findInlineTags(heading)` reads them (the indexer's rule, mirrored from `parsing.rs::extract_inline_tags`: `#` at the start of the heading or after whitespace, then letters, digits, `_`, `-` and `/`), equals the tag without its `#`, or starts with it followed by `/`, compared case-insensitively. So `#to-list` matches `Inbox #to-list`, `Inbox #To-List`, `Inbox #to-list.` and `Inbox #to-list/today` (owner, Q2), and does not match `Inbox #to-listing`, `Inbox (#to-list)` or `x#to-list`.
+  - `'substring'`: the heading contains the tag (with its `#`), case-insensitive. Issue 116's heading card is the only caller that passes it.
+  - The task is kept when any tag matches any heading of its chain (any-of, Issue 242). Issue 116 passes one card's text as `[text]`.
+- **Intended differences from today's Rust scan** (`parsing.rs::extract_tasks_from_section`, a case-sensitive substring of the heading text, where a matching heading re-anchors the section level): case is ignored; `#to-listing`, `(#to-list)` and `x#to-list` no longer match `#to-list`; under `## A #to-list` / `### B #to-list` / `### C`, the `### C` tasks are now kept, because `## A` is an ancestor of `### C` (Rust re-anchors the section to level 3 at `### B`, so `### C` ends it). Unchanged: `#to-list/today` and `#to-list.` still match, a deeper sub-heading without the tag stays inside its tagged parent, a sibling or higher heading ends the section, and a tag typed without `#` matches like one with it. Issue 244 writes these into the help page when the view starts using the rule.
 
-**Heading rule in TS (decision B6)**
-- `matchesHeading(headings, tags, 'tag')`: any of the tags (each with a leading `#` added if missing, as the Rust section match does) appears as a whole tag token, case-insensitive, in any ancestor heading. `'substring'` keeps today's contains match, case-insensitive. `tags` is `parseSectionTags(tasksStore.sectionTag)` (Issue 242); an empty list keeps every row.
-- The section tag textbox and the rule sentence (Issue 108) use it. The default stays `#to-list` (owner, 2026-11-12).
-- Update the Section filter part of `help/documentation/10-tasks-and-todoist.md` with the three behavior changes pinned below.
-
-**Freshness after the view's own writes** (PRD section of that name)
-- The memo is only as fresh as the last version bump, throttled to 2 s, up to 10 s in a burst (`src/lib/app/tauri-listeners.service.ts`, indexing rule 12). The direct refetch in `afterTaskWrite` (Issue 114) would return the same stale snapshot.
-- `setTaskStatus` (Issue 241, which `toggleTask` now calls) and `updateTask` (Issue 122, when it exists) call `vaultStore.requestPromptIndexRefresh()` (`vault.store.svelte.ts`) right before `call('toggle_task_status' | 'write_task_lines')`, as `lifecycle.service.ts` does. Not in `afterTaskWrite`: it runs after the command returns, and the Rust command emits `vault-index-updated` during the call, so a flag set afterwards is consumed by a later, unrelated event. `afterTaskWrite` records the written line's new text and status in an overlay keyed `filePath:lineNumber`. `buildTaskRows` applies the overlay. Each overlay entry stores the write's `updateResult.version`. It is dropped once `vaultStore.vaultIndexVersion` has reached that version, because the memo read at that version already includes the write (`bumpVaultIndexVersion` sets the Rust version, `vault.store.svelte.ts`).
-- The circle (Issue 021), the row status menu and its Undo (Issue 241) and row edits (Issue 122, when it exists) read `expectedText`/`expectedStatus` from the overlaid row.
-
-**Keep what the earlier Tasks view Issues delivered.** This Issue rewrites the fetch path and the service tests that Issues 108, 242, 234, 111, 113, 240 and 241 built on. Their behavior stays, and their tests stay green or move to the new path on purpose:
-- the list stays mounted during a refetch, and "Indexing tasks..." shows only before the first list (108);
-- note groups arrive in `filePath` order (234), whatever order the snapshot returns;
-- a failed latest fetch sets the store's error and leaves the rows untouched; a success clears it; a superseded request touches neither (234);
-- several section tags match as any-of (242), and the saved tags load per vault (243);
-- `buildTaskIndex` still fills `tasksStore.rows`, and `tasksStore.reset()` still clears every field the view added (rows, quick filters, scroll offset, error, current row, collapsed groups).
-
-**Blocked by:** 241, 074
-
-**Blocked by (origin):** 114 dropped (resolved 2026-11-09); 111 replaced by 241, the last Issue of the Tasks view chain, so this fetch move never runs beside it.
+**Blocked by:** 074
 
 **Status:** ready-for-agent
 
-**Answered:** PRD B6 (a) (owner, 2026-11-06).
+**Answered:** PRD B6 (a): the heading rule runs in TS over headings that Rust records (owner, 2026-11-06). Owner, 2026-11-12 (Q2): once the heading rule runs in TS, a tag also matches its nested tags: `#to-list` matches a heading tagged `#to-list/today`; `#to-listing` and `(#to-list)` do not. Owner, 2026-11-12: split approved; this Issue is 115a, the heading rule with no caller yet, blocked by 074; Issue 244 is 115b.
 
-**Gate:** frontend only: `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the view's fetch path changes (the e2e mock already serves `get_all_vault_entries_v2`, `e2e/mocks/tauri-core.ts`).
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run`. Targeted checks: the new `src/tests/lib/features/tasks/task-headings.logic.test.ts` and the architecture tests that gate a new `.logic.ts`: `src/tests/lib/architecture/{pure-logic,layer-rules,feature-cycle,ipc-mirrors}.test.ts`. No e2e: nothing the spec sees changes.
 
-- [ ] Failing test first, `tasks.service.test.ts` with real `tasksStore` and `vaultStore`, mocking only `invoke`: `get_all_vault_entries_v2` keeps returning the pre-toggle snapshot; after a toggle the row shows `done` at once, and with fake timers the index refresh runs without advancing the 2 s throttle timer (asserting `takePromptIndexRefresh()` alone would pass wherever the call sits), and a second click within the same snapshot sends `expectedStatus: 'done'`, `target: 'todo'` and is not refused.
-- [ ] The overlay entry is dropped once `vaultIndexVersion` reaches the write's version, and the row then reads from the snapshot.
-- [ ] Parity for the heading rule, `task-query.logic.test.ts`, pinning the three intended differences from today's scan, with one tag and with two: `#To-List` now matches; `#to-listing` no longer matches; under `## A #to-list` / `### B #to-list` / `### C`, the `### C` tasks are now kept. A deeper sub-heading without the tag stays included, as today.
-- [ ] `buildTaskRows` test: note fields come from the entry (type, tags, archived, frontmatter, relPath, folder).
-- [ ] The `get_tasks_in_section_v2` / `get_all_tasks_v2` cases in `tasks.service.test.ts` and the refetch check in `task-toggle-dirty-buffer.test.ts` are rewritten to the new path, on purpose.
-- [ ] No `src/lib` code calls `get_tasks_in_section_v2` any more (Issue 121 removes it).
-- [ ] `layer-rules.test.ts` stays green with no new baseline entry.
+- [ ] Failing test first, `src/tests/lib/features/tasks/task-headings.logic.test.ts` (new). Create `task-headings.logic.ts` with the two exports as stubs first, so the first run fails on assertions, not on a missing module.
+- [ ] `headingChains`: `## A` (level 2), `### B` (3), `### C` (3) give `[['A'], ['A', 'B'], ['A', 'C']]`; a skipped level (`# A`, `### B`, `## C`) gives `[['A'], ['A', 'B'], ['A', 'C']]`; a level-1 heading after them starts a new chain; `[]` gives `[]`. The input array is unchanged after the call.
+- [ ] `matchesHeading` in `'tag'` mode, each case with one tag `['#to-list']` and with two tags `['#to-list', '#work']`: `Inbox #to-list`, `Inbox #To-List`, `Inbox #to-list.` and `Inbox #to-list/today` match; `Inbox #to-listing`, `Inbox (#to-list)` and `x#to-list` do not; `to-list` typed without `#` matches like `#to-list`; `[]`, `['']` and `['#']` keep every chain, including `[]` headings; a non-empty tag list never matches `[]` headings; with two tags, a chain holding only `#work` matches.
+- [ ] Parity with today's scan, through chains built by `headingChains` (not hand-written arrays): under `## A #to-list` / `### B #to-list` / `### C`, the `### C` chain matches `#to-list`, with a test comment saying today's Rust drops it; a deeper untagged sub-heading under a tagged heading matches; a sibling `## Other` after a tagged `## A` does not.
+- [ ] Cross-check with Rust: read Issue 074's `src/tests/fixtures/task-headings-parity.fixture.json`, run `headingChains` over its expected `taskHeadings`, and look up each expected task's `heading`. The A, B and C tasks get `['A #to-list']`, `['A #to-list', 'B']` and `['C']` (use the fixture's exact heading texts), and `matchesHeading(..., ['#to-list'], 'tag')` is `true`, `true`, `false`.
+- [ ] `'substring'` mode: `#to-list` matches `Inbox #to-listing` and `Inbox #TO-LIST`, case-insensitive; `to-list` without `#` searches for `#to-list`.
+- [ ] `pure-logic.test.ts`, `layer-rules.test.ts`, `feature-cycle.test.ts` and `ipc-mirrors.test.ts` stay green with no baseline or allowlist entry.
 
 ## Notes
 
-- **Size:** M to L. The overlay must ship with the fetch move, or the row lags up to 10 s after the view's own writes.
+- **Size:** S.
+- No caller is deliberate (owner's split, 2026-11-12): Issue 244 calls both functions from `buildTaskRows`, and Issue 116 calls `matchesHeading`. Reviewers do not flag the module as unused.
+- Run order (deep dive X7): the Tasks view chain 108, 242, 110, 234, 236, 109, 111, 238, 239, 113, 112, 240, 241, then this Issue (after 074), then 244. Nothing here touches a file the chain edits, so landing earlier is harmless.
+- `findInlineTags` uses no regex lookbehind (`(?:^|\s)` instead), so the WebKit webview has no support concern.
+- The owner's real headings were not checked for parenthesized or punctuated tags; the cases above are what Q2 decided.
+
+## Comments
+
+- 2026-11-12: split by the deep dive (`SUMMARY.md` section 4 and the 115 list; `refute-115.md` M3, S1, S2; `dossier-115.md` A1, A10). This Issue keeps only the heading rule, with no caller, blocked by 074 alone; the fetch move, the overlay, the test migration and the help text moved to Issue 244. The whole-tag rule is now defined by `findInlineTags`, with the nested-tag match of Q2. The ancestor chain helper is named, it accepts 074's optional fields, `matchesHeading` lives in its own logic file, and the tests cross-check 074's parity fixture. Issue 116 passes `[text]`.

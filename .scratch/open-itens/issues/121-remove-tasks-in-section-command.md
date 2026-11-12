@@ -1,34 +1,52 @@
 # 121: Remove `get_tasks_in_section_v2` and its disk re-read
 
-**Origin:** `tasks-view` Issue 27, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+**Origin:** `tasks-view` Issue 27, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/tasks-view/`. Reviewed by the 2026-11-12 deep dive (`.scratch/tasks-view-ux/research/deep-dive/dossier-121.md`, `cross-rust-ipc.md` F1 to F6, F12, F13, `cross-state-chain.md` M11, `SUMMARY.md`). Issue numbers in this text are open-itens numbers.
 
-**What to build:** After Issue 12 the Tasks view runs the heading rule in TS over the entries snapshot, and nothing in `src/lib` calls `get_tasks_in_section_v2`. The command still re-reads every task note from disk (`src-tauri/src/commands/vault.rs:736-753`) and keeps a second, case-sensitive heading rule alive in Rust (`parsing.rs:1700-1750`). Remove it (PRD decision B6 (a), "IPC changes").
+**What to build:** After Issue 244 the Tasks view runs Issue 115's heading rule in TS over the entries snapshot, and nothing in `src/lib` calls `get_tasks_in_section_v2`. The command still re-reads every task note from disk and keeps a second, case-sensitive heading rule alive in Rust. Remove it and everything that exists only for it (PRD decision B6 (a), "IPC changes"). Find the sites by symbol and grep, not by line number: Issues 242, 074 and 244 move them.
 
-- Before removing anything, trace every caller (CLAUDE.md "Removing or Refactoring Code") and confirm Issue 12 left none in `src/lib`.
-- Remove `get_tasks_in_section_v2` (`commands/vault.rs:737-753`, with its doc comment above) and the helpers only it uses (`extract_tasks_from_section`, `section_task_candidates`, `tasks_in_section`; trace each), its `src/lib/contracts/commands.ts` entries (`:82`, `:227`) and its `invoke_handler` registration (`src-tauri/src/lib.rs:347`).
-- Remove the e2e mock handler (`e2e/mocks/tauri-core.ts:152-154` and its table entry at `:450`, `e2e/mocks/vault-index.ts:478-484`).
-- The Rust tests that pin the removed helpers go with them, on purpose: `parsing.rs:3040-3082` (`extract_tasks_from_section_*`), `src-tauri/tests/commands/vault_test.rs:1058` (`tasks_in_section_reads_only_notes_with_tasks`) and its import at `:7`.
-- Delete what Issue 115 left unused on the frontend: `fromV2`, the hand-written `FileTaskGroup` type in `tasks.types.ts` (`TaskItem` stays: Issue 111's `TaskRow` extends it), and `tasksStore.fileTaskGroups` with its setter and tests. Trace every caller first. Removing the hand-written `FileTaskGroup` also removes its entry from the `ALLOWLIST` in `src/tests/lib/architecture/ipc-mirrors.test.ts`.
-- The comment at `src/lib/app/lifecycle/app-lifecycle.service.ts:398` names the removed command; correct it.
-- Update `docs/agents/indexing-watcher-rules.md` rule 1, which lists the command.
+- **Trace first** (CLAUDE.md "Removing or Refactoring Code"). On the branch, save the output of
+  `grep -rnE "get_tasks_in_section|tasks_in_section|section_task_candidates|SectionTaskCandidate|extract_tasks_from_section|getTasksInSection" src src-tauri/src src-tauri/tests e2e docs/agents`
+  and of `grep -rnE "FileTaskGroup\b|fileTaskGroups|setFileTaskGroups|fromV2" src/lib/features/tasks src/tests/lib/features/tasks src/tests/lib/architecture`. Confirm that no `src/lib` code calls the command and nothing outside the store reads `fileTaskGroups`. If Issue 244 left a caller or reader, stop and report it; do not delete under it.
+- **Rust, `src-tauri/src/commands/vault.rs`:** `get_tasks_in_section_v2` with its doc comment, and the helpers only it uses: `tasks_in_section`, `section_task_candidates` and `SectionTaskCandidate`. Drop the imports they alone used (`extract_tasks_from_section(s)`, and `display_name` if `tasks_in_section` is still its only user; trace it, Issue 074 may have added one). `FileTaskGroup` and `get_all_tasks_v2` stay: the event calendar and the Todoist scan use them.
+- **Rust, `src-tauri/src/lib.rs`:** the command's `generate_handler!` entry.
+- **Rust, `src-tauri/src/vault/parsing.rs`:** `extract_tasks_from_section` and the plural `extract_tasks_from_sections` that Issue 242 added, with their inline tests (the `extract_tasks_from_section*` block). The shared helpers stay: `HEADING_RE`, `detect_code_fence`, `parse_task_line` and `extract_tasks` (`task_lines.rs`, indexing and Issue 074's heading pass use them). Reword the comment that lists the task commands (drop the removed name) and the `HEADING_RE` doc that names `extract_tasks_from_section`.
+- **Rust tests, `src-tauri/tests/commands/vault_test.rs`:** the `index_note` helper and every test that calls `tasks_in_section`, `section_task_candidates` or `extract_tasks_from_section(s)` (four at HEAD, `tasks_in_section_reads_only_notes_with_tasks` among them, plus the two-tag and nested tests Issue 242 added), and the imports only they use (`section_task_candidates`, `tasks_in_section`, `extract_tasks_from_section(s)`, `FileTaskGroup`; `TaskStatus` stays). Reword the module doc of `src-tauri/tests/vault_task_test.rs`, which names `extract_tasks_from_section`. To find what Issue 242 added, read `git show` of its squash commit.
+- **Rust DTO doc.** `src-tauri/src/vault/task.rs` says `FileTaskGroup` "Mirrors `tasks.types.ts::FileTaskGroup`", and the module doc says the types mirror `tasks.types.ts`. Once the TS type is gone, reword the `FileTaskGroup` doc (for example "One file's worth of tasks, as returned by `VaultIndex::lookup_all_tasks`.") and the module doc line. It is a doc comment on a `#[ts(export)]` type, so `cargo test` regenerates `src/lib/contracts/generated/FileTaskGroup.ts`: commit it (CI fails on stale bindings). `git status` shows exactly that file changed under `generated/`.
+- **TS contract, `src/lib/contracts/commands.ts`:** the `CommandMap` entry (with its doc line) and the `COMMAND_ARGS` entry. The `FileTaskGroup` import stays (`get_all_tasks_v2`).
+- **`src/tests/lib/contracts/ipc.test.ts`:** the `// @ts-expect-error` case over `call('get_tasks_in_section_v2', {})` would still error once the command is gone (unknown command), so it would stay green while testing nothing. Replace it with another command that has required args, `call('toggle_task_status', {})`, with the comment `required args are missing`.
+- **E2E mock:** `handleGetTasksInSectionV2` and its `HANDLERS` entry in `e2e/mocks/tauri-core.ts`, and `getTasksInSection` in `e2e/mocks/vault-index.ts` with the heading-rule port Issue 242 put behind it. `HANDLERS` is typed over `CommandMap`, so a stale key fails `pnpm check`. Delete `src/tests/e2e/vault-index-tasks.test.ts` (Issue 242), which tests only that function. Keep Issue 242's two-tag test in `e2e/specs/tasks-view.spec.ts`: it tests the view, which now runs the TS rule.
+- **Frontend leftovers from Issue 244:** `tasks.service.ts::fromV2` (not the unrelated `collection.service.ts::fromV2`) and its imports; the hand-written `FileTaskGroup` interface in `tasks.types.ts`; `tasksStore.fileTaskGroups` with its getter, `setFileTaskGroups` and its `reset()` line, and their cases in `tasks.store.test.ts`. `TaskItem` stays (`TaskRow` extends it). The generated `FileTaskGroup`/`FileTaskGroupV2` stays (event calendar, e2e mocks, Todoist fixtures). If `tasks.logic.ts` or any test still types something with the hand-written `FileTaskGroup`, stop and trace it.
+- **`src/tests/lib/architecture/ipc-mirrors.test.ts`:** removing the hand-written `FileTaskGroup` empties `ALLOWLIST`. Declare it `const ALLOWLIST: string[] = []` (an untyped empty array fails `strict` at `ALLOWLIST.includes(...)`), let `findMirrors` take the allowlist as a parameter defaulting to it, and rewrite `honours the allowlist by file and name` to pass a synthetic allowlist with a neutral path (for example `src/lib/features/example/example.types.ts -> FileTaskGroup`), so the mechanism stays tested.
+- **Docs:** `docs/agents/indexing-watcher-rules.md` rule 1, which lists the command. Issue 244 already rewrote the `app-lifecycle.service.ts` comment; the closing grep confirms it.
 
-**Blocked by:** 115
+**Blocked by:** 245
 
 **Status:** ready-for-agent
 
-**Answered:** PRD B6 (a) (owner, 2026-11-06).
+**Answered:** PRD B6 (a): the heading rule moves to TS and the Rust section command goes (owner, 2026-11-06). Owner, 2026-11-12: run order X7; this Issue is blocked by 244.
 
-**Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the e2e mock changes. Run cargo from the checkout or worktree root.
+**Gate:** Both. Rust: `cargo test --manifest-path src-tauri/Cargo.toml`, then `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings` (the CI command; it catches the imports the removal leaves unused), run from the checkout or worktree root. Frontend: `pnpm check` + `pnpm vitest run`. E2E: `bash scripts/e2e.sh e2e/specs/tasks-view.spec.ts` because the e2e mock changes. relay-lite's configured checks do not run e2e: the build step runs this spec before its last commit and reports its pass count, and the reviewer runs it again as a probe and cites the result. Do not run the whole e2e suite. Targeted checks also include `src/tests/lib/contracts/` (`ipc-parity.test.ts`, `ipc.test.ts`) and `src/tests/lib/architecture/` (`ipc-mirrors`, `layer-rules`, `feature-cycle`, `pure-logic`).
 
-- [ ] Failing check first: `grep -rn get_tasks_in_section src src-tauri/src e2e docs/agents` lists the sites above before the change and nothing after it.
-- [ ] `cargo test` passes with the removed tests gone and no other test changed.
-- [ ] `ipc-mirrors.test.ts` and the typed command map (`contracts/commands.ts`) still pass `pnpm check`.
-- [ ] The e2e Tasks spec still passes.
+- [ ] Failing check first: delete the two `commands.ts` entries before the Rust registration and run `pnpm vitest run src/tests/lib/contracts/ipc-parity.test.ts`; it fails while Rust still registers the command, and passes once `lib.rs` is edited. Record both runs in the commit body. Removal only: no new behavior test is meaningful.
+- [ ] After the change, `grep -rnE "get_tasks_in_section|tasks_in_section|section_task_candidates|SectionTaskCandidate|extract_tasks_from_section|getTasksInSection|fileTaskGroups|setFileTaskGroups" src src-tauri/src src-tauri/tests e2e docs` prints nothing (explicit directories only: never pass `src-tauri` whole, it holds `target`). `grep -rn "tasks.types.ts::FileTaskGroup" src src-tauri/src` prints nothing. `fromV2` still matches `collection.service.ts` and `kbapi-firewall.test.ts` only.
+- [ ] `cargo test` and clippy pass. The only Rust tests removed are the ones that call the removed functions; no test outside the list above changed.
+- [ ] `ipc-mirrors.test.ts` passes with the synthetic allowlist test, `ipc.test.ts` has the `toggle_task_status` case, and `pnpm check` passes with the typed command map and the e2e `HANDLERS`.
+- [ ] The regenerated `src/lib/contracts/generated/FileTaskGroup.ts` is committed.
+- [ ] The e2e Tasks spec passes.
 
 ## Notes
 
-- **Size:** S. Split out of Issue 12 so the fetch move and the Rust removal each fit one run.
+- **Size:** S to M (about 15 files, almost all deletions, plus the `ipc-mirrors` test rewrite).
+- `feature/ios-poc` (not merged into main) dispatches `get_tasks_in_section_v2` (`remote/dispatch.rs`, `remote/policy.rs`, `tests/remote_ws_test.rs`, `src/tests/lib/app/remote/fake-host.ts` on that branch). Name it in the delivery comment: that branch must follow the removal when it rebases. Do not edit it from main.
+- `parseSectionTags` (Issue 242) stays: Issue 244's `buildTaskIndex` uses it.
+- Never run beside Issue 116 or 129 either: all three are unblocked by 244 and edit `tasks.service.ts`, `tasks.store.svelte.ts` and `tasks.store.test.ts`. Launch them one at a time.
+- Never run beside Issue 074 or 242: all three edit the section scan in `parsing.rs` and `e2e/mocks/vault-index.ts`. With the blocker on 244 both have landed by then; the rule matters only if the order changes.
+- The diff changes app code, so the main session's post-delivery review (CLAUDE.md) applies after the relay-lite delivery.
 
 ## Comments
 
-- 2026-11-12: the frontend cleanup (`fromV2`, `FileTaskGroup`, `fileTaskGroups`) moved here from Issue 115, to keep 115 one fetch move. Bare Issue numbers in this text use the tasks-view numbering: Issue 12 is 115.
+- 2026-11-12: the frontend cleanup (`fromV2`, `FileTaskGroup`, `fileTaskGroups`) moved here from Issue 115, to keep 115 one fetch move.
+- 2026-11-12: deep dive revision (`SUMMARY.md` 121 list, X1, X2, X7; `cross-rust-ipc.md` F1 to F6, F12, F13; `cross-state-chain.md` M11). Blocked by 244, the fetch half of the split Issue 115. Sites are named by symbol and a wide grep instead of stale line numbers. The Rust removal now covers the `index_note` helper and all four section tests, what Issue 242 added (plural scan, its tests, the mock port and its vitest test) and the imports. The `ipc.test.ts` case is replaced, `ALLOWLIST` is typed and its self-test rewritten, the `task.rs` doc is reworded with its regenerated binding committed. Added clippy and the targeted e2e spec to the gate, the parity red step, "no test outside the list changed", and the ios-poc note. The lifecycle comment moved to Issue 244, which makes it false.
+- 2026-11-12: consistency review: added the note that 121, 116 and 129 all wait only on 244 (116 also on 243) and share the tasks service and store, so they launch one at a time.
+
+- 2026-11-12: main session, after the consistency review: blocked by 245 instead of 244, so 116, 245 and 121, which share the tasks service, store and store test, run one after the other. 245 comes after 244.

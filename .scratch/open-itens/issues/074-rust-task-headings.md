@@ -15,20 +15,29 @@
 - The e2e mock parser (`e2e/mocks/vault-index.ts:150-182`) produces the same fields.
 - `NoteEntryV2` reaches QueryJS only through `buildKBPage`, which maps fields by hand (`queryjs.logic.ts:125-130`), so `KBPageV1` and the firewall snapshot do not change.
 
-**Blocked by:** none
+**Blocked by:** 242
 
 **Status:** ready-for-agent
 
 **Answered:** PRD B6 (a): Rust records headings; the one-time index rebuild is accepted (owner, 2026-11-06).
 
-**Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the e2e mock changes. Run cargo from the checkout or worktree root.
+**Gate:** both: `cargo test --manifest-path src-tauri/Cargo.toml`, then `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings` (the CI command; relay-lite does not run it), + `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh` because the e2e mock changes. Run cargo from the checkout or worktree root.
 
 - [ ] Failing Rust test first: a note with frontmatter holding `# comment`, `## A #to-list`, a task, `### B`, a task, a fenced block holding `# not a heading` and `- [ ] fenced`, then `## C` and a task. `task_headings` lists A, B, C with levels and lines; the tasks point at A, B and C; the frontmatter and fence lines produce nothing.
 - [ ] A note without tasks has empty `task_headings`. A task before the first heading has `heading: None`.
 - [ ] A cache written at schema 5 is rejected and rebuilt, following `cached_inner_discards_a_schema_3_snapshot_and_reparses` in `src-tauri/tests/commands/vault_test.rs:972-990` (`index_cache.rs` itself only tests that a mismatched snapshot still deserializes, `:165-177`; the caller check is `commands/vault.rs:1350`). That test's `assert_eq!(INDEX_SCHEMA_VERSION, 5)` (`:974`) and `assert_eq!(snap.schema_version, 5)` (`:985`) change on purpose to the new value.
-- [ ] Parity: a fixture `src/tests/fixtures/task-headings-parity.fixture.json` (note text plus expected JSON, the convention of `natural-sort-parity.fixture.json`, loaded in Rust with `include_str!` as `src-tauri/tests/vault_natural_sort_parity_test.rs:11` does) is read by the Rust test and by a new `src/tests/e2e-mocks/task-parity.test.ts` that runs the e2e mock parser over it, so the e2e mock cannot drift. `parseTasks` is module-private in `e2e/mocks/vault-index.ts:150`; export it, or drive it through the exported `vaultIndex.update` (`:566`). No test in `src/tests` imports `e2e/mocks` today, so check that the module loads under vitest (it imports `./virtual-fs`).
+- [ ] Parity: a fixture `src/tests/fixtures/task-headings-parity.fixture.json` (note text plus expected JSON, the convention of `natural-sort-parity.fixture.json`, loaded in Rust with `include_str!` as `src-tauri/tests/vault_natural_sort_parity_test.rs:11` does) is read by the Rust test and by a new `src/tests/e2e/task-headings-parity.test.ts` that runs the e2e mock parser over it, so the e2e mock cannot drift. `parseTasks` is module-private in `e2e/mocks/vault-index.ts:150`; export it, or drive it through the exported `vaultIndex.update` (`:566`). `src/tests/e2e/tauri-fs.test.ts` already imports `e2e/mocks` under vitest; import the mock the same way (Issues 242 and 122 put their mock tests in the same folder).
 - [ ] The regenerated bindings under `src/lib/contracts/generated/` are committed, and `kbapi-firewall.test.ts` passes unchanged.
 
 ## Notes
 
 - **Size:** M.
+- Deep dive, 2026-11-12 (`.scratch/tasks-view-ux/research/deep-dive/SUMMARY.md` 074 list; `cross-tests-relay.md` H3; `cross-rust-ipc.md` F1, F15):
+  - Make the new fields optional on the wire: `#[serde(default)]` plus `#[ts(optional)]` on `NoteEntry.task_headings` and `Task.heading`, as `TaskMetadata` does in `task.rs`. This settles the "Pick one" bullet above. The Tasks view Issues keep adding `Task` and `NoteEntry` literals (the shared fixture `src/tests/fixtures/tasks.fixture.ts` from Issue 110, `entryV2` in `src/tests/fixtures/vault-entries.fixture.ts`) while this Issue may be in flight, and a chain branch that rebases cleanly over required fields would merge without a type check. Issue 115 reads both fields as optional.
+  - Never run beside Issue 242 or 121: all three edit `parsing.rs` near `extract_tasks` and the section scan, and `e2e/mocks/vault-index.ts`. Launch it between two chain Issues, after 242 has landed.
+  - Add clippy to the Rust gate: after `cargo test`, run `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings` (the CI command) from the checkout or worktree root.
+
+## Comments
+
+- 2026-11-12: the deep dive added three Notes: the new wire fields are optional (`#[serde(default)]` plus `#[ts(optional)]`), the Issue never runs beside 242 or 121, and clippy joins the Rust gate. Issue 115 (the TS heading rule) is now blocked by this Issue alone.
+- 2026-11-12: consistency review: Blocked by 242 (was none), so the "never beside 242" rule holds when Issues launch in parallel (121 already waits on this Issue through 115 and 244); clippy moved into the Gate line; the parity test lives in `src/tests/e2e/` next to `tauri-fs.test.ts`, which already imports `e2e/mocks`.

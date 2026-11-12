@@ -16,7 +16,7 @@
    - "Hide this folder" adds the folder to `query.exclude.folders`; "Hide this note" adds its `relPath` to `query.exclude.notes`. Nothing is added twice.
    - The rule sentence (`describeTaskQuery`, Issue 13) updates at once.
 
-**Blocked by:** 112, 116
+**Blocked by:** 112, 245
 
 **Status:** ready-for-agent
 
@@ -32,3 +32,7 @@
 
 - **Size:** M.
 - The heading parts of the panel follow Issue 13's status; this Issue does not touch them.
+
+## Comments
+
+- 2026-11-12: Blocked by 116 became 245: the deep dive split Issue 116, and the Sources panel this Issue adds the property clause to is now Issue 245 (116b).
