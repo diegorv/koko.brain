@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 074 | [Rust records task headings](issues/074-rust-task-headings.md) | 242 | todo | | |
+| 074 | [Rust records task headings](issues/074-rust-task-headings.md) | 242 | in-progress | | |
 | 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | todo | | |
 | 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | done | issue/108-mounted-list-and-rule-sentence (1a9e9eeaf) | 2026-11-12 |
 | 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | todo | | |
@@ -57,7 +57,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | 247, 125 | todo | | |
 | 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 244 | todo | | |
 | 227 | [The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date](issues/227-tasks-help-says-default-view-lists-only.md) | none | wontfix | | |
-| 234 | [The Tasks list keeps your place, and a failed refresh says so](issues/234-tasks-groups-keep-their-place.md) | 110 | todo | | |
+| 234 | [The Tasks list keeps your place, and a failed refresh says so](issues/234-tasks-groups-keep-their-place.md) | 110 | in-progress | | |
 | 235 | [A failed Tasks refresh says so](issues/235-tasks-failed-refresh-says-so.md) | none | wontfix | | |
 | 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 234 | todo | | |
 | 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | none | wontfix | | |
@@ -81,3 +81,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 10:47 — 242 — deliver — round 1 APPROVED by claude (1 finding fixed: e2e asserts the untagged task stays hidden; 1 nit), deliver re-review APPROVED by claude; full suite 615 files / 15625 tests, cargo 1437 passed, e2e tasks-view.spec.ts 9 passed; squash merged and pushed — 3583a1057
 - 2026-11-12 10:47 — 110 — start — launched by /relay-lite:run — ed777b996
 - 2026-11-12 11:02 — 110 — deliver — round 1 APPROVED by claude, one nit deferred to 111 with reason, no fix round; full suite 615 files / 15660 tests passed; reviewer e2e (tasks-view, event-calendar-tasks) 11 passed; squash merged and pushed — e420d69e2
+- 2026-11-12 11:02 — 234 — start — launched by /relay-lite:run — 7d6098b1a
+- 2026-11-12 11:02 — 074 — start — launched by /relay-lite:run, beside 234 (side track) — 7d6098b1a
