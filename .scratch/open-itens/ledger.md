@@ -251,7 +251,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 251 | [The code-block language switch keeps the rest of the fence info string](issues/251-code-block-language-switch-keeps-info-string.md) | none | todo | | |
 | 252 | [TSV paste leaves code, frontmatter and tab-indented lines alone](issues/252-tsv-paste-leaves-code-and-indented-lines.md) | none | todo | | |
 | 253 | [Canvas image nodes added in the app store vault-relative paths, and image nodes resolve both absolute and vault-relative ones](issues/253-canvas-image-nodes-store-vault-relative-paths.md) | 038 | todo | | |
-| 254 | [Two flaky tests pass reliably: the tab-strip scroll e2e and the Auto Organize count test](issues/254-two-flaky-tests-pass-reliably.md) | none | todo | | |
+| 254 | [Two flaky tests pass reliably: the tab-strip scroll e2e and the Auto Organize count test](issues/254-two-flaky-tests-pass-reliably.md) | none | in-progress | | |
 
 ## Log
 
@@ -286,3 +286,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:02 — 062 — start — retry by /relay-lite:run: apply review-2's regex fix (drop the bare backslash alternative, add a timing test) — 85c8ac320
 - 2026-11-12 19:03 — 004 — start — launched by /relay-lite:run (bug queue rank 3, close case only) — 7886ac046
 - 2026-11-12 19:08 — ledger updated (added 254; title of 006, 006; link of 006, 006; blocked by of 006, 006)
+- 2026-11-12 19:09 — 254 — start — launched by /relay-lite:run (owner asked for it as a 4th workflow) — 2cfe4f710
