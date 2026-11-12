@@ -444,3 +444,12 @@ export interface AppSettings {
 	/** Whether the inbox count is shown as a red badge on the macOS dock icon */
 	dockBadgeInboxCount: boolean;
 }
+
+/**
+ * How `loadSettings` ended for a vault, which decides whether the session may write settings.json.
+ * - `loaded`: the file was read and parsed; its settings are in the store.
+ * - `defaults`: the defaults are in the store, and the file was missing, blank, or backed up before being reset.
+ * - `file-protected`: the defaults are in the store, but the file could not be read, or did not parse and could
+ *   not be backed up. Its bytes are not safe anywhere else, so nothing may write it for the rest of the session.
+ */
+export type SettingsLoadOutcome = 'loaded' | 'defaults' | 'file-protected';

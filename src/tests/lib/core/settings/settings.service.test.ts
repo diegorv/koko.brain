@@ -409,8 +409,10 @@ describe('loadSettings', () => {
 		it('runs on the defaults, writes them back once and names the backup in a toast', async () => {
 			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
 
-			await loadSettings('/vault');
+			const outcome = await loadSettings('/vault');
 
+			// The bytes are safe in the backup, so later changes may be written.
+			expect(outcome).toBe('defaults');
 			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 			const writes = settingsWrites();
 			expect(writes).toHaveLength(1);
@@ -447,14 +449,16 @@ describe('loadSettings', () => {
 			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
 			vi.mocked(copyFile).mockRejectedValue(new Error('copy failed'));
 
-			await loadSettings('/vault');
+			const outcome = await loadSettings('/vault');
 
+			expect(outcome).toBe('file-protected');
 			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 			expect(writeTextFile).not.toHaveBeenCalled();
 			expect(toast.error).toHaveBeenCalledTimes(1);
 			const message = vi.mocked(toast.error).mock.calls[0][0] as string;
 			expect(message).toMatch(/could not back up/i);
 			expect(message).toMatch(/left unchanged/i);
+			expect(message).toMatch(/changes made until the vault is reopened will not be saved/i);
 			expect(vi.mocked(toast.error).mock.calls[0][1]).toEqual({ duration: Infinity, closeButton: true });
 			expect(applyActiveTheme).toHaveBeenCalled();
 		});
@@ -477,19 +481,24 @@ describe('loadSettings', () => {
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
 
-			await loadSettings('/vault');
+			const outcome = await loadSettings('/vault');
 
+			expect(outcome).toBe('file-protected');
 			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 			expect(writeTextFile).not.toHaveBeenCalled();
 			expect(copyFile).not.toHaveBeenCalled();
 			expect(applyActiveTheme).toHaveBeenCalled();
 			expect(toast.error).toHaveBeenCalledTimes(1);
+			const message = vi.mocked(toast.error).mock.calls[0][0] as string;
+			expect(message).toMatch(/could not read/i);
+			expect(message).toMatch(/left unchanged/i);
+			expect(message).toMatch(/changes made until the vault is reopened will not be saved/i);
 		});
 
 		it('takes the same branch when exists() rejects', async () => {
 			vi.mocked(exists).mockRejectedValue(new Error('exists error'));
 
-			await loadSettings('/vault');
+			await expect(loadSettings('/vault')).resolves.toBe('file-protected');
 
 			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 			expect(readTextFile).not.toHaveBeenCalled();
@@ -506,7 +515,8 @@ describe('loadSettings', () => {
 		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-		await loadSettings('/vault');
+		// The file was read, so the session may keep trying to write it.
+		await expect(loadSettings('/vault')).resolves.toBe('loaded');
 
 		expect(settingsStore.settings.history.retentionDays).toBe(365);
 		// The one write attempt carried the parsed settings, not the defaults.
@@ -522,10 +532,10 @@ describe('loadSettings', () => {
 		vi.mocked(mkdir).mockResolvedValue(undefined);
 
 		vi.mocked(exists).mockResolvedValue(false);
-		await loadSettings('/vault');
+		await expect(loadSettings('/vault')).resolves.toBe('defaults');
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue('  \n ');
-		await loadSettings('/vault');
+		await expect(loadSettings('/vault')).resolves.toBe('defaults');
 
 		expect(writeTextFile).toHaveBeenCalledTimes(2);
 		expect(copyFile).not.toHaveBeenCalled();
@@ -597,7 +607,7 @@ describe('loadSettings', () => {
 			}),
 		);
 
-		await expect(loadSettings('/vault')).resolves.toBeUndefined();
+		await expect(loadSettings('/vault')).resolves.toBe('loaded');
 
 		const layout = settingsStore.settings.layout;
 		expect(layout.railItem).toBe('files');

@@ -99,7 +99,7 @@ vi.mock('#lib/features/search/search.service.js', () => ({
 }));
 
 vi.mock('#lib/core/settings/settings.service.js', () => ({
-	loadSettings: vi.fn(() => Promise.resolve()),
+	loadSettings: vi.fn(() => Promise.resolve('loaded')),
 	resetSettings: vi.fn(),
 }));
 
@@ -329,7 +329,7 @@ describe('initializeVault', () => {
 	it('starts settings persistence for the opened vault, after its settings are loaded', async () => {
 		await initializeVault('/vault');
 
-		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault');
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault', 'loaded');
 		// Starting before the load would serialize DEFAULT_SETTINGS over the
 		// vault's own settings.json on the effect's first run.
 		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0])
@@ -466,6 +466,42 @@ describe('initializeVault', () => {
 
 		expect(autoOpenDailyNote).not.toHaveBeenCalled();
 		expect(maybeAutoCheckForUpdates).not.toHaveBeenCalled();
+	});
+
+	it('hands a protected load outcome to settings persistence', async () => {
+		vi.mocked(loadSettings).mockResolvedValueOnce('file-protected');
+
+		await initializeVault('/vault');
+
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault', 'file-protected');
+	});
+
+	describe('File History cleanup', () => {
+		it('purges snapshots at the loaded retention when settings.json loaded', async () => {
+			settingsStore.updateHistory({ retentionDays: 365 });
+
+			await initializeVault('/vault');
+
+			expect(invoke).toHaveBeenCalledWith('cleanup_history', { retentionDays: 365 });
+		});
+
+		it('still purges when the defaults replaced a missing or backed-up file', async () => {
+			vi.mocked(loadSettings).mockResolvedValueOnce('defaults');
+
+			await initializeVault('/vault');
+
+			expect(invoke).toHaveBeenCalledWith('cleanup_history', { retentionDays: settingsStore.history.retentionDays });
+		});
+
+		it('skips the purge when settings.json could not be read or backed up', async () => {
+			// The store holds the default retention, not the one in the unread file.
+			vi.mocked(loadSettings).mockResolvedValueOnce('file-protected');
+
+			await initializeVault('/vault');
+
+			expect(invoke).toHaveBeenCalledWith('open_vault_db', { vaultPath: '/vault' });
+			expect(invoke).not.toHaveBeenCalledWith('cleanup_history', expect.anything());
+		});
 	});
 
 	it('opens the shared database after settings load', async () => {
@@ -1339,7 +1375,7 @@ describe('initializeVault — semantic search startup', () => {
 		expect(settingsStore.search.semanticSearchEnabled).toBe(false);
 		// No explicit save here any more: the persistence owner started for this
 		// vault picks the mutation up, so the flag reaches /vault/settings.json.
-		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault');
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault', 'loaded');
 		expect(stopSemanticProgressListener).toHaveBeenCalled();
 		expect(toast.warning).toHaveBeenCalledWith(
 			'Semantic search model not found. Re-enable in Settings to download.'
@@ -1408,7 +1444,7 @@ describe('state transitions: teardown → reinitialize', () => {
 	it('discards stale initialization when vault is switched rapidly', async () => {
 		// Simulate slow loadSettings for vault A
 		let resolveA: () => void;
-		const slowSettingsA = new Promise<void>((r) => { resolveA = r; });
+		const slowSettingsA = new Promise<'loaded'>((r) => { resolveA = () => r('loaded'); });
 		vi.mocked(loadSettings).mockReturnValueOnce(slowSettingsA);
 
 		const initA = initializeVault('/vault-a');

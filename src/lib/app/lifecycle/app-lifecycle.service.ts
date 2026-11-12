@@ -207,7 +207,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// ── Step 1: Settings ─────────────────────────────────────────────
 	// Settings MUST load first — other operations depend on it
 	const t1 = perfStart();
-	await loadSettings(vaultPath);
+	const settingsOutcome = await loadSettings(vaultPath);
 	perfEnd('LIFECYCLE', 'Step 1: loadSettings', t1);
 	if (initVersion !== version) return;
 	try {
@@ -219,7 +219,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// Persisting is a property of the settings module from here on: every
 	// mutation of the store is written back to THIS vault. Started after the
 	// load so the effect's first run cannot overwrite the file it just read.
-	startSettingsPersistence(vaultPath);
+	// A 'file-protected' outcome (settings.json unread, or not backed up) makes
+	// the session write nothing, so the file keeps its bytes.
+	startSettingsPersistence(vaultPath, settingsOutcome);
 
 	if (settingsStore.debugModeTauri) {
 		debug('LIFECYCLE', 'Tauri debug mode enabled — activating');
@@ -284,11 +286,18 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		debug('LIFECYCLE', 'File history disabled — skipping hook registration');
 	}
 
-	const retentionDays = settingsStore.history.retentionDays;
-	debug('LIFECYCLE', `Cleaning up old snapshots (retention: ${retentionDays} days)...`);
-	call('cleanup_history', { retentionDays }).catch((err) => {
-		error('HISTORY', 'Cleanup failed:', err);
-	});
+	// The retention of a 'file-protected' load is the default, not the one in
+	// the unread settings.json, so purging with it could delete snapshots the
+	// user chose to keep.
+	if (settingsOutcome === 'file-protected') {
+		debug('LIFECYCLE', 'settings.json was not loaded, skipping snapshot cleanup');
+	} else {
+		const retentionDays = settingsStore.history.retentionDays;
+		debug('LIFECYCLE', `Cleaning up old snapshots (retention: ${retentionDays} days)...`);
+		call('cleanup_history', { retentionDays }).catch((err) => {
+			error('HISTORY', 'Cleanup failed:', err);
+		});
+	}
 
 	// ── Step 3: Load user data (parallel) ────────────────────────────
 	// The bookmarks migration runs before the step 4 scan so the scan indexes

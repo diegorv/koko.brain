@@ -1,6 +1,6 @@
 import { toast } from 'svelte-sonner';
 import { readTextFile, writeTextFile, mkdir, exists, copyFile } from '@tauri-apps/plugin-fs';
-import type { AppSettings } from './settings.types';
+import type { AppSettings, SettingsLoadOutcome } from './settings.types';
 import { settingsStore, DEFAULT_SETTINGS } from './settings.store.svelte';
 import { loadAppearance } from './theme-package.logic';
 import { mergeLayout, migrateTypeScale, normalizeSettings } from './settings.logic';
@@ -27,13 +27,16 @@ function getDirPath(vaultPath: string): string {
  * Reads settings from disk and merges them with defaults, then persists the
  * result so new default keys are written to disk.
  *
- * A missing or blank file loads the defaults. An unreadable file (`exists` or
- * `readTextFile` throws) loads the defaults in memory only and is never written
- * here. A file that does not parse to a JSON object is copied byte for byte to
- * `settings.broken-<YYYYMMDD-HHmmss>.json` before the defaults overwrite it; if
- * that copy fails, `settings.json` is left as it is. The last two raise a toast.
+ * A missing or blank file loads the defaults and resolves `'defaults'`. An
+ * unreadable file (`exists` or `readTextFile` throws) loads the defaults in
+ * memory only, is never written here and resolves `'file-protected'`. A file
+ * that does not parse to a JSON object is copied byte for byte to
+ * `settings.broken-<YYYYMMDD-HHmmss>.json` before the defaults overwrite it
+ * (`'defaults'`); if that copy fails, `settings.json` is left as it is
+ * (`'file-protected'`). The last two raise a toast. The caller hands the outcome
+ * to `startSettingsPersistence`, which never writes a `'file-protected'` file.
  */
-export async function loadSettings(vaultPath: string): Promise<void> {
+export async function loadSettings(vaultPath: string): Promise<SettingsLoadOutcome> {
 	debug('SETTINGS', `loadSettings() called at ${Date.now()}`);
 	const filePath = getSettingsPath(vaultPath);
 	let content: string | null;
@@ -42,9 +45,9 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 	} catch (err) {
 		error('SETTINGS', 'Failed to read settings:', err);
 		useDefaultSettings();
-		toast.error(`Could not read ${SETTINGS_DIR}/${SETTINGS_FILE}. Default settings are in use and the file was left unchanged.`);
+		toast.error(`Could not read ${SETTINGS_DIR}/${SETTINGS_FILE}. Default settings are in use, the file was left unchanged, and settings changes made until the vault is reopened will not be saved.`);
 		applyLoadedSettings();
-		return;
+		return 'file-protected';
 	}
 	if (content === null || !content.trim()) {
 		useDefaultSettings();
@@ -54,16 +57,16 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 			error('SETTINGS', 'Failed to save default settings:', err);
 		}
 		applyLoadedSettings();
-		return;
+		return 'defaults';
 	}
 	let loaded: AppSettings;
 	try {
 		loaded = parseSettings(content);
 	} catch (err) {
 		error('SETTINGS', 'Failed to parse settings:', err);
-		await resetBrokenSettingsFile(vaultPath);
+		const backedUp = await resetBrokenSettingsFile(vaultPath);
 		applyLoadedSettings();
-		return;
+		return backedUp ? 'defaults' : 'file-protected';
 	}
 	settingsStore.setSettings(loaded);
 	try {
@@ -73,6 +76,7 @@ export async function loadSettings(vaultPath: string): Promise<void> {
 		error('SETTINGS', 'Failed to write back loaded settings:', err);
 	}
 	applyLoadedSettings();
+	return 'loaded';
 }
 
 /**
@@ -206,16 +210,17 @@ const BROKEN_FILE_TOAST = { duration: Infinity, closeButton: true };
 /**
  * Backs up a settings.json that does not parse, then resets to the defaults.
  * The defaults are written only after the byte copy succeeded.
+ * Resolves whether the copy succeeded, so the file's bytes are safe.
  */
-async function resetBrokenSettingsFile(vaultPath: string): Promise<void> {
+async function resetBrokenSettingsFile(vaultPath: string): Promise<boolean> {
 	useDefaultSettings();
 	const backupName = `settings.broken-${formatBackupStamp(new Date())}.json`;
 	try {
 		await copyFile(getSettingsPath(vaultPath), `${getDirPath(vaultPath)}/${backupName}`);
 	} catch (err) {
 		error('SETTINGS', 'Failed to back up broken settings:', err);
-		toast.error(`Could not back up ${SETTINGS_DIR}/${SETTINGS_FILE}, which is not a valid settings file. Default settings are in use and ${SETTINGS_FILE} was left unchanged.`, BROKEN_FILE_TOAST);
-		return;
+		toast.error(`Could not back up ${SETTINGS_DIR}/${SETTINGS_FILE}, which is not a valid settings file. Default settings are in use, ${SETTINGS_FILE} was left unchanged, and settings changes made until the vault is reopened will not be saved.`, BROKEN_FILE_TOAST);
+		return false;
 	}
 	toast.error(`${SETTINGS_DIR}/${SETTINGS_FILE} is not a valid settings file, so the settings were reset to defaults. The old file was saved as ${SETTINGS_DIR}/${backupName}.`, BROKEN_FILE_TOAST);
 	try {
@@ -223,6 +228,7 @@ async function resetBrokenSettingsFile(vaultPath: string): Promise<void> {
 	} catch (saveErr) {
 		error('SETTINGS', 'Also failed to save default settings:', saveErr);
 	}
+	return true;
 }
 
 /** Local time as `YYYYMMDD-HHmmss`, the suffix of a broken-settings backup. */

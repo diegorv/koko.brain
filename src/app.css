@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "katex/dist/katex.min.css";
 
+/* Planning notes under .scratch/ quote class names with placeholders (`@max-[Npx]:hidden`) that compile to invalid CSS and fail the minifier. */
+@source not "../.scratch";
+
 /* `dark:` follows `html.dark`, which theme.service.ts sets from the applied theme, not the OS appearance. */
 @custom-variant dark (&:where(.dark, .dark *));
 

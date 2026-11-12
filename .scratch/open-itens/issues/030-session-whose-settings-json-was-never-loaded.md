@@ -12,20 +12,20 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing test first, in src/tests/lib/core/settings/settings-persistence.test.ts. Mock only @tauri-apps/plugin-fs and svelte-sonner, and use the real settingsStore, loadSettings and startSettingsPersistence. readTextFile rejects, then await loadSettings('/vault'), startSettingsPersistence('/vault'), settingsStore.updateLayout({ railPanelsVisible: false }), and advance timers 500 ms. Expect writeTextFile never called with '/vault/.kokobrain/settings.json' for the rest of the session. It fails today.
-- [ ] The same test with readTextFile resolving to '{"periodicNotes": ' and copyFile rejecting gives the same assertion.
-- [ ] A launch-time mutation (settingsStore.updateUpdates({ lastCheckedAt: 1 })) after an unreadable load does not overwrite settings.json.
-- [ ] Happy path still holds: a valid settings.json that loaded writes the change after 500 ms (existing settings-persistence tests stay green unchanged).
-- [ ] A missing or blank settings.json still gets defaults written (settings.service.test.ts existing cases stay green).
-- [ ] The toast text matches what will actually happen to the file for the rest of the session.
-- [ ] When settings.json was not loaded (read error or failed backup), initializeVault skips cleanup_history (app-lifecycle.service.ts:276-278), so File History is not purged at the default retention; tested in src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts.
-- [ ] Frontend gate: pnpm check, pnpm vitest run and pnpm build all pass.
+- [x] Failing test first, in src/tests/lib/core/settings/settings-persistence.test.ts. Mock only @tauri-apps/plugin-fs and svelte-sonner, and use the real settingsStore, loadSettings and startSettingsPersistence. readTextFile rejects, then await loadSettings('/vault'), startSettingsPersistence('/vault'), settingsStore.updateLayout({ railPanelsVisible: false }), and advance timers 500 ms. Expect writeTextFile never called with '/vault/.kokobrain/settings.json' for the rest of the session. It fails today.
+- [x] The same test with readTextFile resolving to '{"periodicNotes": ' and copyFile rejecting gives the same assertion.
+- [x] A launch-time mutation (settingsStore.updateUpdates({ lastCheckedAt: 1 })) after an unreadable load does not overwrite settings.json.
+- [x] Happy path still holds: a valid settings.json that loaded writes the change after 500 ms (existing settings-persistence tests stay green unchanged).
+- [x] A missing or blank settings.json still gets defaults written (settings.service.test.ts existing cases stay green).
+- [x] The toast text matches what will actually happen to the file for the rest of the session.
+- [x] When settings.json was not loaded (read error or failed backup), initializeVault skips cleanup_history (app-lifecycle.service.ts:276-278), so File History is not purged at the default retention; tested in src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts.
+- [x] Frontend gate: pnpm check, pnpm vitest run and pnpm build all pass.
 
 ## Notes
 
@@ -107,3 +107,4 @@ Reviewer note: read settings.service.ts loadSettings: the catch block sets DEFAU
 
 - 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: purge guard criterion added after the order review (the title promised it).
+- 2026-11-12: delivered from branch issue/030-session-whose-settings-json-was-never-loaded. settings persistence no longer writes a settings.json the session could not load (read error or failed backup), and initializeVault skips the File History purge in that case; Tailwind no longer scans `.scratch/` (fixed `pnpm build`), and the persistence JSDoc says what omitting the outcome means. Full suite: 614 files passed, 15574 tests passed, 54 skipped, 1 todo (exit 0). Reviews: round 1 CHANGES_REQUESTED (review.md), fix round ran, round 2 APPROVED (review-2.md, one nit needing no change).
