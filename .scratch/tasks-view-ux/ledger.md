@@ -70,7 +70,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 244 | [Tasks come from the entries snapshot, with an overlay for the view's own writes](issues/244-tasks-from-entries-snapshot-with-write-overlay.md) | 115, 241 | done | issue/244-tasks-from-entries-snapshot-with-write-overlay (2b5a30fd3) | 2026-11-12 |
 | 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | done | issue/245-tasks-sources-panel-and-textbox-removal (e2479b35f) | 2026-11-12 |
 | 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | done | issue/246-tasks-row-menu-due-and-priority (5152ec83c) | 2026-11-12 |
-| 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | in-progress | | |
+| 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | done | issue/247-tasks-list-column (f0ec27a6c) | 2026-11-12 |
 | 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | done | issue/248-todoist-tags-follow-the-new-task-tag-rule (6ff6c3d55) | 2026-11-12 |
 
 ## Log
@@ -135,3 +135,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 18:29 — 118 — deliver — round 1 APPROVED by claude with a fix round (dimmed parents in heading groups, JSON collapse keys, label order), deliver re-review APPROVED by claude; full suite 631 files / 16405 tests passed; squash merged and pushed — bb9d07a5c
 - 2026-11-12 18:51 — 124 — deliver — round 1 APPROVED by claude with a fix round (own-exclude test, architecture doc services list, GROUP_KEYS from a Record), deliver re-review APPROVED by claude; open point: Hide this writes session-only own excludes until 247; full suite 632 files / 16453 tests passed; squash merged and pushed — 4cb9abb38
 - 2026-11-12 18:51 — 247 — start — launched by /relay-lite:run — 2f183aec8
+- 2026-11-12 19:07 — 247 — deliver — round 1 APPROVED by claude with a fix round (focus after Escape, Delete and exclude edits; narrow dropdown save test), deliver re-review APPROVED by claude; full suite 633 files / 16460 tests passed; squash merged and pushed — f0ec27a6c
