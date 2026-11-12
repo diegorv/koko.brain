@@ -64,7 +64,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 027 | [An unparseable .canvas opens in an error state and is never overwritten by canvas edits](issues/027-unparseable-canvas-opens-error-state-never-overwritten.md) | 004, 026 | todo | | |
 | 028 | [Duplicate saves the note's unsaved typing before copying it](issues/028-duplicate-saves-note-s-unsaved-typing-before.md) | none | todo | | |
 | 029 | [Duplicate never overwrites a sibling whose name differs only in case (APFS)](issues/029-duplicate-never-overwrites-sibling-whose-name-differs.md) | 028 | todo | | |
-| 030 | [A session whose settings.json was never loaded never writes it and never purges File History at the default retention](issues/030-session-whose-settings-json-was-never-loaded.md) | none | in-progress | | |
+| 030 | [A session whose settings.json was never loaded never writes it and never purges File History at the default retention](issues/030-session-whose-settings-json-was-never-loaded.md) | none | done | issue/030-session-whose-settings-json-was-never-loaded (721ef3a5c) | 2026-11-12 |
 | 031 | [Auto-move rules: a failed load is never saved over the file](issues/031-auto-move-rules-todoist-sent-list-failed.md) | 030 | todo | | |
 | 032 | [Keep uncaught mod errors out of Sentry](issues/032-mod-errors-out-of-sentry.md) | none | todo | | |
 | 033 | [The privacy scanner stops skipping every line that contains a URL, and PRIVACY.md matches the code](issues/033-privacy-scanner-skips-every-url.md) | none | todo | | |
@@ -267,3 +267,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 10:09 — ledger updated (moved to tasks-view-ux: 074, 075, 108, 109, 110, 111, 112, 113, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 129, 227, 234, 235, 236, 237, 238, 239, 240, 241, 242, 243, 244, 245, 246, 247)
 - 2026-11-12 10:09 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 198)
 - 2026-11-12 10:15 — 030 — start — launched by /relay-lite:run — dee42c0bf
+- 2026-11-12 10:30 — 030 — deliver — round 1 CHANGES_REQUESTED by claude (fix: Tailwind no longer scans .scratch, which broke pnpm build; JSDoc note; one minor rejected), round 2 APPROVED by claude; full suite 614 files / 15574 tests passed; squash merged and pushed — 721ef3a5c
