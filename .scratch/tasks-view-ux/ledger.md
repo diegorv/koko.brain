@@ -52,7 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | done | issue/121-remove-tasks-in-section-command (c4e917f99) | 2026-11-12 |
 | 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | done | issue/122-row-menu-edits-with-undo (befb8f876) | 2026-11-12 |
 | 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | none | wontfix | | |
-| 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | todo | | |
+| 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | in-progress | | |
 | 125 | [A "No date" built-in list, and a "modified" marker with Save, Revert and Reset](issues/125-smart-lists-and-empty-states.md) | 111, 247 | todo | | |
 | 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | none | wontfix | | |
 | 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 244 | todo | | |
@@ -131,3 +131,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 18:11 — 119 — start — launched by /relay-lite:run, beside 118 and 121 — 2bbbb2ca9
 - 2026-11-12 18:11 — 121 — deliver — round 1 APPROVED by claude, three nits handled in Resolution (stale lines in docs/architecture tasks.md need a follow-up; feature/ios-poc must drop the command on rebase), no fix round; full suite 631 files / 16342 tests passed on run 2 (run 1: AutoOrganizeRuleRow flake); squash merged and pushed — c4e917f99
 - 2026-11-12 18:29 — 119 — deliver — round 1 CHANGES_REQUESTED by claude (heading picker suggests tags, key spellings kept, archived wording), fix round, round 2 APPROVED by claude; full suite 631 files / 16394 tests passed; squash merged and pushed — 711885f97
+- 2026-11-12 18:29 — 124 — start — launched by /relay-lite:run (after 119) — 54b63dfd0
