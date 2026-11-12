@@ -14,7 +14,7 @@
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
+	import { buildTaskIndex, getTasksResetGeneration, toggleTask, updateSectionTagFilter } from './tasks.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import {
@@ -53,27 +53,50 @@
 		{ label: 'Last 30 days', value: 'last30days' },
 	];
 
-	let sectionTagInput = $state(tasksStore.sectionTag);
-	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	/**
+	 * Text typed into the section tag textbox that its debounce has not applied
+	 * yet, or null. The textbox shows it while set and `tasksStore.sectionTag`
+	 * otherwise, so a tag changed from outside shows at once.
+	 */
+	let pendingSectionTag = $state<string | null>(null);
+	/**
+	 * The pending debounce and the text it applies. A plain variable, not
+	 * `pendingSectionTag`: Svelte hands a teardown the value a `$state` had
+	 * when its effect last ran, so `onDestroy` would read null.
+	 */
+	let debounce: { timer: ReturnType<typeof setTimeout>; value: string } | null = null;
 
 	function handleSectionTagChange(value: string) {
-		sectionTagInput = value;
-		if (debounceTimer) clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => {
-			updateSectionTagFilter(value);
-		}, 400);
+		pendingSectionTag = value;
+		if (debounce) clearTimeout(debounce.timer);
+		debounce = {
+			value,
+			timer: setTimeout(() => {
+				debounce = null;
+				pendingSectionTag = null;
+				void updateSectionTagFilter(value);
+			}, 400),
+		};
 	}
 
 	/** Empties the section tag, dropping a typed edit still waiting on its debounce. */
 	function clearSectionTag() {
-		if (debounceTimer) clearTimeout(debounceTimer);
-		debounceTimer = null;
-		sectionTagInput = '';
+		if (debounce) clearTimeout(debounce.timer);
+		debounce = null;
+		pendingSectionTag = null;
 		void updateSectionTagFilter('');
 	}
 
+	const resetGenerationAtMount = getTasksResetGeneration();
+
+	// A tag typed just before the view unmounts (another tab activated) is
+	// applied instead of dropped. Not after `resetTasks()`: on a vault switch
+	// the view unmounts after the reset, and the old vault's tag would land in
+	// the new vault's store and start a fetch.
 	onDestroy(() => {
-		if (debounceTimer) clearTimeout(debounceTimer);
+		if (!debounce) return;
+		clearTimeout(debounce.timer);
+		if (getTasksResetGeneration() === resetGenerationAtMount) void updateSectionTagFilter(debounce.value);
 	});
 
 	let filteredGroups = $derived.by(() => {
@@ -135,6 +158,28 @@
 		});
 	});
 
+	let viewportRef = $state<HTMLElement | null>(null);
+
+	// The offset is saved on every scroll, never read at destroy: Svelte
+	// detaches the DOM before teardowns run, and a detached viewport reports 0.
+	$effect(() => {
+		const viewport = viewportRef;
+		if (!viewport) return;
+		const save = () => tasksStore.setScrollOffset(viewport.scrollTop);
+		viewport.addEventListener('scroll', save, { passive: true });
+		return () => viewport.removeEventListener('scroll', save);
+	});
+
+	let scrollRestored = false;
+
+	// Once per mount, as soon as rows are on screen (effects run after the DOM update).
+	$effect(() => {
+		const viewport = viewportRef;
+		if (scrollRestored || !viewport || !tasksStore.hasLoaded || filteredGroups.length === 0) return;
+		scrollRestored = true;
+		viewport.scrollTop = untrack(() => tasksStore.scrollOffset);
+	});
+
 	function formatDate(timestamp: number): string {
 		if (!timestamp) return '';
 		return new Date(timestamp).toLocaleDateString('en-US', {
@@ -144,6 +189,23 @@
 		});
 	}
 </script>
+
+<!-- The list stays under the alert: it is stale, not gone. -->
+{#snippet refreshAlert(message: string)}
+	<div
+		role="alert"
+		class="my-2 flex items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-row text-destructive"
+	>
+		<p>{message}</p>
+		<button
+			class="shrink-0 rounded-md px-2 py-0.5 font-medium hover:bg-destructive/10 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50"
+			disabled={tasksStore.isLoading}
+			onclick={() => void buildTaskIndex()}
+		>
+			Retry
+		</button>
+	</div>
+{/snippet}
 
 <div class="flex h-full flex-col">
 	<!-- Toolbar -->
@@ -183,7 +245,7 @@
 			<Hash class="size-3 text-muted-foreground absolute left-1.5 pointer-events-none" />
 			<input
 				type="text"
-				value={sectionTagInput}
+				value={pendingSectionTag ?? tasksStore.sectionTag}
 				oninput={(e) => handleSectionTagChange(e.currentTarget.value)}
 				placeholder="#tag #tag"
 				aria-label="Section tag"
@@ -199,12 +261,17 @@
 	</div>
 
 	<!-- Content -->
-	<ScrollArea class="flex-1 min-h-0">
+	<ScrollArea class="flex-1 min-h-0" bind:viewportRef>
 		<div class="p-4">
 			{#if !tasksStore.hasLoaded}
 				<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
+			{:else if tasksStore.error && tasksStore.fileTaskGroups.length === 0}
+				<!-- No list was loaded: the alert takes the empty state's place. -->
+				<p class="text-xs text-muted-foreground mb-1">{ruleSentence}</p>
+				{@render refreshAlert(tasksStore.error)}
 			{:else if emptyExplanation}
 				<p class="text-xs text-muted-foreground mb-1">{ruleSentence}</p>
+				{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
 				<div class="flex flex-col items-center gap-2 py-8">
 					<p class="text-sm text-muted-foreground text-center">{emptyExplanation.message}</p>
 					{#if emptyExplanation.action}
@@ -226,6 +293,7 @@
 						</button>
 					{/if}
 				</div>
+				{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
 				<p class="text-xs text-muted-foreground mb-4">
 					{stats.pending} open in {stats.fileCount} {stats.fileCount === 1 ? 'note' : 'notes'}
 				</p>

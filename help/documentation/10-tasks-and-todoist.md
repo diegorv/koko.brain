@@ -10,7 +10,7 @@ Kokobrain collects the checkbox items in your notes and presents them in a singl
 
 Open the Tasks View with **Cmd+Shift+T**, or search for **"Toggle Tasks View"** in the Command Palette.
 
-The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the filters below. With the default section filter, only tasks under a heading containing `#to-list` are listed. Tasks are grouped by their source file and sorted by file modification date, so the most recently edited notes appear first.
+The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the filters below. With the default section filter, only tasks under a heading containing `#to-list` are listed. Tasks are grouped by their source file, and the notes are listed in path order, with numbers compared as numbers (`note 9` comes before `note 10`). Ticking a task does not move its note.
 
 A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, every task closed, or no recent note) and offers a button that lifts it: **Clear tag**, **Show closed** or **All time**. The line under it counts the open tasks and the notes listed, for example "2 open in 2 notes".
 

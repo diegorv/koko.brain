@@ -16,6 +16,17 @@ let hideCompleted = $state(true);
 let isLoading = $state(false);
 /** True once a fetch for the current vault has settled, on success or failure */
 let hasLoaded = $state(false);
+/**
+ * Fixed user-facing message when the latest refresh failed, null otherwise.
+ * Never the raw error text, which goes to the log.
+ */
+let error = $state<string | null>(null);
+/**
+ * The Tasks list viewport's last `scrollTop`, restored when the view mounts
+ * again. Not reactive: no component renders it, so scrolling writes it
+ * without waking any effect.
+ */
+let scrollOffset = 0;
 
 export const tasksStore = {
 	get fileTaskGroups() { return fileTaskGroups; },
@@ -24,6 +35,8 @@ export const tasksStore = {
 	get hideCompleted() { return hideCompleted; },
 	get isLoading() { return isLoading; },
 	get hasLoaded() { return hasLoaded; },
+	get error() { return error; },
+	get scrollOffset() { return scrollOffset; },
 
 	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
 	setDateFilter(filter: TaskDateFilter) { dateFilter = filter; },
@@ -31,6 +44,10 @@ export const tasksStore = {
 	setHideCompleted(hide: boolean) { hideCompleted = hide; },
 	setLoading(loading: boolean) { isLoading = loading; },
 	setHasLoaded(loaded: boolean) { hasLoaded = loaded; },
+	/** Sets or clears the refresh error message. */
+	setError(message: string | null) { error = message; },
+	/** Saves the list viewport's `scrollTop`. */
+	setScrollOffset(offset: number) { scrollOffset = offset; },
 
 	reset() {
 		fileTaskGroups = [];
@@ -39,5 +56,7 @@ export const tasksStore = {
 		hideCompleted = true;
 		isLoading = false;
 		hasLoaded = false;
+		error = null;
+		scrollOffset = 0;
 	},
 };

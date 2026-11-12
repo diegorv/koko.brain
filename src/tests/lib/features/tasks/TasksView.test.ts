@@ -14,7 +14,7 @@ import { unmount, flushSync } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
-import { buildTaskIndex } from '#lib/features/tasks/tasks.service.js';
+import { buildTaskIndex, resetTasks, updateSectionTagFilter } from '#lib/features/tasks/tasks.service.js';
 import { statusGlyph } from '#lib/features/tasks/task-status.logic.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -509,5 +509,267 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 
 		next.resolve(data);
 		await until(() => expect(tasksStore.isLoading).toBe(false));
+	});
+});
+
+describe('TasksView: keeps its place', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		vi.useRealTimers();
+		document.body.innerHTML = '';
+	});
+
+	const one = (path: string, text: string) => taskGroupV2(path, [taskV2(text)]);
+	const rowTexts = () => rows().map((r) => r.querySelector('[data-task-text]')?.textContent?.trim());
+	const viewport = () => {
+		const el = document.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]');
+		if (!el) throw new Error('scroll area viewport not found');
+		return el;
+	};
+	const tagInput = () => {
+		const input = document.querySelector<HTMLInputElement>('input[aria-label="Section tag"]');
+		if (!input) throw new Error('section tag textbox not found');
+		return input;
+	};
+	const type = (value: string) => {
+		const input = tagInput();
+		input.value = value;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+	};
+	const sectionCalls = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_tasks_in_section_v2');
+
+	it('lists notes by path and keeps a ticked note in its place', async () => {
+		const A = one('/vault/A.md', 'task in A');
+		const B = one('/vault/B.md', 'task in B');
+		const C = one('/vault/C.md', 'task in C');
+		let calls = 0;
+		mockTaskFetch(
+			async () => (++calls === 1 ? [C, B, A] : [B, C, A]),
+			{
+				toggle: () => ({
+					updatedContent: '- [x] task in B\n',
+					updateResult: { changed: true, affected: [], version: 2, upserted: [], removed: [], fullRescan: false },
+					stale: false,
+				}),
+			},
+		);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(3));
+		expect(rowTexts()).toEqual(['task in A', 'task in B', 'task in C']);
+
+		rows()[1].querySelector<HTMLButtonElement>('[data-task-toggle]')!.click();
+		await until(() => expect(calls).toBe(2));
+		await until(() => expect(tasksStore.isLoading).toBe(false));
+
+		expect(rowTexts()).toEqual(['task in A', 'task in B', 'task in C']);
+	});
+
+	it('restores the scroll offset when mounted again, and opens at the top after a reset', async () => {
+		mockTaskFetch([one('/vault/A.md', 'task in A')]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+
+		// jsdom has no layout: it keeps an assigned scrollTop and fires no scroll event.
+		viewport().scrollTop = 120;
+		expect(viewport().scrollTop).toBe(120);
+		viewport().dispatchEvent(new Event('scroll'));
+		expect(tasksStore.scrollOffset).toBe(120);
+
+		unmount(component!);
+		component = null;
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+		expect(viewport().scrollTop).toBe(120);
+
+		unmount(component!);
+		component = null;
+		tasksStore.reset();
+		tasksStore.setSectionTag('');
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+		expect(viewport().scrollTop).toBe(0);
+	});
+
+	it('applies a section tag still waiting on its debounce when the view unmounts', async () => {
+		vi.useFakeTimers();
+		mockTaskFetch([one('/vault/A.md', 'task in A')]);
+		({ component } = await mountTasksView());
+
+		// No vi.waitFor between typing and unmount: it advances the fake clock.
+		type('#work');
+		unmount(component!);
+		component = null;
+		await vi.advanceTimersByTimeAsync(0);
+
+		expect(tasksStore.sectionTag).toBe('#work');
+		expect(sectionCalls().map(([, args]) => args)).toEqual([{ sectionTags: ['#work'] }]);
+	});
+
+	it('drops a pending section tag when resetTasks ran before the view unmounts', async () => {
+		vi.useFakeTimers();
+		mockTaskFetch([one('/vault/A.md', 'task in A')]);
+		({ component } = await mountTasksView());
+
+		type('#work');
+		resetTasks();
+		const callsAtReset = sectionCalls().length;
+		unmount(component!);
+		component = null;
+		await vi.advanceTimersByTimeAsync(500);
+
+		expect(tasksStore.sectionTag).toBe('#to-list');
+		expect(sectionCalls()).toHaveLength(callsAtReset);
+	});
+
+	it('shows a section tag set from outside the textbox', async () => {
+		mockTaskFetch([one('/vault/A.md', 'task in A')]);
+		({ component } = await mountTasksView());
+		expect(tagInput().value).toBe('');
+
+		tasksStore.setSectionTag('#x');
+		flushSync();
+
+		expect(tagInput().value).toBe('#x');
+	});
+
+	it('keeps typed text in the textbox while its debounce is pending', async () => {
+		vi.useFakeTimers();
+		mockTaskFetch([one('/vault/A.md', 'task in A')], { section: [] });
+		({ component } = await mountTasksView());
+
+		type('#typed');
+		tasksStore.setSectionTag('#y');
+		flushSync();
+		expect(tagInput().value).toBe('#typed');
+
+		await vi.advanceTimersByTimeAsync(400);
+		flushSync();
+		expect(tasksStore.sectionTag).toBe('#typed');
+		expect(tagInput().value).toBe('#typed');
+	});
+});
+
+describe('TasksView: a failed refresh says so', () => {
+	let component: Record<string, unknown> | null = null;
+	const MESSAGE = 'Tasks could not be refreshed. The log has the details.';
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+		// A rejected fetch goes through the real `error()`, which prints it.
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		vi.mocked(console.error).mockRestore();
+		document.body.innerHTML = '';
+	});
+
+	const alert = () => document.querySelector<HTMLElement>('[role="alert"]');
+	const alertText = () => alert()?.querySelector('p')?.textContent?.trim();
+	const retry = () => {
+		const button = Array.from(alert()?.querySelectorAll('button') ?? []).find((b) => b.textContent?.trim() === 'Retry');
+		if (!button) throw new Error('Retry button not found');
+		return button;
+	};
+	const paragraph = (text: string) => Array.from(document.querySelectorAll('p')).find((p) => p.textContent?.trim() === text);
+	const noteWithTask = (text: string) => taskGroupV2(NOTE, [taskV2(text)]);
+
+	it('shows the alert under the rule sentence and keeps the list; Retry clears it once a fetch succeeds', async () => {
+		const retryFetch = deferred<FileTaskGroupV2[]>();
+		let calls = 0;
+		mockTaskFetch(async () => {
+			calls++;
+			if (calls === 1) return [noteWithTask('Ship feature A')];
+			if (calls === 2) throw new Error('boom');
+			return retryFetch.promise;
+		});
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+		expect(alert()).toBeNull();
+
+		await buildTaskIndex();
+		flushSync();
+		expect(alertText()).toBe(MESSAGE);
+		expect(rows()).toHaveLength(1);
+		const sentence = paragraph('Open tasks from every note');
+		expect(sentence).toBeDefined();
+		expect(sentence!.parentElement?.nextElementSibling).toBe(alert());
+		expect(alert()!.nextElementSibling?.textContent?.trim()).toBe('1 open in 1 note');
+		expect(retry().disabled).toBe(false);
+
+		retry().click();
+		flushSync();
+		expect(alert()).not.toBeNull();
+		expect(retry().disabled).toBe(true);
+
+		retryFetch.resolve([noteWithTask('Ship feature A')]);
+		await until(() => expect(alert()).toBeNull());
+		expect(rows()).toHaveLength(1);
+	});
+
+	it('takes the empty state\'s place when no list was loaded', async () => {
+		mockTaskFetch(async () => {
+			throw new Error('boom');
+		});
+		({ component } = await mountTasksView());
+
+		expect(alertText()).toBe(MESSAGE);
+		expect(paragraph('Open tasks from every note')).toBeDefined();
+		expect(paragraph('No tasks in this vault yet')).toBeUndefined();
+	});
+
+	it('keeps the old rows under the new rule sentence when the fetch after a tag change fails', async () => {
+		tasksStore.setSectionTag('#a');
+		mockTaskFetch(async () => {
+			throw new Error('boom');
+		}, { section: [noteWithTask('Ship feature A')] });
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+
+		await updateSectionTagFilter('');
+		flushSync();
+
+		expect(paragraph('Open tasks from every note')).toBeDefined();
+		expect(alertText()).toBe(MESSAGE);
+		expect(rows()).toHaveLength(1);
+		expect(document.body.textContent).toContain('Ship feature A');
+	});
+
+	it('sits above the empty state when the loaded tasks are all hidden by the filters', async () => {
+		let calls = 0;
+		mockTaskFetch(async () => {
+			calls++;
+			if (calls === 1) return [taskGroupV2(NOTE, [taskV2('Draft RFC', { status: 'done' })])];
+			throw new Error('boom');
+		});
+		({ component } = await mountTasksView());
+		expect(tasksStore.hideCompleted).toBe(true);
+		await until(() => expect(paragraph('The only task is closed')).toBeDefined());
+		expect(alert()).toBeNull();
+
+		await buildTaskIndex();
+		flushSync();
+
+		expect(alertText()).toBe(MESSAGE);
+		const empty = alert()!.nextElementSibling;
+		expect(empty?.querySelector('p')?.textContent?.trim()).toBe('The only task is closed');
+		expect(empty?.querySelector('button')?.textContent?.trim()).toBe('Show closed');
 	});
 });

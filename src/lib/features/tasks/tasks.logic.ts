@@ -282,3 +282,19 @@ export function parseTaskTextSegments(text: string): TaskTextSegment[] {
 	if (lastIndex < text.length) pushText(text.slice(lastIndex));
 	return segments;
 }
+
+/** Built once: constructing a collator per comparison is what `localeCompare` with options costs. */
+const PATH_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+
+/**
+ * Orders two note paths for the Tasks list: numbers compare as numbers
+ * (`note 9` before `note 10`) and case and accents are ignored, with raw
+ * code-unit order breaking ties. Without the tie-break, `A.md`/`a.md` or
+ * `resume.md`/`résumé.md` compare equal, a stable sort keeps the incoming
+ * order, and the two swap whenever that order changes. Paths are absolute,
+ * but every indexed note shares the vault root, so this is the
+ * vault-relative order.
+ */
+export function compareTaskPaths(a: string, b: string): number {
+	return PATH_COLLATOR.compare(a, b) || (a < b ? -1 : a > b ? 1 : 0);
+}

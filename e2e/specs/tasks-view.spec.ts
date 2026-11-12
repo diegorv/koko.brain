@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { pressShortcut } from '../fixtures/helpers';
+import { openFile, pressShortcut } from '../fixtures/helpers';
 
 test.describe('Tasks view', () => {
 	test('Cmd+Shift+T opens the Tasks virtual tab', async ({ vaultPage: page }) => {
@@ -91,6 +91,31 @@ test.describe('Tasks view', () => {
 		expect(scrolled.overflows).toBe(true);
 		expect(scrolled.scrollTop).toBeGreaterThan(0);
 		expect(scrolled.bottom).toBeLessThanOrEqual(260);
+	});
+
+	test('task list keeps its scroll position across a tab switch', async ({ vaultPage: page }) => {
+		await page.setViewportSize({ width: 1000, height: 260 });
+		await openFile(page, 'Welcome.md');
+		await pressShortcut(page, 'Mod+Shift+T');
+		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+		await expect(page.getByText(/Ship feature A/i).first()).toBeVisible({ timeout: 5_000 });
+
+		const viewport = page.locator('[data-slot="scroll-area-viewport"]', { hasText: 'Ship feature A' });
+		await viewport.evaluate((el) => {
+			el.scrollTop = el.scrollHeight;
+		});
+		await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+		// The view saves the offset from its scroll listener; let that event fire.
+		await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+
+		const tabs = page.locator('.editor-tabs-bar [role="tab"]');
+		await tabs.filter({ hasText: 'Welcome' }).click();
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Welcome');
+		await expect(viewport).toHaveCount(0);
+
+		await tabs.filter({ hasText: 'Tasks' }).click();
+		await expect(page.getByText(/Ship feature A/i).first()).toBeVisible();
+		await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
 	});
 
 	test('wikilinks and markdown links in a task render as links', async ({ vaultPage: page }) => {

@@ -46,6 +46,23 @@ describe('tasksStore', () => {
 		expect(tasksStore.hasLoaded).toBe(true);
 	});
 
+	it('starts with no error and the scroll offset at the top', () => {
+		expect(tasksStore.error).toBeNull();
+		expect(tasksStore.scrollOffset).toBe(0);
+	});
+
+	it('setError updates and clears the error', () => {
+		tasksStore.setError('Tasks could not be refreshed.');
+		expect(tasksStore.error).toBe('Tasks could not be refreshed.');
+		tasksStore.setError(null);
+		expect(tasksStore.error).toBeNull();
+	});
+
+	it('setScrollOffset updates the scroll offset', () => {
+		tasksStore.setScrollOffset(120);
+		expect(tasksStore.scrollOffset).toBe(120);
+	});
+
 	it('reset restores defaults', () => {
 		tasksStore.setFileTaskGroups([{}] as any);
 		tasksStore.setDateFilter('last7days');
@@ -53,6 +70,8 @@ describe('tasksStore', () => {
 		tasksStore.setHideCompleted(false);
 		tasksStore.setLoading(true);
 		tasksStore.setHasLoaded(true);
+		tasksStore.setError('failed');
+		tasksStore.setScrollOffset(120);
 
 		tasksStore.reset();
 
@@ -62,5 +81,7 @@ describe('tasksStore', () => {
 		expect(tasksStore.hideCompleted).toBe(true);
 		expect(tasksStore.isLoading).toBe(false);
 		expect(tasksStore.hasLoaded).toBe(false);
+		expect(tasksStore.error).toBeNull();
+		expect(tasksStore.scrollOffset).toBe(0);
 	});
 });

@@ -37,6 +37,7 @@ import {
 	closeTasksTab,
 	toggleTasksTab,
 	resetTasks,
+	getTasksResetGeneration,
 } from '#lib/features/tasks/tasks.service.js';
 import type { FileTaskGroupV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
@@ -233,6 +234,125 @@ describe('buildTaskIndex', () => {
 		await buildTaskIndex();
 		expect(error).toHaveBeenCalledWith('TASKS', 'buildTaskIndex failed:', expect.any(Error));
 		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
+	});
+});
+
+describe('buildTaskIndex: note order', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+	});
+
+	const paths = () => tasksStore.fileTaskGroups.map((g) => g.filePath);
+
+	it('lists notes by path, not in the newest-first order Rust sends', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/B.md', 200, ['b']), group('/vault/A.md', 100, ['a'])]);
+
+		await buildTaskIndex();
+
+		expect(paths()).toEqual(['/vault/A.md', '/vault/B.md']);
+	});
+
+	it('compares numbers in note paths as numbers', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/note 10.md', 200, ['x']), group('/vault/note 9.md', 100, ['y'])]);
+
+		await buildTaskIndex();
+
+		expect(paths()).toEqual(['/vault/note 9.md', '/vault/note 10.md']);
+	});
+
+	it('sorts the section tag fetch too', async () => {
+		tasksStore.setSectionTag('#x');
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/C.md', 300, ['c']), group('/vault/A.md', 100, ['a']), group('/vault/B.md', 200, ['b'])]);
+
+		await buildTaskIndex();
+
+		expect(invoke).toHaveBeenCalledWith('get_tasks_in_section_v2', { sectionTags: ['#x'] });
+		expect(paths()).toEqual(['/vault/A.md', '/vault/B.md', '/vault/C.md']);
+	});
+});
+
+describe('buildTaskIndex: refresh error', () => {
+	const MESSAGE = 'Tasks could not be refreshed. The log has the details.';
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+	});
+
+	it('sets the fixed message when the latest call fails, logging the raw error, and keeps the groups', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+		await buildTaskIndex();
+		const before = tasksStore.fileTaskGroups;
+
+		const raw = new Error('secret path /vault/x');
+		vi.mocked(invoke).mockRejectedValueOnce(raw);
+		await buildTaskIndex();
+
+		expect(tasksStore.error).toBe(MESSAGE);
+		expect(tasksStore.error).not.toContain('secret');
+		expect(error).toHaveBeenCalledWith('TASKS', 'buildTaskIndex failed:', raw);
+		expect(tasksStore.fileTaskGroups).toBe(before);
+	});
+
+	it('keeps the error while a new call is in flight and clears it when that call succeeds', async () => {
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
+		await buildTaskIndex();
+		expect(tasksStore.error).toBe(MESSAGE);
+
+		let resolveCall!: (v: FileTaskGroupV2[]) => void;
+		vi.mocked(invoke).mockImplementationOnce(() => new Promise((r) => (resolveCall = r)));
+		const pending = buildTaskIndex();
+		expect(tasksStore.error).toBe(MESSAGE);
+
+		resolveCall([group('/vault/a.md', 100, ['x'])]);
+		await pending;
+		expect(tasksStore.error).toBeNull();
+	});
+
+	it('does not set the error for a superseded call that fails', async () => {
+		let rejectFirst!: (e: Error) => void;
+		vi.mocked(invoke)
+			.mockImplementationOnce(() => new Promise((_r, j) => (rejectFirst = j)))
+			.mockResolvedValueOnce([group('/vault/new.md', 200, ['new'])]);
+
+		const first = buildTaskIndex();
+		await buildTaskIndex();
+		rejectFirst(new Error('superseded boom'));
+		await first;
+
+		expect(tasksStore.error).toBeNull();
+	});
+
+	it('does not clear the error for a superseded call that succeeds', async () => {
+		let resolveFirst!: (v: FileTaskGroupV2[]) => void;
+		vi.mocked(invoke)
+			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)))
+			.mockRejectedValueOnce(new Error('latest boom'));
+
+		const first = buildTaskIndex();
+		await buildTaskIndex();
+		expect(tasksStore.error).toBe(MESSAGE);
+		resolveFirst([group('/vault/old.md', 100, ['old'])]);
+		await first;
+
+		expect(tasksStore.error).toBe(MESSAGE);
+	});
+
+	it('does not set the error for a call that fails after resetTasks', async () => {
+		let rejectCall!: (e: Error) => void;
+		vi.mocked(invoke).mockImplementationOnce(() => new Promise((_r, j) => (rejectCall = j)));
+
+		const pending = buildTaskIndex();
+		resetTasks();
+		rejectCall(new Error('old vault boom'));
+		await pending;
+
+		expect(tasksStore.error).toBeNull();
 	});
 });
 
@@ -579,5 +699,14 @@ describe('resetTasks', () => {
 
 		expect(tasksStore.fileTaskGroups).toEqual([]);
 		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('raises the reset generation by one on each call', () => {
+		const start = getTasksResetGeneration();
+
+		resetTasks();
+		expect(getTasksResetGeneration()).toBe(start + 1);
+		resetTasks();
+		expect(getTasksResetGeneration()).toBe(start + 2);
 	});
 });

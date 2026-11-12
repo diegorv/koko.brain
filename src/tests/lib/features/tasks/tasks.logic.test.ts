@@ -8,6 +8,7 @@ import {
 	describeTaskRule,
 	explainEmptyTasks,
 	parseSectionTags,
+	compareTaskPaths,
 } from '#lib/features/tasks/tasks.logic.js';
 import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
 import { sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
@@ -285,6 +286,27 @@ describe('parseSectionTags', () => {
 		[' , ,', []],
 	] as const)('%j gives %j', (text, expected) => {
 		expect(parseSectionTags(text)).toEqual(expected);
+	});
+});
+
+describe('compareTaskPaths', () => {
+	const sorted = (paths: string[]) => [...paths].sort(compareTaskPaths);
+
+	it('compares numbers in a path as numbers', () => {
+		expect(sorted(['/vault/note 10.md', '/vault/note 9.md'])).toEqual(['/vault/note 9.md', '/vault/note 10.md']);
+	});
+
+	it('orders a folder path against a root note as the collator does, ignoring case', () => {
+		// "Projects/Z.md" against "a.md": base sensitivity compares "p" with "a".
+		expect(compareTaskPaths('/vault/Projects/Z.md', '/vault/a.md')).toBeGreaterThan(0);
+		expect(compareTaskPaths('/vault/a.md', '/vault/Projects/Z.md')).toBeLessThan(0);
+	});
+
+	it('gives paths the collator calls equal a fixed order, whichever comes first', () => {
+		expect(sorted(['/vault/a.md', '/vault/A.md'])).toEqual(sorted(['/vault/A.md', '/vault/a.md']));
+		expect(sorted(['/vault/a.md', '/vault/A.md'])).toEqual(['/vault/A.md', '/vault/a.md']);
+		expect(sorted(['/vault/résumé.md', '/vault/resume.md'])).toEqual(sorted(['/vault/resume.md', '/vault/résumé.md']));
+		expect(compareTaskPaths('/vault/a.md', '/vault/a.md')).toBe(0);
 	});
 });
 

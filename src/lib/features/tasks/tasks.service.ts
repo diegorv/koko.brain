@@ -6,7 +6,7 @@ import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/e
 import { settleTaskWrite } from '#lib/core/filesystem/task-write.service.js';
 import { tasksStore } from './tasks.store.svelte';
 import { toggleTarget } from './task-status.logic';
-import { parseSectionTags } from './tasks.logic';
+import { compareTaskPaths, parseSectionTags } from './tasks.logic';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
@@ -55,17 +55,36 @@ function fromV2(group: FileTaskGroupV2): FileTaskGroup {
  */
 let latestTaskIndexRequest = 0;
 
+/** What the Tasks view shows when the latest refresh failed; the raw error goes to the log. */
+const TASKS_REFRESH_ERROR = 'Tasks could not be refreshed. The log has the details.';
+
+/** Number of `resetTasks` calls, so a caller can tell whether the store was reset since it looked. */
+let tasksResetGeneration = 0;
+
+/**
+ * Returns how many times `resetTasks` has run. Capture it, then compare later:
+ * a different value means the store was reset (a vault switch) in between,
+ * and work begun before it must not write the new vault's store.
+ */
+export function getTasksResetGeneration(): number {
+	return tasksResetGeneration;
+}
+
 /**
  * Fetches the full task index from the Rust `VaultIndex`. When
  * `parseSectionTags(sectionTag)` yields any tag, fans out to
  * `get_tasks_in_section_v2` with that list instead; otherwise calls
  * `get_all_tasks_v2`. Phase 7.6 — Rust now owns task
  * parsing end-to-end (see `src-tauri/src/vault/parsing.rs::extract_tasks`).
+ * Groups are stored in path order (`compareTaskPaths`), not the newest-first
+ * order Rust sends, so a toggle that rewrites a note does not move it.
  * A call superseded by a newer one (or by `resetTasks`) while in flight
  * leaves the store, the loading flag, `hasLoaded` and error reporting to the
  * newer call. The latest call sets `hasLoaded` once it settles, on success or
  * failure, so the view swaps "Indexing tasks..." for the list or the empty
- * state only after the current vault's first fetch.
+ * state only after the current vault's first fetch. The latest call's failure
+ * sets `tasksStore.error` to a fixed message and leaves the groups as they
+ * were; only a later success clears it.
  */
 export async function buildTaskIndex(): Promise<void> {
 	const request = ++latestTaskIndexRequest;
@@ -77,14 +96,18 @@ export async function buildTaskIndex(): Promise<void> {
 				? await call('get_tasks_in_section_v2', { sectionTags })
 				: await call('get_all_tasks_v2');
 			if (request !== latestTaskIndexRequest) return;
-			const groups = v2.map(fromV2);
+			const groups = v2.map(fromV2).sort((a, b) => compareTaskPaths(a.filePath, b.filePath));
 			tasksStore.setFileTaskGroups(groups);
+			tasksStore.setError(null);
 			let total = 0;
 			for (const g of groups) total += g.tasks.length;
 			debug('TASKS', `Tasks: ${groups.length} files, ${total} tasks`);
 		});
 	} catch (err) {
-		if (request === latestTaskIndexRequest) error('TASKS', 'buildTaskIndex failed:', err);
+		if (request === latestTaskIndexRequest) {
+			error('TASKS', 'buildTaskIndex failed:', err);
+			tasksStore.setError(TASKS_REFRESH_ERROR);
+		}
 	} finally {
 		if (request === latestTaskIndexRequest) {
 			tasksStore.setLoading(false);
@@ -230,10 +253,11 @@ export function toggleTasksTab(): void {
 /**
  * Resets all task state. Advancing the request counter discards any
  * `buildTaskIndex` call still in flight, so a scan of the previous vault
- * cannot write into the reset store.
+ * cannot write into the reset store. Raises `getTasksResetGeneration()`.
  */
 export function resetTasks(): void {
 	latestTaskIndexRequest++;
+	tasksResetGeneration++;
 	tasksStore.reset();
 	closeTasksTab();
 }
