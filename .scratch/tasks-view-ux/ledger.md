@@ -44,13 +44,13 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | done | issue/112-group-and-sort (fd29df83c) | 2026-11-12 |
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | done | issue/113-keyboard-and-a11y (16c5d8b73) | 2026-11-12 |
 | 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | done | issue/115-fetch-from-entries-snapshot (115d8d576) | 2026-11-12 |
-| 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | todo | | |
+| 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | in-progress | | |
 | 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | todo | | |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | todo | | |
 | 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | todo | | |
 | 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | none | wontfix | | |
 | 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | todo | | |
-| 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | todo | | |
+| 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | in-progress | | |
 | 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | none | wontfix | | |
 | 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | todo | | |
 | 125 | [A "No date" built-in list, and a "modified" marker with Save, Revert and Reset](issues/125-smart-lists-and-empty-states.md) | 111, 247 | todo | | |
@@ -116,3 +116,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 16:06 — 241 — deliver — round 1 APPROVED by claude with a fix round (dismiss the previous Undo toast before a new one), deliver re-review APPROVED by claude; full suite 626 files / 16145 tests passed; squash merged and pushed — 0653db349
 - 2026-11-12 16:06 — 244 — start — launched by /relay-lite:run — 378e4bcb1
 - 2026-11-12 16:35 — 244 — deliver — round 1 CHANGES_REQUESTED by claude, fix round, round 2 APPROVED by claude; full suite 626 files / 16168 tests passed; squash merged and pushed — 2b5a30fd3
+- 2026-11-12 16:35 — 116 — start — launched by /relay-lite:run — 86672cb3e
+- 2026-11-12 16:35 — 122 — start — launched by /relay-lite:run, beside 116 (Rust command only) — 86672cb3e
