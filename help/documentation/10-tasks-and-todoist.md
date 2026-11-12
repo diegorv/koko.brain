@@ -103,14 +103,23 @@ This single line tells you that the task is due on March 31, is high priority, w
 The sources decide which notes and headings supply tasks, before the filters run. The sentence above the list says what they are, for example "Open tasks under headings containing #to-list, except archived notes, type definitions, templates, the system folder". **Edit**, after the sentence, opens the Sources panel between the sentence and the list; every change applies at once.
 
 - **Cards**: a task is listed when it matches any card. **Add card** adds an empty card, which matches every note until it holds a clause; **Remove card** deletes one.
-- **Clauses**: inside a card, a task must match every clause. **Add clause** picks one of four kinds, and **Remove clause** deletes it. A clause with an empty value does nothing, so a new clause never empties the list.
+- **Clauses**: inside a card, a task must match every clause. **Add clause** picks one of five kinds, and **Remove clause** deletes it. A clause with an empty value does nothing, so a new clause never empties the list.
   - **Folder**: the note is in this vault folder or a folder under it, for example `Projects`.
   - **Type**: the note's type is this one, whatever the case.
   - **Note tag**: the note carries this tag or one nested under it (`#work` also matches `#work/client`).
   - **Heading**: the task sits under a heading, at any depth. **Tag** keeps headings carrying the tag as a whole tag (`#to-list` matches `## Inbox #to-list` and `#to-list/today`, not `#to-listing`); **Contains** keeps headings whose text contains the value with a `#` in front, part of a longer tag included (`to-list` also matches `#to-listing`). The `#` is optional in both modes, and case does not matter.
+  - **Property**: a property in the note's frontmatter, for example key `status`, **is** `active`. Pick the operator in the dropdown: **is** (the value, or one item of a list, equals the text), **is not** (the opposite of **is**, so a note without the property also matches), **contains** (the value, or one item of a list, contains the text) or **exists** (the property is there and not empty; it hides the value field). The key must match the property name exactly, case included; the value ignores case. A property that holds nested fields never matches **is** or **contains**.
 - **Not**: a folder, type or note tag clause with **Not** on matches the notes the clause would not.
 - **Excludes**: tasks from these notes are never listed, whatever the cards say. Four switches are on by default: **Archived notes**, **Type definitions**, **Templates folder** and **System folder** (the two folders set in Settings > Files & Folders). Below them, add folders, notes (by their path in the vault, for example `Inbox/Scratch.md`), note tags and types to leave out, and remove each one with its x button.
 - **Clear**, after the sentence, removes every card: the list shows every note's tasks, and the excludes still apply.
+
+Group headers make rules from what is on screen. Hover over a header, or move focus into it, to show its actions:
+
+- **Only this folder**, on a folder group under **Group by: Folder**: lists only the tasks of that folder and its subfolders. With no card, it adds a card holding the folder; with cards, it adds the folder to every card, so each card still applies and none lists tasks from outside the folder.
+- **Hide this folder**, on a folder group: adds the folder to the excluded folders, which hides that folder and its subfolders.
+- **Hide this note**, on a note group under **Group by: Note**: adds the note to the excluded notes.
+
+The Vault root group has no actions. Nothing is added twice, and the sentence above the list changes at once.
 
 When the list is empty because of the sources, the empty state offers **Edit sources**; when every matching note is excluded, **Edit excludes**, which opens the panel on its first switch.
 
@@ -169,7 +178,7 @@ Only one task row is in the Tab order at a time. Opening the Tasks View puts foc
 | `Enter` | Open the note at the task's line, as a click on its text does |
 | `Shift+F10` / Menu key | Open the task menu, as a click on its **...** button does |
 
-`Tab` from a task walks its checkbox, links and **...** button, then goes on to the next group's chevron and the next note's title. Closing the task menu puts focus back on the task. When the focused task leaves the list (you completed it under the Open filter, or a refresh removed it), focus moves to the next task, or to the one before when it was the last. The place is kept when you switch tabs and come back. `Down` and `Up` skip the tasks of a collapsed group; when the task you were on is hidden by a collapse or by the 50-task limit, the next task shown takes its place in the Tab order, or the last one shown when none follows.
+`Tab` from a task walks its checkbox, links and **...** button, then goes on to the next group's chevron, the next note's title and the group's actions. Closing the task menu puts focus back on the task. When the focused task leaves the list (you completed it under the Open filter, or a refresh removed it), focus moves to the next task, or to the one before when it was the last. The place is kept when you switch tabs and come back. `Down` and `Up` skip the tasks of a collapsed group; when the task you were on is hidden by a collapse or by the 50-task limit, the next task shown takes its place in the Tab order, or the last one shown when none follows.
 
 In the Command Palette, **Tasks: Show all statuses** sets the Status filter to All, and **Tasks: Show open only** sets it back to Open; either one opens the Tasks View. `/` opens Search in the rail (the vault search), not the Tasks View's search box.
 

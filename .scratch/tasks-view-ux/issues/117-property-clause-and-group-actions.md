@@ -18,15 +18,15 @@
 
 **Blocked by:** 112, 245
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B6 (a), so Issue 13 stands as written (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, `task-query.logic.test.ts`: each property op on a scalar string, a number, a list, a missing key, an empty value and an object value. Fails today (no property clause).
-- [ ] A pure `onlyThisFolder(query, folder)` and `hideFolder` / `hideNote` in `task-query.logic.ts` return the new query: tested with no cards, with one card, and with the folder already excluded.
-- [ ] `TasksView.test.ts` with real stores: a property card `status is active` lists only tasks from notes with that frontmatter; "Hide this folder" on a folder group removes its tasks and the sentence names the exclude; "Only this folder" leaves only that folder's tasks.
+- [x] Failing test first, `task-query.logic.test.ts`: each property op on a scalar string, a number, a list, a missing key, an empty value and an object value. Fails today (no property clause).
+- [x] A pure `onlyThisFolder(query, folder)` and `hideFolder` / `hideNote` in `task-query.logic.ts` return the new query: tested with no cards, with one card, and with the folder already excluded.
+- [x] `TasksView.test.ts` with real stores: a property card `status is active` lists only tasks from notes with that frontmatter; "Hide this folder" on a folder group removes its tasks and the sentence names the exclude; "Only this folder" leaves only that folder's tasks.
 
 ## Notes
 
@@ -36,3 +36,4 @@
 ## Comments
 
 - 2026-11-12: Blocked by 116 became 245: the deep dive split Issue 116, and the Sources panel this Issue adds the property clause to is now Issue 245 (116b).
+- 2026-11-12: Delivered from branch issue/117-property-clause-and-group-actions. Adds the property clause on note frontmatter to the Tasks sources, the pure `onlyThisFolder` / `hideFolder` / `hideNote` query builders, and Only this folder / Hide this folder / Hide this note actions in group headers, with help docs. Review round 1 APPROVED with findings, fixed (help says folder actions include subfolders; header action buttons get aria-labels naming the target; hover reveal left for an owner eye check); round 2 APPROVED with no findings. Tests: `pnpm check` 0 errors; full suite at 58dda3e48 passed 632/632 files, 16381 tests (first run had one unrelated AutoOrganizeRuleRow timing flake that passed alone).

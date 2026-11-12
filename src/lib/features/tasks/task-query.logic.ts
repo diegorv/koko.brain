@@ -283,10 +283,15 @@ export function buildTaskRows(
 	return rows;
 }
 
+/** How a property clause compares the note's frontmatter value (see `TaskSourceClause`). */
+export type PropertyOp = 'is' | 'isNot' | 'contains' | 'exists';
+
 /**
  * One condition of a source card. `negate` flips a folder, type or note tag
  * clause. A clause whose value is empty after trimming is inactive: it
- * matches every row and its `negate` is ignored.
+ * matches every row and its `negate` is ignored. A property clause is
+ * inactive when its key is blank, or its `value` is blank for any op but
+ * `exists`.
  */
 export type TaskSourceClause =
 	/** The note is in `path` (vault-relative, outer `/` trimmed) or a folder under it; case-sensitive */
@@ -296,7 +301,17 @@ export type TaskSourceClause =
 	/** A note tag equals `tag` or is nested under it, ignoring case and a leading `#` */
 	| { kind: 'noteTag'; tag: string; negate?: boolean }
 	/** The task's heading chain matches `text` (`matchesHeading`) */
-	| { kind: 'heading'; text: string; match: HeadingMatchMode };
+	| { kind: 'heading'; text: string; match: HeadingMatchMode }
+	/**
+	 * The note's frontmatter value under `key` (trimmed, then case-sensitive:
+	 * the keys are alias-resolved at parse time) against `value` (trimmed).
+	 * Strings, numbers and booleans compare as `String(value)`, ignoring case;
+	 * an object never matches `is` or `contains`. `is`: equals a scalar, or an
+	 * element of a list. `isNot`: not `is`, so a note without the key passes.
+	 * `contains`: a substring of a scalar or of a list element. `exists`: the
+	 * key is present and its value is not `null`, `''` or `[]`; `value` is ignored.
+	 */
+	| { kind: 'property'; key: string; op: PropertyOp; value?: string };
 
 /** A source card: its clauses are ANDed; the cards of a query are ORed. */
 export interface TaskSource {
@@ -388,6 +403,45 @@ export function defaultTaskQuery(): TaskQuery {
 /** A vault-relative folder with its outer `/` and spaces trimmed; '' when nothing is left. */
 const folderValue = (path: string) => path.trim().replace(/^\/+|\/+$/g, '');
 
+/**
+ * The query that keeps only `folder`'s tasks (a Folder group's "Only this
+ * folder"): one card holding the folder clause when there is no card, else
+ * the clause added to every card (AND), so no card lists tasks past the
+ * folder. A card already holding that folder clause, not negated, is kept
+ * as it is. `query` itself when `folder` is '' (the vault root). Never mutates `query`.
+ */
+export function onlyThisFolder(query: TaskQuery, folder: string): TaskQuery {
+	const path = folderValue(folder);
+	if (!path) return query;
+	const clause: TaskSourceClause = { kind: 'folder', path };
+	if (query.sources.length === 0) return { ...query, sources: [{ clauses: [clause] }] };
+	const holds = (card: TaskSource) => card.clauses.some((c) => c.kind === 'folder' && !c.negate && folderValue(c.path) === path);
+	return { ...query, sources: query.sources.map((card) => (holds(card) ? card : { clauses: [...card.clauses, clause] })) };
+}
+
+/**
+ * The query with `folder` added to the excluded folders (a Folder group's
+ * "Hide this folder"). `query` itself when `folder` is '' (the vault root) or
+ * already excluded, compared with outer `/` trimmed. Never mutates `query`.
+ */
+export function hideFolder(query: TaskQuery, folder: string): TaskQuery {
+	const path = folderValue(folder);
+	const { folders } = query.exclude;
+	if (!path || folders.some((f) => folderValue(f) === path)) return query;
+	return { ...query, exclude: { ...query.exclude, folders: [...folders, path] } };
+}
+
+/**
+ * The query with the vault-relative `relPath` added to the excluded notes (a
+ * Note group's "Hide this note"). `query` itself when it is already excluded.
+ * Never mutates `query`.
+ */
+export function hideNote(query: TaskQuery, relPath: string): TaskQuery {
+	const { notes } = query.exclude;
+	if (notes.includes(relPath)) return query;
+	return { ...query, exclude: { ...query.exclude, notes: [...notes, relPath] } };
+}
+
 /** A tag lower-cased, trimmed and without its leading `#`; '' when nothing is left. */
 const tagValue = (tag: string) => tag.trim().replace(/^#/, '').toLowerCase();
 
@@ -433,8 +487,39 @@ function clauseTest(clause: TaskSourceClause): RowTest | null {
 			const tags = [text];
 			return (row) => matchesHeading(row.headings, tags, clause.match);
 		}
+		case 'property':
+			return propertyTest(clause.key, clause.op, clause.value);
 	}
 	return clause.negate ? (row) => !test(row) : test;
+}
+
+/** A frontmatter value's scalars as `String(value)`, lower-cased: the value itself, or each list element; objects and `null` give none. */
+function propertyScalars(value: unknown): string[] {
+	return (Array.isArray(value) ? value : [value]).flatMap((v) =>
+		typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean' ? [String(v).toLowerCase()] : [],
+	);
+}
+
+/** A property clause as a row test, or null when it is inactive (see `TaskSourceClause`). */
+function propertyTest(rawKey: string, op: PropertyOp, rawValue: string | undefined): RowTest | null {
+	const key = rawKey.trim();
+	const value = (rawValue ?? '').trim().toLowerCase();
+	if (!key || (op !== 'exists' && !value)) return null;
+	// An own key only: `constructor` must not read Object.prototype's.
+	const read = (row: TaskRow): unknown => (Object.hasOwn(row.properties, key) ? row.properties[key] : undefined);
+	switch (op) {
+		case 'exists':
+			return (row) => {
+				const v = read(row);
+				return v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0);
+			};
+		case 'is':
+			return (row) => propertyScalars(read(row)).includes(value);
+		case 'isNot':
+			return (row) => !propertyScalars(read(row)).includes(value);
+		case 'contains':
+			return (row) => propertyScalars(read(row)).some((s) => s.includes(value));
+	}
 }
 
 /** The excludes as one row test, or null when none is active. Values are normalized here, once per call. */
@@ -860,7 +945,7 @@ const tagWord = (tag: string) => `#${tag.trim().replace(/^#/, '')}`;
 
 /** A clause in the sentence's words, or null when it is inactive. */
 function clauseWords(clause: TaskSourceClause): string | null {
-	const not = clause.kind !== 'heading' && clause.negate ? 'not ' : '';
+	const not = 'negate' in clause && clause.negate ? 'not ' : '';
 	switch (clause.kind) {
 		case 'folder': {
 			const folder = folderValue(clause.path);
@@ -877,8 +962,17 @@ function clauseWords(clause: TaskSourceClause): string | null {
 			if (!text) return null;
 			return clause.match === 'tag' ? `under a heading tagged #${text}` : `under a heading containing "${clause.text.trim()}"`;
 		}
+		case 'property': {
+			const key = clause.key.trim();
+			const value = (clause.value ?? '').trim();
+			if (!key || (clause.op !== 'exists' && !value)) return null;
+			return `where ${key} ${PROPERTY_OP_WORDS[clause.op]}${clause.op === 'exists' ? '' : ` ${value}`}`;
+		}
 	}
 }
+
+/** Each property op as the sentence says it, before the value. */
+const PROPERTY_OP_WORDS: Record<PropertyOp, string> = { is: 'is', isNot: 'is not', contains: 'contains', exists: 'is set' };
 
 /** The active clauses of each card, with their words. */
 function activeCards(sources: readonly TaskSource[]): { clause: TaskSourceClause; words: string }[][] {

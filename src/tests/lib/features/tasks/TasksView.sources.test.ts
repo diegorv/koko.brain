@@ -67,7 +67,7 @@ async function until(check: () => void): Promise<void> {
 }
 
 /** Clicks Add clause on the last card and picks `kind` in its menu. */
-async function addClause(kind: 'Folder' | 'Type' | 'Note tag' | 'Heading'): Promise<void> {
+async function addClause(kind: 'Folder' | 'Type' | 'Note tag' | 'Heading' | 'Property'): Promise<void> {
 	await openMenu(named('button', 'Add clause').at(-1)!);
 	const item = Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitem"]')).find(
 		(el) => el.textContent?.trim() === kind,
@@ -389,5 +389,138 @@ describe('TasksView: the Sources panel', () => {
 		await addClause('Type');
 		type(only('textbox', 'Type'), 'meeting');
 		expect(rowTexts()).toEqual(['meeting task', 'client task']);
+	});
+
+	it('lists only the tasks of notes whose frontmatter matches a property card, and exists hides the value field', async () => {
+		const project = (name: string, status: string) =>
+			entryV2(`/vault/Projects/${name}.md`, { frontmatter: { status }, tasks: [taskV2(`${status} project task`)] });
+		mockTaskFetch(vault(), { entries: [project('Active', 'active'), project('Done', 'done')] });
+		tasksStore.setSources([]);
+		({ component } = await mountTasksView());
+		only('button', 'Edit').click();
+		flushSync();
+
+		only('button', 'Add card').click();
+		flushSync();
+		await addClause('Property');
+		type(only('textbox', 'Property key'), 'status');
+		type(only('textbox', 'Property value'), 'Active');
+
+		expect(rowTexts()).toEqual(['active project task']);
+		expect(paragraph(`Open tasks from notes where status is Active${EXCEPT}`)).toBeDefined();
+		expect(tasksStore.query.sources).toEqual([{ clauses: [{ kind: 'property', key: 'status', op: 'is', value: 'Active' }] }]);
+
+		await openMenu(only('button', 'Operator: is'));
+		const exists = Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"] [role="menuitemradio"]')).find(
+			(el) => el.textContent?.trim() === 'exists',
+		);
+		exists!.click();
+		flushSync();
+
+		expect(named('textbox', 'Property value')).toHaveLength(0);
+		expect(rowTexts()).toEqual(['active project task', 'done project task']);
+		expect(paragraph(`Open tasks from notes where status is set${EXCEPT}`)).toBeDefined();
+	});
+
+	describe('group header actions', () => {
+		/** The header buttons of the group keyed `key`, by their text. */
+		const headerButtons = (key: string) =>
+			Array.from(document.querySelectorAll<HTMLElement>(`[data-task-group-key="${key}"] [data-task-group-actions] button`)).map((b) =>
+				b.textContent?.trim(),
+			);
+		const action = (key: string, name: string) => {
+			const button = Array.from(
+				document.querySelectorAll<HTMLElement>(`[data-task-group-key="${key}"] [data-task-group-actions] button`),
+			).find((b) => b.textContent?.trim() === name);
+			if (!button) throw new Error(`no ${name} in group ${key}`);
+			return button;
+		};
+		/** A project task, a home task and a vault root task. */
+		const folders = () => [...vault(), one('/vault/Root.md', 'root task')];
+
+		it('Hide this folder removes the folder group and its tasks, and the sentence names the exclude', async () => {
+			mockTaskFetch(folders());
+			tasksStore.setSources([]);
+			tasksStore.setGroupBy('folder');
+			({ component } = await mountTasksView());
+			expect(rowTexts()).toEqual(['root task', 'home task', 'project task']);
+			expect(headerButtons('Projects')).toEqual(['Only this folder', 'Hide this folder']);
+
+			action('Projects', 'Hide this folder').click();
+			flushSync();
+
+			expect(rowTexts()).toEqual(['root task', 'home task']);
+			expect(document.querySelector('[data-task-group-key="Projects"]')).toBeNull();
+			expect(tasksStore.query.exclude.folders).toEqual(['Projects']);
+			expect(paragraph(`Open tasks from every note${EXCEPT}, folder Projects`)).toBeDefined();
+		});
+
+		it('Only this folder with no card adds one card holding the folder clause', async () => {
+			mockTaskFetch(folders());
+			tasksStore.setSources([]);
+			tasksStore.setGroupBy('folder');
+			({ component } = await mountTasksView());
+
+			action('Home', 'Only this folder').click();
+			flushSync();
+
+			expect(rowTexts()).toEqual(['home task']);
+			expect(tasksStore.query.sources).toEqual([{ clauses: [{ kind: 'folder', path: 'Home' }] }]);
+			expect(paragraph(`Open tasks from notes in folder Home${EXCEPT}`)).toBeDefined();
+		});
+
+		it('ANDs Only this folder into the existing cards', async () => {
+			const listed = (path: string, text: string) =>
+				entryV2(path, { taskHeadings: [{ level: 2, text: 'Inbox #to-list', line: 1 }], tasks: [taskV2(text, { lineNumber: 2, heading: 0 })] });
+			mockTaskFetch([], { entries: [listed('/vault/Projects/P.md', 'listed project task'), listed('/vault/Home/H.md', 'listed home task')] });
+			tasksStore.setGroupBy('folder');
+			({ component } = await mountTasksView());
+			expect(rowTexts()).toEqual(['listed home task', 'listed project task']);
+
+			action('Projects', 'Only this folder').click();
+			flushSync();
+
+			expect(rowTexts()).toEqual(['listed project task']);
+			expect(paragraph(`Open tasks from notes under a heading tagged #to-list and in folder Projects${EXCEPT}`)).toBeDefined();
+		});
+
+		it('Hide this note removes the note group, and the sentence names its path', async () => {
+			mockTaskFetch(folders());
+			tasksStore.setSources([]);
+			({ component } = await mountTasksView());
+			expect(headerButtons('/vault/Projects/P.md')).toEqual(['Hide this note']);
+
+			action('/vault/Projects/P.md', 'Hide this note').click();
+			flushSync();
+
+			expect(rowTexts()).toEqual(['home task', 'root task']);
+			expect(tasksStore.query.exclude.notes).toEqual(['Projects/P.md']);
+			expect(paragraph(`Open tasks from every note${EXCEPT}, note Projects/P.md`)).toBeDefined();
+		});
+
+		it('names the group each action targets, keeping the visible text in the name', async () => {
+			mockTaskFetch(folders());
+			tasksStore.setSources([]);
+			tasksStore.setGroupBy('folder');
+			({ component } = await mountTasksView());
+			expect(action('Projects', 'Only this folder').getAttribute('aria-label')).toBe('Only this folder Projects');
+			expect(action('Projects', 'Hide this folder').getAttribute('aria-label')).toBe('Hide this folder Projects');
+
+			tasksStore.setGroupBy('note');
+			flushSync();
+			expect(action('/vault/Projects/P.md', 'Hide this note').getAttribute('aria-label')).toBe('Hide this note Projects/P.md');
+		});
+
+		it('gives the vault root folder group and the other groupings no actions', async () => {
+			mockTaskFetch(folders());
+			tasksStore.setSources([]);
+			tasksStore.setGroupBy('folder');
+			({ component } = await mountTasksView());
+			expect(headerButtons('')).toEqual([]);
+
+			tasksStore.setGroupBy('status');
+			flushSync();
+			expect(document.querySelectorAll('[data-task-group-actions]')).toHaveLength(0);
+		});
 	});
 });

@@ -11,6 +11,9 @@ import {
 	explainEmptyTasks,
 	DEFAULT_TASK_SORT,
 	headingSources,
+	hideFolder,
+	hideNote,
+	onlyThisFolder,
 	tagHeadingCardText,
 	selectSourceRows,
 	groupTaskRows,
@@ -526,6 +529,77 @@ describe('selectSourceRows', () => {
 		});
 	});
 
+	describe('property clause', () => {
+		/** One note per frontmatter value of `status` (absent for `missing.md`), named after its value. */
+		const entries = () => [
+			note('string.md', { frontmatter: { status: 'Active' } }),
+			note('number.md', { frontmatter: { status: 2 } }),
+			note('boolean.md', { frontmatter: { status: true } }),
+			note('list.md', { frontmatter: { status: ['draft', 'ACTIVE'] } }),
+			note('missing.md', { frontmatter: { other: 'active' } }),
+			note('empty-string.md', { frontmatter: { status: '' } }),
+			note('null.md', { frontmatter: { status: null } }),
+			note('empty-list.md', { frontmatter: { status: [] } }),
+			note('object.md', { frontmatter: { status: { state: 'active' } } }),
+			note('object-list.md', { frontmatter: { status: [{ state: 'active' }, null] } }),
+		];
+		const where = (op: 'is' | 'isNot' | 'contains' | 'exists', value?: string, key = 'status') =>
+			select(entries(), [card({ kind: 'property', key, op, ...(value === undefined ? {} : { value }) })]);
+
+		it('is: equals a scalar or a list element, ignoring case; an object never matches', () => {
+			expect(where('is', 'active')).toEqual(['list.md', 'string.md']);
+			expect(where('is', 'act')).toEqual([]);
+		});
+
+		it('is: compares numbers and booleans as String(value)', () => {
+			expect(where('is', '2')).toEqual(['number.md']);
+			expect(where('is', 'TRUE')).toEqual(['boolean.md']);
+		});
+
+		it('isNot: keeps every note `is` drops, a missing key and an object included', () => {
+			expect(where('isNot', 'active')).toEqual([
+				'boolean.md',
+				'empty-list.md',
+				'empty-string.md',
+				'missing.md',
+				'null.md',
+				'number.md',
+				'object-list.md',
+				'object.md',
+			]);
+		});
+
+		it('contains: a substring of a string or a list element, ignoring case; an object never matches', () => {
+			expect(where('contains', 'CTIV')).toEqual(['list.md', 'string.md']);
+			expect(where('contains', 'raf')).toEqual(['list.md']);
+			expect(where('contains', 'state')).toEqual([]);
+			expect(where('contains', 'ru')).toEqual(['boolean.md']);
+		});
+
+		it("exists: the key is present and not null, '' or []", () => {
+			expect(where('exists')).toEqual(['boolean.md', 'list.md', 'number.md', 'object-list.md', 'object.md', 'string.md']);
+		});
+
+		it('matches the key exactly, case included', () => {
+			expect(where('exists', undefined, 'Status')).toEqual([]);
+			expect(where('is', 'active', ' status ')).toEqual(['list.md', 'string.md']);
+		});
+
+		it('trims the value', () => {
+			expect(where('is', ' active ')).toEqual(['list.md', 'string.md']);
+		});
+
+		it.each([
+			['is', undefined, 'status'],
+			['contains', '  ', 'status'],
+			['isNot', '', 'status'],
+			['exists', undefined, ' '],
+			['is', 'active', ''],
+		] as const)('op %s with value %j and key %j is inactive, matching every row', (op, value, key) => {
+			expect(where(op, value, key)).toHaveLength(10);
+		});
+	});
+
 	describe('heading clause', () => {
 		/** One task under each heading text, in one note. */
 		const under = (...headings: string[]) =>
@@ -701,6 +775,102 @@ describe('selectSourceRows', () => {
 
 	it('returns nothing for no rows', () => {
 		expect(selectSourceRows([], [], defaultTaskExcludes(), FOLDERS)).toEqual([]);
+	});
+});
+
+describe('group header actions', () => {
+	const query = (sources: TaskSource[], exclude: Partial<TaskExcludes> = {}): TaskQuery => ({
+		version: 1,
+		sources,
+		exclude: { ...NO_EXCLUDES, ...exclude },
+		quick: { show: 'open' },
+	});
+	const projects: TaskSourceClause = { kind: 'folder', path: 'Projects' };
+
+	describe('onlyThisFolder', () => {
+		it('adds one card holding the folder clause when there is no card', () => {
+			expect(onlyThisFolder(query([]), 'Projects').sources).toEqual([{ clauses: [projects] }]);
+		});
+
+		it('adds the folder clause to the one card, so it ANDs with its clauses', () => {
+			const tag: TaskSourceClause = { kind: 'heading', text: '#to-list', match: 'tag' };
+			expect(onlyThisFolder(query([{ clauses: [tag] }]), 'Projects').sources).toEqual([{ clauses: [tag, projects] }]);
+		});
+
+		it('adds it to every card, an empty card included, so no card widens the list past the folder', () => {
+			const type: TaskSourceClause = { kind: 'type', type: 'Meeting' };
+			expect(onlyThisFolder(query([{ clauses: [type] }, { clauses: [] }]), 'Projects').sources).toEqual([
+				{ clauses: [type, projects] },
+				{ clauses: [projects] },
+			]);
+		});
+
+		it('leaves a card that already holds the folder clause as it is, and a negated one does not count', () => {
+			const same: TaskSource = { clauses: [{ kind: 'folder', path: '/Projects/' }] };
+			const negated: TaskSourceClause = { kind: 'folder', path: 'Projects', negate: true };
+			const next = onlyThisFolder(query([same, { clauses: [negated] }]), 'Projects');
+			expect(next.sources[0]).toBe(same);
+			expect(next.sources[1]).toEqual({ clauses: [negated, projects] });
+		});
+
+		it('keeps the excludes and quick filters, leaves the input untouched, and lists only that folder', () => {
+			const before = query([{ clauses: [{ kind: 'type', type: 'Project' }] }], { folders: ['Archive'] });
+			const snapshot = structuredClone(before);
+			const next = onlyThisFolder(before, 'Projects');
+			expect(before).toEqual(snapshot);
+			expect(next.exclude).toBe(before.exclude);
+			expect(next.quick).toBe(before.quick);
+			const rows = rowsFrom(
+				[
+					entryV2('/vault/Projects/a.md', { isA: 'Project', tasks: [taskV2('a')] }),
+					entryV2('/vault/Home/b.md', { isA: 'Project', tasks: [taskV2('b')] }),
+				],
+				'/vault',
+			);
+			expect(selectSourceRows(rows, next.sources, next.exclude, FOLDERS).map((r) => r.text)).toEqual(['a']);
+		});
+
+		it('returns the query unchanged for the vault root', () => {
+			const before = query([]);
+			expect(onlyThisFolder(before, '')).toBe(before);
+		});
+	});
+
+	describe('hideFolder', () => {
+		it('adds the folder to the excluded folders, keeping the sources', () => {
+			const before = query(headingSources(['#to-list']), { folders: ['Archive'] });
+			const next = hideFolder(before, 'Projects');
+			expect(next.exclude).toEqual({ ...NO_EXCLUDES, folders: ['Archive', 'Projects'] });
+			expect(next.sources).toBe(before.sources);
+			expect(before.exclude.folders).toEqual(['Archive']);
+		});
+
+		it('returns the query unchanged when the folder is already excluded, written with slashes or not', () => {
+			const before = query([], { folders: ['/Projects/'] });
+			expect(hideFolder(before, 'Projects')).toBe(before);
+		});
+
+		it('returns the query unchanged for the vault root', () => {
+			const before = query([]);
+			expect(hideFolder(before, '')).toBe(before);
+		});
+	});
+
+	describe('hideNote', () => {
+		it('adds the note path to the excluded notes', () => {
+			const next = hideNote(query([], { notes: ['Inbox.md'] }), 'Projects/P.md');
+			expect(next.exclude.notes).toEqual(['Inbox.md', 'Projects/P.md']);
+		});
+
+		it('returns the query unchanged when the note is already excluded', () => {
+			const before = query([], { notes: ['Projects/P.md'] });
+			expect(hideNote(before, 'Projects/P.md')).toBe(before);
+		});
+	});
+
+	it('names the hidden folder and note in the sentence', () => {
+		const next = hideNote(hideFolder(query([]), 'Projects'), 'Home/H.md');
+		expect(describeTaskQuery(next)).toBe('Open tasks from every note, except folder Projects, note Home/H.md');
 	});
 });
 
@@ -1436,6 +1606,27 @@ describe('describeTaskQuery', () => {
 		];
 		expect(describeTaskQuery(withSources(sources))).toBe(
 			'Open tasks from notes in folder Projects and tagged #work and under a heading tagged #to-do; or not in folder Archive and of type Meeting and not of type Draft and not tagged #old and under a heading containing "#call"',
+		);
+	});
+
+	it('words each property op and leaves an inactive property clause out', () => {
+		const sources: TaskSource[] = [
+			{
+				clauses: [
+					{ kind: 'property', key: ' status ', op: 'is', value: ' active ' },
+					{ kind: 'property', key: 'area', op: 'isNot', value: 'Home' },
+				],
+			},
+			{
+				clauses: [
+					{ kind: 'property', key: 'title', op: 'contains', value: 'plan' },
+					{ kind: 'property', key: 'due', op: 'exists' },
+					{ kind: 'property', key: 'owner', op: 'is', value: ' ' },
+				],
+			},
+		];
+		expect(describeTaskQuery(withSources(sources))).toBe(
+			'Open tasks from notes where status is active and where area is not Home; or where title contains plan and where due is set',
 		);
 	});
 

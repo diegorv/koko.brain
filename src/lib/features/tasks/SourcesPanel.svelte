@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { flushSync } from 'svelte';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Plus from '@lucide/svelte/icons/plus';
 	import X from '@lucide/svelte/icons/x';
 	import { Button } from '#lib/components/ui/button/index.js';
@@ -9,7 +10,7 @@
 	import { tasksStore } from './tasks.store.svelte';
 	import { setTaskSources } from './tasks.service';
 	import type { HeadingMatchMode } from './task-headings.logic';
-	import type { TaskExcludes, TaskSource, TaskSourceClause } from './task-query.logic';
+	import type { PropertyOp, TaskExcludes, TaskSource, TaskSourceClause } from './task-query.logic';
 
 	interface Props {
 		/** The panel's element id, which the view's Edit button names in `aria-controls` */
@@ -26,8 +27,18 @@
 		{ kind: 'type', label: 'Type' },
 		{ kind: 'noteTag', label: 'Note tag' },
 		{ kind: 'heading', label: 'Heading' },
+		{ kind: 'property', label: 'Property' },
 	];
 	const KIND_LABEL = Object.fromEntries(CLAUSE_KINDS.map((k) => [k.kind, k.label])) as Record<ClauseKind, string>;
+
+	/** The property clause's ops, in menu order, with the words its dropdown shows. */
+	const PROPERTY_OPS: { op: PropertyOp; label: string }[] = [
+		{ op: 'is', label: 'is' },
+		{ op: 'isNot', label: 'is not' },
+		{ op: 'contains', label: 'contains' },
+		{ op: 'exists', label: 'exists' },
+	];
+	const OP_LABEL = Object.fromEntries(PROPERTY_OPS.map((o) => [o.op, o.label])) as Record<PropertyOp, string>;
 
 	/** The four exclude switches, in display order. */
 	const SWITCHES: { key: 'archived' | 'typeDefinitions' | 'templatesFolder' | 'systemFolder'; label: string }[] = [
@@ -64,10 +75,12 @@
 				return { kind, tag: '' };
 			case 'heading':
 				return { kind, text: '', match: 'tag' };
+			case 'property':
+				return { kind, key: '', op: 'is', value: '' };
 		}
 	}
 
-	/** The value a clause's text field shows. */
+	/** The value a clause's text field shows; a property clause's Value field (its Key field reads `key`). */
 	function clauseValue(clause: TaskSourceClause): string {
 		switch (clause.kind) {
 			case 'folder':
@@ -78,6 +91,8 @@
 				return clause.tag;
 			case 'heading':
 				return clause.text;
+			case 'property':
+				return clause.value ?? '';
 		}
 	}
 
@@ -92,6 +107,8 @@
 				return { ...clause, tag: value };
 			case 'heading':
 				return { ...clause, text: value };
+			case 'property':
+				return { ...clause, value };
 		}
 	}
 
@@ -110,9 +127,14 @@
 		updateClause(ci, li, (c) => (c.kind === 'heading' ? { ...c, match } : c));
 	}
 
-	/** Sets a folder, type or note tag clause's `negate`; a heading clause has none. */
+	/** Sets a folder, type or note tag clause's `negate`; heading and property clauses have none. */
 	function setNegate(ci: number, li: number, negate: boolean) {
-		updateClause(ci, li, (c) => (c.kind === 'heading' ? c : { ...c, negate }));
+		updateClause(ci, li, (c) => (c.kind === 'heading' || c.kind === 'property' ? c : { ...c, negate }));
+	}
+
+	/** Sets a property clause's key or op. Switching to `exists` keeps the value, which it ignores. */
+	function setProperty(ci: number, li: number, change: { key: string } | { op: PropertyOp }) {
+		updateClause(ci, li, (c) => (c.kind === 'property' ? { ...c, ...change } : c));
 	}
 
 	/**
@@ -188,13 +210,51 @@
 				{#each card.clauses as clause, li (li)}
 					<div class="flex flex-wrap items-center gap-2">
 						<span class="w-16 shrink-0 text-meta text-muted-foreground">{KIND_LABEL[clause.kind]}</span>
-						<Input
-							type="text"
-							class="h-7 w-40 min-w-0 flex-1 text-meta md:text-meta"
-							value={clauseValue(clause)}
-							aria-label={KIND_LABEL[clause.kind]}
-							oninput={(e) => updateClause(ci, li, (c) => withValue(c, (e.currentTarget as HTMLInputElement).value))}
-						/>
+						{#if clause.kind === 'property'}
+							<Input
+								type="text"
+								class="h-7 w-28 min-w-0 flex-1 text-meta md:text-meta"
+								placeholder="status"
+								value={clause.key}
+								aria-label="Property key"
+								oninput={(e) => setProperty(ci, li, { key: (e.currentTarget as HTMLInputElement).value })}
+							/>
+							<DropdownMenu.Root>
+								<DropdownMenu.Trigger>
+									{#snippet child({ props })}
+										<Button {...props} variant="ghost" size="sm" class="h-7 px-2 text-meta" aria-label="Operator: {OP_LABEL[clause.op]}">
+											{OP_LABEL[clause.op]}
+											<ChevronDown class="size-3" aria-hidden="true" />
+										</Button>
+									{/snippet}
+								</DropdownMenu.Trigger>
+								<DropdownMenu.Content align="start" class="w-32">
+									<DropdownMenu.RadioGroup value={clause.op} onValueChange={(value) => setProperty(ci, li, { op: value as PropertyOp })}>
+										{#each PROPERTY_OPS as option (option.op)}
+											<DropdownMenu.RadioItem value={option.op}>{option.label}</DropdownMenu.RadioItem>
+										{/each}
+									</DropdownMenu.RadioGroup>
+								</DropdownMenu.Content>
+							</DropdownMenu.Root>
+							{#if clause.op !== 'exists'}
+								<Input
+									type="text"
+									class="h-7 w-28 min-w-0 flex-1 text-meta md:text-meta"
+									placeholder="active"
+									value={clauseValue(clause)}
+									aria-label="Property value"
+									oninput={(e) => updateClause(ci, li, (c) => withValue(c, (e.currentTarget as HTMLInputElement).value))}
+								/>
+							{/if}
+						{:else}
+							<Input
+								type="text"
+								class="h-7 w-40 min-w-0 flex-1 text-meta md:text-meta"
+								value={clauseValue(clause)}
+								aria-label={KIND_LABEL[clause.kind]}
+								oninput={(e) => updateClause(ci, li, (c) => withValue(c, (e.currentTarget as HTMLInputElement).value))}
+							/>
+						{/if}
 						{#if clause.kind === 'heading'}
 							<div role="group" aria-label="Heading match" class="flex items-center gap-1">
 								<Button
@@ -216,7 +276,7 @@
 									Contains
 								</Button>
 							</div>
-						{:else}
+						{:else if clause.kind !== 'property'}
 							<span class="flex items-center gap-1.5 text-meta text-muted-foreground">
 								<Switch
 									aria-label="Not"

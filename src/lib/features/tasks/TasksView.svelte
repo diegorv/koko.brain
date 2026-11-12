@@ -45,7 +45,10 @@
 		collapseKey,
 		describeTaskQuery,
 		explainEmptyTasks,
+		hideFolder,
+		hideNote,
 		isQuickFieldDefault,
+		onlyThisFolder,
 		priorityWord,
 		statusFilterLabel,
 		tagMenuOptions,
@@ -307,6 +310,28 @@
 	let rendered = $derived(shownGroups.flatMap((g) => g.rows.map((row) => taskRowKey(row.filePath, row.lineNumber))));
 	/** The row that holds the list's one tab stop; its controls are the only ones in the tab order. */
 	let tabStopKey = $derived(tabStopRow(rendered, order, currentKey));
+
+	/**
+	 * A group header's rule actions: "Hide this note" on a Note group, "Only
+	 * this folder" and "Hide this folder" on a Folder group but the vault root
+	 * (a '' folder rule is inactive), none on any other. `target` names the
+	 * folder or note in the button's accessible name, since every group shows
+	 * the same visible labels.
+	 */
+	function groupActions(group: TaskGroup): { label: string; target: string; run: () => void }[] {
+		if (group.filePath !== undefined) {
+			// Every row of a Note group is that note's, and a group is never empty.
+			const relPath = group.rows[0]?.relPath;
+			if (relPath === undefined) return [];
+			return [{ label: 'Hide this note', target: relPath, run: () => tasksStore.setExclude(hideNote(tasksStore.query, relPath).exclude) }];
+		}
+		if (tasksStore.groupBy !== 'folder' || group.key === '') return [];
+		const folder = group.key;
+		return [
+			{ label: 'Only this folder', target: folder, run: () => setTaskSources(onlyThisFolder(tasksStore.query, folder).sources) },
+			{ label: 'Hide this folder', target: folder, run: () => tasksStore.setExclude(hideFolder(tasksStore.query, folder).exclude) },
+		];
+	}
 
 	/** Shows all of a group's rows, then focuses the first one the cap hid, so a keyboard user keeps their place. */
 	function revealGroup(key: string, group: TaskGroup) {
@@ -651,13 +676,35 @@
 	</button>
 {/snippet}
 
+<!-- A group header's rule actions (`groupActions`), at its end. They show while the header is hovered or holds focus, and stay in the Tab order while hidden. -->
+{#snippet groupHeaderActions(group: TaskGroup)}
+	{@const actions = groupActions(group)}
+	{#if actions.length > 0}
+		<div
+			data-task-group-actions
+			class="ml-auto flex shrink-0 items-center gap-1 self-center opacity-0 transition-opacity group-hover/header:opacity-100 group-focus-within/header:opacity-100"
+		>
+			{#each actions as item (item.label)}
+				<button
+					type="button"
+					class="cursor-pointer rounded-sm px-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+					aria-label={`${item.label} ${item.target}`}
+					onclick={item.run}
+				>
+					{item.label}
+				</button>
+			{/each}
+		</div>
+	{/if}
+{/snippet}
+
 <!-- One group's header, after its chevron. A Note group shows the note (icon, title, folder, "N of M open"); any other shows its label and row count. -->
 {#snippet groupHeader(group: TaskGroup, key: string, collapsed: boolean)}
 	{#if group.filePath !== undefined}
 		{@const filePath = group.filePath}
 		{@const resolved = resolveIconForPath(filePath)}
 		<!-- File header. The icon sits outside the button so an emoji stays out of its name. -->
-		<div class="flex items-start gap-2 mb-2">
+		<div class="group/header flex items-start gap-2 mb-2">
 			{@render groupToggle(group, key, collapsed, 'h-5')}
 			<span class="flex h-5 shrink-0 items-center">
 				{#if resolved?.icon}
@@ -682,12 +729,14 @@
 					<p data-task-group-subtitle class="truncate text-xs text-muted-foreground @max-[560px]:hidden">{group.folder}</p>
 				{/if}
 			</div>
+			{@render groupHeaderActions(group)}
 		</div>
 	{:else}
-		<div class="flex items-baseline gap-2 mb-2">
+		<div class="group/header flex items-baseline gap-2 mb-2">
 			{@render groupToggle(group, key, collapsed, 'self-center')}
 			<span data-task-group-label class="text-sm font-medium text-foreground">{group.label}</span>
 			<span data-task-group-count class="text-xs text-muted-foreground">{group.count}</span>
+			{@render groupHeaderActions(group)}
 		</div>
 	{/if}
 {/snippet}
