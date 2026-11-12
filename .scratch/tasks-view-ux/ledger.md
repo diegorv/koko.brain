@@ -72,7 +72,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | done | issue/246-tasks-row-menu-due-and-priority (5152ec83c) | 2026-11-12 |
 | 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | done | issue/247-tasks-list-column (f0ec27a6c) | 2026-11-12 |
 | 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | done | issue/248-todoist-tags-follow-the-new-task-tag-rule (6ff6c3d55) | 2026-11-12 |
-| 255 | [Space keeps focus in the Tasks list when the row moves into a collapsed group](issues/255-tasks-space-keeps-focus-when-row-moves-to-collapsed-group.md) | 125 | in-progress | | |
+| 255 | [Space keeps focus in the Tasks list when the row moves into a collapsed group](issues/255-tasks-space-keeps-focus-when-row-moves-to-collapsed-group.md) | 125 | done | issue/255-tasks-space-keeps-focus-when-row-moves-to-collapsed-group (8b3ad9123) | 2026-11-12 |
 
 ## Log
 
@@ -141,3 +141,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:08 — ledger updated (added 255)
 - 2026-11-12 19:38 — 125 — deliver — round 1 APPROVED by claude with a fix round (lists test assertions), deliver re-review APPROVED by claude; full suite 16508 passed, 1 failed twice (AutoOrganizeRuleRow timeout, fixed on main by 254, brought in by the rebase); squash merged and pushed — 4c5fc13f1
 - 2026-11-12 19:38 — 255 — start — launched by /relay-lite:run — 9f3090a05
+- 2026-11-12 19:49 — 255 — deliver — round 1 APPROVED by claude with a fix round (circle-click case, named hidden check), deliver re-review APPROVED by claude; full suite 633 files / 16576 tests passed; squash merged and pushed — 8b3ad9123
