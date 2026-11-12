@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 074 | [Rust records task headings](issues/074-rust-task-headings.md) | 242 | done | issue/074-rust-task-headings (16e3db9ed) | 2026-11-12 |
-| 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | in-progress | | |
+| 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | done | issue/075-task-tags-follow-note-tag-rule (015f8c18f) | 2026-11-12 |
 | 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | done | issue/108-mounted-list-and-rule-sentence (1a9e9eeaf) | 2026-11-12 |
 | 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | in-progress | | |
 | 110 | [Open means not done and not cancelled, and each status has its own glyph](issues/110-open-closed-rule.md) | 242 | done | issue/110-open-closed-rule (e420d69e2) | 2026-11-12 |
@@ -91,3 +91,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:37 — 236 — start — launched by /relay-lite:run — 97ae00757
 - 2026-11-12 11:51 — 236 — deliver — round 1 APPROVED by claude with no findings, no fix round; full suite 618 files / 15757 tests passed; header layout and circle geometry not checked by eye; squash merged and pushed — 07181df1c
 - 2026-11-12 11:51 — 109 — start — launched by /relay-lite:run — ec03b5500
+- 2026-11-12 11:55 — 075 — deliver — round 1 APPROVED by claude, 3 findings accepted with no code change (major: Todoist sync keeps the ASCII tag rule, follow-up Issue to file; minor: recurrence vs #über; nit); full suite 616 files / 15696 tests, cargo 1453 passed; e2e: tabs.spec.ts:42 fails the same on main, rest passed; index schema 6 -> 7; squash merged and pushed — 015f8c18f
