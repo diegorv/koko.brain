@@ -1,11 +1,10 @@
 use kokobrain_lib::commands::search_index::IndexStats;
 use kokobrain_lib::commands::vault::{
 	collect_v2_entries, ensure_safe_write_path, project_note_record, scan_vault, scan_vault_inner,
-	scan_vault_v2_cached_inner, scan_vault_v2_inner, section_task_candidates, tasks_in_section,
-	toggle_task_status_inner, update_note_in_index_inner, CachedScanResult, ScanSource,
+	scan_vault_v2_cached_inner, scan_vault_v2_inner, toggle_task_status_inner, update_note_in_index_inner,
+	CachedScanResult, ScanSource,
 };
-use kokobrain_lib::vault::parsing::extract_tasks_from_section;
-use kokobrain_lib::vault::task::{FileTaskGroup, TaskStatus};
+use kokobrain_lib::vault::task::TaskStatus;
 use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink, WikiLink};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::index_cache::{
@@ -1103,127 +1102,4 @@ fn cached_inner_drops_deleted_files() {
     let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
     assert_eq!(result.source, ScanSource::CacheReconciled);
     assert_eq!(result.entry_count, 1);
-}
-
-/// Writes `content` to `dir/name` and indexes it with `modified_at`.
-fn index_note(idx: &mut VaultIndex, dir: &TempDir, name: &str, content: &str, modified_at: i64) -> String {
-	let path = dir.path().join(name).to_string_lossy().to_string();
-	fs::write(&path, content).unwrap();
-	idx.update_entry(NoteEntry::from_content(path.clone(), content, modified_at));
-	path
-}
-
-#[test]
-fn tasks_in_section_reads_only_notes_with_tasks() {
-	let dir = TempDir::new().unwrap();
-	let mut idx = VaultIndex::default();
-	let a = index_note(&mut idx, &dir, "a.md", "## Todo #to-list\n- [ ] buy milk\n", 2);
-	index_note(&mut idx, &dir, "b.md", "## Todo #to-list\nno tasks here\n", 1);
-
-	let mut reads: Vec<String> = Vec::new();
-	let candidates = section_task_candidates(idx.entries().values());
-	let groups = tasks_in_section(candidates, &["#to-list".to_string()], |p| {
-		reads.push(p.to_string());
-		fs::read_to_string(p)
-	});
-
-	assert_eq!(reads, vec![a.clone()]);
-	assert_eq!(groups.len(), 1);
-	assert_eq!(groups[0].file_path, a);
-	assert_eq!(groups[0].tasks[0].text, "buy milk");
-}
-
-#[test]
-fn tasks_in_section_lists_tasks_under_any_of_several_tags() {
-	let dir = TempDir::new().unwrap();
-	let mut idx = VaultIndex::default();
-	let a = index_note(
-		&mut idx,
-		&dir,
-		"a.md",
-		"## A #to-list\n- [ ] a1\n- [ ] a2\n## B #work\n- [ ] b1\n## C\n- [ ] c1\n",
-		2,
-	);
-	let nested = index_note(
-		&mut idx,
-		&dir,
-		"nested.md",
-		"# A #to-list\n## B #work\n- [ ] t1\n## C\n- [ ] t2\n## Both #to-list #work\n- [ ] both\n",
-		1,
-	);
-
-	let mut reads: Vec<String> = Vec::new();
-	let section_tags = ["#to-list".to_string(), "#work".to_string()];
-	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), &section_tags, |p| {
-		reads.push(p.to_string());
-		fs::read_to_string(p)
-	});
-
-	reads.sort();
-	let mut expected_reads = vec![a.clone(), nested.clone()];
-	expected_reads.sort();
-	assert_eq!(reads, expected_reads);
-	let listed: Vec<(String, Vec<String>)> = groups
-		.iter()
-		.map(|g| (g.file_path.clone(), g.tasks.iter().map(|t| t.text.clone()).collect()))
-		.collect();
-	assert_eq!(
-		listed,
-		vec![
-			(a, vec!["a1".to_string(), "a2".to_string(), "b1".to_string()]),
-			(nested, vec!["t1".to_string(), "t2".to_string(), "both".to_string()]),
-		]
-	);
-}
-
-#[test]
-fn tasks_in_section_skips_unreadable_notes() {
-	let dir = TempDir::new().unwrap();
-	let mut idx = VaultIndex::default();
-	let a = index_note(&mut idx, &dir, "a.md", "## Todo #to-list\n- [ ] one\n", 2);
-	index_note(&mut idx, &dir, "gone.md", "## Todo #to-list\n- [ ] two\n", 1);
-	fs::remove_file(dir.path().join("gone.md")).unwrap();
-
-	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), &["#to-list".to_string()], |p| fs::read_to_string(p));
-
-	assert_eq!(groups.iter().map(|g| g.file_path.clone()).collect::<Vec<_>>(), vec![a]);
-}
-
-#[test]
-fn tasks_in_section_on_empty_index_returns_empty() {
-	let idx = VaultIndex::default();
-	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), &["#to-list".to_string()], |p| fs::read_to_string(p));
-	assert!(groups.is_empty());
-}
-
-#[test]
-fn tasks_in_section_matches_the_unfiltered_loop() {
-	let dir = TempDir::new().unwrap();
-	let mut idx = VaultIndex::default();
-	index_note(&mut idx, &dir, "in-section.md", "# Day\n## Todo #to-list\n- [ ] a\n- [x] b\n## Other\n- [ ] c\n", 6);
-	index_note(&mut idx, &dir, "outside.md", "## Notes\n- [ ] not listed\n", 5);
-	index_note(&mut idx, &dir, "no-tasks.md", "## Todo #to-list\njust text\n", 4);
-	index_note(&mut idx, &dir, "fenced.md", "## Todo #to-list\n```\n- [ ] in code\n```\n- [ ] real\n", 3);
-	index_note(&mut idx, &dir, "nested.md", "## Todo #to-list\n### Sub\n- [ ] nested\n# Top\n- [ ] after\n", 2);
-	index_note(&mut idx, &dir, "bare-tag.md", "## Inbox #to-list-later\n- [ ] prefix match\n", 1);
-
-	for tag in ["#to-list", "to-list", "#missing"] {
-		let mut expected: Vec<FileTaskGroup> = Vec::new();
-		for entry in idx.entries().values() {
-			let content = fs::read_to_string(&entry.path).unwrap();
-			let tasks = extract_tasks_from_section(&content, tag);
-			if !tasks.is_empty() {
-				expected.push(FileTaskGroup {
-					file_path: entry.path.clone(),
-					file_name: kokobrain_lib::vault::task::display_name(&entry.path),
-					modified_at: entry.modified_at,
-					tasks,
-				});
-			}
-		}
-		expected.sort_by_key(|g| std::cmp::Reverse(g.modified_at));
-
-		let actual = tasks_in_section(section_task_candidates(idx.entries().values()), &[tag.to_string()], |p| fs::read_to_string(p));
-		assert_eq!(actual, expected, "tag {tag}");
-	}
 }

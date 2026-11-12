@@ -21,10 +21,7 @@ const RENAMED_MIRRORS = ['TauriDebugLogPayload', 'SemanticSearchResult', 'Search
  * TS-domain types that share a generated name but are not wire mirrors, as
  * `file -> name`.
  */
-const ALLOWLIST = [
-	// Holds `TaskItem[]`, the TS task model, not the wire `Task[]`.
-	'src/lib/features/tasks/tasks.types.ts -> FileTaskGroup',
-];
+const ALLOWLIST: string[] = [];
 
 /** Every `.ts` file name under the generated dir, without extension. */
 function generatedNames(): string[] {
@@ -59,13 +56,13 @@ function declaredName(m: RegExpMatchArray): string {
 	return m[1] ?? m[2];
 }
 
-/** `file:line name` for each declaration in `source` whose name is forbidden. */
-function findMirrors(file: string, source: string, forbidden: Set<string>): string[] {
+/** `file:line name` for each declaration in `source` whose name is forbidden and not in `allowlist`. */
+function findMirrors(file: string, source: string, forbidden: Set<string>, allowlist: string[] = ALLOWLIST): string[] {
 	const hits: string[] = [];
 	for (const m of source.matchAll(DECLARATION)) {
 		const name = declaredName(m);
 		if (!forbidden.has(name)) continue;
-		if (ALLOWLIST.includes(`${file} -> ${name}`)) continue;
+		if (allowlist.includes(`${file} -> ${name}`)) continue;
 		const line = source.slice(0, m.index).split('\n').length;
 		hits.push(`${file}:${line} ${name}`);
 	}
@@ -99,8 +96,9 @@ describe('IPC mirrors', () => {
 	it('honours the allowlist by file and name', () => {
 		const forbidden = new Set(['FileTaskGroup']);
 		const source = 'export interface FileTaskGroup {}';
-		expect(findMirrors('src/lib/features/tasks/tasks.types.ts', source, forbidden)).toEqual([]);
-		expect(findMirrors('src/lib/features/other.types.ts', source, forbidden)).toEqual([
+		const allowlist = ['src/lib/features/example/example.types.ts -> FileTaskGroup'];
+		expect(findMirrors('src/lib/features/example/example.types.ts', source, forbidden, allowlist)).toEqual([]);
+		expect(findMirrors('src/lib/features/other.types.ts', source, forbidden, allowlist)).toEqual([
 			'src/lib/features/other.types.ts:1 FileTaskGroup',
 		]);
 	});

@@ -4,12 +4,9 @@ use crate::utils::logger::{debug_log, is_debug_enabled};
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
 use crate::vault::parsing::{
-	extract_tasks_from_sections, parse_task_line, rewrite_type_in_frontmatter, set_task_status_in_content,
-	set_task_text_in_content,
+	parse_task_line, rewrite_type_in_frontmatter, set_task_status_in_content, set_task_text_in_content,
 };
-use crate::vault::task::{
-	display_name, FileTaskGroup, TagAggregate, TaskStatus, TaskTextWriteResult, ToggleTaskResult,
-};
+use crate::vault::task::{FileTaskGroup, TagAggregate, TaskStatus, TaskTextWriteResult, ToggleTaskResult};
 use crate::vault::task_lines::{
 	apply_task_line_edits, TaskLineEditOutcome, TaskLineEdits, TaskLinesOutcome, TaskLinesWriteResult,
 };
@@ -660,106 +657,6 @@ pub fn get_all_tasks_v2(
 		.read()
 		.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
 	Ok(idx.lookup_all_tasks())
-}
-
-/// A note that may hold tasks in a matching section: the path to read and
-/// the `modified_at` the result group carries.
-#[derive(Debug, Clone)]
-pub struct SectionTaskCandidate {
-	/// Absolute file path.
-	pub path: String,
-	/// Last-modified timestamp (seconds) from the index entry.
-	pub modified_at: i64,
-}
-
-/// Picks the notes `tasks_in_section` has to read: those whose index entry
-/// has at least one task. Exact, not a heuristic: `NoteEntry.tasks` is
-/// `extract_tasks` over the full content, and `extract_tasks_from_sections`
-/// runs the same line split, fence logic and `parse_task_line` behind an
-/// extra heading gate, so a note with no tasks has no section tasks.
-pub fn section_task_candidates<'a>(
-	entries: impl IntoIterator<Item = &'a NoteEntry>,
-) -> Vec<SectionTaskCandidate> {
-	entries
-		.into_iter()
-		.filter(|e| !e.tasks.is_empty())
-		.map(|e| SectionTaskCandidate {
-			path: e.path.clone(),
-			modified_at: e.modified_at,
-		})
-		.collect()
-}
-
-/// Reads each candidate through `read`, keeps the tasks under headings
-/// that contain any of `section_tags` (`extract_tasks_from_sections`), and
-/// returns the non-empty groups sorted by `modified_at` descending. Each
-/// note is read once whatever the tag count. A read failure is logged and
-/// the note skipped, so one vanished file does not fail the whole query.
-pub fn tasks_in_section(
-	candidates: Vec<SectionTaskCandidate>,
-	section_tags: &[String],
-	mut read: impl FnMut(&str) -> std::io::Result<String>,
-) -> Vec<FileTaskGroup> {
-	debug_log(
-		"VAULT-V2",
-		format!("get_tasks_in_section_v2: reading {} notes with tasks", candidates.len()),
-	);
-	let mut out: Vec<FileTaskGroup> = Vec::new();
-	for candidate in candidates {
-		let content = match read(&candidate.path) {
-			Ok(c) => c,
-			Err(err) => {
-				debug_log(
-					"VAULT-V2",
-					format!(
-						"get_tasks_in_section_v2: read failed for {} ({}); skipping",
-						candidate.path, err
-					),
-				);
-				continue;
-			}
-		};
-		let tasks = extract_tasks_from_sections(&content, section_tags);
-		if !tasks.is_empty() {
-			out.push(FileTaskGroup {
-				file_name: display_name(&candidate.path),
-				file_path: candidate.path,
-				modified_at: candidate.modified_at,
-				tasks,
-			});
-		}
-	}
-	out.sort_by_key(|g| std::cmp::Reverse(g.modified_at));
-	out
-}
-
-/// Returns tasks across the vault filtered by section heading: only tasks
-/// whose containing heading text contains any of `section_tags` (the
-/// frontend's `sectionTags`) are emitted. The `VaultIndex` does not store
-/// headings, so this command reads from disk every note whose index entry
-/// has tasks (`section_task_candidates`).
-///
-/// Async so Tauri runs it off the app main thread. The candidates are
-/// copied under a brief read guard and the files are read on a blocking
-/// thread with the guard released, so writers such as
-/// `update_note_in_index` (which take `.write()`) do not wait on disk I/O.
-#[tauri::command]
-pub async fn get_tasks_in_section_v2(
-	section_tags: Vec<String>,
-	state: tauri::State<'_, VaultIndexState>,
-) -> Result<Vec<FileTaskGroup>, String> {
-	let _trace = CmdTrace::new("get_tasks_in_section_v2");
-	let candidates = {
-		let idx = state
-			.read()
-			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		section_task_candidates(idx.entries().values())
-	};
-	tokio::task::spawn_blocking(move || {
-		tasks_in_section(candidates, &section_tags, |p| std::fs::read_to_string(p))
-	})
-	.await
-	.map_err(|e| format!("get_tasks_in_section_v2 task join error: {}", e))
 }
 
 /// Pure-logic implementation behind `toggle_task_status`. Reads the

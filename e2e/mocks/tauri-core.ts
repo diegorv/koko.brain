@@ -160,10 +160,6 @@ function handleGetAllTasksV2(): FileTaskGroup[] {
 	return vaultIndex.getAllTasks();
 }
 
-function handleGetTasksInSectionV2(args: Args<'get_tasks_in_section_v2'>): FileTaskGroup[] {
-	return vaultIndex.getTasksInSection(args.sectionTags);
-}
-
 function handleToggleTaskStatus(args: Args<'toggle_task_status'>): ToggleTaskResult {
 	const result = vaultIndex.toggleTaskStatus(
 		args.path,
@@ -494,7 +490,6 @@ const HANDLERS: Handlers = {
 	get_unlinked_mentions_v2: handleGetUnlinkedMentionsV2,
 	get_all_tags_v2: handleGetAllTagsV2,
 	get_all_tasks_v2: handleGetAllTasksV2,
-	get_tasks_in_section_v2: handleGetTasksInSectionV2,
 	toggle_task_status: handleToggleTaskStatus,
 	write_task_lines: handleWriteTaskLines,
 	write_task_text: handleWriteTaskText,

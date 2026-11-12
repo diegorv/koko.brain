@@ -23,7 +23,6 @@ describe('tasksStore', () => {
 	});
 
 	it('starts with default state', () => {
-		expect(tasksStore.fileTaskGroups).toEqual([]);
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		expect(tasksStore.query).toEqual(defaultTaskQuery());
 		expect(tasksStore.rows).toEqual([]);
@@ -31,12 +30,6 @@ describe('tasksStore', () => {
 		expect(tasksStore.visibleRows).toEqual([]);
 		expect(tasksStore.isLoading).toBe(false);
 		expect(tasksStore.hasLoaded).toBe(false);
-	});
-
-	it('setFileTaskGroups updates groups', () => {
-		const groups = [{ filePath: '/a.md', tasks: [] }] as any;
-		tasksStore.setFileTaskGroups(groups);
-		expect(tasksStore.fileTaskGroups).toBe(groups);
 	});
 
 	it('setSources replaces the cards and keeps the excludes and quick filters', () => {
@@ -433,7 +426,6 @@ describe('tasksStore', () => {
 	});
 
 	it('reset restores defaults', () => {
-		tasksStore.setFileTaskGroups([{}] as any);
 		tasksStore.setRows(rowsFrom([taskGroupV2('/vault/a.md', [taskV2('x')])], '/vault'));
 		tasksStore.setQuick({ show: 'all', statuses: ['done'], due: 'overdue' });
 		tasksStore.setSources([{ clauses: [{ kind: 'folder', path: 'Projects' }] }]);
@@ -446,7 +438,6 @@ describe('tasksStore', () => {
 
 		tasksStore.reset();
 
-		expect(tasksStore.fileTaskGroups).toEqual([]);
 		expect(tasksStore.rows).toEqual([]);
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		expect(tasksStore.query).toEqual(defaultTaskQuery());

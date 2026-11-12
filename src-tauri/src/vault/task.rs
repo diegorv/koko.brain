@@ -1,8 +1,8 @@
 //! Task data types and IPC structs for the Tasks/Tags Phase 7 work.
 //!
-//! Mirrors the TS interfaces in
-//! `src/lib/features/tasks/{tasks.types.ts, task-metadata.types.ts}` exactly.
-//! Field names are camelCase over IPC; enum variants use kebab-case to match
+//! `Task` mirrors `src/lib/features/tasks/tasks.types.ts::TaskItem` and the
+//! metadata types mirror `src/lib/features/tasks/task-metadata.types.ts`
+//! exactly. Field names are camelCase over IPC; enum variants use kebab-case to match
 //! the TS string-literal unions (`'in-progress'`, `'highest'`, etc.).
 //!
 //! `Task` is parsed at `NoteEntry::from_content` time via
@@ -167,8 +167,7 @@ pub struct TagAggregate {
 	pub file_paths: Vec<String>,
 }
 
-/// One file's worth of tasks, as returned by
-/// `VaultIndex::lookup_all_tasks`. Mirrors `tasks.types.ts::FileTaskGroup`.
+/// One file's worth of tasks, as returned by `VaultIndex::lookup_all_tasks`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]

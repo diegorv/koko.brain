@@ -350,7 +350,6 @@ pub fn run() {
             commands::vault::propagate_type_rename,
             commands::vault::get_all_tags_v2,
             commands::vault::get_all_tasks_v2,
-            commands::vault::get_tasks_in_section_v2,
             commands::vault::toggle_task_status,
             commands::vault::write_task_lines,
             commands::vault::write_task_text,

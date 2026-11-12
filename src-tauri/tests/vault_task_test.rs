@@ -1,8 +1,7 @@
 //! Phase 7 — Task integration tests (FS-level, TempDir, VaultIndex).
 //!
-//! Unit tests for `extract_tasks`, `extract_tasks_from_section`,
-//! `parse_task_metadata`, `map_checkbox_char`, and `set_task_status_in_content`
-//! live inline in `src/vault/parsing.rs`.
+//! Unit tests for `extract_tasks`, `parse_task_metadata`, `map_checkbox_char`,
+//! and `set_task_status_in_content` live inline in `src/vault/parsing.rs`.
 
 use kokobrain_lib::commands::vault::{toggle_task_status_inner, update_note_in_index_inner};
 use kokobrain_lib::vault::entry::NoteEntry;

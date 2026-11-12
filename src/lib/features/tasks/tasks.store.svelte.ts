@@ -16,10 +16,8 @@ import {
 	type TaskSortKey,
 	type TaskSource,
 } from './task-query.logic';
-import type { FileTaskGroup, TaskRowRef } from './tasks.types';
+import type { TaskRowRef } from './tasks.types';
 
-/** All task groups across the vault (unfiltered) */
-let fileTaskGroups = $state<FileTaskGroup[]>([]);
 /** Every task of the snapshot as a row (unfiltered), replaced whole, never mutated */
 let rows = $state.raw<TaskRow[]>([]);
 /** The sources, excludes and quick filters, replaced whole on every change */
@@ -85,7 +83,6 @@ const groups = $derived.by(() =>
 );
 
 export const tasksStore = {
-	get fileTaskGroups() { return fileTaskGroups; },
 	/** Every task of the snapshot as a row, before any view filter */
 	get rows() { return rows; },
 	/** The rows the sources and excludes keep, before the quick filters */
@@ -111,7 +108,6 @@ export const tasksStore = {
 	/** The `collapseKey`s of the collapsed groups */
 	get collapsedGroups() { return collapsedGroups; },
 
-	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
 	/** Replaces the rows. */
 	setRows(next: TaskRow[]) { rows = next; },
 	/** Replaces the source cards. */
@@ -147,7 +143,6 @@ export const tasksStore = {
 	},
 
 	reset() {
-		fileTaskGroups = [];
 		rows = [];
 		query = defaultTaskQuery();
 		groupBy = 'note';

@@ -13,47 +13,9 @@ import { statusMenuLabel, toggleTarget } from './task-status.logic';
 import { taskRowKey } from './tasks-keys.logic';
 import { parseSectionTags, parseTasksView, taskDisplayText, withSectionTag } from './tasks.logic';
 import type { TaskMetadata, TaskStatus } from './task-metadata.types';
-import type { FileTaskGroup, TaskItem } from './tasks.types';
-import type { FileTaskGroupV2 } from '#lib/types/vault-v2.types.js';
+import type { TaskItem } from './tasks.types';
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
-
-/**
- * Converts a `FileTaskGroupV2` (Rust, modifiedAt in seconds) into the
- * TS-side `FileTaskGroup` shape used by the store. Rust `NoteEntry`
- * carries `modifiedAt` in seconds since epoch; the FE filter logic
- * (`applyQuickFilters`' Note edited options) compares against `Date.now()`, which is milliseconds.
- * Multiply by 1000 here so the rest of the TS path keeps using ms.
- */
-function fromV2(group: FileTaskGroupV2): FileTaskGroup {
-	return {
-		filePath: group.filePath,
-		fileName: group.fileName,
-		modifiedAt: group.modifiedAt * 1000,
-		tasks: group.tasks.map((t) => ({
-			text: t.text,
-			checked: t.checked,
-			indent: t.indent,
-			lineNumber: t.lineNumber,
-			status: t.status,
-			metadata: {
-				description: t.metadata.description,
-				dueDate: t.metadata.dueDate,
-				scheduledDate: t.metadata.scheduledDate,
-				startDate: t.metadata.startDate,
-				createdDate: t.metadata.createdDate,
-				doneDate: t.metadata.doneDate,
-				cancelledDate: t.metadata.cancelledDate,
-				priority: t.metadata.priority,
-				recurrence: t.metadata.recurrence,
-				id: t.metadata.id,
-				dependsOn: t.metadata.dependsOn,
-				onCompletion: t.metadata.onCompletion,
-				tags: t.metadata.tags,
-			},
-		})),
-	};
-}
 
 /**
  * Sequence number of the latest `buildTaskIndex` call. The IPCs are async,

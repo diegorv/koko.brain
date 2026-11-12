@@ -16,18 +16,6 @@ export interface TaskItem {
 	metadata: TaskMetadata;
 }
 
-/** All tasks belonging to a single file */
-export interface FileTaskGroup {
-	/** Absolute file path */
-	filePath: string;
-	/** Display name of the file (without extension) */
-	fileName: string;
-	/** File's last-modified timestamp in ms */
-	modifiedAt: number;
-	/** List of tasks extracted from this file, in document order */
-	tasks: TaskItem[];
-}
-
 /** A task row in the Tasks view, identified by its note and line. */
 export interface TaskRowRef {
 	/** Absolute path of the task's note */

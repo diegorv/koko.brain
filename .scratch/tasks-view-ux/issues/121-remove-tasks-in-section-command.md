@@ -21,18 +21,18 @@
 
 **Blocked by:** 245
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B6 (a): the heading rule moves to TS and the Rust section command goes (owner, 2026-11-06). Owner, 2026-11-12: run order X7; this Issue is blocked by 244.
 
 **Gate:** Both. Rust: `cargo test --manifest-path src-tauri/Cargo.toml`, then `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings` (the CI command; it catches the imports the removal leaves unused), run from the checkout or worktree root. Frontend: `pnpm check` + `pnpm vitest run`. E2E: `bash scripts/e2e.sh e2e/specs/tasks-view.spec.ts` because the e2e mock changes. relay-lite's configured checks do not run e2e: the build step runs this spec before its last commit and reports its pass count, and the reviewer runs it again as a probe and cites the result. Do not run the whole e2e suite. Targeted checks also include `src/tests/lib/contracts/` (`ipc-parity.test.ts`, `ipc.test.ts`) and `src/tests/lib/architecture/` (`ipc-mirrors`, `layer-rules`, `feature-cycle`, `pure-logic`).
 
-- [ ] Failing check first: delete the two `commands.ts` entries before the Rust registration and run `pnpm vitest run src/tests/lib/contracts/ipc-parity.test.ts`; it fails while Rust still registers the command, and passes once `lib.rs` is edited. Record both runs in the commit body. Removal only: no new behavior test is meaningful.
-- [ ] After the change, `grep -rnE "get_tasks_in_section|tasks_in_section|section_task_candidates|SectionTaskCandidate|extract_tasks_from_section|getTasksInSection|fileTaskGroups|setFileTaskGroups" src src-tauri/src src-tauri/tests e2e docs` prints nothing (explicit directories only: never pass `src-tauri` whole, it holds `target`). `grep -rn "tasks.types.ts::FileTaskGroup" src src-tauri/src` prints nothing. `fromV2` still matches `collection.service.ts` and `kbapi-firewall.test.ts` only.
-- [ ] `cargo test` and clippy pass. The only Rust tests removed are the ones that call the removed functions; no test outside the list above changed.
-- [ ] `ipc-mirrors.test.ts` passes with the synthetic allowlist test, `ipc.test.ts` has the `toggle_task_status` case, and `pnpm check` passes with the typed command map and the e2e `HANDLERS`.
-- [ ] The regenerated `src/lib/contracts/generated/FileTaskGroup.ts` is committed.
-- [ ] The e2e Tasks spec passes.
+- [x] Failing check first: delete the two `commands.ts` entries before the Rust registration and run `pnpm vitest run src/tests/lib/contracts/ipc-parity.test.ts`; it fails while Rust still registers the command, and passes once `lib.rs` is edited. Record both runs in the commit body. Removal only: no new behavior test is meaningful.
+- [x] After the change, `grep -rnE "get_tasks_in_section|tasks_in_section|section_task_candidates|SectionTaskCandidate|extract_tasks_from_section|getTasksInSection|fileTaskGroups|setFileTaskGroups" src src-tauri/src src-tauri/tests e2e docs` prints nothing (explicit directories only: never pass `src-tauri` whole, it holds `target`). `grep -rn "tasks.types.ts::FileTaskGroup" src src-tauri/src` prints nothing. `fromV2` still matches `collection.service.ts` and `kbapi-firewall.test.ts` only.
+- [x] `cargo test` and clippy pass. The only Rust tests removed are the ones that call the removed functions; no test outside the list above changed.
+- [x] `ipc-mirrors.test.ts` passes with the synthetic allowlist test, `ipc.test.ts` has the `toggle_task_status` case, and `pnpm check` passes with the typed command map and the e2e `HANDLERS`.
+- [x] The regenerated `src/lib/contracts/generated/FileTaskGroup.ts` is committed.
+- [x] The e2e Tasks spec passes.
 
 ## Notes
 
@@ -50,3 +50,4 @@
 - 2026-11-12: consistency review: added the note that 121, 116 and 129 all wait only on 244 (116 also on 243) and share the tasks service and store, so they launch one at a time.
 
 - 2026-11-12: main session, after the consistency review: blocked by 245 instead of 244, so 116, 245 and 121, which share the tasks service, store and store test, run one after the other. 245 comes after 244.
+- 2026-11-12: delivered from `issue/121-remove-tasks-in-section-command`. Removed the `get_tasks_in_section_v2` command (IPC registration, `CommandMap`/`COMMAND_ARGS` entries, Rust `tasks_in_section`/`section_task_candidates`/`extract_tasks_from_section(s)` and their tests, the disk re-read), the store's `fileTaskGroups` and the TS `FileTaskGroup`, with the regenerated binding committed and docs updated. Tests: full vitest suite 631 files, 16342 passed, 54 skipped (first run had one unrelated timing failure in `AutoOrganizeRuleRow.test.ts`, which passed alone 91/91 and in the second full run); review ran `cargo test` (1452 passed), clippy, `pnpm check` and the e2e Tasks spec (14 passed). Review round 1: APPROVED with three nits; the stale lines in `docs/architecture/modules/src/lib/features/tasks.md` from Issues 244 to 246 need a follow-up Issue. `feature/ios-poc` still dispatches `get_tasks_in_section_v2` (`remote/dispatch.rs`, `remote/policy.rs`, `tests/remote_ws_test.rs`, `fake-host.ts`): that branch must drop it when it rebases onto main.

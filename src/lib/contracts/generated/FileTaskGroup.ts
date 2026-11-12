@@ -2,8 +2,7 @@
 import type { Task } from "./Task.js";
 
 /**
- * One file's worth of tasks, as returned by
- * `VaultIndex::lookup_all_tasks`. Mirrors `tasks.types.ts::FileTaskGroup`.
+ * One file's worth of tasks, as returned by `VaultIndex::lookup_all_tasks`.
  */
 export type FileTaskGroup = { 
 /**
