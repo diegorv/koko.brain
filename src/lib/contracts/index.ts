@@ -29,6 +29,7 @@ export type { SemanticStats } from './generated/SemanticStats.js';
 export type { SnapshotInfo } from './generated/SnapshotInfo.js';
 export type { TagAggregate } from './generated/TagAggregate.js';
 export type { Task } from './generated/Task.js';
+export type { TaskHeading } from './generated/TaskHeading.js';
 export type { TaskHeadingRename } from './generated/TaskHeadingRename.js';
 export type { TaskLineEdits } from './generated/TaskLineEdits.js';
 export type { TaskLineInsert } from './generated/TaskLineInsert.js';

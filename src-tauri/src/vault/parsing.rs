@@ -15,7 +15,9 @@
 use crate::utils::logger::debug_log;
 use crate::vault::aliases::canonicalize_key;
 use crate::vault::entry::WikiLink;
-use crate::vault::task::{RecurrenceRule, Task, TaskMetadata, TaskPriority, TaskStatus};
+use crate::vault::task::{
+	RecurrenceRule, Task, TaskHeading, TaskMetadata, TaskPriority, TaskStatus,
+};
 use regex::Regex;
 use serde_json::{Number, Value as JsonValue};
 use std::collections::{BTreeMap, HashMap};
@@ -1436,7 +1438,8 @@ static ORDERED_TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Regex for a markdown heading line. Group 1 is the `#` run (its length is
 /// the heading level), group 2 the heading text. Used by
-/// `extract_tasks_from_sections` to find section boundaries, and by
+/// `extract_tasks_from_sections` to find section boundaries, by
+/// `extract_tasks_and_headings` to record a note's headings, and by
 /// `task_lines` to find the heading an insert goes under.
 pub(crate) static HEADING_RE: LazyLock<Regex> =
 	LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.*)$").expect("HEADING_RE"));
@@ -1651,6 +1654,7 @@ pub(crate) fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 			line_number,
 			status: map_checkbox_char(check_char),
 			metadata: parse_task_metadata(raw_text),
+			heading: None,
 		});
 	}
 	if let Some(caps) = ORDERED_TASK_RE.captures(line) {
@@ -1668,6 +1672,7 @@ pub(crate) fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 			line_number,
 			status: map_checkbox_char(check_char),
 			metadata: parse_task_metadata(raw_text),
+			heading: None,
 		});
 	}
 	None
@@ -1690,7 +1695,24 @@ pub(crate) fn detect_code_fence(line: &str) -> Option<&str> {
 /// Extracts every task list item from `content` in document order. Skips
 /// lines inside fenced code blocks. Line numbers are 1-based.
 pub fn extract_tasks(content: &str) -> Vec<Task> {
-	let mut out: Vec<Task> = Vec::new();
+	extract_tasks_and_headings(content).0
+}
+
+/// Extracts the tasks as `extract_tasks` does, plus the note's headings in
+/// the same pass, and points each task's `heading` at the nearest heading
+/// above it. Headings inside fenced code or the frontmatter block are not
+/// recorded (a YAML comment `# note` would match `HEADING_RE`). The
+/// frontmatter is skipped by line count, so `TaskHeading.line` is a line of
+/// the whole file like `Task.line_number`. A note without tasks gets no
+/// headings.
+pub fn extract_tasks_and_headings(content: &str) -> (Vec<Task>, Vec<TaskHeading>) {
+	// Index of the first line after the closing `---`. The closing line
+	// itself (whatever follows the `---` on it) is part of the frontmatter.
+	let body_start_line = frontmatter_range(content)
+		.map(|(_, end)| content[..end].matches('\n').count() + 1)
+		.unwrap_or(0);
+	let mut tasks: Vec<Task> = Vec::new();
+	let mut headings: Vec<TaskHeading> = Vec::new();
 	let mut in_code_block = false;
 	let mut fence_char: Option<&str> = None;
 	for (i, line) in content.split('\n').enumerate() {
@@ -1707,11 +1729,25 @@ pub fn extract_tasks(content: &str) -> Vec<Task> {
 		if in_code_block {
 			continue;
 		}
-		if let Some(task) = parse_task_line(line, i + 1) {
-			out.push(task);
+		if i >= body_start_line {
+			if let Some(caps) = HEADING_RE.captures(line) {
+				headings.push(TaskHeading {
+					level: caps[1].len() as u8,
+					text: caps[2].trim().to_string(),
+					line: (i + 1) as u32,
+				});
+				continue;
+			}
+		}
+		if let Some(mut task) = parse_task_line(line, i + 1) {
+			task.heading = headings.len().checked_sub(1).map(|h| h as u32);
+			tasks.push(task);
 		}
 	}
-	out
+	if tasks.is_empty() {
+		headings.clear();
+	}
+	(tasks, headings)
 }
 
 /// Extracts tasks only from sections whose heading text contains

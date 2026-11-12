@@ -11,10 +11,10 @@
 
 use crate::utils::fs::is_view_filename;
 use crate::vault::parsing::{
-	extract_outgoing_links, extract_tags_strict, extract_tasks, normalize_type_casing,
-	parse_frontmatter, parse_frontmatter_raw_yaml, strip_frontmatter,
+	extract_outgoing_links, extract_tags_strict, extract_tasks_and_headings,
+	normalize_type_casing, parse_frontmatter, parse_frontmatter_raw_yaml, strip_frontmatter,
 };
-use crate::vault::task::Task;
+use crate::vault::task::{Task, TaskHeading};
 use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 use std::collections::BTreeMap;
@@ -182,9 +182,14 @@ pub struct NoteEntry {
 	/// the file.
 	pub snippet: String,
 	/// Markdown task list items in document order. Phase 7 — populated by
-	/// `vault::parsing::extract_tasks` at construction time. Empty Vec when
+	/// `vault::parsing::extract_tasks_and_headings` at construction time. Empty Vec when
 	/// the note has no tasks.
 	pub tasks: Vec<Task>,
+	/// The note's headings in document order, outside frontmatter and fenced
+	/// code, which `Task.heading` indexes into. Empty when the note has no
+	/// tasks, and then omitted on the wire.
+	#[serde(default, skip_serializing_if = "Vec::is_empty")]
+	pub task_headings: Vec<TaskHeading>,
 	/// Document type from the `_type` frontmatter key (after alias resolution;
 	/// the bare `type` spelling resolves to `_type`).
 	/// Casing normalized: first letter uppercase, rest preserved.
@@ -246,7 +251,7 @@ impl NoteEntry {
 		let frontmatter = parse_frontmatter(content);
 		let outgoing_links = extract_outgoing_links(content);
 		let tags = extract_tags_strict(content);
-		let tasks = extract_tasks(content);
+		let (tasks, task_headings) = extract_tasks_and_headings(content);
 		let is_a = extract_is_a(&frontmatter);
 		let organized = frontmatter
 			.get("_organized")
@@ -273,6 +278,7 @@ impl NoteEntry {
 			word_count,
 			snippet,
 			tasks,
+			task_headings,
 			is_a,
 			organized,
 			archived,
@@ -565,6 +571,7 @@ mod tests {
 			word_count: 215,
 			snippet: "This is the first paragraph.".to_string(),
 			tasks: Vec::new(),
+			task_headings: vec![TaskHeading { level: 2, text: "A".to_string(), line: 3 }],
 			is_a: None,
 			organized: false,
 			archived: false,
@@ -591,6 +598,7 @@ mod tests {
 			"wordCount",
 			"snippet",
 			"tasks",
+			"taskHeadings",
 			"isA",
 			"organized",
 			"archived",
@@ -662,7 +670,8 @@ mod tests {
 			size: 100,
 			word_count: 10,
 			snippet: "snip".to_string(),
-			tasks: Vec::new(),
+			tasks: vec![Task { text: "t".to_string(), heading: Some(0), ..Default::default() }],
+			task_headings: vec![TaskHeading { level: 1, text: "H".to_string(), line: 1 }],
 			is_a: None,
 			organized: false,
 			archived: false,

@@ -32,4 +32,9 @@ status: TaskStatus,
 /**
  * Structured metadata extracted from emoji signifiers in `text`.
  */
-metadata: TaskMetadata, };
+metadata: TaskMetadata, 
+/**
+ * Index into the note's `NoteEntry.task_headings` of the nearest heading
+ * above the task. Absent when the task sits before the first heading.
+ */
+heading?: number, };

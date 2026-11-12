@@ -28,6 +28,7 @@ export type {
 	RecurrenceRule as RecurrenceRuleV2,
 	TaskMetadata as TaskMetadataV2,
 	Task as TaskV2,
+	TaskHeading as TaskHeadingV2,
 	TagAggregate as TagAggregateV2,
 	FileTaskGroup as FileTaskGroupV2,
 	ToggleTaskResult as ToggleTaskResultV2,

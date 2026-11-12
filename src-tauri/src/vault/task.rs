@@ -32,6 +32,27 @@ pub struct Task {
 	pub status: TaskStatus,
 	/// Structured metadata extracted from emoji signifiers in `text`.
 	pub metadata: TaskMetadata,
+	/// Index into the note's `NoteEntry.task_headings` of the nearest heading
+	/// above the task. Absent when the task sits before the first heading.
+	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
+	pub heading: Option<u32>,
+}
+
+/// One markdown heading of a note that has tasks, as stored in
+/// `NoteEntry.task_headings`. A task's ancestors follow from the levels of
+/// the headings before the one `Task.heading` points at.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskHeading {
+	/// Number of `#` characters, 1 to 6.
+	pub level: u8,
+	/// Heading text without the `#` run, trimmed.
+	pub text: String,
+	/// 1-based line number within the whole file, frontmatter included, like
+	/// `Task.line_number`.
+	pub line: u32,
 }
 
 /// Task status parsed from the checkbox character. Mirrors

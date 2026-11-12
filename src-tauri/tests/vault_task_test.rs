@@ -5,10 +5,77 @@
 //! live inline in `src/vault/parsing.rs`.
 
 use kokobrain_lib::commands::vault::{toggle_task_status_inner, update_note_in_index_inner};
+use kokobrain_lib::vault::entry::NoteEntry;
 use kokobrain_lib::vault::index::VaultIndex;
-use kokobrain_lib::vault::task::{Task, TaskMetadata, TaskPriority, TaskStatus};
+use kokobrain_lib::vault::task::{Task, TaskHeading, TaskMetadata, TaskPriority, TaskStatus};
 use std::sync::{Arc, Barrier};
 use std::thread;
+
+// --- Task headings recorded at index time -------------------------------------
+
+/// Shorthand for an expected `TaskHeading`.
+fn heading(level: u8, text: &str, line: u32) -> TaskHeading {
+	TaskHeading { level, text: text.to_string(), line }
+}
+
+/// Each task's (text, heading index), in document order.
+fn task_headings_of(entry: &NoteEntry) -> Vec<(&str, Option<u32>)> {
+	entry.tasks.iter().map(|t| (t.text.as_str(), t.heading)).collect()
+}
+
+#[test]
+fn task_headings_skip_frontmatter_and_fences() {
+	let content = "---\ntitle: x\n# comment\n---\n## A #to-list\n- [ ] a task\n### B\n- [ ] b task\n```\n# not a heading\n- [ ] fenced\n```\n## C\n- [ ] c task\n";
+	let entry = NoteEntry::from_content("/v/note.md".to_string(), content, 0);
+	assert_eq!(
+		entry.task_headings,
+		vec![heading(2, "A #to-list", 5), heading(3, "B", 7), heading(2, "C", 13)]
+	);
+	assert_eq!(
+		task_headings_of(&entry),
+		vec![("a task", Some(0)), ("b task", Some(1)), ("c task", Some(2))]
+	);
+	assert_eq!(entry.tasks.iter().map(|t| t.line_number).collect::<Vec<_>>(), vec![6, 8, 14]);
+}
+
+#[test]
+fn task_headings_are_empty_for_a_note_without_tasks() {
+	let entry = NoteEntry::from_content("/v/plain.md".to_string(), "# Title\n## Section\ntext\n", 0);
+	assert!(entry.tasks.is_empty());
+	assert!(entry.task_headings.is_empty());
+	let json = serde_json::to_value(&entry).unwrap();
+	assert!(json.get("taskHeadings").is_none(), "empty headings are omitted on the wire");
+}
+
+#[test]
+fn task_before_the_first_heading_has_no_heading() {
+	let content = "- [ ] early\n#  Spaced title  \n- [ ] late\n";
+	let entry = NoteEntry::from_content("/v/early.md".to_string(), content, 0);
+	assert_eq!(entry.task_headings, vec![heading(1, "Spaced title", 2)]);
+	assert_eq!(task_headings_of(&entry), vec![("early", None), ("late", Some(0))]);
+	let json = serde_json::to_value(&entry).unwrap();
+	assert!(json["tasks"][0].get("heading").is_none(), "a None heading is omitted on the wire");
+	assert_eq!(json["tasks"][1]["heading"], 0);
+	assert_eq!(json["taskHeadings"][0]["level"], 1);
+}
+
+#[test]
+fn task_headings_read_crlf_lines() {
+	let content = "---\r\na: 1\r\n---\r\n## A\r\n- [ ] t\r\n";
+	let entry = NoteEntry::from_content("/v/crlf.md".to_string(), content, 0);
+	assert_eq!(entry.task_headings, vec![heading(2, "A", 4)]);
+	assert_eq!(entry.tasks.iter().map(|t| t.heading).collect::<Vec<_>>(), vec![Some(0)]);
+}
+
+#[test]
+fn entry_json_without_heading_fields_deserializes() {
+	let entry = NoteEntry::from_content("/v/old.md".to_string(), "- [ ] t\n", 0);
+	let mut json = serde_json::to_value(&entry).unwrap();
+	json.as_object_mut().unwrap().remove("taskHeadings");
+	let back: NoteEntry = serde_json::from_value(json).unwrap();
+	assert!(back.task_headings.is_empty());
+	assert_eq!(back.tasks[0].heading, None);
+}
 
 // --- Audit finding #9 — toggle_task_status FS-level TOCTOU --------------------
 //
@@ -333,8 +400,10 @@ fn task_serializes_camel_case_field_names() {
 		line_number: 7,
 		status: TaskStatus::Done,
 		metadata: TaskMetadata::default(),
+		heading: Some(3),
 	};
 	let json = serde_json::to_value(&task).unwrap();
+	assert_eq!(json["heading"], 3);
 	assert_eq!(json["lineNumber"], 7, "line_number must serialize as lineNumber");
 	assert!(
 		json.get("line_number").is_none(),

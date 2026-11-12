@@ -988,6 +988,7 @@ fn entry_with_tasks(path: &str, modified_at: i64, task_count: usize) -> NoteEntr
 			line_number: i + 1,
 			status: TaskStatus::Todo,
 			metadata: TaskMetadata::default(),
+			heading: None,
 		})
 		.collect();
 	NoteEntry {
@@ -1136,6 +1137,16 @@ fn lookup_all_tasks_filters_empty_and_sorts_by_mtime_desc() {
 	assert_eq!(groups.len(), 3, "b.md (no tasks) should be filtered");
 	let order: Vec<i64> = groups.iter().map(|g| g.modified_at).collect();
 	assert_eq!(order, vec![300, 200, 100]); // descending
+}
+
+#[test]
+fn lookup_all_tasks_carries_each_task_heading() {
+	let mut idx = VaultIndex::default();
+	let entry = NoteEntry::from_content("/v/h.md".to_string(), "- [ ] early\n## A\n- [ ] under a\n", 0);
+	idx.build(vec![entry]);
+	let groups = idx.lookup_all_tasks();
+	let headings: Vec<Option<u32>> = groups[0].tasks.iter().map(|t| t.heading).collect();
+	assert_eq!(headings, vec![None, Some(0)]);
 }
 
 // ---------- remove_entry ----------

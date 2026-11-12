@@ -24,6 +24,7 @@ import type {
 	OutgoingLinkV2,
 	OutgoingUnlinkedMentionV2,
 	TaskV2,
+	TaskHeadingV2,
 	TaskStatusV2,
 	TagAggregateV2,
 	FileTaskGroupV2,
@@ -43,6 +44,8 @@ import { virtualFS } from './virtual-fs';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const TASK_LINE_RE = /^(\s*)[-*]\s+\[(.)\]\s+(.*)$/;
+/** Rust `HEADING_RE`; `[^\n]` because Rust's `.` matches a trailing `\r` and JS's does not. */
+const HEADING_LINE_RE = /^(#{1,6})\s+([^\n]*)$/;
 const SNIPPET_BYTE_LIMIT = 280;
 
 const STATUS_BY_CHAR: Record<string, TaskStatusV2> = {
@@ -154,22 +157,38 @@ const DUE_DATE_RE = /\u{1F4C5}\u{FE0F}?\s*(\d{4}-\d{2}-\d{2})/u;
 
 /**
  * Minimal task parser. The Rust source of truth lives in
- * `src-tauri/src/vault/parsing.rs::extract_tasks`; this covers checkbox
- * char, indent, lineNumber and the 📅 due date — enough for golden-path
- * tests.
+ * `src-tauri/src/vault/parsing.rs::extract_tasks_and_headings`; this covers
+ * checkbox char, indent, lineNumber and the 📅 due date — enough for
+ * golden-path tests — plus the note's headings and each task's `heading`
+ * with Rust's rules: no headings in fences or in the frontmatter block
+ * (skipped by line count, so lines stay whole-file lines), text trimmed,
+ * none for a note without tasks. `src/tests/e2e/task-headings-parity.test.ts`
+ * holds it to the fixture the Rust indexer is pinned to.
  */
-function parseTasks(content: string): TaskV2[] {
+function parseTasks(content: string): { tasks: TaskV2[]; taskHeadings: TaskHeadingV2[] } {
 	const tasks: TaskV2[] = [];
+	const taskHeadings: TaskHeadingV2[] = [];
 	const lines = content.split('\n');
-	let inFence = false;
+	const frontmatter = content.match(FRONTMATTER_RE);
+	const bodyStartLine = frontmatter ? frontmatter[0].split('\n').length : 0;
+	// Mirrors `detect_code_fence`: ``` or ~~~ after spaces/tabs; a fence closes only on its own marker.
+	let fence: string | null = null;
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		if (/^\s*```/.test(line)) {
-			inFence = !inFence;
+		const marker = line.match(/^[ \t]*(```|~~~)/)?.[1];
+		if (marker) {
+			if (fence === null) fence = marker;
+			else if (marker === fence) fence = null;
 			continue;
 		}
-		if (inFence) continue;
+		if (fence !== null) continue;
+
+		const h = i >= bodyStartLine ? line.match(HEADING_LINE_RE) : null;
+		if (h) {
+			taskHeadings.push({ level: h[1].length, text: h[2].trim(), line: i + 1 });
+			continue;
+		}
 
 		const m = line.match(TASK_LINE_RE);
 		if (!m) continue;
@@ -187,10 +206,11 @@ function parseTasks(content: string): TaskV2[] {
 				...(due ? { dueDate: due[1] } : {}),
 				tags: [],
 			},
+			...(taskHeadings.length > 0 ? { heading: taskHeadings.length - 1 } : {}),
 		});
 	}
 
-	return tasks;
+	return { tasks, taskHeadings: tasks.length > 0 ? taskHeadings : [] };
 }
 
 /**
@@ -287,7 +307,7 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 		position: wl.position,
 	}));
 	const tags = extractAllTags(content);
-	const tasks = parseTasks(content);
+	const { tasks, taskHeadings } = parseTasks(content);
 	const fm = parseFrontmatter(content);
 	const fsEntry = virtualFS.statRaw(path);
 
@@ -303,6 +323,8 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 		wordCount: wordCount(body),
 		snippet: bodySnippet(body),
 		tasks,
+		// Rust omits an empty `taskHeadings` on the wire.
+		...(taskHeadings.length > 0 ? { taskHeadings } : {}),
 		isA: extractIsA(fm),
 		// Rust: a YAML boolean `_organized` wins, anything else defaults to `true`.
 		organized: typeof fm['_organized'] === 'boolean' ? fm['_organized'] : true,
