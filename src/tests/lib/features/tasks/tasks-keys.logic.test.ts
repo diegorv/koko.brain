@@ -107,16 +107,29 @@ describe('tabStopRow', () => {
 		expect(tabStopRow(order, order, 'b')).toBe('b');
 	});
 
-	it('is the first rendered row when the current row is not rendered', () => {
+	it('is the first rendered row after a hidden current row, in order', () => {
 		expect(tabStopRow(['b', 'c'], order, 'a')).toBe('b');
+		expect(tabStopRow(['a', 'c'], order, 'b')).toBe('c');
+	});
+
+	it('is the last rendered row when no rendered row follows the hidden current row', () => {
+		expect(tabStopRow(['a', 'b'], order, 'c')).toBe('b');
+		expect(tabStopRow(['a'], order, 'b')).toBe('a');
 	});
 
 	it('is the first rendered row when there is no current row', () => {
 		expect(tabStopRow(order, order, null)).toBe('a');
+		expect(tabStopRow(['b', 'c'], order, null)).toBe('b');
+	});
+
+	it('is the first rendered row when the current row is in no group', () => {
+		expect(tabStopRow(['a', 'b'], ['a', 'b'], 'c')).toBe('a');
 	});
 
 	it('is null with nothing rendered', () => {
 		expect(tabStopRow([], order, 'a')).toBeNull();
+		expect(tabStopRow([], order, null)).toBeNull();
+		expect(tabStopRow([], [], 'z')).toBeNull();
 	});
 });
 

@@ -125,6 +125,8 @@ In a pane narrower than 560 px, the Status, Due, Priority and Tag menus fold int
 - **Click a checkbox** — toggles the task status in the actual file. The change is written directly to the `.md` file on disk, so you will see the update the next time you open that note. For a task synced with Todoist, the change goes out at the next interval or focus sync, or with **Todoist: Sync now**: a Tasks View click is not a note save, so it does not start the after-save sync.
 - **Click a task's text**: opens its note with the cursor on the task's line. Clicking the text never changes the task; only the checkbox does. Selecting part of the text to copy it does nothing.
 - **Click a note's title**: each note's header shows its icon, title, folder and how many of its tasks are open, for example "2 of 3 open" (every task of the note counts, whatever the filters hide). Clicking the title opens the note in the editor, and hovering over it shows when the note was last modified.
+- **Collapse a group**: the chevron at the start of each group's header (a note, a folder, a due date, a priority or a status) hides that group's tasks; its header and count stay. A collapsed group stays collapsed while you switch tabs and come back, but not across restarts, and each grouping keeps its own: collapsing Overdue under Due date leaves the Note grouping as it was.
+- **Long groups**: a group shows its first 50 tasks, then a **Show N more** button that shows the rest. The list goes back to 50 the next time the Tasks View opens.
 
 ### Keyboard
 
@@ -137,7 +139,7 @@ Only one task row is in the Tab order at a time. Opening the Tasks View puts foc
 | `Space` | Toggle the task, as a click on its checkbox does |
 | `Enter` | Open the note at the task's line, as a click on its text does |
 
-`Tab` from a task walks its checkbox and links, then goes on to the next note's title. When the focused task leaves the list (you completed it under the Open filter, or a refresh removed it), focus moves to the next task, or to the one before when it was the last. The place is kept when you switch tabs and come back.
+`Tab` from a task walks its checkbox and links, then goes on to the next group's chevron and the next note's title. When the focused task leaves the list (you completed it under the Open filter, or a refresh removed it), focus moves to the next task, or to the one before when it was the last. The place is kept when you switch tabs and come back. `Down` and `Up` skip the tasks of a collapsed group; when the task you were on is hidden by a collapse or by the 50-task limit, the next task shown takes its place in the Tab order, or the last one shown when none follows.
 
 In the Command Palette, **Tasks: Show all statuses** sets the Status filter to All, and **Tasks: Show open only** sets it back to Open; either one opens the Tasks View. `/` opens Search in the rail (the vault search), not the Tasks View's search box.
 

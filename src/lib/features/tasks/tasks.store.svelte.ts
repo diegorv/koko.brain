@@ -48,6 +48,12 @@ let scrollOffset = 0;
  * and remounts; null when no row was focused yet.
  */
 let currentRow = $state.raw<TaskRowRef | null>(null);
+/**
+ * The `collapseKey`s of the collapsed groups, kept across remounts and
+ * cleared by `reset()`. Replaced whole on every toggle: Svelte does not
+ * proxy a `Set`, so a mutation in place would not be seen.
+ */
+let collapsedGroups = $state.raw<ReadonlySet<string>>(new Set());
 
 /**
  * The rows the list shows, through the quick filters. The clock (today and
@@ -86,6 +92,8 @@ export const tasksStore = {
 	get scrollOffset() { return scrollOffset; },
 	/** The list's current row, or null */
 	get currentRow() { return currentRow; },
+	/** The `collapseKey`s of the collapsed groups */
+	get collapsedGroups() { return collapsedGroups; },
 
 	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
 	/** Replaces the rows. */
@@ -112,6 +120,12 @@ export const tasksStore = {
 		if (currentRow && currentRow.filePath === row.filePath && currentRow.lineNumber === row.lineNumber) return;
 		currentRow = { filePath: row.filePath, lineNumber: row.lineNumber };
 	},
+	/** Collapses the group with `collapseKey` `key`, or expands it when collapsed. */
+	toggleGroupCollapsed(key: string) {
+		const next = new Set(collapsedGroups);
+		if (!next.delete(key)) next.add(key);
+		collapsedGroups = next;
+	},
 
 	reset() {
 		fileTaskGroups = [];
@@ -125,5 +139,6 @@ export const tasksStore = {
 		error = null;
 		scrollOffset = 0;
 		currentRow = null;
+		collapsedGroups = new Set();
 	},
 };

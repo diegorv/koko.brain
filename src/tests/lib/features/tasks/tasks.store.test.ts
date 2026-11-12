@@ -175,6 +175,36 @@ describe('tasksStore', () => {
 		});
 	});
 
+	describe('collapsedGroups', () => {
+		it('is empty by default', () => {
+			expect(tasksStore.collapsedGroups.size).toBe(0);
+		});
+
+		it('toggleGroupCollapsed adds a key and a second call removes it, returning a new set each time', () => {
+			const before = tasksStore.collapsedGroups;
+			tasksStore.toggleGroupCollapsed('note:/vault/a.md');
+			const added = tasksStore.collapsedGroups;
+			expect(added).not.toBe(before);
+			expect([...added]).toEqual(['note:/vault/a.md']);
+			tasksStore.toggleGroupCollapsed('note:/vault/a.md');
+			expect(tasksStore.collapsedGroups).not.toBe(added);
+			expect(tasksStore.collapsedGroups.size).toBe(0);
+		});
+
+		it('keeps two keys independent', () => {
+			tasksStore.toggleGroupCollapsed('due:overdue');
+			tasksStore.toggleGroupCollapsed('note:/vault/a.md');
+			tasksStore.toggleGroupCollapsed('due:overdue');
+			expect([...tasksStore.collapsedGroups]).toEqual(['note:/vault/a.md']);
+		});
+
+		it('reset() clears it', () => {
+			tasksStore.toggleGroupCollapsed('folder:');
+			tasksStore.reset();
+			expect(tasksStore.collapsedGroups.size).toBe(0);
+		});
+	});
+
 	describe('grouping', () => {
 		beforeEach(() => {
 			vi.useFakeTimers({ toFake: ['Date'] });

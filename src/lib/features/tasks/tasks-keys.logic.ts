@@ -84,15 +84,25 @@ export function nextCurrentRow(order: string[], prevOrder: string[], current: st
 }
 
 /**
- * The row that holds the list's tab stop: `current` when it is rendered,
- * else the first rendered row, else null. The roving `tabindex`, focus on
- * open and the focus that follows a removed row all read this function.
+ * The row that holds the list's tab stop: `current` when it is rendered.
+ * When `current` is listed but not rendered (its group is collapsed, or it
+ * sits past the row cap), the first rendered row after it in `order`, else
+ * the last rendered row. With no current row, or one in no group, the first
+ * rendered row. Null when nothing is rendered. The roving `tabindex`, focus
+ * on open and the focus that follows a removed row all read this function.
  * @param rendered - the rows in the DOM, in display order
- * @param order - every row in display order (unused while `rendered` equals it)
+ * @param order - every row in display order, hidden ones included
  * @param current - the current row's key
  */
 export function tabStopRow(rendered: string[], order: string[], current: string | null): string | null {
-	void order;
-	if (current !== null && rendered.includes(current)) return current;
-	return rendered[0] ?? null;
+	if (rendered.length === 0) return null;
+	if (current === null) return rendered[0];
+	const shown = new Set(rendered);
+	if (shown.has(current)) return current;
+	const at = order.indexOf(current);
+	if (at < 0) return rendered[0];
+	for (let i = at + 1; i < order.length; i++) {
+		if (shown.has(order[i])) return order[i];
+	}
+	return rendered[rendered.length - 1];
 }

@@ -1,8 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
 	DEFAULT_QUICK,
+	GROUP_ROW_CAP,
 	applyQuickFilters,
 	buildTaskRows,
+	collapseKey,
 	describeTaskRule,
 	explainEmptyTasks,
 	DEFAULT_TASK_SORT,
@@ -429,6 +431,27 @@ describe('groupTaskRows', () => {
 			const [today] = groupTaskRows(orphan, 'due', SORT, TODAY);
 			expect(today.rows.map((r) => r.breadcrumb)).toEqual([undefined]);
 		});
+	});
+});
+
+describe('collapseKey', () => {
+	it('joins the grouping and the raw group key', () => {
+		expect(collapseKey('note', '/vault/A.md')).toBe('note:/vault/A.md');
+		expect(collapseKey('due', 'overdue')).toBe('due:overdue');
+	});
+
+	it('keys the vault-root folder as `folder:`', () => {
+		expect(collapseKey('folder', '')).toBe('folder:');
+	});
+
+	it('keeps the same raw key apart under two groupings', () => {
+		expect(collapseKey('due', 'none')).not.toBe(collapseKey('priority', 'none'));
+	});
+});
+
+describe('GROUP_ROW_CAP', () => {
+	it('is 50', () => {
+		expect(GROUP_ROW_CAP).toBe(50);
 	});
 });
 

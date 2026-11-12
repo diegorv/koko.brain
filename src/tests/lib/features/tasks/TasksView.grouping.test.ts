@@ -149,7 +149,10 @@ describe('TasksView: grouping', () => {
 		expect(groupRowTexts(groupEl('none')!)).toEqual(['Plan trip']);
 		for (const g of groupEls()) {
 			const header = g.querySelector('[data-task-group-label]')!.parentElement!;
-			expect(header.querySelector('svg')).toBeNull();
+			// No file icon: the header's only svg is the collapse chevron's.
+			const svgs = Array.from(header.querySelectorAll('svg'));
+			expect(svgs).toHaveLength(1);
+			expect(svgs[0].closest('[data-task-group-toggle]')).not.toBeNull();
 			expect(g.querySelector('[data-task-group-subtitle]')).toBeNull();
 			expect(g.querySelector('[role="list"]')?.getAttribute('aria-label')).toBe(
 				g.querySelector('[data-task-group-label]')?.textContent?.trim(),

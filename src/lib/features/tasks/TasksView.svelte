@@ -1,7 +1,8 @@
 <script lang="ts">
-	import { onDestroy, untrack, type Component } from 'svelte';
+	import { flushSync, onDestroy, untrack, type Component } from 'svelte';
 	import Calendar from '@lucide/svelte/icons/calendar';
 	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Circle from '@lucide/svelte/icons/circle';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import CircleArrowRight from '@lucide/svelte/icons/circle-arrow-right';
@@ -25,7 +26,9 @@
 	import { formatDate, formatNow } from '#lib/utils/date.js';
 	import { parseTaskTextSegments, parseSectionTags, taskChips, taskDisplayText, usesRawTaskText } from './tasks.logic';
 	import {
+		GROUP_ROW_CAP,
 		TASK_PRIORITIES,
+		collapseKey,
 		describeTaskRule,
 		explainEmptyTasks,
 		isQuickFieldDefault,
@@ -289,17 +292,43 @@
 	/** The element around all groups: the only place the row keys are handled. */
 	let listEl = $state<HTMLElement | null>(null);
 
-	/** Every listed row by its `taskRowKey`, in display (DOM) order. */
+	/** Every listed row by its `taskRowKey`, in display order. */
 	let rowsByKey = $derived(
 		new Map(groups.flatMap((group) => group.rows.map((row) => [taskRowKey(row.filePath, row.lineNumber), row] as const))),
 	);
-	/** Every row key in display order; the DOM renders all of them. */
+	/** Every row key in display order, the rows of collapsed groups and past the cap included. */
 	let order = $derived([...rowsByKey.keys()]);
 	let currentKey = $derived(
 		tasksStore.currentRow ? taskRowKey(tasksStore.currentRow.filePath, tasksStore.currentRow.lineNumber) : null,
 	);
+
+	/**
+	 * The `collapseKey`s of the groups whose `Show N more` was clicked. View
+	 * state, so every group is capped again when the view remounts.
+	 */
+	let revealedGroups = $state.raw<ReadonlySet<string>>(new Set());
+
+	/** Each group with its `collapseKey` and the rows it renders: none when collapsed, the first `GROUP_ROW_CAP` until revealed. */
+	let shownGroups = $derived(
+		groups.map((group) => {
+			const key = collapseKey(tasksStore.groupBy, group.key);
+			const collapsed = tasksStore.collapsedGroups.has(key);
+			const rows = collapsed ? [] : revealedGroups.has(key) ? group.rows : group.rows.slice(0, GROUP_ROW_CAP);
+			return { group, key, collapsed, rows, hidden: collapsed ? 0 : group.rows.length - rows.length };
+		}),
+	);
+	/** The row keys in the DOM, in display order. */
+	let rendered = $derived(shownGroups.flatMap((g) => g.rows.map((row) => taskRowKey(row.filePath, row.lineNumber))));
 	/** The row that holds the list's one tab stop; its controls are the only ones in the tab order. */
-	let tabStopKey = $derived(tabStopRow(order, order, currentKey));
+	let tabStopKey = $derived(tabStopRow(rendered, order, currentKey));
+
+	/** Shows all of a group's rows, then focuses the first one the cap hid, so a keyboard user keeps their place. */
+	function revealGroup(key: string, group: TaskGroup) {
+		revealedGroups = new Set(revealedGroups).add(key);
+		flushSync();
+		const first = group.rows[GROUP_ROW_CAP];
+		if (first) rowElement(taskRowKey(first.filePath, first.lineNumber))?.focus();
+	}
 
 	/** The rendered row element with `key`. Compared by value, so no selector escaping is needed. */
 	function rowElement(key: string | null): HTMLElement | undefined {
@@ -383,20 +412,23 @@
 			}
 			const row = chosen === null ? undefined : rowsByKey.get(chosen);
 			tasksStore.setCurrentRow(row ? { filePath: row.filePath, lineNumber: row.lineNumber } : null);
-			if (focusIsFree(false)) rowElement(tabStopRow(next, next, chosen))?.focus();
+			if (focusIsFree(false)) rowElement(tabStopRow(rendered, next, chosen))?.focus();
 		});
 	});
 
 	let focusOnOpenTried = false;
 
-	// Once per mount, the first time rows are rendered: focus the tab-stop
-	// row unless the user's focus is elsewhere (a text field, another pane,
-	// the palette). `preventScroll` leaves the scroll restore above in charge.
+	// Once per mount, the first time groups are rendered: focus the tab-stop
+	// row, or the first group's chevron when every row is hidden, unless the
+	// user's focus is elsewhere (a text field, another pane, the palette).
+	// `preventScroll` leaves the scroll restore above in charge.
 	$effect(() => {
 		if (focusOnOpenTried || order.length === 0 || !listEl) return;
 		focusOnOpenTried = true;
 		untrack(() => {
-			if (focusIsFree(true)) rowElement(tabStopKey)?.focus({ preventScroll: true });
+			if (!focusIsFree(true)) return;
+			const target = rowElement(tabStopKey) ?? listEl?.querySelector<HTMLElement>('[data-task-group-toggle]');
+			target?.focus({ preventScroll: true });
 		});
 	});
 
@@ -482,13 +514,28 @@
 	{/each}
 {/snippet}
 
-<!-- One group's header. A Note group shows the note (icon, title, folder, "N of M open"); any other shows its label and row count. -->
-{#snippet groupHeader(group: TaskGroup)}
+<!-- A group's collapse chevron. A click never focuses it in WebKit, and collapsing never moves focus by code. -->
+{#snippet groupToggle(group: TaskGroup, key: string, collapsed: boolean, extraClass: string)}
+	<button
+		type="button"
+		data-task-group-toggle
+		class="flex shrink-0 cursor-pointer items-center rounded-sm text-muted-foreground hover:bg-accent outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 {extraClass}"
+		aria-label={collapsed ? `Expand ${group.label}` : `Collapse ${group.label}`}
+		aria-expanded={!collapsed}
+		onclick={() => tasksStore.toggleGroupCollapsed(key)}
+	>
+		<ChevronRight class="size-3.5 transition-transform {collapsed ? '' : 'rotate-90'}" />
+	</button>
+{/snippet}
+
+<!-- One group's header, after its chevron. A Note group shows the note (icon, title, folder, "N of M open"); any other shows its label and row count. -->
+{#snippet groupHeader(group: TaskGroup, key: string, collapsed: boolean)}
 	{#if group.filePath !== undefined}
 		{@const filePath = group.filePath}
 		{@const resolved = resolveIconForPath(filePath)}
 		<!-- File header. The icon sits outside the button so an emoji stays out of its name. -->
 		<div class="flex items-start gap-2 mb-2">
+			{@render groupToggle(group, key, collapsed, 'h-5')}
 			<span class="flex h-5 shrink-0 items-center">
 				{#if resolved?.icon}
 					<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
@@ -515,6 +562,7 @@
 		</div>
 	{:else}
 		<div class="flex items-baseline gap-2 mb-2">
+			{@render groupToggle(group, key, collapsed, 'self-center')}
 			<span data-task-group-label class="text-sm font-medium text-foreground">{group.label}</span>
 			<span data-task-group-count class="text-xs text-muted-foreground">{group.count}</span>
 		</div>
@@ -816,14 +864,27 @@
 					onkeydown={handleListKeydown}
 					onfocusin={handleListFocusin}
 				>
-					{#each groups as group (group.key)}
+					{#each shownGroups as { group, key, collapsed, rows, hidden } (group.key)}
 						<div data-task-group data-task-group-key={group.key}>
-							{@render groupHeader(group)}
-							<div class="space-y-1" role="list" aria-label={group.label}>
-								{#each group.rows as row (taskRowKey(row.filePath, row.lineNumber))}
-									{@render taskRow(row, group.filePath === undefined)}
-								{/each}
-							</div>
+							{@render groupHeader(group, key, collapsed)}
+							<!-- A collapsed group's rows leave the DOM, so the list's keys skip them. -->
+							{#if !collapsed}
+								<div class="space-y-1" role="list" aria-label={group.label}>
+									{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
+										{@render taskRow(row, group.filePath === undefined)}
+									{/each}
+								</div>
+								<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->
+								{#if hidden > 0}
+									<button
+										type="button"
+										class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+										onclick={() => revealGroup(key, group)}
+									>
+										Show {hidden} more
+									</button>
+								{/if}
+							{/if}
 						</div>
 					{/each}
 				</div>

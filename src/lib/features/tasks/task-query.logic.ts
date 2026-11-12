@@ -307,6 +307,18 @@ export function applyQuickFilters(rows: TaskRow[], quick: TaskQuickFilters, toda
 /** What the Tasks list groups its rows by (the Display menu's Group by). */
 export type TaskGroupKey = 'note' | 'folder' | 'due' | 'priority' | 'status';
 
+/** The most rows a group renders before its `Show N more` button (PRD A9). */
+export const GROUP_ROW_CAP = 50;
+
+/**
+ * The key a group's collapsed (or revealed) state is held under:
+ * `<groupBy>:<group key>`, so the same raw key under two groupings stays
+ * apart (`note:/vault/A.md`, `due:overdue`, `folder:` for the vault root).
+ */
+export function collapseKey(groupBy: TaskGroupKey, key: string): string {
+	return `${groupBy}:${key}`;
+}
+
 /** A key the rows of a group other than Note are sorted by. */
 export type TaskSortKey = 'due' | 'priority' | 'path';
 
