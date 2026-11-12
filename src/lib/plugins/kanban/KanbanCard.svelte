@@ -7,7 +7,7 @@
 	import Archive from '@lucide/svelte/icons/archive';
 	import Palette from '@lucide/svelte/icons/palette';
 	import type { KanbanItem } from './kanban.types';
-	import { extractCardDate, setCardDate, removeCardDate, getDateProximity, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, type DateProximity } from './kanban.logic';
+	import { extractCardDate, setCardDate, removeCardDate, cardProximity, PROXIMITY_CLASSES, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata } from './kanban.logic';
 	import { loadLinkedFileContent } from './kanban.service';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
@@ -111,18 +111,9 @@
 	let cardDate = $derived(extractCardDate(item.text));
 	let cardColor = $derived(extractCardColor(item.text));
 	let displayText = $derived(stripCardMetadata(item.text));
-	let dateProximity = $derived(getDateProximity(cardDate, formatNow('YYYY-MM-DD')));
+	let dateProximity = $derived(cardProximity(cardDate, formatNow('YYYY-MM-DD'), item.checked));
 
 	const COLOR_NAMES = ['blue', 'green', 'red', 'orange', 'purple', 'yellow', 'gray'] as const;
-
-	const PROXIMITY_BORDER: Record<DateProximity, string> = {
-		overdue: 'border-l-4 border-l-red-500',
-		today: 'border-l-4 border-l-yellow-500',
-		tomorrow: 'border-l-4 border-l-orange-400',
-		upcoming: 'border-l-4 border-l-blue-400',
-		future: '',
-		none: '',
-	};
 
 	function handleDateChange(newDate: string | null) {
 		if (newDate) {
@@ -164,7 +155,7 @@
 	<ContextMenu.Trigger>
 		{#snippet children()}
 			<div
-				class="group flex items-start gap-1.5 rounded-lg border border-border bg-background p-2 text-sm shadow-sm transition-colors hover:border-primary/30 {PROXIMITY_BORDER[dateProximity]} {isDragging ? 'opacity-50' : ''} {isFocused ? 'ring-2 ring-primary' : ''}"
+				class="group flex items-start gap-1.5 rounded-lg border border-border bg-background p-2 text-sm shadow-sm transition-colors hover:border-primary/30 {PROXIMITY_CLASSES[dateProximity].border} {isDragging ? 'opacity-50' : ''} {isFocused ? 'ring-2 ring-primary' : ''}"
 				style={cardColor ? `background: ${COLOR_PRESET_BG[cardColor]}` : ''}
 				draggable={!disableDrag}
 				ondragstart={disableDrag ? undefined : onDragStart}

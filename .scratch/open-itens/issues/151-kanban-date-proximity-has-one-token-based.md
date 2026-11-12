@@ -17,15 +17,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **First wave:** yes, added on 2026-11-06 because first-wave Issue 83 and 84 is blocked by it.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first, `src/tests/lib/plugins/kanban/kanban.logic.test.ts`: `cardProximity` returns `'none'` for a checked overdue card and `'overdue'` for the same card unchecked; `PROXIMITY_CLASSES` has an entry for every `DateProximity`, none of its strings matches a Tailwind palette class (`/-(red|orange|amber|yellow|green|blue|purple)-\d{2,3}\b/`), and each tone uses the token named above.
-- [ ] Failing first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (real stores): a board with a checked card dated yesterday renders that card without `border-l-destructive`, and an unchecked one with it.
-- [ ] Existing kanban tests stay green.
+- [x] Failing first, `src/tests/lib/plugins/kanban/kanban.logic.test.ts`: `cardProximity` returns `'none'` for a checked overdue card and `'overdue'` for the same card unchecked; `PROXIMITY_CLASSES` has an entry for every `DateProximity`, none of its strings matches a Tailwind palette class (`/-(red|orange|amber|yellow|green|blue|purple)-\d{2,3}\b/`), and each tone uses the token named above.
+- [x] Failing first, `src/tests/lib/plugins/kanban/KanbanView.test.ts` (real stores): a board with a checked card dated yesterday renders that card without `border-l-destructive`, and an unchecked one with it.
+- [x] Existing kanban tests stay green.
 
 ## Notes
 
@@ -40,3 +40,4 @@
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/47-kanban-proximity-token-map.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-06: cross-references updated to the audit numbers 83 and 84 after the order review.
+- 2026-11-12: delivered on branch issue/151-kanban-date-proximity-has-one-token-based. One token-based PROXIMITY_CLASSES map and cardProximity in kanban.logic.ts; checked cards get no proximity styling. Full suite: 618 files, 15766 passed, 54 skipped, 1 todo. Review round 1: APPROVED (no findings).

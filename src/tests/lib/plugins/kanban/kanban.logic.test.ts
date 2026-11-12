@@ -31,6 +31,9 @@ import {
 	setCardDate,
 	removeCardDate,
 	getDateProximity,
+	cardProximity,
+	PROXIMITY_CLASSES,
+	type DateProximity,
 	extractCardColor,
 	setCardColor,
 	removeCardColor,
@@ -1163,6 +1166,49 @@ describe('getDateProximity', () => {
 	it('returns future for 4+ days out', () => {
 		expect(getDateProximity('2025-06-19', todayStr)).toBe('future');
 		expect(getDateProximity('2025-12-25', todayStr)).toBe('future');
+	});
+});
+
+// ── cardProximity / PROXIMITY_CLASSES ──────────────────────────────
+
+describe('cardProximity', () => {
+	const todayStr = '2025-06-15';
+
+	it('returns none for a checked overdue card', () => {
+		expect(cardProximity('2025-06-14', todayStr, true)).toBe('none');
+	});
+
+	it('returns overdue for the same card unchecked', () => {
+		expect(cardProximity('2025-06-14', todayStr, false)).toBe('overdue');
+	});
+
+	it('returns none for an unchecked card with no date', () => {
+		expect(cardProximity(null, todayStr, false)).toBe('none');
+	});
+});
+
+describe('PROXIMITY_CLASSES', () => {
+	const ALL: DateProximity[] = ['overdue', 'today', 'tomorrow', 'upcoming', 'future', 'none'];
+
+	it('has an entry for every DateProximity', () => {
+		expect(Object.keys(PROXIMITY_CLASSES).sort()).toEqual([...ALL].sort());
+	});
+
+	it('uses no Tailwind palette class', () => {
+		const palette = /-(red|orange|amber|yellow|green|blue|purple)-\d{2,3}\b/;
+		for (const tone of ALL) {
+			expect(PROXIMITY_CLASSES[tone].badge).not.toMatch(palette);
+			expect(PROXIMITY_CLASSES[tone].border).not.toMatch(palette);
+		}
+	});
+
+	it('maps each tone to its theme token', () => {
+		expect(PROXIMITY_CLASSES.overdue).toEqual({ badge: 'bg-destructive/15 text-destructive', border: 'border-l-4 border-l-destructive' });
+		expect(PROXIMITY_CLASSES.today).toEqual({ badge: 'bg-warning/15 text-warning', border: 'border-l-4 border-l-warning' });
+		expect(PROXIMITY_CLASSES.tomorrow).toEqual({ badge: 'bg-type-orange/15 text-type-orange', border: 'border-l-4 border-l-type-orange' });
+		expect(PROXIMITY_CLASSES.upcoming).toEqual({ badge: 'bg-type-blue/15 text-type-blue', border: 'border-l-4 border-l-type-blue' });
+		expect(PROXIMITY_CLASSES.future).toEqual({ badge: 'bg-muted text-muted-foreground', border: '' });
+		expect(PROXIMITY_CLASSES.none).toEqual({ badge: 'bg-muted text-muted-foreground', border: '' });
 	});
 });
 

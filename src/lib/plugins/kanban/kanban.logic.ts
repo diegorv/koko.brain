@@ -700,6 +700,33 @@ export function getDateProximity(dateStr: string | null, todayStr: string): Date
 	return 'future';
 }
 
+/** Tailwind classes for one proximity tone, built on theme tokens so they follow light and dark themes. */
+export interface ProximityClasses {
+	/** Classes for the date badge (background and text) */
+	badge: string;
+	/** Classes for the card's left border; empty when the tone has no border */
+	border: string;
+}
+
+/** The single proximity style map shared by the board card, date picker, list and table views. */
+export const PROXIMITY_CLASSES: Record<DateProximity, ProximityClasses> = {
+	overdue: { badge: 'bg-destructive/15 text-destructive', border: 'border-l-4 border-l-destructive' },
+	today: { badge: 'bg-warning/15 text-warning', border: 'border-l-4 border-l-warning' },
+	tomorrow: { badge: 'bg-type-orange/15 text-type-orange', border: 'border-l-4 border-l-type-orange' },
+	upcoming: { badge: 'bg-type-blue/15 text-type-blue', border: 'border-l-4 border-l-type-blue' },
+	future: { badge: 'bg-muted text-muted-foreground', border: '' },
+	none: { badge: 'bg-muted text-muted-foreground', border: '' },
+};
+
+/**
+ * Proximity tone for a card: a checked (done) card shows no tone, so a completed
+ * overdue card does not keep the overdue border and badge. Dates are YYYY-MM-DD.
+ */
+export function cardProximity(dateStr: string | null, todayStr: string, checked: boolean): DateProximity {
+	if (checked) return 'none';
+	return getDateProximity(dateStr, todayStr);
+}
+
 // ── Card color extraction/manipulation ───────────────────────────────
 
 /** Extracts a color name from card text (format: {color:name}). Returns null if none found. */

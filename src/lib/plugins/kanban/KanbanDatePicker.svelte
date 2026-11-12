@@ -4,7 +4,7 @@
 	import { Calendar as CalendarPrimitive, Popover as PopoverPrimitive } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 
-	import type { DateProximity } from './kanban.logic';
+	import { PROXIMITY_CLASSES, type DateProximity } from './kanban.logic';
 
 	interface Props {
 		/** Current date string in YYYY-MM-DD format, or null */
@@ -16,15 +16,6 @@
 	}
 
 	let { date, proximity = 'none', onDateChange }: Props = $props();
-
-	const PROXIMITY_BADGE: Record<DateProximity, string> = {
-		overdue: 'bg-red-500/15 text-red-400',
-		today: 'bg-yellow-500/15 text-yellow-400',
-		tomorrow: 'bg-orange-400/15 text-orange-400',
-		upcoming: 'bg-blue-400/15 text-blue-400',
-		future: 'bg-muted text-muted-foreground',
-		none: 'bg-muted text-muted-foreground',
-	};
 
 	let open = $state(false);
 
@@ -64,7 +55,7 @@
 			<PopoverPrimitive.Trigger>
 				{#snippet children()}
 					<button
-						class="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs transition-colors {PROXIMITY_BADGE[proximity]}"
+						class="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs transition-colors {PROXIMITY_CLASSES[proximity].badge}"
 						type="button"
 					>
 						<CalendarIcon class="size-3" />
