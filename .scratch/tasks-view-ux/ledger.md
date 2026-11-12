@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | done | issue/108-mounted-list-and-rule-sentence (1a9e9eeaf) | 2026-11-12 |
 | 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | done | issue/109-row-chips (89196031e) | 2026-11-12 |
 | 110 | [Open means not done and not cancelled, and each status has its own glyph](issues/110-open-closed-rule.md) | 242 | done | issue/110-open-closed-rule (e420d69e2) | 2026-11-12 |
-| 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | todo | | |
+| 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | in-progress | | |
 | 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | todo | | |
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | todo | | |
 | 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | done | issue/115-fetch-from-entries-snapshot (115d8d576) | 2026-11-12 |
@@ -71,7 +71,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | todo | | |
 | 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | todo | | |
 | 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | todo | | |
-| 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | todo | | |
+| 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | in-progress | | |
 
 ## Log
 
@@ -97,3 +97,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:56 — 115 — start — launched by /relay-lite:run, side track beside 109 — f0f868d1b
 - 2026-11-12 12:10 — 109 — deliver — round 1 APPROVED by claude (fix round: the whole text-and-chips wrapper opens the note; commit line ranges), deliver re-review APPROVED by claude; full suite 618 files / 15787 tests passed on run 2 (run 1: AutoOrganizeRuleRow waitFor timeout, passes alone); chip look not checked by eye; squash merged and pushed — 89196031e
 - 2026-11-12 12:10 — 115 — deliver — round 1 APPROVED by claude with a fix round, deliver re-review APPROVED by claude; full suite 619 files / 15803 tests passed on run 2 (run 1: AutoOrganizeRuleRow waitFor timeout, passes alone); squash merged and pushed — 115d8d576
+- 2026-11-12 12:10 — 111 — start — launched by /relay-lite:run — 61558f7f6
+- 2026-11-12 12:10 — 248 — start — launched by /relay-lite:run, side track beside 111 — 61558f7f6
