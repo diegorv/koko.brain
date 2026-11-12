@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | done | issue/113-keyboard-and-a11y (16c5d8b73) | 2026-11-12 |
 | 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | done | issue/115-fetch-from-entries-snapshot (115d8d576) | 2026-11-12 |
 | 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | done | issue/116-sources-panel-and-excludes (4268ffc27) | 2026-11-12 |
-| 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | in-progress | | |
+| 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | done | issue/117-property-clause-and-group-actions (2f85150c1) | 2026-11-12 |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | todo | | |
 | 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | todo | | |
 | 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | none | wontfix | | |
@@ -126,3 +126,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 17:52 — 246 — deliver — round 1 APPROVED by claude with a fix round (menu close focus, refuse notes outside the vault before the dirty-tab save), deliver re-review APPROVED by claude; full suite 632 files / 16349 tests passed; squash merged and pushed — 5152ec83c
 - 2026-11-12 17:52 — 117 — start — launched by /relay-lite:run — 86d743b20
 - 2026-11-12 17:52 — 121 — start — launched by /relay-lite:run, beside 117 (cleanup, cargo) — 86d743b20
+- 2026-11-12 18:11 — 117 — deliver — round 1 APPROVED by claude with a fix round (help bullets, aria-labels on group actions), deliver re-review APPROVED by claude; full suite 632 files / 16381 tests passed on run 2 (run 1: AutoOrganizeRuleRow flake); hover reveal not checked by eye; squash merged and pushed — 2f85150c1
