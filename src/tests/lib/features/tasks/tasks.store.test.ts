@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
+import { DEFAULT_QUICK, buildTaskRows } from '#lib/features/tasks/task-query.logic.js';
+import { taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 
 describe('tasksStore', () => {
 	beforeEach(() => {
@@ -10,7 +12,9 @@ describe('tasksStore', () => {
 		expect(tasksStore.fileTaskGroups).toEqual([]);
 		expect(tasksStore.dateFilter).toBe('all');
 		expect(tasksStore.sectionTag).toBe('#to-list');
-		expect(tasksStore.hideCompleted).toBe(true);
+		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
+		expect(tasksStore.rows).toEqual([]);
+		expect(tasksStore.visibleRows).toEqual([]);
 		expect(tasksStore.isLoading).toBe(false);
 		expect(tasksStore.hasLoaded).toBe(false);
 	});
@@ -31,9 +35,63 @@ describe('tasksStore', () => {
 		expect(tasksStore.sectionTag).toBe('#work');
 	});
 
-	it('setHideCompleted updates hide state', () => {
-		tasksStore.setHideCompleted(false);
-		expect(tasksStore.hideCompleted).toBe(false);
+	it('setQuick merges into the quick filters', () => {
+		tasksStore.setQuick({ statuses: ['done'] });
+		expect(tasksStore.quick).toEqual({ show: 'open', statuses: ['done'] });
+		tasksStore.setQuick({ show: 'all' });
+		expect(tasksStore.quick).toEqual({ show: 'all', statuses: ['done'] });
+		tasksStore.setQuick({ statuses: undefined });
+		expect(tasksStore.quick).toEqual({ show: 'all' });
+	});
+
+	it('resetQuick gives DEFAULT_QUICK', () => {
+		tasksStore.setQuick({ show: 'closed', statuses: ['todo'] });
+		tasksStore.resetQuick();
+		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
+	});
+
+	it('setRows replaces the rows', () => {
+		const rows = buildTaskRows([{ ...taskGroupV2('/vault/a.md', [taskV2('x')]), modifiedAt: Date.now() }], '/vault');
+		tasksStore.setRows(rows);
+		expect(tasksStore.rows).toBe(rows);
+	});
+
+	describe('visibleRows', () => {
+		const DAY = 24 * 60 * 60 * 1000;
+		const rowsOf = () =>
+			buildTaskRows(
+				[
+					{ ...taskGroupV2('/vault/new.md', [taskV2('Ship', { lineNumber: 1 }), taskV2('Shipped', { status: 'done', lineNumber: 2 })]), modifiedAt: Date.now() - DAY },
+					{ ...taskGroupV2('/vault/old.md', [taskV2('Old', { lineNumber: 1 })]), modifiedAt: Date.now() - 10 * DAY },
+				],
+				'/vault',
+			);
+		const texts = () => tasksStore.visibleRows.map((r) => r.text);
+
+		it('follows a setRows change', () => {
+			expect(texts()).toEqual([]);
+			tasksStore.setRows(rowsOf());
+			expect(texts()).toEqual(['Ship', 'Old']);
+			tasksStore.setRows([]);
+			expect(texts()).toEqual([]);
+		});
+
+		it('follows a setQuick change', () => {
+			tasksStore.setRows(rowsOf());
+			tasksStore.setQuick({ show: 'closed' });
+			expect(texts()).toEqual(['Shipped']);
+			tasksStore.setQuick({ show: 'all' });
+			expect(texts()).toEqual(['Ship', 'Shipped', 'Old']);
+			expect(tasksStore.visibleRows.every((r) => !r.dimmed)).toBe(true);
+		});
+
+		it('follows a setDateFilter change', () => {
+			tasksStore.setRows(rowsOf());
+			tasksStore.setDateFilter('last7days');
+			expect(texts()).toEqual(['Ship']);
+			tasksStore.setDateFilter('last30days');
+			expect(texts()).toEqual(['Ship', 'Old']);
+		});
 	});
 
 	it('setLoading updates loading state', () => {
@@ -67,7 +125,8 @@ describe('tasksStore', () => {
 		tasksStore.setFileTaskGroups([{}] as any);
 		tasksStore.setDateFilter('last7days');
 		tasksStore.setSectionTag('#custom');
-		tasksStore.setHideCompleted(false);
+		tasksStore.setRows(buildTaskRows([taskGroupV2('/vault/a.md', [taskV2('x')])], '/vault'));
+		tasksStore.setQuick({ show: 'all', statuses: ['done'] });
 		tasksStore.setLoading(true);
 		tasksStore.setHasLoaded(true);
 		tasksStore.setError('failed');
@@ -78,7 +137,8 @@ describe('tasksStore', () => {
 		expect(tasksStore.fileTaskGroups).toEqual([]);
 		expect(tasksStore.dateFilter).toBe('all');
 		expect(tasksStore.sectionTag).toBe('#to-list');
-		expect(tasksStore.hideCompleted).toBe(true);
+		expect(tasksStore.rows).toEqual([]);
+		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		expect(tasksStore.isLoading).toBe(false);
 		expect(tasksStore.hasLoaded).toBe(false);
 		expect(tasksStore.error).toBeNull();

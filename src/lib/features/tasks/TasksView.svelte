@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onDestroy, untrack, type Component } from 'svelte';
 	import Calendar from '@lucide/svelte/icons/calendar';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
 	import Circle from '@lucide/svelte/icons/circle';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import CircleArrowRight from '@lucide/svelte/icons/circle-arrow-right';
@@ -8,11 +9,10 @@
 	import CircleDot from '@lucide/svelte/icons/circle-dot';
 	import CircleMinus from '@lucide/svelte/icons/circle-minus';
 	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
-	import Eye from '@lucide/svelte/icons/eye';
-	import EyeOff from '@lucide/svelte/icons/eye-off';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Hash from '@lucide/svelte/icons/hash';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -23,22 +23,19 @@
 	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { formatDate, formatNow } from '#lib/utils/date.js';
+	import { parseTaskTextSegments, parseSectionTags, taskChips, taskDisplayText, usesRawTaskText } from './tasks.logic';
 	import {
-		filterByDate,
-		filterCompleted,
-		computeTaskStats,
-		parseTaskTextSegments,
 		describeTaskRule,
 		explainEmptyTasks,
-		parseSectionTags,
-		noteFolder,
-		noteTaskCounts,
-		taskChips,
-		taskDisplayText,
-		usesRawTaskText,
+		rowsByNote,
+		statusFilterLabel,
+		taskCountText,
+		toggleQuickStatus,
 		type EmptyTasksExplanation,
-	} from './tasks.logic';
-	import { isTaskOpen, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
+		type TaskQuickFilters,
+	} from './task-query.logic';
+	import { TASK_STATUSES, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
+	import type { TaskStatus } from './task-metadata.types';
 	import type { TaskDateFilter, TaskItem } from './tasks.types';
 
 	interface Props {
@@ -62,6 +59,12 @@
 		{ label: 'All time', value: 'all' },
 		{ label: 'Last 7 days', value: 'last7days' },
 		{ label: 'Last 30 days', value: 'last30days' },
+	];
+
+	const SHOW_OPTIONS: { label: string; value: TaskQuickFilters['show'] }[] = [
+		{ label: 'Open', value: 'open' },
+		{ label: 'Closed', value: 'closed' },
+		{ label: 'All', value: 'all' },
 	];
 
 	/**
@@ -110,56 +113,54 @@
 		if (getTasksResetGeneration() === resetGenerationAtMount) void updateSectionTagFilter(debounce.value);
 	});
 
-	let filteredGroups = $derived.by(() => {
-		let groups = filterByDate(tasksStore.fileTaskGroups, tasksStore.dateFilter);
-		if (tasksStore.hideCompleted) {
-			groups = filterCompleted(groups);
-		}
-		return groups;
-	});
+	let notes = $derived(rowsByNote(tasksStore.visibleRows));
 
-	let stats = $derived(computeTaskStats(filteredGroups));
+	let countText = $derived(taskCountText(tasksStore.visibleRows, tasksStore.quick));
 
 	/**
 	 * Today as `YYYY-MM-DD`, for the overdue test and the chip year. Read again
 	 * on every refetch, so a view left open past midnight updates on the next one.
 	 */
 	let today = $derived.by(() => {
-		void tasksStore.fileTaskGroups;
+		void tasksStore.rows;
 		return formatNow('YYYY-MM-DD');
 	});
-
-	/**
-	 * Each note's counts before the view's own filters, by path: the groups in
-	 * `filteredGroups` are copies with the hidden tasks left out. Every group
-	 * there comes from `fileTaskGroups`, so each has an entry.
-	 */
-	let noteCounts = $derived(
-		new Map(tasksStore.fileTaskGroups.map((group) => [group.filePath, noteTaskCounts(group.tasks)])),
-	);
 
 	let ruleSentence = $derived(
 		describeTaskRule({
 			sectionTag: tasksStore.sectionTag,
-			hideCompleted: tasksStore.hideCompleted,
+			quick: tasksStore.quick,
 			dateFilter: tasksStore.dateFilter,
 		}),
 	);
 
 	let emptyExplanation = $derived(
-		filteredGroups.length === 0
+		notes.length === 0
 			? explainEmptyTasks({
-					groups: tasksStore.fileTaskGroups,
+					rows: tasksStore.rows,
 					sectionTag: tasksStore.sectionTag,
-					hideCompleted: tasksStore.hideCompleted,
+					quick: tasksStore.quick,
 					dateFilter: tasksStore.dateFilter,
+					now: Date.now(),
 				})
 			: null,
 	);
 
+	/** The checked Status radio: none while statuses are chosen, since they win over `show`. */
+	let showRadioValue = $derived(tasksStore.quick.statuses?.length ? '' : tasksStore.quick.show);
+
+	/** Sets `show` and clears the chosen statuses; bits-ui calls it on every pick, the checked radio included. */
+	function pickShow(value: string) {
+		tasksStore.setQuick({ show: value as TaskQuickFilters['show'], statuses: undefined });
+	}
+
+	function toggleStatus(status: TaskStatus) {
+		tasksStore.setQuick({ statuses: toggleQuickStatus(tasksStore.quick.statuses, status) });
+	}
+
 	function runEmptyAction(kind: NonNullable<EmptyTasksExplanation['action']>['kind']) {
 		if (kind === 'clearTag') clearSectionTag();
-		else if (kind === 'showCompleted') tasksStore.setHideCompleted(false);
+		else if (kind === 'showAllStatuses') tasksStore.setQuick({ show: 'all', statuses: undefined });
 		else tasksStore.setDateFilter('all');
 	}
 
@@ -204,7 +205,7 @@
 	// Once per mount, as soon as rows are on screen (effects run after the DOM update).
 	$effect(() => {
 		const viewport = viewportRef;
-		if (scrollRestored || !viewport || !tasksStore.hasLoaded || filteredGroups.length === 0) return;
+		if (scrollRestored || !viewport || !tasksStore.hasLoaded || notes.length === 0) return;
 		scrollRestored = true;
 		viewport.scrollTop = untrack(() => tasksStore.scrollOffset);
 	});
@@ -237,6 +238,50 @@
 <div class="@container flex h-full flex-col">
 	<!-- Toolbar -->
 	<div class="pane-toolbar">
+		<span class="min-w-0 truncate text-title">Tasks</span>
+		{#if tasksStore.hasLoaded}
+			<span data-task-count class="shrink-0 text-meta text-muted-foreground">{countText}</span>
+		{/if}
+		{#if tasksStore.hasLoaded && tasksStore.isLoading}
+			<span role="status" aria-label="Refreshing tasks" class="flex items-center">
+				<Loader2 class="size-3.5 animate-spin text-muted-foreground" />
+			</span>
+		{/if}
+	</div>
+
+	<!-- Filters -->
+	<div data-task-filters class="flex shrink-0 items-center gap-2 border-b border-divider px-3 py-1.5">
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+					>
+						<span>Status: {statusFilterLabel(tasksStore.quick)}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-48">
+				<DropdownMenu.RadioGroup value={showRadioValue} onValueChange={pickShow}>
+					{#each SHOW_OPTIONS as option (option.value)}
+						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+					{/each}
+				</DropdownMenu.RadioGroup>
+				<DropdownMenu.Separator />
+				{#each TASK_STATUSES as status (status)}
+					<DropdownMenu.CheckboxItem
+						checked={tasksStore.quick.statuses?.includes(status) ?? false}
+						closeOnSelect={false}
+						onCheckedChange={() => toggleStatus(status)}
+					>
+						{statusGlyph(status).word}
+					</DropdownMenu.CheckboxItem>
+				{/each}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
 		<div class="flex items-center gap-1">
 			{#each DATE_FILTERS as filter (filter.value)}
 				<button
@@ -251,23 +296,6 @@
 			{/each}
 		</div>
 
-		<div class="flex items-center gap-1">
-			<button
-				class="p-1 rounded-md transition-colors cursor-pointer
-					{tasksStore.hideCompleted
-						? 'bg-primary/20 text-primary'
-						: 'text-muted-foreground hover:bg-accent'}"
-				onclick={() => tasksStore.setHideCompleted(!tasksStore.hideCompleted)}
-				title="{tasksStore.hideCompleted ? 'Show' : 'Hide'} closed tasks"
-			>
-				{#if tasksStore.hideCompleted}
-					<EyeOff class="size-3.5" />
-				{:else}
-					<Eye class="size-3.5" />
-				{/if}
-			</button>
-		</div>
-
 		<div class="flex items-center gap-1 relative">
 			<Hash class="size-3 text-muted-foreground absolute left-1.5 pointer-events-none" />
 			<input
@@ -279,12 +307,6 @@
 				class="h-6 w-40 pl-5 pr-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 			/>
 		</div>
-
-		{#if tasksStore.hasLoaded && tasksStore.isLoading}
-			<span role="status" aria-label="Refreshing tasks" class="flex items-center">
-				<Loader2 class="size-3.5 animate-spin text-muted-foreground" />
-			</span>
-		{/if}
 	</div>
 
 	<!-- Content -->
@@ -292,7 +314,7 @@
 		<div class="p-4">
 			{#if !tasksStore.hasLoaded}
 				<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
-			{:else if tasksStore.error && tasksStore.fileTaskGroups.length === 0}
+			{:else if tasksStore.error && tasksStore.rows.length === 0}
 				<!-- No list was loaded: the alert takes the empty state's place. -->
 				<p class="text-xs text-muted-foreground mb-1">{ruleSentence}</p>
 				{@render refreshAlert(tasksStore.error)}
@@ -321,15 +343,10 @@
 					{/if}
 				</div>
 				{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
-				<p class="text-xs text-muted-foreground mb-4">
-					{stats.pending} open in {stats.fileCount} {stats.fileCount === 1 ? 'note' : 'notes'}
-				</p>
 
-				<div class="space-y-6">
-					{#each filteredGroups as group (group.filePath)}
-						{@const resolved = resolveIconForPath(group.filePath)}
-						{@const folder = noteFolder(vaultStore.path, group.filePath)}
-						{@const counts = noteCounts.get(group.filePath)!}
+				<div class="space-y-6 mt-3">
+					{#each notes as note (note.filePath)}
+						{@const resolved = resolveIconForPath(note.filePath)}
 						<div data-task-group>
 							<!-- File header. The icon sits outside the button so an emoji stays out of its name. -->
 							<div class="flex items-start gap-2 mb-2">
@@ -345,39 +362,40 @@
 										<button
 											data-task-group-title
 											class="text-sm font-medium text-foreground hover:underline cursor-pointer"
-											title={modifiedTitle(group.modifiedAt)}
-											onclick={() => handleFileClick(group.filePath)}
+											title={modifiedTitle(note.modifiedAt)}
+											onclick={() => handleFileClick(note.filePath)}
 										>
-											{group.fileName}
+											{note.noteTitle}
 										</button>
-										<span data-task-group-count class="text-xs text-muted-foreground">{`${counts.open} of ${counts.total} open`}</span>
+										<span data-task-group-count class="text-xs text-muted-foreground">{`${note.open} of ${note.total} open`}</span>
 									</div>
-									{#if folder}
-										<p data-task-group-subtitle class="truncate text-xs text-muted-foreground">{folder}</p>
+									{#if note.folder}
+										<p data-task-group-subtitle class="truncate text-xs text-muted-foreground">{note.folder}</p>
 									{/if}
 								</div>
 							</div>
 
 							<!-- Task list -->
 							<div class="space-y-1">
-								{#each group.tasks as task (task.lineNumber)}
+								{#each note.rows as row (row.lineNumber)}
 									<!-- The glyph follows the status; the label follows `toggleTarget`, what a click writes. -->
-									{@const glyph = statusGlyph(task.status)}
+									{@const glyph = statusGlyph(row.status)}
 									{@const Glyph = GLYPH_ICONS[glyph.icon]}
-									{@const displayText = taskDisplayText(task)}
-									{@const chips = taskChips(task.metadata, today, { tags: !usesRawTaskText(task), open: isTaskOpen(task.status) })}
+									{@const displayText = taskDisplayText(row)}
+									{@const chips = taskChips(row.metadata, today, { tags: !usesRawTaskText(row), open: row.open })}
+									<!-- A dimmed row fails the filters and stays as the parent of one that passes. -->
 									<div
 										data-task-row
-										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors"
-										style="padding-left: {task.indent * 1.25 + 0.25}rem"
+										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors {row.dimmed ? 'opacity-60' : ''}"
+										style="padding-left: {row.indent * 1.25 + 0.25}rem"
 									>
 										<button
 											data-task-toggle
-											data-task-status={task.status}
+											data-task-status={row.status}
 											class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-											aria-label="{toggleTarget(task.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {displayText} ({glyph.word})"
+											aria-label="{toggleTarget(row.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {displayText} ({glyph.word})"
 											title={glyph.word}
-											onclick={() => handleToggle(group.filePath, task)}
+											onclick={() => handleToggle(note.filePath, row)}
 										>
 											<Glyph class="size-4 {glyph.tone}" />
 										</button>
@@ -386,11 +404,11 @@
 										<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 										<div
 											class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 cursor-pointer @max-[560px]:flex-col @max-[560px]:items-start"
-											onclick={(e) => handleTextClick(e, group.filePath, task.lineNumber)}
+											onclick={(e) => handleTextClick(e, note.filePath, row.lineNumber)}
 										>
 											<span
 												data-task-text
-												class="min-w-0 break-words text-sm {isTaskOpen(task.status) ? 'text-foreground' : 'text-muted-foreground line-through'}"
+												class="min-w-0 break-words text-sm {row.open ? 'text-foreground' : 'text-muted-foreground line-through'}"
 											>
 												{#each parseTaskTextSegments(displayText) as seg}
 													{#if seg.type === 'text'}

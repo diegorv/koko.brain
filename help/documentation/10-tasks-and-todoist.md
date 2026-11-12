@@ -12,7 +12,7 @@ Open the Tasks View with **Cmd+Shift+T**, or search for **"Toggle Tasks View"** 
 
 The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the filters below. With the default section filter, only tasks under a heading containing `#to-list` are listed. Tasks are grouped by their source file, and the notes are listed in path order, with numbers compared as numbers (`note 9` comes before `note 10`). Ticking a task does not move its note.
 
-A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, every task closed, or no recent note) and offers a button that lifts it: **Clear tag**, **Show closed** or **All time**. The line under it counts the open tasks and the notes listed, for example "2 open in 2 notes".
+A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, no task with the chosen status, or no recent note) and offers a button that lifts it: **Clear tag**, **Show all** or **All time**. The toolbar counts the tasks and the notes listed, for example "2 open in 2 notes", or "3 tasks in 2 notes" when the Status menu is set to something other than Open.
 
 ![Tasks View with grouped tasks](screenshots/tasks-view.png)
 
@@ -98,15 +98,15 @@ This single line tells you that the task is due on March 31, is high priority, w
 
 ## Filters
 
-The Tasks View toolbar provides several filters to help you focus on what matters:
+The row under the Tasks View toolbar holds several filters to help you focus on what matters:
 
 | Filter             | Options                              | Description                        |
 |--------------------|--------------------------------------|------------------------------------|
 | **Date**           | All time / Last 7 days / Last 30 days | Keep tasks from notes modified in that period (the note's modification date, not a task date) |
-| **Hide closed**    | Toggle                               | Hide done (`- [x]`) and cancelled (`- [-]`) tasks. In progress, question, important and forwarded tasks stay listed |
+| **Status**         | Open / Closed / All, or any of the seven statuses | **Open** (the default) lists todo, in progress, question, important and forwarded tasks; **Closed** lists done (`- [x]`) and cancelled (`- [-]`) tasks; **All** lists every task. Below them, tick one or more statuses (todo, in progress, question, important, forwarded, done, cancelled) to list only those; picking Open, Closed or All clears them. A task that does not match stays, dimmed, when a task nested under it matches |
 | **Section filter** | Text input                           | Keep tasks under a heading containing this tag (e.g. `#to-list`; the `#` is optional). Takes several tags, separated by spaces or commas (e.g. `#to-list #work`), and lists a task when its heading contains any of them. Default: `#to-list`. Empty: every task in the vault. The field is remembered per vault and comes back after a restart. An empty field is not remembered: the next start shows `#to-list`. |
 
-Combine filters to narrow down your view. For example, toggle **Hide closed** on and set the date range to **Last 7 days** to see only recent, unfinished tasks.
+Combine filters to narrow down your view. For example, keep **Status** on **Open** and set the date range to **Last 7 days** to see only recent, unfinished tasks.
 
 ---
 
@@ -114,7 +114,7 @@ Combine filters to narrow down your view. For example, toggle **Hide closed** on
 
 - **Click a checkbox** — toggles the task status in the actual file. The change is written directly to the `.md` file on disk, so you will see the update the next time you open that note. For a task synced with Todoist, the change goes out at the next interval or focus sync, or with **Todoist: Sync now**: a Tasks View click is not a note save, so it does not start the after-save sync.
 - **Click a task's text**: opens its note with the cursor on the task's line. Clicking the text never changes the task; only the checkbox does. Selecting part of the text to copy it does nothing.
-- **Click a note's title**: each note's header shows its icon, title, folder and how many of its tasks are open, for example "2 of 3 open" (closed tasks count even while they are hidden). Clicking the title opens the note in the editor, and hovering over it shows when the note was last modified.
+- **Click a note's title**: each note's header shows its icon, title, folder and how many of its tasks are open, for example "2 of 3 open" (every task of the note counts, whatever the filters hide). Clicking the title opens the note in the editor, and hovering over it shows when the note was last modified.
 
 ---
 

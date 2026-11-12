@@ -276,6 +276,75 @@ describe('buildTaskIndex: note order', () => {
 	});
 });
 
+describe('buildTaskIndex: rows', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+		vaultStore.open('/vault');
+	});
+
+	afterEach(() => {
+		vaultStore.close();
+	});
+
+	it('stores the rows in the sorted note order with relPath and folder set', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			group('/vault/Projects/B.md', 200, ['b1', 'b2']),
+			group('/vault/A.md', 100, ['a']),
+		]);
+
+		await buildTaskIndex();
+
+		expect(tasksStore.rows.map((r) => [r.filePath, r.relPath, r.folder, r.lineNumber])).toEqual([
+			['/vault/A.md', 'A.md', '', 1],
+			['/vault/Projects/B.md', 'Projects/B.md', 'Projects', 1],
+			['/vault/Projects/B.md', 'Projects/B.md', 'Projects', 2],
+		]);
+		expect(tasksStore.rows[0].modifiedAt).toBe(100 * 1000);
+	});
+
+	it('writes neither the groups nor the rows from a superseded request', async () => {
+		let resolveFirst!: (v: FileTaskGroupV2[]) => void;
+		let resolveSecond!: (v: FileTaskGroupV2[]) => void;
+		vi.mocked(invoke)
+			.mockImplementationOnce(() => new Promise((r) => (resolveFirst = r)))
+			.mockImplementationOnce(() => new Promise((r) => (resolveSecond = r)));
+
+		const first = buildTaskIndex();
+		const second = buildTaskIndex();
+		resolveSecond([group('/vault/new.md', 200, ['new'])]);
+		await second;
+		resolveFirst([group('/vault/old.md', 100, ['old'])]);
+		await first;
+
+		expect(tasksStore.fileTaskGroups.map((g) => g.filePath)).toEqual(['/vault/new.md']);
+		expect(tasksStore.rows.map((r) => r.filePath)).toEqual(['/vault/new.md']);
+	});
+
+	it('leaves the rows empty after resetTasks', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+		await buildTaskIndex();
+		expect(tasksStore.rows).toHaveLength(1);
+
+		resetTasks();
+
+		expect(tasksStore.rows).toEqual([]);
+	});
+
+	it('leaves the rows untouched when the fetch fails', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([group('/vault/a.md', 100, ['x'])]);
+		await buildTaskIndex();
+		const before = tasksStore.rows;
+
+		vi.mocked(invoke).mockRejectedValueOnce(new Error('boom'));
+		await buildTaskIndex();
+
+		expect(tasksStore.rows).toBe(before);
+	});
+});
+
 describe('buildTaskIndex: refresh error', () => {
 	const MESSAGE = 'Tasks could not be refreshed. The log has the details.';
 

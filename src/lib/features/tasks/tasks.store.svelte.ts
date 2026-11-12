@@ -1,7 +1,10 @@
+import { DEFAULT_QUICK, applyEditedCutoff, applyQuickFilters, type TaskQuickFilters, type TaskRow } from './task-query.logic';
 import type { FileTaskGroup, TaskDateFilter } from './tasks.types';
 
 /** All task groups across the vault (unfiltered) */
 let fileTaskGroups = $state<FileTaskGroup[]>([]);
+/** Every task of the fetched groups as a row (unfiltered), replaced whole, never mutated */
+let rows = $state.raw<TaskRow[]>([]);
 /** Active date filter */
 let dateFilter = $state<TaskDateFilter>('all');
 /**
@@ -10,8 +13,8 @@ let dateFilter = $state<TaskDateFilter>('all');
  * means all tasks.
  */
 let sectionTag = $state('#to-list');
-/** Whether to hide completed tasks */
-let hideCompleted = $state(true);
+/** The quick filters (status), replaced whole on every change */
+let quick = $state.raw<TaskQuickFilters>({ ...DEFAULT_QUICK });
 /** True while the task index is being built */
 let isLoading = $state(false);
 /** True once a fetch for the current vault has settled, on success or failure */
@@ -28,20 +31,37 @@ let error = $state<string | null>(null);
  */
 let scrollOffset = 0;
 
+/**
+ * The rows the list shows: the date cutoff, then the quick filters. The clock
+ * is read when the derived re-runs and is not tracked, so a pane left open
+ * across a cutoff boundary updates on the next refetch.
+ */
+const visibleRows = $derived.by(() => applyQuickFilters(applyEditedCutoff(rows, dateFilter, Date.now()), quick));
+
 export const tasksStore = {
 	get fileTaskGroups() { return fileTaskGroups; },
+	/** Every fetched task as a row, before any view filter */
+	get rows() { return rows; },
+	/** The rows the list shows, dimmed parents included (see `applyQuickFilters`) */
+	get visibleRows() { return visibleRows; },
 	get dateFilter() { return dateFilter; },
 	get sectionTag() { return sectionTag; },
-	get hideCompleted() { return hideCompleted; },
+	/** The quick filters */
+	get quick() { return quick; },
 	get isLoading() { return isLoading; },
 	get hasLoaded() { return hasLoaded; },
 	get error() { return error; },
 	get scrollOffset() { return scrollOffset; },
 
 	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
+	/** Replaces the rows. */
+	setRows(next: TaskRow[]) { rows = next; },
 	setDateFilter(filter: TaskDateFilter) { dateFilter = filter; },
 	setSectionTag(tag: string) { sectionTag = tag; },
-	setHideCompleted(hide: boolean) { hideCompleted = hide; },
+	/** Merges `partial` into the quick filters; a key set to `undefined` clears that field. */
+	setQuick(partial: Partial<TaskQuickFilters>) { quick = { ...quick, ...partial }; },
+	/** Puts the quick filters back to `DEFAULT_QUICK`. */
+	resetQuick() { quick = { ...DEFAULT_QUICK }; },
 	setLoading(loading: boolean) { isLoading = loading; },
 	setHasLoaded(loaded: boolean) { hasLoaded = loaded; },
 	/** Sets or clears the refresh error message. */
@@ -51,9 +71,10 @@ export const tasksStore = {
 
 	reset() {
 		fileTaskGroups = [];
+		rows = [];
 		dateFilter = 'all';
 		sectionTag = '#to-list';
-		hideCompleted = true;
+		quick = { ...DEFAULT_QUICK };
 		isLoading = false;
 		hasLoaded = false;
 		error = null;

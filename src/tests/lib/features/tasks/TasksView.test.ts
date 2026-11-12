@@ -16,6 +16,7 @@ import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { buildTaskIndex, resetTasks, updateSectionTagFilter } from '#lib/features/tasks/tasks.service.js';
 import { statusGlyph } from '#lib/features/tasks/task-status.logic.js';
+import { DEFAULT_QUICK } from '#lib/features/tasks/task-query.logic.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -32,6 +33,9 @@ function toggleCalls() {
 }
 
 const rows = () => Array.from(document.querySelectorAll<HTMLElement>('[data-task-row]'));
+
+/** The toolbar's task count text. */
+const countText = () => document.querySelector('[data-task-count]')?.textContent?.trim();
 
 /** The circle button of the row showing `status`. */
 function toggleOf(status: TaskStatus): HTMLButtonElement {
@@ -113,7 +117,7 @@ describe('TasksView row clicks', () => {
 	});
 
 	it('completes an important task on a circle click', async () => {
-		tasksStore.setHideCompleted(false);
+		tasksStore.setQuick({ show: 'all' });
 		await mountView('call', 1, 'important');
 
 		expect(toggleOf('important').getAttribute('aria-label')).toBe('Mark task as done: call (important)');
@@ -179,7 +183,7 @@ describe('TasksView: status glyphs and the open rule', () => {
 		status === 'todo' ? 'Send invoice' : sevenStatusGroup().tasks.find((t) => t.status === status)!.text;
 
 	it('gives every status its glyph, label and title, and strikes through only closed tasks', async () => {
-		tasksStore.setHideCompleted(false);
+		tasksStore.setQuick({ show: 'all' });
 		mockTaskFetch([sevenStatusGroup()]);
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(7));
@@ -210,7 +214,7 @@ describe('TasksView: status glyphs and the open rule', () => {
 		expect(textOf(toggleOf('in-progress')).classList.contains('line-through')).toBe(false);
 	});
 
-	it('lists an in-progress task and hides a done one with hide-closed on, the default', async () => {
+	it('lists an in-progress task and hides a done one under Status: Open, the default', async () => {
 		mockTaskFetch([sevenStatusGroup()]);
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(5));
@@ -225,37 +229,25 @@ describe('TasksView: status glyphs and the open rule', () => {
 		expect(document.querySelector('[data-task-toggle][data-task-status="done"]')).toBeNull();
 	});
 
-	it('counts open tasks and the listed notes, with hide-closed off', async () => {
-		tasksStore.setHideCompleted(false);
+	it('counts open tasks and the listed notes in the toolbar, under Status: Open', async () => {
+		tasksStore.setQuick({ show: 'open' });
 		mockTaskFetch([
 			taskGroupV2(NOTE, [taskV2('Ship', { lineNumber: 1 }), taskV2('Shipped', { status: 'done', lineNumber: 2 })]),
 			taskGroupV2('/vault/Other.md', [taskV2('Draft plan', { status: 'in-progress' })]),
 		]);
 		({ component } = await mountTasksView());
-		await until(() => expect(rows()).toHaveLength(3));
+		await until(() => expect(rows()).toHaveLength(2));
 
-		expect(Array.from(document.querySelectorAll('p')).some((p) => p.textContent?.trim() === '2 open in 2 notes')).toBe(true);
+		expect(countText()).toBe('2 open in 2 notes');
 	});
 
 	it('words one open task in one note in the singular', async () => {
-		tasksStore.setHideCompleted(false);
+		tasksStore.setQuick({ show: 'open' });
 		mockTaskFetch([taskGroupV2(NOTE, [taskV2('Ship')])]);
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(1));
 
-		expect(Array.from(document.querySelectorAll('p')).some((p) => p.textContent?.trim() === '1 open in 1 note')).toBe(true);
-	});
-
-	it('titles the hide toggle after closed tasks', async () => {
-		mockTaskFetch([taskGroupV2(NOTE, [taskV2('Ship')])]);
-		({ component } = await mountTasksView());
-
-		const toggle = document.querySelector<HTMLButtonElement>('button[title="Show closed tasks"]');
-		expect(toggle).not.toBeNull();
-		toggle!.click();
-		flushSync();
-		expect(tasksStore.hideCompleted).toBe(false);
-		expect(document.querySelector('button[title="Hide closed tasks"]')).not.toBeNull();
+		expect(countText()).toBe('1 open in 1 note');
 	});
 });
 
@@ -446,7 +438,7 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		expect(sentence!.nextElementSibling?.tagName).toBe('BUTTON');
 		expect(sentence!.nextElementSibling?.textContent?.trim()).toBe('Clear tag');
 		expect(buttonsNamed('Clear tag')).toHaveLength(1);
-		expect(sentence!.parentElement?.nextElementSibling?.textContent?.trim()).toBe('1 open in 1 note');
+		expect(countText()).toBe('1 open in 1 note');
 
 		const input = tagInput();
 		input.value = '#x';
@@ -463,15 +455,15 @@ describe('TasksView: loading, the rule sentence and the empty state', () => {
 		expect(tasksStore.sectionTag).toBe('');
 	});
 
-	it('offers Show closed when every task is done', async () => {
+	it('offers Show all when every task is done', async () => {
 		mockTaskFetch([taskGroupV2(NOTE, [taskV2('Draft RFC', { status: 'done' })])]);
 		await mountView();
 		await until(() => expect(paragraph('The only task is closed')).toBeDefined());
-		expect(buttonsNamed('Show closed')).toHaveLength(1);
+		expect(buttonsNamed('Show all')).toHaveLength(1);
 
-		buttonsNamed('Show closed')[0].click();
+		buttonsNamed('Show all')[0].click();
 		await until(() => expect(rows()).toHaveLength(1));
-		expect(tasksStore.hideCompleted).toBe(false);
+		expect(tasksStore.quick).toEqual({ show: 'all' });
 		expect(pageText()).toContain('Draft RFC');
 	});
 
@@ -721,7 +713,7 @@ describe('TasksView: a failed refresh says so', () => {
 		const sentence = paragraph('Open tasks from every note');
 		expect(sentence).toBeDefined();
 		expect(sentence!.parentElement?.nextElementSibling).toBe(alert());
-		expect(alert()!.nextElementSibling?.textContent?.trim()).toBe('1 open in 1 note');
+		expect(countText()).toBe('1 open in 1 note');
 		expect(retry().disabled).toBe(false);
 
 		retry().click();
@@ -770,7 +762,7 @@ describe('TasksView: a failed refresh says so', () => {
 			throw new Error('boom');
 		});
 		({ component } = await mountTasksView());
-		expect(tasksStore.hideCompleted).toBe(true);
+		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 		await until(() => expect(paragraph('The only task is closed')).toBeDefined());
 		expect(alert()).toBeNull();
 
@@ -780,7 +772,7 @@ describe('TasksView: a failed refresh says so', () => {
 		expect(alertText()).toBe(MESSAGE);
 		const empty = alert()!.nextElementSibling;
 		expect(empty?.querySelector('p')?.textContent?.trim()).toBe('The only task is closed');
-		expect(empty?.querySelector('button')?.textContent?.trim()).toBe('Show closed');
+		expect(empty?.querySelector('button')?.textContent?.trim()).toBe('Show all');
 	});
 });
 
@@ -834,11 +826,11 @@ describe('TasksView: the note header', () => {
 	/** Seconds for a mid-month noon UTC instant. */
 	const sec = (iso: string) => Date.parse(iso) / 1000;
 
-	it('shows the title, the folder and "N of M open" counted before hide-closed', async () => {
+	it('shows the title, the folder and "N of M open" counted before the status filter', async () => {
 		mockTaskFetch([acme(), rootNote()]);
 		({ component } = await mountTasksView());
 		await until(() => expect(rows()).toHaveLength(3));
-		expect(tasksStore.hideCompleted).toBe(true);
+		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 
 		expect(part('ACME', 'title')?.textContent?.trim()).toBe('ACME');
 		expect(part('ACME', 'subtitle')?.textContent?.trim()).toBe('Projects/Clients');
@@ -846,7 +838,7 @@ describe('TasksView: the note header', () => {
 		expect(part('Root', 'subtitle')).toBeNull();
 		expect(part('Root', 'count')?.textContent).toBe('1 of 1 open');
 
-		tasksStore.setHideCompleted(false);
+		tasksStore.setQuick({ show: 'all' });
 		await until(() => expect(rows()).toHaveLength(4));
 		expect(part('ACME', 'subtitle')?.textContent?.trim()).toBe('Projects/Clients');
 		expect(part('ACME', 'count')?.textContent).toBe('2 of 3 open');
@@ -988,7 +980,7 @@ describe('TasksView: clean row text and metadata chips', () => {
 	});
 
 	it('does not mark a done task with a past due date overdue', async () => {
-		tasksStore.setHideCompleted(false);
+		tasksStore.setQuick({ show: 'all' });
 		mockTaskFetch([
 			taskGroupV2(NOTE, [
 				taskV2('Paid rent 📅 2026-11-03', { status: 'done', metadata: { description: 'Paid rent', dueDate: '2026-11-03', tags: [] } }),

@@ -5,7 +5,9 @@ import { saveFileByPath } from '#lib/core/editor/editor.service.js';
 import { findTabIndex, isTabDirty, TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { settleTaskWrite } from '#lib/core/filesystem/task-write.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { tasksStore } from './tasks.store.svelte';
+import { buildTaskRows } from './task-query.logic';
 import { toggleTarget } from './task-status.logic';
 import { compareTaskPaths, parseSectionTags, parseTasksView, withSectionTag } from './tasks.logic';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
@@ -16,7 +18,7 @@ import { debug, error, timeAsync } from '#lib/utils/debug.js';
  * Converts a `FileTaskGroupV2` (Rust, modifiedAt in seconds) into the
  * TS-side `FileTaskGroup` shape used by the store. Rust `NoteEntry`
  * carries `modifiedAt` in seconds since epoch; the FE filter logic
- * (`filterByDate`) compares against `Date.now()` which is milliseconds.
+ * (`applyEditedCutoff`) compares against `Date.now()` which is milliseconds.
  * Multiply by 1000 here so the rest of the TS path keeps using ms.
  */
 function fromV2(group: FileTaskGroupV2): FileTaskGroup {
@@ -77,8 +79,9 @@ export function getTasksResetGeneration(): number {
  * `get_tasks_in_section_v2` with that list instead; otherwise calls
  * `get_all_tasks_v2`. Phase 7.6 — Rust now owns task
  * parsing end-to-end (see `src-tauri/src/vault/parsing.rs::extract_tasks`).
- * Groups are stored in path order (`compareTaskPaths`), not the newest-first
- * order Rust sends, so a toggle that rewrites a note does not move it.
+ * Groups, and their rows (`buildTaskRows`), are stored in path order
+ * (`compareTaskPaths`), not the newest-first order Rust sends, so a toggle
+ * that rewrites a note does not move it.
  * A call superseded by a newer one (or by `resetTasks`) while in flight
  * leaves the store, the loading flag, `hasLoaded` and error reporting to the
  * newer call. The latest call sets `hasLoaded` once it settles, on success or
@@ -99,6 +102,7 @@ export async function buildTaskIndex(): Promise<void> {
 			if (request !== latestTaskIndexRequest) return;
 			const groups = v2.map(fromV2).sort((a, b) => compareTaskPaths(a.filePath, b.filePath));
 			tasksStore.setFileTaskGroups(groups);
+			tasksStore.setRows(buildTaskRows(groups, vaultStore.path));
 			tasksStore.setError(null);
 			let total = 0;
 			for (const g of groups) total += g.tasks.length;

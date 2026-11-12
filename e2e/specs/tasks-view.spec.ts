@@ -26,7 +26,7 @@ test.describe('Tasks view', () => {
 		await expect(page.getByText('Review pending PRs')).toBeVisible();
 	});
 
-	test('an in-progress task is listed with hide-closed on', async ({ vaultPage: page }) => {
+	test('an in-progress task is listed under Status: open', async ({ vaultPage: page }) => {
 		const path = '/test-vault/In Progress.md';
 		const content = '- [/] Draft the plan\n- [x] Shipped already\n';
 		await page.evaluate(({ p, c }) => {
@@ -38,8 +38,8 @@ test.describe('Tasks view', () => {
 		await pressShortcut(page, 'Mod+Shift+T');
 		await page.getByRole('textbox', { name: /section tag/i }).fill('');
 
-		// Hide-closed is on by default, so the toggle offers to show them.
-		await expect(page.locator('button[title*="closed"]')).toHaveAttribute('title', 'Show closed tasks');
+		// The Status menu shows open tasks by default.
+		await expect(page.getByRole('button', { name: /^Status/ })).toHaveText('Status: open');
 		const row = page.locator('[data-task-row]', { hasText: 'Draft the plan' });
 		await expect(row).toBeVisible({ timeout: 5_000 });
 		await expect(row.locator('[data-task-toggle]')).toHaveAttribute('data-task-status', 'in-progress');
@@ -52,10 +52,11 @@ test.describe('Tasks view', () => {
 		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
 		await sectionTagInput.fill('');
 
-		// Show closed tasks so the toggled task stays visible
-		const hideBtn = page.locator('button[title*="closed"]').first();
-		await hideBtn.click();
-		await expect(hideBtn).toHaveAttribute('title', 'Hide closed tasks');
+		// Show every status so the toggled task stays visible
+		const status = page.getByRole('button', { name: /^Status/ });
+		await status.click();
+		await page.getByRole('menuitemradio', { name: 'All' }).click();
+		await expect(status).toHaveText('Status: all');
 
 		// Clicking the circle in the task's row toggles it from unchecked to checked
 		const circle = page
