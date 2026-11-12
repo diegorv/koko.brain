@@ -44,7 +44,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | done | issue/112-group-and-sort (fd29df83c) | 2026-11-12 |
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | done | issue/113-keyboard-and-a11y (16c5d8b73) | 2026-11-12 |
 | 115 | [The Tasks heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 074 | done | issue/115-fetch-from-entries-snapshot (115d8d576) | 2026-11-12 |
-| 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | in-progress | | |
+| 116 | [The Tasks query holds sources and default excludes (the textbox still drives the heading cards)](issues/116-sources-panel-and-excludes.md) | 244, 243 | done | issue/116-sources-panel-and-excludes (4268ffc27) | 2026-11-12 |
 | 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 245 | todo | | |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | todo | | |
 | 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | todo | | |
@@ -118,3 +118,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 16:35 — 244 — deliver — round 1 CHANGES_REQUESTED by claude, fix round, round 2 APPROVED by claude; full suite 626 files / 16168 tests passed; squash merged and pushed — 2b5a30fd3
 - 2026-11-12 16:35 — 116 — start — launched by /relay-lite:run — 86672cb3e
 - 2026-11-12 16:35 — 122 — start — launched by /relay-lite:run, beside 116 (Rust command only) — 86672cb3e
+- 2026-11-12 17:00 — 116 — deliver — round 1 APPROVED by claude, five nits kept with reasons, no fix round; full suite 627 files / 16256 tests passed on run 2 (run 1: AutoOrganizeRuleRow waitFor timeout, passes alone); reviewer e2e tasks-view.spec.ts 13 passed; squash merged and pushed — 4268ffc27
