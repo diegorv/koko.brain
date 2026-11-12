@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, it } from 'vitest';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -17,6 +17,7 @@ import {
 	render,
 	rustModuleRefs,
 	validate,
+	writePages,
 } from '../../../../scripts/architecture-map.mjs';
 
 /**
@@ -336,6 +337,43 @@ describe('render', () => {
 		const a = render(buildModel(root), { outDir: 'out' });
 		const b = render(buildModel(root), { outDir: 'out' });
 		expect([...a.entries()]).toEqual([...b.entries()]);
+	});
+});
+
+describe('writePages', () => {
+	/** An empty temp folder, removed after the suite. */
+	function tempOut(): string {
+		const dir = mkdtempSync(join(tmpdir(), 'arch-out-'));
+		tempDirs.push(dir);
+		return dir;
+	}
+
+	it('writes into a folder that holds only a git worktree link, and keeps it', () => {
+		const out = tempOut();
+		writeFileSync(join(out, '.git'), 'gitdir: /x\n');
+		writePages(out, new Map([['README.md', 'a\n']]));
+		expect(readFileSync(join(out, '.git'), 'utf8')).toBe('gitdir: /x\n');
+		expect(readFileSync(join(out, 'README.md'), 'utf8')).toBe('a\n');
+	});
+
+	it('replaces its earlier output, keeping .git and graphify/', () => {
+		const out = tempOut();
+		writePages(out, new Map([['README.md', 'a\n'], ['modules/gone.md', 'x\n']]));
+		writeFileSync(join(out, '.git'), 'gitdir: /x\n');
+		mkdirSync(join(out, 'graphify'));
+		writeFileSync(join(out, 'graphify/graph.json'), '{}');
+		writePages(out, new Map([['README.md', 'b\n']]));
+		expect(existsSync(join(out, 'modules/gone.md'))).toBe(false);
+		expect(readFileSync(join(out, 'README.md'), 'utf8')).toBe('b\n');
+		expect(existsSync(join(out, '.git'))).toBe(true);
+		expect(existsSync(join(out, 'graphify/graph.json'))).toBe(true);
+	});
+
+	it('refuses a non-empty folder it did not write', () => {
+		const out = tempOut();
+		writeFileSync(join(out, 'notes.md'), 'mine\n');
+		expect(() => writePages(out, new Map([['README.md', 'a\n']]))).toThrow(/refusing/);
+		expect(readFileSync(join(out, 'notes.md'), 'utf8')).toBe('mine\n');
 	});
 });
 

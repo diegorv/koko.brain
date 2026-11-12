@@ -251,6 +251,7 @@ These files hold correctness invariants as well as performance rules. Read the o
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
 | [docs/SEARCH.md](docs/SEARCH.md) | Search architecture: text / semantic / hybrid pipeline, chunking, models, RRF, versioning levers |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
+| [docs/architecture/README.md](docs/architecture/README.md) | Architecture map: one curated doc per module (responsibility, key files, gotchas), generated pages with imports, IPC and tests; a new module folder needs a doc |
 
 ## Implementation process
 

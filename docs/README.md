@@ -26,6 +26,7 @@ Where to find everything about Kokobrain, for users and for development.
 | 👁 | [Live Preview Architecture](LIVE-PREVIEW.md) | Editor live preview plugin system |
 | 🔍 | [Search Architecture](SEARCH.md) | Retrieval pipeline, chunking, models, RRF |
 | 🗺 | [Architecture Decisions](adr/README.md) | ADR log of foundational choices |
+| 🧱 | [Architecture Map](architecture/README.md) | One page per module: responsibility, key files, imports, IPC, tests |
 | 🔥 | [Hotspots](HOTSPOTS.md) | Modules that keep collecting fixes, and their rewrite triggers |
 
 ## Project

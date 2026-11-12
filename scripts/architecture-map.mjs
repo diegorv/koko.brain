@@ -598,12 +598,21 @@ export function render(model, { outDir, linkBase, sourceSha, graphify }) {
 	return pages;
 }
 
-/** Writes pages to `outAbs`, replacing earlier generator output only. */
-function writePages(outAbs, pages) {
+/** Entries of an output folder that a run keeps: a git worktree link, and graphify output written by another step. */
+const KEEP = new Set(['.git', 'graphify']);
+
+/**
+ * Writes pages to `outAbs`, replacing earlier generator output only. A folder
+ * that has content other than `KEEP` and no marker is refused, so a wrong
+ * `--out` never deletes someone's files.
+ */
+export function writePages(outAbs, pages) {
 	if (existsSync(outAbs)) {
-		const marked = existsSync(join(outAbs, MARKER));
-		if (!marked && readdirSync(outAbs).length) throw new Error(`${outAbs} is not empty and has no ${MARKER} marker; refusing to replace it`);
-		for (const e of readdirSync(outAbs)) if (e !== 'graphify') rmSync(join(outAbs, e), { recursive: true, force: true });
+		const entries = readdirSync(outAbs).filter((e) => !KEEP.has(e));
+		if (entries.length && !existsSync(join(outAbs, MARKER))) {
+			throw new Error(`${outAbs} is not empty and has no ${MARKER} marker; refusing to replace it`);
+		}
+		for (const e of entries) rmSync(join(outAbs, e), { recursive: true, force: true });
 	}
 	for (const [path, content] of pages) {
 		mkdirSync(dirname(join(outAbs, path)), { recursive: true });
