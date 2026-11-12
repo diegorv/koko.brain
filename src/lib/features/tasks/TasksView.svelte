@@ -429,6 +429,8 @@
 
 	/** The `order` the last run of the effect below saw; null until its first run in this mount. */
 	let prevOrder: string[] | null = null;
+	/** The `rendered` the last run of the effect below saw. */
+	let prevRendered: string[] = [];
 
 	// When the list changes, a current row that left it hands its place to a
 	// neighbour (`nextCurrentRow`). Focus follows only when it was on the
@@ -436,17 +438,34 @@
 	// search box never moves it. A current row that changed group (a todo
 	// completed under Status grouping) is recreated in the other group's keyed
 	// `{#each}`, so focus falls to `<body>`: it goes back to the new element,
-	// but only when the element that held focus was removed. A recompute that
-	// keeps the element (a refetch with the same rows) leaves focus where the
-	// user put it. Effects run after the DOM update.
+	// but only when the element that held focus was removed. When that group
+	// is collapsed, or the row lands past its cap, the row has no element, so
+	// the next rendered row takes its place instead. A collapse, an expand or
+	// a reveal changes `rendered` but not `order`, and moves nothing: a
+	// collapse is not a removal. A recompute that keeps the element (a
+	// refetch with the same rows) leaves focus where the user put it. Effects
+	// run after the DOM update.
 	$effect(() => {
 		const next = order;
+		const shown = rendered;
 		untrack(() => {
 			const prev = prevOrder;
+			const prevShown = prevRendered;
 			prevOrder = next;
-			if (prev === null) return;
+			prevRendered = shown;
+			if (prev === null || next === prev) return;
 			const current = currentKey;
 			const chosen = nextCurrentRow(next, prev, current);
+			const hidden = current !== null && prevShown.includes(current) && !shown.includes(current);
+			if (chosen === current && hidden) {
+				const neighbour = nextCurrentRow(shown, prevShown, current);
+				const row = neighbour === null ? undefined : rowsByKey.get(neighbour);
+				if (row) {
+					tasksStore.setCurrentRow({ filePath: row.filePath, lineNumber: row.lineNumber });
+					if (focusIsFree(false)) rowElement(neighbour)?.focus();
+					return;
+				}
+			}
 			if (chosen === current) {
 				if (document.activeElement === document.body && lastFocusedRowEl && !lastFocusedRowEl.isConnected) {
 					rowElement(current)?.focus();

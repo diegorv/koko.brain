@@ -119,6 +119,14 @@ describe('nextCurrentRow', () => {
 		expect(nextCurrentRow(['a', 'b'], prev, null)).toBeNull();
 		expect(nextCurrentRow(['a', 'b'], prev, 'z')).toBeNull();
 	});
+
+	it('on the rendered rows, moves past a row that a write moved into a collapsed group', () => {
+		// Grouped by Status with Done collapsed: completing `b` keeps it listed but hides it.
+		const prevRendered = ['a', 'b', 'c'];
+		const rendered = ['a', 'c'];
+		expect(nextCurrentRow(rendered, prevRendered, 'b')).toBe('c');
+		expect(nextCurrentRow(['a', 'b'], prevRendered, 'c')).toBe('b');
+	});
 });
 
 describe('tabStopRow', () => {

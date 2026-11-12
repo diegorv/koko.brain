@@ -9,13 +9,13 @@
 
 **Blocked by:** 125
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in the Tasks collapse or keyboard component test file with the real stores and Issue 110's fixture: grouped by Status with Done collapsed, focus an open row and press Space; after the refetch, focus is on the next open row (or the previous one when it was the last), not on `<body>`. Fails today.
-- [ ] A logic test in `tasks-keys.logic.test.ts` covers a current row that leaves the rendered set by moving into a collapsed group.
-- [ ] Clicking a chevron to collapse a group still moves no focus (Issue 240's rule), and its existing tests stay green.
+- [x] Failing test first, in the Tasks collapse or keyboard component test file with the real stores and Issue 110's fixture: grouped by Status with Done collapsed, focus an open row and press Space; after the refetch, focus is on the next open row (or the previous one when it was the last), not on `<body>`. Fails today.
+- [x] A logic test in `tasks-keys.logic.test.ts` covers a current row that leaves the rendered set by moving into a collapsed group.
+- [x] Clicking a chevron to collapse a group still moves no focus (Issue 240's rule), and its existing tests stay green.
 
 ## Notes
 
@@ -25,3 +25,4 @@
 ## Comments
 
 - 2026-11-12: filed by the main session.
+- 2026-11-12: delivered from branch issue/255-tasks-space-keeps-focus-when-row-moves-to-collapsed-group. TasksView's focus-follow effect now moves focus and the current row to the neighbour when a write hides the current row in a collapsed group (`nextCurrentRow` fed the rendered lists); chevron collapse still moves no focus. Tests: component cases for Space and circle click into collapsed Done, logic case in tasks-keys.logic.test.ts. Review fixes: circle-click test added, hidden check named. Full suite at 001ea3390: exit 0, 633 files, 16576 passed, 54 skipped, 1 todo. Reviews: round 1 APPROVED (3 minor/nit findings, 2 fixed, 1 rejected), round 2 APPROVED (no findings).

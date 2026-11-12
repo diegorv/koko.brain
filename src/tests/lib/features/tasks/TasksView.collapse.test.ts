@@ -279,6 +279,75 @@ describe('TasksView: collapsing groups and the row cap', () => {
 		expect(document.activeElement).not.toBe(document.body);
 	});
 
+	describe('a write that moves the current row into a collapsed group', () => {
+		/** Note A with todos t1, t2, t3 and done d1; a toggle marks the task done. Status > All, grouped by Status. */
+		async function mountByStatus(): Promise<void> {
+			const tasks: TaskV2[] = [...tasksOf('t1', 't2', 't3'), taskV2('d1', { lineNumber: 4, status: 'done' })];
+			mockTaskFetch(async () => [taskGroupV2(NOTE_A, tasks.map((t) => ({ ...t })))], {
+				toggle: (args): ToggleTaskResultV2 => {
+					const i = tasks.findIndex((t) => t.lineNumber === args.lineNumber);
+					tasks[i] = taskV2(tasks[i].text, { lineNumber: tasks[i].lineNumber, status: 'done' });
+					return {
+						updatedContent: tasks.map((t) => `- [${t.status === 'done' ? 'x' : ' '}] ${t.text}`).join('\n'),
+						updateResult: { changed: true, affected: [], version: 2, upserted: [], removed: [], fullRescan: false },
+						stale: false,
+					};
+				},
+			});
+			tasksStore.setQuick({ show: 'all' });
+			tasksStore.setGroupBy('status');
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(['t1', 't2', 't3', 'd1']));
+			click(chevron('Collapse', 'Done'));
+			expect(rowTexts()).toEqual(['t1', 't2', 't3']);
+		}
+
+		it('Space on a row moves focus to the next rendered row, not to <body>', async () => {
+			await mountByStatus();
+
+			rowByText('t2')!.focus();
+			press(rowByText('t2')!, ' ');
+			await until(() => expect(rowTexts()).toEqual(['t1', 't3']));
+			await until(() => expect(activeRowText()).toBe('t3'));
+			expect(tasksStore.currentRow).toEqual({ filePath: NOTE_A, lineNumber: 3 });
+			expect(tabStops()).toEqual(['t3']);
+		});
+
+		it('Space on the last rendered row moves focus to the row before it', async () => {
+			await mountByStatus();
+
+			rowByText('t3')!.focus();
+			press(rowByText('t3')!, ' ');
+			await until(() => expect(rowTexts()).toEqual(['t1', 't2']));
+			await until(() => expect(activeRowText()).toBe('t2'));
+			expect(tasksStore.currentRow).toEqual({ filePath: NOTE_A, lineNumber: 2 });
+		});
+
+		it('a click on the focused circle moves focus to the next rendered row, not to <body>', async () => {
+			await mountByStatus();
+
+			const circle = rowByText('t2')!.querySelector<HTMLButtonElement>('[data-task-toggle]')!;
+			circle.focus();
+			click(circle);
+			await until(() => expect(rowTexts()).toEqual(['t1', 't3']));
+			await until(() => expect(activeRowText()).toBe('t3'));
+			expect(tasksStore.currentRow).toEqual({ filePath: NOTE_A, lineNumber: 3 });
+		});
+
+		it('expanding the Done group again does not move focus back', async () => {
+			await mountByStatus();
+
+			rowByText('t2')!.focus();
+			press(rowByText('t2')!, ' ');
+			await until(() => expect(activeRowText()).toBe('t3'));
+
+			click(chevron('Expand', 'Done'));
+			expect(rowTexts()).toEqual(['t1', 't3', 't2', 'd1']);
+			expect(activeRowText()).toBe('t3');
+			expect(tasksStore.currentRow).toEqual({ filePath: NOTE_A, lineNumber: 3 });
+		});
+	});
+
 	describe('the row cap', () => {
 		it('shows the first 50 rows of a 60-task note, then Show 10 more outside the list, which reveals the rest and focuses row 51', async () => {
 			mockTaskFetch([taskGroupV2(NOTE_A, manyTasks(60))]);
