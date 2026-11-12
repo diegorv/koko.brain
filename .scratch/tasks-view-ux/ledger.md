@@ -59,7 +59,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 227 | [The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date](issues/227-tasks-help-says-default-view-lists-only.md) | none | wontfix | | |
 | 234 | [The Tasks list keeps your place, and a failed refresh says so](issues/234-tasks-groups-keep-their-place.md) | 110 | done | issue/234-tasks-groups-keep-their-place (d52d63db2) | 2026-11-12 |
 | 235 | [A failed Tasks refresh says so](issues/235-tasks-failed-refresh-says-so.md) | none | wontfix | | |
-| 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 234 | todo | | |
+| 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 234 | in-progress | | |
 | 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | none | wontfix | | |
 | 238 | [A Due menu replaces the Tasks date pills](issues/238-tasks-due-filter-replaces-date-pills.md) | 111 | todo | | |
 | 239 | [Tasks priority and tag filters, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | todo | | |
@@ -88,3 +88,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:25 — 074 — deliver — round 1 APPROVED by claude (fix round: e2e mock closes a fence only on its opening marker, tilde-fence fixture, test rename), deliver re-review APPROVED by claude; full suite 616 files / 15667 tests passed on run 2 (run 1: unrelated AutoOrganizeRuleRow waitFor timeout); squash merged and pushed — 16e3db9ed
 - 2026-11-12 11:25 — 075 — start — launched by /relay-lite:run, side track beside 243 — c3868e9fa
 - 2026-11-12 11:37 — 243 — deliver — round 1 APPROVED by claude, one nit rejected (245 removes the duplicated literal), no fix round; full suite 616 files / 15736 tests passed; squash merged and pushed — fa8578342
+- 2026-11-12 11:37 — 236 — start — launched by /relay-lite:run — 97ae00757
