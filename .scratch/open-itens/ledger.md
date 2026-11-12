@@ -76,7 +76,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 039 | [Canvas file nodes added in the app load their note, and file nodes resolve both absolute and vault-relative paths](issues/039-canvas-file-image-nodes-store-vault-relative.md) | 004 | todo | | |
 | 040 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/040-kanban-drag-drop-puts-card-lane-exactly.md) | 006 | todo | | |
 | 041 | [DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end](issues/041-dataarray-sort-sortby-keep-items-that-have.md) | none | todo | | |
-| 042 | [Enter in the quick switcher creates the note when nothing matches](issues/042-enter-quick-switcher-creates-note-when-nothing.md) | none | todo | | |
+| 042 | [Enter in the quick switcher creates the note when nothing matches](issues/042-enter-quick-switcher-creates-note-when-nothing.md) | none | in-progress | | |
 | 043 | [Lens lists follow the user's own rename, trash, duplicate and create at once, not after the 2 to 10 s index throttle](issues/043-lens-lists-follow-user-s-own-rename.md) | none | todo | | |
 | 044 | [File History follows a note through rename, move, auto-move and suffixed restore](issues/044-file-history-follows-note-through-rename-move.md) | none | todo | | |
 | 045 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/045-text-search-tag-path-returns-every-note.md) | none | todo | | |
@@ -293,3 +293,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:18 — 254 — deliver — round 1 APPROVED by claude with no findings; tab strip: layout rounding, sub-pixel tolerance; AutoOrganizeRuleRow: fake timers; full suite 633 files / 16460 tests passed on the first run; squash merged and pushed — 22a266407
 - 2026-11-12 19:20 — 068 — start — launched by /relay-lite:run (owner picked it from the triage) — 8343db938
 - 2026-11-12 19:20 — 055 — start — launched by /relay-lite:run (owner picked it from the triage) — 8343db938
+- 2026-11-12 19:22 — 042 — start — launched by /relay-lite:run (owner picked it; no e2e) — afdb3df8d
