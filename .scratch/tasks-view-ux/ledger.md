@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | todo | | |
 | 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | none | wontfix | | |
 | 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | todo | | |
-| 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | in-progress | | |
+| 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | done | issue/122-row-menu-edits-with-undo (befb8f876) | 2026-11-12 |
 | 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | none | wontfix | | |
 | 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | todo | | |
 | 125 | [A "No date" built-in list, and a "modified" marker with Save, Revert and Reset](issues/125-smart-lists-and-empty-states.md) | 111, 247 | todo | | |
@@ -120,3 +120,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 16:35 — 122 — start — launched by /relay-lite:run, beside 116 (Rust command only) — 86672cb3e
 - 2026-11-12 17:00 — 116 — deliver — round 1 APPROVED by claude, five nits kept with reasons, no fix round; full suite 627 files / 16256 tests passed on run 2 (run 1: AutoOrganizeRuleRow waitFor timeout, passes alone); reviewer e2e tasks-view.spec.ts 13 passed; squash merged and pushed — 4268ffc27
 - 2026-11-12 17:00 — 245 — start — launched by /relay-lite:run — 2d9c3e268
+- 2026-11-12 17:01 — 122 — deliver — round 1 APPROVED by claude with a fix round (new token goes before the recurrence when a block id follows), deliver re-review APPROVED by claude; full suite 629 files / 16242 tests, cargo 1466 passed; squash merged and pushed — befb8f876
