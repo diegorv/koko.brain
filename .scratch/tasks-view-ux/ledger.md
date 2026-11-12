@@ -68,7 +68,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | done | issue/242-tasks-several-section-tags (3583a1057) | 2026-11-12 |
 | 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234 | done | issue/243-tasks-section-tags-saved-per-vault (fa8578342) | 2026-11-12 |
 | 244 | [Tasks come from the entries snapshot, with an overlay for the view's own writes](issues/244-tasks-from-entries-snapshot-with-write-overlay.md) | 115, 241 | done | issue/244-tasks-from-entries-snapshot-with-write-overlay (2b5a30fd3) | 2026-11-12 |
-| 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | todo | | |
+| 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | in-progress | | |
 | 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | todo | | |
 | 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | todo | | |
 | 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | done | issue/248-todoist-tags-follow-the-new-task-tag-rule (6ff6c3d55) | 2026-11-12 |
@@ -119,3 +119,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 16:35 — 116 — start — launched by /relay-lite:run — 86672cb3e
 - 2026-11-12 16:35 — 122 — start — launched by /relay-lite:run, beside 116 (Rust command only) — 86672cb3e
 - 2026-11-12 17:00 — 116 — deliver — round 1 APPROVED by claude, five nits kept with reasons, no fix round; full suite 627 files / 16256 tests passed on run 2 (run 1: AutoOrganizeRuleRow waitFor timeout, passes alone); reviewer e2e tasks-view.spec.ts 13 passed; squash merged and pushed — 4268ffc27
+- 2026-11-12 17:00 — 245 — start — launched by /relay-lite:run — 2d9c3e268
