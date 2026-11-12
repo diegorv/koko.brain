@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 074 | [Rust records task headings](issues/074-rust-task-headings.md) | 242 | done | issue/074-rust-task-headings (16e3db9ed) | 2026-11-12 |
 | 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | done | issue/075-task-tags-follow-note-tag-rule (015f8c18f) | 2026-11-12 |
 | 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | done | issue/108-mounted-list-and-rule-sentence (1a9e9eeaf) | 2026-11-12 |
-| 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | in-progress | | |
+| 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | done | issue/109-row-chips (89196031e) | 2026-11-12 |
 | 110 | [Open means not done and not cancelled, and each status has its own glyph](issues/110-open-closed-rule.md) | 242 | done | issue/110-open-closed-rule (e420d69e2) | 2026-11-12 |
 | 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | todo | | |
 | 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | todo | | |
@@ -95,3 +95,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:55 — 075 — deliver — round 1 APPROVED by claude, 3 findings accepted with no code change (major: Todoist sync keeps the ASCII tag rule, follow-up Issue to file; minor: recurrence vs #über; nit); full suite 616 files / 15696 tests, cargo 1453 passed; e2e: tabs.spec.ts:42 fails the same on main, rest passed; index schema 6 -> 7; squash merged and pushed — 015f8c18f
 - 2026-11-12 11:56 — ledger updated (added 248)
 - 2026-11-12 11:56 — 115 — start — launched by /relay-lite:run, side track beside 109 — f0f868d1b
+- 2026-11-12 12:10 — 109 — deliver — round 1 APPROVED by claude (fix round: the whole text-and-chips wrapper opens the note; commit line ranges), deliver re-review APPROVED by claude; full suite 618 files / 15787 tests passed on run 2 (run 1: AutoOrganizeRuleRow waitFor timeout, passes alone); chip look not checked by eye; squash merged and pushed — 89196031e
