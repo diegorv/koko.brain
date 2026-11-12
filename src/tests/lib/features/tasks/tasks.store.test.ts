@@ -200,6 +200,14 @@ describe('tasksStore', () => {
 		expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
 	});
 
+	it('resetQuick(quick) puts back a copy of the given quick filters, clearing the search', () => {
+		const savedQuick = { show: 'all' as const, tags: ['work'] };
+		tasksStore.setQuick({ show: 'closed', search: 'milk' });
+		tasksStore.resetQuick(savedQuick);
+		expect(tasksStore.quick).toEqual({ show: 'all', tags: ['work'] });
+		expect(tasksStore.quick).not.toBe(savedQuick);
+	});
+
 	it('setRows replaces the rows', () => {
 		const rows = rowsFrom([{ ...taskGroupV2('/vault/a.md', [taskV2('x')]), modifiedAt: Date.now() }], '/vault');
 		tasksStore.setRows(rows);

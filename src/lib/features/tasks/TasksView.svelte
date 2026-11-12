@@ -41,6 +41,7 @@
 		usesRawTaskText,
 	} from './tasks.logic';
 	import {
+		DEFAULT_QUICK,
 		GROUP_ROW_CAP,
 		TASK_PRIORITIES,
 		collapseKey,
@@ -50,6 +51,7 @@
 		hideNote,
 		hideType,
 		isQuickFieldDefault,
+		isQuickModified,
 		onlyThisFolder,
 		onlyThisType,
 		priorityWord,
@@ -77,6 +79,7 @@
 		type StatusGlyphIcon,
 	} from './task-status.logic';
 	import { priorityMenuLabel, prioritySignifier, resolveDuePreset, type DuePreset } from './task-row-edit.logic';
+	import { findTaskView } from './task-views.logic';
 	import { nextCurrentRow, resolveTaskKey, tabStopRow, taskRowKey } from './tasks-keys.logic';
 	import type { TaskPriority, TaskStatus } from './task-metadata.types';
 	import type { TaskItem } from './tasks.types';
@@ -233,8 +236,12 @@
 
 	let foldedCount = $derived(MENU_FIELDS.filter((f) => !isQuickFieldDefault(tasksStore.quick, f)).length);
 
-	let quickAtDefault = $derived(
-		[...MENU_FIELDS, 'search' as const].every((f) => isQuickFieldDefault(tasksStore.quick, f)),
+	/** The active list's saved quick filters, which Reset filters restores. */
+	let savedQuick = $derived(findTaskView(tasksStore.activeList, tasksStore.savedViews)?.query.quick ?? DEFAULT_QUICK);
+
+	/** Whether the quick filters equal the active list's saved ones, with no search typed. */
+	let quickAtSaved = $derived(
+		!isQuickModified(tasksStore.quick, savedQuick) && isQuickFieldDefault(tasksStore.quick, 'search'),
 	);
 
 	function runEmptyAction(action: NonNullable<EmptyTasksExplanation['action']>) {
@@ -1033,10 +1040,10 @@
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 
-		{#if !quickAtDefault}
+		{#if !quickAtSaved}
 			<button
 				class="h-6 rounded-md px-2 text-xs text-primary hover:bg-accent transition-colors cursor-pointer"
-				onclick={() => tasksStore.resetQuick()}
+				onclick={() => tasksStore.resetQuick(savedQuick)}
 			>
 				Reset filters
 			</button>
@@ -1059,6 +1066,7 @@
 						<p class="text-xs text-muted-foreground">{ruleSentence}</p>
 						<button
 							type="button"
+							data-task-sources-edit
 							class="text-xs text-primary hover:underline cursor-pointer"
 							aria-expanded={sourcesOpen}
 							aria-controls={sourcesPanelId}
@@ -1072,6 +1080,7 @@
 							</button>
 						{/if}
 					</div>
+					<TaskLists variant="marker" />
 					{#if sourcesOpen}<SourcesPanel id={sourcesPanelId} />{/if}
 					{#if tasksStore.error && tasksStore.rows.length === 0}
 						<!-- No list was loaded: the alert takes the empty state's place. -->
@@ -1080,6 +1089,9 @@
 						{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
 						<div class="flex flex-col items-center gap-2 py-8">
 							<p class="text-sm text-muted-foreground text-center">{emptyExplanation.message}</p>
+							{#if emptyExplanation.hint}
+								<p class="max-w-sm text-xs text-muted-foreground text-center">{emptyExplanation.hint}</p>
+							{/if}
 							{#if emptyExplanation.action}
 								{@const action = emptyExplanation.action}
 								<button

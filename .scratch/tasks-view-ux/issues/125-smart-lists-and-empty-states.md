@@ -23,16 +23,16 @@
 
 **Blocked by:** 111, 247
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B5: few of the owner's open tasks carry dates (owner's estimate, not measured) (owner, 2026-11-06). The merge of 126 into this Issue: owner, 2026-11-12.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, `task-query.logic.test.ts`: the No date built-in over a fixed row set with today 2026-11-05 returns only open tasks without a due date; `isQueryModified` is false for an equal query with keys in another order, for absent versus default optional fields, and for `statuses` in another order, and true for a change in each of sources, excludes, quick, group and sort, and for two cards swapped. Fails today (neither exists).
-- [ ] `explainEmptyTasks` (or its successor) tells "nothing due today" from "no task has a due date", with real logic.
-- [ ] `TasksView.test.ts` with real stores: selecting No date lists only open tasks without a due date, and the column count matches. Changing the grouping on "All open" shows "modified" and Reset clears it. On a saved view, Save writes the view to `settings.json` (the `plugin-fs` `writeTextFile` mock receives a `tasksView.savedViews` entry holding the new group) and Revert restores the saved query.
-- [ ] "Reset filters" on a saved view brings back that view's saved quick filters.
+- [x] Failing test first, `task-query.logic.test.ts`: the No date built-in over a fixed row set with today 2026-11-05 returns only open tasks without a due date; `isQueryModified` is false for an equal query with keys in another order, for absent versus default optional fields, and for `statuses` in another order, and true for a change in each of sources, excludes, quick, group and sort, and for two cards swapped. Fails today (neither exists).
+- [x] `explainEmptyTasks` (or its successor) tells "nothing due today" from "no task has a due date", with real logic.
+- [x] `TasksView.test.ts` with real stores: selecting No date lists only open tasks without a due date, and the column count matches. Changing the grouping on "All open" shows "modified" and Reset clears it. On a saved view, Save writes the view to `settings.json` (the `plugin-fs` `writeTextFile` mock receives a `tasksView.savedViews` entry holding the new group) and Revert restores the saved query.
+- [x] "Reset filters" on a saved view brings back that view's saved quick filters.
 
 ## Notes
 
@@ -44,3 +44,4 @@
 - 2026-11-12: Blocked by 124 became 247: the deep dive split Issue 124, and the list column this Issue adds lists and counts to is now Issue 247 (124b).
 - 2026-11-12: consistency review: a built-in is a `TaskViewQuery` (the shape Issue 124 defines for "All open"), not a `TaskQuery`, and lives next to it.
 - 2026-11-12: main session: Issue 126 (the "modified" marker) merged in on the owner's approval; origin numbers translated (tasks-view 17 is 124 and 247, 29 was 126, 09 is 246, 07 is 239, 23 is 129).
+- 2026-11-12: delivered from issue/125-smart-lists-and-empty-states. Adds the "No date" built-in list, `isQueryModified` with a "modified" marker and Save, Revert and Reset on views, empty-state text telling "nothing due today" from "no task has a due date", and Reset filters restoring a saved view's quick filters. Review round 1 APPROVED (review.md); fix round ran; review round 2 APPROVED (review-2.md). Tests: pnpm check 0 errors; tasks tests 881 passed; full suite 16508 passed, 1 failure in AutoOrganizeRuleRow.test.ts (load timeout, unrelated, fixed on main by 22a266407, passes alone).

@@ -30,9 +30,10 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings } from '#lib/core/settings/settings.service.js';
 import { startSettingsPersistence, stopSettingsPersistence } from '#lib/core/settings/settings-persistence.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { loadSavedTasksView, resetTasks } from '#lib/features/tasks/tasks.service.js';
+import { buildTaskIndex, loadSavedTasksView, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
-import { ALL_OPEN_ID, TO_LIST_ID, findTaskView } from '#lib/features/tasks/task-views.logic.js';
+import { ALL_OPEN_ID, NO_DATE_ID, TO_LIST_ID, findTaskView } from '#lib/features/tasks/task-views.logic.js';
+import type { TaskViewQuery } from '#lib/features/tasks/task-views.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { mockTaskFetch, mountTasksView, openMenu, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
@@ -40,7 +41,7 @@ import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 const SETTINGS = '/vault/.kokobrain/settings.json';
 
 /** The `tasksView` of the last settings.json written. */
-function lastTasksView(): { activeList: string; savedViews: { id: string; name: string }[] } {
+function lastTasksView(): { activeList: string; savedViews: { id: string; name: string; query: TaskViewQuery }[] } {
 	const calls = vi.mocked(writeTextFile).mock.calls.filter(([path]) => path === SETTINGS);
 	return JSON.parse(calls.at(-1)![1] as string).tasksView;
 }
@@ -104,6 +105,19 @@ function typeName(value: string, key: 'Enter' | 'Escape'): void {
 	flushSync();
 }
 
+/** The count the column shows beside the list `id`. */
+const columnCount = (id: string) => column().querySelector(`[data-task-list-count="${id}"]`)?.textContent?.trim();
+
+/** The "modified" marker under the sentence, or null when hidden. */
+const marker = () => document.querySelector<HTMLElement>('[data-task-modified]');
+
+/** The marker's button labels, in order. */
+const markerButtons = () => Array.from(marker()?.querySelectorAll('button') ?? []).map((b) => b.textContent?.trim());
+
+/** The page's only button reading `name`, or undefined. */
+const buttonNamed = (name: string) =>
+	Array.from(document.querySelectorAll<HTMLButtonElement>('button')).find((b) => b.textContent?.trim() === name);
+
 describe('TasksView: the list column', () => {
 	let component: Record<string, unknown> | null = null;
 
@@ -141,9 +155,10 @@ describe('TasksView: the list column', () => {
 		document.body.innerHTML = '';
 	});
 
-	it('lists "All open" then "To list", with "To list" active, and clicking "All open" lists every open task', () => {
+	it('lists "All open", "No date" then "To list", with "To list" active, and clicking "All open" lists every open task', () => {
 		expect(columnLists()).toEqual([
 			['All open', false],
+			['No date', false],
 			['To list', true],
 		]);
 		expect(rowTexts()).toEqual(['inbox task']);
@@ -154,6 +169,7 @@ describe('TasksView: the list column', () => {
 		expect(tasksStore.activeList).toBe(ALL_OPEN_ID);
 		expect(columnLists()).toEqual([
 			['All open', true],
+			['No date', false],
 			['To list', false],
 		]);
 		expect(rowTexts()).toEqual(['home task', 'inbox task']);
@@ -181,6 +197,7 @@ describe('TasksView: the list column', () => {
 
 		expect(columnLists()).toEqual([
 			['All open', false],
+			['No date', false],
 			['To list', false],
 			['Work', true],
 		]);
@@ -201,6 +218,7 @@ describe('TasksView: the list column', () => {
 		typeName('Inbox', 'Enter');
 		expect(columnLists()).toEqual([
 			['All open', false],
+			['No date', false],
 			['Inbox', true],
 		]);
 
@@ -209,6 +227,7 @@ describe('TasksView: the list column', () => {
 		flushSync();
 		expect(columnLists()).toEqual([
 			['All open', false],
+			['No date', false],
 			['Inbox', true],
 			['Inbox copy', false],
 		]);
@@ -222,6 +241,7 @@ describe('TasksView: the list column', () => {
 
 		expect(columnLists()).toEqual([
 			['All open', false],
+			['No date', false],
 			['Inbox copy', true],
 		]);
 		// The deleted row's menu trigger is gone; focus moves to the list now active.
@@ -332,5 +352,170 @@ describe('TasksView: the list column', () => {
 
 		expect(tasksStore.query.exclude.folders).toEqual(['B']);
 		expect(document.activeElement).toBe(byName(section('list'), 'button', 'Remove excluded folder on this list B'));
+	});
+
+	it('"No date" lists only the open tasks without a due date, and the column counts each list', async () => {
+		mockTaskFetch(
+			[
+				taskGroupV2('/vault/Home/H.md', [
+					taskV2('home task'),
+					taskV2('dated task', { lineNumber: 2, metadata: { description: 'dated task', tags: [], dueDate: '2026-11-20' } }),
+					taskV2('closed task', { lineNumber: 3, status: 'done' }),
+				]),
+			],
+			{ entries: [underToList('/vault/Inbox.md', ['inbox task'])] },
+		);
+		await buildTaskIndex();
+		flushSync();
+
+		expect([columnCount(ALL_OPEN_ID), columnCount(NO_DATE_ID), columnCount(TO_LIST_ID)]).toEqual(['3', '2', '1']);
+		const countEl = column().querySelector(`[data-task-list-count="${NO_DATE_ID}"]`)!;
+		expect(listButton('No date').getAttribute('aria-describedby')).toBe(countEl.id);
+
+		listButton('No date').click();
+		flushSync();
+
+		expect(tasksStore.activeList).toBe(NO_DATE_ID);
+		expect(rowTexts()).toEqual(['home task', 'inbox task']);
+		expect(columnCount(NO_DATE_ID)).toBe(String(rowTexts().length));
+		expect(marker()).toBeNull();
+		// Not written: a built-in list lives in code.
+		await settle();
+		expect(lastTasksView().activeList).toBe(NO_DATE_ID);
+		expect(lastTasksView().savedViews.map((v) => v.id)).toEqual([TO_LIST_ID]);
+	});
+
+	it('"No date" with every open task dated says so', async () => {
+		mockTaskFetch([taskGroupV2('/vault/H.md', [taskV2('dated', { metadata: { description: 'dated', tags: [], dueDate: '2026-11-20' } })])]);
+		await buildTaskIndex();
+		listButton('No date').click();
+		flushSync();
+
+		expect(document.body.textContent).toContain('Every open task has a due date');
+		expect(columnCount(NO_DATE_ID)).toBe('0');
+	});
+
+	it('a date window over a vault with no dated task explains the due date signifier', () => {
+		listButton('All open').click();
+		tasksStore.setQuick({ due: 'today' });
+		flushSync();
+
+		const message = Array.from(document.querySelectorAll('p')).find((p) => p.textContent?.trim() === 'No task in this vault has a due date');
+		expect(message).toBeDefined();
+		expect(message!.nextElementSibling?.textContent).toContain('📅');
+		expect(message!.nextElementSibling?.textContent).toContain('pick Due in a task\'s menu');
+	});
+
+	it('a grouping change on "All open" shows "modified" with Save as view and Reset, and Reset clears it', () => {
+		listButton('All open').click();
+		flushSync();
+		expect(marker()).toBeNull();
+
+		// A search is never saved, so it never marks a list modified.
+		tasksStore.setQuick({ search: 'home' });
+		flushSync();
+		expect(marker()).toBeNull();
+
+		tasksStore.setGroupBy('folder');
+		flushSync();
+		expect(marker()!.textContent).toContain('modified');
+		expect(markerButtons()).toEqual(['Save as view', 'Reset']);
+
+		buttonNamed('Reset')!.focus();
+		buttonNamed('Reset')!.click();
+		flushSync();
+
+		expect(tasksStore.groupBy).toBe('note');
+		expect(tasksStore.activeList).toBe(ALL_OPEN_ID);
+		expect(marker()).toBeNull();
+		// The marker left with the focused button; focus lands on the sentence's Edit.
+		expect(document.activeElement).toBe(buttonNamed('Edit'));
+	});
+
+	it('picking another list closes the marker\'s Save as view input', () => {
+		listButton('All open').click();
+		tasksStore.setGroupBy('folder');
+		flushSync();
+		buttonNamed('Save as view')!.click();
+		flushSync();
+		expect(document.querySelector('input[aria-label="View name"]')).not.toBeNull();
+
+		listButton('To list').click();
+		flushSync();
+
+		expect(document.querySelector('input[aria-label="View name"]')).toBeNull();
+		expect(marker()).toBeNull();
+	});
+
+	it('Save as view on a modified built-in saves the session as a new active view', async () => {
+		listButton('No date').click();
+		tasksStore.setGroupBy('folder');
+		flushSync();
+
+		buttonNamed('Save as view')!.click();
+		flushSync();
+		typeName('Undated by folder', 'Escape');
+		expect(document.activeElement).toBe(buttonNamed('Save as view'));
+		buttonNamed('Save as view')!.click();
+		flushSync();
+		typeName('Undated by folder', 'Enter');
+
+		expect(findTaskView(tasksStore.activeList, tasksStore.savedViews)?.name).toBe('Undated by folder');
+		expect(marker()).toBeNull();
+		expect(document.activeElement).toBe(buttonNamed('Edit'));
+		await settle();
+		const written = lastTasksView().savedViews.at(-1)!;
+		expect(written.name).toBe('Undated by folder');
+		expect(written.query).toMatchObject({ groupBy: 'folder', quick: { show: 'open', due: 'none' } });
+	});
+
+	it('on a saved view, Save writes the session query into settings.json and Revert restores the saved one', async () => {
+		tasksStore.setGroupBy('priority');
+		flushSync();
+		expect(markerButtons()).toEqual(['Save', 'Revert']);
+
+		buttonNamed('Save')!.focus();
+		buttonNamed('Save')!.click();
+		flushSync();
+		expect(marker()).toBeNull();
+		expect(document.activeElement).toBe(buttonNamed('Edit'));
+		await settle();
+		expect(lastTasksView().savedViews).toHaveLength(1);
+		expect(lastTasksView().savedViews[0]).toMatchObject({ id: TO_LIST_ID, name: 'To list', query: { groupBy: 'priority' } });
+
+		tasksStore.setGroupBy('due');
+		tasksStore.setQuick({ show: 'all' });
+		flushSync();
+		expect(markerButtons()).toEqual(['Save', 'Revert']);
+
+		buttonNamed('Revert')!.focus();
+		buttonNamed('Revert')!.click();
+		flushSync();
+
+		expect(tasksStore.groupBy).toBe('priority');
+		expect(tasksStore.quick).toEqual({ show: 'open' });
+		expect(marker()).toBeNull();
+		expect(document.activeElement).toBe(buttonNamed('Edit'));
+	});
+
+	it('Reset filters on a saved view brings back its saved quick filters, and shows only off them', () => {
+		tasksStore.setQuick({ show: 'all', due: 'none' });
+		flushSync();
+		buttonNamed('Save')!.click();
+		flushSync();
+		// The quick filters equal the saved ones, though not the code defaults.
+		expect(buttonNamed('Reset filters')).toBeUndefined();
+
+		tasksStore.setQuick({ show: 'closed', due: undefined, search: 'x' });
+		flushSync();
+		buttonNamed('Reset filters')!.click();
+		flushSync();
+
+		expect(tasksStore.quick).toEqual({ show: 'all', due: 'none' });
+		expect(buttonNamed('Reset filters')).toBeUndefined();
+
+		tasksStore.setQuick({ search: 'inbox' });
+		flushSync();
+		expect(buttonNamed('Reset filters')).toBeDefined();
 	});
 });

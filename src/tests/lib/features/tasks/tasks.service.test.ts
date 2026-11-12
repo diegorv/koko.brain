@@ -47,6 +47,8 @@ import {
 	loadSavedTasksView,
 	selectTaskList,
 	saveTaskView,
+	saveTaskViewQuery,
+	revertTaskList,
 	renameTaskView,
 	duplicateTaskView,
 	deleteTaskView,
@@ -54,7 +56,7 @@ import {
 } from '#lib/features/tasks/tasks.service.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { defaultTaskExcludes, emptyTaskExcludes, headingSources } from '#lib/features/tasks/task-query.logic.js';
-import { ALL_OPEN_ID, ALL_OPEN_VIEW, TO_LIST_ID, toListView } from '#lib/features/tasks/task-views.logic.js';
+import { ALL_OPEN_ID, ALL_OPEN_VIEW, NO_DATE_ID, TO_LIST_ID, toListView } from '#lib/features/tasks/task-views.logic.js';
 import { resolveDuePreset } from '#lib/features/tasks/task-row-edit.logic.js';
 import { formatNow } from '#lib/utils/date.js';
 import { setDueToken } from '#lib/utils/task-tokens.js';
@@ -737,10 +739,63 @@ describe('saved view operations', () => {
 		});
 	});
 
-	it('the built-in "All open" view is never written', () => {
+	it('the built-in "All open" and "No date" views are never written', () => {
 		selectTaskList(ALL_OPEN_ID);
+		selectTaskList(NO_DATE_ID);
 
-		expect(saved().savedViews.some((v) => v.id === ALL_OPEN_VIEW.id)).toBe(false);
+		expect(saved().activeList).toBe(NO_DATE_ID);
+		expect(saved().savedViews.some((v) => v.id === ALL_OPEN_VIEW.id || v.id === NO_DATE_ID)).toBe(false);
+	});
+
+	it('selectTaskList opens "No date" with its Due filter', () => {
+		selectTaskList(NO_DATE_ID);
+
+		expect(tasksStore.activeList).toBe(NO_DATE_ID);
+		expect(tasksStore.query.sources).toEqual([]);
+		expect(tasksStore.quick).toEqual({ show: 'open', due: 'none' });
+	});
+
+	it('revertTaskList copies the active list\'s saved query back into the session and writes nothing', () => {
+		selectTaskList(NO_DATE_ID);
+		const before = settingsStore.tasksView;
+		tasksStore.setQuick({ due: undefined, search: 'x' });
+		tasksStore.setGroupBy('folder');
+		setTaskSources([{ clauses: [{ kind: 'folder', path: 'P' }] }]);
+
+		revertTaskList();
+
+		expect(tasksStore.activeList).toBe(NO_DATE_ID);
+		expect(tasksStore.query.sources).toEqual([]);
+		expect(tasksStore.quick).toEqual({ show: 'open', due: 'none' });
+		expect(tasksStore.groupBy).toBe('note');
+		expect(settingsStore.tasksView).toBe(before);
+	});
+
+	it('saveTaskViewQuery writes the session query, without the search, into the active saved view', () => {
+		const other = saveTaskView('Other')!;
+		selectTaskList(TO_LIST_ID);
+		tasksStore.setGroupBy('priority');
+		tasksStore.setQuick({ show: 'all', search: 'milk' });
+
+		expect(saveTaskViewQuery()).toBe(true);
+
+		const view = tasksStore.savedViews.find((v) => v.id === TO_LIST_ID)!;
+		expect(view.query).toEqual({ ...toListView('').query, quick: { show: 'all' }, groupBy: 'priority' });
+		expect(views()).toEqual([[TO_LIST_ID, 'To list'], [other, 'Other']]);
+		expect(tasksStore.activeList).toBe(TO_LIST_ID);
+		expect(tasksStore.quick).toEqual({ show: 'all', search: 'milk' });
+		expect(saved().savedViews[0]).toMatchObject({ id: TO_LIST_ID, query: { groupBy: 'priority', quick: { show: 'all' } } });
+	});
+
+	it('saveTaskViewQuery refuses a built-in list, writing nothing', () => {
+		selectTaskList(ALL_OPEN_ID);
+		const before = settingsStore.tasksView;
+		tasksStore.setGroupBy('due');
+
+		expect(saveTaskViewQuery()).toBe(false);
+
+		expect(settingsStore.tasksView).toBe(before);
+		expect(views()).toEqual([[TO_LIST_ID, 'To list']]);
 	});
 });
 

@@ -135,15 +135,17 @@ When the list is empty because of the sources, the empty state offers **Edit sou
 
 ## Lists
 
-The Tasks View shows one list at a time, and each vault remembers which one was open. The list column, left of the list, shows **All open** first, then your saved views in the order they were saved; the open list is highlighted. Click a list to open it.
+The Tasks View shows one list at a time, and each vault remembers which one was open. The list column, left of the list, shows **All open** and **No date** first, then your saved views in the order they were saved; the open list is highlighted, and each list shows how many tasks it holds. Click a list to open it.
 
-The first time a vault opens, it gets a saved **To list** view built from the section tags an earlier version saved (one Heading card in Tag mode per tag), or the `#to-list` card when none was saved, and opens on it. **All open** is built in: it lists every open task, grouped by note, and cannot be renamed or deleted.
+The first time a vault opens, it gets a saved **To list** view built from the section tags an earlier version saved (one Heading card in Tag mode per tag), or the `#to-list` card when none was saved, and opens on it. Two lists are built in and cannot be renamed or deleted: **All open** lists every open task, grouped by note, and **No date** lists the open tasks with no due date (All open with **Due** on **No date**). When a due date filter finds nothing because no task in the vault has a due date, the list says so and how to add one: type 📅 and a date after a task's text, or pick **Due** in a task's menu.
 
 - **Save view**, at the end of the column, asks for a name: press Enter to save what you see now (cards, This list excludes, filters and grouping, but not the search) as a new view, which becomes the open list, or Escape to cancel. A blank name saves nothing.
 - Each saved view has a **...** menu, shown when you hover over it or move focus into it: **Rename** (the same name field), **Duplicate** (adds "<name> copy" right after it) and **Delete**. The last saved view cannot be deleted. Deleting the open view opens the first remaining one.
 - In a pane narrower than 720 px, the column becomes a dropdown above the sentence: pick a list there, or pick **Save view**. Rename, Duplicate and Delete need the wider column.
 
 Changing a list's cards, This list excludes, filters or grouping changes what you see right away, but the saved view stays as it was: the change lasts until you switch to another list (clicking the open list again included) or restart, and the list opens as saved the next time. The **Global** excludes are the exception: they are saved at once and apply to every list.
+
+While the list on screen differs from the saved one, **modified** shows under the sentence above the list, with two buttons. On a saved view, **Save** writes the change into the view and **Revert** goes back to it as saved. On a built-in list, **Save as view** saves the change as a new view (the same name field as **Save view**) and **Reset** goes back to the built-in list. Typing in the search box never marks a list modified, since a view never saves the search.
 
 ---
 
@@ -162,7 +164,7 @@ Combine filters to narrow down your view. For example, keep **Status** on **Open
 
 The **Search tasks** box in the toolbar lists the tasks whose text or note title contains what you type, as you type, whatever the case. It does not search tags or dates: use the Tag menu for tags.
 
-**Reset filters**, at the end of the filter row, shows while the Status, Due, Priority, Tag or search filter is changed, and puts all of them back to their defaults. It leaves the sources and excludes as they are.
+**Reset filters**, at the end of the filter row, shows while the Status, Due, Priority or Tag filter differs from the open list's saved filters, or the search box holds text, and puts them back as the list saved them, clearing the search. It leaves the sources and excludes as they are.
 
 In a pane narrower than 560 px, the Status, Due, Priority and Tag menus fold into one **Filters (n)** menu, where n counts how many of the four are changed.
 

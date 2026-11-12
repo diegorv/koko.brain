@@ -1304,10 +1304,87 @@ export function describeTaskQuery(query: TaskQuery): string {
 	return `${describeStatus(quick)}${describeSources(query.sources)}${describeExcludes(query.exclude, query.sources)}${when}${priority}${tagged}${matching}`;
 }
 
+/** `values` sorted, `[]` when absent: a list whose order means nothing. */
+const asSet = (values: readonly string[] | undefined) => [...(values ?? [])].sort();
+
+/** The quick filters but `search`, each absent field at its default and each list sorted. */
+function normalQuick(quick: TaskQuickFilters) {
+	return {
+		show: quick.show,
+		statuses: asSet(quick.statuses),
+		due: quick.due ?? 'any',
+		priorities: asSet(quick.priorities),
+		tags: asSet(quick.tags),
+	};
+}
+
+/** A clause as a fixed-order tuple, `negate` absent read as false. */
+function normalClause(clause: TaskSourceClause): unknown[] {
+	switch (clause.kind) {
+		case 'folder':
+			return [clause.kind, clause.path, clause.negate ?? false];
+		case 'type':
+			return [clause.kind, clause.type, clause.negate ?? false];
+		case 'noteTag':
+			return [clause.kind, clause.tag, clause.negate ?? false];
+		case 'heading':
+			return [clause.kind, clause.text, clause.match];
+		case 'property':
+			return [clause.kind, clause.key, clause.op, clause.value ?? null];
+		case 'lifecycle':
+			return [clause.kind, clause.state];
+	}
+}
+
+/** The parts of a list's query `isQueryModified` compares: a `TaskViewQuery`. */
+interface ComparedQuery {
+	sources: readonly TaskSource[];
+	exclude: TaskExcludes;
+	quick: TaskQuickFilters;
+	groupBy: TaskGroupKey;
+	sort: readonly TaskSortKey[];
+}
+
+/** `query` in one string that does not depend on key order, absent defaults or set-like list order. */
+function queryKey(query: ComparedQuery): string {
+	const { exclude: ex } = query;
+	return JSON.stringify([
+		query.sources.map((card) => card.clauses.map(normalClause)),
+		[ex.archived, ex.typeDefinitions, ex.templatesFolder, ex.systemFolder],
+		[asSet(ex.folders), asSet(ex.notes), asSet(ex.tags), asSet(ex.types)],
+		normalQuick(query.quick),
+		typeof query.groupBy === 'string' ? query.groupBy : { property: query.groupBy.property },
+		query.sort,
+	]);
+}
+
+/**
+ * Whether the quick filters `current` differ from `saved`. `search` is left
+ * out (a saved view never stores it); an absent `statuses`, `priorities` or
+ * `tags` equals `[]` and an absent `due` equals `any`; the order of those
+ * three lists does not count.
+ */
+export function isQuickModified(current: TaskQuickFilters, saved: TaskQuickFilters): boolean {
+	return JSON.stringify(normalQuick(current)) !== JSON.stringify(normalQuick(saved));
+}
+
+/**
+ * Whether the list on screen (`current`) differs from its saved query: the
+ * sources, own excludes, quick filters (`isQuickModified`), grouping and sort.
+ * Key order does not count, an absent clause `negate` equals false, and the
+ * exclude lists compare as sets. The order of the cards, of the clauses in a
+ * card and of the sort keys counts.
+ */
+export function isQueryModified(current: ComparedQuery, saved: ComparedQuery): boolean {
+	return queryKey(current) !== queryKey(saved);
+}
+
 /** Why the Tasks list is empty, and the one action that would fill it */
 export interface EmptyTasksExplanation {
 	/** Sentence naming the filter that emptied the list */
 	message: string;
+	/** A second line saying how to add what the list looks for */
+	hint?: string;
 	/** Button that lifts that filter, when one does; `resetQuick` resets only `field` */
 	action?:
 		| { kind: 'editSources'; label: string }
@@ -1334,6 +1411,27 @@ const NO_EXCLUDES: TaskExcludes = {
 	tags: [],
 	types: [],
 };
+
+/** The Due options that read a task's due date window, which an undated task never matches. */
+const DATE_WINDOWS: readonly DueRange[] = ['overdue', 'today', 'next7'];
+
+/**
+ * The sentence for a list the Due filter empties. A date window over a vault
+ * where no task (in any note, whatever the sources) carries a due date says
+ * so, and how to add one; No date says every task left has one.
+ */
+function explainEmptyDue(quick: TaskQuickFilters, allRows: readonly TaskRow[], today: string): Pick<EmptyTasksExplanation, 'message' | 'hint'> {
+	if (quick.due === 'none') {
+		return { message: `Every ${isQuickFieldDefault(quick, 'status') ? 'open' : 'matching'} task has a due date` };
+	}
+	if (DATE_WINDOWS.includes(quick.due!) && !allRows.some((row) => row.metadata.dueDate)) {
+		return {
+			message: 'No task in this vault has a due date',
+			hint: `Type 📅 ${today} after a task's text to give it a due date, or pick Due in a task's menu.`,
+		};
+	}
+	return { message: 'No task matches the Due filter' };
+}
 
 /**
  * Names the first stage of the pipeline that leaves the Tasks list empty: no
@@ -1391,10 +1489,7 @@ export function explainEmptyTasks({
 
 	const statusAndDue: TaskQuickFilters = { ...statusOnly, due: quick.due };
 	if (!isQuickFieldDefault(quick, 'due') && applyQuickFilters(rows, statusAndDue, today, now).length === 0) {
-		return {
-			message: 'No task matches the Due filter',
-			action: { kind: 'resetQuick', field: 'due', label: 'Reset Due filter' },
-		};
+		return { ...explainEmptyDue(quick, allRows, today), action: { kind: 'resetQuick', field: 'due', label: 'Reset Due filter' } };
 	}
 
 	let upTo: TaskQuickFilters = statusAndDue;

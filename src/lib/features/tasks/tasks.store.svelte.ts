@@ -151,8 +151,8 @@ export const tasksStore = {
 	},
 	/** Merges `partial` into the quick filters; a key set to `undefined` clears that field. */
 	setQuick(partial: Partial<TaskQuickFilters>) { query = { ...query, quick: { ...query.quick, ...partial } }; },
-	/** Puts the quick filters back to `DEFAULT_QUICK`. */
-	resetQuick() { query = { ...query, quick: { ...DEFAULT_QUICK } }; },
+	/** Replaces the quick filters with a copy of `quick`, `DEFAULT_QUICK` when omitted. */
+	resetQuick(quick: TaskQuickFilters = DEFAULT_QUICK) { query = { ...query, quick: { ...quick } }; },
 	/** Sets the grouping; the current value changes nothing. */
 	setGroupBy(next: TaskGroupKey) { groupBy = next; },
 	setLoading(loading: boolean) { isLoading = loading; },

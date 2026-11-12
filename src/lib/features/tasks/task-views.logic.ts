@@ -2,9 +2,11 @@ import {
 	DEFAULT_QUICK,
 	DEFAULT_TASK_SORT,
 	TASK_PRIORITIES,
+	applyQuickFilters,
 	defaultTaskExcludes,
 	emptyTaskExcludes,
 	headingSources,
+	selectSourceRows,
 	type DueRange,
 	type LifecycleState,
 	type PropertyOp,
@@ -12,9 +14,11 @@ import {
 	type TaskGroupKey,
 	type TaskQuery,
 	type TaskQuickFilters,
+	type TaskRow,
 	type TaskSortKey,
 	type TaskSource,
 	type TaskSourceClause,
+	type TaskSourceFolders,
 } from './task-query.logic';
 import { TASK_STATUSES } from './task-status.logic';
 import { parseSectionTags } from './tasks.logic';
@@ -72,8 +76,44 @@ export const ALL_OPEN_VIEW: SavedTaskView = {
 	},
 };
 
+/** Reserved id of the built-in "No date" list. */
+export const NO_DATE_ID = 'no-date';
+
+/**
+ * The built-in "No date" list: "All open" with the Due filter on No date, the
+ * open tasks without a due date. Never written to disk.
+ */
+export const NO_DATE_VIEW: SavedTaskView = {
+	id: NO_DATE_ID,
+	name: 'No date',
+	query: { ...ALL_OPEN_VIEW.query, quick: { ...DEFAULT_QUICK, due: 'none' } },
+};
+
 /** The built-in lists, in list order. */
-export const BUILT_IN_TASK_VIEWS: readonly SavedTaskView[] = [ALL_OPEN_VIEW];
+export const BUILT_IN_TASK_VIEWS: readonly SavedTaskView[] = [ALL_OPEN_VIEW, NO_DATE_VIEW];
+
+/** Whether `id` names a built-in list, which no write ever changes. */
+export function isBuiltInTaskView(id: string): boolean {
+	return BUILT_IN_TASK_VIEWS.some((v) => v.id === id);
+}
+
+/**
+ * How many rows the list `query` shows, dimmed parents left out: its sources
+ * and its excludes merged with `globalExcludes`, then its quick filters.
+ * @param today - today as `YYYY-MM-DD`, for the due date options
+ * @param now - the clock the edited options read, in ms
+ */
+export function taskViewCount(
+	rows: readonly TaskRow[],
+	query: TaskViewQuery,
+	globalExcludes: TaskExcludes,
+	folders: TaskSourceFolders,
+	today: string,
+	now: number,
+): number {
+	const sourced = selectSourceRows(rows, query.sources, mergeExcludes(globalExcludes, query.exclude), folders);
+	return applyQuickFilters(sourced, query.quick, today, now).filter((row) => !row.dimmed).length;
+}
 
 /** `a` with each entry of `b` it lacks appended, compared exactly. */
 const union = (a: readonly string[], b: readonly string[]) => [...a, ...b.filter((v, i) => !a.includes(v) && b.indexOf(v) === i)];

@@ -21,7 +21,9 @@ import {
 	selectSourceRows,
 	sourceSuggestions,
 	groupTaskRows,
+	isQueryModified,
 	isQuickFieldDefault,
+	isQuickModified,
 	matchesNestedTag,
 	statusFilterLabel,
 	tagMenuOptions,
@@ -44,6 +46,7 @@ import {
 } from '#lib/features/tasks/task-query.logic.js';
 import type { TaskPriority, TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import { parseSectionTags, taskDisplayText } from '#lib/features/tasks/tasks.logic.js';
+import { ALL_OPEN_VIEW, NO_DATE_VIEW, type TaskViewQuery } from '#lib/features/tasks/task-views.logic.js';
 import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { sevenStatusGroup, taskEntryV2, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
@@ -2275,8 +2278,11 @@ describe('explainEmptyTasks', () => {
 	});
 
 	describe('stage 5: the Due filter', () => {
-		it('names the Due filter for Overdue over open undated rows', () => {
-			expect(explain(rows([[open(1), open(2)]]), { show: 'open', due: 'overdue' })).toEqual({ message: DUE_MESSAGE, action: RESET_DUE });
+		it('names the Due filter for Overdue over open rows undated or due later', () => {
+			expect(explain(rows([[open(1), open(2)]], [[dueTask('2026-12-01', 1)]]), { show: 'open', due: 'overdue' })).toEqual({
+				message: DUE_MESSAGE,
+				action: RESET_DUE,
+			});
 		});
 
 		it('names the Due filter when no row passes both Status and Due', () => {
@@ -2293,7 +2299,7 @@ describe('explainEmptyTasks', () => {
 
 		it('names the Due filter under All and under chosen statuses', () => {
 			expect(explain(rows([[done(1)]]), { show: 'all', due: 'edited30' })).toEqual({ message: DUE_MESSAGE, action: RESET_DUE });
-			expect(explain(rows([[open(1)]]), { show: 'all', statuses: ['todo'], due: 'today' })).toEqual({
+			expect(explain(rows([[open(1), dueTask('2026-12-01', 2)]]), { show: 'all', statuses: ['todo'], due: 'today' })).toEqual({
 				message: DUE_MESSAGE,
 				action: RESET_DUE,
 			});
@@ -2336,7 +2342,8 @@ describe('explainEmptyTasks', () => {
 				message: 'The only task is closed',
 				action: SHOW_ALL,
 			});
-			expect(explain(two(), { show: 'open', due: 'overdue', ...rest })).toEqual({
+			const later = rowsFrom([group('/vault/later.md', [dueTask('2026-12-01', 1)])], '/vault');
+			expect(explain([...two(), ...later], { show: 'open', due: 'overdue', ...rest })).toEqual({
 				message: DUE_MESSAGE,
 				action: RESET_DUE,
 			});
@@ -2345,5 +2352,170 @@ describe('explainEmptyTasks', () => {
 
 	it('falls back to "No tasks found" with no action when the Due filter is any', () => {
 		expect(explain(rows([[open(1)]]), OPEN)).toEqual({ message: 'No tasks found' });
+	});
+});
+
+describe('the No date built-in list', () => {
+	it('lists only the open tasks without a due date', () => {
+		const r = rowsFrom(
+			[
+				group('/vault/a.md', [
+					dueTask(undefined, 1),
+					dueTask('2026-11-04', 2),
+					dueTask('2026-11-05', 3),
+					taskV2('closed undated', { status: 'done', lineNumber: 4 }),
+					taskV2('cancelled undated', { status: 'cancelled', lineNumber: 5 }),
+					taskV2('in progress undated', { status: 'in-progress', lineNumber: 6 }),
+				]),
+				group('/vault/b.md', [dueTask(undefined, 1), dueTask('2026-12-01', 2)]),
+			],
+			'/vault',
+		);
+		const { query } = NO_DATE_VIEW;
+		const sourced = selectSourceRows(r, query.sources, query.exclude, FOLDERS);
+		const shownRows = applyQuickFilters(sourced, query.quick, TODAY, NOW);
+		expect(shownRows.map((row) => [row.filePath, row.text, row.dimmed])).toEqual([
+			['/vault/a.md', 'undated 1', false],
+			['/vault/a.md', 'in progress undated', false],
+			['/vault/b.md', 'undated 1', false],
+		]);
+	});
+});
+
+describe('isQueryModified', () => {
+	/** A view query with two cards, own excludes, quick filters, a grouping and the default sort. */
+	const base = (): TaskViewQuery => ({
+		sources: [
+			{ clauses: [{ kind: 'folder', path: 'Projects' }, { kind: 'noteTag', tag: 'work', negate: true }] },
+			{ clauses: [{ kind: 'heading', text: 'to-list', match: 'tag' }] },
+		],
+		exclude: { ...emptyTaskExcludes(), archived: true, folders: ['A', 'B'], tags: ['old', 'tmp'] },
+		quick: { show: 'open', statuses: ['todo', 'in-progress'], priorities: ['high', 'low'], tags: ['x', 'y'] },
+		groupBy: 'folder',
+		sort: ['due', 'priority', 'path'],
+	});
+
+	it('is false for the same query', () => {
+		expect(isQueryModified(base(), base())).toBe(false);
+	});
+
+	it('is false for an equal query with its keys in another order', () => {
+		const q = base();
+		const reordered = {
+			sort: q.sort,
+			groupBy: q.groupBy,
+			quick: { tags: q.quick.tags, priorities: q.quick.priorities, statuses: q.quick.statuses, show: q.quick.show },
+			exclude: { ...Object.fromEntries(Object.entries(q.exclude).reverse()) } as TaskViewQuery['exclude'],
+			sources: [{ clauses: [{ path: 'Projects', kind: 'folder' }, { negate: true, tag: 'work', kind: 'noteTag' }] }, q.sources[1]],
+		} as TaskViewQuery;
+		expect(isQueryModified(reordered, base())).toBe(false);
+	});
+
+	it('is false for absent optional fields against their defaults', () => {
+		const absent: TaskViewQuery = { ...ALL_OPEN_VIEW.query, sources: [{ clauses: [{ kind: 'folder', path: 'P' }] }], quick: { show: 'open' } };
+		const defaults: TaskViewQuery = {
+			...ALL_OPEN_VIEW.query,
+			sources: [{ clauses: [{ kind: 'folder', path: 'P', negate: false }] }],
+			quick: { show: 'open', statuses: [], priorities: [], tags: [], due: 'any' },
+		};
+		expect(isQueryModified(absent, defaults)).toBe(false);
+		expect(isQueryModified(defaults, absent)).toBe(false);
+	});
+
+	it('is false for set-like lists in another order', () => {
+		const q = base();
+		const shuffled: TaskViewQuery = {
+			...q,
+			exclude: { ...q.exclude, folders: ['B', 'A'], tags: ['tmp', 'old'] },
+			quick: { ...q.quick, statuses: ['in-progress', 'todo'], priorities: ['low', 'high'], tags: ['y', 'x'] },
+		};
+		expect(isQueryModified(shuffled, base())).toBe(false);
+	});
+
+	it('ignores the search, which a saved view never stores', () => {
+		const q = base();
+		expect(isQueryModified({ ...q, quick: { ...q.quick, search: 'ship' } }, base())).toBe(false);
+	});
+
+	it.each<[string, (q: TaskViewQuery) => TaskViewQuery]>([
+		['a source clause', (q) => ({ ...q, sources: [{ clauses: [{ kind: 'folder', path: 'Other' }] }, q.sources[1]] })],
+		['a clause negate', (q) => ({ ...q, sources: [{ clauses: [q.sources[0].clauses[0], { kind: 'noteTag', tag: 'work' }] }, q.sources[1]] })],
+		['the clause order inside a card', (q) => ({ ...q, sources: [{ clauses: [...q.sources[0].clauses].reverse() }, q.sources[1]] })],
+		['two cards swapped', (q) => ({ ...q, sources: [q.sources[1], q.sources[0]] })],
+		['an exclude switch', (q) => ({ ...q, exclude: { ...q.exclude, typeDefinitions: true } })],
+		['an exclude list', (q) => ({ ...q, exclude: { ...q.exclude, notes: ['n.md'] } })],
+		['the show filter', (q) => ({ ...q, quick: { ...q.quick, show: 'all' } })],
+		['the Due filter', (q) => ({ ...q, quick: { ...q.quick, due: 'none' } })],
+		['a chosen status', (q) => ({ ...q, quick: { ...q.quick, statuses: ['todo'] } })],
+		['a chosen priority', (q) => ({ ...q, quick: { ...q.quick, priorities: ['high'] } })],
+		['a chosen tag', (q) => ({ ...q, quick: { ...q.quick, tags: ['x', 'z'] } })],
+		['the grouping', (q) => ({ ...q, groupBy: 'note' })],
+		['the grouped property', (q) => ({ ...q, groupBy: { property: 'area' } })],
+		['the sort order', (q) => ({ ...q, sort: ['priority', 'due', 'path'] })],
+	])('is true for a change in %s', (_name, change) => {
+		expect(isQueryModified(change(base()), base())).toBe(true);
+	});
+
+	it('tells two property groupings apart', () => {
+		expect(isQueryModified({ ...base(), groupBy: { property: 'a' } }, { ...base(), groupBy: { property: 'b' } })).toBe(true);
+		expect(isQueryModified({ ...base(), groupBy: { property: 'a' } }, { ...base(), groupBy: { property: 'a' } })).toBe(false);
+	});
+});
+
+describe('isQuickModified', () => {
+	it('compares the quick filters as isQueryModified does, search left out', () => {
+		expect(isQuickModified({ show: 'open', search: 'x' }, { show: 'open' })).toBe(false);
+		expect(isQuickModified({ show: 'open', tags: ['b', 'a'] }, { show: 'open', tags: ['a', 'b'] })).toBe(false);
+		expect(isQuickModified({ show: 'open', due: 'any' }, { show: 'open' })).toBe(false);
+		expect(isQuickModified({ show: 'open' }, { show: 'open', due: 'none' })).toBe(true);
+		expect(isQuickModified({ show: 'closed' }, { show: 'open' })).toBe(true);
+	});
+});
+
+describe('explainEmptyTasks: no due date', () => {
+	const explainQuick = (r: TaskRow[], quick: TaskQuickFilters) =>
+		explainEmptyTasks({
+			rows: r,
+			query: { version: 1, sources: [], exclude: defaultTaskExcludes(), quick },
+			folders: FOLDERS,
+			today: TODAY,
+			now: NOW,
+		});
+	const RESET_DUE = { kind: 'resetQuick', field: 'due', label: 'Reset Due filter' };
+	const HINT = "Type 📅 2026-11-05 after a task's text to give it a due date, or pick Due in a task's menu.";
+
+	it.each<DueRange>(['overdue', 'today', 'next7'])(
+		'says no task in the vault has a due date, and how to add one, for %s over undated tasks',
+		(due) => {
+			const r = rowsFrom([group('/vault/a.md', [dueTask(undefined, 1), dueTask(undefined, 2)])], '/vault');
+			expect(explainQuick(r, { show: 'open', due })).toEqual({
+				message: 'No task in this vault has a due date',
+				hint: HINT,
+				action: RESET_DUE,
+			});
+		},
+	);
+
+	it('says nothing matches the Due filter when some task has a due date outside the window', () => {
+		const r = rowsFrom([group('/vault/a.md', [dueTask(undefined, 1), dueTask('2026-12-01', 2)])], '/vault');
+		expect(explainQuick(r, { show: 'open', due: 'today' })).toEqual({ message: 'No task matches the Due filter', action: RESET_DUE });
+	});
+
+	it('counts a dated task the sources or excludes drop: the vault has a due date', () => {
+		const r = rowsFrom(
+			[group('/vault/a.md', [dueTask(undefined, 1)]), entryV2('/vault/old.md', { archived: true, tasks: [dueTask('2026-11-05', 1)] })],
+			'/vault',
+		);
+		expect(explainQuick(r, { show: 'open', due: 'today' }).message).toBe('No task matches the Due filter');
+	});
+
+	it('says every open task has a due date under No date', () => {
+		const r = rowsFrom([group('/vault/a.md', [dueTask('2026-11-04', 1), taskV2('closed', { status: 'done', lineNumber: 2 })])], '/vault');
+		expect(explainQuick(r, NO_DATE_VIEW.query.quick)).toEqual({ message: 'Every open task has a due date', action: RESET_DUE });
+	});
+
+	it('drops "open" from the No date sentence off the default status filter', () => {
+		const r = rowsFrom([group('/vault/a.md', [dueTask('2026-11-04', 1)])], '/vault');
+		expect(explainQuick(r, { show: 'all', due: 'none' })).toEqual({ message: 'Every matching task has a due date', action: RESET_DUE });
 	});
 });

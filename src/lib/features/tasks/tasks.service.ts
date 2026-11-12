@@ -180,6 +180,30 @@ export function saveTaskView(name: string): string | null {
 	return view.id;
 }
 
+/**
+ * Copies the active list's saved query back into the session, dropping its
+ * edit: the "modified" marker's Reset (a built-in) and Revert (a saved view).
+ * Writes nothing.
+ */
+export function revertTaskList(): void {
+	const view = findTaskView(tasksStore.activeList, tasksStore.savedViews);
+	if (view) showList(view);
+}
+
+/**
+ * Writes the session query (`viewQueryOf`, without the search) into the
+ * active saved view, keeping its id, name and place. Returns false, changing
+ * nothing, when the active list is a built-in.
+ */
+export function saveTaskViewQuery(): boolean {
+	const id = tasksStore.activeList;
+	if (!tasksStore.savedViews.some((v) => v.id === id)) return false;
+	const query = viewQueryOf(tasksStore.query, tasksStore.groupBy, tasksStore.sort);
+	tasksStore.setSavedViews(tasksStore.savedViews.map((v) => (v.id === id ? { ...v, query } : v)));
+	writeTasksViewState();
+	return true;
+}
+
 /** Renames the saved view `id` to `name`, trimmed. Returns false, changing nothing, for a blank name or an unknown id. */
 export function renameTaskView(id: string, name: string): boolean {
 	const trimmed = name.trim();

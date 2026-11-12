@@ -663,7 +663,10 @@ describe('TasksView: a failed refresh says so', () => {
 		expect(rows()).toHaveLength(1);
 		const sentence = paragraph(`Open tasks from every note${EXCEPT}`);
 		expect(sentence).toBeDefined();
-		expect(sentence!.parentElement?.nextElementSibling).toBe(alert());
+		// The "modified" marker comes first: the session's sources differ from the "To list" card.
+		const afterSentence = sentence!.parentElement?.nextElementSibling;
+		expect(afterSentence?.hasAttribute('data-task-modified')).toBe(true);
+		expect(afterSentence?.nextElementSibling).toBe(alert());
 		expect(countText()).toBe('1 open in 1 note');
 		expect(retry().disabled).toBe(false);
 

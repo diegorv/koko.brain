@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
 	DEFAULT_QUICK,
+	buildTaskRows,
 	DEFAULT_TASK_SORT,
 	defaultTaskExcludes,
 	defaultTaskQuery,
@@ -10,8 +11,13 @@ import {
 import {
 	ALL_OPEN_ID,
 	ALL_OPEN_VIEW,
+	BUILT_IN_TASK_VIEWS,
+	NO_DATE_ID,
+	NO_DATE_VIEW,
 	TO_LIST_ID,
 	findTaskView,
+	isBuiltInTaskView,
+	taskViewCount,
 	mergeExcludes,
 	parseTasksViewState,
 	toListView,
@@ -19,6 +25,7 @@ import {
 	withTasksViewState,
 	type SavedTaskView,
 } from '#lib/features/tasks/task-views.logic.js';
+import { taskEntryV2, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 
 /** A saved view named `name` listing the folder `folder`. */
 const folderView = (id: string, name: string, folder = 'Projects'): SavedTaskView => ({
@@ -107,6 +114,84 @@ describe('ALL_OPEN_VIEW', () => {
 			name: 'All open',
 			query: { sources: [], exclude: emptyTaskExcludes(), quick: DEFAULT_QUICK, groupBy: 'note', sort: DEFAULT_TASK_SORT },
 		});
+	});
+});
+
+describe('NO_DATE_VIEW', () => {
+	it('is All open with the Due filter on No date, under the reserved id no-date', () => {
+		expect(NO_DATE_VIEW).toEqual({
+			id: 'no-date',
+			name: 'No date',
+			query: { ...ALL_OPEN_VIEW.query, quick: { show: 'open', due: 'none' } },
+		});
+		expect(NO_DATE_ID).toBe('no-date');
+	});
+
+	it('follows All open in the built-ins, and findTaskView finds it', () => {
+		expect(BUILT_IN_TASK_VIEWS).toEqual([ALL_OPEN_VIEW, NO_DATE_VIEW]);
+		expect(findTaskView(NO_DATE_ID, [])).toBe(NO_DATE_VIEW);
+	});
+
+	it('is kept as the active list on load', () => {
+		expect(parseTasksViewState({ activeList: NO_DATE_ID }).state.activeList).toBe(NO_DATE_ID);
+	});
+});
+
+describe('isBuiltInTaskView', () => {
+	it('is true for the built-in ids only', () => {
+		expect(isBuiltInTaskView(ALL_OPEN_ID)).toBe(true);
+		expect(isBuiltInTaskView(NO_DATE_ID)).toBe(true);
+		expect(isBuiltInTaskView(TO_LIST_ID)).toBe(false);
+		expect(isBuiltInTaskView('')).toBe(false);
+	});
+});
+
+describe('taskViewCount', () => {
+	const FOLDERS = { templates: '', system: '' };
+	const NOW = new Date('2026-11-05T12:00:00Z').getTime();
+	const rows = buildTaskRows(
+		[
+			taskEntryV2(
+				taskGroupV2('/vault/Projects/a.md', [
+					taskV2('undated'),
+					taskV2('dated', { lineNumber: 2, metadata: { description: 'dated', tags: [], dueDate: '2026-11-04' } }),
+					taskV2('closed', { lineNumber: 3, status: 'done' }),
+				]),
+			),
+			{ ...taskEntryV2(taskGroupV2('/vault/Old.md', [taskV2('archived undated')])), archived: true },
+		],
+		'/vault',
+		new Map(),
+	);
+	const count = (query: SavedTaskView['query'], global = defaultTaskExcludes()) =>
+		taskViewCount(rows, query, global, FOLDERS, '2026-11-05', NOW);
+
+	it('counts the rows a list shows, through its sources, both excludes and its quick filters', () => {
+		expect(count(ALL_OPEN_VIEW.query)).toBe(2);
+		expect(count(NO_DATE_VIEW.query)).toBe(1);
+		expect(count(NO_DATE_VIEW.query, { ...defaultTaskExcludes(), archived: false })).toBe(2);
+		expect(count(folderView('p', 'P', 'Projects').query)).toBe(2);
+		expect(count({ ...ALL_OPEN_VIEW.query, exclude: { ...emptyTaskExcludes(), folders: ['Projects'] } })).toBe(0);
+	});
+
+	it('leaves out a dimmed parent kept only for its child', () => {
+		const nested = buildTaskRows(
+			[
+				taskEntryV2(
+					taskGroupV2('/vault/n.md', [
+						taskV2('parent', { metadata: { description: 'parent', tags: [], dueDate: '2026-11-04' } }),
+						taskV2('child', { lineNumber: 2, indent: 1 }),
+					]),
+				),
+			],
+			'/vault',
+			new Map(),
+		);
+		expect(taskViewCount(nested, NO_DATE_VIEW.query, defaultTaskExcludes(), FOLDERS, '2026-11-05', NOW)).toBe(1);
+	});
+
+	it('is 0 with no rows', () => {
+		expect(taskViewCount([], ALL_OPEN_VIEW.query, defaultTaskExcludes(), FOLDERS, '2026-11-05', NOW)).toBe(0);
 	});
 });
 

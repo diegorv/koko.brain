@@ -272,7 +272,7 @@ describe('TasksView: the filter row', () => {
 		tasksStore.setQuick({ due: 'today' });
 		mockTaskFetch([taskGroupV2(NOTE, [taskV2('Ship', { lineNumber: 1 })])]);
 		({ component } = await mountTasksView());
-		await until(() => expect(paragraphStarting('No task matches the Due filter')).toBeDefined());
+		await until(() => expect(paragraphStarting('No task in this vault has a due date')).toBeDefined());
 
 		await openMenu(dueTrigger());
 		menuItem('menuitemradio', 'Any').click();
