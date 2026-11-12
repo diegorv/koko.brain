@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 001 | [The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note](issues/001-caret-selection-follow-their-text-when-frontmatter.md) | none | done | issue/001-caret-selection-follow-their-text-when-frontmatter (13291dfa0) | 2026-11-10 |
 | 002 | [Keyboard edits next to the hidden frontmatter never change its fences](issues/002-keyboard-edits-next-hidden-frontmatter-never-change.md) | none | todo | | |
 | 003 | [Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working](issues/003-closing-main-window-never-leaves-windowless-app.md) | none | todo | | |
-| 004 | [A canvas edit closed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | 015 | todo | | |
+| 004 | [A canvas edit closed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | 015 | in-progress | | |
 | 005 | [Setting a folder icon never stacks a second frontmatter block](issues/005-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
 | 006 | [A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab](issues/006-kanban-card-lane-title-being-edited-saved.md) | 004 | todo | | |
 | 007 | [Paste, cut and copy inside a meta-bind number or date input act on the input, not the note](issues/007-paste-cut-copy-inside-meta-bind-number.md) | none | todo | | |
@@ -283,3 +283,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 15:18 — 015 — deliver — round 1 APPROVED by claude with a fix round (e2e comment), deliver re-review APPROVED by claude; full suite 623 files / 16061 tests passed; targeted e2e 12 passed, tabs.spec.ts:42 fails the same on main; squash merged and pushed — da26b0dcd
 - 2026-11-12 15:27 — 062 — deliver — blocked: deliver re-review CHANGES_REQUESTED by claude, the link url regex added at deliver (c8b145e07) backtracks exponentially on a long backslash run (9.2 s for 40); fix: drop the bare backslash alternative and add a timing test; worktree kept — 7501d0989
 - 2026-11-12 19:02 — 062 — start — retry by /relay-lite:run: apply review-2's regex fix (drop the bare backslash alternative, add a timing test) — 85c8ac320
+- 2026-11-12 19:03 — 004 — start — launched by /relay-lite:run (bug queue rank 3, close case only) — 7886ac046
