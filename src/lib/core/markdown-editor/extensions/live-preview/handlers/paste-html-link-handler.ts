@@ -12,7 +12,8 @@ import { htmlLinksToMarkdown } from './paste-html-link.logic';
  *   1. `paste` event fires; pull `text/html` + `text/plain` from
  *      `clipboardData`.
  *   2. `htmlLinksToMarkdown(html, plain)` returns either the converted
- *      text or `null` (no anchor with a URL missing from the plain flavor).
+ *      text or `null` (the fragment holds a `<table>`, or no anchor has a
+ *      URL missing from the plain flavor).
  *   3. On `null` → return early; the TSV handler, then CodeMirror's
  *      default, take over.
  *   4. On hit → `event.preventDefault()` + dispatch a single transaction

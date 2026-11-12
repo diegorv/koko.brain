@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** scope narrowed by the owner on 2026-11-06 (below); approved as a deep-dive addition to the queue on 2026-11-12. Nothing open.
 
@@ -16,11 +16,11 @@
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.test.ts: htmlLinksToMarkdown('<p>Fact<sup><a href="https://w.org/#c1">[1]</a></sup> and <a href="https://x.dev">more</a></p>', 'Fact[1] and more') returns text that does not contain '[[' and contains the label as escaped brackets linking to https://w.org/#c1. It fails today.
+- [x] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.test.ts: htmlLinksToMarkdown('<p>Fact<sup><a href="https://w.org/#c1">[1]</a></sup> and <a href="https://x.dev">more</a></p>', 'Fact[1] and more') returns text that does not contain '[[' and contains the label as escaped brackets linking to https://w.org/#c1. It fails today.
 - Moved to Issue 158 on 2026-11-06: Same file: '<table><tr><th>Name</th><th>Link</th></tr><tr><td>Task</td><td><a href="https://j.io/1">JIRA-1</a></td></tr></table>' with plain 'Name\tLink\nTask\tJIRA-1' converts to a two-column markdown table whose second body cell is [JIRA-1](https://j.io/1). It fails today.
 - Moved to Issue 158 on 2026-11-06: A `|` in a cell or in link text is escaped as \| in the table output.
-- [ ] A fragment that contains a <table> returns null from htmlLinksToMarkdown, so pasteTsvHandler builds the table (a test in the same file). The test's table holds a cell link whose URL is not in the plain text, so it fails today. Existing Slack, multi-line and null-fallthrough cases in that file still pass.
-- [ ] Gate: pnpm check and pnpm vitest run pass.
+- [x] A fragment that contains a <table> returns null from htmlLinksToMarkdown, so pasteTsvHandler builds the table (a test in the same file). The test's table holds a cell link whose URL is not in the plain text, so it fails today. Existing Slack, multi-line and null-fallthrough cases in that file still pass.
+- [x] Gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -34,3 +34,4 @@
 
 - 2026-11-06: narrowed by the owner after the challenge review; HTML table conversion moved to Issue 158.
 - 2026-11-12: deep dive (sweep-s3, validate-s3+s4, validate-s7+s8) confirmed both defects at `635b4af36`. Approved as an addition. What to build now matches the 2026-11-06 scope (the table-building sentence went with audit Issue 158, now 167), and the table criterion names a link missing from the plain text so it is red first.
+- 2026-11-12: delivered from branch `issue/055-html-link-paste-keeps-bracketed-link-text`. `htmlLinksToMarkdown` escapes `[`, `]` and backslashes in anchor labels, so `[1]` pastes as `[\[1\]](url)` instead of a wikilink, and returns null for any fragment that contains a `<table>`, so the TSV paste handler builds the table. Review round 1: APPROVED with two nits, both deferred to Issue 167 (unreachable TABLE/TR block tags; layout tables in HTML emails lose link URLs). Tests: `pnpm check` 0 errors; full `pnpm vitest run` 633 files passed, 16515 tests passed, 54 skipped, 1 todo, exit 0.

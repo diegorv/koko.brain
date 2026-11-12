@@ -16,6 +16,7 @@
 
 ## Notes
 
+- From Issue 055's review: `paste-html-link.logic.ts` now returns null for any fragment that contains a `<table>`, so `TABLE` and `TR` in `BLOCK_TAGS` are unreachable; use them or remove them here. The early return also catches layout tables (HTML emails), where a link whose URL appears only in the HTML now pastes without its URL; cover that case when this Issue converts table links.
 
 ## Comments
 

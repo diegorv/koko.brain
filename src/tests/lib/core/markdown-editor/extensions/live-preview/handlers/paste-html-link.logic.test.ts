@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import { htmlLinksToMarkdown } from '#lib/core/markdown-editor/extensions/live-preview/handlers/paste-html-link.logic.js';
+import { clipboardToMarkdownTable } from '#lib/core/markdown-editor/extensions/live-preview/handlers/paste-tsv.logic.js';
 
 describe('htmlLinksToMarkdown', () => {
 	it('converts a single anchor to a markdown link, keeping surrounding text', () => {
@@ -117,5 +118,26 @@ describe('htmlLinksToMarkdown', () => {
 	it('collapses whitespace runs inside anchor labels', () => {
 		const html = '<a href="https://x.test/e">multi\n  word   label</a>';
 		expect(htmlLinksToMarkdown(html, '')).toBe('[multi word label](https://x.test/e)');
+	});
+
+	it('escapes brackets in an anchor label so [1] does not become a wikilink', () => {
+		const html = '<p>Fact<sup><a href="https://w.org/#c1">[1]</a></sup> and <a href="https://x.dev">more</a></p>';
+		const result = htmlLinksToMarkdown(html, 'Fact[1] and more');
+		expect(result).not.toContain('[[');
+		expect(result).toBe('Fact[\\[1\\]](https://w.org/#c1) and [more](https://x.dev)');
+	});
+
+	it('escapes backslashes in an anchor label', () => {
+		const html = '<a href="https://x.test/f">C:\\dir [x]</a>';
+		expect(htmlLinksToMarkdown(html, '')).toBe('[C:\\\\dir \\[x\\]](https://x.test/f)');
+	});
+
+	it('returns null for a fragment with a table so the TSV paste handler builds it', () => {
+		const html =
+			'<table><tr><th>Name</th><th>Link</th></tr>' +
+			'<tr><td>Task</td><td><a href="https://j.io/1">JIRA-1</a></td></tr></table>';
+		const plain = 'Name\tLink\nTask\tJIRA-1';
+		expect(htmlLinksToMarkdown(html, plain)).toBeNull();
+		expect(clipboardToMarkdownTable(plain)).toBe('| Name | Link |\n| --- | --- |\n| Task | JIRA-1 |');
 	});
 });
