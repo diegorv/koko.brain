@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 074 | [Rust records task headings](issues/074-rust-task-headings.md) | 242 | in-progress | | |
+| 074 | [Rust records task headings](issues/074-rust-task-headings.md) | 242 | done | issue/074-rust-task-headings (16e3db9ed) | 2026-11-12 |
 | 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | todo | | |
 | 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | done | issue/108-mounted-list-and-rule-sentence (1a9e9eeaf) | 2026-11-12 |
 | 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | todo | | |
@@ -85,3 +85,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:02 — 074 — start — launched by /relay-lite:run, beside 234 (side track) — 7d6098b1a
 - 2026-11-12 11:23 — 234 — deliver — round 1 APPROVED by claude (fix round: exact alert text, alert over filtered empty state; placement left for owner's visual check), deliver re-review APPROVED by claude; full suite 615 files / 15685 tests passed; squash merged and pushed — d52d63db2
 - 2026-11-12 11:23 — 243 — start — launched by /relay-lite:run (open-itens 030 done) — 2aeef7a9d
+- 2026-11-12 11:25 — 074 — deliver — round 1 APPROVED by claude (fix round: e2e mock closes a fence only on its opening marker, tilde-fence fixture, test rename), deliver re-review APPROVED by claude; full suite 616 files / 15667 tests passed on run 2 (run 1: unrelated AutoOrganizeRuleRow waitFor timeout); squash merged and pushed — 16e3db9ed
