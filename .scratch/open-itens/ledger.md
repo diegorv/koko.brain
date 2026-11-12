@@ -77,7 +77,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 040 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/040-kanban-drag-drop-puts-card-lane-exactly.md) | 006 | todo | | |
 | 041 | [DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end](issues/041-dataarray-sort-sortby-keep-items-that-have.md) | none | todo | | |
 | 042 | [Enter in the quick switcher creates the note when nothing matches](issues/042-enter-quick-switcher-creates-note-when-nothing.md) | none | done | issue/042-enter-quick-switcher-creates-note-when-nothing (2009ad219) | 2026-11-12 |
-| 043 | [Lens lists follow the user's own rename, trash, duplicate and create at once, not after the 2 to 10 s index throttle](issues/043-lens-lists-follow-user-s-own-rename.md) | none | todo | | |
+| 043 | [Lens lists follow the user's own rename, trash, duplicate and create at once, not after the 2 to 10 s index throttle](issues/043-lens-lists-follow-user-s-own-rename.md) | none | in-progress | | |
 | 044 | [File History follows a note through rename, move, auto-move and suffixed restore](issues/044-file-history-follows-note-through-rename-move.md) | none | todo | | |
 | 045 | [Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags](issues/045-text-search-tag-path-returns-every-note.md) | none | todo | | |
 | 046 | [Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red](issues/046-outgoing-links-marks-row-broken-only-when.md) | 014 | todo | | |
@@ -297,3 +297,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:31 — 068 — deliver — round 1 APPROVED by claude with no findings, no fix round; full suite 633 files / 16514 tests passed; squash merged and pushed — 0b1f5586f
 - 2026-11-12 19:33 — 055 — deliver — round 1 APPROVED by claude, two nits deferred to Issue 167 (unreachable table tags; HTML-email layout tables now skip link conversion); full suite 633 files / 16515 tests passed; squash merged and pushed — 840da3aa5
 - 2026-11-12 19:36 — 042 — deliver — round 1 APPROVED by claude with a fix round (two tests for a query that changes match state), deliver re-review APPROVED by claude; full suite 633 files / 16517 tests passed; create item look left for the owner's check; squash merged and pushed — 2009ad219
+- 2026-11-12 20:54 — 043 — start — launched by /relay-lite:run (owner approved, e2e allowed) — 1a0c63774
