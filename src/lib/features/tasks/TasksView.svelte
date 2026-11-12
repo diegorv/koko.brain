@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onDestroy, untrack, type Component } from 'svelte';
+	import Calendar from '@lucide/svelte/icons/calendar';
 	import Circle from '@lucide/svelte/icons/circle';
 	import CircleAlert from '@lucide/svelte/icons/circle-alert';
 	import CircleArrowRight from '@lucide/svelte/icons/circle-arrow-right';
@@ -21,7 +22,7 @@
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
-	import { formatDate } from '#lib/utils/date.js';
+	import { formatDate, formatNow } from '#lib/utils/date.js';
 	import {
 		filterByDate,
 		filterCompleted,
@@ -32,6 +33,9 @@
 		parseSectionTags,
 		noteFolder,
 		noteTaskCounts,
+		taskChips,
+		taskDisplayText,
+		usesRawTaskText,
 		type EmptyTasksExplanation,
 	} from './tasks.logic';
 	import { isTaskOpen, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
@@ -115,6 +119,15 @@
 	});
 
 	let stats = $derived(computeTaskStats(filteredGroups));
+
+	/**
+	 * Today as `YYYY-MM-DD`, for the overdue test and the chip year. Read again
+	 * on every refetch, so a view left open past midnight updates on the next one.
+	 */
+	let today = $derived.by(() => {
+		void tasksStore.fileTaskGroups;
+		return formatNow('YYYY-MM-DD');
+	});
 
 	/**
 	 * Each note's counts before the view's own filters, by path: the groups in
@@ -221,7 +234,7 @@
 	</div>
 {/snippet}
 
-<div class="flex h-full flex-col">
+<div class="@container flex h-full flex-col">
 	<!-- Toolbar -->
 	<div class="pane-toolbar">
 		<div class="flex items-center gap-1">
@@ -351,6 +364,8 @@
 									<!-- The glyph follows the status; the label follows `toggleTarget`, what a click writes. -->
 									{@const glyph = statusGlyph(task.status)}
 									{@const Glyph = GLYPH_ICONS[glyph.icon]}
+									{@const displayText = taskDisplayText(task)}
+									{@const chips = taskChips(task.metadata, today, { tags: !usesRawTaskText(task), open: isTaskOpen(task.status) })}
 									<div
 										data-task-row
 										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors"
@@ -360,39 +375,61 @@
 											data-task-toggle
 											data-task-status={task.status}
 											class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-											aria-label="{toggleTarget(task.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {task.text} ({glyph.word})"
+											aria-label="{toggleTarget(task.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {displayText} ({glyph.word})"
 											title={glyph.word}
 											onclick={() => handleToggle(group.filePath, task)}
 										>
 											<Glyph class="size-4 {glyph.tone}" />
 										</button>
-										<!-- Clicking the text opens the note at the task's line; only the circle toggles. -->
+										<!-- Chips trail the text; in a pane under 560px they sit on a line under it. -->
+										<!-- Clicking the text, a chip or the space beside them opens the note at the task's line; only the circle toggles. -->
 										<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-										<span
-											data-task-text
-											class="flex-1 min-w-0 break-words text-sm cursor-pointer {isTaskOpen(task.status) ? 'text-foreground' : 'text-muted-foreground line-through'}"
+										<div
+											class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 cursor-pointer @max-[560px]:flex-col @max-[560px]:items-start"
 											onclick={(e) => handleTextClick(e, group.filePath, task.lineNumber)}
 										>
-											{#each parseTaskTextSegments(task.text) as seg}
-												{#if seg.type === 'text'}
-													{seg.value}
-												{:else if seg.type === 'wikilink'}
-													<button
-														class="inline cursor-pointer text-primary hover:underline"
-														onclick={(e) => { e.stopPropagation(); onOpenWikilink(seg.target); }}
-													>{seg.display}</button>
-												{:else}
-													<a
-														href={seg.url}
-														target="_blank"
-														rel="noopener noreferrer"
-														title={seg.url}
-														class="text-primary underline decoration-primary/40 hover:decoration-primary"
-														onclick={(e) => e.stopPropagation()}
-													>{seg.label}</a>
-												{/if}
-											{/each}
-										</span>
+											<span
+												data-task-text
+												class="min-w-0 break-words text-sm {isTaskOpen(task.status) ? 'text-foreground' : 'text-muted-foreground line-through'}"
+											>
+												{#each parseTaskTextSegments(displayText) as seg}
+													{#if seg.type === 'text'}
+														{seg.value}
+													{:else if seg.type === 'wikilink'}
+														<button
+															class="inline cursor-pointer text-primary hover:underline"
+															onclick={(e) => { e.stopPropagation(); onOpenWikilink(seg.target); }}
+														>{seg.display}</button>
+													{:else}
+														<a
+															href={seg.url}
+															target="_blank"
+															rel="noopener noreferrer"
+															title={seg.url}
+															class="text-primary underline decoration-primary/40 hover:decoration-primary"
+															onclick={(e) => e.stopPropagation()}
+														>{seg.label}</a>
+													{/if}
+												{/each}
+											</span>
+											{#if chips.length > 0}
+												<span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+													{#each chips as chip, i (i)}
+														<span
+															data-task-chip={chip.kind}
+															data-overdue={chip.overdue ? '' : undefined}
+															title={chip.title}
+															class="inline-flex items-center gap-1 text-label text-muted-foreground"
+														>
+															{#if chip.kind === 'due'}
+																<Calendar class="size-3 shrink-0 {chip.overdue ? 'text-destructive' : ''}" />
+															{/if}
+															<span class={chip.overdue ? 'text-foreground' : 'text-muted-foreground'}>{chip.label}</span>
+														</span>
+													{/each}
+												</span>
+											{/if}
+										</div>
 									</div>
 								{/each}
 							</div>

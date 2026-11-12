@@ -13,6 +13,10 @@ import {
 	withSectionTag,
 	noteFolder,
 	noteTaskCounts,
+	stripTaskTrailers,
+	usesRawTaskText,
+	taskDisplayText,
+	taskChips,
 } from '#lib/features/tasks/tasks.logic.js';
 import { TASK_STATUSES } from '#lib/features/tasks/task-status.logic.js';
 import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
@@ -613,4 +617,163 @@ describe('noteTaskCounts', () => {
 	it('gives zero counts for no tasks', () => {
 		expect(noteTaskCounts([])).toEqual({ open: 0, total: 0 });
 	});
+});
+
+describe('taskChips', () => {
+	const TODAY = '2026-11-05';
+	const open = { tags: true, open: true };
+
+	it('marks a due date before today overdue on an open task', () => {
+		expect(taskChips({ description: 'Pay', dueDate: '2026-11-03', tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'due', label: 'Nov 3', title: 'Overdue, due 2026-11-03', overdue: true },
+		]);
+	});
+
+	it('does not mark a due date today or later overdue', () => {
+		expect(taskChips({ description: 'Pay', dueDate: '2026-11-05', tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'due', label: 'Nov 5', title: 'Due 2026-11-05' },
+		]);
+		expect(taskChips({ description: 'Pay', dueDate: '2026-11-06', tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'due', label: 'Nov 6', title: 'Due 2026-11-06' },
+		]);
+	});
+
+	it('puts the year in a due label when it differs from today', () => {
+		expect(taskChips({ description: 'Pay', dueDate: '2027-01-15', tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'due', label: 'Jan 15, 2027', title: 'Due 2027-01-15' },
+		]);
+	});
+
+	it('does not mark a closed task overdue', () => {
+		expect(taskChips({ description: 'Pay', dueDate: '2026-11-03', tags: [] }, TODAY, { tags: true, open: false })).toEqual([
+			{ kind: 'due', label: 'Nov 3', title: 'Due 2026-11-03' },
+		]);
+	});
+
+	it('labels scheduled and start dates, with the year rule', () => {
+		expect(
+			taskChips({ description: 'Pay', scheduledDate: '2026-11-03', startDate: '2025-12-01', tags: [] }, TODAY, open),
+		).toEqual([
+			{ kind: 'scheduled', label: 'Scheduled Nov 3' },
+			{ kind: 'start', label: 'Starts Dec 1, 2025' },
+		]);
+	});
+
+	it('words each priority level and shows none for none', () => {
+		for (const level of ['highest', 'high', 'medium', 'low', 'lowest'] as const) {
+			expect(taskChips({ description: 'Pay', priority: level, tags: [] }, TODAY, open)).toEqual([
+				{ kind: 'priority', label: level },
+			]);
+		}
+		expect(taskChips({ description: 'Pay', priority: 'none', tags: [] }, TODAY, open)).toEqual([]);
+	});
+
+	it('drops a block id the recurrence text swallowed', () => {
+		expect(taskChips({ description: 'Pay', recurrence: { text: 'every week ^abc123' }, tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'recurrence', label: 'every week' },
+		]);
+	});
+
+	it('gives one chip per tag, after every other chip, and none when tags is false', () => {
+		const metadata = {
+			description: 'Pay',
+			dueDate: '2026-11-03',
+			scheduledDate: '2026-11-04',
+			startDate: '2026-11-01',
+			priority: 'high' as const,
+			recurrence: { text: 'every week' },
+			tags: ['work', 'home'],
+		};
+		expect(taskChips(metadata, TODAY, open).map((c) => [c.kind, c.label])).toEqual([
+			['due', 'Nov 3'],
+			['scheduled', 'Scheduled Nov 4'],
+			['start', 'Starts Nov 1'],
+			['priority', 'high'],
+			['recurrence', 'every week'],
+			['tag', '#work'],
+			['tag', '#home'],
+		]);
+		expect(taskChips(metadata, TODAY, { tags: false, open: true }).some((c) => c.kind === 'tag')).toBe(false);
+	});
+
+	it('returns no chip for a task with only a description', () => {
+		expect(taskChips({ description: 'Pay', tags: [] }, TODAY, open)).toEqual([]);
+	});
+});
+
+describe('stripTaskTrailers', () => {
+	it('removes a trailing block id, then a Todoist anchor', () => {
+		expect(stripTaskTrailers('Call Ana 🆔 td-123 ^abc')).toBe('Call Ana');
+		expect(stripTaskTrailers('Call Ana ^abc')).toBe('Call Ana');
+		expect(stripTaskTrailers('Call Ana 🆔td-123')).toBe('Call Ana');
+		expect(stripTaskTrailers('^abc')).toBe('');
+	});
+
+	it('removes a trailing carriage return before the block id', () => {
+		expect(stripTaskTrailers('Call Ana ^abc\r')).toBe('Call Ana');
+	});
+
+	it('leaves a caret inside a word and a non-Todoist id alone', () => {
+		expect(stripTaskTrailers('a^b')).toBe('a^b');
+		expect(stripTaskTrailers('Call Ana 🆔 42')).toBe('Call Ana 🆔 42');
+	});
+});
+
+describe('taskDisplayText and usesRawTaskText', () => {
+	/** A row as `parse_task_metadata` describes `text` (traced from parsing.rs). */
+	const row = (text: string, description: string, tags: string[] = []): Pick<TaskItem, 'text' | 'metadata'> => ({
+		text,
+		metadata: { description, tags },
+	});
+
+	const cases: [string, Pick<TaskItem, 'text' | 'metadata'>, boolean, string][] = [
+		['a block id after a date', row('Send invoice 📅 2026-11-03 ^abc123', 'Send invoice ^abc123'), false, 'Send invoice'],
+		[
+			'date, priority and tag',
+			{
+				text: 'Send invoice 📅 2026-11-03 ⏫ #work',
+				metadata: { description: 'Send invoice', dueDate: '2026-11-03', priority: 'high', tags: ['work'] },
+			},
+			false,
+			'Send invoice',
+		],
+		[
+			'a Todoist anchor Rust already removed',
+			{ text: 'Call Ana 🆔 td-123 ^abc123', metadata: { description: 'Call Ana ^abc123', id: 'td-123', tags: [] } },
+			false,
+			'Call Ana',
+		],
+		['C# beside a real tag', row('Fix C# bug #work', 'Fix C# bug', ['work']), false, 'Fix C# bug'],
+		['a wikilink heading', row('read [[Book#Chapter 2]]', 'read [[Book 2]]', ['Chapter']), true, 'read [[Book#Chapter 2]]'],
+		[
+			'a markdown link anchor',
+			row('see [doc](https://example.com/a#b)', 'see [doc](https://example.com/a)', ['b']),
+			true,
+			'see [doc](https://example.com/a#b)',
+		],
+		['a bare URL anchor', row('https://example.com/a#b', 'https://example.com/a', ['b']), true, 'https://example.com/a#b'],
+		['a relative link anchor', row('see [doc](notes/a.md#sec)', 'see [doc](notes/a.md)', ['sec']), true, 'see [doc](notes/a.md#sec)'],
+		['a tag-only task', row('#todo', '', ['todo']), true, '#todo'],
+		['a tag-only task with a block id', row('#todo ^abc', '^abc', ['todo']), true, '#todo'],
+		[
+			'a wikilink heading with an anchor and block id',
+			row('Call [[Ana#Phone]] 🆔 td-123 ^abc123', 'Call [[Ana]] ^abc123', ['Phone']),
+			true,
+			'Call [[Ana#Phone]]',
+		],
+		['a wikilink heading with an anchor', row('Call [[Ana#Phone]] 🆔 td-123', 'Call [[Ana]]', ['Phone']), true, 'Call [[Ana#Phone]]'],
+		[
+			'CRLF raw text',
+			row('read [[Book#Chapter 2]] ^abc\r', 'read [[Book 2]] ^abc', ['Chapter']),
+			true,
+			'read [[Book#Chapter 2]]',
+		],
+	];
+
+	for (const [name, task, raw, display] of cases) {
+		it(`${raw ? 'raw text' : 'description'} for ${name}`, () => {
+			expect(usesRawTaskText(task)).toBe(raw);
+			expect(taskDisplayText(task)).toBe(display);
+		});
+	}
 });

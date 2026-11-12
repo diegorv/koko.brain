@@ -171,8 +171,12 @@ describe('TasksView: status glyphs and the open rule', () => {
 		document.body.innerHTML = '';
 	});
 
-	/** The text of the seven-status fixture's task in `status`. */
-	const fixtureText = (status: TaskStatus) => sevenStatusGroup().tasks.find((t) => t.status === status)!.text;
+	/**
+	 * The row text of the seven-status fixture's task in `status`: the raw text,
+	 * except the todo task's, whose signifiers become chips.
+	 */
+	const fixtureText = (status: TaskStatus) =>
+		status === 'todo' ? 'Send invoice' : sevenStatusGroup().tasks.find((t) => t.status === status)!.text;
 
 	it('gives every status its glyph, label and title, and strikes through only closed tasks', async () => {
 		tasksStore.setHideCompleted(false);
@@ -197,7 +201,7 @@ describe('TasksView: status glyphs and the open rule', () => {
 			expect(toggle.getAttribute('title')).toBe(word);
 			expect(toggle.querySelector('svg')?.classList.contains(statusGlyph(status).tone)).toBe(true);
 		}
-		expect(toggleOf('todo').getAttribute('aria-label')).toBe('Mark task as done: Send invoice 📅 2026-11-03 ⏫ #work (todo)');
+		expect(toggleOf('todo').getAttribute('aria-label')).toBe('Mark task as done: Send invoice (todo)');
 		expect(toggleOf('in-progress').getAttribute('aria-label')).toBe('Mark task as done: Draft plan (in progress)');
 		expect(toggleOf('cancelled').getAttribute('aria-label')).toBe('Mark task as not done: Old idea (cancelled)');
 
@@ -905,5 +909,124 @@ describe('TasksView: the note header', () => {
 		}
 		expect(toggle.classList.contains('mt-0.5')).toBe(false);
 		expect(toggle.querySelector('svg')?.classList.contains('size-4')).toBe(true);
+	});
+});
+
+describe('TasksView: clean row text and metadata chips', () => {
+	let component: Record<string, unknown> | null = null;
+	let onOpenWikilink: ReturnType<typeof vi.fn<(target: string) => void>>;
+
+	const SEND_INVOICE = 'Send invoice 📅 2026-11-03 ⏫ #work';
+	const sendInvoice = () =>
+		taskV2(SEND_INVOICE, {
+			metadata: { description: 'Send invoice', dueDate: '2026-11-03', priority: 'high', tags: ['work'] },
+		});
+
+	/** The chip of `kind` in `row`, or null. */
+	const chip = (row: HTMLElement, kind: string) => row.querySelector<HTMLElement>(`[data-task-chip="${kind}"]`);
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+		onOpenWikilink = vi.fn<(target: string) => void>();
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date('2026-11-05T12:00:00'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		vi.useRealTimers();
+	});
+
+	it('shows the description and chips for due, priority and tag, the overdue tone on the icon only', async () => {
+		mockTaskFetch([taskGroupV2(NOTE, [sendInvoice()])]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+		const row = rows()[0];
+
+		expect(row.querySelector('[data-task-text]')?.textContent?.trim()).toBe('Send invoice');
+		expect(row.textContent).not.toContain('📅');
+		expect(row.textContent).not.toContain('⏫');
+
+		const due = chip(row, 'due')!;
+		expect(due.textContent?.trim()).toBe('Nov 3');
+		expect(due.hasAttribute('data-overdue')).toBe(true);
+		expect(due.getAttribute('title')).toBe('Overdue, due 2026-11-03');
+		expect(due.querySelector('svg')?.classList.contains('text-destructive')).toBe(true);
+		const label = Array.from(due.querySelectorAll('span')).find((s) => s.textContent?.trim() === 'Nov 3')!;
+		expect(label.classList.contains('text-destructive')).toBe(false);
+		expect(label.classList.contains('text-foreground')).toBe(true);
+		expect(due.classList.contains('text-destructive')).toBe(false);
+
+		expect(chip(row, 'priority')?.textContent?.trim()).toBe('high');
+		expect(chip(row, 'tag')?.textContent?.trim()).toBe('#work');
+		expect(toggleOf('todo').getAttribute('aria-label')).toBe('Mark task as done: Send invoice (todo)');
+	});
+
+	it('keeps the raw text of a wikilink heading, opens its note and shows no tag chip', async () => {
+		mockTaskFetch([
+			taskGroupV2(NOTE, [
+				taskV2('read [[Book#Chapter 2]]', { metadata: { description: 'read [[Book 2]]', tags: ['Chapter'] } }),
+			]),
+		]);
+		({ component } = await mountTasksView({ onOpenWikilink }));
+		await until(() => expect(rows()).toHaveLength(1));
+		const row = rows()[0];
+
+		const link = Array.from(row.querySelectorAll('[data-task-text] button')).find(
+			(b) => b.textContent === 'Book#Chapter 2',
+		) as HTMLButtonElement | undefined;
+		if (!link) throw new Error('wikilink button not found');
+		link.click();
+		expect(onOpenWikilink).toHaveBeenCalledWith('Book');
+		expect(chip(row, 'tag')).toBeNull();
+	});
+
+	it('does not mark a done task with a past due date overdue', async () => {
+		tasksStore.setHideCompleted(false);
+		mockTaskFetch([
+			taskGroupV2(NOTE, [
+				taskV2('Paid rent 📅 2026-11-03', { status: 'done', metadata: { description: 'Paid rent', dueDate: '2026-11-03', tags: [] } }),
+			]),
+		]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+
+		const due = chip(rows()[0], 'due')!;
+		expect(due.textContent?.trim()).toBe('Nov 3');
+		expect(due.hasAttribute('data-overdue')).toBe(false);
+		expect(due.getAttribute('title')).toBe('Due 2026-11-03');
+	});
+
+	it('sends the raw text and status on a circle click, not the display text', async () => {
+		vi.mocked(readTextFile).mockResolvedValue(`- [ ] ${SEND_INVOICE}\n`);
+		mockTaskFetch([taskGroupV2(NOTE, [sendInvoice()])]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+
+		toggleOf('todo').click();
+		await vi.waitFor(() => expect(toggleCalls()).toHaveLength(1));
+		expect(toggleCalls()[0][1]).toMatchObject({ expectedText: SEND_INVOICE, expectedStatus: 'todo' });
+	});
+
+	it('opens the note when the row space beside the text or a chip is clicked', async () => {
+		vi.mocked(readTextFile).mockResolvedValue(`- [ ] ${SEND_INVOICE}\n`);
+		mockTaskFetch([taskGroupV2(NOTE, [sendInvoice()])]);
+		({ component } = await mountTasksView());
+		await until(() => expect(rows()).toHaveLength(1));
+
+		const area = rows()[0].querySelector<HTMLElement>('[data-task-text]')!.parentElement!;
+		area.click();
+		await vi.waitFor(() => expect(editorStore.activeTabPath).toBe(NOTE));
+
+		editorStore.reset();
+		chip(rows()[0], 'priority')!.click();
+		await vi.waitFor(() => expect(editorStore.activeTabPath).toBe(NOTE));
+		expect(toggleCalls()).toHaveLength(0);
 	});
 });

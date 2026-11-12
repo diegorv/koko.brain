@@ -1,6 +1,8 @@
+import { formatDate } from '#lib/utils/date.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { isTaskOpen } from './task-status.logic';
+import type { TaskMetadata } from './task-metadata.types';
 import type { TaskItem, FileTaskGroup, TaskDateFilter } from './tasks.types';
 
 // Audit Tier 4 #16 (2026-04-29): the previous TS-side task scanner —
@@ -317,6 +319,98 @@ export function parseTaskTextSegments(text: string): TaskTextSegment[] {
 
 	if (lastIndex < text.length) pushText(text.slice(lastIndex));
 	return segments;
+}
+
+/** A trailing block id, `^abc` (the class `todoist-sync` uses for its own). */
+const TRAILING_BLOCK_ID_RE = /(?:^|\s)\^[\w-]+$/;
+/** A trailing Todoist anchor, `🆔 td-123`, with or without the emoji's variation selector. */
+const TRAILING_TODOIST_ANCHOR_RE = /(?:^|\s)🆔\u{FE0F}?\s*td-\S+$/u;
+
+/**
+ * Removes a trailing block id, then a trailing Todoist anchor, from task text.
+ * The order follows a synced line, which ends in `🆔 td-x ^abc`. The leading
+ * trim drops the `\r` a CRLF note leaves: task lines are split on `\n` only.
+ * Local regexes keep `tasks` off `todoist-sync`'s anchor logic.
+ */
+export function stripTaskTrailers(text: string): string {
+	return text.trimEnd().replace(TRAILING_BLOCK_ID_RE, '').replace(TRAILING_TODOIST_ANCHOR_RE, '').trim();
+}
+
+/** A `#` right after a non-space character, as in `[[Book#Chapter]]` or `a.md#sec`. */
+const INLINE_HASH_RE = /\S#[A-Za-z0-9_]/;
+
+/**
+ * Whether the row shows its raw text instead of Rust's description. Rust's
+ * tag regex strips a `#word` anywhere, so a link heading or URL anchor would
+ * lose its tail and leave a false tag; a real tag starts after whitespace or
+ * at the line start, so it never trips the test. A description left empty (a
+ * tag-only task such as `#todo`) also falls back to the raw text.
+ */
+export function usesRawTaskText(task: Pick<TaskItem, 'text' | 'metadata'>): boolean {
+	return INLINE_HASH_RE.test(task.text) || stripTaskTrailers(task.metadata.description) === '';
+}
+
+/**
+ * The text a task row shows: Rust's description (dates, priority, recurrence,
+ * ids and tags removed) without its trailing block id, or the raw text without
+ * its trailers when `usesRawTaskText` says so.
+ */
+export function taskDisplayText(task: Pick<TaskItem, 'text' | 'metadata'>): string {
+	return stripTaskTrailers(usesRawTaskText(task) ? task.text : task.metadata.description);
+}
+
+/** One metadata chip after a task row's text */
+export interface TaskChip {
+	/** Which metadata field the chip shows */
+	kind: 'due' | 'scheduled' | 'start' | 'priority' | 'recurrence' | 'tag';
+	/** Visible text, e.g. `Nov 3`, `high`, `#work` */
+	label: string;
+	/** Hover text, when the label needs one */
+	title?: string;
+	/** Set on a due chip of an open task whose due date is before today */
+	overdue?: boolean;
+}
+
+/** `Nov 3`, or `Nov 3, 2027` when the year differs from `today`'s. Both are `YYYY-MM-DD`. */
+function chipDate(date: string, today: string): string {
+	return formatDate(date, date.slice(0, 4) === today.slice(0, 4) ? 'MMM D' : 'MMM D, YYYY');
+}
+
+/** A block id the Rust recurrence regex swallows when it follows the rule. */
+const RECURRENCE_BLOCK_ID_RE = /\s\^[\w-]+$/;
+
+/**
+ * The chips a task row shows after its text, in this order: due, scheduled,
+ * start, priority, recurrence, then one per tag. Each appears only when its
+ * field is set; a `none` priority shows none.
+ * @param today - `YYYY-MM-DD`; a due date before it (string order) is overdue
+ * @param options.tags - false on the raw-text path, where the tags show inline
+ *   and the Rust list may hold false tags taken from links
+ * @param options.open - only an open task is ever overdue
+ */
+export function taskChips(
+	metadata: TaskMetadata,
+	today: string,
+	options: { tags: boolean; open: boolean },
+): TaskChip[] {
+	const chips: TaskChip[] = [];
+	const { dueDate, scheduledDate, startDate, priority, recurrence } = metadata;
+	if (dueDate) {
+		const label = chipDate(dueDate, today);
+		chips.push(
+			options.open && dueDate < today
+				? { kind: 'due', label, title: `Overdue, due ${dueDate}`, overdue: true }
+				: { kind: 'due', label, title: `Due ${dueDate}` },
+		);
+	}
+	if (scheduledDate) chips.push({ kind: 'scheduled', label: `Scheduled ${chipDate(scheduledDate, today)}` });
+	if (startDate) chips.push({ kind: 'start', label: `Starts ${chipDate(startDate, today)}` });
+	if (priority && priority !== 'none') chips.push({ kind: 'priority', label: priority });
+	if (recurrence) chips.push({ kind: 'recurrence', label: recurrence.text.replace(RECURRENCE_BLOCK_ID_RE, '') });
+	if (options.tags) {
+		for (const tag of metadata.tags) chips.push({ kind: 'tag', label: `#${tag}` });
+	}
+	return chips;
 }
 
 /** Built once: constructing a collator per comparison is what `localeCompare` with options costs. */

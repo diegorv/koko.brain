@@ -143,6 +143,35 @@ test.describe('Tasks view', () => {
 		expect(await page.evaluate((p) => (window as any).__e2e.fs.readFileSafe(p), path)).toBe(content);
 	});
 
+	test.describe('with the clock at 2026-11-05', () => {
+		test.use({ clockTime: '2026-11-05T12:00:00' });
+
+		test('a narrow pane puts the overdue due chip on a line under the clean text', async ({ vaultPage: page }) => {
+			await page.setViewportSize({ width: 500, height: 700 });
+			const path = '/test-vault/Rent.md';
+			const content = '- [ ] Pay rent 📅 2026-11-03\n';
+			await page.evaluate(({ p, c }) => {
+				const e2e = window.__e2e;
+				e2e.fs.writeFile(p, c);
+				e2e.events.emit('vault-index-updated', e2e.vaultIndex.update(p, c));
+			}, { p: path, c: content });
+
+			await pressShortcut(page, 'Mod+Shift+T');
+			await page.getByRole('textbox', { name: /section tag/i }).fill('');
+
+			const row = page.locator('[data-task-row]', { hasText: 'Pay rent' });
+			const text = row.locator('[data-task-text]');
+			const due = row.locator('[data-task-chip="due"]');
+			await expect(text).toHaveText('Pay rent', { timeout: 5_000 });
+			await expect(due).toHaveText('Nov 3');
+			await expect(due).toHaveAttribute('data-overdue', '');
+
+			const textBox = (await text.boundingBox())!;
+			const dueBox = (await due.boundingBox())!;
+			expect(dueBox.y).toBeGreaterThanOrEqual(textBox.y + textBox.height);
+		});
+	});
+
 	test('the section tag lists tasks under any of several tags', async ({ vaultPage: page }) => {
 		const path = '/test-vault/Sections.md';
 		const content = '## Inbox #to-list\n- [ ] Listed by to-list\n## Job #work\n- [ ] Listed by work\n## Misc\n- [ ] Never listed\n';
