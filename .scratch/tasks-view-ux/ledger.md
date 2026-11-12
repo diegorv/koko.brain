@@ -52,7 +52,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 245 | done | issue/121-remove-tasks-in-section-command (c4e917f99) | 2026-11-12 |
 | 122 | [A guarded Rust command rewrites a task line's text](issues/122-row-menu-edits-with-undo.md) | 244 | done | issue/122-row-menu-edits-with-undo (befb8f876) | 2026-11-12 |
 | 123 | [The Tasks excludes and heading tags survive a restart](issues/123-persist-view-state.md) | none | wontfix | | |
-| 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | in-progress | | |
+| 124 | [Global excludes and saved Tasks views survive a restart, and "To list" is seeded (model, no UI)](issues/124-saved-views-and-to-list-migration.md) | 245, 117 | done | issue/124-saved-views-and-to-list-migration (4cb9abb38) | 2026-11-12 |
 | 125 | [A "No date" built-in list, and a "modified" marker with Save, Revert and Reset](issues/125-smart-lists-and-empty-states.md) | 111, 247 | todo | | |
 | 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | none | wontfix | | |
 | 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 244 | todo | | |
@@ -133,3 +133,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 18:29 — 119 — deliver — round 1 CHANGES_REQUESTED by claude (heading picker suggests tags, key spellings kept, archived wording), fix round, round 2 APPROVED by claude; full suite 631 files / 16394 tests passed; squash merged and pushed — 711885f97
 - 2026-11-12 18:29 — 124 — start — launched by /relay-lite:run (after 119) — 54b63dfd0
 - 2026-11-12 18:29 — 118 — deliver — round 1 APPROVED by claude with a fix round (dimmed parents in heading groups, JSON collapse keys, label order), deliver re-review APPROVED by claude; full suite 631 files / 16405 tests passed; squash merged and pushed — bb9d07a5c
+- 2026-11-12 18:51 — 124 — deliver — round 1 APPROVED by claude with a fix round (own-exclude test, architecture doc services list, GROUP_KEYS from a Record), deliver re-review APPROVED by claude; open point: Hide this writes session-only own excludes until 247; full suite 632 files / 16453 tests passed; squash merged and pushed — 4cb9abb38
