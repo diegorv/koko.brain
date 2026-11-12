@@ -62,7 +62,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 234 | done | issue/236-tasks-group-header-reads-like-a-note (07181df1c) | 2026-11-12 |
 | 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | none | wontfix | | |
 | 238 | [A Due menu replaces the Tasks date pills](issues/238-tasks-due-filter-replaces-date-pills.md) | 111 | done | issue/238-tasks-due-filter-replaces-date-pills (0cc4c6a0a) | 2026-11-12 |
-| 239 | [Tasks priority and tag filters, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | in-progress | | |
+| 239 | [Tasks priority and tag filters, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | done | issue/239-tasks-priority-search-reset-narrow (f51d1e4c7) | 2026-11-12 |
 | 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | todo | | |
 | 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
 | 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | done | issue/242-tasks-several-section-tags (3583a1057) | 2026-11-12 |
@@ -105,3 +105,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 12:34 — ledger updated (title of 124, 125; blocked by of 123, 124, 126; wontfix 123, 126)
 - 2026-11-12 12:46 — 238 — deliver — round 1 APPROVED by claude with a fix round (help sentence on undated tasks, reuse today), deliver re-review APPROVED by claude; full suite 621 files / 15939 tests passed; squash merged and pushed — 0cc4c6a0a
 - 2026-11-12 12:46 — 239 — start — launched by /relay-lite:run — 1f2cae2e5
+- 2026-11-12 14:40 — 239 — deliver — round 1 APPROVED by claude, two nits rejected with reasons, no fix round; full suite 621 files / 16002 tests passed; narrow-split look not checked by eye; squash merged and pushed — f51d1e4c7
