@@ -55,8 +55,18 @@ describe('QuickSwitcher - create from the query', () => {
 		vaultStore._reset();
 	});
 
-	/** Opens the switcher, types `query` and clicks its "Create" button. */
+	/** Opens the switcher, types `query` and clicks its "Create" item. */
 	function createFromQuery(query: string): void {
+		typeQuery(query);
+		const item = [...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]')].find((el) =>
+			el.textContent?.includes(`Create "${query}"`),
+		);
+		if (!item) throw new Error('Create item not found');
+		item.click();
+	}
+
+	/** Opens the switcher, types `query` and returns the input. */
+	function typeQuery(query: string): HTMLInputElement {
 		quickSwitcherStore.open();
 		flushSync();
 		const input = document.querySelector<HTMLInputElement>('input[placeholder="Type a note name..."]');
@@ -64,11 +74,17 @@ describe('QuickSwitcher - create from the query', () => {
 		input.value = query;
 		input.dispatchEvent(new Event('input', { bubbles: true }));
 		flushSync();
-		const button = [...document.querySelectorAll<HTMLButtonElement>('button')].find((b) =>
-			b.textContent?.includes(`Create "${query}"`),
-		);
-		if (!button) throw new Error('Create button not found');
-		button.click();
+		return input;
+	}
+
+	/**
+	 * Presses Enter in `input`. bits-ui selects the first item a tick after the
+	 * items render, so this waits a macrotask first, as a real keypress would.
+	 */
+	async function pressEnter(input: HTMLInputElement): Promise<void> {
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+		flushSync();
 	}
 
 	/** The content `create_note` received. */
@@ -139,5 +155,73 @@ describe('QuickSwitcher - create from the query', () => {
 		}
 
 		expect(observer).not.toHaveBeenCalled();
+	});
+
+	it('creates and opens the note on Enter when nothing matches', async () => {
+		const input = typeQuery('Ideas');
+
+		await pressEnter(input);
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Ideas.md'));
+		expect(vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'create_note')).toBe(true);
+		expect(quickSwitcherStore.isOpen).toBe(false);
+	});
+
+	it('creates the note typed so far on Enter after the query grew past the first render', async () => {
+		const input = typeQuery('Idea');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		input.value = 'Ideas';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		await pressEnter(input);
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Ideas.md'));
+		expect(quickSwitcherStore.isOpen).toBe(false);
+	});
+
+	it('creates the note on Enter after a matching query changed to one that matches nothing', async () => {
+		fsStore.setFileTree([{ name: 'Alpha.md', path: '/vault/Alpha.md', isDirectory: false }]);
+		flushSync();
+		const input = typeQuery('Al');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		input.value = 'Ideas';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		await pressEnter(input);
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Ideas.md'));
+		expect(vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'create_note')).toBe(true);
+		expect(quickSwitcherStore.isOpen).toBe(false);
+	});
+
+	it('opens the match on Enter after a query that matched nothing changed to a matching one', async () => {
+		fsStore.setFileTree([{ name: 'Alpha.md', path: '/vault/Alpha.md', isDirectory: false }]);
+		flushSync();
+		const input = typeQuery('Zzz');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		input.value = 'Alp';
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		await pressEnter(input);
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Alpha.md'));
+		expect(vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'create_note')).toBe(false);
+		expect(quickSwitcherStore.isOpen).toBe(false);
+	});
+
+	it('offers no create item and opens the first match on Enter when a note matches', async () => {
+		fsStore.setFileTree([{ name: 'Ideas.md', path: '/vault/Ideas.md', isDirectory: false }]);
+		flushSync();
+		const input = typeQuery('Ideas');
+
+		expect(document.body.textContent).not.toContain('Create "Ideas"');
+		await pressEnter(input);
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Ideas.md'));
+		expect(vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'create_note')).toBe(false);
+		expect(quickSwitcherStore.isOpen).toBe(false);
 	});
 });

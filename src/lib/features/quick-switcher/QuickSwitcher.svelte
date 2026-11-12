@@ -94,15 +94,16 @@
 				{/each}
 			</Command.Group>
 		{:else if searchQuery.trim().length > 0}
-			<Command.Empty>
-				<button
-					class="flex w-full items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-					onclick={createAndOpenNote}
+			<!-- A Command.Item, not a button, so bits-ui selects it and Enter runs it. -->
+			<Command.Group>
+				<Command.Item
+					value={`create:${searchQuery.trim()}`}
+					onSelect={createAndOpenNote}
 				>
 					<FilePlus class="size-4" />
 					<span>Create "{searchQuery.trim()}"</span>
-				</button>
-			</Command.Empty>
+				</Command.Item>
+			</Command.Group>
 		{:else}
 			<Command.Empty>No files found.</Command.Empty>
 		{/if}

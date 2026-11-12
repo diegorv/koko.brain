@@ -12,7 +12,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** approved by the owner on 2026-11-12 as a deep-dive addition to the queue. Nothing open.
 
@@ -20,10 +20,10 @@
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
 
-- [ ] Failing first: a new test in `src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts` opens the switcher, types "Ideas" with no files in the tree, dispatches `keydown` Enter on the input, and asserts `create_note` was invoked, `openFileInEditor` was called with `/vault/Ideas.md`, and `quickSwitcherStore.isOpen` is false. It fails on the current code
-- [ ] The five existing create tests keep their assertions; only the `createFromQuery` helper (about line 59) changes, to click the create item (`[data-slot="command-item"]` with the label) instead of a `button`
-- [ ] A new test: when a note matches the query, no create item is rendered and Enter opens the first match. It may pass today; it guards that the create item never takes the selection from a match
-- [ ] Clicking the create item still creates and opens the note (covered by the rewritten helper)
+- [x] Failing first: a new test in `src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts` opens the switcher, types "Ideas" with no files in the tree, dispatches `keydown` Enter on the input, and asserts `create_note` was invoked, `openFileInEditor` was called with `/vault/Ideas.md`, and `quickSwitcherStore.isOpen` is false. It fails on the current code
+- [x] The five existing create tests keep their assertions; only the `createFromQuery` helper (about line 59) changes, to click the create item (`[data-slot="command-item"]` with the label) instead of a `button`
+- [x] A new test: when a note matches the query, no create item is rendered and Enter opens the first match. It may pass today; it guards that the create item never takes the selection from a match
+- [x] Clicking the create item still creates and opens the note (covered by the rewritten helper)
 
 ## Notes
 
@@ -38,3 +38,4 @@
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-12: deep dive (validate-s1+s2) confirmed it at `635b4af36`: Enter only clicks bits-ui's selected item (`command.svelte.js:957-970`), and there is none. Approved as an addition. Line pointers updated, the helper now serves five tests, and the match-case test is marked as a guard. The `pnpm build` in the Gate stays until the owner settles ADR 0030 against CLAUDE.md rule 6 (critique M7).
+- 2026-11-12: delivered from `issue/042-enter-quick-switcher-creates-note-when-nothing`. The create item is now a selectable `Command.Item`, so bits-ui's Enter selects and creates the note when nothing matches; a match still takes the selection. Tests: the `createFromQuery` helper clicks the create item, plus tests for Enter on no match, Enter on a match, and both query transitions (match to no match, no match to match). Review round 1 APPROVED (fix round added the transition tests), round 2 APPROVED with no findings. Targeted: `pnpm check` 0 errors; quick-switcher tests 27 passed. Full suite at `e7b75019b`: 633 files, 16517 passed, 0 failed.
