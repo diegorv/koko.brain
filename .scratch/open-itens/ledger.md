@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 012 | [Tab-strip menu acts on the right tab, and Delete asks first](issues/012-tab-menu-right-tab-and-delete-confirm.md) | 009 | todo | | |
 | 013 | [The Filter panel cannot write an empty or unparseable filter](issues/013-filter-panel-safe-writes.md) | 012, 010 | todo | | |
 | 014 | [Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version](issues/014-backlinks-outgoing-links-always-show-open-note.md) | none | todo | | |
-| 015 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/015-closing-tab-unsaved-text-saves-closes-prompt.md) | none | todo | | |
+| 015 | [Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails](issues/015-closing-tab-unsaved-text-saves-closes-prompt.md) | none | in-progress | | |
 | 016 | [File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot](issues/016-file-history-keeps-snapshot-pre-save-bytes.md) | 015 | todo | | |
 | 017 | [An external change to an open note is never overwritten by the next autosave or calendar write](issues/017-external-change-open-note-never-overwritten-next.md) | none | todo | | |
 | 018 | [A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave](issues/018-note-deleted-renamed-outside-app-closed-marked.md) | 017 | todo | | |
@@ -278,3 +278,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 12:04 — 198 — start — launched by /relay-lite:run (151 done, tasks-view-ux 236 done) — 0e4af6695
 - 2026-11-12 12:14 — 198 — deliver — round 1 APPROVED by claude (fix round: palette test asserts the ui exclusion; diff contrast deferred to the owner's by-eye check), deliver re-review APPROVED by claude; full suite 618 files / 15771 tests passed; colors not checked by eye; squash merged and pushed — 1198d8e7b
 - 2026-11-12 14:57 — ledger updated (added 249, 250, 251, 252, 253; title of 004, 006, 006, 010, 039, 043, 061, 062, 070; link of 006, 006; blocked by of 004, 006, 006, 012, 015, 039, 043, 047, 068, 131)
+- 2026-11-12 15:07 — 015 — start — launched by /relay-lite:run (bug queue rank 1) — f79da7588
