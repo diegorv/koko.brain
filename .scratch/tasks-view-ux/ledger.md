@@ -66,7 +66,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | todo | | |
 | 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
 | 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | done | issue/242-tasks-several-section-tags (3583a1057) | 2026-11-12 |
-| 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234 | todo | | |
+| 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234 | in-progress | | |
 | 244 | [Tasks come from the entries snapshot, with an overlay for the view's own writes](issues/244-tasks-from-entries-snapshot-with-write-overlay.md) | 115, 241 | todo | | |
 | 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | todo | | |
 | 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | todo | | |
@@ -84,3 +84,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 11:02 — 234 — start — launched by /relay-lite:run — 7d6098b1a
 - 2026-11-12 11:02 — 074 — start — launched by /relay-lite:run, beside 234 (side track) — 7d6098b1a
 - 2026-11-12 11:23 — 234 — deliver — round 1 APPROVED by claude (fix round: exact alert text, alert over filtered empty state; placement left for owner's visual check), deliver re-review APPROVED by claude; full suite 615 files / 15685 tests passed; squash merged and pushed — d52d63db2
+- 2026-11-12 11:23 — 243 — start — launched by /relay-lite:run (open-itens 030 done) — 2aeef7a9d
