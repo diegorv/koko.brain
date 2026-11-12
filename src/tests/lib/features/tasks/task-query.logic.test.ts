@@ -5,9 +5,10 @@ import {
 	buildTaskRows,
 	describeTaskRule,
 	explainEmptyTasks,
+	DEFAULT_TASK_SORT,
+	groupTaskRows,
 	isQuickFieldDefault,
 	matchesNestedTag,
-	rowsByNote,
 	statusFilterLabel,
 	tagMenuOptions,
 	taskCountText,
@@ -17,11 +18,14 @@ import {
 	toggleQuickTag,
 	type DueRange,
 	type QuickFilterField,
+	type TaskGroup,
+	type TaskGroupKey,
 	type TaskQuickFilters,
 	type TaskRow,
 	type VisibleRow,
 } from '#lib/features/tasks/task-query.logic.js';
 import type { TaskPriority, TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
+import { taskDisplayText } from '#lib/features/tasks/tasks.logic.js';
 import type { FileTaskGroup, TaskItem } from '#lib/features/tasks/tasks.types.js';
 import { sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../fixtures/timezone.fixture';
@@ -227,38 +231,204 @@ describe('buildTaskRows', () => {
 	});
 });
 
-describe('rowsByNote', () => {
-	const twoNotes = () =>
-		buildTaskRows(
-			[
-				group('/vault/Projects/b.md', [task('todo', 0, 1), task('todo', 0, 2), task('done', 0, 3)], 5),
-				group('/vault/a.md', [task('todo', 0, 1)], 9),
-			],
-			'/vault',
+describe('groupTaskRows', () => {
+	const SORT = [...DEFAULT_TASK_SORT];
+
+	/** A todo task on `lineNumber` with `meta` merged into its metadata. */
+	const t = (text: string, lineNumber: number, meta: Partial<TaskItem['metadata']> = {}, extra: Partial<TaskItem> = {}) =>
+		taskV2(text, { lineNumber, metadata: { description: text, tags: [], ...meta }, ...extra });
+
+	/**
+	 * Five notes, in an order that is neither path nor `modifiedAt` order.
+	 * Today is 2026-11-05.
+	 */
+	const mixed = () =>
+		applyQuickFilters(
+			buildTaskRows(
+				[
+					group('/vault/Projects/x.md', [
+						t('B1', 1, { dueDate: '2026-11-05', priority: 'low' }),
+						t('B2', 2, { priority: 'none' }),
+					], 300),
+					group('/vault/note 10.md', [t('A1', 1, { dueDate: '2026-11-04', priority: 'highest' }), t('A2', 2, { dueDate: '2026-11-06' })], 100),
+					group('/vault/Projects/y.md', [
+						t('C1', 1, { dueDate: '2026-11-07', priority: 'medium' }, { status: 'done' }),
+						t('C2', 2, { dueDate: '2026-11-12', priority: 'lowest' }, { status: 'in-progress' }),
+					], 500),
+					group('/vault/note 9.md', [
+						t('D1', 1, { dueDate: '2026-11-13', priority: 'high' }, { status: 'question' }),
+						t('D2', 2, { dueDate: '2026-11-06' }, { status: 'important' }),
+					], 200),
+					group('/vault/Archive/z.md', [
+						t('E1', 1, {}, { status: 'cancelled' }),
+						t('E2', 2, { dueDate: '2026-11-06' }, { status: 'forwarded' }),
+					], 400),
+				],
+				'/vault',
+			),
+			{ show: 'all' },
+			TODAY,
+			NOW,
 		);
 
-	it('groups visible rows by note in first-appearance order', () => {
-		const notes = rowsByNote(applyQuickFilters(twoNotes(), { show: 'all' }, TODAY, NOW));
-		expect(notes.map((n) => [n.filePath, n.noteTitle, n.folder, n.modifiedAt, n.rows.length])).toEqual([
-			['/vault/Projects/b.md', 'b', 'Projects', 5, 3],
-			['/vault/a.md', 'a', '', 9, 1],
+	/** `[key, label, row texts]` per group. */
+	const summary = (groups: TaskGroup[]) => groups.map((g) => [g.key, g.label, g.rows.map((r) => r.text)]);
+
+	it('note: one group per note in the incoming order whatever modifiedAt, rows in document order', () => {
+		expect(summary(groupTaskRows(mixed(), 'note', SORT, TODAY))).toEqual([
+			['/vault/Projects/x.md', 'x', ['B1', 'B2']],
+			['/vault/note 10.md', 'note 10', ['A1', 'A2']],
+			['/vault/Projects/y.md', 'y', ['C1', 'C2']],
+			['/vault/note 9.md', 'note 9', ['D1', 'D2']],
+			['/vault/Archive/z.md', 'z', ['E1', 'E2']],
 		]);
 	});
 
-	it('keeps total and open whatever show hides', () => {
-		const [b] = rowsByNote(applyQuickFilters(twoNotes(), { show: 'closed' }, TODAY, NOW));
-		expect([b.total, b.open]).toEqual([3, 2]);
-		expect(b.rows.map((r) => r.lineNumber)).toEqual([3]);
-	});
-
-	it('leaves out a note with no visible row', () => {
-		expect(rowsByNote(applyQuickFilters(twoNotes(), { show: 'closed' }, TODAY, NOW)).map((n) => n.filePath)).toEqual([
-			'/vault/Projects/b.md',
+	it('folder: Vault root first, then folders in path order, two notes of a folder merged', () => {
+		expect(summary(groupTaskRows(mixed(), 'folder', SORT, TODAY))).toEqual([
+			['', 'Vault root', ['A1', 'D2', 'A2', 'D1']],
+			['Archive', 'Archive', ['E2', 'E1']],
+			['Projects', 'Projects', ['B1', 'C1', 'C2', 'B2']],
 		]);
 	});
 
-	it('gives no note for no rows', () => {
-		expect(rowsByNote([])).toEqual([]);
+	it('due: buckets in order, 11-04 overdue, 11-05 today, 11-06 tomorrow, 11-07 and 11-12 this week, 11-13 later', () => {
+		expect(summary(groupTaskRows(mixed(), 'due', SORT, TODAY))).toEqual([
+			['overdue', 'Overdue', ['A1']],
+			['today', 'Today', ['B1']],
+			// Same due date and priority: path order, `note 9` before `note 10`.
+			['tomorrow', 'Tomorrow', ['E2', 'D2', 'A2']],
+			['week', 'This week', ['C1', 'C2']],
+			['later', 'Later', ['D1']],
+			['none', 'No date', ['E1', 'B2']],
+		]);
+	});
+
+	it("priority: No priority between Medium and Low, holding a 'none' row and a row with no priority", () => {
+		expect(summary(groupTaskRows(mixed(), 'priority', SORT, TODAY))).toEqual([
+			['highest', 'Highest', ['A1']],
+			['high', 'High', ['D1']],
+			['medium', 'Medium', ['C1']],
+			['none', 'No priority', ['E2', 'D2', 'A2', 'E1', 'B2']],
+			['low', 'Low', ['B1']],
+			['lowest', 'Lowest', ['C2']],
+		]);
+	});
+
+	it('status: one group per status in TASK_STATUSES order, labelled with the capitalised word', () => {
+		expect(summary(groupTaskRows(mixed(), 'status', SORT, TODAY))).toEqual([
+			['todo', 'Todo', ['A1', 'B1', 'A2', 'B2']],
+			['in-progress', 'In progress', ['C2']],
+			['question', 'Question', ['D1']],
+			['important', 'Important', ['D2']],
+			['forwarded', 'Forwarded', ['E2']],
+			['done', 'Done', ['C1']],
+			['cancelled', 'Cancelled', ['E1']],
+		]);
+	});
+
+	it("sorts by priority first under ['priority', 'due', 'path']", () => {
+		const [todo] = groupTaskRows(mixed(), 'status', ['priority', 'due', 'path'], TODAY);
+		expect(todo.rows.map((r) => r.text)).toEqual(['A1', 'A2', 'B2', 'B1']);
+	});
+
+	it('falls back to path then line after the sort keys, so an empty sort still gives one order', () => {
+		const [todo] = groupTaskRows(mixed(), 'status', [], TODAY);
+		expect(todo.rows.map((r) => r.text)).toEqual(['A1', 'A2', 'B1', 'B2']);
+	});
+
+	it('leaves out empty groups', () => {
+		const rows = mixed().filter((r) => r.text === 'A1');
+		expect(summary(groupTaskRows(rows, 'due', SORT, TODAY))).toEqual([['overdue', 'Overdue', ['A1']]]);
+	});
+
+	it('gives no group for no rows', () => {
+		for (const by of ['note', 'folder', 'due', 'priority', 'status'] as TaskGroupKey[]) {
+			expect(groupTaskRows([], by, SORT, TODAY)).toEqual([]);
+		}
+	});
+
+	describe('note group fields and counts', () => {
+		const twoNotes = () =>
+			buildTaskRows(
+				[
+					group('/vault/Projects/b.md', [task('todo', 0, 1), task('todo', 0, 2), task('done', 0, 3)], 5),
+					group('/vault/a.md', [task('todo', 0, 1)], 9),
+				],
+				'/vault',
+			);
+
+		it('carries filePath, folder and modifiedAt from the first row', () => {
+			const groups = groupTaskRows(applyQuickFilters(twoNotes(), { show: 'all' }, TODAY, NOW), 'note', SORT, TODAY);
+			expect(groups.map((g) => [g.filePath, g.label, g.folder, g.modifiedAt, g.rows.length])).toEqual([
+				['/vault/Projects/b.md', 'b', 'Projects', 5, 3],
+				['/vault/a.md', 'a', '', 9, 1],
+			]);
+		});
+
+		it('reads total from noteTaskCount and open from noteOpenCount, so total stays 3 with 2 rows passing', () => {
+			const [b] = groupTaskRows(applyQuickFilters(twoNotes(), { show: 'open' }, TODAY, NOW), 'note', SORT, TODAY);
+			expect(b.rows.map((r) => r.lineNumber)).toEqual([1, 2]);
+			expect([b.total, b.open]).toEqual([3, 2]);
+		});
+
+		it('keeps total and open whatever show hides, and leaves out a note with no visible row', () => {
+			const groups = groupTaskRows(applyQuickFilters(twoNotes(), { show: 'closed' }, TODAY, NOW), 'note', SORT, TODAY);
+			expect(groups.map((g) => g.filePath)).toEqual(['/vault/Projects/b.md']);
+			expect([groups[0].total, groups[0].open]).toEqual([3, 2]);
+			expect(groups[0].rows.map((r) => r.lineNumber)).toEqual([3]);
+		});
+
+		const parentAndChildren = () =>
+			applyQuickFilters(rowsOf([task('done', 0, 1), task('todo', 1, 2), task('todo', 1, 3)]), { show: 'open' }, TODAY, NOW);
+
+		it('counts a dimmed parent out of count but keeps it in rows', () => {
+			const [note] = groupTaskRows(parentAndChildren(), 'note', SORT, TODAY);
+			expect(note.count).toBe(2);
+			expect(note.rows.map((r) => [r.lineNumber, r.dimmed])).toEqual([[1, true], [2, false], [3, false]]);
+		});
+
+		it('gives a flat group count equal to rows.length', () => {
+			const groups = groupTaskRows(parentAndChildren(), 'status', SORT, TODAY);
+			expect(groups.map((g) => [g.key, g.count, g.rows.length])).toEqual([['todo', 2, 2]]);
+		});
+
+		it('carries no note fields on a flat group', () => {
+			const [g] = groupTaskRows(parentAndChildren(), 'status', SORT, TODAY);
+			expect([g.filePath, g.folder, g.modifiedAt, g.total, g.open]).toEqual([undefined, undefined, undefined, undefined, undefined]);
+		});
+	});
+
+	describe('breadcrumbs', () => {
+		/** A done parent due 11-04 and its todo child due 11-05: different due buckets. */
+		const family = () =>
+			rowsOf([
+				t('Plan trip ^plan1', 1, { dueDate: '2026-11-04' }, { status: 'done' }),
+				t('Book train', 2, { dueDate: '2026-11-05' }, { indent: 1 }),
+			]);
+
+		it('sets the parent text on a child in another bucket and drops the dimmed parent', () => {
+			const groups = groupTaskRows(applyQuickFilters(family(), { show: 'open' }, TODAY, NOW), 'due', SORT, TODAY);
+			expect(groups.map((g) => [g.key, g.rows.map((r) => [r.text, r.breadcrumb])])).toEqual([
+				['today', [['Book train', 'Plan trip']]],
+			]);
+		});
+
+		it('sets it when the parent sits in the same group, and never in a note group', () => {
+			const visible = applyQuickFilters(family(), { show: 'all' }, TODAY, NOW);
+			const [parent, child] = groupTaskRows(visible, 'folder', SORT, TODAY)[0].rows;
+			expect([parent.text, parent.breadcrumb]).toEqual(['Plan trip ^plan1', undefined]);
+			expect(child.breadcrumb).toBe(taskDisplayText(family()[0]));
+			expect(child.breadcrumb).toBe('Plan trip');
+			expect(groupTaskRows(visible, 'note', SORT, TODAY)[0].rows.map((r) => r.breadcrumb)).toEqual([undefined, undefined]);
+		});
+
+		it('gives no breadcrumb for a parentLine with no matching row', () => {
+			const orphan = applyQuickFilters(family(), { show: 'all' }, TODAY, NOW).filter((r) => r.lineNumber === 2);
+			expect(orphan[0].parentLine).toBe(1);
+			const [today] = groupTaskRows(orphan, 'due', SORT, TODAY);
+			expect(today.rows.map((r) => r.breadcrumb)).toEqual([undefined]);
+		});
 	});
 });
 

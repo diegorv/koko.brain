@@ -30,7 +30,6 @@
 		explainEmptyTasks,
 		isQuickFieldDefault,
 		priorityWord,
-		rowsByNote,
 		statusFilterLabel,
 		tagMenuOptions,
 		taskCountText,
@@ -39,7 +38,10 @@
 		toggleQuickTag,
 		type DueRange,
 		type EmptyTasksExplanation,
+		type GroupedRow,
 		type QuickFilterField,
+		type TaskGroup,
+		type TaskGroupKey,
 		type TaskQuickFilters,
 	} from './task-query.logic';
 	import { TASK_STATUSES, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
@@ -81,6 +83,15 @@
 		{ label: 'Open', value: 'open' },
 		{ label: 'Closed', value: 'closed' },
 		{ label: 'All', value: 'all' },
+	];
+
+	/** The Display menu's Group by options. */
+	const GROUP_OPTIONS: { label: string; value: TaskGroupKey }[] = [
+		{ label: 'Note', value: 'note' },
+		{ label: 'Folder', value: 'folder' },
+		{ label: 'Due date', value: 'due' },
+		{ label: 'Priority', value: 'priority' },
+		{ label: 'Status', value: 'status' },
 	];
 
 	/**
@@ -129,7 +140,7 @@
 		if (getTasksResetGeneration() === resetGenerationAtMount) void updateSectionTagFilter(debounce.value);
 	});
 
-	let notes = $derived(rowsByNote(tasksStore.visibleRows));
+	let groups = $derived(tasksStore.groups);
 
 	let countText = $derived(taskCountText(tasksStore.visibleRows, tasksStore.quick));
 
@@ -150,7 +161,7 @@
 	);
 
 	let emptyExplanation = $derived(
-		notes.length === 0
+		groups.length === 0
 			? explainEmptyTasks({
 					rows: tasksStore.rows,
 					sectionTag: tasksStore.sectionTag,
@@ -268,19 +279,19 @@
 	// Once per mount, as soon as rows are on screen (effects run after the DOM update).
 	$effect(() => {
 		const viewport = viewportRef;
-		if (scrollRestored || !viewport || !tasksStore.hasLoaded || notes.length === 0) return;
+		if (scrollRestored || !viewport || !tasksStore.hasLoaded || groups.length === 0) return;
 		scrollRestored = true;
 		viewport.scrollTop = untrack(() => tasksStore.scrollOffset);
 	});
 
 	/** The view's root element. */
 	let rootEl = $state<HTMLElement | null>(null);
-	/** The element around all note groups: the only place the row keys are handled. */
+	/** The element around all groups: the only place the row keys are handled. */
 	let listEl = $state<HTMLElement | null>(null);
 
 	/** Every listed row by its `taskRowKey`, in display (DOM) order. */
 	let rowsByKey = $derived(
-		new Map(notes.flatMap((note) => note.rows.map((row) => [taskRowKey(note.filePath, row.lineNumber), row] as const))),
+		new Map(groups.flatMap((group) => group.rows.map((row) => [taskRowKey(row.filePath, row.lineNumber), row] as const))),
 	);
 	/** Every row key in display order; the DOM renders all of them. */
 	let order = $derived([...rowsByKey.keys()]);
@@ -338,7 +349,11 @@
 		const rowEl = (e.target as HTMLElement).closest<HTMLElement>('[data-task-row]');
 		const row = rowEl ? rowsByKey.get(rowEl.dataset.taskKey ?? '') : undefined;
 		if (row) tasksStore.setCurrentRow({ filePath: row.filePath, lineNumber: row.lineNumber });
+		if (rowEl) lastFocusedRowEl = rowEl;
 	}
+
+	/** The row element that last took focus; not reactive, read only by the effect below. */
+	let lastFocusedRowEl: HTMLElement | null = null;
 
 	/** The `order` the last run of the effect below saw; null until its first run in this mount. */
 	let prevOrder: string[] | null = null;
@@ -346,7 +361,12 @@
 	// When the list changes, a current row that left it hands its place to a
 	// neighbour (`nextCurrentRow`). Focus follows only when it was on the
 	// removed row (now on `<body>`) or inside the list, so typing in the
-	// search box never moves it. Effects run after the DOM update.
+	// search box never moves it. A current row that changed group (a todo
+	// completed under Status grouping) is recreated in the other group's keyed
+	// `{#each}`, so focus falls to `<body>`: it goes back to the new element,
+	// but only when the element that held focus was removed. A recompute that
+	// keeps the element (a refetch with the same rows) leaves focus where the
+	// user put it. Effects run after the DOM update.
 	$effect(() => {
 		const next = order;
 		untrack(() => {
@@ -355,7 +375,12 @@
 			if (prev === null) return;
 			const current = currentKey;
 			const chosen = nextCurrentRow(next, prev, current);
-			if (chosen === current) return;
+			if (chosen === current) {
+				if (document.activeElement === document.body && lastFocusedRowEl && !lastFocusedRowEl.isConnected) {
+					rowElement(current)?.focus();
+				}
+				return;
+			}
 			const row = chosen === null ? undefined : rowsByKey.get(chosen);
 			tasksStore.setCurrentRow(row ? { filePath: row.filePath, lineNumber: row.lineNumber } : null);
 			if (focusIsFree(false)) rowElement(tabStopRow(next, next, chosen))?.focus();
@@ -457,6 +482,134 @@
 	{/each}
 {/snippet}
 
+<!-- One group's header. A Note group shows the note (icon, title, folder, "N of M open"); any other shows its label and row count. -->
+{#snippet groupHeader(group: TaskGroup)}
+	{#if group.filePath !== undefined}
+		{@const filePath = group.filePath}
+		{@const resolved = resolveIconForPath(filePath)}
+		<!-- File header. The icon sits outside the button so an emoji stays out of its name. -->
+		<div class="flex items-start gap-2 mb-2">
+			<span class="flex h-5 shrink-0 items-center">
+				{#if resolved?.icon}
+					<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
+				{:else}
+					<FileText class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(resolved?.color)} />
+				{/if}
+			</span>
+			<div class="min-w-0 flex-1">
+				<div class="flex items-baseline gap-2">
+					<button
+						data-task-group-title
+						class="text-sm font-medium text-foreground hover:underline cursor-pointer"
+						title={modifiedTitle(group.modifiedAt ?? 0)}
+						onclick={() => handleFileClick(filePath)}
+					>
+						{group.label}
+					</button>
+					<span data-task-group-count class="text-xs text-muted-foreground">{`${group.open} of ${group.total} open`}</span>
+				</div>
+				{#if group.folder}
+					<p data-task-group-subtitle class="truncate text-xs text-muted-foreground @max-[560px]:hidden">{group.folder}</p>
+				{/if}
+			</div>
+		</div>
+	{:else}
+		<div class="flex items-baseline gap-2 mb-2">
+			<span data-task-group-label class="text-sm font-medium text-foreground">{group.label}</span>
+			<span data-task-group-count class="text-xs text-muted-foreground">{group.count}</span>
+		</div>
+	{/if}
+{/snippet}
+
+<!-- One task row, shared by Note groups (indented by `row.indent`) and flat groups (`flat`: no indent, breadcrumb above). -->
+{#snippet taskRow(row: GroupedRow, flat: boolean)}
+	<!-- The glyph follows the status; the label follows `toggleTarget`, what a click writes. -->
+	{@const glyph = statusGlyph(row.status)}
+	{@const Glyph = GLYPH_ICONS[glyph.icon]}
+	{@const displayText = taskDisplayText(row)}
+	{@const chips = taskChips(row.metadata, today, { tags: !usesRawTaskText(row), open: row.open })}
+	{@const rowKey = taskRowKey(row.filePath, row.lineNumber)}
+	<!-- Roving focus: only the tab-stop row and its controls are in the tab order. -->
+	{@const rowTabindex = rowKey === tabStopKey ? 0 : -1}
+	<!-- A dimmed row fails the filters and stays as the parent of one that passes. -->
+	<!-- A flat row has no indent: its breadcrumb, on its own line above the text, carries the hierarchy. -->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (roving-focus list: the row is the focus stop) -->
+	<div
+		data-task-row
+		data-task-key={rowKey}
+		role="listitem"
+		tabindex={rowTabindex}
+		class="flex items-start gap-x-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.dimmed ? 'opacity-60' : ''} {row.breadcrumb ? 'flex-wrap' : ''}"
+		style={flat ? undefined : `padding-left: ${row.indent * 1.25 + 0.25}rem`}
+	>
+		{#if row.breadcrumb}
+			<span data-task-breadcrumb class="basis-full truncate pl-6 text-xs text-muted-foreground">{row.breadcrumb}</span>
+		{/if}
+		<button
+			data-task-toggle
+			data-task-status={row.status}
+			tabindex={rowTabindex}
+			class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+			aria-label="{toggleTarget(row.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {displayText} ({glyph.word})"
+			title={glyph.word}
+			onclick={() => handleToggle(row.filePath, row)}
+		>
+			<Glyph class="size-4 {glyph.tone}" />
+		</button>
+		<!-- Chips trail the text; in a pane under 560px they sit on a line under it. -->
+		<!-- Clicking the text, a chip or the space beside them opens the note at the task's line; only the circle toggles. -->
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+		<div
+			class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 cursor-pointer @max-[560px]:flex-col @max-[560px]:items-start"
+			onclick={(e) => handleTextClick(e, row.filePath, row.lineNumber)}
+		>
+			<span
+				data-task-text
+				class="min-w-0 break-words text-sm {row.open ? 'text-foreground' : 'text-muted-foreground line-through'}"
+			>
+				{#each parseTaskTextSegments(displayText) as seg}
+					{#if seg.type === 'text'}
+						{seg.value}
+					{:else if seg.type === 'wikilink'}
+						<button
+							tabindex={rowTabindex}
+							class="inline cursor-pointer text-primary hover:underline"
+							onclick={(e) => { e.stopPropagation(); onOpenWikilink(seg.target); }}
+						>{seg.display}</button>
+					{:else}
+						<a
+							href={seg.url}
+							tabindex={rowTabindex}
+							target="_blank"
+							rel="noopener noreferrer"
+							title={seg.url}
+							class="text-primary underline decoration-primary/40 hover:decoration-primary"
+							onclick={(e) => e.stopPropagation()}
+						>{seg.label}</a>
+					{/if}
+				{/each}
+			</span>
+			{#if chips.length > 0}
+				<span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+					{#each chips as chip, i (i)}
+						<span
+							data-task-chip={chip.kind}
+							data-overdue={chip.overdue ? '' : undefined}
+							title={chip.title}
+							class="inline-flex items-center gap-1 text-label text-muted-foreground"
+						>
+							{#if chip.kind === 'due'}
+								<Calendar class="size-3 shrink-0 {chip.overdue ? 'text-destructive' : ''}" />
+							{/if}
+							<span class={chip.overdue ? 'text-foreground' : 'text-muted-foreground'}>{chip.label}</span>
+						</span>
+					{/each}
+				</span>
+			{/if}
+		</div>
+	</div>
+{/snippet}
+
 <div bind:this={rootEl} class="@container flex h-full flex-col">
 	<!-- Toolbar -->
 	<div class="pane-toolbar">
@@ -477,6 +630,28 @@
 			aria-label="Search tasks"
 			class="h-6 w-40 min-w-0 shrink px-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 		/>
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+					>
+						<span>Display</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="end" class="w-48">
+				<DropdownMenu.Label>Group by</DropdownMenu.Label>
+				<!-- bits-ui calls onValueChange on every pick, the checked radio included; setGroupBy then changes nothing. -->
+				<DropdownMenu.RadioGroup value={tasksStore.groupBy} onValueChange={(value) => tasksStore.setGroupBy(value as TaskGroupKey)}>
+					{#each GROUP_OPTIONS as option (option.value)}
+						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+					{/each}
+				</DropdownMenu.RadioGroup>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
 	</div>
 
 	<!-- Filters. Under 560px the four menus fold into the Filters menu; both are rendered and CSS hides one. -->
@@ -641,120 +816,12 @@
 					onkeydown={handleListKeydown}
 					onfocusin={handleListFocusin}
 				>
-					{#each notes as note (note.filePath)}
-						{@const resolved = resolveIconForPath(note.filePath)}
-						<div data-task-group>
-							<!-- File header. The icon sits outside the button so an emoji stays out of its name. -->
-							<div class="flex items-start gap-2 mb-2">
-								<span class="flex h-5 shrink-0 items-center">
-									{#if resolved?.icon}
-										<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
-									{:else}
-										<FileText class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(resolved?.color)} />
-									{/if}
-								</span>
-								<div class="min-w-0 flex-1">
-									<div class="flex items-baseline gap-2">
-										<button
-											data-task-group-title
-											class="text-sm font-medium text-foreground hover:underline cursor-pointer"
-											title={modifiedTitle(note.modifiedAt)}
-											onclick={() => handleFileClick(note.filePath)}
-										>
-											{note.noteTitle}
-										</button>
-										<span data-task-group-count class="text-xs text-muted-foreground">{`${note.open} of ${note.total} open`}</span>
-									</div>
-									{#if note.folder}
-										<p data-task-group-subtitle class="truncate text-xs text-muted-foreground @max-[560px]:hidden">{note.folder}</p>
-									{/if}
-								</div>
-							</div>
-
-							<!-- Task list -->
-							<div class="space-y-1" role="list" aria-label={note.noteTitle}>
-								{#each note.rows as row (row.lineNumber)}
-									<!-- The glyph follows the status; the label follows `toggleTarget`, what a click writes. -->
-									{@const glyph = statusGlyph(row.status)}
-									{@const Glyph = GLYPH_ICONS[glyph.icon]}
-									{@const displayText = taskDisplayText(row)}
-									{@const chips = taskChips(row.metadata, today, { tags: !usesRawTaskText(row), open: row.open })}
-									{@const rowKey = taskRowKey(note.filePath, row.lineNumber)}
-									<!-- Roving focus: only the tab-stop row and its controls are in the tab order. -->
-									{@const rowTabindex = rowKey === tabStopKey ? 0 : -1}
-									<!-- A dimmed row fails the filters and stays as the parent of one that passes. -->
-									<!-- svelte-ignore a11y_no_noninteractive_tabindex (roving-focus list: the row is the focus stop) -->
-									<div
-										data-task-row
-										data-task-key={rowKey}
-										role="listitem"
-										tabindex={rowTabindex}
-										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.dimmed ? 'opacity-60' : ''}"
-										style="padding-left: {row.indent * 1.25 + 0.25}rem"
-									>
-										<button
-											data-task-toggle
-											data-task-status={row.status}
-											tabindex={rowTabindex}
-											class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-											aria-label="{toggleTarget(row.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {displayText} ({glyph.word})"
-											title={glyph.word}
-											onclick={() => handleToggle(note.filePath, row)}
-										>
-											<Glyph class="size-4 {glyph.tone}" />
-										</button>
-										<!-- Chips trail the text; in a pane under 560px they sit on a line under it. -->
-										<!-- Clicking the text, a chip or the space beside them opens the note at the task's line; only the circle toggles. -->
-										<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-										<div
-											class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 cursor-pointer @max-[560px]:flex-col @max-[560px]:items-start"
-											onclick={(e) => handleTextClick(e, note.filePath, row.lineNumber)}
-										>
-											<span
-												data-task-text
-												class="min-w-0 break-words text-sm {row.open ? 'text-foreground' : 'text-muted-foreground line-through'}"
-											>
-												{#each parseTaskTextSegments(displayText) as seg}
-													{#if seg.type === 'text'}
-														{seg.value}
-													{:else if seg.type === 'wikilink'}
-														<button
-															tabindex={rowTabindex}
-															class="inline cursor-pointer text-primary hover:underline"
-															onclick={(e) => { e.stopPropagation(); onOpenWikilink(seg.target); }}
-														>{seg.display}</button>
-													{:else}
-														<a
-															href={seg.url}
-															tabindex={rowTabindex}
-															target="_blank"
-															rel="noopener noreferrer"
-															title={seg.url}
-															class="text-primary underline decoration-primary/40 hover:decoration-primary"
-															onclick={(e) => e.stopPropagation()}
-														>{seg.label}</a>
-													{/if}
-												{/each}
-											</span>
-											{#if chips.length > 0}
-												<span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-													{#each chips as chip, i (i)}
-														<span
-															data-task-chip={chip.kind}
-															data-overdue={chip.overdue ? '' : undefined}
-															title={chip.title}
-															class="inline-flex items-center gap-1 text-label text-muted-foreground"
-														>
-															{#if chip.kind === 'due'}
-																<Calendar class="size-3 shrink-0 {chip.overdue ? 'text-destructive' : ''}" />
-															{/if}
-															<span class={chip.overdue ? 'text-foreground' : 'text-muted-foreground'}>{chip.label}</span>
-														</span>
-													{/each}
-												</span>
-											{/if}
-										</div>
-									</div>
+					{#each groups as group (group.key)}
+						<div data-task-group data-task-group-key={group.key}>
+							{@render groupHeader(group)}
+							<div class="space-y-1" role="list" aria-label={group.label}>
+								{#each group.rows as row (taskRowKey(row.filePath, row.lineNumber))}
+									{@render taskRow(row, group.filePath === undefined)}
 								{/each}
 							</div>
 						</div>

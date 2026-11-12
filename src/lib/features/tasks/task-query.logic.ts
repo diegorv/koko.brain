@@ -2,7 +2,8 @@ import { formatDateWithOffset } from '#lib/utils/date.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import { TASK_STATUSES, isTaskOpen, statusGlyph } from './task-status.logic';
 import type { TaskPriority, TaskStatus } from './task-metadata.types';
-import { noteFolder, noteTaskCounts, parseSectionTags, taskDisplayText } from './tasks.logic';
+import { taskRowKey } from './tasks-keys.logic';
+import { compareTaskPaths, noteFolder, noteTaskCounts, parseSectionTags, taskDisplayText } from './tasks.logic';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 
 /**
@@ -303,48 +304,206 @@ export function applyQuickFilters(rows: TaskRow[], quick: TaskQuickFilters, toda
 	return visible;
 }
 
-/** One note of the Tasks list and its visible rows */
-export interface NoteRows {
-	/** Absolute note path */
-	filePath: string;
-	/** The note's display name */
-	noteTitle: string;
-	/** Vault-relative folder, '' at the root */
-	folder: string;
-	/** The note's last-modified time in ms */
-	modifiedAt: number;
-	/** The note's tasks, before any filter */
-	total: number;
-	/** The note's open tasks, before any filter */
-	open: number;
-	/** The note's visible rows, in document order */
-	rows: VisibleRow[];
+/** What the Tasks list groups its rows by (the Display menu's Group by). */
+export type TaskGroupKey = 'note' | 'folder' | 'due' | 'priority' | 'status';
+
+/** A key the rows of a group other than Note are sorted by. */
+export type TaskSortKey = 'due' | 'priority' | 'path';
+
+/** The sort of a fresh Tasks view: due date, then priority, then path. */
+export const DEFAULT_TASK_SORT: TaskSortKey[] = ['due', 'priority', 'path'];
+
+/** A row of a group; `breadcrumb` is set only outside Note groups. */
+export type GroupedRow = VisibleRow & {
+	/** `taskDisplayText` of the row's immediate parent task, when that parent is among the grouped rows */
+	breadcrumb?: string;
+};
+
+/** One group of the Tasks list */
+export interface TaskGroup {
+	/** The group's raw key: the note path, the folder, or the due, priority or status key */
+	key: string;
+	/** The header text */
+	label: string;
+	/** The group's rows: document order with dimmed parents in a Note group, sorted and flat otherwise */
+	rows: GroupedRow[];
+	/** The rows that are not dimmed */
+	count: number;
+	/** Note groups only: absolute note path */
+	filePath?: string;
+	/** Note groups only: vault-relative folder, '' at the root */
+	folder?: string;
+	/** Note groups only: the note's last-modified time in ms */
+	modifiedAt?: number;
+	/** Note groups only: the note's tasks, before any filter */
+	total?: number;
+	/** Note groups only: the note's open tasks, before any filter */
+	open?: number;
 }
 
-/**
- * Groups visible rows by note, in first-appearance order. `total` and `open`
- * come from the note's first row, so filters never change them. A note with
- * no visible row is not returned.
- */
-export function rowsByNote(rows: VisibleRow[]): NoteRows[] {
-	const notes = new Map<string, NoteRows>();
+/** The Due grouping's buckets, in display order. */
+const DUE_GROUPS = [
+	{ key: 'overdue', label: 'Overdue' },
+	{ key: 'today', label: 'Today' },
+	{ key: 'tomorrow', label: 'Tomorrow' },
+	{ key: 'week', label: 'This week' },
+	{ key: 'later', label: 'Later' },
+	{ key: 'none', label: 'No date' },
+] as const;
+
+/** The Priority grouping's labels; `TASK_PRIORITIES` gives the order. */
+const PRIORITY_LABELS: Record<TaskPriority, string> = {
+	highest: 'Highest',
+	high: 'High',
+	medium: 'Medium',
+	none: 'No priority',
+	low: 'Low',
+	lowest: 'Lowest',
+};
+
+/** A row's priority, `none` when it has no priority signifier. */
+const priorityOf = (row: TaskRow): TaskPriority => row.metadata.priority ?? 'none';
+
+/** Rank of each priority in `TASK_PRIORITIES` order. */
+const PRIORITY_RANK = new Map(TASK_PRIORITIES.map((p, i) => [p, i]));
+
+/** Orders due dates ascending, an absent or empty one last. */
+function compareDue(a: string | undefined, b: string | undefined): number {
+	const x = a || '';
+	const y = b || '';
+	if (x === y) return 0;
+	if (x === '') return 1;
+	if (y === '') return -1;
+	return x < y ? -1 : 1;
+}
+
+const SORT_COMPARE: Record<TaskSortKey, (a: TaskRow, b: TaskRow) => number> = {
+	due: (a, b) => compareDue(a.metadata.dueDate, b.metadata.dueDate),
+	priority: (a, b) => PRIORITY_RANK.get(priorityOf(a))! - PRIORITY_RANK.get(priorityOf(b))!,
+	path: (a, b) => compareTaskPaths(a.relPath, b.relPath),
+};
+
+/** Compares rows by each `sort` key in turn, then by `relPath` and `lineNumber`, so ties always resolve. */
+function compareRows(sort: TaskSortKey[]): (a: TaskRow, b: TaskRow) => number {
+	return (a, b) => {
+		for (const key of sort) {
+			const c = SORT_COMPARE[key](a, b);
+			if (c !== 0) return c;
+		}
+		return compareTaskPaths(a.relPath, b.relPath) || a.lineNumber - b.lineNumber;
+	};
+}
+
+/** One group per note, in the incoming order; rows keep document order and dimmed parents. */
+function noteGroups(rows: VisibleRow[]): TaskGroup[] {
+	const notes = new Map<string, TaskGroup>();
 	for (const row of rows) {
 		let note = notes.get(row.filePath);
 		if (!note) {
 			note = {
+				key: row.filePath,
+				label: row.noteTitle,
+				rows: [],
+				count: 0,
 				filePath: row.filePath,
-				noteTitle: row.noteTitle,
 				folder: row.folder,
 				modifiedAt: row.modifiedAt,
 				total: row.noteTaskCount,
 				open: row.noteOpenCount,
-				rows: [],
 			};
 			notes.set(row.filePath, note);
 		}
 		note.rows.push(row);
+		if (!row.dimmed) note.count++;
 	}
 	return [...notes.values()];
+}
+
+/** How a flat grouping keys, orders and labels its groups. */
+interface FlatGrouping {
+	keyOf: (row: TaskRow) => string;
+	/** The present keys in display order */
+	order: (keys: string[]) => string[];
+	label: (key: string) => string;
+}
+
+/** Keeps the entries of a fixed key order that are present. */
+const fixedOrder = (all: readonly string[]) => (keys: string[]) => all.filter((k) => keys.includes(k));
+
+function flatGrouping(groupBy: Exclude<TaskGroupKey, 'note'>, today: string): FlatGrouping {
+	switch (groupBy) {
+		case 'folder':
+			return {
+				keyOf: (row) => row.folder,
+				order: (keys) => [...keys].sort((a, b) => (a === '' ? -1 : b === '' ? 1 : compareTaskPaths(a, b))),
+				label: (key) => key || 'Vault root',
+			};
+		case 'due': {
+			const tomorrow = formatDateWithOffset(today, 'YYYY-MM-DD', 'YYYY-MM-DD', 1);
+			const weekEnd = formatDateWithOffset(today, 'YYYY-MM-DD', 'YYYY-MM-DD', 7);
+			return {
+				keyOf: (row) => {
+					const due = row.metadata.dueDate;
+					if (!due) return 'none';
+					if (due < today) return 'overdue';
+					if (due === today) return 'today';
+					if (due <= tomorrow) return 'tomorrow';
+					if (due <= weekEnd) return 'week';
+					return 'later';
+				},
+				order: fixedOrder(DUE_GROUPS.map((g) => g.key)),
+				label: (key) => DUE_GROUPS.find((g) => g.key === key)!.label,
+			};
+		}
+		case 'priority':
+			return {
+				keyOf: priorityOf,
+				order: fixedOrder(TASK_PRIORITIES),
+				label: (key) => PRIORITY_LABELS[key as TaskPriority],
+			};
+		case 'status':
+			return {
+				keyOf: (row) => row.status,
+				order: fixedOrder(TASK_STATUSES),
+				label: (key) => {
+					const word = statusGlyph(key as TaskStatus).word;
+					return word.charAt(0).toUpperCase() + word.slice(1);
+				},
+			};
+	}
+}
+
+/**
+ * Groups the visible rows for the Tasks list, leaving out empty groups.
+ * Note groups keep the incoming order (path order), document order and the
+ * dimmed parents, and read `total` and `open` from their first row. Every
+ * other grouping drops dimmed rows, sorts the rest by `sort` (then path and
+ * line) and gives a row whose parent task is among `rows` (dimmed included)
+ * that parent's `taskDisplayText` as `breadcrumb`.
+ * @param today - today as `YYYY-MM-DD`, for the due buckets
+ */
+export function groupTaskRows(rows: VisibleRow[], groupBy: TaskGroupKey, sort: TaskSortKey[], today: string): TaskGroup[] {
+	if (groupBy === 'note') return noteGroups(rows);
+	const byKey = new Map(rows.map((row) => [taskRowKey(row.filePath, row.lineNumber), row]));
+	const flat: GroupedRow[] = [];
+	for (const row of rows) {
+		if (row.dimmed) continue;
+		const parent = row.parentLine === undefined ? undefined : byKey.get(taskRowKey(row.filePath, row.parentLine));
+		flat.push(parent ? { ...row, breadcrumb: taskDisplayText(parent) } : row);
+	}
+	flat.sort(compareRows(sort));
+	const grouping = flatGrouping(groupBy, today);
+	const buckets = new Map<string, GroupedRow[]>();
+	for (const row of flat) {
+		const key = grouping.keyOf(row);
+		const bucket = buckets.get(key);
+		if (bucket) bucket.push(row);
+		else buckets.set(key, [row]);
+	}
+	return grouping.order([...buckets.keys()]).map((key) => {
+		const bucketRows = buckets.get(key)!;
+		return { key, label: grouping.label(key), rows: bucketRows, count: bucketRows.length };
+	});
 }
 
 /** The chosen statuses' words, in their (`TASK_STATUSES`) order. */

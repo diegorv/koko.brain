@@ -1,5 +1,15 @@
 import { formatNow } from '#lib/utils/date.js';
-import { DEFAULT_QUICK, applyQuickFilters, type TaskQuickFilters, type TaskRow } from './task-query.logic';
+import { timeSync } from '#lib/utils/debug.js';
+import {
+	DEFAULT_QUICK,
+	DEFAULT_TASK_SORT,
+	applyQuickFilters,
+	groupTaskRows,
+	type TaskGroupKey,
+	type TaskQuickFilters,
+	type TaskRow,
+	type TaskSortKey,
+} from './task-query.logic';
 import type { FileTaskGroup, TaskRowRef } from './tasks.types';
 
 /** All task groups across the vault (unfiltered) */
@@ -14,6 +24,10 @@ let rows = $state.raw<TaskRow[]>([]);
 let sectionTag = $state('#to-list');
 /** The quick filters (status, Due, Priority, Tag and Search), replaced whole on every change */
 let quick = $state.raw<TaskQuickFilters>({ ...DEFAULT_QUICK });
+/** What the list groups its rows by */
+let groupBy = $state<TaskGroupKey>('note');
+/** The sort keys of the groups other than Note; fixed at `DEFAULT_TASK_SORT` (no control sets it) */
+let sort = $state.raw<TaskSortKey[]>([...DEFAULT_TASK_SORT]);
 /** True while the task index is being built */
 let isLoading = $state(false);
 /** True once a fetch for the current vault has settled, on success or failure */
@@ -42,12 +56,27 @@ let currentRow = $state.raw<TaskRowRef | null>(null);
  */
 const visibleRows = $derived.by(() => applyQuickFilters(rows, quick, formatNow('YYYY-MM-DD'), Date.now()));
 
+/**
+ * The list's groups (`groupTaskRows`). Today is read when the derived re-runs
+ * and is not tracked, like `visibleRows`. `timeSync` logs through `debug()`,
+ * which reads `settingsStore`, so a settings write also re-runs it.
+ */
+const groups = $derived.by(() =>
+	timeSync('TASK-PROFILE', 'groupTaskRows', () => groupTaskRows(visibleRows, groupBy, sort, formatNow('YYYY-MM-DD'))),
+);
+
 export const tasksStore = {
 	get fileTaskGroups() { return fileTaskGroups; },
 	/** Every fetched task as a row, before any view filter */
 	get rows() { return rows; },
 	/** The rows the list shows, dimmed parents included (see `applyQuickFilters`) */
 	get visibleRows() { return visibleRows; },
+	/** The list's groups, in display order */
+	get groups() { return groups; },
+	/** What the list groups its rows by */
+	get groupBy() { return groupBy; },
+	/** The sort keys of the groups other than Note */
+	get sort() { return sort; },
 	get sectionTag() { return sectionTag; },
 	/** The quick filters */
 	get quick() { return quick; },
@@ -66,6 +95,8 @@ export const tasksStore = {
 	setQuick(partial: Partial<TaskQuickFilters>) { quick = { ...quick, ...partial }; },
 	/** Puts the quick filters back to `DEFAULT_QUICK`. */
 	resetQuick() { quick = { ...DEFAULT_QUICK }; },
+	/** Sets the grouping; the current value changes nothing. */
+	setGroupBy(next: TaskGroupKey) { groupBy = next; },
 	setLoading(loading: boolean) { isLoading = loading; },
 	setHasLoaded(loaded: boolean) { hasLoaded = loaded; },
 	/** Sets or clears the refresh error message. */
@@ -87,6 +118,8 @@ export const tasksStore = {
 		rows = [];
 		sectionTag = '#to-list';
 		quick = { ...DEFAULT_QUICK };
+		groupBy = 'note';
+		sort = [...DEFAULT_TASK_SORT];
 		isLoading = false;
 		hasLoaded = false;
 		error = null;

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
-import { DEFAULT_QUICK, buildTaskRows } from '#lib/features/tasks/task-query.logic.js';
+import { DEFAULT_QUICK, DEFAULT_TASK_SORT, buildTaskRows } from '#lib/features/tasks/task-query.logic.js';
 import { taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 
 describe('tasksStore', () => {
@@ -172,6 +172,78 @@ describe('tasksStore', () => {
 				tasksStore.setRows(dueRows());
 				expect(texts()).toEqual(['Late', 'Later', 'Someday']);
 			});
+		});
+	});
+
+	describe('grouping', () => {
+		beforeEach(() => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			vi.setSystemTime(new Date('2026-11-05T12:00:00'));
+		});
+
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		/** A due task on `lineNumber`. */
+		const due = (text: string, lineNumber: number, dueDate?: string) =>
+			taskV2(text, { lineNumber, metadata: { description: text, tags: [], ...(dueDate ? { dueDate } : {}) } });
+
+		const groupedRows = () =>
+			buildTaskRows(
+				[
+					{ ...taskGroupV2('/vault/b.md', [due('Later', 1, '2026-11-20'), due('Late', 2, '2026-11-04')]), modifiedAt: Date.now() },
+					{ ...taskGroupV2('/vault/a.md', [due('Now', 1, '2026-11-05')]), modifiedAt: Date.now() },
+				],
+				'/vault',
+			);
+
+		/** `[key, row texts]` per group. */
+		const groups = () => tasksStore.groups.map((g) => [g.key, g.rows.map((r) => r.text)]);
+
+		it("defaults groupBy to 'note' and sort to ['due', 'priority', 'path']", () => {
+			expect(tasksStore.groupBy).toBe('note');
+			expect(tasksStore.sort).toEqual(['due', 'priority', 'path']);
+			expect(tasksStore.sort).not.toBe(DEFAULT_TASK_SORT);
+			expect(tasksStore.groups).toEqual([]);
+		});
+
+		it('groups follow a setRows change and a setGroupBy change', () => {
+			tasksStore.setRows(groupedRows());
+			expect(groups()).toEqual([
+				['/vault/b.md', ['Later', 'Late']],
+				['/vault/a.md', ['Now']],
+			]);
+
+			tasksStore.setGroupBy('due');
+			expect(tasksStore.groupBy).toBe('due');
+			expect(groups()).toEqual([
+				['overdue', ['Late']],
+				['today', ['Now']],
+				['later', ['Later']],
+			]);
+
+			tasksStore.setRows(groupedRows().filter((r) => r.text !== 'Late'));
+			expect(groups()).toEqual([
+				['today', ['Now']],
+				['later', ['Later']],
+			]);
+		});
+
+		it('setGroupBy with the current value keeps the same groups', () => {
+			tasksStore.setRows(groupedRows());
+			tasksStore.setGroupBy('status');
+			const before = tasksStore.groups;
+			tasksStore.setGroupBy('status');
+			expect(tasksStore.groupBy).toBe('status');
+			expect(tasksStore.groups).toEqual(before);
+		});
+
+		it('reset restores groupBy and sort', () => {
+			tasksStore.setGroupBy('priority');
+			tasksStore.reset();
+			expect(tasksStore.groupBy).toBe('note');
+			expect(tasksStore.sort).toEqual(['due', 'priority', 'path']);
 		});
 	});
 
