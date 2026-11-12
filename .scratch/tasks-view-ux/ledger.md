@@ -39,7 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 075 | [Task tags follow the note tag rule](issues/075-task-tags-follow-note-tag-rule.md) | 074 | todo | | |
 | 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | done | issue/108-mounted-list-and-rule-sentence (1a9e9eeaf) | 2026-11-12 |
 | 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | todo | | |
-| 110 | [Open means not done and not cancelled, and each status has its own glyph](issues/110-open-closed-rule.md) | 242 | in-progress | | |
+| 110 | [Open means not done and not cancelled, and each status has its own glyph](issues/110-open-closed-rule.md) | 242 | done | issue/110-open-closed-rule (e420d69e2) | 2026-11-12 |
 | 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | todo | | |
 | 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | todo | | |
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | todo | | |
@@ -80,3 +80,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 10:28 — 242 — start — launched by /relay-lite:run — ca647518e
 - 2026-11-12 10:47 — 242 — deliver — round 1 APPROVED by claude (1 finding fixed: e2e asserts the untagged task stays hidden; 1 nit), deliver re-review APPROVED by claude; full suite 615 files / 15625 tests, cargo 1437 passed, e2e tasks-view.spec.ts 9 passed; squash merged and pushed — 3583a1057
 - 2026-11-12 10:47 — 110 — start — launched by /relay-lite:run — ed777b996
+- 2026-11-12 11:02 — 110 — deliver — round 1 APPROVED by claude, one nit deferred to 111 with reason, no fix round; full suite 615 files / 15660 tests passed; reviewer e2e (tasks-view, event-calendar-tasks) 11 passed; squash merged and pushed — e420d69e2
