@@ -11,8 +11,8 @@
 
 	function lineClass(type: DiffLine['type']): string {
 		switch (type) {
-			case 'insert': return 'bg-green-500/15 text-green-300';
-			case 'delete': return 'bg-red-500/15 text-red-300';
+			case 'insert': return 'bg-success/15 text-success';
+			case 'delete': return 'bg-destructive/15 text-destructive';
 			default: return '';
 		}
 	}

@@ -306,7 +306,7 @@
 		{/if}
 
 		{#if autoComplete}
-			<CircleCheck class="size-3.5 text-green-500" />
+			<CircleCheck class="size-3.5 text-success" />
 		{/if}
 		<span class="text-xs {atLimit ? 'font-semibold text-destructive' : 'text-muted-foreground'}">
 			{lane.items.length}{#if maxItems > 0}/{maxItems}{/if}

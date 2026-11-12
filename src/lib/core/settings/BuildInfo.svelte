@@ -27,9 +27,9 @@
 	let { variant = 'default' as 'default' | 'footer' }: { variant?: 'default' | 'footer' } = $props();
 
 	const BADGE_CLASSES = {
-		stable: 'bg-green-500/20 text-green-700 dark:text-green-400',
-		nightly: 'bg-amber-500/20 text-amber-700 dark:text-amber-400',
-		dev: 'bg-violet-500/20 text-violet-700 dark:text-violet-400',
+		stable: 'bg-success/20 text-success',
+		nightly: 'bg-warning/20 text-warning',
+		dev: 'bg-primary/20 text-primary',
 	};
 
 	// Both inputs are fixed at build time, so the badge is effectively a

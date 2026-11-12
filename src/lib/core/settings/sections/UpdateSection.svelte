@@ -249,7 +249,7 @@
 				Restart to update
 			</Button>
 		{:else if status === 'up-to-date'}
-			<span class="text-meta text-green-500">You're up to date</span>
+			<span class="text-meta text-success">You're up to date</span>
 		{:else if status === 'error'}
 			<div class="flex items-center gap-2">
 				<span class="text-meta text-destructive">{errorMessage}</span>

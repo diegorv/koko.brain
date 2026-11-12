@@ -71,7 +71,7 @@
 								</span>
 							{/if}
 						</td>
-						<td class="px-2 py-1.5 text-xs {item.checked ? 'text-green-500' : 'text-muted-foreground'}">
+						<td class="px-2 py-1.5 text-xs {item.checked ? 'text-success' : 'text-muted-foreground'}">
 							{item.checked ? 'Done' : 'Open'}
 						</td>
 					</tr>

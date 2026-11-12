@@ -1,0 +1,26 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Failing first: `palette-classes.test.ts` lists the eight sites above before the swaps and passes after. If it lists more, a predecessor left a palette class: stop and report the `file:line` instead of widening this Issue. — I applied the test's exact regex, prefix and palette lists to every tracked `.svelte`/`.ts` file under `src/lib` and `src/routes` (622 files, `components/ui` skipped) with a probe reading `git show <ref>:<file>`. At `main` it returns exactly 8 hits: `BuildInfo.svelte:30,31,32`, `UpdateSection.svelte:252`, `DiffViewer.svelte:14,15`, `KanbanLane.svelte:309`, `KanbanTableView.svelte:74`. These are the Issue's eight sites and nothing else. At `HEAD` it returns 0. `pnpm vitest run src/tests/lib/architecture/palette-classes.test.ts` passes on the branch.
+- [met] The self-test's positives match and its negatives do not. — `palette-classes.test.ts:38-70` lists all 11 positives and all 9 negatives from the Issue, verbatim, and checks each one with `expect(PALETTE_CLASS.test(cls), cls)`. Both tests pass. The regex has no `g` flag, so `.test()` carries no `lastIndex` from one call to the next.
+- [met] No palette class is left outside `components/ui` (the test is the check); the three BuildInfo badges use success, warning and primary with no `dark:` variants. `src/tests/lib/core/settings/BuildInfo.test.ts` ("gives each kind of build its own color", "does not style the stable chip as muted") stays green unchanged. — The scan test passes. `BuildInfo.svelte:30-32` is `bg-success/20 text-success`, `bg-warning/20 text-warning` and `bg-primary/20 text-primary`, with no `dark:`. `git diff main...HEAD -- src/tests/lib/core/settings/BuildInfo.test.ts` is empty, and that file passes. The tokens are defined: `--color-success`, `--color-warning`, `--color-primary` and `--color-destructive` in `src/app.css`, with `--success`/`--warning` set in both the light and the dark block. The built CSS (`build/_app/immutable/assets/0.smXrAxHT.css`, written after the fix commit) contains `bg-success/15`, `bg-success/20`, `bg-warning/20`, `bg-primary/20`, `bg-destructive/15` and `text-warning`.
+- [met] `src/tests/lib/features/tasks/tasks-palette.test.ts` is deleted, and the new test still finds no hit under `src/lib/features/tasks/`. — Commit 582a7bef9 deletes it. `palette-classes.test.ts:73` asserts that `src/lib/features/tasks/TasksView.svelte` is among the scanned files, and the scan finds 0 hits. Nothing outside `.scratch` mentions `tasks-palette` (I grepped the repo with `node_modules`, `.git` and `.scratch` excluded).
+- [not met] The delivery comment says the diff viewer, the update row and the build badge were not checked by eye (relay agents cannot run the app); the owner checks them in both themes after the merge. — The delivery comment does not exist yet. Deliver writes it, and the build report already flags this note for deliver. This does not hold back the verdict.
+
+## Checks run by this review
+
+- `pnpm check`: exit 0, 0 errors and 0 warnings.
+- Targeted vitest: exit 0, 19 files and 420 tests passed. My test verdict rests on these files: `src/tests/lib/architecture/palette-classes.test.ts`, `src/tests/lib/core/settings/BuildInfo.test.ts`, `src/tests/lib/core/settings/UpdateSection.{changelog,layout,restart}.test.ts`, all 4 files in `src/tests/lib/features/file-history/`, all 8 files in `src/tests/lib/plugins/kanban/`, `src/tests/lib/features/tasks/task-status.logic.test.ts` and `src/tests/lib/chrome-state-styles.test.ts`. No test asserts the old class strings (I grepped `src/tests` and `e2e`).
+- I did not run the full suite or `pnpm build`. The full suite is deliver's to run. For the build, I checked that the build output on disk is newer than the fix commit and contains the token classes.
+- Scope: the diff touches only the eight Issue sites, the new test and the deleted duplicate, plus the workflow's discovery record. Nothing touches the layer baseline or the composition roots.
+
+## Findings
+
+1. nit, `src/tests/lib/architecture/palette-classes.test.ts:74`: `expect(files.some((f) => f.startsWith(SKIP_DIR))).toBe(false)` can never fail. `sourceFiles()` already removes those paths with the same predicate, so the line does not show that the skip excludes a real file. Fix (optional): drop the line, or assert that a known file under `src/lib/components/ui/` exists on disk and is missing from `files`.
+2. nit, `src/lib/features/file-history/DiffViewer.svelte:15`: `text-destructive` as body text is about 3.4:1 on Default's card, and the diff text is now the full token where it used to be a pale `-300` shade. The Issue's Notes already defer this to separate contrast work and to the owner's by-eye check. No change is needed in this Issue; the delivery comment should name it among the things to check by eye.
+
+## Resolution
+
+1. Fixed. `palette-classes.test.ts` drops the always-true line and instead asserts that `src/lib/components/ui/button/button.svelte` exists on disk and is missing from the scanned files, so the skip is shown to exclude a real file.
+2. No code change, as the review says: the contrast of `text-destructive` diff text is deferred to separate contrast work. The delivery comment names the diff viewer's removed-line text among the owner's by-eye checks.

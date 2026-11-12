@@ -25,16 +25,16 @@ Once the test passes and covers `src/lib/features/tasks/`, delete Issue 236's `s
 
 **Waits on:** Tasks view Issue 236 (`.scratch/tasks-view-ux/issues/236-tasks-group-header-reads-like-a-note.md`), which removes the Tasks view's raw palette class. relay-lite cannot see a blocker in another folder: launch this Issue by number only after 236 is `done` in `.scratch/tasks-view-ux/ledger.md`.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** first wave, picked by the owner on 2026-11-06. The BuildInfo mapping (stable success, nightly warning, dev primary) comes from the 2026-11-06 order review note. Nothing open.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build` (Tailwind must generate `bg-success/15`, `bg-success/20`, `bg-warning/20`, `bg-primary/20`). relay-lite's configured checks do not run `pnpm build`: the build step runs it once before its last commit and reports the result; CI on `main` runs it again after the merge.
 
-- [ ] Failing first: `palette-classes.test.ts` lists the eight sites above before the swaps and passes after. If it lists more, a predecessor left a palette class: stop and report the `file:line` instead of widening this Issue.
-- [ ] The self-test's positives match and its negatives do not.
-- [ ] No palette class is left outside `components/ui` (the test is the check); the three BuildInfo badges use success, warning and primary with no `dark:` variants. `src/tests/lib/core/settings/BuildInfo.test.ts` ("gives each kind of build its own color", "does not style the stable chip as muted") stays green unchanged.
-- [ ] `src/tests/lib/features/tasks/tasks-palette.test.ts` is deleted, and the new test still finds no hit under `src/lib/features/tasks/`.
+- [x] Failing first: `palette-classes.test.ts` lists the eight sites above before the swaps and passes after. If it lists more, a predecessor left a palette class: stop and report the `file:line` instead of widening this Issue.
+- [x] The self-test's positives match and its negatives do not.
+- [x] No palette class is left outside `components/ui` (the test is the check); the three BuildInfo badges use success, warning and primary with no `dark:` variants. `src/tests/lib/core/settings/BuildInfo.test.ts` ("gives each kind of build its own color", "does not style the stable chip as muted") stays green unchanged.
+- [x] `src/tests/lib/features/tasks/tasks-palette.test.ts` is deleted, and the new test still finds no hit under `src/lib/features/tasks/`.
 - [ ] The delivery comment says the diff viewer, the update row and the build badge were not checked by eye (relay agents cannot run the app); the owner checks them in both themes after the merge.
 
 ## Notes
@@ -56,3 +56,4 @@ Once the test passes and covers `src/lib/features/tasks/`, delete Issue 236's `s
 - 2026-11-12: deep dive applied (SUMMARY 198, `dossier-129+198+205.md`, `cross-tests-relay.md` M6, M7, `cross-state-chain.md` L8). The site list is the one at `d2304ac9e` after 151 and 236 (eight hits, by file and symbol); the stale audit line lists and `AutoMoveRuleRow` (the feature is now `auto-organize`) are gone. The by-eye criterion is now a delivery note for the owner. The test gets a pattern self-test and a comment rule, and it replaces Issue 236's `tasks-palette.test.ts`.
 
 - 2026-11-12: the Tasks view Issues moved to `.scratch/tasks-view-ux/issues/`; the 236 edge became a Waits on line.
+- 2026-11-12: delivered from `issue/198-status-colors-use-theme-tokens-test-forbids`. The eight palette sites outside `components/ui` now use theme tokens (BuildInfo badges: success, warning, primary, no `dark:` variants); `src/tests/lib/architecture/palette-classes.test.ts` scans `src/lib` for raw palette classes with a pattern self-test and replaces the deleted `tasks-palette.test.ts`. Review fix: the scan asserts the `components/ui` skip excludes a real file. Tests: targeted palette test 3 passed, `pnpm check` 0 errors; full suite at 1845bc73e exit 0 (618 files, 15771 passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED, round 2 APPROVED. Not checked by eye (relay agents cannot run the app): the diff viewer (including removed-line `text-destructive` contrast), the update row and the build badge; the owner checks them in both themes after the merge.
