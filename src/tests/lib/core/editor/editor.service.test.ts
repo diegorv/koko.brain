@@ -623,53 +623,113 @@ describe('closeTab', () => {
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
-	it('closes a clean tab directly', async () => {
+	it('closes a clean tab directly, with no write and no prompt', async () => {
 		addTab('/vault/note.md', 'hello');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(true);
 
 		await closeTab(0);
 
+		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(ask).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(editorStore.activeIndex).toBe(-1);
 	});
 
-	it('prompts for dirty tab and closes on confirm', async () => {
+	it('saves a dirty tab and closes it without a prompt', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+
+		await closeTab(0);
+
+		expect(ask).not.toHaveBeenCalled();
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/note.md', 'modified']]);
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('asks with the failed-save wording when the save fails, and closes on confirm', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
 		vi.mocked(ask).mockResolvedValue(true);
 
 		await closeTab(0);
 
-		expect(ask).toHaveBeenCalled();
+		expect(ask).toHaveBeenCalledWith('Failed to save note.md. Close anyway and lose unsaved changes?', {
+			title: 'Unsaved Changes',
+			kind: 'warning',
+			okLabel: 'Close Anyway',
+			cancelLabel: 'Cancel',
+		});
+		expect(editorStore.tabs).toHaveLength(0);
+		consoleSpy.mockRestore();
+	});
+
+	it('keeps the tab open and dirty when the save fails and the user cancels', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		vi.mocked(ask).mockResolvedValue(false);
+
+		await closeTab(0);
+
+		expect(ask).toHaveBeenCalledTimes(1);
+		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/note.md']);
+		expect(editorStore.tabs[0].content).toBe('modified');
+		expect(editorStore.tabs[0].savedContent).toBe('original');
+		consoleSpy.mockRestore();
+	});
+
+	it('re-saves text typed during the close-time save, then closes without a prompt', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('first');
+		let release!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((res) => { release = res; }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+
+		const closing = closeTab(0);
+		editorStore.updateContent('second');
+		release();
+		await closing;
+
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/note.md', 'first'], ['/vault/note.md', 'second']]);
+		expect(ask).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
-	it('does not close dirty tab when user cancels', async () => {
+	it('asks when text is typed again during the re-save, and Cancel keeps the tab dirty', async () => {
 		addTab('/vault/note.md', 'original');
-		editorStore.updateContent('modified');
+		editorStore.updateContent('first');
+		let releaseFirst!: () => void;
+		let releaseSecond!: () => void;
+		vi.mocked(writeTextFile)
+			.mockImplementationOnce(() => new Promise<void>((res) => { releaseFirst = res; }))
+			.mockImplementationOnce(() => new Promise<void>((res) => { releaseSecond = res; }));
 		vi.mocked(ask).mockResolvedValue(false);
 
-		await closeTab(0);
+		const closing = closeTab(0);
+		editorStore.updateContent('second');
+		releaseFirst();
+		await vi.waitFor(() => expect(writeTextFile).toHaveBeenCalledTimes(2));
+		editorStore.updateContent('third');
+		releaseSecond();
+		await closing;
 
-		expect(ask).toHaveBeenCalled();
-		expect(editorStore.tabs).toHaveLength(1);
-	});
-
-	it('asks with Discard Changes / Cancel labels and keeps the tab when declined', async () => {
-		addTab('/vault/note.md', 'original');
-		editorStore.updateContent('modified');
-		vi.mocked(ask).mockResolvedValue(false);
-
-		await closeTab(0);
-
-		expect(ask).toHaveBeenCalledWith('This file has unsaved changes. Discard changes?', {
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/note.md', 'first'], ['/vault/note.md', 'second']]);
+		expect(ask).toHaveBeenCalledWith('Failed to save note.md. Close anyway and lose unsaved changes?', {
 			title: 'Unsaved Changes',
 			kind: 'warning',
-			okLabel: 'Discard Changes',
+			okLabel: 'Close Anyway',
 			cancelLabel: 'Cancel',
 		});
 		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/note.md']);
-		expect(editorStore.tabs[0].content).toBe('modified');
+		expect(editorStore.tabs[0].content).toBe('third');
+		expect(editorStore.tabs[0].savedContent).toBe('second');
 	});
 
 	it('does not close a pinned tab', async () => {
@@ -678,6 +738,20 @@ describe('closeTab', () => {
 		await closeTab(0);
 
 		expect(editorStore.tabs).toHaveLength(1);
+	});
+
+	it('skips a dirty pinned tab with no write and no prompt', async () => {
+		addTab('/vault/note.md', 'original', { pinned: true });
+		editorStore.updateContent('modified');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await closeTab(0);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(ask).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(1);
+		expect(editorStore.tabs[0].content).toBe('modified');
 	});
 
 	it('closes an unpinned tab normally', async () => {
@@ -760,9 +834,12 @@ describe('closeTab', () => {
 			savedContent: 'original',
 			fileType: 'tasks',
 		});
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(true);
 
 		await closeTab(0);
 
+		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(ask).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 	});

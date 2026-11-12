@@ -2,9 +2,9 @@ import { test, expect } from '../fixtures/test-vault';
 import { openFile, pressShortcut } from '../fixtures/helpers';
 
 // Helper: closes every open tab. The auto-opened daily-note tab is dirty on
-// first boot (template just applied) and `closeTab` prompts via
-// `ask('Discard changes?')` for dirty tabs — auto-confirm via the mocked
-// dialog so the loop actually empties.
+// first boot (template just applied); `closeTab` saves it through the fs mock
+// and closes. It asks only when that save fails, so the mocked dialog is set
+// to confirm to keep the loop emptying even then.
 async function closeAllTabs(page: import('@playwright/test').Page) {
 	await page.evaluate(() => window.__e2e.dialog.setAskResponse(true));
 	let lastCount = -1;

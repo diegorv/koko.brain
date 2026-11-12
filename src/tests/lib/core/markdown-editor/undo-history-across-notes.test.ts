@@ -289,8 +289,8 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		deleteText(SECRET);
 		activate(B);
 
-		// Closing the background tab A (dirty: the discard dialog is mocked to
-		// confirm), then reopening it from disk.
+		// Closing the background tab A (dirty: closeTab saves it through the
+		// mocked writeTextFile, then closes), then reopening it from disk.
 		await closeTab(findTabIndex(editorStore.tabs, A));
 		flushSync();
 		const reopened = A_CONTENT.replace(SECRET, '');

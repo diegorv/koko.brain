@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** 2026-11-06: closing a dirty tab saves it and closes with no prompt; ask only when the save fails (owner, first wave). 2026-11-12: 015 runs before 004 and has no blocker; keystrokes typed during the close-time save get one re-save, then the failed-save prompt if the tab is still dirty (no loop). Nothing open.
 
@@ -14,14 +14,14 @@
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`. Targeted e2e (relay-lite does not run it; run it once before delivery): `bash scripts/e2e.sh e2e/specs/editor.spec.ts e2e/specs/tabs.spec.ts e2e/specs/tab-pinning.spec.ts e2e/specs/editor-empty-state.spec.ts`. These specs auto-confirm the old discard prompt; after the fix a dirty close writes through the e2e fs mock instead, and they should stay green.
 
-- [ ] Failing test first, in src/tests/lib/core/editor/editor.service.test.ts: add a tab with content !== savedContent, set `writeTextFile` to resolve and `ask` explicitly, call await closeTab(index); ask is not called, writeTextFile was called with the tab's path and content, and the tab is gone. It fails today (ask is called).
-- [ ] When writeTextFile rejects, closeTab asks `ask(\`Failed to save ${fileName}. Close anyway and lose unsaved changes?\`, { title: 'Unsaved Changes', kind: 'warning', okLabel: 'Close Anyway', cancelLabel: 'Cancel' })`, with fileName from getFileName(path) (already imported at editor.service.ts:5). Cancel keeps the tab open and dirty with its content; the confirm answer closes it.
-- [ ] A clean tab and a virtual tab close with writeTextFile and ask both not called (extend the tests at :626 and :755).
-- [ ] A pinned tab is still skipped.
-- [ ] Keystrokes typed while the close-time save is in flight are not dropped: after a successful save, closeTab re-finds the tab by path; if it is still dirty, it calls saveFileByPath(path) once more. If that save fails, or the tab is still dirty after it, closeTab shows the failed-save prompt above. There is no unbounded loop. Test with a deferred writeTextFile (the pattern at editor.service.test.ts:331-343): start closeTab, call editorStore.updateContent with new text while the first write is pending, release it, await closeTab; writeTextFile was called with the first text and then the new text, ask was not called, and the tab is gone. A second test types again during the second write: ask is called and Cancel keeps the tab dirty.
-- [ ] help/documentation/03-editor.md:129 describes the new behavior. The three tests that pin the old prompt, editor.service.test.ts:636 ('prompts for dirty tab and closes on confirm'), :647 ('does not close dirty tab when user cancels') and :658 ('asks with Discard Changes / Cancel labels ...'), are rewritten to the new contract: their Cancel-keeps-the-tab and exact-labels assertions move to the failed-save case, so no coverage is dropped. The commit message names the behavior change and the three rewritten tests.
-- [ ] Comments the change makes wrong are updated: the closeTab JSDoc (editor.service.ts:298-302), e2e/specs/editor-empty-state.spec.ts:4-7 and src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts:292-293.
-- [ ] Frontend gate: pnpm check and pnpm vitest run pass.
+- [x] Failing test first, in src/tests/lib/core/editor/editor.service.test.ts: add a tab with content !== savedContent, set `writeTextFile` to resolve and `ask` explicitly, call await closeTab(index); ask is not called, writeTextFile was called with the tab's path and content, and the tab is gone. It fails today (ask is called).
+- [x] When writeTextFile rejects, closeTab asks `ask(\`Failed to save ${fileName}. Close anyway and lose unsaved changes?\`, { title: 'Unsaved Changes', kind: 'warning', okLabel: 'Close Anyway', cancelLabel: 'Cancel' })`, with fileName from getFileName(path) (already imported at editor.service.ts:5). Cancel keeps the tab open and dirty with its content; the confirm answer closes it.
+- [x] A clean tab and a virtual tab close with writeTextFile and ask both not called (extend the tests at :626 and :755).
+- [x] A pinned tab is still skipped.
+- [x] Keystrokes typed while the close-time save is in flight are not dropped: after a successful save, closeTab re-finds the tab by path; if it is still dirty, it calls saveFileByPath(path) once more. If that save fails, or the tab is still dirty after it, closeTab shows the failed-save prompt above. There is no unbounded loop. Test with a deferred writeTextFile (the pattern at editor.service.test.ts:331-343): start closeTab, call editorStore.updateContent with new text while the first write is pending, release it, await closeTab; writeTextFile was called with the first text and then the new text, ask was not called, and the tab is gone. A second test types again during the second write: ask is called and Cancel keeps the tab dirty.
+- [x] help/documentation/03-editor.md:129 describes the new behavior. The three tests that pin the old prompt, editor.service.test.ts:636 ('prompts for dirty tab and closes on confirm'), :647 ('does not close dirty tab when user cancels') and :658 ('asks with Discard Changes / Cancel labels ...'), are rewritten to the new contract: their Cancel-keeps-the-tab and exact-labels assertions move to the failed-save case, so no coverage is dropped. The commit message names the behavior change and the three rewritten tests.
+- [x] Comments the change makes wrong are updated: the closeTab JSDoc (editor.service.ts:298-302), e2e/specs/editor-empty-state.spec.ts:4-7 and src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts:292-293.
+- [x] Frontend gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -40,3 +40,4 @@
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-06: Blocked by 06 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.
 - 2026-11-12: deep dive edits. Blocker on 004 removed (015 now runs first, 004 after it, owner 2026-11-12). The stale "owner confirms" sentence is gone. All three pinned tests (:636, :647, :658) are named and their rewrite is approved. AC 5 is one re-save, then the failed-save prompt (critique M8). Added the exact prompt, no-write assertions for clean and virtual tabs, the stale-comment criterion, the targeted e2e specs, and Notes on the import cycle, the debounce timers, explicit mocks and known limits. Line numbers refreshed at `318b6e9b5`.
+- 2026-11-12: delivered from branch issue/015-closing-tab-unsaved-text-saves-closes-prompt. closeTab now saves a dirty tab and closes it, re-saving once if text arrived during the save; the "Failed to save" prompt appears only when the save fails. Docs, JSDoc and stale comments updated; review fix: e2e/specs/tab-pinning.spec.ts comment. Tests: full suite at 08c2ecf58 exit 0 (623/623 files, 16061 passed, 54 skipped, 1 todo), pnpm check exit 0, targeted e2e 12 passed, 1 failed (tabs.spec.ts:42 sub-pixel scroll, fails the same on main, follow-up needed). Reviews: round 1 APPROVED, round 2 APPROVED.

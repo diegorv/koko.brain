@@ -295,10 +295,18 @@ export function switchTab(index: number) {
 	perfBaseline('switchTab:sync', t0);
 }
 
+/** True when the tab at `path` is still open and differs from its last save. */
+function isPathDirty(path: string): boolean {
+	const tab = editorStore.tabs.find((t) => t.path === path);
+	return !!tab && isTabDirty(tab);
+}
+
 /**
  * Closes a tab by index.
  * Pinned tabs are silently skipped — they cannot be closed this way.
- * If the tab has unsaved changes, prompts the user for confirmation before discarding.
+ * A dirty file tab is saved first and then closed. Text typed during that save
+ * gets one more save; if a save fails, or the tab is still dirty after the
+ * second one, the user is asked whether to close anyway and lose the changes.
  */
 export async function closeTab(index: number) {
 	const tab = editorStore.tabs[index];
@@ -308,20 +316,20 @@ export async function closeTab(index: number) {
 	const tabPath = tab.path;
 	const baseStart = perfStart();
 
-	if (!isVirtualTab(tab)) {
-		if (isTabDirty(tab)) {
-			const discard = await ask('This file has unsaved changes. Discard changes?', {
-				title: 'Unsaved Changes',
-				kind: 'warning',
-				okLabel: 'Discard Changes',
-				cancelLabel: 'Cancel',
-			});
-			if (!discard) return;
+	if (!isVirtualTab(tab) && isTabDirty(tab)) {
+		let saved = await saveFileByPath(tabPath);
+		if (saved && isPathDirty(tabPath)) saved = await saveFileByPath(tabPath);
+		if (!saved || isPathDirty(tabPath)) {
+			const closeAnyway = await ask(
+				`Failed to save ${getFileName(tabPath)}. Close anyway and lose unsaved changes?`,
+				{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Close Anyway', cancelLabel: 'Cancel' },
+			);
+			if (!closeAnyway) return;
 		}
 	}
 
-	// Re-find the tab by path after the async dialog — the original index
-	// may be stale if tabs were opened/closed/reordered while the dialog was shown
+	// Re-find the tab by path after the awaits: the original index may be
+	// stale if tabs were opened/closed/reordered during the save or the dialog
 	const currentIndex = findTabIndex(editorStore.tabs, tabPath);
 	if (currentIndex < 0) return;
 

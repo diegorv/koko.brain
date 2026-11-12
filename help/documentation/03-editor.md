@@ -126,7 +126,7 @@ Kokobrain saves your notes automatically. There are two debounce timers:
 - **Body text changes** — saved after 2 seconds of inactivity
 - **Frontmatter-only changes** (e.g., property edits via the sidebar) — saved after 500ms
 
-If you close a tab with unsaved changes, a confirmation dialog asks whether to discard them.
+If you close a tab with unsaved changes, Kokobrain saves them first and then closes the tab, with no prompt. Only when that save fails does a dialog ask whether to close anyway and lose the changes; **Cancel** keeps the tab open with your text.
 
 ## Editor Features
 
