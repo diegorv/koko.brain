@@ -13,7 +13,10 @@ import {
 	headingSources,
 	hideFolder,
 	hideNote,
+	hideType,
 	onlyThisFolder,
+	onlyThisType,
+	propertyKeyOptions,
 	tagHeadingCardText,
 	selectSourceRows,
 	sourceSuggestions,
@@ -1011,6 +1014,79 @@ describe('group header actions', () => {
 		});
 	});
 
+	describe('onlyThisType', () => {
+		const project: TaskSourceClause = { kind: 'type', type: 'Project' };
+
+		it('adds one card holding the type clause when there is no card', () => {
+			expect(onlyThisType(query([]), 'Project').sources).toEqual([{ clauses: [project] }]);
+		});
+
+		it('adds the type clause to every card, an empty card included', () => {
+			const folder: TaskSourceClause = { kind: 'folder', path: 'Projects' };
+			expect(onlyThisType(query([{ clauses: [folder] }, { clauses: [] }]), 'Project').sources).toEqual([
+				{ clauses: [folder, project] },
+				{ clauses: [project] },
+			]);
+		});
+
+		it('leaves a card that already holds the type, ignoring case, as it is; a negated one does not count', () => {
+			const same: TaskSource = { clauses: [{ kind: 'type', type: ' project ' }] };
+			const negated: TaskSourceClause = { kind: 'type', type: 'Project', negate: true };
+			const next = onlyThisType(query([same, { clauses: [negated] }]), 'Project');
+			expect(next.sources[0]).toBe(same);
+			expect(next.sources[1]).toEqual({ clauses: [negated, project] });
+		});
+
+		it('keeps the excludes and quick filters, leaves the input untouched, and lists only that type', () => {
+			const before = query([{ clauses: [{ kind: 'folder', path: 'Projects' }] }], { types: ['Meeting'] });
+			const snapshot = structuredClone(before);
+			const next = onlyThisType(before, 'Project');
+			expect(before).toEqual(snapshot);
+			expect(next.exclude).toBe(before.exclude);
+			expect(next.quick).toBe(before.quick);
+			const rows = rowsFrom(
+				[
+					entryV2('/vault/Projects/a.md', { isA: 'Project', tasks: [taskV2('a')] }),
+					entryV2('/vault/Projects/b.md', { isA: 'Area', tasks: [taskV2('b')] }),
+					entryV2('/vault/Projects/c.md', { tasks: [taskV2('c')] }),
+				],
+				'/vault',
+			);
+			expect(selectSourceRows(rows, next.sources, next.exclude, FOLDERS).map((r) => r.text)).toEqual(['a']);
+		});
+
+		it('returns the query unchanged for a blank type', () => {
+			const before = query([]);
+			expect(onlyThisType(before, ' ')).toBe(before);
+		});
+	});
+
+	describe('hideType', () => {
+		it('adds the type to the excluded types, keeping the sources', () => {
+			const before = query(headingSources(['#to-list']), { types: ['Meeting'] });
+			const next = hideType(before, 'Project');
+			expect(next.exclude).toEqual({ ...NO_EXCLUDES, types: ['Meeting', 'Project'] });
+			expect(next.sources).toBe(before.sources);
+			expect(before.exclude.types).toEqual(['Meeting']);
+		});
+
+		it('returns the query unchanged when the type is already excluded, ignoring case, or blank', () => {
+			const before = query([], { types: [' project '] });
+			expect(hideType(before, 'Project')).toBe(before);
+			expect(hideType(before, '')).toBe(before);
+		});
+
+		it('drops the type\'s tasks and names it in the sentence', () => {
+			const next = hideType(query([]), 'Project');
+			const rows = rowsFrom(
+				[entryV2('/vault/a.md', { isA: 'project', tasks: [taskV2('a')] }), entryV2('/vault/b.md', { tasks: [taskV2('b')] })],
+				'/vault',
+			);
+			expect(selectSourceRows(rows, next.sources, next.exclude, FOLDERS).map((r) => r.text)).toEqual(['b']);
+			expect(describeTaskQuery(next)).toBe('Open tasks from every note, except type Project');
+		});
+	});
+
 	it('names the hidden folder and note in the sentence', () => {
 		const next = hideNote(hideFolder(query([]), 'Projects'), 'Home/H.md');
 		expect(describeTaskQuery(next)).toBe('Open tasks from every note, except folder Projects, note Home/H.md');
@@ -1127,9 +1203,186 @@ describe('groupTaskRows', () => {
 	});
 
 	it('gives no group for no rows', () => {
-		for (const by of ['note', 'folder', 'due', 'priority', 'status'] as TaskGroupKey[]) {
+		for (const by of ['note', 'folder', 'due', 'priority', 'status', 'type', { property: 'area' }, 'heading'] as TaskGroupKey[]) {
 			expect(groupTaskRows([], by, SORT, TODAY)).toEqual([]);
 		}
+	});
+
+	/** Every row of `entries` under `/vault`, through `show: all`. */
+	const visibleOf = (entries: NoteEntryV2[], quick: TaskQuickFilters = { show: 'all' }) =>
+		applyQuickFilters(rowsFrom(entries, '/vault'), quick, TODAY, NOW);
+
+	describe('type', () => {
+		const typed = () =>
+			visibleOf([
+				entryV2('/vault/a.md', { isA: 'project', tasks: [t('a1', 1, { priority: 'low' }), t('a2', 2, { priority: 'high' })] }),
+				entryV2('/vault/b.md', { tasks: [t('b1', 1)] }),
+				entryV2('/vault/c.md', { isA: 'Meeting', tasks: [t('c1', 1)] }),
+				entryV2('/vault/d.md', { isA: 'Area', tasks: [t('d1', 1)] }),
+				entryV2('/vault/e.md', { isA: 'project', tasks: [t('e1', 1, { dueDate: '2026-11-04' })] }),
+			]);
+
+		it('gives one group per type, labels sorted ignoring case, and No type last; rows flat and sorted', () => {
+			expect(summary(groupTaskRows(typed(), 'type', SORT, TODAY))).toEqual([
+				['Area', 'Area', ['d1']],
+				['Meeting', 'Meeting', ['c1']],
+				['project', 'project', ['e1', 'a2', 'a1']],
+				['', 'No type', ['b1']],
+			]);
+		});
+
+		it('counts every row and carries no note fields', () => {
+			const groups = groupTaskRows(typed(), 'type', SORT, TODAY);
+			expect(groups.map((g) => g.count)).toEqual([1, 1, 3, 1]);
+			expect(groups.every((g) => g.filePath === undefined)).toBe(true);
+		});
+	});
+
+	describe('property', () => {
+		const note = (name: string, frontmatter: NoteEntryV2['frontmatter']) =>
+			entryV2(`/vault/${name}.md`, { frontmatter, tasks: [t(name, 1)] });
+		const valued = () =>
+			visibleOf([
+				note('scalar', { area: 'Work' }),
+				note('number', { area: 2 }),
+				note('list', { area: ['b', 'a'] }),
+				note('sorted-list', { area: ['a', 'b'] }),
+				note('missing', { other: 'x' }),
+				note('null', { area: null }),
+				note('empty-string', { area: '' }),
+				note('empty-list', { area: [] }),
+			]);
+
+		it('groups a scalar by String(value) and a list by its sorted, joined elements, (empty) last', () => {
+			expect(summary(groupTaskRows(valued(), { property: 'area' }, SORT, TODAY))).toEqual([
+				['2', '2', ['number']],
+				['a, b', 'a, b', ['list', 'sorted-list']],
+				['Work', 'Work', ['scalar']],
+				['', '(empty)', ['empty-list', 'empty-string', 'missing', 'null']],
+			]);
+		});
+
+		it('writes an object as JSON, drops null and empty list elements, and sorts elements ignoring case', () => {
+			const rows = visibleOf([
+				note('object', { area: { a: 1 } }),
+				note('mixed', { area: ['b', null, '', 'A', true] }),
+				note('nulls', { area: [null, ''] }),
+			]);
+			expect(summary(groupTaskRows(rows, { property: 'area' }, SORT, TODAY))).toEqual([
+				['{"a":1}', '{"a":1}', ['object']],
+				['A, b, true', 'A, b, true', ['mixed']],
+				['', '(empty)', ['nulls']],
+			]);
+		});
+
+		it('orders numeric values as numbers, 2 before 10', () => {
+			const rows = visibleOf([note('ten', { area: 10 }), note('two', { area: 2 }), note('one', { area: '1' })]);
+			expect(groupTaskRows(rows, { property: 'area' }, SORT, TODAY).map((g) => g.label)).toEqual(['1', '2', '10']);
+		});
+
+		it('reads only own keys, so a note without the key is (empty) whatever the key', () => {
+			const [only] = groupTaskRows(visibleOf([note('plain', {})]), { property: 'constructor' }, SORT, TODAY);
+			expect([only.key, only.label]).toEqual(['', '(empty)']);
+		});
+	});
+
+	describe('heading', () => {
+		/** `/vault/Projects/ACME.md`: a task before the first heading, a done parent and two children under `## Next steps`. */
+		const acme = () =>
+			entryV2('/vault/Projects/ACME.md', {
+				taskHeadings: [{ level: 2, text: 'Next steps', line: 2 }],
+				tasks: [
+					taskV2('intro', { lineNumber: 1 }),
+					taskV2('parent', { lineNumber: 3, heading: 0, status: 'done' }),
+					taskV2('child 1', { lineNumber: 4, heading: 0, indent: 1 }),
+					taskV2('child 2', { lineNumber: 5, heading: 0, indent: 1 }),
+				],
+			});
+
+		it('gives one group per nearest heading in path then heading order, before the first heading under the note title', () => {
+			const groups = groupTaskRows(visibleOf([sections('/vault/z.md'), acme()]), 'heading', SORT, TODAY);
+			expect(groups.map((g) => [g.label, g.rows.map((r) => r.text)])).toEqual([
+				['ACME', ['intro']],
+				['Next steps, Projects/ACME', ['parent', 'child 1', 'child 2']],
+				['z', ['before']],
+				['A #to-list, z', ['under A']],
+				['B #to-list, z', ['under B']],
+				['C, z', ['under C']],
+				['Other, z', ['under Other']],
+			]);
+			expect(new Set(groups.map((g) => g.key)).size).toBe(7);
+		});
+
+		it('keeps a failing parent dimmed above a matching child, counted out', () => {
+			const groups = groupTaskRows(visibleOf([acme()], { show: 'open' }), 'heading', SORT, TODAY);
+			const next = groups.find((g) => g.label === 'Next steps, Projects/ACME')!;
+			expect(next.rows.map((r) => [r.text, r.dimmed, r.breadcrumb])).toEqual([
+				['parent', true, undefined],
+				['child 1', false, undefined],
+				['child 2', false, undefined],
+			]);
+			expect(next.count).toBe(2);
+			expect(next.filePath).toBeUndefined();
+		});
+
+		it('leaves out a group that holds only a dimmed parent of a child under another heading, and gives the child a breadcrumb', () => {
+			const visible = applyQuickFilters(
+				rowsFrom([parentOutside()], '/vault').map((r) => (r.text === 'outside parent' ? { ...r, status: 'done' as const, open: false } : r)),
+				{ show: 'open' },
+				TODAY,
+				NOW,
+			);
+			expect(visible.map((r) => [r.text, r.dimmed])).toEqual([['outside parent', true], ['child', false]]);
+			const groups = groupTaskRows(visible, 'heading', SORT, TODAY);
+			expect(groups.map((g) => [g.label, g.rows.map((r) => [r.text, r.breadcrumb])])).toEqual([
+				['List #to-list, p', [['child', 'outside parent']]],
+			]);
+		});
+
+		it('drops a dimmed parent from a group with other matches when its child sits under another heading', () => {
+			const note = entryV2('/vault/p.md', {
+				taskHeadings: [{ level: 2, text: 'Misc', line: 1 }, { level: 2, text: 'List', line: 5 }],
+				tasks: [
+					taskV2('sibling', { lineNumber: 2, heading: 0 }),
+					taskV2('outside parent', { lineNumber: 3, heading: 0, status: 'done' }),
+					taskV2('child', { lineNumber: 6, indent: 1, heading: 1 }),
+				],
+			});
+			const visible = visibleOf([note], { show: 'open' });
+			expect(visible.map((r) => [r.text, r.dimmed])).toEqual([['sibling', false], ['outside parent', true], ['child', false]]);
+			const groups = groupTaskRows(visible, 'heading', SORT, TODAY);
+			expect(groups.map((g) => [g.label, g.count, g.rows.map((r) => [r.text, r.dimmed, r.breadcrumb])])).toEqual([
+				['Misc, p', 1, [['sibling', false, undefined]]],
+				['List, p', 1, [['child', false, 'outside parent']]],
+			]);
+		});
+
+		it('keeps a dimmed grandparent above a dimmed parent and its matching child in one group', () => {
+			const note = entryV2('/vault/g.md', {
+				taskHeadings: [{ level: 2, text: 'Plan', line: 1 }],
+				tasks: [
+					taskV2('grandparent', { lineNumber: 2, heading: 0, status: 'done' }),
+					taskV2('parent', { lineNumber: 3, heading: 0, indent: 1, status: 'done' }),
+					taskV2('child', { lineNumber: 4, heading: 0, indent: 2 }),
+				],
+			});
+			const [plan] = groupTaskRows(visibleOf([note], { show: 'open' }), 'heading', SORT, TODAY);
+			expect(plan.rows.map((r) => [r.text, r.dimmed, r.breadcrumb])).toEqual([
+				['grandparent', true, undefined],
+				['parent', true, undefined],
+				['child', false, undefined],
+			]);
+			expect(plan.count).toBe(1);
+		});
+
+		it('merges two headings with the same chain in one note, rows in document order', () => {
+			const twice = entryV2('/vault/d.md', {
+				taskHeadings: [{ level: 2, text: 'Notes', line: 1 }, { level: 2, text: 'Notes', line: 3 }],
+				tasks: [taskV2('first', { lineNumber: 2, heading: 0 }), taskV2('second', { lineNumber: 4, heading: 1 })],
+			});
+			const groups = groupTaskRows(visibleOf([twice]), 'heading', SORT, TODAY);
+			expect(groups.map((g) => [g.label, g.rows.map((r) => r.text)])).toEqual([['Notes, d', ['first', 'second']]]);
+		});
 	});
 
 	describe('note group fields and counts', () => {
@@ -1226,6 +1479,16 @@ describe('collapseKey', () => {
 
 	it('keeps the same raw key apart under two groupings', () => {
 		expect(collapseKey('due', 'none')).not.toBe(collapseKey('priority', 'none'));
+	});
+
+	it('keys a property grouping by its property name', () => {
+		expect(collapseKey({ property: 'area' }, 'Work')).toBe('property:["area","Work"]');
+		expect(collapseKey({ property: 'area' }, '')).not.toBe(collapseKey({ property: 'status' }, ''));
+		expect(collapseKey('type', '')).toBe('type:');
+	});
+
+	it('keeps property groups apart when the name or the value holds a colon', () => {
+		expect(collapseKey({ property: 'a:b' }, 'c')).not.toBe(collapseKey({ property: 'a' }, 'b:c'));
 	});
 });
 
@@ -1451,6 +1714,24 @@ describe('taskTagOptions', () => {
 	it('returns [] for rows with no tags', () => {
 		expect(taskTagOptions(rowsOf([metaTask('a', 1)]))).toEqual([]);
 		expect(taskTagOptions([])).toEqual([]);
+	});
+});
+
+describe('propertyKeyOptions', () => {
+	it('returns the frontmatter keys of every note, de-duplicated and sorted ignoring case, empty values included', () => {
+		const rows = rowsFrom(
+			[
+				entryV2('/vault/a.md', { frontmatter: { status: 'x', Zeta: null }, tasks: [taskV2('a1'), taskV2('a2', { lineNumber: 2 })] }),
+				entryV2('/vault/b.md', { frontmatter: { area: [], status: 'y' }, tasks: [taskV2('b')] }),
+			],
+			'/vault',
+		);
+		expect(propertyKeyOptions(rows)).toEqual(['area', 'status', 'Zeta']);
+	});
+
+	it('returns [] for rows with no frontmatter and for no rows', () => {
+		expect(propertyKeyOptions(rowsOf([metaTask('a', 1)]))).toEqual([]);
+		expect(propertyKeyOptions([])).toEqual([]);
 	});
 });
 

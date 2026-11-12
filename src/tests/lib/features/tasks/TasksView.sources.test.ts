@@ -622,6 +622,45 @@ describe('TasksView: the Sources panel', () => {
 			expect(action('/vault/Projects/P.md', 'Hide this note').getAttribute('aria-label')).toBe('Hide this note Projects/P.md');
 		});
 
+		/** A Project note, a Meeting note and an untyped note, one task each. */
+		const typed = () => [
+			entryV2('/vault/P.md', { isA: 'Project', tasks: [taskV2('project task')] }),
+			entryV2('/vault/M.md', { isA: 'Meeting', tasks: [taskV2('meeting task')] }),
+			entryV2('/vault/U.md', { tasks: [taskV2('untyped task')] }),
+		];
+
+		it('Hide this type removes the type group and its tasks, and the sentence names the exclude; No type has no actions', async () => {
+			mockTaskFetch([], { entries: typed() });
+			tasksStore.setSources([]);
+			tasksStore.setGroupBy('type');
+			({ component } = await mountTasksView());
+			expect(rowTexts()).toEqual(['meeting task', 'project task', 'untyped task']);
+			expect(headerButtons('Project')).toEqual(['Only this type', 'Hide this type']);
+			expect(headerButtons('')).toEqual([]);
+			expect(action('Project', 'Hide this type').getAttribute('aria-label')).toBe('Hide this type Project');
+
+			action('Project', 'Hide this type').click();
+			flushSync();
+
+			expect(rowTexts()).toEqual(['meeting task', 'untyped task']);
+			expect(document.querySelector('[data-task-group-key="Project"]')).toBeNull();
+			expect(tasksStore.query.exclude.types).toEqual(['Project']);
+			expect(paragraph(`Open tasks from every note${EXCEPT}, type Project`)).toBeDefined();
+		});
+
+		it('Only this type with no card adds one card holding the type clause', async () => {
+			mockTaskFetch([], { entries: typed() });
+			tasksStore.setSources([]);
+			tasksStore.setGroupBy('type');
+			({ component } = await mountTasksView());
+
+			action('Meeting', 'Only this type').click();
+			flushSync();
+
+			expect(rowTexts()).toEqual(['meeting task']);
+			expect(tasksStore.query.sources).toEqual([{ clauses: [{ kind: 'type', type: 'Meeting' }] }]);
+		});
+
 		it('gives the vault root folder group and the other groupings no actions', async () => {
 			mockTaskFetch(folders());
 			tasksStore.setSources([]);

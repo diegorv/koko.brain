@@ -16,8 +16,9 @@ import { resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import type { TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
+import type { NoteEntryV2, TaskV2, ToggleTaskResultV2 } from '#lib/types/vault-v2.types.js';
 import { mockTaskFetch, mountTasksView, openMenu, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const NOTE_A = '/vault/Projects/Alpha.md';
 const NOTE_B = '/vault/Projects/Beta.md';
@@ -194,6 +195,119 @@ describe('TasksView: grouping', () => {
 		await groupBy('Note');
 		expect(groupEls().map((g) => g.dataset.taskGroupKey)).toEqual([NOTE_A, NOTE_B]);
 		expect(counts()).toEqual(['2 of 3 open', '2 of 2 open']);
+	});
+
+	describe('note fields', () => {
+		/** Every open menu; a submenu opens after its parent. */
+		const openMenus = () => Array.from(document.querySelectorAll<HTMLElement>('[role="menu"][data-state="open"]'));
+		/** The item labels of the `n`th open menu, its submenus' items left out. */
+		const menuLabels = (n: number) =>
+			Array.from(openMenus()[n]?.querySelectorAll<HTMLElement>('[role^="menuitem"]') ?? [])
+				.filter((el) => el.closest('[role="menu"]') === openMenus()[n])
+				.map((el) => el.textContent?.trim());
+
+		/** Opens Display > Property: jsdom drives a bits-ui submenu by keyboard, so ArrowRight on the sub-trigger. */
+		async function openPropertyMenu(): Promise<void> {
+			await openMenu(displayTrigger());
+			const trigger = Array.from(openMenus()[0].querySelectorAll<HTMLElement>('[role="menuitem"]')).find(
+				(el) => el.textContent?.trim() === 'Property',
+			);
+			if (!trigger) throw new Error('no Property sub-trigger');
+			trigger.focus();
+			trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+			await settle();
+			await until(() => expect(openMenus()).toHaveLength(2));
+		}
+
+		const note = (name: string, fields: Partial<NoteEntryV2>, ...texts: string[]) =>
+			entryV2(`/vault/${name}.md`, { ...fields, tasks: texts.map((text, i) => taskV2(text, { lineNumber: i + 1 })) });
+
+		it('Display lists Type, Property and Heading after Status', async () => {
+			mockTaskFetch([], { entries: [note('A', {}, 'a task')] });
+			({ component } = await mountTasksView());
+			await openMenu(displayTrigger());
+			expect(menuLabels(0)).toEqual(['Note', 'Folder', 'Due date', 'Priority', 'Status', 'Type', 'Property', 'Heading']);
+		});
+
+		it('Display > Property > area shows one header per area value with counts, (empty) last', async () => {
+			mockTaskFetch([], {
+				entries: [
+					note('A', { frontmatter: { area: 'Work', status: 'x' } }, 'work 1', 'work 2'),
+					note('B', { frontmatter: { area: 'Home' } }, 'home task'),
+					note('C', {}, 'loose task'),
+				],
+			});
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(4));
+
+			await openPropertyMenu();
+			expect(menuLabels(1)).toEqual(['area', 'status']);
+			Array.from(openMenus()[1].querySelectorAll<HTMLElement>('[role="menuitemradio"]'))
+				.find((el) => el.textContent?.trim() === 'area')!
+				.click();
+			await settle();
+
+			expect(tasksStore.groupBy).toEqual({ property: 'area' });
+			expect(labels()).toEqual(['Home', 'Work', '(empty)']);
+			expect(counts()).toEqual(['1', '2', '1']);
+			expect(groupRowTexts(groupEl('Work')!)).toEqual(['work 1', 'work 2']);
+			expect(groupRowTexts(groupEl('')!)).toEqual(['loose task']);
+
+			await openPropertyMenu();
+			const checked = (n: number) =>
+				Array.from(openMenus()[n].querySelectorAll<HTMLElement>('[role="menuitemradio"][aria-checked="true"]'))
+					.filter((el) => el.closest('[role="menu"]') === openMenus()[n])
+					.map((el) => el.textContent?.trim());
+			expect(checked(0)).toEqual([]);
+			expect(checked(1)).toEqual(['area']);
+		});
+
+		it('Display > Property says so when no note has frontmatter', async () => {
+			mockTaskFetch([], { entries: [note('A', {}, 'a task')] });
+			({ component } = await mountTasksView());
+			await openPropertyMenu();
+			expect(menuLabels(1)).toEqual(['No properties in these tasks']);
+		});
+
+		it('Display > Type groups by note type with No type last', async () => {
+			mockTaskFetch([], {
+				entries: [note('A', { isA: 'Project' }, 'project task'), note('B', {}, 'untyped task'), note('C', { isA: 'Area' }, 'area task')],
+			});
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(3));
+
+			await groupBy('Type');
+			expect(tasksStore.groupBy).toBe('type');
+			expect(labels()).toEqual(['Area', 'Project', 'No type']);
+			expect(counts()).toEqual(['1', '1', '1']);
+		});
+
+		it('Display > Heading labels each group with its heading and note, keeping a dimmed parent indented above its child', async () => {
+			mockTaskFetch([], {
+				entries: [
+					entryV2('/vault/Projects/ACME.md', {
+						taskHeadings: [{ level: 2, text: 'Next steps', line: 2 }],
+						tasks: [
+							taskV2('intro', { lineNumber: 1 }),
+							taskV2('parent', { lineNumber: 3, heading: 0, status: 'done' }),
+							taskV2('child', { lineNumber: 4, heading: 0, indent: 1 }),
+						],
+					}),
+				],
+			});
+			({ component } = await mountTasksView());
+			await until(() => expect(rows()).toHaveLength(3));
+
+			await groupBy('Heading');
+			expect(labels()).toEqual(['ACME', 'Next steps, Projects/ACME']);
+			expect(counts()).toEqual(['1', '1']);
+			const [, next] = groupEls();
+			expect(groupRowTexts(next)).toEqual(['parent', 'child']);
+			const [parent, child] = Array.from(next.querySelectorAll<HTMLElement>('[data-task-row]'));
+			expect(parent.classList.contains('opacity-60')).toBe(true);
+			expect(child.style.paddingLeft).toBe('1.5rem');
+			expect(child.querySelector('[data-task-breadcrumb]')).toBeNull();
+		});
 	});
 
 	describe('keyboard', () => {

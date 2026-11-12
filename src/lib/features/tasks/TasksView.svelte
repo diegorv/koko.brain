@@ -47,9 +47,12 @@
 		explainEmptyTasks,
 		hideFolder,
 		hideNote,
+		hideType,
 		isQuickFieldDefault,
 		onlyThisFolder,
+		onlyThisType,
 		priorityWord,
+		propertyKeyOptions,
 		statusFilterLabel,
 		tagMenuOptions,
 		taskCountText,
@@ -113,14 +116,24 @@
 		{ label: 'All', value: 'all' },
 	];
 
-	/** The Display menu's Group by options. */
-	const GROUP_OPTIONS: { label: string; value: TaskGroupKey }[] = [
+	/** The Display menu's Group by options but Property, whose submenu sets `{ property }`. */
+	const GROUP_OPTIONS: { label: string; value: Extract<TaskGroupKey, string> }[] = [
 		{ label: 'Note', value: 'note' },
 		{ label: 'Folder', value: 'folder' },
 		{ label: 'Due date', value: 'due' },
 		{ label: 'Priority', value: 'priority' },
 		{ label: 'Status', value: 'status' },
+		{ label: 'Type', value: 'type' },
 	];
+
+	/** The checked Group by radio: none while a property grouping is on, which its submenu checks. */
+	let groupRadioValue = $derived(typeof tasksStore.groupBy === 'string' ? tasksStore.groupBy : '');
+
+	/** The checked Property submenu radio: the grouped property, '' under any other grouping. */
+	let propertyRadioValue = $derived(typeof tasksStore.groupBy === 'string' ? '' : tasksStore.groupBy.property);
+
+	/** The Property submenu's keys: those of the notes the sources and excludes keep, like the Tag menu. */
+	let propertyKeys = $derived(propertyKeyOptions(tasksStore.sourceRows));
 
 	/** Whether the Sources panel is open. View state: it closes when the view remounts. */
 	let sourcesOpen = $state(false);
@@ -314,8 +327,9 @@
 	/**
 	 * A group header's rule actions: "Hide this note" on a Note group, "Only
 	 * this folder" and "Hide this folder" on a Folder group but the vault root
-	 * (a '' folder rule is inactive), none on any other. `target` names the
-	 * folder or note in the button's accessible name, since every group shows
+	 * (a '' folder rule is inactive), "Only this type" and "Hide this type" on
+	 * a Type group but No type, none on any other. `target` names the folder,
+	 * note or type in the button's accessible name, since every group shows
 	 * the same visible labels.
 	 */
 	function groupActions(group: TaskGroup): { label: string; target: string; run: () => void }[] {
@@ -325,7 +339,15 @@
 			if (relPath === undefined) return [];
 			return [{ label: 'Hide this note', target: relPath, run: () => tasksStore.setExclude(hideNote(tasksStore.query, relPath).exclude) }];
 		}
-		if (tasksStore.groupBy !== 'folder' || group.key === '') return [];
+		if (group.key === '') return [];
+		if (tasksStore.groupBy === 'type') {
+			const type = group.key;
+			return [
+				{ label: 'Only this type', target: type, run: () => setTaskSources(onlyThisType(tasksStore.query, type).sources) },
+				{ label: 'Hide this type', target: type, run: () => tasksStore.setExclude(hideType(tasksStore.query, type).exclude) },
+			];
+		}
+		if (tasksStore.groupBy !== 'folder') return [];
 		const folder = group.key;
 		return [
 			{ label: 'Only this folder', target: folder, run: () => setTaskSources(onlyThisFolder(tasksStore.query, folder).sources) },
@@ -886,10 +908,27 @@
 			<DropdownMenu.Content align="end" class="w-48">
 				<DropdownMenu.Label>Group by</DropdownMenu.Label>
 				<!-- bits-ui calls onValueChange on every pick, the checked radio included; setGroupBy then changes nothing. -->
-				<DropdownMenu.RadioGroup value={tasksStore.groupBy} onValueChange={(value) => tasksStore.setGroupBy(value as TaskGroupKey)}>
+				<DropdownMenu.RadioGroup value={groupRadioValue} onValueChange={(value) => tasksStore.setGroupBy(value as TaskGroupKey)}>
 					{#each GROUP_OPTIONS as option (option.value)}
 						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
 					{/each}
+				</DropdownMenu.RadioGroup>
+				<DropdownMenu.Sub>
+					<DropdownMenu.SubTrigger inset>Property</DropdownMenu.SubTrigger>
+					<DropdownMenu.SubContent class="max-h-72 w-48 overflow-y-auto">
+						{#if propertyKeys.length > 0}
+							<DropdownMenu.RadioGroup value={propertyRadioValue} onValueChange={(property) => tasksStore.setGroupBy({ property })}>
+								{#each propertyKeys as key (key)}
+									<DropdownMenu.RadioItem value={key}>{key}</DropdownMenu.RadioItem>
+								{/each}
+							</DropdownMenu.RadioGroup>
+						{:else}
+							<DropdownMenu.Item disabled>No properties in these tasks</DropdownMenu.Item>
+						{/if}
+					</DropdownMenu.SubContent>
+				</DropdownMenu.Sub>
+				<DropdownMenu.RadioGroup value={groupRadioValue} onValueChange={(value) => tasksStore.setGroupBy(value as TaskGroupKey)}>
+					<DropdownMenu.RadioItem value="heading">Heading</DropdownMenu.RadioItem>
 				</DropdownMenu.RadioGroup>
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
@@ -1070,7 +1109,7 @@
 											{#if !collapsed}
 												<div class="space-y-1" role="list" aria-label={group.label}>
 													{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
-														{@render taskRow(row, group.filePath === undefined)}
+														{@render taskRow(row, group.filePath === undefined && tasksStore.groupBy !== 'heading')}
 													{/each}
 												</div>
 												<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->

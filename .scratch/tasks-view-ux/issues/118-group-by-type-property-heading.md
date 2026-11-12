@@ -14,17 +14,19 @@
 
 **Blocked by:** 117
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** PRD B6 (a), so heading grouping stays in this Issue (owner, 2026-11-06).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, `task-query.logic.test.ts`: type groups with a "No type" bucket last; property groups on a scalar, a number, a list (`[b, a]` lands in "a, b"), and missing and empty values; heading groups including tasks before the first heading, and a failing parent kept dimmed above a matching child. Fails today (no such groupings).
-- [ ] `onlyThisType` / `hideType` in `task-query.logic.ts`, tested like Issue 14's folder helpers.
-- [ ] `TasksView.test.ts`: choosing Display > Property > `area` shows one header per area value with counts, and "Hide this type" on a type group removes it.
+- [x] Failing test first, `task-query.logic.test.ts`: type groups with a "No type" bucket last; property groups on a scalar, a number, a list (`[b, a]` lands in "a, b"), and missing and empty values; heading groups including tasks before the first heading, and a failing parent kept dimmed above a matching child. Fails today (no such groupings).
+- [x] `onlyThisType` / `hideType` in `task-query.logic.ts`, tested like Issue 14's folder helpers.
+- [x] `TasksView.test.ts`: choosing Display > Property > `area` shows one header per area value with counts, and "Hide this type" on a type group removes it.
 
 ## Notes
 
 - **Size:** S to M.
 - Group by parent note (`_belongs_to`) is left for later (PRD non-goals).
+
+- 2026-11-12, branch `issue/118-group-by-type-property-heading`: Display grouping by note type, note property and heading, with `onlyThisType`/`hideType`. Review round 1 APPROVED with findings, fixed: heading groups drop orphan dimmed parents and give split children a breadcrumb; property collapse keys JSON-encoded; type/property labels ordered with `compareTaskPaths`. Round 2 APPROVED, no findings. Tests: pnpm check 0 errors; tasks tests 777 passed; full suite at 0fcb00182 exit 0, 16405 passed, 54 skipped, 1 todo.

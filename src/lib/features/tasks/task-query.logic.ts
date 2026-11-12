@@ -172,6 +172,16 @@ export function tagMenuOptions(rows: TaskRow[], chosen: string[] | undefined): s
 }
 
 /**
+ * The Display menu's Property options: the frontmatter keys of the notes of
+ * `rows`, whatever their value, sorted case-insensitively.
+ */
+export function propertyKeyOptions(rows: readonly TaskRow[]): string[] {
+	const keys = new Set<string>();
+	for (const row of rows) for (const key of Object.keys(row.properties)) keys.add(key);
+	return [...keys].sort(byLowerCase);
+}
+
+/**
  * `tags` with `tag` added or removed, in `options` order whatever the click
  * order. `undefined` when the list empties.
  */
@@ -455,6 +465,37 @@ export function hideNote(query: TaskQuery, relPath: string): TaskQuery {
 	const { notes } = query.exclude;
 	if (notes.includes(relPath)) return query;
 	return { ...query, exclude: { ...query.exclude, notes: [...notes, relPath] } };
+}
+
+/** A type trimmed and lower-cased, as the type clause and exclude compare it. */
+const typeValue = (type: string) => type.trim().toLowerCase();
+
+/**
+ * The query that keeps only `type`'s tasks (a Type group's "Only this
+ * type"), like `onlyThisFolder`: one card holding the type clause when there
+ * is no card, else the clause added to every card. A card already holding
+ * that type, not negated, is kept as it is. `query` itself when `type` is
+ * blank. Never mutates `query`.
+ */
+export function onlyThisType(query: TaskQuery, type: string): TaskQuery {
+	const value = typeValue(type);
+	if (!value) return query;
+	const clause: TaskSourceClause = { kind: 'type', type: type.trim() };
+	if (query.sources.length === 0) return { ...query, sources: [{ clauses: [clause] }] };
+	const holds = (card: TaskSource) => card.clauses.some((c) => c.kind === 'type' && !c.negate && typeValue(c.type) === value);
+	return { ...query, sources: query.sources.map((card) => (holds(card) ? card : { clauses: [...card.clauses, clause] })) };
+}
+
+/**
+ * The query with `type` added to the excluded types (a Type group's "Hide
+ * this type"). `query` itself when `type` is blank or already excluded,
+ * ignoring case. Never mutates `query`.
+ */
+export function hideType(query: TaskQuery, type: string): TaskQuery {
+	const value = typeValue(type);
+	const { types } = query.exclude;
+	if (!value || types.some((t) => typeValue(t) === value)) return query;
+	return { ...query, exclude: { ...query.exclude, types: [...types, type.trim()] } };
 }
 
 /** A tag lower-cased, trimmed and without its leading `#`; '' when nothing is left. */
@@ -798,8 +839,11 @@ export function applyQuickFilters(rows: TaskRow[], quick: TaskQuickFilters, toda
 	return visible;
 }
 
-/** What the Tasks list groups its rows by (the Display menu's Group by). */
-export type TaskGroupKey = 'note' | 'folder' | 'due' | 'priority' | 'status';
+/**
+ * What the Tasks list groups its rows by (the Display menu's Group by):
+ * `{ property }` groups by the value of that frontmatter key.
+ */
+export type TaskGroupKey = 'note' | 'folder' | 'type' | { property: string } | 'heading' | 'due' | 'priority' | 'status';
 
 /** The most rows a group renders before its `Show N more` button (PRD A9). */
 export const GROUP_ROW_CAP = 50;
@@ -808,9 +852,11 @@ export const GROUP_ROW_CAP = 50;
  * The key a group's collapsed (or revealed) state is held under:
  * `<groupBy>:<group key>`, so the same raw key under two groupings stays
  * apart (`note:/vault/A.md`, `due:overdue`, `folder:` for the vault root).
+ * A property grouping is `property:` and the JSON pair `[<name>, <group key>]`,
+ * so a `:` in the name or the value cannot make two groups collide.
  */
 export function collapseKey(groupBy: TaskGroupKey, key: string): string {
-	return `${groupBy}:${key}`;
+	return typeof groupBy === 'string' ? `${groupBy}:${key}` : `property:${JSON.stringify([groupBy.property, key])}`;
 }
 
 /** A key the rows of a group other than Note are sorted by. */
@@ -827,11 +873,15 @@ export type GroupedRow = VisibleRow & {
 
 /** One group of the Tasks list */
 export interface TaskGroup {
-	/** The group's raw key: the note path, the folder, or the due, priority or status key */
+	/**
+	 * The group's raw key: the note path, the folder, the type ('' for none),
+	 * the property value label ('' for empty), the heading key, or the due,
+	 * priority or status key
+	 */
 	key: string;
 	/** The header text */
 	label: string;
-	/** The group's rows: document order with dimmed parents in a Note group, sorted and flat otherwise */
+	/** The group's rows: document order with dimmed parents in a Note or Heading group, sorted and flat otherwise */
 	rows: GroupedRow[];
 	/** The rows that are not dimmed */
 	count: number;
@@ -925,6 +975,74 @@ function noteGroups(rows: VisibleRow[]): TaskGroup[] {
 	return [...notes.values()];
 }
 
+/**
+ * One group per nearest heading, in the incoming order (path, then document
+ * order): `<heading>, <relPath without .md>`, or the note title before the
+ * first heading. Rows keep document order and dimmed parents. A dimmed
+ * parent stays only above a child in its own group: one whose matching child
+ * sits under another heading is dropped there, and that child gets the
+ * parent's `taskDisplayText` as `breadcrumb` instead, as does any row whose
+ * parent task is among `rows` but in another group. A group left with no
+ * matching row is left out. Keyed on the heading chain, as rows carry no
+ * heading index, so two headings with the same chain in one note share a group.
+ */
+function headingGroups(rows: VisibleRow[]): TaskGroup[] {
+	const byKey = new Map(rows.map((row) => [taskRowKey(row.filePath, row.lineNumber), row]));
+	const buckets = new Map<string, { label: string; rows: VisibleRow[] }>();
+	for (const row of rows) {
+		const key = JSON.stringify([row.filePath, ...row.headings]);
+		let bucket = buckets.get(key);
+		if (!bucket) {
+			const heading = row.headings.at(-1);
+			const label = heading === undefined ? row.noteTitle : `${heading}, ${row.relPath.replace(/\.md$/, '')}`;
+			bucket = { label, rows: [] };
+			buckets.set(key, bucket);
+		}
+		bucket.rows.push(row);
+	}
+	const groups: TaskGroup[] = [];
+	for (const [key, bucket] of buckets) {
+		// Backwards, so a dimmed row sees whether a kept child follows it in this group.
+		const keptLines = new Set<number>();
+		const parentsOfKept = new Set<number>();
+		for (let i = bucket.rows.length - 1; i >= 0; i--) {
+			const row = bucket.rows[i];
+			if (row.dimmed && !parentsOfKept.has(row.lineNumber)) continue;
+			keptLines.add(row.lineNumber);
+			if (row.parentLine !== undefined) parentsOfKept.add(row.parentLine);
+		}
+		const kept = bucket.rows.filter((row) => keptLines.has(row.lineNumber));
+		const count = kept.filter((row) => !row.dimmed).length;
+		if (count === 0) continue;
+		const groupRows = kept.map((row): GroupedRow => {
+			if (row.parentLine === undefined || keptLines.has(row.parentLine)) return row;
+			const parent = byKey.get(taskRowKey(row.filePath, row.parentLine));
+			return parent ? { ...row, breadcrumb: taskDisplayText(parent) } : row;
+		});
+		groups.push({ key, label: bucket.label, rows: groupRows, count });
+	}
+	return groups;
+}
+
+/** Sorts keys the way note paths sort (`compareTaskPaths`: numbers as numbers, case ignored), with '' (the no-value bucket) last. */
+const labelOrder = (keys: string[]) => [...keys].sort((a, b) => (a === '' ? 1 : b === '' ? -1 : compareTaskPaths(a, b)));
+
+/** One frontmatter value as text: a scalar as `String(v)`, an object as JSON; '' for `null`. */
+const valueText = (v: unknown) =>
+	v === null || v === undefined ? '' : typeof v === 'object' ? JSON.stringify(v) : String(v);
+
+/**
+ * A row's group under a property grouping: the own value under `key` as
+ * text, a list as its non-empty elements sorted and joined with ", "; ''
+ * for a missing key, `null`, '' and `[]`.
+ */
+function propertyGroupKey(row: TaskRow, key: string): string {
+	if (!Object.hasOwn(row.properties, key)) return '';
+	const value = row.properties[key];
+	if (!Array.isArray(value)) return valueText(value);
+	return value.map(valueText).filter(Boolean).sort(byLowerCase).join(', ');
+}
+
 /** How a flat grouping keys, orders and labels its groups. */
 interface FlatGrouping {
 	keyOf: (row: TaskRow) => string;
@@ -936,8 +1054,14 @@ interface FlatGrouping {
 /** Keeps the entries of a fixed key order that are present. */
 const fixedOrder = (all: readonly string[]) => (keys: string[]) => all.filter((k) => keys.includes(k));
 
-function flatGrouping(groupBy: Exclude<TaskGroupKey, 'note'>, today: string): FlatGrouping {
+function flatGrouping(groupBy: Exclude<TaskGroupKey, 'note' | 'heading'>, today: string): FlatGrouping {
+	if (typeof groupBy === 'object') {
+		const { property } = groupBy;
+		return { keyOf: (row) => propertyGroupKey(row, property), order: labelOrder, label: (key) => key || '(empty)' };
+	}
 	switch (groupBy) {
+		case 'type':
+			return { keyOf: (row) => row.noteType ?? '', order: labelOrder, label: (key) => key || 'No type' };
 		case 'folder':
 			return {
 				keyOf: (row) => row.folder,
@@ -982,7 +1106,8 @@ function flatGrouping(groupBy: Exclude<TaskGroupKey, 'note'>, today: string): Fl
 /**
  * Groups the visible rows for the Tasks list, leaving out empty groups.
  * Note groups keep the incoming order (path order), document order and the
- * dimmed parents, and read `total` and `open` from their first row. Every
+ * dimmed parents, and read `total` and `open` from their first row; Heading
+ * groups keep the same orders and dimmed parents (`headingGroups`). Every
  * other grouping drops dimmed rows, sorts the rest by `sort` (then path and
  * line) and gives a row whose parent task is among `rows` (dimmed included)
  * that parent's `taskDisplayText` as `breadcrumb`.
@@ -990,6 +1115,7 @@ function flatGrouping(groupBy: Exclude<TaskGroupKey, 'note'>, today: string): Fl
  */
 export function groupTaskRows(rows: VisibleRow[], groupBy: TaskGroupKey, sort: TaskSortKey[], today: string): TaskGroup[] {
 	if (groupBy === 'note') return noteGroups(rows);
+	if (groupBy === 'heading') return headingGroups(rows);
 	const byKey = new Map(rows.map((row) => [taskRowKey(row.filePath, row.lineNumber), row]));
 	const flat: GroupedRow[] = [];
 	for (const row of rows) {
