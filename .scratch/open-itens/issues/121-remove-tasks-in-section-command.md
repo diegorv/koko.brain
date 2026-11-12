@@ -8,6 +8,7 @@
 - Remove `get_tasks_in_section_v2` (`commands/vault.rs:737-753`, with its doc comment above) and the helpers only it uses (`extract_tasks_from_section`, `section_task_candidates`, `tasks_in_section`; trace each), its `src/lib/contracts/commands.ts` entries (`:82`, `:227`) and its `invoke_handler` registration (`src-tauri/src/lib.rs:347`).
 - Remove the e2e mock handler (`e2e/mocks/tauri-core.ts:152-154` and its table entry at `:450`, `e2e/mocks/vault-index.ts:478-484`).
 - The Rust tests that pin the removed helpers go with them, on purpose: `parsing.rs:3040-3082` (`extract_tasks_from_section_*`), `src-tauri/tests/commands/vault_test.rs:1058` (`tasks_in_section_reads_only_notes_with_tasks`) and its import at `:7`.
+- Delete what Issue 115 left unused on the frontend: `fromV2`, the hand-written `FileTaskGroup` type in `tasks.types.ts` (`TaskItem` stays: Issue 111's `TaskRow` extends it), and `tasksStore.fileTaskGroups` with its setter and tests. Trace every caller first. Removing the hand-written `FileTaskGroup` also removes its entry from the `ALLOWLIST` in `src/tests/lib/architecture/ipc-mirrors.test.ts`.
 - The comment at `src/lib/app/lifecycle/app-lifecycle.service.ts:398` names the removed command; correct it.
 - Update `docs/agents/indexing-watcher-rules.md` rule 1, which lists the command.
 
@@ -27,3 +28,7 @@
 ## Notes
 
 - **Size:** S. Split out of Issue 12 so the fetch move and the Rust removal each fit one run.
+
+## Comments
+
+- 2026-11-12: the frontend cleanup (`fromV2`, `FileTaskGroup`, `fileTaskGroups`) moved here from Issue 115, to keep 115 one fetch move. Bare Issue numbers in this text use the tasks-view numbering: Issue 12 is 115.

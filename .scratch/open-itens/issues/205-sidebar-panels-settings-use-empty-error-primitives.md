@@ -8,7 +8,7 @@
 
 **Stale in the text below:** EventCalendarView no longer renders raw String(err) as panel copy: lines 140 and 212 use err.message in a toast description, and line 242 shows eventCalendarStore.loadError with role=alert. Only SearchSection still matches the Issue text.
 
-**What to build:** Move the sidebar panels (tags, tasks, backlinks, outgoing links, table of contents, search) and the settings sections that show empty or error text onto `EmptyState` and `InlineAlert`. Replace raw `String(err)` UI copy in SearchSection and EventCalendarView with a fixed message plus the error in the log.
+**What to build:** Move the sidebar panels (tags, backlinks, outgoing links, table of contents, search) and the settings sections that show empty or error text onto `EmptyState` and `InlineAlert`. Replace raw `String(err)` UI copy in SearchSection and EventCalendarView with a fixed message plus the error in the log.
 
 **Blocked by:** 204
 
@@ -29,3 +29,5 @@
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/60-panels-use-empty-error-primitives.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-10: the TodoistPopover mentions were removed: `todoist-bisync` Issue 15 deleted `TodoistPopover.svelte`.
+
+- 2026-11-12: the Tasks view is out of this Issue. Its empty state and error alert are rewritten by the Tasks view chain (Issues 108 and 234) in plain markup, and that chain edits the same file until Issue 241; moving it onto the primitives is a follow-up after both 204 and 241.

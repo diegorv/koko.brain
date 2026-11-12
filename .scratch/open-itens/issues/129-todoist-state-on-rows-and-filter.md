@@ -17,7 +17,7 @@ Details:
 - `features/tasks` may import `features/todoist-sync` (a new acyclic pair in `feature-cycle-baseline.json`); `features/todoist-sync` must not import `features/tasks` (design.md Architecture, to avoid a feature cycle).
 - A "Todoist" quick filter, shown only while `settingsStore.todoist.syncEnabled`: any, linked, pending, frozen, error. `quick.todoist` in `TaskQuery`, evaluated by `applyQuickFilters` with the state map passed in, so `task-query.logic.ts` stays pure. The rule sentence names it ("synced with Todoist and frozen"). Reset and the `Filters (n)` count include it; `isQueryModified` treats an absent `quick.todoist` as `'any'`, with a test.
 
-**Blocked by:** 111, 113
+**Blocked by:** 241
 
 **Status:** needs-triage
 
@@ -32,3 +32,8 @@ Details:
 
 - **Size:** S to M.
 - Triage: the error rule (which log kinds count, and how an error clears) is a proposal; confirm it before launch.
+
+## Comments
+
+
+- 2026-11-12: blocker moved from 111, 113 to 241, the last Issue of the Tasks view chain, so this Issue never runs beside it on the same files. "Open in Todoist" goes in Issue 241's row menu, as a menu item, not as a separate row control. Still needs triage (its error rule).

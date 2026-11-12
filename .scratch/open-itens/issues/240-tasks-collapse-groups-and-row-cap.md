@@ -1,26 +1,27 @@
 # 240: Tasks groups collapse and stay collapsed, and long groups show 50 rows
 
-**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`). The collapse and volume part of Issue 112's first draft, split out as `critique.md` D4, D7 and D9 asked. Issue numbers in this text are open-itens numbers.
+**Origin:** Tasks view UX research, 2026-11-12 (`.scratch/tasks-view-ux/research/`) and its review. The collapse and volume part of Issue 112's first draft, split out as `critique.md` D4, D7 and D9 asked. Issue numbers in this text are open-itens numbers.
 
 **What to build:** A long list needs to fold. Groups collapse with a chevron and stay collapsed when you glance at a note and come back, and a group with hundreds of tasks shows the first 50.
 
 - **Collapse.** Each group header (note and other groupings, Issue 112) starts with a chevron button with `aria-expanded` and an `aria-label` of `Collapse <label>` or `Expand <label>`. The title button still opens the note. The collapsed group keys live in the Tasks store, keyed by grouping and group key (for example `note:<filePath>`, `due:overdue`), with a getter and a toggle method. They survive the view's unmount and remount on tab activation. They are not saved across restarts (Issue 123 decides persistence). `tasksStore.reset()` clears them, so a vault switch starts expanded.
-- **Keyboard.** Issue 113's roving focus skips the rows of collapsed groups. When the current row's group collapses, the current row moves to that group's chevron button, and focus follows when it was in the list.
-- **Volume** (PRD A9). A group shows at most its first 50 rows, then a `Show N more` button (N = the remaining count) that shows all of that group's rows. The expanded-volume state is session-only and resets when the view remounts.
+- **Volume** (PRD A9). A group shows at most its first 50 rows, then a `Show N more` button (N = the remaining count) that shows all of that group's rows. Which groups are expanded this way is local to the view and resets when it remounts. The button sits outside the group's `role="list"` container.
+- **Keyboard** (Issue 113). The roving set is the rendered rows only: rows of collapsed groups and rows past a group's cap are skipped. The current row stays a `{ filePath, lineNumber }` in the store. When that row is not rendered (its group is collapsed, or it sits past the cap after a remount), the roving `tabindex="0"` and the focus on open go to the first rendered row after it, else the last rendered row; with no row rendered, to the first group's chevron. Clicking a chevron focuses that chevron, as any button click does; ArrowDown from a chevron is not handled.
 
 **Blocked by:** 112
 
 **Status:** ready-for-agent
 
-**Answered:** PRD A9: no virtualization, 50 rows per group then "Show N more" (owner, 2026-11-06; kept on 2026-11-12, synthesis Q13).
+**Answered:** PRD A9: no virtualization, 50 rows per group then "Show N more" (owner, 2026-11-06; kept on 2026-11-12, synthesis Q13, proposed to the owner with no objection).
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
 - [ ] Failing test first, `TasksView.test.ts` with the real store: collapsing a note group hides its rows and sets `aria-expanded="false"`; unmount and mount again: the group is still collapsed. Fails today.
-- [ ] `TasksView.test.ts`: with focus on a row, collapsing its group moves focus to the chevron; ArrowDown from the row above a collapsed group lands on the first row after it.
+- [ ] `TasksView.test.ts`: ArrowDown from the last row above a collapsed group lands on the first row after it.
+- [ ] `TasksView.test.ts`: with the current row inside a group that is then collapsed, unmount and mount: the first rendered row after it holds `tabindex="0"` and focus. With the current row at position 55 of a capped group, the same holds after a remount.
 - [ ] `TasksView.test.ts`: a note with 60 tasks shows 50 rows and "Show 10 more"; clicking it shows all 60.
 - [ ] `tasks.store.test.ts`: the collapsed-keys getter, the toggle and `reset()`.
-- [ ] `help/documentation/10-tasks-and-todoist.md` mentions collapsing groups and the 50-row cap (PRD A12).
+- [ ] `help/documentation/10-tasks-and-todoist.md` mentions collapsing groups and the 50-row cap (PRD A9, A12).
 
 ## Notes
 

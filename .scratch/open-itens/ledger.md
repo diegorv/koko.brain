@@ -142,19 +142,19 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 105 | [Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag](issues/105-minor-write-races-are-closed-autosave-during.md) | none | todo | | |
 | 106 | [Watcher events keep FTS5 and semantic rows current, and a read error is not treated as a delete](issues/106-watcher-events-keep-fts5-semantic-rows-current.md) | 020 | todo | | |
 | 107 | [A semantic update still embedding when its note is deleted leaves no chunks for the trashed note](issues/107-semantic-update-still-embedding-when-note-deleted.md) | none | todo | | |
-| 108 | [The list stays mounted, the rule explains itself, and every note's tasks are listed by default](issues/108-mounted-list-and-rule-sentence.md) | none | todo | | |
-| 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 237 | todo | | |
-| 110 | [Open means not done and not cancelled](issues/110-open-closed-rule.md) | 108 | todo | | |
+| 108 | [The Tasks list stays mounted, and the rule explains itself](issues/108-mounted-list-and-rule-sentence.md) | none | todo | | |
+| 109 | [Task rows show clean text with date, priority, recurrence and tag chips](issues/109-row-chips.md) | 236 | todo | | |
+| 110 | [Open means not done and not cancelled, and each status has its own glyph](issues/110-open-closed-rule.md) | 242 | todo | | |
 | 111 | [A filter row with a Status menu replaces the hide-completed eye](issues/111-quick-filters.md) | 109 | todo | | |
 | 112 | [Group the Tasks list by note, folder, due, priority or status](issues/112-group-and-sort.md) | 113 | todo | | |
 | 113 | [Keyboard navigation and accessible rows in the Tasks view](issues/113-keyboard-and-a11y.md) | 239 | todo | | |
 | 114 | [Task writes reach search and the QueryJS cache](issues/114-task-writes-reach-search.md) | 021 | done | issue/114-task-writes-reach-search (108a60047) | 2026-11-09 |
-| 115 | [Tasks come from the entries snapshot, and the heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 239, 074 | todo | | |
+| 115 | [Tasks come from the entries snapshot, and the heading rule runs in TS](issues/115-fetch-from-entries-snapshot.md) | 241, 074 | todo | | |
 | 116 | [Sources panel with source cards and default excludes](issues/116-sources-panel-and-excludes.md) | 115 | todo | | |
 | 117 | [Property clause and "Only this / Hide this" actions](issues/117-property-clause-and-group-actions.md) | 112, 116 | todo | | |
 | 118 | [Group by note type, note property or heading](issues/118-group-by-type-property-heading.md) | 117 | todo | | |
 | 119 | [Lifecycle clause, the archived override and value pickers](issues/119-lifecycle-clause-and-value-pickers.md) | 117 | todo | | |
-| 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | 239 | todo | | |
+| 120 | [Task tag quick filter](issues/120-task-tag-filter.md) | none | wontfix | | |
 | 121 | [Remove `get_tasks_in_section_v2` and its disk re-read](issues/121-remove-tasks-in-section-command.md) | 115 | todo | | |
 | 122 | [Set due and priority from the Tasks row menu, with undo](issues/122-row-menu-edits-with-undo.md) | 241, 085 | todo | | |
 | 123 | [The view's rules survive a restart](issues/123-persist-view-state.md) | 112, 116, 030 | todo | | |
@@ -163,7 +163,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 126 | [The "modified" marker with Save, Revert and Reset](issues/126-modified-marker.md) | 124 | todo | | |
 | 127 | [A Todoist send is never silently forgotten](issues/127-todoist-send-never-forgotten.md) | none | wontfix | | |
 | 128 | [Todoist link survives edits, and reworded tasks show "possibly sent"](issues/128-todoist-identity-and-possibly-sent.md) | none | wontfix | | |
-| 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 111, 113 | todo | | |
+| 129 | [Todoist sync state on each row and as a quick filter](issues/129-todoist-state-on-rows-and-filter.md) | 241 | todo | | |
 | 130 | [Todoist links follow renames, and unmatched entries are listed](issues/130-todoist-renames-and-unlinked.md) | none | wontfix | | |
 | 131 | [Section layout and live Filters preview](issues/131-sections-and-live-preview.md) | 011 | todo | | |
 | 132 | [Edit view opens from anywhere, hidden views included](issues/132-edit-view-from-anywhere.md) | 131 | todo | | |
@@ -232,7 +232,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 195 | [Canvas nodes, edges and grid draw from theme tokens, so they show on light themes](issues/195-canvas-nodes-edges-grid-draw-from-theme.md) | none | todo | | |
 | 196 | [Canvas menus, pickers and edge labels use theme tokens](issues/196-canvas-menus-pickers-edge-labels-use-theme.md) | 195 | todo | | |
 | 197 | [Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable](issues/197-kanban-cards-drop-empty-date-row-until.md) | 151 | todo | | |
-| 198 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/198-status-colors-use-theme-tokens-test-forbids.md) | 151 | todo | | |
+| 198 | [Status colors use theme tokens, and a test forbids raw palette classes](issues/198-status-colors-use-theme-tokens-test-forbids.md) | 151, 236 | todo | | |
 | 199 | [Opening Settings moves focus into the drawer, and closing returns it](issues/199-opening-settings-moves-focus-into-drawer-closing.md) | none | todo | | |
 | 200 | [Settings is modal: a scrim closes it on outside click and Tab stays inside](issues/200-settings-modal-scrim-closes-outside-click-tab.md) | 199 | todo | | |
 | 201 | [Retention days and Debounce delay accept typed values and clamp on commit](issues/201-retention-days-debounce-delay-accept-typed-values.md) | none | todo | | |
@@ -268,14 +268,16 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 231 | [Separate verbose renderer diagnostics from ordinary file logs](issues/231-opt-in-renderer-diagnostics.md) | none | todo | | |
 | 232 | [Future: icon colors customizable in Settings > Appearance](issues/232-future-custom-icon-colors.md) | none | todo | | |
 | 233 | [An Auto Organize move into a folder that already has the name lands the note as `<name> 2`](issues/233-auto-organize-move-collision-numbers-the-note.md) | none | todo | | |
-| 234 | [The Tasks list keeps your place](issues/234-tasks-groups-keep-their-place.md) | 110 | todo | | |
-| 235 | [A failed Tasks refresh says so](issues/235-tasks-failed-refresh-says-so.md) | 234 | todo | | |
-| 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 235 | todo | | |
-| 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | 236 | todo | | |
+| 234 | [The Tasks list keeps your place, and a failed refresh says so](issues/234-tasks-groups-keep-their-place.md) | 110 | todo | | |
+| 235 | [A failed Tasks refresh says so](issues/235-tasks-failed-refresh-says-so.md) | none | wontfix | | |
+| 236 | [A Tasks group header reads like a note](issues/236-tasks-group-header-reads-like-a-note.md) | 234 | todo | | |
+| 237 | [Each task status has its own glyph, and the row tests find parts by name](issues/237-tasks-status-glyphs-and-row-hooks.md) | none | wontfix | | |
 | 238 | [A Due menu replaces the Tasks date pills](issues/238-tasks-due-filter-replaces-date-pills.md) | 111 | todo | | |
-| 239 | [Tasks priority filter, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | todo | | |
+| 239 | [Tasks priority and tag filters, search, Reset and a narrow-pane fold](issues/239-tasks-priority-search-reset-narrow.md) | 238 | todo | | |
 | 240 | [Tasks groups collapse and stay collapsed, and long groups show 50 rows](issues/240-tasks-collapse-groups-and-row-cap.md) | 112 | todo | | |
 | 241 | [Change a task's status from its row, with Undo](issues/241-tasks-row-status-menu-with-undo.md) | 240 | todo | | |
+| 242 | [The Tasks section filter takes several tags](issues/242-tasks-several-section-tags.md) | 108 | todo | | |
+| 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 242, 030 | todo | | |
 
 ## Log
 
@@ -292,3 +294,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-10 19:29 — 001 — deliver — review APPROVED round 1 (claude), no fix round; full suite 606 files / 14900 tests passed; squash merged and pushed — 13291dfa0
 - 2026-11-11 11:59 — ledger updated (added 233; title of 006, 006; link of 006, 006; blocked by of 006, 006, 082)
 - 2026-11-12 02:54 — ledger updated (added 234, 235, 236, 237, 238, 239, 240, 241; title of 006, 006, 108, 109, 111, 112, 113, 122; link of 006, 006; blocked by of 006, 006, 109, 110, 111, 112, 113, 115, 120, 122; wontfix 227)
+- 2026-11-12 07:38 — ledger updated (added 242, 243; title of 006, 006, 108, 110, 234, 239; link of 006, 006; blocked by of 006, 006, 109, 110, 115, 120, 129, 198, 235, 236, 237; wontfix 120, 235, 237)

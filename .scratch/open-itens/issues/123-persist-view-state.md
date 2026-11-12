@@ -5,7 +5,7 @@
 **What to build:** Nothing in the Tasks view is persisted (`tasks.store.svelte.ts:4-33`), so every source card, exclude, quick filter, grouping and sort is lost on restart. Store them per vault (PRD assumption A6, "Storage").
 
 - A `tasksView` key in the per-vault `.kokobrain/settings.json`, through the settings store and service like the other sections (`src/lib/core/settings/settings.types.ts`, `settings.store.svelte.ts`, and the per-section merge in `settings.service.ts`, as `todoist` does at `:160-162`). `core/settings` must not import `TaskQuery` or `TaskExcludes` from `features/tasks` (core to features fails `layer-rules.test.ts`), so core types `tasksView` as an opaque JSON value and `features/tasks` parses and validates it. In this Issue it holds `{ version: 1, globalExcludes, query }`: the four default toggles and the excluded lists as `globalExcludes`, and the current sources, quick filters, group and sort as `query`.
-- Reading tolerates unknown keys, fills missing keys with defaults (the `#to-list` default card, the four excludes on), and an invalid value falls back to the defaults with an `error()` log and a toast. It is not overwritten until the user changes the view.
+- Reading tolerates unknown keys, fills missing keys with defaults (one heading card per tag in the saved `tasksView.sectionTag` of Issue 243, or the `#to-list` card when none is saved; the four excludes on), and an invalid value falls back to the defaults with an `error()` log and a toast. It is not overwritten until the user changes the view.
 - Writes follow the settings service's existing save path. No new `writeTextFile` site.
 
 **Blocked by:** 112, 116, 030
@@ -26,3 +26,8 @@
 ## Notes
 
 - **Size:** M.
+
+## Comments
+
+
+- 2026-11-12: Issue 243 already creates the per-vault `tasksView` key (opaque to core, parsed in `features/tasks`) holding `{ version: 1, sectionTag }`. This Issue extends that key with `globalExcludes` and `query`, reads an existing `sectionTag` once into the query's heading cards, and stops writing `sectionTag` after that. Its first bullet's plumbing exists by then; reuse it.

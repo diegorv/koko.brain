@@ -25,4 +25,4 @@
 
 ## Comments
 
-- 2026-11-12: closed as wontfix, covered by Issue 108. The owner chose to make the section tag empty by default, so the help must say the view lists every task, not that it lists only `#to-list` tasks; Issue 108 updates doc 10 with the default, the field reset and the date filter meaning.
+- 2026-11-12: closed as wontfix, covered by Issues 108 and 243. Issue 108 updates doc 10: the default lists only tasks under a heading containing `#to-list`, an empty field lists every task, and the date filter uses the note's modification date. Issue 243 adds that the section tags are remembered per vault, which replaces the "resets on restart" sentence this Issue asked for.
