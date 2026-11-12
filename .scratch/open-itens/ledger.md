@@ -164,7 +164,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 148 | [Usage stats count which kinds of files I open and Quick Capture saves](issues/148-usage-count-file-opens-by-type.md) | 146 | todo | | |
 | 149 | [Usage stats count table and meta-bind interactions inside notes](issues/149-usage-count-tables-and-meta-bind.md) | 148 | todo | | |
 | 150 | [`ctx.http.fetch`, with an MCP Streamable HTTP example mod](issues/150-ctx-http-and-mcp-example.md) | none | todo | | |
-| 151 | [Kanban date proximity has one token-based map, and done cards drop it](issues/151-kanban-date-proximity-has-one-token-based.md) | none | in-progress | | |
+| 151 | [Kanban date proximity has one token-based map, and done cards drop it](issues/151-kanban-date-proximity-has-one-token-based.md) | none | done | issue/151-kanban-date-proximity-has-one-token-based (07ec74a68) | 2026-11-12 |
 | 152 | [A tag may start with a digit and may carry emoji, as in Obsidian](issues/152-tag-may-start-digit-may-carry-emoji.md) | 040, 151, 048 | todo | | |
 | 153 | [The tab strip shows overflow and hides the .md extension](issues/153-tab-strip-shows-overflow-hides-md-extension.md) | none | todo | | |
 | 154 | [Inline title: show the file name as an editable title above the note](issues/154-inline-title.md) | none | todo | | |
@@ -269,3 +269,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 10:15 — 030 — start — launched by /relay-lite:run — dee42c0bf
 - 2026-11-12 10:30 — 030 — deliver — round 1 CHANGES_REQUESTED by claude (fix: Tailwind no longer scans .scratch, which broke pnpm build; JSDoc note; one minor rejected), round 2 APPROVED by claude; full suite 614 files / 15574 tests passed; squash merged and pushed — 721ef3a5c
 - 2026-11-12 11:54 — 151 — start — launched by /relay-lite:run (unblocks 198) — c8431c668
+- 2026-11-12 12:04 — 151 — deliver — round 1 APPROVED by claude with no findings, no fix round; full suite 618 files / 15766 tests passed; squash merged and pushed — 07ec74a68
