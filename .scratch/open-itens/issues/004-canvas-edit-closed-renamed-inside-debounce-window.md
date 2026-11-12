@@ -12,7 +12,7 @@
 
 **Blocked by:** 015
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** 2026-11-12 (owner): 004 drops the rename case; the edit-before-rename leg is a known limit in Notes, with no new hook in core link-updater code. 004 keeps only the close-tab flush, placed just before 015's save in closeTab, and a flusher that throws must not drop the edit silently. 004 runs after 015. Close saves and does not prompt, per 015's owner decision of 2026-11-06. Nothing open.
 
@@ -20,11 +20,11 @@
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`. Targeted e2e (relay-lite does not run it; run it once before delivery): `bash scripts/e2e.sh e2e/specs/canvas-view.spec.ts e2e/specs/editor.spec.ts`.
 
-- [ ] Failing test first, in src/tests/lib/features/canvas/canvas-tab-switch.test.ts: type into canvas A's card, advance 100 ms, `await closeTab(tabIndex(A))`, `flushSync()`, advance 3000 ms. Assert: `tabIndex(A) === -1`; `writeTextFile` was called with A's path and content containing the typed text; `ask` was not called (add `vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }))` to the file: today `ask` is unmocked, returns false through the mocked `invoke`, and a flush-only fix would pass a weaker test); `writeTextFile` was never called with the neighbour's path and the neighbour's tab content is unchanged. It fails today.
-- [ ] Closing a canvas with no pending edit closes with no write and no prompt, as today.
-- [ ] Unit tests in src/tests/lib/core/editor/editor.service.test.ts (`describe('closeTab')`, set the `writeTextFile` and `ask` mocks explicitly in each test): a flusher registered for the closing path runs before the dirty check, and when it changes the tab content closeTab writes it, never calls `ask`, and removes the tab; a flusher for another path, an unregistered flusher and a pinned tab's flusher are not called; unregistering one of two flushers for the same path leaves the other registered; a throwing flusher is logged, `ask` is called with 015's failed-save prompt, Cancel keeps the tab, and the confirm answer closes it.
-- [ ] The comment above CanvasInner's onDestroy (CanvasInner.svelte:243-245) says it covers a tab switch and a source-mode toggle, and that a close goes through the registered flusher. It no longer claims to cover quit.
-- [ ] Frontend gate green: pnpm check, pnpm vitest run, pnpm build.
+- [x] Failing test first, in src/tests/lib/features/canvas/canvas-tab-switch.test.ts: type into canvas A's card, advance 100 ms, `await closeTab(tabIndex(A))`, `flushSync()`, advance 3000 ms. Assert: `tabIndex(A) === -1`; `writeTextFile` was called with A's path and content containing the typed text; `ask` was not called (add `vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }))` to the file: today `ask` is unmocked, returns false through the mocked `invoke`, and a flush-only fix would pass a weaker test); `writeTextFile` was never called with the neighbour's path and the neighbour's tab content is unchanged. It fails today.
+- [x] Closing a canvas with no pending edit closes with no write and no prompt, as today.
+- [x] Unit tests in src/tests/lib/core/editor/editor.service.test.ts (`describe('closeTab')`, set the `writeTextFile` and `ask` mocks explicitly in each test): a flusher registered for the closing path runs before the dirty check, and when it changes the tab content closeTab writes it, never calls `ask`, and removes the tab; a flusher for another path, an unregistered flusher and a pinned tab's flusher are not called; unregistering one of two flushers for the same path leaves the other registered; a throwing flusher is logged, `ask` is called with 015's failed-save prompt, Cancel keeps the tab, and the confirm answer closes it.
+- [x] The comment above CanvasInner's onDestroy (CanvasInner.svelte:243-245) says it covers a tab switch and a source-mode toggle, and that a close goes through the registered flusher. It no longer claims to cover quit.
+- [x] Frontend gate green: pnpm check, pnpm vitest run, pnpm build.
 
 ## Notes
 
@@ -105,3 +105,4 @@ F5 side effect: expected false to be true (no write to Board-1.canvas and no ask
 - 2026-11-06: migrated from `.scratch/archived/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-12: deep dive edits (owner decisions of 2026-11-12). Retitled: the rename case is dropped and moves to Notes as a known limit, with no hook in link-updater code (critique H2). Blocked by changes from none to 015, which now runs first; the flush sits just before 015's save in closeTab, and a throwing flusher shows 015's failed-save prompt instead of dropping the edit. What to build names the flusher API and drops option 2. Criterion 1 now asserts the tab is gone and `ask` is not called (a flush-only fix passed the old one). Added registry unit tests, the onDestroy comment fix, targeted e2e specs and out-of-scope limits. The merged Issue 49 section is marked context only and its second Status line is removed. Line numbers refreshed at `318b6e9b5`.
 - 2026-11-12: consistency review: What to build now says what `flushPendingEdits` returns (false only when a flusher threw, true with no flusher), so a close with no flusher never reaches the failed-save prompt.
+- 2026-11-12: delivered from branch `issue/004-canvas-edit-closed-renamed-inside-debounce-window`. closeTab runs the registered flushers for the closing path before the dirty check, so a canvas edit closed inside the 300 ms debounce is written; a throwing flusher shows the failed-save prompt. Review fix: the canvas flusher clears its debounce timer only after persistChanges returns. Tests: pnpm check exit 0; targeted canvas-tab-switch + editor.service 109 passed; full suite at 849d63912 exit 0 (632 files, 16463 tests passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED (fix applied), round 2 APPROVED (no findings).

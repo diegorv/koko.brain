@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy, untrack } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import {
 		SvelteFlow,
 		Background,
@@ -41,7 +41,7 @@
 	} from './canvas.logic';
 	import { isImageFile } from './canvas-image.service';
 	import { createHistory, pushSnapshot, undo, redo, type CanvasHistory } from './canvas-history.logic';
-	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { openFileInEditor, registerPendingEditFlusher } from '#lib/core/editor/editor.service.js';
 	import type { CanvasData, CanvasNode, CanvasColor } from './canvas.types';
 
 	interface Props {
@@ -240,9 +240,22 @@
 		return () => clearTimeout(nodesChangeTimer);
 	});
 
+	// A close removes the tab before this instance is destroyed, so closeTab
+	// runs this flusher first to put the pending edit into the tab it saves.
+	onMount(() =>
+		registerPendingEditFlusher(ownPath, () => {
+			if (!pendingPersist) return;
+			persistChanges(nodes, edges);
+			// Cleared only after a successful persist: if it throws, the armed
+			// timer retries the edit instead of leaving it unscheduled.
+			clearTimeout(nodesChangeTimer);
+			pendingPersist = false;
+		}),
+	);
+
 	// Flush pending persist on component destroy so the last edit is not
-	// lost when the user quits, switches or closes the tab within the 300ms
-	// debounce window.
+	// lost when the user switches tabs or toggles source mode within the
+	// 300ms debounce window. A close goes through the flusher registered above.
 	onDestroy(() => {
 		if (pendingPersist) {
 			persistChanges(nodes, edges);

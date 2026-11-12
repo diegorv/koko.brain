@@ -72,8 +72,11 @@ import {
 	toggleSourceMode,
 	syncExternalContentToEditor,
 	registerTabCloseListener,
+	registerPendingEditFlusher,
+	flushPendingEdits,
 	waitForTabSave,
 } from '#lib/core/editor/editor.service.js';
+import { error as logError } from '#lib/utils/debug.js';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
 	const name = path.split('/').pop() ?? path;
@@ -789,6 +792,137 @@ describe('closeTab', () => {
 
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(closed).toEqual(['/vault/note.md']);
+	});
+
+	it('runs the closing path\'s flusher before the dirty check, saves what it wrote and closes with no prompt', async () => {
+		addTab('/vault/board.canvas', 'old');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', () => {
+			editorStore.updateTabContentOnly('/vault/board.canvas', 'flushed');
+		});
+
+		await closeTab(0);
+		unregister();
+
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/board.canvas', 'flushed']]);
+		expect(ask).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('does not run a flusher registered for another path', async () => {
+		addTab('/vault/a.canvas', 'a');
+		addTab('/vault/b.canvas', 'b');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const flush = vi.fn();
+		const unregister = registerPendingEditFlusher('/vault/b.canvas', flush);
+
+		await closeTab(0);
+		unregister();
+
+		expect(flush).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/b.canvas']);
+	});
+
+	it('does not run a flusher after it is unregistered', async () => {
+		addTab('/vault/board.canvas', 'old');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const flush = vi.fn();
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', flush);
+		unregister();
+
+		await closeTab(0);
+
+		expect(flush).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('does not run a pinned tab\'s flusher', async () => {
+		addTab('/vault/board.canvas', 'old', { pinned: true });
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const flush = vi.fn();
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', flush);
+
+		await closeTab(0);
+		unregister();
+
+		expect(flush).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(1);
+	});
+
+	it('unregistering one of two flushers for a path leaves the other registered', async () => {
+		addTab('/vault/board.canvas', 'old');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const first = vi.fn();
+		const second = vi.fn(() => {
+			editorStore.updateTabContentOnly('/vault/board.canvas', 'from second');
+		});
+		const unregisterFirst = registerPendingEditFlusher('/vault/board.canvas', first);
+		const unregisterSecond = registerPendingEditFlusher('/vault/board.canvas', second);
+		unregisterFirst();
+
+		await closeTab(0);
+		unregisterSecond();
+
+		expect(first).not.toHaveBeenCalled();
+		expect(second).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/board.canvas', 'from second']]);
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('flushPendingEdits returns true when no flusher is registered for the path', () => {
+		expect(flushPendingEdits('/vault/none.canvas')).toBe(true);
+	});
+
+	it('logs a throwing flusher, asks with the failed-save prompt, and Cancel keeps the clean tab open', async () => {
+		addTab('/vault/board.canvas', 'old');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', () => {
+			throw new Error('boom');
+		});
+
+		await closeTab(0);
+		unregister();
+
+		expect(logError).toHaveBeenCalledWith('EDITOR', expect.any(String), expect.any(Error));
+		expect(ask).toHaveBeenCalledWith('Failed to save board.canvas. Close anyway and lose unsaved changes?', {
+			title: 'Unsaved Changes',
+			kind: 'warning',
+			okLabel: 'Close Anyway',
+			cancelLabel: 'Cancel',
+		});
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/board.canvas']);
+		consoleSpy.mockRestore();
+	});
+
+	it('closes the tab on the confirm answer after a throwing flusher', async () => {
+		addTab('/vault/board.canvas', 'old');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(true);
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', () => {
+			throw new Error('boom');
+		});
+
+		await closeTab(0);
+		unregister();
+
+		expect(logError).toHaveBeenCalledWith('EDITOR', expect.any(String), expect.any(Error));
+		expect(ask).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/board.canvas', 'modified']]);
+		expect(editorStore.tabs).toHaveLength(0);
+		consoleSpy.mockRestore();
 	});
 
 	it('does not cancel pending saves for other tabs when closing', async () => {

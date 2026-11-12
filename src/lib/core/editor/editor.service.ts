@@ -46,6 +46,55 @@ function notifyTabClosed(path: string): void {
 }
 
 /**
+ * Per-path functions that write a view's not-yet-persisted edit into the tab
+ * of that path. A Set per path, so unregistering one instance never drops
+ * another's registration for the same path (a re-key destroys the old instance
+ * and mounts the new one back to back, in either order).
+ */
+const pendingEditFlushers = new Map<string, Set<() => void>>();
+
+/**
+ * Registers `flush` to run when `closeTab` closes the tab of `path`, before it
+ * saves, so an edit a view still holds in a debounce reaches the file. Lives in
+ * core so a feature view registers into it without core importing the feature
+ * (ADR-0003). Returns the unregister function, which removes only `flush`.
+ */
+export function registerPendingEditFlusher(path: string, flush: () => void): () => void {
+	let flushers = pendingEditFlushers.get(path);
+	if (!flushers) {
+		flushers = new Set();
+		pendingEditFlushers.set(path, flushers);
+	}
+	flushers.add(flush);
+	return () => {
+		const current = pendingEditFlushers.get(path);
+		if (!current) return;
+		current.delete(flush);
+		if (current.size === 0) pendingEditFlushers.delete(path);
+	};
+}
+
+/**
+ * Runs every flusher registered for `path`, logging any that throws. Returns
+ * false only when a flusher threw, true otherwise, including when none is
+ * registered.
+ */
+export function flushPendingEdits(path: string): boolean {
+	const flushers = pendingEditFlushers.get(path);
+	if (!flushers) return true;
+	let ok = true;
+	for (const flush of [...flushers]) {
+		try {
+			flush();
+		} catch (err) {
+			error('EDITOR', `pending-edit flush failed for ${path}:`, err);
+			ok = false;
+		}
+	}
+	return ok;
+}
+
+/**
  * Single owner of "external content → CodeMirror" sync (Phase 5 of the
  * perf refactor). Updates a tab's content (path-keyed) and bumps
  * `editorStore.externalContentSignal` so `MarkdownEditor.svelte`'s
@@ -304,9 +353,11 @@ function isPathDirty(path: string): boolean {
 /**
  * Closes a tab by index.
  * Pinned tabs are silently skipped — they cannot be closed this way.
- * A dirty file tab is saved first and then closed. Text typed during that save
- * gets one more save; if a save fails, or the tab is still dirty after the
- * second one, the user is asked whether to close anyway and lose the changes.
+ * A file tab's pending-edit flushers run first, so an edit a view still holds
+ * in a debounce lands in the tab. A dirty file tab is then saved and closed.
+ * Text typed during that save gets one more save; if a flusher threw, a save
+ * fails, or the tab is still dirty after the second one, the user is asked
+ * whether to close anyway and lose the changes.
  */
 export async function closeTab(index: number) {
 	const tab = editorStore.tabs[index];
@@ -316,15 +367,18 @@ export async function closeTab(index: number) {
 	const tabPath = tab.path;
 	const baseStart = perfStart();
 
-	if (!isVirtualTab(tab) && isTabDirty(tab)) {
-		let saved = await saveFileByPath(tabPath);
-		if (saved && isPathDirty(tabPath)) saved = await saveFileByPath(tabPath);
-		if (!saved || isPathDirty(tabPath)) {
-			const closeAnyway = await ask(
-				`Failed to save ${getFileName(tabPath)}. Close anyway and lose unsaved changes?`,
-				{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Close Anyway', cancelLabel: 'Cancel' },
-			);
-			if (!closeAnyway) return;
+	if (!isVirtualTab(tab)) {
+		const flushed = flushPendingEdits(tabPath);
+		if (!flushed || isPathDirty(tabPath)) {
+			let saved = await saveFileByPath(tabPath);
+			if (saved && isPathDirty(tabPath)) saved = await saveFileByPath(tabPath);
+			if (!flushed || !saved || isPathDirty(tabPath)) {
+				const closeAnyway = await ask(
+					`Failed to save ${getFileName(tabPath)}. Close anyway and lose unsaved changes?`,
+					{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Close Anyway', cancelLabel: 'Cancel' },
+				);
+				if (!closeAnyway) return;
+			}
 		}
 	}
 

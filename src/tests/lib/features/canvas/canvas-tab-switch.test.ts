@@ -48,7 +48,10 @@ vi.mock('@tauri-apps/api/event', () => ({
 	emit: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/plugin-dialog', () => ({ ask: vi.fn() }));
+
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import { ask } from '@tauri-apps/plugin-dialog';
 import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { closeTab, switchTab } from '#lib/core/editor/editor.service.js';
@@ -98,6 +101,7 @@ describe('canvas persistence across tab switch and close', { timeout: 20_000 }, 
 	beforeEach(() => {
 		vi.useFakeTimers();
 		vi.mocked(writeTextFile).mockClear();
+		vi.mocked(ask).mockReset();
 		editorStore.reset();
 		settingsStore.reset();
 	});
@@ -170,6 +174,42 @@ describe('canvas persistence across tab switch and close', { timeout: 20_000 }, 
 		expect(editorStore.activeTabPath).toBe(M);
 		expect(tabContent(M)).toBe(NOTE);
 		expect(writtenPaths()).not.toContain(M);
+	});
+
+	it('closing a canvas inside the debounce window saves the edit to its file with no prompt', async () => {
+		await render([
+			{ path: A, content: A_JSON, fileType: 'canvas' },
+			{ path: M, content: NOTE },
+		]);
+
+		typeIntoCard('typed in A');
+		await vi.advanceTimersByTimeAsync(100);
+		await closeTab(tabIndex(A));
+		flushSync();
+		await vi.advanceTimersByTimeAsync(3000);
+
+		expect(tabIndex(A)).toBe(-1);
+		const writesToA = vi.mocked(writeTextFile).mock.calls.filter(([path]) => path === A);
+		expect(writesToA).toHaveLength(1);
+		expect(String(writesToA[0][1])).toContain('typed in A');
+		expect(ask).not.toHaveBeenCalled();
+		expect(writtenPaths()).not.toContain(M);
+		expect(tabContent(M)).toBe(NOTE);
+	});
+
+	it('closing a canvas with no pending edit closes it with no write and no prompt', async () => {
+		await render([
+			{ path: A, content: A_JSON, fileType: 'canvas' },
+			{ path: M, content: NOTE },
+		]);
+
+		await closeTab(tabIndex(A));
+		flushSync();
+		await vi.advanceTimersByTimeAsync(3000);
+
+		expect(tabIndex(A)).toBe(-1);
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(ask).not.toHaveBeenCalled();
 	});
 
 	it('switching canvas A to canvas B within the debounce keeps A\'s edit, and leaving B untouched changes no note', async () => {
