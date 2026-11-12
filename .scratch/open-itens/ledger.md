@@ -89,7 +89,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 052 | [Renaming a note updates [[links]] in kanban cards](issues/052-renaming-moving-note-updates-links-kanban-cards.md) | none | todo | | |
 | 053 | [A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result](issues/053-queryjs-block-run-seconds-after-save-shows.md) | none | todo | | |
 | 054 | [Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are](issues/054-auto-move-evaluates-moves-only-markdown-notes.md) | none | todo | | |
-| 055 | [HTML link paste keeps bracketed link text and table cells intact](issues/055-html-link-paste-keeps-bracketed-link-text.md) | none | todo | | |
+| 055 | [HTML link paste keeps bracketed link text and table cells intact](issues/055-html-link-paste-keeps-bracketed-link-text.md) | none | in-progress | | |
 | 056 | [Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener](issues/056-cmd-click-reference-link-email-autolink-opens.md) | none | todo | | |
 | 057 | [Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...](issues/057-clearing-search-box-while-search-still-running.md) | none | todo | | |
 | 058 | [A formula that calls an unknown function cannot be confirmed and shows why](issues/058-formula-that-calls-unknown-function-cannot-confirmed.md) | none | todo | | |
@@ -102,7 +102,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 065 | [A calendar day with more than three notes lets the user reach every note](issues/065-calendar-day-more-than-three-notes-lets.md) | none | todo | | |
 | 066 | [The status bar note count follows notes created, imported and deleted during the session](issues/066-status-bar-note-count-follows-notes-created.md) | none | todo | | |
 | 067 | [Columns and sort keys resolve like expressions](issues/067-columns-resolve-like-expressions.md) | 010 | todo | | |
-| 068 | [DESC sort lists notes without a value last](issues/068-desc-sort-nulls-last.md) | none | todo | | |
+| 068 | [DESC sort lists notes without a value last](issues/068-desc-sort-nulls-last.md) | none | in-progress | | |
 | 069 | [Small `.view` tab write feedback](issues/069-editor-write-feedback.md) | 013 | todo | | |
 | 070 | [Change icon on a broken .view says why nothing changed](issues/070-view-writers-refresh-and-fail-loudly.md) | none | todo | | |
 | 071 | [.view toolbar and icon writes keep the file's YAML comments](issues/071-view-toolbar-icon-writes-keep-file-s.md) | none | todo | | |
@@ -291,3 +291,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:15 — 004 — deliver — round 1 APPROVED by claude with a fix round (flusher keeps the timer armed when persist throws), deliver re-review APPROVED by claude; full suite 632 files / 16463 tests passed; deliver merge first failed on the owner's unpushed version bump, the main session finished sync and merge after it was pushed — 5cb784f0f
 - 2026-11-12 19:18 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006, 043)
 - 2026-11-12 19:18 — 254 — deliver — round 1 APPROVED by claude with no findings; tab strip: layout rounding, sub-pixel tolerance; AutoOrganizeRuleRow: fake timers; full suite 633 files / 16460 tests passed on the first run; squash merged and pushed — 22a266407
+- 2026-11-12 19:20 — 068 — start — launched by /relay-lite:run (owner picked it from the triage) — 8343db938
+- 2026-11-12 19:20 — 055 — start — launched by /relay-lite:run (owner picked it from the triage) — 8343db938
