@@ -14,24 +14,24 @@ Segments do not nest: link text is plain text. Do not render cell text as HTML (
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** cells render links, `<br>` and escaped pipes (owner, 2026-11-06). On 2026-11-12 the owner took the lower-risk cut from the deep dive: this Issue keeps what the app's own TSV paste writes (`\|`, `\\`, `<br>`) plus markdown links; `==x==`, `_x_`, `__x__` and `***x***` move to Issue 249. Nothing open.
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
-- [ ] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts: render a TableWidget whose body cell is '[Docs](https://x.dev) a \\| b<br>next' and assert that the cell has an element with class cm-lp-link and text 'Docs', a <br> element, and textContent 'Docs a | bnext' with no '[', '](' or backslash. The same link and `<br>` in a header cell (th) render too. It fails today.
-- [ ] Through the real parser: mount `| h |\n| --- |\n| x \\| y<br>z |` with `mountMarkdownView` and the cursor after the table, take the TableWidget from `computeTables` (the `clickAdd` helper at table-widget.test.ts:243 shows how), call toDOM, and assert that the td holds `x | y`, a `br` and `z`. This proves the raw `\|` that splitRow keeps is unescaped at render time.
-- [ ] Link press, with the widget DOM mounted under a parent that has a bubbling `mousedown` spy (in jsdom the widget sits outside `contentDOM`, so a "selection unchanged" assertion passes with or without the fix):
+- [x] Failing test first, in src/tests/lib/core/markdown-editor/extensions/live-preview/table-widget.test.ts: render a TableWidget whose body cell is '[Docs](https://x.dev) a \\| b<br>next' and assert that the cell has an element with class cm-lp-link and text 'Docs', a <br> element, and textContent 'Docs a | bnext' with no '[', '](' or backslash. The same link and `<br>` in a header cell (th) render too. It fails today.
+- [x] Through the real parser: mount `| h |\n| --- |\n| x \\| y<br>z |` with `mountMarkdownView` and the cursor after the table, take the TableWidget from `computeTables` (the `clickAdd` helper at table-widget.test.ts:243 shows how), call toDOM, and assert that the td holds `x | y`, a `br` and `z`. This proves the raw `\|` that splitRow keeps is unescaped at render time.
+- [x] Link press, with the widget DOM mounted under a parent that has a bubbling `mousedown` spy (in jsdom the widget sits outside `contentDOM`, so a "selection unchanged" assertion passes with or without the fix):
   - With the open modifier (`platform.mac = true` + `metaKey`, and `platform.mac = false` + `ctrlKey`, as in the existing `cell wikilink click` describe), a primary-button mousedown on the link calls `host.openExternal` exactly once with `'https://x.dev'`, sets `defaultPrevented` and does not reach the parent spy.
   - With no modifier, `openExternal` is not called, `defaultPrevented` is false and the parent spy fires.
   - A right click (button 2) and a macOS Ctrl+click are not opened and not stopped.
   - `[x](javascript:alert(1))` with the modifier is not opened, and the event is still stopped.
-- [ ] Escapes: the cell source `a \\ b` (two backslash characters, what TSV paste writes for one) renders `a \ b`; `\*a\*` renders `*a*` with no em; `` `x \| y` `` renders a code element with text `x | y`; `` `a<br>b` `` renders a code element with that literal text. `<BR>` and `<br />` render a `br`.
-- [ ] No HTML: a cell `<b>x</b> <img src=x onerror=alert(1)>` renders that literal text, with no `b` or `img` element.
-- [ ] The existing cases in src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.test.ts pass unchanged, including :60 (`==highlight==` stays text), :65, :70, :87-94 (`**bold***italic*` adjacency) and :97-103 (`***text***`). Issue 249 changes :60 and :97-103, not this one.
-- [ ] Wikilinks, inline code and meta-bind INPUT controls in cells render as before (existing table-widget and combined-table-meta-bind tests).
-- [ ] Gate: pnpm check and pnpm vitest run pass.
+- [x] Escapes: the cell source `a \\ b` (two backslash characters, what TSV paste writes for one) renders `a \ b`; `\*a\*` renders `*a*` with no em; `` `x \| y` `` renders a code element with text `x | y`; `` `a<br>b` `` renders a code element with that literal text. `<BR>` and `<br />` render a `br`.
+- [x] No HTML: a cell `<b>x</b> <img src=x onerror=alert(1)>` renders that literal text, with no `b` or `img` element.
+- [x] The existing cases in src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/inline-markdown.test.ts pass unchanged, including :60 (`==highlight==` stays text), :65, :70, :87-94 (`**bold***italic*` adjacency) and :97-103 (`***text***`). Issue 249 changes :60 and :97-103, not this one.
+- [x] Wikilinks, inline code and meta-bind INPUT controls in cells render as before (existing table-widget and combined-table-meta-bind tests).
+- [x] Gate: pnpm check and pnpm vitest run pass.
 
 ## Notes
 
@@ -50,3 +50,4 @@ Segments do not nest: link text is plain text. Do not render cell text as HTML (
 
 - 2026-11-06: owner decision recorded from the 2026-11-06 survey; status ready-for-agent.
 - 2026-11-12: deep dive (`research/deep-dive-2026-11-12/refute-062.md`, `critique.md` M2) applied. Split by owner decision: this Issue keeps links, `<br>`, `\|` and `\\`; `==x==`, `_x_`, `__x__` and `***x***` moved to new Issue 249 (blocked by 062). Added the escape and link grammar, a parent-spy link-press criterion in place of the untestable "selection unchanged" check, a parser-chain test, a no-HTML test and the header-cell case. The inline-markdown.test.ts pins at :60 and :97-103 now stay green here and change in 249. Impact set to medium-high.
+- 2026-11-12: delivered from branch issue/062-rendered-table-cells-show-links-highlight-underscore. Table cells render links (modifier press opens the url, unsafe or empty urls are not opened), `<br>`, `\|` and `\\` escapes, with no raw HTML. Fix round: empty-url link press no longer calls openExternal. Tests: targeted table-widget + inline-markdown 106 passed; pnpm check 0 errors; full suite at f22439752 632 files / 16495 tests passed, exit 0. Reviews: round 1 APPROVED (review.md), round 2 APPROVED (review-2.md).

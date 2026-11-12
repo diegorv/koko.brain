@@ -18,9 +18,9 @@ import {
 } from '#lib/core/frontmatter/properties.logic.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
 import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
-import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
+import { IS_MAC, isMacContextClick, isOpenLinkModifier } from '#lib/utils/platform.js';
 import { editorHost, type EditorHost } from '../../editor-host';
-import { editorLog } from './core/profiling';
+import { editorLog, reportError } from './core/profiling';
 import { isFormControlInputEvent } from './core/form-control-events';
 import { followWikilinkInfo } from './wikilink-navigation';
 import { TABLE_WIDGET_CLASS } from '../../wikilink-click-target';
@@ -220,7 +220,10 @@ export class MediaWidget extends WidgetType {
 
 
 /**
- * Renders inline non-wikilink markdown segments (bold, italic, strikethrough, code) as DOM nodes.
+ * Renders inline non-wikilink markdown segments (bold, italic, strikethrough, code,
+ * markdown links, `<br>` line breaks, backslash escapes) as DOM nodes, never as HTML.
+ * A markdown link is a `span.cm-lp-link` that opens its url through the editor host
+ * on a primary press with the platform open modifier, when `view` is provided.
  * Handles meta-bind INPUT fields when view and properties are provided.
  */
 function renderInlineSegments(
@@ -271,6 +274,33 @@ function renderInlineSegments(
 				parent.appendChild(el);
 				break;
 			}
+			case 'link': {
+				// A span, never `<a href>`: the url opens only through the editor host.
+				const el = document.createElement('span');
+				el.textContent = seg.content;
+				el.className = 'cm-lp-link';
+				const url = seg.href ?? '';
+				if (view) {
+					el.addEventListener('mousedown', (e) => {
+						if (e.button !== 0 || !isOpenLinkModifier(e, IS_MAC)) return;
+						// Stopped even for an unsafe url: the editor-level link handler would
+						// otherwise fall back to the link text, which isSafeUrl accepts.
+						e.preventDefault();
+						e.stopPropagation();
+						// isSafeUrl accepts '' (no scheme), which `[x](<>)` yields.
+						if (!url || !isSafeUrl(url)) return;
+						view.state
+							.facet(editorHost)
+							.openExternal(url)
+							.catch((err) => reportError('LIVE-PREVIEW', 'Failed to open URL:', err));
+					});
+				}
+				parent.appendChild(el);
+				break;
+			}
+			case 'break':
+				parent.appendChild(document.createElement('br'));
+				break;
 			default:
 				parent.appendChild(document.createTextNode(seg.content));
 		}
@@ -279,8 +309,9 @@ function renderInlineSegments(
 
 /**
  * Renders inline markdown segments as DOM nodes inside a parent element.
- * Supports bold, italic, strikethrough, inline code, meta-bind INPUT fields, and wikilinks.
- * Wikilinks are rendered as clickable `<a>` elements that follow the link the
+ * Supports bold, italic, strikethrough, inline code, markdown links, `<br>` line breaks,
+ * backslash escapes, meta-bind INPUT fields, and wikilinks. Escapes apply only to the
+ * text between wikilinks. Wikilinks are rendered as clickable `<a>` elements that follow the link the
  * same way as one outside a table (anchor, same-note jump, create-on-click).
  */
 function renderCellContent(

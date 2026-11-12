@@ -538,3 +538,213 @@ describe('TableWidget: meta-bind inputs in cells', () => {
 		expect(view.state.doc.toString()).toBe('---\ncount: 7\n---\n');
 	});
 });
+
+describe('TableWidget: links, line breaks and escapes in cells', () => {
+	/** Where the editor host opens an external cell link. */
+	const openExternal = vi.fn(async () => {});
+
+	/** Views created by render(), destroyed after each test. */
+	const views: EditorView[] = [];
+
+	/** Renders a one-column table with header `header` and body cell `cell`, under a parent with a mousedown spy. */
+	function render(cell: string, header = 'h'): { th: HTMLElement; td: HTMLElement; parentSpy: ReturnType<typeof vi.fn> } {
+		const root = document.body.appendChild(document.createElement('div'));
+		const parentSpy = vi.fn();
+		root.addEventListener('mousedown', parentSpy);
+		const view = new EditorView({
+			state: EditorState.create({ doc: 'x', extensions: editorHost.of({ ...host, openExternal }) }),
+			parent: document.body.appendChild(document.createElement('div')),
+		});
+		views.push(view);
+		const widget = new TableWidget([header], ['left'], [[cell]], [], { from: 0, to: 0, startLine: 1, endLine: 3 });
+		const dom = widget.toDOM(view);
+		root.appendChild(dom);
+		return { th: dom.querySelector('thead th')!, td: dom.querySelector('tbody td')!, parentSpy };
+	}
+
+	function press(el: HTMLElement, init: MouseEventInit = {}): MouseEvent {
+		const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, ...init });
+		el.dispatchEvent(e);
+		return e;
+	}
+
+	beforeEach(() => {
+		openExternal.mockClear();
+	});
+
+	afterEach(() => {
+		for (const view of views.splice(0)) view.destroy();
+		document.body.replaceChildren();
+	});
+
+	it('a body cell renders a link, an unescaped pipe and a line break', () => {
+		const { td } = render('[Docs](https://x.dev) a \\| b<br>next');
+		const link = td.querySelector('.cm-lp-link');
+		expect(link).not.toBeNull();
+		expect(link!.textContent).toBe('Docs');
+		expect(link!.tagName).toBe('SPAN');
+		expect(link!.hasAttribute('href')).toBe(false);
+		expect(td.querySelector('a')).toBeNull();
+		expect(td.querySelectorAll('br')).toHaveLength(1);
+		expect(td.textContent).toBe('Docs a | bnext');
+		expect(td.textContent).not.toMatch(/\[|\]\(|\\/);
+	});
+
+	it('a header cell renders a link and a line break too', () => {
+		const { th } = render('x', '[Docs](https://x.dev)<br>more');
+		expect(th.querySelector('.cm-lp-link')!.textContent).toBe('Docs');
+		expect(th.querySelectorAll('br')).toHaveLength(1);
+		expect(th.textContent).toBe('Docsmore');
+	});
+
+	it('the raw `\\|` that the table parser keeps is unescaped at render time', () => {
+		const doc = '| h |\n| --- |\n| x \\| y<br>z |\n\ntext';
+		const view: EditorView = mountMarkdownView(doc, { cursor: doc.length });
+		const decos = computeTables(view.state);
+		let widget: TableWidget | null = null;
+		const iter = decos.iter();
+		while (iter.value) {
+			const w = (iter.value.spec as { widget?: unknown }).widget;
+			if (w instanceof TableWidget) {
+				widget = w;
+				break;
+			}
+			iter.next();
+		}
+		expect(widget, 'the table decorator must build a TableWidget').not.toBeNull();
+		const td = widget!.toDOM(view).querySelector('tbody td')!;
+		const nodes = Array.from(td.childNodes);
+		expect(nodes.map((n) => n.nodeName)).toEqual(['#text', 'BR', '#text']);
+		expect(nodes[0].textContent).toBe('x | y');
+		expect(nodes[2].textContent).toBe('z');
+		view.destroy();
+	});
+
+	describe('link press', () => {
+		const link = (cell = '[Docs](https://x.dev)') => render(cell);
+
+		it.each([
+			{ mac: true, init: { metaKey: true } },
+			{ mac: false, init: { ctrlKey: true } },
+		])('with the open modifier (mac=$mac) opens the url once and stops the event', ({ mac, init }) => {
+			platform.mac = mac;
+			const { td, parentSpy } = link();
+			const e = press(td.querySelector<HTMLElement>('.cm-lp-link')!, init);
+			expect(openExternal).toHaveBeenCalledTimes(1);
+			expect(openExternal).toHaveBeenCalledWith('https://x.dev');
+			expect(e.defaultPrevented).toBe(true);
+			expect(parentSpy).not.toHaveBeenCalled();
+		});
+
+		it('with no modifier does nothing and bubbles', () => {
+			platform.mac = false;
+			const { td, parentSpy } = link();
+			const e = press(td.querySelector<HTMLElement>('.cm-lp-link')!);
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(false);
+			expect(parentSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('a right click is not opened and not stopped', () => {
+			platform.mac = false;
+			const { td, parentSpy } = link();
+			const e = press(td.querySelector<HTMLElement>('.cm-lp-link')!, { button: 2, ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(false);
+			expect(parentSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('macOS: Ctrl+click is not opened and not stopped', () => {
+			platform.mac = true;
+			const { td, parentSpy } = link();
+			const e = press(td.querySelector<HTMLElement>('.cm-lp-link')!, { ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(false);
+			expect(parentSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('an unsafe url is not opened, but the event is still stopped', () => {
+			platform.mac = false;
+			const { td, parentSpy } = link('[x](javascript:alert(1))');
+			const el = td.querySelector<HTMLElement>('.cm-lp-link')!;
+			expect(el.textContent).toBe('x');
+			const e = press(el, { ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(true);
+			expect(parentSpy).not.toHaveBeenCalled();
+		});
+
+		it('an empty url in angle brackets is not opened, but the event is still stopped', () => {
+			platform.mac = false;
+			const { td, parentSpy } = link('[x](<>)');
+			const el = td.querySelector<HTMLElement>('.cm-lp-link')!;
+			expect(el.textContent).toBe('x');
+			const e = press(el, { ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(true);
+			expect(parentSpy).not.toHaveBeenCalled();
+		});
+
+		it('an unsafe url in angle brackets is not opened', () => {
+			platform.mac = false;
+			const { td } = link('[x](<javascript:alert(1)>)');
+			press(td.querySelector<HTMLElement>('.cm-lp-link')!, { ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+		});
+
+		it('an escaped pipe in the url opens the url with a plain pipe', () => {
+			platform.mac = false;
+			const { td } = link('[x](https://x.dev/a\\|b)');
+			press(td.querySelector<HTMLElement>('.cm-lp-link')!, { ctrlKey: true });
+			expect(openExternal).toHaveBeenCalledWith('https://x.dev/a|b');
+		});
+	});
+
+	describe('escapes and line breaks', () => {
+		it('`\\\\` renders one backslash', () => {
+			expect(render('a \\\\ b').td.textContent).toBe('a \\ b');
+		});
+
+		it('`\\*a\\*` renders literal asterisks with no em', () => {
+			const { td } = render('\\*a\\*');
+			expect(td.textContent).toBe('*a*');
+			expect(td.querySelector('em')).toBeNull();
+		});
+
+		it('a backslash before a non-punctuation character stays literal', () => {
+			expect(render('C:\\Users').td.textContent).toBe('C:\\Users');
+		});
+
+		it('inside a code span only `\\|` is unescaped', () => {
+			const { td } = render('`x \\| y` `a\\\\b`');
+			const codes = td.querySelectorAll('code');
+			expect(codes[0].textContent).toBe('x | y');
+			expect(codes[1].textContent).toBe('a\\\\b');
+		});
+
+		it('`<br>` inside a code span stays literal', () => {
+			const { td } = render('`a<br>b`');
+			expect(td.querySelector('code')!.textContent).toBe('a<br>b');
+			expect(td.querySelector('br')).toBeNull();
+		});
+
+		it.each(['<BR>', '<br />', '<br/>', '<Br>'])('%s renders a br element', (br) => {
+			const { td } = render(`a${br}b`);
+			expect(td.querySelectorAll('br')).toHaveLength(1);
+			expect(td.textContent).toBe('ab');
+		});
+
+		it('a wikilink next to escaped text renders as before', () => {
+			const { td } = render('[[Target]] a \\| b');
+			expect(td.querySelector('.cm-lp-wikilink')!.textContent).toBe('Target');
+			expect(td.textContent).toBe('Target a | b');
+		});
+	});
+
+	it('cell text is never parsed as HTML', () => {
+		const { td } = render('<b>x</b> <img src=x onerror=alert(1)>');
+		expect(td.querySelector('b')).toBeNull();
+		expect(td.querySelector('img')).toBeNull();
+		expect(td.textContent).toBe('<b>x</b> <img src=x onerror=alert(1)>');
+	});
+});
