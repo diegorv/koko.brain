@@ -25,18 +25,25 @@
 	import { formatDate, formatNow } from '#lib/utils/date.js';
 	import { parseTaskTextSegments, parseSectionTags, taskChips, taskDisplayText, usesRawTaskText } from './tasks.logic';
 	import {
+		TASK_PRIORITIES,
 		describeTaskRule,
 		explainEmptyTasks,
+		isQuickFieldDefault,
+		priorityWord,
 		rowsByNote,
 		statusFilterLabel,
+		tagMenuOptions,
 		taskCountText,
+		toggleQuickPriority,
 		toggleQuickStatus,
+		toggleQuickTag,
 		type DueRange,
 		type EmptyTasksExplanation,
+		type QuickFilterField,
 		type TaskQuickFilters,
 	} from './task-query.logic';
 	import { TASK_STATUSES, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
-	import type { TaskStatus } from './task-metadata.types';
+	import type { TaskPriority, TaskStatus } from './task-metadata.types';
 	import type { TaskItem } from './tasks.types';
 
 	interface Props {
@@ -176,6 +183,43 @@
 		tasksStore.setQuick({ due: value === 'any' ? undefined : (value as DueRange) });
 	}
 
+	let priorityTriggerLabel = $derived.by(() => {
+		const chosen = tasksStore.quick.priorities;
+		if (!chosen?.length) return 'Priority';
+		return `Priority: ${TASK_PRIORITIES.filter((p) => chosen.includes(p)).map(priorityWord).join(', ')}`;
+	});
+
+	function togglePriority(priority: TaskPriority) {
+		tasksStore.setQuick({ priorities: toggleQuickPriority(tasksStore.quick.priorities, priority) });
+	}
+
+	/** Tags of the unfiltered rows, plus a chosen tag no longer among them so it can be unchecked. */
+	let tagOptions = $derived(tagMenuOptions(tasksStore.rows, tasksStore.quick.tags));
+
+	let tagTriggerLabel = $derived.by(() => {
+		const chosen = tasksStore.quick.tags;
+		if (!chosen?.length) return 'Tag';
+		return `Tag: ${tagOptions.filter((t) => chosen.includes(t)).map((t) => `#${t}`).join(', ')}`;
+	});
+
+	function toggleTag(tag: string) {
+		tasksStore.setQuick({ tags: toggleQuickTag(tasksStore.quick.tags, tag, tagOptions) });
+	}
+
+	/** Sets the search on every keystroke; an empty box stores `undefined`. */
+	function handleSearchInput(value: string) {
+		tasksStore.setQuick({ search: value === '' ? undefined : value });
+	}
+
+	/** The fields the narrow pane folds into `Filters (n)`. */
+	const MENU_FIELDS: QuickFilterField[] = ['status', 'due', 'priority', 'tag'];
+
+	let foldedCount = $derived(MENU_FIELDS.filter((f) => !isQuickFieldDefault(tasksStore.quick, f)).length);
+
+	let quickAtDefault = $derived(
+		[...MENU_FIELDS, 'search' as const].every((f) => isQuickFieldDefault(tasksStore.quick, f)),
+	);
+
 	function runEmptyAction(action: NonNullable<EmptyTasksExplanation['action']>) {
 		if (action.kind === 'clearTag') clearSectionTag();
 		else if (action.kind === 'showAllStatuses') tasksStore.setQuick({ show: 'all', statuses: undefined });
@@ -253,50 +297,112 @@
 	</div>
 {/snippet}
 
+<!-- Each filter menu's items, rendered in its own menu and again in the narrow pane's Filters menu. -->
+{#snippet statusItems()}
+	<DropdownMenu.RadioGroup value={showRadioValue} onValueChange={pickShow}>
+		{#each SHOW_OPTIONS as option (option.value)}
+			<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+		{/each}
+	</DropdownMenu.RadioGroup>
+	<DropdownMenu.Separator />
+	{#each TASK_STATUSES as status (status)}
+		<DropdownMenu.CheckboxItem
+			checked={tasksStore.quick.statuses?.includes(status) ?? false}
+			closeOnSelect={false}
+			onCheckedChange={() => toggleStatus(status)}
+		>
+			{statusGlyph(status).word}
+		</DropdownMenu.CheckboxItem>
+	{/each}
+{/snippet}
+
+{#snippet dueItems()}
+	<DropdownMenu.RadioGroup value={dueValue} onValueChange={pickDue}>
+		{#each DUE_OPTIONS as option (option.value)}
+			<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+		{/each}
+		<DropdownMenu.Separator />
+		{#each DUE_EDITED_OPTIONS as option (option.value)}
+			<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+		{/each}
+	</DropdownMenu.RadioGroup>
+{/snippet}
+
+{#snippet priorityItems()}
+	{#each TASK_PRIORITIES as priority (priority)}
+		<DropdownMenu.CheckboxItem
+			checked={tasksStore.quick.priorities?.includes(priority) ?? false}
+			closeOnSelect={false}
+			onCheckedChange={() => togglePriority(priority)}
+		>
+			{priorityWord(priority)}
+		</DropdownMenu.CheckboxItem>
+	{/each}
+{/snippet}
+
+{#snippet tagItems()}
+	{#each tagOptions as tag (tag)}
+		<DropdownMenu.CheckboxItem
+			checked={tasksStore.quick.tags?.includes(tag) ?? false}
+			closeOnSelect={false}
+			onCheckedChange={() => toggleTag(tag)}
+		>
+			#{tag}
+		</DropdownMenu.CheckboxItem>
+	{:else}
+		<DropdownMenu.Item disabled>No tags in these tasks</DropdownMenu.Item>
+	{/each}
+{/snippet}
+
 <div class="@container flex h-full flex-col">
 	<!-- Toolbar -->
 	<div class="pane-toolbar">
 		<span class="min-w-0 truncate text-title">Tasks</span>
 		{#if tasksStore.hasLoaded}
-			<span data-task-count class="shrink-0 text-meta text-muted-foreground">{countText}</span>
+			<span data-task-count class="shrink-0 text-meta text-muted-foreground @max-[420px]:hidden">{countText}</span>
 		{/if}
 		{#if tasksStore.hasLoaded && tasksStore.isLoading}
 			<span role="status" aria-label="Refreshing tasks" class="flex items-center">
 				<Loader2 class="size-3.5 animate-spin text-muted-foreground" />
 			</span>
 		{/if}
+		<input
+			type="search"
+			value={tasksStore.quick.search ?? ''}
+			oninput={(e) => handleSearchInput(e.currentTarget.value)}
+			placeholder="Search tasks"
+			aria-label="Search tasks"
+			class="h-6 w-40 min-w-0 shrink px-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+		/>
 	</div>
 
-	<!-- Filters -->
-	<div data-task-filters class="flex shrink-0 items-center gap-2 border-b border-divider px-3 py-1.5">
+	<!-- Filters. Under 560px the four menus fold into the Filters menu; both are rendered and CSS hides one. -->
+	<div data-task-filters class="flex shrink-0 flex-wrap items-center gap-2 border-b border-divider px-3 py-1.5">
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger>
 				{#snippet child({ props })}
 					<button
 						{...props}
-						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+						class="hidden h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:flex"
 					>
-						<span>Status: {statusFilterLabel(tasksStore.quick)}</span>
+						<span>Filters ({foldedCount})</span>
 						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
 					</button>
 				{/snippet}
 			</DropdownMenu.Trigger>
-			<DropdownMenu.Content align="start" class="w-48">
-				<DropdownMenu.RadioGroup value={showRadioValue} onValueChange={pickShow}>
-					{#each SHOW_OPTIONS as option (option.value)}
-						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
-					{/each}
-				</DropdownMenu.RadioGroup>
+			<DropdownMenu.Content align="start" class="w-56">
+				<DropdownMenu.Label>Status</DropdownMenu.Label>
 				<DropdownMenu.Separator />
-				{#each TASK_STATUSES as status (status)}
-					<DropdownMenu.CheckboxItem
-						checked={tasksStore.quick.statuses?.includes(status) ?? false}
-						closeOnSelect={false}
-						onCheckedChange={() => toggleStatus(status)}
-					>
-						{statusGlyph(status).word}
-					</DropdownMenu.CheckboxItem>
-				{/each}
+				{@render statusItems()}
+				<DropdownMenu.Label>Due</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				{@render dueItems()}
+				<DropdownMenu.Label>Priority</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				{@render priorityItems()}
+				<DropdownMenu.Label>Tag</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				{@render tagItems()}
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 
@@ -305,7 +411,24 @@
 				{#snippet child({ props })}
 					<button
 						{...props}
-						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:hidden"
+					>
+						<span>Status: {statusFilterLabel(tasksStore.quick)}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-48">
+				{@render statusItems()}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:hidden"
 					>
 						<span>Due: {dueTriggerLabel}</span>
 						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
@@ -313,15 +436,41 @@
 				{/snippet}
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content align="start" class="w-56">
-				<DropdownMenu.RadioGroup value={dueValue} onValueChange={pickDue}>
-					{#each DUE_OPTIONS as option (option.value)}
-						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
-					{/each}
-					<DropdownMenu.Separator />
-					{#each DUE_EDITED_OPTIONS as option (option.value)}
-						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
-					{/each}
-				</DropdownMenu.RadioGroup>
+				{@render dueItems()}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:hidden"
+					>
+						<span>{priorityTriggerLabel}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-48">
+				{@render priorityItems()}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:hidden"
+					>
+						<span>{tagTriggerLabel}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-48">
+				{@render tagItems()}
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 
@@ -336,6 +485,15 @@
 				class="h-6 w-40 pl-5 pr-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 			/>
 		</div>
+
+		{#if !quickAtDefault}
+			<button
+				class="h-6 rounded-md px-2 text-xs text-primary hover:bg-accent transition-colors cursor-pointer"
+				onclick={() => tasksStore.resetQuick()}
+			>
+				Reset filters
+			</button>
+		{/if}
 	</div>
 
 	<!-- Content -->
@@ -399,7 +557,7 @@
 										<span data-task-group-count class="text-xs text-muted-foreground">{`${note.open} of ${note.total} open`}</span>
 									</div>
 									{#if note.folder}
-										<p data-task-group-subtitle class="truncate text-xs text-muted-foreground">{note.folder}</p>
+										<p data-task-group-subtitle class="truncate text-xs text-muted-foreground @max-[560px]:hidden">{note.folder}</p>
 									{/if}
 								</div>
 							</div>

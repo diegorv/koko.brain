@@ -87,6 +87,56 @@ describe('tasksStore', () => {
 			expect(texts()).toEqual(['Ship', 'Old']);
 		});
 
+		describe('priority, tag and search', () => {
+			const metaRows = () =>
+				buildTaskRows(
+					[
+						{
+							...taskGroupV2('/vault/Plan.md', [
+								taskV2('Call Ana', { lineNumber: 1, metadata: { description: 'Call Ana', tags: ['work/client'], priority: 'high' } }),
+								taskV2('Paint', { lineNumber: 2, metadata: { description: 'Paint', tags: ['home'] } }),
+							]),
+							modifiedAt: Date.now(),
+						},
+					],
+					'/vault',
+				);
+
+			it('follows a priorities change', () => {
+				tasksStore.setRows(metaRows());
+				tasksStore.setQuick({ priorities: ['high'] });
+				expect(texts()).toEqual(['Call Ana']);
+				tasksStore.setQuick({ priorities: ['none'] });
+				expect(texts()).toEqual(['Paint']);
+			});
+
+			it('follows a tags change', () => {
+				tasksStore.setRows(metaRows());
+				tasksStore.setQuick({ tags: ['work'] });
+				expect(texts()).toEqual(['Call Ana']);
+				tasksStore.setQuick({ tags: undefined });
+				expect(texts()).toEqual(['Call Ana', 'Paint']);
+			});
+
+			it('follows a search change', () => {
+				tasksStore.setRows(metaRows());
+				tasksStore.setQuick({ search: 'pai' });
+				expect(texts()).toEqual(['Paint']);
+				tasksStore.setQuick({ search: undefined });
+				expect(texts()).toEqual(['Call Ana', 'Paint']);
+			});
+
+			it('resetQuick and reset each put all three back to DEFAULT_QUICK', () => {
+				tasksStore.setQuick({ priorities: ['high'], tags: ['work'], search: 'x' });
+				tasksStore.resetQuick();
+				expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
+
+				tasksStore.setQuick({ priorities: ['high'], tags: ['work'], search: 'x' });
+				tasksStore.reset();
+				expect(tasksStore.quick).toEqual(DEFAULT_QUICK);
+			});
+		});
+
 		describe('on a clock faked to 2026-11-05', () => {
 			beforeEach(() => {
 				vi.useFakeTimers({ toFake: ['Date'] });

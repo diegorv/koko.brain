@@ -1,8 +1,8 @@
 import { formatDateWithOffset } from '#lib/utils/date.js';
 import { vaultRelativeKey } from '#lib/utils/path.js';
 import { TASK_STATUSES, isTaskOpen, statusGlyph } from './task-status.logic';
-import type { TaskStatus } from './task-metadata.types';
-import { noteFolder, noteTaskCounts, parseSectionTags } from './tasks.logic';
+import type { TaskPriority, TaskStatus } from './task-metadata.types';
+import { noteFolder, noteTaskCounts, parseSectionTags, taskDisplayText } from './tasks.logic';
 import type { FileTaskGroup, TaskItem } from './tasks.types';
 
 /**
@@ -52,18 +52,25 @@ export type TaskQuickFilters = {
 	statuses?: TaskStatus[];
 	/** The Due filter; unset means `any`, and choosing Any stores `undefined` */
 	due?: DueRange;
+	/** Chosen priorities in `TASK_PRIORITIES` order; empty means any. Never `[]` once set by a setter */
+	priorities?: TaskPriority[];
+	/** Chosen task tags without `#`, in the Tag menu's option order; empty means any. Never `[]` once set by a setter */
+	tags?: string[];
+	/** Search text as typed; blank means none. An empty box stores `undefined` */
+	search?: string;
 };
 
 /** The quick filters a fresh Tasks view starts with */
 export const DEFAULT_QUICK: TaskQuickFilters = { show: 'open' };
 
 /** A quick filter field `isQuickFieldDefault` tests */
-export type QuickFilterField = 'status' | 'due';
+export type QuickFilterField = 'status' | 'due' | 'priority' | 'tag' | 'search';
 
 /**
  * Whether `field` of `quick` is at its default. The status field is when
  * `show` is `open` and no status is chosen (`statuses` absent or empty); the
- * due field when `due` is absent or `any`.
+ * due field when `due` is absent or `any`; priority and tag when their list
+ * is absent or empty; search when it is absent or blank after `trim()`.
  */
 export function isQuickFieldDefault(quick: TaskQuickFilters, field: QuickFilterField): boolean {
 	switch (field) {
@@ -71,7 +78,88 @@ export function isQuickFieldDefault(quick: TaskQuickFilters, field: QuickFilterF
 			return quick.show === 'open' && !quick.statuses?.length;
 		case 'due':
 			return quick.due === undefined || quick.due === 'any';
+		case 'priority':
+			return !quick.priorities?.length;
+		case 'tag':
+			return !quick.tags?.length;
+		case 'search':
+			return !quick.search?.trim();
 	}
+}
+
+/** Every priority, highest first, in the order of the generated `TaskPriority` (`none` between medium and low) */
+export const TASK_PRIORITIES: readonly TaskPriority[] = ['highest', 'high', 'medium', 'none', 'low', 'lowest'];
+
+/** A priority's menu label and sentence word: the level itself, `no priority` for `none`. */
+export function priorityWord(priority: TaskPriority): string {
+	return priority === 'none' ? 'no priority' : priority;
+}
+
+/**
+ * `priorities` with `priority` added or removed, in `TASK_PRIORITIES` order
+ * whatever the click order. `undefined` when the list empties.
+ */
+export function toggleQuickPriority(priorities: TaskPriority[] | undefined, priority: TaskPriority): TaskPriority[] | undefined {
+	const chosen = new Set(priorities);
+	if (chosen.has(priority)) chosen.delete(priority);
+	else chosen.add(priority);
+	const next = TASK_PRIORITIES.filter((p) => chosen.has(p));
+	return next.length > 0 ? next : undefined;
+}
+
+/**
+ * Whether a task tag passes a chosen tag: equal to it, or nested under it
+ * (`work` passes `work/client`, not `workshop`), case-insensitively. A
+ * leading `#` on the chosen tag is ignored.
+ */
+export function matchesNestedTag(chosen: string, tag: string): boolean {
+	const c = chosen.replace(/^#/, '').toLowerCase();
+	const t = tag.toLowerCase();
+	return t === c || t.startsWith(`${c}/`);
+}
+
+const byLowerCase = (a: string, b: string) => {
+	const x = a.toLowerCase();
+	const y = b.toLowerCase();
+	return x < y ? -1 : x > y ? 1 : 0;
+};
+
+/**
+ * The Tag menu's options: every tag of `rows` as Rust emits it (no `#`),
+ * de-duplicated case-insensitively (the first spelling wins) and sorted
+ * case-insensitively.
+ */
+export function taskTagOptions(rows: TaskRow[]): string[] {
+	const seen = new Map<string, string>();
+	for (const row of rows) {
+		for (const tag of row.metadata.tags) {
+			const key = tag.toLowerCase();
+			if (!seen.has(key)) seen.set(key, tag);
+		}
+	}
+	return [...seen.values()].sort(byLowerCase);
+}
+
+/**
+ * `taskTagOptions(rows)` plus each chosen tag it lacks (same spelling), so a
+ * chosen tag whose tasks are gone can still be unchecked. Sorted the same way.
+ */
+export function tagMenuOptions(rows: TaskRow[], chosen: string[] | undefined): string[] {
+	const options = taskTagOptions(rows);
+	const missing = (chosen ?? []).filter((tag) => !options.includes(tag));
+	return missing.length > 0 ? [...options, ...missing].sort(byLowerCase) : options;
+}
+
+/**
+ * `tags` with `tag` added or removed, in `options` order whatever the click
+ * order. `undefined` when the list empties.
+ */
+export function toggleQuickTag(tags: string[] | undefined, tag: string, options: string[]): string[] | undefined {
+	const chosen = new Set(tags);
+	if (chosen.has(tag)) chosen.delete(tag);
+	else chosen.add(tag);
+	const next = options.filter((o) => chosen.has(o));
+	return next.length > 0 ? next : undefined;
 }
 
 /**
@@ -161,18 +249,42 @@ function duePredicate(due: DueRange | undefined, today: string, now: number): ((
 }
 
 /**
- * The rows that pass the quick filters (status and Due), plus each failing
- * row with a passing row in its subtree (the later rows of the same note with
- * a larger indent, up to the next one whose indent is not larger), kept as
- * `dimmed`. The edited Due options fold into the same predicate: every row of
- * a note shares `modifiedAt`, so no failing row is ever kept dimmed for them.
- * Returns new objects; `rows` is never mutated.
+ * The Priority, Tag and Search filters as one row predicate, or null when all
+ * three are at their default. A task with no priority signifier has no
+ * `metadata.priority` (Rust never sends `none`), so `none` matches it too.
+ * Search matches the trimmed text, case-insensitively, inside what the row
+ * shows (`taskDisplayText`) or its note title; tags and dates are not searched.
+ */
+function metaPredicate(quick: TaskQuickFilters): ((row: TaskRow) => boolean) | null {
+	const priorities = isQuickFieldDefault(quick, 'priority') ? null : new Set(quick.priorities);
+	const tags = isQuickFieldDefault(quick, 'tag') ? null : quick.tags!;
+	const needle = isQuickFieldDefault(quick, 'search') ? null : quick.search!.trim().toLowerCase();
+	if (!priorities && !tags && needle === null) return null;
+	return (row) =>
+		(!priorities || priorities.has(row.metadata.priority ?? 'none')) &&
+		(!tags || tags.some((chosen) => row.metadata.tags.some((tag) => matchesNestedTag(chosen, tag)))) &&
+		(needle === null ||
+			taskDisplayText(row).toLowerCase().includes(needle) ||
+			row.noteTitle.toLowerCase().includes(needle));
+}
+
+/**
+ * The rows that pass the quick filters (status, Due, Priority, Tag and
+ * Search), plus each failing row with a passing row in its subtree (the later
+ * rows of the same note with a larger indent, up to the next one whose indent
+ * is not larger), kept as `dimmed`. The edited Due options fold into the same
+ * predicate: every row of a note shares `modifiedAt`, so no failing row is
+ * ever kept dimmed for them. Returns new objects; `rows` is never mutated.
  * @param today - today as `YYYY-MM-DD`, for the due date options
  * @param now - the clock the edited options read, in ms
  */
 export function applyQuickFilters(rows: TaskRow[], quick: TaskQuickFilters, today: string, now: number): VisibleRow[] {
 	const passesDue = duePredicate(quick.due, today, now);
-	const passes = rows.map((row) => passesStatus(row, quick) && (passesDue === null || passesDue(row)));
+	const passesMeta = metaPredicate(quick);
+	const passes = rows.map(
+		(row) =>
+			passesStatus(row, quick) && (passesDue === null || passesDue(row)) && (passesMeta === null || passesMeta(row)),
+	);
 	const visible: VisibleRow[] = [];
 	for (let i = 0; i < rows.length; i++) {
 		const row = rows[i];
@@ -298,14 +410,19 @@ const DUE_PHRASES: Record<Exclude<DueRange, 'any'>, string> = {
 
 /**
  * Builds the sentence above the Tasks list that says which tasks it shows,
- * e.g. "Open tasks under headings containing #to-list, overdue". No trailing
- * period.
+ * e.g. "Open tasks under headings containing #to-list, overdue, priority
+ * high, tagged #work, matching "call"". No trailing period.
  */
 export function describeTaskRule({ sectionTag, quick }: TaskRuleOptions): string {
 	const tag = displaySectionTags(sectionTag);
 	const where = tag ? ` under headings containing ${tag}` : ' from every note';
 	const when = quick.due === undefined || quick.due === 'any' ? '' : DUE_PHRASES[quick.due];
-	return `${describeStatus(quick)}${where}${when}`;
+	const priority = isQuickFieldDefault(quick, 'priority')
+		? ''
+		: `, priority ${quick.priorities!.map(priorityWord).join(' or ')}`;
+	const tagged = isQuickFieldDefault(quick, 'tag') ? '' : `, tagged ${quick.tags!.map((t) => `#${t}`).join(' or ')}`;
+	const matching = isQuickFieldDefault(quick, 'search') ? '' : `, matching "${quick.search!.trim()}"`;
+	return `${describeStatus(quick)}${where}${when}${priority}${tagged}${matching}`;
 }
 
 /** Why the Tasks list is empty, and the one action that would fill it */
@@ -316,13 +433,20 @@ export interface EmptyTasksExplanation {
 	action?:
 		| { kind: 'clearTag'; label: string }
 		| { kind: 'showAllStatuses'; label: string }
-		| { kind: 'resetQuick'; field: 'due'; label: string };
+		| { kind: 'resetQuick'; field: 'due' | 'priorities' | 'tags' | 'search'; label: string };
 }
+
+/** The stages after Due, in the order `explainEmptyTasks` checks them. */
+const META_STAGES = [
+	{ field: 'priority', key: 'priorities', name: 'Priority' },
+	{ field: 'tag', key: 'tags', name: 'Tag' },
+	{ field: 'search', key: 'search', name: 'Search' },
+] as const;
 
 /**
  * Names the first filter stage that leaves the Tasks list empty: the section
- * tag (no row at all), then the status filter, then the Due filter. Each
- * stage keeps the filters of the stages before it.
+ * tag (no row at all), then the status filter, then Due, Priority, Tag and
+ * Search. Each stage keeps the filters of the stages before it.
  * @param rows - the unfiltered store rows (already limited by the section tag
  *   on the Rust side)
  * @param today - today as `YYYY-MM-DD`, for the due date options
@@ -367,6 +491,17 @@ export function explainEmptyTasks({
 			message: 'No task matches the Due filter',
 			action: { kind: 'resetQuick', field: 'due', label: 'Reset Due filter' },
 		};
+	}
+
+	let upTo: TaskQuickFilters = statusAndDue;
+	for (const stage of META_STAGES) {
+		upTo = { ...upTo, [stage.key]: quick[stage.key] };
+		if (!isQuickFieldDefault(quick, stage.field) && applyQuickFilters(rows, upTo, today, now).length === 0) {
+			return {
+				message: `No task matches the ${stage.name} filter`,
+				action: { kind: 'resetQuick', field: stage.key, label: `Reset ${stage.name} filter` },
+			};
+		}
 	}
 
 	// Unreachable from the view, which asks only when its list is empty.

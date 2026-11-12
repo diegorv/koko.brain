@@ -12,7 +12,7 @@ Open the Tasks View with **Cmd+Shift+T**, or search for **"Toggle Tasks View"** 
 
 The Tasks View is a *virtual tab*: it is not a file on disk. It is built on the fly from the checkbox lines (`- [ ]`, `- [x]`, and other statuses) in your notes, limited by the filters below. With the default section filter, only tasks under a heading containing `#to-list` are listed. Tasks are grouped by their source file, and the notes are listed in path order, with numbers compared as numbers (`note 9` comes before `note 10`). Ticking a task does not move its note.
 
-A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, no task with the chosen status, or no task that matches the Due filter) and offers a button that lifts it: **Clear tag**, **Show all** or **Reset Due filter**. **Reset Due filter** puts only the Due menu back to **Any** and leaves the other filters as they are. The toolbar counts the tasks and the notes listed, for example "2 open in 2 notes", or "3 tasks in 2 notes" when the Status menu is set to something other than Open.
+A sentence above the list says which tasks it shows, for example "Open tasks under headings containing #to-list". When the list is empty, the view names the filter that emptied it (no task under the section tag, no task with the chosen status, or no task that matches the Due, Priority, Tag or Search filter) and offers a button that lifts it: **Clear tag**, **Show all**, or **Reset Due filter**, **Reset Priority filter**, **Reset Tag filter** or **Reset Search filter**. Each of those last four resets only its own filter and leaves the others as they are. The toolbar counts the tasks and the notes listed, for example "2 open in 2 notes", or "3 tasks in 2 notes" when the Status menu is set to something other than Open.
 
 ![Tasks View with grouped tasks](screenshots/tasks-view.png)
 
@@ -104,9 +104,17 @@ The row under the Tasks View toolbar holds several filters to help you focus on 
 |--------------------|--------------------------------------|------------------------------------|
 | **Status**         | Open / Closed / All, or any of the seven statuses | **Open** (the default) lists todo, in progress, question, important and forwarded tasks; **Closed** lists done (`- [x]`) and cancelled (`- [-]`) tasks; **All** lists every task. Below them, tick one or more statuses (todo, in progress, question, important, forwarded, done, cancelled) to list only those; picking Open, Closed or All clears them. A task that does not match stays, dimmed, when a task nested under it matches |
 | **Due**            | Any / Overdue / Today / Next 7 days / No date, then Note edited in the last 7 days / Note edited in the last 30 days | **Any** (the default) lists every task. **Overdue**, **Today** and **Next 7 days** read the task's due date (the 📅 signifier): before today, today, or from today through the seventh day after it, both included. **No date** lists tasks with no due date; among the due date options, an undated task matches only **No date**. The two **Note edited** options read the note's modification date instead, not a task date, and keep every task of a note modified in that period. The Due menu does not look at the status: combine it with the Status menu |
+| **Priority**       | highest / high / medium / no priority / low / lowest | Tick one or more levels to list tasks with any of them; none ticked lists every task. **no priority** lists tasks without a priority signifier |
+| **Tag**            | One item per task tag in the list   | Tick one or more tags to list tasks carrying any of them; none ticked lists every task. A tag also matches the tags nested under it: `#work` lists tasks tagged `#work` and `#work/client`, not `#workshop`. Case does not matter |
 | **Section filter** | Text input                           | Keep tasks under a heading containing this tag (e.g. `#to-list`; the `#` is optional). Takes several tags, separated by spaces or commas (e.g. `#to-list #work`), and lists a task when its heading contains any of them. Default: `#to-list`. Empty: every task in the vault. The field is remembered per vault and comes back after a restart. An empty field is not remembered: the next start shows `#to-list`. |
 
 Combine filters to narrow down your view. For example, keep **Status** on **Open** and set **Due** to **Overdue** to see only unfinished tasks past their due date.
+
+The **Search tasks** box in the toolbar lists the tasks whose text or note title contains what you type, as you type, whatever the case. It does not search tags or dates: use the Tag menu for tags.
+
+**Reset filters**, at the end of the filter row, shows while the Status, Due, Priority, Tag or search filter is changed, and puts all of them back to their defaults. It leaves the section filter as it is.
+
+In a pane narrower than 560 px, the Status, Due, Priority and Tag menus fold into one **Filters (n)** menu, where n counts how many of the four are changed.
 
 ---
 

@@ -6,16 +6,22 @@ import {
 	describeTaskRule,
 	explainEmptyTasks,
 	isQuickFieldDefault,
+	matchesNestedTag,
 	rowsByNote,
 	statusFilterLabel,
+	tagMenuOptions,
 	taskCountText,
+	taskTagOptions,
+	toggleQuickPriority,
 	toggleQuickStatus,
+	toggleQuickTag,
 	type DueRange,
+	type QuickFilterField,
 	type TaskQuickFilters,
 	type TaskRow,
 	type VisibleRow,
 } from '#lib/features/tasks/task-query.logic.js';
-import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
+import type { TaskPriority, TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import type { FileTaskGroup, TaskItem } from '#lib/features/tasks/tasks.types.js';
 import { sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../fixtures/timezone.fixture';
@@ -350,7 +356,210 @@ describe('applyQuickFilters: the Due filter', () => {
 	});
 });
 
+/** A todo task on `lineNumber` with `priority` (absent when undefined, as Rust sends it) and `tags`. */
+const metaTask = (text: string, lineNumber: number, meta: { priority?: TaskPriority; tags?: string[] } = {}, indent = 0) =>
+	taskV2(text, {
+		indent,
+		lineNumber,
+		metadata: { description: text, tags: meta.tags ?? [], ...(meta.priority ? { priority: meta.priority } : {}) },
+	});
+
+describe('applyQuickFilters: the Priority filter', () => {
+	const kept = (rows: TaskRow[], priorities: TaskPriority[] | undefined) =>
+		applyQuickFilters(rows, { show: 'all', priorities }, TODAY, NOW).map((r) => r.text);
+	const levels = () =>
+		rowsOf([
+			metaTask('high', 1, { priority: 'high' }),
+			metaTask('low', 2, { priority: 'low' }),
+			metaTask('absent', 3),
+			metaTask('none', 4, { priority: 'none' }),
+			metaTask('highest', 5, { priority: 'highest' }),
+		]);
+
+	it('keeps only high under [high]', () => {
+		expect(kept(levels(), ['high'])).toEqual(['high']);
+	});
+
+	it('keeps an absent priority and an explicit none under [none]', () => {
+		const rows = levels();
+		expect(rows[2].metadata).not.toHaveProperty('priority');
+		expect(kept(rows, ['none'])).toEqual(['absent', 'none']);
+	});
+
+	it('keeps both levels under [high, low]', () => {
+		expect(kept(levels(), ['high', 'low'])).toEqual(['high', 'low']);
+	});
+
+	it('keeps every row for an empty or absent set', () => {
+		expect(kept(levels(), [])).toHaveLength(5);
+		expect(kept(levels(), undefined)).toHaveLength(5);
+	});
+
+	it('keeps a low parent of a high child dimmed under [high]', () => {
+		const rows = rowsOf([metaTask('parent', 1, { priority: 'low' }, 0), metaTask('child', 2, { priority: 'high' }, 1)]);
+		expect(shown(applyQuickFilters(rows, { show: 'all', priorities: ['high'] }, TODAY, NOW))).toEqual([
+			['parent', true],
+			['child', false],
+		]);
+	});
+});
+
+describe('toggleQuickPriority', () => {
+	it('stores levels in menu order whatever the click order', () => {
+		expect(toggleQuickPriority(toggleQuickPriority(undefined, 'none'), 'high')).toEqual(['high', 'none']);
+		expect(toggleQuickPriority(['highest', 'lowest'], 'low')).toEqual(['highest', 'low', 'lowest']);
+	});
+
+	it('returns undefined when the last level is removed', () => {
+		expect(toggleQuickPriority(['high'], 'high')).toBeUndefined();
+	});
+});
+
+describe('matchesNestedTag', () => {
+	it.each([
+		['work', 'work', true],
+		['work', 'work/client', true],
+		['work', 'workshop', false],
+		['work', 'Work', true],
+		['Work', 'work/Client', true],
+		['#work', 'work', true],
+		['#work', 'work/client', true],
+		['work/client', 'work', false],
+		['work', 'home', false],
+	] as const)('chosen %j matches %j: %s', (chosen, tag, expected) => {
+		expect(matchesNestedTag(chosen, tag)).toBe(expected);
+	});
+});
+
+describe('applyQuickFilters: the Tag filter', () => {
+	const kept = (rows: TaskRow[], tags: string[] | undefined) =>
+		applyQuickFilters(rows, { show: 'all', tags }, TODAY, NOW).map((r) => r.text);
+	const tagged = () =>
+		rowsOf([
+			metaTask('work', 1, { tags: ['work'] }),
+			metaTask('client', 2, { tags: ['work/client'] }),
+			metaTask('workshop', 3, { tags: ['workshop'] }),
+			metaTask('home', 4, { tags: ['Home'] }),
+			metaTask('untagged', 5),
+		]);
+
+	it('keeps work and work/client under [work], dropping workshop', () => {
+		expect(kept(tagged(), ['work'])).toEqual(['work', 'client']);
+	});
+
+	it('keeps a task carrying any of two tags', () => {
+		expect(kept(tagged(), ['workshop', 'home'])).toEqual(['workshop', 'home']);
+	});
+
+	it('matches a different case', () => {
+		expect(kept(tagged(), ['HOME'])).toEqual(['home']);
+	});
+
+	it('ignores a leading # on the chosen tag', () => {
+		expect(kept(tagged(), ['#work'])).toEqual(['work', 'client']);
+	});
+
+	it('keeps every row for an empty or absent set', () => {
+		expect(kept(tagged(), [])).toHaveLength(5);
+		expect(kept(tagged(), undefined)).toHaveLength(5);
+	});
+});
+
+describe('taskTagOptions', () => {
+	it('returns tags without #, de-duplicated by case keeping the first spelling, sorted case-insensitively', () => {
+		const rows = rowsOf([
+			metaTask('a', 1, { tags: ['work', 'Zeta'] }),
+			metaTask('b', 2, { tags: ['Work', 'alpha'] }),
+			metaTask('c', 3, { tags: ['work/client'] }),
+		]);
+		expect(taskTagOptions(rows)).toEqual(['alpha', 'work', 'work/client', 'Zeta']);
+	});
+
+	it('returns [] for rows with no tags', () => {
+		expect(taskTagOptions(rowsOf([metaTask('a', 1)]))).toEqual([]);
+		expect(taskTagOptions([])).toEqual([]);
+	});
+});
+
+describe('tagMenuOptions', () => {
+	const rows = () => rowsOf([metaTask('a', 1, { tags: ['work'] })]);
+
+	it('is taskTagOptions when every chosen tag is present', () => {
+		expect(tagMenuOptions(rows(), ['work'])).toEqual(['work']);
+		expect(tagMenuOptions(rows(), undefined)).toEqual(['work']);
+	});
+
+	it('keeps a chosen tag no longer in the rows, in sorted place', () => {
+		expect(tagMenuOptions(rows(), ['alpha'])).toEqual(['alpha', 'work']);
+		expect(tagMenuOptions([], ['home'])).toEqual(['home']);
+	});
+});
+
+describe('toggleQuickTag', () => {
+	const options = ['alpha', 'home', 'work'];
+
+	it('stores chosen tags in option order whatever the click order', () => {
+		expect(toggleQuickTag(toggleQuickTag(undefined, 'work', options), 'alpha', options)).toEqual(['alpha', 'work']);
+	});
+
+	it('returns undefined when the last tag is removed', () => {
+		expect(toggleQuickTag(['home'], 'home', options)).toBeUndefined();
+	});
+});
+
+describe('applyQuickFilters: the search', () => {
+	const kept = (rows: TaskRow[], search: string | undefined) =>
+		applyQuickFilters(rows, { show: 'all', search }, TODAY, NOW).map((r) => r.text);
+
+	// Rust's output for these lines, copied from Issue 109's pinned pairs in tasks.logic.test.ts.
+	const chapter = () => taskV2('read [[Book#Chapter 2]]', { lineNumber: 1, metadata: { description: 'read [[Book 2]]', tags: ['Chapter'] } });
+	const invoice = () =>
+		taskV2('Send invoice 📅 2026-11-03 ⏫ #work', {
+			lineNumber: 2,
+			metadata: { description: 'Send invoice', dueDate: '2026-11-03', priority: 'high', tags: ['work'] },
+		});
+
+	it('finds a row by what it shows when that is the raw text', () => {
+		expect(kept(rowsOf([chapter(), invoice()]), 'chapter')).toEqual(['read [[Book#Chapter 2]]']);
+	});
+
+	it('searches the description, not the raw text with its due date', () => {
+		const rows = rowsOf([chapter(), invoice()]);
+		expect(kept(rows, 'INVOICE')).toEqual(['Send invoice 📅 2026-11-03 ⏫ #work']);
+		expect(kept(rows, '2026-11-03')).toEqual([]);
+	});
+
+	it('finds a row by a substring of its note title alone', () => {
+		const rows = buildTaskRows([group('/vault/Quarterly Plan.md', [metaTask('Ship', 1)]), group('/vault/b.md', [metaTask('Ship', 1)])], '/vault');
+		expect(applyQuickFilters(rows, { show: 'all', search: '  terly pl ' }, TODAY, NOW).map((r) => r.filePath)).toEqual([
+			'/vault/Quarterly Plan.md',
+		]);
+	});
+
+	it('keeps every row for a blank or whitespace-only search', () => {
+		const rows = rowsOf([chapter(), invoice()]);
+		expect(kept(rows, '')).toHaveLength(2);
+		expect(kept(rows, '   ')).toHaveLength(2);
+		expect(kept(rows, undefined)).toHaveLength(2);
+	});
+});
+
 describe('isQuickFieldDefault', () => {
+	it.each([
+		['priority', {}, true],
+		['priority', { priorities: [] }, true],
+		['priority', { priorities: ['high'] }, false],
+		['tag', {}, true],
+		['tag', { tags: [] }, true],
+		['tag', { tags: ['work'] }, false],
+		['search', {}, true],
+		['search', { search: '' }, true],
+		['search', { search: '  ' }, true],
+		['search', { search: 'a' }, false],
+	] as [QuickFilterField, Partial<TaskQuickFilters>, boolean][])('%s of %j is default: %s', (field, partial, expected) => {
+		expect(isQuickFieldDefault({ show: 'closed', ...partial }, field)).toBe(expected);
+	});
+
 	it.each([
 		[{ show: 'open' }, true],
 		[{ show: 'open', statuses: [] }, true],
@@ -521,6 +730,31 @@ describe('describeTaskRule', () => {
 	it('treats separators with no tag as no tag', () => {
 		expect(describeTaskRule({ sectionTag: ' , ', quick: OPEN })).toBe('Open tasks from every note');
 	});
+
+	it.each([
+		[{ priorities: ['high', 'none'] }, ', priority high or no priority'],
+		[{ tags: ['work', 'home/x'] }, ', tagged #work or #home/x'],
+		[{ search: '  invoice ' }, ', matching "invoice"'],
+	] as [Partial<TaskQuickFilters>, string][])('%j adds %j after the heading part', (partial, phrase) => {
+		expect(describeTaskRule({ sectionTag: '#to-list', quick: { show: 'open', ...partial } })).toBe(
+			`Open tasks under headings containing #to-list${phrase}`,
+		);
+	});
+
+	it('puts priority, tag and search in that order after the due part', () => {
+		expect(
+			describeTaskRule({
+				sectionTag: '',
+				quick: { show: 'all', due: 'overdue', priorities: ['highest'], tags: ['work'], search: 'call' },
+			}),
+		).toBe('All tasks from every note, overdue, priority highest, tagged #work, matching "call"');
+	});
+
+	it('adds nothing for empty priority, tag and search values', () => {
+		expect(describeTaskRule({ sectionTag: '', quick: { show: 'open', priorities: [], tags: [], search: '  ' } })).toBe(
+			'Open tasks from every note',
+		);
+	});
 });
 
 describe('explainEmptyTasks', () => {
@@ -640,6 +874,49 @@ describe('explainEmptyTasks', () => {
 		it('names the Due filter under All and under chosen statuses', () => {
 			expect(explain(rows([[done(1)]]), { show: 'all', due: 'edited30' })).toEqual({ message: DUE_MESSAGE, action: RESET_DUE });
 			expect(explain(rows([[open(1)]]), { show: 'all', statuses: ['todo'], due: 'today' })).toEqual({
+				message: DUE_MESSAGE,
+				action: RESET_DUE,
+			});
+		});
+	});
+
+	describe('stages 4 to 6: Priority, Tag and Search', () => {
+		const RESET_PRIORITY = { kind: 'resetQuick', field: 'priorities', label: 'Reset Priority filter' };
+		const RESET_TAG = { kind: 'resetQuick', field: 'tags', label: 'Reset Tag filter' };
+		const RESET_SEARCH = { kind: 'resetQuick', field: 'search', label: 'Reset Search filter' };
+		const PRIORITY = { message: 'No task matches the Priority filter', action: RESET_PRIORITY };
+		const TAG = { message: 'No task matches the Tag filter', action: RESET_TAG };
+		const SEARCH = { message: 'No task matches the Search filter', action: RESET_SEARCH };
+
+		/** A high open task tagged work, and a done low one tagged home. */
+		const two = () => rows([[metaTask('Call Ana', 1, { priority: 'high', tags: ['work'] }), taskV2('Paint', { status: 'done', lineNumber: 2, metadata: { description: 'Paint', priority: 'low', tags: ['home'] } })]]);
+
+		it('names each filter when it alone empties the list', () => {
+			expect(explain(two(), { show: 'open', priorities: ['low'] })).toEqual(PRIORITY);
+			expect(explain(two(), { show: 'open', tags: ['home'] })).toEqual(TAG);
+			expect(explain(two(), { show: 'open', search: 'paint' })).toEqual(SEARCH);
+		});
+
+		it('is cumulative: a filter that empties the list only with the ones before it is named', () => {
+			// Priority low keeps Paint under All, then Search "call" drops it.
+			expect(explain(two(), { show: 'all', priorities: ['low'], search: 'call' })).toEqual(SEARCH);
+		});
+
+		it('names Priority when Priority and Search would each empty the list', () => {
+			expect(explain(two(), { show: 'open', priorities: ['lowest'], search: 'nothing' })).toEqual(PRIORITY);
+		});
+
+		it('names Tag when Tag and Search would each empty the list', () => {
+			expect(explain(two(), { show: 'open', tags: ['nope'], search: 'nothing' })).toEqual(TAG);
+		});
+
+		it('lets Status and Due win over all three', () => {
+			const rest: Partial<TaskQuickFilters> = { priorities: ['lowest'], tags: ['nope'], search: 'nothing' };
+			expect(explain(rows([[done(1)]]), { show: 'open', ...rest })).toEqual({
+				message: 'The only task is closed',
+				action: SHOW_ALL,
+			});
+			expect(explain(two(), { show: 'open', due: 'overdue', ...rest })).toEqual({
 				message: DUE_MESSAGE,
 				action: RESET_DUE,
 			});

@@ -12,7 +12,7 @@ let rows = $state.raw<TaskRow[]>([]);
  * means all tasks.
  */
 let sectionTag = $state('#to-list');
-/** The quick filters (status and Due), replaced whole on every change */
+/** The quick filters (status, Due, Priority, Tag and Search), replaced whole on every change */
 let quick = $state.raw<TaskQuickFilters>({ ...DEFAULT_QUICK });
 /** True while the task index is being built */
 let isLoading = $state(false);

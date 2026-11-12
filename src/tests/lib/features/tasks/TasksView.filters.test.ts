@@ -15,6 +15,7 @@ import { unmount, flushSync, tick } from 'svelte';
 import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import type { TaskPriority } from '#lib/features/tasks/task-metadata.types.js';
 import { mockTaskFetch, mountTasksView, openMenu, sevenStatusGroup, taskGroupV2, taskV2 } from '../../../fixtures/tasks.fixture';
 
 const NOTE = '/vault/Projects/2026-Q2.md';
@@ -300,6 +301,196 @@ describe('TasksView: the filter row', () => {
 		await until(() => expect(rowTexts()).toEqual(['Later', 'Shipped']));
 		expect(dueTrigger().textContent?.trim()).toBe('Due: any');
 		expect(statusTrigger().textContent?.trim()).toBe('Status: all');
+	});
+
+	describe('Priority, Tag, Search and Reset filters', () => {
+		/** A task with a priority (absent when undefined, as Rust sends it) and tags. */
+		const metaTaskV2 = (text: string, lineNumber: number, priority: TaskPriority | undefined, tags: string[]) =>
+			taskV2(text, { lineNumber, metadata: { description: text, tags, ...(priority ? { priority } : {}) } });
+		const metaGroup = () =>
+			taskGroupV2(NOTE, [
+				metaTaskV2('Bill ACME', 1, 'high', ['work']),
+				metaTaskV2('Call client', 2, 'low', ['work/client']),
+				metaTaskV2('Plan workshop', 3, undefined, ['workshop']),
+				metaTaskV2('Water plants', 4, 'medium', []),
+			]);
+		const ALL_TEXTS = ['Bill ACME', 'Call client', 'Plan workshop', 'Water plants'];
+
+		const searchBox = () => document.querySelector<HTMLInputElement>('input[aria-label="Search tasks"]')!;
+		const priorityTrigger = () => triggerStarting('Priority');
+		const tagTrigger = () => triggerStarting('Tag');
+		const filtersTrigger = () => triggerStarting('Filters');
+
+		/** Closes the open menu with Escape: a checkbox pick leaves it open. */
+		async function closeOpenMenu() {
+			openMenuEl()!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+			await until(() => expect(openMenuEl()).toBeNull());
+		}
+
+		function typeSearch(value: string) {
+			const box = searchBox();
+			box.value = value;
+			box.dispatchEvent(new Event('input', { bubbles: true }));
+		}
+
+		it('narrows the rows as the search is typed', async () => {
+			mockTaskFetch([metaGroup()]);
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+			expect(searchBox().type).toBe('search');
+			expect(document.querySelector('.pane-toolbar')!.contains(searchBox())).toBe(true);
+
+			typeSearch('CL');
+			await until(() => expect(rowTexts()).toEqual(['Call client']));
+			expect(tasksStore.quick.search).toBe('CL');
+			typeSearch('');
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+			expect(tasksStore.quick.search).toBeUndefined();
+		});
+
+		it('Tag > #work lists work and work/client rows and stays open for a second pick', async () => {
+			mockTaskFetch([metaGroup()]);
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+			expect(tagTrigger().textContent?.trim()).toBe('Tag');
+
+			await openMenu(tagTrigger());
+			expect(Array.from(openMenuEl()!.querySelectorAll('[role="menuitemcheckbox"]')).map((el) => el.textContent?.trim())).toEqual([
+				'#work',
+				'#work/client',
+				'#workshop',
+			]);
+			menuItem('menuitemcheckbox', '#work').click();
+			await until(() => expect(rowTexts()).toEqual(['Bill ACME', 'Call client']));
+			expect(tasksStore.quick.tags).toEqual(['work']);
+			expect(tagTrigger().textContent?.trim()).toBe('Tag: #work');
+			expect(openMenuEl()).not.toBeNull();
+
+			menuItem('menuitemcheckbox', '#workshop').click();
+			await until(() => expect(rowTexts()).toEqual(['Bill ACME', 'Call client', 'Plan workshop']));
+			expect(tagTrigger().textContent?.trim()).toBe('Tag: #work, #workshop');
+		});
+
+		it('Tag holds one disabled item when no task has a tag', async () => {
+			mockTaskFetch([taskGroupV2(NOTE, [taskV2('Ship', { lineNumber: 1 })])]);
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(['Ship']));
+
+			await openMenu(tagTrigger());
+			const items = Array.from(openMenuEl()!.querySelectorAll<HTMLElement>('[role="menuitem"]'));
+			expect(items.map((el) => el.textContent?.trim())).toEqual(['No tags in these tasks']);
+			expect(items[0].hasAttribute('data-disabled')).toBe(true);
+		});
+
+		it('Priority lists the six levels in order and reads its picks in that order, staying open', async () => {
+			mockTaskFetch([metaGroup()]);
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+			expect(priorityTrigger().textContent?.trim()).toBe('Priority');
+
+			await openMenu(priorityTrigger());
+			expect(Array.from(openMenuEl()!.querySelectorAll('[role="menuitemcheckbox"]')).map((el) => el.textContent?.trim())).toEqual([
+				'highest',
+				'high',
+				'medium',
+				'no priority',
+				'low',
+				'lowest',
+			]);
+			menuItem('menuitemcheckbox', 'no priority').click();
+			await until(() => expect(rowTexts()).toEqual(['Plan workshop']));
+			expect(openMenuEl()).not.toBeNull();
+			menuItem('menuitemcheckbox', 'high').click();
+			await until(() => expect(rowTexts()).toEqual(['Bill ACME', 'Plan workshop']));
+			expect(tasksStore.quick.priorities).toEqual(['high', 'none']);
+			expect(priorityTrigger().textContent?.trim()).toBe('Priority: high, no priority');
+		});
+
+		it('shows Reset filters only off the defaults, and a typed then deleted letter leaves no trace', async () => {
+			mockTaskFetch([metaGroup()]);
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+			expect(buttonNamed('Reset filters')).toBeUndefined();
+
+			typeSearch('b');
+			await until(() => expect(buttonNamed('Reset filters')).toBeDefined());
+			typeSearch('');
+			await until(() => expect(buttonNamed('Reset filters')).toBeUndefined());
+
+			await openMenu(priorityTrigger());
+			menuItem('menuitemcheckbox', 'high').click();
+			await until(() => expect(buttonNamed('Reset filters')).toBeDefined());
+		});
+
+		it('Reset filters restores Status, Due, Priority, Tag and the search box', async () => {
+			mockTaskFetch([metaGroup()]);
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+
+			await openMenu(statusTrigger());
+			menuItem('menuitemradio', 'All').click();
+			await settle();
+			await openMenu(dueTrigger());
+			menuItem('menuitemradio', 'No date').click();
+			await settle();
+			await openMenu(priorityTrigger());
+			menuItem('menuitemcheckbox', 'high').click();
+			await closeOpenMenu();
+			await openMenu(tagTrigger());
+			menuItem('menuitemcheckbox', '#work').click();
+			await closeOpenMenu();
+			typeSearch('bill');
+			await until(() => expect(rowTexts()).toEqual(['Bill ACME']));
+			expect(filtersTrigger().textContent?.trim()).toBe('Filters (4)');
+
+			buttonNamed('Reset filters')!.click();
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+			expect(tasksStore.quick).toEqual({ show: 'open' });
+			expect(searchBox().value).toBe('');
+			expect(statusTrigger().textContent?.trim()).toBe('Status: open');
+			expect(dueTrigger().textContent?.trim()).toBe('Due: any');
+			expect(priorityTrigger().textContent?.trim()).toBe('Priority');
+			expect(tagTrigger().textContent?.trim()).toBe('Tag');
+			expect(buttonNamed('Reset filters')).toBeUndefined();
+
+			await openMenu(tagTrigger());
+			expect(menuItem('menuitemcheckbox', '#work').getAttribute('aria-checked')).toBe('false');
+		});
+
+		it('counts the folded menus off their default in Filters (n), not the search', async () => {
+			mockTaskFetch([metaGroup()]);
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+			expect(filtersTrigger().textContent?.trim()).toBe('Filters (0)');
+
+			await openMenu(statusTrigger());
+			menuItem('menuitemradio', 'All').click();
+			await until(() => expect(filtersTrigger().textContent?.trim()).toBe('Filters (1)'));
+			typeSearch('bill');
+			await until(() => expect(rowTexts()).toEqual(['Bill ACME']));
+			expect(filtersTrigger().textContent?.trim()).toBe('Filters (1)');
+		});
+
+		it('the Filters menu holds the four groups flat, each under a label and a separator', async () => {
+			mockTaskFetch([metaGroup()]);
+			({ component } = await mountTasksView());
+			await until(() => expect(rowTexts()).toEqual(ALL_TEXTS));
+
+			await openMenu(filtersTrigger());
+			const menu = openMenuEl()!;
+			expect(Array.from(menu.querySelectorAll('[data-slot="dropdown-menu-label"]')).map((el) => el.textContent?.trim())).toEqual([
+				'Status',
+				'Due',
+				'Priority',
+				'Tag',
+			]);
+			expect(menu.querySelector('[role="menu"] [role="menu"]')).toBeNull();
+			expect(menu.querySelectorAll('[role="menuitemcheckbox"]')).toHaveLength(7 + 6 + 3);
+
+			menuItem('menuitemcheckbox', '#work').click();
+			await until(() => expect(rowTexts()).toEqual(['Bill ACME', 'Call client']));
+			expect(filtersTrigger().textContent?.trim()).toBe('Filters (1)');
+		});
 	});
 
 	it('keeps the title, count and spinner in the toolbar and the filters in their own row', async () => {

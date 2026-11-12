@@ -71,6 +71,30 @@ test.describe('Tasks view', () => {
 			.toContain('- [x] Ship feature A');
 	});
 
+	test('a narrow pane folds the four filter menus into Filters (n)', async ({ vaultPage: page }) => {
+		await page.setViewportSize({ width: 500, height: 800 });
+		await pressShortcut(page, 'Mod+Shift+T');
+		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+
+		// Projects/2026-Q2.md holds `- [x] Draft RFC`, hidden by the default Status: open.
+		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Draft RFC')).toHaveCount(0);
+
+		const filters = page.getByRole('button', { name: /^Filters \(/ });
+		await expect(filters).toBeVisible();
+		await expect(filters).toHaveText('Filters (0)');
+		for (const name of ['Status: open', 'Due: any', 'Priority', 'Tag']) {
+			const trigger = page.getByRole('button', { name, exact: true, includeHidden: true });
+			await expect(trigger).toHaveCount(1);
+			await expect(trigger).toBeHidden();
+		}
+
+		await filters.click();
+		await page.getByRole('menuitemradio', { name: 'All' }).click();
+		await expect(page.getByText('Draft RFC')).toBeVisible();
+		await expect(filters).toHaveText('Filters (1)');
+	});
+
 	test('task list scrolls when it is taller than the tab', async ({ vaultPage: page }) => {
 		await page.setViewportSize({ width: 1000, height: 260 });
 		await pressShortcut(page, 'Mod+Shift+T');
