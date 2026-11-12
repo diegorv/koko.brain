@@ -127,6 +127,13 @@ In a pane narrower than 560 px, the Status, Due, Priority and Tag menus fold int
 - **Click a note's title**: each note's header shows its icon, title, folder and how many of its tasks are open, for example "2 of 3 open" (every task of the note counts, whatever the filters hide). Clicking the title opens the note in the editor, and hovering over it shows when the note was last modified.
 - **Collapse a group**: the chevron at the start of each group's header (a note, a folder, a due date, a priority or a status) hides that group's tasks; its header and count stay. A collapsed group stays collapsed while you switch tabs and come back, but not across restarts, and each grouping keeps its own: collapsing Overdue under Due date leaves the Note grouping as it was.
 - **Long groups**: a group shows its first 50 tasks, then a **Show N more** button that shows the rest. The list goes back to 50 the next time the Tasks View opens.
+- **Task menu**: the **...** button at the end of each task row opens its menu, and so does a right click anywhere on the row, `Shift+F10` or the Menu key. **Open at line** opens the note with the cursor on the task's line. **Copy task text** copies the task's line as written, dates, priority and tags included, without its block id (`^abc`) or Todoist anchor (`🆔 td-...`). The four statuses below set the task to **Todo**, **In progress**, **Done** or **Cancelled**; the current one is checked. A question, important or forwarded task shows none checked, and picking one of the four replaces that status.
+
+### Undo a status change
+
+A status set from the task menu shows a "Task marked ..." message with an **Undo** button, which puts back the status the task had before, whatever it was. Undo covers only the last change made from the menu: the message goes away when you make another status change (from the menu, a checkbox or `Space`) or switch vaults, and Undo then has nothing to undo. A checkbox click or `Space` shows no Undo. A task written as `[X]` comes back as `[x]`, and a task with a status character Kokobrain does not know comes back as `[ ]`.
+
+For a task synced with Todoist, a change between an open status (Todo, In progress) and a closed one (Done, Cancelled) reaches Todoist at the next sync, as a completion or a reopen. Undo before that sync leaves the line as it was at the last sync, so nothing is sent; Undo after it sends the opposite change. A change between two open or two closed statuses does not reach Todoist. As with a checkbox click, a menu change is not a note save and does not start the after-save sync.
 
 ### Keyboard
 
@@ -138,8 +145,9 @@ Only one task row is in the Tab order at a time. Opening the Tasks View puts foc
 | `Home` / `End` | First / last task |
 | `Space` | Toggle the task, as a click on its checkbox does |
 | `Enter` | Open the note at the task's line, as a click on its text does |
+| `Shift+F10` / Menu key | Open the task menu, as a click on its **...** button does |
 
-`Tab` from a task walks its checkbox and links, then goes on to the next group's chevron and the next note's title. When the focused task leaves the list (you completed it under the Open filter, or a refresh removed it), focus moves to the next task, or to the one before when it was the last. The place is kept when you switch tabs and come back. `Down` and `Up` skip the tasks of a collapsed group; when the task you were on is hidden by a collapse or by the 50-task limit, the next task shown takes its place in the Tab order, or the last one shown when none follows.
+`Tab` from a task walks its checkbox, links and **...** button, then goes on to the next group's chevron and the next note's title. Closing the task menu puts focus back on the task. When the focused task leaves the list (you completed it under the Open filter, or a refresh removed it), focus moves to the next task, or to the one before when it was the last. The place is kept when you switch tabs and come back. `Down` and `Up` skip the tasks of a collapsed group; when the task you were on is hidden by a collapse or by the 50-task limit, the next task shown takes its place in the Tab order, or the last one shown when none follows.
 
 In the Command Palette, **Tasks: Show all statuses** sets the Status filter to All, and **Tasks: Show open only** sets it back to Open; either one opens the Tasks View. `/` opens Search in the rail (the vault search), not the Tasks View's search box.
 

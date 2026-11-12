@@ -1,5 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { TASK_STATUSES, isTaskOpen, statusGlyph, toggleTarget, type StatusGlyph } from '#lib/features/tasks/task-status.logic.js';
+import {
+	ROW_MENU_STATUSES,
+	TASK_STATUSES,
+	isTaskOpen,
+	statusGlyph,
+	statusMenuLabel,
+	toggleTarget,
+	type StatusGlyph,
+} from '#lib/features/tasks/task-status.logic.js';
 import type { TaskStatus } from '#lib/features/tasks/task-metadata.types.js';
 import { taskV2 } from '../../../fixtures/tasks.fixture';
 
@@ -54,5 +62,24 @@ describe('statusGlyph', () => {
 		['cancelled', { icon: 'circle-minus', word: 'cancelled', tone: 'text-muted-foreground' }],
 	])('%s', (status, glyph) => {
 		expect(statusGlyph(status)).toEqual(glyph);
+	});
+});
+
+describe('ROW_MENU_STATUSES', () => {
+	it('lists todo, in progress, done and cancelled in TASK_STATUSES order', () => {
+		expect(ROW_MENU_STATUSES).toEqual(['todo', 'in-progress', 'done', 'cancelled']);
+		expect(TASK_STATUSES.filter((s) => ROW_MENU_STATUSES.includes(s))).toEqual(ROW_MENU_STATUSES);
+	});
+});
+
+describe('statusMenuLabel', () => {
+	it.each<[TaskStatus, string]>([
+		['todo', 'Todo'],
+		['in-progress', 'In progress'],
+		['done', 'Done'],
+		['cancelled', 'Cancelled'],
+		['question', 'Question'],
+	])('%s is %j', (status, label) => {
+		expect(statusMenuLabel(status)).toBe(label);
 	});
 });

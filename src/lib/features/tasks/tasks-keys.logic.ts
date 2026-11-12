@@ -26,8 +26,8 @@ export interface TaskKeyInput {
 	count: number;
 }
 
-/** What the list does for a key: focus a row by index, toggle the row, or open its note at the task's line. */
-export type TaskKeyAction = { kind: 'focus'; index: number } | { kind: 'toggle' } | { kind: 'open' };
+/** What the list does for a key: focus a row by index, toggle the row, open its note at the task's line, or open the row's menu. */
+export type TaskKeyAction = { kind: 'focus'; index: number } | { kind: 'toggle' } | { kind: 'open' } | { kind: 'menu' };
 
 /** The `<filePath>:<lineNumber>` key that identifies a task row. */
 export function taskRowKey(filePath: string, lineNumber: number): string {
@@ -40,10 +40,14 @@ export function taskRowKey(filePath: string, lineNumber: number): string {
  * click), any modifier held, no rows, a repeated Space or Enter (holding
  * Space would toggle each row that slides under focus), or any other key.
  * Arrows clamp at the ends, so the caller still prevents the scroll.
+ * Shift+F10 and the bare ContextMenu key open the row's menu: Shift+F10 is
+ * the one key Shift does not cancel.
  */
 export function resolveTaskKey(input: TaskKeyInput): TaskKeyAction | null {
 	const { key, repeat, onRow, meta, ctrl, alt, shift, index, count } = input;
-	if (!onRow || meta || ctrl || alt || shift || count === 0) return null;
+	if (!onRow || meta || ctrl || alt || count === 0) return null;
+	if (shift) return key === 'F10' ? { kind: 'menu' } : null;
+	if (key === 'ContextMenu') return { kind: 'menu' };
 	switch (key) {
 		case 'ArrowDown':
 			return { kind: 'focus', index: Math.min(index + 1, count - 1) };

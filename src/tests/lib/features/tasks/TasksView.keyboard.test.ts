@@ -159,14 +159,14 @@ describe('TasksView: keyboard and accessible rows', () => {
 			row.getAttribute('tabindex'),
 			...Array.from(row.querySelectorAll('button, a')).map((el) => el.getAttribute('tabindex')),
 		];
-		// Row 0: row, circle, wikilink, URL. Row 1 (not current) has a wikilink and a URL too.
-		expect(tabindexes(rows()[0])).toEqual(['0', '0', '0', '0']);
-		expect(tabindexes(rows()[1])).toEqual(['-1', '-1', '-1', '-1']);
-		expect(tabindexes(rows()[2])).toEqual(['-1', '-1']);
+		// Row 0: row, circle, wikilink, URL, Task actions. Row 1 (not current) has a wikilink and a URL too.
+		expect(tabindexes(rows()[0])).toEqual(['0', '0', '0', '0', '0']);
+		expect(tabindexes(rows()[1])).toEqual(['-1', '-1', '-1', '-1', '-1']);
+		expect(tabindexes(rows()[2])).toEqual(['-1', '-1', '-1']);
 
 		press(rows()[0], 'ArrowDown');
-		expect(tabindexes(rows()[0])).toEqual(['-1', '-1', '-1', '-1']);
-		expect(tabindexes(rows()[1])).toEqual(['0', '0', '0', '0']);
+		expect(tabindexes(rows()[0])).toEqual(['-1', '-1', '-1', '-1', '-1']);
+		expect(tabindexes(rows()[1])).toEqual(['0', '0', '0', '0', '0']);
 
 		const headers = Array.from(document.querySelectorAll<HTMLButtonElement>('[data-task-group-title]'));
 		expect(headers).toHaveLength(2);

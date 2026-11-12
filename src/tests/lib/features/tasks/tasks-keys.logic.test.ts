@@ -69,6 +69,27 @@ describe('resolveTaskKey', () => {
 	it.each(['a', 'Tab', 'Escape'])('returns null for %j', (key) => {
 		expect(resolveTaskKey(input({ key }))).toBeNull();
 	});
+
+	it('opens the row menu with Shift+F10 and with the ContextMenu key', () => {
+		expect(resolveTaskKey(input({ key: 'F10', shift: true }))).toEqual({ kind: 'menu' });
+		expect(resolveTaskKey(input({ key: 'ContextMenu' }))).toEqual({ kind: 'menu' });
+	});
+
+	it('returns null for F10 without Shift, and for either menu key with Meta, Ctrl or Alt', () => {
+		expect(resolveTaskKey(input({ key: 'F10' }))).toBeNull();
+		for (const modifier of ['meta', 'ctrl', 'alt'] as const) {
+			expect(resolveTaskKey(input({ key: 'F10', shift: true, [modifier]: true }))).toBeNull();
+			expect(resolveTaskKey(input({ key: 'ContextMenu', [modifier]: true }))).toBeNull();
+		}
+		expect(resolveTaskKey(input({ key: 'ContextMenu', shift: true }))).toBeNull();
+	});
+
+	it('returns null for a menu key off a row or with no rows', () => {
+		for (const keys of [{ key: 'F10', shift: true }, { key: 'ContextMenu' }]) {
+			expect(resolveTaskKey(input({ ...keys, onRow: false }))).toBeNull();
+			expect(resolveTaskKey(input({ ...keys, index: 0, count: 0 }))).toBeNull();
+		}
+	});
 });
 
 describe('nextCurrentRow', () => {

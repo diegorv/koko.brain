@@ -10,21 +10,37 @@
 	import CircleDot from '@lucide/svelte/icons/circle-dot';
 	import CircleMinus from '@lucide/svelte/icons/circle-minus';
 	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
+	import Ellipsis from '@lucide/svelte/icons/ellipsis';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import Hash from '@lucide/svelte/icons/hash';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
+	import { toast } from 'svelte-sonner';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { buildTaskIndex, getTasksResetGeneration, toggleTask, updateSectionTagFilter } from './tasks.service';
+	import {
+		buildTaskIndex,
+		getTasksResetGeneration,
+		setTaskStatusFromMenu,
+		toggleTask,
+		updateSectionTagFilter,
+	} from './tasks.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
 	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { formatDate, formatNow } from '#lib/utils/date.js';
-	import { parseTaskTextSegments, parseSectionTags, taskChips, taskDisplayText, usesRawTaskText } from './tasks.logic';
+	import {
+		parseTaskTextSegments,
+		parseSectionTags,
+		stripTaskTrailers,
+		taskChips,
+		taskDisplayText,
+		usesRawTaskText,
+	} from './tasks.logic';
 	import {
 		GROUP_ROW_CAP,
 		TASK_PRIORITIES,
@@ -47,7 +63,14 @@
 		type TaskGroupKey,
 		type TaskQuickFilters,
 	} from './task-query.logic';
-	import { TASK_STATUSES, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
+	import {
+		ROW_MENU_STATUSES,
+		TASK_STATUSES,
+		statusGlyph,
+		statusMenuLabel,
+		toggleTarget,
+		type StatusGlyphIcon,
+	} from './task-status.logic';
 	import { nextCurrentRow, resolveTaskKey, tabStopRow, taskRowKey } from './tasks-keys.logic';
 	import type { TaskPriority, TaskStatus } from './task-metadata.types';
 	import type { TaskItem } from './tasks.types';
@@ -370,7 +393,9 @@
 		const row = rowsByKey.get(target.dataset.taskKey ?? '');
 		if (!row) return;
 		if (action.kind === 'toggle') void handleToggle(row.filePath, row);
-		else void openNoteAt(row.filePath, { kind: 'line', line: row.lineNumber });
+		else if (action.kind === 'open') void openNoteAt(row.filePath, { kind: 'line', line: row.lineNumber });
+		// A click with `detail === 0` opens the DropdownMenu anchored at the button.
+		else target.querySelector<HTMLElement>('[data-task-actions]')?.click();
 	}
 
 	/** Focus anywhere in a row, a control inside it included, makes that row current. */
@@ -431,6 +456,60 @@
 			target?.focus({ preventScroll: true });
 		});
 	});
+
+	/** The row the context menu acts on, set by the right-clicked row itself. */
+	let contextRow = $state<GroupedRow | null>(null);
+
+	/** A row's menu opening makes the row current, as focus on a control in it does. */
+	function handleRowMenuOpen(row: GroupedRow) {
+		tasksStore.setCurrentRow({ filePath: row.filePath, lineNumber: row.lineNumber });
+	}
+
+	function handleRowContextMenu(row: GroupedRow) {
+		contextRow = row;
+		handleRowMenuOpen(row);
+	}
+
+	/** Right click outside a row (a group header, the gap between groups) opens no menu. */
+	function handleListContextMenu(e: MouseEvent, triggerHandler: unknown) {
+		if (!(e.target instanceof Element) || !e.target.closest('[data-task-row]')) {
+			contextRow = null;
+			e.preventDefault();
+			return;
+		}
+		if (typeof triggerHandler === 'function') triggerHandler(e);
+	}
+
+	/**
+	 * A closing row menu returns focus to the row it was opened from, or, when
+	 * a write removed that row, to the tab-stop row. The bits-ui default would
+	 * focus the actions button of the tab-stop row, or an element the refetch
+	 * removed. Leaves focus alone when the user moved it out of the view.
+	 */
+	function handleRowMenuCloseFocus(e: Event, key: string) {
+		e.preventDefault();
+		const active = document.activeElement;
+		const free =
+			!active ||
+			active === document.body ||
+			(!!rootEl && rootEl.contains(active)) ||
+			!!active.closest('[role="menu"]');
+		if (!free) return;
+		const el = rowElement(key) ?? rowElement(tabStopRow(rendered, order, currentKey));
+		el?.focus({ preventScroll: true });
+	}
+
+	function pickRowStatus(row: GroupedRow, value: string) {
+		void setTaskStatusFromMenu(row.filePath, row, value as TaskStatus);
+	}
+
+	async function copyTaskText(row: GroupedRow) {
+		try {
+			await navigator.clipboard.writeText(stripTaskTrailers(row.text));
+		} catch {
+			toast.error('Could not copy the task text.');
+		}
+	}
 
 	/** The title's hover text for a note modified at `timestamp` (ms): `Jun 15`, with the year when not this year. */
 	function modifiedTitle(timestamp: number): string | undefined {
@@ -514,6 +593,21 @@
 	{/each}
 {/snippet}
 
+<!-- A task row's menu items, the same in its actions button's menu and in the right-click menu. -->
+{#snippet rowMenuItems(row: GroupedRow, Menu: typeof DropdownMenu | typeof ContextMenu)}
+	<Menu.Item inset onSelect={() => void openNoteAt(row.filePath, { kind: 'line', line: row.lineNumber })}>
+		Open at line
+	</Menu.Item>
+	<Menu.Item inset onSelect={() => void copyTaskText(row)}>Copy task text</Menu.Item>
+	<Menu.Separator />
+	<!-- A status outside the four (question, important, forwarded) checks no item. -->
+	<Menu.RadioGroup value={row.status} onValueChange={(value) => pickRowStatus(row, value)}>
+		{#each ROW_MENU_STATUSES as status (status)}
+			<Menu.RadioItem value={status}>{statusMenuLabel(status)}</Menu.RadioItem>
+		{/each}
+	</Menu.RadioGroup>
+{/snippet}
+
 <!-- A group's collapse chevron. A click never focuses it in WebKit, and collapsing never moves focus by code. -->
 {#snippet groupToggle(group: TaskGroup, key: string, collapsed: boolean, extraClass: string)}
 	<button
@@ -587,6 +681,7 @@
 		data-task-key={rowKey}
 		role="listitem"
 		tabindex={rowTabindex}
+		oncontextmenu={() => handleRowContextMenu(row)}
 		class="flex items-start gap-x-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.dimmed ? 'opacity-60' : ''} {row.breadcrumb ? 'flex-wrap' : ''}"
 		style={flat ? undefined : `padding-left: ${row.indent * 1.25 + 0.25}rem`}
 	>
@@ -655,6 +750,26 @@
 				</span>
 			{/if}
 		</div>
+		<!-- One menu per row: bits-ui renders no content until it opens. -->
+		<DropdownMenu.Root onOpenChange={(open) => { if (open) handleRowMenuOpen(row); }}>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						type="button"
+						data-task-actions
+						tabindex={rowTabindex}
+						aria-label="Task actions"
+						class="shrink-0 cursor-pointer rounded-sm p-0.5 -my-0.5 text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+					>
+						<Ellipsis class="size-4" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="end" class="w-48" onCloseAutoFocus={(e) => handleRowMenuCloseFocus(e, rowKey)}>
+				{@render rowMenuItems(row, DropdownMenu)}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
 	</div>
 {/snippet}
 
@@ -857,37 +972,56 @@
 				</div>
 				{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
 
-				<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the rows take the keys) -->
-				<div
-					bind:this={listEl}
-					class="space-y-6 mt-3"
-					onkeydown={handleListKeydown}
-					onfocusin={handleListFocusin}
-				>
-					{#each shownGroups as { group, key, collapsed, rows, hidden } (group.key)}
-						<div data-task-group data-task-group-key={group.key}>
-							{@render groupHeader(group, key, collapsed)}
-							<!-- A collapsed group's rows leave the DOM, so the list's keys skip them. -->
-							{#if !collapsed}
-								<div class="space-y-1" role="list" aria-label={group.label}>
-									{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
-										{@render taskRow(row, group.filePath === undefined)}
-									{/each}
-								</div>
-								<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->
-								{#if hidden > 0}
-									<button
-										type="button"
-										class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-										onclick={() => revealGroup(key, group)}
-									>
-										Show {hidden} more
-									</button>
-								{/if}
-							{/if}
-						</div>
-					{/each}
-				</div>
+				<!-- One context menu for the whole list; each row's own contextmenu handler sets the row it acts on. -->
+				<ContextMenu.Root>
+					<ContextMenu.Trigger>
+						{#snippet child({ props })}
+							<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the rows take the keys) -->
+							<div
+								{...props}
+								bind:this={listEl}
+								class="space-y-6 mt-3"
+								onkeydown={handleListKeydown}
+								onfocusin={handleListFocusin}
+								oncontextmenu={(e) => handleListContextMenu(e, props.oncontextmenu)}
+							>
+								{#each shownGroups as { group, key, collapsed, rows, hidden } (group.key)}
+									<div data-task-group data-task-group-key={group.key}>
+										{@render groupHeader(group, key, collapsed)}
+										<!-- A collapsed group's rows leave the DOM, so the list's keys skip them. -->
+										{#if !collapsed}
+											<div class="space-y-1" role="list" aria-label={group.label}>
+												{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
+													{@render taskRow(row, group.filePath === undefined)}
+												{/each}
+											</div>
+											<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->
+											{#if hidden > 0}
+												<button
+													type="button"
+													class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+													onclick={() => revealGroup(key, group)}
+												>
+													Show {hidden} more
+												</button>
+											{/if}
+										{/if}
+									</div>
+								{/each}
+							</div>
+						{/snippet}
+					</ContextMenu.Trigger>
+					<ContextMenu.Content
+						class="w-48"
+						onCloseAutoFocus={(e) => {
+							if (contextRow) handleRowMenuCloseFocus(e, taskRowKey(contextRow.filePath, contextRow.lineNumber));
+						}}
+					>
+						{#if contextRow}
+							{@render rowMenuItems(contextRow, ContextMenu)}
+						{/if}
+					</ContextMenu.Content>
+				</ContextMenu.Root>
 			{/if}
 		</div>
 	</ScrollArea>

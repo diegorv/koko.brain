@@ -57,3 +57,14 @@ const STATUS_GLYPHS: Record<TaskStatus, StatusGlyph> = {
 export function statusGlyph(status: TaskStatus): StatusGlyph {
 	return STATUS_GLYPHS[status];
 }
+
+/** The statuses a task row's menu can set, in `TASK_STATUSES` order. */
+export const ROW_MENU_STATUSES: readonly TaskStatus[] = TASK_STATUSES.filter(
+	(s) => s === 'todo' || s === 'in-progress' || s === 'done' || s === 'cancelled',
+);
+
+/** The status word with its first letter capitalized, as the row menu and its Undo toast name it. */
+export function statusMenuLabel(status: TaskStatus): string {
+	const word = statusGlyph(status).word;
+	return word.charAt(0).toUpperCase() + word.slice(1);
+}

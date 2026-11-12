@@ -142,7 +142,7 @@ describe('toggleTask on a note with unsaved edits', () => {
 		expect(noteTab().savedContent).toBe(shifted);
 		// The task list is refetched so the next click carries fresh line numbers.
 		expect(vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'get_all_tasks_v2' || cmd === 'get_tasks_in_section_v2')).toBe(true);
-		expect(toast.info).toHaveBeenCalledWith('The note changed, so the task list was refreshed. Click the task again.');
+		expect(toast.info).toHaveBeenCalledWith('The note changed, so the list was refreshed. Try again.');
 	});
 
 	it('skips the toggle when the unsaved typing edited the task line itself', async () => {
@@ -156,7 +156,7 @@ describe('toggleTask on a note with unsaved edits', () => {
 		expect(disk.get(NOTE)).toBe(edited);
 		expect(noteTab().content).toBe(edited);
 		expect(noteTab().savedContent).toBe(edited);
-		expect(toast.info).toHaveBeenCalledWith('The note changed, so the task list was refreshed. Click the task again.');
+		expect(toast.info).toHaveBeenCalledWith('The note changed, so the list was refreshed. Try again.');
 	});
 
 	it('does not write before the toggle when the tab is clean', async () => {

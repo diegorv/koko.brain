@@ -14,8 +14,9 @@ vi.mock('#lib/utils/debug.js', () => ({
 	timeAsync: vi.fn(async (_tag: string, _label: string, fn: () => Promise<unknown>) => fn()),
 }));
 
+// Callable, as `toast(...)` returns the id the Undo toast is dismissed by.
 vi.mock('svelte-sonner', () => ({
-	toast: { error: vi.fn(), info: vi.fn() },
+	toast: Object.assign(vi.fn(() => 'undo-1'), { error: vi.fn(), info: vi.fn(), dismiss: vi.fn() }),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
@@ -34,6 +35,8 @@ import {
 	buildTaskIndex,
 	updateSectionTagFilter,
 	toggleTask,
+	setTaskStatus,
+	setTaskStatusFromMenu,
 	openTasksTab,
 	closeTasksTab,
 	toggleTasksTab,
@@ -587,7 +590,7 @@ describe('toggleTask', () => {
 		expect(tasksStore.isLoading).toBe(false);
 	});
 
-	it('refetches the Tasks store and asks for a new click when the line is stale', async () => {
+	it('refetches the Tasks store and asks to try again when the line is stale', async () => {
 		editorStore.addTab({
 			path: '/vault/a.md',
 			name: 'a.md',
@@ -606,7 +609,7 @@ describe('toggleTask', () => {
 		expect(invoke).toHaveBeenNthCalledWith(2, 'get_all_tasks_v2');
 		expect(tasksStore.fileTaskGroups).toHaveLength(1);
 		expect(tasksStore.fileTaskGroups[0].tasks[0].text).toBe('other');
-		expect(toast.info).toHaveBeenCalledWith('The task changed on disk, so the list was refreshed. Click it again.');
+		expect(toast.info).toHaveBeenCalledWith('The task changed on disk, so the list was refreshed. Try again.');
 		expect(editorStore.externalContentSignal).toBe(signalBefore);
 	});
 
@@ -747,6 +750,228 @@ describe('toggleTask', () => {
 			expect(upserts).toEqual([]);
 			expect(invalidations).toBe(0);
 			expect(areAllRecentSaves(['/vault/a.md'])).toBe(false);
+		});
+	});
+});
+
+describe('setTaskStatus', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		tasksStore.reset();
+		editorStore.reset();
+		tasksStore.setSectionTag('');
+	});
+
+	afterEach(() => {
+		vi.mocked(invoke).mockReset();
+	});
+
+	function result(changed: boolean, stale = false): ToggleTaskResultV2 {
+		return {
+			updatedContent: changed ? '- [/] task' : '',
+			updateResult: { changed, affected: [], version: 1, upserted: [], removed: [], fullRescan: false },
+			stale,
+		};
+	}
+
+	function item(text: string, lineNumber = 1, status: TaskStatus = 'todo'): TaskItem {
+		return { text, checked: status !== 'todo', indent: 0, lineNumber, status, metadata: { description: text, tags: [] } };
+	}
+
+	/** Answers `toggle_task_status` with `answer` and every fetch with no groups. */
+	function mockToggle(answer: () => ToggleTaskResultV2 | Promise<ToggleTaskResultV2>): void {
+		vi.mocked(invoke).mockImplementation(async (cmd: string) =>
+			cmd === 'toggle_task_status' ? answer() : cmd.startsWith('get_') ? [] : undefined,
+		);
+	}
+
+	const commands = () => vi.mocked(invoke).mock.calls.map((c) => c[0]);
+
+	it('sends the target status with the expected raw text and status, and reports the write', async () => {
+		mockToggle(() => result(true));
+
+		const written = await setTaskStatus('/vault/a.md', item('Call Ana 📅 2026-11-20 ^abc', 4), 'in-progress');
+
+		expect(written).toBe(true);
+		expect(invoke).toHaveBeenCalledWith('toggle_task_status', {
+			path: '/vault/a.md',
+			lineNumber: 4,
+			expectedText: 'Call Ana 📅 2026-11-20 ^abc',
+			expectedStatus: 'todo',
+			target: 'in-progress',
+		});
+	});
+
+	it('refetches and writes nothing more on a stale line, with the stale message', async () => {
+		mockToggle(() => result(false, true));
+
+		const written = await setTaskStatus('/vault/a.md', item('task'), 'cancelled');
+
+		expect(written).toBe(false);
+		expect(commands()).toEqual(['toggle_task_status', 'get_all_tasks_v2']);
+		expect(toast.info).toHaveBeenCalledWith('The task changed on disk, so the list was refreshed. Try again.');
+	});
+
+	it('returns false for an unchanged write', async () => {
+		mockToggle(() => result(false));
+
+		expect(await setTaskStatus('/vault/a.md', item('task'), 'done')).toBe(false);
+	});
+
+	it('sends no IPC and leaves a dirty open tab dirty when the target is the current status', async () => {
+		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: '- [/] task\ntyped', savedContent: '- [/] task' });
+		mockToggle(() => result(true));
+
+		const written = await setTaskStatus('/vault/a.md', item('task', 1, 'in-progress'), 'in-progress');
+
+		expect(written).toBe(false);
+		expect(invoke).not.toHaveBeenCalled();
+		expect(editorStore.tabs[0].content).toBe('- [/] task\ntyped');
+		expect(editorStore.tabs[0].savedContent).toBe('- [/] task');
+		expect(toast.dismiss).not.toHaveBeenCalled();
+	});
+
+	it('toggleTask goes through the same path: done for an open task, todo for a closed one', async () => {
+		mockToggle(() => result(false));
+
+		await toggleTask('/vault/a.md', item('call', 3, 'in-progress'));
+		await toggleTask('/vault/a.md', item('call', 3, 'cancelled'));
+
+		const sent = vi.mocked(invoke).mock.calls.filter((c) => c[0] === 'toggle_task_status').map((c) => c[1]);
+		expect(sent).toEqual([
+			{ path: '/vault/a.md', lineNumber: 3, expectedText: 'call', expectedStatus: 'in-progress', target: 'done' },
+			{ path: '/vault/a.md', lineNumber: 3, expectedText: 'call', expectedStatus: 'cancelled', target: 'todo' },
+		]);
+	});
+
+	describe('from the menu, with Undo', () => {
+		afterEach(() => {
+			// Releases a held toast id so the next test starts with none.
+			resetTasks();
+		});
+
+		/** The options of the `n`th (0-based) `toast(...)` call. */
+		function toastOptions(n = 0) {
+			return vi.mocked(toast).mock.calls[n][1] as {
+				description: string;
+				action: { label: string; onClick: () => void };
+				onDismiss: (t: { id: string | number }) => void;
+			};
+		}
+
+		it('shows an Undo toast after a menu write, and Undo writes the previous status back', async () => {
+			mockToggle(() => result(true));
+
+			await setTaskStatusFromMenu('/vault/a.md', item('Call Ana 🆔 td-123 ^abc', 2), 'cancelled');
+
+			expect(toast).toHaveBeenCalledTimes(1);
+			expect(vi.mocked(toast).mock.calls[0][0]).toBe('Task marked Cancelled');
+			const options = toastOptions();
+			expect(options.description).toBe('Call Ana');
+			expect(options.action.label).toBe('Undo');
+
+			options.action.onClick();
+			await vi.waitFor(() => expect(commands().filter((c) => c === 'toggle_task_status')).toHaveLength(2));
+			const sent = vi.mocked(invoke).mock.calls.filter((c) => c[0] === 'toggle_task_status').map((c) => c[1]);
+			expect(sent[1]).toEqual({
+				path: '/vault/a.md',
+				lineNumber: 2,
+				expectedText: 'Call Ana 🆔 td-123 ^abc',
+				expectedStatus: 'cancelled',
+				target: 'todo',
+			});
+			// Undo shows no second toast.
+			expect(toast).toHaveBeenCalledTimes(1);
+		});
+
+		it('shows no toast when the write changed nothing or went stale', async () => {
+			mockToggle(() => result(false));
+			await setTaskStatusFromMenu('/vault/a.md', item('task'), 'done');
+			mockToggle(() => result(false, true));
+			await setTaskStatusFromMenu('/vault/a.md', item('task'), 'done');
+			await setTaskStatusFromMenu('/vault/a.md', item('task', 1, 'done'), 'done');
+
+			expect(toast).not.toHaveBeenCalled();
+		});
+
+		it('shows no toast when the vault switched while the write was in flight', async () => {
+			let resolve!: (r: ToggleTaskResultV2) => void;
+			mockToggle(() => new Promise((r) => (resolve = r)));
+
+			const pending = setTaskStatusFromMenu('/vault/a.md', item('task'), 'done');
+			await vi.waitFor(() => expect(commands()).toContain('toggle_task_status'));
+			resetTasks();
+			resolve(result(true));
+			await pending;
+
+			expect(toast).not.toHaveBeenCalled();
+		});
+
+		it('writes nothing on an Undo clicked after a vault switch', async () => {
+			mockToggle(() => result(true));
+			await setTaskStatusFromMenu('/vault/a.md', item('task'), 'done');
+			const onClick = toastOptions().action.onClick;
+
+			resetTasks();
+			onClick();
+			await Promise.resolve();
+
+			expect(commands().filter((c) => c === 'toggle_task_status')).toHaveLength(1);
+		});
+
+		it('dismisses the first toast on a second write, and a held toast on resetTasks', async () => {
+			mockToggle(() => result(true));
+			await setTaskStatusFromMenu('/vault/a.md', item('one', 1), 'done');
+			expect(toast.dismiss).not.toHaveBeenCalled();
+
+			await setTaskStatusFromMenu('/vault/a.md', item('two', 2), 'done');
+			expect(toast.dismiss).toHaveBeenCalledTimes(1);
+			expect(toast.dismiss).toHaveBeenCalledWith('undo-1');
+
+			resetTasks();
+			expect(toast.dismiss).toHaveBeenCalledTimes(2);
+		});
+
+		it('dismisses the first toast when two menu writes overlap', async () => {
+			const resolvers: Array<(r: ToggleTaskResultV2) => void> = [];
+			mockToggle(() => new Promise((r) => resolvers.push(r)));
+			vi.mocked(toast).mockReturnValueOnce('undo-1').mockReturnValueOnce('undo-2');
+
+			const first = setTaskStatusFromMenu('/vault/a.md', item('one', 1), 'done');
+			const second = setTaskStatusFromMenu('/vault/a.md', item('two', 2), 'done');
+			await vi.waitFor(() => expect(resolvers).toHaveLength(2));
+			resolvers[0](result(true));
+			await first;
+			resolvers[1](result(true));
+			await second;
+
+			expect(toast).toHaveBeenCalledTimes(2);
+			expect(toast.dismiss).toHaveBeenCalledTimes(1);
+			expect(toast.dismiss).toHaveBeenCalledWith('undo-1');
+		});
+
+		it('a circle toggle after a menu write dismisses its toast', async () => {
+			mockToggle(() => result(true));
+			await setTaskStatusFromMenu('/vault/a.md', item('one', 1), 'in-progress');
+
+			await toggleTask('/vault/a.md', item('two', 2));
+
+			expect(toast.dismiss).toHaveBeenCalledWith('undo-1');
+			expect(toast).toHaveBeenCalledTimes(1);
+		});
+
+		it('never calls toast.dismiss with no id held: not after the toast was dismissed, not on resetTasks', async () => {
+			mockToggle(() => result(true));
+			resetTasks();
+			await setTaskStatus('/vault/a.md', item('one', 1), 'done');
+			expect(toast.dismiss).not.toHaveBeenCalled();
+
+			await setTaskStatusFromMenu('/vault/a.md', item('two', 2), 'done');
+			toastOptions().onDismiss({ id: 'undo-1' });
+			resetTasks();
+			await setTaskStatus('/vault/a.md', item('three', 3), 'done');
+
+			expect(toast.dismiss).not.toHaveBeenCalled();
 		});
 	});
 });
