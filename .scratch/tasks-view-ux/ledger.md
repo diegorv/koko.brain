@@ -69,7 +69,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 243 | [The Tasks section tags are saved per vault](issues/243-tasks-section-tags-saved-per-vault.md) | 234 | done | issue/243-tasks-section-tags-saved-per-vault (fa8578342) | 2026-11-12 |
 | 244 | [Tasks come from the entries snapshot, with an overlay for the view's own writes](issues/244-tasks-from-entries-snapshot-with-write-overlay.md) | 115, 241 | done | issue/244-tasks-from-entries-snapshot-with-write-overlay (2b5a30fd3) | 2026-11-12 |
 | 245 | [A Sources panel edits the Tasks query, and the section tag textbox goes](issues/245-tasks-sources-panel-and-textbox-removal.md) | 116 | done | issue/245-tasks-sources-panel-and-textbox-removal (e2479b35f) | 2026-11-12 |
-| 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | todo | | |
+| 246 | [Set due and priority from the Tasks row menu, with Undo](issues/246-tasks-row-menu-due-and-priority.md) | 122, 241 | in-progress | | |
 | 247 | [A list column picks, saves and manages Tasks views](issues/247-tasks-list-column.md) | 124 | todo | | |
 | 248 | [Todoist sync reads task tags with the same rule as the Rust parser](issues/248-todoist-tags-follow-the-new-task-tag-rule.md) | 075 | done | issue/248-todoist-tags-follow-the-new-task-tag-rule (6ff6c3d55) | 2026-11-12 |
 
@@ -122,3 +122,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 17:00 — 245 — start — launched by /relay-lite:run — 2d9c3e268
 - 2026-11-12 17:01 — 122 — deliver — round 1 APPROVED by claude with a fix round (new token goes before the recurrence when a block id follows), deliver re-review APPROVED by claude; full suite 629 files / 16242 tests, cargo 1466 passed; squash merged and pushed — befb8f876
 - 2026-11-12 17:29 — 245 — deliver — round 1 APPROVED by claude with a fix round (focus after removing a clause, card or exclude; Remove card test; ghost remove button), deliver re-review APPROVED by claude; full suite 630 files / 16315 tests passed; squash merged and pushed — e2479b35f
+- 2026-11-12 17:29 — 246 — start — launched by /relay-lite:run — 16486a353
