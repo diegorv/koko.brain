@@ -391,7 +391,12 @@ function planLink(
 			local.tags = fields.tags;
 		} else {
 			// Todoist's casing and order for the labels it keeps; every label that is not a mapped tag stays (rule 8).
-			const labels = [...remote.labels.filter((l) => mappedLabels([l], excludedLabels).length === 0 || has(lineTags, l)), ...uniq(minus(lineTags, remote.labels))];
+			// So does a label the local base never held as a tag: an older, narrower tag rule
+			// (release 4.4.0 read ASCII names only) left it off the line, so the line cannot remove it.
+			const labels = [
+				...remote.labels.filter((l) => mappedLabels([l], excludedLabels).length === 0 || has(lineTags, l) || !has(local.tags, l)),
+				...uniq(minus(lineTags, remote.labels)),
+			];
 			args.labels = labels;
 			okLocal.tags = fields.tags;
 			okRemote.labels = labels;

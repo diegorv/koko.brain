@@ -34,6 +34,7 @@ import type {
 	TodoistTaskLink,
 } from '#lib/contracts/index.js';
 import { applyTaskLineEdits } from '#lib/features/todoist-sync/task-line-edits.logic.js';
+import { findInlineTags } from '#lib/utils/tag-extraction.js';
 
 /** The fake vault. */
 export interface FakeVault {
@@ -79,18 +80,21 @@ const PRIORITIES: Record<string, TaskPriority> = { '🔺': 'highest', '⏫': 'hi
  * A rough stand-in for Rust `parse_task_metadata`: `📅`, priority, tags, the
  * `🔁` text, and as the description the text with dates, priorities, the
  * recurrence text, id, depends-on, on-completion and tags removed, spaces
- * collapsed.
+ * collapsed. Tags are read from the text left after the signifiers, by the
+ * note tag rule (`findInlineTags`), as Rust does.
  */
 function metadataOf(text: string): TaskMetadata {
 	const dueDate = /📅\s*(\d{4}-\d{2}-\d{2})/u.exec(text)?.[1];
 	const priority = Object.entries(PRIORITIES).find(([emoji]) => text.includes(emoji))?.[1];
 	const recurrence = /🔁\s*([^📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🆔⛔🏁#]*)/u.exec(text)?.[1].trim();
-	const description = text
+	const stripped = text
 		.replace(/[📅⏳🛫➕✅❌]\s*\d{4}-\d{2}-\d{2}/gu, '')
 		.replace(/🔁[^📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🆔⛔🏁#]*/gu, '')
 		.replace(/[🔺⏫🔼🔽⏬]/gu, '')
-		.replace(/(?:🆔|⛔|🏁)\s*\S+/gu, '')
-		.replace(/#[A-Za-z0-9_][A-Za-z0-9_-]*/gu, '')
+		.replace(/(?:🆔|⛔|🏁)\s*\S+/gu, '');
+	const tags = findInlineTags(stripped);
+	const description = tags
+		.reduceRight((acc, t) => acc.slice(0, t.from) + acc.slice(t.to), stripped)
 		.replace(/\s+/gu, ' ')
 		.trim();
 	return {
@@ -98,7 +102,7 @@ function metadataOf(text: string): TaskMetadata {
 		...(dueDate ? { dueDate } : {}),
 		...(priority ? { priority } : {}),
 		...(recurrence ? { recurrence: { text: recurrence } } : {}),
-		tags: [...text.matchAll(/#([A-Za-z0-9_][A-Za-z0-9_-]*)/gu)].map((m) => m[1]),
+		tags: tags.map((t) => t.tag),
 	};
 }
 

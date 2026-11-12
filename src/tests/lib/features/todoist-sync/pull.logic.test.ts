@@ -199,6 +199,13 @@ describe('pulledTask', () => {
 		expect(out.remoteBase.unmappedLabels).toEqual(['Brain']);
 	});
 
+	it('writes labels by the note tag rule: a Unicode first letter maps, a digit first stays in Todoist', () => {
+		const out = pulledTask(item('d', 'work', 'D', { labels: ['2026', 'über', 'a/b', '9to5'] }), EXCLUDED);
+		expect(out.line).toBe('- [ ] D #über #a/b 🆔 td-d');
+		expect(out.localBase.tags).toEqual(['über', 'a/b']);
+		expect(out.remoteBase.unmappedLabels).toEqual(['2026', '9to5']);
+	});
+
 	it('writes content that fails the round trip as-is and flags it', () => {
 		const out = pulledTask(item('d', 'work', 'Fix #42 now'), EXCLUDED);
 		expect(out.line).toBe('- [ ] Fix #42 now 🆔 td-d');

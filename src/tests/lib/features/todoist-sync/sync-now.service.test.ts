@@ -811,6 +811,47 @@ describe('syncNow: edits from Todoist', () => {
 	});
 });
 
+describe('syncNow: labels that are no task tag', () => {
+	const pushedContents = () => commandRequests().flatMap((r) => r.commands!.map((c) => (c.args as { content?: string }).content ?? ''));
+
+	it('never writes a digit-first label as a tag, and keeps it in Todoist across cycles', async () => {
+		server.addItem({ id: 'y1', project_id: 'work', content: 'Year plan', labels: ['2026', 'deep'], child_order: 3 });
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Year plan #deep 🆔 td-y1');
+		expect(vault.files.get('Todoist/Work.md')).not.toContain('#2026');
+		expect(server.item('y1')).toMatchObject({ content: 'Year plan', labels: ['2026', 'deep'] });
+		expect(remoteBase('td-y1')).toMatchObject({ labels: ['2026', 'deep'], unmappedLabels: ['2026'] });
+		expect(pushedContents().filter((c) => c.includes('#2026'))).toEqual([]);
+		expect(commandRequests()).toEqual([]);
+	});
+
+	it('leaves the line alone when Todoist adds a digit-first label to a linked task', async () => {
+		await syncNow('manual');
+		server.updateItem('w1', { labels: ['deep', 'Work', '2026'] });
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toContain(W1_OPEN);
+		expect(server.item('w1')).toMatchObject({ labels: ['deep', 'Work', '2026'] });
+		expect(commandRequests()).toEqual([]);
+	});
+
+	it('writes a label with a non-ASCII first letter as a tag', async () => {
+		server.addItem({ id: 'u1', project_id: 'work', content: 'Read', labels: ['über'], child_order: 3 });
+
+		await syncNow('manual');
+		await syncNow('manual');
+
+		expect(vault.files.get('Todoist/Work.md')).toContain('- [ ] Read #über 🆔 td-u1');
+		expect(localBase('td-u1')).toMatchObject({ tags: ['über'] });
+		expect(commandRequests()).toEqual([]);
+	});
+});
+
 const W1_EDITED = '- [ ] Plan the launch ⏫ 📅 2026-11-20 #next 🆔 td-w1';
 
 describe('syncNow: edits from the brain', () => {

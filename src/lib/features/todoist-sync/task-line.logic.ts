@@ -5,9 +5,11 @@
  * `.scratch/todoist-bisync/research/design.md` rules 4 and 5.
  *
  * The regexes mirror the Rust task parser in `src-tauri/src/vault/parsing.rs`;
- * each names the constant it copies.
+ * each names the constant it copies. Tags follow the note tag rule, read with
+ * `findInlineTags`, the TS mirror of Rust `scan_inline_tags`.
  */
 
+import { findInlineTags, INLINE_TAG_NAME_SOURCE } from '#lib/utils/tag-extraction.js';
 import { ID_EMOJI } from './anchor.logic.js';
 
 /** Priority signifiers, highest to lowest (Rust `PRIORITY_EMOJIS`). */
@@ -38,12 +40,6 @@ const TASK_LINE_RES = [
 	/^(\s*\d+\.\s\[)([xX \-/?!>])(\]\s)([^\n]*)$/u,
 ];
 
-/**
- * Task tag name rule, Rust `TASK_TAG_RE` (`src-tauri/src/vault/parsing.rs`):
- * ASCII only, no leading hyphen.
- */
-const TAG_NAME = '[A-Za-z0-9_][A-Za-z0-9_-]*';
-
 /** Every signifier emoji the parser reads (Rust `DATE_EMOJIS`, `PRIORITY_EMOJIS`, the id/recurrence/depends/completion consts). */
 const SIGNIFIER_CHARS = '📅⏳🛫➕✅❌🔺⏫🔼🔽⏬🔁🆔⛔🏁';
 
@@ -61,7 +57,9 @@ const LINK_SOURCE = String.raw`!?\[\[[^\]]*\]\]|!?\[[^\]]*\]\([^)]*\)|https?:\/\
 
 /**
  * The non-word tokens of a task text, leftmost first. Group order decides
- * the kind: links, then signifiers with their values, then tags.
+ * the kind: links, then signifiers with their values, then tags. A tag needs
+ * the start or whitespace before its `#`, as in `findInlineTags`, so
+ * `word#tag` and `#2026` stay words.
  */
 const TOKEN_RE = new RegExp(
 	[
@@ -73,7 +71,7 @@ const TOKEN_RE = new RegExp(
 		String.raw`(?<id>🆔️?(?:\s*\S+)?)`,
 		String.raw`(?<depends>⛔️?(?:\s*[^,\s]+(?:\s*,\s*[^,\s]+)*)?)`,
 		String.raw`(?<completion>🏁️?(?:\s*\S+)?)`,
-		`(?<tag>#${TAG_NAME})`,
+		`(?<tag>(?<!\\S)#${INLINE_TAG_NAME_SOURCE})`,
 	].join('|'),
 	'gu'
 );
@@ -143,7 +141,7 @@ function patchText(line: string, patch: (text: string) => string): string | null
 
 /**
  * Removes `[start, end)` and the whitespace run before it; at the text start,
- * the run after it. A span glued to a word on the left (`milk#shop`) loses
+ * the run after it. A span glued to a word on the left (`milk🔺`) loses
  * only itself, so the word keeps its gap to whatever follows.
  */
 function removeSpan(text: string, start: number, end: number): string {
@@ -154,14 +152,20 @@ function removeSpan(text: string, start: number, end: number): string {
 	return text.slice(end + (after ? after[0].length : 0));
 }
 
-/** Removes the given matches, right to left so offsets stay valid. */
-function removeMatches(text: string, matches: readonly RegExpExecArray[]): string {
-	return [...matches].reverse().reduce((acc, m) => removeSpan(acc, m.index, m.index + m[0].length), text);
+/** A `[from, to)` span of task text. */
+interface Span {
+	from: number;
+	to: number;
+}
+
+/** Removes the given spans, right to left so offsets stay valid. */
+function removeSpans(text: string, spans: readonly Span[]): string {
+	return spans.reduceRight((acc, s) => removeSpan(acc, s.from, s.to), text);
 }
 
 /** Removes every match of a global regex. */
 function removeAll(text: string, re: RegExp): string {
-	return removeMatches(text, [...text.matchAll(re)]);
+	return removeSpans(text, [...text.matchAll(re)].map((m) => ({ from: m.index, to: m.index + m[0].length })));
 }
 
 /** Inserts a token before the first `🆔`, or at the end before trailing whitespace. */
@@ -218,22 +222,31 @@ export function setPriority(line: string, emoji: PriorityEmoji | null): string |
 	});
 }
 
-/** Whether `name` matches the parser's whole tag rule (design rule 8). */
+/**
+ * Whether `#name` is read back as exactly the tag `name` (design rule 8): a
+ * letter or `_` first, then letters, digits, `_`, `/` and `-`, no trailing
+ * `/`. So `2026`, `-x`, `work/` and `two words` are no task tag names.
+ */
 export function isTaskTagName(name: string): boolean {
-	return new RegExp(`^${TAG_NAME}$`, 'u').test(name);
+	return findInlineTags(`#${name}`)[0]?.tag === name;
 }
 
 /**
- * Every `#tag` the parser reads as this tag, case-insensitive, outside links.
- * Rust `TASK_TAG_RE` has no left boundary, so `(#tag)` and `word#tag` count;
- * a following tag char makes it a longer tag. Tags inside `[[note#tag]]`,
- * markdown links and URLs are skipped, so the parser can still read one there.
+ * Every `#tag` the parser reads as this tag, case-insensitive, outside links:
+ * `#` at the start or after whitespace (not `word#tag` or `(#tag)`), and a
+ * following tag char makes it a longer tag. Tags inside markdown links and
+ * URLs are skipped, so the parser can still read one there.
+ *
+ * Known gap: this scans the raw text, while Rust `parse_task_metadata` scans
+ * after it strips the signifiers. A tag glued to a signifier (`🔺#shop`,
+ * `📅 2026-11-13#shop`) is a tag to Rust but not here, so `removeTag` keeps it
+ * and `addTag` adds a second one. The sync always writes a space before a tag,
+ * so only a hand-typed line hits this.
  */
-function tagMatches(text: string, tag: string): RegExpExecArray[] {
+function tagMatches(text: string, tag: string): Span[] {
 	const links = [...text.matchAll(new RegExp(LINK_SOURCE, 'gu'))].map((m) => [m.index, m.index + m[0].length]);
-	return [...text.matchAll(new RegExp(`#${tag}(?![A-Za-z0-9_-])`, 'giu'))].filter(
-		(m) => !links.some(([start, end]) => m.index >= start && m.index < end)
-	);
+	const lower = tag.toLowerCase();
+	return findInlineTags(text).filter((t) => t.tag.toLowerCase() === lower && !links.some(([start, end]) => t.from >= start && t.from < end));
 }
 
 function assertTagName(tag: string): void {
@@ -252,13 +265,13 @@ export function addTag(line: string, tag: string): string | null {
 
 /**
  * Removes every `#tag` the parser reads outside a link, case-insensitively.
- * Tag text inside links and wikilinks is kept, and the parser still reads it
- * as a tag, so callers compare the parsed result. Throws when `tag` fails
- * `isTaskTagName`. Returns null for a non-task line.
+ * Tag text inside links is kept, and the parser can still read it as a tag
+ * (`[see #tag](url)`), so callers compare the parsed result. Throws when `tag`
+ * fails `isTaskTagName`. Returns null for a non-task line.
  */
 export function removeTag(line: string, tag: string): string | null {
 	assertTagName(tag);
-	return patchText(line, (text) => removeMatches(text, tagMatches(text, tag)));
+	return patchText(line, (text) => removeSpans(text, tagMatches(text, tag)));
 }
 
 function tokenKind(groups: Record<string, string | undefined>): TokenKind {

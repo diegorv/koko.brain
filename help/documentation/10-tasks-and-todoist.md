@@ -125,6 +125,7 @@ Kokobrain keeps tasks in your notes and tasks in [Todoist](https://todoist.com) 
 - **Set up:** in **Settings** > **Todoist**, paste your API token, press **Load projects**, pick the **Root project** and turn on **Sync with Todoist**. See [Settings > Todoist](19-settings.md#todoist).
 - **Run:** **Todoist: Sync now** from the Command Palette. The first sync is a preview that asks before it creates anything in Todoist. Automatic syncs start after it.
 - **Synced:** status, task text, due date, priority, tags, projects and sections; a recurrence rule is sent once, when a task is created. Todoist wins when both sides changed a field.
+- **Labels and tags:** a Todoist label becomes a `#tag` on the line only when its name is a valid tag: it starts with a letter (accented letters included) or `_`, and the rest is letters, digits, `_`, `-` and `/`, for example `work`, `über` or `area/home`. Other labels, such as `2026` or `two words`, stay only in Todoist: they are never written to the line and never removed from the task.
 - **Anchor:** a synced line ends with a `🆔 td-...` anchor. Do not edit, copy or delete it.
 - **Deletions:** nothing is deleted on the other side. A task that disappears on one side is detached and both copies stay.
 - **Diagnose:** **Todoist: Check sync connection** tests the token and the root project, and **Todoist: Show sync log** shows what each sync did.

@@ -14,14 +14,14 @@ Make Todoist sync use one tag rule that matches Rust's:
 
 **Blocked by:** 075
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`. Targeted: `src/tests/lib/features/todoist-sync/` and `src/tests/lib/architecture/pure-logic.test.ts`.
 
-- [ ] Failing test first, `src/tests/lib/features/todoist-sync/pull.logic.test.ts` (or the closest existing pull test) with the sync's existing fakes: a Todoist task carrying the label `2026` and the label `work`; after one pull and one push cycle the line holds `#work` and no `#2026`, the Todoist task keeps both labels, and the pushed content has no `#2026`. Fails today (the label is written, then removed, and `#2026` is pushed as content).
-- [ ] `task-line.logic.test.ts`: `isTaskTagName` accepts `work`, `über`, `_x`, `a/b`, `a-b` and rejects `2026`, `-x`, `` (empty); `tagMatches` finds `#work` at the start and after a space, and not in `word#work`, `(#work)` or `[[note#work]]`. Existing cases that pinned the old rule (`(#tag)` and `word#tag` counting) change on purpose, and the commit says so.
-- [ ] A parity test feeds the same inputs to `isTaskTagName` and to the cases the Rust parser pins (copy them from the Rust tests Issue 075 added; do not invent expectations).
-- [ ] `help/documentation/10-tasks-and-todoist.md` says which Todoist labels become `#tags` and that the others stay only in Todoist.
+- [x] Failing test first, `src/tests/lib/features/todoist-sync/pull.logic.test.ts` (or the closest existing pull test) with the sync's existing fakes: a Todoist task carrying the label `2026` and the label `work`; after one pull and one push cycle the line holds `#work` and no `#2026`, the Todoist task keeps both labels, and the pushed content has no `#2026`. Fails today (the label is written, then removed, and `#2026` is pushed as content).
+- [x] `task-line.logic.test.ts`: `isTaskTagName` accepts `work`, `über`, `_x`, `a/b`, `a-b` and rejects `2026`, `-x`, `` (empty); `tagMatches` finds `#work` at the start and after a space, and not in `word#work`, `(#work)` or `[[note#work]]`. Existing cases that pinned the old rule (`(#tag)` and `word#tag` counting) change on purpose, and the commit says so.
+- [x] A parity test feeds the same inputs to `isTaskTagName` and to the cases the Rust parser pins (copy them from the Rust tests Issue 075 added; do not invent expectations).
+- [x] `help/documentation/10-tasks-and-todoist.md` says which Todoist labels become `#tags` and that the others stay only in Todoist.
 
 ## Notes
 
@@ -33,3 +33,4 @@ Make Todoist sync use one tag rule that matches Rust's:
 ## Comments
 
 - 2026-11-12: filed by the main session from Issue 075's review.
+- 2026-11-12: delivered on issue/248-todoist-tags-follow-the-new-task-tag-rule. Todoist pull writes only labels that pass isTaskTagName (same rule as the Rust parser); tagMatches follows it; help doc updated. Full vitest suite: 619 files, 15861 passed, 54 skipped. Reviews: round 1 CHANGES_REQUESTED, fix round ran, round 2 APPROVED.

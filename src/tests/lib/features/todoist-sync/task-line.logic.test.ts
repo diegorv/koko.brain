@@ -203,15 +203,52 @@ describe('setPriority', () => {
 });
 
 describe('isTaskTagName', () => {
-	it('accepts names matching the parser tag rule', () => {
-		for (const name of ['work', 'Work_2', '_x', '9to5', 'a-b-c']) {
+	it('accepts names matching the note tag rule, Unicode letters and nesting included', () => {
+		for (const name of ['work', 'Work_2', '_x', 'über', 'café', 'a/b', 'a-b', 'a-b-c']) {
 			expect(isTaskTagName(name)).toBe(true);
 		}
 	});
 
 	it('rejects names the parser would not read back whole', () => {
-		for (const name of ['', '-a', 'café', 'two words', 'a/b', '#work']) {
+		for (const name of ['', '2026', '9to5', '-x', '/a', 'work/', 'two words', '#work', 'a.b']) {
 			expect(isTaskTagName(name)).toBe(false);
+		}
+	});
+});
+
+/**
+ * Cases the Rust parser pins (`src-tauri/src/vault/parsing.rs`, the
+ * `parse_task_metadata_*` tag tests and `scan_inline_tags_*`): the task text,
+ * the tags Rust reads in it, the `#` names it reads no tag for, and the
+ * description where Rust asserts one. `file #work/ now` leaves out Rust's
+ * `file / now`: `removeTag` takes the space before the tag with it and keeps
+ * the trailing `/`, so it yields `file/ now`.
+ */
+const RUST_TAG_CASES: { text: string; tags: string[]; notTags: string[]; description?: string }[] = [
+	{ text: 'task #work #my-project', tags: ['work', 'my-project'], notTags: [] },
+	{ text: 'Buy milk #grocery #urgent', tags: ['grocery', 'urgent'], notTags: [], description: 'Buy milk' },
+	{ text: 'rever #revisão #work/client', tags: ['revisão', 'work/client'], notTags: [], description: 'rever' },
+	{ text: 'plan #2026 see page#section', tags: [], notTags: ['2026', 'section'], description: 'plan #2026 see page#section' },
+	{ text: 'read [[Book#Chapter 2]]', tags: [], notTags: ['Chapter'], description: 'read [[Book#Chapter 2]]' },
+	{ text: 'file #work/ now', tags: ['work'], notTags: ['work/'] },
+	{ text: 'a #ação b#x #2026 #n/ #_y', tags: ['ação', 'n', '_y'], notTags: ['x', '2026', 'n/'] },
+	{ text: '#', tags: [], notTags: [''] },
+];
+
+describe('task tags: parity with the Rust parser', () => {
+	it.each(RUST_TAG_CASES)('$text', ({ text, tags, notTags, description }) => {
+		const line = `- [ ] ${text}`;
+		for (const tag of tags) {
+			expect(isTaskTagName(tag)).toBe(true);
+			expect(removeTag(line, tag)).not.toBe(line);
+			expect(addTag(line, tag)).toBe(line);
+		}
+		for (const name of notTags) {
+			expect(!isTaskTagName(name) || removeTag(line, name) === line).toBe(true);
+		}
+		if (description !== undefined) {
+			const stripped = tags.reduce((acc, tag) => removeTag(acc, tag)!, line);
+			expect(taskLineText(stripped)).toBe(description);
 		}
 	});
 });
@@ -233,9 +270,19 @@ describe('addTag', () => {
 		expect(addTag('- [ ] Buy milk #shopping', 'shop')).toBe('- [ ] Buy milk #shopping #shop');
 	});
 
-	it('is a no-op for a tag the parser reads without a left boundary', () => {
-		expect(addTag('- [ ] Buy milk (#shop)', 'shop')).toBe('- [ ] Buy milk (#shop)');
-		expect(addTag('- [ ] Buy milk#shop', 'shop')).toBe('- [ ] Buy milk#shop');
+	it('is a no-op when the tag stands at the start or after a space', () => {
+		expect(addTag('- [ ] #shop Buy milk', 'shop')).toBe('- [ ] #shop Buy milk');
+		expect(addTag('- [ ] Buy milk #über', 'über')).toBe('- [ ] Buy milk #über');
+	});
+
+	it('adds the tag when the text holds it only after a word, a paren or inside a wikilink', () => {
+		expect(addTag('- [ ] Buy milk (#shop)', 'shop')).toBe('- [ ] Buy milk (#shop) #shop');
+		expect(addTag('- [ ] Buy milk#shop', 'shop')).toBe('- [ ] Buy milk#shop #shop');
+		expect(addTag('- [ ] Read [[note#shop]]', 'shop')).toBe('- [ ] Read [[note#shop]] #shop');
+	});
+
+	it('adds the tag when only a nested tag starts with it', () => {
+		expect(addTag('- [ ] Call #work/client', 'work')).toBe('- [ ] Call #work/client #work');
 	});
 
 	it('adds a space before the tag when the anchor follows a word directly', () => {
@@ -271,13 +318,26 @@ describe('removeTag', () => {
 		expect(removeTag('- [ ] Buy milk #shopping', 'shop')).toBe('- [ ] Buy milk #shopping');
 	});
 
-	it('removes a tag the parser reads without a left boundary', () => {
-		expect(removeTag('- [ ] Buy milk (#shop)', 'shop')).toBe('- [ ] Buy milk ()');
-		expect(removeTag('- [ ] Buy milk#shop 🆔 td-x1', 'shop')).toBe('- [ ] Buy milk 🆔 td-x1');
+	it('keeps a nested tag that starts with the tag', () => {
+		expect(removeTag('- [ ] Call #work/client', 'work')).toBe('- [ ] Call #work/client');
+	});
+
+	it('removes a non-ASCII tag', () => {
+		expect(removeTag('- [ ] Read #Über 🆔 td-x1', 'über')).toBe('- [ ] Read 🆔 td-x1');
+	});
+
+	it('keeps tag text after a word or a paren, which the parser reads as no tag', () => {
+		expect(removeTag('- [ ] Buy milk (#shop)', 'shop')).toBe('- [ ] Buy milk (#shop)');
+		expect(removeTag('- [ ] Buy milk#shop 🆔 td-x1', 'shop')).toBe('- [ ] Buy milk#shop 🆔 td-x1');
+	});
+
+	it('keeps a tag glued to a signifier, which Rust reads after stripping the signifier (known gap)', () => {
+		expect(removeTag('- [ ] Plan 🔺#shop 🆔 td-x1', 'shop')).toBe('- [ ] Plan 🔺#shop 🆔 td-x1');
+		expect(addTag('- [ ] Plan 🔺#shop 🆔 td-x1', 'shop')).toBe('- [ ] Plan 🔺#shop #shop 🆔 td-x1');
 	});
 
 	it('keeps links and wikilinks that contain the tag text', () => {
-		const line = '- [ ] Read [[Note#shop]] and https://x.io/#shop';
+		const line = '- [ ] Read [[Note#shop]] and https://x.io/#shop and [see #shop](https://x.io)';
 		expect(removeTag(line, 'shop')).toBe(line);
 	});
 
@@ -366,6 +426,10 @@ describe('replaceDescription', () => {
 	it('returns a conflict for a tag between the first and the last word', () => {
 		expect(replaceDescription('- [ ] Buy #shop milk', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
 		expect(replaceDescription('- [ ] #todoist Buy #shop milk', 'x')).toEqual({ kind: 'conflict', reason: 'mid-sentence' });
+	});
+
+	it('replaces across `#` text the parser reads as no tag, since it is part of the description', () => {
+		expect(replaceDescription('- [ ] Plan #2026 see page#section 🆔 td-x1', 'Plan 2027')).toEqual({ kind: 'line', line: '- [ ] Plan 2027 🆔 td-x1' });
 	});
 
 	it('returns a conflict for a link before the last word', () => {

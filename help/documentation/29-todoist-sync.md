@@ -249,7 +249,7 @@ The mapping is lossy: `🔽`, `⏬` and no emoji are all P4. They are compared a
 
 ### Tags and labels
 
-- **Todoist to note.** A label becomes a `#tag` only when its name is letters (A-Z, a-z), digits, `_` and `-`, not starting with `-`. Labels with spaces, accents or other characters stay in Todoist and are kept whenever the sync updates the label list. Adding or removing a label in Todoist adds or removes the tag on the line.
+- **Todoist to note.** A label becomes a `#tag` only when its name is a valid tag: it starts with a letter (accented letters included) or `_`, and the rest is letters, digits, `_`, `-` and `/` (not ending in `/`). Labels that start with a digit (`2026`) or hold spaces or other characters stay in Todoist: they are not written to the line, and they are kept whenever the sync updates the label list. Adding or removing a label in Todoist adds or removes the tag on the line.
 - **Note to Todoist.** The tags of a line become labels. Tags are compared without regard to case.
 - **Never synced as tags:** the labels `todoist`, `work`, `personal` and your **Default label**. They are not written to lines, not removed from Todoist tasks, and a tag with one of those names is not sent as a label. The **Default label** is not added to new tasks.
 - In a **Personal** vault the label `personal` is added to tasks created from Kokobrain. See [Work and personal vaults](#work-and-personal-vaults).

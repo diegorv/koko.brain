@@ -1,5 +1,11 @@
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---/;
-const INLINE_TAG_REGEX = /(?:^|\s)#([\p{L}_][\p{L}\d_/-]*)/gmu;
+/**
+ * The tag name after `#` in the inline tag rule (a letter or `_`, then
+ * letters, digits, `_`, `/` and `-`), as a `u`-flag regex source. Trailing `/`
+ * is not part of the name: {@link findInlineTags} strips it.
+ */
+export const INLINE_TAG_NAME_SOURCE = String.raw`[\p{L}_][\p{L}\d_/-]*`;
+const INLINE_TAG_REGEX = new RegExp(String.raw`(?:^|\s)#(${INLINE_TAG_NAME_SOURCE})`, 'gmu');
 
 /**
  * Finds the index of a top-level YAML key, skipping lines inside multi-line quoted values.

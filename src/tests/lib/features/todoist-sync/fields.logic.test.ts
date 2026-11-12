@@ -491,6 +491,15 @@ describe('planFields: pushes from the brain', () => {
 		expect(update(added).args.labels).toEqual([...labels, 'next']);
 	});
 
+	it('keeps a label an older tag rule stored as unmapped when the brain edits tags', () => {
+		// Release 4.4.0 read only ASCII tag names, so `café` sits in unmappedLabels and never reached the line.
+		const labels = ['deep', 'Work', 'café'];
+		const extra = { remote: remoteBase({ labels, unmappedLabels: ['Work', 'café'] }), item: { labels } };
+
+		expect(update(brainEdit({ tags: ['deep', 'next'] }, extra)).args.labels).toEqual(['deep', 'Work', 'café', 'next']);
+		expect(update(brainEdit({ tags: [] }, extra)).args.labels).toEqual(['Work', 'café']);
+	});
+
 	it('treats a tag edit that only changes case as no change', () => {
 		expect(brainEdit({ tags: ['Deep'] }).updates).toEqual([]);
 	});
