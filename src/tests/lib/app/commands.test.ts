@@ -131,10 +131,10 @@ describe('getBuiltInCommands', () => {
 		expect(modCommandsStore.list).toEqual([]);
 	});
 
-	it('returns 44 built-in commands with no navigator, no pin and no view', () => {
+	it('returns 45 built-in commands with no navigator, no pin and no view', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(44);
+		expect(commands).toHaveLength(45);
 	});
 
 	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {

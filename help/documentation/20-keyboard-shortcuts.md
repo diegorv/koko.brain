@@ -80,6 +80,17 @@ These work while the [Calendar tab](27-calendar.md) has focus, not while you typ
 | `Cmd+Shift+Z` / `Ctrl+Y` | Redo |
 | `?` | Show the Calendar shortcuts |
 
+## Tasks
+
+These work while a task row in the [Tasks View](10-tasks-and-todoist.md) has focus, not while you type in a field. `/` opens Search in the rail, not the Tasks View's search box.
+
+| Shortcut | Action |
+|----------|--------|
+| `Down` / `Up` | Next / previous task |
+| `Home` / `End` | First / last task |
+| `Space` | Toggle the task |
+| `Enter` | Open the note at the task's line |
+
 ## Editor (In-Editor)
 
 | Shortcut | Action |
@@ -102,6 +113,7 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | Pin/Unpin Tab | Pin or unpin the active tab |
 | Copy Block Embed | Copy an embed link to the current block |
 | Toggle Tags View | Open tags as a dedicated virtual tab |
+| Tasks: Show all statuses / Tasks: Show open only | Set the Tasks View's Status filter to All, or back to Open, and open the Tasks View |
 | New Calendar Event | Open the Calendar tab and the new-event dialog |
 | Calendar: Go to Today | Open the Calendar tab on today |
 | Calendar: Undo / Calendar: Redo | Undo or redo the last calendar change (`Cmd+Z` / `Cmd+Shift+Z` inside the Calendar tab) |

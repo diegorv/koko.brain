@@ -71,6 +71,32 @@ test.describe('Tasks view', () => {
 			.toContain('- [x] Ship feature A');
 	});
 
+	test('Space on a focused circle toggles the task once', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Shift+T');
+		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
+		await sectionTagInput.fill('');
+
+		const status = page.getByRole('button', { name: /^Status/ });
+		await status.click();
+		await page.getByRole('menuitemradio', { name: 'All' }).click();
+		await expect(status).toHaveText('Status: all');
+
+		const row = page.locator('[data-task-row]', { hasText: 'Ship feature A' });
+		const circle = row.getByRole('button', { name: /^Mark task as done/ });
+		await expect(circle).toBeVisible({ timeout: 5_000 });
+		await circle.focus();
+		await page.keyboard.press('Space');
+
+		await expect
+			.poll(() => page.evaluate(() => (window as any).__e2e.fs.readFileSafe('/test-vault/Projects/2026-Q2.md')))
+			.toContain('- [x] Ship feature A');
+		await expect(row.locator('[data-task-toggle]')).toHaveAttribute('data-task-status', 'done');
+		await expect(page.getByRole('status', { name: 'Refreshing tasks' })).toHaveCount(0);
+		// A second toggle from the list's key handler would find the line already
+		// `[x]`, get `stale` back and show the "changed on disk" toast.
+		await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
+	});
+
 	test('a narrow pane folds the four filter menus into Filters (n)', async ({ vaultPage: page }) => {
 		await page.setViewportSize({ width: 500, height: 800 });
 		await pressShortcut(page, 'Mod+Shift+T');

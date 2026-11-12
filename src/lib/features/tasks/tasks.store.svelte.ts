@@ -1,6 +1,6 @@
 import { formatNow } from '#lib/utils/date.js';
 import { DEFAULT_QUICK, applyQuickFilters, type TaskQuickFilters, type TaskRow } from './task-query.logic';
-import type { FileTaskGroup } from './tasks.types';
+import type { FileTaskGroup, TaskRowRef } from './tasks.types';
 
 /** All task groups across the vault (unfiltered) */
 let fileTaskGroups = $state<FileTaskGroup[]>([]);
@@ -29,6 +29,11 @@ let error = $state<string | null>(null);
  * without waking any effect.
  */
 let scrollOffset = 0;
+/**
+ * The Tasks list's current row (the keyboard's place), kept across refetches
+ * and remounts; null when no row was focused yet.
+ */
+let currentRow = $state.raw<TaskRowRef | null>(null);
 
 /**
  * The rows the list shows, through the quick filters. The clock (today and
@@ -50,6 +55,8 @@ export const tasksStore = {
 	get hasLoaded() { return hasLoaded; },
 	get error() { return error; },
 	get scrollOffset() { return scrollOffset; },
+	/** The list's current row, or null */
+	get currentRow() { return currentRow; },
 
 	setFileTaskGroups(groups: FileTaskGroup[]) { fileTaskGroups = groups; },
 	/** Replaces the rows. */
@@ -65,6 +72,15 @@ export const tasksStore = {
 	setError(message: string | null) { error = message; },
 	/** Saves the list viewport's `scrollTop`. */
 	setScrollOffset(offset: number) { scrollOffset = offset; },
+	/** Sets the current row to a copy of `row`, or clears it; does nothing when the row is unchanged. */
+	setCurrentRow(row: TaskRowRef | null) {
+		if (row === null) {
+			currentRow = null;
+			return;
+		}
+		if (currentRow && currentRow.filePath === row.filePath && currentRow.lineNumber === row.lineNumber) return;
+		currentRow = { filePath: row.filePath, lineNumber: row.lineNumber };
+	},
 
 	reset() {
 		fileTaskGroups = [];
@@ -75,5 +91,6 @@ export const tasksStore = {
 		hasLoaded = false;
 		error = null;
 		scrollOffset = 0;
+		currentRow = null;
 	},
 };

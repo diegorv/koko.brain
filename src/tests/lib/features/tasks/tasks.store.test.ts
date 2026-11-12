@@ -202,6 +202,28 @@ describe('tasksStore', () => {
 		expect(tasksStore.scrollOffset).toBe(120);
 	});
 
+	it('starts with no current row', () => {
+		expect(tasksStore.currentRow).toBeNull();
+	});
+
+	it('setCurrentRow sets a copy of the row and clears it', () => {
+		const row = { filePath: '/vault/a.md', lineNumber: 3 };
+		tasksStore.setCurrentRow(row);
+		expect(tasksStore.currentRow).toEqual({ filePath: '/vault/a.md', lineNumber: 3 });
+		row.lineNumber = 9;
+		expect(tasksStore.currentRow).toEqual({ filePath: '/vault/a.md', lineNumber: 3 });
+
+		tasksStore.setCurrentRow(null);
+		expect(tasksStore.currentRow).toBeNull();
+	});
+
+	it('setCurrentRow keeps the stored object when the row is equal', () => {
+		tasksStore.setCurrentRow({ filePath: '/vault/a.md', lineNumber: 3 });
+		const before = tasksStore.currentRow;
+		tasksStore.setCurrentRow({ filePath: '/vault/a.md', lineNumber: 3 });
+		expect(tasksStore.currentRow).toBe(before);
+	});
+
 	it('reset restores defaults', () => {
 		tasksStore.setFileTaskGroups([{}] as any);
 		tasksStore.setSectionTag('#custom');
@@ -211,6 +233,7 @@ describe('tasksStore', () => {
 		tasksStore.setHasLoaded(true);
 		tasksStore.setError('failed');
 		tasksStore.setScrollOffset(120);
+		tasksStore.setCurrentRow({ filePath: '/vault/a.md', lineNumber: 1 });
 
 		tasksStore.reset();
 
@@ -222,5 +245,6 @@ describe('tasksStore', () => {
 		expect(tasksStore.hasLoaded).toBe(false);
 		expect(tasksStore.error).toBeNull();
 		expect(tasksStore.scrollOffset).toBe(0);
+		expect(tasksStore.currentRow).toBeNull();
 	});
 });

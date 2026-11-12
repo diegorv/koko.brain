@@ -27,3 +27,11 @@ export interface FileTaskGroup {
 	/** List of tasks extracted from this file, in document order */
 	tasks: TaskItem[];
 }
+
+/** A task row in the Tasks view, identified by its note and line. */
+export interface TaskRowRef {
+	/** Absolute path of the task's note */
+	filePath: string;
+	/** 1-based line number of the task within the note */
+	lineNumber: number;
+}

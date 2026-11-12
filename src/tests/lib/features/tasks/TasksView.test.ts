@@ -132,6 +132,8 @@ describe('TasksView row clicks', () => {
 		const span = textOf(toggleOf('todo'));
 		const range = document.createRange();
 		range.selectNodeContents(span);
+		// The row focused on mount leaves a collapsed range, and `addRange` is a no-op while one exists.
+		window.getSelection()!.removeAllRanges();
 		window.getSelection()!.addRange(range);
 
 		span.click();

@@ -43,6 +43,7 @@
 		type TaskQuickFilters,
 	} from './task-query.logic';
 	import { TASK_STATUSES, statusGlyph, toggleTarget, type StatusGlyphIcon } from './task-status.logic';
+	import { nextCurrentRow, resolveTaskKey, tabStopRow, taskRowKey } from './tasks-keys.logic';
 	import type { TaskPriority, TaskStatus } from './task-metadata.types';
 	import type { TaskItem } from './tasks.types';
 
@@ -272,6 +273,108 @@
 		viewport.scrollTop = untrack(() => tasksStore.scrollOffset);
 	});
 
+	/** The view's root element. */
+	let rootEl = $state<HTMLElement | null>(null);
+	/** The element around all note groups: the only place the row keys are handled. */
+	let listEl = $state<HTMLElement | null>(null);
+
+	/** Every listed row by its `taskRowKey`, in display (DOM) order. */
+	let rowsByKey = $derived(
+		new Map(notes.flatMap((note) => note.rows.map((row) => [taskRowKey(note.filePath, row.lineNumber), row] as const))),
+	);
+	/** Every row key in display order; the DOM renders all of them. */
+	let order = $derived([...rowsByKey.keys()]);
+	let currentKey = $derived(
+		tasksStore.currentRow ? taskRowKey(tasksStore.currentRow.filePath, tasksStore.currentRow.lineNumber) : null,
+	);
+	/** The row that holds the list's one tab stop; its controls are the only ones in the tab order. */
+	let tabStopKey = $derived(tabStopRow(order, order, currentKey));
+
+	/** The rendered row element with `key`. Compared by value, so no selector escaping is needed. */
+	function rowElement(key: string | null): HTMLElement | undefined {
+		if (key === null || !listEl) return undefined;
+		return Array.from(listEl.querySelectorAll<HTMLElement>('[data-task-row]')).find((el) => el.dataset.taskKey === key);
+	}
+
+	/**
+	 * True when moving focus into the list takes it from nowhere the user put
+	 * it: `<body>`, the view root, or an element already inside the list.
+	 * Never from a text field or from outside the view.
+	 */
+	function focusIsFree(allowRoot: boolean): boolean {
+		const active = document.activeElement;
+		return !active || active === document.body || (allowRoot && active === rootEl) || (!!listEl && listEl.contains(active));
+	}
+
+	function handleListKeydown(e: KeyboardEvent) {
+		const target = e.target as HTMLElement;
+		const rowEls = Array.from(listEl?.querySelectorAll<HTMLElement>('[data-task-row]') ?? []);
+		const onRow = target.hasAttribute('data-task-row');
+		const action = resolveTaskKey({
+			key: e.key,
+			repeat: e.repeat,
+			onRow,
+			meta: e.metaKey,
+			ctrl: e.ctrlKey,
+			alt: e.altKey,
+			shift: e.shiftKey,
+			index: onRow ? rowEls.indexOf(target) : -1,
+			count: rowEls.length,
+		});
+		if (!action) return;
+		e.preventDefault();
+		if (action.kind === 'focus') {
+			rowEls[action.index]?.focus();
+			return;
+		}
+		const row = rowsByKey.get(target.dataset.taskKey ?? '');
+		if (!row) return;
+		if (action.kind === 'toggle') void handleToggle(row.filePath, row);
+		else void openNoteAt(row.filePath, { kind: 'line', line: row.lineNumber });
+	}
+
+	/** Focus anywhere in a row, a control inside it included, makes that row current. */
+	function handleListFocusin(e: FocusEvent) {
+		const rowEl = (e.target as HTMLElement).closest<HTMLElement>('[data-task-row]');
+		const row = rowEl ? rowsByKey.get(rowEl.dataset.taskKey ?? '') : undefined;
+		if (row) tasksStore.setCurrentRow({ filePath: row.filePath, lineNumber: row.lineNumber });
+	}
+
+	/** The `order` the last run of the effect below saw; null until its first run in this mount. */
+	let prevOrder: string[] | null = null;
+
+	// When the list changes, a current row that left it hands its place to a
+	// neighbour (`nextCurrentRow`). Focus follows only when it was on the
+	// removed row (now on `<body>`) or inside the list, so typing in the
+	// search box never moves it. Effects run after the DOM update.
+	$effect(() => {
+		const next = order;
+		untrack(() => {
+			const prev = prevOrder;
+			prevOrder = next;
+			if (prev === null) return;
+			const current = currentKey;
+			const chosen = nextCurrentRow(next, prev, current);
+			if (chosen === current) return;
+			const row = chosen === null ? undefined : rowsByKey.get(chosen);
+			tasksStore.setCurrentRow(row ? { filePath: row.filePath, lineNumber: row.lineNumber } : null);
+			if (focusIsFree(false)) rowElement(tabStopRow(next, next, chosen))?.focus();
+		});
+	});
+
+	let focusOnOpenTried = false;
+
+	// Once per mount, the first time rows are rendered: focus the tab-stop
+	// row unless the user's focus is elsewhere (a text field, another pane,
+	// the palette). `preventScroll` leaves the scroll restore above in charge.
+	$effect(() => {
+		if (focusOnOpenTried || order.length === 0 || !listEl) return;
+		focusOnOpenTried = true;
+		untrack(() => {
+			if (focusIsFree(true)) rowElement(tabStopKey)?.focus({ preventScroll: true });
+		});
+	});
+
 	/** The title's hover text for a note modified at `timestamp` (ms): `Jun 15`, with the year when not this year. */
 	function modifiedTitle(timestamp: number): string | undefined {
 		if (!timestamp) return undefined;
@@ -354,7 +457,7 @@
 	{/each}
 {/snippet}
 
-<div class="@container flex h-full flex-col">
+<div bind:this={rootEl} class="@container flex h-full flex-col">
 	<!-- Toolbar -->
 	<div class="pane-toolbar">
 		<span class="min-w-0 truncate text-title">Tasks</span>
@@ -531,7 +634,13 @@
 				</div>
 				{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
 
-				<div class="space-y-6 mt-3">
+				<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the rows take the keys) -->
+				<div
+					bind:this={listEl}
+					class="space-y-6 mt-3"
+					onkeydown={handleListKeydown}
+					onfocusin={handleListFocusin}
+				>
 					{#each notes as note (note.filePath)}
 						{@const resolved = resolveIconForPath(note.filePath)}
 						<div data-task-group>
@@ -563,22 +672,30 @@
 							</div>
 
 							<!-- Task list -->
-							<div class="space-y-1">
+							<div class="space-y-1" role="list" aria-label={note.noteTitle}>
 								{#each note.rows as row (row.lineNumber)}
 									<!-- The glyph follows the status; the label follows `toggleTarget`, what a click writes. -->
 									{@const glyph = statusGlyph(row.status)}
 									{@const Glyph = GLYPH_ICONS[glyph.icon]}
 									{@const displayText = taskDisplayText(row)}
 									{@const chips = taskChips(row.metadata, today, { tags: !usesRawTaskText(row), open: row.open })}
+									{@const rowKey = taskRowKey(note.filePath, row.lineNumber)}
+									<!-- Roving focus: only the tab-stop row and its controls are in the tab order. -->
+									{@const rowTabindex = rowKey === tabStopKey ? 0 : -1}
 									<!-- A dimmed row fails the filters and stays as the parent of one that passes. -->
+									<!-- svelte-ignore a11y_no_noninteractive_tabindex (roving-focus list: the row is the focus stop) -->
 									<div
 										data-task-row
-										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors {row.dimmed ? 'opacity-60' : ''}"
+										data-task-key={rowKey}
+										role="listitem"
+										tabindex={rowTabindex}
+										class="flex items-start gap-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.dimmed ? 'opacity-60' : ''}"
 										style="padding-left: {row.indent * 1.25 + 0.25}rem"
 									>
 										<button
 											data-task-toggle
 											data-task-status={row.status}
+											tabindex={rowTabindex}
 											class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 											aria-label="{toggleTarget(row.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {displayText} ({glyph.word})"
 											title={glyph.word}
@@ -602,12 +719,14 @@
 														{seg.value}
 													{:else if seg.type === 'wikilink'}
 														<button
+															tabindex={rowTabindex}
 															class="inline cursor-pointer text-primary hover:underline"
 															onclick={(e) => { e.stopPropagation(); onOpenWikilink(seg.target); }}
 														>{seg.display}</button>
 													{:else}
 														<a
 															href={seg.url}
+															tabindex={rowTabindex}
 															target="_blank"
 															rel="noopener noreferrer"
 															title={seg.url}

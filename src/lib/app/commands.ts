@@ -30,7 +30,8 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { COPY_BLOCK_LINK_SHORTCUT } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
-import { toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
+import { openTasksTab, toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
+import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import {
 	openEventCalendarTab,
 	openNewEventDialog,
@@ -68,6 +69,25 @@ function railGoToCommands(): AppCommand[] {
 		category: 'Navigation',
 		action: () => selectRailItem(item),
 	}));
+}
+
+/**
+ * Flips the Tasks view between Open only and every status, writing what the
+ * Status menu's Open and All radios write, then shows the Tasks tab. The
+ * quick filters are read while the list is built, like the Go to commands.
+ */
+function tasksStatusFilterCommand(): AppCommand {
+	const { show, statuses } = tasksStore.quick;
+	const showAll = show === 'open' && statuses === undefined;
+	return {
+		id: 'tasks:status-filter',
+		label: showAll ? 'Tasks: Show all statuses' : 'Tasks: Show open only',
+		category: 'Navigation',
+		action: () => {
+			tasksStore.setQuick({ show: showAll ? 'all' : 'open', statuses: undefined });
+			openTasksTab();
+		},
+	};
 }
 
 /**
@@ -202,6 +222,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				toggleTasksTab();
 			},
 		},
+		tasksStatusFilterCommand(),
 		{
 			id: 'event-calendar:toggle',
 			label: 'Toggle Calendar View',
