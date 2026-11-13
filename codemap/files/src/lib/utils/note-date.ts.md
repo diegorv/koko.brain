@@ -15,7 +15,7 @@ sym src/lib/utils/note-date.ts:7 interface NoteDateSources L8 | The sources a no
 sym src/lib/utils/note-date.ts:31 fn parseDateKey(value: unknown): string | null L14 | Parses a frontmatter date value into a 'YYYY-MM-DD' key in local time.
 by src/lib/utils/note-date.ts:parseDateKey <- src/lib/features/rail-shell/lens.logic.ts:81 in todayLensDay call
 by src/lib/utils/note-date.ts:parseDateKey <- src/lib/plugins/calendar/day-lens.logic.ts:20 in parseRailDay call
-by src/lib/utils/note-date.ts:parseDateKey <- src/lib/plugins/one-on-one/one-on-one.logic.ts:161 in buildMyPeople call
+by src/lib/utils/note-date.ts:parseDateKey <- src/lib/plugins/one-on-one/one-on-one.logic.ts:181 in buildMyPeople call
 sym src/lib/utils/note-date.ts:51 fn noteDateKey({ date, created, diskCreatedAt }: NoteDateSources): string | null L7 | The day a note belongs to (the PRD's "note date"): frontmatter `date`, else frontmatter `created`, else the disk creation time.
 by src/lib/utils/note-date.ts:noteDateKey <- src/lib/features/rail-shell/lens.logic.ts:264 in entryNoteDate call
 ## calls

@@ -9,7 +9,7 @@ imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:8 -> src/lib/core/vault/va
 imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:9 -> src/lib/features/event-calendar/event-calendar-view.store.svelte.ts eventCalendarViewStore
 imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:10 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:11 -> src/lib/utils/debug.ts error
-imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:12 -> src/lib/plugins/one-on-one/one-on-one.logic.ts buildMyPeople,myPeopleDaysLabel
+imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:12 -> src/lib/plugins/one-on-one/one-on-one.logic.ts ONE_ON_ONE_EVERY_PROPERTY,buildMyPeople,myPeopleDaysLabel
 imp src/lib/plugins/one-on-one/MyPeopleSection.svelte:13 -> src/lib/plugins/one-on-one/one-on-one.service.ts createOneOnOneNote
 ## imported-by
 imp src/lib/plugins/one-on-one/one-on-one-today.service.ts:2 -> src/lib/plugins/one-on-one/MyPeopleSection.svelte default

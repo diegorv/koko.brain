@@ -133,7 +133,7 @@ by src/lib/features/rail-shell/lens.logic.ts:staleRailPinFix <- src/lib/app/AppS
 sym src/lib/features/rail-shell/lens.logic.ts:258 fn noteSubtitle(entry: NoteEntryV2, vaultPath: string | null): string L3 | The row's second line: the note's modified time in relative form (`formatRelativeTime`, the order most lists sort by) and its vault-relative folder.
 sym src/lib/features/rail-shell/lens.logic.ts:263 fn entryNoteDate(entry: NoteEntryV2): string | null L8 | An entry's note date (`noteDateKey`: frontmatter `date`, else `created`, else the disk creation time), or null.
 by src/lib/features/rail-shell/lens.logic.ts:entryNoteDate <- src/lib/plugins/calendar/day-lens.logic.ts:41 in resolveDayLens call +1
-by src/lib/features/rail-shell/lens.logic.ts:entryNoteDate <- src/lib/plugins/one-on-one/one-on-one.logic.ts:166 in buildMyPeople call
+by src/lib/features/rail-shell/lens.logic.ts:entryNoteDate <- src/lib/plugins/one-on-one/one-on-one.logic.ts:186 in buildMyPeople call
 sym src/lib/features/rail-shell/lens.logic.ts:326 fn listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => boolean): LensNote[] L6 | The entries `includes` keeps as note list rows: system folder excluded, newest change first (the built-in lenses' order).
 by src/lib/features/rail-shell/lens.logic.ts:listEntries <- src/lib/plugins/calendar/day-lens.logic.ts:41 in resolveDayLens call
 sym src/lib/features/rail-shell/lens.logic.ts:434 fn resolveLens(lens: Lens, ctx: LensContext, providers: readonly RailLensProvider[] = [], archived: ArchivedFilter = 'active'): Resol… L15 | Turns a lens into the note list's label, rule and notes.
