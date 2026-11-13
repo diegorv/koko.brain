@@ -9,16 +9,8 @@ node_modules
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 references
-graphify-out/cost.json
-graphify-out/cache/
-graphify-out/.graphify_python
-graphify-out/.graphify_root
-graphify-out/.rebuild.lock
-docs/graphify-tauri/
 
 # Playwright
 test-results/
 playwright-report/
 .playwright-mcp/
-# Output of scripts/architecture-map.mjs
-docs/architecture/generated/

@@ -251,7 +251,7 @@ These files hold correctness invariants as well as performance rules. Read the o
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
 | [docs/SEARCH.md](docs/SEARCH.md) | Search architecture: text / semantic / hybrid pipeline, chunking, models, RRF, versioning levers |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
-| [docs/architecture/README.md](docs/architecture/README.md) | Architecture map: one curated doc per module (responsibility, key files, gotchas), generated pages with imports, IPC and tests; a new module folder needs a doc |
+| codemap/INDEX.md | Generated code map for agents: files, symbols, calls, imports both ways, IPC, events, side effects, tests. Start there; query with `node scripts/codemap.mjs q help`. Put this row in the prompt of any sub-agent you send to do discovery. Grep code with path src or src-tauri. Written by CI on main; never edit or commit it. |
 
 ## Implementation process
 

@@ -168,6 +168,8 @@ if [ "$CHANGELOG_BASE" = "0.0.0${SUFFIX}" ]; then
 else
   COMMITS=$(git log "${CHANGELOG_BASE}..HEAD" --oneline --no-decorate)
 fi
+# The code map workflow's regeneration commits are not release notes.
+COMMITS=$(printf '%s\n' "$COMMITS" | grep -v -E '^[0-9a-f]+ chore\(codemap\)' || true)
 
 if [ -z "$COMMITS" ]; then
   echo "No new commits since $CHANGELOG_BASE. Aborting."

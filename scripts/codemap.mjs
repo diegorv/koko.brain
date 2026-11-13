@@ -10,6 +10,7 @@
  *   node scripts/codemap.mjs --out <dir>       writes the map to <dir>
  *   node scripts/codemap.mjs --stale [--out <dir>]
  *                                              exit 0 when the map's inputs hash matches the tree, else 1
+ *   node scripts/codemap.mjs q <command> …     query a model of the working tree (`q help`)
  *
  * The output folder is replaced only when it is missing, empty apart from
  * `.git`, or holds a code map `INDEX.md`. Git and the `CI` variable decide
@@ -24,6 +25,7 @@ import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { buildModel, isInput, readInputs } from './codemap/model.mjs';
+import { runQuery } from './codemap/query.mjs';
 import { INDEX_TITLE, renderMap } from './codemap/render.mjs';
 
 /** Code-unit comparison, the only sort order of the code map. */
@@ -42,6 +44,7 @@ const STALE_LIST_CAP = 20;
 const USAGE = [
 	'usage: node scripts/codemap.mjs [build] [--out <dir>]',
 	'       node scripts/codemap.mjs --stale [--out <dir>]',
+	'       node scripts/codemap.mjs q <command> <arg> [options]   (q help lists the commands)',
 	'',
 ].join('\n');
 
@@ -176,8 +179,8 @@ function canonicalPath(abs) {
  *   out?: (text: string) => void, err?: (text: string) => void}} [io] the repo
  *   to map (default: this script's repo), the environment (`CI`), the folder
  *   a relative `--out` resolves against, and the stdout and stderr writers
- * @returns {number} the exit code: 0 written or current, 1 stale or failed,
- *   2 usage error or in-place write refused
+ * @returns {number} the exit code: 0 written, current or found, 1 stale,
+ *   failed, no match or ambiguous, 2 usage error or in-place write refused
  */
 export function main(argv, io = {}) {
 	const root = io.root ?? REPO;
@@ -185,6 +188,12 @@ export function main(argv, io = {}) {
 	const cwd = io.cwd ?? process.cwd();
 	const out = io.out ?? ((s) => process.stdout.write(s));
 	const err = io.err ?? ((s) => process.stderr.write(s));
+	if (argv[0] === 'q') {
+		const res = runQuery(argv.slice(1), () => buildModel(readInputs(root)));
+		if (res.stdout) out(res.stdout);
+		if (res.stderr) err(res.stderr);
+		return res.code;
+	}
 	const args = argv[0] === 'build' ? argv.slice(1) : argv;
 	let outArg = null;
 	let staleMode = false;

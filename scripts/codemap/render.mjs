@@ -47,6 +47,17 @@ export function moreLine(what, groups, query, maxGroups = MORE_GROUPS) {
 }
 
 /**
+ * One `by` line: `by <id> <- <loc> in <enclosing> <kind> [+<n>]`.
+ *
+ * @param {string} id the symbol ID
+ * @param {{file: string, line: number, enclosing: string, kind: string, more: number}} u a `usersBySymbol` entry
+ * @returns {string}
+ */
+export function byLine(id, u) {
+	return `by ${id} <- ${u.file}:${u.line} in ${u.enclosing} ${u.kind}${u.more ? ` +${u.more}` : ''}`;
+}
+
+/**
  * The `by` lines of one symbol, `by <id> <- <loc> in <enclosing> <kind> [+<n>]`,
  * at most 8, then a `more` line grouped by module with a `q importers` hint.
  *
@@ -58,9 +69,7 @@ export function moreLine(what, groups, query, maxGroups = MORE_GROUPS) {
  */
 export function byLines(id, users, moduleOf) {
 	if (!users) return [];
-	const lines = users
-		.slice(0, BY_CAP)
-		.map((u) => `by ${id} <- ${u.file}:${u.line} in ${u.enclosing} ${u.kind}${u.more ? ` +${u.more}` : ''}`);
+	const lines = users.slice(0, BY_CAP).map((u) => byLine(id, u));
 	if (users.length > BY_CAP) lines.push(moreLine('by', users.slice(BY_CAP).map((u) => moduleOf(u.file)), `importers ${id}`));
 	return lines;
 }
@@ -355,14 +364,18 @@ function shard(title, cols, body) {
 }
 
 /** Whether a production file gets a card: not `components/ui` and not ts-rs output. */
-const isCarded = (model, f) =>
+export const isCarded = (model, f) =>
 	!model.isTest(f) && !f.startsWith('src/lib/components/ui/') && !f.startsWith('src/lib/contracts/generated/');
 
 /** The ID of a TS symbol: `<file>:default` for a component, else `<file>:<name>`. */
-const symId = (file, s) => (s.kind === 'component' ? `${file}:default` : `${file}:${s.name}`);
+export const symId = (file, s) => (s.kind === 'component' ? `${file}:default` : `${file}:${s.name}`);
 
-/** Indexes of the model the shards share, each list in output order. */
-function context(model) {
+/**
+ * Indexes of the model the shards and the query CLI share, each list in output order.
+ *
+ * @param {ReturnType<typeof import('./model.mjs').buildModel>} model
+ */
+export function context(model) {
 	const { isTest } = model;
 	const group = (f) => model.moduleOf(f) ?? posix.dirname(f);
 	const imports = new Map();
@@ -442,32 +455,32 @@ function context(model) {
 }
 
 /** An `imp` line: `imp <importer>:<line> -> <target> <names>`. */
-const impLine = (e) => `imp ${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`;
+export const impLine = (e) => `imp ${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`;
 
 /** A `test` line: `test <test file> imports|mocks|e2e <file> [mirror]`. */
-const testLine = (t) => `test ${t.test} ${t.relation} ${t.target}${t.mirror ? ' mirror' : ''}`;
+export const testLine = (t) => `test ${t.test} ${t.relation} ${t.target}${t.mirror ? ' mirror' : ''}`;
 
 /** A `mount` line: `mount <loc> <Name> -> <component file>`. */
-const mountLine = (m) => `mount ${m.file}:${m.line} ${m.name} -> ${m.target}`;
+export const mountLine = (m) => `mount ${m.file}:${m.line} ${m.name} -> ${m.target}`;
 
 /** An `fx` line: `fx <loc> <sink> [<arg>] in <enclosing>`. */
-const fxLine = (e) => `fx ${e.file}:${e.line} ${e.sink}${e.arg ? ` ${excerpt(e.arg)}` : ''} in ${e.enclosing}`;
+export const fxLine = (e) => `fx ${e.file}:${e.line} ${e.sink}${e.arg ? ` ${excerpt(e.arg)}` : ''} in ${e.enclosing}`;
 
 /** A card `reg` line: `reg <loc> <registry id> in <enclosing> [args=<text>]`. */
 const cardRegLine = (r, s) => `reg ${s.file}:${s.line} ${r.id} in ${s.enclosing}${s.args ? ` args=${excerpt(s.args)}` : ''}`;
 
 /** A `sym` line: `sym <loc> <kind> <name><sig> L<span>[<extra>] [| doc]`. */
-const symLine = (file, s, extra = '') =>
+export const symLine = (file, s, extra = '') =>
 	`sym ${file}:${s.line} ${s.kind} ${s.name}${excerpt(s.sig)} L${s.span}${extra}${s.doc ? ` | ${excerpt(s.doc)}` : ''}`;
 
 /** A `local` line: `local <loc> fn <name><sig> L<span>`. */
-const localLine = (file, l) => `local ${file}:${l.line} fn ${l.name}${excerpt(l.sig)} L${l.span}`;
+export const localLine = (file, l) => `local ${file}:${l.line} fn ${l.name}${excerpt(l.sig)} L${l.span}`;
 
 /** The `sym` line of a Rust item, with ` dto:<Name>` for a `#[ts(export)]` type. */
-const rustSymLine = (file, i) => symLine(file, i, i.dto ? ` dto:${i.name}` : '');
+export const rustSymLine = (file, i) => symLine(file, i, i.dto ? ` dto:${i.name}` : '');
 
 /** A `store` line of a card: `store <loc> <name> esc:<n>`. */
-const storeLine = (st) => `store ${st.file}:${st.line} ${st.name} esc:${st.esc}`;
+export const storeLine = (st) => `store ${st.file}:${st.line} ${st.name} esc:${st.esc}`;
 
 /**
  * The `file` line: `file <path> <role> L<lines> module <m> in<n> t<n> [t:inline] [| header doc]`,
@@ -510,7 +523,7 @@ const locations = (sites) => [...new Set(sites.map(at))];
  * sites: `mem <loc> get|set|do <store>.<member> r:<sites>|w:<sites> [w-via:<do members>] [| doc]`.
  * A `get` member shows `r:` (and `w:` when assigned); a `set` or `do` member `w:`.
  */
-function memLines(st, m, group) {
+export function memLines(st, m, group) {
 	const more = [];
 	const sites = (tag, list) => {
 		const locs = locations(list);
@@ -598,6 +611,34 @@ function cappedXlang(entries, keyRe, what, query, group) {
 	return out;
 }
 
+/**
+ * The `call` lines of one file's `calls` section: its F4 call rows (TS) or
+ * Rust call rows, ordered by the line each enclosing name is defined at.
+ *
+ * @param {ReturnType<typeof import('./model.mjs').buildModel>} model
+ * @param {ReturnType<typeof context>} ctx
+ * @param {string} file
+ * @returns {string[]}
+ */
+export function fileCalls(model, ctx, file) {
+	const facts = model.ts.get(file);
+	const rust = model.rust.get(file);
+	const defLine = new Map();
+	if (facts) {
+		for (const x of [...facts.symbols, ...facts.locals]) defLine.set(x.name, x.line);
+		return callLines(file, tsCallRows(ctx, file), defLine);
+	}
+	if (rust) {
+		for (const x of [...rust.items, ...rust.locals]) defLine.set(x.name, x.line);
+		return callLines(
+			file,
+			(ctx.rustCalls.get(file) ?? []).map((c, i) => ({ ...c, site: String(i) })),
+			defLine,
+		);
+	}
+	return [];
+}
+
 /** The `cols:` line of every file card. */
 const cardCols = (file) =>
 	`cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> ${file} ' codemap/files`;
@@ -615,31 +656,15 @@ function renderFileCard(model, ctx, file) {
 	const importers = ctx.importers.get(file) ?? [];
 	const symbols = [];
 	const locals = [];
-	const defLine = new Map();
-	let rows = [];
 	let symCount = 0;
 	if (facts) {
-		for (const s of facts.symbols) {
-			symbols.push(symLine(file, s), ...byLines(symId(file, s), model.users.get(symId(file, s)), group));
-			defLine.set(s.name, s.line);
-		}
-		for (const l of facts.locals) {
-			locals.push(localLine(file, l));
-			defLine.set(l.name, l.line);
-		}
+		for (const s of facts.symbols) symbols.push(symLine(file, s), ...byLines(symId(file, s), model.users.get(symId(file, s)), group));
+		for (const l of facts.locals) locals.push(localLine(file, l));
 		symCount = facts.symbols.length;
-		rows = tsCallRows(ctx, file);
 	} else if (rust) {
-		for (const i of rust.items) {
-			symbols.push(rustSymLine(file, i), ...byLines(`${file}:${i.name}`, model.rustUsers.get(`${file}:${i.name}`), group));
-			defLine.set(i.name, i.line);
-		}
-		for (const l of rust.locals) {
-			locals.push(localLine(file, l));
-			defLine.set(l.name, l.line);
-		}
+		for (const i of rust.items) symbols.push(rustSymLine(file, i), ...byLines(`${file}:${i.name}`, model.rustUsers.get(`${file}:${i.name}`), group));
+		for (const l of rust.locals) locals.push(localLine(file, l));
 		symCount = rust.items.length;
-		rows = (ctx.rustCalls.get(file) ?? []).map((c, i) => ({ ...c, site: String(i) }));
 	}
 	const store = (ctx.stores.get(file) ?? []).flatMap((st) => [storeLine(st), ...st.members.flatMap((m) => memLines(st, m, group))]);
 	const xlang = ctx.xlang.get(file) ?? [];
@@ -668,7 +693,7 @@ function renderFileCard(model, ctx, file) {
 	]
 		.sort((a, b) => a.line - b.line || cmp(a.text, b.text))
 		.map((e) => e.text);
-	const calls = callLines(file, rows, defLine);
+	const calls = fileCalls(model, ctx, file);
 	const body = (callsSection) => [
 		fileLine(model, ctx, file),
 		...sectionLines([
@@ -738,7 +763,7 @@ function moduleReachLine(tag, m, second, near, linked) {
 }
 
 /** A `dep` line: `dep <from module> -> <to module> <file pairs>`. */
-const depLine = (e) => `dep ${e.from} -> ${e.to} ${e.pairs}`;
+export const depLine = (e) => `dep ${e.from} -> ${e.to} ${e.pairs}`;
 
 /**
  * The module card of one module and its `module` line (the same text heads
@@ -860,8 +885,17 @@ function sinkDoc(model, id) {
 	return '';
 }
 
-/** The `wiring.md` lines of one registry or facet. */
-function wiringLines(model, r, group) {
+/**
+ * The `wiring.md` lines of one registry or facet, at most `cap` lines per
+ * relation (`read-by`, `fired-by`, `registered-at`, `invoked-at`).
+ *
+ * @param {ReturnType<typeof import('./model.mjs').buildModel>} model
+ * @param {ReturnType<typeof import('./ts.mjs').collectRegistries>[number]} r
+ * @param {(file: string) => string} group the module of a file
+ * @param {number} [cap] 10 in `wiring.md`; the query CLI passes no limit
+ * @returns {string[]}
+ */
+export function wiringLines(model, r, group, cap = WIRING_CAP) {
 	const id = r.id;
 	const head =
 		r.kind === 'facet'
@@ -871,10 +905,10 @@ function wiringLines(model, r, group) {
 	const q = `reg ${id}`;
 	return [
 		`${head}${doc ? ` | doc ${excerpt(doc)}` : ''}`,
-		...capped(r.readBy, WIRING_CAP, (rb) => `reg ${id} read-by ${rb.file}:${rb.line} ${rb.id.slice(rb.file.length + 1)}`, (rb) => group(rb.file), 'read-by', q),
+		...capped(r.readBy, cap, (rb) => `reg ${id} read-by ${rb.file}:${rb.line} ${rb.id.slice(rb.file.length + 1)}`, (rb) => group(rb.file), 'read-by', q),
 		...capped(
 			r.firedBy.filter((f) => f.chain.length),
-			WIRING_CAP,
+			cap,
 			(f) => `reg ${id} fired-by ${f.chain.map(site).join(' <- ')}`,
 			(f) => group(f.chain[0].file),
 			'fired-by',
@@ -882,13 +916,13 @@ function wiringLines(model, r, group) {
 		),
 		...capped(
 			r.registeredAt,
-			WIRING_CAP,
+			cap,
 			(s) => `reg ${id} registered-at ${site(s)}${s.args ? ` args=${excerpt(s.args)}` : ''} -> ${s.callbacks.join(',')}`,
 			(s) => group(s.file),
 			'registered-at',
 			q,
 		),
-		...capped(r.invokedAt, WIRING_CAP, (s) => `reg ${id} invoked-at ${site(s)}`, (s) => group(s.file), 'invoked-at', q),
+		...capped(r.invokedAt, cap, (s) => `reg ${id} invoked-at ${site(s)}`, (s) => group(s.file), 'invoked-at', q),
 	];
 }
 
