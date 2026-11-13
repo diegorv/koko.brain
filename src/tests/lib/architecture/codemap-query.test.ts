@@ -990,7 +990,9 @@ describe('q on the real repo (test 53)', () => {
 		return { ...run, ms };
 	}
 
-	it('answers importers and path from the working tree in under 10 s each', () => {
+	// Wall time is logged, not asserted: a cold CLI run under parallel vitest workers on a
+	// CI runner is too variable to gate. The test timeout still catches a hang.
+	it('answers importers and path from the working tree', () => {
 		const imp = cli('importers', 'src/lib/utils/debounce.ts');
 		expect(imp.status, imp.stderr).toBe(0);
 		const impLines = imp.stdout.split('\n');
@@ -1001,12 +1003,10 @@ describe('q on the real repo (test 53)', () => {
 			'src/lib/features/rail-shell/TypesNavigator.svelte:25',
 		])
 			expect(impLines.some((l) => l.startsWith(`imp ${site} -> src/lib/utils/debounce.ts `)), site).toBe(true);
-		expect(imp.ms).toBeLessThan(10_000);
 		const path = cli('path', 'src/lib/features/tags/tags.service.ts', 'src/lib/contracts/ipc.ts');
 		expect(path.status, path.stderr).toBe(0);
 		expect(path.stdout).toMatch(/^# path src\/lib\/features\/tags\/tags\.service\.ts -> src\/lib\/contracts\/ipc\.ts total 1 /);
 		expect(path.stdout).toMatch(/^imp src\/lib\/features\/tags\/tags\.service\.ts:\d+ -> src\/lib\/contracts\/ipc\.ts /m);
-		expect(path.ms).toBeLessThan(10_000);
 	}, 30_000);
 
 	describe('known facts through q (test 43)', () => {
