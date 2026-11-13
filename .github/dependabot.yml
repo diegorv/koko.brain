@@ -15,6 +15,12 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 5
+      # Tauri crates move on day 0 with their @tauri-apps/* npm packages
+      # (exempt in the npm entry above): a plugin's JS and Rust sides must
+      # stay on the same minor.
+      exclude:
+        - "tauri"
+        - "tauri-*"
 
   - package-ecosystem: "github-actions"
     directories:

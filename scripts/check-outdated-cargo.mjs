@@ -15,8 +15,9 @@
  * `cargo` entry of .github/dependabot.yml, 5 days). Unlike npm there is no
  * resolver-side gate (pnpm's `minimumReleaseAge`): cargo resolves the newest
  * compatible release no matter its age, so the window is applied by hand with
- * `cargo update -p <crate> --precise <version>`. RUSTSEC fixes are the one
- * exception: they are applied even inside the window, so SECURITY rows say so.
+ * `cargo update -p <crate> --precise <version>`. Two exceptions: crates in the
+ * entry's `cooldown.exclude` are installable on day 0, and
+ * RUSTSEC fixes are applied even inside the window, so SECURITY rows say so.
  *
  * Where the candidates come from: `cargo update --dry-run`. That is exactly
  * what the resolver would move inside every requirement in the graph, direct
@@ -94,6 +95,38 @@ export function readCargoCooldownDays(yamlText) {
 		throw new Error('dependabot.yml has no cargo `cooldown.default-days`; refusing to grade release age.');
 	}
 	return days;
+}
+
+/**
+ * `cooldown.exclude` patterns of the `cargo` entry in .github/dependabot.yml:
+ * crates whose releases are installable on day 0. Empty when there are none.
+ *
+ * Reading the list from dependabot.yml keeps this report and Dependabot agreeing
+ * on which crates skip the window; the reason for each entry lives there.
+ *
+ * @param {string} yamlText Raw dependabot.yml contents.
+ * @returns {string[]}
+ */
+export function readCargoCooldownExcludes(yamlText) {
+	const cfg = parseYaml(yamlText) ?? {};
+	const entry = (cfg.updates ?? []).find((u) => u?.['package-ecosystem'] === 'cargo');
+	const exclude = entry?.cooldown?.exclude;
+	return Array.isArray(exclude) ? exclude.filter((p) => typeof p === 'string') : [];
+}
+
+/**
+ * Whether a crate matches one of the cooldown exclude patterns. `*` is the only
+ * wildcard, as in Dependabot; every other character matches literally.
+ *
+ * @param {string} name Crate name.
+ * @param {string[]} patterns From readCargoCooldownExcludes.
+ * @returns {boolean}
+ */
+export function isCooldownExcluded(name, patterns) {
+	return patterns.some((p) => {
+		const re = new RegExp(`^${p.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*')}$`);
+		return re.test(name);
+	});
 }
 
 /**
@@ -613,10 +646,13 @@ function unlockStr(d, now) {
 }
 
 async function main() {
-	const cooldownDays = readCargoCooldownDays(readFileSync(resolve(repoRoot, '.github/dependabot.yml'), 'utf8'));
+	const dependabotYaml = readFileSync(resolve(repoRoot, '.github/dependabot.yml'), 'utf8');
+	const cooldownDays = readCargoCooldownDays(dependabotYaml);
+	const cooldownExcludes = readCargoCooldownExcludes(dependabotYaml);
 	const now = Date.now();
 	const windowMs = cooldownDays * 86_400_000;
-	const cutoff = now - windowMs;
+	/** Cooldown of one crate: none for the exclude list. */
+	const windowFor = (name) => (isCooldownExcluded(name, cooldownExcludes) ? 0 : windowMs);
 
 	const dry = parseDryRun(
 		(await run('cargo', ['update', '--dry-run', '--manifest-path', manifestPath])).stderr,
@@ -642,6 +678,7 @@ async function main() {
 	const vulns = (audit ?? []).filter((a) => a.kind === 'vulnerability');
 
 	console.log(`Cooldown: a crate release must be ${cooldownDays}+ days old (dependabot.yml, cargo).`);
+	if (cooldownExcludes.length) console.log(`Exempt from the cooldown: ${cooldownExcludes.join(', ')}.`);
 
 	// ---- GitHub repository advisories for every crate in Cargo.lock. ----
 	const crateRepos = await fetchCrateRepos([...lock.keys()]);
@@ -677,20 +714,22 @@ async function main() {
 	for (const { name, from, to } of dry.updates) {
 		const versions = versionsByName.get(name);
 		if (!versions) continue;
-		const graded = classifyLockMove(versions, from, to, cutoff);
+		const window = windowFor(name);
+		const graded = classifyLockMove(versions, from, to, now - window);
 		if (graded.installable) {
 			updateNow.push({
 				name,
 				from,
 				to: graded.installable,
-				clearedAt: new Date(graded.installableAt.getTime() + windowMs),
+				clearedAt: new Date(graded.installableAt.getTime() + window),
+				exempt: window === 0,
 				direct: directDeps.has(name),
 				compatible: isCompatibleMove(from, graded.installable),
 				replacesYanked: (audit ?? []).some((a) => a.kind === 'yanked' && a.name === name && a.version === from),
 			});
 		}
 		for (const l of graded.locked) {
-			locked.push({ name, version: l.version, clearsAt: new Date(l.publishedAt.getTime() + windowMs) });
+			locked.push({ name, version: l.version, clearsAt: new Date(l.publishedAt.getTime() + window) });
 		}
 		for (const v of graded.yanked) yankedSkipped.push(`${name}@${v}`);
 	}
@@ -704,7 +743,7 @@ async function main() {
 		const range = cargoReqToRange(req);
 		const current = lockedVersionFor(lock.get(name), range);
 		if (!versions || !current) continue;
-		const newer = newestOutOfRange(versions, current, range, cutoff);
+		const newer = newestOutOfRange(versions, current, range, now - windowFor(name));
 		if (newer) outOfRange.push({ name, current, version: newer.version, req, kinds });
 	}
 	outOfRange.sort((a, b) => a.name.localeCompare(b.name));
@@ -764,15 +803,16 @@ async function main() {
 		console.log(`UPDATE NOW (${updateNow.length}) — \`cargo update -p <crate> --precise <version>\`:`);
 		for (const r of updateNow) {
 			const tags = [];
+			if (r.exempt) tags.push('day-0 ok');
 			if (r.direct) tags.push('direct');
 			if (!r.compatible) tags.push('needs dependent bump');
 			if (r.replacesYanked) tags.push('replaces yanked');
 			const tag = tags.length ? `  [${tags.join(', ')}]` : '';
 			const ids = fixes(r.name, r.to);
 			const sec = ids.length ? `  [SECURITY ${ids.join(', ')}]` : '';
-			console.log(
-				`  ${pad(r.name, wName)}  ${pad(r.from, 10)} ->  ${pad(r.to, 10)}  (since ${shortDate(r.clearedAt)})${tag}${sec}`,
-			);
+			// An exempt crate never waited, so "since" would only repeat its publish date.
+			const since = r.exempt ? '' : `  (since ${shortDate(r.clearedAt)})`;
+			console.log(`  ${pad(r.name, wName)}  ${pad(r.from, 10)} ->  ${pad(r.to, 10)}${since}${tag}${sec}`);
 		}
 		console.log('\n  `cargo update -p` may also re-point unrelated edges (windows-sys and');
 		console.log('  friends); diff Cargo.lock and keep only the intended crates.');

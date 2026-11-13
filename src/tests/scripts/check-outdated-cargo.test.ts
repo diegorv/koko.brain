@@ -11,6 +11,7 @@ import {
 	githubRepoFromUrl,
 	isAffected,
 	isCompatibleMove,
+	isCooldownExcluded,
 	isPatched,
 	lockedVersionFor,
 	newestOutOfRange,
@@ -20,6 +21,7 @@ import {
 	parseDirectDeps,
 	parseDryRun,
 	readCargoCooldownDays,
+	readCargoCooldownExcludes,
 } from '../../../scripts/check-outdated-cargo.mjs';
 
 /** Build the version map classifyLockMove / newestOutOfRange consume. */
@@ -57,6 +59,56 @@ updates:
 	it('throws when there is no cargo entry or the file is empty', () => {
 		expect(() => readCargoCooldownDays('updates:\n  - package-ecosystem: "npm"\n')).toThrow();
 		expect(() => readCargoCooldownDays('')).toThrow();
+	});
+});
+
+describe('readCargoCooldownExcludes', () => {
+	it('reads the cargo exclude list, not the npm one', () => {
+		const yaml = `updates:
+  - package-ecosystem: "npm"
+    cooldown:
+      default-days: 5
+      exclude:
+        - "@tauri-apps/*"
+  - package-ecosystem: "cargo"
+    cooldown:
+      default-days: 5
+      exclude:
+        - "tauri"
+        - "tauri-*"
+`;
+		expect(readCargoCooldownExcludes(yaml)).toEqual(['tauri', 'tauri-*']);
+	});
+
+	it('returns an empty list when the cargo entry has no exclude', () => {
+		expect(
+			readCargoCooldownExcludes('updates:\n  - package-ecosystem: "cargo"\n    cooldown:\n      default-days: 5\n'),
+		).toEqual([]);
+		expect(readCargoCooldownExcludes('')).toEqual([]);
+	});
+});
+
+describe('isCooldownExcluded', () => {
+	const patterns = ['tauri', 'tauri-*'];
+
+	it('matches the exact name and the wildcard', () => {
+		expect(isCooldownExcluded('tauri', patterns)).toBe(true);
+		expect(isCooldownExcluded('tauri-plugin-http', patterns)).toBe(true);
+		expect(isCooldownExcluded('tauri-build', patterns)).toBe(true);
+	});
+
+	it('does not match names that only contain the pattern', () => {
+		expect(isCooldownExcluded('tauri_utils', patterns)).toBe(false);
+		expect(isCooldownExcluded('my-tauri-plugin', patterns)).toBe(false);
+		expect(isCooldownExcluded('uuid', patterns)).toBe(false);
+	});
+
+	it('excludes nothing with no patterns', () => {
+		expect(isCooldownExcluded('tauri', [])).toBe(false);
+	});
+
+	it('treats regex metacharacters in a pattern literally', () => {
+		expect(isCooldownExcluded('tauriXplugin', ['tauri.plugin'])).toBe(false);
 	});
 });
 
