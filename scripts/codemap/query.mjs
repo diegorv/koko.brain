@@ -69,7 +69,7 @@ const SECTIONS = ['imports', 'imported-by', 'reach', 'tests', 'symbols', 'store'
 
 /** The `q help` text, also printed after a usage error. */
 export const HELP = `${[
-	'usage: node scripts/codemap.mjs q <command> <arg> [options]',
+	'usage: node scripts/codemap.mjs q <command> <arg> [options] [--no-cache]',
 	'commands:',
 	'  help                                   this text',
 	'  sym <name> | sym --match <part|/re/>   definitions by exact name, or by part of a name (case-insensitive)',
@@ -89,6 +89,7 @@ export const HELP = `${[
 	'  hubs [--layer L] [--module M]          files by production importers, then test importers',
 	'  reg <registry>                         the codemap/wiring/<layer>.md lines of one registry or facet',
 	'options: --limit N (default 50) · --module M keeps results in module M · --file F reads a bare name as F:name',
+	'cache: q loads the model from node_modules/.cache/codemap/model.bin while its inputs hash matches the tree, else rebuilds and rewrites it · --no-cache builds from scratch and leaves the file alone',
 	'IDs: file = repo path · symbol = <file>:<name> · member = <file>:<object>.<member> · component = <file>:default or <file>:<Basename> · Rust method = <file>:<Type>::<name> · scope = <file>:(module), (script), (markup), $effect@<line>, <var>=$derived · module = folder path · ipc:<command> · event:<name> · dto:<Name> · a bare name when one definition has it',
 	'exit: 0 found (no fact prints "none …") · 1 no match or ambiguous · 2 usage error',
 ].join('\n')}\n`;

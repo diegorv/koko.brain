@@ -509,7 +509,15 @@ Section 6 defines each section; every value comes from F2 to F20. Caps and the c
 
 ## 9. Query CLI
 
-`node scripts/codemap.mjs q <command> <arg> [options]`. Builds the model from the working tree on every call (same `buildModel` as the generator), so it is current on any branch. No cache; add one under `node_modules/.cache/codemap/` keyed by the inputs hash only if a measured query exceeds 3 s.
+`node scripts/codemap.mjs q <command> <arg> [options] [--no-cache]`. Answers from the model of the working tree (same `buildModel` as the generator), so it is current on any branch.
+
+**Model cache.** A model build takes about 2 s on the repo and agents run up to 78 queries a session, so `q` keeps the last model it built in `node_modules/.cache/codemap/model.bin` (git-ignored, never under `codemap/`; `build` and `--stale` neither read nor write it):
+- Key: the full 64-hex F13 inputs hash (INDEX line 2 prints its first 12 chars). Every `q` call reads all inputs and recomputes it (about 50 ms on the repo), so a one-byte edit, an added, deleted or renamed input, a generator script change or a TypeScript upgrade is a miss. No stat or mtime shortcut: hashing is not the bottleneck.
+- File: `codemap-model-cache <format> node <process.version>\n`, `key <hash>\n`, `payload <sha256> <bytes>\n`, then the `v8.serialize` payload. A file whose format line, key, length or payload checksum differs, or whose payload does not deserialize, is a miss: the model is rebuilt and the file rewritten. The Node version is on line 1 because v8 serialization is only guaranteed to round-trip on the Node that wrote it.
+- Payload: `modelData(model)`, every model field except `inputs` (the call has just read them), the functions (`moduleOf`, `isTest`, `layerOf`, `fileRole`, `in2`, `out2`, `moduleIn2Pairs`, `moduleOut2Pairs`), the TS regions' parsed source files and the Rust facts' `lineAt` index (extraction-only). `restoreModel(data, inputs)` rebuilds the functions from `files`, `modules`, `importers` and `imports` with the helpers `buildModel` uses.
+- Writes go to a temp file in the same folder (`model.bin.<pid>.<random>.tmp`) and `rename` over `model.bin`, so a reader or a concurrent `q` sees a whole file; concurrent misses each write a whole file and the last rename wins. A failed write removes the temp file and does not fail the query; a write first removes the `model.bin.<pid>.<random>.tmp` files of processes that no longer exist (a `q` killed mid-write), and leaves those of live processes.
+- `--no-cache` (anywhere after `q`) builds from scratch and neither reads nor writes the file; `q help` documents it. Answers are byte-identical with and without the cache (test 54).
+- Measured on the repo (1630 inputs, Apple silicon): cold (miss, build + write) about 2.2 s, `--no-cache` about 2.0 s, warm (hit) 230 to 340 ms wall per query (`flow` about 280 ms), of which node start and imports about 95 ms, reading and hashing inputs about 50 ms, checking and deserializing the 45 MB file about 80 ms. The file is about 45 MB.
 
 ID arguments accept every form in section 4; `in`-short forms with `--file`; `ipc:`, `event:` and `dto:` IDs; `EVENT_NAMES.KEY` and `*_EVENT` names.
 
@@ -732,6 +740,7 @@ CLI (`codemap-query.test.ts`, fixture unless noted):
 51. IDs: every path and symbol in CLI output exists in the model; `path:name`, `in name` with `--file`, and `<file>:<Basename>` for a component are accepted.
 52. Consistency: for every fixture file, `q file <f>` equals `codemap/files/<f>.md` byte for byte.
 53. Real repo, smoke and speed: `q importers src/lib/utils/debounce.ts` lists `editor.service.ts:9`, `app-lifecycle.service.ts:7`, `tags.service.ts:3`, `TypesNavigator.svelte:25`; `q path src/lib/features/tags/tags.service.ts src/lib/contracts/ipc.ts` is one hop; each query's wall time logged and asserted < 10 s.
+54. Model cache (section 9): every command answers byte-identically from a cache hit, a fresh build and `--no-cache`, and the fixture root gains only `node_modules/.cache/codemap/model.bin`; a one-byte edit, an added, a deleted and a renamed input each show on the next query; garbage, empty, truncated, header-only, payload-byte-flipped, other-format-line and other-key files are ignored and rewritten to the good bytes; `--no-cache` neither creates nor touches the file; four concurrent CLI processes all answer correctly and leave only `model.bin`, a valid hit; real repo: `restoreModel` of a `v8` round trip of `modelData` renders the same map and answers the same queries.
 
 Non-test checks (config and scripts): `actionlint` on `codemap.yml` if installed, else a YAML parse; run the `release.sh` filter line on a sample `git log --oneline`; after merge, one `workflow_dispatch` run of `codemap.yml`.
 
@@ -748,7 +757,7 @@ Each step: write its tests (section 14 numbers), see them fail, implement, see t
 7. F6 tests, F11 registries and facets, F15 effects, F17 mounts → 23 to 25, 27 to 29, 31.
 8. `model.mjs` graphs and ranking → 26.
 9. `render.mjs` cards, shards, caps, split, INDEX, write safety, refusal → 32 to 39, 46, 47; then real-repo 40 to 45.
-10. `query.mjs` CLI → 48 to 53.
+10. `query.mjs` CLI → 48 to 53; the `q` model cache (section 9) → 54.
 11. Removals and edits (section 12), `codemap.yml`, `release.sh` filter, CLAUDE.md row → non-test checks; full gate.
 12. First CI run on main writes `codemap/`; then the evaluation (section 16).
 
@@ -776,7 +785,7 @@ Protocol: headless Claude Code, fresh session per (question, model, arm, run), s
 
 - Keyword, term or UI-string indexes (owner decision 1). `q sym --match` searches identifiers taken from code only and writes no index.
 - Writing raw F4 rows or a full edge list to disk.
-- A cached model file.
+- A cached model file anywhere but `node_modules/.cache/codemap/` (section 9), or one the generator reads.
 - `svelte/compiler` markup parsing.
 - Mirror key-set clustering, a settings join, `conventions.md`, `model.json`.
 - PageRank.
@@ -791,13 +800,14 @@ Not checked:
 - Token counts are `bytes / 3` estimates.
 - Card sizes with the new `calls`, `locals` and per-user `by` lines are estimated from the v2 prototype (no calls, approximate grammar) plus the aiu `calls.mjs` sizes; only the budget test on the real build settles them. `event-calendar.service.ts` is expected to use the calls split; `lens.logic.ts` (23.7 KB prototype + 14 KB calls) may come close to 40 KB.
 - The `RUST_STD_METHOD_NAMES` list is from memory of Rust std; a crate-unique underscore name that collides with an external crate method would give a false `lexical-method` line (marked as such).
-- CLI time per query is estimated (1.5 to 2.5 s); CI runs Node 22.17 (setup action), not timed.
+- Query time is measured in section 9 on Apple silicon; the cache on CI's Node 22.17 (setup action) is not timed.
 - Whether Explore sub-agents can run `node scripts/codemap.mjs` (Bash permissions) and whether Codex's sandbox allows it: from memory.
 - The ordering of Grep results (mtime) between map and source hits.
 
 Risks:
 - Nearly every code push to main is followed by a bot commit (line numbers change), so main moves about twice as often; relay-lite deliveries rebase onto it cleanly (no branch touches `codemap/`), but this adds to "deliver starved by main commits" retries.
 - Committed shards add Grep hits for plain symbol searches (in the v2 prototype, `applyNoteChange` appeared in 19 map files against 29 source files). The INDEX and CLAUDE.md row tell agents to Grep `src`/`src-tauri`; the evaluation measures the cost. Hiding the map from ripgrep (`.ignore`, `.rgignore`) is rejected because Grep would then skip it like a gitignored file.
+- Each checkout keeps a 45 MB `node_modules/.cache/codemap/model.bin`, and the first query after any input edit pays a full build plus a 45 MB write.
 - On a branch, cards lag the code for changed files until merge; INDEX and `--stale` say so, and `q` is live.
 - Agents may not use the map; the evaluation measures usage.
 - The repo grows by about 3 MB plus history churn of bot commits.

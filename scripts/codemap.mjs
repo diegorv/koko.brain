@@ -10,7 +10,12 @@
  *   node scripts/codemap.mjs --out <dir>       writes the map to <dir>
  *   node scripts/codemap.mjs --stale [--out <dir>]
  *                                              exit 0 when the map's inputs hash matches the tree, else 1
- *   node scripts/codemap.mjs q <command> …     query a model of the working tree (`q help`)
+ *   node scripts/codemap.mjs q <command> … [--no-cache]
+ *                                              query a model of the working tree (`q help`)
+ *
+ * `q` keeps the last model it built in `node_modules/.cache/codemap/model.bin`
+ * (git-ignored), keyed by the full inputs hash, and loads it while the hash
+ * matches; `--no-cache` builds from scratch and leaves the file alone.
  *
  * The output folder is replaced only when it is missing, empty apart from
  * `.git`, or holds a code map `INDEX.md`. Git and the `CI` variable decide
@@ -18,13 +23,26 @@
  * bytes written.
  */
 import { execFileSync } from 'node:child_process';
-import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+import { createHash, randomBytes } from 'node:crypto';
+import {
+	closeSync,
+	existsSync,
+	mkdirSync,
+	openSync,
+	readdirSync,
+	readFileSync,
+	realpathSync,
+	renameSync,
+	rmSync,
+	writeFileSync,
+	writeSync,
+} from 'node:fs';
 import { createRequire } from 'node:module';
 import { basename, dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { deserialize, serialize } from 'node:v8';
 
-import { buildModel, isInput, readInputs } from './codemap/model.mjs';
+import { buildModel, isInput, modelData, readInputs, restoreModel } from './codemap/model.mjs';
 import { runQuery } from './codemap/query.mjs';
 import { INDEX_TITLE, renderMap } from './codemap/render.mjs';
 
@@ -44,7 +62,7 @@ const STALE_LIST_CAP = 20;
 const USAGE = [
 	'usage: node scripts/codemap.mjs [build] [--out <dir>]',
 	'       node scripts/codemap.mjs --stale [--out <dir>]',
-	'       node scripts/codemap.mjs q <command> <arg> [options]   (q help lists the commands)',
+	'       node scripts/codemap.mjs q <command> <arg> [options] [--no-cache]   (q help lists the commands)',
 	'',
 ].join('\n');
 
@@ -67,18 +85,140 @@ function typescriptVersion() {
 }
 
 /**
- * The F13 inputs hash: sha256 over the code-unit-sorted `path\0content\0` of
- * every F1 input and generator file, then `typescript@<version>`.
+ * The full F13 inputs hash: sha256 over the code-unit-sorted
+ * `path\0content\0` of every F1 input and generator file, then
+ * `typescript@<version>`. The query cache key.
  *
  * @param {Map<string, string>} inputs F1 inputs by repo-relative path, as `readInputs` gives them
- * @returns {string} the first 12 hex chars
+ * @returns {string} 64 hex chars
  */
-export function inputsHash(inputs) {
+export function inputsDigest(inputs) {
 	const all = new Map([...inputs, ...generatorFiles()]);
 	const h = createHash('sha256');
 	for (const p of [...all.keys()].sort(cmp)) h.update(`${p}\0${all.get(p)}\0`);
 	h.update(`typescript@${typescriptVersion()}`);
-	return h.digest('hex').slice(0, 12);
+	return h.digest('hex');
+}
+
+/**
+ * The F13 inputs hash as INDEX line 2 prints it.
+ *
+ * @param {Map<string, string>} inputs F1 inputs by repo-relative path, as `readInputs` gives them
+ * @returns {string} the first 12 hex chars of `inputsDigest`
+ */
+export function inputsHash(inputs) {
+	return inputsDigest(inputs).slice(0, 12);
+}
+
+/** The query model cache, relative to the repo root; `node_modules/` is git-ignored. */
+export const MODEL_CACHE = 'node_modules/.cache/codemap/model.bin';
+
+/**
+ * Line 1 of the cache file. The Node version is part of it because `v8`
+ * serialization is only guaranteed to round-trip on the Node that wrote it.
+ */
+const CACHE_FORMAT = `codemap-model-cache 1 node ${process.version}`;
+
+/** sha256 of a buffer, in hex. */
+const sha256 = (buf) => createHash('sha256').update(buf).digest('hex');
+
+/**
+ * The model data in the cache file when its format line, key, payload length
+ * and payload checksum all match; null for a missing, foreign, truncated or
+ * damaged file.
+ *
+ * File layout: `<CACHE_FORMAT>\nkey <digest>\npayload <sha256> <bytes>\n<v8 payload>`.
+ */
+function readCache(file, key) {
+	let buf;
+	try {
+		buf = readFileSync(file);
+	} catch {
+		return null;
+	}
+	const head = `${CACHE_FORMAT}\nkey ${key}\n`;
+	if (buf.length < head.length || buf.toString('latin1', 0, head.length) !== head) return null;
+	const nl = buf.indexOf(10, head.length);
+	if (nl < 0) return null;
+	const sum = /^payload ([0-9a-f]{64}) (\d+)$/.exec(buf.toString('latin1', head.length, nl));
+	const payload = buf.subarray(nl + 1);
+	if (!sum || payload.length !== Number(sum[2]) || sha256(payload) !== sum[1]) return null;
+	try {
+		return deserialize(payload);
+	} catch {
+		return null;
+	}
+}
+
+/** True when a process with this pid exists (a permission error still means it does). */
+function pidAlive(pid) {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch (e) {
+		return e.code === 'EPERM';
+	}
+}
+
+/** Removes the temp files a killed writer left beside the cache file; those of live processes stay. */
+function sweepTempFiles(file) {
+	const dir = dirname(file);
+	const prefix = `${basename(file)}.`;
+	let names;
+	try {
+		names = readdirSync(dir);
+	} catch {
+		return;
+	}
+	for (const name of names) {
+		const m = name.startsWith(prefix) && /^(\d+)\.[0-9a-f]+\.tmp$/.exec(name.slice(prefix.length));
+		if (m && !pidAlive(Number(m[1]))) rmSync(join(dir, name), { force: true });
+	}
+}
+
+/**
+ * Writes the cache file through a temp file in the same folder and a rename,
+ * so a reader, or a concurrent `q`, sees either a whole file or the previous
+ * one. A failed write leaves no temp file and does not fail the query: the
+ * cache only saves time. Temp files of dead processes are swept first.
+ */
+function writeCache(file, key, model) {
+	const tmp = `${file}.${process.pid}.${randomBytes(6).toString('hex')}.tmp`;
+	try {
+		const payload = serialize(modelData(model));
+		mkdirSync(dirname(file), { recursive: true });
+		sweepTempFiles(file);
+		const fd = openSync(tmp, 'w');
+		try {
+			writeSync(fd, `${CACHE_FORMAT}\nkey ${key}\npayload ${sha256(payload)} ${payload.length}\n`, null, 'latin1');
+			writeSync(fd, payload);
+		} finally {
+			closeSync(fd);
+		}
+		renameSync(tmp, file);
+	} catch {
+		rmSync(tmp, { force: true });
+	}
+}
+
+/**
+ * The model of a repo's working tree for `q`: loaded from `MODEL_CACHE` when
+ * its key equals the tree's full inputs hash, else built and written there.
+ *
+ * @param {string} root absolute repo root
+ * @param {{cache?: boolean}} [opts] `cache: false` builds without reading or writing the file
+ * @returns {{model: ReturnType<typeof buildModel>, hit: boolean}} `hit` when the model came from the file
+ */
+export function cachedModel(root, { cache = true } = {}) {
+	const inputs = readInputs(root);
+	if (!cache) return { model: buildModel(inputs), hit: false };
+	const key = inputsDigest(inputs);
+	const file = join(root, MODEL_CACHE);
+	const data = readCache(file, key);
+	if (data) return { model: restoreModel(data, inputs), hit: true };
+	const model = buildModel(inputs);
+	writeCache(file, key, model);
+	return { model, hit: false };
 }
 
 /**
@@ -189,7 +329,9 @@ export function main(argv, io = {}) {
 	const out = io.out ?? ((s) => process.stdout.write(s));
 	const err = io.err ?? ((s) => process.stderr.write(s));
 	if (argv[0] === 'q') {
-		const res = runQuery(argv.slice(1), () => buildModel(readInputs(root)));
+		const qArgs = argv.slice(1).filter((a) => a !== '--no-cache');
+		const cache = qArgs.length === argv.length - 1;
+		const res = runQuery(qArgs, () => cachedModel(root, { cache }).model);
 		if (res.stdout) out(res.stdout);
 		if (res.stderr) err(res.stderr);
 		return res.code;

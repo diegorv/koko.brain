@@ -1,11 +1,12 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { spawnSync } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { existsSync, linkSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
+import { deserialize, serialize } from 'node:v8';
 
-import { main } from '../../../../scripts/codemap.mjs';
-import { buildModel, readInputs } from '../../../../scripts/codemap/model.mjs';
+import { cachedModel, inputsDigest, main, MODEL_CACHE } from '../../../../scripts/codemap.mjs';
+import { buildModel, modelData, readInputs, restoreModel } from '../../../../scripts/codemap/model.mjs';
 import { HELP, runQuery } from '../../../../scripts/codemap/query.mjs';
 import { renderMap } from '../../../../scripts/codemap/render.mjs';
 
@@ -748,6 +749,235 @@ describe('q over timer-wrapper consts and re-exports', () => {
 	});
 });
 
+describe('q model cache (test 54)', () => {
+	/** Queries covering every command, run against the fixture tree on disk. */
+	const QUERIES: string[][] = [
+		['sym', 'loadTags'],
+		['sym', '--match', 'tag'],
+		['file', VIEW],
+		['file', VIEW, '--section', 'imports'],
+		['importers', SVC, '--tests'],
+		['importers', 'dto:TagAggregate', '--tests'],
+		['deps', 'src/lib/features/tags'],
+		['callers', 'notesStore.tags'],
+		['callers', 'Index::update_entry'],
+		['calls', TAGS],
+		['impact', 'loadTags', '--depth', '3'],
+		['path', 'src/routes', 'src/lib/core/notes'],
+		['flow', 'saveNote', `${TAGS}:onSaved`],
+		['ipc', 'save_note'],
+		['event', 'index-updated'],
+		['store', 'notesStore'],
+		['sink', 'rust-fs.write', '--up', '2'],
+		['tests', NOTES_RS],
+		['hubs', '--layer', 'core'],
+		['reg', 'addSaveObserver'],
+		['sym', 'buildTagIndx'],
+	];
+
+	/** Writes `tree` under a new temp folder and returns the folder. */
+	function writeTree(tree: Record<string, string>): string {
+		const root = mkdtempSync(join(tmpdir(), 'codemap-cache-'));
+		for (const [p, t] of Object.entries(tree)) {
+			mkdirSync(join(root, dirname(p)), { recursive: true });
+			writeFileSync(join(root, p), t);
+		}
+		return root;
+	}
+
+	/** Runs `q <argv>` through the generator entry on `root`. */
+	function run(root: string, ...argv: string[]) {
+		let stdout = '';
+		let stderr = '';
+		const code = main(['q', ...argv], {
+			root,
+			env: {},
+			out: (s: string) => {
+				stdout += s;
+			},
+			err: (s: string) => {
+				stderr += s;
+			},
+		});
+		return { code, stdout, stderr };
+	}
+
+	/** Runs `q <argv>` with the cache and with `--no-cache`, expects both equal and returns the answer. */
+	function same(root: string, ...argv: string[]) {
+		const cached = run(root, ...argv);
+		expect(cached, argv.join(' ')).toEqual(run(root, ...argv, '--no-cache'));
+		return cached;
+	}
+
+	/** Every file under `dir`, relative to it, in code-unit order. */
+	function listFiles(dir: string, rel = ''): string[] {
+		const out: string[] = [];
+		for (const e of readdirSync(join(dir, rel), { withFileTypes: true })) {
+			const p = rel ? `${rel}/${e.name}` : e.name;
+			if (e.isDirectory()) out.push(...listFiles(dir, p));
+			else out.push(p);
+		}
+		return out.sort();
+	}
+
+	it('answers byte-identically from a cache hit, a fresh build and --no-cache, and writes only under node_modules/.cache', () => {
+		const root = writeTree(TREE);
+		try {
+			expect(MODEL_CACHE).toBe('node_modules/.cache/codemap/model.bin');
+			expect(cachedModel(root).hit).toBe(false);
+			expect(existsSync(join(root, MODEL_CACHE))).toBe(true);
+			expect(cachedModel(root).hit).toBe(true);
+			for (const argv of QUERIES) {
+				const fresh = q(modelOf(TREE), ...argv);
+				expect(run(root, ...argv), argv.join(' ')).toEqual(fresh);
+				expect(run(root, ...argv, '--no-cache'), argv.join(' ')).toEqual(fresh);
+			}
+			expect(listFiles(root)).toEqual([...Object.keys(TREE), MODEL_CACHE].sort());
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('reflects a one-byte edit, an added, a deleted and a renamed input on the next query', () => {
+		const root = writeTree(TREE);
+		const FORMAT = 'src/lib/plugins/cal/format.ts';
+		const EXTRA = 'src/lib/plugins/cal/extra.ts';
+		try {
+			expect(same(root, 'sym', 'loadTags').stdout).toContain('| Loads tags from Rust into the store.');
+			writeFileSync(join(root, SVC), TREE[SVC].replace('into the store.', 'into the storm.'));
+			expect(same(root, 'sym', 'loadTags').stdout).toContain('| Loads tags from Rust into the storm.');
+
+			expect(same(root, 'sym', 'extraThing').code).toBe(1);
+			writeFileSync(join(root, EXTRA), '/** An extra thing. */\nexport function extraThing() {}\n');
+			expect(same(root, 'sym', 'extraThing').stdout).toContain(`sym ${EXTRA}:2 fn extraThing()`);
+
+			rmSync(join(root, EXTRA));
+			expect(same(root, 'sym', 'extraThing').code).toBe(1);
+
+			expect(same(root, 'sym', 'buildTagIndex').stdout).toContain(`sym ${FORMAT}:6 fn buildTagIndex()`);
+			renameSync(join(root, FORMAT), join(root, 'src/lib/plugins/cal/fmt.ts'));
+			const renamed = same(root, 'sym', 'buildTagIndex');
+			expect(renamed.stdout).toContain('sym src/lib/plugins/cal/fmt.ts:6 fn buildTagIndex()');
+			expect(renamed.stdout).not.toContain(FORMAT);
+			expect(cachedModel(root).hit).toBe(true);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('ignores and rewrites a corrupt, truncated, partial or mismatched cache file', () => {
+		const root = writeTree(TREE);
+		const file = join(root, MODEL_CACHE);
+		try {
+			const want = run(root, 'file', VIEW, '--no-cache');
+			expect(cachedModel(root).hit).toBe(false);
+			const good = readFileSync(file);
+			const header = good.subarray(0, good.indexOf(10, good.indexOf(10) + 1) + 1).toString('latin1');
+			const flipped = Buffer.from(good);
+			flipped[flipped.length - 100] ^= 0xff;
+			const damaged: Record<string, Buffer> = {
+				garbage: Buffer.from('not a cache\n'),
+				empty: Buffer.alloc(0),
+				truncated: good.subarray(0, Math.floor(good.length / 2)),
+				partial: good.subarray(0, header.length + 10),
+				'payload byte flipped': flipped,
+				'other version': Buffer.concat([Buffer.from(header.replace(/^([^\n]*)\n/, '$1x\n'), 'latin1'), good.subarray(header.length)]),
+				'other key': Buffer.concat([Buffer.from(header.replace(/\n([^\n]*)\n$/, '\n$1x\n'), 'latin1'), good.subarray(header.length)]),
+			};
+			for (const [name, bytes] of Object.entries(damaged)) {
+				writeFileSync(file, bytes);
+				expect(run(root, 'file', VIEW), name).toEqual(want);
+				expect(readFileSync(file).equals(good), name).toBe(true);
+			}
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('--no-cache neither reads nor writes the cache', () => {
+		const root = writeTree(TREE);
+		const planted = writeTree({ ...TREE, [SVC]: TREE[SVC].replace('into the store.', 'into the storm.') });
+		const file = join(root, MODEL_CACHE);
+		try {
+			const want = q(modelOf(TREE), 'sym', 'loadTags');
+			expect(run(root, 'sym', 'loadTags', '--no-cache')).toEqual(want);
+			expect(existsSync(file)).toBe(false);
+			mkdirSync(dirname(file), { recursive: true });
+			writeFileSync(file, 'not a cache\n');
+			expect(run(root, '--no-cache', 'sym', 'loadTags')).toEqual(want);
+			expect(readFileSync(file, 'utf8')).toBe('not a cache\n');
+
+			// A structurally valid file under the current key whose model answers differently: a plain q must
+			// read it, so a bypass that still read a valid file would print the planted answer.
+			cachedModel(planted);
+			const bytes = readFileSync(join(planted, MODEL_CACHE));
+			const keyLine = `key ${bytes.toString('latin1', 0, 400).split('\n')[1].slice(4)}\n`;
+			const body = Buffer.concat([
+				bytes.subarray(0, bytes.indexOf(keyLine)),
+				Buffer.from(`key ${inputsDigest(readInputs(root))}\n`, 'latin1'),
+				bytes.subarray(bytes.indexOf(keyLine) + keyLine.length),
+			]);
+			writeFileSync(file, body);
+			expect(run(root, 'sym', 'loadTags').stdout).toContain('into the storm.');
+			expect(run(root, 'sym', 'loadTags', '--no-cache')).toEqual(want);
+			expect(readFileSync(file).equals(body)).toBe(true);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+			rmSync(planted, { recursive: true, force: true });
+		}
+	});
+
+	it('lists --no-cache on the q help usage line', () => {
+		expect(HELP.split('\n')[0]).toContain('[--no-cache]');
+	});
+
+	it('replaces model.bin by a rename and sweeps temp files of dead processes', () => {
+		const root = writeTree(TREE);
+		const file = join(root, MODEL_CACHE);
+		const link = `${file}.link`;
+		const deadTmp = `${file}.2147483000.deadbeef.tmp`;
+		try {
+			run(root, 'sym', 'loadTags');
+			const old = readFileSync(file);
+			linkSync(file, link);
+			writeFileSync(deadTmp, 'orphan');
+			writeFileSync(join(root, SVC), TREE[SVC].replace('into the store.', 'into the storm.'));
+			run(root, 'sym', 'loadTags');
+			expect(readFileSync(link).equals(old)).toBe(true);
+			expect(statSync(file).ino).not.toBe(statSync(link).ino);
+			expect(readFileSync(file).equals(old)).toBe(false);
+			expect(readdirSync(dirname(file)).filter((n) => n.endsWith('.tmp'))).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('survives concurrent q processes and leaves one valid cache file', async () => {
+		const root = writeTree(TREE);
+		const entry = resolve('scripts/codemap.mjs');
+		const script = `import { main } from ${JSON.stringify(entry)}; process.exitCode = main(['q', 'file', ${JSON.stringify(VIEW)}], { root: ${JSON.stringify(root)} });`;
+		/** Starts one CLI process on the fixture and resolves with its exit code and stdout. */
+		const child = () =>
+			new Promise<{ code: number | null; stdout: string }>((done) => {
+				const p = spawn(process.execPath, ['--input-type=module', '-e', script], { stdio: ['ignore', 'pipe', 'inherit'] });
+				let stdout = '';
+				p.stdout.on('data', (d) => {
+					stdout += d;
+				});
+				p.on('close', (code) => done({ code, stdout }));
+			});
+		try {
+			const want = q(modelOf(TREE), 'file', VIEW).stdout;
+			const results = await Promise.all([child(), child(), child(), child()]);
+			for (const r of results) expect(r).toEqual({ code: 0, stdout: want });
+			expect(readdirSync(dirname(join(root, MODEL_CACHE)))).toEqual(['model.bin']);
+			expect(cachedModel(root).hit).toBe(true);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	}, 60_000);
+});
+
 describe('q on the real repo (test 53)', () => {
 	const ROOT = process.cwd();
 
@@ -813,5 +1043,23 @@ describe('q on the real repo (test 53)', () => {
 			expect(autosave).toMatch(/ -> src\/lib\/core\/editor\/editor\.service\.ts:debouncedSave\n/);
 			expect(autosave).toMatch(/^ref .* -> src\/lib\/core\/editor\/editor\.service\.ts:saveDirtyTabs$/m);
 		});
+
+		it('renders and answers the same from a cache round trip of the repo model (test 54)', () => {
+			const restored = restoreModel(deserialize(serialize(modelData(model))), model.inputs);
+			const want = renderMap(model, { inputsHash: 'abcdef012345' });
+			const got = renderMap(restored, { inputsHash: 'abcdef012345' });
+			expect([...got.keys()]).toEqual([...want.keys()]);
+			for (const [path, text] of want) expect(got.get(path) === text, path).toBe(true);
+			for (const argv of [
+				['flow', 'src/lib/core/editor/editor.service.ts:saveFileByPath', 'src/lib/features/search/search.service.ts:registerSearchIndexHook'],
+				['impact', 'src/lib/utils/debounce.ts', '--depth', '3', '--tests'],
+				['callers', 'src-tauri/src/vault/index.rs:VaultIndex::update_entry', '--limit', '500'],
+				['sink', 'disk-write', '--up', '2'],
+				['sym', '--match', 'tag', '--limit', '500'],
+				['store', 'src/lib/core/editor/editor.store.svelte.ts:editorStore.tabs'],
+				['importers', 'src/lib/utils/debounce.ts:debounce', '--tests'],
+			])
+				expect(runQuery(argv, () => restored), argv.join(' ')).toEqual(runQuery(argv, () => model));
+		}, 60_000);
 	});
 });

@@ -248,8 +248,7 @@ export function buildModel(inputs, { reverse = false } = {}) {
 		routeFiles: paths.filter((p) => p.startsWith('src/routes/')),
 		rustFiles: rustPaths.filter((p) => p.startsWith(`${RUST}/`)),
 	});
-	const moduleCache = new Map(paths.map((p) => [p, isTest(p) ? null : moduleOf(p, modules)]));
-	const modOf = (f) => (moduleCache.has(f) ? moduleCache.get(f) : moduleOf(f, modules));
+	const modOf = moduleLookup(paths, modules);
 
 	const resolved = resolveBindings(tsFiles);
 	const reexports = resolveReexports(tsFiles);
@@ -333,12 +332,11 @@ export function buildModel(inputs, { reverse = false } = {}) {
 	}
 
 	const production = paths.filter((p) => !isTest(p));
-	const distinct = (list, pick, keep) => [...new Set(list.filter(keep).map(pick))].sort(cmp);
-	const prodImporters = (f) => distinct(importers.get(f) ?? [], (e) => e.from, (e) => !isTest(e.from));
+	const graph = graphFns(paths, modOf, importers, imports);
+	const prodImporters = graph.prodImporters;
 	const testsOf = new Map();
 	for (const t of tests) if (t.relation !== EXAMPLE_RELATION && t.relation !== 'imports-type') bucket(testsOf, t.target).push(t.test);
 	const testFileCount = (f) => new Set(testsOf.get(f) ?? []).size;
-	const prodTargets = (f) => distinct(imports.get(f) ?? [], (e) => e.target, (e) => !isTest(e.target));
 
 	const hubs = production
 		.map((file) => ({ file, layer: layerOf(file), prod: prodImporters(file).length, test: testFileCount(file) }))
@@ -371,29 +369,6 @@ export function buildModel(inputs, { reverse = false } = {}) {
 		if (ext.length) entryFiles.get(m).push({ file, importers: ext });
 	}
 	for (const list of entryFiles.values()) list.sort((a, b) => b.importers.length - a.importers.length || cmp(a.file, b.file));
-
-	const twoHop = (start, next) => {
-		const direct = next(start);
-		const near = new Set([start, ...direct]);
-		return [...new Set(direct.flatMap(next))].filter((f) => !near.has(f)).sort(cmp);
-	};
-	const productionOf = new Map(modules.map((m) => [m, []]));
-	for (const f of production) if (modOf(f)) productionOf.get(modOf(f)).push(f);
-	const moduleTwoHop = (m, next) => {
-		const files = productionOf.get(m) ?? [];
-		const near = new Set([m]);
-		for (const f of files) for (const g of next(f)) if (modOf(g)) near.add(modOf(g));
-		const pairs = new Map();
-		for (const f of files)
-			for (const mid of next(f))
-				for (const far of next(mid)) {
-					const fm = modOf(far);
-					if (!fm || near.has(fm)) continue;
-					if (!pairs.has(fm)) pairs.set(fm, new Set());
-					pairs.get(fm).add(`${far}\0${mid}`);
-				}
-		return new Map([...pairs.keys()].sort(cmp).map((k) => [k, pairs.get(k).size]));
-	};
 
 	const symbolEdges = symbolGraph({ tsFiles, uses, rust, commands, events, registries, stores, mounts, isTest });
 
@@ -432,11 +407,120 @@ export function buildModel(inputs, { reverse = false } = {}) {
 		hubsByLayer: hubLayers,
 		moduleEdges,
 		entryFiles,
+		in2: graph.in2,
+		out2: graph.out2,
+		moduleIn2Pairs: graph.moduleIn2Pairs,
+		moduleOut2Pairs: graph.moduleOut2Pairs,
+		symbolEdges,
+	};
+}
+
+/**
+ * The module lookup of a model: the module of each inventory file (null for a
+ * test file), computed once, and `moduleOf` for any other path.
+ *
+ * @param {string[]} files the inventory
+ * @param {string[]} modules the module paths
+ * @returns {(file: string) => string | null}
+ */
+function moduleLookup(files, modules) {
+	const cache = new Map(files.map((p) => [p, isTestFile(p) ? null : moduleOf(p, modules)]));
+	return (f) => (cache.has(f) ? cache.get(f) : moduleOf(f, modules));
+}
+
+/**
+ * The import-graph functions of a model: distinct production importers and
+ * targets of a file, two-hop file reach (`in2` / `out2`) and two-hop module
+ * reach (`moduleIn2Pairs` / `moduleOut2Pairs`), as documented on `buildModel`.
+ *
+ * @param {string[]} files the inventory
+ * @param {(file: string) => string | null} modOf the module lookup
+ * @param {Map<string, object[]>} importers edges by target
+ * @param {Map<string, object[]>} imports edges by importer
+ */
+function graphFns(files, modOf, importers, imports) {
+	const distinct = (list, pick, keep) => [...new Set(list.filter(keep).map(pick))].sort(cmp);
+	const prodImporters = (f) => distinct(importers.get(f) ?? [], (e) => e.from, (e) => !isTestFile(e.from));
+	const prodTargets = (f) => distinct(imports.get(f) ?? [], (e) => e.target, (e) => !isTestFile(e.target));
+	const twoHop = (start, next) => {
+		const direct = next(start);
+		const near = new Set([start, ...direct]);
+		return [...new Set(direct.flatMap(next))].filter((f) => !near.has(f)).sort(cmp);
+	};
+	const productionOf = new Map();
+	for (const f of files) if (!isTestFile(f) && modOf(f)) bucket(productionOf, modOf(f)).push(f);
+	const moduleTwoHop = (m, next) => {
+		const own = productionOf.get(m) ?? [];
+		const near = new Set([m]);
+		for (const f of own) for (const g of next(f)) if (modOf(g)) near.add(modOf(g));
+		const pairs = new Map();
+		for (const f of own)
+			for (const mid of next(f))
+				for (const far of next(mid)) {
+					const fm = modOf(far);
+					if (!fm || near.has(fm)) continue;
+					if (!pairs.has(fm)) pairs.set(fm, new Set());
+					pairs.get(fm).add(`${far}\0${mid}`);
+				}
+		return new Map([...pairs.keys()].sort(cmp).map((k) => [k, pairs.get(k).size]));
+	};
+	return {
+		prodImporters,
 		in2: (file) => twoHop(file, prodImporters),
 		out2: (file) => twoHop(file, prodTargets),
 		moduleIn2Pairs: (m) => moduleTwoHop(m, prodImporters),
 		moduleOut2Pairs: (m) => moduleTwoHop(m, prodTargets),
-		symbolEdges,
+	};
+}
+
+/** Model fields `restoreModel` rebuilds instead of reading them from the data. */
+const DERIVED_FIELDS = ['inputs', 'moduleOf', 'isTest', 'layerOf', 'fileRole', 'in2', 'out2', 'moduleIn2Pairs', 'moduleOut2Pairs'];
+
+/**
+ * The structured-clone data of a model, for the query cache: every field but
+ * the inputs and the functions, with TS regions without their parsed source
+ * file and Rust facts without their `lineAt` index. Only extraction reads
+ * those, never a query.
+ *
+ * @param {ReturnType<typeof buildModel>} model a built model
+ * @returns {object} data `restoreModel` turns back into a model
+ */
+export function modelData(model) {
+	const data = {};
+	for (const [k, v] of Object.entries(model)) if (!DERIVED_FIELDS.includes(k)) data[k] = v;
+	data.ts = new Map([...model.ts].map(([file, facts]) => [file, { ...facts, regions: facts.regions.map(({ sf, ...r }) => r) }]));
+	data.rust = new Map(
+		[...model.rust].map(([file, facts]) => {
+			const { lineAt, ...rest } = facts;
+			return [file, rest];
+		}),
+	);
+	return data;
+}
+
+/**
+ * The model of `modelData(buildModel(inputs))` and the same inputs: the data
+ * plus the inputs and the functions, rebuilt from `files`, `modules`,
+ * `importers` and `imports`.
+ *
+ * @param {object} data what `modelData` returned (or a structured clone of it)
+ * @param {Map<string, string>} inputs the inputs the model was built from
+ * @returns {ReturnType<typeof buildModel>}
+ */
+export function restoreModel(data, inputs) {
+	const modOf = moduleLookup(data.files, data.modules);
+	const graph = graphFns(data.files, modOf, data.importers, data.imports);
+	return {
+		...data,
+		inputs,
+		moduleOf: modOf,
+		isTest: isTestFile,
+		layerOf,
+		fileRole,
+		in2: graph.in2,
+		out2: graph.out2,
+		moduleIn2Pairs: graph.moduleIn2Pairs,
+		moduleOut2Pairs: graph.moduleOut2Pairs,
 	};
 }
 
