@@ -604,6 +604,17 @@ describe('composer save', () => {
 			expect(editorView().state.facet(EditorView.darkTheme)).toBe(false);
 		});
 
+		it('focuses the editor on mount and on each summon', async () => {
+			expect(document.activeElement).toBe(editorView().contentDOM);
+
+			editorView().contentDOM.blur();
+			expect(document.activeElement).not.toBe(editorView().contentDOM);
+			summon();
+			await Promise.resolve();
+
+			expect(document.activeElement).toBe(editorView().contentDOM);
+		});
+
 		it('hides the placeholder once there is text', () => {
 			expect(target.querySelector('.placeholder')?.textContent).toBe('Quick capture...');
 
