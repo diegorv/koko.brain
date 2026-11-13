@@ -1,7 +1,7 @@
 {
 	"$schema": "../gen/schemas/desktop-schema.json",
 	"identifier": "composer",
-	"description": "Capability for the quick-capture composer popover window. The popover invokes the submit and dismiss commands, reads the vault tags and note entries for its suggestions (get_all_tags_v2, get_all_vault_entries_v2), and listens for the open-composer and composer-capture-result events; no filesystem, no clipboard. App commands are not permission-gated here: these permissions cover only core window calls.",
+	"description": "Capability for the quick-capture composer popover window. The popover invokes the submit and dismiss commands, reads the vault tags and note entries for its suggestions (get_all_tags_v2, get_all_vault_entries_v2), and listens for the open-composer and composer-capture-result events; no filesystem, no clipboard. App commands are not permission-gated here: these permissions cover only Tauri core calls (window, events).",
 	"windows": ["composer"],
 	"permissions": [
 		"core:default",

@@ -28,7 +28,7 @@ pub const APP_EXIT_REQUESTED_EVENT: &str = "app:exit-requested";
 /// Delivers a detected clipboard capture to the frontend.
 pub const QC_CAPTURE_DETECTED_EVENT: &str = "qc:capture-detected";
 
-/// Event the composer popover listens for to focus its textarea after a
+/// Event the composer popover listens for to focus its editor after a
 /// show. Carries an optional initial-text payload (empty for the
 /// shortcut-summoned path).
 pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
