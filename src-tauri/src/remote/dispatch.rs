@@ -307,10 +307,18 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 		}
 		"search_fts" => {
 			root(ctx)?;
-			to_json(crate::commands::search_index::search_fts(
-				arg(args, "query")?,
-				arg(args, "maxResults")?,
-				arg(args, "fuzzy")?,
+			// The command's own defaults; the session thread calls the sync body.
+			let query: String = arg(args, "query")?;
+			let max_results: Option<usize> = arg(args, "maxResults")?;
+			let fuzzy: Option<bool> = arg(args, "fuzzy")?;
+			let trimmed = query.trim();
+			if trimmed.is_empty() {
+				return to_json(Vec::<crate::commands::search_index::FtsSearchResult>::new());
+			}
+			to_json(crate::commands::search_index::search_fts_inner(
+				trimmed,
+				max_results.unwrap_or(50),
+				fuzzy.unwrap_or(false),
 			)?)
 		}
 		"compute_diff" => to_json(crate::commands::history::compute_diff(
@@ -342,10 +350,6 @@ fn read(ctx: &HostContext, call: &Call) -> Result<Value, String> {
 		}
 		"get_all_tags_v2" => to_json(index()?.lookup_all_tags()),
 		"get_all_tasks_v2" => to_json(index()?.lookup_all_tasks()),
-		"get_tasks_in_section_v2" => to_json(crate::commands::vault::tasks_in_section_inner(
-			&arg::<String>(args, "sectionTag")?,
-			ctx.index,
-		)?),
 		"get_all_property_records" => {
 			let idx = index()?;
 			let mut out: Vec<_> = idx.entries().values().map(project_note_record).collect();

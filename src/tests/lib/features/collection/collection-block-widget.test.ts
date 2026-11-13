@@ -19,7 +19,11 @@ import {
 	LINEAR_CALENDAR_LANE_CAP,
 } from '#lib/features/collection/collection-block-widget.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { barTextColor, COLOR_PALETTE } from '#lib/features/collection/linear-calendar.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+
+import { BLOCK_TEXT_FLOOR, resolveFontSize, resolvedFontPx } from '../../../fixtures/font-size.fixture.js';
 
 /** Builds a minimal PropertyIndexRecord carrying the given properties. */
 function record(properties: Map<string, unknown>) {
@@ -169,6 +173,24 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(dom.querySelectorAll('tbody tr').length).toBe(2);
 	});
 
+	it('resolves a relative file.inFolder filter against the open vault', () => {
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/work/w.md', { ...recordAt('/vault/work/w.md', 'w.md'), folder: '/vault/work' }],
+				['/vault/workshop/s.md', { ...recordAt('/vault/workshop/s.md', 's.md'), folder: '/vault/workshop' }],
+			]),
+		);
+		const yaml = `filters: 'file.inFolder("work")'\n${YAML}`;
+		vaultStore.open('/vault');
+		try {
+			const dom = new CollectionBlockWidget(yaml).toDOM();
+			const names = [...dom.querySelectorAll('tbody tr td:first-child')].map((td) => td.textContent);
+			expect(names).toEqual(['w.md']);
+		} finally {
+			vaultStore._reset();
+		}
+	});
+
 	it('never hands the same DOM node to two widgets with the same block', () => {
 		// Regression: CodeMirror builds new lines detached, so two widgets for a
 		// duplicated collection block can both call toDOM() while nothing is
@@ -281,6 +303,28 @@ describe('CollectionBlockWidget — query data cache', () => {
 		expect(second.querySelector('.cm-lp-collection-footer')?.textContent).toBe('Showing 50 of 10000');
 	});
 
+	it('shows the filter error in place of rows when a filter does not parse', () => {
+		const bad = "filters: \"status = 'active'\"\n" + YAML;
+
+		const dom = new CollectionBlockWidget(bad).toDOM();
+
+		expect(dom.querySelector('.cm-lp-collection-error')?.textContent).toContain("status = 'active'");
+		expect(dom.querySelector('table')).toBeNull();
+		expect(dom.querySelector('.cm-lp-collection-empty')).toBeNull();
+		// Cache hit renders the same error.
+		const second = new CollectionBlockWidget(bad).toDOM();
+		expect(second.querySelector('.cm-lp-collection-error')?.textContent).toContain("status = 'active'");
+	});
+
+	it('shows the filter error in place of a calendar', () => {
+		const bad = 'filters: "foo(1) == 2"\nviews:\n  - type: calendar\n    name: "Cal"\n    dateProperty: due\n';
+
+		const dom = new CollectionBlockWidget(bad).toDOM();
+
+		expect(dom.querySelector('.cm-lp-collection-error')?.textContent).toContain('foo');
+		expect(dom.querySelector('table')).toBeNull();
+	});
+
 	it('eq() is false for a widget built after an in-place index change', () => {
 		const before = new CollectionBlockWidget(YAML);
 		// Overwriting an EXISTING key leaves propertyIndex.size at 2, so the
@@ -353,8 +397,9 @@ describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 		const dom = new CollectionBlockWidget(YAML).toDOM();
 		const dayCell = dom.querySelectorAll('tbody tr')[MARCH_ROW].querySelectorAll('td')[1] as HTMLElement;
 
-		// (lanes * (BAR_HEIGHT 16 + BAR_GAP 1)) + BAR_GAP
-		expect(dayCell.style.height).toBe(`${LINEAR_CALENDAR_LANE_CAP * 17 + 1}px`);
+		// lanes * (bar height 1.4 x the floored bar font + 1px gap) + 1px, in the cell's em
+		// (jsdom reorders the calc terms)
+		expect(dayCell.style.height).toBe(`calc(1px + ${LINEAR_CALENDAR_LANE_CAP} * (1.4 * max(11px, 0.8em) + 1px))`);
 	});
 
 	it('renders every bar and no marker when the month row is exactly at the cap', () => {
@@ -399,5 +444,154 @@ describe('CollectionBlockWidget — linear-calendar lane cap', () => {
 
 		expect(openFileInEditor).toHaveBeenCalledTimes(1);
 		expect(openFileInEditor).toHaveBeenCalledWith('/vault/e0.md');
+	});
+});
+
+describe('CollectionBlockWidget — text scales with the editor font', () => {
+	const YEAR = 2026;
+	const CALENDAR = 'views:\n  - type: calendar\n    name: "Month"\n    dateProperty: date\n';
+	const LINEAR = 'views:\n  - type: linear-calendar\n    name: "Year"\n    dateProperty: date\n';
+	const LINEAR_COLORED = `${LINEAR}    colorProperty: kind\n`;
+
+	/** Indexes `count` notes dated June 10 of `YEAR` (the pinned month), with a `kind` property. */
+	function setIndex(count: number) {
+		const index = new Map<string, ReturnType<typeof record>>();
+		for (let i = 0; i < count; i++) {
+			const path = `/vault/e${i}.md`;
+			const props = new Map<string, unknown>([['date', `${YEAR}-06-10`], ['kind', `k${i}`]]);
+			index.set(path, { ...record(props), path, name: `e${i}.md`, basename: `e${i}` });
+		}
+		collectionStore.setPropertyIndex(index);
+	}
+
+	/** Every element in the rendered widget with an inline `font-size`. */
+	function sizedElements(dom: HTMLElement): HTMLElement[] {
+		return [...dom.querySelectorAll<HTMLElement>('[style]')].filter((el) => el.style.fontSize);
+	}
+
+	/** Theme sizes of the widget's classes, pinned in styles.test.ts. */
+	const CLASS_EM = { 'cm-lp-collection-block': 0.85, 'cm-lp-collection-table': 0.9 };
+
+	/** The small text that carries the 11px floor, per view: "+N" labels, day numbers, bar titles. */
+	const FLOORED: Record<string, (el: HTMLElement) => boolean> = {
+		calendar: (el) => /^\+\d+$/.test(el.textContent ?? ''),
+		'linear-calendar': (el) => el.matches('thead th, .cm-lp-collection-lane-more, div[title]'),
+	};
+
+	beforeEach(() => {
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(new Date(YEAR, 5, 15));
+		clearCollectionCache();
+		collectionStore.reset();
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+		collectionStore.reset();
+		clearCollectionCache();
+	});
+
+	it.each([
+		['calendar', CALENDAR],
+		['linear-calendar', LINEAR],
+	])('the %s widget sizes every text in em, with the floor only on its small text', (name, yaml) => {
+		setIndex(4);
+		const sized = sizedElements(new CollectionBlockWidget(yaml).toDOM());
+		const isFloored = FLOORED[name];
+		expect(sized.filter((el) => !isFloored(el)).length).toBeGreaterThan(0);
+		expect(sized.filter(isFloored).length).toBeGreaterThan(0);
+		for (const el of sized) expect(el.style.fontSize).toMatch(isFloored(el) ? BLOCK_TEXT_FLOOR : /^[\d.]+em$/);
+	});
+
+	it.each([
+		['calendar', 8, CALENDAR],
+		['calendar', 19, CALENDAR],
+		['linear-calendar', 8, LINEAR],
+		['linear-calendar', 19, LINEAR],
+	])('the %s widget floors its small text at 11px (editor font %spx)', (name, editorPx, yaml) => {
+		setIndex(4);
+		const dom = new CollectionBlockWidget(yaml).toDOM();
+		const floored = sizedElements(dom).filter(FLOORED[name]);
+		expect(floored.length).toBeGreaterThan(0);
+		for (const el of floored) {
+			const px = resolvedFontPx(el, dom, editorPx, CLASS_EM);
+			const parentPx = resolvedFontPx(el.parentElement!, dom, editorPx, CLASS_EM);
+			const em = Number(el.style.fontSize.match(/([\d.]+)em/)![1]);
+			// 8px: every em size would fall below 11px. 19px (default): the em size is already above it, so unchanged.
+			expect(px).toBeCloseTo(editorPx === 8 ? 11 : em * parentPx);
+			expect(px).toBeGreaterThanOrEqual(11);
+		}
+	});
+
+	it('styles calendar weekday headers like the calendar view (text-xs font-medium uppercase)', () => {
+		setIndex(1);
+		const ths = [...new CollectionBlockWidget(CALENDAR).toDOM().querySelectorAll<HTMLElement>('thead th')];
+		expect(ths).toHaveLength(7);
+		for (const th of ths) {
+			expect(th.style.fontSize).toBe('1em');
+			expect(th.style.fontWeight).toBe('500');
+			expect(th.style.textTransform).toBe('uppercase');
+		}
+	});
+
+	it('styles linear-calendar day numbers like the linear view (11px under a 12px month label, font-medium)', () => {
+		setIndex(1);
+		const ths = [...new CollectionBlockWidget(LINEAR).toDOM().querySelectorAll<HTMLElement>('thead th')].slice(1);
+		expect(ths).toHaveLength(31);
+		for (const th of ths) {
+			expect(th.style.fontSize).toBe('max(11px, 0.8em)');
+			expect(th.style.fontWeight).toBe('500');
+		}
+		// At the 19px default editor font; below it the floor lifts the day numbers past the label
+		const dom = new CollectionBlockWidget(LINEAR).toDOM();
+		const dayNumber = dom.querySelectorAll<HTMLElement>('thead th')[1];
+		const monthLabel = dom.querySelector<HTMLElement>('tbody td')!;
+		expect(resolvedFontPx(dayNumber, dom, 19, CLASS_EM)).toBeLessThan(resolvedFontPx(monthLabel, dom, 19, CLASS_EM));
+	});
+
+	it('sizes event bars in em of their own font so the title is never clipped', () => {
+		setIndex(1);
+		const bar = new CollectionBlockWidget(LINEAR).toDOM().querySelector<HTMLElement>('div[title]')!;
+		expect(bar.style.height).toBe('1.4em');
+		expect(bar.style.top).toBe('calc(1px + 0 * (1.4em + 1px))');
+	});
+
+	it.each([8, 19, 32])('keeps the day cell lane pitch equal to the bar height (editor font %spx)', (editorPx) => {
+		setIndex(1);
+		const dom = new CollectionBlockWidget(LINEAR).toDOM();
+		const bar = dom.querySelector<HTMLElement>('div[title]')!;
+		const cell = bar.parentElement!;
+		const pitch = cell.style.height.match(/^calc\(1px \+ 1 \* \(([\d.]+) \* (max\([^)]*\)) \+ 1px\)\)$/);
+		expect(pitch).not.toBeNull();
+		const [, heightFactor, barFont] = pitch!;
+		expect(barFont).toBe(bar.style.fontSize);
+		const cellPx = resolvedFontPx(cell, dom, editorPx, CLASS_EM);
+		const barPx = resolvedFontPx(bar, dom, editorPx, CLASS_EM);
+		const barHeightPx = parseFloat(bar.style.height) * barPx;
+		expect(Number(heightFactor) * resolveFontSize(barFont, cellPx)).toBeCloseTo(barHeightPx);
+	});
+
+	it('gives event bar titles the readable size and the theme pair on the accent bar', () => {
+		setIndex(1);
+		const bar = new CollectionBlockWidget(LINEAR).toDOM().querySelector<HTMLElement>('div[title]')!;
+		expect(bar.style.fontSize).toBe('max(11px, 0.8em)');
+		expect(bar.style.color).toBe('var(--primary-foreground)');
+	});
+
+	it('picks a bar title color that contrasts with a palette bar', () => {
+		setIndex(3);
+		const bars = [...new CollectionBlockWidget(LINEAR_COLORED).toDOM().querySelectorAll<HTMLElement>('div[title]')];
+		expect(bars).toHaveLength(3);
+		for (const bar of bars) {
+			// kinds k0..k2 sort to palette slots 0..2; jsdom normalizes colors, so compare through a probe
+			const slot = Number(bar.title.slice(1));
+			const probe = document.createElement('div');
+			probe.style.color = barTextColor(COLOR_PALETTE[slot]);
+			probe.style.background = COLOR_PALETTE[slot];
+			expect(bar.style.background).toBe(probe.style.background);
+			expect(bar.style.color).toBe(probe.style.color);
+		}
+		// The blue first slot needs dark text.
+		expect(barTextColor(COLOR_PALETTE[0])).toBe('#000000');
 	});
 });

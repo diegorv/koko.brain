@@ -46,6 +46,8 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import FilesNavigator from '#lib/features/rail-shell/FilesNavigator.svelte';
 import { FILES_RAIL_ITEM, pickedFolderLens } from '#lib/features/rail-shell/lens.logic.js';
+import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
+import { TASKS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 
 const VAULT = '/vault';
 
@@ -107,7 +109,7 @@ describe('palette "New ..." commands', () => {
 		fsStore.setFileTree([{ name: 'Untitled', path: folderPath, isDirectory: true, children: [] }]);
 		component = mount(FilesNavigator, {
 			target,
-			props: { picked: pickedFolderLens(settingsStore.layout.railFolder), expanded: [], onPick: vi.fn(), onToggle: vi.fn() },
+			props: { picked: pickedFolderLens(settingsStore.layout.railFolder), expanded: [], onPick: vi.fn(), onToggle: vi.fn(), onPickView: vi.fn() },
 		});
 		flushSync();
 		const row = target.querySelector<HTMLElement>(`[data-files-navigator-folder="${folderPath}"]`);
@@ -141,5 +143,47 @@ describe('palette "New ..." commands', () => {
 		expect(createFolder).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(settingsStore.layout.railFolder).toBeNull();
+	});
+});
+
+describe('palette Tasks status filter command', () => {
+	const statusCommand = () => getBuiltInCommands().find((c) => c.id === 'tasks:status-filter')!;
+
+	beforeEach(() => {
+		tasksStore.reset();
+		editorStore.reset();
+	});
+
+	it('offers all statuses while the filter is Open with no chosen statuses', () => {
+		expect(tasksStore.quick.show).toBe('open');
+		expect(tasksStore.quick.statuses).toBeUndefined();
+		expect(statusCommand()).toMatchObject({ label: 'Tasks: Show all statuses', category: 'Navigation' });
+	});
+
+	it.each([
+		['show all', { show: 'all' as const }],
+		['show closed', { show: 'closed' as const }],
+		['chosen statuses', { show: 'open' as const, statuses: ['done' as const] }],
+	])('offers Open only with %s', (_name, quick) => {
+		tasksStore.setQuick(quick);
+		expect(statusCommand().label).toBe('Tasks: Show open only');
+	});
+
+	it('shows all statuses and opens the Tasks tab', async () => {
+		await statusCommand().action();
+
+		expect(tasksStore.quick.show).toBe('all');
+		expect(tasksStore.quick.statuses).toBeUndefined();
+		expect(editorStore.activeTabPath).toBe(TASKS_VIRTUAL_PATH);
+	});
+
+	it('goes back to Open only, clearing chosen statuses, and opens the Tasks tab', async () => {
+		tasksStore.setQuick({ show: 'all', statuses: ['done', 'cancelled'] });
+
+		await statusCommand().action();
+
+		expect(tasksStore.quick.show).toBe('open');
+		expect(tasksStore.quick.statuses).toBeUndefined();
+		expect(editorStore.activeTabPath).toBe(TASKS_VIRTUAL_PATH);
 	});
 });

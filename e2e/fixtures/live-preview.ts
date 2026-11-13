@@ -6,6 +6,11 @@ const TEST_VAULT_PATH = '/test-vault';
 
 const DEFAULT_SETTINGS = {
 	layout: {
+		// The app's defaults are its minimums; these keep the editor's geometry independent of them.
+		railWidth: 192,
+		navigatorSize: 13,
+		noteListSize: 18,
+		rightSidebarSize: 20,
 		rightSidebarVisible: false,
 		propertiesVisible: false,
 		backlinksVisible: false,
@@ -35,12 +40,15 @@ async function waitForE2eApi(page: Page) {
  *
  * `settingsOverride` is shallow-merged into DEFAULT_SETTINGS — pass e.g.
  * `{ experimental: { newLivePreview: true } }` to drive a flag-on spec.
+ * `extraFiles` maps vault-relative paths to content, seeded with the note
+ * before the vault opens (a note to embed, an image, a row for a query).
  */
 export async function openMarkdownFile(
 	page: Page,
 	fileName: string,
 	content: string,
 	settingsOverride: Record<string, unknown> = {},
+	extraFiles: Record<string, string> = {},
 ): Promise<void> {
 	await page.goto('/', { waitUntil: 'networkidle' });
 	await waitForE2eApi(page);
@@ -48,6 +56,7 @@ export async function openMarkdownFile(
 	const settings = { ...DEFAULT_SETTINGS, ...settingsOverride };
 
 	const files: Record<string, string> = {
+		...Object.fromEntries(Object.entries(extraFiles).map(([p, c]) => [`${TEST_VAULT_PATH}/${p}`, c])),
 		[`${TEST_VAULT_PATH}/${fileName}`]: content,
 		[`${TEST_VAULT_PATH}/.kokobrain/`]: '',
 		[`${TEST_VAULT_PATH}/.kokobrain/settings.json`]: JSON.stringify(settings, null, 2),

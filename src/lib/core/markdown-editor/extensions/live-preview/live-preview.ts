@@ -1,9 +1,10 @@
 import { Compartment } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { livePreviewClickHandler } from './click-handler';
-import { livePreviewStyles } from './styles';
+import { livePreviewActiveLineTheme, livePreviewStyles } from './styles';
 import { mouseSelectingField, mouseSelectingHandlers } from './core/mouse-selecting';
-import { frontmatterField, frontmatterGutter } from './plugins/frontmatter-field';
+import { bandDragHead, blockBandClick } from './core/block-band-click';
+import { frontmatterClick, frontmatterField, frontmatterGuard, frontmatterGutter } from './plugins/frontmatter-field';
 import { codeBlockField } from './plugins/code-block-field';
 import { blockCommentField } from './plugins/block-comment-field';
 import { tableField } from './plugins/table-field';
@@ -43,7 +44,7 @@ export const livePreviewCompartment = new Compartment();
  * what keeps every switch in Troubleshooting connected to something.
  */
 const BLOCK_EXTENSIONS: Record<BlockDecoratorName, Extension> = {
-	frontmatter: [frontmatterField, frontmatterGutter],
+	frontmatter: [frontmatterField, frontmatterGutter, frontmatterClick, frontmatterGuard],
 	codeBlock: codeBlockField,
 	blockComment: blockCommentField,
 	table: tableField,
@@ -80,6 +81,8 @@ export function livePreviewExtensions(disabledDecorators: Record<string, boolean
 	const exts: Extension[] = [
 		mouseSelectingField,
 		mouseSelectingHandlers,
+		blockBandClick,
+		bandDragHead,
 		calloutFoldState,
 	];
 
@@ -95,7 +98,7 @@ export function livePreviewExtensions(disabledDecorators: Record<string, boolean
 	}
 
 	// Scroll debounce + shared
-	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles);
+	exts.push(scrollDebouncePlugin, livePreviewClickHandler, livePreviewStyles, livePreviewActiveLineTheme);
 	// Paste handlers (after scroll/click so click takes precedence);
 	// html-link runs before TSV so its null result falls through to the TSV check
 	exts.push(pasteHtmlLinkHandler, pasteTsvHandler);

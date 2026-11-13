@@ -8,7 +8,8 @@ import { openFile, pressShortcut } from '../fixtures/helpers';
 
 test.describe('Tab pinning', () => {
 	test.beforeEach(async ({ vaultPage: page }) => {
-		// `closeTab` prompts via `ask` for dirty tabs — auto-confirm.
+		// `closeTab` saves a dirty tab and asks only when that save fails;
+		// auto-confirm so a failed save still closes.
 		await page.evaluate(() => window.__e2e.dialog.setAskResponse(true));
 	});
 

@@ -1,6 +1,7 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { call } from '#lib/contracts/ipc.js';
 import { applyNoteChange, registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import type { IconPackId, RecentIcon } from './file-icons.types';
 import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
 import {
@@ -9,10 +10,14 @@ import {
 	extractIconColorsFromFrontmatter,
 	extractIconFromParsedFrontmatter,
 	extractIconColorsFromParsedFrontmatter,
+	extractViewIcon,
+	mergeIconRef,
 } from './file-icons.logic';
 import { preloadPacks, setOnPacksLoaded } from './file-icons.icon-data';
 
 setOnPacksLoaded(() => fileIconsStore.bumpPackVersion());
+/** Import it from here, not from the icon data module: loading this module is what makes a finished load bump `packVersion` */
+export { preloadPacks };
 import { debug, error, timeAsync } from '#lib/utils/debug.js';
 
 /** Internal directory inside the vault that stores app metadata */
@@ -140,6 +145,27 @@ export async function setIconForPath(
 }
 
 /**
+ * Saves the colors of a file/folder that has no icon, leaving any `_icon` key
+ * alone. A directory saves to its folder note, created only to hold a color;
+ * any other file that is not Markdown has no frontmatter to save to.
+ * A refused frontmatter write (already toasted) leaves the icon store untouched.
+ */
+export async function setIconColors(path: string, color?: string, textColor?: string, isDirectory = false): Promise<void> {
+	const isNote = isMarkdown(path);
+	if (!isNote && !isDirectory) return;
+	if (!isNote && !color && !textColor && !(await exists(getFolderNotePath(path)))) return;
+
+	const notePath = isNote ? path : await ensureFolderNote(path);
+	const { setFrontmatterIconColors } = await import('./frontmatter-icon.service');
+	if (!(await setFrontmatterIconColors(notePath, color, textColor))) return;
+
+	const ref: FrontmatterIconRef = { ...fileIconsStore.getFrontmatterIcon(notePath), color, titleColor: textColor };
+	const next = ref.iconPack || color || textColor ? ref : null;
+	fileIconsStore.updateFrontmatterIcon(notePath, next);
+	if (!isNote) fileIconsStore.updateFrontmatterIcon(path, next);
+}
+
+/**
  * Removes a custom icon from a file/folder path.
  * - .md files: removes _icon, _color, _title_color from frontmatter.
  * - Directories (isDirectory=true): removes icon from folder note frontmatter.
@@ -167,7 +193,7 @@ export async function removeIconForPath(vaultPath: string, path: string, isDirec
 }
 
 /**
- * Scans all vault notes for the frontmatter `icon` property and
+ * Scans all vault notes for the frontmatter icon and colors and
  * populates `fileIconsStore.frontmatterIcons`. Reads pre-parsed
  * frontmatter from the Rust `VaultIndex` via `get_all_vault_entries_v2`
  * - no per-file YAML re-parse on the JS side.
@@ -178,10 +204,11 @@ export async function buildFrontmatterIconIndex(): Promise<void> {
 		const index = new Map<string, FrontmatterIconRef>();
 
 		for (const entry of entries) {
-			const ref = extractIconFromParsedFrontmatter(entry.frontmatter);
-			if (ref) {
-				const colors = extractIconColorsFromParsedFrontmatter(entry.frontmatter);
-				const full: FrontmatterIconRef = { ...ref, ...colors };
+			const full = mergeIconRef(
+				extractIconFromParsedFrontmatter(entry.frontmatter),
+				extractIconColorsFromParsedFrontmatter(entry.frontmatter),
+			);
+			if (full) {
 				index.set(entry.path, full);
 
 				// Folder notes: if X/X.md has an icon, index under directory X/ too
@@ -199,23 +226,23 @@ export async function buildFrontmatterIconIndex(): Promise<void> {
 		debug('FILE_ICONS', `Icons: ${index.size} found`);
 
 		// Preload packs referenced by frontmatter icons
-		const packs = [...new Set([...index.values()].map((r) => r.iconPack))];
+		const packs = [...new Set([...index.values()].flatMap((r) => (r.iconPack ? [r.iconPack] : [])))];
 		if (packs.length > 0) await preloadPacks(packs);
 	});
 }
 
 /**
  * Incrementally updates the frontmatter icon for a single file.
- * Skips the update if the icon and colors haven't changed.
+ * Skips the update if the icon and colors haven't changed. A `.view` body is
+ * bare YAML, so its icon is read from the whole body instead of from
+ * `---` fenced frontmatter.
  */
 export function updateFrontmatterIconForFile(filePath: string, content: string): void {
-	const iconRef = extractIconFromFrontmatter(content);
-	const colors = extractIconColorsFromFrontmatter(content);
 	const oldRef = fileIconsStore.getFrontmatterIcon(filePath);
 
-	const newRef: FrontmatterIconRef | null = iconRef
-		? { ...iconRef, ...colors }
-		: null;
+	const newRef: FrontmatterIconRef | null = isViewFile(filePath)
+		? extractViewIcon(content)
+		: mergeIconRef(extractIconFromFrontmatter(content), extractIconColorsFromFrontmatter(content));
 
 	// Early skip: both null or identical
 	if (!newRef && !oldRef) return;
@@ -239,7 +266,7 @@ export function updateFrontmatterIconForFile(filePath: string, content: string):
 	}
 
 	// Preload pack if new icon references one
-	if (newRef) {
+	if (newRef?.iconPack) {
 		preloadPacks([newRef.iconPack]);
 	}
 }

@@ -1,0 +1,26 @@
+# 17: Block ids, orphan anchors and dropped pending adds are handled in every sync path
+
+**What to build:** Three small gaps left by Issue 10's review (`.scratch/todoist-bisync/work/10/review.md` findings 3 and 4, `review-2.md` nit 1), each verified on main at `13f3f2758`:
+
+1. **Trailing block ids in field sync.** Issue 10 writes the anchor before a trailing ` ^block-id` and strips it from `item_add`, but Issue 09's field paths do not: a brain edit of `- [ ] Call Bob 🆔 td-x ^abc` pushes `Call Bob ^abc` as content, and a Todoist content change is pulled without keeping the block id last (`src/lib/features/todoist-sync/fields.logic.ts:339-351`). Strip a trailing block id from the pushed and compared description, and keep it last on a pulled line.
+2. **Orphan brain-born anchors.** When a cycle stops after the note write but before the state commit (a crash, or a vault switch during the last write), the line keeps a brain-born anchor (`td-` + 8 base36) with no link row. Normal mode never creates it and logs nothing (`sync-now.service.ts:328-354`; the `unmatched` log is rebuild-only, `pull.logic.ts:512`). Log such anchors once per manual cycle, telling the user to remove the `🆔` or run a rebuild.
+3. **Pending adds whose line was deleted.** A pending add (`todoist_id` NULL) whose line is deleted before Todoist received it is never resent, paired, detached or logged, and stays in the line brake's denominator (`detach.logic.ts:79`). Let `planDetach` count misses for pending adds too, so it detaches after 3 missing scans like any other link.
+
+**Blocked by:** 10
+
+**Status:** resolved
+
+- [x] Failing tests first for each of the three (fake `/sync`, real stores).
+- [x] Block id: a brain edit of a line ending in ` ^abc` pushes the content without it; a Todoist content edit leaves ` ^abc` last on the line; the next cycle is quiet in both cases.
+- [x] Orphan anchor: a brain-born anchor with no link and no matching item is logged on a manual cycle and not on automatic ones (the sync log must not fill up, design rule 9 and Issue 10's review finding 2).
+- [x] Pending add: its link detaches after 3 missing scans and leaves the brake's denominator; it is never sent afterwards.
+- [x] Gate: frontend.
+
+## Notes
+
+- Size: S. Merged from three review nits because each is a few lines.
+- Known limitation, not in scope (rare race, recorded from Issue 11's review finding 4, `projects.logic.ts:271` at `c064777eb`): a brain-born note renamed while its `project_add` is unacknowledged after a lost response drops the pending add and sends a new one under the new name. If the first was applied, Todoist gets a second project, and the note's lines keep a `pending_cmd` naming the dropped temp id; the resend gets a 404 and those lines are detached. Cheapest fix if it ever happens: match the moved pending add by its lines' anchors instead of by path.
+
+## Comments
+
+- 2026-11-10, branch `issue/17-block-ids-and-orphan-anchors`: block ids stay out of pushed content and last on the line after a Todoist edit; brain-born orphan anchors are logged on manual cycles only; pending adds detach after 3 missing scans and leave the brake's denominator. Review round 1 APPROVED (fixes: block-id base test for creates, orphan message trimmed; finding 3 rejected), round 2 APPROVED with no findings. Tests: pnpm check exit 0; targeted 254 passed; full suite at 539a3cf94 exit 0, 608 files, 14951 passed.

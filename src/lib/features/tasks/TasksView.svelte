@@ -1,25 +1,88 @@
 <script lang="ts">
-	import { onDestroy, onMount, untrack } from 'svelte';
+	import { flushSync, untrack, type Component } from 'svelte';
+	import Calendar from '@lucide/svelte/icons/calendar';
+	import ChevronDown from '@lucide/svelte/icons/chevron-down';
+	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Circle from '@lucide/svelte/icons/circle';
+	import CircleAlert from '@lucide/svelte/icons/circle-alert';
+	import CircleArrowRight from '@lucide/svelte/icons/circle-arrow-right';
 	import CircleCheckBig from '@lucide/svelte/icons/circle-check-big';
-	import Eye from '@lucide/svelte/icons/eye';
-	import EyeOff from '@lucide/svelte/icons/eye-off';
-	import Hash from '@lucide/svelte/icons/hash';
-	import Cloud from '@lucide/svelte/icons/cloud';
-	import CloudCheck from '@lucide/svelte/icons/cloud-check';
-	import RefreshCcw from '@lucide/svelte/icons/refresh-ccw';
+	import CircleDot from '@lucide/svelte/icons/circle-dot';
+	import CircleMinus from '@lucide/svelte/icons/circle-minus';
+	import CircleQuestionMark from '@lucide/svelte/icons/circle-question-mark';
+	import Ellipsis from '@lucide/svelte/icons/ellipsis';
+	import FileText from '@lucide/svelte/icons/file-text';
 	import Loader2 from '@lucide/svelte/icons/loader-2';
+	import { toast } from 'svelte-sonner';
+	import { Button } from '#lib/components/ui/button/index.js';
+	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import * as Dialog from '#lib/components/ui/dialog/index.js';
+	import * as DropdownMenu from '#lib/components/ui/dropdown-menu/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { tasksStore } from './tasks.store.svelte';
-	import { todoistStore } from './todoist.store.svelte';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { buildTaskIndex, toggleTask, updateSectionTagFilter } from './tasks.service';
-	import { initTodoist, syncTodoistTasks } from './todoist.service';
+	import { buildTaskIndex, setTaskSources, setTaskStatusFromMenu, toggleTask, updateTaskFromMenu } from './tasks.service';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-	import { filterByDate, filterCompleted, computeTaskStats, parseTaskTextSegments } from './tasks.logic';
-	import TodoistPopover from './TodoistPopover.svelte';
-	import type { TaskDateFilter } from './tasks.types';
+	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
+	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
+	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
+	import { formatDate, formatNow } from '#lib/utils/date.js';
+	import { setDueToken, setPriorityToken } from '#lib/utils/task-tokens.js';
+	import SourcesPanel from './SourcesPanel.svelte';
+	import TaskLists from './TaskLists.svelte';
+	import {
+		parseTaskTextSegments,
+		stripTaskTrailers,
+		taskChips,
+		taskDisplayText,
+		usesRawTaskText,
+	} from './tasks.logic';
+	import {
+		DEFAULT_QUICK,
+		GROUP_ROW_CAP,
+		TASK_PRIORITIES,
+		collapseKey,
+		describeTaskQuery,
+		explainEmptyTasks,
+		hideFolder,
+		hideNote,
+		hideType,
+		isQuickFieldDefault,
+		isQuickModified,
+		onlyThisFolder,
+		onlyThisType,
+		priorityWord,
+		propertyKeyOptions,
+		statusFilterLabel,
+		tagMenuOptions,
+		taskCountText,
+		toggleQuickPriority,
+		toggleQuickStatus,
+		toggleQuickTag,
+		type DueRange,
+		type EmptyTasksExplanation,
+		type GroupedRow,
+		type QuickFilterField,
+		type TaskGroup,
+		type TaskGroupKey,
+		type TaskQuickFilters,
+	} from './task-query.logic';
+	import {
+		ROW_MENU_STATUSES,
+		TASK_STATUSES,
+		statusGlyph,
+		statusMenuLabel,
+		toggleTarget,
+		type StatusGlyphIcon,
+	} from './task-status.logic';
+	import { priorityMenuLabel, prioritySignifier, resolveDuePreset, type DuePreset } from './task-row-edit.logic';
+	import { findTaskView } from './task-views.logic';
+	import { nextCurrentRow, resolveTaskKey, tabStopRow, taskRowKey } from './tasks-keys.logic';
+	import type { TaskPriority, TaskStatus } from './task-metadata.types';
+	import type { TaskItem } from './tasks.types';
 
 	interface Props {
 		/** Opens a task's wikilink target the way an editor click does */
@@ -28,50 +91,180 @@
 
 	let { onOpenWikilink }: Props = $props();
 
-	const DATE_FILTERS: { label: string; value: TaskDateFilter }[] = [
-		{ label: 'All time', value: 'all' },
-		{ label: 'Last 7 days', value: 'last7days' },
-		{ label: 'Last 30 days', value: 'last30days' },
+	const GLYPH_ICONS: Record<StatusGlyphIcon, Component<{ class?: string }>> = {
+		circle: Circle,
+		'circle-dot': CircleDot,
+		'circle-check-big': CircleCheckBig,
+		'circle-minus': CircleMinus,
+		'circle-question-mark': CircleQuestionMark,
+		'circle-alert': CircleAlert,
+		'circle-arrow-right': CircleArrowRight,
+	};
+
+	/** The Due menu's options: `trigger` is the value after `Due: `. The edited options follow a separator. */
+	const DUE_OPTIONS: { label: string; trigger: string; value: DueRange }[] = [
+		{ label: 'Any', trigger: 'any', value: 'any' },
+		{ label: 'Overdue', trigger: 'overdue', value: 'overdue' },
+		{ label: 'Today', trigger: 'today', value: 'today' },
+		{ label: 'Next 7 days', trigger: 'next 7 days', value: 'next7' },
+		{ label: 'No date', trigger: 'no date', value: 'none' },
+	];
+	const DUE_EDITED_OPTIONS: { label: string; trigger: string; value: DueRange }[] = [
+		{ label: 'Note edited in the last 7 days', trigger: 'note edited 7 days', value: 'edited7' },
+		{ label: 'Note edited in the last 30 days', trigger: 'note edited 30 days', value: 'edited30' },
 	];
 
-	let sectionTagInput = $state(tasksStore.sectionTag);
-	let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+	const SHOW_OPTIONS: { label: string; value: TaskQuickFilters['show'] }[] = [
+		{ label: 'Open', value: 'open' },
+		{ label: 'Closed', value: 'closed' },
+		{ label: 'All', value: 'all' },
+	];
 
-	function handleSectionTagChange(value: string) {
-		sectionTagInput = value;
-		if (debounceTimer) clearTimeout(debounceTimer);
-		debounceTimer = setTimeout(() => {
-			updateSectionTagFilter(value);
-		}, 400);
+	/** The Display menu's Group by options but Property, whose submenu sets `{ property }`. */
+	const GROUP_OPTIONS: { label: string; value: Extract<TaskGroupKey, string> }[] = [
+		{ label: 'Note', value: 'note' },
+		{ label: 'Folder', value: 'folder' },
+		{ label: 'Due date', value: 'due' },
+		{ label: 'Priority', value: 'priority' },
+		{ label: 'Status', value: 'status' },
+		{ label: 'Type', value: 'type' },
+	];
+
+	/** The checked Group by radio: none while a property grouping is on, which its submenu checks. */
+	let groupRadioValue = $derived(typeof tasksStore.groupBy === 'string' ? tasksStore.groupBy : '');
+
+	/** The checked Property submenu radio: the grouped property, '' under any other grouping. */
+	let propertyRadioValue = $derived(typeof tasksStore.groupBy === 'string' ? '' : tasksStore.groupBy.property);
+
+	/** The Property submenu's keys: those of the notes the sources and excludes keep, like the Tag menu. */
+	let propertyKeys = $derived(propertyKeyOptions(tasksStore.sourceRows));
+
+	/** Whether the Sources panel is open. View state: it closes when the view remounts. */
+	let sourcesOpen = $state(false);
+	const uid = $props.id();
+	/** The Sources panel's element id, named by the Edit button's `aria-controls`. */
+	const sourcesPanelId = `${uid}-sources`;
+
+	/** Opens the Sources panel; for `excludes`, also focuses the Excludes section's first switch. */
+	function openSources(section: 'sources' | 'excludes') {
+		sourcesOpen = true;
+		if (section !== 'excludes') return;
+		flushSync();
+		rootEl?.querySelector<HTMLElement>('[data-task-excludes] [role="switch"]')?.focus();
 	}
 
-	onDestroy(() => {
-		if (debounceTimer) clearTimeout(debounceTimer);
+	let groups = $derived(tasksStore.groups);
+
+	let countText = $derived(taskCountText(tasksStore.visibleRows, tasksStore.quick));
+
+	/**
+	 * Today as `YYYY-MM-DD`, for the overdue test and the chip year. Read again
+	 * on every refetch, so a view left open past midnight updates on the next one.
+	 */
+	let today = $derived.by(() => {
+		void tasksStore.rows;
+		return formatNow('YYYY-MM-DD');
 	});
 
-	let filteredGroups = $derived.by(() => {
-		let groups = filterByDate(tasksStore.fileTaskGroups, tasksStore.dateFilter);
-		if (tasksStore.hideCompleted) {
-			groups = filterCompleted(groups);
-		}
-		return groups;
+	let ruleSentence = $derived(describeTaskQuery(tasksStore.effectiveQuery));
+
+	let emptyExplanation = $derived(
+		groups.length === 0
+			? explainEmptyTasks({
+					rows: tasksStore.rows,
+					query: tasksStore.effectiveQuery,
+					folders: { templates: settingsStore.templates.folder, system: settingsStore.templates.systemFolder },
+					today,
+					now: Date.now(),
+				})
+			: null,
+	);
+
+	/** The checked Status radio: none while statuses are chosen, since they win over `show`. */
+	let showRadioValue = $derived(tasksStore.quick.statuses?.length ? '' : tasksStore.quick.show);
+
+	/** Sets `show` and clears the chosen statuses; bits-ui calls it on every pick, the checked radio included. */
+	function pickShow(value: string) {
+		tasksStore.setQuick({ show: value as TaskQuickFilters['show'], statuses: undefined });
+	}
+
+	function toggleStatus(status: TaskStatus) {
+		tasksStore.setQuick({ statuses: toggleQuickStatus(tasksStore.quick.statuses, status) });
+	}
+
+	let dueValue = $derived<DueRange>(tasksStore.quick.due ?? 'any');
+
+	let dueTriggerLabel = $derived(
+		[...DUE_OPTIONS, ...DUE_EDITED_OPTIONS].find((o) => o.value === dueValue)?.trigger ?? dueValue,
+	);
+
+	/** Sets the Due filter; Any stores `undefined`. bits-ui calls it on every pick, the checked radio included. */
+	function pickDue(value: string) {
+		tasksStore.setQuick({ due: value === 'any' ? undefined : (value as DueRange) });
+	}
+
+	let priorityTriggerLabel = $derived.by(() => {
+		const chosen = tasksStore.quick.priorities;
+		if (!chosen?.length) return 'Priority';
+		return `Priority: ${TASK_PRIORITIES.filter((p) => chosen.includes(p)).map(priorityWord).join(', ')}`;
 	});
 
-	let stats = $derived(computeTaskStats(filteredGroups));
+	function togglePriority(priority: TaskPriority) {
+		tasksStore.setQuick({ priorities: toggleQuickPriority(tasksStore.quick.priorities, priority) });
+	}
+
+	/** Tags of the rows the sources and excludes keep, plus a chosen tag no longer among them so it can be unchecked. */
+	let tagOptions = $derived(tagMenuOptions(tasksStore.sourceRows, tasksStore.quick.tags));
+
+	let tagTriggerLabel = $derived.by(() => {
+		const chosen = tasksStore.quick.tags;
+		if (!chosen?.length) return 'Tag';
+		return `Tag: ${tagOptions.filter((t) => chosen.includes(t)).map((t) => `#${t}`).join(', ')}`;
+	});
+
+	function toggleTag(tag: string) {
+		tasksStore.setQuick({ tags: toggleQuickTag(tasksStore.quick.tags, tag, tagOptions) });
+	}
+
+	/** Sets the search on every keystroke; an empty box stores `undefined`. */
+	function handleSearchInput(value: string) {
+		tasksStore.setQuick({ search: value === '' ? undefined : value });
+	}
+
+	/** The fields the narrow pane folds into `Filters (n)`. */
+	const MENU_FIELDS: QuickFilterField[] = ['status', 'due', 'priority', 'tag'];
+
+	let foldedCount = $derived(MENU_FIELDS.filter((f) => !isQuickFieldDefault(tasksStore.quick, f)).length);
+
+	/** The active list's saved quick filters, which Reset filters restores. */
+	let savedQuick = $derived(findTaskView(tasksStore.activeList, tasksStore.savedViews)?.query.quick ?? DEFAULT_QUICK);
+
+	/** Whether the quick filters equal the active list's saved ones, with no search typed. */
+	let quickAtSaved = $derived(
+		!isQuickModified(tasksStore.quick, savedQuick) && isQuickFieldDefault(tasksStore.quick, 'search'),
+	);
+
+	function runEmptyAction(action: NonNullable<EmptyTasksExplanation['action']>) {
+		if (action.kind === 'editSources') openSources('sources');
+		else if (action.kind === 'editExcludes') openSources('excludes');
+		else if (action.kind === 'showAllStatuses') tasksStore.setQuick({ show: 'all', statuses: undefined });
+		else tasksStore.setQuick({ [action.field]: undefined });
+	}
 
 	function handleFileClick(filePath: string) {
 		openFileInEditor(filePath);
 	}
 
-	async function handleToggle(filePath: string, lineNumber: number) {
-		await toggleTask(filePath, lineNumber);
+	async function handleToggle(filePath: string, task: TaskItem) {
+		await toggleTask(filePath, task);
 	}
 
-	let hasTodoistToken = $derived(settingsStore.todoist.apiToken.length > 0);
-
-	onMount(() => {
-		initTodoist();
-	});
+	/** Opens the note at the task's line, unless the click ended a text selection inside the text. */
+	function handleTextClick(e: MouseEvent & { currentTarget: HTMLElement }, filePath: string, lineNumber: number) {
+		const sel = window.getSelection();
+		if (sel && !sel.isCollapsed && e.currentTarget.contains(sel.anchorNode)) return;
+		void openNoteAt(filePath, { kind: 'line', line: lineNumber });
+	}
 
 	// Refetch task groups whenever the Rust `VaultIndex` version bumps
 	// (save, watcher event, toggle, or remove_note_from_index). Phase 7.6.
@@ -82,196 +275,939 @@
 		});
 	});
 
-	async function handleSync() {
+	let viewportRef = $state<HTMLElement | null>(null);
+
+	// The offset is saved on every scroll, never read at destroy: Svelte
+	// detaches the DOM before teardowns run, and a detached viewport reports 0.
+	$effect(() => {
+		const viewport = viewportRef;
+		if (!viewport) return;
+		const save = () => tasksStore.setScrollOffset(viewport.scrollTop);
+		viewport.addEventListener('scroll', save, { passive: true });
+		return () => viewport.removeEventListener('scroll', save);
+	});
+
+	let scrollRestored = false;
+
+	// Once per mount, as soon as rows are on screen (effects run after the DOM update).
+	$effect(() => {
+		const viewport = viewportRef;
+		if (scrollRestored || !viewport || !tasksStore.hasLoaded || groups.length === 0) return;
+		scrollRestored = true;
+		viewport.scrollTop = untrack(() => tasksStore.scrollOffset);
+	});
+
+	/** The view's root element. */
+	let rootEl = $state<HTMLElement | null>(null);
+	/** The element around all groups: the only place the row keys are handled. */
+	let listEl = $state<HTMLElement | null>(null);
+
+	/** Every listed row by its `taskRowKey`, in display order. */
+	let rowsByKey = $derived(
+		new Map(groups.flatMap((group) => group.rows.map((row) => [taskRowKey(row.filePath, row.lineNumber), row] as const))),
+	);
+	/** Every row key in display order, the rows of collapsed groups and past the cap included. */
+	let order = $derived([...rowsByKey.keys()]);
+	let currentKey = $derived(
+		tasksStore.currentRow ? taskRowKey(tasksStore.currentRow.filePath, tasksStore.currentRow.lineNumber) : null,
+	);
+
+	/**
+	 * The `collapseKey`s of the groups whose `Show N more` was clicked. View
+	 * state, so every group is capped again when the view remounts.
+	 */
+	let revealedGroups = $state.raw<ReadonlySet<string>>(new Set());
+
+	/** Each group with its `collapseKey` and the rows it renders: none when collapsed, the first `GROUP_ROW_CAP` until revealed. */
+	let shownGroups = $derived(
+		groups.map((group) => {
+			const key = collapseKey(tasksStore.groupBy, group.key);
+			const collapsed = tasksStore.collapsedGroups.has(key);
+			const rows = collapsed ? [] : revealedGroups.has(key) ? group.rows : group.rows.slice(0, GROUP_ROW_CAP);
+			return { group, key, collapsed, rows, hidden: collapsed ? 0 : group.rows.length - rows.length };
+		}),
+	);
+	/** The row keys in the DOM, in display order. */
+	let rendered = $derived(shownGroups.flatMap((g) => g.rows.map((row) => taskRowKey(row.filePath, row.lineNumber))));
+	/** The row that holds the list's one tab stop; its controls are the only ones in the tab order. */
+	let tabStopKey = $derived(tabStopRow(rendered, order, currentKey));
+
+	/**
+	 * A group header's rule actions: "Hide this note" on a Note group, "Only
+	 * this folder" and "Hide this folder" on a Folder group but the vault root
+	 * (a '' folder rule is inactive), "Only this type" and "Hide this type" on
+	 * a Type group but No type, none on any other. `target` names the folder,
+	 * note or type in the button's accessible name, since every group shows
+	 * the same visible labels.
+	 */
+	function groupActions(group: TaskGroup): { label: string; target: string; run: () => void }[] {
+		if (group.filePath !== undefined) {
+			// Every row of a Note group is that note's, and a group is never empty.
+			const relPath = group.rows[0]?.relPath;
+			if (relPath === undefined) return [];
+			return [{ label: 'Hide this note', target: relPath, run: () => tasksStore.setExclude(hideNote(tasksStore.query, relPath).exclude) }];
+		}
+		if (group.key === '') return [];
+		if (tasksStore.groupBy === 'type') {
+			const type = group.key;
+			return [
+				{ label: 'Only this type', target: type, run: () => setTaskSources(onlyThisType(tasksStore.query, type).sources) },
+				{ label: 'Hide this type', target: type, run: () => tasksStore.setExclude(hideType(tasksStore.query, type).exclude) },
+			];
+		}
+		if (tasksStore.groupBy !== 'folder') return [];
+		const folder = group.key;
+		return [
+			{ label: 'Only this folder', target: folder, run: () => setTaskSources(onlyThisFolder(tasksStore.query, folder).sources) },
+			{ label: 'Hide this folder', target: folder, run: () => tasksStore.setExclude(hideFolder(tasksStore.query, folder).exclude) },
+		];
+	}
+
+	/** Shows all of a group's rows, then focuses the first one the cap hid, so a keyboard user keeps their place. */
+	function revealGroup(key: string, group: TaskGroup) {
+		revealedGroups = new Set(revealedGroups).add(key);
+		flushSync();
+		const first = group.rows[GROUP_ROW_CAP];
+		if (first) rowElement(taskRowKey(first.filePath, first.lineNumber))?.focus();
+	}
+
+	/** The rendered row element with `key`. Compared by value, so no selector escaping is needed. */
+	function rowElement(key: string | null): HTMLElement | undefined {
+		if (key === null || !listEl) return undefined;
+		return Array.from(listEl.querySelectorAll<HTMLElement>('[data-task-row]')).find((el) => el.dataset.taskKey === key);
+	}
+
+	/**
+	 * True when moving focus into the list takes it from nowhere the user put
+	 * it: `<body>`, the view root, or an element already inside the list.
+	 * Never from a text field or from outside the view.
+	 */
+	function focusIsFree(allowRoot: boolean): boolean {
+		const active = document.activeElement;
+		return !active || active === document.body || (allowRoot && active === rootEl) || (!!listEl && listEl.contains(active));
+	}
+
+	function handleListKeydown(e: KeyboardEvent) {
+		const target = e.target as HTMLElement;
+		const rowEls = Array.from(listEl?.querySelectorAll<HTMLElement>('[data-task-row]') ?? []);
+		const onRow = target.hasAttribute('data-task-row');
+		const action = resolveTaskKey({
+			key: e.key,
+			repeat: e.repeat,
+			onRow,
+			meta: e.metaKey,
+			ctrl: e.ctrlKey,
+			alt: e.altKey,
+			shift: e.shiftKey,
+			index: onRow ? rowEls.indexOf(target) : -1,
+			count: rowEls.length,
+		});
+		if (!action) return;
+		e.preventDefault();
+		if (action.kind === 'focus') {
+			rowEls[action.index]?.focus();
+			return;
+		}
+		const row = rowsByKey.get(target.dataset.taskKey ?? '');
+		if (!row) return;
+		if (action.kind === 'toggle') void handleToggle(row.filePath, row);
+		else if (action.kind === 'open') void openNoteAt(row.filePath, { kind: 'line', line: row.lineNumber });
+		// A click with `detail === 0` opens the DropdownMenu anchored at the button.
+		else target.querySelector<HTMLElement>('[data-task-actions]')?.click();
+	}
+
+	/** Focus anywhere in a row, a control inside it included, makes that row current. */
+	function handleListFocusin(e: FocusEvent) {
+		const rowEl = (e.target as HTMLElement).closest<HTMLElement>('[data-task-row]');
+		const row = rowEl ? rowsByKey.get(rowEl.dataset.taskKey ?? '') : undefined;
+		if (row) tasksStore.setCurrentRow({ filePath: row.filePath, lineNumber: row.lineNumber });
+		if (rowEl) lastFocusedRowEl = rowEl;
+	}
+
+	/** The row element that last took focus; not reactive, read only by the effect below. */
+	let lastFocusedRowEl: HTMLElement | null = null;
+
+	/** The `order` the last run of the effect below saw; null until its first run in this mount. */
+	let prevOrder: string[] | null = null;
+	/** The `rendered` the last run of the effect below saw. */
+	let prevRendered: string[] = [];
+
+	// When the list changes, a current row that left it hands its place to a
+	// neighbour (`nextCurrentRow`). Focus follows only when it was on the
+	// removed row (now on `<body>`) or inside the list, so typing in the
+	// search box never moves it. A current row that changed group (a todo
+	// completed under Status grouping) is recreated in the other group's keyed
+	// `{#each}`, so focus falls to `<body>`: it goes back to the new element,
+	// but only when the element that held focus was removed. When that group
+	// is collapsed, or the row lands past its cap, the row has no element, so
+	// the next rendered row takes its place instead. A collapse, an expand or
+	// a reveal changes `rendered` but not `order`, and moves nothing: a
+	// collapse is not a removal. A recompute that keeps the element (a
+	// refetch with the same rows) leaves focus where the user put it. Effects
+	// run after the DOM update.
+	$effect(() => {
+		const next = order;
+		const shown = rendered;
+		untrack(() => {
+			const prev = prevOrder;
+			const prevShown = prevRendered;
+			prevOrder = next;
+			prevRendered = shown;
+			if (prev === null || next === prev) return;
+			const current = currentKey;
+			const chosen = nextCurrentRow(next, prev, current);
+			const hidden = current !== null && prevShown.includes(current) && !shown.includes(current);
+			if (chosen === current && hidden) {
+				const neighbour = nextCurrentRow(shown, prevShown, current);
+				const row = neighbour === null ? undefined : rowsByKey.get(neighbour);
+				if (row) {
+					tasksStore.setCurrentRow({ filePath: row.filePath, lineNumber: row.lineNumber });
+					if (focusIsFree(false)) rowElement(neighbour)?.focus();
+					return;
+				}
+			}
+			if (chosen === current) {
+				if (document.activeElement === document.body && lastFocusedRowEl && !lastFocusedRowEl.isConnected) {
+					rowElement(current)?.focus();
+				}
+				return;
+			}
+			const row = chosen === null ? undefined : rowsByKey.get(chosen);
+			tasksStore.setCurrentRow(row ? { filePath: row.filePath, lineNumber: row.lineNumber } : null);
+			if (focusIsFree(false)) rowElement(tabStopRow(rendered, next, chosen))?.focus();
+		});
+	});
+
+	let focusOnOpenTried = false;
+
+	// Once per mount, the first time groups are rendered: focus the tab-stop
+	// row, or the first group's chevron when every row is hidden, unless the
+	// user's focus is elsewhere (a text field, another pane, the palette).
+	// `preventScroll` leaves the scroll restore above in charge.
+	$effect(() => {
+		if (focusOnOpenTried || order.length === 0 || !listEl) return;
+		focusOnOpenTried = true;
+		untrack(() => {
+			if (!focusIsFree(true)) return;
+			const target = rowElement(tabStopKey) ?? listEl?.querySelector<HTMLElement>('[data-task-group-toggle]');
+			target?.focus({ preventScroll: true });
+		});
+	});
+
+	/** The row the context menu acts on, set by the right-clicked row itself. */
+	let contextRow = $state<GroupedRow | null>(null);
+
+	/** A row's menu opening makes the row current, as focus on a control in it does. */
+	function handleRowMenuOpen(row: GroupedRow) {
+		tasksStore.setCurrentRow({ filePath: row.filePath, lineNumber: row.lineNumber });
+	}
+
+	function handleRowContextMenu(row: GroupedRow) {
+		contextRow = row;
+		handleRowMenuOpen(row);
+	}
+
+	/** Right click outside a row (a group header, the gap between groups) opens no menu. */
+	function handleListContextMenu(e: MouseEvent, triggerHandler: unknown) {
+		if (!(e.target instanceof Element) || !e.target.closest('[data-task-row]')) {
+			contextRow = null;
+			e.preventDefault();
+			return;
+		}
+		if (typeof triggerHandler === 'function') triggerHandler(e);
+	}
+
+	/**
+	 * A closing row menu, or the due date dialog, returns focus to the row it
+	 * was opened from, or, when a write removed that row, to the tab-stop row.
+	 * The bits-ui default would focus the actions button of the tab-stop row,
+	 * or an element the refetch removed. Leaves focus alone when the user
+	 * moved it out of the view, including into another dialog such as the
+	 * Command Palette.
+	 */
+	function handleRowMenuCloseFocus(e: Event, key: string) {
+		e.preventDefault();
+		const active = document.activeElement;
+		const free =
+			!active ||
+			active === document.body ||
+			(!!rootEl && rootEl.contains(active)) ||
+			!!active.closest('[role="menu"], [data-task-due-dialog]');
+		if (!free) return;
+		const el = rowElement(key) ?? rowElement(tabStopRow(rendered, order, currentKey));
+		el?.focus({ preventScroll: true });
+	}
+
+	function pickRowStatus(row: GroupedRow, value: string) {
+		void setTaskStatusFromMenu(row.filePath, row, value as TaskStatus);
+	}
+
+	/** The row menu's Due presets, in menu order. */
+	const DUE_PRESETS: { label: string; preset: DuePreset }[] = [
+		{ label: 'Today', preset: 'today' },
+		{ label: 'Tomorrow', preset: 'tomorrow' },
+		{ label: 'In a week', preset: 'week' },
+	];
+
+	/** Sets the row's due date, or clears it when `date` is null, with the menu's Undo toast. */
+	function setRowDue(row: GroupedRow, date: string | null) {
+		const message = date === null ? 'Due cleared' : `Due set to ${date}`;
+		void updateTaskFromMenu(row.filePath, row, setDueToken(row.text, date), message);
+	}
+
+	/** bits-ui calls it on every pick, the checked radio included, which writes nothing. */
+	function pickRowPriority(row: GroupedRow, value: string) {
+		const priority = value as TaskPriority;
+		if (priority === (row.metadata.priority ?? 'none')) return;
+		const newText = setPriorityToken(row.text, prioritySignifier(priority));
+		void updateTaskFromMenu(row.filePath, row, newText, `Priority set to ${priorityMenuLabel(priority)}`);
+	}
+
+	/** Whether the due date dialog is open. */
+	let dueDialogOpen = $state(false);
+	/** The row the due date dialog writes; kept after it closes, for the close focus. */
+	let dueDialogRow = $state<GroupedRow | null>(null);
+	/** The dialog's date as typed, `YYYY-MM-DD`, or '' when cleared. */
+	let dueDraft = $state('');
+
+	function openDueDialog(row: GroupedRow) {
+		dueDialogRow = row;
+		dueDraft = row.metadata.dueDate ?? '';
+		dueDialogOpen = true;
+	}
+
+	function saveDueDialog() {
+		if (!dueDialogRow || dueDraft === '') return;
+		setRowDue(dueDialogRow, dueDraft);
+		dueDialogOpen = false;
+	}
+
+	async function copyTaskText(row: GroupedRow) {
 		try {
-			await syncTodoistTasks();
-		} catch (err) {
-			console.error('Failed to sync Todoist tasks:', err);
+			await navigator.clipboard.writeText(stripTaskTrailers(row.text));
+		} catch {
+			toast.error('Could not copy the task text.');
 		}
 	}
 
-	function formatDate(timestamp: number): string {
-		if (!timestamp) return '';
-		return new Date(timestamp).toLocaleDateString('en-US', {
-			year: 'numeric',
-			month: 'short',
-			day: 'numeric',
-		});
+	/** The title's hover text for a note modified at `timestamp` (ms): `Jun 15`, with the year when not this year. */
+	function modifiedTitle(timestamp: number): string | undefined {
+		if (!timestamp) return undefined;
+		const sameYear = new Date(timestamp).getFullYear() === new Date().getFullYear();
+		return formatDate(timestamp, sameYear ? 'MMM D' : 'MMM D, YYYY');
 	}
 </script>
 
-<div class="flex h-full flex-col bg-card">
-	<!-- Toolbar -->
-	<div class="flex items-center gap-2 px-4 py-2 shrink-0 border-b border-divider">
-		<div class="flex items-center gap-1">
-			{#each DATE_FILTERS as filter (filter.value)}
+<!-- The list stays under the alert: it is stale, not gone. -->
+{#snippet refreshAlert(message: string)}
+	<div
+		role="alert"
+		class="my-2 flex items-center justify-between gap-2 rounded-md border border-destructive/50 bg-destructive/10 p-3 text-row text-destructive"
+	>
+		<p>{message}</p>
+		<button
+			class="shrink-0 rounded-md px-2 py-0.5 font-medium hover:bg-destructive/10 transition-colors cursor-pointer disabled:cursor-default disabled:opacity-50"
+			disabled={tasksStore.isLoading}
+			onclick={() => void buildTaskIndex()}
+		>
+			Retry
+		</button>
+	</div>
+{/snippet}
+
+<!-- Each filter menu's items, rendered in its own menu and again in the narrow pane's Filters menu. -->
+{#snippet statusItems()}
+	<DropdownMenu.RadioGroup value={showRadioValue} onValueChange={pickShow}>
+		{#each SHOW_OPTIONS as option (option.value)}
+			<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+		{/each}
+	</DropdownMenu.RadioGroup>
+	<DropdownMenu.Separator />
+	{#each TASK_STATUSES as status (status)}
+		<DropdownMenu.CheckboxItem
+			checked={tasksStore.quick.statuses?.includes(status) ?? false}
+			closeOnSelect={false}
+			onCheckedChange={() => toggleStatus(status)}
+		>
+			{statusGlyph(status).word}
+		</DropdownMenu.CheckboxItem>
+	{/each}
+{/snippet}
+
+{#snippet dueItems()}
+	<DropdownMenu.RadioGroup value={dueValue} onValueChange={pickDue}>
+		{#each DUE_OPTIONS as option (option.value)}
+			<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+		{/each}
+		<DropdownMenu.Separator />
+		{#each DUE_EDITED_OPTIONS as option (option.value)}
+			<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+		{/each}
+	</DropdownMenu.RadioGroup>
+{/snippet}
+
+{#snippet priorityItems()}
+	{#each TASK_PRIORITIES as priority (priority)}
+		<DropdownMenu.CheckboxItem
+			checked={tasksStore.quick.priorities?.includes(priority) ?? false}
+			closeOnSelect={false}
+			onCheckedChange={() => togglePriority(priority)}
+		>
+			{priorityWord(priority)}
+		</DropdownMenu.CheckboxItem>
+	{/each}
+{/snippet}
+
+{#snippet tagItems()}
+	{#each tagOptions as tag (tag)}
+		<DropdownMenu.CheckboxItem
+			checked={tasksStore.quick.tags?.includes(tag) ?? false}
+			closeOnSelect={false}
+			onCheckedChange={() => toggleTag(tag)}
+		>
+			#{tag}
+		</DropdownMenu.CheckboxItem>
+	{:else}
+		<DropdownMenu.Item disabled>No tags in these tasks</DropdownMenu.Item>
+	{/each}
+{/snippet}
+
+<!-- A task row's menu items, the same in its actions button's menu and in the right-click menu. -->
+{#snippet rowMenuItems(row: GroupedRow, Menu: typeof DropdownMenu | typeof ContextMenu)}
+	<Menu.Item inset onSelect={() => void openNoteAt(row.filePath, { kind: 'line', line: row.lineNumber })}>
+		Open at line
+	</Menu.Item>
+	<Menu.Item inset onSelect={() => void copyTaskText(row)}>Copy task text</Menu.Item>
+	<Menu.Separator />
+	<!-- A status outside the four (question, important, forwarded) checks no item. -->
+	<Menu.RadioGroup value={row.status} onValueChange={(value) => pickRowStatus(row, value)}>
+		{#each ROW_MENU_STATUSES as status (status)}
+			<Menu.RadioItem value={status}>{statusMenuLabel(status)}</Menu.RadioItem>
+		{/each}
+	</Menu.RadioGroup>
+	<Menu.Separator />
+	<Menu.Sub>
+		<Menu.SubTrigger inset>Due</Menu.SubTrigger>
+		<Menu.SubContent class="w-40">
+			{#each DUE_PRESETS as option (option.preset)}
+				<Menu.Item onSelect={() => setRowDue(row, resolveDuePreset(option.preset, today))}>{option.label}</Menu.Item>
+			{/each}
+			<Menu.Item onSelect={() => openDueDialog(row)}>Pick a date</Menu.Item>
+			{#if row.metadata.dueDate}
+				<Menu.Separator />
+				<Menu.Item onSelect={() => setRowDue(row, null)}>Clear</Menu.Item>
+			{/if}
+		</Menu.SubContent>
+	</Menu.Sub>
+	<Menu.Sub>
+		<Menu.SubTrigger inset>Priority</Menu.SubTrigger>
+		<Menu.SubContent class="w-40">
+			<Menu.RadioGroup value={row.metadata.priority ?? 'none'} onValueChange={(value) => pickRowPriority(row, value)}>
+				{#each TASK_PRIORITIES as priority (priority)}
+					<Menu.RadioItem value={priority}>{priorityMenuLabel(priority)}</Menu.RadioItem>
+				{/each}
+			</Menu.RadioGroup>
+		</Menu.SubContent>
+	</Menu.Sub>
+{/snippet}
+
+<!-- A group's collapse chevron. A click never focuses it in WebKit, and collapsing never moves focus by code. -->
+{#snippet groupToggle(group: TaskGroup, key: string, collapsed: boolean, extraClass: string)}
+	<button
+		type="button"
+		data-task-group-toggle
+		class="flex shrink-0 cursor-pointer items-center rounded-sm text-muted-foreground hover:bg-accent outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 {extraClass}"
+		aria-label={collapsed ? `Expand ${group.label}` : `Collapse ${group.label}`}
+		aria-expanded={!collapsed}
+		onclick={() => tasksStore.toggleGroupCollapsed(key)}
+	>
+		<ChevronRight class="size-3.5 transition-transform {collapsed ? '' : 'rotate-90'}" />
+	</button>
+{/snippet}
+
+<!-- A group header's rule actions (`groupActions`), at its end. They show while the header is hovered or holds focus, and stay in the Tab order while hidden. -->
+{#snippet groupHeaderActions(group: TaskGroup)}
+	{@const actions = groupActions(group)}
+	{#if actions.length > 0}
+		<div
+			data-task-group-actions
+			class="ml-auto flex shrink-0 items-center gap-1 self-center opacity-0 transition-opacity group-hover/header:opacity-100 group-focus-within/header:opacity-100"
+		>
+			{#each actions as item (item.label)}
 				<button
-					class="px-2 py-0.5 text-xs rounded-md transition-colors cursor-pointer
-						{tasksStore.dateFilter === filter.value
-							? 'bg-primary/20 text-primary'
-							: 'text-muted-foreground hover:bg-accent'}"
-					onclick={() => tasksStore.setDateFilter(filter.value)}
+					type="button"
+					class="cursor-pointer rounded-sm px-1.5 text-xs text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+					aria-label={`${item.label} ${item.target}`}
+					onclick={item.run}
 				>
-					{filter.label}
+					{item.label}
 				</button>
 			{/each}
 		</div>
+	{/if}
+{/snippet}
 
-		<div class="flex items-center gap-1">
-			<button
-				class="p-1 rounded-md transition-colors cursor-pointer
-					{tasksStore.hideCompleted
-						? 'bg-primary/20 text-primary'
-						: 'text-muted-foreground hover:bg-accent'}"
-				onclick={() => tasksStore.setHideCompleted(!tasksStore.hideCompleted)}
-				title="{tasksStore.hideCompleted ? 'Show' : 'Hide'} completed tasks"
-			>
-				{#if tasksStore.hideCompleted}
-					<EyeOff class="size-3.5" />
+<!-- One group's header, after its chevron. A Note group shows the note (icon, title, folder, "N of M open"); any other shows its label and row count. -->
+{#snippet groupHeader(group: TaskGroup, key: string, collapsed: boolean)}
+	{#if group.filePath !== undefined}
+		{@const filePath = group.filePath}
+		{@const resolved = resolveIconForPath(filePath)}
+		<!-- File header. The icon sits outside the button so an emoji stays out of its name. -->
+		<div class="group/header flex items-start gap-2 mb-2">
+			{@render groupToggle(group, key, collapsed, 'h-5')}
+			<span class="flex h-5 shrink-0 items-center">
+				{#if resolved?.icon}
+					<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
 				{:else}
-					<Eye class="size-3.5" />
+					<FileText class="size-4 shrink-0 text-muted-foreground" style={iconColorStyle(resolved?.color)} />
 				{/if}
-			</button>
-		</div>
-
-		{#if hasTodoistToken}
-			<div class="flex items-center gap-1">
-				<button
-					class="p-1 rounded-md transition-colors cursor-pointer text-muted-foreground hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed"
-					onclick={handleSync}
-					disabled={todoistStore.isSyncing}
-					title="Sync task status from Todoist"
-				>
-					{#if todoistStore.isSyncing}
-						<Loader2 class="size-3.5 animate-spin" />
-					{:else}
-						<RefreshCcw class="size-3.5" />
-					{/if}
-				</button>
-			</div>
-		{/if}
-
-		<div class="flex items-center gap-1 relative">
-			<Hash class="size-3 text-muted-foreground absolute left-1.5 pointer-events-none" />
-			<input
-				type="text"
-				value={sectionTagInput}
-				oninput={(e) => handleSectionTagChange(e.currentTarget.value)}
-				placeholder="section tag"
-				class="h-6 w-28 pl-5 pr-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
-			/>
-		</div>
-	</div>
-
-	<!-- Content -->
-	<ScrollArea class="flex-1 min-h-0">
-		<div class="p-4">
-			{#if tasksStore.isLoading}
-				<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
-			{:else if filteredGroups.length === 0}
-				<p class="text-sm text-muted-foreground text-center py-8">No tasks found</p>
-			{:else}
-				<p class="text-xs text-muted-foreground mb-4">
-					{stats.total} {stats.total === 1 ? 'task' : 'tasks'} in {stats.fileCount} {stats.fileCount === 1 ? 'file' : 'files'}
-				</p>
-
-				<div class="space-y-6">
-					{#each filteredGroups as group (group.filePath)}
-						<div>
-							<!-- File header -->
-							<div class="flex items-baseline gap-2 mb-2">
-								<button
-									class="text-sm font-medium text-purple-400 hover:underline cursor-pointer"
-									onclick={() => handleFileClick(group.filePath)}
-								>
-									{group.fileName}
-								</button>
-								<span class="text-xs text-muted-foreground">
-									({formatDate(group.modifiedAt)})
-								</span>
-								<span class="text-xs text-muted-foreground">
-									({group.tasks.length})
-								</span>
-							</div>
-
-							<!-- Task list -->
-							<div class="space-y-1">
-								{#each group.tasks as task (task.lineNumber)}
-									<div
-										class="flex items-start gap-2 w-full group rounded px-1 py-0.5 hover:bg-accent/50 transition-colors"
-										style="padding-left: {task.indent * 1.25 + 0.25}rem"
-									>
-										<button
-											class="shrink-0 mt-0.5 cursor-pointer"
-											aria-label={task.checked ? 'Mark task as not done' : 'Mark task as done'}
-											onclick={() => handleToggle(group.filePath, task.lineNumber)}
-										>
-											{#if task.checked}
-												<CircleCheckBig class="size-4 text-primary/60" />
-											{:else}
-												<Circle class="size-4 text-muted-foreground group-hover:text-primary/80 transition-colors" />
-											{/if}
-										</button>
-										<!-- Clicking plain text toggles too; the circle button is the keyboard path. -->
-										<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
-										<span
-											class="flex-1 min-w-0 break-words text-sm cursor-pointer {task.checked ? 'text-muted-foreground line-through' : 'text-foreground'}"
-											onclick={() => handleToggle(group.filePath, task.lineNumber)}
-										>
-											{#each parseTaskTextSegments(task.text) as seg}
-												{#if seg.type === 'text'}
-													{seg.value}
-												{:else if seg.type === 'wikilink'}
-													<button
-														class="inline cursor-pointer text-primary hover:underline"
-														onclick={(e) => { e.stopPropagation(); onOpenWikilink(seg.target); }}
-													>{seg.display}</button>
-												{:else}
-													<a
-														href={seg.url}
-														target="_blank"
-														rel="noopener noreferrer"
-														title={seg.url}
-														class="text-primary underline decoration-primary/40 hover:decoration-primary"
-														onclick={(e) => e.stopPropagation()}
-													>{seg.label}</a>
-												{/if}
-											{/each}
-										</span>
-										{#if hasTodoistToken}
-											{#if todoistStore.isSent(group.filePath, task.text)}
-												{@const completed = todoistStore.isCompletedInTodoist(group.filePath, task.text)}
-												{@const url = todoistStore.getTodoistUrl(group.filePath, task.text)}
-												{#if completed}
-													<a
-														href={url}
-														target="_blank"
-														rel="noopener noreferrer"
-														title="Completed in Todoist"
-													>
-														<CloudCheck class="size-3 shrink-0 mt-1 text-green-400" />
-													</a>
-												{:else}
-													<a
-														href={url}
-														target="_blank"
-														rel="noopener noreferrer"
-														title="Open in Todoist"
-													>
-														<Cloud class="size-3 shrink-0 mt-1 text-muted-foreground" />
-													</a>
-												{/if}
-											{:else}
-												<TodoistPopover taskText={task.text} filePath={group.filePath} metadata={task.metadata} />
-											{/if}
-										{/if}
-									</div>
-								{/each}
-							</div>
-						</div>
-					{/each}
+			</span>
+			<div class="min-w-0 flex-1">
+				<div class="flex items-baseline gap-2">
+					<button
+						data-task-group-title
+						class="text-sm font-medium text-foreground hover:underline cursor-pointer"
+						title={modifiedTitle(group.modifiedAt ?? 0)}
+						onclick={() => handleFileClick(filePath)}
+					>
+						{group.label}
+					</button>
+					<span data-task-group-count class="text-xs text-muted-foreground">{`${group.open} of ${group.total} open`}</span>
 				</div>
+				{#if group.folder}
+					<p data-task-group-subtitle class="truncate text-xs text-muted-foreground @max-[560px]:hidden">{group.folder}</p>
+				{/if}
+			</div>
+			{@render groupHeaderActions(group)}
+		</div>
+	{:else}
+		<div class="group/header flex items-baseline gap-2 mb-2">
+			{@render groupToggle(group, key, collapsed, 'self-center')}
+			<span data-task-group-label class="text-sm font-medium text-foreground">{group.label}</span>
+			<span data-task-group-count class="text-xs text-muted-foreground">{group.count}</span>
+			{@render groupHeaderActions(group)}
+		</div>
+	{/if}
+{/snippet}
+
+<!-- One task row, shared by Note groups (indented by `row.indent`) and flat groups (`flat`: no indent, breadcrumb above). -->
+{#snippet taskRow(row: GroupedRow, flat: boolean)}
+	<!-- The glyph follows the status; the label follows `toggleTarget`, what a click writes. -->
+	{@const glyph = statusGlyph(row.status)}
+	{@const Glyph = GLYPH_ICONS[glyph.icon]}
+	{@const displayText = taskDisplayText(row)}
+	{@const chips = taskChips(row.metadata, today, { tags: !usesRawTaskText(row), open: row.open })}
+	{@const rowKey = taskRowKey(row.filePath, row.lineNumber)}
+	<!-- Roving focus: only the tab-stop row and its controls are in the tab order. -->
+	{@const rowTabindex = rowKey === tabStopKey ? 0 : -1}
+	<!-- A dimmed row fails the filters and stays as the parent of one that passes. -->
+	<!-- A flat row has no indent: its breadcrumb, on its own line above the text, carries the hierarchy. -->
+	<!-- svelte-ignore a11y_no_noninteractive_tabindex (roving-focus list: the row is the focus stop) -->
+	<div
+		data-task-row
+		data-task-key={rowKey}
+		role="listitem"
+		tabindex={rowTabindex}
+		oncontextmenu={() => handleRowContextMenu(row)}
+		class="flex items-start gap-x-2 w-full group rounded-md px-1 py-0.5 hover:bg-accent/50 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {row.dimmed ? 'opacity-60' : ''} {row.breadcrumb ? 'flex-wrap' : ''}"
+		style={flat ? undefined : `padding-left: ${row.indent * 1.25 + 0.25}rem`}
+	>
+		{#if row.breadcrumb}
+			<span data-task-breadcrumb class="basis-full truncate pl-6 text-xs text-muted-foreground">{row.breadcrumb}</span>
+		{/if}
+		<button
+			data-task-toggle
+			data-task-status={row.status}
+			tabindex={rowTabindex}
+			class="shrink-0 cursor-pointer p-1 -mx-1 -mb-1 -mt-0.5 rounded-full outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+			aria-label="{toggleTarget(row.status) === 'done' ? 'Mark task as done' : 'Mark task as not done'}: {displayText} ({glyph.word})"
+			title={glyph.word}
+			onclick={() => handleToggle(row.filePath, row)}
+		>
+			<Glyph class="size-4 {glyph.tone}" />
+		</button>
+		<!-- Chips trail the text; in a pane under 560px they sit on a line under it. -->
+		<!-- Clicking the text, a chip or the space beside them opens the note at the task's line; only the circle toggles. -->
+		<!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+		<div
+			class="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-2 gap-y-0.5 cursor-pointer @max-[560px]:flex-col @max-[560px]:items-start"
+			onclick={(e) => handleTextClick(e, row.filePath, row.lineNumber)}
+		>
+			<span
+				data-task-text
+				class="min-w-0 break-words text-sm {row.open ? 'text-foreground' : 'text-muted-foreground line-through'}"
+			>
+				{#each parseTaskTextSegments(displayText) as seg}
+					{#if seg.type === 'text'}
+						{seg.value}
+					{:else if seg.type === 'wikilink'}
+						<button
+							tabindex={rowTabindex}
+							class="inline cursor-pointer text-primary hover:underline"
+							onclick={(e) => { e.stopPropagation(); onOpenWikilink(seg.target); }}
+						>{seg.display}</button>
+					{:else}
+						<a
+							href={seg.url}
+							tabindex={rowTabindex}
+							target="_blank"
+							rel="noopener noreferrer"
+							title={seg.url}
+							class="text-primary underline decoration-primary/40 hover:decoration-primary"
+							onclick={(e) => e.stopPropagation()}
+						>{seg.label}</a>
+					{/if}
+				{/each}
+			</span>
+			{#if chips.length > 0}
+				<span class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+					{#each chips as chip, i (i)}
+						<span
+							data-task-chip={chip.kind}
+							data-overdue={chip.overdue ? '' : undefined}
+							title={chip.title}
+							class="inline-flex items-center gap-1 text-label text-muted-foreground"
+						>
+							{#if chip.kind === 'due'}
+								<Calendar class="size-3 shrink-0 {chip.overdue ? 'text-destructive' : ''}" />
+							{/if}
+							<span class={chip.overdue ? 'text-foreground' : 'text-muted-foreground'}>{chip.label}</span>
+						</span>
+					{/each}
+				</span>
 			{/if}
 		</div>
-	</ScrollArea>
+		<!-- One menu per row: bits-ui renders no content until it opens. -->
+		<DropdownMenu.Root onOpenChange={(open) => { if (open) handleRowMenuOpen(row); }}>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						type="button"
+						data-task-actions
+						tabindex={rowTabindex}
+						aria-label="Task actions"
+						class="shrink-0 cursor-pointer rounded-sm p-0.5 -my-0.5 text-muted-foreground hover:bg-accent hover:text-foreground outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+					>
+						<Ellipsis class="size-4" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="end" class="w-48" onCloseAutoFocus={(e) => handleRowMenuCloseFocus(e, rowKey)}>
+				{@render rowMenuItems(row, DropdownMenu)}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	</div>
+{/snippet}
+
+<div bind:this={rootEl} class="@container flex h-full flex-col">
+	<!-- Toolbar -->
+	<div class="pane-toolbar">
+		<span class="min-w-0 truncate text-title">Tasks</span>
+		{#if tasksStore.hasLoaded}
+			<span data-task-count class="shrink-0 text-meta text-muted-foreground @max-[420px]:hidden">{countText}</span>
+		{/if}
+		{#if tasksStore.hasLoaded && tasksStore.isLoading}
+			<span role="status" aria-label="Refreshing tasks" class="flex items-center">
+				<Loader2 class="size-3.5 animate-spin text-muted-foreground" />
+			</span>
+		{/if}
+		<input
+			type="search"
+			value={tasksStore.quick.search ?? ''}
+			oninput={(e) => handleSearchInput(e.currentTarget.value)}
+			placeholder="Search tasks"
+			aria-label="Search tasks"
+			class="h-6 w-40 min-w-0 shrink px-2 text-xs rounded-md bg-background/50 border border-border/50 text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
+		/>
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer"
+					>
+						<span>Display</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="end" class="w-48">
+				<DropdownMenu.Label>Group by</DropdownMenu.Label>
+				<!-- bits-ui calls onValueChange on every pick, the checked radio included; setGroupBy then changes nothing. -->
+				<DropdownMenu.RadioGroup value={groupRadioValue} onValueChange={(value) => tasksStore.setGroupBy(value as TaskGroupKey)}>
+					{#each GROUP_OPTIONS as option (option.value)}
+						<DropdownMenu.RadioItem value={option.value}>{option.label}</DropdownMenu.RadioItem>
+					{/each}
+				</DropdownMenu.RadioGroup>
+				<DropdownMenu.Sub>
+					<DropdownMenu.SubTrigger inset>Property</DropdownMenu.SubTrigger>
+					<DropdownMenu.SubContent class="max-h-72 w-48 overflow-y-auto">
+						{#if propertyKeys.length > 0}
+							<DropdownMenu.RadioGroup value={propertyRadioValue} onValueChange={(property) => tasksStore.setGroupBy({ property })}>
+								{#each propertyKeys as key (key)}
+									<DropdownMenu.RadioItem value={key}>{key}</DropdownMenu.RadioItem>
+								{/each}
+							</DropdownMenu.RadioGroup>
+						{:else}
+							<DropdownMenu.Item disabled>No properties in these tasks</DropdownMenu.Item>
+						{/if}
+					</DropdownMenu.SubContent>
+				</DropdownMenu.Sub>
+				<DropdownMenu.RadioGroup value={groupRadioValue} onValueChange={(value) => tasksStore.setGroupBy(value as TaskGroupKey)}>
+					<DropdownMenu.RadioItem value="heading">Heading</DropdownMenu.RadioItem>
+				</DropdownMenu.RadioGroup>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	</div>
+
+	<!-- Filters. Under 560px the four menus fold into the Filters menu; both are rendered and CSS hides one. -->
+	<div data-task-filters class="flex shrink-0 flex-wrap items-center gap-2 border-b border-divider px-3 py-1.5">
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="hidden h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:flex"
+					>
+						<span>Filters ({foldedCount})</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-56">
+				<DropdownMenu.Label>Status</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				{@render statusItems()}
+				<DropdownMenu.Label>Due</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				{@render dueItems()}
+				<DropdownMenu.Label>Priority</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				{@render priorityItems()}
+				<DropdownMenu.Label>Tag</DropdownMenu.Label>
+				<DropdownMenu.Separator />
+				{@render tagItems()}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:hidden"
+					>
+						<span>Status: {statusFilterLabel(tasksStore.quick)}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-48">
+				{@render statusItems()}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:hidden"
+					>
+						<span>Due: {dueTriggerLabel}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-56">
+				{@render dueItems()}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:hidden"
+					>
+						<span>{priorityTriggerLabel}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-48">
+				{@render priorityItems()}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger>
+				{#snippet child({ props })}
+					<button
+						{...props}
+						class="flex h-6 items-center gap-1 rounded-md px-2 text-xs text-muted-foreground hover:bg-accent transition-colors cursor-pointer @max-[560px]:hidden"
+					>
+						<span>{tagTriggerLabel}</span>
+						<ChevronDown class="size-3 shrink-0" aria-hidden="true" />
+					</button>
+				{/snippet}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content align="start" class="w-48">
+				{@render tagItems()}
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+
+		{#if !quickAtSaved}
+			<button
+				class="h-6 rounded-md px-2 text-xs text-primary hover:bg-accent transition-colors cursor-pointer"
+				onclick={() => tasksStore.resetQuick(savedQuick)}
+			>
+				Reset filters
+			</button>
+		{/if}
+	</div>
+
+	<!-- Content: the list column, then the list. Under 720px the column becomes the dropdown above the sentence. -->
+	<div class="flex min-h-0 flex-1">
+		<TaskLists variant="column" />
+		<ScrollArea class="min-h-0 min-w-0 flex-1" bind:viewportRef>
+			<div class="p-4">
+				<TaskLists variant="menu" />
+				<!-- An empty snapshot read before the vault index is ready is not an empty vault. -->
+				{#if !tasksStore.hasLoaded || (!vaultStore.indexReady && tasksStore.rows.length === 0)}
+					<p class="text-sm text-muted-foreground text-center py-8">Indexing tasks...</p>
+				{:else}
+					<!-- The sentence row and the panel sit outside the branches below, so an
+					     edit that empties or fills the list keeps the panel and its focus. -->
+					<div class="mb-1 flex flex-wrap items-baseline gap-x-2">
+						<p class="text-xs text-muted-foreground">{ruleSentence}</p>
+						<button
+							type="button"
+							data-task-sources-edit
+							class="text-xs text-primary hover:underline cursor-pointer"
+							aria-expanded={sourcesOpen}
+							aria-controls={sourcesPanelId}
+							onclick={() => (sourcesOpen = !sourcesOpen)}
+						>
+							Edit
+						</button>
+						{#if tasksStore.query.sources.length > 0}
+							<button type="button" class="text-xs text-primary hover:underline cursor-pointer" onclick={() => setTaskSources([])}>
+								Clear
+							</button>
+						{/if}
+					</div>
+					<TaskLists variant="marker" />
+					{#if sourcesOpen}<SourcesPanel id={sourcesPanelId} />{/if}
+					{#if tasksStore.error && tasksStore.rows.length === 0}
+						<!-- No list was loaded: the alert takes the empty state's place. -->
+						{@render refreshAlert(tasksStore.error)}
+					{:else if emptyExplanation}
+						{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
+						<div class="flex flex-col items-center gap-2 py-8">
+							<p class="text-sm text-muted-foreground text-center">{emptyExplanation.message}</p>
+							{#if emptyExplanation.hint}
+								<p class="max-w-sm text-xs text-muted-foreground text-center">{emptyExplanation.hint}</p>
+							{/if}
+							{#if emptyExplanation.action}
+								{@const action = emptyExplanation.action}
+								<button
+									class="px-2 py-0.5 text-xs rounded-md text-primary hover:bg-accent transition-colors cursor-pointer"
+									onclick={() => runEmptyAction(action)}
+								>
+									{action.label}
+								</button>
+							{/if}
+						</div>
+					{:else}
+						{#if tasksStore.error}{@render refreshAlert(tasksStore.error)}{/if}
+
+						<!-- One context menu for the whole list; each row's own contextmenu handler sets the row it acts on. -->
+						<ContextMenu.Root>
+							<ContextMenu.Trigger>
+								{#snippet child({ props })}
+									<!-- svelte-ignore a11y_no_static_element_interactions (roving-focus list: the rows take the keys) -->
+									<div
+										{...props}
+										bind:this={listEl}
+										class="space-y-6 mt-3"
+										onkeydown={handleListKeydown}
+										onfocusin={handleListFocusin}
+										oncontextmenu={(e) => handleListContextMenu(e, props.oncontextmenu)}
+									>
+										{#each shownGroups as { group, key, collapsed, rows, hidden } (group.key)}
+											<div data-task-group data-task-group-key={group.key}>
+												{@render groupHeader(group, key, collapsed)}
+												<!-- A collapsed group's rows leave the DOM, so the list's keys skip them. -->
+												{#if !collapsed}
+													<div class="space-y-1" role="list" aria-label={group.label}>
+														{#each rows as row (taskRowKey(row.filePath, row.lineNumber))}
+															{@render taskRow(row, group.filePath === undefined && tasksStore.groupBy !== 'heading')}
+														{/each}
+													</div>
+													<!-- Outside the list and not a row, so the list's keydown handler leaves it alone. -->
+													{#if hidden > 0}
+														<button
+															type="button"
+															class="mt-1 rounded-md px-1 text-xs text-primary hover:underline cursor-pointer outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+															onclick={() => revealGroup(key, group)}
+														>
+															Show {hidden} more
+														</button>
+													{/if}
+												{/if}
+											</div>
+										{/each}
+									</div>
+								{/snippet}
+							</ContextMenu.Trigger>
+							<ContextMenu.Content
+								class="w-48"
+								onCloseAutoFocus={(e) => {
+									if (contextRow) handleRowMenuCloseFocus(e, taskRowKey(contextRow.filePath, contextRow.lineNumber));
+								}}
+							>
+								{#if contextRow}
+									{@render rowMenuItems(contextRow, ContextMenu)}
+								{/if}
+							</ContextMenu.Content>
+						</ContextMenu.Root>
+					{/if}
+				{/if}
+			</div>
+		</ScrollArea>
+	</div>
+
+	<!-- One due date dialog for every row, opened by a row menu's Pick a date. -->
+	<Dialog.Root bind:open={dueDialogOpen}>
+		<Dialog.Content
+			data-task-due-dialog
+			class="sm:max-w-xs"
+			onCloseAutoFocus={(e) => {
+				if (dueDialogRow) handleRowMenuCloseFocus(e, taskRowKey(dueDialogRow.filePath, dueDialogRow.lineNumber));
+			}}
+		>
+			<Dialog.Header>
+				<Dialog.Title>Due date</Dialog.Title>
+				{#if dueDialogRow}
+					<Dialog.Description class="truncate">{taskDisplayText(dueDialogRow)}</Dialog.Description>
+				{/if}
+			</Dialog.Header>
+			<form
+				class="grid gap-4"
+				onsubmit={(e) => {
+					e.preventDefault();
+					saveDueDialog();
+				}}
+			>
+				<Input type="date" aria-label="Due date" data-task-due-input bind:value={dueDraft} />
+				<Dialog.Footer>
+					<Button type="button" variant="outline" onclick={() => (dueDialogOpen = false)}>Cancel</Button>
+					<Button type="submit" disabled={dueDraft === ''}>Save</Button>
+				</Dialog.Footer>
+			</form>
+		</Dialog.Content>
+	</Dialog.Root>
 </div>

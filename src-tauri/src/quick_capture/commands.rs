@@ -16,7 +16,9 @@ use std::path::Path;
 use serde_json::{json, Value};
 use tauri::{Emitter, Manager};
 
-use crate::events::{QC_CAPTURE_DETECTED_EVENT, QC_OPEN_COMPOSER_EVENT};
+use crate::events::{
+    QC_CAPTURE_DETECTED_EVENT, QC_COMPOSER_CAPTURE_RESULT_EVENT, QC_OPEN_COMPOSER_EVENT,
+};
 use crate::quick_capture::clipboard::{Clipboard, SystemClipboard};
 use crate::quick_capture::kind_detect::{decide, CaptureInput, ShotSource};
 use crate::quick_capture::source::{
@@ -429,11 +431,15 @@ pub fn dismiss_composer<R: tauri::Runtime>(app: tauri::AppHandle<R>) -> Result<(
 }
 
 /// Build a `note`-kind capture payload from composer text, stamped
-/// with `context`. Pure so the caller-side guard (trim → no-emit on
-/// empty) is testable without a Tauri runtime.
+/// with `context`. `composerRequestId` marks the payload as composer
+/// sent, so the main window answers it with
+/// `report_composer_capture_result`; clipboard-shortcut payloads carry
+/// no id and get no answer. Pure so the caller-side guard (trim →
+/// no-emit on empty) is testable without a Tauri runtime.
 pub fn build_composer_note_payload(
     text: &str,
     captured_at: String,
+    request_id: &str,
     context: &CaptureContext,
 ) -> Value {
     let mut payload = json!({
@@ -441,6 +447,7 @@ pub fn build_composer_note_payload(
         "kind": "note",
         "text": text,
         "capturedAt": captured_at,
+        "composerRequestId": request_id,
     });
     merge_context(&mut payload, context);
     payload
@@ -452,6 +459,9 @@ pub fn build_composer_note_payload(
 /// Instead it posts the typed text here and Rust emits the same
 /// `qc:capture-detected` event the clipboard-shortcut path uses — the
 /// main-window listener then fills the active vault and dispatches.
+/// `Ok` only means the event was emitted: the outcome of the write comes
+/// back to the composer as a `qc:composer-capture-result` event carrying
+/// the same `request_id`.
 ///
 /// Source-app context comes from the PID recorded at summon (see
 /// `record_prev_frontmost`); we `peek` so dismiss can still take it.
@@ -459,6 +469,7 @@ pub fn build_composer_note_payload(
 pub fn submit_composer_capture<R: tauri::Runtime>(
     app: tauri::AppHandle<R>,
     text: String,
+    request_id: String,
 ) -> Result<(), String> {
     if text.trim().is_empty() {
         // Empty composer body should never reach Rust (the route filters
@@ -469,9 +480,38 @@ pub fn submit_composer_capture<R: tauri::Runtime>(
     let prev_pid = app.state::<PrevFrontmostPid>().peek();
     let bundle = bundle_id_for_pid(prev_pid);
     let context = resolve_context_for_bundle(bundle.as_deref());
-    let payload = build_composer_note_payload(&text, captured_at, &context);
+    let payload = build_composer_note_payload(&text, captured_at, &request_id, &context);
     app.emit(QC_CAPTURE_DETECTED_EVENT, payload)
         .map_err(|e| e.to_string())
+}
+
+/// Outcome of one composer capture, sent from the main window back to
+/// the composer on `qc:composer-capture-result`.
+#[derive(serde::Serialize, Clone, Debug, PartialEq, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct ComposerCaptureResult {
+    /// The `request_id` the composer passed to `submit_composer_capture`.
+    pub request_id: String,
+    /// `true` once the capture note is written; `false` when the main
+    /// window could not write it.
+    pub ok: bool,
+}
+
+/// Main-window side of the composer round trip: relays the outcome of a
+/// composer capture to the composer window, which keeps its text until
+/// it hears `ok`.
+#[tauri::command]
+pub fn report_composer_capture_result<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
+    request_id: String,
+    ok: bool,
+) -> Result<(), String> {
+    app.emit(
+        QC_COMPOSER_CAPTURE_RESULT_EVENT,
+        ComposerCaptureResult { request_id, ok },
+    )
+    .map_err(|e| e.to_string())
 }
 
 #[cfg(test)]
@@ -646,12 +686,30 @@ mod tests {
         let p = build_composer_note_payload(
             "a thought",
             FIXED_TS.to_string(),
+            "req-1",
             &CaptureContext::default(),
         );
         assert_eq!(p["type"], "capture");
         assert_eq!(p["kind"], "note");
         assert_eq!(p["text"], "a thought");
         assert_eq!(p["capturedAt"], FIXED_TS);
+        assert_eq!(p["composerRequestId"], "req-1");
+    }
+
+    #[test]
+    fn clipboard_payload_has_no_composer_request_id() {
+        // Only composer payloads are answered with a capture result.
+        let out = run(Ok(ClipboardSnapshot::Text("idea".into())));
+        assert!(out[0].get("composerRequestId").is_none());
+    }
+
+    #[test]
+    fn composer_capture_result_serializes_camel_case() {
+        let result = ComposerCaptureResult { request_id: "req-1".into(), ok: false };
+        assert_eq!(
+            serde_json::to_value(&result).unwrap(),
+            json!({ "requestId": "req-1", "ok": false })
+        );
     }
 
     #[test]
@@ -660,7 +718,7 @@ mod tests {
         // itself must keep the user's exact body verbatim — preserving
         // leading/trailing newlines and indentation.
         let body = "\n  indented line\nsecond\n";
-        let p = build_composer_note_payload(body, FIXED_TS.to_string(), &CaptureContext::default());
+        let p = build_composer_note_payload(body, FIXED_TS.to_string(), "req-1", &CaptureContext::default());
         assert_eq!(p["text"], body);
     }
 
@@ -695,7 +753,7 @@ mod tests {
             source_title: None,
             source_url: None,
         };
-        let p = build_composer_note_payload("idea", FIXED_TS.to_string(), &ctx);
+        let p = build_composer_note_payload("idea", FIXED_TS.to_string(), "req-1", &ctx);
         assert_eq!(p["sourceApp"], "com.apple.Safari");
         assert!(p.get("sourceTitle").is_none());
         assert!(p.get("sourceUrl").is_none());

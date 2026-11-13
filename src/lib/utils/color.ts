@@ -1,4 +1,16 @@
-/** Parses `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb()` and `rgba()` into 0-255 channels plus 0-1 alpha; null otherwise. */
+const NUM = String.raw`[+-]?(?:\d+(?:\.\d*)?|\.\d+)`;
+/** CSS `oklch(L C H / A)`: L number or %, C number or % (100% = 0.4), H in degrees, optional alpha number or %. */
+const OKLCH = new RegExp(
+	String.raw`^oklch\(\s*(${NUM})(%?)\s+(${NUM})(%?)\s+(${NUM})(?:deg)?\s*(?:\/\s*(${NUM})(%?)\s*)?\)$`,
+	'i',
+);
+
+const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
+
+/**
+ * Parses `#rgb`, `#rrggbb`, `#rrggbbaa`, `rgb()`, `rgba()` and `oklch()` into
+ * 0-255 channels plus 0-1 alpha; null otherwise. oklch is clamped to the sRGB gamut.
+ */
 function parseRgba(color: string): [number, number, number, number] | null {
 	const value = color.trim();
 	const hex = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.exec(value);
@@ -6,6 +18,16 @@ function parseRgba(color: string): [number, number, number, number] | null {
 		const h = hex[1].length === 3 ? [...hex[1]].map((c) => c + c).join('') : hex[1];
 		const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
 		return [r, g, b, h.length === 8 ? parseInt(h.slice(6), 16) / 255 : 1];
+	}
+	const ok = OKLCH.exec(value);
+	if (ok) {
+		const L = clamp01(Number(ok[1]) / (ok[2] ? 100 : 1));
+		const C = Math.max(0, ok[4] ? (Number(ok[3]) / 100) * 0.4 : Number(ok[3]));
+		const h = (Number(ok[5]) * Math.PI) / 180;
+		const a = ok[6] === undefined ? 1 : clamp01(Number(ok[6]) / (ok[7] ? 100 : 1));
+		// A huge chroma overflows to NaN channels, whose hex does not parse back
+		const rgb = parseRgba(oklabToHex([L, C * Math.cos(h), C * Math.sin(h)]));
+		return rgb ? [rgb[0], rgb[1], rgb[2], a] : null;
 	}
 	const rgb = /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)/i.exec(value);
 	return rgb ? [Number(rgb[1]), Number(rgb[2]), Number(rgb[3]), rgb[4] === undefined ? 1 : Number(rgb[4])] : null;
@@ -44,7 +66,7 @@ function luminance([r, g, b]: [number, number, number]): number {
 
 /**
  * True when a background color is dark (WCAG relative luminance below 0.2),
- * false when light, null when the value is not a hex or rgb() color.
+ * false when light, null when the value is not a hex, rgb() or oklch() color.
  */
 export function isDarkColor(color: string): boolean | null {
 	const rgb = parseRgb(color);
@@ -54,7 +76,7 @@ export function isDarkColor(color: string): boolean | null {
 /**
  * WCAG contrast ratio of foreground `a` on background `b`, with a translucent `a`
  * composited over `b` (`b`'s own alpha is ignored; flatten it first). Null when
- * either is not a hex or rgb() color.
+ * either is not a hex, rgb() or oklch() color.
  */
 export function contrastRatio(a: string, b: string): number | null {
 	const flat = flatten(a, b);
@@ -123,12 +145,15 @@ export function ensureContrast(fg: string, bg: string, min: number): string {
 	return out + suffix;
 }
 
-/** OKLab midpoint of two colors as a 6-digit hex (alpha ignored); null when either is unparseable. */
-export function mixColors(a: string, b: string): string | null {
+/**
+ * OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of
+ * `b`, 0.5 (the midpoint) by default. Null when either is unparseable.
+ */
+export function mixColors(a: string, b: string, t = 0.5): string | null {
 	const x = parseRgb(a);
 	const y = parseRgb(b);
 	if (!x || !y) return null;
 	const p = toOklab(x.map(toLinear));
 	const q = toOklab(y.map(toLinear));
-	return oklabToHex(p.map((v, i) => (v + q[i]) / 2));
+	return oklabToHex(p.map((v, i) => v + (q[i] - v) * t));
 }

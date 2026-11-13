@@ -7,6 +7,10 @@ vi.mock('@tauri-apps/api/event', () => ({
 	listen: vi.fn(() => Promise.resolve(vi.fn())),
 }));
 
+vi.mock('@tauri-apps/api/core', () => ({
+	invoke: vi.fn(() => Promise.resolve(null)),
+}));
+
 vi.mock('svelte-sonner', () => ({
 	toast: { info: vi.fn(), error: vi.fn(), success: vi.fn(), warning: vi.fn() },
 }));
@@ -17,12 +21,13 @@ vi.mock('#lib/utils/debug.js', () => ({
 }));
 
 const { executeActionMock } = vi.hoisted(() => ({
-	executeActionMock: vi.fn<(...args: unknown[]) => Promise<void>>(() => Promise.resolve()),
+	executeActionMock: vi.fn<(...args: unknown[]) => Promise<boolean>>(() => Promise.resolve(true)),
 }));
 vi.mock('#lib/features/deep-link/deep-link.service.js', () => ({
 	executeAction: executeActionMock,
 }));
 
+import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import {
 	registerQuickCaptureListener,
@@ -44,6 +49,7 @@ describe('quick-capture service', () => {
 		clearLocalStorage();
 		vaultStore._reset();
 		executeActionMock.mockClear();
+		vi.mocked(invoke).mockClear();
 		(toast.info as ReturnType<typeof vi.fn>).mockClear();
 		(toast.error as ReturnType<typeof vi.fn>).mockClear();
 	});
@@ -225,6 +231,56 @@ describe('quick-capture service', () => {
 			expect(action.sourceTitle).toBe('Example - Chrome');
 			expect(action.sourceUrl).toBe('https://example.com');
 		});
+
+		describe('composer result', () => {
+			const composerPayload: QuickCaptureDetectedPayload = {
+				type: 'capture',
+				kind: 'note',
+				text: 'idea',
+				composerRequestId: 'req-1',
+			};
+
+			/** The `{ requestId, ok }` results reported back to the composer. */
+			function reportedResults(): unknown[] {
+				return vi
+					.mocked(invoke)
+					.mock.calls.filter(([cmd]) => cmd === 'report_composer_capture_result')
+					.map(([, args]) => args);
+			}
+
+			it('reports success after the capture is written', async () => {
+				vaultStore.open('/vault');
+
+				await handleDetectedCapture(composerPayload);
+
+				expect(reportedResults()).toEqual([{ requestId: 'req-1', ok: true }]);
+			});
+
+			it('reports failure when the capture write fails', async () => {
+				vaultStore.open('/vault');
+				executeActionMock.mockResolvedValueOnce(false);
+
+				await handleDetectedCapture(composerPayload);
+
+				expect(reportedResults()).toEqual([{ requestId: 'req-1', ok: false }]);
+			});
+
+			it('reports failure when no vault is open', async () => {
+				await handleDetectedCapture(composerPayload);
+
+				expect(executeActionMock).not.toHaveBeenCalled();
+				expect(reportedResults()).toEqual([{ requestId: 'req-1', ok: false }]);
+			});
+
+			it('reports nothing for a clipboard-shortcut capture', async () => {
+				vaultStore.open('/vault');
+
+				await handleDetectedCapture({ type: 'capture', kind: 'clip', text: 'thought' });
+
+				expect(executeActionMock).toHaveBeenCalledTimes(1);
+				expect(reportedResults()).toEqual([]);
+			});
+		});
 	});
 
 	describe('registerQuickCaptureListener', () => {
@@ -279,7 +335,7 @@ describe('quick-capture service', () => {
 
 			let resolveFirst: () => void = () => {};
 			executeActionMock.mockImplementationOnce(
-				() => new Promise<void>((r) => { resolveFirst = r; }),
+				() => new Promise<boolean>((r) => { resolveFirst = () => r(true); }),
 			);
 
 			const cleanup = registerQuickCaptureListener();

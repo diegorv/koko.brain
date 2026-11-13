@@ -48,7 +48,10 @@ vi.mock(
 import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
 import { forceDecorationRebuild } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
 import { mouseSelectingField } from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
-import { frontmatterField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/frontmatter-field.js';
+import {
+	frontmatterEnd,
+	frontmatterField,
+} from '#lib/core/markdown-editor/extensions/live-preview/plugins/frontmatter-field.js';
 import { touchedLines } from '#lib/core/markdown-editor/extensions/live-preview/core/reveal.js';
 import { markdownLanguage, markdownHighlight } from '#lib/core/markdown-editor/highlight-styles.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -311,6 +314,12 @@ type Step = (view: EditorView, lineNo: number) => string[] | void;
 /** The selection `[line before lineNo start, lineNo start)`: must not reveal line `lineNo`. */
 function endsAtLineStart(view: EditorView, lineNo: number): string[] | void {
 	if (lineNo < 2) return;
+	// A `select` range that starts in the hidden frontmatter is clamped to the
+	// body start by `frontmatterGuard`, while `earlier` below is built with an
+	// unfiltered `state.update`, so the two selections differ and the check
+	// would compare unlike states.
+	const hiddenEnd = frontmatterEnd(view.state);
+	if (hiddenEnd !== null && view.state.doc.line(lineNo - 1).from <= hiddenEnd) return;
 	const target = view.state.doc.line(lineNo);
 	const from = view.state.doc.line(lineNo - 1).from;
 	view.dispatch({ selection: EditorSelection.single(from, target.from), userEvent: 'select' });

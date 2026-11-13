@@ -145,7 +145,7 @@ describe('HTTP capability', () => {
 		const fetchPermission = http.find((p) => p.identifier === 'http:allow-fetch');
 		expect(fetchPermission?.allow.map((a) => a.url)).toContain(THEMES_SCOPE);
 		for (const permission of http) {
-			const raw = permission.allow.map((a) => a.url).filter((url) => url.includes('raw.githubusercontent.com'));
+			const raw = permission.allow.map((a) => a.url).filter((url) => new URL(url).hostname === 'raw.githubusercontent.com');
 			expect(raw, permission.identifier).toEqual([THEMES_SCOPE]);
 		}
 		expect(THEME_CATALOG_URL.startsWith(THEMES_SCOPE.slice(0, -2))).toBe(true);

@@ -1,0 +1,1005 @@
+[
+ {
+  "domain": "boards",
+  "counts": {
+   "findings": 18,
+   "survived": 8,
+   "refuted": 2,
+   "open": 10
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "boards-content-5",
+     "boards-ux-3",
+     "boards-spec-2",
+     "boards-spec-4"
+    ],
+    "title": "Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows",
+    "category": "ux",
+    "likelihood": "high",
+    "trigger": "In Board view with manual sort and no filter: drag a card down inside its own lane (e.g. A in [A,B,C] dropped in the gap before C), or drop it on the lower half of itself; or drag a lane by its grip to any slot except the first on a board whose lanes hold cards.",
+    "what_to_build": "Two index bugs in the Board view drag handlers. (1) Cards: handleItemDragOver/handleItemDrop (src/lib/plugins/kanban/KanbanView.svelte:365-405) compute the slot among all rendered cards, the dragged card included, and moveItem (src/lib/plugins/kanban/kanban.logic.ts:446-450) removes the card before splicing at that index. A downward move inside one lane therefore lands one slot below the indicator ([A,B,C], A dropped before C gives [B,C,A]), and dropping on the lower half of the card itself moves it down by one. (2) Lanes: handleLaneDrop (KanbanView.svelte:434-456) indexes container.querySelectorAll('[data-lane-id]'), but every card also carries data-lane-id (KanbanCard.svelte:173), so the index counts cards; moveLane (kanban.logic.ts:502-505) rejects the out-of-range index and the drop silently does nothing, or targets the wrong lane. Even with only lanes counted, a rightward lane move has the same remove-then-insert off-by-one (kanban.logic.ts:508-509). Fix direction: compute the lane drop index over lane elements only (a selector or attribute cards do not carry), and map the visual slot to the post-removal index when the source sits before the slot, for both cards in one lane and lanes. Keep cross-lane card moves as they are (they are right today).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/kanban/KanbanView.test.ts: mount the harness with lanes 'To Do' [A,B,C] and 'Done' [D], stub getBoundingClientRect on the cards, dispatch dragstart on card A and drop on the To Do card list with clientY just above C's midpoint; the persisted markdown lists To Do as B, A, C. It fails today (B, C, A).",
+     "A drop on the lower half of the dragged card itself leaves the lane order unchanged.",
+     "Failing test first, same file: board with three lanes that each hold cards, stub lane rects, dragstart on lane 1's grip and drop with clientX past the last lane's midpoint; the persisted lane order is lane 2, lane 3, lane 1. It fails today (no change).",
+     "Dropping a lane before the lane to its right's right neighbour lands it between those two lanes, matching the drop position.",
+     "Upward card moves, cross-lane card moves and auto-complete on cross-lane drop behave as today (existing moveItem tests stay green).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/kanban/KanbanView.svelte:370-381 indicator index over all [data-item-id] cards including the dragged one; src/lib/plugins/kanban/KanbanLane.svelte:325-327 indicator drawn before card i; KanbanView.svelte:388-405 same index passed to moveItem; src/lib/plugins/kanban/kanban.logic.ts:440,446-450 takeFromLane removes the card, then splice at toIndex into the shorter list; src/tests/lib/plugins/kanban/kanban.logic.test.ts:429-434 only tests the post-removal index. Lanes: KanbanView.svelte:438-450 querySelectorAll('[data-lane-id]') over the board region; KanbanLane.svelte:217 lanes and KanbanCard.svelte:173 cards both carry data-lane-id; KanbanView.svelte:441 fallback laneEls.length - 1 counts cards; kanban.logic.ts:505 toIndex >= lanes.length returns the board unchanged; kanban.logic.ts:508-509 remove-then-insert off-by-one for rightward moves. Documented: help/documentation/21-kanban.md:46 and :73. No lane-drop or card-drop test in src/tests/lib/plugins/kanban/KanbanView.test.ts.",
+    "gate": "frontend",
+    "size": "M",
+    "key": "N-boards-01"
+   },
+   {
+    "source_ids": [
+     "boards-content-3",
+     "boards-ux-4",
+     "boards-spec-3"
+    ],
+    "title": "Renaming a kanban lane keeps its card limit, auto-complete and collapsed state",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Rename a lane that has a card limit, auto-complete or is collapsed (e.g. 'Done' with auto-complete, renamed to 'Complete') by double-clicking its title or via Rename.",
+    "what_to_build": "Lane settings are keyed by lane title (board.settings.laneSettings, src/lib/plugins/kanban/kanban.types.ts:54-55; lookups at src/lib/plugins/kanban/kanban.logic.ts:594-659), but renameLane (kanban.logic.ts:492-499) changes only lane.title. After a rename the lane loses its limit, auto-check on drop and collapsed state, and the old key stays in the %% kanban:settings block, where a lane later given the old title inherits it. Fix direction: renameLane moves the laneSettings entry from the old title to the new one (and drops the old key) in the same board update.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/kanban/kanban.logic.test.ts: board with lane 'Done' and settings.laneSettings { Done: { autoComplete: true, maxItems: 5, collapsed: true } }; renameLane(board, laneId, 'Complete'); isLaneAutoComplete, getLaneMaxItems and isLaneCollapsed for 'Complete' return true, 5, true, and laneSettings has no 'Done' key. It fails today.",
+     "A lane with no settings renames without adding a laneSettings entry.",
+     "The serialized board round-trips through parseKanbanBoard with the settings under the new title.",
+     "A card dragged into the renamed auto-complete lane is checked.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/kanban/KanbanLane.svelte:149-155 commitTitleEdit -> onRenameLane; src/lib/plugins/kanban/KanbanView.svelte:120-122 handleRenameLane applies renameLane only; src/lib/plugins/kanban/kanban.logic.ts:492-499 renameLane maps title only; kanban.logic.ts:595, :616, :647 read laneSettings[laneTitle]; KanbanView.svelte:528-532 pass collapsed/maxItems/atLimit/autoComplete by lane.title; KanbanView.svelte:402-403 auto-check on drop reads isLaneAutoComplete(board, targetLane.title); src/tests/lib/plugins/kanban/kanban.logic.test.ts:549-561 renameLane tests check only the title.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-boards-02"
+   },
+   {
+    "source_ids": [
+     "boards-content-2",
+     "boards-ux-1",
+     "boards-spec-1"
+    ],
+    "title": "Clearing a canvas node's color or a link node's title is saved to the .canvas file",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Right-click a colored canvas node and pick the crossed-out swatch (documented as clearing the color), or edit a link node and empty its title; then reopen the canvas or switch away and back.",
+    "what_to_build": "flowNodeToCanvasNode (src/lib/features/canvas/canvas.logic.ts:190-213) starts from the last synced node and copies an editable data field only when it is !== undefined (:205-209). handleSetNodeColor sets data.color to undefined (src/lib/features/canvas/CanvasInner.svelte:411-416) and LinkNode sets label to undefined for an empty title (src/lib/features/canvas/LinkNode.svelte:56), so the old color or label is written back. The node looks cleared until the canvas remounts, then the value returns. Undoing a color set on a node that had none has the same effect. Edges already handle this (canvas.logic.ts:243-250). Fix direction: when the flow node's data has the key with an undefined value, delete that field from the result instead of keeping the original's value, as flowEdgeToCanvasEdge does.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/canvas/canvas.logic.test.ts: flowToCanvas with an original text node { color: '3' } and a flow node whose data is { ...original, color: undefined }; the result node has no color key. It fails today.",
+     "The same for a link node whose label is cleared: the result has no label key.",
+     "A node whose data never had a color keeps no color, and a node with a set color keeps it (existing behaviour).",
+     "Undoing a color added to an uncolored node writes a node without color.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/canvas/ColorPicker.svelte:23 crossed-out swatch calls onSelect(undefined); src/lib/features/canvas/CanvasInner.svelte:411-416 updateNodeData(nodeId, { ...node.data, color: undefined }); CanvasInner.svelte:227-239 debounced persist; CanvasInner.svelte:118-123 persistWithoutHistory -> flowToCanvas(nodes, edges, lastSyncedData), lastSyncedJson set to the same JSON so no resync; src/lib/features/canvas/canvas.logic.ts:194-200 base = { ...originalNode }; canvas.logic.ts:208-209 label/color copied only when !== undefined; src/lib/features/canvas/LinkNode.svelte:56 label: editLabel.trim() || undefined; canvas.logic.ts:243-250 edge path deletes color (tested at src/tests/lib/features/canvas/canvas.logic.test.ts:303-307), no node equivalent test; help/documentation/11-canvas.md:77 promises the swatch clears the color.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-boards-03"
+   },
+   {
+    "source_ids": [
+     "boards-ux-2"
+    ],
+    "title": "Canvas Duplicate places the copy next to the node's current position and size",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "Drag or resize a canvas node, then right-click it and choose Duplicate.",
+    "what_to_build": "handleDuplicateNode (src/lib/features/canvas/CanvasInner.svelte:362-368) clones node.data, which is the copy of the CanvasNode taken when the node was loaded or created (canvas.logic.ts:129). Moves change node.position and resizes change width/height/measured, never data.x/y/width/height, so the copy appears 20 px off the node's original geometry, possibly far from where the node is now or off screen. Fix direction: build the clone from the node's current geometry (absolute position for a node inside a group, measured size), for example from the node produced by flowToCanvas for the current nodes, then offset it.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/canvas/canvas.logic.test.ts (for the helper the fix adds or reuses): a flow node with data { x: 0, y: 0, width: 260, height: 60 }, position { x: 500, y: 400 } and measured { width: 320, height: 90 } duplicates to a node at x 520, y 420 with width 320 and height 90. It fails today (20, 20, 260, 60).",
+     "A node inside a group duplicates at its current absolute position plus the offset.",
+     "handleDuplicateNode in CanvasInner.svelte uses that current geometry, and the copy keeps the node's current text, color and file.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/canvas/canvas.logic.ts:122-130 canvasNodeToFlowNode copies the node into data once; CanvasInner.svelte:133-173 drag stop updates position only; src/lib/features/canvas/canvas.logic.ts:202-210 only text/file/url/label/color flow back from data; nothing writes x/y/width/height into data (rg updateNodeData in src/lib/features/canvas finds only text, url/label, editing and color); CanvasInner.svelte:362-368 handleDuplicateNode uses node.data as CanvasNode; canvas.logic.ts:375-377 duplicateNode offsets data.x/data.y; CanvasInner.svelte:355-358 adds it at that position. Documented at help/documentation/11-canvas.md:56.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-boards-04"
+   },
+   {
+    "source_ids": [
+     "boards-ux-5",
+     "boards-spec-6"
+    ],
+    "title": "Canvas file nodes preview the note without its YAML frontmatter",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "Place a note that has properties (any typed or tagged note) on a canvas as a file node.",
+    "what_to_build": "FileNode reads the whole file (src/lib/features/canvas/FileNode.svelte:40-44) and renders it with renderCanvasMarkdown (:83, src/lib/features/canvas/canvas-markdown.logic.ts:14-18), plain marked with no frontmatter handling, so the card opens with a rule and the raw key: value lines (or a setext heading). The kanban card preview strips frontmatter first (src/lib/plugins/kanban/kanban.service.ts:82). Fix direction: strip the frontmatter before rendering a file node's preview (the existing stripFrontmatter in src/lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.ts:54 is a .logic.ts), without changing how text nodes render a leading ---.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/canvas/canvas-markdown.logic.test.ts (or the test of the helper FileNode calls): rendering the file-node preview of '---\\ntype: person\\ntags: [a]\\n---\\n# Title\\nBody' yields HTML with the Title heading and Body and without 'type: person' or an <hr>. It fails today.",
+     "A text node whose own text starts with --- renders as today.",
+     "A file with no frontmatter renders as today; a file with only frontmatter shows the empty state.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/canvas/FileNode.svelte:40-44 readTextFile of the whole file; FileNode.svelte:82-83 {@html renderCanvasMarkdown(fileContent)}; src/lib/features/canvas/canvas-markdown.logic.ts:14-18 marked.parse only; src/lib/plugins/kanban/kanban.service.ts:82 stripFrontmatter(content) for the kanban preview; help/examples/canvas-features/interview-notes.md opens with a --- block. Note: until .scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md lands, in-app picked file nodes fail to load at all, so today this shows mainly on canvases with vault-relative paths.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md"
+    ],
+    "key": "N-boards-05"
+   },
+   {
+    "source_ids": [
+     "boards-content-4"
+    ],
+    "title": "Renaming or moving a note updates [[links]] in kanban cards and file nodes in canvases",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Rename a note that a kanban card links as [[Note]], or rename or move a note placed as a file node on a .canvas, from the Files navigator or note list.",
+    "what_to_build": "updateLinksAfterRename (src/lib/core/filesystem/link-updater.service.ts:35-80) finds the files to rewrite only through get_backlinks_v2, and the Rust VaultIndex holds only .md/.markdown/.view files (src-tauri/src/utils/fs.rs:140-143). No code rewrites .kanban or .canvas content on a path change, so after a rename the card keeps [[Old]] (its preview disappears and the click opens nothing) and a canvas file node keeps the old path ('Could not load file'). A pure folder move skips the link rewrite entirely (link-updater.service.ts:39), which is right for name-based wikilinks but leaves canvas file paths stale. Fix direction: on a Markdown note rename, also rewrite wikilinks that resolve to the old note in the vault's .kanban files (they are few, listed in fsStore.fileTree), using the same resolution-aware replaceWikilinks and syncing an open tab like the .md path does; on rename or move, rewrite canvas file-node paths that point at the old path, in the stored path format that Issue 17 settles. Follow docs/agents/indexing-watcher-rules.md for the writes.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/filesystem/link-updater.service.test.ts: a file tree with Old.md and board.kanban whose card is '- [ ] call [[Old]]'; get_backlinks_v2 returns []; updateLinksAfterRename(Old.md, New.md) writes board.kanban with '[[New]]'. It fails today.",
+     "An open, dirty kanban tab is rewritten from its in-memory content and stays consistent, like an open .md tab.",
+     "A canvas whose file node points at the renamed or moved note has its file field updated to the new path.",
+     "A card link that resolves to a different note with the same old name is left alone.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/filesystem/path-change.service.ts:189-191 calls updateLinksAfterRename only for a Markdown target; src/lib/core/filesystem/link-updater.service.ts:39 skips same-name moves; link-updater.service.ts:46-47 affected files from get_backlinks_v2 only; src-tauri/src/utils/fs.rs:140-143 is_markdown_filename excludes .kanban and .canvas, so they never appear as backlink sources; src/lib/plugins/kanban/kanban.service.ts:70-79 resolves the card's first wikilink against the current tree, so [[Old]] resolves to nothing; src/lib/features/canvas/FileNode.svelte:40-49 and :81 read data.file and show 'Could not load file'. Documented features: help/documentation/21-kanban.md:94 and :158.",
+    "gate": "frontend",
+    "size": "M",
+    "related_open": [
+     ".scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md",
+     ".scratch/file-io-audit/issues/27-link-rewrite-scope.md",
+     ".scratch/audit-2026-11-04/issues/15-resolution-aware-link-rewrite.md"
+    ],
+    "key": "N-boards-06"
+   },
+   {
+    "source_ids": [
+     "boards-content-1"
+    ],
+    "title": "A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "Double-click a card (or a lane title), type, and without pressing Enter or clicking elsewhere switch tabs with a keyboard shortcut, close the tab with Cmd+W, or quit.",
+    "what_to_build": "The typed text lives only in the card textarea's local state (src/lib/plugins/kanban/KanbanCard.svelte:61, :189-195) or the lane title input (src/lib/plugins/kanban/KanbanLane.svelte:249-253) and reaches the board only through commitEdit on blur or Enter. KanbanView is not keyed by path and persists through onContentChange (src/lib/app/EditorView.svelte:80), which writes tabs[activeIndex] (src/lib/core/editor/editor.service.ts:254-256, editor.store.svelte.ts:84-88). A keyboard tab switch or Cmd+W unmounts the view with the edit still open: if WebKit fires no blur on removal the edit is dropped; if it does, applyChange compares against the new tab's content (KanbanView.svelte:87) and writes the board markdown into the note now in front, which autosave then writes to disk. Which of the two happens was not verified in the running app. Issue 01 already flagged this site as a follow-up. Fix direction: mirror the canvas fix: key KanbanView by path and persist through a path-scoped writer (onContentChangeForPath with a path read once), compare against the instance's own last content rather than the live prop, and commit a pending card or lane-title edit when the view is torn down. The close and quit paths should use the same pre-removal flush mechanism Issue 22 picks for canvas.",
+    "acceptance": [
+     "Failing test first, in a new src/tests/lib/plugins/kanban/kanban-tab-switch.test.ts modeled on src/tests/lib/features/canvas/canvas-tab-switch.test.ts: open a kanban tab K and a note tab M, mount EditorView, double-click a card in K, set the textarea value to 'edited', switchTab to M, advance timers; tab K's content contains 'edited' and tab M's content and writes are unchanged. It fails today (the edit is lost).",
+     "Dispatching a blur on the card textarea during the switch never changes tab M's content (guards the blur-fires case).",
+     "The same holds for a lane title being renamed.",
+     "Switching between two kanban tabs keeps each board's edit in its own tab.",
+     "Closing K with Cmd+W within the edit follows the mechanism Issue 22 adds and writes nothing into M.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/kanban/KanbanCard.svelte:92-101 commitEdit only on blur/Enter (:69-72, :195); src/lib/plugins/kanban/KanbanLane.svelte:149-155, :253 lane title commit on blur/Enter; src/lib/app/EditorView.svelte:79-80 KanbanView unkeyed, onContentChange; src/lib/plugins/kanban/KanbanView.svelte:79-90 applyChange compares against markdownContent prop and calls onContentChange; src/lib/core/editor/editor.service.ts:254-256 onContentChange -> editorStore.updateContent; src/lib/core/editor/editor.store.svelte.ts:84-88 writes tabs[activeIndex]; editor.service.ts:328 closeTab removes the tab with no pre-close flush; src/lib/core/vault/exit.service.ts:15-17 quit saves tab.content only; no document.activeElement blur in src/lib before close or exit; .scratch/audit-2026-11-04/issues/01-canvas-persist-to-own-tab.md:25 lists KanbanCard.svelte:195 / KanbanLane.svelte:253 -> KanbanView onContentChange as an unfixed sibling. Not verified: WebKit blur-on-removal behaviour in the Tauri webview.",
+    "gate": "frontend",
+    "size": "M",
+    "related_open": [
+     ".scratch/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md"
+    ],
+    "key": "N-boards-07"
+   },
+   {
+    "source_ids": [
+     "boards-spec-5"
+    ],
+    "title": "The personal-week kanban example uses the valid sortMode \"checked\", and the docs say the sort is per board",
+    "category": "polish",
+    "likelihood": "low",
+    "trigger": "Copy help/examples/kanban-features into a vault and open personal-week.kanban, or follow its README line.",
+    "what_to_build": "personal-week.kanban sets \"sortMode\": \"unchecked\" (help/examples/kanban-features/personal-week.kanban:24), which is not a KanbanSortMode (src/lib/plugins/kanban/kanban.types.ts:43; the 'Unchecked first' option is \"checked\", KanbanView.svelte:193). sortItems has no case for it, so nothing is sorted, canReorderItems is false so card and lane dragging are off, and the sort select shows blank. The README (help/examples/kanban-features/README.md:9) repeats the wrong value, and help/documentation/21-kanban.md:176 says the sort mode is per lane while it is a board setting (kanban.types.ts:56-57). Fix the example and README to \"checked\" and the doc wording to per board.",
+    "acceptance": [
+     "Failing test first, in a new src/tests/help/kanban-features.test.ts next to src/tests/help/collection-features.test.ts: every .kanban under help/examples/kanban-features parses with parseKanbanBoard and its settings.sortMode, when set, is one of the SORT_LABELS keys. It fails today on personal-week.kanban.",
+     "personal-week.kanban opens sorted with unchecked cards first and the sort select shows 'Unchecked first'.",
+     "README.md and 21-kanban.md match the code.",
+     "Targeted gate: pnpm vitest run src/tests/help/kanban-features.test.ts and pnpm check pass."
+    ],
+    "evidence": "help/examples/kanban-features/personal-week.kanban:24 \"sortMode\": \"unchecked\"; help/examples/kanban-features/README.md:9; src/lib/plugins/kanban/kanban.types.ts:43 union has 'checked', not 'unchecked'; src/lib/plugins/kanban/kanban.logic.ts:41-45 and :144 settings are JSON.parse'd without validation; kanban.logic.ts:837-876 sortItems has no 'unchecked' case; kanban.logic.ts:906-908 canReorderItems requires 'manual'; src/lib/plugins/kanban/KanbanView.svelte:173, :534 disable drag; KanbanView.svelte:488-495 select has no option for the stored value; help/documentation/21-kanban.md:176 'per lane' vs kanban.types.ts:56-57 board-level sortMode.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-boards-08"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "boards-content-6",
+    "reason": "Svelte Flow 1.7 does not grow a parent while a child is dragged. calculateNodePosition skips the parent clamp for expandParent (node_modules/.pnpm/@xyflow+system@0.0.83/.../index.mjs:431), so the card can leave the group, but handleExpandParent runs only from updateNodeInternals on a dimension change (index.mjs:1934-1946), never on a position change, and @xyflow/svelte dist has no other expandParent handling. A card dropped fully outside the group therefore has no intersecting group, and the un-parent branch at src/lib/features/canvas/CanvasInner.svelte:155-170 runs. A card dropped partly over the group stays a child, which is the partial-overlap rule of getIntersectingNodes and not a resize. Checked by reading the library source, not by running the app."
+   },
+   {
+    "id": "boards-ux-6",
+    "reason": "Improbable in daily use. It needs a typed filter, then a click on the board background (the filter input itself is skipped at src/lib/plugins/kanban/KanbanView.svelte:240), then arrow keys and Space or Backspace on a ring the user cannot see. With a sort active the ring sits on the card that gets toggled or deleted (focusedItemId comes from the same stored index, KanbanView.svelte:527), so what changes is the ringed card and nothing is hidden. The only real case is filter plus keyboard plus Delete, which is a theoretical chain."
+   }
+  ],
+  "open_verdicts": [
+   {
+    "path": ".scratch/file-io-audit/issues/15-canvas-unparseable-overwritten.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src/lib/features/canvas/canvas.logic.ts:36-49 parseCanvas still returns createEmptyCanvas() for invalid JSON or a non-object root, and [] for non-array nodes/edges. CanvasInner.svelte:101 and :106 use it as lastSyncedData, and persistWithoutHistory (CanvasInner.svelte:118-123) writes flowToCanvas output, which holds only { nodes, edges } (canvas.logic.ts:299-342), so unknown top-level keys are dropped on every persist. No error state exists in src/lib/features/canvas. src/tests/lib/features/canvas/canvas.logic.test.ts:57-78 pins the silent-empty contract. f37acb402 changed only path routing.",
+    "stale_notes": "Same root cause and scope as .scratch/audit-2026-11-04/issues/13-canvas-refuse-write-on-unparseable.md, which carries the owner decision (read-only error panel). Close one as a duplicate of the other. The persist line is now CanvasInner.svelte:118-123 (onJsonChange(ownPath, json) at :123)."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/49-canvas-switch-reuses-instance.md",
+    "verdict": "partially_fixed",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "Fixed by f37acb402: src/lib/app/EditorView.svelte:83-85 keys CanvasView by editorStore.activeTab.path, CanvasInner.svelte:63 reads ownPath once, and :123 persists through onJsonChange(ownPath, json) -> onContentChangeForPath (src/lib/core/editor/editor.service.ts:265-268) -> updateTabContentOnly (editor.store.svelte.ts:139-144). The canvas-to-canvas switch and the wrong-tab write are pinned by src/tests/lib/features/canvas/canvas-tab-switch.test.ts:141-197. Still open: an edit closed inside the 300 ms debounce is dropped, because closeTab removes the tab (editor.service.ts:328) before the keyed instance's onDestroy flush (CanvasInner.svelte:246-250) runs.",
+    "stale_notes": "Bugs 1 and 2 (dropped edit on canvas switch, shared undo history) are fixed. The remaining close-within-debounce drop is exactly .scratch/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md; close 49 and point at 22."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/56-kanban-lane-actions-archive-pattern.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Part 1: src/lib/plugins/kanban/kanban.logic.ts:16-17 RULE_RE /^---\\s*$/ and ARCHIVE_HEADING_RE; archiveHeadingIndex (:74-80) treats '---', blank lines and '## Archive' as the archive at any position (:196-210). addLane, removeLane, renameLane and moveLane (:476-511) do not check for a raw '---' at the end of the preceding lane, so it can still happen. It needs a hand-written '---' line inside a lane plus a lane named Archive, which a board built in the app does not produce. Part 2: restoreItem (:555-581) with an unknown toLaneId still drops the card, but the only caller, handleRestoreItem (src/lib/plugins/kanban/KanbanView.svelte:332-336), always passes board.lanes[0].id after checking that the lane exists, so no UI path reaches it.",
+    "stale_notes": "Part 2 cannot be reached from the UI; it is a logic-level guard only. The lane action lines are now kanban.logic.ts:476-511 and restoreItem :555-581."
+   },
+   {
+    "path": ".scratch/audit-2026-11-04/issues/13-canvas-refuse-write-on-unparseable.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "src/lib/features/canvas/canvas.logic.ts:36-49 returns an empty canvas on parse failure, with no failure result type. src/lib/features/canvas/CanvasInner.svelte:97-111 syncs that as lastSyncedData, and :118-123 writes over the file on the first edit through onJsonChange(ownPath, json) with no guard. No read-only or error panel in src/lib/features/canvas or src/lib/app/EditorView.svelte. src/tests/lib/features/canvas/canvas.logic.test.ts:57-78 still asserts the silent-empty contract.",
+    "stale_notes": "Duplicates .scratch/file-io-audit/issues/15-canvas-unparseable-overwritten.md; keep this one (it has the owner decision) and close 15 against it. The onJsonChange call is at CanvasInner.svelte:123."
+   },
+   {
+    "path": ".scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "high",
+    "evidence": "No resolver exists. src/lib/features/canvas/canvas-image.service.ts:33-34 and src/lib/features/canvas/FileNode.svelte:40 prefix vaultStore.path onto the stored path. src/lib/features/canvas/CanvasFilePicker.svelte:61 passes the absolute file.path to handleSelect, and CanvasInner.svelte:481-496 (handleFileSelected/handleImageSelected) and the drop handler (~:556-575) pass it straight to createFileNode/createImageNode (canvas.logic.ts:353-372). A node added in the app is therefore read at '/vault//vault/...' and shows 'Could not load file' (FileNode.svelte:81). FileNode.svelte:56 opens data.file raw. No commit since f37acb402 touches src/lib/features/canvas.",
+    "stale_notes": "Line numbers match HEAD. The Blocked-by 13 status was not checked. Likelihood is high for this owner: every file or image node added from the picker or by drag is affected."
+   },
+   {
+    "path": ".scratch/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "medium",
+    "evidence": "src/lib/core/editor/editor.service.ts:309-328 closeTab checks isTabDirty, which is still clean inside the 300 ms debounce (CanvasInner.svelte:227-239), then calls removeTab at :328. Only after that does the keyed instance's onDestroy (CanvasInner.svelte:246-250) call persistChanges -> onJsonChange(ownPath, json) (:123) -> onContentChangeForPath (editor.service.ts:265-268) -> updateTabContentOnly (editor.store.svelte.ts:139-144), which finds no tab, so the edit is dropped. registerTabCloseListener (editor.service.ts:28) runs after removal (:330), and its only consumer is src/lib/plugins/queryjs/queryjs-ports.ts:16. Rename re-keys EditorView.svelte:83-85, and the flush targets the old ownPath (CanvasInner.svelte:63). src/tests/lib/features/canvas/canvas-tab-switch.test.ts:158-173 asserts only that the neighbour tab is not written, not that A's edit survives.",
+    "stale_notes": "Accurate at HEAD. The kanban view has the same close-time problem (new Issue in this audit: a kanban card edit committed into its own board), so the pre-close flush mechanism chosen here should be reusable by KanbanView."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/43-canvas-surface-theme-tokens.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "All named surface sites still hardcode white or black alphas: src/lib/features/canvas/FileNode.svelte:102,131,160; TextNode.svelte:94; LinkNode.svelte:140,166,199,201; ImageNode.svelte:71; GroupNode.svelte:31-32; canvas.logic.ts:151 (buildGroupStyle default `rgba(255,255,255,0.05)` / `0.2`); CanvasInner.svelte:728-729,737-738 (add-card button) and :746,749,754,758,759 (--xy-* overrides, comment 'Override Svelte Flow theme for dark mode' at :742). The --foreground token exists for both themes (src/app.css:147 light, :207 dark), --background is available for the minimap mask. src/tests/lib/features/canvas/ has no canvas-theme-colors.test.ts, and git log -S'canvas-theme-colors' finds nothing, so the guard test is unwritten. No commit touching src/lib/features/canvas since the Issue was drafted addresses colors (only f37acb402 'canvas edits persist to their own tab'). Impact is only on light themes (Lavender Haze); Default dark looks the same after the swap, so likelihood is low unless the owner runs a light theme.",
+    "stale_notes": "Node shadows are now at CanvasInner.svelte:777,781, not 761,765 (the 'unchanged' acceptance bullet should cite the new lines). Add-card button is at 728-738 and the Svelte Flow block at 742-759, not 712-743. GroupNode.svelte:32 fill is rgba(255,255,255,0.03), not 0.05, so the color-mix percentage for that line is 3%. Everything else in the text is accurate."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/44-canvas-overlay-theme-tokens.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "Overlay sites unchanged at HEAD: CanvasContextMenu.svelte:183 (border), :206 (hover), :210-211 (danger hover `rgba(251,70,76,0.15)` and `color: #fb464c`), :231; CanvasFilePicker.svelte:91,103,135 (scrim :81, shadow :97); CanvasLinkInput.svelte:91,108,110,151 (scrim :81, shadow :94); CanvasEdge.svelte:66-67 (`var(--card, #2a2e3d)`, `var(--foreground, #fff)`) and :72; CanvasToolbar.svelte:55 (rgba fallback on --xy-controls-button-border-color); ColorPicker.svelte:61,69. --destructive exists in both themes (src/app.css:159,219). canvas-theme-colors.test.ts does not exist. Blocked by Issue 43, which is still open, so the dependency holds. Light-theme only impact, hence low for an owner likely on the dark Default.",
+    "stale_notes": "Line numbers match HEAD. Note CanvasContextMenu.svelte:187 and CanvasFilePicker.svelte:97 / CanvasLinkInput.svelte:94 are rgba(0 ...) box-shadows that the guard test must allow. Issue 57 ('menu items share one anatomy') and Issue 77 touched CanvasContextMenu-adjacent menus but did not change these colors; if the overlay-anatomy cluster rebuilds the three overlays on shadcn primitives first, the Issue's own note says those files drop out."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/47-kanban-proximity-token-map.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "medium",
+    "evidence": "Four local raw-palette maps remain and no shared map exists (git log -S'PROXIMITY_CLASSES' only hits the Issue-drafting commit d78dcf38f). src/lib/plugins/kanban/KanbanCard.svelte:118-125 PROXIMITY_BORDER (red-500, yellow-500, orange-400, blue-400); KanbanDatePicker.svelte:20-27 PROXIMITY_BADGE (red-400, yellow-400, orange-400, blue-400); KanbanListView.svelte:48 and KanbanTableView.svelte:69 inline ternaries (red-500, yellow-500, else muted). kanban.logic.ts:687-690 has DateProximity and getDateProximity but no cardProximity or PROXIMITY_CLASSES. Done cards still keep the tone: KanbanCard.svelte:114 `getDateProximity(cardDate, ...)` ignores item.checked, :167 applies PROXIMITY_BORDER[dateProximity] to the card and :216 passes proximity to KanbanDatePicker, while :210 strikes the text through for item.checked. List view (:30, :48) and table view (:37, :69) likewise ignore item.checked. The tokens --destructive, --warning, --type-orange, --type-blue exist in both themes (src/app.css:159/219, 192/265, 184/257, 188/261). The visible part for daily use is a completed overdue card still showing a red left border and red badge on the board, which is common with a real task board.",
+    "stale_notes": "Line numbers all match HEAD. Issue text 'Owner decision, recommended' is still an open decision (checked cards show no proximity tone); per the memory note on owner-decision Issues, confirm with the owner before relay launch. Existing tests are in src/tests/lib/plugins/kanban/KanbanView.test.ts and kanban.logic.test.ts (getDateProximity tests at kanban.logic.test.ts:1136-1165), as the Issue says."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/63-kanban-card-quiet.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "Empty-date affordance is always visible: src/lib/plugins/kanban/KanbanDatePicker.svelte:88-96 renders the calendar-icon trigger with `text-muted-foreground/50` whenever no date is set, and src/lib/plugins/kanban/KanbanCard.svelte:215-217 renders it unconditionally inside the card body. The card is `rounded-lg` (KanbanCard.svelte:167, carries the `group` class) inside a `rounded-lg` lane (KanbanLane.svelte:215). No hover/focus-within reveal exists. Purely visual noise, no data or reactivity effect. Blocked by Issue 47, which is not done.",
+    "stale_notes": "KanbanCard.svelte render lines are 215-217 in the text but the DatePicker usage is at :216 (accurate within a line); KanbanDatePicker trigger is at :88-96, close to the cited 88-99. Status is still needs-triage: the Issue itself says it was drafted without a deep dive, and it needs a decision on keyboard reachability (a hidden date trigger must stay focusable, so use focus-within or opacity rather than display:none, consistent with Issue 67 'hover-only controls also appear on keyboard focus')."
+   }
+  ]
+ },
+ {
+  "domain": "calendar",
+  "counts": {
+   "findings": 12,
+   "survived": 8,
+   "refuted": 0,
+   "open": 2
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "calendar-content-1",
+     "calendar-ux-4",
+     "calendar-spec-5"
+    ],
+    "title": "Quick Capture writes page titles, app ids and URLs into template frontmatter as valid YAML, so a title like \"How to X: a guide\" leaves the note's properties editable",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "A Quick Capture template (the shipped help/examples/templates/Quick Note.md, or one written from the doc 09:37-41 snippet) has `source_title: <% sourceTitle %>` or `title: <% title %>`, and the owner captures from Chrome or Safari while the page title contains `: ` (\"How to X: a guide\", \"GitHub - org/repo: description\"), starts with `[`, `*`, `&`, `!`, `>`, `@` or a quote, or contains ` #`. Common page titles look like this.",
+    "what_to_build": "Template values go into the frontmatter raw. executeCaptureAction sets `vars.title`, `vars.sourceTitle`, `vars.sourceApp`, `vars.sourceUrl` and `vars.url` from the capture (src/lib/app/deep-link-actions.ts:176-187), and processTemplate/evaluatePart paste custom variables verbatim (src/lib/utils/template.ts:28-30, :195-197). `source_title: How to X: a guide` is not valid YAML, and `Release notes #12` loses everything after ` #` to a comment. The note is then written with that block (deep-link-actions.ts:228-229). Every frontmatter writer refuses the block afterwards (Properties panel, meta-bind, updateNoteFrontmatter), so the owner's status/tags/kind properties cannot be edited without fixing YAML by hand. On link captures the title and tags injection is skipped with a toast that says only that the title was not added (:200-217), and clip and note captures get no message at all. The comment at :196-199 already names this case. Fix direction: capture variables that land inside the frontmatter block come out as YAML-safe scalars (quoted and escaped when a plain scalar would not round-trip), so the shipped example and the doc snippet work unchanged for any title. The body (after the closing `---`) keeps the raw text. Update help/examples/templates/Quick Note.md and doc 09 only if the chosen fix needs it, and say in doc 09 what a title with special characters produces. Do not change the lossy-block refusal itself: a template block that is broken on its own is still written as-is with the toast.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/app/deep-link-capture-frontmatter.test.ts: a clip capture with sourceTitle `How to X: a guide` and a template `---\\nsource_title: <% sourceTitle %>\\nstatus: inbox\\n---\\n`; the written note's frontmatter parses (detectLossyFrontmatter returns null) and `source_title` reads back as `How to X: a guide`, with no toast. It fails today.",
+     "A link capture titled `Clean Code: A Handbook` with `title: <% title %>` writes a parseable block, the title and tags injection runs, and no toast shows. The existing test at deep-link-capture-frontmatter.test.ts:89 asserts the old skip-and-toast result for this input: move it to a template block that is broken on its own (like the `project: [inbox` case at :127) and record that contract change in the commit message.",
+     "A sourceTitle containing ` #`, a leading `[`, or a double quote reads back unchanged from the parsed frontmatter.",
+     "The same variables used in the note body (after the closing `---`) are inserted unquoted.",
+     "A template whose own block does not parse is still written as the template made it, with the toast (tests at :106, :127, :164 stay green).",
+     "Only Tauri APIs and side-effect services are mocked; template.ts and properties.logic.ts are real.",
+     "Frontend gate: `pnpm check` + `pnpm vitest run` pass."
+    ],
+    "evidence": "help/examples/templates/Quick Note.md:2,7,8 (`title: <% title %>`, `source_title: <% sourceTitle %>`, `source_app: <% sourceApp %>` unquoted); help/documentation/09-quick-notes-and-templates.md:37-41 shows the same unquoted shape. src-tauri/src/quick_capture/commands.rs:337 inserts the raw page title as `sourceTitle`. src/lib/app/deep-link-actions.ts:176-187 copies title/sourceTitle/sourceApp/sourceUrl/url into vars; :188 processTemplate. src/lib/utils/template.ts:28-30 replaces each placeholder with evaluateExpression; :195-197 returns customVariables[part] verbatim. deep-link-actions.ts:196-199 comment names the unquoted-colon case; :200 detectLossyFrontmatter runs only when a title or tags must be injected; :228-229 writes the block as-is; :212-217 toast 'the title was not added'. Prior decision for the symptom only (keep the block, toast): commit 40ef27522 (Issue 17), test src/tests/lib/app/deep-link-capture-frontmatter.test.ts:89.",
+    "gate": "frontend",
+    "size": "M",
+    "related_open": [
+     ".scratch/file-io-audit/issues/53-deep-link-content-fidelity.md"
+    ],
+    "key": "N-calendar-01"
+   },
+   {
+    "source_ids": [
+     "calendar-ux-2",
+     "calendar-spec-1"
+    ],
+    "title": "The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed as open under Hide completed",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Write `- [/] Draft report` or `- [!] Call the bank` under a #to-list heading (doc 10:41-45 lists these statuses) and open the Tasks view with its defaults (Hide completed on).",
+    "what_to_build": "Rust sets `checked: check_char != ' '` for every status (src-tauri/src/vault/parsing.rs:1633, :1650; documented that way in src-tauri/src/vault/task.rs:25), and the Tasks view reads `checked` as \"done\". filterCompletedTasks drops every checked task without unchecked children (src/lib/features/tasks/tasks.logic.ts:21-22, :40), so In Progress, Important, Question and Forwarded tasks (and an unknown status char, which maps to todo) vanish by default. With Hide completed off they draw with CircleCheckBig and line-through and the label \"Mark task as not done\" (src/lib/features/tasks/TasksView.svelte:206-218), and computeTaskStats counts them completed (tasks.logic.ts:103). The calendar already reads `status` and closes only done and cancelled (src/lib/features/event-calendar/EventTaskChip.svelte:16-18). Fix direction: the Tasks view decides closed vs open from `status` (done or cancelled closed, everything else open) for the filter, the icon, line-through, aria-label and stats. A click on an open non-todo task marks it done, as the label says, taking the Obsidian Tasks reading: toggle_task_in_content (parsing.rs:1862-1907) turns `[/]`, `[!]`, `[?]`, `[>]` into `[x]` and keeps `[x]`/`[X]`/`[-]` -> `[ ]` and `[ ]` -> `[x]`. Update doc 10:100 (Hide completed hides done and cancelled tasks). Leave the Rust `checked` field and queryjs.logic.ts:127 as they are.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/tasks/tasks.logic.test.ts: filterCompletedTasks on tasks with `checked: true` and status 'in-progress', 'important', 'question' and 'forwarded' plus one 'done' task returns the four open ones and drops the done one. It fails today.",
+     "filterCompleted keeps a group whose only task is in-progress; computeTaskStats counts in-progress as pending and cancelled as completed.",
+     "TasksView renders an in-progress task with the open icon, no line-through, and the label 'Mark task as done' (component test in src/tests/lib/features/tasks/ mocking only Tauri APIs).",
+     "Rust test in src-tauri/tests/vault_file_ops_test.rs: toggle_task_status_inner on `- [/] task` writes `- [x] task`; `[!]`, `[?]`, `[>]` likewise; `[x]`, `[X]` and `[-]` still become `[ ]`. Update the in-file test toggle_task_in_content_in_progress_to_unchecked (parsing.rs:3272-3276) to the new contract and record that change in the commit message.",
+     "help/documentation/10-tasks-and-todoist.md:100 says Hide completed hides done and cancelled tasks.",
+     "Gate (Both): `cargo test --manifest-path src-tauri/Cargo.toml`, `pnpm check`, `pnpm vitest run` pass."
+    ],
+    "evidence": "src-tauri/src/vault/parsing.rs:1589-1600 map_checkbox_char (unknown char -> Todo); :1633 and :1650 `checked: check_char != ' '`; src-tauri/src/vault/task.rs:25-26 doc 'checked ... anything other than todo'. src/lib/features/tasks/tasks.service.ts:25,28 copies checked and status. src/lib/features/tasks/tasks.store.svelte.ts:10 hideCompleted defaults true. TasksView.svelte:54-56 filterCompleted; tasks.logic.ts:16-25 hasUncheckedDescendants, :35-53 filterCompletedTasks on `checked`; :103 stats. TasksView.svelte:206 aria-label, :209-213 icon, :218 line-through. EventTaskChip.svelte:16-18 uses status. parsing.rs:1866-1867 doc and :1896-1900 any non-space -> ' '; test parsing.rs:3272-3276 pins `[/]` -> `[ ]`. help/documentation/10-tasks-and-todoist.md:37-45 statuses, :100 'Hide `- [x]` done tasks'.",
+    "gate": "both",
+    "size": "M",
+    "related_open": [
+     ".scratch/file-io-audit/issues/24-stale-task-list-wrong-line.md"
+    ],
+    "key": "N-calendar-02"
+   },
+   {
+    "source_ids": [
+     "calendar-ux-1"
+    ],
+    "title": "The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "Open the Tasks tab with a list longer than the pane, scroll down and tick a task. Or keep the tab open while a note is saved elsewhere (any vault-index-updated bump).",
+    "what_to_build": "buildTaskIndex sets `tasksStore.setLoading(true)` on every call (src/lib/features/tasks/tasks.service.ts:65), and TasksView swaps the whole list for 'Indexing tasks...' while loading (src/lib/features/tasks/TasksView.svelte:169-170). The ScrollArea content collapses, the scroll clamps to the top, and the list redraws there. A toggle triggers it twice: once right after the toggle (tasks.service.ts:150) and again when the throttled vault-index-updated bump re-runs the effect (TasksView.svelte:78-83). Every save in another pane repeats it, and so does every mount, because the store keeps the previous groups. Fix direction, the same as the Tags view fix from this audit: show the loading message only while no task list has loaded yet; a refresh over existing groups keeps the keyed rows mounted (TasksView.svelte:179, :199) and swaps the data in place.",
+    "acceptance": [
+     "Failing test first, in a new src/tests/lib/features/tasks/TasksView.refresh.test.ts (mock only Tauri APIs: @tauri-apps/api/core and @tauri-apps/plugin-fs; tasks.store and tasks.logic stay real): with tasksStore holding one group with the task 'Buy milk' and `get_tasks_in_section_v2` left pending, mount TasksView; the 'Buy milk' row is still in the DOM and 'Indexing tasks...' is not. It fails today.",
+     "With an empty store (first load), 'Indexing tasks...' still shows until the IPC resolves.",
+     "After a toggle resolves, the rows other than the toggled one are the same DOM nodes (not remounted).",
+     "A refresh that fails leaves the previous list on screen.",
+     "Frontend gate: `pnpm check` + `pnpm vitest run` pass."
+    ],
+    "evidence": "src/lib/app/EditorView.svelte:71-72 mounts TasksView only while the Tasks tab is active. TasksView.svelte:78-83 $effect on vaultStore.vaultIndexVersion (also runs on mount) -> buildTaskIndex. tasks.service.ts:63-84 buildTaskIndex: setLoading(true) at :65 before the IPC, setLoading(false) in finally :82. tasks.service.ts:150 buildTaskIndex after each toggle; the Rust toggle emits vault-index-updated (src-tauri/src/commands/vault.rs:811-820), whose refresh is throttled (src/lib/app/tauri-listeners.service.ts:106-109, :278-290) and bumps the version again. TasksView.svelte:169-170 '{#if tasksStore.isLoading}' replaces the list inside the ScrollArea at :167.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-calendar-03"
+   },
+   {
+    "source_ids": [
+     "calendar-ux-3",
+     "calendar-spec-4"
+    ],
+    "title": "Vault open creates every missing placeholder template, including the parent folders periodic-note/ and quick-capture/",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "Open a vault that has no `_system/templates/periodic-note/` or `_system/templates/quick-capture/` folder (a new vault, or one where only `_system/templates/` exists) with default settings.",
+    "what_to_build": "ensureTemplatesFolder (src/lib/plugins/templates/templates.service.ts:75-125) creates only the templates root through create_folder (:100-107). The loop at :111-121 then calls writeTextFile for paths like `_system/templates/periodic-note/Daily-Note.md`. plugin-fs writeTextFile opens the file and does not create parent folders (WriteFileOptions has no recursive option, node_modules/@tauri-apps/plugin-fs/dist-js/index.d.ts:770-781; other writers in the app mkdir first, deep-link-actions.ts:157, note-creator.service.ts:97-98). The first write throws, the single catch at :122-124 only logs, and the remaining templates are skipped too. Doc 09:176 promises the placeholders. Fix direction: create each missing file's parent folder (create_folder is recursive) before writing it, and let one failed placeholder not stop the others. The unit test at templates.service.test.ts:225-264 passes only because writeTextFile is mocked; add the folder expectations to it.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/templates/templates.service.test.ts: with exists resolving false for every path and writeTextFile rejecting only for `/vault/_system/templates/periodic-note/Daily-Note.md`, run ensureTemplatesFolder; every other default template path is still written. It fails today (the loop stops at the first rejection).",
+     "With everything missing, `create_folder` is invoked for `/vault/_system/templates/periodic-note` and `/vault/_system/templates/quick-capture` before the first writeTextFile into each.",
+     "Existing template files are never rewritten, and the file tree still gains the created paths (existing tests at :214-283 stay green).",
+     "A failed placeholder is logged with its path.",
+     "Frontend gate: `pnpm check` + `pnpm vitest run` pass."
+    ],
+    "evidence": "src/lib/app/lifecycle/app-lifecycle.service.ts:386 calls ensureTemplatesFolder at vault open. src/lib/core/settings/settings.store.svelte.ts:12-49 default template paths under `_system/templates/periodic-note/` and `_system/templates/quick-capture/`. templates.service.ts:100-107 create_folder only for the root; :111-121 writeTextFile(absPath, '') with no parent mkdir; :122-124 one catch around the whole loop. node_modules/@tauri-apps/plugin-fs/dist-js/index.d.ts:770-781 (plugin-fs 2.7.1) WriteFileOptions: append, create, createNew, mode, baseDir. help/documentation/09-quick-notes-and-templates.md:176. Test mocks writeTextFile: src/tests/lib/plugins/templates/templates.service.test.ts:15-20, :225-264.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-calendar-04"
+   },
+   {
+    "source_ids": [
+     "calendar-spec-2"
+    ],
+    "title": "The Periodic Notes help shows format examples that escape literal words with [ ], so the documented path is the one the app creates",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "Follow doc 08 and set a daily Format to `YYYY/MM-MMM/_journal-day-DD-MM-YYYY` (08:62) or `YYYY/MM-MMM/journal-DD-MM-YYYY` (08:95-101), then open today's daily note.",
+    "what_to_build": "buildPeriodicNotePath runs `date.format(format)` (src/lib/plugins/periodic-notes/periodic-notes.logic.ts:16). dayjs treats a bare `a` as am/pm and a bare `d` as the weekday digit (node_modules/dayjs/esm/constant.js REGEX_FORMAT), so `journal` renders as `journpml` and `day` gets a digit plus am/pm. The doc's promised path `_notes/2026/02-Feb/journal-17-02-2026.md` (08:104) is never produced, and the am/pm part changes with the time of day, so the same day can resolve to two files. The shipped defaults already escape correctly (settings.store.svelte.ts:10 `_[journal]-[day]-DD-MM-YYYY`). Fix: rewrite the doc 08 examples (:62, :95-104, the wikilink example at :224) with `[ ]` around literal text, add the `[ ]` escape to the token table with a one-line warning that letters like a, d, h, m, s are tokens, and correct the JSDoc example in periodic-notes.logic.ts:7-8.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/periodic-notes/periodic-notes.logic.test.ts: read help/documentation/08-periodic-notes-and-calendar.md (as src/tests/lib/features/event-calendar/event-calendar-keys.logic.test.ts:159 reads its doc), take the worked example's Format string, and assert buildPeriodicNotePath('/v', '_notes', format, dayjs('2026-02-17T15:00')) ends with the path the doc shows. It fails today.",
+     "The same holds at 09:00 (no am/pm dependence).",
+     "The token table documents the `[ ]` escape.",
+     "Targeted test run of the touched test file plus `pnpm check`."
+    ],
+    "evidence": "help/documentation/08-periodic-notes-and-calendar.md:62 table example `YYYY/MM-MMM/_journal-day-DD-MM-YYYY`; :95-104 worked example `journal-DD-MM-YYYY` -> `journal-17-02-2026.md`; :224 wikilink example. periodic-notes.logic.ts:16 date.format(format); :7-8 JSDoc repeats the unescaped example. node_modules/dayjs/esm/constant.js REGEX_FORMAT = /\\[([^\\]]+)]|YYYY|YY|M{1,4}|D{1,2}|d{1,4}|H{1,2}|h{1,2}|a|A|m{1,2}|s{1,2}|Z{1,2}|SSS/g. Defaults escape correctly: src/lib/core/settings/settings.store.svelte.ts:10,17,25.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-calendar-05"
+   },
+   {
+    "source_ids": [
+     "calendar-spec-3"
+    ],
+    "title": "The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "Write tasks as doc 10:21-29 shows, outside any #to-list heading, and open the Tasks view with defaults: 'No tasks found'. Or edit one line of an old note and see all of its tasks under 'Last 7 days'.",
+    "what_to_build": "Doc 10:13 and :29 say every checkbox line in every note is listed. The store default sectionTag is '#to-list' (src/lib/features/tasks/tasks.store.svelte.ts:8, reset at :30), buildTaskIndex then calls get_tasks_in_section_v2 (tasks.service.ts:68-71), which keeps only tasks under a heading containing that tag. The default appears only as a table cell (10:101). The field is not saved, so it returns to #to-list on every app start. The Date filter compares the file's modifiedAt (src/lib/features/tasks/tasks.logic.ts:76-90), while 10:99 says 'Filter tasks by date'. Fix: say in doc 10 that the default view lists only tasks under a heading tagged #to-list, that an empty field lists all tasks, that the field resets on restart, and that the date filter is by note modification date.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/tasks/tasks.store.test.ts: read help/documentation/10-tasks-and-todoist.md (as event-calendar-keys.logic.test.ts:159 does) and assert it names the reset store's sectionTag as the default together with the statement that tasks outside such a heading are not listed. It fails today.",
+     "Doc 10 says an empty section field lists all tasks and the field resets on restart.",
+     "Doc 10 says the Date filter uses the note's modification date.",
+     "Targeted test run of the touched test file plus `pnpm check`."
+    ],
+    "evidence": "help/documentation/10-tasks-and-todoist.md:13 'scanning every .md file', :29 'will be picked up automatically', :99 Date filter, :101 default `#to-list`. src/lib/features/tasks/tasks.store.svelte.ts:8 sectionTag '#to-list', :28-30 reset. src/lib/features/tasks/tasks.service.ts:68-71 section call. src/lib/features/tasks/tasks.logic.ts:76-90 filterByDate on g.modifiedAt.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-calendar-06"
+   },
+   {
+    "source_ids": [
+     "calendar-ux-5"
+    ],
+    "title": "Todoist sync tells the user when it could not reach Todoist or the token was rejected",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "Click the Todoist sync button in the Tasks toolbar while offline, or with an expired or revoked token.",
+    "what_to_build": "fetchTaskById rethrows every error except a 404/not found (src/lib/features/tasks/todoist.service.ts:84-91). syncTodoistTasks collects them with Promise.allSettled and only passes each rejection to debug() (:277), then saves the sent-tasks file and returns normally (:281). handleSync (src/lib/features/tasks/TasksView.svelte:85-91) has nothing to catch, so the spinner stops and no message appears. Fix direction: syncTodoistTasks reports how many fetches failed (return a count or throw when any failed), logs them through error(), and handleSync shows a toast that names the cause when it is known (token rejected, network). Successful entries still update.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/tasks/todoist.service.test.ts: with one sent task and mockGetTask rejecting with an Error('401 Unauthorized'), syncTodoistTasks signals the failure (rejects or returns a failed count of 1), and the entry's syncedAt is unchanged. It fails today.",
+     "With two sent tasks where one fetch fails and one succeeds, the successful one updates and the failure is still reported.",
+     "A 404 still counts as deleted, not as a failure.",
+     "The Tasks view shows an error toast when the sync reports a failure.",
+     "Frontend gate: `pnpm check` + `pnpm vitest run` pass."
+    ],
+    "evidence": "src/lib/features/tasks/todoist.service.ts:74-92 fetchTaskById rethrows non-404; :250-284 syncTodoistTasks: allSettled at :263-265, rejected branch only debug() at :276-278, saveSentTasks at :281, normal return. src/lib/features/tasks/TasksView.svelte:85-91 handleSync only console.error. Test mocks the client at src/tests/lib/features/tasks/todoist.service.test.ts:14-19.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md"
+    ],
+    "key": "N-calendar-07"
+   },
+   {
+    "source_ids": [
+     "calendar-ux-6"
+    ],
+    "title": "New File from Template says the name is taken instead of silently opening the existing note",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "Run New File from Template, pick a template and type a name that already exists in the vault root (or differs only in case on APFS).",
+    "what_to_build": "createFileFromTemplate (src/lib/plugins/templates/templates.service.ts:55-69) calls openOrCreateNote, which opens the existing file when exists() is true and skips the template (src/lib/core/note-creator/note-creator.service.ts:87-127). Nothing throws, so TemplatePicker (src/lib/plugins/templates/TemplatePicker.svelte:33-46) shows no message and the user may type into the older note believing it is new. Fix direction: createFileFromTemplate checks for an existing file first and refuses with a clear error, and the picker shows a toast naming the existing note (it may keep the naming step open so the user can choose another name).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/templates/templates.service.test.ts: with exists resolving true for `/vault/Meeting.md`, createFileFromTemplate('/vault/_system/templates/Meeting.md', 'Meeting') rejects with an error naming the existing note and openOrCreateNote is not called. It fails today.",
+     "A free name still creates the note from the template (existing tests stay green).",
+     "TemplatePicker shows a toast for the taken name (src/tests/lib/plugins/templates/TemplatePicker.test.ts).",
+     "Frontend gate: `pnpm check` + `pnpm vitest run` pass."
+    ],
+    "evidence": "templates.service.ts:55-69 createFileFromTemplate -> openOrCreateNote with filePath `${vaultPath}/${fullFileName}`. note-creator.service.ts:87-88 exists(filePath); :90-122 create branch skipped when it exists; :124-125 openFileInEditor. TemplatePicker.svelte:33-46 toast only on a throw.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-calendar-08"
+   }
+  ],
+  "refuted": [],
+  "open_verdicts": [
+   {
+    "path": ".scratch/file-io-audit/issues/24-stale-task-list-wrong-line.md",
+    "verdict": "partially_fixed",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "Fixed part: commit b4f126bf2 (Issue 02) added the dirty-tab check in src/lib/features/tasks/tasks.service.ts:121-136: a dirty open tab is saved first, then lineAt(saved, lineNumber) is compared with the pre-save disk line, and on a mismatch the list is refreshed and the toggle skipped. That covers point (2), list ahead of disk, for the toggle. Still present: for a clean tab (point 1: the 2 s autosave lands after the Tasks view mounted, src/lib/app/EditorView.svelte:71-72 and TasksView.svelte:78-83 fetch on mount) or an external edit while the list is stale, toggleTask calls toggle_task_status with only path and lineNumber (tasks.service.ts:137-140). Rust has no text check: src-tauri/src/commands/vault.rs:759-786 toggle_task_status_inner and :803-829 toggle_task_status take (path, line_number); src-tauri/src/vault/parsing.rs:1873-1907 toggle_task_in_content flips group 2 on line_number-1. The list refreshes only on mount, after its own toggle (tasks.service.ts:150) and on the throttled bump (src/lib/app/tauri-listeners.service.ts:106-109 REFRESH_DELAY_MS=2000, REFRESH_MIN_INTERVAL_MS=10000; scheduleRefresh :278-290). Recoverable as the Issue says (clicking again reverses it).",
+    "stale_notes": "vault.rs:708-713 is now vault.rs:759-829 (inner at :759, command at :803). tasks.service.ts:54-73 (buildTaskIndex) is now :63-84 and the post-toggle refetch at :115 is now :150. The throttle constants are at tauri-listeners.service.ts:106-109, not :84-88. Point (2), list ahead of disk with a dirty tab, is handled by b4f126bf2 for the toggle; the remaining scope is a clean tab or an external edit. The Rust write is now atomic (vault_fs::write_atomic, vault.rs:779). The +layout.svelte:135-155 edit effect was not re-verified."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/11-event-title-error-after-touch.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "medium",
+    "evidence": "Checked at HEAD. src/lib/features/event-calendar/EventForm.svelte:38 derives errors = validateDraft(draft) with no touched gate. The title Input at :69-70 sets aria-invalid and aria-describedby straight from errors.title, and :73-74 renders the message under {#if errors.title}. No titleTouched state or onblur exists in the file. createDraft (event-calendar-form.logic.ts:104) starts with title: '' and validateDraft (:163) sets 'Enter a title.' for an empty trimmed title, so the New event dialog opens with the red message and red border before any input. git log for EventForm.svelte shows only the original feature commits (5fc1f66e4, eb7ab2b1b, fe7430ee2, 03026a540) plus a import-path refactor (87254d850); none add a touched flag. src/tests/lib/features/event-calendar/EventDialog.test.ts:250 only pins the message after typing spaces. Not run (read-only audit).",
+    "stale_notes": "Line numbers are accurate within 1 line: aria-invalid is at :69, aria-describedby at :70 and the message paragraph at :73-74. The Save button reference (about line 187) was not rechecked. Nothing else in the Issue text is out of date."
+   }
+  ]
+ },
+ {
+  "domain": "queryjs",
+  "counts": {
+   "findings": 10,
+   "survived": 5,
+   "refuted": 1,
+   "open": 1
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "queryjs-ux-1",
+     "queryjs-spec-1"
+    ],
+    "title": "A QueryJS block run in the seconds after a save shows the saved tags, tasks and links once the index catches up, and never keeps a pre-save result in the cache",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "The owner ticks a task, adds a tag or a wikilink in a note, then within about 2 s switches to a dashboard note. The save on tab switch (or Cmd+S) clears the QueryJS cache. The dashboard block runs under 'always' (or auto-runs on a first open after the tab was closed) and caches its result.",
+    "what_to_build": "notifyAfterSave (src/lib/core/editor/editor.hooks.ts:81-83) updates Rust and then clears the QueryJS result cache at once, but execute() reads tags, tasks and outgoing links from getVaultEntries() (src/lib/plugins/queryjs/queryjs-block-widget.ts:243), a memo keyed on vaultStore.vaultIndexVersion (src/lib/core/vault/vault-entries.service.ts:26-29). That version only advances in the throttled vault-index-updated refresh (src/lib/app/tauri-listeners.service.ts:106-109, refresh() :267-268), 2 s after an isolated event and up to 10 s in a burst. A run in that window reads the pre-save snapshot (frontmatter is already fresh, because the property index is a synchronous note-change consumer), and setResult (queryjs-block-widget.ts:270) caches it. When the version bump lands, nothing drops that result, so the stale DOM is re-attached on every tab switch until some other note is saved. CLAUDE.md Indexing 12 accepts the lag of a read; it does not accept a lagged result being cached as final. Fix direction: remember the index version (or the entries snapshot) a cached result was computed from, and treat a result older than the current snapshot as a cache miss once the refresh advances the memo (for example clear results on the refresh bump when any cached result predates it). Keep the existing policy semantics for a miss (Always re-runs, First open/Manual show Run). Do not make every save bypass the refresh throttle.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/queryjs/queryjs-block-widget.test.ts: with autoRunQueries 'always', bumpVaultIndexVersion(1) and get_all_vault_entries_v2 returning a note with one open task, render a block that writes the open-task count and let it cache; fire notifyContentInvalidated() (as a save does) and re-render while the version is still 1 (shows 1, expected lag); then make get_all_vault_entries_v2 return the note with the task ticked, bumpVaultIndexVersion(2) and call toDOM() again. The block must show 0. It fails today: the version-1 result is re-attached.",
+     "A result computed at the current index version is still re-attached on re-render, with no re-run and no extra get_all_vault_entries_v2 call (the canvas/DOM persistence of ADR 0010 holds).",
+     "Under 'first-open' with the tab still open and under 'manual', a stale result after the bump renders the Run button, the same as after a save.",
+     "help/documentation/13-queryjs.md 'Result cache and DOM persistence' says a result run before the index caught up is dropped when it does.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/editor/editor.hooks.ts:81 applyNoteChange({source:'save'}) then :83 notifyContentInvalidated(); src/lib/core/filesystem/note-change.service.ts:87 save row has no yield, :226-230 update_note_in_index is fire-and-forget; src/lib/plugins/queryjs/queryjs-ports.ts:15 content invalidation -> invalidateQueryjsCache -> queryjs-session.store.svelte.ts:121-125 clearResults; src/lib/plugins/queryjs/queryjs-block-widget.ts:243 entries = await getVaultEntries(); src/lib/core/vault/vault-entries.service.ts:26-29 memo keyed on vaultIndexVersion; src/lib/app/tauri-listeners.service.ts:106 REFRESH_DELAY_MS 2000, :109 REFRESH_MIN_INTERVAL_MS 10000, :267-268 the only bumpVaultIndexVersion; src/lib/plugins/queryjs/queryjs.logic.ts:121-146 tags/tasks/outlinks/inlinks from entries; queryjs-block-widget.ts:270 setResult caches the run; no listener on vaultIndexVersion clears QueryJS results (only save, watcher-handler.service.ts:78/:120, trash restore, teardown); the watcher skips our own save via areAllRecentSaves (watcher-handler.service.ts:44). docs/agents/indexing-watcher-rules.md item 12 documents the read lag only.",
+    "gate": "frontend",
+    "size": "M",
+    "key": "N-queryjs-01"
+   },
+   {
+    "source_ids": [
+     "queryjs-ux-2",
+     "queryjs-spec-2"
+    ],
+    "title": "DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end",
+    "category": "content",
+    "likelihood": "high",
+    "trigger": "A dashboard sorts pages by an optional frontmatter field, e.g. kb.pages('#project').sort(p => p.priority, 'desc') or sortBy(p => p.due), and some notes lack the field (or have it empty).",
+    "what_to_build": "sort (src/lib/plugins/queryjs/data-array.ts:119-128) compares raw keys with va < vb ? -1 : va > vb ? 1 : 0. An undefined key compares equal to every value, so the comparator is not transitive and V8's sort leaves the defined values out of order (keys [5, undefined, 3, 1] ascending come out [5, undefined, 1, 3]). A null key coerces to 0 and sorts as a number. Make the comparator a total order: treat undefined and null as missing and place all missing keys together at one end (Dataview-compatible choice: the implementer picks one end and documents it), in both directions, with the defined keys sorted normally. sortBy delegates to sort, so one fix covers both.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/queryjs/data-array.test.ts (describe 'sort'): new DataArray([{p:5},{},{p:3},{p:1}]).sort(x => x.p).map(x => x.p).array() returns [1, 3, 5, undefined] (or the documented end); it fails today with [5, undefined, 1, 3].",
+     "The same holds with 'desc' ([5, 3, 1] in order, missing grouped at the chosen end) and through sortBy.",
+     "A null key is treated as missing, not as 0.",
+     "KBDateTime keys (due dates) with some notes missing the field sort by date with the missing ones grouped.",
+     "Arrays where every item has the key sort exactly as today (existing sort tests stay green).",
+     "help/documentation/13-queryjs.md sort section states where notes without the field go.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/queryjs/data-array.ts:121-126 comparator (undefined < x and undefined > x both false -> 0); :131-133 sortBy delegates; help/documentation/13-queryjs.md:259-263 and :1184-1189 show sort on optional fields; src/tests/lib/plugins/queryjs/data-array.test.ts:230 'sort' describe has no missing-key case. Trace of V8 binary insertion for [5,u,3,1]: run detection accepts [5,u,3] (cmp 0, 0), inserting 1 lands at index 2 -> [5,u,1,3].",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-queryjs-02"
+   },
+   {
+    "source_ids": [
+     "queryjs-ux-4",
+     "queryjs-spec-3"
+    ],
+    "title": "kb.pages('\"folder\"') returns the notes in that folder and its subfolders only, not every folder whose path contains the text",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "A block uses kb.pages('\"Projects\"') in a vault that also has 'Archive/Projects' or 'Projects Archive' (a common PARA layout), or a source whose text also appears in the vault's own absolute path (vault folder 'Notes', source '\"Notes\"').",
+    "what_to_build": "parseSource (src/lib/plugins/queryjs/queryjs.logic.ts:194-199) lowercases the quoted text and tests page.file.folder.toLowerCase().includes(folder). file.folder is the absolute parent path (src/lib/features/collection/collection.logic.ts:33), so the match is a substring anywhere in the absolute path. The help page promises 'Pages in a specific folder' (help/documentation/13-queryjs.md:67). Match by path segments instead: a vault-relative source matches a page whose vault-relative folder equals it or starts with it plus '/'; an absolute source (the SCOPING.md pattern kb.pages(`\"${root}\"`) builds one) matches the same way against the absolute folder. parseSource needs the vault root for that; KBAPI already has vaultPath (src/lib/plugins/queryjs/kb-api.ts:118-131). Keep case-insensitivity unless the owner says otherwise. Out of scope unless the owner decides it: a source that is neither #tag nor quoted (unquoted name, Dataview 'a and b') still returns every page silently (kb-api.ts:121-130, pinned by queryjs.logic.test.ts:379-381).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/queryjs/queryjs.logic.test.ts (describe 'parseSource'): with vault root '/vault', the filter for '\"Projects\"' is false for folders '/vault/Archive/Projects' and '/vault/Projects Archive', and true for '/vault/Projects' and '/vault/Projects/2026'; it fails today (the first two match).",
+     "A source whose text is part of the vault root path (vault '/Users/me/Notes', source '\"Notes\"') does not match every page.",
+     "An absolute folder source ('\"/vault/Projects\"') matches that folder and its subfolders only.",
+     "The existing cases stay green: '\"notes\"' matches /vault/notes, \"'archive'\" matches /vault/archive/2024, mismatched quotes return null.",
+     "src/tests/help/examples-scoping.test.ts still passes, and the SCOPING.md gotcha 'The folder source matches by substring' is removed or rewritten.",
+     "help/documentation/13-queryjs.md states that the folder source is vault-relative (or absolute) and includes subfolders.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/queryjs/queryjs.logic.ts:195-198 includes() on lowercased folder; src/lib/plugins/queryjs/queryjs.logic.ts:153 file.folder = record.folder; src/lib/features/collection/collection.logic.ts:33 folder is the absolute parent path; help/documentation/13-queryjs.md:67 and :148 (file.folder 'Absolute parent folder path'); help/examples/SCOPING.md:36-40 already lists the substring match as a gotcha for example authors, the user-facing page does not; src/tests/lib/plugins/queryjs/queryjs.logic.test.ts:357-372 only tests matching folders.",
+    "gate": "frontend",
+    "size": "M",
+    "key": "N-queryjs-03"
+   },
+   {
+    "source_ids": [
+     "queryjs-spec-4"
+    ],
+    "title": "file.inlinks lists the notes that link to a note whose name contains a dot (Dr. Silva, Release v1.2)",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "A note named 'Dr. Silva.md' or 'Release v1.2.md' is linked from other notes as [[Dr. Silva]]; a block shows p.file.inlinks or its length (backlink counts, orphan or most-linked dashboards).",
+    "what_to_build": "buildReverseIndex (src/lib/plugins/queryjs/queryjs.logic.ts:47-63) keys each link by getBasename(link.target), and getBasename (:12-17) strips everything after the last dot, so the target 'Dr. Silva' is stored under 'dr' and 'Release v1.2' under 'release v1'. resolveInlinks (:71-87) looks up getBasename of the file path ('dr. silva'), which never matches, so the note has no inlinks; a note named 'Dr.md' receives them instead. Outlinks already resolve targets with resolveWikilinkCached (:140-142), which handles dotted names, so a note's outlinks and its target's inlinks disagree. Fix direction: key the reverse index by the resolved target path, using the same resolution cache ensureCache builds (src/lib/plugins/queryjs/kb-api.ts:445-451), so inlinks are the mirror of outlinks. Update the buildReverseIndex tests whose keys change and say so in the commit.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/queryjs/queryjs.logic.test.ts: entries '/vault/a.md' linking 'Dr. Silva' and '/vault/b.md' linking 'Release v1.2'; the inlinks of '/vault/Dr. Silva.md' are ['/vault/a.md'] and of '/vault/Release v1.2.md' are ['/vault/b.md']; it fails today (both empty).",
+     "A note '/vault/Dr.md' gets no inlink from a [[Dr. Silva]] link.",
+     "Links written with a path (folder/sub/note) or a different case still count, as today; self-links are still left out; a .view still has no inlinks.",
+     "For every page in a fixture vault, A is in B.file.inlinks exactly when B is in A.file.outlinks.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/queryjs/queryjs.logic.ts:15-16 lastIndexOf('.') strip applied to link targets at :53; :76-77 lookup by file basename; :140-142 outlinks use resolveWikilinkCached; src/lib/plugins/queryjs/kb-api.ts:445 buildReverseIndex, :451 resolution cache built in the same function; src/tests/lib/plugins/queryjs/queryjs.logic.test.ts:87-139 cover no dotted name.",
+    "gate": "frontend",
+    "size": "M",
+    "key": "N-queryjs-04"
+   },
+   {
+    "source_ids": [
+     "queryjs-ux-3",
+     "queryjs-spec-6"
+    ],
+    "title": "A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link",
+    "category": "polish",
+    "likelihood": "low",
+    "trigger": "A block puts an array of links in a cell, e.g. kb.table(['Note','Backlinks'], pages.map(p => [p.file.link, p.file.inlinks])) or a groupBy cell group.rows.file.link (a DataArray), the usual Dataview idiom for a backlinks column.",
+    "what_to_build": "renderValue (src/lib/plugins/queryjs/kb-api.ts:488-523) renders a single KBLink as an <a>, but an array goes to el.textContent = value.map(String).join(', ') (:518-519), and a KBLink is a plain {path, display} object, so each shows as '[object Object]'. A DataArray cell falls to String(value) (:521), whose toString (src/lib/plugins/queryjs/data-array.ts:350-352) does the same. Render array and DataArray cells element by element through renderValue, joined with ', ', so links stay clickable and dates format as they do alone. kb.table, kb.list and kb.ui.table all use this renderer (kb-api.ts:306, :336, kb-ui.ts:443 via kb-api.ts:151).",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/queryjs/kb-api.test.ts: kb.table(['N','L'], [[link0, [linkA, linkB]]]) renders a second cell with two a.cm-lp-qjs-link elements whose text is the two displays, and the cell text does not contain '[object Object]'; it fails today.",
+     "A DataArray of links in a cell renders the same way.",
+     "An array of strings or numbers still renders as 'a, b, c'; an array of KBDateTime renders ISO dates.",
+     "kb.ui.table renders the same cells the same way.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/queryjs/kb-api.ts:493-513 single KBLink branch, :518-519 array -> map(String), :521 String(value) for a DataArray; src/lib/plugins/queryjs/data-array.ts:350-352 toString; src/lib/plugins/queryjs/queryjs.logic.ts:20-22 buildKBLink returns a plain object with no toString; src/lib/plugins/queryjs/kb-api.ts:151 kb.ui gets the same renderValue; help/documentation/13-queryjs.md:153-158 documents inlinks/outlinks as KBLink[]. The help examples use kb.list(group.rows.file.link), which works, so only table cells and nested arrays are affected.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-queryjs-05"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "queryjs-spec-5",
+    "reason": "Deliberate, pinned behavior: src/tests/lib/plugins/queryjs/kb-datetime.test.ts:220-247 ('plus/minus do not clamp month/year overflow', commit 94e67c937 for Issue 41) asserts that Mar 31 minus 1 month = Mar 2 and Jan 31 plus 1 month = Mar 2, so that user scripts keep their current month arithmetic. Changing it to clamp is a product decision against an existing contract, not a defect. The trigger is also narrow: only day-specific month math on the 29th-31st. The usual 'last month' pattern starts from startOf('month'), and the documented example (13-queryjs.md:482-486) uses the 17th."
+   }
+  ],
+  "open_verdicts": [
+   {
+    "path": ".scratch/file-io-audit/issues/40-queryjs-unsandboxed.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Block text still runs through new Function in the app origin: src/lib/plugins/queryjs/kb-api.ts:552 (runQueryjsBlock) and :413 (kb.view scripts). The default is still autoRunQueries 'first-open' (src/lib/core/settings/settings.store.svelte.ts:141). The CSP keeps 'unsafe-eval' (src-tauri/tauri.conf.json:29), and capabilities still grant fs:allow-write-text-file and fs:allow-remove (src-tauri/capabilities/default.json:83, :138). Deep-link new/capture still take content and clipboard from the URL (src/lib/features/deep-link/deep-link.logic.ts:94-99, :125-128). The widget still auto-runs on a cache miss with no origin or trust check (src/lib/plugins/queryjs/queryjs-block-widget.ts:98-125 and the first-open branch after it). For this owner it needs a hostile kokobrain:// URL or a foreign note, which is not daily use. It remains an owner decision on hardening (trust per block hash or a 'manual' default).",
+    "stale_notes": "Line references moved: kb-api.ts:469 is now :552 (runQueryjsBlock) and kb-api.ts:360 is now :413 (kb.view new Function); settings.store.svelte.ts:136 is now :141; resolveScriptPath is at about kb-api.ts:526, not :443; deep-link.logic.ts:80-99 is now around :94-99 (new) and :125-128. Status is still needs-triage, and the original section still lacks acceptance criteria, as its own note says."
+   }
+  ]
+ },
+ {
+  "domain": "shell",
+  "counts": {
+   "findings": 6,
+   "survived": 5,
+   "refuted": 1,
+   "open": 26
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "shell-ux-1"
+    ],
+    "title": "Leaving the theme editor any way other than Save (Esc, X, Cmd+, or another section) puts the active theme back on the app",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "Settings > Appearance > Edit theme, Create new theme or Duplicate, change a color (live preview paints the app), then press Esc, click the X, press Cmd+, or click another settings section instead of Save or the back arrow.",
+    "what_to_build": "The theme editor paints its unsaved draft on :root on every color change or import (ThemeEditor.svelte:67-78 and :121 call applyTheme, theme.service.ts:42-46, which also flips html.dark, color-scheme and appliedThemeStore). Only handleEditorCancel (AppearanceSection.svelte:140-144) and handleEditorSave (:126-138) call applyActiveTheme. When the Settings panel closes (SettingsPanel.svelte:101-105 Esc, :147 X, the {#if settingsPanelStore.isOpen} at :110) or the section changes (SectionContent at :99/:153), AppearanceSection and ThemeEditor are destroyed with no teardown, so the draft colors and the draft's dark/light mode stay on the whole app, out of step with appearance.activeTheme, until another theme action or a relaunch. Fix direction: when the editor goes away without a save, re-apply the stored theme, for example a teardown in ThemeEditor (or in AppearanceSection while editorOpen) that calls applyActiveTheme(). applyActiveTheme is idempotent, so running it after a save does no harm.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/settings/AppearanceSection.test.ts: with the default theme active, mount AppearanceSection, click Create new theme, change one UI color through its ThemeColorRow input so document.documentElement.style --primary (or the edited token) shows the draft value, then unmount the component without clicking Save or the back arrow; the token on :root is back to the active theme's value and appliedThemeStore's dark flag matches the active theme. It fails today.",
+     "The same holds when the draft came from Import (handleFileImport) and when the editor was opened with Edit on a user theme.",
+     "Save still applies the saved theme and makes it active; the back arrow (Cancel) still restores the active theme (existing tests stay green).",
+     "Closing Settings with the editor open but no color changed leaves the active theme as it was.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/settings/sections/ThemeEditor.svelte:67-69 applyDraft -> applyTheme({name: draftName, colors: draftColors}); :72-78 updateColor calls applyDraft on every change; :121 import also calls applyDraft; grep finds no onDestroy or teardown in ThemeEditor.svelte or AppearanceSection.svelte (only $effect.pre at :50 for init). src/lib/core/settings/theme.service.ts:42-46 applyTheme sets the root vars and applyMode (:29-35: html.dark, colorScheme, appliedThemeStore.setDark). src/lib/core/settings/sections/AppearanceSection.svelte:140-144 handleEditorCancel is the only restore path besides :126-138 handleEditorSave; editorOpen is component-local $state (:31). src/lib/app/SettingsPanel.svelte:101-105 Escape closes the panel, :110 {#if settingsPanelStore.isOpen} unmounts the content, :99 and :153 SectionContent swaps the section component. rg applyActiveTheme: the only other caller is settings.service.ts:242 (applyLoadedSettings on vault load).",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-shell-01"
+   },
+   {
+    "source_ids": [
+     "shell-ux-5"
+    ],
+    "title": "Settings > Update keeps the download progress and Restart to update across closing Settings or changing section, and a second check cannot start a second install",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "Settings > Update > Check finds an update and starts Downloading; the user closes Settings or opens another section while it downloads (or after Restart to update appears), then comes back to Update.",
+    "what_to_build": "The updater state is component-local: status, errorMessage, pendingUpdate, downloadProgress and totalBytes are $state in UpdateSection.svelte:94-99. SettingsPanel destroys the section when the panel closes (SettingsPanel.svelte:110) or the section changes (:99, :153), while the plugin:updater|download_and_install invoke (UpdateSection.svelte:178-181) keeps running with nothing left to show it. On remount the section is idle with a Check button: Restart to update (:247-250) is gone although the update is already installed, and Check (:240) runs check_for_update_on_channel again (the running app is still the old version, so it finds the same update) and downloads and installs a second time, overlapping the first if it is still running. Fix direction: hold the update flow state outside the component (a small module store next to update-check.service.ts, or in it), so a remounted section shows Checking, Downloading n% or Restart to update, and ignore or disable Check while a check or download is in flight. handleChannelChange (:63-72) keeps resetting that state.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/settings/UpdateSection.remount.test.ts (next to UpdateSection.restart.test.ts, same mocks): check_for_update_on_channel resolves an update and plugin:updater|download_and_install resolves; click Check, wait for Restart to update, unmount and remount UpdateSection; the remounted section shows Restart to update and no Check button. It fails today.",
+     "With download_and_install still pending, unmount and remount: the section shows Downloading, and no second check_for_update_on_channel or download_and_install call is made.",
+     "Changing the release channel still clears a pending Restart to update.",
+     "Restart to update still runs the exit flush before relaunch (UpdateSection.restart.test.ts stays green).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/settings/sections/UpdateSection.svelte:94-99 status/errorMessage/pendingUpdate/downloadProgress/totalBytes are component $state; :142-190 checkForUpdates sets status 'checking' then 'downloading', awaits invoke('plugin:updater|download_and_install') at :178-181 and only then sets 'ready'; :239-242 idle shows Check, :247-250 ready shows Restart to update. src/lib/app/SettingsPanel.svelte:110 {#if settingsPanelStore.isOpen} and :99/:153 SectionContent destroy the section on close or section change. src/lib/core/settings/update-check.service.ts:19-37 is a launch-time check only and holds no state for the section. No other download_and_install or relaunch caller in src/lib (rg).",
+    "gate": "frontend",
+    "size": "M",
+    "related_open": [],
+    "key": "N-shell-02"
+   },
+   {
+    "source_ids": [
+     "shell-ux-4"
+    ],
+    "title": "Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "Cmd+O, type a path-style name such as Projects/Idea whose folder does not exist yet (no note name matches), then click Create \"Projects/Idea\".",
+    "what_to_build": "createAndOpenNote (src/lib/features/quick-switcher/QuickSwitcher.svelte:40-58) appends .md and passes the raw query with its slash to createFile(vaultStore.path, name) (src/lib/core/filesystem/fs.service.ts:194-220 at HEAD, the function at the 'Creates a file on disk' doc comment), which builds `${vault}/Projects/Idea.md` and calls create_note. Rust create_note (src-tauri/src/commands/vault.rs:984-995) does not create parents, so write_atomic's temp write fails (src-tauri/src/utils/fs.rs:27) and the switcher shows only 'Failed to create file.' (QuickSwitcher.svelte:50-52), with no reason and no note. When the folder already exists the same path works, so the behavior depends on state the user cannot see. Fix direction: split the query on '/', refuse empty, '.' and '..' segments with a clear message, create the missing folders under the vault (Rust create_folder is recursive and a no-op for an existing folder, vault.rs:1012-1022; do not use fs.service createFolder, which renames on a collision) and add them to the tree, then createFile in the target folder with the last segment. The error toast names the reason.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts: with no files in the tree, type Projects/Idea and click the create action; create_folder is invoked for /vault/Projects before create_note is invoked with /vault/Projects/Idea.md, and the note opens. It fails today (no folder is created).",
+     "A nested path (Area/Projects/Idea) creates every missing folder level.",
+     "An existing folder is reused, not duplicated as 'Projects 1'.",
+     "A query with an empty, '.' or '..' segment creates nothing and shows a toast that says why.",
+     "When creation fails, the toast includes the error reason; the existing 'toasts and opens nothing' test keeps passing with its assertions adjusted only for the new text.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/quick-switcher/QuickSwitcher.svelte:43-49 name = query + '.md', createFile(vaultStore.path, name, ...); :50-52 bare catch -> toast.error('Failed to create file.'). src/lib/core/filesystem/fs.service.ts createFile: readDir(parentPath) of the vault root only, filePath = `${parentPath}/${uniqueName}`, call('create_note', { path: filePath, content }), catch logs and rethrows. src-tauri/src/commands/vault.rs:991-995 ensure_safe_write_path, exists check, vault_fs::write_atomic with no create_dir_all. src-tauri/src/utils/fs.rs:27 std::fs::write(tmp) fails with 'write failed' when the parent is missing. src/lib/core/filesystem/file-entries.logic.ts:51-56 filterAndRank fuzzy-matches the query against nameWithoutExt only, so a query with '/' rarely matches and the Create branch (QuickSwitcher.svelte:94-103) shows.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md"
+    ],
+    "key": "N-shell-03"
+   },
+   {
+    "source_ids": [
+     "shell-ux-2"
+    ],
+    "title": "Dragging a node in the graph moves that node; dragging the background pans",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "Open the graph (Cmd+G), press on a node and drag. help/documentation/14-graph-view.md:18 says this repositions the node.",
+    "what_to_build": "setupInteractions (src/lib/plugins/graph-view/GraphView.svelte:293-340) calls d3-zoom on the canvas first (:299-305) and d3-drag second (:308-335). d3-zoom's mousedown handler calls stopImmediatePropagation (d3-zoom@3.0.0 src/zoom.js:280, noevent.js nopropagation), so drag's mousedown.drag listener on the same element never runs: the start/drag/end handlers that pin fx/fy and reheat the simulation are dead and a drag on a node pans the whole view. Fix direction: register the drag behavior before the zoom behavior on the canvas. d3-drag only stops propagation when its subject returns a node (the subject at :309-313 returns null over the background), so background drags still reach zoom.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/graph-view/GraphView.test.ts: mount the graph on a one-note vault, wait for the simulation to place the node, compute its screen point from the canvas's stored d3 transform (canvas.__zoom), dispatch mousedown on the canvas at that point and mousemove/mouseup on window; canvas.__zoom is unchanged afterwards. It fails today (the drag pans).",
+     "A mousedown and drag on empty background still changes canvas.__zoom (pan works).",
+     "A click on a node without movement still opens the note.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/graph-view/GraphView.svelte:299-305 d3Zoom().on('zoom') then canvasSel.call(zoomBehavior); :308-335 d3Drag with subject findNodeAt and start/drag/end setting node.fx/fy, then canvasSel.call(dragBehavior) on the same canvas. node_modules/.pnpm/d3-zoom@3.0.0/node_modules/d3-zoom/src/zoom.js:270-283 mousedowned calls nopropagation(event) = event.stopImmediatePropagation() (noevent.js). d3-drag drag.js:41 registers mousedown.drag on the same element, so it is a later listener and is skipped. help/documentation/14-graph-view.md:18 'Drag a node to reposition it.' git log on GraphView.svelte shows no change to setupInteractions since the initial setup.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/audit-2026-11-04/issues/21-graph-center-follows-every-focus.md"
+    ],
+    "key": "N-shell-04"
+   },
+   {
+    "source_ids": [
+     "shell-ux-3"
+    ],
+    "title": "Switching the graph Arrows toggle redraws the graph at once, also after the layout has settled",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "Open the graph, wait a few seconds for the force layout to settle, then switch Display > Arrows on or off.",
+    "what_to_build": "GraphControls.svelte:131-134 calls graphViewStore.setDisplay({ showArrows }). render() reads display.showArrows (src/lib/plugins/graph-view/GraphView.svelte:154), but render runs only on simulation ticks (:124), resizeCanvas (:274), zoom events (:301-304) and a hovered-node change (:354-358). The $effect at :375-385 tracks mode, filters and centerPath, not display, and the d3 simulation stops ticking once it cools, so the toggle changes nothing on screen until the user zooms, pans or hovers another node. Fix direction: an effect that reads graphViewStore.display and calls render() untracked.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/plugins/graph-view/GraphView.test.ts (or a sibling GraphView.render.test.ts if the module-level getContext stub at :18 gets in the way): give the canvas a recording 2D context stub, mount the graph, stop or settle the simulation, record the draw call count, call graphViewStore.setDisplay({ showArrows: true }) and flushSync; a new frame was drawn (for example clearRect ran again and arrowheads were filled). It fails today.",
+     "Switching arrows off redraws without arrowheads.",
+     "Mode, filter and center changes still rebuild the simulation as before (existing tests stay green).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/plugins/graph-view/GraphControls.svelte:131-134 toggle -> graphViewStore.setDisplay. src/lib/plugins/graph-view/graph-view.store.svelte.ts:5,18,25 display state, getter and setter. src/lib/plugins/graph-view/GraphView.svelte:154 drawArrows read only inside render(); render callers :124 (tick), :274 (resizeCanvas), :303 (zoom), :357 (hover change); :375-385 $effect tracks graphViewStore.mode, filters and centerPath only; :390-395 the vaultIndexVersion effect rebuilds only on index changes. rg 'display' in graph-view finds no other reader.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/ux-polish/issues/69-native-controls-to-shadcn.md"
+    ],
+    "key": "N-shell-05"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "shell-ux-6",
+    "reason": "Not a defect: zoom persistence was never built or promised. help/documentation/03-editor.md:156-164 and 20-keyboard-shortcuts.md:56-58 describe zoom in/out/reset only, with no mention of keeping the level across launches. zoom.service.ts:6 holding currentZoom in a module variable matches that design. The hunter calls it a usability gap with low confidence. It is a feature request for the owner to decide on, not an Issue for this audit."
+   }
+  ],
+  "open_verdicts": [
+   {
+    "path": ".scratch/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src/lib/core/settings/settings.service.ts:36 loadSettings returns Promise<void>; :40-48 the exists/readTextFile catch calls useDefaultSettings(), toasts 'the file was left unchanged' (:45) and returns with no outcome. :209-218 resetBrokenSettingsFile returns after a copyFile failure with defaults in the store (toast :216). src/lib/app/lifecycle/app-lifecycle.service.ts:199 awaits loadSettings, :211 startSettingsPersistence(vaultPath) runs unconditionally. src/lib/core/settings/settings-persistence.svelte.ts:50 lastWritten = serialize() (the defaults), :57-62 any diff arms the 500 ms timer, :79-83 flush calls writeSettingsFile, which runs writeTextFile at settings.service.ts:258 with no guard. :96-105 stopSettingsPersistence flushes through the same path. update-check.service.ts:27 writes updates.lastCheckedAt at launch with no user action when autoCheck is on. No 'file-protected' or load-outcome code at HEAD. The last change to settings.service.ts is 09ec9f363 (the backup), and to app-lifecycle.service.ts it is 9d1c8d927 (views), which does not touch this path.",
+    "stale_notes": "Line refs drifted a little: loadSettings is :36-76 (Issue says :36-75), its docstring :26-35 (says :27-34), the stop function :96-105 (says :88-101), the baseline :50 (Notes say :49). The rest is accurate."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/10-settings-load-failure-defaults.md",
+    "verdict": "partially_fixed",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Fixed by 09ec9f363: a parse failure copies the bytes to settings.broken-<stamp>.json before defaults are written (settings.service.ts:209-225), and a failed write-back after a good parse keeps the parsed settings (:68-74, comment :72). Still present: every branch that ends on defaults (read error :40-48, blank file :49-56, parse failure :60-66) leaves history.retentionDays at the default 7, and app-lifecycle.service.ts:276-280 reads settingsStore.history.retentionDays and runs cleanup_history with no check that the user's settings loaded, so a user who raised retention loses snapshots older than 37 days. writeSettingsFile (settings.service.ts:250-263) still writes with plugin-fs writeTextFile in place, not temp+rename, which is the realistic way to get a truncated or blank settings.json in the first place.",
+    "stale_notes": "The root cause and evidence lines (:166-178, :163, :172, :193, :45-52) describe the pre-09ec9f363 code; the single catch that replaced settings with defaults no longer exists. The 'no backup' and 'write-back failure resets the store' claims are fixed. The read-error overwrite of settings.json is now covered by audit-2026-11-04 Issue 03. The remaining scope is: skip or defer cleanup_history when the settings did not load from the file (app-lifecycle.service.ts:276-280), and make writeSettingsFile atomic. The repro tests under .scratch/file-io-audit/repro/ target the old code and need rewriting for the parts that remain."
+   },
+   {
+    "path": ".scratch/audit-2026-11-04/issues/21-graph-center-follows-every-focus.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "src/lib/plugins/graph-view/graph-view.service.ts:24-27 captureCenterPath is called only from openGraphTab (:36) and toggleGraphTab (:67); rg finds no other setCenterPath caller and no graph reference in src/lib/core/editor/editor.service.ts, so a tab-bar click, tab cycling, closing a neighbour or a session restore that focuses the graph keeps the old center. No registerPathChangeConsumer in src/lib/plugins/graph-view. src/lib/plugins/graph-view/GraphView.svelte:53-54 the local graph uses centerPath via getLocalGraph, and :430 shows the hint only when centerPath is null, so a renamed or deleted center gives an empty canvas with no hint. The only graph-view commit after 59b824233 is 3c7f1b9a8 (drops views from buildGraphData), which does not touch this.",
+    "stale_notes": "The hint is at :430 exactly (Issue says ~:430). Nothing else is stale. The owner triaged it low priority on 2026-11-05 and it stays needs-triage."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/02-settings-number-fields-clamp-on-change.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "src/lib/core/settings/sections/FileHistorySection.svelte:8-10 (clampRetentionDays) and :38-40 (oninput writes clamp(Number(value)) at once; no onchange). src/lib/features/auto-move/AutoMoveSection.svelte:29-31 (clampDebounce) and :133-136 (oninput writes clampDebounce(Math.round(seconds*1000)); no onchange). Empty field gives Number('')=0, clamps to 1 day or 500 ms, the bound value changes, and Svelte rewrites the field, so clearing then typing '30' gives '130'. git log of both files (ccf65866b, ecd4cadc2, 48bf52fe9, 188c12932) shows copy/style changes only. Read-only audit, not run.",
+    "stale_notes": "Line numbers match. Settings fields are edited rarely, and the glitch needs select-all, delete, then type; the stored value is clamped, so no corrupt data persists."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "medium",
+    "evidence": "src/lib/features/quick-switcher/QuickSwitcher.svelte:94-103: with no match the Create action is a plain <button onclick={createAndOpenNote}> inside <Command.Empty>. The component has no keydown handler and no Command.Item for it, so Enter has no selected item to act on (bits-ui behavior taken from the Issue, node_modules not read). Only commit touching the branch is the initial one. Typing a new note name and pressing Enter is a normal keyboard flow for an Obsidian-style switcher.",
+    "stale_notes": "Line range 94-103 is accurate. Test helper createFromQuery at src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts:57-70 still clicks a button, as the Issue says."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/12-word-count-and-graph-stats-counts.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "medium",
+    "evidence": "src/lib/plugins/word-count/WordCount.svelte:33 renders the fixed string '{words} words <sep> {characters} characters <sep> {readingTime} min read' with no zero or singular handling. src/lib/plugins/graph-view/GraphView.svelte:441 prints '{simNodes.length} notes &middot; {simLinks.length} links'. rg finds no formatGraphStats anywhere in src. Every new empty note shows '0 words ... 1 min read' (estimateReadingTime floors at 1, pinned by word-count.logic.test.ts:89).",
+    "stale_notes": "GraphView footer is at line 441, not about 442. No WordCount.test.ts exists yet. Cosmetic only."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/15-hover-keeps-active-row-and-lane-grip.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "medium",
+    "evidence": "Part 1: src/lib/features/note-list/NoteRow.svelte:65 has 'hover:bg-primary/10' and '{isActive ? 'bg-primary/25' : ''}' on the same button, so the hover variant overrides the active fill (the cursor usually stays on the row right after clicking it). Part 2: src/lib/plugins/kanban/KanbanLane.svelte:215 declares group/lane, :236 uses unnamed 'group-hover:opacity-60' on the grip, while :356 and :391 already use group-hover/lane. I grepped src/lib/core, app, features/rail-shell, kanban and src/routes for a bare 'group' class: only KanbanCard.svelte:167 (a descendant), EditorTabs, AppearanceSection, HeadingTypographyEditor and +page.svelte:47, none an ancestor of the lane. So the grip stays at opacity-0.",
+    "stale_notes": "NoteRow hover is at line 65 (Issue says about 63); resize handle is at 391 (Issue says about 393). The TypesNavigator pattern is now in the viewRow snippet at src/lib/features/rail-shell/TypesNavigator.svelte:409-411 and uses file-explorer tokens (bg-file-explorer-primary/25 vs hover:bg-file-explorer-primary/10), not line 265. Tailwind ordering is not proven by running; the Issue says the E2E case is the proof."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/26-setting-item-hint-prop.md",
+    "verdict": "partially_fixed",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "Done: nightly paragraph gone from UpdateSection (c41976f92) and the three remaining paragraphs share px-4 text-meta text-muted-foreground (ecd4cadc2). Missing: src/lib/core/settings/sections/SettingItem.svelte:4-17 has no hint prop (description rendered at :28 only). Paragraphs still float outside rows: TodoistSection.svelte:31-39 (with openUrl link button), SentrySection.svelte:90-92 (inside {#if settingsStore.sentry.enabled}, after the test-event rows), TypesSection.svelte:54-57. settings-text.test.ts:73-82 pins px-4 on those three pages. No SentrySection.test.ts or TypesSection.test.ts exists.",
+    "stale_notes": "UpdateSection item and its render criterion are obsolete. The Sentry privacy paragraph is only rendered when Sentry is enabled today, so the Issue's 'visible before turning monitoring on' would be a behavior change, not just a move. Text is readable as is, so this is layout tidiness, not a defect."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/29-settings-drawer-focus-move-and-return.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "medium",
+    "evidence": "src/lib/app/SettingsPanel.svelte (read whole file): the dialog root has no bind:this, no $effect on settingsPanelStore.isOpen, no focus call and no opener save; the only keyboard code is the window Escape handler in handleKeydown. A grep for 'focus' in SettingsPanel.svelte and settings-panel.store.svelte.ts matches only the nav button focus-visible classes. So Mod+Comma leaves focus in the editor behind the drawer, and after clicking inside Settings and closing it, focus is on body, not on the editor, so the owner must click the editor before typing.",
+    "stale_notes": "Blocked-by 28 is delivered (c1c126972). SettingsPanel line numbers in the Issue are generic and still fine; the Escape handler is now at handleKeydown near line 103. Not verified by running the app."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/30-settings-drawer-modal-scrim.md",
+    "verdict": "design_or_refactor",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "src/lib/app/SettingsPanel.svelte: no scrim element, no aria-modal, no Tab trap; the drawer is a non-modal fixed z-40 div with role=dialog (transition:fly). The Issue itself says it assumes the owner decision 'make the Settings drawer modal'. The Appearance live preview relies on the app behind staying visible.",
+    "stale_notes": "Valid design work that depends on an owner decision; not a defect. Blocked by 29, which is not done. Drawer anatomy around it changed (a6b28484d, c1c126972), so the insertion point is now just before the root div inside {#if settingsPanelStore.isOpen}."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/40-toasts-and-editor-follow-theme-mode.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "src/lib/app/AppOverlays.svelte:12 still has <Toaster richColors theme=\"dark\" />. src/lib/core/markdown-editor/setup/editor-theme.ts:88 still registers EditorView.theme(..., { dark: true }) for every theme. The dependency is delivered: appliedThemeStore.isDark exists (src/lib/core/settings/applied-theme.store.svelte.ts) and theme.service.ts:30-34 sets it on every apply (commit 46e619786, Issue 39). So a light theme (Lavender Haze, built-in) gets dark toasts and a dark CodeMirror base. Dark toasts stay readable and the editor theme overrides most colors, so impact is small.",
+    "stale_notes": "editor-theme.ts line is 88, not 78. Blocker 39 is done, so the Issue is unblocked. Matters only if the owner runs a light theme."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/45-graph-view-theme-palette.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "src/lib/plugins/graph-view/GraphView.svelte:45-50 fixed hex/rgba constants, :243 and :251 rgba literals, :428 style=\"background: {BG_COLOR}\". No graphPalette in graph-view.logic.ts and no revision getter in applied-theme.store.svelte.ts (rg graphPalette|revision in src/lib: no match). Graph is a dark slab on Lavender Haze; the graph tab is not in the owner's daily list.",
+    "stale_notes": "Constants at lines 45-50 (Issue says 46-51), literals at 243/251 (Issue says 244/252). Blocker 39 is done, but the store only exposes isDark, so the revision getter still has to be added."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/48-status-colors-use-tokens.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "rg for palette color utilities outside components/ui: UpdateSection.svelte:252 text-green-500; KanbanLane.svelte:309 and KanbanTableView.svelte:74 and AutoMoveRuleRow.svelte:119 text-green-500; TasksView.svelte:184 text-purple-400 and :252 text-green-400; DiffViewer.svelte:14-15 bg-green-500/15 text-green-300 and bg-red-500/15 text-red-300 (pale on a light theme); BuildInfo.svelte:30-32 stable/nightly/dev with dark: variants. Tokens exist (src/app.css:69 --color-success, :193 and :266 --success, --color-warning). src/tests/lib/architecture/palette-classes.test.ts does not exist. Blocker 08 is resolved; 47 is not delivered (KanbanCard.svelte:118-125 and KanbanDatePicker.svelte:21-24 still use raw shades).",
+    "stale_notes": "UpdateSection line is 252, not 340. BuildInfo now has three badges (stable, nightly, dev) on lines 30-32, not only line 31. The architecture test will also flag KanbanDatePicker.svelte:21-24, KanbanListView.svelte:48, KanbanTableView.svelte:69 and KanbanCard.svelte, which are Issue 47's sites, so 48 cannot go green before 47 lands. Mostly cosmetic on the default dark theme."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/52-right-sidebar-sections.md",
+    "verdict": "design_or_refactor",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "No SidebarSection component exists (rg SidebarSection src: no match). PropertiesView.svelte:154-158 now uses the shared pane-toolbar band (Issue 50), then p-2 body with px-2 rows (:168, :178), and a 'Relationships' text-title h2 at :257. BacklinksPanel.svelte:56-60, OutgoingLinksPanel.svelte:54-58 and TableOfContentsPanel.svelte:48-51 use h-10 px-3 headers with ml-1.5 titles and p-2 bodies. Left edges still differ between Properties and the other three. Status is needs-triage in the Issue.",
+    "stale_notes": "The '12px' Properties header description is out of date because Issue 50 moved it onto pane-toolbar; the spacing mismatch remains but is smaller than described. This is visual consistency work, not a defect."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/53-right-sidebar-non-note-tabs.md",
+    "verdict": "fixed",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "Commit 4e382ea1e (fix(layout): hide the right sidebar on canvas, collection and kanban) plus 7b71c217f (retire .collection files). src/lib/core/layout/layout.logic.ts:22-27 hidesRightSidebar returns true for canvas, view and kanban files; isRightSidebarShown at :36 uses it; layout.service.ts toggleRightSidebar returns early when hidesRightSidebar(activeTabPath); AppShell.svelte hides the toggle button via the same function. Tests exist: src/tests/lib/core/layout/layout.logic.test.ts:31 (a.canvas, a.view, a.kanban) and layout.service.test.ts:177 (toggle does nothing on a canvas tab).",
+    "stale_notes": "Whole Issue is delivered; the .collection part is obsolete because collection files were retired. The Issue file can be closed with a deleting commit."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/54-tab-strip-overflow.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "src/lib/core/markdown-editor/EditorTabs.svelte:45 the strip is a plain overflow-x-auto flex with no edge fade and no tab-list menu; :78-80 renders {tab.name}, and tab names come from getFileName(filePath) (editor.service.ts:136, basename), so .md is shown. Issue 07 (active tab scrolls into view) is delivered at EditorTabs.svelte:40 (scrollIntoView), so the blocker is gone. A scrollable strip with many open tabs is normal use, but the active tab always stays visible.",
+    "stale_notes": "Blocked-by 07 is done. Status is needs-triage, so it is a feature request with no defect; the Issue's breadcrumb mention was not checked (no breadcrumb component found by rg)."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/56-command-palette-density.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "medium",
+    "evidence": "src/lib/components/ui/command/command-dialog.svelte:31-35 still forces py-3 rows, 20px icons and h-12 input; command-list.svelte:13 still max-h-[300px]; the Dialog.Content at dialog-content.svelte:36-45 still renders the close X (showCloseButton defaults true, CommandDialog does not pass false). src/lib/features/command-palette/CommandPalette.svelte renders each row as two stacked lines (label + category below) and has no key-hint footer. No later commit touched this (git log on command-dialog/command-palette shows only Issues 57, 22, 27, 25, 21, 07, 03).",
+    "stale_notes": "Line numbers fine (about line 33 is now 31-35). CommandDialog is shared by QuickSwitcher, TemplatePicker and OneOnOnePicker, so a density change hits those too, not only the palette; the Issue does not say so."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/59-empty-error-badge-primitives.md",
+    "verdict": "design_or_refactor",
+    "category": "refactor",
+    "likelihood": "low",
+    "evidence": "src/lib/components/ui/ has no empty-state, inline-alert or badge directory (ls); rg for EmptyState/InlineAlert finds only the ledger and Issue docs. The alert pattern still lives inline at src/lib/features/collection/CollectionView.svelte:688 and src/lib/features/rail-shell/RailNoteList.svelte:862 (role=alert, border-destructive/50 bg-destructive/10). Valid consolidation work, no user-visible defect.",
+    "stale_notes": "CollectionView 'about lines 585-590' is now line 688 (a second copy at RailNoteList.svelte:862; CollectionView:502 has a variant without role=alert)."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/60-panels-use-empty-error-primitives.md",
+    "verdict": "design_or_refactor",
+    "category": "refactor",
+    "likelihood": "low",
+    "evidence": "Blocked by 59, whose primitives do not exist. Raw String(err) still rendered as UI text at src/lib/features/tasks/TodoistPopover.svelte:76,89,107 (shown at :217) and src/lib/features/search/SearchSection.svelte:50,86 (shown at :122,:156). Tauri commands reject with strings, so String(err) is mostly already the message; the owner does not list Todoist or semantic-model downloads as daily use.",
+    "stale_notes": "EventCalendarView no longer renders raw String(err) as panel copy: lines 140 and 212 use err.message in a toast description, and line 242 shows eventCalendarStore.loadError with role=alert. Only TodoistPopover and SearchSection still match the Issue text."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/61-views-empty-error-states.md",
+    "verdict": "partially_fixed",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "Graph: src/lib/plugins/graph-view/GraphView.svelte:72-76 loadAndRebuild catches a buildGraph failure, only logs via error() and returns, so the canvas stays blank with the footer '0 notes - 0 links' (:441); the only overlay text is the local-mode 'Open a note' hint (:431-435). No Retry, no InlineAlert. Collection: parse errors show an alert (CollectionView.svelte:502) and 'Building index...' shows at :508, but no real empty-result state. Kanban: KanbanListView.svelte:55 shows ad-hoc 'No cards' text.",
+    "stale_notes": "'The canvas has no empty-state' is out of date: src/lib/features/canvas/CanvasInner.svelte:588-593 renders an empty-hint with an '+ Add card' button when nodes and edges are empty (though not via a primitive). Depends on 59 for the primitives."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/66-chrome-icon-buttons.md",
+    "verdict": "design_or_refactor",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "src/lib/components/ui/button/button.svelte:23-25 has only icon, icon-sm, icon-lg (no icon-xs or icon-chrome); src/lib/utils/text-roles.ts:6 lists only label, meta, row, title (no heading); Rail.svelte:122,144 and NoteActionBar.svelte:148,157,175,188,228 still use native title= for labels. Blocker Issue 37 is done (ledger row 37, 56072aa3d), so it is unblocked. Consistency and tooltip polish, not a defect.",
+    "stale_notes": ""
+   },
+   {
+    "path": ".scratch/ux-polish/issues/68-pickers-arrow-keys.md",
+    "verdict": "partially_fixed",
+    "category": "ux",
+    "likelihood": "medium",
+    "evidence": "src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:41-65 already exports handleKeydown with ArrowDown/ArrowUp/Enter/Tab/Escape and a selectedIndex highlight (:80). src/lib/features/properties/RelationshipSearch.svelte (input at line ~62, onkeydown handleKeydown at :32-37) only handles Escape: no arrow keys, no highlighted row, results are mouse-only buttons (onmousedown). Still a gap for the relation property picker.",
+    "stale_notes": "Kanban half is out of date: KanbanWikilinkSuggestions is hand-rolled but has arrow-key navigation. Only RelationshipSearch lacks it. 'about line 31' for RelationshipSearch is now line 32-37 (handleKeydown)."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/69-native-controls-to-shadcn.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "src/lib/plugins/graph-view/GraphControls.svelte:100 and :113 are native <select>; :83-93 and the Arrows toggle (~:137-146) are hand-built switch buttons; src/lib/features/event-calendar/EventDialog.svelte:202 is a native <input type=checkbox> ('Open note after creating'). shadcn select and switch exist under src/lib/components/ui/ (no checkbox primitive yet). Graph view filters are an occasional-use panel.",
+    "stale_notes": ""
+   },
+   {
+    "path": ".scratch/ux-polish/issues/70-settings-grouped-cards.md",
+    "verdict": "design_or_refactor",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "Blocker Issue 24 is resolved (c43c873bd, row anatomy done). src/lib/core/settings/sections/SettingItem.svelte:19-23 still gives every row its own rounded-lg bg-setting-item-bg; sections such as EditorSection.svelte:37 stack rows with flex-col gap-2; no shared group wrapper and no divide-y anywhere in src/lib/core/settings. Owner-check visual restyle, not a defect.",
+    "stale_notes": ""
+   },
+   {
+    "path": ".scratch/ux-polish/issues/71-hover-action-gutter.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "src/lib/features/search/SearchResult.svelte:175-178 places ShowInCalendarButton absolute right-1 bottom-1 over the card with no pr-7 on the snippet/subtitle; src/lib/features/backlinks/LinkItem.svelte:34 places it absolute right-1 top-0.5 over the title row with no gutter. The button renders only when the note is an event (ShowInCalendarButton.svelte:64 {#if isEvent}) and is always visible, not hover-only, so overlap affects event notes only. LayoutSection.svelte:133-165: the Search row has no chevrons and Search/Today rows have no switch, so chevrons land in a different column per row.",
+    "stale_notes": "Line numbers shifted (SearchResult about 176 is now 175-178; LinkItem about 34 is the same). The action is not hover-only: it shows whenever the note is an event, which the owner does not list as daily use."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/72-default-theme-drop-preview-overrides.md",
+    "verdict": "design_or_refactor",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "src/lib/core/settings/theme.logic.ts:149 starts the KOKOBRAIN_DEFAULT_THEME overrides and :187-232 hold the preview block with Catppuccin Mocha hexes (#1e1e2e, #313244, #181825, #a6adc8, #f38ba8, #cdd6f4) for codeblockBg, tableBorder, tableHeaderBg, collection*, embed* while editorBg is #2a2e3d. Blocker Issue 41 is done (53418bf0b). Removing them changes the daily-visible code block, table and embed colors in the Default theme, so it needs the owner screenshot review the Issue already calls for.",
+    "stale_notes": "Lines 168-192 are now 187-232 (the override object begins at line 149); the preview block has grown to about 36 tokens."
+   }
+  ]
+ }
+]

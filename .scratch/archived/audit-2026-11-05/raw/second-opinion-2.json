@@ -1,0 +1,290 @@
+[
+ {
+  "file": ".scratch/audit-2026-11-05/issues/04-closing-main-window-never-leaves-windowless-app.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "high",
+  "reason": "Confirmed at HEAD (no source change since 5f8003d67). tauri-listeners.service.ts:51-54 calls preventDefault, then prepareForExit, then getCurrentWindow().destroy(). The .run closure at lib.rs:392-396 matches only RunEvent::ExitRequested, and rg finds no Reopen anywhere in src-tauri/src. dispatch_shortcut (lib.rs:45) checks only db::is_open(), then advances the signature and emits qc:capture-detected (lib.rs:62-81). The composer also routes through app.emit(QC_CAPTURE_DETECTED_EVENT) (quick_capture/commands.rs:484), so with no main webview it hits the 3 s RESULT_TIMEOUT_MS and shows 'Save not confirmed' (composer/+page.svelte:10,61,216). capabilities/default.json grants allow-destroy and allow-close but not allow-hide; only composer.json has allow-hide. Nothing already written to disk is lost, because the flush runs first. Captures that never reach disk fall under ux by the category definition, though they should be treated as urgent.",
+  "corrections": "The tests that pin destroy() run from tauri-listeners.service.test.ts:224 to about :372, not :224-311 (also the drain, settings-flush and cancel cases at :311, :332, :359 and :372). Move the run closure reference to lib.rs:392-396."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/21-lens-lists-follow-user-s-own-rename.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "medium",
+  "reason": "typeDefinitionsStore.entries is written only by setEntries and patchEntries in tauri-listeners.service.ts:214,251,254, inside the throttled refresh (REFRESH_DELAY_MS 2000, REFRESH_MIN_INTERVAL_MS 10_000, scheduleRefresh :276-290). The only bypass is takePromptIndexRefresh (:297-303). rg requestPromptIndexRefresh lists only list-prefs, lifecycle, collection and type-definitions, and nothing in core/filesystem or new-note.service. applyPathChange updates only fsStore.fileTree. Every non-folder lens resolves from entries (lens.logic.ts:443-445, RailNoteList.svelte:126-135,177-190). The suggested placement after diskOp works: renameItem's diskOp is the plugin-fs rename, and the rename_note index emit comes later from the path-change consumers.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/22-note-list-inline-rename-that-file-name.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "medium",
+  "reason": "NoteRowMenu.svelte:117-126 clears renamingPath, then returns when buildRenameFileName gives null. type-note-list.logic.ts:16-23 returns null both for empty or unchanged input and when isValidFileName fails. FilesNavigator.svelte:163-175 toasts getFileNameError for the same input. A title with ':' or '?' is common. The named test file NoteRowMenu.test.ts exists.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/29-canvas-file-nodes-preview-note-without-yaml.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "medium",
+  "reason": "FileNode.svelte:40-44 reads the whole file and :82-83 renders it with renderCanvasMarkdown, which is only marked.parse plus sanitize (canvas-markdown.logic.ts:14-18) with no frontmatter handling. kanban.service.ts:82 strips frontmatter with stripFrontmatter from embed-resolver.logic.ts:54. The named test file canvas-markdown.logic.test.ts exists.",
+  "corrections": "The criterion 'a file with only frontmatter shows the empty state' also needs the {:else if fileContent} branch (FileNode.svelte:82) to test the stripped body instead of the raw content. Say so in the fix direction, or that criterion is easy to miss."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/30-canvas-duplicate-places-copy-next-node-s.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "medium",
+  "reason": "canvasNodeToFlowNode (canvas.logic.ts:122-130) copies the node into data once. Drag stop (CanvasInner.svelte:131-172) changes only position and parentId. Our own writes set lastSyncedJson, so the sync effect (:96-111) never rebuilds nodes or data after a drag or resize. updateNodeData calls write only text, url/label, editing and color. handleDuplicateNode (:362-368) clones node.data, and duplicateNode (canvas.logic.ts:375-377) offsets data.x/y, so the copy uses the geometry from when the node was loaded.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/35-tasks-view-keeps-list-scroll-position-screen.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "medium",
+  "reason": "buildTaskIndex calls setLoading(true) on every call (tasks.service.ts:65) and runs after each toggle (:150). TasksView.svelte:78-83 re-runs it on every vaultIndexVersion bump and on mount, and :169-170 swaps the whole list for 'Indexing tasks...'. The defect exists. The overlap the Issue names is real: .scratch/tasks-view/issues/04-mounted-list-and-rule-sentence.md item 1 specifies the same fix (isLoading && fileTaskGroups.length === 0) with a failing test. That directory is untracked.",
+  "corrections": "Practically a duplicate of tasks-view/04, which already specifies this fix and test (and is blocked by tasks-view/01). Record that this Issue should be closed in favor of 04 unless the owner wants the list fix to ship ahead of 04's other parts."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/37-leaving-theme-editor-any-way-other-than.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "ThemeEditor.svelte:67-69 calls applyTheme for the draft on every change, and on import (:121). theme.service.ts:42-46 also flips html.dark, color-scheme and appliedThemeStore. Neither ThemeEditor nor AppearanceSection has an onDestroy or teardown (only $effect.pre). applyActiveTheme is called only from the AppearanceSection handlers and from settings.service.ts:242 at vault load. SettingsPanel's Escape (:101-105), X and the {#if isOpen} at :110 destroy the editor. Theme editing is occasional, so likelihood is low.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/39-settings-update-keeps-download-progress-restart-update.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "status, pendingUpdate, downloadProgress and totalBytes are component $state (UpdateSection.svelte:94-99). checkForUpdates awaits download_and_install and only then sets 'ready'. SettingsPanel unmounts the section on close or section change. update-check.service.ts holds no state for the section. On remount the section is idle and shows Check again. Updates are an occasional flow.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/40-paste-cut-copy-inside-meta-bind-number.md",
+  "upheld": true,
+  "category": "content",
+  "likelihood": "low",
+  "reason": "CONTROL_EVENT_TYPES (form-control-events.ts:2-11) has no paste, cut, copy or drop. The widgets' ignoreEvent (widgets.ts:414, :815, :960, :1002) returns isFormControlInputEvent, so eventBelongsToEditor (@codemirror/view 6.43.15, index.js:4921-4931) gives the event to CodeMirror. handlers.paste (:5192-5205) calls doPaste at the editor selection with no focus or selection guard. copy/cut (:5242+) use copiedRange, which is the whole cursor line when the selection is empty, and cut dispatches delete.cut. The native Edit menu paste (lib.rs:232) sends a normal paste event. Autosave then writes the inserted text, or the deleted line, to the note. That is note content corrupted on disk, so the category is content, not ux as the Issue says.",
+  "corrections": "Recategorize from ux/low to content: Cmd+V puts clipboard text into another line of the note, and Cmd+X deletes a note line, and autosave writes both to disk. Copy alone only puts the wrong text on the clipboard."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/43-cmd-click-reference-link-email-autolink-opens.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "findMarkdownLinkUrlAtPosition (parsers/link.ts:74-110) needs a URL child, which a reference link does not have. click-handler.ts:30-32 then falls back to textContent. isSafeUrl (sanitize-url.ts:10-13) accepts scheme-less strings and '#...'. openExternal is openUrl (editor-host.ts:121-123), and a rejection reaches only reportError. These link forms are rare in daily use.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/46-settings-file-history-automatic-snapshots-takes-effect.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "The only reader of history.enabled is app-lifecycle.service.ts:269, at vault init. The FileHistorySection switch only calls updateHistory. registerFileHistoryHook (file-history.service.ts:190-196) and saveSnapshotForFile (:111-124) never read the flag. saveSnapshotForFile has one caller (the observer), so putting the check in it does not affect any manual path.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/47-tags-view-keeps-list-expanded-tags-screen.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "buildTagIndex calls setLoading(true) unconditionally (tags.service.ts:27). TagsView.svelte:79-80 replaces the keyed list with 'Indexing tags...', and the header count is hidden while loading (:52-56). TagItem.svelte:19 keeps open as local $state. EditorView.svelte:73-74 mounts TagsView only while its tab is active, and the $effect on vaultIndexVersion runs on mount. TagsView.test.ts mocks tags.service, so the new test file the Issue proposes is justified.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/48-clearing-search-box-while-search-still-running.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "performSearch bumps searchVersion (:128) and returns on an empty query before setSearching (:130-135). The older call's finally clears isSearching only when searchVersion === version (:271-274). SearchPanel.svelte:115-118 checks isSearching before the empty-query hint. +layout.svelte:170-180 runs performSearch for an empty query too. The trigger needs a slow search (semantic or hybrid), so likelihood is low.",
+  "corrections": "The second criterion says 'existing test at :285 stays green' as if that test pinned 'a newer non-empty search still owns isSearching'. search.service.test.ts:285 is only 'sets isSearching to false after completion', and no existing test covers an older call finishing while a newer one runs. Ask for a new test for that case."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/49-tag-click-lists-notes-that-tag-even.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "openSearch (open-search.service.ts:11-15) sets only the query, the rail item and focus. In hybrid mode, parsed.text is empty for 'tag:work', so search_hybrid receives the raw 'tag:work' and the function returns (:145-173). Semantic mode does the same (:243-256). SearchPanel renders the semantic and hybrid lists in those modes. Search mode is session $state in search.store (default 'text'), so the user has to switch modes first, which keeps likelihood low.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/51-formula-that-calls-unknown-function-cannot-confirmed.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "Confirmed at HEAD. FormulaRow.svelte:29 derives expressionError from validateFormulaExpression, and :32-34 gate Confirm on it. validateFormulaExpression (toolbar/formula.logic.ts:98-108) only calls parse(). validateExpression (expression/evaluator.ts:306-316) adds findUnknownFunction against PLAIN_FUNCTIONS, and FilterRow.svelte:44 uses it. evaluateCall throws 'Unknown function' (evaluator.ts:468), and executeQuery's catch (collection.logic.ts:182-188) stores null for every row. No guard or later fix exists. The source has not changed since 5f8003d67, apart from version-number edits in Cargo.toml and tauri.conf.json.",
+  "corrections": "The paths are abbreviated. formula.logic.ts is src/lib/features/collection/toolbar/formula.logic.ts:98-108, and evaluator.ts is src/lib/features/collection/expression/evaluator.ts:306-316 (PLAIN_FUNCTIONS :294-298)."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/55-todoist-sync-tells-user-when-could-not.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "Confirmed. fetchTaskById rethrows everything except a 404 (todoist.service.ts:84-91). syncTodoistTasks sends each rejection only to debug() (:276-278), saves the file and returns normally (:281). handleSync (TasksView.svelte:85-91) only calls console.error. The trigger needs Todoist in use, and owner memory says there is no external sync, but the tasks-view Issues 20-30 show Todoist work is planned, so it is reachable. Status needs-info is correct. .scratch/tasks-view/issues/20-todoist-sync-errors-visible.md now exists and covers all of this Issue, plus correct 404 handling, 429 retry and per-row errors.",
+  "corrections": "Recommend closing 55 in favor of tasks-view/20, which is a superset. If 55 is kept, fix the AC 'A 404 still counts as deleted': today a 404 is stored as todoistCompleted:false (todoist.service.ts:270-273), which shows the task as open, not deleted. Issue 20 also explains that a test in todoist.service.test.ts mocks todoist-client (:14-19), so it cannot prove the real SDK's error shape."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/56-new-file-from-template-says-name-taken.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "Confirmed. createFileFromTemplate (templates.service.ts:55-69) passes `${vault}/${name}.md` to openOrCreateNote. When exists() is true, openOrCreateNote (note-creator.service.ts:87-127) skips creation and the template and just opens the file. Nothing throws, so TemplatePicker.svelte:33-46 shows no toast. No test asserts the opposite. templates.service.test.ts mocks plugin-fs exists and openOrCreateNote, so the proposed failing test can be written. Nothing on disk is lost, so the category is ux.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/57-quick-switcher-create-folder-path-projects-idea.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "Confirmed. QuickSwitcher.svelte:40-58 passes 'Projects/Idea.md' to createFile(vault). createFile (fs.service.ts:198-224) builds the path under the vault root and calls create_note. Rust create_note (vault.rs:984-1004) has no create_dir_all, and write_atomic's temp write (fs.rs:27) fails when the parent is missing. The bare catch shows 'Failed to create file.' filterAndRank fuzzy-matches nameWithoutExt only (file-entries.logic.ts:51-56), so a query containing '/' usually reaches the Create branch. ensure_safe_write_path already rejects '..' on the Rust side, which supports refusing it in the frontend with a clear message.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/58-dragging-node-graph-moves-that-node-dragging.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "Confirmed against the installed d3. GraphView.svelte:305 registers zoom first and :336 registers drag second, on the same canvas. d3-zoom@3.0.0 zoom.js mousedowned calls nopropagation, which is stopImmediatePropagation, and its default filter accepts a primary-button mousedown. d3-drag@3.0.0 registers mousedown.drag on the same element, so its handlers never run. help/documentation/14-graph-view.md:18 documents node dragging. Graph view is not in the owner's daily list, so likelihood is low.",
+  "corrections": "Reordering the behaviors exposes a second bug that the ACs do not catch. The subject (:309-313) returns sim-space {x: node.x, y: node.y}, so d3-drag reports event.x as sim position plus screen delta, while the 'drag' handler (:324) runs currentTransform.invert on it as if it were screen coordinates. After any zoom or pan the node jumps away from the cursor. Add an AC that drags a node under a non-identity transform and checks that node.fx/fy end under the pointer. The subject should return screen coordinates (currentTransform.apply([node.x, node.y]))."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/59-switching-graph-arrows-toggle-redraws-graph-once.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "Confirmed. GraphControls.svelte:132 calls setDisplay. render() reads display.showArrows (GraphView.svelte:154), but render runs only on tick (:124), resizeCanvas (:274), zoom (:303) and a hover change (:357). The $effect at :375-385 tracks mode, filters and centerPath only. The controls are not on the canvas, so clicking them fires no canvas mousemove, and once the simulation has cooled nothing redraws. Graph view is not daily-use, so likelihood is low.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/62-status-bar-note-count-follows-notes-created.md",
+  "upheld": true,
+  "category": "polish",
+  "likelihood": "medium",
+  "reason": "Confirmed. setIndexStats has one caller, buildSearchIndex (search.service.ts:288), and buildSearchIndex is called only from app-lifecycle.service.ts:425. setSemanticStats has two callers (:356, :398). The after-save hook (:320) and applyNoteChange (note-change.service.ts:209, :247) discard their results. SearchStatus is mounted in AppShell.svelte:305 and renders the frozen totalDocuments. fts_repo::count_entries (:245) and get_semantic_stats (semantic.rs:1220) exist as stated, and src-tauri/tests has fts_repo_test.rs and search_fts_test.rs. Any create or delete leaves the count stale.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/73-every-language-code-block-dropdown-guide-offer.md",
+  "upheld": true,
+  "category": "polish",
+  "likelihood": "low",
+  "reason": "Confirmed. code-highlight.logic.ts:5 calls createLowlight(common), and nothing else registers grammars. node_modules/lowlight/lib/common.js has no powershell, dockerfile, elixir, haskell or scala. COMMON_LANGUAGES lists them at code-block-widget.ts:41-47, and help/documentation/04-markdown.md:424 claims them. Both named test files exist.",
+  "corrections": "The AC 'every COMMON_LANGUAGES entry other than plaintext produces hljs markup' needs a sample per language that really produces a hljs- span; a trivial sample such as one word of markdown or shell may produce none. Say that the test uses one representative snippet per language."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/75-auto-move-example-s-steps-move-notes.md",
+  "upheld": true,
+  "category": "polish",
+  "likelihood": "low",
+  "reason": "Confirmed. Cmd+S calls saveCurrentFile, then saveFileByPath, then writeTab. writeTab returns early when the tab is not dirty (editor.service.ts:189), so notifyAfterSave never runs, and the auto-move hook (auto-move.service.ts:96) is its only trigger. The README says 2000 ms (:41) while the default is 3000 (settings.store.svelte.ts:109; 22-auto-move.md:113). loadAutoMoveConfig is called only at vault open (app-lifecycle.service.ts:292), with no file watch, and saveAutoMoveConfig writes the store unconditionally. The Issue is docs only, and the src/tests/help layout it cites exists.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/76-personal-week-kanban-example-uses-valid-sortmode.md",
+  "upheld": true,
+  "category": "polish",
+  "likelihood": "low",
+  "reason": "Confirmed. personal-week.kanban:23 has \"unchecked\", and the README :9 repeats it. KanbanSortMode (kanban.types.ts:43) has 'checked'. sortItems has no case for 'unchecked', so nothing is sorted. 21-kanban.md:176 says 'per lane', but sortMode is in the board-level KanbanSettings (:56-57).",
+  "corrections": "The AC compares against 'the SORT_LABELS keys', but SORT_LABELS is a local const inside KanbanView.svelte:187 that a test cannot import. Compare against an explicit list of the KanbanSortMode values, or an exported constant. The impact is slightly overstated: dragging is off for any non-manual sort (canReorderItems, kanban.logic.ts:906-908), so switching to \"checked\" will not bring dragging back. Only the missing sort and the blank select are caused by the wrong value."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/79-calendar-day-more-than-three-notes-lets.md",
+  "upheld": true,
+  "category": "polish",
+  "likelihood": "low",
+  "reason": "Confirmed. MAX_EVENTS_PER_CELL = 3 (CollectionCalendarView.svelte:36). Only the sliced visibleEvents get buttons (:152-160). '+N more' is a bare span with no handler (:161-165), and the day number is a plain span (:142-149). No other path inside the calendar reaches the 4th or later note. No CollectionCalendarView component test exists yet, so the file the Issue names is new, as it says.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/80-kb-table-kb-ui-table-kb-list.md",
+  "upheld": true,
+  "category": "polish",
+  "likelihood": "low",
+  "reason": "Confirmed. renderValue (kb-api.ts:488-523) uses value.map(String) for arrays (:518-519) and String(value) for anything else (:521). DataArray.toString (data-array.ts:350-352) maps String over its items. buildKBLink returns a plain object with no toString, so each link renders as '[object Object]'. file.inlinks and outlinks are KBLink[]. kb.table (:331), kb.list (:306) and kb.ui (via renderValue bound at :151, used at kb-ui.ts:443) all share this renderer. A list whose items are single links works, as the Issue notes.",
+  "corrections": "The Issue cites kb-api.ts:336 for kb.table; the call is at :331."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/128-failed-auto-move-tells-user-which-note.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "Confirmed. moveItem throws targetExistsError when the target exists (fs.service.ts:312) and logs through error() before rethrowing (:323-326). evaluateAndMove catches it with a bare `catch { return; }` (auto-move.service.ts:189-194), which also skips the icon. The auto-move feature has no toast. auto-move.service.test.ts already mocks fs.service moveItem (:17-18), so the proposed test fits the existing mocking pattern.",
+  "corrections": "Optional: a failure to create the destination folder (auto-move.service.ts:176-185) is also only logged and returns silently. It could join the same toast path, or be stated as out of scope."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/05-live-preview-controls-change-only-text-user.md",
+  "upheld": true,
+  "category": "content",
+  "likelihood": "medium",
+  "reason": "All three defects are still in the code at HEAD (cae210211; src/ has had no change since 5f8003d67). F101: Lezer emits a single CodeInfo node covering the whole info string (node_modules/@lezer/markdown/dist/index.js:462-465). fenced-code-block.ts:58-61 stores that whole string as `language` together with its bounds. code-block-widget.ts:149-151 adds it to the dropdown as an extra option, and :171-182 replaces the full range, so text after the language tag is deleted and then autosaved. F92: the TaskCheckboxWidget mousedown listener (widgets.ts:41-47) calls preventDefault and dispatches for every mouse button, while the wikilink listener in the same file returns early at :311. F121: paste-tsv-handler.ts:20-24 never checks where the cursor is. looksLikeTSV (paste-tsv.logic.ts:19-26) accepts an empty first cell, so tab-indented code turns into a pipe table. No existing test asserts the current behavior.",
+  "corrections": "The SPECIAL_LANGUAGES caveat is out of date. MERMAID_OPEN_RE, QUERYJS_OPEN_RE, COLLECTION_OPEN_RE and META_BIND_BUTTON_OPEN_RE no longer exist; rg finds no *_OPEN_RE in those parsers. Each special decorator now goes through findSpecialFenceBlocks (fenced-code-block.ts:128-146), which matches on `block.language !== language` (:132). If the fix narrows `language` to the first token, the special decorators would start claiming ```mermaid title=\"x\"```, and criterion 3 would fail unless findSpecialFenceBlocks also matches on the whole-info field. The Issue must say this. MarkdownEditor.svelte:84-89, :412 should be handleContextMenu :288 and oncontextmenu :716. The body still cites the old line numbers (fenced-code-block.ts:59-62, code-block-widget.ts:111/145-181, widgets.ts:36-42/:295/:18, code-block-field.ts:12,27). Use the numbers from the header."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/06-canvas-edit-closed-renamed-inside-debounce-window.md",
+  "upheld": true,
+  "category": "content",
+  "likelihood": "low",
+  "reason": "The close case is real. closeTab (editor.service.ts:309-333) only checks isTabDirty, and the tab is still clean inside the 300 ms debounce (CanvasInner.svelte:236). It then calls removeTab, and only afterwards does the keyed instance's onDestroy (:246-250) run persistChanges -> onJsonChange(ownPath) (:123) -> onContentChangeForPath (:265-268) -> updateTabContentOnly (editor.store.svelte.ts:139-144). By then there is no tab, so the edit is dropped. Each keystroke re-arms the debounce, so a continuous typing burst followed by an immediate Cmd+W loses the whole burst. The existing test (canvas-tab-switch.test.ts:158-173) only checks the neighbour tab.",
+  "corrections": "In daily use the rename case is close to unreachable. The debounce fires 300 ms after the last edit whether or not the canvas has focus, and any rename the user starts (dialog, file tree, F2) takes longer than that, so pendingPersist is already false when the re-key destroys the instance. Only a programmatic rename (auto-move, which is off by default, or a watcher-detected rename) can hit it, so demote the rename criterion. Option 2 ('save a path with no open tab straight to disk') is unsafe for rename: it would write to the old path and recreate the renamed-away file. Prefer the pre-close flush hook. 'Stale in the text below: Accurate at HEAD' is wrong for the merged Issue 49 section: EditorView is now keyed (:83-85), persists already go by path (onContentChangeForPath), and its line numbers (EditorView:80-81, CanvasInner:85-115/:208-234, editor.service.ts:228-231/:266-294) are stale. Mark that section and its already-met checkboxes as historical, leaving only the Cmd+W criterion."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/07-empty-frontmatter-block-matched-writers-never-stack.md",
+  "upheld": true,
+  "category": "content",
+  "likelihood": "medium",
+  "reason": "Confirmed. ensureFolderNote writes '---\\n---\\n' (file-icons.service.ts:100). setIconForPath and setIconColors then go through updateNoteFrontmatter (frontmatter-write.service.ts:111-160), which calls rebuildContent(mutate(parse(base)), extractBody(base), base). FRONTMATTER_REGEX (properties.logic.ts:38) needs a newline before the closing fence, so extractBody returns the whole placeholder, and rebuildContent (:677-685) puts a new block in front of it. The result on disk is '---\\n_icon...\\n---\\n---\\n---\\n'. ensureFrontmatterLink (:518-520) is the only writer with a special case for this shape. No user text is lost; two stray lines are added once per file.",
+  "corrections": "The Issue is marked ready-for-agent but has no acceptance-criteria checkboxes. Add at least: setIconForPath on a folder without a folder note writes exactly one block; a Properties or updateNoteFrontmatter write on a note that starts with '---\\n---\\n' does not stack a second block; the moved repro test is the red test. The test it would extend is src/tests/lib/features/file-icons/file-icons.service.test.ts:151-158 ('routes directories to folder note frontmatter'). Fix-sketch caveat: with the optional-group regex, match[1] is undefined for an empty block, so extractRawFrontmatter must return '' (not undefined) to keep its string|null contract. The ensureFrontmatterLink special case then becomes redundant."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/08-file-history-keeps-snapshot-pre-save-bytes.md",
+  "upheld": true,
+  "category": "content",
+  "likelihood": "low",
+  "reason": "The missing baseline is real. saveSnapshotForFile is called only from the after-save observer (file-history.service.ts:190-196) with the bytes just written, and nothing snapshots a note on open or before a write (rg finds no other caller). The deep-link overwrite path (deep-link.service.ts:262-266 -> saveFileByPath does nothing for a clean or closed note; writeTextFile :310; notifyAfterSave(new content) :313) leaves no copy of the replaced text, and the comment at :262 claims otherwise. Likelihood is low: the trigger is a user mistake that is not undone in the session, or a deep link with overwrite=true.",
+  "corrections": "The title's retention half ('retention never deletes a note's last snapshot') is documented, intended behavior: help/documentation/15-file-history.md:48-57 says 'Old: All snapshots are permanently deleted', and src-tauri/src/db/history_repo.rs:194-205 tests that. Changing it needs an owner decision, so drop it from the title or record that decision. The status should not be ready-for-agent while the text says 'Triage must add criteria for the original sections above before this Issue runs': the main pre-save-baseline section still has no criteria (the moved repro .scratch/file-io-audit/repro/o05-settings-history/file-history-baseline.test.ts should be its red test). Line numbers: saveOpenNoteBeforeWrite is at :242-246 (not :247-250), the misleading comment at :262 (not :264), the call at :263-265, notifyAfterSave at :313 (not :312)."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/15-canvas-file-image-nodes-store-vault-relative.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "high",
+  "reason": "Confirmed. flattenFileTree returns node.path (file-entries.logic.ts:21), which is absolute. CanvasFilePicker.svelte:61 passes it to handleSelect. handleFileSelected and handleImageSelected (CanvasInner.svelte:481-496) and handleDrop (:558-583, absolute text/plain set by FilesNavigator.svelte:253 and NoteRow.svelte:72) store it unchanged through createFileNode and createImageNode (canvas.logic.ts:353-372). The readers then prefix the vault path again (FileNode.svelte:40, canvas-image.service.ts:33-34), producing '/vault//vault/x' and 'Could not load file'. The FileNode click (:56-58) opens data.file raw, so vault-relative (Obsidian) paths fail there. Nothing else reads node.file (no rename or link-updater leg), so storing relative paths is safe. The note text is untouched: this is a display failure.",
+  "corrections": "The header verdict says 'content, high'. It is ux, as the Issue's own bucket says. 'Line numbers match HEAD' is wrong for the Notes: CanvasInner handleFileSelected/handleImageSelected are at :481-496 (not :465-476), handleDrop at :558-583 (not :541-559), FilesNavigator setData at :253 (not :246), NoteRow at :72 (not :70), and the FileNode click handler at :56-58 (not :55)."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/20-enter-quick-switcher-creates-note-when-nothing.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "medium",
+  "reason": "Confirmed at HEAD and in bits-ui. When nothing matches, QuickSwitcher.svelte:94-103 renders a plain <button onclick> inside Command.Empty. bits-ui's Enter handler (node_modules/bits-ui/dist/bits/command/command.svelte.js:956-968) only clicks #getSelectedItem(), and there is no Command.Item to select, so Enter does nothing. The component has no keydown handler of its own. The test helper createFromQuery (QuickSwitcher.test.ts:57-70) clicks a button, as the Issue says.",
+  "corrections": ""
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/23-file-history-follows-note-through-rename-move.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "medium",
+  "reason": "Confirmed. Snapshots are keyed by vault-relative path (file-history.service.ts:27, :115). path-change.service.ts has no history leg; its only 'snapshot' hits are tree-snapshot comments at :132-148. In src-tauri/src and src/lib, rg finds no UPDATE of snapshots.file_path and no rename_history; history_repo.rs only SELECTs and DELETEs by file_path. After a rename the panel is empty, and a new note at the old path inherits the old rows. The note's bytes are untouched, so this is wrong data on screen.",
+  "corrections": "The header verdict says 'content, medium'. It is ux, as the Issue's own bucket says. The Issue is marked ready-for-agent but has no acceptance-criteria checkboxes. Add: the moved repro test (.scratch/file-io-audit/repro/o05-settings-history/file-history-rename.test.ts) passes as the red test; a folder rename re-keys every child's rows; a suffixed trash restore follows its rows; a cargo test for the Rust rename_history. This also changes the gate to Both (cargo test + pnpm check + vitest)."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/38-relationship-picker-navigates-arrow-keys.md",
+  "upheld": true,
+  "category": "ux",
+  "likelihood": "low",
+  "reason": "For RelationshipSearch the gap is real, and wider than arrow keys. handleKeydown (RelationshipSearch.svelte:32-37) only handles Escape. The result rows are buttons that act on onmousedown only, and keyboard Enter or Space on a focused button fires click, not mousedown, so the picker cannot be operated from the keyboard at all. KanbanWikilinkSuggestions.svelte:41-65 already has ArrowUp/ArrowDown/Enter/Tab and a selectedIndex highlight.",
+  "corrections": "The body and criteria are stale: 'What to build' still asks to rebuild both pickers on Command inside a Popover, and the first criterion asks for tests 'in both pickers'. Narrow both to RelationshipSearch.svelte, which already uses Popover, so only the list needs to become Command or get a selectedIndex. Also make Enter select the highlighted row; today even Enter on a focused row does nothing because the rows only handle mousedown. The existing test is src/tests/lib/features/properties/RelationshipSearch.test.ts. Remove the 'Triage: check the cited lines before promoting' note, or set the status back to needs-triage."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/45-backlinks-outgoing-links-show-load-error-retry.md",
+  "upheld": false,
+  "category": "corner",
+  "likelihood": "low",
+  "reason": "The swallow-and-show-empty code path exists (backlinks.service.ts:166-167, outgoing-links.service.ts:87-88), but the trigger cannot be reached in daily use. get_backlinks_v2, get_outgoing_links_v2 and get_outgoing_unlinked_mentions_v2 (src-tauri/src/commands/vault.rs:481-490, :514-523, :536-546) have exactly one Err path: 'VaultIndex lock poisoned'. That needs a Rust panic while the write lock is held. The JS side (contracts/ipc.ts:21-27 `call`) adds no validation that could reject. A std RwLock stays poisoned for the rest of the process, so in the only real failure the proposed Retry can never succeed, and every other index read is broken too. The criterion 'after the mock resolves [], clicking Retry shows No backlinks found' tests a reject-then-recover sequence the backend cannot produce.",
+  "corrections": "If kept, describe it as a poisoned-index edge case, not a daily-use ux bug. Drop the Retry button, which cannot recover a poisoned lock; a persistent 'Could not load' message, or a toast suggesting an app restart, is the honest fix. The criteria should not simulate a recovering IPC."
+ }
+]

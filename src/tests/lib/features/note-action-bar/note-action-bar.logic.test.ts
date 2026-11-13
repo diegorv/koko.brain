@@ -29,16 +29,18 @@ describe('getActionBarState', () => {
 	it('accepts the `type` alias and reports an archived note', () => {
 		const content = '---\ntype: Person\n_archived: true\n---\n';
 
-		expect(getActionBarState(PATH, content)).toMatchObject({ typeLabel: 'Person', archived: true, organized: false });
+		// A missing _organized reads as organized, as in the Rust index.
+		expect(getActionBarState(PATH, content)).toMatchObject({ typeLabel: 'Person', archived: true, organized: true });
 	});
 
-	it('falls back to "Note" with every flag off for a note without frontmatter', () => {
+	it('falls back to "Note" with favorite and archived off for a note without frontmatter', () => {
 		expect(getActionBarState(PATH, 'Just text\n')).toEqual({
 			typeLabel: 'Note',
 			typeName: null,
 			fileName: 'Launch plan.md',
 			favorite: false,
-			organized: false,
+			// A missing _organized reads as organized, as in the Rust index.
+			organized: true,
 			archived: false,
 		});
 	});
@@ -66,7 +68,7 @@ describe('foldActions', () => {
 
 	it('keeps every foldable action in the bar, in bar order with Neighbourhood first, when there is room for all', () => {
 		expect(foldActions(widthFor(5))).toEqual({ inline: ALL, folded: [] });
-		expect(foldActions(2000)).toEqual({ inline: ALL, folded: [] });
+		expect(foldActions(3000)).toEqual({ inline: ALL, folded: [] });
 	});
 
 	it('folds the actions into More one by one in the fixed order: Copy path, Reveal, TOC, width, Neighbourhood', () => {
@@ -88,8 +90,17 @@ describe('foldActions', () => {
 		expect(wide).toEqual({ inline: ['neighbourhood', 'width', 'toc', 'reveal'], folded: ['copy-path'] });
 	});
 
-	it('folds nothing for an unmeasured bar (width 0)', () => {
-		expect(foldActions(0)).toEqual({ inline: ALL, folded: [] });
+	it('folds everything for an unmeasured bar (width 0)', () => {
+		expect(foldActions(0)).toEqual({ inline: [], folded: ALL });
+	});
+
+	it('keeps every foldable action in More on a bar under 992 px, a typical editor pane', () => {
+		expect(BAR_RESERVED_WIDTH).toBe(960);
+		for (const width of [400, 600, 900, 991]) {
+			expect(foldActions(width)).toEqual({ inline: [], folded: ALL });
+		}
+		expect(foldActions(992)).toEqual({ inline: ['neighbourhood'], folded: ['width', 'toc', 'reveal', 'copy-path'] });
+		expect(foldActions(1120)).toEqual({ inline: ALL, folded: [] });
 	});
 
 	it('the fold order lists every foldable action exactly once', () => {

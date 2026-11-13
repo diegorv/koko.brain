@@ -39,7 +39,7 @@
 {:else}
 	{#each rows as row (row.path)}
 		<div
-			class="flex items-center gap-1 rounded pr-1 {row.path === editorStore.activeTabPath
+			class="flex items-center gap-1 rounded-md pr-1 {row.path === editorStore.activeTabPath
 				? 'bg-file-explorer-accent'
 				: 'hover:bg-file-explorer-accent'}"
 			data-my-people-row={row.name}
@@ -64,7 +64,7 @@
 			</span>
 			<button
 				type="button"
-				class="flex shrink-0 cursor-default items-center gap-0.5 rounded px-1 py-0.5 text-[11px] text-file-explorer-muted-fg transition-colors hover:text-file-explorer-fg"
+				class="flex shrink-0 cursor-default items-center gap-0.5 rounded-xs px-1 py-0.5 text-[11px] text-file-explorer-muted-fg transition-colors hover:text-file-explorer-fg"
 				title="New 1:1 with {row.name}"
 				onclick={() => newOneOnOne(row.name)}
 				data-my-people-new

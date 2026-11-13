@@ -1,0 +1,281 @@
+import { toast } from 'svelte-sonner';
+import { call } from '#lib/contracts/ipc.js';
+import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { error } from '#lib/utils/debug.js';
+import type { CycleTrigger } from './cycle-log.logic.js';
+import {
+	autoCycleDelay,
+	autoSyncCreateCapMessage,
+	autoSyncDetachCapMessage,
+	autoSyncFailureMessage,
+	autoSyncFieldCapMessage,
+	autoSyncOverCapMessage,
+	hasAnchoredLine,
+	isFirstRunDone,
+	rateLimitWaitMs,
+	type AutoSyncFailureKind,
+} from './sync-scheduler.logic.js';
+import { syncErrorMessage } from './sync-scope.logic.js';
+import { syncNow, type SyncMode, type SyncNowOutcome } from './sync-now.service.js';
+
+/** Minimum time between the end of a cycle and the next automatic one (design rule 13). */
+const MIN_GAP_MS = 30_000;
+/** Delay after saving a note with anchored lines before its cycle. */
+const SAVE_DELAY_MS = 5_000;
+
+/** What starts an automatic cycle. */
+type AutoTrigger = Exclude<CycleTrigger, 'manual'>;
+
+/** The automatic triggers of one open vault. */
+interface Session {
+	vaultPath: string;
+	intervalTimer: ReturnType<typeof setTimeout> | null;
+	/** Fires when the gap or a rate-limit wait ends for a deferred automatic cycle. */
+	dueTimer: ReturnType<typeof setTimeout> | null;
+	saveTimer: ReturnType<typeof setTimeout> | null;
+	unsubscribeSave: () => void;
+}
+
+const OVER_CAP_TOAST_ID = 'todoist-sync-over-cap';
+const DETACH_CAP_TOAST_ID = 'todoist-sync-detach-cap';
+const FIELD_CAP_TOAST_ID = 'todoist-sync-field-cap';
+const CREATE_CAP_TOAST_ID = 'todoist-sync-create-cap';
+
+const SKIPPED: SyncNowOutcome = { ok: false, message: 'Automatic Todoist sync waits for the first sync.' };
+const STOPPED: SyncNowOutcome = { ok: false, message: 'The Todoist sync was stopped before it ran.' };
+
+let session: Session | null = null;
+/** Whether a cycle (automatic or manual) is in progress. */
+let running = false;
+/** The one cycle queued by triggers that arrived during a cycle, by its first trigger; manual wins over auto. */
+let followUp: CycleTrigger | null = null;
+/** "Sync now" calls waiting for the queued manual follow-up. */
+let manualWaiters: ((outcome: SyncNowOutcome) => void)[] = [];
+let lastEndedAt = Number.NEGATIVE_INFINITY;
+/** No automatic cycle before this time, after a 429. */
+let blockedUntil = 0;
+/** The token Todoist rejected with a 401; automatic cycles stay off while it is the configured one. */
+let rejectedToken: string | null = null;
+/** Failure kinds whose persistent toast is showing; cleared by a successful cycle. */
+const toastedKinds = new Set<AutoSyncFailureKind>();
+/** Whether the over-cap toast is showing; cleared by a successful cycle that skipped nothing. */
+let overCapToasted = false;
+/** Whether the detach over-cap toast is showing; cleared by a successful cycle that skipped no detach. */
+let detachCapToasted = false;
+/** Whether the field push over-cap toast is showing; cleared by a successful cycle that skipped no field push. */
+let fieldCapToasted = false;
+/** Whether the create over-cap toast is showing; cleared by a successful cycle that skipped no create. */
+let createCapToasted = false;
+
+/**
+ * Starts the automatic sync for the vault at `vaultPath`: a cycle now (the
+ * vault-open trigger), then every `syncIntervalMinutes`, when the window
+ * regains focus, and 5 s after a note of this vault holding an anchored task
+ * line is saved. Automatic cycles run one at a time, at least 30 s apart and
+ * not before a 429's wait ends; they skip while sync is off, while the token
+ * is one Todoist rejected, when another vault is open, and until the sync
+ * state has `first_run_done` (design rule 9). A failure shows a persistent
+ * toast once per kind until a cycle succeeds. An automatic cycle over the
+ * close/reopen, field push, detach or create cap never asks: it skips that action class and
+ * shows a persistent toast once per class, until a cycle succeeds without
+ * skipping it. Replaces a running
+ * session.
+ */
+export function startAutoSync(vaultPath: string): void {
+	stopAutoSync();
+	const s: Session = { vaultPath, intervalTimer: null, dueTimer: null, saveTimer: null, unsubscribeSave: () => {} };
+	session = s;
+	s.unsubscribeSave = addAfterSaveObserver((filePath, content) => {
+		// Sync off (the default): skip the task-line parse of every saved note.
+		if (!settingsStore.todoist.syncEnabled) return;
+		if (!filePath.startsWith(`${vaultPath}/`) || !hasAnchoredLine(content)) return;
+		if (s.saveTimer !== null) clearTimeout(s.saveTimer);
+		s.saveTimer = setTimeout(() => {
+			s.saveTimer = null;
+			requestAutoCycle('after-save');
+		}, SAVE_DELAY_MS);
+	});
+	window.addEventListener('focus', onFocus);
+	scheduleInterval(s);
+	requestAutoCycle('vault-open');
+}
+
+/**
+ * Stops the automatic sync: no trigger fires any more, a queued follow-up is
+ * dropped (a waiting "Sync now" resolves as stopped), the persistent
+ * failure and over-cap toasts it shows are dismissed, and the rate-limit,
+ * rejected-token and toast state is cleared. A cycle in progress finishes;
+ * its writes stay guarded by `syncNow`'s vault recheck.
+ */
+export function stopAutoSync(): void {
+	const s = session;
+	if (s === null) return;
+	session = null;
+	for (const timer of [s.intervalTimer, s.dueTimer, s.saveTimer]) if (timer !== null) clearTimeout(timer);
+	s.unsubscribeSave();
+	window.removeEventListener('focus', onFocus);
+	followUp = null;
+	for (const resolve of manualWaiters.splice(0)) resolve(STOPPED);
+	lastEndedAt = Number.NEGATIVE_INFINITY;
+	blockedUntil = 0;
+	rejectedToken = null;
+	// The toasts belong to this vault: dismissed, so the next vault starts with none on screen.
+	for (const k of toastedKinds) toast.dismiss(toastId(k));
+	toastedKinds.clear();
+	if (overCapToasted) toast.dismiss(OVER_CAP_TOAST_ID);
+	if (detachCapToasted) toast.dismiss(DETACH_CAP_TOAST_ID);
+	if (fieldCapToasted) toast.dismiss(FIELD_CAP_TOAST_ID);
+	if (createCapToasted) toast.dismiss(CREATE_CAP_TOAST_ID);
+	overCapToasted = false;
+	detachCapToasted = false;
+	fieldCapToasted = false;
+	createCapToasted = false;
+}
+
+/**
+ * Palette "Todoist: Sync now": runs a cycle and shows its message in a toast.
+ * During a cycle it queues as the follow-up and resolves when that runs;
+ * during a 429 wait it sends nothing and says how long to wait.
+ */
+export async function syncNowFromUi(): Promise<void> {
+	const { ok, message } = await requestManualCycle();
+	if (ok) toast.success(message);
+	else toast.error(message);
+}
+
+function requestManualCycle(): Promise<SyncNowOutcome> {
+	const refusal = rateLimitRefusal();
+	if (refusal !== null) return Promise.resolve(refusal);
+	if (running) {
+		followUp = 'manual';
+		return new Promise((resolve) => manualWaiters.push(resolve));
+	}
+	return runCycle('manual');
+}
+
+/** The "Sync now" refusal while a 429's wait runs, or null when nothing blocks. */
+function rateLimitRefusal(): SyncNowOutcome | null {
+	const wait = blockedUntil - Date.now();
+	if (wait <= 0) return null;
+	return { ok: false, message: syncErrorMessage({ kind: 'rate-limit', retryAfter: Math.ceil(wait / 1000) }) };
+}
+
+function scheduleInterval(s: Session): void {
+	s.intervalTimer = setTimeout(() => {
+		scheduleInterval(s);
+		requestAutoCycle('interval');
+	}, settingsStore.todoist.syncIntervalMinutes * 60_000);
+}
+
+function onFocus(): void {
+	requestAutoCycle('focus');
+}
+
+/** Runs, defers or queues an automatic cycle; a deferred or queued one keeps the first trigger that asked for it. */
+function requestAutoCycle(trigger: AutoTrigger): void {
+	const s = session;
+	if (s === null) return;
+	if (running) {
+		followUp ??= trigger;
+		return;
+	}
+	const wait = autoCycleDelay(Date.now(), lastEndedAt, blockedUntil, MIN_GAP_MS);
+	if (wait > 0) {
+		s.dueTimer ??= setTimeout(() => {
+			s.dueTimer = null;
+			requestAutoCycle(trigger);
+		}, wait);
+		return;
+	}
+	const { syncEnabled, apiToken } = settingsStore.todoist;
+	if (!syncEnabled || apiToken === rejectedToken || vaultStore.path !== s.vaultPath) return;
+	void runCycle(trigger);
+}
+
+async function runCycle(trigger: CycleTrigger): Promise<SyncNowOutcome> {
+	running = true;
+	const s = session;
+	const token = settingsStore.todoist.apiToken;
+	const kind: SyncMode = trigger === 'manual' ? 'manual' : 'auto';
+	const outcome = kind === 'auto' && !(await autoCycleAllowed(s!)) ? SKIPPED : await syncNow(kind, trigger);
+	running = false;
+	// A cycle that outlived its session (vault switch) leaves the next session's state alone.
+	if (s === session) {
+		lastEndedAt = Date.now();
+		handleOutcome(outcome, kind, token);
+	}
+
+	const next = followUp;
+	followUp = null;
+	if (next === 'manual') {
+		const waiters = manualWaiters.splice(0);
+		// The cycle that just ended may have hit a 429: its wait holds the queued run too.
+		const refusal = rateLimitRefusal();
+		const run = refusal !== null ? Promise.resolve(refusal) : runCycle('manual');
+		void run.then((o) => {
+			for (const resolve of waiters) resolve(o);
+		});
+	} else if (next !== null) {
+		requestAutoCycle(next);
+	}
+	return outcome;
+}
+
+/**
+ * Whether the session's vault has `first_run_done` and is still the open one
+ * after the read: `syncNow` reads `vaultStore.path` fresh, so a switch during
+ * the read would sync a vault whose state was never checked.
+ */
+async function autoCycleAllowed(s: Session): Promise<boolean> {
+	const done = await firstRunDone(s.vaultPath);
+	return done && s === session && vaultStore.path === s.vaultPath;
+}
+
+async function firstRunDone(vaultPath: string): Promise<boolean> {
+	try {
+		return isFirstRunDone(await call('todoist_read_kv', { vaultPath }));
+	} catch (err) {
+		error('TODOIST', 'reading the sync state failed:', err);
+		return false;
+	}
+}
+
+function handleOutcome(outcome: SyncNowOutcome, kind: SyncMode, token: string): void {
+	if (outcome.ok) {
+		for (const k of toastedKinds) toast.dismiss(toastId(k));
+		toastedKinds.clear();
+		overCapToasted = capToast(OVER_CAP_TOAST_ID, overCapToasted, outcome.skippedPushes, autoSyncOverCapMessage);
+		detachCapToasted = capToast(DETACH_CAP_TOAST_ID, detachCapToasted, outcome.skippedDetaches, autoSyncDetachCapMessage);
+		fieldCapToasted = capToast(FIELD_CAP_TOAST_ID, fieldCapToasted, outcome.skippedFieldPushes, autoSyncFieldCapMessage);
+		createCapToasted = capToast(CREATE_CAP_TOAST_ID, createCapToasted, outcome.skippedCreates, autoSyncCreateCapMessage);
+		return;
+	}
+	const failure = outcome.failure;
+	if (failure === undefined || failure.kind === 'vault-switched') return;
+	if (failure.kind === 'rate-limit') blockedUntil = Date.now() + rateLimitWaitMs(failure.retryAfter);
+	if (failure.kind === 'invalid-token') rejectedToken = token;
+	if (kind === 'auto' && !toastedKinds.has(failure.kind)) {
+		toastedKinds.add(failure.kind);
+		toast.error(autoSyncFailureMessage(failure.kind), { id: toastId(failure.kind), duration: Infinity, closeButton: true });
+	}
+}
+
+/**
+ * Shows the persistent over-cap toast `id` once when a successful cycle
+ * skipped an action class, and dismisses it after one that skipped none.
+ * Returns whether the toast is showing.
+ */
+function capToast(id: string, shown: boolean, skipped: number | undefined, message: (count: number) => string): boolean {
+	if (skipped === undefined) {
+		if (shown) toast.dismiss(id);
+		return false;
+	}
+	if (!shown) toast.warning(message(skipped), { id, duration: Infinity, closeButton: true });
+	return true;
+}
+
+function toastId(kind: AutoSyncFailureKind): string {
+	return `todoist-sync-${kind}`;
+}

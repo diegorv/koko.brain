@@ -6,13 +6,13 @@ Kokobrain has a built-in recycle bin. Deleted files are not permanently removed 
 
 ## How Deletion Works
 
-When you delete a file or folder from the file explorer (right-click → **Move to Trash**), a confirmation dialog appears. On confirm, the item is moved to Kokobrain's internal trash — **not** the system trash (Finder's Trash).
+When you delete a file or folder from the rail's note list or the Files navigator (right-click → **Move to Trash**), a confirmation dialog appears. On confirm, the item is moved to Kokobrain's internal trash — **not** the system trash (Finder's Trash).
 
-The file disappears from the file explorer but remains safely stored inside `.kokobrain/trash/` until you choose to restore or permanently delete it.
+The file disappears from the rail's lists but remains safely stored inside `.kokobrain/trash/` until you choose to restore or permanently delete it.
 
 ## Viewing the Trash
 
-Open **Settings** (`Cmd+,`) and navigate to the **Trash** section in the sidebar. You'll see a list of all trashed items, each showing:
+Open **Settings** (`Cmd+,`) and choose **Trash** in the Settings navigation list. You'll see a list of all trashed items, each showing:
 
 - **File/folder icon** — indicates whether the trashed item is a file or directory
 - **File name** — the original name of the deleted item
@@ -29,7 +29,7 @@ Click the **restore button** (undo icon) next to any item to move it back to its
 
 - **Parent directories are recreated** if they no longer exist. For example, if you deleted `projects/meeting.md` and then deleted the `projects/` folder, restoring the file will recreate the `projects/` folder.
 - **Conflict resolution**: If the original path is already occupied (a new file with the same name was created), Kokobrain appends a suffix: `file (restored).md`. If that's also taken, it increments: `file (restored 2).md`, `file (restored 3).md`, and so on.
-- The file explorer updates immediately after restoring.
+- The Files navigator and the note list update immediately after restoring.
 - A restored note is indexed again at once, so it shows up right away in search, backlinks, the rail's note lists and the [Calendar](27-calendar.md) (a restored Event note is back on the calendar).
 
 ## Permanent Deletion
@@ -66,7 +66,7 @@ Trashed items are stored under `.kokobrain/trash/` inside your vault:
 The `trash-manifest.json` file records each item's original path, filename, type (file or directory), and deletion timestamp. This manifest is automatically maintained — you don't need to edit it.
 
 > [!NOTE]
-> The `.kokobrain/` folder (including trash) is hidden from the file explorer. Trashed files do not appear in search results or the graph view.
+> The `.kokobrain/` folder (including trash) is hidden from the Files navigator. Trashed files do not appear in search results or the graph view.
 
 ---
 

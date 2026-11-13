@@ -15,14 +15,41 @@ globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObse
 // openFileInEditor hits Tauri IPC — legitimately mocked. Stores stay real
 // (CLAUDE.md rule 1): the view is driven through the real collectionStore
 // and the rendered DOM, with the harness round-tripping onYamlChange.
-vi.mock('#lib/core/editor/editor.service.js', () => ({
+vi.mock('#lib/core/editor/editor.service.js', async (importOriginal) => ({
+	...(await importOriginal<typeof import('#lib/core/editor/editor.service.js')>()),
 	openFileInEditor: vi.fn(),
 }));
 
+// The `.view` row-set case registers the app ports and counts the view
+// through `countViewNotes`, which reads the `.view` from disk: Tauri IPC and
+// the disk are mocked, the stores stay real.
+vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
+vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn(() => Promise.resolve(vi.fn())), emit: vi.fn() }));
+vi.mock('@tauri-apps/plugin-fs', () => ({ readTextFile: vi.fn(), writeTextFile: vi.fn() }));
+
 import { mount, unmount, flushSync } from 'svelte';
+import { parse as parseYaml } from 'yaml';
 import CollectionViewHarness from '../../../fixtures/CollectionViewHarness.svelte';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { readTextFile } from '@tauri-apps/plugin-fs';
+import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { clearAllViewParseCache } from '#lib/features/type-definitions/view-parse-cache.js';
+import { countViewNotes } from '#lib/features/rail-shell/view-lens.service.js';
+import {
+	RECENT_NEWEST_THREE,
+	RECENT_VAULT,
+	RECENT_VIEW,
+	RECENT_VIEW_YAML,
+	recentEntries,
+	recentIndex,
+} from '../../../fixtures/recent-view.fixture';
 
 const YAML = `filters: 'status == "open"'
 views:
@@ -35,7 +62,7 @@ interface HarnessApi {
 	getYaml: () => string;
 }
 
-describe('CollectionView — selfUpdate latch', () => {
+describe('CollectionView — self-write latch', () => {
 	let target: HTMLElement;
 	let component: Record<string, unknown> | null = null;
 	let api: HarnessApi | undefined;
@@ -89,8 +116,8 @@ describe('CollectionView — selfUpdate latch', () => {
 		expect(document.activeElement).toBe(input);
 
 		// One keystroke: FilterRow fires onUpdate per input event → CollectionView
-		// persistState → onYamlChange → the harness round-trips the new yaml back
-		// down as a prop change. The selfUpdate latch must swallow exactly this
+		// writeYaml → onYamlChange → the harness round-trips the new yaml back
+		// down as a prop change. The `selfYaml` latch must swallow exactly this
 		// round-trip; if the guard re-runs into the reset branch, the seeding
 		// effect regenerates row uids and the keyed each replaces this input.
 		input.value = 'opened';
@@ -278,7 +305,7 @@ describe('CollectionView — row cap across view tabs', () => {
 });
 
 describe('CollectionView — remembered view index', () => {
-	const PATH = '/vault/two-views.collection';
+	const PATH = '/vault/two-views.view';
 	const TWO_VIEWS = `views:
   - type: table
     name: "First"
@@ -333,5 +360,471 @@ describe('CollectionView — remembered view index', () => {
 		flushSync();
 
 		expect(collectionStore.getViewIndex(PATH)).toBe(1);
+	});
+});
+
+describe('CollectionView — nested filter objects', () => {
+	// A nested object in the global filters (next to a visual row) and one alone
+	// in the view's `and:` list, which must not collapse to a plain string.
+	const NESTED = `filters:
+  and:
+    - "status == 'open'"
+    - or:
+        - "priority > 3"
+        - "file.name == 'note-1.md'"
+views:
+  - type: table
+    name: "All"
+    order:
+      - file.name
+      - status
+      - priority
+    filters:
+      and:
+        - not:
+            - "archived == true"
+`;
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		const index = new Map<string, PropertyIndexRecord>();
+		for (let i = 0; i < 12; i++) {
+			const path = `/vault/note-${i}.md`;
+			index.set(path, makeRecord(path, {
+				status: i % 3 === 2 ? 'closed' : 'open',
+				priority: i % 6,
+				archived: i % 4 === 0,
+			}));
+		}
+		collectionStore.setPropertyIndex(index);
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		document.body.innerHTML = '';
+	});
+
+	/** The definition as written in the YAML, parsed without the toolbar round-trip. */
+	function rawDefinition(yaml: string) {
+		const parsed = parseCollectionYaml(yaml);
+		if (!parsed.success) throw new Error('fixture yaml does not parse');
+		return parsed.definition;
+	}
+
+	/** The file names in the rendered table's first column (file.name). */
+	function renderedNames(): string[] {
+		return [...target.querySelectorAll('tbody tr')].map((tr) => tr.querySelector('td')?.textContent?.trim() ?? '');
+	}
+
+	/** Clicks the toolbar button holding the given lucide icon (opens its popover). */
+	function openPopover(icon: string): void {
+		const trigger = document.querySelector(`svg.lucide-${icon}`)?.closest('button');
+		if (!trigger) throw new Error(`${icon} toolbar button not found`);
+		trigger.click();
+		flushSync();
+	}
+
+	it('renders the same rows as executeQuery on the raw definition', () => {
+		const def = rawDefinition(NESTED);
+		const expected = executeQuery(def, def.views[0], collectionStore.propertyIndex, null).records.map((r) => r.name);
+		expect(expected.length).toBeGreaterThan(0);
+
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: NESTED } });
+		flushSync();
+
+		expect(renderedNames()).toEqual(expected);
+	});
+
+	it('resolves a relative file.inFolder filter against the open vault', () => {
+		collectionStore.setPropertyIndex(
+			new Map([
+				['/vault/work/w.md', makeRecord('/vault/work/w.md', {})],
+				['/vault/workshop/s.md', makeRecord('/vault/workshop/s.md', {})],
+			]),
+		);
+		vaultStore.open('/vault');
+		try {
+			component = mount(CollectionViewHarness, {
+				target,
+				props: { initialYaml: `filters: 'file.inFolder("work")'\nviews:\n  - type: table\n    name: "All"\n` },
+			});
+			flushSync();
+
+			expect(renderedNames()).toEqual(['w.md']);
+		} finally {
+			vaultStore.close();
+		}
+	});
+
+	it('keeps both nested objects in the YAML across a sort, a filter edit and a column change', () => {
+		const original = rawDefinition(NESTED);
+		component = mount(CollectionViewHarness, {
+			target,
+			props: { initialYaml: NESTED, register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+
+		// Sort: click the status header.
+		const statusHeader = [...target.querySelectorAll('th')].find((th) => th.textContent?.trim() === 'status');
+		if (!statusHeader) throw new Error('status header not found');
+		statusHeader.click();
+		flushSync();
+		expect(api?.getYaml()).toContain('sort:');
+
+		// Filter: edit the visual row next to the nested object, then restore it.
+		openPopover('list-filter');
+		const value = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]');
+		if (!value) throw new Error('filter value input not found');
+		value.value = 'opened';
+		value.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+		expect(api?.getYaml()).toContain('opened'); // the edit reached the YAML
+		const edited = document.querySelector<HTMLInputElement>('input[placeholder="Value..."]')!;
+		edited.value = 'open';
+		edited.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		// Columns: hide the priority column.
+		openPopover('columns-3');
+		const priority = [...document.querySelectorAll('label')].find((l) => l.textContent?.trim() === 'priority');
+		const checkbox = priority?.querySelector<HTMLInputElement>('input[type="checkbox"]');
+		if (!checkbox) throw new Error('priority column checkbox not found');
+		checkbox.click();
+		flushSync();
+
+		const saved = rawDefinition(api!.getYaml());
+		expect(saved.views[0].order).toEqual(['file.name', 'status']);
+		expect(saved.views[0].sort).toEqual([{ column: 'status', direction: 'ASC' }]);
+		expect(saved.filters).toEqual(original.filters);
+		expect(saved.views[0].filters).toEqual(original.views[0].filters);
+	});
+});
+
+describe('CollectionView — a filter that does not parse', () => {
+	const BAD = `filters: "status = 'open'"
+views:
+  - type: table
+    name: "All"
+    order:
+      - file.name
+`;
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map([
+			['/vault/a.md', makeRecord('/vault/a.md', { status: 'open' })],
+			['/vault/b.md', makeRecord('/vault/b.md', { status: 'closed' })],
+		]));
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function mountView(yaml: string): void {
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: yaml } });
+		flushSync();
+	}
+
+	it('shows the error naming the expression in place of the view body and keeps the toolbar', () => {
+		mountView(BAD);
+
+		const error = target.querySelector('[role="alert"]');
+		expect(error?.textContent).toContain("status = 'open'");
+		expect(target.querySelector('table')).toBeNull();
+		expect(target.querySelector('svg.lucide-list-filter')?.closest('button')).not.toBeNull();
+		expect(target.textContent).not.toContain('Parse Error');
+	});
+
+	it('shows the rows again once the filter is fixed in the toolbar', () => {
+		mountView(BAD);
+		document.querySelector('svg.lucide-list-filter')!.closest('button')!.click();
+		flushSync();
+
+		const input = document.querySelector<HTMLInputElement>('input[placeholder="Expression..."]');
+		if (!input) throw new Error('raw filter input not found');
+		input.value = "status == 'open'";
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+
+		expect(target.querySelector('[role="alert"]')).toBeNull();
+		expect([...target.querySelectorAll('tbody tr')].map((tr) => tr.textContent?.trim())).toEqual(['a.md']);
+	});
+
+	it('shows the error over a calendar view too', () => {
+		mountView(`filters: "foo(1) == 2"
+views:
+  - type: calendar
+    name: "Cal"
+    dateProperty: due
+`);
+
+		expect(target.querySelector('[role="alert"]')?.textContent).toContain('foo');
+	});
+});
+
+describe('CollectionView - a .view lists its row set', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		clearAllViewParseCache();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(recentIndex());
+		typeDefinitionsStore.setEntries(recentEntries());
+		vaultStore.open(RECENT_VAULT);
+		vi.mocked(readTextFile).mockImplementation(async (p) => {
+			if (String(p) === RECENT_VIEW) return RECENT_VIEW_YAML;
+			throw new Error(`No such file: ${String(p)}`);
+		});
+		// As the app shell does it: once, synchronously.
+		registerAppPorts();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		unregisterAppPorts();
+		typeDefinitionsStore.reset();
+		vaultStore.close();
+		document.body.innerHTML = '';
+	});
+
+	function mountAt(path: string, yaml: string): void {
+		component = mount(CollectionViewHarness, { target, props: { initialYaml: yaml, path } });
+		flushSync();
+	}
+
+	/** The paths of the rendered rows, matched by file name against the index. */
+	function renderedPaths(): string[] {
+		const byName = new Map([...collectionStore.propertyIndex.values()].map((r) => [r.name, r.path]));
+		return [...target.querySelectorAll('tbody tr')].map((tr) => {
+			const name = [...tr.querySelectorAll('td')].map((td) => td.textContent?.trim() ?? '').find((t) => byName.has(t));
+			return name ? byName.get(name)! : '';
+		});
+	}
+
+	function resultsText(): string | undefined {
+		return [...target.querySelectorAll('span')].map((s) => s.textContent?.trim()).find((t) => t?.endsWith('results'));
+	}
+
+	function openSortPanel(): void {
+		const trigger = document.querySelector('svg.lucide-arrow-up-down')?.closest('button');
+		if (!trigger) throw new Error('sort toolbar button not found');
+		trigger.click();
+		flushSync();
+	}
+
+	it('renders "3 results", the three newest plain notes, the count countViewNotes gives the path', async () => {
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+
+		expect(resultsText()).toBe('3 results');
+		expect(renderedPaths()).toEqual(RECENT_NEWEST_THREE);
+		const entries = typeDefinitionsStore.entries;
+		const counts = await countViewNotes([RECENT_VIEW], {
+			entries,
+			vaultPath: vaultStore.path,
+			systemFolder: settingsStore.templates.systemFolder,
+			typeMetadataMap: buildTypeMetadataMap(entries),
+			fileTree: [],
+		}, collectionStore.propertyIndex);
+		expect(counts.get(RECENT_VIEW)).toEqual({ count: 3 });
+	});
+
+	it('lists the archived note of a .view whose filter cites archived, with the count countViewNotes gives', async () => {
+		const yaml = 'filters:\n  or:\n    - archived == true\n    - file.name == "n5.md"\nviews:\n  - type: table\n    name: Recent\n';
+		vi.mocked(readTextFile).mockImplementation(async (p) => {
+			if (String(p) === RECENT_VIEW) return yaml;
+			throw new Error(`No such file: ${String(p)}`);
+		});
+		mountAt(RECENT_VIEW, yaml);
+
+		expect(renderedPaths()).toEqual([`${RECENT_VAULT}/old.md`, `${RECENT_VAULT}/n5.md`]);
+		expect(resultsText()).toBe('2 results');
+		const entries = typeDefinitionsStore.entries;
+		const counts = await countViewNotes([RECENT_VIEW], {
+			entries,
+			vaultPath: vaultStore.path,
+			systemFolder: settingsStore.templates.systemFolder,
+			typeMetadataMap: buildTypeMetadataMap(entries),
+			fileTree: [],
+		}, collectionStore.propertyIndex);
+		expect(counts.get(RECENT_VIEW)).toEqual({ count: 2 });
+	});
+
+	it('keeps the plain query for a .view when no port is registered', () => {
+		unregisterAppPorts();
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+
+		expect(renderedPaths()).toContain(`${RECENT_VAULT}/old.md`);
+	});
+
+	it("shows the effective sort in the Sort panel of a .view that has no sort of its own", () => {
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+		openSortPanel();
+
+		expect(document.body.textContent).toContain('Sorted by the default: modified, newest first');
+		expect(document.body.textContent).not.toContain('No sorts applied');
+	});
+
+	it("names the .view's _sort in the Sort panel", () => {
+		typeDefinitionsStore.setEntries(recentEntries().map((e) => (e.path === RECENT_VIEW ? { ...e, frontmatter: { _sort: 'title' } } : e)));
+		mountAt(RECENT_VIEW, RECENT_VIEW_YAML);
+		openSortPanel();
+
+		expect(document.body.textContent).toContain('Sorted by _sort: title');
+	});
+});
+
+describe('CollectionView — view tab menu', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map());
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('lists Rename, Change type and Delete view as one group', async () => {
+		component = mount(CollectionViewHarness, {
+			target,
+			props: { initialYaml: 'views:\n  - type: table\n    name: "First"\n  - type: table\n    name: "Second"\n' },
+		});
+		flushSync();
+
+		const tab = [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'First')!;
+		tab.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+		const entries = [...menu.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.textContent?.trim() ?? ''),
+		);
+		expect(entries).toEqual(['Rename', 'Change type', 'Delete view']);
+	});
+});
+
+describe('CollectionView — calendar config popover', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map());
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	/** Mounts a one-view file of `type` and opens the calendar config popover from its toolbar trigger. */
+	function openConfig(type: string): string {
+		component = mount(CollectionViewHarness, {
+			target,
+			props: { initialYaml: `views:\n  - type: ${type}\n    name: Cal\n    dateProperty: due\n` },
+		});
+		flushSync();
+		const trigger = document.querySelector('svg.lucide-calendar')?.closest('button');
+		if (!trigger) throw new Error('calendar config button not found');
+		trigger.click();
+		flushSync();
+		return document.body.textContent ?? '';
+	}
+
+	it('offers Color by property on a linear-calendar view, which colors its bars', () => {
+		const text = openConfig('linear-calendar');
+		expect(text).toContain('Start date property');
+		expect(text).toContain('Color by property');
+	});
+
+	it('leaves Color by property out on a calendar view, which does not read it', () => {
+		const text = openConfig('calendar');
+		expect(text).toContain('Start date property');
+		expect(text).not.toContain('Color by property');
+	});
+
+	it('offers Week starts on on a calendar view, which lays out its weeks', () => {
+		expect(openConfig('calendar')).toContain('Week starts on');
+	});
+
+	it('leaves Week starts on out on a linear-calendar view, which does not read it', () => {
+		const text = openConfig('linear-calendar');
+		expect(text).toContain('Start date property');
+		expect(text).not.toContain('Week starts on');
+	});
+});
+
+describe('CollectionView — a toolbar edit through onYamlChange writes only its key', () => {
+	const ONE_ITEM_AND = `filters:
+  and:
+    - status == 'open'
+  note: kept
+views:
+  - type: table
+    name: All
+    order:
+      - file.name
+      - status
+`;
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+	let api: HarnessApi | undefined;
+
+	beforeEach(() => {
+		clearLocalStorage();
+		collectionStore.reset();
+		collectionStore.setPropertyIndex(new Map([['/vault/a.md', makeRecord('/vault/a.md', { status: 'open' })]]));
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		api = undefined;
+		document.body.innerHTML = '';
+	});
+
+	it('keeps a one-item and with an unknown key in the filters when the Sort changes', async () => {
+		component = mount(CollectionViewHarness, {
+			target,
+			props: { initialYaml: ONE_ITEM_AND, register: (a: HarnessApi) => { api = a; } },
+		});
+		flushSync();
+
+		[...target.querySelectorAll<HTMLElement>('th')].find((th) => th.textContent?.trim() === 'status')!.click();
+		await Promise.resolve();
+		flushSync();
+
+		const raw = parseYaml(api!.getYaml());
+		expect(raw.filters).toEqual({ and: ["status == 'open'"], note: 'kept' });
+		expect(raw.views[0].sort).toEqual([{ column: 'status', direction: 'ASC' }]);
 	});
 });

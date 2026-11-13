@@ -10,7 +10,7 @@
 
 	<SettingItem
 		label="Explicit organization"
-		description="New notes start unorganized and appear in the Inbox. Disable to treat all notes as organized by default."
+		description="New notes start unorganized and appear in the Inbox until you organize them. Periodic notes are not marked."
 	>
 		<Switch
 			checked={settingsStore.explicitOrganization}
@@ -20,7 +20,7 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Types navigator</h3>
+	<h3 class="section-label mt-6 mb-2">Types navigator</h3>
 
 	<SettingItem
 		label="Show untyped notes"
@@ -34,11 +34,11 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">New note location</h3>
+	<h3 class="section-label mt-6 mb-2">New note location</h3>
 
 	<SettingItem
-		label="Base folder"
-		description="Vault-relative folder prepended to every type's own folder. New typed notes go to base folder / type folder / note. Empty = vault root."
+		label="Typed notes folder"
+		description="Vault-relative folder prepended to every type's own folder. New typed notes go to typed notes folder / type folder / note. Empty = vault root."
 	>
 		<Input
 			value={settingsStore.typesBaseFolder}
@@ -51,7 +51,7 @@
 		/>
 	</SettingItem>
 
-	<p class="text-muted-foreground text-sm">
+	<p class="px-4 text-meta text-muted-foreground">
 		Each type also chooses its own subfolder: open a type definition and add "_folder: &lt;path&gt;"
 		to its frontmatter (e.g. "_folder: Books"). Leave both empty to create notes in the vault root.
 	</p>

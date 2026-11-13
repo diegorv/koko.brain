@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Component } from 'svelte';
 import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
-import type { RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySection } from '#lib/features/rail-shell/rail-shell.types.js';
+import type { RailAction, RailFolderCreator, RailLensProvider, RailNavigator, RailTodaySection } from '#lib/features/rail-shell/rail-shell.types.js';
 
 const Dummy = (() => {}) as unknown as Component;
 
@@ -17,6 +17,7 @@ const creator = (id: string, label = id): RailFolderCreator => ({
 	fileName: `Untitled.${id}`,
 	create: async (dir) => `${dir}/Untitled.${id}`,
 });
+const action = (key: string, label = key): RailAction => ({ key, label, icon: 'lucide:sparkles', run: () => {} });
 const provider = (kind: string, label = kind): RailLensProvider => ({
 	kind,
 	resolve: () => ({ label, rule: '', notes: [] }),
@@ -32,6 +33,7 @@ describe('railRegistryStore', () => {
 		expect(railRegistryStore.lensProviders).toEqual([]);
 		expect(railRegistryStore.todaySections).toEqual([]);
 		expect(railRegistryStore.folderCreators).toEqual([]);
+		expect(railRegistryStore.actions).toEqual([]);
 	});
 
 	it('lists registered navigators in registration order and unregisters them', () => {
@@ -100,4 +102,42 @@ describe('railRegistryStore', () => {
 		off();
 		expect(railRegistryStore.folderCreators).toEqual([]);
 	});
+
+	it('registers actions in order, replaces one by key, and unregisters only that entry by identity', () => {
+		const offOld = railRegistryStore.registerAction(action('mod:hello:main', 'Old'));
+		const offOther = railRegistryStore.registerAction(action('mod:other:main'));
+		railRegistryStore.registerAction(action('mod:hello:main', 'Hello mod'));
+		expect(railRegistryStore.actions.map((a) => [a.key, a.label])).toEqual([
+			['mod:other:main', 'mod:other:main'],
+			['mod:hello:main', 'Hello mod'],
+		]);
+
+		offOld();
+		expect(railRegistryStore.actions.map((a) => a.label)).toEqual(['mod:other:main', 'Hello mod']);
+		offOther();
+		expect(railRegistryStore.actions.map((a) => a.key)).toEqual(['mod:hello:main']);
+	});
+
+	it('reset() also clears the actions', () => {
+		railRegistryStore.registerAction(action('mod:hello:main'));
+		railRegistryStore.reset();
+		expect(railRegistryStore.actions).toEqual([]);
+	});
+});
+
+it('keeps menu entries by identity, replaces by id and clears them on reset', () => {
+	railRegistryStore.reset();
+	expect(railRegistryStore.menuItems).toEqual([]);
+	const old = railRegistryStore.registerMenuItem({ id: 'organize', label: 'Old', on: ['note'], run: () => {} });
+	const entry = { id: 'organize', label: 'Organize', on: ['note', 'folder'] as const, files: 'all' as const, run: () => {} };
+	const off = railRegistryStore.registerMenuItem(entry);
+	old();
+	expect(railRegistryStore.menuItems).toEqual([entry]);
+	expect(railRegistryStore.menuItems[0]).toBe(entry);
+	off();
+	off();
+	expect(railRegistryStore.menuItems).toEqual([]);
+	railRegistryStore.registerMenuItem(entry);
+	railRegistryStore.reset();
+	expect(railRegistryStore.menuItems).toEqual([]);
 });

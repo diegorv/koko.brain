@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi } from 'vitest';
-import { registerKeybinding, toCodeMirrorKey } from '#lib/utils/keybindings.js';
+import { formatShortcut, registerKeybinding, toCodeMirrorKey } from '#lib/utils/keybindings.js';
 
 function fireKeyDown(key: string, options: Partial<KeyboardEvent> & { code?: string } = {}) {
 	const event = new KeyboardEvent('keydown', {
@@ -167,5 +167,59 @@ describe('toCodeMirrorKey', () => {
 
 	it('returns the bare key when no modifier is set', () => {
 		expect(toCodeMirrorKey({ key: 'Escape' })).toBe('Escape');
+	});
+});
+
+describe('formatShortcut', () => {
+	it('formats meta + key', () => {
+		expect(formatShortcut({ meta: true, key: 's' })).toBe('⌘S');
+	});
+
+	it('formats meta + shift + key', () => {
+		expect(formatShortcut({ meta: true, shift: true, key: 'f' })).toBe('⌘⇧F');
+	});
+
+	it('formats meta + shift + code (BracketLeft)', () => {
+		expect(formatShortcut({ meta: true, shift: true, code: 'BracketLeft' })).toBe('⌘⇧[');
+	});
+
+	it('formats meta + shift + code (BracketRight)', () => {
+		expect(formatShortcut({ meta: true, shift: true, code: 'BracketRight' })).toBe('⌘⇧]');
+	});
+
+	it('formats alt + key', () => {
+		expect(formatShortcut({ alt: true, key: 'n' })).toBe('⌥N');
+	});
+
+	it('formats key only', () => {
+		expect(formatShortcut({ key: 'p' })).toBe('P');
+	});
+
+	it('formats meta + key without shift or alt', () => {
+		expect(formatShortcut({ meta: true, key: 'g' })).toBe('⌘G');
+	});
+
+	it('formats all modifiers', () => {
+		expect(formatShortcut({ meta: true, shift: true, alt: true, key: 'x' })).toBe('⌘⇧⌥X');
+	});
+
+	it('formats ctrl before the other modifiers', () => {
+		expect(formatShortcut({ ctrl: true, meta: true, shift: true, key: 'e' })).toBe('⌃⌘⇧E');
+	});
+
+	it('formats meta + code (Backquote)', () => {
+		expect(formatShortcut({ meta: true, code: 'Backquote' })).toBe('⌘`');
+	});
+
+	it('formats meta + code (Comma)', () => {
+		expect(formatShortcut({ meta: true, code: 'Comma' })).toBe('⌘,');
+	});
+
+	it('keeps a named key such as F2 as written', () => {
+		expect(formatShortcut({ key: 'F2' })).toBe('F2');
+	});
+
+	it('returns an empty string for a combo with no key or code', () => {
+		expect(formatShortcut({})).toBe('');
 	});
 });

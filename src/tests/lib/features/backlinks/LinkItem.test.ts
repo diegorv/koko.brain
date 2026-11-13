@@ -75,9 +75,20 @@ describe('LinkItem', () => {
 		await mountItem(entry(PLAIN, 'plain'));
 
 		expect(target.textContent).toContain('plain');
-		expect(target.querySelector('.font-semibold')?.textContent).toBe('[[Roadmap]]');
+		expect(target.querySelector('.text-right-sidebar-primary')?.textContent).toBe('[[Roadmap]]');
 		target.querySelector('button')!.click();
 		expect(openFileInEditor).toHaveBeenCalledWith(PLAIN);
+	});
+
+	it('leads with the source name: row role over meta-role snippets, fragment no heavier', async () => {
+		await mountItem(entry(PLAIN, 'plain'));
+
+		const name = [...target.querySelectorAll('span')].find((s) => s.textContent === 'plain')!;
+		const snippet = target.querySelector('p')!;
+		const fragment = snippet.querySelector('span')!;
+		expect(name.classList).toContain('text-row');
+		expect(snippet.classList).toContain('text-meta');
+		expect(fragment.className).not.toMatch(/font-(medium|semibold|bold)/);
 	});
 
 	it('offers no calendar action when the source is not an event', async () => {

@@ -128,3 +128,71 @@ describe('BacklinksPanel — vaultIndexVersion refetch', () => {
 		expect(target.textContent).toContain('No backlinks found');
 	});
 });
+
+describe('BacklinksPanel — text roles', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		vaultStore.markIndexReady();
+		editorStore.reset();
+		editorStore.addTab({ path: '/vault/note.md', name: 'note.md', content: '', savedContent: '' });
+		backlinksStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(BacklinksPanel, { target });
+		flushSync();
+		target.querySelector('button')!.click();
+		flushSync();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('titles the panel in sentence case with the title role', () => {
+		const title = target.querySelector('h2')!;
+		expect(title.textContent).toBe('Backlinks');
+		expect(title.classList).toContain('text-title');
+		expect(title.classList).not.toContain('uppercase');
+	});
+
+	it('draws its header as the shared sidebar section header', () => {
+		const header = target.querySelector('[data-sidebar-section-header]')!;
+		expect(header).toBe(target.querySelector('button'));
+		expect(header.querySelector('[data-sidebar-section-chevron]')).not.toBeNull();
+		expect(header.querySelector('h2')!.textContent).toBe('Backlinks');
+	});
+
+	it('renders the empty message with the meta role', () => {
+		const empty = [...target.querySelectorAll('p')].find((p) => p.textContent === 'No backlinks found')!;
+		expect(empty.classList).toContain('text-meta');
+	});
+
+	it('renders counts with the meta role and relationship items like LinkItem', () => {
+		backlinksStore.setLinkedMentions([
+			{ sourcePath: '/vault/a.md', sourceName: 'a', snippets: [] },
+			{ sourcePath: '/vault/b.md', sourceName: 'b', snippets: [] },
+		]);
+		backlinksStore.setRelationshipBacklinks([
+			{ sourcePath: '/vault/c.md', sourceName: 'c', relationshipType: 'belongs_to' },
+		]);
+		flushSync();
+
+		const spans = [...target.querySelectorAll('span')];
+		const linkedCount = spans.find((s) => s.textContent === '2')!;
+		const relationshipCount = spans.find((s) => s.textContent === '1')!;
+		expect(linkedCount.classList).toContain('text-meta');
+		expect(relationshipCount.classList).toContain('text-meta');
+
+		const name = spans.find((s) => s.textContent === 'c')!;
+		const type = spans.find((s) => s.textContent === 'belongs to')!;
+		expect(name.classList).toContain('text-row');
+		expect(type.classList).toContain('text-meta');
+	});
+});

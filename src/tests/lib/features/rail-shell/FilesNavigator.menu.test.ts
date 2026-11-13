@@ -55,6 +55,7 @@ import { moveToTrash } from '#lib/core/trash/trash.service.js';
 import { getAllIconPacks, getIconsForPack } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import FilesNavigator from '#lib/features/rail-shell/FilesNavigator.svelte';
 import { pickedFolderLens, parseExpandedFolders, toggleExpandedFolder } from '#lib/features/rail-shell/lens.logic.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
@@ -99,6 +100,7 @@ function render() {
 			onPick: (lens) => settingsStore.updateLayout({ railFolder: lens.target ?? null }),
 			onToggle: (path) =>
 				settingsStore.updateLayout({ railExpandedFolders: toggleExpandedFolder(settingsStore.layout.railExpandedFolders, path) }),
+			onPickView: vi.fn(),
 		},
 	});
 	flushSync();
@@ -147,6 +149,7 @@ beforeEach(() => {
 	vi.clearAllMocks();
 	vi.spyOn(console, 'error').mockImplementation(() => {});
 	settingsStore.reset();
+	settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 	fsStore.reset();
 	vaultStore._reset();
 	vaultStore.open(VAULT);
@@ -173,13 +176,33 @@ afterEach(() => {
 });
 
 describe('FilesNavigator folder menu', () => {
+	it.each([['root', ''], ['folder', 'Work']])('passes the %s relative target to registered inset items', async (kind, path) => {
+		vaultStore.open(`${VAULT}/`);
+		const received: unknown[] = [];
+		railRegistryStore.registerMenuItem({ id: 'folder', label: 'Tag here', on: ['folder'], run: (target) => { received.push(target); } });
+		railRegistryStore.registerMenuItem({ id: 'note', label: 'Organize note', on: ['note'], run: () => {} });
+		render();
+		const el = kind === 'root' ? root() : row(WORK);
+		const labels = await openMenu(el);
+		expect(labels).toContain('Tag here');
+		expect(labels).not.toContain('Organize note');
+		expect(received).toEqual([]);
+		const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) => el.textContent?.trim() === 'Tag here')!;
+		expect(item.hasAttribute('data-inset')).toBe(true);
+		expect(document.querySelectorAll('[data-slot="context-menu-separator"]')).toHaveLength(kind === 'root' ? 0 : 2);
+		item.click();
+		await tick();
+		expect(received).toEqual([{ on: 'folder', path }]);
+	});
+
 	it('offers the folder operations on a folder row, the kanban item from the plugin registry', async () => {
 		render();
 		expect(await openMenu(row(WORK))).toEqual([
 			'New note',
 			'New Canvas',
-			'New Collection',
+			'New table',
 			'New Kanban Board',
+			'New view',
 			'New folder',
 			'Change icon',
 			'Copy path',
@@ -187,11 +210,13 @@ describe('FilesNavigator folder menu', () => {
 			'Rename',
 			'Move to Trash',
 		]);
+		expect(document.querySelectorAll('[data-slot="context-menu-separator"]')).toHaveLength(2);
 	});
 
 	it('offers only the create items on the vault root, which cannot be renamed or trashed', async () => {
 		render();
-		expect(await openMenu(root())).toEqual(['New note', 'New Canvas', 'New Collection', 'New Kanban Board', 'New folder']);
+		expect(await openMenu(root())).toEqual(['New note', 'New Canvas', 'New table', 'New Kanban Board', 'New view', 'New folder']);
+		expect(document.querySelectorAll('[data-slot="context-menu-separator"]')).toHaveLength(0);
 	});
 
 	it('offers the create items on an empty vault', async () => {
@@ -210,9 +235,44 @@ describe('FilesNavigator folder menu', () => {
 		expect(settingsStore.layout.railFolder).toBe(WORK);
 	});
 
+	it('reports the created note after opening it', async () => {
+		let opened = false;
+		vi.mocked(openFileInEditor).mockImplementation(async () => {
+			await Promise.resolve();
+			opened = true;
+		});
+		const created: { path: string; opened: boolean }[] = [];
+		offs.push(addNoteCreatedObserver((path) => created.push({ path, opened })));
+		render();
+		await choose(row(WORK), 'New note');
+
+		await vi.waitFor(() => expect(created).toEqual([{ path: `${WORK}/Untitled.md`, opened: true }]));
+	});
+
+	it.each([['New note'], ['New folder']])('"%s" reports nothing when the create fails, or for a folder', async (label) => {
+		if (label === 'New note') vi.mocked(invoke).mockRejectedValue('Permission denied (os error 13)');
+		const observer = vi.fn();
+		offs.push(addNoteCreatedObserver(observer));
+		render();
+		await choose(row(PERSONAL), label);
+
+		if (label === 'New note') await vi.waitFor(() => expect(toast.error).toHaveBeenCalled());
+		else await vi.waitFor(() => expect(renameInput(`${PERSONAL}/Untitled`)).not.toBeNull());
+		expect(observer).not.toHaveBeenCalled();
+	});
+
+	it('creates the note unorganized while Explicit organization is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		render();
+		await choose(row(WORK), 'New note');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${WORK}/Untitled.md`));
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: `${WORK}/Untitled.md`, content: '---\n_organized: false\n---\n' });
+	});
+
 	it.each([
 		['New Canvas', 'Untitled.canvas'],
-		['New Collection', 'Untitled.collection'],
+		['New table', 'Untitled.view'],
 		['New Kanban Board', 'Untitled.kanban'],
 	])('"%s" creates %s in the folder and opens it', async (label, fileName) => {
 		render();
@@ -221,6 +281,35 @@ describe('FilesNavigator folder menu', () => {
 		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${PERSONAL}/${fileName}`));
 		expect(invoke).toHaveBeenCalledWith('create_note', expect.objectContaining({ path: `${PERSONAL}/${fileName}` }));
 		expect(settingsStore.layout.railFolder).toBe(PERSONAL);
+	});
+
+	const TABLE_BODY = '_visible: false\n_open_in_editor: true\nviews:\n  - type: table\n    name: All\n';
+
+	it('"New table" writes a hidden table that opens in the editor, asking for a prompt refresh before create_note', async () => {
+		let refreshAskedBeforeWrite = false;
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_note') refreshAskedBeforeWrite = vaultStore.takePromptIndexRefresh();
+			return cmd === 'scan_vault' ? diskTree : undefined;
+		});
+		render();
+		await choose(row(PERSONAL), 'New table');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${PERSONAL}/Untitled.view`));
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: `${PERSONAL}/Untitled.view`, content: TABLE_BODY });
+		expect(refreshAskedBeforeWrite).toBe(true);
+		// A .view stays out of the search tables.
+		expect(vi.mocked(invoke).mock.calls.map(([cmd]) => cmd)).not.toContain('update_search_index_file');
+		expect(settingsStore.layout.railFolder).toBe(PERSONAL);
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('"New table" names the file Untitled 1.view when Untitled.view is taken', async () => {
+		vi.mocked(readDir).mockResolvedValue([{ name: 'Untitled.view', isDirectory: false, isFile: true, isSymlink: false }]);
+		render();
+		await choose(row(PERSONAL), 'New table');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith(`${PERSONAL}/Untitled 1.view`));
+		expect(invoke).toHaveBeenCalledWith('create_note', { path: `${PERSONAL}/Untitled 1.view`, content: TABLE_BODY });
 	});
 
 	it('a note created on the vault root picks the root', async () => {
@@ -235,7 +324,7 @@ describe('FilesNavigator folder menu', () => {
 	it.each([
 		['New note', 'Untitled.md'],
 		['New Canvas', 'Untitled.canvas'],
-		['New Collection', 'Untitled.collection'],
+		['New table', 'Untitled.view'],
 		['New Kanban Board', 'Untitled.kanban'],
 		['New folder', 'Untitled'],
 	])('toasts when "%s" fails, and opens and picks nothing', async (label, fileName) => {
@@ -258,6 +347,8 @@ describe('FilesNavigator folder menu', () => {
 
 		await vi.waitFor(() => expect(invoke).toHaveBeenCalledWith('create_folder', { path: `${WORK}/Untitled` }));
 		await vi.waitFor(() => expect(renameInput(`${WORK}/Untitled`)?.value).toBe('Untitled'));
+		// Same row role as the tree rows and the note list's rename input.
+		expect(renameInput(`${WORK}/Untitled`)!.classList).toContain('text-row');
 		expect(settingsStore.layout.railExpandedFolders).toEqual([WORK]);
 	});
 
@@ -345,7 +436,12 @@ describe('FilesNavigator folder menu', () => {
 		diskTree = [dir(PERSONAL)];
 
 		await vi.waitFor(() => expect(moveToTrash).toHaveBeenCalledWith(VAULT, WORK, true));
-		expect(ask).toHaveBeenCalledWith('Move "Work" to trash? This will include all contents.', expect.anything());
+		expect(ask).toHaveBeenCalledWith('Move "Work" to trash? This will include all contents.', {
+			title: 'Move to Trash',
+			kind: 'warning',
+			okLabel: 'Move to Trash',
+			cancelLabel: 'Cancel',
+		});
 		await vi.waitFor(() => expect(row(WORK)).toBeNull());
 		expect(settingsStore.layout.railFolder).toBeNull();
 		expect(settingsStore.layout.railExpandedFolders).toEqual([]);
@@ -497,6 +593,44 @@ describe('FilesNavigator folder menu', () => {
 
 		await vi.waitFor(() => expect(fileIconsStore.getFrontmatterIcon(PERSONAL)).toBeUndefined());
 		expect(noteContent).not.toContain('_icon');
+	});
+
+	/** The two swatches titled `name`: the Icon row's, then the Text row's. */
+	const swatch = (name: string, row: 0 | 1) => document.querySelectorAll<HTMLElement>(`button[title="${name}"]`)[row];
+
+	it('saves a text color picked for a folder with no icon to its folder note, creating it', async () => {
+		const notePath = `${PERSONAL}/Personal.md`;
+		let noteContent: string | null = null;
+		vi.mocked(exists).mockImplementation(async (p) => p === notePath && noteContent !== null);
+		vi.mocked(readTextFile).mockImplementation(async () => noteContent ?? '');
+		vi.mocked(writeTextFile).mockImplementation(async (p, content) => {
+			if (p === notePath) noteContent = content as string;
+		});
+		render();
+
+		await choose(row(PERSONAL), 'Change icon');
+		await vi.waitFor(() => expect(swatch('Green', 1)).toBeDefined());
+		swatch('Green', 1).click();
+
+		await vi.waitFor(() => expect(fileIconsStore.getFrontmatterIcon(PERSONAL)?.titleColor).toBe('#22c55e'));
+		expect(fileIconsStore.getFrontmatterIcon(notePath)?.titleColor).toBe('#22c55e');
+		expect(noteContent).toContain('_title_color');
+		expect(noteContent).not.toContain('_icon');
+	});
+
+	it('creates no folder note when the Default swatch is clicked on a folder without one', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		render();
+
+		await choose(row(PERSONAL), 'Change icon');
+		await vi.waitFor(() => expect(swatch('Default', 1)).toBeDefined());
+		swatch('Default', 1).click();
+		// exists is what the save asks first; the await lets the rest of the handler run.
+		await vi.waitFor(() => expect(exists).toHaveBeenCalledWith(`${PERSONAL}/Personal.md`));
+		await tick();
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(fileIconsStore.getFrontmatterIcon(PERSONAL)).toBeUndefined();
 	});
 });
 

@@ -6,20 +6,31 @@ permissions:
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - ".scratch/**"
-      - "help/**"
-      - "LICENSE"
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/nightly.yml"
+      - ".github/actions/setup/**"
+      - ".github/actions/publish-checksums/**"
   workflow_dispatch:
+# Never cancel a running build: pushes come faster than a build finishes, so
+# cancelling meant most builds died near the end and none got published. The
+# running build finishes; GitHub keeps only the newest push pending.
 concurrency:
   group: nightly
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   guard:
     name: Repository guard
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     outputs:
       should_build: ${{ steps.check.outputs.should_build }}
@@ -66,18 +77,6 @@ jobs:
           echo "Proceeding: '$SUBJECT' is not a release-flow commit."
           echo "should_build=true" >> "$GITHUB_OUTPUT"
 
-  ci:
-    name: CI
-    needs: guard
-    if: needs.guard.outputs.should_build == 'true'
-    uses: ./.github/workflows/ci.yml
-
-  e2e:
-    name: E2E
-    needs: guard
-    if: needs.guard.outputs.should_build == 'true'
-    uses: ./.github/workflows/e2e.yml
-
   build-macos:
     name: Build macOS nightly
     needs: [guard]
@@ -86,15 +85,23 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: write
+    env:
+      # The release profile's codegen-units = 1 compiles the kokobrain crate on
+      # one core. Nightly trades a slightly slower binary for a
+      # parallel build; stable releases keep the release profile as is.
+      CARGO_PROFILE_RELEASE_CODEGEN_UNITS: "16"
     steps:
       - uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
 
+      # Own cache key: the codegen-units override changes every crate's
+      # artifacts, so sharing release.yml's cache would rebuild all deps.
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
-          rust-cache-key: macos-release-aarch64
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
+          rust-cache-key: macos-nightly-aarch64
 
       - name: Compute nightly version
         id: ver

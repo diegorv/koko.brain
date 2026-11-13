@@ -320,6 +320,11 @@ describe('registerGlobalKeybindings', () => {
 		);
 	});
 
+	it('ties Cmd+1 and Cmd+2 to the hide and show rail panels commands', () => {
+		expect(shortcutFor('layout:hide-rail-panels')).toEqual({ key: '1', meta: true });
+		expect(shortcutFor('layout:show-rail-panels')).toEqual({ key: '2', meta: true });
+	});
+
 	it('returns a cleanup function that calls all individual cleanups', () => {
 		const cleanupFns = Array.from({ length: 25 }, () => vi.fn());
 		cleanupFns.forEach((fn) => {

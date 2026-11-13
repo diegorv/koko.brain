@@ -1,230 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import {
-	filterByDate,
-	filterCompleted,
-	filterCompletedTasks,
-	computeTaskStats,
 	parseTaskTextSegments,
+	parseSectionTags,
+	compareTaskPaths,
+	noteFolder,
+	noteTaskCounts,
+	stripTaskTrailers,
+	usesRawTaskText,
+	taskDisplayText,
+	taskChips,
 } from '#lib/features/tasks/tasks.logic.js';
-import type { TaskItem, FileTaskGroup } from '#lib/features/tasks/tasks.types.js';
-
-/** Helper to build a TaskItem with sensible defaults for status and metadata */
-function makeTask(
-	overrides: Partial<TaskItem> & Pick<TaskItem, 'text' | 'checked' | 'indent' | 'lineNumber'>,
-): TaskItem {
-	return {
-		status: overrides.checked ? 'done' : 'todo',
-		metadata: { description: overrides.text, tags: [] },
-		...overrides,
-	};
-}
-
-describe('filterCompletedTasks', () => {
-	it('keeps unchecked tasks', () => {
-		const tasks: TaskItem[] = [
-			makeTask({ text: 'Pending', checked: false, indent: 0, lineNumber: 1 }),
-		];
-		expect(filterCompletedTasks(tasks)).toHaveLength(1);
-	});
-
-	it('removes completed tasks with no descendants', () => {
-		const tasks: TaskItem[] = [
-			makeTask({ text: 'Done', checked: true, indent: 0, lineNumber: 1 }),
-			makeTask({ text: 'Pending', checked: false, indent: 0, lineNumber: 2 }),
-		];
-		const result = filterCompletedTasks(tasks);
-		expect(result).toHaveLength(1);
-		expect(result[0].text).toBe('Pending');
-	});
-
-	it('keeps completed parent when it has unchecked children', () => {
-		const tasks: TaskItem[] = [
-			makeTask({ text: 'Parent', checked: true, indent: 0, lineNumber: 1 }),
-			makeTask({ text: 'Child pending', checked: false, indent: 1, lineNumber: 2 }),
-			makeTask({ text: 'Child done', checked: true, indent: 1, lineNumber: 3 }),
-		];
-		const result = filterCompletedTasks(tasks);
-		expect(result).toHaveLength(2);
-		expect(result[0].text).toBe('Parent');
-		expect(result[1].text).toBe('Child pending');
-	});
-
-	it('hides entire family when parent and all children are completed', () => {
-		const tasks: TaskItem[] = [
-			makeTask({ text: 'Parent', checked: true, indent: 0, lineNumber: 1 }),
-			makeTask({ text: 'Child 1', checked: true, indent: 1, lineNumber: 2 }),
-			makeTask({ text: 'Child 2', checked: true, indent: 1, lineNumber: 3 }),
-		];
-		expect(filterCompletedTasks(tasks)).toEqual([]);
-	});
-
-	it('handles mixed families correctly', () => {
-		const tasks: TaskItem[] = [
-			makeTask({ text: 'Parent A', checked: true, indent: 0, lineNumber: 1 }),
-			makeTask({ text: 'Child A1', checked: true, indent: 1, lineNumber: 2 }),
-			makeTask({ text: 'Parent B', checked: true, indent: 0, lineNumber: 3 }),
-			makeTask({ text: 'Child B1', checked: false, indent: 1, lineNumber: 4 }),
-		];
-		const result = filterCompletedTasks(tasks);
-		expect(result).toHaveLength(2);
-		expect(result[0].text).toBe('Parent B');
-		expect(result[1].text).toBe('Child B1');
-	});
-
-	it('handles deeply nested hierarchy', () => {
-		const tasks: TaskItem[] = [
-			makeTask({ text: 'Root', checked: true, indent: 0, lineNumber: 1 }),
-			makeTask({ text: 'Mid', checked: true, indent: 1, lineNumber: 2 }),
-			makeTask({ text: 'Deep pending', checked: false, indent: 2, lineNumber: 3 }),
-		];
-		const result = filterCompletedTasks(tasks);
-		expect(result).toHaveLength(3);
-		expect(result[0].text).toBe('Root');
-		expect(result[1].text).toBe('Mid');
-		expect(result[2].text).toBe('Deep pending');
-	});
-});
-
-describe('filterCompleted', () => {
-	it('removes completed sibling tasks from groups', () => {
-		const groups: FileTaskGroup[] = [
-			{
-				filePath: '/a.md',
-				fileName: 'a',
-				modifiedAt: 1000,
-				tasks: [
-					makeTask({ text: 'Done', checked: true, indent: 0, lineNumber: 1 }),
-					makeTask({ text: 'Pending', checked: false, indent: 0, lineNumber: 2 }),
-				],
-			},
-		];
-
-		const filtered = filterCompleted(groups);
-		expect(filtered).toHaveLength(1);
-		expect(filtered[0].tasks).toHaveLength(1);
-		expect(filtered[0].tasks[0].text).toBe('Pending');
-	});
-
-	it('excludes groups where all tasks are completed', () => {
-		const groups: FileTaskGroup[] = [
-			{
-				filePath: '/a.md',
-				fileName: 'a',
-				modifiedAt: 1000,
-				tasks: [
-					makeTask({ text: 'Done 1', checked: true, indent: 0, lineNumber: 1 }),
-					makeTask({ text: 'Done 2', checked: true, indent: 0, lineNumber: 2 }),
-				],
-			},
-			{
-				filePath: '/b.md',
-				fileName: 'b',
-				modifiedAt: 2000,
-				tasks: [
-					makeTask({ text: 'Pending', checked: false, indent: 0, lineNumber: 1 }),
-				],
-			},
-		];
-
-		const filtered = filterCompleted(groups);
-		expect(filtered).toHaveLength(1);
-		expect(filtered[0].filePath).toBe('/b.md');
-	});
-
-	it('returns empty array when all tasks are completed', () => {
-		const groups: FileTaskGroup[] = [
-			{
-				filePath: '/a.md',
-				fileName: 'a',
-				modifiedAt: 1000,
-				tasks: [makeTask({ text: 'Done', checked: true, indent: 0, lineNumber: 1 })],
-			},
-		];
-
-		expect(filterCompleted(groups)).toEqual([]);
-	});
-
-	it('keeps completed parent in group when children are unchecked', () => {
-		const groups: FileTaskGroup[] = [
-			{
-				filePath: '/a.md',
-				fileName: 'a',
-				modifiedAt: 1000,
-				tasks: [
-					makeTask({ text: 'Parent', checked: true, indent: 0, lineNumber: 1 }),
-					makeTask({ text: 'Child', checked: false, indent: 1, lineNumber: 2 }),
-				],
-			},
-		];
-
-		const filtered = filterCompleted(groups);
-		expect(filtered).toHaveLength(1);
-		expect(filtered[0].tasks).toHaveLength(2);
-		expect(filtered[0].tasks[0].text).toBe('Parent');
-		expect(filtered[0].tasks[1].text).toBe('Child');
-	});
-});
-
-describe('filterByDate', () => {
-	const now = new Date('2026-02-11T12:00:00Z').getTime();
-	const groups: FileTaskGroup[] = [
-		{ filePath: '/a.md', fileName: 'a', modifiedAt: now - 1 * 24 * 60 * 60 * 1000, tasks: [] },
-		{ filePath: '/b.md', fileName: 'b', modifiedAt: now - 10 * 24 * 60 * 60 * 1000, tasks: [] },
-		{ filePath: '/c.md', fileName: 'c', modifiedAt: now - 60 * 24 * 60 * 60 * 1000, tasks: [] },
-	];
-
-	it('returns all groups for "all" filter', () => {
-		expect(filterByDate(groups, 'all', now)).toHaveLength(3);
-	});
-
-	it('filters to last 7 days', () => {
-		const filtered = filterByDate(groups, 'last7days', now);
-		expect(filtered).toHaveLength(1);
-		expect(filtered[0].filePath).toBe('/a.md');
-	});
-
-	it('filters to last 30 days', () => {
-		const filtered = filterByDate(groups, 'last30days', now);
-		expect(filtered).toHaveLength(2);
-		expect(filtered.map((g) => g.filePath)).toEqual(['/a.md', '/b.md']);
-	});
-});
-
-describe('computeTaskStats', () => {
-	it('computes correct stats', () => {
-		const groups: FileTaskGroup[] = [
-			{
-				filePath: '/a.md',
-				fileName: 'a',
-				modifiedAt: 1000,
-				tasks: [
-					makeTask({ text: 'Done', checked: true, indent: 0, lineNumber: 1 }),
-					makeTask({ text: 'Not done', checked: false, indent: 0, lineNumber: 2 }),
-				],
-			},
-			{
-				filePath: '/b.md',
-				fileName: 'b',
-				modifiedAt: 2000,
-				tasks: [
-					makeTask({ text: 'Also done', checked: true, indent: 0, lineNumber: 1 }),
-				],
-			},
-		];
-
-		const stats = computeTaskStats(groups);
-		expect(stats.total).toBe(3);
-		expect(stats.completed).toBe(2);
-		expect(stats.pending).toBe(1);
-		expect(stats.fileCount).toBe(2);
-	});
-
-	it('returns zeros for empty groups', () => {
-		const stats = computeTaskStats([]);
-		expect(stats).toEqual({ total: 0, completed: 0, pending: 0, fileCount: 0 });
-	});
-});
-
+import { TASK_STATUSES } from '#lib/features/tasks/task-status.logic.js';
+import type { TaskItem } from '#lib/features/tasks/tasks.types.js';
+import { taskV2 } from '../../../fixtures/tasks.fixture';
 
 describe('parseTaskTextSegments', () => {
 	it('returns plain text as a single text segment', () => {
@@ -265,4 +53,234 @@ describe('parseTaskTextSegments', () => {
 			{ type: 'text', value: 'see [label](https://a.com' },
 		]);
 	});
+});
+
+describe('parseSectionTags', () => {
+	it.each([
+		['#to-list #work', ['#to-list', '#work']],
+		['#to-list,work', ['#to-list', '#work']],
+		['  #a   ,  b ', ['#a', '#b']],
+		['#a #a', ['#a']],
+		['a #a', ['#a']],
+		['#Work #work', ['#Work', '#work']],
+		['#to-list #', ['#to-list']],
+		['', []],
+		['   ', []],
+		[' , ,', []],
+	] as const)('%j gives %j', (text, expected) => {
+		expect(parseSectionTags(text)).toEqual(expected);
+	});
+});
+
+describe('compareTaskPaths', () => {
+	const sorted = (paths: string[]) => [...paths].sort(compareTaskPaths);
+
+	it('compares numbers in a path as numbers', () => {
+		expect(sorted(['/vault/note 10.md', '/vault/note 9.md'])).toEqual(['/vault/note 9.md', '/vault/note 10.md']);
+	});
+
+	it('orders a folder path against a root note as the collator does, ignoring case', () => {
+		// "Projects/Z.md" against "a.md": base sensitivity compares "p" with "a".
+		expect(compareTaskPaths('/vault/Projects/Z.md', '/vault/a.md')).toBeGreaterThan(0);
+		expect(compareTaskPaths('/vault/a.md', '/vault/Projects/Z.md')).toBeLessThan(0);
+	});
+
+	it('gives paths the collator calls equal a fixed order, whichever comes first', () => {
+		expect(sorted(['/vault/a.md', '/vault/A.md'])).toEqual(sorted(['/vault/A.md', '/vault/a.md']));
+		expect(sorted(['/vault/a.md', '/vault/A.md'])).toEqual(['/vault/A.md', '/vault/a.md']);
+		expect(sorted(['/vault/résumé.md', '/vault/resume.md'])).toEqual(sorted(['/vault/resume.md', '/vault/résumé.md']));
+		expect(compareTaskPaths('/vault/a.md', '/vault/a.md')).toBe(0);
+	});
+});
+
+describe('noteFolder', () => {
+	it('gives the vault-relative folder of a nested note', () => {
+		expect(noteFolder('/vault', '/vault/Projects/Clients/ACME.md')).toBe('Projects/Clients');
+	});
+
+	it('gives an empty string for a note at the vault root', () => {
+		expect(noteFolder('/vault', '/vault/Root.md')).toBe('');
+	});
+
+	it('gives an empty string for a path outside the vault', () => {
+		expect(noteFolder('/vault', '/elsewhere/x.md')).toBe('');
+	});
+
+	it('gives an empty string when no vault is open', () => {
+		expect(noteFolder(null, '/vault/Projects/x.md')).toBe('');
+	});
+
+	it('gives an empty string for a sibling folder sharing the vault prefix', () => {
+		expect(noteFolder('/vault', '/vault2/x.md')).toBe('');
+	});
+});
+
+describe('noteTaskCounts', () => {
+	it('counts the open statuses and every task', () => {
+		const tasks = TASK_STATUSES.map((status, i) => taskV2(status, { status, lineNumber: i + 1 }));
+		expect(noteTaskCounts(tasks)).toEqual({ open: 5, total: 7 });
+	});
+
+	it('gives zero counts for no tasks', () => {
+		expect(noteTaskCounts([])).toEqual({ open: 0, total: 0 });
+	});
+});
+
+describe('taskChips', () => {
+	const TODAY = '2026-11-05';
+	const open = { tags: true, open: true };
+
+	it('marks a due date before today overdue on an open task', () => {
+		expect(taskChips({ description: 'Pay', dueDate: '2026-11-03', tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'due', label: 'Nov 3', title: 'Overdue, due 2026-11-03', overdue: true },
+		]);
+	});
+
+	it('does not mark a due date today or later overdue', () => {
+		expect(taskChips({ description: 'Pay', dueDate: '2026-11-05', tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'due', label: 'Nov 5', title: 'Due 2026-11-05' },
+		]);
+		expect(taskChips({ description: 'Pay', dueDate: '2026-11-06', tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'due', label: 'Nov 6', title: 'Due 2026-11-06' },
+		]);
+	});
+
+	it('puts the year in a due label when it differs from today', () => {
+		expect(taskChips({ description: 'Pay', dueDate: '2027-01-15', tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'due', label: 'Jan 15, 2027', title: 'Due 2027-01-15' },
+		]);
+	});
+
+	it('does not mark a closed task overdue', () => {
+		expect(taskChips({ description: 'Pay', dueDate: '2026-11-03', tags: [] }, TODAY, { tags: true, open: false })).toEqual([
+			{ kind: 'due', label: 'Nov 3', title: 'Due 2026-11-03' },
+		]);
+	});
+
+	it('labels scheduled and start dates, with the year rule', () => {
+		expect(
+			taskChips({ description: 'Pay', scheduledDate: '2026-11-03', startDate: '2025-12-01', tags: [] }, TODAY, open),
+		).toEqual([
+			{ kind: 'scheduled', label: 'Scheduled Nov 3' },
+			{ kind: 'start', label: 'Starts Dec 1, 2025' },
+		]);
+	});
+
+	it('words each priority level and shows none for none', () => {
+		for (const level of ['highest', 'high', 'medium', 'low', 'lowest'] as const) {
+			expect(taskChips({ description: 'Pay', priority: level, tags: [] }, TODAY, open)).toEqual([
+				{ kind: 'priority', label: level },
+			]);
+		}
+		expect(taskChips({ description: 'Pay', priority: 'none', tags: [] }, TODAY, open)).toEqual([]);
+	});
+
+	it('drops a block id the recurrence text swallowed', () => {
+		expect(taskChips({ description: 'Pay', recurrence: { text: 'every week ^abc123' }, tags: [] }, TODAY, open)).toEqual([
+			{ kind: 'recurrence', label: 'every week' },
+		]);
+	});
+
+	it('gives one chip per tag, after every other chip, and none when tags is false', () => {
+		const metadata = {
+			description: 'Pay',
+			dueDate: '2026-11-03',
+			scheduledDate: '2026-11-04',
+			startDate: '2026-11-01',
+			priority: 'high' as const,
+			recurrence: { text: 'every week' },
+			tags: ['work', 'home'],
+		};
+		expect(taskChips(metadata, TODAY, open).map((c) => [c.kind, c.label])).toEqual([
+			['due', 'Nov 3'],
+			['scheduled', 'Scheduled Nov 4'],
+			['start', 'Starts Nov 1'],
+			['priority', 'high'],
+			['recurrence', 'every week'],
+			['tag', '#work'],
+			['tag', '#home'],
+		]);
+		expect(taskChips(metadata, TODAY, { tags: false, open: true }).some((c) => c.kind === 'tag')).toBe(false);
+	});
+
+	it('returns no chip for a task with only a description', () => {
+		expect(taskChips({ description: 'Pay', tags: [] }, TODAY, open)).toEqual([]);
+	});
+});
+
+describe('stripTaskTrailers', () => {
+	it('removes a trailing block id, then a Todoist anchor', () => {
+		expect(stripTaskTrailers('Call Ana 🆔 td-123 ^abc')).toBe('Call Ana');
+		expect(stripTaskTrailers('Call Ana ^abc')).toBe('Call Ana');
+		expect(stripTaskTrailers('Call Ana 🆔td-123')).toBe('Call Ana');
+		expect(stripTaskTrailers('^abc')).toBe('');
+	});
+
+	it('removes a trailing carriage return before the block id', () => {
+		expect(stripTaskTrailers('Call Ana ^abc\r')).toBe('Call Ana');
+	});
+
+	it('leaves a caret inside a word and a non-Todoist id alone', () => {
+		expect(stripTaskTrailers('a^b')).toBe('a^b');
+		expect(stripTaskTrailers('Call Ana 🆔 42')).toBe('Call Ana 🆔 42');
+	});
+});
+
+describe('taskDisplayText and usesRawTaskText', () => {
+	/** A row as `parse_task_metadata` describes `text` (traced from parsing.rs). */
+	const row = (text: string, description: string, tags: string[] = []): Pick<TaskItem, 'text' | 'metadata'> => ({
+		text,
+		metadata: { description, tags },
+	});
+
+	const cases: [string, Pick<TaskItem, 'text' | 'metadata'>, boolean, string][] = [
+		['a block id after a date', row('Send invoice 📅 2026-11-03 ^abc123', 'Send invoice ^abc123'), false, 'Send invoice'],
+		[
+			'date, priority and tag',
+			{
+				text: 'Send invoice 📅 2026-11-03 ⏫ #work',
+				metadata: { description: 'Send invoice', dueDate: '2026-11-03', priority: 'high', tags: ['work'] },
+			},
+			false,
+			'Send invoice',
+		],
+		[
+			'a Todoist anchor Rust already removed',
+			{ text: 'Call Ana 🆔 td-123 ^abc123', metadata: { description: 'Call Ana ^abc123', id: 'td-123', tags: [] } },
+			false,
+			'Call Ana',
+		],
+		['C# beside a real tag', row('Fix C# bug #work', 'Fix C# bug', ['work']), false, 'Fix C# bug'],
+		['a wikilink heading', row('read [[Book#Chapter 2]]', 'read [[Book 2]]', ['Chapter']), true, 'read [[Book#Chapter 2]]'],
+		[
+			'a markdown link anchor',
+			row('see [doc](https://example.com/a#b)', 'see [doc](https://example.com/a)', ['b']),
+			true,
+			'see [doc](https://example.com/a#b)',
+		],
+		['a bare URL anchor', row('https://example.com/a#b', 'https://example.com/a', ['b']), true, 'https://example.com/a#b'],
+		['a relative link anchor', row('see [doc](notes/a.md#sec)', 'see [doc](notes/a.md)', ['sec']), true, 'see [doc](notes/a.md#sec)'],
+		['a tag-only task', row('#todo', '', ['todo']), true, '#todo'],
+		['a tag-only task with a block id', row('#todo ^abc', '^abc', ['todo']), true, '#todo'],
+		[
+			'a wikilink heading with an anchor and block id',
+			row('Call [[Ana#Phone]] 🆔 td-123 ^abc123', 'Call [[Ana]] ^abc123', ['Phone']),
+			true,
+			'Call [[Ana#Phone]]',
+		],
+		['a wikilink heading with an anchor', row('Call [[Ana#Phone]] 🆔 td-123', 'Call [[Ana]]', ['Phone']), true, 'Call [[Ana#Phone]]'],
+		[
+			'CRLF raw text',
+			row('read [[Book#Chapter 2]] ^abc\r', 'read [[Book 2]] ^abc', ['Chapter']),
+			true,
+			'read [[Book#Chapter 2]]',
+		],
+	];
+
+	for (const [name, task, raw, display] of cases) {
+		it(`${raw ? 'raw text' : 'description'} for ${name}`, () => {
+			expect(usesRawTaskText(task)).toBe(raw);
+			expect(taskDisplayText(task)).toBe(display);
+		});
+	}
 });

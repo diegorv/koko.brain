@@ -1,12 +1,13 @@
 {
 	"featureCycleEdges": [],
 	"featurePairs": [
-		"auto-move -> collection",
-		"auto-move -> file-icons",
-		"auto-move -> type-definitions",
+		"auto-organize -> collection",
+		"auto-organize -> file-icons",
+		"auto-organize -> type-definitions",
 		"backlinks -> event-calendar",
 		"deep-link -> search",
 		"dock-badge -> type-definitions",
+		"event-calendar -> tasks",
 		"event-calendar -> type-definitions",
 		"note-action-bar -> deep-link",
 		"note-action-bar -> properties",
@@ -15,6 +16,7 @@
 		"note-list -> file-icons",
 		"note-list -> properties",
 		"note-list -> type-definitions",
+		"properties -> file-history",
 		"properties -> file-icons",
 		"properties -> type-definitions",
 		"quick-switcher -> properties",
@@ -23,10 +25,14 @@
 		"rail-shell -> event-calendar",
 		"rail-shell -> file-icons",
 		"rail-shell -> note-list",
+		"rail-shell -> properties",
 		"rail-shell -> type-definitions",
 		"search -> event-calendar",
 		"search -> rail-shell",
 		"tags -> search",
-		"type-definitions -> collection"
+		"tasks -> file-icons",
+		"tasks -> type-definitions",
+		"type-definitions -> collection",
+		"type-definitions -> file-icons"
 	]
 }

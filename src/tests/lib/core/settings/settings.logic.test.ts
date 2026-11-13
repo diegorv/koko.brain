@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { AppSettings } from '#lib/core/settings/settings.types.js';
+import type { AppSettings, EditorSettings, HeadingLevelSettings } from '#lib/core/settings/settings.types.js';
 import { DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import {
 	clampFontSize,
@@ -22,6 +22,7 @@ import {
 	EVENT_CALENDAR_VIEW_MODES,
 	SETTINGS_SECTION_GROUPS,
 	mergeLayout,
+	migrateTypeScale,
 } from '#lib/core/settings/settings.logic.js';
 
 describe('clampFontSize', () => {
@@ -277,6 +278,24 @@ describe('mergeLayout', () => {
 		expect(merged).toEqual({ ...defaults, railItem: 'files', noteListSize: 30, railFolder: null });
 	});
 
+	it('keeps the rail visibility, order and Inbox badge keys, whose defaults hide nothing and show the badge', () => {
+		expect(defaults).toMatchObject({ railHidden: [], railOrder: [], railInboxBadge: true });
+		const saved = { railHidden: ['archive'], railOrder: ['files', 'types'], railInboxBadge: false };
+		expect(mergeLayout(defaults, saved)).toEqual({ ...defaults, ...saved });
+		expect(mergeLayout(defaults, { railItem: 'inbox' }).railInboxBadge).toBe(true);
+	});
+
+	it('keeps a saved rail width, and an old file without one gets 140', () => {
+		expect(mergeLayout(defaults, { railWidth: 260 }).railWidth).toBe(260);
+		expect(mergeLayout(defaults, { railItem: 'inbox' }).railWidth).toBe(140);
+	});
+
+	it('keeps a saved rail style and collapsed state, and an old file gets labeled and expanded', () => {
+		const saved = { railStyle: 'captioned', railCollapsed: true };
+		expect(mergeLayout(defaults, saved)).toEqual({ ...defaults, ...saved });
+		expect(mergeLayout(defaults, { railItem: 'inbox' })).toMatchObject({ railStyle: 'labeled', railCollapsed: false });
+	});
+
 	it('drops the classic shell keys and any other key the defaults do not have', () => {
 		const merged = mergeLayout(defaults, {
 			shell: 'classic',
@@ -315,7 +334,7 @@ describe('mergeLayout', () => {
 			rightSidebarSize: 25,
 		});
 		expect(merged).toEqual({ ...defaults, rightSidebarVisible: true, backlinksVisible: false });
-		expect(merged.rightSidebarSize).toBe(20);
+		expect(merged.rightSidebarSize).toBe(3);
 	});
 
 	it('resets the stale rail sizes of a classic layout but keeps a right sidebar size the user chose', () => {
@@ -336,17 +355,58 @@ describe('mergeLayout', () => {
 		const sizes = { navigatorSize: 18, noteListSize: 26, rightSidebarSize: 25 };
 		expect(mergeLayout(defaults, { railItem: 'files', ...sizes })).toEqual({ ...defaults, railItem: 'files', ...sizes });
 	});
+
+	it('defaults railListPrefs to an empty record', () => {
+		expect(defaults.railListPrefs).toEqual({});
+	});
+
+	it('keeps a saved railListPrefs record across a load', () => {
+		const saved = { 'type:task': { sort: 'modified:desc', properties: ['status', '_belongs_to'] }, folder: { sort: 'title:asc' } };
+		expect(mergeLayout(defaults, { railListPrefs: saved }).railListPrefs).toEqual(saved);
+	});
 });
 
 describe('SETTINGS_SECTION_GROUPS', () => {
 	it('contains all expected groups in order', () => {
 		const groups = SETTINGS_SECTION_GROUPS.map((g) => g.group);
-		expect(groups).toEqual(['General', 'Notes', 'Tools', 'Integrations', 'Advanced']);
+		expect(groups).toEqual(['General', 'Notes', 'Vault', 'Tools', 'Integrations', 'Advanced']);
 	});
 
 	it('contains all expected sections in order', () => {
 		const ids = SETTINGS_SECTION_GROUPS.flatMap((g) => g.sections.map((s) => s.id));
-		expect(ids).toEqual(['appearance', 'editor', 'sidebar', 'periodic-notes', 'quick-capture', 'one-on-one', 'templates', 'types', 'event-calendar', 'search', 'file-history', 'auto-move', 'trash', 'queryjs', 'todoist', 'sentry', 'troubleshooting', 'update', 'remote-access']);
+		expect(ids).toEqual(['appearance', 'editor', 'layout', 'types', 'periodic-notes', 'quick-capture', 'one-on-one', 'event-calendar', 'files', 'file-history', 'auto-organize', 'trash', 'search', 'queryjs', 'todoist', 'labs', 'sentry', 'troubleshooting', 'update', 'remote-access']);
+	});
+
+	it('lists Labs first in the Advanced group', () => {
+		const advanced = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Advanced');
+		expect(advanced?.sections[0]).toEqual({ id: 'labs', label: 'Labs' });
+	});
+
+	it('lists Layout last in the General group', () => {
+		const general = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'General');
+		expect(general?.sections.at(-1)).toEqual({ id: 'layout', label: 'Layout' });
+	});
+
+	it('lists Files & Folders first in the Vault group', () => {
+		const vault = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Vault');
+		expect(vault?.sections[0]).toEqual({ id: 'files', label: 'Files & Folders' });
+		expect(vault?.sections.map((s) => s.id)).toEqual(['files', 'file-history', 'auto-organize', 'trash']);
+	});
+
+	it('shows Auto Organize in the Vault group under the auto-organize id', () => {
+		const vault = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Vault');
+		expect(vault?.sections).toContainEqual({ id: 'auto-organize', label: 'Auto Organize' });
+	});
+
+	it('keeps Search and QueryJS in Tools', () => {
+		const tools = SETTINGS_SECTION_GROUPS.find((g) => g.group === 'Tools');
+		expect(tools?.sections.map((s) => s.id)).toEqual(['search', 'queryjs']);
+	});
+
+	it('moves Sentry out of Integrations and into Advanced', () => {
+		const sections = (name: string) => SETTINGS_SECTION_GROUPS.find((g) => g.group === name)?.sections.map((s) => s.id);
+		expect(sections('Integrations')).toEqual(['todoist']);
+		expect(sections('Advanced')).toEqual(['labs', 'sentry', 'troubleshooting', 'update', 'remote-access']);
 	});
 
 	it('lists Calendar in the Notes group', () => {
@@ -569,5 +629,115 @@ describe('normalizeSettings', () => {
 		normalizeSettings(settings);
 
 		expect(settings.editor.fontSize).toBe(999);
+	});
+
+	it('keeps a valid todoist branch by identity', () => {
+		const settings = fixture();
+		expect(normalizeSettings(settings).todoist).toBe(settings.todoist);
+	});
+
+	it('forces the todoist sync interval to a whole number of at least 1 minute', () => {
+		const at = (value: number) => {
+			const settings = fixture();
+			settings.todoist.syncIntervalMinutes = value;
+			return normalizeSettings(settings).todoist.syncIntervalMinutes;
+		};
+		expect(at(0)).toBe(1);
+		expect(at(-3)).toBe(1);
+		expect(at(2.6)).toBe(3);
+		expect(at(Number.NaN)).toBe(5);
+		expect(at(15)).toBe(15);
+	});
+
+	it('restores the default todoist sync interval when settings.json holds a non-number', () => {
+		const at = (value: unknown) => {
+			const settings = fixture();
+			(settings.todoist as { syncIntervalMinutes: unknown }).syncIntervalMinutes = value;
+			return normalizeSettings(settings).todoist.syncIntervalMinutes;
+		};
+		expect(at(null)).toBe(5);
+		expect(at('10')).toBe(5);
+	});
+
+	it('resets an unknown todoist sync context to work', () => {
+		const settings = fixture();
+		(settings.todoist as { syncContext: string }).syncContext = 'office';
+		expect(normalizeSettings(settings).todoist.syncContext).toBe('work');
+		settings.todoist.syncContext = 'personal';
+		expect(normalizeSettings(settings).todoist.syncContext).toBe('personal');
+	});
+
+	it('trims the todoist sync folder and restores Todoist when it is empty', () => {
+		const settings = fixture();
+		settings.todoist.syncFolder = '  Projects/Todoist  ';
+		expect(normalizeSettings(settings).todoist.syncFolder).toBe('Projects/Todoist');
+		settings.todoist.syncFolder = '   ';
+		expect(normalizeSettings(settings).todoist.syncFolder).toBe('Todoist');
+	});
+
+	it('coerces non-boolean todoist sync flags and a non-string root to their defaults', () => {
+		const settings = fixture();
+		const raw = settings.todoist as unknown as Record<string, unknown>;
+		raw.syncEnabled = 'yes';
+		raw.syncIncludeInbox = 1;
+		raw.syncRootProjectId = 42;
+		const { todoist } = normalizeSettings(settings);
+		expect(todoist.syncEnabled).toBe(false);
+		expect(todoist.syncIncludeInbox).toBe(false);
+		expect(todoist.syncRootProjectId).toBe('');
+	});
+});
+
+describe('migrateTypeScale', () => {
+	/** H4-H6 as every release before the distinct heading scale saved them */
+	const OLD_H4_TO_H6: HeadingLevelSettings = { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 };
+
+	/** A saved editor block from before the migration */
+	function saved(editor: Record<string, unknown>): Partial<EditorSettings> {
+		return editor as Partial<EditorSettings>;
+	}
+
+	it('scales the saved font size by the removed 1.05 multiplier and rounds it', () => {
+		expect(migrateTypeScale(saved({ fontSize: 18 }))?.fontSize).toBe(19);
+		expect(migrateTypeScale(saved({ fontSize: 14 }))?.fontSize).toBe(15);
+		expect(migrateTypeScale(saved({ fontSize: 20 }))?.fontSize).toBe(21);
+	});
+
+	it('marks the block migrated', () => {
+		expect(migrateTypeScale(saved({ fontSize: 18 }))?.typeScaleMigrated).toBe(true);
+		expect(migrateTypeScale(saved({}))?.typeScaleMigrated).toBe(true);
+	});
+
+	it('runs once: a migrated block comes back unchanged', () => {
+		const once = migrateTypeScale(saved({ fontSize: 18 }));
+		const twice = migrateTypeScale(once);
+		expect(twice).toBe(once);
+		expect(twice?.fontSize).toBe(19);
+	});
+
+	it('leaves a missing editor block and a missing font size alone', () => {
+		expect(migrateTypeScale(undefined)).toBeUndefined();
+		expect(migrateTypeScale(saved({ lineHeight: 1.8 }))).toEqual({ lineHeight: 1.8, typeScaleMigrated: true });
+	});
+
+	it('drops H4-H6 levels still at the old default, so the new defaults fill them', () => {
+		const out = migrateTypeScale(saved({
+			headingTypography: { h4: OLD_H4_TO_H6, h5: OLD_H4_TO_H6, h6: { fontSize: 1 } },
+		}));
+		expect(out?.headingTypography).toEqual({});
+	});
+
+	it('keeps a customized level and every H1-H3 level', () => {
+		const h1 = DEFAULT_SETTINGS.editor.headingTypography.h1;
+		const h4 = { ...OLD_H4_TO_H6, fontSize: 1.3 };
+		const h6 = { ...OLD_H4_TO_H6, fontWeight: 'normal' };
+		const out = migrateTypeScale(saved({ headingTypography: { h1, h4, h5: OLD_H4_TO_H6, h6 } }));
+		expect(out?.headingTypography).toEqual({ h1, h4, h6 });
+	});
+
+	it('does not change its input', () => {
+		const input = saved({ fontSize: 18, headingTypography: { h4: { ...OLD_H4_TO_H6 } } });
+		migrateTypeScale(input);
+		expect(input).toEqual({ fontSize: 18, headingTypography: { h4: OLD_H4_TO_H6 } });
 	});
 });

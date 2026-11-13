@@ -2,6 +2,10 @@
  * Shared markdown rendering styles for canvas node content.
  * Imported globally in CanvasInner.svelte — scoped by the .canvas-node-content class.
  * Used by TextNode and FileNode.
+ *
+ * Headings read the editor's `--heading-hN-*` variables (set on the document
+ * root from the heading typography settings); the fallbacks are the default
+ * scale. Inline code and tables are sized like the editor's.
  */
 .canvas-node-content p {
 	margin: 0 0 0.5em;
@@ -19,16 +23,55 @@
 .canvas-node-content h5,
 .canvas-node-content h6 {
 	margin: 0 0 0.4em;
-	line-height: 1.3;
-	font-weight: 600;
 }
 
-.canvas-node-content h1 { font-size: 1.4em; color: var(--syntax-heading1); }
-.canvas-node-content h2 { font-size: 1.2em; color: var(--syntax-heading2); }
-.canvas-node-content h3 { font-size: 1.1em; color: var(--syntax-heading3); }
-.canvas-node-content h4 { font-size: 1.05em; color: var(--syntax-heading4); }
-.canvas-node-content h5 { font-size: 1em; color: var(--syntax-heading5); }
-.canvas-node-content h6 { font-size: 0.95em; color: var(--syntax-heading6); }
+.canvas-node-content h1 {
+	font-size: var(--heading-h1-font-size, 2.058em);
+	font-weight: var(--heading-h1-font-weight, 700);
+	line-height: var(--heading-h1-line-height, 1.4);
+	letter-spacing: var(--heading-h1-letter-spacing, -0.02em);
+	color: var(--syntax-heading1);
+}
+
+.canvas-node-content h2 {
+	font-size: var(--heading-h2-font-size, 1.618em);
+	font-weight: var(--heading-h2-font-weight, 700);
+	line-height: var(--heading-h2-line-height, 1.4);
+	letter-spacing: var(--heading-h2-letter-spacing, -0.015em);
+	color: var(--syntax-heading2);
+}
+
+.canvas-node-content h3 {
+	font-size: var(--heading-h3-font-size, 1.272em);
+	font-weight: var(--heading-h3-font-weight, 700);
+	line-height: var(--heading-h3-line-height, 1.4);
+	letter-spacing: var(--heading-h3-letter-spacing, -0.01em);
+	color: var(--syntax-heading3);
+}
+
+.canvas-node-content h4 {
+	font-size: var(--heading-h4-font-size, 1.125em);
+	font-weight: var(--heading-h4-font-weight, 700);
+	line-height: var(--heading-h4-line-height, 1.6);
+	letter-spacing: var(--heading-h4-letter-spacing, 0em);
+	color: var(--syntax-heading4);
+}
+
+.canvas-node-content h5 {
+	font-size: var(--heading-h5-font-size, 1em);
+	font-weight: var(--heading-h5-font-weight, 700);
+	line-height: var(--heading-h5-line-height, 1.6);
+	letter-spacing: var(--heading-h5-letter-spacing, 0em);
+	color: var(--syntax-heading5);
+}
+
+.canvas-node-content h6 {
+	font-size: var(--heading-h6-font-size, 0.9em);
+	font-weight: var(--heading-h6-font-weight, 600);
+	line-height: var(--heading-h6-line-height, 1.6);
+	letter-spacing: var(--heading-h6-letter-spacing, 0em);
+	color: var(--syntax-heading6);
+}
 
 .canvas-node-content strong {
 	color: var(--syntax-strong);
@@ -57,7 +100,6 @@
 	color: var(--syntax-code);
 	padding: 1px 4px;
 	border-radius: 3px;
-	font-size: 0.9em;
 }
 
 .canvas-node-content pre {
@@ -74,6 +116,7 @@
 	background: none;
 	padding: 0;
 	color: inherit;
+	font-size: 0.9em;
 }
 
 .canvas-node-content ul,
@@ -112,13 +155,13 @@
 	border-collapse: collapse;
 	width: 100%;
 	margin: 0.5em 0;
+	font-size: 0.9em;
 }
 
 .canvas-node-content th,
 .canvas-node-content td {
 	border: 1px solid var(--lp-table-border, rgba(255, 255, 255, 0.15));
 	padding: 4px 8px;
-	font-size: 12px;
 }
 
 .canvas-node-content th {

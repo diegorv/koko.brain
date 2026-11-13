@@ -5,7 +5,7 @@ import type { PropertyIndexRecord } from '#lib/features/collection/collection.ty
 
 /**
  * End-to-end validation of relationship filters as they reach the engine from
- * a real .view / .collection YAML body — parseCollectionYaml then executeQuery,
+ * a real .view YAML body — parseCollectionYaml then executeQuery,
  * not a hand-built CollectionDefinition.
  *
  * Records mirror the Rust projection in `project_note_record` (vault.rs): the
@@ -36,11 +36,11 @@ function run(yaml: string, index: Map<string, PropertyIndexRecord>): string[] {
 	const parsed = parseCollectionYaml(yaml);
 	if (!parsed.success) throw new Error(parsed.error);
 	const view = parsed.definition.views[0];
-	const result = executeQuery(parsed.definition, view, index);
+	const result = executeQuery(parsed.definition, view, index, null);
 	return result.records.map((r) => r.path);
 }
 
-describe('Relationship filters through the .view/.collection pipeline', () => {
+describe('Relationship filters through the .view pipeline', () => {
 	it('_belongs_to.contains matches a single projected wikilink target', () => {
 		const index = makeIndex([
 			// single `_belongs_to: "[[Website Redesign]]"` projects to a 1-element array

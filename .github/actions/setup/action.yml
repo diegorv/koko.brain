@@ -1,7 +1,10 @@
 name: "Setup Environment"
-description: "Setup pnpm, Node.js, Rust, sccache, and dependency caching"
+description: "Setup pnpm, Node.js, Rust, and dependency caching"
 
 inputs:
+  mods-repo-read-token:
+    description: "Read-only credential for the private mod-core source repository"
+    required: true
   rust:
     description: "Install Rust toolchain"
     required: false
@@ -15,10 +18,10 @@ inputs:
       Optional `shared-key` passed to Swatinem/rust-cache. When set, all
       jobs that pass the same value share a single cache entry (instead
       of each job getting its own `v0-rust-<job_id>-...` slot). Use this
-      for jobs that run the same cargo invocation (e.g. `cargo build
-      --release --target aarch64-apple-darwin` in nightly.yml and
-      release.yml) so a successful build in one workflow primes the
-      cache for the other. Leave empty for jobs whose cargo invocation
+      for jobs that run the same cargo invocation with the same
+      profile settings, so a successful build in one workflow primes the
+      cache for the other (nightly.yml overrides codegen-units, so it
+      uses its own key instead of release.yml's). Leave empty for jobs whose cargo invocation
       produces different artifacts (e.g. ci.yml's `cargo test`
       debug+host build), so they keep their own per-job cache and
       don't clobber each other.
@@ -39,7 +42,9 @@ runs:
 
     - name: Install frontend dependencies
       shell: bash
-      run: pnpm install --frozen-lockfile
+      env:
+        MODS_REPO_READ_TOKEN: ${{ inputs.mods-repo-read-token }}
+      run: bash scripts/install-frontend-deps-ci.sh
 
     - name: Setup Rust
       if: inputs.rust == 'true'
@@ -69,20 +74,17 @@ runs:
         fi
         "$REAL_CARGO" --version
 
-    - name: Setup sccache
-      if: inputs.rust == 'true'
-      uses: mozilla-actions/sccache-action@fc920bf0ec8de6ee65d409111f7ec508035751ba # v0.0.11
-
-    - name: Configure sccache GHA backend
+    # .cargo/config.toml sets rustc-wrapper = "sccache" for local builds; an
+    # empty RUSTC_WRAPPER overrides it. CI relies on rust-cache alone: sccache
+    # recorded no hits there and its per-object entries crowded the cache.
+    - name: Disable the sccache wrapper
       if: inputs.rust == 'true'
       shell: bash
-      run: |
-        echo "SCCACHE_GHA_ENABLED=true" >> "$GITHUB_ENV"
-        echo "RUSTC_WRAPPER=sccache" >> "$GITHUB_ENV"
+      run: echo "RUSTC_WRAPPER=" >> "$GITHUB_ENV"
 
     - name: Cache Rust dependencies and build artifacts
       if: inputs.rust == 'true'
-      uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
+      uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       with:
         workspaces: "src-tauri -> target"
         shared-key: ${{ inputs.rust-cache-key }}

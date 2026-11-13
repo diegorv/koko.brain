@@ -145,19 +145,27 @@ pub fn build_search_index_inner(vault_path: String) -> Result<IndexStats, String
 }
 
 /// Searches the FTS5 index using BM25 ranking with optional fuzzy matching.
+///
+/// Runs on a blocking worker thread: a sync command would run on the app main
+/// thread and freeze the UI for the whole query, and the search box fires one
+/// per query.
 #[tauri::command]
-pub fn search_fts(
+pub async fn search_fts(
 	query: String,
 	max_results: Option<usize>,
 	fuzzy: Option<bool>,
 ) -> Result<Vec<FtsSearchResult>, String> {
-	let trimmed = query.trim();
-	if trimmed.is_empty() {
-		return Ok(Vec::new());
-	}
-	let limit = max_results.unwrap_or(50);
-	let use_fuzzy = fuzzy.unwrap_or(false);
-	search_fts_inner(trimmed, limit, use_fuzzy)
+	tokio::task::spawn_blocking(move || {
+		let trimmed = query.trim();
+		if trimmed.is_empty() {
+			return Ok(Vec::new());
+		}
+		let limit = max_results.unwrap_or(50);
+		let use_fuzzy = fuzzy.unwrap_or(false);
+		search_fts_inner(trimmed, limit, use_fuzzy)
+	})
+	.await
+	.map_err(|e| format!("search_fts task join error: {e}"))?
 }
 
 /// Synchronous FTS search shared by the public command and the hybrid pipeline.
@@ -238,6 +246,57 @@ pub async fn remove_from_search_index(file_path: String) -> Result<(), String> {
 pub fn remove_from_search_index_inner(file_path: String) -> Result<(), String> {
 	debug_log("FTS", format!("Removing: {}", file_path));
 	db::with_fts_db(|conn| db::fts_repo::delete_entry(conn, &file_path))
+}
+
+/// Moves the text and semantic search rows of a renamed or moved note, or of
+/// every note under a renamed or moved folder, from `from` to `to`. Both are
+/// vault-relative keys. A path nothing was indexed under is a successful no-op.
+/// When `to` is not a searchable name (`is_search_indexed_filename`), the rows
+/// at exactly `from` are deleted instead of moved.
+///
+/// Re-keying keeps the rows instead of dropping and rebuilding them: a fresh
+/// upsert per child would re-read every file and re-embed every chunk. One
+/// transaction covers the FTS5 tables, the chunks and the `mtime:` keys (both
+/// connections open the same database file), so a failure leaves all of them
+/// at the old keys.
+///
+/// Runs on a blocking worker thread, like the other FTS5 writers.
+#[tauri::command]
+pub async fn rename_in_search_index(from: String, to: String) -> Result<(), String> {
+	tokio::task::spawn_blocking(move || rename_in_search_index_inner(from, to))
+		.await
+		.map_err(|e| format!("rename_in_search_index task join error: {e}"))?
+}
+
+/// Synchronous implementation used by the async command and by tests.
+pub fn rename_in_search_index_inner(from: String, to: String) -> Result<(), String> {
+	if from == to {
+		return Ok(());
+	}
+	let (notes, chunks, dropped) = db::with_fts_db_transaction("search rename", |conn| {
+		// A note renamed onto a name search skips (`Foo.md` -> `Foo.view` or
+		// `Foo.kanban`) loses its rows here, before the re-keys would move
+		// them. Exact key only: a folder `dir` -> `dir.view` has no row of its
+		// own, and its `.md` children still move below.
+		let mut dropped = 0;
+		if !vault_fs::is_search_indexed_filename(&to) {
+			db::fts_repo::delete_entry(conn, &from)?;
+			dropped = db::semantic_repo::delete_chunks_for_path(conn, &from)?;
+			db::semantic_repo::delete_mtime(conn, &from)?;
+		}
+		let notes = db::fts_repo::rename_entries(conn, &from, &to, extract_title)?;
+		let chunks = db::semantic_repo::rename_paths(conn, &from, &to)?;
+		Ok((notes, chunks, dropped))
+	})?;
+	debug_log(
+		"FTS",
+		format!("Renamed {} -> {}: {} notes, {} chunks, {} chunks dropped", from, to, notes, chunks, dropped),
+	);
+	if chunks + dropped > 0 {
+		// The semantic search cache holds each chunk's source path.
+		crate::commands::semantic::invalidate_search_cache();
+	}
+	Ok(())
 }
 
 // --- Private helpers ---

@@ -6,6 +6,14 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-11-05): one vault file kind, `.view`
+
+This replaces the two-kinds rule of the 2026-11-04 amendment below. `.view` is the only vault file that holds the collection YAML format; an inline ` ```collection ` block embeds the same format in a note. Where a view shows and how it opens are properties of the file, not of its extension: `_visible: false` keeps it out of Types > Views and the palette's Open view, and `_open_in_editor: true` makes a click open it in the collection editor. The Files navigator's folder menu offers New table (`Untitled.view` with both keys) next to New view, and a hidden view's row offers Show in Views, which removes both keys. `.collection` is retired by owner decision with no conversion, migration code or legacy read path: the editor opens it as plain text, the rail lists it as a plain file, Rust does not index it (`src-tauri/src/utils/fs.rs`), and Convert to view is removed. The owner migrates by hand: rename to `.view`, add `_visible: false` and `_open_in_editor: true`. Internal names stay (`features/collection`, the editor tab type `fileType: 'collection'`). The user documentation is `help/documentation/12-collection.md` and `help/documentation/25-types-and-relationships.md` § View Files.
+
+## Amendment (2026-11-04): the `.view` and `.collection` vault files
+
+This ADR is about source file kinds; the two vault file extensions that share the collection YAML format get their roles recorded here. `.view` is the one file that defines a menu entry: Types > Views lists `.view` files only, and Rust indexes only `.view` (`src-tauri/src/utils/fs.rs`). `.collection` stays an editor-only table/calendar file, opened in the editor or embedded as a ` ```collection ` block, and is never listed in the menu. A `.collection` row in the rail's note list offers Convert to view, a rename through `renameItem` with the same bytes; the Files navigator's folder menu offers New view next to New Collection. The user documentation is `help/documentation/12-collection.md` and `help/documentation/25-types-and-relationships.md` § View Files.
+
 ## Context
 
 A feature like `features/backlinks/` has to do at least three different things: hold reactive state (what the UI reads), call Tauri IPC and mutate that state on responses, and transform data (parse wikilinks, compute unlinked mentions). If all three live in the same file, tests either require a full DOM + Tauri runtime or drown in mocks; if they are split arbitrarily, each feature invents its own boundary.

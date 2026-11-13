@@ -1,0 +1,41 @@
+name: Main checks
+
+permissions:
+  contents: read
+
+# Post-merge CI + E2E on main. Kept out of nightly.yml so the nightly build
+# can queue instead of cancel while these checks still cancel on a newer push.
+on:
+  push:
+    branches: [main]
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/main-checks.yml"
+      - ".github/workflows/ci.yml"
+      - ".github/workflows/e2e.yml"
+      - ".github/actions/setup/**"
+  workflow_dispatch:
+concurrency:
+  group: main-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: CI
+    uses: ./.github/workflows/ci.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
+
+  e2e:
+    name: E2E
+    uses: ./.github/workflows/e2e.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}

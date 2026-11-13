@@ -15,6 +15,14 @@ export interface LinkCandidates {
 	notes: NoteEntryV2[];
 }
 
+/** A tag the vault uses, as tag completion offers it. */
+export interface VaultTag {
+	/** The tag name without `#`; a nested tag keeps its `/` segments. */
+	name: string;
+	/** Number of notes that use the tag. */
+	count: number;
+}
+
 /** Options of `EditorHost.createNote`. */
 export interface CreateNoteOptions {
 	/** Whether a target matching a periodic-note format becomes that periodic note. Default true. */
@@ -23,7 +31,7 @@ export interface CreateNoteOptions {
 
 /**
  * Everything the markdown editor needs from the app: link resolution, note
- * reads, asset URLs, navigation and note creation. The app implements it once
+ * reads, asset URLs, navigation, note creation, the vault's tags and the tag search. The app implements it once
  * and installs it with `editorHost.of(host)` outside every compartment.
  *
  * Call it only from event handlers, `toDOM` and completion sources, never from
@@ -54,9 +62,20 @@ export interface EditorHost {
 	 * (no vault, or the creation failed), `true` otherwise.
 	 */
 	createNote(target: string, anchor?: LinkAnchor, options?: CreateNoteOptions): Promise<boolean>;
+	/**
+	 * Opens the `.view` at a vault-relative path as a click on its row in the
+	 * menu does, also when the view hides its row. Creates nothing. Resolves
+	 * `false` when the path is not a file in the vault (or there is no vault),
+	 * `true` otherwise.
+	 */
+	openView(path: string): Promise<boolean>;
+	/** Opens Search with `tag:<tag>`, as a click on that tag in the Tags view does. `tag` has no `#`. */
+	openTagSearch(tag: string): void;
+	/** The vault's tags for tag completion, as of the current index version. Rejects when the read fails. */
+	listTags(): Promise<readonly VaultTag[]>;
 }
 
-/** Copy Link to Block and Copy block embed for the block at the cursor; the app supplies them. */
+/** Copy Block Link and Copy block embed for the block at the cursor; the app supplies them. */
 export interface BlockLinkActions {
 	/** Copies a wikilink to the block at the cursor (context menu and the Cmd+Shift+L keymap entry). */
 	copyLink(view: EditorView): Promise<void>;
@@ -73,6 +92,9 @@ export const NOOP_HOST: EditorHost = {
 	openLink: () => Promise.resolve(),
 	openExternal: () => Promise.resolve(),
 	createNote: () => Promise.resolve(false),
+	openView: () => Promise.resolve(false),
+	openTagSearch: () => {},
+	listTags: () => Promise.resolve([]),
 };
 
 /**

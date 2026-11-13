@@ -4,7 +4,6 @@ _icon: check-square
 _color: orange
 _order: 5
 _sidebar_label: Tasks
-_sort: modified
 _visible: true
 _list_properties_display:
   - _belongs_to

@@ -2,7 +2,7 @@
 //!
 //! EXCLUDED: `rerank()` scoring (including the empty-documents fast path)
 //! requires a constructed `Reranker`, which needs the real
-//! BGE-reranker-v2-m3 ONNX model (~571MB download) plus live ORT
+//! jina-reranker-v2-base-multilingual ONNX model (~280MB download) plus live ORT
 //! inference — out of scope for unit/integration tests per the project's
 //! semantic-test policy. These tests cover the load-time validation boundary
 //! (missing files, invalid model bytes) and the public constants that gate
@@ -14,10 +14,10 @@ use tempfile::tempdir;
 
 #[test]
 fn default_constants_regression() {
-	// 8 = CPU sweet spot documented in reranker.rs; 512 = the trained
-	// sequence cap for (query + doc) pairs. Changing either silently shifts
-	// rerank latency/quality, so pin them.
-	assert_eq!(Reranker::DEFAULT_BATCH_SIZE, 8);
+	// 1 = no padding and batch-independent scores (see reranker.rs); 512 = the
+	// trained sequence cap for (query + doc) pairs. Changing either silently
+	// shifts rerank latency/quality, so pin them.
+	assert_eq!(Reranker::DEFAULT_BATCH_SIZE, 1);
 	assert_eq!(Reranker::DEFAULT_MAX_SEQ_LEN, 512);
 }
 

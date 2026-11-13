@@ -1,0 +1,29 @@
+## Verdict
+
+CHANGES PLAN (small, EP-02 only). EP-01, EP-03, EP-05 and the section 2 principle hold. Read-only: nothing was edited, built or run. Paths under `src/lib` unless noted; `host` = `plugins/mods/mods-host.service.ts`.
+
+## Verified changes
+
+1. **EP-02, decision-summary row 2 ("Typing is never interrupted") and EP-02 Risk list.** The claim holds only at invoke time. With lazy reveal, the first `log`/`progress` can arrive seconds later (an action that works, then logs "12 notes tagged"). `host:223` is skipped, but `modPickerStore.showRun` (`plugins/mods/mod-picker.store.svelte.ts`, `showRun`) then replaces `current` unconditionally, so the run view opens as a modal `Command.Dialog` (`components/ui/command/command-dialog.svelte`, bits-ui Dialog). Its effect focuses Stop on the status change (`plugins/mods/ModActionPicker.svelte:39-41`), and `handleRunKeydown` (`:64-65`) keeps Enter from the Command root so Enter clicks Stop. A user typing in the editor loses keystrokes, and an Enter cancels the run, possibly half done. A late reveal also overwrites another picker already open (a rail button's list or text field), losing its input.
+   - Change: reword row 2 to "Typing is not interrupted when a run starts". Add a Risk bullet: "A first log after a delay opens the run view over what the user is doing; focus goes to Stop and Enter cancels the run. A late reveal also replaces an open picker." Add to Test: "first log after a delay while the picker shows another mod's list or input".
+   - Option for the owner (add to section 9 decision 4): reveal at start for the palette origin, since the user just picked a row in a dialog (same as rail and the `input` case), and keep lazy reveal only for the raw row `run` that chords use (M2). The plan's stated bug (`:223` lands keys on Stop) is a chord problem, not a palette one. Cost: the sub-frame flash for quick palette actions, which `closesWhenDone` (`mods.logic.ts:133`) already closes (flash visibility is unverified, plan section 10).
+2. **EP-02 Risk, "A long quiet run shows no Stop until invoked again" (and decision 4).** Also true for reloads. `waitForRuns` (`host:523-535`) blocks a reload while any run of the mod is live, and "Reload pending" is rendered only inside the run view (`ModActionPicker.svelte:124`, the only reader of `isReloadPending`). The rail busy dot reads only the rail button key (`features/rail-shell/Rail.svelte:357,376-377`, `host:349` `busy: modsRunsStore.isBusy(key)`). A quiet palette run (key `mod:<id>:action:<aid>`) has neither, so the owner rebuilds a mod, the reload silently never happens, and nothing says why. Bounds that exist: the Labs switch (`stopModsHost`/`disableMod` abort runs) and invoking the same row again (`host:257-258`).
+   - Change: add this to the EP-02 Risk list and to decision 4 ("also blocks hot reload of that mod, silently"). Add a host test: a quiet unrevealed run plus a file change leaves the reload pending, and a second invoke shows the run with "Reload pending". Cheaper fix if wanted: in `waitForRuns`, when setting pending, call `modPickerStore.showRun` for the first unrevealed run of the folder. Owner's call; it steals focus once.
+
+## Scout claims refuted
+
+- "Slot registries must live in `features/` or `core/`, not `plugins/`" (host-lifecycle Risks, Layer rule): wrong for surfaces only `app/` reads. `app/commands.ts` already imports plugins (`openOneOnOnePicker`, `createNoteComposer`), and `scripts/import-graph.mjs` lets `app/` import every layer. The plan's `plugins/mods` store for EP-02 and EP-05 is valid; EP-03 needs `features/rail-shell` only because `NoteRowMenu` and `FilesNavigator` are features, as the plan has it.
+- "`ctx.app` live objects (`mod-app.service.ts:23-44`)": the object spans `:23-53`; the plan has it right.
+- "`railRegistryStore.reset()` has no non-test caller" is true (grep: only `src/tests/...`), but it is not dead code: tests call it in 10 files. Not a defect. Minor note for EP-01: exposing the whole `railRegistryStore` raw also hands mods `reset()`, which drops every built-in registration. Owner-only mods, so no change.
+- "A hot path: `log()` copies 500 lines per call" is true (`plugins/mods/mods-runs.store.svelte.ts:88-90`) but is the existing rail behavior, and EP-02 adds no new feed. No plan change.
+- "Stop during async `onload` runs `onunload` while `onload` is pending" is true (`host:391-398`, `:701`); after that `register`/`addAction` throw (`assertLive`), so nothing leaks. Not a plan risk; at most a sentence in the contract docs.
+- "`toastedErrors` and `folderEpochs` not cleared at stop": true but harmless (`host:420-421`); epochs must stay monotonic. No plan impact.
+- A palette row to `contribute`/`ModSlotsV1` (scout API sketch): the plan's per-surface stores plus one action with many origins is consistent with section 2; the scout's sketch is the generic form section 6 rejects.
+
+## Still unverified
+
+- Whether the sub-frame run-view flash for quick actions is visible (needs the app); it decides whether option 1 is worth the flash trade.
+- How bits-ui restores focus when the late-revealed dialog closes (assumed to return to the prior element, not read).
+- Whether `watch` in EP-01 should compare values: an `$effect` re-runs when `tabs` is spliced or reordered even if `activeTabPath` is unchanged, so `onChange` may fire with the same value. The plan says "fires on change" without saying how. Not a scout claim; worth one test.
+- Observer order at runtime: a built-in hook enabled in Settings after mods started registers after mod observers (initialization order only holds at vault open, `app-lifecycle.service.ts:276,435,535`). Plan says "built-ins register first"; true at open only.
+- Haiku's claims about `habits` removing its `<dialog>` and about `help/documentation/28-mods.md` were not traced.

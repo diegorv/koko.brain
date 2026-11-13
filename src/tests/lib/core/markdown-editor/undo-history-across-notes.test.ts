@@ -289,8 +289,8 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		deleteText(SECRET);
 		activate(B);
 
-		// Closing the background tab A (dirty: the discard dialog is mocked to
-		// confirm), then reopening it from disk.
+		// Closing the background tab A (dirty: closeTab saves it through the
+		// mocked writeTextFile, then closes), then reopening it from disk.
 		await closeTab(findTabIndex(editorStore.tabs, A));
 		flushSync();
 		const reopened = A_CONTENT.replace(SECRET, '');
@@ -472,6 +472,80 @@ describe('undo history across notes in the shared MarkdownEditor view', () => {
 		activate(A);
 
 		expect(livePreviewCompartment.get(view().state)).toEqual([]);
+	});
+
+	describe('caret after an external sync', () => {
+		const NOTE = '/vault/Caret.md';
+		const BODY = '---\ntitle: x\n---\nHello world\n';
+
+		function caretAt(text: string) {
+			view().dispatch({ selection: { anchor: doc().indexOf(text) } });
+			flushSync();
+		}
+
+		it('a frontmatter line added above the caret keeps the caret before the same text', () => {
+			openTabs([NOTE, BODY]);
+			mountEditor();
+			caretAt('world');
+
+			syncExternalContentToEditor(NOTE, '---\ntitle: x\n_favorite: true\n---\nHello world\n', false, 'none');
+			flushSync();
+
+			expect(view().state.selection.main.head).toBe(doc().indexOf('world'));
+		});
+
+		it('text removed above the caret moves the caret back by the removed length', () => {
+			const before = '---\n_organized: false\n---\nHello world\n';
+			openTabs([NOTE, before]);
+			mountEditor();
+			caretAt('world');
+			const head = view().state.selection.main.head;
+
+			syncExternalContentToEditor(NOTE, before.replace('false', 'true'), false, 'none');
+			flushSync();
+
+			expect(view().state.selection.main.head).toBe(head - 1);
+			expect(view().state.selection.main.head).toBe(doc().indexOf('world'));
+		});
+
+		it('a body selection survives a frontmatter rewrite with both ends mapped', () => {
+			openTabs([NOTE, BODY]);
+			mountEditor();
+			const from = doc().indexOf('world');
+			view().dispatch({ selection: { anchor: from, head: from + 'world'.length } });
+			flushSync();
+
+			syncExternalContentToEditor(NOTE, BODY.replace('title: x', 'title: longer\ntags: a'), false, 'frontmatter');
+			flushSync();
+
+			const sel = view().state.selection.main;
+			expect(doc().slice(sel.anchor, sel.head)).toBe('world');
+		});
+
+		it('a change entirely below the caret leaves the caret where it was', () => {
+			openTabs([NOTE, BODY]);
+			mountEditor();
+			caretAt('Hello');
+			const head = view().state.selection.main.head;
+
+			syncExternalContentToEditor(NOTE, `${BODY}\nAppended line\n`, true, 'none');
+			flushSync();
+
+			expect(view().state.selection.main.head).toBe(head);
+		});
+
+		it('a background tab rewritten above its saved caret shows the caret on the same text on return', () => {
+			openTabs([NOTE, BODY], [B, B_CONTENT]);
+			mountEditor();
+			caretAt('world');
+			activate(B);
+
+			// Task toggle / link rewrite on the background tab adds text above the caret.
+			syncExternalContentToEditor(NOTE, BODY.replace('Hello', '- [x] done\nHello'), true, 'none');
+			activate(NOTE);
+
+			expect(view().state.selection.main.head).toBe(doc().indexOf('world'));
+		});
 	});
 
 	describe('CRLF notes', () => {

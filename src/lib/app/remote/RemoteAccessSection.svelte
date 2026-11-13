@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
 	import { normalizeOwnerLogin, normalizeRemoteServerPort, normalizeTailnetHost } from '#lib/core/settings/settings.logic.js';
@@ -26,20 +27,22 @@
 	let portNote = $state<string | null>(null);
 
 	/** Commits a port edit; a running server moves to the new port. */
-	function commitPort(event: Event & { currentTarget: HTMLInputElement }): void {
-		const typed = event.currentTarget.value.trim();
+	function commitPort(event: Event): void {
+		const input = event.currentTarget as HTMLInputElement;
+		const typed = input.value.trim();
 		const port = normalizeRemoteServerPort(Number.parseFloat(typed));
 		portNote = typed === String(port) ? null : `Port ${typed || '(empty)'} cannot be used here, so ${port} is used instead.`;
-		event.currentTarget.value = String(port);
+		input.value = String(port);
 		if (port === settingsStore.remoteServer.port && remoteServerStore.error === null) return;
 		settingsStore.updateRemoteServer({ port });
 		if (settingsStore.remoteServer.enabled) void apply();
 	}
 
 	/** Commits a tailnet name or owner login edit; a running server restarts with it. */
-	function commitRoute(key: 'tailnetHost' | 'ownerLogin', event: Event & { currentTarget: HTMLInputElement }): void {
-		const value = (key === 'tailnetHost' ? normalizeTailnetHost : normalizeOwnerLogin)(event.currentTarget.value);
-		event.currentTarget.value = value;
+	function commitRoute(key: 'tailnetHost' | 'ownerLogin', event: Event): void {
+		const input = event.currentTarget as HTMLInputElement;
+		const value = (key === 'tailnetHost' ? normalizeTailnetHost : normalizeOwnerLogin)(input.value);
+		input.value = value;
 		if (value === settingsStore.remoteServer[key]) return;
 		settingsStore.updateRemoteServer({ [key]: value });
 		if (settingsStore.remoteServer.enabled) void apply();
@@ -65,63 +68,63 @@
 		label="Port"
 		description="Port on 127.0.0.1, between 1024 and 65535, also the Tailscale Serve port. Not 8443 or 10000 (Funnel ports), and not a port t3code already uses: run the status command below first."
 	>
-		<input
+		<Input
 			type="number"
-			min="1024"
-			max="65535"
-			step="1"
-			value={settingsStore.remoteServer.port}
+			class="w-28"
+			min={1024}
+			max={65535}
+			step={1}
+			value={String(settingsStore.remoteServer.port)}
 			onchange={commitPort}
 			aria-label="Browser access port"
 			aria-invalid={remoteServerStore.error ? 'true' : undefined}
-			class="h-8 w-28 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
 		/>
 	</SettingItem>
 	{#if portNote}
-		<p class="px-4 text-xs text-muted-foreground" data-testid="port-note">{portNote}</p>
+		<p class="px-4 text-meta text-muted-foreground" data-testid="port-note">{portNote}</p>
 	{/if}
 
 	<SettingItem label="Tailnet host name" description="This Mac's name on the tailnet, for example mac.tail1234.ts.net. Empty: no tailnet access.">
-		<input
+		<Input
 			type="text"
+			class="w-64"
 			value={settingsStore.remoteServer.tailnetHost}
 			onchange={(e) => commitRoute('tailnetHost', e)}
 			placeholder="mac.tail1234.ts.net"
 			aria-label="Tailnet host name"
 			spellcheck="false"
 			autocomplete="off"
-			class="h-8 w-64 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
 		/>
 	</SettingItem>
 
 	<SettingItem label="Owner Tailscale login" description="Only requests from this Tailscale login get in through Serve. Enter it exactly as tailscale status --json prints it (the match is case-sensitive). Empty: every tailnet request is refused.">
-		<input
+		<Input
 			type="text"
+			class="w-64"
 			value={settingsStore.remoteServer.ownerLogin}
 			onchange={(e) => commitRoute('ownerLogin', e)}
 			placeholder="you@example.com"
 			aria-label="Owner Tailscale login"
 			spellcheck="false"
 			autocomplete="off"
-			class="h-8 w-64 rounded-md border border-border bg-background px-3 text-sm text-foreground focus:outline-none focus:border-primary/50"
 		/>
 	</SettingItem>
 
-	<div class="flex flex-col gap-1 px-4 text-xs text-muted-foreground" data-testid="serve-commands">
+	<div class="flex flex-col gap-1 px-4 text-meta text-muted-foreground" data-testid="serve-commands">
 		<p>Publish on the tailnet (Terminal on this Mac):</p>
-		<code class="select-all rounded bg-muted px-2 py-1 font-mono text-foreground">{commands.publish}</code>
+		<code class="select-all rounded-sm bg-muted px-2 py-1 font-mono text-foreground">{commands.publish}</code>
 		<p>Unpublish:</p>
-		<code class="select-all rounded bg-muted px-2 py-1 font-mono text-foreground">{commands.unpublish}</code>
+		<code class="select-all rounded-sm bg-muted px-2 py-1 font-mono text-foreground">{commands.unpublish}</code>
 		<p>See what Serve publishes now:</p>
-		<code class="select-all rounded bg-muted px-2 py-1 font-mono text-foreground">{commands.status}</code>
+		<code class="select-all rounded-sm bg-muted px-2 py-1 font-mono text-foreground">{commands.status}</code>
 	</div>
 
 	{#if remoteServerStore.error}
-		<p class="px-4 text-xs text-destructive" role="alert">
+		<p class="px-4 text-meta text-destructive" role="alert">
 			Browser access could not start: {remoteServerStore.error}. Pick another port.
 		</p>
 	{:else if remoteServerStore.url}
-		<p class="px-4 text-xs text-muted-foreground" role="status">
+		<p class="px-4 text-meta text-muted-foreground" role="status">
 			Open <span class="font-mono">{remoteServerStore.url}</span> in a browser on this Mac.
 			{#if tailnet}
 				On the iPad or iPhone, open <span class="font-mono">{tailnet}</span>.

@@ -12,7 +12,7 @@ export interface ActionBarState {
 	fileName: string;
 	/** `_favorite` is true. */
 	favorite: boolean;
-	/** `_organized` is true. */
+	/** The note is organized: `_organized` is not the boolean `false` (a missing key reads as organized). */
 	organized: boolean;
 	/** `_archived` is true. */
 	archived: boolean;
@@ -90,11 +90,12 @@ export const FOLD_ORDER: readonly FoldableAction[] = ['copy-path', 'reveal', 'to
 export const ACTION_SLOT_WIDTH = 32;
 
 /**
- * Width the bar keeps for what never folds: padding, a minimum for the type
- * and file name, the Favorite / Organized / Raw / More / right-sidebar
- * buttons and the divider.
+ * Width the bar keeps before any foldable action comes back inline. Far more
+ * than what never folds (padding, the type and file name, Favorite /
+ * Organized / Raw / More and the dividers) so the foldable actions start in
+ * More on a typical editor pane and return only on a wide one.
  */
-export const BAR_RESERVED_WIDTH = 360;
+export const BAR_RESERVED_WIDTH = 960;
 
 /**
  * Width the New 1:1 / New linked note button takes from the foldable actions
@@ -106,10 +107,10 @@ export const HUB_ACTION_WIDTH = 136;
 /**
  * Splits the foldable actions between the bar and the More menu for a bar of
  * `barWidth` px. Both lists keep bar order. A width of 0 means the bar was not
- * measured yet (or the environment has no layout) and folds nothing.
+ * measured yet (or the environment has no layout) and folds everything.
  */
 export function foldActions(barWidth: number): { inline: FoldableAction[]; folded: FoldableAction[] } {
-	if (barWidth <= 0) return { inline: [...FOLDABLE_ACTIONS], folded: [] };
+	if (barWidth <= 0) return { inline: [], folded: [...FOLDABLE_ACTIONS] };
 	const slots = Math.max(0, Math.floor((barWidth - BAR_RESERVED_WIDTH) / ACTION_SLOT_WIDTH));
 	const foldCount = Math.max(0, FOLDABLE_ACTIONS.length - slots);
 	const folding = new Set(FOLD_ORDER.slice(0, foldCount));

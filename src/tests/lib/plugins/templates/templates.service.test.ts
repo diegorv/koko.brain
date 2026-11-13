@@ -100,6 +100,8 @@ describe('createFileFromTemplate', () => {
 		vi.clearAllMocks();
 		storage.clear();
 		templatesStore.reset();
+		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vaultStore.open('/vault');
 	});
 
@@ -144,6 +146,37 @@ describe('createFileFromTemplate', () => {
 			}),
 		);
 		expect(vaultStore.path).toBe('/vault');
+	});
+
+	it('marks the rendered template unorganized while Explicit organization is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await createFileFromTemplate('/vault/_templates/Meeting.md', 'My Meeting');
+
+		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		const written = buildContent!('---\nattendees: []\n---\n# My Meeting\n');
+		expect(written).toBe('---\n_organized: false\nattendees: []\n---\n# My Meeting\n');
+		expect(written.match(/^_organized:/gm)).toHaveLength(1);
+	});
+
+	it('keeps a template that already sets _organized: true while the switch is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await createFileFromTemplate('/vault/_templates/Meeting.md', 'My Meeting');
+
+		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		const rendered = '---\n_organized: true\n---\n# My Meeting\n';
+		expect(buildContent!(rendered)).toBe(rendered);
+	});
+
+	it('writes the rendered template as is while Explicit organization is off', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
+
+		await createFileFromTemplate('/vault/_templates/Meeting.md', 'My Meeting');
+
+		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		const rendered = '---\nattendees: []\n---\n# My Meeting\n';
+		expect(buildContent?.(rendered) ?? rendered).toBe(rendered);
 	});
 });
 

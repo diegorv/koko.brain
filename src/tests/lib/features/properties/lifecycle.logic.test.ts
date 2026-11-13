@@ -8,16 +8,20 @@ import {
 	toggleArchived,
 	toggleFavorite,
 } from '#lib/features/properties/lifecycle.logic.js';
+import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
+import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 function prop(key: string, value: unknown): Property {
 	return { key, value, type: typeof value === 'boolean' ? 'boolean' : 'text' } as Property;
 }
 
 describe('getLifecycleState', () => {
-	it('returns inbox when no flags', () => {
-		expect(getLifecycleState([])).toBe('inbox');
-		expect(getLifecycleState([prop('title', 'Hello')])).toBe('inbox');
+	it('returns organized when no flags', () => {
+		// A missing _organized reads as organized, as in the Rust index.
+		expect(getLifecycleState([])).toBe('organized');
+		expect(getLifecycleState([prop('title', 'Hello')])).toBe('organized');
 	});
 
 	it('returns organized when _organized true', () => {
@@ -30,6 +34,36 @@ describe('getLifecycleState', () => {
 
 	it('returns inbox when _organized false', () => {
 		expect(getLifecycleState([prop('_organized', false)])).toBe('inbox');
+	});
+});
+
+/**
+ * The same frontmatter, read by Rust (`NoteEntry::from_content`) and by the
+ * TS lifecycle helpers. `organized` / `archived` are copied from the Rust tests
+ * `from_content_lifecycle_flags_*` and `from_content_organized_flag_from_canonical_key`
+ * in `src-tauri/src/vault/entry.rs`.
+ */
+const RUST_LIFECYCLE_ROWS = [
+	{ name: 'no _organized key', content: '---\ntitle: Hello\n---\n', organized: true, archived: false, state: 'organized' },
+	{ name: '_organized: true', content: '---\n_organized: true\n---\n', organized: true, archived: false, state: 'organized' },
+	{ name: '_organized: false', content: '---\n_organized: false\n---\n', organized: false, archived: false, state: 'inbox' },
+	{ name: '_organized: yes (not a boolean)', content: '---\n_organized: yes\n---\n', organized: true, archived: false, state: 'organized' },
+	{ name: '_archived: true alone', content: '---\n_archived: true\n---\n', organized: true, archived: true, state: 'archived' },
+] as const;
+
+describe('lifecycle helpers read _organized like the Rust index', () => {
+	it.each(RUST_LIFECYCLE_ROWS)('$name', ({ content, organized, state }) => {
+		const props = parseFrontmatterProperties(content);
+
+		expect(isOrganized(props)).toBe(organized);
+		expect(getLifecycleState(props)).toBe(state);
+	});
+
+	it.each(RUST_LIFECYCLE_ROWS)('$name: isInboxEntry agrees with getLifecycleState', ({ content, organized, archived }) => {
+		const props = parseFrontmatterProperties(content);
+		const entry = entryV2('/vault/n.md', { organized, archived });
+
+		expect(isInboxEntry(entry)).toBe(getLifecycleState(props) === 'inbox');
 	});
 });
 
@@ -48,8 +82,9 @@ describe('isFavorite', () => {
 });
 
 describe('isOrganized', () => {
-	it('returns false when no _organized', () => {
-		expect(isOrganized([])).toBe(false);
+	it('returns true when no _organized', () => {
+		// A missing _organized reads as organized, as in the Rust index.
+		expect(isOrganized([])).toBe(true);
 	});
 
 	it('returns true when _organized is true, even on an archived note', () => {
@@ -57,9 +92,10 @@ describe('isOrganized', () => {
 		expect(isOrganized([prop('_organized', true), prop('_archived', true)])).toBe(true);
 	});
 
-	it('returns false when _organized is false or not a boolean', () => {
+	it('returns false only when _organized is the boolean false', () => {
 		expect(isOrganized([prop('_organized', false)])).toBe(false);
-		expect(isOrganized([prop('_organized', 'yes')])).toBe(false);
+		// A non-boolean _organized reads as organized, as in the Rust index.
+		expect(isOrganized([prop('_organized', 'yes')])).toBe(true);
 	});
 });
 

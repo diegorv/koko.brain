@@ -1,17 +1,25 @@
 import { convertFileSrc } from '@tauri-apps/api/core';
 import { readTextFile } from '@tauri-apps/plugin-fs';
 import { openUrl } from '@tauri-apps/plugin-opener';
+import { call } from '#lib/contracts/ipc.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { flattenFileTree, type FileEntry } from '#lib/core/filesystem/file-entries.logic.js';
+import { findNodeByPath } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
-import { buildResolutionCache, resolveWikilinkCached, type WikilinkResolutionCache } from '#lib/core/filesystem/wikilink-resolution.logic.js';
-import type { BlockLinkActions, EditorHost, LinkAnchor } from '#lib/core/markdown-editor/editor-host.js';
+import {
+	buildResolutionCache,
+	isLinkTargetFile,
+	resolveWikilinkCached,
+	type WikilinkResolutionCache,
+} from '#lib/core/filesystem/wikilink-resolution.logic.js';
+import type { BlockLinkActions, EditorHost, LinkAnchor, VaultTag } from '#lib/core/markdown-editor/editor-host.js';
 import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { followWikilink } from '#lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.js';
 import { findBlockIdPosition, findHeadingPosition } from '#lib/core/markdown-editor/extensions/wikilink/navigation.logic.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { withUnorganizedFlag } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { getVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
@@ -19,9 +27,13 @@ import { error } from '#lib/utils/debug.js';
 import { resolveFilePath } from '#lib/utils/path.js';
 import { collectionBlockRenderer } from '#lib/features/collection/collection-block-widget.js';
 import { copyBlockEmbedToClipboard, copyBlockLinkToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
+import { openSearch } from '#lib/features/search/open-search.service.js';
+import { getViewOpensInEditor } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { detectPeriodicNoteType } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 import { openOrCreatePeriodicNoteForDate } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
+import { openRailView } from './rail-navigation';
 
 /** Queues a scroll to `anchor` in the active tab, once the editor shows it. */
 function scrollToAnchor(anchor: LinkAnchor | undefined): void {
@@ -46,7 +58,7 @@ function periodicTarget(target: string) {
 	return detectPeriodicNoteType(`${settings.folder}/${target}`, settings);
 }
 
-/** The flat file list and the name index of one file tree. */
+/** The link targets of one file tree (every file but a `.view`) and their name index. */
 interface TreeLinkIndex {
 	files: FileEntry[];
 	cache: WikilinkResolutionCache;
@@ -65,11 +77,37 @@ function treeLinkIndex(): TreeLinkIndex {
 	const tree = fsStore.fileTree;
 	let index = linkIndexByTree.get(tree);
 	if (!index) {
-		const files = flattenFileTree(tree);
+		const files = flattenFileTree(tree).filter((f) => isLinkTargetFile(f.path));
 		index = { files, cache: buildResolutionCache(files.map((f) => f.path)) };
 		linkIndexByTree.set(tree, index);
 	}
 	return index;
+}
+
+/**
+ * The `get_all_tags_v2` read for one vault path and index version. Not the
+ * Tags view's `tagsStore`: that only rebuilds while the view is mounted.
+ * The path is part of the key because the version counter is never rewound
+ * across a vault switch.
+ */
+let tagsMemo: { key: string; tags: Promise<VaultTag[]> } | null = null;
+
+/** The vault's tags for completion, one IPC per vault path and index version. */
+function vaultTags(): Promise<readonly VaultTag[]> {
+	// Until the current vault's index is built, Rust still holds the
+	// previous vault's (app-lifecycle.service.ts, initializeVault).
+	if (!vaultStore.indexReady) return Promise.resolve([]);
+	const key = `${vaultStore.path}\n${vaultStore.vaultIndexVersion}`;
+	if (tagsMemo?.key !== key) {
+		const tags = call('get_all_tags_v2').then((all) => all.map(({ name, count }) => ({ name, count })));
+		const entry = { key, tags };
+		tagsMemo = entry;
+		// The caller reports the rejection; a failed read is never cached.
+		tags.catch(() => {
+			if (tagsMemo === entry) tagsMemo = null;
+		});
+	}
+	return tagsMemo.tags;
 }
 
 /** The vault-relative target as a `.md` path: `Notes/v1.2` -> `Notes/v1.2.md`. */
@@ -79,7 +117,7 @@ function markdownTarget(target: string): string {
 
 /**
  * The editor host of the app, over the file tree, the vault entries, Tauri,
- * the note creator and periodic notes. One constant: `createExtensions`
+ * the note creator, periodic notes, the rail's view navigation and Search. One constant: `createExtensions`
  * installs it once per editor and nothing reconfigures it.
  */
 export const appEditorHost: EditorHost = {
@@ -89,7 +127,9 @@ export const appEditorHost: EditorHost = {
 
 	async listLinkCandidates(includeNotes) {
 		const { files } = treeLinkIndex();
-		return { files, notes: includeNotes ? await getVaultEntries() : [] };
+		// A view entry would offer its aliases as targets no link can reach.
+		const notes = includeNotes ? (await getVaultEntries()).filter((e) => isLinkTargetFile(e.path)) : [];
+		return { files, notes };
 	},
 
 	readNote(path) {
@@ -121,6 +161,7 @@ export const appEditorHost: EditorHost = {
 				await openOrCreateNote({
 					filePath: resolveFilePath(vaultPath, relative),
 					title: relative.slice(relative.lastIndexOf('/') + 1, -'.md'.length),
+					buildContent: settingsStore.explicitOrganization ? withUnorganizedFlag : undefined,
 				});
 			}
 		} catch (err) {
@@ -129,6 +170,30 @@ export const appEditorHost: EditorHost = {
 		}
 		scrollToAnchor(anchor);
 		return true;
+	},
+
+	async openView(target) {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath) return false;
+		let path: string;
+		try {
+			path = resolveFilePath(vaultPath, target);
+		} catch {
+			return false;
+		}
+		// The tree the Views menu lists views from, so a view the menu shows opens here.
+		const node = findNodeByPath(fsStore.fileTree, path);
+		if (!node || node.isDirectory) return false;
+		openRailView(path, getViewOpensInEditor(typeDefinitionsStore.getEntryByPath(path)));
+		return true;
+	},
+
+	openTagSearch(tag) {
+		openSearch(`tag:${tag}`);
+	},
+
+	listTags() {
+		return vaultTags();
 	},
 };
 

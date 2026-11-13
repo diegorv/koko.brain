@@ -1,7 +1,7 @@
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import type { CollectionDefinition, CollectionFilter, CollectionViewDef, SortDef } from './collection.types';
 
-/** Result of parsing a .collection YAML string */
+/** Result of parsing a `.view` or ` ```collection ` block YAML string */
 export type ParseResult =
 	| { success: true; definition: CollectionDefinition }
 	| { success: false; error: string };
@@ -46,6 +46,12 @@ export function parseCollectionYaml(yamlString: string): ParseResult {
 		const v = view as Record<string, unknown>;
 		if (!v.type || typeof v.type !== 'string') {
 			return { success: false, error: `View at index ${i} is missing "type"` };
+		}
+		if (!(VIEW_TYPES as readonly string[]).includes(v.type)) {
+			return {
+				success: false,
+				error: `View at index ${i} has unknown type "${v.type}"; expected one of: ${VIEW_TYPES.join(', ')}`,
+			};
 		}
 		if (!v.name || typeof v.name !== 'string') {
 			return { success: false, error: `View at index ${i} is missing "name"` };
@@ -109,11 +115,35 @@ export function parseCollectionYaml(yamlString: string): ParseResult {
 	if (obj.properties !== undefined) {
 		definition.properties = obj.properties as CollectionDefinition['properties'];
 	}
+	const railView = readRailView(obj._rail_view);
+	if (railView !== undefined) definition.railView = railView;
+	else if (obj._rail_view != null && typeof obj._rail_view !== 'string') definition.railViewIgnored = obj._rail_view;
 
 	return { success: true, definition };
 }
 
-/** Fields that can be updated in a .collection YAML file */
+/** A `_rail_view` value the rail reads: a non-blank string, kept as written. Any other value is undefined. */
+function readRailView(value: unknown): string | undefined {
+	return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
+/** Index of the first entry of `views` (raw YAML or parsed) whose `name` equals `name` exactly; -1 when none does. */
+export function viewIndexByName(views: unknown, name: unknown): number {
+	if (!Array.isArray(views) || typeof name !== 'string') return -1;
+	return views.findIndex((v) => !!v && typeof v === 'object' && (v as { name?: unknown }).name === name);
+}
+
+/**
+ * Index of the view the rail runs (its note list, navigator count, Sort and
+ * Filter toolbar, and Edit view): the first view whose `name` equals
+ * `railView` exactly, else 0. The editor's tabs and inline collection blocks
+ * do not read it.
+ */
+export function railViewIndex(definition: Pick<CollectionDefinition, 'views' | 'railView'>): number {
+	return Math.max(0, viewIndexByName(definition.views, definition.railView));
+}
+
+/** Fields that can be updated in a `.view` YAML file */
 export interface CollectionYamlUpdates {
 	/** Global filters (root-level) */
 	filters?: CollectionFilter | string | undefined;
@@ -138,7 +168,7 @@ export interface CollectionYamlUpdates {
 }
 
 /**
- * Updates fields in a .collection YAML string, preserving all other content.
+ * Updates fields in a `.view` YAML string, preserving all other content.
  * Can update global filters, formulas, and view-level sort/filters in one pass.
  * Returns the original string unchanged if parsing fails.
  */
@@ -231,8 +261,79 @@ export function updateCollectionYaml(yamlString: string, updates: CollectionYaml
 	return stringifyYaml(raw);
 }
 
-/** Supported view types for setViewType. */
-export type ViewType = 'table' | 'calendar' | 'linear-calendar';
+/** What the Edit view dialog saves into a `.view`. */
+export interface ViewEdit {
+	/** Written as `_sidebar_label` (its aliases dropped), as the edited view's `name` and, when `_rail_view` named that view, as `_rail_view` */
+	label: string;
+	/** Top-level filters. When the key is present, `undefined` removes them; without the key they stay as they are */
+	filters?: CollectionFilter | string;
+	/** The edited view's own filters, by the same rule as `filters` */
+	viewFilters?: CollectionFilter | string;
+}
+
+/** The rewritten YAML of {@link updateViewEditYaml}, or why it could not be rewritten. */
+export type ViewEditYamlResult = { ok: true; yaml: string } | { ok: false; error: string };
+
+/**
+ * Applies a {@link ViewEdit} to the view the rail runs (`railViewIndex`) of a
+ * `.view` YAML string, keeping every other key as a value (the YAML is
+ * re-serialized, so comments and formatting go). Returns an error, never the
+ * input, when the YAML does not parse, has no map at that view's index, or
+ * `_rail_view` names a view and another view already carries the label as its
+ * `name`, so a caller cannot
+ * mistake a refused edit for a save.
+ */
+export function updateViewEditYaml(yamlString: string, edit: ViewEdit): ViewEditYamlResult {
+	let raw: unknown;
+	try {
+		raw = parseYaml(yamlString);
+	} catch (e) {
+		return { ok: false, error: `Invalid YAML: ${e instanceof Error ? e.message : String(e)}` };
+	}
+	if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+		return { ok: false, error: 'YAML must be an object' };
+	}
+	const obj = raw as Record<string, unknown>;
+	// The view the rail runs; a `_rail_view` that names no view is left as it is.
+	const named = viewIndexByName(obj.views, readRailView(obj._rail_view));
+	const index = Math.max(0, named);
+	const view = Array.isArray(obj.views) ? obj.views[index] : undefined;
+	if (!view || typeof view !== 'object' || Array.isArray(view)) {
+		return { ok: false, error: `The file has no view to edit (views[${index}])` };
+	}
+	const edited = view as Record<string, unknown>;
+	// The label becomes this view's `name` and `_rail_view`: a name another view carries
+	// would make `_rail_view` (first match) resolve to that view and move the rail off
+	// this one. Without a resolving `_rail_view` the rail runs `views[0]` whatever the names.
+	if (named >= 0 && viewIndexByName((obj.views as unknown[]).map((v, i) => (i === index ? null : v)), edit.label) >= 0) {
+		return { ok: false, error: `Another view in this file is named ${JSON.stringify(edit.label)}` };
+	}
+
+	// A missing label goes first, where `buildNewViewYaml` writes the `_` keys.
+	const out: Record<string, unknown> = '_sidebar_label' in obj ? obj : { _sidebar_label: undefined, ...obj };
+	out._sidebar_label = edit.label;
+	// Rust folds these aliases onto `_sidebar_label` (`aliases.rs`), the last key winning, so a kept one could hold the old label.
+	delete out.sidebar_label;
+	delete out['sidebar label'];
+	edited.name = edit.label;
+	if (named >= 0) out._rail_view = edit.label;
+	if ('filters' in edit) {
+		if (edit.filters !== undefined) out.filters = edit.filters;
+		else delete out.filters;
+	}
+	if ('viewFilters' in edit) {
+		if (edit.viewFilters !== undefined) edited.filters = edit.viewFilters;
+		else delete edited.filters;
+	}
+	// `lineWidth: 0` keeps a long label or filter on one line, as `buildNewViewYaml` does.
+	return { ok: true, yaml: stringifyYaml(out, { lineWidth: 0 }) };
+}
+
+/** The view types the collection renders; `parseCollectionYaml` rejects any other. */
+export const VIEW_TYPES = ['table', 'calendar', 'linear-calendar'] as const;
+
+/** Supported view types for addView / setViewType. */
+export type ViewType = (typeof VIEW_TYPES)[number];
 
 /**
  * Appends a new view at the end of the `views:` array with the given type and
@@ -256,7 +357,7 @@ export function addView(yamlString: string, name: string, type: ViewType = 'tabl
 
 /**
  * Removes the view at the given index from the `views:` array. Refuses to
- * remove the last remaining view — a .collection / .view must always have at
+ * remove the last remaining view — a `.view` must always have at
  * least one view to render. Returns the original string unchanged on parse
  * failure, out-of-range index, or the last-view guard.
  */
@@ -278,9 +379,11 @@ export function removeView(yamlString: string, index: number): string {
 }
 
 /**
- * Renames the view at the given index. Trims whitespace; refuses empty names.
- * Returns the original string unchanged on parse failure, out-of-range index,
- * or empty/whitespace-only name.
+ * Renames the view at the given index. Trims whitespace. Returns the original
+ * string unchanged on parse failure, out-of-range index, an empty or
+ * whitespace-only name, the view's own name (re-serializing would drop the
+ * file's comments), or a name another view carries: `_rail_view` resolves to
+ * the first view of a name, so a duplicate could move the rail to this view.
  */
 export function renameView(yamlString: string, index: number, newName: string): string {
 	const trimmed = newName.trim();
@@ -296,6 +399,8 @@ export function renameView(yamlString: string, index: number, newName: string): 
 	if (!Array.isArray(raw.views)) return yamlString;
 	const views = raw.views as Record<string, unknown>[];
 	if (index < 0 || index >= views.length) return yamlString;
+	if (views[index].name === trimmed) return yamlString;
+	if (viewIndexByName(views.map((v, i) => (i === index ? null : v)), trimmed) >= 0) return yamlString;
 	views[index].name = trimmed;
 
 	return stringifyYaml(raw);

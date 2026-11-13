@@ -159,15 +159,11 @@ test.describe('Live Preview - Meta-Bind Button Block', () => {
 		const initialCount = await buttons.count();
 		expect(initialCount).toBeGreaterThanOrEqual(1);
 
-		// Click directly on the first button's underlying cm-line (via arrow keys)
-		// The widget uses ignoreEvent()=true, so we click just above it
-		const container = page.locator('.cm-lp-meta-bind-button-container').first();
-		const box = await container.boundingBox();
-		if (box) {
-			// Click just above the button container to place cursor on that line
-			await page.mouse.click(box.x + 5, box.y - 2);
-			await page.waitForTimeout(200);
-		}
+		// The button ignores clicks and the blank band around it keeps it rendered,
+		// so the keyboard is the way onto its line: heading -> blank line -> fence.
+		await page.keyboard.press('ArrowDown');
+		await page.keyboard.press('ArrowDown');
+		await page.waitForTimeout(200);
 
 		// When cursor enters the block, source YAML should appear
 		// At minimum, the count of rendered buttons should decrease

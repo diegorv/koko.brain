@@ -8,19 +8,26 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	writeTextFile: vi.fn(),
 	mkdir: vi.fn(),
 	exists: vi.fn(),
+	copyFile: vi.fn(),
 }));
 
 vi.mock('#lib/core/settings/theme.service.js', () => ({
 	applyActiveTheme: vi.fn(),
 }));
 
-import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+vi.mock('svelte-sonner', () => ({
+	toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
+}));
+
+import { readTextFile, writeTextFile, mkdir, exists, copyFile } from '@tauri-apps/plugin-fs';
+import { toast } from 'svelte-sonner';
 import { applyActiveTheme } from '#lib/core/settings/theme.service.js';
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import { loadSettings, saveSettings, writeSettingsFile, resetSettings, applyHeadingTypography } from '#lib/core/settings/settings.service.js';
 import { FAVORITES_LENS, TODAY_LENS, parseExpandedFolders, parseTypesPick, pickedFolderLens, restoreRailItem } from '#lib/features/rail-shell/lens.logic.js';
 import { pickedDayLens } from '#lib/plugins/calendar/day-lens.logic.js';
-import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
+import { parseRailHidden, parseRailInboxBadge, parseRailOrder } from '#lib/features/rail-shell/rail-items.logic.js';
+import { DEFAULT_THEME_NAME, KOKOBRAIN_DEFAULT_THEME, BUILTIN_THEMES, mergeThemeWithDefaults, themeColorsToCssVars } from '#lib/core/settings/theme.logic.js';
 import type { Theme } from '#lib/core/settings/theme.types.js';
 import { FONT_WEIGHT_MAP } from '#lib/core/settings/heading-typography.logic.js';
 import { contrastRatio } from '#lib/utils/color.js';
@@ -40,6 +47,7 @@ describe('loadSettings', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		settingsStore.reset();
+		vi.mocked(copyFile).mockResolvedValue(undefined);
 	});
 
 	it('uses default settings if file does not exist', async () => {
@@ -54,6 +62,39 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(DEFAULT_SETTINGS.layout.rightSidebarVisible);
 		expect(readTextFile).not.toHaveBeenCalled();
 		expect(writeTextFile).toHaveBeenCalled();
+	});
+
+	it.each([undefined, null, false, 'true', 'false', 1, {}, []].map((value) => [value]))('does not opt into raw mod messages from stored value %j', async (value) => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ debugModRunMessages: value }));
+		await loadSettings('/vault');
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls.at(-1)![1] as string).debugModRunMessages).toBe(false);
+	});
+
+	it('round-trips explicit raw message consent and turning it off', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		for (const enabled of [true, false]) {
+			settingsStore.setSettings({ ...settingsStore.settings, debugModRunMessages: enabled });
+			await saveSettings('/vault');
+			const saved = vi.mocked(writeTextFile).mock.calls.at(-1)![1] as string;
+			expect(JSON.parse(saved).debugModRunMessages).toBe(enabled);
+			settingsStore.reset();
+			vi.mocked(readTextFile).mockResolvedValue(saved);
+			await loadSettings('/vault');
+			expect(settingsStore.debugModRunMessages).toBe(enabled);
+		}
+	});
+
+	it('ignores a legacy autoMove key: no fallback to the old settings name', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ autoMove: { enabled: true, debounceMs: 500 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.autoOrganize.enabled).toBe(false);
+		expect(settingsStore.autoOrganize.debounceMs).toBe(DEFAULT_SETTINGS.autoOrganize.debounceMs);
 	});
 
 	it('loads and merges periodic notes settings with defaults', async () => {
@@ -82,7 +123,7 @@ describe('loadSettings', () => {
 	it('merges editor settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ editor: { fontSize: 18 } }),
+			JSON.stringify({ editor: { fontSize: 18, typeScaleMigrated: true } }),
 		);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
@@ -156,6 +197,26 @@ describe('loadSettings', () => {
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings.dockBadgeInboxCount).toBe(false);
+	});
+
+	it('defaults explicitOrganization to true when absent from the saved file', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.explicitOrganization).toBe(true);
+	});
+
+	it('respects a saved explicitOrganization of false', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ explicitOrganization: false }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.explicitOrganization).toBe(false);
 	});
 
 	it('defaults typesBaseFolder to an empty string when absent from the saved file', async () => {
@@ -322,19 +383,231 @@ describe('loadSettings', () => {
 		consoleSpy.mockRestore();
 	});
 
-	it('applies theme even when saveSettings fails in catch block', async () => {
+	it('applies theme even when the default write-back fails after a parse failure', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
-		vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
+		vi.mocked(readTextFile).mockResolvedValue('not json');
 		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await loadSettings('/vault');
 
+		expect(copyFile).toHaveBeenCalledTimes(1);
 		expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 		expect(applyActiveTheme).toHaveBeenCalled();
-		// Should log: (1) load error, (2) save internal error, (3) "Also failed" error
-		expect(consoleSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+		const messages = consoleSpy.mock.calls.map((call) => call.join(' '));
+		expect(messages.some((m) => m.includes('Also failed to save default settings'))).toBe(true);
 		consoleSpy.mockRestore();
+	});
+
+	describe('tasksView', () => {
+		/** The settings handed to the load write-back */
+		const writeBack = () => JSON.parse(vi.mocked(writeTextFile).mock.calls.at(-1)![1] as string);
+
+		beforeEach(() => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+		});
+
+		it('stays absent when the file has none', async () => {
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ debugMode: true }));
+
+			await loadSettings('/vault');
+
+			expect('tasksView' in settingsStore.settings).toBe(false);
+			expect(writeTextFile).toHaveBeenCalledTimes(1);
+			expect('tasksView' in writeBack()).toBe(false);
+		});
+
+		it.each([
+			[{ version: 1, sectionTag: '#a', extra: { x: 1 } }],
+			[42],
+			[null],
+		])('passes %j through verbatim, in the store and the write-back', async (value) => {
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ tasksView: value }));
+
+			await loadSettings('/vault');
+
+			expect(settingsStore.tasksView).toEqual(value);
+			expect(writeTextFile).toHaveBeenCalledTimes(1);
+			expect(writeBack().tasksView).toEqual(value);
+		});
+	});
+
+	describe('broken settings.json', () => {
+		const BACKUP_RE = /^\/vault\/\.kokobrain\/settings\.broken-\d{8}-\d{6}\.json$/;
+		let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+		beforeEach(() => {
+			vi.useFakeTimers({ toFake: ['Date'] });
+			// Local time, so the stamp is the same in every time zone.
+			vi.setSystemTime(new Date(2026, 10, 4, 9, 5, 7));
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+			consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			vi.useRealTimers();
+			consoleSpy.mockRestore();
+		});
+
+		/** Calls to `writeTextFile` that target settings.json. */
+		function settingsWrites() {
+			return vi.mocked(writeTextFile).mock.calls.filter(([path]) => path === '/vault/.kokobrain/settings.json');
+		}
+
+		it('copies a syntax-error file to a timestamped backup before writing settings.json', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
+
+			await loadSettings('/vault');
+
+			expect(copyFile).toHaveBeenCalledTimes(1);
+			const [src, dest] = vi.mocked(copyFile).mock.calls[0];
+			expect(src).toBe('/vault/.kokobrain/settings.json');
+			expect(dest).toMatch(BACKUP_RE);
+			expect(dest).toBe('/vault/.kokobrain/settings.broken-20261104-090507.json');
+			const copyOrder = vi.mocked(copyFile).mock.invocationCallOrder[0];
+			const writeOrders = vi.mocked(writeTextFile).mock.invocationCallOrder;
+			expect(writeOrders.length).toBeGreaterThan(0);
+			for (const order of writeOrders) expect(order).toBeGreaterThan(copyOrder);
+		});
+
+		it('runs on the defaults, writes them back once and names the backup in a toast', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
+
+			const outcome = await loadSettings('/vault');
+
+			// The bytes are safe in the backup, so later changes may be written.
+			expect(outcome).toBe('defaults');
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			const writes = settingsWrites();
+			expect(writes).toHaveLength(1);
+			expect(JSON.parse(writes[0][1] as string)).toEqual(DEFAULT_SETTINGS);
+			expect(toast.error).toHaveBeenCalledTimes(1);
+			const message = vi.mocked(toast.error).mock.calls[0][0] as string;
+			expect(message).toContain('settings.broken-20261104-090507.json');
+			expect(message).toMatch(/reset/i);
+			expect(vi.mocked(toast.error).mock.calls[0][1]).toEqual({ duration: Infinity, closeButton: true });
+			expect(applyActiveTheme).toHaveBeenCalled();
+		});
+
+		it('treats a top-level null as a parse failure', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('null');
+
+			await loadSettings('/vault');
+
+			expect(copyFile).toHaveBeenCalledWith('/vault/.kokobrain/settings.json', '/vault/.kokobrain/settings.broken-20261104-090507.json');
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			expect(settingsWrites()).toHaveLength(1);
+			expect(toast.error).toHaveBeenCalledTimes(1);
+		});
+
+		it('treats a top-level array as a parse failure', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('[]');
+
+			await loadSettings('/vault');
+
+			expect(copyFile).toHaveBeenCalledTimes(1);
+			expect(toast.error).toHaveBeenCalledTimes(1);
+		});
+
+		it('leaves settings.json unchanged and says so when the backup fails', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
+			vi.mocked(copyFile).mockRejectedValue(new Error('copy failed'));
+
+			const outcome = await loadSettings('/vault');
+
+			expect(outcome).toBe('file-protected');
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledTimes(1);
+			const message = vi.mocked(toast.error).mock.calls[0][0] as string;
+			expect(message).toMatch(/could not back up/i);
+			expect(message).toMatch(/left unchanged/i);
+			expect(message).toMatch(/changes made until the vault is reopened will not be saved/i);
+			expect(vi.mocked(toast.error).mock.calls[0][1]).toEqual({ duration: Infinity, closeButton: true });
+			expect(applyActiveTheme).toHaveBeenCalled();
+		});
+	});
+
+	describe('unreadable settings.json', () => {
+		let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+		beforeEach(() => {
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+			consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		});
+
+		afterEach(() => {
+			consoleSpy.mockRestore();
+		});
+
+		it('keeps the defaults in memory without writing or backing up when readTextFile rejects', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
+
+			const outcome = await loadSettings('/vault');
+
+			expect(outcome).toBe('file-protected');
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(copyFile).not.toHaveBeenCalled();
+			expect(applyActiveTheme).toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledTimes(1);
+			const message = vi.mocked(toast.error).mock.calls[0][0] as string;
+			expect(message).toMatch(/could not read/i);
+			expect(message).toMatch(/left unchanged/i);
+			expect(message).toMatch(/changes made until the vault is reopened will not be saved/i);
+		});
+
+		it('takes the same branch when exists() rejects', async () => {
+			vi.mocked(exists).mockRejectedValue(new Error('exists error'));
+
+			await expect(loadSettings('/vault')).resolves.toBe('file-protected');
+
+			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+			expect(readTextFile).not.toHaveBeenCalled();
+			expect(writeTextFile).not.toHaveBeenCalled();
+			expect(copyFile).not.toHaveBeenCalled();
+			expect(applyActiveTheme).toHaveBeenCalled();
+			expect(toast.error).toHaveBeenCalledTimes(1);
+		});
+	});
+
+	it('keeps the parsed settings when the write-back fails after a valid read', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ history: { retentionDays: 365 } }));
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('write error'));
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		// The file was read, so the session may keep trying to write it.
+		await expect(loadSettings('/vault')).resolves.toBe('loaded');
+
+		expect(settingsStore.settings.history.retentionDays).toBe(365);
+		// The one write attempt carried the parsed settings, not the defaults.
+		expect(writeTextFile).toHaveBeenCalledTimes(1);
+		expect(JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1] as string).history.retentionDays).toBe(365);
+		expect(copyFile).not.toHaveBeenCalled();
+		expect(applyActiveTheme).toHaveBeenCalled();
+		consoleSpy.mockRestore();
+	});
+
+	it('makes no backup and raises no toast for a missing or whitespace-only file', async () => {
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(mkdir).mockResolvedValue(undefined);
+
+		vi.mocked(exists).mockResolvedValue(false);
+		await expect(loadSettings('/vault')).resolves.toBe('defaults');
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue('  \n ');
+		await expect(loadSettings('/vault')).resolves.toBe('defaults');
+
+		expect(writeTextFile).toHaveBeenCalledTimes(2);
+		expect(copyFile).not.toHaveBeenCalled();
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('merges layout settings with defaults', async () => {
@@ -359,8 +632,8 @@ describe('loadSettings', () => {
 
 		await loadSettings('/vault');
 
-		expect(settingsStore.settings.layout.noteListSize).toBe(20);
-		expect(settingsStore.settings.layout.rightSidebarSize).toBe(20);
+		expect(settingsStore.settings.layout.noteListSize).toBe(3);
+		expect(settingsStore.settings.layout.rightSidebarSize).toBe(3);
 		expect(settingsStore.settings.layout.rightSidebarVisible).toBe(true);
 	});
 
@@ -402,7 +675,7 @@ describe('loadSettings', () => {
 			}),
 		);
 
-		await expect(loadSettings('/vault')).resolves.toBeUndefined();
+		await expect(loadSettings('/vault')).resolves.toBe('loaded');
 
 		const layout = settingsStore.settings.layout;
 		expect(layout.railItem).toBe('files');
@@ -446,6 +719,9 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.railFolder).toBeNull();
 		expect(settingsStore.settings.layout.railExpandedFolders).toEqual([]);
 		expect(settingsStore.settings.layout.railDay).toBeNull();
+		expect(settingsStore.settings.layout.railHidden).toEqual([]);
+		expect(settingsStore.settings.layout.railOrder).toEqual([]);
+		expect(settingsStore.settings.layout.railInboxBadge).toBe(true);
 	});
 
 	it('loads a saved layout that is not an object as the default layout', async () => {
@@ -500,6 +776,35 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.layout.railItem).toBe('files');
 		expect(pickedFolderLens(settingsStore.settings.layout.railFolder)).toEqual({ kind: 'folder', target: '/vault/Work' });
 		expect(parseExpandedFolders(settingsStore.settings.layout.railExpandedFolders)).toEqual(['/vault/Work']);
+	});
+
+	it('round-trips the hidden rail items, their order and the Inbox badge switch through a save and a reload', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		settingsStore.updateLayout({ railHidden: ['archive', 'calendar'], railOrder: ['files', 'types'], railInboxBadge: false });
+
+		await saveSettings('/vault');
+		const written = vi.mocked(writeTextFile).mock.calls[0][1];
+		settingsStore.reset();
+		expect(settingsStore.settings.layout).toMatchObject({ railHidden: [], railOrder: [], railInboxBadge: true });
+
+		vi.mocked(readTextFile).mockResolvedValue(written);
+		await loadSettings('/vault');
+
+		expect(parseRailHidden(settingsStore.settings.layout.railHidden)).toEqual(['archive', 'calendar']);
+		expect(parseRailOrder(settingsStore.settings.layout.railOrder)).toEqual(['files', 'types']);
+		expect(parseRailInboxBadge(settingsStore.settings.layout.railInboxBadge)).toBe(false);
+	});
+
+	it('loads hand-edited rail hide, order and badge values as nothing hidden, the default order and the badge on', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ layout: { railHidden: 'archive', railOrder: [3, 'files'], railInboxBadge: 'no' } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await expect(loadSettings('/vault')).resolves.not.toThrow();
+		expect(parseRailHidden(settingsStore.settings.layout.railHidden)).toEqual([]);
+		expect(parseRailOrder(settingsStore.settings.layout.railOrder)).toEqual(['files']);
+		expect(parseRailInboxBadge(settingsStore.settings.layout.railInboxBadge)).toBe(true);
 	});
 
 	it('loads a hand-edited Files pick and expanded list as the vault root and no folders', async () => {
@@ -602,7 +907,7 @@ describe('loadSettings', () => {
 	describe('eventCalendar', () => {
 		it('fills a missing eventCalendar block with the defaults', async () => {
 			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 20 } }));
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 20, typeScaleMigrated: true } }));
 			vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
 			await loadSettings('/vault');
@@ -723,6 +1028,22 @@ describe('loadSettings', () => {
 		await loadSettings('/vault');
 
 		expect(settingsStore.settings.todoist.apiToken).toBe('token123');
+		expect(settingsStore.settings.todoist.syncFolder).toBe('Todoist');
+		expect(settingsStore.settings.todoist.syncIntervalMinutes).toBe(5);
+	});
+
+	it('normalizes a hand-edited todoist sync interval and context on load', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(
+			JSON.stringify({ todoist: { syncIntervalMinutes: 0, syncContext: 'office', syncRootProjectId: 'p1' } }),
+		);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.settings.todoist.syncIntervalMinutes).toBe(1);
+		expect(settingsStore.settings.todoist.syncContext).toBe('work');
+		expect(settingsStore.settings.todoist.syncRootProjectId).toBe('p1');
 	});
 
 	it('merges quickCapture settings with defaults', async () => {
@@ -795,7 +1116,7 @@ describe('loadSettings', () => {
 	it('uses default heading typography when not present in saved settings', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ editor: { fontSize: 20 } }),
+			JSON.stringify({ editor: { fontSize: 20, typeScaleMigrated: true } }),
 		);
 		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 
@@ -805,6 +1126,52 @@ describe('loadSettings', () => {
 		expect(settingsStore.settings.editor.headingTypography).toEqual(
 			DEFAULT_SETTINGS.editor.headingTypography,
 		);
+	});
+
+	describe('type scale migration', () => {
+		const OLD_H4_TO_H6 = { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 };
+
+		it('moves a file saved before it to the real body size and the new H4-H6 defaults, once', async () => {
+			vi.mocked(exists).mockResolvedValue(true);
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+				editor: {
+					fontSize: 18,
+					headingTypography: { h4: OLD_H4_TO_H6, h5: OLD_H4_TO_H6, h6: { ...OLD_H4_TO_H6, lineHeight: 2 } },
+				},
+			}));
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			const ht = settingsStore.settings.editor.headingTypography;
+			expect(settingsStore.settings.editor.fontSize).toBe(19);
+			expect(ht.h4).toEqual(DEFAULT_SETTINGS.editor.headingTypography.h4);
+			expect(ht.h5).toEqual(DEFAULT_SETTINGS.editor.headingTypography.h5);
+			// A customized level is the user's: left as saved.
+			expect(ht.h6).toEqual({ ...OLD_H4_TO_H6, lineHeight: 2 });
+
+			const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+			expect(JSON.parse(written).editor.typeScaleMigrated).toBe(true);
+
+			// The next start reads the written file: nothing grows again.
+			vi.mocked(writeTextFile).mockClear();
+			vi.mocked(readTextFile).mockResolvedValue(written);
+			await loadSettings('/vault');
+			expect(settingsStore.settings.editor.fontSize).toBe(19);
+			expect(settingsStore.settings.editor.headingTypography.h6).toEqual({ ...OLD_H4_TO_H6, lineHeight: 2 });
+		});
+
+		it('saves a fresh vault already migrated, at the default 19', async () => {
+			vi.mocked(exists).mockResolvedValue(false);
+			vi.mocked(writeTextFile).mockResolvedValue(undefined);
+			vi.mocked(mkdir).mockResolvedValue(undefined);
+
+			await loadSettings('/vault');
+
+			const written = JSON.parse(vi.mocked(writeTextFile).mock.calls[0][1] as string);
+			expect(written.editor.fontSize).toBe(19);
+			expect(written.editor.typeScaleMigrated).toBe(true);
+		});
 	});
 
 	describe('updates.channel', () => {
@@ -951,8 +1318,8 @@ describe('loadSettings', () => {
 		});
 
 		it('installs an active ex-built-in from its saved colors on the first load, once', async () => {
-			const sepia = (legacyFixture as Theme[]).find((t) => t.name === 'Sepia')!;
-			const saved = { activeTheme: 'Sepia', builtinsFromCode: true, themes: [KOKOBRAIN_DEFAULT_THEME, ...(legacyFixture as Theme[])] };
+			const sepia = (legacyFixture as unknown as Theme[]).find((t) => t.name === 'Sepia')!;
+			const saved = { activeTheme: 'Sepia', builtinsFromCode: true, themes: [KOKOBRAIN_DEFAULT_THEME, ...(legacyFixture as unknown as Theme[])] };
 			vi.mocked(exists).mockResolvedValue(true);
 			vi.mocked(writeTextFile).mockResolvedValue(undefined);
 			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ appearance: saved }));
@@ -963,7 +1330,9 @@ describe('loadSettings', () => {
 			expect(first.activeTheme).toBe('Sepia');
 			expect(first.installed?.map((p) => p.id)).toEqual(['sepia']);
 			expect(first.themes.map((t) => t.name)).toEqual([DEFAULT_THEME_NAME, 'Sepia', 'Lavender Haze']);
-			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual(themeColorsToCssVars(sepia.colors));
+			// `--success` postdates the saved fixture and is derived on load; the retired frontmatter colors are dropped.
+			const { '--lp-frontmatter-bg': _bg, '--lp-frontmatter-border': _border, ...savedVars } = themeColorsToCssVars(sepia.colors);
+			expect(themeColorsToCssVars(first.themes[1].colors)).toEqual({ ...savedVars, '--success': expect.stringMatching(/^#[0-9a-f]{6}$/i) });
 
 			await saveAndReload();
 
@@ -983,8 +1352,8 @@ describe('loadSettings', () => {
 			arrange();
 			await loadSettings('/vault');
 
-			const sakura = (legacyFixture as Theme[]).find((t) => t.name === 'Sakura')!;
-			const sakuraPkg = { ...packageFromColors('sakura', 'Sakura', sakura.colors), version: '1.0.3' };
+			const sakura = (legacyFixture as unknown as Theme[]).find((t) => t.name === 'Sakura')!;
+			const sakuraPkg = { ...packageFromColors('sakura', 'Sakura', mergeThemeWithDefaults(sakura.colors)), version: '1.0.3' };
 			const result = installThemePackage(settingsStore.appearance, sakuraPkg);
 			if (!result.ok) throw new Error(result.error);
 			settingsStore.updateAppearance({ ...result.appearance, activeTheme: 'Sakura' });
@@ -1220,7 +1589,7 @@ describe('loadSettings in the browser served by the Mac', () => {
 		setRemoteBrowser(true);
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(
-			JSON.stringify({ queryjs: { autoRunQueries: 'always' }, editor: { fontSize: 19 } }),
+			JSON.stringify({ queryjs: { autoRunQueries: 'always' }, editor: { fontSize: 19, typeScaleMigrated: true } }),
 		);
 
 		await loadSettings('/vault');

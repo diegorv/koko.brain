@@ -1,8 +1,9 @@
 # gitleaks configuration.
 #
-# Consumed by the `secrets` job in .github/workflows/ci.yml (differential
-# scan of every PR / push commit range) and the `gitleaks-history` job in
-# .github/workflows/security.yml (full reachable history, daily cron).
+# Consumed by .github/workflows/secrets.yml (differential scan of every PR /
+# push commit range, and of the commits since the previous release tag) and
+# the `gitleaks-history` job in .github/workflows/security.yml (full
+# reachable history, daily cron).
 # gitleaks also auto-loads this file when run locally from the repo root:
 #
 #   gitleaks git .            # full history
@@ -35,3 +36,12 @@ paths = [
     '''(^|/)node_modules/''',
     '''^\.claude/worktrees/''',
 ]
+
+[[allowlists]]
+description = "WebSocket handshake nonces in test requests"
+# `Sec-WebSocket-Key` is a per-handshake random nonce (RFC 6455), not a
+# credential. Raw handshake requests in the WebSocket tests (commits
+# 9301d05 and b914030, files since removed) trip generic-api-key, and the
+# full-history job failed on them every day.
+regexTarget = "line"
+regexes = ['''Sec-WebSocket-Key: ''']

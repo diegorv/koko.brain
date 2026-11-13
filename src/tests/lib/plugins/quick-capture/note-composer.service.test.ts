@@ -24,6 +24,7 @@ describe('createNoteComposer', () => {
 		clearLocalStorage();
 		vaultStore._reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vaultStore.open('/vault');
 		settingsStore.updatePeriodicNotes({ folder: '_notes' });
 		settingsStore.updateQuickCapture({
@@ -89,6 +90,21 @@ describe('createNoteComposer', () => {
 
 		expect(openOrCreateNote).not.toHaveBeenCalled();
 		expect(vaultStore.path).toBe(null);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+	});
+
+	it('asks for a prompt index refresh before creating the note, so lens lists show it at once', async () => {
+		let requestedAtCall: boolean | undefined;
+		vi.mocked(openOrCreateNote).mockImplementationOnce(async () => {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+			// The probe must not consume what it measures.
+			if (requestedAtCall) vaultStore.requestPromptIndexRefresh();
+		});
+
+		await createNoteComposer();
+
+		expect(requestedAtCall).toBe(true);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
 	});
 
 	it('omits templatePath when setting is empty', async () => {
@@ -99,6 +115,17 @@ describe('createNoteComposer', () => {
 		expect(openOrCreateNote).toHaveBeenCalledWith(
 			expect.objectContaining({ templatePath: undefined }),
 		);
+	});
+
+	it('marks the note unorganized while Explicit organization is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await createNoteComposer();
+
+		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		const written = buildContent!('---\ncreated: 2026-02-18\n---\nCapture\n');
+		expect(written).toBe('---\n_organized: false\ncreated: 2026-02-18\n---\nCapture\n');
+		expect(written.match(/^_organized:/gm)).toHaveLength(1);
 	});
 
 	it('propagates error when openOrCreateNote rejects', async () => {

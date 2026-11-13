@@ -8,6 +8,7 @@ import { EditorView } from '@codemirror/view';
 import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
 import {
 	BLOCK_DECORATOR_NAMES,
+	DECORATOR_LABELS,
 	DECORATOR_NAMES,
 	INLINE_PLUGIN_NAMES,
 } from '#lib/core/markdown-editor/extensions/live-preview/core/decorator-names.js';
@@ -36,6 +37,13 @@ function installedCount(exts: Extension[]): number {
 describe('live-preview decorator kill-switches', () => {
 	afterEach(() => {
 		for (const name of DECORATOR_NAMES) settingsStore.toggleDecorator(name, false);
+	});
+
+	it('gives every decorator name one non-empty, unique label, and no extra ones', () => {
+		expect(Object.keys(DECORATOR_LABELS).sort()).toEqual([...DECORATOR_NAMES].sort());
+		const labels = Object.values(DECORATOR_LABELS);
+		expect(labels.every((label) => label.trim().length > 0)).toBe(true);
+		expect(new Set(labels).size).toBe(DECORATOR_NAMES.length);
 	});
 
 	it('exposes 22 unique decorator names', () => {

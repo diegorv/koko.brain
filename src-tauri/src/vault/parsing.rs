@@ -15,7 +15,9 @@
 use crate::utils::logger::debug_log;
 use crate::vault::aliases::canonicalize_key;
 use crate::vault::entry::WikiLink;
-use crate::vault::task::{RecurrenceRule, Task, TaskMetadata, TaskPriority, TaskStatus};
+use crate::vault::task::{
+	RecurrenceRule, Task, TaskHeading, TaskMetadata, TaskPriority, TaskStatus,
+};
 use regex::Regex;
 use serde_json::{Number, Value as JsonValue};
 use std::collections::{BTreeMap, HashMap};
@@ -429,31 +431,34 @@ fn extract_frontmatter_tags(content: &str) -> Vec<String> {
 	tags
 }
 
-/// Extracts inline `#tag` occurrences from the note body. Mirrors
-/// `utils/tag-extraction.ts::extractInlineTags`:
+/// One inline `#tag` found by `scan_inline_tags`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct InlineTag<'a> {
+	/// Byte offset of the `#`.
+	pub start: usize,
+	/// Byte offset just past the last tag char, trailing `/` excluded.
+	pub end: usize,
+	/// The tag name without `#` and without trailing `/`.
+	pub name: &'a str,
+}
+
+/// Every inline `#tag` in `text`, in order, duplicates included. This is the
+/// one tag rule for note bodies and task text (TS mirror:
+/// `utils/tag-extraction.ts::findInlineTags`):
 ///
-/// 1. Strip frontmatter, fenced code blocks, inline code, HTML comments
-///    (in that order — fenced code MUST come before inline code so
-///    backticks inside fences do not pair with body backticks).
-/// 2. For each `#` preceded by start-of-text or whitespace, consume a tag
-///    matching `[\p{L}_][\p{L}\d_/-]*`. Reject digit-first or empty
-///    captures.
-/// 3. Strip trailing slashes from the captured tag.
-/// 4. Deduplicate case-sensitively (the TS implementation uses `Set`,
-///    matching exact bytes; case-insensitive dedup happens later in
-///    `extract_tags_strict` after merging frontmatter tags).
-fn extract_inline_tags(content: &str) -> Vec<String> {
-	let body = strip_frontmatter(content);
-	let body = strip_fenced_code_blocks(body);
-	let body = strip_inline_code(&body);
-	let body = strip_html_comments(&body);
-
-	let mut tags: Vec<String> = Vec::new();
-	let mut seen: Vec<String> = Vec::new();
+/// - `#` at the start of `text` or after whitespace (a mid-word `#`, as in
+///   `page#section` or `[[Book#Chapter]]`, is not a tag).
+/// - The first char is `\p{L}` or `_` (digit-first rejected), then
+///   `[\p{L}\d_/-]*` with ASCII digits.
+/// - Trailing `/` is not part of the tag.
+///
+/// It does not skip code, comments or frontmatter: callers strip those.
+pub(crate) fn scan_inline_tags(text: &str) -> Vec<InlineTag<'_>> {
+	let mut tags = Vec::new();
 	let mut prev_was_ws_or_start = true;
-	let mut iter = body.char_indices().peekable();
+	let mut iter = text.char_indices().peekable();
 
-	while let Some((_, c)) = iter.next() {
+	while let Some((hash_byte, c)) = iter.next() {
 		let preceding_ok = prev_was_ws_or_start;
 		prev_was_ws_or_start = c.is_whitespace();
 
@@ -486,18 +491,37 @@ fn extract_inline_tags(content: &str) -> Vec<String> {
 		// iteration is the last tag char (never whitespace).
 		prev_was_ws_or_start = false;
 
-		// Strip trailing slashes (TS `.replace(/\/+$/, '')`).
-		let raw = &body[tag_start..tag_end];
-		let trimmed = raw.trim_end_matches('/');
-		if trimmed.is_empty() {
-			continue;
-		}
-		if !seen.iter().any(|t| t == trimmed) {
-			seen.push(trimmed.to_string());
-			tags.push(trimmed.to_string());
-		}
+		// Strip trailing slashes (TS `.replace(/\/+$/, '')`). The first char
+		// is a letter or `_`, so the name is never empty.
+		let name = text[tag_start..tag_end].trim_end_matches('/');
+		tags.push(InlineTag { start: hash_byte, end: tag_start + name.len(), name });
 	}
 
+	tags
+}
+
+/// Extracts inline `#tag` occurrences from the note body. Mirrors
+/// `utils/tag-extraction.ts::extractInlineTags`:
+///
+/// 1. Strip frontmatter, fenced code blocks, inline code, HTML comments
+///    (in that order — fenced code MUST come before inline code so
+///    backticks inside fences do not pair with body backticks).
+/// 2. Find the tags with `scan_inline_tags`.
+/// 3. Deduplicate case-sensitively (the TS implementation uses `Set`,
+///    matching exact bytes; case-insensitive dedup happens later in
+///    `extract_tags_strict` after merging frontmatter tags).
+fn extract_inline_tags(content: &str) -> Vec<String> {
+	let body = strip_frontmatter(content);
+	let body = strip_fenced_code_blocks(body);
+	let body = strip_inline_code(&body);
+	let body = strip_html_comments(&body);
+
+	let mut tags: Vec<String> = Vec::new();
+	for tag in scan_inline_tags(&body) {
+		if !tags.iter().any(|t| t == tag.name) {
+			tags.push(tag.name.to_string());
+		}
+	}
 	tags
 }
 
@@ -1401,10 +1425,9 @@ fn find_double_bracket_close(line: &str, from: usize) -> Option<usize> {
 // ============================================================================
 // Phase 7 — Task / Tag parsing
 //
-// Rust is the sole implementation of task extraction, section scoping,
-// signifier parsing and checkbox mapping. The task-specific commands are
-// `get_all_tasks_v2` / `get_tasks_in_section_v2` / `toggle_task_status`
-// (`commands/vault.rs`); parsed tasks additionally ride on every `NoteEntry`
+// Rust is the sole implementation of task extraction, signifier parsing and
+// checkbox mapping. The task-specific commands are `get_all_tasks_v2` /
+// `toggle_task_status` (`commands/vault.rs`); parsed tasks additionally ride on every `NoteEntry`
 // returned by the entry-level commands (`scan_vault_v2`,
 // `get_all_vault_entries_v2`, `get_backlinks_v2`, `get_unlinked_mentions_v2`)
 // through `NoteEntry::tasks` (`vault/entry.rs`). The shape they must produce
@@ -1414,9 +1437,8 @@ fn find_double_bracket_close(line: &str, from: usize) -> Option<usize> {
 // The recurrence stop list (next signifier OR an ASCII `#[A-Za-z0-9_]`) is
 // matched but not consumed, so the stop signifier stays in the text for the
 // later extractors (see `RECURRENCE_RE`).
-// Tag extraction inside task metadata uses `#([A-Za-z0-9_][A-Za-z0-9_-]*)` —
-// distinct from `extract_tags_strict`'s Unicode rules — so a hyphen-bearing
-// tag inside a task description (e.g. `#in-progress`) is captured.
+// Task tags follow the note tag rule: `parse_task_metadata` finds them with
+// `scan_inline_tags`, the scanner `extract_inline_tags` uses for note bodies.
 // ============================================================================
 
 /// Regex for an unordered task line: a `-`/`*`/`+` marker, a one-char status
@@ -1436,8 +1458,9 @@ static ORDERED_TASK_RE: LazyLock<Regex> = LazyLock::new(|| {
 
 /// Regex for a markdown heading line. Group 1 is the `#` run (its length is
 /// the heading level), group 2 the heading text. Used by
-/// `extract_tasks_from_section` to find section boundaries.
-static HEADING_RE: LazyLock<Regex> =
+/// `extract_tasks_and_headings` to record a note's headings, and by
+/// `task_lines` to find the heading an insert goes under.
+pub(crate) static HEADING_RE: LazyLock<Regex> =
 	LazyLock::new(|| Regex::new(r"^(#{1,6})\s+(.*)$").expect("HEADING_RE"));
 
 // --- Date signifiers -----------------------------------------------------
@@ -1546,8 +1569,9 @@ static RECURRENCE_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(&pattern).expect("recurrence regex")
 });
 
-/// ID regex: 🆔 + optional space + non-whitespace identifier.
-static ID_RE: LazyLock<Regex> = LazyLock::new(|| {
+/// ID regex: 🆔 + optional space + non-whitespace identifier. `task_lines`
+/// reads every match of it as an anchor occurrence.
+pub(crate) static ID_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(&format!(r"{}\s*(\S+)", emoji_pattern(ID_EMOJI))).expect("id regex")
 });
 
@@ -1569,13 +1593,6 @@ static ON_COMPLETION_RE: LazyLock<Regex> = LazyLock::new(|| {
 	Regex::new(&format!(r"{}\s*(\S+)", emoji_pattern(ON_COMPLETION_EMOJI)))
 		.expect("on_completion regex")
 });
-
-/// Tag regex inside task metadata: `#word` with optional internal hyphens.
-/// The ASCII class `[A-Za-z0-9_]` is spelled out on purpose: the Rust regex
-/// crate's `\w` is Unicode-aware, and task tags must stay ASCII-only, so `\w`
-/// cannot be used here.
-static TASK_TAG_RE: LazyLock<Regex> =
-	LazyLock::new(|| Regex::new(r"#([A-Za-z0-9_][A-Za-z0-9_-]*)").expect("task tag regex"));
 
 /// Multi-space collapse regex.
 static MULTI_SPACE_RE: LazyLock<Regex> =
@@ -1599,6 +1616,20 @@ pub fn map_checkbox_char(c: char) -> TaskStatus {
 	}
 }
 
+/// The checkbox character written for `status`; the inverse of
+/// `map_checkbox_char` (done writes the lowercase `x`).
+pub fn status_checkbox_char(status: TaskStatus) -> char {
+	match status {
+		TaskStatus::Todo => ' ',
+		TaskStatus::Done => 'x',
+		TaskStatus::Cancelled => '-',
+		TaskStatus::InProgress => '/',
+		TaskStatus::Question => '?',
+		TaskStatus::Forwarded => '>',
+		TaskStatus::Important => '!',
+	}
+}
+
 /// Calculates the indent level from a leading-whitespace string. Tabs count
 /// as 1 indent level; every 2 spaces count as 1 indent level.
 fn calculate_indent(ws: &str) -> usize {
@@ -1616,7 +1647,7 @@ fn calculate_indent(ws: &str) -> usize {
 
 /// Parses a single line as a task item. Returns `None` for non-task lines
 /// or tasks whose text is empty / whitespace-only.
-fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
+pub(crate) fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 	if let Some(caps) = TASK_RE.captures(line) {
 		let check_str = caps.get(2)?.as_str();
 		let check_char = check_str.chars().next()?;
@@ -1635,6 +1666,7 @@ fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 			line_number,
 			status: map_checkbox_char(check_char),
 			metadata: parse_task_metadata(raw_text),
+			heading: None,
 		});
 	}
 	if let Some(caps) = ORDERED_TASK_RE.captures(line) {
@@ -1652,6 +1684,7 @@ fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 			line_number,
 			status: map_checkbox_char(check_char),
 			metadata: parse_task_metadata(raw_text),
+			heading: None,
 		});
 	}
 	None
@@ -1660,7 +1693,7 @@ fn parse_task_line(line: &str, line_number: usize) -> Option<Task> {
 /// Detects a fenced-code-block opener / closer at the start of `line`.
 /// Returns the fence string (`"```"` or `"~~~"`) when matched, else `None`.
 /// Only spaces and tabs may precede the fence.
-fn detect_code_fence(line: &str) -> Option<&str> {
+pub(crate) fn detect_code_fence(line: &str) -> Option<&str> {
 	let trimmed = line.trim_start_matches([' ', '\t']);
 	if trimmed.starts_with("```") {
 		Some("```")
@@ -1674,48 +1707,26 @@ fn detect_code_fence(line: &str) -> Option<&str> {
 /// Extracts every task list item from `content` in document order. Skips
 /// lines inside fenced code blocks. Line numbers are 1-based.
 pub fn extract_tasks(content: &str) -> Vec<Task> {
-	let mut out: Vec<Task> = Vec::new();
-	let mut in_code_block = false;
-	let mut fence_char: Option<&str> = None;
-	for (i, line) in content.split('\n').enumerate() {
-		if let Some(fence) = detect_code_fence(line) {
-			if !in_code_block {
-				in_code_block = true;
-				fence_char = Some(fence);
-			} else if Some(fence) == fence_char {
-				in_code_block = false;
-				fence_char = None;
-			}
-			continue;
-		}
-		if in_code_block {
-			continue;
-		}
-		if let Some(task) = parse_task_line(line, i + 1) {
-			out.push(task);
-		}
-	}
-	out
+	extract_tasks_and_headings(content).0
 }
 
-/// Extracts tasks only from sections whose heading text contains
-/// `section_tag`. A "section" spans from a heading line until the next
-/// heading of equal-or-higher level. Empty `section_tag` falls through to
-/// `extract_tasks`.
-pub fn extract_tasks_from_section(content: &str, section_tag: &str) -> Vec<Task> {
-	if section_tag.trim().is_empty() {
-		return extract_tasks(content);
-	}
-	let tag = if section_tag.starts_with('#') {
-		section_tag.to_string()
-	} else {
-		format!("#{}", section_tag)
-	};
-	let mut out: Vec<Task> = Vec::new();
+/// Extracts the tasks as `extract_tasks` does, plus the note's headings in
+/// the same pass, and points each task's `heading` at the nearest heading
+/// above it. Headings inside fenced code or the frontmatter block are not
+/// recorded (a YAML comment `# note` would match `HEADING_RE`). The
+/// frontmatter is skipped by line count, so `TaskHeading.line` is a line of
+/// the whole file like `Task.line_number`. A note without tasks gets no
+/// headings.
+pub fn extract_tasks_and_headings(content: &str) -> (Vec<Task>, Vec<TaskHeading>) {
+	// Index of the first line after the closing `---`. The closing line
+	// itself (whatever follows the `---` on it) is part of the frontmatter.
+	let body_start_line = frontmatter_range(content)
+		.map(|(_, end)| content[..end].matches('\n').count() + 1)
+		.unwrap_or(0);
+	let mut tasks: Vec<Task> = Vec::new();
+	let mut headings: Vec<TaskHeading> = Vec::new();
 	let mut in_code_block = false;
 	let mut fence_char: Option<&str> = None;
-	let mut in_matching_section = false;
-	let mut section_level: usize = 0;
 	for (i, line) in content.split('\n').enumerate() {
 		if let Some(fence) = detect_code_fence(line) {
 			if !in_code_block {
@@ -1730,25 +1741,25 @@ pub fn extract_tasks_from_section(content: &str, section_tag: &str) -> Vec<Task>
 		if in_code_block {
 			continue;
 		}
-		if let Some(caps) = HEADING_RE.captures(line) {
-			let level = caps.get(1).map(|m| m.as_str().len()).unwrap_or(0);
-			let heading_text = caps.get(2).map(|m| m.as_str()).unwrap_or("");
-			if in_matching_section && level <= section_level {
-				in_matching_section = false;
+		if i >= body_start_line {
+			if let Some(caps) = HEADING_RE.captures(line) {
+				headings.push(TaskHeading {
+					level: caps[1].len() as u8,
+					text: caps[2].trim().to_string(),
+					line: (i + 1) as u32,
+				});
+				continue;
 			}
-			if heading_text.contains(&tag) {
-				in_matching_section = true;
-				section_level = level;
-			}
-			continue;
 		}
-		if in_matching_section {
-			if let Some(task) = parse_task_line(line, i + 1) {
-				out.push(task);
-			}
+		if let Some(mut task) = parse_task_line(line, i + 1) {
+			task.heading = headings.len().checked_sub(1).map(|h| h as u32);
+			tasks.push(task);
 		}
 	}
-	out
+	if tasks.is_empty() {
+		headings.clear();
+	}
+	(tasks, headings)
 }
 
 /// Parses a task's raw text for emoji-signifier metadata. This is the sole
@@ -1842,35 +1853,33 @@ pub fn parse_task_metadata(raw_text: &str) -> TaskMetadata {
 		}
 	}
 
-	// Tags — extract from the cleaned text (post-signifier removal). The TS
-	// version does this on `text.trim()` then removes via `text.replace(TAG_RE, '')`.
-	let cleaned_for_tags = text.trim().to_string();
-	let mut tags: Vec<String> = Vec::new();
-	for caps in TASK_TAG_RE.captures_iter(&cleaned_for_tags) {
-		if let Some(m) = caps.get(1) {
-			tags.push(m.as_str().to_string());
-		}
+	// Tags — the note tag rule (`scan_inline_tags`) on the text left after
+	// signifier removal. Each tag's span is cut from the description.
+	let found = scan_inline_tags(&text);
+	metadata.tags = found.iter().map(|t| t.name.to_string()).collect();
+	let mut without_tags = String::with_capacity(text.len());
+	let mut kept_from = 0;
+	for tag in &found {
+		without_tags.push_str(&text[kept_from..tag.start]);
+		kept_from = tag.end;
 	}
-	metadata.tags = tags;
+	without_tags.push_str(&text[kept_from..]);
 
-	// Strip tags from `text`, then collapse multi-spaces and trim.
-	text = TASK_TAG_RE.replace_all(&text, "").to_string();
-	text = MULTI_SPACE_RE.replace_all(&text, " ").to_string();
+	// Collapse multi-spaces and trim.
+	text = MULTI_SPACE_RE.replace_all(&without_tags, " ").to_string();
 	metadata.description = text.trim().to_string();
 
 	metadata
 }
 
-/// Toggles a task's checkbox at `line_number` (1-based) inside `content`.
-/// The box flipped is the one in the task marker (`TASK_RE` /
-/// `ORDERED_TASK_RE` group 2), never a stray `[ ]` elsewhere on the line:
-///   - `[ ]` -> `[x]`
-///   - any other status char (`xX-/?!>`) -> `[ ]`
-///   - line with no task marker: unchanged.
+/// Sets the checkbox of the task at `line_number` (1-based) inside `content`
+/// to `status_checkbox_char(status)`. The box written is the one in the task
+/// marker (`TASK_RE` / `ORDERED_TASK_RE` group 2), never a stray `[ ]`
+/// elsewhere on the line. A line with no task marker is left unchanged.
 ///
 /// Out-of-bounds line numbers (0 or past the end) return the original content
 /// untouched.
-pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
+pub fn set_task_status_in_content(content: &str, line_number: usize, status: TaskStatus) -> String {
 	if line_number == 0 {
 		return content.to_string();
 	}
@@ -1880,7 +1889,7 @@ pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
 		return content.to_string();
 	}
 	let line = &lines[idx];
-	// Flip the checkbox at the TASK MARKER (TASK_RE / ORDERED_TASK_RE group 2),
+	// Write the checkbox at the TASK MARKER (TASK_RE / ORDERED_TASK_RE group 2),
 	// NOT a `[ ]`/`[x]` anywhere on the line. A free substring match corrupted
 	// a checked task whose description contained a literal `[ ]` (e.g. a note
 	// about markdown checkbox syntax): it rewrote the description bracket and
@@ -1892,16 +1901,38 @@ pub fn toggle_task_in_content(content: &str, line_number: usize) -> String {
 	let Some(box_match) = box_match else {
 		return content.to_string();
 	};
-	// Group 2 is a single char: ' ' -> check, any other state -> uncheck.
-	let toggled = if &line[box_match.start()..box_match.end()] == " " {
-		"x"
-	} else {
-		" "
-	};
 	let mut new_line = String::with_capacity(line.len());
 	new_line.push_str(&line[..box_match.start()]);
-	new_line.push_str(toggled);
+	new_line.push(status_checkbox_char(status));
 	new_line.push_str(&line[box_match.end()..]);
+	lines[idx] = new_line;
+	lines.join("\n")
+}
+
+/// Replaces the text of the task at `line_number` (1-based) inside `content`
+/// with `new_text`: the line up to the start of `TASK_RE` / `ORDERED_TASK_RE`
+/// group 3 (indent, marker, checkbox and the space after it) is kept byte for
+/// byte. A line with no task marker is left unchanged, and so are out-of-bounds
+/// line numbers (0 or past the end). The caller refuses a `new_text` holding a
+/// line break.
+pub fn set_task_text_in_content(content: &str, line_number: usize, new_text: &str) -> String {
+	if line_number == 0 {
+		return content.to_string();
+	}
+	let mut lines: Vec<String> = content.split('\n').map(|s| s.to_string()).collect();
+	let idx = line_number - 1;
+	if idx >= lines.len() {
+		return content.to_string();
+	}
+	let line = &lines[idx];
+	let text_match = TASK_RE
+		.captures(line)
+		.or_else(|| ORDERED_TASK_RE.captures(line))
+		.and_then(|c| c.get(3));
+	let Some(text_match) = text_match else {
+		return content.to_string();
+	};
+	let new_line = format!("{}{}", &line[..text_match.start()], new_text);
 	lines[idx] = new_line;
 	lines.join("\n")
 }
@@ -3037,50 +3068,6 @@ mod tests {
 		assert_eq!(tasks[0].line_number, 3);
 	}
 
-	// --- extract_tasks_from_section ------------------------------------------------
-
-	#[test]
-	fn extract_tasks_from_section_falls_through_when_tag_empty() {
-		let content = "- [ ] one\n- [ ] two\n";
-		let tasks = extract_tasks_from_section(content, "");
-		assert_eq!(tasks.len(), 2);
-	}
-
-	#[test]
-	fn extract_tasks_from_section_filters_to_matching_heading_only() {
-		let content = "## Random\n- [ ] outside\n## To-list #to-list\n- [ ] inside\n- [ ] inside2\n## Other\n- [ ] outside2\n";
-		let tasks = extract_tasks_from_section(content, "#to-list");
-		assert_eq!(tasks.len(), 2);
-		assert_eq!(tasks[0].text, "inside");
-		assert_eq!(tasks[1].text, "inside2");
-	}
-
-	#[test]
-	fn extract_tasks_from_section_handles_nested_headings() {
-		let content = "## Section #to-list\n- [ ] level2\n### Sub\n- [ ] level3\n## Other\n- [ ] outside\n";
-		let tasks = extract_tasks_from_section(content, "#to-list");
-		assert_eq!(tasks.len(), 2);
-		assert_eq!(tasks[0].text, "level2");
-		assert_eq!(tasks[1].text, "level3");
-	}
-
-	#[test]
-	fn extract_tasks_from_section_adds_hash_when_missing() {
-		let content = "## Inbox #to-list\n- [ ] x\n";
-		let with_hash = extract_tasks_from_section(content, "#to-list");
-		let without_hash = extract_tasks_from_section(content, "to-list");
-		assert_eq!(with_hash.len(), 1);
-		assert_eq!(without_hash.len(), 1);
-	}
-
-	#[test]
-	fn extract_tasks_from_section_ignores_heading_lines_inside_code_block() {
-		let content = "```\n## Fake heading #to-list\n- [ ] inside fence\n```\n## Real #to-list\n- [ ] real task\n";
-		let tasks = extract_tasks_from_section(content, "#to-list");
-		assert_eq!(tasks.len(), 1);
-		assert_eq!(tasks[0].text, "real task");
-	}
-
 	// --- parse_task_metadata: dates ------------------------------------------------
 
 	#[test]
@@ -3226,6 +3213,49 @@ mod tests {
 		assert_eq!(m.tags, vec!["grocery".to_string(), "urgent".to_string()]);
 	}
 
+	#[test]
+	fn parse_task_metadata_tags_follow_the_note_tag_rule() {
+		let m = parse_task_metadata("rever #revisão #work/client");
+		assert_eq!(m.tags, vec!["revisão".to_string(), "work/client".to_string()]);
+		assert_eq!(m.description, "rever");
+	}
+
+	#[test]
+	fn parse_task_metadata_digit_first_and_mid_word_hash_are_not_tags() {
+		let m = parse_task_metadata("plan #2026 see page#section");
+		assert!(m.tags.is_empty(), "tags: {:?}", m.tags);
+		assert_eq!(m.description, "plan #2026 see page#section");
+	}
+
+	#[test]
+	fn parse_task_metadata_wikilink_heading_is_not_a_tag() {
+		let m = parse_task_metadata("read [[Book#Chapter 2]]");
+		assert!(m.tags.is_empty(), "tags: {:?}", m.tags);
+		assert_eq!(m.description, "read [[Book#Chapter 2]]");
+	}
+
+	#[test]
+	fn parse_task_metadata_tag_drops_trailing_slash_from_name_only() {
+		let m = parse_task_metadata("file #work/ now");
+		assert_eq!(m.tags, vec!["work".to_string()]);
+		assert_eq!(m.description, "file / now");
+	}
+
+	#[test]
+	fn scan_inline_tags_yields_each_tag_with_its_byte_span() {
+		let text = "a #ação b#x #2026 #n/ #_y";
+		let found: Vec<(usize, usize, &str)> =
+			scan_inline_tags(text).iter().map(|t| (t.start, t.end, t.name)).collect();
+		assert_eq!(found, vec![(2, 9, "ação"), (20, 22, "n"), (24, 27, "_y")]);
+		assert_eq!(&text[2..9], "#ação");
+	}
+
+	#[test]
+	fn scan_inline_tags_of_empty_text_is_empty() {
+		assert!(scan_inline_tags("").is_empty());
+		assert!(scan_inline_tags("#").is_empty());
+	}
+
 	// --- parse_task_metadata: description cleanup ----------------------------------
 
 	#[test]
@@ -3246,90 +3276,115 @@ mod tests {
 		assert_eq!(m.tags, vec!["grocery".to_string()]);
 	}
 
-	// --- toggle_task_in_content ----------------------------------------------------
+	// --- set_task_status_in_content / status_checkbox_char --------------------------
 
 	#[test]
-	fn toggle_task_in_content_unchecked_to_checked() {
+	fn status_checkbox_char_round_trips_every_status() {
+		for status in [
+			TaskStatus::Todo,
+			TaskStatus::Done,
+			TaskStatus::Cancelled,
+			TaskStatus::InProgress,
+			TaskStatus::Question,
+			TaskStatus::Forwarded,
+			TaskStatus::Important,
+		] {
+			assert_eq!(map_checkbox_char(status_checkbox_char(status)), status);
+		}
+		assert_eq!(status_checkbox_char(TaskStatus::Done), 'x');
+	}
+
+	#[test]
+	fn set_task_status_in_content_unchecked_to_checked() {
 		let content = "- [ ] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Done);
 		assert_eq!(result, "- [x] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_checked_lowercase_to_unchecked() {
+	fn set_task_status_in_content_checked_lowercase_to_unchecked() {
 		let content = "- [x] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Todo);
 		assert_eq!(result, "- [ ] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_checked_uppercase_to_unchecked() {
+	fn set_task_status_in_content_checked_uppercase_to_unchecked() {
 		let content = "- [X] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Todo);
 		assert_eq!(result, "- [ ] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_in_progress_to_unchecked() {
+	fn set_task_status_in_content_in_progress_to_unchecked() {
 		let content = "- [/] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Todo);
 		assert_eq!(result, "- [ ] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_cancelled_to_unchecked() {
+	fn set_task_status_in_content_cancelled_to_unchecked() {
 		let content = "- [-] task";
-		let result = toggle_task_in_content(content, 1);
+		let result = set_task_status_in_content(content, 1, TaskStatus::Todo);
 		assert_eq!(result, "- [ ] task");
 	}
 
 	#[test]
-	fn toggle_task_in_content_line_zero_returns_unchanged() {
+	fn set_task_status_in_content_important_to_done() {
+		let result = set_task_status_in_content("- [!] call", 1, TaskStatus::Done);
+		assert_eq!(result, "- [x] call");
+	}
+
+	#[test]
+	fn set_task_status_in_content_line_zero_returns_unchanged() {
 		let content = "- [ ] task";
-		assert_eq!(toggle_task_in_content(content, 0), content);
+		assert_eq!(set_task_status_in_content(content, 0, TaskStatus::Done), content);
 	}
 
 	#[test]
-	fn toggle_task_in_content_line_out_of_bounds_returns_unchanged() {
+	fn set_task_status_in_content_line_out_of_bounds_returns_unchanged() {
 		let content = "- [ ] task\n";
-		assert_eq!(toggle_task_in_content(content, 100), content);
+		assert_eq!(set_task_status_in_content(content, 100, TaskStatus::Done), content);
 	}
 
 	#[test]
-	fn toggle_task_in_content_no_checkbox_returns_unchanged() {
+	fn set_task_status_in_content_no_checkbox_returns_unchanged() {
 		let content = "just a paragraph";
-		assert_eq!(toggle_task_in_content(content, 1), content);
+		assert_eq!(set_task_status_in_content(content, 1, TaskStatus::Done), content);
 	}
 
 	#[test]
-	fn toggle_task_in_content_only_first_match_on_line() {
+	fn set_task_status_in_content_only_first_match_on_line() {
 		let content = "- [ ] foo [ ] bar";
-		assert_eq!(toggle_task_in_content(content, 1), "- [x] foo [ ] bar");
+		assert_eq!(
+			set_task_status_in_content(content, 1, TaskStatus::Done),
+			"- [x] foo [ ] bar"
+		);
 	}
 
 	#[test]
-	fn toggle_task_in_content_checked_with_bracket_in_description() {
+	fn set_task_status_in_content_checked_with_bracket_in_description() {
 		// Regression (#9): a CHECKED task whose description contains a literal
-		// `[ ]` must toggle the CHECKBOX, not the description bracket. The old
+		// `[ ]` must change the CHECKBOX, not the description bracket. The old
 		// `line.contains("[ ]")` substring match rewrote the description's
 		// bracket (-> "[x] ... [x]") and left the real checkbox checked.
 		let content = "- [x] document the [ ] empty checkbox syntax";
 		assert_eq!(
-			toggle_task_in_content(content, 1),
+			set_task_status_in_content(content, 1, TaskStatus::Todo),
 			"- [ ] document the [ ] empty checkbox syntax"
 		);
 	}
 
 	#[test]
-	fn toggle_task_in_content_ordered_task() {
-		assert_eq!(toggle_task_in_content("1. [ ] item", 1), "1. [x] item");
-		assert_eq!(toggle_task_in_content("1. [x] item", 1), "1. [ ] item");
+	fn set_task_status_in_content_ordered_task() {
+		assert_eq!(set_task_status_in_content("1. [ ] item", 1, TaskStatus::Done), "1. [x] item");
+		assert_eq!(set_task_status_in_content("1. [x] item", 1, TaskStatus::Todo), "1. [ ] item");
 	}
 
 	#[test]
-	fn toggle_task_in_content_preserves_other_lines() {
+	fn set_task_status_in_content_preserves_other_lines() {
 		let content = "line one\n- [ ] task on line two\nline three";
-		let result = toggle_task_in_content(content, 2);
+		let result = set_task_status_in_content(content, 2, TaskStatus::Done);
 		assert_eq!(result, "line one\n- [x] task on line two\nline three");
 	}
 

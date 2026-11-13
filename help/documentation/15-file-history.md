@@ -40,7 +40,7 @@ Configure file history behavior in **Settings → File History**:
 | Setting | Settings key | Description | Default |
 |---------|--------------|-------------|---------|
 | **Automatic snapshots** | `history.enabled` | Save a snapshot every time a file is saved | Enabled |
-| **Retention days** | `history.retentionDays` | Days to keep all snapshots before thinning begins (1–365) | 7 |
+| **Retention days** | `history.retentionDays` | Days to keep every snapshot. For 30 more days one per day is kept per file, then they are deleted (1–365) | 7 |
 | **Snapshot backup** | `history.snapshotBackupEnabled` | Also save snapshots as `.md` files in `.kokobrain/snapshots-backup/` | Disabled |
 
 ### Retention Policy

@@ -1,4 +1,4 @@
-import type { EVENT_CALENDAR_COLORS, EVENT_CALENDAR_VIEW_MODES } from './settings.logic';
+import type { EVENT_CALENDAR_COLORS, EVENT_CALENDAR_VIEW_MODES, TODOIST_SYNC_CONTEXTS } from './settings.logic';
 
 /** Supported periodic note types */
 export type PeriodType = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
@@ -74,6 +74,24 @@ export interface LayoutSettings {
 	 * Loaded unvalidated, so read it only through `parseRailDay` / `pickedDayLens`.
 	 */
 	railDay: string | null;
+	/**
+	 * Keys of the rail items hidden in Settings > Layout (Search and Today are never hidden). Loaded unvalidated,
+	 * so read it only through `parseRailHidden`.
+	 */
+	railHidden: string[];
+	/**
+	 * Keys of the rail items in the order Settings > Layout set, applied within each rail group. Loaded
+	 * unvalidated, so read it only through `parseRailOrder`.
+	 */
+	railOrder: string[];
+	/** Whether the rail's Inbox button shows the inbox count. Loaded unvalidated, so read it only through `parseRailInboxBadge`. */
+	railInboxBadge: boolean;
+	/** The labeled rail's width in px. Loaded unvalidated, so read it only through `parseRailWidth`. */
+	railWidth: number;
+	/** The rail's style. Loaded unvalidated, so read it only through `parseRailStyle`. */
+	railStyle: 'labeled' | 'captioned';
+	/** Whether the rail shows its small form; the style and width stay saved. Loaded unvalidated, so read it only through `parseRailCollapsed`. */
+	railCollapsed: boolean;
 	/** Whether the right sidebar (Properties, Backlinks, Outgoing links, Table of Contents) is visible */
 	rightSidebarVisible: boolean;
 	/** Whether the properties panel is shown in the right sidebar */
@@ -90,6 +108,12 @@ export interface LayoutSettings {
 	noteListSize: number;
 	/** Saved width percentage of the rail shell's navigator pane (Types, Calendar, Files) */
 	navigatorSize: number;
+	/**
+	 * Note-list sort and shown properties for the lenses that keep them in settings (folders, and
+	 * types without a definition note), keyed by `listPrefsKey`. Loaded unvalidated, so read it only
+	 * through `parseRailListPrefs`. `core/` cannot import `features/`, so the type stays `unknown`.
+	 */
+	railListPrefs: Record<string, unknown>;
 }
 
 /** Configuration for the folder notes feature */
@@ -139,6 +163,12 @@ export interface EditorSettings {
 	paragraphSpacing: number;
 	/** Typography settings for heading levels h1–h6 */
 	headingTypography: HeadingTypography;
+	/**
+	 * True once the saved editor settings are on the current type scale (font
+	 * size is the rendered body size, distinct H4-H6). A saved block without it
+	 * goes through `migrateTypeScale` on load, which sets it.
+	 */
+	typeScaleMigrated: boolean;
 }
 
 /** Configuration for the templates plugin */
@@ -211,17 +241,39 @@ export interface HistorySettings {
 
 /** Configuration for the search feature */
 export interface SearchSettings {
-	/** Whether semantic (AI-powered) search is enabled — downloads ~118MB model */
+	/** Whether semantic (AI-powered) search is enabled — downloads the ~542MB BGE-M3 model */
 	semanticSearchEnabled: boolean;
 }
 
 /** Configuration for the Todoist integration */
 export interface TodoistSettings {
-	/** Todoist personal API token (from Settings → Integrations → Developer) */
+	/**
+	 * Todoist personal API token (from Settings → Integrations → Developer).
+	 * Stored in plain text in the vault's `.kokobrain/settings.json`; see ADR-0019's 2026-11-06 amendment.
+	 */
 	apiToken: string;
-	/** Label name applied to every task created by the app (empty = none) */
+	/** Todoist label the sync never writes as a tag nor removes from a task (empty = none) */
 	defaultLabel: string;
+	/** Whether the two-way sync runs for this vault */
+	syncEnabled: boolean;
+	/** Vault-relative folder holding one note per synced Todoist project */
+	syncFolder: string;
+	/** Minutes between automatic sync cycles (at least 1) */
+	syncIntervalMinutes: number;
+	/**
+	 * Which context this vault is. A brain-born task in a `work` vault is sent
+	 * with no context label, so the owner's webhook adds `Work`; in a
+	 * `personal` vault it is sent with the label `personal`.
+	 */
+	syncContext: TodoistSyncContext;
+	/** Todoist project whose tree (itself and every nested project) this vault syncs; empty = sync off */
+	syncRootProjectId: string;
+	/** Whether the Todoist Inbox is synced in addition to the root's tree */
+	syncIncludeInbox: boolean;
 }
+
+/** One of the vault contexts in `TODOIST_SYNC_CONTEXTS` */
+export type TodoistSyncContext = (typeof TODOIST_SYNC_CONTEXTS)[number];
 
 /** Configuration for the optional Sentry error-monitoring integration. */
 export interface SentrySettings {
@@ -231,9 +283,9 @@ export interface SentrySettings {
 	dsn: string;
 }
 
-/** Settings for the auto-move feature, persisted inside AppSettings */
-export interface AutoMoveSettings {
-	/** Whether auto-move is globally enabled */
+/** Settings for the auto-organize feature, persisted inside AppSettings */
+export interface AutoOrganizeSettings {
+	/** Whether auto-organize is globally enabled */
 	enabled: boolean;
 	/** Debounce delay in milliseconds after save before evaluating rules */
 	debounceMs: number;
@@ -248,7 +300,7 @@ export interface TagColorSettings {
 /** Policy for QueryJS block execution — controls when `kb.pages()`/`dv.view()` blocks run */
 export type AutoRunQueriesPolicy =
 	| 'first-open' // execute the first time the file is opened in this session, then cache for the session
-	| 'always' // execute on every render (legacy behaviour — slower, fresher results)
+	| 'always' // execute whenever a block has no cached result; a cache hit re-attaches the result
 	| 'manual'; // never auto-execute — user clicks ▶ Run on each block
 
 /** Configuration for the QueryJS scripting plugin */
@@ -296,7 +348,7 @@ export interface UpdateSettings {
 	/**
 	 * Unix milliseconds timestamp of the last update check, manual or
 	 * automatic. `null` means the user has never checked. Drives the
-	 * "Last checked X ago" row in the Update section. Does NOT gate the
+	 * "Last checked: X ago" text in the Update section. Does NOT gate the
 	 * launch-time auto-check — every vault open re-checks when
 	 * `autoCheck` is on.
 	 */
@@ -304,7 +356,7 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'sidebar' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'templates' | 'search' | 'file-history' | 'auto-move' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update' | 'remote-access';
+export type SettingsSection = 'appearance' | 'layout' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'files' | 'search' | 'file-history' | 'auto-organize' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update' | 'labs' | 'remote-access';
 
 /** One of the event colors in `EVENT_CALENDAR_COLORS` */
 export type EventCalendarColor = (typeof EVENT_CALENDAR_COLORS)[number];
@@ -364,8 +416,8 @@ export interface AppSettings {
 	todoist: TodoistSettings;
 	/** Optional Sentry error-monitoring configuration */
 	sentry: SentrySettings;
-	/** Auto-move feature configuration */
-	autoMove: AutoMoveSettings;
+	/** Auto Organize feature configuration */
+	autoOrganize: AutoOrganizeSettings;
 	/** Browser access (loopback server) configuration */
 	remoteServer: RemoteServerSettings;
 	/** Event calendar configuration */
@@ -376,6 +428,8 @@ export interface AppSettings {
 	debugModeTauri: boolean;
 	/** Whether frontend debug logs are also written to a file in .kokobrain/logs/ */
 	debugLogToFile: boolean;
+	/** Explicit consent to save raw mod run messages locally; also requires frontend file logging. */
+	debugModRunMessages: boolean;
 	/** Whether Tauri backend debug logs are also written to a file in .kokobrain/logs/ */
 	debugTauriLogToFile: boolean;
 	/**
@@ -403,4 +457,19 @@ export interface AppSettings {
 	typesBaseFolder: string;
 	/** Whether the inbox count is shown as a red badge on the macOS dock icon */
 	dockBadgeInboxCount: boolean;
+	/**
+	 * The Tasks view's saved state (global excludes, saved views, active list). Loaded unvalidated
+	 * and passed through verbatim, so read it only through `parseTasksViewState` in `features/tasks`. `core/` cannot import
+	 * `features/`, so the type stays `unknown`. Absent means nothing was saved: it has no default.
+	 */
+	tasksView?: unknown;
 }
+
+/**
+ * How `loadSettings` ended for a vault, which decides whether the session may write settings.json.
+ * - `loaded`: the file was read and parsed; its settings are in the store.
+ * - `defaults`: the defaults are in the store, and the file was missing, blank, or backed up before being reset.
+ * - `file-protected`: the defaults are in the store, but the file could not be read, or did not parse and could
+ *   not be backed up. Its bytes are not safe anywhere else, so nothing may write it for the rest of the session.
+ */
+export type SettingsLoadOutcome = 'loaded' | 'defaults' | 'file-protected';

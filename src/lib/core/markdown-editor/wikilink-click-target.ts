@@ -27,6 +27,13 @@ export function findWikilinkElement(target: EventTarget | null): HTMLElement | n
 	return target.closest(WIKILINK_SELECTOR);
 }
 
+/**
+ * Class of the live-preview table widget's root (`TableWidget.toDOM`), which
+ * handles its own cell link clicks. Shared so a rename cannot silently break
+ * the bypass in `resolveWikilinkClickPosition`.
+ */
+export const TABLE_WIDGET_CLASS = 'cm-lp-table-wrapper';
+
 /** The parts of an `EditorView` the click resolver reads. */
 export type WikilinkClickView = Pick<EditorView, 'state' | 'posAtDOM' | 'posAtCoords' | 'coordsAtPos'>;
 
@@ -49,9 +56,15 @@ export type WikilinkClickView = Pick<EditorView, 'state' | 'posAtDOM' | 'posAtCo
  * The modifier path skips `[[...]]` inside code and other block contexts (the
  * decorations never render it as a link), and a click in the empty space past
  * the end of a line, which `posAtCoords` maps to the line end.
+ *
+ * A press inside the table widget is left alone: the widget's cell links
+ * follow themselves (`renderCellContent` in `widgets.ts`). `posAtDOM` maps a
+ * cell link to the table's first line, not to the link's source, so resolving
+ * it here would open nothing and swallow the click.
  */
 export function resolveWikilinkClickPosition(e: MouseEvent, view: WikilinkClickView, mac: boolean): number | null {
 	if (e.button !== 0 || isMacContextClick(e, mac)) return null;
+	if (e.target instanceof Element && e.target.closest(`.${TABLE_WIDGET_CLASS}`)) return null;
 	const el = findWikilinkElement(e.target);
 	if (el) return view.posAtDOM(el);
 	if (!isOpenLinkModifier(e, mac)) return null;

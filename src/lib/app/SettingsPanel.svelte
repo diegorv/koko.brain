@@ -1,22 +1,23 @@
 <script module lang="ts">
 	import AppearanceSection from '#lib/core/settings/sections/AppearanceSection.svelte';
-	import GeneralSection from '#lib/core/settings/sections/GeneralSection.svelte';
 	import EditorSection from '#lib/core/settings/sections/EditorSection.svelte';
 	import PeriodicNotesSection from '#lib/core/settings/sections/PeriodicNotesSection.svelte';
 	import QuickCaptureSection from '#lib/core/settings/sections/QuickCaptureSection.svelte';
 	import OneOnOneSection from '#lib/core/settings/sections/OneOnOneSection.svelte';
-	import TemplatesSection from '#lib/core/settings/sections/TemplatesSection.svelte';
+	import FilesSection from '#lib/core/settings/sections/FilesSection.svelte';
 	import SearchSection from '#lib/features/search/SearchSection.svelte';
+	import LayoutSection from '#lib/features/rail-shell/LayoutSection.svelte';
 	import FileHistorySection from '#lib/core/settings/sections/FileHistorySection.svelte';
-	import AutoMoveSection from '#lib/features/auto-move/AutoMoveSection.svelte';
+	import AutoOrganizeSection from '#lib/features/auto-organize/AutoOrganizeSection.svelte';
 	import EventCalendarSection from '#lib/features/event-calendar/EventCalendarSection.svelte';
 	import TrashSection from '#lib/core/settings/sections/TrashSection.svelte';
-	import TodoistSection from '#lib/core/settings/sections/TodoistSection.svelte';
+	import TodoistSection from '#lib/features/todoist-sync/TodoistSection.svelte';
 	import SentrySection from '#lib/core/settings/sections/SentrySection.svelte';
 	import TroubleshootingSection from '#lib/core/settings/sections/TroubleshootingSection.svelte';
 	import UpdateSection from '#lib/core/settings/sections/UpdateSection.svelte';
 	import QueryjsSection from '#lib/plugins/queryjs/QueryjsSection.svelte';
 	import TypesSection from '#lib/core/settings/sections/TypesSection.svelte';
+	import LabsSection from './LabsSection.svelte';
 	import RemoteAccessSection from '#lib/app/remote/RemoteAccessSection.svelte';
 	import PaletteIcon from '@lucide/svelte/icons/palette';
 	import PanelLeftIcon from '@lucide/svelte/icons/panel-left';
@@ -24,7 +25,7 @@
 	import CalendarDaysIcon from '@lucide/svelte/icons/calendar-days';
 	import ZapIcon from '@lucide/svelte/icons/zap';
 	import UsersIcon from '@lucide/svelte/icons/users';
-	import FileTextIcon from '@lucide/svelte/icons/file-text';
+	import FolderIcon from '@lucide/svelte/icons/folder';
 	import SearchIcon from '@lucide/svelte/icons/search';
 	import HistoryIcon from '@lucide/svelte/icons/history';
 	import FolderOutputIcon from '@lucide/svelte/icons/folder-output';
@@ -36,6 +37,7 @@
 	import Code2Icon from '@lucide/svelte/icons/code-2';
 	import LayoutGridIcon from '@lucide/svelte/icons/layout-grid';
 	import CalendarRangeIcon from '@lucide/svelte/icons/calendar-range';
+	import FlaskConicalIcon from '@lucide/svelte/icons/flask-conical';
 	import GlobeIcon from '@lucide/svelte/icons/globe';
 	import type { SettingsSection } from '#lib/core/settings/settings.types.js';
 	import type { Component } from 'svelte';
@@ -43,15 +45,15 @@
 	/** Sidebar icon for each settings section */
 	const sectionIcons: Record<SettingsSection, Component> = {
 		appearance: PaletteIcon,
-		sidebar: PanelLeftIcon,
+		layout: PanelLeftIcon,
 		editor: PencilLineIcon,
 		'periodic-notes': CalendarDaysIcon,
 		'quick-capture': ZapIcon,
 		'one-on-one': UsersIcon,
-		templates: FileTextIcon,
+		files: FolderIcon,
 		search: SearchIcon,
 		'file-history': HistoryIcon,
-		'auto-move': FolderOutputIcon,
+		'auto-organize': FolderOutputIcon,
 		trash: Trash2Icon,
 		todoist: CircleCheckIcon,
 		sentry: ShieldAlertIcon,
@@ -60,6 +62,7 @@
 		queryjs: Code2Icon,
 		types: LayoutGridIcon,
 		'event-calendar': CalendarRangeIcon,
+		labs: FlaskConicalIcon,
 		'remote-access': GlobeIcon,
 	};
 
@@ -70,15 +73,15 @@
 	 */
 	export const sectionComponents: Record<SettingsSection, Component> = {
 		appearance: AppearanceSection,
-		sidebar: GeneralSection,
+		layout: LayoutSection,
 		editor: EditorSection,
 		'periodic-notes': PeriodicNotesSection,
 		'quick-capture': QuickCaptureSection,
 		'one-on-one': OneOnOneSection,
-		templates: TemplatesSection,
+		files: FilesSection,
 		search: SearchSection,
 		'file-history': FileHistorySection,
-		'auto-move': AutoMoveSection,
+		'auto-organize': AutoOrganizeSection,
 		trash: TrashSection,
 		todoist: TodoistSection,
 		sentry: SentrySection,
@@ -87,12 +90,14 @@
 		queryjs: QueryjsSection,
 		types: TypesSection,
 		'event-calendar': EventCalendarSection,
+		labs: LabsSection,
 		'remote-access': RemoteAccessSection,
 	};
 </script>
 
 <script lang="ts">
 	import { fly } from 'svelte/transition';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
 	import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 	import { SETTINGS_SECTION_GROUPS } from '#lib/core/settings/settings.logic.js';
@@ -112,33 +117,29 @@
 
 {#if settingsPanelStore.isOpen}
 	<div
-		class="fixed top-0 right-0 z-40 flex flex-row overflow-hidden border-l border-border bg-settings-dialog-bg shadow-[-4px_0_12px_rgba(0,0,0,0.15)]"
-		style="bottom: 24px; width: 820px; max-width: 80vw;"
+		class="fixed top-0 right-0 bottom-(--status-bar-height) z-40 flex w-[min(820px,80vw)] flex-row overflow-hidden border-l border-border bg-settings-dialog-bg shadow-[-4px_0_12px_rgba(0,0,0,0.15)]"
 		transition:fly={{ x: 820, duration: 200 }}
 		role="dialog"
 		aria-label="Settings"
 	>
 		<!-- Sidebar -->
-		<nav class="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border px-3 py-5 bg-settings-sidebar-bg">
-			<div class="mb-3 flex items-center justify-between px-3">
-				<h2 class="text-sm font-semibold">Settings</h2>
-				<button
-					class="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-					onclick={() => settingsPanelStore.close()}
-					aria-label="Close settings"
-				>
-					<XIcon class="size-4" />
-				</button>
+		<nav class="flex w-48 shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-border px-3 pb-5 bg-settings-sidebar-bg">
+			<!-- Same h-14 band as the content column's close row, so both columns share one header line.
+			     -mb-0.5 cancels the nav's gap-0.5 after the band, so the first group label starts at the band's bottom edge like the page title does. -->
+			<div class="-mb-0.5 flex h-14 shrink-0 items-center px-3">
+				<h2 class="text-lg font-semibold">Settings</h2>
 			</div>
 
 			{#each SETTINGS_SECTION_GROUPS as group, i}
-				<h3 class="px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground {i === 0 ? 'mb-1' : 'mt-3 mb-1'}">
+				<h3 class="section-label px-3 {i === 0 ? 'mb-1' : 'mt-3 mb-1'}">
 					{group.group}
 				</h3>
 				{#each group.sections as section}
 					{@const Icon = sectionIcons[section.id]}
+					{@const active = settingsPanelStore.activeSection === section.id}
 					<button
-						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-sm transition-colors text-settings-text hover:bg-settings-hover-bg {settingsPanelStore.activeSection === section.id ? '!bg-settings-hover-bg bg-accent' : ''}"
+						class="flex items-center gap-2 rounded-md px-3 py-1.5 text-left text-row transition-colors text-settings-text focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset {active ? 'bg-settings-hover-bg font-medium' : 'hover:bg-settings-hover-bg/60'}"
+						aria-current={active ? 'page' : undefined}
 						onclick={() => settingsPanelStore.setSection(section.id)}
 					>
 						<Icon class="size-4" />
@@ -149,10 +150,17 @@
 		</nav>
 
 		<!-- Content -->
-		<ScrollArea class="flex-1">
-			<div class="max-w-3xl px-10 py-8">
-				<SectionContent />
+		<div class="flex min-w-0 flex-1 flex-col">
+			<div class="flex h-14 shrink-0 items-center justify-end px-4">
+				<Button variant="ghost" size="icon-sm" aria-label="Close settings" onclick={() => settingsPanelStore.close()}>
+					<XIcon />
+				</Button>
 			</div>
-		</ScrollArea>
+			<ScrollArea class="min-h-0 flex-1">
+				<div class="max-w-3xl px-10 pb-8">
+					<SectionContent />
+				</div>
+			</ScrollArea>
+		</div>
 	</div>
 {/if}

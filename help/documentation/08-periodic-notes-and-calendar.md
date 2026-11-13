@@ -34,7 +34,7 @@ Until you pick a day, today is picked. Click a day to pick it: the note list the
 
 Kokobrain remembers the picked day and opens on it after a restart. Clicking the month name drops the pick and goes back to today.
 
-The rail's **Today** item lists your pinned (favorite) notes and the notes dated today, and its header also has **Daily note**.
+The rail's **Today** item lists the notes dated today, and its header also has **Daily note**.
 
 > [!NOTE]
 > The navigator is for periodic notes and the notes dated each day. To plan events with times, use the [Calendar tab](27-calendar.md), which shows your Event notes on a day, week or month grid.
@@ -45,7 +45,7 @@ You can also open or create today's daily note from the command palette: run **O
 
 Open **Settings → Periodic Notes** to customize how periodic notes are generated.
 
-### Base Folder
+### Notes folder
 
 The root folder inside your vault where all periodic notes are stored.
 
@@ -91,7 +91,7 @@ Format strings use [dayjs tokens](https://day.js.org/docs/en/display/format) to 
 
 Given the following configuration:
 
-- **Base folder**: `_notes`
+- **Notes folder**: `_notes`
 - **Format**: `YYYY/MM-MMM/journal-DD-MM-YYYY`
 - **Date**: February 17, 2026
 

@@ -1,22 +1,28 @@
 import type { Dayjs } from 'dayjs';
-import { readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
+import { exists, readDir, readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { call } from '#lib/contracts/ipc.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-import { openFileInEditor, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
+import { openFileInEditor, saveFileByPath, syncExternalContentToEditor, waitForTabSave } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { isTabDirty } from '#lib/core/editor/editor.logic.js';
 import { loadNoteTemplate, openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { applyExplicitOrganization, withUnorganizedFlag } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { createFile, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
 import { generateUniqueName } from '#lib/core/filesystem/fs.logic.js';
+import { typePinKey } from '#lib/core/settings/rail-pin.logic.js';
 import { toast } from 'svelte-sonner';
 import { error } from '#lib/utils/debug.js';
 import { buildTypeMetadataMap, sameTypeMetadata, buildTypeNoteDir, rewriteTypeInFrontmatter, typeNameTakenMessage } from './type-definitions.logic';
-import { updateViewIconYaml } from './type-sidebar.logic';
+import { buildNewViewYaml, showViewInViewsYaml, updateViewColorsYaml, updateViewIconYaml, updateViewListPropertiesYaml, updateViewRailYaml } from './type-sidebar.logic';
 import { typeDefinitionsStore } from './type-definitions.store.svelte';
-import { updateCollectionYaml, type CollectionYamlUpdates } from '#lib/features/collection/yaml-parser.js';
+import { updateViewEditYaml, type ViewEdit } from '#lib/features/collection/yaml-parser.js';
+import { applyToolbarEdit, type ToolbarKey, type ToolbarValues } from './type-note-list.logic';
 import { refreshViewDefinition } from './view-parse-cache';
+import type { CollectionDefinition, CollectionFilter } from '#lib/features/collection/collection.types.js';
 
 /** Rebuilds the type metadata map. Fetches entries if not provided. */
 export async function refreshTypeDefinitions(entries?: NoteEntryV2[]): Promise<void> {
@@ -79,7 +85,13 @@ export async function createNoteOfType(typeName: string): Promise<void> {
 	const target = await resolveTypedNoteTarget(typeName, `Untitled ${typeName}`);
 	if (!target) return;
 	const { dir, fileName, title, templatePath, inlineTemplate } = target;
-	await openOrCreateNote({ filePath: `${dir}/${fileName}`, templatePath, inlineTemplate, title });
+	await openOrCreateNote({
+		filePath: `${dir}/${fileName}`,
+		templatePath,
+		inlineTemplate,
+		title,
+		buildContent: settingsStore.explicitOrganization ? withUnorganizedFlag : undefined,
+	});
 }
 
 /** Options for {@link createTypedNote}. */
@@ -104,12 +116,14 @@ export interface CreateTypedNoteOptions {
  * dedupe and template owner as {@link createNoteOfType}. Returns the created
  * path. Throws `Error('no-vault')` without a vault, `Error('create-failed')`
  * when the target folder cannot be created or `createFile` refuses, or
- * whatever `buildContent` throws.
+ * whatever `buildContent` throws. While Explicit organization is on, the
+ * final content (after `buildContent`) gets `_organized: false`; every caller
+ * creates a user note, so the switch is applied here once.
  *
  * `buildContent` sees the name deduped here, and `createFile` dedupes again
  * against a fresh `readDir`. If a same-named file appears between the two
  * reads, the note lands under the next free name while its content was built
- * for the first one. This same-instant race is accepted (as in `createView`):
+ * for the first one. This same-instant race is accepted:
  * throwing then would report a failure for a note that already exists.
  */
 export async function createTypedNote(options: CreateTypedNoteOptions): Promise<string> {
@@ -130,7 +144,8 @@ export async function createTypedNote(options: CreateTypedNoteOptions): Promise<
 	});
 	// The planned path joins the way `createFile` does; a same-instant name
 	// race can still make `createFile` pick a different unique name.
-	const content = buildContent?.(base, { fileName: target.fileName, title: target.title, path: `${target.dir}/${target.fileName}` }) ?? base;
+	const built = buildContent?.(base, { fileName: target.fileName, title: target.title, path: `${target.dir}/${target.fileName}` }) ?? base;
+	const content = applyExplicitOrganization(built, settingsStore.explicitOrganization);
 	try {
 		return await createFile(target.dir, target.fileName, content);
 	} catch {
@@ -238,57 +253,237 @@ export async function renameType(oldName: string, newName: string, definitionPat
 	if (railPick?.kind === 'type' && railPick.target === oldName) {
 		settingsStore.updateLayout({ railTypesLens: { kind: 'type', target: newName } });
 	}
+	// A rail pin of the type is keyed by its name.
+	if (settingsStore.layout.railItem === typePinKey(oldName)) {
+		settingsStore.updateLayout({ railItem: typePinKey(newName) });
+	}
 }
 
 /**
- * Creates a new empty .view file at the vault root with a minimal table view
- * and no filters, then selects it in the type sidebar so the user can configure
- * filters and sort via the inline toolbar without first having to open the raw
- * YAML. Returns the created path, or null without a vault or when the vault
- * root cannot be read or `createFile` fails (both logged).
+ * Creates a `.view` named `name` in `folder` (the vault root without it), with
+ * `name` as its label and table view name and `filters` (when given) as that
+ * view's own filters, then selects it in the type sidebar.
+ * `createFile` dedupes the file name against the folder's siblings
+ * (`Name 1.view`); the label keeps the typed name. Resolves to the created
+ * path. Rejects without a vault, or with `createFile`'s error when the folder
+ * cannot be read or the file cannot be created; nothing is selected then.
  */
-export async function createView(): Promise<string | null> {
-	if (!vaultStore.path) return null;
-	// The body embeds the deduplicated title, so dedup must run BEFORE
-	// createFile (which would otherwise dedup after the content is fixed).
-	// createFile re-runs the same dedup on the pre-deduplicated name, which
-	// leaves it unchanged unless a same-named file appears between the two
-	// readDirs (accepted: same-instant race, cosmetic label mismatch only).
-	// Abort on readDir failure — a silent fallback to
-	// no siblings would let createFile dedup to a filename the embedded
-	// title no longer matches (and createFile's own readDir would fail the
-	// same way anyway).
-	let siblingNames: string[];
-	try {
-		const entries = await readDir(vaultStore.path);
-		siblingNames = entries.map((e) => e.name);
-	} catch (err) {
-		error('TYPE-DEF', 'createView: failed to read vault root:', err);
-		return null;
-	}
-	const uniqueName = generateUniqueName('Untitled.view', false, siblingNames);
-	const title = uniqueName.replace(/\.view$/i, '');
-	const content = `_sidebar_label: ${title}\n_sort: title\nviews:\n  - type: table\n    name: ${title}\n`;
-	let filePath: string;
-	try {
-		filePath = await createFile(vaultStore.path, uniqueName, content);
-	} catch {
-		// `createFile` already logged the cause.
-		return null;
-	}
+export async function createView(name: string, filters?: CollectionFilter | string, folder?: string): Promise<string> {
+	if (!vaultStore.path) throw new Error('No vault is open');
+	// The new row reads its label from the index snapshot: skip the refresh
+	// throttle. Asked before the write, since `create_note` emits the event.
+	vaultStore.requestPromptIndexRefresh();
+	const filePath = await createFile(folder ?? vaultStore.path, `${name}.view`, buildNewViewYaml(name, filters));
 	typeDefinitionsStore.setSelection({ kind: 'view', path: filePath });
 	return filePath;
 }
 
-/** Updates _icon, _color, and _title_color in a .view YAML file. */
+/**
+ * Why a `.view` rewrite refused or failed:
+ * - `save-failed`: saving the open tab failed. The tab was restored to what it
+ *   showed unless it changed during the save, and the editor already showed a toast,
+ *   so the caller must not toast again.
+ * - `vault-changed`: the vault switched while the write was queued or in
+ *   flight. When it is thrown after the save or the file write, the new bytes
+ *   may already be on disk.
+ * - `missing`: the file vanished before the write, so it was not recreated.
+ */
+export type ViewWriteReason = 'save-failed' | 'vault-changed' | 'missing';
+
+/** Human text per `ViewWriteReason`; callers that toast show it as the cause. */
+const VIEW_WRITE_MESSAGES: Record<ViewWriteReason, string> = {
+	'save-failed': 'saving the open tab failed',
+	'vault-changed': 'the vault changed, so the view may not have been saved',
+	missing: 'the view was moved or deleted',
+};
+
+/** Typed failure of `rewriteViewFile`. */
+export class ViewWriteError extends Error {
+	/** What went wrong; see `ViewWriteReason`. */
+	readonly reason: ViewWriteReason;
+	/** The `.view` the write targeted. */
+	readonly path: string;
+
+	constructor(reason: ViewWriteReason, path: string) {
+		super(VIEW_WRITE_MESSAGES[reason]);
+		this.name = 'ViewWriteError';
+		this.reason = reason;
+		this.path = path;
+	}
+}
+
+/** Options for {@link rewriteViewFile}. */
+interface RewriteViewOptions {
+	/**
+	 * Ask for a prompt index refresh before the write, for readers of the index
+	 * snapshot (the rail's pins, a row's label). Asked only when the file
+	 * changes, and before the write, since `update_note_in_index` emits the event.
+	 */
+	promptIndexRefresh?: boolean;
+}
+
+/** The last rewrite queued for each `.view` path, settled or not; it never rejects. */
+const viewWriteTails = new Map<string, Promise<unknown>>();
+
+/**
+ * Rewrites the `.view` at `path` to `transform(base)`. Every writer that
+ * rewrites an existing `.view` goes through here. Resolves `true` when it
+ * wrote, `false` when `transform` gave back the base.
+ *
+ * Writes of one path run one at a time, in call order, and each first waits
+ * for a tab save in flight on that path. The base is the buffer of a dirty
+ * tab, otherwise the file on disk.
+ *
+ * - Open tab: the result goes into the tab and the tab is saved at once, so
+ *   its autosave cannot write an older buffer over it. The tab save runs the
+ *   full after-save path (`notifyAfterSave`). A tab closed before that save
+ *   ran gets the rewrite redone on the file.
+ * - No tab, or a clean tab whose saved bytes already equal the result: writes the file, never recreating one that vanished, then hands
+ *   the bytes to the note-change owner with source `save` (Rust re-indexes it
+ *   and the watcher's self-save check skips the full rebuild). No `vaultPath`,
+ *   so a `.view` stays out of the FTS5 and semantic tables.
+ *
+ * Read and write errors propagate as-is; the other failures are a
+ * `ViewWriteError`. `transform` must be pure: it runs a second time when a tab
+ * opens during the existence check, and what it throws propagates.
+ */
+export async function rewriteViewFile(
+	path: string,
+	transform: (base: string) => string,
+	options: RewriteViewOptions = {},
+): Promise<boolean> {
+	const vault = vaultStore.path;
+	const prev = viewWriteTails.get(path);
+	const run = (prev ?? Promise.resolve()).then(() => rewriteViewFileNow(path, transform, options, vault));
+	const tail = run.catch(() => {});
+	viewWriteTails.set(path, tail);
+	void tail.then(() => {
+		if (viewWriteTails.get(path) === tail) viewWriteTails.delete(path);
+	});
+	return run;
+}
+
+/** Throws `vault-changed` when the vault is no longer the one captured at the call. */
+function assertViewVault(vault: string | null, path: string): void {
+	if (vaultStore.path !== vault) throw new ViewWriteError('vault-changed', path);
+}
+
+/** The open tab for `path`, if any. */
+function findViewTab(path: string) {
+	return editorStore.tabs.find((t) => t.path === path);
+}
+
+/** One turn of `rewriteViewFile`, once the writes queued before it settled. */
+async function rewriteViewFileNow(
+	path: string,
+	transform: (base: string) => string,
+	options: RewriteViewOptions,
+	vault: string | null,
+): Promise<boolean> {
+	await waitForTabSave(path);
+	const disk = await readTextFile(path);
+	assertViewVault(vault, path);
+	// No await between here and the decision: the tab state read is the one used.
+	let tab = findViewTab(path);
+	let base = tab && isTabDirty(tab) ? tab.content : disk;
+	let updated = transform(base);
+	if (updated === base) return false;
+
+	if (!tab) {
+		const stillThere = await exists(path);
+		assertViewVault(vault, path);
+		if (!stillThere) throw new ViewWriteError('missing', path);
+		// A tab opened while the check was pending may hold a newer buffer: redo on it.
+		tab = findViewTab(path);
+		if (tab) {
+			base = isTabDirty(tab) ? tab.content : disk;
+			updated = transform(base);
+			if (updated === base) return false;
+		}
+	}
+
+	if (options.promptIndexRefresh) vaultStore.requestPromptIndexRefresh();
+
+	// A clean tab whose saved bytes already equal the result (an outside edit
+	// not yet reloaded) stays clean, so its save would write nothing: write the
+	// file below instead.
+	if (tab && updated !== tab.savedContent) {
+		// What the tab showed: a clean tab's older buffer is not the base.
+		const before = tab.content;
+		syncExternalContentToEditor(path, updated, false, 'none');
+		const saved = await saveFileByPath(path);
+		assertViewVault(vault, path);
+		if (!saved) {
+			// Leave edits made while the save was pending alone.
+			if (findViewTab(path)?.content === updated) syncExternalContentToEditor(path, before, false, 'none');
+			throw new ViewWriteError('save-failed', path);
+		}
+		// A tab closed before its queued save ran wrote nothing: redo the rewrite
+		// on the file. When the save did land, the redo finds nothing to change.
+		if (!findViewTab(path)) await rewriteViewFileNow(path, transform, options, vault);
+		return true;
+	}
+
+	try {
+		// `create: false`: a file deleted after the check above is refused by
+		// the open itself, not recreated with the rewritten bytes.
+		await writeTextFile(path, updated, { create: false });
+	} catch (err) {
+		if (!(await exists(path).catch(() => true))) throw new ViewWriteError('missing', path);
+		throw err;
+	}
+	assertViewVault(vault, path);
+	// No-op without a tab; covers a tab opened during the write.
+	syncExternalContentToEditor(path, updated, true, 'none');
+	markRecentSave(path);
+	await applyNoteChange({ kind: 'upsert', source: 'save', path, content: updated });
+	return true;
+}
+
+/** Updates _icon, _color, and _title_color in a .view YAML file; a save that changes none of them does not touch the file. */
 export async function updateViewIcon(
 	path: string,
 	icon?: string,
 	color?: string,
 	titleColor?: string,
 ): Promise<void> {
-	const content = await readTextFile(path);
-	await writeTextFile(path, updateViewIconYaml(content, icon, color, titleColor));
+	await rewriteViewFile(path, (content) => updateViewIconYaml(content, icon, color, titleColor));
+}
+
+/** Updates the colors in a .view YAML file, leaving its icon; a save that changes no color does not touch the file. */
+export async function updateViewIconColors(path: string, color?: string, titleColor?: string): Promise<void> {
+	await rewriteViewFile(path, (content) => updateViewColorsYaml(content, color, titleColor));
+}
+
+/**
+ * Pins the `.view` at `path` to the rail (`_rail: true`) or unpins it (the key
+ * removed), through `rewriteViewFile`. The whole file is re-serialised,
+ * so its comments and formatting are lost; the write is skipped only when
+ * that gives back the same bytes. Rejects when the read fails, the YAML does
+ * not parse, or the write fails.
+ */
+export async function setViewRailPin(path: string, pinned: boolean): Promise<void> {
+	// The rail lists pins from the index snapshot: skip the refresh throttle.
+	await rewriteViewFile(path, (content) => updateViewRailYaml(content, pinned), { promptIndexRefresh: true });
+}
+
+/**
+ * Shows the hidden `.view` at `path` in Views (`showViewInViewsYaml` removes
+ * `_visible` and `_open_in_editor`). Same write path and failure behaviour as
+ * `setViewRailPin`.
+ */
+export async function showViewInViews(path: string): Promise<void> {
+	// Views lists the row from the index snapshot: skip the refresh throttle.
+	await rewriteViewFile(path, showViewInViewsYaml, { promptIndexRefresh: true });
+}
+
+/**
+ * Saves the property columns the rail note list shows for the `.view` at `path`
+ * (`_list_properties_display`; an empty list removes the key). Same write path
+ * and failure behaviour as `setViewRailPin`.
+ */
+export async function updateViewListProperties(path: string, properties: readonly string[]): Promise<void> {
+	await rewriteViewFile(path, (content) => updateViewListPropertiesYaml(content, properties), { promptIndexRefresh: true });
 }
 
 /** Removes _icon, _color, and _title_color from a .view YAML file. */
@@ -296,16 +491,59 @@ export async function removeViewIcon(path: string): Promise<void> {
 	await updateViewIcon(path, undefined, undefined, undefined);
 }
 
+/** A toolbar edit refused because its key in the `.view` changed since the toolbar read it. */
+export class ViewWriteConflict extends Error {
+	/** The `.view` the edit targeted. */
+	readonly path: string;
+	/** The key the edit wrote. */
+	readonly key: ToolbarKey;
+
+	constructor(path: string, key: ToolbarKey) {
+		super(`"${key}" of ${path} changed since it was read`);
+		this.name = 'ViewWriteConflict';
+		this.path = path;
+		this.key = key;
+	}
+}
+
 /**
- * Applies a CollectionYamlUpdates patch to a .view file, preserving all unrelated
- * YAML content. Used to persist filter, sort, and column changes made from the
- * TypeNoteList toolbar. After writing, refreshes the parse cache so the next
- * read returns the updated definition.
+ * Writes one key of the rail toolbar (`applyToolbarEdit`) to the `.view` at
+ * `path`, through `rewriteViewFile`, so the bytes it checks are a dirty tab's
+ * buffer or the file. `base` is that key's value when the toolbar showed it
+ * (`toolbarKeyBase`). Then refreshes the parse cache and resolves to the
+ * definition it now holds. Rejects with `ViewWriteConflict`, nothing written,
+ * when the key is no longer `base`; with an `Error` when the bytes do not parse
+ * as a `.view`; and as `rewriteViewFile` does.
  */
-export async function updateViewQuery(path: string, updates: CollectionYamlUpdates): Promise<void> {
-	const content = await readTextFile(path);
-	const updated = updateCollectionYaml(content, updates);
-	if (updated === content) return;
-	await writeTextFile(path, updated);
+export async function updateViewToolbarKey<K extends ToolbarKey>(
+	path: string,
+	key: K,
+	next: ToolbarValues[K],
+	base: string,
+): Promise<CollectionDefinition> {
+	await rewriteViewFile(path, (content) => {
+		const result = applyToolbarEdit(content, key, next, base);
+		if (result.ok) return result.yaml;
+		if (result.reason === 'conflict') throw new ViewWriteConflict(path, key);
+		throw new Error(result.error);
+	});
+	const parsed = await refreshViewDefinition(path);
+	if (!parsed.success) throw new Error(parsed.error);
+	return parsed.definition;
+}
+
+/**
+ * Saves the Edit view dialog: rewrites the label and filters of the `.view`
+ * at `path` (`updateViewEditYaml`), keeping its filename and every other key,
+ * then refreshes the parse cache. Rejects, with nothing written, when the
+ * file cannot be read or the updater refuses it; rejects when the write fails.
+ */
+export async function editView(path: string, edit: ViewEdit): Promise<void> {
+	// The row reads its label from the index snapshot: skip the refresh throttle.
+	await rewriteViewFile(path, (content) => {
+		const result = updateViewEditYaml(content, edit);
+		if (!result.ok) throw new Error(result.error);
+		return result.yaml;
+	}, { promptIndexRefresh: true });
 	await refreshViewDefinition(path);
 }

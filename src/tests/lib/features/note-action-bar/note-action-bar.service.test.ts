@@ -4,14 +4,8 @@ import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localSto
 // `vaultStore.open` persists the recent-vaults list.
 setupLocalStorage();
 
-// The dialog, the trash move and the toast are side-effect boundaries; the
-// trash move itself is covered by the fs.service and path-change tests.
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-	ask: vi.fn(),
-}));
-
+// Note creation and the toast are side-effect boundaries.
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({
-	deleteItem: vi.fn(() => Promise.resolve()),
 	createFile: vi.fn((dir: string, name: string) => Promise.resolve(`${dir}/${name}`)),
 }));
 
@@ -36,17 +30,14 @@ Object.defineProperty(globalThis, 'navigator', {
 	configurable: true,
 });
 
-import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
-import { createFile, deleteItem } from '#lib/core/filesystem/fs.service.js';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-import { PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
 import {
 	copyNoteDeepLink,
 	createLinkedNote,
 	copyNotePath,
-	deleteNoteWithConfirm,
 	revealNote,
 	toggleWideNotes,
 } from '#lib/features/note-action-bar/note-action-bar.service.js';
@@ -55,48 +46,6 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { parseDeepLinkUri, resolveFilePath } from '#lib/features/deep-link/deep-link.logic.js';
 
 const PATH = '/vault/Projects/Launch plan.md';
-
-describe('deleteNoteWithConfirm', () => {
-	beforeEach(() => {
-		vi.clearAllMocks();
-	});
-
-	it('asks the file explorer\'s "Move to Trash" question naming the file, then trashes the note', async () => {
-		vi.mocked(ask).mockResolvedValue(true);
-
-		await deleteNoteWithConfirm(PATH);
-
-		expect(ask).toHaveBeenCalledWith('Move "Launch plan.md" to trash?', { title: 'Move to Trash', kind: 'warning' });
-		expect(deleteItem).toHaveBeenCalledWith(PATH, false);
-		expect(toast.error).not.toHaveBeenCalled();
-	});
-
-	it('leaves the note alone when the user declines', async () => {
-		vi.mocked(ask).mockResolvedValue(false);
-
-		await deleteNoteWithConfirm(PATH);
-
-		expect(deleteItem).not.toHaveBeenCalled();
-	});
-
-	it('shows the file-operation error toast when the trash move fails', async () => {
-		vi.mocked(ask).mockResolvedValue(true);
-		vi.mocked(deleteItem).mockRejectedValueOnce(new Error('permission denied'));
-
-		await deleteNoteWithConfirm(PATH);
-
-		expect(toast.error).toHaveBeenCalledWith('Could not move "Launch plan.md" to the Trash: permission denied');
-	});
-
-	it('adds no toast of its own when the pre-delete save failed (the editor already showed one)', async () => {
-		vi.mocked(ask).mockResolvedValue(true);
-		vi.mocked(deleteItem).mockRejectedValueOnce(new PreDeleteSaveError(PATH));
-
-		await deleteNoteWithConfirm(PATH);
-
-		expect(toast.error).not.toHaveBeenCalled();
-	});
-});
 
 describe('toggleWideNotes', () => {
 	beforeEach(() => {
@@ -201,6 +150,7 @@ describe('createLinkedNote', () => {
 	const HUB = '/vault/Projects/Launch plan.md';
 
 	beforeEach(() => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vi.clearAllMocks();
 	});
 
@@ -227,5 +177,20 @@ describe('createLinkedNote', () => {
 
 		expect(openFileInEditor).not.toHaveBeenCalled();
 		expect(toast.error).toHaveBeenCalledWith('Could not create a note linked to "Launch plan".');
+	});
+
+	it('marks the linked note unorganized while Explicit organization is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		try {
+			await createLinkedNote(HUB);
+		} finally {
+			settingsStore.reset();
+		}
+
+		expect(createFile).toHaveBeenCalledWith(
+			'/vault/Projects',
+			'Untitled.md',
+			'---\n_organized: false\n_belongs_to: "[[Launch plan]]"\n---\n',
+		);
 	});
 });

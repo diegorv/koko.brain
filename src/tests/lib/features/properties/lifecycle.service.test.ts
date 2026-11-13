@@ -200,12 +200,13 @@ describe('toggleActiveNoteFavorite', () => {
 });
 
 describe('toggleActiveNoteOrganized', () => {
-	it('sets _organized: true and keeps an archived note archived', async () => {
+	it('sets _organized: false and keeps an archived note archived', async () => {
 		openNote(A, '---\n_archived: true\n---\nBody\n');
 
 		await toggleActiveNoteOrganized();
 
-		expect(disk.get(A)).toBe('---\n_archived: true\n_organized: true\n---\nBody\n');
+		// A missing _organized reads as organized, as in the Rust index, so the toggle turns it off.
+		expect(disk.get(A)).toBe('---\n_archived: true\n_organized: false\n---\nBody\n');
 	});
 
 	it('sets _organized: false on an organized note', async () => {
@@ -225,7 +226,8 @@ describe('toggleActiveNoteOrganized', () => {
 
 		await toggleActiveNoteOrganized();
 
-		const expected = '---\nstatus: doing\n_organized: true\n---\nBody\n';
+		// A missing _organized reads as organized, as in the Rust index, so the toggle turns it off.
+		const expected = '---\nstatus: doing\n_organized: false\n---\nBody\n';
 		expect(tabContent(A)).toBe(expected);
 		expect(disk.get(A)).toBe(expected);
 	});
@@ -244,7 +246,7 @@ describe('toggleActiveNoteOrganized', () => {
 });
 
 describe('toggleActiveNoteArchived', () => {
-	it('archives the note, keeping _organized, and runs the after-save hooks that auto-move uses', async () => {
+	it('archives the note, keeping _organized, and runs the after-save hooks that auto-organize uses', async () => {
 		const saved: string[] = [];
 		addAfterSaveObserver((path, content) => saved.push(`${path}\n${content}`));
 		openNote(A, '---\n_organized: true\n---\nBody\n');

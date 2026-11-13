@@ -31,6 +31,7 @@ vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 }));
 vi.mock('#lib/features/file-icons/file-icons.service.js', () => ({
 	setIconForPath: vi.fn(),
+	setIconColors: vi.fn(),
 	removeIconForPath: vi.fn(),
 	trackRecentIcon: vi.fn(),
 }));
@@ -44,6 +45,7 @@ import NoteRowMenuHarness from '../../../fixtures/NoteRowMenuHarness.svelte';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { setIconColors } from '#lib/features/file-icons/file-icons.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { deleteItem, duplicateItem, renameItem, revealInSystemExplorer } from '#lib/core/filesystem/fs.service.js';
 import { PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
@@ -51,6 +53,8 @@ import { toggleFavoriteForPath } from '#lib/features/properties/lifecycle.servic
 import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import type { NoteRowNote } from '#lib/features/note-list/note-row.types.js';
+
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
 
 const ALPHA = '/vault/notes/alpha.md';
 const BETA = '/vault/notes/beta.md';
@@ -60,7 +64,6 @@ const makeNote = (overrides: Partial<NoteRowNote>): NoteRowNote => ({
 	title: 'Alpha',
 	favorite: false,
 	modifiedAt: 0,
-	createdAt: 0,
 	frontmatter: {},
 	...overrides,
 });
@@ -87,6 +90,40 @@ async function settle(rounds = 4) {
 		flushSync();
 	}
 }
+
+describe('NoteRow default icon color', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		fsStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		fsStore.reset();
+		document.body.innerHTML = '';
+	});
+
+	it("draws the default icon in the note's own color when it has a color but no icon", () => {
+		component = mount(NoteRowMenuHarness, { target, props: { notes, icons: { [ALPHA]: { color: '#ef4444' } } } });
+		flushSync();
+		const alpha = [...target.querySelectorAll<HTMLElement>('[data-note-row]')].find((el) => el.textContent?.includes('Alpha'))!;
+		const beta = [...target.querySelectorAll<HTMLElement>('[data-note-row]')].find((el) => el.textContent?.includes('Beta'))!;
+		expect(alpha.querySelector('[data-note-row-fallback-icon]')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
+		expect(beta.querySelector('[data-note-row-fallback-icon]')!.getAttribute('style')).toBeNull();
+	});
+
+	it('keeps the color on the default icon while the note is being renamed', () => {
+		fsStore.setRenamingPath(ALPHA);
+		component = mount(NoteRowMenuHarness, { target, props: { notes, icons: { [ALPHA]: { color: 'red' } } } });
+		flushSync();
+		const input = target.querySelector('input')!;
+		expect(input.previousElementSibling!.getAttribute('style')).toContain('var(--type-red)');
+	});
+});
 
 describe('NoteRowMenu', () => {
 	let target: HTMLElement;
@@ -116,6 +153,14 @@ describe('NoteRowMenu', () => {
 	}
 
 	/** jsdom never fires the exit animation's end, so a closed menu stays in the DOM with data-state="closed". */
+	/** The open menu's entries, separators as `---`. */
+	function menuEntries(): string[] {
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+		return [...menu.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.querySelector('span')?.textContent?.trim() ?? ''),
+		);
+	}
+
 	function menuIsOpen(): boolean {
 		return [...document.querySelectorAll('[role="menu"]')].some((el) => el.getAttribute('data-state') === 'open');
 	}
@@ -139,6 +184,7 @@ describe('NoteRowMenu', () => {
 		vaultStore.open('/vault');
 		fsStore.reset();
 		fileIconsStore.reset();
+		railRegistryStore.reset();
 		vi.clearAllMocks();
 		Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
 		target = document.body.appendChild(document.createElement('div'));
@@ -150,19 +196,42 @@ describe('NoteRowMenu', () => {
 		document.body.replaceChildren();
 	});
 
+	it.each(['md', 'canvas'])('filters registered items on a %s row without invoking them during render', async (extension) => {
+		vaultStore.open('/vault/');
+		const received: unknown[] = [];
+		railRegistryStore.registerMenuItem({ id: 'markdown', label: 'Organize note', on: ['note'], run: (target) => { received.push(target); } });
+		railRegistryStore.registerMenuItem({ id: 'all', label: 'Inspect file', on: ['note'], files: 'all', run: (target) => { received.push(target); } });
+		railRegistryStore.registerMenuItem({ id: 'folder', label: 'Tag folder', on: ['folder'], run: () => {} });
+		mountHarness({ notes: [makeNote({ path: `/vault/notes/alpha.${extension}` })], extraItems: railRegistryStore.menuItems });
+		await rightClick(row('Alpha'));
+		expect(received).toEqual([]);
+		expect(menuLabels().includes('Organize note')).toBe(extension === 'md');
+		expect(menuLabels()).toContain('Inspect file');
+		expect(menuLabels()).not.toContain('Tag folder');
+		const item = [...document.querySelectorAll('[role="menuitem"]')].find((el) => el.textContent?.trim() === 'Inspect file')!;
+		expect(item.hasAttribute('data-inset')).toBe(true);
+		expect(menuEntries().filter((label) => label === '---')).toHaveLength(2);
+		await clickItem('Inspect file');
+		expect(received).toEqual([{ on: 'note', path: `notes/alpha.${extension}` }]);
+	});
+
 	describe('row', () => {
-		it('renders the title, the property pills and the dates', () => {
-			const note = makeNote({
-				frontmatter: { status: 'open', tags: ['a', 'b'] },
-				modifiedAt: Math.floor(Date.now() / 1000),
-				createdAt: Math.floor(new Date(2024, 0, 15).getTime() / 1000),
-			});
-			mountHarness({ notes: [note], listProperties: ['status', 'tags'] });
+		it('renders the title, the property pills and the subtitle', () => {
+			const note = makeNote({ frontmatter: { status: 'open', tags: ['a', 'b'] } });
+			mountHarness({ notes: [note], listProperties: ['status', 'tags'], subtitle: 'Project · 2h ago · Work' });
 
 			const r = row('Alpha');
 			expect([...r.querySelectorAll('.flex-wrap span')].map((el) => el.textContent?.trim())).toEqual(['open', 'a', 'b']);
-			expect(r.textContent).toContain('just now');
-			expect(r.textContent).toContain('Created Jan 15, 2024');
+			expect(r.querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · 2h ago · Work');
+		});
+
+		it('renders no date line without a subtitle, even when the note has a modified time', () => {
+			const note = makeNote({ modifiedAt: Math.floor(Date.now() / 1000) });
+			mountHarness({ notes: [note] });
+
+			const r = row('Alpha');
+			expect(r.querySelector('[data-note-row-subtitle]')).toBeNull();
+			expect(r.textContent?.trim()).toBe('Alpha');
 		});
 
 		it('renders no pills and no date line when the note has neither', () => {
@@ -171,6 +240,15 @@ describe('NoteRowMenu', () => {
 			const r = row('Alpha');
 			expect(r.querySelector('.flex-wrap')).toBeNull();
 			expect(r.textContent?.trim()).toBe('Alpha');
+		});
+
+		it('sets the title in the row role, the size of the tree rows next to the list', () => {
+			mountHarness({ notes: [makeNote({})] });
+
+			const title = row('Alpha').querySelector('[data-note-row-title]')!;
+			expect(title.textContent?.trim()).toBe('Alpha');
+			expect(title.classList).toContain('text-row');
+			expect(title.className).not.toMatch(/text-\[\d+px\]/);
 		});
 
 		it('highlights only the active row', () => {
@@ -213,11 +291,41 @@ describe('NoteRowMenu', () => {
 			expect(menuIsOpen()).toBe(true);
 		});
 
+		it('hints the rename key on Rename, the key the row listens for', async () => {
+			mountHarness();
+			await rightClick(row('Alpha'));
+			const rename = [...document.querySelectorAll('[role="menuitem"]')].find(
+				(el) => el.querySelector('span')?.textContent?.trim() === 'Rename',
+			)!;
+			expect(rename.querySelector('[data-slot="context-menu-shortcut"]')?.textContent).toBe('F2');
+		});
+
 		it('labels the item Unfavorite on a favorite note', async () => {
 			mountHarness();
 			await rightClick(row('Beta'));
 			expect(menuLabels()).toContain('Unfavorite');
 			expect(menuLabels()).not.toContain('Favorite');
+		});
+
+		it('groups the items so no group holds a single item', async () => {
+			mountHarness();
+			await rightClick(row('Alpha'));
+			expect(menuEntries()).toEqual([
+				'Open in new tab', 'Duplicate', '---',
+				'Copy path', 'Change icon', 'Favorite', 'Reveal in Finder', '---',
+				'Rename', 'Move to Trash',
+			]);
+		});
+
+		it('keeps two items in the middle group of a non-markdown row', async () => {
+			const canvas = makeNote({ path: '/vault/notes/Board.canvas', title: 'Board' });
+			mountHarness({ notes: [...notes, canvas] });
+			await rightClick(row('Board'));
+			expect(menuEntries()).toEqual([
+				'Open in new tab', 'Duplicate', '---',
+				'Copy path', 'Reveal in Finder', '---',
+				'Rename', 'Move to Trash',
+			]);
 		});
 
 		it('offers no Change icon or Favorite on a non-markdown row, which has no frontmatter to write', async () => {
@@ -226,6 +334,13 @@ describe('NoteRowMenu', () => {
 			await rightClick(row('Board'));
 			expect(menuLabels()).toEqual(MENU_LABELS.filter((l) => l !== 'Change icon' && l !== 'Favorite'));
 			expect(toggleFavoriteForPath).not.toHaveBeenCalled();
+		});
+
+		it('offers on a .collection row the menu of any non-markdown file, nothing of its own', async () => {
+			const collection = makeNote({ path: '/vault/notes/Board.collection', title: 'Board' });
+			mountHarness({ notes: [...notes, collection] });
+			await rightClick(row('Board'));
+			expect(menuLabels()).toEqual(MENU_LABELS.filter((l) => l !== 'Change icon' && l !== 'Favorite'));
 		});
 
 		it('opens no menu on a right-click outside the rows', async () => {
@@ -278,6 +393,16 @@ describe('NoteRowMenu', () => {
 			expect(writeText).toHaveBeenLastCalledWith('notes/alpha.md');
 		});
 
+		it('saves a text color picked for a note with no icon, without asking for an icon', async () => {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Change icon');
+
+			document.querySelectorAll<HTMLButtonElement>('button[title="Green"]')[1].click();
+			await settle();
+
+			expect(setIconColors).toHaveBeenCalledWith(ALPHA, undefined, '#22c55e');
+		});
+
 		it('opens the icon picker from Change icon', async () => {
 			mountHarness();
 			await chooseMenuItem('Alpha', 'Change icon');
@@ -305,7 +430,12 @@ describe('NoteRowMenu', () => {
 			vi.mocked(ask).mockResolvedValueOnce(true);
 			mountHarness();
 			await chooseMenuItem('Alpha', 'Move to Trash');
-			expect(ask).toHaveBeenCalledWith('Move "Alpha" to trash?', { title: 'Move to Trash', kind: 'warning' });
+			expect(ask).toHaveBeenCalledWith('Move "Alpha" to trash?', {
+				title: 'Move to Trash',
+				kind: 'warning',
+				okLabel: 'Move to Trash',
+				cancelLabel: 'Cancel',
+			});
 			expect(deleteItem).toHaveBeenCalledWith(ALPHA, false);
 		});
 
@@ -335,6 +465,18 @@ describe('NoteRowMenu', () => {
 		});
 	});
 
+	describe('closing menu', () => {
+		it('runs an item once when its second click lands during the exit animation', async () => {
+			vi.mocked(duplicateItem).mockResolvedValue(undefined as never);
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Duplicate');
+
+			await clickItem('Duplicate');
+
+			expect(duplicateItem).toHaveBeenCalledTimes(1);
+		});
+	});
+
 	describe('inline rename', () => {
 		function renameInput(): HTMLInputElement | null {
 			return target.querySelector('input');
@@ -346,7 +488,38 @@ describe('NoteRowMenu', () => {
 
 			expect(fsStore.renamingPath).toBe(ALPHA);
 			expect(renameInput()?.value).toBe('Alpha');
+			// The input keeps the title's size, so the row does not change size while renaming.
+			expect(renameInput()?.classList).toContain('text-row');
 			expect(row('Alpha')).toBeUndefined();
+		});
+
+		it.each(['pointermove', 'pointerleave'])('keeps the input focused on a %s over the closing menu', async (type) => {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Rename');
+			const input = renameInput()!;
+			input.focus();
+
+			// The menu stays in the DOM for its exit animation, under a pointer that rarely holds still.
+			const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) =>
+				el.textContent?.trim().startsWith('Rename'),
+			)!;
+			item.dispatchEvent(new PointerEvent(type, { bubbles: type === 'pointermove', pointerType: 'mouse' }));
+			await settle();
+
+			expect(document.activeElement).toBe(input);
+			expect(fsStore.renamingPath).toBe(ALPHA);
+		});
+
+		it('still focuses the item under the pointer while the menu is open', async () => {
+			mountHarness();
+			await rightClick(row('Alpha'));
+			const item = [...document.querySelectorAll<HTMLElement>('[role="menuitem"]')].find((el) =>
+				el.textContent?.trim().startsWith('Rename'),
+			)!;
+
+			item.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, pointerType: 'mouse' }));
+
+			expect(document.activeElement).toBe(item);
 		});
 
 		it('enters rename mode on F2', async () => {
@@ -413,7 +586,35 @@ describe('NoteRowMenu', () => {
 			await settle();
 
 			expect(renameItem).not.toHaveBeenCalled();
+			expect(toast.error).not.toHaveBeenCalled();
 			expect(fsStore.renamingPath).toBeNull();
+		});
+
+		it('leaves rename mode silently when the title is unchanged', async () => {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Rename');
+			const input = renameInput()!;
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			await settle();
+
+			expect(renameItem).not.toHaveBeenCalled();
+			expect(toast.error).not.toHaveBeenCalled();
+			expect(fsStore.renamingPath).toBeNull();
+		});
+
+		it('toasts the rule an illegal name breaks and keeps the old row', async () => {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Rename');
+			const input = renameInput()!;
+			input.value = 'Meeting: weekly sync';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			await settle();
+
+			expect(toast.error).toHaveBeenCalledWith('Could not rename "Alpha": Name cannot contain ":"');
+			expect(renameItem).not.toHaveBeenCalled();
+			expect(fsStore.renamingPath).toBeNull();
+			expect(row('Alpha')).toBeDefined();
 		});
 
 		it('toasts when the new name is taken and keeps the old row', async () => {
@@ -436,6 +637,103 @@ describe('NoteRowMenu', () => {
 			await settle();
 			await rightClick(renameInput()!);
 			expect(menuLabels()).toEqual([]);
+		});
+	});
+
+	// Lens lists read the index snapshot, which the vault-index-updated listener
+	// refreshes after a 2 to 10 s throttle unless a prompt refresh was asked first.
+	describe('prompt index refresh', () => {
+		let requestedAtCall: boolean | undefined;
+
+		/** Stands in for a fs.service call: records whether the request was already set, without consuming it. */
+		async function probe() {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+			if (requestedAtCall) vaultStore.requestPromptIndexRefresh();
+			return '';
+		}
+
+		beforeEach(() => {
+			requestedAtCall = undefined;
+		});
+
+		/** Opens rename on Alpha, types `value` (unless null) and presses Enter. */
+		async function renameAlpha(value: string | null) {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Rename');
+			const input = target.querySelector('input')!;
+			if (value !== null) {
+				input.value = value;
+				input.dispatchEvent(new Event('input', { bubbles: true }));
+			}
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			await settle();
+		}
+
+		it('asks for it before renaming the note', async () => {
+			vi.mocked(renameItem).mockImplementationOnce(probe);
+			await renameAlpha('Gamma');
+
+			expect(renameItem).toHaveBeenCalledWith(ALPHA, 'Gamma.md');
+			expect(requestedAtCall).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+		});
+
+		it('asks for it when the F2 rename is committed', async () => {
+			vi.mocked(renameItem).mockImplementationOnce(probe);
+			mountHarness();
+			row('Alpha').dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true }));
+			await settle();
+			const input = target.querySelector('input')!;
+			input.value = 'Gamma';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			await settle();
+
+			expect(requestedAtCall).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+		});
+
+		it.each([
+			['an unchanged', null],
+			['an empty', '   '],
+			['an illegal', 'a/b'],
+		])('asks for nothing on %s rename', async (_label, value) => {
+			await renameAlpha(value);
+
+			expect(renameItem).not.toHaveBeenCalled();
+			expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+		});
+
+		it('asks for it before moving the note to the Trash once confirmed', async () => {
+			vi.mocked(ask).mockResolvedValueOnce(true);
+			vi.mocked(deleteItem).mockImplementationOnce(probe as never);
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Move to Trash');
+			await vi.waitFor(() => expect(deleteItem).toHaveBeenCalledWith(ALPHA, false));
+
+			expect(requestedAtCall).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+		});
+
+		it('asks for nothing when the Trash confirmation is declined', async () => {
+			vi.mocked(ask).mockResolvedValueOnce(false);
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Move to Trash');
+			await vi.waitFor(() => expect(ask).toHaveBeenCalled());
+			await settle();
+
+			expect(deleteItem).not.toHaveBeenCalled();
+			expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+		});
+
+		it('asks for it before duplicating the note', async () => {
+			vi.mocked(duplicateItem).mockImplementationOnce(probe);
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Duplicate');
+
+			expect(duplicateItem).toHaveBeenCalledWith(ALPHA, false);
+			expect(requestedAtCall).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
 		});
 	});
 });

@@ -8,6 +8,7 @@ use crate::semantic::model::ModelManager;
 use crate::semantic::qos::enter_utility_qos;
 use crate::semantic::quantize::QuantizedVector;
 use crate::semantic::reranker::Reranker;
+use crate::semantic::search_timing::{CacheTiming, HybridTiming, RerankTiming, SearchTiming};
 use crate::semantic::types::{
 	SemanticFileStatus, SemanticPhase, SemanticProgress, SemanticResult, SemanticStats,
 };
@@ -20,6 +21,7 @@ use std::collections::HashSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::Instant;
 use tauri::{AppHandle, Emitter};
 
 /// Global embedder instance. Lazy-loaded on demand, auto-unloaded after idle timeout.
@@ -50,7 +52,7 @@ static RERANKER: Mutex<Option<Reranker>> = Mutex::new(None);
 static RERANKER_UNLOAD_GENERATION: AtomicU64 = AtomicU64::new(0);
 
 /// Seconds of inactivity before the reranker is automatically unloaded
-/// (~571MB INT8 ONNX session). Same 120s policy as the embedder.
+/// (~280MB INT8 ONNX session). Same 120s policy as the embedder.
 const RERANKER_IDLE_TIMEOUT_SECS: u64 = 120;
 
 /// Top-N candidates fetched from cosine ranking before they get passed to the
@@ -143,19 +145,20 @@ impl CachedChunk {
 }
 
 /// Clears the search cache. Must be called after any index modification.
-fn invalidate_search_cache() {
+pub(crate) fn invalidate_search_cache() {
 	if let Ok(mut cache) = SEARCH_CACHE.lock() {
 		*cache = None;
 		debug_log("SEMANTIC", "Search cache invalidated");
 	}
 }
 
-/// Loads embeddings from DB into cache, or returns the existing cache.
-fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
+/// Loads embeddings from DB into cache, or returns the existing cache. The
+/// `bool` is `true` on a cache hit.
+fn get_or_load_cache() -> Result<(Arc<Vec<CachedChunk>>, bool), String> {
 	let mut cache = SEARCH_CACHE.lock().map_err(|e| format!("Lock error: {e}"))?;
 	if let Some(ref cached) = *cache {
 		debug_log("SEMANTIC", format!("Search cache hit ({} chunks)", cached.len()));
-		return Ok(Arc::clone(cached));
+		return Ok((Arc::clone(cached), true));
 	}
 
 	debug_log("SEMANTIC", "Search cache miss — loading from DB");
@@ -226,7 +229,7 @@ fn get_or_load_cache() -> Result<Arc<Vec<CachedChunk>>, String> {
 			search_cache_label()
 		),
 	);
-	Ok(arc)
+	Ok((arc, false))
 }
 
 /// Unloads the ONNX model to free memory (typically ~2-4 GB RSS).
@@ -241,13 +244,15 @@ fn unload_embedder() {
 }
 
 /// Ensures the embedder is loaded, reloading from stored vault path if needed.
-/// Returns an error if no vault path is stored (init_semantic_search was never called).
-fn ensure_embedder_loaded() -> Result<(), String> {
+/// Returns `Ok(true)` when this call loaded it, `Ok(false)` when it was
+/// already resident. Returns an error if no vault path is stored
+/// (init_semantic_search was never called).
+fn ensure_embedder_loaded() -> Result<bool, String> {
 	// Hold the lock across the entire load so a concurrent caller blocks
 	// here, then observes `Some(_)` on its turn instead of also loading.
 	let mut guard = EMBEDDER.lock().map_err(|e| format!("Lock error: {e}"))?;
 	if guard.is_some() {
-		return Ok(());
+		return Ok(false);
 	}
 
 	let vault_path = {
@@ -266,10 +271,10 @@ fn ensure_embedder_loaded() -> Result<(), String> {
 	let embedder = Embedder::load(&manager.model_path(), expected_dim)?;
 	*guard = Some(embedder);
 	debug_log("SEMANTIC", "Embedder lazy-reloaded");
-	Ok(())
+	Ok(true)
 }
 
-/// Unloads the reranker model to free memory (~571MB).
+/// Unloads the reranker model to free memory (~280MB).
 fn unload_reranker() {
 	if let Ok(mut guard) = RERANKER.lock() {
 		if guard.is_some() {
@@ -410,8 +415,8 @@ fn emit_progress(app: AppHandle) -> impl Fn(SemanticProgress) + Send + Sync {
 	}
 }
 
-/// Downloads the BGE-reranker-v2-m3 INT8 ONNX model (~571MB) into
-/// `.kokobrain/models/bge-reranker-v2-m3/`. Emits progress on the same
+/// Downloads the jina-reranker-v2-base-multilingual INT8 ONNX model (~280MB) into
+/// `.kokobrain/models/jina-reranker-v2-base-multilingual/`. Emits progress on the same
 /// `semantic-index-progress` channel under the `downloading-reranker` phase.
 #[tauri::command]
 pub async fn download_reranker_model(vault_path: String, app: AppHandle) -> Result<bool, String> {
@@ -557,9 +562,14 @@ pub async fn build_semantic_index_inner(
 			"No changes detected — skipping chunking + embedding",
 		);
 		let all_paths_clone = all_paths.clone();
-		tokio::task::spawn_blocking(move || cleanup_orphaned_chunks(&all_paths_clone))
+		let removed = tokio::task::spawn_blocking(move || cleanup_orphaned_chunks(&all_paths_clone))
 			.await
 			.map_err(|e| format!("Task join error: {e}"))??;
+		if removed > 0 {
+			// The cache would keep serving the removed chunks to semantic and
+			// hybrid queries.
+			invalidate_search_cache();
+		}
 		// `init_semantic_search` loaded the model just before this build;
 		// without a timer here an idle open keeps it resident until the next
 		// embed.
@@ -796,6 +806,7 @@ pub async fn search_semantic(
 	}
 
 	tokio::task::spawn_blocking(move || {
+		let started = Instant::now();
 		let limit = max_results.unwrap_or(20);
 		let threshold = min_score.unwrap_or(0.3);
 
@@ -804,7 +815,8 @@ pub async fn search_semantic(
 		let qos = enter_utility_qos();
 
 		// Lazy-reload embedder if it was unloaded after indexing
-		ensure_embedder_loaded()?;
+		let embedder_start = Instant::now();
+		let embedder_reloaded = ensure_embedder_loaded()?;
 
 		// Embed the query text (try_lock to avoid blocking during indexing)
 		let query_embedding = {
@@ -815,18 +827,22 @@ pub async fn search_semantic(
 			let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 			embedder.embed(&trimmed)?
 		};
+		let embedder_time = embedder_start.elapsed();
 		drop(qos);
 
 		// Schedule auto-unload after idle timeout
 		schedule_embedder_unload();
 
 		// Load chunks from cache (avoids re-reading DB + re-deserializing on every search)
-		let cached_chunks = get_or_load_cache()?;
+		let cache_start = Instant::now();
+		let (cached_chunks, cache_hit) = get_or_load_cache()?;
+		let cache = CacheTiming { hit: cache_hit, load: cache_start.elapsed() };
 
 		// Stage 1: cosine ranking over chunk indices. Filter on the
 		// user-supplied min_score (still cheap), sort descending. Results are
 		// materialized only for the chunks that leave this stage, so the full
 		// scan clones no content strings.
+		let cosine_start = Instant::now();
 		let mut scored: Vec<(f32, usize)> = cached_chunks
 			.iter()
 			.enumerate()
@@ -834,6 +850,7 @@ pub async fn search_semantic(
 			.filter(|(score, _)| *score >= threshold)
 			.collect();
 		scored.sort_by(|a, b| b.0.total_cmp(&a.0));
+		let cosine_time = cosine_start.elapsed();
 
 		let to_result = |score: f32, idx: usize| -> SemanticResult {
 			let chunk = &cached_chunks[idx];
@@ -848,7 +865,7 @@ pub async fn search_semantic(
 			}
 		};
 
-		// Stage 2: rerank the top RERANK_CANDIDATE_POOL with BGE-reranker-v2-m3
+		// Stage 2: rerank the top RERANK_CANDIDATE_POOL with the cross-encoder
 		// when its model is on disk. The cross-encoder scores the SAME
 		// heading-prefixed projection the embedder indexed (`rerank_text`), not
 		// the bare body. We replace each candidate's `score` with the rerank
@@ -856,7 +873,11 @@ pub async fn search_semantic(
 		// signal. If the reranker isn't downloaded we silently fall back to
 		// cosine ordering — search still works, just at lower quality.
 		let pool_size = RERANK_CANDIDATE_POOL.min(scored.len());
+		let mut rerank_timing = RerankTiming::Skipped;
+		let rerank_ensure_start = Instant::now();
 		let (mut candidates, used_reranker) = if pool_size > 0 && ensure_reranker_loaded()? {
+			let rerank_ensure = rerank_ensure_start.elapsed();
+			let inference_start = Instant::now();
 			let pool = &scored[..pool_size];
 			let docs: Vec<String> = pool
 				.iter()
@@ -871,6 +892,11 @@ pub async fn search_semantic(
 					.as_mut()
 					.ok_or("Reranker not loaded — should be unreachable after ensure_reranker_loaded")?;
 				reranker.rerank(&trimmed, &doc_refs)?
+			};
+			rerank_timing = RerankTiming::Ran {
+				ensure: rerank_ensure,
+				inference: inference_start.elapsed(),
+				candidates: doc_refs.len(),
 			};
 			schedule_reranker_unload();
 
@@ -893,14 +919,24 @@ pub async fn search_semantic(
 		// Limit + adaptive filter on whichever score the user is seeing. The
 		// kind matters: reranker logits go through the sigmoid first, then
 		// the same fraction-of-top rule as cosine (see `filtering::ScoreKind`).
-		let score_kind = if used_reranker {
-			filtering::ScoreKind::Logit
-		} else {
-			filtering::ScoreKind::Cosine
-		};
+		let score_kind = filtering::ScoreKind::for_search(used_reranker, false);
+		let finalize_start = Instant::now();
 		if let Some(outcome) = filtering::finalize_results(&mut candidates, limit, score_kind) {
 			debug_log("SEMANTIC", &outcome.log_message);
 		}
+		let finalize_time = finalize_start.elapsed();
+		let timing = SearchTiming {
+			total: started.elapsed(),
+			cache,
+			embedder: embedder_time,
+			embedder_reloaded,
+			cosine: cosine_time,
+			chunks: cached_chunks.len(),
+			hybrid: None,
+			rerank: rerank_timing,
+			finalize: finalize_time,
+		};
+		debug_log("SEMANTIC", timing.summary());
 
 		if !candidates.is_empty() {
 			let q_norm: f32 = query_embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
@@ -923,7 +959,7 @@ pub async fn search_semantic(
 }
 
 /// Hybrid search: fuses FTS5 (BM25) and semantic (cosine) results via RRF,
-/// then reranks the top-50 with the BGE cross-encoder when available.
+/// then reranks the top-50 with the cross-encoder when available.
 ///
 /// Pipeline:
 /// 1. Sequentially: FTS top-30 paths, then cosine over every chunk.
@@ -960,15 +996,19 @@ pub async fn search_hybrid(
 		let limit = max_results.unwrap_or(20);
 		const SOURCE_TOP_N: usize = 30;
 		const FUSED_POOL: usize = RERANK_CANDIDATE_POOL;
+		let started = Instant::now();
 
 		// 1a. FTS top-N paths
+		let fts_start = Instant::now();
 		let fts_results = crate::commands::search_index::search_fts_inner(&trimmed, SOURCE_TOP_N, false)?;
 		let fts_paths: Vec<String> = fts_results.iter().map(|r| r.path.clone()).collect();
+		let fts_time = fts_start.elapsed();
 
 		// 1b. Semantic ranking (cosine only — the rerank happens after RRF).
 		// Utility QoS only while this thread loads and runs the embedder.
 		let qos = enter_utility_qos();
-		ensure_embedder_loaded()?;
+		let embedder_start = Instant::now();
+		let embedder_reloaded = ensure_embedder_loaded()?;
 		let query_embedding = {
 			let mut guard = EMBEDDER.try_lock().map_err(|_| {
 				"Semantic search is temporarily unavailable while indexing is in progress"
@@ -977,13 +1017,17 @@ pub async fn search_hybrid(
 			let embedder = guard.as_mut().ok_or("Embedder not initialized")?;
 			embedder.embed(&trimmed)?
 		};
+		let embedder_time = embedder_start.elapsed();
 		drop(qos);
 		schedule_embedder_unload();
-		let cached_chunks = get_or_load_cache()?;
+		let cache_start = Instant::now();
+		let (cached_chunks, cache_hit) = get_or_load_cache()?;
+		let cache = CacheTiming { hit: cache_hit, load: cache_start.elapsed() };
 
 		// Cosine for EVERY chunk. The full vector is kept (not just the top
 		// slice) because step 4 needs a score for chunks of paths that only
 		// the FTS leg surfaced.
+		let cosine_start = Instant::now();
 		let cosines: Vec<f32> = cached_chunks
 			.iter()
 			.map(|c| c.score(&query_embedding))
@@ -991,6 +1035,7 @@ pub async fn search_hybrid(
 		let mut sem_order: Vec<usize> = (0..cached_chunks.len()).collect();
 		sem_order.sort_by(|a, b| cosines[*b].total_cmp(&cosines[*a]));
 		sem_order.truncate(SOURCE_TOP_N * 4); // headroom for path dedupe
+		let cosine_time = cosine_start.elapsed();
 
 		// 2. Reduce to a per-path ranking, preserving discovery order.
 		let mut sem_paths: Vec<String> = Vec::new();
@@ -1010,16 +1055,19 @@ pub async fn search_hybrid(
 		// 3. RRF on the two path rankings.
 		let fts_refs: Vec<&str> = fts_paths.iter().map(|s| s.as_str()).collect();
 		let sem_refs: Vec<&str> = sem_paths.iter().map(|s| s.as_str()).collect();
+		let rrf_start = Instant::now();
 		let fused = crate::search::rrf::rrf_fuse(
 			&[&fts_refs, &sem_refs],
 			crate::search::rrf::DEFAULT_RRF_K,
 		);
+		let rrf_time = rrf_start.elapsed();
 
 		// 4. One entry per fused path, in fused order, cut to `FUSED_POOL`:
 		// the chunk that literally contains the most query terms (then the
 		// highest cosine), or — for a path the semantic index has no chunk
 		// for — a candidate synthesized from its FTS snippet. The reranker
 		// arbitrates.
+		let pool_start = Instant::now();
 		let terms = crate::search::hybrid::query_terms(&trimmed);
 		let fts_snippets: std::collections::HashMap<&str, &str> = fts_results
 			.iter()
@@ -1080,11 +1128,16 @@ pub async fn search_hybrid(
 			}
 		}
 		let pool_size = candidates.len();
+		let pool_time = pool_start.elapsed();
 
-		// 5. Rerank the candidate pool with the BGE cross-encoder when
+		// 5. Rerank the candidate pool with the cross-encoder when
 		// available; replace `score` with the rerank logit.
+		let rerank_ensure_start = Instant::now();
 		let used_reranker = !candidates.is_empty() && ensure_reranker_loaded()?;
+		let rerank_ensure = rerank_ensure_start.elapsed();
+		let mut rerank_timing = RerankTiming::Skipped;
 		if used_reranker {
+			let inference_start = Instant::now();
 			// Same heading-prefixed projection the embedder indexed.
 			let docs: Vec<String> = doc_chunks
 				.iter()
@@ -1102,6 +1155,11 @@ pub async fn search_hybrid(
 				let reranker = guard.as_mut().ok_or("Reranker not loaded")?;
 				reranker.rerank(&trimmed, &doc_refs)?
 			};
+			rerank_timing = RerankTiming::Ran {
+				ensure: rerank_ensure,
+				inference: inference_start.elapsed(),
+				candidates: doc_refs.len(),
+			};
 			schedule_reranker_unload();
 			for (c, s) in candidates.iter_mut().zip(scores.iter()) {
 				c.score = *s;
@@ -1110,20 +1168,30 @@ pub async fn search_hybrid(
 		// `finalize_results` truncates and expects descending order. Reranked:
 		// the logits bear no relation to the fused order the pool is in.
 		// Not reranked: the scores are still RRF, so this is a no-op.
+		let finalize_start = Instant::now();
 		candidates.sort_by(|a, b| b.score.total_cmp(&a.score));
 
 		// 6. Limit + gap filter. Reranked: logits through the sigmoid, then
 		// the fraction-of-top rule. Not reranked: the scores are RRF rank
 		// artefacts with no relevance magnitude, so only the truncation
 		// applies (see `filtering::ScoreKind::Rrf`).
-		let score_kind = if used_reranker {
-			filtering::ScoreKind::Logit
-		} else {
-			filtering::ScoreKind::Rrf
-		};
+		let score_kind = filtering::ScoreKind::for_search(used_reranker, true);
 		if let Some(outcome) = filtering::finalize_results(&mut candidates, limit, score_kind) {
 			debug_log("SEMANTIC", &outcome.log_message);
 		}
+		let finalize_time = finalize_start.elapsed();
+		let timing = SearchTiming {
+			total: started.elapsed(),
+			cache,
+			embedder: embedder_time,
+			embedder_reloaded,
+			cosine: cosine_time,
+			chunks: cached_chunks.len(),
+			hybrid: Some(HybridTiming { fts: fts_time, rrf: rrf_time, pool: pool_time }),
+			rerank: rerank_timing,
+			finalize: finalize_time,
+		};
+		debug_log("SEMANTIC", timing.summary());
 
 		debug_log(
 			"SEMANTIC",
@@ -1454,16 +1522,22 @@ fn get_semantic_stats_inner() -> Result<SemanticStats, String> {
 	})
 }
 
-/// Removes chunks and mtime entries whose source files no longer exist in the vault.
+/// Removes chunks and mtime entries whose source paths are not in
+/// `existing_paths` (the search walk), which covers files deleted while the
+/// app was closed and any `.view` an earlier build embedded.
 /// Uses a transaction to ensure all orphan deletions are atomic.
-pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<(), String> {
+/// Returns how many source paths had their chunks deleted, so a caller can
+/// skip the search-cache invalidation when it is 0.
+pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<usize, String> {
 	let path_set: HashSet<&str> = existing_paths.iter().map(|s| s.as_str()).collect();
 	db::with_db_transaction("semantic orphan cleanup", |conn| {
 		let indexed_paths = db::semantic_repo::get_distinct_sources(conn)?;
 
+		let mut removed_paths = 0;
 		for path in &indexed_paths {
 			if !path_set.contains(path.as_str()) {
 				db::semantic_repo::delete_chunks_for_path(conn, path)?;
+				removed_paths += 1;
 				debug_log(
 					"SEMANTIC",
 					format!("Removed orphaned chunks for: {}", path),
@@ -1480,7 +1554,7 @@ pub fn cleanup_orphaned_chunks(existing_paths: &[String]) -> Result<(), String> 
 			);
 		}
 
-		Ok(())
+		Ok(removed_paths)
 	})
 }
 
@@ -1573,15 +1647,89 @@ pub fn check_and_update_model_hash(current_hash: &str) -> Result<bool, String> {
 mod tests {
 	use super::*;
 
+	/// Serializes the tests below: they share the global database,
+	/// `SEARCH_CACHE` and `BUILD_LOCK`, and a build in one would make another
+	/// see a running build or a cache it did not set.
+	static TEST_LOCK: Mutex<()> = Mutex::new(());
+
 	/// Pins the wiring the idle-unload guard relies on: holding `BUILD_LOCK`
 	/// (as `build_semantic_index` does for its whole run) must read as a
 	/// running build, and releasing it must not.
 	#[test]
 	fn semantic_build_running_tracks_build_lock() {
+		let _guard = TEST_LOCK.lock().unwrap();
 		assert!(!semantic_build_running());
 		let guard = BUILD_LOCK.try_lock().expect("no build in this test");
 		assert!(semantic_build_running());
 		drop(guard);
 		assert!(!semantic_build_running());
+	}
+
+	/// The cache holds each chunk's `source_path`, so a search re-key that
+	/// moved chunks must drop it, or semantic hits keep the old path.
+	#[test]
+	fn search_rename_that_moves_chunks_clears_the_search_cache() {
+		let _guard = TEST_LOCK.lock().unwrap();
+		let tmp = tempfile::TempDir::new().unwrap();
+		let _ = db::close_database();
+		db::open_database(tmp.path()).unwrap();
+		db::with_db(|conn| {
+			db::semantic_repo::insert_chunk(conn, "dir/a.md#intro-3", "dir/a.md", "text", None, &[], 3, 5, "h", b"emb", 1)
+		})
+		.unwrap();
+		*SEARCH_CACHE.lock().unwrap() = Some(Arc::new(Vec::new()));
+
+		crate::commands::search_index::rename_in_search_index_inner("dir".into(), "renamed".into()).unwrap();
+
+		assert!(SEARCH_CACHE.lock().unwrap().is_none());
+		db::close_database().unwrap();
+	}
+
+	/// A rename onto a name search skips drops the chunks instead of moving
+	/// them; the cached copies would otherwise keep answering semantic queries.
+	#[test]
+	fn search_rename_to_a_view_clears_the_search_cache() {
+		let _guard = TEST_LOCK.lock().unwrap();
+		let tmp = tempfile::TempDir::new().unwrap();
+		let _ = db::close_database();
+		db::open_database(tmp.path()).unwrap();
+		db::with_db(|conn| {
+			db::semantic_repo::insert_chunk(conn, "Foo.md#intro-3", "Foo.md", "text", None, &[], 3, 5, "h", b"emb", 1)
+		})
+		.unwrap();
+		*SEARCH_CACHE.lock().unwrap() = Some(Arc::new(Vec::new()));
+
+		crate::commands::search_index::rename_in_search_index_inner("Foo.md".into(), "Foo.view".into()).unwrap();
+
+		assert!(SEARCH_CACHE.lock().unwrap().is_none());
+		assert_eq!(db::with_db(db::semantic_repo::count_chunks).unwrap(), 0);
+		db::close_database().unwrap();
+	}
+
+	/// The no-change build still sweeps orphaned chunks (a `.view` the walk
+	/// no longer lists, a file deleted while the app was closed); when it
+	/// removed some, the cache must go with them, and only then.
+	#[tokio::test]
+	#[allow(clippy::await_holding_lock)]
+	async fn no_change_build_clears_the_search_cache_only_when_it_removed_chunks() {
+		let _guard = TEST_LOCK.lock().unwrap();
+		let tmp = tempfile::TempDir::new().unwrap();
+		let _ = db::close_database();
+		db::open_database(tmp.path()).unwrap();
+		db::with_db(|conn| {
+			db::semantic_repo::insert_chunk(conn, "Foo.view#0", "Foo.view", "yaml", None, &[], 0, 5, "h", b"emb", 1)
+		})
+		.unwrap();
+		let vault = tmp.path().to_string_lossy().to_string();
+
+		*SEARCH_CACHE.lock().unwrap() = Some(Arc::new(Vec::new()));
+		build_semantic_index_inner(vault.clone(), |_| {}).await.unwrap();
+		assert!(SEARCH_CACHE.lock().unwrap().is_none(), "orphan removed, cache dropped");
+
+		*SEARCH_CACHE.lock().unwrap() = Some(Arc::new(Vec::new()));
+		build_semantic_index_inner(vault, |_| {}).await.unwrap();
+		assert!(SEARCH_CACHE.lock().unwrap().is_some(), "nothing removed, cache kept");
+
+		db::close_database().unwrap();
 	}
 }

@@ -43,7 +43,7 @@
 
 		const confirmed = await ask(
 			`Restore this file to the version from ${formatSnapshotTime(snapshot.timestamp)}? Current content will be replaced.`,
-			{ title: 'Restore Version', kind: 'warning' },
+			{ title: 'Restore Version', kind: 'warning', okLabel: 'Restore Version', cancelLabel: 'Cancel' },
 		);
 		if (!confirmed) return;
 
@@ -52,18 +52,14 @@
 </script>
 
 <Dialog.Root open={fileHistoryStore.isOpen} onOpenChange={handleOpenChange}>
-	<Dialog.Content
-		class="flex h-[80vh] !max-w-5xl flex-col gap-0 overflow-hidden p-0"
-		showCloseButton={false}
-	>
-		<Dialog.Title class="sr-only">File History: {fileName}</Dialog.Title>
+	<Dialog.Content class="flex h-[80vh] !max-w-5xl flex-col gap-0 overflow-hidden p-0">
 		<Dialog.Description class="sr-only">
 			View and restore previous versions of this file
 		</Dialog.Description>
 
-		<!-- Header -->
-		<div class="flex items-center justify-between border-b border-border px-4 py-3">
-			<h2 class="text-sm font-semibold">File History: {fileName}</h2>
+		<!-- Header; the end padding keeps the title clear of the built-in close button -->
+		<div class="flex items-center border-b border-border py-3 ps-4 pe-10">
+			<Dialog.Title class="text-sm font-semibold">File History: {fileName}</Dialog.Title>
 		</div>
 
 		<!-- Content: Two-pane layout -->

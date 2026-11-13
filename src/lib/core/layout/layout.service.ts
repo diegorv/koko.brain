@@ -5,18 +5,18 @@ import { hidesRightSidebar } from './layout.logic';
 /**
  * Toggles the panels between the rail and the editor (navigator, note list);
  * the rail itself never hides. Shared by the Cmd+Shift+B keybinding and the
- * "Toggle Left Sidebar" command.
+ * "Toggle Rail Panels" command.
  */
 export function toggleLeftSidebar(): void {
 	settingsStore.updateLayout({ railPanelsVisible: !settingsStore.layout.railPanelsVisible });
 }
 
-/** Hides the panels between the rail and the editor (Cmd+1). The rail itself never hides. */
+/** Hides the panels between the rail and the editor (Cmd+1, "Hide Rail Panels"). The rail itself never hides. */
 export function hideRailPanels(): void {
 	settingsStore.updateLayout({ railPanelsVisible: false });
 }
 
-/** Shows the panels between the rail and the editor (Cmd+2). */
+/** Shows the panels between the rail and the editor (Cmd+2, "Show Rail Panels"). */
 export function showRailPanels(): void {
 	settingsStore.updateLayout({ railPanelsVisible: true });
 }
@@ -24,7 +24,7 @@ export function showRailPanels(): void {
 /**
  * Toggles the right sidebar visibility. Shared by the AppShell toggle button,
  * the Cmd+B keybinding and the "Toggle Right Sidebar" command. Does nothing
- * while the Calendar or Tasks tab is active: the sidebar is always hidden there, so a
+ * while the active tab is one `hidesRightSidebar` covers: the sidebar is always hidden there, so a
  * toggle would only flip the saved setting out of sight.
  */
 export function toggleRightSidebar(): void {

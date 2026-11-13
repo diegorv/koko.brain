@@ -6,6 +6,8 @@ import { defaultKeymap, historyKeymap, history, indentWithTab } from '@codemirro
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
 import { computeTables, tableField } from '#lib/core/markdown-editor/extensions/live-preview/plugins/table-field.js';
 import { TableWidget, renderTableSource } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
+import { resolveWikilinkClickPosition } from '#lib/core/markdown-editor/wikilink-click-target.js';
+import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import { mountMarkdownView, testMarkdown } from '../../test-helpers';
 
 const platform = vi.hoisted(() => ({ mac: false }));
@@ -22,7 +24,15 @@ vi.mock('#lib/utils/platform.js', async (importOriginal) => {
 
 /** Where the editor host opens a resolved cell link. */
 const openLink = vi.fn(async () => {});
-const host = { ...NOOP_HOST, resolveLink: (t: string) => `/vault/${t}.md`, openLink };
+/** Where the editor host creates the note of an unresolved cell link. */
+const createNote = vi.fn(async () => true);
+/** Resolves every target to `/vault/<target>.md` except `Missing`, which has no note. */
+const host = {
+	...NOOP_HOST,
+	resolveLink: (t: string) => (t === 'Missing' ? null : `/vault/${t}.md`),
+	openLink,
+	createNote,
+};
 
 describe('renderTableSource', () => {
 	it('emits header + delimiter + body lines', () => {
@@ -113,24 +123,37 @@ describe('TableWidget — +col / +row buttons', () => {
 describe('TableWidget — cell wikilink click', () => {
 	beforeEach(() => {
 		openLink.mockClear();
+		createNote.mockClear();
 	});
 
-	function mountLink(): HTMLElement {
-		const source = renderTableSource(['[[Target]]'], ['left'], [['x']]);
+	/** Text after the table in the mounted doc: the target of same-note anchor links. */
+	const AFTER_TABLE = '\n\n# Heading\n\nPara ^blk';
+
+	let lastView: EditorView;
+
+	/** Renders a one-column table whose header cell is `cell` and returns its link. */
+	function mountLink(cell = '[[Target]]'): HTMLElement {
+		const source = renderTableSource([cell], ['left'], [['x']]);
 		const root = document.body.appendChild(document.createElement('div'));
-		const view = new EditorView({ state: EditorState.create({ doc: source, extensions: editorHost.of(host) }), parent: root });
-		const widget = new TableWidget(['[[Target]]'], ['left'], [['x']], [], {
+		const doc = source + AFTER_TABLE;
+		lastView = new EditorView({
+			state: EditorState.create({ doc, selection: EditorSelection.cursor(doc.length), extensions: editorHost.of(host) }),
+			parent: root,
+		});
+		const widget = new TableWidget([cell], ['left'], [['x']], [], {
 			from: 0,
 			to: source.length,
 			startLine: 1,
 			endLine: 3,
 		});
-		const dom = widget.toDOM(view);
+		const dom = widget.toDOM(lastView);
 		root.appendChild(dom);
 		const link = dom.querySelector<HTMLElement>('.cm-lp-wikilink');
 		expect(link).not.toBeNull();
 		return link!;
 	}
+
+	const NO_ANCHOR = { heading: null, blockId: null };
 
 	function press(link: HTMLElement, init: MouseEventInit = {}): MouseEvent {
 		const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, ...init });
@@ -141,8 +164,42 @@ describe('TableWidget — cell wikilink click', () => {
 	it('a plain primary click opens the target', () => {
 		platform.mac = false;
 		const e = press(mountLink());
-		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', undefined);
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', NO_ANCHOR);
 		expect(e.defaultPrevented).toBe(true);
+	});
+
+	it('a link to a missing note creates it (the create-on-click path)', () => {
+		platform.mac = false;
+		press(mountLink('[[Missing]]'));
+		expect(createNote).toHaveBeenCalledWith('Missing', NO_ANCHOR);
+		expect(openLink).not.toHaveBeenCalled();
+	});
+
+	it('a heading link opens the target at the heading', () => {
+		platform.mac = false;
+		press(mountLink('[[Target#Intro]]'));
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', { heading: 'Intro', blockId: null });
+	});
+
+	it('a block link opens the target at the block', () => {
+		platform.mac = false;
+		press(mountLink('[[Target#^abc]]'));
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', { heading: null, blockId: 'abc' });
+	});
+
+	it('an aliased link opens the target, not the alias', () => {
+		platform.mac = false;
+		press(mountLink('[[Target#Intro|Shown]]'));
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', { heading: 'Intro', blockId: null });
+	});
+
+	it('a same-note heading link moves the cursor to the heading and creates nothing', () => {
+		platform.mac = false;
+		press(mountLink('[[#Heading]]'));
+		const doc = lastView.state.doc.toString();
+		expect(lastView.state.selection.main.head).toBe(doc.indexOf('# Heading'));
+		expect(createNote).not.toHaveBeenCalled();
+		expect(openLink).not.toHaveBeenCalled();
 	});
 
 	it('a right click does not navigate and keeps the default (context menu)', () => {
@@ -162,7 +219,19 @@ describe('TableWidget — cell wikilink click', () => {
 	it('Windows/Linux: Ctrl+click opens the target', () => {
 		platform.mac = false;
 		press(mountLink(), { ctrlKey: true });
-		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', undefined);
+		expect(openLink).toHaveBeenCalledWith('/vault/Target.md', NO_ANCHOR);
+	});
+
+	it('the editor click resolver leaves a press on the rendered cell link to the widget', () => {
+		platform.mac = false;
+		const link = mountLink();
+		let captured: MouseEvent | null = null;
+		link.addEventListener('mousedown', (e) => {
+			captured = e;
+		}, { once: true });
+		press(link);
+		expect(captured).not.toBeNull();
+		expect(resolveWikilinkClickPosition(captured!, lastView, false)).toBeNull();
 	});
 });
 
@@ -397,5 +466,285 @@ describe('TableWidget: keys in a meta-bind select inside a cell', () => {
 		expect(ev.defaultPrevented).toBe(true);
 		expect(view.state.doc.toString()).toBe(doc.replace(LINE, LINE.slice(0, -1)));
 		view.destroy();
+	});
+});
+
+describe('TableWidget: meta-bind inputs in cells', () => {
+	/** Renders a one-cell table holding `cell` over the frontmatter of `doc`. */
+	function renderCell(doc: string, cell: string): { view: EditorView; td: HTMLElement } {
+		const root = document.body.appendChild(document.createElement('div'));
+		const view = new EditorView({ state: EditorState.create({ doc }), parent: root });
+		const widget = new TableWidget(['A'], ['left'], [[cell]], parseFrontmatterProperties(doc), {
+			from: 0,
+			to: 0,
+			startLine: 1,
+			endLine: 3,
+		});
+		const dom = widget.toDOM(view);
+		root.appendChild(dom);
+		return { view, td: dom.querySelector('tbody td')! };
+	}
+
+	beforeAll(() => {
+		// jsdom has no layout; a write's scroll snapshot makes CodeMirror measure.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
+	afterEach(() => {
+		document.body.replaceChildren();
+	});
+
+	it('an alias bind target selects the canonical key value', () => {
+		const { td } = renderCell('---\n_type: project\n---\n', '`INPUT[inlineSelect(note, project):type]`');
+		expect(td.querySelector<HTMLSelectElement>('select.cm-lp-meta-bind-select')!.value).toBe('project');
+	});
+
+	it.each(['toggle', 'boolean'])('INPUT[%s():done] renders a checkbox, not a select', (type) => {
+		const { td } = renderCell('---\ndone: true\n---\n', `\`INPUT[${type}():done]\``);
+		expect(td.querySelector('select')).toBeNull();
+		const cb = td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-toggle-input')!;
+		expect(cb.type).toBe('checkbox');
+		expect(cb.checked).toBe(true);
+	});
+
+	it('INPUT[number():count] renders a number input, not a select', () => {
+		const { td } = renderCell('---\ncount: 5\n---\n', '`INPUT[number():count]`');
+		expect(td.querySelector('select')).toBeNull();
+		const input = td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-input')!;
+		expect(input.type).toBe('number');
+		expect(input.value).toBe('5');
+	});
+
+	it('INPUT[date():due] renders a date input, not a select', () => {
+		const { td } = renderCell('---\ndue: 2026-01-01\n---\n', '`INPUT[date():due]`');
+		expect(td.querySelector('select')).toBeNull();
+		expect(td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-input')!.type).toBe('date');
+	});
+
+	it('a toggle in a cell writes a YAML boolean', () => {
+		const { view, td } = renderCell('---\ndone: false\n---\n', '`INPUT[toggle():done]`');
+		const cb = td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-toggle-input')!;
+		cb.checked = true;
+		cb.dispatchEvent(new Event('change'));
+		expect(view.state.doc.toString()).toBe('---\ndone: true\n---\n');
+	});
+
+	it('a number input in a cell writes a YAML number', () => {
+		const { view, td } = renderCell('---\ncount: 5\n---\n', '`INPUT[number():count]`');
+		const input = td.querySelector<HTMLInputElement>('input.cm-lp-meta-bind-input')!;
+		input.value = '7';
+		input.dispatchEvent(new Event('blur'));
+		expect(view.state.doc.toString()).toBe('---\ncount: 7\n---\n');
+	});
+});
+
+describe('TableWidget: links, line breaks and escapes in cells', () => {
+	/** Where the editor host opens an external cell link. */
+	const openExternal = vi.fn(async () => {});
+
+	/** Views created by render(), destroyed after each test. */
+	const views: EditorView[] = [];
+
+	/** Renders a one-column table with header `header` and body cell `cell`, under a parent with a mousedown spy. */
+	function render(cell: string, header = 'h'): { th: HTMLElement; td: HTMLElement; parentSpy: ReturnType<typeof vi.fn> } {
+		const root = document.body.appendChild(document.createElement('div'));
+		const parentSpy = vi.fn();
+		root.addEventListener('mousedown', parentSpy);
+		const view = new EditorView({
+			state: EditorState.create({ doc: 'x', extensions: editorHost.of({ ...host, openExternal }) }),
+			parent: document.body.appendChild(document.createElement('div')),
+		});
+		views.push(view);
+		const widget = new TableWidget([header], ['left'], [[cell]], [], { from: 0, to: 0, startLine: 1, endLine: 3 });
+		const dom = widget.toDOM(view);
+		root.appendChild(dom);
+		return { th: dom.querySelector('thead th')!, td: dom.querySelector('tbody td')!, parentSpy };
+	}
+
+	function press(el: HTMLElement, init: MouseEventInit = {}): MouseEvent {
+		const e = new MouseEvent('mousedown', { bubbles: true, cancelable: true, button: 0, ...init });
+		el.dispatchEvent(e);
+		return e;
+	}
+
+	beforeEach(() => {
+		openExternal.mockClear();
+	});
+
+	afterEach(() => {
+		for (const view of views.splice(0)) view.destroy();
+		document.body.replaceChildren();
+	});
+
+	it('a body cell renders a link, an unescaped pipe and a line break', () => {
+		const { td } = render('[Docs](https://x.dev) a \\| b<br>next');
+		const link = td.querySelector('.cm-lp-link');
+		expect(link).not.toBeNull();
+		expect(link!.textContent).toBe('Docs');
+		expect(link!.tagName).toBe('SPAN');
+		expect(link!.hasAttribute('href')).toBe(false);
+		expect(td.querySelector('a')).toBeNull();
+		expect(td.querySelectorAll('br')).toHaveLength(1);
+		expect(td.textContent).toBe('Docs a | bnext');
+		expect(td.textContent).not.toMatch(/\[|\]\(|\\/);
+	});
+
+	it('a header cell renders a link and a line break too', () => {
+		const { th } = render('x', '[Docs](https://x.dev)<br>more');
+		expect(th.querySelector('.cm-lp-link')!.textContent).toBe('Docs');
+		expect(th.querySelectorAll('br')).toHaveLength(1);
+		expect(th.textContent).toBe('Docsmore');
+	});
+
+	it('the raw `\\|` that the table parser keeps is unescaped at render time', () => {
+		const doc = '| h |\n| --- |\n| x \\| y<br>z |\n\ntext';
+		const view: EditorView = mountMarkdownView(doc, { cursor: doc.length });
+		const decos = computeTables(view.state);
+		let widget: TableWidget | null = null;
+		const iter = decos.iter();
+		while (iter.value) {
+			const w = (iter.value.spec as { widget?: unknown }).widget;
+			if (w instanceof TableWidget) {
+				widget = w;
+				break;
+			}
+			iter.next();
+		}
+		expect(widget, 'the table decorator must build a TableWidget').not.toBeNull();
+		const td = widget!.toDOM(view).querySelector('tbody td')!;
+		const nodes = Array.from(td.childNodes);
+		expect(nodes.map((n) => n.nodeName)).toEqual(['#text', 'BR', '#text']);
+		expect(nodes[0].textContent).toBe('x | y');
+		expect(nodes[2].textContent).toBe('z');
+		view.destroy();
+	});
+
+	describe('link press', () => {
+		const link = (cell = '[Docs](https://x.dev)') => render(cell);
+
+		it.each([
+			{ mac: true, init: { metaKey: true } },
+			{ mac: false, init: { ctrlKey: true } },
+		])('with the open modifier (mac=$mac) opens the url once and stops the event', ({ mac, init }) => {
+			platform.mac = mac;
+			const { td, parentSpy } = link();
+			const e = press(td.querySelector<HTMLElement>('.cm-lp-link')!, init);
+			expect(openExternal).toHaveBeenCalledTimes(1);
+			expect(openExternal).toHaveBeenCalledWith('https://x.dev');
+			expect(e.defaultPrevented).toBe(true);
+			expect(parentSpy).not.toHaveBeenCalled();
+		});
+
+		it('with no modifier does nothing and bubbles', () => {
+			platform.mac = false;
+			const { td, parentSpy } = link();
+			const e = press(td.querySelector<HTMLElement>('.cm-lp-link')!);
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(false);
+			expect(parentSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('a right click is not opened and not stopped', () => {
+			platform.mac = false;
+			const { td, parentSpy } = link();
+			const e = press(td.querySelector<HTMLElement>('.cm-lp-link')!, { button: 2, ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(false);
+			expect(parentSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('macOS: Ctrl+click is not opened and not stopped', () => {
+			platform.mac = true;
+			const { td, parentSpy } = link();
+			const e = press(td.querySelector<HTMLElement>('.cm-lp-link')!, { ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(false);
+			expect(parentSpy).toHaveBeenCalledTimes(1);
+		});
+
+		it('an unsafe url is not opened, but the event is still stopped', () => {
+			platform.mac = false;
+			const { td, parentSpy } = link('[x](javascript:alert(1))');
+			const el = td.querySelector<HTMLElement>('.cm-lp-link')!;
+			expect(el.textContent).toBe('x');
+			const e = press(el, { ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(true);
+			expect(parentSpy).not.toHaveBeenCalled();
+		});
+
+		it('an empty url in angle brackets is not opened, but the event is still stopped', () => {
+			platform.mac = false;
+			const { td, parentSpy } = link('[x](<>)');
+			const el = td.querySelector<HTMLElement>('.cm-lp-link')!;
+			expect(el.textContent).toBe('x');
+			const e = press(el, { ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+			expect(e.defaultPrevented).toBe(true);
+			expect(parentSpy).not.toHaveBeenCalled();
+		});
+
+		it('an unsafe url in angle brackets is not opened', () => {
+			platform.mac = false;
+			const { td } = link('[x](<javascript:alert(1)>)');
+			press(td.querySelector<HTMLElement>('.cm-lp-link')!, { ctrlKey: true });
+			expect(openExternal).not.toHaveBeenCalled();
+		});
+
+		it('an escaped pipe in the url opens the url with a plain pipe', () => {
+			platform.mac = false;
+			const { td } = link('[x](https://x.dev/a\\|b)');
+			press(td.querySelector<HTMLElement>('.cm-lp-link')!, { ctrlKey: true });
+			expect(openExternal).toHaveBeenCalledWith('https://x.dev/a|b');
+		});
+	});
+
+	describe('escapes and line breaks', () => {
+		it('`\\\\` renders one backslash', () => {
+			expect(render('a \\\\ b').td.textContent).toBe('a \\ b');
+		});
+
+		it('`\\*a\\*` renders literal asterisks with no em', () => {
+			const { td } = render('\\*a\\*');
+			expect(td.textContent).toBe('*a*');
+			expect(td.querySelector('em')).toBeNull();
+		});
+
+		it('a backslash before a non-punctuation character stays literal', () => {
+			expect(render('C:\\Users').td.textContent).toBe('C:\\Users');
+		});
+
+		it('inside a code span only `\\|` is unescaped', () => {
+			const { td } = render('`x \\| y` `a\\\\b`');
+			const codes = td.querySelectorAll('code');
+			expect(codes[0].textContent).toBe('x | y');
+			expect(codes[1].textContent).toBe('a\\\\b');
+		});
+
+		it('`<br>` inside a code span stays literal', () => {
+			const { td } = render('`a<br>b`');
+			expect(td.querySelector('code')!.textContent).toBe('a<br>b');
+			expect(td.querySelector('br')).toBeNull();
+		});
+
+		it.each(['<BR>', '<br />', '<br/>', '<Br>'])('%s renders a br element', (br) => {
+			const { td } = render(`a${br}b`);
+			expect(td.querySelectorAll('br')).toHaveLength(1);
+			expect(td.textContent).toBe('ab');
+		});
+
+		it('a wikilink next to escaped text renders as before', () => {
+			const { td } = render('[[Target]] a \\| b');
+			expect(td.querySelector('.cm-lp-wikilink')!.textContent).toBe('Target');
+			expect(td.textContent).toBe('Target a | b');
+		});
+	});
+
+	it('cell text is never parsed as HTML', () => {
+		const { td } = render('<b>x</b> <img src=x onerror=alert(1)>');
+		expect(td.querySelector('b')).toBeNull();
+		expect(td.querySelector('img')).toBeNull();
+		expect(td.textContent).toBe('<b>x</b> <img src=x onerror=alert(1)>');
 	});
 });

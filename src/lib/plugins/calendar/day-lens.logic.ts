@@ -1,7 +1,7 @@
 import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { parseDateKey } from '#lib/utils/note-date.js';
 import { entryNoteDate, listEntries } from '#lib/features/rail-shell/lens.logic.js';
-import { excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { excludeSystemFolder, isListableNote } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import type { Lens, LensContext, NewNoteContext, NewNoteRule, ResolvedLens } from '#lib/features/rail-shell/rail-shell.types.js';
 import { formatDateLabel } from './calendar.logic';
 
@@ -27,7 +27,8 @@ export function pickedDayLens(saved: unknown, todayKey: string): Lens {
 
 /**
  * Lists a day lens: the notes whose note date is the day (the PRD's rule,
- * `noteDateKey`), system folder excluded, newest change first. Archived notes
+ * `noteDateKey`), system folder, type definitions and `.view` files excluded
+ * (`isListableNote`), newest change first. Archived notes
  * stay: the Day rule is only the note date. A target that is not a day lists
  * nothing.
  */
@@ -37,7 +38,7 @@ export function resolveDayLens(lens: Lens, ctx: LensContext): ResolvedLens {
 	return {
 		label: formatDateLabel(day),
 		rule: `note date is ${day}`,
-		notes: listEntries(ctx, (e) => entryNoteDate(e) === day),
+		notes: listEntries(ctx, (e) => isListableNote(e) && entryNoteDate(e) === day),
 	};
 }
 
@@ -45,6 +46,7 @@ export function resolveDayLens(lens: Lens, ctx: LensContext): ResolvedLens {
 export function noteDateCounts(ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder'>): Map<string, number> {
 	const counts = new Map<string, number>();
 	for (const entry of excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder)) {
+		if (!isListableNote(entry)) continue;
 		const day = entryNoteDate(entry);
 		if (day) counts.set(day, (counts.get(day) ?? 0) + 1);
 	}

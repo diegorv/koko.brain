@@ -1,0 +1,67 @@
+# Ledger: vault-mods
+
+This file is the source of truth for the progress of the [vault-mods](spec.md) Issues. Read it before working on any of them. It is written only by `/relay-lite:run`, through `relay ledger`: never edit it by hand.
+
+## Continue
+
+```text
+/relay-lite:run vault-mods
+```
+
+Add Issue numbers to force them; `--all` runs every available Issue in sequence; `--all --parallel` runs the ones that touch different files at the same time.
+
+## Process
+
+The `relay-lite:workflow` workflow, one worktree per Issue at `<repo>.worktrees/issue-NN-slug`: build (discovery + implement), review (Claude or Codex), fix and re-review while changes are requested, deliver. Only deliver runs the full suite. Formats: relay-lite's `docs/format.md`.
+
+## Statuses
+
+| Status | Meaning |
+|---|---|
+| `todo` | Not started. |
+| `in-progress` | Set by `/relay-lite:run` on `base` before it launches the Issue; still there after a run means it was interrupted (the worktree and branch may exist). `/relay-lite:run` asks what to do about it only when run with no Issue numbers (`--all` too), or when it is one of the named Issues or in the "Blocked by" of one; skip records nothing (no status change, no Log line, no commit), so the question comes back on the next such run. |
+| `blocked` | Nothing was delivered: the build refused the Issue or returned nothing, the suite failing, a review or re-review that returned nothing, a re-review that still requests changes, a rebase conflict in source files, a failed push. The reason is in the Log; the worktree is kept. `/relay-lite:run` asks what to do about it only when run with no Issue numbers (`--all` too), or when it is one of the named Issues or in the "Blocked by" of one; skip records nothing (no status change, no Log line, no commit), so the question comes back on the next such run. |
+| `in-review` | `pr` delivery: the PR is open, not merged yet; its URL is in Branch / PR. The next run checks it and sets `done` or `todo`. relay-lite does not delete the remote branch `issue/NN-slug` when the PR is merged or closed (GitHub does on merge if the repository auto-deletes head branches); after a close, delete it or renumber the Issue before the Issue runs again, or its push is rejected. |
+| `done` | Delivered, and the Issue file says `Status: resolved`. |
+| `wontfix` | Closed without work. |
+
+## Next up
+
+An Issue can start when its status is `todo` and every Issue in its "Blocked by" is `done`. Among those, take the lowest number.
+
+## Issues
+
+**Branch / PR**: in `merge` delivery `issue/NN-slug (<short sha>)`, the short sha of the Issue's squash commit on `base` (the `sha` deliver returns), written by `/relay-lite:run` in its `done` commit; in `pr` delivery the PR URL while `in-review`, then `<PR URL> (<short merge sha>)` once `/relay-lite:run` finds it merged; cleared when it finds the PR closed and sets the row back to `todo` (the URL stays in the `pr closed` Log line). **Merged**: always a date (YYYY-MM-DD); in `merge` delivery the date `/relay-lite:run` wrote the row, after the squash commit; in `pr` delivery the date `/relay-lite:run` recorded the merge. Both cells stay empty on a row `/relay-lite:ledger` created as `done` from an Issue file already `Status: resolved`.
+
+| # | Issue | Blocked by | Status | Branch / PR | Merged |
+|---|---|---|---|---|---|
+| 01 | [Settings > Labs with a per-vault mods toggle](issues/01-labs-mods-toggle.md) | none | done | issue/01-labs-mods-toggle (32a1263c7) | 2026-11-06 |
+| 02 | [Discover and load mods from `_system/mods/`](issues/02-load-mods.md) | 01 | done | issue/02-load-mods (97110117b) | 2026-11-06 |
+| 03 | [A mod's rail button opens a picker of its actions](issues/03-rail-button-action-picker.md) | 02 | done | issue/03-rail-button-action-picker (533b439f9) | 2026-11-06 |
+| 04 | [Reload a mod when its files change, without a restart](issues/04-reload-on-save.md) | 05 | done | issue/04-reload-on-save (a867e5320) | 2026-11-06 |
+| 05 | [An action takes text input and writes a note (`ctx.vault`)](issues/05-ctx-vault-and-input.md) | 03 | done | issue/05-ctx-vault-and-input (b9e201d91) | 2026-11-06 |
+| 06 | [Long runs: progress, log, Stop, and a busy rail button](issues/06-run-view-and-stop.md) | 04 | done | issue/06-run-view-and-stop (612b4fb84) | 2026-11-06 |
+| 07 | [Mod authoring docs, an example mod and the mods ADR](issues/07-docs-example-adr.md) | 06 | done | issue/07-docs-example-adr (6b3699922) | 2026-11-06 |
+| 14 | [`ctx.ui` basic dialogs and `ctx.theme` colors](issues/14-ctx-ui-dialogs.md) | 07 | done | issue/14-ctx-ui-dialogs (10e951024) | 2026-11-06 |
+
+## Log
+
+- 2026-11-06 08:19 — ledger created (13 Issues)
+- 2026-11-06 08:20 — 01 — start — launched by /relay-lite:run — 6bbd5f07d
+- 2026-11-06 09:02 — 01 — deliver — merged to main as 32a1263c7; review APPROVED x2 (claude); fix round made setEnabled persist-before-state with error toast, rejected code-formatting nit; full suite + build green after rebase — 32a1263c7
+- 2026-11-06 09:04 — 02 — start — launched by /relay-lite:run — 2809ede7b
+- 2026-11-06 09:40 — 02 — deliver — merged to feature/vault-mods as 97110117b; review APPROVED x2 (claude); fix round kept read-failure cause, isolated dedupe test folder, hello mod asserts it ran only with toggle on; nits 4-5 not changed; check, mods tests, E2E vault-mods (4) and full suite + build green — 97110117b
+- 2026-11-06 09:57 — 03 — start — launched by /relay-lite:run — e6811bfb8
+- 2026-11-06 10:29 — 03 — deliver — merged to feature/vault-mods as 533b439f9; review APPROVED x2 (claude); fix round: icon pack preloaded only when getIconSync misses, JSDoc fixes; round 2 ship-only, two test nits not taken; full suite + build green — 533b439f9
+- 2026-11-06 10:30 — 05 — start — launched by /relay-lite:run — aa1494bfb
+- 2026-11-06 11:14 — 05 — deliver — merged to feature/vault-mods as b9e201d91; review APPROVED x2 (claude); fix round: openNote rejects a missing note, picker ignores Enter during IME composition, mod-vault.service listed in the raw-write ratchet; round 2 nit (openNote on a folder) left to Issue 07 docs; full suite + build green on the second run — b9e201d91
+- 2026-11-06 11:14 — 04 — start — launched by /relay-lite:run — aea5fa7ef
+- 2026-11-06 11:43 — 04 — deliver — merged to feature/vault-mods as a867e5320; review APPROVED x2 (claude); fix round: start skips folders with a reload runner, reload does not wait on a never-settling onload, manifest exists check before unload; findings 4-5 kept as designed with JSDoc; E2E vault-mods 8 passed, full suite + build green — a867e5320
+- 2026-11-06 12:09 — 06 — start — launched by /relay-lite:run — 92f14b08a
+- 2026-11-06 12:50 — 06 — deliver — merged to main as 612b4fb84; review APPROVED x2 (claude); fix round: Stop/Close keyboard access, focus into run view, log follows new lines; round 2 nits (Shift+Tab wrap, followLog reset between runs) left unfixed; full suite + build green — 612b4fb84
+- 2026-11-06 12:50 — 07 — start — launched by /relay-lite:run — 22cbc18f2
+- 2026-11-06 13:15 — 07 — deliver — merged to main as 6b3699922; review APPROVED x2 (claude); fix round: 28-mods.md names the hello example and late run.log/progress calls; ADR-0036 taken by mods, the planned iOS ADR moves to the next free number; full suite + build green after rebase — 6b3699922
+- 2026-11-06 13:15 — ledger updated (added 14)
+- 2026-11-06 13:17 — 14 — start — launched by /relay-lite:run — d3f496ccd
+- 2026-11-06 13:45 — 14 — deliver — merged to main as 10e951024; review APPROVED x2 (claude); fix round: watchModTheme reads revision/isDark untracked at subscribe so an early theme change is reported (regression test); 2 nits unchanged; full suite + build green after rebase — 10e951024
+- 2026-11-08 12:00 — ledger updated (moved 6 open Issues to .scratch/open-itens: 08→150, 09→190, 10→191, 11→193, 12→032, 13→192)

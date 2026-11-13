@@ -14,8 +14,14 @@ export type ToggleTaskResult = {
 updatedContent: string, 
 /**
  * `UpdateResult` from the `VaultIndex::update_entry` call that ran
- * after the disk write. `changed: false` means the line was a no-op
- * (out of bounds or no checkbox); the disk file is untouched in that
- * case and the content equals the pre-call content.
+ * after the disk write. `changed: false` means nothing was written (a
+ * stale line, see `stale`, or `target` already the line's status); the
+ * disk file is untouched in that case and the content equals the
+ * pre-call content.
  */
-updateResult: UpdateResult, };
+updateResult: UpdateResult, 
+/**
+ * true when the line no longer held the expected task, so nothing was
+ * written.
+ */
+stale: boolean, };

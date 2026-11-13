@@ -326,4 +326,115 @@ describe('AppearanceSection - theme catalog', () => {
 		expect(catalog().querySelector('[data-testid="theme-catalog-error"]')).not.toBeNull();
 		expect(toast.error).toHaveBeenCalledWith(expect.stringContaining('not valid JSON'));
 	});
+
+	it('keeps the section title while the theme editor is open', async () => {
+		respondWith([]);
+		render();
+		await catalogLoaded();
+		const title = () => target.querySelector('h2');
+		expect(title()?.textContent).toBe('Appearance');
+		expect(target.querySelector('p')?.classList).toContain('text-sm');
+
+		[...target.querySelectorAll<HTMLButtonElement>('button')].find((el) => el.textContent?.includes('Create new theme'))!.click();
+		flushSync();
+
+		expect(target.querySelector('input[placeholder="Theme name"]')).not.toBeNull();
+		expect(title()?.textContent).toBe('Appearance');
+		expect(title()?.classList).toContain('text-lg');
+		expect(title()?.classList).toContain('font-semibold');
+	});
+});
+
+describe('AppearanceSection - theme row actions', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	const MINE = 'My theme';
+
+	beforeEach(async () => {
+		vi.clearAllMocks();
+		settingsStore.reset();
+		settingsStore.updateAppearance(normalizeAppearance({}));
+		const installed = installThemePackage(settingsStore.appearance, ocean);
+		if (!installed.ok) throw new Error(installed.error);
+		settingsStore.updateAppearance({
+			...installed.appearance,
+			themes: [...installed.appearance.themes, { name: MINE, colors: structuredClone(KOKOBRAIN_DEFAULT_THEME.colors) }],
+			activeTheme: DEFAULT_THEME_NAME,
+		});
+		respondWith([]);
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(AppearanceSection, { target });
+		flushSync();
+		await vi.waitFor(() => {
+			flushSync();
+			expect(target.textContent).not.toContain('Loading the theme catalog');
+		});
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		document.documentElement.removeAttribute('style');
+	});
+
+	function row(name: string): HTMLElement {
+		const found = [...target.querySelectorAll<HTMLElement>('[role="button"]')].find(
+			(el) => el.querySelector('.font-medium')?.textContent === name,
+		);
+		if (!found) throw new Error(`no theme row "${name}"`);
+		return found;
+	}
+
+	function action(name: string, title: string): HTMLButtonElement {
+		const found = row(name).querySelector<HTMLButtonElement>(`button[title="${title}"]`);
+		if (!found) throw new Error(`no "${title}" on "${name}"`);
+		return found;
+	}
+
+	const ACTIONS: [string, string][] = [
+		[MINE, 'Edit theme'],
+		[MINE, 'Duplicate theme'],
+		[MINE, 'Delete theme'],
+		[ocean.name, 'Uninstall theme'],
+	];
+
+	it.each(ACTIONS)('%s > %s has an aria-label equal to its title', (name, title) => {
+		expect(action(name, title).getAttribute('aria-label')).toBe(title);
+	});
+
+	it.each(ACTIONS)('%s > %s uses the small icon button size', (name, title) => {
+		const classes = action(name, title).classList;
+		expect(classes).toContain('size-8');
+		expect(classes).not.toContain('size-7');
+	});
+
+	it('reveals the Edit and Duplicate actions when the row has keyboard focus', () => {
+		expect(action(MINE, 'Edit theme').parentElement?.classList).toContain('group-focus-within:opacity-100');
+		expect(action(MINE, 'Duplicate theme').parentElement?.classList).toContain('group-focus-within:opacity-100');
+	});
+
+	it('does not select the theme when Duplicate is clicked on its row', () => {
+		action(MINE, 'Duplicate theme').click();
+		flushSync();
+
+		expect(settingsStore.appearance.activeTheme).toBe(DEFAULT_THEME_NAME);
+		expect(target.querySelector('input[placeholder="Theme name"]')).not.toBeNull();
+	});
+
+	it('does not select the theme when Delete is clicked on its row, and removes it', () => {
+		action(MINE, 'Delete theme').click();
+		flushSync();
+
+		expect(settingsStore.appearance.activeTheme).toBe(DEFAULT_THEME_NAME);
+		expect(settingsStore.appearance.themes.map((t) => t.name)).not.toContain(MINE);
+	});
+
+	it('still selects the theme when the row itself is clicked', () => {
+		row(MINE).click();
+		flushSync();
+
+		expect(settingsStore.appearance.activeTheme).toBe(MINE);
+	});
 });

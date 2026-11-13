@@ -3,15 +3,17 @@
 	import CanvasInner from './CanvasInner.svelte';
 
 	interface Props {
+		/** Path of the .canvas file; fixed for the instance's lifetime (the parent keys it by path) */
+		path: string;
 		/** Raw JSON content of the .canvas file */
 		jsonContent: string;
-		/** Callback to persist changes */
-		onJsonChange: (json: string) => void;
+		/** Callback to persist changes into the tab of `path` */
+		onJsonChange: (path: string, json: string) => void;
 	}
 
-	let { jsonContent, onJsonChange }: Props = $props();
+	let { path, jsonContent, onJsonChange }: Props = $props();
 </script>
 
 <SvelteFlowProvider>
-	<CanvasInner {jsonContent} {onJsonChange} />
+	<CanvasInner {path} {jsonContent} {onJsonChange} />
 </SvelteFlowProvider>

@@ -1,0 +1,23 @@
+_visible: false
+_open_in_editor: true
+filters:
+  and:
+    - 'file.folder.endsWith("/collection-features")'
+    - "file.hasTag('projeto')"
+
+properties:
+  file.name:
+    displayName: Project
+  status:
+    displayName: Status
+  assignee:
+    displayName: Owner
+
+views:
+  - type: calendar
+    name: Deadlines
+    dateProperty: due
+    weekStartDay: 1
+    sort:
+      - column: due
+        direction: ASC

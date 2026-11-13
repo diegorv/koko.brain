@@ -6,21 +6,32 @@ permissions:
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      MODS_REPO_READ_TOKEN:
+        description: "Read-only access to diegorv/koko.brain-mods"
+        required: true
 concurrency:
   group: e2e-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   playwright:
-    name: Frontend (Playwright E2E)
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
+    name: Frontend (Playwright E2E ${{ matrix.shard }}/4)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    # Splitting the suite across runners is what shortens it in CI. Local runs
+    # (scripts/e2e.sh with no arguments) stay unsharded.
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@v7.0.1
 
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust: "false"
 
       - name: Resolve Playwright version
@@ -43,13 +54,13 @@ jobs:
         run: pnpm exec playwright install-deps chromium
 
       - name: Run E2E suite
-        run: bash scripts/e2e.sh
+        run: bash scripts/e2e.sh --shard=${{ matrix.shard }}/4
 
       - name: Upload Playwright report
         if: ${{ failure() }}
         uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.shard }}
           path: |
             playwright-report
             test-results

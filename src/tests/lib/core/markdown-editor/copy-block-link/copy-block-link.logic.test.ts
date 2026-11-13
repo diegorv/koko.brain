@@ -90,6 +90,20 @@ describe('detectBlockElement', () => {
 		const result = detectBlockElement('Some text ^my-block');
 		expect(result).toEqual({ type: 'block', headingText: null, existingBlockId: 'my-block' });
 	});
+
+	it('reports the block ID of a line holding only the marker', () => {
+		expect(detectBlockElement('^abc123').existingBlockId).toBe('abc123');
+	});
+
+	it('does not take a trailing block link for a block ID', () => {
+		const result = detectBlockElement('- Source: [[Meeting#^abc123]]');
+		expect(result).toEqual({ type: 'list-item', headingText: null, existingBlockId: null });
+	});
+
+	it('does not take an exponent for a block ID', () => {
+		const result = detectBlockElement('Area is 5 m^2');
+		expect(result).toEqual({ type: 'block', headingText: null, existingBlockId: null });
+	});
 });
 
 describe('generateBlockId', () => {

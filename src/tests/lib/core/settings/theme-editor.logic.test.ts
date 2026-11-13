@@ -177,6 +177,17 @@ describe('parseThemeFromImport', () => {
 		expect(result).toEqual({ ok: true, theme: { name: 'Test', colors: { ui: { background: '#fff' } } } });
 	});
 
+	it('accepts an exported theme that still carries the retired frontmatter tokens and drops them', () => {
+		const json = JSON.stringify({
+			name: 'Old',
+			colors: { ui: { background: '#fff' }, preview: { frontmatterBg: '#eee', frontmatterBorder: '#ddd', embedBg: '#ccc' } },
+		});
+		expect(parseThemeFromImport(json)).toEqual({
+			ok: true,
+			theme: { name: 'Old', colors: { ui: { background: '#fff' }, preview: { embedBg: '#ccc' } } },
+		});
+	});
+
 	it('refuses malformed JSON', () => {
 		expect(errorOf('not json')).toBe(PARSE_ERROR);
 		expect(errorOf('{incomplete')).toBe(PARSE_ERROR);
@@ -264,9 +275,15 @@ describe('color group constants', () => {
 		expect([...allKeys].sort()).toEqual(Object.keys(KOKOBRAIN_DEFAULT_THEME.colors.ui).sort());
 	});
 
-	it('shows the type palette and warning tokens in their own UI group', () => {
+	it('shows the type palette, warning and success tokens in their own UI group', () => {
 		const group = UI_COLOR_GROUPS.find((g) => g.label === 'Type Palette');
-		expect(group?.keys).toEqual([...TYPE_PALETTE_TOKENS, 'warning']);
+		expect(group?.keys).toEqual([...TYPE_PALETTE_TOKENS, 'warning', 'success']);
+	});
+
+	it('labels the rail and panel tokens "Rail and Panels"', () => {
+		const group = UI_COLOR_GROUPS.find((g) => g.keys.includes('fileExplorerBg'));
+		expect(group?.label).toBe('Rail and Panels');
+		expect(UI_COLOR_GROUPS.map((g) => g.label)).not.toContain('Left Sidebar');
 	});
 
 	it('SYNTAX_COLOR_GROUPS covers all 19 syntax tokens', () => {

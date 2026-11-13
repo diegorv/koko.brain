@@ -36,10 +36,29 @@ pub enum ScoreKind {
 	Rrf,
 }
 
+impl ScoreKind {
+	/// The kind of score a search hands to `finalize_results`: reranker logits
+	/// when the cross-encoder ran, otherwise cosine for a semantic search and
+	/// RRF for a hybrid one.
+	pub fn for_search(used_reranker: bool, hybrid: bool) -> Self {
+		match (used_reranker, hybrid) {
+			(true, _) => ScoreKind::Logit,
+			(false, false) => ScoreKind::Cosine,
+			(false, true) => ScoreKind::Rrf,
+		}
+	}
+}
+
 /// Cosine rule: a gap counts when it exceeds this fraction of the top score.
 /// 4% keeps clustered real matches (0.61-0.63 for a broad query) together;
 /// 2% split them (see the "comida" regression test).
 pub const COSINE_GAP_RATIO: f32 = 0.04;
+
+/// Fewest results a reranked list keeps after the gap rule. On real queries
+/// the rule alone often left 1 or 2 results even when the reranker had ordered
+/// the top 10 well, which cost recall. The floor also applies to nonsense
+/// queries, so those return up to this many results instead of being cut short.
+pub const MIN_LOGIT_RESULTS: usize = 10;
 
 /// Logistic function: maps a logit (log-odds) to a probability in `[0, 1]`.
 /// In f32 it saturates to exactly 0.0 or 1.0 beyond roughly +-88; on a
@@ -135,7 +154,12 @@ pub fn finalize_results(
 	kind: ScoreKind,
 ) -> Option<FilterOutcome> {
 	candidates.truncate(limit);
-	let outcome = adaptive_filter(candidates, kind)?;
+	let mut outcome = adaptive_filter(candidates, kind)?;
+	if kind == ScoreKind::Logit && outcome.keep_count < MIN_LOGIT_RESULTS {
+		let kept = MIN_LOGIT_RESULTS.min(candidates.len());
+		outcome.log_message = format!("{}; floor of {MIN_LOGIT_RESULTS} keeps {kept}", outcome.log_message);
+		outcome.keep_count = kept;
+	}
 	candidates.truncate(outcome.keep_count);
 	Some(outcome)
 }
@@ -425,6 +449,16 @@ mod tests {
 		assert!(adaptive_filter(&results, ScoreKind::Rrf).is_none());
 	}
 
+	// --- ScoreKind::for_search ---
+
+	#[test]
+	fn for_search_uses_logit_only_when_the_reranker_ran() {
+		assert_eq!(ScoreKind::for_search(true, false), ScoreKind::Logit);
+		assert_eq!(ScoreKind::for_search(true, true), ScoreKind::Logit);
+		assert_eq!(ScoreKind::for_search(false, false), ScoreKind::Cosine);
+		assert_eq!(ScoreKind::for_search(false, true), ScoreKind::Rrf);
+	}
+
 	// --- finalize_results ---
 
 	#[test]
@@ -453,10 +487,43 @@ mod tests {
 
 	#[test]
 	fn finalize_logit_applies_the_sigmoid_rule() {
+		// The gap rule cuts after #2, the floor keeps all 4 (fewer than the floor).
 		let mut results = make_results(&[5.0, 4.5, 1.0, 0.5]);
+		assert_eq!(adaptive_filter(&results, ScoreKind::Logit).unwrap().keep_count, 2);
 		let outcome = finalize_results(&mut results, 20, ScoreKind::Logit).unwrap();
 		assert!(outcome.log_message.contains("Gap filter (Logit"));
-		assert_eq!(results.len(), 2);
+		assert_eq!(results.len(), 4);
+	}
+
+	#[test]
+	fn finalize_logit_keeps_at_least_the_floor_when_the_gap_cuts_early() {
+		// One result stands out: the gap rule alone would keep 1.
+		let mut scores = vec![3.0];
+		scores.extend((0..14).map(|i| -2.0 - i as f32 * 0.01));
+		let mut results = make_results(&scores);
+		assert_eq!(adaptive_filter(&results, ScoreKind::Logit).unwrap().keep_count, 1);
+		let outcome = finalize_results(&mut results, 20, ScoreKind::Logit).unwrap();
+		assert_eq!(results.len(), MIN_LOGIT_RESULTS);
+		assert_eq!(outcome.keep_count, MIN_LOGIT_RESULTS);
+		assert!(outcome.log_message.contains("floor"));
+	}
+
+	#[test]
+	fn finalize_floor_never_exceeds_the_limit() {
+		let mut scores = vec![3.0];
+		scores.extend((0..14).map(|i| -2.0 - i as f32 * 0.01));
+		let mut results = make_results(&scores);
+		finalize_results(&mut results, 4, ScoreKind::Logit);
+		assert_eq!(results.len(), 4);
+	}
+
+	#[test]
+	fn finalize_cosine_has_no_floor() {
+		let mut scores = vec![0.9];
+		scores.extend((0..14).map(|i| 0.2 - i as f32 * 0.001));
+		let mut results = make_results(&scores);
+		finalize_results(&mut results, 20, ScoreKind::Cosine).unwrap();
+		assert_eq!(results.len(), 1);
 	}
 
 	#[test]

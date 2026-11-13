@@ -13,6 +13,19 @@
 	}: ContextMenuPrimitive.ContentProps & {
 		portalProps?: WithoutChildrenOrChild<ComponentProps<typeof ContextMenuPortal>>;
 	} = $props();
+
+	/**
+	 * A closing menu stays mounted for its exit animation, and bits-ui still handles the
+	 * pointer there: items take the focus on a move, a press focuses the menu, and a second
+	 * click runs the item again. That would run an item twice, or pull focus off what the
+	 * selected item just focused, such as an inline rename input whose blur ends the rename.
+	 * `pointer-events: none` is no substitute: a press would land on what lies beneath.
+	 */
+	function absorbWhileClosing(e: Event) {
+		if ((e.currentTarget as HTMLElement).dataset.state !== "closed") return;
+		e.stopPropagation();
+		e.preventDefault();
+	}
 </script>
 
 <ContextMenuPortal {...portalProps}>
@@ -23,6 +36,10 @@
 			"bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-end-2 data-[side=right]:slide-in-from-start-2 data-[side=top]:slide-in-from-bottom-2 z-50 max-h-(--bits-context-menu-content-available-height) min-w-[8rem] origin-(--bits-context-menu-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-md border p-1 shadow-md",
 			className
 		)}
+		onpointermovecapture={absorbWhileClosing}
+		onpointerleavecapture={absorbWhileClosing}
+		onmousedowncapture={absorbWhileClosing}
+		onclickcapture={absorbWhileClosing}
 		{...restProps}
 	/>
 </ContextMenuPortal>

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { test, expect, TEST_VAULT_PATH } from '../fixtures/test-vault';
+import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { expectTabActive, pressShortcut } from '../fixtures/helpers';
 
 /** Reads one persisted layout flag from settings.json on the mock FS. */
@@ -84,16 +84,29 @@ test.describe('Right sidebar panels', () => {
 });
 
 test.describe('Default pane sizes', () => {
-	test.use({ viewport: { width: 1440, height: 900 } });
+	const SETTINGS_PATH = `${TEST_VAULT_PATH}/.kokobrain/settings.json`;
+	const settings = JSON.parse(TEST_FILES[SETTINGS_PATH]);
+	for (const key of ['railWidth', 'navigatorSize', 'noteListSize', 'rightSidebarSize']) delete settings.layout[key];
 
-	test('at 1440 px with the navigator, note list and right sidebar open the editor stays at least 600 px wide', async ({ vaultPage: page }) => {
-		// The test vault saves no pane sizes, so these are the defaults.
-		await openNote(page, '', 'Welcome');
-		await expect(page.locator('[data-files-navigator]')).toBeVisible();
-		await expect(noteList(page)).toBeVisible();
-		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
+	test.use({ viewport: { width: 1440, height: 900 }, vaultFiles: { ...TEST_FILES, [SETTINGS_PATH]: JSON.stringify(settings, null, 2) } });
 
-		const width = (await page.locator('.cm-editor').boundingBox())!.width;
-		expect(width).toBeGreaterThanOrEqual(600);
+	test('a vault with no saved sizes opens at the minimums, and a pane drags wider from there', async ({ vaultPage: page }) => {
+		await page.locator('[data-rail-item="files"]').click();
+		expect((await page.locator('[data-rail]').boundingBox())!.width).toBe(140);
+
+		// 3 % of the 1300 px left of the rail.
+		for (const pane of [page.locator('[data-files-navigator]'), noteList(page), page.locator('[data-right-sidebar]')]) {
+			await expect(pane).toBeVisible();
+			const width = (await pane.boundingBox())!.width;
+			expect(Math.abs(width - 39)).toBeLessThanOrEqual(2);
+		}
+
+		// The handle is 1 px wide and the editor covers its right half, so grab its hit area on the list's side.
+		const handle = (await page.locator('[data-slot="resizable-handle"]').nth(1).boundingBox())!;
+		await page.mouse.move(handle.x - 1, 450);
+		await page.mouse.down();
+		await page.mouse.move(handle.x + 300, 450, { steps: 8 });
+		await page.mouse.up();
+		expect((await noteList(page).boundingBox())!.width).toBeGreaterThan(200);
 	});
 });

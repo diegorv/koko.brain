@@ -133,6 +133,7 @@ describe('NoteActionBar', () => {
 		tocStore.setExpandedPath(null);
 		editorStore.reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		neighbourhoodStore.reset();
 		trashStore.setItems([]);
 		vaultStore._reset();
@@ -195,12 +196,7 @@ describe('NoteActionBar', () => {
 		openNote('---\ntitle: Plan\n---\nBody\n');
 		render();
 		const organized = button(/organized/);
-		expect(organized.title).toBe('Set note as organized (Cmd+E)');
-
-		organized.click();
-		await settle();
-
-		expect(disk.get(PATH)).toBe('---\ntitle: Plan\n_organized: true\n---\nBody\n');
+		// A missing _organized reads as organized, as in the Rust index, so the toggle starts pressed.
 		expect(organized.title).toBe('Set note as not organized (Cmd+E)');
 		expect(organized.getAttribute('aria-pressed')).toBe('true');
 
@@ -209,6 +205,14 @@ describe('NoteActionBar', () => {
 
 		expect(disk.get(PATH)).toBe('---\ntitle: Plan\n_organized: false\n---\nBody\n');
 		expect(organized.title).toBe('Set note as organized (Cmd+E)');
+		expect(organized.getAttribute('aria-pressed')).toBe('false');
+
+		organized.click();
+		await settle();
+
+		expect(disk.get(PATH)).toBe('---\ntitle: Plan\n_organized: true\n---\nBody\n');
+		expect(organized.title).toBe('Set note as not organized (Cmd+E)');
+		expect(organized.getAttribute('aria-pressed')).toBe('true');
 	});
 
 	it('reflects a flag set in the editor without any click', () => {
@@ -237,23 +241,45 @@ describe('NoteActionBar', () => {
 		expect(button(/favorites/).getAttribute('aria-pressed')).toBe('false');
 	});
 
-	it('the right-sidebar button toggles the sidebar like Cmd+B', () => {
+	it('has no right-sidebar toggle of its own: the tab band has the only one', () => {
 		openNote('Body\n');
-		settingsStore.updateLayout({ rightSidebarVisible: false });
+		for (const visible of [false, true]) {
+			settingsStore.updateLayout({ rightSidebarVisible: visible });
+			render();
+			expect([...target.querySelectorAll('button')].filter((b) => /sidebar/i.test(b.title + (b.getAttribute('aria-label') ?? '')))).toEqual([]);
+			if (component) unmount(component);
+			component = null;
+			target.remove();
+		}
+	});
+
+	it('separates Favorite and Organized, the Raw group and More with a thin divider each', () => {
+		openNote('Body\n');
 		render();
-		const toggle = button(/right sidebar/);
-		expect(toggle.title).toBe('Open the right sidebar (Cmd+B)');
 
-		toggle.click();
-		flushSync();
+		const bar = target.querySelector<HTMLElement>('[data-testid="note-action-bar"]')!;
+		const sequence = [...bar.children].flatMap((el) => {
+			if (el.hasAttribute('data-bar-divider')) return ['|'];
+			const label = el.getAttribute('aria-label');
+			return el.tagName === 'BUTTON' && label ? [label] : [];
+		});
+		expect(sequence).toEqual([
+			'Add to favorites',
+			'Set note as not organized',
+			'|',
+			'Show raw Markdown',
+			'|',
+			'More note actions',
+		]);
+	});
 
-		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
-		expect(toggle.title).toBe('Close the right sidebar (Cmd+B)');
+	it('is a pane toolbar, like the Properties header, with no height of its own', () => {
+		openNote('Body\n');
+		render();
 
-		toggle.click();
-		flushSync();
-
-		expect(settingsStore.layout.rightSidebarVisible).toBe(false);
+		const bar = target.querySelector<HTMLElement>('[data-testid="note-action-bar"]')!;
+		expect(bar.classList).toContain('pane-toolbar');
+		expect([...bar.classList].filter((c) => /^h-/.test(c))).toEqual([]);
 	});
 
 	/** Opens the More menu from the keyboard and returns its item labelled `label`. */
@@ -290,7 +316,8 @@ describe('NoteActionBar', () => {
 		button(/organized/).click();
 		await settle();
 
-		expect(disk.get(PATH)).toBe('---\n_archived: true\n_organized: true\n---\nBody\n');
+		// A missing _organized reads as organized, as in the Rust index, so the click turns it off.
+		expect(disk.get(PATH)).toBe('---\n_archived: true\n_organized: false\n---\nBody\n');
 		expect(await moreItem('Restore this archived note')).toBeTruthy();
 	});
 
@@ -303,8 +330,9 @@ describe('NoteActionBar', () => {
 
 		(await moreItem('Delete this note')).click();
 		await vi.waitFor(() => expect(editorStore.tabs).toEqual([]));
+		// applyPathChange closes the tab before its disk op awaits the Trash move.
+		await vi.waitFor(() => expect(disk.has(PATH)).toBe(false));
 
-		expect(disk.has(PATH)).toBe(false);
 		expect(trashStore.items.map((i) => i.originalPath)).toEqual(['Projects/Launch plan.md']);
 		expect([...disk.keys()].some((k) => k.startsWith('/vault/.kokobrain/trash/') && k.endsWith('/Launch plan.md'))).toBe(true);
 		expect(toast.error).not.toHaveBeenCalled();
@@ -318,7 +346,12 @@ describe('NoteActionBar', () => {
 		(await moreItem('Delete this note')).click();
 		await settle();
 
-		expect(ask).toHaveBeenCalledWith('Move "Launch plan.md" to trash?', { title: 'Move to Trash', kind: 'warning' });
+		expect(ask).toHaveBeenCalledWith('Move "Launch plan.md" to trash?', {
+			title: 'Move to Trash',
+			kind: 'warning',
+			okLabel: 'Move to Trash',
+			cancelLabel: 'Cancel',
+		});
 		expect(editorStore.tabs.map((t) => t.path)).toEqual([PATH]);
 		expect(disk.has(PATH)).toBe(true);
 	});
@@ -343,9 +376,13 @@ describe('NoteActionBar', () => {
 		expect(editorStore.isLivePreview).toBe(true);
 	});
 
+	/** A bar wide enough to show every foldable action inline. */
+	const WIDE = BAR_RESERVED_WIDTH + 5 * ACTION_SLOT_WIDTH;
+
 	it('note width switches the one global setting and the button shows the current state', () => {
 		openNote('Body\n');
 		render();
+		resizeBar(WIDE);
 		const widthButton = button(/note width/);
 		expect(widthButton.getAttribute('aria-label')).toBe('Use the full note width');
 		expect(widthButton.getAttribute('aria-pressed')).toBe('false');
@@ -367,6 +404,7 @@ describe('NoteActionBar', () => {
 		openNote('# Heading\n');
 		settingsStore.updateLayout({ rightSidebarVisible: false });
 		render();
+		resizeBar(WIDE);
 
 		button(/table of contents/).click();
 		flushSync();
@@ -379,6 +417,7 @@ describe('NoteActionBar', () => {
 	it('Reveal in Finder reveals the active note', async () => {
 		openNote('Body\n');
 		render();
+		resizeBar(WIDE);
 
 		button(/Reveal in Finder/).click();
 		await settle();
@@ -389,6 +428,7 @@ describe('NoteActionBar', () => {
 	it('Reveal in Finder shows an error toast when the reveal fails', async () => {
 		openNote('Body\n');
 		render();
+		resizeBar(WIDE);
 		vi.mocked(revealItemInDir).mockRejectedValueOnce(new Error('not found'));
 
 		button(/Reveal in Finder/).click();
@@ -400,6 +440,7 @@ describe('NoteActionBar', () => {
 	it('Copy path copies the absolute path and confirms with a toast', async () => {
 		openNote('Body\n');
 		render();
+		resizeBar(WIDE);
 
 		button(/Copy path/).click();
 		await settle();
@@ -434,9 +475,21 @@ describe('NoteActionBar', () => {
 		);
 	}
 
-	it('folds width, TOC and the path actions into More as the bar narrows, and back when space returns', async () => {
+	it('starts with every foldable action in More, before and after a typical-width measure', async () => {
 		openNote('Body\n');
 		render();
+		expect(inlineActions()).toEqual([]);
+
+		resizeBar(700);
+		expect(inlineActions()).toEqual([]);
+		await moreItem('Copy deeplink');
+		expect(menuActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
+	});
+
+	it('brings the actions inline on a wide bar and folds width, TOC and the path actions back as it narrows', async () => {
+		openNote('Body\n');
+		render();
+		resizeBar(WIDE);
 		expect(inlineActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
 
 		resizeBar(BAR_RESERVED_WIDTH + 3 * ACTION_SLOT_WIDTH);
@@ -453,11 +506,36 @@ describe('NoteActionBar', () => {
 		expect(inlineActions()).toEqual(['neighbourhood', 'width', 'toc', 'reveal', 'copy-path']);
 	});
 
+	/** The open More menu's entries: a foldable by its action, the rest by label, separators as `---`. */
+	async function moreEntries(): Promise<string[]> {
+		const content = (await moreItem('Copy deeplink')).parentElement!;
+		return [...content.children].map((el) =>
+			el.getAttribute('data-slot') === 'dropdown-menu-separator'
+				? '---'
+				: ((el as HTMLElement).dataset.action ?? el.textContent?.trim() ?? ''),
+		);
+	}
+
+	it('groups More as the folded actions with Copy deeplink, then the lifecycle actions', async () => {
+		openNote('Body\n');
+		render();
+		resizeBar(BAR_RESERVED_WIDTH + 3 * ACTION_SLOT_WIDTH);
+
+		expect(await moreEntries()).toEqual(['reveal', 'copy-path', 'Copy deeplink', '---', 'Archive this note', 'Delete this note']);
+	});
+
+	it('draws no separator in More when nothing is folded, which would leave Copy deeplink alone', async () => {
+		openNote('Body\n');
+		render();
+		resizeBar(WIDE);
+
+		expect(await moreEntries()).toEqual(['Copy deeplink', 'Archive this note', 'Delete this note']);
+	});
+
 	it('a folded action still works from More', async () => {
 		openNote('# Heading\n');
 		settingsStore.updateLayout({ rightSidebarVisible: false });
 		render();
-		resizeBar(BAR_RESERVED_WIDTH);
 
 		(await moreItem('Show the table of contents')).click();
 		await settle();
@@ -469,10 +547,11 @@ describe('NoteActionBar', () => {
 	describe('Neighbourhood', () => {
 		const neighbourhoodButton = () => target.querySelector<HTMLButtonElement>('button[data-action="neighbourhood"]');
 
-		it('shows before Raw and fills the note list with this note\'s neighbourhood', () => {
+		it('shows before Raw on a wide bar and fills the note list with this note\'s neighbourhood', () => {
 			settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
 			openNote('Body\n');
 			render();
+			resizeBar(WIDE);
 
 			const btn = neighbourhoodButton()!;
 			expect(btn.getAttribute('aria-label')).toBe("Show this note's neighbourhood in the note list");

@@ -6,9 +6,8 @@
 	// Deep import on purpose: `decorator-names` is a names-only module with no
 	// imports of its own, so the settings chunk stays free of katex, mermaid
 	// and DOMPurify. Never import the registry in `live-preview.ts` here.
-	import { DECORATOR_NAMES } from '#lib/core/markdown-editor/extensions/live-preview/core/decorator-names.js';
+	import { DECORATOR_LABELS, DECORATOR_NAMES } from '#lib/core/markdown-editor/extensions/live-preview/core/decorator-names.js';
 	import { settingsStore } from '../settings.store.svelte';
-	import BuildInfo from '../BuildInfo.svelte';
 	import SettingItem from './SettingItem.svelte';
 
 	function isDecoratorDisabled(name: string): boolean {
@@ -19,13 +18,7 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Troubleshooting</h2>
 
-	<h3 class="mb-2 text-sm font-medium text-muted-foreground">About</h3>
-
-	<SettingItem label="Build" description="Release channel, version, commit hash, and build time">
-		<BuildInfo />
-	</SettingItem>
-
-	<h3 class="mb-2 text-sm font-medium text-muted-foreground">Frontend</h3>
+	<h3 class="section-label mb-2">Frontend</h3>
 
 	<SettingItem
 		label="Debug mode"
@@ -59,8 +52,19 @@
 	</SettingItem>
 
 	<SettingItem
-		label="Heartbeat ([HB] alive every 250 ms)"
-		description="Emit a heartbeat tick, a [HB] stall line when the UI thread was blocked, and a [NAV] line with click-to-paint time for every click. Also logs [MAIN-HB] stall lines when the app main thread was blocked (needs Tauri debug mode and Tauri log to file). Off by default, only enable when investigating a stall (requires log to file)"
+		label="Save mod run messages to file"
+		description="Save raw run.log text locally. Also requires Save debug log to file. Messages may contain note text, paths, prompts, API responses or secrets. Inspect log files before sharing. Turning this off stops future messages but does not delete content already saved. Existing ctx.log and error diagnostics are unaffected."
+	>
+		<Switch
+			aria-label="Save mod run messages to file"
+			checked={settingsStore.debugModRunMessages}
+			onCheckedChange={(v) => settingsStore.updateDebugModRunMessages(v)}
+		/>
+	</SettingItem>
+
+	<SettingItem
+		label="Heartbeat"
+		description="Log a tick every 250 ms, UI and main-thread stalls, and click-to-paint time. Needs a log file. Leave off unless you are chasing a stall."
 	>
 		<Switch
 			checked={settingsStore.debugHeartbeat}
@@ -80,11 +84,11 @@
 		description="Browse saved log files in the system file manager"
 	>
 		<Button variant="outline" size="sm" onclick={() => openLogDir()}>
-			Open
+			Show in Finder
 		</Button>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Live Preview</h3>
+	<h3 class="section-label mt-6 mb-2">Live preview</h3>
 
 	<SettingItem
 		label="Profile decoration plugins"
@@ -98,16 +102,18 @@
 		/>
 	</SettingItem>
 
-	<p class="text-xs text-muted-foreground mt-4 mb-2">
-		Disable individual decorators for debugging. Changes require app restart.
+	<h3 class="section-label mt-6 mb-2">Live preview decorators</h3>
+
+	<p class="text-meta text-muted-foreground">
+		Turn one off to isolate a rendering problem. A change applies the next time a note opens.
 	</p>
 
 	{#each DECORATOR_NAMES as name}
 		<SettingItem
-			label={name}
-			description=""
+			label={DECORATOR_LABELS[name]}
 		>
 			<Switch
+				aria-label={DECORATOR_LABELS[name]}
 				checked={!isDecoratorDisabled(name)}
 				onCheckedChange={(v) => {
 					settingsStore.toggleDecorator(name, !v);
@@ -116,7 +122,7 @@
 		</SettingItem>
 	{/each}
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Backend (Tauri)</h3>
+	<h3 class="section-label mt-6 mb-2">Backend (Tauri)</h3>
 
 	<SettingItem
 		label="Tauri debug mode"

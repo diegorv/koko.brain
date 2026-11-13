@@ -23,21 +23,37 @@
 		/** Color of a tab's title, or undefined for the theme default. */
 		tabTitleColor?: (path: string) => string | undefined;
 	} = $props();
+
+	/** The scrolling tab strip, set once it renders (it only exists while tabs are open). */
+	let strip = $state<HTMLElement>();
+
+	// The strip scrolls horizontally and nothing else moves it, so a tab that
+	// becomes active (opened at the end, cycled to, restored) could sit off-strip.
+	// The path catches a new tab at the same index (pinned insert, closing the
+	// active tab). It goes through a `$derived` because the store getter reads
+	// `tabs.length`: tracked directly, closing any other tab would pull a strip
+	// the user scrolled away back to the active tab.
+	const activePath = $derived(editorStore.activeTabPath);
+	$effect(() => {
+		const index = editorStore.activeIndex;
+		void activePath;
+		strip?.querySelectorAll<HTMLElement>('[role="tab"]')[index]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+	});
 </script>
 
 {#if editorStore.tabs.length > 0}
-	<div class="editor-tabs-bar flex items-end h-10 bg-tab-bar overflow-x-auto pt-1 px-1 gap-0.5" role="tablist" data-tauri-drag-region>
+	<div bind:this={strip} class="editor-tabs-bar flex items-end h-10 bg-tab-bar overflow-x-auto pt-1 px-1 gap-0.5" role="tablist" data-tauri-drag-region>
 		{#each editorStore.tabs as tab, index}
 			{@const pinned = isTabPinned(tab)}
 			<ContextMenu.Root>
 				<ContextMenu.Trigger>
 					{#snippet children()}
 						<div
-							class="group flex items-center gap-1.5 rounded-t-lg text-sm cursor-pointer select-none shrink-0 transition-colors
-								{pinned ? 'px-2 py-2' : 'px-3 py-1.5'}
+							class="group flex items-center gap-1.5 h-8 border-b-2 rounded-t-lg text-sm cursor-pointer select-none shrink-0 transition-colors
+								{pinned ? 'px-2' : 'px-3'}
 								{index === editorStore.activeIndex
-									? 'bg-editor-bg text-tab-text-active border-b-2 border-b-primary'
-									: 'bg-tab-bar text-tab-text-inactive hover:bg-muted/30'}"
+									? 'bg-editor-bg text-tab-text-active border-b-primary'
+									: 'bg-tab-bar text-tab-text-inactive border-b-transparent hover:bg-muted/30'}"
 							role="tab"
 							tabindex="0"
 							aria-selected={index === editorStore.activeIndex}
@@ -68,7 +84,7 @@
 							{#if !pinned}
 								<span class="truncate max-w-40" style:color={tabTitleColor?.(tab.path) || undefined}>{tab.name}</span>
 								<button
-									class="ml-1 rounded p-0.5 opacity-0 group-hover:opacity-100 hover:bg-muted transition-opacity
+									class="ml-1 rounded-xs p-0.5 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 hover:bg-muted transition-opacity
 										{index === editorStore.activeIndex ? 'opacity-100' : ''}"
 									onclick={(e) => { e.stopPropagation(); closeTab(index); }}
 									aria-label="Close {tab.name}"
@@ -81,14 +97,13 @@
 				</ContextMenu.Trigger>
 				<ContextMenu.Content class="w-48">
 					<ContextMenu.Item onclick={() => togglePinTab(index)}>
-						<Pin class="mr-2 size-4" />
-						{pinned ? 'Unpin Tab' : 'Pin Tab'}
+						<Pin class="size-4" />
+						{pinned ? 'Unpin tab' : 'Pin tab'}
 					</ContextMenu.Item>
 					{#if !pinned}
-						<ContextMenu.Separator />
 						<ContextMenu.Item onclick={() => closeTab(index)}>
-							<X class="mr-2 size-4" />
-							Close Tab
+							<X class="size-4" />
+							Close tab
 						</ContextMenu.Item>
 					{/if}
 				</ContextMenu.Content>

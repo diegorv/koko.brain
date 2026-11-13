@@ -1,12 +1,11 @@
 use kokobrain_lib::commands::search_index::IndexStats;
 use kokobrain_lib::commands::vault::{
 	collect_v2_entries, ensure_safe_write_path, project_note_record, scan_vault, scan_vault_inner,
-	scan_vault_v2_cached_inner, scan_vault_v2_inner, section_task_candidates, tasks_in_section,
-	toggle_task_status_inner, update_note_in_index_inner, CachedScanResult, ScanSource,
+	scan_vault_v2_cached_inner, scan_vault_v2_inner, toggle_task_status_inner, update_note_in_index_inner,
+	CachedScanResult, ScanSource,
 };
-use kokobrain_lib::vault::parsing::extract_tasks_from_section;
-use kokobrain_lib::vault::task::FileTaskGroup;
-use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink};
+use kokobrain_lib::vault::task::TaskStatus;
+use kokobrain_lib::vault::entry::{NoteEntry, RelationshipBacklink, WikiLink};
 use kokobrain_lib::vault::index::VaultIndex;
 use kokobrain_lib::vault::index_cache::{
 	cache_file_path, read_snapshot, serialize_snapshot, write_snapshot, write_snapshot_atomic,
@@ -602,6 +601,22 @@ fn update_inner_round_trip_through_save_event_pattern() {
     assert!(idx.backlinks().get("/v/b.md").unwrap().contains("/v/source.md"));
 }
 
+#[test]
+fn update_inner_indexes_the_new_table_body_with_both_view_keys() {
+    // The body the Files navigator's New table writes (`createCollectionFile`):
+    // a `.view` is parsed as bare YAML, so both keys reach the frontmatter the
+    // Views list and the click rule read.
+    let mut idx = VaultIndex::default();
+    let body = "_visible: false\n_open_in_editor: true\nviews:\n  - type: table\n    name: All\n";
+    let result = update_note_in_index_inner(&mut idx, "/v/Untitled.view".to_string(), body, 0);
+    assert!(result.changed);
+    let stored = idx.entries().get("/v/Untitled.view").unwrap();
+    assert_eq!(stored.frontmatter.get("_visible"), Some(&serde_json::json!(false)));
+    assert_eq!(stored.frontmatter.get("_open_in_editor"), Some(&serde_json::json!(true)));
+    assert_eq!(stored.title, "Untitled");
+    assert!(stored.is_a.is_none());
+}
+
 // --- ensure_safe_write_path (path-traversal guard for create_note/folder) ---
 
 #[test]
@@ -694,10 +709,19 @@ fn toggle_task_result_wire_shape_matches_ts_interface() {
     let path_str = path.to_string_lossy().to_string();
 
     let mut idx = VaultIndex::default();
-    let result = toggle_task_status_inner(&mut idx, &path_str, 1).unwrap();
+    let result = toggle_task_status_inner(
+        &mut idx,
+        &path_str,
+        1,
+        "Flip me",
+        TaskStatus::Todo,
+        TaskStatus::Done,
+    )
+    .unwrap();
 
     let value = serde_json::to_value(&result).unwrap();
     assert_eq!(value["updatedContent"], "- [x] Flip me\n");
+    assert_eq!(value["stale"], false);
     let update = &value["updateResult"];
     assert_eq!(update["changed"], true);
     assert!(update["affected"].is_array());
@@ -955,7 +979,7 @@ fn entries_with_subset_parsed_notes(vault: &str) -> Vec<NoteEntry> {
 
 #[test]
 fn cached_inner_discards_a_schema_3_snapshot_and_reparses() {
-    assert_eq!(INDEX_SCHEMA_VERSION, 4);
+    assert_eq!(INDEX_SCHEMA_VERSION, 7);
     let dir = TempDir::new().unwrap();
     fs::write(dir.path().join("a.md"), "---\nnotes: |-\n  one\n  two\n---\nBody").unwrap();
     let vault = dir.path().to_string_lossy().to_string();
@@ -966,11 +990,87 @@ fn cached_inner_discards_a_schema_3_snapshot_and_reparses() {
     assert_eq!(result.source, ScanSource::FullScan);
 
     let snap = read_snapshot(&vault).unwrap().unwrap();
-    assert_eq!(snap.schema_version, 4);
+    assert_eq!(snap.schema_version, 7);
     assert_eq!(
         snap.entries[0].frontmatter.get("notes"),
         Some(&serde_json::json!("one\ntwo"))
     );
+}
+
+#[test]
+fn cached_inner_drops_the_links_a_schema_4_snapshot_kept_for_a_view() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("Foo.md"), "# Foo").unwrap();
+    fs::write(dir.path().join("Board.view"), "source: \"[[Foo]]\"\n").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    // A schema-4 parse gave the view its YAML's links; the mtime still matches.
+    let (mut notes, _) = scan_vault_v2_inner(&vault, &VaultIndexState::default()).unwrap();
+    for e in notes.iter_mut().filter(|e| e.path.ends_with("Board.view")) {
+        e.outgoing_links = vec![WikiLink { target: "Foo".to_string(), ..Default::default() }];
+    }
+    write_snapshot_with_version(&vault, 4, notes);
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::FullScan);
+
+    let idx = state.read().unwrap();
+    let view = idx
+        .entries()
+        .values()
+        .find(|e| e.path.ends_with("Board.view"))
+        .expect("view indexed");
+    assert!(view.outgoing_links.is_empty(), "stale links: {:?}", view.outgoing_links);
+}
+
+#[test]
+fn cached_inner_records_task_headings_a_schema_5_snapshot_lacked() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "## A\n- [ ] t\n").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    // A schema-5 parse had no headings; the mtime still matches.
+    let (mut notes, _) = scan_vault_v2_inner(&vault, &VaultIndexState::default()).unwrap();
+    for e in &mut notes {
+        e.task_headings.clear();
+        for t in &mut e.tasks {
+            t.heading = None;
+        }
+    }
+    write_snapshot_with_version(&vault, 5, notes);
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::FullScan);
+
+    let idx = state.read().unwrap();
+    let a = idx.entries().values().next().expect("a.md indexed");
+    assert_eq!(a.task_headings.len(), 1);
+    assert_eq!(a.tasks[0].heading, Some(0));
+}
+
+#[test]
+fn cached_inner_reparses_the_ascii_task_tags_a_schema_6_snapshot_kept() {
+    let dir = TempDir::new().unwrap();
+    fs::write(dir.path().join("a.md"), "- [ ] rever #revisão\n").unwrap();
+    let vault = dir.path().to_string_lossy().to_string();
+    // A schema-6 parse read ASCII-only task tags; the mtime still matches.
+    let (mut notes, _) = scan_vault_v2_inner(&vault, &VaultIndexState::default()).unwrap();
+    for e in &mut notes {
+        for t in &mut e.tasks {
+            t.metadata.tags = vec!["revis".to_string()];
+            t.metadata.description = "rever ão".to_string();
+        }
+    }
+    write_snapshot_with_version(&vault, 6, notes);
+
+    let state = VaultIndexState::default();
+    let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
+    assert_eq!(result.source, ScanSource::FullScan);
+
+    let idx = state.read().unwrap();
+    let a = idx.entries().values().next().expect("a.md indexed");
+    assert_eq!(a.tasks[0].metadata.tags, vec!["revisão".to_string()]);
+    assert_eq!(a.tasks[0].metadata.description, "rever");
 }
 
 #[test]
@@ -1002,84 +1102,4 @@ fn cached_inner_drops_deleted_files() {
     let (result, _) = scan_vault_v2_cached_inner(&vault, &state).unwrap();
     assert_eq!(result.source, ScanSource::CacheReconciled);
     assert_eq!(result.entry_count, 1);
-}
-
-/// Writes `content` to `dir/name` and indexes it with `modified_at`.
-fn index_note(idx: &mut VaultIndex, dir: &TempDir, name: &str, content: &str, modified_at: i64) -> String {
-	let path = dir.path().join(name).to_string_lossy().to_string();
-	fs::write(&path, content).unwrap();
-	idx.update_entry(NoteEntry::from_content(path.clone(), content, modified_at));
-	path
-}
-
-#[test]
-fn tasks_in_section_reads_only_notes_with_tasks() {
-	let dir = TempDir::new().unwrap();
-	let mut idx = VaultIndex::default();
-	let a = index_note(&mut idx, &dir, "a.md", "## Todo #to-list\n- [ ] buy milk\n", 2);
-	index_note(&mut idx, &dir, "b.md", "## Todo #to-list\nno tasks here\n", 1);
-
-	let mut reads: Vec<String> = Vec::new();
-	let candidates = section_task_candidates(idx.entries().values());
-	let groups = tasks_in_section(candidates, "#to-list", |p| {
-		reads.push(p.to_string());
-		fs::read_to_string(p)
-	});
-
-	assert_eq!(reads, vec![a.clone()]);
-	assert_eq!(groups.len(), 1);
-	assert_eq!(groups[0].file_path, a);
-	assert_eq!(groups[0].tasks[0].text, "buy milk");
-}
-
-#[test]
-fn tasks_in_section_skips_unreadable_notes() {
-	let dir = TempDir::new().unwrap();
-	let mut idx = VaultIndex::default();
-	let a = index_note(&mut idx, &dir, "a.md", "## Todo #to-list\n- [ ] one\n", 2);
-	index_note(&mut idx, &dir, "gone.md", "## Todo #to-list\n- [ ] two\n", 1);
-	fs::remove_file(dir.path().join("gone.md")).unwrap();
-
-	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), "#to-list", |p| fs::read_to_string(p));
-
-	assert_eq!(groups.iter().map(|g| g.file_path.clone()).collect::<Vec<_>>(), vec![a]);
-}
-
-#[test]
-fn tasks_in_section_on_empty_index_returns_empty() {
-	let idx = VaultIndex::default();
-	let groups = tasks_in_section(section_task_candidates(idx.entries().values()), "#to-list", |p| fs::read_to_string(p));
-	assert!(groups.is_empty());
-}
-
-#[test]
-fn tasks_in_section_matches_the_unfiltered_loop() {
-	let dir = TempDir::new().unwrap();
-	let mut idx = VaultIndex::default();
-	index_note(&mut idx, &dir, "in-section.md", "# Day\n## Todo #to-list\n- [ ] a\n- [x] b\n## Other\n- [ ] c\n", 6);
-	index_note(&mut idx, &dir, "outside.md", "## Notes\n- [ ] not listed\n", 5);
-	index_note(&mut idx, &dir, "no-tasks.md", "## Todo #to-list\njust text\n", 4);
-	index_note(&mut idx, &dir, "fenced.md", "## Todo #to-list\n```\n- [ ] in code\n```\n- [ ] real\n", 3);
-	index_note(&mut idx, &dir, "nested.md", "## Todo #to-list\n### Sub\n- [ ] nested\n# Top\n- [ ] after\n", 2);
-	index_note(&mut idx, &dir, "bare-tag.md", "## Inbox #to-list-later\n- [ ] prefix match\n", 1);
-
-	for tag in ["#to-list", "to-list", "#missing"] {
-		let mut expected: Vec<FileTaskGroup> = Vec::new();
-		for entry in idx.entries().values() {
-			let content = fs::read_to_string(&entry.path).unwrap();
-			let tasks = extract_tasks_from_section(&content, tag);
-			if !tasks.is_empty() {
-				expected.push(FileTaskGroup {
-					file_path: entry.path.clone(),
-					file_name: kokobrain_lib::vault::task::display_name(&entry.path),
-					modified_at: entry.modified_at,
-					tasks,
-				});
-			}
-		}
-		expected.sort_by_key(|g| std::cmp::Reverse(g.modified_at));
-
-		let actual = tasks_in_section(section_task_candidates(idx.entries().values()), tag, |p| fs::read_to_string(p));
-		assert_eq!(actual, expected, "tag {tag}");
-	}
 }

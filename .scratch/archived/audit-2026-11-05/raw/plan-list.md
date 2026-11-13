@@ -1,0 +1,153 @@
+# Audit plan Issues (for cross-check)
+
+- 01 `01-caret-selection-follow-their-text-when-frontmatter.md`: The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note
+- 02 `02-keyboard-edits-next-hidden-frontmatter-never-change.md`: Keyboard edits next to the hidden frontmatter never change its fences
+- 03 `03-quick-capture-writes-page-titles-app-ids.md`: Quick Capture writes page titles, app ids and URLs into template frontmatter as valid YAML
+- 04 `04-closing-main-window-never-leaves-windowless-app.md`: Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working
+- 05 `05-live-preview-controls-change-only-text-user.md`: Live-preview controls change only the text the user asked to change: fence attributes, task markers and tab-indented pastes stay intact
+- 06 `06-canvas-edit-closed-renamed-inside-debounce-window.md`: A canvas edit closed or renamed inside the debounce window reaches its .canvas file
+- 07 `07-empty-frontmatter-block-matched-writers-never-stack.md`: An empty --- --- frontmatter block is matched, and writers never stack a second block
+- 08 `08-file-history-keeps-snapshot-pre-save-bytes.md`: File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot
+- 09 `09-kanban-card-lane-title-being-edited-saved.md`: A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab
+- 10 `10-images-notes-display-vault-under-kokobrain-vaults.md`: Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root and keeps the folders the README documents
+- 11 `11-rendered-table-cells-show-links-highlight-underscore.md`: Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content
+- 12 `12-backlinks-outgoing-links-always-show-open-note.md`: Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version
+- 13 `13-closing-tab-unsaved-text-saves-closes-prompt.md`: Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails
+- 14 `14-canvas-image-nodes-load-their-image-main.md`: Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots
+- 15 `15-canvas-file-image-nodes-store-vault-relative.md`: Canvas file and image nodes store vault-relative paths and resolve both absolute and vault-relative ones
+- 16 `16-kanban-drag-drop-puts-card-lane-exactly.md`: Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows
+- 17 `17-dataarray-sort-sortby-keep-items-that-have.md`: DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end
+- 18 `18-standard-markdown-images-vault-relative-path-load.md`: Standard markdown images with a vault-relative path load from the vault
+- 19 `19-wikilink-autocomplete-inserts-non-markdown-file-extension.md`: Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image
+- 20 `20-enter-quick-switcher-creates-note-when-nothing.md`: Enter in the quick switcher creates the note when nothing matches
+- 21 `21-lens-lists-follow-user-s-own-rename.md`: Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle
+- 22 `22-note-list-inline-rename-that-file-name.md`: A note-list inline rename that the file name rules refuse says why, like the folder rename does
+- 23 `23-file-history-follows-note-through-rename-move.md`: File History follows a note through rename, move, auto-move and suffixed restore
+- 24 `24-text-search-shows-only-own-results-query.md`: A text search shows only its own results: a query with no hits says No results found, even right after a tag click
+- 25 `25-text-search-tag-path-returns-every-note.md`: Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags
+- 26 `26-outgoing-links-marks-row-broken-only-when.md`: Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red
+- 27 `27-numeric-filters-never-match-note-that-lacks.md`: Numeric <, <=, > and >= filters never match a note that lacks the property
+- 28 `28-renaming-kanban-lane-keeps-card-limit-auto.md`: Renaming a kanban lane keeps its card limit, auto-complete and collapsed state
+- 29 `29-canvas-file-nodes-preview-note-without-yaml.md`: Canvas file nodes preview the note without its YAML frontmatter
+- 30 `30-canvas-duplicate-places-copy-next-node-s.md`: Canvas Duplicate places the copy next to the node's current position and size
+- 31 `31-renaming-moving-note-updates-links-kanban-cards.md`: Renaming or moving a note updates [[links]] in kanban cards and file nodes in canvases
+- 32 `32-queryjs-block-run-seconds-after-save-shows.md`: A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result
+- 33 `33-kb-pages-folder-returns-notes-that-folder.md`: kb.pages('"folder"') returns the notes in that folder and its subfolders only
+- 34 `34-tasks-view-treats-only-done-cancelled-tasks.md`: The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed
+- 35 `35-tasks-view-keeps-list-scroll-position-screen.md`: The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update
+- 36 `36-auto-move-evaluates-moves-only-markdown-notes.md`: Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are
+- 37 `37-leaving-theme-editor-any-way-other-than.md`: Leaving the theme editor any way other than Save puts the active theme back on the app
+- 38 `38-relationship-picker-navigates-arrow-keys.md`: The relationship picker navigates with arrow keys
+- 39 `39-settings-update-keeps-download-progress-restart-update.md`: Settings > Update keeps the download progress and Restart to update across closing Settings or changing section, and a second check cannot start a second download
+- 40 `40-paste-cut-copy-inside-meta-bind-number.md`: Paste, cut and copy inside a meta-bind number or date input act on the input, not the note
+- 41 `41-html-link-paste-keeps-bracketed-link-text.md`: HTML link paste keeps bracketed link text and table cells intact
+- 42 `42-image-png-300x200-applies-both-width-height.md`: ![[image.png|300x200]] applies both the width and the height
+- 43 `43-cmd-click-reference-link-email-autolink-opens.md`: Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener
+- 44 `44-copy-block-link-reuses-only-real-trailing.md`: Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID
+- 45 `45-backlinks-outgoing-links-show-load-error-retry.md`: Backlinks and Outgoing links show a load error with Retry, not an empty message
+- 46 `46-settings-file-history-automatic-snapshots-takes-effect.md`: Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen
+- 47 `47-tags-view-keeps-list-expanded-tags-screen.md`: The Tags view keeps its list and expanded tags on screen while it refreshes
+- 48 `48-clearing-search-box-while-search-still-running.md`: Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...
+- 49 `49-tag-click-lists-notes-that-tag-even.md`: A tag click lists the notes with that tag even when Semantic or Hybrid was the selected search mode
+- 50 `50-fuzzy-search-finds-close-spelling-wherever-sits.md`: Fuzzy search finds a close spelling wherever it sits in the vocabulary, not only among the first 500 words with the same first letter
+- 51 `51-formula-that-calls-unknown-function-cannot-confirmed.md`: A formula that calls an unknown function cannot be confirmed and shows why
+- 52 `52-clearing-canvas-node-s-color-link-node.md`: Clearing a canvas node's color or a link node's title is saved to the .canvas file
+- 53 `53-file-inlinks-lists-notes-that-link-note.md`: file.inlinks lists the notes that link to a note whose name contains a dot
+- 54 `54-vault-open-creates-every-missing-placeholder-template.md`: Vault open creates every missing placeholder template, including the parent folders periodic-note/ and quick-capture/
+- 55 `55-todoist-sync-tells-user-when-could-not.md`: Todoist sync tells the user when it could not reach Todoist or the token was rejected
+- 56 `56-new-file-from-template-says-name-taken.md`: New File from Template says the name is taken instead of silently opening the existing note
+- 57 `57-quick-switcher-create-folder-path-projects-idea.md`: Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why
+- 58 `58-dragging-node-graph-moves-that-node-dragging.md`: Dragging a node in the graph moves that node; dragging the background pans
+- 59 `59-switching-graph-arrows-toggle-redraws-graph-once.md`: Switching the graph Arrows toggle redraws the graph at once, also after the layout has settled
+- 60 `60-live-preview-paints-no-active-line-background.md`: Live preview paints no active-line background; source mode keeps it
+- 61 `61-editor-tables-use-full-content-width-hover.md`: Editor tables use the full content width, with hover controls overlaid and the gap below the table kept
+- 62 `62-status-bar-note-count-follows-notes-created.md`: The status bar note count follows notes created, imported and deleted during the session
+- 63 `63-tags-view-explains-when-rare-tag-filter.md`: The Tags view explains when the rare-tag filter hides everything
+- 64 `64-word-count-graph-stats-read-correctly-zero.md`: Word count and graph stats read correctly for zero and one
+- 65 `65-hovering-open-note-keeps-fill-kanban-lane.md`: Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover
+- 66 `66-collection-table-reads-table.md`: The collection table reads as a table
+- 67 `67-first-semantic-hybrid-search-after-one-file.md`: The first semantic or hybrid search after a one-file index update does not reload the whole search cache
+- 68 `68-kanban-date-proximity-has-one-token-based.md`: Kanban date proximity has one token-based map, and done cards drop it
+- 69 `69-new-event-dialog-shows-enter-title-only.md`: The New event dialog shows "Enter a title." only after the title was touched
+- 70 `70-command-palette-shows-dense-one-line-rows.md`: The command palette shows dense one-line rows with key hints
+- 71 `71-opening-settings-moves-focus-into-drawer-closing.md`: Opening Settings moves focus into the drawer, and closing returns it
+- 72 `72-click-audio-player-wrapper-s-padding-moves.md`: A click in the audio player wrapper's padding moves the cursor like a click next to the widget
+- 73 `73-every-language-code-block-dropdown-guide-offer.md`: Every language the code-block dropdown and the guide offer is syntax-highlighted
+- 74 `74-markdown-guide-s-quick-reference-shows-block.md`: The Markdown guide's Quick Reference shows block math in the three-line $$ form the editor renders
+- 75 `75-auto-move-example-s-steps-move-notes.md`: The auto-move example's steps move the notes as written: edit then save, the right default delay, rules loaded after copying the file
+- 76 `76-personal-week-kanban-example-uses-valid-sortmode.md`: The personal-week kanban example uses the valid sortMode "checked", and the docs say the sort is per board
+- 77 `77-periodic-notes-help-shows-format-examples-that.md`: The Periodic Notes help shows format examples that escape literal words with [ ]
+- 78 `78-tasks-help-says-default-view-lists-only.md`: The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date
+- 79 `79-calendar-day-more-than-three-notes-lets.md`: A calendar day with more than three notes lets the user reach every note
+- 80 `80-kb-table-kb-ui-table-kb-list.md`: A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link
+- 81 `81-search-panel-stops-repeating-index-status-status.md`: The Search panel stops repeating the index status the status bar already shows
+- 82 `82-retention-days-debounce-delay-accept-typed-values.md`: Retention days and Debounce delay accept typed values and clamp on commit
+- 83 `83-kanban-cards-drop-empty-date-row-until.md`: Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable
+- 84 `84-status-colors-use-theme-tokens-test-forbids.md`: Status colors use theme tokens, and a test forbids raw palette classes
+- 85 `85-canvas-nodes-edges-grid-draw-from-theme.md`: Canvas nodes, edges and grid draw from theme tokens, so they show on light themes
+- 86 `86-canvas-menus-pickers-edge-labels-use-theme.md`: Canvas menus, pickers and edge labels use theme tokens
+- 87 `87-toasts-editor-s-codemirror-base-follow-theme.md`: Toasts and the editor's CodeMirror base follow the theme mode
+- 88 `88-graph-view-paints-active-theme-s-colors.md`: The graph view paints with the active theme's colors
+- 89 `89-settings-modal-scrim-closes-outside-click-tab.md`: Settings is modal: a scrim closes it on outside click and Tab stays inside
+- 90 `90-help-text-that-belongs-settings-row-sits.md`: Help text that belongs to a settings row sits inside that row through a SettingItem hint prop
+- 91 `91-graph-controls-event-dialog-use-shadcn-select.md`: Graph controls and the event dialog use shadcn Select, Switch and Checkbox
+- 92 `92-search-results-link-rows-reserve-gutter-their.md`: Search results and link rows reserve a gutter for their hover actions
+- 93 `93-default-theme-drops-catppuccin-preview-overrides.md`: The Default theme drops its Catppuccin preview overrides
+- 94 `94-right-sidebar-sections-share-one-header-recipe.md`: Right sidebar sections share one header recipe and one left edge
+- 95 `95-chrome-icon-buttons-share-sizes-use-shadcn.md`: Chrome icon buttons share sizes and use shadcn tooltips
+- 96 `96-settings-groups-render-cards-dividers.md`: Settings groups render as cards with dividers
+- 97 `97-view-toolbar-icon-writes-keep-file-s.md`: .view toolbar and icon writes keep the file's YAML comments
+- 98 `98-external-change-open-note-never-overwritten-next.md`: An external change to an open note is never overwritten by the next autosave or calendar write
+- 99 `99-note-deleted-renamed-outside-app-closed-marked.md`: A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave
+- 100 `100-watcher-rescan-dropped-fsevents-reloads-open-tabs.md`: A watcher rescan (dropped FSEvents) reloads open tabs before the next save
+- 101 `101-unparseable-canvas-opens-error-state-never-overwritten.md`: An unparseable .canvas opens in an error state and is never overwritten by canvas edits
+- 102 `102-file-history-restore-writes-snapshot-into-note.md`: File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active
+- 103 `103-meta-bind-button-stops-remaining-actions-when.md`: A meta-bind button stops its remaining actions when an open action fails
+- 104 `104-meta-bind-button-s-updatemetadata-always-writes.md`: A meta-bind button's updateMetadata always writes the button's own note, also after an open or createNote action
+- 105 `105-keystrokes-typed-during-link-rewrite-type-rename.md`: Keystrokes typed during link rewrite, type rename or watcher reload writes are kept
+- 106 `106-dock-quit-logout-shutdown-run-exit-flush.md`: Dock Quit, logout and shutdown run the exit flush before the app ends
+- 107 `107-note-writes-are-atomic-failed-write-never.md`: Note writes are atomic: a failed write never leaves the note empty or truncated
+- 108 `108-rename-link-rewrite-skips-links-inside-code.md`: Rename link rewrite skips links inside code blocks and updates self links
+- 109 `109-root-unarchive-writes-vault-x-md-auto.md`: Root unarchive writes vault/x.md, auto-move refuses .. segments, and a case or NFC variant of a path reuses the open tab
+- 110 `110-deep-link-names-resolve-safely-md-added.md`: Deep-link names resolve safely: .md is added unless the name ends in a real extension, name=. stays inside the vault, and overwrite never replaces .kokobrain files
+- 111 `111-deep-link-prepend-goes-below-frontmatter-non.md`: Deep-link prepend goes below the frontmatter, and non-silent new keeps <% %> in the sent text
+- 112 `112-duplicate-saves-note-s-unsaved-typing-before.md`: Duplicate saves the note's unsaved typing before copying it
+- 113 `113-duplicate-never-overwrites-sibling-whose-name-differs.md`: Duplicate never overwrites a sibling whose name differs only in case (APFS)
+- 114 `114-unreadable-corrupt-trash-manifest-backed-up-never.md`: An unreadable or corrupt trash manifest is backed up, never replaced by a partial list, and trash writers never orphan trashed items
+- 115 `115-session-whose-settings-json-was-never-loaded.md`: A session whose settings.json was never loaded never writes it and never purges File History at the default retention
+- 116 `116-auto-move-rules-todoist-sent-list-failed.md`: Auto-move rules and the Todoist sent list: a failed load is never saved over the file
+- 117 `117-auto-move-rule-edit-made-just-before.md`: An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json
+- 118 `118-type-rename-reports-partial-failure-also-updates.md`: Type rename reports partial failure and also updates _type values with a trailing comment
+- 119 `119-non-utf-8-files-open-read-only.md`: Non-UTF-8 files open read-only or as binary, never written back with U+FFFD
+- 120 `120-crlf-notes-keep-their-crlf-line-endings.md`: CRLF notes keep their CRLF line endings after an edit
+- 121 `121-minor-write-races-are-closed-autosave-during.md`: Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag
+- 122 `122-stale-tasks-list-never-ticks-wrong-task.md`: A stale Tasks list never ticks the wrong task line on a clean tab or after an external edit
+- 123 `123-kanban-lane-actions-never-turn-raw-into.md`: Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card
+- 124 `124-watcher-events-keep-fts5-semantic-rust-indexes.md`: Watcher events keep FTS5, semantic and Rust indexes current, and a read error is not treated as a delete
+- 125 `125-semantic-update-still-embedding-when-note-deleted.md`: A semantic update still embedding when its note is deleted leaves no chunks for the trashed note
+- 126 `126-failure-after-disk-op-still-reports-completed.md`: A failure after the disk op still reports a completed rename as done and re-keys the index
+- 127 `127-note-unquoted-wikilink-value-up-home-accepts.md`: A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes
+- 128 `128-failed-auto-move-tells-user-which-note.md`: A failed Auto Move tells the user which note did not move and why
+- 129 `129-vault-picked-outside-two-allowed-folders-refused.md`: A vault picked outside the two allowed folders is refused or warned about, never half-working
+- 130 `130-quick-capture-dedupe-anchor-advances-only-after.md`: The quick-capture dedupe anchor advances only after the frontend accepts the capture
+- 131 `131-note-whose-live-preview-widget-throws-every.md`: A note whose live-preview widget throws on every render stays editable and in sync with its tab
+- 132 `132-collection-link-cells-never-navigate-app-webview.md`: Collection link() cells never navigate the app webview and drop unsafe schemes
+- 133 `133-queryjs-blocks-written-deep-link-capture-do.md`: QueryJS blocks written by a deep link or capture do not auto-run until the user trusts them
+- 134 `134-read-files-batch-only-reads-inside-vault.md`: read_files_batch only reads inside the vault that is actually open
+- 135 `135-note-writing-commands-refuse-paths-outside-open.md`: Note-writing commands refuse paths outside the open vault
+- 136 `136-vault-root-commands-scan-index-builds-watcher.md`: Vault-root commands (scan, index builds, watcher, model init) only accept the open vault
+- 137 `137-file-icons-read-frontmatter-only-through-rust.md`: File icons read frontmatter only through Rust
+- 138 `138-file-icon-saves-that-cannot-happen-tell.md`: File icon saves that cannot happen tell the user, and clicking the current icon writes nothing
+- 139 `139-queryjs-pager-clicks-keep-widget-rendered-wikilinks.md`: QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text
+- 140 `140-live-preview-render-gaps-are-decided-one.md`: Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed
+- 141 `141-local-graph-center-follows-every-way-graph.md`: The local graph center follows every way the graph tab gets focus, and hints when the center note is gone
+- 142 `142-tag-may-start-digit-may-carry-emoji.md`: A tag may start with a digit and may carry emoji, as in Obsidian
+- 143 `143-typing-editor-suggests-vault-s-existing-tags.md`: Typing # in the editor suggests the vault's existing tags
+- 144 `144-tab-strip-shows-overflow-hides-md-extension.md`: The tab strip shows overflow and hides the .md extension
+- 145 `145-emptystate-inlinealert-badge-primitives-exist.md`: EmptyState, InlineAlert and Badge primitives exist
+- 146 `146-sidebar-panels-settings-use-empty-error-primitives.md`: Sidebar panels and settings use the empty and error primitives
+- 147 `147-graph-collection-kanban-views-show-real-empty.md`: Graph, collection and kanban views show real empty and error states
+- 148 `148-vault-search-history-files-command-logic-lives.md`: Vault, search, history and files command logic lives in domain modules outside commands/
+- 149 `149-cargo-workspace-kokobrain-core-crate-exists.md`: A Cargo workspace with a kokobrain-core crate exists
+- 150 `150-core-tests-live-core-crate-no-re.md`: Core tests live in the core crate, with no re-export shim
+- 151 `151-editor-engine-lives-packages-editor.md`: The editor engine lives in packages/editor

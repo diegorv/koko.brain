@@ -23,6 +23,16 @@ import type {
 	SemanticStats,
 	SnapshotInfo,
 	TagAggregate,
+	TaskLineEdits,
+	TaskLinesWriteResult,
+	TaskStatus,
+	TaskTextWriteResult,
+	TodoistKvEntry,
+	TodoistSectionLink,
+	TodoistStateCommit,
+	TodoistSyncLogEntry,
+	TodoistSyncLogInput,
+	TodoistTaskLink,
 	ToggleTaskResult,
 	UpdateMetadata,
 	UpdateResult,
@@ -47,6 +57,21 @@ export interface CommandMap {
 	compute_diff: { args: { oldContent: string; newContent: string }; result: DiffLine[] };
 	/** Prunes old snapshots; resolves to the deleted row count. */
 	cleanup_history: { args: { retentionDays: number }; result: number };
+	/**
+	 * Todoist sync kv rows, sorted by key (`commands/todoist.rs`). Every
+	 * `todoist_*` command refuses a `vaultPath` that is not the open vault.
+	 */
+	todoist_read_kv: { args: { vaultPath: string }; result: TodoistKvEntry[] };
+	/** Todoist task links, sorted by anchor. */
+	todoist_read_links: { args: { vaultPath: string }; result: TodoistTaskLink[] };
+	/** Todoist section links, sorted by section id. */
+	todoist_read_sections: { args: { vaultPath: string }; result: TodoistSectionLink[] };
+	/** Writes kv rows, link and section link upserts and deletes in one transaction. */
+	todoist_commit_state: { args: { vaultPath: string; commit: TodoistStateCommit }; result: null };
+	/** Appends sync log entries, keeping the newest 1000 rows. */
+	todoist_append_log: { args: { vaultPath: string; entries: TodoistSyncLogInput[] }; result: null };
+	/** The newest `limit` sync log rows (default all), newest first. */
+	todoist_read_log: { args: { vaultPath: string; limit?: number }; result: TodoistSyncLogEntry[] };
 	/** Recursive file tree of `path` (`commands/vault.rs`). */
 	scan_vault: { args: { path: string; sortBy: string }; result: FileNode[] };
 	/** Rust-only: registered but not invoked from TS (TS uses `scan_vault_v2_cached`). */
@@ -78,10 +103,34 @@ export interface CommandMap {
 	get_all_tags_v2: { args: NoArgs; result: TagAggregate[] };
 	/** Tasks grouped by file. */
 	get_all_tasks_v2: { args: NoArgs; result: FileTaskGroup[] };
-	/** Tasks under the sections tagged `sectionTag`. */
-	get_tasks_in_section_v2: { args: { sectionTag: string }; result: FileTaskGroup[] };
-	/** Toggles the task at `lineNumber` of `path`. */
-	toggle_task_status: { args: { path: string; lineNumber: number }; result: ToggleTaskResult };
+	/** Sets the task at `lineNumber` of `path` to `target`; `stale` when the line no longer holds the expected task. */
+	toggle_task_status: {
+		args: { path: string; lineNumber: number; expectedText: string; expectedStatus: TaskStatus; target: TaskStatus };
+		result: ToggleTaskResult;
+	};
+	/** Applies anchor-located task-line edits to `relPath` under the open vault `vaultRoot`, all or nothing. */
+	write_task_lines: {
+		args: { vaultRoot: string; relPath: string; edits: TaskLineEdits };
+		result: TaskLinesWriteResult;
+	};
+	/**
+	 * Rewrites the text of the task at `lineNumber` of `relPath` under the open
+	 * vault `vaultRoot`, keeping the line's prefix; `stale` when the line no
+	 * longer holds a task with `expectedText` and `expectedStatus`. Rejects a
+	 * `newText` with a line break or blank. `task` is the re-parsed task, null
+	 * when nothing was written.
+	 */
+	write_task_text: {
+		args: {
+			vaultRoot: string;
+			relPath: string;
+			lineNumber: number;
+			expectedText: string;
+			expectedStatus: TaskStatus;
+			newText: string;
+		};
+		result: TaskTextWriteResult;
+	};
 	/** Drops a note from the index. */
 	remove_note_from_index: { args: { path: string }; result: UpdateResult };
 	/** Re-keys the index entries under a renamed path; `null` when nothing matched. */
@@ -94,6 +143,10 @@ export interface CommandMap {
 	create_note: { args: { path: string; content: string }; result: UpdateResult };
 	/** Creates a folder. */
 	create_folder: { args: { path: string }; result: null };
+	/** Writes `<vaultPath>/.kokobrain/mods/<modId>/data.json` atomically, creating missing folders; touches no index. */
+	write_mod_data: { args: { vaultPath: string; modId: string; content: string }; result: null };
+	/** The bytes of `<vaultPath>/.kokobrain/mods/<modId>/data.json`; null only when the file is not there. */
+	read_mod_data: { args: { vaultPath: string; modId: string }; result: number[] | null };
 	/** Starts or replaces the vault watcher (`commands/watcher.rs`). */
 	start_vault_watcher: { args: { path: string }; result: null };
 	/** Stops the vault watcher; no-op when none runs. */
@@ -114,6 +167,8 @@ export interface CommandMap {
 	};
 	/** Drops one file from FTS5. */
 	remove_from_search_index: { args: { filePath: string }; result: null };
+	/** Re-keys the FTS5 and semantic rows of a renamed or moved note or folder (vault-relative keys). */
+	rename_in_search_index: { args: { from: string; to: string }; result: null };
 	/** Loads the embedding model; `false` when unavailable (`commands/semantic.rs`). */
 	init_semantic_search: { args: { vaultPath: string }; result: boolean };
 	/** Whether the embedding model files exist. */
@@ -175,8 +230,13 @@ export interface CommandMap {
 	open_composer: { args: NoArgs; result: null };
 	/** Hides the quick-capture composer. */
 	dismiss_composer: { args: NoArgs; result: null };
-	/** Saves a quick capture typed in the composer. */
-	submit_composer_capture: { args: { text: string }; result: null };
+	/**
+	 * Sends a quick capture typed in the composer to the main window; the
+	 * outcome arrives later on `qc:composer-capture-result` with `requestId`.
+	 */
+	submit_composer_capture: { args: { text: string; requestId: string }; result: null };
+	/** Main window: relays the outcome of a composer capture to the composer. */
+	report_composer_capture_result: { args: { requestId: string; ok: boolean }; result: null };
 	/** Moves a temp-staged clipboard shot into a vault folder; returns its new path. */
 	import_staged_shot: { args: { source: string; destDir: string; vaultPath: string }; result: string };
 	/** Marks the exit flush done and exits the app (`commands/app_exit.rs`). */
@@ -211,6 +271,12 @@ export const COMMAND_ARGS = {
 	get_snapshot_content: ['snapshotId'],
 	compute_diff: ['oldContent', 'newContent'],
 	cleanup_history: ['retentionDays'],
+	todoist_read_kv: ['vaultPath'],
+	todoist_read_links: ['vaultPath'],
+	todoist_read_sections: ['vaultPath'],
+	todoist_commit_state: ['vaultPath', 'commit'],
+	todoist_append_log: ['vaultPath', 'entries'],
+	todoist_read_log: ['vaultPath', 'limit?'],
 	scan_vault: ['path', 'sortBy'],
 	scan_vault_v2: ['path'],
 	scan_vault_v2_cached: ['path'],
@@ -225,14 +291,17 @@ export const COMMAND_ARGS = {
 	propagate_type_rename: ['oldType', 'newType'],
 	get_all_tags_v2: [],
 	get_all_tasks_v2: [],
-	get_tasks_in_section_v2: ['sectionTag'],
-	toggle_task_status: ['path', 'lineNumber'],
+	toggle_task_status: ['path', 'lineNumber', 'expectedText', 'expectedStatus', 'target'],
+	write_task_lines: ['vaultRoot', 'relPath', 'edits'],
+	write_task_text: ['vaultRoot', 'relPath', 'lineNumber', 'expectedText', 'expectedStatus', 'newText'],
 	remove_note_from_index: ['path'],
 	rename_note: ['from', 'to'],
 	get_all_property_records: [],
 	get_index_delta: ['paths'],
 	create_note: ['path', 'content'],
 	create_folder: ['path'],
+	write_mod_data: ['vaultPath', 'modId', 'content'],
+	read_mod_data: ['vaultPath', 'modId'],
 	start_vault_watcher: ['path'],
 	stop_vault_watcher: [],
 	read_files_batch: ['vaultPath', 'paths'],
@@ -240,6 +309,7 @@ export const COMMAND_ARGS = {
 	search_fts: ['query', 'maxResults?', 'fuzzy?'],
 	update_search_index_file: ['filePath', 'content', 'vaultPath'],
 	remove_from_search_index: ['filePath'],
+	rename_in_search_index: ['from', 'to'],
 	init_semantic_search: ['vaultPath'],
 	is_semantic_model_available: ['vaultPath'],
 	build_semantic_index: ['vaultPath'],
@@ -264,7 +334,8 @@ export const COMMAND_ARGS = {
 	capture_clipboard_now: [],
 	open_composer: [],
 	dismiss_composer: [],
-	submit_composer_capture: ['text'],
+	submit_composer_capture: ['text', 'requestId'],
+	report_composer_capture_result: ['requestId', 'ok'],
 	import_staged_shot: ['source', 'destDir', 'vaultPath'],
 	confirm_exit: [],
 } as const satisfies { [K in keyof CommandMap]: readonly ArgKey<K>[] };

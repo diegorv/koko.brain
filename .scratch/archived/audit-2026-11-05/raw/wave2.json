@@ -1,0 +1,726 @@
+[
+ {
+  "domain": "reactivity",
+  "counts": {
+   "findings": 9,
+   "survived": 3,
+   "refuted": 1,
+   "open": 0
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "reactivity-reactivity-1",
+     "reactivity-ux-1",
+     "reactivity-lifecycle-1",
+     "reactivity-reactivity-2",
+     "reactivity-ux-2",
+     "reactivity-lifecycle-2"
+    ],
+    "title": "Backlinks and Outgoing links always list the open note's links, also after returning to a note seen at the same index version",
+    "category": "content",
+    "likelihood": "high",
+    "trigger": "Reading or browsing without saving: open note A, then note B (stay over 150 ms), then go back to A (tab click, wikilink, back), and expand Backlinks or Outgoing links. No save or watcher event in between, so vaultIndexVersion does not move (it only moves on a vault-index-updated refresh, 2 to 10 s after a save).",
+    "what_to_build": "Both link panels have a per-path skip cache in front of one store that holds no path. A cache hit then means 'this path was fetched at this version once', not 'the store holds this path's data now'.\n- Backlinks: `fetchBacklinksV2Inner` (src/lib/features/backlinks/backlinks.service.ts:141-150) returns early when `lastFetchedBacklinksVersion.get(path)` (Map at :19, set at :164) equals the current version. The store `linkedMentions` (backlinks.store.svelte.ts:4) is overwritten by every other path's fetch (:163), and the +layout.svelte tab-switch effect (src/routes/(app)/+layout.svelte:105-141, call at :129) fetches every note you visit, panel open or not. After A -> B -> A the store keeps B's mentions, and the expand click (BacklinksPanel.svelte:24-30) is skipped the same way. When the panel was expanded at the switch, BacklinksPanel.svelte:32-38 resets the store and the same skip leaves it empty ('No backlinks found', :68-69).\n- Outgoing links: `fetchOutgoingLinksV2Inner` (src/lib/features/outgoing-links/outgoing-links.service.ts:65-70) skips on a per-path key `${version}:${content.length}:${path}` (Map at :16, set at :85). OutgoingLinksPanel.svelte:30-36 calls `outgoingLinksStore.reset()` on a path change while expanded but leaves the key map alone (only `resetOutgoingLinks`, :96-99, clears it). Re-expanding A then skips and renders 'No outgoing links' (:64-65). If the panel was collapsed by hand on A and B was fetched before at that version, B shows A's links.\nFix direction: make the skip apply only when the store currently holds that path's result at that version (for example one 'last written' key per store instead of a per-path Map, cleared whenever the store is reset or written for another path). Keep the burst-save elision for repeated calls on the same path. Relationship backlinks have no cache and are correct today; leave them alone.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/backlinks/backlinks.service.test.ts: with `get_backlinks_v2` mocked to return one entry for /vault/a.md and a different one for /vault/b.md, at one vaultIndexVersion, `await fetchBacklinksV2(A)`, `await fetchBacklinksV2(B)`, `await fetchBacklinksV2(A)`; `backlinksStore.linkedMentions` holds A's entry. It fails today (it holds B's).",
+     "The same A -> B -> A test in src/tests/lib/features/outgoing-links/outgoing-links.service.test.ts for `outgoingLinksStore.outgoingLinks`, plus: fetch A, `outgoingLinksStore.reset()` (what the panel does on a path change), fetch A with the same content; the store holds A's links again.",
+     "Panel tests in src/tests/lib/features/backlinks/BacklinksPanel.test.ts and src/tests/lib/features/outgoing-links/OutgoingLinksPanel.test.ts: expand on A, switch the active tab to B, back to A, expand; the rows for A render, not the empty message and not B's rows.",
+     "Repeated calls for the same path at the same version still make one IPC (the existing 'skips the IPC when vaultIndexVersion has not changed' test, backlinks.service.test.ts about lines 477-488, stays green), and a version bump still refetches.",
+     "A failed fetch still records nothing, so the next call (and the Retry of ux-polish Issue 06) refetches.",
+     "Only Tauri is mocked; stores and .logic.ts files are real.",
+     "Frontend gate: `pnpm check` + `pnpm vitest run` pass."
+    ],
+    "evidence": "backlinks.store.svelte.ts:4,16 one path-less linkedMentions. backlinks.service.ts:19 per-path Map; :142-150 early return on version match; :163 setLinkedMentions; :164 records version for path. +layout.svelte:105-141 tab-switch effect, :129 fetchBacklinksV2(path) for every non-virtual tab after 150 ms regardless of panel state. BacklinksPanel.svelte:15 collapsed by default; :24-30 fetchData on expand; :32-38 reset on path change only when expanded; :45-50 refetch only on version bump; :68-69 empty message. Version moves only in vault.store.svelte.ts:108-110 bumpVaultIndexVersion (from vault-index-updated, throttled 2-10 s in tauri-listeners.service.ts:105-108). Only clear of the Map: resetBacklinks :258-264 (vault teardown). outgoing-links.service.ts:16 per-path key Map; :66-70 early return; :83-85 write + record; :96-99 only clear. OutgoingLinksPanel.svelte:22-28 fetchData; :30-36 collapse + outgoingLinksStore.reset() without clearing the Map; :64-65 'No outgoing links'. Tests: backlinks.service.test.ts stale-skip describe (~:470-501) only repeats the same path; no A -> B -> A case anywhere.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/ux-polish/issues/06-link-panels-show-load-error.md"
+    ],
+    "key": "N-reactivity-01"
+   },
+   {
+    "source_ids": [
+     "reactivity-reactivity-3"
+    ],
+    "title": "The Tags view keeps its list and expanded tags on screen while it refreshes",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "Open the Tags tab (the tree is already built at vault open): about 300 ms later the list is replaced by 'Indexing tags...' for the length of the get_all_tags_v2 IPC (measured 0.7 to 1.2 s at 4.5k notes). Expand a parent tag and stay on the tab while any index refresh lands (the throttled refresh of a save made just before, a watcher event, a Quick Capture): the list blanks again and every tag comes back collapsed at the top.",
+    "what_to_build": "TagsView.svelte:41-46 schedules a rebuild on mount and on every vaultIndexVersion bump. `buildTagIndex` sets `tagsStore.setLoading(true)` unconditionally (src/lib/features/tags/tags.service.ts:27), and the template swaps the whole list for 'Indexing tags...' while loading (TagsView.svelte:79-80), which destroys every TagItem. TagItem keeps its expanded state in local `$state` (TagItem.svelte:19), so it is lost, and the scroll position resets. Fix direction: show the loading message only while no tree has loaded yet; a refresh over an existing tree keeps the keyed rows (TagsView.svelte:85) mounted and swaps the data in place. The header count at :52-56 should not flicker either.",
+    "acceptance": [
+     "Failing test first, in a new src/tests/lib/features/tags/TagsView.refresh.test.ts (TagsView.test.ts mocks tags.service, so this file mocks only @tauri-apps/api/core, like tags.service.test.ts): with tagsStore holding a tree with tag 'work' and `get_all_tags_v2` left pending, mount TagsView and advance past the 300 ms debounce; the 'work' row is still in the DOM and 'Indexing tags...' is not. It fails today.",
+     "A parent tag expanded before a refresh is still expanded after the refresh resolves with the same tree.",
+     "With an empty store (first load), 'Indexing tags...' still shows until the IPC resolves.",
+     "A refresh that fails leaves the previous tree on screen (tags.service.test.ts 'clears loading state even on IPC error' stays green or is updated with the reason in the commit).",
+     "Only Tauri is mocked; tags.store and tags.logic are real.",
+     "Frontend gate: `pnpm check` + `pnpm vitest run` pass."
+    ],
+    "evidence": "app-lifecycle.service.ts:413 buildTagIndex() at vault open fills the tree. EditorView.svelte:73-74 mounts TagsView only while the Tags tab is active, so every open is a fresh mount. TagsView.svelte:41-46 $effect on vaultIndexVersion (runs on mount) -> scheduleTagIndexRebuild. tags.service.ts:90-92 300 ms debounce -> runScheduledRebuild :73-88 -> buildTagIndex :26-57, setLoading(true) at :27 before the IPC, setLoading(false) in finally :55. TagsView.svelte:79-80 '{#if tagsStore.isLoading}' replaces the list; :85-86 keyed each of TagItem. TagItem.svelte:19 'let open = $state(false)'. tags.service.ts:101-105 comment records 0.7-1.2 s rebuilds at 4.5k notes.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/ux-polish/issues/13-tags-filtered-empty-state.md"
+    ],
+    "key": "N-reactivity-02"
+   },
+   {
+    "source_ids": [
+     "reactivity-reactivity-4"
+    ],
+    "title": "The status bar note count follows notes created, imported and deleted during the session",
+    "category": "polish",
+    "likelihood": "medium",
+    "trigger": "Open the vault, then create notes (daily note, Quick Capture, new note) or delete one, and read 'N notes indexed' (or 'N notes \u00b7 M chunks') in the status bar. It keeps the vault-open number until the next launch.",
+    "what_to_build": "`searchStore.setIndexStats` is called only by `buildSearchIndex` (src/lib/features/search/search.service.ts:288), which runs at vault open. The incremental FTS paths update rows but never the stats: the after-save hook (`registerSearchIndexHook`, search.service.ts:301-330, update at :320), `applyNoteChange` updates (src/lib/core/filesystem/note-change.service.ts:247) and deletes (:209). `setSemanticStats` is likewise only set by init and full build (search.service.ts:356, :398). SearchStatus.svelte:19-28 renders the frozen numbers. Fix direction: refresh the counts after incremental index changes, coalesced (for example on the throttled vault-index-updated refresh, not per keystroke save). Rust already has `fts_repo::count_entries` (src-tauri/src/db/fts_repo.rs:245) and `get_semantic_stats` (src-tauri/src/commands/semantic.rs:1220); a cheap FTS count command or returning the count from the incremental commands are both fine.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/search/search.service.test.ts: after `buildSearchIndex` resolves with totalDocuments 42, an incremental index change for a new note runs (through the registered after-save hook or the chosen refresh trigger) with the IPC that reports the FTS count mocked to 43; once it settles, `searchStore.indexStats.totalDocuments` is 43. It fails today (stays 42).",
+     "A delete through applyNoteChange lowers the count the same way.",
+     "With semantic search enabled, the chunk count shown next to it is refreshed by the same trigger.",
+     "A failed count read leaves the previous stats in place and is logged with `error()`.",
+     "If a Rust command is added, it has a test in src-tauri/tests (search_fts_test.rs or fts_repo_test.rs) and an entry in src/lib/contracts/commands.ts.",
+     "Gate: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` pass (frontend only if no Rust change)."
+    ],
+    "evidence": "search.service.ts:278-294 buildSearchIndex, the only setIndexStats caller (:288), run from initializeVault. search.service.ts:301-330 after-save hook calls update_search_index_file / update_semantic_file and discards the result. note-change.service.ts:209 remove_from_search_index, :247 update_search_index_file, results not read. search.service.ts:356, :398 the only setSemanticStats callers. search.store.svelte.ts:65,67 setters, :83,:85 reset. SearchStatus.svelte:22 and :27 render indexStats.totalDocuments and semanticStats.totalChunks. src-tauri/src/db/fts_repo.rs:245 count_entries, used only by search_index.rs:115 in the full build.",
+    "gate": "both",
+    "size": "S",
+    "related_open": [
+     ".scratch/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md",
+     ".scratch/file-io-audit/issues/28-watcher-index-staleness.md"
+    ],
+    "key": "N-reactivity-03"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "reactivity-ux-3",
+    "reason": "Duplicate of .scratch/file-io-audit/issues/41-minor-write-races.md: its section 'Saves of the same path are not serialized ... failing debounce runs stack independent 5 s retry chains' covers the uncapped setTimeout(saveDirtyTabs, 5000) retry at editor.service.ts:217-219 stacking per failing debounce run, with N toasts and N writes every 5 s, and its fix sketch asks for a single guarded module-level retry timer. Still present at HEAD (editor.service.ts:199-203 toast with no id, :208-220 retry), so it belongs in that Issue."
+   }
+  ],
+  "open_verdicts": []
+ },
+ {
+  "domain": "metadata",
+  "counts": {
+   "findings": 11,
+   "survived": 5,
+   "refuted": 3,
+   "open": 9
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "metadata-ux-1",
+     "metadata-spec-1"
+    ],
+    "title": "Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Auto Move is on with a user rule a board or canvas can satisfy: a folder rule (file.folder ...), a name rule, or a tag rule such as file.hasTag('meeting') where a kanban card or canvas text node carries #meeting. The owner edits a card or a node; about 3 s after the autosave the .kanban or .canvas file is moved to the rule's destination.",
+    "what_to_build": "The after-save observer in registerAutoMoveHook (src/lib/features/auto-move/auto-move.service.ts:96-97) only skips .view files (isViewFile). Kanban saves (EditorView.svelte:80, onContentChange) and canvas saves (EditorView.svelte:84, onContentChangeForPath) go through writeTab, which calls notifyAfterSave for any path (src/lib/core/editor/editor.service.ts:187-205, call at :196). evaluateAndMove then builds a record for any extension (buildNoteRecord, src/lib/features/collection/collection.logic.ts:22-43, tags from the raw content), matches it and calls moveItem (:190). The help promises the opposite (help/documentation/22-auto-move.md:183: only .md files are evaluated; .canvas and .kanban never move). Fix direction: the observer returns early unless the path is a Markdown note (isMarkdownFile, src/lib/core/filesystem/fs.logic.ts:65-68), which also covers .view. Align the Overview sentence at 22-auto-move.md:11 (which names only .view) with the note at :183.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/auto-move/auto-move.service.test.ts (next to 'observer never moves a .view' at :237): with vaultStore.open('/vault'), a rule `file.folder == '/vault/inbox'` -> Archive, capture the observer, call it with '/vault/inbox/Board.kanban' (kanban markdown content) and '/vault/inbox/Map.canvas' ('{\"nodes\":[],\"edges\":[]}'), advance timers past the debounce; moveItem is not called. Then the same rule on '/vault/inbox/note.md' still moves it. It fails today.",
+     "A tag rule does not move a .kanban whose card text holds the tag.",
+     ".md and .markdown notes are evaluated as before; .view stays excluded.",
+     "22-auto-move.md says once, consistently, that only Markdown notes are evaluated.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "help/documentation/22-auto-move.md:183 (promise), :11 (names only .view); src/lib/app/EditorView.svelte:80 (KanbanView onContentChange), :84 (CanvasView onJsonChange=onContentChangeForPath); src/lib/core/editor/editor.service.ts:187-205 writeTab, no file-type check, notifyAfterSave at :196; src/lib/core/editor/editor.hooks.ts:67 notifies every observer; src/lib/features/auto-move/auto-move.service.ts:96-97 only isViewFile; :154 buildNoteRecord for any path; :159 findMatchingRule; :190 moveItem; src/lib/features/collection/collection.logic.ts:22-43 record fields for any extension, tags from extractAllTags(content); src/tests/lib/features/auto-move/auto-move.service.test.ts:237-270 pins only the .view exclusion; src/lib/core/filesystem/fs.logic.ts:65-68 isMarkdownFile exists.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-metadata-01"
+   },
+   {
+    "source_ids": [
+     "metadata-content-1",
+     "metadata-ux-3"
+    ],
+    "title": "An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "In Settings > Auto Move the owner toggles a rule's switch, picks its icon, or types in its name, expression or destination, then presses Esc or clicks another settings section less than about half a second later.",
+    "what_to_build": "Every rule field edit calls updateRule (src/lib/features/auto-move/AutoMoveSection.svelte:61-64), which updates autoMoveStore at once and arms a 500 ms timer (saveConfigDebounced, :42-47). The section unmounts when Settings closes (src/lib/app/SettingsPanel.svelte:101-105 Esc, :110 `{#if settingsPanelStore.isOpen}`) or another section is selected (SectionContent derived from the section map at :68-87). onDestroy (:25-27) only clears the timer, so saveAutoMoveConfig never runs for that edit. The store keeps the new rule, so it works until restart; loadAutoMoveConfig, called only at vault open (src/lib/app/lifecycle/app-lifecycle.service.ts:292), then brings the old rule back. Fix direction: on destroy, flush a pending debounced save instead of dropping it (run saveConfig when a timer is pending). Keep whatever load-failed guard Issue 14 adds in force for the flushed save.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/auto-move/AutoMoveSection.test.ts (new, jsdom, same mount/settle style as AutoMoveRuleRow.test.ts in that folder; mock only @tauri-apps/plugin-fs): vaultStore.open('/vault'), autoMoveStore.setConfig with one rule, mount AutoMoveSection, fire an input event on the destination field with 'Archive/2026', unmount at once, advance fake timers by 1000 ms; writeTextFile was called with '/vault/.kokobrain/auto-move-rules.json' and JSON holding destination 'Archive/2026'. It fails today.",
+     "A switch toggle followed by unmount within 500 ms is written too.",
+     "Typing without closing still writes once per 500 ms pause, not per keystroke.",
+     "Add, remove and reorder keep saving immediately.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/auto-move/AutoMoveRuleRow.svelte:69, :73, :112, :137 (name, switch, expression, destination call onupdate per input), :45-46 icon; src/lib/features/auto-move/AutoMoveSection.svelte:61-64 updateRule -> :42-47 500 ms timer; :25-27 onDestroy clearTimeout only; :33-39 saveConfig is the only writer; src/lib/app/SettingsPanel.svelte:101-105 Esc closes, :110 `{#if}` unmounts the section after the 200 ms fly outro, :68-87 section map swapped on section change; src/lib/features/auto-move/auto-move.service.ts:70-88 saveAutoMoveConfig; :42-65 load; src/lib/app/lifecycle/app-lifecycle.service.ts:292 only load site; no quit hook saves the config (rg saveAutoMoveConfig: only AutoMoveSection).",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md"
+    ],
+    "key": "N-metadata-02"
+   },
+   {
+    "source_ids": [
+     "metadata-ux-2"
+    ],
+    "title": "A failed Auto Move tells the user which note did not move and why",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "A rule or a type's _archive_to sends a note to a folder that already holds a note with the same file name (for example archiving a second 'Weekly sync.md' from the same folder), or the rename fails on disk.",
+    "what_to_build": "moveItem throws when the target exists or the rename fails (src/lib/core/filesystem/fs.service.ts:307-327, targetExistsError at :272-274 and :312) and only logs through error() (:324), which writes console, Sentry and the optional log file, never a toast. evaluateAndMove catches it with a bare `catch { return; }` (src/lib/features/auto-move/auto-move.service.ts:189-194), also skipping the rule's icon. For a lifecycle rule the note stays flagged `_archived: true` in its old folder, so it leaves the lists and the missing move goes unnoticed. The failure repeats silently on every later save. Fix direction: report the failure in a toast naming the note and destination (moveItem's message already names the clash), without stacking a new toast on every autosave of the same note for the same failure.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/auto-move/auto-move.service.test.ts: vaultStore.open('/vault'), a matching rule -> Archive, moveItem mocked to reject with Error('\"note.md\" already exists in this folder'), svelte-sonner mocked as in other service tests; call the captured observer for '/vault/notes/note.md' and advance past the debounce; toast.error was called once with a message naming note.md. It fails today.",
+     "A disk error from moveItem is reported the same way.",
+     "Later autosaves of the same note hitting the same failure do not add a toast per save.",
+     "A successful move and an already-in-destination note show no toast.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/filesystem/fs.service.ts:272-274 targetExistsError, :312 throw when target exists, :323-326 error() log then rethrow; src/lib/utils/debug.ts error() has no toast; src/lib/features/auto-move/auto-move.service.ts:189-194 bare catch return, :195-196 skips icon; no toast import anywhere in src/lib/features/auto-move/ (rg); lifecycle archive rule: help/documentation/22-auto-move.md:138-147, note keeps _archived: true in place.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-metadata-03"
+   },
+   {
+    "source_ids": [
+     "metadata-ux-4",
+     "metadata-spec-2"
+    ],
+    "title": "A note with an unquoted wikilink value (`up: [[Home]]`, `- [[Carol]]`) accepts property, lifecycle, icon and meta-bind writes",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "A note's frontmatter holds an unquoted wikilink, typed by hand or written by an outside editor or agent: `up: [[Home]]`, `_belongs_to: [[Team]]`, or a list item `- [[Carol]]`. The owner presses Cmd+D or Cmd+E, archives, sets an icon, edits the Properties panel or clicks a meta-bind toggle, select or button.",
+    "what_to_build": "The read side folds this shape into the string \"[[X]]\" (foldUnquotedWikilinks, src/lib/core/frontmatter/properties.logic.ts:112-165, used by toFrontmatterValue at :249; ADR 0029 amendment for architecture-stability Issue 39), matching Rust. detectLossyFrontmatter (:404-460) parses the raw block without that fold, so the inner one-item sequence has a sequence ancestor and the note is reported 'nested' (:434-438). Every writer refuses: updateNoteFrontmatter (frontmatter-write.service.ts:125-126), the panel's commitChanges (properties.service.ts:87) and dispatchMetaBindUpdate (widgets.ts:874), with the toast 'frontmatter has nested values; it cannot be rewritten without losing them'. The rewrite would only quote the link as \"[[X]]\", which both parsers already read as the same string, so nothing is lost. Fix direction: detectLossyFrontmatter treats a node the fold turns into a string as a scalar, not as nesting; genuinely nested lists (`[[1, 2]]`) and lists of maps stay refused.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/core/frontmatter/properties.logic.test.ts (describe 'detectLossyFrontmatter', :1101): detectLossyFrontmatter(note('_belongs_to: [[Team]]')) and detectLossyFrontmatter(note('people:\\n  - [[Carol]]\\n  - [[Dan]]')) return null. It fails today.",
+     "In src/tests/lib/core/frontmatter/frontmatter-write.service.test.ts: updateNoteFrontmatter on '---\\nup: [[Home]]\\n---\\nbody' setting _favorite: true writes `up: \"[[Home]]\"` and `_favorite: true`, body unchanged, and parseFrontmatterProperties reads `up` back as the same string.",
+     "`grid: [[1, 2]]`, `grid: [[1, 2], [3, 4]]` and a list of maps are still 'nested' (existing tests at :1105-1110 and :1284 stay green).",
+     "The ensureFrontmatterLink case at properties.logic.test.ts:1542-1544, which pins a throw for this shape, is updated to the new contract and the change is recorded in the commit message.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/core/frontmatter/properties.logic.ts:155-164 fold of a one-item list holding a one-item list of a scalar into \"[[X]]\"; :244-249 toFrontmatterValue folds before toJS; :404-460 detectLossyFrontmatter parses raw with parseDocument and no fold, :434-438 adds 'nested' for a collection with a sequence ancestor; :381 nested message; src/lib/core/frontmatter/frontmatter-write.service.ts:125-126 throws FrontmatterWriteError; src/lib/features/properties/properties.service.ts:87; src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:874; src/lib/features/auto-move/auto-move.service.ts:203 (rule icon skipped too); docs/adr/0029-frontmatter-yaml-canonical-form.md amendment 2026-11-01 (Issue 39) on the read shape; src/tests/lib/core/frontmatter/properties.logic.test.ts:1542-1544 only pin (ensureFrontmatterLink), no detectLossyFrontmatter test for this shape.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-metadata-04"
+   },
+   {
+    "source_ids": [
+     "metadata-spec-3"
+    ],
+    "title": "The auto-move example's steps move the notes as written: edit then save, the right default delay, rules loaded after copying the file",
+    "category": "polish",
+    "likelihood": "low",
+    "trigger": "The owner copies help/examples/auto-move-features into the vault and follows 'Trying it locally': copies auto-move-rules.json into .kokobrain/ while the app runs, turns Auto Move on, opens each Inbox note and presses Cmd+S with no edits, as step 4 says.",
+    "what_to_build": "Cmd+S on an unedited note writes nothing: writeTab returns early when the tab is not dirty (src/lib/core/editor/editor.service.ts:189), so notifyAfterSave never fires and Auto Move, which runs only from that observer (auto-move.service.ts:96), moves nothing. The README also gives the default debounce as 2000 ms (help/examples/auto-move-features/README.md:41) while the default is 3000 ms (settings.store.svelte.ts:109, 22-auto-move.md:113). Rules are loaded only at vault open (app-lifecycle.service.ts:292), so a rules file copied while the app runs is not loaded, and the next Settings > Auto Move edit writes the old store over it. Fix direction: README step 4 says to make a small edit and save; step 1 says to copy the file with the app closed or reopen the vault; the delay says 3000 ms. The help page can add that an existing note moves only after its next edited save.",
+    "acceptance": [
+     "Failing test first, in src/tests/help/auto-move-features.test.ts (new, same layout as src/tests/help/collection-features.test.ts): the default debounce stated in help/examples/auto-move-features/README.md equals the settings default autoMove.debounceMs. It fails today (2000 vs 3000).",
+     "README step 4 asks for an edit before saving; step 1 says when the copied rules are picked up.",
+     "help/documentation/22-auto-move.md states that a note is evaluated after a save that wrote it.",
+     "Frontend gate: pnpm vitest run on src/tests/help passes."
+    ],
+    "evidence": "help/examples/auto-move-features/README.md:41 '2000 ms', :59 'press Cmd+S (no edits needed)'; src/lib/core/editor/editor.service.ts:189 `if (!tab || isVirtualTab(tab) || !isTabDirty(tab)) return true;` before notifyAfterSave at :196; src/lib/features/auto-move/auto-move.service.ts:96 only trigger is the after-save observer; src/lib/core/settings/settings.store.svelte.ts:109 debounceMs: 3000; src/lib/app/lifecycle/app-lifecycle.service.ts:292 only loadAutoMoveConfig call; src/lib/features/auto-move/auto-move.service.ts:70-88 save writes the store unconditionally.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-metadata-05"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "metadata-content-2",
+    "reason": "Documented design, not a defect: help/documentation/22-auto-move.md:35 says a rule's icon is applied on every save even when the note is already in the destination, and :117 says the rule assigns the icon with optional colors, so the rule owns _icon/_color/_title_color for the notes it matches (withIconColors, frontmatter-icon.service.ts:26-31). It needs a rule with an icon and no colors plus a hand-set per-note color inside that rule's scope, and when the values already match a later save is a no-op (frontmatter-write.service.ts `next === base`). An owner call on rule-vs-note icon precedence at most, not a daily-use bug."
+   },
+   {
+    "id": "metadata-content-3",
+    "reason": "Duplicate of .scratch/file-io-audit/issues/34-type-rename-partial-failure.md, section 'Type rename writes the new name unquoted', which already covers the raw `_type: ${typeName}` template (now type-definitions.service.ts:79), rewriteTypeInFrontmatter (type-definitions.logic.ts:210) and rewrite_type_line (parsing.rs:148-152) with names like '#ideas' and '[Projects]'."
+   },
+   {
+    "id": "metadata-spec-4",
+    "reason": "Improbable corner: the Excluded folders field's placeholder is `_templates` and the help (22-auto-move.md:103-105) and example (README.md:28) all show slash-less, vault-relative names; the loss also needs a rule that matches a note in that folder (templates rarely carry `_archived: true` or a done status). Not a daily-use trigger."
+   }
+  ],
+  "open_verdicts": [
+   {
+    "path": ".scratch/architecture-stability/issues/70-icon-index-single-frontmatter-reader.md",
+    "verdict": "design_or_refactor",
+    "category": "refactor",
+    "likelihood": "low",
+    "evidence": "Two readers still exist at HEAD: buildFrontmatterIconIndex reads Rust entries (src/lib/features/file-icons/file-icons.service.ts:~199), while updateFrontmatterIconForFile (file-icons.service.ts:238-243) still parses raw text with extractIconFromFrontmatter / extractIconColorsFromFrontmatter (file-icons.logic.ts:130, :139). Owner chose option A on 2026-11-05; valid architectural work, not a defect on its own.",
+    "stale_notes": ""
+   },
+   {
+    "path": ".scratch/architecture-stability/issues/71-icon-save-edge-cases.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Case 1: removeFrontmatterIcon returns true without writing when parseFrontmatterProperties yields no icon keys for a block yaml rejects (src/lib/features/file-icons/frontmatter-icon.service.ts:84-90), and removeIconForPath then drops the store entry (file-icons.service.ts:173-177). Case 3: extractViewIcon uses a plain parseYaml (file-icons.logic.ts:190-200), so a repeated key yields null. Case 4: updateViewIconYaml casts parseYaml to a record with no non-mapping guard (src/lib/features/type-definitions/type-sidebar.logic.ts:533-542), unlike updateViewColorsYaml (:553-561). Case 2 not re-run; the no-op guard at type-sidebar.logic.ts:521-531 compares against extractViewIcon's canonical name, consistent with the Issue's description.",
+    "stale_notes": "No line numbers in the Issue; nothing stale. Still depends on the Issue 70 decision for case 1."
+   },
+   {
+    "path": ".scratch/audit-2026-11-04/issues/10-metabind-open-failure-stops-actions.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "The open case awaits followWikilinkInfo and breaks out of the switch, so executeButtonAction returns true whatever happened (src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:103-120). followWikilink returns void and ignores host.createNote's boolean (wikilink-navigation.ts:17-22); followWikilinkInfo returns void and swallows errors (:45-66). The click loop stops only on false (meta-bind-button-widget.ts:37-39).",
+    "stale_notes": "The open case is now at meta-bind-button-widget.ts:103-120 (Issue says :101-111); it also gained refuseOpen for empty, non-wikilink and unsafe links, which already return false. Overlaps Issue 48 (same open/updateMetadata sequence); land them together or in order."
+   },
+   {
+    "path": ".scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "loadAutoMoveConfig's catch sets DEFAULT_CONFIG with no flag (src/lib/features/auto-move/auto-move.service.ts:61-64); saveAutoMoveConfig writes the store unconditionally (:70-88). loadSentTasks casts JSON.parse and returns [] on error (src/lib/features/tasks/todoist.service.ts:103-118); saveSentTasks writes unconditionally (:124-131). No loadFailed flag in src/lib/features/auto-move.",
+    "stale_notes": "Line ranges shifted by one: auto-move load is :42-65 (Issue :41-64), save :70-88 (Issue :69-87). Still Blocked by Issue 03. The new 'flush on destroy' Issue for AutoMoveSection must respect the guard this one adds."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/29-meta-bind-value-types.md",
+    "verdict": "fixed",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "Fixed by 575b84f2f (2026-11-04, 'fix: meta-bind writes typed values and reads alias keys (Issue 07)'). Toggle passes cb.checked (widgets.ts:990), number input converts with Number() unless unsafe (widgets.ts:1063-1067), select uses typedOptionValue (widgets.ts:784); setPropertyByBindTarget takes string|number|boolean and sets number/boolean types (properties.logic.ts:639-653). No test.fail left in e2e/specs/live-preview/click-reveal/meta-bind-toggle.spec.ts (rg). Notes written as quoted \"true\"/\"7\" by older builds keep the quotes until edited.",
+    "stale_notes": "The whole Issue is obsolete; close it with a closing commit citing 575b84f2f."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/30-empty-frontmatter-block.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "medium",
+    "evidence": "ensureFolderNote still writes '---\\n---\\n' (src/lib/features/file-icons/file-icons.service.ts:100), reached from setIconForPath / setIconColors for a folder without a folder note. FRONTMATTER_REGEX is unchanged (src/lib/core/frontmatter/properties.logic.ts:38) and needs a newline before the closing fence, so extractRawFrontmatter (:45-48) and extractBody (:54-58) miss the empty block; rebuildContent (:677) then prepends a new block above it. ensureFrontmatterLink (:518) special-cases the empty block, the other writers do not. Setting an icon on a folder is a normal action.",
+    "stale_notes": "Line numbers moved: placeholder at file-icons.service.ts:100 (Issue :97), regex at properties.logic.ts:38 (Issue :37), extractBody :54-58 (Issue :53-56), rebuildContent :677 (Issue :615-621), ensureFrontmatterLink at :518 (Issue :531-532). The repro test is still under .scratch."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/32-app-json-corrupt-overwrite.md",
+    "verdict": "partially_fixed",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "(1) auto-move-rules.json and (2) todoist-sent.json overwrite: still present (auto-move.service.ts:61-64, :70-88; todoist.service.ts:103-131), and covered by the newer ready-for-agent Issue 14 (.scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md). (3) .view comments dropped on a real change: still present, since updateCollectionYaml ends in stringifyYaml (src/lib/features/collection/yaml-parser.ts:261, siblings :355, :378, :406, :429) and updateViewIconYaml / updateViewColorsYaml too (type-sidebar.logic.ts:542, :570); a no-op guard now returns the input unchanged when nothing differs (:521-531, :564-566). (4) Toolbar write reverted under a dirty tab and the history gap: fixed, because every .view writer goes through rewriteViewFile (src/lib/features/type-definitions/type-definitions.service.ts:350-440), which takes the dirty tab as base, syncs the tab, saves through saveFileByPath or writes with create:false, then markRecentSave and applyNoteChange.",
+    "stale_notes": "Sections 1-2 duplicate Issue 14; drop them here or mark them superseded. Section 4 is fixed. updateViewQuery and type-definitions.service.ts:284-311 no longer exist; the comment-loss sites are yaml-parser.ts:175-261 and type-sidebar.logic.ts:520-570."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/34-type-rename-partial-failure.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "(a) propagate_type_rename_inner skips failures with debug_log and returns the count (src-tauri/src/commands/vault.rs:392-446). (b) renameType: the open-tab write loop and `await call('propagate_type_rename', ...)` share one try (src/lib/features/type-definitions/type-definitions.service.ts:229-241), the catch returns at :242-246, and the count is discarded. (c) rewrite_type_line compares the raw value, so 'Project # note' returns None (src-tauri/src/vault/parsing.rs:143-147). (d) the new name is written raw (parsing.rs:148-151; rewriteTypeInFrontmatter at type-definitions.logic.ts:210; `_type: ${typeName}` template at type-definitions.service.ts:79); validateTypeName (type-definitions.logic.ts:168) checks only file-name legality. Rust traced, not run.",
+    "stale_notes": "Line numbers moved: vault.rs :356-376/~423 is now :392-446; renameItem at type-definitions.service.ts:223, tab loop :229-240, propagate call :241, catch :242-246 (Issue :209, :215-231, :226); resolveTypedNoteTarget template :79 (Issue :73); validateTypeName :168 (Issue :157-166); rewriteTypeInFrontmatter :210 (Issue :194-206). The original sections still need acceptance criteria before the Issue can run."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/48-meta-bind-button-writes-opened-note.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "The click loop runs every action against the same shared view (src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:33-40). open awaits followWikilinkInfo and returns true (:103-120), createNote returns host.createNote (:122-128), and the next updateMetadata calls dispatchMetaBindUpdate(view, ...) (:98-101), which reads view.state.doc at call time (widgets.ts:868-883). No code captures the button note's path.",
+    "stale_notes": "Lines moved: click loop :33-40 (Issue :30-37), updateMetadata :98-101 (Issue :85-88), open :103-120 (Issue :90-103, :113), createNote :122-128 (Issue :105-111); dispatchMetaBindUpdate is at widgets.ts:868 (Issue :754-768). Overlaps Issue 10 (open result); the fix touches the same switch."
+   }
+  ]
+ },
+ {
+  "domain": "index",
+  "counts": {
+   "findings": 12,
+   "survived": 7,
+   "refuted": 0,
+   "open": 10
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "index-ux-1",
+     "index-ux-2",
+     "index-spec-1"
+    ],
+    "title": "Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen before",
+    "category": "content",
+    "likelihood": "high",
+    "trigger": "Read-only navigation with no index change in between: open note A, open note B (or follow a wikilink from A), go back to A, then expand Backlinks. Or expand Outgoing links on A, switch to B and back to A, and expand it again. The index version only moves when Rust really changes the index, so plain browsing keeps it fixed.",
+    "what_to_build": "Both panels skip their IPC on a per-path memory of the last fetch, while each panel writes one shared store, so returning to a note leaves the store holding another note's data (or the empty reset state). Backlinks: lastFetchedBacklinksVersion (src/lib/features/backlinks/backlinks.service.ts:19) remembers every path's version, and fetchBacklinksV2Inner returns early at :142-150 when that path's version matches. It is cleared only by resetBacklinks (:257-263, vault teardown). The layout's 150 ms tab-switch fetch (src/routes/(app)/+layout.svelte:105-141) runs for A and then for B, so the store holds B's mentions. On the return to A both the layout fetch and the expand fetch (BacklinksPanel.svelte:20-30) are skipped, and the panel renders B's linkedMentions (:68-82) under A. Outgoing links: lastFetchedOutgoingKey (src/lib/features/outgoing-links/outgoing-links.service.ts:16) is keyed `${version}:${contentLen}:${path}` per path (:65-70). OutgoingLinksPanel.svelte:30-36 empties the store on a tab change but leaves the key map alone, so re-expanding A skips the IPC and shows 'No outgoing links' (:64-65). Fix direction: the skip may only fire when the store currently holds this path's data at this version, for example by keeping a single 'last written' (path, version[, content length]) record that every store write and reset updates, instead of a per-path history. The burst-save dedupe the cache exists for (repeated calls for the same path at the same version) must keep eliding the IPC. Read docs/agents/indexing-watcher-rules.md item 2 before changing the panels.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/backlinks/backlinks.service.test.ts: with the real backlinksStore and vaultStore at a fixed vaultIndexVersion, call fetchBacklinksV2('/v/A.md') with get_backlinks_v2 resolving A's entry, then fetchBacklinksV2('/v/B.md') resolving B's entry (activeTabPath following each call), then set activeTabPath back to A and call fetchBacklinksV2('/v/A.md') again; backlinksStore.linkedMentions holds A's entry, not B's. It fails today.",
+     "Failing test first, in src/tests/lib/features/outgoing-links/outgoing-links.service.test.ts: fetchOutgoingLinksV2('/v/A.md', content) writes A's links, then outgoingLinksStore.reset(), then fetchOutgoingLinksV2('/v/A.md', content) at the same version and content refills the store with A's links. It fails today.",
+     "Two consecutive calls for the same path at the same version still issue one IPC (the existing 'skips the IPC when vaultIndexVersion has not changed' tests at backlinks.service.test.ts:478 and outgoing-links.service.test.ts:216 stay green).",
+     "A version bump, a content length change and resetBacklinks / resetOutgoingLinks still force a refetch (existing tests stay green).",
+     "The active-path guard still drops a result whose tab changed mid-IPC, and does not record it as fetched.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/routes/(app)/+layout.svelte:105-141 fetchBacklinksV2(path) 150 ms after every tab change, panel expanded or not (call at :129) -> src/lib/features/backlinks/backlinks.service.ts:19 per-path Map; :142-150 early return when lastFetchedBacklinksVersion.get(path) === vaultIndexVersion; :163-164 writes the single shared linkedMentions and records the path; :257-263 the only clear (teardown) -> src/lib/features/backlinks/BacklinksPanel.svelte:20-30 expand calls fetchBacklinksV2(path) which is skipped again; :32-38 reset only when expanded and path changed; :68-82 renders whatever linkedMentions holds. Version moves only on a real index change: src-tauri/src/commands/vault.rs:367 emits only if result.changed; src/lib/app/tauri-listeners.service.ts:268 bumpVaultIndexVersion on the throttled refresh. Outgoing: src/lib/features/outgoing-links/outgoing-links.service.ts:16 per-path key map; :65-70 skip; :85 record; :96-99 the only clear (teardown) -> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:30-36 store reset without clearing the key; :18-28 re-expand fetch skipped; :64-65 'No outgoing links'. help/documentation/07-sidebar-panels.md:74 and :92 promise a re-fetch on the next expand.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [
+     ".scratch/ux-polish/issues/06-link-panels-show-load-error.md"
+    ],
+    "key": "N-index-01"
+   },
+   {
+    "source_ids": [
+     "index-ux-4",
+     "index-spec-2"
+    ],
+    "title": "A text search shows only its own results: a query with no hits says No results found, even right after a tag click",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Click a tag in the Tags view (query becomes tag:work, listing its notes), then add a word (tag:work roadmap) or replace the query with a word that has no FTS hit. Zero hits after an operator filter is common because the filter only sees the top 50 hits.",
+    "what_to_build": "The operator-only branch of performSearch writes the legacy list with searchStore.setResults(results) and clears ftsResults (src/lib/features/search/search.service.ts:189-197), but the FTS branches (:206-227) only call setFtsResults and never clear results; the only setResults([]) is for an empty query (:134). SearchPanel.svelte renders ftsResults when non-empty and otherwise falls back to searchStore.results (:126-135), and hasResults / resultCount count either (:55-69). So a text query whose FTS answer is empty shows the previous tag:work list with its count, as if it answered the new query. Fix direction: every branch that sets one text-mode list clears the other, as the operator-only and fallback branches already do in the other direction.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/search/search.service.test.ts: with the real searchStore in text mode, query 'tag:work' and get_all_vault_entries_v2 returning a note tagged work, await performSearch() (searchStore.results has 1 entry); then setQuery('zzzz') with search_fts resolving [], await performSearch(); searchStore.results and searchStore.ftsResults are both empty. It fails today.",
+     "The same holds for 'tag:work zzzz' when the operator filter leaves no FTS row.",
+     "src/tests/lib/features/search/SearchPanel.test.ts: after that sequence the panel shows 'No results found' and no result count.",
+     "The FTS-failure fallback and the operator-only branch still clear ftsResults (existing test at search.service.test.ts:147 stays green).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/search/search.service.ts:189-197 operator-only: setResults(results) + setFtsResults([]) -> :199-227 FTS branch: setFtsResults(filtered) at :223 or setFtsResults(results) at :226, results untouched -> :130-135 only the empty query clears results -> src/lib/features/search/SearchPanel.svelte:55-61 hasResults = ftsResults.length > 0 || results.length > 0 in text mode; :63-69 resultCount falls back to results.length; :126-135 renders results when ftsResults is empty. Entry point: src/lib/features/tags/TagsView.svelte:17-18 openSearch(`tag:${tag}`).",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-index-02"
+   },
+   {
+    "source_ids": [
+     "index-rust-1",
+     "index-ux-5",
+     "index-spec-3"
+    ],
+    "title": "Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags the same way with or without words",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Text mode, a query that mixes words and an operator as help 06 documents, e.g. `meeting tag:work` or `meeting path:projects`, in a vault where the word appears in more than 50 notes. Or click the parent tag `work` (which lists `work/meetings` notes) and then add a word.",
+    "what_to_build": "Two defects in the words-plus-operators branch of performSearch. (1) It sends only the words to search_fts with maxResults 50 (src/lib/features/search/search.service.ts:199-203); Rust ranks by BM25 and applies LIMIT before anything knows about the operators (src-tauri/src/commands/search_index.rs:163 default 50, src-tauri/src/db/fts_repo.rs:84-89 ORDER BY score LIMIT ?2). The tag and path filters then run in JS over those 50 rows (search.service.ts:206-223), so any matching note ranked 51st or lower for the bare words is never returned, and the list may be empty with no sign it was cut. (2) The tag check there is an exact set lookup, tagSet.has(tag.toLowerCase()) (:215), while the operator-only branch uses matchesIndexTag (src/lib/features/search/search.logic.ts:149-155), which also matches `work/...` children, as does the in-memory fallback (matchesTagFilter, search.logic.ts:102-111). Fix direction: apply the operators before the result cap (either filter inside Rust before LIMIT, or fetch an uncapped or much larger candidate list when operators are present and cap after filtering), and use matchesIndexTag for the tag test. Whichever side applies the filter owns the test for the cap.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/search/search.service.test.ts: text mode, query 'meeting tag:work', search_fts resolving one row for notes/a.md, get_all_vault_entries_v2 returning that note with tags ['work/meetings']; after await performSearch(), searchStore.ftsResults contains notes/a.md. It fails today.",
+     "A test with 60 notes containing the word where the only note under path:projects (or with the tag) ranks below 50 for the bare word returns that note for `meeting path:projects`. Put it in src-tauri/tests/search_fts_test.rs if Rust applies the filter, or in search.service.test.ts if the frontend widens the candidate list.",
+     "The final list is still capped (50 or the current cap) after filtering, and BM25 order is kept.",
+     "Operator-only queries and plain text queries behave as today (existing tests at search.service.test.ts:294-442 stay green).",
+     "Gate for the sides touched: pnpm check and pnpm vitest run; plus cargo test --manifest-path src-tauri/Cargo.toml if Rust changes."
+    ],
+    "evidence": "src/lib/features/search/search.service.ts:184-186 strips operators, ftsQuery = query.text -> :199-203 call('search_fts', { query: ftsQuery, maxResults: 50 }) -> src-tauri/src/commands/search_index.rs:163 limit = max_results.unwrap_or(50); :186 search_match(conn, &fts_query, limit) -> src-tauri/src/db/fts_repo.rs:84-89 ORDER BY score LIMIT ?2 -> search.service.ts:206-223 tag/path filter over those rows; :215 exact tagSet.has -> src/lib/features/search/search.logic.ts:149-155 matchesIndexTag prefix-matches nested tags (used by the operator-only branch at search.service.ts:194 via performOperatorOnlySearch, search.logic.ts:179); search.logic.ts:102-111 matchesTagFilter prefix-matches in the fallback. help/documentation/06-search-and-navigation.md:135-142 documents `meeting tag:work path:projects` and the tag-click equivalence.",
+    "gate": "both",
+    "size": "M",
+    "related_open": [],
+    "key": "N-index-03"
+   },
+   {
+    "source_ids": [
+     "index-spec-4"
+    ],
+    "title": "Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "Open a note that contains `![[photo.png]]`, `![[doc.pdf]]`, `![[board.canvas]]` or a same-note heading link `[[#Action Items]]` (all documented in help 05) and expand Outgoing links.",
+    "what_to_build": "extract_outgoing_links keeps every `[[...]]`, including embeds and `[[#Heading]]` with an empty target (src-tauri/src/vault/parsing.rs:1057-1105, target split at :1095-1104). lookup_outgoing_links resolves each through the VaultIndex (src-tauri/src/vault/index.rs:852-867 -> resolve_with_cache :151-159), which returns None for an empty target and can only resolve to indexed entries (.md/.markdown/.view, src-tauri/src/commands/vault.rs:310-318), so an existing image, PDF or canvas never resolves. OutgoingLinksPanel.svelte:82-89 renders every unresolved row with the warning icon in the destructive color, and deduplicateByTarget (src/lib/features/outgoing-links/outgoing-links.service.ts:25-34) folds all `[[#...]]` links into one row with an empty name. The editor itself resolves links against the whole file tree (src/lib/app/editor-host.ts:79 and :97-98), so the editor and the panel disagree. Fix direction: a link with an empty target and a heading resolves to the note itself (and dedupes by heading, not by the empty target); a target that is not a note resolves against the vault's files the way the editor does (resolveWikilinkCached over the file tree), so only truly missing targets are red.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/outgoing-links/outgoing-links.service.test.ts: get_outgoing_links_v2 resolving [{ target: 'photo.png', resolvedPath: null }, { target: '', heading: 'Action Items', resolvedPath: null }, { target: 'Missing', resolvedPath: null }] for /v/A.md, with photo.png present in the vault file tree; after fetchOutgoingLinksV2, photo.png and the heading link have a resolvedPath and only 'Missing' is unresolved. It fails today. (If the fix lands in Rust, put the equivalent case in src-tauri/tests/vault_index_test.rs instead.)",
+     "Two same-note links `[[#One]]` and `[[#Two]]` give two rows, labelled by heading, not one row with an empty name.",
+     "Clicking a same-note heading row stays on the note; clicking an attachment row opens the file.",
+     "A link to a note that does not exist is still red (existing OutgoingLinksPanel.test.ts case at :115 stays green).",
+     "Gate for the sides touched: pnpm check and pnpm vitest run; plus cargo test --manifest-path src-tauri/Cargo.toml if Rust changes."
+    ],
+    "evidence": "src-tauri/src/vault/parsing.rs:1057 extract_outgoing_links scans every `[[`, so `![[x]]` is included; :1095-1104 `[[#H]]` -> target '' + heading -> src-tauri/src/vault/index.rs:852-867 resolved_path = self.resolve(&link.target) -> :151-159 empty target returns None; :161-176 lookups only in by_file_name / by_path, built from index entries -> src-tauri/src/commands/vault.rs:310-318 index membership is .md/.markdown/.view only -> src/lib/features/outgoing-links/outgoing-links.service.ts:25-34 dedupe by lowercase target merges every empty target -> src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:82-89 AlertCircle + text-destructive for any row without resolvedPath. help/documentation/07-sidebar-panels.md:90 says the warning means the target note does not exist; help/documentation/05-wikilinks.md:32 and :37 document `[[#Heading]]` and `![[image.png]]`.",
+    "gate": "both",
+    "size": "M",
+    "related_open": [],
+    "key": "N-index-04"
+   },
+   {
+    "source_ids": [
+     "index-spec-5"
+    ],
+    "title": "A tag click lists the notes with that tag even when Semantic or Hybrid was the selected search mode",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "Switch the Search panel to Semantic or Hybrid (the choice stays for the session), then click a tag in the Tags view or Cmd+click a #tag in a note.",
+    "what_to_build": "Both tag-click entry points call openSearch(`tag:${tag}`) (src/lib/features/tags/TagsView.svelte:17-18, src/lib/app/editor-host.ts:165), and openSearch only sets the query (src/lib/features/search/open-search.service.ts:11-15), not the mode. In hybrid mode performSearch sends parsed.text.trim() || raw, i.e. the literal 'tag:work', to search_hybrid and returns (src/lib/features/search/search.service.ts:145-173); semantic mode does the same at :243-256. The operator filters exist only in the text branch (:181-228), and SearchPanel renders semanticResults / hybridResults in those modes (SearchPanel.svelte:136-143), so the user sees chunks semantically close to the string 'tag:work' instead of the tagged notes. Fix direction: a tag click shows the operator-only answer, for example openSearch selects Text mode when its query carries operators and no words (which also covers a kokobrain://search link), keeping the user's mode for every other query.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/search/open-search.service.test.ts: with the real searchStore set to mode 'semantic', openSearch('tag:work') leaves searchStore.mode === 'text' and query 'tag:work'. It fails today.",
+     "openSearch('meeting') and openSearch() keep the current mode.",
+     "After the tag click, performSearch lists the tagged notes and does not call search_semantic or search_hybrid (search.service.test.ts).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/tags/TagsView.svelte:17-18 and src/lib/app/editor-host.ts:165 openSearch(`tag:${tag}`) -> src/lib/features/search/open-search.service.ts:11-15 sets query, rail item, focus; no mode -> src/lib/features/search/search.store.svelte.ts:21 mode is session $state -> src/lib/features/search/search.service.ts:145-153 hybrid sends 'tag:work' to search_hybrid; :243-253 semantic sends it to search_semantic; operator handling only at :181-228 -> src/lib/features/search/SearchPanel.svelte:136-143 renders semantic/hybrid lists in those modes. help/examples/search-types/README.md:18 says semantic and hybrid ignore operators, but the tag click gives the user no way to see that.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-index-05"
+   },
+   {
+    "source_ids": [
+     "index-rust-2"
+    ],
+    "title": "Fuzzy search finds a close spelling wherever it sits in the vocabulary, not only among the first 500 words with the same first letter",
+    "category": "content",
+    "likelihood": "low",
+    "trigger": "Text mode with the fuzzy toggle on (the default), a misspelled word of 3+ characters such as `meating`, in a vault large enough to hold more than 500 distinct indexed words (content, titles, paths, headings, tags) that start with the same letter and sort before the intended word.",
+    "what_to_build": "expand_fuzzy_terms fetches candidates with expand_vocab_terms(conn, 'm%', 500) (src-tauri/src/search/fuzzy.rs:55-58), i.e. `SELECT DISTINCT term FROM notes_fts_vocab WHERE term LIKE ?1 LIMIT ?2` (src-tauri/src/db/fts_repo.rs:251-258). The vocab table (fts5vocab instance, src-tauri/src/db/schema.rs:109) yields terms in alphabetical order, so the cap keeps the alphabetically first 500 terms for that letter, and Levenshtein runs only on those (fuzzy.rs:60-67). A target past that point never becomes a candidate; build_fts_query then searches only the misspelled term (src-tauri/src/commands/search_index.rs:388-397) and the user gets 'No results found'. LIKE also gives fts5vocab no term bound, so each fuzzy term walks every earlier letter. Fix direction: bound the candidate scan by term range (term >= first letter AND term < next code point) and by a length window from auto_distance, and drop or move the cap so it cannot cut candidates by alphabet. Exact-spelling queries are unaffected today and must stay so.",
+    "acceptance": [
+     "Failing test first, in src-tauri/tests/search_fuzzy_test.rs: populate_vocab with 600 distinct words that start with 'm' and sort before 'meeting' (e.g. 'maa000' .. 'maa599') plus 'meeting'; expand_fuzzy_terms(conn, \"meating\") contains \"meeting\". It fails today.",
+     "A first letter outside ASCII (e.g. '\u00e9') still finds its close matches.",
+     "The existing fuzzy tests (short terms, distance thresholds, no duplicates) stay green.",
+     "Rust gate: cargo test --manifest-path src-tauri/Cargo.toml passes (clippy is gated in CI)."
+    ],
+    "evidence": "src-tauri/src/commands/search_index.rs:388-389 expand_fuzzy_terms per term when fuzzy is on (store default true at src/lib/features/search/search.store.svelte.ts:22) -> src-tauri/src/search/fuzzy.rs:55-58 pattern '<first char>%' and cap 500 -> src-tauri/src/db/fts_repo.rs:251-258 DISTINCT term ... LIKE ?1 LIMIT ?2 -> src-tauri/src/db/schema.rs:109 notes_fts_vocab USING fts5vocab(notes_fts, instance), iterated in term order -> fuzzy.rs:60-67 Levenshtein over the capped candidates only -> search_index.rs:390-397 falls back to the bare misspelled term when nothing expands. help/documentation/06-search-and-navigation.md:122 promises 'meating' finds 'meeting'. src-tauri/tests/search_fuzzy_test.rs uses small vocabularies only.",
+    "gate": "rust",
+    "size": "S",
+    "related_open": [],
+    "key": "N-index-06"
+   },
+   {
+    "source_ids": [
+     "index-ux-3"
+    ],
+    "title": "Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "Type a query, wait for the 200 ms debounce so the search starts, then clear the box before it returns. Most likely in Semantic or Hybrid mode, whose searches take seconds, or with fuzzy text search on a large vault.",
+    "what_to_build": "performSearch bumps searchVersion and, for an empty query, clears the lists and returns before its try block (src/lib/features/search/search.service.ts:127-136), so it never calls setSearching(false). The earlier in-flight call then returns on its version checks and its finally clears isSearching only when searchVersion === version (:271-274), which is now false. isSearching stays true, and SearchPanel.svelte:115-116 checks it before the empty-query hint at :117-118, so the panel shows 'Searching...' over an empty box until another non-empty search completes. Fix direction: the empty-query branch also clears isSearching.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/search/search.service.test.ts: with the real searchStore, setQuery('meeting') and a search_fts mock that returns a deferred promise; start performSearch() without awaiting, setQuery(''), await performSearch(), then resolve the deferred and await the first call; searchStore.isSearching is false. It fails today.",
+     "A newer non-empty search still owns isSearching (an older call finishing does not clear it early; existing test at :285 stays green).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/routes/(app)/+layout.svelte:170-180 performSearch 200 ms after each query change, including an empty one -> src/lib/features/search/search.service.ts:128 ++searchVersion; :130-135 empty query returns without setSearching(false); :138 setSearching(true) only for non-empty -> :154/:193/:204 the older call returns on version mismatch; :271-274 finally clears only when searchVersion === version -> src/lib/features/search/SearchPanel.svelte:115-118 'Searching...' wins over 'Type to search across all files'.",
+    "gate": "frontend",
+    "size": "S",
+    "related_open": [],
+    "key": "N-index-07"
+   }
+  ],
+  "refuted": [],
+  "open_verdicts": [
+   {
+    "path": ".scratch/audit-2026-11-04/issues/18-confine-vault-root-commands.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "Rust still does not know the open vault root: src-tauri/src/db/mod.rs:17-27 hold only Connection slots, and rg finds no open-root accessor. scan_vault_inner validates only the given path (src-tauri/src/commands/vault.rs:125-132); scan_vault_v2 / scan_vault_v2_cached at vault.rs:1233-1260 and :1320-1382 use canonical_vault_root; build_search_index_inner at src-tauri/src/commands/search_index.rs:57-59; start_vault_watcher (src-tauri/src/commands/watcher.rs:12-23) passes path straight to replace_watcher; init_semantic_search (src-tauri/src/commands/semantic.rs:371), is_semantic_model_available (:399), is_reranker_model_available (:406), build_semantic_index (:483) take the path as given. Blocker 16 (and 05) is still todo in .scratch/audit-2026-11-04/ledger.md. Defence in depth against a compromised renderer, not a daily-use failure.",
+    "stale_notes": "Line numbers moved: scan_vault_v2 is now vault.rs:1233-1260 (Issue says :1192-1206), scan_vault_v2_cached :1320-1382 (Issue says :1280-1293), init_semantic_search starts at semantic.rs:371. Still blocked by 16, which is not delivered."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/28-watcher-index-staleness.md",
+    "verdict": "partially_fixed",
+    "category": "content",
+    "likelihood": "low",
+    "evidence": "Fixed: the folder rename/move section, by fc37b1370 (audit-2026-11-04 Issue 11, done in its ledger): path-change.service.ts awaits rename_in_search_index (src/lib/core/filesystem/path-change.service.ts:92, :156; src-tauri/src/commands/search_index.rs:265-272). Still present: read error treated as delete (src/lib/app/lifecycle/watcher-handler.service.ts:110-114 maps content null to 'delete'; src-tauri/src/commands/files.rs:63-71 returns content None for every read error); self-save skip without a disk check (watcher-handler.service.ts:44); bulk >10 .md batch runs rebuildIndex/buildPropertyIndex/buildFrontmatterIconIndex/notifyContentInvalidated only, no FTS5 or semantic update (:69-78); refreshTree without a guard skips notifyListeners (src/lib/core/filesystem/fs.watcher.ts:175-177 and the other refresh sites); one unreadable subfolder fails the whole scan (vault.rs:139 read_dir ?, :182 recursive scan_dir ?); watcher start failure only logs (fs.watcher.ts:279-283).",
+    "stale_notes": "Drop or mark done the 'Folder rename or move drops the moved notes from FTS5 and semantic search' section (fixed by fc37b1370). Line refs moved: watcher-handler.service.ts:105-109 is now :109-114; files.rs:63-74 is now :63-71."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/39-semantic-cross-vault-commit.md",
+    "verdict": "obsolete",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "The mechanism is unchanged (fire-and-forget update_semantic_file at src/lib/features/search/search.service.ts:326; switchVault awaits only saves and pending writes, src/lib/core/vault/vault.service.ts:22-27; update_semantic_file writes through the global DB slot with no vault identity, src-tauri/src/commands/semantic.rs:1305-1328 and :1414), but every trigger needs a second vault opened in the same session, which the owner ruled out (one vault per session). Candidate to close as wontfix under that decision.",
+    "stale_notes": "Not a scenario for this owner; if kept, record the owner decision in Notes rather than implementing it."
+   },
+   {
+    "path": ".scratch/file-io-audit/issues/54-semantic-update-after-delete.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "update_semantic_file (src-tauri/src/commands/semantic.rs:1305-1475) never checks that file_path still exists before its insert transaction (:1414-1460) and the empty-chunks branch (:1314-1323). remove_semantic_file (:1282-1299) is a separate transaction with no ordering against an in-flight embed. The save observer fires update_semantic_file without awaiting (src/lib/features/search/search.service.ts:326), and a delete saves dirty tabs under the path first (src/lib/core/filesystem/path-change.service.ts:55-60), so a slow embed can commit after the remove. Result: stale chunks for a trashed note until the next semantic build cleans orphans. No test exists.",
+    "stale_notes": "Line refs are current within a few lines; the trigger (delete a note seconds after typing in it, with the embedder loaded) is narrow."
+   },
+   {
+    "path": ".scratch/tags-obsidian-parity/issues/01-tag-format-matches-obsidian.md",
+    "verdict": "still_present",
+    "category": "content",
+    "likelihood": "medium",
+    "evidence": "Digit-first and emoji tags are still rejected: src-tauri/src/vault/parsing.rs:468 requires is_alphabetic or '_' first, :477 continuation alphabetic/ASCII digit/_/-//; src/lib/utils/tag-extraction.ts:2 INLINE_TAG_REGEX starts with [\\p{L}_]; src/lib/plugins/kanban/kanban.logic.ts:735 keeps its own copy of the regex. INDEX_SCHEMA_VERSION is still 5 (src-tauri/src/vault/index_cache.rs:18), so the bump the Issue requires is still needed when the rule changes. Status needs-triage; no commit implements it.",
+    "stale_notes": "Owner decisions on the emoji code-point set and the task-metadata ASCII rule are still open in Notes, so it is not startable by relay as is."
+   },
+   {
+    "path": ".scratch/tags-obsidian-parity/issues/02-tag-autocomplete.md",
+    "verdict": "design_or_refactor",
+    "category": "ux",
+    "likelihood": "medium",
+    "evidence": "Feature not built: the single autocompletion instance lists only wikilinkCompletionSource and dateShortcutCompletionSource (src/lib/core/markdown-editor/setup/editor-extensions.ts:136-142), and rg finds no listTags or tag completion source in src/lib. Its dependency (editor inline tags) is delivered, so it is unblocked; it is new work, not a defect.",
+    "stale_notes": "Status is still needs-triage."
+   },
+   {
+    "path": ".scratch/ui-responsiveness/issues/26-search-cache-reload-after-index-update.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "medium",
+    "evidence": "invalidate_search_cache (src-tauri/src/commands/semantic.rs:148) still drops the whole cache and get_or_load_cache (:157) reloads it in full on the next semantic/hybrid search. Call sites at HEAD: :571 (after cleanup_orphaned_chunks), :786 (build_semantic_index), :1262 (shutdown_semantic), :1294 (remove_semantic_file when rows were removed), :1321 (update_semantic_file empty content), :1468 (update_semantic_file with changes). Performance, not correctness.",
+    "stale_notes": "Cited lines moved (781->786, 1267->1262, 1299->1294, 1326->1321, 1473->1468) and the invalidation list misses the call at :571. The owner decision (A, B or C) is still not recorded in Notes."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/06-link-panels-show-load-error.md",
+    "verdict": "still_present",
+    "category": "ux",
+    "likelihood": "low",
+    "evidence": "Both services still log and swallow the IPC error and leave the store untouched: src/lib/features/backlinks/backlinks.service.ts:166-167, src/lib/features/outgoing-links/outgoing-links.service.ts:87-88. The panels render 'No backlinks found' (src/lib/features/backlinks/BacklinksPanel.svelte:68-69) and 'No outgoing links' (src/lib/features/outgoing-links/OutgoingLinksPanel.svelte:64-65) for any empty list. rg finds no loadFailed flag or error copy in either feature.",
+    "stale_notes": "Line refs match. It touches the same service fetch functions as the new 'Backlinks and Outgoing links always show the open note's own links' Issue; implement them in order or together to avoid conflicts."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/13-tags-filtered-empty-state.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "medium",
+    "evidence": "src/lib/features/tags/TagsView.svelte:15 MIN_COUNT_THRESHOLD = 10, :35-39 displayedTree filters rare tags when hideRareTags (default true, src/lib/features/tags/tags.store.svelte.ts:5), :52-55 header shows the unfiltered totalTagCount, :81-82 renders 'No tags found' for an empty filtered tree. No split message or 'Show all tags' button exists.",
+    "stale_notes": "The empty branch is at TagsView.svelte:81-82 (Issue says about line 81, accurate); the existing 'No tags found' test reference 'about line 62' should be re-checked in src/tests/lib/features/tags/TagsView.test.ts."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "low",
+    "evidence": "The panel still renders its own 'Indexed: N notes \u00b7 M chunks' row with a Loader2 spinner (src/lib/features/search/SearchPanel.svelte:98-111, Loader2 imported at :4), and SearchStatus is still mounted in the status bar (src/lib/app/AppShell.svelte:51, :305). src/tests/lib/features/search/SearchStatus.test.ts still does not exist.",
+    "stale_notes": "Line refs moved: the panel block is now SearchPanel.svelte:98-111 (Issue says about 90-103), SearchStatus mount is AppShell.svelte:305 (Issue says about 299). The ticket still assumes the owner decision that the status bar owns the index status."
+   }
+  ]
+ },
+ {
+  "domain": "views",
+  "counts": {
+   "findings": 7,
+   "survived": 5,
+   "refuted": 2,
+   "open": 2
+  },
+  "deadHunters": [],
+  "deadVerifierJobs": [],
+  "unverifiedFindings": [],
+  "unjudgedOpen": [],
+  "issues": [
+   {
+    "source_ids": [
+     "views-ux-1"
+    ],
+    "title": "Hiding a column in a view with no `order` keeps the columns the table showed, minus that one",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "Open a .view that has no `order:` (every New table, every view made by New view in the Types navigator, help/examples/type-definitions-features/drafts.view), open the Columns popover and untick one column.",
+    "what_to_build": "With no `order`, the table shows the columns resolveColumns infers from the matched records (src/lib/features/collection/collection.logic.ts:463-477: file.name plus every key of those records). The Columns panel is instead given `visibleColumns={localColumns ?? allColumns}` (src/lib/features/collection/CollectionView.svelte:672), and allColumns is getAllAvailableColumns (src/lib/features/collection/toolbar/properties.logic.ts:8-41): seven file.* columns plus every frontmatter key in the vault. So the panel ticks columns the table does not show. Unticking one runs toggleColumn(allColumns, col, false, ...) (PropertiesPanel.svelte:61-63), and handleColumnsChange (CollectionView.svelte:390-393) writes that vault-wide list as `order`. A narrow filtered table turns into dozens of mostly empty columns, and the .view gets a long `order:` list. Fix direction: when localColumns is undefined, the panel's visible set (and the base the first toggle edits) is the column keys the table is actually showing (queryResult.columns), so the first toggle writes those keys with one added or removed. A view that has `order` keeps working as it does now.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/collection/CollectionView.test.ts: set the property index to two notes with `_type: Task`, `status` and `priority`, and one note with `_type: Person` and `email`. Mount CollectionViewHarness with a .view whose filter is `_type == 'Task'` and has no `order`. Open the columns-3 popover and untick `priority`. The saved `views[0].order` is ['file.name', '_type', 'status'] (the inferred columns minus priority), with no `email` and no `file.path`. It fails today.",
+     "Before any toggle, the Columns panel ticks exactly the columns the table header shows.",
+     "Ticking a column the table does not show yet adds only that column to the written `order`, at its natural position.",
+     "A view that already has `order` behaves as it does today (the existing column-change test at CollectionView.test.ts:445-486 still passes).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/collection/collection.service.ts:18-23 NEW_TABLE_TEMPLATE has no `order`; help/examples/type-definitions-features/drafts.view has none either. CollectionView.svelte:162 sets localColumns = undefined when activeView.order is missing. CollectionView.svelte:227-231 builds allColumns from getAllAvailableColumns over the whole collectionStore.propertyIndex. properties.logic.ts:12-40 returns file.name..file.mtime plus every note key in the vault. CollectionView.svelte:672 passes `localColumns ?? allColumns` as visibleColumns. PropertiesPanel.svelte:81/99 ticks a box when visibleColumns includes it, and :61-63 calls toggleColumn(visibleColumns, ...), which with visible=false returns the list minus the column (properties.logic.ts:53-55). CollectionView.svelte:390-393 stores that as localColumns and persists `viewOrder`. CollectionView.svelte:266 then passes order: localColumns, and collection.logic.ts:459-461 renders view.order verbatim. When there is no order, the table shows only the inferred columns (collection.logic.ts:463-477).",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-views-01"
+   },
+   {
+    "source_ids": [
+     "views-ux-2"
+    ],
+    "title": "Numeric `<`, `<=`, `>` and `>=` filters never match a note that lacks the property",
+    "category": "content",
+    "likelihood": "medium",
+    "trigger": "A view, rail view list or inline collection block filters a number property that some notes do not set, e.g. `priority < 3` or `estimated_hours <= 2` from the Filter panel's number operators.",
+    "what_to_build": "compareValues (src/lib/features/collection/expression/evaluator.ts:708-715) falls back to `toNumber(a) - toNumber(b)`, and toNumber maps null/undefined to 0 (:627-631). A missing property resolves to null (:620), so `missing < 3` is `0 - 3 < 0`, which is true, and the note is listed. The date branch already treats null as NaN, so every comparison is false (dateOperandTime, :689-701). Give the plain number branch the same rule: when either operand is null or undefined, every ordering comparison is false. Arithmetic (`missing + 5`, pinned at evaluator.test.ts:592-594) and `==`/`!=` stay as they are. Sorting uses compareForSort in collection.logic.ts and is not affected.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/collection/expression/evaluator.test.ts: with makeCtx() and no `missing` property, evaluateExpression('missing < 3'), 'missing <= 3', 'missing >= 0' and 'missing > -1' all return false. It fails today.",
+     "executeQuery with the filter `priority < 3` over notes with priority 1, priority 5 and no priority returns only the priority-1 note (a case in src/tests/lib/features/collection/collection-logic.test.ts).",
+     "Numbers that are present compare as before, and `missing + 5` still evaluates to 5.",
+     "Date comparisons keep their current behavior (the date-operand tests still pass).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "src/lib/features/collection/toolbar/filter.logic.ts:63-70: the number operators gt/lt/gte/lte emit `prop < value`, and getOperatorsForType offers them for numbers (:187). evaluator.ts:282-285 sends <, <=, >, >= to compareValues. evaluator.ts:620 resolves a missing property to null. evaluator.ts:708-715: compareValues only guards Dates, then returns toNumber(a) - toNumber(b). evaluator.ts:627-631: toNumber(null) is 0. evaluator.ts:689-701: the date path returns NaN for null, so that path is already safe. collection.logic.ts:161-170: executeQuery keeps every record whose filter is truthy. evaluator.test.ts:626 pins only `missing == 0` as false; no test covers the ordering operators with a missing operand. git log on evaluator.ts shows no later fix.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-views-02"
+   },
+   {
+    "source_ids": [
+     "views-ux-3"
+    ],
+    "title": "A filter row that still has no value does not filter the list and is not written to the .view",
+    "category": "ux",
+    "likelihood": "medium",
+    "trigger": "In a table's Filter popover, or in the Filter popover of a rail view list, click Add filter and then close the popover, or change the property or operator before typing a value.",
+    "what_to_build": "addFilter (src/lib/features/collection/toolbar/FilterPanel.svelte:73-85) creates createEmptyFilterRow(availableProperties[0], ...) (filter.logic.ts:282-290), which is `file.name` `is` ''. FilterPanel hands it straight to onViewFiltersChange (:208). filterGroupsToFilter drops only raw rows with blank text (filter.logic.ts:148-150), so the new row becomes `file.name == ''`, which matches no note. CollectionView.handleViewFiltersChange (CollectionView.svelte:385-388) and RailNoteList.handleViewFiltersChange (RailNoteList.svelte:355-358) apply it to the query and persist it. The list shows 'No results' as soon as the row appears. If the popover is closed before a value is typed, the .view keeps `file.name == ''` and the view stays empty with nothing to explain why. ViewDialog already treats a row with a blank value and a value-taking operator as unfinished and blocks Save (ViewDialog.svelte:57-62). The toolbar should treat it as unfinished too: the row stays in the panel, but the query and the YAML write skip it until it has a value. Keep a hand-written `x == ''` that a .view already holds: a toolbar edit elsewhere must not silently drop it, for example by skipping only rows the panel created and the user never filled in. Writing on every keystroke is intended and pinned by a test (CollectionView.test.ts:109); it is out of scope.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/collection/CollectionView.test.ts: mount CollectionViewHarness over an index with two notes and a .view with no filters, open the list-filter popover and click Add filter under This view. Both rows are still rendered, and the YAML from api.getYaml() holds no view `filters` key. It fails today.",
+     "Typing a value into that row filters the list and writes the expression, as today.",
+     "The same Add filter in RailNoteList keeps the list's rows and writes nothing (a case in src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts).",
+     "A .view that already holds a hand-written `status == ''` keeps that filter after a sort or column change in the toolbar.",
+     "Unary operators (is empty, is true) still apply as soon as they are picked.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "FilterPanel.svelte:73-85: addFilter takes availableProperties[0], which getAllKnownProperties starts with file.name (filter.logic.ts:211-237). filter.logic.ts:282-290: createEmptyFilterRow takes operators[0], which is 'is' for text (:183-185), with value ''. FilterPanel.svelte:208 calls onViewFiltersChange(addFilter(viewFilters)) at once. filter.logic.ts:146-150: filterGroupsToFilter drops only `raw` rows whose text is blank. :44-45 then emits `file.name == ''`. CollectionView.svelte:385-388 sets localViewFilters, which queryResult reads at :259, and persists 'viewFilters'. RailNoteList.svelte:355-358 calls persistViewState('viewFilters'). ViewDialog.svelte:57-62 blocks Save on the same blank-value row. No test pins a blank structured row being written (filter-logic.test.ts:527 covers blank raw rows only).",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-views-03"
+   },
+   {
+    "source_ids": [
+     "views-ux-4"
+    ],
+    "title": "A formula that calls an unknown function cannot be confirmed and shows why",
+    "category": "ux",
+    "likelihood": "low",
+    "trigger": "In the Columns popover, Add formula and type an expression that parses but calls a function the engine lacks (a typo such as `numbr(x)`, or `daysUntil(due)`), then confirm it.",
+    "what_to_build": "FormulaRow enables Confirm when validateFormulaExpression passes (src/lib/features/collection/toolbar/FormulaRow.svelte:29-34), and that only parses (formula.logic.ts:98-108). Filters use validateExpression (evaluator.ts:306-316), which also rejects an unknown plain function. A confirmed formula with an unknown function throws on every row, executeQuery catches the error and stores null (collection.logic.ts:182-188), and the column shows a dash in every row, the same as a note with no value. Run formulas through the same check as filters (validateExpression) so the edit row shows 'Unknown function: x' and Confirm stays disabled. Errors that only appear at runtime are out of scope.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/collection/toolbar/FormulaRow.svelte.test.ts: render FormulaRow with an editing entry {name: 'due_in', expression: 'numbr(x)'}. The Confirm formula button is disabled and the text 'Unknown function: numbr' is rendered. It fails today.",
+     "A formula that uses known functions and methods (e.g. `number(x) * 2`, `file.name.lower()`) can still be confirmed.",
+     "A formula loaded from YAML with an unknown function shows the error when its edit row opens.",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "FormulaRow.svelte:29 expressionError = validateFormulaExpression(entry.expression). :32-34 canConfirm needs only no error and a non-blank expression. formula.logic.ts:98-108 only calls parse(). evaluator.ts:306-316 validateExpression adds findUnknownFunction against PLAIN_FUNCTIONS (:293-297). FilterRow.svelte:43-45 uses it for filters. collection.logic.ts:182-188: an evaluate throw sets the formula column to null for that record, so the column is all dashes with no message.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-views-04"
+   },
+   {
+    "source_ids": [
+     "views-ux-5"
+    ],
+    "title": "A calendar day with more than three notes lets the user reach every note",
+    "category": "polish",
+    "likelihood": "low",
+    "trigger": "A calendar-type .view on a date property where one day has four or more notes, e.g. a calendar over file.mtime or over meeting notes.",
+    "what_to_build": "CollectionCalendarView renders only the first MAX_EVENTS_PER_CELL (3) events of a day as buttons (src/lib/features/collection/CollectionCalendarView.svelte:36, :130-160). The rest become a plain `<span>+N more</span>` (:161-165) with no handler, and the day number is not interactive, so the fourth and later notes of that day cannot be opened from the calendar. Make '+N more' a control that shows all of that day's notes, each opening through onClickRecord, for example a popover listing them, or a cell that expands.",
+    "acceptance": [
+     "Failing test first, in src/tests/lib/features/collection/CollectionCalendarView.svelte.test.ts (new, next to CollectionTableView.svelte.test.ts): render the view with five records dated the same day of the shown month. Activate '+2 more', then click the fifth note's entry. onClickRecord is called with that record. It fails today.",
+     "Days with three or fewer notes render as they do now.",
+     "The control is keyboard reachable (a button).",
+     "Frontend gate: pnpm check and pnpm vitest run pass."
+    ],
+    "evidence": "CollectionCalendarView.svelte:36 MAX_EVENTS_PER_CELL = 3. :130-131 visibleEvents = events.slice(0, 3) and overflowCount = events.length - 3. :152-160 only visibleEvents get a button with onClickRecord. :161-165 the overflow is a bare span with no onclick, popover or title. :142-149 the day number is a plain span.",
+    "gate": "frontend",
+    "size": "S",
+    "key": "N-views-05"
+   }
+  ],
+  "refuted": [
+   {
+    "id": "views-reactivity-1",
+    "reason": "The extra rebuild costs no more than one keystroke. checkUpdateAction answers 'rebuild' to every docChanged update (src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts:20), so typing already does a full decoration rebuild on each keystroke. The single forceDecorationRebuild that follows a 1 s pause (MarkdownEditor.svelte:669-676, collection-block-widget.ts:422) does not stall later typing. The re-render of a collection block in the note being edited is intended: rebuildOn exists so a block reflects a property change in a note (comment at MarkdownEditor.svelte:661-668, audit 2026-08-12 M12), and the edited note can be one of its rows. This is performance only, with no wrong output and no trigger that breaks daily use."
+   },
+   {
+    "id": "views-reactivity-2",
+    "reason": "Performance only: the result is correct, and the hunter rates it low. The re-run on a propertyIndex change (RailNoteList.svelte:203-217) is needed, because an edit to a note's properties must update the view list built from them. The refreshViewDefinition read is a small .view file, and the parse is skipped on a hash match. In a vault of a few thousand notes, the O(N) passes happen once per 1 s typing pause, not per keystroke. No visible defect follows in daily use."
+   }
+  ],
+  "open_verdicts": [
+   {
+    "path": ".scratch/audit-2026-11-04/issues/08-collection-link-safe-open.md",
+    "verdict": "still_present",
+    "category": "corner",
+    "likelihood": "low",
+    "evidence": "src/lib/features/collection/CollectionTableView.svelte:67-68 still renders `<a href={value.href}>` with no isSafeUrl check and no onclick. It sits inside `<tr onclick={() => onClickRow?.(record)}>` (:54-57), so a click navigates the main webview and also fires the row click. evaluator.ts:424-427 still builds the link from any string. `rg on_navigation src-tauri/src` finds nothing. git log on CollectionTableView.svelte shows only refactor/perf commits since (48bf52fe9, 94f9833e0), none touching links.",
+    "stale_notes": "Line refs are roughly current. The tr onclick is at :55-56 (the Issue says :57), the <a> at :68 and the <img> at :70. The evaluator link builder is at evaluator.ts:424-427. Nothing else is stale."
+   },
+   {
+    "path": ".scratch/ux-polish/issues/62-collection-table-readable.md",
+    "verdict": "still_present",
+    "category": "polish",
+    "likelihood": "medium",
+    "evidence": "Every point still holds at HEAD. The header fallback to the raw key is in collection.logic.ts:456 (resolveColumns toColumn: `definition.properties?.[key]?.displayName ?? key`). Booleans are a native disabled checkbox (CollectionTableView.svelte:64-65). Icon display values render their name as text (:71-72). Cells use whitespace-nowrap with no truncation or title (:61). The thead is not sticky (:41-52).",
+    "stale_notes": "The header fallback is at collection.logic.ts:456, not about line 389. The real scroller is CollectionView.svelte:684 (`flex-1 overflow-auto`), not about line 587. CollectionTableView.svelte:39 also wraps the table in its own `overflow-auto` div, which a sticky header has to account for: as the inner scroll container it would capture `position: sticky`. Status is still needs-triage, so it needs triage before relay."
+   }
+  ]
+ }
+]

@@ -2,6 +2,8 @@
 
 Learn about the right sidebar panels: Backlinks, Outgoing Links and Properties.
 
+"Sidebar" in Kokobrain always means the right sidebar. The left side of the window is the rail with its navigators and note list, described in [Getting Started > The Rail](01-getting-started.md#the-rail). **Settings > Layout** sets up both.
+
 The right sidebar provides contextual information about the note you are currently editing. Each panel surfaces a different perspective on your content — from metadata and tags to links pointing in and out of the note.
 
 ---
@@ -9,7 +11,7 @@ The right sidebar provides contextual information about the note you are current
 ## Opening and Closing the Sidebar
 
 - Press **Cmd+B** to toggle the entire right sidebar on or off.
-- Each individual panel can be shown or hidden in **Settings > Sidebar**.
+- Each individual panel can be shown or hidden in **Settings > Layout**.
 - The sidebar updates automatically as you switch between notes, always reflecting the note you are currently editing.
 
 ---
@@ -117,6 +119,17 @@ does not change when the filter does.
 
 Clicking a tag name opens the Search panel filtered to that tag. It sets the search query to `tag:tagname`, showing all notes that contain that tag.
 
+### Tags in the editor
+
+A `#tag` written in the note body shows as a pill in live preview, `#` included, with the same style
+for every tag. A nested tag such as `#area/sub` is one pill. A plain click puts the cursor in it, so
+the tag stays easy to edit. `Cmd+click` (`Ctrl+click` on Windows and Linux) opens Search with
+`tag:area/sub`, the same as clicking the tag here. Text the Tags view does not count as a tag is not
+styled: `foo#bar`, `#1984`, and anything in inline code, ```` ``` ```` code blocks, frontmatter or HTML
+comments. A few tags the Tags view counts are not styled either: tags in `~~~` code blocks, `$$`
+math blocks and HTML blocks, and a tag written right after inline code or an HTML comment with no
+space before the `#`.
+
 ### Tag colors
 
 A dot sits to the left of each tag name: a colored circle once a color is assigned, and a `#` icon
@@ -137,10 +150,7 @@ panel. The `#tags` written in a note body are not tinted.
 
 ## Customizing the Sidebar
 
-Go to **Settings > Sidebar** to:
-
-- Toggle each panel on or off individually: Properties, Backlinks, Outgoing Links, Table of Contents.
-- Enable or disable Folder Notes.
+Go to **Settings > Layout** to toggle each panel on or off individually: Properties, Backlinks, Outgoing links, Table of contents.
 
 You can keep only the panels you use most, reducing visual clutter in the sidebar.
 

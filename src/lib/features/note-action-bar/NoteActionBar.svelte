@@ -8,7 +8,6 @@
 	import FoldHorizontal from '@lucide/svelte/icons/fold-horizontal';
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
 	import Link from '@lucide/svelte/icons/link';
-	import PanelRight from '@lucide/svelte/icons/panel-right';
 	import Plus from '@lucide/svelte/icons/plus';
 	import Star from '@lucide/svelte/icons/star';
 	import TableOfContents from '@lucide/svelte/icons/table-of-contents';
@@ -26,7 +25,7 @@
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { toggleSourceMode } from '#lib/core/editor/editor.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-	import { toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+	import { deleteNoteWithConfirm } from '#lib/core/filesystem/delete-note.service.js';
 	import {
 		toggleActiveNoteArchived,
 		toggleActiveNoteFavorite,
@@ -41,7 +40,6 @@
 		copyNoteDeepLink,
 		copyNotePath,
 		createLinkedNote,
-		deleteNoteWithConfirm,
 		revealNote,
 		toggleWideNotes,
 	} from './note-action-bar.service';
@@ -56,11 +54,9 @@
 	let { path, onShowTableOfContents }: Props = $props();
 
 	let bar = $derived(getActionBarState(path, editorStore.activeTab?.content ?? ''));
-	let rightVisible = $derived(settingsStore.layout.rightSidebarVisible);
 
 	let favoriteLabel = $derived(bar.favorite ? 'Remove from favorites' : 'Add to favorites');
 	let organizedLabel = $derived(bar.organized ? 'Set note as not organized' : 'Set note as organized');
-	let sidebarLabel = $derived(rightVisible ? 'Close the right sidebar' : 'Open the right sidebar');
 	let raw = $derived(!editorStore.isLivePreview);
 	let rawLabel = $derived(raw ? 'Back to live preview' : 'Show raw Markdown');
 	let wide = $derived(settingsStore.editor.wideNotes);
@@ -77,7 +73,7 @@
 		return { id: 'new-linked-note', label: 'New linked note', run: () => run(() => createLinkedNote(path), 'createLinkedNote') };
 	});
 
-	/** The bar's measured width; 0 until measured, which folds nothing. */
+	/** The bar's measured width; 0 until measured, which folds every foldable action into More. */
 	let barWidth = $state(0);
 	let fold = $derived(
 		foldActions(barWidth > 0 && hubButton ? Math.max(1, barWidth - HUB_ACTION_WIDTH) : barWidth),
@@ -120,8 +116,12 @@
 		'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors hover:bg-muted hover:text-editor-fg';
 </script>
 
+{#snippet divider()}
+	<div class="mx-1 h-4 w-px shrink-0 bg-border" aria-hidden="true" data-bar-divider></div>
+{/snippet}
+
 <div
-	class="flex h-9 shrink-0 items-center gap-1 border-b border-border bg-editor-bg px-3 text-tab-text-inactive"
+	class="pane-toolbar bg-editor-bg text-tab-text-inactive"
 	data-testid="note-action-bar"
 	bind:clientWidth={barWidth}
 >
@@ -133,13 +133,14 @@
 
 	{#if hubButton}
 		<button
-			class="mr-1 flex h-7 shrink-0 items-center gap-1 rounded-md border border-border px-2 text-xs text-editor-fg transition-colors hover:bg-muted"
+			class="flex h-7 shrink-0 items-center gap-1 rounded-md border border-border px-2 text-xs text-editor-fg transition-colors hover:bg-muted"
 			data-hub-action={hubButton.id}
 			onclick={hubButton.run}
 		>
 			<Plus class="size-3.5" />
 			{hubButton.label}
 		</button>
+		{@render divider()}
 	{/if}
 
 	<button
@@ -165,6 +166,7 @@
 		/>
 	</button>
 
+	{@render divider()}
 	{#if inlineNeighbourhood}
 		{@render inlineAction('neighbourhood')}
 	{/if}
@@ -181,6 +183,7 @@
 		{@render inlineAction(action)}
 	{/each}
 
+	{@render divider()}
 	<DropdownMenu>
 		<DropdownMenuTrigger class={iconButton} title="More note actions" aria-label="More note actions">
 			<Ellipsis class="size-4" />
@@ -193,14 +196,14 @@
 					{a.label}
 				</DropdownMenuItem>
 			{/each}
-			{#if fold.folded.length > 0}
-				<DropdownMenuSeparator />
-			{/if}
 			<DropdownMenuItem onclick={() => run(() => copyNoteDeepLink(path), 'copyNoteDeepLink')}>
 				<Link />
 				Copy deeplink
 			</DropdownMenuItem>
-			<DropdownMenuSeparator />
+			<!-- With nothing folded, Copy deeplink would be a group of one: no separator then. -->
+			{#if fold.folded.length > 0}
+				<DropdownMenuSeparator />
+			{/if}
 			<DropdownMenuItem onclick={() => run(toggleActiveNoteArchived, 'toggleActiveNoteArchived')}>
 				{#if bar.archived}
 					<ArchiveRestore />
@@ -210,24 +213,12 @@
 					Archive this note
 				{/if}
 			</DropdownMenuItem>
-			<DropdownMenuSeparator />
 			<DropdownMenuItem variant="destructive" onclick={() => run(() => deleteNoteWithConfirm(path), 'deleteNoteWithConfirm')}>
 				<Trash />
 				Delete this note
 			</DropdownMenuItem>
 		</DropdownMenuContent>
 	</DropdownMenu>
-
-	<div class="mx-1 h-4 w-px bg-border" aria-hidden="true"></div>
-	<button
-		class="{iconButton} {rightVisible ? 'text-editor-fg' : ''}"
-		title="{sidebarLabel} (Cmd+B)"
-		aria-label={sidebarLabel}
-		aria-pressed={rightVisible}
-		onclick={toggleRightSidebar}
-	>
-		<PanelRight class="size-4" />
-	</button>
 </div>
 
 {#snippet inlineAction(action: FoldableAction)}

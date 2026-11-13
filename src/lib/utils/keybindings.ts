@@ -26,6 +26,33 @@ export function toCodeMirrorKey(combo: KeyCombo & { key: string }): string {
 	return parts.join('-');
 }
 
+const CODE_DISPLAY_MAP: Record<string, string> = {
+	BracketLeft: '[',
+	BracketRight: ']',
+	Backquote: '`',
+	Comma: ',',
+};
+
+/**
+ * Writes a combo as the macOS hint shown next to a command or menu item
+ * (`⌘⇧L`): modifiers in the order Ctrl, Cmd, Shift, Option, then the key.
+ */
+export function formatShortcut(combo: KeyCombo): string {
+	const parts: string[] = [];
+	if (combo.ctrl) parts.push('⌃');
+	if (combo.meta) parts.push('⌘');
+	if (combo.shift) parts.push('⇧');
+	if (combo.alt) parts.push('⌥');
+
+	if (combo.key) {
+		parts.push(combo.key.toUpperCase());
+	} else if (combo.code) {
+		parts.push(CODE_DISPLAY_MAP[combo.code] ?? combo.code);
+	}
+
+	return parts.join('');
+}
+
 /** Registers a global keyboard shortcut. Returns an unsubscribe function. */
 export function registerKeybinding(binding: KeyBinding): () => void {
 	function onKeyDown(e: KeyboardEvent) {

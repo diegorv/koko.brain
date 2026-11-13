@@ -76,10 +76,12 @@
 					<button
 						type="button"
 						class="flex h-7 w-full shrink-0 items-center overflow-hidden rounded-md px-2 text-left outline-none hover:brightness-110 focus-visible:ring-2 focus-visible:ring-ring
-							{selectedPath === chip.path ? 'ring-2 ring-primary/70' : ''}"
+							{selectedPath === chip.path ? 'ring-2 ring-primary/70' : ''}
+							{chip.archived ? 'opacity-50' : ''}"
 						style={eventColorStyle(chip.color)}
 						data-event-path={chip.path}
 						data-readonly={chip.readOnly || undefined}
+						data-archived={chip.archived || undefined}
 						onclick={(e) => eventCalendarViewStore.openPopover(chip.path, e.currentTarget.getBoundingClientRect())}
 					>
 						<span class="min-w-0 flex-1 truncate text-sm font-medium">{chip.title}</span>

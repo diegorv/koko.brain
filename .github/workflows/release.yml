@@ -13,7 +13,7 @@ concurrency:
 jobs:
   validate:
     name: Validate tag
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     steps:
       - uses: actions/checkout@v7.0.1
@@ -46,6 +46,8 @@ jobs:
     name: CI
     needs: validate
     uses: ./.github/workflows/ci.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
     with:
       force_all: true
 
@@ -53,17 +55,35 @@ jobs:
     name: E2E
     needs: validate
     uses: ./.github/workflows/e2e.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
+
+  secrets:
+    name: Secret Scan
+    needs: validate
+    uses: ./.github/workflows/secrets.yml
 
   security:
     name: Security
     needs: validate
     uses: ./.github/workflows/security.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
 
+  privacy:
+    name: Privacy
+    needs: validate
+    uses: ./.github/workflows/privacy.yml
+
+  # Every check is a gate: nothing is built or published unless all pass.
   build-macos:
     name: Build macOS
-    needs: [ci, e2e]
+    needs: [ci, e2e, secrets, security, privacy]
     runs-on: macos-latest
-    timeout-minutes: 45
+    # Only release.yml writes the macos-release-aarch64 Rust cache (nightly
+    # builds with other profile settings), so a release more than a week after
+    # the previous one compiles every dependency from scratch.
+    timeout-minutes: 90
     permissions:
       contents: write
     steps:
@@ -74,6 +94,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust-cache-key: macos-release-aarch64
 
       - name: Generate changelog
@@ -98,6 +119,14 @@ jobs:
             RANGE="${PREV_TAG}..${TAG}"
           fi
           COMMITS=$(git log --pretty=format:"- %s (%h)" "$RANGE" | grep -v "^- chore: bump version" || true)
+          # GitHub rejects a release body over 125000 characters; the margin covers
+          # the rest of the body and the checksums appended after the build.
+          COMMITS=$(awk -v max=100000 '
+            { size += length($0) + 1 }
+            size <= max { print; next }
+            { omitted++ }
+            END { if (omitted) printf "\n... and %d older commits, see the full diff below.\n", omitted }
+          ' <<< "$COMMITS")
           {
             echo "commits<<CHANGELOG_EOF"
             echo "$COMMITS"

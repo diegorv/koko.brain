@@ -353,6 +353,19 @@ describe('eventsFromEntries', () => {
 		expect(projection.archivedCount).toBe(2);
 	});
 
+	it('projects archived events marked as archived with includeArchived, still counting them and skipping their issues', () => {
+		const projection = eventsFromEntries(
+			[eventEntry(P('a'), { date: '2026-11-10' }, { archived: true }), eventEntry(P('b'), {}, { archived: true }), eventEntry(P('c'), { date: '2026-11-11' })],
+			{ ...opts, includeArchived: true },
+		);
+		expect(projection.events.map((e) => [e.path, e.archived ?? false])).toEqual([
+			[P('a'), true],
+			[P('c'), false],
+		]);
+		expect(projection.issues).toEqual([]);
+		expect(projection.archivedCount).toBe(2);
+	});
+
 	it('honors a configured Meeting type', () => {
 		const projection = eventsFromEntries([eventEntry(P('a'), { _type: 'meeting', date: '2026-11-10' }), eventEntry(P('b'), { date: '2026-11-10' })], { ...opts, typeName: 'Meeting' });
 		expect(projection.events.map((e) => e.path)).toEqual([P('a')]);

@@ -1,0 +1,30 @@
+# 15: Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover
+
+**What to build:** Two class bugs in hover states:
+
+1. `src/lib/features/note-list/NoteRow.svelte` (about line 63) puts `hover:bg-primary/10` and the active `bg-primary/25` on the same element. Tailwind emits the hover variant after the base utility, so hovering the open note lightens it from 25% to 10%. Use the ternary form the TypesNavigator rows already use (`TypesNavigator.svelte` about line 265): `{isActive ? 'bg-primary/25' : 'hover:bg-primary/10'}`.
+2. `src/lib/plugins/kanban/KanbanLane.svelte`: the lane root declares the named group `group/lane` (about line 215), but the lane drag grip (about line 236) uses the unnamed `group-hover:opacity-60`, and no unnamed `group` ancestor exists above the lane (the cards' `group` at `KanbanCard.svelte:167` are descendants), so the grip stays at `opacity-0`. Change it to `group-hover/lane:opacity-60`, as the resize handle at about line 393 already does.
+
+**Blocked by:** none
+
+**Status:** wontfix
+
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`, plus `bash scripts/e2e.sh e2e/specs/rail-shell.spec.ts e2e/specs/kanban-view.spec.ts`.
+
+- [ ] Failing first (E2E, real computed style; jsdom cannot evaluate Tailwind hover): in `e2e/specs/rail-shell.spec.ts`, open a note so its `[data-note-row]` is active, read its computed `background-color`, hover it, and assert the color is unchanged. Fails on the current code
+- [ ] Failing first (E2E): in `e2e/specs/kanban-view.spec.ts`, open a board, hover a lane (`[data-lane-id]`), and assert the `[aria-label="Drag to reorder lane"]` grip has computed `opacity` above 0. Fails on the current code
+- [ ] Both cases pass after the two class changes; the rest of both specs stays green
+- [ ] An inactive note row still shows the `bg-primary/10` hover; the card grip (`KanbanCard.svelte:227`) is unchanged
+- [ ] Before editing, confirm no unnamed `group` class sits on any ancestor of `KanbanLane` (grep the kanban plugin, `EditorView` and `AppShell`); if one exists, say so in the commit, since the grip then appeared on whole-pane hover
+
+## Notes
+
+- **Other tickets:** Overlaps the review's work-breakdown ticket 10 (interaction state unification), which lists both sites; if that ticket is drafted elsewhere, drop NoteRow:63 and KanbanLane:236 from it.
+- **Source:** review-2026-11-04.md section 2 "State styles" ("never lightened by hover") and work breakdown ticket 10 (NoteRow 63, the `group/lane` fix at KanbanLane 236); states.md P5 (NoteRow, line 49) and P19.
+- **Out of scope:** SnapshotList and the Settings nav (their selected fill equals hover, which needs the selection-token decision in review section 2), reveal-on-focus for the 12 hover-only controls, and the grip's keyboard access (`tabindex="-1"`).
+- **Tailwind ordering** (hover variant after base utility) is from the reports and memory; the E2E case is the proof.
+- **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/open-itens/issues/214-hovering-open-note-keeps-fill-kanban-lane.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

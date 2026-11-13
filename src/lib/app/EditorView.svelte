@@ -7,11 +7,12 @@
 	import Kanban from '@lucide/svelte/icons/kanban';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
-	import { onContentChange } from '#lib/core/editor/editor.service.js';
+	import { onContentChange, onContentChangeForPath } from '#lib/core/editor/editor.service.js';
 	import EditorTabs from '#lib/core/markdown-editor/EditorTabs.svelte';
 	import MarkdownEditor from '#lib/core/markdown-editor/MarkdownEditor.svelte';
 	import { appBlockLinks, appEditorHost, appFencedBlockRenderers, openWikilinkTarget } from '#lib/app/editor-host.js';
 	import CollectionView from '#lib/features/collection/CollectionView.svelte';
+	import { rewriteViewFile } from '#lib/features/type-definitions/type-definitions.service.js';
 	import TasksView from '#lib/features/tasks/TasksView.svelte';
 	import TagsView from '#lib/features/tags/TagsView.svelte';
 	import GraphView from '#lib/plugins/graph-view/GraphView.svelte';
@@ -21,11 +22,12 @@
 	import NoteActionBar from '#lib/features/note-action-bar/NoteActionBar.svelte';
 	import { showTableOfContents } from '#lib/plugins/table-of-contents/toc.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import { isMarkdownNoteTab, isVirtualTab } from '#lib/core/editor/editor.logic.js';
 	import type { EditorTab } from '#lib/core/editor/editor.types.js';
 
-	/** Whether the .collection file is shown in source (YAML) mode vs table view */
+	/** Whether the `.view` file is shown in source (YAML) mode vs table view */
 	let collectionSourceMode = $state(false);
 	/** Whether the .canvas file is shown in source (JSON) mode vs canvas view */
 	let canvasSourceMode = $state(false);
@@ -53,10 +55,10 @@
 
 {#snippet fileTabIcon(tab: EditorTab)}
 	{@const resolved = resolveIconForPath(tab.path)}
-	{#if resolved}
+	{#if resolved?.icon}
 		<IconRenderer icon={resolved.icon} class="size-3.5 shrink-0" color={resolved.color} />
 	{:else}
-		<FileText class="size-3.5 shrink-0 text-muted-foreground" />
+		<FileText class="size-3.5 shrink-0 text-muted-foreground" style={iconColorStyle(resolved?.color)} />
 	{/if}
 {/snippet}
 
@@ -78,11 +80,14 @@
 			{:else if isKanbanTab && !kanbanSourceMode}
 				<KanbanView markdownContent={editorStore.activeTab.content} {onContentChange} onOpenWikilink={openWikilinkTarget} />
 			{:else if isCanvasTab && !canvasSourceMode}
-				<CanvasView jsonContent={editorStore.activeTab.content} onJsonChange={onContentChange} />
+				<!-- One instance per file, persisting by path: its debounce and destroy flush run after the active tab moved. -->
+				{#key editorStore.activeTab.path}
+					<CanvasView path={editorStore.activeTab.path} jsonContent={editorStore.activeTab.content} onJsonChange={onContentChangeForPath} />
+				{/key}
 			{:else if isCollectionTab && !collectionSourceMode}
 				<!-- One instance per file: a shared one carried its view tab and toolbar state across files. -->
 				{#key editorStore.activeTab.path}
-					<CollectionView path={editorStore.activeTab.path} yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} />
+					<CollectionView path={editorStore.activeTab.path} yamlContent={editorStore.activeTab.content} onYamlChange={onContentChange} rewriteView={rewriteViewFile} />
 				{/key}
 			{:else}
 				<MarkdownEditor host={appEditorHost} renderers={appFencedBlockRenderers} blockLinks={appBlockLinks} />
@@ -90,7 +95,7 @@
 			{#if !isVirtual}
 				{#if isKanbanTab}
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors"
+						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => kanbanSourceMode = !kanbanSourceMode}
 						aria-label={kanbanSourceMode ? 'Switch to board view' : 'Switch to source mode'}
 						title={kanbanSourceMode ? 'Board view' : 'Source mode'}
@@ -102,8 +107,9 @@
 						{/if}
 					</button>
 				{:else if isCanvasTab}
+					<!-- Top right: the canvas minimap takes the bottom-right corner. -->
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors"
+						class="absolute top-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => canvasSourceMode = !canvasSourceMode}
 						aria-label={canvasSourceMode ? 'Switch to canvas view' : 'Switch to source mode'}
 						title={canvasSourceMode ? 'Canvas view' : 'Source mode'}
@@ -116,7 +122,7 @@
 					</button>
 				{:else if isCollectionTab}
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors"
+						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => collectionSourceMode = !collectionSourceMode}
 						aria-label={collectionSourceMode ? 'Switch to table view' : 'Switch to source mode'}
 						title={collectionSourceMode ? 'Table view' : 'Source mode'}
@@ -127,9 +133,10 @@
 							<FileText class="size-4" />
 						{/if}
 					</button>
-				{:else}
+				{:else if !isMarkdownNote}
+					<!-- A Markdown note toggles from the action bar's Raw button instead. -->
 					<button
-						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors"
+						class="absolute bottom-3 right-3 z-10 rounded-md border border-border bg-background/80 p-1.5 text-muted-foreground backdrop-blur-sm hover:bg-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
 						onclick={() => editorStore.setLivePreview(!editorStore.isLivePreview)}
 						aria-label={editorStore.isLivePreview ? 'Switch to source mode' : 'Switch to live preview'}
 						title={editorStore.isLivePreview ? 'Source mode' : 'Live preview'}
@@ -144,7 +151,7 @@
 			{/if}
 		</div>
 	{:else}
-		<div class="h-10 shrink-0 bg-tab-bar" data-tauri-drag-region></div>
+		<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
 		<div class="flex flex-1 items-center justify-center bg-editor-empty-bg">
 			<p class="text-sm text-muted-foreground">Select a file to view its contents</p>
 		</div>

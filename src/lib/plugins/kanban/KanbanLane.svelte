@@ -221,7 +221,7 @@
 	<!-- Lane header -->
 	<div class="flex items-center gap-1 px-2 py-2">
 		<button
-			class="rounded p-0.5 text-muted-foreground hover:text-foreground transition-colors"
+			class="rounded-xs p-0.5 text-muted-foreground hover:text-foreground transition-colors"
 			onclick={() => onToggleCollapse(lane.id)}
 			aria-label={collapsed ? 'Expand lane' : 'Collapse lane'}
 		>
@@ -251,7 +251,7 @@
 				bind:value={laneTitle}
 				onkeydown={handleTitleKeydown}
 				onblur={commitTitleEdit}
-				class="flex-1 rounded border border-primary bg-background px-1 py-0.5 text-sm font-semibold outline-none"
+				class="flex-1 rounded-xs border border-primary bg-background px-1 py-0.5 text-sm font-semibold outline-none"
 			/>
 		{:else}
 			<ContextMenu.Root>
@@ -268,17 +268,17 @@
 				</ContextMenu.Trigger>
 				<ContextMenu.Content class="w-48">
 					<ContextMenu.Item onclick={() => onStartEditLane(lane.id)}>
-						<Pencil class="mr-2 size-4" />
+						<Pencil class="size-4" />
 						Rename
 					</ContextMenu.Item>
 					<ContextMenu.Item onclick={() => onToggleAutoComplete(lane.id)}>
-						<CircleCheck class="mr-2 size-4" />
-						{autoComplete ? 'Disable' : 'Enable'} Auto-Complete
+						<CircleCheck class="size-4" />
+						{autoComplete ? 'Disable' : 'Enable'} auto-complete
 					</ContextMenu.Item>
 					<ContextMenu.Sub>
 						<ContextMenu.SubTrigger>
-							<Hash class="mr-2 size-4" />
-							Set Card Limit
+							<Hash class="size-4" />
+							Set card limit
 						</ContextMenu.SubTrigger>
 						<ContextMenu.SubContent>
 							{#each [3, 5, 10, 15] as limit}
@@ -286,7 +286,6 @@
 									{limit} cards{maxItems === limit ? ' (current)' : ''}
 								</ContextMenu.Item>
 							{/each}
-							<ContextMenu.Separator />
 							<ContextMenu.Item onclick={() => onSetMaxItems(lane.id, 0)}>
 								No limit{maxItems === 0 ? ' (current)' : ''}
 							</ContextMenu.Item>
@@ -294,21 +293,20 @@
 					</ContextMenu.Sub>
 					{#if hasCompleted}
 						<ContextMenu.Item onclick={() => onArchiveCompleted(lane.id)}>
-							<Archive class="mr-2 size-4" />
-							Archive Completed
+							<Archive class="size-4" />
+							Archive completed
 						</ContextMenu.Item>
 					{/if}
-					<ContextMenu.Separator />
-					<ContextMenu.Item onclick={() => onDeleteLane(lane.id)} class="text-destructive">
-						<Trash2 class="mr-2 size-4" />
-						Delete Lane
+					<ContextMenu.Item variant="destructive" onclick={() => onDeleteLane(lane.id)}>
+						<Trash2 class="size-4" />
+						Delete lane
 					</ContextMenu.Item>
 				</ContextMenu.Content>
 			</ContextMenu.Root>
 		{/if}
 
 		{#if autoComplete}
-			<CircleCheck class="size-3.5 text-green-500" />
+			<CircleCheck class="size-3.5 text-success" />
 		{/if}
 		<span class="text-xs {atLimit ? 'font-semibold text-destructive' : 'text-muted-foreground'}">
 			{lane.items.length}{#if maxItems > 0}/{maxItems}{/if}
@@ -365,7 +363,7 @@
 						oninput={updateAddCursorPos}
 						onclick={updateAddCursorPos}
 						placeholder="Add a card..."
-						class="w-full rounded border border-border bg-background px-2 py-1 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-primary"
+						class="w-full rounded-xs border border-border bg-background px-2 py-1 text-sm outline-none placeholder:text-muted-foreground/50 focus:border-primary"
 					/>
 					<KanbanWikilinkSuggestions
 						bind:this={addSuggestionsRef}
@@ -376,7 +374,7 @@
 				</div>
 				<button
 					type="submit"
-					class="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+					class="rounded-xs p-1 text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
 					aria-label="Add card"
 					disabled={!newItemText.trim()}
 				>

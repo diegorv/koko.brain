@@ -8,6 +8,18 @@ export function getNoteName(filePath: string): string {
 }
 
 /**
+ * Whether a wikilink can resolve to `filePath`: false for a `.view` (any
+ * casing), true for every other file. Mirrors `is_link_target` in the Rust
+ * `VaultIndex`, so a click and the backlinks panel agree on `[[Projects]]`.
+ */
+export function isLinkTargetFile(filePath: string): boolean {
+	// A case-insensitive regex: no lowercased copy of the path per resolver loop pass.
+	return !VIEW_SUFFIX.test(filePath);
+}
+
+const VIEW_SUFFIX = /\.view$/i;
+
+/**
  * The lowercase target when its last segment carries an extension (`foo.png`,
  * `b/foo.png`), else null. Only such a target takes the exact-file step, so a
  * bare `[[foo]]` never meets an extensionless file `foo` ahead of `foo.md`.
@@ -17,8 +29,12 @@ function exactTarget(target: string): string | null {
 	return getNoteName(fileName) === fileName ? null : target.toLowerCase();
 }
 
-/** True when `filePath` is the file `exact` names: same file name, or (for `a/b.png`) ending in `/a/b.png`. Both lowercase. */
+/**
+ * True when `filePath` is the file `exact` names: same file name, or (for
+ * `a/b.png`) ending in `/a/b.png`. Both lowercase. A `.view` never is.
+ */
 function isExactFile(filePathLower: string, exact: string): boolean {
+	if (!isLinkTargetFile(filePathLower)) return false;
 	return exact.includes('/') ? filePathLower.endsWith(`/${exact}`) : filePathLower.split('/').pop() === exact;
 }
 
@@ -26,12 +42,12 @@ function isExactFile(filePathLower: string, exact: string): boolean {
  * The first of `candidates` that is the file `exact` names. A path-style
  * target first takes the file at `vaultRoot/exact`, so `[[b/foo.png]]` picks
  * `/vault/b/foo.png` over an earlier `/vault/x/b/foo.png`; without a root or
- * on a miss, the first path-suffix match.
+ * on a miss, the first path-suffix match. A `.view` is never a match.
  */
 function findExactFile(candidates: string[], exact: string, vaultRoot: string | null | undefined): string | undefined {
 	if (vaultRoot && exact.includes('/')) {
 		const vaultPath = `${vaultRoot}/${exact}`.toLowerCase();
-		const hit = candidates.find((filePath) => filePath.toLowerCase() === vaultPath);
+		const hit = candidates.find((filePath) => filePath.toLowerCase() === vaultPath && isLinkTargetFile(filePath));
 		if (hit) return hit;
 	}
 	return candidates.find((filePath) => isExactFile(filePath.toLowerCase(), exact));
@@ -42,7 +58,8 @@ function findExactFile(candidates: string[], exact: string, vaultRoot: string | 
  * target with an extension resolves to the file it names when one exists
  * (a path-style one at its vault-relative path under `vaultRoot` first);
  * otherwise, and for every other target, by case-insensitive note name,
- * falling back to the target's basename.
+ * falling back to the target's basename. A `.view` in `allFilePaths` is
+ * skipped (`isLinkTargetFile`).
  */
 export function resolveWikilink(target: string, allFilePaths: string[], vaultRoot?: string | null): string | null {
 	if (!target) return null;
@@ -56,6 +73,7 @@ export function resolveWikilink(target: string, allFilePaths: string[], vaultRoo
 	const targetLower = target.toLowerCase();
 
 	for (const filePath of allFilePaths) {
+		if (!isLinkTargetFile(filePath)) continue;
 		const noteName = getNoteName(filePath);
 		if (noteName.toLowerCase() === targetLower) {
 			return filePath;
@@ -66,6 +84,7 @@ export function resolveWikilink(target: string, allFilePaths: string[], vaultRoo
 	const targetBasename = getNoteName(target).toLowerCase();
 	if (targetBasename !== targetLower) {
 		for (const filePath of allFilePaths) {
+			if (!isLinkTargetFile(filePath)) continue;
 			const noteName = getNoteName(filePath);
 			if (noteName.toLowerCase() === targetBasename) {
 				return filePath;
@@ -86,12 +105,13 @@ export type WikilinkResolutionCache = Map<string, string> & {
 	readonly byFileName: Map<string, string[]>;
 };
 
-/** Builds a resolution cache from file paths. First path wins on name collisions. */
+/** Builds a resolution cache from file paths. First path wins on name collisions. A `.view` enters neither map. */
 export function buildResolutionCache(allFilePaths: string[]): WikilinkResolutionCache {
 	const cache: WikilinkResolutionCache = Object.assign(new Map<string, string>(), {
 		byFileName: new Map<string, string[]>(),
 	});
 	for (const filePath of allFilePaths) {
+		if (!isLinkTargetFile(filePath)) continue;
 		const key = getNoteName(filePath).toLowerCase();
 		if (!cache.has(key)) {
 			cache.set(key, filePath);

@@ -16,17 +16,10 @@ export interface TaskItem {
 	metadata: TaskMetadata;
 }
 
-/** All tasks belonging to a single file */
-export interface FileTaskGroup {
-	/** Absolute file path */
+/** A task row in the Tasks view, identified by its note and line. */
+export interface TaskRowRef {
+	/** Absolute path of the task's note */
 	filePath: string;
-	/** Display name of the file (without extension) */
-	fileName: string;
-	/** File's last-modified timestamp in ms */
-	modifiedAt: number;
-	/** List of tasks extracted from this file, in document order */
-	tasks: TaskItem[];
+	/** 1-based line number of the task within the note */
+	lineNumber: number;
 }
-
-/** Available date filter periods */
-export type TaskDateFilter = 'all' | 'last7days' | 'last30days';

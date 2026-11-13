@@ -181,6 +181,43 @@ describe('resolveWikilinkClickPosition', () => {
 			expect(resolveWikilinkClickPosition(revealedClick({ meta: true }), viewAt(12, doc, 50), true)).toBe(12);
 		});
 	});
+
+	describe('inside a table widget', () => {
+		/** A press on `target` nested in the table widget's DOM (`.cm-lp-table-wrapper > table > ... > td`). */
+		function tableClick(target: HTMLElement, mods: { meta?: boolean; ctrl?: boolean } = {}): MouseEvent {
+			const wrapper = document.createElement('div');
+			wrapper.className = 'cm-lp-table-wrapper';
+			const td = document.createElement('td');
+			wrapper.appendChild(td).appendChild(target);
+			let captured: MouseEvent | null = null;
+			target.addEventListener('mousedown', (e) => { captured = e; }, { once: true });
+			target.dispatchEvent(new MouseEvent('mousedown', {
+				bubbles: true,
+				cancelable: true,
+				button: 0,
+				metaKey: mods.meta ?? false,
+				ctrlKey: mods.ctrl ?? false,
+			}));
+			return captured!;
+		}
+
+		function cellLink(): HTMLElement {
+			const a = document.createElement('a');
+			a.className = 'cm-lp-wikilink';
+			return a;
+		}
+
+		it('a click on a cell wikilink is left to the cell handler (returns null)', () => {
+			expect(resolveWikilinkClickPosition(tableClick(cellLink()), viewAt(INSIDE_LINK), true)).toBeNull();
+			expect(resolveWikilinkClickPosition(tableClick(cellLink(), { ctrl: true }), viewAt(INSIDE_LINK), false)).toBeNull();
+		});
+
+		it('the modifier on plain cell text does not scan the table source for a wikilink', () => {
+			const view = viewAt(INSIDE_LINK);
+			expect(resolveWikilinkClickPosition(tableClick(document.createElement('span'), { meta: true }), view, true)).toBeNull();
+			expect(view.posAtCoords).not.toHaveBeenCalled();
+		});
+	});
 });
 
 /**

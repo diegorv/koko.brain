@@ -13,11 +13,17 @@ function bar(page: Page) {
 	return page.getByTestId('note-action-bar');
 }
 
-/** Hides the right sidebar with the bar's own toggle, so nothing fills the Properties panel. */
+/** Hides the right sidebar with the tab band's toggle, so nothing fills the Properties panel. */
 async function hideRightSidebar(page: Page): Promise<void> {
-	await bar(page).getByRole('button', { name: 'Close the right sidebar' }).click();
-	await expect(page.locator('button[title="Hide right sidebar"]')).toHaveCount(0);
-	await expect(bar(page).getByRole('button', { name: 'Open the right sidebar' })).toBeVisible();
+	await page.locator('button[title="Hide right sidebar"]').click();
+	await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
+	await expect(page.locator('button[title="Show right sidebar"]')).toBeVisible();
+}
+
+/** Runs a bar action from the More menu, where the rarer actions start. */
+async function moreAction(page: Page, name: string): Promise<void> {
+	await bar(page).getByRole('button', { name: 'More note actions' }).click();
+	await page.getByRole('menuitem', { name }).click();
 }
 
 test.describe('Note action bar', () => {
@@ -47,8 +53,9 @@ test.describe('Note action bar', () => {
 		// Cmd+E with the cursor in the editor.
 		await page.locator('.cm-content').click();
 		await pressShortcut(page, 'Mod+E');
-		await expect.poll(() => savedFile(page, WELCOME_PATH)).toContain('_organized: true');
-		await expect(bar(page).getByRole('button', { name: 'Set note as not organized' })).toBeVisible();
+		// A missing _organized reads as organized, as in the Rust index, so Cmd+E turns it off.
+		await expect.poll(() => savedFile(page, WELCOME_PATH)).toContain('_organized: false');
+		await expect(bar(page).getByRole('button', { name: 'Set note as organized' })).toHaveAttribute('aria-pressed', 'false');
 
 		const saved = await savedFile(page, WELCOME_PATH);
 		expect(saved).toContain('_favorite: true');
@@ -110,12 +117,11 @@ test.describe('Note action bar', () => {
 		const content = page.locator('.cm-content').first();
 		await expect(content).toHaveCSS('max-width', '600px');
 
-		await bar(page).getByRole('button', { name: 'Use the full note width' }).click();
+		await moreAction(page, 'Use the full note width');
 		await expect(content).toHaveCSS('max-width', 'none');
-		await expect(bar(page).getByRole('button', { name: 'Use the normal note width' })).toHaveAttribute('aria-pressed', 'true');
 		await expect.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).editor.wideNotes).toBe(true);
 
-		await bar(page).getByRole('button', { name: 'Use the normal note width' }).click();
+		await moreAction(page, 'Use the normal note width');
 		await expect(content).toHaveCSS('max-width', '600px');
 		await expect.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).editor.wideNotes).toBe(false);
 	});
@@ -124,7 +130,7 @@ test.describe('Note action bar', () => {
 		await openFile(page, 'Welcome.md');
 		await hideRightSidebar(page);
 
-		await bar(page).getByRole('button', { name: 'Show the table of contents' }).click();
+		await moreAction(page, 'Show the table of contents');
 
 		const sidebar = page.locator('[data-right-sidebar]');
 		await expect(sidebar).toBeVisible();
@@ -135,23 +141,27 @@ test.describe('Note action bar', () => {
 		await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
 		await openFile(page, 'Welcome.md');
 
-		await bar(page).getByRole('button', { name: 'Copy path' }).click();
+		await moreAction(page, 'Copy path');
 
 		await expect(page.getByText('Path copied')).toBeVisible();
 		expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(WELCOME_PATH);
 	});
 
-	test('a narrow bar folds the path actions into More', async ({ vaultPage: page }) => {
+	test('the bar has no sidebar toggle of its own: the tab band has the only one', async ({ vaultPage: page }) => {
 		await openFile(page, 'Welcome.md');
-		await expect(bar(page).getByRole('button', { name: 'Copy path' })).toBeVisible();
 
-		await page.setViewportSize({ width: 800, height: 800 });
+		await expect(bar(page).getByRole('button', { name: /right sidebar/ })).toHaveCount(0);
+		await expect(page.locator('button[title$="right sidebar"]')).toHaveCount(1);
+	});
+
+	test('the path actions start in More and come inline only on a wide bar', async ({ vaultPage: page }) => {
+		await openFile(page, 'Welcome.md');
 		await expect(bar(page).getByRole('button', { name: 'Copy path' })).toHaveCount(0);
 		await bar(page).getByRole('button', { name: 'More note actions' }).click();
 		await expect(page.getByRole('menuitem', { name: 'Copy path' })).toBeVisible();
 		await page.keyboard.press('Escape');
 
-		await page.setViewportSize({ width: 1800, height: 800 });
+		await page.setViewportSize({ width: 3000, height: 800 });
 		await expect(bar(page).getByRole('button', { name: 'Copy path' })).toBeVisible();
 	});
 });

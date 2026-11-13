@@ -3,6 +3,7 @@
 	import { matchFilesForWikilink } from '#lib/core/markdown-editor/extensions/wikilink/completion.logic.js';
 	import { flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { isLinkTargetFile } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 
 	interface Props {
 		/** Current text content of the input/textarea */
@@ -24,7 +25,7 @@
 
 	let files = $derived.by(() => {
 		if (!isActive || !context) return [];
-		const allFiles = flattenFileTree(fsStore.fileTree);
+		const allFiles = flattenFileTree(fsStore.fileTree).filter((f) => isLinkTargetFile(f.path));
 		return matchFilesForWikilink(context.query, allFiles).slice(0, MAX_SUGGESTIONS);
 	});
 

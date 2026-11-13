@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
 	import { call } from '#lib/contracts/ipc.js';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import Loader2Icon from '@lucide/svelte/icons/loader-circle';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
@@ -99,7 +100,7 @@
 
 	<SettingItem
 		label="Semantic search"
-		description="Enable AI-powered semantic search using BGE-M3 (~542MB download)"
+		description="Find notes by meaning as well as by words. Downloads a 542 MB model once."
 	>
 		<Switch
 			checked={settingsStore.search.semanticSearchEnabled}
@@ -109,7 +110,7 @@
 	</SettingItem>
 
 	{#if isDownloading}
-		<div class="flex items-center gap-2 px-4 text-xs text-muted-foreground">
+		<div class="flex items-center gap-2 px-4 text-meta text-muted-foreground">
 			<Loader2Icon class="size-3 animate-spin" />
 			<span>
 				{searchStore.semanticProgress?.message ?? 'Downloading model...'}
@@ -118,11 +119,11 @@
 	{/if}
 
 	{#if downloadError}
-		<p class="px-4 text-xs text-destructive">{downloadError}</p>
+		<p class="px-4 text-meta text-destructive">{downloadError}</p>
 	{/if}
 
 	{#if settingsStore.search.semanticSearchEnabled && searchStore.semanticStats}
-		<div class="px-4 text-xs text-muted-foreground">
+		<div class="px-4 text-meta text-muted-foreground">
 			Model loaded · {searchStore.semanticStats.totalChunks} chunks indexed
 			from {searchStore.semanticStats.totalSources} files
 		</div>
@@ -130,25 +131,20 @@
 
 	{#if settingsStore.search.semanticSearchEnabled}
 		<SettingItem
-			label="Reranker (BGE-reranker-v2-m3)"
-			description="Cross-encoder rerank for higher top-K precision (~571MB extra download, roughly 10 s per query on CPU). Auto-used by semantic search once downloaded."
+			label="Reranker"
+			description="Re-scores the top results with a second model for better precision. About 280 MB more to download, 2 to 3 s per query on CPU, CC-BY-NC-4.0 license. Used automatically once downloaded."
 		>
 			{#if rerankerAvailable}
-				<span class="text-xs text-muted-foreground">Installed</span>
+				<span class="text-meta text-muted-foreground">Installed</span>
 			{:else}
-				<button
-					type="button"
-					class="rounded border px-3 py-1 text-xs disabled:opacity-50"
-					disabled={isDownloadingReranker}
-					onclick={handleRerankerDownload}
-				>
+				<Button variant="outline" size="sm" disabled={isDownloadingReranker} onclick={handleRerankerDownload}>
 					{isDownloadingReranker ? 'Downloading…' : 'Download'}
-				</button>
+				</Button>
 			{/if}
 		</SettingItem>
 
 		{#if isDownloadingReranker}
-			<div class="flex items-center gap-2 px-4 text-xs text-muted-foreground">
+			<div class="flex items-center gap-2 px-4 text-meta text-muted-foreground">
 				<Loader2Icon class="size-3 animate-spin" />
 				<span>
 					{searchStore.semanticProgress?.message ?? 'Downloading reranker...'}
@@ -157,7 +153,7 @@
 		{/if}
 
 		{#if rerankerError}
-			<p class="px-4 text-xs text-destructive">{rerankerError}</p>
+			<p class="px-4 text-meta text-destructive">{rerankerError}</p>
 		{/if}
 	{/if}
 </div>

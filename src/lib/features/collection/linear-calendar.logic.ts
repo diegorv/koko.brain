@@ -1,3 +1,4 @@
+import { contrastRatio } from '#lib/utils/color.js';
 import type { PropertyIndexRecord } from './collection.types';
 import { extractDateFromRecord } from './calendar.logic';
 import { getPropertyValue } from './collection.logic';
@@ -291,4 +292,31 @@ export function buildColorMapping(records: PropertyIndexRecord[], colorProperty:
 export function getColorForValue(value: string | null, mapping: ColorMapping): string | null {
 	if (value === null) return null;
 	return mapping.colors.get(value) ?? null;
+}
+
+/**
+ * Text color for an event bar title: black or white, whichever contrasts more
+ * with a `COLOR_PALETTE` bar. The `var(--primary)` fallback bar, and any color
+ * that is not an `hsl()`, gets the theme's `--primary-foreground`.
+ */
+export function barTextColor(barColor: string): string {
+	const hex = hslToHex(barColor);
+	if (!hex) return 'var(--primary-foreground)';
+	return contrastRatio('#000000', hex)! >= contrastRatio('#ffffff', hex)! ? '#000000' : '#ffffff';
+}
+
+/** `hsl(h, s%, l%)` to a 6-digit hex (CSS Color 4 conversion); null for anything else. */
+function hslToHex(color: string): string | null {
+	const match = color.match(/^hsl\(\s*([\d.]+),\s*([\d.]+)%,\s*([\d.]+)%\s*\)$/);
+	if (!match) return null;
+	const h = Number(match[1]);
+	const s = Number(match[2]) / 100;
+	const l = Number(match[3]) / 100;
+	const a = s * Math.min(l, 1 - l);
+	const channel = (n: number) => {
+		const k = (n + h / 30) % 12;
+		const v = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+		return Math.round(v * 255).toString(16).padStart(2, '0');
+	};
+	return `#${channel(0)}${channel(8)}${channel(4)}`;
 }

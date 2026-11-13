@@ -1,0 +1,31 @@
+# 13: The Tags view explains when the rare-tag filter hides everything
+
+**What to build:** With the default "hide rare tags" filter on (`tags.store.svelte.ts` about line 5, threshold `MIN_COUNT_THRESHOLD = 10` in `TagsView.svelte`), a vault whose tags are all used fewer than 10 times shows "3 tags" in the header over "No tags found" in the list: the header counts all tags (`tags.service.ts` sets `totalTagCount` from the unfiltered entries), the list shows the filtered tree. In `src/lib/features/tags/TagsView.svelte`, split the empty branch (about line 81):
+
+- when `tagsStore.hideRareTags` is on and `tagsStore.tagTree.length > 0` but `displayedTree` is empty: show "No tags are used {MIN_COUNT_THRESHOLD} or more times." and a "Show all tags" button that calls the existing `toggleFilter()`
+- otherwise keep "No tags found"
+
+The header count keeps meaning "tags in the vault" and does not change.
+
+**Blocked by:** none
+
+**Status:** wontfix
+
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
+
+- [ ] Failing first, in `src/tests/lib/features/tags/TagsView.test.ts`: with the real `tagsStore` holding a tree whose every node has a count below 10, `hideRareTags` at its default and `totalTagCount` 3, the view shows the filtered message and a "Show all tags" button and does not show "No tags found". It fails on the current code
+- [ ] Clicking "Show all tags" sets `tagsStore.hideRareTags` to false and the tags are listed
+- [ ] The existing "No tags found" case (empty tree, about line 62) stays green
+- [ ] `tags.service.test.ts` totals are unchanged
+
+## Notes
+
+- **Other tickets:** Optional overlap with an EmptyState primitive ticket (review work breakdown 11): if it lands first, use it for the message; not a blocker.
+- **Source:** review-2026-11-04.md "Feature views" row "No empty-state, error or badge primitive" (Tags "3 tags" over "No tags found") and work breakdown ticket 11 ("filtered-empty messages for Tags and Tasks").
+- **Overlap:** if an `EmptyState` primitive ticket (review ticket 11) lands first, use it for this message; otherwise use the existing paragraph style and the shared `Button` (`#lib/components/ui/button/index.js`, `size="sm"`, `variant="outline"`).
+- **Out of scope:** the Tasks filtered-empty message, the default of `hideRareTags`, and the header's styling.
+- **Size:** S.
+
+## Comments
+
+- 2026-11-06: migrated to `.scratch/open-itens/issues/212-tags-view-explains-when-rare-tag-filter.md` by audit 2026-11-05 (its re-checked text and any related audit findings now live there, in one plan ordered by impact on written content and daily use). Closed here as wontfix so it is worked in one place; nothing was implemented.

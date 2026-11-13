@@ -117,6 +117,25 @@ describe('SearchResult — click lands the cursor on the match (issue 02)', () =
 		};
 	}
 
+	it('renders subtitle and score at the meta role in a muted color at full opacity', () => {
+		mountResult({ semanticResult: semanticFixture(4) });
+
+		const subtitle = target.querySelector('p')!;
+		const score = [...target.querySelectorAll('span')].find((s) => s.textContent === '90%')!;
+		for (const el of [subtitle, score]) {
+			expect(el.classList).toContain('text-meta');
+			expect(el.classList).toContain('text-file-explorer-muted-fg');
+			expect(el.className).not.toMatch(/\/\d+/);
+		}
+	});
+
+	it('renders the source badge at the label role', () => {
+		mountResult({ hybridResult: hybridFixture(3) });
+
+		const badge = [...target.querySelectorAll('span')].find((s) => s.textContent?.trim() === 'Both')!;
+		expect(badge.classList).toContain('text-label');
+	});
+
 	it('semantic result: converts the 1-indexed lineStart to a character offset', async () => {
 		mountResult({ semanticResult: semanticFixture(4) });
 		await clickResult();
@@ -279,6 +298,7 @@ describe('SearchResult: Show in Calendar', () => {
 		await mountFts('Events/Standup.md');
 		const action = target.querySelector<HTMLButtonElement>('[data-show-in-calendar]');
 		expect(action?.getAttribute('aria-label')).toBe('Show in Calendar');
+		expect(action?.classList).toContain('bg-list-bg');
 
 		action!.click();
 		await new Promise((r) => setTimeout(r, 0));

@@ -5,8 +5,13 @@
  */
 export const HEADING_RE = /^#{1,6}\s+(.+)\r?$/;
 
-/** Regex matching a block-id marker at the end of a line: `text ^block-id` */
-export const BLOCK_ID_RE = /\^([^\s]+)\s*$/;
+/**
+ * Regex matching a block-id marker at the end of a line: `text ^block-id`.
+ * The `^` must start the line or follow whitespace, and the id is `[\w-]+`, so a
+ * trailing block link (`[[Note#^id]]`) or an exponent (`m^2`) is not an id.
+ * Trailing whitespace, including the `\r` of a CRLF line split on `\n`, is allowed.
+ */
+export const BLOCK_ID_RE = /(?:^|\s)\^([\w-]+)\s*$/;
 
 /**
  * Finds the document position of a heading by name.

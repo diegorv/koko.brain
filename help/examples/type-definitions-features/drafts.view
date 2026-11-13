@@ -1,0 +1,6 @@
+_sidebar_label: Drafts
+_visible: false
+views:
+  - type: table
+    name: Drafts
+filters: 'status == "draft" && file.folder.endsWith("/type-definitions-features")'

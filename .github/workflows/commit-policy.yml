@@ -10,11 +10,35 @@ name: Commit policy
 permissions:
   contents: read
 
+# A range that only touches docs or other workflows holds no app code, so it
+# cannot break the rule.
 on:
   push:
     branches: [main]
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/commit-policy.yml"
   pull_request:
     branches: [main]
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/commit-policy.yml"
 
 # One run per sha, never cancelled: every pushed range must be checked.
 concurrency:
@@ -24,7 +48,7 @@ concurrency:
 jobs:
   fix-has-test:
     name: fix commits carry a test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7.0.1

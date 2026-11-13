@@ -1,3 +1,4 @@
+// @vitest-environment jsdom
 import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import type { DecorationSet } from '@codemirror/view';
@@ -199,5 +200,43 @@ describe('meta-bind-button fenced code awareness', () => {
 	it('still renders a top-level meta-bind-button fence next to a ````md fence', () => {
 		const state = createMarkdownState(NESTED + TOP, { cursor: 0, extensions: withMd() });
 		expect(rendered(computeMetaBindButtons(state)).map((r) => r.label)).toEqual(['Top']);
+	});
+});
+
+describe('meta-bind-button error reason', () => {
+	/** The error widget's text for the block `yaml`. */
+	function errorText(yaml: string): string | null {
+		const iter = computeMetaBindButtons(createState(`text\n\`\`\`meta-bind-button\n${yaml}\n\`\`\``, 0)).iter();
+		while (iter.value) {
+			const widget = (iter.value.spec as { widget?: unknown }).widget;
+			if (widget instanceof MetaBindButtonErrorWidget) return (widget.toDOM() as HTMLElement).textContent;
+			iter.next();
+		}
+		return null;
+	}
+
+	it('names the missing label', () => {
+		expect(errorText('action: { type: open, link: x }')).toBe('Invalid button: label missing');
+	});
+
+	it('names the missing field of an action', () => {
+		expect(errorText('label: Go\naction: { type: updateMetadata, prop: status }')).toBe(
+			'Invalid button: updateMetadata needs prop and value',
+		);
+	});
+
+	it('names an openView path that is not a view or leaves the vault', () => {
+		expect(errorText('label: Go\naction: { type: openView, path: Projects.md }')).toBe('Invalid button: openView needs a .view path');
+		expect(errorText('label: Go\naction: { type: openView, path: ../Projects.view }')).toBe('Invalid button: openView path leaves the vault');
+	});
+});
+
+describe('meta-bind-button widget events', () => {
+	it('the error box lets a click through, so it reveals the invalid YAML', () => {
+		expect(new MetaBindButtonErrorWidget('Invalid configuration').ignoreEvent()).toBe(false);
+	});
+
+	it('a valid button keeps ignoring editor events (its click runs the action)', () => {
+		expect(new MetaBindButtonWidget({ label: 'Go', style: 'default' }).ignoreEvent()).toBe(true);
 	});
 });

@@ -1,4 +1,5 @@
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import type { TypeSidebarSelection } from './type-sidebar.logic';
 
@@ -12,7 +13,7 @@ let entriesVersion = $state(0);
 let selectedTypeOrNav = $state<TypeSidebarSelection | null>(null);
 /** O(1) path → entry index over the latest entries snapshot. Rebuilt by setEntries, patched per path by patchEntries. */
 let entriesByPath = $state<Map<string, NoteEntryV2>>(new Map());
-/** O(1) type title → definition path index (isA === 'Type', first match wins). Rebuilt by setEntries, and by patchEntries when a touched entry was or is a Type. */
+/** O(1) type name (normalized title) → definition path index (isA === 'Type', first match wins). Rebuilt by setEntries, and by patchEntries when a touched entry was or is a Type. */
 let typeDefinitionPaths = $state<Map<string, string>>(new Map());
 
 export const typeDefinitionsStore = {
@@ -38,7 +39,7 @@ export const typeDefinitionsStore = {
 		return entriesByPath.get(path);
 	},
 
-	/** O(1) lookup of a type definition note's absolute path by type title. */
+	/** O(1) lookup of a type definition note's absolute path by type name (the `isA` its notes carry). */
 	getTypeDefinitionPath(typeName: string): string | undefined {
 		return typeDefinitionPaths.get(typeName);
 	},
@@ -104,11 +105,21 @@ export const typeDefinitionsStore = {
 	},
 };
 
-/** Type title -> definition note path over `value` (isA === 'Type', first match wins). */
+/**
+ * Type name -> definition note path over `value` (isA === 'Type'). Keyed by
+ * the title with Rust's `is_a` casing, so the `Book` notes find a `book.md`
+ * definition. When several definitions map to one type name (`a/book.md` and
+ * `b/Book.md`, or two `Book.md` files), the first in `value` order wins.
+ * `value` is the Rust snapshot, sorted by path (`get_all_vault_entries_v2`,
+ * kept sorted by `patchEntriesSnapshot`), so the lowest path wins.
+ * `buildTypeMetadataMap` applies the same rule, so both name the same file.
+ */
 function buildTypeDefinitionPaths(value: NoteEntryV2[]): Map<string, string> {
 	const defPaths = new Map<string, string>();
 	for (const e of value) {
-		if (e.isA === 'Type' && !defPaths.has(e.title)) defPaths.set(e.title, e.path);
+		if (e.isA !== 'Type') continue;
+		const name = normalizeTypeCasing(e.title);
+		if (!defPaths.has(name)) defPaths.set(name, e.path);
 	}
 	return defPaths;
 }

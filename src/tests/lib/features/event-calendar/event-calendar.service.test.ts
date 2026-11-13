@@ -1726,6 +1726,22 @@ describe('calendar writes', () => {
 			expect(written).toContain('Bring the slides\n\n## Agenda');
 		});
 
+		it('marks the event note unorganized, after the draft fields, while Explicit organization is on', async () => {
+			settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+			let path: string;
+			try {
+				path = await createEvent(draft());
+			} finally {
+				settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
+			}
+
+			const written = disk.get(path)!;
+			expect(written.startsWith('---\n_organized: false\n')).toBe(true);
+			expect(written.match(/^_organized:/gm)).toHaveLength(1);
+			expect(written).toContain('_type: Event');
+			expect(written).toContain('start: 10:00');
+		});
+
 		it("renders tp.date.now for the draft's day, not today", async () => {
 			useTemplate('---\n_type: Event\ndate: <% tp.date.now("YYYY-MM-DD") %>\n---\n# Notes for <% tp.date.now("YYYY-MM-DD") %>\n');
 

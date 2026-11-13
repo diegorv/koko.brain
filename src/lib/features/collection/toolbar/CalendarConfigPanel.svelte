@@ -22,8 +22,8 @@
 		onDatePropertyChange: (prop: string) => void;
 		/** Called when the end date property changes */
 		onEndDatePropertyChange: (prop: string | undefined) => void;
-		/** Called when the week start day changes */
-		onWeekStartDayChange: (day: number) => void;
+		/** Called when the week start day changes; the row is left out without it */
+		onWeekStartDayChange?: (day: number) => void;
 		/** Called when the color property changes */
 		onColorPropertyChange?: (prop: string | undefined) => void;
 	}
@@ -59,7 +59,7 @@
 			<DropdownMenuContent class="max-h-[300px] overflow-y-auto">
 				{#each availableProperties as prop}
 					<DropdownMenuItem onclick={() => onDatePropertyChange(prop)}>
-						<span class="text-xs">{prop}</span>
+						<span>{prop}</span>
 					</DropdownMenuItem>
 				{/each}
 			</DropdownMenuContent>
@@ -80,11 +80,11 @@
 			</DropdownMenuTrigger>
 			<DropdownMenuContent class="max-h-[300px] overflow-y-auto">
 				<DropdownMenuItem onclick={() => onEndDatePropertyChange(undefined)}>
-					<span class="text-xs text-muted-foreground">None</span>
+					<span class="text-muted-foreground">None</span>
 				</DropdownMenuItem>
 				{#each availableProperties as prop}
 					<DropdownMenuItem onclick={() => onEndDatePropertyChange(prop)}>
-						<span class="text-xs">{prop}</span>
+						<span>{prop}</span>
 					</DropdownMenuItem>
 				{/each}
 			</DropdownMenuContent>
@@ -92,26 +92,28 @@
 	</div>
 
 	<!-- Week start day -->
-	<div class="flex flex-col gap-1">
-		<span class="text-xs font-medium text-muted-foreground">Week starts on</span>
-		<DropdownMenu>
-			<DropdownMenuTrigger>
-				<button
-					class="flex h-7 w-full items-center justify-between rounded-md border border-input bg-background px-2 text-xs hover:bg-accent"
-				>
-					<span>{weekDayNames[weekStartDay]}</span>
-					<ChevronDown class="size-3 shrink-0 opacity-50" />
-				</button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent>
-				{#each weekDayNames as dayName, i}
-					<DropdownMenuItem onclick={() => onWeekStartDayChange(i)}>
-						<span class="text-xs">{dayName}</span>
-					</DropdownMenuItem>
-				{/each}
-			</DropdownMenuContent>
-		</DropdownMenu>
-	</div>
+	{#if onWeekStartDayChange}
+		<div class="flex flex-col gap-1">
+			<span class="text-xs font-medium text-muted-foreground">Week starts on</span>
+			<DropdownMenu>
+				<DropdownMenuTrigger>
+					<button
+						class="flex h-7 w-full items-center justify-between rounded-md border border-input bg-background px-2 text-xs hover:bg-accent"
+					>
+						<span>{weekDayNames[weekStartDay]}</span>
+						<ChevronDown class="size-3 shrink-0 opacity-50" />
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent>
+					{#each weekDayNames as dayName, i}
+						<DropdownMenuItem onclick={() => onWeekStartDayChange(i)}>
+							<span>{dayName}</span>
+						</DropdownMenuItem>
+					{/each}
+				</DropdownMenuContent>
+			</DropdownMenu>
+		</div>
+	{/if}
 
 	<!-- Color by property -->
 	{#if onColorPropertyChange}
@@ -128,11 +130,11 @@
 				</DropdownMenuTrigger>
 				<DropdownMenuContent class="max-h-[300px] overflow-y-auto">
 					<DropdownMenuItem onclick={() => onColorPropertyChange(undefined)}>
-						<span class="text-xs text-muted-foreground">None</span>
+						<span class="text-muted-foreground">None</span>
 					</DropdownMenuItem>
 					{#each availableProperties as prop}
 						<DropdownMenuItem onclick={() => onColorPropertyChange(prop)}>
-							<span class="text-xs">{prop}</span>
+							<span>{prop}</span>
 						</DropdownMenuItem>
 					{/each}
 				</DropdownMenuContent>

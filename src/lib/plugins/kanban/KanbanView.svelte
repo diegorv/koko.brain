@@ -80,10 +80,10 @@
 		if (newBoard === board) return; // no-op guard
 		const newMarkdown = serializeKanbanBoard(newBoard);
 		board = newBoard;
-		// Same pre-guard as CollectionView's commitStructural: a mutation that
-		// serializes back to the current content must not arm the latch. The
-		// parent prop would never change, so the parse effect above never runs
-		// and selfUpdate would stay true, swallowing the NEXT external reload.
+		// A mutation that serializes back to the current content must not arm
+		// the latch. The parent prop would never change, so the parse effect
+		// above never runs and selfUpdate would stay true, swallowing the NEXT
+		// external reload.
 		if (newMarkdown === markdownContent) return;
 		selfUpdate = true;
 		onContentChange(newMarkdown);
@@ -459,10 +459,10 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="flex h-full flex-col" onkeydown={handleBoardKeydown} tabindex="-1">
 	<!-- Toolbar -->
-	<div class="flex items-center gap-2 border-b border-border px-4 py-1.5">
-		<div class="flex items-center gap-0.5 rounded border border-border">
+	<div class="pane-toolbar">
+		<div class="flex items-center gap-0.5 rounded-xs border border-border">
 			<button
-				class="rounded-l p-1 transition-colors {currentViewMode === 'board' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}"
+				class="rounded-l-xs p-1 transition-colors {currentViewMode === 'board' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}"
 				onclick={() => handleSetViewMode('board')}
 				title="Board view"
 			>
@@ -476,7 +476,7 @@
 				<List class="size-3.5" />
 			</button>
 			<button
-				class="rounded-r p-1 transition-colors {currentViewMode === 'table' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}"
+				class="rounded-r-xs p-1 transition-colors {currentViewMode === 'table' ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:text-foreground'}"
 				onclick={() => handleSetViewMode('table')}
 				title="Table view"
 			>
@@ -486,7 +486,7 @@
 		<div class="flex items-center gap-1.5">
 			<ArrowUpDown class="size-3.5 text-muted-foreground" />
 			<select
-				class="rounded border border-border bg-background px-2 py-0.5 text-xs text-foreground outline-none"
+				class="rounded-xs border border-border bg-background px-2 py-0.5 text-xs text-foreground outline-none"
 				value={currentSortMode}
 				onchange={(e) => handleSetSortMode(e.currentTarget.value as KanbanSortMode)}
 			>
@@ -498,7 +498,7 @@
 		<div class="flex items-center gap-1.5">
 			<Search class="size-3.5 text-muted-foreground" />
 			<input
-				class="rounded border border-border bg-background px-2 py-0.5 text-xs outline-none placeholder:text-muted-foreground/50 focus:border-primary"
+				class="rounded-xs border border-border bg-background px-2 py-0.5 text-xs outline-none placeholder:text-muted-foreground/50 focus:border-primary"
 				placeholder="Filter cards..."
 				value={kanbanStore.filterQuery}
 				oninput={(e) => kanbanStore.setFilterQuery(e.currentTarget.value)}
@@ -594,10 +594,10 @@
 			{#if showArchive}
 				<div class="flex flex-1 flex-col gap-1 overflow-y-auto px-2 pb-2">
 					{#each board.archive as item (item.id)}
-						<div class="flex items-center gap-1.5 rounded border border-border bg-background/50 p-2 text-sm text-muted-foreground">
+						<div class="flex items-center gap-1.5 rounded-xs border border-border bg-background/50 p-2 text-sm text-muted-foreground">
 							<span class="flex-1 truncate line-through">{item.text}</span>
 							<button
-								class="rounded p-0.5 hover:bg-muted hover:text-foreground transition-colors"
+								class="rounded-xs p-0.5 hover:bg-muted hover:text-foreground transition-colors"
 								onclick={() => handleRestoreItem(item.id)}
 								aria-label="Restore item"
 								title="Restore to first lane"
@@ -605,7 +605,7 @@
 								<RotateCcw class="size-3.5" />
 							</button>
 							<button
-								class="rounded p-0.5 hover:bg-destructive/20 hover:text-destructive transition-colors"
+								class="rounded-xs p-0.5 hover:bg-destructive/20 hover:text-destructive transition-colors"
 								onclick={() => handleDeleteArchivedItem(item.id)}
 								aria-label="Delete archived item"
 								title="Delete permanently"

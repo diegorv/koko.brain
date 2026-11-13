@@ -11,9 +11,14 @@ vi.mock('@tauri-apps/plugin-fs', () => ({
 	writeTextFile: vi.fn(() => Promise.resolve()),
 	mkdir: vi.fn(() => Promise.resolve()),
 	exists: vi.fn(() => Promise.resolve(true)),
+	copyFile: vi.fn(() => Promise.resolve()),
 }));
 
-import { writeTextFile, exists, mkdir } from '@tauri-apps/plugin-fs';
+vi.mock('svelte-sonner', () => ({
+	toast: { info: vi.fn(), error: vi.fn(), success: vi.fn() },
+}));
+
+import { writeTextFile, readTextFile, exists, mkdir, copyFile } from '@tauri-apps/plugin-fs';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
@@ -21,6 +26,7 @@ import {
 	stopSettingsPersistence,
 	flushSettingsPersistence,
 } from '#lib/core/settings/settings-persistence.svelte.js';
+import { loadSettings } from '#lib/core/settings/settings.service.js';
 
 /** Lets the Svelte effect flush (microtask), then runs out the debounce window */
 async function settle(ms = 500): Promise<void> {
@@ -247,5 +253,111 @@ describe('settings persistence', () => {
 
 		expect(writeTextFile).toHaveBeenCalledTimes(1);
 		expect(vi.mocked(writeTextFile).mock.calls[0][0]).toBe('/vault-b/.kokobrain/settings.json');
+	});
+
+	describe('after a load that left settings.json unread', () => {
+		const SETTINGS_PATH = '/vault/.kokobrain/settings.json';
+		let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+		/** Every path `writeTextFile` was handed so far */
+		function writtenPaths(): unknown[] {
+			return vi.mocked(writeTextFile).mock.calls.map(([path]) => path);
+		}
+
+		beforeEach(() => {
+			consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+			vi.mocked(copyFile).mockResolvedValue(undefined);
+		});
+
+		afterEach(() => {
+			consoleErrorSpy.mockRestore();
+		});
+
+		/** Runs a toggle through the debounce, the quit flush and the vault-switch stop */
+		async function mutateFlushAndStop(): Promise<void> {
+			settingsStore.updateLayout({ railPanelsVisible: false });
+			await settle();
+			await flushSettingsPersistence();
+			settingsStore.updateLayout({ rightSidebarVisible: true });
+			await vi.advanceTimersByTimeAsync(0);
+			await stopSettingsPersistence();
+			await settle();
+		}
+
+		it('never writes settings.json when readTextFile rejected', async () => {
+			vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
+
+			const outcome = await loadSettings('/vault');
+			startSettingsPersistence('/vault', outcome);
+			await mutateFlushAndStop();
+
+			expect(outcome).toBe('file-protected');
+			expect(writtenPaths()).not.toContain(SETTINGS_PATH);
+		});
+
+		it('never writes settings.json when it did not parse and the backup copy failed', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
+			vi.mocked(copyFile).mockRejectedValue(new Error('copy failed'));
+
+			const outcome = await loadSettings('/vault');
+			startSettingsPersistence('/vault', outcome);
+			await mutateFlushAndStop();
+
+			expect(outcome).toBe('file-protected');
+			expect(writtenPaths()).not.toContain(SETTINGS_PATH);
+		});
+
+		it('does not let the launch-time update check overwrite an unread settings.json', async () => {
+			vi.mocked(readTextFile).mockRejectedValue(new Error('read error'));
+
+			startSettingsPersistence('/vault', await loadSettings('/vault'));
+			settingsStore.updateUpdates({ lastCheckedAt: 1 });
+			await settle();
+			await stopSettingsPersistence();
+
+			expect(writtenPaths()).not.toContain(SETTINGS_PATH);
+		});
+
+		it('still persists changes once the broken file was backed up', async () => {
+			vi.mocked(readTextFile).mockResolvedValue('{"periodicNotes": ');
+
+			const outcome = await loadSettings('/vault');
+			vi.mocked(writeTextFile).mockClear();
+			startSettingsPersistence('/vault', outcome);
+			settingsStore.updateLayout({ railPanelsVisible: false });
+			await settle();
+
+			expect(outcome).toBe('defaults');
+			expect(writtenPaths()).toEqual([SETTINGS_PATH]);
+			expect(writtenSettings().layout.railPanelsVisible).toBe(false);
+		});
+
+		it('persists a change after 500 ms once a valid settings.json loaded', async () => {
+			vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ history: { retentionDays: 365 } }));
+
+			const outcome = await loadSettings('/vault');
+			vi.mocked(writeTextFile).mockClear();
+			startSettingsPersistence('/vault', outcome);
+			settingsStore.updateLayout({ railPanelsVisible: false });
+			await settle();
+
+			expect(outcome).toBe('loaded');
+			expect(writtenPaths()).toEqual([SETTINGS_PATH]);
+			expect(writtenSettings().history.retentionDays).toBe(365);
+		});
+
+		it('writes again for the next vault after a protected session', async () => {
+			vi.mocked(readTextFile).mockRejectedValueOnce(new Error('read error'));
+			startSettingsPersistence('/vault', await loadSettings('/vault'));
+
+			vi.mocked(readTextFile).mockResolvedValue('{}');
+			const next = await loadSettings('/vault-b');
+			vi.mocked(writeTextFile).mockClear();
+			startSettingsPersistence('/vault-b', next);
+			settingsStore.updateLayout({ railPanelsVisible: false });
+			await settle();
+
+			expect(writtenPaths()).toEqual(['/vault-b/.kokobrain/settings.json']);
+		});
 	});
 });

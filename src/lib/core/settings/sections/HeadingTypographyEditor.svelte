@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Input } from '#lib/components/ui/input/index.js';
+	import * as Select from '#lib/components/ui/select/index.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import {
 		clampHeadingFontSize,
@@ -18,6 +19,15 @@
 		h5: 'Heading 5',
 		h6: 'Heading 6',
 	};
+	const WEIGHT_OPTIONS: { value: HeadingFontWeight; label: string }[] = [
+		{ value: 'bold', label: 'Bold' },
+		{ value: 'semibold', label: 'Semibold' },
+		{ value: 'normal', label: 'Normal' },
+	];
+
+	function weightLabel(value: HeadingFontWeight): string {
+		return WEIGHT_OPTIONS.find((o) => o.value === value)?.label ?? value;
+	}
 
 	function inputValue(e: Event): string {
 		return (e.currentTarget as HTMLInputElement).value;
@@ -34,15 +44,15 @@
 	}
 </script>
 
-<div class="mt-4 flex flex-col gap-2">
-	<h3 class="mb-1 text-sm font-semibold text-primary">Heading Typography</h3>
+<div class="mt-6 flex flex-col gap-2">
+	<h3 class="section-label mb-2">Heading typography</h3>
 
 	{#each LEVELS as level}
 		{@const settings = settingsStore.editor.headingTypography[level]}
 		<details class="group rounded-lg bg-setting-item-bg">
-			<summary class="flex cursor-pointer items-center justify-between px-4 py-2.5 text-sm font-medium text-settings-text">
+			<summary class="flex cursor-pointer items-center justify-between px-4 py-2.5 text-row font-medium text-settings-text">
 				<span>{LEVEL_LABELS[level]}</span>
-				<span class="text-xs text-muted-foreground">
+				<span class="text-meta text-muted-foreground">
 					{settings.fontSize}em, {settings.fontWeight}
 				</span>
 			</summary>
@@ -74,15 +84,20 @@
 				</SettingItem>
 
 				<SettingItem label="Font weight">
-					<select
-						class="h-9 w-24 rounded-md border border-input bg-input-bg px-2 text-sm text-settings-text"
+					<Select.Root
+						type="single"
 						value={settings.fontWeight}
-						onchange={(e) => updateLevel(level, 'fontWeight', (e.currentTarget as HTMLSelectElement).value as HeadingFontWeight)}
+						onValueChange={(value) => updateLevel(level, 'fontWeight', value as HeadingFontWeight)}
 					>
-						<option value="bold">Bold</option>
-						<option value="semibold">Semibold</option>
-						<option value="normal">Normal</option>
-					</select>
+						<Select.Trigger class="w-24" aria-label="Font weight">
+							<span data-slot="select-value">{weightLabel(settings.fontWeight)}</span>
+						</Select.Trigger>
+						<Select.Content>
+							{#each WEIGHT_OPTIONS as opt (opt.value)}
+								<Select.Item value={opt.value} label={opt.label} />
+							{/each}
+						</Select.Content>
+					</Select.Root>
 				</SettingItem>
 
 				<SettingItem label="Letter spacing" description="In em (-0.1 to 0.1)">

@@ -1,9 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { call } from '#lib/contracts/ipc.js';
+	import { buttonVariants } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import * as Popover from '#lib/components/ui/popover/index.js';
 	import * as Command from '#lib/components/ui/command/index.js';
+	import { quoteFontFamily } from '#lib/utils/font-stacks.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import { clampFontSize, clampLineHeight, clampContentWidth, clampParagraphSpacing } from '../settings.logic';
 	import SettingItem from './SettingItem.svelte';
@@ -35,9 +37,12 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Editor</h2>
 
+	<h3 class="section-label mb-2">Text</h3>
+
 	<SettingItem
 		label="Font family"
-		description="CSS font-family value for the editor"
+		description="Fonts for the editor, comma-separated; the first one installed is used"
+		layout="stacked"
 	>
 		<div class="flex gap-1">
 			<Input
@@ -48,9 +53,7 @@
 			/>
 			{#if systemFonts.length > 0}
 				<Popover.Root bind:open={fontPickerOpen}>
-					<Popover.Trigger
-						class="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus:ring-ring inline-flex h-9 items-center justify-center whitespace-nowrap rounded-md border px-3 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none disabled:opacity-50"
-					>
+					<Popover.Trigger class={buttonVariants({ variant: 'outline' })}>
 						Browse
 					</Popover.Trigger>
 					<Popover.Content class="w-64 p-0" align="end">
@@ -68,7 +71,7 @@
 										<Command.Item
 											value={font}
 											onSelect={() => selectFont(font)}
-											class="font-[{font}]"
+											style="font-family: {quoteFontFamily(font)}"
 										>
 											{font}
 										</Command.Item>
@@ -124,27 +127,6 @@
 	</SettingItem>
 
 	<SettingItem
-		label="Content width"
-		description="Maximum content width in pixels (0 = no limit)"
-	>
-		<Input
-			type="number"
-			class="w-24"
-			min={0}
-			max={2000}
-			step={10}
-			value={String(settingsStore.editor.contentWidth)}
-			oninput={(e) => {
-				settingsStore.updateEditor({ contentWidth: Number(inputValue(e)) });
-			}}
-			onchange={(e) => {
-				const val = clampContentWidth(Number(inputValue(e)));
-				settingsStore.updateEditor({ contentWidth: val });
-			}}
-		/>
-	</SettingItem>
-
-	<SettingItem
 		label="Paragraph spacing"
 		description="Extra space after each line, in em (0 = none, e.g. 0.5)"
 	>
@@ -161,6 +143,29 @@
 			onchange={(e) => {
 				const val = clampParagraphSpacing(Number(inputValue(e)));
 				settingsStore.updateEditor({ paragraphSpacing: val });
+			}}
+		/>
+	</SettingItem>
+
+	<h3 class="section-label mt-6 mb-2">Page</h3>
+
+	<SettingItem
+		label="Content width"
+		description="Maximum content width in pixels (0 = no limit)"
+	>
+		<Input
+			type="number"
+			class="w-24"
+			min={0}
+			max={2000}
+			step={10}
+			value={String(settingsStore.editor.contentWidth)}
+			oninput={(e) => {
+				settingsStore.updateEditor({ contentWidth: Number(inputValue(e)) });
+			}}
+			onchange={(e) => {
+				const val = clampContentWidth(Number(inputValue(e)));
+				settingsStore.updateEditor({ contentWidth: val });
 			}}
 		/>
 	</SettingItem>

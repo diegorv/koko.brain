@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 
 import { settingsStore, DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
+import { RAIL_WIDTH } from '#lib/features/rail-shell/rail-items.logic.js';
 
 describe('settingsStore', () => {
 	beforeEach(() => {
@@ -11,6 +12,21 @@ describe('settingsStore', () => {
 		expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
 	});
 
+	it('keeps mod message consent separate from file logging and resets it to false', () => {
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		settingsStore.updateDebugLogToFile(true);
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		settingsStore.updateDebugModRunMessages(true);
+		expect(settingsStore.debugModRunMessages).toBe(true);
+		expect(settingsStore.settings.debugModRunMessages).toBe(true);
+		settingsStore.updateDebugModRunMessages(false);
+		expect(settingsStore.debugModRunMessages).toBe(false);
+		expect(settingsStore.debugLogToFile).toBe(true);
+		settingsStore.updateDebugModRunMessages(true);
+		settingsStore.reset();
+		expect(settingsStore.debugModRunMessages).toBe(false);
+	});
+
 	describe('dockBadgeInboxCount', () => {
 		it('defaults to true', () => {
 			expect(settingsStore.dockBadgeInboxCount).toBe(true);
@@ -19,6 +35,17 @@ describe('settingsStore', () => {
 		it('getter reflects setSettings', () => {
 			settingsStore.setSettings({ ...structuredClone(DEFAULT_SETTINGS), dockBadgeInboxCount: false });
 			expect(settingsStore.dockBadgeInboxCount).toBe(false);
+		});
+	});
+
+	describe('explicitOrganization', () => {
+		it('defaults to true', () => {
+			expect(settingsStore.explicitOrganization).toBe(true);
+		});
+
+		it('getter reflects setSettings', () => {
+			settingsStore.setSettings({ ...structuredClone(DEFAULT_SETTINGS), explicitOrganization: false });
+			expect(settingsStore.explicitOrganization).toBe(false);
 		});
 	});
 
@@ -136,10 +163,19 @@ describe('settingsStore', () => {
 		});
 
 		it('includes default pane sizes', () => {
-			// Rail shell at 1440 px with navigator, note list and right sidebar open: editor about 640 px.
-			expect(settingsStore.layout.navigatorSize).toBe(14);
-			expect(settingsStore.layout.noteListSize).toBe(20);
-			expect(settingsStore.layout.rightSidebarSize).toBe(20);
+			// The panes' minSize in AppShell.svelte: the owner sizes them per monitor.
+			expect(settingsStore.layout.navigatorSize).toBe(3);
+			expect(settingsStore.layout.noteListSize).toBe(3);
+			expect(settingsStore.layout.rightSidebarSize).toBe(3);
+		});
+
+		it('defaults the rail width to the RAIL_WIDTH default', () => {
+			expect(settingsStore.layout.railWidth).toBe(RAIL_WIDTH.default);
+		});
+
+		it('defaults the rail to the labeled style, expanded', () => {
+			expect(settingsStore.layout.railStyle).toBe('labeled');
+			expect(settingsStore.layout.railCollapsed).toBe(false);
 		});
 
 		it('updateLayout updates noteListSize', () => {
@@ -221,10 +257,10 @@ describe('settingsStore', () => {
 			expect(settingsStore.search.semanticSearchEnabled).toBe(true);
 		});
 
-		it('updateAutoMove merges with existing', () => {
-			settingsStore.updateAutoMove({ enabled: true });
-			expect(settingsStore.autoMove.enabled).toBe(true);
-			expect(settingsStore.autoMove.debounceMs).toBe(DEFAULT_SETTINGS.autoMove.debounceMs);
+		it('updateAutoOrganize merges with existing', () => {
+			settingsStore.updateAutoOrganize({ enabled: true });
+			expect(settingsStore.autoOrganize.enabled).toBe(true);
+			expect(settingsStore.autoOrganize.debounceMs).toBe(DEFAULT_SETTINGS.autoOrganize.debounceMs);
 		});
 
 		it('updateEventCalendar merges with existing', () => {
@@ -249,6 +285,25 @@ describe('settingsStore', () => {
 			settingsStore.updateTodoist({ defaultLabel: 'inbox' });
 			expect(settingsStore.todoist.defaultLabel).toBe('inbox');
 			expect(settingsStore.todoist.apiToken).toBe('abc123');
+		});
+
+		it('todoist sync keys default to off, Todoist/, 5 minutes, work, no root, no Inbox', () => {
+			expect(settingsStore.todoist).toMatchObject({
+				syncEnabled: false,
+				syncFolder: 'Todoist',
+				syncIntervalMinutes: 5,
+				syncContext: 'work',
+				syncRootProjectId: '',
+				syncIncludeInbox: false,
+			});
+		});
+
+		it('updateTodoist sets one sync key and keeps the others', () => {
+			settingsStore.updateTodoist({ syncRootProjectId: 'p1' });
+			settingsStore.updateTodoist({ syncContext: 'personal' });
+			expect(settingsStore.todoist.syncRootProjectId).toBe('p1');
+			expect(settingsStore.todoist.syncContext).toBe('personal');
+			expect(settingsStore.todoist.syncFolder).toBe('Todoist');
 		});
 
 		it('keeps Sentry disabled with no DSN by default', () => {
@@ -382,6 +437,31 @@ describe('settingsStore', () => {
 			settingsStore.reset();
 
 			expect(settingsStore.settings).toEqual(DEFAULT_SETTINGS);
+		});
+	});
+
+	describe('tasksView', () => {
+		it('has no default: DEFAULT_SETTINGS holds no tasksView key', () => {
+			expect('tasksView' in DEFAULT_SETTINGS).toBe(false);
+			expect(settingsStore.tasksView).toBeUndefined();
+		});
+
+		it('updateTasksView sets the value, whatever its shape', () => {
+			settingsStore.updateTasksView({ version: 1, sectionTag: '#work' });
+			expect(settingsStore.tasksView).toEqual({ version: 1, sectionTag: '#work' });
+			expect(settingsStore.settings.tasksView).toEqual({ version: 1, sectionTag: '#work' });
+
+			settingsStore.updateTasksView(42);
+			expect(settingsStore.tasksView).toBe(42);
+		});
+
+		it('reset() removes the key', () => {
+			settingsStore.updateTasksView({ version: 1, sectionTag: '#work' });
+
+			settingsStore.reset();
+
+			expect(settingsStore.tasksView).toBeUndefined();
+			expect('tasksView' in settingsStore.settings).toBe(false);
 		});
 	});
 });

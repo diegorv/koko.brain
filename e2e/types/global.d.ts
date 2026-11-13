@@ -22,6 +22,11 @@ interface E2eDialog {
 	setAskResponse(value: boolean): void;
 }
 
+interface E2eOpener {
+	/** URLs passed to `openUrl`, in call order */
+	urls: string[];
+}
+
 interface E2eAPI {
 	fs: E2eFS;
 	dialog: E2eDialog;
@@ -29,6 +34,7 @@ interface E2eAPI {
 	deepLink: E2eDeepLink;
 	vaultIndex: typeof vaultIndex;
 	webviewWindows: Map<string, { label: string; url: string }>;
+	opener: E2eOpener;
 }
 
 declare global {

@@ -599,6 +599,13 @@ describe('display functions — Task 7', () => {
 		expect(result.html).toContain('rgb(66,153,225)');
 	});
 
+	it.each(['badge("active", "green")', 'progress(75, 100)'])('%s sizes its text in em to scale with the cell', (expr) => {
+		const { html } = evaluateExpression(expr, makeCtx()) as DisplayHTML;
+		const sizes = [...html.matchAll(/font-size:([^;"]+)/g)].map((m) => m[1]);
+		// 0.85em of a collection cell keeps the 12px look at the default editor font
+		expect(sizes).toEqual(['0.85em']);
+	});
+
 	it('progress() returns DisplayHTML with bar', () => {
 		const result = evaluateExpression('progress(75, 100)', makeCtx()) as DisplayHTML;
 		expect(result.__display).toBe('html');

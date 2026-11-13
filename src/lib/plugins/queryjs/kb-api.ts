@@ -7,16 +7,22 @@ import { KBDateTime } from './kb-datetime';
 import { KBUI } from './kb-ui';
 import { buildKBLink, buildKBPage, buildReverseIndex, parseSource } from './queryjs.logic';
 import { buildResolutionCache } from '#lib/core/filesystem/wikilink-resolution.logic.js';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { clamp } from '#lib/utils/clamp.js';
 import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
 import { appendLog } from '#lib/utils/log.service.js';
+import { excludeSystemFolder, isListableNote } from '#lib/features/type-definitions/type-sidebar.logic.js';
 
-/** The built page set: every note's `KBPage`, in property-index order and by path. */
+/** The built page set: the listed pages in property-index order, and every indexed file's page by path. */
 interface PageSet {
-	/** Every page, in property-index order. Shared: `pages()` hands out copies. */
+	/**
+	 * The pages `pages()` lists, in property-index order: notes only, so no
+	 * `.view` file, type definition or system-folder file. Shared: `pages()`
+	 * hands out copies.
+	 */
 	list: KBPage[];
-	/** The same pages keyed by absolute file path. */
+	/** Every indexed file's page keyed by absolute file path, the left-out ones included (`page()`, `current()`). */
 	byPath: Map<string, KBPage>;
 }
 
@@ -24,7 +30,8 @@ interface PageSet {
  * The page set shared by every block at one index state. Keyed on the
  * entries snapshot array identity (the `getVaultEntries()` memo hands every
  * block the same array per index version, and a vault switch invalidates it)
- * plus `collectionStore.version` (bumped on every property-index write).
+ * plus `collectionStore.version` (bumped on every property-index write) and
+ * the system folder setting (it decides which pages are listed).
  * Single slot: a new key replaces it. Page objects are shared, so a script
  * that writes to a page (`mutate`, `p.file.tags.push`) is seen by the other
  * blocks; only the `pages()` list is per call.
@@ -34,6 +41,8 @@ let sharedPageSet: {
 	entries: NoteEntryV2[];
 	/** The `collectionStore.version` the set was built at. */
 	propertyIndexVersion: number;
+	/** The system folder the list was filtered with. */
+	systemFolder: string;
 	/** The built pages. */
 	set: PageSet;
 } | null = null;
@@ -55,6 +64,7 @@ export class KBAPI implements KBApiV1 {
 	private readonly propertyIndexVersion: number;
 	private readonly currentFilePath: string;
 	private readonly vaultPath: string;
+	private readonly systemFolder: string;
 	private readonly loadScript: (path: string) => Promise<string>;
 	private _ui: KBUI | null = null;
 	/**
@@ -81,6 +91,8 @@ export class KBAPI implements KBApiV1 {
 		propertyIndexVersion: number;
 		currentFilePath: string;
 		vaultPath: string;
+		/** Settings > Files & Folders > System folder (vault-relative); its files are left out of `pages()`, blank keeps them. */
+		systemFolder: string;
 		loadScript: (path: string) => Promise<string>;
 	}) {
 		this.container = opts.container;
@@ -89,22 +101,26 @@ export class KBAPI implements KBApiV1 {
 		this.propertyIndexVersion = opts.propertyIndexVersion;
 		this.currentFilePath = opts.currentFilePath;
 		this.vaultPath = opts.vaultPath;
+		this.systemFolder = opts.systemFolder;
 		this.loadScript = opts.loadScript;
 	}
 
 	// ── Query methods ──
 
 	/**
-	 * Returns all pages, optionally filtered by a source string.
+	 * Returns every note's page, optionally filtered by a source string. A
+	 * `.view` file, a type definition and a file under the system folder are
+	 * not pages here (`page(path)` still finds them); archived notes are.
 	 * kb.pages() — all pages
 	 * kb.pages('#tag') — pages with that tag (includes subtags)
-	 * kb.pages('"folder"') — pages in that folder
+	 * kb.pages('"folder"') — pages in that folder and its subfolders; the folder
+	 * is vault-relative, or absolute when it starts with `/`
 	 */
 	pages(source?: string): DataArray<KBPage> {
 		const cache = this.ensureCache();
 
 		if (source) {
-			const filter = parseSource(source);
+			const filter = parseSource(source, this.vaultPath);
 			if (filter) {
 				return new DataArray(cache.list.filter(filter));
 			}
@@ -408,8 +424,8 @@ export class KBAPI implements KBApiV1 {
 	// ── Private helpers ──
 
 	/**
-	 * Returns the shared page set for this block's entries snapshot and
-	 * property-index version, building it on a key miss. The build is logged
+	 * Returns the shared page set for this block's entries snapshot,
+	 * property-index version and system folder, building it on a key miss. The build is logged
 	 * as `ensureCache N=<pages> <ms>` (QJS-PROFILE) to tell its cost apart
 	 * from the rest of a block run.
 	 */
@@ -418,7 +434,8 @@ export class KBAPI implements KBApiV1 {
 		if (
 			sharedPageSet &&
 			sharedPageSet.entries === this.entries &&
-			sharedPageSet.propertyIndexVersion === this.propertyIndexVersion
+			sharedPageSet.propertyIndexVersion === this.propertyIndexVersion &&
+			sharedPageSet.systemFolder === this.systemFolder
 		) {
 			this._pageSet = sharedPageSet.set;
 			return this._pageSet;
@@ -433,7 +450,7 @@ export class KBAPI implements KBApiV1 {
 		// O(N²×L) across all pages (~17M ops on a 1870-note vault) — that's
 		// what the 1+ s cold-start cost of the first kb.pages() call was.
 		const resolutionCache = buildResolutionCache(allFilePaths);
-		const list = allFilePaths.map((fp) => {
+		const pages = allFilePaths.map((fp) => {
 			const record = this.propertyIndex.get(fp)!;
 			const entry = entriesByPath.get(fp);
 			return buildKBPage(
@@ -446,13 +463,25 @@ export class KBAPI implements KBApiV1 {
 			);
 		});
 		const byPath = new Map<string, KBPage>();
-		for (const page of list) {
+		for (const page of pages) {
 			byPath.set(page.file.path, page);
 		}
+		// Notes only: `isListableNote` on the entry, or the `.view` extension for
+		// a property-index path that has no entry, with the system folder out.
+		// Unlike the rail's rows, archived notes stay in (13-queryjs.md).
+		const listed = new Set(
+			excludeSystemFolder(Array.from(this.propertyIndex.values()), this.vaultPath, this.systemFolder)
+				.filter((record) => {
+					const entry = entriesByPath.get(record.path);
+					return entry ? isListableNote(entry) : !isViewFile(record.path);
+				})
+				.map((record) => record.path),
+		);
+		const list = pages.filter((page) => listed.has(page.file.path));
 		const set = { list, byPath };
 		this._pageSet = set;
-		sharedPageSet = { entries: this.entries, propertyIndexVersion: this.propertyIndexVersion, set };
-		appendLog('QJS-PROFILE', `ensureCache N=${list.length} ${(performance.now() - start).toFixed(1)}ms`);
+		sharedPageSet = { entries: this.entries, propertyIndexVersion: this.propertyIndexVersion, systemFolder: this.systemFolder, set };
+		appendLog('QJS-PROFILE', `ensureCache N=${pages.length} ${(performance.now() - start).toFixed(1)}ms`);
 		return set;
 	}
 

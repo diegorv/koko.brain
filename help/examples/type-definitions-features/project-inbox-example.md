@@ -9,6 +9,6 @@ _organized: false
 
 This note is in the **Inbox** because `_organized: false`.
 
-It will appear in the rail's Inbox item when Explicit Organization mode is enabled in Settings > Types.
+It appears in the rail's Inbox item whether or not Explicit organization is on: that switch only marks new notes.
 
-Click "Organize" in the Properties panel to move it out of the inbox.
+Click **Organized** (the check circle) in the note action bar above the note, or press `Cmd+E`, to move it out of the inbox.

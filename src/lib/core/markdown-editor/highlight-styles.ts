@@ -9,6 +9,7 @@ import type { StateEffect } from '@codemirror/state';
 import { MathExtension } from './extensions/lezer/math-extension';
 import { HighlightExtension } from './extensions/lezer/highlight-extension';
 import { getLanguageForFile } from '#lib/core/filesystem/fs.logic.js';
+import { MONO_FONT_STACK } from '#lib/utils/font-stacks.js';
 
 /**
  * Syntax highlight style for markdown documents (headings, emphasis, links, etc.).
@@ -23,7 +24,7 @@ export const markdownHighlight = HighlightStyle.define([
 	{ tag: tags.heading3, fontWeight: 'var(--heading-h3-font-weight, bold)', color: 'var(--syntax-heading3)' },
 	{ tag: tags.heading4, fontWeight: 'var(--heading-h4-font-weight, bold)', color: 'var(--syntax-heading4)' },
 	{ tag: tags.heading5, fontWeight: 'var(--heading-h5-font-weight, bold)', color: 'var(--syntax-heading5)' },
-	{ tag: tags.heading6, fontWeight: 'var(--heading-h6-font-weight, bold)', color: 'var(--syntax-heading6)' },
+	{ tag: tags.heading6, fontWeight: 'var(--heading-h6-font-weight, 600)', color: 'var(--syntax-heading6)' },
 	{ tag: tags.emphasis, fontStyle: 'italic', color: 'var(--syntax-emphasis)' },
 	{ tag: tags.strong, fontWeight: 'bold', color: 'var(--syntax-strong)' },
 	{ tag: tags.strikethrough, textDecoration: 'line-through', color: 'var(--syntax-strikethrough)' },
@@ -31,7 +32,7 @@ export const markdownHighlight = HighlightStyle.define([
 	{ tag: tags.url, color: 'var(--syntax-url)' },
 	{
 		tag: tags.monospace,
-		fontFamily: 'MonoLisa, ui-monospace, SFMono-Regular, Menlo, monospace',
+		fontFamily: MONO_FONT_STACK,
 		color: 'var(--syntax-code)',
 		backgroundColor: 'var(--syntax-code-bg)',
 	},
@@ -51,9 +52,9 @@ export const sourceHeadingSize = HighlightStyle.define([
 	{ tag: tags.heading1, fontSize: 'var(--heading-h1-font-size, 2.058em)' },
 	{ tag: tags.heading2, fontSize: 'var(--heading-h2-font-size, 1.618em)' },
 	{ tag: tags.heading3, fontSize: 'var(--heading-h3-font-size, 1.272em)' },
-	{ tag: tags.heading4, fontSize: 'var(--heading-h4-font-size, 1em)' },
+	{ tag: tags.heading4, fontSize: 'var(--heading-h4-font-size, 1.125em)' },
 	{ tag: tags.heading5, fontSize: 'var(--heading-h5-font-size, 1em)' },
-	{ tag: tags.heading6, fontSize: 'var(--heading-h6-font-size, 1em)' },
+	{ tag: tags.heading6, fontSize: 'var(--heading-h6-font-size, 0.9em)' },
 ]);
 
 /** Syntax highlight style for code files (JS, TS, Python, Rust, etc.) */

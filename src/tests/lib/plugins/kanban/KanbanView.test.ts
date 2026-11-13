@@ -140,3 +140,147 @@ describe('KanbanView: card wikilinks', () => {
 		unmount(component);
 	});
 });
+
+describe('KanbanView: date proximity tone', () => {
+	/** A fixed past date is overdue against the real clock, so no time mocking is needed. */
+	const PAST = '2000-01-01';
+	let component: Record<string, unknown> | null = null;
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	function mountMode(mode: 'board' | 'list' | 'table'): void {
+		kanbanStore.reset();
+		const markdown = serializeKanbanBoard(
+			setViewMode(parseKanbanBoard(`## To Do\n\n- [x] finished task {${PAST}}\n- [ ] open task {${PAST}}\n\n`), mode),
+		);
+		component = mount(KanbanViewHarness, {
+			target: document.body.appendChild(document.createElement('div')),
+			props: { initialMarkdown: markdown },
+		});
+		flushSync();
+	}
+
+	/**
+	 * The innermost element holding both the card's text and its date: the list
+	 * or table row. The matches form one ancestor chain in document order, so the
+	 * last is the innermost. A board card widens it to the `[data-item-id]` card.
+	 */
+	function cardRow(text: string): HTMLElement {
+		const row = [...document.querySelectorAll<HTMLElement>('body *')]
+			.filter((el) => el.textContent?.includes(text) && el.textContent.includes(PAST))
+			.at(-1);
+		if (!row) throw new Error(`card "${text}" not found`);
+		return row.closest<HTMLElement>('[data-item-id]') ?? row;
+	}
+
+	/**
+	 * The date badge inside a card or row. On the board the styled badge button
+	 * sits inside the unstyled popover trigger, so the innermost match is taken.
+	 */
+	function dateBadge(row: HTMLElement): HTMLElement {
+		const badge = [...row.querySelectorAll<HTMLElement>('span, button')].filter((el) => el.textContent?.trim() === PAST).at(-1);
+		if (!badge) throw new Error('date badge not found');
+		return badge;
+	}
+
+	it('board: a checked overdue card has no destructive border or badge; an unchecked one has both', () => {
+		mountMode('board');
+		const done = cardRow('finished task');
+		const open = cardRow('open task');
+
+		expect(done.hasAttribute('data-item-id')).toBe(true);
+		expect(done.className).not.toContain('border-l-destructive');
+		expect(dateBadge(done).className).not.toContain('text-destructive');
+		expect(open.className).toContain('border-l-destructive');
+		expect(dateBadge(open).className).toContain('text-destructive');
+	});
+
+	it.each(['list', 'table'] as const)('%s: only the unchecked overdue card gets the destructive badge', (mode) => {
+		mountMode(mode);
+
+		const done = cardRow('finished task');
+		const open = cardRow('open task');
+
+		expect(done.textContent).not.toContain('open task');
+		expect(dateBadge(done).className).toContain('bg-muted text-muted-foreground');
+		expect(dateBadge(open).className).toContain('bg-destructive/15 text-destructive');
+	});
+});
+
+describe('KanbanView: card and lane menus', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		kanbanStore.reset();
+		const markdown = serializeKanbanBoard(
+			setViewMode(parseKanbanBoard('## To Do\n\n- [ ] write the test\n\n## Done\n\n'), 'board'),
+		);
+		component = mount(KanbanViewHarness, {
+			target: document.body.appendChild(document.createElement('div')),
+			props: { initialMarkdown: markdown },
+		});
+		flushSync();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	/** Right-clicks `el` and returns the open menu's entries, separators as `---`. */
+	async function openMenu(el: Element): Promise<string[]> {
+		el.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 1, clientY: 1 }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+		const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+		return [...menu.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.textContent?.trim() ?? ''),
+		);
+	}
+
+	it('lists the card actions as one group, in sentence case', async () => {
+		const card = document.querySelector('[data-item-id]')!;
+		expect(await openMenu(card)).toEqual(['Edit', 'Archive', 'Card color', 'Delete']);
+	});
+
+	it('lists the lane actions as one group, in sentence case', async () => {
+		const title = [...document.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'To Do')!;
+		expect(await openMenu(title)).toEqual(['Rename', 'Enable auto-complete', 'Set card limit', 'Delete lane']);
+	});
+
+	it('renders the card and lane delete items with the destructive variant', async () => {
+		await openMenu(document.querySelector('[data-item-id]')!);
+		const openItems = () => {
+			const menu = [...document.querySelectorAll('[role="menu"]')].find((m) => m.getAttribute('data-state') === 'open')!;
+			return [...menu.querySelectorAll<HTMLElement>('[role="menuitem"]')];
+		};
+		expect(openItems().find((el) => el.textContent?.trim() === 'Delete')?.dataset.variant).toBe('destructive');
+
+		document.body.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+		const title = [...document.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'To Do')!;
+		await openMenu(title);
+		expect(openItems().find((el) => el.textContent?.trim() === 'Delete lane')?.dataset.variant).toBe('destructive');
+	});
+
+	it('lists the card limits as one group, with no separator before "No limit"', async () => {
+		// The lane has no limit set, so "No limit" carries the "(current)" mark.
+		const title = [...document.querySelectorAll('h3')].find((h) => h.textContent?.trim() === 'To Do')!;
+		await openMenu(title);
+		const trigger = document.querySelector('[data-slot="context-menu-sub-trigger"]')!;
+		trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+		flushSync();
+		const sub = document.querySelector('[data-slot="context-menu-sub-content"]')!;
+		const entries = [...sub.children].map((m) =>
+			m.getAttribute('data-slot') === 'context-menu-separator' ? '---' : (m.textContent?.trim() ?? ''),
+		);
+		expect(entries).toEqual(['3 cards', '5 cards', '10 cards', '15 cards', 'No limit (current)']);
+	});
+});

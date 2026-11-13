@@ -298,7 +298,7 @@ describe('an older read of a path resolving after a newer one', () => {
 		const resolveStaleRead = holdNextRead();
 		const staleRead = refreshViewDefinition('/v/A.view');
 
-		// updateViewQuery writes A and refreshes the cache with the new bytes.
+		// updateViewToolbarKey writes A and refreshes the cache with the new bytes.
 		mockReadTextFile.mockResolvedValueOnce('new');
 		await refreshViewDefinition('/v/A.view');
 

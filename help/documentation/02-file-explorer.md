@@ -1,22 +1,22 @@
 # File Explorer
 
-Kokobrain's left side is an icon rail. Its **Files** item (the folder icon) opens the Files navigator: your vault's folders, next to the note list that shows the files of the folder you pick.
+Kokobrain's left side is the rail (see [Getting Started > The Rail](01-getting-started.md#the-rail)). Its **Files** item (the folder icon) opens the Files navigator: your vault's folders, next to the note list that shows the files of the folder you pick.
 
 ## The Files Navigator
 
 Click **Files** in the rail. Two columns open between the rail and the editor:
 
 - **The navigator** lists the vault root, then its folders. It shows folders only, never files; hidden folders (names starting with `.`, such as `.kokobrain`) are left out. Click a folder's arrow to expand or collapse it. Kokobrain remembers which folders you expanded.
-- **The note list** shows the picked folder's own files, of every kind: notes, canvases, collections, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
+- **The note list** shows the picked folder's own files, of every kind: notes, canvases, views, PDFs and images. Files in subfolders are not listed; pick the subfolder to see them. Archived notes stay listed, and so do the files of the system folder (Settings > Files & Folders > System folder), which the rail's other lists leave out. The header names the folder, and the line under it reads `in <folder>/` (or `in the vault root`).
 
 Click a row to open the file in the editor. Kokobrain remembers the folder you picked, and opens on it after a restart. If that folder no longer exists, the rail opens on **Today** instead.
 
-`Cmd+1` hides the navigator and the note list, `Cmd+2` shows them again, and `Cmd+Shift+B` toggles them. The rail itself never hides.
+`Cmd+1` hides the navigator and the note list, `Cmd+2` shows them again, and `Cmd+Shift+B` toggles them. Clicking a rail item also shows them again. The rail itself never hides.
 
 ## Creating Files and Folders
 
-- **New here** in the note list header creates `Untitled.md` in the picked folder and opens it.
-- **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New Canvas**, **New Collection**, **New Kanban Board** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`).
+- The **+** (New here) button in the note list header creates `Untitled.md` in the picked folder and opens it.
+- **Right-click a folder** in the navigator, or the empty space below the folders (the vault root), and choose **New note**, **New Canvas**, **New table**, **New Kanban Board**, **New view** or **New folder**. The item is created inside that folder. If the name is taken, Kokobrain adds a number (for example `Untitled 1.md`). **New table** creates `Untitled.view`, a table that opens in the editor and is not listed in Views until you choose **Show in Views** on its row (see [View Files](25-types-and-relationships.md#creating-a-view)). **New view** first asks for the view's name and filters (see [View Files](25-types-and-relationships.md#creating-a-view)); the rail then switches to the Types navigator with the new view picked. A new folder starts in rename mode.
 - **Command Palette**: press `Cmd+P`, then type "New File", "New Folder", "New Canvas", or "New Kanban Board". From the Command Palette, new items are always created at the vault root.
 
 ## Renaming Files and Folders
@@ -58,6 +58,7 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 |--------|-------------|
 | **Open in new tab** | Opens the file in a new editor tab |
 | **Duplicate** | Creates a copy with a " copy" suffix (e.g. `note copy.md`) |
+| **Show in Views** | Removes `_visible` and `_open_in_editor` from a hidden `.view` (one with `_visible: false`, such as a **New table**), so it is listed under Views in the Types navigator (see [View Files](25-types-and-relationships.md#creating-a-view)) |
 | **Copy path** | Submenu: copy the absolute path or the path relative to the vault |
 | **Change icon** | Opens the icon picker (Markdown notes only) |
 | **Favorite / Unfavorite** | Sets or clears `_favorite` (Markdown notes only) |
@@ -69,7 +70,8 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 
 | Action | Description |
 |--------|-------------|
-| **New note**, **New Canvas**, **New Collection**, **New Kanban Board** | Creates the file in this folder |
+| **New note**, **New Canvas**, **New table**, **New Kanban Board** | Creates the file in this folder; **New table** creates a `.view` hidden from Views that opens in the editor |
+| **New view** | Opens the New view dialog and creates the `.view` in this folder |
 | **New folder** | Creates a subfolder |
 | **Change icon** | Opens the icon picker for the folder |
 | **Copy path** | Submenu: copy the absolute or the relative path |
@@ -77,11 +79,11 @@ Right-click a note list row or a folder and choose **Move to Trash**. A confirma
 | **Rename** | Starts inline rename |
 | **Move to Trash** | Moves the folder and everything in it to the trash, after a confirmation |
 
-The vault root's menu has only the **New** items.
+The vault root's menu has only the **New** items (New folder included).
 
 ## Sorting
 
-The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`.
+The navigator's folders and the note list of a folder use the same order: by name (A-Z), ignoring case. Numbers inside names sort by their value, so `Note 2` comes before `Note 10`. A Sort picked in a note list's header (see [Getting Started > The Rail](01-getting-started.md#the-rail)) orders that list only; the navigator keeps this order.
 
 You can override the default order per note with the `_order` frontmatter field (described below).
 
@@ -95,7 +97,7 @@ _order: 1
 ---
 ```
 
-Notes with `_order` appear before notes without it, sorted by value (lower = higher). Notes without `_order` keep the default sort. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted.
+Notes with `_order` appear before notes without it, sorted by value (lower = higher). Notes without `_order` keep the default sort. Both numeric (`_order: 1`) and string (`_order: "1"`) values are accepted; a blank `_order:`, an empty string or `true` / `false` sets no position.
 
 For folders, add `_order` to the folder note's frontmatter. For example, `Projects/Projects.md` with `_order: 1` moves the `Projects` folder to the top of its level.
 
@@ -108,7 +110,7 @@ When folder notes are on, picking a folder also opens its "folder note": a Markd
 Folder icons are stored in the folder note's frontmatter, in the `_icon` field. When you assign an icon to a folder with the icon picker, Kokobrain writes it to the folder note (creating one if needed).
 
 > [!TIP]
-> You can toggle folder notes on or off in **Settings → Sidebar → Folder Notes**.
+> You can toggle folder notes on or off in **Settings → Files & Folders → Folder notes**.
 
 ## Custom File Icons
 
@@ -143,7 +145,7 @@ _title_color: "#3498db"
 | Field | Description |
 |-------|-------------|
 | `_icon` | Icon in `pack:name` format (e.g. `lucide:star`). A bare name like `star` defaults to the Lucide pack. |
-| `_color` | Icon color. A palette name (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `gray`) uses the active theme's shade of that color; any other value (a hex or HSL color) is used as it is. |
+| `_color` | Icon color. A palette name (`red`, `orange`, `yellow`, `green`, `teal`, `blue`, `purple`, `pink`, `gray`) uses the active theme's shade of that color; any other value (a hex or HSL color) is used as it is. Without `_icon`, it colors the default icon (the note, folder or type icon) instead. |
 | `_title_color` | Tab title text color in the editor. |
 
 These fields are also written automatically when you use the icon picker UI. The legacy `icon` field (without underscore) is accepted as an alias for `_icon`.

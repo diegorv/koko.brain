@@ -1,0 +1,37 @@
+VERDICT: APPROVED
+
+Review of `git diff main...HEAD` (commits 203ef2d5, 2e680cbb, 76b02b47, 247a4d8a) for Issue 24.
+
+## Acceptance criteria
+
+- [met] Failing first: a unit test of the timing summary builds one line for a semantic search and one for a hybrid search from fixed stage durations, and `other` equals `total` minus the stages — `src-tauri/tests/semantic_search_timing_test.rs` has `semantic_summary_has_every_stage_on_one_line` and `hybrid_summary_adds_fts_rrf_and_pool` (exact-string asserts on fixed `Duration`s) and `other_is_total_minus_the_stages` (asserts `other() == total - stages` and `== 139 ms`); plus saturation, `rerank=skipped` and batch rounding cases. The red phase is not visible in history (test and module land in one commit, 2e680cbb); the build report says the test was run first and failed to compile, which I cannot re-check. 6/6 pass.
+- [met] `search_semantic` writes one `[SEMANTIC] timing` line with cache, embedder, cosine, rerank (ensure and inference separately, candidates, batches), finalize, total and other — `src-tauri/src/commands/semantic.rs:804-939`: `Instant` around `ensure_embedder_loaded`+`embed`, `get_or_load_cache` (now returning the hit flag), the cosine scan+sort, `ensure_reranker_loaded` and the rerank separately, and `finalize_results`; one `debug_log("SEMANTIC", timing.summary())` right after `finalize_results`. `summary()` (`src-tauri/src/semantic/search_timing.rs:84-112`) emits every field on one space-joined row.
+- [met] `search_hybrid` writes the same line plus fts, rrf and pool — `semantic.rs:999-1199`: `fts_ms` wraps `search_fts_inner`, `rrf_ms` wraps `rrf_fuse`, `pool_ms` wraps `query_terms`+`build_pool`+candidate materialization; `hybrid: Some(HybridTiming{..})` switches `mode=hybrid` and adds the three fields (asserted by `hybrid_summary_adds_fts_rrf_and_pool`).
+- [met] With the reranker absent the line says `rerank=skipped` and the search result is unchanged — `rerank_timing` starts as `RerankTiming::Skipped` and is only set to `Ran` inside the reranked branch in both commands; `skipped_rerank_replaces_the_rerank_fields` asserts ` rerank=skipped ` and no `rerank_ms`/`rerank_batches`. The `pool_size > 0 && ensure_reranker_loaded()?` / `!candidates.is_empty() && ensure_reranker_loaded()?` short-circuits are unchanged, so the fallback path is the same code as on main (checked by reading the diff; no test drives the commands, they need the models).
+- [met] Results, ordering and the gap-filter cut are identical to before; the existing search and semantic tests stay green — the diff in both commands only adds `Instant::now()`/`elapsed()` bindings, the tuple destructure of `get_or_load_cache`, the `bool` from `ensure_embedder_loaded` (other callers `:389`, `:1378` discard it via `?;`) and the log line; no call is reordered and no value feeding results changes. Targeted runs green: `cargo test --lib` 724 passed, `semantic_commands_test` 50, `search_fts_test` 35, `semantic_reranker_test` 4, `semantic_search_timing_test` 6, all 0 failed. Full `cargo test` is deliver's to run.
+- [met] The `[TAURI:RUST:SEMANTIC]` row of the log table in `docs/SEARCH.md` (`:197`) names the timing line — `docs/SEARCH.md:197` adds "one `timing mode=semantic|hybrid ...` row per search ..." with every stage name. See finding 1 for a rendering defect in that row.
+- [not met] Not verified by the agent: on device, a hybrid search of "OKR" logs the line and its stages account for the 19.8 s; record the numbers in Notes — owner-only on-device check; not done, Notes have no numbers yet. Does not hold back APPROVED.
+
+## Findings
+
+1. minor — `docs/SEARCH.md:197` — the unescaped `|` in `` `timing mode=semantic|hybrid ...` `` splits the table row: GFM splits cells on a pipe even inside a code span, so the row gets three cells under a two-column header, the excess cell is dropped, and the rendered row stops at "`timing mode=semantic`" (the stage list and the `grep "timing"` hint vanish). Fix: write `mode=semantic\|hybrid` or "mode `semantic` or `hybrid`".
+2. minor — `src-tauri/src/commands/semantic.rs:804`, `:999` — `total` starts inside the `spawn_blocking` closure, so time the task waits in Tokio's blocking pool (and the IPC hop) is in neither `total` nor `other`. If the on-device 19.8 s is measured from the frontend or an earlier log line, the stages may not sum to it for that reason, not because a stage is unlogged. Fix (optional): note it in the Issue's Notes when recording the owner numbers, or take `Instant::now()` before `spawn_blocking` and pass it in.
+3. nit — `src-tauri/src/commands/semantic.rs:875`, `:1140` — `rerank_ms` starts before building the `rerank_text` docs and the `try_lock`, so it is "texts + lock + `Reranker::rerank`", not `Reranker::rerank` alone as the Issue words it. The field doc in `search_timing.rs:37` says so, and the text projection of 50 chunks is cheap, so no change needed unless the owner wants the pure inference number.
+4. nit — `src-tauri/src/commands/semantic.rs:895`, `:1162` — `rerank_batches` is computed from `Reranker::DEFAULT_BATCH_SIZE`, not from the instance's `batch_size` field. Correct today (`Reranker::load` always sets the default, `reranker.rs:83-87`), but it would silently report the wrong count if the batch size becomes a lever later (which the Issue anticipates). Fix when that lever lands: expose `Reranker::batch_size()` and use it.
+5. nit — no test exercises the two commands themselves, so the wiring (each stage timed, line written after `finalize_results`) rests on reading the diff plus compile and clippy. Acceptable for a log-only change whose commands need the ONNX models.
+
+## Checks run by the reviewer
+
+- `cargo test --manifest-path src-tauri/Cargo.toml --test semantic_search_timing_test --test semantic_commands_test --test search_fts_test --test semantic_reranker_test`: exit 0 (6 + 50 + 35 + 4 passed, 0 failed).
+- `cargo test --manifest-path src-tauri/Cargo.toml --lib`: exit 0 (724 passed; includes the `#[cfg(test)]` modules of `commands/semantic.rs`, `search/hybrid.rs`, `search/rrf.rs`).
+- `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets -- -D warnings`: exit 0.
+- No typecheck: the project's typecheck is `pnpm check` over the frontend, and the diff touches no file under `src/` and no `#[ts(export)]` type (`src/lib/contracts/generated/` unchanged).
+- Scope: only the files the Issue names plus the new module, its test and `semantic/mod.rs`; `reranker.rs`, `RERANK_CANDIDATE_POOL`, the gap filter and the layer baseline are untouched. Worktree clean before this review file.
+
+## Resolution
+
+1. Fixed: `docs/SEARCH.md:197` writes `mode=semantic\|hybrid`, so the row keeps two cells (GFM renders `\|` inside the code span as `|`).
+2. Fixed in the docs, not the code: the same `docs/SEARCH.md` row now says `total` starts inside the blocking task and leaves out the blocking-pool wait and the IPC hop, so whoever compares it to the on-device 19.8 s knows why the stages may not reach it. Moving the `Instant` before `spawn_blocking` was left out: the finding marks it optional and the log stays a per-stage breakdown of the work itself.
+3. No change, as the finding says: the field doc already states `rerank_ms` covers texts + lock + inference.
+4. Deferred to the batch-size lever, as the finding says: `DEFAULT_BATCH_SIZE` is the only batch size today.
+5. No change: accepted by the reviewer for a log-only change whose commands need the ONNX models.

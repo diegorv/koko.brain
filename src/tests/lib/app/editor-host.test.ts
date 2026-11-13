@@ -49,6 +49,10 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildPeriodicNotePath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
+import { SEARCH_RAIL_ITEM, TYPES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { searchStore } from '#lib/features/search/search.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 function makeFile(path: string): FileTreeNode {
 	const segments = path.split('/');
@@ -78,6 +82,7 @@ beforeEach(() => {
 	fsStore.setFileTree([]);
 	vaultStore.close();
 	settingsStore.reset();
+	settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 	editorStore.reset();
 	invalidateVaultEntries();
 });
@@ -91,6 +96,40 @@ describe('appEditorHost', () => {
 		fsStore.setFileTree([makeFile('/vault/Notes/note.md')]);
 		expect(appEditorHost.resolveLink('note')).toBe('/vault/Notes/note.md');
 		expect(appEditorHost.resolveLink('missing')).toBeNull();
+	});
+
+	describe('a view is never a link target', () => {
+		const VIEW = '/vault/Views/Projects.view';
+		const NOTE = '/vault/Notes/Projects.md';
+		const tree = (...paths: string[]): FileTreeNode[] => [
+			{ name: 'Views', path: '/vault/Views', isDirectory: true, children: paths.filter((p) => p.startsWith('/vault/Views/')).map(makeFile) },
+			{ name: 'Notes', path: '/vault/Notes', isDirectory: true, children: paths.filter((p) => p.startsWith('/vault/Notes/')).map(makeFile) },
+		];
+
+		it('resolveLink returns null with a view only and the note with both', () => {
+			vaultStore.open('/vault');
+			fsStore.setFileTree(tree(VIEW));
+			expect(appEditorHost.resolveLink('Projects')).toBeNull();
+			expect(appEditorHost.resolveLink('Projects.view')).toBeNull();
+
+			fsStore.setFileTree(tree(VIEW, NOTE));
+			expect(appEditorHost.resolveLink('Projects')).toBe(NOTE);
+			expect(appEditorHost.resolveLink('Projects.view')).toBe(NOTE);
+		});
+
+		it('listLinkCandidates omits views and their aliases', async () => {
+			fsStore.setFileTree(tree(VIEW, NOTE));
+			vi.mocked(invoke).mockResolvedValueOnce([
+				entryV2(VIEW, { frontmatter: { aliases: ['Project board'] } }),
+				entryV2(NOTE, { frontmatter: { aliases: ['Project list'] } }),
+			]);
+
+			const { files, notes } = await appEditorHost.listLinkCandidates(true);
+
+			expect(invoke).toHaveBeenCalledWith('get_all_vault_entries_v2');
+			expect(files.map((f) => f.path)).toEqual([NOTE]);
+			expect(notes.map((n) => n.path)).toEqual([NOTE]);
+		});
 	});
 
 	it('resolveLink resolves a Quick Capture shot embed target to the imported image', () => {
@@ -217,6 +256,17 @@ describe('appEditorHost', () => {
 		expect(openUrl).toHaveBeenCalledWith('https://example.com');
 	});
 
+	it('openTagSearch opens Search with the tag: query, as the Tags view does', () => {
+		searchStore.reset();
+		settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
+
+		appEditorHost.openTagSearch('area/sub');
+
+		expect(searchStore.query).toBe('tag:area/sub');
+		expect(settingsStore.layout.railItem).toBe(SEARCH_RAIL_ITEM);
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+	});
+
 	it('openLink opens the note and queues the scroll to its heading', async () => {
 		vi.mocked(openFileInEditor).mockImplementation(async (path) => {
 			editorStore.addTab({ path, name: 'note', content: 'intro\n# Part\nbody', savedContent: '' });
@@ -267,6 +317,45 @@ describe('appEditorHost', () => {
 		expect(openOrCreateNote).toHaveBeenCalledWith({ filePath: '/vault/2026-11-01.md', title: '2026-11-01' });
 	});
 
+	it('createNote marks a note made from a missing wikilink unorganized while Explicit organization is on', async () => {
+		vaultStore.open('/vault');
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await openWikilinkTarget('Missing');
+
+		const { filePath, buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		expect(filePath).toBe('/vault/Missing.md');
+		const written = buildContent!('');
+		expect(written).toBe('---\n_organized: false\n---\n');
+		expect(written.match(/^_organized:/gm)).toHaveLength(1);
+	});
+
+	it('createNote with periodic: false (the meta-bind button) marks the note unorganized while the switch is on', async () => {
+		vaultStore.open('/vault');
+		useDailyFolder();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await appEditorHost.createNote('2026-11-01', undefined, { periodic: false });
+
+		const { filePath, buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		expect(filePath).toBe('/vault/2026-11-01.md');
+		expect(buildContent!('Body\n')).toBe('---\n_organized: false\n---\nBody\n');
+	});
+
+	it('createNote creates the daily note for a periodic name without _organized while the switch is on', async () => {
+		vaultStore.open('/vault');
+		useDailyFolder();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await appEditorHost.createNote('2026-11-04');
+
+		expect(openOrCreateNote).toHaveBeenCalledTimes(1);
+		const { filePath, buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		expect(filePath).toBe('/vault/Daily/2026-11-04.md');
+		const rendered = '---\ndate: 2026-11-04\n---\n# Daily\n';
+		expect(buildContent?.(rendered) ?? rendered).not.toContain('_organized');
+	});
+
 	it('createNote does nothing without a vault', async () => {
 		await expect(appEditorHost.createNote('Missing')).resolves.toBe(false);
 		expect(openOrCreateNote).not.toHaveBeenCalled();
@@ -281,6 +370,128 @@ describe('appEditorHost', () => {
 
 		expect(editorStore.pendingScrollPosition).toBeNull();
 		consoleError.mockRestore();
+	});
+
+	describe('openView', () => {
+		const BOARD = '/vault/_system/views/Board.view';
+		const READING = '/vault/_system/views/Reading.view';
+
+		beforeEach(() => {
+			vaultStore.open('/vault');
+			typeDefinitionsStore.reset();
+			typeDefinitionsStore.setEntries([entryV2(BOARD, { frontmatter: { _open_in_editor: true, _visible: false } })]);
+			fsStore.setFileTree([
+				{ name: '_system', path: '/vault/_system', isDirectory: true, children: [
+					{ name: 'views', path: '/vault/_system/views', isDirectory: true, children: [makeFile(BOARD), makeFile(READING)] },
+				] },
+				{ name: 'Folder.view', path: '/vault/Folder.view', isDirectory: true, children: [] },
+			]);
+		});
+
+		it('opens an _open_in_editor view in the editor, even one hidden from Views, and leaves the layout', async () => {
+			const before = { ...settingsStore.layout };
+			await expect(appEditorHost.openView('_system/views/Board.view')).resolves.toBe(true);
+			expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+			expect(settingsStore.layout).toEqual(before);
+		});
+
+		it('picks an ordinary view in the Types navigator, a view with no entry yet included', async () => {
+			await expect(appEditorHost.openView('_system/views/Reading.view')).resolves.toBe(true);
+			expect(settingsStore.layout.railItem).toBe(TYPES_RAIL_ITEM);
+			expect(settingsStore.layout.railTypesLens).toEqual({ kind: 'view', target: READING });
+			expect(settingsStore.layout.railPanelsVisible).toBe(true);
+			expect(openFileInEditor).not.toHaveBeenCalled();
+		});
+
+		it('reads a leading slash as vault-relative', async () => {
+			await expect(appEditorHost.openView('/_system/views/Board.view')).resolves.toBe(true);
+			expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+		});
+
+		it.each([
+			['a missing file', '_system/views/Gone.view'],
+			['a folder named like a view', 'Folder.view'],
+			['a path that leaves the vault', '../outside/Board.view'],
+		])('resolves false for %s and opens nothing', async (_name, path) => {
+			const before = { ...settingsStore.layout };
+			await expect(appEditorHost.openView(path)).resolves.toBe(false);
+			expect(openFileInEditor).not.toHaveBeenCalled();
+			expect(openOrCreateNote).not.toHaveBeenCalled();
+			expect(settingsStore.layout).toEqual(before);
+		});
+
+		it('resolves false without a vault', async () => {
+			vaultStore.close();
+			await expect(appEditorHost.openView('_system/views/Board.view')).resolves.toBe(false);
+			expect(openFileInEditor).not.toHaveBeenCalled();
+		});
+	});
+
+	describe('listTags', () => {
+		/** A `get_all_tags_v2` row for `name`. */
+		function aggregate(name: string, count: number) {
+			return { name, count, filePaths: [`/vault/${name}.md`] };
+		}
+
+		/** How many times `get_all_tags_v2` was invoked. */
+		function tagReads(): number {
+			return vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'get_all_tags_v2').length;
+		}
+
+		/** Opens `path` with its index built, at index `version` (unique per test: the memo outlives a test). */
+		function openIndexed(path: string, version: number): void {
+			vaultStore.open(path);
+			vaultStore.markIndexReady();
+			vaultStore.bumpVaultIndexVersion(version);
+		}
+
+		it('reads the tags once per index version, and a new tag shows after the next bump', async () => {
+			openIndexed('/vault', 9001);
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('area/sub', 2)]);
+
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'area/sub', count: 2 }]);
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'area/sub', count: 2 }]);
+			expect(tagReads()).toBe(1);
+
+			vaultStore.bumpVaultIndexVersion(9002);
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('area/sub', 2), aggregate('fresh', 1)]);
+
+			expect(await appEditorHost.listTags()).toEqual([
+				{ name: 'area/sub', count: 2 },
+				{ name: 'fresh', count: 1 },
+			]);
+			expect(tagReads()).toBe(2);
+		});
+
+		it('reads the new vault after a switch at the same index version', async () => {
+			openIndexed('/vault-a', 9101);
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('alpha', 1)]);
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'alpha', count: 1 }]);
+
+			vaultStore.open('/vault-b');
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('beta', 1)]);
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'beta', count: 1 }]);
+			expect(tagReads()).toBe(2);
+		});
+
+		it('resolves no tags without reading while the vault index is not built', async () => {
+			openIndexed('/vault', 9201);
+			vaultStore.resetIndexReady();
+
+			expect(await appEditorHost.listTags()).toEqual([]);
+			expect(tagReads()).toBe(0);
+		});
+
+		it('rejects when the read fails and reads again on the next call', async () => {
+			openIndexed('/vault', 9301);
+			vi.mocked(invoke).mockRejectedValueOnce(new Error('ipc down'));
+
+			await expect(appEditorHost.listTags()).rejects.toThrow('ipc down');
+
+			vi.mocked(invoke).mockResolvedValueOnce([aggregate('back', 3)]);
+			expect(await appEditorHost.listTags()).toEqual([{ name: 'back', count: 3 }]);
+			expect(tagReads()).toBe(2);
+		});
 	});
 });
 

@@ -6,6 +6,7 @@ import { TableWidget } from '../widgets';
 import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
 import { revealPredicate } from '../core/reveal';
+import { tableLineDeco } from '../styles';
 import { frontmatterSlice } from '../core/frontmatter-slice';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
@@ -18,8 +19,14 @@ export function computeTables(state: EditorState): DecorationSet {
 	const tables = findAllTables(state);
 
 	for (const table of tables) {
-		// When cursor is inside the table, show raw markdown
-		if (isRevealed(table.from, table.to)) continue;
+		// When cursor is inside the table, show raw markdown at the widget's size
+		if (isRevealed(table.from, table.to)) {
+			for (let n = table.startLine; n <= table.endLine; n++) {
+				const line = state.doc.line(n);
+				builder.add(line.from, line.from, tableLineDeco);
+			}
+			continue;
+		}
 
 		// First line: replace with the TableWidget
 		const firstLine = state.doc.line(table.startLine);

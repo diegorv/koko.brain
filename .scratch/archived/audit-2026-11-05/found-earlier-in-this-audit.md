@@ -1,0 +1,48 @@
+# Found earlier in this audit
+
+New findings that survived verification in earlier waves of the 2026-11-05 audit (dedupe only; Issue files are written at the end).
+
+- [editor] The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note
+- [editor] Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails
+- [editor] Closing the main window with the red button never leaves a windowless app: the app quits, or the window comes back on a Dock click
+- [editor] Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image
+- [editor] Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID
+- [live-preview] Keyboard edits next to the hidden frontmatter never change its fences
+- [live-preview] HTML link paste keeps bracketed link text and table cells intact
+- [live-preview] Paste, cut and copy inside a meta-bind number or date input act on the input, not the note
+- [live-preview] Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content
+- [live-preview] Standard markdown images with a vault-relative path load from the vault
+- [live-preview] `![[image.png|300x200]]` applies both the width and the height
+- [live-preview] Every language the code-block dropdown and the guide offer is syntax-highlighted
+- [live-preview] The Markdown guide's Quick Reference shows block math in the three-line `$$` form the editor renders
+- [live-preview] Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener
+- [file-io] Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope covers both allowed vault roots
+- [file-io] Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots
+- [file-io] Closing the main window hides it: a Dock click brings it back and Quick Capture keeps saving
+- [file-io] Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle
+- [file-io] A note-list inline rename that the file name rules refuse says why, like the folder rename does
+- [file-io] Deep-link new and open add .md to a name whose dot is not a known file extension
+- [file-io] Duplicate saves the note's unsaved typing before copying it
+- [file-io] Closing the main window keeps KokoBrain usable: clipboard captures and deep links still write their note, and the Dock icon brings the window back
+- [file-io] Deep-link open and new add .md to a note name with a dot unless it ends in a real file extension
+- [file-io] Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen
+- [reactivity] Backlinks and Outgoing links always list the open note's links, also after returning to a note seen at the same index version
+- [reactivity] The Tags view keeps its list and expanded tags on screen while it refreshes
+- [reactivity] The status bar note count follows notes created, imported and deleted during the session
+- [metadata] Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are
+- [metadata] An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json
+- [metadata] A failed Auto Move tells the user which note did not move and why
+- [metadata] A note with an unquoted wikilink value (`up: [[Home]]`, `- [[Carol]]`) accepts property, lifecycle, icon and meta-bind writes
+- [metadata] The auto-move example's steps move the notes as written: edit then save, the right default delay, rules loaded after copying the file
+- [index] Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen before
+- [index] A text search shows only its own results: a query with no hits says No results found, even right after a tag click
+- [index] Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags the same way with or without words
+- [index] Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red
+- [index] A tag click lists the notes with that tag even when Semantic or Hybrid was the selected search mode
+- [index] Fuzzy search finds a close spelling wherever it sits in the vocabulary, not only among the first 500 words with the same first letter
+- [index] Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...
+- [views] Hiding a column in a view with no `order` keeps the columns the table showed, minus that one
+- [views] Numeric `<`, `<=`, `>` and `>=` filters never match a note that lacks the property
+- [views] A filter row that still has no value does not filter the list and is not written to the .view
+- [views] A formula that calls an unknown function cannot be confirmed and shows why
+- [views] A calendar day with more than three notes lets the user reach every note

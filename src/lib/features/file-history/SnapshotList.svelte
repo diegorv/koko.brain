@@ -31,7 +31,7 @@
 		<div class="p-2">
 			{#each groups as group}
 				<div class="mb-3">
-					<h3 class="mb-1 px-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+					<h3 class="section-label mb-1 px-3">
 						{group.label}
 					</h3>
 					{#each group.snapshots as snapshot}

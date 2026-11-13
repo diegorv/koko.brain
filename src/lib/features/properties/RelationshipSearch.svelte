@@ -5,8 +5,10 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { flattenFileTree, filterAndRank } from '#lib/core/filesystem/file-entries.logic.js';
+	import { isLinkTargetFile } from '#lib/core/filesystem/wikilink-resolution.logic.js';
 	import { relativePath } from '#lib/utils/path.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 
 	interface Props {
@@ -19,7 +21,7 @@
 	let query = $state('');
 	let inputRef = $state<HTMLInputElement | null>(null);
 
-	let allFiles = $derived(flattenFileTree(fsStore.fileTree));
+	let allFiles = $derived(flattenFileTree(fsStore.fileTree).filter((f) => isLinkTargetFile(f.path)));
 	let results = $derived(filterAndRank(query, allFiles, []).slice(0, 20));
 
 	function handleSelect(fileName: string) {
@@ -41,7 +43,7 @@
 		{#snippet child({ props })}
 			<button
 				{...props}
-				class="p-0.5 rounded hover:bg-accent transition-colors cursor-pointer shrink-0"
+				class="p-0.5 rounded-xs hover:bg-accent transition-colors cursor-pointer shrink-0"
 				title="Add link"
 			>
 				<Plus class="size-3 text-muted-foreground" />
@@ -68,10 +70,10 @@
 								handleSelect(file.nameWithoutExt);
 							}}
 						>
-							{#if resolved}
+							{#if resolved?.icon}
 								<IconRenderer icon={resolved.icon} class="size-3.5 shrink-0" color={resolved.color} />
 							{:else}
-								<FileText class="size-3.5 text-muted-foreground shrink-0" />
+								<FileText class="size-3.5 text-muted-foreground shrink-0" style={iconColorStyle(resolved?.color)} />
 							{/if}
 							<div class="flex flex-col min-w-0">
 								<span class="text-[13px] truncate">{file.nameWithoutExt}</span>

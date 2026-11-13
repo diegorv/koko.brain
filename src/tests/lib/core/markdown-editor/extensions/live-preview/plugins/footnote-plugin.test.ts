@@ -102,6 +102,32 @@ describe('footnotePlugin — buildFootnoteDecorations', () => {
 			);
 			expect(inlineDecos).toHaveLength(0);
 		});
+
+		it('does not throw on an empty inline footnote off the cursor line', () => {
+			const doc = 'hello ^[]\nnext';
+			const state = createMarkdownState(doc).update({
+				selection: EditorSelection.single(doc.length),
+			}).state;
+			expect(() =>
+				buildFootnoteDecorations(state, [{ from: 0, to: state.doc.length }]),
+			).not.toThrow();
+		});
+
+		it('leaves an empty inline footnote unstyled and still decorates a non-empty one', () => {
+			const doc = 'a ^[] b ^[note] c\nnext';
+			const decos = buildFootnotes(doc, doc.length);
+			// ^[] spans 2-5: no decoration touches it
+			expect(decos.filter((d) => d.from < 5 && d.to > 2)).toHaveLength(0);
+			const marks = decos.filter((d) => d.class === 'replace');
+			const refs = decos.filter((d) => d.class === 'cm-lp-footnote-ref');
+			expect(marks.map((d) => [d.from, d.to])).toEqual([
+				[8, 10], // ^[
+				[14, 15], // ]
+			]);
+			expect(refs).toHaveLength(1);
+			expect(refs[0].from).toBe(10); // start of "note"
+			expect(refs[0].to).toBe(14);
+		});
 	});
 
 	describe('block context skip', () => {

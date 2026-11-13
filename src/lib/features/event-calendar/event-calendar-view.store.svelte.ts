@@ -39,6 +39,8 @@ let initialized = $state<boolean>(false);
 let gestureLive = $state<boolean>(false);
 /** Event the mounted view should focus and pulse once it renders, or null. */
 let focusRequest = $state.raw<FocusRequest | null>(null);
+/** Whether archived event notes render (dimmed). Session only: never written to settings. */
+let showArchived = $state<boolean>(false);
 /** Last dialog session handed out; never reset, so every open remounts. */
 let dialogSession = 0;
 /** Last focus request seq handed out; never reset, so a repeat request is new. */
@@ -64,6 +66,8 @@ export const eventCalendarViewStore = {
 	get focusRequest() { return focusRequest; },
 	/** Whether a pointer gesture is live: the view's shortcuts stay off until it ends. */
 	get gestureLive() { return gestureLive; },
+	/** Whether archived event notes render, dimmed. */
+	get showArchived() { return showArchived; },
 
 	/** Days the active view shows, per the `weekStartsOn` and `showWeekends` settings. */
 	get visibleDays(): string[] {
@@ -187,6 +191,11 @@ export const eventCalendarViewStore = {
 		nowMs = ms;
 	},
 
+	/** Shows or hides the archived event notes; the view reloads the events when it changes. */
+	setShowArchived(value: boolean) {
+		showArchived = value;
+	},
+
 	/** Points the popover, an edit dialog and the focus request at `to` after the note at `from` was renamed. */
 	remapPath(from: string, to: string) {
 		if (popover?.path === from) {
@@ -207,9 +216,10 @@ export const eventCalendarViewStore = {
 		initialized = true;
 	},
 
-	/** Restores view, date (today), popover, dialog, shortcuts help, focus request, `gestureLive` and `initialized`; leaves `nowMs` alone. */
+	/** Restores view, date (today), popover, dialog, shortcuts help, focus request, `gestureLive`, `showArchived` and `initialized`; leaves `nowMs` alone. */
 	reset() {
 		gestureLive = false;
+		showArchived = false;
 		view = INITIAL_VIEW;
 		focusedDate = toKey(new Date());
 		popover = null;

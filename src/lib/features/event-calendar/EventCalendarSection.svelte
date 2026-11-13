@@ -11,6 +11,7 @@
 	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+	import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { buildTypeNoteDir, typeNameTakenMessage, validateTypeName } from '#lib/features/type-definitions/type-definitions.logic.js';
@@ -77,7 +78,8 @@
 			return;
 		}
 		if (creating) return;
-		const name = calendar.eventTypeName;
+		// Rust groups `_type: event` notes as `Event`, so the definition takes that name.
+		const name = normalizeTypeCasing(calendar.eventTypeName);
 		const invalid = validateTypeName(name, []);
 		if (invalid) {
 			toast.error(invalid);
@@ -112,6 +114,8 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Calendar</h2>
 
+	<h3 class="section-label mb-2">Display</h3>
+
 	<div data-setting="week-start">
 		<SettingItem label="Week starts on" description="First day of the week in the week and month views">
 			<Select.Root
@@ -119,7 +123,7 @@
 				value={String(calendar.weekStartsOn)}
 				onValueChange={(v) => settingsStore.updateEventCalendar({ weekStartsOn: v === '0' ? 0 : 1 })}
 			>
-				<Select.Trigger size="sm" class="w-44" aria-label="Week starts on">
+				<Select.Trigger class="w-44" aria-label="Week starts on">
 					<span data-slot="select-value">{calendar.weekStartsOn === 0 ? 'Sunday' : 'Monday'}</span>
 				</Select.Trigger>
 				<Select.Content>
@@ -138,7 +142,7 @@
 				value={calendar.timeFormat}
 				onValueChange={(v) => settingsStore.updateEventCalendar({ timeFormat: v === '12h' ? '12h' : '24h' })}
 			>
-				<Select.Trigger size="sm" class="w-44" aria-label="Time format">
+				<Select.Trigger class="w-44" aria-label="Time format">
 					<span data-slot="select-value">{calendar.timeFormat === '12h' ? '12-hour' : '24-hour'}</span>
 				</Select.Trigger>
 				<Select.Content>
@@ -196,7 +200,7 @@
 					}
 				}}
 			>
-				<Select.Trigger size="sm" class="w-44" aria-label="Default view">
+				<Select.Trigger class="w-44" aria-label="Default view">
 					<span data-slot="select-value">{viewLabel(calendar.defaultView)}</span>
 				</Select.Trigger>
 				<Select.Content>
@@ -207,6 +211,8 @@
 			</Select.Root>
 		</SettingItem>
 	</div>
+
+	<h3 class="section-label mt-6 mb-2">New events</h3>
 
 	<div data-setting="duration">
 		<SettingItem label="Default duration" description="Length of a new event in minutes (15–480, in steps of 15)">
@@ -236,11 +242,21 @@
 		</SettingItem>
 	</div>
 
-	<h3 class="mt-6 mb-2 text-sm font-medium text-muted-foreground">Event type</h3>
+	{#if eventFolder !== null}
+		<SettingItem label="New events go to" description="Set by the event type's folder and the typed notes folder">
+			<code class="truncate text-meta" title={eventFolder} data-event-folder>{eventFolder}</code>
+		</SettingItem>
+	{/if}
+
+	<SettingItem label="Folder and template" description="Set the folder or template of new events in the event type">
+		<Button variant="outline" size="sm" onclick={openEventType} disabled={creating} data-open-event-type>Open Event type</Button>
+	</SettingItem>
+
+	<h3 class="section-label mt-6 mb-2">Event type</h3>
 
 	<div data-setting="event-type">
 		<SettingItem
-			label="Event type"
+			label="Type name"
 			description="Notes of this type appear on the calendar. If you rename the type in the Types navigator, enter its new name here."
 		>
 			<Input
@@ -254,14 +270,4 @@
 			/>
 		</SettingItem>
 	</div>
-
-	{#if eventFolder !== null}
-		<SettingItem label="New events go to" description="Set by the event type's folder and the Types base folder">
-			<code class="truncate text-xs" title={eventFolder} data-event-folder>{eventFolder}</code>
-		</SettingItem>
-	{/if}
-
-	<SettingItem label="Folder and template" description="Set the folder or template of new events in the event type">
-		<Button variant="outline" size="sm" onclick={openEventType} disabled={creating} data-open-event-type>Open Event type</Button>
-	</SettingItem>
 </div>

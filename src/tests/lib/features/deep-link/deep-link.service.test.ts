@@ -67,6 +67,7 @@ vi.mock('#lib/core/filesystem/fs.service.js', () => ({
 
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	markRecentSave: vi.fn(),
+	notifyNoteCreated: vi.fn(),
 	notifyAfterSave: vi.fn(),
 }));
 
@@ -116,6 +117,7 @@ registerAppPorts();
 
 describe('deep-link.service', () => {
 	beforeEach(() => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		vi.clearAllMocks();
 		// clearAllMocks wipes call history but NOT mockResolvedValue
 		// implementations, so reset exists() to a clean default — otherwise a
@@ -558,6 +560,61 @@ describe('deep-link.service', () => {
 					'/Users/me/TestVault/test.md',
 					'From clipboard\nOld content',
 				);
+			});
+
+			describe('while Explicit organization is on', () => {
+				beforeEach(() => {
+					settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+				});
+
+				afterEach(() => {
+					settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
+				});
+
+				it('marks a silently created note unorganized', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'test.md', content: 'Silent content', silent: true }, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						'/Users/me/TestVault/test.md',
+						'---\n_organized: false\n---\nSilent content',
+					);
+				});
+
+				it('marks a note created through openOrCreateNote unorganized', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'test.md', content: '---\ntitle: x\n---\nHello' }, vaultPath);
+
+					const { buildContent, inlineTemplate } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+					const written = buildContent!(inlineTemplate!);
+					expect(written).toBe('---\n_organized: false\ntitle: x\n---\nHello');
+					expect(written.match(/^_organized:/gm)).toHaveLength(1);
+				});
+
+				it('marks a note that append creates because the file is missing', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'test.md', content: 'First line', append: true, silent: true }, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith(
+						'/Users/me/TestVault/test.md',
+						'---\n_organized: false\n---\nFirst line',
+					);
+				});
+
+				it('writes a non-Markdown file as given, silently', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'board.canvas', content: '{"nodes":[]}', silent: true }, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith('/Users/me/TestVault/board.canvas', '{"nodes":[]}');
+				});
+
+				it('passes no buildContent for a non-Markdown file through openOrCreateNote', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'board.canvas', content: '{"nodes":[]}' }, vaultPath);
+
+					expect(vi.mocked(openOrCreateNote).mock.calls[0][0].buildContent).toBeUndefined();
+				});
+
+				it('writes overwrite content as given', async () => {
+					await executeAction({ type: 'new', vault: 'V', name: 'test.md', content: 'Replaced', overwrite: true, silent: true }, vaultPath);
+
+					expect(vi.mocked(writeTextFile)).toHaveBeenCalledWith('/Users/me/TestVault/test.md', 'Replaced');
+				});
 			});
 		});
 
@@ -1466,6 +1523,21 @@ describe('deep-link.service', () => {
 			expect(handled).toEqual([['daily', '/vault']]);
 			expect(vi.mocked(openOrCreateDailyNote)).not.toHaveBeenCalled();
 			expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to execute deep link action: daily');
+		});
+
+		it('returns true when the action ran and false when it failed', async () => {
+			const unregister = registerDeepLinkAction('capture', async () => {
+				throw new Error('write failed');
+			});
+
+			const failed = await executeAction({ type: 'capture', vault: 'V', kind: 'note', text: 'x' }, '/vault');
+			unregister();
+			registerDeepLinkAction('capture', async () => {});
+			const succeeded = await executeAction({ type: 'capture', vault: 'V', kind: 'note', text: 'x' }, '/vault');
+
+			expect(failed).toBe(false);
+			expect(succeeded).toBe(true);
+			expect(vi.mocked(toast.error)).toHaveBeenCalledWith('Failed to execute deep link action: capture');
 		});
 	});
 });

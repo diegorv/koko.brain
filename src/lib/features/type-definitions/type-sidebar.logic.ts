@@ -2,9 +2,12 @@ import dayjs from 'dayjs';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import type { CollectionDefinition, CollectionFilter } from '#lib/features/collection/collection.types.js';
+import { viewIndexByName } from '#lib/features/collection/yaml-parser.js';
 import type { TypeMetadata } from './type-definitions.logic';
 import { getTypeMetadataFallback } from './type-definitions.logic';
-import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
+import { isViewFile, naturalCompare } from '#lib/core/filesystem/fs.logic.js';
+import { extractViewIcon, parseIconValuePermissive } from '#lib/features/file-icons/file-icons.logic.js';
 
 /** A section in the type-grouped sidebar. */
 export interface TypeSection {
@@ -30,6 +33,17 @@ export interface TypeSidebarNote {
 /** Filter mode for the type sidebar. */
 export type SidebarFilter = 'all' | 'inbox' | 'archived';
 
+/**
+ * Which notes a type or Untyped list shows by lifecycle: the active ones (not
+ * archived), all of them, or only the archived ones.
+ */
+export type ArchivedFilter = 'active' | 'all' | 'archived';
+
+function passesArchivedFilter(entry: NoteEntryV2, filter: ArchivedFilter): boolean {
+	if (filter === 'all') return true;
+	return filter === 'archived' ? entry.archived : !entry.archived;
+}
+
 /** Identifiers for the top nav items in the type sidebar. */
 export type NavItemId = 'inbox' | 'all' | 'archive' | 'favorites';
 
@@ -43,14 +57,16 @@ export type TypeSidebarSelection =
 /**
  * Returns a new array containing only entries whose `path` is outside the
  * configured system folder. Use this as an upstream filter before any sidebar
- * logic call (counts, lists, sections). A blank `systemFolder` or a missing
- * `vaultPath` disables exclusion and returns the input array unchanged.
+ * logic call (counts, lists, sections); it takes any record with a `path`, so
+ * QueryJS filters property-index records with it too. A blank `systemFolder`
+ * or a missing `vaultPath` disables exclusion and returns the input array
+ * unchanged.
  */
-export function excludeSystemFolder(
-	entries: NoteEntryV2[],
+export function excludeSystemFolder<T extends { path: string }>(
+	entries: T[],
 	vaultPath: string | null | undefined,
 	systemFolder: string,
-): NoteEntryV2[] {
+): T[] {
 	const folder = systemFolder.trim().replace(/^\/+|\/+$/g, '');
 	if (!vaultPath || !folder) return entries;
 	const base = vaultPath.replace(/\/+$/, '');
@@ -59,22 +75,36 @@ export function excludeSystemFolder(
 }
 
 /**
- * Returns the notes matching the current sidebar selection (type, untyped
- * and the nav lists other than Archive leave archived notes out),
- * most-recently-modified first, with `_order` pins on top.
+ * True when an entry may be listed as a note: not a `.view` file and not a
+ * type definition (`_type: Type`). A `.view` file is indexed like a note (Rust
+ * counts `.view` as markdown, see `is_markdown_filename` in
+ * `src-tauri/src/utils/fs.rs`, with its raw YAML as frontmatter), so a query
+ * can match it, but it is a view, not a note; a type definition describes a
+ * type. Every rail lens but Favorites, and QueryJS `kb.pages()`, apply it.
+ */
+export function isListableNote(entry: NoteEntryV2): boolean {
+	return entry.isA !== 'Type' && !isViewFile(entry.path);
+}
+
+/**
+ * Returns the notes matching the current sidebar selection,
+ * most-recently-modified first, with `_order` pins on top. A type or untyped
+ * selection keeps the notes `archived` lets through (default: not archived);
+ * the nav lists other than Archive leave archived notes out.
  */
 export function getNotesForSelection(
 	entries: NoteEntryV2[],
 	selection: TypeSidebarSelection,
+	archived: ArchivedFilter = 'active',
 ): TypeSidebarNote[] {
 	let filtered: NoteEntryV2[];
 
 	switch (selection.kind) {
 		case 'type':
-			filtered = entries.filter((e) => e.isA === selection.name && !e.archived);
+			filtered = entries.filter((e) => e.isA === selection.name && passesArchivedFilter(e, archived) && isListableNote(e));
 			break;
 		case 'untyped':
-			filtered = entries.filter((e) => !e.isA && !e.archived);
+			filtered = entries.filter((e) => !e.isA && passesArchivedFilter(e, archived) && isListableNote(e));
 			break;
 		case 'nav':
 			filtered = filterByNavItem(entries, selection.id);
@@ -90,26 +120,27 @@ export function getNotesForSelection(
 }
 
 /**
- * Converts the not-archived entries matching a set of paths into sidebar
- * notes. A `sort` mode (default `modified`, newest first) re-sorts them with
- * `_order` pins on top; `null` keeps the iteration order of `matchingPaths`
- * (the view query's order).
+ * Converts the entries matching a set of paths into sidebar notes, archived
+ * ones left out unless `includeArchived`. A `sort` mode (default `modified`,
+ * newest first) re-sorts them with `_order` pins on top; `null` keeps the
+ * iteration order of `matchingPaths` (the view query's order).
  */
 export function getNotesForViewPaths(
 	entries: NoteEntryV2[],
 	matchingPaths: ReadonlySet<string>,
 	sort: string | null = 'modified',
+	includeArchived = false,
 ): TypeSidebarNote[] {
 	if (sort === null) {
 		const byPath = new Map(entries.map((e) => [e.path, e]));
 		const notes: TypeSidebarNote[] = [];
 		for (const path of matchingPaths) {
 			const entry = byPath.get(path);
-			if (entry && !entry.archived) notes.push(toSidebarNote(entry));
+			if (entry && (includeArchived || !entry.archived)) notes.push(toSidebarNote(entry));
 		}
 		return notes;
 	}
-	const filtered = entries.filter((e) => matchingPaths.has(e.path) && !e.archived);
+	const filtered = entries.filter((e) => matchingPaths.has(e.path) && (includeArchived || !e.archived));
 	const notes = filtered.map(toSidebarNote);
 	sortNotes(notes, sort);
 	return notes;
@@ -117,7 +148,8 @@ export function getNotesForViewPaths(
 
 function toSidebarNote(entry: NoteEntryV2): TypeSidebarNote {
 	const rawOrder = entry.frontmatter['_order'];
-	const parsedOrder = typeof rawOrder === 'number' ? rawOrder : Number(rawOrder);
+	// A number, or a quoted one (`"2"`). Number() reads null, '', '  ' and false as 0 and true as 1, which would pin the note.
+	const parsedOrder = typeof rawOrder === 'number' ? rawOrder : typeof rawOrder === 'string' && rawOrder.trim() !== '' ? Number(rawOrder) : NaN;
 	const order = Number.isFinite(parsedOrder) ? parsedOrder : Infinity;
 	return {
 		path: entry.path,
@@ -155,7 +187,7 @@ export function buildTypeSections(
 	const untyped: TypeSidebarNote[] = [];
 
 	for (const entry of filtered) {
-		if (entry.isA === 'Type') continue;
+		if (!isListableNote(entry)) continue;
 		const note = toSidebarNote(entry);
 		if (entry.isA) {
 			const group = typeGroups.get(entry.isA);
@@ -293,11 +325,11 @@ export interface ViewFileEntry {
 	name: string;
 }
 
-/** Collects .view files from the file tree, sorted alphabetically. */
+/** Collects .view files from the file tree, sorted by name in natural order ("Week 2" before "Week 10"). */
 export function collectViewFiles(tree: FileTreeNode[]): ViewFileEntry[] {
 	const views: ViewFileEntry[] = [];
 	collectViewFilesWalk(tree, views);
-	views.sort((a, b) => a.name.localeCompare(b.name));
+	views.sort((a, b) => naturalCompare(a.name, b.name));
 	return views;
 }
 
@@ -320,16 +352,138 @@ export function getViewLabel(entry: NoteEntryV2 | undefined, fallbackName: strin
 	return typeof label === 'string' && label ? label : fallbackName;
 }
 
+/**
+ * Builds the YAML of a new `.view`: the name as its label and as the name of
+ * its one table view, sorted by title. `filters`, when given, become that
+ * view's own filters (the note list's Filter panel shows them under "This
+ * view"); without them the file has no `filters` key. Serialized rather than
+ * templated so a name YAML reads as another type (`123`, `true`, `#tag`,
+ * `- x`) stays a string and a filter expression keeps its quotes;
+ * `lineWidth: 0` keeps a long name on one line.
+ */
+export function buildNewViewYaml(name: string, filters?: CollectionFilter | string): string {
+	const view = filters === undefined ? { type: 'table', name } : { type: 'table', name, filters };
+	return stringifyYaml({ _sidebar_label: name, _sort: 'title', views: [view] }, { lineWidth: 0 });
+}
+
+/**
+ * Whether a click on the view's row opens the `.view` in the editor instead of
+ * picking it as the note list's lens. Only the YAML boolean `true` turns it on.
+ */
+export function getViewOpensInEditor(entry: NoteEntryV2 | undefined): boolean {
+	return entry?.frontmatter['_open_in_editor'] === true;
+}
+
+/**
+ * The subheading the view is listed under in Views: its trimmed `_group`.
+ * Null (ungrouped) when the key is missing, blank or not text.
+ */
+export function getViewGroup(entry: NoteEntryV2 | undefined): string | null {
+	const group = entry?.frontmatter['_group'];
+	if (typeof group !== 'string') return null;
+	return group.trim() || null;
+}
+
+/**
+ * Whether Views lists the view. Only the YAML boolean `false` hides it (Rust
+ * reads the `visible` alias as `_visible`); a hidden view is still a file.
+ */
+export function getViewVisible(entry: NoteEntryV2 | undefined): boolean {
+	return entry?.frontmatter['_visible'] !== false;
+}
+
+/** A reserved frontmatter key and the value shape its reader uses; any other value is ignored. */
+export interface ReservedKeyRule {
+	/** The frontmatter key, e.g. `_order` */
+	key: string;
+	/** True for a value the key's reader uses; `frontmatter` is the whole record the value came from */
+	check: (value: unknown, frontmatter: Record<string, unknown>) => boolean;
+	/** The expected value in words, for the note, e.g. "a number" */
+	expected: string;
+	/** The note for a refused value, when it should say more than "expected ..., got ..."; null keeps that default */
+	note?: (value: unknown) => string | null;
+}
+
+/** The `_sort` values a view's list orders by (`sortNotes`); any other value is ignored. */
+export const VIEW_SORTS: readonly string[] = ['modified', 'created', 'modified-asc', 'created-asc', 'title'];
+
+/** True for a `_sort` value a view's list orders by. */
+export function isViewSort(value: unknown): value is string {
+	return typeof value === 'string' && VIEW_SORTS.includes(value);
+}
+
+/**
+ * The reserved keys whose ignored values are reported. Each check only
+ * reports: the readers (`getViewOrder`, `getViewOpensInEditor`, `getViewSort`,
+ * `getViewVisible`, `getViewGroup`, `pinnedRailItems` for `_rail`, and
+ * `railViewIndex` for `_rail_view`) decide which values work.
+ */
+export const RESERVED_KEY_RULES: readonly ReservedKeyRule[] = [
+	{ key: '_order', check: (v) => typeof v === 'number', expected: 'a number' },
+	{ key: '_open_in_editor', check: (v) => typeof v === 'boolean', expected: 'true or false' },
+	{ key: '_sort', check: isViewSort, expected: `one of ${VIEW_SORTS.join(', ')}` },
+	{ key: '_visible', check: (v) => typeof v === 'boolean', expected: 'true or false' },
+	{ key: '_group', check: (v) => typeof v === 'string', expected: 'text' },
+	{ key: '_rail', check: (v) => typeof v === 'boolean', expected: 'true or false' },
+	{
+		key: '_rail_view',
+		// Only a record with `views` (a `.view`) runs a view; a type definition has none, so the key means nothing there.
+		// The parse keeps only a non-blank string, and a blank one names no view either. Rust projects each view of the
+		// entry to null, so the entry cannot tell whether a string names a view: `railViewNameNote` reads the parse for that.
+		check: (v, fm) => !Array.isArray(fm.views) || (typeof v === 'string' && v.trim() !== ''),
+		expected: 'the name of one of its views',
+		note: (v) => (typeof v === 'string' ? railViewMissNote(v) : null),
+	},
+];
+
+/** The note for a `_rail_view` that names no view. */
+function railViewMissNote(name: string): string {
+	return `Ignored key _rail_view: ${JSON.stringify(name)} names no view; the first view runs`;
+}
+
+/**
+ * The note for a parsed `.view` whose `_rail_view` picks no view: a name none
+ * of its views has, or a value that is not text (which the entry can miss, as
+ * Rust projects an unquoted `[[Board]]` to a string). Null when it names a view
+ * or sets none.
+ */
+export function railViewNameNote(definition: Pick<CollectionDefinition, 'views' | 'railView' | 'railViewIgnored'>): string | null {
+	if (definition.railViewIgnored !== undefined) return ignoredKeyNotes({ _rail_view: definition.railViewIgnored, views: definition.views })[0] ?? null;
+	const name = definition.railView;
+	return name !== undefined && viewIndexByName(definition.views, name) < 0 ? railViewMissNote(name) : null;
+}
+
+/** One note per reserved key the frontmatter sets to a value its reader ignores, e.g. `_order: "1"`. */
+export function ignoredKeyNotes(frontmatter: Record<string, unknown>): string[] {
+	return RESERVED_KEY_RULES.flatMap((rule) => {
+		const value = frontmatter[rule.key];
+		if (!(rule.key in frontmatter) || rule.check(value, frontmatter)) return [];
+		return [rule.note?.(value) ?? `Ignored key ${rule.key}: expected ${rule.expected}, got ${JSON.stringify(value)}`];
+	});
+}
+
 /** Extracts _order from a view entry's frontmatter. Defaults to 50. */
 export function getViewOrder(entry: NoteEntryV2 | undefined): number {
 	const order = entry?.frontmatter['_order'];
 	return typeof order === 'number' ? order : 50;
 }
 
-/** Extracts _sort from a view entry's frontmatter. Defaults to 'modified'. */
+/**
+ * Extracts _sort from a view entry's frontmatter. Defaults to 'modified' when
+ * it is absent or not one of `VIEW_SORTS` (`ignoredKeyNotes` reports that).
+ */
 export function getViewSort(entry: NoteEntryV2 | undefined): string {
 	const sort = entry?.frontmatter['_sort'];
-	return typeof sort === 'string' ? sort : 'modified';
+	return isViewSort(sort) ? sort : 'modified';
+}
+
+/**
+ * The Sort panel's text for a view list that no sort of the view's own
+ * orders: its `_sort`, or the default when it has none or one that is ignored.
+ */
+export function effectiveViewSortLabel(entry: NoteEntryV2 | undefined): string {
+	const sort = entry?.frontmatter['_sort'];
+	return isViewSort(sort) ? `Sorted by _sort: ${sort}` : 'Sorted by the default: modified, newest first';
 }
 
 /** Extracts _list_properties_display from a view entry's frontmatter. */
@@ -340,41 +494,156 @@ export function getViewListProperties(entry: NoteEntryV2 | undefined): string[] 
 }
 
 /**
- * Sorts view files by _order from the entries index, then alphabetically.
- * Takes the path → entry Map so the comparator resolves in O(1) instead of
- * scanning the entries array once per comparison.
+ * Sorts view files by _order from the entries index, then by the label the
+ * row shows (`getViewLabel`) in natural order, then by path. Takes the
+ * path → entry Map so the comparator resolves in O(1) instead of scanning the
+ * entries array once per comparison.
  */
 export function sortViewFiles(views: ViewFileEntry[], entriesByPath: Map<string, NoteEntryV2>): ViewFileEntry[] {
 	return [...views].sort((a, b) => {
-		const oa = getViewOrder(entriesByPath.get(a.path));
-		const ob = getViewOrder(entriesByPath.get(b.path));
+		const ea = entriesByPath.get(a.path);
+		const eb = entriesByPath.get(b.path);
+		const oa = getViewOrder(ea);
+		const ob = getViewOrder(eb);
 		if (oa !== ob) return oa - ob;
-		return a.name.localeCompare(b.name);
+		const byLabel = naturalCompare(getViewLabel(ea, a.name), getViewLabel(eb, b.name));
+		if (byLabel !== 0) return byLabel;
+		return a.path < b.path ? -1 : a.path > b.path ? 1 : 0;
 	});
 }
 
-/** Updates _icon, _color, and _title_color in a .view YAML string. Returns the updated YAML. */
+/** Sets `key`, or removes it when `value` is absent, and always drops its alias, which `extractViewIcon` folds onto it. */
+function setViewIconKey(raw: Record<string, unknown>, key: string, alias: string, value: string | undefined): void {
+	delete raw[alias];
+	if (value !== undefined) {
+		raw[key] = value;
+	} else {
+		delete raw[key];
+	}
+}
+
+/**
+ * Updates _icon, _color, and _title_color in a .view YAML string, dropping their
+ * aliases, so an absent value removes the key in either spelling. Returns the updated YAML.
+ * An `icon` and colors `extractViewIcon` already resolves the file to return the
+ * input as it is, since re-serialising drops its comments and formatting, and
+ * the file keeps its spelling (`_icon: star` for `lucide:star`). No `icon` always
+ * removes the keys: one the parser rejects resolves to nothing but is still there.
+ */
 export function updateViewIconYaml(yamlString: string, icon?: string, color?: string, titleColor?: string): string {
+	const requested = icon === undefined ? null : parseIconValuePermissive(icon);
+	if (requested) {
+		const current = extractViewIcon(yamlString);
+		if (
+			current?.iconPack === requested.iconPack &&
+			current.iconName === requested.iconName &&
+			current.color === color &&
+			current.titleColor === titleColor
+		) {
+			return yamlString;
+		}
+	}
 	let raw: Record<string, unknown>;
 	try {
 		raw = (parseYaml(yamlString) as Record<string, unknown>) ?? {};
 	} catch {
 		return yamlString;
 	}
-	if (icon !== undefined) {
-		raw._icon = icon;
-	} else {
-		delete raw._icon;
+	setViewIconKey(raw, '_icon', 'icon', icon);
+	setViewIconKey(raw, '_color', 'color', color);
+	setViewIconKey(raw, '_title_color', 'title_color', titleColor);
+	return stringifyYaml(raw);
+}
+
+/**
+ * Updates the colors in a .view YAML string, leaving the icon keys as they are:
+ * the picker saves colors alone also when `extractViewIcon` rejected the `_icon`
+ * value, which is still the user's. A color that does not differ from what the
+ * file resolves to keeps its keys, in whichever spelling. With no difference at
+ * all the input comes back as it is, since re-serialising drops its comments and
+ * formatting; so does YAML that does not parse or is not a mapping.
+ */
+export function updateViewColorsYaml(yamlString: string, color?: string, titleColor?: string): string {
+	let raw: unknown;
+	try {
+		raw = parseYaml(yamlString) ?? {};
+	} catch {
+		return yamlString;
 	}
-	if (color !== undefined) {
-		raw._color = color;
-	} else {
-		delete raw._color;
+	if (typeof raw !== 'object' || Array.isArray(raw)) return yamlString;
+	const fields = raw as Record<string, unknown>;
+
+	const current = extractViewIcon(yamlString);
+	const colorChanged = current?.color !== color;
+	const titleColorChanged = current?.titleColor !== titleColor;
+	if (!colorChanged && !titleColorChanged) return yamlString;
+	if (colorChanged) setViewIconKey(fields, '_color', 'color', color);
+	if (titleColorChanged) setViewIconKey(fields, '_title_color', 'title_color', titleColor);
+	return stringifyYaml(fields);
+}
+
+/**
+ * Pins a `.view` to the rail (`_rail: true`) or unpins it (the key deleted,
+ * whatever its value). Throws on YAML that does not parse or whose top level
+ * is not a mapping, so the Pin click can say why nothing changed. The file is
+ * re-serialised, so its comments and formatting are lost, as with
+ * `updateViewIconYaml`.
+ */
+export function updateViewRailYaml(yamlString: string, on: boolean): string {
+	let parsed: unknown;
+	try {
+		parsed = parseYaml(yamlString) ?? {};
+	} catch (err) {
+		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
 	}
-	if (titleColor !== undefined) {
-		raw._title_color = titleColor;
-	} else {
-		delete raw._title_color;
+	if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error("The .view file's YAML is not a mapping of keys");
+	const raw = parsed as Record<string, unknown>;
+	if (on) raw._rail = true;
+	else delete raw._rail;
+	return stringifyYaml(raw);
+}
+
+/**
+ * Shows a hidden `.view` in Views: deletes `_visible` (and its alias
+ * `visible`, which Rust folds onto it) and `_open_in_editor`. Gives back the
+ * bytes unchanged when none of them is there, so nothing is written. Throws on
+ * YAML that does not parse or whose top level is not a mapping, as
+ * `updateViewRailYaml` does. The file is re-serialised, so its comments and
+ * formatting are lost.
+ */
+export function showViewInViewsYaml(yamlString: string): string {
+	let parsed: unknown;
+	try {
+		parsed = parseYaml(yamlString) ?? {};
+	} catch (err) {
+		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
 	}
+	if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error("The .view file's YAML is not a mapping of keys");
+	const raw = parsed as Record<string, unknown>;
+	const keys = ['_visible', 'visible', '_open_in_editor'].filter((key) => key in raw);
+	if (keys.length === 0) return yamlString;
+	for (const key of keys) delete raw[key];
+	return stringifyYaml(raw);
+}
+
+/**
+ * Sets the property columns the rail note list shows (`_list_properties_display`,
+ * in display order), or deletes the key for an empty list. Throws on YAML that
+ * does not parse or whose top level is not a mapping, as `updateViewRailYaml`
+ * does. The file is re-serialised, so its comments and formatting are lost.
+ */
+export function updateViewListPropertiesYaml(yamlString: string, properties: readonly string[]): string {
+	let parsed: unknown;
+	try {
+		parsed = parseYaml(yamlString) ?? {};
+	} catch (err) {
+		throw new Error(`The .view file's YAML does not parse: ${err instanceof Error ? err.message : String(err)}`);
+	}
+	if (typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error("The .view file's YAML is not a mapping of keys");
+	const raw = parsed as Record<string, unknown>;
+	// Rust folds the alias onto the key, so a kept alias could override this save.
+	delete raw.list_properties_display;
+	if (properties.length > 0) raw._list_properties_display = [...properties];
+	else delete raw._list_properties_display;
 	return stringifyYaml(raw);
 }

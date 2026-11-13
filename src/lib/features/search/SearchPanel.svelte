@@ -7,6 +7,13 @@
 	import SearchResultItem from './SearchResult.svelte';
 	import type { SearchMode } from './search.types';
 
+	interface Props {
+		/** True when no navigator sits between the panel and the rail, so its header must clear the macOS traffic lights */
+		firstPane?: boolean;
+	}
+
+	let { firstPane = false }: Props = $props();
+
 	let inputEl: HTMLInputElement | undefined = $state();
 
 	// Focus on each `requestFocus` ("/" while Search is already shown). The panel
@@ -62,10 +69,10 @@
 	);
 </script>
 
-<div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-rail-search>
-	<!-- The note list header strip; pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
+<div class="flex h-full flex-col bg-list-bg text-file-explorer-fg" data-rail-search>
+	<!-- The note list header strip; as the first pane, the pad clears the macOS traffic lights and the rail toggle. -->
 	<div
-		class="flex h-10 shrink-0 items-center bg-tab-bar pl-6 pr-3"
+		class="flex h-10 shrink-0 items-center bg-tab-bar pr-3 {firstPane ? 'pl-[var(--rail-header-pad)]' : 'pl-3'}"
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 		data-rail-search-header
@@ -77,7 +84,7 @@
 		<div class="flex gap-0.5 rounded-md bg-muted p-0.5">
 			{#each modes as m}
 				<button
-					class="flex-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors cursor-pointer
+					class="flex-1 rounded-xs px-2 py-0.5 text-label font-medium transition-colors cursor-pointer
 						{searchStore.mode === m.value ? 'bg-background text-file-explorer-fg shadow-sm' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}
 						{m.value !== 'text' && !searchStore.modelAvailable ? 'opacity-40 cursor-not-allowed' : ''}"
 					disabled={m.value !== 'text' && !searchStore.modelAvailable}
@@ -89,7 +96,7 @@
 		</div>
 
 		<!-- Index stats + progress -->
-		<div class="flex items-center gap-2 text-[10px] text-file-explorer-muted-fg">
+		<div class="flex items-center gap-2 text-meta text-file-explorer-muted-fg">
 			{#if searchStore.isIndexing || searchStore.isSemanticIndexing}
 				<Loader2 class="size-3 animate-spin" />
 				<span>
@@ -112,7 +119,7 @@
 			{:else if !hasResults}
 				<p class="text-xs text-file-explorer-muted-fg text-center py-4">No results found</p>
 			{:else}
-				<p class="text-[10px] text-file-explorer-muted-fg mb-1">
+				<p class="text-meta text-file-explorer-muted-fg mb-1">
 					{resultCount} {resultCount === 1 ? 'result' : 'results'}
 				</p>
 				<div class="divide-y divide-divider/20">
@@ -155,7 +162,7 @@
 		/>
 		{#if searchStore.mode === 'text'}
 			<button
-				class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-mono px-1 rounded cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
+				class="absolute right-2 top-1/2 -translate-y-1/2 text-label font-mono px-1 rounded-xs cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
 				onclick={toggleFuzzy}
 				title={searchStore.fuzzyEnabled ? 'Fuzzy matching enabled' : 'Fuzzy matching disabled'}
 			>~</button>

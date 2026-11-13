@@ -1,6 +1,9 @@
 import { getContext, setContext } from 'svelte';
 import type { NoteRowNote } from './note-row.types';
 
+/** The key that renames the focused row; the menu's Rename item shows it as its hint. */
+export const RENAME_SHORTCUT = { key: 'F2' } as const;
+
 /** Inline rename input state, owned by the menu so it survives a row remount while scrolling. */
 export interface NoteRowRenameState {
 	/** Current text of the rename input */

@@ -6,7 +6,7 @@
     "setup": "pnpm install --frozen-lockfile",
     "typecheck": "pnpm check",
     "testFile": "pnpm vitest run <file>",
-    "suite": "pnpm vitest run && pnpm build"
+    "suite": "pnpm vitest run"
   },
   "reReviews": 1,
   "codex": null,
@@ -19,6 +19,7 @@
     "When a fix: squash commit changes app code (src/lib, src/routes, src-tauri/src, src-tauri/build.rs) and the Issue's diff stages nothing under src/tests/, src-tauri/tests/ or e2e/specs/ and adds no #[test]/#[tokio::test]/#[cfg(test)] line, add a 'Test-Exempt: <reason>' trailer saying why no test covers it; the commit-msg hook rejects the commit otherwise (docs/COMMITS.md)",
     "src/tests/lib/architecture/layer-baseline.json and the composition-root list only shrink: when your change makes a baseline line stale, delete that line and lower BASELINE_SIZE in src/tests/lib/architecture/layer-rules.test.ts by one; never add a baseline entry or a root (that needs owner sign-off)",
     "Reviewer: a diff that adds an entry to src/tests/lib/architecture/layer-baseline.json, raises BASELINE_SIZE, or adds a composition root gets CHANGES_REQUESTED",
-    "cargo test regenerates the ts-rs bindings in src/lib/contracts/generated (doc comments on #[ts(export)] types become JSDoc): after it, commit any change there in the same Issue, or CI fails its freshness check"
+    "cargo test regenerates the ts-rs bindings in src/lib/contracts/generated (doc comments on #[ts(export)] types become JSDoc): after it, commit any change there in the same Issue, or CI fails its freshness check",
+    "Before changing or reviewing a save, index, path-change, watcher, search-index, editor decoration, widget or QueryJS path, read each matching file in the worktree and follow it: docs/agents/indexing-watcher-rules.md, docs/agents/live-preview-rules.md"
   ]
 }

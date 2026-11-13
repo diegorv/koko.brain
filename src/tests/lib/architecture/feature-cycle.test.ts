@@ -59,6 +59,11 @@ function cycleMembers(list: string[]) {
 describe('feature cycle ratchet', () => {
 	const { unlisted, stale } = checkFeatureCycles(pairs, baseline.featureCycleEdges);
 
+	it('note-row menu contracts do not depend on their rail-shell consumer', () => {
+		expect(pairs).toContain('rail-shell -> note-list');
+		expect(pairs).not.toContain('note-list -> rail-shell');
+	});
+
 	it('every pair inside a feature cycle is in featureCycleEdges', () => {
 		expect(unlisted, unlisted.join('\n\n')).toEqual([]);
 	});
@@ -113,10 +118,10 @@ describe('feature cycle failures (synthetic pairs)', () => {
 	});
 
 	it('a new cycle outside the existing one fails', () => {
-		const { unlisted } = checkFeatureCycles([...pairs, 'auto-move -> dock-badge', 'dock-badge -> auto-move'], cycle);
+		const { unlisted } = checkFeatureCycles([...pairs, 'auto-organize -> dock-badge', 'dock-badge -> auto-organize'], cycle);
 		expect(unlisted.map((m: string) => m.split(' is inside')[0])).toEqual([
-			'features/auto-move -> features/dock-badge',
-			'features/dock-badge -> features/auto-move',
+			'features/auto-organize -> features/dock-badge',
+			'features/dock-badge -> features/auto-organize',
 		]);
 	});
 

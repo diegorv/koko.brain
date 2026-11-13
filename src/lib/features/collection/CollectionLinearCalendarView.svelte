@@ -144,12 +144,12 @@
 			<div class="grid" style="grid-template-columns: 56px repeat(31, 1fr);">
 				<div
 					class="bg-muted/60 px-1 py-1.5 text-center text-[11px] font-medium uppercase tracking-wide text-muted-foreground"
-					style="border-bottom: 1px solid var(--foreground-15, rgba(255,255,255,0.15)); border-right: 1px solid var(--foreground-15, rgba(255,255,255,0.15));"
+					style="border-bottom: 1px solid var(--divider); border-right: 1px solid var(--divider);"
 				></div>
 				{#each Array.from({ length: 31 }, (_, i) => i + 1) as day, i}
 					<div
 						class="bg-muted/60 py-1.5 text-center text-[11px] font-medium text-muted-foreground"
-						style="border-bottom: 1px solid var(--foreground-15, rgba(255,255,255,0.15)); {i < 30 ? 'border-right: 1px solid var(--foreground-15, rgba(255,255,255,0.15));' : ''}"
+						style="border-bottom: 1px solid var(--divider); {i < 30 ? 'border-right: 1px solid var(--divider);' : ''}"
 					>
 						{String(day).padStart(2, '0')}
 					</div>
@@ -164,7 +164,7 @@
 					<!-- Month label -->
 					<div
 						class="flex items-start justify-center px-1 pt-2 text-xs font-semibold text-muted-foreground"
-						style="min-height: {rowHeight}px; border-right: 1px solid var(--foreground-15, rgba(255,255,255,0.15)); {!isLastRow ? 'border-bottom: 1px dashed rgba(255,255,255,0.08);' : ''}"
+						style="min-height: {rowHeight}px; border-right: 1px solid var(--divider); {!isLastRow ? 'border-bottom: 1px dashed color-mix(in oklab, var(--divider) 50%, transparent);' : ''}"
 					>
 						{row.label}
 					</div>
@@ -177,7 +177,7 @@
 							class="relative
 								{isInactive ? 'bg-muted/20' : ''}
 								{isToday ? 'bg-primary/10' : ''}"
-							style="min-height: {rowHeight}px; {dayIdx < 30 ? 'border-right: 1px dashed rgba(255,255,255,0.04);' : ''} {!isLastRow ? 'border-bottom: 1px dashed rgba(255,255,255,0.08);' : ''}"
+							style="min-height: {rowHeight}px; {dayIdx < 30 ? 'border-right: 1px dashed color-mix(in oklab, var(--divider) 50%, transparent);' : ''} {!isLastRow ? 'border-bottom: 1px dashed color-mix(in oklab, var(--divider) 50%, transparent);' : ''}"
 						></div>
 					{/each}
 				</div>
@@ -196,7 +196,7 @@
 								{@const startDay = event.startDate.getDate()}
 								{@const endDay = event.endDate.getDate()}
 								<button
-									class="absolute flex items-center overflow-hidden rounded px-2 text-xs leading-tight text-white shadow-sm hover:brightness-110 transition-all cursor-pointer pointer-events-auto"
+									class="absolute flex items-center overflow-hidden rounded-xs px-2 text-xs leading-tight text-white shadow-sm hover:brightness-110 transition-[filter] duration-100 cursor-pointer pointer-events-auto"
 									style="
 										left: {getBarLeft(startDay, row.daysInMonth)};
 										width: {getBarWidth(startDay, endDay, row.daysInMonth)};

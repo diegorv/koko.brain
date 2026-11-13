@@ -1,106 +1,168 @@
-# 🧠 Kokobrain
+<div align="center">
 
-| | Status |
+<img src="src-tauri/icons/icon.png" alt="Kokobrain app icon" width="128" height="128" />
+
+# Kokobrain
+
+**A local-first second brain for macOS.**
+<br />
+Plain Markdown files on your disk, a fast editor, and search that never leaves your machine.
+
+[![Latest release][version-badge]][version-url]
+[![Platform][platform-badge]][platform-url]
+[![License][license-badge]][license-url]
+[![CI][ci-badge]][ci-url]
+[![Built with Claude Code][claude-badge]][claude-url]
+
+[**Download**](#-download) &nbsp;·&nbsp;
+[**Features**](docs/FEATURES.md) &nbsp;·&nbsp;
+[**User Guide**](help/documentation/README.md) &nbsp;·&nbsp;
+[**Docs**](docs/README.md) &nbsp;·&nbsp;
+[**Privacy**](PRIVACY.md)
+
+</div>
+
+---
+
+## Why Kokobrain
+
+<table>
+<tr>
+<td width="33%" valign="top">
+
+### 📂 Your files, your disk
+
+Every note is a plain `.md` file in a folder you choose. No cloud storage, no account, no proprietary format. Open your vault in any editor, back it up any way you like.
+
+</td>
+<td width="33%" valign="top">
+
+### 🔒 Private by design
+
+Full-text and semantic search run on your Mac. The models are downloaded once and run offline. No analytics, no tracking, no account; error reporting and Todoist sync are opt-in. See [PRIVACY.md](PRIVACY.md).
+
+</td>
+<td width="33%" valign="top">
+
+### ⚡ Native and fast
+
+A Tauri 2 shell with a Rust core indexes the vault, keeps backlinks, tags and tasks up to date, and watches the folder for changes. The UI is Svelte 5 with a CodeMirror 6 live-preview editor.
+
+</td>
+</tr>
+</table>
+
+## ✨ Highlights
+
+<table>
+<tr>
+<td width="33%" valign="top">
+✏️ <a href="help/documentation/03-editor.md"><b>Live-preview editor</b></a><br />
+<sub>Markdown with wikilinks, embeds, block references and inline meta-bind inputs.</sub>
+</td>
+<td width="33%" valign="top">
+🔍 <a href="help/documentation/06-search-and-navigation.md"><b>Hybrid search</b></a><br />
+<sub>SQLite FTS5 plus a local semantic embedder, fused into one ranking.</sub>
+</td>
+<td width="33%" valign="top">
+🕸 <a href="help/documentation/14-graph-view.md"><b>Graph view</b></a><br />
+<sub>An interactive map of how your notes connect.</sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+🗂 <a href="help/documentation/25-types-and-relationships.md"><b>Types and relationships</b></a><br />
+<sub>Note types, semantic links and an inbox lifecycle with archive and favorites.</sub>
+</td>
+<td width="33%" valign="top">
+📊 <a href="help/documentation/12-collection.md"><b>Collections</b></a><br />
+<sub>Database-style tables of notes, queried by frontmatter properties.</sub>
+</td>
+<td width="33%" valign="top">
+🧮 <a href="help/documentation/13-queryjs.md"><b>QueryJS</b></a><br />
+<sub>A JavaScript API for programmatic queries and custom views.</sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+🎨 <a href="help/documentation/11-canvas.md"><b>Canvas</b></a><br />
+<sub>An infinite board of text, file, link and image nodes (JSON Canvas 1.0).</sub>
+</td>
+<td width="33%" valign="top">
+📋 <a href="help/documentation/21-kanban.md"><b>Kanban</b></a> and <a href="help/documentation/10-tasks-and-todoist.md"><b>Tasks</b></a><br />
+<sub>Boards, custom task statuses and <a href="help/documentation/29-todoist-sync.md">two-way Todoist sync</a>.</sub>
+</td>
+<td width="33%" valign="top">
+📅 <a href="help/documentation/27-calendar.md"><b>Calendar</b></a><br />
+<sub>Day, week and month views where every event is a Markdown note.</sub>
+</td>
+</tr>
+</table>
+
+**[See every feature →](docs/FEATURES.md)**
+
+## 📦 Download
+
+Grab the `.dmg` of the [**latest stable release**](https://github.com/diegorv/koko.brain/releases/latest) (Apple Silicon, code-signed). Stable and Nightly builds update in place from Settings > Update > Check for updates.
+
+| Channel | What you get |
 |---|---|
-| **CI** | [![CI][ci-badge]][ci-url] [![E2E][e2e-badge]][e2e-url] [![Release][release-badge]][release-url] [![Nightly][nightly-badge]][nightly-url] [![Wiki Sync][wiki-badge]][wiki-url] |
-| **Security** | [![Dependabot][dependabot-badge]][dependabot-url] [![Security][security-badge]][security-url] [![CodeQL][codeql-badge]][codeql-url] [![Privacy][privacy-badge]][privacy-url] |
-| **Project** | [![Latest release][version-badge]][version-url] [![License][license-badge]][license-url] [![Platform][platform-badge]][platform-url] [![Claude Code][claude-badge]][claude-url] |
+| **Stable** | Tagged releases, every few weeks. |
+| **Pre-release** | Alpha, beta and RC builds ahead of a major version, installed by hand. |
+| **Nightly** | The latest `main`, rebuilt as code changes land. |
 
-A personal desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) and [Tolaria](https://github.com/refactoringhq/tolaria), built with Svelte 5 and Tauri 2
-
-Your notes are plain Markdown files stored locally - no cloud, no lock-in, privacy first. Built entirely with [Claude Code](https://docs.anthropic.com/en/docs/claude-code) and human review.
+Details on each channel and how versions are numbered: [Release Channels](docs/RELEASE-CHANNELS.md).
 
 > [!NOTE]
-> 🍎 **macOS only.** Pull requests without a prior discussion will not be accepted - if you want to contribute, please open a discussion first.
-> If you want a mature, cross-platform tool, check out [Obsidian](https://obsidian.md) or [Logseq](https://logseq.com).
+> **macOS only, built for one person.** Kokobrain is a personal project. Pull requests without a prior discussion are not accepted: open an issue first.
 
-## ✨ Features
+## 🚦 Quality gates
 
-### ✏️ Editor
+The workflows that guard `main` and every build. A Stable release is built only after CI and E2E pass again on the tagged commit.
 
-- **Markdown editor** with source mode and live preview - CodeMirror
-- **Wikilinks** (`[[note]]`) with autocomplete, block references, and embeds
-- **Meta-bind** - interactive inline inputs and action buttons that read/write frontmatter
-- **Table of contents** - auto-generated outline panel from document headings
-- **Templates**, **Quick Capture** (in-editor `Cmd+N`, global composer popover, clipboard shortcut), and **1:1 meeting notes**
+| Workflow | Status | What it checks |
+|---|---|---|
+| **CI** | [![CI][ci-badge]][ci-url] | Type checking, Vitest and `cargo test`, run for the side of the app that changed |
+| **E2E** | [![E2E][e2e-badge]][e2e-url] | The Playwright suite against the running app |
+| **Security** | [![Security][security-badge]][security-url] | `pnpm audit`, `cargo audit`, the 5-day supply-chain quarantine and dependency review on PRs |
+| **CodeQL** | [![CodeQL][codeql-badge]][codeql-url] | GitHub code scanning of TypeScript, Rust, Python and the workflows |
+| **Privacy** | [![Privacy][privacy-badge]][privacy-url] | Fails on any external network call not listed in [PRIVACY.md](PRIVACY.md) |
+| **Dependabot** | [![Dependabot][dependabot-badge]][dependabot-url] | Dependency update PRs |
+| **Release** | [![Release][release-badge]][release-url] | Signed Stable and pre-release builds |
+| **Nightly** | [![Nightly][nightly-badge]][nightly-url] | Signed builds of `main` |
 
-### 🔍 Search & Discovery
+How each workflow works and when it runs: [GITHUB-WORKFLOW.md](GITHUB-WORKFLOW.md).
 
-- **Full-text search** powered by SQLite FTS5 with BM25 ranking and accent-insensitive matching
-- **Semantic search** using a local BGE-M3 embedder with hybrid mode fusing text and semantic rankings - every model runs offline on your machine, nothing leaves it
-- **Graph view** - interactive force-directed visualization of note connections
-- **Backlinks**, **outgoing links**, **tags**, and **properties** panel
+## 🛠 Built with
 
-### 📁 Organization
+<p>
+<img alt="Svelte 5" src="https://img.shields.io/badge/Svelte_5-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" />
+<img alt="SvelteKit" src="https://img.shields.io/badge/SvelteKit-FF3E00?style=for-the-badge&logo=svelte&logoColor=white" />
+<img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white" />
+<img alt="Tauri 2" src="https://img.shields.io/badge/Tauri_2-24C8DB?style=for-the-badge&logo=tauri&logoColor=white" />
+<img alt="Rust" src="https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white" />
+<img alt="CodeMirror 6" src="https://img.shields.io/badge/CodeMirror_6-D30707?style=for-the-badge&logo=codemirror&logoColor=white" />
+<img alt="SQLite" src="https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white" />
+<img alt="ONNX Runtime" src="https://img.shields.io/badge/ONNX_Runtime-005CED?style=for-the-badge&logo=onnx&logoColor=white" />
+<img alt="Tailwind CSS 4" src="https://img.shields.io/badge/Tailwind_4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white" />
+<img alt="shadcn-svelte" src="https://img.shields.io/badge/shadcn--svelte-000000?style=for-the-badge&logo=shadcnui&logoColor=white" />
+</p>
 
-- **Note types** - declare `type: Project` in frontmatter, browse by type in a dedicated sidebar
-- **Relationships** - semantic `_belongs_to` / `_related_to` / `_has_many` fields with relationship backlinks
-- **Lifecycle** - organize, archive, and favorite notes with inbox workflow, filtered views, and a macOS dock badge showing the inbox count
-- **Auto-move** - automatically route notes to folders based on expression rules
-- **Custom file icons** - 11 icon packs + emoji with color picker
-- **Folder notes**
+Kokobrain is written entirely with [Claude Code](https://docs.anthropic.com/en/docs/claude-code), with human review. Setup, commands and the full stack breakdown live in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-### 📊 Views & Tools
+## 📚 Learn more
 
-- **Canvas** - infinite visual board with text, file, link, and image nodes (JSON Canvas 1.0)
-- **Collection** - database/table views of notes queried by frontmatter properties
-- **QueryJS** - JavaScript API for programmatic vault queries
-- **Tasks** - aggregated view with custom statuses and Todoist sync
-- **Kanban** - drag-and-drop task boards with lanes, cards, dates, colors, and tags
-- **Calendar** - day, week, and month views of your Event notes; create, drag, and resize events, each one a plain Markdown note
-- **Periodic notes** - daily, weekly, monthly, and quarterly notes with templates and calendar
-
-### ⚙️ Power User
-
-- **File history** - automatic snapshots with diff viewer and restore
-- **Deep links** - open notes and trigger actions from outside the app via `kokobrain://` URLs
-- **Themes** - two built-in themes plus a catalog you install and update from Settings > Appearance, published in [koko.brain-themes](https://github.com/diegorv/koko.brain-themes)
-
-## 🛠 Stack
-
-**Svelte 5** + **SvelteKit** + **TypeScript** | **Tauri 2** (Rust) | **CodeMirror 6** | **SQLite** (FTS5 + ONNX semantic search) | **shadcn-svelte** (Tailwind v4)
-
-## 🚀 Getting Started
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for prerequisites, setup, commands, building, troubleshooting, and the full stack breakdown.
-
-## 📚 Documentation
-
-| | Document | Description |
-|---|----------|-------------|
-| 📖 | [User Guide](help/documentation/README.md) | Comprehensive guide covering every feature |
-| 🔬 | [Developer Patterns](docs/PATTERNS.md) | Svelte 5 reactive patterns, store conventions |
-| 🧪 | [Testing Guide](docs/TESTING.md) | Mock rules, assertion patterns, service/store tests |
-| 📝 | [Commit Conventions](docs/COMMITS.md) | Commit message format and examples |
-| 👁 | [Live Preview Architecture](docs/LIVE-PREVIEW.md) | Editor live preview plugin system |
-| 🔍 | [Search Architecture](docs/SEARCH.md) | Retrieval pipeline, chunking, models, RRF |
-| 🏷 | [Types & Relationships](help/documentation/25-types-and-relationships.md) | Note types, semantic relationships, lifecycle |
-| ⚙️ | [GitHub Workflows](GITHUB-WORKFLOW.md) | CI workflows, what they test, when they run |
-| 📦 | [Release Channels](docs/RELEASE-CHANNELS.md) | Stable vs Nightly, version semantics |
-| 🔒 | [Privacy](PRIVACY.md) | Offline-first, no telemetry, embedded file scope |
-| 🛡 | [Security](SECURITY.md) | Supply chain quarantine, pre-commit hook, CI guardrail |
-
-## 💡 Inspirations
-
-Concept-level inspirations from Obsidian community plugins I used daily. No code was copied.
-
-| Feature | Inspired by |
-|---------|-------------|
-| Collection | [Obsidian Bases](https://help.obsidian.md/bases) |
-| Auto-move | [obsidian-auto-note-mover](https://github.com/farux/obsidian-auto-note-mover) |
-| QueryJS | [obsidian-dataview](https://github.com/blacksmithgu/obsidian-dataview) |
-| Templates | [Templater](https://github.com/SilentVoid13/Templater) |
-| Calendar | [oz-calendar](https://github.com/ozntel/oz-calendar) |
-| Folder notes | [obsidian-folder-notes](https://github.com/LostPaul/obsidian-folder-notes) |
-| Auto open & Pin tab | [obsidian-homepage](https://github.com/mirnovov/obsidian-homepage) |
-| Types | [Tolaria note types system](https://github.com/refactoringhq/tolaria) |
-| Relationships | [Portent knowledge base spec](https://portent.md) |
+- 📖 **[User Guide](help/documentation/README.md)**: how to use every feature
+- ✨ **[Features](docs/FEATURES.md)**: the complete feature list
+- 🧭 **[Documentation index](docs/README.md)**: architecture, patterns, testing and release docs
+- 💡 **[Inspirations](docs/INSPIRATIONS.md)**: the tools and plugins that shaped Kokobrain
+- 🔒 **[Privacy](PRIVACY.md)** and 🛡 **[Security](SECURITY.md)**: what runs offline, and how the supply chain is guarded
 
 ## 📄 License
 
 Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 
-<!-- ─── Badge reference definitions ────────────────────────────── -->
+<!-- Badge reference definitions -->
 
 [ci-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/ci.yml?branch=main&event=workflow_call&label=CI&logo=github&logoColor=white
 [ci-url]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml
@@ -116,8 +178,6 @@ Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 [release-url]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml
 [nightly-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/nightly.yml?label=Nightly&logo=github&logoColor=white
 [nightly-url]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml
-[wiki-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/sync-wiki.yml?label=Wiki%20Sync&logo=github&logoColor=white
-[wiki-url]: https://github.com/diegorv/koko.brain/actions/workflows/sync-wiki.yml
 [dependabot-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/dependabot/dependabot-updates?label=Dependabot&logo=dependabot&logoColor=white
 [dependabot-url]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates
 [version-badge]: https://img.shields.io/github/v/release/diegorv/koko.brain?include_prereleases&sort=semver&label=release&color=blue

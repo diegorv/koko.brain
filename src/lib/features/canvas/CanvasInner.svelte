@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount, untrack } from 'svelte';
 	import {
 		SvelteFlow,
 		Background,
@@ -41,17 +41,26 @@
 	} from './canvas.logic';
 	import { isImageFile } from './canvas-image.service';
 	import { createHistory, pushSnapshot, undo, redo, type CanvasHistory } from './canvas-history.logic';
-	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { openFileInEditor, registerPendingEditFlusher } from '#lib/core/editor/editor.service.js';
 	import type { CanvasData, CanvasNode, CanvasColor } from './canvas.types';
 
 	interface Props {
+		/** Path of the .canvas file; fixed for the instance's lifetime (the parent keys it by path) */
+		path: string;
 		/** Raw JSON content of the .canvas file */
 		jsonContent: string;
-		/** Callback to persist changes */
-		onJsonChange: (json: string) => void;
+		/** Callback to persist changes into the tab of `path` */
+		onJsonChange: (path: string, json: string) => void;
 	}
 
-	let { jsonContent, onJsonChange }: Props = $props();
+	let { path, jsonContent, onJsonChange }: Props = $props();
+
+	/**
+	 * The file this instance persists to, read once. Persists also run from the
+	 * debounce timer and the onDestroy flush, after a tab switch or close may
+	 * have moved the active tab, so they must not follow the props.
+	 */
+	const ownPath = untrack(() => path);
 
 	const { fitView, screenToFlowPosition, updateNodeData, getIntersectingNodes } = useSvelteFlow();
 
@@ -67,16 +76,19 @@
 		smoothstep: CanvasEdge,
 	};
 
-	/** The parsed canvas data (source of truth from disk) */
-	let canvasData = $derived(parseCanvas(jsonContent));
-
-	/** Svelte Flow nodes/edges — initialized from canvas data */
-	let flowState = $derived(canvasToFlow(canvasData));
+	/** Svelte Flow nodes/edges, set from the parsed content by the sync effect below */
 	let nodes = $state.raw<Node[]>([]);
 	let edges = $state.raw<Edge[]>([]);
 
 	/** Track the last parsed JSON to avoid re-syncing on our own writes */
 	let lastSyncedJson = '';
+
+	/**
+	 * Canvas data of `lastSyncedJson`: the base `flowToCanvas` restores
+	 * unknown node fields from. Kept here rather than derived from
+	 * `jsonContent`, which at destroy time may read another tab's content.
+	 */
+	let lastSyncedData: CanvasData = { nodes: [], edges: [] };
 
 	/** Flag to suppress persist when nodes change due to an external content sync */
 	let syncing = false;
@@ -86,10 +98,12 @@
 		const json = jsonContent;
 		if (json !== lastSyncedJson) {
 			syncing = true;
-			const state = canvasToFlow(parseCanvas(json));
+			const data = parseCanvas(json);
+			const state = canvasToFlow(data);
 			nodes = state.nodes;
 			edges = state.edges;
 			lastSyncedJson = json;
+			lastSyncedData = data;
 			// Push initial state to history so first undo has a baseline
 			history = pushSnapshot(history, { nodes: state.nodes, edges: state.edges });
 			// Reset after current microtask so the debounce effect sees syncing=true
@@ -102,10 +116,11 @@
 
 	/** Persist flow state without recording history (used by undo/redo) */
 	function persistWithoutHistory(updatedNodes: Node[], updatedEdges: Edge[]) {
-		const restored = flowToCanvas(updatedNodes, updatedEdges, canvasData);
+		const restored = flowToCanvas(updatedNodes, updatedEdges, lastSyncedData);
 		const json = serializeCanvas(restored);
 		lastSyncedJson = json;
-		onJsonChange(json);
+		lastSyncedData = restored;
+		onJsonChange(ownPath, json);
 	}
 
 	/** Persist flow state changes back to the .canvas file and push to history */
@@ -225,8 +240,22 @@
 		return () => clearTimeout(nodesChangeTimer);
 	});
 
+	// A close removes the tab before this instance is destroyed, so closeTab
+	// runs this flusher first to put the pending edit into the tab it saves.
+	onMount(() =>
+		registerPendingEditFlusher(ownPath, () => {
+			if (!pendingPersist) return;
+			persistChanges(nodes, edges);
+			// Cleared only after a successful persist: if it throws, the armed
+			// timer retries the edit instead of leaving it unscheduled.
+			clearTimeout(nodesChangeTimer);
+			pendingPersist = false;
+		}),
+	);
+
 	// Flush pending persist on component destroy so the last edit is not
-	// lost when the user quits within the 300ms debounce window.
+	// lost when the user switches tabs or toggles source mode within the
+	// 300ms debounce window. A close goes through the flusher registered above.
 	onDestroy(() => {
 		if (pendingPersist) {
 			persistChanges(nodes, edges);

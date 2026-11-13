@@ -23,7 +23,7 @@ export async function maybeAutoCheckForUpdates(): Promise<void> {
 	try {
 		const update = await call('check_for_update_on_channel', { channel });
 		// Mutating the store IS persisting: the settings persistence owner
-		// writes the timestamp, so the "Last checked" row survives a relaunch.
+		// writes the timestamp, so the "Last checked" text survives a relaunch.
 		settingsStore.updateUpdates({ lastCheckedAt: Date.now() });
 		if (update) {
 			toast.info(`Update available: ${update.version}`, {

@@ -2,7 +2,7 @@ import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
 import { findAllMetaBindButtonBlocks } from '../parsers/meta-bind-button';
-import { parseButtonConfig } from '../meta-bind-button.logic';
+import { buttonConfigError, parseButtonConfig } from '../meta-bind-button.logic';
 import { MetaBindButtonWidget, MetaBindButtonErrorWidget } from '../widgets/meta-bind-button-widget';
 import { hideLines } from '../core/hide-lines';
 import { blockDecorator } from '../core/block-decorator';
@@ -20,7 +20,7 @@ export function computeMetaBindButtons(state: EditorState): DecorationSet {
 		const config = parseButtonConfig(block.yamlContent);
 		const widget = config
 			? new MetaBindButtonWidget(config)
-			: new MetaBindButtonErrorWidget('Invalid configuration');
+			: new MetaBindButtonErrorWidget(buttonConfigError(block.yamlContent) ?? 'invalid configuration');
 
 		// First line: replace with the widget
 		builder.add(block.openFenceFrom, block.openFenceTo, Decoration.replace({ widget }));

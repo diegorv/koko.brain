@@ -1,4 +1,4 @@
-import { fileIconsStore } from './file-icons.store.svelte';
+import { fileIconsStore, type FrontmatterIconRef } from './file-icons.store.svelte';
 import { getIconSync } from './file-icons.icon-data';
 import type { NormalizedIcon } from './file-icons.types';
 
@@ -30,41 +30,50 @@ export function registerTypeIconLookup(lookup: TypeIconLookup): () => void {
 	};
 }
 
-/** Result of icon resolution: the icon data plus optional styling */
+/**
+ * Result of icon resolution: the one answer to how an item looks, read by every
+ * place that shows one. Without `icon` the caller keeps its own default icon and
+ * still applies `color` to it (`iconColorStyle`) and `titleColor` to the title.
+ */
 export interface ResolvedIcon {
-	/** The normalized icon ready for rendering */
-	icon: NormalizedIcon;
+	/** The normalized icon ready for rendering; absent when only colors apply */
+	icon?: NormalizedIcon;
 	/** Optional color override for the icon */
 	color?: string;
 	/** Optional color override for the filename text */
 	titleColor?: string;
 }
 
+/** Turns an index entry into a result; an icon its pack does not have still leaves the colors. */
+function resolveRef(ref: FrontmatterIconRef | undefined): ResolvedIcon | undefined {
+	if (!ref) return undefined;
+	const icon = ref.iconPack && ref.iconName ? getIconSync(ref.iconPack, ref.iconName) : undefined;
+	if (!icon && !ref.color && !ref.titleColor) return undefined;
+	return { icon, color: ref.color, titleColor: ref.titleColor };
+}
+
 /**
- * Resolves the display icon for a file path using the canonical priority chain:
- * 1. Frontmatter icon (_icon/icon in the file's own YAML)
- * 2. Type definition icon (inherited from the file's type)
- * 3. Custom icon (from .kokobrain/file-icons.json)
+ * Resolves the display icon and colors for a file path:
+ * 1. The file's own frontmatter icon, with its own colors only
+ * 2. The icon of the file's type definition, with the file's own colors laid over the type's
  *
- * Returns undefined when no icon is found; caller provides its own fallback.
+ * Returns undefined when nothing applies; caller provides its own fallback.
  * Reading packVersion creates a reactive dependency so consumers re-render
  * when icon packs finish loading.
  */
 export function resolveIconForPath(path: string): ResolvedIcon | undefined {
 	void fileIconsStore.packVersion;
 
-	// Priority 1: file's own frontmatter icon
-	const fmRef = fileIconsStore.getFrontmatterIcon(path);
-	if (fmRef) {
-		const icon = getIconSync(fmRef.iconPack, fmRef.iconName);
-		if (icon) return { icon, color: fmRef.color, titleColor: fmRef.titleColor };
-	}
+	const own = resolveRef(fileIconsStore.getFrontmatterIcon(path));
+	if (own?.icon) return own;
 
-	// Priority 2: type definition icon (inherited via isA)
-	const typeResult = resolveTypeIconForPath(path);
-	if (typeResult) return typeResult;
-
-	return undefined;
+	const inherited = resolveTypeIconForPath(path);
+	if (!own) return inherited;
+	return {
+		icon: inherited?.icon,
+		color: own.color ?? inherited?.color,
+		titleColor: own.titleColor ?? inherited?.titleColor,
+	};
 }
 
 /**
@@ -77,12 +86,7 @@ export function resolveIconForType(typeName: string): ResolvedIcon | undefined {
 
 	const defPath = typeIconLookup?.definitionPathOf(typeName);
 	if (!defPath) return undefined;
-	const fmRef = fileIconsStore.getFrontmatterIcon(defPath);
-	if (fmRef) {
-		const icon = getIconSync(fmRef.iconPack, fmRef.iconName);
-		if (icon) return { icon, color: fmRef.color, titleColor: fmRef.titleColor };
-	}
-	return undefined;
+	return resolveRef(fileIconsStore.getFrontmatterIcon(defPath));
 }
 
 /** Finds the file's type via isA, then resolves the type definition's icon */

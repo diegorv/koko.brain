@@ -20,8 +20,8 @@
 	<h2 class="mb-4 text-lg font-semibold">Periodic Notes</h2>
 
 	<SettingItem
-		label="Base folder"
-		description="Folder where periodic notes are created"
+		label="Notes folder"
+		description="Folder where periodic notes are created. Quick Capture notes (Cmd+N included) and a plain + New here note go in it too."
 	>
 		<Input
 			value={settingsStore.periodicNotes.folder}
@@ -32,9 +32,9 @@
 	</SettingItem>
 
 	<!-- Daily -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Daily</h3>
+	<h3 class="section-label mt-6 mb-2">Daily</h3>
 
-	<SettingItem label="Format" description="dayjs format string for the note path">
+	<SettingItem label="Format" description="Date pattern for the note path and name">
 		<Input
 		value={settingsStore.periodicNotes.daily.format}
 			oninput={(e) => updatePeriod('daily', 'format', inputValue(e))}
@@ -63,9 +63,9 @@
 	</SettingItem>
 
 	<!-- Weekly -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Weekly</h3>
+	<h3 class="section-label mt-6 mb-2">Weekly</h3>
 
-	<SettingItem label="Format" description="dayjs format string for the note path">
+	<SettingItem label="Format" description="Date pattern for the note path and name">
 		<Input
 		value={settingsStore.periodicNotes.weekly.format}
 			oninput={(e) => updatePeriod('weekly', 'format', inputValue(e))}
@@ -80,9 +80,9 @@
 	</SettingItem>
 
 	<!-- Monthly -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Monthly</h3>
+	<h3 class="section-label mt-6 mb-2">Monthly</h3>
 
-	<SettingItem label="Format" description="dayjs format string for the note path">
+	<SettingItem label="Format" description="Date pattern for the note path and name">
 		<Input
 		value={settingsStore.periodicNotes.monthly.format}
 			oninput={(e) => updatePeriod('monthly', 'format', inputValue(e))}
@@ -97,9 +97,9 @@
 	</SettingItem>
 
 	<!-- Quarterly -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Quarterly</h3>
+	<h3 class="section-label mt-6 mb-2">Quarterly</h3>
 
-	<SettingItem label="Format" description="dayjs format string for the note path">
+	<SettingItem label="Format" description="Date pattern for the note path and name">
 		<Input
 		value={settingsStore.periodicNotes.quarterly.format}
 			oninput={(e) => updatePeriod('quarterly', 'format', inputValue(e))}
@@ -114,9 +114,9 @@
 	</SettingItem>
 
 	<!-- Yearly -->
-	<h3 class="mb-2 text-base font-bold text-settings-text">Yearly</h3>
+	<h3 class="section-label mt-6 mb-2">Yearly</h3>
 
-	<SettingItem label="Format" description="dayjs format string for the note path">
+	<SettingItem label="Format" description="Date pattern for the note path and name">
 		<Input
 		value={settingsStore.periodicNotes.yearly.format}
 			oninput={(e) => updatePeriod('yearly', 'format', inputValue(e))}

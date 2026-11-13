@@ -1,5 +1,5 @@
 import { clamp } from '#lib/utils/clamp.js';
-import type { AppSettings, EditorSettings, EventCalendarSettings, HeadingLevelSettings, LayoutSettings, SettingsSection } from './settings.types';
+import type { AppSettings, EditorSettings, EventCalendarSettings, HeadingLevelSettings, HeadingTypography, LayoutSettings, SettingsSection, TodoistSettings } from './settings.types';
 
 /**
  * Merges the `layout` read from settings.json over `defaults`, key by key. Only the keys
@@ -63,6 +63,39 @@ export function normalizeTailnetHost(value: unknown): string {
 /** A Tailscale login, trimmed; case is kept (the host compares it exactly). A non-string is empty. */
 export function normalizeOwnerLogin(value: unknown): string {
 	return typeof value === 'string' ? value.trim() : '';
+}
+
+/** H4-H6 as every release before the distinct heading scale saved them */
+const OLD_H4_TO_H6_DEFAULT: HeadingLevelSettings = { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 };
+
+/** The body multiplier the editor applied on top of the font size setting before it was removed */
+const OLD_BODY_MULTIPLIER = 1.05;
+
+/**
+ * Moves an editor block saved before the current type scale onto it, once:
+ * the font size becomes the size the body rendered at (`round(size x 1.05)`),
+ * and an H4-H6 level still at the old default is dropped so the load merge
+ * fills it with the new default; a level the user changed stays. The result
+ * carries `typeScaleMigrated: true`, and a block that already has it is
+ * returned as is, so the size does not grow on every load. Run it on the
+ * parsed file before merging defaults, which would supply the flag.
+ */
+export function migrateTypeScale(saved: Partial<EditorSettings> | undefined): Partial<EditorSettings> | undefined {
+	if (!saved || saved.typeScaleMigrated === true) return saved;
+	const out: Partial<EditorSettings> = { ...saved, typeScaleMigrated: true };
+	if (typeof saved.fontSize === 'number') out.fontSize = Math.round(saved.fontSize * OLD_BODY_MULTIPLIER);
+	if (saved.headingTypography) {
+		const headings: Partial<Record<keyof HeadingTypography, Partial<HeadingLevelSettings>>> = { ...saved.headingTypography };
+		for (const level of ['h4', 'h5', 'h6'] as const) {
+			const merged: HeadingLevelSettings = { ...OLD_H4_TO_H6_DEFAULT, ...headings[level] };
+			const atOldDefault = (Object.keys(OLD_H4_TO_H6_DEFAULT) as (keyof HeadingLevelSettings)[]).every(
+				(key) => merged[key] === OLD_H4_TO_H6_DEFAULT[key],
+			);
+			if (headings[level] && atOldDefault) delete headings[level];
+		}
+		out.headingTypography = headings as HeadingTypography;
+	}
+	return out;
 }
 
 /** Clamps a font size to the valid range (8–32 px) */
@@ -159,6 +192,43 @@ function normalizeEventCalendar(calendar: EventCalendarSettings): EventCalendarS
 	return unchanged ? calendar : normalized;
 }
 
+/** Vault contexts of the Todoist sync (design rule 8b); the only runtime copy of this list */
+export const TODOIST_SYNC_CONTEXTS = ['work', 'personal'] as const;
+
+/**
+ * Rounds the Todoist sync interval to whole minutes, at least 1. A value that
+ * is not a finite number (`null` or a string from a hand-edited settings.json,
+ * NaN) becomes 5: `Math.round(null)` is 0, which would clamp to 1.
+ */
+export function clampSyncIntervalMinutes(minutes: number): number {
+	if (typeof minutes !== 'number') return 5;
+	const rounded = Math.round(minutes);
+	if (!Number.isFinite(rounded)) return 5;
+	return Math.max(1, rounded);
+}
+
+/**
+ * Forces every Todoist sync field back to a valid value, keeping the input
+ * object when every field already is (same identity rule as
+ * `normalizeEventCalendar`). `apiToken` and `defaultLabel` pass through.
+ */
+function normalizeTodoist(todoist: TodoistSettings): TodoistSettings {
+	const folder = typeof todoist.syncFolder === 'string' ? todoist.syncFolder.trim() : '';
+	const normalized: TodoistSettings = {
+		...todoist,
+		syncEnabled: todoist.syncEnabled === true,
+		syncFolder: folder === '' ? 'Todoist' : folder,
+		syncIntervalMinutes: clampSyncIntervalMinutes(todoist.syncIntervalMinutes),
+		syncContext: (TODOIST_SYNC_CONTEXTS as readonly string[]).includes(todoist.syncContext) ? todoist.syncContext : 'work',
+		syncRootProjectId: typeof todoist.syncRootProjectId === 'string' ? todoist.syncRootProjectId : '',
+		syncIncludeInbox: todoist.syncIncludeInbox === true,
+	};
+	const unchanged = (Object.keys(normalized) as (keyof TodoistSettings)[]).every(
+		(key) => normalized[key] === todoist[key],
+	);
+	return unchanged ? todoist : normalized;
+}
+
 /** Clamps the three numeric fields of one heading level, keeping the rest as-is */
 function normalizeHeadingLevel(level: HeadingLevelSettings): HeadingLevelSettings {
 	return {
@@ -200,6 +270,7 @@ export function normalizeSettings(settings: AppSettings): AppSettings {
 			},
 		},
 		eventCalendar: normalizeEventCalendar(settings.eventCalendar),
+		todoist: normalizeTodoist(settings.todoist),
 		remoteServer: {
 			...settings.remoteServer,
 			port: normalizeRemoteServerPort(settings.remoteServer.port),
@@ -228,40 +299,44 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 		sections: [
 			{ id: 'appearance', label: 'Appearance' },
 			{ id: 'editor', label: 'Editor' },
-			{ id: 'sidebar', label: 'Sidebar' },
+			{ id: 'layout', label: 'Layout' },
 		],
 	},
 	{
 		group: 'Notes',
 		sections: [
+			{ id: 'types', label: 'Types' },
 			{ id: 'periodic-notes', label: 'Periodic Notes' },
 			{ id: 'quick-capture', label: 'Quick Capture' },
 			{ id: 'one-on-one', label: '1:1 Notes' },
-			{ id: 'templates', label: 'Templates' },
-			{ id: 'types', label: 'Types' },
 			{ id: 'event-calendar', label: 'Calendar' },
+		],
+	},
+	{
+		group: 'Vault',
+		sections: [
+			{ id: 'files', label: 'Files & Folders' },
+			{ id: 'file-history', label: 'File History' },
+			{ id: 'auto-organize', label: 'Auto Organize' },
+			{ id: 'trash', label: 'Trash' },
 		],
 	},
 	{
 		group: 'Tools',
 		sections: [
 			{ id: 'search', label: 'Search' },
-			{ id: 'file-history', label: 'File History' },
-			{ id: 'auto-move', label: 'Auto Move' },
-			{ id: 'trash', label: 'Trash' },
 			{ id: 'queryjs', label: 'QueryJS' },
 		],
 	},
 	{
 		group: 'Integrations',
-		sections: [
-			{ id: 'todoist', label: 'Todoist' },
-			{ id: 'sentry', label: 'Sentry' },
-		],
+		sections: [{ id: 'todoist', label: 'Todoist' }],
 	},
 	{
 		group: 'Advanced',
 		sections: [
+			{ id: 'labs', label: 'Labs' },
+			{ id: 'sentry', label: 'Sentry' },
 			{ id: 'troubleshooting', label: 'Troubleshooting' },
 			{ id: 'update', label: 'Update' },
 			{ id: 'remote-access', label: 'Browser Access' },

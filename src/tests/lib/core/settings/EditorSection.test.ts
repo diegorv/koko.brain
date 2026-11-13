@@ -9,8 +9,12 @@ vi.mock('@tauri-apps/api/core', () => ({
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
+import { invoke } from '@tauri-apps/api/core';
 import EditorSection from '#lib/core/settings/sections/EditorSection.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+
+// The command list scrolls its highlighted item into view; jsdom has no layout.
+Element.prototype.scrollIntoView ??= () => {};
 
 describe('EditorSection - clamp on commit', () => {
 	let target: HTMLElement;
@@ -32,7 +36,7 @@ describe('EditorSection - clamp on commit', () => {
 
 	/**
 	 * The four editor-level number inputs, in markup order:
-	 * font size, line height, content width, paragraph spacing.
+	 * font size, line height, paragraph spacing, content width.
 	 * Heading inputs live inside `<details>` and are excluded here.
 	 */
 	function editorInputs(): HTMLInputElement[] {
@@ -63,6 +67,14 @@ describe('EditorSection - clamp on commit', () => {
 		input.dispatchEvent(new Event('change', { bubbles: true }));
 		flushSync();
 	}
+
+	it('groups the rows under Text, Page and Heading typography', () => {
+		expect([...target.querySelectorAll('h3')].map((h) => h.textContent?.trim())).toEqual(['Text', 'Page', 'Heading typography']);
+		const text = target.textContent ?? '';
+		const order = ['Text', 'Font family', 'Font size', 'Line height', 'Paragraph spacing', 'Page', 'Content width', 'Heading typography'].map((label) => text.indexOf(label));
+		expect(order).not.toContain(-1);
+		expect(order).toEqual([...order].sort((a, b) => a - b));
+	});
 
 	it('renders the four editor number inputs plus the heading ones', () => {
 		expect(editorInputs()).toHaveLength(4);
@@ -95,7 +107,7 @@ describe('EditorSection - clamp on commit', () => {
 	});
 
 	it('clamps content width on commit', () => {
-		const input = editorInputs()[2];
+		const input = editorInputs()[3];
 		type(input, '50');
 		expect(settingsStore.editor.contentWidth).toBe(50);
 		commit(input);
@@ -103,14 +115,14 @@ describe('EditorSection - clamp on commit', () => {
 	});
 
 	it('keeps content width 0 as the "no limit" sentinel on commit', () => {
-		const input = editorInputs()[2];
+		const input = editorInputs()[3];
 		type(input, '0');
 		commit(input);
 		expect(settingsStore.editor.contentWidth).toBe(0);
 	});
 
 	it('clamps paragraph spacing on commit', () => {
-		const input = editorInputs()[3];
+		const input = editorInputs()[2];
 		type(input, '9');
 		expect(settingsStore.editor.paragraphSpacing).toBe(9);
 		commit(input);
@@ -139,5 +151,57 @@ describe('EditorSection - clamp on commit', () => {
 		expect(settingsStore.editor.headingTypography.h1.letterSpacing).toBe(5);
 		commit(input);
 		expect(settingsStore.editor.headingTypography.h1.letterSpacing).toBe(0.1);
+	});
+});
+
+describe('EditorSection - font picker', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(async () => {
+		settingsStore.reset();
+		vi.mocked(invoke).mockResolvedValueOnce(['Font Awesome 6 Free', 'Menlo']);
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorSection, { target });
+		flushSync();
+		// Let `onMount` receive the font list and render the Browse trigger.
+		await vi.waitFor(() => {
+			if (!findBrowse()) throw new Error('Browse trigger not rendered');
+		});
+		findBrowse()!.click();
+		flushSync();
+		await vi.waitFor(() => {
+			if (pickerItems().length === 0) throw new Error('font picker items not rendered');
+		});
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		settingsStore.reset();
+	});
+
+	function findBrowse(): HTMLButtonElement | undefined {
+		return [...target.querySelectorAll('button')].find((b) => b.textContent?.trim() === 'Browse');
+	}
+
+	/** The picker items; the popover content is portalled to `document.body`. */
+	function pickerItems(): HTMLElement[] {
+		return [...document.body.querySelectorAll<HTMLElement>('[data-command-item]')];
+	}
+
+	it('previews each font in its own face, quoted', () => {
+		const item = pickerItems().find((el) => el.textContent?.trim() === 'Font Awesome 6 Free');
+		expect(item).toBeDefined();
+		expect(item!.style.fontFamily).toBe('"Font Awesome 6 Free"');
+		expect(item!.className).not.toContain('font-[');
+	});
+
+	it('stores the picked name as written', () => {
+		const item = pickerItems().find((el) => el.textContent?.trim() === 'Menlo');
+		item!.click();
+		flushSync();
+		expect(settingsStore.editor.fontFamily).toBe('Menlo');
 	});
 });

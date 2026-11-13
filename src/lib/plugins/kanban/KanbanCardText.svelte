@@ -51,7 +51,7 @@
 					<div class="flex gap-1.5">
 						{#each COLOR_NAMES as color}
 							<button
-								class="size-5 rounded-full ring-offset-1 transition-transform hover:scale-110 {tagColors[seg.value] === color ? 'ring-2 ring-foreground' : ''}"
+								class="size-5 rounded-full ring-offset-1 transition-opacity hover:opacity-80 {tagColors[seg.value] === color ? 'ring-2 ring-foreground' : ''}"
 								style="background: {COLOR_PRESET_TEXT[color]}"
 								onmousedown={(e) => { e.preventDefault(); onSetTagColor?.(seg.value, color); }}
 								title={color}
@@ -61,7 +61,7 @@
 					</div>
 					{#if tagColors[seg.value] && tagColors[seg.value] !== 'gray'}
 						<button
-							class="mt-2 w-full rounded px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted"
+							class="mt-2 w-full rounded-xs px-2 py-0.5 text-xs text-muted-foreground hover:bg-muted"
 							onmousedown={(e) => { e.preventDefault(); onRemoveTagColor?.(seg.value); }}
 							type="button"
 						>

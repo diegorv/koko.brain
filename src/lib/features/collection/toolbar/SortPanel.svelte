@@ -30,9 +30,11 @@
 		propertyIndex: Map<string, PropertyIndexRecord>;
 		/** Called when sorts change */
 		onSortsChange: (sorts: SortDef[]) => void;
+		/** Shown when there are no sorts, e.g. the sort a `.view` list falls back to; defaults to "No sorts applied" */
+		emptyText?: string;
 	}
 
-	let { sorts, availableProperties, propertyConfigs, propertyIndex, onSortsChange }: Props = $props();
+	let { sorts, availableProperties, propertyConfigs, propertyIndex, onSortsChange, emptyText = 'No sorts applied' }: Props = $props();
 
 	/** Properties not yet sorted, available for the "+ Add sort" dropdown */
 	let unsortedProperties = $derived(
@@ -108,14 +110,14 @@
 							if (sort.direction !== 'ASC') onSortsChange(toggleSortDirection(sorts, sort.column));
 						}}
 					>
-						<span class="text-xs">{getSortDirectionLabel('ASC', propType)}</span>
+						<span>{getSortDirectionLabel('ASC', propType)}</span>
 					</DropdownMenuItem>
 					<DropdownMenuItem
 						onclick={() => {
 							if (sort.direction !== 'DESC') onSortsChange(toggleSortDirection(sorts, sort.column));
 						}}
 					>
-						<span class="text-xs">{getSortDirectionLabel('DESC', propType)}</span>
+						<span>{getSortDirectionLabel('DESC', propType)}</span>
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
@@ -133,7 +135,7 @@
 	{/each}
 
 	{#if sorts.length === 0}
-		<p class="text-xs text-muted-foreground">No sorts applied</p>
+		<p class="text-xs text-muted-foreground" data-sort-panel-empty>{emptyText}</p>
 	{/if}
 
 	<!-- Add sort -->
@@ -148,7 +150,7 @@
 			<DropdownMenuContent class="max-h-[300px] overflow-y-auto">
 				{#each unsortedProperties as prop}
 					<DropdownMenuItem onclick={() => onSortsChange([...sorts, { column: prop, direction: 'ASC' }])}>
-						<span class="text-xs">{getDisplayName(prop)}</span>
+						<span>{getDisplayName(prop)}</span>
 					</DropdownMenuItem>
 				{/each}
 			</DropdownMenuContent>

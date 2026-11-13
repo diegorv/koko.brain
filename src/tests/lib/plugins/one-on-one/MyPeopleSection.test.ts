@@ -10,7 +10,7 @@ setupLocalStorage();
 vi.mock('@tauri-apps/plugin-fs', () => ({ readDir: vi.fn(), exists: vi.fn(), readTextFile: vi.fn() }));
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('#lib/core/editor/editor.service.js', () => ({ openFileInEditor: vi.fn() }));
-vi.mock('#lib/core/editor/editor.hooks.js', () => ({ markRecentSave: vi.fn() }));
+vi.mock('#lib/core/editor/editor.hooks.js', () => ({ markRecentSave: vi.fn(), notifyNoteCreated: vi.fn() }));
 vi.mock('#lib/core/filesystem/fs.service.js', () => ({ addToTree: vi.fn() }));
 vi.mock('svelte-sonner', () => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('#lib/utils/debug.js', () => ({ debug: vi.fn(), error: vi.fn() }));
@@ -70,6 +70,7 @@ describe('MyPeopleSection', () => {
 		vaultStore._reset();
 		vaultStore.open('/vault');
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		editorStore.reset();
 		typeDefinitionsStore.reset();
 		railRegistryStore.reset();
@@ -131,6 +132,13 @@ describe('MyPeopleSection', () => {
 		const classes = [...target.querySelectorAll<HTMLElement>('[class]')].map((el) => el.getAttribute('class')).join(' ');
 		expect(classes).not.toMatch(/\b(?:text|bg)-(?:amber|yellow|red|gray|slate|zinc|neutral|sky|orange)-\d/);
 		expect(target.innerHTML).not.toMatch(/#[0-9a-f]{3,8}\b|rgb\(/i);
+	});
+
+	it('rounds the row with the same 8px corner as the rail and the right-sidebar rows', async () => {
+		typeDefinitionsStore.setEntries([person('Ana')]);
+		await mountSection();
+		expect(rowEl('Ana').classList).toContain('rounded-md');
+		expect(rowEl('Ana').className).not.toMatch(/(^|\s)rounded(\s|$)/);
 	});
 
 	it('opens the person from the row', async () => {

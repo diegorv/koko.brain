@@ -2,7 +2,7 @@ import type { Dayjs } from 'dayjs';
 import { exists, readTextFile } from '@tauri-apps/plugin-fs';
 import { call } from '#lib/contracts/ipc.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
+import { markRecentSave, notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
 import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
@@ -74,6 +74,7 @@ export async function loadNoteTemplate(options: NoteTemplateOptions): Promise<st
  * 5. Write file
  * 6. Add the note to the file tree
  * 7. Open in editor
+ * 8. When it created the note, notify the note-created observers
  */
 export async function openOrCreateNote(options: NoteCreationOptions): Promise<void> {
 	const { filePath, templatePath, inlineTemplate, title, customVariables, contextDate, buildContent } = options;
@@ -124,6 +125,9 @@ export async function openOrCreateNote(options: NoteCreationOptions): Promise<vo
 
 		appendLog('FE-STARTUP-PROBE', `openOrCreateNote: before openFileInEditor @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 		await openFileInEditor(filePath);
+		// After the open, so an observer's write reaches the tab instead of
+		// being overwritten by the tab's next autosave.
+		if (!fileExists) notifyNoteCreated(filePath);
 		appendLog('FE-STARTUP-PROBE', `openOrCreateNote: EXIT @ ${(performance.now() - probeStart).toFixed(1)}ms`);
 	} catch (err) {
 		error('NOTE_CREATOR', 'Failed to open or create note:', err);

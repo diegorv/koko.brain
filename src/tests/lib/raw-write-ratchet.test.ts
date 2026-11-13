@@ -29,7 +29,7 @@ const ALLOWED: Record<string, string[]> = {
 	'src/lib/core/editor/note-write.port.ts': ['the editor save (desktop note writer); notifyAfterSave follows in editor.service'],
 	'src/lib/core/settings/settings.service.ts': ['settings JSON in .kokobrain, not a note'],
 	'src/lib/core/trash/trash.service.ts': ['trash manifest JSON, not a note'],
-	'src/lib/features/auto-move/auto-move.service.ts': ['auto-move config JSON in .kokobrain, not a note'],
+	'src/lib/features/auto-organize/auto-organize.service.ts': ['auto-organize config JSON in .kokobrain, not a note'],
 	'src/lib/features/deep-link/deep-link.service.ts': [
 		'deep-link prepend to an existing note; notifyAfterSave follows',
 		'deep-link append to an existing note; notifyAfterSave follows',
@@ -41,12 +41,11 @@ const ALLOWED: Record<string, string[]> = {
 		'recent icons JSON in .kokobrain, not a note',
 		'folder-note placeholder; applyNoteChange follows',
 	],
-	'src/lib/features/tasks/todoist.service.ts': ['sent-tasks JSON in .kokobrain, not a note'],
 	'src/lib/features/type-definitions/type-definitions.service.ts': [
 		'renameType rewrites _type in open tabs; applyNoteChange follows',
-		'.view icon YAML, not a note',
-		'.view query YAML, not a note; the parse cache is refreshed after',
+		'rewriteViewFile writes a .view with no open tab; markRecentSave and applyNoteChange follow (an open tab saves through the editor)',
 	],
+	'src/lib/plugins/mods/mod-vault.service.ts': ['mod ctx.vault.write to an existing note; notifyAfterSave follows'],
 	'src/lib/plugins/templates/templates.service.ts': ['empty template scaffolding; the watcher indexes it'],
 	'src/lib/utils/log.service.ts': ['session log file outside the vault'],
 };

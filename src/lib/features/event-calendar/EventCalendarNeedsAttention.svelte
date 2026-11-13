@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { eventCalendarStore } from './event-calendar.store.svelte';
+	import { eventCalendarViewStore } from './event-calendar-view.store.svelte';
 	import type { EventIssue } from './event-calendar.types';
 
 	/** Whether the quiet "N unscheduled" link has expanded its list. */
@@ -10,6 +11,7 @@
 	let unscheduled = $derived(eventCalendarStore.unscheduledIssues);
 	let attentionCount = $derived(eventCalendarStore.attentionCount);
 	let archivedCount = $derived(eventCalendarStore.archivedCount);
+	let showArchived = $derived(eventCalendarViewStore.showArchived);
 
 	/** Reason text of an actionable issue. */
 	function reasonText(issue: EventIssue): string {
@@ -41,7 +43,7 @@
 	<li>
 		<button
 			type="button"
-			class="flex w-full flex-col items-start rounded px-2 py-1 text-left hover:bg-muted"
+			class="flex w-full flex-col items-start rounded-md px-2 py-1 text-left hover:bg-muted"
 			data-issue-path={issue.path}
 			onclick={() => openFileInEditor(issue.path)}
 		>
@@ -98,7 +100,16 @@
 		{/if}
 		{#if archivedCount > 0}
 			<p class="mt-2 text-xs text-muted-foreground" data-archived-footer>
-				{archivedCount} archived {archivedCount === 1 ? 'event' : 'events'} hidden
+				{archivedCount} archived {archivedCount === 1 ? 'event' : 'events'} {showArchived ? 'shown' : 'hidden'}
+				<button
+					type="button"
+					class="ml-1 underline-offset-2 hover:text-foreground hover:underline"
+					aria-pressed={showArchived}
+					onclick={() => eventCalendarViewStore.setShowArchived(!showArchived)}
+					data-archived-toggle
+				>
+					{showArchived ? 'Hide' : 'Show'}
+				</button>
 			</p>
 		{/if}
 	</div>

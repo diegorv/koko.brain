@@ -25,6 +25,7 @@ import {
 	getFormatForPeriod,
 } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
 import {
+	dailyNotePath,
 	openOrCreateDailyNote,
 	openOrCreatePeriodicNote,
 	openOrCreatePeriodicNoteForDate,
@@ -34,6 +35,57 @@ import {
 	_getLastAutoOpenedDate,
 	registerCalendarDailyNoteOpener,
 } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
+
+describe('dailyNotePath', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		settingsStore.reset();
+		vaultStore.open('/vault');
+		settingsStore.updatePeriodicNotes({
+			folder: 'vault/notes',
+			daily: { format: 'YYYY/MM-MMM/_[journal]-[day]-DD-MM-YYYY', template: '', templatePath: undefined },
+			weekly: { format: 'YYYY/[W]WW' },
+			monthly: { format: 'YYYY/MM-MMM' },
+			quarterly: { format: 'YYYY/[Q]Q' },
+		});
+	});
+
+	it('follows the folder and format settings for the given date', () => {
+		expect(dailyNotePath(new Date(2026, 10, 5))).toBe('/vault/vault/notes/2026/11-Nov/_journal-day-05-11-2026.md');
+	});
+
+	it('defaults to today', () => {
+		const today = dayjs().format('YYYY/MM-MMM/[_journal-day-]DD-MM-YYYY');
+
+		expect(dailyNotePath()).toBe(`/vault/vault/notes/${today}.md`);
+	});
+
+	it('follows a change of the settings', () => {
+		settingsStore.updatePeriodicNotes({ folder: '' });
+
+		expect(dailyNotePath(new Date(2026, 10, 5))).toBe('/vault/2026/11-Nov/_journal-day-05-11-2026.md');
+	});
+
+	it('is the path the app opens for the daily note', async () => {
+		await openOrCreateDailyNote();
+
+		expect(vi.mocked(openOrCreateNote).mock.calls[0][0].filePath).toBe(dailyNotePath());
+	});
+
+	it('creates nothing', () => {
+		dailyNotePath();
+
+		expect(openOrCreateNote).not.toHaveBeenCalled();
+	});
+
+	it('throws with no vault open', () => {
+		vaultStore.close();
+
+		expect(() => dailyNotePath()).toThrow('No vault is open');
+	});
+});
 
 describe('openOrCreateDailyNote', () => {
 	beforeEach(() => {
@@ -314,6 +366,20 @@ describe('openOrCreatePeriodicNoteForDate', () => {
 
 		await expect(openOrCreatePeriodicNoteForDate('daily', date)).rejects.toThrow('permission denied');
 	});
+
+	it.each(['daily', 'weekly', 'monthly', 'quarterly', 'yearly'] as const)(
+		'writes no _organized for a %s note while Explicit organization is on',
+		async (periodType) => {
+			settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+			await openOrCreatePeriodicNoteForDate(periodType, dayjs('2026-11-04'));
+
+			expect(openOrCreateNote).toHaveBeenCalledTimes(1);
+			const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+			const rendered = '---\ndate: 2026-11-04\n---\n# Note\n';
+			expect(buildContent?.(rendered) ?? rendered).not.toContain('_organized');
+		},
+	);
 });
 
 describe('autoOpenDailyNote', () => {

@@ -294,6 +294,16 @@ describe('buildMyPeople', () => {
 		expect(rows).toEqual([{ name: 'Ana', path: `${PEOPLE}/Ana.md`, lastDate: '2026-10-27', days: 5, overdue: false }]);
 	});
 
+	it('gives no row for a view in the people folder', () => {
+		const rows = buildMyPeople([person('Ana'), entryV2(`${PEOPLE}/Team.view`), entryV2(`${PEOPLE}/Other.VIEW`)], OPTIONS);
+
+		expect(rows.map((r) => r.name)).toEqual(['Ana']);
+	});
+
+	it('gives no rows for a people folder holding only a view', () => {
+		expect(buildMyPeople([entryV2(`${PEOPLE}/Team.view`)], OPTIONS)).toEqual([]);
+	});
+
 	it('does not count a daily note that only mentions the person in its body', () => {
 		const daily = entryV2('/vault/_notes/2026/10-Oct/2026-10-31.md', {
 			frontmatter: { date: '2026-10-31' },

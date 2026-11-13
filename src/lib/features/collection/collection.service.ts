@@ -1,26 +1,37 @@
 import { call } from '#lib/contracts/ipc.js';
 import { registerNoteChangeConsumer } from '#lib/core/filesystem/note-change.service.js';
 import { registerPathChangeConsumer } from '#lib/core/filesystem/path-change.service.js';
+import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
 import { debug, error as errorLog, timeAsync } from '#lib/utils/debug.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { collectionStore } from './collection.store.svelte';
 import type { PropertyIndexRecord } from './collection.types';
 import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 import { buildNoteRecord } from './collection.logic';
 
-/** Minimal valid .collection body — a single table view with no filters. */
-const DEFAULT_COLLECTION_TEMPLATE = `views:
+/**
+ * The body New table writes: a `.view` kept out of Views (`_visible: false`)
+ * that opens in the editor (`_open_in_editor: true`), with one table view and
+ * no filters.
+ */
+const NEW_TABLE_TEMPLATE = `_visible: false
+_open_in_editor: true
+views:
   - type: table
     name: All
 `;
 
 /**
- * Creates a new .collection file with a minimal valid body (one empty table
- * view, no filters). Returns the file path; a failure propagates from
- * `createFile`.
+ * Creates the `Untitled.view` of New table in `parentPath` (`Untitled 1.view`
+ * when taken) with `NEW_TABLE_TEMPLATE`. Returns the file path; a failure
+ * propagates from `createFile`.
  */
 export async function createCollectionFile(parentPath: string): Promise<string> {
-	return createFile(parentPath, 'Untitled.collection', DEFAULT_COLLECTION_TEMPLATE);
+	// Asked before the write, since `create_note` emits the event: until the
+	// entry lands, a view with no entry counts as visible and shows in Views.
+	vaultStore.requestPromptIndexRefresh();
+	return createFile(parentPath, 'Untitled.view', NEW_TABLE_TEMPLATE);
 }
 
 /**
@@ -160,11 +171,21 @@ export function removeNoteFromIndex(path: string) {
 /**
  * Registers the property index as a note-change consumer, so `applyNoteChange`
  * keeps it in sync on every write and eviction. Returns an unregister function.
+ *
+ * Only a Markdown upsert writes a record. A `.kanban`, a `.canvas` or any
+ * other non-Markdown file is not a note, so a record here would list it in
+ * `executeQuery` and `kb.pages()`. A `.view` body is bare YAML:
+ * `buildNoteRecord` would read no properties and replace the Rust-projected
+ * record with an empty one, and the `vault-index-updated` delta
+ * (`applyPropertyDelta`) refreshes that record from Rust instead.
  */
 export function registerCollectionNoteChangeConsumer(): () => void {
 	return registerNoteChangeConsumer({
 		name: 'collection',
-		upsert: updateNoteInIndex,
+		upsert: (path, content) => {
+			if (!isMarkdownFile(path)) return;
+			updateNoteInIndex(path, content);
+		},
 		remove: removeNoteFromIndex,
 	});
 }

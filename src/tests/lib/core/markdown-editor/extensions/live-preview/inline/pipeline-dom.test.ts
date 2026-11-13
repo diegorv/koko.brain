@@ -7,6 +7,8 @@ import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live
 import { expandedVisibleRanges } from '#lib/core/markdown-editor/extensions/live-preview/core/expanded-ranges.js';
 import { markdownLanguage, markdownHighlight } from '#lib/core/markdown-editor/highlight-styles.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
+import { IS_MAC } from '#lib/utils/platform.js';
 import { createMarkdownState, stepDateNow } from '../../../test-helpers';
 
 const SAMPLE = '**bold** *italic* ~~strike~~ `code` ==hi==';
@@ -325,6 +327,83 @@ describe('inline pipeline — one malformed construct does not disable the plugi
 			expect(idx).toBeGreaterThanOrEqual(0);
 			expect(expandedVisibleRanges(view).some((r) => r.from <= idx && idx < r.to)).toBe(true);
 			expect(pluginCrashed(errors)).toBe(false);
+		} finally {
+			view.destroy();
+		}
+	});
+});
+
+describe('inline pipeline — tag pills (jsdom)', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	function mountWithHost(
+		doc: string,
+		openTagSearch: (tag: string) => void,
+		openExternal: (url: string) => Promise<void> = async () => {},
+	): EditorView {
+		const state = createMarkdownState(doc, {
+			cursor: 0,
+			extensions: [
+				markdownLanguage(),
+				syntaxHighlighting(markdownHighlight),
+				livePreviewExtensions(settingsStore.disabledDecorators),
+				editorHost.of({ ...NOOP_HOST, openTagSearch, openExternal }),
+			],
+		});
+		return new EditorView({ state, parent: document.body.appendChild(document.createElement('div')) });
+	}
+
+	it('renders a nested body tag as one pill holding the # and the full name', () => {
+		const view = mountWithHost('intro #area/sub end', () => {});
+		try {
+			const pills = [...view.contentDOM.querySelectorAll('.cm-lp-tag')].map((el) => el.textContent);
+			expect(pills).toEqual(['#area/sub']);
+		} finally {
+			view.destroy();
+		}
+	});
+
+	it('the open-modifier mousedown on the pill opens the tag search and leaves the cursor', () => {
+		const openTagSearch = vi.fn();
+		const view = mountWithHost('intro #area/sub end', openTagSearch);
+		try {
+			const pill = view.contentDOM.querySelector('.cm-lp-tag')!;
+			const event = new MouseEvent('mousedown', {
+				bubbles: true,
+				cancelable: true,
+				button: 0,
+				metaKey: IS_MAC,
+				ctrlKey: !IS_MAC,
+			});
+			pill.dispatchEvent(event);
+			expect(openTagSearch).toHaveBeenCalledWith('area/sub');
+			expect(event.defaultPrevented).toBe(true);
+			expect(view.state.selection.main.head).toBe(0);
+		} finally {
+			view.destroy();
+		}
+	});
+
+	it('a tag pill inside markdown link text opens the tag search, not the link URL', () => {
+		const openTagSearch = vi.fn();
+		const openExternal = vi.fn(async () => {});
+		const view = mountWithHost('intro\n[see #work](https://example.com)', openTagSearch, openExternal);
+		try {
+			const pill = view.contentDOM.querySelector('.cm-lp-tag')!;
+			expect(pill.closest('.cm-lp-link')).not.toBeNull();
+			pill.dispatchEvent(
+				new MouseEvent('mousedown', {
+					bubbles: true,
+					cancelable: true,
+					button: 0,
+					metaKey: IS_MAC,
+					ctrlKey: !IS_MAC,
+				}),
+			);
+			expect(openTagSearch).toHaveBeenCalledWith('work');
+			expect(openExternal).not.toHaveBeenCalled();
 		} finally {
 			view.destroy();
 		}

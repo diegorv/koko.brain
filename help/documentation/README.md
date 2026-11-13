@@ -20,18 +20,18 @@ After that, explore any topic that interests you.
 
 | # | Guide | What you'll learn |
 |---|-------|-------------------|
-| 01 | [Getting Started](01-getting-started.md) | What a vault is, how to open one, creating your first note |
-| 02 | [File Explorer](02-file-explorer.md) | Browsing files, creating/renaming/moving items, file icons |
+| 01 | [Getting Started](01-getting-started.md) | What a vault is, how to open one, creating your first note, the app layout and the rail |
+| 02 | [File Explorer](02-file-explorer.md) | The Files navigator: browsing folders, creating/renaming/moving items, file icons |
 | 03 | [The Editor](03-editor.md) | Tabs, source mode vs. live preview, pinning, status bar, word count |
 | 04 | [Markdown Guide](04-markdown.md) | All supported Markdown syntax with examples |
 | 05 | [Wikilinks & References](05-wikilinks.md) | Linking notes, block references, embeds |
 | 06 | [Search & Navigation](06-search-and-navigation.md) | Quick Switcher, Command Palette, full-text and semantic search |
-| 07 | [Sidebar Panels](07-sidebar-panels.md) | Backlinks, outgoing links, tags, properties |
+| 07 | [Sidebar Panels](07-sidebar-panels.md) | The right sidebar (backlinks, outgoing links, properties) and the Tags view |
 | 08 | [Periodic Notes & Calendar](08-periodic-notes-and-calendar.md) | Daily/weekly/monthly/quarterly notes, the Calendar navigator |
 | 09 | [Quick Capture & Templates](09-quick-notes-and-templates.md) | Instant capture (composer popover + clipboard shortcut + Cmd+N), 1:1 meeting notes, template system |
 | 10 | [Tasks & Todoist](10-tasks-and-todoist.md) | Aggregated task view, metadata, Todoist sync |
 | 11 | [Canvas](11-canvas.md) | Infinite visual canvas with nodes, edges, and colors |
-| 12 | [Collection](12-collection.md) | Table/database view for querying notes by properties |
+| 12 | [Collection](12-collection.md) | Table and calendar views of notes, the `.view` format, the expression language |
 | 13 | [QueryJS](13-queryjs.md) | JavaScript API for programmatic vault queries |
 | 14 | [Graph View](14-graph-view.md) | Interactive knowledge graph of note connections |
 | 15 | [File History](15-file-history.md) | Snapshots, diff viewer, retention policy, restore |
@@ -40,18 +40,21 @@ After that, explore any topic that interests you.
 | 19 | [Settings](19-settings.md) | Complete reference for all app settings |
 | 20 | [Keyboard Shortcuts](20-keyboard-shortcuts.md) | Full shortcut reference card |
 | 21 | [Kanban Board](21-kanban.md) | Drag-and-drop task boards with lanes, cards, dates, colors, and tags |
-| 22 | [Auto Move](22-auto-move.md) | Automatically move notes to folders based on expression rules |
+| 22 | [Auto Organize](22-auto-organize.md) | Move notes and set their properties, icons and colors with rules |
 | 23 | [Deep Links](23-deep-links.md) | Open notes and trigger actions from outside the app via `kokobrain://` URLs |
 | 24 | [Meta-Bind](24-meta-bind.md) | Interactive inline inputs and action buttons that read/write frontmatter |
-| 25 | [Types & Relationships](25-types-and-relationships.md) | Note types, semantic relationships, lifecycle workflow, the Types navigator |
+| 25 | [Types & Relationships](25-types-and-relationships.md) | Note types, relationships, lifecycle, the Types navigator, `.view` files and pins, the type and view key reference |
 | 26 | [Theming](26-theming.md) | Color themes, region layout, CSS variables, creating custom themes |
 | 27 | [Calendar](27-calendar.md) | Calendar tab: day/week/month views of Event notes, creating and moving events, the event note schema |
+| 28 | [Vault Mods](28-mods.md) | JavaScript mods in `_system/mods/`: rail buttons, actions, file access, raw app access, reload on save (Labs); the full mod author reference is in [mods/](mods/README.md) |
+| 29 | [Todoist Sync](29-todoist-sync.md) | Two-way sync with a Todoist project tree: setup, project notes, the task line and its anchor, completion, moves and sections, detaching, safety limits, the sync log, troubleshooting, privacy |
 
 ## Embedded Local Files (`file://` images)
 
 Markdown images that reference a local file via `file://` (e.g. `![shot](file:///Users/you/Desktop/x.png)`) only render when the path falls inside one of these directories:
 
 - `~/Documents/**`
+- `~/kokobrain-vaults/**`
 - `~/MyFiles/**`
 - `~/kokobrain-vault/**`
 - `~/Desktop/**`

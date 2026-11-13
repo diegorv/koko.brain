@@ -1,5 +1,6 @@
 import dayjs from 'dayjs';
 import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryNoteDate } from '#lib/features/rail-shell/lens.logic.js';
 import { buildWikilinkPath } from '#lib/plugins/periodic-notes/periodic-notes.logic.js';
@@ -152,7 +153,9 @@ export function buildMyPeople(entries: NoteEntryV2[], options: MyPeopleOptions):
 	const folder = options.workPeopleFolder.replace(/^\/+|\/+$/g, '');
 	if (!vaultPath || !folder) return [];
 	const prefix = `${vaultPath.replace(/\/+$/, '')}/${folder}/`;
-	const people = entries.filter((e) => e.path.startsWith(prefix) && !e.path.slice(prefix.length).includes('/'));
+	const people = entries.filter(
+		(e) => e.path.startsWith(prefix) && !e.path.slice(prefix.length).includes('/') && !isViewFile(e.path),
+	);
 	if (people.length === 0) return [];
 
 	const today = parseDateKey(todayKey);

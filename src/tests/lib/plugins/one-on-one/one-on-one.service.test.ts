@@ -167,6 +167,7 @@ describe('createOneOnOneNote', () => {
 		clearLocalStorage();
 		vaultStore._reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		oneOnOneStore.reset();
 		vaultStore.open('/vault');
 		settingsStore.updatePeriodicNotes({ folder: '_notes' });
@@ -215,6 +216,17 @@ describe('createOneOnOneNote', () => {
 		expect(buildContent?.('# 1:1\n')).toBe('---\n_related_to: "[[Alice]]"\n---\n# 1:1\n');
 	});
 
+	it('marks the note unorganized, after the person link, while Explicit organization is on', async () => {
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+
+		await createOneOnOneNote('Alice');
+
+		const { buildContent } = vi.mocked(openOrCreateNote).mock.calls[0][0];
+		const written = buildContent!('---\ndate: 2026-02-18\n---\n# 1:1\n');
+		expect(written).toBe('---\n_organized: false\n_related_to: "[[Alice]]"\ndate: 2026-02-18\n---\n# 1:1\n');
+		expect(written.match(/^_organized:/gm)).toHaveLength(1);
+	});
+
 	it('returns early when vaultPath is null', async () => {
 		vaultStore.close();
 
@@ -261,6 +273,16 @@ describe('openOneOnOnePicker', () => {
 		// Verify real store state
 		expect(oneOnOneStore.people).toEqual([]);
 		expect(oneOnOneStore.isOpen).toBe(true);
+	});
+
+	it('passes a select handler on to the dialog', async () => {
+		vi.mocked(exists).mockResolvedValue(false);
+		const handler = () => {};
+
+		await openOneOnOnePicker(handler);
+
+		expect(oneOnOneStore.isOpen).toBe(true);
+		expect(oneOnOneStore.selectHandler).toBe(handler);
 	});
 
 	it('loads people from folder then opens the dialog', async () => {

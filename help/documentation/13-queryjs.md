@@ -11,7 +11,7 @@ QueryJS is a JavaScript API that provides programmatic access to your vault data
 - **Render dynamic content** — tables, lists, cards, heatmaps, timelines — directly into your notes.
 - **Access the DOM** — create canvas elements, load external libraries, build custom visualizations.
 
-QueryJS is used internally by [Collection](12-collection.md) for complex queries and is compatible with Obsidian's QueryJS API.
+QueryJS is separate from [Collection](12-collection.md), which runs its own expression language and no JavaScript. Its API is modelled on the JavaScript API of Obsidian's Dataview plugin (`kb` and `dv` are the same object).
 
 ### How it works
 
@@ -25,9 +25,9 @@ By default (the **First open** policy), a queryjs block auto-runs the first time
 
 | Policy | Behavior |
 |--------|----------|
-| **Manual** | The block renders a ▶ Run button. Click it to execute. Results are cached for the session — switching tabs and back replays the cached output instantly. |
-| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Switching to another tab and back replays the cached output without re-running. After you edit and save the block, the cache is dropped but the file stays marked, so the block shows a ▶ Run button instead of auto-running again. Closing the tab and reopening the note restarts the first-open behavior (the block auto-runs once more). Every block drawn when the note opens auto-runs; a block in a long note that is first drawn later, when you scroll down to it, shows a ▶ Run button. |
-| **Always** | The block runs every time you open or scroll to it. Use sparingly for queries that read live external data. |
+| **Manual** | The block renders a ▶ Run button. Click it to execute. The result is cached — switching tabs and back replays the cached output instantly, until the cache is cleared (see below). |
+| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Switching to another tab and back replays the cached output without re-running. After the cache is cleared (see below), the file stays marked, so the block shows a ▶ Run button instead of auto-running again. Closing the tab and reopening the note restarts the first-open behavior (the block auto-runs once more). Every block drawn when the note opens auto-runs; a block in a long note that is first drawn later, when you scroll down to it, shows a ▶ Run button. |
+| **Always** | The block runs whenever it is drawn with no cached result: on the first open, and again after the cache is cleared, with no ▶ Run button. A cached result is re-attached as in the other policies, so scrolling back to the block or switching tabs does not re-run it. |
 
 A manual run in the **Manual** policy does *not* promote the file to "auto-run on first open" — even if you switch the policy later, the block re-shows ▶ Run on next render until the policy explicitly says otherwise.
 
@@ -37,7 +37,9 @@ When a query runs, its rendered DOM tree is stored in a per-session cache keyed 
 
 - `<canvas>` charts keep their pixel buffer — no flicker, no re-draw cost.
 - `<video>` playback state, `<iframe>` content, and any imperatively attached event listeners survive viewport scrolls.
-- Cache invalidates when the script text changes, when you reload the vault, or when you re-run manually.
+- A block whose script text changed has no cached result yet, so it follows the policy table above.
+- The whole cache, for every note, is cleared whenever any note's content changes: a save in the editor, a change on disk the app picks up (another app, git, sync), or a note restored from the Trash. A note you did not touch then runs again under **Always** when you come back to it, and under **First open** shows ▶ Run if its tab stayed open (a closed and reopened note auto-runs once more).
+- Reopening the vault starts a new session with an empty cache.
 
 To drop every cached result and reset the per-file first-open markers at once, use **Settings → QueryJS → Clear cache**. Each block then re-runs on its next render according to the current policy.
 
@@ -62,14 +64,22 @@ Returns all pages matching a source filter:
 ```javascript
 kb.pages()                  // All pages in the vault
 kb.pages('#project')        // Pages with #project tag (includes subtags like #project/alpha)
-kb.pages('"folder/path"')   // Pages in a specific folder (note the double quotes inside)
+kb.pages('"folder/path"')   // Pages in a specific folder and its subfolders (note the double quotes inside)
 ```
+
+The folder in a folder source is relative to the vault root: `'"Projects"'` returns the notes in `Projects/` and its subfolders, not those in `Archive/Projects/` or `Projects Archive/`. An absolute path to a folder inside the vault also works, so `` kb.pages(`"${kb.current().file.folder}"`) `` returns the notes next to the current note and below it. Any other leading `/` stands for the vault root: `'"/Projects"'` is the same as `'"Projects"'`, and `'"/"'` returns every page. Matching ignores case.
 
 Returns a `DataArray<KBPage>`. The `kb` and `dv` prefixes are the same object and work interchangeably.
 
+Only notes are pages here: `.view` files, type definitions (notes with `_type: Type`) and the files under the system folder (Settings > Files & Folders > System folder) are never in the list, with or without a source filter. A blank system folder setting keeps its files in the list. Archived notes are included; to leave them out, filter on the `archived` flag every page carries:
+
+```javascript
+kb.pages().where(p => !p.archived)
+```
+
 ### `kb.page(path)` — Get a single page
 
-`path` is the **absolute** file path, the same string as `page.file.path` or `link.path`. A vault-relative path such as `"notes/meeting-notes.md"` never matches.
+`path` is the **absolute** file path, the same string as `page.file.path` or `link.path`. A vault-relative path such as `"notes/meeting-notes.md"` never matches. Unlike `kb.pages()`, it also finds a `.view` file, a type definition or a file under the system folder by its path.
 
 ```javascript
 const linked = kb.current().file.outlinks[0];
@@ -142,7 +152,7 @@ Each page returned by `kb.pages()` has these properties:
 | `file.mtime` | `number` | Last modification time, in milliseconds |
 | `file.size` | `number` | File size in bytes |
 | `file.tags` | `string[]` | All tags (from frontmatter + inline `#tags`) |
-| `file.inlinks` | `KBLink[]` | Notes that link TO this page (backlinks) |
+| `file.inlinks` | `KBLink[]` | Notes that link TO this page (backlinks); always empty for a `.view`, which is never a link target |
 | `file.outlinks` | `KBLink[]` | Notes this page links TO |
 | `file.tasks` | `object[]` | Task items (`- [ ]`) found in this note. Each task has `text`, `completed`, `line` (1-based line number), and `path` (absolute file path). |
 | `file.link` | `KBLink` | A link object pointing to this page |
@@ -775,8 +785,8 @@ More frequent tags appear larger and more opaque. Each chip shows "tag (count)".
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `minFontSize` | `number` | `14` | Minimum font size in px |
-| `maxFontSize` | `number` | `26` | Maximum font size in px |
+| `minFontSize` | `number` | `0.875em` of the block (14px at the default editor font) | Minimum font size in px. Setting either bound makes both px, the unset one 14 / 26 |
+| `maxFontSize` | `number` | `1.625em` of the block (26px at the default editor font) | Maximum font size in px |
 | `color` | `string` | `'rgba(139,108,239,0.3)'` | Base chip color |
 | `showCount` | `boolean` | `true` | Show count in parentheses |
 
@@ -800,7 +810,7 @@ kb.ui.tags(['urgent', 'bug'], {
 |--------|------|---------|-------------|
 | `color` | `string` | `'rgba(124,58,237,0.15)'` | Chip background color |
 | `textColor` | `string` | `'rgba(186,197,238,0.9)'` | Chip text color |
-| `fontSize` | `number` | `11` | Font size in px |
+| `fontSize` | `number` | `0.6875em` of the block (11px at the default editor font) | Font size in px |
 | `gap` | `number` | `4` | Gap between chips in px |
 
 Use in tables:
@@ -1151,6 +1161,8 @@ What each kind of change means:
 
 Within one major version, existing members keep their names, parameters and return types.
 
+Fixes that bring a member in line with what it was always meant to return do not change `version`. `kb.pages()` (and `kb.pagePaths()`) used to list `.view` files, type definitions and the files under the system folder too; they now list notes only, with no `version` change. A script that read one of those files through `kb.pages()` can use `kb.page(path)` instead.
+
 ## Error Handling
 
 Script errors are displayed **inline** in the note — the editor never crashes.
@@ -1295,7 +1307,7 @@ kb.paragraph(`Largest: ${pages.max(p => p.file.size)} bytes`);
 ```
 
 > [!NOTE]
-> QueryJS is used internally by the Collection feature. For simple table views with filters and sorts, consider using [Collection](12-collection.md) instead — no code required.
+> For simple table views with filters and sorts, consider using [Collection](12-collection.md) instead — no code required.
 
 ## Next Steps
 

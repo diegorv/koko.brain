@@ -151,7 +151,6 @@ export function createFakeHost(vault: FakeVault): FakeHost {
 			case 'plugin:fs|read_dir':
 			case 'get_all_tags_v2':
 			case 'get_all_tasks_v2':
-			case 'get_tasks_in_section_v2':
 			case 'get_all_property_records':
 			case 'get_backlinks_v2':
 			case 'get_relationship_backlinks_v2':

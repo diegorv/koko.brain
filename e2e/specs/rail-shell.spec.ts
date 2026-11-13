@@ -1,7 +1,8 @@
-import type { Page } from '@playwright/test';
+import type { Locator, Page } from '@playwright/test';
 import dayjs from 'dayjs';
 import isoWeek from 'dayjs/plugin/isoWeek.js';
 import quarterOfYear from 'dayjs/plugin/quarterOfYear.js';
+import { parse as parseYaml } from 'yaml';
 import { test, expect, TEST_FILES, TEST_VAULT_PATH } from '../fixtures/test-vault';
 import { expectTabActive, openCommandPalette, pressShortcut } from '../fixtures/helpers';
 
@@ -39,6 +40,34 @@ async function openInbox(page: Page): Promise<void> {
 
 function listRow(page: Page, title: string) {
 	return noteList(page).locator('[data-note-row]', { has: page.getByText(title, { exact: true }) });
+}
+
+/** The menu during its exit animation, stretched so that steps timed inside it hold on a loaded machine. */
+async function slowClosingMenu(page: Page): Promise<Locator> {
+	await page.addStyleTag({ content: '[role="menu"][data-state="closed"] { animation-duration: 1s !important; }' });
+	return page.locator('[role="menu"][data-state="closed"]');
+}
+
+/** The center of a menu item of the open menu, and its height. */
+async function menuItemCenter(page: Page, name: RegExp): Promise<{ x: number; y: number; height: number }> {
+	const box = (await page.getByRole('menuitem', { name }).boundingBox())!;
+	return { x: box.x + box.width / 2, y: box.y + box.height / 2, height: box.height };
+}
+
+/**
+ * Clicks Rename in the open menu, then moves the pointer over the closing menu as a hand on a
+ * mouse does: within the item, then off it. Returns once the menu is gone, when a blur would
+ * have ended the rename.
+ */
+async function clickRenameThenMovePointer(page: Page): Promise<void> {
+	const closing = await slowClosingMenu(page);
+	const { x, y, height } = await menuItemCenter(page, /^Rename/);
+	await page.mouse.click(x, y);
+	await page.waitForFunction(() => document.activeElement?.tagName === 'INPUT');
+	await page.mouse.move(x + 1, y);
+	await page.mouse.move(x, y + height);
+	await expect(closing).toHaveCount(1);
+	await expect(closing).toHaveCount(0);
 }
 
 function exists(page: Page, path: string): Promise<boolean> {
@@ -108,6 +137,12 @@ function viewRow(page: Page, path: string) {
 	return navigator(page).locator(`[data-types-navigator-view="${path}"]`);
 }
 
+/** Opens the multi-column Sort panel, which sits behind the Sort dropdown's last item. */
+async function openSortPanel(page: Page) {
+	await noteList(page).locator('[data-note-list-sort]').click();
+	await page.locator('[data-sort-multiple]').click();
+}
+
 function filesNavigator(page: Page) {
 	return page.locator('[data-files-navigator]');
 }
@@ -147,7 +182,9 @@ test.describe('Rail shell', () => {
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Inbox');
 		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('not organized, not archived');
 		await expect(listRow(page, 'Welcome')).toBeVisible();
-		await expect(listRow(page, 'Roadmap')).toContainText('Note');
+		// An untyped note names no type, or it would read as a note of the type Note.
+		await expect(listRow(page, 'Roadmap')).not.toContainText('Note');
+		await expect(listRow(page, 'Roadmap').locator('[data-note-row-type]')).toHaveCount(0);
 		await expect(listRow(page, 'Roadmap')).toContainText('Projects');
 
 		const count = await noteList(page).locator('[data-note-row]').count();
@@ -161,6 +198,51 @@ test.describe('Rail shell', () => {
 		await expectTabActive(page, 'Welcome');
 		await expect(page.locator('.cm-content')).toContainText('This is the test vault');
 		await expect(listRow(page, 'Welcome')).toHaveClass(/bg-primary\/25/);
+	});
+
+	test('the rename input survives the pointer moving while the row menu closes', async ({ vaultPage: page }) => {
+		await openInbox(page);
+
+		await listRow(page, 'Roadmap').click({ button: 'right' });
+		await clickRenameThenMovePointer(page);
+
+		const input = noteList(page).locator('input:not([placeholder])');
+		await expect(input).toHaveValue('Roadmap');
+		await expect(input).toBeFocused();
+	});
+
+	test('a press on the closing row menu leaves the rename input focused', async ({ vaultPage: page }) => {
+		await openInbox(page);
+
+		await listRow(page, 'Roadmap').click({ button: 'right' });
+		const closing = await slowClosingMenu(page);
+		const { x, y, height } = await menuItemCenter(page, /^Rename/);
+		await page.mouse.click(x, y);
+		await page.waitForFunction(() => document.activeElement?.tagName === 'INPUT');
+		// The separator above Rename: no item takes this press.
+		await page.mouse.click(x, y - height / 2 - 4);
+		await expect(closing).toHaveCount(1);
+		await expect(closing).toHaveCount(0);
+
+		const input = noteList(page).locator('input:not([placeholder])');
+		await expect(input).toHaveValue('Roadmap');
+		await expect(input).toBeFocused();
+	});
+
+	test('a double click on Duplicate in the row menu makes one copy', async ({ vaultPage: page }) => {
+		await openInbox(page);
+		const copies = () =>
+			page.evaluate(() => Object.keys(window.__e2e.fs.dump()).filter((path) => path.includes('Roadmap')).length);
+		const before = await copies();
+
+		await listRow(page, 'Roadmap').click({ button: 'right' });
+		const closing = await slowClosingMenu(page);
+		const { x, y } = await menuItemCenter(page, /^Duplicate/);
+		await page.mouse.click(x, y, { clickCount: 2, delay: 40 });
+		await expect(closing).toHaveCount(1);
+		await expect(closing).toHaveCount(0);
+
+		await expect.poll(copies).toBe(before + 1);
 	});
 
 	test('the row menu renames, favorites and trashes notes on disk', async ({ vaultPage: page }) => {
@@ -216,7 +298,7 @@ test.describe('Rail shell', () => {
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('---\n_favorite: true\n---\n');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n_favorite: true\n---\n');
 		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
 	});
 
@@ -243,7 +325,7 @@ test.describe('Rail shell', () => {
 		await expect(listRow(page, 'Welcome')).toHaveCount(0, { timeout: 15_000 });
 	});
 
-	test('the right sidebar still hides on the Tasks and Calendar tabs', async ({ vaultPage: page }) => {
+	test('the right sidebar still hides on the Tasks, Calendar, Tags and Graph tabs', async ({ vaultPage: page }) => {
 		await openInbox(page);
 		await listRow(page, 'Welcome').click();
 		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
@@ -256,6 +338,20 @@ test.describe('Rail shell', () => {
 		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
 		await pressShortcut(page, 'Mod+Shift+C');
 		await expectTabActive(page, 'Calendar');
+		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
+
+		await listRow(page, 'Welcome').click();
+		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
+		await openCommandPalette(page);
+		await page.locator('input[placeholder*="command"]:visible').first().fill('Toggle Tags View');
+		await page.keyboard.press('Enter');
+		await expectTabActive(page, 'Tags');
+		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
+
+		await listRow(page, 'Welcome').click();
+		await expect(page.locator('[data-right-sidebar]')).toBeVisible();
+		await pressShortcut(page, 'Mod+G');
+		await expectTabActive(page, 'Graph View');
 		await expect(page.locator('[data-right-sidebar]')).toHaveCount(0);
 	});
 
@@ -270,9 +366,11 @@ test.describe('Rail shell', () => {
 		await expect(noteList(page)).toHaveCount(0);
 		await expect(page.locator('[data-rail]')).toBeVisible();
 		await expect(spacer).toBeVisible();
-		// Rail (48 px) + spacer (24 px): the tabs start clear of the macOS traffic lights.
-		expect((await spacer.boundingBox())!.x).toBe(48);
-		expect((await tab.boundingBox())!.x).toBeGreaterThanOrEqual(72);
+		// The spacer starts at the rail's edge and the tabs past the spacer, clear of the macOS traffic lights.
+		const rail = (await page.locator('[data-rail]').boundingBox())!;
+		const spacerBox = (await spacer.boundingBox())!;
+		expect(spacerBox.x).toBe(rail.x + rail.width);
+		expect((await tab.boundingBox())!.x).toBeGreaterThanOrEqual(spacerBox.x + spacerBox.width);
 		await expect
 			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railPanelsVisible)
 			.toBe(false);
@@ -314,7 +412,7 @@ test.describe('Rail shell', () => {
 
 		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
-		await expect(noteList(page).locator('[data-note-list-group="pinned"]')).toBeVisible();
+		await expect(noteList(page).locator('[data-note-list-group="today"]')).toBeVisible();
 	});
 
 	test('old settings with the classic shell keys open the rail, and the keys are not written back', async ({ vaultPage: page }) => {
@@ -376,7 +474,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Work/Untitled Project.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('---\n_type: Project\nstatus: active\n---\n');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n_type: Project\nstatus: active\n---\n');
 		await expectTabActive(page, 'Untitled Project');
 		await expect(listRow(page, 'Untitled Project')).toBeVisible({ timeout: 15_000 });
 		await expect(navRow(page, 'Project').locator('[data-types-navigator-count]')).toHaveText('3');
@@ -396,7 +494,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n---\n');
 		await expectTabActive(page, 'Untitled');
 	});
 
@@ -476,7 +574,7 @@ test.describe('Rail shell', () => {
 		await expect(viewRow(page, VIEW_PATH).locator('[data-types-navigator-count]')).toHaveText('2', { timeout: 10_000 });
 
 		// Flip the sort to A -> Z: the list follows and the .view keeps it.
-		await noteList(page).locator('[data-note-list-sort]').click();
+		await openSortPanel(page);
 		await page.getByRole('button', { name: 'Z → A' }).first().click();
 		await page.getByRole('menuitem', { name: 'A → Z' }).click();
 		await expect.poll(() => listTitles(page)).toEqual(['Alpha', 'Beta']);
@@ -486,7 +584,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Work/Untitled Project.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('---\n_type: Project\nstatus: active\n---\n');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n_type: Project\nstatus: active\n---\n');
 		await expectTabActive(page, 'Untitled Project');
 	});
 
@@ -512,6 +610,106 @@ test.describe('Rail shell', () => {
 		await expect
 			.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railTypesLens)
 			.toBeNull();
+	});
+
+	test('New view asks for a name, creates the .view under it at the vault root and picks it', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), VIEW_FILES);
+		await expect(viewRow(page, VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+
+		await navigator(page).locator('[data-types-navigator-new-view]').click();
+		const dialog = page.getByRole('dialog', { name: 'New view' });
+		await expect(dialog).toBeVisible();
+		await dialog.getByPlaceholder('View name').fill('Reading list');
+		await dialog.getByRole('button', { name: 'Create' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const created = `${TEST_VAULT_PATH}/Reading list.view`;
+		await expect(viewRow(page, created)).toContainText('Reading list');
+		await expect(viewRow(page, created)).toHaveAttribute('aria-current', 'true');
+		await expect(viewRow(page, VIEW_PATH)).not.toHaveAttribute('aria-current', 'true');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Reading list');
+		expect(await savedFile(page, created)).toContain('_sidebar_label: Reading list');
+	});
+
+	test('New view with a filter lists only the matching notes and saves the filter under its first view', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), VIEW_FILES);
+		await expect(viewRow(page, VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+
+		await navigator(page).locator('[data-types-navigator-new-view]').click();
+		const dialog = page.getByRole('dialog', { name: 'New view' });
+		await dialog.getByPlaceholder('View name').fill('Project list');
+		await dialog.getByRole('button', { name: 'Add filter' }).click();
+
+		// The field and operator menus are portaled out of the dialog: a pick must not close it.
+		await dialog.getByRole('button', { name: 'file.name', exact: true }).first().click();
+		await page.getByRole('menuitem', { name: '_type', exact: true }).click();
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByRole('button', { name: '_type', exact: true }).first()).toBeVisible();
+
+		// Escape with a menu open closes only the menu.
+		await dialog.getByRole('button', { name: 'is', exact: true }).first().click();
+		await expect(page.getByRole('menuitem', { name: 'contains', exact: true })).toBeVisible();
+		await page.keyboard.press('Escape');
+		await expect(page.getByRole('menuitem', { name: 'contains', exact: true })).toHaveCount(0);
+		await expect(dialog).toBeVisible();
+
+		await dialog.getByRole('button', { name: 'is', exact: true }).first().click();
+		await page.getByRole('menuitem', { name: 'is', exact: true }).click();
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByRole('button', { name: 'Create' })).toBeDisabled();
+		await dialog.getByPlaceholder('Value...').fill('Project');
+		await expect(dialog.getByPlaceholder('Value...')).toHaveValue('Project');
+		await dialog.getByRole('button', { name: 'Create' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const created = `${TEST_VAULT_PATH}/Project list.view`;
+		await expect(viewRow(page, created)).toHaveAttribute('aria-current', 'true');
+		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Project list');
+		// Not the archived Shelved, not the template under _system.
+		await expect.poll(() => listTitles(page)).toEqual(['Alpha', 'Beta']);
+		const saved = parseYaml(await savedFile(page, created)) as { filters?: unknown; views: { filters?: unknown }[] };
+		expect(saved.views[0].filters).toBe("_type == 'Project'");
+		expect(saved).not.toHaveProperty('filters');
+	});
+
+	test('Edit view from the row menu saves a new name and filter under the same file, and a re-pick lists the new matches', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'types' }), TWO_VIEW_FILES);
+		await expect(viewRow(page, FIRST_VIEW_PATH)).toHaveAttribute('aria-current', 'true');
+		await viewRow(page, VIEW_PATH).click();
+		await expect.poll(() => listTitles(page)).toEqual(['Beta', 'Alpha']);
+
+		await viewRow(page, VIEW_PATH).click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'Edit view' }).click();
+		const dialog = page.getByRole('dialog', { name: 'Edit view' });
+		await expect(dialog).toBeVisible();
+		await expect(dialog.getByPlaceholder('View name')).toHaveValue('Open projects');
+		// The top-level type filter shows under All views.
+		await expect(dialog.getByText('All views')).toBeVisible();
+		await expect(dialog.getByPlaceholder('Value...')).toHaveValue('Project');
+
+		await dialog.getByPlaceholder('View name').fill('Alpha project');
+		// The last Add filter belongs to This view.
+		await dialog.getByRole('button', { name: 'Add filter' }).last().click();
+		await dialog.getByPlaceholder('Value...').last().fill('Alpha.md');
+		await dialog.getByRole('button', { name: 'Save' }).click();
+		await expect(dialog).toHaveCount(0);
+
+		const saved = parseYaml(await savedFile(page, VIEW_PATH)) as {
+			_sidebar_label?: unknown;
+			filters?: unknown;
+			views: { name?: unknown; filters?: unknown; sort?: unknown }[];
+		};
+		expect(saved._sidebar_label).toBe('Alpha project');
+		expect(saved.views[0].name).toBe('Alpha project');
+		expect(saved.views[0].filters).toBe("file.name == 'Alpha.md'");
+		expect(saved.filters).toBe("_type == 'Project'");
+		expect(saved.views[0].sort).toEqual([{ column: 'file.basename', direction: 'DESC' }]);
+		expect(await exists(page, `${TEST_VAULT_PATH}/Alpha project.view`)).toBe(false);
+
+		// A re-pick re-runs the view's query on the saved file.
+		await viewRow(page, FIRST_VIEW_PATH).click();
+		await viewRow(page, VIEW_PATH).click();
+		await expect.poll(() => listTitles(page)).toEqual(['Alpha']);
 	});
 
 	test('Files opens the folder navigator; a folder lists its notes and a canvas, and the canvas opens', async ({ vaultPage: page }) => {
@@ -549,7 +747,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${PROJECTS_PATH}/Untitled.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe('');
+		expect(await savedFile(page, created)).toBe('---\n_organized: false\n---\n');
 		await expectTabActive(page, 'Untitled');
 		await expect(listRow(page, 'Untitled')).toBeVisible();
 	});
@@ -591,6 +789,20 @@ test.describe('Rail shell', () => {
 				return [layout?.railItem, layout?.railFolder, layout?.railExpandedFolders];
 			})
 			.toEqual(['today', null, [PROJECTS_PATH]]);
+	});
+
+	test('the folder rename input survives the pointer moving while the menu closes', async ({ vaultPage: page }) => {
+		await restartWithSettings(
+			page,
+			await railSettings(page, { railItem: 'files', railFolder: PROJECTS_PATH, railExpandedFolders: [PROJECTS_PATH] }),
+		);
+
+		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
+		await clickRenameThenMovePointer(page);
+
+		const input = filesNavigator(page).locator(`[data-files-navigator-rename="${PROJECTS_PATH}"]`);
+		await expect(input).toHaveValue('Projects');
+		await expect(input).toBeFocused();
 	});
 
 	test('renaming the picked folder from its menu keeps it picked under the new path, with its expanded state', async ({ vaultPage: page }) => {
@@ -650,6 +862,37 @@ test.describe('Rail shell', () => {
 		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('in the vault root');
 	});
 
+	test('New table opens a rendered table kept out of Views, and Show in Views lists it there', async ({ vaultPage: page }) => {
+		await restartWithSettings(page, await railSettings(page, { railItem: 'files' }));
+		const created = `${PROJECTS_PATH}/Untitled.view`;
+
+		await folderButton(page, PROJECTS_PATH).click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'New table', exact: true }).click();
+		await expect.poll(() => exists(page, created)).toBe(true);
+		expect(parseYaml(await savedFile(page, created))).toEqual({
+			_visible: false,
+			_open_in_editor: true,
+			views: [{ type: 'table', name: 'All' }],
+		});
+		await expectTabActive(page, 'Untitled');
+		await expect(page.getByRole('button', { name: 'Switch to source mode' })).toBeVisible();
+		await expect(page.locator('table').first()).toBeVisible();
+		await expect(folderButton(page, PROJECTS_PATH)).toHaveAttribute('aria-current', 'true');
+		await expect(listRow(page, 'Untitled')).toBeVisible();
+
+		await page.locator('[data-rail-item="types"]').click();
+		await expect(navigator(page)).toBeVisible();
+		await expect(viewRow(page, created)).toHaveCount(0);
+
+		await page.locator('[data-rail-item="files"]').click();
+		await listRow(page, 'Untitled').click({ button: 'right' });
+		await page.getByRole('menuitem', { name: 'Show in Views', exact: true }).click();
+		await expect.poll(async () => parseYaml(await savedFile(page, created))).toEqual({ views: [{ type: 'table', name: 'All' }] });
+
+		await page.locator('[data-rail-item="types"]').click();
+		await expect(viewRow(page, created)).toContainText('Untitled');
+	});
+
 	test('dragging a note from the list onto another folder moves it there', async ({ vaultPage: page }) => {
 		await restartWithSettings(page, await railSettings(page, { railItem: 'files', railFolder: PROJECTS_PATH }));
 		const daily = `${TEST_VAULT_PATH}/Daily`;
@@ -668,12 +911,12 @@ test.describe('Rail shell', () => {
 		await expect(listRow(page, '2026-05-01')).toBeVisible();
 	});
 
-	test('Today lists the pinned note and the note dated today; New here and Daily note create today\'s notes', async ({ vaultPage: page }) => {
+	test('Today lists the note dated today, not a favorite of another day; New here and Daily note create today\'s notes', async ({ vaultPage: page }) => {
 		const today = dayjs().format('YYYY-MM-DD');
-		// Dated last month, so only its favorite flag puts it on Today (the seeded notes' disk times are now).
+		// Dated last month, so only its favorite flag could put it on Today (the seeded notes' disk times are now).
 		const lastMonth = dayjs().subtract(1, 'month').date(15).format('YYYY-MM-DD');
 		const extra = {
-			[`${TEST_VAULT_PATH}/Pinned.md`]: `---\n_favorite: true\ndate: ${lastMonth}\n---\nPinned body\n`,
+			[`${TEST_VAULT_PATH}/Favorite.md`]: `---\n_favorite: true\ndate: ${lastMonth}\n---\nFavorite body\n`,
 			[`${TEST_VAULT_PATH}/Dated today.md`]: `---\ndate: ${today}\n---\nDated body\n`,
 			[`${TEST_VAULT_PATH}/Old.md`]: `---\ndate: ${lastMonth}\n---\nOld body\n`,
 		};
@@ -682,22 +925,17 @@ test.describe('Rail shell', () => {
 		await page.locator('[data-rail-item="today"]').click();
 		await expect(page.locator('[data-rail-item="today"]')).toHaveAttribute('aria-current', 'page');
 		await expect(noteList(page).locator('[data-note-list-label]')).toHaveText('Today');
-		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('pinned; note date is today');
-		const pinnedHeader = noteList(page).locator('[data-note-list-group="pinned"]');
+		await expect(noteList(page).locator('[data-note-list-rule]')).toHaveText('note date is today');
 		const todayHeader = noteList(page).locator('[data-note-list-group="today"]');
-		await expect(pinnedHeader).toHaveText(/Pinned\s*1/);
 		await expect(todayHeader).toBeVisible();
-		await expect(listRow(page, 'Pinned')).toBeVisible();
 		await expect(listRow(page, 'Dated today')).toBeVisible();
+		await expect(listRow(page, 'Favorite')).toHaveCount(0);
 		await expect(listRow(page, 'Old')).toHaveCount(0);
-		const titles = await listTitles(page);
-		expect(titles[0]).toBe('Pinned');
-		expect(titles.slice(1)).toContain('Dated today');
 
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe(`---\ndate: ${today}\n---\n`);
+		expect(await savedFile(page, created)).toBe(`---\n_organized: false\ndate: ${today}\n---\n`);
 		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
 
 		const saved = JSON.parse(await savedFile(page, SETTINGS_PATH));
@@ -731,7 +969,7 @@ test.describe('Rail shell', () => {
 		await noteList(page).getByRole('button', { name: 'New here' }).click();
 		const created = `${TEST_VAULT_PATH}/Daily/${dayjs().format('YYYY/MM-MMM')}/Untitled.md`;
 		await expect.poll(() => exists(page, created)).toBe(true);
-		expect(await savedFile(page, created)).toBe(`---\ndate: ${dayKey}\n---\n`);
+		expect(await savedFile(page, created)).toBe(`---\n_organized: false\ndate: ${dayKey}\n---\n`);
 		await expect(listRow(page, 'Untitled')).toBeVisible({ timeout: 15_000 });
 		await expect.poll(async () => JSON.parse(await savedFile(page, SETTINGS_PATH)).layout?.railDay).toBe(dayKey);
 
@@ -784,7 +1022,9 @@ test.describe('Rail shell', () => {
 		await expectTabActive(page, 'Launch');
 
 		const label = "Show this note's neighbourhood in the note list";
-		await page.getByTestId('note-action-bar').getByRole('button', { name: label }).click();
+		// Neighbourhood starts in the action bar's More menu.
+		await page.getByTestId('note-action-bar').getByRole('button', { name: 'More note actions' }).click();
+		await page.getByRole('menuitem', { name: label }).click();
 		const headers = () =>
 			noteList(page)
 				.locator('[data-note-list-group]')

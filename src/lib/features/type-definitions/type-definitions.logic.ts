@@ -1,10 +1,10 @@
 import type { NoteEntryV2, FrontmatterValue } from '#lib/types/vault-v2.types.js';
-import { isValidFileName } from '#lib/core/filesystem/fs.logic.js';
+import { getFileNameError, isValidFileName } from '#lib/core/filesystem/fs.logic.js';
 import { normalizeTypeCasing } from '#lib/core/frontmatter/properties.logic.js';
 
 /** Display metadata for a type definition. */
 export interface TypeMetadata {
-	/** Type name (from entry title, e.g. "Project"). */
+	/** Type name: the entry title with its first letter uppercased (`normalizeTypeCasing`), e.g. "Project". */
 	name: string;
 	/** Absolute path to the Type Definition note backing this metadata, or `null` when only a builtin/default fallback is available (no on-disk definition). */
 	path: string | null;
@@ -92,10 +92,14 @@ export function isTypeDefinition(entry: NoteEntryV2): boolean {
 	return entry.isA === 'Type';
 }
 
-/** Extracts TypeMetadata from a Type Definition entry. */
+/**
+ * Extracts TypeMetadata from a Type Definition entry. The name is the title
+ * with Rust's `is_a` casing, so a `book.md` definition backs the `Book`
+ * notes Rust groups for both `_type: book` and `_type: Book`.
+ */
 export function extractTypeMetadata(entry: NoteEntryV2): TypeMetadata {
 	const fm = entry.frontmatter;
-	const name = entry.title;
+	const name = normalizeTypeCasing(entry.title);
 	const builtin = BUILTIN_TYPES[name] ?? {};
 
 	return {
@@ -126,13 +130,20 @@ export function sameTypeMetadata(a: Map<string, TypeMetadata>, b: Map<string, Ty
 	return true;
 }
 
-/** Builds a type metadata map from all vault entries. */
+/**
+ * Builds a type metadata map from all vault entries. When several definitions
+ * map to one type name (`a/book.md` and `b/Book.md`, or two `Book.md` files),
+ * the first in `entries` order wins. `entries` is the Rust snapshot, sorted by
+ * path (`get_all_vault_entries_v2`, kept sorted by `patchEntriesSnapshot`), so
+ * the lowest path wins. `buildTypeDefinitionPaths` in the store applies the
+ * same rule, so both name the same file.
+ */
 export function buildTypeMetadataMap(entries: NoteEntryV2[]): Map<string, TypeMetadata> {
 	const map = new Map<string, TypeMetadata>();
 	for (const entry of entries) {
 		if (isTypeDefinition(entry)) {
 			const meta = extractTypeMetadata(entry);
-			map.set(meta.name, meta);
+			if (!map.has(meta.name)) map.set(meta.name, meta);
 		}
 	}
 	return map;
@@ -161,6 +172,25 @@ export function validateTypeName(name: string, existingTypeNames: string[]): str
 	const lower = trimmed.toLowerCase();
 	if (existingTypeNames.some((t) => t.toLowerCase() === lower)) {
 		return 'A type with this name already exists';
+	}
+	return null;
+}
+
+/**
+ * Validates a candidate view name for the view dialog. Returns an error
+ * message, or `null` when the name is acceptable. With `isFileName` (New
+ * view) the trimmed name becomes the `.view` file name, so the file-name
+ * rules apply; without it (Edit view, which never renames the file) only an
+ * empty name is refused. A name another view already shows (`existingLabels`)
+ * is refused either way, compared case-insensitively.
+ */
+export function validateViewName(name: string, existingLabels: string[], isFileName = true): string | null {
+	const trimmed = name.trim();
+	const fileNameError = isFileName ? getFileNameError(trimmed) : trimmed === '' ? 'Name cannot be empty' : null;
+	if (fileNameError) return fileNameError;
+	const lower = trimmed.toLowerCase();
+	if (existingLabels.some((label) => label.trim().toLowerCase() === lower)) {
+		return 'A view with this name already exists';
 	}
 	return null;
 }

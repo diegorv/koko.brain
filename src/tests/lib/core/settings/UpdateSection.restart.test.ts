@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 (globalThis as Record<string, unknown>).__APP_CHANNEL__ = 'stable';
 (globalThis as Record<string, unknown>).__BUILD_INFO__ = '9.9.9 (test)';
+(globalThis as Record<string, unknown>).__CHANGELOG__ = null;
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(async (cmd: string) => {

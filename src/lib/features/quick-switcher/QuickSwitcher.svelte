@@ -3,8 +3,11 @@
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+	import { notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 	import { toast } from 'svelte-sonner';
 	import { createFile } from '#lib/core/filesystem/fs.service.js';
+	import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
+	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 	import { relativePath } from '#lib/utils/path.js';
 	import { flattenFileTree, filterAndRank } from '#lib/core/filesystem/file-entries.logic.js';
@@ -44,13 +47,14 @@
 
 		let filePath: string;
 		try {
-			filePath = await createFile(vaultStore.path, name);
+			filePath = await createFile(vaultStore.path, name, applyExplicitOrganization('', settingsStore.explicitOrganization));
 		} catch {
 			toast.error('Failed to create file.');
 			return;
 		}
 		quickSwitcherStore.addRecentPath(filePath);
 		await openFileInEditor(filePath);
+		notifyNoteCreated(filePath);
 		quickSwitcherStore.close();
 		searchQuery = '';
 	}
@@ -90,15 +94,16 @@
 				{/each}
 			</Command.Group>
 		{:else if searchQuery.trim().length > 0}
-			<Command.Empty>
-				<button
-					class="flex w-full items-center justify-center gap-2 text-muted-foreground hover:text-foreground transition-colors"
-					onclick={createAndOpenNote}
+			<!-- A Command.Item, not a button, so bits-ui selects it and Enter runs it. -->
+			<Command.Group>
+				<Command.Item
+					value={`create:${searchQuery.trim()}`}
+					onSelect={createAndOpenNote}
 				>
 					<FilePlus class="size-4" />
 					<span>Create "{searchQuery.trim()}"</span>
-				</button>
-			</Command.Empty>
+				</Command.Item>
+			</Command.Group>
 		{:else}
 			<Command.Empty>No files found.</Command.Empty>
 		{/if}

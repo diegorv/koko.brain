@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { Input } from '#lib/components/ui/input/index.js';
-	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { settingsStore } from '../settings.store.svelte';
 	import SettingItem from './SettingItem.svelte';
 
@@ -30,7 +29,7 @@
 <div class="flex flex-col gap-2">
 	<h2 class="mb-4 text-lg font-semibold">Quick Capture</h2>
 
-	<p class="text-muted-foreground mb-2 text-sm">
+	<p class="mb-4 text-sm text-muted-foreground">
 		Composer popover (Ctrl+Alt+Cmd+Space) and clipboard shortcut (Ctrl+Alt+Cmd+C) share these
 		settings. Each capture kind can use its own template; leave a template path empty to write
 		the rendered body with no template.
@@ -38,7 +37,7 @@
 
 	<SettingItem
 		label="Folder format"
-		description="dayjs format for the subfolder path under the vault (e.g. YYYY/MM-MMM)"
+		description="Date pattern for the subfolder inside the notes folder, e.g. YYYY/MM-MMM"
 	>
 		<Input
 			value={settingsStore.quickCapture.folderFormat}
@@ -50,7 +49,7 @@
 
 	<SettingItem
 		label="Filename format"
-		description="dayjs format for the filename (use [] for literal text, e.g. [capture-note-]YYYY-MM-DD)"
+		description="Date pattern for the filename. Text in [ ] is kept as is, e.g. [capture-note-]YYYY-MM-DD"
 	>
 		<Input
 			value={settingsStore.quickCapture.filenameFormat}
@@ -60,7 +59,7 @@
 		/>
 	</SettingItem>
 
-	<h3 class="mt-6 mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+	<h3 class="section-label mt-6 mb-2">
 		Templates by kind
 	</h3>
 
@@ -77,20 +76,4 @@
 			/>
 		</SettingItem>
 	{/each}
-
-	<h3 class="mt-6 mb-2 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-		Dock badge
-	</h3>
-
-	<SettingItem
-		label="Show inbox count on dock"
-		description="Display the number of inbox notes (unorganized, not archived) as a red badge on the macOS dock icon."
-	>
-		<Switch
-			checked={settingsStore.dockBadgeInboxCount}
-			onCheckedChange={(v) => {
-				settingsStore.setSettings({ ...settingsStore.settings, dockBadgeInboxCount: v });
-			}}
-		/>
-	</SettingItem>
 </div>

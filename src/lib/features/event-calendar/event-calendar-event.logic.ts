@@ -68,6 +68,8 @@ export interface EventProjectionOptions {
 	vaultPath: string | null | undefined;
 	/** Vault-relative system/templates folder; blank disables the exclusion. */
 	systemFolder: string;
+	/** Projects archived event notes too, marked `archived`; off, they are only counted. */
+	includeArchived?: boolean;
 }
 
 /** Result of reading one time field. */
@@ -235,8 +237,9 @@ export function isActionableIssue(reason: EventIssueReason): boolean {
  * Projects the vault index onto the calendar (D26 read scope).
  * @param entries - the Rust `VaultIndex` snapshot
  * @param options - defaults, type name, vault path and system folder
- * @returns rendered events, issues and the number of archived events left
- *   out; notes under the system folder are skipped entirely
+ * @returns rendered events, issues and the number of archived event notes
+ *   (left out unless `includeArchived`); notes under the system folder are
+ *   skipped entirely
  */
 export function eventsFromEntries(entries: NoteEntryV2[], options: EventProjectionOptions): EventProjection {
 	const projection: EventProjection = { events: [], issues: [], archivedCount: 0 };
@@ -244,6 +247,10 @@ export function eventsFromEntries(entries: NoteEntryV2[], options: EventProjecti
 		if (!isEventEntry(entry, options.typeName)) continue;
 		if (entry.archived) {
 			projection.archivedCount++;
+			if (!options.includeArchived) continue;
+			// An archived note is shown for reference: its problems do not count toward Needs attention.
+			const { event } = entryToEvent(entry, options.defaults);
+			if (event) projection.events.push({ ...event, archived: true });
 			continue;
 		}
 		const result = entryToEvent(entry, options.defaults);

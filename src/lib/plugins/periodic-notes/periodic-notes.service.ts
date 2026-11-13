@@ -17,6 +17,17 @@ import {
 let lastAutoOpenedDate: string | null = null;
 
 /**
+ * Absolute path of the daily note of `date`, from Settings > Periodic Notes.
+ * Only computes it: the note may not exist. Throws with no vault open.
+ */
+export function dailyNotePath(date: Date = new Date()): string {
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) throw new Error('No vault is open');
+	const settings = settingsStore.periodicNotes;
+	return buildPeriodicNotePath(vaultPath, settings.folder, getFormatForPeriod(settings, 'daily'), dayjs(date));
+}
+
+/**
  * Opens or creates a periodic note for a specific date.
  * Delegates to the unified `openOrCreateNote()` pipeline.
  * Generates navigation and table variables via `buildPeriodicVariables()`.

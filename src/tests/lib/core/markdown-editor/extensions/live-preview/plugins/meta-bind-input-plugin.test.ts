@@ -146,3 +146,22 @@ describe('metaBindInputPlugin — frontmatter parse does not materialize the ful
 		expect(widgets[0].currentValue).toBeNull();
 	});
 });
+
+describe('metaBindInputPlugin — alias bind targets read the canonical key', () => {
+	function widgetsFor(doc: string) {
+		const state = createMarkdownState(doc);
+		return collectWidgets(buildMetaBindInputDecorations(state, [{ from: 0, to: state.doc.length }]));
+	}
+
+	it('INPUT[toggle():archived] reads `_archived`', () => {
+		const widgets = widgetsFor('---\n_archived: true\n---\n`INPUT[toggle():archived]`');
+		expect(widgets).toHaveLength(1);
+		expect(widgets[0].currentValue).toBe('true');
+	});
+
+	it('INPUT[inlineSelect(note, project):type] reads `_type`', () => {
+		const widgets = widgetsFor('---\n_type: project\n---\n`INPUT[inlineSelect(note, project):type]`');
+		expect(widgets).toHaveLength(1);
+		expect(widgets[0].currentValue).toBe('project');
+	});
+});

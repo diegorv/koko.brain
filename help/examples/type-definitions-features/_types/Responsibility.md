@@ -4,8 +4,8 @@ _icon: target
 _color: blue
 _order: 0
 _sidebar_label: Responsibilities
-_sort: title
 _visible: true
+_rail: true
 _list_properties_display:
   - status
 ---

@@ -8,7 +8,7 @@ import type {
 	CalloutColors,
 } from './theme.types';
 import { DEFAULT_THEME_NAME } from './theme.logic';
-import { findInvalidThemeToken } from './theme-validation.logic';
+import { findInvalidThemeToken, withoutRetiredTokens } from './theme-validation.logic';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -66,7 +66,7 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 		keys: ['tabBar', 'divider', 'tabTextActive', 'tabTextInactive', 'statusBarBg', 'statusBarFg'],
 	},
 	{
-		label: 'Left Sidebar',
+		label: 'Rail and Panels',
 		keys: ['fileExplorerBg', 'fileExplorerFg', 'fileExplorerMutedFg', 'fileExplorerAccent', 'fileExplorerPrimary', 'fileExplorerBorder', 'fileExplorerBadgeFg', 'searchSemanticBg', 'searchSemanticFg'],
 	},
 	{
@@ -85,7 +85,7 @@ export const UI_COLOR_GROUPS: ColorSubGroup<keyof UIColors>[] = [
 		label: 'Type Palette',
 		keys: [
 			'typeRed', 'typeOrange', 'typeYellow', 'typeGreen', 'typeTeal',
-			'typeBlue', 'typePurple', 'typePink', 'typeGray', 'warning',
+			'typeBlue', 'typePurple', 'typePink', 'typeGray', 'warning', 'success',
 		],
 	},
 ];
@@ -153,10 +153,6 @@ export const PREVIEW_COLOR_GROUPS: ColorSubGroup<keyof PreviewColors>[] = [
 	{
 		label: 'Footnotes',
 		keys: ['footnote'],
-	},
-	{
-		label: 'Frontmatter',
-		keys: ['frontmatterBg', 'frontmatterBorder'],
 	},
 	{
 		label: 'Collection',
@@ -303,5 +299,5 @@ export function parseThemeFromImport(json: string): ThemeImportResult {
 	if (invalid) {
 		return { ok: false, error: `Invalid theme file: "${invalid}" is not a valid color or token` };
 	}
-	return { ok: true, theme: { name, colors: colors as ThemeColors } };
+	return { ok: true, theme: { name, colors: withoutRetiredTokens(colors as ThemeColors) } };
 }

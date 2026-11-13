@@ -118,6 +118,8 @@ export interface UIColors {
 	typeGray: string;
 	/** Warning text in the sidebars (an overdue 1:1) */
 	warning: string;
+	/** Success text in the sidebars and editor (up to date, synced, done) */
+	success: string;
 }
 
 /** Color tokens for CodeMirror syntax highlighting */
@@ -166,8 +168,6 @@ export interface PreviewColors {
 	tableHeaderBg: string;
 	tableAlt: string;
 	footnote: string;
-	frontmatterBg: string;
-	frontmatterBorder: string;
 	collectionBg: string;
 	collectionBorder: string;
 	collectionHeader: string;

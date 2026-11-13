@@ -69,7 +69,7 @@ A "block" is any paragraph, list item, or other content element in a note. You c
 ### Creating a block link
 
 1. Place your cursor on the line you want to reference.
-2. Press `Cmd+Shift+L` (or right-click and select "Copy link to block").
+2. Press `Cmd+Shift+L` (or right-click and select "Copy block link").
 3. Kokobrain automatically adds a block ID (like `^a1b2c3`) to the end of that line.
 4. A wikilink is copied to your clipboard: `[[Note Name#^a1b2c3]]`.
 5. Paste it anywhere in any note.
@@ -140,6 +140,10 @@ Clicking an unresolved link will **create the note** for you automatically. This
 
 > [!TIP]
 > Don't be afraid to create links to notes that don't exist yet. This "link-first, write-later" approach is a great way to build your knowledge base organically.
+
+### Views are never link targets
+
+A view (a `.view` file) is not a note, so no wikilink ever points to one, and the `[[` suggestions never offer one. If a view and a note share a name, `[[Projects]]` always links to the note `Projects.md`, and only the note gets the backlinks. If only a view is called `Projects`, the link counts as unresolved, and clicking it creates `Projects.md`. `[[Projects.view]]` works the same way: it opens `Projects.md` when that note exists, and otherwise clicking it creates `Projects.view.md`. To open a view from a note, use a [meta-bind `openView` button](24-meta-bind.md#openview--open-a-view).
 
 ## Seeing Your Links
 

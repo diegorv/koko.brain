@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 import {
+	MetaBindSelectWidget,
 	MetaBindTextInputWidget,
 	MetaBindToggleWidget,
 	isNumericString,
@@ -11,18 +12,13 @@ import {
 
 const FRONTMATTER = '---\ncount: 5\nname: alice\n---\n\nbody\n';
 
-function mount(widget: ReturnType<typeof makeWidget>) {
+function mount(widget: { toDOM(view: EditorView): HTMLElement }) {
 	const state = EditorState.create({ doc: FRONTMATTER });
 	const root = document.body.appendChild(document.createElement('div'));
 	const view = new EditorView({ state, parent: root });
-	const dom = widget.toDOM(view) as HTMLElement;
+	const dom = widget.toDOM(view);
 	root.appendChild(dom);
 	return { view, dom };
-}
-
-function makeWidget(kind: 'number' | 'date' | 'toggle', target: string, value: string | null) {
-	if (kind === 'toggle') return new MetaBindToggleWidget(target, value);
-	return new MetaBindTextInputWidget(kind, target, value);
 }
 
 describe('isNumericString', () => {
@@ -194,5 +190,68 @@ describe('MetaBindTextInputWidget.eq()', () => {
 		expect(num.dom.classList.contains('cm-lp-meta-bind-input-invalid')).toBe(true);
 		expect(num.dom.querySelector('.cm-lp-meta-bind-input-error')?.textContent).toBe('Not a number');
 		expect(date.dom.classList.contains('cm-lp-meta-bind-input-invalid')).toBe(false);
+	});
+});
+
+describe('MetaBindSelectWidget — stored value that is not an option', () => {
+	const OPTIONS = [
+		{ value: 'active', label: 'active' },
+		{ value: 'done', label: 'done' },
+	];
+	const DOC = '---\nstatus: archived\nname: alice\n---\n\nbody\n';
+
+	function mountSelect(current: string | null) {
+		const root = document.body.appendChild(document.createElement('div'));
+		const view = new EditorView({ state: EditorState.create({ doc: DOC }), parent: root });
+		const select = new MetaBindSelectWidget(OPTIONS, 'status', current).toDOM(view);
+		root.appendChild(select);
+		return { view, select };
+	}
+
+	beforeAll(() => {
+		// jsdom has no layout; a write's scroll snapshot makes CodeMirror measure.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
+	it('shows the stored value as a disabled, selected first option', () => {
+		const { select } = mountSelect('archived');
+		const first = select.options[0];
+		expect(select.options).toHaveLength(3);
+		expect(first.textContent).toBe('archived');
+		expect(first.disabled).toBe(true);
+		expect(select.selectedIndex).toBe(0);
+		expect(select.value).toBe('archived');
+	});
+
+	it('choosing a real option writes it', () => {
+		const { view, select } = mountSelect('archived');
+		select.value = 'active';
+		select.dispatchEvent(new Event('change'));
+		expect(view.state.doc.toString()).toContain('status: active\n');
+	});
+
+	it('a stored value that is an option renders the options only, with it selected', () => {
+		const { select } = mountSelect('done');
+		expect(Array.from(select.options).map((o) => o.value)).toEqual(['active', 'done']);
+		expect(select.value).toBe('done');
+	});
+});
+
+describe('meta-bind controls name the property they write', () => {
+	const OPTIONS = [{ value: 'todo', label: 'todo' }];
+
+	it.each([
+		['select', () => new MetaBindSelectWidget(OPTIONS, 'status', 'todo'), 'select', 'status'],
+		['number input', () => new MetaBindTextInputWidget('number', 'count', '5'), '.cm-lp-meta-bind-input', 'count'],
+		['date input', () => new MetaBindTextInputWidget('date', 'due', null), '.cm-lp-meta-bind-input', 'due'],
+		['toggle', () => new MetaBindToggleWidget('done', null), '.cm-lp-meta-bind-toggle-input', 'done'],
+		['alias-bound toggle', () => new MetaBindToggleWidget('archived', null), '.cm-lp-meta-bind-toggle-input', '_archived'],
+		['alias-bound select', () => new MetaBindSelectWidget(OPTIONS, 'type', null), 'select', '_type'],
+	])('%s', (_name, make, selector, key) => {
+		const { dom } = mount(make());
+		const control = dom.matches(selector) ? dom : dom.querySelector<HTMLElement>(selector)!;
+		expect(control.getAttribute('aria-label')).toBe(key);
+		expect(control.title).toBe(key);
 	});
 });

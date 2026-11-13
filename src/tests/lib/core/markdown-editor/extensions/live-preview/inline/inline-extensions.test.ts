@@ -31,6 +31,7 @@ describe('inline-extensions', () => {
 		expect(names).toContain('block-reference');
 		expect(names).toContain('extended-autolink');
 		expect(names).toContain('wikilink');
+		expect(names).toContain('tag');
 	});
 
 	it('inlineExtensions() returns the HighlightStyle wrapper + the inline plugin (2 entries)', () => {

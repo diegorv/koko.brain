@@ -23,10 +23,51 @@ describe('isDarkColor', () => {
 		expect(isDarkColor('  #ffffff ')).toBe(false);
 	});
 
+	it('reads oklch() values', () => {
+		expect(isDarkColor('oklch(0.2 0.02 270)')).toBe(true);
+		expect(isDarkColor('oklch(1 0 0)')).toBe(false);
+	});
+
 	it('returns null for empty or unparseable input', () => {
 		expect(isDarkColor('')).toBeNull();
-		expect(isDarkColor('oklch(0.2 0.02 270)')).toBeNull();
+		expect(isDarkColor('oklch(foo)')).toBeNull();
 		expect(isDarkColor('#12')).toBeNull();
+	});
+});
+
+describe('oklch parsing', () => {
+	it('converts through OKLab to the sRGB hex it names', () => {
+		expect(flatten('oklch(1 0 0)', '#000000')).toBe('#ffffff');
+		expect(flatten('oklch(0 0 0)', '#ffffff')).toBe('#000000');
+		// The Default theme's selected row, documented as #242835 in sRGB
+		expect(flatten('oklch(0.28 0.025 272)', '#000000')).toBe('#242835');
+	});
+
+	it('reads a percentage lightness, a deg hue and a percentage chroma (of 0.4)', () => {
+		expect(flatten('oklch(28% 0.025 272deg)', '#000000')).toBe('#242835');
+		expect(flatten('OKLCH(28% 6.25% 272)', '#000000')).toBe('#242835');
+	});
+
+	it('reads a / alpha and composites it', () => {
+		expect(flatten('oklch(0 0 0 / 0.5)', '#ffffff')).toBe('#808080');
+		expect(flatten('oklch(0 0 0 / 50%)', '#ffffff')).toBe('#808080');
+	});
+
+	it('clamps out-of-gamut colors to sRGB', () => {
+		expect(flatten('oklch(0.7 0.4 30)', '#000000')).toMatch(/^#[0-9a-f]{6}$/);
+	});
+
+	it('returns null for malformed oklch', () => {
+		expect(flatten('oklch(foo)', '#ffffff')).toBeNull();
+		expect(flatten('oklch(0.5 0.1)', '#ffffff')).toBeNull();
+		expect(flatten('oklch(0.5, 0.1, 200)', '#ffffff')).toBeNull();
+	});
+
+	it('returns null instead of throwing when a huge chroma overflows the conversion', () => {
+		const huge = `oklch(0.5 1${'0'.repeat(110)} 270)`;
+		expect(huge.length).toBeLessThanOrEqual(128);
+		expect(isDarkColor(huge)).toBeNull();
+		expect(flatten(huge, '#ffffff')).toBeNull();
 	});
 });
 
@@ -36,8 +77,15 @@ describe('contrastRatio', () => {
 		expect(contrastRatio('#ffffff', '#ffffff')).toBeCloseTo(1, 5);
 	});
 
+	it('reads oklch() colors', () => {
+		// The Default theme's muted sidebar text on its navigator background
+		const ratio = contrastRatio('oklch(0.55 0.06 268)', '#262938');
+		expect(ratio).not.toBeNull();
+		expect(ratio!).toBeLessThan(4.5);
+	});
+
 	it('returns null when a color cannot be parsed', () => {
-		expect(contrastRatio('oklch(0.5 0.1 200)', '#ffffff')).toBeNull();
+		expect(contrastRatio('hsl(200 50% 50%)', '#ffffff')).toBeNull();
 	});
 });
 
@@ -87,8 +135,14 @@ describe('ensureContrast', () => {
 		expect(ensureContrast('#e5b41f80', '#ffffff', 4.5)).toMatch(/^#[0-9a-f]{6}80$/);
 	});
 
+	it('lifts a failing oklch() color to a hex that passes', () => {
+		const out = ensureContrast('oklch(0.55 0.06 268)', '#262938', 4.5);
+		expect(out).toMatch(/^#[0-9a-f]{6}$/);
+		expect(contrastRatio(out, '#262938')!).toBeGreaterThanOrEqual(4.5);
+	});
+
 	it('leaves colors it cannot parse untouched', () => {
-		expect(ensureContrast('oklch(0.5 0.1 200)', '#ffffff', 4.5)).toBe('oklch(0.5 0.1 200)');
+		expect(ensureContrast('hsl(200 50% 50%)', '#ffffff', 4.5)).toBe('hsl(200 50% 50%)');
 	});
 });
 
@@ -102,7 +156,7 @@ describe('flatten', () => {
 	});
 
 	it('returns null for unparseable input', () => {
-		expect(flatten('oklch(0.5 0.1 200)', '#ffffff')).toBeNull();
+		expect(flatten('hsl(200 50% 50%)', '#ffffff')).toBeNull();
 	});
 });
 
@@ -131,8 +185,17 @@ describe('mixColors', () => {
 		expect(g).toBeLessThan(220);
 	});
 
+	it('weights the mix toward the second color', () => {
+		expect(mixColors('#ff0000', '#0000ff', 0)).toBe('#ff0000');
+		expect(mixColors('#ff0000', '#0000ff', 1)).toBe('#0000ff');
+		expect(mixColors('#ff0000', '#0000ff', 0.5)).toBe(mixColors('#ff0000', '#0000ff'));
+		const near = parseInt(mixColors('#000000', '#ffffff', 0.25)!.slice(1, 3), 16);
+		const far = parseInt(mixColors('#000000', '#ffffff', 0.75)!.slice(1, 3), 16);
+		expect(near).toBeLessThan(far);
+	});
+
 	it('returns null when either color is unparseable', () => {
-		expect(mixColors('oklch(0.5 0.1 200)', '#ffffff')).toBeNull();
+		expect(mixColors('hsl(200 50% 50%)', '#ffffff')).toBeNull();
 		expect(mixColors('#ffffff', '')).toBeNull();
 	});
 });

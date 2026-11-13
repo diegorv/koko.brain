@@ -1,0 +1,6 @@
+{
+	"id": "status-chip",
+	"name": "Status chip",
+	"version": "1.0.0",
+	"description": "Example mod: a status bar chip with the open note and the time, styled by the theme and removed cleanly at unload"
+}

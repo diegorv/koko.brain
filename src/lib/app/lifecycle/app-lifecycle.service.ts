@@ -56,9 +56,10 @@ import {
 	resetFileIcons,
 } from '#lib/features/file-icons/file-icons.service.js';
 import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
-import { resetTasks } from '#lib/features/tasks/tasks.service.js';
+import { loadSavedTasksView, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
+import { registerTypesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/types-navigator.service.js';
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
 import { resetQuickSwitcher } from '#lib/features/quick-switcher/quick-switcher.service.js';
 import { resetCommandPalette } from '#lib/features/command-palette/command-palette.service.js';
@@ -67,12 +68,15 @@ import { registerKanbanFolderCreator, resetKanban } from '#lib/plugins/kanban/ka
 import { registerCalendarRail } from '#lib/plugins/calendar/calendar-rail.service.js';
 import { registerOneOnOneActionBarAction } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one-today.service.js';
-import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
+import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
+import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
+import { startAutoSync, stopAutoSync } from '#lib/features/todoist-sync/sync-scheduler.service.js';
+import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { registerFileHistoryHook, closeFileHistory } from '#lib/features/file-history/file-history.service.js';
 import { executePendingAction, resetDeepLink } from '#lib/features/deep-link/deep-link.service.js';
-import { loadAutoMoveConfig, toggleAutoMoveHook, resetAutoMove } from '#lib/features/auto-move/auto-move.service.js';
+import { loadAutoOrganizeConfig, toggleAutoOrganizeHook, resetAutoOrganize } from '#lib/features/auto-organize/auto-organize.service.js';
 import { buildContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
 import { applyFolderOrder } from '#lib/core/filesystem/fs.logic.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -160,6 +164,14 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// later note change fans out to duplicates.
 	for (const unregister of unregisterNoteChangeConsumers) unregister();
 	unregisterNoteChangeConsumers = [];
+	// Same window: the previous vault's mods (or a start still loading them)
+	// must not run on into the next vault.
+	stopModsHost();
+	// Same window: the previous vault's Todoist triggers must not fire into the next vault.
+	stopAutoSync();
+	// A previous-vault run stopped by the switch leaves the store syncing
+	// (`syncNow` does not fail it), which would refuse every later run.
+	todoistSyncStore.reset();
 	if (unsubscribeFileHistory) {
 		unsubscribeFileHistory();
 		unsubscribeFileHistory = null;
@@ -197,9 +209,10 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// ── Step 1: Settings ─────────────────────────────────────────────
 	// Settings MUST load first — other operations depend on it
 	const t1 = perfStart();
-	await loadSettings(vaultPath);
+	const settingsOutcome = await loadSettings(vaultPath);
 	perfEnd('LIFECYCLE', 'Step 1: loadSettings', t1);
 	if (initVersion !== version) return;
+	loadSavedTasksView();
 	try {
 		await configureSentry(settingsStore.sentry);
 	} catch (err) {
@@ -217,7 +230,9 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// Persisting is a property of the settings module from here on: every
 	// mutation of the store is written back to THIS vault. Started after the
 	// load so the effect's first run cannot overwrite the file it just read.
-	startSettingsPersistence(vaultPath);
+	// A 'file-protected' outcome (settings.json unread, or not backed up) makes
+	// the session write nothing, so the file keeps its bytes.
+	startSettingsPersistence(vaultPath, settingsOutcome);
 
 	if (settingsStore.debugModeTauri) {
 		debug('LIFECYCLE', 'Tauri debug mode enabled — activating');
@@ -260,6 +275,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		// A path-change consumer: same lifetime, so it shares the unregister list.
 		registerEventCalendarPathChangeConsumer(),
 		registerFilesNavigatorPathChangeConsumer(),
+		registerTypesNavigatorPathChangeConsumer(),
 		registerCollectionPathChangeConsumer(),
 		registerNeighbourhoodPathChangeConsumer(),
 		// The note action bar's New 1:1: same lifetime, same list.
@@ -282,16 +298,23 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		debug('LIFECYCLE', 'File history disabled — skipping hook registration');
 	}
 
-	const retentionDays = settingsStore.history.retentionDays;
-	debug('LIFECYCLE', `Cleaning up old snapshots (retention: ${retentionDays} days)...`);
-	call('cleanup_history', { retentionDays }).catch((err) => {
-		error('HISTORY', 'Cleanup failed:', err);
-	});
+	// The retention of a 'file-protected' load is the default, not the one in
+	// the unread settings.json, so purging with it could delete snapshots the
+	// user chose to keep.
+	if (settingsOutcome === 'file-protected') {
+		debug('LIFECYCLE', 'settings.json was not loaded, skipping snapshot cleanup');
+	} else {
+		const retentionDays = settingsStore.history.retentionDays;
+		debug('LIFECYCLE', `Cleaning up old snapshots (retention: ${retentionDays} days)...`);
+		call('cleanup_history', { retentionDays }).catch((err) => {
+			error('HISTORY', 'Cleanup failed:', err);
+		});
+	}
 
 	// ── Step 3: Load user data (parallel) ────────────────────────────
 	// The bookmarks migration runs before the step 4 scan so the scan indexes
 	// the `_favorite` flags it writes, and before step 6 registers the
-	// auto-move hook, so favoriting a note cannot move it.
+	// auto-organize hook, so favoriting a note cannot move it.
 	const t3 = perfStart();
 	try {
 		await Promise.all([
@@ -300,7 +323,7 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 			isRemoteBrowser() ? Promise.resolve() : migrateBookmarksToFavorites(vaultPath),
 			loadRecentIcons(vaultPath),
 			loadTrash(vaultPath),
-			loadAutoMoveConfig(vaultPath),
+			loadAutoOrganizeConfig(vaultPath),
 		]);
 	} catch (err) {
 		error('LIFECYCLE', 'Failed to load user data (icons/trash):', err);
@@ -405,9 +428,8 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 	// which degrade gracefully if briefly empty. Running them via
 	// `setTimeout(…, 0)` lets the WebKit first render + daily-note IPC proceed
 	// first, then the builders run as macrotasks.
-	// The task index is not built here: its only reader is `TasksView`, which
-	// mounts with the Tasks tab and fetches on mount, and the default section
-	// tag makes `get_tasks_in_section_v2` read every note with tasks from disk.
+	// The task index is not built here: its only reader, `TasksView`, mounts
+	// with the Tasks tab and fetches when it mounts.
 	// Gated on `indexBuilt` for the same reason as step 4b: all three read
 	// the Rust `VaultIndex` directly (`get_all_tags_v2`,
 	// `get_all_property_records`, `get_all_vault_entries_v2`), which on a failed
@@ -441,11 +463,11 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		});
 	unsubscribeSearchIndex = registerSearchIndexHook();
 
-	if (settingsStore.autoMove.enabled) {
-		debug('LIFECYCLE', 'Auto-move enabled — registering after-save hook');
-		toggleAutoMoveHook(true);
+	if (settingsStore.autoOrganize.enabled) {
+		debug('LIFECYCLE', 'Auto Organize enabled — registering after-save hook');
+		toggleAutoOrganizeHook(true);
 	} else {
-		debug('LIFECYCLE', 'Auto-move disabled — skipping hook registration');
+		debug('LIFECYCLE', 'Auto Organize disabled — skipping hook registration');
 	}
 
 	// Semantic search: if enabled but model is missing, disable and notify.
@@ -540,6 +562,13 @@ export async function initializeVault(vaultPath: string): Promise<void> {
 		maybeAutoCheckForUpdates().catch((err) => {
 			error('LIFECYCLE', 'maybeAutoCheckForUpdates failed:', err);
 		});
+		// Off the open path so mods never delay it; the host does nothing
+		// unless mods are on for this vault.
+		startModsHost(vaultPath).catch((err) => {
+			error('LIFECYCLE', 'Failed to start vault mods:', err);
+		});
+		// Its first cycle needs the index ready (step 4); it does nothing while sync is off.
+		startAutoSync(vaultPath);
 	}, 0);
 
 	debug('LIFECYCLE', `initializeVault complete in ${(performance.now() - initStart).toFixed(1)}ms:`, vaultPath);
@@ -585,6 +614,9 @@ export function teardownVault(): void {
 	}
 	for (const unregister of unregisterNoteChangeConsumers) unregister();
 	unregisterNoteChangeConsumers = [];
+	// A no-op when nothing is loaded: this teardown also runs at boot with no vault.
+	stopModsHost();
+	stopAutoSync();
 	unregisterCalendarDailyNote?.();
 	unregisterCalendarDailyNote = null;
 	// ── Stop background processes ────────────────────────────────────
@@ -635,6 +667,9 @@ export function teardownVault(): void {
 	invalidateVaultEntries();
 	resetHooks();
 	queryjsSessionStore.reset();
+	// stopModsHost above already aborted the runs of the mods it unloaded; this
+	// also stops any run left without a live mod, then drops the ended runs.
+	modsRunsStore.reset();
 	clearMermaidCache();
 	clearCollectionCache();
 	clearMathCache();
@@ -657,11 +692,11 @@ export function teardownVault(): void {
 	resetCollection();
 	resetQuickSwitcher();
 	resetCommandPalette();
-	resetAutoMove();
+	resetAutoOrganize();
 	resetDeepLink();
 	resetPeriodicNotes();
 	resetTrash();
-	todoistStore.reset();
+	todoistSyncStore.reset();
 	lifecycleFilterStore.reset();
 	typeDefinitionsStore.reset();
 	neighbourhoodStore.reset();

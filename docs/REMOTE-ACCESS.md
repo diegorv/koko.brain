@@ -1,6 +1,6 @@
 # Remote access (iPad and iPhone over the tailnet)
 
-Kokobrain can serve its own interface, and the vault the desktop has open, to Safari on your iPad or iPhone. The Mac app stays the host: it listens on `127.0.0.1` only, and Tailscale Serve carries the traffic from your tailnet to it. Only your own Tailscale login gets in. The decision and its limits are in [ADR-0036](adr/0036-in-app-remote-host.md).
+Kokobrain can serve its own interface, and the vault the desktop has open, to Safari on your iPad or iPhone. The Mac app stays the host: it listens on `127.0.0.1` only, and Tailscale Serve carries the traffic from your tailnet to it. Only your own Tailscale login gets in. The decision and its limits are in [ADR-0038](adr/0038-in-app-remote-host.md).
 
 ## Requirements
 

@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { parseCollectionYaml, updateCollectionYaml, addView, removeView, renameView, setViewType } from '#lib/features/collection/yaml-parser.js';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { parseCollectionYaml, updateCollectionYaml, updateViewEditYaml, addView, removeView, renameView, setViewType, railViewIndex } from '#lib/features/collection/yaml-parser.js';
+import { filterGroupsToFilter, parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
+import { getViewLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 describe('parseCollectionYaml', () => {
 	it('parses a minimal collection with one table view', () => {
@@ -161,6 +166,19 @@ views:
 		expect(result.error).toContain('Invalid YAML');
 	});
 
+	// The TS side of `view_multi_document_cases` in `src-tauri/tests/vault_frontmatter_parity_test.rs`:
+	// for these bytes the Rust index falls back to its subset parser and reads the keys of both documents.
+	it.each([
+		['a second document', 'a: 1\n---\nb: 2\n'],
+		['an empty second document', 'a: 1\n---\n'],
+		['a second document after views', 'views:\n  - type: table\n    name: All\n---\nb: 2\n'],
+	])('refuses a .view with %s as invalid YAML, where the Rust index reads its keys', (_label, yaml) => {
+		const result = parseCollectionYaml(yaml);
+		expect(result.success).toBe(false);
+		if (result.success) return;
+		expect(result.error).toMatch(/^Invalid YAML: /);
+	});
+
 	it('returns error when views is missing', () => {
 		const yaml = `
 filters:
@@ -202,6 +220,28 @@ views:
 		expect(result.success).toBe(false);
 		if (result.success) return;
 		expect(result.error).toContain('missing "type"');
+	});
+
+	it('returns an error listing the accepted types for an unknown view type', () => {
+		const yaml = `
+views:
+  - type: tabel
+    name: "Typo"
+`;
+		const result = parseCollectionYaml(yaml);
+		expect(result.success).toBe(false);
+		if (result.success) return;
+		expect(result.error).toContain('tabel');
+		expect(result.error).toContain('table');
+		expect(result.error).toContain('calendar');
+		expect(result.error).toContain('linear-calendar');
+	});
+
+	it('accepts each of the three view types', () => {
+		for (const type of ['table', 'calendar', 'linear-calendar']) {
+			const result = parseCollectionYaml(`views:\n  - type: ${type}\n    name: V\n`);
+			expect(result.success, type).toBe(true);
+		}
 	});
 
 	it('returns error when view is missing name', () => {
@@ -454,6 +494,63 @@ views:
 		expect(result.success).toBe(true);
 		if (!result.success) return;
 		expect(result.definition.views[0].limit).toBe(50);
+	});
+});
+
+describe('parseCollectionYaml: _rail_view', () => {
+	const TWO_VIEWS = 'views:\n  - type: table\n    name: Table\n  - type: table\n    name: Board\n';
+
+	it('keeps a non-blank string _rail_view as railView', () => {
+		const result = parseCollectionYaml(`_rail_view: Board\n${TWO_VIEWS}`);
+		expect(result.success && result.definition.railView).toBe('Board');
+	});
+
+	it('keeps the name as written, so matching stays exact', () => {
+		const result = parseCollectionYaml(`_rail_view: " board"\n${TWO_VIEWS}`);
+		expect(result.success && result.definition.railView).toBe(' board');
+	});
+
+	it.each([
+		['absent', ''],
+		['a number', '_rail_view: 2\n'],
+		['a list', '_rail_view: [Board]\n'],
+		['null', '_rail_view: null\n'],
+		['a blank string', '_rail_view: "  "\n'],
+		['true', '_rail_view: true\n'],
+	])('leaves railView undefined and still parses when it is %s', (_label, line) => {
+		const result = parseCollectionYaml(`${line}${TWO_VIEWS}`);
+		expect(result.success).toBe(true);
+		if (!result.success) return;
+		expect(result.definition).not.toHaveProperty('railView');
+		expect(result.definition.views).toHaveLength(2);
+	});
+});
+
+describe('railViewIndex', () => {
+	const views = [
+		{ type: 'table' as const, name: 'Table' },
+		{ type: 'table' as const, name: 'Board' },
+		{ type: 'table' as const, name: 'Board' },
+	];
+
+	it('is the index of the first view whose name equals railView', () => {
+		expect(railViewIndex({ views, railView: 'Board' })).toBe(1);
+		expect(railViewIndex({ views, railView: 'Table' })).toBe(0);
+	});
+
+	it('is 0 when railView is missing or names no view', () => {
+		expect(railViewIndex({ views })).toBe(0);
+		expect(railViewIndex({ views, railView: 'Bord' })).toBe(0);
+	});
+
+	it('matches the name exactly, case and spaces included', () => {
+		expect(railViewIndex({ views, railView: 'board' })).toBe(0);
+		expect(railViewIndex({ views, railView: 'Board ' })).toBe(0);
+	});
+
+	it('reads the views of a parsed .view', () => {
+		const parsed = parseCollectionYaml('_rail_view: Board\nviews:\n  - type: table\n    name: Table\n  - type: calendar\n    name: Board\n');
+		expect(parsed.success && railViewIndex(parsed.definition)).toBe(1);
 	});
 });
 
@@ -803,6 +900,23 @@ describe('renameView', () => {
 		expect(renameView(yaml, 99, 'X')).toBe(yaml);
 		expect(renameView(yaml, -1, 'X')).toBe(yaml);
 	});
+
+	it("refuses the name another view carries, so _rail_view keeps its view", () => {
+		const railed = `_rail_view: Other\n${yaml}`;
+		expect(renameView(railed, 0, 'Other')).toBe(railed);
+		expect(renameView(railed, 0, ' Other ')).toBe(railed);
+		expect(renameView(yaml, 1, 'Old')).toBe(yaml);
+		const parsed = parseCollectionYaml(renameView(railed, 0, 'other'));
+		if (!parsed.success) throw new Error(parsed.error);
+		expect(parsed.definition.views.map((v) => v.name)).toEqual(['other', 'Other']);
+		expect(railViewIndex(parsed.definition)).toBe(1);
+	});
+
+	it('gives back the bytes, comments kept, when the name does not change', () => {
+		const commented = `# my views\n${yaml}`;
+		expect(renameView(commented, 0, 'Old')).toBe(commented);
+		expect(renameView(commented, 0, '  Old ')).toBe(commented);
+	});
 });
 
 describe('setViewType', () => {
@@ -836,5 +950,199 @@ describe('setViewType', () => {
 	it('returns the original string for an out-of-range index', () => {
 		expect(setViewType(yaml, 99, 'calendar')).toBe(yaml);
 		expect(setViewType(yaml, -1, 'calendar')).toBe(yaml);
+	});
+});
+
+describe('updateViewEditYaml', () => {
+	const FULL = [
+		'_sidebar_label: Projects',
+		'_icon: lucide:rocket',
+		'_color: red',
+		'_sort: title',
+		'_order: 3',
+		'_open_in_editor: false',
+		"filters: _type == 'Project'",
+		'views:',
+		'  - type: table',
+		'    name: Projects',
+		"    filters: status == 'active'",
+		'    sort:',
+		'      - column: file.basename',
+		'        direction: DESC',
+		'    order:',
+		'      - file.name',
+		'      - status',
+		'    limit: 25',
+		'  - type: calendar',
+		'    name: Calendar',
+		'    dateProperty: due',
+		'',
+	].join('\n');
+
+	function save(yaml: string, edit: Parameters<typeof updateViewEditYaml>[1]): Record<string, unknown> {
+		const result = updateViewEditYaml(yaml, edit);
+		if (!result.ok) throw new Error(`unexpected error: ${result.error}`);
+		return parseYaml(result.yaml) as Record<string, unknown>;
+	}
+
+	it('rewrites the label, the first view name and both filter places, keeping every other key as it was', () => {
+		const before = parseYaml(FULL) as Record<string, unknown>;
+		const after = save(FULL, { label: 'Live projects', filters: "_type == 'Area'", viewFilters: { or: ["status == 'done'", 'priority > 2'] } });
+
+		expect(after._sidebar_label).toBe('Live projects');
+		expect(after.filters).toBe("_type == 'Area'");
+		const views = after.views as Record<string, unknown>[];
+		expect(views[0].name).toBe('Live projects');
+		expect(views[0].filters).toEqual({ or: ["status == 'done'", 'priority > 2'] });
+
+		const beforeViews = before.views as Record<string, unknown>[];
+		for (const key of ['_icon', '_color', '_sort', '_order', '_open_in_editor']) {
+			expect(after[key]).toEqual(before[key]);
+		}
+		expect(views[0].sort).toEqual(beforeViews[0].sort);
+		expect(views[0].order).toEqual(beforeViews[0].order);
+		expect(views[0].limit).toBe(25);
+		expect(views[0].type).toBe('table');
+		expect(views[1]).toEqual(beforeViews[1]);
+		expect(Object.keys(after).sort()).toEqual(Object.keys(before).sort());
+	});
+
+	it('gives a view with no _sidebar_label one', () => {
+		const after = save('views:\n  - type: table\n    name: Old\n', { label: 'New', viewFilters: undefined });
+		expect(after._sidebar_label).toBe('New');
+		expect((after.views as Record<string, unknown>[])[0].name).toBe('New');
+	});
+
+	it('writes a missing _sidebar_label first, as a new view file has it', () => {
+		const result = updateViewEditYaml('_icon: lucide:rocket\nviews:\n  - type: table\n    name: Old\n', { label: 'New' });
+		expect(result.ok && result.yaml.split('\n').slice(0, 2)).toEqual(['_sidebar_label: New', '_icon: lucide:rocket']);
+	});
+
+	it('keeps an existing _sidebar_label where it was', () => {
+		const result = updateViewEditYaml('_icon: lucide:rocket\n_sidebar_label: Old\nviews:\n  - type: table\n    name: Old\n', { label: 'New' });
+		expect(result.ok && result.yaml.split('\n').slice(0, 2)).toEqual(['_icon: lucide:rocket', '_sidebar_label: New']);
+	});
+
+	it.each([
+		['written sidebar_label', 'sidebar_label: Old\nviews:\n  - type: table\n    name: Old\n'],
+		['written "sidebar label"', '"sidebar label": Old\nviews:\n  - type: table\n    name: Old\n'],
+		['after _sidebar_label', '_sidebar_label: Old\nsidebar_label: Older\nviews:\n  - type: table\n    name: Old\n'],
+	])('drops the label alias (%s), which Rust folds onto _sidebar_label, last one winning', (_label, yaml) => {
+		const after = save(yaml, { label: 'New' });
+		expect(after).toEqual({ _sidebar_label: 'New', views: [{ type: 'table', name: 'New' }] });
+	});
+
+	it('removes a filter key whose section was cleared instead of writing an empty one', () => {
+		const after = save(FULL, { label: 'Projects', filters: undefined, viewFilters: undefined });
+		expect(after).not.toHaveProperty('filters');
+		expect((after.views as Record<string, unknown>[])[0]).not.toHaveProperty('filters');
+	});
+
+	it('leaves the top-level filters alone when the edit has no filters key', () => {
+		const after = save(FULL, { label: 'Projects', viewFilters: undefined });
+		expect(after.filters).toBe("_type == 'Project'");
+	});
+
+	it('keeps a long label on one line', () => {
+		const label = 'A very long view label '.repeat(6).trim();
+		const result = updateViewEditYaml(FULL, { label });
+		expect(result.ok && result.yaml).toContain(`_sidebar_label: ${label}\n`);
+	});
+
+	it('returns an error, not the input, for YAML that does not parse', () => {
+		const result = updateViewEditYaml('views: [', { label: 'X' });
+		expect(result.ok).toBe(false);
+		expect(!result.ok && result.error).toMatch(/^Invalid YAML/);
+	});
+
+	it.each([
+		['no views key', '_sidebar_label: X\n'],
+		['an empty views list', 'views: []\n'],
+		['a views[0] that is not a map', 'views:\n  - table\n'],
+		['a top level that is not a map', '- a\n- b\n'],
+	])('returns an error for a file with %s', (_label, yaml) => {
+		const result = updateViewEditYaml(yaml, { label: 'X' });
+		expect(result.ok).toBe(false);
+		expect(!result.ok && result.error).toBeTruthy();
+	});
+
+	it('writes a nested filter object back as an object after a name-only edit', () => {
+		const nested = { and: ["_type == 'Project'", { or: ["status == 'active'", 'priority > 2'] }] };
+		const yaml = stringifyYaml({ views: [{ type: 'table', name: 'Nested', filters: nested }] });
+		const prefilled = parseFilterToGroups(parseYaml(yaml).views[0].filters);
+
+		const after = save(yaml, { label: 'Renamed', viewFilters: filterGroupsToFilter(prefilled) });
+
+		expect((after.views as Record<string, unknown>[])[0].filters).toEqual(nested);
+	});
+
+	describe('with _rail_view', () => {
+		const RAIL = [
+			'_sidebar_label: Board',
+			'_rail_view: Board',
+			'views:',
+			'  - type: table',
+			'    name: Table',
+			"    filters: status == 'open'",
+			'  - type: table',
+			'    name: Board',
+			"    filters: status == 'done'",
+			'',
+		].join('\n');
+
+		it('edits the view _rail_view names and renames _rail_view with it', () => {
+			const before = parseYaml(RAIL) as Record<string, unknown>;
+			const after = save(RAIL, { label: 'Done board', viewFilters: "status == 'shipped'" });
+			const views = after.views as Record<string, unknown>[];
+			expect(views[1]).toEqual({ type: 'table', name: 'Done board', filters: "status == 'shipped'" });
+			expect(views[0]).toEqual((before.views as unknown[])[0]);
+			expect(after._rail_view).toBe('Done board');
+			expect(after._sidebar_label).toBe('Done board');
+			// The saved file still runs the edited view.
+			const parsed = parseCollectionYaml(stringifyYaml(after));
+			expect(parsed.success && railViewIndex(parsed.definition)).toBe(1);
+		});
+
+		it('edits the first view and leaves a _rail_view that names no view as it is', () => {
+			const stale = RAIL.replace('_rail_view: Board', '_rail_view: Bord');
+			const after = save(stale, { label: 'Renamed', viewFilters: undefined });
+			const views = after.views as Record<string, unknown>[];
+			expect(views[0]).toEqual({ type: 'table', name: 'Renamed' });
+			expect(views[1].name).toBe('Board');
+			expect(after._rail_view).toBe('Bord');
+		});
+
+		it('refuses a label another view in the file is named, so the rail never switches views', () => {
+			// New view names views[0] after the label; a second tab then becomes the rail's view.
+			const yaml = RAIL.replace('_sidebar_label: Board', '_sidebar_label: Table');
+			const result = updateViewEditYaml(yaml, { label: 'Table', viewFilters: "status == 'shipped'" });
+			expect(result).toEqual({ ok: false, error: 'Another view in this file is named "Table"' });
+		});
+
+		it('saves a label another view is named in a .view without _rail_view, as Issue 19 did', () => {
+			const after = save(RAIL.replace('_rail_view: Board\n', ''), { label: 'Board' });
+			const views = after.views as Record<string, unknown>[];
+			expect(views[0].name).toBe('Board');
+			expect(views[1].name).toBe('Board');
+			expect(after).not.toHaveProperty('_rail_view');
+		});
+
+		it('keeps the label the edited view already carries', () => {
+			const after = save(RAIL, { label: 'Board', viewFilters: "status == 'shipped'" });
+			const parsed = parseCollectionYaml(stringifyYaml(after));
+			expect(parsed.success && railViewIndex(parsed.definition)).toBe(1);
+		});
+
+		it('writes no _rail_view into a .view that has none', () => {
+			const after = save(RAIL.replace('_rail_view: Board\n', ''), { label: 'Renamed' });
+			expect(after).not.toHaveProperty('_rail_view');
+			expect((after.views as Record<string, unknown>[])[0].name).toBe('Renamed');
+		});
+	});
+
+	it('writes a label that getViewLabel reads back from the saved top level', () => {
+		const after = save('views:\n  - type: table\n    name: Old\n', { label: '123', viewFilters: undefined });
+		const entry = entryV2('/vault/Old.view', { frontmatter: after as NoteEntryV2['frontmatter'] });
+		expect(getViewLabel(entry, 'Old')).toBe('123');
 	});
 });

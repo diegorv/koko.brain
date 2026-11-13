@@ -6,7 +6,7 @@ use ort::session::builder::GraphOptimizationLevel;
 use std::path::Path;
 use tokenizers::{EncodeInput, Tokenizer, TruncationParams};
 
-/// Cross-encoder reranker wrapping a BGE-reranker-v2-m3 ONNX session.
+/// Cross-encoder reranker wrapping a jina-reranker-v2-base-multilingual ONNX session.
 ///
 /// Reranks a candidate list against a query by running joint (query, document)
 /// inference through a sequence-classification head. Output is a single logit
@@ -20,15 +20,15 @@ pub struct Reranker {
 }
 
 impl Reranker {
-	/// Default texts-per-inference batch. 8 is the sweet spot on M-series CPU:
-	/// large enough to amortize per-call overhead, small enough to keep peak
-	/// RSS under 1GB during a 50-pair rerank.
-	pub const DEFAULT_BATCH_SIZE: usize = 8;
+	/// Default texts-per-inference batch. 1 runs each pair at its own length:
+	/// a batch is padded to its longest pair, a pair costs about the same alone
+	/// as inside a batch, and the INT8 scores shift with the other pairs in a
+	/// batch.
+	pub const DEFAULT_BATCH_SIZE: usize = 1;
 
-	/// Max joint-encoded sequence length. BGE-reranker-v2-m3 was trained at 512
-	/// tokens for the (query + doc) pair — that's the cap; going higher
-	/// degrades quality and is wasted compute since the encoder folds
-	/// everything into a single relevance logit.
+	/// Max joint-encoded sequence length for the (query + doc) pair. Inference
+	/// cost grows with the token count, so longer pairs are truncated here to
+	/// keep a rerank bounded.
 	pub const DEFAULT_MAX_SEQ_LEN: usize = 512;
 
 	/// Loads the ONNX model + tokenizer from a directory containing `model.onnx`

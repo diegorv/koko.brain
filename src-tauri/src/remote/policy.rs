@@ -52,8 +52,9 @@ pub const POLICY: &[(&str, Class)] = &[
 	("propagate_type_rename", Class::Denied),
 	("get_all_tags_v2", Class::Read),
 	("get_all_tasks_v2", Class::Read),
-	("get_tasks_in_section_v2", Class::Read),
 	("toggle_task_status", Class::Denied),
+	("write_task_lines", Class::Denied),
+	("write_task_text", Class::Denied),
 	("remove_note_from_index", Class::Virtual),
 	("rename_note", Class::Denied),
 	("get_all_property_records", Class::Read),
@@ -70,6 +71,7 @@ pub const POLICY: &[(&str, Class)] = &[
 	("search_fts", Class::Read),
 	("update_search_index_file", Class::Virtual),
 	("remove_from_search_index", Class::Virtual),
+	("rename_in_search_index", Class::Virtual),
 	// commands::semantic: reported unavailable, so the browser never loads a model.
 	("init_semantic_search", Class::Virtual),
 	("is_semantic_model_available", Class::Virtual),
@@ -102,6 +104,17 @@ pub const POLICY: &[(&str, Class)] = &[
 	("dismiss_composer", Class::Denied),
 	("submit_composer_capture", Class::Denied),
 	("import_staged_shot", Class::Denied),
+	("report_composer_capture_result", Class::Denied),
+	// Vault mods run on the desktop only.
+	("read_mod_data", Class::Denied),
+	("write_mod_data", Class::Denied),
+	// Todoist sync is the desktop's.
+	("todoist_read_kv", Class::Denied),
+	("todoist_read_links", Class::Denied),
+	("todoist_read_sections", Class::Denied),
+	("todoist_read_log", Class::Denied),
+	("todoist_append_log", Class::Denied),
+	("todoist_commit_state", Class::Denied),
 	// plugin:fs, per command; paths are further checked by `fs_path_rule`.
 	("plugin:fs|read_text_file", Class::Read),
 	("plugin:fs|read_file", Class::Read),

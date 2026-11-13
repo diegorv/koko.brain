@@ -16,7 +16,9 @@ vi.mock('@tauri-apps/api/core', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import {
 	addAfterSaveObserver,
+	addNoteCreatedObserver,
 	notifyAfterSave,
+	notifyNoteCreated,
 	resetHooks,
 	markRecentSave,
 	areAllRecentSaves,
@@ -220,6 +222,74 @@ describe('addAfterSaveObserver', () => {
 
 		notifyAfterSave('/vault/note.md', 'content');
 		expect(observer).toHaveBeenCalledTimes(1); // Not called again
+	});
+});
+
+describe('note-created observers', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		resetHooks();
+	});
+
+	it('notifyNoteCreated calls every observer with the path', () => {
+		const first = vi.fn();
+		const second = vi.fn();
+		addNoteCreatedObserver(first);
+		addNoteCreatedObserver(second);
+
+		notifyNoteCreated('/vault/New.md');
+
+		expect(first).toHaveBeenCalledWith('/vault/New.md');
+		expect(second).toHaveBeenCalledWith('/vault/New.md');
+	});
+
+	it('does nothing without observers', () => {
+		expect(() => notifyNoteCreated('/vault/New.md')).not.toThrow();
+	});
+
+	it('a throwing observer is logged and the others still run', () => {
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		const good = vi.fn();
+		addNoteCreatedObserver(() => {
+			throw new Error('boom');
+		});
+		addNoteCreatedObserver(good);
+
+		notifyNoteCreated('/vault/New.md');
+
+		expect(good).toHaveBeenCalledWith('/vault/New.md');
+		expect(consoleSpy).toHaveBeenCalledWith('noteCreated observer error:', expect.any(Error));
+		consoleSpy.mockRestore();
+	});
+
+	it('the unsubscribe function stops further calls', () => {
+		const observer = vi.fn();
+		const unsub = addNoteCreatedObserver(observer);
+		unsub();
+
+		notifyNoteCreated('/vault/New.md');
+
+		expect(observer).not.toHaveBeenCalled();
+	});
+
+	it('resetHooks removes note-created observers', () => {
+		const observer = vi.fn();
+		addNoteCreatedObserver(observer);
+		resetHooks();
+
+		notifyNoteCreated('/vault/New.md');
+
+		expect(observer).not.toHaveBeenCalled();
+	});
+
+	it('does not run after-save observers or touch the index', () => {
+		const afterSave = vi.fn();
+		addAfterSaveObserver(afterSave);
+
+		notifyNoteCreated('/vault/New.md');
+
+		expect(afterSave).not.toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalled();
 	});
 });
 

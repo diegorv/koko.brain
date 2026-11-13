@@ -4,7 +4,6 @@ _icon: file-text
 _color: gray
 _order: 8
 _sidebar_label: Notes
-_sort: modified
 _visible: true
 _list_properties_display:
   - _belongs_to

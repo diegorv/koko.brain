@@ -4,9 +4,16 @@ Learn how to query your vault notes as a table or database using Collection — 
 
 ## What Are Collection?
 
-Collection let you view and query your vault notes as rows in a table. Each note becomes a row, and its frontmatter properties become columns. Collection are saved as `.collection` files in YAML format, so they live right alongside your notes in the vault.
+Collection let you view and query your vault notes as rows in a table. Each note becomes a row, and its frontmatter properties become columns. Collection are saved as `.view` files in YAML format, so they live right alongside your notes in the vault.
 
 If you have used Notion databases or Obsidian's Dataview plugin, Collection will feel familiar — but with a visual, spreadsheet-like interface that requires no code to get started.
+
+> [!NOTE]
+> A `.view` with `_visible: false` and `_open_in_editor: true` (what **New table** writes) is a table or calendar you open in the editor. Without those keys it is also an entry in the menu: the **Views** section of the Types navigator lists it, and it can be pinned to the rail or reached with the palette's **Open view** (see [View Files](25-types-and-relationships.md#view-files-view)). An inline ` ```collection ` block embeds the same format in a note.
+>
+> A `.collection` file, the format's old extension, opens as plain text. To migrate one by hand, rename it to `.view` and add `_visible: false` and `_open_in_editor: true` at the top.
+>
+> Every key of the format, with its value, default and effect, is listed once in [Types & Relationships > View Metadata Fields](25-types-and-relationships.md#view-metadata-fields). The underscore keys there (`_sidebar_label`, `_rail`, ...) are read only in a `.view`.
 
 Collection are great for:
 
@@ -20,41 +27,32 @@ Collection are great for:
 
 There are three ways to create a collection:
 
-1. **Right-click in the file explorer** — Choose **"New Collection"**. Kokobrain writes an `Untitled.collection` with one empty table view and immediately puts the file in rename mode.
+1. **Right-click a folder in the Files navigator** (or the empty space below the folders, for the vault root) — Choose **New table**. Kokobrain writes `Untitled.view` in that folder (`Untitled 1.view` when the name is taken), with one table view named `All` and no filters, picks the folder and opens the file in the editor. The file carries `_visible: false` and `_open_in_editor: true`, so Views in the Types navigator does not list it and a click on it opens the table; to list it in Views, choose **Show in Views** on its row in the note list (see [View Files](25-types-and-relationships.md#creating-a-view)). To give it a name, rename its row in the note list.
 2. **Inside a `.md` file** — Use a ` ```collection ` fenced code block to embed a collection inline (see [Inline Collection](#inline-collection-code-blocks)).
-3. **Manually** — Create the file from any file manager or terminal — just make sure the extension is `.collection`.
+3. **Manually** — Create the file from any file manager or terminal — just make sure the extension is `.view`. Add `_visible: false` and `_open_in_editor: true` at the top to keep it out of Views.
 
-When you open a `.collection` file for the first time, Kokobrain will present an empty table ready for configuration.
+When you open a `.view` file for the first time, Kokobrain will present an empty table ready for configuration.
 
 ## View Types
 
-Each view inside a `.collection` file has a `type:` field selecting how the results are rendered. Three types ship today:
+Each view inside a `.view` file needs a `type:` field selecting how the results are rendered. It has no default: a view without a `type`, or with a type not in this table, makes the file fail to parse, and the editor shows the parse error. Three types ship today:
 
 | Type | What it looks like |
 |------|--------------------|
-| `table` (default) | Spreadsheet-like grid with one row per matching note and one column per property. |
+| `table` | Spreadsheet-like grid with one row per matching note and one column per property. |
 | `calendar` | Monthly calendar grid. Notes are placed on the day matching their `dateProperty`. Multi-day events span from `dateProperty` to `endDateProperty`. |
 | `linear-calendar` | Horizontal timeline — same data as `calendar` but laid out as a Gantt-like bar chart. |
 
-Calendar-style views accept extra view fields:
-
-| Field | Description |
-|-------|-------------|
-| `dateProperty` | Frontmatter property to use as the event start date. Required for `calendar` and `linear-calendar`. |
-| `endDateProperty` | Optional. Property for multi-day event end dates. |
-| `weekStartDay` | 0 = Sunday … 6 = Saturday. Default `1` (Monday). |
-| `colorProperty` | Property whose value picks the event bar color. |
+Calendar-style views read extra view fields: `dateProperty` (the start date, required), `endDateProperty`, `weekStartDay` (read by `calendar` only) and `colorProperty` (read by `linear-calendar` only). The calendar config popover offers each one only on the view type that reads it. Their values and defaults are in the [per-view keys table](25-types-and-relationships.md#view-metadata-fields).
 
 See `help/examples/collection-features/` for ready-to-run examples of each view type.
 
 ## The Table View
 
-When you open a `.collection` file, you see a spreadsheet-like table (the default view type):
+When you open a `.view` file in the editor, you see a spreadsheet-like table (the default view type):
 
 - **Rows**: Each row represents a note from your vault that matches the query filters you have defined.
 - **Columns**: Each column corresponds to a frontmatter property (e.g., `title`, `status`, `date`, `tags`).
-
-![Collection table view](screenshots/collection-table.png)
 
 You can click on any row to open the corresponding note in the editor.
 
@@ -72,11 +70,16 @@ Use filters to narrow down which notes appear in the table:
 
 Filters update the table in real time, so you can quickly explore different slices of your vault.
 
+A filter that does not parse (a typo such as `status = 'active'`, an unclosed quote, an unknown function, a malformed `and` / `or` / `not`) does not run at all: instead of the table, a **Filter error** box names the problem, with the toolbar still above it so you can fix the filter. This holds inside a NOT group too. An inline ` ```collection ` block shows the same message, and a `.view` picked in the rail shows it in the note list (see [When a View Cannot Be Shown](25-types-and-relationships.md#when-a-view-cannot-be-shown)).
+
+The date operators **before**, **after**, **on or before** and **on or after** compare by calendar day, in local time, both on `file.ctime` / `file.mtime` and on a frontmatter date written as `YYYY-MM-DD` (`due: 2026-03-15`). **is** on `file.ctime` or `file.mtime` matches the whole day.
+
 ### Sort Panel
 
 Control the order in which rows appear:
 
 - Sort by any column in ascending or descending order.
+- Notes that do not have the sorted property come last, in ascending and in descending order.
 - Add multiple sort levels — for example, sort by `status` first, then by `date` within each status group.
 
 ### Properties Panel
@@ -130,7 +133,7 @@ Formula columns are useful for creating derived data without modifying the under
 
 ## Multiple Views
 
-A single `.collection` or `.view` file can contain multiple named views. Each view has its own independent set of:
+A single `.view` file can contain multiple named views. Each view has its own independent set of:
 
 - Filters
 - Sort order
@@ -144,19 +147,19 @@ When a file has more than one view, the collection editor renders a tab strip at
 The tab strip exposes three editing affordances:
 
 - **Add a view** — click the **+** button at the end of the tab strip. A fresh `Untitled` table view is appended and selected, with the tab name pre-focused for renaming. Press **Enter** to confirm or **Escape** to keep the default name.
-- **Rename a view** — double-click a tab, type the new name, then press **Enter** (or click elsewhere) to confirm. **Escape** discards the change. Empty or whitespace-only names are ignored.
-- **Right-click a tab** for the full menu: **Rename**, **Change type** (Table / Calendar / Linear Calendar), or **Delete view**. Delete is disabled when only one view remains — every `.collection` and `.view` must keep at least one view.
+- **Rename a view** — double-click a tab, type the new name, then press **Enter** (or click elsewhere) to confirm. **Escape** discards the change. Empty or whitespace-only names, and a name another view of the file already has (exact match, case included), are ignored, and confirming the unchanged name writes nothing.
+- **Right-click a tab** for the full menu: **Rename**, **Change type** (Table / Calendar / Linear calendar), or **Delete view**. Delete is disabled when only one view remains — every `.view` must keep at least one view.
 
 When you change a view's type, all calendar-specific keys (`dateProperty`, `endDateProperty`, `weekStartDay`, `colorProperty`) stay in the YAML even after switching to `table`. The table renderer ignores them, but they reappear unchanged when you switch back to a calendar layout, so toggling type does not lose configuration.
 
-This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.collection` file.
+This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.view` file.
 
 > [!NOTE]
-> When a `.view` file is picked in the **Types navigator** (instead of opened in the editor), only the first view in the `views:` array is rendered, and the rest are ignored. The note list cannot draw calendar or linear-calendar layouts. Open the `.view` file in the editor to access the full multi-view experience with the tab strip.
+> When a `.view` file is picked in the **Types navigator** (instead of opened in the editor), only one view in the `views:` array is rendered, and the rest are ignored: the first one, or the one whose `name` the top-level `_rail_view` key gives (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). The collection editor does not read `_rail_view`. The note list cannot draw calendar or linear-calendar layouts. Open the `.view` file in the editor to access the full multi-view experience with the tab strip.
 
 ## Result Limit
 
-Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings".
+Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings". The limit is taken after the view's `sort`, so set a `sort` to choose which notes are kept; notes without the sorted property come last, so a descending sort keeps the highest values. With no `sort`, the first notes of the vault index are kept, in no meaningful order. In a `.view` the limit is taken last, after the list leaves out archived notes (unless a filter cites `archived` or `_archived`) and orders the rest (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). In an inline block it is taken after the block leaves out the notes it never lists (see [Inline Collection](#inline-collection-code-blocks)).
 
 ## Inline Collection (Code Blocks)
 
@@ -177,13 +180,15 @@ views:
 
 When the cursor is **outside** the block, it renders as an interactive table. When the cursor is **inside**, you see the raw YAML. This is useful for embedding live queries in daily notes, dashboards, or project pages.
 
+An inline block lists notes by the same rule as a `.view`. It never lists notes in the system folder (Settings > Files & Folders > System folder), type definitions (`_type: Type`) or `.view` files, and no filter brings them back. It leaves out archived notes unless a filter, top-level or the view's own, cites `archived` or `_archived` (see [Filter Gotchas](#archived-and-_archived-are-different-fields-not-aliases) for what counts), so `archived == true` lists the archived notes. `limit` is taken after these notes are left out. The rows keep the order of the view's `sort` (index order with none): unlike a `.view`, a block has no `_sort` and no `_order` pins. A note you just saved is listed at once.
+
 ## Source Mode
 
 Click the toggle button in the bottom-right corner of the collection editor to switch between the visual table and the raw YAML source.
 
 ### YAML structure
 
-`.collection` files and inline ` ```collection ` code blocks use the same format. The root accepts `filters` (a global filter applied to every view), `formulas`, `properties` (display-name config), and `views` (at least one required). Each view sets its own `type`, `name`, `filters`, `order` (the visible columns, in order), `sort`, and `limit`:
+`.view` files and inline ` ```collection ` code blocks use the same format. The root accepts `filters` (a global filter applied to every view), `formulas`, `properties` (display-name config), and `views` (at least one required). Each view sets its own `type`, `name`, `filters`, `order` (the visible columns, in order), `sort`, and `limit`:
 
 ```yaml
 filters: "file.hasTag('project')"   # Optional global filter
@@ -259,7 +264,7 @@ Source mode is helpful when you want to make bulk edits, copy a view configurati
 
 ## Expression Language Reference
 
-The filter and formula expressions used in Collection (and in Auto Move rules) support a rich set of functions, methods, and operators.
+The filter and formula expressions used in Collection (and in Auto Organize rules) support a rich set of functions, methods, and operators.
 
 ### Operators
 
@@ -278,7 +283,7 @@ Literals: `true`, `false`, `[1, 2, 3]` (arrays), quoted strings, numbers.
 |----------|-------------|
 | `now()` | Current date-time |
 | `today()` | Current date (midnight) |
-| `date(string)` | Parse a date from a string |
+| `date(string)` | Parse a date from a string. A `YYYY-MM-DD` argument is local midnight and compares by day: `file.mtime > date('2024-01-01')` starts on 2024-01-02, and `==` matches the whole day |
 | `number(value)` | Convert to number |
 | `contains(haystack, needle)` | Check if value contains another |
 | `startsWith(str, prefix)` | Check string prefix |
@@ -319,7 +324,7 @@ These functions render rich content inside table cells:
 | `file.tags` | Array of tags |
 | `file.properties` | All frontmatter as an object |
 | `file.hasTag(tag)` | Check if note has a tag |
-| `file.inFolder(path)` | Check if note is in a folder |
+| `file.inFolder(path)` | Check if note is in a folder or its subfolders; `path` is vault-relative (`"work/people"`) or absolute |
 | `file.hasProperty(key)` | Check if frontmatter key exists |
 | `file.asLink()` | Render as a wikilink |
 
@@ -400,23 +405,32 @@ filters: '!_organized'   # matches every note that never wrote the key -- almost
 
 Prefer the flag spelling (`archived`, `organized`, `favorite`) when you mean lifecycle state, and the underscored spelling only when you specifically care whether the note wrote the key.
 
-#### `file.inFolder()` takes the absolute folder path
+In a `.view` or an inline block, a filter that cites either spelling of `archived` decides on archived notes itself: the list no longer leaves them out, so `archived == true` lists the archived notes, and in a `.view` the rule line under the list header drops "not archived" (see [Archived Note Filtering](25-types-and-relationships.md#archived-note-filtering)). The name counts wherever it appears in the expression (`!_archived`, `note.archived`, `isEmpty(archived)`, `_archived.isEmpty()`), and so does `file.hasProperty('archived')` or `file.hasProperty('_archived')`. A string is not a citation, so `status == 'archived'` and `file.hasTag('archived')` keep the default, and neither is a formula the filter uses: a formula that reads `archived` does not count, and neither does a formula named `archived` (`formula.archived`).
 
-`file.inFolder("…")` matches by checking that the note's absolute parent folder starts with the argument string. It does NOT accept vault-relative paths.
+#### `file.inFolder()` takes a vault-relative folder
+
+`file.inFolder("work/people")` matches notes in the vault folder `work/people` and in its subfolders. Write the folder as the file explorer shows it, from the vault root. This is the recommended form: it keeps working when the vault moves.
 
 ```yaml
-# Folder of a note in vault/work/people on macOS
-# /Users/you/vaults/my-vault/vault/work/people
+# Vault at /Users/you/vaults/my-vault
 
-filters: 'file.inFolder("/Users/you/vaults/my-vault/vault/work/people")'  # matches
-filters: 'file.inFolder("vault/work/people")'                              # zero matches
+filters: 'file.inFolder("work/people")'    # notes in work/people and its subfolders
+filters: 'file.inFolder("work")'           # everything under work/
+filters: 'file.inFolder("Work/People/")'   # same as the first: case and a trailing / are ignored
 ```
 
-For vault-relative or path-segment matching, use `contains()` on `file.folder` or `file.path`:
+The match stops at folder boundaries, so `file.inFolder("work")` does not match notes in `workshop/`.
+
+An absolute folder (one that starts with `/`) still works, with the same boundary rule:
 
 ```yaml
-filters: 'contains(file.folder, "vault/work/people")'   # works regardless of vault root
-filters: 'contains(file.path, "people")'                # any path containing "people"
+filters: 'file.inFolder("/Users/you/vaults/my-vault/work/people")'   # matches, siblings such as people-old do not
+```
+
+For path-segment matching anywhere in the vault, use `contains()` on `file.folder` or `file.path`:
+
+```yaml
+filters: 'contains(file.path, "people")'   # any path containing "people"
 ```
 
 ---
@@ -460,7 +474,7 @@ tags: [project, engineering]
 
 ## Relationship with QueryJS
 
-Collection uses QueryJS internally for complex queries. If you need programmatic access to your vault data beyond what the visual table provides, you can write custom queries using the QueryJS API. See [QueryJS](13-queryjs.md) for details.
+Collection and QueryJS are separate: a collection runs its filters and formulas with its own expression language (above), and it does not run JavaScript. If you need programmatic access to your vault data beyond what the visual table provides, write a ` ```queryjs ` block with the QueryJS API. See [QueryJS](13-queryjs.md) for details.
 
 ## Next Steps
 

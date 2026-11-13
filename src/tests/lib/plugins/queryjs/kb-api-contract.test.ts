@@ -41,6 +41,7 @@ function makeAPI(): KBAPI {
 		propertyIndexVersion: 0,
 		currentFilePath: PATH,
 		vaultPath: '/vault',
+		systemFolder: '_system',
 		loadScript: vi.fn().mockResolvedValue(''),
 	});
 }
@@ -98,6 +99,7 @@ const KBAPI_INTERNAL = [
 	'propertyIndexVersion',
 	'currentFilePath',
 	'vaultPath',
+	'systemFolder',
 	'loadScript',
 	'_ui',
 	'_pageSet',

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
 	isTypeDefinition,
 	extractTypeMetadata,
@@ -7,9 +7,11 @@ import {
 	buildTypeNoteDir,
 	getTypeMetadataFallback,
 	validateTypeName,
+	validateViewName,
 	typeNameTakenMessage,
 	rewriteTypeInFrontmatter,
 } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
@@ -119,9 +121,26 @@ describe('extractTypeMetadata', () => {
 		const meta = extractTypeMetadata(typeDefEntry('Person', { _folder: 'People/Contacts' }));
 		expect(meta.folder).toBe('People/Contacts');
 	});
+
+	it('names a lowercase definition the way Rust groups its notes', () => {
+		const meta = extractTypeMetadata(typeDefEntry('book'));
+		expect(meta.name).toBe('Book');
+		expect(meta.sidebarLabel).toBe('Books');
+		expect(meta.path).toBe('/vault/book.md');
+	});
+
+	it('reads the builtin fallback of a lowercase builtin name', () => {
+		expect(extractTypeMetadata(typeDefEntry('project')).icon).toBe('rocket');
+	});
 });
 
 describe('buildTypeMetadataMap', () => {
+	it('keys a lowercase definition by its normalized name', () => {
+		const map = buildTypeMetadataMap([typeDefEntry('book')]);
+		expect([...map.keys()]).toEqual(['Book']);
+		expect(map.get('Book')).toMatchObject({ name: 'Book', sidebarLabel: 'Books', path: '/vault/book.md' });
+	});
+
 	it('builds map from type definition entries only', () => {
 		const entries = [
 			typeDefEntry('Project', { _icon: 'rocket' }),
@@ -140,6 +159,36 @@ describe('buildTypeMetadataMap', () => {
 			entryV2('/v/b.md'),
 		];
 		expect(buildTypeMetadataMap(entries).size).toBe(0);
+	});
+
+	describe('two definitions of one type name', () => {
+		beforeEach(() => {
+			typeDefinitionsStore.reset();
+		});
+
+		it('picks the file the store path index picks when titles differ only in case', () => {
+			const entries = [
+				entryV2('/vault/a/book.md', { isA: 'Type', frontmatter: { _icon: 'book' } }),
+				entryV2('/vault/b/Book.md', { isA: 'Type', frontmatter: { _icon: 'library' } }),
+			];
+			typeDefinitionsStore.setEntries(entries);
+
+			const meta = buildTypeMetadataMap(entries).get('Book');
+			expect(meta?.path).toBe(typeDefinitionsStore.getTypeDefinitionPath('Book'));
+			expect(meta).toMatchObject({ path: '/vault/a/book.md', icon: 'book' });
+		});
+
+		it('picks the file the store path index picks when titles are identical', () => {
+			const entries = [
+				entryV2('/vault/a/Book.md', { isA: 'Type', frontmatter: { _icon: 'book' } }),
+				entryV2('/vault/b/Book.md', { isA: 'Type', frontmatter: { _icon: 'library' } }),
+			];
+			typeDefinitionsStore.setEntries(entries);
+
+			const meta = buildTypeMetadataMap(entries).get('Book');
+			expect(meta?.path).toBe(typeDefinitionsStore.getTypeDefinitionPath('Book'));
+			expect(meta).toMatchObject({ path: '/vault/a/Book.md', icon: 'book' });
+		});
 	});
 });
 
@@ -224,6 +273,42 @@ describe('validateTypeName', () => {
 
 	it('accepts any name when no types exist yet', () => {
 		expect(validateTypeName('Sprint', [])).toBeNull();
+	});
+});
+
+describe('validateViewName', () => {
+	const existing = ['All projects', 'Reading'];
+
+	it('returns null for a valid name no view shows', () => {
+		expect(validateViewName('Open tasks', existing)).toBeNull();
+	});
+
+	it('gives the file-name messages for a blank name, a leading dot, control and forbidden characters', () => {
+		expect(validateViewName('', existing)).toBe('Name cannot be empty');
+		expect(validateViewName('   ', existing)).toBe('Name cannot be empty');
+		expect(validateViewName('.hidden', existing)).toBe('Name cannot start with "."');
+		expect(validateViewName(' .x', existing)).toBe('Name cannot start with "."');
+		expect(validateViewName('a\u0007b', existing)).toBe('Name cannot contain control characters');
+		expect(validateViewName('a/b', existing)).toBe('Name cannot contain "/"');
+		expect(validateViewName('say "hi"', existing)).toBe('Name cannot contain """');
+	});
+
+	it('refuses a name a view already shows, trimmed and case-insensitive', () => {
+		expect(validateViewName('All projects', existing)).toBe('A view with this name already exists');
+		expect(validateViewName('  all PROJECTS  ', existing)).toBe('A view with this name already exists');
+		expect(validateViewName('Reading', ['  reading  '])).toBe('A view with this name already exists');
+	});
+
+	it('accepts any valid name when there are no views', () => {
+		expect(validateViewName('Reading', [])).toBeNull();
+	});
+
+	it('skips the file-name rules for a label that never becomes a file name, and keeps the others', () => {
+		expect(validateViewName('Q1: plan', existing, false)).toBeNull();
+		expect(validateViewName('.hidden "a/b"', existing, false)).toBeNull();
+		expect(validateViewName('Q1: plan', existing)).toBe('Name cannot contain ":"');
+		expect(validateViewName('   ', existing, false)).toBe('Name cannot be empty');
+		expect(validateViewName(' reading ', existing, false)).toBe('A view with this name already exists');
 	});
 });
 

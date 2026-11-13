@@ -988,6 +988,7 @@ fn entry_with_tasks(path: &str, modified_at: i64, task_count: usize) -> NoteEntr
 			line_number: i + 1,
 			status: TaskStatus::Todo,
 			metadata: TaskMetadata::default(),
+			heading: None,
 		})
 		.collect();
 	NoteEntry {
@@ -1136,6 +1137,16 @@ fn lookup_all_tasks_filters_empty_and_sorts_by_mtime_desc() {
 	assert_eq!(groups.len(), 3, "b.md (no tasks) should be filtered");
 	let order: Vec<i64> = groups.iter().map(|g| g.modified_at).collect();
 	assert_eq!(order, vec![300, 200, 100]); // descending
+}
+
+#[test]
+fn lookup_all_tasks_carries_each_task_heading() {
+	let mut idx = VaultIndex::default();
+	let entry = NoteEntry::from_content("/v/h.md".to_string(), "- [ ] early\n## A\n- [ ] under a\n", 0);
+	idx.build(vec![entry]);
+	let groups = idx.lookup_all_tasks();
+	let headings: Vec<Option<u32>> = groups[0].tasks.iter().map(|t| t.heading).collect();
+	assert_eq!(headings, vec![None, Some(0)]);
 }
 
 // ---------- remove_entry ----------
@@ -2131,4 +2142,135 @@ fn removing_one_same_named_file_hands_the_exact_step_to_the_next() {
 
 	assert_eq!(idx.resolve("foo.png"), Some("/v/y/foo.png".to_string()));
 	assert_eq!(backlink_sources(&idx, "/v/y/foo.png"), vec!["/v/source.md"]);
+}
+
+#[test]
+fn a_view_is_no_source_of_tags_tasks_backlinks_or_relationships() {
+	let note = "---\n_belongs_to: \"[[Proj]]\"\n---\n#work [[Foo]]\n- [ ] do it\n";
+	let view = "_belongs_to: \"[[Proj]]\"\nname: #work\nsource: \"[[Foo]]\"\nnotes: |\n  - [ ] x\n";
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		NoteEntry::from_content_full("/v/Proj.md".into(), "# Proj\n", 1, 0, 0),
+		NoteEntry::from_content_full("/v/Foo.md".into(), "# Foo\n", 1, 0, 0),
+		NoteEntry::from_content_full("/v/note.md".into(), note, 1, 0, 0),
+		NoteEntry::from_content_full("/v/Board.view".into(), view, 1, 0, 0),
+	]);
+
+	let tag_paths: Vec<String> =
+		idx.lookup_all_tags().into_iter().flat_map(|t| t.file_paths).collect();
+	assert_eq!(tag_paths, vec!["/v/note.md".to_string()]);
+
+	let task_paths: Vec<String> =
+		idx.lookup_all_tasks().into_iter().map(|g| g.file_path).collect();
+	assert_eq!(task_paths, vec!["/v/note.md".to_string()]);
+
+	let rel_sources: Vec<String> = idx
+		.lookup_relationship_backlinks("/v/Proj.md")
+		.into_iter()
+		.map(|b| b.source_path)
+		.collect();
+	assert_eq!(rel_sources, vec!["/v/note.md".to_string()]);
+
+	assert_eq!(backlink_sources(&idx, "/v/Foo.md"), vec!["/v/note.md"]);
+}
+
+// --- A view is never a link target (view-unification Issue 15) ---------------
+
+const VIEW: &str = "/v/Views/Projects.view";
+const NOTE: &str = "/v/Notes/Projects.md";
+const SRC: &str = "/v/src.md";
+
+#[test]
+fn build_view_before_note_resolves_the_note_and_credits_its_backlink() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links(VIEW, &[]),
+		entry_with_links(NOTE, &[]),
+		entry_with_links(SRC, &["Projects"]),
+	]);
+	assert_eq!(idx.resolve("Projects"), Some(NOTE.to_string()));
+	assert_eq!(backlink_sources(&idx, NOTE), vec![SRC]);
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+}
+
+#[test]
+fn update_entry_view_before_note_resolves_the_note_and_credits_its_backlink() {
+	let mut idx = VaultIndex::default();
+	idx.update_entry(entry_with_links(SRC, &["Projects"]));
+	idx.update_entry(entry_with_links(VIEW, &[]));
+	assert_eq!(idx.resolve("Projects"), None);
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+
+	let result = idx.update_entry(entry_with_links(NOTE, &[]));
+	assert_eq!(idx.resolve("Projects"), Some(NOTE.to_string()));
+	assert_eq!(backlink_sources(&idx, NOTE), vec![SRC]);
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+	assert!(!result.affected.contains(&VIEW.to_string()));
+}
+
+#[test]
+fn remove_entry_of_the_note_never_promotes_a_same_stem_view() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links(NOTE, &[]),
+		entry_with_links(VIEW, &[]),
+		entry_with_links(SRC, &["Projects"]),
+	]);
+	let result = idx.remove_entry(NOTE);
+	assert_eq!(idx.resolve("Projects"), None);
+	assert!(idx.by_path().get("projects").is_none());
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+	assert!(!result.affected.contains(&VIEW.to_string()));
+}
+
+#[test]
+fn a_target_naming_a_view_file_resolves_to_no_view() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links(VIEW, &[]), entry_with_links(SRC, &["Projects.view"])]);
+	assert_eq!(idx.resolve("Projects.view"), None);
+	assert_eq!(idx.resolve("Views/Projects.view"), None);
+	assert!(backlink_sources(&idx, VIEW).is_empty());
+
+	// With a note of the same stem, the basename fallback finds the note.
+	idx.update_entry(entry_with_links(NOTE, &[]));
+	assert_eq!(idx.resolve("Projects.view"), Some(NOTE.to_string()));
+}
+
+#[test]
+fn an_uppercase_view_extension_is_no_link_target_either() {
+	let upper = "/v/Views/Projects.View";
+	let mut idx = VaultIndex::default();
+	idx.build(vec![
+		entry_with_links(upper, &[]),
+		entry_with_links(NOTE, &[]),
+		entry_with_links(SRC, &["Projects"]),
+	]);
+	assert_eq!(idx.resolve("Projects"), Some(NOTE.to_string()));
+	assert_eq!(idx.resolve("Projects.View"), Some(NOTE.to_string()));
+	assert_eq!(backlink_sources(&idx, NOTE), vec![SRC]);
+
+	idx.remove_entry(NOTE);
+	assert_eq!(idx.resolve("Projects"), None);
+	assert_eq!(idx.resolve("Projects.View"), None);
+
+	let mut fresh = VaultIndex::default();
+	fresh.update_entry(entry_with_links(upper, &[]));
+	assert_eq!(fresh.resolve("Projects"), None);
+}
+
+#[test]
+fn outgoing_unlinked_mentions_never_name_a_view() {
+	let mut idx = VaultIndex::default();
+	idx.build(vec![entry_with_links(VIEW, &[]), entry_with_links(SRC, &[])]);
+	assert!(idx.lookup_outgoing_unlinked_mentions(SRC, "the Projects board").is_empty());
+}
+
+#[test]
+fn incoming_unlinked_mentions_never_come_from_a_view() {
+	let (_dir, idx, paths) = build_index_with_fixtures(&[
+		("Projects.md", "# Projects\n"),
+		("Board.view", "_sidebar_label: Projects\nfilters: \"_type == 'Project'\"\n"),
+	]);
+	assert!(idx.lookup_incoming_unlinked_mentions(&paths[0]).is_empty());
+	assert!(idx.unlinked_mentions_candidates(&paths[0]).candidate_paths.is_empty());
 }

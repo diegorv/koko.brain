@@ -8,8 +8,12 @@ import {
 	getAllKnownProperties,
 	inferPropertyType,
 	createEmptyFilterRow,
+	createEmptyExpressionRow,
+	isFilterObject,
+	isUnaryOperator,
 } from '#lib/features/collection/toolbar/filter.logic.js';
-import type { CollectionFilter, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import type { CollectionDefinition, CollectionFilter, PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import type { FilterOperator, FilterRow } from '#lib/features/collection/toolbar/toolbar.types.js';
 
 function makeRecord(
@@ -152,6 +156,16 @@ describe('parseExpressionToRow', () => {
 		expect(row.property).toBe('due');
 		expect(row.operator).toBe('on_or_after');
 		expect(row.value).toBe('2024-01-01');
+	});
+
+	it('round-trips a date "is" row on file.mtime', () => {
+		const expr = "file.mtime == '2026-11-03'";
+		const row = parseExpressionToRow(expr);
+		expect(row.raw).toBeUndefined();
+		expect(row.property).toBe('file.mtime');
+		expect(row.operator).toBe('is');
+		expect(row.value).toBe('2026-11-03');
+		expect(filterRowToExpression(row)).toBe(expr);
 	});
 
 	it('falls back to raw for complex expression: a + b > 5', () => {
@@ -512,6 +526,26 @@ describe('parseFilterToGroups / filterGroupsToFilter', () => {
 		expect(typeof filter).toBe('string');
 	});
 
+	it('drops a raw row whose text is blank, so clearing it writes no item and the query does not error', () => {
+		const blank = { id: 'b', property: '', operator: 'is' as const, value: '', raw: '   ' };
+		const kept = { id: 'k', property: 'status', operator: 'is' as const, value: 'active' };
+
+		expect(filterGroupsToFilter([{ conjunction: 'and', rows: [blank] }])).toBeUndefined();
+		expect(filterGroupsToFilter([{ conjunction: 'not', rows: [{ ...blank, raw: '' }] }])).toBeUndefined();
+		expect(filterGroupsToFilter([
+			{ conjunction: 'and', rows: [kept, blank] },
+			{ conjunction: 'or', rows: [blank] },
+		])).toBe("status == 'active'");
+
+		const def: CollectionDefinition = {
+			filters: filterGroupsToFilter([{ conjunction: 'and', rows: [blank] }]),
+			views: [{ type: 'table', name: 'T' }],
+		};
+		const result = executeQuery(def, def.views[0], makeIndex([makeRecord('/vault/a.md')]), null);
+		expect(result.filterError).toBeUndefined();
+		expect(result.records).toHaveLength(1);
+	});
+
 	it('keeps a single-row NOT group as a negated object, not a bare positive string', () => {
 		// Collapsing a single-row "not" group to the plain expression would invert
 		// the filter (the query would show exactly the rows the user excluded).
@@ -527,6 +561,181 @@ describe('parseFilterToGroups / filterGroupsToFilter', () => {
 		expect(groups).toHaveLength(1);
 		expect(groups[0].conjunction).toBe('not');
 		expect(groups[0].rows).toHaveLength(1);
+	});
+});
+
+describe('nested filter objects in a filter list', () => {
+	const roundTrip = (f: CollectionFilter) => filterGroupsToFilter(parseFilterToGroups(f));
+
+	it('round-trips a nested object inside and:, or: and not:', () => {
+		const inAnd: CollectionFilter = { and: ["status == 'active'", { or: ['priority > 3', "file.name == 'x.md'"] }] };
+		const inOr: CollectionFilter = { or: [{ and: ["status == 'done'", 'priority < 2'] }, "status == 'active'"] };
+		const inNot: CollectionFilter = { not: [{ or: ["status == 'archived'", 'priority > 4'] }] };
+		expect(roundTrip(inAnd)).toEqual(inAnd);
+		expect(roundTrip(inOr)).toEqual(inOr);
+		expect(roundTrip(inNot)).toEqual(inNot);
+	});
+
+	it('round-trips a nested object two levels deep', () => {
+		const deep: CollectionFilter = {
+			and: [
+				"status == 'active'",
+				{ or: ['priority > 3', { and: ["file.name == 'a.md'", { not: ['priority == 1'] }] }] },
+			],
+		};
+		expect(roundTrip(deep)).toEqual(deep);
+	});
+
+	it('keeps a nested object that is the only item of its group, without the single-row string shortcut', () => {
+		const only: CollectionFilter = { and: [{ or: ["status == 'active'", "status == 'done'"] }] };
+		expect(roundTrip(only)).toEqual(only);
+	});
+
+	it('round-trips sibling groups that each nest an object', () => {
+		const siblings: CollectionFilter = {
+			and: [{ or: ["status == 'active'", "status == 'done'"] }],
+			not: [{ and: ['priority < 3', "file.name == 'c.md'"] }],
+		};
+		expect(roundTrip(siblings)).toEqual(siblings);
+	});
+
+	it('loads a nested object as a raw expression row, not JSON text', () => {
+		const [group] = parseFilterToGroups({
+			and: [{ or: ["status == 'active'", "status == 'done'"] }, { not: ['priority < 3'] }],
+		});
+		expect(group.rows.map((r) => r.raw)).toEqual([
+			"(status == 'active') || (status == 'done')",
+			'!(priority < 3)',
+		]);
+		expect(group.rows.some((r) => r.raw?.startsWith('{'))).toBe(false);
+	});
+
+	it('loads a null list item (an empty YAML `-` entry) without throwing', () => {
+		// `parseCollectionYaml` casts `filters` without validating it, so a null
+		// item reaches the toolbar as is.
+		const top = { and: ["x == 1", null] } as unknown as CollectionFilter;
+		const deep = { and: [{ or: [null] }] } as unknown as CollectionFilter;
+		expect(parseFilterToGroups(top)[0].rows.map((r) => r.raw)).toEqual([undefined, 'null']);
+		expect(parseFilterToGroups(deep)[0].rows.map((r) => r.raw)).toEqual(['(null)']);
+		expect(filterGroupsToFilter(parseFilterToGroups(top))).toEqual({ and: ['x == 1', 'null'] });
+	});
+
+	it('writes a nested object holding a null back as its text, so executeQuery does not throw', () => {
+		// `evaluateFilter` reads `.and` on a null item it reaches through an object.
+		const deep = { and: ['x == 1', { or: [null] }] } as unknown as CollectionFilter;
+		const roundTrip = filterGroupsToFilter(parseFilterToGroups(deep));
+		expect(roundTrip).toEqual({ and: ['x == 1', '(null)'] });
+		const def: CollectionDefinition = { filters: roundTrip!, views: [{ type: 'table', name: 'T' }] };
+		const index = makeIndex([makeRecord('/vault/a.md', { x: 1 })]);
+		expect(executeQuery(def, def.views[0], index, null).records).toEqual([]);
+	});
+
+	describe('an and / or / not value that is not a list', () => {
+		const malformed = (f: unknown) => f as CollectionFilter;
+		const index = makeIndex([makeRecord('/vault/a.md', { x: 1, status: 'a' })]);
+		const viaToolbar = (f: CollectionFilter) => {
+			const def: CollectionDefinition = { filters: roundTrip(f), views: [{ type: 'table', name: 'T' }] };
+			return executeQuery(def, def.views[0], index, null);
+		};
+
+		it.each([
+			['a string', { or: "status == 'a'" }, 'or'],
+			['a number', { and: 5 }, 'and'],
+			['a map', { and: { k: 1 } }, 'and'],
+			['a string two levels down', { and: [{ not: "status == 'a'" }] }, 'not'],
+		])('loads a nested object holding %s as a JSON-text row with no object, and the query reports it', (_what, nested, key) => {
+			const filter = malformed({ and: ['x == 1', nested] });
+
+			const [group] = parseFilterToGroups(filter);
+
+			expect(group.rows[1].raw).toBeDefined();
+			expect(group.rows[1].raw).toContain(`"${key}"`);
+			expect(group.rows[1].item).toBeUndefined();
+			const result = viaToolbar(filter);
+			expect(result.records).toEqual([]);
+			expect(result.filterError).toContain(`"${key}"`);
+		});
+
+		it.each([
+			['a top-level or string', { or: 'x' }, 'or'],
+			['a top-level and number', { and: 5 }, 'and'],
+			['a top-level and map', { and: { k: 1 } }, 'and'],
+		])('loads %s without throwing, as one JSON-text row the query reports', (_what, filter, key) => {
+			const groups = parseFilterToGroups(malformed(filter));
+
+			expect(groups).toHaveLength(1);
+			expect(groups[0].rows).toHaveLength(1);
+			expect(groups[0].rows[0].raw).toContain(`"${key}"`);
+			expect(viaToolbar(malformed(filter)).filterError).toContain(`"${key}"`);
+		});
+	});
+
+	it('builds the expression of several keys, deeper nesting and empty lists', () => {
+		const [group] = parseFilterToGroups({
+			and: [
+				{ or: ['a == 1', { and: ['b == 2', 'c == 3'] }], not: ['d == 4', 'e == 5'] },
+				{ and: [], or: [] },
+				{ not: [] },
+				{},
+			],
+		});
+		expect(group.rows.map((r) => r.raw)).toEqual([
+			'((a == 1) || ((b == 2) && (c == 3))) && (!(d == 4) && !(e == 5))',
+			'(true) && (false)',
+			'true',
+			'true',
+		]);
+	});
+
+	describe('the row expression matches the nested object through executeQuery', () => {
+		// The records of collection-logic.test.ts 'executeQuery', plus the record of
+		// its 'evaluates nested and/or/not combinations' case.
+		const index = makeIndex([
+			makeRecord('/vault/a.md', { status: 'active', priority: 5 }),
+			makeRecord('/vault/b.md', { status: 'done', priority: 3 }),
+			makeRecord('/vault/c.md', { status: 'active', priority: 1 }),
+			makeRecord('/vault/d.md', { status: 'archived', priority: 4 }),
+			makeRecord('/vault/test.md', { status: 'active', priority: 5 }),
+		]);
+		const paths = (filters: CollectionFilter | string) => {
+			const def: CollectionDefinition = { filters, views: [{ type: 'table', name: 'T' }] };
+			return executeQuery(def, def.views[0], index, null).records.map((r) => r.path);
+		};
+		const oracle: CollectionFilter = {
+			and: [{ or: ["status == 'active'", "status == 'done'"] }, { not: ['priority < 3'] }],
+		};
+		const cases: [string, CollectionFilter][] = [
+			['or inside and', { or: ["status == 'active'", "status == 'done'"] }],
+			['not inside and', { not: ['priority < 3'] }],
+			['the whole oracle filter', oracle],
+			['several keys and two levels', { or: ["status == 'archived'", { and: ["status == 'active'", { not: ['priority < 3'] }] }], not: ["file.name == 'test.md'"] }],
+			['empty or (matches nothing)', { or: [] }],
+			['empty and / not (match everything)', { and: [], not: [] }],
+		];
+
+		it.each(cases)('%s', (_label, nested) => {
+			const [row] = parseFilterToGroups({ and: [nested] })[0].rows;
+			expect(row.raw).toBeDefined();
+			expect(paths(row.raw!)).toEqual(paths(nested));
+		});
+
+		it('the oracle filter matches the records collection-logic.test.ts expects', () => {
+			const [row] = parseFilterToGroups({ and: [oracle] })[0].rows;
+			expect(paths(row.raw!)).toEqual(['/vault/a.md', '/vault/b.md', '/vault/test.md']);
+		});
+	});
+
+	it('writes the edited text of a nested row as a plain string item and drops the object', () => {
+		const groups = parseFilterToGroups({ and: ["status == 'active'", { or: ['priority > 3', 'priority < 2'] }] });
+		const nested = groups[0].rows[1];
+		const edited = { ...groups[0], rows: [groups[0].rows[0], { ...nested, raw: 'priority > 4' }] };
+		expect(filterGroupsToFilter([edited])).toEqual({ and: ["status == 'active'", 'priority > 4'] });
+	});
+
+	it('writes the edited text of a nested row that is alone in its group as a plain string filter', () => {
+		const groups = parseFilterToGroups({ and: [{ or: ['priority > 3', 'priority < 2'] }] });
+		const edited = { ...groups[0], rows: [{ ...groups[0].rows[0], raw: 'priority > 4' }] };
+		expect(filterGroupsToFilter([edited])).toBe('priority > 4');
 	});
 });
 
@@ -581,6 +790,27 @@ describe('getOperatorsForType', () => {
 		expect(ops).toContain('does_not_contain');
 		expect(ops).toContain('is_empty');
 		expect(ops).toContain('is_not_empty');
+	});
+});
+
+describe('isUnaryOperator', () => {
+	it.each<FilterOperator>(['is_empty', 'is_not_empty', 'is_true', 'is_false'])('%s takes no value', (op) => {
+		expect(isUnaryOperator(op)).toBe(true);
+	});
+
+	it.each<FilterOperator>(['is', 'is_not', 'contains', 'eq', 'gt', 'before', 'on_or_after'])('%s takes a value', (op) => {
+		expect(isUnaryOperator(op)).toBe(false);
+	});
+
+	it('agrees with filterRowToExpression on which operators ignore the value', () => {
+		const all: FilterOperator[] = [
+			...new Set((['text', 'number', 'date', 'boolean', 'list'] as const).flatMap((t) => getOperatorsForType(t))),
+		];
+		for (const operator of all) {
+			const blank = filterRowToExpression({ id: 'x', property: 'p', operator, value: '' });
+			const filled = filterRowToExpression({ id: 'x', property: 'p', operator, value: 'v' });
+			expect(isUnaryOperator(operator), operator).toBe(blank === filled);
+		}
 	});
 });
 
@@ -670,6 +900,30 @@ describe('inferPropertyType', () => {
 			makeRecord('/vault/b.md', { count: 42 }),
 		]);
 		expect(inferPropertyType('count', index)).toBe('number');
+	});
+});
+
+describe('isFilterObject', () => {
+	it('accepts an object whose and / or / not are lists', () => {
+		expect(isFilterObject({ and: ['a'], not: [] })).toBe(true);
+		expect(isFilterObject({})).toBe(true);
+	});
+
+	it('rejects null, a scalar and a key that is not a list', () => {
+		expect(isFilterObject(null)).toBe(false);
+		expect(isFilterObject('a')).toBe(false);
+		expect(isFilterObject({ or: 'a' })).toBe(false);
+	});
+});
+
+describe('createEmptyExpressionRow', () => {
+	it('creates a blank expression row that writes nothing until typed', () => {
+		const row = createEmptyExpressionRow();
+		expect(row.raw).toBe('');
+		expect(row.id).toBeTruthy();
+		expect(createEmptyExpressionRow().id).not.toBe(row.id);
+		expect(filterGroupsToFilter([{ conjunction: 'and', rows: [row] }])).toBeUndefined();
+		expect(filterGroupsToFilter([{ conjunction: 'and', rows: [{ ...row, raw: "file.hasTag('x')" }] }])).toBe("file.hasTag('x')");
 	});
 });
 

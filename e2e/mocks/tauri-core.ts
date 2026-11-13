@@ -35,6 +35,7 @@ import type {
 	SnapshotInfo,
 	DiffLine,
 	TagAggregate,
+	TaskTextWriteResult,
 	ToggleTaskResult,
 } from '../../src/lib/contracts/index';
 import type { UpdateResultV2 } from '../../src/lib/types/vault-v2.types';
@@ -88,6 +89,16 @@ function handleCreateNote(args: Args<'create_note'>): UpdateResultV2 {
 function handleCreateFolder(args: Args<'create_folder'>): null {
 	virtualFS.mkdir(args.path);
 	return null;
+}
+
+function handleWriteModData(args: Args<'write_mod_data'>): null {
+	virtualFS.writeFile(`${args.vaultPath}/.kokobrain/mods/${args.modId}/data.json`, args.content);
+	return null;
+}
+
+function handleReadModData(args: Args<'read_mod_data'>): number[] | null {
+	const text = virtualFS.readFileSafe(`${args.vaultPath}/.kokobrain/mods/${args.modId}/data.json`);
+	return text === null ? null : Array.from(new TextEncoder().encode(text));
 }
 
 // ─── v2 Vault index ────────────────────────────────────────────────────────
@@ -149,14 +160,34 @@ function handleGetAllTasksV2(): FileTaskGroup[] {
 	return vaultIndex.getAllTasks();
 }
 
-function handleGetTasksInSectionV2(args: Args<'get_tasks_in_section_v2'>): FileTaskGroup[] {
-	return vaultIndex.getTasksInSection(args.sectionTag);
-}
-
 function handleToggleTaskStatus(args: Args<'toggle_task_status'>): ToggleTaskResult {
-	const result = vaultIndex.toggleTaskStatus(args.path, args.lineNumber);
+	const result = vaultIndex.toggleTaskStatus(
+		args.path,
+		args.lineNumber,
+		args.expectedText,
+		args.expectedStatus,
+		args.target,
+	);
 	if (result.updateResult.changed) emitIndexUpdated(result.updateResult);
 	return result;
+}
+
+function handleWriteTaskText(args: Args<'write_task_text'>): TaskTextWriteResult {
+	const result = vaultIndex.writeTaskText(
+		args.vaultRoot,
+		args.relPath,
+		args.lineNumber,
+		args.expectedText,
+		args.expectedStatus,
+		args.newText,
+	);
+	if (result.updateResult.changed) emitIndexUpdated(result.updateResult);
+	return result;
+}
+
+/** No E2E spec drives the Todoist sync, so the guarded line writer is not mocked. */
+function handleWriteTaskLines(): never {
+	throw new Error('write_task_lines is not available in E2E');
 }
 
 function handleUpdateNoteInIndex(args: Args<'update_note_in_index'>): UpdateResultV2 {
@@ -254,6 +285,11 @@ function handleUpdateSearchIndexFile(args: Args<'update_search_index_file'>): nu
 
 // `search_fts` reads the virtual FS, so a deleted file is already gone from its results.
 function handleRemoveFromSearchIndex(): null {
+	return null;
+}
+
+// Same reason: a renamed or moved file is already at its new path in the virtual FS.
+function handleRenameInSearchIndex(): null {
 	return null;
 }
 
@@ -375,6 +411,16 @@ function handleComputeDiff(): DiffLine[] {
 	return [];
 }
 
+// ─── Todoist sync state (empty store, writes dropped) ──────────────────────
+
+function handleTodoistReadEmpty(): [] {
+	return [];
+}
+
+function handleTodoistWriteNoop(): null {
+	return null;
+}
+
 // ─── System (debug, fonts, memory) ─────────────────────────────────────────
 
 function handleSetTauriDebugMode(): null {
@@ -433,6 +479,8 @@ const HANDLERS: Handlers = {
 	read_files_batch: handleReadFilesBatch,
 	create_note: handleCreateNote,
 	create_folder: handleCreateFolder,
+	write_mod_data: handleWriteModData,
+	read_mod_data: handleReadModData,
 
 	// v2 Vault index
 	scan_vault_v2: handleScanVaultV2,
@@ -446,8 +494,9 @@ const HANDLERS: Handlers = {
 	get_unlinked_mentions_v2: handleGetUnlinkedMentionsV2,
 	get_all_tags_v2: handleGetAllTagsV2,
 	get_all_tasks_v2: handleGetAllTasksV2,
-	get_tasks_in_section_v2: handleGetTasksInSectionV2,
 	toggle_task_status: handleToggleTaskStatus,
+	write_task_lines: handleWriteTaskLines,
+	write_task_text: handleWriteTaskText,
 	update_note_in_index: handleUpdateNoteInIndex,
 	remove_note_from_index: handleRemoveNoteFromIndex,
 	rename_note: handleRenameNote,
@@ -463,6 +512,7 @@ const HANDLERS: Handlers = {
 	build_search_index: handleBuildSearchIndex,
 	update_search_index_file: handleUpdateSearchIndexFile,
 	remove_from_search_index: handleRemoveFromSearchIndex,
+	rename_in_search_index: handleRenameInSearchIndex,
 	search_fts: handleSearchFts,
 	init_semantic_search: handleInitSemanticSearch,
 	is_semantic_model_available: handleIsSemanticModelAvailable,
@@ -489,6 +539,14 @@ const HANDLERS: Handlers = {
 	save_snapshot: handleSaveSnapshot,
 	compute_diff: handleComputeDiff,
 
+	// Todoist sync state
+	todoist_read_kv: handleTodoistReadEmpty,
+	todoist_read_links: handleTodoistReadEmpty,
+	todoist_read_sections: handleTodoistReadEmpty,
+	todoist_commit_state: handleTodoistWriteNoop,
+	todoist_append_log: handleTodoistWriteNoop,
+	todoist_read_log: handleTodoistReadEmpty,
+
 	// System
 	set_tauri_debug_mode: handleSetTauriDebugMode,
 	set_main_thread_heartbeat: handleSetMainThreadHeartbeat,
@@ -506,6 +564,7 @@ const HANDLERS: Handlers = {
 	open_composer: handleQuickCaptureNoop,
 	dismiss_composer: handleQuickCaptureNoop,
 	submit_composer_capture: handleQuickCaptureNoop,
+	report_composer_capture_result: handleQuickCaptureNoop,
 	import_staged_shot: handleImportStagedShot,
 
 	// App exit

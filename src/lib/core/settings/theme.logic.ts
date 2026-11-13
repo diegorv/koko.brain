@@ -8,7 +8,8 @@ import type {
 	CalloutColors,
 	AppearanceSettings,
 } from './theme.types';
-import { buildTheme, coreFromColors } from './theme-builder.logic';
+import { isDarkColor } from '#lib/utils/color.js';
+import { alpha, buildTheme, coreFromColors } from './theme-builder.logic';
 
 /** Converts a camelCase string to kebab-case */
 export function camelToKebab(s: string): string {
@@ -28,7 +29,34 @@ const GROUP_PREFIX: Record<keyof ThemeColors, string> = {
 	callout: 'callout-',
 };
 
-/** Converts a ThemeColors object into a flat map of CSS variable name → value */
+/**
+ * Shadow, ring and scrim colors for floating surfaces, read by the `--shadow-*`
+ * overrides and `bg-scrim` in `app.css`. Derived here rather than stored as
+ * theme tokens, so themes, validation and export do not carry them. A dark
+ * editor background (or one `isDarkColor` cannot parse, such as hsl()) gets
+ * deep black shadows and a faint light ring; a light one gets soft shadows
+ * tinted from the theme's own foreground.
+ */
+function elevationVars(ui: UIColors): Record<string, string> {
+	if (isDarkColor(ui.editorBg) !== false) {
+		return {
+			'--elev-shadow-1': '#00000040',
+			'--elev-shadow-2': '#00000073',
+			'--elev-shadow-3': '#00000099',
+			'--elev-ring': '#ffffff0f',
+			'--elev-scrim': '#0000008c',
+		};
+	}
+	return {
+		'--elev-shadow-1': alpha(ui.foreground, '0f'),
+		'--elev-shadow-2': alpha(ui.foreground, '1a'),
+		'--elev-shadow-3': alpha(ui.foreground, '29'),
+		'--elev-ring': alpha(ui.foreground, '14'),
+		'--elev-scrim': alpha(ui.foreground, '40'),
+	};
+}
+
+/** Converts a ThemeColors object into a flat map of CSS variable name → value, plus the derived `--elev-*` variables */
 export function themeColorsToCssVars(colors: ThemeColors): Record<string, string> {
 	const vars: Record<string, string> = {};
 
@@ -40,7 +68,10 @@ export function themeColorsToCssVars(colors: ThemeColors): Record<string, string
 		}
 	}
 
-	return vars;
+	// Real themes are complete (they pass through `mergeThemeWithDefaults`); only cast
+	// partial colors, as in the applyTheme edge-case tests, lack an editor background,
+	// and then the stylesheet's `--elev-*` fallbacks stay in place.
+	return colors.ui?.editorBg ? { ...vars, ...elevationVars(colors.ui) } : vars;
 }
 
 /** Keeps exactly the keys of `template`, taking each from `source` when present there, else from `fallback`. */
@@ -87,7 +118,9 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = buildTheme(DEFAULT_THEME_NAME, {
 	editorBg: '#2a2e3d',
 	sidebarBg: '#21222e',
 	panelBg: '#2a2e3d',
-	popoverBg: '#171a26',
+	// The editor moved 5% toward `fg` in OKLab: mixColors('#2a2e3d', '#F8F8F2', 0.05).
+	// One step above the editor, so menus and dialogs lift off the page.
+	popoverBg: '#333745',
 	fg: '#F8F8F2',
 	heading: '#E8A5FF',
 	mutedFg: '#627195',
@@ -144,11 +177,6 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = buildTheme(DEFAULT_THEME_NAME, {
 		switchUncheckedBg: '#444660',
 	},
 	syntax: {
-		heading2: '#5DCCFF',
-		heading3: '#42E8A8',
-		heading4: '#FFD93D',
-		heading5: '#FF8C69',
-		heading6: '#B19CD9',
 		strikethrough: '#94a3b8',
 		url: '#818cf8',
 		codeBg: 'rgba(255,255,255,0.06)',
@@ -173,8 +201,6 @@ export const KOKOBRAIN_DEFAULT_THEME: Theme = buildTheme(DEFAULT_THEME_NAME, {
 		tableHeaderBg: '#1e1e2e',
 		tableAlt: '#1e1e2e44',
 		footnote: '#60a5fa',
-		frontmatterBg: '#1e1e2e',
-		frontmatterBorder: '#313244',
 		collectionBg: '#1e1e2e',
 		collectionBorder: '#313244',
 		collectionHeader: '#a6adc8',
@@ -207,10 +233,12 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 	editorBg: '#F3F0F8',
 	sidebarBg: '#F3F0F8',
 	panelBg: '#EAE6F2',
-	popoverBg: '#DDD8E8',
+	popoverBg: '#FFFFFF',
 	fg: '#302840',
-	heading: '#C83848',
-	mutedFg: '#8A80A0',
+	heading: '#6848A8',
+	// Already clears readableCore's 4.5:1 lift on every surface, so the lift
+	// leaves it as is; it sets muted text and the H6 end of the heading ramp.
+	mutedFg: '#645c74',
 	faintFg: '#C0B8D0',
 	border: '#D5D0E2',
 	borderStrong: '#D5D0E2',
@@ -225,7 +253,7 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 	codeBg: '#e7e4ec',
 	error: '#C83848',
 	errorFg: '#302840',
-	inlineFg: '#302840',
+	inlineFg: '#843C7E',
 	linkFg: '#3868B0',
 	meta: '#8A80A0',
 	blockquoteAccent: '#8A80A0',
@@ -238,7 +266,10 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 		accent: '#D5D0E2',
 		tabBar: '#edeaf2',
 		divider: '#C0B8D0',
-		fileExplorerBg: '#FAF8FE',
+		fileExplorerBg: '#e8e7ec',
+		fileExplorerAccent: '#DDD8E8',
+		typeOrange: '#b66737',
+		typeYellow: '#907900',
 		fileExplorerMutedFg: '#8078A0',
 		fileExplorerBorder: '#D8D2E5',
 		fileExplorerBadgeFg: '#8078A0',
@@ -255,11 +286,6 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 		switchUncheckedBg: '#D2CCE0',
 	},
 	syntax: {
-		heading2: '#D07838',
-		heading3: '#A89020',
-		heading4: '#408868',
-		heading5: '#3868B0',
-		heading6: '#7848B8',
 		emphasis: '#A850A0',
 		url: '#A850A0',
 		codeBg: 'rgba(0,0,0,0.04)',
@@ -276,7 +302,6 @@ export const LAVENDER_HAZE_THEME: Theme = buildTheme('Lavender Haze', {
 		tableHeaderBg: '#DDD8E8',
 		tableAlt: '#DDD8E845',
 		footnote: '#3868B0',
-		frontmatterBg: '#DDD8E8',
 		collectionBg: '#DDD8E8',
 		collectionHeader: '#504868',
 		collectionTableHeaderBg: '#e2dded',

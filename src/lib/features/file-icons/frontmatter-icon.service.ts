@@ -23,6 +23,13 @@ function upsertProperty(properties: Property[], key: string, value: string): Pro
 	return updatePropertyValue(addProperty(properties, key), key, value, 'text');
 }
 
+function withIconColors(props: Property[], color?: string, titleColor?: string): Property[] {
+	const properties = color ? upsertProperty(props, '_color', color) : removeProperty(props, '_color');
+	return titleColor
+		? upsertProperty(properties, '_title_color', titleColor)
+		: removeProperty(properties, '_title_color');
+}
+
 /**
  * Runs `updateNoteFrontmatter` and reports a refusal or write failure in a
  * toast. Read errors and anything that is not a `FrontmatterWriteError` propagate.
@@ -55,13 +62,17 @@ export async function setFrontmatterIcon(
 	titleColor?: string,
 ): Promise<boolean> {
 	return writeIconFrontmatter(filePath, (props) => {
-		let properties = upsertProperty(props, '_icon', `${iconPack}:${iconName}`);
-		properties = color ? upsertProperty(properties, '_color', color) : removeProperty(properties, '_color');
-		properties = titleColor
-			? upsertProperty(properties, '_title_color', titleColor)
-			: removeProperty(properties, '_title_color');
-		return properties;
+		return withIconColors(upsertProperty(props, '_icon', `${iconPack}:${iconName}`), color, titleColor);
 	});
+}
+
+/**
+ * Writes _color and _title_color to a markdown file's frontmatter, leaving
+ * _icon as it is. An absent color removes its key.
+ * @returns false when the write was refused or failed (already toasted)
+ */
+export async function setFrontmatterIconColors(filePath: string, color?: string, titleColor?: string): Promise<boolean> {
+	return writeIconFrontmatter(filePath, (props) => withIconColors(props, color, titleColor));
 }
 
 /**

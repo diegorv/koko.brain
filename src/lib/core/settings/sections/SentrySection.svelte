@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { configureSentry, sendSentryTestEvent } from '../sentry.service';
 	import { settingsStore } from '../settings.store.svelte';
@@ -46,7 +47,7 @@
 
 	<SettingItem
 		label="Error monitoring"
-		description="Disabled by default. When enabled, unhandled application errors are sent to the Sentry project configured below."
+		description="Off by default. When on, unhandled errors are sent to the Sentry project of the DSN you enter."
 	>
 		<Switch
 			checked={settingsStore.sentry.enabled}
@@ -58,20 +59,20 @@
 		<SettingItem
 			label="Sentry DSN"
 			description="Paste the project DSN from Sentry Settings → Projects → Client Keys (DSN)."
+			layout="stacked"
 		>
-			<input
+			<Input
 				type="url"
 				value={settingsStore.sentry.dsn}
-				oninput={(event) => void updateSentry({ dsn: event.currentTarget.value })}
+				oninput={(event) => void updateSentry({ dsn: (event.currentTarget as HTMLInputElement).value })}
 				placeholder="https://public-key@o0.ingest.sentry.io/0"
 				autocomplete="off"
 				aria-invalid={configurationError ? 'true' : undefined}
-				class="h-8 w-full rounded-md border border-border bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:border-primary/50"
 			/>
 		</SettingItem>
 
 		{#if configurationError}
-			<p class="px-4 text-xs text-destructive" role="alert">{configurationError}</p>
+			<p class="px-4 text-meta text-destructive" role="alert">{configurationError}</p>
 		{/if}
 
 		<SettingItem
@@ -84,10 +85,10 @@
 		</SettingItem>
 
 		{#if testEventStatus}
-			<p class="px-4 text-xs text-muted-foreground" role="status">{testEventStatus}</p>
+			<p class="px-4 text-meta text-muted-foreground" role="status">{testEventStatus}</p>
 		{/if}
 
-		<p class="px-4 text-xs text-muted-foreground">
+		<p class="px-4 text-meta text-muted-foreground">
 			This sends error events and stack traces only. Session replay, performance tracing, breadcrumbs, user identity, and request data are disabled. Error messages can still include technical details supplied by the application.
 		</p>
 	{/if}

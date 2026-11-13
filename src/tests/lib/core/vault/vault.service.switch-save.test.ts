@@ -175,7 +175,7 @@ describe('vault switch with a dirty tab', () => {
 		expect(ask).toHaveBeenCalledTimes(1);
 		expect(ask).toHaveBeenCalledWith(
 			'Failed to save: note.md. Switch anyway and lose unsaved changes?',
-			{ title: 'Unsaved Changes', kind: 'warning' },
+			{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Switch Anyway', cancelLabel: 'Cancel' },
 		);
 		expect(invokeArgs('save_snapshot')).toEqual([]);
 		expect(editorStore.tabs[0].savedContent).toBe('old');

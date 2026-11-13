@@ -1,0 +1,100 @@
+[
+ {
+  "file": ".scratch/audit-2026-11-05/issues/07-empty-frontmatter-block-matched-writers-never-stack.md",
+  "criterion_start": "Failing test first, in src/tests/lib/core/frontmatter/proper",
+  "action": "replace",
+  "new_text": "Failing test first: the repro .scratch/file-io-audit/repro/o10-frontmatter-fidelity/empty-frontmatter-block.test.ts is moved under src/tests as the red test, with only the Tauri APIs mocked (plugin-fs as an in-memory disk) and the real stores and services. Case 1, in src/tests/lib/features/file-icons/file-icons.service.test.ts: setIconForPath('/vault', '/vault/Projects', 'lucide', 'folder', '#0000ff', undefined, true) on a folder with no folder note leaves /vault/Projects/Projects.md with exactly two '---' lines holding _icon and _color. Case 2, in src/tests/lib/features/properties/lifecycle.service.favorite-path.test.ts: toggleFavoriteForPath on a note whose disk content is '---\\n---\\n# Title\\n' writes exactly two '---' lines, with _favorite: true in the block and '# Title' as the body. Both fail today (four '---' lines), because extractRawFrontmatter and extractBody (properties.logic.ts:45-58) miss the empty block and rebuildContent (:677) prepends a new one.",
+  "reason": "rebuildContent takes a body, not note content, and is not where the defect is: calling it 'over the content' either passes the whole note as body (still stacks after any fix to the regex) or tests nothing. The repro the criterion says to move exercises setIconForPath and toggleFavoriteForPath through extractBody; the red test must keep that real path."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/23-file-history-follows-note-through-rename-move.md",
+  "criterion_start": "A Trash restore to a suffixed path (trash.service.ts restore",
+  "action": "replace",
+  "new_text": "A Trash restore to a suffixed path (restoreItem, trash.service.ts:110, which does not go through applyPathChange) re-keys only the trashed note's own rows: snapshots at item.originalPath with created_at <= item.trashedAt move to the restore path, and rows saved later by the note that now occupies the original path stay there. Rust test in src-tauri/tests/history_test.rs for the time-bounded re-key (rows before and after the cutoff), and a case in src/tests/lib/core/trash/trash.service.test.ts that restores to a suffixed path and invokes the re-key with the vault-relative keys and trashedAt. A restore to the free original path needs no re-key.",
+  "reason": "The original text lets restoreItem call rename_history(original, suffixed), which would move the File History of the different note now living at the original path onto the restored note, swapping two notes' histories."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/97-view-toolbar-icon-writes-keep-file-s.md",
+  "criterion_start": "A toolbar change through rewriteViewFile (src/tests/lib/feat",
+  "action": "replace",
+  "new_text": "A rail toolbar change through updateViewToolbarKey (type-definitions.service.ts:518, which runs applyToolbarEdit inside rewriteViewFile), tested in src/tests/lib/features/type-definitions/update-view-toolbar-key.service.test.ts with the plugin-fs disk mock: a filter or sort change on a commented .view writes a file that still contains its comments.",
+  "reason": "rewriteViewFile takes an arbitrary transform, so a test there does not cover the toolbar write. The real toolbar path is updateViewToolbarKey -> applyToolbarEdit -> updateCollectionYaml, and it has its own test file."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/102-file-history-restore-writes-snapshot-into-note.md",
+  "criterion_start": "Failing test first, in src/tests/lib/features/file-history/f",
+  "action": "replace",
+  "new_text": "Failing test first, in a new src/tests/lib/features/file-history/file-history.restore-target.test.ts, moved from .scratch/file-io-audit/repro/o05-settings-history/file-history-restore-target.test.ts. Only Tauri APIs are mocked (plugin-fs as an in-memory disk); the editor service, editorStore, fileHistoryStore and a real CodeMirror EditorView are real, wired as the repro does. The dialog is open for '/vault/a.md' with a snapshot selected, tabs a.md and b.md are open, b.md is active, then restoreSnapshot runs. Disk a.md holds the snapshot text, and disk b.md and the b.md tab keep 'B: my important note'. It fails today (b.md on disk gets the snapshot). file-history.service.test.ts mocks editor.service.js (saveCurrentFile), so it cannot hold this test: there b.md 'gets no write' even with the bug.",
+  "reason": "The named file mocks editor.service.js, so the wrong-tab write never reaches disk and the 'b.md gets no write' half passes while the defect is still there. The repro avoids that by keeping the editor service real."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/102-file-history-restore-writes-snapshot-into-note.md",
+  "criterion_start": "When the dialog's file is the active markdown tab, Restore s",
+  "action": "replace",
+  "new_text": "When the dialog's file is the active markdown tab, Restore still dispatches through the editor view as a normal history transaction, so editor undo still reverts it ('dispatches to CodeMirror and saves through editor' stays green). The existing case 'skips dispatch when no editor view is available' pins today's silent no-op (dialog closed as a success with nothing applied), so it is rewritten to the board-view behavior below, and the commit message says so.",
+  "reason": "The criterion said all existing restoreSnapshot cases stay green, but 'skips dispatch when no editor view is available' asserts the board-view no-op that the board-view criterion forbids. The two could not both hold."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/102-file-history-restore-writes-snapshot-into-note.md",
+  "criterion_start": "The Restore confirm text names the file being restored, asse",
+  "action": "replace",
+  "new_text": "The Restore confirm names the file being restored: in src/tests/lib/features/file-history/FileHistoryDialog.test.ts, the message passed to the plugin-dialog ask() mock (FileHistoryDialog.svelte:44-47) contains the file name of fileHistoryStore.filePath.",
+  "reason": "The confirm is the native Tauri ask() dialog, not rendered markup, so 'asserted on the rendered text' cannot be done. The test file already mocks ask and asserts its arguments."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/108-rename-link-rewrite-skips-links-inside-code.md",
+  "criterion_start": "Self-links, in src/tests/lib/core/filesystem/link-updater.se",
+  "action": "replace",
+  "new_text": "Self-links, in src/tests/lib/core/filesystem/link-updater.service.test.ts (updateLinksAfterRename describe): when get_backlinks_v2(oldPath) lists the renamed note itself and its content holds [[Old#Heading]], the self-link is rewritten to [[New#Heading]] in the note at newPath. The note was already moved by diskOp and its tab by updateTabAfterRenameOrMove, so the read, the write, the open-tab sync and the applyNoteChange upsert all use newPath, and nothing is read from or written to oldPath (no file is recreated there).",
+  "reason": "updateLinksAfterRename runs after diskOp, so the self-link source is on disk at newPath. The old text only said what must not happen at oldPath and never required the rewrite to land in the moved note."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/120-crlf-notes-keep-their-crlf-line-endings.md",
+  "criterion_start": "Failing test first, in src/tests/lib/core/markdown-editor/se",
+  "action": "replace",
+  "new_text": "Failing test first, moved from .scratch/file-io-audit/repro/o10-frontmatter-fidelity/crlf-line-endings.test.ts into src/tests/lib/core/markdown-editor/crlf-line-endings.test.ts (jsdom). A tab whose content and savedContent are '---\\r\\ntitle: Win\\r\\n---\\r\\n# Heading\\r\\n\\r\\nLine one\\r\\nLine two\\r\\n', a real EditorView built from createExtensions with onDocChanged wired to the real onContentChange (as MarkdownEditor.svelte does), one inserted character and its deletion, then saveFileByPath. The text written to the plugin-fs disk mock equals the CRLF original byte for byte. It fails today (every \\r\\n is written as \\n).",
+  "reason": "toDocText is a private function inside MarkdownEditor.svelte and cannot be imported into a test. Asserting only on onDocChanged output also forces where the fix goes. The repro checks the bytes written to disk, which is the defect, and leaves the fix (line separator facet or restoring endings at save) open."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/122-stale-tasks-list-never-ticks-wrong-task.md",
+  "criterion_start": "Failing test first, in src/tests/lib/features/tasks/tasks.se",
+  "action": "replace",
+  "new_text": "Failing test first, in src/tests/lib/features/tasks/tasks.service.test.ts with the real tasksStore: toggleTask on a clean tab whose list is stale (the toggle_task_status invoke mock reports the stale result and the get_all_tasks_v2 mock returns the fresh groups) writes nothing, leaves tasksStore holding the fresh groups, and shows no success. It fails today because toggleTask (tasks.service.ts:137-140) sends only path and lineNumber and has no stale branch.",
+  "reason": "The old text took 'get_all_tasks_v2 called again' as proof of the refresh, which only checks that a call happened. Project rules ask for assertions on real store state."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/122-stale-tasks-list-never-ticks-wrong-task.md",
+  "criterion_start": "On a match the toggle behaves as today: status markers (' ',",
+  "action": "replace",
+  "new_text": "On a match the toggle writes what it writes today for each marker, and the existing parsing.rs and vault_task_test.rs cases keep their assertions; only their call sites change, to pass the new expected-text argument. If the owner keeps .scratch/tasks-view/issues/02-guarded-status-preserving-toggle.md instead, that Issue's status-preserving rules apply and this one closes.",
+  "reason": "toggle_task_status_inner gains an argument, so its callers in vault_task_test.rs cannot pass 'without edits'. And keeping today's marker flips for every status contradicts the overlapping tasks-view Issue 02, which the owner decision may pick."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/122-stale-tasks-list-never-ticks-wrong-task.md",
+  "criterion_start": "The dirty-tab protection from b4f126bf2 stays: src/tests/lib",
+  "action": "replace",
+  "new_text": "The dirty-tab protection from b4f126bf2 stays (tasks.service.ts:121-136): src/tests/lib/features/tasks/task-toggle-dirty-buffer.test.ts keeps its assertions. Only its toggleTask calls and its toggle_task_status fake change, to pass and accept the task text.",
+  "reason": "toggleTask must now send the displayed task text, so the toggleTask(NOTE, 2) calls and the invoke fake in that file have to change. 'Passes without edits' cannot be met."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/126-failure-after-disk-op-still-reports-completed.md",
+  "criterion_start": "Failing test first, in src/tests/lib/features/event-calendar",
+  "action": "replace",
+  "new_text": "renameAndWrite (event-calendar.service.ts:715-735) keeps its catch. Once applyPathChange no longer rejects after a successful diskOp, renameItem rejects only for a taken name or a failed disk rename, which is what the 'may already exist' message covers. One case in src/tests/lib/features/event-calendar/event-calendar.service.test.ts runs the real renameItem (vi.importActual) with get_backlinks_v2 rejecting and checks that writeEvent resolves to the new path with the stores remapped and the fields written.",
+  "reason": "With the applyPathChange fix, the 'note already at the new path but renameItem threw' case can no longer happen. Telling the two cases apart with an exists(to) check would also mistake a real name collision for success, then remap and write the event fields into a different note."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/129-vault-picked-outside-two-allowed-folders-refused.md",
+  "criterion_start": "Failing test first, in src/tests/lib/core/vault/vault.servic",
+  "action": "replace",
+  "new_text": "Failing test first, in src/tests/lib/core/vault/vault.service.test.ts (describe 'openVaultDialog'), with the dialog open() mock resolving to a folder outside both allowed roots and the home and documents dirs mocked. Refuse branch: openVaultDialog resolves false, vaultStore.path is unchanged and a toast names both allowed folders. Warn branch: vaultStore.path is the picked folder and a toast warns that some features will fail, naming both folders. A folder inside an allowed root opens as today. It fails today because openVaultDialog (vault.service.ts:35-38) passes any folder to switchVault.",
+  "reason": "switchVault is called from inside the same module, so a test cannot spy on it. 'switchVault is not called' would end up as an unobservable or call-only check. The store state and the return value are what can be observed."
+ },
+ {
+  "file": ".scratch/audit-2026-11-05/issues/129-vault-picked-outside-two-allowed-folders-refused.md",
+  "criterion_start": "Cancelling the dialog and opening an allowed folder keep wor",
+  "action": "replace",
+  "new_text": "Cancelling the dialog and a dialog-plugin failure behave as in the existing openVaultDialog tests. The existing cases that open '/Users/me/my-vault', '/vault' and '/new' pick folders outside the allowed roots. Under the refuse branch they move their paths under a mocked allowed root, keeping their assertions. Whether openRecentVault applies the same check is stated in the Issue Notes, and tested if it does.",
+  "reason": "The existing openVaultDialog tests open paths outside both allowed roots, so under the refuse decision they cannot 'pass without edits'. The criterion contradicted the feature it gates."
+ }
+]

@@ -1,7 +1,11 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { execSync } from 'child_process';
+import { mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 // @ts-expect-error semver ships no type declarations and @types/semver is not installed
 import semver from 'semver';
-import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel } from '#lib/utils/build-info.js';
+import { resolveVersion, formatBuildInfo, parseReleaseChannel, channelLabel, parseChangelog, changelogBaseCommand } from '#lib/utils/build-info.js';
 
 describe('resolveVersion', () => {
 	it('returns the pkg version unchanged on the stable channel', () => {
@@ -158,5 +162,122 @@ describe('channelLabel', () => {
 
 	it('returns NIGHTLY for the nightly channel', () => {
 		expect(channelLabel('nightly')).toBe('NIGHTLY');
+	});
+
+	it('returns DEV for a dev server run', () => {
+		expect(channelLabel('dev')).toBe('DEV');
+	});
+});
+
+describe('parseChangelog', () => {
+	/** Builds `git log --format=%h%x09%s` output from [sha, subject] pairs. */
+	const log = (...rows: [string, string][]) => rows.map(([sha, subject]) => `${sha}\t${subject}`).join('\n');
+
+	it('keeps feat, fix, perf, refactor and chore(deps) commits, newest first', () => {
+		expect(parseChangelog(log(
+			['aaa1111', 'feat: views section groups (Issue 20)'],
+			['bbb2222', 'fix(layout): lower the side panes minimum width'],
+			['ccc3333', 'perf(search): cache the query plan'],
+			['ddd4444', 'refactor(editor): split the tab store'],
+			['eee5555', 'chore(deps): bump mermaid 11.17.2 -> 12.2.0'],
+		))).toEqual([
+			{ sha: 'aaa1111', subject: 'feat: views section groups (Issue 20)' },
+			{ sha: 'bbb2222', subject: 'fix(layout): lower the side panes minimum width' },
+			{ sha: 'ccc3333', subject: 'perf(search): cache the query plan' },
+			{ sha: 'ddd4444', subject: 'refactor(editor): split the tab store' },
+			{ sha: 'eee5555', subject: 'chore(deps): bump mermaid 11.17.2 -> 12.2.0' },
+		]);
+	});
+
+	it('drops docs, test, ci, style, build and every chore except chore(deps)', () => {
+		expect(parseChangelog(log(
+			['a000001', 'docs(rail-shell-ux): Issue 21 in progress'],
+			['a000002', 'docs: README refresh'],
+			['a000003', 'test(e2e): cover the kanban drag'],
+			['a000004', 'ci: pin rustc'],
+			['a000005', 'style: tabs'],
+			['a000006', 'build: bump rolldown'],
+			['a000007', 'chore: bump version to 4.0.0-beta.2'],
+			['a000008', 'chore(relay-lite): commit regenerated ts-rs bindings'],
+			['a000009', 'chore(deps-dev): bump vitest from 4.1.12 to 5.0.5'],
+		))).toEqual([]);
+	});
+
+	it('keeps subjects without a conventional prefix and breaking-change markers', () => {
+		expect(parseChangelog(log(
+			['f000001', 'Revert "feat: views section groups"'],
+			['f000002', 'feat(api)!: rename kb.pages'],
+			['f000003', 'docs!: drop the old guide'],
+		))).toEqual([
+			{ sha: 'f000001', subject: 'Revert "feat: views section groups"' },
+			{ sha: 'f000002', subject: 'feat(api)!: rename kb.pages' },
+		]);
+	});
+
+	it('keeps tabs that are part of the subject', () => {
+		expect(parseChangelog('abc1234\tfix: a\tb')).toEqual([{ sha: 'abc1234', subject: 'fix: a\tb' }]);
+	});
+
+	it('skips lines without a tab', () => {
+		expect(parseChangelog('fatal: bad revision\nabc1234\tfix: a')).toEqual([{ sha: 'abc1234', subject: 'fix: a' }]);
+	});
+
+	it('returns an empty list for empty output', () => {
+		expect(parseChangelog('')).toEqual([]);
+		expect(parseChangelog('\n')).toEqual([]);
+	});
+});
+
+describe('changelogBaseCommand', () => {
+	let repo: string;
+	/**
+	 * Git environment pinned to the scratch repo. An inherited GIT_DIR (set
+	 * inside git hooks) would send the commits and `tag -d` to the real repo.
+	 */
+	const env: NodeJS.ProcessEnv = { ...process.env, GIT_CONFIG_GLOBAL: '/dev/null', GIT_CONFIG_NOSYSTEM: '1' };
+	delete env.GIT_DIR;
+	delete env.GIT_WORK_TREE;
+	delete env.GIT_INDEX_FILE;
+	/** Runs a shell command in the scratch repo and returns its trimmed stdout. */
+	const run = (command: string) => execSync(command, { cwd: repo, env, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+	const git = (args: string) =>
+		run(`git -c user.name=t -c user.email=t@t -c commit.gpgsign=false -c tag.gpgsign=false -c core.hooksPath=/dev/null ${args}`);
+	const commit = () => git('commit -q --allow-empty -m c');
+	const base = (pkgVersion: string) => run(changelogBaseCommand(pkgVersion));
+
+	beforeAll(() => {
+		repo = mkdtempSync(join(tmpdir(), 'changelog-base-'));
+		git('init -q');
+		commit();
+		git('tag 3.0.12');
+		commit();
+		git('tag 4.0.0-beta.1');
+		commit();
+		git('tag nightly');
+		commit();
+	});
+
+	afterAll(() => rmSync(repo, { recursive: true, force: true }));
+
+	it('picks the prerelease tag a nightly builds on, never the moving nightly tag', () => {
+		expect(base('4.0.0-beta.1')).toBe('4.0.0-beta.1');
+	});
+
+	it('picks the previous tag for a prerelease built on its own tag', () => {
+		git('tag 4.0.0-beta.2');
+		try {
+			expect(base('4.0.0-beta.2')).toBe('4.0.0-beta.1');
+		} finally {
+			git('tag -d 4.0.0-beta.2');
+		}
+	});
+
+	it('picks the previous stable for a stable release, skipping its prereleases', () => {
+		git('tag 4.0.0');
+		try {
+			expect(base('4.0.0')).toBe('3.0.12');
+		} finally {
+			git('tag -d 4.0.0');
+		}
 	});
 });

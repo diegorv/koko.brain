@@ -103,8 +103,8 @@ export async function loadEvents(): Promise<void> {
 }
 
 /**
- * Reads the Rust task index (`get_all_tasks_v2`, the IPC the Tasks view
- * uses, without its section-tag filter) and stores its dated tasks in
+ * Reads the Rust task index (`get_all_tasks_v2`, every task of the vault)
+ * and stores its dated tasks in
  * `eventCalendarStore.tasks`. Latest wins: a result or a failure that lands
  * after a newer task load, a reset or a vault switch is discarded (the
  * failure is still logged), so only the current load reaches the caller.
@@ -175,7 +175,11 @@ export function toggleEventCalendarTab(): void {
 /** Projection behind `findCalendarEvent`, kept while the snapshot and the projection inputs are unchanged. */
 let lookupMemo: { entries: NoteEntryV2[]; key: string; events: EventNote[]; byPath: Map<string, EventNote> } | null = null;
 
-/** Inputs of `eventsFromEntries` for the current vault and settings. */
+/**
+ * Inputs of `eventsFromEntries` for the current vault, settings and archived
+ * toggle. The toggle is part of the key that tells whether the store is
+ * current, so a lookup sees the archived events exactly when the view does.
+ */
 function projectionOptions() {
 	const settings = settingsStore.eventCalendar;
 	return {
@@ -183,6 +187,7 @@ function projectionOptions() {
 		typeName: settings.eventTypeName,
 		vaultPath: vaultStore.path,
 		systemFolder: settingsStore.templates.systemFolder,
+		includeArchived: eventCalendarViewStore.showArchived,
 	};
 }
 
@@ -239,7 +244,8 @@ async function lookupCalendarEvent(path: string): Promise<{ event: EventNote | n
  * entries snapshot is projected once per index version and settings.
  * @param path - absolute note path
  * @returns the event, or null when the note is not a renderable event
- *   (not event-typed, archived, invalid or dateless)
+ *   (not event-typed, invalid or dateless, or archived while the calendar
+ *   hides archived events)
  * @throws the IPC error of the snapshot read
  */
 export async function findCalendarEvent(path: string): Promise<EventNote | null> {

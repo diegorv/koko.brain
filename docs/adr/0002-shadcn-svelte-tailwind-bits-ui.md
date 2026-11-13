@@ -6,6 +6,10 @@ status: active
 date: 2026-04-22
 ---
 
+## Amendment (2026-11-05): the applied theme decides dark mode
+
+`dark:` utilities follow the applied theme, not the OS appearance: `src/app.css` declares `@custom-variant dark (&:where(.dark, .dark *));`, so they match `html.dark` instead of `prefers-color-scheme`. `src/lib/core/settings/theme.service.ts` owns that class and `document.documentElement.style.colorScheme`, and sets both each time it applies theme variables (`applyTheme`, `applyStoredTheme`, `applyActiveTheme`); `appliedThemeStore.isDark` exposes the same mode to code. The rule is `isDarkColor(editorBg) !== false`: a theme whose editor background cannot be read counts as dark. `src/app.html` keeps `class="dark"` as the pre-theme default, which matches the default theme.
+
 ## Amendment (2026-10-29)
 
 SvelteKit 3 removed the built-in lib alias, so `components.json` aliases now use the `#lib` subpath import (package.json `imports`, mirrored in `tsconfig.json` `paths`). The shadcn-svelte CLI has not been run against these aliases yet; generated imports must carry an extension to pass `lib-specifier-convention.test.ts`. The decision is unchanged.

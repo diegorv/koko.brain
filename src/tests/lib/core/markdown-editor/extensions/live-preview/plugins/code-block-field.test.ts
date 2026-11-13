@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import type { EditorState } from '@codemirror/state';
 import { markdown } from '@codemirror/lang-markdown';
 import { computeCodeBlocks } from '#lib/core/markdown-editor/extensions/live-preview/plugins/code-block-field.js';
+import { codeBlockLineDeco } from '#lib/core/markdown-editor/extensions/live-preview/styles.js';
 import { createMarkdownState, withFullParse } from '../../../test-helpers';
 
 function createState(doc: string, cursor?: number): EditorState {
@@ -19,6 +20,16 @@ function collectDecos(state: EditorState): { from: number; to: number }[] {
 	return result;
 }
 
+function valuesOf(state: EditorState) {
+	const result: { from: number; to: number; value: unknown }[] = [];
+	const iter = computeCodeBlocks(state).iter();
+	while (iter.value) {
+		result.push({ from: iter.from, to: iter.to, value: iter.value });
+		iter.next();
+	}
+	return result;
+}
+
 describe('codeBlockField', () => {
 	it('produces decorations for a fenced code block', () => {
 		// ```\nconst x = 1;\n```
@@ -29,11 +40,36 @@ describe('codeBlockField', () => {
 		expect(decos).toHaveLength(5);
 	});
 
-	it('does not decorate when cursor is inside the block', () => {
-		const doc = '```\nconst x = 1;\n```';
-		const state = createState(doc, 5); // cursor on content line
-		const decos = collectDecos(state);
-		expect(decos).toHaveLength(0);
+	it('gives every line of a revealed block the code size and replaces nothing', () => {
+		const doc = 'text\n```js\nconst x = 1;\n```\nafter';
+		const state = createState(doc, doc.indexOf('const')); // cursor on content line
+		const lineStarts = [doc.indexOf('```js'), doc.indexOf('const'), doc.lastIndexOf('```')];
+
+		const decos = valuesOf(state);
+		expect(decos.map((d) => d.from)).toEqual(lineStarts);
+		for (const d of decos) {
+			expect(d.to).toBe(d.from);
+			expect(d.value).toBe(codeBlockLineDeco);
+		}
+	});
+
+	it('gives the lines of a revealed indented block the code size', () => {
+		const doc = 'text\n\n    a\n    b';
+		const state = createState(doc, doc.indexOf('    b') + 4);
+
+		const decos = valuesOf(state);
+		expect(decos.map((d) => d.from)).toEqual([doc.indexOf('    a'), doc.indexOf('    b')]);
+		for (const d of decos) expect(d.value).toBe(codeBlockLineDeco);
+	});
+
+	it('marks revealed lines with the class the code size rule targets', () => {
+		expect(codeBlockLineDeco.spec.class).toBe('cm-lp-codeblock-line');
+	});
+
+	it('marks no line of a block the cursor is outside of', () => {
+		const doc = 'text\n```\nconst x = 1;\n```';
+		const decos = valuesOf(createState(doc, 0));
+		expect(decos.some((d) => d.value === codeBlockLineDeco)).toBe(false);
 	});
 
 	it('produces no decorations for a document without code blocks', () => {

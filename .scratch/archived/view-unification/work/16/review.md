@@ -1,0 +1,28 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Failing tests first: — the tests exist for every sub-point and fail without the change: a probe that checked out main's four source files (`app/editor-host.ts`, `core/markdown-editor/editor-host.ts`, `meta-bind-button.logic.ts`, `meta-bind-button-widget.ts`) under the branch's tests gave 26 failures in 5 files; restored, they pass. Validation: `meta-bind-button.logic.test.ts` table (no path, `""`, non-string, `Projects.md`, a folder, `../Projects.view`, `a/../../Projects.view`) and `meta-bind-button-field.test.ts` (inline error text). Widget with real stores: `src/tests/lib/app/meta-bind-open-view.test.ts` opens a `_open_in_editor` view as the active tab with the layout unchanged, and with `AppShell` mounted an ordinary view switches to Types, marks the navigator row `aria-current` and the note list shows alpha and beta. Missing file: same file, one toast, no `writeTextFile`/`invoke`, no tab, the later `createNote` does not run; also `core/markdown-editor/editor-host.test.ts`.
+- [met] Unknown fields keep the behavior documented in `help/documentation/24-meta-bind.md`. — `parseButtonConfig: openView > ignores an unknown field and still renders the button` (`hidden: true`, `newTab: true` on an openView) returns a config; matches the NOTE at `24-meta-bind.md:121-122` ("ignores them and renders as usual").
+- [met] `24-meta-bind.md` documents the action, in the same section as `open` and `createNote`. — `#### openView — open a view` under `### Action types`, right after `createNote` (`24-meta-bind.md:162-175`), covering `_open_in_editor`, `_visible: false`, the inline errors, the missing-file error and renames.
+
+## Checks run by the reviewer
+
+- Typecheck: `taskpolicy -c background pnpm check`, exit 0, 0 errors, 0 warnings.
+- Test verdict rests on these files, each run by the reviewer, all passing (exit 0): `src/tests/lib/app/meta-bind-open-view.test.ts`, `src/tests/lib/app/editor-host.test.ts`, `src/tests/lib/core/markdown-editor/editor-host.test.ts`, `src/tests/lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic.test.ts`, `src/tests/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-button-field.test.ts`, `src/tests/lib/app/rail-navigation.test.ts`, `src/tests/lib/architecture/` (layer rules), plus every other test importing a touched module (`app/EditorView`, `app/lifecycle/app-lifecycle.service`, `core/markdown-editor/MarkdownEditor`, `click-handler`, `fenced-block-renderers`, `inline/pipeline-dom`, `meta-bind-writers`, `table-widget`, `widgets/image-widget`, `widgets/wikilink-image-embed-widget`, `setup/editor-extensions`, `undo-history-across-notes`) and `src/tests/help`. The full suite and `pnpm build` are deliver's to run.
+- Layers: `layer-baseline.json` and `BASELINE_SIZE` unchanged; the `features/` imports are in `app/editor-host.ts` (composition root); `core/` gains only the `EditorHost.openView` method. The button's `mousedown` `stopPropagation` (Live Preview rule 11) is kept and tested for an openView button.
+- Spec decisions: reuses `openRailView(path, getViewOpensInEditor(entry))` as the Issue asks; a `_visible: false` ordinary view stays picked because `staleTypesPickFix` checks view picks against every `.view` in the tree (`lens.logic.ts:552`). No scope creep.
+
+## Findings
+
+1. minor — `help/documentation/24-meta-bind.md:11`: the tip says the samples in `help/examples/markdown-editor-vault/19-meta-bind.md` cover "every shape below", and openView has none. Fix: add an openView sample there (the inline-error shape needs no `.view`; a working one needs a small `.view` in the example vault), or narrow the tip.
+2. minor — `src/tests/lib/app/meta-bind-open-view.test.ts:212`: no button test for a `_visible: false` view without `_open_in_editor`, the case the Issue names ("It works for a `_visible: false` view, which has no row") on the note-list path. It works today through `pickedTypesLens`/`staleTypesPickFix`, but nothing ties the button to it. Fix: add a case with such a view and assert the lens stays and the note list shows its rows.
+3. nit — `src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts:132`: the toast says "no such file in the vault" also when there is no vault (closed vault, `NOOP_HOST`). Fix: optional wording such as "not found", or leave it.
+4. nit — `src/lib/app/editor-host.ts:150`: the existence check compares paths exactly, so `path: _system/views/projects.view` toasts "no such file" for `Projects.view` although macOS opens it case-insensitively. Fix: optional; document that the path is case-sensitive, or match case-insensitively.
+
+## Resolution
+
+1. Fixed: `help/examples/markdown-editor-vault/19-meta-bind.md` gains section 14a with an openView button (the example vault has no `.view`, so it shows the missing-file toast) and an inline-error block (`path: Projects.md`). The QueryJS contract snapshot for `24-queryjs-advanced.md` #18 and #19 is updated: it prints the example vault's file sizes, which grew.
+2. Fixed: `meta-bind-open-view.test.ts` adds a `_visible: false` view without `_open_in_editor` (`Hidden.view`); the button picks it, the lens stays on it while the note list shows alpha and beta, and the navigator has no row for it.
+3. Fixed: the toast now reads `Button cannot open view "<path>": file not found`, true with or without a vault; both tests asserting it are updated.
+4. Fixed by documenting: `24-meta-bind.md` says the path is case-sensitive. Matching case-insensitively is left out: the existence check and `openRailView` key on the tree's exact path, and a case-folded match would need a second lookup for a rare typo.

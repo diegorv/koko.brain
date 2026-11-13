@@ -8,11 +8,18 @@ import {
 	togglePinActiveTab,
 	openFileInEditor,
 } from '#lib/core/editor/editor.service.js';
+import { notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 import { createFile, createFolder } from '#lib/core/filesystem/fs.service.js';
+import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
-import { FILES_RAIL_ITEM } from '#lib/features/rail-shell/lens.logic.js';
+import { FILES_RAIL_ITEM, pinnedRailItems } from '#lib/features/rail-shell/lens.logic.js';
+import { parseRailHidden, parseRailOrder, railItems } from '#lib/features/rail-shell/rail-items.logic.js';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { collectViewFiles, getViewLabel, getViewOpensInEditor, getViewVisible } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { toggleGraphTab } from '#lib/plugins/graph-view/graph-view.service.js';
 import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 import { createKanbanFile } from '#lib/plugins/kanban/kanban.service.js';
@@ -23,7 +30,8 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { COPY_BLOCK_LINK_SHORTCUT } from '#lib/core/markdown-editor/setup/editor-extensions.js';
 import { copyBlockLinkToClipboard, copyBlockEmbedToClipboard } from '#lib/features/copy-block-link/copy-block-link.service.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
-import { toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
+import { openTasksTab, toggleTasksTab } from '#lib/features/tasks/tasks.service.js';
+import { tasksStore } from '#lib/features/tasks/tasks.store.svelte.js';
 import {
 	openEventCalendarTab,
 	openNewEventDialog,
@@ -33,12 +41,73 @@ import {
 } from '#lib/features/event-calendar/event-calendar.service.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
+import { showSyncLog } from '#lib/features/todoist-sync/sync-log.service.js';
+import { syncNowFromUi } from '#lib/features/todoist-sync/sync-scheduler.service.js';
+import { checkSyncConnectionFromUi } from '#lib/features/todoist-sync/todoist-sync.service.js';
 import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.service.js';
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
+import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { hideRailPanels, showRailPanels, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import { shortcutFor } from '#lib/app/global-keybindings.js';
+import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
+
+/**
+ * A "Go to <item>" command per rail item, from the same list as the rail, so a
+ * hidden item has none. The stores are read here, while the list is built, so
+ * the palette's prop expression re-runs when a navigator registers, a pin is
+ * added or Settings > Layout hides or moves an item.
+ */
+function railGoToCommands(): AppCommand[] {
+	void typeDefinitionsStore.entriesVersion;
+	const pins = pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap);
+	const { railHidden, railOrder } = settingsStore.layout;
+	return railItems(railRegistryStore.navigators, pins, parseRailHidden(railHidden), parseRailOrder(railOrder)).map((item) => ({
+		id: `rail:go-to:${item.key}`,
+		label: `Go to ${item.label}`,
+		category: 'Navigation',
+		action: () => selectRailItem(item),
+	}));
+}
+
+/**
+ * Flips the Tasks view between Open only and every status, writing what the
+ * Status menu's Open and All radios write, then shows the Tasks tab. The
+ * quick filters are read while the list is built, like the Go to commands.
+ */
+function tasksStatusFilterCommand(): AppCommand {
+	const { show, statuses } = tasksStore.quick;
+	const showAll = show === 'open' && statuses === undefined;
+	return {
+		id: 'tasks:status-filter',
+		label: showAll ? 'Tasks: Show all statuses' : 'Tasks: Show open only',
+		category: 'Navigation',
+		action: () => {
+			tasksStore.setQuick({ show: showAll ? 'all' : 'open', statuses: undefined });
+			openTasksTab();
+		},
+	};
+}
+
+/**
+ * An "Open view" command per `.view` in the tree, except one `_visible: false`
+ * hides from Views. A view with no entry yet counts as visible. Built from the
+ * tree, read while the list is built, like the Go to commands.
+ */
+function openViewCommands(): AppCommand[] {
+	const entries = typeDefinitionsStore.entriesByPath;
+	return collectViewFiles(fsStore.fileTree).filter((view) => getViewVisible(entries.get(view.path))).map((view) => {
+		const entry = entries.get(view.path);
+		const opensInEditor = getViewOpensInEditor(entry);
+		return {
+			id: `rail:open-view:${view.path}`,
+			label: `Open view: ${getViewLabel(entry, view.name)}`,
+			category: 'Navigation',
+			action: () => openRailView(view.path, opensInEditor),
+		};
+	});
+}
 
 /**
  * The command palette's built-in commands. Built here, in the composition
@@ -83,8 +152,9 @@ export function getBuiltInCommands(): AppCommand[] {
 			action: async () => {
 				const path = vaultStore.path;
 				if (!path) return;
-				const filePath = await createFile(path, 'Untitled.md');
+				const filePath = await createFile(path, 'Untitled.md', applyExplicitOrganization('', settingsStore.explicitOrganization));
 				await openFileInEditor(filePath);
+				notifyNoteCreated(filePath);
 			},
 		},
 		{
@@ -152,6 +222,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				toggleTasksTab();
 			},
 		},
+		tasksStatusFilterCommand(),
 		{
 			id: 'event-calendar:toggle',
 			label: 'Toggle Calendar View',
@@ -195,6 +266,24 @@ export function getBuiltInCommands(): AppCommand[] {
 			},
 		},
 		{
+			id: 'todoist:check-sync-connection',
+			label: 'Todoist: Check sync connection',
+			category: 'Todoist',
+			action: () => checkSyncConnectionFromUi(),
+		},
+		{
+			id: 'todoist:sync-now',
+			label: 'Todoist: Sync now',
+			category: 'Todoist',
+			action: () => syncNowFromUi(),
+		},
+		{
+			id: 'todoist:show-sync-log',
+			label: 'Todoist: Show sync log',
+			category: 'Todoist',
+			action: () => showSyncLog(),
+		},
+		{
 			id: 'tags:toggle',
 			label: 'Toggle Tags View',
 			category: 'Navigation',
@@ -204,10 +293,24 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'layout:toggle-left-sidebar',
-			label: 'Toggle Left Sidebar',
+			label: 'Toggle Rail Panels',
 			category: 'Layout',
 			shortcut: shortcutFor('layout:toggle-left-sidebar'),
 			action: toggleLeftSidebar,
+		},
+		{
+			id: 'layout:hide-rail-panels',
+			label: 'Hide Rail Panels',
+			category: 'Layout',
+			shortcut: shortcutFor('layout:hide-rail-panels'),
+			action: hideRailPanels,
+		},
+		{
+			id: 'layout:show-rail-panels',
+			label: 'Show Rail Panels',
+			category: 'Layout',
+			shortcut: shortcutFor('layout:show-rail-panels'),
+			action: showRailPanels,
 		},
 		{
 			id: 'layout:toggle-right-sidebar',
@@ -273,7 +376,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		},
 		{
 			id: 'editor:copy-block-link',
-			label: 'Copy Link to Block',
+			label: 'Copy Block Link',
 			category: 'Editor',
 			shortcut: COPY_BLOCK_LINK_SHORTCUT,
 			action: () => {
@@ -310,5 +413,13 @@ export function getBuiltInCommands(): AppCommand[] {
 				openFileHistory(path);
 			},
 		},
+		...railGoToCommands(),
+		...openViewCommands(),
+		...modCommandsStore.list.filter((command) => command.palette).map((command) => ({
+			id: command.id,
+			label: command.label,
+			category: 'Mod',
+			action: command.run,
+		})),
 	];
 }

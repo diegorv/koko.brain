@@ -1,4 +1,4 @@
-// The view index remembered per collection file follows renames, moves and
+// The view index remembered per view file follows renames, moves and
 // deletes made through the real fs.service and path-change owner; only the
 // Tauri boundary is mocked.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -32,7 +32,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import { registerCollectionPathChangeConsumer } from '#lib/features/collection/collection.service.js';
 
 const WORK = '/vault/Work';
-const BOARD = `${WORK}/board.collection`;
+const BOARD = `${WORK}/board.view`;
 
 let unregister: (() => void) | null = null;
 
@@ -44,7 +44,7 @@ beforeEach(() => {
 	vaultStore._reset();
 	vaultStore.open('/vault');
 	fsStore.setFileTree([
-		{ name: 'Work', path: WORK, isDirectory: true, children: [{ name: 'board.collection', path: BOARD, isDirectory: false }] },
+		{ name: 'Work', path: WORK, isDirectory: true, children: [{ name: 'board.view', path: BOARD, isDirectory: false }] },
 	]);
 	// The tree rescan after the move reads an empty vault.
 	vi.mocked(invoke).mockResolvedValue([]);
@@ -61,25 +61,25 @@ afterEach(() => {
 });
 
 describe('registerCollectionPathChangeConsumer', () => {
-	it('carries the remembered view index to a renamed collection file', async () => {
+	it('carries the remembered view index to a renamed view file', async () => {
 		collectionStore.setViewIndex(BOARD, 2);
 
-		await renameItem(BOARD, 'tasks.collection');
+		await renameItem(BOARD, 'tasks.view');
 
-		expect(collectionStore.getViewIndex(`${WORK}/tasks.collection`)).toBe(2);
+		expect(collectionStore.getViewIndex(`${WORK}/tasks.view`)).toBe(2);
 		expect(collectionStore.getViewIndex(BOARD)).toBeUndefined();
 	});
 
-	it('carries the index of a collection inside a renamed folder', async () => {
+	it('carries the index of a view inside a renamed folder', async () => {
 		collectionStore.setViewIndex(BOARD, 1);
 
 		await renameItem(WORK, 'Job');
 
-		expect(collectionStore.getViewIndex('/vault/Job/board.collection')).toBe(1);
-		expect(collectionStore.viewIndexPaths()).toEqual(['/vault/Job/board.collection']);
+		expect(collectionStore.getViewIndex('/vault/Job/board.view')).toBe(1);
+		expect(collectionStore.viewIndexPaths()).toEqual(['/vault/Job/board.view']);
 	});
 
-	it('drops the index of a deleted collection file', async () => {
+	it('drops the index of a deleted view file', async () => {
 		collectionStore.setViewIndex(BOARD, 2);
 
 		await deleteItem(BOARD, false);
@@ -89,19 +89,19 @@ describe('registerCollectionPathChangeConsumer', () => {
 
 	it('leaves other files alone, including a sibling sharing the name prefix', async () => {
 		collectionStore.setViewIndex(BOARD, 2);
-		collectionStore.setViewIndex('/vault/Workshop/x.collection', 1);
+		collectionStore.setViewIndex('/vault/Workshop/x.view', 1);
 
 		await renameItem('/vault/Personal', 'Home');
 		await renameItem(WORK, 'Job');
 
-		expect(collectionStore.getViewIndex('/vault/Workshop/x.collection')).toBe(1);
+		expect(collectionStore.getViewIndex('/vault/Workshop/x.view')).toBe(1);
 	});
 
 	it('leaves the index alone when the rename fails', async () => {
 		collectionStore.setViewIndex(BOARD, 2);
 		vi.mocked(rename).mockRejectedValue(new Error('Permission denied'));
 
-		await expect(renameItem(BOARD, 'tasks.collection')).rejects.toThrow('Permission denied');
+		await expect(renameItem(BOARD, 'tasks.view')).rejects.toThrow('Permission denied');
 
 		expect(collectionStore.getViewIndex(BOARD)).toBe(2);
 	});
@@ -111,7 +111,7 @@ describe('registerCollectionPathChangeConsumer', () => {
 		unregister?.();
 		unregister = null;
 
-		await renameItem(BOARD, 'tasks.collection');
+		await renameItem(BOARD, 'tasks.view');
 
 		expect(collectionStore.getViewIndex(BOARD)).toBe(2);
 	});

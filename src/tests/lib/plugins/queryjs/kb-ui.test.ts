@@ -21,6 +21,16 @@ vi.mock('chart.js/auto', () => ({
 import { KBUI } from '#lib/plugins/queryjs/kb-ui.js';
 import { destroyChartsIn } from '#lib/plugins/queryjs/queryjs-charts.js';
 import { DataArray } from '#lib/plugins/queryjs/data-array.js';
+import { APP_SANS_FONT_STACK } from '#lib/utils/font-stacks.js';
+
+import { BLOCK_TEXT_FLOOR, resolvedFontPx } from '../../../fixtures/font-size.fixture.js';
+
+/** `APP_SANS_FONT_STACK` as jsdom serializes it on an element's style. */
+function appSansAsStyle(): string {
+	const ref = document.createElement('div');
+	ref.style.fontFamily = APP_SANS_FONT_STACK;
+	return ref.style.fontFamily;
+}
 
 describe('KBUI', () => {
 	let container: HTMLElement;
@@ -997,6 +1007,14 @@ describe('KBUI', () => {
 			expect(graph.children.length).toBe(4);
 		});
 
+		it('renders in the app sans stack', () => {
+			ui.heatmapCalendar([]);
+
+			const graph = container.querySelector('.heatmap-calendar-graph') as HTMLElement;
+			expect(graph.style.fontFamily).not.toBe('');
+			expect(graph.style.fontFamily).toBe(appSansAsStyle());
+		});
+
 		it('displays the 2-digit year label', () => {
 			ui.heatmapCalendar([], { year: 2025 });
 
@@ -1192,6 +1210,14 @@ describe('KBUI', () => {
 			expect(outer.children.length).toBe(2); // year + boxes
 		});
 
+		it('renders in the app sans stack', () => {
+			ui.yearlyCalendar([]);
+
+			const outer = container.querySelector('.yearly-calendar') as HTMLElement;
+			expect(outer.style.fontFamily).not.toBe('');
+			expect(outer.style.fontFamily).toBe(appSansAsStyle());
+		});
+
 		it('displays the full year label', () => {
 			ui.yearlyCalendar([], { year: 2025 });
 
@@ -1359,5 +1385,74 @@ describe('KBUI', () => {
 			expect(result.style.justifyContent).toBe('center');
 			expect(result.querySelector('.yearly-calendar')).not.toBeNull();
 		});
+	});
+});
+
+describe('KBUI text scales with the editor font', () => {
+	let container: HTMLElement;
+	let ui: KBUI;
+
+	beforeEach(() => {
+		container = document.createElement('div');
+		ui = new KBUI(container);
+	});
+
+	/** Every element under the container with an inline `font-size`. */
+	function sizedElements(): HTMLElement[] {
+		return [...container.querySelectorAll<HTMLElement>('[style]')].filter((el) => el.style.fontSize);
+	}
+
+	/** The heatmap calendar text that carries the 11px floor. */
+	const FLOORED = '.heatmap-calendar-graph, .heatmap-calendar-graph li';
+
+	it('sizes every default text in em', async () => {
+		ui.cards([{ label: 'Notes', value: 3, icon: '*' }]);
+		ui.heatmap([1, 2], { value: (n) => n, label: (n) => String(n) });
+		ui.tagCloud({ a: 3, b: 1 });
+		ui.tags(['x']);
+		ui.statusCards([{ title: 'A', status: 'active', subtitle: 'sub' }]);
+		ui.timeline([{ date: '2026-02-13', title: 'Note', subtitle: 'journal' }]);
+		ui.heatmapCalendar([{ date: '2025-03-15', intensity: 3, content: 'x' }], { year: 2025 });
+		ui.yearlyCalendar([{ date: '2025-03-15', intensity: 3, content: 'x' }], { year: 2025 });
+		vi.spyOn(KBUI as unknown as { loadChartJS: () => Promise<unknown> }, 'loadChartJS').mockRejectedValueOnce(
+			new Error('offline'),
+		);
+		await ui.chart('bar', { labels: ['a'], datasets: [{ label: 'd', data: [1], color: 'red' }] });
+		expect(container.textContent).toContain('Chart error: offline');
+
+		const sized = sizedElements();
+		expect(sized.length).toBeGreaterThan(15);
+		expect(sized.filter((el) => el.matches(FLOORED)).length).toBeGreaterThan(1);
+		for (const el of sized) {
+			expect(el.style.fontSize).toMatch(el.matches(FLOORED) ? BLOCK_TEXT_FLOOR : /^[\d.]+em$/);
+		}
+	});
+
+	it('keeps an explicit px size from the script', () => {
+		ui.tags(['x'], { fontSize: 14 });
+		ui.tagCloud({ a: 1 }, { minFontSize: 12 });
+		const tag = container.children[0].firstElementChild as HTMLElement;
+		const cloudChip = container.children[1].firstElementChild as HTMLElement;
+		expect(tag.style.fontSize).toBe('14px');
+		expect(cloudChip.style.fontSize).toBe('26px');
+	});
+
+	/** `.cm-lp-qjs-block` is 0.85em of the editor font (pinned in styles.test.ts). */
+	const QJS_BLOCK_EM = 0.85;
+
+	it.each([
+		// 8px editor: 0.7em of the 6.8px block would be 4.8px
+		[8, 11, 11],
+		// 19px default editor: 0.7em of the 16.15px block, already above the floor
+		[19, 0.7 * 19 * QJS_BLOCK_EM, 0.7 * 19 * QJS_BLOCK_EM],
+	])('floors heatmap calendar text at 11px (editor font %spx)', (editorPx, graphPx, cellPx) => {
+		ui.heatmapCalendar([{ date: '2025-03-15', intensity: 3, content: 'x' }], { year: 2025 });
+		const graph = container.querySelector<HTMLElement>('.heatmap-calendar-graph')!;
+		const cell = container.querySelector<HTMLElement>('li[data-date="2025-03-15"]')!;
+		expect(graph.style.fontSize).toBe('max(11px, 0.7em)');
+		expect(cell.style.fontSize).toBe('max(11px, 1em)');
+		const blockPx = editorPx * QJS_BLOCK_EM;
+		expect(resolvedFontPx(graph, container, blockPx)).toBeCloseTo(graphPx);
+		expect(resolvedFontPx(cell, container, blockPx)).toBeCloseTo(cellPx);
 	});
 });

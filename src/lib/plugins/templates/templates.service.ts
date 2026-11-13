@@ -3,6 +3,7 @@ import { call } from '#lib/contracts/ipc.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addToTree } from '#lib/core/filesystem/fs.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { withUnorganizedFlag } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { templatesStore } from './templates.store.svelte';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import {
@@ -63,6 +64,7 @@ export async function createFileFromTemplate(templatePath: string, fileName: str
 		filePath,
 		templatePath,
 		title,
+		buildContent: settingsStore.explicitOrganization ? withUnorganizedFlag : undefined,
 	});
 }
 

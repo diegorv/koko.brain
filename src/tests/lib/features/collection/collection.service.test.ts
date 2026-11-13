@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { isDeepStrictEqual } from 'node:util';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(),
@@ -22,11 +22,13 @@ vi.mock('#lib/utils/debug.js', () => ({
 import { invoke } from '@tauri-apps/api/core';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import {
 	applyPropertyDelta,
 	buildPropertyIndex,
 	createCollectionFile,
 	propertyIndexNeedsWholeRead,
+	registerCollectionNoteChangeConsumer,
 	updateNoteInIndex,
 	removeNoteFromIndex,
 	resetCollection,
@@ -35,6 +37,9 @@ import { buildNoteRecord, executeQuery } from '#lib/features/collection/collecti
 import type { CollectionDefinition, CollectionViewDef } from '#lib/features/collection/collection.types.js';
 import { parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
 import type { NoteRecordV2 } from '#lib/types/vault-v2.types.js';
+import { applyNoteChange } from '#lib/core/filesystem/note-change.service.js';
+import { clearAllIndexed } from '#lib/utils/index-dedupe.js';
+import { KBAPI } from '#lib/plugins/queryjs/kb-api.js';
 
 function record(path: string, props: Record<string, unknown>, mtime = 0, ctime = 0): NoteRecordV2 {
 	const name = path.split('/').pop() ?? '';
@@ -279,7 +284,7 @@ describe('property index producer parity: type and relationships', () => {
 		const def = { filters: "_type == 'Person'" } as CollectionDefinition;
 		const view: CollectionViewDef = { type: 'table', name: 'People' };
 		const paths = () =>
-			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+			executeQuery(def, view, collectionStore.propertyIndex, null).records.map((r) => r.path);
 		expect(paths()).toEqual(['/vault/ada.md']);
 
 		updateNoteInIndex('/vault/ada.md', content);
@@ -298,7 +303,7 @@ describe('property index producer parity: type and relationships', () => {
 		const def = { filters: '_type == kind' } as CollectionDefinition;
 		const view: CollectionViewDef = { type: 'table', name: 'People' };
 		const paths = () =>
-			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+			executeQuery(def, view, collectionStore.propertyIndex, null).records.map((r) => r.path);
 		expect(paths()).toEqual(['/vault/ada.md']);
 
 		updateNoteInIndex('/vault/ada.md', '---\ntype: person\nkind: Person\n---\n');
@@ -312,7 +317,7 @@ describe('property index producer parity: type and relationships', () => {
 		const def = { filters: "_related_to.contains('Carol')" } as CollectionDefinition;
 		const view: CollectionViewDef = { type: 'table', name: 'Linked' };
 		const paths = () =>
-			executeQuery(def, view, collectionStore.propertyIndex).records.map((r) => r.path);
+			executeQuery(def, view, collectionStore.propertyIndex, null).records.map((r) => r.path);
 		expect(paths()).toEqual(['/vault/ada.md']);
 
 		updateNoteInIndex('/vault/ada.md', content);
@@ -394,6 +399,84 @@ describe('removeNoteFromIndex', () => {
 	it('is safe to call on non-existent path', () => {
 		removeNoteFromIndex('/vault/nonexistent.md');
 		expect(collectionStore.propertyIndex.size).toBe(0);
+	});
+});
+
+describe('registerCollectionNoteChangeConsumer', () => {
+	let unregister: (() => void) | null = null;
+
+	beforeEach(() => {
+		clearAllIndexed();
+		vi.mocked(invoke).mockResolvedValue(undefined as never);
+		unregister = registerCollectionNoteChangeConsumer();
+	});
+
+	afterEach(() => {
+		unregister?.();
+		unregister = null;
+	});
+
+	it('keeps the Rust-projected record of a .view on upsert', async () => {
+		// A `.view` body is bare YAML: `buildNoteRecord` would read no
+		// properties from it and empty the record.
+		collectionStore.updateRecord('/vault/Projects.view', {
+			...buildNoteRecord('/vault/Projects.view', '', 0, 0, 0),
+			properties: new Map<string, unknown>([['archived', true], ['tags', ['work']]]),
+		});
+
+		await applyNoteChange({ kind: 'upsert', source: 'save', path: '/vault/Projects.view', content: '_sidebar_label: Projects\n' });
+
+		const props = collectionStore.propertyIndex.get('/vault/Projects.view')?.properties;
+		expect(props?.get('archived')).toBe(true);
+		expect(props?.get('tags')).toEqual(['work']);
+	});
+
+	it('adds no record for a new .view', async () => {
+		await applyNoteChange({ kind: 'upsert', source: 'fs', path: '/vault/Untitled.view', content: '_sort: title\n' });
+
+		expect(collectionStore.propertyIndex.has('/vault/Untitled.view')).toBe(false);
+	});
+
+	it.each(['/vault/Board.kanban', '/vault/Map.canvas', '/vault/Untitled.collection'])('adds no record for %s, and kb.pages() does not list it', async (path) => {
+		await applyNoteChange({ kind: 'upsert', source: 'save', path, content: 'views: []\n' });
+		await applyNoteChange({ kind: 'upsert', source: 'save', path: '/vault/a.md', content: '# A\n' });
+
+		expect(collectionStore.propertyIndex.has(path)).toBe(false);
+		const api = new KBAPI({
+			container: {} as HTMLElement,
+			propertyIndex: collectionStore.propertyIndex,
+			entries: [],
+			currentFilePath: '/vault/a.md',
+			propertyIndexVersion: 0,
+			vaultPath: '/vault',
+			systemFolder: '_system',
+			loadScript: vi.fn(),
+		});
+		expect(api.pages().map((page) => page.file.path).array()).toEqual(['/vault/a.md']);
+	});
+
+	it.each(['/vault/new.md', '/vault/UPPER.MD', '/vault/long.markdown'])('adds a record for %s', async (path) => {
+		await applyNoteChange({ kind: 'upsert', source: 'save', path, content: '---\nstatus: new\n---\n' });
+
+		expect(collectionStore.propertyIndex.get(path)?.properties.get('status')).toBe('new');
+	});
+
+	it('replaces the record of a .md on upsert', async () => {
+		updateNoteInIndex('/vault/a.md', '---\nstatus: old\npriority: high\n---\n');
+
+		await applyNoteChange({ kind: 'upsert', source: 'save', path: '/vault/a.md', content: '---\nstatus: new\n---\n' });
+
+		const props = collectionStore.propertyIndex.get('/vault/a.md')?.properties;
+		expect(props?.get('status')).toBe('new');
+		expect(props?.has('priority')).toBe(false);
+	});
+
+	it('removes a .view record on delete', async () => {
+		collectionStore.updateRecord('/vault/Projects.view', buildNoteRecord('/vault/Projects.view', '', 0, 0, 0));
+
+		await applyNoteChange({ kind: 'delete', source: 'fs', path: '/vault/Projects.view' });
+
+		expect(collectionStore.propertyIndex.has('/vault/Projects.view')).toBe(false);
 	});
 });
 
@@ -487,12 +570,12 @@ describe('resetCollection', () => {
 		expect(collectionStore.isIndexReady).toBe(false);
 	});
 
-	it('forgets the view index remembered per collection file', () => {
-		collectionStore.setViewIndex('/vault/a.collection', 2);
+	it('forgets the view index remembered per view file', () => {
+		collectionStore.setViewIndex('/vault/a.view', 2);
 
 		resetCollection();
 
-		expect(collectionStore.getViewIndex('/vault/a.collection')).toBeUndefined();
+		expect(collectionStore.getViewIndex('/vault/a.view')).toBeUndefined();
 	});
 });
 
@@ -501,8 +584,13 @@ describe('createCollectionFile', () => {
 		vi.clearAllMocks();
 	});
 
-	it('creates the file with the minimal valid template as initial content', async () => {
-		vi.mocked(createFile).mockResolvedValue('/vault/Untitled.collection');
+	it('creates Untitled.view, hidden from Views and opening in the editor, with one empty table view', async () => {
+		vaultStore.takePromptIndexRefresh();
+		let refreshAskedBeforeWrite = false;
+		vi.mocked(createFile).mockImplementation(async () => {
+			refreshAskedBeforeWrite = vaultStore.takePromptIndexRefresh();
+			return '/vault/Untitled.view';
+		});
 
 		const result = await createCollectionFile('/vault');
 
@@ -510,13 +598,12 @@ describe('createCollectionFile', () => {
 		// indexes the real template body, not an empty file.
 		expect(createFile).toHaveBeenCalledWith(
 			'/vault',
-			'Untitled.collection',
-			expect.stringContaining('views:'),
+			'Untitled.view',
+			'_visible: false\n_open_in_editor: true\nviews:\n  - type: table\n    name: All\n',
 		);
-		const written = vi.mocked(createFile).mock.calls[0][2] as string;
-		expect(written).toContain('  - type: table');
-		expect(written).toContain('    name: All');
-		expect(result).toBe('/vault/Untitled.collection');
+		// Asked before the write: without an entry the table would count as visible.
+		expect(refreshAskedBeforeWrite).toBe(true);
+		expect(result).toBe('/vault/Untitled.view');
 	});
 
 	it('propagates a createFile failure to the caller', async () => {

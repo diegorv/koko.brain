@@ -3,7 +3,7 @@ import { ask } from '@tauri-apps/plugin-dialog';
 import { toast } from 'svelte-sonner';
 import { editorStore } from './editor.store.svelte';
 import { findTabIndex, getFileName, isTabDirty, isTabPinned, isVirtualTab } from './editor.logic';
-import { isCollectionFile, isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
+import { isViewFile, isCanvasFile, isKanbanFile, isBinaryFile } from '#lib/core/filesystem/fs.logic.js';
 import { notifyAfterSave } from './editor.hooks';
 import { writeNote } from './note-write.port';
 import type { EditorTab } from './editor.types';
@@ -47,9 +47,6 @@ export function registerTabCloseListener(name: string, closed: (path: string) =>
  */
 const conflictedPaths = new Map<string, string>();
 
-/** The save in flight per path; a later save of the same path waits for it. */
-const savesInFlight = new Map<string, Promise<boolean>>();
-
 /** Runs every tab-close listener for `path`, isolating and logging failures. */
 function notifyTabClosed(path: string): void {
 	conflictedPaths.delete(path);
@@ -60,6 +57,55 @@ function notifyTabClosed(path: string): void {
 			error('EDITOR', `${listener.name} tab-close listener failed:`, err);
 		}
 	}
+}
+
+/**
+ * Per-path functions that write a view's not-yet-persisted edit into the tab
+ * of that path. A Set per path, so unregistering one instance never drops
+ * another's registration for the same path (a re-key destroys the old instance
+ * and mounts the new one back to back, in either order).
+ */
+const pendingEditFlushers = new Map<string, Set<() => void>>();
+
+/**
+ * Registers `flush` to run when `closeTab` closes the tab of `path`, before it
+ * saves, so an edit a view still holds in a debounce reaches the file. Lives in
+ * core so a feature view registers into it without core importing the feature
+ * (ADR-0003). Returns the unregister function, which removes only `flush`.
+ */
+export function registerPendingEditFlusher(path: string, flush: () => void): () => void {
+	let flushers = pendingEditFlushers.get(path);
+	if (!flushers) {
+		flushers = new Set();
+		pendingEditFlushers.set(path, flushers);
+	}
+	flushers.add(flush);
+	return () => {
+		const current = pendingEditFlushers.get(path);
+		if (!current) return;
+		current.delete(flush);
+		if (current.size === 0) pendingEditFlushers.delete(path);
+	};
+}
+
+/**
+ * Runs every flusher registered for `path`, logging any that throws. Returns
+ * false only when a flusher threw, true otherwise, including when none is
+ * registered.
+ */
+export function flushPendingEdits(path: string): boolean {
+	const flushers = pendingEditFlushers.get(path);
+	if (!flushers) return true;
+	let ok = true;
+	for (const flush of [...flushers]) {
+		try {
+			flush();
+		} catch (err) {
+			error('EDITOR', `pending-edit flush failed for ${path}:`, err);
+			ok = false;
+		}
+	}
+	return ok;
 }
 
 /**
@@ -152,7 +198,7 @@ export async function openFileInEditor(filePath: string) {
 		}
 
 		const name = getFileName(filePath);
-		const fileType = (isCollectionFile(name) || isViewFile(name)) ? 'collection' as const
+		const fileType = isViewFile(name) ? 'collection' as const
 			: isCanvasFile(name) ? 'canvas' as const
 			: isKanbanFile(name) ? 'kanban' as const
 			: undefined;
@@ -174,26 +220,38 @@ export async function saveCurrentFile() {
 }
 
 /**
+ * The last save started for each path, until it settles. A save queues behind
+ * the previous one of its path, so two writes of one file never race and a
+ * `.view` writer can wait for the tab's save (`waitForTabSave`).
+ */
+const saveTails = new Map<string, Promise<boolean>>();
+
+/**
  * Writes a specific tab's content to disk if it has unsaved changes.
  * Returns true if the save succeeded (or was a no-op), false if the write failed.
- * One save per path at a time: a save started while another is in flight
- * waits for it, so it is based on the content that landed, not the one
- * before (a checked writer would refuse that as a conflict).
+ * A save of a path waits for the one already pending on it, then writes the
+ * tab's content as it is at that point, based on the content that landed (a
+ * checked writer would refuse a write based on the one before as a conflict).
  */
 export function saveFileByPath(path: string): Promise<boolean> {
-	const previous = savesInFlight.get(path);
-	const run = previous ? previous.then(() => writeTab(path)) : writeTab(path);
-	savesInFlight.set(path, run);
-	void run.finally(() => {
-		if (savesInFlight.get(path) === run) savesInFlight.delete(path);
+	const prev = saveTails.get(path);
+	const run = prev ? prev.then(() => writeTab(path)) : writeTab(path);
+	saveTails.set(path, run);
+	void run.then(() => {
+		if (saveTails.get(path) === run) saveTails.delete(path);
 	});
 	return run;
 }
 
+/** Resolves once the save pending on `path`, if any, has settled; it never rejects. */
+export async function waitForTabSave(path: string): Promise<void> {
+	await saveTails.get(path);
+}
+
 /**
- * Writes the tab's content through the note writer, based on the content the
- * tab was loaded or last saved with. A conflict keeps the tab dirty and marks
- * the path in `conflictedPaths`.
+ * One save of `saveFileByPath`; never rejects. Writes the tab's content through
+ * the note writer, based on the content the tab was loaded or last saved with.
+ * A conflict keeps the tab dirty and marks the path in `conflictedPaths`.
  */
 async function writeTab(path: string): Promise<boolean> {
 	const tab = editorStore.tabs.find((t) => t.path === path);
@@ -282,6 +340,17 @@ export function onContentChange(content: string, frontmatterChanged = false) {
 }
 
 /**
+ * Writes `content` into the tab at `path` and schedules a body auto-save.
+ * For views that persist after a debounce or on destroy, when the active tab
+ * may no longer be theirs: unlike `onContentChange`, the target never follows
+ * `activeIndex`. A `path` with no open tab is a no-op apart from the auto-save.
+ */
+export function onContentChangeForPath(path: string, content: string) {
+	editorStore.updateTabContentOnly(path, content);
+	scheduleAutoSave('body');
+}
+
+/**
  * Saves all dirty tabs immediately, awaiting completion.
  * Used before app close or vault switch.
  * Returns an array of file paths that failed to save (empty = all succeeded).
@@ -309,10 +378,20 @@ export function switchTab(index: number) {
 	perfBaseline('switchTab:sync', t0);
 }
 
+/** True when the tab at `path` is still open and differs from its last save. */
+function isPathDirty(path: string): boolean {
+	const tab = editorStore.tabs.find((t) => t.path === path);
+	return !!tab && isTabDirty(tab);
+}
+
 /**
  * Closes a tab by index.
  * Pinned tabs are silently skipped — they cannot be closed this way.
- * If the tab has unsaved changes, prompts the user for confirmation before discarding.
+ * A file tab's pending-edit flushers run first, so an edit a view still holds
+ * in a debounce lands in the tab. A dirty file tab is then saved and closed.
+ * Text typed during that save gets one more save; if a flusher threw, a save
+ * fails, or the tab is still dirty after the second one, the user is asked
+ * whether to close anyway and lose the changes.
  */
 export async function closeTab(index: number) {
 	const tab = editorStore.tabs[index];
@@ -323,17 +402,22 @@ export async function closeTab(index: number) {
 	const baseStart = perfStart();
 
 	if (!isVirtualTab(tab)) {
-		if (isTabDirty(tab)) {
-			const discard = await ask('This file has unsaved changes. Discard changes?', {
-				title: 'Unsaved Changes',
-				kind: 'warning',
-			});
-			if (!discard) return;
+		const flushed = flushPendingEdits(tabPath);
+		if (!flushed || isPathDirty(tabPath)) {
+			let saved = await saveFileByPath(tabPath);
+			if (saved && isPathDirty(tabPath)) saved = await saveFileByPath(tabPath);
+			if (!flushed || !saved || isPathDirty(tabPath)) {
+				const closeAnyway = await ask(
+					`Failed to save ${getFileName(tabPath)}. Close anyway and lose unsaved changes?`,
+					{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Close Anyway', cancelLabel: 'Cancel' },
+				);
+				if (!closeAnyway) return;
+			}
 		}
 	}
 
-	// Re-find the tab by path after the async dialog — the original index
-	// may be stale if tabs were opened/closed/reordered while the dialog was shown
+	// Re-find the tab by path after the awaits: the original index may be
+	// stale if tabs were opened/closed/reordered during the save or the dialog
 	const currentIndex = findTabIndex(editorStore.tabs, tabPath);
 	if (currentIndex < 0) return;
 

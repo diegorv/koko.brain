@@ -5,22 +5,25 @@ import type { MetaBindOption } from './parsers/meta-bind-input';
 import { findMetaBindInputRanges } from './parsers/meta-bind-input';
 import { renderInlineMarkdown } from './parsers/inline-markdown';
 import type { MediaTag } from './parsers/media';
-import { WIKILINK_DECORATION_RE } from '../wikilink/decoration.logic';
+import { WIKILINK_DECORATION_RE, findWikilinkInfoAtPosition } from '../wikilink/decoration.logic';
 import type { Property } from '#lib/core/frontmatter/properties.types.js';
 import {
 	parseFrontmatterProperties,
 	setPropertyByBindTarget,
+	typedOptionValue,
 	extractBody,
 	rebuildContent,
 	detectLossyFrontmatter,
 	LOSSY_FRONTMATTER_MESSAGES,
 } from '#lib/core/frontmatter/properties.logic.js';
 import { isSafeUrl } from '#lib/utils/sanitize-url.js';
-import { IS_MAC, isMacContextClick } from '#lib/utils/platform.js';
+import { canonicalizeKey } from '#lib/utils/frontmatter-aliases.js';
+import { IS_MAC, isMacContextClick, isOpenLinkModifier } from '#lib/utils/platform.js';
 import { editorHost, type EditorHost } from '../../editor-host';
-import { editorLog } from './core/profiling';
+import { editorLog, reportError } from './core/profiling';
 import { isFormControlInputEvent } from './core/form-control-events';
-import { followWikilink } from './wikilink-navigation';
+import { followWikilinkInfo } from './wikilink-navigation';
+import { TABLE_WIDGET_CLASS } from '../../wikilink-click-target';
 
 export class TaskCheckboxWidget extends WidgetType {
 	constructor(
@@ -70,8 +73,9 @@ export class OrderedListMarkerWidget extends WidgetType {
 		return this.number === other.number;
 	}
 
+	/** CodeMirror handles a click on the number, so the cursor moves to the item and reveals `1. ` as a bullet click does. Returning `true` hands the mousedown to the browser, which places no caret here, so the cursor would not move. */
 	ignoreEvent() {
-		return true;
+		return false;
 	}
 }
 
@@ -216,7 +220,10 @@ export class MediaWidget extends WidgetType {
 
 
 /**
- * Renders inline non-wikilink markdown segments (bold, italic, strikethrough, code) as DOM nodes.
+ * Renders inline non-wikilink markdown segments (bold, italic, strikethrough, code,
+ * markdown links, `<br>` line breaks, backslash escapes) as DOM nodes, never as HTML.
+ * A markdown link is a `span.cm-lp-link` that opens its url through the editor host
+ * on a primary press with the platform open modifier, when `view` is provided.
  * Handles meta-bind INPUT fields when view and properties are provided.
  */
 function renderInlineSegments(
@@ -253,11 +260,12 @@ function renderInlineSegments(
 					const ranges = findMetaBindInputRanges(wrapped, 0);
 					if (ranges.length > 0) {
 						const range = ranges[0];
-						const prop = properties.find((p) => p.key === range.bindTarget);
-						const currentValue = prop ? String(prop.value) : null;
-						const select = createMetaBindSelect(range.options, range.bindTarget, currentValue, view);
-						parent.appendChild(select);
-						break;
+						const currentValue = boundValue(properties, range.bindTarget);
+						const widget = pickWidget(range.inputType, range.options, range.bindTarget, currentValue);
+						if (widget) {
+							parent.appendChild(widget.toDOM(view));
+							break;
+						}
 					}
 				}
 				const el = document.createElement('code');
@@ -266,6 +274,33 @@ function renderInlineSegments(
 				parent.appendChild(el);
 				break;
 			}
+			case 'link': {
+				// A span, never `<a href>`: the url opens only through the editor host.
+				const el = document.createElement('span');
+				el.textContent = seg.content;
+				el.className = 'cm-lp-link';
+				const url = seg.href ?? '';
+				if (view) {
+					el.addEventListener('mousedown', (e) => {
+						if (e.button !== 0 || !isOpenLinkModifier(e, IS_MAC)) return;
+						// Stopped even for an unsafe url: the editor-level link handler would
+						// otherwise fall back to the link text, which isSafeUrl accepts.
+						e.preventDefault();
+						e.stopPropagation();
+						// isSafeUrl accepts '' (no scheme), which `[x](<>)` yields.
+						if (!url || !isSafeUrl(url)) return;
+						view.state
+							.facet(editorHost)
+							.openExternal(url)
+							.catch((err) => reportError('LIVE-PREVIEW', 'Failed to open URL:', err));
+					});
+				}
+				parent.appendChild(el);
+				break;
+			}
+			case 'break':
+				parent.appendChild(document.createElement('br'));
+				break;
 			default:
 				parent.appendChild(document.createTextNode(seg.content));
 		}
@@ -274,8 +309,10 @@ function renderInlineSegments(
 
 /**
  * Renders inline markdown segments as DOM nodes inside a parent element.
- * Supports bold, italic, strikethrough, inline code, meta-bind INPUT fields, and wikilinks.
- * Wikilinks are rendered as clickable `<a>` elements that open the target file.
+ * Supports bold, italic, strikethrough, inline code, markdown links, `<br>` line breaks,
+ * backslash escapes, meta-bind INPUT fields, and wikilinks. Escapes apply only to the
+ * text between wikilinks. Wikilinks are rendered as clickable `<a>` elements that follow the link the
+ * same way as one outside a table (anchor, same-note jump, create-on-click).
  */
 function renderCellContent(
 	parent: HTMLElement,
@@ -293,8 +330,8 @@ function renderCellContent(
 			renderInlineSegments(parent, text.slice(lastIndex, match.index), view, properties);
 		}
 
-		const target = match[1];
-		const displayText = match[3] ?? target;
+		const source = match[0];
+		const displayText = match[3] ?? match[1];
 
 		const a = document.createElement('a');
 		a.textContent = displayText;
@@ -305,7 +342,10 @@ function renderCellContent(
 			if (e.button !== 0 || isMacContextClick(e, IS_MAC)) return;
 			e.preventDefault();
 			e.stopPropagation();
-			void followWikilink(view.state.facet(editorHost), target);
+			// Parsed on click, not while rendering: the parser runs the shared
+			// global WIKILINK_DECORATION_RE, which this loop is iterating.
+			const info = findWikilinkInfoAtPosition(source, 0, 0);
+			if (info) void followWikilinkInfo(view, info);
 		});
 		parent.appendChild(a);
 
@@ -342,7 +382,7 @@ export class TableWidget extends WidgetType {
 
 	toDOM(view: EditorView) {
 		const wrapper = document.createElement('div');
-		wrapper.className = 'cm-lp-table-wrapper';
+		wrapper.className = TABLE_WIDGET_CLASS;
 
 		const table = document.createElement('table');
 		table.className = 'cm-lp-table';
@@ -401,7 +441,7 @@ export class TableWidget extends WidgetType {
 		);
 	}
 
-	/** Cells can hold a meta-bind select (`createMetaBindSelect`): its keys stay in the control. */
+	/** Cells can hold meta-bind controls (`pickWidget`): their keys stay in the control. */
 	ignoreEvent(event: Event) {
 		return isFormControlInputEvent(event);
 	}
@@ -628,6 +668,17 @@ export class WikilinkNoteEmbedWidget extends WidgetType {
 		// Header row with icon + label
 		const header = document.createElement('div');
 		header.className = 'cm-lp-embed-header';
+		// The header opens the embedded note like a wikilink click. `ignoreEvent()`
+		// already keeps CodeMirror from moving the cursor onto the embed line; the
+		// press is also stopped (CLAUDE.md live-preview rule 11) so nothing else
+		// reveals the raw `![[...]]` and destroys this widget.
+		header.addEventListener('mousedown', (e) => {
+			// Right click and macOS Ctrl+click mean the context menu: keep the default.
+			if (e.button !== 0 || isMacContextClick(e, IS_MAC)) return;
+			e.preventDefault();
+			e.stopPropagation();
+			void followWikilinkInfo(view, { target: this.target, heading: this.heading, blockId: this.blockId });
+		});
 
 		const icon = document.createElement('span');
 		icon.className = 'cm-lp-embed-icon';
@@ -688,10 +739,27 @@ export class WikilinkNoteEmbedWidget extends WidgetType {
 	}
 }
 
-/** Widget that renders a meta-bind inline select dropdown for `INPUT[inlineSelect(...):prop]` */
 /**
- * Creates a `<select>` element for a meta-bind inline select input.
- * Shared between MetaBindSelectWidget (inline) and TableWidget (table cells).
+ * The stored value a meta-bind control bound to `bindTarget` shows, as text,
+ * or null when the note does not hold it. Parsed properties carry canonical
+ * keys, so an alias target (`archived`) reads its canonical key (`_archived`).
+ */
+export function boundValue(properties: Property[], bindTarget: string): string | null {
+	const key = canonicalizeKey(bindTarget);
+	const prop = properties.find((p) => p.key === key);
+	return prop ? String(prop.value) : null;
+}
+
+/** Names a meta-bind control after the property it writes, for screen readers and as its tooltip. */
+function labelControl(control: HTMLElement, bindTarget: string): void {
+	const key = canonicalizeKey(bindTarget);
+	control.setAttribute('aria-label', key);
+	control.title = key;
+}
+
+/**
+ * Creates a `<select>` element for a meta-bind inline select input, for
+ * MetaBindSelectWidget (inline and in table cells).
  */
 function createMetaBindSelect(
 	options: MetaBindOption[],
@@ -701,6 +769,7 @@ function createMetaBindSelect(
 ): HTMLSelectElement {
 	const select = document.createElement('select');
 	select.className = 'cm-lp-meta-bind-select';
+	labelControl(select, bindTarget);
 
 	// Placeholder when no value is set
 	if (currentValue === null || currentValue === '') {
@@ -710,6 +779,14 @@ function createMetaBindSelect(
 		placeholder.disabled = true;
 		placeholder.selected = true;
 		select.appendChild(placeholder);
+	} else if (!options.some((opt) => opt.value === currentValue)) {
+		// Show what the note holds rather than claim the first option's value.
+		const stored = document.createElement('option');
+		stored.value = currentValue;
+		stored.textContent = currentValue;
+		stored.disabled = true;
+		stored.selected = true;
+		select.appendChild(stored);
 	}
 
 	for (const opt of options) {
@@ -728,14 +805,14 @@ function createMetaBindSelect(
 		e.stopPropagation();
 	});
 
-	// The index, not `currentValue`: a note value that is not an option first
-	// renders as the first option, while `select.value = 'x'` would show a blank select.
+	// What the first render selected (an option, the placeholder or the stored
+	// value), which a refused write restores.
 	const initialIndex = select.selectedIndex;
 
 	select.addEventListener('change', (e) => {
 		const selectedValue = (e.target as HTMLSelectElement).value;
 		// A refused write rebuilds nothing, so put the control back to what it first showed.
-		if (!dispatchMetaBindUpdate(view, bindTarget, selectedValue)) {
+		if (!dispatchMetaBindUpdate(view, bindTarget, typedOptionValue(selectedValue))) {
 			select.selectedIndex = initialIndex;
 		}
 	});
@@ -772,6 +849,38 @@ export class MetaBindSelectWidget extends WidgetType {
 }
 
 /**
+ * Dispatches a meta-bind INPUT type to its widget class, for the inline
+ * plugin and for table cells. Returns null for unsupported types so the
+ * caller falls through (the legacy behaviour was to treat every type as
+ * inlineSelect; now unrecognised types just skip decoration and the user
+ * sees the raw `INPUT[...]` source).
+ */
+export function pickWidget(
+	inputType: string,
+	options: MetaBindOption[],
+	bindTarget: string,
+	currentValue: string | null,
+): WidgetType | null {
+	switch (inputType) {
+		case 'number':
+		case 'date':
+			return new MetaBindTextInputWidget(inputType, bindTarget, currentValue);
+		case 'toggle':
+		case 'boolean':
+			return new MetaBindToggleWidget(bindTarget, currentValue);
+		case 'inlineSelect':
+		default:
+			// Default keeps backward compatibility: any input with options renders
+			// as an inline select. Inputs without options + unknown type fall
+			// through to null below.
+			if (options.length > 0) {
+				return new MetaBindSelectWidget(options, bindTarget, currentValue);
+			}
+			return null;
+	}
+}
+
+/**
  * Dispatches a frontmatter-property update for a meta-bind writer: the inline
  * select, the number / date / toggle inputs and the button's `updateMetadata`
  * action. Refuses with an error toast when rebuilding the block from the
@@ -780,11 +889,18 @@ export class MetaBindSelectWidget extends WidgetType {
  * comments, nested values, duplicate keys, anchors and integers beyond 2^53
  * do not survive the round trip.
  *
+ * A number or boolean `newValue` is written as a YAML number or boolean, a
+ * string as a string (see `setPropertyByBindTarget`).
+ *
  * Returns `false` when the write was refused. Nothing is dispatched then, so
  * the widget is not rebuilt: the caller resets its control to what it showed
  * before the edit.
  */
-export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, newValue: string): boolean {
+export function dispatchMetaBindUpdate(
+	view: EditorView,
+	bindTarget: string,
+	newValue: string | number | boolean,
+): boolean {
 	const doc = view.state.doc.toString();
 	const lossy = detectLossyFrontmatter(doc);
 	if (lossy !== null) {
@@ -799,7 +915,13 @@ export function dispatchMetaBindUpdate(view: EditorView, bindTarget: string, new
 	const newContent = rebuildContent(updated, body, doc);
 	const frontmatterEnd = doc.length - body.length;
 	const newFrontmatter = newContent.slice(0, newContent.length - body.length);
-	view.dispatch({ changes: { from: 0, to: frontmatterEnd, insert: newFrontmatter } });
+	const changes = view.state.changes({ from: 0, to: frontmatterEnd, insert: newFrontmatter });
+	// The replaced lines are hidden (0 px) and usually off screen, so CodeMirror
+	// re-estimates them at the default line height. Its own scroll anchor is lost
+	// when a focus update from the control lands before the next measure, and
+	// the text on screen slides down; the snapshot pins it
+	// (e2e/specs/live-preview/frontmatter-write-keeps-scroll.spec.ts).
+	view.dispatch({ changes, effects: view.scrollSnapshot().map(changes) });
 	return true;
 }
 
@@ -875,7 +997,7 @@ export class MetaBindTextInputWidget extends WidgetType {
  * Widget for `INPUT[toggle():prop]` / `INPUT[boolean():prop]` — native
  * checkbox styled inline. Truthy frontmatter values (`true`/`yes`/`1`) start
  * checked; everything else starts unchecked. Toggling immediately commits
- * `'true'` or `'false'` to frontmatter.
+ * the YAML boolean `true` or `false` to frontmatter.
  */
 export class MetaBindToggleWidget extends WidgetType {
 	constructor(
@@ -891,11 +1013,12 @@ export class MetaBindToggleWidget extends WidgetType {
 		const cb = document.createElement('input');
 		cb.type = 'checkbox';
 		cb.className = 'cm-lp-meta-bind-toggle-input';
+		labelControl(cb, this.bindTarget);
 		const truthy = ['true', 'yes', '1', 'on'];
 		cb.checked = this.currentValue !== null && truthy.includes(this.currentValue.toLowerCase());
 		cb.addEventListener('mousedown', (e) => e.stopPropagation());
 		cb.addEventListener('change', () => {
-			if (!dispatchMetaBindUpdate(view, this.bindTarget, cb.checked ? 'true' : 'false')) {
+			if (!dispatchMetaBindUpdate(view, this.bindTarget, cb.checked)) {
 				cb.checked = !cb.checked;
 			}
 		});
@@ -926,6 +1049,7 @@ function buildMetaBindTextInput(
 	const input = document.createElement('input');
 	input.type = inputType;
 	input.className = 'cm-lp-meta-bind-input';
+	labelControl(input, bindTarget);
 	const initial = currentValue ?? '';
 	input.value = initial;
 	// Number and date inputs sanitize a value they cannot hold (`1,000`,
@@ -966,10 +1090,19 @@ function buildMetaBindTextInput(
 	const commit = () => {
 		if (input.value === shown) return;
 		if (!validateNow()) return;
-		if (!dispatchMetaBindUpdate(view, bindTarget, input.value)) {
+		// A number input writes a YAML number; emptied, it writes "" (clearing), never 0.
+		// An integer beyond 2^53 is written as typed: Number() would round it, and
+		// the rounded value makes the frontmatter lossy (ADR 0029).
+		const n = inputType === 'number' && input.value.trim() !== '' ? Number(input.value) : null;
+		const value = n !== null && (Number.isSafeInteger(n) || !Number.isInteger(n)) ? n : input.value;
+		if (!dispatchMetaBindUpdate(view, bindTarget, value)) {
 			input.value = shown;
 			validateNow();
+			return;
 		}
+		// `5.0` over `5` leaves `count: 5` on disk: the rebuilt widget is eq() to
+		// this one, so CodeMirror keeps this input. Show what was written.
+		if (typeof value === 'number') input.value = String(value);
 	};
 
 	input.addEventListener('mousedown', (e) => e.stopPropagation());

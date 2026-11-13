@@ -5,6 +5,7 @@
 //! Tests are slow-ish (each waits 500-800ms for the debounce) but
 //! catch every wiring issue between `notify` and the bridge thread.
 
+use kokobrain_lib::commands::vault::write_mod_data;
 use kokobrain_lib::utils::fs::write_atomic;
 use kokobrain_lib::vault::watcher::{
 	replace_watcher, start_watcher_inner, stop_watcher, VaultWatcherState,
@@ -427,4 +428,34 @@ fn watcher_drops_write_atomic_temp_path() {
 		"write_atomic temp path leaked into emit: {:?}",
 		emitted
 	);
+}
+
+/// A mod's data files reach no frontend listener: not the first write, which
+/// creates the folders, not a rewrite, not the rename that keeps a corrupt
+/// file. The canary proves the watcher was live for the whole window.
+#[test]
+fn watcher_ignores_mod_data_under_kokobrain() {
+	let tmp = tempdir().expect("tmpdir");
+	let vault = vault_path(&tmp);
+	fs::create_dir(tmp.path().join(".kokobrain")).expect("create .kokobrain");
+
+	let (emit_tx, emit_rx) = mpsc::channel::<Vec<String>>();
+	let _watcher = start_watcher_inner(&vault, move |paths| {
+		let _ = emit_tx.send(paths);
+	})
+	.expect("start watcher");
+	std::thread::sleep(Duration::from_millis(150));
+
+	let write = |content: &str| write_mod_data(vault.clone(), "habits".to_string(), content.to_string());
+	write("{}").expect("first write");
+	write("{\"a\":1}").expect("rewrite");
+	let dir = tmp.path().join(".kokobrain/mods/habits");
+	fs::rename(dir.join("data.json"), dir.join("data.corrupt-1.json")).expect("rename");
+
+	let silent = collect_emits(&emit_rx, Duration::from_secs(2));
+	assert_eq!(silent, Vec::<String>::new(), "mod data leaked into emit");
+
+	fs::write(tmp.path().join("canary.md"), "live").expect("canary");
+	let emitted = collect_emits(&emit_rx, Duration::from_secs(2));
+	assert_eq!(emitted, vec![child_path(&tmp, "canary.md")]);
 }

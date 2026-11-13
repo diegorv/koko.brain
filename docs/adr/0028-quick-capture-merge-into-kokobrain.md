@@ -6,6 +6,10 @@ status: active
 date: 2026-05-28
 ---
 
+## Amendment (2026-11-05): the composer waits for the written note
+
+`submit_composer_capture` only emits `qc:capture-detected`; its `Ok` does not mean the note exists. The composer now passes a `requestId`, which Rust puts on the payload as `composerRequestId`. `handleDetectedCapture` answers every payload that carries one with `report_composer_capture_result(requestId, ok)`, and Rust relays it to the composer as `qc:composer-capture-result` (`ComposerCaptureResult`). The composer flashes saved and hides only on `ok: true`; on `ok: false` it shows an error, and after about 3 s with no answer it says the save is not confirmed, keeping the text in both cases. Unsent text is kept in localStorage (`kokobrain:composer-draft`) and restored on the next summon until a save is reported written; text typed while a save waits is kept, and a save reported after the composer was dismissed and summoned again only drops the written text from the new show, while the new show has not started a save of its own (the composer waits on one save at a time, so a later result for the earlier save is then ignored and that save ends unconfirmed). Only a leading copy of the written text is dropped: text edited inside it or typed before it is kept whole. A second Cmd+Enter during the saved flash is ignored. Clipboard-shortcut payloads carry no id and get no answer. Known trade-offs: resubmitting after an unconfirmed save whose write did succeed creates a second capture, and so does a retry after `ok: false` from a throw in the steps after the write (`notifyAfterSave`, `addToTree`), which report the capture as failed although the note exists. Audit 2026-11-04, Issue 12.
+
 ## Context
 
 A sibling Tauri+Svelte app called **quick-capture** (`/Users/diegorv/Dev/pet-projects/koko/quick-capture`) shipped as a macOS menubar tool for fast capture. It saved into its own SQLite store, presented an Inbox + Archive split-pane UI, and ferried completed captures to kokobrain through the `kokobrain://capture?v=2&...` deep-link URI.

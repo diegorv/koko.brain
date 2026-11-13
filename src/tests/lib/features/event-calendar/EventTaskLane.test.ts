@@ -91,17 +91,23 @@ describe('EventTaskLane', () => {
 		expect(chip.querySelector('.line-through')?.textContent).toBe('Book trip');
 	});
 
-	it('keeps an in-progress or important task open', () => {
+	it('keeps a todo, in-progress, question, important or forwarded task open', () => {
 		mountLane([
+			datedTask('Bills', '2026-11-10', 1, { description: 'Pay bills', status: 'todo' }),
 			datedTask('Draft', '2026-11-10', 2, { description: 'Write draft', status: 'in-progress' }),
+			datedTask('Ask', '2026-11-10', 3, { description: 'Ask Ana', status: 'question' }),
 			datedTask('Taxes', '2026-11-10', 5, { description: 'Pay taxes', status: 'important' }),
+			datedTask('Report', '2026-11-10', 6, { description: 'Hand off report', status: 'forwarded' }),
 		]);
 
 		const chips = qa('[data-calendar-task]');
-		expect(chips.map((c) => c.dataset.taskStatus)).toEqual(['in-progress', 'important']);
+		expect(chips.map((c) => c.dataset.taskStatus)).toEqual(['todo', 'in-progress', 'question', 'important', 'forwarded']);
 		expect(chips.map((c) => c.getAttribute('aria-label'))).toEqual([
+			'Task: Pay bills, open Bills at the task',
 			'Task: Write draft, open Draft at the task',
+			'Task: Ask Ana, open Ask at the task',
 			'Task: Pay taxes, open Taxes at the task',
+			'Task: Hand off report, open Report at the task',
 		]);
 		expect(q('[data-task-lane] .line-through')).toBeNull();
 	});

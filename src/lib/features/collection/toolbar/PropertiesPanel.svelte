@@ -73,14 +73,14 @@
 
 <div bind:this={scrollContainer} class="flex max-h-[300px] flex-col gap-1 overflow-y-auto">
 	{#if columnGroups.file.length > 0}
-		<p class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">File</p>
+		<p class="section-label">File</p>
 		{#each columnGroups.file as col}
-			<label class="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-accent">
+			<label class="flex cursor-pointer items-center gap-2 rounded-xs px-1 py-0.5 text-xs hover:bg-accent">
 				<input
 					type="checkbox"
 					checked={visibleColumns.includes(col)}
 					onchange={(e) => handleToggle(col, e.currentTarget.checked)}
-					class="size-3.5 rounded border-input accent-primary"
+					class="size-3.5 rounded-xs border-input accent-primary"
 				/>
 				{getDisplayName(col)}
 			</label>
@@ -91,14 +91,14 @@
 		{#if columnGroups.file.length > 0}
 			<div class="my-1 h-px bg-border"></div>
 		{/if}
-		<p class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">Note</p>
+		<p class="section-label">Note</p>
 		{#each columnGroups.note as col}
-			<label class="flex cursor-pointer items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-accent">
+			<label class="flex cursor-pointer items-center gap-2 rounded-xs px-1 py-0.5 text-xs hover:bg-accent">
 				<input
 					type="checkbox"
 					checked={visibleColumns.includes(col)}
 					onchange={(e) => handleToggle(col, e.currentTarget.checked)}
-					class="size-3.5 rounded border-input accent-primary"
+					class="size-3.5 rounded-xs border-input accent-primary"
 				/>
 				{getDisplayName(col)}
 			</label>
@@ -109,7 +109,7 @@
 		{#if columnGroups.file.length > 0 || columnGroups.note.length > 0}
 			<div class="my-1 h-px bg-border"></div>
 		{/if}
-		<p class="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60">
+		<p class="section-label">
 			Formula
 		</p>
 		{#each formulaEntries as entry (entry.id)}
@@ -122,12 +122,12 @@
 					onRemove={() => onFormulasChange(removeFormulaEntry(formulaEntries, entry.id))}
 				/>
 			{:else}
-				<div class="flex items-center gap-2 rounded px-1 py-0.5 text-xs hover:bg-accent">
+				<div class="flex items-center gap-2 rounded-xs px-1 py-0.5 text-xs hover:bg-accent">
 					<input
 						type="checkbox"
 						checked={visibleColumns.includes(`formula.${entry.name}`)}
 						onchange={(e) => handleToggle(`formula.${entry.name}`, e.currentTarget.checked)}
-						class="size-3.5 rounded border-input accent-primary"
+						class="size-3.5 rounded-xs border-input accent-primary"
 					/>
 					<span class="flex-1 truncate">{entry.name || '(unnamed)'}</span>
 					<button

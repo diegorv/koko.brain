@@ -1,13 +1,21 @@
 import { EditorView } from '@codemirror/view';
 import type { Extension } from '@codemirror/state';
 
-/** Builds a CodeMirror theme from the current editor settings */
+import { editorFontFamily } from '#lib/utils/font-stacks.js';
+
+/**
+ * Builds a CodeMirror theme from the current editor settings. `fontFamily` is
+ * the raw setting: a single name is quoted and the app sans stack is appended.
+ * `dark` sets CodeMirror's `darkTheme` facet, which picks the light or dark
+ * base theme for every style the app theme does not override.
+ */
 export function buildEditorTheme(
 	fontFamily: string,
 	fontSize: number,
 	lineHeight: number,
 	contentWidth: number,
 	paragraphSpacing: number,
+	dark: boolean,
 ): Extension {
 	return EditorView.theme(
 		{
@@ -22,7 +30,7 @@ export function buildEditorTheme(
 			},
 			'.cm-scroller': {
 				overflow: 'auto',
-				fontFamily,
+				fontFamily: editorFontFamily(fontFamily),
 				fontSize: `${fontSize}px`,
 				lineHeight: `${lineHeight}`,
 			},
@@ -30,7 +38,6 @@ export function buildEditorTheme(
 				caretColor: 'var(--editor-fg)',
 				padding: '16px clamp(24px, 5vw, 80px)',
 				userSelect: 'text',
-				fontSize: '1.05em',
 				...(contentWidth > 0 && {
 					maxWidth: `${contentWidth}px`,
 					marginLeft: 'auto',
@@ -63,14 +70,24 @@ export function buildEditorTheme(
 				backgroundColor: 'var(--popover)',
 				color: 'var(--popover-foreground)',
 				border: '1px solid var(--border)',
+				borderRadius: 'var(--radius-md)',
+				boxShadow: 'var(--shadow-md)',
 			},
-			'.cm-tooltip-autocomplete': {
+			// Same selector as @codemirror/autocomplete's base theme, whose
+			// `padding: 0` on the list would otherwise outrank this one.
+			'.cm-tooltip.cm-tooltip-autocomplete': {
+				'& > ul': {
+					padding: '4px',
+				},
+				'& > ul > li': {
+					borderRadius: 'var(--radius-sm)',
+				},
 				'& > ul > li[aria-selected]': {
 					backgroundColor: 'var(--accent)',
 					color: 'var(--accent-foreground)',
 				},
 			},
 		},
-		{ dark: true }
+		{ dark }
 	);
 }

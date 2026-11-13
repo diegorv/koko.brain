@@ -1,4 +1,6 @@
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { buildResolutionCache, resolveWikilinkCached } from '#lib/core/filesystem/wikilink-resolution.logic.js';
+import { mixColors } from '#lib/utils/color.js';
 import type { GraphNode, GraphLink, GraphData, GraphFilters } from './graph-view.types';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 
@@ -8,16 +10,18 @@ export function getFolderFromPath(filePath: string): string {
 }
 
 /**
- * Builds a graph view from a snapshot of Rust `VaultIndex` entries.
+ * Builds a graph view from a snapshot of Rust `VaultIndex` entries. A `.view`
+ * is not a note: it gets no node, and a link naming it resolves to nothing.
  *
  * Each entry already carries the parsed wikilinks (`outgoingLinks`), the
  * deduplicated tag list, and the title — we don't re-parse content.
  * Wikilink resolution still happens TS-side via the standard
- * `buildResolutionCache` + `resolveWikilinkCached` over `entries[*].path`,
- * so collision handling stays identical to backlinks resolution. `vaultRoot`
+ * `buildResolutionCache` + `resolveWikilinkCached` over the notes' paths, so
+ * collision handling follows backlinks resolution among notes. `vaultRoot`
  * lets a path-style target resolve to its vault-relative file first.
  */
-export function buildGraphData(entries: NoteEntryV2[], vaultRoot?: string | null): GraphData {
+export function buildGraphData(allEntries: NoteEntryV2[], vaultRoot?: string | null): GraphData {
+	const entries = allEntries.filter((e) => !isViewFile(e.path));
 	const nodes: GraphNode[] = [];
 	const linkCountMap = new Map<string, number>();
 	const directedEdges = new Set<string>();
@@ -148,4 +152,75 @@ export function getUniqueTags(nodes: GraphNode[]): string[] {
 		}
 	}
 	return Array.from(tags).sort();
+}
+
+/** The four theme tokens the graph palette is derived from, as CSS color strings. */
+export interface GraphThemeTokens {
+	/** The editor pane background (`--editor-bg`). */
+	editorBg: string;
+	/** The main text color (`--foreground`). */
+	foreground: string;
+	/** The secondary text color (`--muted-foreground`). */
+	mutedForeground: string;
+	/** The accent color (`--primary`). */
+	primary: string;
+}
+
+/** Colors the graph canvas paints with. */
+export interface GraphPalette {
+	/** The canvas container background. */
+	background: string;
+	/** A node fill. */
+	node: string;
+	/** The fill of the node the graph is centered on. */
+	nodeActive: string;
+	/** A node fill while another node is hovered and this one is not connected to it. */
+	nodeDimmed: string;
+	/** An edge stroke and arrowhead. */
+	edge: string;
+	/** An edge touching the hovered node. */
+	edgeHighlight: string;
+	/** A node label. */
+	label: string;
+	/** A node label while dimmed. */
+	labelDimmed: string;
+}
+
+/** The fixed dark palette the graph paints with when a theme token is missing or unreadable. */
+export const FALLBACK_GRAPH_PALETTE: GraphPalette = {
+	background: '#1a1a1e',
+	node: '#8b8b8b',
+	nodeActive: '#c084fc',
+	nodeDimmed: 'rgba(139, 139, 139, 0.2)',
+	edge: 'rgba(160, 160, 180, 0.6)',
+	edgeHighlight: 'rgba(192, 132, 252, 0.5)',
+	label: '#a1a1aa',
+	labelDimmed: 'rgba(161, 161, 170, 0.3)',
+};
+
+/**
+ * Derives the graph palette from the active theme's tokens: the editor
+ * background, muted nodes, a primary active node, and dimmed colors and edges
+ * mixed toward the background in OKLab. Returns `FALLBACK_GRAPH_PALETTE` when
+ * any token is empty or unparseable.
+ */
+export function graphPalette(tokens: GraphThemeTokens): GraphPalette {
+	const { editorBg, foreground, mutedForeground, primary } = tokens;
+	if (!editorBg || !foreground || !mutedForeground || !primary) return FALLBACK_GRAPH_PALETTE;
+	const label = mixColors(foreground, mutedForeground, 0.5);
+	const nodeDimmed = mixColors(mutedForeground, editorBg, 0.8);
+	const edge = mixColors(mutedForeground, editorBg, 0.4);
+	const edgeHighlight = mixColors(primary, editorBg, 0.5);
+	const labelDimmed = label && mixColors(label, editorBg, 0.7);
+	if (!label || !nodeDimmed || !edge || !edgeHighlight || !labelDimmed) return FALLBACK_GRAPH_PALETTE;
+	return {
+		background: editorBg,
+		node: mutedForeground,
+		nodeActive: primary,
+		nodeDimmed,
+		edge,
+		edgeHighlight,
+		label,
+		labelDimmed,
+	};
 }

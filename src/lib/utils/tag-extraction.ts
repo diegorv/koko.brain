@@ -1,5 +1,11 @@
 const FRONTMATTER_REGEX = /^---\r?\n([\s\S]*?)\r?\n---/;
-const INLINE_TAG_REGEX = /(?:^|\s)#([\p{L}_][\p{L}\d_/-]*)/gmu;
+/**
+ * The tag name after `#` in the inline tag rule (a letter or `_`, then
+ * letters, digits, `_`, `/` and `-`), as a `u`-flag regex source. Trailing `/`
+ * is not part of the name: {@link findInlineTags} strips it.
+ */
+export const INLINE_TAG_NAME_SOURCE = String.raw`[\p{L}_][\p{L}\d_/-]*`;
+const INLINE_TAG_REGEX = new RegExp(String.raw`(?:^|\s)#(${INLINE_TAG_NAME_SOURCE})`, 'gmu');
 
 /**
  * Finds the index of a top-level YAML key, skipping lines inside multi-line quoted values.
@@ -97,14 +103,35 @@ export function extractInlineTags(content: string): string[] {
 	// Remove HTML comments (tags inside <!-- --> should not be extracted)
 	text = text.replace(/<!--[\s\S]*?-->/g, '');
 
-	const tags: string[] = [];
+	return [...new Set(findInlineTags(text).map((t) => t.tag))];
+}
 
+/** One inline `#tag` occurrence in a text. */
+export interface InlineTagMatch {
+	/** Offset of the `#`. */
+	from: number;
+	/** Offset just past the last tag character, trailing `/` excluded. */
+	to: number;
+	/** The tag name without `#` and without trailing `/`. */
+	tag: string;
+}
+
+/**
+ * Every inline `#tag` in `text`, in order, duplicates included, by the
+ * indexer's rule (`vault/parsing.rs::extract_inline_tags` mirrors it): `#` at
+ * line start or after whitespace, a letter or `_` first. It does not skip
+ * code, comments or frontmatter: callers strip or skip those themselves.
+ */
+export function findInlineTags(text: string): InlineTagMatch[] {
+	const result: InlineTagMatch[] = [];
 	for (const match of text.matchAll(INLINE_TAG_REGEX)) {
 		const tag = match[1].replace(/\/+$/, '');
-		if (tag) tags.push(tag);
+		if (!tag) continue;
+		// match[0] may start with the whitespace before the `#`.
+		const from = match.index + match[0].length - match[1].length - 1;
+		result.push({ from, to: from + 1 + tag.length, tag });
 	}
-
-	return [...new Set(tags)];
+	return result;
 }
 
 export function extractAllTags(content: string): string[] {

@@ -129,4 +129,37 @@ describe('TableOfContentsPanel', () => {
 
 		expect(target.textContent).toContain('No headings found');
 	});
+
+	it('draws its header as the shared sidebar section header', () => {
+		mountPanel();
+
+		const header = target.querySelector('[data-sidebar-section-header]')!;
+		expect(header).toBe(target.querySelector('button'));
+		expect(header.querySelector('[data-sidebar-section-chevron]')).not.toBeNull();
+		expect(header.querySelector('h2')!.textContent).toBe('Table of contents');
+	});
+
+	it('titles the panel in sentence case, above its entries by size', () => {
+		mountPanel();
+		showTableOfContents(A);
+		flushSync();
+
+		const title = target.querySelector('h2')!;
+		expect(title.textContent).toBe('Table of contents');
+		expect(title.classList).toContain('text-title');
+		expect(title.classList).not.toContain('uppercase');
+		for (const entry of target.querySelectorAll('button[title]')) {
+			expect(entry.classList).toContain('text-row');
+		}
+	});
+
+	it('renders the empty message with the meta role', () => {
+		editorStore.updateContent('Just text\n');
+		mountPanel();
+		showTableOfContents(A);
+		flushSync();
+
+		const empty = [...target.querySelectorAll('p')].find((p) => p.textContent === 'No headings found')!;
+		expect(empty.classList).toContain('text-meta');
+	});
 });

@@ -1,0 +1,13 @@
+_visible: false
+_open_in_editor: true
+filters: 'file.folder.endsWith("/collection-features")'
+properties:
+  file.name:
+    displayName: Note
+
+views:
+  - type: calendar
+    name: Recent Edits
+    dateProperty: file.mtime
+    weekStartDay: 1
+    limit: 50

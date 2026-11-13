@@ -1,12 +1,11 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import ExternalLink from '@lucide/svelte/icons/external-link';
 	import FileText from '@lucide/svelte/icons/file-text';
 	import AlertCircle from '@lucide/svelte/icons/alert-circle';
 	import { Separator } from '#lib/components/ui/separator/index.js';
-	import * as Collapsible from '#lib/components/ui/collapsible/index.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+	import SidebarSection from '#lib/core/layout/SidebarSection.svelte';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { outgoingLinksStore } from './outgoing-links.store.svelte';
@@ -15,8 +14,8 @@
 	let expanded = $state(false);
 	let lastFetchedPath = $state<string | null>(null);
 
-	function handleExpand() {
-		if (!expanded) fetchData();
+	function handleOpenChange(open: boolean) {
+		if (open) fetchData();
 	}
 
 	function fetchData() {
@@ -49,49 +48,40 @@
 </script>
 
 <div class="flex flex-col">
-	<Collapsible.Root bind:open={expanded}>
-		<Collapsible.Trigger
-			class="flex w-full items-center h-10 px-3 shrink-0 hover:bg-right-sidebar-accent/50 transition-colors cursor-pointer"
-			onclick={handleExpand}
-		>
-			<ChevronRight class="size-3.5 shrink-0 text-right-sidebar-muted-fg transition-transform {expanded ? 'rotate-90' : ''}" />
-			<h2 class="ml-1.5 font-semibold uppercase tracking-wide text-right-sidebar-primary">Outgoing links</h2>
-		</Collapsible.Trigger>
-		<Collapsible.Content>
-			<div class="max-h-[50vh] overflow-y-auto p-2">
-				{#if editorStore.activeTab && editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
-					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">Not available</p>
-				{:else if outgoingLinksStore.outgoingLinks.length === 0}
-					<p class="text-right-sidebar-muted-fg px-2 py-4 text-center">No outgoing links</p>
-				{:else}
-					<div class="space-y-0.5">
-						{#each outgoingLinksStore.outgoingLinks as link (link.target + link.position)}
-							{#if link.resolvedPath}
-								<button
-									class="w-full text-left rounded-md px-2 py-1 hover:bg-right-sidebar-accent transition-colors cursor-pointer"
-									onclick={() => openFileInEditor(link.resolvedPath!)}
-								>
-									<div class="flex items-center gap-1.5">
-										<FileText class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
-										<span class="text-[14px] truncate">{link.alias ?? link.target}</span>
-										{#if link.heading}
-											<span class="text-[14px] text-right-sidebar-muted-fg truncate">› {link.heading}</span>
-										{/if}
-									</div>
-								</button>
-							{:else}
-								<div class="flex items-center gap-1.5 rounded-md px-2 py-1 opacity-60">
-									<AlertCircle class="size-3.5 shrink-0 text-destructive" />
-									<span class="text-[14px] truncate text-destructive">{link.alias ?? link.target}</span>
+	<SidebarSection title="Outgoing links" bind:open={expanded} onOpenChange={handleOpenChange}>
+		<div class="max-h-[50vh] overflow-y-auto">
+			{#if editorStore.activeTab && editorStore.activeTab.fileType && editorStore.activeTab.fileType !== 'markdown'}
+				<p class="text-meta text-right-sidebar-muted-fg px-2 py-4 text-center">Not available</p>
+			{:else if outgoingLinksStore.outgoingLinks.length === 0}
+				<p class="text-meta text-right-sidebar-muted-fg px-2 py-4 text-center">No outgoing links</p>
+			{:else}
+				<div class="space-y-0.5">
+					{#each outgoingLinksStore.outgoingLinks as link (link.target + link.position)}
+						{#if link.resolvedPath}
+							<button
+								class="w-full text-left rounded-md px-2 py-1 hover:bg-right-sidebar-accent transition-colors cursor-pointer"
+								onclick={() => openFileInEditor(link.resolvedPath!)}
+							>
+								<div class="flex items-center gap-1.5">
+									<FileText class="size-3.5 shrink-0 text-right-sidebar-muted-fg" />
+									<span class="text-row truncate">{link.alias ?? link.target}</span>
 									{#if link.heading}
-										<span class="text-[14px] text-right-sidebar-muted-fg truncate">› {link.heading}</span>
+										<span class="text-row text-right-sidebar-muted-fg truncate">› {link.heading}</span>
 									{/if}
 								</div>
-							{/if}
-						{/each}
-					</div>
-				{/if}
-			</div>
-		</Collapsible.Content>
-	</Collapsible.Root>
+							</button>
+						{:else}
+							<div class="flex items-center gap-1.5 rounded-md px-2 py-1 opacity-60">
+								<AlertCircle class="size-3.5 shrink-0 text-destructive" />
+								<span class="text-row truncate text-destructive">{link.alias ?? link.target}</span>
+								{#if link.heading}
+									<span class="text-row text-right-sidebar-muted-fg truncate">› {link.heading}</span>
+								{/if}
+							</div>
+						{/if}
+					{/each}
+				</div>
+			{/if}
+		</div>
+	</SidebarSection>
 </div>

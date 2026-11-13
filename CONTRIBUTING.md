@@ -148,7 +148,7 @@ To temporarily disable sccache for one command (e.g. when debugging a build erro
 CARGO_BUILD_RUSTC_WRAPPER= cargo build
 ```
 
-CI installs sccache automatically via `.github/actions/setup` and uses the GitHub Actions cache as the storage backend, so cache hits also carry across CI runs.
+CI does not use sccache: `.github/actions/setup` sets an empty `RUSTC_WRAPPER`, which overrides this file, and caches build artifacts with `Swatinem/rust-cache` instead.
 
 #### `pnpm tauri:build:fast` vs `pnpm tauri build`
 
@@ -180,7 +180,7 @@ src/lib/
                         #   trash, layout, keybindings, status bar, note creator, zoom
   features/             # Always loaded: search, backlinks, tags, properties, tasks, canvas,
                         #   collection, file-history, file-icons, copy-block-link,
-                        #   auto-move, command-palette, quick-switcher, folder-notes,
+                        #   auto-organize, command-palette, quick-switcher, folder-notes,
                         #   outgoing-links, deep-link, views
   plugins/              # Optional: periodic-notes, calendar, templates, quick-note,
                         #   graph-view, queryjs, word-count, kanban, one-on-one

@@ -392,6 +392,23 @@ describe('performOperatorOnlySearch', () => {
 		});
 	});
 
+	it('never returns a .view, with a matching tag or path', () => {
+		const withView = [
+			{ path: '/vault/Projects.view', tags: ['programming'] },
+			{ path: '/vault/Projects.md', tags: ['programming'] },
+		];
+		expect(performOperatorOnlySearch(withView, { text: '', tags: ['programming'], paths: [] }, '/vault').map((r) => r.filePath)).toEqual(['/vault/Projects.md']);
+		expect(performOperatorOnlySearch(withView, { text: '', tags: [], paths: ['Projects'] }, '/vault').map((r) => r.filePath)).toEqual(['/vault/Projects.md']);
+	});
+
+	it('a .view does not use up the result cap', () => {
+		const withView = [
+			{ path: '/vault/Projects.view', tags: ['programming'] },
+			{ path: '/vault/Projects.md', tags: ['programming'] },
+		];
+		expect(performOperatorOnlySearch(withView, { text: '', tags: ['programming'], paths: [] }, '/vault', 1).map((r) => r.filePath)).toEqual(['/vault/Projects.md']);
+	});
+
 	it('requires every query tag', () => {
 		const query = { text: '', tags: ['programming', 'data'], paths: [] };
 		const results = performOperatorOnlySearch(entries, query, '/vault');

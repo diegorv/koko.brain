@@ -187,12 +187,11 @@ style: primary
 action:
   type: open
   link: "[[project-kokobrain]]"
-  newTab: true
 ```
 
 %%
 ESPERADO:
-- Botao que abre a nota "project-kokobrain" em nova aba
+- A button that opens the note "project-kokobrain" (or focuses its tab when it is already open)
 %%
 
 ## 14. Button - Create Note Action
@@ -204,12 +203,33 @@ action:
   type: createNote
   fileName: Nova Ideia
   folderPath: Inbox
-  openNote: true
 ```
 
 %%
 ESPERADO:
 - Botao que cria "Inbox/Nova Ideia.md" e abre
+%%
+
+## 14a. Button - Open View Action
+
+```meta-bind-button
+label: Abrir Projetos
+action:
+  type: openView
+  path: _system/views/Projects.view
+```
+
+```meta-bind-button
+label: Not a view
+action:
+  type: openView
+  path: Projects.md
+```
+
+%%
+ESPERADO:
+- The first button opens `_system/views/Projects.view` as a click on its row under Views does; this example vault has no such file, so clicking it shows an error message and opens nothing
+- The second block renders an inline error instead of a button: `Invalid button: openView needs a .view path`
 %%
 
 ## 15. Button - Multiple Actions Chain
@@ -233,12 +253,10 @@ ESPERADO:
 - Tooltip aparece no hover
 %%
 
-## 16. Button - Hidden with ID
+## 16. Button - Reset Status
 
 ```meta-bind-button
-id: reset-btn
-hidden: true
-label: Reset Oculto
+label: Reset
 action:
   type: updateMetadata
   prop: status
@@ -247,8 +265,8 @@ action:
 
 %%
 ESPERADO:
-- Bloco nao visivel em live preview (hidden: true)
-- Pode ser referenciado por id "reset-btn"
+- A button that sets status back to "todo"
+- `id` and `hidden` (Obsidian Meta Bind's inline buttons and hidden blocks) are not supported: a button ignores those keys and renders as usual
 %%
 
 ## 17. Edge Cases

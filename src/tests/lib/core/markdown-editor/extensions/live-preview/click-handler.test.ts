@@ -4,20 +4,38 @@ import { StateEffect } from '@codemirror/state';
 // No mocks for stores, logic, or the link parser — use real implementations per CLAUDE.md.
 
 import { editorHost, NOOP_HOST } from '#lib/core/markdown-editor/editor-host.js';
-import { handleLivePreviewLinkMousedown } from '#lib/core/markdown-editor/extensions/live-preview/click-handler.js';
+import {
+	handleLivePreviewLinkMousedown,
+	handleLivePreviewTagMousedown,
+} from '#lib/core/markdown-editor/extensions/live-preview/click-handler.js';
 import { createMarkdownState } from '../../test-helpers';
 
 /** Where the editor host opens external URLs. */
 const mockOpenUrl = vi.fn();
-const host = { ...NOOP_HOST, openExternal: (url: string) => mockOpenUrl(url) };
+/** Where the editor host opens the tag search. */
+const mockOpenTagSearch = vi.fn();
+const host = {
+	...NOOP_HOST,
+	openExternal: (url: string) => mockOpenUrl(url),
+	openTagSearch: (tag: string) => mockOpenTagSearch(tag),
+};
 
 /** Builds a fake mouse event whose target.closest resolves to the given link element. */
-function createEvent(opts: { meta?: boolean; ctrl?: boolean; button?: number; linkEl?: HTMLElement | null }): MouseEvent {
+function createEvent(opts: {
+	meta?: boolean;
+	ctrl?: boolean;
+	alt?: boolean;
+	shift?: boolean;
+	button?: number;
+	linkEl?: HTMLElement | null;
+}): MouseEvent {
 	const target = { closest: vi.fn(() => opts.linkEl ?? null) };
 	return {
 		button: opts.button ?? 0,
 		metaKey: opts.meta ?? false,
 		ctrlKey: opts.ctrl ?? false,
+		altKey: opts.alt ?? false,
+		shiftKey: opts.shift ?? false,
 		target,
 		preventDefault: vi.fn(),
 	} as unknown as MouseEvent;
@@ -155,5 +173,79 @@ describe('handleLivePreviewLinkMousedown platform modifiers', () => {
 		expect(click({ button: 2 }, false)).toBe(false);
 		expect(click({ button: 2, ctrl: true }, false)).toBe(false);
 		expect(mockOpenUrl).not.toHaveBeenCalled();
+	});
+});
+
+describe('handleLivePreviewTagMousedown', () => {
+	/** Stands in for a `.cm-lp-tag` element; the handler reads the tag from the document, never from it. */
+	const tagEl = { textContent: 'ignored' } as unknown as HTMLElement;
+
+	beforeEach(() => vi.clearAllMocks());
+
+	function click(
+		doc: string,
+		pos: number,
+		opts: { meta?: boolean; ctrl?: boolean; alt?: boolean; shift?: boolean; button?: number; el?: HTMLElement | null },
+		mac: boolean,
+	): { handled: boolean; event: MouseEvent } {
+		const event = createEvent({ ...opts, linkEl: opts.el === undefined ? tagEl : opts.el });
+		return { handled: handleLivePreviewTagMousedown(event, createView(doc, pos), mac), event };
+	}
+
+	it('macOS: Cmd+click opens the tag search and keeps the cursor where it was', () => {
+		const { handled, event } = click('see #work today', 4, { meta: true }, true);
+		expect(handled).toBe(true);
+		expect(event.preventDefault).toHaveBeenCalled();
+		expect(mockOpenTagSearch).toHaveBeenCalledWith('work');
+	});
+
+	it('Windows/Linux: Ctrl+click opens the tag search', () => {
+		expect(click('see #work today', 4, { ctrl: true }, false).handled).toBe(true);
+		expect(mockOpenTagSearch).toHaveBeenCalledWith('work');
+	});
+
+	it('searches the full nested tag from any part of the pill', () => {
+		click('x #area/sub y', 8, { meta: true }, true);
+		expect(mockOpenTagSearch).toHaveBeenCalledWith('area/sub');
+	});
+
+	it('picks the tag under the pill when a line has several', () => {
+		click('#one and #two', 9, { meta: true }, true);
+		expect(mockOpenTagSearch).toHaveBeenCalledWith('two');
+	});
+
+	it('reads the tag from a line other than the first', () => {
+		click('intro\n#later', 6, { meta: true }, true);
+		expect(mockOpenTagSearch).toHaveBeenCalledWith('later');
+	});
+
+	it('falls through to CodeMirror on a plain click, another button or another modifier', () => {
+		const doc = 'see #work today';
+		const cases = [
+			click(doc, 4, {}, true),
+			click(doc, 4, {}, false),
+			click(doc, 4, { button: 1, meta: true }, true),
+			click(doc, 4, { button: 2, meta: true }, true),
+			click(doc, 4, { alt: true }, true),
+			click(doc, 4, { shift: true }, true),
+			click(doc, 4, { ctrl: true }, true),
+			click(doc, 4, { meta: true, ctrl: true }, true),
+			click(doc, 4, { meta: true }, false),
+		];
+		for (const { handled, event } of cases) {
+			expect(handled).toBe(false);
+			expect(event.preventDefault).not.toHaveBeenCalled();
+		}
+		expect(mockOpenTagSearch).not.toHaveBeenCalled();
+	});
+
+	it('falls through when the click is not on a tag pill', () => {
+		expect(click('see #work today', 4, { meta: true, el: null }, true).handled).toBe(false);
+		expect(mockOpenTagSearch).not.toHaveBeenCalled();
+	});
+
+	it('falls through when the document holds no tag at the pill position', () => {
+		expect(click('plain text', 2, { meta: true }, true).handled).toBe(false);
+		expect(mockOpenTagSearch).not.toHaveBeenCalled();
 	});
 });

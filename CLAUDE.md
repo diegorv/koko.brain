@@ -18,14 +18,16 @@ A desktop note-taking app inspired by [Obsidian.md](https://obsidian.md) built w
 5. **Use tabs, not spaces** — all code files use tabs for indentation. Exempt: the ts-rs output in `src/lib/contracts/generated/` (written by `cargo test`, never edited by hand)
 6. **Run the right tests before EVERY commit** — match the tests to what you changed:
    - **Rust only** (`src-tauri/`): `cargo test --manifest-path src-tauri/Cargo.toml`
-   - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` + `pnpm vitest run` + `pnpm build`
-   - **Both**: all four commands. No exceptions.
+   - **Frontend only** (`src/`, styles, config, `package.json`/`pnpm-lock.yaml`): `pnpm check` + `pnpm vitest run`
+   - **Both**: all three commands. No exceptions.
+   - **`package.json` or `pnpm-lock.yaml` changed**: also `pnpm build`.
    - **IPC DTO change** (any `src-tauri/` type with `#[ts(export)]`, including its doc comments, which ts-rs emits as JSDoc) is **Both**: `cargo test` regenerates `src/lib/contracts/generated/`, which you commit and `pnpm check` type-checks. CI fails the Rust job when the committed bindings are stale. Run cargo from the checkout or worktree root (see [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) § Generated TS bindings).
 
-   `pnpm build` is part of the gate because vitest does not exercise the
-   production bundler. A dependency bump that moves `rolldown`, `vite` or
-   `es-module-lexer`, a circular import, or an adapter-static prerender failure
-   passes `check` and `vitest` and still breaks `pnpm build`. It costs ~17s.
+   `pnpm build` runs locally only for dependency changes because vitest does not
+   exercise the production bundler: a bump that moves `rolldown`, `vite` or
+   `es-module-lexer` can pass `check` and `vitest` and still break the build. CI
+   runs `pnpm build` on every PR, which also catches circular imports and
+   adapter-static prerender failures.
 7. **Services return errors via try/catch** — propagate to caller, never silently swallow
 8. **Assert on rendered content** in E2E tests, not just container existence
 9. **Verify staging area before every commit** — run `git diff --cached --stat` to ensure only intended files are staged. See [docs/COMMITS.md](docs/COMMITS.md)
@@ -54,6 +56,8 @@ bash scripts/e2e.sh   # Run E2E tests (starts server, runs Playwright, cleans up
 
 **Build performance:** `.cargo/config.toml` requires `sccache` on PATH (`brew install sccache`); on a box without it, `RUSTC_WRAPPER=` (empty) disables the wrapper. Linux / remote-container prerequisites and the ONNX Runtime download workaround are in [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md). The `beforeBuildCommand` is `bash scripts/tauri-before-build.sh`, which skips `pnpm build` when frontend inputs are unchanged; bypass with `KOKO_FORCE_FRONTEND_BUILD=1`.
 
+**Worktrees:** give each git worktree its own `node_modules` with `pnpm install --frozen-lockfile --offline` (a few seconds, reused from the shared pnpm store). NEVER symlink `node_modules` from the main checkout: `svelte-kit sync` writes the generated tsconfig into `node_modules/$app/`, so through a symlink `pnpm check` in the worktree reports false errors and the worktree's route types overwrite the main checkout's. See [docs/DEV-ENVIRONMENT.md](docs/DEV-ENVIRONMENT.md) § Frontend gate.
+
 **E2E tests:** ALWAYS run via `bash scripts/e2e.sh`. NEVER run `PLAYWRIGHT=true pnpm dev` manually — the script handles server lifecycle, port cleanup, and teardown automatically.
 
 ## Project Structure
@@ -63,10 +67,10 @@ src/lib/
   components/ui/      # shadcn-svelte components (generated via CLI)
   core/               # Essential: app-lifecycle, editor, filesystem, frontmatter, keybindings, layout,
                       #   markdown-editor, note-creator, settings, status-bar, trash, vault, zoom
-  features/           # Built-in features: auto-move, backlinks, canvas, collection,
+  features/           # Built-in features: auto-organize, backlinks, canvas, collection,
                       #   command-palette, copy-block-link, deep-link, dock-badge, event-calendar,
                       #   file-history, file-icons, note-action-bar, note-list, outgoing-links,
-                      #   properties, quick-switcher, rail-shell, search, tags, tasks,
+                      #   properties, quick-switcher, rail-shell, search, tags, tasks, todoist-sync,
                       #   type-definitions
   plugins/            # Optional modules: calendar, graph-view, kanban, one-on-one, periodic-notes,
                       #   queryjs, quick-capture, table-of-contents, templates, word-count
@@ -231,74 +235,10 @@ See [docs/TESTING.md](docs/TESTING.md) for the full testing guide: mock rules, a
 
 ## Performance Guidelines
 
-### Live Preview (CodeMirror Decorations)
+These files hold correctness invariants as well as performance rules. Read the one that applies before changing or reviewing that code, and follow it. A one-line reminder to read it attaches by itself only when a session started in the same checkout reads or edits a file in its `paths`. The file itself never loads, and no reminder does not mean the rules do not apply. A relay-lite agent in `brain.worktrees/issue-NN` never gets the reminder and opens the file by hand, at the same path under the worktree root. Citations such as "CLAUDE.md Indexing 12" or "Live Preview rule 11" in comments, ADRs and Issues mean these files, with the same numbering.
 
-The live-preview system splits decoration into two tracks: per-feature `StateField`s for **block** widgets (frontmatter, code-block, table, callout, queryjs, mermaid, math, …) and **one** unified `inlineFormattingPlugin` for inline marks/styles (driven by a node + line handler registry from `live-preview/inline/`). Tag-based styling (bold/italic/strikethrough/monospace) goes through `HighlightStyle` in `inline/markdown-highlight-style.ts` — same `cm-lp-*` class names themes already target. Key performance rules:
-
-1. **Hide syntax with `Decoration.replace({})`; never animate it.** Hidden markdown syntax (`#`, `>`, `**`, link brackets, `%%comments%%`, callout markers, …) uses the shared `hiddenSyntaxDeco` from `live-preview/styles.ts`, so the swap is instant; revealed block syntax gets the static `cm-formatting-block` mark. Never hide syntax with an animated `font-size` / `max-width` mark: the width change makes text slide while CodeMirror measures the vertical-motion goal column (bullet <-> H1 arrow glitch), and the same mark + `font-size` family caused the editor freeze fixed in `b4aa9028` and the duplicate bullets fixed in `a404aebb` (ADR 0008, amendment 2026-10-29). A replace from the inline `ViewPlugin` must stay within one line. Widgets are still only for complex interactive elements (tables, code blocks, meta-bind selects, queryjs blocks). The existing HR and hard-break `font-size: 0` + `::before`/`::after` marks are kept as they are, but new hidden or replaced visuals use `Decoration.replace` (a widget where a glyph is needed), not a `font-size: 0` mark: the `b4aa9028` freeze came from a non-animated one.
-
-2. **Never re-execute expensive code in `toDOM()`** — widgets are destroyed and recreated when scrolling in/out of viewport. Cache the expensive RESULT, but never hand a cached live element to more than one widget: CodeMirror builds new lines detached, so an `!isConnected` guard cannot tell "same widget re-entering the viewport" from "second widget for a duplicated block", and a shared node gets moved to the last widget, blanking the earlier occurrences. Cache by widget content:
-   - `queryjs-block-widget.ts` + `queryjs-session.store.svelte.ts`: the ONLY live-DOM cache — required so `<canvas>` / `<video>` / `<iframe>` state survives re-mount; the `!isConnected` guard is a partial mitigation there.
-   - `math-widget.ts`: caches the sanitized KaTeX HTML string; every `toDOM()` builds a fresh element. One widget serves both `$$...$$` blocks (a `<div>`, `displayMode: true`) and inline `$...$` (a `<span>`), so the cache key MUST carry `displayMode` — KaTeX emits different markup per mode and a formula-only key would serve block markup to an inline site.
-   - `mermaid-widget.ts`: cache the sanitized SVG markup string (post id-strip).
-   - `collection-block-widget.ts`: cache the query DATA (view + QueryResult) and rebuild the DOM per `toDOM()` — rows/pills/bars carry click listeners, so markup strings don't work there.
-
-3. **Widgets with `eq()` don't prevent `toDOM()` calls** — `eq()` returning `true` keeps existing DOM, but when the widget is removed from viewport and re-enters, CM calls `toDOM()` fresh. Cache is the only way to avoid re-execution.
-
-4. **Block plugins must skip viewport-only scroll** — `if (isPureScroll(update)) return;` (`live-preview/core/check-update-action.ts`) as the first line of `update()` in any plugin that scans the full document. `isPureScroll` is a viewport change with no doc change, selection move, reconfigure or `forceDecorationRebuild`; those four pass the guard so `checkUpdateAction` sees them, while any other effect riding a scroll (a `rebuildOn` effect included) is still dropped. Eleven of the twelve block decorators inherit it from `live-preview/core/block-decorator.ts`: build them with `blockDecorator({ settingsKey, profileLabel, compute })` and the factory supplies the guard, the `checkUpdateAction` gate and the profiling wrapper. `settingsKey` is typed `BlockDecoratorName` and must also appear in `BLOCK_EXTENSIONS` in `live-preview.ts` — that pair is what gives the decorator its Troubleshooting kill-switch. The twelfth name, `frontmatter`, is the exception: a hand-written `StateField` (`plugins/frontmatter-field.ts`) with no factory and no `settingsKey`, and it needs no guard at all — a pure scroll dispatches no transaction, so a `StateField.update()` never runs for it. `BLOCK_EXTENSIONS` still wires its kill-switch. The only remaining hand-written guard is in the inline `inlineFormattingPlugin`; the four inline ViewPlugins (image, footnote, wikilink-embed, meta-bind-input) get the viewport skip from `checkUpdateAction`, which returns `'none'` on a pure viewport change (no selection change, reconfigure or `forceDecorationRebuild`) — do not add the guard line to them.
-
-5. **`checkUpdateAction` is stateless** — a selection change rebuilds only when the set of lines touched by `update.startState.selection` differs from the set touched by `update.state.selection` (`sameTouchedLines` / `touchedLines` in `core/reveal.ts`, the same line set `revealPredicate` reveals). It reads only the current `ViewUpdate`: do not keep cursor or line memory on a plugin between updates. All plugins use this.
-
-6. **Profile before optimizing** — the LP-PROFILE timing logs (via `appendLog` from `core/profiling.ts`) measure JS computation. If JS is fast (~1ms per plugin), the bottleneck is DOM rendering, not JS. Disable per-feature decorators via `settingsStore.disabledDecorators` to isolate which plugin causes lag.
-
-7. **Scroll debounce** — `scrollDebouncePlugin` defers `forceDecorationRebuild` by 150ms after scroll stops. `expandedVisibleRanges()` pre-computes decorations 2000 chars beyond viewport so content has decorations ready when it scrolls in.
-
-8. **QueryJS uses `_pendingViews` instead of an auto-await regex.** `KBAPI.view()` registers its returned Promise on `this._pendingViews`; the widget calls `await api.awaitAllPending()` after running the user script. A block like `` ```queryjs\nkb.view("…")\n``` `` works whether the user wrote `await` or not — the IIFE returns Promise<undefined> immediately, but `awaitAllPending()` waits on every `view()` started during the run, so DOM mutations finish before the result is cached. **Do not add a regex rewrite back** — the legacy `s/(?<![\w.])(kb|dv)\.view\(/await $1.view(/g` was the source of the "function-local `kb.view()` accidentally awaited" footgun and is permanently obsoleted by `_pendingViews`.
-
-9. **QueryJS `resultCache` holds the LIVE element, not a clone.** `queryjs-session.store.svelte.ts` keeps `Map<filePath + jsContent, HTMLElement>` and re-attaches the same DOM node on cache hit. The key carries the note's path because shared scripts read `kb.current()`: the same block text in two notes renders two results (ADR 0010, amendment 2026-11-03). `<canvas>` pixel buffers, `<video>` playback state, and `<iframe>` loaded content survive widget destruction because the element keeps living through the store reference; CodeMirror destroys the widget but the DOM is detached, not garbage-collected. **Do not bring back `cloneNode(true)` + `<canvas>/<video>/<iframe>` exclusion** — the live-ref scheme is correct, simpler, and preserves chart state without the special case. A dropped result must have its Chart.js charts destroyed (`queryjs-charts.ts`; Chart.js keeps every chart in a module-level registry until `destroy()`): the store does it for a detached result, `QueryjsBlockWidget.destroy()` for one dropped while on screen.
-
-11. **Interactive widget elements must `stopPropagation` on `mousedown`** — CodeMirror processes mousedown for cursor positioning. Without explicit stopPropagation, clicking a button inside a widget moves the cursor onto its line → `revealPredicate` reveals it → widget destroyed → click fires on detached DOM → handler never runs. Pattern used by every interactive control: meta-bind select/inputs, code-block language switcher, callout type popover, table +col/+row buttons, queryjs ▶ Run button.
-
-10. **`autoRunQueries` policy matrix governs when a queryjs block executes.** Set via `settingsStore.queryjs.autoRunQueries`. Each toDOM() lookup runs in this order:
-    - Cache hit (`queryjsSessionStore.getResult(filePath, jsContent)`, detached) → re-attach the cached element. No execution.
-    - Cache miss + `'always'` → execute. Mark autoRun (harmless — not consulted).
-    - Cache miss + `'first-open'` + file not in `autoRunOnFirstOpen` → execute, mark autoRun.
-    - Cache miss + `'first-open'` + file already in `autoRunOnFirstOpen` → render `▶ Run` button.
-    - Cache miss + `'manual'` → render `▶ Run` button.
-
-    **Invariant: manual mode never marks `autoRunOnFirstOpen`.** A user clicking ▶ Run while in manual does NOT promote the file to "auto-run". If they later switch to `'first-open'`, every block re-shows ▶ Run on the first render after the switch. This invariant lives in `queryjs-block-widget.ts → renderRunPrompt` (no markAutoRun call inside the click handler) and is exercised by the session-store + widget tests. Don't break it — the policy switch would silently corrupt user expectations otherwise.
-
-### Indexing & Watcher
-
-1. **Vault metadata lives in Rust `VaultIndex`** (`src-tauri/src/vault/index.rs`). The TS side does not mirror it — every read goes through a `*_v2` Tauri command (`get_backlinks_v2`, `get_outgoing_links_v2`, `get_outgoing_unlinked_mentions_v2`, `get_unlinked_mentions_v2`, `get_all_tags_v2`, `get_all_tasks_v2`, `get_tasks_in_section_v2`, `get_all_property_records`, `get_all_vault_entries_v2`). The Rust side parses wikilinks / tags / tasks / frontmatter / properties at scan time and maintains backlinks + tags + properties reverse indexes in lock-step with entries.
-
-2. **Reactive consumer pattern: `vaultIndexVersion`** — TS panels (`BacklinksPanel`, `OutgoingLinksPanel`, `TagsView`, `TasksView`, `GraphView`, etc.) attach a `$effect` that reads `vaultStore.vaultIndexVersion` and re-invokes the relevant `*_v2` command. The version bumps when Rust emits `vault-index-updated` (after `update_note_in_index`, `remove_note_from_index`, `scan_vault_v2`, `toggle_task_status`, or any watcher-driven update). Panels store the result locally; no central TS-side mirror.
-
-3. **Unlinked mentions are deferred** — only computed on save and tab switch, never on keystroke. Controlled by `backlinksStore.unlinkedDirty` flag. The actual scan runs Rust-side via `get_unlinked_mentions_v2(path)` (which re-reads candidate files from disk inside Rust + applies the same word-boundary + frontmatter/code-stripping rules as the legacy TS `findUnlinkedMentions`).
-
-4. **Watcher is native Rust** (`src-tauri/src/vault/watcher.rs`, notify crate, dedicated thread, 500 ms debounce). Emits `vault-files-changed` with absolute paths. The TS consumer at `watcher-handler.service.ts` decides incremental (≤10 files) vs full rebuild — incremental fans `read_files_batch` + `update_note_in_index` + `remove_note_from_index` per changed path; full rebuild calls `scan_vault_v2_cached` (via `rebuildIndex`) and the per-feature TS bulk builders that survive (`buildPropertyIndex`, `buildFrontmatterIconIndex`).
-
-5. **Hidden-directory filter is Rust-side** — `is_inside_hidden_dir` in the watcher silently discards events from any dot-prefixed directory (`.git`, `.kokobrain`, `.claude`, `.obsidian`, etc.). No TS-side filtering needed. `is_write_atomic_temp` next to it also drops `write_atomic`'s `*.tmp-<digits>-<digits>` temp files, which `scan_vault` still lists (accepted divergence, ADR 0031 amendment 2026-11-02).
-
-6. **`applyNoteChange` is the ONE owner of "a note's bytes changed"** - `core/filesystem/note-change.service.ts`. Every write path (`notifyAfterSave`, the layout content-effect via `updateIndexesForFile`, the watcher, the note creator, `fs.service::createFile`, `trash.service::restoreItem`) and every removal path (`path-change.service::forgetNote`, the watcher's deletion branch) routes through it. Anything that changes a note's PATH goes one level up, through `path-change.service::applyPathChange`, which owns the ordering and the folder-children walk and calls `forgetNote` per path. It owns the `index-dedupe` map, the Rust `update_note_in_index` / `remove_note_from_index` IPC, the FTS5 + semantic legs and the fan-out to the registered per-file indexes. Do not grow a second owner and do not call the per-file updaters directly.
-   - **`notifyContentInvalidated()` is a signal, not a second owner.** Next to the owner in the same file, `registerContentInvalidationListener(name, fn)` collects the vault-wide caches and flags to drop when note content changed (unlinked mentions dirty, queryjs cache, kanban linked content); `registerAppPorts()` in `app/boot.ts` wires them once for the app lifetime. It carries no path or bytes and `applyNoteChange` never fires it: the writers that settle a change fire it once, after their `applyNoteChange` calls (`notifyAfterSave`, `trash.service::indexRestoredNotes`; the watcher still calls the three directly). It is not a note-change consumer because those run on debounced `edit` keystrokes and skip a `save` dedupe hit.
-   - **Consumers register, they are not imported.** `core/` must not import `features/` or `plugins/` (ADR-0003), so `registerCollectionNoteChangeConsumer` / `registerFileIconsNoteChangeConsumer` are wired in `initializeVault` and unwound in `teardownVault`. Path changes have their own registry, `registerPathChangeConsumer` in `path-change.service.ts` (`registerEventCalendarPathChangeConsumer` is wired the same way): `applyPathChange` calls each consumer synchronously after `diskOp` succeeds and before the link rewrite, once per change, and a folder change is reported once, for the folder. Consumers have one of two lifetimes: vault-lifetime ones are wired in `initializeVault` and unwound in `teardownVault`; app-lifetime ones (the view-cache and quick-switcher evictions) are wired once by `registerAppPorts()` in `app/boot.ts` and never unwound, so do not move them into the vault-lifetime list. Forgetting the registration is a SILENT no-op.
-   - **The per-source policy has two independent axes.** `SOURCE_POLICY` gives each of `save` / `edit` / `watcher` / `create` / `fs` / `restore` its own `consumers` and `rust` rule. `save` fires the Rust IPC even on a dedupe hit (Rust has its own `UpdateResult.changed` short-circuit) while skipping the TS consumers; `edit` skips both; `create` and `fs` skip the IPC because `create_note` already indexed the note; `restore` fires the IPC on every call because nothing indexed the restored note (the delete removed it from Rust and no `create_note` runs on restore). Collapsing the axes into one boolean silently drops the save-side `VaultIndex` refresh.
-   - **`save` must stay synchronous.** `applyNoteChange` is `async`, but only the `edit` row yields (`yieldBeforeConsumers`). `notifyAfterSave` depends on the consumer fan-out finishing before `notifyContentInvalidated()` (whose queryjs listener clears the cache).
-   - **FTS5 / semantic keys go through `vaultRelativeKey`** (`utils/path.ts`), the one nullable derivation. A path that is not inside the vault yields `null` and the update is skipped - never fall back to the absolute path. The watcher, Trash restore and the two create paths (`createFile`, `openOrCreateNote`, Markdown only) pass a `vaultPath`; on the save side those tables belong to the search after-save observer.
-   - **The delete branch removes BOTH tables' rows, from every source.** `remove_from_search_index` drops the FTS5 row and `remove_semantic_file` drops the chunk rows plus the `mtime:<rel_path>` key (one transaction; the search cache reload is paid only when rows were actually deleted). `forgetNote` passes `vaultStore.path` so the app-side deletes / renames / moves reach both legs directly - the watcher event is NOT a fallback for them (self-save skip, directory-only filter, the >10-file full-rebuild branch). `cleanup_orphaned_chunks` inside `build_semantic_index` is only the backstop for deletions made while the app was not running - it is not the per-delete path.
-
-7. **Frontmatter auto-save uses a faster debounce** — `editor.service.ts` runs two mutually exclusive timers: 500 ms for frontmatter-only edits (property changes via meta-bind, icon picker, lifecycle actions) and 2000 ms for body text. The timers cancel each other so only one fires per edit burst.
-
-8. **Index dedupe** (`src/lib/utils/index-dedupe.ts`) - shared `Map<path, lastContent>` with `isAlreadyIndexed` / `markIndexed` / `clearIndexedEntry` / `clearAllIndexed`. `applyNoteChange` is the only reader/writer, plus one guard in `updateIndexesForFile` that must run BEFORE it bumps its version counter (a dedupe hit that bumped the version would cancel the consumer fan-out of an in-flight call). The owner's delete branch clears the signature - reached through `path-change.service.ts::applyPathChange` from `deleteItem` / `renameItem` / `moveItem`, plus the watcher's deletion path - so a re-created file with identical bytes re-indexes. On a folder change `applyPathChange` walks the children out of `fsStore.fileTree` first, so each child's signature is cleared too. `resetHooks` wipes the whole map on vault teardown. Memory cost is one Map entry per indexed file (~50 B × N).
-
-9. **Absolute paths everywhere** — `FileTreeNode.path`, editor tabs, all `*_v2` IPC params and return `path` fields are absolute. Never convert to vault-relative paths before storing or invoking. Path traversal protection lives in Rust's `read_files_batch` (`canonicalize` + `starts_with`); the frontend doesn't strip prefixes.
-
-10. **Semantic embedding uses content-hash skip** — `update_semantic_file()` compares chunk hashes before embedding. Unchanged chunks skip ONNX inference (~200-500 ms saved per save). Independent of the `VaultIndex` flow above; both fire from `notifyAfterSave`.
-
-11. **Properties parse cache** — `parseFrontmatterProperties` is LRU-cached (capacity 16) by raw frontmatter substring. Meta-bind's per-keystroke rebuild path doesn't re-parse identical YAML. The cache lives in `properties.logic.ts` and is independent of the Rust `VaultIndex` (which does its own parse during `update_note_in_index`).
-
-12. **QueryJS KBAPI consumes a Rust entries snapshot** — `kb-api.ts` is constructed with `entries: NoteEntryV2[]`, read through `core/vault/vault-entries.service.ts::getVaultEntries()` — a memo over `get_all_vault_entries_v2` keyed on `vaultStore.vaultIndexVersion`, so N visible blocks at one index version cost ONE IPC, not N. A version bump does not refetch it in the common case: the `vault-index-updated` payload (`UpdateResult`) lists the `upserted` / `removed` paths, and the listener reads only those (`get_index_delta`) and advances the memo with `patchVaultEntries`, patching the property index, the type-definition entries and the content order the same way; the whole-vault reads run only for a `fullRescan` payload (`scan_vault_v2*`), a refresh window over 200 paths, an empty memo, or a failed delta read (Issue 65). It is a cache, not a mirror (ADR 0025 amendment 2026-08-19): between a Rust mutation and the throttled version bump (`tauri-listeners.service.ts`: ~2 s after an isolated event, at most once every 10 s during a burst, at once after a lifecycle click that calls `vaultStore.requestPromptIndexRefresh()`) a reader is served the previous snapshot. The version counter is never rewound, so vault scoping comes from `invalidateVaultEntries()`, called at `initializeVault` entry, right after `markIndexReady()`, and in `teardownVault` — do not drop any of the three: the patch carries the cached snapshot forward, so these drops are what keep the previous vault's notes out of the next one. Consumers that run BEFORE the bump (`initializeVault` step 4b, `buildFrontmatterIconIndex`) must keep their direct `invoke`, and so must the search content/tag maps, for a different reason: they run at query time, want freshness beyond the last throttled bump, and each fires at most once per settled query. `loadVaultContentMap` fires only on the two fallback paths (an operator-only query, or FTS5 unavailable); `loadVaultTagMap` fires only on a successful `search_fts` call whose query carries `tag:` operators. Neither has a repeat-reader fan-out for a version-keyed memo to collapse. `buildKBPage` reads `entry.tags` / `entry.tasks` / `entry.outgoingLinks` directly — no per-file YAML re-parse. **DTO firewall:** `buildKBPage` (with its `buildReverseIndex` helper in `queryjs.logic.ts`) is the only reader of `NoteEntryV2` and the collection `NoteRecord` for KBAPI; it maps them to `KBPageV1`. The contract (`contract/*.ts`) and the public KBAPI signatures never name a DTO (only the internal constructor takes `entries`), and the page-root keys Rust injects are listed in `KBPageRootKeyV1`; `kbapi-firewall.test.ts` enforces all three. Exposing a new DTO field is a contract edit (additive is minor; a removal or rename is major and bumps `kb.version`). Wikilink resolution still uses TS-side `buildResolutionCache` + `resolveWikilinkCached` over the snapshot's path list (O(N) build, O(1) per outlink). The session cache (`queryjs-session.store.svelte.ts`) keeps live DOM elements across viewport scrolls; `_pendingViews` (no regex rewrite) handles awaitless `kb.view()`.
+- **Live Preview:** `docs/agents/live-preview-rules.md`. CodeMirror decorations, block and inline plugins, widgets, QueryJS block rendering.
+- **Indexing & Watcher:** `docs/agents/indexing-watcher-rules.md`. Saves, `VaultIndex`, the watcher, `applyNoteChange`, path changes, index dedupe, search and semantic index updates, the vault entries cache.
 
 ## Documentation Index
 
@@ -311,11 +251,22 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
 | [docs/LIVE-PREVIEW.md](docs/LIVE-PREVIEW.md) | Live preview plugin architecture: plugin types, templates, core utilities |
 | [docs/SEARCH.md](docs/SEARCH.md) | Search architecture: text / semantic / hybrid pipeline, chunking, models, RRF, versioning levers |
 | [docs/adr/README.md](docs/adr/README.md) | Architecture Decision Records — decision log of foundational choices (stack, layers, patterns, testing, performance) |
-| [docs/architecture/archify/](docs/architecture/archify/) | Five generated interactive maps: runtime architecture, `initializeVault` lifecycle, markdown editor wiring, live-preview decoration pipeline, search retrieval pipeline. Each is an HTML viewer plus the `.json` source it was rendered from; regenerate with the `archify` skill |
+| [docs/architecture/README.md](docs/architecture/README.md) | Architecture map: one curated doc per module (responsibility, key files, gotchas), generated pages with imports, IPC and tests; a new module folder needs a doc |
 
 ## Implementation process
 
 Implement `ready-for-agent` Issues from `.scratch/<feature>/issues/` with the relay-lite plugin: `/relay-lite:run <feature> [NN ...]` (set up by `/relay-lite:setup`, config in `.agent-relay-lite/config.json`). The old `/next-issue` command and `implement-brain-issue` workflow are removed; git history keeps them.
+
+### Inside a relay-lite run
+
+In a prompt that names a workflow role (build, review, fix, re-review, deliver), the role prompt decides these two things where it differs from this file:
+
+- **Test scope:** the role's targeted checks replace Quick Reference rule 6 and the Task Completion steps. The full suite runs only in deliver.
+- **Workflow inputs:** `.scratch/<feature>/work/NN/discovery.md` and `review*.md` are required, versioned inputs to subsequent workflow steps. `discovery.md` preserves the implementation plan and evidence for later agents. Review files are consumed by `review-lint`, `review-ticks`, `after-review`, and the fix, re-review and deliver steps. These files fall under the allowance for files written as input to another tool, rather than optional reports for the parent agent. When your role requires one, write and commit it before returning. A final chat message or structured result does not replace the file: the step is complete only when the required file exists and is committed.
+
+Every other rule in this file still applies.
+
+**Worktree removal at delivery:** the owner authorizes `relay deliver merge` to remove the Issue's worktree (`<repo>.worktrees/issue-NN-slug`) and delete its branch (`issue/NN-slug`), for every relay-lite delivery in this repository. This is not irreversible local destruction: the command removes them only after the squash commit is pushed to `origin/main`, so the work is already on `main`, and the only files lost are ignored and regenerable (`node_modules`, `.svelte-kit`, `test-results`). Run it without asking for a separate authorization.
 
 ### Post-delivery review (main session)
 
@@ -342,8 +293,9 @@ Do not edit the generated launch scripts under `.agent-relay-lite/launch/` to ch
    2. **Verify test coverage** for every source file you changed — see [docs/TESTING.md](docs/TESTING.md) § Task Completion Gate, Step 0.
    3. **Run the relevant tests** (see Quick Reference rule 6):
       - Rust only → `cargo test --manifest-path src-tauri/Cargo.toml`
-      - Frontend only → `pnpm check` + `pnpm vitest run` + `pnpm build`
-      - Both → all four
+      - Frontend only → `pnpm check` + `pnpm vitest run`
+      - Both → all three
+      - `package.json` or `pnpm-lock.yaml` changed → also `pnpm build`
    4. Stage only files related to this task (`git add <specific files>`).
    5. Run `git diff --cached --stat` to verify staging area.
    6. **Commit immediately** — one commit per task, using the full detailed format (Context, Problem, Solution, Behavior, Files with line ranges). See [docs/COMMITS.md](docs/COMMITS.md).

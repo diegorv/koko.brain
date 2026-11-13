@@ -2,18 +2,21 @@ import { test, expect } from '../fixtures/test-vault';
 import { openFile } from '../fixtures/helpers';
 
 test.describe('Source mode toggle button', () => {
-	test('Eye/Code button toggles live preview decorations', async ({ vaultPage: page }) => {
+	test('a Markdown note has no floating toggle: the action bar Raw button toggles live preview', async ({
+		vaultPage: page,
+	}) => {
 		await openFile(page, 'Welcome.md');
 
 		// Live-preview is on by default → heading line is decorated.
 		await expect(page.locator('.cm-lp-h1').first()).toBeVisible();
+		// The floating EditorView toggle is kept for kanban, canvas and view tabs only.
+		await expect(page.getByRole('button', { name: /Switch to (source mode|live preview)/i })).toHaveCount(0);
 
-		// Click the toolbar toggle button (rendered in EditorView.svelte, bottom-right).
-		await page.getByRole('button', { name: /Switch to source mode/i }).click();
+		const bar = page.getByTestId('note-action-bar');
+		await bar.getByRole('button', { name: 'Show raw Markdown' }).click();
 		await expect(page.locator('.cm-lp-h1')).toHaveCount(0);
 
-		// And back again.
-		await page.getByRole('button', { name: /Switch to live preview/i }).click();
+		await bar.getByRole('button', { name: 'Back to live preview' }).click();
 		await expect(page.locator('.cm-lp-h1').first()).toBeVisible();
 	});
 });

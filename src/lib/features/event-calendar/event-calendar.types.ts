@@ -54,6 +54,8 @@ export interface EventNote {
 	snippet: string;
 	/** When true, the timing cannot be changed from the calendar: every event with `endDate`. */
 	readOnly: boolean;
+	/** True for an archived note, projected only while the calendar shows archived events. */
+	archived?: boolean;
 }
 
 /** The scheduling fields an event note stores in its frontmatter. */
@@ -115,7 +117,7 @@ export interface EventProjection {
 	events: EventNote[];
 	/** Event-typed notes with a problem. */
 	issues: EventIssue[];
-	/** Number of archived event notes left out. */
+	/** Number of archived event notes, left out unless the projection includes them. */
 	archivedCount: number;
 }
 

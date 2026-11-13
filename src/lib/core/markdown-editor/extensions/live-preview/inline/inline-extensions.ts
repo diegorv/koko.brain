@@ -15,6 +15,7 @@ import { simpleWidgetHandlers } from './handlers/simple-widget-handlers';
 import { linkHandler, linkReferenceHandler } from './handlers/markdown-link-handlers';
 import { autolinkHandler, extendedAutolinkHandler } from './handlers/autolink-handlers';
 import { wikilinkHandler } from './handlers/wikilink-handler';
+import { tagHandler } from './handlers/tag-handler';
 import { markHandlers, escapeHandler } from './handlers/mark-handlers';
 import type { InlineHandlerName } from '../core/decorator-names';
 
@@ -39,13 +40,14 @@ export const PRODUCTION_NODE_HANDLERS: readonly NodeHandler[] = [
 /**
  * Production line handlers — regex-based parsers for markdown features
  * without a usable Lezer node (inline comments `%%…%%`, block references
- * `^id`, extended autolinks, wikilinks).
+ * `^id`, extended autolinks, wikilinks, body `#tags`).
  */
 export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [
 	inlineCommentHandler,
 	blockReferenceHandler,
 	extendedAutolinkHandler,
 	wikilinkHandler,
+	tagHandler,
 ];
 
 /**
@@ -54,7 +56,7 @@ export const PRODUCTION_LINE_HANDLERS: readonly LineHandler[] = [
  * `core/decorator-names.ts`, so the table and the switches in Troubleshooting
  * cannot drift apart. Keeps the legacy per-plugin toggle scope (e.g. `link`
  * covered markdown links, autolinks and wikilinks). Handlers absent from the
- * table (inline comments, block references) are always on, as in the legacy
+ * table (inline comments, block references, tags) are always on, as in the legacy
  * pipeline.
  */
 const TOGGLEABLE_HANDLERS: Record<InlineHandlerName, readonly (NodeHandler | LineHandler)[]> = {

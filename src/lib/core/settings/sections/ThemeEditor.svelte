@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { Button } from '#lib/components/ui/button/index.js';
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { applyTheme } from '../theme.service';
 	import { mergeThemeWithDefaults } from '../theme.logic';
 	import {
@@ -129,23 +130,19 @@
 <div class="flex flex-col gap-0">
 	<!-- Header -->
 	<div class="mb-4 flex items-center gap-3">
-		<button
-			class="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-settings-hover-bg hover:text-settings-text"
-			onclick={onCancel}
-			title="Back to themes"
-		>
+		<Button variant="ghost" size="icon-sm" class="text-muted-foreground" onclick={onCancel} title="Back to themes" aria-label="Back to themes">
 			<ArrowLeftIcon class="size-4" />
-		</button>
+		</Button>
 		<div class="flex min-w-0 flex-1 flex-col gap-0.5">
-			<input
+			<Input
 				type="text"
-				class="h-8 rounded border border-input bg-input-bg px-3 text-sm font-medium text-settings-text"
+				class="h-8 font-medium"
 				bind:value={draftName}
 				oninput={() => (nameError = null)}
 				placeholder="Theme name"
 			/>
 			{#if nameError}
-				<span class="text-xs text-destructive">{nameError}</span>
+				<span class="text-meta text-destructive">{nameError}</span>
 			{/if}
 		</div>
 		<div class="flex shrink-0 items-center gap-2">
@@ -157,11 +154,11 @@
 	<!-- Import / Export -->
 	<div class="mb-4 flex gap-2">
 		<Button variant="outline" size="sm" onclick={handleExport}>
-			<DownloadIcon class="mr-1.5 size-3.5" />
+			<DownloadIcon class="size-3.5" />
 			Export
 		</Button>
 		<Button variant="outline" size="sm" onclick={handleImportClick}>
-			<UploadIcon class="mr-1.5 size-3.5" />
+			<UploadIcon class="size-3.5" />
 			Import
 		</Button>
 		<input
@@ -177,7 +174,7 @@
 	<div class="mb-4 flex gap-1 border-b border-border">
 		{#each COLOR_GROUP_ORDER as group}
 			<button
-				class="px-3 py-1.5 text-sm transition-colors {activeGroup === group
+				class="px-3 py-1.5 text-row transition-colors {activeGroup === group
 					? 'border-b-2 border-primary text-settings-text'
 					: 'text-muted-foreground hover:text-settings-text'}"
 				onclick={() => (activeGroup = group)}
@@ -190,7 +187,7 @@
 	<!-- Color rows grouped by sub-group -->
 	{#each GROUP_SUB_GROUPS[activeGroup] as subgroup}
 		<div class="mb-4">
-			<h4 class="mb-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
+			<h4 class="section-label mb-1.5">
 				{subgroup.label}
 			</h4>
 			{#each subgroup.keys as key}

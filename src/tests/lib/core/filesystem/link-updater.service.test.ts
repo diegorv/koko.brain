@@ -1,4 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
+
+// `vaultStore.open` persists the recent-vaults list.
+setupLocalStorage();
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
@@ -21,6 +25,9 @@ vi.mock('#lib/utils/debug.js', () => ({
 import { readTextFile, writeTextFile } from '@tauri-apps/plugin-fs';
 import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { updateLinksAfterRename, updateTabAfterRenameOrMove } from '#lib/core/filesystem/link-updater.service.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -74,10 +81,22 @@ function mockBacklinksV2(entries: NoteEntryV2[]): void {
 	});
 }
 
+/** A file node of the vault tree. */
+function file(path: string): FileTreeNode {
+	return { name: path.split('/').pop() ?? path, path, isDirectory: false };
+}
+
+/** A directory node of the vault tree. */
+function dir(path: string, children: FileTreeNode[]): FileTreeNode {
+	return { name: path.split('/').pop() ?? path, path, isDirectory: true, children };
+}
+
 describe('updateLinksAfterRename', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		editorStore.reset();
+		fsStore.reset();
+		vaultStore._reset();
 	});
 
 	it('skips when old and new names are the same (pure move)', async () => {
@@ -214,6 +233,52 @@ describe('updateLinksAfterRename', () => {
 		expect(tab).toBeDefined();
 		expect(tab!.content).toBe('link to [[new-name]]');
 		expect(tab!.savedContent).toBe('link to [[new-name]]');
+	});
+
+	it('rewrites a path-qualified link on disk and in the open tab', async () => {
+		mockBacklinksV2([entry('/v/ref.md')]);
+		editorStore.addTab({
+			path: '/v/ref.md',
+			name: 'ref.md',
+			content: 'See [[folder/Old]]',
+			savedContent: 'See [[folder/Old]]',
+		});
+		vi.mocked(readTextFile).mockResolvedValue('See [[folder/Old]]');
+
+		await updateLinksAfterRename('/v/folder/Old.md', '/v/folder/New.md');
+
+		expect(writeTextFile).toHaveBeenCalledWith('/v/ref.md', 'See [[folder/New]]');
+		const tab = editorStore.tabs.find((t) => t.path === '/v/ref.md');
+		expect(tab?.content).toBe('See [[folder/New]]');
+		expect(tab?.savedContent).toBe('See [[folder/New]]');
+	});
+
+	it('keeps a rewritten link on the renamed note when another note owns the new stem', async () => {
+		vaultStore.open('/v');
+		fsStore.setFileTree([
+			dir('/v/B', [file('/v/B/Old.md'), file('/v/B/Other.md')]),
+			dir('/v/A', [file('/v/A/Old.md')]),
+			file('/v/ref.md'),
+		]);
+		mockBacklinksV2([entry('/v/ref.md')]);
+		editorStore.addTab({
+			path: '/v/ref.md',
+			name: 'ref.md',
+			content: '[[A/Old.md]] and [[Old]] and [[A/Old]]',
+			savedContent: '[[A/Old.md]] and [[Old]] and [[A/Old]]',
+		});
+		vi.mocked(readTextFile).mockResolvedValue('[[A/Old.md]] and [[Old]] and [[A/Old]]');
+
+		await updateLinksAfterRename('/v/A/Old.md', '/v/A/Other.md');
+
+		// Bare `[[Old]]`, and `[[A/Old]]` through its basename, resolve to B/Old (first
+		// path wins) and stay. `[[A/Other.md]]` is written because `[[A/Other]]` would
+		// resolve to B/Other.
+		const expected = '[[A/Other.md]] and [[Old]] and [[A/Old]]';
+		expect(writeTextFile).toHaveBeenCalledWith('/v/ref.md', expected);
+		const tab = editorStore.tabs.find((t) => t.path === '/v/ref.md');
+		expect(tab?.content).toBe(expected);
+		expect(tab?.savedContent).toBe(expected);
 	});
 
 	it('reads from disk when file has no open tab', async () => {

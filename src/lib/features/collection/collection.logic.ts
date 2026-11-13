@@ -7,7 +7,7 @@ import type {
 	QueryColumn,
 	QueryResult,
 } from './collection.types';
-import { evaluate, type EvalContext } from './expression/evaluator';
+import { evaluate, validateExpression, type EvalContext } from './expression/evaluator';
 import { parse } from './expression/parser';
 import { isDisplayValue, type ASTNode } from './expression/expression.types';
 import { normalizeTypeCasing, parseFrontmatterProperties } from '#lib/core/frontmatter/properties.logic.js';
@@ -108,15 +108,43 @@ function boolFlag(
 }
 
 /**
+ * Picks the rows a query shows from the records it matched (filtered, formulas
+ * computed, the view's own sort applied, `limit` not yet applied), in display
+ * order. A `.view` passes one so its list follows the rail's rule. `view` and
+ * `definition` are the ones the query ran, so their filters are the toolbar's.
+ */
+export type QueryRowSet = (
+	records: PropertyIndexRecord[],
+	view: CollectionViewDef,
+	definition: CollectionDefinition,
+) => PropertyIndexRecord[];
+
+/**
  * Executes a query against the property index using a collection definition and view.
- * Pipeline: collect -> filter -> compute formulas -> sort -> limit -> select columns
+ * Pipeline: collect -> filter -> compute formulas -> sort -> limit -> select columns.
+ * With `rowSet`, it replaces the limit step (it applies `limit` itself) and the
+ * columns are resolved from the rows it returns.
+ *
+ * @param vaultPath - The open vault's absolute path, which a relative
+ * `file.inFolder()` resolves against. Required so no caller can forget it: a
+ * relative folder with no vault path matches nothing.
  */
 export function executeQuery(
 	definition: CollectionDefinition,
 	view: CollectionViewDef,
 	index: Map<string, PropertyIndexRecord>,
+	vaultPath: string | null,
+	rowSet?: QueryRowSet,
 ): QueryResult {
 	const formulas = definition.formulas ?? {};
+	const vault = vaultPath ?? undefined;
+
+	// A filter that cannot run fails the whole query, before any record is read,
+	// so a typo is reported instead of looking like "no notes match".
+	const filterError = findFilterError(definition.filters) ?? findFilterError(view.filters);
+	if (filterError !== undefined) {
+		return { records: [], columns: resolveColumns(view, [], definition), filterError };
+	}
 
 	// 1. Collect all records
 	let records = Array.from(index.values());
@@ -137,7 +165,7 @@ export function executeQuery(
 
 	// 2. Filter — combine global + view filters with AND
 	records = records.filter((record) => {
-		const ctx: EvalContext = { record, formulas };
+		const ctx: EvalContext = { record, formulas, vaultPath: vault };
 		if (definition.filters && !evaluateFilterCached(definition.filters, ctx, parseCache)) {
 			return false;
 		}
@@ -158,7 +186,7 @@ export function executeQuery(
 				continue;
 			}
 			try {
-				const ctx: EvalContext = { record, formulas };
+				const ctx: EvalContext = { record, formulas, vaultPath: vault };
 				const value = evaluate(ast, ctx);
 				record.properties.set(`formula.${formulaName}`, value);
 			} catch {
@@ -173,17 +201,17 @@ export function executeQuery(
 			for (const sortDef of view.sort!) {
 				const aVal = getPropertyValue(a, sortDef.column);
 				const bVal = getPropertyValue(b, sortDef.column);
-				const cmp = compareForSort(aVal, bVal);
-				if (cmp !== 0) {
-					return sortDef.direction === 'DESC' ? -cmp : cmp;
-				}
+				const cmp = compareForSort(aVal, bVal, sortDef.direction === 'DESC');
+				if (cmp !== 0) return cmp;
 			}
 			return 0;
 		});
 	}
 
 	// 5. Limit
-	if (view.limit !== undefined && view.limit > 0) {
+	if (rowSet) {
+		records = rowSet(records, view, definition);
+	} else if (view.limit !== undefined && view.limit > 0) {
 		records = records.slice(0, view.limit);
 	}
 
@@ -194,14 +222,114 @@ export function executeQuery(
 }
 
 /**
- * Evaluates a filter item (string expression or recursive filter object) against a note record.
+ * The first reason a top-level `filters` value cannot run: a string that fails
+ * `validateExpression`, an `and` / `or` / `not` value that is not a list, or a
+ * list item that is neither a string nor an object. Undefined when it can run;
+ * an absent or empty top-level value is no filter. Filters come from YAML
+ * unvalidated (`parseCollectionYaml`), so the shapes are checked here.
  */
-export function evaluateFilter(filter: FilterItem, ctx: EvalContext): boolean {
+function findFilterError(filter: unknown): string | undefined {
+	if (!filter) return undefined;
+	return findItemError(filter);
+}
+
+function findItemError(item: unknown): string | undefined {
+	if (typeof item === 'string') {
+		const reason = validateExpression(item);
+		return reason === undefined ? undefined : `Invalid filter "${item}": ${reason}`;
+	}
+	if (typeof item !== 'object' || item === null) {
+		return `Invalid filter item: ${JSON.stringify(item)} is not an expression`;
+	}
+	for (const key of ['and', 'or', 'not'] as const) {
+		const list = (item as Record<string, unknown>)[key];
+		if (list === undefined) continue;
+		if (!Array.isArray(list)) return `Invalid filter: "${key}" must be a list`;
+		for (const child of list) {
+			const error = findItemError(child);
+			if (error !== undefined) return error;
+		}
+	}
+	return undefined;
+}
+
+/** The names that read a note's archived flag in a filter (the normalised flag and the raw key). */
+const ARCHIVED_NAMES = new Set(['archived', '_archived']);
+
+/**
+ * Whether a filter cites the archived flag, which hands the archived rows of
+ * a `.view` to the filter instead of the default exclusion. A citation is the
+ * name `archived` or `_archived` anywhere in an expression (an identifier, a
+ * member, a segment of a dotted call such as `_archived.isEmpty()`, or inside
+ * call arguments) and `file.hasProperty('archived')` or `'_archived'`. Other
+ * string literals are not citations (`status == 'archived'`,
+ * `file.hasTag('archived')`), and a referenced formula is not followed. An
+ * expression that does not parse cites nothing; `executeQuery` reports it
+ * before any row set runs.
+ */
+export function filterCitesArchived(filter: FilterItem | undefined): boolean {
+	if (!filter) return false;
+	if (typeof filter === 'string') {
+		try {
+			return astCitesArchived(parse(filter));
+		} catch {
+			return false;
+		}
+	}
+	if (typeof filter !== 'object') return false;
+	return (['and', 'or', 'not'] as const).some((key) => {
+		const list = filter[key];
+		return Array.isArray(list) && list.some((item) => filterCitesArchived(item));
+	});
+}
+
+function astCitesArchived(node: ASTNode): boolean {
+	switch (node.type) {
+		case 'identifier':
+			return ARCHIVED_NAMES.has(node.name);
+		case 'member':
+			// `formula.<name>` names a formula, not a property, even when the name is `archived`.
+			if (node.object.type === 'identifier' && node.object.name === 'formula') return false;
+			return ARCHIVED_NAMES.has(node.property) || astCitesArchived(node.object);
+		case 'call': {
+			const segments = node.callee.split('.');
+			// A leading `formula.<name>` names a formula; only the path after it can cite.
+			const cited = segments[0] === 'formula' ? segments.slice(2) : segments;
+			if (cited.some((segment) => ARCHIVED_NAMES.has(segment))) return true;
+			const first = node.args[0];
+			if (node.callee === 'file.hasProperty' && first?.type === 'string' && ARCHIVED_NAMES.has(first.value)) return true;
+			return node.args.some(astCitesArchived);
+		}
+		case 'methodCall':
+			return ARCHIVED_NAMES.has(node.method) || astCitesArchived(node.receiver) || node.args.some(astCitesArchived);
+		case 'binary':
+			return astCitesArchived(node.left) || astCitesArchived(node.right);
+		case 'unary':
+			return astCitesArchived(node.operand);
+		case 'array':
+			return node.elements.some(astCitesArchived);
+		case 'number':
+		case 'string':
+		case 'boolean':
+			return false;
+	}
+}
+
+/**
+ * Evaluates a filter item (string expression or recursive filter object) against a note record.
+ * A leaf that fails to parse or throws when evaluated counts as false.
+ *
+ * @param onLeafError - Receives each such leaf's error before it counts as false.
+ * A callback that throws stops the whole evaluation, so a failing leaf inside `not`
+ * cannot turn into a match.
+ */
+export function evaluateFilter(filter: FilterItem, ctx: EvalContext, onLeafError?: (err: unknown) => void): boolean {
 	if (typeof filter === 'string') {
 		try {
 			const ast = parse(filter);
 			return toTruthy(evaluate(ast, ctx));
-		} catch {
+		} catch (err) {
+			onLeafError?.(err);
 			return false;
 		}
 	}
@@ -210,13 +338,13 @@ export function evaluateFilter(filter: FilterItem, ctx: EvalContext): boolean {
 	let result = true;
 
 	if (filterObj.and) {
-		result = filterObj.and.every((item) => evaluateFilter(item, ctx));
+		result = filterObj.and.every((item) => evaluateFilter(item, ctx, onLeafError));
 	}
 	if (result && filterObj.or) {
-		result = filterObj.or.some((item) => evaluateFilter(item, ctx));
+		result = filterObj.or.some((item) => evaluateFilter(item, ctx, onLeafError));
 	}
 	if (result && filterObj.not) {
-		result = filterObj.not.every((item) => !evaluateFilter(item, ctx));
+		result = filterObj.not.every((item) => !evaluateFilter(item, ctx, onLeafError));
 	}
 
 	return result;
@@ -305,14 +433,24 @@ export function getPropertyValue(record: PropertyIndexRecord, column: string): u
 	return record.properties.get(column) ?? null;
 }
 
-/** Compares two values for sorting — null/undefined always sort last */
-function compareForSort(a: unknown, b: unknown): number {
+/**
+ * Compares two values for sorting in the given direction. Null and undefined
+ * sort last in both directions: the null check runs before the direction is
+ * applied. Two nulls compare equal, so the next sort level breaks the tie.
+ */
+function compareForSort(a: unknown, b: unknown, descending: boolean): number {
 	const aNull = a === null || a === undefined;
 	const bNull = b === null || b === undefined;
 	if (aNull && bNull) return 0;
 	if (aNull) return 1;
 	if (bNull) return -1;
 
+	const cmp = compareValues(a, b);
+	return descending ? -cmp : cmp;
+}
+
+/** Ascending comparison of two non-null values: dates, booleans, numbers, then strings */
+function compareValues(a: unknown, b: unknown): number {
 	if (a instanceof Date && b instanceof Date) return a.getTime() - b.getTime();
 	if (a instanceof Date) return -1;
 	if (b instanceof Date) return 1;

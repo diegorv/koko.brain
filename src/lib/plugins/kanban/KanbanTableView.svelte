@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Check from '@lucide/svelte/icons/check';
 	import type { KanbanBoard } from './kanban.types';
-	import { stripCardMetadata, extractCardDate, extractCardColor, extractCardTags, getDateProximity } from './kanban.logic';
+	import { stripCardMetadata, extractCardDate, extractCardColor, extractCardTags, cardProximity, PROXIMITY_CLASSES } from './kanban.logic';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
 
@@ -34,14 +34,14 @@
 					{@const cardColor = extractCardColor(item.text)}
 					{@const displayText = stripCardMetadata(item.text)}
 					{@const tags = extractCardTags(item.text)}
-					{@const proximity = getDateProximity(cardDate, formatNow('YYYY-MM-DD'))}
+					{@const proximity = cardProximity(cardDate, formatNow('YYYY-MM-DD'), item.checked)}
 					<tr
 						class="border-b border-border/50 hover:bg-muted/20"
 						style={cardColor ? `background: ${COLOR_PRESET_BG[cardColor]}` : ''}
 					>
 						<td class="px-2 py-1.5">
 							<button
-								class="flex size-4 items-center justify-center rounded border transition-colors
+								class="flex size-4 items-center justify-center rounded-xs border transition-colors
 									{item.checked ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary'}"
 								onclick={() => onToggleItem(lane.id, item.id)}
 							>
@@ -66,12 +66,12 @@
 						</td>
 						<td class="px-2 py-1.5">
 							{#if cardDate}
-								<span class="rounded px-1.5 py-0.5 text-xs {proximity === 'overdue' ? 'bg-red-500/15 text-red-500' : proximity === 'today' ? 'bg-yellow-500/15 text-yellow-500' : 'bg-muted text-muted-foreground'}">
+								<span class="rounded-xs px-1.5 py-0.5 text-xs {PROXIMITY_CLASSES[proximity].badge}">
 									{cardDate}
 								</span>
 							{/if}
 						</td>
-						<td class="px-2 py-1.5 text-xs {item.checked ? 'text-green-500' : 'text-muted-foreground'}">
+						<td class="px-2 py-1.5 text-xs {item.checked ? 'text-success' : 'text-muted-foreground'}">
 							{item.checked ? 'Done' : 'Open'}
 						</td>
 					</tr>

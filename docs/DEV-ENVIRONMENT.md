@@ -73,6 +73,21 @@ For a container that is recreated per session, the right place for steps 1-4 is 
 
 `pnpm check`, `pnpm vitest run` and `pnpm build` need only Node 22.17 or newer and pnpm; no platform-specific steps were required.
 
+### In a git worktree
+
+Install the dependencies in the worktree itself:
+
+```sh
+pnpm install --frozen-lockfile --offline
+```
+
+The pnpm store is shared, so this takes seconds and reuses the stored files (cloned or hard-linked) instead of downloading them; drop `--offline` when the lockfile names a package the store does not have yet. relay-lite runs `pnpm install --frozen-lockfile` in each worktree through `checks.setup` in `.agent-relay-lite/config.json`.
+
+Do not symlink `node_modules` from the main checkout. SvelteKit 3's `svelte-kit sync` writes the generated tsconfig and the route ID and env types into `node_modules/$app/`, and the root `tsconfig.json` extends `$app/tsconfig`. Its `rootDirs` (`../..`, `../../.svelte-kit/types`) are relative to that folder, so through a symlink they resolve to the main checkout:
+
+- `pnpm check` in the worktree reports errors that are not in the code (`Module '"*.svelte"' has no exported member ...`, `Binding element 'props' implicitly has an 'any' type`), while `vitest` and `build` still pass.
+- The worktree's sync writes its route and env types into the main checkout's `node_modules/$app/types/` whenever they differ. Run `./node_modules/.bin/svelte-kit sync` in the main checkout to restore it.
+
 ## Retrieval eval
 
 The offline retrieval eval (`docs/SEARCH.md` § "Evaluating retrieval changes") needs a real vault with its `.kokobrain/` database and the two ONNX models on disk, so it runs on the machine that owns the vault, not in a container.

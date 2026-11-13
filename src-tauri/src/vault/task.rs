@@ -1,8 +1,8 @@
 //! Task data types and IPC structs for the Tasks/Tags Phase 7 work.
 //!
-//! Mirrors the TS interfaces in
-//! `src/lib/features/tasks/{tasks.types.ts, task-metadata.types.ts}` exactly.
-//! Field names are camelCase over IPC; enum variants use kebab-case to match
+//! `Task` mirrors `src/lib/features/tasks/tasks.types.ts::TaskItem` and the
+//! metadata types mirror `src/lib/features/tasks/task-metadata.types.ts`
+//! exactly. Field names are camelCase over IPC; enum variants use kebab-case to match
 //! the TS string-literal unions (`'in-progress'`, `'highest'`, etc.).
 //!
 //! `Task` is parsed at `NoteEntry::from_content` time via
@@ -15,7 +15,7 @@ use serde::{Deserialize, Serialize};
 /// One task list item parsed from a note's body.
 ///
 /// Mirrors `tasks.types.ts::TaskItem`. `line_number` is 1-based to match
-/// the TS contract used by `toggleTask(filePath, lineNumber)`.
+/// the TS contract used by `toggleTask(filePath, task)`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
@@ -32,6 +32,27 @@ pub struct Task {
 	pub status: TaskStatus,
 	/// Structured metadata extracted from emoji signifiers in `text`.
 	pub metadata: TaskMetadata,
+	/// Index into the note's `NoteEntry.task_headings` of the nearest heading
+	/// above the task. Absent when the task sits before the first heading.
+	#[serde(skip_serializing_if = "Option::is_none", default)]
+	#[ts(optional)]
+	pub heading: Option<u32>,
+}
+
+/// One markdown heading of a note that has tasks, as stored in
+/// `NoteEntry.task_headings`. A task's ancestors follow from the levels of
+/// the headings before the one `Task.heading` points at.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskHeading {
+	/// Number of `#` characters, 1 to 6.
+	pub level: u8,
+	/// Heading text without the `#` run, trimmed.
+	pub text: String,
+	/// 1-based line number within the whole file, frontmatter included, like
+	/// `Task.line_number`.
+	pub line: u32,
 }
 
 /// Task status parsed from the checkbox character. Mirrors
@@ -146,8 +167,7 @@ pub struct TagAggregate {
 	pub file_paths: Vec<String>,
 }
 
-/// One file's worth of tasks, as returned by
-/// `VaultIndex::lookup_all_tasks`. Mirrors `tasks.types.ts::FileTaskGroup`.
+/// One file's worth of tasks, as returned by `VaultIndex::lookup_all_tasks`.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, ts_rs::TS)]
 #[ts(export)]
 #[serde(rename_all = "camelCase")]
@@ -189,10 +209,37 @@ pub struct ToggleTaskResult {
 	/// to update `noteIndexStore` and the editor view).
 	pub updated_content: String,
 	/// `UpdateResult` from the `VaultIndex::update_entry` call that ran
-	/// after the disk write. `changed: false` means the line was a no-op
-	/// (out of bounds or no checkbox); the disk file is untouched in that
-	/// case and the content equals the pre-call content.
+	/// after the disk write. `changed: false` means nothing was written (a
+	/// stale line, see `stale`, or `target` already the line's status); the
+	/// disk file is untouched in that case and the content equals the
+	/// pre-call content.
 	pub update_result: crate::vault::index::UpdateResult,
+	/// true when the line no longer held the expected task, so nothing was
+	/// written.
+	pub stale: bool,
+}
+
+/// Result of `write_task_text`: the note content after the call, the index
+/// diff, whether the line was stale, and the re-parsed task. The task carries
+/// the `metadata` (due date, priority) only Rust parses, for the Tasks view's
+/// write overlay.
+#[derive(Debug, Clone, Serialize, Deserialize, ts_rs::TS)]
+#[ts(export)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskTextWriteResult {
+	/// File content after the call; the pre-call content when nothing was
+	/// written.
+	pub updated_content: String,
+	/// `UpdateResult` of the index update after the write. `changed: false`
+	/// means nothing was written: a stale line, or the new text equals the
+	/// expected text.
+	pub update_result: crate::vault::index::UpdateResult,
+	/// true when the line no longer held the expected task, so nothing was
+	/// written.
+	pub stale: bool,
+	/// `parse_task_line` of the written line; `None` when nothing was written.
+	/// Its `heading` is always absent (the index entry carries it).
+	pub task: Option<Task>,
 }
 
 #[cfg(test)]

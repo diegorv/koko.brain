@@ -328,6 +328,48 @@ describe('rebuildAllIndexes — incremental path', () => {
 		expect(rebuildIndex).toHaveBeenCalled();
 	});
 
+	it('skips the rebuild for a batch made only of mod code', async () => {
+		await rebuildAllIndexes(['/vault/_system/mods/hello/main.js', '/vault/_system/mods/hello/manifest.json', '/vault/_system/mods/hello']);
+
+		expect(rebuildIndex).not.toHaveBeenCalled();
+		expect(buildPropertyIndex).not.toHaveBeenCalled();
+		expect(buildFrontmatterIconIndex).not.toHaveBeenCalled();
+		expect(invoke).not.toHaveBeenCalledWith('read_files_batch', expect.anything());
+	});
+
+	it('updates a note incrementally when the batch also holds mod code', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/vault/note.md', content: '---\nstatus: done\n---\n' },
+		]);
+
+		await rebuildAllIndexes(['/vault/_system/mods/hello/main.js', '/vault/note.md']);
+
+		expect(rebuildIndex).not.toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledWith('read_files_batch', { vaultPath: '/vault', paths: ['/vault/note.md'] });
+		expect(collectionStore.propertyIndex.get('/vault/note.md')?.properties.get('status')).toBe('done');
+	});
+
+	it('still indexes a note or a view kept in the mods folder', async () => {
+		vi.mocked(invoke).mockResolvedValueOnce([
+			{ path: '/vault/_system/mods/hello/README.md', content: '# Hello' },
+			{ path: '/vault/_system/mods/hello/list.view', content: 'type: list\n' },
+		]);
+
+		await rebuildAllIndexes(['/vault/_system/mods/hello/README.md', '/vault/_system/mods/hello/list.view', '/vault/_system/mods/hello/main.js']);
+
+		expect(rebuildIndex).not.toHaveBeenCalled();
+		expect(invoke).toHaveBeenCalledWith('read_files_batch', {
+			vaultPath: '/vault',
+			paths: ['/vault/_system/mods/hello/README.md', '/vault/_system/mods/hello/list.view'],
+		});
+	});
+
+	it('keeps a .js file outside the mods folder in the full rebuild', async () => {
+		await rebuildAllIndexes(['/vault/scripts/tool.js']);
+
+		expect(rebuildIndex).toHaveBeenCalled();
+	});
+
 	it('handles deleted files in incremental path', async () => {
 		const CONTENT = '---\n_icon: lucide:star\ncreated: 2026-01-02\n---\n';
 		// Seed every consumer through the real upsert path first.

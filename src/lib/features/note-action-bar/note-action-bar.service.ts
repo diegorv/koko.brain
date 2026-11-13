@@ -1,33 +1,15 @@
-import { ask } from '@tauri-apps/plugin-dialog';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { toast } from 'svelte-sonner';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
-import { createFile, deleteItem } from '#lib/core/filesystem/fs.service.js';
-import { fileOperationErrorMessage, getParentPath, PreDeleteSaveError } from '#lib/core/filesystem/fs.logic.js';
+import { createFile } from '#lib/core/filesystem/fs.service.js';
+import { getParentPath } from '#lib/core/filesystem/fs.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildOpenNoteDeepLink } from '#lib/features/deep-link/deep-link.logic.js';
 import { ensureFrontmatterLink } from '#lib/core/frontmatter/properties.logic.js';
+import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { error } from '#lib/utils/debug.js';
 import { basename, stem } from '#lib/utils/path.js';
-
-/**
- * Asks the same "Move to Trash" confirmation as the file explorer, then moves
- * the note to the trash. A failure is shown in a toast (`deleteItem` logs it).
- * @param path - the note's absolute path
- */
-export async function deleteNoteWithConfirm(path: string): Promise<void> {
-	const name = basename(path);
-	const confirmed = await ask(`Move "${name}" to trash?`, { title: 'Move to Trash', kind: 'warning' });
-	if (!confirmed) return;
-	try {
-		await deleteItem(path, false);
-	} catch (err) {
-		// The editor already toasted the failed save.
-		if (err instanceof PreDeleteSaveError) return;
-		toast.error(fileOperationErrorMessage('move {name} to the Trash', name, err));
-	}
-}
 
 /** Flips the one global note width setting between the configured content width and full width. */
 export function toggleWideNotes(): void {
@@ -94,7 +76,8 @@ export async function createLinkedNote(hubPath: string): Promise<void> {
 	const hub = stem(hubPath);
 	let created: string;
 	try {
-		created = await createFile(getParentPath(hubPath), 'Untitled.md', ensureFrontmatterLink('', '_belongs_to', hub));
+		const content = applyExplicitOrganization(ensureFrontmatterLink('', '_belongs_to', hub), settingsStore.explicitOrganization);
+		created = await createFile(getParentPath(hubPath), 'Untitled.md', content);
 	} catch {
 		// `createFile` already logged the cause.
 		toast.error(`Could not create a note linked to "${hub}".`);

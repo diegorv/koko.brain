@@ -3,8 +3,13 @@ use crate::utils::fs as vault_fs;
 use crate::utils::logger::{debug_log, is_debug_enabled};
 use crate::vault::entry::{NoteEntry, NoteRecord, OutgoingLink, OutgoingUnlinkedMention, RelationshipBacklink};
 use crate::vault::index::{match_unlinked_mentions, UpdateResult, VaultIndex};
-use crate::vault::parsing::{extract_tasks_from_section, rewrite_type_in_frontmatter, toggle_task_in_content};
-use crate::vault::task::{display_name, FileTaskGroup, TagAggregate, ToggleTaskResult};
+use crate::vault::parsing::{
+	parse_task_line, rewrite_type_in_frontmatter, set_task_status_in_content, set_task_text_in_content,
+};
+use crate::vault::task::{FileTaskGroup, TagAggregate, TaskStatus, TaskTextWriteResult, ToggleTaskResult};
+use crate::vault::task_lines::{
+	apply_task_line_edits, TaskLineEditOutcome, TaskLineEdits, TaskLinesOutcome, TaskLinesWriteResult,
+};
 use crate::vault::VaultIndexState;
 use serde::Serialize;
 use std::cmp::Ordering;
@@ -654,135 +659,38 @@ pub fn get_all_tasks_v2(
 	Ok(idx.lookup_all_tasks())
 }
 
-/// A note that may hold tasks in a matching section: the path to read and
-/// the `modified_at` the result group carries.
-#[derive(Debug, Clone)]
-pub struct SectionTaskCandidate {
-	/// Absolute file path.
-	pub path: String,
-	/// Last-modified timestamp (seconds) from the index entry.
-	pub modified_at: i64,
-}
-
-/// Picks the notes `tasks_in_section` has to read: those whose index entry
-/// has at least one task. Exact, not a heuristic: `NoteEntry.tasks` is
-/// `extract_tasks` over the full content, and `extract_tasks_from_section`
-/// runs the same line split, fence logic and `parse_task_line` behind an
-/// extra heading gate, so a note with no tasks has no section tasks.
-pub fn section_task_candidates<'a>(
-	entries: impl IntoIterator<Item = &'a NoteEntry>,
-) -> Vec<SectionTaskCandidate> {
-	entries
-		.into_iter()
-		.filter(|e| !e.tasks.is_empty())
-		.map(|e| SectionTaskCandidate {
-			path: e.path.clone(),
-			modified_at: e.modified_at,
-		})
-		.collect()
-}
-
-/// Reads each candidate through `read`, keeps the tasks under headings
-/// that contain `section_tag`, and returns the non-empty groups sorted by
-/// `modified_at` descending. A read failure is logged and the note skipped,
-/// so one vanished file does not fail the whole query.
-pub fn tasks_in_section(
-	candidates: Vec<SectionTaskCandidate>,
-	section_tag: &str,
-	mut read: impl FnMut(&str) -> std::io::Result<String>,
-) -> Vec<FileTaskGroup> {
-	debug_log(
-		"VAULT-V2",
-		format!("get_tasks_in_section_v2: reading {} notes with tasks", candidates.len()),
-	);
-	let mut out: Vec<FileTaskGroup> = Vec::new();
-	for candidate in candidates {
-		let content = match read(&candidate.path) {
-			Ok(c) => c,
-			Err(err) => {
-				debug_log(
-					"VAULT-V2",
-					format!(
-						"get_tasks_in_section_v2: read failed for {} ({}); skipping",
-						candidate.path, err
-					),
-				);
-				continue;
-			}
-		};
-		let tasks = extract_tasks_from_section(&content, section_tag);
-		if !tasks.is_empty() {
-			out.push(FileTaskGroup {
-				file_name: display_name(&candidate.path),
-				file_path: candidate.path,
-				modified_at: candidate.modified_at,
-				tasks,
-			});
-		}
-	}
-	out.sort_by_key(|g| std::cmp::Reverse(g.modified_at));
-	out
-}
-
-/// Returns tasks across the vault filtered by section heading: only tasks
-/// whose containing heading text contains `section_tag` are emitted. The
-/// `VaultIndex` does not store headings, so this command reads from disk
-/// every note whose index entry has tasks (`section_task_candidates`).
-///
-/// Async so Tauri runs it off the app main thread. The candidates are
-/// copied under a brief read guard and the files are read on a blocking
-/// thread with the guard released, so writers such as
-/// `update_note_in_index` (which take `.write()`) do not wait on disk I/O.
-#[tauri::command]
-pub async fn get_tasks_in_section_v2(
-	section_tag: String,
-	state: tauri::State<'_, VaultIndexState>,
-) -> Result<Vec<FileTaskGroup>, String> {
-	let _trace = CmdTrace::new("get_tasks_in_section_v2");
-	let candidates = {
-		let idx = state
-			.read()
-			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		section_task_candidates(idx.entries().values())
-	};
-	tokio::task::spawn_blocking(move || {
-		tasks_in_section(candidates, &section_tag, |p| std::fs::read_to_string(p))
-	})
-	.await
-	.map_err(|e| format!("get_tasks_in_section_v2 task join error: {}", e))
-}
-
-/// Synchronous body of `get_tasks_in_section_v2` for the browser host's
-/// dispatcher, which runs on its own session thread: the candidates are
-/// copied under the read guard, and the files are read after it is released.
-pub fn tasks_in_section_inner(
-	section_tag: &str,
-	state: &VaultIndexState,
-) -> Result<Vec<FileTaskGroup>, String> {
-	let candidates = {
-		let idx = state
-			.read()
-			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		section_task_candidates(idx.entries().values())
-	};
-	Ok(tasks_in_section(candidates, section_tag, |p| std::fs::read_to_string(p)))
-}
-
 /// Pure-logic implementation behind `toggle_task_status`. Reads the
-/// current file content, toggles the checkbox at `line_number`, writes
-/// the new content back, and returns the diff applied to the `VaultIndex`.
+/// current file content and re-parses the task at `line_number`. When that
+/// line no longer holds a task with `expected_text` and `expected_status`
+/// (the Tasks list can lag disk by seconds), nothing is written and the
+/// result is `stale`. Otherwise the checkbox is set to `target`, the new
+/// content is written back, and the diff applied to the `VaultIndex` is
+/// returned. `Task.text` excludes the checkbox, which is why the status is
+/// compared too.
 /// Tests construct a tmpdir + an in-memory `VaultIndex`, call this
 /// directly, and assert on disk + index state without a Tauri AppHandle.
 pub fn toggle_task_status_inner(
 	idx: &mut VaultIndex,
 	path: &str,
 	line_number: usize,
+	expected_text: &str,
+	expected_status: TaskStatus,
+	target: TaskStatus,
 ) -> Result<ToggleTaskResult, String> {
 	let original = std::fs::read_to_string(path)
 		.map_err(|e| format!("read failed for {}: {}", path, e))?;
-	let updated = toggle_task_in_content(&original, line_number);
+	let holds_expected = line_number
+		.checked_sub(1)
+		.and_then(|i| original.split('\n').nth(i))
+		.and_then(|line| parse_task_line(line, line_number))
+		.is_some_and(|task| task.text == expected_text && task.status == expected_status);
+	let updated = if holds_expected {
+		set_task_status_in_content(&original, line_number, target)
+	} else {
+		original.clone()
+	};
 	if updated == original {
-		// No-op: line out of bounds, no checkbox on the line, etc.
+		// No-op: stale line, or `target` is already the line's status.
 		// Skip the disk write and the index update entirely.
 		return Ok(ToggleTaskResult {
 			updated_content: original,
@@ -790,6 +698,7 @@ pub fn toggle_task_status_inner(
 				version: idx.version(),
 				..Default::default()
 			},
+			stale: !holds_expected,
 		});
 	}
 	vault_fs::write_atomic(path, &updated)?;
@@ -798,6 +707,7 @@ pub fn toggle_task_status_inner(
 	Ok(ToggleTaskResult {
 		updated_content: updated,
 		update_result: result,
+		stale: false,
 	})
 }
 
@@ -808,8 +718,11 @@ pub fn toggle_task_status_inner(
 ///
 /// Flow:
 ///   1. Read file from disk.
-///   2. Toggle line via `toggle_task_in_content`.
-///   3. If unchanged (out of bounds or no checkbox): return no-op result.
+///   2. If the line at `line_number` no longer holds a task with
+///      `expected_text` and `expected_status`: return a no-op result with
+///      `stale: true`.
+///   3. Set the checkbox to `target` via `set_task_status_in_content`; if
+///      that leaves the content unchanged, return a no-op result.
 ///   4. Else: write to disk, update VaultIndex via the Phase 2.6 helper.
 ///   5. Emit `vault-index-updated` after dropping the write lock.
 ///
@@ -822,13 +735,23 @@ pub fn toggle_task_status(
 	state: tauri::State<'_, VaultIndexState>,
 	path: String,
 	line_number: usize,
+	expected_text: String,
+	expected_status: TaskStatus,
+	target: TaskStatus,
 ) -> Result<ToggleTaskResult, String> {
 	let _trace = CmdTrace::new("toggle_task_status");
 	let result = {
 		let mut idx = state
 			.write()
 			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
-		toggle_task_status_inner(&mut idx, &path, line_number)?
+		toggle_task_status_inner(
+			&mut idx,
+			&path,
+			line_number,
+			&expected_text,
+			expected_status,
+			target,
+		)?
 	};
 	if result.update_result.changed {
 		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result) {
@@ -838,6 +761,228 @@ pub fn toggle_task_status(
 					"toggle_task_status: vault-index-updated emit failed: {}",
 					emit_err,
 				),
+			);
+		}
+	}
+	Ok(result)
+}
+
+/// Joins a vault-relative note path onto the canonical `root`. Refuses a
+/// path that is empty, absolute, holds a `.` or `..` segment, is not `.md` /
+/// `.markdown`, or reaches outside `root` through a symlink (checked on the
+/// file, or on its nearest existing ancestor when it does not exist yet).
+fn confined_note_path(root: &Path, rel_path: &str) -> Result<std::path::PathBuf, String> {
+	let rel = Path::new(rel_path);
+	let plain = rel.components().next().is_some()
+		&& rel.components().all(|c| matches!(c, std::path::Component::Normal(_)));
+	if !plain || !vault_fs::is_search_indexed_filename(rel_path) {
+		return Err(format!("Refusing a note path that is not vault-relative Markdown: {:?}", rel_path));
+	}
+	let path = root.join(rel);
+	let existing = path
+		.ancestors()
+		.find(|p| fs::symlink_metadata(p).is_ok())
+		.ok_or_else(|| format!("No existing ancestor for {}", path.display()))?;
+	let canonical = existing
+		.canonicalize()
+		.map_err(|e| format!("Failed to resolve {}: {}", existing.display(), e))?;
+	if !canonical.starts_with(root) {
+		return Err(format!("Refusing a note path outside the vault: {:?}", rel_path));
+	}
+	Ok(path)
+}
+
+/// Pure-logic implementation behind `write_task_lines`: checks the root,
+/// confines the path, applies `edits` through `apply_task_line_edits`, and
+/// writes and indexes the note only when the batch changed it. A missing note
+/// is never created here: the caller creates it through `create_note`, so the
+/// explorer and the note-change owner see a `create`, then calls again.
+pub fn write_task_lines_inner(
+	idx: &mut VaultIndex,
+	vault_root: &str,
+	rel_path: &str,
+	edits: &TaskLineEdits,
+) -> Result<TaskLinesWriteResult, String> {
+	let root = vault_fs::validate_vault_path(vault_root)?;
+	if idx.vault_root() != Some(root.to_string_lossy().as_ref()) {
+		return Err(format!("Refusing to write task lines: {} is not the open vault", vault_root));
+	}
+	let path = confined_note_path(&root, rel_path)?;
+	let path_str = path.to_string_lossy().to_string();
+	let original = match fs::read_to_string(&path) {
+		Ok(content) => Some(content),
+		Err(e) if e.kind() == std::io::ErrorKind::NotFound => None,
+		Err(e) => return Err(format!("read failed for {}: {}", path_str, e)),
+	};
+	let no_write = |outcome, content, stale| TaskLinesWriteResult {
+		outcome,
+		content,
+		stale,
+		update_result: UpdateResult {
+			version: idx.version(),
+			..Default::default()
+		},
+	};
+	let updated = match apply_task_line_edits(original.as_deref().unwrap_or(""), edits)? {
+		TaskLineEditOutcome::Stale(stale) => return Ok(no_write(TaskLinesOutcome::Stale, None, Some(stale))),
+		TaskLineEditOutcome::Applied(updated) => updated,
+	};
+	let Some(original) = original else {
+		// A batch that adds no text would only create an empty note.
+		if updated.trim().is_empty() {
+			return Ok(no_write(TaskLinesOutcome::Unchanged, None, None));
+		}
+		return Ok(no_write(TaskLinesOutcome::Missing, None, None));
+	};
+	if updated == original {
+		return Ok(no_write(TaskLinesOutcome::Unchanged, Some(original), None));
+	}
+	vault_fs::write_atomic(&path_str, &updated)?;
+	let mtime = read_file_mtime_secs(&path_str).unwrap_or(0);
+	let update_result = update_note_in_index_inner(idx, path_str, &updated, mtime);
+	Ok(TaskLinesWriteResult {
+		outcome: TaskLinesOutcome::Written,
+		content: Some(updated),
+		stale: None,
+		update_result,
+	})
+}
+
+/// Tauri command: replaces, inserts and removes task lines in the note at
+/// `rel_path` under `vault_root`, all or nothing, located by `🆔 td-…`
+/// anchor plus the expected line (todoist-bisync design rule 12). Refuses a
+/// root other than the open vault. Writes atomically, updates the
+/// `VaultIndex` and emits `vault-index-updated` like `toggle_task_status`,
+/// with the lock dropped first.
+#[tauri::command]
+pub fn write_task_lines(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	vault_root: String,
+	rel_path: String,
+	edits: TaskLineEdits,
+) -> Result<TaskLinesWriteResult, String> {
+	let _trace = CmdTrace::new("write_task_lines");
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		write_task_lines_inner(&mut idx, &vault_root, &rel_path, &edits)?
+	};
+	if result.update_result.changed {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result) {
+			debug_log(
+				"VAULT-V2",
+				format!("write_task_lines: vault-index-updated emit failed: {}", emit_err),
+			);
+		}
+	}
+	Ok(result)
+}
+
+/// Pure-logic implementation behind `write_task_text`. Refuses a `new_text`
+/// holding a line break or blank after trimming (it would end or empty the
+/// task line) before anything else, then checks the root and confines the
+/// path as `write_task_lines_inner` does. Guarded like
+/// `toggle_task_status_inner`: the line at `line_number` must still parse as
+/// a task with `expected_text` and `expected_status`, or nothing is written
+/// and the result is `stale`. Otherwise the line keeps its prefix up to the
+/// text (`set_task_text_in_content`) and gets `new_text`; a `new_text` equal
+/// to `expected_text` writes nothing. A missing note is an `Err`.
+pub fn write_task_text_inner(
+	idx: &mut VaultIndex,
+	vault_root: &str,
+	rel_path: &str,
+	line_number: usize,
+	expected_text: &str,
+	expected_status: TaskStatus,
+	new_text: &str,
+) -> Result<TaskTextWriteResult, String> {
+	if new_text.contains(['\n', '\r']) {
+		return Err("Refusing task text holding a line break".to_string());
+	}
+	if new_text.trim().is_empty() {
+		return Err("Refusing blank task text".to_string());
+	}
+	let root = vault_fs::validate_vault_path(vault_root)?;
+	if idx.vault_root() != Some(root.to_string_lossy().as_ref()) {
+		return Err(format!("Refusing to write task text: {} is not the open vault", vault_root));
+	}
+	let path = confined_note_path(&root, rel_path)?;
+	let path_str = path.to_string_lossy().to_string();
+	let original = fs::read_to_string(&path).map_err(|e| format!("read failed for {}: {}", path_str, e))?;
+	let holds_expected = line_number
+		.checked_sub(1)
+		.and_then(|i| original.split('\n').nth(i))
+		.and_then(|line| parse_task_line(line, line_number))
+		.is_some_and(|task| task.text == expected_text && task.status == expected_status);
+	if !holds_expected || new_text == expected_text {
+		return Ok(TaskTextWriteResult {
+			updated_content: original,
+			update_result: UpdateResult {
+				version: idx.version(),
+				..Default::default()
+			},
+			stale: !holds_expected,
+			task: None,
+		});
+	}
+	let updated = set_task_text_in_content(&original, line_number, new_text);
+	vault_fs::write_atomic(&path_str, &updated)?;
+	let mtime = read_file_mtime_secs(&path_str).unwrap_or(0);
+	let task = updated
+		.split('\n')
+		.nth(line_number - 1)
+		.and_then(|line| parse_task_line(line, line_number));
+	let update_result = update_note_in_index_inner(idx, path_str, &updated, mtime);
+	Ok(TaskTextWriteResult {
+		updated_content: updated,
+		update_result,
+		stale: false,
+		task,
+	})
+}
+
+/// Tauri command: rewrites the text of the task at `line_number` of the note
+/// at `rel_path` under the open vault `vault_root`, guarded by the expected
+/// text and status like `toggle_task_status`, and returns the re-parsed task.
+/// It works on any task line, anchored or not, and never stamps a Todoist
+/// anchor. Writes atomically, updates the `VaultIndex` and emits
+/// `vault-index-updated` with the lock dropped first, only when the content
+/// changed.
+// The camelCase args are the IPC contract (`CommandMap.write_task_text`).
+#[allow(clippy::too_many_arguments)]
+#[tauri::command]
+pub fn write_task_text(
+	app: tauri::AppHandle,
+	state: tauri::State<'_, VaultIndexState>,
+	vault_root: String,
+	rel_path: String,
+	line_number: usize,
+	expected_text: String,
+	expected_status: TaskStatus,
+	new_text: String,
+) -> Result<TaskTextWriteResult, String> {
+	let _trace = CmdTrace::new("write_task_text");
+	let result = {
+		let mut idx = state
+			.write()
+			.map_err(|e| format!("VaultIndex lock poisoned: {}", e))?;
+		write_task_text_inner(
+			&mut idx,
+			&vault_root,
+			&rel_path,
+			line_number,
+			&expected_text,
+			expected_status,
+			&new_text,
+		)?
+	};
+	if result.update_result.changed {
+		if let Err(emit_err) = app.emit(VAULT_INDEX_UPDATED_EVENT, &result.update_result) {
+			debug_log(
+				"VAULT-V2",
+				format!("write_task_text: vault-index-updated emit failed: {}", emit_err),
 			);
 		}
 	}
@@ -1037,6 +1182,53 @@ pub fn create_folder(path: String) -> Result<(), String> {
 	std::fs::create_dir_all(&path).map_err(|e| format!("mkdir failed for {}: {}", path, e))
 }
 
+/// `<vault_path>/.kokobrain/mods/<mod_id>/data.json`. Rust builds the path,
+/// with a fixed file name, so that `std::fs`, which the plugin-fs ACL does not
+/// cover, gets no general way to read or overwrite a file. The check on `mod_id`
+/// only keeps it one path segment; the manifest rules are `parseModManifest`'s.
+/// Errors when the vault is not a reachable folder.
+fn mod_data_path(vault_path: &str, mod_id: &str) -> Result<std::path::PathBuf, String> {
+	let vault = vault_fs::validate_vault_path(vault_path)?;
+	let is_one_segment = !mod_id.is_empty()
+		&& mod_id
+			.bytes()
+			.all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-');
+	if !is_one_segment {
+		return Err(format!("Invalid mod id: {}", mod_id));
+	}
+	Ok(vault.join(".kokobrain").join("mods").join(mod_id).join("data.json"))
+}
+
+/// Writes a mod's data through `write_atomic`, creating missing folders: a
+/// crash mid-write leaves the old file, never a truncated one. It touches no
+/// `VaultIndex` and emits nothing.
+#[tauri::command]
+pub fn write_mod_data(vault_path: String, mod_id: String, content: String) -> Result<(), String> {
+	let _trace = CmdTrace::new("write_mod_data");
+	let path = mod_data_path(&vault_path, &mod_id)?;
+	if let Some(dir) = path.parent() {
+		std::fs::create_dir_all(dir).map_err(|e| format!("mkdir failed for {}: {}", dir.display(), e))?;
+	}
+	vault_fs::write_atomic(&path.to_string_lossy(), &content)
+}
+
+/// Reads a mod's data as raw bytes, `None` only when the file is not there. A
+/// plain `exists` check would not do: it reports any error as "not there", and
+/// a mod that then saves replaces the file it could not reach. Bytes rather than
+/// text so the frontend can tell invalid UTF-8 from a lossy decode. Off the main
+/// thread, like the plugin-fs read it replaces: a sync `fn` command would freeze
+/// the window on a large file or a stalled disk.
+#[tauri::command(async)]
+pub fn read_mod_data(vault_path: String, mod_id: String) -> Result<Option<Vec<u8>>, String> {
+	let _trace = CmdTrace::new("read_mod_data");
+	let path = mod_data_path(&vault_path, &mod_id)?;
+	match std::fs::read(&path) {
+		Ok(bytes) => Ok(Some(bytes)),
+		Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
+		Err(e) => Err(format!("read failed for {}: {}", path.display(), e)),
+	}
+}
+
 /// Tauri command: removes a single note from the managed `VaultIndex`.
 /// Used by the FE filesystem service after a delete / rename / move so
 /// the Rust-fed panels (Tags, Backlinks, Outgoing Links, Tasks) drop the
@@ -1082,8 +1274,11 @@ pub fn remove_note_from_index(
 /// Each matched key is removed and re-inserted under its new path via
 /// [`NoteEntry::with_path`], so the reverse indexes (`backlinks`,
 /// `tags_index`, `properties_index`, `by_path`) follow the file instead
-/// of being rebuilt from disk. No file is re-read: every `NoteEntry`
-/// field except `title` is path-independent.
+/// of being rebuilt from disk. Within one extension family no file is
+/// re-read: every `NoteEntry` field except `title` is path-independent.
+/// A rename across the `.md` / `.view` boundary changes how the file
+/// parses, so that one key is re-read at its new path
+/// (`reparse_across_view_boundary`).
 ///
 /// Issue 49 invariant: a key whose NEW path is not `.md` / `.markdown` /
 /// `.view` per `vault_fs::is_markdown_filename` is DROPPED rather than
@@ -1137,7 +1332,12 @@ pub fn rename_note_inner(idx: &mut VaultIndex, from: &str, to: &str) -> Option<U
 		};
 		let mut step = idx.remove_entry(&old_path);
 		if vault_fs::is_markdown_filename(&new_path) {
-			step.absorb(idx.update_entry(old_entry.with_path(new_path)));
+			let entry = if vault_fs::is_view_filename(&old_path) == vault_fs::is_view_filename(&new_path) {
+				old_entry.with_path(new_path)
+			} else {
+				reparse_across_view_boundary(old_entry, new_path)
+			};
+			step.absorb(idx.update_entry(entry));
 		}
 		match last_result.as_mut() {
 			Some(acc) => acc.absorb(step),
@@ -1145,6 +1345,38 @@ pub fn rename_note_inner(idx: &mut VaultIndex, from: &str, to: &str) -> Option<U
 		}
 	}
 	last_result
+}
+
+/// Builds the entry of a file renamed across the `.md` / `.view` boundary by
+/// re-reading it at `new_path`. The rename keeps the mtime, so the cached scan
+/// would reuse whatever this returns: on a read error a `.view` target still
+/// gets the stripped view shape over the old frontmatter, never the old note
+/// parse. A `.md` target falls back to `with_path`, since a view entry carries
+/// no links, tags or tasks to go stale.
+fn reparse_across_view_boundary(old_entry: NoteEntry, new_path: String) -> NoteEntry {
+	match fs::read_to_string(&new_path) {
+		Ok(content) => NoteEntry::from_content_full(
+			new_path,
+			&content,
+			old_entry.modified_at,
+			old_entry.created_at,
+			old_entry.size,
+		),
+		Err(e) => {
+			debug_log("VAULT-V2", format!("rename_note: re-read of {} failed: {}", new_path, e));
+			if vault_fs::is_view_filename(&new_path) {
+				NoteEntry::from_view_frontmatter(
+					new_path,
+					old_entry.frontmatter,
+					old_entry.modified_at,
+					old_entry.created_at,
+					old_entry.size,
+				)
+			} else {
+				old_entry.with_path(new_path)
+			}
+		}
+	}
 }
 
 /// Tauri command: re-keys the managed `VaultIndex` for a renamed or moved

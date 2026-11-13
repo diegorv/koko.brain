@@ -6,6 +6,7 @@ pub mod model;
 pub mod qos;
 pub mod quantize;
 pub mod reranker;
+pub mod search_timing;
 pub mod types;
 pub mod update_plan;
 

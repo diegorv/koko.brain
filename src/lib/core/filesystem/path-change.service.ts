@@ -10,6 +10,7 @@ import { isTabDirty, isVirtualTab } from '#lib/core/editor/editor.logic.js';
 import type { EditorTab } from '#lib/core/editor/editor.types.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { debug, error } from '#lib/utils/debug.js';
+import { vaultRelativeKey } from '#lib/utils/path.js';
 
 /** One path change: where the item goes, and how the disk move is performed. */
 export interface PathChange {
@@ -45,6 +46,16 @@ export interface PathChangeConsumer {
 	 * @param to - absolute path it landed on, or `null` for a deletion
 	 */
 	pathChanged(from: string, to: string | null): void;
+	/**
+	 * Called once per rename or move, after `applyPathChange` finished every
+	 * step: the link rewrite, the tree re-key, `rename_note`,
+	 * `rename_in_search_index` and the removal sweep. Never for a delete,
+	 * never when `diskOp` failed, and not when the change rejected part way
+	 * (the link rewrite's `get_backlinks_v2` is not caught).
+	 * @param from - absolute path the item left
+	 * @param to - absolute path it landed on
+	 */
+	settled?(from: string, to: string): void;
 }
 
 /**
@@ -65,9 +76,11 @@ const pathChangeConsumers: PathChangeConsumer[] = [];
 
 /**
  * Registers a consumer to follow every path change. Returns an unregister
- * function. A consumer has one of two lifetimes: vault-lifetime (wired by
- * `initializeVault`, unregistered in `teardownVault`) or app-lifetime (wired
- * once by `app/boot.ts::registerAppPorts`, never unregistered).
+ * function. A consumer has one of three lifetimes: vault-lifetime (wired by
+ * `initializeVault`, unregistered in `teardownVault`), app-lifetime (wired
+ * once by `app/boot.ts::registerAppPorts`, never unregistered) or
+ * mod-lifetime (registered by a mod's subscription, unregistered by its
+ * disposer or the mod's unload).
  */
 export function registerPathChangeConsumer(consumer: PathChangeConsumer): () => void {
 	pathChangeConsumers.push(consumer);
@@ -87,7 +100,10 @@ export function registerPathChangeConsumer(consumer: PathChangeConsumer): () => 
  *
  * A thin adapter over the note-change owner's delete branch. The vault root is
  * passed so the FTS5 row and the semantic chunks (+ the `mtime:` key) go with
- * it. The watcher event that follows the disk operation is NOT a substitute:
+ * it. On a rename or move `applyPathChange` has already moved those rows to the
+ * new key (`rename_in_search_index`), so these removals find nothing at the old
+ * one; on a delete they drop the rows. The watcher event that follows the disk
+ * operation is NOT a substitute for either:
  * it is dropped whenever the burst matches `areAllRecentSaves` (a 2 s autosave
  * before the delete leaves a 15 s marker), a folder delete arrives as a single
  * directory rename that the directory-only filter discards, and a burst above
@@ -118,10 +134,12 @@ export function forgetNote(path: string): void {
  *   re-adds the closed tabs (not their order, focus or view state).
  * - `updateTabAfterRenameOrMove` runs immediately after `diskOp`, before any
  *   further await, so the same debounce writes to the NEW path.
- * - Rust `rename_note` runs BEFORE the per-path removal sweep. Reversed, the
- *   sweep's `remove_note_from_index` would delete the entries the re-key needs
- *   and the children would vanish from the `VaultIndex` instead of following
- *   the folder.
+ * - Rust `rename_note` and `rename_in_search_index` run BEFORE the per-path
+ *   removal sweep. Reversed, the sweep's `remove_note_from_index`,
+ *   `remove_from_search_index` and `remove_semantic_file` would delete the
+ *   entries and search rows the re-keys need, and the children would vanish
+ *   from the `VaultIndex` and from text and semantic search instead of
+ *   following the folder.
  *
  * The child paths and the moved node are snapshotted from `fsStore.fileTree`
  * BEFORE `diskOp`. The tree drops the old paths after it: a delete removes
@@ -204,12 +222,37 @@ export async function applyPathChange(change: PathChange): Promise<void> {
 		} catch (err) {
 			error('FS', 'rename_note failed:', err);
 		}
+		// Same for the FTS5 rows, the semantic chunks and their `mtime:` keys,
+		// which are vault-relative. Moving them keeps every note findable at its
+		// new path without re-reading or re-embedding it. Skipped, like
+		// `forgetNote`'s search legs, when no key can be derived.
+		const vaultPath = vaultStore.path;
+		const fromKey = vaultPath ? vaultRelativeKey(vaultPath, from) : null;
+		const toKey = vaultPath ? vaultRelativeKey(vaultPath, to) : null;
+		if (fromKey !== null && toKey !== null) {
+			try {
+				await call('rename_in_search_index', { from: fromKey, to: toKey });
+			} catch (err) {
+				error('FS', 'rename_in_search_index failed:', err);
+			}
+		}
 	}
 
 	// Drop the OLD paths from the dedupe map, the registered per-file indexes
-	// and the Rust index. On a rename/move the Rust leg is a no-op by now (the
-	// entries already moved), while the TS leg still evicts the stale keys.
+	// and the Rust index. On a rename/move the Rust legs are no-ops by now (the
+	// entries and search rows already moved), while the TS leg still evicts the
+	// stale keys.
 	for (const path of [from, ...childPaths]) {
 		forgetNote(path);
+	}
+
+	if (to !== null) {
+		for (const consumer of [...pathChangeConsumers]) {
+			try {
+				consumer.settled?.(from, to);
+			} catch (err) {
+				error('FS', `${consumer.name} settled failed:`, err);
+			}
+		}
 	}
 }

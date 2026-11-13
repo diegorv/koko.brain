@@ -118,8 +118,8 @@ describe('frontmatter rewrites keep number and boolean spellings', () => {
 		cb.dispatchEvent(new Event('change'));
 
 		const after = view.state.doc.toString();
-		// Meta-bind writes the new value as text; only the bound key changes.
-		expect(lineFor(after, 'done')).toBe('done: "false"');
+		// Meta-bind writes the new value as a YAML boolean; only the bound key changes.
+		expect(lineFor(after, 'done')).toBe('done: false');
 		expect(lineFor(after, 'version')).toBe('version: 1.0');
 		view.destroy();
 	});

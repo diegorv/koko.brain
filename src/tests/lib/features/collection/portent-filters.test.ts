@@ -34,7 +34,7 @@ describe('Portent collection filters', () => {
 			makeRecord('/c.md', {}),
 		]);
 		const def = baseDef("type == 'Project'");
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 
@@ -44,7 +44,7 @@ describe('Portent collection filters', () => {
 			makeRecord('/b.md', { organized: false }),
 		]);
 		const def = baseDef("organized == true");
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 
@@ -54,7 +54,7 @@ describe('Portent collection filters', () => {
 			makeRecord('/b.md', { archived: true }),
 		]);
 		const def = baseDef("archived == true");
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records.map((r) => r.path)).toEqual(['/b.md']);
 	});
 
@@ -64,7 +64,7 @@ describe('Portent collection filters', () => {
 			makeRecord('/b.md', { favorite: false }),
 		]);
 		const def = baseDef("favorite == true");
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 
@@ -75,7 +75,7 @@ describe('Portent collection filters', () => {
 			makeRecord('/c.md', {}),
 		]);
 		const def = baseDef("_belongs_to.contains('project')");
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 
@@ -85,7 +85,7 @@ describe('Portent collection filters', () => {
 			makeRecord('/b.md', {}),
 		]);
 		const def = baseDef("_related_to.contains('maps')");
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 
@@ -95,7 +95,7 @@ describe('Portent collection filters', () => {
 			makeRecord('/b.md', {}),
 		]);
 		const def = baseDef("_has_many.contains('task-a')");
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 
@@ -106,7 +106,7 @@ describe('Portent collection filters', () => {
 			makeRecord('/c.md', { _type: 'Person', archived: false }),
 		]);
 		const def = baseDef({ and: ["type == 'Project'", "archived == false"] });
-		const result = executeQuery(def, baseView(), index);
+		const result = executeQuery(def, baseView(), index, null);
 		expect(result.records.map((r) => r.path)).toEqual(['/a.md']);
 	});
 });

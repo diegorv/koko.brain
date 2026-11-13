@@ -1,0 +1,31 @@
+VERDICT: APPROVED
+
+Reviewed `git diff main...HEAD` (commits 67854c3ef, edb26abb2, f46709010, 33dde5bf8) against the Issue's acceptance criteria and the 2026-11-06 owner decision. The feature has no spec.md, only PRD.md.
+
+## Acceptance criteria
+
+- [met] Failing first, `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`: with the `ui` tokens of `LAVENDER_HAZE_THEME` and of `KOKOBRAIN_DEFAULT_THEME`, `background` equals `editorBg`, `node` equals `mutedForeground`, `nodeActive` equals `primary`, `node` is at 3:1 or more and `label` at 4.5:1 or more on `background` (`contrastRatio`); an empty token and an unparseable token each return the fallback palette. — `describe('graphPalette')` at graph-view.logic.test.ts:439-478 loops over both themes' `colors.ui` tokens and asserts the three equalities and both `contrastRatio` floors; it also has the empty-`foreground` and `var(--x)` cases, and both use `toEqual(FALLBACK_GRAPH_PALETTE)`. The tests were committed in edb26abb2 together with the code, so I could not confirm the failing-first order from history. They import `graphPalette`, which does not exist on main, so they cannot pass there. The mix ratios in graph-view.logic.ts:207-226 match the Issue (`mixColors` `t` is the share of `b`, per utils/color.ts:149-152). Passes.
+- [met] `src/tests/lib/core/settings/theme.service.test.ts`: `applyTheme`, `applyStoredTheme` and `applyActiveTheme` each bump `appliedThemeStore.revision`. — theme.service.test.ts:292-322 has one case per function, and the `applyTheme` case switches between two dark themes. The bump is in the shared `applyMode` helper (theme.service.ts:36), which all three call. Passes.
+- [met] `e2e/specs/theme-mode.spec.ts` gains a case per theme: open the Graph tab (as `e2e/specs/rail-shell.spec.ts:247-273` does) and assert the graph container's computed `background-color` is `rgb(243, 240, 248)` on Lavender Haze and `rgb(42, 46, 61)` on KokoBrain Default (add a `data-testid` on the container if no stable selector exists). — theme-mode.spec.ts:20-24 (`expectGraphBackground`: `Mod+G`, then `expectTabActive('Graph View')`, the same steps as rail-shell.spec.ts:280-281; the cited 247-273 range is stale) and the two cases at :54 and :70. `data-testid="graph-view"` was added at GraphView.svelte:448. The old background `#1a1a1e` is rgb(26, 26, 30), so neither case passes against the old code. I ran `bash scripts/e2e.sh e2e/specs/theme-mode.spec.ts` on port 1431 and all 5 passed.
+- [met] No hex or `rgba(` literal is left in `GraphView.svelte`; the fallback palette lives in `graph-view.logic.ts`. — `grep -nE "#[0-9a-fA-F]{3,8}\b|rgba\(" src/lib/plugins/graph-view/GraphView.svelte` finds nothing (exit 1). `FALLBACK_GRAPH_PALETTE` is at graph-view.logic.ts:190-199 and holds the old six constants and two literals word for word.
+
+## Findings
+
+1. **minor**, src/lib/core/settings/applied-theme.store.svelte.ts:23: `bumpRevision() { revision += 1; }` reads and writes the same `$state`. Since `applyMode` now calls it, any `applyTheme` / `applyStoredTheme` / `applyActiveTheme` call from inside a tracked `$effect` throws `effect_update_depth_exceeded`. Before this branch those calls were safe there, because `setDark` only writes. I confirmed this with a throwaway probe component (since deleted): calling `bumpRevision()` inside an `$effect` failed with `Svelte error: effect_update_depth_exceeded`, while calling it at component init passed. No current caller hits this. I checked every call site: the AppearanceSection and ThemeEditor event handlers, `applyLoadedSettings` after an `await` in settings.service.ts, top-level init in `(app)/+layout.svelte`, and the composer's `onMount` and storage/show handlers. It is a trap for the next "re-apply the theme when settings change" effect. Fix: write it without tracking (`revision = untrack(() => revision) + 1`, with `untrack` from `svelte`). Add a test that calls `applyTheme` inside an `$effect` (in `$effect.root` or a mounted component) and asserts that the revision advances by one.
+2. **nit**, src/lib/plugins/graph-view/GraphView.svelte:48: `palette` is a deep `$state`, so every `palette.node` / `palette.edge` read in `render()` goes through a proxy, once per node and link on every simulation tick. The palette is only ever replaced whole (:402), never mutated. `$state.raw<GraphPalette>(FALLBACK_GRAPH_PALETTE)` keeps the template reactive without the per-read proxy cost.
+
+## Checks run by this review
+
+- `taskpolicy -c background pnpm check`: exit 0, 221 files, 0 errors, 0 warnings.
+- `taskpolicy -c background pnpm vitest run src/tests/lib/plugins/graph-view/ src/tests/lib/core/settings/theme.service.test.ts src/tests/lib/core/settings/applied-theme.store.test.ts src/tests/lib/architecture/`: exit 0, 15 files, 193 tests passed.
+- `taskpolicy -c background pnpm vitest run src/tests/lib/core/settings/settings.service.test.ts src/tests/routes/composer-page.test.ts` (the other theme.service consumers): exit 0, 2 files, 112 tests passed.
+- `bash scripts/e2e.sh e2e/specs/theme-mode.spec.ts`: exit 0, 5 of 5 passed.
+- The test verdict rests on: graph-view.logic.test.ts, GraphView.test.ts and the other files under src/tests/lib/plugins/graph-view/, theme.service.test.ts, applied-theme.store.test.ts, settings.service.test.ts, composer-page.test.ts, src/tests/lib/architecture/ (layer rules and pure-logic guard), and e2e/specs/theme-mode.spec.ts.
+- Not run: the full vitest suite and `pnpm build`. Deliver runs them.
+- Layer rules: `graph-view.logic.ts` gains only a `#lib/utils/color.js` import. `GraphView.svelte` imports a `core/settings` store, which is allowed for a plugin. The layer baseline and BASELINE_SIZE are untouched.
+- Scope: no changes outside the Issue's three source files, their tests, the E2E spec and the workflow's own `work/88/` record.
+
+## Resolution
+
+1. Fixed. `bumpRevision()` now writes `revision = untrack(() => revision) + 1` (applied-theme.store.svelte.ts). theme.service.test.ts gains "applyTheme inside an $effect bumps it once and does not re-run the effect" (via `countEffectRuns` from `src/tests/fixtures/settings-effect-probe.svelte.ts`); it failed with `effect_update_depth_exceeded` before the fix and passes after.
+2. Fixed. `palette` in GraphView.svelte is now `$state.raw<GraphPalette>(FALLBACK_GRAPH_PALETTE)`.

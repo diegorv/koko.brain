@@ -2,6 +2,7 @@ import dayjs from 'dayjs';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { withUnorganizedFlag } from '#lib/core/note-creator/explicit-organization.logic.js';
 import {
 	buildCapturePath,
 	getCaptureTitle,
@@ -40,10 +41,14 @@ export async function createNoteComposer(): Promise<void> {
 	// clipboard/deep-link capture path does.
 	const customVariables = buildCaptureVariables(date, periodicNotesSettings, title);
 
+	// Lens lists read the index snapshot: skip the refresh throttle. Asked
+	// before the write, since `create_note` emits the event.
+	vaultStore.requestPromptIndexRefresh();
 	await openOrCreateNote({
 		filePath,
 		templatePath,
 		title,
 		customVariables,
+		buildContent: settingsStore.explicitOrganization ? withUnorganizedFlag : undefined,
 	});
 }

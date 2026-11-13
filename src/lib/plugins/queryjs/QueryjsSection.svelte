@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Button } from '#lib/components/ui/button/index.js';
 	import * as Select from '#lib/components/ui/select/index.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
@@ -14,7 +15,7 @@
 		{
 			value: 'always',
 			label: 'Always',
-			description: 'Re-run on every render. Slower but always fresh.',
+			description: 'Run every block that has no cached result, each time it is drawn. A result stays cached until a note is saved or changes on disk.',
 		},
 		{
 			value: 'manual',
@@ -41,11 +42,11 @@
 </script>
 
 <div class="flex flex-col gap-2">
-	<h2 class="mb-1 text-lg font-semibold">QueryJS</h2>
-	<p class="mb-4 text-xs text-muted-foreground">
+	<h2 class="mb-4 text-lg font-semibold">QueryJS</h2>
+	<p class="mb-4 text-sm text-muted-foreground">
 		QueryJS lets you embed JavaScript queries inside notes via <code>```queryjs</code> fenced
 		blocks. The KBAPI surface (<code>kb.pages</code>, <code>kb.view</code>, <code>kb.ui</code>,
-		<code>DataArray</code>, <code>KBDateTime</code>) is documented in the README.
+		<code>DataArray</code>, <code>KBDateTime</code>) is documented in the QueryJS page of the user guide (help/documentation/13-queryjs.md).
 	</p>
 
 	<SettingItem
@@ -57,7 +58,7 @@
 			value={settingsStore.queryjs.autoRunQueries}
 			onValueChange={handlePolicyChange}
 		>
-			<Select.Trigger size="sm" class="w-44">
+			<Select.Trigger class="w-44">
 				<span data-slot="select-value">{policyLabel(settingsStore.queryjs.autoRunQueries)}</span>
 			</Select.Trigger>
 			<Select.Content>
@@ -70,14 +71,10 @@
 
 	<SettingItem
 		label="Clear cache"
-		description="Drop all cached query results + autoRun markers for this session. Each block re-runs on its next render (according to the policy above)."
+		description="Clear cached query results for this session. Each block runs again on its next render, following the policy above."
 	>
-		<button
-			type="button"
-			class="rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium hover:bg-accent hover:text-accent-foreground transition-colors"
-			onclick={clearCache}
-		>
+		<Button variant="outline" size="sm" onclick={clearCache}>
 			Clear
-		</button>
+		</Button>
 	</SettingItem>
 </div>

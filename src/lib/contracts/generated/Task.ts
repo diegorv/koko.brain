@@ -6,7 +6,7 @@ import type { TaskStatus } from "./TaskStatus.js";
  * One task list item parsed from a note's body.
  *
  * Mirrors `tasks.types.ts::TaskItem`. `line_number` is 1-based to match
- * the TS contract used by `toggleTask(filePath, lineNumber)`.
+ * the TS contract used by `toggleTask(filePath, task)`.
  */
 export type Task = { 
 /**
@@ -32,4 +32,9 @@ status: TaskStatus,
 /**
  * Structured metadata extracted from emoji signifiers in `text`.
  */
-metadata: TaskMetadata, };
+metadata: TaskMetadata, 
+/**
+ * Index into the note's `NoteEntry.task_headings` of the nearest heading
+ * above the task. Absent when the task sits before the first heading.
+ */
+heading?: number, };

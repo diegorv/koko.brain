@@ -79,6 +79,13 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
+describe('CalendarNavigator header', () => {
+	it('clears the traffic lights with the header pad', () => {
+		mountNavigator();
+		expect(target.querySelector('[data-calendar-navigator]')!.firstElementChild!.classList).toContain('pl-[var(--rail-header-pad)]');
+	});
+});
+
 describe('CalendarNavigator mini month', () => {
 	beforeEach(() => showMonth(2026, 10));
 
@@ -156,7 +163,7 @@ describe('CalendarNavigator mini month', () => {
 	it('uses the region theme tokens, never hard-coded colors', () => {
 		mountNavigator();
 		const nav = q('[data-calendar-navigator]')!;
-		expect(nav.className).toContain('bg-file-explorer-bg');
+		expect(nav.className).toContain('bg-nav-bg');
 		expect(nav.outerHTML).not.toMatch(/#[0-9a-f]{3,6}\b|rgb\(/i);
 	});
 });

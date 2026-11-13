@@ -1,34 +1,44 @@
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { LayoutSettings } from '#lib/core/settings/settings.types.js';
+import { TYPE_PIN_PREFIX, VIEW_PIN_PREFIX, typePinKey, viewPinKey } from '#lib/core/settings/rail-pin.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import {
 	getFileExtension,
 	getFileName,
 	getRelativePath,
 	isCanvasFile,
-	isCollectionFile,
 	isKanbanFile,
 	isMarkdownFile,
 	isViewFile,
+	naturalCompare,
 } from '#lib/core/filesystem/fs.logic.js';
 import { buildCaptureFolder } from '#lib/utils/capture-path.js';
 import { noteDateKey, parseDateKey } from '#lib/utils/note-date.js';
 import { isInboxEntry } from '#lib/features/type-definitions/inbox-workflow.logic.js';
 import { buildResolutionCache, resolveWikilinkCached } from '#lib/core/filesystem/wikilink-resolution.logic.js';
-import { getTypeMetadataFallback } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { getTypeMetadataFallback, type TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import {
 	buildTypeSections,
 	collectViewFiles,
 	excludeSystemFolder,
+	formatRelativeTime,
 	getNotesForSelection,
 	getNotesForViewPaths,
+	getViewGroup,
 	getViewLabel,
+	getViewOpensInEditor,
+	getViewOrder,
 	getViewSort,
+	getViewVisible,
+	ignoredKeyNotes,
+	isListableNote,
 	sortViewFiles,
+	type ArchivedFilter,
 	type TypeSidebarSelection,
 } from '#lib/features/type-definitions/type-sidebar.logic.js';
 import { buildOverriddenQuery, resolveViewListSort, seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
-import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { executeQuery, filterCitesArchived } from '#lib/features/collection/collection.logic.js';
+import { railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { filterRowToExpression } from '#lib/features/collection/toolbar/filter.logic.js';
 import type { CollectionDefinition, CollectionViewDef, PropertyIndexRecord, SortDef } from '#lib/features/collection/collection.types.js';
 import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
@@ -43,8 +53,10 @@ import type {
 	PlainNewNoteRule,
 	RailLensProvider,
 	RailNavigator,
+	RailPin,
 	ResolvedLens,
 	TypeNavigatorRow,
+	ViewLensStatus,
 } from './rail-shell.types';
 
 /** The Inbox rail item's lens. */
@@ -55,7 +67,7 @@ export const TODAY_LENS_KIND = 'today';
 
 /**
  * The Today rail item's lens before the note list gives it the current day.
- * It lists only the pinned notes; `todayLens` replaces it.
+ * It lists no notes; `todayLens` replaces it.
  */
 export const TODAY_LENS: Lens = { kind: TODAY_LENS_KIND };
 
@@ -69,10 +81,7 @@ function todayLensDay(lens: Lens): string | null {
 	return parseDateKey(lens.target) === lens.target ? (lens.target ?? null) : null;
 }
 
-/** The Today lens's Pinned group id; plugin sections (`railRegistryStore.todaySections`) show after it. */
-export const TODAY_PINNED_GROUP = 'pinned';
-
-/** The Today lens's group of the notes dated today. */
+/** The Today lens's group of the notes dated today; plugin sections (`railRegistryStore.todaySections`) show before it. */
 export const TODAY_DATED_GROUP = 'today';
 
 /** The Favorites rail item's lens. */
@@ -146,36 +155,108 @@ const RAIL_ITEM_LENSES = new Map<string, Lens>([
 	['archive', ARCHIVE_LENS],
 ]);
 
+/** True when `item` is a pin key: a string with the view or type pin prefix, whatever follows it. */
+function isPinKey(item: unknown): item is string {
+	return typeof item === 'string' && (item.startsWith(VIEW_PIN_PREFIX) || item.startsWith(TYPE_PIN_PREFIX));
+}
+
+/** The lens of a pin key with a non-empty target, else null. The target is not checked to exist. */
+function pinLens(key: string): Lens | null {
+	if (key.startsWith(VIEW_PIN_PREFIX) && key.length > VIEW_PIN_PREFIX.length) {
+		return { kind: VIEW_LENS_KIND, target: key.slice(VIEW_PIN_PREFIX.length) };
+	}
+	if (key.startsWith(TYPE_PIN_PREFIX) && key.length > TYPE_PIN_PREFIX.length) {
+		return { kind: TYPES_LENS.kind, target: key.slice(TYPE_PIN_PREFIX.length) };
+	}
+	return null;
+}
+
 /**
- * The rail item saved in `layout.railItem` and its lens: a built-in item, or
- * a navigator a plugin registered (its lens is the navigator's pick). The value
- * comes from settings.json, so anything the rail does not know (an old or
- * hand-edited key, a non-string, a plugin navigator not registered yet) falls
- * back to the default item. The Neighbourhood item restores only with
- * `neighbourhoodPath` (the note it was opened on this session), so after a
- * restart it falls back too.
+ * The rail item saved in `layout.railItem` and its lens: a built-in item, a
+ * navigator a plugin registered (its lens is the navigator's pick), or a pin
+ * key (`view:<path>` or `type:<name>`, whose lens is that view or type; the
+ * target is not checked, `staleRailPinFix` drops a lost one). The value comes
+ * from settings.json, so anything the rail does not know (an old or
+ * hand-edited key, a non-string, a plugin navigator not registered yet, a pin
+ * key with nothing after its prefix) falls back to the default item. The
+ * Neighbourhood item restores only with `neighbourhoodPath` (the note it was
+ * opened on this session), so after a restart it falls back too. A built-in
+ * item or navigator in `hidden` (the parsed `layout.railHidden`) falls back
+ * while it is hidden, except Search and Today; the saved value is not touched,
+ * so showing the item again brings it back. Pins and Neighbourhood cannot be
+ * hidden, so `hidden` does not apply to them.
  */
 export function restoreRailItem(
 	saved: unknown,
 	navigators: readonly RailNavigator[] = [],
 	neighbourhoodPath: string | null = null,
+	hidden: readonly string[] = [],
 ): { item: string; lens: Lens } {
 	if (typeof saved === 'string') {
 		if (saved === NEIGHBOURHOOD_RAIL_ITEM && neighbourhoodPath) return { item: saved, lens: neighbourhoodLens(neighbourhoodPath) };
+		if (hidden.includes(saved) && saved !== SEARCH_RAIL_ITEM && saved !== TODAY_RAIL_ITEM && !isPinKey(saved)) {
+			return { item: DEFAULT_RAIL_ITEM, lens: TODAY_LENS };
+		}
 		const lens = RAIL_ITEM_LENSES.get(saved);
 		if (lens) return { item: saved, lens };
 		const navigator = navigators.find((n) => n.id === saved);
 		if (navigator) return { item: saved, lens: navigator.lens() };
+		const pinned = pinLens(saved);
+		if (pinned) return { item: saved, lens: pinned };
 	}
 	return { item: DEFAULT_RAIL_ITEM, lens: TODAY_LENS };
 }
 
 /**
- * The row's second line: the note's type (or "Note"), its note date and its
- * vault-relative folder. Parts that are unknown or at the vault root are left out.
+ * The rail's pinned items: every `.view` and type definition in the entries
+ * snapshot whose `_rail` is the YAML boolean `true` (only the canonical
+ * spelling; `"true"` or `1` does not pin). The system folder is not excluded
+ * and `_visible` is not read: pins follow the files the Types navigator reads,
+ * hidden ones included. A view is labelled like its Views row (`getViewLabel`)
+ * and a type by its `sidebarLabel`. Ordered by `_order` (a view's default is
+ * 50, a type uses `TypeMetadata.order`), then label in natural order, then path.
+ */
+export function pinnedRailItems(entries: readonly NoteEntryV2[], typeMetadataMap: Map<string, TypeMetadata>): RailPin[] {
+	const pinned: (RailPin & { order: number })[] = [];
+	const byPath = new Map(entries.map((e) => [e.path, e] as const));
+	for (const entry of entries) {
+		if (!isViewFile(entry.path) || entry.frontmatter['_rail'] !== true) continue;
+		pinned.push({
+			key: viewPinKey(entry.path),
+			label: getViewLabel(entry, getFileName(entry.path).replace(/\.view$/i, '')),
+			path: entry.path,
+			kind: 'view',
+			opensInEditor: getViewOpensInEditor(entry),
+			order: getViewOrder(entry),
+		});
+	}
+	for (const meta of typeMetadataMap.values()) {
+		if (!meta.path || byPath.get(meta.path)?.frontmatter['_rail'] !== true) continue;
+		pinned.push({ key: typePinKey(meta.name), label: meta.sidebarLabel, path: meta.path, kind: 'type', opensInEditor: false, order: meta.order });
+	}
+	pinned.sort((a, b) => a.order - b.order || naturalCompare(a.label, b.label) || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+	return pinned.map(({ order: _order, ...pin }) => pin);
+}
+
+/**
+ * The layout change that sends a saved pin that is no longer pinned (file
+ * gone, `_rail` removed) back to the default item: `{ railItem }` when
+ * `railItem` is a pin key no item of `pinned` has, else null. Meant to run
+ * once per vault open, with `staleTypesPickFix`, for the same reason.
+ */
+export function staleRailPinFix(railItem: unknown, pinned: readonly RailPin[]): Pick<Partial<LayoutSettings>, 'railItem'> | null {
+	if (!isPinKey(railItem) || pinned.some((p) => p.key === railItem)) return null;
+	return { railItem: DEFAULT_RAIL_ITEM };
+}
+
+/**
+ * The row's second line: the note's modified time in relative form
+ * (`formatRelativeTime`, the order most lists sort by) and its vault-relative
+ * folder. Parts that are unknown or at the vault root are left out.
+ * The relative time is read from the clock when the row is built; it does not tick.
  */
 export function noteSubtitle(entry: NoteEntryV2, vaultPath: string | null): string {
-	return [entry.isA ?? 'Note', entryNoteDate(entry), vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
+	return [formatRelativeTime(entry.modifiedAt), vaultFolder(entry.path, vaultPath)].filter(Boolean).join(' · ');
 }
 
 /** An entry's note date (`noteDateKey`: frontmatter `date`, else `created`, else the disk creation time), or null. */
@@ -208,6 +289,7 @@ function toLensNote(entry: NoteEntryV2, vaultPath: string | null): LensNote {
 		isA: entry.isA,
 		subtitle: noteSubtitle(entry, vaultPath),
 		italic: isInboxEntry(entry),
+		archived: entry.archived,
 		kind: 'markdown',
 	};
 }
@@ -225,9 +307,9 @@ const BUILT_IN_LENSES = new Map<string, BuiltInLens>([
 	[INBOX_LENS.kind, { label: 'Inbox', rule: 'not organized, not archived', includes: isInboxEntry, newNote: { _organized: false } }],
 	[
 		FAVORITES_LENS.kind,
-		{ label: 'Favorites', rule: 'favorite, not archived', includes: (e) => e.favorite && !e.archived, newNote: { _favorite: true } },
+		{ label: 'Favorites', rule: 'favorite, not archived', includes: (e) => e.favorite && !e.archived && !isViewFile(e.path), newNote: { _favorite: true } },
 	],
-	[ARCHIVE_LENS.kind, { label: 'Archive', rule: 'archived', includes: (e) => e.archived }],
+	[ARCHIVE_LENS.kind, { label: 'Archive', rule: 'archived', includes: (e) => e.archived && isListableNote(e) }],
 ]);
 
 /** Lists a built-in lens: system folder excluded, newest change first. */
@@ -235,7 +317,12 @@ function resolveBuiltIn(lens: BuiltInLens, ctx: LensContext): ResolvedLens {
 	return { label: lens.label, rule: lens.rule, notes: listEntries(ctx, lens.includes) };
 }
 
-/** The entries `includes` keeps as note list rows: system folder excluded, newest change first (the built-in lenses' order). */
+/**
+ * The entries `includes` keeps as note list rows: system folder excluded,
+ * newest change first (the built-in lenses' order). Type definitions and
+ * `.view` files are left out by each lens's `includes`, not here: Favorites
+ * keeps a type definition.
+ */
 export function listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => boolean): LensNote[] {
 	return excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder)
 		.filter(includes)
@@ -244,44 +331,44 @@ export function listEntries(ctx: LensContext, includes: (entry: NoteEntryV2) => 
 }
 
 /**
- * Lists the Today lens in two groups: Pinned (every favorite, not archived),
- * then the notes whose note date is the lens's day (the Day lens's rule, so
- * archived notes stay). Each is system-folder-excluded and newest change first.
- * A note in both groups shows in both; `notes` holds it once. A lens without a
- * day lists an empty Today group.
+ * Lists the Today lens: the notes whose note date is the lens's day (the Day
+ * lens's rule, so archived notes stay), system-folder-excluded, without type
+ * definitions and `.view` files (`isListableNote`), newest change first. A lens
+ * without a day lists an empty group.
  */
 function resolveTodayLens(lens: Lens, ctx: LensContext): ResolvedLens {
 	const day = todayLensDay(lens);
-	const groups: LensGroup[] = [
-		{ id: TODAY_PINNED_GROUP, label: 'Pinned', notes: listEntries(ctx, (e) => e.favorite && !e.archived) },
-		{ id: TODAY_DATED_GROUP, label: 'Today', notes: day ? listEntries(ctx, (e) => entryNoteDate(e) === day) : [] },
-	];
-	const byPath = new Map(groups.flatMap((g) => g.notes).map((n) => [n.path, n] as const));
-	const notes = [...byPath.values()];
-	return { label: 'Today', rule: 'pinned; note date is today', notes, groups };
+	const notes = day ? listEntries(ctx, (e) => isListableNote(e) && entryNoteDate(e) === day) : [];
+	const groups: LensGroup[] = [{ id: TODAY_DATED_GROUP, label: 'Today', notes }];
+	return { label: 'Today', rule: 'note date is today', notes, groups };
 }
 
+/** The rule's ending for each archived filter of a type or Untyped list. */
+const ARCHIVED_RULE_SUFFIX: Record<ArchivedFilter, string> = { active: ', not archived', all: '', archived: ', archived' };
+
 /**
- * Lists a type (or Untyped) lens: not archived, `_order` pins on top, then
- * newest change. Null for the Types item before a pick (no target).
+ * Lists a type (or Untyped) lens: the notes `archived` lets through (default:
+ * not archived), `_order` pins on top, then newest change. Null for the Types
+ * item before a pick (no target).
  */
-function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
+function resolveTypeLens(lens: Lens, ctx: LensContext, archived: ArchivedFilter): ResolvedLens | null {
 	let selection: TypeSidebarSelection;
 	let label: string;
 	let rule: string;
 	if (lens.kind === UNTYPED_LENS.kind) {
 		selection = { kind: 'untyped' };
 		label = 'Untyped';
-		rule = 'no type, not archived';
+		rule = 'no type';
 	} else {
 		if (!lens.target) return null;
 		selection = { kind: 'type', name: lens.target };
 		label = getTypeMetadataFallback(lens.target, ctx.typeMetadataMap).sidebarLabel;
-		rule = `type is ${lens.target}, not archived`;
+		rule = `type is ${lens.target}`;
 	}
+	rule += ARCHIVED_RULE_SUFFIX[archived];
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
 	const byPath = new Map(entries.map((e) => [e.path, e]));
-	const notes = getNotesForSelection(entries, selection).flatMap((n) => {
+	const notes = getNotesForSelection(entries, selection, archived).flatMap((n) => {
 		const entry = byPath.get(n.path);
 		return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
 	});
@@ -297,7 +384,10 @@ function resolveTypeLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
  * broken links and non-note targets are left out; each group lists a note
  * once and never the note itself. Frontmatter wikilinks are links too, as in
  * Rust's backlinks. Nothing is excluded by folder or lifecycle: the rule is
- * "everything linked to it". Null when the note is not in the snapshot.
+ * "everything linked to it". The linked groups leave type definitions and
+ * `.view` files out (`isListableNote`); "This note" lists the note even when
+ * it is a type definition, as the lens's subject. Null when the note is not
+ * in the snapshot.
  */
 function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | null {
 	const note = lens.target ? ctx.entries.find((e) => e.path === lens.target) : undefined;
@@ -312,11 +402,11 @@ function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | 
 		}
 		return [...paths].flatMap((path) => {
 			const entry = byPath.get(path);
-			return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
+			return entry && isListableNote(entry) ? [toLensNote(entry, ctx.vaultPath)] : [];
 		});
 	};
 	const backlinks = ctx.entries
-		.filter((e) => e.path !== note.path && e.outgoingLinks.some((l) => resolveWikilinkCached(l.target, cache, ctx.vaultPath) === note.path))
+		.filter((e) => e.path !== note.path && isListableNote(e) && e.outgoingLinks.some((l) => resolveWikilinkCached(l.target, cache, ctx.vaultPath) === note.path))
 		.sort((a, b) => b.modifiedAt - a.modifiedAt || a.title.localeCompare(b.title))
 		.map((e) => toLensNote(e, ctx.vaultPath));
 	const groups: LensGroup[] = [
@@ -338,13 +428,19 @@ function resolveNeighbourhoodLens(lens: Lens, ctx: LensContext): ResolvedLens | 
  * provider registered for it. Returns null when no provider knows the kind,
  * the provider cannot resolve the target, a type lens has no target, a
  * folder lens's folder is not in the tree, or a neighbourhood's note is not
- * in the snapshot.
+ * in the snapshot. `archived` picks which notes a Type or Untyped lens lists
+ * by lifecycle; every other kind ignores it.
  */
-export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly RailLensProvider[] = []): ResolvedLens | null {
+export function resolveLens(
+	lens: Lens,
+	ctx: LensContext,
+	providers: readonly RailLensProvider[] = [],
+	archived: ArchivedFilter = 'active',
+): ResolvedLens | null {
 	const builtIn = BUILT_IN_LENSES.get(lens.kind);
 	if (builtIn) return resolveBuiltIn(builtIn, ctx);
 	if (lens.kind === TODAY_LENS_KIND) return resolveTodayLens(lens, ctx);
-	if (lens.kind === TYPES_LENS.kind || lens.kind === UNTYPED_LENS.kind) return resolveTypeLens(lens, ctx);
+	if (lens.kind === TYPES_LENS.kind || lens.kind === UNTYPED_LENS.kind) return resolveTypeLens(lens, ctx, archived);
 	if (lens.kind === FOLDER_LENS_KIND) return resolveFolderLens(lens, ctx);
 	if (lens.kind === NEIGHBOURHOOD_LENS_KIND) return resolveNeighbourhoodLens(lens, ctx);
 	const provider = providers.find((p) => p.kind === lens.kind);
@@ -352,10 +448,46 @@ export function resolveLens(lens: Lens, ctx: LensContext, providers: readonly Ra
 }
 
 /**
+ * True when a lens's list comes from the entries snapshot, so before the first
+ * snapshot it would say it is empty. Every kind reads it (Today's plugin
+ * sections and a provider's `LensContext.entries` too) except a folder lens,
+ * which lists the file tree. A view lens has its own rule, `viewEntriesLoaded`.
+ */
+export function lensListsEntries(lens: Lens): boolean {
+	return lens.kind !== FOLDER_LENS_KIND;
+}
+
+/**
+ * Whether this vault's entries have landed, for a `.view`'s row set
+ * (`viewRowSet` drops a record with no entry). True for a vault with no notes.
+ * The version starts at 0 and every write of the entries bumps it, an empty
+ * snapshot included. A refresh left over from the previous vault can land after
+ * teardown reset the version, and until the new scan commits Rust answers it
+ * with that vault for the entries and the records alike, so the two sharing a
+ * path says nothing: one entry must also sit under this vault. Not for a
+ * built-in lens, which reads only the entries: a failed read of the records
+ * would hold it back.
+ */
+export function viewEntriesLoaded(
+	store: { readonly entries: readonly { path: string }[]; readonly entriesVersion: number },
+	propertyIndex: ReadonlyMap<string, unknown>,
+	vaultPath: string | null,
+): boolean {
+	if (store.entriesVersion === 0) return false;
+	if (store.entries.length === 0) return true;
+	if (!vaultPath) return false;
+	const prefix = `${vaultRoot(vaultPath)}/`;
+	return store.entries.some((e) => e.path.startsWith(prefix) && propertyIndex.has(e.path));
+}
+
+/**
  * The Types navigator's rows: the visible types in sidebar order, each with the
  * number of notes its lens lists, then Untyped when `showUntyped` is on. The
  * counts come from `buildTypeSections`, which applies the same not-archived
- * rule over the same system-folder-excluded entries.
+ * rule over the same system-folder-excluded entries. A type row notes the
+ * reserved keys its definition sets to a value that is ignored
+ * (`ignoredKeyNotes`), read from the definition's entry in `ctx.entries`, so a
+ * definition in the system folder is read too.
  */
 export function typeNavigatorRows(
 	ctx: Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder' | 'typeMetadataMap'>,
@@ -363,15 +495,22 @@ export function typeNavigatorRows(
 ): TypeNavigatorRow[] {
 	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
 	const { sections, untyped } = buildTypeSections(entries, ctx.typeMetadataMap, 'all');
-	const rows: TypeNavigatorRow[] = sections.map((s) => ({
-		lens: { kind: TYPES_LENS.kind, target: s.metadata.name },
-		label: s.metadata.sidebarLabel,
-		count: s.notes.length,
-		typeName: s.metadata.name,
-		definitionPath: s.definitionPath,
-	}));
+	const byPath = new Map(ctx.entries.map((e) => [e.path, e] as const));
+	const rows: TypeNavigatorRow[] = sections.map((s) => {
+		const definition = s.metadata.path ? byPath.get(s.metadata.path) : undefined;
+		return {
+			lens: { kind: TYPES_LENS.kind, target: s.metadata.name },
+			label: s.metadata.sidebarLabel,
+			count: s.notes.length,
+			typeName: s.metadata.name,
+			definitionPath: s.definitionPath,
+			opensInEditor: false,
+			keyNotes: definition ? ignoredKeyNotes(definition.frontmatter) : [],
+			group: null,
+		};
+	});
 	if (showUntyped) {
-		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null });
+		rows.push({ lens: { ...UNTYPED_LENS }, label: 'Untyped', count: untyped.length, typeName: null, definitionPath: null, opensInEditor: false, keyNotes: [], group: null });
 	}
 	return rows;
 }
@@ -404,21 +543,25 @@ export function sameLens(a: Lens, b: Lens): boolean {
 }
 
 /**
- * The layout change that drops a saved Types pick the navigator no longer
- * lists (a deleted view or type, or Untyped with untyped notes hidden): the pick is
- * cleared and, when the Types item is active, the rail goes back to the
- * default item. Null when there is nothing to fix. Meant to run once the
- * entries of a newly opened vault have loaded, not on every refresh: the
- * refresh is throttled, so a type just created or renamed is missing for a
- * few seconds.
+ * The layout change that drops a saved Types pick that no longer exists (a
+ * view gone from the tree, a deleted type, or Untyped with untyped notes
+ * hidden): the pick is cleared and, when the Types item is active, the rail
+ * goes back to the default item. A view pick is checked against `viewPaths`,
+ * every `.view` in the tree, so a view hidden from Views (`_visible: false`)
+ * stays picked; a type or Untyped pick is checked against the rows. Null when
+ * there is nothing to fix. Meant to run once the entries of a newly opened
+ * vault have loaded, not on every refresh: the refresh is throttled, so a type
+ * just created or renamed is missing for a few seconds.
  */
 export function staleTypesPickFix(
 	railItem: unknown,
 	saved: unknown,
 	rows: readonly TypeNavigatorRow[],
+	viewPaths: readonly string[],
 ): Pick<Partial<LayoutSettings>, 'railItem' | 'railTypesLens'> | null {
 	const pick = parseTypesPick(saved);
-	if (!pick || rows.some((r) => sameLens(r.lens, pick))) return null;
+	if (!pick) return null;
+	if (pick.kind === VIEW_LENS_KIND ? viewPaths.includes(pick.target ?? '') : rows.some((r) => sameLens(r.lens, pick))) return null;
 	return railItem === TYPES_RAIL_ITEM ? { railItem: DEFAULT_RAIL_ITEM, railTypesLens: null } : { railTypesLens: null };
 }
 
@@ -501,81 +644,226 @@ export function newNoteContent(rule: PlainNewNoteRule): string {
 }
 
 /**
- * The Views part of the Types navigator: every `.view` file in the tree, by
- * `_order` then name, labelled by its `_sidebar_label`. Counts are null: they
- * need each view's query run (`countViewNotes`).
+ * The Views part of the Types navigator: every `.view` file in the tree but
+ * the hidden ones (`_visible: false`), labelled by its `_sidebar_label`,
+ * marked to open in the editor by its `_open_in_editor`, with a note for each
+ * reserved key it ignores. The ungrouped views come first, then each `_group`
+ * in natural order of its name (compared exactly, so "work" and "Work" are two
+ * groups); inside each part the views go by `_order`, then label, then path
+ * (`sortViewFiles`). Counts are null: they need each view's query run
+ * (`countViewNotes`).
  */
 export function viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] {
-	return sortViewFiles(collectViewFiles(tree), entriesByPath).map((v) => ({
-		lens: { kind: VIEW_LENS_KIND, target: v.path },
-		label: getViewLabel(entriesByPath.get(v.path), v.name),
-		count: null,
-		typeName: null,
-		definitionPath: null,
-	}));
+	const rows: TypeNavigatorRow[] = [];
+	for (const v of sortViewFiles(collectViewFiles(tree), entriesByPath)) {
+		const entry = entriesByPath.get(v.path);
+		if (!getViewVisible(entry)) continue;
+		rows.push({
+			lens: { kind: VIEW_LENS_KIND, target: v.path },
+			label: getViewLabel(entry, v.name),
+			count: null,
+			typeName: null,
+			definitionPath: null,
+			opensInEditor: getViewOpensInEditor(entry),
+			keyNotes: entry ? ignoredKeyNotes(entry.frontmatter) : [],
+			group: getViewGroup(entry),
+		});
+	}
+	// Array.sort is stable: rows of one group keep their `sortViewFiles` order.
+	return rows.sort((a, b) => {
+		if (a.group === b.group) return 0;
+		if (a.group === null) return -1;
+		if (b.group === null) return 1;
+		return naturalCompare(a.group, b.group);
+	});
+}
+
+/**
+ * The label of every `.view` in the tree, hidden ones included, except the
+ * one at `exceptPath`: the names New view refuses, and Edit view with the
+ * edited view's path, so it may keep its own label.
+ */
+export function viewLabels(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>, exceptPath?: string): string[] {
+	return collectViewFiles(tree)
+		.filter((v) => v.path !== exceptPath)
+		.map((v) => getViewLabel(entriesByPath.get(v.path), v.name));
 }
 
 /** The Sort and Filter toolbar state that replaces a view's saved filters and sort. */
 export interface ViewQueryOverrides {
 	/** Filters over every view of the `.view` (its top-level `filters`) */
 	globalFilters: FilterGroup[];
-	/** Filters of the first view */
+	/** Filters of the view the rail runs (`railViewIndex`) */
 	viewFilters: FilterGroup[];
-	/** Sort of the first view; empty keeps the saved sort */
+	/** Sort of the view the rail runs; empty keeps the saved sort */
 	sort: SortDef[];
+}
+
+/** What a `.view`'s row set reads besides the matched records. */
+export type ViewRowContext = Pick<LensContext, 'entries' | 'vaultPath' | 'systemFolder'>;
+
+/**
+ * The one row set of a `.view` view, which the editor (through the collection
+ * row-set port), the rail's view lens and the navigator count all use. Takes
+ * the records the view's query matched (filters and the view's own sort
+ * applied, `limit` not yet), keeps those whose entry is listable (not in the
+ * system folder, neither a type definition nor a `.view`, and not archived
+ * unless the query's filters cite archived: `queryCitesArchived`), orders
+ * them (`resolveViewListSort`: the view's own sort keeps the query order and
+ * applies no pins, else its `_sort` or the default, with `_order` pins on top)
+ * and last applies `limit`. A record with no entry is dropped. `view` and
+ * `definition` are the ones the query ran, toolbar overrides included.
+ */
+export function viewRowSet<T extends { path: string }>(
+	records: readonly T[],
+	view: CollectionViewDef,
+	viewPath: string,
+	ctx: ViewRowContext,
+	definition: CollectionDefinition,
+): T[] {
+	const viewEntry = ctx.entries.find((e) => e.path === viewPath);
+	const listable = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder).filter(isListableNote);
+	const byPath = new Map(records.map((r) => [r.path, r]));
+	const sort = resolveViewListSort(view, getViewSort(viewEntry));
+	const includeArchived = queryCitesArchived(definition, view);
+	const rows = getNotesForViewPaths(listable, new Set(byPath.keys()), sort, includeArchived).flatMap((n) => {
+		const record = byPath.get(n.path);
+		return record ? [record] : [];
+	});
+	return view.limit !== undefined && view.limit > 0 ? rows.slice(0, view.limit) : rows;
+}
+
+/** What an inline `collection` block's row set reads besides the matched records. */
+export type BlockRowContext = Pick<LensContext, 'vaultPath' | 'systemFolder'>;
+
+/**
+ * The row set of an inline ` ```collection ` block: `viewRowSet`'s rule read
+ * from the records alone. Takes the records the block's query matched
+ * (filters and the view's own sort applied, `limit` not yet), drops those in
+ * the system folder, `.view` files, type definitions (`_type: Type`) and
+ * archived notes unless the query's filters cite archived
+ * (`queryCitesArchived`), then applies `limit`. Records, not entries: the
+ * entries land seconds after a save, so a just-created note would be missing
+ * when the block refetches. Keeps the query order (no `_sort`, no pins).
+ */
+export function blockRowSet<T extends Pick<PropertyIndexRecord, 'path' | 'properties'>>(
+	records: readonly T[],
+	view: CollectionViewDef,
+	definition: CollectionDefinition,
+	ctx: BlockRowContext,
+): T[] {
+	const includeArchived = queryCitesArchived(definition, view);
+	const rows = excludeSystemFolder([...records], ctx.vaultPath, ctx.systemFolder).filter(
+		(r) =>
+			!isViewFile(r.path) &&
+			r.properties.get('_type') !== 'Type' &&
+			(includeArchived || r.properties.get('archived') !== true),
+	);
+	return view.limit !== undefined && view.limit > 0 ? rows.slice(0, view.limit) : rows;
+}
+
+/**
+ * Whether a view's query, its global or its own filters, cites archived
+ * (`filterCitesArchived`), which lets the filters decide on archived notes
+ * instead of the row set leaving them out.
+ */
+function queryCitesArchived(definition: CollectionDefinition, view: CollectionViewDef): boolean {
+	return filterCitesArchived(definition.filters) || filterCitesArchived(view.filters);
 }
 
 /** A view's query, run. */
 export interface ViewQueryResult {
-	/** Paths the query matched, in the query's order */
+	/** The view's row set (`viewRowSet`), in display order */
 	paths: string[];
 	/** The view as run, its sort included */
 	view: CollectionViewDef;
 	/** The global then view filter groups the query ran with */
 	filterGroups: FilterGroup[];
+	/** True when those filters cite archived, so the row set kept the archived notes they match */
+	includesArchived: boolean;
+	/** Number of views the `.view` holds; only the one at `railViewIndex` runs */
+	viewCount: number;
+	/** The view's name when `_rail_view` named the view that ran, else null (the first view ran by default) */
+	railViewName: string | null;
+	/** Why the filters could not run (`QueryResult.filterError`); `paths` is then empty */
+	filterError?: string;
 }
 
 /**
- * Runs the first view of a parsed `.view` over the property index, with the
- * toolbar overrides when given (else its saved filters and sort). Null when the
- * definition has no view.
+ * Runs the view the rail runs (`railViewIndex`: the one `_rail_view` names,
+ * else the first) of a parsed `.view` over the property index, with the
+ * toolbar overrides when given (else its saved filters and sort), and keeps
+ * its row set (`viewRowSet`). Null when the definition has no view.
  */
 export function queryViewLens(
 	definition: CollectionDefinition,
 	overrides: ViewQueryOverrides | null,
 	propertyIndex: Map<string, PropertyIndexRecord>,
+	viewPath: string,
+	ctx: ViewRowContext,
 ): ViewQueryResult | null {
-	const view = definition.views[0];
+	const view = definition.views[railViewIndex(definition)];
 	const state = overrides ?? seedToolbarStateFromDefinition(definition, view);
 	const query = buildOverriddenQuery(definition, view, state.globalFilters, state.viewFilters, state.sort);
 	if (!query) return null;
-	const records = executeQuery(query.definition, query.view, propertyIndex).records;
-	return { paths: records.map((r) => r.path), view: query.view, filterGroups: [...state.globalFilters, ...state.viewFilters] };
+	const { records, filterError } = executeQuery(query.definition, query.view, propertyIndex, ctx.vaultPath, (matched, v, d) =>
+		viewRowSet(matched, v, viewPath, ctx, d),
+	);
+	return {
+		paths: records.map((r) => r.path),
+		view: query.view,
+		filterGroups: [...state.globalFilters, ...state.viewFilters],
+		includesArchived: queryCitesArchived(query.definition, query.view),
+		viewCount: definition.views.length,
+		railViewName: view.name === definition.railView ? view.name : null,
+		filterError,
+	};
+}
+
+/** Where a view lens's load got to: a status that has no list, or its query run. */
+export type ViewLoad = ViewLensStatus | { kind: 'ran'; result: ViewQueryResult };
+
+/** The load of a query run: `ran`, or an error when the definition has no view to run (`queryViewLens` gave null). */
+export function viewLoadFromQuery(result: ViewQueryResult | null): ViewLoad {
+	return result ? { kind: 'ran', result } : { kind: 'error', message: 'The .view has no views to run' };
+}
+
+/** The load of a `.view` whose read threw. */
+export function viewReadError(err: unknown): ViewLoad {
+	return { kind: 'error', message: `Could not read the view: ${err instanceof Error ? err.message : String(err)}` };
 }
 
 /**
- * Turns a view's query result into the note list: the view's label, its
- * filters in words, and the matched notes that are not archived and not in the
- * system folder, in the order its Sort shows (`resolveViewListSort`: the view's
- * sort keeps the query order, else its `_sort`). A null result (the query could
- * not run) lists nothing.
+ * Turns a view's load into the note list: the view's label, its filters in
+ * words (ending in `view "<name>"` when `_rail_view` named the view that ran,
+ * else in "first view" when the `.view` holds more than one view),
+ * and the notes of its row set (`viewRowSet`, which `queryViewLens` already
+ * kept and ordered), in that order. The label comes from the view's own
+ * `.view` entry. A load that did not run, or ran into a filter that does not
+ * parse (`filterError`), lists nothing and carries that `status`.
  */
-export function resolveViewLens(viewPath: string, result: ViewQueryResult | null, ctx: LensContext): ResolvedLens {
+export function resolveViewLens(viewPath: string, load: ViewLoad, ctx: LensContext): ResolvedLens {
 	const viewEntry = ctx.entries.find((e) => e.path === viewPath);
 	const label = getViewLabel(viewEntry, getFileName(viewPath).replace(/\.view$/i, ''));
-	if (!result) return { label, rule: '', notes: [] };
-	const entries = excludeSystemFolder(ctx.entries, ctx.vaultPath, ctx.systemFolder);
-	const byPath = new Map(entries.map((e) => [e.path, e]));
-	const sort = resolveViewListSort(result.view, getViewSort(viewEntry));
-	const notes = getNotesForViewPaths(entries, new Set(result.paths), sort).flatMap((n) => {
-		const entry = byPath.get(n.path);
+	if (load.kind !== 'ran') return { label, rule: '', notes: [], status: load };
+	const result = load.result;
+	if (result.filterError !== undefined) return { label, rule: '', notes: [], status: { kind: 'error', message: result.filterError } };
+	const byPath = new Map(ctx.entries.map((e) => [e.path, e]));
+	const notes = result.paths.flatMap((path) => {
+		const entry = byPath.get(path);
 		return entry ? [toLensNote(entry, ctx.vaultPath)] : [];
 	});
-	return { label, rule: describeViewFilters(result.filterGroups), notes };
+	const rule = describeViewFilters(result.filterGroups, result.includesArchived);
+	const which = result.railViewName !== null ? `view "${result.railViewName}"` : result.viewCount > 1 ? 'first view' : null;
+	return { label, rule: which ? `${rule}, ${which}` : rule, notes };
 }
 
-/** A view's filter groups in words, e.g. "_type == 'Project' and status == 'active', not archived". */
-export function describeViewFilters(groups: readonly FilterGroup[]): string {
+/**
+ * A view's filter groups in words, e.g. "_type == 'Project' and status ==
+ * 'active', not archived". `includesArchived` (the filters cite archived)
+ * drops ", not archived", as the filters then decide on archived notes.
+ */
+export function describeViewFilters(groups: readonly FilterGroup[], includesArchived = false): string {
 	const parts = groups.flatMap((g) => {
 		const rows = g.rows.map(filterRowToExpression);
 		if (rows.length === 0) return [];
@@ -583,7 +871,8 @@ export function describeViewFilters(groups: readonly FilterGroup[]): string {
 		if (g.conjunction === 'or') return [rows.length > 1 ? `(${rows.join(' or ')})` : rows[0]];
 		return rows;
 	});
-	return `${parts.length > 0 ? parts.join(' and ') : 'every note'}, not archived`;
+	const rule = parts.length > 0 ? parts.join(' and ') : 'every note';
+	return includesArchived ? rule : `${rule}, not archived`;
 }
 
 /** The filter keys that read a note's type (`type` is the engine's alias of `_type`). */
@@ -626,7 +915,6 @@ export function fileKind(name: string): FileKind {
 	if (isCanvasFile(name)) return 'canvas';
 	if (isKanbanFile(name)) return 'kanban';
 	if (isViewFile(name)) return 'view';
-	if (isCollectionFile(name)) return 'collection';
 	const ext = getFileExtension(name).toLowerCase();
 	if (ext === '.pdf') return 'pdf';
 	if (IMAGE_EXTENSIONS.has(ext)) return 'image';
@@ -639,7 +927,6 @@ const FILE_KIND_LABELS: Record<FileKind, string> = {
 	canvas: 'Canvas',
 	kanban: 'Kanban',
 	view: 'View',
-	collection: 'Collection',
 	pdf: 'PDF',
 	image: 'Image',
 	other: 'File',
@@ -685,6 +972,7 @@ function fileToLensNote(node: FileTreeNode, entry: NoteEntryV2 | undefined, vaul
 		isA: null,
 		subtitle: FILE_KIND_LABELS[kind],
 		italic: false,
+		archived: false,
 		kind,
 	};
 }
@@ -762,6 +1050,40 @@ export function staleFolderPickFix(
 export function toggleExpandedFolder(savedExpanded: unknown, path: string): string[] {
 	const expanded = parseExpandedFolders(savedExpanded);
 	return expanded.includes(path) ? expanded.filter((p) => p !== path) : [...expanded, path];
+}
+
+/**
+ * The layout change that makes a saved Types pick follow a path change: a
+ * view pick whose `.view`, or a folder holding it, was renamed or moved takes
+ * the new path; one that went to the Trash (`to` null) or stopped being a
+ * `.view` is cleared, so the Types item shows its first row. Null when nothing
+ * changes.
+ */
+export function followTypesPickPathChange(
+	saved: unknown,
+	from: string,
+	to: string | null,
+): Pick<Partial<LayoutSettings>, 'railTypesLens'> | null {
+	const pick = parseTypesPick(saved);
+	if (pick?.kind !== VIEW_LENS_KIND || !pick.target) return null;
+	if (pick.target !== from && !pick.target.startsWith(from + '/')) return null;
+	const moved = to === null ? null : to + pick.target.slice(from.length);
+	return { railTypesLens: moved !== null && isViewFile(moved) ? { kind: VIEW_LENS_KIND, target: moved } : null };
+}
+
+/**
+ * The layout change that makes the rail follow a path change: a pinned view
+ * the rail shows whose `.view`, or a folder holding it, was renamed or moved
+ * stays on that pin at the new path; one that went to the Trash (`to` null) or
+ * stopped being a `.view` sends the rail back to the default item. Null when
+ * nothing changes.
+ */
+export function followRailPinPathChange(railItem: unknown, from: string, to: string | null): Pick<Partial<LayoutSettings>, 'railItem'> | null {
+	if (typeof railItem !== 'string' || !railItem.startsWith(VIEW_PIN_PREFIX)) return null;
+	const path = railItem.slice(VIEW_PIN_PREFIX.length);
+	if (path !== from && !path.startsWith(from + '/')) return null;
+	const moved = to === null ? null : to + path.slice(from.length);
+	return { railItem: moved !== null && isViewFile(moved) ? viewPinKey(moved) : DEFAULT_RAIL_ITEM };
 }
 
 /**

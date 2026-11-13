@@ -260,6 +260,58 @@ pub fn delete_mtime(conn: &Connection, rel_path: &str) -> Result<usize, String> 
 	.map_err(|e| format!("Failed to delete mtime for {}: {e}", rel_path))
 }
 
+/// Re-keys the chunks and the `mtime:` key of the file at `from` and of every
+/// file under `from + '/'` to the same place under `to`. Embeddings, hashes
+/// and stored mtimes are kept: no chunk text depends on the path, so nothing
+/// needs re-embedding. Returns the number of chunk rows moved or dropped. Run
+/// it inside a transaction.
+///
+/// A chunk key is `<source_path>#<slug>-<line>` (`semantic::chunker`), so the
+/// key's prefix moves with `source_path`.
+///
+/// A file whose destination already has chunks (or an `mtime:` key) was
+/// re-indexed at the new path after the disk move, so that newer state is kept
+/// and the file's old rows are dropped instead of moved. Moving them would
+/// break the primary key and roll back the whole folder. `from` must differ
+/// from `to`, or every row would count as its own collision.
+pub fn rename_paths(conn: &Connection, from: &str, to: &str) -> Result<usize, String> {
+	// `substr` rather than LIKE: `%` and `_` are legal in file names, and LIKE
+	// folds ASCII case.
+	let dropped = conn
+		.execute(
+			"DELETE FROM chunks
+			WHERE (source_path = ?1 OR substr(source_path, 1, length(?1) + 1) = ?1 || '/')
+				AND ?2 || substr(source_path, length(?1) + 1) IN (SELECT source_path FROM chunks)",
+			[from, to],
+		)
+		.map_err(|e| format!("Failed to drop chunks shadowed by the rename destination: {e}"))?;
+	let moved = conn
+		.execute(
+			"UPDATE chunks
+			SET key = ?2 || substr(key, length(?1) + 1),
+				source_path = ?2 || substr(source_path, length(?1) + 1)
+			WHERE source_path = ?1 OR substr(source_path, 1, length(?1) + 1) = ?1 || '/'",
+			[from, to],
+		)
+		.map_err(|e| format!("Failed to rename chunks: {e}"))?;
+	let old_key = format!("mtime:{from}");
+	conn.execute(
+		"DELETE FROM semantic_meta
+		WHERE (key = ?1 OR substr(key, 1, length(?1) + 1) = ?1 || '/')
+			AND ?2 || substr(key, length(?1) + 1) IN (SELECT key FROM semantic_meta)",
+		[old_key.as_str(), format!("mtime:{to}").as_str()],
+	)
+	.map_err(|e| format!("Failed to drop mtime keys shadowed by the rename destination: {e}"))?;
+	conn.execute(
+		"UPDATE semantic_meta
+		SET key = ?2 || substr(key, length(?1) + 1)
+		WHERE key = ?1 OR substr(key, 1, length(?1) + 1) = ?1 || '/'",
+		[old_key.as_str(), format!("mtime:{to}").as_str()],
+	)
+	.map_err(|e| format!("Failed to rename mtime keys: {e}"))?;
+	Ok(dropped + moved)
+}
+
 /// Deletes mtime entries from semantic_meta for files no longer in the vault.
 /// Returns the number of deleted entries.
 pub fn delete_orphaned_mtimes(

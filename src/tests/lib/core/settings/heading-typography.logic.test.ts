@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { FONT_WEIGHT_MAP, headingTypographyToCssVars } from '#lib/core/settings/heading-typography.logic.js';
+import { DEFAULT_SETTINGS } from '#lib/core/settings/settings.store.svelte.js';
 import type { HeadingTypography } from '#lib/core/settings/settings.types.js';
 
 const DEFAULT_TYPOGRAPHY: HeadingTypography = {
@@ -97,5 +98,34 @@ describe('headingTypographyToCssVars', () => {
 		};
 		const vars = headingTypographyToCssVars(custom);
 		expect(vars['--heading-h3-letter-spacing']).toBe('-0.05em');
+	});
+});
+
+describe('default heading scale', () => {
+	const LEVELS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
+	const vars = headingTypographyToCssVars(DEFAULT_SETTINGS.editor.headingTypography);
+	const size = (level: string) => parseFloat(vars[`--heading-${level}-font-size`]);
+
+	it('gives the six levels six distinct sets of variables', () => {
+		const sets = LEVELS.map((level) =>
+			['font-size', 'font-weight', 'line-height', 'letter-spacing'].map((p) => vars[`--heading-${level}-${p}`]).join(' '),
+		);
+		expect(new Set(sets).size).toBe(6);
+	});
+
+	it('shrinks from level to level, with H6 below the body size', () => {
+		for (let i = 1; i < LEVELS.length; i++) {
+			expect(size(LEVELS[i]), LEVELS[i]).toBeLessThan(size(LEVELS[i - 1]));
+		}
+		expect(size('h6')).toBeLessThan(1);
+	});
+
+	it('uses the owner-chosen H4-H6 values', () => {
+		expect(vars['--heading-h4-font-size']).toBe('1.125em');
+		expect(vars['--heading-h4-font-weight']).toBe('700');
+		expect(vars['--heading-h5-font-size']).toBe('1em');
+		expect(vars['--heading-h5-font-weight']).toBe('700');
+		expect(vars['--heading-h6-font-size']).toBe('0.9em');
+		expect(vars['--heading-h6-font-weight']).toBe('600');
 	});
 });

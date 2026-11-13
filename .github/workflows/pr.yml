@@ -19,7 +19,7 @@ concurrency:
 jobs:
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
       e2e: ${{ steps.filter.outputs.e2e }}
@@ -67,12 +67,16 @@ jobs:
   ci:
     name: CI
     uses: ./.github/workflows/ci.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
 
   e2e:
     name: E2E
     needs: changes
     if: needs.changes.outputs.e2e == 'true'
     uses: ./.github/workflows/e2e.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
 
   security:
     name: Security
@@ -86,6 +90,8 @@ jobs:
       actions: read
       security-events: write
     uses: ./.github/workflows/security.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
 
   privacy:
     name: Privacy
@@ -97,7 +103,7 @@ jobs:
     name: PR success
     needs: [changes, ci, e2e, security, privacy]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - name: Aggregate gate results

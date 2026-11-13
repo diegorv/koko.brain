@@ -7,8 +7,12 @@ import {
 	getFolderFromPath,
 	getUniqueFolders,
 	getUniqueTags,
+	graphPalette,
+	FALLBACK_GRAPH_PALETTE,
 } from '#lib/plugins/graph-view/graph-view.logic.js';
 import type { GraphData, GraphNode } from '#lib/plugins/graph-view/graph-view.types.js';
+import { KOKOBRAIN_DEFAULT_THEME, LAVENDER_HAZE_THEME } from '#lib/core/settings/theme.logic.js';
+import { contrastRatio } from '#lib/utils/color.js';
 import { entryV2, entryV2WithContent } from '../../../fixtures/vault-entries.fixture';
 
 describe('getFolderFromPath', () => {
@@ -172,6 +176,40 @@ describe('buildGraphData', () => {
 		const data = buildGraphData(entries, '/vault');
 
 		expect(data.links.map((l) => [l.source, l.target])).toEqual([['/vault/note.md', '/vault/b/foo.png']]);
+	});
+});
+
+describe('buildGraphData with views in the entries', () => {
+	const NOTE = '/vault/Note.md';
+	const OTHER = '/vault/Other.md';
+	const VIEW = '/vault/Board.view';
+
+	it('gives a view no node and no edge, including when a note links it', () => {
+		const data = buildGraphData([
+			entryV2WithContent(NOTE, '[[Board.view]] [[Other]]'),
+			entryV2(OTHER),
+			entryV2WithContent(VIEW, '[[Note]]'),
+		]);
+
+		expect(data.nodes.map((n) => n.id)).toEqual([NOTE, OTHER]);
+		expect(data.links).toEqual([{ source: NOTE, target: OTHER, bidirectional: false }]);
+		expect(data.nodes.find((n) => n.id === NOTE)?.linkCount).toBe(1);
+	});
+
+	it('does not let a view take the name a note link resolves to', () => {
+		const data = buildGraphData([
+			entryV2WithContent(NOTE, '[[Other]]'),
+			entryV2('/vault/a/Other.view'),
+			entryV2(OTHER),
+		]);
+
+		expect(data.links).toEqual([{ source: NOTE, target: OTHER, bidirectional: false }]);
+	});
+
+	it('skips an upper-case view extension', () => {
+		const data = buildGraphData([entryV2(NOTE), entryV2('/vault/Board.VIEW')]);
+
+		expect(data.nodes.map((n) => n.id)).toEqual([NOTE]);
 	});
 });
 
@@ -395,5 +433,46 @@ describe('getUniqueTags', () => {
 			{ id: '1', name: 'A', folder: '/vault', tags: [], linkCount: 0 },
 		];
 		expect(getUniqueTags(nodes)).toEqual([]);
+	});
+});
+
+describe('graphPalette', () => {
+	for (const theme of [LAVENDER_HAZE_THEME, KOKOBRAIN_DEFAULT_THEME]) {
+		const { editorBg, foreground, mutedForeground, primary } = theme.colors.ui;
+		const tokens = { editorBg, foreground, mutedForeground, primary };
+
+		it(`paints ${theme.name} with its editor background, muted nodes and primary active node`, () => {
+			const palette = graphPalette(tokens);
+
+			expect(palette.background).toBe(editorBg);
+			expect(palette.node).toBe(mutedForeground);
+			expect(palette.nodeActive).toBe(primary);
+		});
+
+		it(`keeps ${theme.name} nodes at 3:1 and labels at 4.5:1 on the background`, () => {
+			const palette = graphPalette(tokens);
+
+			expect(contrastRatio(palette.node, palette.background)).toBeGreaterThanOrEqual(3);
+			expect(contrastRatio(palette.label, palette.background)).toBeGreaterThanOrEqual(4.5);
+		});
+	}
+
+	const valid = { editorBg: '#ffffff', foreground: '#000000', mutedForeground: '#666666', primary: '#6848a8' };
+
+	it('returns the fallback palette when a token is empty', () => {
+		expect(graphPalette({ ...valid, foreground: '' })).toEqual(FALLBACK_GRAPH_PALETTE);
+	});
+
+	it('returns the fallback palette when a token is unparseable', () => {
+		expect(graphPalette({ ...valid, editorBg: 'var(--x)' })).toEqual(FALLBACK_GRAPH_PALETTE);
+	});
+
+	it('mixes the dimmed and edge colors toward the background', () => {
+		const palette = graphPalette(valid);
+
+		expect(palette.nodeDimmed).not.toBe(palette.node);
+		expect(contrastRatio(palette.nodeDimmed, valid.editorBg)!).toBeLessThan(contrastRatio(palette.node, valid.editorBg)!);
+		expect(contrastRatio(palette.labelDimmed, valid.editorBg)!).toBeLessThan(contrastRatio(palette.label, valid.editorBg)!);
+		expect(contrastRatio(palette.edge, valid.editorBg)!).toBeLessThan(contrastRatio(palette.node, valid.editorBg)!);
 	});
 });

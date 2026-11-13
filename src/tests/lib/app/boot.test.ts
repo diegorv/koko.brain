@@ -59,6 +59,11 @@ import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.
 import { profileStart } from '#lib/core/markdown-editor/extensions/live-preview/core/profiling.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { makeDirNode, makeFileNode } from '../../fixtures/tauri-api.fixture';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { getViewRowSetPort } from '#lib/features/collection/view-row-set.port.js';
+import { executeQuery } from '#lib/features/collection/collection.logic.js';
+import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
+import { RECENT_NEWEST_THREE, RECENT_OTHER_VIEW, RECENT_VIEW, RECENT_VIEW_YAML, recentEntries, recentIndex } from '../../fixtures/recent-view.fixture';
 
 const VAULT = '/vault';
 const NOTE_CONTENT = '# Note\n';
@@ -163,6 +168,47 @@ describe('registerAppPorts', () => {
 		registerAppPorts();
 		expect(profileStart('x')).toBeGreaterThan(0);
 		settingsStore.updateLivePreviewProfiling(false);
+	});
+
+	it('registers the .view row-set port once, fed from the entries, vault and settings stores', () => {
+		registerAppPorts();
+		const port = getViewRowSetPort();
+		expect(port).not.toBeNull();
+		registerAppPorts();
+		expect(getViewRowSetPort()).toBe(port);
+
+		typeDefinitionsStore.setEntries(recentEntries());
+		try {
+			const parsed = parseCollectionYaml(RECENT_VIEW_YAML);
+			if (!parsed.success) throw new Error('fixture');
+			const view = parsed.definition.views[0];
+			const matched = executeQuery(parsed.definition, { ...view, limit: undefined }, recentIndex(), VAULT).records;
+			const rows = port!.rows(RECENT_VIEW, matched, view, parsed.definition);
+			expect(rows.map((r) => r.path)).toEqual(RECENT_NEWEST_THREE);
+			// The definition reaches the row set: a global filter citing archived keeps the archived note.
+			const cited = port!.rows(RECENT_VIEW, matched, view, { ...parsed.definition, filters: 'archived || !archived' });
+			expect(cited.map((r) => r.path)).toContain('/vault/old.md');
+			expect(port!.sortLabel(RECENT_VIEW)).toBe('Sorted by the default: modified, newest first');
+			expect(port!.sortLabel(RECENT_OTHER_VIEW)).toBe('Sorted by _sort: title');
+
+			// The inline-block rule, from the records alone: the fixture's excluded files drop out.
+			const unlimited = { ...view, limit: undefined };
+			const plain = ['n1', 'n2', 'n3', 'n4', 'n5'].map((n) => `/vault/${n}.md`);
+			const blockRows = port!.blockRows(matched, unlimited, parsed.definition).map((r) => r.path);
+			expect([...blockRows].sort()).toEqual(plain);
+			// The system folder is read from the settings per call: a blank folder lists the `_system/` note.
+			settingsStore.updateTemplates({ systemFolder: '' });
+			const unfiltered = port!.blockRows(matched, unlimited, parsed.definition).map((r) => r.path);
+			expect([...unfiltered].sort()).toEqual(['/vault/_system/templates/t.md', ...plain].sort());
+		} finally {
+			settingsStore.updateTemplates({ systemFolder: '_system' });
+			typeDefinitionsStore.reset();
+		}
+
+		unregisterAppPorts();
+		expect(getViewRowSetPort()).toBeNull();
+		registerAppPorts();
+		expect(getViewRowSetPort()).not.toBeNull();
 	});
 
 	// The HMR dispose path: a re-run module registers again, so the old

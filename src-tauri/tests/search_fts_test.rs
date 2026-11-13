@@ -1,3 +1,8 @@
+// The `#[tokio::test]` cases hold the std `TEST_LOCK` guard across `.await` on
+// purpose; each one owns its runtime, so the guard cannot block another task on
+// the same executor.
+#![allow(clippy::await_holding_lock)]
+
 use kokobrain_lib::commands::search_index;
 use kokobrain_lib::db;
 use kokobrain_lib::search::fuzzy;
@@ -70,6 +75,18 @@ fn set_mtime_secs(path: &std::path::Path, secs: i64) {
 		.unwrap();
 }
 
+/// Runs the async `search_fts` command to completion, for the sync tests.
+fn search_fts_blocking(
+	query: String,
+	max_results: Option<usize>,
+	fuzzy: Option<bool>,
+) -> Result<Vec<search_index::FtsSearchResult>, String> {
+	tokio::runtime::Builder::new_current_thread()
+		.build()
+		.unwrap()
+		.block_on(search_index::search_fts(query, max_results, fuzzy))
+}
+
 // --- FTS5 Index Tests ---
 
 #[test]
@@ -95,7 +112,7 @@ fn build_search_index_skips_hidden_directories() {
 		search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// Search for content from the hidden file
-	let results = search_index::search_fts("Internal".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("Internal".to_string(), Some(10), Some(false)).unwrap();
 	assert!(
 		results.is_empty(),
 		"hidden directory files should not be indexed"
@@ -112,7 +129,7 @@ fn search_fts_finds_matching_content() {
 	let tmp = setup_vault();
 	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
-	let results = search_index::search_fts("programming".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("programming".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find documents with 'programming'");
 
 	// Both rust.md and javascript.md mention "programming"
@@ -131,7 +148,7 @@ fn search_fts_returns_empty_for_no_match() {
 	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	let results =
-		search_index::search_fts("xyznonexistent".to_string(), Some(10), Some(false)).unwrap();
+		search_fts_blocking("xyznonexistent".to_string(), Some(10), Some(false)).unwrap();
 	assert!(results.is_empty(), "should return empty for no match");
 
 	teardown();
@@ -144,14 +161,53 @@ fn search_fts_returns_empty_for_empty_query() {
 	let tmp = setup_vault();
 	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
-	let results = search_index::search_fts("".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("".to_string(), Some(10), Some(false)).unwrap();
 	assert!(results.is_empty(), "should return empty for empty query");
 
-	let results = search_index::search_fts("   ".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("   ".to_string(), Some(10), Some(false)).unwrap();
 	assert!(
 		results.is_empty(),
 		"should return empty for whitespace query"
 	);
+
+	teardown();
+}
+
+/// Paths and scores in rank order, for comparing two result lists.
+fn ranked(results: &[search_index::FtsSearchResult]) -> Vec<(String, f64)> {
+	results.iter().map(|r| (r.path.clone(), r.score)).collect()
+}
+
+#[tokio::test]
+async fn search_fts_command_returns_the_same_hits_as_search_fts_inner() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
+
+	for (query, fuzzy) in [("programming", false), ("javscript", true)] {
+		let command = search_index::search_fts(format!("  {query}  "), Some(10), Some(fuzzy))
+			.await
+			.unwrap();
+		let inner = search_index::search_fts_inner(query, 10, fuzzy).unwrap();
+		assert!(!inner.is_empty(), "seeded vault should match {query:?}");
+		assert_eq!(ranked(&command), ranked(&inner), "query {query:?} fuzzy={fuzzy}");
+	}
+
+	teardown();
+}
+
+#[tokio::test]
+async fn search_fts_command_returns_empty_for_empty_query() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
+
+	for query in ["", "   "] {
+		let results = search_index::search_fts(query.to_string(), None, None).await.unwrap();
+		assert!(results.is_empty(), "query {query:?} should return no hits");
+	}
 
 	teardown();
 }
@@ -164,7 +220,7 @@ fn search_fts_bm25_ranks_title_matches_higher() {
 	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// "rust" appears in title of rust.md but only in content of others (if at all)
-	let results = search_index::search_fts("rust".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("rust".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find rust.md");
 	assert_eq!(
 		results[0].path, "rust.md",
@@ -181,7 +237,7 @@ fn search_fts_snippet_contains_mark_tags() {
 	let tmp = setup_vault();
 	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
-	let results = search_index::search_fts("safety".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("safety".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find 'safety'");
 
 	let has_mark = results.iter().any(|r| r.snippet.contains("<mark>"));
@@ -198,7 +254,7 @@ fn update_search_index_file_updates_content() {
 	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// Original content should be findable
-	let results = search_index::search_fts("greetings".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("greetings".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find 'greetings' in hello.md");
 
 	// Update the file content in the index
@@ -210,14 +266,14 @@ fn update_search_index_file_updates_content() {
 	.unwrap();
 
 	// Old content should not be found
-	let results = search_index::search_fts("greetings".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("greetings".to_string(), Some(10), Some(false)).unwrap();
 	assert!(
 		results.is_empty(),
 		"old content should not be found after update"
 	);
 
 	// New content should be found
-	let results = search_index::search_fts("elephants".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("elephants".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "new content should be found");
 
 	teardown();
@@ -231,14 +287,14 @@ fn remove_from_search_index_removes_file() {
 	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
 	// Verify file is indexed
-	let results = search_index::search_fts("rust".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("rust".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find rust.md");
 
 	// Remove file from index
 	search_index::remove_from_search_index_inner("rust.md".to_string()).unwrap();
 
 	// File should no longer be found
-	let results = search_index::search_fts("rust".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("rust".to_string(), Some(10), Some(false)).unwrap();
 	let has_rust = results.iter().any(|r| r.path == "rust.md");
 	assert!(!has_rust, "rust.md should be removed from index");
 
@@ -254,12 +310,12 @@ fn search_fts_handles_special_characters() {
 
 	// Should not crash on special characters
 	let results =
-		search_index::search_fts("hello \"world\"".to_string(), Some(10), Some(false)).unwrap();
+		search_fts_blocking("hello \"world\"".to_string(), Some(10), Some(false)).unwrap();
 	// Just verify it doesn't crash — results may or may not exist
 	let _ = results;
 
 	let results =
-		search_index::search_fts("test's".to_string(), Some(10), Some(false)).unwrap();
+		search_fts_blocking("test's".to_string(), Some(10), Some(false)).unwrap();
 	let _ = results;
 
 	teardown();
@@ -275,7 +331,7 @@ fn search_fts_quotes_only_query_returns_empty() {
 	// Query with only double quotes — sanitize_fts_term strips them all,
 	// leaving an empty FTS query that would cause a MATCH syntax error
 	let results =
-		search_index::search_fts("\"\"\"".to_string(), Some(10), Some(false)).unwrap();
+		search_fts_blocking("\"\"\"".to_string(), Some(10), Some(false)).unwrap();
 	assert!(results.is_empty());
 
 	teardown();
@@ -446,7 +502,7 @@ fn search_fts_with_fuzzy_finds_typo_tolerant_matches() {
 
 	// "programing" (one 'm') is a typo for "programming"
 	let results =
-		search_index::search_fts("programing".to_string(), Some(10), Some(true)).unwrap();
+		search_fts_blocking("programing".to_string(), Some(10), Some(true)).unwrap();
 	assert!(
 		!results.is_empty(),
 		"fuzzy search should find 'programming' from typo 'programing'"
@@ -462,7 +518,7 @@ fn search_fts_indexes_nested_files_with_relative_paths() {
 	let tmp = setup_vault();
 	search_index::build_search_index_inner(tmp.path().to_string_lossy().to_string()).unwrap();
 
-	let results = search_index::search_fts("nested".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("nested".to_string(), Some(10), Some(false)).unwrap();
 	assert!(!results.is_empty(), "should find nested note");
 	assert!(
 		results[0].path.contains("subfolder/"),
@@ -548,7 +604,7 @@ fn build_search_index_indexes_files_added_while_closed() {
 	assert_eq!(stats2.unchanged, 4);
 	assert_eq!(stats2.total_documents, 5);
 
-	let results = search_index::search_fts("sync client".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("sync client".to_string(), Some(10), Some(false)).unwrap();
 	assert_eq!(results.len(), 1, "externally added file must be searchable");
 	assert_eq!(results[0].path, "synced.md");
 
@@ -575,9 +631,9 @@ fn build_search_index_reconciles_an_add_delete_pair_that_cancels_out_in_the_coun
 	assert_eq!(stats.updated, 0);
 	assert_eq!(stats.total_documents, 4);
 
-	let gone = search_index::search_fts("dereferences".to_string(), Some(10), Some(false)).unwrap();
+	let gone = search_fts_blocking("dereferences".to_string(), Some(10), Some(false)).unwrap();
 	assert!(gone.is_empty(), "deleted file must not answer searches: {gone:?}");
-	let added = search_index::search_fts("elephants".to_string(), Some(10), Some(false)).unwrap();
+	let added = search_fts_blocking("elephants".to_string(), Some(10), Some(false)).unwrap();
 	assert_eq!(added.len(), 1, "added file must be searchable");
 
 	teardown();
@@ -631,7 +687,7 @@ fn build_search_index_reindexes_an_edited_file_and_leaves_its_neighbours_unread(
 		"an unchanged file must not be re-read"
 	);
 
-	let results = search_index::search_fts("aardvarks".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("aardvarks".to_string(), Some(10), Some(false)).unwrap();
 	assert_eq!(results.len(), 1, "edited content must be searchable");
 
 	teardown();
@@ -657,7 +713,7 @@ fn build_search_index_reindexes_a_file_restored_with_an_older_mtime() {
 	assert_eq!(stats.updated, 1, "an older mtime is still a difference");
 	assert_eq!(stats.unchanged, 3);
 
-	let results = search_index::search_fts("aardvarks".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("aardvarks".to_string(), Some(10), Some(false)).unwrap();
 	assert_eq!(results.len(), 1, "restored content must be searchable");
 
 	teardown();
@@ -688,7 +744,7 @@ fn build_search_index_full_rebuild_when_no_row_survives_the_pass() {
 	assert_eq!(stats.unchanged, 0);
 	assert_eq!(stats.total_documents, 4, "no row may be lost by the shortcut");
 
-	let results = search_index::search_fts("dereferences".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("dereferences".to_string(), Some(10), Some(false)).unwrap();
 	assert_eq!(results.len(), 1, "the re-indexed rows must still be searchable");
 
 	teardown();
@@ -759,7 +815,7 @@ fn update_search_index_file_indexes_content_even_when_the_vault_path_is_bogus() 
 	)
 	.unwrap();
 
-	let results = search_index::search_fts("walruses".to_string(), Some(10), Some(false)).unwrap();
+	let results = search_fts_blocking("walruses".to_string(), Some(10), Some(false)).unwrap();
 	assert_eq!(results.len(), 1, "content must be indexed regardless of mtime");
 
 	teardown();
@@ -789,6 +845,74 @@ fn build_search_index_rebuilds_when_vault_emptied() {
 	assert_eq!(stats2.total_documents, 0);
 	assert_eq!(stats2.removed, 4);
 	assert_eq!(stats2.unchanged, 0);
+
+	teardown();
+}
+
+/// FTS5's own consistency check of the index against `notes_content`.
+fn assert_fts_integrity() {
+	db::with_fts_db(|conn| {
+		conn.execute("INSERT INTO notes_fts(notes_fts) VALUES('integrity-check')", [])
+			.map_err(|e| e.to_string())
+	})
+	.expect("notes_fts index out of sync with notes_content");
+}
+
+#[test]
+fn build_search_index_drops_a_view_row_left_by_an_earlier_build() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+	search_index::build_search_index_inner(vault.clone()).unwrap();
+
+	// The row an earlier build wrote for a `.view`, stamped with the file's
+	// real mtime, so only the walk can tell it apart from an unchanged note.
+	let view = "name: Projects\nfilters:\n  - zebracorn\n";
+	fs::write(tmp.path().join("projects.view"), view).unwrap();
+	search_index::update_search_index_file_inner(
+		"projects.view".to_string(),
+		view.to_string(),
+		vault.clone(),
+	)
+	.unwrap();
+	assert_eq!(
+		search_fts_blocking("zebracorn".to_string(), Some(10), Some(false)).unwrap().len(),
+		1,
+		"seeded view row must be searchable before the reconcile"
+	);
+
+	let stats = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats.removed, 1);
+	assert_eq!(stats.unchanged, 4);
+	assert_eq!(stats.total_documents, 4);
+	let hits = search_fts_blocking("zebracorn".to_string(), Some(10), Some(false)).unwrap();
+	assert!(hits.is_empty(), "a view must not answer searches: {hits:?}");
+	assert_fts_integrity();
+
+	teardown();
+}
+
+#[test]
+fn build_search_index_adds_a_view_renamed_to_markdown() {
+	let _guard = TEST_LOCK.lock().unwrap();
+	teardown();
+	let tmp = setup_vault();
+	let vault = tmp.path().to_string_lossy().to_string();
+	fs::write(tmp.path().join("Foo.view"), "name: Foo\nnote: zebracorn\n").unwrap();
+
+	let stats1 = search_index::build_search_index_inner(vault.clone()).unwrap();
+	assert_eq!(stats1.total_documents, 4, "the view gets no row");
+
+	fs::rename(tmp.path().join("Foo.view"), tmp.path().join("Foo.md")).unwrap();
+
+	let stats2 = search_index::build_search_index_inner(vault).unwrap();
+	assert_eq!(stats2.added, 1);
+	assert_eq!(stats2.removed, 0);
+	assert_eq!(stats2.unchanged, 4);
+	let hits = search_fts_blocking("zebracorn".to_string(), Some(10), Some(false)).unwrap();
+	assert_eq!(hits.len(), 1);
+	assert_eq!(hits[0].path, "Foo.md");
 
 	teardown();
 }

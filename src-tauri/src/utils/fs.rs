@@ -24,12 +24,35 @@ pub fn write_atomic(path: &str, content: &str) -> Result<(), String> {
 	}
 	let seq = WRITE_ATOMIC_SEQ.fetch_add(1, Ordering::Relaxed);
 	let tmp = format!("{}.tmp-{}-{}", path, std::process::id(), seq);
-	std::fs::write(&tmp, content).map_err(|e| format!("write failed for {}: {}", tmp, e))?;
+	std::fs::write(&tmp, content).map_err(|e| {
+		let _ = std::fs::remove_file(&tmp);
+		format!("write failed for {}: {}", tmp, e)
+	})?;
+	keep_created_time(path, &tmp);
 	std::fs::rename(&tmp, path).map_err(|e| {
 		let _ = std::fs::remove_file(&tmp);
 		format!("rename failed for {}: {}", path, e)
 	})
 }
+
+/// Copies `target`'s creation time to the temp file that is about to replace
+/// it: the rename installs a new inode, and the index and the note's Created
+/// row read the birth time from it. Best effort, since a lost date must not
+/// fail the write. Other platforms keep the rename's new creation time.
+#[cfg(target_os = "macos")]
+fn keep_created_time(target: &str, tmp: &str) {
+	use std::os::macos::fs::FileTimesExt;
+
+	let Ok(created) = std::fs::metadata(target).and_then(|meta| meta.created()) else {
+		return;
+	};
+	if let Ok(file) = std::fs::File::options().write(true).open(tmp) {
+		let _ = file.set_times(std::fs::FileTimes::new().set_created(created));
+	}
+}
+
+#[cfg(not(target_os = "macos"))]
+fn keep_created_time(_target: &str, _tmp: &str) {}
 
 /// Validates and canonicalizes a vault path.
 ///
@@ -61,9 +84,10 @@ pub type MarkdownEntryWithMtime = (String, PathBuf, i64);
 /// Windows NTFS).
 pub type MarkdownEntryWithMetadata = (String, PathBuf, i64, i64, u64);
 
-/// Recursively collects markdown file paths from a vault directory.
+/// Recursively collects the VaultIndex's file paths from a vault directory.
 ///
-/// Returns `(relative_path, absolute_path)` pairs for all `.md` / `.markdown` files.
+/// Returns `(relative_path, absolute_path)` pairs for every file
+/// `is_markdown_filename` accepts: `.md`, `.markdown` and `.view`.
 /// Skips hidden files/directories (dot-prefixed) and any directories in `excluded_folders`.
 pub fn collect_markdown_paths(
 	vault_root: &Path,
@@ -74,9 +98,12 @@ pub fn collect_markdown_paths(
 	Ok(entries)
 }
 
-/// Like `collect_markdown_paths`, but also collects modification times from the
-/// metadata already fetched during the walk. Eliminates the need for separate
-/// `std::fs::metadata()` calls per file.
+/// The search walk: collects only the files `is_search_indexed_filename`
+/// accepts (`.md` / `.markdown`, no `.view`), with the modification times from
+/// the metadata already fetched during the walk, so no separate
+/// `std::fs::metadata()` call runs per file. The FTS5 reconcile and the
+/// semantic build diff this list against their tables, so a `.view` row left
+/// in either is removed as a file that is gone.
 pub fn collect_markdown_paths_with_mtime(
 	vault_root: &Path,
 	excluded_folders: &[&str],
@@ -86,7 +113,8 @@ pub fn collect_markdown_paths_with_mtime(
 	Ok(entries)
 }
 
-/// Like `collect_markdown_paths_with_mtime` but also captures ctime + size.
+/// Like `collect_markdown_paths` (the same file set, `.view` included) but
+/// also captures mtime, ctime and size.
 /// Used by Phase 8's `scan_vault_v2` so per-entry metadata exposed to
 /// kb-api / collection queries (`file.ctime`, `file.size`) matches the
 /// filesystem state at scan time.
@@ -99,8 +127,9 @@ pub fn collect_markdown_paths_with_metadata(
 	Ok(entries)
 }
 
-/// Returns true when `file_name` ends with `.md` or `.markdown`,
-/// case-INSENSITIVELY. Audit Tier 1 #6 (2026-04-29).
+/// Returns true when `file_name` ends with `.md`, `.markdown` or `.view`,
+/// case-INSENSITIVELY: a file that belongs in the VaultIndex. Whether it is
+/// also searchable is `is_search_indexed_filename`. Audit Tier 1 #6 (2026-04-29).
 ///
 /// Pre-fix the check was `ends_with(".md") || ends_with(".markdown")` —
 /// a file named `Note.MD` (capital extension on case-preserving APFS) was
@@ -119,6 +148,12 @@ pub fn is_markdown_filename(file_name: &str) -> bool {
 /// Returns true when the filename has a `.view` extension (case-insensitive).
 pub fn is_view_filename(file_name: &str) -> bool {
 	file_name.to_ascii_lowercase().ends_with(".view")
+}
+
+/// True for a file that gets FTS5 rows and embeddings. A `.view` is in the
+/// VaultIndex (`is_markdown_filename`) but on no search surface.
+pub fn is_search_indexed_filename(file_name: &str) -> bool {
+	is_markdown_filename(file_name) && !is_view_filename(file_name)
 }
 
 fn walk_dir(
@@ -213,7 +248,7 @@ fn walk_dir_with_mtime(
 				continue;
 			}
 			walk_dir_with_mtime(&path, vault_root, entries, excluded_folders, depth + 1)?;
-		} else if is_markdown_filename(&file_name) {
+		} else if is_search_indexed_filename(&file_name) {
 			let rel_path = path
 				.strip_prefix(vault_root)
 				.map(|p| p.to_string_lossy().to_string())

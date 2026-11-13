@@ -78,8 +78,8 @@ The app has four independently themeable regions:
 |                    Tab Bar                        |
 +------------+------------------+------------------+
 |            |                  |                  |
-|   Left     |                  |   Right          |
-|   Sidebar  |     Editor       |   Sidebar        |
+|  Rail and  |                  |   Right          |
+|  Panels    |     Editor       |   Sidebar        |
 |            |                  |                  |
 |            |                  |                  |
 +------------+------------------+------------------+
@@ -87,7 +87,7 @@ The app has four independently themeable regions:
 +--------------------------------------------------+
 ```
 
-Each region can have its own background, text, and accent colors. This lets you create themes like "light sidebar with dark editor" or "muted sidebars with bright editor" without conflicts.
+Each region can have its own background, text, and accent colors. This lets you create themes like "light rail panels with dark editor" or "muted side panels with bright editor" without conflicts. The left region is the rail with its navigators and note list ([Rail and Panels](#rail-and-panels) tokens); the right one is the right sidebar ([Right Sidebar](#right-sidebar) tokens).
 
 ---
 
@@ -96,6 +96,9 @@ Each region can have its own background, text, and accent colors. This lets you 
 ### Global
 
 These apply to shared surfaces (popovers, dialogs) and act as fallback defaults for regions that don't override them.
+
+> [!IMPORTANT]
+> This table, without `tabBar`, is the color contract of [vault mods](28-mods.md#ctxtheme-colors): `ctx.theme` reports these colors and mods use their CSS variables in their own UI. Renaming or removing one of these tokens or its CSS variable is a breaking change for mods. `cardForeground` cannot be set from a theme yet: it takes the stylesheet's light or dark default.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
@@ -121,18 +124,22 @@ These apply to shared surfaces (popovers, dialogs) and act as fallback defaults 
 | `tabBar` | `--tab-bar` | Tab bar / header bar background |
 | `divider` | `--divider` | Divider line color |
 
-### Left Sidebar
+### Rail and Panels
 
-Controls the panels next to the rail: the Files, Types and Calendar navigators, the note list and Search.
+Controls the panels next to the rail (the Files, Types and Calendar navigators, the note list and Search) and part of the rail itself. On the rail, `fileExplorerFg` colors the item titles and, at 25 % opacity, the dividers; `fileExplorerBorder` colors only the right edge; `fileExplorerFg` at 10 % opacity is also the hover background; `fileExplorerPrimary` colors the resize handle on hover and the busy mark.
+
+The rail, the navigators and the note list have different tones, all derived from `fileExplorerBg`. On a light theme the rail is darker than `fileExplorerBg`, the navigators use it as is, and the note list and Search sit halfway to `editorBg`. On a dark theme the note list and Search use `fileExplorerBg` as is, and the navigators and the rail are one and two steps darker. The theme is light or dark according to `editorBg` (a value the app cannot read, such as `hsl()`, counts as dark), so keep `fileExplorerBg` below `editorBg` on a light theme to keep this order, and avoid dark panels with a light editor, where the note list turns into a mid tone.
+
+The rail's item colors do not come from the theme. Each built-in item has a fixed color, the same on every theme; a pin uses its icon's color, and a mod's button the one its [manifest](28-mods.md#the-manifest) declares. The rail's top strip is `tabBar` and its section titles mix `fileExplorerMutedFg` with some `fileExplorerFg`.
 
 | Token | CSS Variable | Description |
 |-------|-------------|-------------|
-| `fileExplorerBg` | `--file-explorer-bg` | Background fill of the entire left sidebar pane |
-| `fileExplorerFg` | `--file-explorer-fg` | Primary readable text: file/folder names, search input text, calendar file list, daily note button labels |
+| `fileExplorerBg` | `--file-explorer-bg` | Base of the rail, navigator and note list backgrounds |
+| `fileExplorerFg` | `--file-explorer-fg` | Primary readable text: rail item titles and dividers, file/folder names, search input text, calendar file list, daily note button labels |
 | `fileExplorerMutedFg` | `--file-explorer-muted-fg` | Secondary text and icons: tree chevrons, folder/file icons, search placeholder, weekday headers, section labels ("Views", "Types") |
-| `fileExplorerAccent` | `--file-explorer-accent` | Hover/selection background: file tree item hover, calendar day hover, search close button hover, quarter/week button hover |
+| `fileExplorerAccent` | `--file-explorer-accent` | Hover/selection background: search result hover, calendar day and periodic note hover, note list header buttons, the active My People row. File and type rows hover with `fileExplorerPrimary` at 10 % opacity instead |
 | `fileExplorerPrimary` | `--file-explorer-primary` | Primary accent color: selected file name, "Search" heading, calendar month label, weekend day numbers, active fuzzy toggle, type/view selected state, dot indicators |
-| `fileExplorerBorder` | `--file-explorer-border` | Borders and separators: search input border, type sidebar section dividers, untyped section top border |
+| `fileExplorerBorder` | `--file-explorer-border` | Borders and separators: the rail's right edge, search input border, note list row separators, navigator dividers |
 | `fileExplorerBadgeFg` | `--file-explorer-badge-fg` | Numeric count badges: file count in folders, note count in type/view/nav items |
 | `searchSemanticBg` | `--search-semantic-bg` | Background of the "Semantic" badge pill in search results |
 | `searchSemanticFg` | `--search-semantic-fg` | Text color of the "Semantic" badge pill in search results |
@@ -146,7 +153,7 @@ Controls the properties panel, table of contents, backlinks, and outgoing links.
 | `rightSidebarBg` | `--right-sidebar-bg` | Background fill of the entire right sidebar pane |
 | `rightSidebarFg` | `--right-sidebar-fg` | Primary readable text: property values, boolean labels, relationship link names, heading text in TOC |
 | `rightSidebarMutedFg` | `--right-sidebar-muted-fg` | Secondary text and icons: property keys, file icons, snippet text, link/relationship counts, chevron icons, empty state messages ("No backlinks found") |
-| `rightSidebarAccent` | `--right-sidebar-accent` | Hover/selection background: collapsible trigger hover, backlink/outgoing link item hover, property row hover, lifecycle button hover, list item container bg |
+| `rightSidebarAccent` | `--right-sidebar-accent` | Hover/selection background: collapsible trigger hover, backlink/outgoing link item hover, property row hover, list item container bg |
 | `rightSidebarPrimary` | `--right-sidebar-primary` | Primary accent color: panel headings ("Properties", "Backlinks", "TOC", "Outgoing links", "Relationships"), link highlight text in backlink snippets, TOC heading hover |
 | `rightSidebarBorder` | `--right-sidebar-border` | Borders and separators: TOC indent guide lines (via CSS gradient) |
 
@@ -220,7 +227,7 @@ Control CodeMirror syntax highlighting for markdown source.
 
 ## Preview Colors
 
-Control live preview rendering (links, blockquotes, tables, code blocks, frontmatter, collections, embeds).
+Control live preview rendering (links, blockquotes, tables, code blocks, collections, embeds).
 
 ### Links
 
@@ -264,22 +271,6 @@ Control live preview rendering (links, blockquotes, tables, code blocks, frontma
 | `tableHeaderBg` | `--lp-table-header-bg` |
 | `tableAlt` | `--lp-table-alt` |
 | `tableHover` | `--lp-table-hover` |
-
-### Frontmatter
-
-| Token | CSS Variable |
-|-------|-------------|
-| `frontmatterBg` | `--lp-frontmatter-bg` |
-| `frontmatterBorder` | `--lp-frontmatter-border` |
-| `frontmatterLabel` | `--lp-frontmatter-label` |
-| `frontmatterCountBg` | `--lp-frontmatter-count-bg` |
-| `frontmatterCountText` | `--lp-frontmatter-count-text` |
-| `frontmatterRowBorder` | `--lp-frontmatter-row-border` |
-| `frontmatterKey` | `--lp-frontmatter-key` |
-| `frontmatterValue` | `--lp-frontmatter-value` |
-| `frontmatterTagBg` | `--lp-frontmatter-tag-bg` |
-| `frontmatterTagText` | `--lp-frontmatter-tag-text` |
-| `frontmatterTagX` | `--lp-frontmatter-tag-x` |
 
 ### Collections
 
@@ -355,4 +346,4 @@ Control the accent color for each callout type.
 - **Region variables default to global values** -- you only need to set them when you want a region to differ from the global palette
 - **Use the live preview** in the Theme Editor to see changes instantly
 - **Export your theme** as JSON to share it or back it up
-- To create a "light sidebar + dark editor" theme: set `fileExplorerBg` to a light color, `fileExplorerFg` to a dark text color, and keep `editorBg`/`editorFg` dark
+- To create a "light rail panels + dark editor" theme: set `fileExplorerBg` to a light color, `fileExplorerFg` to a dark text color, and keep `editorBg`/`editorFg` dark

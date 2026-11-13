@@ -398,19 +398,6 @@ fn virtual_commands_leave_the_index_alone() {
 }
 
 #[test]
-fn section_tasks_are_read_from_the_vault_notes() {
-	let vault = Vault::new();
-	fs::write(vault.path("note.md"), "## Today #to-list\n- [ ] ship it\n").unwrap();
-	// The desktop watcher re-indexes a changed note; only notes whose index
-	// entry has tasks are read for a section query.
-	scan_vault_v2_inner(&vault.root(), &vault.index).unwrap();
-	let groups = vault.call("get_tasks_in_section_v2", json!({ "sectionTag": "#to-list" })).unwrap();
-	assert_eq!(groups.as_array().unwrap().len(), 1, "{groups}");
-	assert!(groups.to_string().contains("ship it"));
-	assert_eq!(vault.call("get_tasks_in_section_v2", json!({ "sectionTag": "#none" })).unwrap(), json!([]));
-}
-
-#[test]
 fn unlinked_mentions_are_read_from_the_vault_notes() {
 	let vault = Vault::new();
 	fs::write(vault.path("folder/other.md"), "talks about note here").unwrap();

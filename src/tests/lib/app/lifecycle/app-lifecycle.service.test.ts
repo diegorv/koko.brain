@@ -99,7 +99,7 @@ vi.mock('#lib/features/search/search.service.js', () => ({
 }));
 
 vi.mock('#lib/core/settings/settings.service.js', () => ({
-	loadSettings: vi.fn(() => Promise.resolve()),
+	loadSettings: vi.fn(() => Promise.resolve('loaded')),
 	resetSettings: vi.fn(),
 }));
 
@@ -166,6 +166,13 @@ vi.mock('#lib/features/rail-shell/files-navigator.service.js', () => ({
 	registerFilesNavigatorPathChangeConsumer: vi.fn(() => unregisterFilesNavigatorPathChange),
 }));
 
+/** Unregister handle returned by the mocked Types navigator path-change registration. */
+const unregisterTypesNavigatorPathChange = vi.hoisted(() => vi.fn());
+
+vi.mock('#lib/features/rail-shell/types-navigator.service.js', () => ({
+	registerTypesNavigatorPathChangeConsumer: vi.fn(() => unregisterTypesNavigatorPathChange),
+}));
+
 /** Unregister handle returned by the mocked Neighbourhood path-change registration. */
 const unregisterNeighbourhoodPathChange = vi.hoisted(() => vi.fn());
 
@@ -182,6 +189,7 @@ vi.mock('#lib/features/event-calendar/event-calendar.service.js', () => ({
 vi.mock('#lib/features/tasks/tasks.service.js', () => ({
 	buildTaskIndex: vi.fn(),
 	resetTasks: vi.fn(),
+	loadSavedTasksView: vi.fn(),
 }));
 
 vi.mock('#lib/core/trash/trash.service.js', () => ({
@@ -212,14 +220,29 @@ vi.mock('#lib/features/command-palette/command-palette.service.js', () => ({
 	resetCommandPalette: vi.fn(),
 }));
 
-vi.mock('#lib/features/auto-move/auto-move.service.js', () => ({
-	loadAutoMoveConfig: vi.fn(() => Promise.resolve()),
-	toggleAutoMoveHook: vi.fn(),
-	resetAutoMove: vi.fn(),
+vi.mock('#lib/features/auto-organize/auto-organize.service.js', () => ({
+	loadAutoOrganizeConfig: vi.fn(() => Promise.resolve()),
+	toggleAutoOrganizeHook: vi.fn(),
+	resetAutoOrganize: vi.fn(),
 }));
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
 	readTextFile: vi.fn(),
+}));
+
+// The host's own behavior (flag gate, loading, unloading) is covered by
+// mods-host.service.test.ts; here only the lifecycle's start and stop calls.
+vi.mock('#lib/plugins/mods/mods-host.service.js', () => ({
+	startModsHost: vi.fn(() => Promise.resolve()),
+	stopModsHost: vi.fn(),
+}));
+
+// The scheduler's triggers are covered by sync-scheduler.service.test.ts;
+// here only the lifecycle's start and stop calls.
+vi.mock('#lib/features/todoist-sync/sync-scheduler.service.js', () => ({
+	startAutoSync: vi.fn(),
+	stopAutoSync: vi.fn(),
+	syncNowFromUi: vi.fn(),
 }));
 
 import { invoke } from '@tauri-apps/api/core';
@@ -246,10 +269,11 @@ import { loadRecentIcons, buildFrontmatterIconIndex, registerFileIconsNoteChange
 import { resetCalendar } from '#lib/plugins/calendar/calendar.service.js';
 import { drainEventCalendarWrites, registerEventCalendarPathChangeConsumer, resetEventCalendar } from '#lib/features/event-calendar/event-calendar.service.js';
 import { registerFilesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/files-navigator.service.js';
+import { registerTypesNavigatorPathChangeConsumer } from '#lib/features/rail-shell/types-navigator.service.js';
 import { registerNeighbourhoodPathChangeConsumer } from '#lib/features/rail-shell/neighbourhood.service.js';
-import { buildTaskIndex, resetTasks } from '#lib/features/tasks/tasks.service.js';
+import { buildTaskIndex, loadSavedTasksView, resetTasks } from '#lib/features/tasks/tasks.service.js';
 import { loadTrash, resetTrash } from '#lib/core/trash/trash.service.js';
-import { loadAutoMoveConfig, resetAutoMove, toggleAutoMoveHook } from '#lib/features/auto-move/auto-move.service.js';
+import { loadAutoOrganizeConfig, resetAutoOrganize, toggleAutoOrganizeHook } from '#lib/features/auto-organize/auto-organize.service.js';
 import { autoOpenDailyNote, resetPeriodicNotes } from '#lib/plugins/periodic-notes/periodic-notes.service.js';
 import { maybeAutoCheckForUpdates } from '#lib/core/settings/update-check.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
@@ -266,7 +290,6 @@ import {
 } from '#lib/features/search/search.service.js';
 import { toast } from 'svelte-sonner';
 import { initializeVault, teardownVault } from '#lib/app/lifecycle/app-lifecycle.service.js';
-import { todoistStore } from '#lib/features/tasks/todoist.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -283,6 +306,10 @@ import { remoteServerStore } from '#lib/app/remote/remote-server.store.svelte.js
 import { setRemoteBrowser } from '#lib/core/platform/capabilities.js';
 import { resolveAndDispatch } from '#lib/features/deep-link/deep-link.service.js';
 import { deepLinkStore } from '#lib/features/deep-link/deep-link.store.svelte.js';
+import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service.js';
+import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
+import { startAutoSync, stopAutoSync } from '#lib/features/todoist-sync/sync-scheduler.service.js';
+import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -305,11 +332,20 @@ describe('initializeVault', () => {
 	it('starts settings persistence for the opened vault, after its settings are loaded', async () => {
 		await initializeVault('/vault');
 
-		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault');
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault', 'loaded');
 		// Starting before the load would serialize DEFAULT_SETTINGS over the
 		// vault's own settings.json on the effect's first run.
 		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0])
 			.toBeLessThan(vi.mocked(startSettingsPersistence).mock.invocationCallOrder[0]);
+	});
+
+	it('loads the saved Tasks view once, after the settings load and before persistence starts', async () => {
+		await initializeVault('/vault');
+
+		expect(loadSavedTasksView).toHaveBeenCalledTimes(1);
+		const loaded = vi.mocked(loadSavedTasksView).mock.invocationCallOrder[0];
+		expect(vi.mocked(loadSettings).mock.invocationCallOrder[0]).toBeLessThan(loaded);
+		expect(loaded).toBeLessThan(vi.mocked(startSettingsPersistence).mock.invocationCallOrder[0]);
 	});
 
 	it('configures Sentry only after this vault settings have loaded', async () => {
@@ -324,6 +360,7 @@ describe('initializeVault', () => {
 		remoteServerStore.reset();
 		vi.mocked(loadSettings).mockImplementationOnce(async () => {
 			settingsStore.updateRemoteServer({ enabled: true, port: 5123 });
+			return 'loaded';
 		});
 
 		await initializeVault('/vault');
@@ -345,6 +382,7 @@ describe('initializeVault', () => {
 		remoteServerStore.reset();
 		vi.mocked(loadSettings).mockImplementationOnce(async () => {
 			settingsStore.updateRemoteServer({ enabled: true, port: 5123 });
+			return 'loaded';
 		});
 		vi.mocked(invoke).mockImplementation((cmd: string) =>
 			cmd === 'start_remote_server' ? Promise.reject('Port 5123 is already in use') : Promise.resolve(),
@@ -357,7 +395,7 @@ describe('initializeVault', () => {
 		}
 
 		expect(remoteServerStore.error).toBe('Port 5123 is already in use');
-		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault');
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault', 'loaded');
 	});
 
 	it('stops any running persistence session before loading the next vault settings', async () => {
@@ -484,6 +522,42 @@ describe('initializeVault', () => {
 		expect(maybeAutoCheckForUpdates).not.toHaveBeenCalled();
 	});
 
+	it('hands a protected load outcome to settings persistence', async () => {
+		vi.mocked(loadSettings).mockResolvedValueOnce('file-protected');
+
+		await initializeVault('/vault');
+
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault', 'file-protected');
+	});
+
+	describe('File History cleanup', () => {
+		it('purges snapshots at the loaded retention when settings.json loaded', async () => {
+			settingsStore.updateHistory({ retentionDays: 365 });
+
+			await initializeVault('/vault');
+
+			expect(invoke).toHaveBeenCalledWith('cleanup_history', { retentionDays: 365 });
+		});
+
+		it('still purges when the defaults replaced a missing or backed-up file', async () => {
+			vi.mocked(loadSettings).mockResolvedValueOnce('defaults');
+
+			await initializeVault('/vault');
+
+			expect(invoke).toHaveBeenCalledWith('cleanup_history', { retentionDays: settingsStore.history.retentionDays });
+		});
+
+		it('skips the purge when settings.json could not be read or backed up', async () => {
+			// The store holds the default retention, not the one in the unread file.
+			vi.mocked(loadSettings).mockResolvedValueOnce('file-protected');
+
+			await initializeVault('/vault');
+
+			expect(invoke).toHaveBeenCalledWith('open_vault_db', { vaultPath: '/vault' });
+			expect(invoke).not.toHaveBeenCalledWith('cleanup_history', expect.anything());
+		});
+	});
+
 	it('opens the shared database after settings load', async () => {
 		await initializeVault('/vault');
 
@@ -497,18 +571,18 @@ describe('initializeVault', () => {
 		expect(loadRecentIcons).toHaveBeenCalledWith('/vault');
 	});
 
-	it('finishes the bookmarks migration before the vault scan and the auto-move hook', async () => {
+	it('finishes the bookmarks migration before the vault scan and the auto-organize hook', async () => {
 		let releaseMigration: () => void = () => {};
 		vi.mocked(migrateBookmarksToFavorites).mockImplementationOnce(
 			() => new Promise<void>((resolve) => { releaseMigration = resolve; }),
 		);
-		settingsStore.updateAutoMove({ enabled: true });
+		settingsStore.updateAutoOrganize({ enabled: true });
 
 		const init = initializeVault('/vault');
 		await new Promise((r) => setTimeout(r, 0));
 		expect(migrateBookmarksToFavorites).toHaveBeenCalledWith('/vault');
 		expect(buildIndex).not.toHaveBeenCalled();
-		expect(toggleAutoMoveHook).not.toHaveBeenCalled();
+		expect(toggleAutoOrganizeHook).not.toHaveBeenCalled();
 
 		releaseMigration();
 		await init;
@@ -901,6 +975,15 @@ describe('note-change consumer wiring', () => {
 		expect(unregisterFilesNavigatorPathChange).toHaveBeenCalledTimes(1);
 	});
 
+	it('registers the Types navigator path-change consumer during initializeVault and unregisters it on teardown', async () => {
+		await initializeVault('/vault');
+		expect(registerTypesNavigatorPathChangeConsumer).toHaveBeenCalledTimes(1);
+		expect(unregisterTypesNavigatorPathChange).not.toHaveBeenCalled();
+
+		teardownVault();
+		expect(unregisterTypesNavigatorPathChange).toHaveBeenCalledTimes(1);
+	});
+
 	it('registers the collection view-index path-change consumer during initializeVault and unregisters it on teardown', async () => {
 		await initializeVault('/vault');
 		expect(registerCollectionPathChangeConsumer).toHaveBeenCalledTimes(1);
@@ -1172,15 +1255,6 @@ describe('teardownVault', () => {
 		teardownVault();
 	});
 
-	it('resets todoist store to prevent cross-vault data leakage', () => {
-		todoistStore.setProjects([{ id: '1', name: 'Old Vault Project' }] as any);
-		expect(todoistStore.projects.length).toBe(1);
-
-		teardownVault();
-
-		expect(todoistStore.projects).toEqual([]);
-	});
-
 	it('resets lifecycle filter store to prevent stale archived paths', () => {
 		lifecycleFilterStore.setArchivedPaths(new Set(['/old-vault/archived.md']));
 		expect(lifecycleFilterStore.archivedPaths.size).toBe(1);
@@ -1355,7 +1429,7 @@ describe('initializeVault — semantic search startup', () => {
 		expect(settingsStore.search.semanticSearchEnabled).toBe(false);
 		// No explicit save here any more: the persistence owner started for this
 		// vault picks the mutation up, so the flag reaches /vault/settings.json.
-		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault');
+		expect(startSettingsPersistence).toHaveBeenCalledWith('/vault', 'loaded');
 		expect(stopSemanticProgressListener).toHaveBeenCalled();
 		expect(toast.warning).toHaveBeenCalledWith(
 			'Semantic search model not found. Re-enable in Settings to download.'
@@ -1424,7 +1498,7 @@ describe('state transitions: teardown → reinitialize', () => {
 	it('discards stale initialization when vault is switched rapidly', async () => {
 		// Simulate slow loadSettings for vault A
 		let resolveA: () => void;
-		const slowSettingsA = new Promise<void>((r) => { resolveA = r; });
+		const slowSettingsA = new Promise<'loaded'>((r) => { resolveA = () => r('loaded'); });
 		vi.mocked(loadSettings).mockReturnValueOnce(slowSettingsA);
 
 		const initA = initializeVault('/vault-a');
@@ -1440,6 +1514,22 @@ describe('state transitions: teardown → reinitialize', () => {
 		// (vault A's init was superseded by vault B's version counter bump)
 		expect(buildIndex).toHaveBeenCalledTimes(1);
 		expect(buildIndex).toHaveBeenCalledWith('/vault-b');
+	});
+
+	it('does not load the saved Tasks view for a superseded init', async () => {
+		let resolveA: () => void;
+		const slowSettingsA = new Promise<'loaded'>((r) => { resolveA = () => r('loaded'); });
+		vi.mocked(loadSettings).mockReturnValueOnce(slowSettingsA);
+
+		const initA = initializeVault('/vault-a');
+		await initializeVault('/vault-b');
+		expect(loadSavedTasksView).toHaveBeenCalledTimes(1);
+
+		// Vault A's settings resolve last; its init was superseded by B's.
+		resolveA!();
+		await initA;
+
+		expect(loadSavedTasksView).toHaveBeenCalledTimes(1);
 	});
 
 	it('saves all dirty tabs before tearing down previous vault on switch', async () => {
@@ -1657,9 +1747,10 @@ describe('lifecycle order', () => {
 			registerFileIconsNoteChangeConsumer,
 			registerEventCalendarPathChangeConsumer,
 			registerFilesNavigatorPathChangeConsumer,
+			registerTypesNavigatorPathChangeConsumer,
 			registerNeighbourhoodPathChangeConsumer,
 		);
-		const loads = firstCalls(migrateBookmarksToFavorites, loadRecentIcons, loadTrash, loadAutoMoveConfig);
+		const loads = firstCalls(migrateBookmarksToFavorites, loadRecentIcons, loadTrash, loadAutoOrganizeConfig);
 		const watcher = firstCalls(onFileChange, startWatching);
 
 		expect(Math.max(...consumers)).toBeLessThan(Math.min(...loads));
@@ -1688,7 +1779,7 @@ describe('lifecycle order', () => {
 			resetCollection,
 			resetQuickSwitcher,
 			resetCommandPalette,
-			resetAutoMove,
+			resetAutoOrganize,
 			resetPeriodicNotes,
 			resetTrash,
 		));
@@ -1708,6 +1799,7 @@ describe('initializeVault in the browser served by the Mac', () => {
 		vi.mocked(loadSettings).mockImplementationOnce(async () => {
 			settingsStore.setSettings({ ...structuredClone(settingsStore.settings), debugLogToFile: true });
 			settingsStore.updateRemoteServer({ enabled: true, port: 5123 });
+			return 'loaded';
 		});
 
 		await initializeVault('/vault');
@@ -1736,5 +1828,165 @@ describe('initializeVault in the browser served by the Mac', () => {
 		expect(migrateBookmarksToFavorites).toHaveBeenCalledWith('/vault');
 		expect(ensureTemplatesFolder).toHaveBeenCalled();
 		expect(autoOpenDailyNote).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('vault mods host', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		backlinksStore.reset();
+		settingsStore.reset();
+		searchStore.reset();
+		// Invalidates any Step 9 timer an earlier test left pending.
+		teardownVault();
+		vi.clearAllMocks();
+	});
+
+	it('starts the host for the opened vault in the post-open step, not during the open', async () => {
+		await initializeVault('/vault');
+
+		expect(startModsHost).not.toHaveBeenCalled();
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(startModsHost).toHaveBeenCalledTimes(1);
+		expect(startModsHost).toHaveBeenCalledWith('/vault');
+	});
+
+	it('does not start the host for a superseded init', async () => {
+		vi.useFakeTimers();
+		try {
+			await initializeVault('/vault-a');
+			teardownVault();
+			await vi.advanceTimersByTimeAsync(100);
+			expect(startModsHost).not.toHaveBeenCalled();
+
+			await initializeVault('/vault-b');
+			await vi.advanceTimersByTimeAsync(100);
+			expect(startModsHost).toHaveBeenCalledTimes(1);
+			expect(startModsHost).toHaveBeenCalledWith('/vault-b');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('logs a host failure to start without failing the open', async () => {
+		vi.mocked(startModsHost).mockRejectedValueOnce(new Error('cannot read mods'));
+
+		await initializeVault('/vault');
+		await new Promise((resolve) => setTimeout(resolve, 0));
+
+		expect(debugError).toHaveBeenCalledWith('LIFECYCLE', 'Failed to start vault mods:', expect.any(Error));
+	});
+
+	it('teardownVault stops the host', () => {
+		teardownVault();
+
+		expect(stopModsHost).toHaveBeenCalledTimes(1);
+	});
+
+	it('teardownVault aborts every live mod run and empties the run store', () => {
+		const stop = vi.fn();
+		modsRunsStore.start({ modId: 'hello', runKey: 'mod:hello:action:slow', title: 'Slow job', stop });
+
+		teardownVault();
+
+		expect(stop).toHaveBeenCalledOnce();
+		expect(modsRunsStore.runs).toEqual([]);
+	});
+
+	it('a re-init stops the host before loading the next vault settings, on both entry paths', async () => {
+		// Normal path: a vault is open, so the entry stop and the teardown both run.
+		await initializeVault('/vault-a');
+		vi.clearAllMocks();
+		await initializeVault('/vault-b');
+		expect(stopModsHost).toHaveBeenCalled();
+		expect(vi.mocked(stopModsHost).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+
+		// Double-switch path: the leading teardown clears the watcher handle, so
+		// this init skips teardownVault and only the entry stop runs.
+		teardownVault();
+		vi.clearAllMocks();
+		await initializeVault('/vault-c');
+		expect(stopModsHost).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(stopModsHost).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+	});
+});
+
+describe('Todoist automatic sync', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+		backlinksStore.reset();
+		settingsStore.reset();
+		searchStore.reset();
+		// Invalidates any Step 9 timer an earlier test left pending.
+		teardownVault();
+		vi.clearAllMocks();
+	});
+
+	it('starts for the opened vault in the post-open step, not during the open', async () => {
+		await initializeVault('/vault');
+
+		expect(startAutoSync).not.toHaveBeenCalled();
+
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(startAutoSync).toHaveBeenCalledTimes(1);
+		expect(startAutoSync).toHaveBeenCalledWith('/vault');
+	});
+
+	it('does not start for a superseded init', async () => {
+		vi.useFakeTimers();
+		try {
+			await initializeVault('/vault-a');
+			teardownVault();
+			await vi.advanceTimersByTimeAsync(100);
+			expect(startAutoSync).not.toHaveBeenCalled();
+
+			await initializeVault('/vault-b');
+			await vi.advanceTimersByTimeAsync(100);
+			expect(startAutoSync).toHaveBeenCalledTimes(1);
+			expect(startAutoSync).toHaveBeenCalledWith('/vault-b');
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	it('teardownVault stops it and resets the sync store', () => {
+		todoistSyncStore.succeed({ kind: 'pull', mode: 'normal', notesCreated: 0, tasksInserted: 0, linksPaired: 0, linesUnmatched: 0, linesUpdated: 0, headingsWritten: 0, todoistUpdated: 0, todoistCreated: 0, projectsCreated: 0, sectionsCreated: 0, projectsRenamed: 0, finishedAt: 1 });
+
+		teardownVault();
+
+		expect(stopAutoSync).toHaveBeenCalledTimes(1);
+		expect(todoistSyncStore.lastSyncedAt).toBeNull();
+	});
+
+	it('a re-init stops it before loading the next vault settings, on both entry paths', async () => {
+		await initializeVault('/vault-a');
+		vi.clearAllMocks();
+		await initializeVault('/vault-b');
+		expect(stopAutoSync).toHaveBeenCalled();
+		expect(vi.mocked(stopAutoSync).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+
+		// Double-switch path: this init skips teardownVault and only the entry stop runs.
+		teardownVault();
+		vi.clearAllMocks();
+		await initializeVault('/vault-c');
+		expect(stopAutoSync).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(stopAutoSync).mock.invocationCallOrder[0])
+			.toBeLessThan(vi.mocked(loadSettings).mock.invocationCallOrder[0]);
+	});
+
+	it('an init that skips teardownVault still resets a sync store left syncing by the previous vault', async () => {
+		// A "Sync now" of the previous vault, stopped by the switch, leaves the store syncing.
+		todoistSyncStore.start();
+
+		await initializeVault('/vault-c');
+
+		expect(todoistSyncStore.isSyncing).toBe(false);
+		expect(todoistSyncStore.status).toBe('idle');
 	});
 });

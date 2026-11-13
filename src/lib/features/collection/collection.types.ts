@@ -1,3 +1,5 @@
+import type { ViewType } from './yaml-parser';
+
 /** Recursive filter type: an object with conjunctions or a string expression */
 export type FilterItem = CollectionFilter | string;
 
@@ -25,10 +27,10 @@ export interface PropertyConfig {
 	displayName?: string;
 }
 
-/** Definition of a single view within a .collection file */
+/** Definition of a single view within a `.view` file or ` ```collection ` block */
 export interface CollectionViewDef {
 	/** View type */
-	type: 'table' | 'calendar' | 'linear-calendar';
+	type: ViewType;
 	/** Display name shown on the view tab */
 	name: string;
 	/** Filters specific to this view (AND-combined with global filters) */
@@ -55,7 +57,7 @@ export interface CollectionViewDef {
 	colorProperty?: string;
 }
 
-/** Root definition of a .collection file */
+/** Root definition of a `.view` file or ` ```collection ` block */
 export interface CollectionDefinition {
 	/** Global filters applied to ALL views */
 	filters?: CollectionFilter | string;
@@ -65,6 +67,10 @@ export interface CollectionDefinition {
 	properties?: Record<string, PropertyConfig>;
 	/** Array of view definitions (at least one required) */
 	views: CollectionViewDef[];
+	/** The top-level `_rail_view`: the `name` of the view the rail runs (`railViewIndex`). Only a non-blank string is kept */
+	railView?: string;
+	/** A top-level `_rail_view` that is neither text nor empty, such as an unquoted `[[Board]]`; it picks no view, and Rust's index entry can hold it as a string */
+	railViewIgnored?: unknown;
 }
 
 /** A note record in the property index */
@@ -103,4 +109,9 @@ export interface QueryResult {
 	records: PropertyIndexRecord[];
 	/** Columns in display order with both key and display name */
 	columns: QueryColumn[];
+	/**
+	 * Set when a filter expression does not parse, calls an unknown function or
+	 * has a malformed `and` / `or` / `not`; `records` is then empty.
+	 */
+	filterError?: string;
 }

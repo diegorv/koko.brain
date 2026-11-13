@@ -36,6 +36,14 @@ describe('OneOnOneSection - 1:1 due after', () => {
 		flushSync();
 	}
 
+	it('groups the rows under People, New notes and Reminders', () => {
+		expect([...target.querySelectorAll('h3')].map((h) => h.textContent?.trim())).toEqual(['People', 'New notes', 'Reminders']);
+		const text = target.textContent ?? '';
+		const order = ['People', 'Work people folder', 'Personal people folder', 'New notes', 'Folder format', 'Filename format', 'Template path', 'Reminders', '1:1 due after (days)'].map((label) => text.indexOf(label));
+		expect(order).not.toContain(-1);
+		expect(order).toEqual([...order].sort((a, b) => a - b));
+	});
+
 	it('shows the default of 14 days', () => {
 		expect(dueInput().value).toBe('14');
 		expect(target.textContent).toContain('1:1 due after (days)');

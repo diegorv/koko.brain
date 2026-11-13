@@ -12,7 +12,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { graphViewStore } from '#lib/plugins/graph-view/graph-view.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-import { GRAPH_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { GRAPH_VIRTUAL_PATH, TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import {
 	buildGraph,
 	openGraphTab,
@@ -134,6 +134,59 @@ describe('openGraphTab', () => {
 		expect(editorStore.tabs).toHaveLength(2);
 		expect(editorStore.activeIndex).toBe(0);
 	});
+
+	it('centers on the markdown note that was active when the graph opened', () => {
+		editorStore.addTab({ path: '/vault/A.md', name: 'A.md', content: '', savedContent: '' });
+
+		openGraphTab();
+
+		expect(editorStore.activeTabPath).toBe(GRAPH_VIRTUAL_PATH);
+		expect(graphViewStore.centerPath).toBe('/vault/A.md');
+	});
+
+	it('leaves the center null when no tab is open', () => {
+		openGraphTab();
+
+		expect(graphViewStore.centerPath).toBeNull();
+	});
+
+	it('leaves the center null when opened from another virtual tab', () => {
+		editorStore.addTab({ path: TAGS_VIRTUAL_PATH, name: 'Tags', content: '', savedContent: '', fileType: 'tags' });
+
+		openGraphTab();
+
+		expect(graphViewStore.centerPath).toBeNull();
+	});
+
+	it('leaves the center null when the active tab is not a markdown note', () => {
+		editorStore.addTab({ path: '/vault/board.canvas', name: 'board.canvas', content: '', savedContent: '', fileType: 'canvas' });
+
+		openGraphTab();
+
+		expect(graphViewStore.centerPath).toBeNull();
+	});
+
+	it('updates the center when focusing an already open graph tab from another note', () => {
+		editorStore.addTab({ path: '/vault/B.md', name: 'B.md', content: '', savedContent: '' });
+		openGraphTab();
+		expect(graphViewStore.centerPath).toBe('/vault/B.md');
+		editorStore.addTab({ path: '/vault/A.md', name: 'A.md', content: '', savedContent: '' });
+
+		openGraphTab();
+
+		expect(editorStore.activeTabPath).toBe(GRAPH_VIRTUAL_PATH);
+		expect(graphViewStore.centerPath).toBe('/vault/A.md');
+	});
+
+	it('keeps the center when called while the graph tab is already active', () => {
+		editorStore.addTab({ path: '/vault/A.md', name: 'A.md', content: '', savedContent: '' });
+		openGraphTab();
+
+		openGraphTab();
+
+		expect(editorStore.activeTabPath).toBe(GRAPH_VIRTUAL_PATH);
+		expect(graphViewStore.centerPath).toBe('/vault/A.md');
+	});
 });
 
 describe('closeGraphTab', () => {
@@ -194,6 +247,25 @@ describe('toggleGraphTab', () => {
 
 		expect(editorStore.tabs).toHaveLength(2);
 		expect(editorStore.activeIndex).toBe(0);
+	});
+
+	it('centers on the active note when it opens the graph', () => {
+		editorStore.addTab({ path: '/vault/A.md', name: 'A.md', content: '', savedContent: '' });
+
+		toggleGraphTab();
+
+		expect(graphViewStore.centerPath).toBe('/vault/A.md');
+	});
+
+	it('updates the center when it focuses the open graph tab from another note', () => {
+		openGraphTab();
+		expect(graphViewStore.centerPath).toBeNull();
+		editorStore.addTab({ path: '/vault/A.md', name: 'A.md', content: '', savedContent: '' });
+
+		toggleGraphTab();
+
+		expect(editorStore.activeTabPath).toBe(GRAPH_VIRTUAL_PATH);
+		expect(graphViewStore.centerPath).toBe('/vault/A.md');
 	});
 });
 

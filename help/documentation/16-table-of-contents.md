@@ -6,7 +6,7 @@ The **Table of Contents** panel shows an auto-generated outline of all headings 
 
 The Table of Contents panel lives in the right sidebar as a **collapsible section**. Click it to expand and view the outline. It appears alongside other panels (backlinks, outgoing links, properties) in the sidebar area.
 
-The panel can be hidden entirely. Toggle it from the command palette with **Toggle Table of Contents** (category: Layout), or in **Settings -> Sidebar**, switch off "Table of Contents". It is shown by default.
+The panel can be hidden entirely. Toggle it from the command palette with **Toggle Table of Contents** (category: Layout), or in **Settings -> Layout**, switch off "Table of contents". It is shown by default.
 
 The panel is **lazy-loaded** — headings are only parsed when the panel is expanded. If you switch files while the panel is collapsed, it resets and requires re-expanding to show the new file's headings.
 
@@ -40,4 +40,4 @@ The panel strips markdown formatting from heading text for a clean display:
 
 ## Non-Markdown Files
 
-When a non-markdown file is active (e.g., `.canvas`, `.kanban`, `.collection`), the panel shows "Not available". When a markdown file has no headings, it shows "No headings found".
+When a non-markdown file is active (e.g., `.canvas`, `.kanban`, `.view`), the panel shows "Not available". When a markdown file has no headings, it shows "No headings found".

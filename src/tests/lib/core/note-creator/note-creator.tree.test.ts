@@ -25,6 +25,7 @@ vi.mock('#lib/core/editor/editor.service.js', () => ({
 
 vi.mock('#lib/core/editor/editor.hooks.js', () => ({
 	markRecentSave: vi.fn(),
+	notifyNoteCreated: vi.fn(),
 }));
 
 import { exists } from '@tauri-apps/plugin-fs';

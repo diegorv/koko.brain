@@ -1,5 +1,5 @@
 import { test, expect } from '../fixtures/test-vault';
-import { pressShortcut } from '../fixtures/helpers';
+import { openFile, pressShortcut } from '../fixtures/helpers';
 
 test.describe('Tasks view', () => {
 	test('Cmd+Shift+T opens the Tasks virtual tab', async ({ vaultPage: page }) => {
@@ -14,58 +14,131 @@ test.describe('Tasks view', () => {
 		// Fixture Daily/2026-05-01.md contains: `- [ ] Reply to email thread`
 		// Projects/2026-Q2.md contains: `- [ ] Ship feature A`, `- [x] Draft RFC`, `- [ ] Review pending PRs`
 		await pressShortcut(page, 'Mod+Shift+T');
-		// TasksView ships with a "section tag" filter pre-populated to
-		// `#to-list`. None of the fixture tasks live under that tag, so the
-		// view shows "No tasks found" until the filter is cleared.
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
-		await page.waitForTimeout(300);
+		// The vault opens on the seeded "To list" view, one `#to-list` heading
+		// card. None of the fixture tasks live under that tag, so the view shows
+		// "No task sits under a heading containing #to-list" until the sentence's Clear.
+		const lists = page.locator('[data-task-lists="column"]');
+		await expect(lists.getByRole('button', { name: 'To list', exact: true })).toHaveAttribute('aria-current', 'true');
+		await expect(page.getByText('No task sits under a heading containing #to-list')).toBeVisible({ timeout: 5_000 });
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
-		await expect(
-			page.getByText(/Ship feature A|Reply to email|Review pending PRs/i).first(),
-		).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Reply to email thread')).toBeVisible();
+		await expect(page.getByText('Review pending PRs')).toBeVisible();
 	});
 
-	test('multiple uncompleted tasks are visible after clearing section tag', async ({ vaultPage: page }) => {
+	test('picking "All open" in the list column lists the open fixture tasks', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
-		await page.waitForTimeout(300);
+		const lists = page.locator('[data-task-lists="column"]');
+		await expect(lists).toBeVisible();
+		await lists.getByRole('button', { name: 'All open', exact: true }).click();
 
-		// Fixture has at least 3 unchecked tasks across 2 files
-		const taskTexts = page.locator('text=/Ship feature A|Reply to email|Review pending PRs/i');
-		await expect(taskTexts.first()).toBeVisible({ timeout: 5_000 });
+		await expect(lists.getByRole('button', { name: 'All open', exact: true })).toHaveAttribute('aria-current', 'true');
+		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Reply to email thread')).toBeVisible();
+		await expect(page.getByText('Review pending PRs')).toBeVisible();
+		// Projects/2026-Q2.md's `- [x] Draft RFC` is closed.
+		await expect(page.getByText('Draft RFC')).toHaveCount(0);
+	});
+
+	test('an in-progress task is listed under Status: open', async ({ vaultPage: page }) => {
+		const path = '/test-vault/In Progress.md';
+		const content = '- [/] Draft the plan\n- [x] Shipped already\n';
+		await page.evaluate(({ p, c }) => {
+			const e2e = window.__e2e;
+			e2e.fs.writeFile(p, c);
+			e2e.events.emit('vault-index-updated', e2e.vaultIndex.update(p, c));
+		}, { p: path, c: content });
+
+		await pressShortcut(page, 'Mod+Shift+T');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
+
+		// The Status menu shows open tasks by default.
+		await expect(page.getByRole('button', { name: /^Status/ })).toHaveText('Status: open');
+		const row = page.locator('[data-task-row]', { hasText: 'Draft the plan' });
+		// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
+		await expect(row).toBeVisible({ timeout: 12_000 });
+		await expect(row.locator('[data-task-toggle]')).toHaveAttribute('data-task-status', 'in-progress');
+		await expect(row.getByRole('button', { name: 'Mark task as done: Draft the plan (in progress)' })).toBeVisible();
+		await expect(page.getByText('Shipped already')).toHaveCount(0);
 	});
 
 	test('toggling a task persists the checked state', async ({ vaultPage: page }) => {
 		await pressShortcut(page, 'Mod+Shift+T');
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
-		await page.waitForTimeout(500);
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
-		// Disable "hide completed" so toggled tasks stay visible
-		const hideBtn = page.locator('button[title*="completed"]').first();
-		await hideBtn.click();
-		await page.waitForTimeout(300);
+		// Show every status so the toggled task stays visible
+		const status = page.getByRole('button', { name: /^Status/ });
+		await status.click();
+		await page.getByRole('menuitemradio', { name: 'All' }).click();
+		await expect(status).toHaveText('Status: all');
 
-		// Clicking the task text toggles it from unchecked to checked
-		const taskButton = page.getByText('Ship feature A').first();
-		await expect(taskButton).toBeVisible({ timeout: 5_000 });
-		await taskButton.click();
-		await page.waitForTimeout(1000);
+		// Clicking the circle in the task's row toggles it from unchecked to checked
+		const circle = page
+			.locator('[data-task-row]', { hasText: 'Ship feature A' })
+			.getByRole('button', { name: /^Mark task as done/ });
+		await expect(circle).toBeVisible({ timeout: 5_000 });
+		await circle.click();
 
 		// Verify the toggle persisted to virtual FS
-		const content = await page.evaluate(() => {
-			return (window as any).__e2e.fs.readFileSafe('/test-vault/Projects/2026-Q2.md');
-		});
-		expect(content).toContain('- [x] Ship feature A');
+		await expect
+			.poll(() => page.evaluate(() => (window as any).__e2e.fs.readFileSafe('/test-vault/Projects/2026-Q2.md')))
+			.toContain('- [x] Ship feature A');
+	});
+
+	test('Space on a focused circle toggles the task once', async ({ vaultPage: page }) => {
+		await pressShortcut(page, 'Mod+Shift+T');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
+
+		const status = page.getByRole('button', { name: /^Status/ });
+		await status.click();
+		await page.getByRole('menuitemradio', { name: 'All' }).click();
+		await expect(status).toHaveText('Status: all');
+
+		const row = page.locator('[data-task-row]', { hasText: 'Ship feature A' });
+		const circle = row.getByRole('button', { name: /^Mark task as done/ });
+		await expect(circle).toBeVisible({ timeout: 5_000 });
+		await circle.focus();
+		await page.keyboard.press('Space');
+
+		await expect
+			.poll(() => page.evaluate(() => (window as any).__e2e.fs.readFileSafe('/test-vault/Projects/2026-Q2.md')))
+			.toContain('- [x] Ship feature A');
+		await expect(row.locator('[data-task-toggle]')).toHaveAttribute('data-task-status', 'done');
+		await expect(page.getByRole('status', { name: 'Refreshing tasks' })).toHaveCount(0);
+		// A second toggle from the list's key handler would find the line already
+		// `[x]`, get `stale` back and show the "changed on disk" toast.
+		await expect(page.locator('[data-sonner-toast]')).toHaveCount(0);
+	});
+
+	test('a narrow pane folds the four filter menus into Filters (n)', async ({ vaultPage: page }) => {
+		await page.setViewportSize({ width: 500, height: 800 });
+		await pressShortcut(page, 'Mod+Shift+T');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
+
+		// Projects/2026-Q2.md holds `- [x] Draft RFC`, hidden by the default Status: open.
+		await expect(page.getByText('Ship feature A')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Draft RFC')).toHaveCount(0);
+
+		const filters = page.getByRole('button', { name: /^Filters \(/ });
+		await expect(filters).toBeVisible();
+		await expect(filters).toHaveText('Filters (0)');
+		for (const name of ['Status: open', 'Due: any', 'Priority', 'Tag']) {
+			const trigger = page.getByRole('button', { name, exact: true, includeHidden: true });
+			await expect(trigger).toHaveCount(1);
+			await expect(trigger).toBeHidden();
+		}
+
+		await filters.click();
+		await page.getByRole('menuitemradio', { name: 'All' }).click();
+		await expect(page.getByText('Draft RFC')).toBeVisible();
+		await expect(filters).toHaveText('Filters (1)');
 	});
 
 	test('task list scrolls when it is taller than the tab', async ({ vaultPage: page }) => {
 		await page.setViewportSize({ width: 1000, height: 260 });
 		await pressShortcut(page, 'Mod+Shift+T');
-		const sectionTagInput = page.getByRole('textbox', { name: /section tag/i });
-		await sectionTagInput.fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 		await expect(page.getByText(/Ship feature A/i).first()).toBeVisible({ timeout: 5_000 });
 
 		// The viewport must stay inside the window and overflow internally;
@@ -84,6 +157,31 @@ test.describe('Tasks view', () => {
 		expect(scrolled.bottom).toBeLessThanOrEqual(260);
 	});
 
+	test('task list keeps its scroll position across a tab switch', async ({ vaultPage: page }) => {
+		await page.setViewportSize({ width: 1000, height: 260 });
+		await openFile(page, 'Welcome.md');
+		await pressShortcut(page, 'Mod+Shift+T');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
+		await expect(page.getByText(/Ship feature A/i).first()).toBeVisible({ timeout: 5_000 });
+
+		const viewport = page.locator('[data-slot="scroll-area-viewport"]', { hasText: 'Ship feature A' });
+		await viewport.evaluate((el) => {
+			el.scrollTop = el.scrollHeight;
+		});
+		await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+		// The view saves the offset from its scroll listener; let that event fire.
+		await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+
+		const tabs = page.locator('.editor-tabs-bar [role="tab"]');
+		await tabs.filter({ hasText: 'Welcome' }).click();
+		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Welcome');
+		await expect(viewport).toHaveCount(0);
+
+		await tabs.filter({ hasText: 'Tasks' }).click();
+		await expect(page.getByText(/Ship feature A/i).first()).toBeVisible();
+		await expect.poll(() => viewport.evaluate((el) => el.scrollTop)).toBeGreaterThan(0);
+	});
+
 	test('wikilinks and markdown links in a task render as links', async ({ vaultPage: page }) => {
 		const path = '/test-vault/Links.md';
 		const content = '- [ ] [[Welcome]] · [Roadmap doc](https://example.com/doc?id=1) follow up\n';
@@ -94,10 +192,11 @@ test.describe('Tasks view', () => {
 		}, { p: path, c: content });
 
 		await pressShortcut(page, 'Mod+Shift+T');
-		await page.getByRole('textbox', { name: /section tag/i }).fill('');
+		await page.getByRole('button', { name: 'Clear', exact: true }).click();
 
 		const link = page.getByRole('link', { name: 'Roadmap doc' });
-		await expect(link).toBeVisible({ timeout: 5_000 });
+		// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
+		await expect(link).toBeVisible({ timeout: 12_000 });
 		await expect(link).toHaveAttribute('href', 'https://example.com/doc?id=1');
 		await expect(page.getByText('https://example.com/doc?id=1')).toHaveCount(0);
 
@@ -107,6 +206,86 @@ test.describe('Tasks view', () => {
 		await expect(page.locator('[role="tab"][aria-selected="true"]')).toContainText('Welcome');
 		// Following the wikilink must not toggle the task.
 		expect(await page.evaluate((p) => (window as any).__e2e.fs.readFileSafe(p), path)).toBe(content);
+	});
+
+	test.describe('with the clock at 2026-11-05', () => {
+		test.use({ clockTime: '2026-11-05T12:00:00' });
+
+		test('a narrow pane puts the overdue due chip on a line under the clean text', async ({ vaultPage: page }) => {
+			await page.setViewportSize({ width: 500, height: 700 });
+			const path = '/test-vault/Rent.md';
+			const content = '- [ ] Pay rent 📅 2026-11-03\n';
+			await page.evaluate(({ p, c }) => {
+				const e2e = window.__e2e;
+				e2e.fs.writeFile(p, c);
+				e2e.events.emit('vault-index-updated', e2e.vaultIndex.update(p, c));
+			}, { p: path, c: content });
+
+			await pressShortcut(page, 'Mod+Shift+T');
+			await page.getByRole('button', { name: 'Clear', exact: true }).click();
+
+			const row = page.locator('[data-task-row]', { hasText: 'Pay rent' });
+			const text = row.locator('[data-task-text]');
+			const due = row.locator('[data-task-chip="due"]');
+			// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
+			await expect(text).toHaveText('Pay rent', { timeout: 12_000 });
+			await expect(due).toHaveText('Nov 3');
+			await expect(due).toHaveAttribute('data-overdue', '');
+
+			const textBox = (await text.boundingBox())!;
+			const dueBox = (await due.boundingBox())!;
+			expect(dueBox.y).toBeGreaterThanOrEqual(textBox.y + textBox.height);
+		});
+
+		test("the row menu's Due > Today and Priority > High write the note", async ({ vaultPage: page }) => {
+			const path = '/test-vault/Projects/2026-Q2.md';
+			const readNote = () => page.evaluate((p) => (window as any).__e2e.fs.readFileSafe(p), path);
+			await pressShortcut(page, 'Mod+Shift+T');
+			await page.getByRole('button', { name: 'Clear', exact: true }).click();
+
+			const row = page.locator('[data-task-row]', { hasText: 'Ship feature A' });
+			await expect(row).toBeVisible({ timeout: 5_000 });
+			await row.getByRole('button', { name: 'Task actions' }).click();
+			await page.getByRole('menuitem', { name: 'Due' }).click();
+			await page.getByRole('menuitem', { name: 'Today' }).click();
+
+			await expect.poll(readNote).toContain('- [ ] Ship feature A 📅 2026-11-05\n');
+			await expect(row.locator('[data-task-chip="due"]')).toHaveText('Nov 5');
+
+			await row.getByRole('button', { name: 'Task actions' }).click();
+			await page.getByRole('menuitem', { name: 'Priority' }).click();
+			await page.getByRole('menuitemradio', { name: 'High', exact: true }).click();
+
+			// The mock task parser fills no priority, so only the file content shows it.
+			await expect.poll(readNote).toContain('- [ ] Ship feature A 📅 2026-11-05 ⏫\n');
+		});
+	});
+
+	test('two heading cards list tasks under either tag', async ({ vaultPage: page }) => {
+		const path = '/test-vault/Sections.md';
+		const content = '## Inbox #to-list\n- [ ] Listed by to-list\n## Job #work\n- [ ] Listed by work\n## Misc\n- [ ] Never listed\n';
+		await page.evaluate(({ p, c }) => {
+			const e2e = window.__e2e;
+			e2e.fs.writeFile(p, c);
+			e2e.events.emit('vault-index-updated', e2e.vaultIndex.update(p, c));
+		}, { p: path, c: content });
+
+		await pressShortcut(page, 'Mod+Shift+T');
+		// The snapshot holds the note only after the throttled index bump (up to 10 s in a burst).
+		await expect(page.getByText('Listed by to-list')).toBeVisible({ timeout: 12_000 });
+		await expect(page.getByText('Listed by work')).toHaveCount(0);
+		await expect(page.getByText('Never listed')).toHaveCount(0);
+
+		await page.getByRole('button', { name: 'Edit', exact: true }).click();
+		await page.getByRole('button', { name: 'Add card', exact: true }).click();
+		await page.getByRole('button', { name: 'Add clause', exact: true }).last().click();
+		await page.getByRole('menuitem', { name: 'Heading', exact: true }).click();
+		await page.getByRole('textbox', { name: 'Heading', exact: true }).last().fill('#work');
+		await expect(page.getByText('Listed by work')).toBeVisible({ timeout: 5_000 });
+		await expect(page.getByText('Listed by to-list')).toBeVisible();
+		await expect(page.getByText('Open tasks under headings containing #to-list or #work')).toBeVisible();
+		// Scoped to the rows: the open panel's Excludes text also says "never listed".
+		await expect(page.locator('[data-task-row]', { hasText: 'Never listed' })).toHaveCount(0);
 	});
 
 	test('the right sidebar hides while the Tasks tab is active and comes back on a note', async ({ vaultPage: page }) => {

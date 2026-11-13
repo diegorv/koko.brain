@@ -1,6 +1,10 @@
 import type { PropertyIndexRecord } from './collection.types';
 
-/** Index of all notes with their properties, keyed by file path */
+/**
+ * Index of all notes and `.view` files with their properties, keyed by file
+ * path. Views stay so `kb.page("x.view")` keeps working: a reader that treats
+ * the records as notes must skip them with `isViewFile`.
+ */
 let propertyIndex = $state<Map<string, PropertyIndexRecord>>(new Map());
 /** Whether the property index has been built at least once */
 let isIndexReady = $state(false);
@@ -14,7 +18,7 @@ let isIndexReady = $state(false);
  */
 let version = $state(0);
 /**
- * Active view index last used in each `.collection` file this session, keyed
+ * Active view index last used in each `.view` file this session, keyed
  * by absolute path. Plain Map, not `$state`: `CollectionView` reads it once at
  * mount and nothing renders from it.
  */

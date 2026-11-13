@@ -1,0 +1,54 @@
+# Ledger: mods-run-cancellation
+
+This file is the source of truth for the progress of the mods-run-cancellation Issues. Read it before working on any of them. It is written only by `/relay-lite:run`, through `relay ledger`: never edit it by hand.
+
+## Continue
+
+```text
+/relay-lite:run mods-run-cancellation
+```
+
+Add Issue numbers to force them; `--all` runs every available Issue in sequence; `--all --parallel` runs the ones that touch different files at the same time.
+
+## Process
+
+The `relay-lite:workflow` workflow, one worktree per Issue at `<repo>.worktrees/issue-NN-slug`: build (discovery + implement), review (Claude or Codex), fix and re-review while changes are requested, deliver. Only deliver runs the full suite. Formats: relay-lite's `docs/format.md`.
+
+## Statuses
+
+| Status | Meaning |
+|---|---|
+| `todo` | Not started. |
+| `in-progress` | Set by `/relay-lite:run` on `base` before it launches the Issue; still there after a run means it was interrupted (the worktree and branch may exist). `/relay-lite:run` asks what to do about it only when run with no Issue numbers (`--all` too), or when it is one of the named Issues or in the "Blocked by" of one; skip records nothing (no status change, no Log line, no commit), so the question comes back on the next such run. |
+| `blocked` | Nothing was delivered: the build refused the Issue or returned nothing, the suite failing, a review or re-review that returned nothing, a re-review that still requests changes, a rebase conflict in source files, a failed push. The reason is in the Log; the worktree is kept. `/relay-lite:run` asks what to do about it only when run with no Issue numbers (`--all` too), or when it is one of the named Issues or in the "Blocked by" of one; skip records nothing (no status change, no Log line, no commit), so the question comes back on the next such run. |
+| `in-review` | `pr` delivery: the PR is open, not merged yet; its URL is in Branch / PR. The next run checks it and sets `done` or `todo`. relay-lite does not delete the remote branch `issue/NN-slug` when the PR is merged or closed (GitHub does on merge if the repository auto-deletes head branches); after a close, delete it or renumber the Issue before the Issue runs again, or its push is rejected. |
+| `done` | Delivered, and the Issue file says `Status: resolved`. |
+| `wontfix` | Closed without work. |
+
+## Next up
+
+An Issue can start when its status is `todo` and every Issue in its "Blocked by" is `done`. Among those, take the lowest number.
+
+## Issues
+
+**Branch / PR**: in `merge` delivery `issue/NN-slug (<short sha>)`, the short sha of the Issue's squash commit on `base` (the `sha` deliver returns), written by `/relay-lite:run` in its `done` commit; in `pr` delivery the PR URL while `in-review`, then `<PR URL> (<short merge sha>)` once `/relay-lite:run` finds it merged; cleared when it finds the PR closed and sets the row back to `todo` (the URL stays in the `pr closed` Log line). **Merged**: always a date (YYYY-MM-DD); in `merge` delivery the date `/relay-lite:run` wrote the row, after the squash commit; in `pr` delivery the date `/relay-lite:run` recorded the merge. Both cells stay empty on a row `/relay-lite:ledger` created as `done` from an Issue file already `Status: resolved`.
+
+| # | Issue | Blocked by | Status | Branch / PR | Merged |
+|---|---|---|---|---|---|
+| 01 | [Stop ends a run's dialogs through `run.ui`](issues/01-stop-dismisses-run-dialogs.md) | 02 | done | issue/01-stop-dismisses-run-dialogs (bb6867f94) | 2026-11-08 |
+| 02 | [One live run per action across rail, palette and menus](issues/02-one-live-run-per-action.md) | none | done | issue/02-one-live-run-per-action (a187bc2cc) | 2026-11-08 |
+| 03 | [The action picker marks the actions that are running](issues/03-picker-marks-live-actions.md) | none | done | issue/03-picker-marks-live-actions (3b248c052) | 2026-11-08 |
+
+## Log
+
+- 2026-11-08 18:21 — ledger created (2 Issues)
+- 2026-11-08 18:32 — ledger updated (title of 01; blocked by of 01)
+- 2026-11-08 18:33 — 02 — start — launched by /relay-lite:run — 770d3f9b2
+- 2026-11-08 18:48 — 02 — deliver — APPROVED round 1 by claude, two nits rejected; full suite passed (579 files, 14027 tests); merge first failed on an unpushed main commit, delivered after the owner pushed it via deliver sync (rebased) and deliver merge — a187bc2cc
+- 2026-11-08 19:17 — 01 — start — launched by /relay-lite:run — ecb78ff77
+- 2026-11-08 19:18 — 01 — stopped — build refused: it read the SHA 328ca55 of the mods-repo run-ui Issue 01 as this Issue already delivered; nothing built — f191473b9
+- 2026-11-08 19:20 — 01 — start — launched by /relay-lite:run — 5effebd72
+- 2026-11-08 19:38 — 01 — deliver — round 1 APPROVED by claude with 3 findings fixed in deliver (docs for unawaited run.ui and unload order, pick test name); round 2 APPROVED by claude, no findings; full suite passed (579 files, 14051 tests), pnpm build passed; mods E2E not run — bb6867f94
+- 2026-11-08 19:41 — ledger updated (added 03)
+- 2026-11-08 19:43 — 03 — start — launched by /relay-lite:run — b912a147a
+- 2026-11-08 19:51 — 03 — deliver — round 1 APPROVED by claude; deliver tightened the test to check the row is marked before choosing it; round 2 APPROVED by claude, no findings; full suite passed (579 files, 14058 tests) — 3b248c052

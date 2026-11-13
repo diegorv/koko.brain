@@ -9,10 +9,18 @@ jobs:
   ci:
     name: CI
     uses: ./.github/workflows/ci.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
 
   e2e:
     name: E2E
     uses: ./.github/workflows/e2e.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
+
+  secrets:
+    name: Secret Scan
+    uses: ./.github/workflows/secrets.yml
 
   security:
     name: Security
@@ -24,6 +32,8 @@ jobs:
       actions: read
       security-events: write
     uses: ./.github/workflows/security.yml
+    secrets:
+      MODS_REPO_READ_TOKEN: ${{ secrets.MODS_REPO_READ_TOKEN }}
 
   privacy:
     name: Privacy

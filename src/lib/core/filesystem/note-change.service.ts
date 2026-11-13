@@ -13,8 +13,11 @@ import { debug, error } from '#lib/utils/debug.js';
  * - `create`  - the note creator, right after Rust's `create_note`
  * - `fs`      - the file explorer's create / delete / rename / move
  * - `restore` - Trash restore, after the rename back
+ * - `task`    - a task write a Rust task command (`toggle_task_status`,
+ *               `write_task_lines`, `write_task_text`) already made on disk
+ *               and indexed
  */
-export type NoteChangeSource = 'save' | 'edit' | 'watcher' | 'create' | 'fs' | 'restore';
+export type NoteChangeSource = 'save' | 'edit' | 'watcher' | 'create' | 'fs' | 'restore' | 'task';
 
 /**
  * A per-file index that has to follow a note's bytes. Consumers live in
@@ -60,7 +63,8 @@ interface SourcePolicy {
 	/**
 	 * `'always'` fires `update_note_in_index` on every call, `'deduped'` skips it
 	 * on a dedupe hit, `'never'` means the caller's own Rust command
-	 * (`create_note`) already indexed the note.
+	 * (`create_note`, or a task command such as `toggle_task_status`) already
+	 * indexed the note.
 	 */
 	rust: 'always' | 'deduped' | 'never';
 	/** Whether to record the (path, content) signature in the shared dedupe map. */
@@ -92,6 +96,7 @@ const SOURCE_POLICY: Record<NoteChangeSource, SourcePolicy> = {
 	// The delete already removed the note from Rust (`forgetNote`) and no
 	// `create_note` runs on restore, so the IPC must fire, unlike `create` / `fs`.
 	restore: { consumers: 'always', rust: 'always', mark: true, yieldBeforeConsumers: false },
+	task: { consumers: 'always', rust: 'never', mark: true, yieldBeforeConsumers: false },
 };
 
 /** Registered consumers, in registration order. */
@@ -126,7 +131,7 @@ const contentInvalidationListeners: ContentInvalidationListener[] = [];
  * Registers a listener for the vault-wide "note content changed" signal.
  * A signal, not a second owner of note bytes: it carries no path or content,
  * and `applyNoteChange` does not fire it. The writers that settle a change
- * (a save, a Trash restore, the watcher) fire it once, after their
+ * (a save, a Trash restore, a task write, the watcher) fire it once, after their
  * `applyNoteChange` calls. Not a note-change consumer on purpose: those also
  * run on debounced `edit` keystrokes (unlinked mentions must recompute only
  * on save) and are skipped on a `save` dedupe hit. Registered for the app's

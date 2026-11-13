@@ -7,7 +7,6 @@ import {
 	getFileName,
 	getFileExtension,
 	isMarkdownFile,
-	isCollectionFile,
 	isViewFile,
 	isCanvasFile,
 	isKanbanFile,
@@ -202,21 +201,6 @@ describe('isMarkdownFile', () => {
 	});
 });
 
-describe('isCollectionFile', () => {
-	it('returns true for .collection files', () => {
-		expect(isCollectionFile('test.collection')).toBe(true);
-	});
-
-	it('returns false for other files', () => {
-		expect(isCollectionFile('test.md')).toBe(false);
-		expect(isCollectionFile('test.txt')).toBe(false);
-	});
-
-	it('is case insensitive', () => {
-		expect(isCollectionFile('test.COLLECTION')).toBe(true);
-	});
-});
-
 describe('isViewFile', () => {
 	it('returns true for .view files', () => {
 		expect(isViewFile('test.view')).toBe(true);
@@ -364,10 +348,14 @@ describe('getLanguageForFile', () => {
 		expect(getLanguageForFile('data.xyz')).toBeNull();
 	});
 
-	it('returns YAML LanguageDescription for .collection files', () => {
-		const result = getLanguageForFile('database.collection');
+	it('returns YAML LanguageDescription for .view files', () => {
+		const result = getLanguageForFile('database.view');
 		expect(result).not.toBeNull();
 		expect(result!.name).toBe('YAML');
+	});
+
+	it('returns null for .collection files, like any unknown extension', () => {
+		expect(getLanguageForFile('database.collection')).toBeNull();
 	});
 
 	it('returns JSON LanguageDescription for .canvas files', () => {

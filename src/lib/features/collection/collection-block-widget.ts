@@ -1,10 +1,12 @@
 import { WidgetType } from '@codemirror/view';
 import type { FencedBlockRenderer } from '#lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.js';
 import { parseCollectionYaml } from '#lib/features/collection/yaml-parser.js';
-import { executeQuery, formatCellValue } from '#lib/features/collection/collection.logic.js';
+import { executeQuery, formatCellValue, type QueryRowSet } from '#lib/features/collection/collection.logic.js';
+import { getViewRowSetPort } from '#lib/features/collection/view-row-set.port.js';
 import { isDisplayValue } from '#lib/features/collection/expression/expression.types.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { sanitizeHtml } from '#lib/utils/sanitize.js';
 import type { PropertyIndexRecord, CollectionViewDef, QueryResult } from '#lib/features/collection/collection.types.js';
 import {
@@ -18,13 +20,14 @@ import {
 	buildLinearYearLayout,
 	buildColorMapping,
 	getColorForValue,
+	barTextColor,
 } from '#lib/features/collection/linear-calendar.logic.js';
 
 /** Cached query data for one collection block. */
 interface CollectionCacheEntry {
 	/** `collectionStore.version` the result was queried at. */
 	version: number;
-	/** View definition (with defaults applied) captured at query time. */
+	/** The block's first view, as queried (a copy of the parsed entry). */
 	view: CollectionViewDef;
 	/** Query result the cached renders are built from. */
 	result: QueryResult;
@@ -112,22 +115,37 @@ export class CollectionBlockWidget extends WidgetType {
 		}
 
 		const viewWithDefaults: CollectionViewDef = { ...view };
-		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex);
+		// The row rule (no system-folder note, type definition, `.view` or
+		// uncited archived note); without a registered port, the plain query.
+		const port = getViewRowSetPort();
+		const rowSet: QueryRowSet | undefined = port
+			? (records, v, d) => port.blockRows(records, v, d)
+			: undefined;
+		const result = executeQuery(definition, viewWithDefaults, collectionStore.propertyIndex, vaultStore.path, rowSet);
 		collectionCache.set(this.yamlContent, { version: this.version, view: viewWithDefaults, result });
 
 		this.renderView(container, viewWithDefaults, result);
 		return container;
 	}
 
-	/** Renders the header + view body (calendar / linear-calendar / empty /
-	 *  table) from a query result. Runs on every toDOM(), including cache hits,
-	 *  so each widget owns its DOM and click handlers stay live. */
+	/** Renders the header + view body (filter error / calendar /
+	 *  linear-calendar / empty / table) from a query result. Runs on every
+	 *  toDOM(), including cache hits, so each widget owns its DOM and click
+	 *  handlers stay live. */
 	private renderView(container: HTMLElement, view: CollectionViewDef, result: QueryResult): void {
 		// View name header
 		const header = document.createElement('div');
 		header.className = 'cm-lp-collection-header';
 		header.textContent = `${view.name} (${result.records.length})`;
 		container.appendChild(header);
+
+		if (result.filterError) {
+			const error = document.createElement('div');
+			error.className = 'cm-lp-collection-error';
+			error.textContent = result.filterError;
+			container.appendChild(error);
+			return;
+		}
 
 		if (view.type === 'calendar') {
 			this.buildCalendar(container, view, result.records);
@@ -177,7 +195,7 @@ export class CollectionBlockWidget extends WidgetType {
 
 		// Month label
 		const monthLabel = document.createElement('div');
-		monthLabel.style.cssText = 'font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--lp-collection-header);';
+		monthLabel.style.cssText = 'font-size: 0.9em; font-weight: 600; margin-bottom: 6px; color: var(--lp-collection-header);';
 		monthLabel.textContent = formatMonthYear(year, month);
 		container.appendChild(monthLabel);
 
@@ -192,7 +210,8 @@ export class CollectionBlockWidget extends WidgetType {
 		for (const label of getWeekDayLabels(weekStartDay)) {
 			const th = document.createElement('th');
 			th.textContent = label;
-			th.style.textAlign = 'center';
+			// Same role as the calendar view's weekday header (text-xs font-medium uppercase)
+			th.style.cssText = 'font-size: 1em; font-weight: 500; text-transform: uppercase; letter-spacing: 0.025em; text-align: center;';
 			headerRow.appendChild(th);
 		}
 		thead.appendChild(headerRow);
@@ -216,7 +235,7 @@ export class CollectionBlockWidget extends WidgetType {
 
 				// Day number
 				const dayNum = document.createElement('div');
-				dayNum.style.cssText = 'font-size: 11px; text-align: right; margin-bottom: 2px;';
+				dayNum.style.cssText = 'font-size: 0.9em; text-align: right; margin-bottom: 2px;';
 				const dateKey = formatDateKey(day.date);
 				if (dateKey === todayKey) {
 					dayNum.style.cssText += 'font-weight: 700; color: var(--primary);';
@@ -230,7 +249,7 @@ export class CollectionBlockWidget extends WidgetType {
 					const maxShow = 2;
 					for (let i = 0; i < Math.min(events.length, maxShow); i++) {
 						const pill = document.createElement('div');
-						pill.style.cssText = 'font-size: 10px; padding: 1px 3px; margin-bottom: 1px; border-radius: 2px; background: var(--lp-collection-table-alt, rgba(255,255,255,0.05)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;';
+						pill.style.cssText = 'font-size: 0.85em; padding: 1px 3px; margin-bottom: 1px; border-radius: 2px; background: var(--lp-collection-table-alt, rgba(255,255,255,0.05)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer;';
 						pill.textContent = events[i].record.basename;
 						stopEditorMousedown(pill);
 						pill.addEventListener('click', () => handleRowClick(events[i].record));
@@ -238,7 +257,7 @@ export class CollectionBlockWidget extends WidgetType {
 					}
 					if (events.length > maxShow) {
 						const more = document.createElement('div');
-						more.style.cssText = 'font-size: 9px; color: var(--lp-collection-null); padding: 0 3px;';
+						more.style.cssText = 'font-size: max(11px, 0.8em); color: var(--lp-collection-null); padding: 0 3px;';
 						more.textContent = `+${events.length - maxShow}`;
 						td.appendChild(more);
 					}
@@ -267,12 +286,16 @@ export class CollectionBlockWidget extends WidgetType {
 		const layout = buildLinearYearLayout(records, year, view.dateProperty, view.endDateProperty, view.colorProperty);
 		const colorMapping = view.colorProperty ? buildColorMapping(records, view.colorProperty) : null;
 
-		const BAR_HEIGHT = 16;
-		const BAR_GAP = 1;
+		// Bar geometry is in em of the bar's own font, so the bar grows with its title and
+		// never clips it. The day cell computes the same BAR_FONT in its own em, so its lane
+		// pitch matches the bar height whether max() picks the 11px floor or the em size.
+		const BAR_FONT = 'max(11px, 0.8em)';
+		const BAR_HEIGHT_EM = 1.4;
+		const BAR_GAP_PX = 1;
 
 		// Year label
 		const yearLabel = document.createElement('div');
-		yearLabel.style.cssText = 'font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--lp-collection-header);';
+		yearLabel.style.cssText = 'font-size: 0.9em; font-weight: 600; margin-bottom: 6px; color: var(--lp-collection-header);';
 		yearLabel.textContent = String(year);
 		container.appendChild(yearLabel);
 
@@ -285,12 +308,16 @@ export class CollectionBlockWidget extends WidgetType {
 		const thead = document.createElement('thead');
 		const headerRow = document.createElement('tr');
 		const emptyTh = document.createElement('th');
-		emptyTh.style.cssText = 'width: 32px; font-size: 9px;';
+		// em, so the column widens with the month labels below it
+		emptyTh.style.cssText = 'width: 2.5em;';
 		headerRow.appendChild(emptyTh);
 		for (let d = 1; d <= 31; d++) {
 			const th = document.createElement('th');
 			th.textContent = String(d);
-			th.style.cssText = 'font-size: 9px; text-align: center; padding: 1px;';
+			// Same role as the linear view's day numbers (text-[11px] font-medium), kept below
+			// the month label the way 11px sits below its text-xs label. At a small editor font
+			// the 11px floor lifts them above the label.
+			th.style.cssText = 'font-size: max(11px, 0.8em); font-weight: 500; text-align: center; padding: 1px;';
 			headerRow.appendChild(th);
 		}
 		thead.appendChild(headerRow);
@@ -305,24 +332,27 @@ export class CollectionBlockWidget extends WidgetType {
 			// Month label
 			const labelTd = document.createElement('td');
 			labelTd.textContent = row.label;
-			labelTd.style.cssText = 'font-size: 10px; font-weight: 600; padding: 2px 4px; vertical-align: top; color: var(--lp-collection-null);';
+			labelTd.style.cssText = 'font-size: 0.85em; font-weight: 600; padding: 2px 4px; vertical-align: top; color: var(--lp-collection-null);';
 			tr.appendChild(labelTd);
 
 			const hiddenCount = row.events.filter((event) => event.lane >= LINEAR_CALENDAR_LANE_CAP).length;
 			if (hiddenCount > 0) {
 				const more = document.createElement('div');
 				more.className = 'cm-lp-collection-lane-more';
-				more.style.cssText = 'font-size: 9px; font-weight: 400;';
+				more.style.cssText = 'font-size: max(11px, 0.9em); font-weight: 400;';
 				more.textContent = `+${hiddenCount}`;
 				labelTd.appendChild(more);
 			}
 
 			// Day cells
 			const visibleLanes = Math.min(row.maxLane + 1, LINEAR_CALENDAR_LANE_CAP);
-			const rowHeight = visibleLanes > 0 ? visibleLanes * (BAR_HEIGHT + BAR_GAP) + BAR_GAP : 20;
+			const rowHeight =
+				visibleLanes > 0
+					? `calc(${visibleLanes} * (${BAR_HEIGHT_EM} * ${BAR_FONT} + ${BAR_GAP_PX}px) + ${BAR_GAP_PX}px)`
+					: `${BAR_HEIGHT_EM}em`;
 			for (let d = 1; d <= 31; d++) {
 				const td = document.createElement('td');
-				td.style.cssText = `position: relative; padding: 0; height: ${rowHeight}px; vertical-align: top;`;
+				td.style.cssText = `position: relative; padding: 0; height: ${rowHeight}; vertical-align: top;`;
 
 				if (d > row.daysInMonth) {
 					td.style.opacity = '0.15';
@@ -347,7 +377,7 @@ export class CollectionBlockWidget extends WidgetType {
 					const endDay = event.endDate.getDate();
 					const bar = document.createElement('div');
 					const color = colorMapping ? (getColorForValue(event.colorValue, colorMapping) ?? 'var(--primary)') : 'var(--primary)';
-					bar.style.cssText = `position: absolute; left: 0; right: 0; top: ${event.lane * (BAR_HEIGHT + BAR_GAP) + BAR_GAP}px; height: ${BAR_HEIGHT}px; background: ${color}; border-radius: 2px; font-size: 9px; color: white; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: flex; align-items: center;`;
+					bar.style.cssText = `position: absolute; left: 0; right: 0; top: calc(${event.lane} * (${BAR_HEIGHT_EM}em + ${BAR_GAP_PX}px) + ${BAR_GAP_PX}px); height: ${BAR_HEIGHT_EM}em; background: ${color}; border-radius: 2px; font-size: ${BAR_FONT}; color: ${barTextColor(color)}; padding: 0 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; display: flex; align-items: center;`;
 					bar.textContent = event.record.basename;
 					bar.title = event.record.basename;
 					stopEditorMousedown(bar);

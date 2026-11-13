@@ -3,6 +3,7 @@ import {
 	parseButtonConfig,
 	validateButtonConfig,
 	getButtonActions,
+	buttonConfigError,
 } from '#lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic.js';
 
 describe('parseButtonConfig', () => {
@@ -251,6 +252,80 @@ action:
   folderPath: meetings
 `);
 		expect(config).toBeNull();
+	});
+});
+
+describe('parseButtonConfig: updateMetadata value types', () => {
+	const single = (value: string) => parseButtonConfig(`label: Go\naction:\n  type: updateMetadata\n  prop: count\n  value: ${value}\n`);
+
+	it.each([
+		['3', 3],
+		['true', true],
+		['false', false],
+		['"3"', '3'],
+		['done', 'done'],
+	])('value %s is kept as %j', (raw, expected) => {
+		expect(single(raw)?.action).toEqual({ type: 'updateMetadata', bindTarget: 'count', value: expected });
+	});
+
+	it.each(['[a, b]', '{ a: 1 }', 'null', '~'])('value %s is invalid', (raw) => {
+		expect(single(raw)).toBeNull();
+	});
+});
+
+describe('buttonConfigError', () => {
+	it.each([
+		['label: [unclosed', 'YAML does not parse'],
+		['', 'expected a map with label and action'],
+		['just text', 'expected a map with label and action'],
+		['action: { type: open, link: x }', 'label missing'],
+		['label: Go', 'no action or actions'],
+		['label: Go\nactions: []', 'no action or actions'],
+		['label: Go\naction: { type: launch }', 'unknown action type "launch"'],
+		['label: Go\naction: open', 'an action is not a map'],
+		['label: Go\naction: { link: x }', 'an action has no type'],
+		['label: Go\naction: { type: updateMetadata, prop: status }', 'updateMetadata needs prop and value'],
+		['label: Go\naction: { type: updateMetadata, value: done }', 'updateMetadata needs prop and value'],
+		['label: Go\naction: { type: open }', 'open needs link'],
+		['label: Go\naction: { type: createNote }', 'createNote needs fileName'],
+		['label: Go\nactions:\n  - { type: open, link: x }\n  - { type: createNote }', 'createNote needs fileName'],
+		['label: Go\naction: { type: openView }', 'openView needs a .view path'],
+		['label: Go\naction: { type: openView, path: "" }', 'openView needs a .view path'],
+		['label: Go\naction: { type: openView, path: 3 }', 'openView needs a .view path'],
+		['label: Go\naction: { type: openView, path: Projects.md }', 'openView needs a .view path'],
+		['label: Go\naction: { type: openView, path: _system/views }', 'openView needs a .view path'],
+		['label: Go\naction: { type: openView, path: ../Projects.view }', 'openView path leaves the vault'],
+		['label: Go\naction: { type: openView, path: a/../../Projects.view }', 'openView path leaves the vault'],
+	])('%j -> %s', (yaml, reason) => {
+		expect(buttonConfigError(yaml)).toBe(reason);
+		expect(parseButtonConfig(yaml)).toBeNull();
+	});
+
+	it('is null for a valid config', () => {
+		expect(buttonConfigError('label: Go\naction: { type: open, link: x }')).toBeNull();
+		expect(buttonConfigError('label: Go\nstyle: unknown\nactions:\n  - { type: updateMetadata, prop: n, value: 3 }')).toBeNull();
+	});
+
+	it.each([
+		'_system/views/Projects.view',
+		'Projects.VIEW',
+		'a/../Projects.view',
+		'/Projects.view',
+	])('is null for an openView of %s', (path) => {
+		expect(buttonConfigError(`label: Go\naction: { type: openView, path: "${path}" }`)).toBeNull();
+	});
+});
+
+describe('parseButtonConfig: openView', () => {
+	it('keeps the vault-relative path', () => {
+		const config = parseButtonConfig('label: Projetos\naction:\n  type: openView\n  path: _system/views/Projects.view\n');
+		expect(config?.action).toEqual({ type: 'openView', path: '_system/views/Projects.view' });
+	});
+
+	it('ignores an unknown field and still renders the button', () => {
+		const config = parseButtonConfig('label: Go\nhidden: true\naction:\n  type: openView\n  path: Projects.view\n  newTab: true\n');
+		expect(config).not.toBeNull();
+		expect(getButtonActions(config!)).toEqual([{ type: 'openView', path: 'Projects.view', newTab: true }]);
 	});
 });
 

@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, AutoMoveSettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings, RemoteServerSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, AutoOrganizeSettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings, RemoteServerSettings } from './settings.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
 import { DEFAULT_REMOTE_SERVER_PORT } from './settings.logic';
@@ -57,23 +57,30 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		railFolder: null,
 		railExpandedFolders: [],
 		railDay: null,
+		railHidden: [],
+		railOrder: [],
+		railInboxBadge: true,
+		railWidth: 140,
+		railStyle: 'labeled',
+		railCollapsed: false,
 		rightSidebarVisible: false,
 		propertiesVisible: true,
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
 		tableOfContentsVisible: true,
-		// Sized for the rail shell: at 1440 px with the navigator, note list and right sidebar
-		// open, these leave the editor about 640 px (checked in e2e/specs/sidebars.spec.ts).
-		rightSidebarSize: 20,
-		noteListSize: 20,
-		navigatorSize: 14,
+		// The panes' minSize in AppShell.svelte: what fits one monitor does not fit another, so
+		// the owner drags them to size on each and a new vault opens with the editor at its widest.
+		rightSidebarSize: 3,
+		noteListSize: 3,
+		navigatorSize: 3,
+		railListPrefs: {},
 	},
 	folderNotes: {
 		enabled: true,
 	},
 	editor: {
 		fontFamily: 'iA Writer Duo S',
-		fontSize: 18,
+		fontSize: 19,
 		lineHeight: 1.6,
 		contentWidth: 0,
 		wideNotes: false,
@@ -82,10 +89,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 			h1: { fontSize: 2.058, lineHeight: 1.4, fontWeight: 'bold', letterSpacing: -0.02 },
 			h2: { fontSize: 1.618, lineHeight: 1.4, fontWeight: 'bold', letterSpacing: -0.015 },
 			h3: { fontSize: 1.272, lineHeight: 1.4, fontWeight: 'bold', letterSpacing: -0.01 },
-			h4: { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
+			h4: { fontSize: 1.125, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
 			h5: { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
-			h6: { fontSize: 1.0, lineHeight: 1.6, fontWeight: 'bold', letterSpacing: 0 },
+			h6: { fontSize: 0.9, lineHeight: 1.6, fontWeight: 'semibold', letterSpacing: 0 },
 		},
+		typeScaleMigrated: true,
 	},
 	templates: {
 		folder: '_system/templates',
@@ -100,7 +108,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	search: {
 		semanticSearchEnabled: false,
 	},
-	autoMove: {
+	autoOrganize: {
 		enabled: false,
 		debounceMs: 3000,
 	},
@@ -118,6 +126,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	todoist: {
 		apiToken: '',
 		defaultLabel: '',
+		syncEnabled: false,
+		syncFolder: 'Todoist',
+		syncIntervalMinutes: 5,
+		syncContext: 'work',
+		syncRootProjectId: '',
+		syncIncludeInbox: false,
 	},
 	sentry: {
 		enabled: false,
@@ -132,6 +146,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 	debugMode: false,
 	debugModeTauri: false,
 	debugLogToFile: false,
+	debugModRunMessages: false,
 	debugTauriLogToFile: false,
 	debugHeartbeat: false,
 	livePreviewProfiling: false,
@@ -147,7 +162,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		autoCheck: false,
 		lastCheckedAt: null,
 	},
-	explicitOrganization: false,
+	explicitOrganization: true,
 	showUntypedNotes: false,
 	typesBaseFolder: '',
 	dockBadgeInboxCount: true,
@@ -168,7 +183,7 @@ export const settingsStore = {
 	get appearance() { return settings.appearance; },
 	get history() { return settings.history; },
 	get search() { return settings.search; },
-	get autoMove() { return settings.autoMove; },
+	get autoOrganize() { return settings.autoOrganize; },
 	get eventCalendar() { return settings.eventCalendar; },
 	get todoist() { return settings.todoist; },
 	get sentry() { return settings.sentry; },
@@ -176,6 +191,8 @@ export const settingsStore = {
 	get debugMode() { return settings.debugMode; },
 	get debugModeTauri() { return settings.debugModeTauri; },
 	get debugLogToFile() { return settings.debugLogToFile; },
+	/** Whether the user consented to local persistence of raw mod run messages. */
+	get debugModRunMessages() { return settings.debugModRunMessages; },
 	get debugTauriLogToFile() { return settings.debugTauriLogToFile; },
 	get debugHeartbeat() { return settings.debugHeartbeat; },
 	get livePreviewProfiling() { return settings.livePreviewProfiling; },
@@ -187,6 +204,8 @@ export const settingsStore = {
 	get showUntypedNotes() { return settings.showUntypedNotes; },
 	get typesBaseFolder() { return settings.typesBaseFolder; },
 	get dockBadgeInboxCount() { return settings.dockBadgeInboxCount; },
+	/** The Tasks view's saved state, unvalidated; `undefined` when nothing was saved */
+	get tasksView() { return settings.tasksView; },
 
 	/** Replaces the entire settings object (used on load) */
 	setSettings(value: AppSettings) {
@@ -291,11 +310,11 @@ export const settingsStore = {
 		};
 	},
 
-	/** Partially updates auto-move settings, merging with existing values */
-	updateAutoMove(value: Partial<AutoMoveSettings>) {
+	/** Partially updates auto-organize settings, merging with existing values */
+	updateAutoOrganize(value: Partial<AutoOrganizeSettings>) {
 		settings = {
 			...settings,
-			autoMove: { ...settings.autoMove, ...value },
+			autoOrganize: { ...settings.autoOrganize, ...value },
 		};
 	},
 
@@ -346,6 +365,11 @@ export const settingsStore = {
 		settings = { ...settings, debugLogToFile: value };
 	},
 
+	/** Updates explicit consent to persist raw mod run messages locally. */
+	updateDebugModRunMessages(value: boolean) {
+		settings = { ...settings, debugModRunMessages: value };
+	},
+
 	/** Updates the Tauri debug log-to-file flag */
 	updateDebugTauriLogToFile(value: boolean) {
 		settings = { ...settings, debugTauriLogToFile: value };
@@ -392,6 +416,12 @@ export const settingsStore = {
 			...settings,
 			updates: { ...settings.updates, ...value },
 		};
+	},
+
+	/** Replaces the Tasks view's saved state; the store never inspects it */
+	updateTasksView(value: unknown) {
+		// In place, like `updateLayout`: replacing the root re-runs every settings reader.
+		settings.tasksView = value;
 	},
 
 	/** Restores all settings to their defaults */

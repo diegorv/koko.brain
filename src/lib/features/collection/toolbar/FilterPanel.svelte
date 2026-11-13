@@ -33,6 +33,8 @@
 		onGlobalFiltersChange: (groups: FilterGroup[]) => void;
 		/** Called when view filters change */
 		onViewFiltersChange: (groups: FilterGroup[]) => void;
+		/** Whether to show the "All views" section above "This view" (default `true`) */
+		showGlobal?: boolean;
 	}
 
 	let {
@@ -42,6 +44,7 @@
 		propertyIndex,
 		onGlobalFiltersChange,
 		onViewFiltersChange,
+		showGlobal = true,
 	}: Props = $props();
 
 	let globalOpen = $state(true);
@@ -89,66 +92,68 @@
 </script>
 
 <div class="flex max-h-[400px] flex-col gap-3 overflow-y-auto">
-	<!-- All views section -->
-	<Collapsible bind:open={globalOpen}>
-		<CollapsibleTrigger class="flex w-full items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
-			<ChevronRight class="size-3.5 transition-transform {globalOpen ? 'rotate-90' : ''}" />
-			All views
-			{#if globalCount > 0}
-				<span class="rounded-full bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
-					{globalCount}
-				</span>
-			{/if}
-		</CollapsibleTrigger>
-		<CollapsibleContent>
-			<div class="mt-2 flex flex-col gap-2">
-				{#each globalFilters as group, gi}
-					<!-- Conjunction selector -->
-					<DropdownMenu>
-						<DropdownMenuTrigger>
-							<button class="text-xs text-muted-foreground hover:text-foreground">
-								{CONJUNCTION_LABELS[group.conjunction]}
-							</button>
-						</DropdownMenuTrigger>
-						<DropdownMenuContent>
-							{#each (['and', 'or', 'not'] as const) as conj}
-								<DropdownMenuItem
-									onclick={() =>
-										onGlobalFiltersChange(changeConjunction(globalFilters, gi, conj))}
-								>
-									<span class="text-xs">{CONJUNCTION_LABELS[conj]}</span>
-								</DropdownMenuItem>
-							{/each}
-						</DropdownMenuContent>
-					</DropdownMenu>
+	{#if showGlobal}
+		<!-- All views section -->
+		<Collapsible bind:open={globalOpen}>
+			<CollapsibleTrigger class="flex w-full items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground">
+				<ChevronRight class="size-3.5 transition-transform {globalOpen ? 'rotate-90' : ''}" />
+				All views
+				{#if globalCount > 0}
+					<span class="rounded-full bg-primary/15 px-1.5 text-label font-semibold text-primary">
+						{globalCount}
+					</span>
+				{/if}
+			</CollapsibleTrigger>
+			<CollapsibleContent>
+				<div class="mt-2 flex flex-col gap-2">
+					{#each globalFilters as group, gi}
+						<!-- Conjunction selector -->
+						<DropdownMenu>
+							<DropdownMenuTrigger>
+								<button class="text-xs text-muted-foreground hover:text-foreground">
+									{CONJUNCTION_LABELS[group.conjunction]}
+								</button>
+							</DropdownMenuTrigger>
+							<DropdownMenuContent>
+								{#each (['and', 'or', 'not'] as const) as conj}
+									<DropdownMenuItem
+										onclick={() =>
+											onGlobalFiltersChange(changeConjunction(globalFilters, gi, conj))}
+									>
+										<span>{CONJUNCTION_LABELS[conj]}</span>
+									</DropdownMenuItem>
+								{/each}
+							</DropdownMenuContent>
+						</DropdownMenu>
 
-					<!-- Filter rows -->
-					{#each group.rows as row, ri (row.id)}
-						<FilterRow
-							{row}
-							{availableProperties}
-							{propertyIndex}
-							onUpdate={(updated) =>
-								onGlobalFiltersChange(updateRow(globalFilters, gi, ri, updated))}
-							onRemove={() => onGlobalFiltersChange(removeRow(globalFilters, gi, ri))}
-						/>
+						<!-- Filter rows -->
+						{#each group.rows as row, ri (row.id)}
+							<FilterRow
+								{row}
+								{availableProperties}
+								{propertyIndex}
+								onUpdate={(updated) =>
+									onGlobalFiltersChange(updateRow(globalFilters, gi, ri, updated))}
+								onRemove={() => onGlobalFiltersChange(removeRow(globalFilters, gi, ri))}
+							/>
+						{/each}
 					{/each}
-				{/each}
 
-				<Button
-					variant="ghost"
-					size="sm"
-					class="h-7 w-fit gap-1 px-2 text-xs text-muted-foreground"
-					onclick={() => onGlobalFiltersChange(addFilter(globalFilters))}
-				>
-					<Plus class="size-3" />
-					Add filter
-				</Button>
-			</div>
-		</CollapsibleContent>
-	</Collapsible>
+					<Button
+						variant="ghost"
+						size="sm"
+						class="h-7 w-fit gap-1 px-2 text-xs text-muted-foreground"
+						onclick={() => onGlobalFiltersChange(addFilter(globalFilters))}
+					>
+						<Plus class="size-3" />
+						Add filter
+					</Button>
+				</div>
+			</CollapsibleContent>
+		</Collapsible>
 
-	<Separator />
+		<Separator />
+	{/if}
 
 	<!-- This view section -->
 	<Collapsible bind:open={viewOpen}>
@@ -156,7 +161,7 @@
 			<ChevronRight class="size-3.5 transition-transform {viewOpen ? 'rotate-90' : ''}" />
 			This view
 			{#if viewCount > 0}
-				<span class="rounded-full bg-primary/15 px-1.5 text-[10px] font-semibold text-primary">
+				<span class="rounded-full bg-primary/15 px-1.5 text-label font-semibold text-primary">
 					{viewCount}
 				</span>
 			{/if}
@@ -177,7 +182,7 @@
 									onclick={() =>
 										onViewFiltersChange(changeConjunction(viewFilters, gi, conj))}
 								>
-									<span class="text-xs">{CONJUNCTION_LABELS[conj]}</span>
+									<span>{CONJUNCTION_LABELS[conj]}</span>
 								</DropdownMenuItem>
 							{/each}
 						</DropdownMenuContent>

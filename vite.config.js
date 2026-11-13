@@ -7,7 +7,7 @@ import { sveltekit } from "@sveltejs/kit/vite";
 import adapter from "@sveltejs/adapter-static";
 import { vitePreprocess } from "@sveltejs/vite-plugin-svelte";
 import tailwindcss from "@tailwindcss/vite";
-import { formatBuildInfo, parseReleaseChannel } from "./src/lib/utils/build-info.js";
+import { changelogBaseCommand, formatBuildInfo, parseChangelog, parseReleaseChannel } from "./src/lib/utils/build-info.js";
 
 // ─── Build info ──────────────────────────────────────────────────────────────
 
@@ -24,6 +24,15 @@ const buildTime = new Date(Date.now() - new Date().getTimezoneOffset() * 60000).
 
 const channel = parseReleaseChannel(process.env.KOKO_RELEASE_CHANNEL);
 const buildInfo = formatBuildInfo({ pkgVersion: pkg.version, gitHash, commitCount, buildTime, channel });
+
+// Commits since the previous release tag, shown in Settings > Update. Needs the
+// tags in the checkout (CI uses fetch-depth: 0); without them the section hides.
+let changelog = null;
+try {
+  const since = execSync(changelogBaseCommand(pkg.version), { stdio: ["ignore", "pipe", "ignore"] }).toString().trim();
+  const log = execSync(`git log --no-merges --format=%h%x09%s ${since}..HEAD`).toString();
+  changelog = { since, commits: parseChangelog(log) };
+} catch {}
 
 // ─── Environment ─────────────────────────────────────────────────────────────
 
@@ -83,6 +92,7 @@ export default defineConfig(async () => ({
   define: {
     __BUILD_INFO__: JSON.stringify(buildInfo),
     __APP_CHANNEL__: JSON.stringify(channel),
+    __CHANGELOG__: JSON.stringify(changelog),
   },
 
   // Pin the tsconfig instead of letting Vite and rolldown search for one. A
@@ -129,7 +139,8 @@ export default defineConfig(async () => ({
   // Tauri-specific options
   clearScreen: false, // prevent Vite from obscuring Rust errors
   server: {
-    port: isPlaywright ? 1421 : 1420,
+    // scripts/e2e.sh picks E2E_PORT per checkout so parallel worktree runs do not collide.
+    port: isPlaywright ? Number(process.env.E2E_PORT ?? 1421) : 1420,
     strictPort: true,
     host: host || false,
     fs: {

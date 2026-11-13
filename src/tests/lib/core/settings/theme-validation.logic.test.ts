@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
 	isThemeColorValue,
 	findInvalidThemeToken,
+	withoutRetiredTokens,
 	MAX_COLOR_VALUE_LENGTH,
 } from '#lib/core/settings/theme-validation.logic.js';
 import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
@@ -132,5 +133,30 @@ describe('findInvalidThemeToken', () => {
 	it('does not accept inherited keys such as __proto__ or toString', () => {
 		expect(findInvalidThemeToken(JSON.parse('{"__proto__": {"background": "#fff"}}'))).toBe('__proto__');
 		expect(findInvalidThemeToken({ ui: { toString: '#fff' } })).toBe('ui.toString');
+	});
+
+	it('skips the retired frontmatter tokens, whatever they hold', () => {
+		expect(findInvalidThemeToken({ preview: { frontmatterBg: '#fff', frontmatterBorder: 'url(x)' } })).toBeNull();
+	});
+
+	it('still names a retired key under another group', () => {
+		expect(findInvalidThemeToken({ ui: { frontmatterBg: '#fff' } })).toBe('ui.frontmatterBg');
+	});
+});
+
+describe('withoutRetiredTokens', () => {
+	it('drops the retired frontmatter tokens and keeps every other token', () => {
+		const colors = { ui: { background: '#fff' }, preview: { frontmatterBg: '#111', frontmatterBorder: '#222', embedBg: '#333' } };
+		expect(withoutRetiredTokens(colors)).toEqual({ ui: { background: '#fff' }, preview: { embedBg: '#333' } });
+	});
+
+	it('returns an empty map unchanged', () => {
+		expect(withoutRetiredTokens({})).toEqual({});
+	});
+
+	it('does not mutate its input', () => {
+		const colors = { preview: { frontmatterBg: '#111' } };
+		withoutRetiredTokens(colors);
+		expect(colors).toEqual({ preview: { frontmatterBg: '#111' } });
 	});
 });

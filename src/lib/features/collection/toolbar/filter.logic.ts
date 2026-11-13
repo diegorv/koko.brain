@@ -1,6 +1,7 @@
 import type { CollectionFilter, FilterItem, PropertyIndexRecord } from '../collection.types';
 import type { ASTNode } from '../expression/expression.types';
 import { parse } from '../expression/parser';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import type { PropertyType } from '#lib/core/frontmatter/properties.types.js';
 import type { FilterConjunction, FilterGroup, FilterOperator, FilterRow } from './toolbar.types';
 
@@ -102,6 +103,12 @@ export function parseFilterToGroups(filter: CollectionFilter | string | undefine
 
 	const groups: FilterGroup[] = [];
 
+	// An `and` / `or` / `not` that is not a list (YAML is not validated): show
+	// the whole filter as JSON text, which the query then reports.
+	if (typeof filter === 'object' && !isFilterObject(filter)) {
+		return [{ conjunction: 'and', rows: [jsonRow(filter)] }];
+	}
+
 	if (filter.and && filter.and.length > 0) {
 		groups.push({
 			conjunction: 'and',
@@ -126,10 +133,7 @@ export function parseFilterToGroups(filter: CollectionFilter | string | undefine
 	// If the filter had no recognized keys, return empty
 	if (groups.length === 0 && Object.keys(filter).length > 0) {
 		// Unknown structure — create a raw fallback
-		return [{
-			conjunction: 'and',
-			rows: [{ id: uid(), property: '', operator: 'is', value: '', raw: JSON.stringify(filter) }],
-		}];
+		return [{ conjunction: 'and', rows: [jsonRow(filter)] }];
 	}
 
 	return groups;
@@ -140,22 +144,26 @@ export function parseFilterToGroups(filter: CollectionFilter | string | undefine
  * Returns undefined if there are no filter rows.
  */
 export function filterGroupsToFilter(groups: FilterGroup[]): CollectionFilter | string | undefined {
-	// Remove empty groups
-	const nonEmpty = groups.filter((g) => g.rows.length > 0);
+	// A raw row with blank text is unfinished: it writes nothing. Then remove empty groups.
+	const nonEmpty = groups
+		.map((g) => ({ ...g, rows: g.rows.filter((r) => r.raw === undefined || r.raw.trim() !== '') }))
+		.filter((g) => g.rows.length > 0);
 	if (nonEmpty.length === 0) return undefined;
 
 	// Single group with single row → return as plain string.
 	// A 'not' group must NOT take this shortcut: a bare expression is positive,
 	// so collapsing it would invert the filter. Let it fall through to the
-	// object branch and serialize as { not: [expr] }.
+	// object branch and serialize as { not: [expr] }. Neither does a row that
+	// writes a nested object: `and: [ { or: [...] } ]` must stay as written.
 	if (nonEmpty.length === 1 && nonEmpty[0].rows.length === 1 && nonEmpty[0].conjunction !== 'not') {
-		return filterRowToExpression(nonEmpty[0].rows[0]);
+		const item = rowToItem(nonEmpty[0].rows[0]);
+		if (typeof item === 'string') return item;
 	}
 
 	const result: CollectionFilter = {};
 
 	for (const group of nonEmpty) {
-		const expressions = group.rows.map(filterRowToExpression);
+		const expressions = group.rows.map(rowToItem);
 		if (group.conjunction === 'and') {
 			result.and = [...(result.and ?? []), ...expressions];
 		} else if (group.conjunction === 'or') {
@@ -186,6 +194,16 @@ export function getOperatorsForType(type: PropertyType): FilterOperator[] {
 	}
 }
 
+const UNARY_OPERATORS: ReadonlySet<FilterOperator> = new Set(['is_empty', 'is_not_empty', 'is_true', 'is_false']);
+
+/**
+ * Whether an operator takes no value: `filterRowToExpression` ignores the row's
+ * value for it, and the filter row shows no value input.
+ */
+export function isUnaryOperator(op: FilterOperator): boolean {
+	return UNARY_OPERATORS.has(op);
+}
+
 /** Standard file.* properties always available */
 const FILE_PROPERTIES = [
 	'file.name',
@@ -198,13 +216,15 @@ const FILE_PROPERTIES = [
 ];
 
 /**
- * Collects all known property names from the index plus standard file.* properties.
+ * Collects all known note property names from the index plus standard file.* properties.
+ * A `.view` record stays in the index for `kb.page`, but its keys are not note properties.
  * Returns sorted: file.* first, then frontmatter properties alphabetically.
  */
 export function getAllKnownProperties(index: Map<string, PropertyIndexRecord>): string[] {
 	const seen = new Set<string>();
 
-	for (const record of index.values()) {
+	for (const [path, record] of index) {
+		if (isViewFile(path)) continue;
 		for (const key of record.properties.keys()) {
 			// Skip formula.* — those come from the definition, not the index
 			if (!key.startsWith('formula.')) {
@@ -218,7 +238,7 @@ export function getAllKnownProperties(index: Map<string, PropertyIndexRecord>): 
 }
 
 /**
- * Infers the PropertyType of a property by sampling values from the index.
+ * Infers the PropertyType of a property by sampling the notes' values from the index.
  * Defaults to 'text' if the type cannot be determined.
  */
 export function inferPropertyType(property: string, index: Map<string, PropertyIndexRecord>): PropertyType {
@@ -237,7 +257,8 @@ export function inferPropertyType(property: string, index: Map<string, PropertyI
 	}
 
 	// Sample values from the index to infer type
-	for (const record of index.values()) {
+	for (const [path, record] of index) {
+		if (isViewFile(path)) continue;
 		const value = record.properties.get(property);
 		if (value === null || value === undefined) continue;
 
@@ -268,6 +289,14 @@ export function createEmptyFilterRow(property: string, type: PropertyType): Filt
 	};
 }
 
+/**
+ * Creates an expression row with no text yet. `filterGroupsToFilter` drops it
+ * until text is typed into it.
+ */
+export function createEmptyExpressionRow(): FilterRow {
+	return { id: uid(), property: '', operator: 'is', value: '', raw: '' };
+}
+
 // --- Internal helpers ---
 
 /** Converts a FilterItem (string or nested CollectionFilter) to a FilterRow */
@@ -275,8 +304,66 @@ function itemToRow(item: FilterItem): FilterRow {
 	if (typeof item === 'string') {
 		return parseExpressionToRow(item);
 	}
-	// Nested filter object — can't represent visually, use raw fallback
-	return { id: uid(), property: '', operator: 'is', value: '', raw: JSON.stringify(item) };
+	// A null item (an empty YAML `-` entry; `parseCollectionYaml` does not
+	// validate filters) or a malformed object is not a filter object: show it as JSON text.
+	if (!isFilterObject(item)) return jsonRow(item);
+	// Nested filter object: too complex for the visual UI, so it loads as an
+	// editable expression that keeps the object it came from. One holding a
+	// null or a malformed object at any depth keeps only the text: `executeQuery`
+	// reports such an item as a filter error, and the text is what the row shows.
+	const raw = filterToExpression(item);
+	if (holdsNull(item)) return { id: uid(), property: '', operator: 'is', value: '', raw };
+	return { id: uid(), property: '', operator: 'is', value: '', raw, item };
+}
+
+/** A raw row holding a filter value it cannot edit as an expression, as JSON text. */
+function jsonRow(value: unknown): FilterRow {
+	return { id: uid(), property: '', operator: 'is', value: '', raw: JSON.stringify(value) };
+}
+
+/**
+ * True for a non-null object whose `and` / `or` / `not`, where present, are
+ * lists. YAML can hand over a null list entry or a scalar / map under a key.
+ */
+export function isFilterObject(item: unknown): item is CollectionFilter {
+	if (typeof item !== 'object' || item === null) return false;
+	const filter = item as Record<string, unknown>;
+	return (['and', 'or', 'not'] as const).every((key) => filter[key] === undefined || Array.isArray(filter[key]));
+}
+
+/** True when an item of the filter's `and` / `or` / `not` lists, at any depth, is not a string or a filter object. */
+function holdsNull(filter: CollectionFilter): boolean {
+	return [...(filter.and ?? []), ...(filter.or ?? []), ...(filter.not ?? [])].some(
+		(item) => typeof item !== 'string' && (!isFilterObject(item) || holdsNull(item)),
+	);
+}
+
+/**
+ * The filter item a row writes: its nested object while the row's text is
+ * still the object's expression, else the row's expression.
+ */
+function rowToItem(row: FilterRow): FilterItem {
+	if (row.item && row.raw === filterToExpression(row.item)) return row.item;
+	return filterRowToExpression(row);
+}
+
+/**
+ * Builds an expression equivalent to a filter object under `evaluateFilter`
+ * (`collection.logic.ts`): `and` items as `(a) && (b)`, `or` items as
+ * `(a) || (b)`, `not` items as `!(a) && !(b)`, the keys of one object ANDed.
+ * An empty `and` / `not` list is true and an empty `or` list is false, as in
+ * the evaluator; so is an object with none of the keys (true). A null item
+ * or a malformed object becomes its JSON text.
+ */
+function filterToExpression(filter: CollectionFilter): string {
+	const wrap = (item: FilterItem) =>
+		`(${typeof item === 'string' ? item : isFilterObject(item) ? filterToExpression(item) : JSON.stringify(item)})`;
+	const parts: string[] = [];
+	if (filter.and) parts.push(filter.and.length > 0 ? filter.and.map(wrap).join(' && ') : 'true');
+	if (filter.or) parts.push(filter.or.length > 0 ? filter.or.map(wrap).join(' || ') : 'false');
+	if (filter.not) parts.push(filter.not.length > 0 ? filter.not.map((i) => `!${wrap(i)}`).join(' && ') : 'true');
+	if (parts.length === 0) return 'true';
+	return parts.length === 1 ? parts[0] : parts.map((p) => `(${p})`).join(' && ');
 }
 
 /**
@@ -460,7 +547,7 @@ function mapDateBinaryOp(op: string): FilterOperator | null {
 
 /**
  * Emits numeric literals bare; quotes anything else so the value re-parses as a
- * literal instead of an identifier (which would corrupt saved .collection/.view files).
+ * literal instead of an identifier (which would corrupt saved .view files).
  */
 function quoteUnlessNumber(val: string): string {
 	return /^-?\d+(\.\d+)?$/.test(val) ? val : quoteString(val);

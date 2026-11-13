@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { Input } from '#lib/components/ui/input/index.js';
 	import { isValidHex, normalizeHex, hexToColorInputValue } from '../theme-editor.logic';
 
 	let { label, value, onchange }: { label: string; value: string; onchange: (v: string) => void } = $props();
@@ -44,11 +45,11 @@
 </script>
 
 <div class="flex items-center justify-between gap-3 py-1.5">
-	<span class="min-w-0 flex-1 truncate text-sm text-settings-text">{label}</span>
+	<span class="min-w-0 flex-1 truncate text-row text-settings-text">{label}</span>
 	<div class="flex shrink-0 items-center gap-2">
 		<!-- Color swatch with hidden native picker -->
 		<label
-			class="relative size-7 cursor-pointer overflow-hidden rounded border border-border"
+			class="relative size-7 cursor-pointer overflow-hidden rounded-xs border border-border"
 			style="background-color: {value}"
 		>
 			<input
@@ -59,9 +60,9 @@
 			/>
 		</label>
 		<!-- Hex text input -->
-		<input
+		<Input
 			type="text"
-			class="h-7 w-[5.5rem] rounded border border-input bg-input-bg px-2 font-mono text-xs text-settings-text"
+			class="h-7 w-[5.5rem] px-2 font-mono text-meta md:text-meta"
 			value={textValue}
 			oninput={handleTextInput}
 			onblur={handleTextBlur}

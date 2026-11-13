@@ -1,5 +1,7 @@
 import { Decoration, EditorView, GutterMarker } from '@codemirror/view';
 
+import { MONO_FONT_STACK } from '#lib/utils/font-stacks.js';
+
 /**
  * Hides markdown syntax (`#`, `>`, `**`, link brackets, `%%comments%%`, …) off
  * the revealed lines. A replace removes the text from the DOM, so the swap is
@@ -15,9 +17,33 @@ export const linkTextDeco = Decoration.mark({ class: 'cm-lp-link' });
 export const blockquoteLineDeco = Decoration.line({ class: 'cm-lp-blockquote' });
 export const wikilinkTextDeco = Decoration.mark({ class: 'cm-lp-wikilink' });
 export const highlightTextDeco = Decoration.mark({ class: 'cm-lp-highlight' });
+/** Pill on a body `#tag` (`#` included); the same style for every tag. */
+export const tagDeco = Decoration.mark({ class: 'cm-lp-tag' });
 export const footnoteRefDeco = Decoration.mark({ class: 'cm-lp-footnote-ref' });
 export const footnoteDefMarkerDeco = Decoration.mark({ class: 'cm-lp-footnote-def-marker' });
 export const hiddenLineDeco = Decoration.line({ class: 'cm-lp-hidden-line' });
+
+/*
+ * Text inside a note is sized in em so the editor font setting scales all of
+ * it: blocks (code, embeds, collections, QueryJS, meta-bind controls) are
+ * 0.85em of the body and their children are em of the block. px is left only
+ * on the glyph-only table controls, whose box is fixed.
+ */
+
+/**
+ * Code text size, relative to the body. The widget's `pre` and the revealed
+ * source lines share it, so entering or leaving a code block changes no size.
+ */
+export const CODE_BLOCK_FONT_SIZE = '0.85em';
+/** Table text size, relative to the body; shared by the widget and the revealed source lines. */
+export const TABLE_FONT_SIZE = '0.9em';
+/**
+ * Every line of a revealed code block. A line decoration, never a mark: a
+ * `font-size` mark caused the editor freeze fixed in `b4aa9028`.
+ */
+export const codeBlockLineDeco = Decoration.line({ class: 'cm-lp-codeblock-line' });
+/** Every line of a revealed table; a line decoration for the same reason as `codeBlockLineDeco`. */
+export const tableLineDeco = Decoration.line({ class: 'cm-lp-table-line' });
 
 /** GutterMarker that hides gutter elements (line numbers, fold markers) for collapsed lines */
 class HiddenGutterMarker extends GutterMarker {
@@ -35,6 +61,42 @@ export const headingLineDeco: Record<number, Decoration> = {
 	5: Decoration.line({ class: 'cm-lp-h5' }),
 	6: Decoration.line({ class: 'cm-lp-h6' }),
 };
+
+/**
+ * Live preview paints no cursor-line fill: the cursor lands on the blank line
+ * after the hidden frontmatter when a note opens, and the fill showed as an
+ * empty slab above the title. `highlightActiveLine()` stays installed because
+ * E2E specs locate the cursor line by its `cm-activeLine` class. `!important`
+ * beats both the app theme (`setup/editor-theme.ts`), which source mode keeps,
+ * and CodeMirror's own base-theme fill.
+ *
+ * An `EditorView.theme`, not part of `livePreviewStyles`: a base theme's rules
+ * are scoped to a class every editor carries and stay in the document once
+ * mounted, so there this rule would also clear the fill in source mode.
+ *
+ * The blockquote and callout lines get their tint back here: the cleared fill
+ * would otherwise also clear their own `background` (set below in
+ * `livePreviewStyles`), leaving an untinted stripe in the box. Excluding them
+ * with `:not(...)` is not enough, because the app theme's fill would then win
+ * over the base-theme tint again. Keep these values in step with those rules.
+ */
+export const livePreviewActiveLineTheme = EditorView.theme({
+	'.cm-activeLine': {
+		backgroundColor: 'transparent !important',
+	},
+	'.cm-activeLine.cm-lp-blockquote': {
+		backgroundColor: 'var(--lp-blockquote-bg) !important',
+	},
+	'.cm-activeLine.cm-lp-blockquote-2': {
+		backgroundColor: 'var(--lp-blockquote-bg2) !important',
+	},
+	'.cm-activeLine.cm-lp-blockquote-3': {
+		backgroundColor: 'var(--lp-blockquote-bg3) !important',
+	},
+	'.cm-activeLine.cm-lp-callout': {
+		backgroundColor: 'color-mix(in srgb, var(--callout-note) 7%, transparent) !important',
+	},
+});
 
 export const livePreviewStyles = EditorView.baseTheme({
 	/**
@@ -128,7 +190,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		color: 'var(--syntax-heading3)',
 	},
 	'.cm-lp-h4': {
-		fontSize: 'var(--heading-h4-font-size, 1em)',
+		fontSize: 'var(--heading-h4-font-size, 1.125em)',
 		fontWeight: 'var(--heading-h4-font-weight, bold)',
 		lineHeight: 'var(--heading-h4-line-height, inherit)',
 		letterSpacing: 'var(--heading-h4-letter-spacing, 0em)',
@@ -142,8 +204,8 @@ export const livePreviewStyles = EditorView.baseTheme({
 		color: 'var(--syntax-heading5)',
 	},
 	'.cm-lp-h6': {
-		fontSize: 'var(--heading-h6-font-size, 1em)',
-		fontWeight: 'var(--heading-h6-font-weight, bold)',
+		fontSize: 'var(--heading-h6-font-size, 0.9em)',
+		fontWeight: 'var(--heading-h6-font-weight, 600)',
 		lineHeight: 'var(--heading-h6-line-height, inherit)',
 		letterSpacing: 'var(--heading-h6-letter-spacing, 0em)',
 		color: 'var(--syntax-heading6)',
@@ -171,7 +233,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		width: '18px',
 		height: '18px',
 		border: '2px solid var(--lp-task-border)',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 		backgroundColor: 'transparent',
 		cursor: 'pointer',
 		verticalAlign: 'middle',
@@ -202,7 +264,16 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-highlight': {
 		backgroundColor: 'var(--lp-highlight-bg)',
-		borderRadius: '2px',
+		borderRadius: 'var(--radius-xs)',
+	},
+	'.cm-lp-tag': {
+		// Derived from the editor colors, not --accent: in the default dark theme
+		// --accent is the hover shade, almost the editor background, so a pill
+		// on it could not be seen.
+		backgroundColor: 'color-mix(in oklab, var(--primary) 20%, var(--editor-bg))',
+		color: 'color-mix(in oklab, var(--primary) 70%, var(--editor-fg))',
+		borderRadius: 'var(--radius-xs)',
+		padding: '0 3px',
 	},
 	'.cm-lp-ol-marker': {
 		display: 'inline-block',
@@ -223,10 +294,10 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontSize: '0.95em',
 	},
 	'.cm-lp-code': {
-		fontFamily: 'MonoLisa, monospace',
+		fontFamily: MONO_FONT_STACK,
 		backgroundColor: 'var(--lp-code-bg)',
 		padding: '1px 4px',
-		borderRadius: '3px',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-lp-image-wrapper': {
 		display: 'block',
@@ -234,7 +305,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-image': {
 		maxWidth: '100%',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-lp-audio-wrapper, .cm-lp-video-wrapper': {
 		display: 'block',
@@ -243,19 +314,16 @@ export const livePreviewStyles = EditorView.baseTheme({
 	/* Audio fills the line, video only caps its width — the two are not interchangeable */
 	'.cm-lp-audio': {
 		width: '100%',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-lp-video': {
 		maxWidth: '100%',
-		borderRadius: '4px',
-	},
-	'.cm-activeLine:has(.cm-lp-audio-wrapper), .cm-activeLine:has(.cm-lp-video-wrapper)': {
-		backgroundColor: 'transparent !important',
+		borderRadius: 'var(--radius-xs)',
 	},
 	'.cm-lp-codeblock': {
 		display: 'block',
 		backgroundColor: 'var(--lp-codeblock-bg)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-codeblock-border)',
 		overflow: 'hidden',
 		margin: '2px 0',
@@ -269,19 +337,19 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'var(--lp-codeblock-header-bg)',
 	},
 	'.cm-lp-codeblock-lang': {
-		fontSize: '11px',
+		fontSize: '0.7em',
 		color: 'var(--lp-codeblock-lang)',
-		fontFamily: 'MonoLisa, monospace',
+		fontFamily: MONO_FONT_STACK,
 		textTransform: 'lowercase',
 	},
 	'.cm-lp-codeblock-copy': {
-		fontSize: '11px',
+		fontSize: '0.7em',
 		color: 'var(--lp-codeblock-copy)',
 		backgroundColor: 'transparent',
 		border: 'none',
 		cursor: 'pointer',
 		padding: '2px 6px',
-		borderRadius: '3px',
+		borderRadius: 'var(--radius-md)',
 		opacity: '0',
 		transition: 'opacity 0.15s ease, background-color 0.15s ease',
 	},
@@ -295,16 +363,16 @@ export const livePreviewStyles = EditorView.baseTheme({
 		margin: '0',
 		padding: '10px 12px',
 		overflow: 'auto',
-		fontFamily: 'MonoLisa, monospace',
-		fontSize: '13px',
+		fontFamily: MONO_FONT_STACK,
+		fontSize: CODE_BLOCK_FONT_SIZE,
 		lineHeight: '1.5',
 		color: 'var(--lp-codeblock-text)',
 	},
+	'.cm-lp-codeblock-line': {
+		fontSize: CODE_BLOCK_FONT_SIZE,
+	},
 	'.cm-lp-codeblock-pre code': {
 		fontFamily: 'inherit',
-	},
-	'.cm-activeLine:has(.cm-lp-codeblock)': {
-		backgroundColor: 'transparent !important',
 	},
 	/* ── Syntax highlighting tokens (highlight.js classes) ── */
 	'.cm-lp-codeblock .hljs-keyword': { color: 'var(--lp-syntax-keyword)' },
@@ -336,7 +404,9 @@ export const livePreviewStyles = EditorView.baseTheme({
 		position: 'relative',
 		display: 'block',
 		paddingRight: '24px',
-		paddingBottom: '24px',
+		// Small on purpose: the widget band below the line already adds blank space.
+		// The table's -4px bottom margin eats 4px of it; the rest holds the +row button.
+		paddingBottom: '10px',
 	},
 	'.cm-lp-table-add': {
 		position: 'absolute',
@@ -365,7 +435,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-table-add-col': {
 		top: '0',
 		right: '0',
-		bottom: '24px',
+		bottom: '10px',
 		width: '20px',
 		borderLeft: 'none',
 	},
@@ -373,14 +443,18 @@ export const livePreviewStyles = EditorView.baseTheme({
 		left: '0',
 		right: '24px',
 		bottom: '0',
-		height: '20px',
+		height: '6px',
+		fontSize: '6px',
 		borderTop: 'none',
 	},
 	'.cm-lp-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
 		margin: '-4px 0',
-		fontSize: '0.9em',
+		fontSize: TABLE_FONT_SIZE,
+	},
+	'.cm-lp-table-line': {
+		fontSize: TABLE_FONT_SIZE,
 	},
 	'.cm-lp-table th, .cm-lp-table td': {
 		border: '1px solid var(--lp-table-border)',
@@ -429,7 +503,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		fontWeight: '500',
 		textTransform: 'lowercase',
 		opacity: '0.85',
-		borderRadius: '3px',
+		borderRadius: 'var(--radius-xs)',
 		transition: 'background-color 0.15s ease, opacity 0.15s ease',
 	},
 	'.cm-lp-callout-type-label:hover': {
@@ -448,10 +522,11 @@ export const livePreviewStyles = EditorView.baseTheme({
 		maxHeight: '240px',
 		overflowY: 'auto',
 		padding: '4px',
-		background: 'var(--lp-frontmatter-bg, var(--background, #1f2330))',
-		border: '1px solid var(--lp-frontmatter-border, var(--border, rgba(150,150,150,0.2)))',
-		borderRadius: '6px',
-		boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+		background: 'var(--popover)',
+		color: 'var(--popover-foreground)',
+		border: '1px solid var(--border)',
+		borderRadius: 'var(--radius-md)',
+		boxShadow: 'var(--shadow-md)',
 	},
 	'.cm-lp-callout-type-option': {
 		appearance: 'none',
@@ -459,14 +534,15 @@ export const livePreviewStyles = EditorView.baseTheme({
 		border: 'none',
 		textAlign: 'left',
 		padding: '4px 8px',
-		fontSize: '12px',
+		fontSize: '0.75em',
 		color: 'inherit',
 		cursor: 'pointer',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-sm)',
 		fontFamily: 'inherit',
 	},
 	'.cm-lp-callout-type-option:hover': {
-		background: 'var(--lp-table-alt, rgba(255,255,255,0.06))',
+		background: 'var(--accent)',
+		color: 'var(--accent-foreground)',
 	},
 	'.cm-lp-callout-type-option-current': {
 		fontWeight: '600',
@@ -501,14 +577,14 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '10px 14px',
 		margin: '4px 0',
 		backgroundColor: 'var(--lp-collection-bg)',
-		borderRadius: '8px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-collection-border)',
-		fontSize: '13px',
+		fontSize: '0.85em',
 		lineHeight: '1.5',
 	},
 	'.cm-lp-collection-header': {
 		color: 'var(--lp-collection-header)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		fontWeight: '600',
 		marginBottom: '8px',
 		paddingBottom: '6px',
@@ -517,7 +593,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-collection-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
-		fontSize: '12px',
+		fontSize: '0.9em',
 	},
 	'.cm-lp-collection-table th, .cm-lp-collection-table td': {
 		border: '1px solid var(--lp-collection-border)',
@@ -543,37 +619,34 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-collection-error': {
 		color: 'var(--lp-collection-error)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		padding: '4px 0',
 	},
 	'.cm-lp-collection-loading': {
 		color: 'var(--lp-collection-loading)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		padding: '4px 0',
 	},
 	'.cm-lp-collection-empty': {
 		color: 'var(--lp-collection-empty)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		padding: '8px 0',
 		textAlign: 'center',
 	},
 	'.cm-lp-collection-footer': {
 		color: 'var(--lp-collection-empty)',
-		fontSize: '11px',
+		fontSize: '0.85em',
 		paddingTop: '6px',
-	},
-	'.cm-activeLine:has(.cm-lp-collection-block)': {
-		backgroundColor: 'transparent !important',
 	},
 	'.cm-lp-embed': {
 		display: 'block',
 		padding: '8px 12px',
 		margin: '2px 0',
 		backgroundColor: 'var(--lp-embed-bg)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-embed-border)',
 		borderLeft: '3px solid var(--lp-embed-header)',
-		fontSize: '13px',
+		fontSize: '0.85em',
 	},
 	'.cm-lp-embed:hover': {
 		backgroundColor: 'var(--lp-embed-hover)',
@@ -583,7 +656,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 		alignItems: 'center',
 		gap: '6px',
 		color: 'var(--lp-embed-header)',
-		fontSize: '12px',
+		fontSize: '0.9em',
 		fontWeight: '500',
 		marginBottom: '6px',
 		paddingBottom: '6px',
@@ -603,7 +676,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-embed-content': {
 		color: 'var(--lp-embed-content)',
-		fontSize: '13px',
+		fontSize: '1em',
 		lineHeight: '1.6',
 		whiteSpace: 'pre-wrap',
 		wordBreak: 'break-word',
@@ -620,24 +693,25 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'var(--lp-meta-bind-select-bg)',
 		color: 'var(--lp-meta-bind-select-text)',
 		border: '1px solid var(--lp-meta-bind-select-border)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		padding: '2px 24px 2px 8px',
-		fontSize: '13px',
+		fontSize: '0.85em',
 		lineHeight: '1.4',
 		cursor: 'pointer',
 		outline: 'none',
 		verticalAlign: 'middle',
-		backgroundImage: `url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239ca3c7' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E")`, // privacy-ok
+		// Two half-filled squares form the caret; gradients, unlike an SVG data URI, can read var().
+		backgroundImage: 'linear-gradient(45deg, transparent 50%, var(--lp-meta-bind-select-arrow) 50%), linear-gradient(135deg, var(--lp-meta-bind-select-arrow) 50%, transparent 50%)',
 		backgroundRepeat: 'no-repeat',
-		backgroundPosition: 'right 6px center',
-		backgroundSize: '12px',
+		backgroundPosition: 'calc(100% - 12px) 50%, calc(100% - 8px) 50%',
+		backgroundSize: '4px 4px, 4px 4px',
 	},
 	'.cm-lp-meta-bind-select:hover': {
 		borderColor: 'var(--lp-meta-bind-select-hover)',
 	},
 	'.cm-lp-meta-bind-select:focus': {
-		borderColor: 'hsl(var(--primary))',
-		boxShadow: '0 0 0 1px hsl(var(--primary) / 0.3)',
+		borderColor: 'var(--primary)',
+		boxShadow: '0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent)',
 	},
 	'.cm-lp-meta-bind-button-container': {
 		display: 'block',
@@ -648,14 +722,17 @@ export const livePreviewStyles = EditorView.baseTheme({
 		alignItems: 'center',
 		gap: '6px',
 		padding: '6px 16px',
-		borderRadius: '6px',
-		fontSize: '13px',
+		borderRadius: 'var(--radius-md)',
+		fontSize: '0.85em',
 		fontWeight: '500',
 		cursor: 'pointer',
 		border: '1px solid transparent',
 		transition: 'all 0.15s ease',
 		lineHeight: '1.4',
 		outline: 'none',
+	},
+	'.cm-lp-meta-bind-btn:focus-visible': {
+		boxShadow: '0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent)',
 	},
 	'.cm-lp-meta-bind-btn-default': {
 		backgroundColor: 'var(--lp-meta-bind-btn-default-bg)',
@@ -686,18 +763,15 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-meta-bind-btn-plain:hover': {
 		backgroundColor: 'var(--lp-meta-bind-btn-plain-hover)',
 	},
-	'.cm-activeLine:has(.cm-lp-meta-bind-button-container)': {
-		backgroundColor: 'transparent !important',
-	},
 	'.cm-lp-meta-bind-button-error': {
 		display: 'block',
 		padding: '6px 12px',
 		margin: '4px 0',
 		color: 'var(--lp-meta-bind-error-text)',
-		fontSize: '12px',
+		fontSize: '0.75em',
 		fontStyle: 'italic',
 		backgroundColor: 'var(--lp-meta-bind-error-bg)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-meta-bind-error-border)',
 	},
 	'.cm-lp-meta-bind-input-wrap': {
@@ -711,22 +785,22 @@ export const livePreviewStyles = EditorView.baseTheme({
 		background: 'var(--lp-meta-bind-select-bg)',
 		color: 'var(--lp-meta-bind-select-text)',
 		border: '1px solid var(--lp-meta-bind-select-border)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		padding: '2px 8px',
-		fontSize: '13px',
+		fontSize: '0.85em',
 		lineHeight: '1.4',
 		outline: 'none',
 		fontFamily: 'inherit',
 	},
 	'.cm-lp-meta-bind-input:focus': {
-		borderColor: 'hsl(var(--primary))',
-		boxShadow: '0 0 0 1px hsl(var(--primary) / 0.3)',
+		borderColor: 'var(--primary)',
+		boxShadow: '0 0 0 1px color-mix(in oklab, var(--primary) 30%, transparent)',
 	},
 	'.cm-lp-meta-bind-input-invalid .cm-lp-meta-bind-input': {
 		borderColor: 'var(--lp-meta-bind-error-border, var(--destructive, #ef4444))',
 	},
 	'.cm-lp-meta-bind-input-error': {
-		fontSize: '11px',
+		fontSize: '0.75em',
 		color: 'var(--lp-meta-bind-error-text, var(--destructive, #ef4444))',
 		fontStyle: 'italic',
 	},
@@ -741,13 +815,13 @@ export const livePreviewStyles = EditorView.baseTheme({
 		margin: '0',
 		width: '14px',
 		height: '14px',
-		accentColor: 'hsl(var(--primary))',
+		accentColor: 'var(--primary)',
 	},
 	/* ── Mermaid diagrams ── */
 	'.cm-lp-mermaid': {
 		display: 'block',
 		backgroundColor: 'var(--lp-codeblock-bg)',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-codeblock-border)',
 		overflow: 'hidden',
 		margin: '2px 0',
@@ -760,9 +834,9 @@ export const livePreviewStyles = EditorView.baseTheme({
 		backgroundColor: 'var(--lp-codeblock-header-bg)',
 	},
 	'.cm-lp-mermaid-lang': {
-		fontSize: '11px',
+		fontSize: '0.7em',
 		color: 'var(--lp-codeblock-lang)',
-		fontFamily: 'MonoLisa, monospace',
+		fontFamily: MONO_FONT_STACK,
 		textTransform: 'lowercase',
 	},
 	'.cm-lp-mermaid-diagram': {
@@ -778,11 +852,8 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-mermaid-error': {
 		padding: '10px 12px',
 		color: 'var(--lp-collection-error, #f87171)',
-		fontSize: '12px',
+		fontSize: '0.75em',
 		fontStyle: 'italic',
-	},
-	'.cm-activeLine:has(.cm-lp-mermaid)': {
-		backgroundColor: 'transparent !important',
 	},
 	/* ── Math (KaTeX) ── */
 	'.cm-lp-math-inline': {
@@ -798,12 +869,9 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-math-error': {
 		color: 'var(--lp-collection-error, #f87171)',
-		fontSize: '12px',
+		fontSize: '0.75em',
 		fontStyle: 'italic',
-		fontFamily: 'MonoLisa, monospace',
-	},
-	'.cm-activeLine:has(.cm-lp-math-block)': {
-		backgroundColor: 'transparent !important',
+		fontFamily: MONO_FONT_STACK,
 	},
 	/* ── QueryJS ── */
 	'.cm-lp-qjs-block': {
@@ -811,14 +879,14 @@ export const livePreviewStyles = EditorView.baseTheme({
 		padding: '10px 14px',
 		margin: '4px 0',
 		backgroundColor: 'var(--lp-collection-bg)',
-		borderRadius: '8px',
+		borderRadius: 'var(--radius-md)',
 		border: '1px solid var(--lp-collection-border)',
-		fontSize: '16px',
+		fontSize: '0.85em',
 		lineHeight: '1.5',
 	},
 	'.cm-lp-qjs-error': {
 		color: 'var(--lp-collection-error, #f87171)',
-		fontSize: '15px',
+		fontSize: '0.95em',
 		fontStyle: 'italic',
 		display: 'flex',
 		flexDirection: 'column',
@@ -829,7 +897,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-qjs-error-details': {
 		fontStyle: 'normal',
-		fontSize: '12px',
+		fontSize: '0.8em',
 		opacity: '0.85',
 	},
 	'.cm-lp-qjs-error-details summary': {
@@ -838,12 +906,12 @@ export const livePreviewStyles = EditorView.baseTheme({
 	},
 	'.cm-lp-qjs-error-stack': {
 		whiteSpace: 'pre-wrap',
-		fontFamily: 'MonoLisa, ui-monospace, SFMono-Regular, Menlo, monospace',
-		fontSize: '11px',
+		fontFamily: MONO_FONT_STACK,
+		fontSize: '0.9em',
 		margin: '4px 0 0 0',
 		padding: '6px 8px',
 		background: 'var(--lp-codeblock-bg)',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-xs)',
 		color: 'var(--lp-collection-error, #f87171)',
 	},
 	'.cm-lp-qjs-run': {
@@ -852,18 +920,22 @@ export const livePreviewStyles = EditorView.baseTheme({
 		background: 'var(--lp-meta-bind-btn-primary-bg, var(--accent))',
 		color: 'var(--lp-meta-bind-btn-primary-text, white)',
 		border: 'none',
-		borderRadius: '6px',
+		borderRadius: 'var(--radius-md)',
 		padding: '4px 12px',
-		fontSize: '13px',
+		fontSize: '0.8em',
 		cursor: 'pointer',
 		fontStyle: 'normal',
 	},
 	'.cm-lp-qjs-run:hover': {
 		background: 'var(--lp-meta-bind-btn-primary-hover, var(--accent))',
 	},
+	// Run again sits inside the 0.95em error wrapper: divide it back out to match the first-run button.
+	'.cm-lp-qjs-error .cm-lp-qjs-run': {
+		fontSize: 'calc(0.8em / 0.95)',
+	},
 	'.cm-lp-qjs-loading': {
 		color: 'var(--lp-collection-loading)',
-		fontSize: '15px',
+		fontSize: '0.95em',
 		padding: '4px 0',
 	},
 	'.cm-lp-qjs-link': {
@@ -882,7 +954,7 @@ export const livePreviewStyles = EditorView.baseTheme({
 	'.cm-lp-qjs-table': {
 		width: '100%',
 		borderCollapse: 'collapse',
-		fontSize: '15px',
+		fontSize: '0.95em',
 	},
 	'.cm-lp-qjs-table th, .cm-lp-qjs-table td': {
 		border: '1px solid var(--lp-collection-border)',
@@ -907,17 +979,17 @@ export const livePreviewStyles = EditorView.baseTheme({
 		justifyContent: 'flex-end',
 		gap: '8px',
 		marginTop: '6px',
-		fontSize: '13px',
+		fontSize: '0.8em',
 	},
 	'.cm-lp-qjs-table-nav-btn': {
 		appearance: 'none',
 		background: 'transparent',
 		border: '1px solid var(--lp-collection-border)',
-		borderRadius: '4px',
+		borderRadius: 'var(--radius-md)',
 		padding: '2px 10px',
 		color: 'inherit',
 		cursor: 'pointer',
-		fontSize: '12px',
+		fontSize: '0.9em',
 	},
 	'.cm-lp-qjs-table-nav-btn:hover:not(:disabled)': {
 		background: 'var(--lp-collection-table-hover)',
@@ -927,11 +999,8 @@ export const livePreviewStyles = EditorView.baseTheme({
 		cursor: 'not-allowed',
 	},
 	'.cm-lp-qjs-table-nav-indicator': {
-		fontSize: '12px',
+		fontSize: '0.9em',
 		opacity: '0.7',
 		userSelect: 'none',
-	},
-	'.cm-activeLine:has(.cm-lp-qjs-block)': {
-		backgroundColor: 'transparent !important',
 	},
 });

@@ -8,7 +8,7 @@
  *
  * Parsing reuses the pure TS logic the production code already trusts:
  *   - parseWikilinks/getNoteName/buildResolutionCache from wikilink-resolution.logic.ts
- *   - extractAllTags from utils/tag-extraction.ts
+ *   - extractAllTags and findInlineTags from utils/tag-extraction.ts
  * Frontmatter uses the `yaml` package with post-processing to mirror the
  * Rust subset (nested maps recorded as null).
  *
@@ -24,6 +24,7 @@ import type {
 	OutgoingLinkV2,
 	OutgoingUnlinkedMentionV2,
 	TaskV2,
+	TaskHeadingV2,
 	TaskStatusV2,
 	TagAggregateV2,
 	FileTaskGroupV2,
@@ -32,17 +33,20 @@ import type {
 	NoteRecordV2,
 	FrontmatterValue,
 } from '../../src/lib/types/vault-v2.types';
+import type { TaskTextWriteResult } from '../../src/lib/contracts/index';
 import {
 	parseWikilinks,
 	getNoteName,
 	buildResolutionCache,
 	resolveWikilinkCached,
 } from '../../src/lib/core/filesystem/wikilink-resolution.logic';
-import { extractAllTags } from '../../src/lib/utils/tag-extraction';
+import { extractAllTags, findInlineTags } from '../../src/lib/utils/tag-extraction';
 import { virtualFS } from './virtual-fs';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
 const TASK_LINE_RE = /^(\s*)[-*]\s+\[(.)\]\s+(.*)$/;
+/** Rust `HEADING_RE`; `[^\n]` because Rust's `.` matches a trailing `\r` and JS's does not. */
+const HEADING_LINE_RE = /^(#{1,6})\s+([^\n]*)$/;
 const SNIPPET_BYTE_LIMIT = 280;
 
 const STATUS_BY_CHAR: Record<string, TaskStatusV2> = {
@@ -54,6 +58,17 @@ const STATUS_BY_CHAR: Record<string, TaskStatusV2> = {
 	'?': 'question',
 	'>': 'forwarded',
 	'!': 'important',
+};
+
+/** The checkbox char Rust's `status_checkbox_char` writes for each status. */
+const CHAR_BY_STATUS: Record<TaskStatusV2, string> = {
+	todo: ' ',
+	done: 'x',
+	cancelled: '-',
+	'in-progress': '/',
+	question: '?',
+	forwarded: '>',
+	important: '!',
 };
 
 let monotonicVersion = 0;
@@ -95,11 +110,22 @@ function wordCount(body: string): number {
  */
 function parseFrontmatter(content: string): Record<string, FrontmatterValue> {
 	const m = content.match(FRONTMATTER_RE);
-	if (!m) return {};
+	return m ? parseYamlBlock(m[1]) : {};
+}
 
+/**
+ * Parses a whole `.view` file as YAML (no `---` delimiters), with the same
+ * projection as `parseFrontmatter`. Mirrors `parse_frontmatter_raw_yaml` in
+ * `src-tauri/src/vault/parsing.rs`.
+ */
+function parseFrontmatterRawYaml(content: string): Record<string, FrontmatterValue> {
+	return parseYamlBlock(content);
+}
+
+function parseYamlBlock(yaml: string): Record<string, FrontmatterValue> {
 	let parsed: unknown;
 	try {
-		parsed = yamlParse(m[1], { uniqueKeys: false });
+		parsed = yamlParse(yaml, { uniqueKeys: false });
 	} catch {
 		return {};
 	}
@@ -131,29 +157,65 @@ function coerceFrontmatterValue(value: unknown): FrontmatterValue {
 const DUE_DATE_RE = /\u{1F4C5}\u{FE0F}?\s*(\d{4}-\d{2}-\d{2})/u;
 
 /**
- * Minimal task parser. The Rust source of truth lives in
- * `src-tauri/src/vault/parsing.rs::extract_tasks`; this covers checkbox
- * char, indent, lineNumber and the 📅 due date — enough for golden-path
- * tests.
+ * The tags and description Rust `parse_task_metadata` gives a task text that
+ * holds no signifier but the 📅 date: tags by the note tag rule
+ * (`findInlineTags`, the TS mirror of `scan_inline_tags`), their spans cut
+ * from the description, then whitespace runs of two or more collapsed to one
+ * space (`MULTI_SPACE_RE`) and the result trimmed.
  */
-function parseTasks(content: string): TaskV2[] {
+function taskDescriptionAndTags(text: string): { description: string; tags: string[] } {
+	const found = findInlineTags(text);
+	let description = '';
+	let keptFrom = 0;
+	for (const tag of found) {
+		description += text.slice(keptFrom, tag.from);
+		keptFrom = tag.to;
+	}
+	description += text.slice(keptFrom);
+	return { description: description.replace(/\s{2,}/g, ' ').trim(), tags: found.map((t) => t.tag) };
+}
+
+/**
+ * Minimal task parser. The Rust source of truth lives in
+ * `src-tauri/src/vault/parsing.rs::extract_tasks_and_headings`; this covers
+ * checkbox char, indent, lineNumber, the 📅 due date and tags — enough for
+ * golden-path tests — plus the note's headings and each task's `heading`
+ * with Rust's rules: no headings in fences or in the frontmatter block
+ * (skipped by line count, so lines stay whole-file lines), text trimmed,
+ * none for a note without tasks. `src/tests/e2e/task-headings-parity.test.ts`
+ * holds it to the fixture the Rust indexer is pinned to.
+ */
+function parseTasks(content: string): { tasks: TaskV2[]; taskHeadings: TaskHeadingV2[] } {
 	const tasks: TaskV2[] = [];
+	const taskHeadings: TaskHeadingV2[] = [];
 	const lines = content.split('\n');
-	let inFence = false;
+	const frontmatter = content.match(FRONTMATTER_RE);
+	const bodyStartLine = frontmatter ? frontmatter[0].split('\n').length : 0;
+	// Mirrors `detect_code_fence`: ``` or ~~~ after spaces/tabs; a fence closes only on its own marker.
+	let fence: string | null = null;
 
 	for (let i = 0; i < lines.length; i++) {
 		const line = lines[i];
-		if (/^\s*```/.test(line)) {
-			inFence = !inFence;
+		const marker = line.match(/^[ \t]*(```|~~~)/)?.[1];
+		if (marker) {
+			if (fence === null) fence = marker;
+			else if (marker === fence) fence = null;
 			continue;
 		}
-		if (inFence) continue;
+		if (fence !== null) continue;
+
+		const h = i >= bodyStartLine ? line.match(HEADING_LINE_RE) : null;
+		if (h) {
+			taskHeadings.push({ level: h[1].length, text: h[2].trim(), line: i + 1 });
+			continue;
+		}
 
 		const m = line.match(TASK_LINE_RE);
 		if (!m) continue;
 
 		const [, indentStr, statusChar, text] = m;
 		const due = text.match(DUE_DATE_RE);
+		const { description, tags } = taskDescriptionAndTags(due ? text.replace(due[0], '') : text);
 		tasks.push({
 			text,
 			checked: statusChar !== ' ',
@@ -161,14 +223,15 @@ function parseTasks(content: string): TaskV2[] {
 			lineNumber: i + 1,
 			status: STATUS_BY_CHAR[statusChar] ?? 'todo',
 			metadata: {
-				description: due ? text.replace(due[0], '').replace(/\s+/g, ' ').trim() : text,
+				description,
 				...(due ? { dueDate: due[1] } : {}),
-				tags: [],
+				tags,
 			},
+			...(taskHeadings.length > 0 ? { heading: taskHeadings.length - 1 } : {}),
 		});
 	}
 
-	return tasks;
+	return { tasks, taskHeadings: tasks.length > 0 ? taskHeadings : [] };
 }
 
 /**
@@ -214,7 +277,49 @@ function extractRelationships(fm: Record<string, FrontmatterValue>): Record<stri
 	return result;
 }
 
+/** The files the index holds: `.md`, `.markdown` and `.view` (Rust `is_markdown_filename`). */
+function isIndexedFile(path: string): boolean {
+	return path.endsWith('.md') || path.endsWith('.markdown') || isViewPath(path);
+}
+
+/** Rust `is_view_filename`: matched in any case. */
+function isViewPath(path: string): boolean {
+	return path.toLowerCase().endsWith('.view');
+}
+
+/**
+ * Mirrors `NoteEntry::from_view_frontmatter` (`src-tauri/src/vault/entry.rs`):
+ * the whole file parsed as YAML, the lifecycle flags read from it, and no
+ * links, tags, tasks, relationships, type, word count or snippet.
+ */
+function buildViewEntry(path: string, content: string): NoteEntryV2 {
+	const fm = parseFrontmatterRawYaml(content);
+	const fsEntry = virtualFS.statRaw(path);
+	return {
+		path,
+		title: getNoteName(path),
+		frontmatter: fm,
+		outgoingLinks: [],
+		tags: [],
+		modifiedAt: fsEntry?.modifiedAt ?? nowSeconds(),
+		createdAt: fsEntry?.createdAt ?? nowSeconds(),
+		size: new TextEncoder().encode(content).length,
+		wordCount: 0,
+		snippet: '',
+		tasks: [],
+		isA: null,
+		organized: typeof fm['_organized'] === 'boolean' ? fm['_organized'] : true,
+		archived: fm['_archived'] === true,
+		favorite: fm['_favorite'] === true,
+		belongsTo: [],
+		relatedTo: [],
+		hasMany: [],
+		relationships: {},
+	};
+}
+
 function buildEntry(path: string, content: string): NoteEntryV2 {
+	if (isViewPath(path)) return buildViewEntry(path, content);
 	const body = stripFrontmatter(content);
 	const wikilinks = parseWikilinks(content).map<WikiLinkV2>((wl) => ({
 		target: wl.target,
@@ -223,7 +328,7 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 		position: wl.position,
 	}));
 	const tags = extractAllTags(content);
-	const tasks = parseTasks(content);
+	const { tasks, taskHeadings } = parseTasks(content);
 	const fm = parseFrontmatter(content);
 	const fsEntry = virtualFS.statRaw(path);
 
@@ -239,6 +344,8 @@ function buildEntry(path: string, content: string): NoteEntryV2 {
 		wordCount: wordCount(body),
 		snippet: bodySnippet(body),
 		tasks,
+		// Rust omits an empty `taskHeadings` on the wire.
+		...(taskHeadings.length > 0 ? { taskHeadings } : {}),
 		isA: extractIsA(fm),
 		// Rust: a YAML boolean `_organized` wins, anything else defaults to `true`.
 		organized: typeof fm['_organized'] === 'boolean' ? fm['_organized'] : true,
@@ -260,7 +367,7 @@ class VaultIndexImpl {
 		this.entries.clear();
 		const dump = virtualFS.dump();
 		for (const [path, content] of Object.entries(dump)) {
-			if (!path.endsWith('.md') && !path.endsWith('.markdown')) continue;
+			if (!isIndexedFile(path)) continue;
 			if (this.isHidden(path)) continue;
 			this.entries.set(path, buildEntry(path, content));
 		}
@@ -281,7 +388,7 @@ class VaultIndexImpl {
 	}
 
 	update(path: string, content: string): UpdateResultV2 {
-		if (this.isHidden(path) || (!path.endsWith('.md') && !path.endsWith('.markdown'))) {
+		if (this.isHidden(path) || !isIndexedFile(path)) {
 			return { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false };
 		}
 		const previous = this.entries.get(path);
@@ -320,6 +427,8 @@ class VaultIndexImpl {
 	}
 
 	getBacklinks(targetPath: string): NoteEntryV2[] {
+		// Rust `is_link_target`: a view is never linked to.
+		if (isViewPath(targetPath)) return [];
 		const targetName = getNoteName(targetPath).toLowerCase();
 		const cache = buildResolutionCache([...this.entries.keys()]);
 		const sources: NoteEntryV2[] = [];
@@ -354,7 +463,8 @@ class VaultIndexImpl {
 			.replace(/\[\[[^\]]+?\]\]/g, '');
 		const result: OutgoingUnlinkedMentionV2[] = [];
 		for (const entry of this.entries.values()) {
-			if (entry.path === activePath) continue;
+			// Rust `is_link_target`: a view is never mentioned.
+			if (entry.path === activePath || isViewPath(entry.path)) continue;
 			const name = entry.title;
 			if (!name) continue;
 			const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -375,7 +485,8 @@ class VaultIndexImpl {
 		const re = new RegExp(`\\b${escaped}\\b`);
 		const sources: NoteEntryV2[] = [];
 		for (const entry of this.entries.values()) {
-			if (entry.path === targetPath) continue;
+			// Rust `unlinked_mentions_candidates` keeps link targets only, so no view is a source.
+			if (entry.path === targetPath || isViewPath(entry.path)) continue;
 			const content = virtualFS.readFileSafe(entry.path) ?? '';
 			const stripped = stripFrontmatter(content)
 				.replace(/```[\s\S]*?```/g, '')
@@ -418,43 +529,83 @@ class VaultIndexImpl {
 		return groups.sort((a, b) => b.modifiedAt - a.modifiedAt);
 	}
 
-	getTasksInSection(sectionTag: string): FileTaskGroupV2[] {
-		const target = sectionTag.toLowerCase();
-		return this.getAllTasks().filter((g) => {
-			const entry = this.entries.get(g.filePath);
-			return entry?.tags.some((t) => t.toLowerCase() === target) ?? false;
+	/**
+	 * Rust `toggle_task_status`: writes `target`'s char into the task at
+	 * `lineNumber` only while that line still holds `expectedText` with
+	 * `expectedStatus`; otherwise nothing is written and the result is `stale`.
+	 */
+	toggleTaskStatus(
+		path: string,
+		lineNumber: number,
+		expectedText: string,
+		expectedStatus: TaskStatusV2,
+		target: TaskStatusV2,
+	): ToggleTaskResultV2 {
+		const noop = (updatedContent: string, stale: boolean): ToggleTaskResultV2 => ({
+			updatedContent,
+			updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
+			stale,
 		});
-	}
-
-	toggleTaskStatus(path: string, lineNumber: number): ToggleTaskResultV2 {
 		const content = virtualFS.readFileSafe(path);
-		if (content === null) {
-			return {
-				updatedContent: '',
-				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
-			};
-		}
+		if (content === null) return noop('', false);
 		const lines = content.split('\n');
 		const idx = lineNumber - 1;
-		if (idx < 0 || idx >= lines.length) {
-			return {
-				updatedContent: content,
-				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
-			};
+		const m = idx >= 0 && idx < lines.length ? lines[idx].match(TASK_LINE_RE) : null;
+		if (!m || m[3] !== expectedText || (STATUS_BY_CHAR[m[2]] ?? 'todo') !== expectedStatus) {
+			return noop(content, true);
 		}
-		const m = lines[idx].match(TASK_LINE_RE);
-		if (!m) {
-			return {
-				updatedContent: content,
-				updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
-			};
-		}
-		const next = m[2] === ' ' ? 'x' : ' ';
+		const next = CHAR_BY_STATUS[target];
+		if (m[2] === next) return noop(content, false);
 		lines[idx] = lines[idx].replace(TASK_LINE_RE, `$1- [${next}] $3`);
 		const updated = lines.join('\n');
 		virtualFS.writeFile(path, updated);
 		const result = this.update(path, updated);
-		return { updatedContent: updated, updateResult: result };
+		return { updatedContent: updated, updateResult: result, stale: false };
+	}
+
+	/**
+	 * Rust `write_task_text`: replaces the text of the task at `lineNumber` of
+	 * `vaultRoot/relPath` (`TASK_LINE_RE` group 3), keeping the prefix, only
+	 * while that line still holds `expectedText` with `expectedStatus`;
+	 * otherwise nothing is written and the result is `stale`. Throws on a
+	 * `newText` with a line break or blank, as Rust does. The mock does not
+	 * check the root or confine the path.
+	 */
+	writeTaskText(
+		vaultRoot: string,
+		relPath: string,
+		lineNumber: number,
+		expectedText: string,
+		expectedStatus: TaskStatusV2,
+		newText: string,
+	): TaskTextWriteResult {
+		if (/[\r\n]/.test(newText)) throw new Error('Refusing task text holding a line break');
+		if (newText.trim() === '') throw new Error('Refusing blank task text');
+		const path = `${vaultRoot}/${relPath}`;
+		const noop = (updatedContent: string, stale: boolean): TaskTextWriteResult => ({
+			updatedContent,
+			updateResult: { changed: false, affected: [], version: monotonicVersion, upserted: [], removed: [], fullRescan: false },
+			stale,
+			task: null,
+		});
+		const content = virtualFS.readFileSafe(path);
+		if (content === null) throw new Error(`read failed for ${path}`);
+		const lines = content.split('\n');
+		const idx = lineNumber - 1;
+		const m = idx >= 0 && idx < lines.length ? lines[idx].match(TASK_LINE_RE) : null;
+		if (!m || m[3] !== expectedText || (STATUS_BY_CHAR[m[2]] ?? 'todo') !== expectedStatus) {
+			return noop(content, true);
+		}
+		if (newText === expectedText) return noop(content, false);
+		lines[idx] = lines[idx].slice(0, lines[idx].length - m[3].length) + newText;
+		const updated = lines.join('\n');
+		virtualFS.writeFile(path, updated);
+		// The write hook already indexed the note; a second `update` would report `changed: false`.
+		const result = lastHookResult.get(path) ?? this.update(path, updated);
+		lastHookResult.delete(path);
+		// One line alone has no heading, as Rust `parse_task_line` gives none.
+		const [task] = parseTasks(lines[idx]).tasks;
+		return { updatedContent: updated, updateResult: result, stale: false, task: task ? { ...task, lineNumber } : null };
 	}
 
 	/** Rust `get_index_delta`: the entries and records of `paths` still indexed, sorted by path. */

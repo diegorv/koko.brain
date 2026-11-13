@@ -7,7 +7,7 @@
 	import Archive from '@lucide/svelte/icons/archive';
 	import Palette from '@lucide/svelte/icons/palette';
 	import type { KanbanItem } from './kanban.types';
-	import { extractCardDate, setCardDate, removeCardDate, getDateProximity, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata, type DateProximity } from './kanban.logic';
+	import { extractCardDate, setCardDate, removeCardDate, cardProximity, PROXIMITY_CLASSES, extractCardWikilinks, extractCardColor, setCardColor, removeCardColor, stripCardMetadata } from './kanban.logic';
 	import { loadLinkedFileContent } from './kanban.service';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
@@ -111,18 +111,9 @@
 	let cardDate = $derived(extractCardDate(item.text));
 	let cardColor = $derived(extractCardColor(item.text));
 	let displayText = $derived(stripCardMetadata(item.text));
-	let dateProximity = $derived(getDateProximity(cardDate, formatNow('YYYY-MM-DD')));
+	let dateProximity = $derived(cardProximity(cardDate, formatNow('YYYY-MM-DD'), item.checked));
 
 	const COLOR_NAMES = ['blue', 'green', 'red', 'orange', 'purple', 'yellow', 'gray'] as const;
-
-	const PROXIMITY_BORDER: Record<DateProximity, string> = {
-		overdue: 'border-l-4 border-l-red-500',
-		today: 'border-l-4 border-l-yellow-500',
-		tomorrow: 'border-l-4 border-l-orange-400',
-		upcoming: 'border-l-4 border-l-blue-400',
-		future: '',
-		none: '',
-	};
 
 	function handleDateChange(newDate: string | null) {
 		if (newDate) {
@@ -164,7 +155,7 @@
 	<ContextMenu.Trigger>
 		{#snippet children()}
 			<div
-				class="group flex items-start gap-1.5 rounded-lg border border-border bg-background p-2 text-sm shadow-sm transition-colors hover:border-primary/30 {PROXIMITY_BORDER[dateProximity]} {isDragging ? 'opacity-50' : ''} {isFocused ? 'ring-2 ring-primary' : ''}"
+				class="group flex items-start gap-1.5 rounded-lg border border-border bg-background p-2 text-sm shadow-sm transition-colors hover:border-primary/30 {PROXIMITY_CLASSES[dateProximity].border} {isDragging ? 'opacity-50' : ''} {isFocused ? 'ring-2 ring-primary' : ''}"
 				style={cardColor ? `background: ${COLOR_PRESET_BG[cardColor]}` : ''}
 				draggable={!disableDrag}
 				ondragstart={disableDrag ? undefined : onDragStart}
@@ -174,7 +165,7 @@
 				role="listitem"
 			>
 				<button
-					class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded border transition-colors
+					class="mt-0.5 flex size-4 shrink-0 items-center justify-center rounded-xs border transition-colors
 						{item.checked ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary'}"
 					onclick={onToggle}
 					aria-label={item.checked ? 'Uncheck' : 'Check'}
@@ -233,23 +224,23 @@
 	</ContextMenu.Trigger>
 	<ContextMenu.Content class="w-40">
 		<ContextMenu.Item onclick={onStartEdit}>
-			<Pencil class="mr-2 size-4" />
+			<Pencil class="size-4" />
 			Edit
 		</ContextMenu.Item>
 		<ContextMenu.Item onclick={onArchive}>
-			<Archive class="mr-2 size-4" />
+			<Archive class="size-4" />
 			Archive
 		</ContextMenu.Item>
 		<ContextMenu.Sub>
 			<ContextMenu.SubTrigger>
-				<Palette class="mr-2 size-4" />
-				Card Color
+				<Palette class="size-4" />
+				Card color
 			</ContextMenu.SubTrigger>
 			<ContextMenu.SubContent>
 				<div class="flex gap-1.5 p-2">
 					{#each COLOR_NAMES as color}
 						<button
-							class="size-5 rounded-full ring-offset-1 transition-transform hover:scale-110 {cardColor === color ? 'ring-2 ring-foreground' : ''}"
+							class="size-5 rounded-full ring-offset-1 transition-opacity hover:opacity-80 {cardColor === color ? 'ring-2 ring-foreground' : ''}"
 							style="background: {COLOR_PRESET_TEXT[color]}"
 							onclick={() => handleColorChange(color)}
 							title={color}
@@ -260,14 +251,13 @@
 				{#if cardColor}
 					<ContextMenu.Separator />
 					<ContextMenu.Item onclick={handleColorRemove}>
-						Remove Color
+						Remove color
 					</ContextMenu.Item>
 				{/if}
 			</ContextMenu.SubContent>
 		</ContextMenu.Sub>
-		<ContextMenu.Separator />
-		<ContextMenu.Item onclick={onDelete} class="text-destructive">
-			<Trash2 class="mr-2 size-4" />
+		<ContextMenu.Item variant="destructive" onclick={onDelete}>
+			<Trash2 class="size-4" />
 			Delete
 		</ContextMenu.Item>
 	</ContextMenu.Content>

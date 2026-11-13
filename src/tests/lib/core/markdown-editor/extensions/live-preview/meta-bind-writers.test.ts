@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach } from 'vitest';
 import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
 
@@ -13,6 +13,7 @@ import {
 	MetaBindTextInputWidget,
 	MetaBindToggleWidget,
 	TableWidget,
+	dispatchMetaBindUpdate,
 } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 import { MetaBindButtonWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.js';
 import type { ButtonConfig } from '#lib/core/markdown-editor/extensions/live-preview/meta-bind-button.logic.js';
@@ -39,7 +40,7 @@ interface Writer {
 	name: string;
 	/** Mounts the writer on `doc`, fires its write event, and resolves when the write ran. */
 	write: (doc: string) => Promise<Written>;
-	/** A line the write puts in a parseable note's frontmatter (meta-bind writes every value as a string). */
+	/** A line the write puts in a parseable note's frontmatter. */
 	expectedLine: string;
 	/** The control's value before the write, which a refused write must restore. */
 	initialControl?: string;
@@ -117,11 +118,11 @@ const writers: Writer[] = [
 			return { view, control: () => select.value };
 		},
 	},
-	textInputWriter('number', 'count', '5', '7', 'count: "7"'),
+	textInputWriter('number', 'count', '5', '7', 'count: 7'),
 	textInputWriter('date', 'due', '2026-01-01', '2026-02-03', 'due: 2026-02-03'),
 	{
 		name: 'toggle',
-		expectedLine: 'done: "true"',
+		expectedLine: 'done: true',
 		initialControl: 'false',
 		write: async (doc) => {
 			const { view, dom } = mount(doc, new MetaBindToggleWidget('done', 'false'));
@@ -146,6 +147,13 @@ const writers: Writer[] = [
 ];
 
 describe('meta-bind frontmatter writers', () => {
+	beforeAll(() => {
+		// jsdom has no layout; a write's scroll snapshot makes CodeMirror measure,
+		// so give Range the geometry an unrendered element reports.
+		Range.prototype.getClientRects ??= () => [] as unknown as DOMRectList;
+		Range.prototype.getBoundingClientRect ??= () => new DOMRect();
+	});
+
 	beforeEach(() => {
 		vi.mocked(toast.error).mockClear();
 	});
@@ -290,19 +298,99 @@ describe('meta-bind frontmatter writers', () => {
 		expect({ index: select.selectedIndex, value: select.value }).toEqual(firstRender);
 	});
 
-	it('typing 5.0 over 5 writes "5.0", so the rebuilt widget is not eq() to the old one', () => {
+	it('typing 5.0 over 5 keeps `count: 5` on disk and shows 5 again', () => {
 		const doc = '---\ncount: 5\nname: alice\n---\n\nbody\n';
-		const widget = new MetaBindTextInputWidget('number', 'count', '5');
-		const { view, dom } = mount(doc, widget);
+		const { view, dom } = mount(doc, new MetaBindTextInputWidget('number', 'count', '5'));
 		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')!;
 		input.value = '5.0';
 		input.dispatchEvent(new Event('blur'));
 		const written = view.state.doc.toString();
-		expect(written).toContain('count: "5.0"');
-		const prop = parseFrontmatterProperties(written).find((p) => p.key === 'count');
-		const next = new MetaBindTextInputWidget('number', 'count', String(prop!.value));
-		expect(next.currentValue).toBe('5.0');
-		expect(widget.eq(next)).toBe(false);
+		expect(written).toContain('count: 5\n');
+		expect(parseFrontmatterProperties(written).find((p) => p.key === 'count')).toEqual({ key: 'count', value: 5, type: 'number' });
+		// The rebuilt widget is eq() to the old one, so CodeMirror keeps this input.
+		expect(input.value).toBe('5');
+	});
+
+	it('an integer beyond 2^53 keeps every digit and leaves the note writable', () => {
+		const doc = '---\ncount: 5\ndone: false\n---\n\nbody\n';
+		const { view, dom } = mount(doc, new MetaBindTextInputWidget('number', 'count', '5'));
+		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')!;
+		input.value = '12345678901234567890';
+		input.dispatchEvent(new Event('blur'));
+		expect(view.state.doc.toString()).toContain('12345678901234567890');
+		expect(dispatchMetaBindUpdate(view, 'done', true)).toBe(true);
+		expect(toast.error).not.toHaveBeenCalled();
+	});
+
+	it('emptying a number input writes the empty string, never 0', () => {
+		const doc = '---\ncount: 5\nname: alice\n---\n\nbody\n';
+		const { view, dom } = mount(doc, new MetaBindTextInputWidget('number', 'count', '5'));
+		const input = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-input')!;
+		input.value = '';
+		input.dispatchEvent(new Event('blur'));
+		expect(view.state.doc.toString()).toContain('count: ""');
+	});
+
+	it('a toggle still reads checked from a YAML boolean and from the legacy string "true"', () => {
+		for (const doc of ['---\ndone: true\n---\n', '---\ndone: "true"\n---\n']) {
+			const prop = parseFrontmatterProperties(doc).find((p) => p.key === 'done')!;
+			const { dom } = mount(doc, new MetaBindToggleWidget('done', String(prop.value)));
+			expect(dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-toggle-input')!.checked, doc).toBe(true);
+		}
+	});
+
+	it('a toggle writes false as a YAML boolean', () => {
+		const { view, dom } = mount('---\ndone: true\n---\n\nbody\n', new MetaBindToggleWidget('done', 'true'));
+		const cb = dom.querySelector<HTMLInputElement>('.cm-lp-meta-bind-toggle-input')!;
+		cb.checked = false;
+		cb.dispatchEvent(new Event('change'));
+		expect(parseFrontmatterProperties(view.state.doc.toString())).toEqual([{ key: 'done', value: false, type: 'boolean' }]);
+	});
+
+	it('a select writes a numeric option as a number and the rebuilt select shows it', () => {
+		const options = [
+			{ value: '1', label: 'a' },
+			{ value: '3', label: 'c' },
+		];
+		const { view, dom } = mount('---\nhumor: 1\n---\n\nbody\n', new MetaBindSelectWidget(options, 'humor', '1'));
+		const select = dom as unknown as HTMLSelectElement;
+		select.value = '3';
+		select.dispatchEvent(new Event('change'));
+		const written = view.state.doc.toString();
+		expect(written).toContain('humor: 3\n');
+		const prop = parseFrontmatterProperties(written).find((p) => p.key === 'humor')!;
+		expect(prop).toEqual({ key: 'humor', value: 3, type: 'number' });
+		const rebuilt = mount(written, new MetaBindSelectWidget(options, 'humor', String(prop.value))).dom as unknown as HTMLSelectElement;
+		expect(rebuilt.value).toBe('3');
+	});
+
+	it('a select keeps a non-numeric option a string', () => {
+		const options = [
+			{ value: '007', label: 'bond' },
+			{ value: 'yes', label: 'yes' },
+		];
+		const { view, dom } = mount('---\ncode: x\n---\n\nbody\n', new MetaBindSelectWidget(options, 'code', 'x'));
+		const select = dom as unknown as HTMLSelectElement;
+		select.value = '007';
+		select.dispatchEvent(new Event('change'));
+		expect(view.state.doc.toString()).toContain('code: "007"');
+	});
+
+	it('a button updateMetadata writes a number and a boolean value typed, and a string as a string', async () => {
+		const doc = '---\ncount: 1\ndone: false\nlabel: x\n---\n\nbody\n';
+		const view = mountButton(doc, {
+			label: 'Go',
+			style: 'default',
+			actions: [
+				{ type: 'updateMetadata', bindTarget: 'count', value: 3 },
+				{ type: 'updateMetadata', bindTarget: 'done', value: true },
+				{ type: 'updateMetadata', bindTarget: 'label', value: '3' },
+			],
+		});
+		await vi.waitFor(() => expect(view.state.doc.toString()).toContain('label: "3"'));
+		const written = view.state.doc.toString();
+		expect(written).toContain('count: 3\n');
+		expect(written).toContain('done: true\n');
 	});
 
 	it('a button stops its remaining actions after a refused updateMetadata', async () => {

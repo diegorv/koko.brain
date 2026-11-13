@@ -13,6 +13,8 @@ import {
 	LAVENDER_HAZE_THEME,
 } from '#lib/core/settings/theme.logic.js';
 import { TYPE_PALETTE_TOKENS, buildTheme, coreFromColors } from '#lib/core/settings/theme-builder.logic.js';
+import type { ThemeColors } from '#lib/core/settings/theme.types.js';
+import { contrastRatio } from '#lib/utils/color.js';
 
 describe('camelToKebab', () => {
 	it('converts camelCase to kebab-case', () => {
@@ -64,6 +66,56 @@ describe('themeColorsToCssVars', () => {
 		expect(vars['--callout-note']).toBe('#60a5fa');
 		expect(vars['--callout-tip']).toBe('#4ade80');
 	});
+
+	const ELEV_DARK = {
+		'--elev-shadow-1': '#00000040',
+		'--elev-shadow-2': '#00000073',
+		'--elev-shadow-3': '#00000099',
+		'--elev-ring': '#ffffff0f',
+		'--elev-scrim': '#0000008c',
+	};
+	const elevVars = (vars: Record<string, string>) =>
+		Object.fromEntries(Object.entries(vars).filter(([name]) => name.startsWith('--elev-')));
+
+	it('emits the dark elevation values for a dark editor background', () => {
+		expect(elevVars(themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors))).toEqual(ELEV_DARK);
+	});
+
+	it('tints the light elevation values from the theme foreground', () => {
+		expect(elevVars(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors))).toEqual({
+			'--elev-shadow-1': '#3028400f',
+			'--elev-shadow-2': '#3028401a',
+			'--elev-shadow-3': '#30284029',
+			'--elev-ring': '#30284014',
+			'--elev-scrim': '#30284040',
+		});
+	});
+
+	it('treats an editor background it cannot parse as dark', () => {
+		const colors = {
+			...LAVENDER_HAZE_THEME.colors,
+			ui: { ...LAVENDER_HAZE_THEME.colors.ui, editorBg: 'hsl(270 20% 95%)' },
+		};
+		expect(elevVars(themeColorsToCssVars(colors))).toEqual(ELEV_DARK);
+	});
+
+	it('leaves the elevation values to the stylesheet for colors without an editor background', () => {
+		expect(themeColorsToCssVars({ ui: { background: '#111111' } } as unknown as ThemeColors)).toEqual({ '--background': '#111111' });
+		expect(themeColorsToCssVars({} as ThemeColors)).toEqual({});
+	});
+
+	it('emits every theme token unchanged besides the elevation values', () => {
+		const prefix = { ui: '', syntax: 'syntax-', preview: 'lp-', wikilink: 'wikilink-', callout: 'callout-' };
+		for (const theme of BUILTIN_THEMES) {
+			const expected: Record<string, string> = {};
+			for (const [group, tokens] of Object.entries(theme.colors) as [keyof typeof prefix, Record<string, string>][]) {
+				for (const [key, value] of Object.entries(tokens)) expected[`--${prefix[group]}${camelToKebab(key)}`] = value;
+			}
+			const { ...vars } = themeColorsToCssVars(theme.colors);
+			for (const name of Object.keys(elevVars(vars))) delete vars[name];
+			expect(vars, theme.name).toEqual(expected);
+		}
+	});
 });
 
 describe('mergeThemeWithDefaults', () => {
@@ -110,6 +162,15 @@ describe('mergeThemeWithDefaults', () => {
 			expect(merged.ui[key], key).toBe(theme.colors.ui[key]);
 		}
 		expect(merged.ui.typeRed).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.typeRed);
+	});
+
+	it('gives a user theme saved without the success token one derived from its own green', () => {
+		const theme = buildTheme('Mine', coreFromColors(LAVENDER_HAZE_THEME.colors));
+		const { success: _dropped, ...ui } = theme.colors.ui;
+		const merged = mergeThemeWithDefaults({ ...theme.colors, ui: ui as typeof theme.colors.ui });
+
+		expect(merged.ui.success).toBe(theme.colors.ui.success);
+		expect(merged.ui.success).not.toBe(KOKOBRAIN_DEFAULT_THEME.colors.ui.success);
 	});
 
 	it('keeps every token the partial provides', () => {
@@ -257,7 +318,48 @@ describe('KOKOBRAIN_DEFAULT_THEME', () => {
 
 	it('has valid heading colors', () => {
 		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading1).toBe('#E8A5FF');
-		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#B19CD9');
+		expect(KOKOBRAIN_DEFAULT_THEME.colors.syntax.heading6).toBe('#95a0b9');
+	});
+
+	it.each(BUILTIN_THEMES.map((t) => [t.name, t] as const))('%s colors H1 apart from its error red', (_name, theme) => {
+		const { ui, syntax, callout } = theme.colors;
+		const h1 = syntax.heading1.toLowerCase();
+		for (const red of [ui.destructive, ui.typeRed, callout.caution]) expect(h1).not.toBe(red.toLowerCase());
+	});
+});
+
+describe('built-in themes', () => {
+	it.each([
+		['KokoBrain Default', KOKOBRAIN_DEFAULT_THEME],
+		['Lavender Haze', LAVENDER_HAZE_THEME],
+	])('%s colors H6 with its muted text color', (_name, theme) => {
+		expect(theme.colors.syntax.heading6).toBe(theme.colors.ui.mutedForeground);
+	});
+
+	it('Lavender Haze menus sit lighter than the page and apart from content blocks', () => {
+		const { ui, preview } = LAVENDER_HAZE_THEME.colors;
+		const popoverLightness = contrastRatio(ui.popover, '#000000');
+		const pageLightness = contrastRatio(ui.editorBg, '#000000');
+		expect(popoverLightness).not.toBeNull();
+		expect(pageLightness).not.toBeNull();
+		expect(popoverLightness!).toBeGreaterThan(pageLightness!);
+		const popover = ui.popover.toLowerCase();
+		for (const block of [preview.codeblockBg, ui.settingItemBg]) {
+			expect(popover).not.toBe(block.toLowerCase());
+		}
+	});
+
+	it('KokoBrain Default menus sit lighter than the editor and the sidebar, with readable muted text', () => {
+		const { ui } = KOKOBRAIN_DEFAULT_THEME.colors;
+		const popoverLightness = contrastRatio(ui.popover, '#000000');
+		const editorLightness = contrastRatio(ui.editorBg, '#000000');
+		const sidebarLightness = contrastRatio(ui.background, '#000000');
+		expect(popoverLightness).not.toBeNull();
+		expect(editorLightness).not.toBeNull();
+		expect(sidebarLightness).not.toBeNull();
+		expect(popoverLightness!).toBeGreaterThan(editorLightness!);
+		expect(popoverLightness!).toBeGreaterThan(sidebarLightness!);
+		expect(contrastRatio(ui.mutedForeground, ui.popover)!).toBeGreaterThanOrEqual(4.5);
 	});
 });
 

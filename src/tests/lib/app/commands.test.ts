@@ -82,12 +82,21 @@ import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svel
 import { toast } from 'svelte-sonner';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
+import { addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import { getBuiltInCommands } from '#lib/app/commands.js';
-import { formatShortcut } from '#lib/features/command-palette/command-palette.logic.js';
+import { formatShortcut } from '#lib/utils/keybindings.js';
 import { EVENT_CALENDAR_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 import { toKey } from '#lib/features/event-calendar/event-calendar-dates.logic.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
+import CalendarDays from '@lucide/svelte/icons/calendar-days';
+import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.svelte.js';
+import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
+import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 describe('getBuiltInCommands', () => {
 	beforeEach(() => {
@@ -99,12 +108,33 @@ describe('getBuiltInCommands', () => {
 		fsStore.reset();
 		searchStore.reset();
 		settingsPanelStore._reset();
+		modCommandsStore.reset();
+		typeDefinitionsStore.reset();
+		railRegistryStore.reset();
 	});
 
-	it('returns 32 built-in commands', () => {
+	it('appends only marked mod actions and removes them when their placement is disposed', () => {
+		const id = 'mod:hello:action:greet';
+		const events: string[] = [];
+		const remove = modCommandsStore.register({ id, label: 'Hello: Greet', run: () => { events.push('ran'); } });
+		expect(getBuiltInCommands().filter((c) => c.category === 'Mod')).toEqual([]);
+		expect(modCommandsStore.list).toHaveLength(1);
+		const unplace = modCommandsStore.place(id);
+		const commands = getBuiltInCommands().filter((c) => c.category === 'Mod');
+		expect(commands).toMatchObject([{ id, label: 'Hello: Greet', category: 'Mod' }]);
+		commands[0].action();
+		expect(events).toEqual(['ran']);
+		unplace();
+		expect(getBuiltInCommands().filter((c) => c.category === 'Mod')).toEqual([]);
+		expect(modCommandsStore.list).toHaveLength(1);
+		remove();
+		expect(modCommandsStore.list).toEqual([]);
+	});
+
+	it('returns 45 built-in commands with no navigator, no pin and no view', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(32);
+		expect(commands).toHaveLength(45);
 	});
 
 	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {
@@ -184,6 +214,29 @@ describe('getBuiltInCommands', () => {
 		toggle!.action();
 
 		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
+	});
+
+	it('Hide Rail Panels (Cmd+1) and Show Rail Panels (Cmd+2) hide and show the panels', () => {
+		const commands = getBuiltInCommands();
+		const hide = commands.find((c) => c.id === 'layout:hide-rail-panels')!;
+		const show = commands.find((c) => c.id === 'layout:show-rail-panels')!;
+
+		expect(hide).toMatchObject({ label: 'Hide Rail Panels', category: 'Layout', shortcut: { key: '1', meta: true } });
+		expect(show).toMatchObject({ label: 'Show Rail Panels', category: 'Layout', shortcut: { key: '2', meta: true } });
+		expect(formatShortcut(hide.shortcut!)).toBe('⌘1');
+		expect(formatShortcut(show.shortcut!)).toBe('⌘2');
+
+		hide.action();
+		expect(settingsStore.layout.railPanelsVisible).toBe(false);
+		show.action();
+		expect(settingsStore.layout.railPanelsVisible).toBe(true);
+	});
+
+	it('toggle-left-sidebar is labelled Toggle Rail Panels and keeps its Cmd+Shift+B shortcut', () => {
+		const toggle = getBuiltInCommands().find((c) => c.id === 'layout:toggle-left-sidebar')!;
+
+		expect(toggle).toMatchObject({ label: 'Toggle Rail Panels', category: 'Layout', shortcut: { key: 'b', meta: true, shift: true } });
+		expect(formatShortcut(toggle.shortcut!)).toBe('⌘⇧B');
 	});
 
 	it('toggle-left-sidebar hides and shows the panels between the rail and the editor', () => {
@@ -294,6 +347,55 @@ describe('getBuiltInCommands', () => {
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
+	it('new file reports the created note after opening it', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockResolvedValueOnce('/vault/Untitled.md');
+		let opened = false;
+		vi.mocked(openFileInEditor).mockImplementationOnce(async () => {
+			await Promise.resolve();
+			opened = true;
+		});
+		const created: { path: string; opened: boolean }[] = [];
+		const unsubscribe = addNoteCreatedObserver((path) => created.push({ path, opened }));
+		const newFile = getBuiltInCommands().find((c) => c.id === 'file-explorer:new-file')!;
+
+		try {
+			await newFile.action();
+		} finally {
+			unsubscribe();
+		}
+
+		expect(created).toEqual([{ path: '/vault/Untitled.md', opened: true }]);
+	});
+
+	it('new file reports nothing when the create fails', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(createFile).mockRejectedValueOnce(new Error('disk full'));
+		const observer = vi.fn();
+		const unsubscribe = addNoteCreatedObserver(observer);
+		const newFile = getBuiltInCommands().find((c) => c.id === 'file-explorer:new-file')!;
+
+		try {
+			await expect(newFile.action()).rejects.toThrow('disk full');
+		} finally {
+			unsubscribe();
+		}
+
+		expect(observer).not.toHaveBeenCalled();
+	});
+
+	it('new file writes _organized: false while Explicit organization is on', async () => {
+		vaultStore.open('/vault');
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: true });
+		vi.mocked(createFile).mockResolvedValueOnce('/vault/Untitled.md');
+		const newFile = getBuiltInCommands().find((c) => c.id === 'file-explorer:new-file')!;
+
+		await newFile.action();
+
+		expect(createFile).toHaveBeenCalledWith('/vault', 'Untitled.md', '---\n_organized: false\n---\n');
+		expect(openFileInEditor).toHaveBeenCalledWith('/vault/Untitled.md');
+	});
+
 	it('includes daily notes command', () => {
 		const commands = getBuiltInCommands();
 		const daily = commands.find((c) => c.id === 'daily-notes:open');
@@ -318,7 +420,7 @@ describe('getBuiltInCommands', () => {
 		const cmd = commands.find((c) => c.id === 'editor:copy-block-link');
 
 		expect(cmd).toBeDefined();
-		expect(cmd!.label).toBe('Copy Link to Block');
+		expect(cmd!.label).toBe('Copy Block Link');
 		expect(cmd!.category).toBe('Editor');
 		expect(cmd!.shortcut).toEqual({ meta: true, shift: true, key: 'l' });
 	});
@@ -404,4 +506,183 @@ describe('getBuiltInCommands', () => {
 		expect(settingsPanelStore.isOpen).toBe(true);
 	});
 
+});
+
+describe('getBuiltInCommands rail commands', () => {
+	const READING = '/vault/Reading.view';
+	const BOARD = '/vault/Work/Board.view';
+	const HIDDEN = '/vault/Hidden.view';
+	const CALENDAR = {
+		id: 'calendar',
+		label: 'Calendar',
+		icon: CalendarDays,
+		component: CalendarDays,
+		lens: () => ({ kind: 'day' }),
+	};
+
+	const file = (path: string): FileTreeNode => ({ name: path.split('/').pop()!, path, isDirectory: false });
+	const folder = (path: string, children: FileTreeNode[]): FileTreeNode => ({ name: path.split('/').pop()!, path, isDirectory: true, children });
+
+	function setEntries(entries: NoteEntryV2[]) {
+		typeDefinitionsStore.setEntries(entries);
+		typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(entries));
+	}
+
+	const goTo = () => getBuiltInCommands().filter((c) => c.id.startsWith('rail:go-to:'));
+	const openView = () => getBuiltInCommands().filter((c) => c.id.startsWith('rail:open-view:'));
+	const run = (id: string) => getBuiltInCommands().find((c) => c.id === id)!.action();
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		settingsStore.reset();
+		fsStore.reset();
+		searchStore.reset();
+		typeDefinitionsStore.reset();
+		railRegistryStore.reset();
+		settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
+	});
+
+	it('has a Go to command per built-in rail item, in rail order, and none for Neighbourhood', () => {
+		expect(goTo().map((c) => [c.id, c.label])).toEqual([
+			['rail:go-to:search', 'Go to Search'],
+			['rail:go-to:inbox', 'Go to Inbox'],
+			['rail:go-to:today', 'Go to Today'],
+			['rail:go-to:favorites', 'Go to Favorites'],
+			['rail:go-to:types', 'Go to Types'],
+			['rail:go-to:files', 'Go to Files'],
+			['rail:go-to:archive', 'Go to Archive'],
+		]);
+		expect(goTo().every((c) => c.category === 'Navigation')).toBe(true);
+	});
+
+	it('adds a navigator registered and a pin added after the first build the next time the list is built', () => {
+		expect(goTo().map((c) => c.id)).not.toContain('rail:go-to:calendar');
+
+		const unregister = railRegistryStore.registerNavigator(CALENDAR);
+		setEntries([entryV2(READING, { frontmatter: { _sidebar_label: 'To read', _rail: true } })]);
+
+		const ids = goTo().map((c) => c.id);
+		expect(ids).toContain('rail:go-to:calendar');
+		expect(goTo().find((c) => c.id === `rail:go-to:view:${READING}`)?.label).toBe('Go to To read');
+		expect(ids.indexOf('rail:go-to:calendar')).toBeGreaterThan(ids.indexOf('rail:go-to:types'));
+		expect(ids.indexOf(`rail:go-to:view:${READING}`)).toBeLessThan(ids.indexOf('rail:go-to:archive'));
+
+		unregister();
+		setEntries([]);
+		expect(goTo().map((c) => c.id)).toEqual(expect.not.arrayContaining(['rail:go-to:calendar', `rail:go-to:view:${READING}`]));
+	});
+
+	it('has no command for a rail action button (a mod button)', () => {
+		const before = getBuiltInCommands().map((c) => c.id);
+		railRegistryStore.registerAction({ key: 'mod:hello:main', label: 'Hello mod', icon: 'lucide:sparkles', run: vi.fn() });
+
+		const commands = getBuiltInCommands();
+		expect(commands.map((c) => c.id)).toEqual(before);
+		expect(commands.filter((c) => c.id.includes('mod:hello') || c.label.includes('Hello mod'))).toEqual([]);
+	});
+
+	it('has no Go to command for a hidden item and follows the saved order, like the rail', () => {
+		railRegistryStore.registerNavigator(CALENDAR);
+		settingsStore.updateLayout({ railHidden: ['archive', 'calendar', 'search', 'today'], railOrder: ['files', 'types'] });
+
+		expect(goTo().map((c) => c.id)).toEqual([
+			'rail:go-to:search',
+			'rail:go-to:inbox',
+			'rail:go-to:today',
+			'rail:go-to:favorites',
+			'rail:go-to:files',
+			'rail:go-to:types',
+		]);
+
+		settingsStore.updateLayout({ railHidden: [] });
+		expect(goTo().map((c) => c.id)).toContain('rail:go-to:calendar');
+	});
+
+	it('Go to picks the item and shows the panels Cmd+1 hid', () => {
+		railRegistryStore.registerNavigator(CALENDAR);
+
+		run('rail:go-to:favorites');
+		expect(settingsStore.layout).toMatchObject({ railItem: 'favorites', railPanelsVisible: true });
+
+		settingsStore.updateLayout({ railPanelsVisible: false });
+		run('rail:go-to:calendar');
+		expect(settingsStore.layout).toMatchObject({ railItem: 'calendar', railPanelsVisible: true });
+	});
+
+	it('Go to Search opens rail Search and asks for focus', () => {
+		run('rail:go-to:search');
+		expect(settingsStore.layout).toMatchObject({ railItem: 'search', railPanelsVisible: true });
+		expect(searchStore.focusRequest).toBe(1);
+	});
+
+	it('Go to a pin picks it, and a pinned _open_in_editor view opens in the editor with the layout left as it is', () => {
+		setEntries([
+			entryV2(READING, { frontmatter: { _rail: true } }),
+			entryV2(BOARD, { frontmatter: { _rail: true, _open_in_editor: true } }),
+		]);
+
+		run(`rail:go-to:view:${READING}`);
+		expect(settingsStore.layout).toMatchObject({ railItem: `view:${READING}`, railPanelsVisible: true });
+		expect(openFileInEditor).not.toHaveBeenCalled();
+
+		settingsStore.updateLayout({ railItem: 'inbox', railPanelsVisible: false });
+		const before = { ...settingsStore.layout };
+		run(`rail:go-to:view:${BOARD}`);
+		expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+		expect(settingsStore.layout).toEqual(before);
+	});
+
+	it('has an Open view command per visible .view in the tree, not one hidden from Views', () => {
+		fsStore.setFileTree([
+			file('/vault/note.md'),
+			file(READING),
+			file(HIDDEN),
+			folder('/vault/Work', [file(BOARD)]),
+		]);
+		setEntries([
+			entryV2(READING, { frontmatter: { _sidebar_label: 'To read' } }),
+			entryV2(HIDDEN, { frontmatter: { _visible: false } }),
+		]);
+
+		expect(openView().map((c) => [c.id, c.label])).toEqual([
+			[`rail:open-view:${BOARD}`, 'Open view: Board'],
+			[`rail:open-view:${READING}`, 'Open view: To read'],
+		]);
+		expect(openView().every((c) => c.category === 'Navigation')).toBe(true);
+	});
+
+	it('adds and removes Open view commands as .view files enter and leave the tree', () => {
+		expect(openView()).toEqual([]);
+
+		fsStore.setFileTree([file(READING)]);
+		expect(openView().map((c) => c.id)).toEqual([`rail:open-view:${READING}`]);
+
+		fsStore.setFileTree([folder('/vault/Work', [file(BOARD)])]);
+		expect(openView().map((c) => c.id)).toEqual([`rail:open-view:${BOARD}`]);
+	});
+
+	it('Open view picks the view in the Types navigator and shows the panels', () => {
+		fsStore.setFileTree([file(READING)]);
+		setEntries([entryV2(READING)]);
+
+		run(`rail:open-view:${READING}`);
+		expect(settingsStore.layout).toMatchObject({
+			railItem: 'types',
+			railTypesLens: { kind: 'view', target: READING },
+			railPanelsVisible: true,
+		});
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('Open view on an _open_in_editor view opens it in the editor and leaves the layout as it is', () => {
+		fsStore.setFileTree([folder('/vault/Work', [file(BOARD)])]);
+		setEntries([entryV2(BOARD, { frontmatter: { _open_in_editor: true } })]);
+		const before = { ...settingsStore.layout };
+
+		run(`rail:open-view:${BOARD}`);
+		expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
+		expect(settingsStore.layout).toEqual(before);
+	});
 });

@@ -7,7 +7,10 @@ import { switchVault } from '#lib/core/vault/vault.service.js';
 import { openSearch } from '#lib/features/search/open-search.service.js';
 import { openFileInEditor, saveFileByPath, syncExternalContentToEditor } from '#lib/core/editor/editor.service.js';
 import { openOrCreateNote } from '#lib/core/note-creator/note-creator.service.js';
+import { applyExplicitOrganization, withUnorganizedFlag } from '#lib/core/note-creator/explicit-organization.logic.js';
+import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { addToTree } from '#lib/core/filesystem/fs.service.js';
+import { isMarkdownFile } from '#lib/core/filesystem/fs.logic.js';
 import { markRecentSave, notifyAfterSave } from '#lib/core/editor/editor.hooks.js';
 import { deepLinkStore } from './deep-link.store.svelte';
 import { parseDeepLinkUri, resolveFilePath } from './deep-link.logic';
@@ -172,9 +175,11 @@ export async function resolveAndDispatch(action: DeepLinkAction): Promise<void> 
 
 /**
  * Executes a deep-link action against the currently open vault.
- * Dispatches to existing services based on action type.
+ * Dispatches to existing services based on action type. A failure is
+ * logged and toasted here, not thrown; the result says whether the action
+ * ran (the composer capture path reports it back to the composer).
  */
-export async function executeAction(action: DeepLinkAction, vaultPath: string): Promise<void> {
+export async function executeAction(action: DeepLinkAction, vaultPath: string): Promise<boolean> {
 	try {
 		switch (action.type) {
 			case 'open': {
@@ -202,9 +207,11 @@ export async function executeAction(action: DeepLinkAction, vaultPath: string): 
 				await runRegisteredAction(action, vaultPath);
 				break;
 		}
+		return true;
 	} catch (err) {
 		error('DEEP_LINK', `Failed to execute action "${action.type}":`, err);
 		toast.error(`Failed to execute deep link action: ${action.type}`);
+		return false;
 	}
 }
 
@@ -312,7 +319,9 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		return;
 	}
 
-	// Create: default behavior
+	// Create: default behavior. `resolveFilePath` keeps a name's own extension,
+	// so only a Markdown target gets the `_organized` frontmatter.
+	const markUnorganized = settingsStore.explicitOrganization && isMarkdownFile(fullPath);
 	if (action.silent) {
 		// Like openOrCreateNote on the non-silent path, never replace an
 		// existing note here: replacing is the job of `overwrite=true`.
@@ -322,15 +331,17 @@ async function executeNewAction(action: NewAction, vaultPath: string): Promise<v
 		}
 		const parentDir = fullPath.substring(0, fullPath.lastIndexOf('/'));
 		await mkdir(parentDir, { recursive: true });
+		const created = applyExplicitOrganization(content, markUnorganized);
 		markRecentSave(fullPath);
-		await writeTextFile(fullPath, content);
-		notifyAfterSave(fullPath, content);
+		await writeTextFile(fullPath, created);
+		notifyAfterSave(fullPath, created);
 		addToTree(fullPath);
 	} else {
 		await openOrCreateNote({
 			filePath: fullPath,
 			title: fileName.replace(/\.md$/, ''),
 			inlineTemplate: content || undefined,
+			buildContent: markUnorganized ? withUnorganizedFlag : undefined,
 		});
 	}
 }

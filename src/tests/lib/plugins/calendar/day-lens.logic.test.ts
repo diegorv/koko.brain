@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import dayjs from 'dayjs';
 import {
 	DAY_LENS_KIND,
@@ -39,6 +39,10 @@ function vault() {
 }
 
 describe('resolveDayLens', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
 	it('lists exactly the notes whose note date is the day, newest change first', () => {
 		const resolved = resolveDayLens(dayLens(), ctx(vault()));
 		expect(resolved.notes.map((n) => n.path)).toEqual(['/vault/by-date.md', '/vault/by-created.md', '/vault/by-disk.md']);
@@ -61,6 +65,19 @@ describe('resolveDayLens', () => {
 		expect(resolved.notes.map((n) => n.path)).toEqual(['/vault/old.md']);
 	});
 
+	it('leaves out a type definition and a .view created that day with no date', () => {
+		const created = localSeconds(2026, 10, 27);
+		const resolved = resolveDayLens(
+			dayLens(),
+			ctx([
+				entryV2('/vault/types/Project.md', { isA: 'Type', createdAt: created }),
+				entryV2('/vault/Projects.view', { createdAt: created }),
+				entryV2('/vault/note.md', { createdAt: created }),
+			]),
+		);
+		expect(resolved.notes.map((n) => n.path)).toEqual(['/vault/note.md']);
+	});
+
 	it('lists nothing for a day without notes, and for an empty vault', () => {
 		expect(resolveDayLens(dayLens('2026-01-01'), ctx(vault())).notes).toEqual([]);
 		expect(resolveDayLens(dayLens(), ctx([])).notes).toEqual([]);
@@ -72,9 +89,16 @@ describe('resolveDayLens', () => {
 		expect(resolved.rule).toBe('');
 	});
 
-	it('rows carry the shared subtitle (type, note date, folder)', () => {
-		const resolved = resolveDayLens(dayLens(), ctx([entryV2('/vault/Work/a.md', { frontmatter: { date: DAY }, isA: 'Project' })]));
-		expect(resolved.notes[0].subtitle).toBe('Project · 2026-10-27 · Work');
+	it('rows carry the shared subtitle (relative modified time, folder)', () => {
+		// Local noon two days after the day, so the relative time never depends on the machine's date or zone.
+		const now = new Date(2026, 9, 29, 12).getTime();
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(now);
+		const resolved = resolveDayLens(
+			dayLens(),
+			ctx([entryV2('/vault/Work/a.md', { frontmatter: { date: DAY }, isA: 'Project', modifiedAt: now / 1000 - 2 * 3600 })]),
+		);
+		expect(resolved.notes[0].subtitle).toBe('2h ago · Work');
 	});
 
 	it('is what the rail resolves the kind to once the provider is registered', () => {
@@ -97,6 +121,14 @@ describe('noteDateCounts', () => {
 	it('is empty for an empty vault and leaves the system folder out', () => {
 		expect(noteDateCounts(ctx([])).size).toBe(0);
 		expect(noteDateCounts(ctx([entryV2('/vault/_system/t.md', { frontmatter: { date: DAY } })])).size).toBe(0);
+	});
+
+	it('gives no entry for a day that only has a type definition or a .view', () => {
+		const entries = [
+			entryV2('/vault/types/Project.md', { isA: 'Type', frontmatter: { date: DAY } }),
+			entryV2('/vault/Projects.view', { createdAt: localSeconds(2026, 10, 27) }),
+		];
+		expect(noteDateCounts(ctx(entries)).has(DAY)).toBe(false);
 	});
 });
 

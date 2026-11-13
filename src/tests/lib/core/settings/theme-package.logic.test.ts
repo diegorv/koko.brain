@@ -64,6 +64,14 @@ describe('parseThemePackage', () => {
 		expect(result.kind === 'package' && 'extra' in result.pkg).toBe(false);
 	});
 
+	it('accepts overrides that still carry the retired frontmatter tokens and drops them', () => {
+		const overrides = { preview: { frontmatterBg: '#ece7da', frontmatterBorder: '#ddd6c6', embedBg: '#123456' } };
+		const result = parseThemePackage({ ...makePackage(), overrides });
+		expect(result).toEqual({ kind: 'package', pkg: makePackage({ overrides: { preview: { embedBg: '#123456' } } }) });
+		const vars = result.kind === 'package' ? themeColorsToCssVars(buildThemeFromPackage(result.pkg).colors) : {};
+		expect(Object.keys(vars).filter((name) => name.startsWith('--lp-frontmatter'))).toEqual([]);
+	});
+
 	it.each([
 		['not an object', 'x', 'not an object'],
 		['missing schemaVersion', { ...makePackage(), schemaVersion: undefined }, 'schemaVersion'],
@@ -124,6 +132,13 @@ describe('parseThemeCatalog', () => {
 		const b = makePackage({ id: 'second', name: 'Second' });
 		const result = parseThemeCatalog(index([a, b]));
 		expect(result).toEqual({ ok: true, entries: [{ kind: 'package', pkg: a }, { kind: 'package', pkg: b }], skipped: [] });
+	});
+
+	it('keeps a catalog entry whose overrides carry the retired frontmatter tokens', () => {
+		const entry = { ...makePackage(), overrides: { preview: { frontmatterBg: '#ece7da' } } };
+		const result = parseThemeCatalog(index([entry]));
+		expect(result.ok && result.skipped).toEqual([]);
+		expect(result.ok && result.entries).toEqual([{ kind: 'package', pkg: makePackage({ overrides: { preview: {} } }) }]);
 	});
 
 	it('skips an invalid entry, reports why, and keeps the rest', () => {
@@ -389,14 +404,44 @@ describe('loadAppearance', () => {
 		expect(result.themes.some((t) => t.name === bad.name)).toBe(true);
 	});
 
+	it('keeps an installed package whose overrides carry the retired frontmatter tokens', () => {
+		const pkg = { ...makePackage(), overrides: { preview: { frontmatterBg: '#ece7da', frontmatterBorder: '#ddd6c6' } } };
+		const result = loadAppearance(JSON.parse(JSON.stringify({ activeTheme: pkg.name, installed: [pkg] })));
+		expect(result.installed?.map((p) => p.id)).toEqual([pkg.id]);
+		expect(result.activeTheme).toBe(pkg.name);
+		const theme = result.themes.find((t) => t.name === pkg.name)!;
+		expect(theme.colors.preview).not.toHaveProperty('frontmatterBg');
+		expect(theme.colors.preview).not.toHaveProperty('frontmatterBorder');
+	});
+
+	it('keeps a saved user theme that still carries the retired frontmatter tokens, without them', () => {
+		const colors = { ...KOKOBRAIN_DEFAULT_THEME.colors, preview: { ...KOKOBRAIN_DEFAULT_THEME.colors.preview, frontmatterBg: '#111111', frontmatterBorder: '#222222' } };
+		const result = loadAppearance(JSON.parse(JSON.stringify({ activeTheme: 'Mine', themes: [{ name: 'Mine', colors }] })));
+		const mine = result.themes.find((t) => t.name === 'Mine')!;
+		expect(result.activeTheme).toBe('Mine');
+		expect(mine.colors).toEqual(KOKOBRAIN_DEFAULT_THEME.colors);
+		expect(Object.keys(themeColorsToCssVars(mine.colors)).filter((name) => name.startsWith('--lp-frontmatter'))).toEqual([]);
+	});
+
 	it('behaves like normalizeAppearance when nothing is installed', () => {
 		expect(loadAppearance({})).toEqual({ ...normalizeAppearance({}), installed: [], exBuiltinsMigrated: true });
 	});
 });
 
 describe('loadAppearance - migration of the ex-built-in themes', () => {
-	/** The 22 ex-built-ins as the app saved them, captured from the code before they were removed. */
-	const legacy = legacyFixture as Theme[];
+	/**
+	 * The 22 ex-built-ins as the app saved them, captured from the code before they were removed.
+	 * They carry tokens retired since, so the JSON type does not overlap `Theme`.
+	 */
+	const legacy = legacyFixture as unknown as Theme[];
+	/**
+	 * A saved theme's CSS variables plus `--success`, which postdates the fixture and is derived on load,
+	 * without the retired `--lp-frontmatter-bg` / `--lp-frontmatter-border`, which the fixture still carries.
+	 */
+	const savedVars = (theme: Theme) => {
+		const { '--lp-frontmatter-bg': _bg, '--lp-frontmatter-border': _border, ...vars } = themeColorsToCssVars(theme.colors);
+		return { ...vars, '--success': expect.stringMatching(/^#[0-9a-f]{6}$/i) };
+	};
 	/** Ids the 22 themes were published under in `diegorv/koko.brain-themes` `index.json`. */
 	const PUBLISHED_IDS: Record<string, string> = {
 		'Cool Mist': 'cool-mist', 'Deep Ocean': 'deep-ocean', Foolscap: 'foolscap', 'Graphite Violet': 'graphite-violet',
@@ -426,7 +471,7 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 		expect(result.activeTheme).toBe('Sepia');
 		expect(result.installed?.map((p) => [p.id, p.name, p.version])).toEqual([['sepia', 'Sepia', '1.0.0']]);
 		const theme = result.themes.find((t) => t.name === 'Sepia')!;
-		expect(themeColorsToCssVars(theme.colors)).toEqual(themeColorsToCssVars(savedTheme('Sepia').colors));
+		expect(themeColorsToCssVars(theme.colors)).toEqual(savedVars(savedTheme('Sepia')));
 		expect(isInstalledTheme(result, 'Sepia')).toBe(true);
 	});
 
@@ -437,7 +482,7 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 			expect(pkg.id).toBe(PUBLISHED_IDS[name]);
 			expect(pkg.overrides && Object.keys(pkg.overrides).length).toBeGreaterThan(0);
 			const theme = result.themes.find((t) => t.name === name)!;
-			expect(themeColorsToCssVars(theme.colors), name).toEqual(themeColorsToCssVars(savedTheme(name).colors));
+			expect(themeColorsToCssVars(theme.colors), name).toEqual(savedVars(savedTheme(name)));
 		}
 	});
 
@@ -447,7 +492,7 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 			const pkg = result.installed![0];
 			expect(pkg.id, saved.name).toBe(PUBLISHED_IDS[saved.name]);
 			expect(parseThemePackage(JSON.parse(JSON.stringify(pkg)))).toEqual({ kind: 'package', pkg });
-			expect(themeColorsToCssVars(buildThemeFromPackage(pkg).colors), saved.name).toEqual(themeColorsToCssVars(saved.colors));
+			expect(themeColorsToCssVars(buildThemeFromPackage(pkg).colors), saved.name).toEqual(savedVars(saved));
 		}
 	});
 
@@ -483,7 +528,10 @@ describe('loadAppearance - migration of the ex-built-in themes', () => {
 
 		expect(result.activeTheme).toBe('Sakura (edited)');
 		expect(result.installed).toEqual([]);
-		expect(result.themes.find((t) => t.name === 'Sakura (edited)')!.colors).toEqual(edited.colors);
+		const { frontmatterBg: _bg, frontmatterBorder: _border, ...preview } = edited.colors.preview as Theme['colors']['preview'] & Record<string, string>;
+		expect(result.themes.find((t) => t.name === 'Sakura (edited)')!.colors).toEqual({
+			...edited.colors, preview, ui: { ...edited.colors.ui, success: expect.stringMatching(/^#[0-9a-f]{6}$/i) },
+		});
 		expect(result.themes.some((t) => t.name === 'Sakura')).toBe(false);
 		expect(isInstalledTheme(result, 'Sakura (edited)')).toBe(false);
 	});

@@ -20,3 +20,5 @@ docs/graphify-tauri/
 test-results/
 playwright-report/
 .playwright-mcp/
+# Output of scripts/architecture-map.mjs
+docs/architecture/generated/

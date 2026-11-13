@@ -18,6 +18,7 @@ import { autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap } 
 
 import { wikilinkCompletionSource, wikilinkDecoration } from '../extensions/wikilink';
 import { dateShortcutCompletionSource } from '../extensions/date-shortcut/completion';
+import { tagCompletionSource } from '../extensions/tag/completion';
 import { calloutDecoration } from '../extensions/callout';
 import { compositionAwareBracketMatching } from '../extensions/composition-aware-bracket-matching';
 import { livePreview, livePreviewCompartment, livePreviewExtensions } from '../extensions/live-preview';
@@ -29,7 +30,7 @@ import { buildEditorTheme } from './editor-theme';
 import { FRONTMATTER_FENCE_RE } from '../extensions/live-preview/parsers/frontmatter';
 
 /**
- * Copy Link to Block (Cmd+Shift+L). Bound in the editor keymap below, not
+ * Copy Block Link (Cmd+Shift+L). Bound in the editor keymap below, not
  * globally, because it needs the focused editor; the command palette reads
  * its label from here.
  */
@@ -49,6 +50,8 @@ export interface CreateExtensionsOptions {
 	contentWidth: number;
 	/** Extra vertical spacing added after each line, in em (0 = none) */
 	paragraphSpacing: number;
+	/** Whether the applied app theme is dark (`appliedThemeStore.isDark`); picks CodeMirror's base theme */
+	dark: boolean;
 	/** Compartment holding `sourceModeExtensions()` in source mode and `[]` in live preview */
 	sourceModeCompartment: Compartment;
 	/** Compartment for dynamic theme updates */
@@ -70,7 +73,7 @@ export interface CreateExtensionsOptions {
 	renderers: readonly FencedBlockRenderer[];
 	/** Decorator kill-switches (Settings > Troubleshooting), read when live preview is installed */
 	disabledDecorators: Record<string, boolean>;
-	/** Copy Link to Block for the focused editor, run by the Cmd+Shift+L keymap entry */
+	/** Copy Block Link for the focused editor, run by the Cmd+Shift+L keymap entry */
 	copyBlockLink: (view: EditorView) => void | Promise<void>;
 	/** Callback invoked when the document content changes */
 	onDocChanged: (content: string, frontmatterChanged: boolean) => void;
@@ -137,7 +140,7 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		// config facet has no combiner for `override`, so a second
 		// autocompletion() extension would throw "Config merge conflict".
 		autocompletion({
-			override: [wikilinkCompletionSource, dateShortcutCompletionSource],
+			override: [wikilinkCompletionSource, dateShortcutCompletionSource, tagCompletionSource],
 			activateOnTyping: true,
 		}),
 		livePreview(opts.isLivePreview, opts.disabledDecorators),
@@ -163,7 +166,7 @@ export function createExtensions(opts: CreateExtensionsOptions): Extension[] {
 		]),
 		opts.languageCompartment.of(markdownLanguage()),
 		opts.editorThemeCompartment.of(
-			buildEditorTheme(opts.fontFamily, opts.fontSize, opts.lineHeight, opts.contentWidth, opts.paragraphSpacing)
+			buildEditorTheme(opts.fontFamily, opts.fontSize, opts.lineHeight, opts.contentWidth, opts.paragraphSpacing, opts.dark)
 		),
 		opts.highlightStyleCompartment.of(syntaxHighlighting(markdownHighlight)),
 		EditorView.lineWrapping,

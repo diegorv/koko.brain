@@ -9,12 +9,20 @@
 		type ChangeSpec,
 		type StateEffect,
 	} from '@codemirror/state';
+	import { selectAll } from '@codemirror/commands';
+	import { readText } from '@tauri-apps/plugin-clipboard-manager';
+	import { toast } from 'svelte-sonner';
 	import Link from '@lucide/svelte/icons/link';
 	import FileSymlink from '@lucide/svelte/icons/file-symlink';
+	import Scissors from '@lucide/svelte/icons/scissors';
+	import Copy from '@lucide/svelte/icons/copy';
+	import ClipboardPaste from '@lucide/svelte/icons/clipboard-paste';
+	import SquareDashedText from '@lucide/svelte/icons/square-dashed-text';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { findTabIndex, getPositionAfterFrontmatter } from '#lib/core/editor/editor.logic.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 	import { applyHeadingTypography } from '#lib/core/settings/settings.service.js';
 	import { effectiveContentWidth } from '#lib/core/settings/settings.logic.js';
 	import { onContentChange } from '#lib/core/editor/editor.service.js';
@@ -22,6 +30,7 @@
 	import { followWikilinkClick } from './extensions/live-preview/wikilink-navigation';
 	import { debug, error, perfStart, perfEnd, perfBaseline } from '#lib/utils/debug.js';
 	import { IS_MAC } from '#lib/utils/platform.js';
+	import { formatShortcut } from '#lib/utils/keybindings.js';
 	import type { BlockLinkActions, EditorHost } from './editor-host';
 	import type { FencedBlockRenderer } from './extensions/live-preview/core/fenced-block-renderers';
 	import { getLanguageEffects, getLanguageEffectsSync } from './highlight-styles';
@@ -35,6 +44,7 @@
 		takeTabRename,
 	} from './tab-view-state';
 	import { buildEditorTheme, createExtensions, editorModeEffects } from './setup';
+	import { COPY_BLOCK_LINK_SHORTCUT } from './setup/editor-extensions';
 	import { docDiff } from './doc-diff.logic';
 	import { resolveWikilinkClickPosition } from './wikilink-click-target';
 
@@ -106,6 +116,7 @@
 				lineHeight: settingsStore.editor.lineHeight,
 				contentWidth: effectiveContentWidth(settingsStore.editor),
 				paragraphSpacing: settingsStore.editor.paragraphSpacing,
+				dark: appliedThemeStore.isDark,
 				sourceModeCompartment,
 				editorThemeCompartment,
 				languageCompartment,
@@ -143,9 +154,14 @@
 	 * Turns the doc into `content` (no history entry) and never throws. Only
 	 * the changed regions are replaced (`docDiff`), so the undo events of the
 	 * user's own edits map through them and an undo lands where it was made.
+	 * The transaction carries no `selection`: CodeMirror reads an explicit one
+	 * as post-change offsets and does not map it, so the caret would keep its
+	 * old offset and a range would collapse. Without one the current selection
+	 * maps through the changes and stays on the same text.
 	 * When the change is too large to diff, the note's history is dropped
-	 * instead (a fresh state keeping the current language), so no undo event
-	 * is left to replay at a position the mapping cannot place.
+	 * instead (a fresh state keeping the current language, with the caret at
+	 * `cursorPos` clamped), so no undo event is left to replay at a position
+	 * the mapping cannot place.
 	 * CodeMirror commits the new state before it builds widget DOM, so a widget
 	 * whose `toDOM` throws escapes `dispatch` with `view.state` on the new doc
 	 * while `contentDOM` still shows the old one; the next replace then
@@ -172,7 +188,6 @@
 		}
 		const spec = (c: ChangeSpec) => ({
 			changes: c,
-			selection: EditorSelection.cursor(Math.min(cursorPos, text.length)),
 			annotations: Transaction.addToHistory.of(false),
 		});
 		try {
@@ -194,10 +209,12 @@
 	 * state (`freshState`). A revisit takes the state saved when the user left
 	 * the tab and brings it up to date in one update with no history entry:
 	 * the content the store holds now (a background write may have changed it;
-	 * `docDiff` maps the history through it), the cursor, and the current
-	 * theme, editor mode and `langEffects`, since a saved state keeps the
-	 * compartment values it had when it was left. A background write too large
-	 * to diff drops the saved state for a fresh one, as `replaceDoc` does.
+	 * `docDiff` maps the history and the saved selection through it, so the
+	 * caret comes back on the same text), and the current theme, editor mode
+	 * and `langEffects`, since a saved state keeps the compartment values it
+	 * had when it was left. `cursorPos` places the caret only in a fresh state.
+	 * A background write too large to diff drops the saved state for a fresh
+	 * one, as `replaceDoc` does.
 	 * If building the state throws, the tab gets a fresh state with the cursor
 	 * at 0, so the view does not stay on the previous tab's doc.
 	 */
@@ -212,11 +229,17 @@
 				saved && changes
 					? saved.update({
 							changes,
-							selection: EditorSelection.cursor(Math.min(cursorPos, text.length)),
 							annotations: Transaction.addToHistory.of(false),
 							effects: [
 								editorThemeCompartment.reconfigure(
-									buildEditorTheme(fontFamily, fontSize, lineHeight, contentWidth, paragraphSpacing)
+									buildEditorTheme(
+										fontFamily,
+										fontSize,
+										lineHeight,
+										contentWidth,
+										paragraphSpacing,
+										appliedThemeStore.isDark,
+									)
 								),
 								...editorModeEffects(editorStore.isLivePreview, sourceModeCompartment, settingsStore.disabledDecorators),
 								...langEffects,
@@ -265,20 +288,114 @@
 		await followWikilinkClick(view, pos);
 	}
 
-	/** Moves the cursor to the right-click position so copy-block-link operates on the correct line */
+	/** Doc position of the last right-click, or null when it hit no text. */
+	let contextMenuPos: number | null = null;
+
+	/** Whether the selection had text when the menu opened; Cut and Copy are disabled otherwise. */
+	let menuHasSelection = $state(false);
+
+	/**
+	 * Remembers the right-click position for the block-link items. A click inside
+	 * a non-empty selection keeps the selection; anywhere else moves the cursor
+	 * to the click, as a left click would.
+	 */
 	function handleContextMenu(e: MouseEvent) {
 		if (!view) return;
 		const pos = view.posAtCoords({ x: e.clientX, y: e.clientY });
-		if (pos === null) return;
-		view.dispatch({ selection: EditorSelection.cursor(pos) });
+		contextMenuPos = pos;
+		const insideSelection =
+			pos !== null && view.state.selection.ranges.some((r) => !r.empty && r.from <= pos && pos <= r.to);
+		if (pos !== null && !insideSelection) view.dispatch({ selection: EditorSelection.cursor(pos) });
+		menuHasSelection = view.state.selection.ranges.some((r) => !r.empty);
+	}
+
+	/** The text of the non-empty selection ranges, joined the way CodeMirror's own copy joins them. */
+	function selectedText(state: EditorState): string {
+		return state.selection.ranges
+			.filter((r) => !r.empty)
+			.map((r) => state.sliceDoc(r.from, r.to))
+			.join(state.lineBreak);
+	}
+
+	/** Writes the selection to the clipboard; returns false (after a toast) when the write fails. */
+	async function writeSelection(editorView: EditorView): Promise<boolean> {
+		try {
+			await navigator.clipboard.writeText(selectedText(editorView.state));
+			return true;
+		} catch (err) {
+			error('EDITOR-MENU', 'clipboard write failed:', err);
+			toast.error('Could not copy to the clipboard.');
+			return false;
+		}
+	}
+
+	async function handleCopy() {
+		if (!view || view.state.selection.ranges.every((r) => r.empty)) return;
+		const editorView = view;
+		await writeSelection(editorView);
+		editorView.focus();
+	}
+
+	async function handleCut() {
+		if (!view || view.state.selection.ranges.every((r) => r.empty)) return;
+		const editorView = view;
+		const before = editorView.state;
+		// Delete only what was copied: skip when the doc or selection changed during the write.
+		if ((await writeSelection(editorView)) && editorView.state === before) {
+			editorView.dispatch({ ...before.replaceSelection(''), userEvent: 'delete.cut' });
+		}
+		editorView.focus();
+	}
+
+	/**
+	 * Plain-text paste: the TSV-to-table and HTML-link paste handlers read a
+	 * `ClipboardEvent`, which a menu click does not have.
+	 */
+	async function handlePaste() {
+		if (!view) return;
+		const editorView = view;
+		try {
+			const text = await readText();
+			if (text) {
+				editorView.dispatch({
+					...editorView.state.replaceSelection(text),
+					userEvent: 'input.paste',
+					scrollIntoView: true,
+				});
+			}
+		} catch (err) {
+			error('EDITOR-MENU', 'clipboard read failed:', err);
+			toast.error('Could not paste from the clipboard.');
+		}
+		editorView.focus();
+	}
+
+	function handleSelectAll() {
+		if (!view) return;
+		selectAll(view);
+		view.focus();
+	}
+
+	/**
+	 * `copyBlockLink` acts on the selection head's line. When the right-click kept
+	 * a selection, move the cursor to the clicked position first so the link
+	 * targets the clicked line.
+	 */
+	function moveCursorToContextMenuPos(editorView: EditorView) {
+		if (editorView.state.selection.main.empty || contextMenuPos === null) return;
+		editorView.dispatch({ selection: EditorSelection.cursor(contextMenuPos) });
 	}
 
 	async function handleCopyBlockLink() {
-		if (view) await blockLinks.copyLink(view);
+		if (!view) return;
+		moveCursorToContextMenuPos(view);
+		await blockLinks.copyLink(view);
 	}
 
 	async function handleCopyBlockEmbed() {
-		if (view) await blockLinks.copyEmbed(view);
+		if (!view) return;
+		moveCursorToContextMenuPos(view);
+		await blockLinks.copyEmbed(view);
 	}
 
 	onMount(() => {
@@ -582,15 +699,16 @@
 	const paragraphSpacing = $derived(settingsStore.editor.paragraphSpacing);
 	const contentWidth = $derived(effectiveContentWidth(settingsStore.editor));
 
-	// Reactively update editor theme when settings change
+	// Reactively update editor theme when settings or the applied theme mode change
 	$effect(() => {
+		const dark = appliedThemeStore.isDark;
 		void [fontFamily, fontSize, lineHeight, paragraphSpacing, contentWidth];
 
 		untrack(() => {
 			if (!view) return;
 			view.dispatch({
 				effects: editorThemeCompartment.reconfigure(
-					buildEditorTheme(fontFamily, fontSize, lineHeight, contentWidth, paragraphSpacing)
+					buildEditorTheme(fontFamily, fontSize, lineHeight, contentWidth, paragraphSpacing, dark)
 				),
 			});
 		});
@@ -614,13 +732,30 @@
 		{/snippet}
 	</ContextMenu.Trigger>
 	<ContextMenu.Content class="w-56">
+		<ContextMenu.Item disabled={!menuHasSelection} onclick={handleCut}>
+			<Scissors class="size-4" />
+			Cut
+		</ContextMenu.Item>
+		<ContextMenu.Item disabled={!menuHasSelection} onclick={handleCopy}>
+			<Copy class="size-4" />
+			Copy
+		</ContextMenu.Item>
+		<ContextMenu.Item onclick={handlePaste}>
+			<ClipboardPaste class="size-4" />
+			Paste
+		</ContextMenu.Item>
+		<ContextMenu.Item onclick={handleSelectAll}>
+			<SquareDashedText class="size-4" />
+			Select all
+		</ContextMenu.Item>
+		<ContextMenu.Separator />
 		<ContextMenu.Item onclick={handleCopyBlockLink}>
-			<Link class="mr-2 size-4" />
-			Copy link to block
-			<ContextMenu.Shortcut>⌘⇧L</ContextMenu.Shortcut>
+			<Link class="size-4" />
+			Copy block link
+			<ContextMenu.Shortcut>{formatShortcut(COPY_BLOCK_LINK_SHORTCUT)}</ContextMenu.Shortcut>
 		</ContextMenu.Item>
 		<ContextMenu.Item onclick={handleCopyBlockEmbed}>
-			<FileSymlink class="mr-2 size-4" />
+			<FileSymlink class="size-4" />
 			Copy block embed
 		</ContextMenu.Item>
 	</ContextMenu.Content>

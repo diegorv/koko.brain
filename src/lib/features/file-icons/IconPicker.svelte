@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import type { IconPackId, NormalizedIcon } from './file-icons.types';
 	import { getAllIconPacks, getIconsForPack, getIconSync } from './file-icons.icon-data';
 	import { filterIcons } from './file-icons.logic';
@@ -7,7 +8,6 @@
 	import * as Dialog from '#lib/components/ui/dialog/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
-	import X from '@lucide/svelte/icons/x';
 	import RotateCcw from '@lucide/svelte/icons/rotate-ccw';
 
 	/**
@@ -27,6 +27,8 @@
 		currentTextColor?: string;
 		/** Called when an icon is selected */
 		onSelect: (pack: IconPackId, name: string, color?: string, textColor?: string) => void;
+		/** Called with the colors alone when the item has no icon; without it, colors wait for an icon pick */
+		onColorsChange?: (color?: string, textColor?: string) => void;
 		/** Called when the icon should be removed */
 		onRemove: () => void;
 		/** Called when the dialog closes */
@@ -40,6 +42,7 @@
 		currentColor,
 		currentTextColor,
 		onSelect,
+		onColorsChange,
 		onRemove,
 		onClose,
 	}: Props = $props();
@@ -64,14 +67,14 @@
 	let icons = $state<NormalizedIcon[]>([]);
 	let loading = $state(false);
 
-	/** Resolves recently used icons from store into NormalizedIcon objects */
+	/** Resolves recently used icons from store into NormalizedIcon objects, one for all spellings of a name */
 	let recentNormalized = $derived.by(() => {
-		const result: NormalizedIcon[] = [];
+		const result = new Set<NormalizedIcon>();
 		for (const recent of fileIconsStore.recentIcons) {
 			const icon = getIconSync(recent.iconPack, recent.iconName);
-			if (icon) result.push(icon);
+			if (icon) result.add(icon);
 		}
-		return result;
+		return [...result];
 	});
 
 	/** Version counter to discard stale async results on rapid pack switching */
@@ -100,6 +103,13 @@
 
 	let filteredIcons = $derived(filterIcons(icons, searchQuery));
 
+	/** The grid's name for the current icon, which a file may spell differently; `icons` re-reads it once the pack loads */
+	let currentGridName = $derived.by(() => {
+		void icons;
+		if (!currentPack || !currentName) return undefined;
+		return getIconSync(currentPack, currentName)?.name ?? currentName;
+	});
+
 	// Load icons on mount and when pack changes
 	$effect(() => {
 		// eslint-disable-next-line @typescript-eslint/no-unused-expressions
@@ -107,13 +117,16 @@
 		loadIcons();
 	});
 
-	// Reset state when dialog opens
+	// Reset state when dialog opens. The current colors are untracked: a swatch saves while
+	// the dialog stays open, and that save coming back as props must not undo later picks.
 	$effect(() => {
 		if (open) {
-			searchQuery = '';
-			selectedColor = currentColor ?? '';
-			selectedTextColor = currentTextColor ?? '';
-			selectedPackId = 'all';
+			untrack(() => {
+				searchQuery = '';
+				selectedColor = currentColor ?? '';
+				selectedTextColor = currentTextColor ?? '';
+				selectedPackId = 'all';
+			});
 		}
 	});
 
@@ -121,6 +134,18 @@
 	function handleSelect(icon: NormalizedIcon) {
 		onSelect(icon.pack, icon.name, selectedColor || undefined, selectedTextColor || undefined);
 		open = false;
+	}
+
+	/**
+	 * Saves the selected colors without closing the dialog: with the current icon,
+	 * or alone when there is none.
+	 */
+	function applyColors() {
+		if (!currentPack || !currentName) {
+			onColorsChange?.(selectedColor || undefined, selectedTextColor || undefined);
+			return;
+		}
+		onSelect(currentPack, currentName, selectedColor || undefined, selectedTextColor || undefined);
 	}
 
 	/** Handles icon removal */
@@ -137,14 +162,11 @@
 </script>
 
 <Dialog.Root bind:open onOpenChange={handleOpenChange}>
-	<Dialog.Content class="max-w-[550px] p-0 gap-0" showCloseButton={false}>
+	<Dialog.Content class="sm:max-w-[550px] p-0 gap-0">
 		<div class="flex flex-col h-[480px] overflow-hidden">
-			<!-- Header -->
-			<div class="flex items-center justify-between border-b px-4 py-3">
+			<!-- Header; pe-10 keeps the title clear of the built-in close X -->
+			<div class="flex items-center border-b py-3 ps-4 pe-10">
 				<Dialog.Title class="text-sm font-medium">Change icon</Dialog.Title>
-				<Dialog.Close class="rounded-xs opacity-70 hover:opacity-100">
-					<X class="size-4" />
-				</Dialog.Close>
 			</div>
 
 			<!-- Search -->
@@ -195,7 +217,7 @@
 									{#each recentNormalized as icon (icon.pack + ':' + icon.name)}
 										<button
 											class="flex items-center justify-center size-9 rounded-md transition-colors hover:bg-accent
-												{currentPack === icon.pack && currentName === icon.name ? 'bg-accent ring-1 ring-primary' : ''}"
+												{currentPack === icon.pack && currentGridName === icon.name ? 'bg-accent ring-1 ring-primary' : ''}"
 											title="{icon.name} ({icon.pack})"
 											onclick={() => handleSelect(icon)}
 										>
@@ -210,7 +232,7 @@
 								{#each filteredIcons.slice(0, 500) as icon (icon.pack + ':' + icon.name)}
 									<button
 										class="flex items-center justify-center size-9 rounded-md transition-colors hover:bg-accent
-											{currentPack === icon.pack && currentName === icon.name ? 'bg-accent ring-1 ring-primary' : ''}"
+											{currentPack === icon.pack && currentGridName === icon.name ? 'bg-accent ring-1 ring-primary' : ''}"
 										title="{icon.name} ({icon.pack})"
 										onclick={() => handleSelect(icon)}
 									>
@@ -235,15 +257,15 @@
 					<div class="flex gap-1.5 flex-wrap items-center">
 						{#each PRESET_COLORS as preset}
 							<button
-								class="size-5 rounded-full border transition-transform hover:scale-110
+								class="size-5 rounded-full border transition-opacity hover:opacity-80
 									{selectedColor === preset.value ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 								style="background-color: {preset.value || 'currentColor'}"
 								title={preset.name}
-								onclick={() => selectedColor = preset.value}
+								onclick={() => { selectedColor = preset.value; applyColors(); }}
 							></button>
 						{/each}
 						<label
-							class="size-5 rounded-full border cursor-pointer transition-transform hover:scale-110 overflow-hidden relative
+							class="size-5 rounded-full border cursor-pointer transition-opacity hover:opacity-80 overflow-hidden relative
 								{selectedColor && !PRESET_COLORS.some(p => p.value === selectedColor) ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 							title="Custom color"
 							style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)"
@@ -253,6 +275,7 @@
 								class="absolute inset-0 opacity-0 cursor-pointer"
 								value={selectedColor || '#ffffff'}
 								oninput={(e) => selectedColor = e.currentTarget.value}
+								onchange={applyColors}
 							/>
 						</label>
 					</div>
@@ -262,15 +285,15 @@
 					<div class="flex gap-1.5 flex-wrap items-center">
 						{#each PRESET_COLORS as preset}
 							<button
-								class="size-5 rounded-full border transition-transform hover:scale-110
+								class="size-5 rounded-full border transition-opacity hover:opacity-80
 									{selectedTextColor === preset.value ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 								style="background-color: {preset.value || 'currentColor'}"
 								title={preset.name}
-								onclick={() => selectedTextColor = preset.value}
+								onclick={() => { selectedTextColor = preset.value; applyColors(); }}
 							></button>
 						{/each}
 						<label
-							class="size-5 rounded-full border cursor-pointer transition-transform hover:scale-110 overflow-hidden relative
+							class="size-5 rounded-full border cursor-pointer transition-opacity hover:opacity-80 overflow-hidden relative
 								{selectedTextColor && !PRESET_COLORS.some(p => p.value === selectedTextColor) ? 'ring-2 ring-primary ring-offset-1 ring-offset-background' : ''}"
 							title="Custom text color"
 							style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)"
@@ -280,6 +303,7 @@
 								class="absolute inset-0 opacity-0 cursor-pointer"
 								value={selectedTextColor || '#ffffff'}
 								oninput={(e) => selectedTextColor = e.currentTarget.value}
+								onchange={applyColors}
 							/>
 						</label>
 					</div>

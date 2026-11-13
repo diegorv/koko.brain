@@ -1,0 +1,1861 @@
+{
+ "verdicts": [
+  {
+   "key": "N-editor-01",
+   "upheld": true,
+   "category": "content",
+   "likelihood": "medium",
+   "reason": "I could not refute it. MarkdownEditor.svelte:627 reads selection.main.head from the old doc, and replaceDoc:182-186 dispatches the docDiff changes together with an explicit EditorSelection.cursor(cursorPos). CodeMirror does not map an explicit selection, so after Cmd+D inserts `_favorite: true` above the caret, the caret sits about 16 chars too early. Cmd+D is routed from inside the editor (global-keybindings.ts:189-196) to updateNoteFrontmatter, then syncExternalContentToEditor (frontmatter-write.service.ts:131), then the active-tab signal bump. No test asserts the caret after a sync. Text typed next lands at the wrong spot and autosave writes it to disk.",
+   "corrections": ""
+  },
+  {
+   "key": "N-editor-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "Confirmed at editor.service.ts:303-321. closeTab calls ask() for any dirty non-virtual tab and never cancels debouncedSave, so the 2 s timer can save the tab while the dialog is open. Exit goes through prepareForExit (save first, then ask only about saves that failed); closeTab does not. Nothing is lost unless the user explicitly picks Discard within the window, so this is ux.",
+   "corrections": "The pinned test begins at editor.service.test.ts:658 ('asks with Discard Changes / Cancel labels ...'). The reference is accurate."
+  },
+  {
+   "key": "N-editor-03",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "tauri-listeners.service.ts:48-55 destroys the main window after prepareForExit. The run loop at lib.rs:392-396 matches only RunEvent::ExitRequested, there is no Reopen handler, and WebviewWindowBuilder is used only for the composer (lib.rs:136). app_exit.rs:46-48 itself describes the windowless state. dispatch_shortcut (lib.rs:45) checks only db::is_open(), so qc:capture-detected is emitted with no listener left. The tests at tauri-listeners.service.test.ts:224-311 pin destroy.",
+   "corrections": "Duplicate of N-file-io-03: same root cause and same fix site. Merge them into one Issue. N-file-io-03 already proposes hide + Reopen, while this one asks for an owner decision between (a) and (b)."
+  },
+  {
+   "key": "N-editor-04",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "completion.ts:71-82 labels and inserts file.nameWithoutExt for every candidate. listLinkCandidates excludes only .view (isLinkTargetFile), so images and PDFs are offered by stem. isImageEmbed needs an extension, so `![[photo]]` becomes a note embed, and the stem key in buildResolutionCache resolves it to photo.png, which readTextFile then reads. Re-rated to ux: the bad text is the inserted link, the user sees the broken embed at once, and no existing content is corrupted. A plain `[[photo]]` link still resolves.",
+   "corrections": "Category content -> ux. The resolution evidence lines are wikilink-resolution.logic.ts:110-145 (the cache build is at :111-126 and the stem fallback is in resolveWikilinkCached), not exactly :113-118/:139."
+  },
+  {
+   "key": "N-editor-05",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "Confirmed. BLOCK_ID_RE = /\\^([^\\s]+)\\s*$/ (navigation.logic.ts:9) matches 'abc123]]' in `[[Meeting#^abc123]]` and '2' in `m^2`. detectBlockElement then reports it as existingBlockId, and copy-block-link.service.ts:46-47 reuses it without appending a new ID. The result is a broken link on the clipboard, while the note on disk is untouched, so this is ux rather than content.",
+   "corrections": "Category content -> ux."
+  },
+  {
+   "key": "N-live-preview-01",
+   "upheld": true,
+   "category": "content",
+   "likelihood": "medium",
+   "reason": "The frontmatter is always hidden with per-line replace decorations (hide-lines.ts:14-20), and it is not revealed when the cursor enters it. rg finds no atomicRanges, transactionFilter or changeFilter under src/lib. frontmatterClick only handles the mouse, and its comment says keyboard moves are not changed. The e2e at frontmatter.spec.ts:53-65 shows ArrowUp lands on a hidden line. Backlinks at the start of a non-empty first body line merge it with the closing `---`. Enter after Cmd+Up splits the opening fence. Either way findFrontmatterBlock stops matching and autosave writes broken frontmatter. Nothing guards this path.",
+   "corrections": ""
+  },
+  {
+   "key": "N-live-preview-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "paste-html-link.logic.ts:90 interpolates the anchor text unescaped, so `[1]` becomes `[[1]](url)`, which WIKILINK_DECORATION_RE matches. BLOCK_TAGS (:21-26) has TABLE and TR but no TD or TH, so cells in a row are fused. The handler runs before pasteTsvHandler (live-preview.ts:104). Re-rated to ux: the mangled text appears right away at paste time and can be undone, and the source text is not lost.",
+   "corrections": "Category content -> ux."
+  },
+  {
+   "key": "N-live-preview-04",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "renderCellContent (widgets.ts:286-328) splits only on wikilinks. renderInlineSegments uses INLINE_RE (inline-markdown.ts:17), which knows only code, **, * and ~~. splitRow keeps backslash escapes, and the app's own TSV paste writes `\\|` and `<br>` (paste-tsv.logic.ts:130). Markdown links in cells therefore show as raw text. The help example 10-tables.md expects a link in a cell to render. This is rendering only, and the doc on disk is fine, so it is ux.",
+   "corrections": "Category content -> ux: wrong rendering, not wrong data."
+  },
+  {
+   "key": "N-live-preview-05",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "ImageWidget.toDOM (widgets.ts:157-165) routes only file: URLs through the host. A scheme-less path passes isSafeUrl and is assigned to img.src as-is, so it resolves against the webview origin. image-plugin.ts passes the raw URL through. help 04-markdown.md:184-198 documents `![Photo](assets/photo.jpg)` as vault-relative. The image does not display, and no data is affected.",
+   "corrections": "Category content -> ux. Once fixed, it also depends on N-file-io-01: the asset scope lacks ~/kokobrain-vaults, so a resolved asset URL would still be refused for the owner's vault."
+  },
+  {
+   "key": "N-live-preview-06",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "parseWidth (wikilink-embed-plugin.ts:19-23) does Number('300x200'), which is NaN, so the embed gets no size. WikilinkImageEmbedWidget has only a width field, and its eq() compares target and width. The help (05-wikilinks.md:39,116) documents WxH. The cost is display size only.",
+   "corrections": "Category content -> ux."
+  },
+  {
+   "key": "N-live-preview-08",
+   "upheld": true,
+   "category": "polish",
+   "likelihood": "low",
+   "reason": "04-markdown.md:748 lists `$$formula$$` as Block math. blockMathParser requires /^\\$\\$\\s*$/ on the opening line, and math.test.ts:49-53 pins that a one-line `$$ x^2 $$` is not block math. This is a docs-only mismatch, with no data effect.",
+   "corrections": "Category content -> polish (docs-only fix)."
+  },
+  {
+   "key": "N-file-io-01",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "tauri.conf.json:32-43 assetProtocol.scope lists $HOME/kokobrain-vault/** (singular) but not $HOME/kokobrain-vaults/**. capabilities/default.json uses $HOME/kokobrain-vaults. There is no runtime asset scope grant, and tauri.conf.json is the only config file. ~/kokobrain-vaults exists on this machine and ~/Documents/kokobrain-vaults does not, so every convertFileSrc image in the owner's vault is refused. The image files on disk are intact; only the display fails.",
+   "corrections": "Category content -> ux: images fail to display, but nothing on disk is lost. Note: $DOCUMENT/** already covers the Documents root, so only the HOME root is missing."
+  },
+  {
+   "key": "N-file-io-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "canvas-image.service.ts:35 calls plugin-fs readFile, which invokes plugin:fs|read_file (node_modules plugin-fs dist index.js:470). The ACL manifest maps allow-read-text-file to read_text_file only, and capabilities/default.json has no allow-read-file, read-files or fs:default. Every canvas image node is therefore rejected and falls back to the placeholder. The canvas JSON and the images are intact, so this is ux.",
+   "corrections": "Category content -> ux."
+  },
+  {
+   "key": "N-file-io-03",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "Same confirmed defect as N-editor-03. destroy() at tauri-listeners.service.ts:53, no RunEvent::Reopen, and lib.rs:45 gates hotkeys only on db::is_open(). The capture listener lives only in the main webview, so clipboard captures are dropped and the composer gets 'Save not confirmed'. capabilities/default.json grants allow-close and allow-destroy but not allow-hide.",
+   "corrections": "Duplicate of N-editor-03; merge into one Issue. The run closure is at lib.rs:392-396 (the Issue says :391-395)."
+  },
+  {
+   "key": "N-file-io-06",
+   "upheld": true,
+   "category": "content",
+   "likelihood": "low",
+   "reason": "utils/path.ts:46-50 appends .md only when the last segment has no '.'. So `new` with name 'Dr. Smith' writes the content to an extensionless file 'Dr. Smith', which is not indexed. With append, it misses the existing 'Dr. Smith.md' and creates that extensionless file instead, so the content goes to the wrong file. This contradicts 23-deep-links.md:60,77. It is reachable only from hand-built external URLs: in-app Copy deep link includes the extension.",
+   "corrections": "Duplicate of N-file-io-09 (same function, same fix). Merge them."
+  },
+  {
+   "key": "N-file-io-07",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "duplicateItem (fs.service.ts:345-365) copies the file on disk with copyFile and never saves a dirty tab first. The copy therefore lacks the last <2 s of typing. The original note is still saved by autosave, so no written text is lost; the copy is just stale. That makes it ux rather than content.",
+   "corrections": "Category content -> ux: the original is not lost or overwritten, and only the new copy is stale."
+  },
+  {
+   "key": "N-file-io-09",
+   "upheld": true,
+   "category": "content",
+   "likelihood": "low",
+   "reason": "Same confirmed root cause as N-file-io-06: resolveFilePath at utils/path.ts:46-50, called from deep-link.service.ts:188 (open) and :254 (new). 'Node.js tips' becomes an extensionless file that is not a note. The deep-link.logic.test.ts resolveFilePath block at :894 has no dotted-name case.",
+   "corrections": "Duplicate of N-file-io-06; merge them."
+  },
+  {
+   "key": "N-reactivity-01",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "backlinks.service.ts:141-150 skips the fetch when the per-path Map holds the current version, while linkedMentions is one store with no path. The +layout.svelte effect at :129 fetches every visited tab, so A -> B -> A at the same vaultIndexVersion leaves B's mentions on screen for A. The outgoing-links skip key (outgoing-links.service.ts:65-70) has the same flaw. OutgoingLinksPanel resets the store on a path change, but only resetOutgoingLinks clears the Map. The panels show stale or wrong data, and nothing is written, so this is ux.",
+   "corrections": "Category content -> ux: wrong data on screen, not on disk."
+  },
+  {
+   "key": "N-metadata-01",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "The observer at auto-move.service.ts:96-97 skips only isViewFile. Kanban saves (via onContentChange) and canvas saves (via onContentChangeForPath) go through writeTab, then notifyAfterSave. evaluateAndMove calls buildNoteRecord and moveItem for any extension. help 22-auto-move.md:183 promises .canvas and .kanban never move. This needs Auto Move enabled with a rule that matches the board. The file is moved intact, not corrupted or overwritten.",
+   "corrections": "Category content -> ux: an unexpected but intact move, not lost data."
+  },
+  {
+   "key": "N-metadata-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "AutoMoveSection.svelte:25-27 onDestroy only clears the 500 ms timer that updateRule arms (:42-47, :61-64), so an edit followed by Esc or a section change inside 500 ms is never written. The store keeps it until restart. The lost item is a settings edit, not note content, and it needs a sub-half-second close.",
+   "corrections": "Category content -> ux."
+  },
+  {
+   "key": "N-metadata-04",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "detectLossyFrontmatter (properties.logic.ts:404-460) parses the raw block without foldUnquotedWikilinks. For `up: [[Home]]`, the inner sequence has a sequence ancestor, so the note is reported 'nested' and every writer refuses with a toast. The read side folds the value to the string \"[[Home]]\" (ADR 0029, 2026-11-01 amendment), so the rewrite would be lossless. Writes are refused and nothing is lost, so this is ux. It needs a hand-typed unquoted link; the app's own writers quote it.",
+   "corrections": "Category content -> ux. Note that properties.logic.test.ts:1542-1544 explicitly pins the throw ('throws instead of rewriting an unquoted link to another target'). That is a contract change for the owner to confirm, not just a stale test; the Issue already names it in its acceptance criteria."
+  },
+  {
+   "key": "N-index-01",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "Confirmed at HEAD. backlinks.service.ts:143 skips on the per-path Map lastFetchedBacklinksVersion, which only resetBacklinks (:257-263) clears. The layout fetch (+layout.svelte:105-141) writes B's mentions to the one shared store, so on the way back to A both the layout fetch and the expand fetch are skipped. OutgoingLinksPanel.svelte:30-36 resets the store but leaves lastFetchedOutgoingKey (outgoing-links.service.ts:16, :68) alone, so expanding A again shows 'No outgoing links'. Plain navigation never moves vaultIndexVersion. The panels show wrong or empty data and nothing is written to disk, so this is ux, not content.",
+   "corrections": "Category is ux: the panels show the wrong note's links, but no file content changes."
+  },
+  {
+   "key": "N-index-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. The only setResults calls are at search.service.ts:134 (empty query), :196 (operator-only) and :238 (fallback). The FTS branches at :223 and :226 set only ftsResults, and SearchPanel's hasResults/resultCount and its render fall back to searchStore.results when ftsResults is empty. A tag click followed by a query with no hits keeps showing the tag list and its count. That is a wrong list on screen, not data loss.",
+   "corrections": "Category ux, not content."
+  },
+  {
+   "key": "N-index-03",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. search.service.ts:199-203 sends only the words with maxResults 50, and fts_repo.rs:84-89 applies ORDER BY score LIMIT before the JS tag/path filter. :215 uses an exact tagSet.has, while matchesIndexTag (search.logic.ts:149-155) prefix-matches nested tags. loadVaultTagMap (:43-50) stores the raw entry tags with no parent expansion, so `tag:work` plus a word misses notes tagged `work/meetings`. Search results are incomplete, nothing is written.",
+   "corrections": "Category ux, not content."
+  },
+  {
+   "key": "N-index-04",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. resolve_with_cache returns None for an empty target (index.rs:157-159). by_file_name and by_path are filled only from index entries (index.rs:421-428, :521-525), and index membership is .md/.markdown/.view only (vault.rs:310-318). So `![[photo.png]]` and `[[#Heading]]` never resolve, and OutgoingLinksPanel.svelte:82-89 draws them red. deduplicateByTarget (outgoing-links.service.ts:25-34) merges every empty target into one row. Wrong status shown, no data effect.",
+   "corrections": "Category ux, not content."
+  },
+  {
+   "key": "N-index-06",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "Confirmed. fuzzy.rs:55-58 builds '<first char>%' with a cap of 500, and expand_vocab_terms runs `SELECT DISTINCT term ... LIKE ?1 LIMIT ?2` over the fts5vocab instance table, which comes back in term order. Levenshtein runs only on that capped prefix, so a target past the first 500 terms for its letter is never a candidate. It needs a large vocabulary for one letter, and the result is a missed search hit, not data loss.",
+   "corrections": "Category ux, not content."
+  },
+  {
+   "key": "N-views-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. compareValues (evaluator.ts:708-715) guards only Dates and otherwise returns toNumber(a) - toNumber(b), and toNumber(null) is 0 (:627-631), so `missing < 3` is true. The collection-logic.test.ts fixtures all set priority, and evaluator.test.ts pins only `missing == 0` and `missing + 5`, so no test pins the current ordering behavior. The view lists the wrong notes, nothing is written.",
+   "corrections": "Category ux, not content."
+  },
+  {
+   "key": "N-boards-01",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "Confirmed. handleItemDrop (KanbanView.svelte:385-405) indexes over all [data-item-id] cards, the dragged one included, and moveItem takes the card out before splicing (kanban.logic.ts:440-450), so [A,B,C] with A dropped before C becomes [B,C,A]. handleLaneDrop (:434-456) uses querySelectorAll('[data-lane-id]'), and KanbanCard.svelte:173 also puts data-lane-id on every card, so the index counts cards and moveLane (:502-505) rejects it or moves the wrong lane. The board order on disk follows the move, but no text is lost.",
+   "corrections": "Acceptance item 1 contains a leftover fragment ('lists To Do as A? no: B, A, C'). It should read 'lists To Do as B, A, C'."
+  },
+  {
+   "key": "N-boards-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. renameLane (kanban.logic.ts:492-499) changes only lane.title. Every lane-settings getter reads laneSettings[laneTitle] (:594-659), and handleRenameLane (KanbanView.svelte:120-122) applies renameLane alone. After a rename the lane loses its limit, auto-complete and collapsed state. The old key stays in the settings block rather than being deleted from disk, so the effect is lost configuration in behavior, not lost written content.",
+   "corrections": "Category ux: the settings entry stays on disk under the old title, and no written content is lost."
+  },
+  {
+   "key": "N-boards-03",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "Confirmed. flowNodeToCanvasNode (canvas.logic.ts:194-210) starts from the last synced node and copies label and color only when they are !== undefined. handleSetNodeColor (CanvasInner.svelte:411-416) and LinkNode.svelte:56 set undefined, and persistWithoutHistory passes lastSyncedData as the original, so the old color or label is written back. The edge path already deletes color (:243-250). The effect is that a cleared color or link title comes back, which is a cosmetic attribute rather than the user's written content, and clearing one is an uncommon action.",
+   "corrections": "Category ux rather than content: a cleared node attribute comes back, and no user text is lost or overwritten."
+  },
+  {
+   "key": "N-boards-06",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. updateLinksAfterRename (link-updater.service.ts:35-80) finds files to rewrite only through get_backlinks_v2, and the index holds only Markdown and .view files, so .kanban and .canvas are never sources. No path-change consumer touches canvas or kanban files (consumers: event-calendar, rail-shell navigators, collection, boot caches). The related Issue 17 covers absolute versus relative canvas paths, not a rewrite on rename, so this is not a duplicate. Links in boards dangle after a rename, but nothing is overwritten or corrupted.",
+   "corrections": "Category ux (dangling links after a rename). The file content is unchanged rather than lost or corrupted."
+  },
+  {
+   "key": "N-boards-07",
+   "upheld": true,
+   "category": "content",
+   "likelihood": "low",
+   "reason": "Confirmed structurally. EditorView.svelte:79-80 mounts KanbanView without a key and with onContentChange, which writes tabs[activeIndex] (editor.store.svelte.ts:84-88), unlike canvas, which uses onContentChangeForPath inside a key block. The card edit commits only on blur or Enter (KanbanCard.svelte:69-101, :195). On a keyboard tab switch or Cmd+W the edit is either dropped or, if blur fires during teardown, applyChange compares against the new tab's content prop and writes the board markdown into the note now in front. A mouse click on a tab blurs first and commits safely, which keeps likelihood low. As the Issue says, whether WebKit fires blur on removal was not verified.",
+   "corrections": ""
+  },
+  {
+   "key": "N-calendar-01",
+   "upheld": true,
+   "category": "content",
+   "likelihood": "medium",
+   "reason": "Confirmed. deep-link-actions.ts:176-188 puts raw title, sourceTitle, sourceApp and url into vars, and the shipped help/examples/templates/Quick Note.md has them unquoted (`title: <% title %>`, `source_title: <% sourceTitle %>`). A page title with ': ' gives invalid YAML, and ' #' truncates the value as a comment. The note is still written (:226-229), and the lossy check only gates the title/tags injection. Browser titles with ': ' are common, and the written note's frontmatter ends up corrupted or truncated on disk.",
+   "corrections": ""
+  },
+  {
+   "key": "N-calendar-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. parsing.rs:1633 and :1650 set checked to check_char != ' ', and filterCompletedTasks and computeTaskStats (tasks.logic.ts:35-53, :103) read checked as done, so [/], [!], [?] and [>] tasks are hidden under the default Hide completed. EventTaskChip.svelte:16-18 already works around this with status. No test pins in-progress as completed. These are open tasks hidden from view, with no data loss.",
+   "corrections": "Category ux. The fix direction also changes what toggle_task_in_content writes ([/] becomes [x] instead of [ ]), which reverses a test-pinned contract (parsing.rs:3272-3276). Flag that change as an owner decision rather than an implementation detail."
+  },
+  {
+   "key": "N-calendar-04",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "Confirmed. ensureTemplatesFolder (templates.service.ts:99-124) creates only the templates root via create_folder, then calls writeTextFile into `periodic-note/` and `quick-capture/` subfolders with no mkdir. plugin-fs 2.7.1 WriteFileOptions has no recursive option, and the single catch stops the loop at the first failure. The impact is missing empty placeholder files on a fresh vault only, so no content is lost.",
+   "corrections": "Category ux, not content: only empty placeholder templates are missing."
+  },
+  {
+   "key": "N-calendar-05",
+   "upheld": true,
+   "category": "polish",
+   "likelihood": "low",
+   "reason": "Confirmed. The doc 08 examples (:62, :95-104, :224) and the JSDoc at periodic-notes.logic.ts:7-8 use unescaped `journal` and `day`. dayjs treats `a` as am/pm and `d` as the weekday (advancedFormat is also loaded in utils/date.ts), so the documented path is never produced. The shipped defaults escape correctly, so this needs the owner to copy the doc example. It is a doc defect.",
+   "corrections": "Category polish (documentation): nothing on disk is lost, a doc-copied format just produces a different file name."
+  },
+  {
+   "key": "N-calendar-06",
+   "upheld": true,
+   "category": "polish",
+   "likelihood": "low",
+   "reason": "Confirmed. tasks.store.svelte.ts:8 defaults sectionTag to '#to-list' and reset restores it (:30). buildTaskIndex then calls get_tasks_in_section_v2 (tasks.service.ts:68-71), while doc 10:13 and :29 say every checkbox in every note is picked up. filterByDate uses modifiedAt (tasks.logic.ts:76-90). The fix is documentation only.",
+   "corrections": "Category polish (documentation fix)."
+  },
+  {
+   "key": "N-queryjs-01",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. notifyAfterSave clears the QueryJS results (editor.hooks.ts:81-83), but execute reads getVaultEntries() (queryjs-block-widget.ts:243), which is memoized on vaultIndexVersion (vault-entries.service.ts:26-29). That version is bumped only in the throttled refresh (tauri-listeners.service.ts:106-109, :267-268, 2 s or 10 s), and requestPromptIndexRefresh is not called on a plain save. A run in that window caches a pre-save result via setResult (:270), and nothing in queryjs listens on vaultIndexVersion to drop it. A stale dashboard is shown, but no file is written.",
+   "corrections": "Category ux, not content: the dashboard shows stale data and nothing is written."
+  },
+  {
+   "key": "N-queryjs-02",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "high",
+   "reason": "Confirmed. The comparator at data-array.ts:121-126 returns 0 for undefined against any value, which is not transitive. Tracing V8 run detection plus binary insertion on [5,u,3,1] gives [5,u,1,3], as the Issue says. The data-array tests have no missing-key case. Dashboards are shown out of order, nothing is written.",
+   "corrections": "Category ux, not content."
+  },
+  {
+   "key": "N-queryjs-03",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "medium",
+   "reason": "Confirmed. parseSource (queryjs.logic.ts:195-198) runs page.file.folder.toLowerCase().includes(folder), and file.folder is the absolute parent path. '\"Projects\"' therefore also matches 'Archive/Projects' and 'Projects Archive', and a source that appears in the vault root's own path matches every page. Queries return wrong pages, nothing is written.",
+   "corrections": "Category ux, not content."
+  },
+  {
+   "key": "N-queryjs-04",
+   "upheld": true,
+   "category": "ux",
+   "likelihood": "low",
+   "reason": "Confirmed. buildReverseIndex keys targets by getBasename(link.target) (queryjs.logic.ts:53), and getBasename strips after the last dot, so 'Dr. Silva' becomes 'dr'. resolveInlinks then looks up 'dr. silva' (:76-77), so the note gets no inlinks and 'Dr.md' receives them instead. Dotted note names are uncommon, and the result is wrong counts on screen.",
+   "corrections": "Category ux, not content."
+  }
+ ],
+ "plan": {
+  "order": [
+   {
+    "key": "N-editor-01",
+    "merged": [],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note",
+    "rationale": "Upheld content/medium. Cmd+D and Cmd+E are daily and leave the caret about 16 characters off, so the next typing goes to the wrong place and autosave writes it to disk. It is an editor bug, so it comes first."
+   },
+   {
+    "key": "N-live-preview-01",
+    "merged": [],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Keyboard edits next to the hidden frontmatter never change its fences",
+    "rationale": "Upheld content/medium. Cmd+Up+Enter or a held Backspace breaks the hidden fence on any note with properties, and autosave writes broken frontmatter. The e2e at frontmatter.spec.ts:53-65 pins only where the cursor lands, not edits, so it stays valid."
+   },
+   {
+    "key": "N-calendar-01",
+    "merged": [],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Quick Capture writes page titles, app ids and URLs into template frontmatter as valid YAML",
+    "rationale": "Upheld content/medium. Quick Capture is daily, and browser titles with ': ' are common. Each such capture writes corrupt or truncated frontmatter, and every writer then refuses the note. It comes after the editor items only because the editor is the owner's first priority."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/52-live-preview-unrequested-rewrites.md",
+    "merged": [],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Live-preview controls change only the text the user asked to change: fence attributes, task markers and tab-indented pastes stay intact",
+    "rationale": "Still present, content/medium. These are silent rewrites of note text from daily live-preview controls. They are undoable, so they rank below the caret and fence bugs."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md",
+    "merged": [
+     ".scratch/file-io-audit/issues/49-canvas-switch-reuses-instance.md"
+    ],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A canvas edit closed or renamed inside the debounce window reaches its .canvas file",
+    "rationale": "Content/medium for a daily canvas user, because the last edit is dropped. Issue 49's bugs 1 and 2 are fixed (f37acb402), and what remains of 49 is exactly this close-within-debounce drop."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/30-empty-frontmatter-block.md",
+    "merged": [],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "An empty --- --- frontmatter block is matched, and writers never stack a second block",
+    "rationale": "Content/medium. The first icon on a folder without a folder note writes '---\\n---\\n', and later writers then stack a second block on disk."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/32-app-json-corrupt-overwrite.md",
+    "merged": [],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": ".view toolbar and icon writes keep the file's YAML comments, and a toolbar write is not reverted by a dirty tab's autosave",
+    "rationale": "What remains is section 3 only: sections 1-2 duplicate audit-2026-11-04 Issue 14, and section 4 is fixed. Every filter or sort change on a commented .view deletes the comments from disk. Views are daily and agents now write .view files, so this stays in content at low likelihood."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/13-file-history-no-baseline.md",
+    "merged": [],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "File History keeps a snapshot of the pre-save bytes, and retention never deletes a note's last snapshot",
+    "rationale": "Content/medium. This is the safety net for the bugs above: today an imported or long-unsaved note has no history, so a mistaken overwrite cannot be recovered. It does not lose text by itself, so it is last among the content items."
+   },
+   {
+    "key": "N-boards-07",
+    "merged": [],
+    "bucket": "1-content",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/audit-2026-11-04/issues/22-canvas-flush-on-close-and-rename.md"
+    ],
+    "title": "A kanban card or lane title being edited is saved into its own board when the tab changes, and never into another tab",
+    "rationale": "Upheld content/low, but severe: board markdown can be written into the note now in front. It reuses the pre-close flush that Issue 22 builds."
+   },
+   {
+    "key": "N-file-io-01",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope covers both allowed vault roots",
+    "rationale": "Upheld ux/high. The owner's vault is under ~/kokobrain-vaults, so no convertFileSrc image displays there. It is a one-line config fix with the largest daily impact."
+   },
+   {
+    "key": "N-live-preview-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "Rendered table cells show links, highlight, underscore emphasis, line breaks and escaped pipes as formatted content",
+    "rationale": "Upheld ux/high. Tables are daily, and links, <br> and escaped pipes written by the app's own TSV paste show as raw text. The fix reverses a pinned test.",
+    "owner_question": "Table cells: (a) render links, ==highlight==, underscore emphasis, <br> and escaped pipes. This reverses the inline-markdown.test.ts:60 case that pins ==highlight== as unsupported. (b) Render only links, <br> and escaped pipes, and keep ==highlight== unsupported."
+   },
+   {
+    "key": "N-file-io-03",
+    "merged": [
+     "N-editor-03",
+     "N-file-io-08"
+    ],
+    "bucket": "2-ux",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working",
+    "rationale": "Three waves found the same root cause: tauri-listeners.service.ts:48-55 destroys the window, and there is no RunEvent::Reopen. The red button is the usual macOS gesture, and after it captures are dropped.",
+    "owner_question": "Red close button: (a) quit the app after the exit flush (invoke confirm_exit, frontend only; the Quick Capture shortcuts stop with the app), or (b) hide the main window, show it again on a Dock click through RunEvent::Reopen, and keep captures and deep links writing (Rust plus the allow-hide capability). Either way, the tests at tauri-listeners.service.test.ts:224-311 that pin destroy() change."
+   },
+   {
+    "key": "N-index-01",
+    "merged": [
+     "N-reactivity-01"
+    ],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Backlinks and Outgoing links always show the open note's own links, also after returning to a note seen at the same index version",
+    "rationale": "Two waves found the same per-path skip cache in front of one shared store. Plain A to B to A browsing shows the wrong note's links. Land it before ux-polish Issue 06, which edits the same fetch functions."
+   },
+   {
+    "key": "N-editor-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "Closing a tab with unsaved text saves it and closes; a prompt appears only when that save fails",
+    "rationale": "Upheld ux/high. Cmd+W within 2 s of typing always prompts, and the debounced save can fire while the dialog is open. The fix changes documented behavior and a pinned test.",
+    "owner_question": "Closing a dirty tab: (a) save it and close, and prompt only when the save fails. This changes help/documentation/03-editor.md:129 and the test at editor.service.test.ts:658. (b) Keep the Save/Discard prompt, but cancel the pending debounced save while it is open, so Discard really discards."
+   },
+   {
+    "key": "N-file-io-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots",
+    "rationale": "Upheld ux/high. Every canvas image node shows the placeholder because plugin:fs|read_file is not granted. Canvas is daily."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Canvas file and image nodes store vault-relative paths and resolve both absolute and vault-relative ones",
+    "rationale": "High likelihood: every picked or dropped node gets an absolute path and fails to load, which is a display failure rather than lost text. Its Blocked-by 13 only avoided a merge conflict in canvas.logic.ts, so it is dropped, and owner decision D7 (b) is recorded."
+   },
+   {
+    "key": "N-boards-01",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows",
+    "rationale": "Upheld ux/high. Moving a card down inside a lane, or moving any lane, lands in the wrong slot on a daily-used board. Acceptance item 1 should read 'lists To Do as B, A, C'."
+   },
+   {
+    "key": "N-queryjs-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end",
+    "rationale": "Upheld ux/high. The comparator is not transitive, so every dashboard sorted by an optional field shows rows out of order."
+   },
+   {
+    "key": "N-live-preview-05",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     "N-file-io-01"
+    ],
+    "title": "Standard markdown images with a vault-relative path load from the vault",
+    "rationale": "Upheld ux/medium. The documented ![](assets/x.png) form does not display. For the owner's vault, the resolved asset URL needs N-file-io-01's scope fix first."
+   },
+   {
+    "key": "N-editor-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Wikilink autocomplete inserts a non-markdown file with its extension, so ![[photo.png]] embeds the image",
+    "rationale": "Upheld ux/medium. Picking an image from the popup inserts a stem that embeds as a note, a daily editor flow."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/03-quick-switcher-enter-creates-on-no-match.md",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Enter in the quick switcher creates the note when nothing matches",
+    "rationale": "Still present, ux/medium. In the daily Cmd+O, type, Enter flow, Enter does nothing when nothing matches."
+   },
+   {
+    "key": "N-file-io-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Lens lists follow the user's own rename, move, delete, duplicate and create at once, not after the 2 to 10 s index throttle",
+    "rationale": "Ux/medium. Daily lenses show stale rows for seconds after the user's own file operations."
+   },
+   {
+    "key": "N-file-io-05",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A note-list inline rename that the file name rules refuse says why, like the folder rename does",
+    "rationale": "Ux/medium. A title with ':' or '?' is a common input and today fails silently."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/23-file-history-keyed-by-path.md",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "File History follows a note through rename, move, auto-move and suffixed restore",
+    "rationale": "Still present, medium. Renames are common and leave the history panel empty. Note bytes are untouched, so this is wrong data on screen rather than lost content."
+   },
+   {
+    "key": "N-index-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A text search shows only its own results: a query with no hits says No results found, even right after a tag click",
+    "rationale": "Upheld ux/medium. After a tag click, the Search panel keeps showing the tag's list."
+   },
+   {
+    "key": "N-index-03",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Text search with tag: or path: returns every note that matches the words and the operators, and tag: matches nested tags",
+    "rationale": "Upheld ux/medium. The operators filter only the top 50 FTS hits and miss nested tags. It is in the same service as N-index-02, so it comes right after it."
+   },
+   {
+    "key": "N-index-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Outgoing links marks a row as broken only when its target is missing: same-note heading links and embeds of existing files are not red",
+    "rationale": "Upheld ux/medium. Image embeds and [[#Heading]] links show as broken on every note that has them."
+   },
+   {
+    "key": "N-views-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Numeric <, <=, > and >= filters never match a note that lacks the property",
+    "rationale": "Upheld ux/medium. A daily view lists the wrong notes, and no test pins the current ordering."
+   },
+   {
+    "key": "N-views-01",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Hiding a column in a view with no order keeps the columns the table showed, minus that one",
+    "rationale": "Ux/medium. Every view made by New table or New view has no order, so this hits daily views."
+   },
+   {
+    "key": "N-views-03",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A filter row that still has no value does not filter the list and is not written to the .view",
+    "rationale": "Ux/medium. Adding a filter blanks the view until a value is typed."
+   },
+   {
+    "key": "N-boards-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Renaming a kanban lane keeps its card limit, auto-complete and collapsed state",
+    "rationale": "Upheld ux/medium. A lane rename drops the lane's settings on a daily-used board."
+   },
+   {
+    "key": "N-boards-05",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Canvas file nodes preview the note without its YAML frontmatter",
+    "rationale": "Ux/medium. Any typed or tagged note placed on a canvas previews its raw YAML."
+   },
+   {
+    "key": "N-boards-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Canvas Duplicate places the copy next to the node's current position and size",
+    "rationale": "Ux/medium. After a node has been dragged or resized, Duplicate uses its stale position."
+   },
+   {
+    "key": "N-boards-06",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/audit-2026-11-04/issues/17-canvas-node-path-resolution.md"
+    ],
+    "title": "Renaming or moving a note updates [[links]] in kanban cards and file nodes in canvases",
+    "rationale": "Upheld ux/medium. Board links dangle after a rename. Rewriting canvas file nodes depends on the stored path format and resolver from Issue 17."
+   },
+   {
+    "key": "N-queryjs-01",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A QueryJS block run in the seconds after a save shows the saved data once the index catches up, and never keeps a pre-save result",
+    "rationale": "Upheld ux/medium. A dashboard opened right after an edit keeps showing the stale result."
+   },
+   {
+    "key": "N-queryjs-03",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "kb.pages('\"folder\"') returns the notes in that folder and its subfolders only",
+    "rationale": "Upheld ux/medium. In common PARA layouts, a folder source also matches unrelated folders."
+   },
+   {
+    "key": "N-calendar-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "The Tasks view treats only done and cancelled tasks as completed: [/], [!], [?] and [>] tasks stay listed under Hide completed",
+    "rationale": "Upheld ux/medium. Open tasks are hidden by default. The suggested fix also reverses a pinned Rust toggle contract.",
+    "owner_question": "Toggling an in-progress [/] task: (a) write [x] (done), which reverses the pinned test toggle_task_in_content_in_progress_to_unchecked at parsing.rs:3272-3276, or (b) keep writing [ ] and change only the view's filter, icon and stats to read status."
+   },
+   {
+    "key": "N-calendar-03",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The Tasks view keeps its list and scroll position on screen while it refreshes after a toggle or an index update",
+    "rationale": "Ux/medium. Every tick in a long list blanks the list and resets the scroll position."
+   },
+   {
+    "key": "N-metadata-01",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Auto Move evaluates and moves only Markdown notes: kanban boards, canvases and other files stay where they are",
+    "rationale": "Upheld ux/medium, but it needs Auto Move enabled with a matching rule, so it is placed late in the medium group."
+   },
+   {
+    "key": "N-shell-01",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Leaving the theme editor any way other than Save puts the active theme back on the app",
+    "rationale": "Ux/medium. Esc, X or Cmd+, leaves the unsaved preview theme painted on the app."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/68-pickers-arrow-keys.md",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The relationship picker navigates with arrow keys",
+    "rationale": "Partially fixed: the kanban picker already has arrow keys, so only RelationshipSearch remains and the title is narrowed to it."
+   },
+   {
+    "key": "N-shell-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Settings > Update keeps the download progress and Restart to update across closing Settings or changing section, and a second check cannot start a second download",
+    "rationale": "Ux/medium, but updates are an occasional flow, so it is placed at the end of the medium group."
+   },
+   {
+    "key": "N-live-preview-03",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Paste, cut and copy inside a meta-bind number or date input act on the input, not the note",
+    "rationale": "Ux/low. Meta-bind is daily, and the clipboard keys land in the note text. It is first among the low items because it is live preview."
+   },
+   {
+    "key": "N-live-preview-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "HTML link paste keeps bracketed link text and table cells intact",
+    "rationale": "Upheld ux/low. Mangled paste text is visible right away and can be undone."
+   },
+   {
+    "key": "N-live-preview-06",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "![[image.png|300x200]] applies both the width and the height",
+    "rationale": "Upheld ux/low. Only the documented WxH form is affected, and only display size changes."
+   },
+   {
+    "key": "N-live-preview-09",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Cmd+click on a reference link or an email autolink opens its target, and a link with no openable URL is not sent to the opener",
+    "rationale": "Ux/low. These are documented link forms that are rarely used."
+   },
+   {
+    "key": "N-editor-05",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Copy Block Link reuses only a real trailing block ID; a line ending in [[Note#^id]] or x^2 gets a new ID",
+    "rationale": "Upheld ux/low. A broken link lands on the clipboard, and the note on disk is untouched."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/06-link-panels-show-load-error.md",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Backlinks and Outgoing links show a load error with Retry, not an empty message",
+    "rationale": "Still present, ux/low. It edits the same fetch functions as N-index-01, so it runs after that Issue to avoid a conflict."
+   },
+   {
+    "key": "N-file-io-10",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen",
+    "rationale": "Ux/low. This is a setting that is rarely toggled."
+   },
+   {
+    "key": "N-reactivity-02",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The Tags view keeps its list and expanded tags on screen while it refreshes",
+    "rationale": "Ux/low. The list blanks for about 1 s and collapses on each refresh."
+   },
+   {
+    "key": "N-index-07",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Clearing the search box while a search is still running shows the empty-query hint, not a stuck Searching...",
+    "rationale": "Ux/low. It needs the search box cleared while a search is still running."
+   },
+   {
+    "key": "N-index-05",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A tag click lists the notes with that tag even when Semantic or Hybrid was the selected search mode",
+    "rationale": "Ux/low. It needs the search mode switched away from Text first."
+   },
+   {
+    "key": "N-index-06",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Fuzzy search finds a close spelling wherever it sits in the vocabulary, not only among the first 500 words with the same first letter",
+    "rationale": "Upheld ux/low. It needs a vocabulary of more than 500 words for one letter."
+   },
+   {
+    "key": "N-views-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A formula that calls an unknown function cannot be confirmed and shows why",
+    "rationale": "Ux/low. A formula typo fails silently."
+   },
+   {
+    "key": "N-boards-03",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Clearing a canvas node's color or a link node's title is saved to the .canvas file",
+    "rationale": "Upheld ux/low. A cleared attribute comes back, and clearing one is uncommon."
+   },
+   {
+    "key": "N-queryjs-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "file.inlinks lists the notes that link to a note whose name contains a dot",
+    "rationale": "Upheld ux/low. Dotted note names are uncommon, and the effect is wrong counts on screen."
+   },
+   {
+    "key": "N-calendar-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Vault open creates every missing placeholder template, including the parent folders periodic-note/ and quick-capture/",
+    "rationale": "Upheld ux/low. Only empty placeholder templates go missing, and only on a fresh vault."
+   },
+   {
+    "key": "N-calendar-07",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Todoist sync tells the user when it could not reach Todoist or the token was rejected",
+    "rationale": "Ux/low. A sync that is offline or has a bad token fails silently."
+   },
+   {
+    "key": "N-calendar-08",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "New File from Template says the name is taken instead of silently opening the existing note",
+    "rationale": "Ux/low. It needs a name that collides with an existing note."
+   },
+   {
+    "key": "N-shell-03",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Quick Switcher Create with a folder path (Projects/Idea) creates the note in that folder, and a failed create says why",
+    "rationale": "Ux/low. A path-style create into a folder that does not exist is uncommon."
+   },
+   {
+    "key": "N-shell-04",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Dragging a node in the graph moves that node; dragging the background pans",
+    "rationale": "Ux/low. The graph view is not in the owner's daily list."
+   },
+   {
+    "key": "N-shell-05",
+    "merged": [],
+    "bucket": "2-ux",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Switching the graph Arrows toggle redraws the graph at once, also after the layout has settled",
+    "rationale": "Ux/low. The graph view is not in the owner's daily list."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/55-no-active-line-slab.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Live preview paints no active-line background; source mode keeps it",
+    "rationale": "Partially fixed, polish/high. The cursor already lands on the body (editor.logic.ts:110-123), so only the active-line fill remains, and it shows on every note opened."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/65-editor-table-width.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Editor tables use the full content width, with hover controls overlaid and the gap below the table kept",
+    "rationale": "Polish/medium on the daily tables. The reservation is in the wrapper padding at styles.ts:376-379."
+   },
+   {
+    "key": "N-reactivity-03",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The status bar note count follows notes created, imported and deleted during the session",
+    "rationale": "Polish/medium. The count stays at the vault-open value for the whole session."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/13-tags-filtered-empty-state.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The Tags view explains when the rare-tag filter hides everything",
+    "rationale": "Still present, polish/medium. It is an empty-state message."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/12-word-count-and-graph-stats-counts.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Word count and graph stats read correctly for zero and one",
+    "rationale": "Still present, a copy fix."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/15-hover-keeps-active-row-and-lane-grip.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Hovering the open note keeps its fill, and the kanban lane grip appears on lane hover",
+    "rationale": "Still present, a visual fix on daily rows."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/62-collection-table-readable.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The collection table reads as a table",
+    "rationale": "Still present, polish/medium on daily views. A sticky header has to account for the inner overflow-auto at CollectionTableView.svelte:39."
+   },
+   {
+    "key": ".scratch/ui-responsiveness/issues/26-search-cache-reload-after-index-update.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "The first semantic or hybrid search after a one-file index update does not reload the whole search cache",
+    "rationale": "Performance fine-tuning (about 2.5 s once per index change). The Issue itself requires the owner decision first.",
+    "owner_question": "Search cache after an index update: option A, B or C as described in the Issue (for example keep the cache and patch the changed file's rows, or reload it in the background), recorded in Notes with the Issue 24 timing numbers."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/47-kanban-proximity-token-map.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "Kanban date proximity has one token-based map, and done cards drop it",
+    "rationale": "A visual fix on daily boards. The checked-card behavior is a recommended but unconfirmed owner decision. Issues 48 and 63 build on it.",
+    "owner_question": "Should checked (done) kanban cards show no date proximity tone (recommended), or keep the tone they have today?"
+   },
+   {
+    "key": ".scratch/ux-polish/issues/11-event-title-error-after-touch.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The New event dialog shows \"Enter a title.\" only after the title was touched",
+    "rationale": "Still present. It is error-timing fine-tuning in a flow the owner does not use daily."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/56-command-palette-density.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "The command palette shows dense one-line rows with key hints",
+    "rationale": "Polish/medium. CommandDialog is shared with QuickSwitcher, TemplatePicker and OneOnOnePicker, which the Issue does not mention.",
+    "owner_question": "Apply the denser rows to the shared CommandDialog, which also changes the Quick Switcher, Template picker and One-on-one picker, or only to the command palette?"
+   },
+   {
+    "key": ".scratch/ux-polish/issues/29-settings-drawer-focus-move-and-return.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Opening Settings moves focus into the drawer, and closing returns it",
+    "rationale": "Still present. It is keyboard focus fine-tuning, and its blocker 28 is delivered."
+   },
+   {
+    "key": ".scratch/live-preview-click-reveal/issues/12-media-wrapper-padding-click.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A click in the audio player wrapper's padding moves the cursor like a click next to the widget",
+    "rationale": "Still present, polish/low in live preview. The owner's manual check in the app follows the agent's fix."
+   },
+   {
+    "key": "N-live-preview-07",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Every language the code-block dropdown and the guide offer is syntax-highlighted",
+    "rationale": "Polish/low. Only a few languages are missing."
+   },
+   {
+    "key": "N-live-preview-08",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The Markdown guide's Quick Reference shows block math in the three-line $$ form the editor renders",
+    "rationale": "Re-rated polish: a docs-only fix. The parser contract stays pinned by math.test.ts:49-53."
+   },
+   {
+    "key": "N-metadata-05",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The auto-move example's steps move the notes as written: edit then save, the right default delay, rules loaded after copying the file",
+    "rationale": "Polish/low. It is a docs and example fix."
+   },
+   {
+    "key": "N-boards-08",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The personal-week kanban example uses the valid sortMode \"checked\", and the docs say the sort is per board",
+    "rationale": "Polish/low. It is an example and docs fix."
+   },
+   {
+    "key": "N-calendar-05",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The Periodic Notes help shows format examples that escape literal words with [ ]",
+    "rationale": "Re-rated polish: a documentation fix, since the shipped defaults escape correctly."
+   },
+   {
+    "key": "N-calendar-06",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The Tasks help says the default view lists only tasks under a #to-list heading, and that the date filter uses the note's modification date",
+    "rationale": "Re-rated polish: a documentation fix only."
+   },
+   {
+    "key": "N-views-05",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A calendar day with more than three notes lets the user reach every note",
+    "rationale": "Polish/low. It needs a calendar view with a busy day."
+   },
+   {
+    "key": "N-queryjs-05",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A kb.table, kb.ui.table or kb.list cell holding an array or DataArray of links renders each link as a clickable link",
+    "rationale": "Polish/low. It is a rendering nicety for a Dataview idiom."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/14-search-panel-drops-duplicate-index-status.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "The Search panel stops repeating the index status the status bar already shows",
+    "rationale": "Polish/low. The Issue assumes an owner decision that is not recorded.",
+    "owner_question": "Which surface keeps the index count: the status bar (recommended; remove the Search panel's row), or the panel (hide SearchStatus while the Search lens is open)?"
+   },
+   {
+    "key": ".scratch/ux-polish/issues/02-settings-number-fields-clamp-on-change.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Retention days and Debounce delay accept typed values and clamp on commit",
+    "rationale": "Ux/low. It is input fine-tuning on fields edited rarely, and the stored value is already clamped."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/63-kanban-card-quiet.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "needs-info",
+    "blocked_by": [
+     ".scratch/ux-polish/issues/47-kanban-proximity-token-map.md"
+    ],
+    "title": "Kanban cards drop the empty date row until hover or focus, and the date trigger stays keyboard reachable",
+    "rationale": "Drafted without a deep dive, and it needs a keyboard-reachability decision. It is blocked by 47.",
+    "owner_question": "Hide the empty date row until hover: confirm it stays reachable by keyboard through focus-within or opacity (not display:none), or drop the ticket."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/48-status-colors-use-tokens.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/ux-polish/issues/47-kanban-proximity-token-map.md"
+    ],
+    "title": "Status colors use theme tokens, and a test forbids raw palette classes",
+    "rationale": "Polish/low. Its guard test flags 47's kanban sites, so it cannot go green before 47 lands. Blocker 08 is resolved."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/43-canvas-surface-theme-tokens.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Canvas nodes, edges and grid draw from theme tokens, so they show on light themes",
+    "rationale": "Polish/low. It matters only on light themes. Cite the new shadow lines :777,781."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/44-canvas-overlay-theme-tokens.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/ux-polish/issues/43-canvas-surface-theme-tokens.md"
+    ],
+    "title": "Canvas menus, pickers and edge labels use theme tokens",
+    "rationale": "Polish/low. It keeps its Blocked-by 43."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/40-toasts-and-editor-follow-theme-mode.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Toasts and the editor's CodeMirror base follow the theme mode",
+    "rationale": "Polish/low. Its blocker 39 is done, and it matters only on a light theme."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/45-graph-view-theme-palette.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "The graph view paints with the active theme's colors",
+    "rationale": "Polish/low. The Default background change is a recommended but unconfirmed owner decision.",
+    "owner_question": "Default theme graph background: move from #1a1a1e to the editor background #2a2e3d (recommended), or keep #1a1a1e?"
+   },
+   {
+    "key": ".scratch/ux-polish/issues/30-settings-drawer-modal-scrim.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "needs-info",
+    "blocked_by": [
+     ".scratch/ux-polish/issues/29-settings-drawer-focus-move-and-return.md"
+    ],
+    "title": "Settings is modal: a scrim closes it on outside click and Tab stays inside",
+    "rationale": "It is design work that assumes an unrecorded owner decision, and it is blocked by 29.",
+    "owner_question": "Make the Settings drawer modal (scrim, outside-click close, Tab trap), or keep the app behind it interactive and drop this ticket?"
+   },
+   {
+    "key": ".scratch/ux-polish/issues/26-setting-item-hint-prop.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Help text that belongs to a settings row sits inside that row through a SettingItem hint prop",
+    "rationale": "Partially fixed layout tidiness. The UpdateSection item is obsolete, and the Sentry paragraph keeps its current visibility."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/69-native-controls-to-shadcn.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Graph controls and the event dialog use shadcn Select, Switch and Checkbox",
+    "rationale": "Polish/low, in surfaces that are not daily."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/71-hover-action-gutter.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Search results and link rows reserve a gutter for their hover actions",
+    "rationale": "Polish/low. It shows only on event notes."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/72-default-theme-drop-preview-overrides.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The Default theme drops its Catppuccin preview overrides",
+    "rationale": "Design polish. Its blocker 41 is resolved."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/52-right-sidebar-sections.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Right sidebar sections share one header recipe and one left edge",
+    "rationale": "It is visual consistency work, not a defect, and its mismatch is smaller since Issue 50."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/66-chrome-icon-buttons.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Chrome icon buttons share sizes and use shadcn tooltips",
+    "rationale": "Design polish. Its blocker 37 is resolved."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/70-settings-grouped-cards.md",
+    "merged": [],
+    "bucket": "3-polish",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Settings groups render as cards with dividers",
+    "rationale": "Design polish that ends with the owner's visual check. Its blocker 24 is resolved."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/08-external-change-overwritten.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "An external change to an open note is never overwritten by the next autosave or calendar write",
+    "rationale": "Data loss that cannot be recovered, but it needs another editor to write while the tab is dirty, a 2 s window. The fix changes the pinned 'editor always wins' test.",
+    "owner_question": "When a dirty tab's note changed on disk since it was loaded: (a) keep the external version as a File History snapshot or conflict copy, then save and toast, (b) reload from disk and drop the in-app typing, or (c) keep 'editor always wins', which is pinned by editor.service.test.ts 'skips dirty tabs, editor always wins'."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/22-external-delete-resurrected.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A note deleted or renamed outside the app is closed or marked orphaned, never recreated by the next autosave",
+    "rationale": "No bytes are lost, and it needs an external rename or delete of an open note followed by typing in it."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/09-fsevents-rescan-ignored.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A watcher rescan (dropped FSEvents) reloads open tabs before the next save",
+    "rationale": "It needs dropped FSEvents on top of an external edit."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/13-canvas-refuse-write-on-unparseable.md",
+    "merged": [
+     ".scratch/file-io-audit/issues/15-canvas-unparseable-overwritten.md"
+    ],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "An unparseable .canvas opens in an error state and is never overwritten by canvas edits",
+    "rationale": "Issue 15 has the same root cause (parseCanvas returns an empty canvas), and this Issue carries the owner decision. Its blocker 01 is resolved. It needs a broken .canvas file."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/12-file-history-restore-wrong-tab.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "File History Restore writes the snapshot into the note shown in the dialog, never into whichever tab is active",
+    "rationale": "It overwrites an unrelated note, but only after a tab change while the modal is open."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/10-metabind-open-failure-stops-actions.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A meta-bind button stops its remaining actions when an open action fails",
+    "rationale": "Low: it needs a button whose open action fails. It goes first in the shared action switch that Issue 48 changes next."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/48-meta-bind-button-writes-opened-note.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/audit-2026-11-04/issues/10-metabind-open-failure-stops-actions.md"
+    ],
+    "title": "A meta-bind button's updateMetadata always writes the button's own note, also after an open or createNote action",
+    "rationale": "It writes into an unrelated note, but only for a button that puts open or createNote before updateMetadata. It builds on Issue 10's open result."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/33-keystrokes-lost-during-async-writes.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Keystrokes typed during link rewrite, type rename or watcher reload writes are kept",
+    "rationale": "It is a race in a window of milliseconds. The calendar-delete part is narrowed by f1b3cde9d."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/44-dock-quit-logout-skip-save.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Dock Quit, logout and shutdown run the exit flush before the app ends",
+    "rationale": "The loss is at most the last 2 s of typing, and only when quitting right after typing. The owner checks the result in the app."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/07-non-atomic-note-writes.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Note writes are atomic: a failed write never leaves the note empty or truncated",
+    "rationale": "Severe but improbable: it needs a write to fail midway (disk full or a crash)."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/27-link-rewrite-scope.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Rename link rewrite skips links inside code blocks and updates self links",
+    "rationale": "Partially fixed: the path-qualified and extension halves are done (99bffdf66, fdf1479c2). What remains needs links inside code blocks."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/36-path-normalization.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Root unarchive writes vault/x.md, auto-move refuses .. segments, and a case or NFC variant of a path reuses the open tab",
+    "rationale": "Its canvas double-prefix section is covered by Issue 17. The rest needs Auto Move (opt-in) or a folder-case mismatch."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/25-deep-link-path-safety.md",
+    "merged": [
+     "N-file-io-06",
+     "N-file-io-09"
+    ],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Deep-link names resolve safely: .md is added unless the name ends in a real extension, name=. stays inside the vault, and overwrite never replaces .kokobrain files",
+    "rationale": "Same fix site: resolveFilePath at utils/path.ts:33-53. It is reachable only from hand-built external URLs, because in-app Copy deep link includes the extension."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/53-deep-link-content-fidelity.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Deep-link prepend goes below the frontmatter, and non-silent new keeps <% %> in the sent text",
+    "rationale": "It is reachable only from external kokobrain:// URLs with prepend. Quick Capture does not use this path."
+   },
+   {
+    "key": "N-file-io-07",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Duplicate saves the note's unsaved typing before copying it",
+    "rationale": "Upheld ux/low. Only the copy is stale, and only within the 2 s debounce."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/19-duplicate-case-insensitive-overwrite.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Duplicate never overwrites a sibling whose name differs only in case (APFS)",
+    "rationale": "It needs case-variant siblings. It is next to N-file-io-07 because both change duplicateItem."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/02-trash-manifest-unreadable.md",
+    "merged": [
+     ".scratch/file-io-audit/issues/11-trash-manifest-stale-rebuild.md"
+    ],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "An unreadable or corrupt trash manifest is backed up, never replaced by a partial list, and trash writers never orphan trashed items",
+    "rationale": "Issue 11's corrupt-load and Empty Trash parts are this Issue, and its phantom entry is the same manifest-rebuild fix. It needs a corrupt manifest. Owner decision D2 (a) is recorded."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md",
+    "merged": [
+     ".scratch/file-io-audit/issues/10-settings-load-failure-defaults.md"
+    ],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A session whose settings.json was never loaded never writes it and never purges File History at the default retention",
+    "rationale": "09ec9f363 fixed most of Issue 10. Its remaining read-error overwrite and history-purge legs follow from the same load outcome. It needs a settings read failure. D3 (a) is recorded."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/audit-2026-11-04/issues/03-settings-guard-unloaded-file.md"
+    ],
+    "title": "Auto-move rules and the Todoist sent list: a failed load is never saved over the file",
+    "rationale": "It needs an unparseable file. It keeps its Blocked-by 03, and it also covers sections 1-2 of Issue 32."
+   },
+   {
+    "key": "N-metadata-02",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/audit-2026-11-04/issues/14-aux-json-load-failure-guard.md"
+    ],
+    "title": "An Auto Move rule edit made just before Settings closes or changes section is still written to auto-move-rules.json",
+    "rationale": "Upheld ux/low. It needs a close within 500 ms. The flush on destroy must respect Issue 14's load-failure guard."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/34-type-rename-partial-failure.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "Type rename reports partial failure and also updates _type values with a trailing comment",
+    "rationale": "It needs a failed note write during a type rename. The Notes say its original sections still lack the behavior to build.",
+    "owner_question": "When some notes fail during a type rename: keep the rename and list the notes that were not updated (toast plus log), or roll the rename back?"
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/31-non-utf8-rewrite.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Non-UTF-8 files open read-only or as binary, never written back with U+FFFD",
+    "rationale": "It needs a non-UTF-8 file with a text extension."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/42-crlf-to-lf-rewrite.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "CRLF notes keep their CRLF line endings after an edit",
+    "rationale": "It needs CRLF files, and no sync or Windows tool is in use."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/41-minor-write-races.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Minor write races are closed: autosave during rename, retry-chain stacking, create vs restore, superseded init, calendar rollback, the properties skip flag",
+    "rationale": "Partially fixed (same-path saves serialized in 3df680423). The rest are races in millisecond windows."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/24-stale-task-list-wrong-line.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A stale Tasks list never ticks the wrong task line on a clean tab or after an external edit",
+    "rationale": "Partially fixed by b4f126bf2 for dirty tabs. The rest needs a stale list after an external edit."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/56-kanban-lane-actions-archive-pattern.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Kanban lane actions never turn a raw --- into the archive separator, and restore to a missing lane keeps the card",
+    "rationale": "It needs a raw --- in board markdown. Part 2 cannot be reached from the UI."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/28-watcher-index-staleness.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Watcher events keep FTS5, semantic and Rust indexes current, and a read error is not treated as a delete",
+    "rationale": "The folder-rename section is fixed (fc37b1370). The rest needs external changes or read errors."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/54-semantic-update-after-delete.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A semantic update still embedding when its note is deleted leaves no chunks for the trashed note",
+    "rationale": "Narrow: a delete seconds after typing, with the embedder loaded."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/35-path-change-post-disk-failure.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A failure after the disk op still reports a completed rename as done and re-keys the index",
+    "rationale": "The delete leg is fixed (f618f44ce). The rename leg's only live trigger is VaultIndex lock poisoning."
+   },
+   {
+    "key": "N-metadata-04",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "A note with an unquoted wikilink value (up: [[Home]]) accepts property, lifecycle, icon and meta-bind writes",
+    "rationale": "Upheld ux/low. It needs a hand-typed unquoted link, which is invalid in Obsidian too. It reverses a pinned throw.",
+    "owner_question": "Fold unquoted wikilink values before the lossy check, so writes rewrite up: [[Home]] as up: \"[[Home]]\". This reverses the test at properties.logic.test.ts:1542-1544. Or keep refusing such notes with a toast?"
+   },
+   {
+    "key": "N-metadata-03",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "A failed Auto Move tells the user which note did not move and why",
+    "rationale": "Ux/low. It needs Auto Move plus a name collision at the destination."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/37-vault-outside-allowed-folders.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "A vault picked outside the two allowed folders is refused or warned about, never half-working",
+    "rationale": "The owner's vault is inside an allowed root, so this needs an unusual vault location. The fix is a UX choice.",
+    "owner_question": "For a vault picked outside ~/Documents/kokobrain-vaults and ~/kokobrain-vaults: refuse to open it with a message naming the allowed folders, or open it with a warning that some features fail?"
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/38-quick-capture-dedupe-anchor.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The quick-capture dedupe anchor advances only after the frontend accepts the capture",
+    "rationale": "Ux/low. Its main trigger, the destroyed window, goes away with the N-file-io-03 fix. The composer ack (0a1c22a73) can be extended."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/55-persistent-widget-throw-desyncs-tab.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "A note whose live-preview widget throws on every render stays editable and in sync with its tab",
+    "rationale": "It needs a widget that throws on every render. The Issue names an owner decision.",
+    "owner_question": "After the rebuild also throws: rebuild once more with live-preview block decorators off (source mode) so the note stays editable, show a toast that the note could not be rendered, or both?"
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/08-collection-link-safe-open.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "Collection link() cells never navigate the app webview and drop unsafe schemes",
+    "rationale": "It needs link() cells in a view. Owner decision D8 (a) is recorded."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/40-queryjs-unsandboxed.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "QueryJS blocks written by a deep link or capture do not auto-run until the user trusts them",
+    "rationale": "Security hardening against an ADR 0010 trade-off. The fix is an owner product decision.",
+    "owner_question": "QueryJS auto-run: (a) trust per block content hash, persisted per vault, so blocks written by deep links or captures show Run, (b) default autoRunQueries to 'manual', or (c) keep the ADR 0010 trade-off as is."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/05-open-vault-root-read-batch.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "read_files_batch only reads inside the vault that is actually open",
+    "rationale": "Hardening against a compromised frontend. It starts the 05, 16, 18 confinement chain."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/16-confine-note-writes.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/audit-2026-11-04/issues/05-open-vault-root-read-batch.md"
+    ],
+    "title": "Note-writing commands refuse paths outside the open vault",
+    "rationale": "Hardening. It uses the open-root state from 05."
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/18-confine-vault-root-commands.md",
+    "merged": [],
+    "bucket": "4-corner",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/audit-2026-11-04/issues/16-confine-note-writes.md"
+    ],
+    "title": "Vault-root commands (scan, index builds, watcher, model init) only accept the open vault",
+    "rationale": "Hardening. It is blocked by 16."
+   },
+   {
+    "key": ".scratch/architecture-stability/issues/70-icon-index-single-frontmatter-reader.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "File icons read frontmatter only through Rust",
+    "rationale": "A refactor with the owner decision recorded (option A, 2026-11-05)."
+   },
+   {
+    "key": ".scratch/architecture-stability/issues/71-icon-save-edge-cases.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/architecture-stability/issues/70-icon-index-single-frontmatter-reader.md"
+    ],
+    "title": "File icon saves that cannot happen tell the user, and clicking the current icon writes nothing",
+    "rationale": "Low-severity edge cases. The Issue says to do it after 70, because 70 changes case 1's symptom."
+   },
+   {
+    "key": ".scratch/live-preview-audit/issues/04-queryjs-pager-and-cosmetic-render-gaps.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "QueryJS pager clicks keep the widget rendered; wikilinks in inline code and media tags in code render as text",
+    "rationale": "The owner postponed it on 2026-11-02. It is fully specified.",
+    "owner_question": "Postponed on 2026-11-02: pick it up now, or keep it postponed?"
+   },
+   {
+    "key": ".scratch/live-preview-audit/issues/05-render-gaps-needing-a-decision.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "Live-preview render gaps are decided one by one: meta-bind options with ], math right under a paragraph or callout, and the others listed",
+    "rationale": "Postponed by the owner. Each item needs a decision or a repro.",
+    "owner_question": "For each item (item 2, math directly under a paragraph or callout line, is the most likely for you): render it, keep it as is, or provide a repro first?"
+   },
+   {
+    "key": ".scratch/audit-2026-11-04/issues/21-graph-center-follows-every-focus.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "The local graph center follows every way the graph tab gets focus, and hints when the center note is gone",
+    "rationale": "The owner triaged it low priority on 2026-11-05 and said do not launch it.",
+    "owner_question": "You triaged this low on 2026-11-05: keep it deferred, or schedule it?"
+   },
+   {
+    "key": ".scratch/tags-obsidian-parity/issues/01-tag-format-matches-obsidian.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "A tag may start with a digit and may carry emoji, as in Obsidian",
+    "rationale": "A parity feature created as 'not to be run now'. The owner decisions in its Notes are still open.",
+    "owner_question": "Decide the emoji code-point set, and whether the task-metadata tag regex accepts non-ASCII letters, / and emoji. Also say when to run it (after editor-inline-tags Issue 01)."
+   },
+   {
+    "key": ".scratch/tags-obsidian-parity/issues/02-tag-autocomplete.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "Typing # in the editor suggests the vault's existing tags",
+    "rationale": "A new feature created as 'not to be run now'. It depends on editor-inline-tags Issue 01, which is outside this plan.",
+    "owner_question": "Created as 'not to be run now': schedule it after editor-inline-tags Issue 01, or keep it deferred?"
+   },
+   {
+    "key": ".scratch/ux-polish/issues/54-tab-strip-overflow.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "The tab strip shows overflow and hides the .md extension",
+    "rationale": "A feature request with no defect. Its blocker 07 is resolved."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/59-empty-error-badge-primitives.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "ready-for-agent",
+    "blocked_by": [],
+    "title": "EmptyState, InlineAlert and Badge primitives exist",
+    "rationale": "A design-system refactor that 60 and 61 build on."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/60-panels-use-empty-error-primitives.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/ux-polish/issues/59-empty-error-badge-primitives.md"
+    ],
+    "title": "Sidebar panels and settings use the empty and error primitives",
+    "rationale": "A refactor that needs 59's primitives. The EventCalendarView part is already gone."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/61-views-empty-error-states.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "ready-for-agent",
+    "blocked_by": [
+     ".scratch/ux-polish/issues/59-empty-error-badge-primitives.md"
+    ],
+    "title": "Graph, collection and kanban views show real empty and error states",
+    "rationale": "Partially fixed (the canvas already has an empty hint). It needs 59's primitives."
+   },
+   {
+    "key": ".scratch/architecture-stability/issues/28-move-command-logic-into-domain-modules.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "Vault, search, history and files command logic lives in domain modules outside commands/",
+    "rationale": "Deferred architecture work. It waits for a second Rust consumer.",
+    "owner_question": "Has a second consumer (a CLI, an MCP server or another app) appeared that justifies starting this?"
+   },
+   {
+    "key": ".scratch/architecture-stability/issues/29-cargo-workspace-and-core-crate.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [
+     ".scratch/architecture-stability/issues/28-move-command-logic-into-domain-modules.md"
+    ],
+    "title": "A Cargo workspace with a kokobrain-core crate exists",
+    "rationale": "Deferred. It follows 28, waits for a second consumer, and its blockers 26 and 27 are outside this plan.",
+    "owner_question": "Has a second consumer (a CLI, an MCP server or another app) appeared that justifies starting this?"
+   },
+   {
+    "key": ".scratch/architecture-stability/issues/30-move-core-tests-into-core-crate.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [
+     ".scratch/architecture-stability/issues/29-cargo-workspace-and-core-crate.md"
+    ],
+    "title": "Core tests live in the core crate, with no re-export shim",
+    "rationale": "Deferred. It follows 29.",
+    "owner_question": "Start only after 29. Has a second consumer appeared?"
+   },
+   {
+    "key": ".scratch/architecture-stability/issues/33-editor-package-deferred.md",
+    "merged": [],
+    "bucket": "5-later",
+    "status": "needs-info",
+    "blocked_by": [],
+    "title": "The editor engine lives in packages/editor",
+    "rationale": "Deferred architecture work. It waits for a second consumer of the editor.",
+    "owner_question": "Has a second consumer of the editor engine appeared that justifies extracting it?"
+   }
+  ],
+  "close": [
+   {
+    "key": ".scratch/file-io-audit/issues/51-empty-inline-footnote-kills-footnote-plugin.md",
+    "resolution": "resolved",
+    "reason": "Fixed by 1ad0306a5 ('fix: empty inline footnote no longer crashes live preview', audit-2026-11-04 Issue 06). At HEAD, buildFootnoteDecorations in footnote-plugin.ts skips the empty inline case before it pushes a decoration."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/20-composer-clears-dropped-capture.md",
+    "resolution": "resolved",
+    "reason": "Fixed by 0a1c22a73 ('fix: composer keeps text until the capture note is written', audit-2026-11-04 Issue 12). submit_composer_capture now carries a request_id, and the result is reported back (quick_capture/commands.rs:469-490)."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/29-meta-bind-value-types.md",
+    "resolution": "resolved",
+    "reason": "Fixed by 575b84f2f ('fix: meta-bind writes typed values and reads alias keys'). The toggle passes cb.checked (widgets.ts:990), number uses Number() (:1063-1067), and select uses typedOptionValue (:784)."
+   },
+   {
+    "key": ".scratch/ux-polish/issues/53-right-sidebar-non-note-tabs.md",
+    "resolution": "resolved",
+    "reason": "Delivered by 4e382ea1e (hide the right sidebar on canvas, collection and kanban) and 7b71c217f (retire .collection files). hidesRightSidebar at layout.logic.ts:22-27 returns true for canvas, view and kanban."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/39-semantic-cross-vault-commit.md",
+    "resolution": "wontfix",
+    "reason": "Against the owner decision 'one vault per session; vault switching within a session is not a real scenario'. The bug needs an in-flight update for vault A while switching to vault B."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/26-cross-vault-deep-link-dropped.md",
+    "resolution": "wontfix",
+    "reason": "Against the owner decision 'one vault per session'. A deep link to another vault is dropped only because it triggers switchVault -> teardownVault (deep-link.service.ts:161-173), and that vault switch inside a session is not a real scenario."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/43-case-only-rename-refused.md",
+    "resolution": "wontfix",
+    "reason": "Owner decision: 'a case-only rename being refused is wontfix'. renameItem's exists() check at fs.service.ts:284-285 stays as is."
+   }
+  ]
+ },
+ "critique": {
+  "adjustments": [
+   {
+    "key": "N-file-io-01",
+    "problem": "The Issue's what_to_build says to cut the assetProtocol scope down to the two vault roots plus the app cache, dropping $DOCUMENT/**, $DESKTOP/**, $PICTURE/** and $DOWNLOAD/**. help/documentation/README.md:50-62 documents those folders for file:// images, and deep-link kind=shot embeds absolute file:// paths (23-deep-links.md:207-209). As written, this ready-for-agent Issue removes documented behavior without saying so, and that contradicts the plan's own 'one-line config fix' rationale.",
+    "change": "title",
+    "value": "Images in notes display for a vault under ~/kokobrain-vaults: the asset-protocol scope adds that root (and its .kokobrain subtree), keeps the folders README.md documents for file:// images, and the README list names the new root. Narrowing the scope is a separate owner decision."
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/32-app-json-corrupt-overwrite.md",
+    "problem": "The title still promises 'a toolbar write is not reverted by a dirty tab's autosave'. At HEAD that part is fixed: every .view writer goes through rewriteViewFile (type-definitions.service.ts:350-440, commit 3df680423), and the verdict marks it (4) fixed. Only the comment loss remains (yaml-parser.ts:175-261, type-sidebar.logic.ts:520-570).",
+    "change": "title",
+    "value": ".view toolbar and icon writes keep the file's YAML comments"
+   },
+   {
+    "key": ".scratch/file-io-audit/issues/32-app-json-corrupt-overwrite.md",
+    "problem": "What remains is the loss of YAML comments in a .view config file, not note text. The Issue's own audit calls it P2 for that reason, and none of the shipped .view examples in help/examples contain comments. The 'agents now write .view files' likelihood is speculative. Even so, the plan ranks it in 1-content, above the ux/high items N-file-io-01, N-file-io-02 and 17.",
+    "change": "move_bucket",
+    "value": "4-corner"
+   },
+   {
+    "key": "N-file-io-03",
+    "problem": "This is content loss placed in the ux bucket. Per merged N-file-io-08 (lib.rs:45, :62-81; +layout.svelte:59,63), after the usual red-button close every clipboard capture and deep link is silently dropped. The dedupe anchor has already advanced, so retrying on the same clipboard is skipped too. Quick Capture is daily, so the owner question should be asked with content-bucket urgency.",
+    "change": "move_bucket",
+    "value": "1-content (keep needs-info and the owner question; place it right after N-calendar-01)"
+   },
+   {
+    "key": ".scratch/ux-polish/issues/06-link-panels-show-load-error.md",
+    "problem": "The rationale says it must run after N-index-01 because both edit the same backlinks and outgoing-links fetch functions, but blocked_by is empty. relay-lite reads only the Blocked by line, so the two can be launched in parallel and conflict. The 10 -> 48 pair in this plan uses blocked_by for the same reason.",
+    "change": "blocked_by",
+    "value": "N-index-01"
+   }
+  ],
+  "notes": "Coverage: all 169 keys in items.json appear exactly once across order, merged and close. There are no duplicates and nothing extra. Closure spot-checks all hold at HEAD: footnote-plugin.ts:91 skips the empty inline footnote (51); quick_capture/commands.rs:469-512 carries request_id with a result ack (20); widgets.ts:784/990/1065 write typed values (29); layout.logic.ts:22-27 hides the right sidebar for canvas, view and kanban (53). The wontfix closures 39, 26 and 43 match the recorded owner decisions. Every cited fix commit exists. Merges checked: 49 into 22 matches the verdict (f37acb402 keys CanvasView at EditorView.svelte:83); 15 into 13 and 11 into 02 match their verdicts. Dropping 17's Blocked-by 13 is sound: the Issue's Notes say the edge only avoided a canvas.logic.ts conflict, and D7 (b) is recorded. Remember to edit the Blocked by line in the Issue file itself. Interaction to flag for the owner: if N-file-io-03 is answered with (b) hide, Dock right-click Quit becomes a more natural way to quit, which makes Issue 44 (Dock Quit skips the exit flush) more likely. Consider deciding 44 together with it. Minor items not raised as adjustments: N-live-preview-05's blocked_by N-file-io-01 is a manual-check dependency, not a code one (harmless, since N-file-io-01 comes first). ux-polish 63's owner question is mostly an implementation requirement (keyboard reachability), and the real gate is 47. Not checked: I did not reread every partially_fixed claim line by line beyond 32, 41 and 49, and I did not reread the bodies of the 2-ux ready-for-agent Issues against help docs beyond quick-switcher, kb.pages, auto-move and the asset scope."
+ }
+}

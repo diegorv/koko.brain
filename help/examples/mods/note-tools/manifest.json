@@ -1,0 +1,6 @@
+{
+	"id": "note-tools",
+	"name": "Note tools",
+	"version": "1.0.0",
+	"description": "Example mod: note-menu and palette actions that toggle a frontmatter property and rename a note"
+}

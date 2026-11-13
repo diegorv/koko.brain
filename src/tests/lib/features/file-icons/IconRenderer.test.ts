@@ -24,6 +24,12 @@ describe('IconRenderer color', () => {
 		document.body.innerHTML = '';
 	});
 
+	it.each([['an svg', SVG_ICON], ['an emoji', EMOJI_ICON]])('adds no declaration from a color with a semicolon, on %s', (_name, icon) => {
+		const el = render(icon, 'red; background-image: url(https://example.com/x)') as HTMLElement;
+		expect(el.style.backgroundImage).toBe('');
+		expect(el.getAttribute('style')).toBeNull();
+	});
+
 	it('renders a palette name with the theme token', () => {
 		const svg = render(SVG_ICON, 'green');
 		expect(svg.tagName.toLowerCase()).toBe('svg');

@@ -7,7 +7,7 @@
 //! `Tailscale-User-Login`. Serve sets that header itself and strips any
 //! copy the client sent (https://tailscale.com/kb/1312/serve), and Funnel
 //! traffic carries none, so a missing or different login is refused.
-//! ADR-0036 records the model.
+//! ADR-0038 records the model.
 
 /// Where the host is reachable and who may use it.
 #[derive(Clone, Debug, Default, PartialEq, Eq)]

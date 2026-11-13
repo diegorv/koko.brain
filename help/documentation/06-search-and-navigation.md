@@ -20,7 +20,7 @@ Press **Enter** to open the selected file, or **Escape** to dismiss the dialog.
 ![Quick Switcher with search results](screenshots/quick-switcher.png)
 
 > [!TIP]
-> The Quick Switcher is the fastest way to navigate a large vault. Train yourself to use `Cmd+O` instead of scrolling through the file explorer.
+> The Quick Switcher is the fastest way to navigate a large vault. Train yourself to use `Cmd+O` instead of scrolling through the Files navigator.
 
 ---
 
@@ -45,7 +45,7 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Next Tab | `Cmd+Shift+]` |
 | | Previous Tab | `Cmd+Shift+[` |
 | | Pin/Unpin Tab | — |
-| | Copy Link to Block | `Cmd+Shift+L` |
+| | Copy Block Link | `Cmd+Shift+L` |
 | | Copy Block Embed | — |
 | | View File History | `Cmd+Shift+H` |
 | **File Explorer** | New File | — |
@@ -57,8 +57,12 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Toggle Graph View | `Cmd+G` |
 | | Toggle Tasks View | `Cmd+Shift+T` |
 | | Toggle Tags View | — |
+| | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pin) | — |
+| | Open view: *view* (one per `.view` file, except a view hidden with `_visible: false`) | — |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
-| | Toggle Left Sidebar (the panels next to the rail) | `Cmd+Shift+B` |
+| | Toggle Rail Panels (the panels next to the rail) | `Cmd+Shift+B` |
+| | Hide Rail Panels | `Cmd+1` |
+| | Show Rail Panels | `Cmd+2` |
 | | Toggle Table of Contents | — |
 | **Daily Notes** | Open Daily Note | — |
 | **Quick Capture** | Create Quick Capture Note | `Cmd+N` |
@@ -73,6 +77,8 @@ The Command Palette gives you a searchable list of all available commands in the
 **Shortcut:** `Cmd+Shift+F`
 
 Vault Search searches across the full content of every note in your vault.
+
+It covers Markdown notes (`.md` and `.markdown`) in every mode. View files (`.view`) are not searched: they still appear in **Types > Views** and as **Open view** commands in the command palette, but their YAML never shows up as a search result. If you rename a view to `.md`, it becomes a searchable note.
 
 Search is a rail item: it fills the note list next to the rail, with the query in its header. `Cmd+Shift+F`, `/` (when you are not typing in a text field or the editor), the **Search in Vault** command, a tag click and a search link all open it and focus the input. `Cmd+Shift+F` does not close it again, and `Escape` only leaves the input; pick another rail item to leave Search.
 
@@ -93,19 +99,19 @@ The FTS index uses the `unicode61` tokenizer with diacritic folding, so `acao` m
 Semantic search understands the *meaning* of your query, not just the exact keywords. For example, searching "meeting with client" can find a note titled "customer sync-up" even though none of the words match.
 
 - Requires a one-time model download (~542 MB for the embedder). Enable it in **Settings > Search > Semantic Search**.
-- Uses local AI models (BGE-M3 embedder, plus an optional BGE-reranker-v2-m3 cross-encoder) that run entirely on your machine — your data never leaves your computer.
+- Uses local AI models (BGE-M3 embedder, plus an optional jina-reranker-v2-base-multilingual cross-encoder) that run entirely on your machine — your data never leaves your computer.
 
 **How it works under the hood:**
 
 1. **Chunking**: Kokobrain splits each note into chunks. Headings drive the structure: each section becomes its own chunk, with the parent heading hierarchy (e.g. `Project X > Decisions > Auth`) prepended to the embedded text so semantically similar sections from different parts of the vault remain distinguishable. Long sections are split with a character-based cap (~3000 chars) and overlap so context carries between chunks. Notes that contain no headings at all fall back to a sliding-window chunker so they get indexed in their entirety instead of being truncated to the model's token limit. Fenced code blocks keep their opening lines and inline comments so function names, CLI flags, and signatures stay searchable.
 2. **Embedding**: Each chunk is converted into a 1024-dimensional vector using the BGE-M3 ONNX model, which runs locally via the ONNX Runtime. Chunks are processed in batches. Re-indexing is content-hash-aware — chunks whose text hasn't changed since the last index skip embedding entirely.
 3. **Searching**: When you search, your query is also embedded, then compared against all stored chunk embeddings using cosine similarity. The top 50 candidates are kept for the next stage.
-4. **Reranking (optional)**: If the BGE-reranker-v2-m3 cross-encoder model has been downloaded (~571 MB, opt-in via **Settings > Search**), the top 50 candidates are re-scored by reading each `(query, chunk)` pair jointly. This is qualitatively a much stronger signal than cosine similarity alone — it captures word-level relevance the bi-encoder embedding cannot — at the cost of roughly 10 seconds of CPU work per query on Apple silicon (measured 2026-09-09). If the reranker model is not present, this stage is skipped transparently and results stay in cosine order.
+4. **Reranking (optional)**: If the jina-reranker-v2-base-multilingual cross-encoder model has been downloaded (~280 MB, opt-in via **Settings > Search**), the top 50 candidates are re-scored by reading each `(query, chunk)` pair jointly. This is qualitatively a much stronger signal than cosine similarity alone — it captures word-level relevance the bi-encoder embedding cannot — at the cost of a few seconds of CPU work per query. If the reranker model is not present, this stage is skipped transparently and results stay in cosine order.
 5. **Filtering**: Results go through adaptive noise filtering that removes low-quality matches by detecting natural score gaps in the ranked list, so you see only the relevant hits.
 
 #### Hybrid Search
 
-Hybrid search combines text and semantic results for the best of both worlds. It uses Reciprocal Rank Fusion (RRF, `k = 60`) to merge the rankings from FTS and the semantic engine into a single fused ranking, then the top 50 fused candidates are reranked with the BGE cross-encoder (when available) and adaptively filtered exactly like semantic mode. This captures both exact-term hits and paraphrased / multilingual matches in one ranking.
+Hybrid search combines text and semantic results for the best of both worlds. It uses Reciprocal Rank Fusion (RRF, `k = 60`) to merge the rankings from FTS and the semantic engine into a single fused ranking, then the top 50 fused candidates are reranked with the cross-encoder (when available) and adaptively filtered exactly like semantic mode. This captures both exact-term hits and paraphrased / multilingual matches in one ranking.
 
 This mode is only available when semantic search is enabled. The reranker step is skipped automatically if its model is not downloaded.
 

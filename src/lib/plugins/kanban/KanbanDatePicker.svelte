@@ -4,7 +4,7 @@
 	import { Calendar as CalendarPrimitive, Popover as PopoverPrimitive } from 'bits-ui';
 	import { CalendarDate, type DateValue } from '@internationalized/date';
 
-	import type { DateProximity } from './kanban.logic';
+	import { PROXIMITY_CLASSES, type DateProximity } from './kanban.logic';
 
 	interface Props {
 		/** Current date string in YYYY-MM-DD format, or null */
@@ -16,15 +16,6 @@
 	}
 
 	let { date, proximity = 'none', onDateChange }: Props = $props();
-
-	const PROXIMITY_BADGE: Record<DateProximity, string> = {
-		overdue: 'bg-red-500/15 text-red-400',
-		today: 'bg-yellow-500/15 text-yellow-400',
-		tomorrow: 'bg-orange-400/15 text-orange-400',
-		upcoming: 'bg-blue-400/15 text-blue-400',
-		future: 'bg-muted text-muted-foreground',
-		none: 'bg-muted text-muted-foreground',
-	};
 
 	let open = $state(false);
 
@@ -64,7 +55,7 @@
 			<PopoverPrimitive.Trigger>
 				{#snippet children()}
 					<button
-						class="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs transition-colors {PROXIMITY_BADGE[proximity]}"
+						class="flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs transition-colors {PROXIMITY_CLASSES[proximity].badge}"
 						type="button"
 					>
 						<CalendarIcon class="size-3" />
@@ -111,11 +102,11 @@
 		>
 			{#snippet children({ months, weekdays })}
 				<CalendarPrimitive.Header class="flex items-center justify-between pb-2">
-					<CalendarPrimitive.PrevButton class="rounded p-1 hover:bg-muted">
+					<CalendarPrimitive.PrevButton class="rounded-xs p-1 hover:bg-muted">
 						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg><!-- privacy-ok -->
 					</CalendarPrimitive.PrevButton>
 					<CalendarPrimitive.Heading class="text-sm font-medium" />
-					<CalendarPrimitive.NextButton class="rounded p-1 hover:bg-muted">
+					<CalendarPrimitive.NextButton class="rounded-xs p-1 hover:bg-muted">
 						<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg><!-- privacy-ok -->
 					</CalendarPrimitive.NextButton>
 				</CalendarPrimitive.Header>
@@ -136,7 +127,7 @@
 									{#each week as cellDate}
 										<CalendarPrimitive.Cell date={cellDate} month={month.value} class="p-0">
 											<CalendarPrimitive.Day
-												class="inline-flex size-8 items-center justify-center rounded text-sm transition-colors hover:bg-muted data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[today]:font-bold data-[outside-month]:text-muted-foreground/40 data-[disabled]:text-muted-foreground/40"
+												class="inline-flex size-8 items-center justify-center rounded-xs text-sm transition-colors hover:bg-muted data-[selected]:bg-primary data-[selected]:text-primary-foreground data-[today]:font-bold data-[outside-month]:text-muted-foreground/40 data-[disabled]:text-muted-foreground/40"
 											>
 												{#snippet children({ day })}
 													{day}

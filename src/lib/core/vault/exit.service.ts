@@ -34,6 +34,6 @@ export async function confirmDiscardFailedSaves(failedPaths: string[], verb: str
 	const fileNames = failedPaths.map((p) => p.split('/').pop()).join(', ');
 	return ask(
 		`Failed to save: ${fileNames}. ${verb} anyway and lose unsaved changes?`,
-		{ title: 'Unsaved Changes', kind: 'warning' },
+		{ title: 'Unsaved Changes', kind: 'warning', okLabel: `${verb} Anyway`, cancelLabel: 'Cancel' },
 	);
 }

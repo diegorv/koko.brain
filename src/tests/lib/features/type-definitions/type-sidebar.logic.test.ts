@@ -1,8 +1,14 @@
 import { describe, it, expect } from 'vitest';
-import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewIconYaml, getViewLabel, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { buildTypeSections, getNotesForSelection, getNotesForViewPaths, formatNoteDate, formatRelativeTime, formatPropertyValue, splitPropertyIntoPills, collectViewFiles, updateViewColorsYaml, updateViewIconYaml, updateViewRailYaml, showViewInViewsYaml, updateViewListPropertiesYaml, buildNewViewYaml, getViewLabel, getViewOpensInEditor, getViewGroup, getViewVisible, getViewOrder, getViewSort, getViewListProperties, sortViewFiles, excludeSystemFolder, isListableNote, ignoredKeyNotes, railViewNameNote, RESERVED_KEY_RULES, VIEW_SORTS, effectiveViewSortLabel } from '#lib/features/type-definitions/type-sidebar.logic.js';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+import { parseCollectionYaml, railViewIndex } from '#lib/features/collection/yaml-parser.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { TypeMetadata } from '#lib/features/type-definitions/type-definitions.logic.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
+import type { CollectionFilter, CollectionViewDef } from '#lib/features/collection/collection.types.js';
+import type { FilterGroup } from '#lib/features/collection/toolbar/toolbar.types.js';
+import { parseFilterToGroups } from '#lib/features/collection/toolbar/filter.logic.js';
+import { seedToolbarStateFromDefinition } from '#lib/features/type-definitions/type-note-list.logic.js';
 
 function meta(name: string, overrides: Partial<TypeMetadata> = {}): TypeMetadata {
 	return {
@@ -126,6 +132,23 @@ describe('buildTypeSections', () => {
 		];
 		const { sections } = buildTypeSections(entries, new Map(), 'all');
 		expect(sections[0].notes.map((n) => n.title)).toEqual(['B', 'A', 'C']);
+	});
+
+	it('pins no note with a blank, empty-string or boolean _order, which Number() would read as 0 or 1', () => {
+		const entries = [
+			entryV2('/v/blank.md', { title: 'Blank', isA: 'Project', frontmatter: { _order: null } }),
+			entryV2('/v/empty.md', { title: 'Empty', isA: 'Project', frontmatter: { _order: '' } }),
+			entryV2('/v/spaces.md', { title: 'Spaces', isA: 'Project', frontmatter: { _order: '  ' } }),
+			entryV2('/v/false.md', { title: 'False', isA: 'Project', frontmatter: { _order: false } }),
+			entryV2('/v/true.md', { title: 'True', isA: 'Project', frontmatter: { _order: true } }),
+			entryV2('/v/zero.md', { title: 'Zero', isA: 'Project', frontmatter: { _order: 0 } }),
+			entryV2('/v/two.md', { title: 'Two', isA: 'Project', frontmatter: { _order: 2 } }),
+		];
+		const expected = ['Zero', 'Two', 'Blank', 'Empty', 'False', 'Spaces', 'True'];
+		const { sections } = buildTypeSections(entries, new Map(), 'all');
+		expect(sections[0].notes.map((n) => n.title)).toEqual(expected);
+		const viewNotes = getNotesForViewPaths(entries, new Set(entries.map((e) => e.path)), 'title');
+		expect(viewNotes.map((n) => n.title)).toEqual(expected);
 	});
 
 	it('sorts notes by modified (newest first) when _sort is modified', () => {
@@ -291,6 +314,20 @@ describe('getNotesForSelection', () => {
 		const notes = getNotesForSelection(entries, { kind: 'type', name: 'Project' });
 		expect(notes.length).toBe(1);
 		expect(notes[0].title).toBe('A');
+	});
+
+	it('keeps archived notes of a type and of Untyped with "all", and only them with "archived"', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', isA: 'Project', modifiedAt: 200 }),
+			entryV2('/v/b.md', { title: 'B', isA: 'Project', archived: true, modifiedAt: 100 }),
+			entryV2('/v/c.md', { title: 'C', modifiedAt: 200 }),
+			entryV2('/v/d.md', { title: 'D', archived: true, modifiedAt: 100 }),
+		];
+		const project = { kind: 'type', name: 'Project' } as const;
+		expect(getNotesForSelection(entries, project, 'all').map((n) => n.title)).toEqual(['A', 'B']);
+		expect(getNotesForSelection(entries, project, 'archived').map((n) => n.title)).toEqual(['B']);
+		expect(getNotesForSelection(entries, { kind: 'untyped' }, 'all').map((n) => n.title)).toEqual(['C', 'D']);
+		expect(getNotesForSelection(entries, { kind: 'untyped' }, 'archived').map((n) => n.title)).toEqual(['D']);
 	});
 
 	it('sorts a type by most-recently-modified', () => {
@@ -607,6 +644,14 @@ describe('collectViewFiles', () => {
 		const result = collectViewFiles(tree);
 		expect(result.map((v) => v.name)).toEqual(['alpha', 'mid', 'zebra']);
 	});
+
+	it('sorts numbers in names by value, like the file tree', () => {
+		const tree = [
+			{ name: 'Week 10.view', path: '/v/Week 10.view', isDirectory: false },
+			{ name: 'Week 2.view', path: '/v/Week 2.view', isDirectory: false },
+		];
+		expect(collectViewFiles(tree).map((v) => v.name)).toEqual(['Week 2', 'Week 10']);
+	});
 });
 
 describe('getNotesForViewPaths', () => {
@@ -668,9 +713,63 @@ describe('getNotesForViewPaths', () => {
 		const matching = new Set(['/v/x.md', '/v/a.md', '/v/b.md']);
 		expect(getNotesForViewPaths(entries, matching, null).map((n) => n.title)).toEqual(['B']);
 	});
+
+	it('keeps archived notes with includeArchived, sorted or in matching order', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', archived: true }),
+			entryV2('/v/b.md', { title: 'B' }),
+		];
+		const matching = new Set(['/v/b.md', '/v/a.md']);
+		expect(getNotesForViewPaths(entries, matching, 'title', true).map((n) => n.title)).toEqual(['A', 'B']);
+		expect(getNotesForViewPaths(entries, matching, null, true).map((n) => n.title)).toEqual(['B', 'A']);
+	});
+
+	// VIEW_SORTS and the comparator's case labels are two lists: a mode in
+	// VIEW_SORTS with no case would silently fall back to title order.
+	it('orders by each VIEW_SORTS mode, not by the title fallback', () => {
+		const entries = [
+			entryV2('/v/a.md', { title: 'A', modifiedAt: 200, createdAt: 100 }),
+			entryV2('/v/b.md', { title: 'B', modifiedAt: 300, createdAt: 300 }),
+			entryV2('/v/c.md', { title: 'C', modifiedAt: 100, createdAt: 200 }),
+		];
+		const matching = new Set(entries.map((e) => e.path));
+		const expected: Record<string, string[]> = {
+			modified: ['B', 'A', 'C'],
+			created: ['B', 'C', 'A'],
+			'modified-asc': ['C', 'A', 'B'],
+			'created-asc': ['A', 'C', 'B'],
+			title: ['A', 'B', 'C'],
+		};
+		expect([...VIEW_SORTS].sort()).toEqual(Object.keys(expected).sort());
+		for (const sort of VIEW_SORTS) {
+			expect(getNotesForViewPaths(entries, matching, sort).map((n) => n.title)).toEqual(expected[sort]);
+		}
+	});
 });
 
 describe('updateViewIconYaml', () => {
+	it.each([
+		['the same values', '# c\n_icon: lucide:star\n_color: red\n_title_color: blue\n', 'lucide:star', 'red', 'blue'],
+		['a bare name', '# c\n_icon: star\n', 'lucide:star', undefined, undefined],
+		['the aliases', '# c\nicon: star\ncolor: red\n', 'lucide:star', 'red', undefined],
+		['a color that is not a string', '# c\n_icon: star\n_color: 5\n', 'lucide:star', undefined, undefined],
+	])('returns the input for %s', (_label, input, icon, color, titleColor) => {
+		expect(updateViewIconYaml(input, icon, color, titleColor)).toBe(input);
+	});
+
+	it.each([
+		['a different color', '# c\n_icon: star\n_color: red\n', 'lucide:star', 'blue', undefined],
+		['a cleared title color', '# c\n_icon: star\n_title_color: red\n', 'lucide:star', undefined, undefined],
+		['another pack', '# c\n_icon: star\n', 'feather:star', undefined, undefined],
+		['an icon value the parser rejects', '# c\n', 'mdi:home', undefined, undefined],
+	])('rewrites for %s', (_label, input, icon, color, titleColor) => {
+		expect(updateViewIconYaml(input, icon, color, titleColor)).not.toBe(input);
+	});
+
+	it('removes an _icon the parser rejects when no icon is given', () => {
+		expect(parseYaml(updateViewIconYaml('_icon: mdi:home\n_order: 1\n'))).toEqual({ _order: 1 });
+	});
+
 	it('sets _icon, _color, and _title_color', () => {
 		const input = '_sidebar_label: Test\nviews:\n  - type: table\n    name: All\n';
 		const result = updateViewIconYaml(input, 'lucide:rocket', 'red', '#fff');
@@ -710,6 +809,201 @@ describe('updateViewIconYaml', () => {
 		expect(result).toContain('_icon: lucide:rocket');
 		expect(result).toContain('_color: green');
 	});
+
+	it('drops the color aliases when clearing, so the name and the icon lose their color', () => {
+		const result = parseYaml(updateViewIconYaml('_icon: lucide:star\ncolor: red\ntitle_color: blue\n', 'lucide:star'));
+		expect(result).toEqual({ _icon: 'lucide:star' });
+	});
+
+	it('replaces a color alias with its key when changing, leaving one key', () => {
+		const result = parseYaml(updateViewIconYaml('_icon: lucide:star\ntitle_color: blue\n', 'lucide:star', undefined, 'green'));
+		expect(result).toEqual({ _icon: 'lucide:star', _title_color: 'green' });
+	});
+
+	it('removes the three aliases when removing the icon', () => {
+		const result = parseYaml(updateViewIconYaml('icon: rocket\ncolor: red\ntitle_color: blue\n_order: 1\n'));
+		expect(result).toEqual({ _order: 1 });
+	});
+
+	it('replaces an icon alias when picking an icon', () => {
+		const result = parseYaml(updateViewIconYaml('_icon: lucide:star\nicon: rocket\n', 'lucide:check'));
+		expect(result).toEqual({ _icon: 'lucide:check' });
+	});
+});
+
+describe('updateViewColorsYaml', () => {
+	it.each([
+		['a pack the parser rejects', '_icon: mdi:home\n', 'mdi:home'],
+		['a value that is not a string', '_icon: 12\n', 12],
+		['a name the parser accepts', '_icon: lucide:star\n', 'lucide:star'],
+	])('leaves an _icon with %s untouched', (_label, input, icon) => {
+		const result = parseYaml(updateViewColorsYaml(input, 'red', 'blue'));
+		expect(result).toEqual({ _icon: icon, _color: 'red', _title_color: 'blue' });
+	});
+
+	it('leaves an icon alias untouched', () => {
+		const result = parseYaml(updateViewColorsYaml('icon: rocket\n', 'red'));
+		expect(result).toEqual({ icon: 'rocket', _color: 'red' });
+	});
+
+	it('removes a color that comes back absent', () => {
+		const result = parseYaml(updateViewColorsYaml('_color: red\n_title_color: blue\n_order: 1\n', undefined, 'blue'));
+		expect(result).toEqual({ _title_color: 'blue', _order: 1 });
+	});
+
+	it('clears a color held by its alias', () => {
+		const result = parseYaml(updateViewColorsYaml('title_color: blue\n_order: 1\n'));
+		expect(result).toEqual({ _order: 1 });
+	});
+
+	it('changes a color held by its alias, leaving one key', () => {
+		const result = parseYaml(updateViewColorsYaml('color: red\n', 'green'));
+		expect(result).toEqual({ _color: 'green' });
+	});
+
+	it('clears a color set under both keys, whichever came last', () => {
+		expect(parseYaml(updateViewColorsYaml('_color: red\ncolor: blue\n'))).toEqual({});
+		expect(parseYaml(updateViewColorsYaml('color: blue\n_color: red\n'))).toEqual({});
+	});
+
+	it('keeps the other color alias when only one color changes', () => {
+		const result = parseYaml(updateViewColorsYaml('color: red\ntitle_color: blue\n', 'green', 'blue'));
+		expect(result).toEqual({ title_color: 'blue', _color: 'green' });
+	});
+
+	it.each([
+		['no color at all, with a comment', '# my view\n_order: 1\n', undefined, undefined],
+		['the same colors, with a comment', '# my view\n_color: red\n_title_color: blue\n', 'red', 'blue'],
+		['the same colors held by aliases', '# my view\ncolor: red\ntitle_color: blue\n', 'red', 'blue'],
+		['the winner of two keys', '# my view\n_color: red\ncolor: blue\n', 'blue', undefined],
+		['an _icon the parser rejects', '# my view\n_icon: mdi:home\n', undefined, undefined],
+		['a color that is not a string', '# my view\n_color: 12\n', undefined, undefined],
+		['a value with spaces around it', '# my view\n_color: " red "\n', 'red', undefined],
+	])('returns the same text when nothing changes: %s', (_label, input, color, titleColor) => {
+		expect(updateViewColorsYaml(input, color, titleColor)).toBe(input);
+	});
+
+	it('returns YAML that does not parse as it is', () => {
+		expect(updateViewColorsYaml('views: [', 'red')).toBe('views: [');
+	});
+
+	it('returns YAML that is not a mapping as it is', () => {
+		expect(updateViewColorsYaml('- a\n- b\n', 'red')).toBe('- a\n- b\n');
+	});
+
+	it('writes to an empty file', () => {
+		expect(parseYaml(updateViewColorsYaml('', 'red'))).toEqual({ _color: 'red' });
+	});
+});
+
+describe('updateViewRailYaml', () => {
+	it('sets _rail: true and keeps the other keys', () => {
+		const input = '_sidebar_label: Test\nviews:\n  - type: table\n    name: All\n';
+		const top = parseYaml(updateViewRailYaml(input, true)) as Record<string, unknown>;
+		expect(top._rail).toBe(true);
+		expect(top._sidebar_label).toBe('Test');
+		expect(top.views).toEqual([{ type: 'table', name: 'All' }]);
+	});
+
+	it('replaces a _rail that is not the boolean true', () => {
+		expect((parseYaml(updateViewRailYaml('_rail: "true"\n', true)) as Record<string, unknown>)._rail).toBe(true);
+	});
+
+	it('deletes the key to unpin, whatever its value', () => {
+		for (const input of ['_rail: true\n_order: 5\n', '_rail: "true"\n_order: 5\n']) {
+			const top = parseYaml(updateViewRailYaml(input, false)) as Record<string, unknown>;
+			expect(top).not.toHaveProperty('_rail');
+			expect(top._order).toBe(5);
+		}
+	});
+
+	it('pins an empty file', () => {
+		expect(parseYaml(updateViewRailYaml('', true))).toEqual({ _rail: true });
+	});
+
+	it('throws on YAML that does not parse', () => {
+		expect(() => updateViewRailYaml('views: [', true)).toThrow("The .view file's YAML does not parse");
+		expect(() => updateViewRailYaml('views: [', false)).toThrow("The .view file's YAML does not parse");
+	});
+
+	it('throws a readable error, not a TypeError, on a top level that is not a mapping', () => {
+		for (const input of ['just text\n', '42\n', '- a\n- b\n']) {
+			for (const on of [true, false]) {
+				expect(() => updateViewRailYaml(input, on), input).toThrow(new Error("The .view file's YAML is not a mapping of keys"));
+			}
+		}
+	});
+});
+
+describe('showViewInViewsYaml', () => {
+	it('removes _visible and _open_in_editor and keeps the other keys', () => {
+		const input = '_visible: false\n_open_in_editor: true\n_sidebar_label: Board\nviews:\n  - type: table\n    name: All\n';
+		expect(parseYaml(showViewInViewsYaml(input))).toEqual({ _sidebar_label: 'Board', views: [{ type: 'table', name: 'All' }] });
+	});
+
+	it('removes the visible alias Rust folds onto _visible, so the view does not stay hidden', () => {
+		expect(parseYaml(showViewInViewsYaml('visible: false\nviews: []\n'))).toEqual({ views: [] });
+	});
+
+	it('returns the bytes unchanged when none of the keys is there, so nothing is written', () => {
+		const input = '# kept\n_sidebar_label: Board\n';
+		expect(showViewInViewsYaml(input)).toBe(input);
+		expect(showViewInViewsYaml('')).toBe('');
+	});
+
+	it('throws on YAML that does not parse', () => {
+		expect(() => showViewInViewsYaml('views: [')).toThrow("The .view file's YAML does not parse");
+	});
+
+	it('throws a readable error, not a TypeError, on a top level that is not a mapping', () => {
+		for (const input of ['just text\n', '42\n', '- a\n- b\n']) {
+			expect(() => showViewInViewsYaml(input), input).toThrow(new Error("The .view file's YAML is not a mapping of keys"));
+		}
+	});
+});
+
+describe('updateViewListPropertiesYaml', () => {
+	it('drops the alias Rust folds onto the key, so a save and a clear both take effect', () => {
+		const input = 'list_properties_display:\n  - a\n';
+		expect(parseYaml(updateViewListPropertiesYaml(input, ['b']))).toEqual({ _list_properties_display: ['b'] });
+		expect(parseYaml(updateViewListPropertiesYaml(input, []))).toEqual({});
+	});
+
+	it('sets _list_properties_display in order and keeps the other keys', () => {
+		const input = '_sidebar_label: Test\nviews:\n  - type: table\n    name: All\n';
+		const top = parseYaml(updateViewListPropertiesYaml(input, ['budget', 'status'])) as Record<string, unknown>;
+		expect(top._list_properties_display).toEqual(['budget', 'status']);
+		expect(top._sidebar_label).toBe('Test');
+		expect(top.views).toEqual([{ type: 'table', name: 'All' }]);
+	});
+
+	it('replaces an existing list', () => {
+		const input = '_list_properties_display:\n  - budget\n';
+		expect(parseYaml(updateViewListPropertiesYaml(input, ['status']))).toEqual({ _list_properties_display: ['status'] });
+	});
+
+	it('deletes the key for an empty list', () => {
+		const top = parseYaml(updateViewListPropertiesYaml('_list_properties_display:\n  - budget\n_order: 5\n', [])) as Record<string, unknown>;
+		expect(top).not.toHaveProperty('_list_properties_display');
+		expect(top._order).toBe(5);
+	});
+
+	it('writes an empty file', () => {
+		expect(parseYaml(updateViewListPropertiesYaml('', ['budget']))).toEqual({ _list_properties_display: ['budget'] });
+	});
+
+	it('throws on YAML that does not parse, for a list and for an empty list', () => {
+		expect(() => updateViewListPropertiesYaml('views: [', ['budget'])).toThrow("The .view file's YAML does not parse");
+		expect(() => updateViewListPropertiesYaml('views: [', [])).toThrow("The .view file's YAML does not parse");
+	});
+
+	it('throws a readable error, not a TypeError, on a top level that is not a mapping', () => {
+		for (const input of ['just text\n', '42\n', '- a\n- b\n']) {
+			for (const properties of [['budget'], []]) {
+				expect(() => updateViewListPropertiesYaml(input, properties), input).toThrow(new Error("The .view file's YAML is not a mapping of keys"));
+			}
+		}
+	});
 });
 
 describe('getViewLabel', () => {
@@ -725,6 +1019,250 @@ describe('getViewLabel', () => {
 
 	it('returns fallback for undefined entry', () => {
 		expect(getViewLabel(undefined, 'fallback')).toBe('fallback');
+	});
+});
+
+describe('buildNewViewYaml', () => {
+	const LONG = Array.from({ length: 20 }, (_, i) => `word${i}`).join(' ').padEnd(200, 'x');
+	const NAMES = ['#tag', '123', '1e3', '0x1F', 'true', 'yes', 'null', '~', 'NaN', 'inf', '[x]', '- x', `it's "quoted"`, LONG];
+
+	it('uses a 200-character name with spaces', () => {
+		expect(LONG).toHaveLength(200);
+		expect(LONG).toContain(' ');
+	});
+
+	it.each(NAMES)('writes %j as the label and the table view name, sorted by title, with no filters or _order', (name) => {
+		const yaml = buildNewViewYaml(name);
+		const parsed = parseCollectionYaml(yaml);
+		if (!parsed.success) throw new Error(`parse failed: ${parsed.error}`);
+		expect(parsed.definition.views[0].name).toBe(name);
+		expect(parsed.definition.views[0].type).toBe('table');
+
+		const top = parseYaml(yaml) as Record<string, unknown>;
+		expect(top._sidebar_label).toBe(name);
+		expect(top._sort).toBe('title');
+		expect(top).not.toHaveProperty('filters');
+		expect(top).not.toHaveProperty('_order');
+	});
+
+	it.each(NAMES)('gives %j back through getViewLabel', (name) => {
+		const frontmatter = parseYaml(buildNewViewYaml(name)) as NoteEntryV2['frontmatter'];
+		const entry = entryV2(`/vault/${name}.view`, { frontmatter });
+		expect(getViewLabel(entry, 'fallback')).toBe(name);
+	});
+
+	it('keeps a long label on a single line', () => {
+		const labelLines = buildNewViewYaml(LONG).split('\n').filter((line) => line.startsWith('_sidebar_label:'));
+		expect(labelLines).toHaveLength(1);
+		expect(parseYaml(labelLines[0])).toEqual({ _sidebar_label: LONG });
+	});
+
+	/** Rows without their per-parse ids. */
+	function rowsOf(groups: FilterGroup[]) {
+		return groups.map((g) => ({ conjunction: g.conjunction, rows: g.rows.map(({ id: _id, ...rest }) => rest) }));
+	}
+
+	it.each<[string, CollectionFilter | string]>([
+		['a single expression with double quotes', '_type == "Project"'],
+		['an and object of two rows', { and: ['_type == "Project"', "status != 'done'"] }],
+	])('puts %s on the first view, where the Filter panel loads it under This view', (_label, filters) => {
+		const yaml = buildNewViewYaml('Reading', filters);
+		const parsed = parseCollectionYaml(yaml);
+		if (!parsed.success) throw new Error(`parse failed: ${parsed.error}`);
+		const { definition } = parsed;
+		expect(definition.views[0].filters).toEqual(filters);
+		expect(definition.filters).toBeUndefined();
+
+		const seed = seedToolbarStateFromDefinition(definition, definition.views[0]);
+		expect(seed.globalFilters).toEqual([]);
+		expect(rowsOf(seed.viewFilters)).toEqual(rowsOf(parseFilterToGroups(filters)));
+		expect(seed.viewFilters[0].rows[0]).toMatchObject({ property: '_type', operator: 'is', value: 'Project' });
+		expect(seed.viewFilters[0].rows[0].raw).toBeUndefined();
+	});
+
+	it('writes no filters key anywhere when filters is undefined', () => {
+		const yaml = buildNewViewYaml('Reading', undefined);
+		expect(yaml).not.toContain('filters');
+		const top = parseYaml(yaml) as { views: Record<string, unknown>[] };
+		expect(top).not.toHaveProperty('filters');
+		expect(top.views[0]).not.toHaveProperty('filters');
+	});
+});
+
+describe('getViewOpensInEditor', () => {
+	it('is true only for the boolean true', () => {
+		expect(getViewOpensInEditor(entryV2('/v/test.view', { frontmatter: { _open_in_editor: true } }))).toBe(true);
+	});
+
+	it('is false for false, the string "true" and other values', () => {
+		for (const value of [false, 'true', 1, 'yes', null]) {
+			expect(getViewOpensInEditor(entryV2('/v/test.view', { frontmatter: { _open_in_editor: value } }))).toBe(false);
+		}
+	});
+
+	it('is false without the key or the entry', () => {
+		expect(getViewOpensInEditor(entryV2('/v/test.view', {}))).toBe(false);
+		expect(getViewOpensInEditor(undefined)).toBe(false);
+	});
+});
+
+describe('getViewGroup', () => {
+	it('gives the trimmed _group text', () => {
+		expect(getViewGroup(entryV2('/v/test.view', { frontmatter: { _group: 'Work' } }))).toBe('Work');
+		expect(getViewGroup(entryV2('/v/test.view', { frontmatter: { _group: '  Work  ' } }))).toBe('Work');
+	});
+
+	it('keeps the case of the name', () => {
+		expect(getViewGroup(entryV2('/v/test.view', { frontmatter: { _group: 'work' } }))).toBe('work');
+	});
+
+	it('is null for a missing, blank or non-text _group, and without the entry', () => {
+		for (const value of ['', '   ', 3, true, null, ['Work']]) {
+			expect(getViewGroup(entryV2('/v/test.view', { frontmatter: { _group: value } }))).toBeNull();
+		}
+		expect(getViewGroup(entryV2('/v/test.view', {}))).toBeNull();
+		expect(getViewGroup(undefined)).toBeNull();
+	});
+});
+
+describe('getViewVisible', () => {
+	it('is false only for the boolean false', () => {
+		expect(getViewVisible(entryV2('/v/test.view', { frontmatter: { _visible: false } }))).toBe(false);
+	});
+
+	it('is true for true, the string "false" and other values', () => {
+		for (const value of [true, 'false', 0, 'no', null]) {
+			expect(getViewVisible(entryV2('/v/test.view', { frontmatter: { _visible: value } }))).toBe(true);
+		}
+	});
+
+	it('is true without the key or the entry', () => {
+		expect(getViewVisible(entryV2('/v/test.view', {}))).toBe(true);
+		expect(getViewVisible(undefined)).toBe(true);
+	});
+});
+
+describe('ignoredKeyNotes', () => {
+	it('reports a non-number _order and a non-boolean _open_in_editor with the value it expected', () => {
+		expect(ignoredKeyNotes({ _order: '1', _open_in_editor: 'true' })).toEqual([
+			'Ignored key _order: expected a number, got "1"',
+			'Ignored key _open_in_editor: expected true or false, got "true"',
+		]);
+	});
+
+	it('reports a key present with no value, which is ignored as well', () => {
+		expect(ignoredKeyNotes({ _order: null })).toEqual(['Ignored key _order: expected a number, got null']);
+	});
+
+	it('has no notes for values the readers use, absent keys, or keys outside the table', () => {
+		expect(ignoredKeyNotes({ _order: 3, _open_in_editor: false, _sidebar_label: 7 })).toEqual([]);
+		expect(ignoredKeyNotes({})).toEqual([]);
+	});
+
+	it('agrees with the readers on which values work', () => {
+		for (const value of [1, '1', true, 'true', null]) {
+			const entry = entryV2('/v/test.view', { frontmatter: { _order: value, _open_in_editor: value } });
+			const notes = ignoredKeyNotes(entry.frontmatter);
+			expect(notes.some((n) => n.includes('_order'))).toBe(getViewOrder(entry) === 50);
+			expect(notes.some((n) => n.includes('_open_in_editor'))).toBe(typeof value !== 'boolean');
+		}
+	});
+
+	it('reports a _sort that is not one of the view sorts, a string or not', () => {
+		const expected = 'one of modified, created, modified-asc, created-asc, title';
+		expect(ignoredKeyNotes({ _sort: 'rank' })).toEqual([`Ignored key _sort: expected ${expected}, got "rank"`]);
+		expect(ignoredKeyNotes({ _sort: 3 })).toEqual([`Ignored key _sort: expected ${expected}, got 3`]);
+		for (const sort of VIEW_SORTS) expect(ignoredKeyNotes({ _sort: sort })).toEqual([]);
+	});
+
+	it('agrees with getViewSort on which _sort values work', () => {
+		for (const value of ['title', 'created-asc', 'Title', 'rank', 1, null]) {
+			const entry = entryV2('/v/test.view', { frontmatter: { _sort: value } });
+			const noted = ignoredKeyNotes(entry.frontmatter).some((n) => n.includes('_sort'));
+			expect(noted).toBe(getViewSort(entry) !== value);
+		}
+	});
+
+	it('reports a non-boolean _visible and a non-text _group', () => {
+		expect(ignoredKeyNotes({ _visible: 'false', _group: 3 })).toEqual([
+			'Ignored key _visible: expected true or false, got "false"',
+			'Ignored key _group: expected text, got 3',
+		]);
+		expect(ignoredKeyNotes({ _visible: false, _group: 'Work' })).toEqual([]);
+	});
+
+	it('reports a _rail that is not a boolean', () => {
+		for (const value of ['true', 1, null]) {
+			expect(ignoredKeyNotes({ _rail: value })).toEqual([`Ignored key _rail: expected true or false, got ${JSON.stringify(value)}`]);
+		}
+		expect(ignoredKeyNotes({ _rail: true })).toEqual([]);
+		expect(ignoredKeyNotes({ _rail: false })).toEqual([]);
+	});
+
+	it('agrees with getViewVisible and getViewGroup on which values work', () => {
+		for (const value of [false, true, 'false', 3, null]) {
+			const entry = entryV2('/v/test.view', { frontmatter: { _visible: value } });
+			const noted = ignoredKeyNotes(entry.frontmatter).some((n) => n.includes('_visible'));
+			expect(noted).toBe(typeof value !== 'boolean');
+		}
+		for (const value of ['Work', 3, true, null]) {
+			const entry = entryV2('/v/test.view', { frontmatter: { _group: value } });
+			const noted = ignoredKeyNotes(entry.frontmatter).some((n) => n.includes('_group'));
+			expect(noted).toBe(getViewGroup(entry) === null);
+		}
+	});
+
+	describe('_rail_view', () => {
+		const views = [{ type: 'table', name: 'Table' }, { type: 'table', name: 'Board' }];
+
+		it('has no note for a name one of the views carries', () => {
+			expect(ignoredKeyNotes({ _rail_view: 'Board', views })).toEqual([]);
+			expect(ignoredKeyNotes({ _rail_view: 'Table', views })).toEqual([]);
+		});
+
+		it('says a name no view carries runs the first view, from the parsed definition', () => {
+			const parsed = views as CollectionViewDef[];
+			expect(railViewNameNote({ views: parsed, railView: 'Bord' })).toBe('Ignored key _rail_view: "Bord" names no view; the first view runs');
+			expect(railViewNameNote({ views: parsed, railView: 'board' })).toBe('Ignored key _rail_view: "board" names no view; the first view runs');
+			expect(railViewNameNote({ views: parsed, railView: 'Board' })).toBeNull();
+			expect(railViewNameNote({ views: parsed })).toBeNull();
+		});
+
+		it('tests only the kind of the value in the entry, where Rust projects each view to null', () => {
+			const rustViews = [null, null];
+			expect(ignoredKeyNotes({ _rail_view: 'Board', views: rustViews })).toEqual([]);
+			expect(ignoredKeyNotes({ _rail_view: 'Bord', views: rustViews })).toEqual([]);
+			expect(ignoredKeyNotes({ _rail_view: 3, views: rustViews })).toEqual(['Ignored key _rail_view: expected the name of one of its views, got 3']);
+			expect(ignoredKeyNotes({ _rail_view: '  ', views: rustViews })).toEqual(['Ignored key _rail_view: "  " names no view; the first view runs']);
+		});
+
+		it('has no note for a record without views, such as a type definition', () => {
+			expect(ignoredKeyNotes({ _rail_view: 'Board' })).toEqual([]);
+			expect(ignoredKeyNotes({ _rail_view: 3, views: 'Board' })).toEqual([]);
+		});
+
+		it('reports a value that is not text with the value it expected', () => {
+			for (const value of [2, true, null, ['Board']]) {
+				expect(ignoredKeyNotes({ _rail_view: value, views })).toEqual([
+					`Ignored key _rail_view: expected the name of one of its views, got ${JSON.stringify(value)}`,
+				]);
+			}
+		});
+
+		it('agrees with railViewIndex on which values pick a view', () => {
+			for (const value of ['Board', 'Table', 'Bord', '', ' Board', 2, null]) {
+				const yaml = stringifyYaml({ _rail_view: value, views });
+				const parsed = parseCollectionYaml(yaml);
+				if (!parsed.success) throw new Error(parsed.error);
+				const picks = parsed.definition.railView !== undefined && parsed.definition.views[railViewIndex(parsed.definition)].name === parsed.definition.railView;
+				const noted = ignoredKeyNotes(parseYaml(yaml)).some((n) => n.includes('_rail_view')) || railViewNameNote(parsed.definition) !== null;
+				expect(noted).toBe(!picks);
+			}
+		});
+	});
+
+	it('reads its keys from the reserved-key table', () => {
+		expect(RESERVED_KEY_RULES.map((r) => r.key)).toEqual(['_order', '_open_in_editor', '_sort', '_visible', '_group', '_rail', '_rail_view']);
 	});
 });
 
@@ -749,6 +1287,24 @@ describe('getViewSort', () => {
 	it('defaults to modified', () => {
 		expect(getViewSort(undefined)).toBe('modified');
 	});
+
+	it('ignores a _sort that is not one of the view sorts: the default applies, not title', () => {
+		expect(getViewSort(entryV2('/v/test.view', { frontmatter: { _sort: 'rank' } }))).toBe('modified');
+		expect(getViewSort(entryV2('/v/test.view', { frontmatter: { _sort: 7 } }))).toBe('modified');
+	});
+});
+
+describe('effectiveViewSortLabel', () => {
+	it('names the _sort that orders the list', () => {
+		expect(effectiveViewSortLabel(entryV2('/v/test.view', { frontmatter: { _sort: 'title' } }))).toBe('Sorted by _sort: title');
+	});
+
+	it('names the default without a _sort, or with one that is ignored', () => {
+		const label = 'Sorted by the default: modified, newest first';
+		expect(effectiveViewSortLabel(undefined)).toBe(label);
+		expect(effectiveViewSortLabel(entryV2('/v/test.view'))).toBe(label);
+		expect(effectiveViewSortLabel(entryV2('/v/test.view', { frontmatter: { _sort: 'rank' } }))).toBe(label);
+	});
 });
 
 describe('getViewListProperties', () => {
@@ -772,7 +1328,7 @@ describe('sortViewFiles', () => {
 		return new Map(entries.map((e) => [e.path, e]));
 	}
 
-	it('sorts by _order then alphabetically', () => {
+	it('sorts by _order, then by label', () => {
 		const views = [
 			{ path: '/v/b.view', name: 'b' },
 			{ path: '/v/a.view', name: 'a' },
@@ -797,7 +1353,7 @@ describe('sortViewFiles', () => {
 		expect(result.map((v) => v.name)).toEqual(['low', 'high']);
 	});
 
-	it('falls back to alphabetical order for an empty map', () => {
+	it('falls back to label order (the filename) for an empty map', () => {
 		const views = [
 			{ path: '/v/c.view', name: 'c' },
 			{ path: '/v/a.view', name: 'a' },
@@ -807,7 +1363,7 @@ describe('sortViewFiles', () => {
 		expect(result.map((v) => v.name)).toEqual(['a', 'b', 'c']);
 	});
 
-	it('orders equal _order values alphabetically', () => {
+	it('orders equal _order values by label', () => {
 		const views = [
 			{ path: '/v/c.view', name: 'c' },
 			{ path: '/v/b.view', name: 'b' },
@@ -822,6 +1378,35 @@ describe('sortViewFiles', () => {
 		expect(result.map((v) => v.name)).toEqual(['a', 'b', 'c']);
 	});
 
+	it('orders by the shown label, not the filename', () => {
+		const views = [
+			{ path: '/v/a.view', name: 'a' },
+			{ path: '/v/b.view', name: 'b' },
+		];
+		const entries = byPath(entryV2('/v/a.view', { frontmatter: { _sidebar_label: 'Zulu' } }));
+		expect(sortViewFiles(views, entries).map((v) => v.name)).toEqual(['b', 'a']);
+	});
+
+	it('compares labels naturally: "Week 2" before "Week 10"', () => {
+		const views = [
+			{ path: '/v/w10.view', name: 'w10' },
+			{ path: '/v/w2.view', name: 'w2' },
+		];
+		const entries = byPath(
+			entryV2('/v/w10.view', { frontmatter: { _sidebar_label: 'Week 10' } }),
+			entryV2('/v/w2.view', { frontmatter: { _sidebar_label: 'Week 2' } }),
+		);
+		expect(sortViewFiles(views, entries).map((v) => v.name)).toEqual(['w2', 'w10']);
+	});
+
+	it('orders views with the same _order and label by path', () => {
+		const views = [
+			{ path: '/v/z/Reading.view', name: 'Reading' },
+			{ path: '/v/a/Reading.view', name: 'Reading' },
+		];
+		expect(sortViewFiles(views, new Map()).map((v) => v.path)).toEqual(['/v/a/Reading.view', '/v/z/Reading.view']);
+	});
+
 	it('does not mutate the input array', () => {
 		const views = [
 			{ path: '/v/b.view', name: 'b' },
@@ -829,6 +1414,27 @@ describe('sortViewFiles', () => {
 		];
 		sortViewFiles(views, new Map());
 		expect(views.map((v) => v.name)).toEqual(['b', 'a']);
+	});
+});
+
+describe('isListableNote', () => {
+	it('is false for a .view entry, in any casing', () => {
+		expect(isListableNote(entryV2('/vault/Projects.view'))).toBe(false);
+		expect(isListableNote(entryV2('/vault/Shouty.VIEW'))).toBe(false);
+	});
+
+	it('is false for a type definition', () => {
+		expect(isListableNote(entryV2('/vault/types/Project.md', { isA: 'Type' }))).toBe(false);
+	});
+
+	it('is true for a plain or a typed note', () => {
+		expect(isListableNote(entryV2('/vault/notes/a.md'))).toBe(true);
+		expect(isListableNote(entryV2('/vault/notes/b.md', { isA: 'Project' }))).toBe(true);
+	});
+
+	it('is true for a note whose name only contains "view"', () => {
+		expect(isListableNote(entryV2('/vault/review.md'))).toBe(true);
+		expect(isListableNote(entryV2('/vault/my.view.md'))).toBe(true);
 	});
 });
 

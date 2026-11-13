@@ -68,6 +68,43 @@ describe('EventCalendarSection', () => {
 		clearLocalStorage();
 	});
 
+	it('groups the rows under Display, New events and Event type', () => {
+		render();
+		expect([...target.querySelectorAll('h3')].map((h) => h.textContent?.trim())).toEqual(['Display', 'New events', 'Event type']);
+		const keysAfter = (heading: string) => {
+			const keys: (string | null)[] = [];
+			const start = [...target.querySelectorAll('h3')].find((h) => h.textContent?.trim() === heading)!;
+			for (let el = start.nextElementSibling; el && el.tagName !== 'H3'; el = el.nextElementSibling) {
+				if (el.hasAttribute('data-setting')) keys.push(el.getAttribute('data-setting'));
+			}
+			return keys;
+		};
+		expect(keysAfter('Display')).toEqual(['week-start', 'time-format', 'day-start', 'weekends', 'tasks', 'default-view']);
+		expect(keysAfter('New events')).toEqual(['duration', 'color']);
+		expect(keysAfter('Event type')).toEqual(['event-type']);
+	});
+
+	it('names the type row apart from its Event type heading', () => {
+		vaultStore.open(VAULT);
+		render();
+		const row = target.querySelector('[data-setting="event-type"]')!;
+		expect(row.querySelector('span')?.textContent).toBe('Type name');
+		expect(target.textContent).toContain("Set by the event type's folder and the typed notes folder");
+	});
+
+	it('says where new events go inside the New events group', () => {
+		vaultStore.open(VAULT);
+		render();
+		const headings = [...target.querySelectorAll('h3')];
+		const newEvents = headings.find((h) => h.textContent?.trim() === 'New events')!;
+		const eventTypeHeading = headings.find((h) => h.textContent?.trim() === 'Event type')!;
+		for (const selector of ['[data-event-folder]', '[data-open-event-type]']) {
+			const el = target.querySelector(selector)!;
+			expect(newEvents.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING, selector).toBeTruthy();
+			expect(eventTypeHeading.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_PRECEDING, selector).toBeTruthy();
+		}
+	});
+
 	/** The input inside the setting row labelled `label`. */
 	function inputOf(label: string): HTMLInputElement {
 		const row = [...target.querySelectorAll('[data-setting]')].find((el) => el.getAttribute('data-setting') === label);
@@ -219,6 +256,17 @@ describe('EventCalendarSection', () => {
 		expect(openFileInEditor).not.toHaveBeenCalled();
 		await vi.waitFor(() => expect(settingsPanelStore.isOpen).toBe(false));
 		expect(refreshTypeDefinitions).toHaveBeenCalledTimes(1);
+	});
+
+	it('"Open Event type" creates a lowercase type name with its first letter uppercased', async () => {
+		vaultStore.open(VAULT);
+		settingsPanelStore.open('event-calendar');
+		settingsStore.updateEventCalendar({ eventTypeName: 'event' });
+		render();
+		openButton().click();
+		expect(createTypeDefinition).toHaveBeenCalledWith('Event');
+		await vi.waitFor(() => expect(settingsPanelStore.isOpen).toBe(false));
+		expect(toast.error).not.toHaveBeenCalled();
 	});
 
 	it('"Open Event type" creates once on a double click and stays disabled until the type map refreshes', async () => {

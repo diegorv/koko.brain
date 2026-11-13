@@ -59,16 +59,70 @@ describe('theme CSS variable contract', () => {
 		expect(hardcoded).toEqual([]);
 	});
 
-	it('gives the type palette and warning tokens a static fallback in :root and .dark', () => {
+	it('gives the type palette, warning, success and elevation tokens a static fallback in :root and .dark', () => {
 		const appCss = readFileSync('src/app.css', 'utf8');
 		const block = (selector: string) => {
 			const start = appCss.indexOf(`\n${selector} {`);
 			const body = appCss.slice(start, appCss.indexOf('\n}', start));
 			return Object.fromEntries([...body.matchAll(/(--[a-z0-9-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
 		};
-		const names = [...TYPE_PALETTE_NAMES.map((n) => `--type-${n}`), '--warning'];
+		const names = [
+			...TYPE_PALETTE_NAMES.map((n) => `--type-${n}`),
+			'--warning',
+			'--success',
+			'--elev-shadow-1',
+			'--elev-shadow-2',
+			'--elev-shadow-3',
+			'--elev-ring',
+			'--elev-scrim',
+		];
 		const pick = (vars: Record<string, string>) => Object.fromEntries(names.map((n) => [n, vars[n]]));
 		expect(pick(block('.dark'))).toEqual(pick(themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors)));
 		expect(pick(block(':root'))).toEqual(pick(themeColorsToCssVars(LAVENDER_HAZE_THEME.colors)));
+	});
+
+	it('makes dark: utilities follow the html.dark class, not the OS appearance', () => {
+		const lines = readFileSync('src/app.css', 'utf8').split('\n').map((l) => l.trim());
+		expect(lines).toContain('@custom-variant dark (&:where(.dark, .dark *));');
+	});
+
+	it('derives every column tone in light and dark, and names it for Tailwind', () => {
+		const appCss = readFileSync('src/app.css', 'utf8');
+		// The theme thumbnail re-derives the tones through these scopes, so each block must serve both selectors.
+		const declaredIn = (selectors: string, name: string) =>
+			[...appCss.matchAll(new RegExp(`\\n${selectors} \\{[^}]*`, 'g'))].some((m) => m[0].includes(`\n\t${name}:`));
+		const light = ':root,\\n\\.column-tones';
+		const dark = '\\.dark,\\n\\.column-tones-dark';
+		for (const name of ['--rail-bg', '--nav-bg', '--list-bg']) {
+			expect(declaredIn(light, name), `${name} in the light block`).toBe(true);
+			expect(declaredIn(dark, name), `${name} in the dark block`).toBe(true);
+			expect(appCss, `${name} in @theme`).toContain(`--color-${name.slice(2)}: var(${name});`);
+		}
+		expect(declaredIn(light, '--rail-muted-fg')).toBe(true);
+		// Equal specificity: only source order lets the dark block win on an element that matches both.
+		expect(appCss.indexOf('\n:root,\n.column-tones {')).toBeLessThan(appCss.indexOf('\n.dark,\n.column-tones-dark {'));
+		expect(appCss).toContain('--color-rail-muted-fg: var(--rail-muted-fg);');
+	});
+
+	it('declares no variable only in .dark that a light theme would then lose', () => {
+		// A light theme removes html.dark, so a variable that is neither emitted
+		// by the theme nor declared outside .dark is undefined there.
+		const appCss = readFileSync('src/app.css', 'utf8');
+		const start = appCss.indexOf('\n.dark {');
+		const end = appCss.indexOf('\n}', start);
+		const names = (css: string) => new Set([...css.matchAll(/(--[a-z0-9-]+)\s*:/g)].map((m) => m[1]));
+		const outside = names(appCss.slice(0, start) + appCss.slice(end));
+		const darkOnly = [...names(appCss.slice(start, end))].filter((name) => !emitted.has(name) && !outside.has(name));
+		expect(darkOnly.sort()).toEqual([]);
+	});
+
+	it('mirrors the Default heading ramp in the .dark fallback', () => {
+		const appCss = readFileSync('src/app.css', 'utf8');
+		const start = appCss.indexOf('\n.dark {');
+		const body = appCss.slice(start, appCss.indexOf('\n}', start));
+		const fallback = Object.fromEntries([...body.matchAll(/(--syntax-heading[1-6])\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+		const vars = themeColorsToCssVars(KOKOBRAIN_DEFAULT_THEME.colors);
+		const expected = Object.fromEntries([1, 2, 3, 4, 5, 6].map((n) => [`--syntax-heading${n}`, vars[`--syntax-heading${n}`]]));
+		expect(fallback).toEqual(expected);
 	});
 });

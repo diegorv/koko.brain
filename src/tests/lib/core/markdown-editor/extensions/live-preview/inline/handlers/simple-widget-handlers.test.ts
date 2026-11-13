@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { EditorSelection } from '@codemirror/state';
 import { simpleWidgetHandlers } from '#lib/core/markdown-editor/extensions/live-preview/inline/handlers/simple-widget-handlers.js';
 import { buildInlineDecorations } from '#lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.js';
+import { OrderedListMarkerWidget } from '#lib/core/markdown-editor/extensions/live-preview/widgets.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { createMarkdownState } from '../../../../test-helpers';
 
@@ -107,6 +108,10 @@ describe('simpleWidgetHandlers', () => {
 			const decos = build(doc, doc.length);
 			const widget = decos.find((d) => d.kind === 'OrderedListMarkerWidget');
 			expect(widget).toBeDefined();
+		});
+
+		it('lets CodeMirror handle a click on the number so the cursor moves to the item', () => {
+			expect(new OrderedListMarkerWidget(1).ignoreEvent()).toBe(false);
 		});
 	});
 

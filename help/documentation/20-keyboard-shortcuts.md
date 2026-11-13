@@ -14,9 +14,9 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+T` | Toggle Tasks View |
 | `Cmd+Shift+C` | Toggle Calendar View (the [Calendar tab](27-calendar.md)) |
 | `Cmd+B` | Toggle Right Sidebar |
-| `Cmd+Shift+B` | Toggle Left Sidebar: toggle the panels between the rail and the editor |
-| `Cmd+1` | Hide the panels between the rail and the editor (the rail stays) |
-| `Cmd+2` | Show the panels between the rail and the editor |
+| `Cmd+Shift+B` | Toggle Rail Panels: toggle the panels between the rail and the editor |
+| `Cmd+1` | Hide Rail Panels: hide the panels between the rail and the editor (the rail stays) |
+| `Cmd+2` | Show Rail Panels: show the panels between the rail and the editor |
 
 ## Editor
 
@@ -28,7 +28,7 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+[` | Switch to previous tab |
 | `Cmd+Shift+H` | View File History |
 | `Cmd+\` | Toggle Raw (Source) / Live Preview mode |
-| `Cmd+Shift+L` | Copy Link to Block |
+| `Cmd+Shift+L` | Copy Block Link |
 | `Cmd+D` | Toggle Favorite on the active note (also from inside the editor) |
 | `Cmd+E` | Toggle Organized on the active note |
 
@@ -80,6 +80,17 @@ These work while the [Calendar tab](27-calendar.md) has focus, not while you typ
 | `Cmd+Shift+Z` / `Ctrl+Y` | Redo |
 | `?` | Show the Calendar shortcuts |
 
+## Tasks
+
+These work while a task row in the [Tasks View](10-tasks-and-todoist.md) has focus, not while you type in a field. `/` opens Search in the rail, not the Tasks View's search box.
+
+| Shortcut | Action |
+|----------|--------|
+| `Down` / `Up` | Next / previous task |
+| `Home` / `End` | First / last task |
+| `Space` | Toggle the task |
+| `Enter` | Open the note at the task's line |
+
 ## Editor (In-Editor)
 
 | Shortcut | Action |
@@ -102,10 +113,13 @@ These commands are available via the Command Palette (`Cmd+P`) but don't have ke
 | Pin/Unpin Tab | Pin or unpin the active tab |
 | Copy Block Embed | Copy an embed link to the current block |
 | Toggle Tags View | Open tags as a dedicated virtual tab |
+| Tasks: Show all statuses / Tasks: Show open only | Set the Tasks View's Status filter to All, or back to Open, and open the Tasks View |
 | New Calendar Event | Open the Calendar tab and the new-event dialog |
 | Calendar: Go to Today | Open the Calendar tab on today |
 | Calendar: Undo / Calendar: Redo | Undo or redo the last calendar change (`Cmd+Z` / `Cmd+Shift+Z` inside the Calendar tab) |
 | Toggle Table of Contents | Toggle the TOC panel in the right sidebar |
+| Go to *item* | Do what a click on that rail button does, for every rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pinned view or type (e.g. **Go to Inbox**). Shows the panels if `Cmd+1` hid them (a pinned view that opens in the editor leaves them as they are) |
+| Open view: *view* | Pick the view in the Types navigator, or open it in the editor when it has `_open_in_editor: true`, as its Views row does. Every `.view` in the vault has one, except a view hidden from Views with `_visible: false` |
 
 > [!TIP]
 > You can always reach any command by pressing `Cmd+P` and typing part of its name. The Command Palette is the universal access point for all actions.
@@ -126,7 +140,7 @@ Cmd+Shift+F Search  Cmd+\   Raw Toggle  Cmd+,     Settings
 Cmd+G   Graph       Cmd+Shift+] Next    Cmd+=     Zoom In
 Cmd+Shift+T Tasks   Cmd+Shift+[ Prev    Cmd+-     Zoom Out
 Cmd+B   R Sidebar   Cmd+Shift+H History Cmd+0     Reset Zoom
-Cmd+Shift+B L Side  Cmd+Shift+L Block
+Cmd+Shift+B Panels  Cmd+Shift+L Block
 Cmd+Shift+C Cal.    Cmd+D   Favorite
 Cmd+1   Hide Panels Cmd+E   Organized
 Cmd+2   Show Panels

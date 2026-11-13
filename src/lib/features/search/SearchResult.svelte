@@ -143,7 +143,7 @@
 			<span class="text-xs font-medium truncate">{title}</span>
 			{#if badgeSource}
 				<span
-					class="text-[9px] px-1 rounded ml-auto shrink-0
+					class="text-label px-1 rounded-xs ml-auto shrink-0
 						{badgeSource === 'both'
 						? 'bg-file-explorer-primary/15 text-file-explorer-primary'
 						: badgeSource === 'semantic'
@@ -153,12 +153,12 @@
 					{badgeSource === 'both' ? 'Both' : badgeSource === 'semantic' ? 'Semantic' : 'Text'}
 				</span>
 			{:else if rightLabel}
-				<span class="text-[10px] text-file-explorer-fg/40 ml-auto shrink-0">{rightLabel}</span>
+				<span class="text-meta text-file-explorer-muted-fg ml-auto shrink-0">{rightLabel}</span>
 			{/if}
 		</div>
 
 		<!-- Row 2: Subtitle (path or § heading) — always present -->
-		<p class="text-[10px] truncate pl-5 {hasHeading ? 'text-file-explorer-primary/70' : 'text-file-explorer-fg/40'}">
+		<p class="text-meta truncate pl-5 {hasHeading ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}">
 			{subtitle}
 		</p>
 
@@ -173,6 +173,6 @@
 	</button>
 	{#if notePath}
 		<!-- Sibling of the card button: a button cannot nest in a button. -->
-		<ShowInCalendarButton path={notePath} class="absolute right-1 bottom-1 bg-file-explorer-bg" />
+		<ShowInCalendarButton path={notePath} class="absolute right-1 bottom-1 bg-list-bg" />
 	{/if}
 </div>

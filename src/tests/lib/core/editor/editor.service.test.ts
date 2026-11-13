@@ -74,7 +74,11 @@ import {
 	toggleSourceMode,
 	syncExternalContentToEditor,
 	registerTabCloseListener,
+	registerPendingEditFlusher,
+	flushPendingEdits,
+	waitForTabSave,
 } from '#lib/core/editor/editor.service.js';
+import { error as logError } from '#lib/utils/debug.js';
 
 function addTab(path: string, content = '', overrides: Partial<{ savedContent: string; pinned: boolean }> = {}) {
 	const name = path.split('/').pop() ?? path;
@@ -117,12 +121,22 @@ describe('openFileInEditor', () => {
 		expect(editorStore.activeTab?.savedContent).toBe('file content');
 	});
 
-	it('sets fileType to collection for .collection files', async () => {
+	it('sets fileType to collection for .view files', async () => {
 		vi.mocked(readTextFile).mockResolvedValue('views:\n  - type: table');
 
-		await openFileInEditor('/vault/test.collection');
+		await openFileInEditor('/vault/test.view');
 
 		expect(editorStore.activeTab?.fileType).toBe('collection');
+	});
+
+	it('opens a .collection file as a text tab, with no fileType', async () => {
+		vi.mocked(readTextFile).mockResolvedValue('views:\n  - type: table');
+
+		await openFileInEditor('/vault/Foo.collection');
+
+		expect(editorStore.activeTab?.path).toBe('/vault/Foo.collection');
+		expect(editorStore.activeTab?.content).toBe('views:\n  - type: table');
+		expect(editorStore.activeTab?.fileType).toBeUndefined();
 	});
 
 	it('handles read errors gracefully', async () => {
@@ -313,6 +327,95 @@ describe('saveFileByPath', () => {
 		expect(result).toBe(true);
 		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(editorStore.activeTab?.savedContent).toBe('original');
+	});
+
+	it('starts a second save of the same path only after the first lands, with the newest content', async () => {
+		addTab('/vault/a.md', 'original');
+		editorStore.updateContent('first');
+		let release!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((res) => { release = res; }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		const first = saveFileByPath('/vault/a.md');
+		editorStore.updateContent('second');
+		const second = saveFileByPath('/vault/a.md');
+		await Promise.resolve();
+
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/a.md', 'first']]);
+		release();
+		expect(await first).toBe(true);
+		expect(await second).toBe(true);
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/a.md', 'first'], ['/vault/a.md', 'second']]);
+		expect(editorStore.tabs[0].savedContent).toBe('second');
+	});
+
+	it('does not hold a save of another path behind a pending one', async () => {
+		addTab('/vault/a.md', 'a');
+		addTab('/vault/b.md', 'b');
+		editorStore.updateTabContentOnly('/vault/a.md', 'a2');
+		editorStore.updateTabContentOnly('/vault/b.md', 'b2');
+		let release!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((res) => { release = res; }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		const pending = saveFileByPath('/vault/a.md');
+
+		expect(await saveFileByPath('/vault/b.md')).toBe(true);
+		expect(editorStore.tabs[1].savedContent).toBe('b2');
+		expect(editorStore.tabs[0].savedContent).toBe('a');
+		release();
+		await pending;
+	});
+
+	it('runs the next save of a path after a failed one', async () => {
+		addTab('/vault/a.md', 'original');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		const first = saveFileByPath('/vault/a.md');
+		const second = saveFileByPath('/vault/a.md');
+
+		expect(await first).toBe(false);
+		expect(await second).toBe(true);
+		expect(editorStore.tabs[0].savedContent).toBe('modified');
+		consoleSpy.mockRestore();
+	});
+});
+
+describe('waitForTabSave', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		editorStore.reset();
+	});
+
+	it('resolves at once when no save of the path is pending', async () => {
+		let done = false;
+		void waitForTabSave('/vault/a.md').then(() => { done = true; });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(done).toBe(true);
+	});
+
+	it('resolves only after the pending save of the path lands, even when it fails', async () => {
+		addTab('/vault/a.md', 'original');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		let fail!: (err: Error) => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((_res, rej) => { fail = rej; }));
+
+		void saveFileByPath('/vault/a.md');
+		let done = false;
+		const waited = waitForTabSave('/vault/a.md').then(() => { done = true; });
+		for (let i = 0; i < 5; i++) await Promise.resolve();
+
+		expect(done).toBe(false);
+		fail(new Error('disk full'));
+		await waited;
+		expect(done).toBe(true);
+		consoleSpy.mockRestore();
 	});
 });
 
@@ -556,10 +659,14 @@ describe('note writer port and conflicts', () => {
 		vi.mocked(ask).mockResolvedValue(true);
 		await closeTab(0);
 
+		// Closing tries one more save of the dirty tab, refused like the first.
+		expect(writes).toHaveLength(2);
+
 		addTab('/vault/a.md', 'mac');
 		onContentChange('a2');
-		await vi.waitFor(() => expect(writes).toHaveLength(2));
-		expect(writes[1].base).toBe('mac');
+		await vi.waitFor(() => expect(writes).toHaveLength(3));
+		expect(writes[2]).toEqual({ path: '/vault/a.md', content: 'a2', base: 'mac' });
+		expect(editorStore.tabs[0].savedContent).toBe('a2');
 	});
 
 	it('another write error still retries', async () => {
@@ -710,36 +817,113 @@ describe('closeTab', () => {
 		expect(editorStore.tabs).toHaveLength(0);
 	});
 
-	it('closes a clean tab directly', async () => {
+	it('closes a clean tab directly, with no write and no prompt', async () => {
 		addTab('/vault/note.md', 'hello');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(true);
 
 		await closeTab(0);
 
+		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(ask).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(editorStore.activeIndex).toBe(-1);
 	});
 
-	it('prompts for dirty tab and closes on confirm', async () => {
+	it('saves a dirty tab and closes it without a prompt', async () => {
 		addTab('/vault/note.md', 'original');
 		editorStore.updateContent('modified');
-		vi.mocked(ask).mockResolvedValue(true);
-
-		await closeTab(0);
-
-		expect(ask).toHaveBeenCalled();
-		expect(editorStore.tabs).toHaveLength(0);
-	});
-
-	it('does not close dirty tab when user cancels', async () => {
-		addTab('/vault/note.md', 'original');
-		editorStore.updateContent('modified');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
 		vi.mocked(ask).mockResolvedValue(false);
 
 		await closeTab(0);
 
-		expect(ask).toHaveBeenCalled();
-		expect(editorStore.tabs).toHaveLength(1);
+		expect(ask).not.toHaveBeenCalled();
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/note.md', 'modified']]);
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('asks with the failed-save wording when the save fails, and closes on confirm', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await closeTab(0);
+
+		expect(ask).toHaveBeenCalledWith('Failed to save note.md. Close anyway and lose unsaved changes?', {
+			title: 'Unsaved Changes',
+			kind: 'warning',
+			okLabel: 'Close Anyway',
+			cancelLabel: 'Cancel',
+		});
+		expect(editorStore.tabs).toHaveLength(0);
+		consoleSpy.mockRestore();
+	});
+
+	it('keeps the tab open and dirty when the save fails and the user cancels', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockRejectedValue(new Error('disk full'));
+		vi.mocked(ask).mockResolvedValue(false);
+
+		await closeTab(0);
+
+		expect(ask).toHaveBeenCalledTimes(1);
+		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/note.md']);
+		expect(editorStore.tabs[0].content).toBe('modified');
+		expect(editorStore.tabs[0].savedContent).toBe('original');
+		consoleSpy.mockRestore();
+	});
+
+	it('re-saves text typed during the close-time save, then closes without a prompt', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('first');
+		let release!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((res) => { release = res; }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+
+		const closing = closeTab(0);
+		editorStore.updateContent('second');
+		release();
+		await closing;
+
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/note.md', 'first'], ['/vault/note.md', 'second']]);
+		expect(ask).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('asks when text is typed again during the re-save, and Cancel keeps the tab dirty', async () => {
+		addTab('/vault/note.md', 'original');
+		editorStore.updateContent('first');
+		let releaseFirst!: () => void;
+		let releaseSecond!: () => void;
+		vi.mocked(writeTextFile)
+			.mockImplementationOnce(() => new Promise<void>((res) => { releaseFirst = res; }))
+			.mockImplementationOnce(() => new Promise<void>((res) => { releaseSecond = res; }));
+		vi.mocked(ask).mockResolvedValue(false);
+
+		const closing = closeTab(0);
+		editorStore.updateContent('second');
+		releaseFirst();
+		await vi.waitFor(() => expect(writeTextFile).toHaveBeenCalledTimes(2));
+		editorStore.updateContent('third');
+		releaseSecond();
+		await closing;
+
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/note.md', 'first'], ['/vault/note.md', 'second']]);
+		expect(ask).toHaveBeenCalledWith('Failed to save note.md. Close anyway and lose unsaved changes?', {
+			title: 'Unsaved Changes',
+			kind: 'warning',
+			okLabel: 'Close Anyway',
+			cancelLabel: 'Cancel',
+		});
+		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/note.md']);
+		expect(editorStore.tabs[0].content).toBe('third');
+		expect(editorStore.tabs[0].savedContent).toBe('second');
 	});
 
 	it('does not close a pinned tab', async () => {
@@ -748,6 +932,20 @@ describe('closeTab', () => {
 		await closeTab(0);
 
 		expect(editorStore.tabs).toHaveLength(1);
+	});
+
+	it('skips a dirty pinned tab with no write and no prompt', async () => {
+		addTab('/vault/note.md', 'original', { pinned: true });
+		editorStore.updateContent('modified');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(true);
+
+		await closeTab(0);
+
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(ask).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(1);
+		expect(editorStore.tabs[0].content).toBe('modified');
 	});
 
 	it('closes an unpinned tab normally', async () => {
@@ -785,6 +983,137 @@ describe('closeTab', () => {
 
 		expect(editorStore.tabs).toHaveLength(0);
 		expect(closed).toEqual(['/vault/note.md']);
+	});
+
+	it('runs the closing path\'s flusher before the dirty check, saves what it wrote and closes with no prompt', async () => {
+		addTab('/vault/board.canvas', 'old');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', () => {
+			editorStore.updateTabContentOnly('/vault/board.canvas', 'flushed');
+		});
+
+		await closeTab(0);
+		unregister();
+
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/board.canvas', 'flushed']]);
+		expect(ask).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('does not run a flusher registered for another path', async () => {
+		addTab('/vault/a.canvas', 'a');
+		addTab('/vault/b.canvas', 'b');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const flush = vi.fn();
+		const unregister = registerPendingEditFlusher('/vault/b.canvas', flush);
+
+		await closeTab(0);
+		unregister();
+
+		expect(flush).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/b.canvas']);
+	});
+
+	it('does not run a flusher after it is unregistered', async () => {
+		addTab('/vault/board.canvas', 'old');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const flush = vi.fn();
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', flush);
+		unregister();
+
+		await closeTab(0);
+
+		expect(flush).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('does not run a pinned tab\'s flusher', async () => {
+		addTab('/vault/board.canvas', 'old', { pinned: true });
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const flush = vi.fn();
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', flush);
+
+		await closeTab(0);
+		unregister();
+
+		expect(flush).not.toHaveBeenCalled();
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs).toHaveLength(1);
+	});
+
+	it('unregistering one of two flushers for a path leaves the other registered', async () => {
+		addTab('/vault/board.canvas', 'old');
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const first = vi.fn();
+		const second = vi.fn(() => {
+			editorStore.updateTabContentOnly('/vault/board.canvas', 'from second');
+		});
+		const unregisterFirst = registerPendingEditFlusher('/vault/board.canvas', first);
+		const unregisterSecond = registerPendingEditFlusher('/vault/board.canvas', second);
+		unregisterFirst();
+
+		await closeTab(0);
+		unregisterSecond();
+
+		expect(first).not.toHaveBeenCalled();
+		expect(second).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/board.canvas', 'from second']]);
+		expect(editorStore.tabs).toHaveLength(0);
+	});
+
+	it('flushPendingEdits returns true when no flusher is registered for the path', () => {
+		expect(flushPendingEdits('/vault/none.canvas')).toBe(true);
+	});
+
+	it('logs a throwing flusher, asks with the failed-save prompt, and Cancel keeps the clean tab open', async () => {
+		addTab('/vault/board.canvas', 'old');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(false);
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', () => {
+			throw new Error('boom');
+		});
+
+		await closeTab(0);
+		unregister();
+
+		expect(logError).toHaveBeenCalledWith('EDITOR', expect.any(String), expect.any(Error));
+		expect(ask).toHaveBeenCalledWith('Failed to save board.canvas. Close anyway and lose unsaved changes?', {
+			title: 'Unsaved Changes',
+			kind: 'warning',
+			okLabel: 'Close Anyway',
+			cancelLabel: 'Cancel',
+		});
+		expect(writeTextFile).not.toHaveBeenCalled();
+		expect(editorStore.tabs.map((t) => t.path)).toEqual(['/vault/board.canvas']);
+		consoleSpy.mockRestore();
+	});
+
+	it('closes the tab on the confirm answer after a throwing flusher', async () => {
+		addTab('/vault/board.canvas', 'old');
+		editorStore.updateContent('modified');
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(true);
+		const unregister = registerPendingEditFlusher('/vault/board.canvas', () => {
+			throw new Error('boom');
+		});
+
+		await closeTab(0);
+		unregister();
+
+		expect(logError).toHaveBeenCalledWith('EDITOR', expect.any(String), expect.any(Error));
+		expect(ask).toHaveBeenCalledTimes(1);
+		expect(vi.mocked(writeTextFile).mock.calls).toEqual([['/vault/board.canvas', 'modified']]);
+		expect(editorStore.tabs).toHaveLength(0);
+		consoleSpy.mockRestore();
 	});
 
 	it('does not cancel pending saves for other tabs when closing', async () => {
@@ -830,9 +1159,12 @@ describe('closeTab', () => {
 			savedContent: 'original',
 			fileType: 'tasks',
 		});
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		vi.mocked(ask).mockResolvedValue(true);
 
 		await closeTab(0);
 
+		expect(writeTextFile).not.toHaveBeenCalled();
 		expect(ask).not.toHaveBeenCalled();
 		expect(editorStore.tabs).toHaveLength(0);
 	});

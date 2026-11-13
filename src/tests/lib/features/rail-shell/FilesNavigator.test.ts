@@ -18,6 +18,7 @@ import type { Lens } from '#lib/features/rail-shell/rail-shell.types.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 
 const VAULT = '/vault';
 const WORK = `${VAULT}/Work`;
@@ -46,7 +47,7 @@ describe('FilesNavigator', () => {
 	const onToggle = vi.fn();
 
 	function mountNavigator(picked: Lens = FILES_LENS, expanded: string[] = []) {
-		component = mount(FilesNavigator, { target, props: { picked, expanded, onPick, onToggle } });
+		component = mount(FilesNavigator, { target, props: { picked, expanded, onPick, onToggle, onPickView: vi.fn() } });
 		flushSync();
 	}
 
@@ -60,6 +61,7 @@ describe('FilesNavigator', () => {
 		vaultStore.open(VAULT);
 		fsStore.reset();
 		fsStore.setFileTree(TREE);
+		fileIconsStore.reset();
 		onPick.mockReset();
 		onToggle.mockReset();
 		target = document.body.appendChild(document.createElement('div'));
@@ -69,6 +71,22 @@ describe('FilesNavigator', () => {
 		if (component) unmount(component);
 		component = null;
 		document.body.innerHTML = '';
+	});
+
+	it("draws a folder's default icon in its own color when it has no icon, closed and open", () => {
+		fileIconsStore.updateFrontmatterIcon(WORK, { color: '#ef4444' });
+		mountNavigator();
+		expect(folder(WORK).querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
+		expect(folder(`${VAULT}/Personal`).querySelector('svg')!.getAttribute('style')).toBeNull();
+		unmount(component!);
+
+		mountNavigator(FILES_LENS, [WORK]);
+		expect(folder(WORK).querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
+	});
+
+	it('paints the navigator column tone', () => {
+		mountNavigator();
+		expect(target.querySelector('[data-files-navigator]')!.classList).toContain('bg-nav-bg');
 	});
 
 	it('shows the vault root, then the top-level folders only, in tree order', () => {
@@ -131,6 +149,33 @@ describe('FilesNavigator', () => {
 		unmount(component!);
 		mountNavigator({ kind: 'folder', target: VAULT });
 		expect(folder(VAULT).getAttribute('aria-current')).toBe('true');
+	});
+
+	it('clears the traffic lights with the header pad', () => {
+		mountNavigator();
+		expect(target.querySelector('[data-files-navigator-title]')!.parentElement!.classList).toContain('pl-[var(--rail-header-pad)]');
+	});
+
+	it('sets the Files header above its rows on the type scale', () => {
+		mountNavigator(FILES_LENS, [WORK]);
+		const header = target.querySelector<HTMLElement>('[data-files-navigator-title]')!;
+		expect(header.textContent).toBe('Files');
+		expect(header.classList).toContain('text-title');
+		const rows = [
+			target.querySelector<HTMLElement>('[data-files-navigator-root]')!,
+			...target.querySelectorAll<HTMLElement>('[data-files-navigator-row]'),
+		];
+		expect(rows).toHaveLength(4);
+		for (const row of rows) {
+			expect(row.classList).toContain('text-row');
+			expect(row.className).not.toMatch(/text-\[\d+px\]/);
+			// The same 8px corner as the rail and the right-sidebar rows.
+			expect(row.classList).toContain('rounded-md');
+			expect(row.className).not.toMatch(/(^|\s)rounded(\s|$)/);
+		}
+		// The vault root is a row: no bigger or heavier than the header.
+		const rootLabel = target.querySelector('[data-files-navigator-root] .truncate')!;
+		expect(rootLabel.className).not.toMatch(/\btext-(title|lg|base)\b|font-(semibold|bold)/);
 	});
 
 	it('shows only the root for an empty vault', () => {

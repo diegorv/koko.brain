@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Check from '@lucide/svelte/icons/check';
 	import type { KanbanBoard, KanbanItem } from './kanban.types';
-	import { stripCardMetadata, extractCardDate, extractCardColor, getDateProximity } from './kanban.logic';
+	import { stripCardMetadata, extractCardDate, extractCardColor, cardProximity, PROXIMITY_CLASSES } from './kanban.logic';
 	import { formatNow } from '#lib/utils/date.js';
 	import { COLOR_PRESET_BG } from '#lib/utils/color-presets.js';
 	import KanbanCardText from './KanbanCardText.svelte';
@@ -27,13 +27,13 @@
 					{@const cardDate = extractCardDate(item.text)}
 					{@const cardColor = extractCardColor(item.text)}
 					{@const displayText = stripCardMetadata(item.text)}
-					{@const proximity = getDateProximity(cardDate, formatNow('YYYY-MM-DD'))}
+					{@const proximity = cardProximity(cardDate, formatNow('YYYY-MM-DD'), item.checked)}
 					<div
 						class="flex items-center gap-2 px-3 py-2 text-sm"
 						style={cardColor ? `background: ${COLOR_PRESET_BG[cardColor]}` : ''}
 					>
 						<button
-							class="flex size-4 shrink-0 items-center justify-center rounded border transition-colors
+							class="flex size-4 shrink-0 items-center justify-center rounded-xs border transition-colors
 								{item.checked ? 'border-primary bg-primary text-primary-foreground' : 'border-muted-foreground/40 hover:border-primary'}"
 							onclick={() => onToggleItem(lane.id, item.id)}
 						>
@@ -45,7 +45,7 @@
 							<KanbanCardText text={displayText} tagColors={board.settings.tagColors ?? {}} {onWikilinkClick} />
 						</span>
 						{#if cardDate}
-							<span class="shrink-0 rounded px-1.5 py-0.5 text-xs {proximity === 'overdue' ? 'bg-red-500/15 text-red-500' : proximity === 'today' ? 'bg-yellow-500/15 text-yellow-500' : 'bg-muted text-muted-foreground'}">
+							<span class="shrink-0 rounded-xs px-1.5 py-0.5 text-xs {PROXIMITY_CLASSES[proximity].badge}">
 								{cardDate}
 							</span>
 						{/if}

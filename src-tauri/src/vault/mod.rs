@@ -16,6 +16,7 @@ pub mod index;
 pub mod index_cache;
 pub mod parsing;
 pub mod task;
+pub mod task_lines;
 pub mod watcher;
 
 /// Tauri-managed wrapper around `VaultIndex`. Wires up via

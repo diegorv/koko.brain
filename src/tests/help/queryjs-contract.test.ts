@@ -307,6 +307,7 @@ function createAPI(vault: ExampleVault, currentFilePath: string, empty: boolean,
 		propertyIndexVersion: 0,
 		currentFilePath,
 		vaultPath: VAULT,
+		systemFolder: '_system',
 		loadScript: async (path) => readFileSync(join(EXAMPLES, vault.scriptRoot, path.slice(`${VAULT}/`.length)), 'utf8'),
 	});
 	const view = kb.view.bind(kb);
@@ -400,6 +401,17 @@ const SCRIPTS: Run[] = ROOTS.flatMap((root) => {
 		});
 });
 
+/**
+ * The setup runs every block and script once, in sequence: about 2.4 s alone,
+ * and its time grows with CPU contention, so a full suite beside parallel
+ * worktrees pushes it past vitest's 10 s hook default. Under that real load
+ * the hook ran past 10 s and the file took up to about 14.6 s; beside 20 busy
+ * loops on a 10-core machine it took about 9.5 s. 30 s leaves about 2x over
+ * the real-load bound, while a setup more than about 12x slower alone still
+ * fails here.
+ */
+const SETUP_TIMEOUT = 30_000;
+
 beforeAll(async () => {
 	// Record the input each script gets from its real caller: blocks first, and
 	// among them the blocks of the script's own root before borrowing roots.
@@ -410,7 +422,7 @@ beforeAll(async () => {
 		await run.execute(false, calls);
 	}
 	document.body.replaceChildren();
-});
+}, SETUP_TIMEOUT);
 
 afterAll(() => {
 	vi.useRealTimers();

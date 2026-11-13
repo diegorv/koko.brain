@@ -14,7 +14,8 @@
  * Conservative trigger: many apps put `text/html` on the clipboard even for
  * plain text, so this must not hijack normal pastes. Returns `null` (caller
  * falls through to the next paste handler) unless the HTML contains at least
- * one anchor whose URL is NOT already present in the `text/plain` flavor.
+ * one anchor whose URL is NOT already present in the `text/plain` flavor,
+ * and always for a fragment that contains a `<table>`.
  */
 
 /** Block-level tags whose boundaries become line breaks during text extraction. */
@@ -57,11 +58,21 @@ function blockAwareText(root: Element): string {
 }
 
 /**
+ * Backslash-escapes `\`, `[` and `]` in a markdown link label. Unescaped,
+ * anchor text such as a Wikipedia citation `[1]` yields `[[1]](url)`, which
+ * the wikilink decoration matches as a link to a note named `1`.
+ */
+function escapeLinkLabel(text: string): string {
+	return text.replace(/[\\[\]]/g, '\\$&');
+}
+
+/**
  * Converts clipboard HTML into plain text with each `<a href>` rewritten as
  * a markdown link, or returns `null` when the paste should fall through.
  *
  * Anchor rewrite rules:
- *   - text differs from href → `[text](href)`
+ *   - text differs from href → `[text](href)`, with `\`, `[` and `]` in the
+ *     text backslash-escaped
  *   - text equals href (raw URL copied) or is empty → bare href
  *   - empty href → anchor text as-is
  */
@@ -69,6 +80,10 @@ export function htmlLinksToMarkdown(html: string, plainText: string): string | n
 	if (!html) return null;
 
 	const doc = new DOMParser().parseFromString(html, 'text/html');
+	// A table falls through so the TSV paste handler, registered after this
+	// one, builds it from the tab-separated plain text. Converting the cell
+	// links is .scratch/open-itens Issue 167.
+	if (doc.querySelector('table')) return null;
 	const anchors = Array.from(doc.querySelectorAll('a[href]'));
 	if (anchors.length === 0) return null;
 
@@ -87,7 +102,7 @@ export function htmlLinksToMarkdown(html: string, plainText: string): string | n
 		} else if (text === '' || text === href) {
 			replacement = href;
 		} else {
-			replacement = `[${text}](${href})`;
+			replacement = `[${escapeLinkLabel(text)}](${href})`;
 		}
 		anchor.replaceWith(doc.createTextNode(replacement));
 	}

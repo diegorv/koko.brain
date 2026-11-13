@@ -44,7 +44,7 @@ You can:
 - **Add a lane** — click the **Add Lane** button at the end of the lane row.
 - **Rename a lane** — double-click the lane title to edit it inline, or right-click the title and choose Rename.
 - **Reorder lanes** — drag a lane header (via the grip handle) to a new position.
-- **Delete a lane** — right-click the lane title and choose Delete Lane.
+- **Delete a lane** — right-click the lane title and choose Delete lane.
 - **Collapse a lane** — click the collapse icon in the lane header. Collapsed state is saved per board.
 - **Resize a lane** — drag the resize handle on a lane's right edge (200-500 px). The width applies to all lanes and is saved per board.
 
@@ -73,7 +73,7 @@ You can:
 - **Move a card** — drag it to a different lane or position within the same lane.
 - **Delete a card** — right-click the card and choose Delete.
 - **Archive a card** — right-click the card and choose Archive. The card moves to the Archive section.
-- **Right-click a card** — opens a context menu with Edit, Archive, Card Color (submenu with color swatches), and Delete.
+- **Right-click a card** — opens a context menu with Edit, Archive, Card color (submenu with color swatches), and Delete.
 
 ### Wikilink Autocomplete
 
@@ -163,9 +163,9 @@ Each lane has additional configuration accessible by right-clicking the lane tit
 
 | Setting | Description |
 |---------|-------------|
-| **Set Card Limit (WIP limit)** | Caps the number of cards in the lane. Choose from the preset limits (3, 5, 10, or 15 cards) or **No limit**. When the limit is reached, the lane border and count badge turn red as a warning, but you can still add more cards. |
-| **Auto-Complete** | When a card is dragged into this lane, it is automatically marked as checked. Useful for "Done" lanes. |
-| **Archive Completed** | Archives all checked items in the lane at once. Only shown when the lane has at least one checked card. |
+| **Set card limit (WIP limit)** | Caps the number of cards in the lane. Choose from the preset limits (3, 5, 10, or 15 cards) or **No limit**. When the limit is reached, the lane border and count badge turn red as a warning, but you can still add more cards. |
+| **Enable auto-complete** | When a card is dragged into this lane, it is automatically marked as checked. Useful for "Done" lanes. |
+| **Archive completed** | Archives all checked items in the lane at once. Only shown when the lane has at least one checked card. |
 
 ## Filtering Cards
 

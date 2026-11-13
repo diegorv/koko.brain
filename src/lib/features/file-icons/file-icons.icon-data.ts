@@ -3,6 +3,9 @@ import type { IconPackId, IconPackMeta, NormalizedIcon } from './file-icons.type
 /** Cache for loaded icon packs to avoid re-processing */
 const packCache = new Map<IconPackId, NormalizedIcon[]>();
 
+/** Lucide's canonical icon names by their other spellings; see `loadLucide`. */
+const lucideAliases = new Map<string, string>();
+
 /** Optional callback invoked after packs are loaded into cache */
 let onPacksLoaded: (() => void) | null = null;
 
@@ -69,21 +72,35 @@ function loadIconifyPack(
 	return icons;
 }
 
-/** Loads and normalizes Lucide icons */
+/**
+ * Loads and normalizes Lucide icons, one per name in the svg's class attribute,
+ * which many exports share (Home and House are `lucide-house`). Every other
+ * spelling still resolves through `lucideAliases` and matches in search:
+ * - the kebab of the export name, which notes hold because the picker used to
+ *   write it (`lucide:trash2`, `lucide:home`);
+ * - that kebab with its digit split off, the name of a renamed icon whose class
+ *   lost the digit (`Trash2` is class `lucide-trash`, but `trash-2` is a real name).
+ */
 async function loadLucide(): Promise<NormalizedIcon[]> {
 	const allIcons = (await import('lucide-static')) as unknown as Record<string, string>;
-	const icons: NormalizedIcon[] = [];
+	const byName = new Map<string, NormalizedIcon>();
 	for (const [key, svg] of Object.entries(allIcons)) {
-		if (typeof svg !== 'string' || !svg.startsWith('<svg')) continue;
-		icons.push({
-			name: toKebabCase(key),
-			pack: 'lucide',
-			svgContent: extractSvgContent(svg),
-			viewBox: '0 0 24 24',
-			keywords: [toKebabCase(key)],
-		});
+		// lucide-static's strings start with a newline before <svg.
+		if (typeof svg !== 'string' || !svg.trimStart().startsWith('<svg')) continue;
+		const kebab = toKebabCase(key);
+		const name = svg.match(/class="lucide lucide-([^"\s]+)"/)?.[1] ?? kebab;
+		let icon = byName.get(name);
+		if (!icon) {
+			icon = { name, pack: 'lucide', svgContent: extractSvgContent(svg), viewBox: '0 0 24 24', keywords: [name] };
+			byName.set(name, icon);
+		}
+		for (const spelling of [kebab, kebab.replace(/([a-z])(\d)/g, '$1-$2')]) {
+			if (icon.keywords.includes(spelling)) continue;
+			icon.keywords.push(spelling);
+			lucideAliases.set(spelling, name);
+		}
 	}
-	return icons;
+	return [...byName.values()];
 }
 
 /** Loads and normalizes Feather icons */
@@ -280,14 +297,19 @@ export async function getIconsForPack(packId: IconPackId): Promise<NormalizedIco
 }
 
 /**
- * Looks up a single icon by pack and name (for rendering in file tree).
+ * Looks up a single icon by pack and name (for rendering in file tree). The
+ * returned icon's `name` may differ from the one asked for: a Lucide spelling
+ * resolves to the icon listed under its canonical name.
  * Returns undefined if the pack hasn't been loaded yet.
  * Call preloadPacks() at startup to ensure referenced packs are cached.
  */
 export function getIconSync(pack: IconPackId, name: string): NormalizedIcon | undefined {
 	const cached = packCache.get(pack);
 	if (!cached) return undefined;
-	return cached.find((i) => i.name === name);
+	const exact = cached.find((i) => i.name === name);
+	if (exact || pack !== 'lucide') return exact;
+	const canonical = lucideAliases.get(name);
+	return canonical ? cached.find((i) => i.name === canonical) : undefined;
 }
 
 /** Pre-loads specific packs into cache (call at startup for packs referenced in saved icons) */

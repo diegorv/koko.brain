@@ -1,0 +1,14 @@
+_sidebar_label: Projects by Status
+_order: 40
+_rail_view: Active
+filters: 'type == "Project" && file.folder.endsWith("/type-definitions-features")'
+views:
+  - type: table
+    name: All
+    order:
+      - file.name
+      - status
+      - priority
+  - type: table
+    name: Active
+    filters: 'status == "active"'

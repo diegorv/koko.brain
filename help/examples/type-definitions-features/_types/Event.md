@@ -4,7 +4,6 @@ _icon: calendar
 _color: yellow
 _order: 6
 _sidebar_label: Events
-_sort: created
 _visible: true
 _list_properties_display:
   - date

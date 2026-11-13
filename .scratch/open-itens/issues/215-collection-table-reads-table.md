@@ -1,0 +1,36 @@
+# 215: The collection table reads as a table
+
+**Origin:** `audit-2026-11-05` Issue 66, moved here on 2026-11-08. Its PRD, raw evidence and closed siblings stay in `.scratch/archived/audit-2026-11-05/`. Bare Issue numbers in the text below use that feature's numbering; `priority-2026-11-08.md` in this folder maps them to the numbers here.
+
+**Migrated from:** `.scratch/archived/ux-polish/issues/62-collection-table-readable.md` (audit 2026-11-05). Priority: polish (bucket 3-polish). Still present, polish/medium on daily views. A sticky header has to account for the inner overflow-auto at CollectionTableView.svelte:39.
+
+**Audit check at `5f8003d67`:** still_present (polish, medium). Every point still holds at HEAD. The header fallback to the raw key is in collection.logic.ts:456 (resolveColumns toColumn: `definition.properties?.[key]?.displayName ?? key`). Booleans are a native disabled checkbox (CollectionTableView.svelte:64-65). Icon display values render their name as text (:71-72). Cells use whitespace-nowrap with no truncation or title (:61). The thead is not sticky (:41-52).
+
+**Stale in the text below:** The header fallback is at collection.logic.ts:456, not about line 389. The real scroller is CollectionView.svelte:684 (`flex-1 overflow-auto`), not about line 587. CollectionTableView.svelte:39 also wraps the table in its own `overflow-auto` div, which a sticky header has to account for: as the inner scroll container it would capture `position: sticky`. Status is still needs-triage, so it needs triage before relay.
+
+**What to build:** The collection table shows raw keys as headers (`collection.logic.ts`, about line 389 falls back to `key`), header and cells at the same size, native disabled checkboxes for booleans (`CollectionTableView.svelte`, about line 65), icon names as text (about line 72), no truncation and a header that scrolls away. Humanize the header fallback without changing stored config, style the header as a `section-label`, render `true` as a read-only check icon, truncate cells at `max-w-80` with a `title`, and make the header sticky on the real scroller (`CollectionView.svelte`, about line 587).
+
+**Blocked by:** none
+
+**Status:** ready-for-agent
+
+**First wave:** yes, picked by the owner on 2026-11-06.
+
+**Scope (owner, 2026-11-06):** the visual slice local to CollectionTableView.svelte only: a check icon for true, truncation with the full text in title, and the section-label header style. The humanized header fallback and the sticky header moved to Issue 161.
+
+**Gate:** frontend only: `pnpm check` + `pnpm vitest run` + `pnpm build`.
+
+- Moved to Issue 161 on 2026-11-06: Failing first: `collection.logic` test for the humanized header fallback (`due_date` reads "Due date"), with stored config unchanged
+- [ ] Failing test first, in src/tests/lib/features/collection/CollectionTableView.svelte.test.ts: a true boolean cell renders a check icon, a long text cell is truncated with its full text in title, and header cells use the section-label class; stored config unchanged. It fails today.
+- Moved to Issue 161 on 2026-11-06: The header stays visible while the table scrolls (E2E or component check)
+
+## Notes
+
+- **Source:** `.scratch/archived/ux-polish/review-2026-11-04.md` Review section 3 Feature views row 5.
+- Size: M.
+- **Triage:** drafted from the review without the deep dive the bugs and polish tickets got; check the cited lines before promoting to ready-for-agent.
+
+## Comments
+
+- 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/62-collection-table-readable.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
+- 2026-11-06: narrowed to the visual slice by the owner after the challenge review; the rest moved to Issue 161.

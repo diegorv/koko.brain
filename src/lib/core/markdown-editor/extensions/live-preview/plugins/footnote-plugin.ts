@@ -86,6 +86,9 @@ export function buildFootnoteDecorations(
 			// Inline footnotes: ^[text]
 			for (const range of findInlineFootnoteRanges(state, line.from, line.to)) {
 				if (isRevealed(range.fullFrom, range.fullTo)) continue;
+				// `^[]` stays unstyled: a mark over its empty text throws a RangeError
+				// that crashes the plugin, and hiding both markers would render nothing.
+				if (range.textFrom === range.textTo) continue;
 				decorations.push(hiddenSyntaxDeco.range(range.openMarkFrom, range.openMarkTo));
 				decorations.push(footnoteRefDeco.range(range.textFrom, range.textTo));
 				decorations.push(hiddenSyntaxDeco.range(range.closeMarkFrom, range.closeMarkTo));

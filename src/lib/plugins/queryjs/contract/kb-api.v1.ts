@@ -439,7 +439,7 @@ export interface KBTagsOptionsV1 {
 	color?: string;
 	/** Text color for tag chips (default: 'rgba(186,197,238,0.9)') */
 	textColor?: string;
-	/** Font size in px (default: 11) */
+	/** Font size in px (default: 0.6875em of the block, 11px at the default editor font) */
 	fontSize?: number;
 	/** Gap between chips in px (default: 4) */
 	gap?: number;
@@ -447,9 +447,9 @@ export interface KBTagsOptionsV1 {
 
 /** Options for kb.ui.tagCloud() */
 export interface KBTagCloudOptionsV1 {
-	/** Minimum font size in px (default: 14) */
+	/** Minimum font size in px. When neither bound is set the range is 0.875em-1.625em of the block (14-26px at the default editor font); setting one makes both px, the other defaulting to 14 / 26. */
 	minFontSize?: number;
-	/** Maximum font size in px (default: 26) */
+	/** Maximum font size in px (see `minFontSize` for the default) */
 	maxFontSize?: number;
 	/** Base color for chips as CSS color (default: 'rgba(139,108,239,0.3)') */
 	color?: string;

@@ -17,7 +17,7 @@ Both channels are signed with the same Apple Developer cert and the same Tauri a
 Settings → **Update** → **Release channel** dropdown.
 
 - The selection persists per vault in `.kokobrain/settings.json` under `updates.channel`.
-- The badge next to "Current version" shows which channel the **build itself** belongs to (informational; comes from `__APP_CHANNEL__` baked at build time).
+- The badge next to "Current version" shows which channel the **build itself** belongs to (informational; comes from `__APP_CHANNEL__` baked at build time). A run from the Vite dev server (`pnpm tauri dev`) shows **DEV** instead.
 - The dropdown controls which channel the **auto-updater follows** when you click "Check for updates". The two can diverge — a Nightly build can be set to track Stable for updates, and vice versa.
 
 ## Auto-check on launch
@@ -26,7 +26,7 @@ Settings → **Update** → **Auto-check on launch** toggle (off by default).
 
 When enabled, the app silently checks the configured channel's `latest.json` shortly after the vault loads. If a newer version is available, a toast prompts you to open Settings → Update to install. The check fires on every vault open while the toggle is on — no throttle. The cost is a single HTTP request to a GitHub release-asset CDN per launch, and a Nightly user (where new builds publish multiple times a day) needs the check to actually fire on every launch.
 
-The "Last checked" row in the same section shows how recently the app asked GitHub for a newer version (or "Never" if no check has run yet). Manual clicks on "Check for updates" also update the same timestamp.
+The "Check for updates" row shows how recently the app asked GitHub for a newer version ("never" if no check has run yet). Manual clicks on its button also update the same timestamp.
 
 ## Version-string semantics
 
@@ -59,16 +59,17 @@ Why this design: the alternative — letting the updater downgrade on channel sw
 
 ## Picking a channel
 
-- **Use Stable** for everyday note-taking. Tagged builds, the full CI matrix (frontend + rust forced via `force_all: true`) plus Playwright E2E as hard gates, slower cadence, fewer regressions.
-- **Use Nightly** if you want the latest fixes or are testing a feature that just merged. Every accepted commit on `main` ships. Nightly runs CI with the normal paths-filter (a docs-only commit doesn't re-run frontend tests) plus the full E2E suite, but neither gates the build: a red check is signal for the maintainer, and the nightly DMG still publishes. The next stable tag-push re-runs both against the exact release SHA, there as hard gates.
+- **Use Stable** for everyday note-taking. Tagged builds, the full CI matrix (frontend + rust forced via `force_all: true`), Playwright E2E, the gitleaks scan, the Security audits and the Privacy scan as hard gates, slower cadence, fewer regressions.
+- **Use Nightly** if you want the latest fixes or are testing a feature that just merged. Every push to `main` that changes code queues a build; a running build always finishes, and during a burst only the newest pending push is built, so the published nightly may skip intermediate commits. Every push to `main` runs CI with the normal paths-filter (a docs-only commit doesn't re-run frontend tests) plus the full E2E suite in `main-checks.yml`, but neither gates the nightly build: a red check is signal for the maintainer, and the nightly DMG still publishes. The next stable tag-push re-runs both against the exact release SHA, there as hard gates.
 
 Nightly is built and signed by the same workflow infrastructure as Stable, so the binaries themselves are equally trustworthy. The difference is review surface and gate coverage — Nightly ships before the change has accumulated days of real-world use, and publishes even when CI or E2E goes red on the post-merge SHA.
 
 ## What gets built on which channel
 
-Both workflows invoke `ci.yml` via `workflow_call`. Release sets `force_all: true` so the paths-filter cannot short-circuit a tagged build; nightly leaves it default so a workflow- or docs-only commit can skip the unaffected jobs. Both workflows also invoke `e2e.yml`, but only `release.yml` treats it (and `ci.yml`) as a gate: in `nightly.yml` `build-macos` needs nothing but `guard`, so the checks run alongside the build instead of before it. The build steps differ in:
+`release.yml` invokes `ci.yml` and `e2e.yml` via `workflow_call` as gates, with `force_all: true` so the paths-filter cannot short-circuit a tagged build. `nightly.yml` invokes neither: `main-checks.yml` runs both on the same push with the default paths-filter, and `build-macos` needs nothing but `guard`. The build steps differ in:
 
 - `nightly.yml` patches `src-tauri/tauri.conf.json#version` in-place with the nightly version string before running `tauri-action`. The patch is job-scoped and never committed. `package.json` stays at the base version on purpose — `build-info.js` appends the nightly suffix itself.
+- `nightly.yml` sets `CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`, so the nightly binary is built with parallel codegen; stable keeps the release profile's `codegen-units = 1`.
 - `nightly.yml` exports `KOKO_RELEASE_CHANNEL=nightly` so Vite injects `__APP_CHANNEL__='nightly'` and the channel pill in the UI reads "NIGHTLY".
 - `nightly.yml` keeps the `nightly` release in place across runs: `tauri-action` reuses it, overwrites the same-named assets, and the previous version's leftovers are pruned by id only after the build succeeds. A broken build therefore leaves the last good nightly downloadable instead of a 404.
 - `nightly.yml` publishes with `prerelease: true` so the release entry is labelled "Pre-release" on the Releases page, and re-asserts that flag after each run (the reuse path only updates name and body).

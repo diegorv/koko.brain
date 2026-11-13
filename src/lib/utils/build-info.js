@@ -95,9 +95,68 @@ export function parseReleaseChannel(value) {
  * Uppercased so it reads as a tag/pill rather than prose, matching the
  * convention used in GitHub release titles (e.g. "Latest", "Pre-release").
  *
- * @param {ReleaseChannel} channel
+ * `dev` is not a release channel: it marks a run from the Vite dev server, which
+ * the updater never targets, so it stays out of `ReleaseChannel`.
+ *
+ * @param {ReleaseChannel | 'dev'} channel
  * @returns {string}
  */
 export function channelLabel(channel) {
+	if (channel === 'dev') return 'DEV';
 	return channel === 'nightly' ? 'NIGHTLY' : 'STABLE';
+}
+
+/**
+ * @typedef {Object} ChangelogEntry
+ * @property {string} sha - Short commit sha.
+ * @property {string} subject - First line of the commit message.
+ */
+
+/** Conventional Commit types that never change the shipped app. */
+const HIDDEN_CHANGELOG_TYPES = new Set(['docs', 'test', 'ci', 'style', 'build']);
+
+/**
+ * Parse `git log --format=%h%x09%s` output into the commits worth showing
+ * in Settings > Update. Drops `docs`, `test`, `ci`, `style`, `build` and
+ * every `chore` except `chore(deps)`, since a runtime dependency bump can
+ * change behaviour and `chore(deps-dev)` cannot. Subjects without a
+ * Conventional Commit prefix are kept. Order is preserved (git log is
+ * newest first).
+ *
+ * @param {string} gitLogOutput
+ * @returns {ChangelogEntry[]}
+ */
+export function parseChangelog(gitLogOutput) {
+	/** @type {ChangelogEntry[]} */
+	const entries = [];
+	for (const line of gitLogOutput.split('\n')) {
+		const tab = line.indexOf('\t');
+		if (tab === -1) continue;
+		const sha = line.slice(0, tab);
+		const subject = line.slice(tab + 1);
+		const match = subject.match(/^([a-z]+)(?:\(([^)]*)\))?!?:/);
+		if (match) {
+			const [, type, scope] = match;
+			if (HIDDEN_CHANGELOG_TYPES.has(type)) continue;
+			if (type === 'chore' && scope !== 'deps') continue;
+		}
+		entries.push({ sha, subject });
+	}
+	return entries;
+}
+
+/**
+ * The git command that prints the tag the Settings > Update changelog
+ * starts from. Mirrors the release notes in release.yml: a stable version
+ * lists everything since the previous stable (its prereleases included),
+ * while a prerelease, and every nightly built on one, starts from the
+ * nearest tag. Describing HEAD^ makes a release built on its own tag
+ * start from the tag before it. `[0-9]*` keeps the moving `nightly` tag out.
+ *
+ * @param {string} pkgVersion - Version field from package.json.
+ * @returns {string}
+ */
+export function changelogBaseCommand(pkgVersion) {
+	const exclude = pkgVersion.includes('-') ? '' : " --exclude '*-*'";
+	return `git describe --tags --abbrev=0 --match '[0-9]*'${exclude} HEAD^`;
 }

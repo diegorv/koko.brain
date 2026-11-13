@@ -107,7 +107,7 @@ describe('CommandPalette - shortcut hints', () => {
 		expect(shortcutTexts().length).toBeGreaterThan(0);
 		expect(shortcutTexts()).toContain('⌘⇧B');
 		expect(shortcutTexts()).not.toContain('⌘⇧E');
-		expect(document.body.textContent).toContain('Toggle Left Sidebar');
+		expect(document.body.textContent).toContain('Toggle Rail Panels');
 		expect(document.body.textContent).not.toContain('Cycle Sidebar View');
 	});
 });

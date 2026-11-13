@@ -6,11 +6,13 @@ This document describes every GitHub Actions workflow in `.github/workflows/`, w
 
 - [CI](#ci-ciyml)
 - [E2E](#e2e-e2eyml)
+- [Secret Scan](#secret-scan-secretsyml)
 - [Security](#security-securityyml)
 - [Privacy](#privacy-privacyyml)
 - [Release](#release-releaseyml)
+- [Main checks](#main-checks-main-checksyml)
 - [Nightly](#nightly-nightlyyml)
-- [Cache Warmer](#cache-warmer-cache-warmeryml)
+- [Cache Cleanup](#cache-cleanup-cache-cleanupyml)
 - [Wiki Sync](#wiki-sync-sync-wikiyml)
 - [Run All Checks](#run-all-checks-run-allyml)
 - [Composite actions](#composite-actions)
@@ -25,26 +27,24 @@ Primary validation pipeline for code changes.
 
 **Triggers**
 
-- `push` to `main`
-- `pull_request` against `main`
-- `workflow_dispatch` (manual)
-- `workflow_call` (invoked by `run-all.yml` and by `release.yml` to revalidate the tagged SHA before building)
-- Skipped automatically when the changeset only touches `**/*.md`.
+- `workflow_call` only, plus `workflow_dispatch` (manual). Callers: `main-checks.yml` (every push to `main`), `pr.yml` (pull requests), `release.yml` (revalidates the tagged SHA before building) and `run-all.yml`.
+- The callers' `paths-ignore` skips a push or PR that only touches `**/*.md`, `.scratch/**`, `help/**` or `LICENSE`.
+- The gitleaks secret scan is not part of CI: it runs from [`secrets.yml`](#secret-scan-secretsyml) on every push and PR.
 
 **Jobs**
 
 | Job ID | Display name | Runner | When |
 |---|---|---|---|
-| `changes` | Detect Changes | ubuntu-latest | Always |
-| `frontend` | Frontend (typecheck + tests) | ubuntu-latest | Only if `frontend` paths changed |
-| `rust` | Rust (cargo test) | ubuntu-latest | Only if `rust` paths changed |
+| `changes` | Detect Changes | ubuntu-24.04 | Always |
+| `frontend` | Frontend (typecheck + tests) | ubuntu-24.04 | Only if `frontend` paths changed |
+| `rust` | Rust (cargo test) | ubuntu-24.04 | Only if `rust` paths changed |
 | `rust-fonts-macos` | Rust (cargo test — macOS fonts) | macos-latest | Only if `rust` paths changed |
-| `ci-success` | CI success | ubuntu-latest | Always (sentinel for branch protection — passes when every preceding job either succeeded or was deliberately skipped, fails on any failure or cancellation) |
+| `ci-success` | CI success | ubuntu-24.04 | Always (sentinel for branch protection — passes when every preceding job either succeeded or was deliberately skipped, fails on any failure or cancellation) |
 
 `changes` uses [`dorny/paths-filter`](https://github.com/dorny/paths-filter) with two filters:
 
-- `frontend`: `src/**`, `static/**`, `pnpm-lock.yaml`, `package.json`, `tsconfig.json`, `vite.config.*`, `tailwind.config.*`, `postcss.config.*`, `components.json`
-- `rust`: `src-tauri/**`
+- `frontend`: `src/**`, `static/**`, `pnpm-lock.yaml`, `package.json`, `tsconfig.json`, `vite.config.*`, `tailwind.config.*`, `postcss.config.*`, `components.json`, `e2e/**`, `.github/actions/setup/**`, `.github/workflows/ci.yml`
+- `rust`: `src-tauri/**`, `src/lib/contracts/generated/**`, `.cargo/**`, `.github/actions/setup/**`, `.github/workflows/ci.yml`
 
 The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml)) so it can evolve independently — different runner needs (Playwright browser cache), different cadence (heavier than `pnpm vitest`), and a different invocation contract (`bash scripts/e2e.sh`).
 
@@ -54,12 +54,12 @@ The Playwright E2E suite lives in a separate workflow ([`e2e.yml`](#e2e-e2eyml))
   - `pnpm check` (svelte-kit sync + svelte-check). Catches TypeScript errors, Svelte template errors, and unused imports.
   - `pnpm vitest run` (the full unit suite, ~5400 tests across the `src/tests/` tree). Covers pure logic, stores, services, parsers, and component-level behaviour.
   - `pnpm build` (Vite production build). Catches bundling regressions that the typecheck and unit suite miss: SSR-incompatible imports, dynamic import paths that don't resolve, type-only re-exports that become runtime errors, missing asset references. Without this step, those failures only surface inside `tauri-action` during release.
-- `rust`: `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`, then `cargo test --manifest-path src-tauri/Cargo.toml`. Any clippy warning fails the job, so a toolchain bump in `.github/actions/setup` must fix the lints the new clippy adds in the same change. The test step covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, and history/snapshot logic. Runs on `ubuntu-latest`, where code gated on `#[cfg(target_os = "macos")]` is compiled out: neither clippy nor the tests see `src/commands/fonts.rs`, the objc2 paths or the `semantic::qos` syscalls there, and code used only by such a branch (an import, a constant) is reported as unused on Linux alone.
+- `rust`: `cargo clippy --manifest-path src-tauri/Cargo.toml --all-targets --locked -- -D warnings`, then `cargo test --manifest-path src-tauri/Cargo.toml`. Any clippy warning fails the job, so a toolchain bump in `.github/actions/setup` must fix the lints the new clippy adds in the same change. The test step covers the entire Tauri backend including the `VaultIndex`, FTS5 indexing, semantic chunker, and history/snapshot logic. Runs on `ubuntu-24.04`, where code gated on `#[cfg(target_os = "macos")]` is compiled out: neither clippy nor the tests see `src/commands/fonts.rs`, the objc2 paths or the `semantic::qos` syscalls there, and code used only by such a branch (an import, a constant) is reported as unused on Linux alone.
 - `rust-fonts-macos`: the same clippy command on `macos-latest`, then the macOS-gated tests (`commands::fonts`, `semantic_qos_test`, `utils_fs_test`, `semantic_embedder_qos_session_test`), each required to report a non-zero passed count. macOS is the only platform the binary ships to.
 
 **What CI does NOT test**
 
-- End-to-end browser behaviour. Lives in [`e2e.yml`](#e2e-e2eyml), which runs on PRs, tag pushes, and nightly (non-blocking there).
+- End-to-end browser behaviour. Lives in [`e2e.yml`](#e2e-e2eyml), which runs on PRs, tag pushes, and every push to `main` through `main-checks.yml` (non-blocking there).
 - Tauri build / packaging / signing (that is what `release.yml` does on tag).
 - macOS-specific Tauri APIs that the mock layer stubs (system fonts, history database via Rust, FTS5 / semantic search, native window events). The frontend exercises these via the mock layer under E2E; native paths are only validated by `cargo test`.
 - Plugin features that the E2E mock layer treats as no-ops (semantic search, file history, system fonts).
@@ -74,18 +74,18 @@ Playwright end-to-end suite, separated from CI so it can evolve independently (d
 
 **Triggers**
 
-- `workflow_call` only — this workflow owns no event of its own. Callers: `pr.yml` (the `pull_request` gate, change-gated on the frontend paths), `release.yml` (hard gate on the tagged SHA), `nightly.yml` (post-merge signal, gates nothing), and `run-all.yml`.
+- `workflow_call` only — this workflow owns no event of its own. Callers: `pr.yml` (the `pull_request` gate, change-gated on the frontend paths), `release.yml` (hard gate on the tagged SHA), `main-checks.yml` (post-merge signal, gates nothing), and `run-all.yml`.
 - `workflow_dispatch` (manual rerun without a new commit).
 
 **Jobs**
 
 | Job ID | Display name | Runner | What it does |
 |---|---|---|---|
-| `playwright` | Frontend (Playwright E2E) | ubuntu-latest | Boots `PLAYWRIGHT=true pnpm dev`, installs Playwright Chromium (with browser binary cache keyed by `@playwright/test` version), runs `bash scripts/e2e.sh`. |
+| `playwright` | Frontend (Playwright E2E N/4) | ubuntu-24.04 | Matrix of 4 shards (`fail-fast: false`). Each boots `PLAYWRIGHT=true pnpm dev`, installs Playwright Chromium (with browser binary cache keyed by `@playwright/test` version), runs `bash scripts/e2e.sh --shard=N/4`. The shard flag is passed only here: `scripts/e2e.sh` and `e2e/playwright.config.ts` are unchanged, so local runs cover the whole suite. |
 
 The suite covers ~166 tests across `e2e/specs/`: vault open, file CRUD, editor, tabs (open/cycle/close/pin/unpin), navigation (wikilink + quick switcher + command palette + search), live preview decorations, sidebars, settings, canvas/kanban/tasks virtual views, queryjs basics (manual mode + cache + Run button), embed widgets, wikilink completion / anchors / create-on-click, state persistence.
 
-On failure, the Playwright HTML report, the `test-results/` directory, and `/tmp/kokobrain-e2e-server.log` are uploaded as a single 7-day artifact named `playwright-report`.
+On failure, the Playwright HTML report, the `test-results/` directory, and `/tmp/kokobrain-e2e-server.log` are uploaded as a 7-day artifact per failing shard, named `playwright-report-N`.
 
 **What E2E tests**
 
@@ -98,6 +98,28 @@ The frontend layer end-to-end against the Tauri mock layer in `e2e/mocks/`. The 
 - Tauri runtime behaviour (auto-updater, native window events, deep links, menu bar). Listeners are mocked.
 - Visual regression. No screenshot baselines.
 - Multi-browser. Chromium only.
+
+---
+
+## Secret Scan (`secrets.yml`)
+
+Gitleaks over the pushed commits. Split out of `ci.yml` so it runs on every push and PR, docs-only ones included (a secret pasted into a `.md` or a `.scratch` note leaks as easily as one in code), while CI, E2E, Nightly and Commit policy skip docs-only changes.
+
+**Triggers**
+
+- `push` to `main` and `pull_request` against `main`, with no path filter.
+- `workflow_call` from `release.yml` (a release gate) and `run-all.yml`.
+
+**Jobs**
+
+| Job ID | Display name | Runner | What it does |
+|---|---|---|---|
+| `gitleaks` | Secret Scan (gitleaks) | ubuntu-24.04 | Every ref but a tag. `gitleaks/gitleaks-action` with `.gitleaks.toml` and gitleaks `8.30.1` (the action's default 8.24.3 silently ignores `[[allowlists]]`). Scans the pushed or PR commits; on `workflow_dispatch` (through `run-all.yml`) the action scans the full history. |
+| `gitleaks-release` | Secret Scan (gitleaks, since previous release) | ubuntu-24.04 | Tags only, i.e. when `release.yml` calls it. On a tag push the action sees an empty commit list and exits with "No commits to scan", so this job downloads the gitleaks `8.30.1` release, checks it against the published `checksums.txt`, and scans `<previous X.Y.Z tag>..<tagged SHA>` (the full history when there is no previous tag). |
+
+Concurrency is one group per calling workflow and SHA with `cancel-in-progress: false`: the action scans the pushed commits, so a cancelled run would leave that range unscanned. `github.workflow` is the caller's name under `workflow_call`, so a release run does not share the push's group.
+
+`PR success` in `pr.yml` does not include this check: it is a separate workflow so docs-only PRs are scanned too. Require `Secret Scan (gitleaks)` on its own if branch protection is added.
 
 ---
 
@@ -118,10 +140,10 @@ Dependency and supply-chain auditing.
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `npm-audit` | ubuntu-latest | `pnpm audit --audit-level=moderate`. Fails if any moderate or higher vulnerability is reported. |
-| `cargo-audit` | ubuntu-latest | `rustsec/audit-check@v2.0.0` against `src-tauri/`. Posts a check annotation when an advisory matches a dependency. |
-| `supply-chain-quarantine` | ubuntu-latest | Verifies `pnpm-workspace.yaml` exists and sets `minimumReleaseAge` to at least `7200` minutes (5 days). This is the tamper-detection layer over the pnpm config that refuses to resolve packages younger than the configured age. |
-| `dependency-review` | ubuntu-latest | PR only. Runs `actions/dependency-review-action@v4` with `fail-on-severity: moderate`. Blocks PRs that introduce dependencies with known vulnerabilities. |
+| `npm-audit` | ubuntu-24.04 | `pnpm audit --audit-level=moderate`. Fails if any moderate or higher vulnerability is reported. |
+| `cargo-audit` | ubuntu-24.04 | `rustsec/audit-check@v2.0.0` against `src-tauri/`. Posts a check annotation when an advisory matches a dependency. Skipped on the `schedule` trigger: there audit-check opens an issue per new warning, which the token cannot do, so the daily run always failed. Pushes, `workflow_dispatch` and `release.yml` still run it; the daily OSV scan still reports advisories in `Cargo.lock`. |
+| `supply-chain-quarantine` | ubuntu-24.04 | Verifies `pnpm-workspace.yaml` exists and sets `minimumReleaseAge` to at least `7200` minutes (5 days). This is the tamper-detection layer over the pnpm config that refuses to resolve packages younger than the configured age. |
+| `dependency-review` | ubuntu-24.04 | PR only. Runs `actions/dependency-review-action@v4` with `fail-on-severity: moderate`. Blocks PRs that introduce dependencies with known vulnerabilities. |
 
 **What Security tests**
 
@@ -144,14 +166,14 @@ Greps the source tree for unauthorized external network calls. Backs the project
 **Triggers**
 
 - `push` to `main` with changes under `src/**`, `src-tauri/src/**`, `src-tauri/tauri.conf.json`, `package.json`, `pnpm-lock.yaml` or the scan action
-- `workflow_call` from `pr.yml` (same paths, folded into `PR success`) and `run-all.yml`
+- `workflow_call` from `pr.yml` (same paths, folded into `PR success`), `release.yml` (a release gate) and `run-all.yml`
 - `workflow_dispatch`
 
 **Jobs**
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `scan-external-calls` | ubuntu-latest | Runs the [`scan-external-calls`](#composite-actions) composite action twice (once for TypeScript / Svelte / JS, once for Rust) with language-specific PATTERN, SKIP, and KNOWN lists. |
+| `scan-external-calls` | ubuntu-24.04 | Runs the [`scan-external-calls`](#composite-actions) composite action twice (once for TypeScript / Svelte / JS, once for Rust) with language-specific PATTERN, SKIP, and KNOWN lists. |
 
 **What Privacy tests**
 
@@ -161,7 +183,7 @@ Greps the source tree for unauthorized external network calls. Backs the project
   - Browser network APIs (`navigator.sendBeacon`, `RTCPeerConnection`, `navigator.geolocation`)
   - External resource loaders (`script.src =`, `iframe.src =`, `new Image().src =`, workers, service workers)
   - Hardcoded `https?://` URLs
-- Exits non-zero on any match that does not appear in the KNOWN list (currently: `cdn.jsdelivr.net/npm/chart.js`, `todoist.com`, `@doist/todoist-api-typescript`, `@tauri-apps/plugin-http`, `huggingface.co/Xenova/bge-m3`).
+- Exits non-zero on any match that does not appear in the KNOWN list (currently: `cdn.jsdelivr.net/npm/chart.js`, `todoist.com`, `@doist/todoist-sdk`, `@tauri-apps/plugin-http`, `huggingface.co/Xenova/bge-m3`).
 
 **Opt-out marker**
 
@@ -187,10 +209,13 @@ Builds, signs, notarizes, and publishes the macOS desktop binary.
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `validate` | ubuntu-latest | Cheap pre-flight: confirms the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Fails fast before any expensive runner starts. |
+| `validate` | ubuntu-24.04 | Cheap pre-flight: confirms the tag commit is an ancestor of `origin/main` via `git merge-base --is-ancestor`. Fails fast before any expensive runner starts. |
 | `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with `force_all: true`. Re-runs the full CI matrix (frontend + rust forced, even if the only diff from the prior push was the version-bump commit). |
 | `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Re-runs the Playwright suite on the tagged SHA. Blocks the release. |
-| `build-macos` | macos-latest | `needs: [ci, e2e]`. The build/sign/publish pipeline. Only starts after both gates passed. |
+| `secrets` | (reusable) | `uses: ./.github/workflows/secrets.yml`. Gitleaks over the commits since the previous release tag (`gitleaks-release` job). Blocks the release. |
+| `security` | (reusable) | `uses: ./.github/workflows/security.yml`. npm audit, cargo audit and the supply-chain quarantine check (OSV and the full-history gitleaks run only on Security's own triggers). Blocks the release. |
+| `privacy` | (reusable) | `uses: ./.github/workflows/privacy.yml`. External-call scan. Blocks the release. |
+| `build-macos` | macos-latest | `needs: [ci, e2e, secrets, security, privacy]`. The build/sign/publish pipeline. Only starts after every gate passed, so a new dependency advisory blocks a release until it is fixed or quarantined. Timeout is 90 minutes: only `release.yml` writes the `macos-release-aarch64` Rust cache, and GitHub evicts a cache unused for 7 days, so a release a week after the previous one compiles every dependency from scratch. |
 
 `build-macos` pipeline:
 
@@ -203,7 +228,7 @@ The previous "wait for ci.yml on this commit" polling step (a 5-minute `gh run l
 
 **What Release tests**
 
-- That the tagged commit is on `main`, that CI passes on the exact tagged SHA, and that the Playwright E2E suite passes on the exact tagged SHA.
+- That the tagged commit is on `main`, and that CI, the Playwright E2E suite, the gitleaks scan, the Security audits and the Privacy scan all pass on the exact tagged SHA before anything is built.
 - That the macOS build succeeds end-to-end (compilation, bundling, signing, notarization).
 
 **What Release does NOT test**
@@ -211,6 +236,26 @@ The previous "wait for ci.yml on this commit" polling step (a 5-minute `gh run l
 - The artifacts themselves. There is no smoke test that launches the produced `.app` to verify it boots, opens a vault, and survives basic interactions. The CI E2E covers the dev-mode frontend; the release artifact's frontend bundle is functionally identical but the wrapper is the real Tauri shell.
 - Other platforms. The project is macOS-only by design (`README.md` says so explicitly).
 - Auto-update channel health. The `.app.tar.gz.sig` is generated but not verified post-publish.
+
+---
+
+## Main checks (`main-checks.yml`)
+
+Post-merge CI and E2E on `main`. Split from `nightly.yml` so the nightly build can queue (`cancel-in-progress: false`) while these checks still cancel on a newer push.
+
+**Triggers**
+
+- `push` to `main`, with the same `paths-ignore` list as `nightly.yml`.
+- `workflow_dispatch`.
+
+**Jobs**
+
+| Job ID | Runner | What it does |
+|---|---|---|
+| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with the default `force_all: false`. Paths-filter still applies, so a workflow- or docs-only commit can skip the frontend / rust jobs. |
+| `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Full Playwright suite on the pushed SHA, no paths-filter. |
+
+Concurrency is `group: main-checks-${{ github.ref }}, cancel-in-progress: true`. Nothing depends on these jobs: they are a post-merge signal, and `release.yml` re-runs both as hard gates on the tagged SHA. There is no guard job: the `chore: bump version` commit that precedes a tag runs CI and E2E here and again in `release.yml`, `[skip nightly]` does not skip them, and forks run them too.
 
 ---
 
@@ -228,10 +273,8 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `guard` | ubuntu-latest | Fast fail. Verifies `github.repository == 'diegorv/koko.brain'` so forks do not attempt to publish nightlies to their own Releases. Also sets `should_build=false` when the head commit subject starts with `chore: bump version` — those commits trigger `release.yml` for the stable build of the same SHA, and `nightly.yml` would otherwise duplicate ~30 minutes of macOS work. The commit message is read through an `env:` mapping, not inline `${{ }}`, to defuse shell-injection from a malicious commit subject. |
-| `ci` | (reusable) | `uses: ./.github/workflows/ci.yml` with the default `force_all: false`. Paths-filter still applies, so a workflow- or docs-only commit can skip the frontend / rust jobs. Gated on `needs.guard.outputs.should_build == 'true'`. |
-| `e2e` | (reusable) | `uses: ./.github/workflows/e2e.yml`. Full Playwright suite on the merge SHA, no paths-filter. Gated on `needs.guard.outputs.should_build == 'true'`. |
-| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. `needs: [guard]` only — `ci` and `e2e` run alongside it, not before it, so neither blocks the nightly artifact. |
+| `guard` | ubuntu-24.04 | Fast fail. Verifies `github.repository == 'diegorv/koko.brain'` so forks do not attempt to publish nightlies to their own Releases. Also sets `should_build=false` when the head commit subject starts with `chore: bump version` — those commits trigger `release.yml` for the stable build of the same SHA, and `nightly.yml` would otherwise duplicate ~30 minutes of macOS work. The commit message is read through an `env:` mapping, not inline `${{ }}`, to defuse shell-injection from a malicious commit subject. |
+| `build-macos` | macos-latest | Builds, signs, notarizes, and publishes the nightly DMG. `needs: [guard]` only. CI and E2E for the same push run in [`main-checks.yml`](#main-checks-main-checksyml) and gate nothing here. Sets `CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16`: the release profile's `codegen-units = 1` compiles the `kokobrain` crate on one core, and the nightly trades a slightly slower binary for a parallel build. Uses its own rust-cache key (`macos-nightly-aarch64`), since the override changes every crate's artifacts. |
 
 `build-macos` pipeline:
 
@@ -243,44 +286,35 @@ Push-to-main pre-release build for the Nightly channel. See [docs/RELEASE-CHANNE
 6. Delete the asset ids recorded in step 3 — the previous run's version-stamped DMG / tar.gz / sig. Ids that `tauri-action` already replaced (`latest.json`, same filename, new id) 404 and are skipped. Re-assert `--prerelease`, which the reuse path cannot set.
 7. Smoke-check `latest.json` (polling until it advertises this run's version, not merely until it returns 200 — the previous run's file is still there while the CDN lags), then force-move the `nightly` tag to the built commit. Last on purpose: a run that dies in the build leaves the tag on the commit whose assets are published, and GitHub generates the "Source code" archives from the tag at download time.
 
-Concurrency is `group: nightly, cancel-in-progress: true`: rapid back-to-back pushes only build the latest commit. macOS minutes are free for OSS but wall-clock and cancelled-run emails aren't.
+Concurrency is `group: nightly, cancel-in-progress: false`: a running build always finishes, and GitHub keeps only the newest push pending (an older pending run is cancelled and replaced). With `cancel-in-progress: true`, pushes landed faster than a build finished, so most builds were cancelled near the end and no nightly got published during a busy stretch.
 
 **What Nightly tests**
 
-- CI matrix (frontend + rust, gated by paths-filter so a CI-yaml-only commit can skip both) and the Playwright E2E suite on the exact build SHA, in parallel with a full macOS build/sign/notarize/publish cycle. Neither check gates the build — they report status, `release.yml` is where they block.
+- Only that the app builds, signs, notarizes and publishes. CI and E2E for the same push run in [`main-checks.yml`](#main-checks-main-checksyml); they report status, `release.yml` is where they block.
 
 **What Nightly does NOT test**
 
-- **Nothing as a gate.** `ci` and `e2e` both run, but `build-macos` does not depend on them, so a nightly DMG publishes even when they fail. `release.yml` is where both are hard gates. A failing build is contained: the previous nightly release stays published and downloadable, and the `nightly` tag has not moved either. A failure in the post-build publish steps is the one partial case — new assets, tag still one commit behind.
+- **Nothing as a gate.** `main-checks.yml` runs CI and E2E separately, so a nightly DMG publishes even when they fail. `release.yml` is where both are hard gates. A failing build is contained: the previous nightly release stays published and downloadable, and the `nightly` tag has not moved either. A failure in the post-build publish steps is the one partial case — new assets, tag still one commit behind.
 - **Security audits.** `security.yml` covers this SHA through its own `push: main` trigger, not through `nightly.yml`.
 - Same gaps as Release (no `.app` smoke test, no post-publish auto-update verification).
 - The `chore: bump version` skip: there's no positive assertion that the skipped run "would have produced the same bundle as `release.yml`". The two pipelines are equivalent by construction; if they diverge, both flows break at the same time.
 
 ---
 
-## Cache Warmer (`cache-warmer.yml`)
+## Cache Cleanup (`cache-cleanup.yml`)
 
-Bi-weekly scheduled `cargo build --release --target aarch64-apple-darwin` to keep the macOS Rust cache (GHA Cache + sccache) alive across slow weeks. Does not publish, sign, or bundle anything — only builds.
+Keeps the repository under GitHub's 10 GB Actions cache limit. CodeQL's default setup saves a ~175 MB overlay database per push and never prunes them; past the limit GitHub evicts the least recently used entries, which were the Rust caches `ci.yml` depends on.
 
 **Triggers**
 
-- `schedule`: `0 4 * * 1,4` (04:00 UTC Monday + Thursday). Bi-weekly chosen over weekly so the gap between warmer runs never exceeds 4 days, well inside GitHub's 7-day cache eviction window.
+- `schedule`: `*/10 * * * *` (every 10 minutes; on a busy day CodeQL adds several GB in an hour).
 - `workflow_dispatch`.
 
 **Jobs**
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `warm` | macos-latest | Checkout + setup + `cargo build --release --target aarch64-apple-darwin --manifest-path src-tauri/Cargo.toml`. Then prints `sccache --show-stats` so the workflow log makes the hit rate visible at a glance. Gated on `github.repository == 'diegorv/koko.brain'` to keep forks from burning their own macOS minutes on a cache nothing else in the fork consumes. |
-
-**What Cache Warmer tests**
-
-Nothing — it's purely infrastructure. A failing build still surfaces as a red workflow, so it doubles as a "rust compiles on main" smoke check, but the test gates are CI's `rust` job and the per-platform build workflows.
-
-**What Cache Warmer does NOT test**
-
-- Bundling, codesign, notarization, or the `tauri-action` build pipeline. The warmer skips `pnpm tauri build` entirely so the runner time stays around ~15 min instead of ~30 min.
-- That the cache it warms is actually hit by a subsequent nightly/release run. The `sccache --show-stats` output is informational; the proof is in the next nightly's stats.
+| `codeql` | ubuntu-24.04 | Lists `codeql-overlay-*` caches newest first and deletes all but the newest 2 per language (`gh cache delete`). Touches no other cache. Gated on `github.repository == 'diegorv/koko.brain'`. Needs `actions: write`. |
 
 ---
 
@@ -301,7 +335,7 @@ Mirrors `help/documentation/` and `help/examples/` into the repository's GitHub 
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `sync` | ubuntu-latest | Clones the `<repo>.wiki` Git repo via `secrets.GITHUB_TOKEN`. Deletes existing `*.md` pages. Translates filenames (`01-getting-started.md` becomes `Getting-Started.md`) and rewrites internal markdown links to match the new names. Generates one wiki page per subfolder under `help/examples/` with code blocks colorized by extension. Commits and pushes to the wiki repo. |
+| `sync` | ubuntu-24.04 | Clones the `<repo>.wiki` Git repo via `secrets.GITHUB_TOKEN`. Deletes existing `*.md` pages. Translates filenames (`01-getting-started.md` becomes `Getting-Started.md`) and rewrites internal markdown links to match the new names. Generates one wiki page per subfolder under `help/examples/` with code blocks colorized by extension. Commits and pushes to the wiki repo. |
 
 **What Wiki Sync tests**
 
@@ -328,6 +362,7 @@ Manual entry point that fans out CI, E2E, Security, and Privacy in one click. Us
 |---|---|---|
 | `ci` | CI | `uses: ./.github/workflows/ci.yml` |
 | `e2e` | E2E | `uses: ./.github/workflows/e2e.yml` |
+| `secrets` | Secret Scan | `uses: ./.github/workflows/secrets.yml` (full-history gitleaks under `workflow_dispatch`) |
 | `security` | Security | `uses: ./.github/workflows/security.yml` |
 | `privacy` | Privacy | `uses: ./.github/workflows/privacy.yml` |
 
@@ -351,7 +386,7 @@ Inputs:
 - `rust` (default `"true"`). When `"false"`, skips the Rust toolchain install. Frontend-only jobs pass `"false"`.
 - `rust-targets` (default `aarch64-apple-darwin`). Comma-separated list of Rust targets.
 
-Steps: install pnpm, install Node.js 22 with pnpm-store cache, run `pnpm install --frozen-lockfile`. If Rust is enabled, install via `dtolnay/rust-toolchain@stable` and cache build artefacts via `Swatinem/rust-cache@v2`.
+Steps: install pnpm, install Node.js 22 with pnpm-store cache, run `pnpm install --frozen-lockfile`. If Rust is enabled, install via `dtolnay/rust-toolchain@stable`, set an empty `RUSTC_WRAPPER` (overrides the `rustc-wrapper = "sccache"` that `.cargo/config.toml` sets for local builds; CI does not use sccache) and cache build artefacts via `Swatinem/rust-cache@v2`.
 
 ### `.github/actions/publish-checksums`
 
@@ -396,13 +431,17 @@ The npm and cargo cooldowns match the pnpm `minimumReleaseAge` (5 days), so Depe
 
 CI, Security, and Privacy use path filters to skip when only documentation changed:
 
-- The event entry points (`pr.yml`, `nightly.yml`, `security.yml`'s push) share one `paths-ignore` list: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. Workflow file edits are NOT excluded, so a workflow change is validated by the run it triggers.
+- `pr.yml` uses `paths-ignore`: `**/*.md`, `.scratch/**`, `help/**`, `LICENSE`. The push entry points (`main-checks.yml`, `nightly.yml`, `security.yml`, `commit-policy.yml`, which applies the same list to PRs) use an ordered `paths` filter instead: everything, minus that docs list, minus `.github/**`, plus the workflow's own file and the files it runs (`nightly.yml`: `.github/actions/setup/**`, `.github/actions/publish-checksums/**`; `main-checks.yml`: `ci.yml`, `e2e.yml`, `.github/actions/setup/**`; `security.yml`: `.github/actions/setup/**`). A workflow change is still validated by its own run, but editing one workflow no longer starts the nightly build and every other check. Inside `ci.yml` the `frontend` and `rust` filters likewise count only `ci.yml` and `.github/actions/setup/**` from `.github/`. A docs-only push therefore runs only `secrets.yml` (plus `sync-wiki.yml` when it touches `help/documentation/**` or `help/examples/**`, `privacy.yml` when it touches `PRIVACY.md`, and CodeQL's default setup, which has no path filter).
 - Inside `pr.yml` and `ci.yml`, `dorny/paths-filter` decides which suites run; a skipped suite counts as passed in the `PR success` / `CI success` aggregates.
 - Privacy's own push trigger uses an allow-list of source paths; it only cares about code that can make network calls.
 
 ### Concurrency
 
-Every workflow has a `concurrency:` group keyed on `${{ github.ref }}`. Most use `cancel-in-progress: true` (newer commits supersede older runs). The exception is Wiki Sync, which uses `cancel-in-progress: false` (every push's docs are meaningful work; serialize, do not drop).
+Most workflows have a `concurrency:` group keyed on `${{ github.ref }}` with `cancel-in-progress: true` (newer commits supersede older runs). The exceptions use `cancel-in-progress: false`: Wiki Sync (every push's docs are meaningful work; serialize, do not drop), Release, Nightly (fixed group `nightly`: a cancelled build publishes nothing; GitHub keeps only the newest push pending), and Commit policy and Secret Scan (one group per SHA, because each scans the pushed range). Cache Cleanup uses a fixed group that cancels in progress.
+
+### Runner images
+
+Linux jobs pin `ubuntu-24.04` instead of `ubuntu-latest`, so a GitHub image migration (`ubuntu-latest` moving to 26.04, actions/runner-images#14748) does not change the build environment under a push and does not annotate every run. Moving to a newer image is a deliberate change: the Tauri `apt` packages in `ci.yml` and `playwright install-deps` are the parts most likely to differ. CodeQL's default setup picks its own runner and still shows the notice; only an advanced setup would control it.
 
 ### Third-party action pinning
 
@@ -433,6 +472,6 @@ When updating branch protection rules in the GitHub UI, refer to the current job
 | Display name | Workflow file | Notes |
 |---|---|---|
 | `CI success` | `ci.yml` | **Recommended** required check. Aggregates `changes` + `frontend` + `rust`; passes when each either succeeded or was deliberately skipped, fails on any real failure. Required because `frontend` and `rust` individually are skipped by paths-filter on changes that don't touch their tree, which makes them unusable as required checks directly. |
-| `Frontend (Playwright E2E)` | `e2e.yml` | Can be required separately if you want a hard E2E gate on PRs. |
+| `Frontend (Playwright E2E N/4)` | `e2e.yml` | One check per shard (1/4 to 4/4). Can be required separately if you want a hard E2E gate on PRs. |
 
 Historical names that should be removed from branch protection: `TypeScript Check`, `Frontend Tests`, `Rust Tests`, `Frontend (typecheck + tests)`, `Rust (cargo test)`, and any `Playwright E2E` entry pinned to `ci.yml` (it moved to `e2e.yml`).

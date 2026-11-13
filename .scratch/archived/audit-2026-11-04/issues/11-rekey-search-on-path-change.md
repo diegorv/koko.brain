@@ -1,0 +1,29 @@
+# 11: Folder rename/move keeps its notes in text and semantic search
+
+**What to build:** When a user renames or moves a folder (or a single note), every note under it stays findable in text search (search_fts) and in semantic/hybrid search at its new path right away, with no vault reopen. Today applyPathChange (src/lib/core/filesystem/path-change.service.ts:199-214) re-keys only the VaultIndex and then forgetNote deletes the FTS5 rows and the semantic chunks at the old keys. Recommended fix: re-key the rows Rust-side, the same way rename_note re-keys VaultIndex. Add a command (or extend the rename leg) that, in one SQLite transaction, rewrites the vault-relative key for `from` and every `from/` child in notes_content/notes_fts, the semantic chunks table, and the semantic_meta `mtime:<rel_path>` keys (src-tauri/src/db/schema.rs:41-109). Call it from applyPathChange after diskOp and before the forgetNote sweep, using vaultRelativeKey for from/to. The sweep's search deletes then hit keys that no longer exist and do nothing. Re-keying avoids re-reading files and re-running ONNX embedding for every child. Re-reading plus an upsert per child would re-embed every note in the folder. The same path covers a single-file rename, which today relies on the watcher's incremental branch to re-add the row.
+
+**Blocked by:** none
+
+**Status:** resolved
+
+**Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run` + `pnpm build`.
+
+- [x] Failing test first: src/tests/lib/core/filesystem/fs.service.test.ts, a renameItem('/vault/dir', 'renamed') with a vault open and two child notes in fsStore (real stores, invoke mocked as today), asserts the search re-key IPC is issued with from 'dir' and to 'renamed' (or per-child keys), and that it is issued before the remove_from_search_index calls. Red on current code.
+- [x] Rust test under src-tauri/tests/: seed notes_content, notes_fts, chunks and semantic_meta mtime rows for 'dir/a.md' and 'dir/b.md', run the re-key 'dir' -> 'renamed', and assert an FTS MATCH query returns 'renamed/a.md' and 'renamed/b.md', no row remains under 'dir/', and the chunk and mtime keys moved. A sibling 'dirx/c.md' is untouched (prefix boundary).
+- [x] moveItem of a folder and a single-note rename get the same coverage in fs.service.test.ts.
+- [x] A path outside the vault (vaultRelativeKey null) or no open vault skips the re-key, matching the forgetNote rule.
+- [x] A failure of the re-key IPC is logged and does not block the rest of applyPathChange (index legs never throw).
+- [x] The comments at path-change.service.ts:88-96 and the CLAUDE.md Indexing & Watcher item 6 'delete branch' text are updated to describe the re-key. An ADR 0009 amendment notes the search consequence.
+- [x] The Both gate is green: cargo test, pnpm check, pnpm vitest run, pnpm build. The generated bindings are committed if a DTO changes.
+
+## Notes
+
+- **Source:** audit 2026-11-04 (`.scratch/audit-2026-11-04/findings.md`), deep dive by an opus verifier the same day. Wave 1 of the parallel plan.
+- **Finding `folder-fts-drop`:** real, high. Root cause: applyPathChange re-keys only the Rust VaultIndex (rename_note) and then calls forgetNote for the old path of the item and of every child. forgetNote takes the delete branch of applyNoteChange, which removes the FTS5 row and the semantic chunks at the old key. Nothing upserts or re-keys those rows at the new paths. The watcher does not repair it: a directory-only event is skipped, and a burst over 10 files takes the full-rebuild branch, which never writes FTS or semantic. The rows only come back with build_search_index when the vault is next opened, or when each note is saved again.
+  Evidence: path-change.service.ts:203 awaits rename_note, which re-keys entries only (commands/vault.rs:1100-1132, no FTS or semantic code). path-change.service.ts:212-213 runs forgetNote on [from, ...childPaths], and forgetNote at path-change.service.ts:101 sends a delete with vaultPath. note-change.service.ts:206-219 then calls remove_from_search_index and remove_semantic_file with the old key. The upsert branch (note-change.service.ts:247-252) is never reached for the new paths. In watcher-handler.service.ts:34-46, a burst with no dotted basename (folder only) returns early. At watcher-handler.service.ts:53-73 more than 10 md paths call rebuildIndex, buildPropertyIndex and buildFrontmatterIconIndex, and none of them touches FTS or semantic. The only full FTS writer is build_search_index (search.service.ts:285), which runs on vault open. No test asserts a re-add after a rename: fs.service.test.ts:686-708 covers the delete side only.
+- The trace said 'confirmed by code'. Neither the FSEvents event set for a directory rename nor the exact build_search_index reconcile behaviour was run. The result does not depend on them for folders of more than 10 notes or for folder-only events. Keep the ordering: rename_note before the forgetNote sweep. Check whether the semantic chunk table stores the key in more than one column (file_path plus an id prefix) before writing the UPDATE.
+- **Size:** M.
+
+## Comments
+
+- 2026-11-04, branch issue/11-rekey-search-on-path-change: applyPathChange now re-keys the FTS5 and semantic rows (notes_content, notes_fts, chunks, mtime: keys) from the old vault-relative key to the new one before the forgetNote sweep, for folder rename/move and single-note rename; skipped outside the vault or with no vault open; IPC failures are logged and never block the path change. A fix round made a folder re-key keep going when a child's new key is already taken. Tests: cargo test exit 0 (1281 passed), clippy clean, vitest 495/495 files (11749 passed) + build OK on the second full run (first run had one load timeout in queryjs-contract.test.ts, which passes alone). Reviews: round 1 APPROVED, round 2 APPROVED (one optional nit on per-file chunk/mtime collision handling, not fixed).

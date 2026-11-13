@@ -6,15 +6,26 @@ permissions:
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - "**/*.md"
-      - ".scratch/**"
-      - "help/**"
-      - "LICENSE"
+    # Everything but docs, and under .github/ only what this workflow runs.
+    paths:
+      - "**"
+      - ".*"
+      - ".*/**"
+      - "!**/*.md"
+      - "!.scratch/**"
+      - "!help/**"
+      - "!LICENSE"
+      - "!.github/**"
+      - ".github/workflows/security.yml"
+      - ".github/actions/setup/**"
   schedule:
     - cron: "30 12 * * *"
   workflow_dispatch:
   workflow_call:
+    secrets:
+      MODS_REPO_READ_TOKEN:
+        description: "Read-only access to diegorv/koko.brain-mods"
+        required: true
 concurrency:
   group: security-${{ github.ref }}
   cancel-in-progress: true
@@ -22,7 +33,7 @@ concurrency:
 jobs:
   npm-audit:
     name: npm Audit
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v7.0.1
@@ -30,6 +41,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust: "false"
 
       - name: Audit dependencies (quarantine-aware)
@@ -37,7 +49,11 @@ jobs:
 
   cargo-audit:
     name: Cargo Audit
-    runs-on: ubuntu-latest
+    # On a schedule audit-check opens an issue per new warning, which this
+    # token cannot do, so the daily run always failed. Pushes and releases
+    # still audit; the daily OSV scan still reports advisories in Cargo.lock.
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
       contents: read
@@ -54,7 +70,7 @@ jobs:
 
   supply-chain-quarantine:
     name: Supply Chain Quarantine
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - uses: actions/checkout@v7.0.1
@@ -86,7 +102,7 @@ jobs:
     if: >-
       github.workflow == 'Security' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1

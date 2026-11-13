@@ -73,6 +73,7 @@ import {
 	FAVORITES_LENS,
 	FILES_LENS,
 	INBOX_LENS,
+	listEntries,
 	neighbourhoodLens,
 	TODAY_LENS,
 	TYPES_LENS,
@@ -84,10 +85,13 @@ import { railRegistryStore } from '#lib/features/rail-shell/rail-registry.store.
 import { registerOneOnOneTodaySection } from '#lib/plugins/one-on-one/one-on-one-today.service.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-definitions.logic.js';
+import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { READABILITY_PAIRS } from '#lib/core/settings/theme-builder.logic.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
 import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { createFile, deleteItem, renameItem } from '#lib/core/filesystem/fs.service.js';
@@ -148,6 +152,7 @@ describe('RailNoteList', () => {
 		fileIconsStore.reset();
 		typeDefinitionsStore.reset();
 		settingsStore.reset();
+		settingsStore.setSettings({ ...settingsStore.settings, explicitOrganization: false });
 		railRegistryStore.reset();
 		vi.clearAllMocks();
 		target = document.body.appendChild(document.createElement('div'));
@@ -157,6 +162,21 @@ describe('RailNoteList', () => {
 		if (component) unmount(component);
 		component = null;
 		document.body.innerHTML = '';
+	});
+
+	it('shows late menu registrations and removes them when disposed', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+		await mountList();
+		const received: unknown[] = [];
+		const off = railRegistryStore.registerMenuItem({ id: 'organize', label: 'Organize here', on: ['note'], run: (target) => { received.push(target); } });
+		await chooseMenuItem('alpha', 'Organize here');
+		expect(received).toEqual([{ on: 'note', path: 'Work/alpha.md' }]);
+		off();
+		row('alpha').dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+		await settle();
+		const labels = [...document.querySelectorAll('[role="menuitem"]')].map((el) => el.textContent?.trim());
+		expect(labels).not.toContain('Organize here');
+		expect(labels).toContain('Duplicate');
 	});
 
 	it('shows the Inbox label, its rule and one row per inbox note', async () => {
@@ -172,6 +192,84 @@ describe('RailNoteList', () => {
 		expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Inbox');
 		expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('not organized, not archived');
 		expect(rowTitles()).toEqual(['alpha', 'beta']);
+	});
+
+	it('colors the title of a note with only a text color and keeps the fallback icon', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA), entryV2(BETA)]);
+		fileIconsStore.setFrontmatterIcons(new Map([[ALPHA, { titleColor: '#3b82f6' }]]));
+		await mountList();
+
+		const [alpha, beta] = rows();
+		expect(alpha.querySelector<HTMLElement>('[data-note-row-title]')!.style.color).toBe('rgb(59, 130, 246)');
+		expect(alpha.querySelector('[data-note-row-fallback-icon]')).not.toBeNull();
+		expect(beta.querySelector<HTMLElement>('[data-note-row-title]')!.style.color).toBe('');
+	});
+
+	it('paints the list column tone', async () => {
+		await mountList();
+		expect(target.querySelector('[data-rail-note-list]')!.classList).toContain('bg-list-bg');
+	});
+
+	it('sets the header above its rows like the navigators, and the count in the metadata role', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA), entryV2(BETA)]);
+		await mountList();
+
+		const label = target.querySelector('[data-note-list-label]')!;
+		expect(label.classList).toContain('text-title');
+		const count = target.querySelector('[data-note-list-count]')!;
+		expect(count.textContent).toBe('2');
+		expect(count.classList).toContain('text-meta');
+		// The header's container query drops it when narrow, or the sort arrow runs into the search icon.
+		expect(count.classList).toContain('@max-[12rem]:hidden');
+		// The rows share the row role with the Files and Types tree rows.
+		for (const el of rows()) {
+			expect(el.querySelector('[data-note-row-title]')!.classList).toContain('text-row');
+		}
+	});
+
+	it('keeps the title readable in a narrow header: the actions are icon buttons and the count uses a readable tab token', async () => {
+		const offOpener = eventCalendarDailyNoteStore.register(vi.fn().mockResolvedValue(undefined));
+		try {
+			await mountList(TODAY_LENS);
+
+			// The title is the item that grows and shrinks, and never below 64px (4 characters at text-title).
+			const label = target.querySelector('[data-note-list-label]')!;
+			expect(label.textContent).toBe('Today');
+			expect(label.classList).toContain('flex-1');
+			expect(label.classList).toContain('min-w-16');
+
+			for (const [selector, name] of [
+				['[data-note-list-header-action]', 'Daily note'],
+				['[data-note-list-new]', 'New here'],
+			]) {
+				const button = target.querySelector<HTMLButtonElement>(selector)!;
+				expect(button.tagName).toBe('BUTTON');
+				expect(button.getAttribute('aria-label')).toBe(name);
+				expect(button.title).not.toBe('');
+				expect(button.querySelector('svg')).not.toBeNull();
+				expect(button.textContent?.trim()).toBe('');
+			}
+
+			// The header is bg-tab-bar; the count's token is held to 4.5:1 there in every built-in theme.
+			expect(target.querySelector('[data-note-list-count]')!.classList).toContain('text-tab-text-inactive');
+			expect(READABILITY_PAIRS).toContainEqual(['ui', 'tabTextInactive', 'ui', 'tabBar', 4.5]);
+		} finally {
+			offOpener();
+		}
+	});
+
+	it('clears the traffic lights (header pad) only as the first pane after the rail', async () => {
+		const header = () => target.querySelector('[data-note-list-label]')!.parentElement!;
+
+		await mountList();
+		expect(header().classList).toContain('pl-3');
+		expect(header().classList).not.toContain('pl-[var(--rail-header-pad)]');
+		unmount(component!);
+
+		component = mount(RailNoteList, { target, props: { lens: INBOX_LENS, firstPane: true } });
+		await settle();
+		expect(header().classList).toContain('pl-[var(--rail-header-pad)]');
+		expect(header().classList).not.toContain('pl-3');
 	});
 
 	it('does not re-resolve a non-folder lens when the file tree is replaced, and still follows a new note', async () => {
@@ -191,16 +289,23 @@ describe('RailNoteList', () => {
 		entriesRead.mockRestore();
 	});
 
-	it('shows each row in italics with its type, note date and folder', async () => {
-		typeDefinitionsStore.setEntries([
-			entryV2(ALPHA, { isA: 'Project', frontmatter: { date: '2026-10-27', created: '2026-10-01' } }),
-		]);
-		await mountList();
+	it('shows each row in italics with its type, relative modified time and folder', async () => {
+		const now = new Date(2026, 9, 31, 9, 15).getTime();
+		vi.useFakeTimers({ toFake: ['Date'] });
+		vi.setSystemTime(now);
+		try {
+			typeDefinitionsStore.setEntries([
+				entryV2(ALPHA, { isA: 'Project', frontmatter: { date: '2026-10-27', created: '2026-10-01' }, modifiedAt: now / 1000 - 2 * 3600 }),
+			]);
+			await mountList();
 
-		expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · 2026-10-27 · Work');
-		expect(row('alpha').querySelector('.truncate')?.classList.contains('italic')).toBe(true);
-		// The subtitle replaces the classic list's relative-time line.
-		expect(row('alpha').textContent).not.toContain('Created');
+			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('2h ago · Work');
+			expect(row('alpha').querySelector('.truncate')?.classList.contains('italic')).toBe(true);
+			// The subtitle is the row's only date line.
+			expect(row('alpha').textContent).not.toContain('Created');
+		} finally {
+			vi.useRealTimers();
+		}
 	});
 
 	it("renders the note type's list-property pills", async () => {
@@ -220,6 +325,9 @@ describe('RailNoteList', () => {
 
 		expect(row('beta').className).toContain('bg-primary/25');
 		expect(row('alpha').className).not.toContain('bg-primary/25');
+		// The same 8px corner as the rail and the right-sidebar rows.
+		expect(row('beta').classList).toContain('rounded-md');
+		expect(row('beta').className).not.toMatch(/(^|\s)rounded(\s|$)/);
 	});
 
 	it('opens the note when a row is clicked', async () => {
@@ -254,6 +362,17 @@ describe('RailNoteList', () => {
 		expect(target.querySelector('[draggable="true"]')).toBeNull();
 	});
 
+	it('a row being renamed keeps the 8px row corner', async () => {
+		typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+		await mountList();
+		fsStore.setRenamingPath(ALPHA);
+		await settle();
+
+		const wrapper = target.querySelector('input')!.parentElement!;
+		expect(wrapper.classList).toContain('rounded-md');
+		expect(wrapper.className).not.toMatch(/(^|\s)rounded(\s|$)/);
+	});
+
 	it('shows an empty state when the Inbox is empty', async () => {
 		typeDefinitionsStore.setEntries([entryV2('/vault/done.md', { organized: true })]);
 		await mountList();
@@ -273,6 +392,7 @@ describe('RailNoteList', () => {
 	});
 
 	it('resolves a registered lens kind through its provider, and shows the empty state for an unknown one', async () => {
+		typeDefinitionsStore.setEntries([]);
 		railRegistryStore.registerLensProvider({
 			kind: 'day',
 			resolve: (lens) => ({ label: `Day ${lens.target}`, rule: `note date is ${lens.target}`, notes: [] }),
@@ -287,6 +407,130 @@ describe('RailNoteList', () => {
 		expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('');
 		expect(target.querySelector('[data-note-list-rule]')).toBeNull();
 		expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+	});
+
+	describe('before the entries land', () => {
+		const DAY = '2026-10-27';
+		const HUB = '/vault/Hub.md';
+
+		function expectLoading() {
+			expect(target.querySelector('[data-note-list-loading]')?.textContent?.trim()).toBe('Loading...');
+			expect(target.querySelector('[data-note-list-empty]')).toBeNull();
+			expect(target.querySelector('[data-note-list-group-empty]')).toBeNull();
+			expect(rows()).toEqual([]);
+		}
+
+		function landEntries(...extra: NoteEntryV2[]) {
+			typeDefinitionsStore.setEntries([
+				entryV2(ALPHA, { isA: 'Project', modifiedAt: 2, favorite: true }),
+				entryV2(BETA, { modifiedAt: 1, archived: true }),
+				...extra,
+			]);
+			return settle();
+		}
+
+		it.each([
+			['Inbox', INBOX_LENS, ['alpha']],
+			['Favorites', FAVORITES_LENS, ['alpha']],
+			['Archive', ARCHIVE_LENS, ['beta']],
+			['a type', { kind: 'type', target: 'Project' }, ['alpha']],
+			['Untyped', UNTYPED_LENS, []],
+		])('%s shows Loading, then its rows', async (_name, lens, titles) => {
+			await mountList(lens);
+			expectLoading();
+			await landEntries();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(titles);
+		});
+
+		it('shows no count in the header while it waits, and the count after', async () => {
+			await mountList();
+			expect(target.querySelector('[data-note-list-count]')?.textContent).toBe('');
+			await landEntries();
+			expect(target.querySelector('[data-note-list-count]')?.textContent).toBe('1');
+		});
+
+		it('keeps the label and the rule of a built-in lens while it waits', async () => {
+			await mountList();
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Inbox');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('not organized, not archived');
+		});
+
+		it('the bare Types lens shows Loading, not an empty list', async () => {
+			await mountList(TYPES_LENS);
+			expectLoading();
+		});
+
+		it('Today shows Loading in place of its false "Nothing here" and My people, which read the entries', async () => {
+			registerOneOnOneTodaySection();
+			settingsStore.setSettings({ ...settingsStore.settings, oneOnOne: { ...settingsStore.settings.oneOnOne, workPeopleFolder: 'People' } });
+			await mountList(TODAY_LENS);
+			expectLoading();
+			expect(target.querySelector('[data-my-people-empty]')).toBeNull();
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Today');
+			await landEntries();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(target.querySelector('[data-note-list-group="today"]')).not.toBeNull();
+			expect(target.querySelector('[data-my-people-empty]')).not.toBeNull();
+		});
+
+		it('a neighbourhood shows Loading, then the note and its links', async () => {
+			await mountList(neighbourhoodLens(HUB));
+			expectLoading();
+			await landEntries(entryV2(HUB));
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(['Hub']);
+		});
+
+		it("a provider's lens, such as the Calendar's day, keeps its label and shows Loading", async () => {
+			railRegistryStore.registerLensProvider({
+				kind: 'day',
+				resolve: (lens, ctx) => ({ label: `Day ${lens.target}`, rule: '', notes: listEntries(ctx, (e) => e.path === ALPHA) }),
+			});
+			await mountList({ kind: 'day', target: DAY });
+			expectLoading();
+			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe(`Day ${DAY}`);
+			await landEntries();
+			expect(rowTitles()).toEqual(['alpha']);
+		});
+
+		it('a folder lens does not wait: it lists the file tree', async () => {
+			fsStore.setFileTree([{ name: 'beta.md', path: BETA, isDirectory: false }]);
+			await mountList(FILES_LENS);
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(['beta']);
+		});
+
+		it('an empty folder says so without waiting for the entries', async () => {
+			await mountList(FILES_LENS);
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
+		});
+
+		it('a vault with no notes leaves Loading', async () => {
+			await mountList();
+			expectLoading();
+			typeDefinitionsStore.setEntries([]);
+			await settle();
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(target.querySelector('[data-note-list-empty]')?.textContent?.trim()).toBe('No notes here');
+		});
+
+		it('a built-in lens does not wait for the property index: a failed whole read leaves Inbox working', async () => {
+			collectionStore.reset();
+			typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
+			await mountList();
+			expect(collectionStore.isIndexReady).toBe(false);
+			expect(target.querySelector('[data-note-list-loading]')).toBeNull();
+			expect(rowTitles()).toEqual(['alpha']);
+		});
+
+		it('a built-in lens keeps Sort and Search hidden while it waits, and shows them after', async () => {
+			await mountList();
+			expect(target.querySelector('[data-note-list-search-toggle]')).toBeNull();
+			await landEntries();
+			expect(target.querySelector('[data-note-list-search-toggle]')).not.toBeNull();
+		});
 	});
 
 	describe('provider header action', () => {
@@ -304,7 +548,7 @@ describe('RailNoteList', () => {
 			const run = vi.fn().mockResolvedValue(undefined);
 			registerDay(run);
 			await mountList({ kind: 'day', target: '2026-10-27' });
-			expect(actionButton()?.textContent?.trim()).toBe('Daily note');
+			expect(actionButton()?.getAttribute('aria-label')).toBe('Daily note');
 			expect(actionButton()?.title).toBe('Open or create the daily note');
 			expect(actionButton()?.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
 
@@ -336,8 +580,54 @@ describe('RailNoteList', () => {
 		});
 	});
 
+	describe('type chip', () => {
+		const typeChip = (title: string) => row(title).querySelector('[data-note-row-type]');
+
+		it('shows the type of each typed note as a chip, and none on an untyped note', async () => {
+			typeDefinitionsStore.setEntries([
+				entryV2(ALPHA, { isA: 'Operation' }),
+				entryV2(BETA, { isA: 'Note' }),
+				entryV2('/vault/untyped.md', { frontmatter: { date: '2020-01-01' } }),
+			]);
+			await mountList();
+
+			expect(typeChip('alpha')?.textContent?.trim()).toBe('Operation');
+			expect(typeChip('beta')?.textContent?.trim()).toBe('Note');
+			expect(typeChip('untyped')).toBeNull();
+		});
+
+		it('shows the type next to the properties its definition lists', async () => {
+			const definition = entryV2('/vault/Project.md', { isA: 'Type', frontmatter: { _list_properties_display: ['status'] } });
+			const entries = [definition, entryV2(ALPHA, { isA: 'Project', frontmatter: { status: 'open' } })];
+			typeDefinitionsStore.setEntries(entries);
+			typeDefinitionsStore.setTypeMetadataMap(buildTypeMetadataMap(entries));
+			await mountList();
+
+			const pills = typeChip('alpha')!.parentElement!;
+			expect(pills.textContent?.replace(/\s+/g, ' ').trim()).toBe('Project open');
+		});
+
+		it('leaves the chip out where the list already is that type', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { isA: 'Operation' })]);
+			await mountList({ kind: 'type', target: 'Operation' });
+
+			expect(rowTitles()).toEqual(['alpha']);
+			expect(typeChip('alpha')).toBeNull();
+		});
+
+		it('shows no chip on a file with no type', async () => {
+			typeDefinitionsStore.setEntries([entryV2(ALPHA, { isA: 'Project' })]);
+			fsStore.setFileTree([
+				{ name: 'Work', path: '/vault/Work', isDirectory: true, children: [{ name: 'Board.canvas', path: '/vault/Work/Board.canvas', isDirectory: false }] },
+			]);
+			await mountList({ kind: 'folder', target: '/vault/Work' });
+
+			expect(typeChip('Board')).toBeNull();
+		});
+	});
+
 	describe('Today', () => {
-		const PINNED = '/vault/pinned.md';
+		const FAVORITE = '/vault/favorite.md';
 		const DATED = '/vault/Work/dated.md';
 		const groupHeaders = () =>
 			[...target.querySelectorAll<HTMLElement>('[data-note-list-group]')].map((el) => ({
@@ -359,48 +649,41 @@ describe('RailNoteList', () => {
 			component = null;
 		}
 
-		it('shows Pinned, then the notes dated today, under headers with counts', async () => {
+		it('shows only the notes dated today under a header with its count, leaving other favorites out', async () => {
 			const today = dayjs().format('YYYY-MM-DD');
 			typeDefinitionsStore.setEntries([
-				entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' }, modifiedAt: 300 }),
-				entryV2('/vault/pinned-archived.md', { favorite: true, archived: true, frontmatter: { date: '2020-01-01' } }),
+				entryV2(FAVORITE, { favorite: true, frontmatter: { date: '2020-01-01' }, modifiedAt: 300 }),
 				entryV2(DATED, { frontmatter: { date: today }, modifiedAt: 200 }),
 				entryV2('/vault/other.md', { frontmatter: { date: '2020-01-02' } }),
 			]);
 			await mountList(TODAY_LENS);
 
 			expect(target.querySelector('[data-note-list-label]')?.textContent).toBe('Today');
-			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('pinned; note date is today');
-			expect(groupHeaders()).toEqual([
-				{ id: 'pinned', text: 'Pinned 1' },
-				{ id: 'today', text: 'Today 1' },
-			]);
-			expect(rowTitles()).toEqual(['pinned', 'dated']);
-			// Pinned comes first in the DOM, then the Today header, then the dated row.
-			const pinnedRow = row('pinned');
+			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('note date is today');
+			expect(groupHeaders()).toEqual([{ id: 'today', text: 'Today 1' }]);
+			expect(rowTitles()).toEqual(['dated']);
 			const todayHeader = target.querySelector('[data-note-list-group="today"]')!;
-			expect(pinnedRow.compareDocumentPosition(todayHeader) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			expect(todayHeader.compareDocumentPosition(row('dated')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			for (const header of target.querySelectorAll('[data-note-list-group]')) {
+				// The same label style as the Types navigator's "Views".
+				expect(header.classList).toContain('section-label');
 				expect(header.className).toContain('text-file-explorer-muted-fg');
 				expect(header.className).not.toMatch(/#[0-9a-f]{3,6}|rgb\(/i);
 			}
 		});
 
-		it('shows a pinned note dated today in both groups, and counts it once in the header', async () => {
-			typeDefinitionsStore.setEntries([entryV2(PINNED, { favorite: true, frontmatter: { date: dayjs().format('YYYY-MM-DD') } })]);
+		it('shows a favorite dated today once', async () => {
+			typeDefinitionsStore.setEntries([entryV2(FAVORITE, { favorite: true, frontmatter: { date: dayjs().format('YYYY-MM-DD') } })]);
 			await mountList(TODAY_LENS);
-			expect(rowTitles()).toEqual(['pinned', 'pinned']);
+			expect(rowTitles()).toEqual(['favorite']);
 			expect(target.querySelector('[data-note-list-label]')?.nextElementSibling?.textContent).toBe('1');
 		});
 
-		it('shows both headers and their empty notices over an empty snapshot', async () => {
+		it('shows the Today header and its empty notice over an empty snapshot', async () => {
+			typeDefinitionsStore.setEntries([]);
 			await mountList(TODAY_LENS);
-			expect(groupHeaders()).toEqual([
-				{ id: 'pinned', text: 'Pinned 0' },
-				{ id: 'today', text: 'Today 0' },
-			]);
-			expect(target.querySelectorAll('[data-note-list-group-empty]')).toHaveLength(2);
+			expect(groupHeaders()).toEqual([{ id: 'today', text: 'Today 0' }]);
+			expect(target.querySelectorAll('[data-note-list-group-empty]')).toHaveLength(1);
 			expect(rows()).toEqual([]);
 		});
 
@@ -455,7 +738,7 @@ describe('RailNoteList', () => {
 			const opener = vi.fn().mockResolvedValue(undefined);
 			offOpener = eventCalendarDailyNoteStore.register(opener);
 			await mountList(TODAY_LENS);
-			expect(dailyNoteButton()?.textContent?.trim()).toBe('Daily note');
+			expect(dailyNoteButton()?.getAttribute('aria-label')).toBe('Daily note');
 			expect(dailyNoteButton()!.classList).toContain('text-tab-text-inactive');
 
 			dailyNoteButton()!.click();
@@ -483,33 +766,31 @@ describe('RailNoteList', () => {
 			expect(dailyNoteButton()).toBeNull();
 		});
 
-		it('renders a registered Today section after Pinned, and drops it when unregistered', async () => {
-			typeDefinitionsStore.setEntries([entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' } })]);
+		it('renders a registered Today section before the notes dated today, and drops it when unregistered', async () => {
 			const off = railRegistryStore.registerTodaySection({ id: 'people', label: 'My people', component: Plus });
+			typeDefinitionsStore.setEntries([]);
 			await mountList(TODAY_LENS);
 
-			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'people', 'today']);
-			expect(groupHeaders()[1].text).toBe('My people');
+			expect(groupHeaders().map((h) => h.id)).toEqual(['people', 'today']);
+			expect(groupHeaders()[0].text).toBe('My people');
 			const section = target.querySelector('[data-today-section="people"]')!;
 			expect(section.querySelector('svg')).not.toBeNull();
-			expect(row('pinned').compareDocumentPosition(section) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 			expect(section.compareDocumentPosition(target.querySelector('[data-note-list-group="today"]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
 			off();
 			await settle();
 			expect(target.querySelector('[data-today-section]')).toBeNull();
-			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'today']);
+			expect(groupHeaders().map((h) => h.id)).toEqual(['today']);
 		});
 
-		it("renders the one-on-one plugin's My people between Pinned and Today", async () => {
+		it("renders the one-on-one plugin's My people before the notes dated today", async () => {
 			typeDefinitionsStore.setEntries([
-				entryV2(PINNED, { favorite: true, frontmatter: { date: '2020-01-01' } }),
 				entryV2('/vault/Work/_people/Ana.md', { isA: 'Person' }),
 			]);
 			registerOneOnOneTodaySection();
 			await mountList(TODAY_LENS);
 
-			expect(groupHeaders().map((h) => h.id)).toEqual(['pinned', 'my-people', 'today']);
+			expect(groupHeaders().map((h) => h.id)).toEqual(['my-people', 'today']);
 			const section = target.querySelector('[data-today-section="my-people"]')!;
 			expect(section.querySelector('[data-my-people-row="Ana"] [data-my-people-days]')?.textContent?.trim()).toBe('never');
 			expect(section.compareDocumentPosition(target.querySelector('[data-note-list-group="today"]')!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -655,6 +936,7 @@ describe('RailNoteList', () => {
 		});
 
 		it('shows the empty state over an empty snapshot', async () => {
+			typeDefinitionsStore.setEntries([]);
 			await mountList(FAVORITES_LENS);
 			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
 		});
@@ -750,7 +1032,7 @@ describe('RailNoteList', () => {
 			expect(target.querySelector('[data-note-list-rule]')?.textContent?.trim()).toBe('in Work/');
 			expect(rowTitles()).toEqual(['alpha', 'Board', 'Tasks', 'Open', 'Spec', 'Shot']);
 			expect(rowTitles()).not.toContain('Deep');
-			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Project · Work');
+			expect(row('alpha').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Work');
 			expect(row('Board').querySelector('[data-note-row-subtitle]')?.textContent).toBe('Canvas');
 		});
 
@@ -874,7 +1156,7 @@ describe('RailNoteList', () => {
 		it('creates an _organized: false note in the Cmd+N folder, opens it, and the Inbox lists it', async () => {
 			typeDefinitionsStore.setEntries([entryV2(ALPHA)]);
 			await mountList();
-			expect(newHereButton()?.textContent?.trim()).toBe('New here');
+			expect(newHereButton()?.getAttribute('aria-label')).toBe('New here');
 			// The header is `bg-tab-bar`: only the tab-bar text tokens are pinned readable on it.
 			expect(newHereButton()!.classList).toContain('text-tab-text-inactive');
 
@@ -893,6 +1175,7 @@ describe('RailNoteList', () => {
 		});
 
 		it('shows the button on an empty Inbox', async () => {
+			typeDefinitionsStore.setEntries([]);
 			await mountList();
 			expect(target.querySelector('[data-note-list-empty]')).not.toBeNull();
 			expect(newHereButton()).not.toBeNull();

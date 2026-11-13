@@ -14,6 +14,20 @@ class ResizeObserverStub {
 globalThis.ResizeObserver ??= ResizeObserverStub as unknown as typeof ResizeObserver;
 // jsdom has no element scrolling; the editor restores scroll positions in a rAF.
 Element.prototype.scrollTo ??= () => {};
+// The tab strip scrolls the active tab into view.
+Element.prototype.scrollIntoView ??= () => {};
+// The canvas (xyflow) reads the color-scheme media query; jsdom has no matchMedia.
+window.matchMedia ??= (query: string) =>
+	({
+		matches: false,
+		media: query,
+		onchange: null,
+		addEventListener() {},
+		removeEventListener() {},
+		addListener() {},
+		removeListener() {},
+		dispatchEvent: () => false,
+	}) as MediaQueryList;
 // The system clipboard is a side-effect boundary.
 const writeText = vi.fn((_text: string) => Promise.resolve());
 Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true });
@@ -27,6 +41,12 @@ vi.mock('@tauri-apps/api/event', () => ({
 	emit: vi.fn(),
 }));
 
+// The disk read `openFileInEditor` makes; the other exports stay real.
+vi.mock('@tauri-apps/plugin-fs', async (importOriginal) => ({
+	...(await importOriginal<typeof import('@tauri-apps/plugin-fs')>()),
+	readTextFile: vi.fn(),
+}));
+
 // Icon packs load lazily from bundled data; the lookup is stubbed so the
 // test controls which icon a type resolves to.
 vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
@@ -35,8 +55,10 @@ vi.mock('#lib/features/file-icons/file-icons.icon-data.js', () => ({
 	setOnPacksLoaded: vi.fn(),
 }));
 
+import { readTextFile } from '@tauri-apps/plugin-fs';
 import { getIconSync } from '#lib/features/file-icons/file-icons.icon-data.js';
 import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
+import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
 import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
@@ -52,6 +74,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
 import { registerCollectionPathChangeConsumer } from '#lib/features/collection/collection.service.js';
 import { applyPathChange } from '#lib/core/filesystem/path-change.service.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 const ROCKET_PATH = 'M1 2L3 4';
@@ -107,6 +130,17 @@ describe('EditorView tab icons', () => {
 		expect(noteTab.querySelector(`svg path[d="${ROCKET_PATH}"]`)).not.toBeNull();
 		// jsdom normalizes the hex to rgb()
 		expect(noteTab.querySelector<HTMLElement>('span.truncate')!.style.color).toBe('rgb(255, 136, 0)');
+	});
+
+	it("draws a note tab's default icon in the note's own color when it has no icon", () => {
+		fileIconsStore.updateFrontmatterIcon('/vault/plain.md', { color: '#ef4444' });
+		editorStore.addTab({ path: '/vault/plain.md', name: 'plain', content: '', savedContent: '' });
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+
+		const tab = [...target.querySelectorAll<HTMLElement>('[role="tab"]')].find((el) => el.textContent?.includes('plain'))!;
+		expect(tab.querySelector('svg')!.getAttribute('style')).toContain('rgb(239, 68, 68)');
 	});
 
 	it('shows a virtual tab with its fixed icon, not a resolved one', () => {
@@ -202,13 +236,18 @@ describe('EditorView markdown editor host', () => {
 		update.mockRestore();
 	});
 
-	it('the action bar\'s TOC button opens the table of contents on the note', () => {
+	it('the action bar\'s More > Show the table of contents opens the table of contents on the note', async () => {
 		renderNote();
 		settingsStore.updateLayout({ rightSidebarVisible: false, tableOfContentsVisible: false });
 		flushSync();
 
-		const toc = document.body.querySelector<HTMLButtonElement>('button[aria-label="Show the table of contents"]');
-		toc!.click();
+		const more = document.body.querySelector<HTMLButtonElement>('button[aria-label="More note actions"]')!;
+		more.focus();
+		more.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+		await new Promise((r) => setTimeout(r, 0));
+		flushSync();
+		document.body.querySelector<HTMLElement>('[data-slot="dropdown-menu-item"][data-action="toc"]')!.click();
+		await new Promise((r) => setTimeout(r, 0));
 		flushSync();
 
 		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
@@ -216,7 +255,7 @@ describe('EditorView markdown editor host', () => {
 		expect(tocStore.expandedPath).toBe('/vault/note.md');
 	});
 
-	it('the context menu\'s Copy link to block copies the heading link', async () => {
+	it('the context menu\'s Copy block link copies the heading link', async () => {
 		renderNote();
 		writeText.mockClear();
 
@@ -226,13 +265,121 @@ describe('EditorView markdown editor host', () => {
 		flushSync();
 		await new Promise((r) => setTimeout(r, 0));
 		const item = [...document.body.querySelectorAll<HTMLElement>('[data-slot="context-menu-item"]')].find((el) =>
-			el.textContent?.includes('Copy link to block'),
+			el.textContent?.includes('Copy block link'),
 		);
 		item!.click();
 		await new Promise((r) => setTimeout(r, 0));
 
 		// The cursor sits on `# Note`, the first line.
 		expect(writeText).toHaveBeenCalledWith('[[note#Note]]');
+	});
+});
+
+describe('EditorView floating source toggle', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeAll(() => registerAppPorts());
+	afterAll(() => unregisterAppPorts());
+
+	beforeEach(() => {
+		editorStore.reset();
+		settingsStore.reset();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	/** Mounts EditorView on one tab; returns the floating "Switch to ..." toggles it renders. */
+	function render(tab: { path: string; content: string; fileType?: 'kanban' | 'canvas' | 'collection' }): HTMLButtonElement[] {
+		editorStore.addTab({ ...tab, name: tab.path.split('/').pop()!, savedContent: tab.content });
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+		return [...target.querySelectorAll<HTMLButtonElement>('button')].filter((b) =>
+			(b.getAttribute('aria-label') ?? '').startsWith('Switch to'),
+		);
+	}
+
+	it('is absent on a Markdown note, whose action bar has Raw', () => {
+		const toggles = render({ path: '/vault/note.md', content: '# Note\n' });
+
+		expect(toggles).toEqual([]);
+		expect(document.body.querySelector('[data-testid="note-action-bar"] button[aria-label="Show raw Markdown"]')).not.toBeNull();
+	});
+
+	it('is present on a kanban tab', () => {
+		const toggles = render({ path: '/vault/board.kanban', content: '## To Do\n', fileType: 'kanban' });
+
+		expect(toggles.map((b) => b.getAttribute('aria-label'))).toEqual(['Switch to source mode']);
+	});
+
+	it('is present on a canvas tab, at the top right clear of the bottom-right minimap', () => {
+		const toggles = render({ path: '/vault/board.canvas', content: '{"nodes":[],"edges":[]}', fileType: 'canvas' });
+
+		expect(toggles.map((b) => b.getAttribute('aria-label'))).toEqual(['Switch to source mode']);
+		expect(toggles[0].classList).toContain('top-3');
+		expect(toggles[0].classList).not.toContain('bottom-3');
+	});
+
+	it('is present on a view tab', () => {
+		const toggles = render({ path: '/vault/Open.view', content: 'views:\n  - type: table\n    name: "All"\n', fileType: 'collection' });
+
+		expect(toggles.map((b) => b.getAttribute('aria-label'))).toEqual(['Switch to source mode']);
+	});
+});
+
+describe('EditorView on a .collection file', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		editorStore.reset();
+		collectionStore.reset();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('opens it as text in the text editor, not in the collection editor', async () => {
+		const yaml = 'views:\n  - type: table\n    name: "All"\n';
+		vi.mocked(readTextFile).mockResolvedValue(yaml);
+
+		await openFileInEditor('/vault/Foo.collection');
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+
+		expect(editorStore.activeTab?.fileType).toBeUndefined();
+		expect(editorStore.editorView?.state.doc.toString()).toBe(yaml);
+		expect(target.textContent).not.toContain('Building index');
+		expect(target.querySelector('button[aria-label="Switch to table view"]')).toBeNull();
+	});
+});
+
+describe('EditorView with no tab open', () => {
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => editorStore.reset());
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('draws the top-band divider under the empty strip, like the tab band it replaces', () => {
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+
+		const strip = target.querySelector<HTMLElement>('[data-tauri-drag-region]')!;
+		expect(strip.classList).toContain('bg-tab-bar');
+		expect(strip.getAttribute('style')).toMatch(/box-shadow:\s*inset 0 -1px 0 var\(--divider\)/);
 	});
 });
 
@@ -252,8 +399,8 @@ function noteRecord(path: string, status: string): PropertyIndexRecord {
 }
 
 describe('EditorView collection tabs', () => {
-	const A_PATH = '/vault/a.collection';
-	const B_PATH = '/vault/b.collection';
+	const A_PATH = '/vault/a.view';
+	const B_PATH = '/vault/b.view';
 	const A_YAML = `filters: 'status == "open"'
 views:
   - type: table
@@ -286,6 +433,9 @@ views:
 			index.set(path, noteRecord(path, i < 3 ? 'open' : i < 6 ? 'review' : 'closed'));
 		}
 		collectionStore.setPropertyIndex(index);
+		// A view lists its rows through the port, which reads the vault's entries.
+		typeDefinitionsStore.setEntries([...index.keys()].map((path) => entryV2(path)));
+		vaultStore.open('/vault');
 		editorStore.addTab({ path: A_PATH, name: 'a', content: A_YAML, savedContent: A_YAML, fileType: 'collection' });
 		editorStore.addTab({ path: B_PATH, name: 'b', content: B_YAML, savedContent: B_YAML, fileType: 'collection' });
 		editorStore.setActiveIndex(0);
@@ -299,6 +449,8 @@ views:
 		component = null;
 		document.body.innerHTML = '';
 		collectionStore.reset();
+		typeDefinitionsStore.reset();
+		vaultStore.close();
 	});
 
 	function viewTab(name: string): HTMLButtonElement {
@@ -343,13 +495,13 @@ views:
 		flushSync();
 		const unregister = registerCollectionPathChangeConsumer();
 		try {
-			await applyPathChange({ from: A_PATH, to: '/vault/renamed.collection', isDirectory: false, diskOp: async () => {} });
+			await applyPathChange({ from: A_PATH, to: '/vault/renamed.view', isDirectory: false, diskOp: async () => {} });
 			flushSync();
 		} finally {
 			unregister();
 		}
 
-		expect(editorStore.activeTab?.path).toBe('/vault/renamed.collection');
+		expect(editorStore.activeTab?.path).toBe('/vault/renamed.view');
 		expect(activeViewName()).toBe('A3');
 	});
 

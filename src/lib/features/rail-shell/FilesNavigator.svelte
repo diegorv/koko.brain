@@ -3,6 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import ChevronRight from '@lucide/svelte/icons/chevron-right';
 	import Copy from '@lucide/svelte/icons/copy';
+	import Database from '@lucide/svelte/icons/database';
 	import FilePlus from '@lucide/svelte/icons/file-plus';
 	import Folder from '@lucide/svelte/icons/folder';
 	import FolderOpen from '@lucide/svelte/icons/folder-open';
@@ -15,6 +16,7 @@
 	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import Vault from '@lucide/svelte/icons/vault';
 	import * as ContextMenu from '#lib/components/ui/context-menu/index.js';
+	import { notifyNoteCreated } from '#lib/core/editor/editor.hooks.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -37,16 +39,20 @@
 		PreDeleteSaveError,
 		validateDragDrop,
 	} from '#lib/core/filesystem/fs.logic.js';
+	import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 	import { createCanvasFile } from '#lib/features/canvas/canvas.service.js';
 	import { createCollectionFile } from '#lib/features/collection/collection.service.js';
 	import { resolveIconForPath } from '#lib/features/file-icons/icon-resolver.js';
+	import { iconColorStyle } from '#lib/features/file-icons/file-icons.logic.js';
 	import IconRenderer from '#lib/features/file-icons/IconRenderer.svelte';
 	import IconPicker from '#lib/features/file-icons/IconPicker.svelte';
 	import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
-	import { setIconForPath, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
+	import { setIconForPath, setIconColors, removeIconForPath, trackRecentIcon } from '#lib/features/file-icons/file-icons.service.js';
 	import type { IconPackId } from '#lib/features/file-icons/file-icons.types.js';
 	import { findFolderNote } from '#lib/core/filesystem/folder-notes.logic.js';
-	import { FILES_LENS, FOLDER_LENS_KIND, navigatorFolders } from './lens.logic';
+	import ViewDialog from '#lib/features/type-definitions/ViewDialog.svelte';
+	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
+	import { FILES_LENS, FOLDER_LENS_KIND, navigatorFolders, VIEW_LENS_KIND, viewLabels } from './lens.logic';
 	import { railRegistryStore } from './rail-registry.store.svelte';
 	import type { Lens, RailFolderCreator } from './rail-shell.types';
 
@@ -59,9 +65,11 @@
 		onPick: (lens: Lens) => void;
 		/** Called with a folder's path when its chevron is clicked */
 		onToggle: (path: string) => void;
+		/** Called with the view lens of a `.view` made by New view, which the Types item shows */
+		onPickView: (lens: Lens) => void;
 	}
 
-	let { picked, expanded, onPick, onToggle }: Props = $props();
+	let { picked, expanded, onPick, onToggle, onPickView }: Props = $props();
 
 	let expandedSet = $derived(new Set(expanded));
 	let vaultRoot = $derived(vaultStore.path?.replace(/\/+$/, '') ?? '');
@@ -70,9 +78,15 @@
 
 	/** The menu's "New <file>" items, plugin-registered ones (New Kanban Board) after the built-in ones. */
 	let fileCreators = $derived<RailFolderCreator[]>([
-		{ id: 'builtin:note', label: 'New note', icon: FilePlus, fileName: 'Untitled.md', create: (dir) => createFile(dir, 'Untitled.md') },
+		{
+			id: 'builtin:note',
+			label: 'New note',
+			icon: FilePlus,
+			fileName: 'Untitled.md',
+			create: (dir) => createFile(dir, 'Untitled.md', applyExplicitOrganization('', settingsStore.explicitOrganization)),
+		},
 		{ id: 'builtin:canvas', label: 'New Canvas', icon: LayoutDashboard, fileName: 'Untitled.canvas', create: createCanvasFile },
-		{ id: 'builtin:collection', label: 'New Collection', icon: Table, fileName: 'Untitled.collection', create: createCollectionFile },
+		{ id: 'builtin:table', label: 'New table', icon: Database, fileName: 'Untitled.view', create: createCollectionFile },
 		...railRegistryStore.folderCreators,
 	]);
 
@@ -86,6 +100,9 @@
 	let iconPickerPath = $state<string | null>(null);
 	let iconPickerOpen = $state(false);
 	let iconPickerRef = $derived(iconPickerPath ? fileIconsStore.getFrontmatterIcon(iconPickerPath) : undefined);
+	let newViewOpen = $state(false);
+	/** The folder New view creates its `.view` in */
+	let newViewFolder = $state<string | undefined>(undefined);
 
 	/** The lens that shows the files directly in `dir` */
 	function lensFor(dir: string): Lens {
@@ -103,12 +120,19 @@
 		}
 	}
 
-	/** Creates a file in `dir`, picks `dir` so the note list shows it, and opens it */
+	/** Creates a file in `dir`, picks `dir` so the note list shows it, opens it and reports it to the note-created observers */
 	async function handleNewFile(dir: string, creator: RailFolderCreator) {
 		const path = await runOrToast('create', creator.fileName, () => creator.create(dir));
 		if (!path) return;
 		onPick(lensFor(dir));
 		await openFileInEditor(path);
+		notifyNoteCreated(path);
+	}
+
+	/** Opens the New view dialog to create a `.view` in `dir` */
+	function handleNewView(dir: string) {
+		newViewFolder = dir;
+		newViewOpen = true;
 	}
 
 	/** Creates "Untitled" in `dir`, expands `dir` so the new row shows, and starts its inline rename */
@@ -172,6 +196,8 @@
 		const confirmed = await ask(`Move "${name}" to trash? This will include all contents.`, {
 			title: 'Move to Trash',
 			kind: 'warning',
+			okLabel: 'Move to Trash',
+			cancelLabel: 'Cancel',
 		});
 		if (confirmed) await runOrToast('move {name} to the Trash', name, () => deleteItem(path, true));
 	}
@@ -194,6 +220,11 @@
 		if (!vaultStore.path || !iconPickerPath) return;
 		await setIconForPath(vaultStore.path, iconPickerPath, pack, name, color, textColor, true);
 		await trackRecentIcon(vaultStore.path, pack, name);
+	}
+
+	async function handleIconColors(color?: string, textColor?: string) {
+		if (!iconPickerPath) return;
+		await setIconColors(iconPickerPath, color, textColor, true);
 	}
 
 	async function handleIconRemove() {
@@ -262,20 +293,20 @@
 	function rowClass(active: boolean, dropTarget = false): string {
 		// The drop background replaces the picked one: two bg utilities on one row leave CSS order to pick.
 		const activeBg = dropTarget ? '' : 'bg-file-explorer-primary/25 ';
-		return `flex w-full items-center gap-1.5 rounded py-[5px] pr-2 text-[15px] cursor-default select-none ${active
+		return `flex w-full items-center gap-1.5 rounded-md py-[5px] pr-2 text-row cursor-default select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 focus-visible:ring-inset ${active
 			? `${activeBg}text-file-explorer-primary`
 			: 'hover:bg-file-explorer-primary/10'} ${dropTarget ? 'bg-file-explorer-accent/50 outline-dashed outline-1 outline-ring' : ''}`;
 	}
 </script>
 
-<div class="flex h-full flex-col bg-file-explorer-bg text-file-explorer-fg" data-files-navigator>
-	<!-- pl-6 clears the macOS traffic lights, which overflow the 48 px rail. -->
+<div class="flex h-full flex-col bg-nav-bg text-file-explorer-fg" data-files-navigator>
+	<!-- The pad clears the macOS traffic lights and the rail toggle. -->
 	<div
-		class="flex h-10 shrink-0 items-center gap-2 bg-tab-bar pl-6 pr-3"
+		class="flex h-10 shrink-0 items-center gap-2 bg-tab-bar pl-[var(--rail-header-pad)] pr-3"
 		style="box-shadow: inset 0 -1px 0 var(--divider)"
 		data-tauri-drag-region
 	>
-		<span class="truncate text-sm font-medium text-tab-text-active">Files</span>
+		<span class="truncate text-title text-tab-text-active" data-files-navigator-title>Files</span>
 	</div>
 
 	<ContextMenu.Root>
@@ -321,10 +352,19 @@
 						<span>{creator.label}</span>
 					</ContextMenu.Item>
 				{/each}
+				<ContextMenu.Item onclick={() => handleNewView(target.path)}>
+					<Table class="size-4" />
+					<span>New view</span>
+				</ContextMenu.Item>
 				<ContextMenu.Item onclick={() => handleNewFolder(target.path)}>
 					<FolderPlus class="size-4" />
 					<span>New folder</span>
 				</ContextMenu.Item>
+				{#each railRegistryStore.menuItems.filter((item) => item.on.includes('folder')) as item (item.id)}
+					<ContextMenu.Item inset onclick={() => item.run({ on: 'folder', path: target.isRoot ? '' : getRelativePath(vaultRoot, target.path) })}>
+						<span>{item.label}</span>
+					</ContextMenu.Item>
+				{/each}
 				{#if !target.isRoot}
 					<ContextMenu.Separator />
 					<ContextMenu.Item onclick={() => handleChangeIcon(target.path)}>
@@ -364,6 +404,14 @@
 	</ContextMenu.Root>
 </div>
 
+<!-- Same duplicate-name check as New view in the Types navigator: every `.view` label, hidden ones included. -->
+<ViewDialog
+	bind:open={newViewOpen}
+	folder={newViewFolder}
+	existingLabels={viewLabels(fsStore.fileTree, typeDefinitionsStore.entriesByPath)}
+	oncreated={(path) => onPickView({ kind: VIEW_LENS_KIND, target: path })}
+/>
+
 {#if iconPickerPath}
 	<IconPicker
 		bind:open={iconPickerOpen}
@@ -372,6 +420,7 @@
 		currentColor={iconPickerRef?.color}
 		currentTextColor={iconPickerRef?.titleColor}
 		onSelect={handleIconSelect}
+		onColorsChange={handleIconColors}
 		onRemove={handleIconRemove}
 		onClose={handleIconPickerClose}
 	/>
@@ -382,9 +431,10 @@
 	{@const open = expandedSet.has(node.path)}
 	{@const active = !rootPicked && picked.target === node.path}
 	{@const resolved = resolveIconForPath(node.path)}
+	<!-- The div never takes focus, so its buttons light the row; scoped to button so the rename input does not. -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
-		class={rowClass(active, dragOverPath === node.path)}
+		class="{rowClass(active, dragOverPath === node.path)} has-[button:focus-visible]:ring-2 has-[button:focus-visible]:ring-ring/50 has-[button:focus-visible]:ring-inset"
 		style:padding-left="{depth * 12}px"
 		data-files-navigator-row={node.path}
 		draggable={renamingPath !== node.path}
@@ -404,7 +454,7 @@
 		{#if subfolders.length > 0}
 			<button
 				type="button"
-				class="shrink-0 cursor-default rounded p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"
+				class="shrink-0 cursor-default rounded-xs p-0.5 text-file-explorer-muted-fg hover:bg-file-explorer-primary/10"
 				aria-label={open ? `Collapse ${node.name}` : `Expand ${node.name}`}
 				aria-expanded={open}
 				onclick={() => onToggle(node.path)}
@@ -422,13 +472,13 @@
 				onkeydown={(e) => handleRenameKeydown(e, node.path)}
 				onblur={() => commitRename(node.path)}
 				aria-label="Rename {node.name}"
-				class="h-5 min-w-0 flex-1 rounded border border-ring bg-background px-1 text-sm text-file-explorer-fg outline-none"
+				class="h-5 min-w-0 flex-1 rounded-xs border border-ring bg-background px-1 text-row text-file-explorer-fg outline-none"
 				data-files-navigator-rename={node.path}
 			/>
 		{:else}
 			<button
 				type="button"
-				class="flex min-w-0 flex-1 cursor-default items-center gap-2 text-left"
+				class="flex min-w-0 flex-1 cursor-default items-center gap-2 text-left focus-visible:outline-none"
 				aria-current={active ? 'true' : undefined}
 				onclick={() => pickFolder(node)}
 				data-files-navigator-folder={node.path}
@@ -436,9 +486,9 @@
 				{#if resolved?.icon}
 					<IconRenderer icon={resolved.icon} class="size-4 shrink-0" color={resolved.color} />
 				{:else if open}
-					<FolderOpen class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+					<FolderOpen class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
 				{:else}
-					<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" />
+					<Folder class="size-4 shrink-0 {active ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}" style={iconColorStyle(resolved?.color)} />
 				{/if}
 				<span class="truncate" style:color={!active && resolved?.titleColor ? resolved.titleColor : undefined}>{node.name}</span>
 			</button>

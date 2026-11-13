@@ -24,7 +24,7 @@ When you have unsaved changes, a filled dot appears next to the tab name. Press 
 
 You can pin important tabs so they stay visible and can't be accidentally closed.
 
-- Right-click a tab to open a context menu with **Pin Tab** / **Unpin Tab** and **Close Tab** (or use the Command Palette and search for "Pin/Unpin Tab")
+- Right-click a tab to open a context menu with **Pin tab** / **Unpin tab** and **Close tab** (or use the Command Palette and search for "Pin/Unpin Tab")
 - Pinned tabs are marked with a pin icon and stay on the left side of the tab bar
 - Pinned tabs cannot be closed with **Cmd+W** — you must explicitly unpin them first
 
@@ -48,22 +48,28 @@ On the right:
 |--------|--------|
 | Star | Toggle Favorite (`_favorite`), `Cmd+D`. Filled when on. |
 | Check circle | Toggle Organized (`_organized`), `Cmd+E`. Filled when on. |
-| Waypoints | **Neighbourhood** (rail layout only): fill the note list with this note, then its outgoing links, backlinks and relationship groups (Belongs to, Related to, Has many, Other relationships), each with its count. The list follows the vault index as links change. It is not kept across restarts. |
 | Code | **Raw**: toggle source mode (see [Editor Modes](#editor-modes)), `Cmd+\`. Highlighted while on. |
-| Width arrows | **Note width**: switch every note between the content width set in Settings > Editor and the full editor width. One global setting, kept across restarts. Highlighted while wide. |
-| List | **Table of contents**: show the right sidebar with the Table of Contents section open. If the section is turned off in Settings > General, this turns it back on. |
-| Folder | **Reveal in Finder**. |
-| Copy | **Copy path**: copy the note's absolute path (a toast confirms). |
-| More (`...`) | **Copy deeplink** (a `kokobrain://open?vault=...&file=...` link that opens this note, see [Deep Links](23-deep-links.md)), **Archive this note** / **Restore this archived note** (`_archived`; a type's `_archive_to` folder applies, see [Auto Move](22-auto-move.md#type-driven-lifecycle-rules)), and **Delete this note** (moves it to the Trash after a confirmation). |
-| Panel | Toggle the right sidebar, same as `Cmd+B`. |
+| More (`...`) | **Copy deeplink** (a `kokobrain://open?vault=...&file=...` link that opens this note, see [Deep Links](23-deep-links.md)), **Archive this note** / **Restore this archived note** (`_archived`; a type's `_archive_to` folder applies, see [Auto Organize](22-auto-organize.md#type-driven-lifecycle-rules)), and **Delete this note** (moves it to the Trash after a confirmation). |
 
-When the bar runs out of width, Copy path, Reveal in Finder, Table of contents, note width and Neighbourhood move into More, in that order, and come back when there is room again.
+These actions start in More:
+
+| Action | What it does |
+|--------|--------------|
+| **Neighbourhood** (rail layout only) | Fill the note list with this note, then its outgoing links, backlinks and relationship groups (Belongs to, Related to, Has many, Other relationships), each with its count. The list follows the vault index as links change. It is not kept across restarts. |
+| **Note width** | Switch every note between the content width set in Settings > Editor and the full editor width. One global setting, kept across restarts. While wide, the More item reads **Use the normal note width**; as an inline button it is highlighted. |
+| **Table of contents** | Show the right sidebar with the Table of Contents section open. If the section is turned off in Settings > Layout, this turns it back on. |
+| **Reveal in Finder** | Show the note's file in Finder. |
+| **Copy path** | Copy the note's absolute path (a toast confirms). |
+
+On a wide bar they come out of More as buttons, Neighbourhood (Waypoints) before Raw and the others (Width arrows, List, Folder, Copy) after it: Neighbourhood first, Copy path last. As the bar narrows they go back into More, Copy path first.
+
+To show or hide the right sidebar, use the sidebar button at the top right of the window or `Cmd+B`.
 
 The bar works whether the right sidebar is shown or hidden: it reads and writes the note's own frontmatter, keeps unsaved edits, and saves at once.
 
 ## Editor Modes
 
-The markdown editor has two modes, toggled via the **Raw** button in the note action bar, the button in the bottom-right corner of the editor, or by pressing `Cmd+\`.
+The markdown editor has two modes, toggled via the **Raw** button in the note action bar or by pressing `Cmd+\`.
 
 ### Source Mode
 
@@ -90,7 +96,7 @@ Different file types open with different editors:
 |-----------|-------------|-------------|
 | `.md` | Markdown editor | The main editor with source/live preview modes |
 | `.canvas` | Canvas editor | Visual infinite canvas (see [Canvas](11-canvas.md)) |
-| `.collection` | Table/database | Spreadsheet-like view (see [Collection](12-collection.md)) |
+| `.view` | Table/database | Spreadsheet-like view (see [Collection](12-collection.md)) |
 | `.kanban` | Kanban board | Drag-and-drop board (see [Kanban](21-kanban.md)) |
 | Tasks (virtual) | Tasks view | Aggregated tasks from all notes (see [Tasks](10-tasks-and-todoist.md)) |
 | Graph (virtual) | Graph view | Knowledge graph visualization (see [Graph View](14-graph-view.md)) |
@@ -98,7 +104,7 @@ Different file types open with different editors:
 
 "Virtual" tabs don't correspond to a file on disk — they are generated views.
 
-For Canvas, Collection, and Kanban files, a toggle button in the bottom-right lets you switch between the visual editor and raw source — JSON for canvas, YAML for collection, Markdown for kanban. The source-mode preference resets when you switch tabs.
+For Canvas, Collection, and Kanban files, a toggle button lets you switch between the visual editor and raw source — JSON for canvas, YAML for collection, Markdown for kanban. The button sits at the top right on a canvas and at the bottom right on a collection or kanban board. The source-mode preference resets when you switch tabs.
 
 ## Wikilink Navigation
 
@@ -120,7 +126,7 @@ Kokobrain saves your notes automatically. There are two debounce timers:
 - **Body text changes** — saved after 2 seconds of inactivity
 - **Frontmatter-only changes** (e.g., property edits via the sidebar) — saved after 500ms
 
-If you close a tab with unsaved changes, a confirmation dialog asks whether to discard them.
+If you close a tab with unsaved changes, Kokobrain saves them first and then closes the tab, with no prompt. Only when that save fails does a dialog ask whether to close anyway and lose the changes; **Cancel** keeps the tab open with your text.
 
 ## Editor Features
 
@@ -141,6 +147,7 @@ At the bottom of the window, the status bar shows contextual information about y
 - **Semantic index status** — appears only when semantic search is enabled in Settings. It reflects the current note with one of three states: **Loading model...** while the embedding model is still loading, **Indexed (1 chunk)** or **Indexed (N chunks)** once the note has been embedded (showing how many chunks it produced), or **Not indexed** when the model is ready but this note has no chunks yet
 
 **Right side:**
+- **Todoist sync status** — appears only when **Sync with Todoist** is on in Settings. It reads **Todoist synced 14:05** (the local time of the last successful sync), **Todoist syncing** while a sync runs, **Todoist not synced yet** until the first successful sync since the app started, or **Todoist sync error** in red (hover for the reason). See [Todoist Sync](29-todoist-sync.md)
 - **Save status** — "Modified" when you have unsaved changes, or "Saved"
 - **Word count** — three metrics (YAML frontmatter is excluded from counts, only shown for markdown files):
   - **Word count**: total number of words in the note
@@ -163,7 +170,7 @@ See [Keyboard Shortcuts](20-keyboard-shortcuts.md) for the full shortcut list.
 
 Right-clicking in the editor shows additional options:
 
-- **Copy Link to Block** — copies a wikilink pointing to the current paragraph or list item
+- **Copy Block Link** — copies a wikilink pointing to the current paragraph or list item
 - **Copy Block Embed** — copies an embed link (`![[note#^id]]`) for the current block
 
 ## Next Steps

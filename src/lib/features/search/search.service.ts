@@ -2,6 +2,7 @@ import type { UnlistenFn } from '@tauri-apps/api/event';
 import { EVENT_NAMES } from '#lib/contracts/events.js';
 import { call, on } from '#lib/contracts/ipc.js';
 import { searchStore } from './search.store.svelte';
+import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { mergeResults } from './search-hybrid.logic';
@@ -22,7 +23,7 @@ import type { SemanticProgress } from './search.types';
  */
 async function loadVaultContentMap(vaultPath: string): Promise<Map<string, string>> {
 	const entries = await call('get_all_vault_entries_v2');
-	const paths = entries.map((e) => e.path);
+	const paths = entries.map((e) => e.path).filter((path) => !isViewFile(path));
 	const results = await call('read_files_batch', {
 		vaultPath,
 		paths,

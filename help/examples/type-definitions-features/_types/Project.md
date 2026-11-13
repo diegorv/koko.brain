@@ -4,7 +4,6 @@ _icon: rocket
 _color: red
 _order: 1
 _sidebar_label: Projects
-_sort: title
 _visible: true
 _template: _system/templates/Project.md
 _list_properties_display:

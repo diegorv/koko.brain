@@ -31,6 +31,11 @@ describe('ThemeEditor - JSON import', () => {
 		document.documentElement.removeAttribute('style');
 	});
 
+	it('names the back button for assistive technology, like its tooltip', () => {
+		const back = target.querySelector<HTMLButtonElement>('[title="Back to themes"]');
+		expect(back?.getAttribute('aria-label')).toBe('Back to themes');
+	});
+
 	/** Picks `json` as the import file, as the hidden file input does. */
 	function importFile(json: string) {
 		const input = target.querySelector<HTMLInputElement>('input[type="file"]');

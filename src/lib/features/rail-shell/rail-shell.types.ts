@@ -31,23 +31,27 @@ export interface LensContext {
 }
 
 /** The kind of a listed file, which picks its row icon. */
-export type FileKind = 'markdown' | 'canvas' | 'kanban' | 'view' | 'collection' | 'pdf' | 'image' | 'other';
+export type FileKind = 'markdown' | 'canvas' | 'kanban' | 'view' | 'pdf' | 'image' | 'other';
 
 /** A note as the rail note list shows it. */
 export interface LensNote extends NoteRowNote {
 	/** The note's type (`isA`), or null for an untyped note */
 	isA: string | null;
-	/** Type, note date and folder, joined for the row's second line */
+	/** Relative modified time and folder, joined for the row's second line */
 	subtitle: string;
 	/** Inbox notes (not organized, not archived, not a type definition) render in italics */
 	italic: boolean;
+	/** Whether the note carries `_archived: true`; false for a file that is not a note */
+	archived: boolean;
 	/** The file's kind; only the folder lens lists anything but markdown */
 	kind: FileKind;
+	/** Unix seconds the note was created, or 0 when unknown */
+	createdAt: number;
 }
 
-/** A titled group of a lens's notes, shown under its own header (e.g. Today's Pinned). */
+/** A titled group of a lens's notes, shown under its own header (e.g. Today's notes). */
 export interface LensGroup {
-	/** Stable id, e.g. `pinned` */
+	/** Stable id, e.g. `today` */
 	id: string;
 	/** Group header label */
 	label: string;
@@ -65,7 +69,18 @@ export interface ResolvedLens {
 	notes: LensNote[];
 	/** When set, the list shows these groups under headers instead of `notes` as one list */
 	groups?: LensGroup[];
+	/** Why the lens has no list to show (`notes` is then empty): any lens while its data loads, only a view lens otherwise; absent for a lens that listed */
+	status?: ViewLensStatus;
 }
+
+/** Why a lens cannot show its list. */
+export type ViewLensStatus =
+	/** The property index or the entries have not loaded yet */
+	| { kind: 'loading' }
+	/** The `.view` is no longer in the file tree */
+	| { kind: 'missing' }
+	/** The `.view` could not be read or parsed, or its filter does not parse */
+	| { kind: 'error'; message: string };
 
 /** A row of the Types navigator: a view, a type, or Untyped. */
 export interface TypeNavigatorRow {
@@ -79,6 +94,26 @@ export interface TypeNavigatorRow {
 	typeName: string | null;
 	/** Absolute path of the type's definition note, or null when it has none (and for a view and Untyped) */
 	definitionPath: string | null;
+	/** True for a view whose `_open_in_editor` is true: a click opens the `.view` in the editor instead of picking its lens. Always false for a type and Untyped */
+	opensInEditor: boolean;
+	/** The reserved keys the view, or the type's definition, sets to a value that is ignored (`ignoredKeyNotes`), shown in the row's mark tooltip. Empty for Untyped and a type without a definition */
+	keyNotes: string[];
+	/** The view's trimmed `_group`, the subheading it is listed under in Views; null for an ungrouped view, a type and Untyped */
+	group: string | null;
+}
+
+/** A `.view` or a type definition pinned to the rail with `_rail: true`. */
+export interface RailPin {
+	/** The rail item key saved in `layout.railItem`: `view:<absolute path>` or `type:<type name>` */
+	key: string;
+	/** Tooltip and accessible name: the view's `getViewLabel` or the type's `sidebarLabel` */
+	label: string;
+	/** Absolute path of the `.view` or of the type definition, which picks the icon */
+	path: string;
+	/** What the pin opens */
+	kind: 'view' | 'type';
+	/** True for a view whose `_open_in_editor` is true: a click opens the `.view` in the editor instead of picking its lens */
+	opensInEditor: boolean;
 }
 
 /** A plain "+ New here" note: where it goes and the frontmatter it inherits. */
@@ -126,7 +161,7 @@ export interface RailLensProvider {
 
 /** A note list header button a lens provider adds. */
 export interface RailHeaderAction {
-	/** Button text */
+	/** Accessible name of the icon button (its `aria-label`) */
 	label: string;
 	/** Button tooltip */
 	title: string;
@@ -161,6 +196,28 @@ export interface RailTodaySection {
 	/** The section body */
 	component: Component;
 }
+
+/**
+ * A rail button that runs something on click (e.g. a vault mod's button). Unlike a navigator, a click is never
+ * picked: it is not saved as the rail item, gets no highlight, and has no Go to command or Settings > Layout row.
+ */
+export interface RailAction {
+	/** Unique key, also the button's `data-rail-item` */
+	key: string;
+	/** Button tooltip and accessible name */
+	label: string;
+	/** Icon ref, `pack:name` or a bare lucide name; an unknown or not yet loaded icon shows a fallback glyph */
+	icon: string;
+	/** Icon color, one CSS color per theme mode; without it the button uses the default action color */
+	color?: { light: string; dark: string };
+	/** Whether the action is running; a function because the list changes only by replacement */
+	busy?: () => boolean;
+	/** Called on click */
+	run: () => void;
+}
+
+/** Shared menu contracts, exposed under the rail registry's names. */
+export type { MenuActionTarget as RailMenuTarget, MenuActionItem as RailMenuItem } from '#lib/utils/menu-action.types.js';
 
 /** A "New <thing>" item a plugin adds to the Files navigator's folder menu (e.g. New Kanban Board). */
 export interface RailFolderCreator {

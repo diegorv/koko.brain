@@ -1,6 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { evaluateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { evaluateExpression, PLAIN_FUNCTIONS, validateExpression, type EvalContext } from '#lib/features/collection/expression/evaluator.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
+import { runtimeTimeZoneSwitchWorks, withTimeZone } from '../../../../fixtures/timezone.fixture';
 
 function makeRecord(overrides: Partial<PropertyIndexRecord> = {}): PropertyIndexRecord {
 	return {
@@ -494,6 +497,40 @@ describe('evaluate', () => {
 			expect(evaluateExpression("file.inFolder('/other')", ctx)).toBe(false);
 		});
 
+		describe('file.inFolder() with a vault path', () => {
+			const noteIn = (folder: string): EvalContext => ({
+				...makeCtx({}, {}, { folder, path: `${folder}/n.md` }),
+				vaultPath: '/v',
+			});
+
+			it('resolves a vault-relative folder against the vault path, subfolders included', () => {
+				const ctx = noteIn('/v/work/topics/AWS');
+				expect(evaluateExpression('file.inFolder("work/topics/AWS")', ctx)).toBe(true);
+				expect(evaluateExpression('file.inFolder("work")', ctx)).toBe(true);
+				expect(evaluateExpression('file.inFolder("work/topics/GCP")', ctx)).toBe(false);
+			});
+
+			it('does not match a sibling folder that shares the prefix', () => {
+				expect(evaluateExpression('file.inFolder("/v/work")', noteIn('/v/workshop'))).toBe(false);
+				expect(evaluateExpression('file.inFolder("work")', noteIn('/v/workshop'))).toBe(false);
+				expect(evaluateExpression('file.inFolder("/v/work")', noteIn('/v/work'))).toBe(true);
+			});
+
+			it('ignores a trailing slash and letter case', () => {
+				const ctx = noteIn('/v/Work/Topics');
+				expect(evaluateExpression('file.inFolder("work/topics/")', ctx)).toBe(true);
+				expect(evaluateExpression('file.inFolder("WORK")', ctx)).toBe(true);
+				expect(evaluateExpression('file.inFolder("/V/work/")', ctx)).toBe(true);
+			});
+
+			it('matches nothing for a relative folder when there is no vault path', () => {
+				const ctx = makeCtx({}, {}, { folder: '/v/work', path: '/v/work/n.md' });
+				expect(() => evaluateExpression('file.inFolder("work")', ctx)).not.toThrow();
+				expect(evaluateExpression('file.inFolder("work")', ctx)).toBe(false);
+				expect(evaluateExpression('file.inFolder("/v/work")', ctx)).toBe(true);
+			});
+		});
+
 		it('evaluates file.hasProperty()', () => {
 			const ctx = makeCtx({ status: 'active' });
 			expect(evaluateExpression("file.hasProperty('status')", ctx)).toBe(true);
@@ -650,5 +687,164 @@ describe('evaluate', () => {
 			// The top-level "meta" key resolves to the object
 			expect(evaluateExpression('meta', ctx)).toEqual({ title: 'hello' });
 		});
+	});
+});
+
+/**
+ * Asserts the date "is" semantics of `file.mtime` / `file.ctime` against a
+ * `YYYY-MM-DD` string in the zone the caller runs it under. Record times are
+ * built with the local constructor here, so they land on the local day.
+ */
+function expectDayEqualityForFileDates(): void {
+	const matching = [new Date(2026, 10, 3, 0, 30).getTime(), new Date(2026, 10, 3, 23, 30).getTime()];
+	const other = [new Date(2026, 10, 2, 23, 30).getTime(), new Date(2026, 10, 4, 0, 30).getTime()];
+	for (const field of ['mtime', 'ctime'] as const) {
+		for (const time of matching) {
+			const ctx = makeCtx({}, {}, { [field]: time });
+			expect(evaluateExpression(`file.${field} == '2026-11-03'`, ctx), `${field} ${new Date(time).toString()}`).toBe(true);
+			expect(evaluateExpression(`'2026-11-03' == file.${field}`, ctx)).toBe(true);
+			expect(evaluateExpression(`file.${field} != '2026-11-03'`, ctx)).toBe(false);
+		}
+		for (const time of other) {
+			const ctx = makeCtx({}, {}, { [field]: time });
+			expect(evaluateExpression(`file.${field} == '2026-11-03'`, ctx), `${field} ${new Date(time).toString()}`).toBe(false);
+			expect(evaluateExpression(`file.${field} != '2026-11-03'`, ctx)).toBe(true);
+		}
+	}
+}
+
+describe('date "is" on file.mtime / file.ctime', () => {
+	it('matches every time on the local calendar day and no other day', () => {
+		expectDayEqualityForFileDates();
+	});
+
+	it('never matches and never throws for an empty or non-date string', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2026, 10, 3, 12).getTime(), ctime: new Date(2026, 10, 3, 12).getTime() });
+		for (const expr of ["file.mtime == ''", "file.mtime == 'abc'", "file.ctime == ''", "file.ctime == 'abc'"]) {
+			expect(() => evaluateExpression(expr, ctx)).not.toThrow();
+			expect(evaluateExpression(expr, ctx)).toBe(false);
+		}
+	});
+
+	it('keeps exact-millisecond equality for Date vs Date', () => {
+		const time = new Date(2026, 10, 3, 10, 0).getTime();
+		const ctx = makeCtx({}, {}, { mtime: time, ctime: time + 1 });
+		expect(evaluateExpression('file.mtime == file.ctime', ctx)).toBe(false);
+	});
+
+	it('keeps string equality for a frontmatter date property', () => {
+		expect(evaluateExpression("due == '2026-11-03'", makeCtx({ due: '2026-11-03' }))).toBe(true);
+		expect(evaluateExpression("due == '2026-11-03'", makeCtx({ due: '2026-11-04' }))).toBe(false);
+	});
+});
+
+describe.runIf(runtimeTimeZoneSwitchWorks())('date "is" on file dates across time zones', () => {
+	for (const tz of ['America/Sao_Paulo', 'Asia/Tokyo']) {
+		it(`matches the local calendar day in ${tz}`, () => {
+			withTimeZone(tz, () => expectDayEqualityForFileDates());
+		});
+	}
+});
+
+/** The toolbar's before / on or before / after / on or after operators */
+const DATE_OPERATORS = ['<', '<=', '>', '>='] as const;
+
+/** @returns the operators for which `<left> <op> <right>` is true */
+function matchingOperators(left: string, right: string, ctx: EvalContext): string[] {
+	return DATE_OPERATORS.filter((op) => evaluateExpression(`${left} ${op} ${right}`, ctx) === true);
+}
+
+describe('comparisons against a date-only date() literal', () => {
+	it('compares file.mtime by its local calendar day', () => {
+		const at = (...parts: [number, number, number, number, number]) => makeCtx({}, {}, { mtime: new Date(...parts).getTime() });
+		expect(matchingOperators('file.mtime', "date('2026-03-01')", at(2026, 2, 1, 10, 0))).toEqual(['<=', '>=']);
+		expect(matchingOperators('file.mtime', "date('2026-03-01')", at(2026, 1, 28, 23, 0))).toEqual(['<', '<=']);
+		expect(matchingOperators('file.mtime', "date('2026-03-01')", at(2026, 2, 2, 0, 30))).toEqual(['>', '>=']);
+	});
+
+	it('applies the day rule with the literal on the left', () => {
+		const ctx = makeCtx({ due: '2026-03-01T10:00' });
+		expect(matchingOperators("date('2026-03-01')", 'due', ctx)).toEqual(['<=', '>=']);
+	});
+
+	it('matches the whole day for == and negates it for !=', () => {
+		const sameDay = makeCtx({}, {}, { mtime: new Date(2026, 10, 3, 10, 0).getTime() });
+		const nextDay = makeCtx({}, {}, { mtime: new Date(2026, 10, 4, 10, 0).getTime() });
+		expect(evaluateExpression("file.mtime == date('2026-11-03')", sameDay)).toBe(true);
+		expect(evaluateExpression("file.mtime != date('2026-11-03')", sameDay)).toBe(false);
+		expect(evaluateExpression("file.mtime == date('2026-11-03')", nextDay)).toBe(false);
+		expect(evaluateExpression("file.mtime != date('2026-11-03')", nextDay)).toBe(true);
+		expect(evaluateExpression("due == date('2026-11-03')", makeCtx({ due: '2026-11-03T18:00' }))).toBe(true);
+	});
+
+	it('matches no operator for a value that is not a date', () => {
+		const texts = [{ due: 'Week 3' }, { due: 'Phase 2' }, { due: '1/2' }, { due: '5' }];
+		for (const props of [{ due: '' }, { due: 'abc' }, ...texts, { due: null }, {}]) {
+			const ctx = makeCtx(props);
+			expect(() => matchingOperators('due', "date('2026-03-01')", ctx)).not.toThrow();
+			expect(matchingOperators('due', "date('2026-03-01')", ctx), JSON.stringify(props)).toEqual([]);
+			expect(evaluateExpression("due == date('2026-03-01')", ctx)).toBe(false);
+		}
+	});
+
+	it('keeps instant comparison for a date() built from a datetime string', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2026, 2, 1, 9, 0).getTime() });
+		expect(matchingOperators('file.mtime', "date('2026-03-01T10:00')", ctx)).toEqual(['<', '<=']);
+		expect(evaluateExpression("file.mtime == date('2026-03-01T10:00')", ctx)).toBe(false);
+		expect(evaluateExpression("file.mtime == date('2026-03-01T09:00')", ctx)).toBe(true);
+	});
+
+	it('keeps Date vs Date and Date vs number comparisons as instants', () => {
+		const mtime = new Date(2026, 2, 1, 10, 0).getTime();
+		const ctx = makeCtx({}, {}, { mtime, ctime: mtime - 1 });
+		expect(evaluateExpression('file.mtime > file.ctime', ctx)).toBe(true);
+		expect(evaluateExpression(`file.mtime > ${mtime - 1}`, ctx)).toBe(true);
+		expect(evaluateExpression(`file.mtime < ${mtime + 1}`, ctx)).toBe(true);
+		expect(evaluateExpression(`file.mtime > ${mtime}`, ctx)).toBe(false);
+	});
+
+	it('reads a non-ISO string paired with a Date as no date', () => {
+		const ctx = makeCtx({}, {}, { mtime: new Date(2026, 2, 1, 10, 0).getTime() });
+		expect(matchingOperators('file.mtime', "'0'", ctx)).toEqual([]);
+		expect(matchingOperators('file.mtime', "'2026'", ctx)).toEqual([]);
+		expect(matchingOperators('file.mtime', "'2026-02-28 23:00'", ctx)).toEqual(['>', '>=']);
+	});
+});
+
+describe.runIf(runtimeTimeZoneSwitchWorks())('date() date-only literal across time zones', () => {
+	it('builds local midnight in America/Sao_Paulo', () => {
+		withTimeZone('America/Sao_Paulo', () => {
+			const result = evaluateExpression("date('2026-03-01')", makeCtx()) as Date;
+			expect(result.getTime()).toBe(new Date(2026, 2, 1).getTime());
+		});
+	});
+});
+
+describe('validateExpression', () => {
+	it('accepts an expression that parses and calls only known functions', () => {
+		expect(validateExpression("contains(status, 'a') && file.hasTag('x')")).toBeUndefined();
+	});
+
+	it('rejects an expression that does not parse', () => {
+		expect(validateExpression("status = 'active'")).toBeDefined();
+	});
+
+	it('names an unknown function, also nested inside arguments', () => {
+		expect(validateExpression('foo(1) == 2')).toContain('foo');
+		expect(validateExpression("if(true, [bar(1)], 'x')")).toContain('bar');
+	});
+
+	it.each([...PLAIN_FUNCTIONS])('passes every plain function the evaluator handles: %s', (name) => {
+		const expr = `${name}('a', 'b', 'c')`;
+		expect(validateExpression(expr)).toBeUndefined();
+		expect(() => evaluateExpression(expr, makeCtx())).not.toThrow();
+	});
+
+	it('lists exactly the cases of the evaluateCall switch', () => {
+		const source = readFileSync(join(process.cwd(), 'src/lib/features/collection/expression/evaluator.ts'), 'utf8');
+		const body = source.slice(source.indexOf('function evaluateCall('), source.indexOf('function evaluateMethodCall('));
+		const cases = [...body.matchAll(/^\t\tcase '([^']+)':/gm)].map((m) => m[1]);
+		expect(cases.length).toBeGreaterThan(0);
+		expect([...PLAIN_FUNCTIONS].sort()).toEqual(cases.sort());
 	});
 });

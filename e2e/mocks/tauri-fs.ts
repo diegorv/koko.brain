@@ -4,8 +4,10 @@ export async function readTextFile(path: string): Promise<string> {
 	return virtualFS.readFile(path);
 }
 
-export async function writeTextFile(path: string, content: string): Promise<void> {
-	virtualFS.writeFile(path, content);
+/** Honors append mode so buffered log flushes retain earlier records. */
+export async function writeTextFile(path: string, content: string, options?: { append?: boolean }): Promise<void> {
+	const previous = options?.append && virtualFS.exists(path) ? virtualFS.readFile(path) : '';
+	virtualFS.writeFile(path, previous + content);
 }
 
 export async function mkdir(path: string): Promise<void> {
@@ -22,6 +24,14 @@ export async function rename(oldPath: string, newPath: string): Promise<void> {
 
 export async function exists(path: string): Promise<boolean> {
 	return virtualFS.exists(path);
+}
+
+/** File-kind metadata used by the mod vault adapter to choose file or folder deletion. */
+export async function stat(path: string): Promise<{ isDirectory: boolean; isFile: boolean; isSymlink: boolean }> {
+	const slash = path.lastIndexOf('/');
+	const entry = virtualFS.readDir(path.slice(0, slash)).find((child) => child.name === path.slice(slash + 1));
+	if (!entry) throw new Error(`Path not found: ${path}`);
+	return { isDirectory: entry.isDirectory, isFile: entry.isFile, isSymlink: entry.isSymlink };
 }
 
 export async function copyFile(src: string, dest: string): Promise<void> {

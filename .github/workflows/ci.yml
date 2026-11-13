@@ -6,6 +6,10 @@ permissions:
 on:
   workflow_dispatch:
   workflow_call:
+    secrets:
+      MODS_REPO_READ_TOKEN:
+        description: "Read-only access to diegorv/koko.brain-mods"
+        required: true
     inputs:
       force_all:
         description: "Bypass the paths filter and run frontend + rust unconditionally"
@@ -20,7 +24,7 @@ concurrency:
 jobs:
   changes:
     name: Detect Changes
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 2
     outputs:
       frontend: ${{ inputs.force_all == true && 'true' || steps.filter.outputs.frontend }}
@@ -44,20 +48,22 @@ jobs:
               - "tailwind.config.*"
               - "postcss.config.*"
               - "components.json"
-              - ".github/actions/**"
-              - ".github/workflows/**"
+              - ".github/actions/setup/**"
+              - ".github/workflows/ci.yml"
             rust:
               - "src-tauri/**"
               - "src/lib/contracts/generated/**"
+              # vault_file_ops_test ties MOD_DATA_DIR to the Rust mod data commands
+              - "src/lib/plugins/mods/mods.logic.ts"
               - ".cargo/**"
-              - ".github/actions/**"
-              - ".github/workflows/**"
+              - ".github/actions/setup/**"
+              - ".github/workflows/ci.yml"
 
   frontend:
     name: Frontend (typecheck + tests)
     needs: changes
     if: needs.changes.outputs.frontend == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7.0.1
@@ -65,6 +71,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust: "false"
 
       - name: Run type check
@@ -80,7 +87,7 @@ jobs:
     name: Rust (cargo test)
     needs: changes
     if: needs.changes.outputs.rust == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7.0.1
@@ -102,6 +109,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup
         with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
           rust-targets: ""
 
       - name: Clippy
@@ -135,6 +143,8 @@ jobs:
 
       - name: Setup environment
         uses: ./.github/actions/setup
+        with:
+          mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}
 
       # The rust job lints on Linux, where macOS-gated code is compiled out.
       - name: Clippy
@@ -182,27 +192,11 @@ jobs:
           run_tests any --test utils_fs_test
           run_tests any --test semantic_embedder_qos_session_test
 
-  secrets:
-    name: Secret Scan (gitleaks)
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v7.0.1
-        with:
-          fetch-depth: 0
-
-      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_CONFIG: .gitleaks.toml
-          # The action defaults to 8.24.3, which silently ignores `[[allowlists]]`.
-          GITLEAKS_VERSION: "8.30.1"
-
   ci-success:
     name: CI success
-    needs: [changes, frontend, rust, rust-fonts-macos, secrets]
+    needs: [changes, frontend, rust, rust-fonts-macos]
     if: always()
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 1
     steps:
       - name: Aggregate gate results
@@ -212,18 +206,16 @@ jobs:
           frontend="${{ needs.frontend.result }}"
           rust="${{ needs.rust.result }}"
           rust_fonts_macos="${{ needs.rust-fonts-macos.result }}"
-          secrets_scan="${{ needs.secrets.result }}"
-          echo "changes=$changes frontend=$frontend rust=$rust rust_fonts_macos=$rust_fonts_macos secrets=$secrets_scan"
+          echo "changes=$changes frontend=$frontend rust=$rust rust_fonts_macos=$rust_fonts_macos"
           if [ "$changes" != "success" ]; then
             echo "::error::changes job did not succeed (result=$changes)"
             exit 1
           fi
-          for name in frontend rust rust-fonts-macos secrets; do
+          for name in frontend rust rust-fonts-macos; do
             case "$name" in
               frontend) result="$frontend" ;;
               rust) result="$rust" ;;
               rust-fonts-macos) result="$rust_fonts_macos" ;;
-              secrets) result="$secrets_scan" ;;
             esac
             if [ "$result" != "success" ] && [ "$result" != "skipped" ]; then
               echo "::error::$name job did not pass (result=$result)"

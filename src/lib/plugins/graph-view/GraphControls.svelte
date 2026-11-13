@@ -27,7 +27,7 @@
 	<!-- Mode + Close -->
 	<div class="flex items-center gap-1 rounded-md border border-border bg-background/90 p-1 backdrop-blur-sm">
 		<button
-			class="rounded px-2 py-1 text-xs transition-colors {graphViewStore.mode === 'global'
+			class="rounded-xs px-2 py-1 text-xs transition-colors {graphViewStore.mode === 'global'
 				? 'bg-muted text-foreground'
 				: 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => graphViewStore.setMode('global')}
@@ -36,7 +36,7 @@
 			<Globe class="h-3.5 w-3.5" />
 		</button>
 		<button
-			class="rounded px-2 py-1 text-xs transition-colors {graphViewStore.mode === 'local'
+			class="rounded-xs px-2 py-1 text-xs transition-colors {graphViewStore.mode === 'local'
 				? 'bg-muted text-foreground'
 				: 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => graphViewStore.setMode('local')}
@@ -48,14 +48,14 @@
 		<div class="mx-1 h-4 w-px bg-border"></div>
 
 		<button
-			class="rounded px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
+			class="rounded-xs px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
 			onclick={onZoomIn}
 			title="Zoom in"
 		>
 			<ZoomIn class="h-3.5 w-3.5" />
 		</button>
 		<button
-			class="rounded px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
+			class="rounded-xs px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
 			onclick={onZoomOut}
 			title="Zoom out"
 		>
@@ -65,7 +65,7 @@
 		<div class="mx-1 h-4 w-px bg-border"></div>
 
 		<button
-			class="rounded px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
+			class="rounded-xs px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
 			onclick={() => closeGraphTab()}
 			title="Close graph"
 		>
@@ -78,7 +78,7 @@
 		<input
 			type="text"
 			placeholder="Search nodes..."
-			class="h-7 rounded border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+			class="h-7 rounded-xs border border-border bg-background px-2 text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 			value={graphViewStore.filters.searchQuery}
 			oninput={(e) => graphViewStore.setFilters({ searchQuery: e.currentTarget.value })}
 		/>
@@ -98,7 +98,7 @@
 
 		{#if tags.length > 0}
 			<select
-				class="h-7 rounded border border-border bg-background px-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+				class="h-7 rounded-xs border border-border bg-background px-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 				value={graphViewStore.filters.tag ?? ''}
 				onchange={(e) => graphViewStore.setFilters({ tag: e.currentTarget.value || null })}
 			>
@@ -111,7 +111,7 @@
 
 		{#if folders.length > 1}
 			<select
-				class="h-7 rounded border border-border bg-background px-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+				class="h-7 rounded-xs border border-border bg-background px-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
 				value={graphViewStore.filters.folder ?? ''}
 				onchange={(e) => graphViewStore.setFilters({ folder: e.currentTarget.value || null })}
 			>
@@ -125,7 +125,7 @@
 
 	<!-- Display -->
 	<div class="flex flex-col gap-1.5 rounded-md border border-border bg-background/90 p-2 backdrop-blur-sm">
-		<span class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground">Display</span>
+		<span class="section-label">Display</span>
 		<label class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
 			<span>Arrows</span>
 			<button

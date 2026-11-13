@@ -1,6 +1,6 @@
 import { call } from '#lib/contracts/ipc.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
-import { findTabIndex, GRAPH_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import { findTabIndex, GRAPH_VIRTUAL_PATH, isMarkdownNoteTab } from '#lib/core/editor/editor.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { buildGraphData } from './graph-view.logic';
 import { graphViewStore } from './graph-view.store.svelte';
@@ -16,8 +16,24 @@ export async function buildGraph(): Promise<GraphData> {
 	return buildGraphData(entries, vaultStore.path);
 }
 
-/** Opens or focuses the Graph View tab. Creates it if it doesn't exist. */
+/**
+ * Records the active markdown note as the graph's center, or null when the
+ * active tab is not one. Must run before the graph tab becomes active, since
+ * after that the active tab is the graph itself.
+ */
+function captureCenterPath(): void {
+	const tab = editorStore.activeTab;
+	graphViewStore.setCenterPath(tab && isMarkdownNoteTab(tab) ? tab.path : null);
+}
+
+/**
+ * Opens or focuses the Graph View tab. Creates it if it doesn't exist. When
+ * the graph is already the active tab the center is kept, since there is no
+ * note to capture.
+ */
 export function openGraphTab(): void {
+	if (editorStore.activeTabPath === GRAPH_VIRTUAL_PATH) return;
+	captureCenterPath();
 	const existingIndex = findTabIndex(editorStore.tabs, GRAPH_VIRTUAL_PATH);
 	if (existingIndex >= 0) {
 		editorStore.setActiveIndex(existingIndex);
@@ -48,6 +64,7 @@ export function toggleGraphTab(): void {
 	} else if (existingIndex === editorStore.activeIndex) {
 		editorStore.removeTab(existingIndex);
 	} else {
+		captureCenterPath();
 		editorStore.setActiveIndex(existingIndex);
 	}
 }

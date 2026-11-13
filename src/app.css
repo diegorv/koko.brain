@@ -1,5 +1,12 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "katex/dist/katex.min.css";
+
+/* Planning notes under .scratch/ quote class names with placeholders (`@max-[Npx]:hidden`) that compile to invalid CSS and fail the minifier. */
+@source not "../.scratch";
+
+/* `dark:` follows `html.dark`, which theme.service.ts sets from the applied theme, not the OS appearance. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
 	--color-background: var(--background);
@@ -25,6 +32,10 @@
 
 	/* Component-specific theme colors */
 	--color-file-explorer-bg: var(--file-explorer-bg);
+	--color-rail-bg: var(--rail-bg);
+	--color-rail-muted-fg: var(--rail-muted-fg);
+	--color-nav-bg: var(--nav-bg);
+	--color-list-bg: var(--list-bg);
 	--color-file-explorer-fg: var(--file-explorer-fg);
 	--color-file-explorer-muted-fg: var(--file-explorer-muted-fg);
 	--color-file-explorer-accent: var(--file-explorer-accent);
@@ -62,17 +73,90 @@
 	--color-type-pink: var(--type-pink);
 	--color-type-gray: var(--type-gray);
 	--color-warning: var(--warning);
+	--color-success: var(--success);
+	--color-scrim: var(--elev-scrim);
 
+	/*
+	 * Chrome type scale: the text roles of panels, rails and settings (not the
+	 * editor). Use these instead of `text-[Npx]`; `cn()` knows them through
+	 * `utils/text-roles.ts`, which must list the same names.
+	 * - label: 11px, the smallest readable step. Section labels (via the
+	 *   `section-label` utility below), chips and badges.
+	 * - meta: 12px. Counts, subtitles, timestamps, snippets, empty and status
+	 *   messages.
+	 * - rail: 13px. Row titles in the labeled and captioned rail.
+	 * - row: 14px. List rows and the right sidebar's base size.
+	 * - title: 15px semibold, sentence case. Panel titles; 1px above a row, so
+	 *   the weight carries the difference.
+	 */
+	--text-label: 11px;
+	--text-label--line-height: calc(16 / 11);
+	--text-meta: 12px;
+	--text-meta--line-height: calc(16 / 12);
+	--text-rail: 13px;
+	--text-rail--line-height: calc(18 / 13);
+	--text-row: 14px;
+	--text-row--line-height: calc(20 / 14);
+	--text-title: 15px;
+	--text-title--line-height: calc(22 / 15);
+	--text-title--font-weight: 600;
+}
+
+/*
+ * Radius ladder, derived from `--radius`. `static` (not `inline`) emits each
+ * rung on `:root` and points the `rounded-*` utilities at it, so scoped CSS,
+ * CodeMirror themes and DOM builders can write `var(--radius-md)`.
+ */
+@theme static {
+	--radius-xs: calc(var(--radius) - 6px);
 	--radius-sm: calc(var(--radius) - 4px);
 	--radius-md: calc(var(--radius) - 2px);
 	--radius-lg: var(--radius);
 	--radius-xl: calc(var(--radius) + 4px);
 }
 
+/*
+ * Elevation: the shadow levels read the theme's `--elev-*` variables
+ * (`themeColorsToCssVars`), so they show on dark surfaces and tint on light
+ * ones. md and xl, the floating levels, add a 1px ring as the surface's
+ * edge. `static` emits them on :root even when no utility uses them, so
+ * CodeMirror themes can read `var(--shadow-md)`.
+ */
+@theme static {
+	--shadow-xs: 0 1px 2px 0 var(--elev-shadow-1);
+	--shadow-sm: 0 1px 3px 0 var(--elev-shadow-1), 0 1px 2px -1px var(--elev-shadow-1);
+	--shadow-md: 0 0 0 1px var(--elev-ring), 0 4px 12px -2px var(--elev-shadow-2), 0 2px 4px -2px var(--elev-shadow-1);
+	--shadow-xl: 0 0 0 1px var(--elev-ring), 0 16px 40px -8px var(--elev-shadow-3), 0 4px 12px -4px var(--elev-shadow-2);
+}
+
+/*
+ * The one uppercase section label inside a panel. Badges and table column
+ * headers are not section labels. In an area with its own muted color, add
+ * that color class (`text-file-explorer-muted-fg`): it overrides this one.
+ * The override relies on Tailwind emitting color utilities after this one in
+ * the generated CSS (same specificity, later rule wins); no test holds that
+ * order, so check the built CSS if the override stops working.
+ */
+@utility section-label {
+	@apply text-label font-semibold tracking-wide uppercase text-muted-foreground;
+}
+
+/*
+ * The second row under a pane's top band (note action bar, view toolbars,
+ * the right sidebar's section headers): one height, gutter and divider, so the bottom
+ * edges of neighbouring panes line up. A site adds no height, padding, gap or
+ * border color of its own: Tailwind does not promise which of two utilities
+ * setting the same property wins.
+ */
+@utility pane-toolbar {
+	@apply flex h-10 shrink-0 items-center gap-1 px-3 border-b border-divider;
+}
+
 :root {
 	--background: oklch(0.978 0.005 100);
 	--foreground: oklch(0.243 0.015 280);
 	--card: oklch(1 0 0);
+	--card-foreground: oklch(0.243 0.015 280);
 	--popover: oklch(1 0 0);
 	--popover-foreground: oklch(0.243 0.015 280);
 	--primary: oklch(0.734 0.16 300);
@@ -108,16 +192,24 @@
 	--status-bar-bg: oklch(0.978 0.005 100);
 	--status-bar-fg: oklch(0.529 0.07 265);
 	--type-red: #C83848;
-	--type-orange: #b86839;
-	--type-yellow: #a18a1e;
+	--type-orange: #b66737;
+	--type-yellow: #907900;
 	--type-green: #408868;
 	--type-teal: #397a8e;
 	--type-blue: #3868B0;
 	--type-purple: #7848B8;
 	--type-pink: #a04a85;
 	--type-gray: #645c74;
-	--warning: #857217;
+	--warning: #786714;
+	--success: #357458;
+	--elev-shadow-1: #3028400f;
+	--elev-shadow-2: #3028401a;
+	--elev-shadow-3: #30284029;
+	--elev-ring: #30284014;
+	--elev-scrim: #30284040;
 	--radius: 0.625rem;
+	/* Height of the bottom status bar; overlays that must not cover it end this far above the viewport bottom. */
+	--status-bar-height: 2rem;
 }
 
 .dark {
@@ -125,6 +217,7 @@
 	--background: #21222e;
 	--foreground: #F8F8F2;
 	--card: #2a2e3d;
+	--card-foreground: oklch(0.98 0.005 105);
 	--popover: oklch(0.22 0.025 273);
 	--popover-foreground: oklch(0.98 0.005 105);
 	--primary: oklch(0.73 0.08 278);
@@ -180,16 +273,22 @@
 	--type-blue: #60a5fa;
 	--type-purple: #a78bfa;
 	--type-pink: #d16fa2;
-	--type-gray: #8a96b1;
+	--type-gray: #95a0b9;
 	--warning: #fbbf24;
+	--success: #4ade80;
+	--elev-shadow-1: #00000040;
+	--elev-shadow-2: #00000073;
+	--elev-shadow-3: #00000099;
+	--elev-ring: #ffffff0f;
+	--elev-scrim: #0000008c;
 
 	/* Syntax highlighting */
 	--syntax-heading1: #E8A5FF;
-	--syntax-heading2: #5DCCFF;
-	--syntax-heading3: #42E8A8;
-	--syntax-heading4: #FFD93D;
-	--syntax-heading5: #FF8C69;
-	--syntax-heading6: #B19CD9;
+	--syntax-heading2: #d8a5f1;
+	--syntax-heading3: #c8a4e3;
+	--syntax-heading4: #b7a3d5;
+	--syntax-heading5: #a6a2c7;
+	--syntax-heading6: #95a0b9;
 	--syntax-emphasis: #93c5fd;
 	--syntax-strong: #93c5fd;
 	--syntax-strikethrough: #94a3b8;
@@ -222,29 +321,6 @@
 	--lp-ol-marker: #f9a825;
 	--lp-code-bg: #3b3b4f;
 	--lp-codeblock-bg: #1e1e2e;
-	/* Code blocks, highlight.js tokens and meta-bind controls follow the theme through the variables they reference.
-	   Token hues are mixed 45/55 with the text color: callout hues are accents (3:1), code tokens are text. */
-	--lp-codeblock-border: var(--lp-table-border);
-	--lp-codeblock-header-bg: color-mix(in oklab, var(--lp-codeblock-bg) 92%, var(--editor-fg));
-	--lp-codeblock-lang: var(--muted-foreground);
-	--lp-codeblock-copy: var(--muted-foreground);
-	--lp-codeblock-copy-hover: var(--lp-collection-table-hover);
-	--lp-codeblock-text: var(--editor-fg);
-	--lp-syntax-keyword: color-mix(in oklab, var(--callout-important) 45%, var(--editor-fg));
-	--lp-syntax-builtin: color-mix(in oklab, var(--callout-warning) 45%, var(--editor-fg));
-	--lp-syntax-type: color-mix(in oklab, var(--callout-warning) 45%, var(--editor-fg));
-	--lp-syntax-literal: color-mix(in oklab, var(--syntax-processing) 45%, var(--editor-fg));
-	--lp-syntax-number: color-mix(in oklab, var(--syntax-processing) 45%, var(--editor-fg));
-	--lp-syntax-string: color-mix(in oklab, var(--callout-tip) 45%, var(--editor-fg));
-	--lp-syntax-function: color-mix(in oklab, var(--callout-note) 45%, var(--editor-fg));
-	--lp-syntax-variable: var(--editor-fg);
-	--lp-syntax-comment: color-mix(in oklab, var(--syntax-meta) 55%, var(--editor-fg));
-	--lp-syntax-meta: color-mix(in oklab, var(--callout-caution) 45%, var(--editor-fg));
-	--lp-syntax-attr: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
-	--lp-syntax-property: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
-	--lp-syntax-tag: color-mix(in oklab, var(--callout-caution) 45%, var(--editor-fg));
-	--lp-syntax-punctuation: color-mix(in oklab, var(--editor-fg) 65%, var(--lp-codeblock-bg));
-	--lp-syntax-operator: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
 	--lp-table-border: #313244;
 	--lp-table-header-bg: #1e1e2e;
 	--lp-table-alt: #1e1e2e44;
@@ -267,26 +343,6 @@
 	--lp-embed-border: #313244;
 	--lp-embed-content: #cdd6f4;
 	--lp-embed-error: #f38ba8;
-	--lp-meta-bind-select-bg: var(--input-bg);
-	--lp-meta-bind-select-text: var(--editor-fg);
-	--lp-meta-bind-select-border: var(--input);
-	--lp-meta-bind-select-arrow: var(--muted-foreground);
-	--lp-meta-bind-select-hover: color-mix(in oklab, var(--editor-fg) 20%, var(--input-bg));
-	--lp-meta-bind-btn-default-bg: color-mix(in oklab, var(--editor-fg) 10%, var(--editor-bg));
-	--lp-meta-bind-btn-default-text: var(--editor-fg);
-	--lp-meta-bind-btn-default-border: color-mix(in oklab, var(--editor-fg) 22%, var(--editor-bg));
-	--lp-meta-bind-btn-default-hover: color-mix(in oklab, var(--editor-fg) 18%, var(--editor-bg));
-	--lp-meta-bind-btn-primary-bg: var(--primary);
-	--lp-meta-bind-btn-primary-text: var(--primary-foreground);
-	--lp-meta-bind-btn-primary-hover: color-mix(in oklab, var(--primary) 85%, var(--editor-fg));
-	--lp-meta-bind-btn-destructive-bg: var(--destructive);
-	--lp-meta-bind-btn-destructive-text: var(--destructive-foreground);
-	--lp-meta-bind-btn-destructive-hover: color-mix(in oklab, var(--destructive) 85%, var(--editor-fg));
-	--lp-meta-bind-btn-plain-text: var(--editor-fg);
-	--lp-meta-bind-btn-plain-hover: var(--lp-collection-table-hover);
-	--lp-meta-bind-error-text: var(--destructive);
-	--lp-meta-bind-error-bg: color-mix(in oklab, var(--destructive) 10%, transparent);
-	--lp-meta-bind-error-border: color-mix(in oklab, var(--destructive) 20%, transparent);
 
 	/* Wikilink decorations */
 	--wikilink-bracket: #64748b;
@@ -302,6 +358,38 @@
 	--callout-warning: #fbbf24;
 	--callout-caution: #f87171;
 	--callout-quote: #94a3b8;
+}
+
+/*
+ * Column tones, derived so every theme gets them without new tokens, with the
+ * rail the darkest. buildTheme only holds muted text to 4.5:1 on
+ * --file-explorer-bg, so the rail's labels mix in some of the foreground to
+ * keep that on the darker surface. .dark follows the editor background, not
+ * these panels: a theme with dark panels and a light editor takes the light
+ * rules, and its list mixes toward the editor into a mid tone.
+ *
+ * Dark themes step lightness by a fixed amount: a percentage of black scales
+ * lightness, so it barely moves a surface that is already dark, and the editor
+ * is often too close for a mix toward it to show. The list keeps
+ * --file-explorer-bg and the other columns only go darker.
+ *
+ * .column-tones and .column-tones-dark re-derive the tones under an element
+ * that sets those colors itself, such as a preview of a theme that is not the
+ * active one. A value declared on :root resolves there and inherits as is.
+ */
+:root,
+.column-tones {
+	--rail-bg: color-mix(in oklch, var(--file-explorer-bg) 96%, black);
+	--rail-muted-fg: color-mix(in oklch, var(--file-explorer-muted-fg) 70%, var(--file-explorer-fg));
+	--nav-bg: var(--file-explorer-bg);
+	--list-bg: color-mix(in oklch, var(--file-explorer-bg) 50%, var(--editor-bg));
+}
+
+.dark,
+.column-tones-dark {
+	--rail-bg: oklch(from var(--file-explorer-bg) calc(l - 0.06) c h);
+	--nav-bg: oklch(from var(--file-explorer-bg) calc(l - 0.03) c h);
+	--list-bg: var(--file-explorer-bg);
 }
 
 /*
@@ -326,7 +414,62 @@
 	--event-blue-fg: color-mix(in oklab, #3b82f6 30%, var(--editor-fg));
 }
 
-/* Force date input text color (WebKit pseudo-elements ignore normal color inheritance) */
+/*
+ * Code blocks, highlight.js tokens and meta-bind controls follow the theme
+ * through the variables they reference. Declared outside .dark for the same
+ * reason as the event colors: a light theme removes html.dark.
+ * Token hues are mixed 45/55 with the text color: callout hues are accents
+ * (3:1), code tokens are text.
+ */
+:root {
+	--lp-codeblock-border: var(--lp-table-border);
+	--lp-codeblock-header-bg: color-mix(in oklab, var(--lp-codeblock-bg) 92%, var(--editor-fg));
+	--lp-codeblock-lang: var(--muted-foreground);
+	--lp-codeblock-copy: var(--muted-foreground);
+	--lp-codeblock-copy-hover: var(--lp-collection-table-hover);
+	--lp-codeblock-text: var(--editor-fg);
+	--lp-syntax-keyword: color-mix(in oklab, var(--callout-important) 45%, var(--editor-fg));
+	--lp-syntax-builtin: color-mix(in oklab, var(--callout-warning) 45%, var(--editor-fg));
+	--lp-syntax-type: color-mix(in oklab, var(--callout-warning) 45%, var(--editor-fg));
+	--lp-syntax-literal: color-mix(in oklab, var(--syntax-processing) 45%, var(--editor-fg));
+	--lp-syntax-number: color-mix(in oklab, var(--syntax-processing) 45%, var(--editor-fg));
+	--lp-syntax-string: color-mix(in oklab, var(--callout-tip) 45%, var(--editor-fg));
+	--lp-syntax-function: color-mix(in oklab, var(--callout-note) 45%, var(--editor-fg));
+	--lp-syntax-variable: var(--editor-fg);
+	--lp-syntax-comment: color-mix(in oklab, var(--syntax-meta) 55%, var(--editor-fg));
+	--lp-syntax-meta: color-mix(in oklab, var(--callout-caution) 45%, var(--editor-fg));
+	--lp-syntax-attr: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
+	--lp-syntax-property: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
+	--lp-syntax-tag: color-mix(in oklab, var(--callout-caution) 45%, var(--editor-fg));
+	--lp-syntax-punctuation: color-mix(in oklab, var(--editor-fg) 65%, var(--lp-codeblock-bg));
+	--lp-syntax-operator: color-mix(in oklab, var(--lp-link) 45%, var(--editor-fg));
+	--lp-meta-bind-select-bg: var(--input-bg);
+	--lp-meta-bind-select-text: var(--editor-fg);
+	--lp-meta-bind-select-border: var(--input);
+	--lp-meta-bind-select-arrow: var(--muted-foreground);
+	--lp-meta-bind-select-hover: color-mix(in oklab, var(--editor-fg) 20%, var(--input-bg));
+	--lp-meta-bind-btn-default-bg: color-mix(in oklab, var(--editor-fg) 10%, var(--editor-bg));
+	--lp-meta-bind-btn-default-text: var(--editor-fg);
+	--lp-meta-bind-btn-default-border: color-mix(in oklab, var(--editor-fg) 22%, var(--editor-bg));
+	--lp-meta-bind-btn-default-hover: color-mix(in oklab, var(--editor-fg) 18%, var(--editor-bg));
+	--lp-meta-bind-btn-primary-bg: var(--primary);
+	--lp-meta-bind-btn-primary-text: var(--primary-foreground);
+	--lp-meta-bind-btn-primary-hover: color-mix(in oklab, var(--primary) 85%, var(--editor-fg));
+	--lp-meta-bind-btn-destructive-bg: var(--destructive);
+	--lp-meta-bind-btn-destructive-text: var(--destructive-foreground);
+	--lp-meta-bind-btn-destructive-hover: color-mix(in oklab, var(--destructive) 85%, var(--editor-fg));
+	--lp-meta-bind-btn-plain-text: var(--editor-fg);
+	--lp-meta-bind-btn-plain-hover: var(--lp-collection-table-hover);
+	--lp-meta-bind-error-text: var(--destructive);
+	--lp-meta-bind-error-bg: color-mix(in oklab, var(--destructive) 10%, transparent);
+	--lp-meta-bind-error-border: color-mix(in oklab, var(--destructive) 20%, transparent);
+}
+
+/*
+ * Force date input text color (WebKit pseudo-elements ignore normal color
+ * inheritance). An area with its own text color sets `--date-input-fg` on the
+ * input, which the pseudo-elements inherit like any custom property.
+ */
 input[type="date"],
 input[type="date"]::-webkit-datetime-edit,
 input[type="date"]::-webkit-datetime-edit-fields-wrapper,
@@ -334,13 +477,13 @@ input[type="date"]::-webkit-datetime-edit-text,
 input[type="date"]::-webkit-datetime-edit-month-field,
 input[type="date"]::-webkit-datetime-edit-day-field,
 input[type="date"]::-webkit-datetime-edit-year-field {
-	color: color-mix(in srgb, var(--foreground) 70%, transparent) !important;
-	-webkit-text-fill-color: color-mix(in srgb, var(--foreground) 70%, transparent) !important;
+	color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
+	-webkit-text-fill-color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
 }
 
 @layer base {
 	* {
-		@apply border-border;
+		@apply border-border outline-ring/50;
 	}
 
 	html {

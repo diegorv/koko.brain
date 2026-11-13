@@ -44,6 +44,12 @@ const DEFAULT_SETTINGS = {
 		templatePath: '',
 	},
 	layout: {
+		// The app's defaults are its minimums, too narrow for the rows specs click, so the
+		// test vault saves working sizes. `Default pane sizes` in sidebars.spec.ts drops them.
+		railWidth: 192,
+		navigatorSize: 13,
+		noteListSize: 18,
+		rightSidebarSize: 20,
 		rightSidebarVisible: true,
 		propertiesVisible: true,
 		backlinksVisible: true,

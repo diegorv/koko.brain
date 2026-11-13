@@ -105,8 +105,8 @@ describe('prepareForExit', () => {
 
 		expect(ask).toHaveBeenCalledTimes(1);
 		expect(ask).toHaveBeenCalledWith(
-			expect.stringContaining('note.md'),
-			expect.objectContaining({ kind: 'warning' }),
+			'Failed to save: note.md. Close anyway and lose unsaved changes?',
+			{ title: 'Unsaved Changes', kind: 'warning', okLabel: 'Close Anyway', cancelLabel: 'Cancel' },
 		);
 		expect(goOn).toBe(true);
 		expect(drain).toHaveBeenCalledTimes(1);

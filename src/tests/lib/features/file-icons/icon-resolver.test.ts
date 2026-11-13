@@ -104,10 +104,10 @@ describe('resolveIconForPath', () => {
 		expect(resolveIconForPath('/vault/note.md')).toBeUndefined();
 
 		typeDefinitionsStore.setEntries([...types, makeEntry({ path: '/vault/note.md', title: 'note', isA: 'Project' })]);
-		expect(resolveIconForPath('/vault/note.md')?.icon.name).toBe('rocket');
+		expect(resolveIconForPath('/vault/note.md')?.icon?.name).toBe('rocket');
 
 		typeDefinitionsStore.setEntries([...types, makeEntry({ path: '/vault/note.md', title: 'note', isA: 'Book' })]);
-		expect(resolveIconForPath('/vault/note.md')?.icon.name).toBe('book');
+		expect(resolveIconForPath('/vault/note.md')?.icon?.name).toBe('book');
 
 		typeDefinitionsStore.setEntries(types);
 		expect(resolveIconForPath('/vault/note.md')).toBeUndefined();
@@ -133,7 +133,7 @@ describe('resolveIconForPath', () => {
 		});
 
 		const result = resolveIconForPath('/vault/my-project.md');
-		expect(result?.icon.name).toBe('star');
+		expect(result?.icon?.name).toBe('star');
 	});
 
 	it('returns undefined when getIconSync returns undefined (pack not loaded)', () => {
@@ -177,6 +177,69 @@ describe('resolveIconForPath', () => {
 		expect(result?.color).toBe('#aaa');
 		expect(result?.titleColor).toBe('#bbb');
 	});
+
+	it('returns the colors with no icon when the file only sets colors', () => {
+		fileIconsStore.setFrontmatterIcons(new Map([['/vault/note.md', { titleColor: '#bbb' }]]));
+
+		const result = resolveIconForPath('/vault/note.md');
+		expect(result?.icon).toBeUndefined();
+		expect(result?.titleColor).toBe('#bbb');
+		expect(getIconSync).not.toHaveBeenCalled();
+	});
+
+	it('keeps the colors when the icon name is not in its pack', () => {
+		fileIconsStore.setFrontmatterIcons(
+			new Map([['/vault/Meeting.md', { iconPack: 'lucide', iconName: 'calendar-blank', color: 'yellow', titleColor: '#3b82f6' }]]),
+		);
+		vi.mocked(getIconSync).mockReturnValue(undefined);
+
+		expect(resolveIconForPath('/vault/Meeting.md')).toEqual({ icon: undefined, color: 'yellow', titleColor: '#3b82f6' });
+	});
+
+	it('inherits a text color from a type definition that has no icon', () => {
+		typeDefinitionsStore.setEntries([
+			makeEntry({ path: '/vault/Project.md', title: 'Project', isA: 'Type' }),
+			makeEntry({ path: '/vault/my-project.md', title: 'my-project', isA: 'Project' }),
+		]);
+		fileIconsStore.setFrontmatterIcons(new Map([['/vault/Project.md', { titleColor: '#bbb' }]]));
+
+		const result = resolveIconForPath('/vault/my-project.md');
+		expect(result?.icon).toBeUndefined();
+		expect(result?.titleColor).toBe('#bbb');
+	});
+
+	it('lays a file\'s own colors over the icon it inherits from its type', () => {
+		const rocket = mockIcon('rocket');
+		typeDefinitionsStore.setEntries([
+			makeEntry({ path: '/vault/Project.md', title: 'Project', isA: 'Type' }),
+			makeEntry({ path: '/vault/my-project.md', title: 'my-project', isA: 'Project' }),
+		]);
+		fileIconsStore.setFrontmatterIcons(
+			new Map([
+				['/vault/Project.md', { iconPack: 'lucide', iconName: 'rocket', color: 'blue', titleColor: '#aaa' }],
+				['/vault/my-project.md', { titleColor: '#bbb' }],
+			]),
+		);
+		vi.mocked(getIconSync).mockReturnValue(rocket);
+
+		expect(resolveIconForPath('/vault/my-project.md')).toEqual({ icon: rocket, color: 'blue', titleColor: '#bbb' });
+	});
+
+	it('does not inherit a type\'s text color over a file\'s own icon', () => {
+		typeDefinitionsStore.setEntries([
+			makeEntry({ path: '/vault/Project.md', title: 'Project', isA: 'Type' }),
+			makeEntry({ path: '/vault/my-project.md', title: 'my-project', isA: 'Project' }),
+		]);
+		fileIconsStore.setFrontmatterIcons(
+			new Map([
+				['/vault/Project.md', { iconPack: 'lucide', iconName: 'rocket', titleColor: '#aaa' }],
+				['/vault/my-project.md', { iconPack: 'lucide', iconName: 'star' }],
+			]),
+		);
+		vi.mocked(getIconSync).mockReturnValue(mockIcon('star'));
+
+		expect(resolveIconForPath('/vault/my-project.md')?.titleColor).toBeUndefined();
+	});
 });
 
 describe('resolveIconForType', () => {
@@ -211,6 +274,15 @@ describe('resolveIconForType', () => {
 
 		expect(resolveIconForType('Project')).toBeUndefined();
 	});
+
+	it('returns the colors of a type definition with no icon', () => {
+		typeDefinitionsStore.setEntries([
+			makeEntry({ path: '/vault/Project.md', title: 'Project', isA: 'Type' }),
+		]);
+		fileIconsStore.setFrontmatterIcons(new Map([['/vault/Project.md', { color: 'blue', titleColor: '#bbb' }]]));
+
+		expect(resolveIconForType('Project')).toEqual({ icon: undefined, color: 'blue', titleColor: '#bbb' });
+	});
 });
 
 describe('without the type icon lookup', () => {
@@ -232,7 +304,7 @@ describe('without the type icon lookup', () => {
 		fileIconsStore.setFrontmatterIcons(new Map([['/vault/my-project.md', { iconPack: 'lucide', iconName: 'star' }]]));
 		vi.mocked(getIconSync).mockReturnValue(star);
 
-		expect(resolveIconForPath('/vault/my-project.md')?.icon.name).toBe('star');
+		expect(resolveIconForPath('/vault/my-project.md')?.icon?.name).toBe('star');
 	});
 
 	it('resolveIconForPath returns undefined for a typed note, without throwing', () => {

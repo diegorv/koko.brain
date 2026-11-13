@@ -1,8 +1,16 @@
 import { describe, it, expect } from 'vitest';
 import { buildTheme, alpha, coreFromColors, READABILITY_PAIRS, TYPE_PALETTE_TOKENS, type CorePalette } from '#lib/core/settings/theme-builder.logic.js';
 import { contrastRatio, flatten, mixColors } from '#lib/utils/color.js';
-import { BUILTIN_THEMES } from '#lib/core/settings/theme.logic.js';
+import { BUILTIN_THEMES, mergeThemeWithDefaults } from '#lib/core/settings/theme.logic.js';
 import { KOKOBRAIN_DEFAULT_THEME } from '#lib/core/settings/theme.logic.js';
+import type { SyntaxColors } from '#lib/core/settings/theme.types.js';
+
+const HEADING_TOKENS = ['heading1', 'heading2', 'heading3', 'heading4', 'heading5', 'heading6'] as const;
+
+/** The six heading colors of a theme's syntax group, H1 first. */
+function headings(syntax: SyntaxColors): string[] {
+	return HEADING_TOKENS.map((k) => syntax[k].toLowerCase());
+}
 
 const CORE: CorePalette = {
 	editorBg: '#ffffff', sidebarBg: '#f5f5f5', panelBg: '#fafafa', popoverBg: '#ffffff',
@@ -44,7 +52,7 @@ describe('buildTheme', () => {
 		expect(ui.editorBg).toBe('#ffffff');
 		expect(ui.background).toBe('#f5f5f5');
 		expect(ui.destructiveForeground).toBe('#ffffff');
-		expect(syntax.heading3).toBe('#111111');
+		expect(syntax.heading1).toBe('#111111');
 		expect(syntax.activeLine).toBe('#eeeeee4d');
 		expect(preview.linkDecoration).toBe('#1155cc45');
 		expect(wikilink.heading).toBe('#884400');
@@ -66,7 +74,7 @@ describe('buildTheme', () => {
 	});
 
 	it('falls back to the first hue when a palette mix cannot be computed', () => {
-		const { ui } = buildTheme('T', { ...CORE, yellow: 'oklch(0.8 0.15 90)' }).colors;
+		const { ui } = buildTheme('T', { ...CORE, yellow: 'hsl(45 90% 50%)' }).colors;
 		expect(ui.typeOrange).toBe(CORE.error);
 	});
 
@@ -99,7 +107,26 @@ describe('buildTheme', () => {
 		expect(ui.tabBar).toBe('#123456');
 		expect(ui.statusBarBg).toBe('#f5f5f5');
 		expect(syntax.heading1).toBe('#ff0000');
-		expect(syntax.heading2).toBe('#111111');
+		expect(syntax.heading2).toBe(buildTheme('T', CORE).colors.syntax.heading2);
+	});
+
+	it('gives each heading level its own color, from the heading color at H1 to the muted text color at H6', () => {
+		const { ui, syntax } = buildTheme('T', CORE).colors;
+		const levels = headings(syntax);
+		expect(new Set(levels).size).toBe(6);
+		expect(levels[0]).toBe(CORE.heading);
+		expect(levels[5]).toBe(ui.mutedForeground.toLowerCase());
+		for (const [i, k] of HEADING_TOKENS.entries()) {
+			expect(syntax[k], k).toBe(i === 0 ? CORE.heading : mixColors(CORE.heading, CORE.mutedFg, i / 5));
+		}
+	});
+
+	it('keeps every heading level apart from bold and body text', () => {
+		const { ui, syntax } = buildTheme('T', CORE).colors;
+		for (const color of headings(syntax)) {
+			expect(color).not.toBe(syntax.strong.toLowerCase());
+			expect(color).not.toBe(ui.editorFg.toLowerCase());
+		}
 	});
 
 	it('keeps the name', () => {
@@ -111,6 +138,39 @@ describe('coreFromColors', () => {
 	it('reads back the core palette a built theme came from', () => {
 		const full: CorePalette = { ...CORE, inlineFg: '#333333', linkFg: '#0000ff', meta: '#777777', blockquoteAccent: '#008800' };
 		expect(coreFromColors(buildTheme('T', full).colors)).toEqual(full);
+	});
+});
+
+describe('heading and bold colors of every theme', () => {
+	it('gives the six heading levels six colors in every built-in theme', () => {
+		for (const theme of BUILTIN_THEMES) {
+			expect(new Set(headings(theme.colors.syntax)).size, theme.name).toBe(6);
+		}
+	});
+
+	it('colors H2 to H5 of every built-in theme from one ramp between its H1 and its muted text color', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const { ui, syntax } = theme.colors;
+			for (const [i, k] of HEADING_TOKENS.entries()) {
+				if (i === 0 || i === 5) continue;
+				expect(syntax[k], `${theme.name} ${k}`).toBe(mixColors(syntax.heading1, ui.mutedForeground, i / 5));
+			}
+		}
+	});
+
+	it('draws bold text in its own color, apart from body text and every heading, in every built-in theme', () => {
+		for (const theme of BUILTIN_THEMES) {
+			const { ui, syntax } = theme.colors;
+			const strong = syntax.strong.toLowerCase();
+			expect(strong, theme.name).not.toBe(ui.editorFg.toLowerCase());
+			expect(headings(syntax), theme.name).not.toContain(strong);
+		}
+	});
+
+	it('derives six heading colors for a saved theme that has only H1', () => {
+		const merged = mergeThemeWithDefaults({ syntax: { heading1: '#cc3366' } as SyntaxColors });
+		expect(merged.syntax.heading1).toBe('#cc3366');
+		expect(new Set(headings(merged.syntax)).size).toBe(6);
 	});
 });
 
@@ -165,6 +225,17 @@ describe('readable contrast', () => {
 		expect(contrastRatio(row.warning, row.fileExplorerAccent)!).toBeGreaterThanOrEqual(3);
 	});
 
+	it('derives success from the core green and checks it at 4.5:1 on the sidebar and editor backgrounds', () => {
+		const pairs = READABILITY_PAIRS.filter(([g, k]) => g === 'ui' && k === 'success');
+		expect(pairs.map(([, k, bg, bgKey, min]) => `${k}@${bg}.${bgKey}:${min}`).sort()).toEqual(
+			['success@ui.editorBg:4.5', 'success@ui.fileExplorerBg:4.5'],
+		);
+		expect(buildTheme('T', { ...CORE, green: '#116622' }).colors.ui.success).toBe('#116622');
+		const { ui } = buildTheme('T', { ...CORE, sidebarBg: '#ffffff', green: '#bbffbb' }).colors;
+		expect(contrastRatio(ui.success, ui.fileExplorerBg)!).toBeGreaterThanOrEqual(4.5);
+		expect(contrastRatio(ui.success, ui.editorBg)!).toBeGreaterThanOrEqual(4.5);
+	});
+
 	it('holds for every pair in every built-in theme', () => {
 		const failures: string[] = [];
 		const skipped: string[] = [];
@@ -179,15 +250,19 @@ describe('readable contrast', () => {
 			}
 		}
 		expect(failures).toEqual([]);
-		// oklch values the contrast math cannot read; anything new here needs a hex value or a check
-		expect(skipped).toEqual([
-			'KokoBrain Default ui.fileExplorerMutedFg',
-			'KokoBrain Default ui.rightSidebarMutedFg',
-			'KokoBrain Default ui.statusBarFg',
-			'KokoBrain Default ui.warning',
-		]);
-		// the default's selected row is oklch(0.28 0.025 272), #242835 in sRGB
-		expect(KOKOBRAIN_DEFAULT_THEME.colors.ui.fileExplorerAccent).toBe('oklch(0.28 0.025 272)');
-		expect(contrastRatio(KOKOBRAIN_DEFAULT_THEME.colors.ui.warning, '#242835')!).toBeGreaterThanOrEqual(3);
+		expect(skipped).toEqual([]);
+	});
+
+	it('lifts the default theme\'s oklch muted sidebar and status bar text to hex at 4.5:1', () => {
+		const { ui } = KOKOBRAIN_DEFAULT_THEME.colors;
+		const pairs = [
+			[ui.fileExplorerMutedFg, ui.fileExplorerBg],
+			[ui.rightSidebarMutedFg, ui.rightSidebarBg],
+			[ui.statusBarFg, ui.statusBarBg],
+		];
+		for (const [fg, bg] of pairs) {
+			expect(fg).toMatch(/^#[0-9a-f]{6}$/);
+			expect(contrastRatio(fg, bg)!).toBeGreaterThanOrEqual(4.5);
+		}
 	});
 });

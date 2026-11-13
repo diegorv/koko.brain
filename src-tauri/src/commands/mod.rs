@@ -8,6 +8,7 @@ pub mod remote;
 pub mod search_index;
 pub mod semantic;
 pub mod sentry;
+pub mod todoist;
 pub mod update_channel;
 pub mod vault;
 pub mod watcher;

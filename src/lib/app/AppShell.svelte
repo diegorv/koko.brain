@@ -3,7 +3,6 @@
 	import type { Snippet } from 'svelte';
 	import { appendLog } from '#lib/utils/log.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
-	import { openSearch } from '#lib/features/search/open-search.service.js';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
@@ -12,7 +11,6 @@
 	import { applyDockBadge } from '#lib/features/dock-badge/dock-badge.service.js';
 	import * as Resizable from '#lib/components/ui/resizable/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
-	import { Separator } from '#lib/components/ui/separator/index.js';
 	import Rail from '#lib/features/rail-shell/Rail.svelte';
 	import RailNoteList from '#lib/features/rail-shell/RailNoteList.svelte';
 	import TypesNavigator from '#lib/features/rail-shell/TypesNavigator.svelte';
@@ -26,10 +24,11 @@
 		staleFolderPickFix,
 		toggleExpandedFolder,
 		pickedTypesLens,
+		pinnedRailItems,
 		restoreRailItem,
 		SEARCH_LENS,
-		SEARCH_RAIL_ITEM,
 		INITIAL_TYPES_PICK_CHECK,
+		staleRailPinFix,
 		staleTypesPickFix,
 		stepTypesPickCheck,
 		TYPES_RAIL_ITEM,
@@ -37,9 +36,12 @@
 		viewNavigatorRows,
 	} from '#lib/features/rail-shell/lens.logic.js';
 	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
+	import { parseRailCollapsed, parseRailHidden, parseRailStyle, parseRailWidth, railFormWidth, railHeaderPad } from '#lib/features/rail-shell/rail-items.logic.js';
 	import EditorView from '#lib/app/EditorView.svelte';
+	import { selectRailItem } from '#lib/app/rail-navigation.js';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
+	import NoteInfo from '#lib/features/properties/NoteInfo.svelte';
 	import PropertiesView from '#lib/features/properties/PropertiesView.svelte';
 	import SearchPanel from '#lib/features/search/SearchPanel.svelte';
 	import TableOfContentsPanel from '#lib/plugins/table-of-contents/TableOfContentsPanel.svelte';
@@ -48,6 +50,7 @@
 	import SearchStatus from '#lib/features/search/SearchStatus.svelte';
 	import SaveStatus from '#lib/core/status-bar/SaveStatus.svelte';
 	import SemanticIndexStatus from '#lib/features/search/SemanticIndexStatus.svelte';
+	import TodoistSyncStatus from '#lib/features/todoist-sync/TodoistSyncStatus.svelte';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { toggleRightSidebar } from '#lib/core/layout/layout.service.js';
 	import { hidesRightSidebar, isRightSidebarShown } from '#lib/core/layout/layout.logic.js';
@@ -98,12 +101,21 @@
 		settingsStore.updateLayout({ navigatorSize: size });
 	}
 
-	/** The rail shell's highlighted rail item and its lens, restored from layout settings */
-	let railItem = $derived(restoreRailItem(settingsStore.layout.railItem, railRegistryStore.navigators, neighbourhoodStore.notePath));
+	/** The rail shell's highlighted rail item and its lens, restored from layout settings; Today while the saved item is hidden */
+	let railItem = $derived(
+		restoreRailItem(
+			settingsStore.layout.railItem,
+			railRegistryStore.navigators,
+			neighbourhoodStore.notePath,
+			parseRailHidden(settingsStore.layout.railHidden),
+		),
+	);
 	let showsTypesNavigator = $derived(railItem.item === TYPES_RAIL_ITEM);
 	let showsFilesNavigator = $derived(railItem.item === FILES_RAIL_ITEM);
 	/** The plugin-registered navigator (Calendar) of the active rail item, if any; its lens is `railItem.lens` */
 	let registeredNavigator = $derived(railRegistryStore.navigators.find((n) => n.id === railItem.item) ?? null);
+	/** Whether a navigator pane sits between the rail and the note list */
+	let showsNavigator = $derived(showsTypesNavigator || showsFilesNavigator || registeredNavigator !== null);
 	/**
 	 * The tree's `.view` paths, as one string: a tree replacement that keeps the same
 	 * views stops here, so the rows (and the Types navigator's view recount) do not re-run.
@@ -143,7 +155,8 @@
 	// first entries snapshot lands (gate: stepTypesPickCheck). Not on every refresh: the
 	// refresh is throttled, so a type just created or renamed is missing for a few seconds.
 	// The Files pick and expanded folders are checked at the same moment: the tree is loaded
-	// before the index turns ready (initializeVault step 4).
+	// before the index turns ready (initializeVault step 4). So is a saved rail pin that is no
+	// longer pinned, which is kept while the index loads.
 	let typesPickCheck: TypesPickCheck = INITIAL_TYPES_PICK_CHECK;
 	$effect(() => {
 		const step = stepTypesPickCheck(typesPickCheck, {
@@ -156,11 +169,13 @@
 		if (!step.run) return;
 		untrack(() => {
 			const layout = settingsStore.layout;
-			const typesFix = staleTypesPickFix(layout.railItem, layout.railTypesLens, rows);
+			const viewPaths = collectViewFiles(fsStore.fileTree).map((v) => v.path);
+			const typesFix = staleTypesPickFix(layout.railItem, layout.railTypesLens, rows, viewPaths);
 			const folderFix = vaultStore.path
 				? staleFolderPickFix(layout.railItem, layout.railFolder, layout.railExpandedFolders, fsStore.fileTree, vaultStore.path)
 				: null;
-			if (typesFix || folderFix) settingsStore.updateLayout({ ...typesFix, ...folderFix });
+			const pinFix = staleRailPinFix(layout.railItem, pinnedRailItems(typeDefinitionsStore.entries, typeDefinitionsStore.typeMetadataMap));
+			if (typesFix || folderFix || pinFix) settingsStore.updateLayout({ ...typesFix, ...folderFix, ...pinFix });
 		});
 	});
 
@@ -169,8 +184,8 @@
 {#if !vaultStore.isOpen}
 	{@render children()}
 {:else}
-	<div class="relative flex h-screen flex-col">
-		<!-- The Calendar and Tasks tabs always hide the right sidebar, so its toggle would do nothing there. -->
+	<div class="relative flex h-screen flex-col" style:--rail-header-pad="{railHeaderPad(railFormWidth(parseRailStyle(settingsStore.layout.railStyle), parseRailCollapsed(settingsStore.layout.railCollapsed), parseRailWidth(settingsStore.layout.railWidth)))}px">
+		<!-- The tabs in hidesRightSidebar always hide the right sidebar, so its toggle would do nothing there. -->
 		{#if !hidesRightSidebar(editorStore.activeTabPath)}
 			<button
 				class="absolute right-2 top-[7px] z-20 shrink-0 rounded-md size-6 inline-flex items-center justify-center hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50 cursor-default"
@@ -185,14 +200,14 @@
 				<Resizable.PaneGroup direction="horizontal" class="h-full">
 					<Rail
 						activeItem={railItem.item}
-						onSelect={(item) => (item === SEARCH_RAIL_ITEM ? openSearch() : settingsStore.updateLayout({ railItem: item }))}
+						onSelect={(key, pin) => selectRailItem({ key, pin })}
 					/>
 					{#if settingsStore.layout.railPanelsVisible}
-						{#if showsTypesNavigator || showsFilesNavigator || registeredNavigator}
+						{#if showsNavigator}
 							<Resizable.Pane
 								order={1}
 								defaultSize={settingsStore.layout.navigatorSize}
-								minSize={8}
+								minSize={3}
 								maxSize={30}
 								onResize={handleNavigatorResize}
 							>
@@ -213,6 +228,7 @@
 											settingsStore.updateLayout({
 												railExpandedFolders: toggleExpandedFolder(settingsStore.layout.railExpandedFolders, path),
 											})}
+										onPickView={(lens) => settingsStore.updateLayout({ railItem: TYPES_RAIL_ITEM, railTypesLens: { ...lens } })}
 									/>
 								{/if}
 							</Resizable.Pane>
@@ -222,21 +238,21 @@
 						<Resizable.Pane
 							order={2}
 							defaultSize={settingsStore.layout.noteListSize}
-							minSize={8}
+							minSize={3}
 							maxSize={40}
 							onResize={handleNoteListResize}
 						>
 							{#if railLens.kind === SEARCH_LENS.kind}
-								<SearchPanel />
+								<SearchPanel firstPane={!showsNavigator} />
 							{:else}
-								<RailNoteList lens={railLens} />
+								<RailNoteList lens={railLens} firstPane={!showsNavigator} />
 							{/if}
 						</Resizable.Pane>
 
 						<Resizable.Handle />
 					{:else}
-						<!-- The macOS traffic lights overflow the 48 px rail; this keeps the editor tabs clear of them. -->
-						<div class="flex w-6 shrink-0 flex-col" data-rail-traffic-light-spacer>
+						<!-- Keeps the editor tabs clear of the macOS traffic lights and the rail toggle. -->
+						<div class="flex w-[var(--rail-header-pad)] shrink-0 flex-col" data-rail-traffic-light-spacer>
 							<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
 							<div class="flex-1 bg-editor-bg"></div>
 						</div>
@@ -252,11 +268,11 @@
 						<Resizable.Pane
 							order={4}
 							defaultSize={settingsStore.layout.rightSidebarSize}
-							minSize={5}
+							minSize={3}
 							maxSize={30}
 							onResize={handleRightSidebarResize}
 						>
-							<div class="flex h-full flex-col text-[15px] bg-right-sidebar-bg text-right-sidebar-fg" data-right-sidebar>
+							<div class="flex h-full flex-col text-row bg-right-sidebar-bg text-right-sidebar-fg" data-right-sidebar>
 								<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
 								<ScrollArea class="min-h-0 flex-1">
 									{#if settingsStore.layout.propertiesVisible}
@@ -264,13 +280,15 @@
 									{/if}
 									{#if settingsStore.layout.tableOfContentsVisible}
 										<TableOfContentsPanel />
-										<Separator />
 									{/if}
 									{#if settingsStore.layout.backlinksVisible}
 										<BacklinksPanel />
 									{/if}
 									{#if settingsStore.layout.outgoingLinksVisible}
 										<OutgoingLinksPanel />
+									{/if}
+									{#if settingsStore.layout.propertiesVisible}
+										<NoteInfo />
 									{/if}
 								</ScrollArea>
 							</div>
@@ -287,6 +305,7 @@
 				<SemanticIndexStatus />
 			{/snippet}
 			{#snippet right()}
+				<TodoistSyncStatus />
 				<SaveStatus />
 				<WordCount />
 			{/snippet}

@@ -1,0 +1,28 @@
+VERDICT: APPROVED
+
+Re-review round 2 of `issue/109-row-chips`. Fix range: `git diff 7b8f6eb1d..HEAD` (commit fde360924), which changes `src/lib/features/tasks/TasksView.svelte` (+7/-5), `src/tests/lib/features/tasks/TasksView.test.ts` (+16/-0) and the `## Resolution` section of `review.md`.
+
+## Previous findings
+
+| # | Severity | Finding | Status | Evidence |
+|---|----------|---------|--------|----------|
+| 1 | minor | `TasksView.svelte`: the `[data-task-text]` span lost `flex-1`, so a click on the empty row space beside the text or chips no longer opened the note | resolved | The `onclick={(e) => handleTextClick(...)}` and `cursor-pointer` moved from the span to the `flex-1` wrapper `div` (`TasksView.svelte:385-390`); the span keeps only its text classes. Wikilink buttons and URL anchors inside the span still call `e.stopPropagation()`, so they do not open the note. `handleTextClick` (`:175-179`) uses `e.currentTarget.contains(sel.anchorNode)`, which now checks the wrapper, so a selection ending inside the text or a chip still suppresses the open. The circle button is a sibling of the wrapper, so a toggle click does not reach it. New test `opens the note when the row space beside the text or a chip is clicked` (`TasksView.test.ts:1017-1031`) clicks the wrapper, then the priority chip, asserts `editorStore.activeTabPath` is the note each time and that no toggle was sent. I ran it against the pre-fix component (`git show 7b8f6eb1d:src/lib/features/tasks/TasksView.svelte`, restored afterwards): it fails (1 failed). With the fix it passes. |
+| 2 | nit | Branch commits' `Files:` line ranges are a few lines off | rejection stands | Branch commits cannot be rewritten here without history edits; the squash commit is deliver's to write with the correct ranges, as `review.md` § Resolution records. Not checkable until deliver. |
+
+## Acceptance criteria re-checked
+
+- [met] `TasksView.test.ts` with the real store, tasks served through Issue 110's `mockTaskFetch` (`src/tests/fixtures/tasks.fixture.ts`, never an inline `invoke` mock of a task fetch command), and the clock faked before mounting (`vi.useFakeTimers({ toFake: ['Date'] })`, `vi.setSystemTime(new Date('2026-11-05T12:00:00'))`, `vi.useRealTimers()` in `afterEach`): a todo task with text `Send invoice 📅 2026-11-03 ⏫ #work` and metadata `{ description: 'Send invoice', dueDate: '2026-11-03', priority: 'high', tags: ['work'] }` renders `[data-task-text]` as exactly `Send invoice` (no `📅` or `⏫`), a `[data-task-chip="due"]` with label `Nov 3` and `data-overdue` whose `svg` carries `text-destructive` and whose label does not, a `[data-task-chip="priority"]` reading `high` and a `[data-task-chip="tag"]` reading `#work`. The circle's `aria-label` reads `Mark task as done: Send invoice (todo)`. Fails today (the raw text renders). — The fix only moved the click handler and `cursor-pointer`; the `[data-task-text]` content, chip markup and classes are unchanged. `src/tests/lib/features/tasks/TasksView.test.ts` passes (within the 8-file tasks run, 271 tests, exit 0).
+- [met] `TasksView.test.ts`: a task `read [[Book#Chapter 2]]` with the metadata Rust sends for it (`{ description: 'read [[Book 2]]', tags: ['Chapter'] }`) renders the wikilink `Book#Chapter 2`, whose click opens `Book`, and has no `[data-task-chip="tag"]`. A done task with a past due date, shown with hide-closed off, has a due chip without `data-overdue`. — The wikilink button still calls `e.stopPropagation()` before `onOpenWikilink`, so moving the note-opening click to the wrapper does not add a second open; the test passes.
+- [met] `TasksView.test.ts`: with the Send-invoice task, whose display text differs from its raw text, a click on the circle sends `expectedText: 'Send invoice 📅 2026-11-03 ⏫ #work'` and `expectedStatus: 'todo'`. The existing toggle test uses a task whose description equals its text, so it cannot catch a swap. — The circle is a sibling of the clickable wrapper, untouched by the fix; the test passes, and the new test asserts a chip click sends no toggle.
+- [met] `e2e/specs/tasks-view.spec.ts`: the wikilink and URL tests still pass. A new test with `test.use({ clockTime: '2026-11-05T12:00:00' })` (the opt-in page clock in `e2e/fixtures/test-vault.ts`) and a 500 px wide viewport writes a `- [ ] Pay rent 📅 2026-11-03` note inside the test (the spec's in-test note pattern, clearing the section tag the way the other tests do). It asserts that the row's `[data-task-text]` reads `Pay rent`, that its `[data-task-chip="due"]` reads `Nov 3` and carries `data-overdue`, then that the chip's top is at or below the bottom of `[data-task-text]`. The e2e mock parser fills only `description` and `dueDate`, so the e2e run cannot show priority or tag chips; the unit tests cover them. — Not re-run after the fix (round 1 ran it: 11 passed). The fix changes no layout class (`flex`, `flex-wrap`, `@max-[560px]:flex-col` on the wrapper are as before; only `cursor-pointer` was added) and the wikilink/URL elements keep `stopPropagation`, so the e2e assertions on text, chip and position are unaffected. Deliver may re-run the spec for confirmation.
+
+## Other checks
+
+- `pnpm check`: exit 0, 230 files, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/features/tasks/`: exit 0, 8 files, 271 tests passed. The full suite is deliver's to run.
+- Red probe of the new test against the pre-fix `TasksView.svelte`: fails as expected; file restored, worktree clean.
+- No test weakened or deleted (the test diff is additions only). No scope creep: the fix touches only the click target and its test. No `layer-baseline.json`, `BASELINE_SIZE` or `src-tauri/` change. Added lines use tabs.
+
+## Findings
+
+None open or new.

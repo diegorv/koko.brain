@@ -9,7 +9,7 @@ Quick Capture writes a new timestamped note into your vault without any prompt o
 | Surface | Shortcut | What fires |
 |---------|----------|------------|
 | **Note composer** (in-editor) | `Cmd+N` | Creates a timestamped note and opens it in the main editor. Best when you are already inside Kokobrain. |
-| **Composer popover** (global) | `Ctrl+Alt+Cmd+Space` | Floating 600×240 popover that summons over any frontmost app. Type, press `Cmd+Enter` to save, `Esc` to cancel. Focus returns to the previous app on dismiss. |
+| **Composer popover** (global) | `Ctrl+Alt+Cmd+Space` | Floating 600×240 popover that summons over any frontmost app. Type, press `Cmd+Enter` to save, `Esc` to cancel. Focus returns to the previous app on dismiss. The popover closes only once the note is written; if the save fails or is not confirmed within about 3 seconds, it stays open with your text. Text you close without saving comes back the next time you open it. |
 | **Clipboard capture** (global, silent) | `Ctrl+Alt+Cmd+C` | No window. Reads the system clipboard, detects whether it is text, a URL, an image, or a file list, and writes the matching note immediately. |
 
 The clipboard shortcut auto-classifies the payload into one of four **kinds** — `clip` (plain text), `link` (auto-detected URL), `shot` (image), `file` (anything else). The fifth kind, `note`, is what the composer surfaces (Cmd+N and the popover) write. Each kind picks its own template (see Settings).
@@ -28,7 +28,7 @@ The clipboard shortcut auto-classifies the payload into one of four **kinds** �
 | **Shot template** (clipboard image) | Template for clipboard images (saved to OS temp, embedded via `file://`) | `_system/templates/quick-capture/Shot-Note.md` |
 | **File template** (clipboard files) | Template for non-image file paths in clipboard | `_system/templates/quick-capture/File-Note.md` |
 
-Captures land under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder), with the subfolder determined by the folder format. An empty template path means "no template — just write the rendered body."
+Captures land under the **Notes folder of Periodic Notes** (configured in Settings → Periodic Notes → Notes folder), with the subfolder determined by the folder format. An empty template path means "no template — just write the rendered body."
 
 ### Source provenance (browser captures)
 
@@ -39,6 +39,15 @@ source_app: com.google.Chrome
 source_title: Example Page
 source: https://example.com
 ```
+
+Page titles often hold characters that YAML reads as syntax: `: ` (`How to X: a guide`), ` #` (`Release notes #12`), or a leading `[`, `*`, `&`, `!`, `>`, `@` or quote. When `<% title %>`, `<% sourceTitle %>`, `<% sourceApp %>`, `<% sourceUrl %>` or `<% url %>` is the whole value of a frontmatter key or list item, Quick Capture quotes it only when it needs to, so the property reads back exactly as captured:
+
+```yaml
+source_title: "How to X: a guide"
+source_app: com.google.Chrome
+```
+
+Write the placeholder unquoted, as above. A placeholder you wrap in quotes yourself, or mix with other text on the line (`source_title: Read <% sourceTitle %>`), is pasted as-is, and you own its YAML. A trailing comment (`title: <% title %> # page title`) is fine. A captured empty value is written as `""`. In the note body (after the closing `---`) every variable is pasted as-is, without quotes.
 
 For `note` / `clip` / `link` captures with a source URL, the rendered body also carries the source as a `> Source: [title](url)` footer. This footer is part of the rendered body, so it appears whether or not a per-kind template is configured (with a template, the body is appended after the processed template).
 
@@ -73,7 +82,7 @@ With default settings, pressing `Cmd+N` on Feb 17, 2026 at 2:30pm creates:
 <vault>/_notes/2026/02-Feb/capture-note-2026-02-17_14-30-00-000.md
 ```
 
-The `_notes/` prefix is the default periodic notes base folder; change it under Settings -> Periodic Notes -> Base Folder.
+The `_notes/` prefix is the default Notes folder of Periodic Notes; change it under Settings -> Periodic Notes -> Notes folder.
 
 > [!TIP]
 > Quick Capture is great for a "capture inbox" workflow: jot or paste things throughout the day from any app, then review and organize them later. The popover and clipboard shortcuts work even when Kokobrain is in the background — your previous app keeps focus.
@@ -100,7 +109,7 @@ Every new 1:1 note gets `_related_to: "[[Person]]"` in its frontmatter, even whe
 
 ### My people on Today
 
-The Today list in the rail shows **My people** between Pinned and the day's notes: every `.md` file directly in the work people folder, with the days since the last 1:1 (`5d`, or `never`). A note counts as a 1:1 with a person when its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A person only mentioned in a note's body (a daily note, say) does not count, and neither does a note dated after today. People with no 1:1, or none for more than **1:1 due after (days)**, are shown in the warning color, most overdue first. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
+The Today list in the rail shows **My people** above the day's notes: every `.md` file directly in the work people folder, with the days since the last 1:1 (`5d`, or `never`). A note counts as a 1:1 with a person when its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A person only mentioned in a note's body (a daily note, say) does not count, and neither does a note dated after today. People with no 1:1, or none for more than **1:1 due after (days)**, are shown in the warning color, most overdue first. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
 
 ### Setting up people
 
@@ -122,7 +131,7 @@ The Today list in the rail shows **My people** between Pinned and the day's note
 
 The `{person}` placeholder is replaced with the selected person's name.
 
-1:1 notes are placed under the **periodic notes base folder** (configured in Settings → Periodic Notes → Base Folder).
+1:1 notes are placed under the **Notes folder of Periodic Notes** (configured in Settings → Periodic Notes → Notes folder).
 
 ### Template Variables
 
@@ -168,7 +177,7 @@ Templates are `.md` files that serve as starting points for new notes. Instead o
 
 ![Template picker dialog](screenshots/template-picker.png)
 
-**Configure the templates folder** in Settings → Templates → Folder (default: `_system/templates`).
+**Configure the templates folder** in Settings → Files & Folders → Templates folder (default: `_system/templates`).
 
 New notes from templates are created at the **vault root**.
 

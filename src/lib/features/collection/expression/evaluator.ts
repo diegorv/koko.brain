@@ -3,6 +3,7 @@ import { parse } from './parser';
 import type { PropertyIndexRecord } from '../collection.types';
 import { dispatchMethod, dispatchField } from './methods.logic';
 import { parseDuration } from './duration.logic';
+import { parseLocalDateOnly } from './date-value.logic';
 import { COLOR_PRESET_BG, COLOR_PRESET_TEXT } from '#lib/utils/color-presets.js';
 import { clamp } from '#lib/utils/clamp.js';
 
@@ -12,6 +13,8 @@ export interface EvalContext {
 	record: PropertyIndexRecord;
 	/** Formula definitions: name to expression string */
 	formulas: Record<string, string>;
+	/** Absolute vault path, which a relative `file.inFolder()` argument resolves against */
+	vaultPath?: string;
 }
 
 const MAX_FORMULA_DEPTH = 10;
@@ -286,6 +289,62 @@ function evaluateBinary(op: string, left: ASTNode, right: ASTNode, ctx: EvalCont
 	}
 }
 
+/**
+ * The plain (dot-free) function names `evaluateCall` handles. Keep in step with
+ * its `switch`: `validateExpression` reports any other plain callee as unknown.
+ */
+export const PLAIN_FUNCTIONS: ReadonlySet<string> = new Set([
+	'if', 'now', 'today', 'date', 'number', 'contains', 'startsWith', 'endsWith',
+	'isEmpty', 'max', 'min', 'list', 'duration', 'link', 'image', 'icon', 'html',
+	'badge', 'progress', 'color', 'escapeHTML',
+]);
+
+/**
+ * Checks an expression without running it: it must parse and every plain
+ * function it calls must be one the evaluator handles. Method calls
+ * (`file.hasTag(...)`, `x.lower()`) are not checked. Returns the reason it
+ * fails, or undefined when it passes.
+ */
+export function validateExpression(expression: string): string | undefined {
+	let ast: ASTNode;
+	try {
+		ast = parse(expression);
+	} catch (e) {
+		return e instanceof Error ? e.message : String(e);
+	}
+	const unknown = findUnknownFunction(ast);
+	return unknown === undefined ? undefined : `Unknown function: ${unknown}`;
+}
+
+/** The first plain callee in the tree that `evaluateCall` does not handle. */
+function findUnknownFunction(node: ASTNode): string | undefined {
+	switch (node.type) {
+		case 'call':
+			if (!node.callee.includes('.') && !PLAIN_FUNCTIONS.has(node.callee)) return node.callee;
+			return firstUnknown(node.args);
+		case 'methodCall':
+			return findUnknownFunction(node.receiver) ?? firstUnknown(node.args);
+		case 'binary':
+			return findUnknownFunction(node.left) ?? findUnknownFunction(node.right);
+		case 'unary':
+			return findUnknownFunction(node.operand);
+		case 'member':
+			return findUnknownFunction(node.object);
+		case 'array':
+			return firstUnknown(node.elements);
+		default:
+			return undefined;
+	}
+}
+
+function firstUnknown(nodes: ASTNode[]): string | undefined {
+	for (const n of nodes) {
+		const found = findUnknownFunction(n);
+		if (found !== undefined) return found;
+	}
+	return undefined;
+}
+
 /** Evaluates a function call */
 function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: number): unknown {
 	// Method-style calls: property.method(args) or file.method(args)
@@ -310,6 +369,13 @@ function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: 
 		}
 		case 'date': {
 			const val = args[0] ? evaluate(args[0], ctx, depth) : null;
+			if (typeof val === 'string') {
+				const day = parseLocalDateOnly(val);
+				if (day) {
+					dayPrecisionDates.add(day);
+					return day;
+				}
+			}
 			return val ? new Date(String(val)) : null;
 		}
 		case 'number': {
@@ -380,7 +446,7 @@ function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: 
 			const colorName = args[1] ? String(evaluate(args[1], ctx, depth)) : 'gray';
 			const bg = COLOR_PRESET_BG[colorName] ?? COLOR_PRESET_BG.gray;
 			const fg = COLOR_PRESET_TEXT[colorName] ?? COLOR_PRESET_TEXT.gray;
-			return { __display: 'html', html: `<span style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 8px;font-size:12px;font-weight:500;background:${bg};color:${fg}">${text}</span>` } satisfies DisplayHTML;
+			return { __display: 'html', html: `<span style="display:inline-flex;align-items:center;border-radius:9999px;padding:1px 8px;font-size:0.85em;font-weight:500;background:${bg};color:${fg}">${text}</span>` } satisfies DisplayHTML;
 		}
 		case 'progress': {
 			const value = Number(evaluate(args[0], ctx, depth) ?? 0);
@@ -388,7 +454,7 @@ function evaluateCall(callee: string, args: ASTNode[], ctx: EvalContext, depth: 
 			const colorName = args[2] ? String(evaluate(args[2], ctx, depth)) : 'green';
 			const bar = COLOR_PRESET_TEXT[colorName] ?? COLOR_PRESET_TEXT.green;
 			const pct = clamp((value / (max || 1)) * 100, 0, 100);
-			return { __display: 'html', html: `<div style="display:inline-flex;align-items:center;gap:6px"><div style="width:80px;height:6px;border-radius:9999px;background:rgba(160,160,160,0.2);overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:9999px;background:${bar}"></div></div><span style="font-size:12px;color:rgb(160,160,160)">${Math.round(pct)}%</span></div>` } satisfies DisplayHTML;
+			return { __display: 'html', html: `<div style="display:inline-flex;align-items:center;gap:6px"><div style="width:80px;height:6px;border-radius:9999px;background:rgba(160,160,160,0.2);overflow:hidden"><div style="height:100%;width:${pct}%;border-radius:9999px;background:${bar}"></div></div><span style="font-size:0.85em;color:rgb(160,160,160)">${Math.round(pct)}%</span></div>` } satisfies DisplayHTML;
 		}
 		case 'color': {
 			const text = escapeForHtml(String(evaluate(args[0], ctx, depth) ?? ''));
@@ -506,8 +572,16 @@ function evaluateFileMethod(method: string, args: ASTNode[], ctx: EvalContext, d
 			return needles.some((needle) => tags.some((t) => String(t).toLowerCase() === needle));
 		}
 		case 'inFolder': {
-			const folder = String(evaluate(args[0], ctx, depth) ?? '');
-			return ctx.record.folder.toLowerCase().startsWith(folder.toLowerCase());
+			const arg = String(evaluate(args[0], ctx, depth) ?? '');
+			const trimmed = arg.replace(/\/+$/, '');
+			// A relative folder is vault-relative; without a vault path it cannot be resolved.
+			let target: string;
+			if (arg.startsWith('/')) target = trimmed;
+			else if (ctx.vaultPath === undefined) return false;
+			else target = trimmed ? `${ctx.vaultPath}/${trimmed}` : ctx.vaultPath;
+			const folder = ctx.record.folder.toLowerCase();
+			const wanted = target.toLowerCase();
+			return folder === wanted || folder.startsWith(wanted + '/');
 		}
 		case 'hasProperty': {
 			const propName = String(evaluate(args[0], ctx, depth) ?? '');
@@ -571,9 +645,69 @@ function toTruthy(val: unknown): boolean {
 	return true;
 }
 
+/** True when both dates fall on the same local calendar day */
+function isSameLocalDay(a: Date, b: Date): boolean {
+	return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+/**
+ * Dates the `date` builtin built from a `YYYY-MM-DD` string. Comparing or
+ * equating against one truncates the other side to its local day start, so the
+ * toolbar's `due <= date('2026-03-01')` includes a note dated
+ * `2026-03-01T10:00`. A WeakSet keeps the mark off the `Date` type.
+ */
+const dayPrecisionDates = new WeakSet<Date>();
+
+/** True when `val` is a `date('YYYY-MM-DD')` result */
+function isDayPrecision(val: unknown): boolean {
+	return val instanceof Date && dayPrecisionDates.has(val);
+}
+
+/** Local midnight of the day `date` falls on */
+function localDayStart(date: Date): Date {
+	return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+/**
+ * An ISO date, optionally followed by a time. `new Date` alone would also read
+ * plain text such as `Week 3` or `5` as a date in 2001.
+ */
+const ISO_DATE_PREFIX = /^\d{4}-\d{2}-\d{2}([T ]|$)/;
+
+/**
+ * Reads the operand paired with a Date as milliseconds: a Date as is, a
+ * `YYYY-MM-DD` string as local midnight, an ISO datetime string through
+ * `new Date`.
+ * @param byDay - truncate a date operand to its local day start
+ * @returns `NaN` (every comparison false) for null, undefined, or a string that
+ *   is not an ISO date or does not parse; any other value goes through `toNumber`
+ */
+function dateOperandTime(val: unknown, byDay: boolean): number {
+	let date: Date | null = null;
+	if (val instanceof Date) date = val;
+	else if (typeof val === 'string') {
+		if (!ISO_DATE_PREFIX.test(val)) return NaN;
+		date = parseLocalDateOnly(val) ?? new Date(val);
+	}
+	if (date) return (byDay ? localDayStart(date) : date).getTime();
+	if (val === null || val === undefined) return NaN;
+	return toNumber(val);
+}
+
 /** Loose equality comparison — handles dates and type coercion */
 function looseEqual(a: unknown, b: unknown): boolean {
+	if (isDayPrecision(a) || isDayPrecision(b)) return dateOperandTime(a, true) === dateOperandTime(b, true);
 	if (a instanceof Date && b instanceof Date) return a.getTime() === b.getTime();
+	// A Date against a `YYYY-MM-DD` string (the toolbar's date "is" row,
+	// `file.mtime == '2026-11-03'`) matches the whole local calendar day.
+	if (a instanceof Date && typeof b === 'string') {
+		const day = parseLocalDateOnly(b);
+		if (day) return isSameLocalDay(a, day);
+	}
+	if (b instanceof Date && typeof a === 'string') {
+		const day = parseLocalDateOnly(a);
+		if (day) return isSameLocalDay(b, day);
+	}
 	if (a instanceof Date) return a.getTime() === toNumber(b);
 	if (b instanceof Date) return toNumber(a) === b.getTime();
 	// eslint-disable-next-line eqeqeq
@@ -582,9 +716,10 @@ function looseEqual(a: unknown, b: unknown): boolean {
 
 /** Compares two values, handling dates and strings */
 function compareValues(a: unknown, b: unknown): number {
-	if (a instanceof Date && b instanceof Date) return a.getTime() - b.getTime();
-	if (a instanceof Date) return a.getTime() - toNumber(b);
-	if (b instanceof Date) return toNumber(a) - b.getTime();
+	if (a instanceof Date || b instanceof Date) {
+		const byDay = isDayPrecision(a) || isDayPrecision(b);
+		return dateOperandTime(a, byDay) - dateOperandTime(b, byDay);
+	}
 	if (typeof a === 'string' && typeof b === 'string') return a.localeCompare(b);
 	return toNumber(a) - toNumber(b);
 }
