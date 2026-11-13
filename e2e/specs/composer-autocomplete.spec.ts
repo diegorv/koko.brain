@@ -30,6 +30,14 @@ test.describe('Composer completion', () => {
 		await expect(page.locator('.cm-content')).toHaveText('an idea');
 	});
 
+	test('the composer surface overrides the editor background and padding', async ({ page }) => {
+		await loadComposer(page);
+
+		await expect(page.locator('.cm-editor')).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
+		await expect(page.locator('.cm-content')).toHaveCSS('padding-left', '0px');
+		await expect(page.locator('.cm-content')).toHaveCSS('padding-top', '0px');
+	});
+
 	test('[[ lists the vault notes and narrows as you type', async ({ page }) => {
 		await openComposer(page);
 
