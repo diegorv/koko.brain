@@ -1,0 +1,3 @@
+# ipc events: one line per Rust to frontend event, with its emits and listeners
+cols: event event:<name> | const <NAME> <loc> | ts EVENT_NAMES.<KEY> <loc> | payload <type> | emits <loc> in <fn>, … | listens <loc> in <fn>, … | doc <text> · grep: grep -F -- 'event event:<name> ' codemap/ipc/events.md
+event event:index-updated | const INDEX_UPDATED_EVENT src-tauri/src/events.rs:2 | ts EVENT_NAMES.INDEX_UPDATED src/lib/contracts/events.ts:1 | payload number | emits src-tauri/src/commands/notes.rs:30 in save_note | listens src/lib/plugins/cal/cal.ts:6 in listenIndex | doc Emitted after the index changes.

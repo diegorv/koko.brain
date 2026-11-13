@@ -1,0 +1,4 @@
+# ipc commands: one line per Rust command, with its contract, key sites and TS callers
+cols: ipc ipc:<command> | args <names> -> <result> | rust <loc> | reg <loc> | keys <locs> | callers <loc> in <fn>, … | doc <text> · grep: grep -F -- 'ipc ipc:<command> ' codemap/ipc/commands.md
+ipc ipc:get_tags | args - -> TagAggregate[] | rust src-tauri/src/commands/notes.rs:16 | reg src-tauri/src/lib.rs:10 | keys e2e/mocks/tauri-core.ts:4 src/lib/contracts/commands.ts:5 | callers src/lib/core/notes/notes.service.ts:19 in loadTags | doc Tag aggregates, sorted by name.
+ipc ipc:save_note | args path,content -> null | rust src-tauri/src/commands/notes.rs:26 | reg src-tauri/src/lib.rs:11 | keys e2e/mocks/tauri-core.ts:5 src/lib/contracts/commands.ts:7 | callers src/lib/core/notes/notes.service.ts:15 in saveNote | doc Writes one note.

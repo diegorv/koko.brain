@@ -1069,8 +1069,9 @@ export function extractUses(files, resolved) {
 
 /**
  * The `by` users of each symbol: one entry per production file other than the
- * defining one, at its first F4 use (kind `markup` for a markup use), `more`
- * counting the further use sites in that file with the same enclosing. A file
+ * defining one, at its first F4 use (kind `markup` for a markup use) or F17
+ * mount (kind `mount`, enclosing `(markup)`, of `<component>:default`), `more`
+ * counting the further sites in that file with the same enclosing. A file
  * that binds the symbol with no use gets the line of its first import
  * specifier element, kind `import`, with the binding's enclosing. Test and e2e
  * files are left out (F4: their rows feed only `--tests` answers).
@@ -1078,17 +1079,29 @@ export function extractUses(files, resolved) {
  * @param {ReturnType<typeof resolveBindings>} resolved
  * @param {ReturnType<typeof extractUses>} uses
  * @param {(file: string) => boolean} isTest whether a file is a test or e2e file
+ * @param {ReturnType<typeof componentMounts>} [mounts]
  * @returns {Map<string, {file: string, line: number, enclosing: string, kind: string, more: number}[]>}
  *   keys in code-unit order, users by file path
  */
-export function usersBySymbol(resolved, uses, isTest) {
+export function usersBySymbol(resolved, uses, isTest, mounts = []) {
 	const by = new Map();
 	const slot = (id) => {
 		if (!by.has(id)) by.set(id, new Map());
 		return by.get(id);
 	};
 	const sites = new Set();
-	for (const u of uses) {
+	const mountRows = mounts.map((m) => ({
+		file: m.file,
+		line: m.line,
+		enclosing: '(markup)',
+		kind: 'mount',
+		symbol: `${m.target}:default`,
+		markup: false,
+		site: `mount:${m.line}:${m.name}`,
+	}));
+	// A stable sort keeps the uses' own order; a mount goes after the uses of its line.
+	const rows = [...uses, ...mountRows].sort((a, b) => cmp(a.file, b.file) || a.line - b.line);
+	for (const u of rows) {
 		if (fileOfId(u.symbol) === u.file || isTest(u.file)) continue;
 		const key = `${u.symbol}\0${u.file}\0${u.site}`;
 		if (sites.has(key)) continue;

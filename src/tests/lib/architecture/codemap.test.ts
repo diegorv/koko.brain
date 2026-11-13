@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
+import ts from 'typescript';
 
+import { inputsHash, main, writeMap } from '../../../../scripts/codemap.mjs';
 import {
 	buildModel,
 	discoverModules,
@@ -12,12 +15,17 @@ import {
 	readInputs,
 } from '../../../../scripts/codemap/model.mjs';
 import {
+	BUDGET,
 	byLines,
 	crossLanguageLines,
 	dtoLine,
 	eventLine,
+	INDEX_TITLE,
 	ipcLine,
+	LINE_TAGS,
+	renderMap,
 } from '../../../../scripts/codemap/render.mjs';
+import { resolveSpecifier } from '../../../../scripts/import-graph.mjs';
 import {
 	analyzeRust,
 	eventConsts,
@@ -1566,13 +1574,15 @@ describe('Rust calls', () => {
 		expect(rustLocals('src-tauri/src/b.rs', tree['src-tauri/src/b.rs'])).toEqual(['4 Guard::drop(&mut self) L1']);
 	});
 
-	it('records a `generate_handler!` entry as an edge, not as a call or a `by` user', () => {
+	it('records a `generate_handler!` entry as an edge and an `import` user, not as a call', () => {
 		const { edges, calls, users } = analyzeRust(rustTree(IPC_RUST));
 		expect(edges.map((e: { from: string; line: number; target: string; names: string[] }) => `${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`)).toContain(
 			'src-tauri/src/lib.rs:4 -> src-tauri/src/commands/vault.rs get_all_tags_v2',
 		);
 		expect(calls).toEqual([]);
-		expect(users.get('src-tauri/src/commands/vault.rs:get_all_tags_v2')).toBeUndefined();
+		expect(users.get('src-tauri/src/commands/vault.rs:get_all_tags_v2')).toEqual([
+			{ file: 'src-tauri/src/lib.rs', line: 4, enclosing: 'run', kind: 'import', more: 0 },
+		]);
 	});
 });
 
@@ -1749,12 +1759,39 @@ describe('IPC join', () => {
 		]);
 	});
 
-	it('caps the callers list at 8 with a `more` hint', () => {
-		const callers = Array.from({ length: 9 }, (_, i) => ({ file: `src/lib/features/f${i < 8 ? 'a' : 'b'}/s.ts`, line: i + 1, enclosing: 'go' }));
+	it('caps the callers list at 5 with a `more` hint', () => {
+		const callers = Array.from({ length: 6 }, (_, i) => ({ file: `src/lib/features/f${i < 5 ? 'a' : 'b'}/s.ts`, line: i + 1, enclosing: 'go' }));
 		const line = ipcLine({ name: 'c', rust: null, reg: null, contract: null, keys: [], callers }, fixtureModule);
 		expect(line).toContain('callers src/lib/features/fa/s.ts:1 in go, ');
-		expect(line).toContain('src/lib/features/fa/s.ts:8 in go, more callers 1 not shown: src/lib/features/fb(1): q callers ipc:c');
-		expect(line).not.toContain('s.ts:9');
+		expect(line).toContain('src/lib/features/fa/s.ts:5 in go, more callers 1 not shown: src/lib/features/fb(1): q callers ipc:c');
+		expect(line).not.toContain('s.ts:6');
+	});
+
+	it('points a capped DTO command list at `q importers`, which takes a dto: ID', () => {
+		const names = Array.from({ length: 6 }, (_, i) => `cmd_${i}`);
+		const line = dtoLine({
+			name: 'X',
+			rust: { file: 'src-tauri/src/x.rs', line: 1 },
+			ts: null,
+			returnedBy: names,
+			argOf: names,
+			contains: [],
+			in: [],
+			usedBy: [],
+			e2e: [],
+			doc: '',
+		});
+		expect(line).toContain('| returned-by ipc:cmd_0 ');
+		expect(line).toContain('more returned-by 1 not shown: ipc:cmd_5(1): q importers dto:X |');
+		expect(line).toContain('more arg-of 1 not shown: ipc:cmd_5(1): q importers dto:X |');
+	});
+
+	it('names at most 3 groups in the `more` hint of an in-line list', () => {
+		const callers = Array.from({ length: 11 }, (_, i) => ({ file: `src/lib/features/f${i}/s.ts`, line: 1, enclosing: 'go' }));
+		const line = ipcLine({ name: 'c', rust: null, reg: null, contract: null, keys: [], callers }, fixtureModule);
+		expect(line).toContain(
+			'more callers 6 not shown: src/lib/features/f10(1) src/lib/features/f5(1) src/lib/features/f6(1) +3 modules: q callers ipc:c',
+		);
 	});
 });
 
@@ -2631,5 +2668,1401 @@ describe('F1 inventory and modules', () => {
 		} finally {
 			rmSync(root, { recursive: true, force: true });
 		}
+	});
+});
+
+/** A fixed inputs hash for renders whose hash does not matter. */
+const HASH = 'abcdef012345';
+
+/** Builds and renders an in-memory tree. */
+function renderTree(tree: Record<string, string>): Map<string, string> {
+	return renderMap(buildModel(new Map(Object.entries(tree))), { inputsHash: HASH });
+}
+
+/** Writes a tree under a fresh temp folder and returns its path. */
+function writeTree(prefix: string, tree: Record<string, string>): string {
+	const root = mkdtempSync(join(tmpdir(), prefix));
+	for (const [path, text] of Object.entries(tree)) {
+		mkdirSync(join(root, dirname(path)), { recursive: true });
+		writeFileSync(join(root, path), text);
+	}
+	return root;
+}
+
+/** Every file under `dir`, by repo-relative POSIX path. */
+function readTree(dir: string, base = ''): Map<string, string> {
+	const out = new Map<string, string>();
+	for (const e of readdirSync(join(dir, base), { withFileTypes: true }).sort((a, b) => (a.name < b.name ? -1 : 1))) {
+		const rel = base ? `${base}/${e.name}` : e.name;
+		if (e.isDirectory()) for (const [k, v] of readTree(dir, rel)) out.set(k, v);
+		else out.set(rel, readFileSync(join(dir, rel), 'utf8'));
+	}
+	return out;
+}
+
+/**
+ * The test process environment without `GIT_*` variables: under a git hook or
+ * `git rebase --exec`, `GIT_DIR` and `GIT_INDEX_FILE` would point fixture git
+ * commands at the real repository.
+ */
+function envWithoutGit(): Record<string, string | undefined> {
+	return Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('GIT_')));
+}
+
+/** Runs git in `cwd` with no user hooks, signing, global identity or inherited `GIT_*` variables. */
+function git(cwd: string, ...args: string[]) {
+	return execFileSync(
+		'git',
+		['-c', 'core.hooksPath=/dev/null', '-c', 'commit.gpgsign=false', '-c', 'user.name=t', '-c', 'user.email=t@example.com', ...args],
+		{ cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'], env: envWithoutGit() },
+	);
+}
+
+/** Runs `main` and captures its stdout, stderr and exit code. */
+function runMain(argv: string[], opts: { root: string; env?: Record<string, string>; cwd?: string }) {
+	let stdout = '';
+	let stderr = '';
+	const code = main(argv, {
+		root: opts.root,
+		env: opts.env ?? {},
+		cwd: opts.cwd ?? opts.root,
+		out: (s: string) => {
+			stdout += s;
+		},
+		err: (s: string) => {
+			stderr += s;
+		},
+	});
+	return { code, stdout, stderr };
+}
+
+/** Lines of a rendered file, without the final newline. */
+const linesOf = (text: string) => text.slice(0, -1).split('\n');
+
+/** Files whose lines use ` | ` as a field separator. */
+const isSeparatorFile = (path: string) => path.startsWith('ipc/') || path === 'wiring.md';
+
+/** A location token: a repo path under src, src-tauri or e2e, then `:<line>`. */
+const LOCATION_RE = /^(?:[rw]:)?((?:src|src-tauri|e2e)\/[^\s,:]+):(\d+),?$/;
+
+/**
+ * Test 32 checks over rendered files: line 1 a `#` title, line 2 `cols:`
+ * (INDEX its `>` summary), a known tag on every other non-heading line, every
+ * location in an existing file and in range, no Markdown links or fences, no
+ * tabs, `\r` or trailing spaces, at most one ` | ` outside separator files,
+ * and no `<…>` placeholder token on fact lines outside excerpts.
+ */
+function grammarProblems(files: Map<string, string>, inputs: Map<string, string>): string[] {
+	const tags = new Set<string>(LINE_TAGS);
+	const lineCounts = new Map<string, number>();
+	const linesIn = (f: string) => {
+		if (!lineCounts.has(f)) lineCounts.set(f, inputs.get(f)!.split('\n').length);
+		return lineCounts.get(f)!;
+	};
+	const problems: string[] = [];
+	for (const [path, text] of files) {
+		if (!text.endsWith('\n')) problems.push(`${path}: no final newline`);
+		if (text.includes('\r')) problems.push(`${path}: \\r`);
+		if (!path.endsWith('.md')) problems.push(`${path}: not .md`);
+		const lines = linesOf(text);
+		lines.forEach((line, i) => {
+			const where = `${path}:${i + 1}`;
+			if (line.includes('\t')) problems.push(`${where}: tab`);
+			if (line !== line.trimEnd()) problems.push(`${where}: trailing space`);
+			// A copied doc may quote Markdown (`![alt](url)` in backticks); generator text never links.
+			if (line.replace(/ \| (?:doc )?.*$/, '').includes('](')) problems.push(`${where}: Markdown link`);
+			if (line.startsWith('```')) problems.push(`${where}: fence`);
+			if (i === 0) {
+				if (!line.startsWith('# ')) problems.push(`${where}: no title`);
+				return;
+			}
+			if (path === 'INDEX.md') {
+				if (i === 1 && !line.startsWith('> ')) problems.push(`${where}: no summary`);
+				if (line.startsWith('hub ')) checkLocations(line, where);
+				return;
+			}
+			if (i === 1) {
+				if (!line.startsWith('cols: ')) problems.push(`${where}: no cols line`);
+				return;
+			}
+			if ((i === 2 && line.startsWith('sections: ')) || line.startsWith('## ')) return;
+			const tag = line.split(' ', 1)[0];
+			if (!tags.has(tag) && line !== '-') problems.push(`${where}: unknown tag '${tag}'`);
+			if (!isSeparatorFile(path) && line.split(' | ').length > 2) problems.push(`${where}: more than one ' | '`);
+			const facts = isSeparatorFile(path) ? line.replace(/ \| doc .*$/, '') : line.split(' | ')[0];
+			const outsideExcerpts = facts.replace(/ (?:args|delay)=.*$/, '');
+			checkLocations(outsideExcerpts, where);
+			for (const tok of outsideExcerpts.split(' ')) if (/^<[^\s]*>$/.test(tok)) problems.push(`${where}: placeholder ${tok}`);
+		});
+	}
+	return problems;
+
+	function checkLocations(text: string, where: string) {
+		for (const tok of text.split(/[ ,]/)) {
+			const m = LOCATION_RE.exec(tok);
+			if (!m) continue;
+			if (!inputs.has(m[1])) problems.push(`${where}: location in unknown file ${tok}`);
+			else if (Number(m[2]) < 1 || Number(m[2]) > linesIn(m[1])) problems.push(`${where}: line out of range ${tok}`);
+		}
+	}
+}
+
+/** The IDs a model defines: symbols, components, locals, object methods, store members, Rust items. */
+function modelIds(model: ReturnType<typeof buildModel>): Set<string> {
+	const ids = new Set<string>();
+	for (const [file, facts] of model.ts) {
+		for (const s of facts.symbols) ids.add(s.kind === 'component' ? `${file}:default` : `${file}:${s.name}`);
+		for (const l of facts.locals) ids.add(`${file}:${l.name}`);
+		for (const [obj, methods] of facts.objects) for (const m of methods) ids.add(`${file}:${obj}.${m}`);
+	}
+	for (const st of model.stores) for (const m of st.members) ids.add(m.id);
+	for (const [file, facts] of model.rust) for (const x of [...facts.items, ...facts.locals]) ids.add(`${file}:${x.name}`);
+	return ids;
+}
+
+/** A scope ID suffix (section 4). */
+const SCOPE_RE = /:(?:\(module\)|\(script\)|\(markup\)|\$effect(?:\.pre)?@\d+|\$derived@\d+|[\w$]+=\$derived)$/;
+
+/** Test 33 checks: printed paths, symbol IDs and namespaced IDs exist in the model; `codemap/…` paths name an output file. */
+function idProblems(files: Map<string, string>, model: ReturnType<typeof buildModel>): string[] {
+	const ids = modelIds(model);
+	const inventory = new Set<string>(model.files);
+	const dirs = new Set<string>(model.modules);
+	for (const f of model.files) for (let d = dirname(f); d !== '.'; d = dirname(d)) dirs.add(d);
+	const names = {
+		'ipc:': new Set(model.commands.map((c: { name: string }) => c.name)),
+		'event:': new Set(model.events.map((e: { name: string }) => e.name)),
+		'dto:': new Set(model.dtos.map((d: { name: string }) => d.name)),
+	};
+	const problems: string[] = [];
+	const checkSymbol = (id: string, where: string) => {
+		if (!ids.has(id) && !SCOPE_RE.test(id)) problems.push(`${where}: unknown symbol ${id}`);
+	};
+	for (const [path, text] of files) {
+		linesOf(text).forEach((line, i) => {
+			const where = `${path}:${i + 1}`;
+			if (i < 2 || line.startsWith('## ') || line.startsWith('sections: ')) return;
+			if (path === 'INDEX.md' && !line.startsWith('hub ')) return;
+			const facts = isSeparatorFile(path) ? line.replace(/ \| doc .*$/, '') : line.split(' | ')[0];
+			const body = facts.replace(/ (?:args|delay)=.*?(?= -> | in |$)/, '');
+			const tok = body.split(' ');
+			if (tok[0] === 'by') checkSymbol(tok[1], where);
+			if (tok[0] === 'call') checkSymbol(tok[tok.indexOf('->') + 1], where);
+			if (tok[0] === 'reg') {
+				checkSymbol(LOCATION_RE.test(tok[1]) ? tok[2] : tok[1], where);
+				const arrow = tok.indexOf('->');
+				if (arrow !== -1) for (const cb of tok[arrow + 1].split(',')) checkSymbol(cb, where);
+			}
+			for (const t of body.split(/[ ,]/)) {
+				const clean = t.replace(/:$/, '').replace(/\(\d+\)$/, '').replace(/^[rw]:/, '');
+				if (clean.startsWith('codemap/') && !files.has(clean.slice('codemap/'.length))) problems.push(`${where}: no output file ${clean}`);
+				for (const [prefix, set] of Object.entries(names))
+					if (clean.startsWith(prefix) && !set.has(clean.slice(prefix.length))) problems.push(`${where}: unknown ${clean}`);
+				if (!/^(?:src|src-tauri|e2e)\//.test(clean)) continue;
+				const file = clean.replace(/:.*$/, '');
+				if (!inventory.has(file) && !dirs.has(file)) problems.push(`${where}: unknown path ${clean}`);
+			}
+		});
+	}
+	return problems;
+}
+
+/** The lines of one `##` section of a rendered file. */
+function section(text: string, name: string): string[] {
+	const lines = linesOf(text);
+	const start = lines.indexOf(`## ${name}`);
+	if (start === -1) return [];
+	const end = lines.findIndex((l, i) => i > start && l.startsWith('## '));
+	return lines.slice(start + 1, end === -1 ? undefined : end);
+}
+
+/** Test 34 checks: `imp`, `mount`, `ipc-call`, `ev` and `dep` lines identical at both ends. */
+function symmetryProblems(files: Map<string, string>, model: ReturnType<typeof buildModel>): string[] {
+	const problems: string[] = [];
+	const card = (f: string) => files.get(`files/${f}.md`);
+	const cardLines = (f: string) => new Set(linesOf(card(f) ?? '\n'));
+	const allCardLines = new Map<string, Set<string>>();
+	for (const [p, t] of files) if (p.startsWith('files/')) allCardLines.set(p, new Set(linesOf(t)));
+	for (const [p, t] of files) {
+		if (!p.startsWith('files/') || p.endsWith('.calls.md')) continue;
+		const file = p.slice('files/'.length, -'.md'.length);
+		const imported = section(t, 'imported-by');
+		const capped = imported.some((l) => l.startsWith('more '));
+		for (const l of section(t, 'imports')) {
+			const target = l.split(' ')[3];
+			if (target.startsWith('pkg:') || !card(target)) continue;
+			const tc = files.get(`files/${target}.md`)!;
+			if (!section(tc, 'imported-by').some((x) => x.startsWith('more ')) && !section(tc, 'imported-by').includes(l))
+				problems.push(`${p}: '${l}' missing on the target card`);
+		}
+		if (!capped) {
+			for (const l of imported) {
+				const from = l.split(' ')[1].replace(/:\d+$/, '');
+				if (!cardLines(from).has(l)) problems.push(`${p}: '${l}' missing on the importer card`);
+			}
+		}
+		const edges = model.edges.filter(
+			(e: { from: string; target: string }) => e.target === file && !model.isTest(e.from),
+		).length;
+		const more = imported.find((l) => l.startsWith('more '));
+		const shown = imported.filter((l) => l.startsWith('imp ')).length + (more ? Number(more.split(' ')[2]) : 0);
+		if (shown !== edges) problems.push(`${p}: imported-by shows ${shown}, the model has ${edges}`);
+		let grep = 0;
+		for (const [q, set] of allCardLines) {
+			if (q === p) continue;
+			for (const l of set) if (l.startsWith('imp ') && l.includes(`-> ${file} `)) grep++;
+		}
+		const carded = model.edges.filter(
+			(e: { from: string; target: string }) => e.target === file && files.has(`files/${e.from}.md`),
+		).length;
+		if (grep !== carded) problems.push(`${p}: grep finds ${grep} importer lines, the model has ${carded}`);
+		for (const l of [...section(t, 'mounts'), ...section(t, 'mounted-at')]) {
+			if (!l.startsWith('mount ')) continue;
+			const ends = [l.split(' ')[1].replace(/:\d+$/, ''), l.split(' ').at(-1)!];
+			for (const f of ends) {
+				if (!card(f) || section(card(f)!, 'mounted-at').some((x) => x.startsWith('more '))) continue;
+				if (!cardLines(f).has(l)) problems.push(`${p}: '${l}' missing on ${f}`);
+			}
+		}
+		for (const l of linesOf(t)) {
+			if (!l.startsWith('ipc-call ') && !l.startsWith('ev ')) continue;
+			for (const loc of l.split(' ').filter((x) => LOCATION_RE.test(x))) {
+				const f = loc.replace(/:\d+$/, '');
+				const other = card(f);
+				if (!other || f === file) continue;
+				const cappedThere = linesOf(other).some((x) => x.startsWith('more ipc-call ') || x.startsWith('more ev '));
+				if (!cappedThere && !cardLines(f).has(l)) problems.push(`${p}: '${l}' missing on ${f}`);
+			}
+		}
+	}
+	for (const [p, t] of files) {
+		if (!p.startsWith('modules/')) continue;
+		for (const l of section(t, 'neighbors')) {
+			if (!l.startsWith('dep ')) continue;
+			const [, from, , to] = l.split(' ');
+			for (const m of [from, to]) {
+				const other = files.get(`modules/${m}.md`);
+				if (!other || !linesOf(other).includes(l)) problems.push(`${p}: '${l}' missing on modules/${m}.md`);
+			}
+		}
+	}
+	return problems;
+}
+
+/** The golden fixture: one small app with every fact kind of section 7. */
+const GOLDEN: Record<string, string> = {
+	'src/lib/contracts/ipc.ts': [
+		"import { invoke } from '@tauri-apps/api/core';",
+		"import { listen } from '@tauri-apps/api/event';",
+		'/** Calls a Rust command. */',
+		'export function call(cmd: string, args?: unknown) {',
+		'\treturn invoke(cmd, args as never);',
+		'}',
+		'/** Listens to a Rust event. */',
+		'export function on(name: string, h: (p: unknown) => void) {',
+		'\treturn listen(name, h);',
+		'}',
+		'',
+	].join('\n'),
+	'src/lib/contracts/commands.ts': [
+		"import type { TagAggregate } from './generated/TagAggregate.js';",
+		'export type NoArgs = Record<never, never>;',
+		'export interface CommandMap {',
+		'\t/** Tag aggregates, sorted by name. */',
+		'\tget_tags: { args: NoArgs; result: TagAggregate[] };',
+		'\t/** Writes one note. */',
+		'\tsave_note: { args: { path: string; content: string }; result: null };',
+		'}',
+		'',
+	].join('\n'),
+	'src/lib/contracts/events.ts': [
+		"export const EVENT_NAMES = { INDEX_UPDATED: 'index-updated' } as const;",
+		"export interface EventMap { 'index-updated': number }",
+		'',
+	].join('\n'),
+	'src/lib/contracts/index.ts': "export * from './generated/TagAggregate.js';\nexport { call, on } from './ipc.js';\n",
+	'src/lib/contracts/generated/TagAggregate.ts': 'export type TagAggregate = { tag: string; count: number };\n',
+	'src/lib/utils/debounce.ts': [
+		'/** Delays `fn` until `delay` ms pass without a call. */',
+		'export function debounce(fn: () => void, delay: number) {',
+		'\tlet t: ReturnType<typeof setTimeout> | undefined;',
+		'\treturn () => {',
+		'\t\tclearTimeout(t);',
+		'\t\tt = setTimeout(fn, delay);',
+		'\t};',
+		'}',
+		'',
+	].join('\n'),
+	'src/lib/core/notes/notes.store.svelte.ts': [
+		'let tags = $state<string[]>([]);',
+		'let active = $state(0);',
+		'/** Tag state. */',
+		'export const notesStore = {',
+		'\t/** All tags. */',
+		'\tget tags() {',
+		'\t\treturn tags;',
+		'\t},',
+		'\tget active() {',
+		'\t\treturn active;',
+		'\t},',
+		'\t/** Adds a tag. */',
+		'\taddTag(t: string) {',
+		'\t\ttags.push(t);',
+		'\t},',
+		'\tsetActive(i: number) {',
+		'\t\tactive = i;',
+		'\t},',
+		'};',
+		'',
+	].join('\n'),
+	'src/lib/core/notes/hooks.ts': [
+		'const observers: Array<(path: string) => void> = [];',
+		'/** Registers an after-save observer. */',
+		'export function addSaveObserver(o: (path: string) => void) {',
+		'\tobservers.push(o);',
+		'\treturn () => {',
+		'\t\tobservers.splice(observers.indexOf(o), 1);',
+		'\t};',
+		'}',
+		'/** Runs every observer. */',
+		'export function notifySaved(path: string) {',
+		'\tfor (const o of observers) o(path);',
+		'}',
+		'',
+	].join('\n'),
+	'src/lib/core/notes/notes.service.ts': [
+		'/** Note saving and tag loading. */',
+		"import { writeTextFile } from '@tauri-apps/plugin-fs';",
+		"import { call } from '#lib/contracts/index.js';",
+		"import { debounce } from '#lib/utils/debounce.js';",
+		"import { notesStore } from './notes.store.svelte.js';",
+		"import { notifySaved } from './hooks.js';",
+		'',
+		'function writeNote(path: string, content: string) {',
+		'\tvoid writeTextFile(path, content);',
+		'\tnotifySaved(path);',
+		'}',
+		'/** Saves a note to disk and to Rust. */',
+		'export async function saveNote(path: string, content: string) {',
+		'\twriteNote(path, content);',
+		"\tawait call('save_note', { path, content });",
+		'}',
+		'/** Loads tags from Rust into the store. */',
+		'export async function loadTags() {',
+		"\tconst tags = await call('get_tags');",
+		'\tfor (const t of tags) notesStore.addTag(t.tag);',
+		'}',
+		'export const scheduleLoad = debounce(() => void loadTags(), 300);',
+		'export function flushLater() {',
+		'\tsetTimeout(() => scheduleLoad(), 0);',
+		'}',
+		'',
+	].join('\n'),
+	'src/lib/features/tags/TagRow.svelte': [
+		'<script lang="ts">',
+		'\tlet { tag }: { tag: string } = $props();',
+		'</script>',
+		'<li>{tag}</li>',
+		'',
+	].join('\n'),
+	'src/lib/features/tags/TagsView.svelte': [
+		'<script lang="ts">',
+		"\timport TagRow from './TagRow.svelte';",
+		"\timport { notesStore } from '#lib/core/notes/notes.store.svelte.js';",
+		"\timport { loadTags } from '#lib/core/notes/notes.service.js';",
+		'\tlet count = $derived(notesStore.tags.length);',
+		'\t$effect(() => {',
+		'\t\tvoid notesStore.active;',
+		'\t});',
+		'\tfunction label(t: string) {',
+		'\t\treturn t.toUpperCase();',
+		'\t}',
+		'</script>',
+		'<button onclick={loadTags}>{count}</button>',
+		'{#each notesStore.tags as t}',
+		'\t<TagRow tag={label(t)} />',
+		'{/each}',
+		'',
+	].join('\n'),
+	'src/lib/features/tags/tags.service.ts': [
+		"import { addSaveObserver } from '#lib/core/notes/hooks.js';",
+		"import { scheduleLoad } from '#lib/core/notes/notes.service.js';",
+		'function onSaved(path: string) {',
+		'\tscheduleLoad();',
+		'}',
+		'/** Rebuilds tags after each save. */',
+		'export function registerTagsHook() {',
+		'\treturn addSaveObserver(onSaved);',
+		'}',
+		'',
+	].join('\n'),
+	'src/lib/plugins/cal/cal.ts': [
+		"import { on } from '#lib/contracts/ipc.js';",
+		"import { EVENT_NAMES } from '#lib/contracts/events.js';",
+		"import { notesStore } from '#lib/core/notes/notes.store.svelte.js';",
+		'/** Follows index updates. */',
+		'export function listenIndex() {',
+		'\treturn on(EVENT_NAMES.INDEX_UPDATED, () => notesStore.setActive(0));',
+		'}',
+		'',
+	].join('\n'),
+	'src/lib/app/boot.ts': [
+		"import { registerTagsHook } from '#lib/features/tags/tags.service.js';",
+		"import { listenIndex } from '#lib/plugins/cal/cal.js';",
+		'/** Wires the app. */',
+		'export function boot() {',
+		'\tregisterTagsHook();',
+		'\tvoid listenIndex();',
+		'}',
+		'',
+	].join('\n'),
+	'src/routes/+page.svelte': [
+		'<script lang="ts">',
+		"\timport TagsView from '#lib/features/tags/TagsView.svelte';",
+		"\timport { boot } from '#lib/app/boot.js';",
+		'\tboot();',
+		'</script>',
+		'<TagsView />',
+		'',
+	].join('\n'),
+	'src/tests/lib/core/notes/notes.service.test.ts': [
+		"import { vi } from 'vitest';",
+		"vi.mock('#lib/contracts/ipc.js', () => ({ call: vi.fn() }));",
+		"import { saveNote } from '#lib/core/notes/notes.service.js';",
+		"void saveNote('a', 'b');",
+		'',
+	].join('\n'),
+	'src/tests/lib/utils/debounce.test.ts': "import { debounce } from '#lib/utils/debounce.js';\ndebounce(() => {}, 1);\n",
+	'src/tests/fixtures/fixture.svelte.ts': 'let n = $state(0);\nexport const fixtureStore = {\n\tget n() {\n\t\treturn n;\n\t},\n};\n',
+	'e2e/mocks/tauri-core.ts': [
+		"import type { TagAggregate } from '#lib/contracts/index.js';",
+		'const tags: TagAggregate[] = [];',
+		'export const handlers = {',
+		'\tget_tags: () => tags,',
+		'\tsave_note: () => null,',
+		'};',
+		'',
+	].join('\n'),
+	'src/tests/lib/architecture/layer-baseline.json': '["src/lib/utils/debounce.ts -> src/lib/core/notes/notes.store.svelte.ts"]\n',
+	'src-tauri/src/lib.rs': [
+		'//! App entry.',
+		'mod commands;',
+		'mod events;',
+		'mod index;',
+		'pub mod utils;',
+		'',
+		'pub fn run() {',
+		'\ttauri::Builder::default()',
+		'\t\t.invoke_handler(tauri::generate_handler![',
+		'\t\t\tcommands::notes::get_tags,',
+		'\t\t\tcommands::notes::save_note,',
+		'\t\t]);',
+		'}',
+		'',
+	].join('\n'),
+	'src-tauri/src/events.rs': '/// Emitted after the index changes.\npub const INDEX_UPDATED_EVENT: &str = "index-updated";\n',
+	'src-tauri/src/commands/mod.rs': 'pub mod notes;\n',
+	'src-tauri/src/commands/notes.rs': [
+		'//! Note commands.',
+		'use crate::events::INDEX_UPDATED_EVENT;',
+		'use crate::index::Index;',
+		'use crate::utils::fs::write_atomic;',
+		'',
+		'/// A tag with its note count.',
+		'#[derive(Serialize, TS)]',
+		'#[ts(export)]',
+		'pub struct TagAggregate {',
+		'\tpub tag: String,',
+		'\tpub count: u32,',
+		'}',
+		'',
+		'/// Returns every tag.',
+		'#[tauri::command]',
+		'pub fn get_tags() -> Vec<TagAggregate> {',
+		'\tcollect()',
+		'}',
+		'',
+		'fn collect() -> Vec<TagAggregate> {',
+		'\tVec::new()',
+		'}',
+		'',
+		'/// Writes a note and tells the frontend.',
+		'#[tauri::command]',
+		'pub fn save_note(app: AppHandle, path: String, content: String) -> Result<(), String> {',
+		'\twrite_atomic(&path, &content)?;',
+		'\tlet mut index = Index::default();',
+		'\tindex.update_entry(&path);',
+		'\tlet _ = app.emit(INDEX_UPDATED_EVENT, 1);',
+		'\tOk(())',
+		'}',
+		'',
+		'#[cfg(test)]',
+		'mod tests {',
+		'\tuse super::*;',
+		'\t#[test]',
+		'\tfn t() {',
+		'\t\tcollect();',
+		'\t}',
+		'}',
+		'',
+	].join('\n'),
+	'src-tauri/src/index.rs': [
+		'/// The note index.',
+		'#[derive(Default)]',
+		'pub struct Index {}',
+		'impl Index {',
+		'\t/// Updates one entry.',
+		'\tpub fn update_entry(&mut self, path: &str) {}',
+		'}',
+		'',
+	].join('\n'),
+	'src-tauri/src/utils/mod.rs': 'pub mod fs;\n',
+	'src-tauri/src/utils/fs.rs': [
+		'//! File helpers.',
+		'use std::fs;',
+		'/// Writes a file atomically.',
+		'pub fn write_atomic(path: &str, content: &str) -> Result<(), String> {',
+		'\tfs::write(path, content).map_err(|e| e.to_string())',
+		'}',
+		'',
+	].join('\n'),
+	'src-tauri/tests/notes_test.rs': 'use kokobrain_lib::commands::notes::get_tags;\n#[test]\nfn tags() {\n\tget_tags();\n}\n',
+};
+
+describe('render: golden fixture', () => {
+	const model = buildModel(new Map(Object.entries(GOLDEN)));
+	const files = renderMap(model, { inputsHash: HASH });
+
+	it('writes the shards of section 5', () => {
+		const paths = [...files.keys()];
+		expect(paths).toEqual([...paths].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)));
+		for (const p of [
+			'INDEX.md',
+			'modules.md',
+			'stores.md',
+			'wiring.md',
+			'ipc/commands.md',
+			'ipc/events.md',
+			'ipc/dto.md',
+			'effects/disk-write.md',
+			'effects/disk-read.md',
+			'effects/host.md',
+			'effects/timer.md',
+			'effects/reactive.md',
+			'effects/dom.md',
+			'effects/db.md',
+			'effects/spawn.md',
+			'modules/src/lib/core/notes.md',
+			'modules/src-tauri/src.md',
+			'files/src/lib/core/notes/notes.service.ts.md',
+			'files/src-tauri/src/commands/notes.rs.md',
+		])
+			expect(paths).toContain(p);
+		expect(paths.some((p) => p.includes('components/ui') || p.includes('contracts/generated') || p.startsWith('files/src/tests/'))).toBe(false);
+		expect(paths.some((p) => p.startsWith('files/e2e/') || p.startsWith('files/src-tauri/tests/'))).toBe(false);
+	});
+
+	it('matches the checked-in golden output byte for byte', async () => {
+		for (const p of [
+			'INDEX.md',
+			'modules.md',
+			'modules/src/lib/core/notes.md',
+			'files/src/lib/core/notes/notes.service.ts.md',
+			'files/src/lib/features/tags/TagsView.svelte.md',
+			'files/src-tauri/src/commands/notes.rs.md',
+			'ipc/commands.md',
+			'ipc/events.md',
+			'ipc/dto.md',
+			'wiring.md',
+			'stores.md',
+			'effects/disk-write.md',
+			'effects/timer.md',
+		])
+			await expect(files.get(p)).toMatchFileSnapshot(`./codemap-golden/${p.replaceAll('/', '__')}`);
+	});
+
+	it('follows the line grammar (test 32)', () => {
+		expect(grammarProblems(files, model.inputs)).toEqual([]);
+	});
+
+	it('prints only IDs the model knows (test 33)', () => {
+		expect(idProblems(files, model)).toEqual([]);
+	});
+
+	it('writes each edge, mount, cross-language and dep line identically at both ends (test 34)', () => {
+		expect(symmetryProblems(files, model)).toEqual([]);
+	});
+
+	it('lists production stores only, each with an existing card', () => {
+		const stores = linesOf(files.get('stores.md')!).filter((l) => l.startsWith('store '));
+		expect(stores.map((l) => l.split(' ')[2])).toEqual(['notesStore']);
+		expect(files.get('INDEX.md')).toContain(' · stores 1 · ');
+	});
+
+	it('gives a mounted component a `mount` by line at its first mount site', () => {
+		const symbols = (f: string) => section(files.get(`files/${f}.md`)!, 'symbols');
+		expect(symbols('src/lib/features/tags/TagsView.svelte')).toContain(
+			'by src/lib/features/tags/TagsView.svelte:default <- src/routes/+page.svelte:6 in (markup) mount',
+		);
+		expect(symbols('src/lib/features/tags/TagRow.svelte')).toContain(
+			'by src/lib/features/tags/TagRow.svelte:default <- src/lib/features/tags/TagsView.svelte:15 in (markup) mount',
+		);
+	});
+
+	it('gives a Rust command a `by` line from its generate_handler! entry', () => {
+		const symbols = section(files.get('files/src-tauri/src/commands/notes.rs.md')!, 'symbols');
+		expect(symbols).toContain('by src-tauri/src/commands/notes.rs:get_tags <- src-tauri/src/lib.rs:10 in run import');
+		expect(symbols).toContain('by src-tauri/src/commands/notes.rs:save_note <- src-tauri/src/lib.rs:11 in run import');
+	});
+
+	it('agrees with modules.md on every module line', () => {
+		for (const m of model.modules)
+			expect(linesOf(files.get(`modules/${m}.md`)!)).toContain(linesOf(files.get('modules.md')!).find((l) => l.startsWith(`module ${m} `)));
+	});
+
+	it('puts the inputs hash on INDEX line 2 and stays within the INDEX budget', () => {
+		const index = files.get('INDEX.md')!;
+		expect(linesOf(index)[0]).toBe(INDEX_TITLE);
+		expect(linesOf(index)[1]).toContain(`inputs=sha256:${HASH} `);
+		expect(linesOf(index).length).toBeLessThanOrEqual(BUDGET.indexLines);
+		expect(Buffer.byteLength(index)).toBeLessThanOrEqual(BUDGET.indexBytes);
+	});
+});
+
+describe('render: caps and the calls split (test 35)', () => {
+	it('caps imported-by, by, tests and store sites with `more` lines and their `q` commands', () => {
+		const tree: Record<string, string> = {
+			'src/lib/core/hub/hub.ts': '/** The hub. */\nexport function hubFn() {}\n',
+			'src/lib/core/hub/s.store.svelte.ts': 'let x = $state(0);\nexport const sStore = {\n\tget x() {\n\t\treturn x;\n\t},\n};\n',
+			'src/lib/core/reader/reader.ts': [
+				"import { sStore } from '#lib/core/hub/s.store.svelte.js';",
+				'export function readMany() {',
+				...Array.from({ length: 300 }, () => '\tvoid sStore.x;'),
+				'}',
+				'',
+			].join('\n'),
+		};
+		for (let i = 0; i < 60; i++) {
+			const n = String(i).padStart(2, '0');
+			tree[`src/lib/features/f${n}/f.ts`] = `import { hubFn } from '#lib/core/hub/hub.js';\nexport function use${n}() {\n\thubFn();\n}\n`;
+		}
+		for (let i = 0; i < 50; i++)
+			tree[`src/tests/lib/core/hub/t${String(i).padStart(2, '0')}.test.ts`] = "import { hubFn } from '#lib/core/hub/hub.js';\nhubFn();\n";
+		const files = renderTree(tree);
+		const card = files.get('files/src/lib/core/hub/hub.ts.md')!;
+		const importedBy = section(card, 'imported-by');
+		expect(importedBy.filter((l) => l.startsWith('imp '))).toHaveLength(40);
+		expect(importedBy.at(-1)).toBe(
+			'more imported-by 20 not shown: src/lib/features/f40(1) src/lib/features/f41(1) src/lib/features/f42(1) src/lib/features/f43(1) src/lib/features/f44(1) src/lib/features/f45(1) src/lib/features/f46(1) src/lib/features/f47(1) +12 modules: q importers src/lib/core/hub/hub.ts',
+		);
+		const by = section(card, 'symbols').filter((l) => l.startsWith('by ') || l.startsWith('more by'));
+		expect(by.filter((l) => l.startsWith('by '))).toHaveLength(8);
+		expect(by.at(-1)).toMatch(/^more by 52 not shown: .* \+44 modules: q importers src\/lib\/core\/hub\/hub\.ts:hubFn$/);
+		const tests = section(card, 'tests');
+		expect(tests.filter((l) => l.startsWith('test '))).toHaveLength(40);
+		expect(tests.at(-1)).toBe('more tests 10 not shown: src/tests/lib/core/hub(10): q tests src/lib/core/hub/hub.ts');
+		expect(card).toContain('file src/lib/core/hub/hub.ts other L2 module src/lib/core/hub in60 t50');
+		const store = section(files.get('files/src/lib/core/hub/s.store.svelte.ts.md')!, 'store');
+		expect(store).toEqual([
+			'store src/lib/core/hub/s.store.svelte.ts:2 sStore esc:0',
+			'mem src/lib/core/hub/s.store.svelte.ts:3 get sStore.x r:300',
+			'more r 300 not shown: src/lib/core/reader(300): q store src/lib/core/hub/s.store.svelte.ts:sStore.x',
+		]);
+		for (const [p, t] of files) for (const l of linesOf(t)) expect(l.length, p).toBeLessThanOrEqual(BUDGET.maxLineChars);
+	});
+
+	it('moves the calls section of a card over 40 KB to `<file>.calls.md`', () => {
+		const n = 300;
+		const lines = ['export function exportedTargetFunctionWithLongName() {}'];
+		for (let i = 0; i < n; i++)
+			lines.push(`function localFunctionNumber${String(i).padStart(4, '0')}() { exportedTargetFunctionWithLongName(); }`);
+		const files = renderTree({ 'src/lib/core/big/big.ts': `${lines.join('\n')}\n` });
+		const card = files.get('files/src/lib/core/big/big.ts.md')!;
+		const calls = files.get('files/src/lib/core/big/big.ts.calls.md')!;
+		expect(section(card, 'calls')).toEqual(['more calls codemap/files/src/lib/core/big/big.ts.calls.md']);
+		expect(section(card, 'locals')).toHaveLength(n);
+		expect(linesOf(calls)[0]).toBe('# calls of src/lib/core/big/big.ts');
+		expect(linesOf(calls).filter((l) => l.startsWith('call '))).toHaveLength(n);
+		expect(linesOf(calls)).toContain(
+			'call src/lib/core/big/big.ts:2 in localFunctionNumber0000 -> src/lib/core/big/big.ts:exportedTargetFunctionWithLongName call',
+		);
+		expect(Buffer.byteLength(card)).toBeLessThanOrEqual(BUDGET.splitBytes);
+	});
+
+	it('caps read-by and registered-at lines of a registry at 10', () => {
+		const hooks = [
+			'const observers: Array<() => void> = [];',
+			'/** Registers an observer. */',
+			'export function addObs(o: () => void) {',
+			'\tobservers.push(o);',
+			'\treturn () => {',
+			'\t\tobservers.splice(observers.indexOf(o), 1);',
+			'\t};',
+			'}',
+		];
+		const regs = ["import { addObs } from '#lib/core/h/hooks.js';", 'function cb() {}'];
+		for (let i = 0; i < 12; i++) {
+			hooks.push(`export function fire${i}() {`, '\tfor (const o of observers) o();', '}');
+			regs.push(`export function reg${i}() {`, '\taddObs(cb);', '}');
+		}
+		const files = renderTree({ 'src/lib/core/h/hooks.ts': `${hooks.join('\n')}\n`, 'src/lib/features/u/u.ts': `${regs.join('\n')}\n` });
+		const wiring = linesOf(files.get('wiring.md')!);
+		const of = (what: string) => wiring.filter((l) => l.startsWith(`reg src/lib/core/h/hooks.ts:addObs ${what} `));
+		expect(of('read-by')).toHaveLength(10);
+		expect(of('registered-at')).toHaveLength(10);
+		expect(of('fired-by').length).toBeLessThanOrEqual(10);
+		expect(wiring).toContain('more read-by 2 not shown: src/lib/core/h(2): q reg src/lib/core/h/hooks.ts:addObs');
+		expect(wiring).toContain('more registered-at 2 not shown: src/lib/features/u(2): q reg src/lib/core/h/hooks.ts:addObs');
+	});
+
+	it('prints every name of an import statement on its `imp` line', () => {
+		const names = Array.from({ length: 10 }, (_, i) => `n${i}`);
+		const files = renderTree({
+			'src/lib/core/a/a.ts': names.map((n) => `export const ${n} = 1;`).join('\n'),
+			'src/lib/core/b/b.ts': `import { ${names.join(', ')} } from '#lib/core/a/a.js';\nexport const all = [${names.join(', ')}];\n`,
+		});
+		expect(section(files.get('files/src/lib/core/b/b.ts.md')!, 'imports')).toEqual([`imp src/lib/core/b/b.ts:1 -> src/lib/core/a/a.ts ${names.join(',')}`]);
+	});
+
+	it('points reach overflow only at a q command that answers it', () => {
+		const tree: Record<string, string> = {
+			'src/lib/core/hub/h.ts': "import '#lib/core/b/b.js';\n",
+			'src/lib/core/mid/m.ts': "import '#lib/core/leaf/l.js';\n",
+			'src/lib/core/leaf/l.ts': 'export const l = 1;\n',
+		};
+		const b: string[] = [];
+		for (let i = 1; i <= 6; i++) {
+			tree[`src/lib/core/x${i}/x.ts`] = 'export const x = 1;\n';
+			b.push(`import '#lib/core/x${i}/x.js';`);
+			tree[`src/lib/features/f${i}/f.ts`] = "import '#lib/core/mid/m.js';\n";
+		}
+		tree['src/lib/core/b/b.ts'] = `${b.join('\n')}\n`;
+		const files = renderTree(tree);
+		const reach = (p: string, tag: string) => linesOf(files.get(p)!).find((l) => l.startsWith(`${tag} `))!;
+		expect(reach('files/src/lib/core/hub/h.ts.md', 'out2')).toMatch(/^out2 src\/lib\/core\/hub\/h\.ts 6 files in 6 modules: .* \+1 modules$/);
+		expect(reach('modules/src/lib/core/hub.md', 'out2')).toMatch(/^out2 src\/lib\/core\/hub 6 modules: .* \+1 modules$/);
+		expect(reach('files/src/lib/core/leaf/l.ts.md', 'in2')).toMatch(
+			/^in2 src\/lib\/core\/leaf\/l\.ts 6 files in 6 modules: .* \+1 modules: q impact src\/lib\/core\/leaf\/l\.ts --depth 2$/,
+		);
+		expect(reach('modules/src/lib/core/leaf.md', 'in2')).toMatch(/^in2 src\/lib\/core\/leaf 6 modules: .* \+1 modules$/);
+	});
+
+	it('prints the same `module` line on the module card and in modules.md near a rounding boundary', () => {
+		const tree: Record<string, string> = {};
+		for (let i = 0; i < 30; i++)
+			tree[`src/lib/core/m/f${String(i).padStart(2, '0')}.ts`] = `/** Header${i === 0 ? 'x'.repeat(53) : ''}. */\nimport './f00.js';\nexport const v = 1;\n`;
+		const files = renderTree(tree);
+		const card = linesOf(files.get('modules/src/lib/core/m.md')!).find((l) => l.startsWith('module '));
+		expect(linesOf(files.get('modules.md')!)).toContain(card);
+	});
+
+	it('orders a Rust card `ipc-in` by line and ends a capped `ev` group after its last shown line', () => {
+		const rs = [
+			'//! Note commands.',
+			'use crate::events::INDEX_UPDATED_EVENT;',
+			'use crate::index::Index;',
+			'use crate::utils::fs::write_atomic;',
+			'',
+			'/// A tag with its note count.',
+			'#[derive(Serialize, TS)]',
+			'#[ts(export)]',
+			'pub struct TagAggregate {',
+			'\tpub tag: String,',
+			'\tpub count: u32,',
+			'}',
+			'',
+			'/// Writes a note and tells the frontend.',
+			'#[tauri::command]',
+			'pub fn save_note(app: AppHandle, path: String, content: String) -> Result<(), String> {', // 16
+			'\twrite_atomic(&path, &content)?;',
+			...Array.from({ length: 13 }, () => '\tlet _ = app.emit(INDEX_UPDATED_EVENT, 1);'), // 18 to 30
+			'\tOk(())',
+			'}',
+			'',
+			'/// Returns every tag.',
+			'#[tauri::command]',
+			'pub fn get_tags() -> Vec<TagAggregate> {', // 36
+			'\tVec::new()',
+			'}',
+			'',
+		].join('\n');
+		const files = renderTree({ ...GOLDEN, 'src-tauri/src/commands/notes.rs': rs });
+		const card = files.get('files/src-tauri/src/commands/notes.rs.md')!;
+		expect(section(card, 'ipc-in')).toEqual([
+			'ipc-call src/lib/core/notes/notes.service.ts:15 in saveNote -> ipc:save_note -> src-tauri/src/commands/notes.rs:16',
+			'ipc-call src/lib/core/notes/notes.service.ts:19 in loadTags -> ipc:get_tags -> src-tauri/src/commands/notes.rs:36',
+		]);
+		const effects = section(card, 'effects');
+		expect(effects.filter((l) => l.startsWith('ev '))).toHaveLength(12);
+		expect(effects.at(-2)).toMatch(/^ev src-tauri\/src\/commands\/notes\.rs:29 /);
+		expect(effects.at(-1)).toMatch(/^more ev 1 not shown: /);
+	});
+
+	it('keeps a small card whole', () => {
+		const files = renderTree({ 'src/lib/core/a/a.ts': 'function g() {}\nexport function f() {\n\tg();\n\tg();\n}\n' });
+		expect(files.has('files/src/lib/core/a/a.ts.calls.md')).toBe(false);
+		expect(section(files.get('files/src/lib/core/a/a.ts.md')!, 'calls')).toEqual([
+			'call src/lib/core/a/a.ts:3 in f -> src/lib/core/a/a.ts:g call +1',
+		]);
+	});
+
+	it('throws with the file name when a card still breaks a cap', () => {
+		const lines = Array.from({ length: 1600 }, (_, i) => `export const c${i} = ${i};`);
+		expect(() => renderTree({ 'src/lib/core/huge/huge.ts': `${lines.join('\n')}\n` })).toThrow(
+			/files\/src\/lib\/core\/huge\/huge\.ts\.md/,
+		);
+	});
+});
+
+describe('render: determinism (test 37)', () => {
+	it('gives the same bytes for two runs and for reversed input lists inside buildModel', () => {
+		const inputs = new Map(Object.entries(GOLDEN));
+		const a = renderMap(buildModel(inputs), { inputsHash: HASH });
+		const b = renderMap(buildModel(inputs), { inputsHash: HASH });
+		const c = renderMap(buildModel(new Map([...inputs].reverse()), { reverse: true }), { inputsHash: HASH });
+		expect([...b]).toEqual([...a]);
+		expect([...c]).toEqual([...a]);
+		for (const [p, t] of a) {
+			expect(t, p).not.toMatch(/\r/);
+			expect(t, p).not.toMatch(/\b\d{4}-\d{2}-\d{2}\b/);
+			expect(t, p).not.toContain(process.cwd());
+		}
+	});
+
+	it('gives the same bytes from the CLI under another locale and time zone', () => {
+		const root = writeTree('codemap-locale-', GOLDEN);
+		const out = mkdtempSync(join(tmpdir(), 'codemap-locale-out-'));
+		try {
+			const script = join(process.cwd(), 'scripts/codemap.mjs');
+			const code = `import { main } from ${JSON.stringify(script)}; process.exitCode = main(['--out', ${JSON.stringify(out)}], { root: ${JSON.stringify(root)} });`;
+			const run = spawnSync(process.execPath, ['--input-type=module', '-e', code], {
+				env: { ...envWithoutGit(), LC_ALL: 'tr_TR.UTF-8', TZ: 'Pacific/Kiritimati', CI: '' },
+				encoding: 'utf8',
+			});
+			expect(run.status, run.stderr).toBe(0);
+			expect(run.stdout).toBe('');
+			const inputs = readInputs(root);
+			const expected = renderMap(buildModel(inputs), { inputsHash: inputsHash(inputs) });
+			expect(Object.fromEntries(readTree(out))).toEqual(Object.fromEntries(expected));
+			for (const t of expected.values()) expect(t).not.toContain(root);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+			rmSync(out, { recursive: true, force: true });
+		}
+	});
+});
+
+describe('render: source scan (test 38)', () => {
+	it('uses no localeCompare, Date or os. in the generator', () => {
+		const paths = ['scripts/codemap.mjs', ...readdirSync('scripts/codemap').filter((n) => n.endsWith('.mjs')).map((n) => `scripts/codemap/${n}`)];
+		for (const p of paths) {
+			const text = readFileSync(p, 'utf8');
+			expect(text, p).not.toMatch(/localeCompare|\bDate\b|(?<![\w$.])os\./);
+		}
+	});
+});
+
+describe('inputs hash and --stale (test 39)', () => {
+	it('changes the hash on a one-byte input change', () => {
+		const inputs = new Map(Object.entries(GOLDEN));
+		const h = inputsHash(inputs);
+		expect(h).toMatch(/^[0-9a-f]{12}$/);
+		expect(inputsHash(new Map(inputs))).toBe(h);
+		const changed = new Map(inputs);
+		changed.set('src/lib/app/boot.ts', `${inputs.get('src/lib/app/boot.ts')} `);
+		expect(inputsHash(changed)).not.toBe(h);
+	});
+
+	it('exits 0 after a run, 1 after an edit and 1 without INDEX', () => {
+		const root = writeTree('codemap-stale-', GOLDEN);
+		const out = join(root, 'out');
+		try {
+			expect(runMain(['--stale', '--out', out], { root }).code).toBe(1);
+			expect(runMain(['--out', out], { root }).code).toBe(0);
+			expect(runMain(['--stale', '--out', out], { root }).code).toBe(0);
+			writeFileSync(join(root, 'src/lib/app/boot.ts'), `${GOLDEN['src/lib/app/boot.ts']}\n`);
+			const stale = runMain(['--stale', '--out', out], { root });
+			expect(stale.code).toBe(1);
+			expect(stale.stdout).toContain('stale');
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('lists the changed and untracked inputs since the last commit of codemap/INDEX.md', () => {
+		const root = writeTree('codemap-stale-git-', GOLDEN);
+		try {
+			git(root, 'init', '-q', '-b', 'main');
+			git(root, 'commit', '-q', '--allow-empty', '-m', 'empty');
+			expect(runMain([], { root }).code).toBe(0);
+			git(root, 'add', '-A');
+			git(root, 'commit', '-q', '-m', 'init');
+			expect(runMain(['--stale'], { root }).code).toBe(0);
+			writeFileSync(join(root, 'src/lib/app/boot.ts'), `${GOLDEN['src/lib/app/boot.ts']}\n`);
+			writeFileSync(join(root, 'src/lib/app/new.ts'), 'export const n = 1;\n');
+			writeFileSync(join(root, 'notes.txt'), 'not an input\n');
+			const stale = runMain(['--stale'], { root });
+			expect(stale.code).toBe(1);
+			expect(stale.stdout).toContain('src/lib/app/boot.ts');
+			expect(stale.stdout).toContain('src/lib/app/new.ts');
+			expect(stale.stdout).not.toContain('notes.txt');
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('lists the inputs changed since HEAD and says so when no commit holds codemap/INDEX.md', () => {
+		const root = writeTree('codemap-stale-nocommit-', GOLDEN);
+		try {
+			git(root, 'init', '-q', '-b', 'main');
+			git(root, 'add', '-A');
+			git(root, 'commit', '-q', '-m', 'init');
+			writeFileSync(join(root, 'src/lib/app/boot.ts'), `${GOLDEN['src/lib/app/boot.ts']}\n`);
+			writeFileSync(join(root, 'src/lib/app/new.ts'), 'export const n = 1;\n');
+			const stale = runMain(['--stale'], { root });
+			expect(stale.code).toBe(1);
+			expect(stale.stdout).toContain('no commit holds codemap/INDEX.md; changed inputs since HEAD:');
+			expect(stale.stdout).toContain('  src/lib/app/boot.ts\n');
+			expect(stale.stdout).toContain('  src/lib/app/new.ts\n');
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+});
+
+describe('write safety (test 46)', () => {
+	it('refuses a non-empty folder without the INDEX marker, keeps `.git`, and replaces a code map folder', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'codemap-write-'));
+		try {
+			writeFileSync(join(dir, 'notes.md'), 'mine\n');
+			expect(() => writeMap(dir, new Map([['INDEX.md', `${INDEX_TITLE}\n`]]))).toThrow(dir);
+			expect(readFileSync(join(dir, 'notes.md'), 'utf8')).toBe('mine\n');
+			rmSync(join(dir, 'notes.md'));
+			mkdirSync(join(dir, '.git'));
+			writeFileSync(join(dir, '.git/HEAD'), 'ref\n');
+			writeMap(dir, new Map([['INDEX.md', `${INDEX_TITLE}\n`], ['files/a.md', 'a\n']]));
+			writeMap(dir, new Map([['INDEX.md', `${INDEX_TITLE}\nnew\n`], ['files/b.md', 'b\n']]));
+			expect(existsSync(join(dir, 'files/a.md'))).toBe(false);
+			expect(readFileSync(join(dir, 'files/b.md'), 'utf8')).toBe('b\n');
+			expect(readFileSync(join(dir, '.git/HEAD'), 'utf8')).toBe('ref\n');
+			writeFileSync(join(dir, 'INDEX.md'), '# Something else\n');
+			expect(() => writeMap(dir, new Map([['INDEX.md', `${INDEX_TITLE}\n`]]))).toThrow(dir);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+
+	it('writes into a missing or empty folder', () => {
+		const dir = mkdtempSync(join(tmpdir(), 'codemap-write-'));
+		try {
+			writeMap(join(dir, 'new'), new Map([['INDEX.md', `${INDEX_TITLE}\n`]]));
+			expect(readFileSync(join(dir, 'new/INDEX.md'), 'utf8')).toBe(`${INDEX_TITLE}\n`);
+			mkdirSync(join(dir, 'empty'));
+			writeMap(join(dir, 'empty'), new Map([['x.md', 'x\n']]));
+			expect(readFileSync(join(dir, 'empty/x.md'), 'utf8')).toBe('x\n');
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
+	});
+});
+
+describe('in-place refusal (test 47)', () => {
+	it('writes codemap/ only on main or with CI=true; --out always writes', () => {
+		const root = writeTree('codemap-branch-', GOLDEN);
+		const out = mkdtempSync(join(tmpdir(), 'codemap-branch-out-'));
+		try {
+			git(root, 'init', '-q', '-b', 'feat');
+			git(root, 'commit', '-q', '--allow-empty', '-m', 'empty');
+			const refused = runMain(['build'], { root });
+			expect(refused.code).toBe(2);
+			expect(refused.stderr).toContain('codemap/ is written by CI on main; use q (live) or --out <dir>');
+			expect(existsSync(join(root, 'codemap'))).toBe(false);
+			expect(runMain(['--out', 'codemap'], { root }).code).toBe(2);
+			expect(runMain(['--out', out], { root }).code).toBe(0);
+			expect(existsSync(join(out, 'INDEX.md'))).toBe(true);
+			expect(runMain([], { root, env: { CI: 'true' } }).code).toBe(0);
+			expect(existsSync(join(root, 'codemap/INDEX.md'))).toBe(true);
+			rmSync(join(root, 'codemap'), { recursive: true });
+			git(root, 'checkout', '-q', '-b', 'main');
+			expect(runMain([], { root }).code).toBe(0);
+			expect(existsSync(join(root, 'codemap/INDEX.md'))).toBe(true);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+			rmSync(out, { recursive: true, force: true });
+		}
+	});
+
+	it('refuses an --out that names <repo>/codemap through another case or a symlink', () => {
+		const root = writeTree('codemap-alias-', GOLDEN);
+		try {
+			git(root, 'init', '-q', '-b', 'feat');
+			git(root, 'commit', '-q', '--allow-empty', '-m', 'empty');
+			expect(runMain(['--out', 'CODEMAP'], { root }).code).toBe(2);
+			expect(runMain(['--out', './src/../codemap'], { root }).code).toBe(2);
+			mkdirSync(join(root, 'codemap'));
+			symlinkSync(join(root, 'codemap'), join(root, 'link'));
+			expect(runMain(['--out', 'link'], { root }).code).toBe(2);
+			expect(readdirSync(join(root, 'codemap'))).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
+	});
+
+	it('exits 2 with the usage on an unknown argument', () => {
+		const r = runMain(['--bogus'], { root: process.cwd() });
+		expect(r.code).toBe(2);
+		expect(r.stderr).toContain('usage: node scripts/codemap.mjs');
+	});
+});
+
+describe('real repo', () => {
+	const ROOT = process.cwd();
+	let model: ReturnType<typeof buildModel>;
+	let files: Map<string, string>;
+	let elapsed = 0;
+
+	beforeAll(() => {
+		const t0 = performance.now();
+		const inputs = readInputs(ROOT);
+		model = buildModel(inputs);
+		files = renderMap(model, { inputsHash: inputsHash(inputs) });
+		elapsed = performance.now() - t0;
+	}, 60_000);
+
+	/** The source line of a location. */
+	const sourceLine = (file: string, line: number) => model.inputs.get(file)!.split('\n')[line - 1] ?? '';
+
+	/** The local names a file binds to a symbol ID (aliases included; Rust `use … as` aliases by item name). */
+	const localNames = (file: string, id: string) => {
+		const ts = model.resolved.filter((r: { from: string; id: string | null }) => r.from === file && r.id === id).map((r: { local: string }) => r.local);
+		const item = id.slice(id.indexOf(':') + 1).split('::')[0];
+		const rust = (model.rust.get(file)?.uses ?? []).flatMap((u: { leaves: { segs: string[]; alias: string | null }[] }) =>
+			u.leaves.filter((l) => l.alias && l.segs.at(-1) === item).map((l) => l.alias!),
+		);
+		return [...ts, ...rust];
+	};
+
+	/** The last name segment of an ID: after `:`, then after the last `.` or `::`. */
+	const lastName = (id: string) => id.slice(id.indexOf(':') + 1).split('::').at(-1)!.split('.').at(-1)!;
+
+	it('follows the line grammar and prints only known IDs (tests 32, 33)', () => {
+		expect(grammarProblems(files, model.inputs).slice(0, 20)).toEqual([]);
+		expect(idProblems(files, model).slice(0, 20)).toEqual([]);
+	});
+
+	it('writes edges identically at both ends (test 34)', () => {
+		expect(symmetryProblems(files, model).slice(0, 20)).toEqual([]);
+	});
+
+	it('points every location at a line holding its name (test 40)', () => {
+		const problems: string[] = [];
+		const check = (file: string, line: number, names: string[], what: string) => {
+			const src = sourceLine(file, line);
+			if (!names.some((n) => n && src.includes(n))) problems.push(`${what}: ${file}:${line} has none of ${names.join(', ')}: ${src.trim()}`);
+		};
+		const checkRe = (file: string, line: number, re: RegExp, what: string) => {
+			const src = sourceLine(file, line);
+			if (!re.test(src)) problems.push(`${what}: ${file}:${line} does not match ${re}: ${src.trim()}`);
+		};
+		const loc = (t: string) => {
+			const m = LOCATION_RE.exec(t)!;
+			return [m[1], Number(m[2])] as const;
+		};
+		/** Checks a `<loc> …` token naming a symbol ID: its last name or a local alias. */
+		const checkId = (t: string, id: string, what: string) => {
+			const [f, n] = loc(t);
+			check(f, n, [lastName(id), ...localNames(f, id)], what);
+		};
+		for (const [p, text] of files) {
+			if (p.startsWith('effects/')) {
+				for (const l of linesOf(text).filter((x) => x.startsWith('fx '))) {
+					const tok = l.split(' ');
+					const [f, n] = loc(tok[1]);
+					const api = tok[2].slice(tok[2].indexOf('.') + 1).split('::').at(-1)!;
+					const aliases = model.ts.get(f)?.bindings.filter((b: { imported: string }) => b.imported === api).map((b: { local: string }) => b.local) ?? [];
+					check(f, n, [api, ...aliases, ...(tok[2].startsWith('timer-wrap.') ? localNames(f, `src/lib/utils/debounce.ts:${api}`) : [])], 'effects fx');
+				}
+				continue;
+			}
+			if (p === 'wiring.md') {
+				for (const l of linesOf(text).filter((x) => x.startsWith('reg '))) {
+					const tok = l.split(' | ')[0].split(' ');
+					if (tok[2] === 'sink' || tok[2] === 'facet') checkId(tok[3], tok[1], 'wiring sink');
+					else if (tok[2] === 'read-by') {
+						const [f, n] = loc(tok[3]);
+						check(f, n, [tok[4].split('.').at(-1)!], 'wiring read-by');
+					} else if (tok[2] === 'registered-at') checkId(tok[3], tok[1], 'wiring registered-at');
+				}
+				continue;
+			}
+			if (p === 'stores.md') {
+				for (const l of linesOf(text).filter((x) => x.startsWith('store '))) {
+					const tok = l.split(' ');
+					const [f, n] = loc(tok[1]);
+					check(f, n, [tok[2]], 'stores.md');
+				}
+				continue;
+			}
+			if (!p.startsWith('files/')) continue;
+			for (const l of linesOf(text)) {
+				const tok = l.split(' | ')[0].split(' ');
+				if (tok[0] === 'reg') checkId(tok[1], tok[2], 'card reg');
+				if (tok[0] === 'store') {
+					const [f, n] = loc(tok[1]);
+					check(f, n, [tok[2]], 'store');
+				}
+				if (tok[0] === 'sym' || tok[0] === 'local') {
+					const [f, n] = loc(tok[1]);
+					if (tok[2] === 'component') continue;
+					const name = /^(?:r#)?[\w$]+(?:::(?:r#)?[\w$]+)*/.exec(tok[3])![0].split('::').at(-1)!;
+					check(f, n, [name.replace(/^r#/, '')], tok[0]);
+				} else if (tok[0] === 'mem') {
+					const [f, n] = loc(tok[1]);
+					check(f, n, [tok[3].split('.').at(-1)!], 'mem');
+				} else if (tok[0] === 'mount') {
+					const [f, n] = loc(tok[1]);
+					check(f, n, [`<${tok[2]}`], 'mount');
+				} else if (tok[0] === 'call') {
+					const [f, n] = loc(tok[1]);
+					const target = tok[tok.indexOf('->') + 1];
+					const base = target.replace(/\.[\w$]+$/, '');
+					check(f, n, [lastName(target), ...localNames(f, target), ...localNames(f, base)], 'call');
+				} else if (tok[0] === 'by') {
+					const [f, n] = loc(tok[3]);
+					check(f, n, [lastName(tok[1]), ...localNames(f, tok[1])], 'by');
+				} else if (tok[0] === 'fx') {
+					const [f, n] = loc(tok[1]);
+					const api = tok[2].slice(tok[2].indexOf('.') + 1).split('::').at(-1)!;
+					const aliases = model.ts.get(f)?.bindings.filter((b: { imported: string }) => b.imported === api).map((b: { local: string }) => b.local) ?? [];
+					check(f, n, [api, ...aliases, ...(tok[2].startsWith('timer-wrap.') ? localNames(f, `src/lib/utils/debounce.ts:${api}`) : [])], 'fx');
+				} else if (tok[0] === 'imp') {
+					const [f, n] = loc(tok[1]);
+					if (f.endsWith('.rs')) check(f, n, ['use ', '::'], 'imp');
+					else checkRe(f, n, /^\s*(?:import|export)\b|(?<![\w$.])import\s*\(/, 'imp');
+				}
+			}
+		}
+		for (const c of model.commands) {
+			if (c.rust) check(c.rust.file, c.rust.line, [c.name], 'ipc rust');
+			if (c.reg) check(c.reg.file, c.reg.line, [c.name], 'ipc reg');
+			for (const k of c.keys) check(k.file, k.line, [c.name], 'ipc keys');
+			for (const s of c.callers) check(s.file, s.line, [c.name], 'ipc callers');
+		}
+		for (const e of model.events) {
+			check(e.const!.file, e.const!.line, [e.const!.constName], 'event const');
+			check(e.ts!.file, e.ts!.line, [e.ts!.key], 'event ts');
+			for (const s of e.emits) check(s.file, s.line, [e.const!.constName], 'emit');
+			for (const s of e.listens)
+				if (!sourceLine(s.file, s.line).includes(`EVENT_NAMES.${e.ts!.key}`)) checkRe(s.file, s.line, /(?<![\w$])(?:on|listen)\s*\(/, 'listen');
+		}
+		for (const d of model.dtos) {
+			check(d.rust.file, d.rust.line, [d.name], 'dto rust');
+			for (const s of d.e2e) check(s.file, s.line, [d.name], 'dto e2e');
+		}
+		expect(problems.slice(0, 20)).toEqual([]);
+	});
+
+	it('lists every command, event, DTO, store, module and carded file (test 41)', () => {
+		const lib = model.inputs.get('src-tauri/src/lib.rs')!;
+		const handler = /generate_handler!\[([\s\S]*?)\]/.exec(lib)![1];
+		const handlerNames = [...handler.matchAll(/(\w+)\s*,/g)].map((m) => m[1]).sort();
+		const commandsTs = model.inputs.get('src/lib/contracts/commands.ts')!;
+		const mapBody = /export interface CommandMap \{([\s\S]*?)\n\}/.exec(commandsTs)![1];
+		const contractNames = [...mapBody.matchAll(/^\t(\w+): \{/gm)].map((m) => m[1]).sort();
+		const commands = files.get('ipc/commands.md')!;
+		const listed = linesOf(commands).filter((l) => l.startsWith('ipc ')).map((l) => l.split(' ')[1].slice(4)).sort();
+		expect(listed).toEqual(handlerNames);
+		expect(listed).toEqual(contractNames);
+		expect(commands).not.toContain('!');
+
+		const eventsRs = model.inputs.get('src-tauri/src/events.rs')!;
+		const consts = [...eventsRs.matchAll(/pub const \w+_EVENT: &str = "([^"]+)"/g)].map((m) => m[1]).sort();
+		const eventsTs = model.inputs.get('src/lib/contracts/events.ts')!;
+		const tsValues = [.../EVENT_NAMES = \{([\s\S]*?)\}/.exec(eventsTs)![1].matchAll(/'([^']+)'/g)].map((m) => m[1]).sort();
+		const events = linesOf(files.get('ipc/events.md')!).filter((l) => l.startsWith('event '));
+		expect(events.map((l) => l.split(' ')[1].slice(6)).sort()).toEqual(consts);
+		expect(consts).toEqual(tsValues);
+		for (const l of events) {
+			expect(l, l).not.toContain('| emits - |');
+			expect(l, l).not.toContain('| listens - |');
+		}
+
+		let tsExports = 0;
+		for (const [f, t] of model.inputs) if (f.startsWith('src-tauri/src/') && f.endsWith('.rs')) tsExports += (t.match(/#\[ts\(export/g) ?? []).length;
+		expect(linesOf(files.get('ipc/dto.md')!).filter((l) => l.startsWith('dto '))).toHaveLength(tsExports);
+
+		const stores = files.get('stores.md')!;
+		for (const f of model.files.filter((x: string) => x.endsWith('.store.svelte.ts') && !model.isTest(x)))
+			expect(stores, f).toContain(`store ${f}:`);
+
+		const moduleCards = [...files.keys()].filter((p) => p.startsWith('modules/')).map((p) => p.slice(8, -3)).sort();
+		expect(moduleCards).toEqual([...model.modules].sort());
+		const fileCards = [...files.keys()].filter((p) => p.startsWith('files/') && !p.endsWith('.calls.md')).map((p) => p.slice(6, -3)).sort();
+		const production = model.files
+			.filter((f: string) => !model.isTest(f) && !f.startsWith('src/lib/components/ui/') && !f.startsWith('src/lib/contracts/generated/'))
+			.sort();
+		expect(fileCards).toEqual(production);
+	});
+
+	it('places each exported TS symbol on one card, matching an independent count (test 42)', () => {
+		let expected = 0;
+		for (const f of model.files) {
+			if (!(f.endsWith('.ts') || f.endsWith('.svelte')) || model.isTest(f)) continue;
+			if (f.startsWith('src/lib/components/ui/') || f.startsWith('src/lib/contracts/generated/')) continue;
+			const text = model.inputs.get(f)!;
+			const regions = f.endsWith('.svelte')
+				? [...text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)].map((m) => ({ code: m[2], instance: !/\bmodule\b/.test(m[1]) }))
+				: [{ code: text, instance: false }];
+			if (f.endsWith('.svelte')) expected++;
+			for (const r of regions) {
+				const sf = ts.createSourceFile('x.ts', r.code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+				for (const st of sf.statements) {
+					const exported = ts.canHaveModifiers(st) && ts.getModifiers(st)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
+					if (!exported) continue;
+					if (ts.isFunctionDeclaration(st) && st.name && st.body) expected++;
+					else if (!r.instance && (ts.isClassDeclaration(st) || ts.isInterfaceDeclaration(st) || ts.isTypeAliasDeclaration(st)) && st.name)
+						expected++;
+					else if (ts.isVariableStatement(st))
+						for (const d of st.declarationList.declarations) {
+							if (!ts.isIdentifier(d.name)) continue;
+							const init = d.initializer;
+							const fn = init && (ts.isArrowFunction(init) || ts.isFunctionExpression(init));
+							if (!r.instance || fn) expected++;
+						}
+				}
+			}
+		}
+		const syms: string[] = [];
+		for (const [p, t] of files)
+			if (p.startsWith('files/') && !p.startsWith('files/src-tauri/')) for (const l of linesOf(t)) if (l.startsWith('sym ')) syms.push(l.split(' ').slice(1, 4).join(' '));
+		expect(new Set(syms).size).toBe(syms.length);
+		expect(syms.length).toBe(expected);
+	});
+
+	it('holds the known facts (test 43)', () => {
+		/** A card with its split-off calls file, when it has one. */
+		const card = (f: string) => `${files.get(`files/${f}.md`)!}${files.get(`files/${f}.calls.md`) ?? ''}`;
+		const lifecycle = 'src/lib/app/lifecycle/app-lifecycle.service.ts';
+		const init = model.ts.get(lifecycle)!.symbols.find((s: { name: string }) => s.name === 'initializeVault')!;
+		const by = linesOf(card('src/lib/features/tags/tags.service.ts')).find((l) =>
+			l.startsWith(`by src/lib/features/tags/tags.service.ts:buildTagIndex <- ${lifecycle}:`),
+		)!;
+		expect(by).toMatch(/ in initializeVault call/);
+		const byLine = Number(/:(\d+) in /.exec(by)![1]);
+		expect(byLine).toBeGreaterThanOrEqual(init.line);
+		expect(byLine).toBeLessThan(init.line + init.span);
+
+		const ipc = linesOf(files.get('ipc/commands.md')!).find((l) => l.startsWith('ipc ipc:get_all_tags_v2 '))!;
+		expect(ipc).toMatch(/callers .*src\/lib\/features\/tags\/tags\.service\.ts:\d+ in buildTagIndex/);
+		const ipcCall = linesOf(card('src/lib/features/tags/tags.service.ts')).find((l) => l.startsWith('ipc-call ') && l.includes('ipc:get_all_tags_v2'))!;
+		expect(linesOf(card('src-tauri/src/commands/vault.rs'))).toContain(ipcCall);
+
+		const timer = linesOf(files.get('effects/timer.md')!);
+		expect(timer.some((l) => /^fx src\/lib\/features\/tags\/tags\.service\.ts:\d+ timer-wrap\.debounce args=.*300 as debouncedTrigger in debouncedTrigger$/.test(l))).toBe(true);
+		expect(timer.some((l) => /^fx src\/lib\/core\/editor\/editor\.service\.ts:\d+ timer-wrap\.debounce args=.*2000/.test(l))).toBe(true);
+
+		const wiring = linesOf(files.get('wiring.md')!);
+		for (const sink of [
+			'src/lib/core/filesystem/note-change.service.ts:registerNoteChangeConsumer',
+			'src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer',
+			'src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver',
+			'src/lib/core/vault/write-barrier.service.ts:registerWriteBarrier',
+			'src/lib/features/rail-shell/rail-registry.store.svelte.ts:railRegistryStore.registerNavigator',
+		])
+			expect(wiring.some((l) => l.startsWith(`reg ${sink} sink `)), sink).toBe(true);
+		expect(wiring.some((l) => l.startsWith('reg src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver read-by ') && l.endsWith(' notifyAfterSave'))).toBe(true);
+		expect(wiring.some((l) => /:onFileChange fired-by .* in handleChangedPaths/.test(l))).toBe(true);
+		expect(wiring.some((l) => /:railRegistryStore\.registerNavigator fired-by src\/lib\/app\/AppShell\.svelte:\d+/.test(l))).toBe(true);
+		expect(
+			wiring.some((l) =>
+				/:registerPathChangeConsumer registered-at src\/lib\/features\/event-calendar\/event-calendar\.service\.ts:\d+ .*-> src\/lib\/features\/event-calendar\/event-calendar\.service\.ts:followPathChange/.test(l),
+			),
+		).toBe(true);
+
+		const shell = linesOf(card('src/lib/app/AppShell.svelte'));
+		expect(shell.some((l) => /^call src\/lib\/app\/AppShell\.svelte:\d+ in .* -> src\/lib\/core\/layout\/layout\.service\.ts:toggleRightSidebar /.test(l))).toBe(true);
+		expect(
+			shell.some((l) =>
+				/^call src\/lib\/app\/AppShell\.svelte:\d+ in \(markup\) -> src\/lib\/core\/settings\/settings\.store\.svelte\.ts:settingsStore\.updateLayout markup/.test(l),
+			),
+		).toBe(true);
+
+		const tabs = linesOf(card('src/lib/core/editor/editor.store.svelte.ts')).find((l) => l.includes(' get editorStore.tabs '))!;
+		expect(tabs).toMatch(/w-via:[^ ]*\baddTab\b/);
+		expect(tabs).toMatch(/w-via:[^ ]*\bremoveTab\b/);
+
+		expect(
+			linesOf(card('src-tauri/src/commands/vault.rs')).some((l) =>
+				/^call src-tauri\/src\/commands\/vault\.rs:\d+ in .* -> src-tauri\/src\/vault\/index\.rs:VaultIndex::update_entry lexical-method/.test(l),
+			),
+		).toBe(true);
+		expect(card('src-tauri/src/commands/debug.rs')).not.toMatch(/^imp src-tauri\/src\/commands\/debug\.rs:\d+ -> src-tauri\/src\/commands\/mod\.rs /m);
+		expect(card('src-tauri/src/semantic/update_plan.rs')).toMatch(/^sym src-tauri\/src\/semantic\/update_plan\.rs:31 method UpdatePlan::is_noop/m);
+
+		const editor = linesOf(card('src/lib/core/editor/editor.service.ts'));
+		expect(editor.some((l) => /^call .* in saveFileByPath -> src\/lib\/core\/editor\/editor\.service\.ts:writeTab call/.test(l))).toBe(true);
+		expect(editor.some((l) => /^call .* in writeTab -> src\/lib\/core\/editor\/editor\.hooks\.ts:notifyAfterSave call/.test(l))).toBe(true);
+
+		const hubs = linesOf(files.get('INDEX.md')!).filter((l) => l.startsWith('hub core '));
+		expect(hubs).toHaveLength(3);
+		expect(hubs.some((l) => l.startsWith('hub core src/lib/core/settings/settings.store.svelte.ts '))).toBe(true);
+
+		const disk = linesOf(files.get('effects/disk-write.md')!);
+		expect(disk.some((l) => /^fx src\/lib\/core\/editor\/editor\.service\.ts:\d+ tauri-fs\.writeTextFile /.test(l))).toBe(true);
+		expect(disk.some((l) => /^fx src-tauri\/src\/utils\/fs\.rs:\d+ rust-fs\.write in write_atomic$/.test(l))).toBe(true);
+	});
+
+	it('keeps every file within the budgets (test 44)', () => {
+		const stats = [...files].map(([p, t]) => ({ p, bytes: Buffer.byteLength(t), lines: linesOf(t).length, long: Math.max(...linesOf(t).map((l) => l.length)) }));
+		const largest = [...stats].sort((a, b) => b.bytes - a.bytes).slice(0, 5);
+		const report = largest.map((s) => `${s.p} ${s.bytes} B ${s.lines} lines ~${Math.round(s.bytes / 3)} tokens`).join('\n');
+		const cards = stats.filter((s) => s.p.startsWith('files/')).map((s) => s.bytes).sort((a, b) => a - b);
+		console.log(
+			`codemap: ${files.size} files, cards p50 ${cards[Math.floor(cards.length / 2)]} B, p95 ${cards[Math.floor(cards.length * 0.95)]} B, max ${cards.at(-1)} B, build ${Math.round(elapsed)} ms\n${report}`,
+		);
+		for (const s of stats) {
+			expect(s.bytes, report).toBeLessThanOrEqual(BUDGET.maxBytes);
+			expect(s.lines, `${s.p}\n${report}`).toBeLessThanOrEqual(BUDGET.maxLines);
+			expect(s.long, s.p).toBeLessThanOrEqual(BUDGET.maxLineChars);
+		}
+		const index = files.get('INDEX.md')!;
+		expect(linesOf(index).length).toBeLessThanOrEqual(BUDGET.indexLines);
+		expect(Buffer.byteLength(index)).toBeLessThanOrEqual(BUDGET.indexBytes);
+		expect(elapsed).toBeLessThan(15_000);
+	});
+
+	it('keeps 15 % headroom under every cap, so growth fails a PR before it fails the main-branch build', () => {
+		/**
+		 * wiring.md grows with the number of registries, not with a list cap
+		 * (one `reg` line per sink, reader, registration and fire site), so no
+		 * cap constant gives it 15 %; it keeps 5 % until its layout changes.
+		 */
+		const byteShare = (p: string) => (p === 'wiring.md' ? 0.95 : 0.85);
+		const over: string[] = [];
+		for (const [p, t] of files) {
+			const lines = linesOf(t);
+			const bytes = Buffer.byteLength(t);
+			const long = Math.max(...lines.map((l) => l.length));
+			if (bytes > BUDGET.maxBytes * byteShare(p)) over.push(`${p}: ${bytes} bytes`);
+			if (lines.length > BUDGET.maxLines * 0.85) over.push(`${p}: ${lines.length} lines`);
+			if (long > BUDGET.maxLineChars * 0.85) over.push(`${p}: a line of ${long} chars`);
+		}
+		const index = files.get('INDEX.md')!;
+		if (linesOf(index).length > BUDGET.indexLines * 0.85 || Buffer.byteLength(index) > BUDGET.indexBytes * 0.85) over.push('INDEX.md');
+		expect(over, 'lower a cap constant in scripts/codemap/render.mjs').toEqual([]);
+	});
+
+	it('leaves only allowlisted bindings unresolved (test 45)', () => {
+		/** Targets the generator does not parse: scripts, JSON and Svelte test fixtures, and `.js` files. */
+		const ALLOWED = [/^scripts\/[\w/-]+\.mjs$/, /^src\/tests\/fixtures\/[\w.-]+\.(?:json|svelte)$/, /^src\/lib\/[\w/-]+\.js$/];
+		const exists = (p: string) => model.inputs.has(p);
+		const groups = new Map<string, number>();
+		for (const r of model.resolved) {
+			if (r.id !== null) continue;
+			const target = resolveSpecifier(r.from, r.spec, exists) ?? r.spec;
+			groups.set(target, (groups.get(target) ?? 0) + 1);
+		}
+		console.log(`unresolved bindings by target:\n${[...groups].sort().map(([t, n]) => `  ${t} ${n}`).join('\n')}`);
+		for (const t of groups.keys()) expect(ALLOWED.some((re) => re.test(t)), t).toBe(true);
 	});
 });

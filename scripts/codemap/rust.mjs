@@ -704,7 +704,8 @@ function namesOf(facts) {
  * crate are dropped.
  *
  * Calls (production text, `use` statements and the `generate_handler!` list
- * of `lib.rs` left out, enclosing by F12; a handler entry is an edge only):
+ * of `lib.rs` left out, enclosing by F12; a handler entry is an edge and an
+ * `import` user of its command, not a call):
  * - `lexical`: in another file, an imported item's local name followed by
  *   `(` or `::`; `alias::X` through a module alias, followed by `(` or `::`; a
  *   full inline path naming an item; `Type::method(` of an imported type. A
@@ -779,7 +780,7 @@ export function analyzeRust(files) {
 				if (!hit.rest.length) modules.set(local, hit.file);
 				else if (targetNames.has(hit.rest[0])) {
 					items.set(local, targetNames.get(hit.rest[0]));
-					leafUsers.push({ id: targetNames.get(hit.rest[0]), file: p, line: leaf.line });
+					leafUsers.push({ id: targetNames.get(hit.rest[0]), file: p, line: leaf.line, enclosing: '(module)' });
 				}
 			}
 		}
@@ -830,7 +831,11 @@ export function analyzeRust(files) {
 			if (!hit) continue;
 			addEdge(p, facts.lineAt(ip.offset), hit.file, hit.rest.length ? hit.rest[0] : 'self');
 			const targetNames = named.get(hit.file);
-			if (inHandlers(ip.offset) || !hit.rest.length || !targetNames.has(hit.rest[0])) continue;
+			if (!hit.rest.length || !targetNames.has(hit.rest[0])) continue;
+			if (inHandlers(ip.offset)) {
+				leafUsers.push({ id: targetNames.get(hit.rest[0]), file: p, line: facts.lineAt(ip.offset), enclosing: enclosingAt(facts, ip.offset) });
+				continue;
+			}
 			const kind = hit.file === p ? 'call' : 'lexical';
 			row(ip.offset, targetNames.get(hit.rest[0]), kind);
 			const method = hit.rest.length > 1 ? `${hit.rest[0]}::${hit.rest[1]}` : null;
@@ -879,7 +884,7 @@ export function analyzeRust(files) {
 		const per = by.get(u.id);
 		const first = per.get(u.file);
 		if (!first || (first.kind === 'import' && u.line < first.line))
-			per.set(u.file, { file: u.file, line: u.line, enclosing: '(module)', kind: 'import', more: 0 });
+			per.set(u.file, { file: u.file, line: u.line, enclosing: u.enclosing, kind: 'import', more: 0 });
 	}
 	const users = new Map();
 	for (const id of [...by.keys()].sort(cmp)) {

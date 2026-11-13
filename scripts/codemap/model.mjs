@@ -204,9 +204,13 @@ function edgeNames(facts, region, imp) {
  * - `symbolEdges`: the symbol graph (see `symbolGraph`).
  *
  * @param {Map<string, string>} inputs contents by repo-relative path, as `readInputs` gives them
+ * @param {{reverse?: boolean}} [opts] `reverse` feeds every input list to the
+ *   extractors in reverse order (a determinism test hook; `files` is then
+ *   reversed too, every derived list keeps its order)
  */
-export function buildModel(inputs) {
-	const paths = [...inputs.keys()].filter((p) => p !== BASELINE).sort(cmp);
+export function buildModel(inputs, { reverse = false } = {}) {
+	const sorted = [...inputs.keys()].filter((p) => p !== BASELINE).sort(cmp);
+	const paths = reverse ? sorted.reverse() : sorted;
 	const inventory = new Set(paths);
 	const exists = (p) => inventory.has(p);
 	const isTest = isTestFile;
@@ -226,7 +230,8 @@ export function buildModel(inputs) {
 	const resolved = resolveBindings(tsFiles);
 	const reexports = resolveReexports(tsFiles);
 	const uses = extractUses(tsFiles, resolved);
-	const users = usersBySymbol(resolved, uses, isTest);
+	const mounts = componentMounts(tsFiles, resolved);
+	const users = usersBySymbol(resolved, uses, isTest, mounts);
 	const stores = collectStores(tsFiles, uses, isTest);
 	const publicSymbols = publicIds(resolved, modOf, isTest);
 	const rust = analyzeRust(rustFiles);
@@ -247,7 +252,6 @@ export function buildModel(inputs) {
 	const dtos = joinDtos(rustFiles, tsPaths, contract, resolved, reexports, isTest, modOf);
 
 	const registries = collectRegistries(tsFiles, uses, isTest);
-	const mounts = componentMounts(tsFiles, resolved);
 	const effects = [
 		...tsEffects(tsFiles, uses, isTest),
 		...rustPaths.flatMap((p) => rustEffects(rustFiles.get(p)).map((s) => ({ ...s, arg: '' }))),
