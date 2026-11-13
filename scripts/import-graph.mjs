@@ -54,13 +54,30 @@ export const PLUGIN_ALLOWLIST = {
 /** A `<script>` block in any case, its closing tag allowing attributes or whitespace. */
 const SCRIPT_RE = /<script\b[^>]*>([\s\S]*?)<\/script\b[^>]*>/gi;
 
-/** Each code region of a file with the number of lines that precede it. */
-function codeRegions(file, text) {
-	if (!file.endsWith('.svelte')) return [{ code: text, lineOffset: 0 }];
+/** A `module` or Svelte 4 `context="module"` attribute on an opening `<script …>` tag. */
+const MODULE_ATTR_RE = /\s(?:module\b|context\s*=\s*["']?module\b)/i;
+
+/**
+ * Each code region of a file with the number of lines that precede it: the
+ * whole text of a script file, or each `<script>` block of a `.svelte` file.
+ *
+ * @param {string} file path, used only to tell `.svelte` from script files
+ * @param {string} text file content
+ * @returns {{code: string, lineOffset: number, module: boolean}[]} `module` is
+ *   true for a `<script module>` or `<script context="module">` block, false
+ *   for an instance script and for a script file
+ */
+export function codeRegions(file, text) {
+	if (!file.endsWith('.svelte')) return [{ code: text, lineOffset: 0, module: false }];
 	return [...text.matchAll(SCRIPT_RE)].map((m) => {
 		// The block's code starts after the opening tag, whose `[^>]*` holds no `>`.
-		const start = m.index + m[0].indexOf('>') + 1;
-		return { code: m[1], lineOffset: text.slice(0, start).split('\n').length - 1 };
+		const tagEnd = m[0].indexOf('>');
+		const start = m.index + tagEnd + 1;
+		return {
+			code: m[1],
+			lineOffset: text.slice(0, start).split('\n').length - 1,
+			module: MODULE_ATTR_RE.test(m[0].slice(0, tagEnd)),
+		};
 	});
 }
 
@@ -70,41 +87,55 @@ function allInlineTypes(elements) {
 }
 
 /**
- * Lists the module specifiers of one file: static and type-only imports,
- * `export … from`, `import()` calls and `import('x')` types.
+ * Lists the module specifiers of one parsed code region: static and type-only
+ * imports, `export … from`, `import()` calls and `import('x')` types.
+ *
+ * @param {import('typescript').SourceFile} sf the region, parsed with parent pointers set
+ * @param {number} lineOffset lines of the file that precede the region
+ * @returns {{spec: string | null, kind: 'static' | 'reexport' | 'dynamic' | 'import-type', typeOnly: boolean, line: number}[]}
+ *   `spec` is null for an `import()` whose argument is not a plain string literal.
+ *   `line` is 1-based, counted from the start of the file.
+ */
+export function extractImportsFromSource(sf, lineOffset) {
+	const out = [];
+	const lineOf = (n) => lineOffset + sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+	const visit = (n) => {
+		if (ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier)) {
+			const c = n.importClause;
+			let typeOnly = c?.phaseModifier === ts.SyntaxKind.TypeKeyword;
+			if (c && !typeOnly && !c.name && c.namedBindings && ts.isNamedImports(c.namedBindings))
+				typeOnly = allInlineTypes(c.namedBindings.elements);
+			out.push({ spec: n.moduleSpecifier.text, kind: 'static', typeOnly, line: lineOf(n) });
+		} else if (ts.isExportDeclaration(n) && n.moduleSpecifier && ts.isStringLiteral(n.moduleSpecifier)) {
+			const named = n.exportClause && ts.isNamedExports(n.exportClause) ? n.exportClause.elements : [];
+			const typeOnly = n.isTypeOnly || allInlineTypes(named);
+			out.push({ spec: n.moduleSpecifier.text, kind: 'reexport', typeOnly, line: lineOf(n) });
+		} else if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword) {
+			const a = n.arguments[0];
+			const literal = a && (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a));
+			out.push({ spec: literal ? a.text : null, kind: 'dynamic', typeOnly: false, line: lineOf(n) });
+		} else if (ts.isImportTypeNode(n) && ts.isLiteralTypeNode(n.argument) && ts.isStringLiteral(n.argument.literal)) {
+			out.push({ spec: n.argument.literal.text, kind: 'import-type', typeOnly: true, line: lineOf(n) });
+		}
+		ts.forEachChild(n, visit);
+	};
+	visit(sf);
+	return out;
+}
+
+/**
+ * Lists the module specifiers of one file, every code region of it: see
+ * `extractImportsFromSource`.
  *
  * @param {string} file path, used only to tell `.svelte` from script files
  * @param {string} text file content
  * @returns {{spec: string | null, kind: 'static' | 'reexport' | 'dynamic' | 'import-type', typeOnly: boolean, line: number}[]}
- *   `spec` is null for an `import()` whose argument is not a plain string literal.
- *   `line` is 1-based, counted from the start of the file.
  */
 export function extractImports(file, text) {
 	const out = [];
 	for (const { code, lineOffset } of codeRegions(file, text)) {
 		const sf = ts.createSourceFile('x.ts', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-		const lineOf = (n) => lineOffset + sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
-		const visit = (n) => {
-			if (ts.isImportDeclaration(n) && ts.isStringLiteral(n.moduleSpecifier)) {
-				const c = n.importClause;
-				let typeOnly = c?.phaseModifier === ts.SyntaxKind.TypeKeyword;
-				if (c && !typeOnly && !c.name && c.namedBindings && ts.isNamedImports(c.namedBindings))
-					typeOnly = allInlineTypes(c.namedBindings.elements);
-				out.push({ spec: n.moduleSpecifier.text, kind: 'static', typeOnly, line: lineOf(n) });
-			} else if (ts.isExportDeclaration(n) && n.moduleSpecifier && ts.isStringLiteral(n.moduleSpecifier)) {
-				const named = n.exportClause && ts.isNamedExports(n.exportClause) ? n.exportClause.elements : [];
-				const typeOnly = n.isTypeOnly || allInlineTypes(named);
-				out.push({ spec: n.moduleSpecifier.text, kind: 'reexport', typeOnly, line: lineOf(n) });
-			} else if (ts.isCallExpression(n) && n.expression.kind === ts.SyntaxKind.ImportKeyword) {
-				const a = n.arguments[0];
-				const literal = a && (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a));
-				out.push({ spec: literal ? a.text : null, kind: 'dynamic', typeOnly: false, line: lineOf(n) });
-			} else if (ts.isImportTypeNode(n) && ts.isLiteralTypeNode(n.argument) && ts.isStringLiteral(n.argument.literal)) {
-				out.push({ spec: n.argument.literal.text, kind: 'import-type', typeOnly: true, line: lineOf(n) });
-			}
-			ts.forEachChild(n, visit);
-		};
-		visit(sf);
+		out.push(...extractImportsFromSource(sf, lineOffset));
 	}
 	return out;
 }
@@ -152,8 +183,13 @@ const OPEN_LAYERS = new Set(['contracts']);
  * Returns the rule an edge breaks, or null. Package imports (`to` null) and
  * imports of `src/lib/contracts/` break none. `src/routes` is not scanned, so
  * "only routes import `app/`" means no scanned file outside `app/` may.
+ *
+ * @param {string} from repo-relative path of the importing file
+ * @param {string | null} to repo-relative path of the imported file, null for a package
+ * @param {Record<string, string[]>} [pluginAllowlist] plugin units each plugin unit may import
+ * @returns {string | null} the rule name, e.g. `core->features`
  */
-function ruleFor(from, to, pluginAllowlist) {
+export function ruleFor(from, to, pluginAllowlist = PLUGIN_ALLOWLIST) {
 	if (to === null) return null;
 	const f = locate(from);
 	const t = locate(to);

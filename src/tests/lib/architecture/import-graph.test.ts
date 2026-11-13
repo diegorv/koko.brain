@@ -1,16 +1,23 @@
 import { describe, expect, it } from 'vitest';
 import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 
 import {
+	codeRegions,
 	cyclePath,
 	extractImports,
+	extractImportsFromSource,
 	featurePairs,
 	locate,
+	PLUGIN_ALLOWLIST,
 	resolveSpecifier,
+	ruleFor,
 	stronglyConnected,
 } from '../../../../scripts/import-graph.mjs';
+
+const ts = createRequire(import.meta.url)('typescript');
 
 /** Specifier, kind and line of each import, the shape most assertions compare. */
 function brief(file: string, text: string) {
@@ -142,6 +149,48 @@ describe('extractImports', () => {
 
 	it('returns nothing for a file with no imports', () => {
 		expect(brief('src/lib/x.ts', '')).toEqual([]);
+	});
+});
+
+describe('codeRegions', () => {
+	it('returns a script file whole, at offset 0', () => {
+		expect(codeRegions('src/lib/x.ts', 'let a = 1;')).toEqual([{ code: 'let a = 1;', lineOffset: 0, module: false }]);
+	});
+
+	it('returns each `<script>` block of a .svelte file with its line offset and whether it is the module script', () => {
+		const svelte = ['<script module lang="ts">', '\tlet a = 1;', '</script>', '<script lang="ts">', '\tlet b = 2;', '</script>'].join(
+			'\n',
+		);
+		expect(codeRegions('src/lib/X.svelte', svelte)).toEqual([
+			{ code: '\n\tlet a = 1;\n', lineOffset: 0, module: true },
+			{ code: '\n\tlet b = 2;\n', lineOffset: 3, module: false },
+		]);
+	});
+
+	it('reads the Svelte 4 `context="module"` attribute as the module script', () => {
+		expect(codeRegions('src/lib/X.svelte', '<script context="module">\nlet a;\n</script>')[0].module).toBe(true);
+		expect(codeRegions('src/lib/X.svelte', '<script lang="ts" data-module="x">\nlet a;\n</script>')[0].module).toBe(false);
+	});
+});
+
+describe('extractImportsFromSource', () => {
+	it('reads one parsed region, adding its line offset', () => {
+		const code = "\nimport { a } from '#lib/a.js';\nconst m = await import('./m.js');";
+		const sf = ts.createSourceFile('x.ts', code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+		expect(extractImportsFromSource(sf, 10)).toEqual([
+			{ spec: '#lib/a.js', kind: 'static', typeOnly: false, line: 12 },
+			{ spec: './m.js', kind: 'dynamic', typeOnly: false, line: 13 },
+		]);
+	});
+});
+
+describe('ruleFor', () => {
+	it('names the broken rule of one edge, defaulting to the documented plugin allowlist', () => {
+		expect(ruleFor('src/lib/core/a/a.ts', 'src/lib/features/b/b.ts')).toBe('core->features');
+		expect(ruleFor('src/lib/plugins/calendar/c.ts', 'src/lib/plugins/periodic-notes/p.ts')).toBeNull();
+		expect(ruleFor('src/lib/plugins/calendar/c.ts', 'src/lib/plugins/kanban/k.ts')).toBe('plugin->plugin');
+		expect(ruleFor('src/lib/plugins/calendar/c.ts', 'src/lib/plugins/kanban/k.ts', { 'plugins/calendar': ['plugins/kanban'] })).toBeNull();
+		expect(ruleFor('src/lib/core/a/a.ts', null, PLUGIN_ALLOWLIST)).toBeNull();
 	});
 });
 
