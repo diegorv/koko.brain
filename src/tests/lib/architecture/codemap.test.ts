@@ -4181,7 +4181,7 @@ describe('real repo', () => {
 			if (f.startsWith('src/lib/components/ui/') || f.startsWith('src/lib/contracts/generated/')) continue;
 			const text = model.inputs.get(f)!;
 			const regions = f.endsWith('.svelte')
-				? [...text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)].map((m) => ({ code: m[2], instance: !/\bmodule\b/.test(m[1]) }))
+				? [...text.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gi)].map((m) => ({ code: m[2], instance: !/\bmodule\b/.test(m[1]) }))
 				: [{ code: text, instance: false }];
 			if (f.endsWith('.svelte')) expected++;
 			for (const r of regions) {
