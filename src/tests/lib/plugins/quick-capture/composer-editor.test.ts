@@ -61,6 +61,17 @@ function typeText(view: EditorView, text: string) {
 	}
 }
 
+/**
+ * Types `ch` as DOM text input does: the `inputHandler` facet sees it first,
+ * which is where closeBrackets() acts. `view.dispatch` skips that facet.
+ */
+function typeThroughInputHandlers(view: EditorView, ch: string) {
+	const at = view.state.selection.main.head;
+	const insert = () => view.state.update({ changes: { from: at, insert: ch }, selection: { anchor: at + 1 }, userEvent: 'input.type' });
+	const handled = view.state.facet(EditorView.inputHandler).some((handler) => handler(view, at, at, ch, insert));
+	if (!handled) view.dispatch(insert());
+}
+
 function press(view: EditorView, key: string, mods: KeyboardEventInit = {}): KeyboardEvent {
 	const event = new KeyboardEvent('keydown', { key, bubbles: true, cancelable: true, ...mods });
 	view.contentDOM.dispatchEvent(event);
@@ -142,7 +153,8 @@ describe('createComposerEditor', () => {
 
 		it('offers no date shortcut and does not close brackets', async () => {
 			const { view } = mount();
-			typeText(view, '@today [');
+			typeText(view, '@today ');
+			typeThroughInputHandlers(view, '[');
 			await new Promise((resolve) => setTimeout(resolve, 250));
 
 			expect(listShown(view)).toBe(false);
