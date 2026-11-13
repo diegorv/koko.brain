@@ -60,8 +60,8 @@ file src/lib/core/markdown-editor/extensions/lezer/math-extension.ts other L115 
 file src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts other L70 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/code-highlight.logic.ts logic L47 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/live-preview/core/block-band-click.ts other L203 module src/lib/core/markdown-editor in2 t1
-file src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts other L91 module src/lib/core/markdown-editor in11 t1
-file src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts other L61 module src/lib/core/markdown-editor in6 t2
+file src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts other L92 module src/lib/core/markdown-editor in11 t1
+file src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts other L68 module src/lib/core/markdown-editor in6 t2
 file src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts other L108 module src/lib/core/markdown-editor in4 t2 | The live-preview decorator kill-switch vocabulary — every name the Troubleshooting section renders a switch for, split by what installs it.
 file src/lib/core/markdown-editor/extensions/live-preview/core/effects.ts other L42 module src/lib/core/markdown-editor in6 t8
 file src/lib/core/markdown-editor/extensions/live-preview/core/expanded-ranges.ts other L16 module src/lib/core/markdown-editor in5 t1
@@ -127,7 +127,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.t
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field.ts other L49 module src/lib/core/markdown-editor in1 t3
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-button-field.ts other L49 module src/lib/core/markdown-editor in1 t2
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts other L93 module src/lib/core/markdown-editor in1 t3
-file src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts other L73 module src/lib/core/markdown-editor in1 t3
+file src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts other L77 module src/lib/core/markdown-editor in1 t3
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts other L69 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/video-plugin.ts other L56 module src/lib/core/markdown-editor in1 t2
 file src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts other L98 module src/lib/core/markdown-editor in1 t2

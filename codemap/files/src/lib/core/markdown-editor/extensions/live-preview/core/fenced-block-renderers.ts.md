@@ -5,7 +5,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-rend
 imp src/lib/app/editor-host.ts:18 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts type:FencedBlockRenderer
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:35 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts type:FencedBlockRenderer
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/collection-block-field.ts:5 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts fencedBlockRenderers
-imp src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:5 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts fencedBlockRenderers
+imp src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:6 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts fencedBlockRenderers
 imp src/lib/core/markdown-editor/setup/editor-extensions.ts:28 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts fencedBlockRenderers,type:FencedBlockRenderer
 imp src/lib/features/collection/collection-block-widget.ts:2 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts type:FencedBlockRenderer
 imp src/lib/plugins/queryjs/queryjs-block-widget.ts:3 -> src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts type:FencedBlockRenderer
@@ -34,5 +34,5 @@ by src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-render
 by src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:FencedBlockRenderer <- src/lib/plugins/queryjs/queryjs-block-widget.ts:3 in (module) import
 sym src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:34 const fencedBlockRenderers = Facet.define(…) L10 | The registered renderers by language.
 by src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers <- src/lib/core/markdown-editor/extensions/live-preview/plugins/collection-block-field.ts:12 in computeCollectionBlocks ref
-by src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers <- src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:14 in computeQueryjsBlocks ref
+by src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers <- src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:15 in computeQueryjsBlocks ref
 by src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:fencedBlockRenderers <- src/lib/core/markdown-editor/setup/editor-extensions.ts:130 in createExtensions mcall

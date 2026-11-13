@@ -12,7 +12,7 @@ imp src/lib/core/markdown-editor/extensions/live-preview/plugins/collection-bloc
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/frontmatter-field.ts:6 -> src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts hideLines
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field.ts:6 -> src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts hideLines
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-button-field.ts:7 -> src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts hideLines
-imp src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:6 -> src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts hideLines
+imp src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:7 -> src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts hideLines
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts:6 -> src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts hideLines
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/video-plugin.ts:6 -> src/lib/core/markdown-editor/extensions/live-preview/core/hide-lines.ts hideLines
 ## reach

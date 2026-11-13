@@ -4,7 +4,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts other L
 ## imports
 imp src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:2 -> src/lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.ts mouseSelectingField
 ## imported-by
-imp src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts:4 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts sameTouchedLines
+imp src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts:5 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts sameTouchedLines
 imp src/lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.ts:6 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate,type:RevealPredicate
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/audio-plugin.ts:8 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/block-comment-field.ts:7 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
@@ -17,7 +17,7 @@ imp src/lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.ts
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field.ts:8 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-button-field.ts:9 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts:11 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
-imp src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:10 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
+imp src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:11 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts:8 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/video-plugin.ts:8 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts:11 -> src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts revealPredicate
@@ -35,7 +35,7 @@ by src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:RevealPre
 sym src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:11 interface LineInterval L6 | A run of consecutive 1-based line numbers, `first` to `last` inclusive.
 sym src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:26 fn touchedLines(state: EditorState): LineInterval[] L13 | The lines touched by any selection range (each cursor of a multi-cursor, every line of a multi-line selection), as sorted, merged intervals: two selections tha…
 sym src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:44 fn sameTouchedLines(a: EditorState, b: EditorState): boolean L5 | True when both states' selections touch exactly the same lines, so `revealPredicate` gives the same answer for every range in both.
-by src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:sameTouchedLines <- src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts:35 in checkUpdateAction call
+by src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:sameTouchedLines <- src/lib/core/markdown-editor/extensions/live-preview/core/check-update-action.ts:41 in checkUpdateAction call
 sym src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:66 fn revealPredicate(state: EditorState): RevealPredicate L12 | The live-preview reveal rule: syntax is shown as source on every line in `touchedLines(state)`.
 by src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:revealPredicate <- src/lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.ts:121 in buildInlineDecorations call
 by src/lib/core/markdown-editor/extensions/live-preview/core/reveal.ts:revealPredicate <- src/lib/core/markdown-editor/extensions/live-preview/plugins/audio-plugin.ts:13 in computeAudioBlocks call

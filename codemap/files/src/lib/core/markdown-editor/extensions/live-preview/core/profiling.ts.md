@@ -38,7 +38,7 @@ by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:report
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:reportError <- src/lib/core/markdown-editor/extensions/tag/completion.ts:28 in tagCompletionSource call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:reportError <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:21 in resolveTargetContent call
 sym src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:51 fn profileStart(label?: string): number L5 | Starts a profiling measurement for a live preview decoration plugin.
-by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileStart <- src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:83 in blockDecorator call
+by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileStart <- src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:84 in blockDecorator call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileStart <- src/lib/core/markdown-editor/extensions/live-preview/core/scroll-debounce-plugin.ts:36 in scrollDebouncePlugin call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileStart <- src/lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.ts:197 in makeInlineFormattingPlugin call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileStart <- src/lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.ts:43 in footnotePlugin call
@@ -48,7 +48,7 @@ by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profil
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileStart <- src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts:45 in wikilinkEmbedPlugin call
 more by 1 not shown: src/lib/plugins/queryjs(1): q importers src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileStart
 sym src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:66 fn profileEnd(label: string, start: number, threshold: number = 0.5): void L8 | Ends a profiling measurement and logs the result if it exceeds the threshold.
-by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileEnd <- src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:85 in blockDecorator call
+by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileEnd <- src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:86 in blockDecorator call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileEnd <- src/lib/core/markdown-editor/extensions/live-preview/core/scroll-debounce-plugin.ts:27 in scrollDebouncePlugin call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileEnd <- src/lib/core/markdown-editor/extensions/live-preview/inline/inline-formatting-plugin.ts:203 in makeInlineFormattingPlugin call
 by src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:profileEnd <- src/lib/core/markdown-editor/extensions/live-preview/plugins/footnote-plugin.ts:48 in footnotePlugin call

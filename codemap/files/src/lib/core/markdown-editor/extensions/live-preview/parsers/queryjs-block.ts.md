@@ -4,7 +4,7 @@ file src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.
 ## imports
 imp src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts:2 -> src/lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.ts findSpecialFenceBlocks
 ## imported-by
-imp src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:4 -> src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts findAllQueryjsBlocks
+imp src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:5 -> src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts findAllQueryjsBlocks
 ## reach
 in2 src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts 1 files in 1 modules: src/lib/core/markdown-editor(1)
 out2 src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts 0 files in 0 modules: -
@@ -13,6 +13,6 @@ test src/tests/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-
 ## symbols
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts:5 interface QueryjsBlockInfo L12 | Information about a ```queryjs code block
 sym src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts:22 fn findAllQueryjsBlocks(state: EditorState): QueryjsBlockInfo[] L6 | Finds every closed ```queryjs block, from the Lezer `FencedCode` nodes. A queryjs fence nested in a larger fence is code text and is not returned.
-by src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts:findAllQueryjsBlocks <- src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:19 in computeQueryjsBlocks call
+by src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts:findAllQueryjsBlocks <- src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts:20 in computeQueryjsBlocks call
 ## calls
 call src/lib/core/markdown-editor/extensions/live-preview/parsers/queryjs-block.ts:23 in findAllQueryjsBlocks -> src/lib/core/markdown-editor/extensions/live-preview/parsers/fenced-code-block.ts:findSpecialFenceBlocks call
