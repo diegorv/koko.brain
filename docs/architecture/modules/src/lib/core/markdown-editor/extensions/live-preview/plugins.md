@@ -9,7 +9,7 @@ Holds the CodeMirror decorators for block-level constructs (frontmatter, code bl
 ## Key files
 
 - `src/lib/core/markdown-editor/extensions/live-preview/plugins/mermaid-field.ts`: Smallest complete block decorator and the template for new block constructs.
-- `src/lib/core/markdown-editor/extensions/live-preview/plugins/frontmatter-field.ts`: The one block decorator not built with blockDecorator: a StateField that profiles itself, plus frontmatterClick (keeps a press in the hidden frontmatter out of it) and frontmatterGutter, with frontmatterEnd as the shared helper.
+- `src/lib/core/markdown-editor/extensions/live-preview/plugins/frontmatter-field.ts`: The one block decorator not built with blockDecorator: a StateField that profiles itself, plus frontmatterClick (keeps a press in the hidden frontmatter out of it), frontmatterGuard (keeps keyboard deletions, moves and selections out of it) and frontmatterGutter, with frontmatterEnd as the shared helper.
 - `src/lib/core/markdown-editor/extensions/live-preview/plugins/queryjs-block-field.ts`: Block decorator with a gate limiting rebuilds to document edits, selection changes, forced rebuilds and drag release; looks up its renderer in the fencedBlockRenderers facet.
 - `src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts`: Callout decorator using rebuildOn for the fold effect; its type popover writes document text.
 - `src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts`: Representative residual inline ViewPlugin that reads frontmatter for initial values.

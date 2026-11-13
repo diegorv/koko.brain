@@ -1,5 +1,5 @@
-import { EditorSelection, RangeSetBuilder, StateField } from '@codemirror/state';
-import type { EditorState } from '@codemirror/state';
+import { EditorSelection, EditorState, RangeSetBuilder, StateField, Transaction } from '@codemirror/state';
+import type { SelectionRange } from '@codemirror/state';
 import { Decoration, type DecorationSet, EditorView, gutterLineClass } from '@codemirror/view';
 import { findFrontmatterBlock } from '../parsers/frontmatter';
 import { hiddenGutterMarker } from '../styles';
@@ -83,7 +83,8 @@ function isBlockWidgetLine(view: EditorView, pos: number): boolean {
  * table or math block), a cursor there would reveal its source, so the press
  * keeps the selection as it is, as `blockBandClick` does for a band between
  * two blocks. Any other press gets the next style or the default.
- * Keyboard moves (ArrowUp into the frontmatter) are not changed.
+ * Keyboard selections and edits next to the frontmatter are handled by
+ * `frontmatterGuard`, which leaves pointer selections to this style.
  */
 export const frontmatterClick = EditorView.mouseSelectionStyle.of((view, event) => {
 	if (event.button !== 0) return null;
@@ -108,6 +109,91 @@ export const frontmatterClick = EditorView.mouseSelectionStyle.of((view, event) 
 		},
 	};
 });
+
+/** Whether `tr` is a keyboard deletion or move, the only user edits that can cross the body start. */
+function isDeleteOrMove(tr: Transaction): boolean {
+	return tr.isUserEvent('delete') || tr.isUserEvent('move');
+}
+
+/**
+ * Keeps `delete*` and `move*` user edits off the hidden frontmatter. A move
+ * that touches it is dropped whole (applying half of `moveLine` would write a
+ * second `---` under the first body line). A deletion of only the line break
+ * after the closing fence, up to another line break, passes: the fence stays
+ * `---` plus a line break (Backspace on a blank first body line, `deleteLine`
+ * on the first body line). A deletion that inserts there is dropped; any
+ * other is narrowed to its body part. `input.*` is not filtered: once the
+ * selection clamp keeps the caret at or after the body start, typing edits
+ * only the caret's line, and lang-markdown's Enter at the body start sees a
+ * bare `---` above and falls through to `insertNewlineAndIndent`.
+ */
+const frontmatterChangeGuard = EditorState.changeFilter.of((tr) => {
+	if (!tr.docChanged || !isDeleteOrMove(tr)) return true;
+	const start = bodyStart(tr.startState);
+	if (start === null) return true;
+	const hidden: { fromA: number; toA: number; inserts: boolean }[] = [];
+	tr.changes.iterChanges((fromA, toA, _fromB, _toB, inserted) => {
+		if (fromA < start) hidden.push({ fromA, toA, inserts: inserted.length > 0 });
+	});
+	if (hidden.length === 0) return true;
+	if (tr.isUserEvent('move')) return false;
+	const doc = tr.startState.doc;
+	if (hidden.length === 1) {
+		const { fromA, toA, inserts } = hidden[0];
+		if (!inserts && fromA === start - 1 && toA < doc.length && doc.sliceString(toA, toA + 1) === '\n') return true;
+	}
+	if (hidden.some((c) => c.inserts)) return false;
+	return [0, start];
+});
+
+/**
+ * Keeps keyboard selections at or after the body start. It runs for `select*`
+ * user events except `select.pointer` (owned by `frontmatterClick`) and Find
+ * Next / Previous (exactly `select.search`, so a frontmatter match can still
+ * be stepped past), and after every `delete*` and `move*`. When the change
+ * guard blocked a deletion or move, the selection CodeMirror mapped back
+ * through the blocked change would sit on the hidden closing fence, so the
+ * start selection is kept instead. The `[tr, { selection, sequential: true }]`
+ * form keeps every annotation (userEvent, `fromHistory`) and effect of `tr`.
+ */
+const frontmatterSelectionGuard = EditorState.transactionFilter.of((tr) => {
+	const edit = isDeleteOrMove(tr);
+	if (
+		!edit &&
+		(!tr.isUserEvent('select') ||
+			tr.isUserEvent('select.pointer') ||
+			tr.annotation(Transaction.userEvent) === 'select.search')
+	) {
+		return tr;
+	}
+	const start = bodyStart(tr.startState);
+	if (start === null) return tr;
+	const blocked = edit && !tr.docChanged;
+	const base = blocked ? tr.startState.selection : tr.newSelection;
+	if (!blocked && base.ranges.every((r) => r.from >= start)) return tr;
+
+	const ranges: SelectionRange[] = [];
+	let main = 0;
+	base.ranges.forEach((r, i) => {
+		if (r.to < start) return;
+		if (i === base.mainIndex) main = ranges.length;
+		ranges.push(r.from >= start ? r : EditorSelection.range(Math.max(r.anchor, start), Math.max(r.head, start)));
+	});
+	const selection = ranges.length > 0 ? EditorSelection.create(ranges, main) : EditorSelection.single(start);
+	return [tr, { selection, sequential: true }];
+});
+
+/**
+ * Keyboard guard for the hidden frontmatter: a change filter on `delete*` and
+ * `move*` user edits plus a selection clamp, so keyboard commands cannot edit
+ * or land on the fences the user cannot see. Pure filters with no view
+ * access; installed with the `frontmatter` kill switch. Undo and redo dispatch
+ * with `filter: false`, and programmatic writes carry no userEvent, so neither
+ * reaches it. Do not use `atomicRanges` (`deleteBy` would then delete the
+ * whole frontmatter on Backspace at the body start) or `Prec` (it would run
+ * this filter after `indentOnInput` instead of before).
+ */
+export const frontmatterGuard = [frontmatterChangeGuard, frontmatterSelectionGuard];
 
 /** Hides gutter cells for all frontmatter lines */
 export const frontmatterGutter = gutterLineClass.compute(['doc'], (state) => {
