@@ -33,7 +33,7 @@ Kokobrain's features, grouped by area. Each item links to the matching page of t
 - **Note types**: declare `type: Project` in frontmatter and browse by type in the Types navigator ([guide](../help/documentation/25-types-and-relationships.md))
 - **Relationships**: semantic `_belongs_to` / `_related_to` / `_has_many` fields with relationship backlinks ([guide](../help/documentation/25-types-and-relationships.md))
 - **Lifecycle**: organize, archive and favorite notes from the note action bar, with an Inbox (optionally filled by every new note), an Archive and a macOS dock badge showing the inbox count ([guide](../help/documentation/25-types-and-relationships.md))
-- **Auto Organize**: move notes and set their properties, icons and colors with rules ([guide](../help/documentation/22-auto-organize.md))
+- **Auto Organize**: rules that run when a note is saved to move or rename it, set its properties, icons and colors, create another note or run a mod action ([guide](../help/documentation/22-auto-organize.md))
 - **Custom file icons**: 11 icon packs plus emoji, with a color picker ([guide](../help/documentation/02-file-explorer.md))
 - **Folder notes** ([guide](../help/documentation/02-file-explorer.md))
 - **Trash** with restore ([guide](../help/documentation/18-trash.md))
