@@ -257,13 +257,12 @@ describe('createComposerEditor', () => {
 	});
 
 	describe('setup', () => {
-		it('labels the field and keeps the text field defaults for spelling and autocorrect', () => {
+		it('labels the field and names its placeholder for screen readers', () => {
 			const { view } = mount();
 
 			expect(view.contentDOM.getAttribute('aria-label')).toBe('Quick capture composer');
+			expect(view.contentDOM.getAttribute('aria-placeholder')).toBe('Quick capture...');
 			expect(view.contentDOM.getAttribute('spellcheck')).toBe('false');
-			expect(view.contentDOM.getAttribute('autocorrect')).toBe('on');
-			expect(view.contentDOM.getAttribute('writingsuggestions')).toBe('true');
 		});
 
 		it('reports every change synchronously', () => {

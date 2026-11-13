@@ -140,7 +140,7 @@
 		}
 		saved = true;
 		// `saving` stays set through the flash: the written text is still in the
-		// textarea, so a second Cmd+Enter here would capture it twice.
+		// editor, so a second Cmd+Enter here would capture it twice.
 		await new Promise<void>((resolve) => setTimeout(resolve, SAVE_FLASH_MS));
 		saved = false;
 		// Written: dropping it from the text (and so the draft) leaves only what

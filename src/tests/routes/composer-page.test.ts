@@ -508,7 +508,8 @@ describe('composer save', () => {
 			await waitForList();
 			expect(target.querySelector('.cm-tooltip-autocomplete')!.textContent).toContain('project');
 			typeKeys('j');
-			await waitForList();
+			// The query ran again: `#proj` no longer offers prose.
+			await vi.waitFor(() => expect(target.querySelector('.cm-tooltip-autocomplete')!.textContent).not.toContain('prose'));
 			expect(count('get_all_tags_v2')).toBe(1);
 
 			press({ key: 'Escape' });
@@ -587,6 +588,20 @@ describe('composer save', () => {
 				text: '#pro',
 				requestId: expect.any(String),
 			});
+		});
+
+		it('switches the editor to dark and back with the theme the main window stores', async () => {
+			localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify({ '--editor-bg': '#fafafa' }));
+			summon();
+			expect(editorView().state.facet(EditorView.darkTheme)).toBe(false);
+
+			localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify({ '--editor-bg': '#101010' }));
+			window.dispatchEvent(new StorageEvent('storage', { key: THEME_VARS_STORAGE_KEY }));
+			expect(editorView().state.facet(EditorView.darkTheme)).toBe(true);
+
+			localStorage.setItem(THEME_VARS_STORAGE_KEY, JSON.stringify({ '--editor-bg': '#fafafa' }));
+			summon();
+			expect(editorView().state.facet(EditorView.darkTheme)).toBe(false);
 		});
 
 		it('hides the placeholder once there is text', () => {

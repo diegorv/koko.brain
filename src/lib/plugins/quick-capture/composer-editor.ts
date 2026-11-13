@@ -25,7 +25,7 @@ export interface ComposerEditorOptions {
 
 const themeCompartment = new Compartment();
 
-/** The textarea look the composer had: transparent, system font, no padding. */
+/** The composer surface: transparent over the popover, system font, no padding. */
 const composerSurfaceTheme = EditorView.theme({
 	'&': {
 		backgroundColor: 'transparent',
@@ -69,8 +69,7 @@ function listShown(view: EditorView): boolean {
 }
 
 /**
- * The text field of the Quick Capture composer: plain text, as the textarea
- * it replaces, with the editor's `[[wikilink]]` and `#tag` completion. The
+ * The text field of the Quick Capture composer: plain text, with the editor's `[[wikilink]]` and `#tag` completion. The
  * two completion sources and the editor theme are the editor's own; no
  * markdown language, no closing brackets, no date shortcuts.
  *
@@ -107,17 +106,15 @@ export function createComposerEditor(opts: ComposerEditorOptions): EditorView {
 				}),
 				history(),
 				keymap.of([
-					// standardKeymap's Enter copies the line indent; a textarea does not.
+					// standardKeymap's Enter copies the line indent, which plain text should not.
 					{ key: 'Enter', run: insertNewline, shift: insertNewline },
 					...standardKeymap,
 					...historyKeymap.filter((binding) => binding.run === undo || binding.run === redo),
 				]),
 				EditorView.lineWrapping,
-				// CodeMirror turns these off; the textarea left them at their defaults.
 				EditorView.contentAttributes.of({
 					'aria-label': 'Quick capture composer',
-					autocorrect: 'on',
-					writingsuggestions: 'true',
+					'aria-placeholder': 'Quick capture...',
 				}),
 				themeCompartment.of(composerTheme(opts.dark)),
 				EditorView.updateListener.of((update) => {
