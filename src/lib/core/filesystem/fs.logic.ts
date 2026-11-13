@@ -167,6 +167,17 @@ export class PreDeleteSaveError extends Error {
 	}
 }
 
+/**
+ * Thrown by `renameItem` and `moveItem` when the target folder already holds
+ * the name. Its message is shown to the user.
+ */
+export class TargetExistsError extends Error {
+	constructor(name: string) {
+		super(`"${name}" already exists in this folder`);
+		this.name = 'TargetExistsError';
+	}
+}
+
 /** Validates a file name — rejects empty names, dot-prefixed names, and OS-forbidden characters */
 export function isValidFileName(name: string): boolean {
 	return getFileNameError(name) === null;

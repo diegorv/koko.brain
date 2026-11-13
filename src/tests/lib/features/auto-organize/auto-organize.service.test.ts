@@ -31,9 +31,15 @@ vi.mock('#lib/utils/debug.js', () => ({
 	error: vi.fn(),
 }));
 
+vi.mock('svelte-sonner', () => ({
+	toast: { info: vi.fn(), error: vi.fn(), success: vi.fn(), warning: vi.fn() },
+}));
+
+import { toast } from 'svelte-sonner';
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { createFile, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
+import { TargetExistsError } from '#lib/core/filesystem/fs.logic.js';
 import { setIconForPath } from '#lib/features/file-icons/file-icons.service.js';
 import { debug, error } from '#lib/utils/debug.js';
 import { autoOrganizeStore } from '#lib/features/auto-organize/auto-organize.store.svelte.js';
@@ -679,7 +685,7 @@ describe('auto-organize.service', () => {
 				excludedFolders: [],
 			});
 			vi.mocked(exists).mockResolvedValue(true);
-			vi.mocked(moveItem).mockRejectedValue(new Error('"note.md" already exists in this folder'));
+			vi.mocked(moveItem).mockRejectedValue(new Error('disk full'));
 
 			let capturedObserver: ((path: string, content: string) => void) | null = null;
 			vi.mocked(addAfterSaveObserver).mockImplementation((observer) => {
@@ -1181,7 +1187,7 @@ describe('auto-organize.service', () => {
 		});
 
 		it('a failed move writes nothing', async () => {
-			vi.mocked(moveItem).mockRejectedValue(new Error('"note.md" already exists in this folder'));
+			vi.mocked(moveItem).mockRejectedValue(new Error('disk full'));
 			await saveAndRun(
 				[rule('r1', [{ key: 'x', value: 1, mode: 'always' }], { destination: 'Archive' })],
 				NOTE,
@@ -2225,6 +2231,112 @@ describe('auto-organize.service', () => {
 				]);
 				expect(parseFrontmatterProperties(disk.get(FINAL)!)).toContainEqual({ key: 'reviewed', value: true, type: 'boolean' });
 				expect(disk.has(FOLLOW_UP)).toBe(true);
+			});
+		});
+
+		describe('move collision', () => {
+			const SOURCE = '/vault/inbox/Untitled Task.md';
+			const TASKS = '/vault/work/tasks';
+			const CONTENT = '---\ntype: task\n---\nbody';
+			/** Files tasks into work/tasks and marks them filed. */
+			const filer = rule('tasks', [{ key: 'filed', value: true, mode: 'always' }], { expression: "type == 'task'", destination: 'work/tasks' });
+			/** Files on the in-memory disk, by absolute path */
+			let disk: Map<string, string>;
+			/** Folders on the in-memory disk */
+			let folders: Set<string>;
+
+			beforeEach(() => {
+				disk = new Map();
+				folders = new Set(['/vault', '/vault/inbox', TASKS]);
+				vi.mocked(exists).mockImplementation(async (p) => disk.has(String(p)) || folders.has(String(p)));
+				vi.mocked(readTextFile).mockImplementation(async (p) => {
+					const content = disk.get(String(p));
+					if (content === undefined) throw new Error(`not found: ${p}`);
+					return content;
+				});
+				vi.mocked(writeTextFile).mockImplementation(async (p, content) => {
+					disk.set(String(p), String(content));
+				});
+				// The real `moveItem` refuses a taken name with a TargetExistsError; links
+				// follow its one path change (fs.service.test.ts `moveItem`).
+				vi.mocked(moveItem).mockImplementation(async (from, dir, name = from.slice(from.lastIndexOf('/') + 1)) => {
+					const to = `${dir}/${name}`;
+					if (disk.has(to)) throw new TargetExistsError(name);
+					disk.set(to, disk.get(from)!);
+					disk.delete(from);
+					return to;
+				});
+			});
+
+			/** Saves SOURCE on the in-memory disk and runs past the debounce. */
+			async function run(): Promise<void> {
+				autoOrganizeStore.setConfig({ rules: [filer], excludedFolders: [] });
+				disk.set(SOURCE, CONTENT);
+				captureObserver()(SOURCE, CONTENT);
+				await vi.advanceTimersByTimeAsync(100);
+			}
+
+			it('files a second Untitled Task as Untitled Task 2, writes its properties there, and toasts both names', async () => {
+				disk.set(`${TASKS}/Untitled Task.md`, 'first');
+
+				await run();
+
+				expect(moveItem).toHaveBeenLastCalledWith(SOURCE, TASKS, 'Untitled Task 2.md');
+				expect(disk.has(SOURCE)).toBe(false);
+				expect(disk.get(`${TASKS}/Untitled Task.md`)).toBe('first');
+				expect(parseFrontmatterProperties(disk.get(`${TASKS}/Untitled Task 2.md`)!)).toContainEqual({ key: 'filed', value: true, type: 'boolean' });
+				expect(toast.info).toHaveBeenCalledWith('Filed "Untitled Task" as "Untitled Task 2": work/tasks already has a note named "Untitled Task"');
+				expect(toast.error).not.toHaveBeenCalled();
+			});
+
+			it('takes the first free number when " 2" is taken too', async () => {
+				disk.set(`${TASKS}/Untitled Task.md`, 'first');
+				disk.set(`${TASKS}/Untitled Task 2.md`, 'second');
+
+				await run();
+
+				expect(moveItem).toHaveBeenLastCalledWith(SOURCE, TASKS, 'Untitled Task 3.md');
+				expect(disk.get(`${TASKS}/Untitled Task 2.md`)).toBe('second');
+				expect(disk.has(`${TASKS}/Untitled Task 3.md`)).toBe(true);
+				expect(toast.info).toHaveBeenCalledWith(expect.stringContaining('as "Untitled Task 3"'));
+			});
+
+			it('keeps the name and shows no toast when the destination does not hold it', async () => {
+				await run();
+
+				expect(moveItem).toHaveBeenCalledTimes(1);
+				expect(moveItem).toHaveBeenCalledWith(SOURCE, TASKS);
+				expect(disk.has(`${TASKS}/Untitled Task.md`)).toBe(true);
+				expect(toast.info).not.toHaveBeenCalled();
+				expect(toast.error).not.toHaveBeenCalled();
+			});
+
+			it('toasts any other move failure, once per note, and writes nothing', async () => {
+				vi.mocked(moveItem).mockRejectedValue(new Error('disk full'));
+
+				await run();
+				await run();
+
+				expect(moveItem).toHaveBeenCalledTimes(2);
+				expect(toast.error).toHaveBeenCalledTimes(1);
+				expect(toast.error).toHaveBeenCalledWith('Could not move "Untitled Task" to work/tasks: disk full');
+				expect(disk.get(SOURCE)).toBe(CONTENT);
+				expect(toast.info).not.toHaveBeenCalled();
+
+				resetAutoOrganize();
+				await run();
+				expect(toast.error).toHaveBeenCalledTimes(2);
+			});
+
+			it('toasts a destination folder that cannot be created, and moves nothing', async () => {
+				folders.delete(TASKS);
+				vi.mocked(mkdir).mockRejectedValueOnce(new Error('permission denied'));
+
+				await run();
+
+				expect(moveItem).not.toHaveBeenCalled();
+				expect(toast.error).toHaveBeenCalledWith('Could not move "Untitled Task" to work/tasks: permission denied');
+				expect(disk.get(SOURCE)).toBe(CONTENT);
 			});
 		});
 

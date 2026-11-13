@@ -207,6 +207,10 @@ The destination is a folder path relative to the vault root. An empty destinatio
 
 If the note is already in the destination folder, Kokobrain skips the move but still writes the rule's properties and legacy icon.
 
+If the destination folder already has a note with the same name, the note is moved under the first free numbered name, the way a [rename](#renaming-notes) numbers a taken name: a second `Untitled Task` filed into `work/tasks` becomes `work/tasks/Untitled Task 2.md`, then `Untitled Task 3.md`. Links to the note are updated, and a notification names the note and its new name.
+
+If the move fails for any other reason, such as a folder that cannot be created or written, a notification says so, once per note until you reopen the vault, and nothing else in the rule runs for that save.
+
 #### Dynamic Destinations
 
 Destination paths support `{variable}` templates that are resolved at move time based on the note's properties and location. This works in **all rules**: both user-defined rules and auto-generated [lifecycle rules](#type-driven-lifecycle-rules).

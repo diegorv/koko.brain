@@ -1,6 +1,7 @@
 import { readTextFile, writeTextFile, mkdir, exists } from '@tauri-apps/plugin-fs';
+import { toast } from 'svelte-sonner';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
-import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
+import { fileOperationErrorMessage, isViewFile, TargetExistsError } from '#lib/core/filesystem/fs.logic.js';
 import { createFile, moveItem, renameItem } from '#lib/core/filesystem/fs.service.js';
 import { isTabDirty } from '#lib/core/editor/editor.logic.js';
 import { loadNoteTemplate } from '#lib/core/note-creator/note-creator.service.js';
@@ -77,6 +78,9 @@ const reportedRenameFailures = new Set<string>();
 
 /** Rule ids whose mod action was not loaded, already logged this session. */
 const reportedMissingActions = new Set<string>();
+
+/** Note paths whose failed move was already shown in a toast this session. */
+const reportedMoveFailures = new Set<string>();
 
 /** `<problem>:<rule id>` pairs of create-note problems already logged this session. */
 const reportedCreateProblems = new Set<string>();
@@ -281,7 +285,9 @@ async function readCurrentContent(filePath: string): Promise<string | null> {
  * moves it, then, at the final path, the moving rule's legacy icon and every
  * matching rule's properties are written, and every matching rule's
  * `createNote` is created; last, the first matching rule with a `runAction`
- * starts it. A failed rename or move stops the run.
+ * starts it. A move into a folder that holds the note's name takes a free
+ * numbered name there (`moveToFreeName`). A failed rename or move stops the
+ * run; a failed move is shown in a toast.
  */
 async function evaluateAndMove(savedPath: string, content: string, vaultPath: string): Promise<void> {
 	const stats = ruleRecordStats(collectionStore.propertyIndex.get(savedPath), content, Date.now());
@@ -321,6 +327,7 @@ async function evaluateAndMove(savedPath: string, content: string, vaultPath: st
 		} else {
 			// Ensure destination folder exists
 			const destPath = `${vaultPath}/${resolvedDest}`;
+			const destLabel = resolvedDest || 'the vault root';
 			try {
 				const destExists = await exists(destPath);
 				if (!destExists) {
@@ -329,15 +336,17 @@ async function evaluateAndMove(savedPath: string, content: string, vaultPath: st
 				}
 			} catch (err) {
 				error('AUTO-ORGANIZE', 'Failed to create destination folder:', err);
+				reportMoveFailure(filePath, record.basename, destLabel, err);
 				return;
 			}
 
 			debug('AUTO-ORGANIZE', `Moving "${filePath}" to "${destPath}" (rule: ${rule.name})`);
 			let newPath: string | null;
 			try {
-				newPath = await moveItem(filePath, destPath);
-			} catch {
+				newPath = await moveToFreeName(filePath, destPath, destLabel, record);
+			} catch (err) {
 				// `moveItem` already logged the cause.
+				reportMoveFailure(filePath, record.basename, destLabel, err);
 				return;
 			}
 			if (!newPath) return;
@@ -369,6 +378,41 @@ async function evaluateAndMove(savedPath: string, content: string, vaultPath: st
 	// Outside the write phase: the action's own saves are ordinary saves.
 	const actionRule = matched.find((r) => sanitizeRunAction(r.runAction) !== undefined);
 	if (actionRule) runRuleAction(actionRule, targetPath, content, vaultPath);
+}
+
+/**
+ * Moves the note at `filePath` into `destPath` and returns its new path (null
+ * when it is already there). When the folder already holds its name, the note
+ * moves under the first free `<name> 2`, `<name> 3`... in one `moveItem`, so
+ * links to it follow, and a toast names the note and its new name. Throws
+ * `moveItem`'s error for any other failure.
+ * @param destLabel - the destination as the user reads it
+ */
+async function moveToFreeName(filePath: string, destPath: string, destLabel: string, record: PropertyIndexRecord): Promise<string | null> {
+	try {
+		return await moveItem(filePath, destPath);
+	} catch (err) {
+		if (!(err instanceof TargetExistsError)) throw err;
+	}
+	const { basename, ext } = record;
+	for (let n = 2; ; n++) {
+		const name = numberedName(basename, n);
+		if (await exists(`${destPath}/${name}${ext}`)) continue;
+		const newPath = await moveItem(filePath, destPath, `${name}${ext}`);
+		toast.info(`Filed "${basename}" as "${name}": ${destLabel} already has a note named "${basename}"`);
+		return newPath;
+	}
+}
+
+/**
+ * Shows a failed move of the note at `filePath` in a toast, once per note per
+ * session: the move is retried at every save, and a lasting cause such as a
+ * read-only folder would toast at each one.
+ */
+function reportMoveFailure(filePath: string, basename: string, destLabel: string, err: unknown): void {
+	if (reportedMoveFailures.has(filePath)) return;
+	reportedMoveFailures.add(filePath);
+	toast.error(fileOperationErrorMessage(`move {name} to ${destLabel}`, basename, err));
 }
 
 /**
@@ -726,6 +770,7 @@ export function resetAutoOrganize(): void {
 	reportedCreateProblems.clear();
 	reportedRenameFailures.clear();
 	reportedMissingActions.clear();
+	reportedMoveFailures.clear();
 	creatingPaths.clear();
 	autoOrganizeStore.reset();
 	debug('AUTO-ORGANIZE', 'Reset complete');

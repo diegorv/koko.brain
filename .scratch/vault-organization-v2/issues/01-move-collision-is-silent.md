@@ -6,14 +6,14 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, reproducing the problem; it passes after the change.
-- [ ] Filing a second `Untitled Task` lands as `Untitled Task 2`, its links are updated, and a toast names the note and its new name.
-- [ ] No silent failure remains in the move path.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, reproducing the problem; it passes after the change.
+- [x] Filing a second `Untitled Task` lands as `Untitled Task 2`, its links are updated, and a toast names the note and its new name.
+- [x] No silent failure remains in the move path.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -33,3 +33,4 @@ A rule move into a folder that already holds a file with the same name fails wit
 ## Comments
 
 - 2026-11-13, triage: ready-for-agent, P1. Decided: on a collision, pick a free name with a ` 2` suffix the way `applyRename` does (links updated), and show a toast naming the note and its new name.
+- 2026-11-13, deliver (branch issue/01-move-collision-is-silent): a rule move into a folder that already holds the name now files the note as `<name> 2` (links updated, toast names the note and its new name); `moveItem` accepts a new name and reports a clash as `TargetExistsError` without Sentry. Full suite: 637 files passed, 16939 tests passed, 54 skipped. Reviews: round 1 CHANGES_REQUESTED, fixed; round 2 APPROVED.

@@ -53,7 +53,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { readTextFile, writeTextFile, mkdir, remove, rename, exists, copyFile, readDir } from '@tauri-apps/plugin-fs';
 import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
-import { findNodeByPath } from '#lib/core/filesystem/fs.logic.js';
+import { findNodeByPath, TargetExistsError } from '#lib/core/filesystem/fs.logic.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
 import { registerCollectionNoteChangeConsumer } from '#lib/features/collection/collection.service.js';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1193,6 +1193,43 @@ describe('moveItem', () => {
 		consoleSpy.mockRestore();
 	});
 
+	it('throws a TargetExistsError on a taken name, so a caller can tell a clash from a disk failure', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(true);
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(moveItem('/vault/note.md', '/vault/folder')).rejects.toBeInstanceOf(TargetExistsError);
+		// A clash is a user-facing outcome each caller handles, not an app error for Sentry.
+		expect(error).not.toHaveBeenCalled();
+
+		consoleSpy.mockRestore();
+	});
+
+	it('moves under a new name in one step: tab and links follow to the new path', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(false);
+		vi.mocked(rename).mockResolvedValue(undefined);
+
+		const result = await moveItem('/vault/inbox/Untitled Task.md', '/vault/work/tasks', 'Untitled Task 2.md');
+
+		expect(result).toBe('/vault/work/tasks/Untitled Task 2.md');
+		expect(exists).toHaveBeenCalledWith('/vault/work/tasks/Untitled Task 2.md');
+		expect(rename).toHaveBeenCalledTimes(1);
+		expect(rename).toHaveBeenCalledWith('/vault/inbox/Untitled Task.md', '/vault/work/tasks/Untitled Task 2.md');
+		expect(updateTabAfterRenameOrMove).toHaveBeenCalledWith('/vault/inbox/Untitled Task.md', '/vault/work/tasks/Untitled Task 2.md');
+		expect(updateLinksAfterRename).toHaveBeenCalledWith('/vault/inbox/Untitled Task.md', '/vault/work/tasks/Untitled Task 2.md');
+	});
+
+	it('refuses a new name the target folder already holds', async () => {
+		vi.mocked(exists).mockResolvedValueOnce(true);
+		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		await expect(moveItem('/vault/inbox/Untitled Task.md', '/vault/work/tasks', 'Untitled Task 2.md')).rejects.toThrow(
+			'"Untitled Task 2.md" already exists in this folder',
+		);
+
+		expect(rename).not.toHaveBeenCalled();
+		consoleSpy.mockRestore();
+	});
+
 	it('calls the tab updater on move, and the link updater with an unchanged note name', async () => {
 		vi.mocked(exists).mockResolvedValueOnce(false);
 		vi.mocked(rename).mockResolvedValue(undefined);
@@ -1202,7 +1239,7 @@ describe('moveItem', () => {
 		expect(result).toBe('/vault/subfolder/note.md');
 		expect(updateTabAfterRenameOrMove).toHaveBeenCalledWith('/vault/note.md', '/vault/subfolder/note.md');
 		// `applyPathChange` routes rename and move through the same step. A move
-		// never changes the note name, so the real `updateLinksAfterRename`
+		// without a new name keeps the note name, so the real `updateLinksAfterRename`
 		// early-returns on its own same-name guard (pinned by
 		// link-updater.service.test.ts) and rewrites nothing.
 		expect(updateLinksAfterRename).toHaveBeenCalledWith('/vault/note.md', '/vault/subfolder/note.md');
@@ -1214,6 +1251,7 @@ describe('moveItem', () => {
 		const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
 		await expect(moveItem('/vault/note.md', '/vault/folder')).rejects.toThrow('rename error');
+		expect(error).toHaveBeenCalledWith('FS', 'Failed to move item:', expect.objectContaining({ message: 'rename error' }));
 
 		consoleSpy.mockRestore();
 	});

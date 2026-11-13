@@ -236,3 +236,32 @@ describe('replaceWikilinks resolution', () => {
 	});
 });
 
+describe('replaceWikilinks on a move under a numbered name', () => {
+	// Auto-organize files `inbox/Untitled Task` into a folder that already holds
+	// an `Untitled Task`, so the note moves and takes the name `Untitled Task 2`.
+	const OLD = '/v/inbox/Untitled Task.md';
+	const NEW = '/v/work/tasks/Untitled Task 2.md';
+	const NAMESAKE = '/v/work/tasks/Untitled Task.md';
+
+	it('rewrites a bare link the moved note owns, and leaves a link to the namesake alone', () => {
+		const rename = buildRenameResolution(OLD, NEW, [OLD, NAMESAKE], '/v');
+
+		expect(replaceWikilinks('[[Untitled Task]] [[Untitled Task#H|a]] [[work/tasks/Untitled Task.md]]', rename)).toBe(
+			'[[Untitled Task 2]] [[Untitled Task 2#H|a]] [[work/tasks/Untitled Task.md]]',
+		);
+	});
+
+	it('rewrites a path link to the moved note when the namesake owns the bare name', () => {
+		const rename = buildRenameResolution(OLD, NEW, [NAMESAKE, OLD], '/v');
+
+		const result = replaceWikilinks('[[inbox/Untitled Task.md]] [[Untitled Task]] [[work/tasks/Untitled Task.md]]', rename);
+
+		// The written form keeps its folder prefix because it still resolves to the
+		// moved note, by its new name.
+		expect(result).toBe('[[inbox/Untitled Task 2.md]] [[Untitled Task]] [[work/tasks/Untitled Task.md]]');
+		const after = buildResolutionCache([NAMESAKE, NEW]);
+		expect(resolveWikilinkCached('inbox/Untitled Task 2.md', after, '/v')).toBe(NEW);
+		expect(resolveWikilinkCached('Untitled Task', after, '/v')).toBe(NAMESAKE);
+	});
+});
+

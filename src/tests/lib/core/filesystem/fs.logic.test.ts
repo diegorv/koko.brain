@@ -15,6 +15,7 @@ import {
 	getFileNameError,
 	fileOperationErrorMessage,
 	PreDeleteSaveError,
+	TargetExistsError,
 	getLanguageForFile,
 	collectAllDirPaths,
 	collectFilePathsUnder,
@@ -434,6 +435,15 @@ describe('PreDeleteSaveError', () => {
 		expect(err).toBeInstanceOf(Error);
 		expect(err.path).toBe('/vault/a.md');
 		expect(err.message).toBe('Could not save "/vault/a.md" before moving it to the Trash');
+	});
+});
+
+describe('TargetExistsError', () => {
+	it('names the taken name in a message for the user', () => {
+		const err = new TargetExistsError('note.md');
+		expect(err).toBeInstanceOf(Error);
+		expect(err.name).toBe('TargetExistsError');
+		expect(err.message).toBe('"note.md" already exists in this folder');
 	});
 });
 

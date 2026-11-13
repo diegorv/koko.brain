@@ -3,7 +3,7 @@ import { revealItemInDir } from '@tauri-apps/plugin-opener';
 import { call } from '#lib/contracts/ipc.js';
 import type { FileTreeNode, FolderOrderMap } from './fs.types';
 import { fsStore } from './fs.store.svelte';
-import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, insertTreeNode, isMarkdownFile, renamedPath, type TreeOrder } from './fs.logic';
+import { getParentPath, getFileName, generateCopyName, generateUniqueName, applyFolderOrder, insertTreeNode, isMarkdownFile, renamedPath, TargetExistsError, type TreeOrder } from './fs.logic';
 import { applyNoteChange } from './note-change.service';
 import { applyPathChange } from './path-change.service';
 import { markRecentSave } from '#lib/core/editor/editor.hooks.js';
@@ -268,20 +268,15 @@ export async function deleteItem(itemPath: string, isDirectory: boolean = false)
 	}
 }
 
-/** The error a rename or move throws when the target name is taken. Its message is shown to the user. */
-function targetExistsError(name: string): Error {
-	return new Error(`"${name}" already exists in this folder`);
-}
-
 /**
- * Renames a file or folder and returns the new path. Throws when the target
- * already exists (the message names it) or the disk operation fails.
+ * Renames a file or folder and returns the new path. Throws a
+ * `TargetExistsError` when the target already exists, or the disk error.
  */
 export async function renameItem(oldPath: string, newName: string): Promise<string> {
 	const newPath = renamedPath(oldPath, newName);
 	try {
 		if (oldPath === newPath) return oldPath;
-		if (await exists(newPath)) throw targetExistsError(newName);
+		if (await exists(newPath)) throw new TargetExistsError(newName);
 		await applyPathChange({
 			from: oldPath,
 			to: newPath,
@@ -299,17 +294,18 @@ export async function renameItem(oldPath: string, newName: string): Promise<stri
 }
 
 /**
- * Moves a file or folder into a different directory. Returns the new path,
- * or null when the item is already there.
- * Throws when the target folder already holds that name or the disk
- * operation fails.
+ * Moves a file or folder into a different directory, as `fileName` there, in
+ * one path change (links and tabs follow). Returns the new path, or null when
+ * the item is already there.
+ * Throws a `TargetExistsError` when the target folder already holds that
+ * name, or the disk error.
+ * @param fileName - the name in the target folder; the item's own name by default
  */
-export async function moveItem(sourcePath: string, targetDirPath: string): Promise<string | null> {
-	const fileName = getFileName(sourcePath);
+export async function moveItem(sourcePath: string, targetDirPath: string, fileName = getFileName(sourcePath)): Promise<string | null> {
 	const newPath = `${targetDirPath}/${fileName}`;
 	try {
 		if (sourcePath === newPath) return null;
-		if (await exists(newPath)) throw targetExistsError(fileName);
+		if (await exists(newPath)) throw new TargetExistsError(fileName);
 		await applyPathChange({
 			from: sourcePath,
 			to: newPath,
@@ -321,7 +317,8 @@ export async function moveItem(sourcePath: string, targetDirPath: string): Promi
 		debug('FS', 'moved item:', sourcePath, '→', newPath);
 		return newPath;
 	} catch (err) {
-		error('FS', 'Failed to move item:', err);
+		// A taken name is not an app fault: every caller shows or resolves it.
+		if (!(err instanceof TargetExistsError)) error('FS', 'Failed to move item:', err);
 		throw err;
 	}
 }
