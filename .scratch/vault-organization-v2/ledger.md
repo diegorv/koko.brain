@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Move collision is silent](issues/01-move-collision-is-silent.md) | none | done | issue/01-move-collision-is-silent (abc8399b) | 2026-11-13 |
-| 02 | [My People counts only 1:1s](issues/02-my-people-counts-only-1on1s.md) | none | todo | | |
+| 02 | [My People counts only 1:1s](issues/02-my-people-counts-only-1on1s.md) | none | in-progress | | |
 | 03 | [QueryJS results dropped on every save](issues/03-queryjs-results-dropped-on-every-save.md) | none | todo | | |
 
 ## Log
@@ -44,3 +44,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-13 15:18 — ledger created (3 Issues)
 - 2026-11-13 15:22 — 01 — start — launched by /relay-lite:run — 7ac981f3
 - 2026-11-13 16:08 — 01 — deliver — merged as abc8399b: rule move into a folder with a same-name file now files the note as '<name> 2', updates links and shows a toast; review CHANGES_REQUESTED then APPROVED; full vitest suite green — abc8399b
+- 2026-11-13 16:16 — 02 — start — launched by /relay-lite:run — 4a6fe32c
