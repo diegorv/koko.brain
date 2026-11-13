@@ -39,7 +39,7 @@ Every note is a plain `.md` file in a folder you choose. No cloud storage, no ac
 
 ### 🔒 Private by design
 
-Full-text and semantic search run on your Mac. The models are downloaded once and run offline. No analytics, no tracking, no account; error reporting and Todoist sync are opt-in. See [PRIVACY.md](PRIVACY.md).
+Full-text and semantic search run on your Mac. The models are downloaded once and run offline. No analytics, no tracking, no account; error reporting, Todoist sync and automatic update checks are opt-in. See [PRIVACY.md](PRIVACY.md).
 
 </td>
 <td width="33%" valign="top">
@@ -66,7 +66,7 @@ A Tauri 2 shell with a Rust core indexes the vault, keeps backlinks, tags and ta
 </td>
 <td width="33%" valign="top">
 🕸 <a href="help/documentation/14-graph-view.md"><b>Graph view</b></a><br />
-<sub>An interactive map of how your notes connect.</sub>
+<sub>An interactive map of how your notes connect, with a local view and filters.</sub>
 </td>
 </tr>
 <tr>
@@ -75,26 +75,40 @@ A Tauri 2 shell with a Rust core indexes the vault, keeps backlinks, tags and ta
 <sub>Note types, semantic links and an inbox lifecycle with archive and favorites.</sub>
 </td>
 <td width="33%" valign="top">
-📊 <a href="help/documentation/12-collection.md"><b>Collections</b></a><br />
-<sub>Database-style tables of notes, queried by frontmatter properties.</sub>
+📊 <a href="help/documentation/12-collection.md"><b>Views</b></a><br />
+<sub>Tables and calendars of notes, queried by frontmatter properties, saved as <code>.view</code> files.</sub>
 </td>
 <td width="33%" valign="top">
 🧮 <a href="help/documentation/13-queryjs.md"><b>QueryJS</b></a><br />
-<sub>A JavaScript API for programmatic queries and custom views.</sub>
+<sub>A JavaScript API for programmatic queries, rendered as tables, lists and charts.</sub>
 </td>
 </tr>
 <tr>
 <td width="33%" valign="top">
 🎨 <a href="help/documentation/11-canvas.md"><b>Canvas</b></a><br />
-<sub>An infinite board of text, file, link and image nodes (JSON Canvas 1.0).</sub>
+<sub>An infinite board of text, file, link, image and group nodes, saved as JSON Canvas files.</sub>
 </td>
 <td width="33%" valign="top">
 📋 <a href="help/documentation/21-kanban.md"><b>Kanban</b></a> and <a href="help/documentation/10-tasks-and-todoist.md"><b>Tasks</b></a><br />
-<sub>Boards, custom task statuses and <a href="help/documentation/29-todoist-sync.md">two-way Todoist sync</a>.</sub>
+<sub>Boards, saved task views with grouping and filters, and <a href="help/documentation/29-todoist-sync.md">two-way Todoist sync</a>.</sub>
 </td>
 <td width="33%" valign="top">
 📅 <a href="help/documentation/27-calendar.md"><b>Calendar</b></a><br />
 <sub>Day, week and month views where every event is a Markdown note.</sub>
+</td>
+</tr>
+<tr>
+<td width="33%" valign="top">
+🗃 <a href="help/documentation/22-auto-organize.md"><b>Auto Organize</b></a><br />
+<sub>Rules that move, rename or create notes, set properties and run mod actions when a note is saved.</sub>
+</td>
+<td width="33%" valign="top">
+📥 <a href="help/documentation/09-quick-notes-and-templates.md"><b>Quick Capture and Templates</b></a><br />
+<sub>A global capture popover, a silent clipboard shortcut, 1:1 meeting notes and reusable templates.</sub>
+</td>
+<td width="33%" valign="top">
+🧩 <a href="help/documentation/28-mods.md"><b>Vault mods</b></a> (Labs)<br />
+<sub>Off by default: JavaScript in your vault that adds rail buttons, actions and hooks on note saves and moves.</sub>
 </td>
 </tr>
 </table>
@@ -107,26 +121,27 @@ Grab the `.dmg` of the [**latest stable release**](https://github.com/diegorv/ko
 
 | Channel | What you get |
 |---|---|
-| **Stable** | Tagged releases, every few weeks. |
+| **Stable** | Tagged releases. |
 | **Pre-release** | Alpha, beta and RC builds ahead of a major version, installed by hand. |
 | **Nightly** | The latest `main`, rebuilt as code changes land. |
 
 Details on each channel and how versions are numbered: [Release Channels](docs/RELEASE-CHANNELS.md).
 
 > [!NOTE]
-> **macOS only, built for one person.** Kokobrain is a personal project. Pull requests without a prior discussion are not accepted: open an issue first.
+> **macOS only, built for one person.** Kokobrain is a personal project and does not accept external contributions. Bug reports are welcome as issues.
 
 ## 🚦 Quality gates
 
-The workflows that guard `main` and every build. A Stable release is built only after CI and E2E pass again on the tagged commit.
+The workflows that guard `main` and the release builds. A release, Stable or pre-release, is built only after CI, E2E, Secret Scan, Security and Privacy pass again on the tagged commit. Nightly builds skip that gate.
 
 | Workflow | Status | What it checks |
 |---|---|---|
-| **CI** | [![CI][ci-badge]][ci-url] | Type checking, Vitest and `cargo test`, run for the side of the app that changed |
-| **E2E** | [![E2E][e2e-badge]][e2e-url] | The Playwright suite against the running app |
-| **Security** | [![Security][security-badge]][security-url] | `pnpm audit`, `cargo audit`, the 5-day supply-chain quarantine and dependency review on PRs |
+| **Main checks** | [![Main checks][ci-badge]][ci-url] | CI (type checking, Vitest and `cargo test`, run for the side of the app that changed) and the Playwright E2E suite against the frontend with Tauri mocked, on every push to `main` that changes app code |
+| **Secret Scan** | [![Secret Scan][secrets-badge]][secrets-url] | gitleaks on every push to `main` and every PR, docs included |
+| **Commit policy** | [![Commit policy][commit-policy-badge]][commit-policy-url] | Flags a `fix:` commit that changes app code without a test or a `Test-Exempt:` trailer |
+| **Security** | [![Security][security-badge]][security-url] | `pnpm audit`, `cargo audit` and the 5-day supply-chain quarantine, plus OSV-Scanner (report only) and a daily full-history gitleaks scan |
 | **CodeQL** | [![CodeQL][codeql-badge]][codeql-url] | GitHub code scanning of TypeScript, Rust, Python and the workflows |
-| **Privacy** | [![Privacy][privacy-badge]][privacy-url] | Fails on any external network call not listed in [PRIVACY.md](PRIVACY.md) |
+| **Privacy** | [![Privacy][privacy-badge]][privacy-url] | Fails on any external network call that is not on its allowlist; [PRIVACY.md](PRIVACY.md) explains each one |
 | **Dependabot** | [![Dependabot][dependabot-badge]][dependabot-url] | Dependency update PRs |
 | **Release** | [![Release][release-badge]][release-url] | Signed Stable and pre-release builds |
 | **Nightly** | [![Nightly][nightly-badge]][nightly-url] | Signed builds of `main` |
@@ -164,10 +179,12 @@ Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 
 <!-- Badge reference definitions -->
 
-[ci-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/ci.yml?branch=main&event=workflow_call&label=CI&logo=github&logoColor=white
-[ci-url]: https://github.com/diegorv/koko.brain/actions/workflows/ci.yml
-[e2e-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/e2e.yml?label=E2E&logo=playwright&logoColor=white
-[e2e-url]: https://github.com/diegorv/koko.brain/actions/workflows/e2e.yml
+[ci-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/main-checks.yml?branch=main&label=CI&logo=github&logoColor=white
+[ci-url]: https://github.com/diegorv/koko.brain/actions/workflows/main-checks.yml
+[secrets-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/secrets.yml?branch=main&label=Secret%20Scan&logo=github&logoColor=white
+[secrets-url]: https://github.com/diegorv/koko.brain/actions/workflows/secrets.yml
+[commit-policy-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/commit-policy.yml?branch=main&label=Commit%20policy&logo=github&logoColor=white
+[commit-policy-url]: https://github.com/diegorv/koko.brain/actions/workflows/commit-policy.yml
 [security-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/security.yml?label=Security&logo=github&logoColor=white
 [security-url]: https://github.com/diegorv/koko.brain/actions/workflows/security.yml
 [codeql-badge]: https://img.shields.io/badge/CodeQL-enabled-2ea44f?logo=github&logoColor=white
