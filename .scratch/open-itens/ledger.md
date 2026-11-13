@@ -72,7 +72,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 035 | [Rust panic events carry the panic location (file:line)](issues/035-rust-panic-location-in-message.md) | 034 | todo | | |
 | 036 | [Settings > File History > Automatic snapshots takes effect on the next save, with no vault reopen](issues/036-settings-file-history-automatic-snapshots-takes-effect.md) | none | todo | | |
 | 037 | [update_semantic_file has no queue: bursts pile up, repeat work and embed deleted notes](issues/037-update-semantic-file-queue.md) | none | todo | | |
-| 038 | [Canvas image nodes load their image: the main capability grants fs:allow-read-file on the vault roots](issues/038-canvas-image-nodes-load-their-image-main.md) | none | todo | | |
+| 038 | [Canvas image nodes load their image: the main capability grants fs:allow-read-file, and image nodes store and resolve vault-relative paths](issues/038-canvas-image-nodes-load-their-image-main.md) | none | todo | | |
 | 039 | [Canvas file nodes added in the app load their note, and file nodes resolve both absolute and vault-relative paths](issues/039-canvas-file-image-nodes-store-vault-relative.md) | 004 | todo | | |
 | 040 | [Kanban drag-and-drop puts a card or lane exactly where the drop indicator shows](issues/040-kanban-drag-drop-puts-card-lane-exactly.md) | 006 | todo | | |
 | 041 | [DataArray sort and sortBy keep the items that have the key in order and group the items without it at one end](issues/041-dataarray-sort-sortby-keep-items-that-have.md) | none | todo | | |
@@ -250,7 +250,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 250 | [Views say how many notes their filter could not evaluate](issues/250-views-count-notes-filter-could-not-evaluate.md) | 010 | todo | | |
 | 251 | [The code-block language switch keeps the rest of the fence info string](issues/251-code-block-language-switch-keeps-info-string.md) | none | todo | | |
 | 252 | [TSV paste leaves code, frontmatter and tab-indented lines alone](issues/252-tsv-paste-leaves-code-and-indented-lines.md) | none | todo | | |
-| 253 | [Canvas image nodes added in the app store vault-relative paths, and image nodes resolve both absolute and vault-relative ones](issues/253-canvas-image-nodes-store-vault-relative-paths.md) | 038 | todo | | |
+| 253 | [Canvas image nodes added in the app store vault-relative paths, and image nodes resolve both absolute and vault-relative ones](issues/253-canvas-image-nodes-store-vault-relative-paths.md) | none | wontfix | | |
 | 254 | [Two flaky tests pass reliably: the tab-strip scroll e2e and the Auto Organize count test](issues/254-two-flaky-tests-pass-reliably.md) | none | done | issue/254-two-flaky-tests-pass-reliably (22a266407) | 2026-11-12 |
 
 ## Log
@@ -302,3 +302,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 22:20 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006)
 - 2026-11-12 22:23 — 002 — start — launched by /relay-lite:run (variant B, owner approved) — 932e497ba
 - 2026-11-12 22:45 — 002 — deliver — variant B; round 1 APPROVED by claude with a fix round (shared e2e fixture), deliver re-review APPROVED by claude; full suite 634 files / 16631 tests passed; e2e frontmatter.spec.ts 7 passed; squash merged and pushed — 86563a880
+- 2026-11-13 06:26 — ledger updated (title of 006, 006, 038; link of 006, 006; blocked by of 006, 006, 253; wontfix 253)
