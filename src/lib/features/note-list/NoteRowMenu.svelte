@@ -63,8 +63,15 @@
 		onRenameKeydown: handleRenameKeydown,
 	});
 
-	/** Runs a file operation on `note` and toasts its failure (the fs services log and rethrow). */
+	/**
+	 * Runs a file operation on `note` and toasts its failure (the fs services log and rethrow).
+	 * Lens lists read the index snapshot, so the operation's index event skips the refresh
+	 * throttle. Asked here, at the user's own action, not in the fs services: auto-organize
+	 * and vault mods call those too, and their bursts stay throttled. Asked before the
+	 * operation, since its index event can arrive before the operation resolves.
+	 */
 	async function runOrToast(verb: string, note: NoteRowNote, op: () => Promise<unknown>) {
+		vaultStore.requestPromptIndexRefresh();
 		try {
 			await op();
 		} catch (err) {

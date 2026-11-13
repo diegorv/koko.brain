@@ -125,6 +125,27 @@ describe('createNoteHere', () => {
 		expect(created).toEqual([{ path: expected, opened: true }]);
 	});
 
+	it.each([
+		['a plain rule', RULE],
+		['a typed rule', { typeName: 'Meeting' }],
+	])('asks for a prompt index refresh before writing the note of %s, so lens lists show it at once', async (_label, rule) => {
+		let requestedAtWrite: boolean | undefined;
+		const base = tauri();
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'create_note') {
+				requestedAtWrite = vaultStore.takePromptIndexRefresh();
+				// The probe must not consume what it measures.
+				if (requestedAtWrite) vaultStore.requestPromptIndexRefresh();
+			}
+			return base(cmd);
+		});
+
+		await createNoteHere(rule);
+
+		expect(requestedAtWrite).toBe(true);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+	});
+
 	it('reports nothing when the write fails', async () => {
 		vi.mocked(invoke).mockImplementation(tauri({ cmd: 'create_note', err: new Error('disk full') }));
 		const observer = vi.fn();

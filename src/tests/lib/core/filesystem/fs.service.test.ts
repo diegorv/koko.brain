@@ -1628,6 +1628,38 @@ describe('revealInSystemExplorer', () => {
 	});
 });
 
+// The prompt index refresh is asked by the user's own entry points (the
+// note-list row menu, Cmd+N, + New here), never by the fs services: auto-organize
+// and vault mods call these directly, and their bursts must stay throttled.
+describe('prompt index refresh', () => {
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		fsStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		setupDefaultMocks();
+		vi.mocked(rename).mockResolvedValue(undefined);
+		vi.mocked(copyFile).mockResolvedValue(undefined);
+		vi.mocked(moveToTrash).mockResolvedValue(true);
+		vi.mocked(readDir).mockResolvedValue([
+			{ name: 'note.md', isDirectory: false, isFile: true, isSymlink: false },
+		] as any);
+	});
+
+	it.each([
+		['renameItem', () => renameItem('/vault/note.md', 'new.md'), '/vault/new.md'],
+		['moveItem', () => moveItem('/vault/note.md', '/vault/folder'), '/vault/folder/note.md'],
+		['deleteItem', () => deleteItem('/vault/note.md'), undefined],
+		['duplicateItem', () => duplicateItem('/vault/note.md', false), '/vault/note copy.md'],
+		['createFile', () => createFile('/vault', 'fresh.md', ''), '/vault/fresh.md'],
+	])('%s called directly asks for none', async (_label, op, expected) => {
+		await expect(op()).resolves.toBe(expected);
+
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+	});
+});
+
 describe('state transitions', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();

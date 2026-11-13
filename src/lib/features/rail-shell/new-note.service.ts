@@ -4,6 +4,7 @@ import { openFileInEditor } from '#lib/core/editor/editor.service.js';
 import { createFile } from '#lib/core/filesystem/fs.service.js';
 import { applyExplicitOrganization } from '#lib/core/note-creator/explicit-organization.logic.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 import { createTypedNote } from '#lib/features/type-definitions/type-definitions.service.js';
 import { newNoteContent } from './lens.logic';
@@ -23,6 +24,9 @@ import type { NewNoteRule } from './rail-shell.types';
  * `openFileInEditor` does not reject: it toasts its own failure.
  */
 export async function createNoteHere(rule: NewNoteRule): Promise<string> {
+	// Lens lists read the index snapshot: skip the refresh throttle. Asked
+	// before the write, since `create_note` emits the event.
+	vaultStore.requestPromptIndexRefresh();
 	try {
 		let path: string;
 		if ('typeName' in rule) {

@@ -639,4 +639,101 @@ describe('NoteRowMenu', () => {
 			expect(menuLabels()).toEqual([]);
 		});
 	});
+
+	// Lens lists read the index snapshot, which the vault-index-updated listener
+	// refreshes after a 2 to 10 s throttle unless a prompt refresh was asked first.
+	describe('prompt index refresh', () => {
+		let requestedAtCall: boolean | undefined;
+
+		/** Stands in for a fs.service call: records whether the request was already set, without consuming it. */
+		async function probe() {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+			if (requestedAtCall) vaultStore.requestPromptIndexRefresh();
+			return '';
+		}
+
+		beforeEach(() => {
+			requestedAtCall = undefined;
+		});
+
+		/** Opens rename on Alpha, types `value` (unless null) and presses Enter. */
+		async function renameAlpha(value: string | null) {
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Rename');
+			const input = target.querySelector('input')!;
+			if (value !== null) {
+				input.value = value;
+				input.dispatchEvent(new Event('input', { bubbles: true }));
+			}
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			await settle();
+		}
+
+		it('asks for it before renaming the note', async () => {
+			vi.mocked(renameItem).mockImplementationOnce(probe);
+			await renameAlpha('Gamma');
+
+			expect(renameItem).toHaveBeenCalledWith(ALPHA, 'Gamma.md');
+			expect(requestedAtCall).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+		});
+
+		it('asks for it when the F2 rename is committed', async () => {
+			vi.mocked(renameItem).mockImplementationOnce(probe);
+			mountHarness();
+			row('Alpha').dispatchEvent(new KeyboardEvent('keydown', { key: 'F2', bubbles: true }));
+			await settle();
+			const input = target.querySelector('input')!;
+			input.value = 'Gamma';
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			input.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+			await settle();
+
+			expect(requestedAtCall).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+		});
+
+		it.each([
+			['an unchanged', null],
+			['an empty', '   '],
+			['an illegal', 'a/b'],
+		])('asks for nothing on %s rename', async (_label, value) => {
+			await renameAlpha(value);
+
+			expect(renameItem).not.toHaveBeenCalled();
+			expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+		});
+
+		it('asks for it before moving the note to the Trash once confirmed', async () => {
+			vi.mocked(ask).mockResolvedValueOnce(true);
+			vi.mocked(deleteItem).mockImplementationOnce(probe as never);
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Move to Trash');
+			await vi.waitFor(() => expect(deleteItem).toHaveBeenCalledWith(ALPHA, false));
+
+			expect(requestedAtCall).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+		});
+
+		it('asks for nothing when the Trash confirmation is declined', async () => {
+			vi.mocked(ask).mockResolvedValueOnce(false);
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Move to Trash');
+			await vi.waitFor(() => expect(ask).toHaveBeenCalled());
+			await settle();
+
+			expect(deleteItem).not.toHaveBeenCalled();
+			expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+		});
+
+		it('asks for it before duplicating the note', async () => {
+			vi.mocked(duplicateItem).mockImplementationOnce(probe);
+			mountHarness();
+			await chooseMenuItem('Alpha', 'Duplicate');
+
+			expect(duplicateItem).toHaveBeenCalledWith(ALPHA, false);
+			expect(requestedAtCall).toBe(true);
+			expect(vaultStore.takePromptIndexRefresh()).toBe(true);
+		});
+	});
 });

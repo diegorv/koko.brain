@@ -90,6 +90,21 @@ describe('createNoteComposer', () => {
 
 		expect(openOrCreateNote).not.toHaveBeenCalled();
 		expect(vaultStore.path).toBe(null);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(false);
+	});
+
+	it('asks for a prompt index refresh before creating the note, so lens lists show it at once', async () => {
+		let requestedAtCall: boolean | undefined;
+		vi.mocked(openOrCreateNote).mockImplementationOnce(async () => {
+			requestedAtCall = vaultStore.takePromptIndexRefresh();
+			// The probe must not consume what it measures.
+			if (requestedAtCall) vaultStore.requestPromptIndexRefresh();
+		});
+
+		await createNoteComposer();
+
+		expect(requestedAtCall).toBe(true);
+		expect(vaultStore.takePromptIndexRefresh()).toBe(true);
 	});
 
 	it('omits templatePath when setting is empty', async () => {

@@ -12,7 +12,7 @@ Fix: call `vaultStore.requestPromptIndexRefresh()` from the user's own entry poi
 Do not request it inside applyPathChange, createFile, duplicateItem or any other core filesystem function: auto-organize (auto-organize.service.ts:338 moveItem, :473 renameItem) and vault mods (mod-vault.service.ts:93, :100) reach those too, and their bursts must stay throttled.
 
 **Blocked by:** none
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** 2026-11-12, owner: approved as an addition to the queue; the prompt refresh fires only from the owner's own entry points (row menu, F2, Cmd+N, New here), not inside applyPathChange; blocked by 028.
 
@@ -20,10 +20,10 @@ Do not request it inside applyPathChange, createFile, duplicateItem or any other
 
 **Gate:** frontend: `pnpm check` + `pnpm vitest run`, plus the targeted e2e check `bash scripts/e2e.sh e2e/specs/file-explorer.spec.ts e2e/specs/file-operations.spec.ts e2e/specs/rail-shell.spec.ts` (the docs/TESTING.md row for features/rail-shell). Relay-lite runs no e2e, so the build step runs it and reports the result.
 
-- [ ] Failing test first, in src/tests/lib/features/note-list/NoteRowMenu.test.ts (real vaultStore, fs.service mocked): after Rename is committed with a new name, `vaultStore.takePromptIndexRefresh()` returns true. It fails today.
-- [ ] The same holds after Move to Trash is confirmed and after Duplicate in that file, and after `createNoteComposer()` (src/tests/lib/plugins/quick-capture/note-composer.service.test.ts) and `createNoteHere(rule)` for a plain and a typed rule (src/tests/lib/features/rail-shell/new-note.service.test.ts). A cancelled Move to Trash and an unchanged or empty rename request nothing.
-- [ ] Guard that pins the placement (passes today), in src/tests/lib/core/filesystem/fs.service.test.ts with the real vaultStore: renameItem, moveItem, deleteItem, duplicateItem and createFile called directly, as auto-organize and mods call them, leave `takePromptIndexRefresh()` false.
-- [ ] Frontend gate: pnpm check and pnpm vitest run.
+- [x] Failing test first, in src/tests/lib/features/note-list/NoteRowMenu.test.ts (real vaultStore, fs.service mocked): after Rename is committed with a new name, `vaultStore.takePromptIndexRefresh()` returns true. It fails today.
+- [x] The same holds after Move to Trash is confirmed and after Duplicate in that file, and after `createNoteComposer()` (src/tests/lib/plugins/quick-capture/note-composer.service.test.ts) and `createNoteHere(rule)` for a plain and a typed rule (src/tests/lib/features/rail-shell/new-note.service.test.ts). A cancelled Move to Trash and an unchanged or empty rename request nothing.
+- [x] Guard that pins the placement (passes today), in src/tests/lib/core/filesystem/fs.service.test.ts with the real vaultStore: renameItem, moveItem, deleteItem, duplicateItem and createFile called directly, as auto-organize and mods call them, leave `takePromptIndexRefresh()` false.
+- [x] Frontend gate: pnpm check and pnpm vitest run.
 
 ## Notes
 
@@ -46,3 +46,4 @@ Do not request it inside applyPathChange, createFile, duplicateItem or any other
 - 2026-11-12: deep dive (validate-s1+s2, cross-tests-relay M3, SUMMARY Q5). Owner chose the user entry points (row menu, F2, Cmd+N, New here) over applyPathChange, so What to build and criteria 1 and 2 now name those call sites, criterion 4 became a guard that core fs functions request nothing, and the unwritable tauri-listeners criterion 3 was dropped. Blocked by 028, targeted e2e specs named in the Gate, known limits recorded in Notes, title trimmed to the operations in scope.
 
 - 2026-11-12: Blocked by 028 dropped: 028 is now polish (owner triage, 2026-11-12) and the link was only a shared test file (`NoteRowMenu.test.ts`), with no logic dependency. Do not run beside tasks-view-ux work that edits the same tests.
+- 2026-11-12: delivered from issue/043-lens-lists-follow-user-s-own-rename. The user entry points (row menu Rename, Move to Trash, Duplicate; createNoteComposer; createNoteHere) now request a prompt index refresh; core fs functions still request nothing (guard test). Review round 1 APPROVED (fixes: runOrToast JSDoc, illegal a/b rename row), round 2 APPROVED. Targeted: pnpm check 0 errors; NoteRowMenu.test.ts 55 passed. Full suite at e8608fe4d: 633 files, 16592 passed, 0 failed.

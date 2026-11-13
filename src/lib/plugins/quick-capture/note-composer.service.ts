@@ -41,6 +41,9 @@ export async function createNoteComposer(): Promise<void> {
 	// clipboard/deep-link capture path does.
 	const customVariables = buildCaptureVariables(date, periodicNotesSettings, title);
 
+	// Lens lists read the index snapshot: skip the refresh throttle. Asked
+	// before the write, since `create_note` emits the event.
+	vaultStore.requestPromptIndexRefresh();
 	await openOrCreateNote({
 		filePath,
 		templatePath,
