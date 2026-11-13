@@ -26,7 +26,7 @@ sym src-tauri/src/events.rs:7 const VAULT_INDEX_UPDATED_EVENT L1 | Emitted after
 sym src-tauri/src/events.rs:11 const VAULT_FILES_CHANGED_EVENT L1 | Emitted on every debounced burst of vault file changes.
 sym src-tauri/src/events.rs:14 const SEMANTIC_INDEX_PROGRESS_EVENT L1 | Carries every `SemanticProgress` update (downloads and builds).
 sym src-tauri/src/events.rs:29 const QC_CAPTURE_DETECTED_EVENT L1 | Delivers a detected clipboard capture to the frontend.
-sym src-tauri/src/events.rs:34 const QC_OPEN_COMPOSER_EVENT L1 | Event the composer popover listens for to focus its textarea after a show.
+sym src-tauri/src/events.rs:34 const QC_OPEN_COMPOSER_EVENT L1 | Event the composer popover listens for to focus its editor after a show.
 sym src-tauri/src/events.rs:38 const QC_COMPOSER_CAPTURE_RESULT_EVENT L1 | Carries a `ComposerCaptureResult`: whether the main window wrote the capture note of one composer submit.
 ## debt
 -

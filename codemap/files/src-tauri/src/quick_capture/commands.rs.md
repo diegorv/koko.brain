@@ -83,8 +83,8 @@ call src-tauri/src/quick_capture/commands.rs:482 in submit_composer_capture -> s
 call src-tauri/src/quick_capture/commands.rs:483 in submit_composer_capture -> src-tauri/src/quick_capture/commands.rs:build_composer_note_payload call
 ## ipc-in
 ipc-call src/lib/app/deep-link-actions.ts:111 in importStagedShot -> ipc:import_staged_shot -> src-tauri/src/quick_capture/commands.rs:173
-ipc-call src/routes/composer/+page.svelte:77 in dismiss -> ipc:dismiss_composer -> src-tauri/src/quick_capture/commands.rs:422
-ipc-call src/routes/composer/+page.svelte:102 in handleSave -> ipc:submit_composer_capture -> src-tauri/src/quick_capture/commands.rs:469
+ipc-call src/routes/composer/+page.svelte:95 in dismiss -> ipc:dismiss_composer -> src-tauri/src/quick_capture/commands.rs:422
+ipc-call src/routes/composer/+page.svelte:120 in handleSave -> ipc:submit_composer_capture -> src-tauri/src/quick_capture/commands.rs:469
 ipc-call src/lib/plugins/quick-capture/quick-capture.service.ts:96 in handleDetectedCapture -> ipc:report_composer_capture_result -> src-tauri/src/quick_capture/commands.rs:505
 ## effects
 fx src-tauri/src/quick_capture/commands.rs:157 rust-fs.write in write_shot_bytes_to_temp
@@ -94,6 +94,6 @@ fx src-tauri/src/quick_capture/commands.rs:247 rust-fs.remove_file in import_sta
 ev src-tauri/src/quick_capture/commands.rs:359 in capture_clipboard_now -> event:qc:capture-detected -> src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener
 fx src-tauri/src/quick_capture/commands.rs:378 rust-spawn.spawn in schedule_refocus_after_space_move
 fx src-tauri/src/quick_capture/commands.rs:380 rust-timer.sleep in schedule_refocus_after_space_move
-ev src-tauri/src/quick_capture/commands.rs:406 in show_composer -> event:qc:open-composer -> src/routes/composer/+page.svelte:178 in (script)
+ev src-tauri/src/quick_capture/commands.rs:406 in show_composer -> event:qc:open-composer -> src/routes/composer/+page.svelte:214 in (script)
 ev src-tauri/src/quick_capture/commands.rs:484 in submit_composer_capture -> event:qc:capture-detected -> src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener
-ev src-tauri/src/quick_capture/commands.rs:511 in report_composer_capture_result -> event:qc:composer-capture-result -> src/routes/composer/+page.svelte:188 in (script)
+ev src-tauri/src/quick_capture/commands.rs:511 in report_composer_capture_result -> event:qc:composer-capture-result -> src/routes/composer/+page.svelte:224 in (script)

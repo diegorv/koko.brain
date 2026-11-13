@@ -1,7 +1,7 @@
 # module card src/lib/core/markdown-editor
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/markdown-editor ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/core/markdown-editor core files 108 in-modules 10 out-modules 7 pub 29/353 ipc 0/0 card ~8.3k
+module src/lib/core/markdown-editor core files 108 in-modules 11 out-modules 7 pub 35/353 ipc 0/0 card ~8.9k
 ## neighbors
 dep src/lib/app -> src/lib/core/markdown-editor 10
 dep src/lib/core/editor -> src/lib/core/markdown-editor 1
@@ -12,6 +12,7 @@ dep src/lib/features/copy-block-link -> src/lib/core/markdown-editor 1
 dep src/lib/features/todoist-sync -> src/lib/core/markdown-editor 1
 dep src/lib/plugins/kanban -> src/lib/core/markdown-editor 2
 dep src/lib/plugins/queryjs -> src/lib/core/markdown-editor 2
+dep src/lib/plugins/quick-capture -> src/lib/core/markdown-editor 5
 dep src/lib/plugins/table-of-contents -> src/lib/core/markdown-editor 1
 dep src/lib/core/markdown-editor -> src/lib/components 2
 dep src/lib/core/markdown-editor -> src/lib/core/editor 7
@@ -20,9 +21,10 @@ dep src/lib/core/markdown-editor -> src/lib/core/frontmatter 5
 dep src/lib/core/markdown-editor -> src/lib/core/settings 4
 dep src/lib/core/markdown-editor -> src/lib/types 2
 dep src/lib/core/markdown-editor -> src/lib/utils 22
-in2 src/lib/core/markdown-editor 22 modules: src/lib/features/event-calendar(5) src/lib/features/rail-shell(4) src/lib/core/vault(2) src/lib/features/backlinks(2) src/lib/features/canvas(2) +17 modules
+in2 src/lib/core/markdown-editor 22 modules: src/lib/features/event-calendar(5) src/lib/features/rail-shell(4) src/routes(4) src/lib/core/vault(2) src/lib/features/backlinks(2) +17 modules
 out2 src/lib/core/markdown-editor 1 modules: src/lib/contracts(4)
 ## entry files
+entry src/lib/core/markdown-editor/editor-host.ts ext-in3 src/lib/app/editor-host.ts src/lib/plugins/quick-capture/composer-editor-host.service.ts src/lib/plugins/quick-capture/composer-editor.ts
 entry src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts ext-in3 src/lib/app/editor-host.ts src/lib/features/collection/collection-block-widget.ts src/lib/plugins/queryjs/queryjs-block-widget.ts
 entry src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts ext-in2 src/lib/app/boot.ts src/lib/plugins/queryjs/queryjs-block-widget.ts
 entry src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts ext-in2 src/lib/app/editor-host.ts src/lib/plugins/table-of-contents/toc.logic.ts
@@ -31,20 +33,22 @@ entry src/lib/core/markdown-editor/EditorTabs.svelte ext-in1 src/lib/app/EditorV
 entry src/lib/core/markdown-editor/MarkdownEditor.svelte ext-in1 src/lib/app/EditorView.svelte
 entry src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts ext-in1 src/lib/features/copy-block-link/copy-block-link.service.ts
 entry src/lib/core/markdown-editor/doc-diff.logic.ts ext-in1 src/lib/features/todoist-sync/note-writer.service.ts
-entry src/lib/core/markdown-editor/editor-host.ts ext-in1 src/lib/app/editor-host.ts
 entry src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts ext-in1 src/lib/core/settings/sections/TroubleshootingSection.svelte
 entry src/lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.ts ext-in1 src/lib/plugins/kanban/kanban.service.ts
 entry src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 entry src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 entry src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts ext-in1 src/lib/app/editor-host.ts
+entry src/lib/core/markdown-editor/extensions/tag/completion.ts ext-in1 src/lib/plugins/quick-capture/composer-editor.ts
 entry src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts ext-in1 src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte
+entry src/lib/core/markdown-editor/extensions/wikilink/completion.ts ext-in1 src/lib/plugins/quick-capture/composer-editor.ts
 entry src/lib/core/markdown-editor/setup/editor-extensions.ts ext-in1 src/lib/app/commands.ts
+entry src/lib/core/markdown-editor/setup/editor-theme.ts ext-in1 src/lib/plugins/quick-capture/composer-editor.ts
 ## files
 file src/lib/core/markdown-editor/EditorTabs.svelte component L119 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/MarkdownEditor.svelte component L762 module src/lib/core/markdown-editor in1 t3
 file src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts logic L92 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/doc-diff.logic.ts logic L157 module src/lib/core/markdown-editor in2 t1
-file src/lib/core/markdown-editor/editor-host.ts other L107 module src/lib/core/markdown-editor in9 t15
+file src/lib/core/markdown-editor/editor-host.ts other L107 module src/lib/core/markdown-editor in11 t17
 file src/lib/core/markdown-editor/extensions/callout/callout.logic.ts logic L77 module src/lib/core/markdown-editor in3 t1
 file src/lib/core/markdown-editor/extensions/callout/callout.ts other L55 module src/lib/core/markdown-editor in1 t0
 file src/lib/core/markdown-editor/extensions/callout/index.ts other L1 module src/lib/core/markdown-editor in1 t0
@@ -135,16 +139,16 @@ file src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget
 file src/lib/core/markdown-editor/extensions/live-preview/widgets/meta-bind-button-widget.ts other L143 module src/lib/core/markdown-editor in1 t4
 file src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts other L66 module src/lib/core/markdown-editor in4 t3
 file src/lib/core/markdown-editor/extensions/tag/completion.logic.ts logic L102 module src/lib/core/markdown-editor in1 t1
-file src/lib/core/markdown-editor/extensions/tag/completion.ts other L41 module src/lib/core/markdown-editor in1 t2
+file src/lib/core/markdown-editor/extensions/tag/completion.ts other L41 module src/lib/core/markdown-editor in2 t3
 file src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts logic L114 module src/lib/core/markdown-editor in2 t1
-file src/lib/core/markdown-editor/extensions/wikilink/completion.ts other L229 module src/lib/core/markdown-editor in1 t2
+file src/lib/core/markdown-editor/extensions/wikilink/completion.ts other L229 module src/lib/core/markdown-editor in2 t3
 file src/lib/core/markdown-editor/extensions/wikilink/decoration.logic.ts logic L128 module src/lib/core/markdown-editor in6 t14
 file src/lib/core/markdown-editor/extensions/wikilink/decoration.ts other L92 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/extensions/wikilink/index.ts other L5 module src/lib/core/markdown-editor in2 t0
 file src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts logic L54 module src/lib/core/markdown-editor in5 t1
 file src/lib/core/markdown-editor/highlight-styles.ts other L134 module src/lib/core/markdown-editor in2 t10
 file src/lib/core/markdown-editor/setup/editor-extensions.ts other L195 module src/lib/core/markdown-editor in3 t3
-file src/lib/core/markdown-editor/setup/editor-theme.ts other L93 module src/lib/core/markdown-editor in2 t1
+file src/lib/core/markdown-editor/setup/editor-theme.ts other L93 module src/lib/core/markdown-editor in3 t1
 file src/lib/core/markdown-editor/setup/index.ts other L2 module src/lib/core/markdown-editor in1 t0
 file src/lib/core/markdown-editor/tab-view-state.ts other L111 module src/lib/core/markdown-editor in3 t2 | Per-tab view state (scroll position, cursor) preserved across tab switches AND across MarkdownEditor component remounts (e.g. when switching to a non-markdown …
 file src/lib/core/markdown-editor/wikilink-click-target.ts other L81 module src/lib/core/markdown-editor in3 t2
@@ -156,9 +160,12 @@ sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:59 fn 
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:71 fn buildWikilinkText(noteName: string, element: DetectedBlockElement, blockId: string | null, embed: boolean): string L16 | Builds a wikilink string for the given element.
 sym src/lib/core/markdown-editor/doc-diff.logic.ts:27 fn docDiff(prev: string, next: string): DocChange[] | null L27 | The changes that turn `prev` into `next`: one per changed region (a run of changed lines, trimmed to its differing characters), ordered, with positions in `pre…
 sym src/lib/core/markdown-editor/editor-host.ts:7 interface LinkAnchor L4 | The `#heading` or `#^block-id` part of a wikilink; both null for a plain link.
+sym src/lib/core/markdown-editor/editor-host.ts:13 interface LinkCandidates L4 | What wikilink completion offers: the vault's files and, when asked for, its notes' frontmatter (aliases).
 sym src/lib/core/markdown-editor/editor-host.ts:19 interface VaultTag L6 | A tag the vault uses, as tag completion offers it.
 sym src/lib/core/markdown-editor/editor-host.ts:44 interface EditorHost L33 | Everything the markdown editor needs from the app: link resolution, note reads, asset URLs, navigation, note creation, the vault's tags and the tag search.
 sym src/lib/core/markdown-editor/editor-host.ts:79 interface BlockLinkActions L6 | Copy Block Link and Copy block embed for the block at the cursor; the app supplies them.
+sym src/lib/core/markdown-editor/editor-host.ts:87 const NOOP_HOST: EditorHost L12 | The host of an editor nobody configured: resolves nothing and does nothing.
+sym src/lib/core/markdown-editor/editor-host.ts:104 const editorHost = Facet.define(…) L4 | The editor's host.
 sym src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:63 const DECORATOR_NAMES L5 | Every kill-switch name, in Troubleshooting display order.
 sym src/lib/core/markdown-editor/extensions/live-preview/core/decorator-names.ts:85 const DECORATOR_LABELS: Record<DecoratorName, string> L24 | What each kill-switch is called in Troubleshooting.
 sym src/lib/core/markdown-editor/extensions/live-preview/core/fenced-block-renderers.ts:15 interface FencedBlockRenderer L13 | Renders one kind of fenced block (`` ```queryjs ``, `` ```collection ``) as a widget.
@@ -169,12 +176,15 @@ sym src/lib/core/markdown-editor/extensions/live-preview/embed-resolver.logic.ts
 sym src/lib/core/markdown-editor/extensions/live-preview/widgets/math-widget.ts:13 fn clearMathCache(): void L3 | Drops all cached renders.
 sym src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:50 fn clearMermaidCache(): void L3 | Drops all cached renders.
 sym src/lib/core/markdown-editor/extensions/live-preview/wikilink-navigation.ts:17 fn followWikilink(host: EditorHost, target: string, anchor?: LinkAnchor): Promise<void> L6 | Follows a wikilink target through the host: opens the note it resolves to, or creates it (a periodic note when the name matches a periodic format).
+sym src/lib/core/markdown-editor/extensions/tag/completion.ts:14 fn tagCompletionSource(context: CompletionContext): Promise<CompletionResult | null> L28 | Completion source for `#tags`: the vault's tags (through `editorHost`) that the prefix typed after `#` fuzzy-matches, most-used first among equal matches.
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:26 fn detectWikilinkContext(docText: string, pos: number): WikilinkMatch | null L47 | Detects whether the cursor is inside a `[[...]]` wikilink and determines the completion mode (file, heading, or blockId).
 sym src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:75 fn matchFilesForWikilink(query: string, files: readonly FileEntry[]): FileEntry[] L16 | Matches files by fuzzy-matching the query against file names
+sym src/lib/core/markdown-editor/extensions/wikilink/completion.ts:43 fn wikilinkCompletionSource(context: CompletionContext): Promise<CompletionResult | null> L17 | Completion source for `[[wikilinks]]` (files, aliases, headings, block IDs).
 sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:6 const HEADING_RE L1 | Regex matching any ATX heading: `# Title`, `## Title`, etc. Tolerates a trailing carriage return so headings are still matched when callers split CRLF (Windows…
 sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:21 fn findHeadingPosition(content: string, headingName: string): number | null L14 | Finds the document position of a heading by name.
 sym src/lib/core/markdown-editor/extensions/wikilink/navigation.logic.ts:41 fn findBlockIdPosition(content: string, blockId: string): number | null L14 | Finds the document position of a block identified by `^block-id`.
 sym src/lib/core/markdown-editor/setup/editor-extensions.ts:37 const COPY_BLOCK_LINK_SHORTCUT L1 | Copy Block Link (Cmd+Shift+L).
+sym src/lib/core/markdown-editor/setup/editor-theme.ts:12 fn buildEditorTheme(fontFamily: string, fontSize: number, lineHeight: number, contentWidth: number, paragraphSpacing: number, dark: boolea… L82 | Builds a CodeMirror theme from the current editor settings.
 sym src/lib/core/markdown-editor/tab-view-state.ts:81 fn deleteTabViewState(path: string): void L4 | Removes saved view and editor state for a tab (e.g. when the tab is closed)
 sym src/lib/core/markdown-editor/tab-view-state.ts:87 fn renameTabViewState(oldPath: string, newPath: string): void L8 | Moves a tab's saved view and editor state to its new path after a rename or move
 sym src/lib/core/markdown-editor/tab-view-state.ts:107 fn clearAllTabViewStates(): void L5 | Clears all saved view and editor states (e.g. on vault switch)

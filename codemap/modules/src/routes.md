@@ -13,16 +13,16 @@ dep src/routes -> src/lib/features/backlinks 2
 dep src/routes -> src/lib/features/deep-link 1
 dep src/routes -> src/lib/features/outgoing-links 1
 dep src/routes -> src/lib/features/search 2
-dep src/routes -> src/lib/plugins/quick-capture 1
+dep src/routes -> src/lib/plugins/quick-capture 3
 dep src/routes -> src/lib/utils 2
 in2 src/routes 0 modules: -
-out2 src/routes 32 modules: src/lib/core/filesystem(15) src/lib/features/rail-shell(13) src/lib/features/type-definitions(9) src/lib/features/properties(7) src/lib/features/collection(5) +27 modules
+out2 src/routes 32 modules: src/lib/core/filesystem(17) src/lib/features/rail-shell(13) src/lib/features/type-definitions(9) src/lib/core/markdown-editor(8) src/lib/features/properties(7) +27 modules
 ## files
 file src/routes/(app)/+layout.svelte component L187 module src/routes in0 t0
 file src/routes/(app)/+page.svelte component L72 module src/routes in0 t0
 file src/routes/+layout.svelte component L7 module src/routes in0 t0
 file src/routes/+layout.ts other L5 module src/routes in0 t0
-file src/routes/composer/+page.svelte component L276 module src/routes in0 t1
+file src/routes/composer/+page.svelte component L318 module src/routes in0 t1
 ## effects
 fx-count dom.keydown 1
 fx-count dom.storage 1

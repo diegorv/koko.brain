@@ -20,7 +20,7 @@ dep src/lib/plugins/graph-view -> src/lib/types 1
 dep src/lib/plugins/one-on-one -> src/lib/types 1
 dep src/lib/plugins/queryjs -> src/lib/types 2
 dep src/lib/types -> src/lib/contracts 1
-in2 src/lib/types 7 modules: src/lib/app(35) src/lib/plugins/calendar(6) src/lib/plugins/mods(6) src/lib/features/auto-organize(3) src/lib/features/note-action-bar(1) +2 modules
+in2 src/lib/types 8 modules: src/lib/app(35) src/lib/plugins/calendar(6) src/lib/plugins/mods(6) src/lib/features/auto-organize(3) src/lib/plugins/quick-capture(3) +3 modules
 out2 src/lib/types 0 modules: -
 ## entry files
 entry src/lib/types/vault-v2.types.ts ext-in32 src/lib/core/filesystem/folder-notes.logic.ts src/lib/core/markdown-editor/editor-host.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/core/vault/vault-entries.logic.ts src/lib/core/vault/vault-entries.service.ts more importers 27 not shown: src/lib/features/type-definitions(5) src/lib/features/properties(4) src/lib/features/event-calendar(3) +11 modules: q importers src/lib/types/vault-v2.types.ts

@@ -25,7 +25,7 @@ fx src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:1111 dom.keyd
 fx src/lib/features/event-calendar/EventCalendarView.svelte:114 dom.keydown document in $effect@110
 fx src/lib/features/event-calendar/event-calendar-gesture-guard.ts:54 dom.keydown window in GestureGuard.begin
 fx src/lib/utils/keybindings.ts:76 dom.keydown document in registerKeybinding
-fx src/routes/composer/+page.svelte:202 dom.keydown svelte:window in (markup)
+fx src/routes/composer/+page.svelte:239 dom.keydown svelte:window in (markup)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:426 dom.mousedown container in (script)
 fx src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:30 dom.mousedown span in CalloutFoldWidget.toDOM
 fx src/lib/core/markdown-editor/extensions/live-preview/plugins/callout-field.ts:82 dom.mousedown opt in CalloutTypeSwitcherWidget.toDOM
@@ -60,6 +60,6 @@ fx src/lib/features/event-calendar/EventPopover.svelte:143 dom.resize svelte:win
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:560 dom.scroll scrollDOM in $effect@455
 fx src/lib/features/event-calendar/EventPopover.svelte:60 dom.scroll el in $effect@53
 fx src/lib/features/tasks/TasksView.svelte:286 dom.scroll viewport in $effect@282
-fx src/routes/composer/+page.svelte:202 dom.storage svelte:window in (markup)
+fx src/routes/composer/+page.svelte:239 dom.storage svelte:window in (markup)
 fx src/lib/features/event-calendar/event-calendar.service.ts:315 dom.visibilitychange document in acquireCalendarClock
 fx src/lib/utils/log.service.ts:146 dom.visibilitychange document in startHeartbeat

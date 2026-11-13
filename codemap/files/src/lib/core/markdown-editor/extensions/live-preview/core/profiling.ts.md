@@ -18,7 +18,7 @@ imp src/lib/core/markdown-editor/extensions/tag/completion.ts:3 -> src/lib/core/
 imp src/lib/core/markdown-editor/extensions/wikilink/completion.ts:6 -> src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts reportError
 imp src/lib/plugins/queryjs/queryjs-block-widget.ts:4 -> src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts profileStart,profileEnd
 ## reach
-in2 src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts 31 files in 4 modules: src/lib/core/markdown-editor(28) src/lib/app(1) src/lib/plugins/queryjs(1) src/routes(1)
+in2 src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts 32 files in 5 modules: src/lib/core/markdown-editor(28) src/lib/app(1) src/lib/plugins/queryjs(1) src/lib/plugins/quick-capture(1) src/routes(1)
 out2 src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/markdown-editor/extensions/live-preview/core/profiling.test.ts imports src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts mirror

@@ -88,7 +88,7 @@ imp src/lib/features/todoist-sync/todoist-sync.store.svelte.ts:1 -> src/lib/cont
 imp src/lib/features/todoist-sync/vault-scan.service.ts:2 -> src/lib/contracts/index.ts type:Task,type:TaskStatus
 imp src/lib/types/vault-v2.types.ts:18 -> src/lib/contracts/index.ts type:JsonValue,type:WikiLink,type:NoteEntry,type:RelationshipBacklink,type:OutgoingLink,type:OutgoingUnlinkedMention,type:UpdateResult,type:TaskStatus,type:TaskPriority,type:RecurrenceRule,type:TaskMetadata,type:Task,type:TaskHeading,type:TagAggregate,type:FileTaskGroup,type:ToggleTaskResult,type:NoteRecord
 ## reach
-in2 src/lib/contracts/index.ts 81 files in 26 modules: src/lib/features/tasks(8) src/lib/core/filesystem(7) src/lib/features/search(7) src/lib/features/file-history(6) src/lib/features/properties(6) +21 modules: q impact src/lib/contracts/index.ts --depth 2
+in2 src/lib/contracts/index.ts 82 files in 26 modules: src/lib/features/tasks(8) src/lib/core/filesystem(7) src/lib/features/search(7) src/lib/features/file-history(6) src/lib/features/properties(6) +21 modules: q impact src/lib/contracts/index.ts --depth 2
 out2 src/lib/contracts/index.ts 0 files in 0 modules: -
 ## tests
 test e2e/mocks/tauri-core.ts imports-type src/lib/contracts/index.ts

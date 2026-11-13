@@ -23,7 +23,7 @@ dep src/lib/features/todoist-sync -> src/lib/contracts 20
 dep src/lib/features/type-definitions -> src/lib/contracts 1
 dep src/lib/plugins/graph-view -> src/lib/contracts 1
 dep src/lib/plugins/mods -> src/lib/contracts 2
-dep src/lib/plugins/quick-capture -> src/lib/contracts 2
+dep src/lib/plugins/quick-capture -> src/lib/contracts 3
 dep src/lib/plugins/templates -> src/lib/contracts 1
 dep src/lib/types -> src/lib/contracts 1
 dep src/lib/utils -> src/lib/contracts 3
@@ -31,7 +31,7 @@ dep src/routes -> src/lib/contracts 2
 in2 src/lib/contracts 16 modules: src/lib/plugins/queryjs(8) src/lib/core/markdown-editor(5) src/lib/features/auto-organize(5) src/lib/features/note-list(5) src/lib/plugins/one-on-one(5) +11 modules
 out2 src/lib/contracts 0 modules: -
 ## entry files
-entry src/lib/contracts/ipc.ts ext-in44 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/lifecycle/watcher-handler.service.ts src/lib/app/tauri-listeners.service.ts more importers 39 not shown: src/lib/core/filesystem(5) src/lib/features/todoist-sync(5) src/lib/core/settings(4) +20 modules: q importers src/lib/contracts/ipc.ts
+entry src/lib/contracts/ipc.ts ext-in45 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/app/lifecycle/watcher-handler.service.ts src/lib/app/tauri-listeners.service.ts more importers 40 not shown: src/lib/core/filesystem(5) src/lib/features/todoist-sync(5) src/lib/core/settings(4) +20 modules: q importers src/lib/contracts/ipc.ts
 entry src/lib/contracts/index.ts ext-in26 src/lib/app/tauri-listeners.service.ts src/lib/core/filesystem/fs.types.ts src/lib/core/filesystem/wikilink-resolution.logic.ts src/lib/core/settings/sections/UpdateSection.svelte src/lib/features/backlinks/backlinks.types.ts more importers 21 not shown: src/lib/features/todoist-sync(15) src/lib/features/search(2) src/lib/features/file-history(1) +3 modules: q importers src/lib/contracts/index.ts
 entry src/lib/contracts/events.ts ext-in6 src/lib/app/tauri-listeners.service.ts src/lib/core/filesystem/fs.watcher.ts src/lib/features/search/search.service.ts src/lib/plugins/quick-capture/quick-capture.service.ts src/lib/utils/debug.ts more importers 1 not shown: src/routes(1): q importers src/lib/contracts/events.ts
 ## files
@@ -90,7 +90,7 @@ file src/lib/contracts/generated/VaultFilesChangedPayload.ts other L7 module src
 file src/lib/contracts/generated/WikiLink.ts other L29 module src/lib/contracts in2 t0
 file src/lib/contracts/generated/serde_json/JsonValue.ts other L3 module src/lib/contracts in3 t0
 file src/lib/contracts/index.ts other L57 module src/lib/contracts in28 t0 | Barrel over the ts-rs output in `./generated/` (ts-rs writes one file per type and no index).
-file src/lib/contracts/ipc.ts other L89 module src/lib/contracts in44 t4
+file src/lib/contracts/ipc.ts other L89 module src/lib/contracts in45 t5
 ## public
 sym src/lib/contracts/events.ts:16 const EVENT_NAMES L11 | Every event name Rust emits, keyed by its Rust const name minus `_EVENT`.
 sym src/lib/contracts/index.ts:9 reexport DiffLine = dto:DiffLine L1

@@ -17,7 +17,7 @@ imp src/lib/features/rail-shell/lens.logic.ts:4 -> src/lib/core/filesystem/fs.ty
 imp src/lib/features/rail-shell/rail-shell.types.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode
 ## reach
-in2 src/lib/core/filesystem/fs.types.ts 80 files in 29 modules: src/lib/features/rail-shell(16) src/lib/app(9) src/lib/features/type-definitions(6) src/lib/core/markdown-editor(4) src/lib/features/collection(4) +24 modules: q impact src/lib/core/filesystem/fs.types.ts --depth 2
+in2 src/lib/core/filesystem/fs.types.ts 81 files in 30 modules: src/lib/features/rail-shell(16) src/lib/app(9) src/lib/features/type-definitions(6) src/lib/core/markdown-editor(4) src/lib/features/collection(4) +25 modules: q impact src/lib/core/filesystem/fs.types.ts --depth 2
 out2 src/lib/core/filesystem/fs.types.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/fixtures/tauri-api.fixture.ts imports-type src/lib/core/filesystem/fs.types.ts

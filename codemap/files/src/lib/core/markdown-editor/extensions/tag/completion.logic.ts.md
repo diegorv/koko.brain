@@ -6,7 +6,7 @@ imp src/lib/core/markdown-editor/extensions/tag/completion.logic.ts:1 -> src/lib
 ## imported-by
 imp src/lib/core/markdown-editor/extensions/tag/completion.ts:4 -> src/lib/core/markdown-editor/extensions/tag/completion.logic.ts detectTagContext,rankTags
 ## reach
-in2 src/lib/core/markdown-editor/extensions/tag/completion.logic.ts 1 files in 1 modules: src/lib/core/markdown-editor(1)
+in2 src/lib/core/markdown-editor/extensions/tag/completion.logic.ts 2 files in 2 modules: src/lib/core/markdown-editor(1) src/lib/plugins/quick-capture(1)
 out2 src/lib/core/markdown-editor/extensions/tag/completion.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/markdown-editor/extensions/tag/completion.logic.test.ts imports src/lib/core/markdown-editor/extensions/tag/completion.logic.ts mirror

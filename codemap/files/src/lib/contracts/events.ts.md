@@ -10,9 +10,9 @@ imp src/lib/core/filesystem/fs.watcher.ts:3 -> src/lib/contracts/events.ts EVENT
 imp src/lib/features/search/search.service.ts:2 -> src/lib/contracts/events.ts EVENT_NAMES
 imp src/lib/plugins/quick-capture/quick-capture.service.ts:2 -> src/lib/contracts/events.ts EVENT_NAMES
 imp src/lib/utils/debug.ts:2 -> src/lib/contracts/events.ts EVENT_NAMES
-imp src/routes/composer/+page.svelte:4 -> src/lib/contracts/events.ts EVENT_NAMES
+imp src/routes/composer/+page.svelte:6 -> src/lib/contracts/events.ts EVENT_NAMES
 ## reach
-in2 src/lib/contracts/events.ts 78 files in 33 modules: src/lib/core/settings(9) src/lib/features/todoist-sync(8) src/lib/app(7) src/lib/core/filesystem(4) src/lib/features/rail-shell(4) +28 modules: q impact src/lib/contracts/events.ts --depth 2
+in2 src/lib/contracts/events.ts 79 files in 34 modules: src/lib/core/settings(9) src/lib/features/todoist-sync(8) src/lib/app(7) src/lib/core/filesystem(4) src/lib/features/rail-shell(4) +29 modules: q impact src/lib/contracts/events.ts --depth 2
 out2 src/lib/contracts/events.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/contracts/events-parity.test.ts imports src/lib/contracts/events.ts mirror
@@ -26,7 +26,7 @@ by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/core/filesystem/fs.watcher
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/features/search/search.service.ts:85 in startSemanticProgressListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/utils/debug.ts:128 in startTauriDebugListener member
-by src/lib/contracts/events.ts:EVENT_NAMES <- src/routes/composer/+page.svelte:178 in (script) member +1
+by src/lib/contracts/events.ts:EVENT_NAMES <- src/routes/composer/+page.svelte:214 in (script) member +1
 sym src/lib/contracts/events.ts:29 type EventName L1 | A Rust-emitted event name.
 sym src/lib/contracts/events.ts:32 interface EventMap L26 | The payload of each event, as it arrives in JS.
 by src/lib/contracts/events.ts:EventMap <- src/lib/contracts/ipc.ts:4 in (module) import

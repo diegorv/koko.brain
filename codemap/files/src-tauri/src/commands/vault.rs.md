@@ -159,9 +159,11 @@ ipc-call src/lib/features/search/search.service.ts:25 in loadVaultContentMap -> 
 ipc-call src/lib/features/search/search.service.ts:44 in loadVaultTagMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
 ipc-call src/lib/features/type-definitions/type-definitions.service.ts:29 in refreshTypeDefinitions -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
 ipc-call src/lib/plugins/graph-view/graph-view.service.ts:15 in buildGraph -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
+ipc-call src/lib/plugins/quick-capture/composer-editor-host.service.ts:41 in createComposerEditorHost -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
 ipc-call src/lib/features/backlinks/backlinks.service.ts:212 in computeUnlinkedMentionsForFileInner -> ipc:get_unlinked_mentions_v2 -> src-tauri/src/commands/vault.rs:599
 ipc-call src/lib/app/editor-host.ts:102 in vaultTags -> ipc:get_all_tags_v2 -> src-tauri/src/commands/vault.rs:638
 ipc-call src/lib/features/tags/tags.service.ts:30 in buildTagIndex -> ipc:get_all_tags_v2 -> src-tauri/src/commands/vault.rs:638
+ipc-call src/lib/plugins/quick-capture/composer-editor-host.service.ts:30 in createComposerEditorHost -> ipc:get_all_tags_v2 -> src-tauri/src/commands/vault.rs:638
 ipc-call src/lib/features/event-calendar/event-calendar.service.ts:119 in loadCalendarTasks -> ipc:get_all_tasks_v2 -> src-tauri/src/commands/vault.rs:652
 ipc-call src/lib/features/todoist-sync/vault-scan.service.ts:57 in scanVault -> ipc:get_all_tasks_v2 -> src-tauri/src/commands/vault.rs:652
 ipc-call src/lib/features/tasks/tasks.service.ts:296 in setTaskStatus -> ipc:toggle_task_status -> src-tauri/src/commands/vault.rs:733

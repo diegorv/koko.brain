@@ -28,7 +28,7 @@ by src-tauri/src/events.rs:APP_EXIT_REQUESTED_EVENT <- src-tauri/src/lib.rs:168 
 sym src-tauri/src/events.rs:29 const QC_CAPTURE_DETECTED_EVENT L1 | Delivers a detected clipboard capture to the frontend.
 by src-tauri/src/events.rs:QC_CAPTURE_DETECTED_EVENT <- src-tauri/src/lib.rs:81 in dispatch_shortcut ref
 by src-tauri/src/events.rs:QC_CAPTURE_DETECTED_EVENT <- src-tauri/src/quick_capture/commands.rs:359 in capture_clipboard_now ref +1
-sym src-tauri/src/events.rs:34 const QC_OPEN_COMPOSER_EVENT L1 | Event the composer popover listens for to focus its textarea after a show.
+sym src-tauri/src/events.rs:34 const QC_OPEN_COMPOSER_EVENT L1 | Event the composer popover listens for to focus its editor after a show.
 by src-tauri/src/events.rs:QC_OPEN_COMPOSER_EVENT <- src-tauri/src/quick_capture/commands.rs:406 in show_composer ref
 sym src-tauri/src/events.rs:38 const QC_COMPOSER_CAPTURE_RESULT_EVENT L1 | Carries a `ComposerCaptureResult`: whether the main window wrote the capture note of one composer submit.
 by src-tauri/src/events.rs:QC_COMPOSER_CAPTURE_RESULT_EVENT <- src-tauri/src/quick_capture/commands.rs:511 in report_composer_capture_result ref

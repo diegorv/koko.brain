@@ -15,7 +15,7 @@ fx src/lib/features/canvas/CanvasInner.svelte:300 timer.queueMicrotask in handle
 fx src/lib/features/canvas/CanvasInner.svelte:314 timer.queueMicrotask in handleKeydown
 fx src/lib/features/collection/CollectionView.svelte:439 timer.queueMicrotask in handleAddView
 fx src/lib/features/properties/RelationshipSearch.svelte:41 timer.queueMicrotask in (markup)
-fx src/routes/composer/+page.svelte:158 timer.queueMicrotask in resetForShow
+fx src/routes/composer/+page.svelte:185 timer.queueMicrotask in resetForShow
 fx src/lib/app/AppShell.svelte:85 timer.requestAnimationFrame in (script)
 fx src/lib/app/AppShell.svelte:86 timer.requestAnimationFrame in (script)
 fx src/lib/core/markdown-editor/MarkdownEditor.svelte:418 timer.requestAnimationFrame in (script)
@@ -74,5 +74,5 @@ fx src/lib/utils/log.service.ts:195 timer.setTimeout delay=0 in logClickToPaint
 fx src/routes/(app)/+layout.svelte:110 timer.setTimeout delay=150 in $effect@105
 fx src/routes/(app)/+layout.svelte:159 timer.setTimeout delay=1000 in $effect@147
 fx src/routes/(app)/+layout.svelte:175 timer.setTimeout delay=200 in $effect@170
-fx src/routes/composer/+page.svelte:61 timer.setTimeout delay=RESULT_TIMEOUT_MS in waitForResult
-fx src/routes/composer/+page.svelte:126 timer.setTimeout delay=SAVE_FLASH_MS in handleSave
+fx src/routes/composer/+page.svelte:79 timer.setTimeout delay=RESULT_TIMEOUT_MS in waitForResult
+fx src/routes/composer/+page.svelte:144 timer.setTimeout delay=SAVE_FLASH_MS in handleSave

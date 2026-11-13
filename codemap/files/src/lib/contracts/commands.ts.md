@@ -6,7 +6,7 @@ imp src/lib/contracts/commands.ts:7 -> src/lib/contracts/index.ts type:CachedSca
 ## imported-by
 imp src/lib/contracts/ipc.ts:3 -> src/lib/contracts/commands.ts type:CommandArgs,type:CommandMap,type:CommandResult
 ## reach
-in2 src/lib/contracts/commands.ts 44 files in 24 modules: src/lib/app(5) src/lib/core/filesystem(5) src/lib/features/todoist-sync(5) src/lib/core/settings(4) src/lib/features/search(3) +19 modules: q impact src/lib/contracts/commands.ts --depth 2
+in2 src/lib/contracts/commands.ts 45 files in 24 modules: src/lib/app(5) src/lib/core/filesystem(5) src/lib/features/todoist-sync(5) src/lib/core/settings(4) src/lib/features/search(3) +19 modules: q impact src/lib/contracts/commands.ts --depth 2
 out2 src/lib/contracts/commands.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/contracts/ipc-parity.test.ts imports src/lib/contracts/commands.ts

@@ -9,7 +9,7 @@ imp src/lib/core/markdown-editor/extensions/wikilink/completion.ts:3 -> src/lib/
 imp src/lib/features/command-palette/command-palette.logic.ts:2 -> src/lib/utils/fuzzy-match.ts fuzzyMatch
 imp src/lib/plugins/mods/ModDialogHost.svelte:13 -> src/lib/utils/fuzzy-match.ts fuzzyMatch
 ## reach
-in2 src/lib/utils/fuzzy-match.ts 14 files in 9 modules: src/lib/core/markdown-editor(3) src/lib/app(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/core/filesystem(1) +4 modules: q impact src/lib/utils/fuzzy-match.ts --depth 2
+in2 src/lib/utils/fuzzy-match.ts 16 files in 10 modules: src/lib/core/markdown-editor(3) src/lib/app(2) src/lib/features/properties(2) src/lib/plugins/kanban(2) src/lib/plugins/quick-capture(2) +5 modules: q impact src/lib/utils/fuzzy-match.ts --depth 2
 out2 src/lib/utils/fuzzy-match.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/fuzzy-match.test.ts imports src/lib/utils/fuzzy-match.ts mirror

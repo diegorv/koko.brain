@@ -1,6 +1,6 @@
 # file card src/lib/core/filesystem/wikilink-resolution.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/wikilink-resolution.logic.ts ' codemap/files
-file src/lib/core/filesystem/wikilink-resolution.logic.ts logic L184 module src/lib/core/filesystem in14 t8
+file src/lib/core/filesystem/wikilink-resolution.logic.ts logic L184 module src/lib/core/filesystem in15 t8
 ## imports
 imp src/lib/core/filesystem/wikilink-resolution.logic.ts:1 -> src/lib/contracts/index.ts type:WikiLink
 ## imported-by
@@ -18,8 +18,9 @@ imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:6 -> src/lib/core/fi
 imp src/lib/plugins/kanban/kanban.service.ts:9 -> src/lib/core/filesystem/wikilink-resolution.logic.ts buildResolutionCache,resolveWikilinkCached
 imp src/lib/plugins/queryjs/kb-api.ts:9 -> src/lib/core/filesystem/wikilink-resolution.logic.ts buildResolutionCache
 imp src/lib/plugins/queryjs/queryjs.logic.ts:5 -> src/lib/core/filesystem/wikilink-resolution.logic.ts isLinkTargetFile,resolveWikilinkCached,type:WikilinkResolutionCache
+imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:3 -> src/lib/core/filesystem/wikilink-resolution.logic.ts getNoteName,isLinkTargetFile
 ## reach
-in2 src/lib/core/filesystem/wikilink-resolution.logic.ts 41 files in 14 modules: src/lib/features/rail-shell(11) src/lib/app(6) src/lib/features/collection(6) src/lib/features/auto-organize(3) src/lib/plugins/graph-view(3) +9 modules: q impact src/lib/core/filesystem/wikilink-resolution.logic.ts --depth 2
+in2 src/lib/core/filesystem/wikilink-resolution.logic.ts 43 files in 16 modules: src/lib/features/rail-shell(11) src/lib/app(6) src/lib/features/collection(6) src/lib/features/auto-organize(3) src/lib/plugins/graph-view(3) +11 modules: q impact src/lib/core/filesystem/wikilink-resolution.logic.ts --depth 2
 out2 src/lib/core/filesystem/wikilink-resolution.logic.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/core/filesystem/wikilink-resolution.logic.test.ts imports src/lib/core/filesystem/wikilink-resolution.logic.ts mirror
@@ -35,11 +36,13 @@ sym src/lib/core/filesystem/wikilink-resolution.logic.ts:4 fn getNoteName(filePa
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:2 in (module) import
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/core/markdown-editor/extensions/wikilink/completion.ts:90 in buildFileCompletions call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/features/copy-block-link/copy-block-link.service.ts:28 in copyBlockLink call
+by src/lib/core/filesystem/wikilink-resolution.logic.ts:getNoteName <- src/lib/plugins/quick-capture/composer-editor-host.service.ts:46 in createComposerEditorHost call
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:15 fn isLinkTargetFile(filePath: string): boolean L4 | Whether a wikilink can resolve to `filePath`: false for a `.view` (any casing), true for every other file.
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/app/editor-host.ts:80 in treeLinkIndex call +1
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/features/properties/RelationshipSearch.svelte:24 in allFiles=$derived call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:28 in files=$derived call
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/queryjs/queryjs.logic.ts:75 in resolveInlinks call
+by src/lib/core/filesystem/wikilink-resolution.logic.ts:isLinkTargetFile <- src/lib/plugins/quick-capture/composer-editor-host.service.ts:43 in createComposerEditorHost call
 sym src/lib/core/filesystem/wikilink-resolution.logic.ts:64 fn resolveWikilink(target: string, allFilePaths: string[], vaultRoot?: string | null): string | null L33 | Resolves a wikilink target to a file path; null when nothing matches.
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilink <- src/lib/features/note-list/NoteRow.svelte:111 in (markup) markup
 by src/lib/core/filesystem/wikilink-resolution.logic.ts:resolveWikilink <- src/lib/features/properties/PropertiesView.svelte:65 in relLinksMap=$derived ref

@@ -39,7 +39,7 @@ imp src/lib/plugins/one-on-one/one-on-one.logic.ts:4 -> src/lib/types/vault-v2.t
 imp src/lib/plugins/queryjs/kb-api.ts:2 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 imp src/lib/plugins/queryjs/queryjs.logic.ts:3 -> src/lib/types/vault-v2.types.ts type:NoteEntryV2
 ## reach
-in2 src/lib/types/vault-v2.types.ts 88 files in 20 modules: src/lib/features/rail-shell(17) src/lib/features/event-calendar(16) src/lib/app(10) src/lib/core/markdown-editor(8) src/lib/features/tasks(6) +15 modules: q impact src/lib/types/vault-v2.types.ts --depth 2
+in2 src/lib/types/vault-v2.types.ts 90 files in 21 modules: src/lib/features/rail-shell(17) src/lib/features/event-calendar(16) src/lib/app(10) src/lib/core/markdown-editor(8) src/lib/features/tasks(6) +16 modules: q impact src/lib/types/vault-v2.types.ts --depth 2
 out2 src/lib/types/vault-v2.types.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/types/vault-v2.types.test.ts imports-type src/lib/types/vault-v2.types.ts mirror

@@ -13,10 +13,10 @@ module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 c
 module src/lib/components components files 96 in-modules 30 out-modules 1 pub 0/0 ipc 0/0 card ~6k
 module src/lib/contracts contracts files 56 in-modules 25 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
 module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 44/52 ipc 0/0 card ~4.3k
-module src/lib/core/filesystem core files 14 in-modules 28 out-modules 7 pub 57/88 ipc 14/0 card ~6.8k
+module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 57/88 ipc 14/0 card ~6.8k
 module src/lib/core/frontmatter core files 4 in-modules 16 out-modules 3 pub 28/40 ipc 0/0 card ~3.5k
 module src/lib/core/layout core files 3 in-modules 5 out-modules 4 pub 7/7 ipc 0/0 card ~1k
-module src/lib/core/markdown-editor core files 108 in-modules 10 out-modules 7 pub 29/353 ipc 0/0 card ~8.3k
+module src/lib/core/markdown-editor core files 108 in-modules 11 out-modules 7 pub 35/353 ipc 0/0 card ~8.9k
 module src/lib/core/note-creator core files 2 in-modules 12 out-modules 5 pub 4/6 ipc 2/0 card ~1.4k
 module src/lib/core/rule-actions core files 1 in-modules 2 out-modules 0 pub 1/3 ipc 0/0 card ~0.5k
 module src/lib/core/settings core files 38 in-modules 29 out-modules 6 pub 53/175 ipc 3/0 card ~6.7k
@@ -53,7 +53,7 @@ module src/lib/plugins/mods plugins files 18 in-modules 1 out-modules 17 pub 9/6
 module src/lib/plugins/one-on-one plugins files 6 in-modules 2 out-modules 14 pub 5/21 ipc 0/0 card ~1.3k
 module src/lib/plugins/periodic-notes plugins files 3 in-modules 5 out-modules 7 pub 10/20 ipc 0/0 card ~1.5k
 module src/lib/plugins/queryjs plugins files 14 in-modules 2 out-modules 10 pub 6/78 ipc 0/0 card ~1.6k
-module src/lib/plugins/quick-capture plugins files 3 in-modules 2 out-modules 8 pub 6/9 ipc 1/0 card ~1.2k
+module src/lib/plugins/quick-capture plugins files 5 in-modules 2 out-modules 10 pub 10/15 ipc 3/0 card ~1.6k
 module src/lib/plugins/table-of-contents plugins files 5 in-modules 1 out-modules 5 pub 2/7 ipc 0/0 card ~0.8k
 module src/lib/plugins/templates plugins files 4 in-modules 1 out-modules 7 pub 4/11 ipc 1/0 card ~0.8k
 module src/lib/plugins/word-count plugins files 2 in-modules 1 out-modules 1 pub 1/4 ipc 0/0 card ~0.4k
@@ -85,8 +85,8 @@ layer features -> types 23
 layer features -> utils 97
 layer lib-root -> utils 1
 layer plugins -> components 17
-layer plugins -> contracts 6
-layer plugins -> core 99
+layer plugins -> contracts 7
+layer plugins -> core 106
 layer plugins -> features 35
 layer plugins -> plugins 142
 layer plugins -> types 4
@@ -96,7 +96,7 @@ layer routes -> components 1
 layer routes -> contracts 2
 layer routes -> core 9
 layer routes -> features 6
-layer routes -> plugins 1
+layer routes -> plugins 3
 layer routes -> utils 2
 layer rust -> rust 115
 layer types -> contracts 1

@@ -8,7 +8,7 @@ imp src/lib/core/markdown-editor/setup/editor-theme.ts:4 -> src/lib/utils/font-s
 imp src/lib/core/settings/sections/EditorSection.svelte:8 -> src/lib/utils/font-stacks.ts quoteFontFamily
 imp src/lib/plugins/queryjs/kb-ui.ts:26 -> src/lib/utils/font-stacks.ts APP_SANS_FONT_STACK
 ## reach
-in2 src/lib/utils/font-stacks.ts 21 files in 3 modules: src/lib/core/markdown-editor(19) src/lib/app(1) src/lib/plugins/queryjs(1)
+in2 src/lib/utils/font-stacks.ts 22 files in 4 modules: src/lib/core/markdown-editor(19) src/lib/app(1) src/lib/plugins/queryjs(1) src/lib/plugins/quick-capture(1)
 out2 src/lib/utils/font-stacks.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/font-stacks.test.ts imports src/lib/utils/font-stacks.ts mirror
