@@ -84,10 +84,10 @@ export function createMarkdownState(
 /**
  * Mounts an EditorView, in a fresh div under `document.body`, on a `createMarkdownState`
  * state. The live-preview ViewPlugin decorators build their decorations in the constructor,
- * so the parse must be finished before `new EditorView`: repairing it afterwards
- * (`ensureSyntaxTree` / `forceParsing` + an empty dispatch) re-snapshots the tree, but
- * `checkUpdateAction` returns `'none'` for that transaction and the plugins keep the
- * decorations they built from the truncated tree.
+ * so the parse is finished before `new EditorView` and the mounted view starts with
+ * decorations from the full tree. Repairing it afterwards (`ensureSyntaxTree` /
+ * `forceParsing` + an empty dispatch) also rebuilds them, because `checkUpdateAction`
+ * treats a replaced syntax tree as a rebuild, but only from that dispatch on.
  * @param doc Document text.
  * @param options Passed to `createMarkdownState`; `extensions` replaces its default language set.
  */

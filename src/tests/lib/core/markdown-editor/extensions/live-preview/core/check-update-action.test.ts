@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { EditorSelection, EditorState } from '@codemirror/state';
 import type { ViewUpdate } from '@codemirror/view';
+import { ensureSyntaxTree, syntaxTree } from '@codemirror/language';
 import {
 	checkUpdateAction,
 	isPureScroll,
@@ -10,6 +11,7 @@ import {
 	setMouseSelecting,
 } from '#lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.js';
 import { forceDecorationRebuild } from '#lib/core/markdown-editor/extensions/live-preview/core/effects.js';
+import { createMarkdownState, testMarkdown } from '../../../test-helpers';
 
 function createState(doc = 'hello world'): EditorState {
 	return EditorState.create({ doc, extensions: [mouseSelectingField] });
@@ -168,6 +170,40 @@ describe('checkUpdateAction', () => {
 		const state = createState();
 		const update = mockUpdate(state, {});
 		expect(checkUpdateAction(update)).toBe('none');
+	});
+
+	it('returns "rebuild" when the background parse extends the syntax tree', () => {
+		// EditorState.create parses only the first 3000 chars (Work.InitViewport);
+		// the parse worker later swaps in the longer tree with an effect-only
+		// transaction. Decorations built from the short tree must be redone.
+		const doc = Array.from({ length: 200 }, (_, i) => `- [Title ${i}](https://example.com/${i})`).join('\n');
+		const start = EditorState.create({ doc, extensions: [testMarkdown(), mouseSelectingField] });
+		expect(syntaxTree(start).length).toBeLessThan(doc.length);
+		expect(ensureSyntaxTree(start, doc.length, 5000)).not.toBeNull();
+		const parsed = start.update({}).state;
+		expect(syntaxTree(parsed).length).toBe(doc.length);
+		expect(checkUpdateAction(mockUpdate(start, { state: parsed }))).toBe('rebuild');
+	});
+
+	it('returns "none" for a same-line cursor move on a fully parsed markdown tree', () => {
+		// Guards the tree check against firing on every transaction: with no doc
+		// change and nothing left to parse, CodeMirror keeps the same tree object.
+		const parsed = createMarkdownState('# Title\n\n[link](https://example.com) and more text', {
+			extensions: [testMarkdown(), mouseSelectingField],
+		});
+		const moved = parsed.update({ selection: { anchor: 4 } }).state;
+		expect(syntaxTree(moved)).toBe(syntaxTree(parsed));
+		expect(checkUpdateAction(mockUpdate(parsed, { state: moved, selectionSet: true }))).toBe('none');
+	});
+
+	it('returns "skip" when the syntax tree grows during mouse-drag', () => {
+		const doc = Array.from({ length: 200 }, (_, i) => `- [Title ${i}](https://example.com/${i})`).join('\n');
+		const start = EditorState.create({ doc, extensions: [testMarkdown(), mouseSelectingField] });
+		const dragging = start.update({ effects: setMouseSelecting.of(true) }).state;
+		ensureSyntaxTree(dragging, doc.length, 5000);
+		const parsed = dragging.update({}).state;
+		expect(syntaxTree(parsed)).not.toBe(syntaxTree(dragging));
+		expect(checkUpdateAction(mockUpdate(dragging, { state: parsed }))).toBe('skip');
 	});
 
 	it('returns "skip" during mouse-drag selection', () => {

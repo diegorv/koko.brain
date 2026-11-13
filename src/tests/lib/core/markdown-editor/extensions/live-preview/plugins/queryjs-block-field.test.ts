@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { describe, it, expect, beforeEach } from 'vitest';
-import type { EditorView } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { EditorView } from '@codemirror/view';
 import { markdown } from '@codemirror/lang-markdown';
-import { LanguageDescription } from '@codemirror/language';
+import { LanguageDescription, forceParsing } from '@codemirror/language';
 
 // No mocks for stores or logic files — real implementations per CLAUDE.md.
 
@@ -169,6 +170,30 @@ describe('queryjsBlockField — update() gating', () => {
 		);
 
 		expect(pluginWidgets(view)).toHaveLength(1);
+	});
+
+	it('renders a block past the initial parse once the full tree arrives', () => {
+		// EditorState.create parses only the first 3000 chars (Work.InitViewport);
+		// the block past them is missing from the tree the view mounts on.
+		const filler = Array.from({ length: 150 }, (_, i) => `filler paragraph line ${i}`).join('\n\n');
+		const doc = `${filler}\n\n\`\`\`queryjs\nlate()\n\`\`\``;
+		const state = EditorState.create({
+			doc,
+			extensions: [
+				testMarkdown(),
+				mouseSelectingField,
+				fencedBlockRenderers.of(fakeBlockRenderer('queryjs')),
+				queryjsBlockField,
+			],
+		});
+		const view = new EditorView({ state, parent: document.body.appendChild(document.createElement('div')) });
+		expect(allWidgets(view)).toHaveLength(0);
+
+		// Like the parse worker's transaction, this one changes only the tree.
+		expect(forceParsing(view, doc.length, 5000)).toBe(true);
+
+		expect((allWidgets(view) as FakeBlockWidget[]).map((w) => w.source)).toEqual(['late()']);
+		view.destroy();
 	});
 });
 

@@ -1,8 +1,9 @@
 // @vitest-environment jsdom
 import { readFileSync } from 'node:fs';
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import { EditorState } from '@codemirror/state';
 import { EditorView } from '@codemirror/view';
-import { syntaxHighlighting } from '@codemirror/language';
+import { syntaxHighlighting, syntaxTree } from '@codemirror/language';
 import { livePreviewExtensions } from '#lib/core/markdown-editor/extensions/live-preview/live-preview.js';
 import { expandedVisibleRanges } from '#lib/core/markdown-editor/extensions/live-preview/core/expanded-ranges.js';
 import { markdownLanguage, markdownHighlight } from '#lib/core/markdown-editor/highlight-styles.js';
@@ -32,12 +33,11 @@ const BLOCKQUOTES = '> a\n> > b\n> > > c\n';
  * No fenced-block renderer is installed, so a queryjs or collection block
  * would render as raw lines; none of the samples here contains one.
  *
- * The parse must be finished BEFORE the view is constructed. Repairing it
- * afterwards with `forceParsing(view, ...)` does not work here: it does
- * re-snapshot the full tree, but the empty transaction it dispatches to do so
- * carries no doc change, no selection change and no effect, so
- * `checkUpdateAction` returns `'none'` and every live-preview ViewPlugin keeps
- * the decorations it built from the truncated tree.
+ * The parse is finished BEFORE the view is constructed so the assertions that
+ * follow the mount read decorations built from the full tree. A later
+ * re-snapshot (`forceParsing`, or the parse worker) does rebuild them, since
+ * `checkUpdateAction` treats a replaced syntax tree as a rebuild, but only on
+ * that later transaction.
  */
 function mountView(doc: string, cursor?: number): { view: EditorView; root: HTMLElement } {
 	const state = createMarkdownState(doc, {
@@ -195,6 +195,40 @@ describe('inline pipeline — DOM snapshot (jsdom)', () => {
 			expect(classes.has('cm-lp-blockquote')).toBe(true);
 			expect(classes.has('cm-lp-blockquote-2')).toBe(true);
 			expect(classes.has('cm-lp-blockquote-3')).toBe(true);
+		});
+
+		it('decorates links past the initial parse once the background parse finishes', async () => {
+			// Production path: EditorState.create parses only the first 3000 chars
+			// (Work.InitViewport), the view mounts on that short tree, and the parse
+			// worker later swaps in the full tree with an effect-only transaction.
+			// The first line holds the cursor, so it is revealed and has no link.
+			const links = Array.from(
+				{ length: 120 },
+				(_, i) => `- [Title ${i}](https://example.com/some/long/path/segment/${i}?query=value&other=thing&utm_source=newsletter&utm_medium=email&utm_campaign=autumn)`,
+			);
+			const doc = ['Links', ...links].join('\n');
+			const state = EditorState.create({
+				doc,
+				extensions: [
+					markdownLanguage(),
+					syntaxHighlighting(markdownHighlight),
+					livePreviewExtensions(settingsStore.disabledDecorators),
+				],
+			});
+			const root = document.body.appendChild(document.createElement('div'));
+			const view = new EditorView({ state, parent: root });
+			cleanup = () => view.destroy();
+			expect(syntaxTree(view.state).length).toBeLessThan(view.viewport.to);
+
+			await vi.waitFor(() => expect(syntaxTree(view.state).length).toBe(doc.length), {
+				timeout: 3000,
+			});
+
+			const lines = Array.from(root.querySelectorAll('.cm-line')).slice(1);
+			expect(lines.length).toBeGreaterThan(0);
+			for (const line of lines) {
+				expect(line.querySelector('.cm-lp-link'), line.textContent ?? '').not.toBeNull();
+			}
 		});
 	});
 

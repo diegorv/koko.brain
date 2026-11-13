@@ -37,8 +37,9 @@ export interface BlockDecoratorSpec {
 	compute: (state: EditorState) => DecorationSet;
 	/**
 	 * Extra effects that force a rebuild. `checkUpdateAction` returns `'none'`
-	 * for an effect-only transaction, so a decorator whose output depends on
-	 * custom state (callout fold) must name the effect that changes it.
+	 * for an effect-only transaction (unless it replaces the syntax tree), so a
+	 * decorator whose output depends on custom state (callout fold) must name
+	 * the effect that changes it.
 	 */
 	rebuildOn?: readonly StateEffectType<unknown>[];
 	/**

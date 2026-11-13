@@ -1,6 +1,7 @@
 import { RangeSetBuilder } from '@codemirror/state';
 import type { EditorState } from '@codemirror/state';
 import { Decoration, type DecorationSet } from '@codemirror/view';
+import { syntaxTree } from '@codemirror/language';
 import { findAllQueryjsBlocks } from '../parsers/queryjs-block';
 import { fencedBlockRenderers } from '../core/fenced-block-renderers';
 import { hideLines } from '../core/hide-lines';
@@ -48,10 +49,12 @@ export function computeQueryjsBlocks(state: EditorState): DecorationSet {
  *
  * The `gate` is narrower than every other block decorator's: queryjs widgets
  * are the expensive ones, so anything that is not a document edit, a selection
- * change, a `forceDecorationRebuild` or the end of a mouse drag is dropped
- * before `checkUpdateAction`. `forceDecorationRebuild` must pass through: it is
- * how the editor signals "the property index became ready", and the rebuild
- * creates fresh widgets whose `eq()` snapshot differs, replacing any
+ * change, a `forceDecorationRebuild`, a replaced syntax tree or the end of a
+ * mouse drag is dropped before `checkUpdateAction`. The tree check lets in the
+ * parse worker's effect-only transaction: blocks are found by walking the tree,
+ * so a block past the initial parse (3000 chars) only appears once it lands.
+ * `forceDecorationRebuild` must pass through: it is how the editor signals
+ * "the property index became ready", and the rebuild creates fresh widgets whose `eq()` snapshot differs, replacing any
  * "Building index..." placeholder. Scroll-debounce force rebuilds also land
  * here; they recompute the (cheap) line scan and `eq()` keeps the existing DOM,
  * so no script re-executes. The drag release must pass because
@@ -68,6 +71,7 @@ export const queryjsBlockField = blockDecorator({
 		update.docChanged ||
 		update.selectionSet ||
 		update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))) ||
+		syntaxTree(update.startState) !== syntaxTree(update.state) ||
 		(update.startState.field(mouseSelectingField, false) === true &&
 			!update.state.field(mouseSelectingField, false)),
 });

@@ -1,11 +1,12 @@
 import type { ViewUpdate } from '@codemirror/view';
+import { syntaxTree } from '@codemirror/language';
 import { forceDecorationRebuild } from './effects';
 import { mouseSelectingField } from './mouse-selecting';
 import { sameTouchedLines } from './reveal';
 
 /**
  * Determines what action a ViewPlugin should take in response to a ViewUpdate.
- * - `'rebuild'`: decorations should be recomputed (doc changed, reconfigured, drag ended, selection changed its touched lines, force rebuild)
+ * - `'rebuild'`: decorations should be recomputed (doc changed, reconfigured, drag ended, selection changed its touched lines, force rebuild, syntax tree replaced by the background parse)
  * - `'skip'`: currently dragging, even on a force rebuild — suppress rebuild to prevent flicker
  * - `'none'`: no relevant change, including a pure scroll — keep existing decorations
  *
@@ -31,14 +32,20 @@ export function checkUpdateAction(update: ViewUpdate): 'rebuild' | 'skip' | 'non
 	if (update.transactions.some((t) => t.effects.some((e) => e.is(forceDecorationRebuild))))
 		return 'rebuild';
 
+	// The initial parse stops after 3000 chars (or 20 ms); the parse worker
+	// later swaps in the longer tree with an effect-only transaction. Without
+	// this, constructs past the first tree stay raw until a scroll forces a rebuild.
+	if (syntaxTree(update.startState) !== syntaxTree(update.state)) return 'rebuild';
+
 	if (update.selectionSet) {
 		return sameTouchedLines(update.startState, update.state) ? 'none' : 'rebuild';
 	}
 
 	// A pure viewport change (scroll) ends here: scrollDebouncePlugin dispatches
 	// forceDecorationRebuild after scrolling stops. A viewport change that also
-	// moves the selection (arrow keys at the viewport edge) or carries a
-	// reconfigure / forceDecorationRebuild was handled above.
+	// moves the selection (arrow keys at the viewport edge), carries a
+	// reconfigure / forceDecorationRebuild or replaces the syntax tree was
+	// handled above.
 	return 'none';
 }
 
