@@ -785,7 +785,7 @@ describe('RailNoteList', () => {
 
 		it("renders the one-on-one plugin's My people before the notes dated today", async () => {
 			typeDefinitionsStore.setEntries([
-				entryV2('/vault/Work/_people/Ana.md', { isA: 'Person' }),
+				entryV2('/vault/Work/_people/Ana.md', { isA: 'Person', frontmatter: { _one_on_one_every: true } }),
 			]);
 			registerOneOnOneTodaySection();
 			await mountList(TODAY_LENS);
