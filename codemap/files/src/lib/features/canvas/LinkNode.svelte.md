@@ -13,7 +13,7 @@ in2 src/lib/features/canvas/LinkNode.svelte 1 files in 1 modules: src/lib/featur
 out2 src/lib/features/canvas/LinkNode.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/features/canvas/LinkNode.svelte:1 component LinkNode props:id,data,selected L216
-by src/lib/features/canvas/LinkNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:70 in nodeTypes ref
+by src/lib/features/canvas/LinkNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:72 in nodeTypes ref
 ## locals
 local src/lib/features/canvas/LinkNode.svelte:44 fn startEditing() L6
 local src/lib/features/canvas/LinkNode.svelte:52 fn stopEditing() L8

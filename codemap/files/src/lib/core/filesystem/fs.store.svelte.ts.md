@@ -1,6 +1,6 @@
 # file card src/lib/core/filesystem/fs.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/fs.store.svelte.ts ' codemap/files
-file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in22 t56
+file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in22 t57
 ## imports
 imp src/lib/core/filesystem/fs.store.svelte.ts:1 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode,type:FolderOrderMap
 ## imported-by
@@ -53,6 +53,7 @@ test src/tests/lib/core/note-creator/note-creator.tree.test.ts imports src/lib/c
 test src/tests/lib/core/trash/trash.restore-tree.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/core/trash/trash.service.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/auto-organize/auto-organize.no-chain.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
+test src/tests/lib/features/canvas/canvas-tab-switch.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/collection/collection-view-index-path-change.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/event-calendar/EventCalendarSection.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/event-calendar/event-calendar.model.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
@@ -69,8 +70,7 @@ test src/tests/lib/features/rail-shell/RailNoteList.search.test.ts imports src/l
 test src/tests/lib/features/rail-shell/RailNoteList.sort.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
 test src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
-test src/tests/lib/features/rail-shell/RailNoteList.view.test.ts imports src/lib/core/filesystem/fs.store.svelte.ts
-more tests 16 not shown: src/tests/lib/features/rail-shell(4) src/tests/lib/plugins/mods(4) src/tests/lib/features/todoist-sync(3) src/tests/lib/plugins/kanban(2) src/tests/lib/features/type-definitions(1) src/tests/lib/plugins/calendar(1) src/tests/lib/plugins/templates(1): q tests src/lib/core/filesystem/fs.store.svelte.ts
+more tests 17 not shown: src/tests/lib/features/rail-shell(5) src/tests/lib/plugins/mods(4) src/tests/lib/features/todoist-sync(3) src/tests/lib/plugins/kanban(2) src/tests/lib/features/type-definitions(1) src/tests/lib/plugins/calendar(1) src/tests/lib/plugins/templates(1): q tests src/lib/core/filesystem/fs.store.svelte.ts
 ## symbols
 sym src/lib/core/filesystem/fs.store.svelte.ts:25 store fsStore L24 | Central store for the file system / file explorer state.
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/AppShell.svelte:123 in viewFilesKey=$derived member +3

@@ -8,12 +8,12 @@ in2 src/lib/features/canvas/CanvasLinkInput.svelte 1 files in 1 modules: src/lib
 out2 src/lib/features/canvas/CanvasLinkInput.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/features/canvas/CanvasLinkInput.svelte:1 component CanvasLinkInput props:open,onSubmit,onClose L163
-by src/lib/features/canvas/CanvasLinkInput.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:701 in (markup) mount
+by src/lib/features/canvas/CanvasLinkInput.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:703 in (markup) mount
 ## locals
 local src/lib/features/canvas/CanvasLinkInput.svelte:17 fn handleSubmit() L10
 local src/lib/features/canvas/CanvasLinkInput.svelte:28 fn handleKeydown(e: KeyboardEvent) L12
 ## mounted-at
-mount src/lib/features/canvas/CanvasInner.svelte:701 CanvasLinkInput -> src/lib/features/canvas/CanvasLinkInput.svelte
+mount src/lib/features/canvas/CanvasInner.svelte:703 CanvasLinkInput -> src/lib/features/canvas/CanvasLinkInput.svelte
 ## calls
 call src/lib/features/canvas/CanvasLinkInput.svelte:37 in handleKeydown -> src/lib/features/canvas/CanvasLinkInput.svelte:handleSubmit call
 call src/lib/features/canvas/CanvasLinkInput.svelte:50 in (markup) -> src/lib/features/canvas/CanvasLinkInput.svelte:handleKeydown markup +2

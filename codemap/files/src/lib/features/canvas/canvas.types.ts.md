@@ -3,7 +3,7 @@ cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t
 file src/lib/features/canvas/canvas.types.ts types L110 module src/lib/features/canvas in9 t0
 ## imported-by
 imp src/lib/features/canvas/CanvasContextMenu.svelte:17 -> src/lib/features/canvas/canvas.types.ts type:CanvasColor
-imp src/lib/features/canvas/CanvasInner.svelte:45 -> src/lib/features/canvas/canvas.types.ts type:CanvasData,type:CanvasNode,type:CanvasColor
+imp src/lib/features/canvas/CanvasInner.svelte:47 -> src/lib/features/canvas/canvas.types.ts type:CanvasData,type:CanvasNode,type:CanvasColor
 imp src/lib/features/canvas/ColorPicker.svelte:2 -> src/lib/features/canvas/canvas.types.ts CANVAS_COLOR_MAP
 imp src/lib/features/canvas/ColorPicker.svelte:3 -> src/lib/features/canvas/canvas.types.ts type:CanvasColor
 imp src/lib/features/canvas/FileNode.svelte:11 -> src/lib/features/canvas/canvas.types.ts type:CanvasColor
@@ -14,14 +14,14 @@ imp src/lib/features/canvas/TextNode.svelte:5 -> src/lib/features/canvas/canvas.
 imp src/lib/features/canvas/canvas.logic.ts:1 -> src/lib/features/canvas/canvas.types.ts type:CanvasData,type:CanvasNode,type:CanvasEdge,type:CanvasColor,type:CanvasSide,type:CanvasGroupNode,type:CanvasImageNode
 imp src/lib/features/canvas/canvas.logic.ts:10 -> src/lib/features/canvas/canvas.types.ts CANVAS_COLOR_MAP
 ## reach
-in2 src/lib/features/canvas/canvas.types.ts 2 files in 1 modules: src/lib/features/canvas(2)
+in2 src/lib/features/canvas/canvas.types.ts 3 files in 1 modules: src/lib/features/canvas(3)
 out2 src/lib/features/canvas/canvas.types.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/canvas/canvas.logic.test.ts imports-type src/lib/features/canvas/canvas.types.ts
 ## symbols
 sym src/lib/features/canvas/canvas.types.ts:2 type CanvasColor L1 | Preset color numbers (1–6) mapping to specific hues, or a hex string (#RRGGBB)
 by src/lib/features/canvas/canvas.types.ts:CanvasColor <- src/lib/features/canvas/CanvasContextMenu.svelte:17 in (script) import
-by src/lib/features/canvas/canvas.types.ts:CanvasColor <- src/lib/features/canvas/CanvasInner.svelte:45 in (script) import
+by src/lib/features/canvas/canvas.types.ts:CanvasColor <- src/lib/features/canvas/CanvasInner.svelte:47 in (script) import
 by src/lib/features/canvas/canvas.types.ts:CanvasColor <- src/lib/features/canvas/ColorPicker.svelte:3 in (script) import
 by src/lib/features/canvas/canvas.types.ts:CanvasColor <- src/lib/features/canvas/FileNode.svelte:11 in (script) import
 by src/lib/features/canvas/canvas.types.ts:CanvasColor <- src/lib/features/canvas/GroupNode.svelte:4 in (script) import
@@ -44,10 +44,10 @@ by src/lib/features/canvas/canvas.types.ts:CanvasGroupNode <- src/lib/features/c
 sym src/lib/features/canvas/canvas.types.ts:73 interface CanvasImageNode L5 | An image displayed on the canvas
 by src/lib/features/canvas/canvas.types.ts:CanvasImageNode <- src/lib/features/canvas/canvas.logic.ts:8 in (module) import
 sym src/lib/features/canvas/canvas.types.ts:80 type CanvasNode L1 | Discriminated union of all canvas node types
-by src/lib/features/canvas/canvas.types.ts:CanvasNode <- src/lib/features/canvas/CanvasInner.svelte:45 in (script) import
+by src/lib/features/canvas/canvas.types.ts:CanvasNode <- src/lib/features/canvas/CanvasInner.svelte:47 in (script) import
 by src/lib/features/canvas/canvas.types.ts:CanvasNode <- src/lib/features/canvas/canvas.logic.ts:3 in (module) import
 sym src/lib/features/canvas/canvas.types.ts:83 interface CanvasEdge L20 | A directed connection between two nodes
 by src/lib/features/canvas/canvas.types.ts:CanvasEdge <- src/lib/features/canvas/canvas.logic.ts:4 in (module) import
 sym src/lib/features/canvas/canvas.types.ts:105 interface CanvasData L6 | Top-level canvas data structure (JSON Canvas 1.0)
-by src/lib/features/canvas/canvas.types.ts:CanvasData <- src/lib/features/canvas/CanvasInner.svelte:45 in (script) import
+by src/lib/features/canvas/canvas.types.ts:CanvasData <- src/lib/features/canvas/CanvasInner.svelte:47 in (script) import
 by src/lib/features/canvas/canvas.types.ts:CanvasData <- src/lib/features/canvas/canvas.logic.ts:2 in (module) import

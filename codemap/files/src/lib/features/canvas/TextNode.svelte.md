@@ -12,7 +12,7 @@ in2 src/lib/features/canvas/TextNode.svelte 1 files in 1 modules: src/lib/featur
 out2 src/lib/features/canvas/TextNode.svelte 1 files in 1 modules: src/lib/utils(1)
 ## symbols
 sym src/lib/features/canvas/TextNode.svelte:1 component TextNode props:id,data,selected L131
-by src/lib/features/canvas/TextNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:68 in nodeTypes ref
+by src/lib/features/canvas/TextNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:70 in nodeTypes ref
 ## locals
 local src/lib/features/canvas/TextNode.svelte:28 fn startEditing() L5
 local src/lib/features/canvas/TextNode.svelte:34 fn stopEditing() L3

@@ -6,7 +6,7 @@ imp src/lib/core/vault/vault.logic.ts:1 -> src/lib/utils/path.ts basename
 ## imported-by
 imp src/lib/core/vault/vault.store.svelte.ts:1 -> src/lib/core/vault/vault.logic.ts extractVaultName,updateRecentVaults,type:RecentVault
 ## reach
-in2 src/lib/core/vault/vault.logic.ts 82 files in 34 modules: src/lib/app(8) src/lib/features/rail-shell(6) src/lib/features/properties(5) src/lib/features/todoist-sync(5) src/lib/core/filesystem(4) +29 modules: q impact src/lib/core/vault/vault.logic.ts --depth 2
+in2 src/lib/core/vault/vault.logic.ts 83 files in 34 modules: src/lib/app(8) src/lib/features/rail-shell(6) src/lib/features/properties(5) src/lib/features/todoist-sync(5) src/lib/core/filesystem(4) +29 modules: q impact src/lib/core/vault/vault.logic.ts --depth 2
 out2 src/lib/core/vault/vault.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/vault/vault.logic.test.ts imports src/lib/core/vault/vault.logic.ts mirror

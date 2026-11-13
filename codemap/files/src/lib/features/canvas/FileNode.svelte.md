@@ -15,7 +15,7 @@ in2 src/lib/features/canvas/FileNode.svelte 1 files in 1 modules: src/lib/featur
 out2 src/lib/features/canvas/FileNode.svelte 11 files in 5 modules: src/lib/core/editor(4) src/lib/utils(4) src/lib/core/filesystem(1) src/lib/core/markdown-editor(1) src/lib/core/vault(1)
 ## symbols
 sym src/lib/features/canvas/FileNode.svelte:1 component FileNode props:data,selected L188
-by src/lib/features/canvas/FileNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:69 in nodeTypes ref
+by src/lib/features/canvas/FileNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:71 in nodeTypes ref
 ## locals
 local src/lib/features/canvas/FileNode.svelte:55 fn handleClick() L3
 ## calls

@@ -8,4 +8,4 @@ in2 src/lib/features/canvas/CanvasEdge.svelte 1 files in 1 modules: src/lib/feat
 out2 src/lib/features/canvas/CanvasEdge.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/features/canvas/CanvasEdge.svelte:1 component CanvasEdge props:id,sourceX,sourceY,targetX,targetY,sourcePosition,targetPosition,selected,label,style,markerStart,markerEnd L75
-by src/lib/features/canvas/CanvasEdge.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:76 in edgeTypes ref
+by src/lib/features/canvas/CanvasEdge.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:78 in edgeTypes ref

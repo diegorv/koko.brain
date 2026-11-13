@@ -11,6 +11,6 @@ in2 src/lib/features/canvas/GroupNode.svelte 1 files in 1 modules: src/lib/featu
 out2 src/lib/features/canvas/GroupNode.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/features/canvas/GroupNode.svelte:1 component GroupNode props:data,selected L45
-by src/lib/features/canvas/GroupNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:71 in nodeTypes ref
+by src/lib/features/canvas/GroupNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:73 in nodeTypes ref
 ## calls
 call src/lib/features/canvas/GroupNode.svelte:12 in bgColor=$derived -> src/lib/features/canvas/canvas.logic.ts:resolveColor call

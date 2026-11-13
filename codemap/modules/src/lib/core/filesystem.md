@@ -60,7 +60,7 @@ file src/lib/core/filesystem/file-entries.logic.ts logic L77 module src/lib/core
 file src/lib/core/filesystem/folder-notes.logic.ts logic L65 module src/lib/core/filesystem in3 t1
 file src/lib/core/filesystem/fs.logic.ts logic L631 module src/lib/core/filesystem in45 t14
 file src/lib/core/filesystem/fs.service.ts service L379 module src/lib/core/filesystem in27 t45
-file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in22 t56
+file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in22 t57
 file src/lib/core/filesystem/fs.types.ts types L16 module src/lib/core/filesystem in11 t0
 file src/lib/core/filesystem/fs.watcher.ts other L304 module src/lib/core/filesystem in2 t5
 file src/lib/core/filesystem/link-updater.logic.ts logic L119 module src/lib/core/filesystem in1 t1

@@ -11,13 +11,13 @@ in2 src/lib/features/canvas/CanvasFilePicker.svelte 1 files in 1 modules: src/li
 out2 src/lib/features/canvas/CanvasFilePicker.svelte 2 files in 2 modules: src/lib/core/filesystem(1) src/lib/utils(1)
 ## symbols
 sym src/lib/features/canvas/CanvasFilePicker.svelte:1 component CanvasFilePicker props:open,onSelect,onClose,extensions= L152
-by src/lib/features/canvas/CanvasFilePicker.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:696 in (markup) mount +1
+by src/lib/features/canvas/CanvasFilePicker.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:698 in (markup) mount +1
 ## locals
 local src/lib/features/canvas/CanvasFilePicker.svelte:27 fn handleSelect(filePath: string) L5
 local src/lib/features/canvas/CanvasFilePicker.svelte:33 fn handleKeydown(e: KeyboardEvent) L7
 ## mounted-at
-mount src/lib/features/canvas/CanvasInner.svelte:696 CanvasFilePicker -> src/lib/features/canvas/CanvasFilePicker.svelte
-mount src/lib/features/canvas/CanvasInner.svelte:706 CanvasFilePicker -> src/lib/features/canvas/CanvasFilePicker.svelte
+mount src/lib/features/canvas/CanvasInner.svelte:698 CanvasFilePicker -> src/lib/features/canvas/CanvasFilePicker.svelte
+mount src/lib/features/canvas/CanvasInner.svelte:708 CanvasFilePicker -> src/lib/features/canvas/CanvasFilePicker.svelte
 ## calls
 call src/lib/features/canvas/CanvasFilePicker.svelte:21 in allFiles=$derived -> src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree call
 call src/lib/features/canvas/CanvasFilePicker.svelte:25 in filtered=$derived -> src/lib/core/filesystem/file-entries.logic.ts:filterAndRank call

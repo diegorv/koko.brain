@@ -7,7 +7,7 @@ store src/lib/core/settings/applied-theme.store.svelte.ts:14 appliedThemeStore g
 store src/lib/core/settings/settings-panel.store.svelte.ts:7 settingsPanelStore get 2 set 0 do 5 readers 1 writers 5 card codemap/files/src/lib/core/settings/settings-panel.store.svelte.ts.md
 store src/lib/core/settings/settings.store.svelte.ts:167 settingsStore get 31 set 0 do 28 readers 79 writers 37 card codemap/files/src/lib/core/settings/settings.store.svelte.ts.md
 store src/lib/core/trash/trash.store.svelte.ts:14 trashStore get 4 set 0 do 5 readers 3 writers 1 card codemap/files/src/lib/core/trash/trash.store.svelte.ts.md
-store src/lib/core/vault/vault.store.svelte.ts:60 vaultStore get 6 set 0 do 9 readers 75 writers 12 card codemap/files/src/lib/core/vault/vault.store.svelte.ts.md
+store src/lib/core/vault/vault.store.svelte.ts:60 vaultStore get 6 set 0 do 9 readers 76 writers 12 card codemap/files/src/lib/core/vault/vault.store.svelte.ts.md
 store src/lib/features/auto-organize/auto-organize.store.svelte.ts:9 autoOrganizeStore get 4 set 0 do 7 readers 3 writers 2 card codemap/files/src/lib/features/auto-organize/auto-organize.store.svelte.ts.md
 store src/lib/features/backlinks/backlinks.store.svelte.ts:10 backlinksStore get 4 set 0 do 5 readers 1 writers 4 card codemap/files/src/lib/features/backlinks/backlinks.store.svelte.ts.md
 store src/lib/features/collection/collection.store.svelte.ts:28 collectionStore get 3 set 0 do 8 readers 13 writers 2 card codemap/files/src/lib/features/collection/collection.store.svelte.ts.md

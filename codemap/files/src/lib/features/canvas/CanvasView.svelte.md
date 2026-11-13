@@ -7,7 +7,7 @@ imp src/lib/features/canvas/CanvasView.svelte:3 -> src/lib/features/canvas/Canva
 imp src/lib/app/EditorView.svelte:19 -> src/lib/features/canvas/CanvasView.svelte default
 ## reach
 in2 src/lib/features/canvas/CanvasView.svelte 1 files in 1 modules: src/lib/app(1)
-out2 src/lib/features/canvas/CanvasView.svelte 15 files in 2 modules: src/lib/features/canvas(14) src/lib/core/editor(1)
+out2 src/lib/features/canvas/CanvasView.svelte 16 files in 3 modules: src/lib/features/canvas(14) src/lib/core/editor(1) src/lib/core/vault(1)
 ## symbols
 sym src/lib/features/canvas/CanvasView.svelte:1 component CanvasView props:path,jsonContent,onJsonChange L19
 by src/lib/features/canvas/CanvasView.svelte:default <- src/lib/app/EditorView.svelte:85 in (markup) mount

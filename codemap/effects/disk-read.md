@@ -77,7 +77,7 @@ fx src/lib/plugins/mods/mods-host.service.ts:1040 tauri-fs.readDir in rediscover
 fx src/lib/plugins/mods/mods-host.service.ts:1081 tauri-fs.readDir in startModsHost
 fx src/lib/plugins/one-on-one/one-on-one.service.ts:33 tauri-fs.readDir in loadPeopleFromFolder
 fx src/lib/plugins/templates/templates.service.ts:33 tauri-fs.readDir in loadTemplates
-fx src/lib/features/canvas/canvas-image.service.ts:35 tauri-fs.readFile in resolveImageSrc
+fx src/lib/features/canvas/canvas-image.service.ts:34 tauri-fs.readFile in resolveImageSrc
 fx src/lib/app/deep-link-actions.ts:68 tauri-fs.readTextFile in executeDailyAction
 fx src/lib/app/deep-link-actions.ts:171 tauri-fs.readTextFile in executeCaptureAction
 fx src/lib/app/editor-host.ts:136 tauri-fs.readTextFile in appEditorHost.readNote

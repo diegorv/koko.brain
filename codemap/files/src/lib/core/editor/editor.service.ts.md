@@ -34,7 +34,7 @@ imp src/lib/core/vault/exit.service.ts:2 -> src/lib/core/editor/editor.service.t
 imp src/lib/core/vault/vault.service.ts:4 -> src/lib/core/editor/editor.service.ts saveAllDirtyTabs
 imp src/lib/features/backlinks/BacklinksPanel.svelte:13 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/backlinks/LinkItem.svelte:3 -> src/lib/core/editor/editor.service.ts openFileInEditor
-imp src/lib/features/canvas/CanvasInner.svelte:44 -> src/lib/core/editor/editor.service.ts openFileInEditor,registerPendingEditFlusher
+imp src/lib/features/canvas/CanvasInner.svelte:45 -> src/lib/core/editor/editor.service.ts openFileInEditor,registerPendingEditFlusher
 imp src/lib/features/canvas/FileNode.svelte:9 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/collection/CollectionView.svelte:16 -> src/lib/core/editor/editor.service.ts openFileInEditor,reloadExternallyChangedTabs
 imp src/lib/features/collection/collection-block-widget.ts:8 -> src/lib/core/editor/editor.service.ts openFileInEditor
@@ -105,7 +105,7 @@ more tests 57 not shown: src/tests/lib/features/rail-shell(11) src/tests/lib/fea
 sym src/lib/core/editor/editor.service.ts:28 fn registerTabCloseListener(name: string, closed: (path: string) => void): () => void L8 | Registers `closed` to run with the path of each tab `closeTab` or `closeTabsForDeletedPath` removes.
 by src/lib/core/editor/editor.service.ts:registerTabCloseListener <- src/lib/plugins/queryjs/queryjs-ports.ts:16 in registerQueryjsBlockPorts call
 sym src/lib/core/editor/editor.service.ts:62 fn registerPendingEditFlusher(path: string, flush: () => void): () => void L14 | Registers `flush` to run when `closeTab` closes the tab of `path`, before it saves, so an edit a view still holds in a debounce reaches the file.
-by src/lib/core/editor/editor.service.ts:registerPendingEditFlusher <- src/lib/features/canvas/CanvasInner.svelte:246 in (script) call
+by src/lib/core/editor/editor.service.ts:registerPendingEditFlusher <- src/lib/features/canvas/CanvasInner.svelte:248 in (script) call
 sym src/lib/core/editor/editor.service.ts:82 fn flushPendingEdits(path: string): boolean L14 | Runs every flusher registered for `path`, logging any that throws.
 sym src/lib/core/editor/editor.service.ts:120 fn syncExternalContentToEditor(path: string, content: string, markSaved: boolean, schedule: AutoSaveSchedule): void L22 | Single owner of "external content → CodeMirror" sync (Phase 5 of the perf refactor).
 by src/lib/core/editor/editor.service.ts:syncExternalContentToEditor <- src/lib/app/deep-link-actions.ts:77 in executeDailyAction call
@@ -125,7 +125,7 @@ by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/core/editor
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/core/note-creator/note-creator.service.ts:127 in openOrCreateNote call
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/features/backlinks/BacklinksPanel.svelte:93 in (markup) markup
 by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/features/backlinks/LinkItem.svelte:10 in handleClick call
-by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/features/canvas/CanvasInner.svelte:578 in handleDrop call
+by src/lib/core/editor/editor.service.ts:openFileInEditor <- src/lib/features/canvas/CanvasInner.svelte:580 in handleDrop call
 more by 27 not shown: src/lib/features/event-calendar(5) src/lib/features/rail-shell(4) src/lib/features/collection(2) src/lib/features/note-list(2) src/lib/plugins/mods(2) src/lib/features/canvas(1) src/lib/features/deep-link(1) src/lib/features/note-action-bar(1) +9 modules: q importers src/lib/core/editor/editor.service.ts:openFileInEditor
 sym src/lib/core/editor/editor.service.ts:201 fn saveCurrentFile() L5 | Writes the active tab's content to disk if it has unsaved changes
 by src/lib/core/editor/editor.service.ts:saveCurrentFile <- src/lib/app/commands.ts:125 in getBuiltInCommands call

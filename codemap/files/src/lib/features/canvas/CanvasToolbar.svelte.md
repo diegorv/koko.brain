@@ -8,6 +8,6 @@ in2 src/lib/features/canvas/CanvasToolbar.svelte 1 files in 1 modules: src/lib/f
 out2 src/lib/features/canvas/CanvasToolbar.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/features/canvas/CanvasToolbar.svelte:1 component CanvasToolbar props:oncreatetext,oncreatefile,oncreatelink,oncreateimage,oncreategroup L78
-by src/lib/features/canvas/CanvasToolbar.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:687 in (markup) mount
+by src/lib/features/canvas/CanvasToolbar.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:689 in (markup) mount
 ## mounted-at
-mount src/lib/features/canvas/CanvasInner.svelte:687 CanvasToolbar -> src/lib/features/canvas/CanvasToolbar.svelte
+mount src/lib/features/canvas/CanvasInner.svelte:689 CanvasToolbar -> src/lib/features/canvas/CanvasToolbar.svelte

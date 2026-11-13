@@ -10,9 +10,9 @@ fx src/lib/core/editor/editor.service.ts:276 timer-wrap.debounce args=saveDirtyT
 fx src/lib/core/editor/editor.service.ts:279 timer-wrap.debounce args=saveDirtyTabs, 500 as debouncedSaveFrontmatter in debouncedSaveFrontmatter
 fx src/lib/features/rail-shell/TypesNavigator.svelte:88 timer-wrap.debounce args=async (paths: string[], ctx: LensContext, propertyIndex: Ma… as recountViews in recountViews
 fx src/lib/features/tags/tags.service.ts:90 timer-wrap.debounce args=() => { void runScheduledRebuild(); }, 300 as debouncedTrigger in debouncedTrigger
-fx src/lib/features/canvas/CanvasInner.svelte:110 timer.queueMicrotask in $effect@97
-fx src/lib/features/canvas/CanvasInner.svelte:300 timer.queueMicrotask in handleKeydown
-fx src/lib/features/canvas/CanvasInner.svelte:314 timer.queueMicrotask in handleKeydown
+fx src/lib/features/canvas/CanvasInner.svelte:112 timer.queueMicrotask in $effect@99
+fx src/lib/features/canvas/CanvasInner.svelte:302 timer.queueMicrotask in handleKeydown
+fx src/lib/features/canvas/CanvasInner.svelte:316 timer.queueMicrotask in handleKeydown
 fx src/lib/features/collection/CollectionView.svelte:439 timer.queueMicrotask in handleAddView
 fx src/lib/features/properties/RelationshipSearch.svelte:41 timer.queueMicrotask in (markup)
 fx src/routes/composer/+page.svelte:185 timer.queueMicrotask in resetForShow
@@ -53,7 +53,7 @@ fx src/lib/core/settings/theme-catalog.service.ts:26 timer.setTimeout delay=THEM
 fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:94 timer.setTimeout delay=COUNT_DELAY_MS in $effect@92
 fx src/lib/features/auto-organize/AutoOrganizeSection.svelte:44 timer.setTimeout delay=500 in saveConfigDebounced
 fx src/lib/features/auto-organize/auto-organize.service.ts:225 timer.setTimeout delay=settingsStore.autoOrganize.de… in registerAutoOrganizeHook
-fx src/lib/features/canvas/CanvasInner.svelte:236 timer.setTimeout delay=300 in $effect@227
+fx src/lib/features/canvas/CanvasInner.svelte:238 timer.setTimeout delay=300 in $effect@229
 fx src/lib/features/event-calendar/EventCalendarView.svelte:195 timer.setTimeout delay=PULSE_MS in pulse
 fx src/lib/features/properties/PropertiesView.svelte:110 timer.setTimeout delay=300 in $effect@105
 fx src/lib/features/rail-shell/RailListSearch.svelte:67 timer.setTimeout delay=DEBOUNCE_MS in handleInput

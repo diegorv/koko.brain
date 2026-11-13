@@ -12,7 +12,7 @@ in2 src/lib/features/canvas/ImageNode.svelte 1 files in 1 modules: src/lib/featu
 out2 src/lib/features/canvas/ImageNode.svelte 1 files in 1 modules: src/lib/core/vault(1)
 ## symbols
 sym src/lib/features/canvas/ImageNode.svelte:1 component ImageNode props:data,selected L102
-by src/lib/features/canvas/ImageNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:72 in nodeTypes ref
+by src/lib/features/canvas/ImageNode.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:74 in nodeTypes ref
 ## calls
 call src/lib/features/canvas/ImageNode.svelte:14 in bgColor=$derived -> src/lib/features/canvas/canvas.logic.ts:resolveColor call
 call src/lib/features/canvas/ImageNode.svelte:26 in $effect@18 -> src/lib/features/canvas/canvas-image.service.ts:resolveImageSrc call

@@ -26,7 +26,7 @@ module src/lib/core/vault core files 7 in-modules 33 out-modules 5 pub 9/17 ipc 
 module src/lib/core/zoom core files 1 in-modules 1 out-modules 0 pub 3/3 ipc 0/0 card ~0.4k
 module src/lib/features/auto-organize features files 8 in-modules 1 out-modules 12 pub 4/61 ipc 0/0 card ~1.2k
 module src/lib/features/backlinks features files 6 in-modules 2 out-modules 8 pub 6/13 ipc 4/0 card ~1.1k
-module src/lib/features/canvas features files 19 in-modules 2 out-modules 4 pub 2/60 ipc 0/0 card ~1.2k
+module src/lib/features/canvas features files 19 in-modules 2 out-modules 4 pub 2/62 ipc 0/0 card ~1.2k
 module src/lib/features/collection features files 32 in-modules 6 out-modules 9 pub 49/157 ipc 1/0 card ~6.4k
 module src/lib/features/command-palette features files 5 in-modules 1 out-modules 2 pub 4/6 ipc 0/0 card ~0.8k
 module src/lib/features/copy-block-link features files 1 in-modules 1 out-modules 3 pub 2/3 ipc 0/0 card ~0.5k
@@ -79,8 +79,8 @@ layer core -> types 5
 layer core -> utils 67
 layer features -> components 96
 layer features -> contracts 42
-layer features -> core 338
-layer features -> features 717
+layer features -> core 339
+layer features -> features 718
 layer features -> types 23
 layer features -> utils 97
 layer lib-root -> utils 1

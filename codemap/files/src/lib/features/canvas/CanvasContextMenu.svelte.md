@@ -11,13 +11,13 @@ in2 src/lib/features/canvas/CanvasContextMenu.svelte 1 files in 1 modules: src/l
 out2 src/lib/features/canvas/CanvasContextMenu.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/features/canvas/CanvasContextMenu.svelte:1 component CanvasContextMenu props:type,targetId,nodeType,top,left,right,bottom,onaddtext,onaddfile,onaddlink,onaddimage,onaddgroup,onselectall,onzoomtofit,onedit,onduplicate,ondelete,onopenfile,onopenurl,oneditlabel,ongotosource,ongototarget,onsetcolor,currentColor,onclose L234
-by src/lib/features/canvas/CanvasContextMenu.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:633 in (markup) mount
+by src/lib/features/canvas/CanvasContextMenu.svelte:default <- src/lib/features/canvas/CanvasInner.svelte:635 in (markup) mount
 ## locals
 local src/lib/features/canvas/CanvasContextMenu.svelte:81 fn handle(action: () => void) L4
 ## mounts
 mount src/lib/features/canvas/CanvasContextMenu.svelte:140 ColorPicker -> src/lib/features/canvas/ColorPicker.svelte
 mount src/lib/features/canvas/CanvasContextMenu.svelte:158 ColorPicker -> src/lib/features/canvas/ColorPicker.svelte
 ## mounted-at
-mount src/lib/features/canvas/CanvasInner.svelte:633 CanvasContextMenu -> src/lib/features/canvas/CanvasContextMenu.svelte
+mount src/lib/features/canvas/CanvasInner.svelte:635 CanvasContextMenu -> src/lib/features/canvas/CanvasContextMenu.svelte
 ## calls
 call src/lib/features/canvas/CanvasContextMenu.svelte:97 in (markup) -> src/lib/features/canvas/CanvasContextMenu.svelte:handle markup +15

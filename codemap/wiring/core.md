@@ -33,7 +33,7 @@ reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver invoked-at src/li
 reg src/lib/core/editor/editor.service.ts:registerPendingEditFlusher sink src/lib/core/editor/editor.service.ts:62 | stores pendingEditFlushers set | doc Registers `flush` to run when `closeTab` closes the tab of `path`, before it saves, so an edit a view still holds in a debounce reaches the file.
 reg src/lib/core/editor/editor.service.ts:registerPendingEditFlusher read-by src/lib/core/editor/editor.service.ts:82 flushPendingEdits
 reg src/lib/core/editor/editor.service.ts:registerPendingEditFlusher fired-by src/lib/core/editor/editor.service.ts:371 in closeTab
-reg src/lib/core/editor/editor.service.ts:registerPendingEditFlusher registered-at src/lib/features/canvas/CanvasInner.svelte:246 in (script) args=ownPath, () => { if (!pendingPersist) return; persistChanges(nodes, edges); cle… -> src/lib/features/canvas/CanvasInner.svelte:(script)
+reg src/lib/core/editor/editor.service.ts:registerPendingEditFlusher registered-at src/lib/features/canvas/CanvasInner.svelte:248 in (script) args=ownPath, () => { if (!pendingPersist) return; persistChanges(nodes, edges); cle… -> src/lib/features/canvas/CanvasInner.svelte:(script)
 reg src/lib/core/editor/editor.service.ts:registerTabCloseListener sink src/lib/core/editor/editor.service.ts:28 | stores tabCloseListeners push | doc Registers `closed` to run with the path of each tab `closeTab` or `closeTabsForDeletedPath` removes.
 reg src/lib/core/editor/editor.service.ts:registerTabCloseListener read-by src/lib/core/editor/editor.service.ts:38 notifyTabClosed
 reg src/lib/core/editor/editor.service.ts:registerTabCloseListener fired-by src/lib/core/editor/editor.service.ts:392 in closeTab
