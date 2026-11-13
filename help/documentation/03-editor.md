@@ -33,7 +33,7 @@ You can pin important tabs so they stay visible and can't be accidentally closed
 
 ## Note Action Bar
 
-A bar above every Markdown note (not on canvas, kanban, graph, calendar, tasks or collection tabs) shows the note's type (or "Note") and its file name.
+A bar above every Markdown note (not on canvas, kanban, graph, calendar, tasks or view tabs) shows the note's type (or "Note") and its file name.
 
 Next to the file name, two kinds of notes get a button that creates a related note and opens it:
 
@@ -82,7 +82,7 @@ Renders Markdown inline as you type — headings appear styled, bold text looks 
 ![Source mode vs live preview comparison](screenshots/editor-modes.png)
 
 > [!NOTE]
-> The Source / Live Preview toggle described here applies to Markdown (`.md`) files. Canvas, Collection, and Kanban files have their own specialized editors with a separate **Source mode** toggle (see "File Types in the Editor" below).
+> The Source / Live Preview toggle described here applies to Markdown (`.md`) files. Canvas, View, and Kanban files have their own specialized editors with a separate **Source mode** toggle (see "File Types in the Editor" below).
 
 ## Scroll and Cursor Position
 
@@ -96,7 +96,7 @@ Different file types open with different editors:
 |-----------|-------------|-------------|
 | `.md` | Markdown editor | The main editor with source/live preview modes |
 | `.canvas` | Canvas editor | Visual infinite canvas (see [Canvas](11-canvas.md)) |
-| `.view` | Table/database | Spreadsheet-like view (see [Collection](12-collection.md)) |
+| `.view` | Table/database | Spreadsheet-like view (see [Views](12-views.md)) |
 | `.kanban` | Kanban board | Drag-and-drop board (see [Kanban](21-kanban.md)) |
 | Tasks (virtual) | Tasks view | Aggregated tasks from all notes (see [Tasks](10-tasks-and-todoist.md)) |
 | Graph (virtual) | Graph view | Knowledge graph visualization (see [Graph View](14-graph-view.md)) |
@@ -104,7 +104,7 @@ Different file types open with different editors:
 
 "Virtual" tabs don't correspond to a file on disk — they are generated views.
 
-For Canvas, Collection, and Kanban files, a toggle button lets you switch between the visual editor and raw source — JSON for canvas, YAML for collection, Markdown for kanban. The button sits at the top right on a canvas and at the bottom right on a collection or kanban board. The source-mode preference resets when you switch tabs.
+For Canvas, View, and Kanban files, a toggle button lets you switch between the visual editor and raw source — JSON for canvas, YAML for a view, Markdown for kanban. The button sits at the top right on a canvas and at the bottom right on a view or kanban board. The source-mode preference resets when you switch tabs.
 
 ## Wikilink Navigation
 

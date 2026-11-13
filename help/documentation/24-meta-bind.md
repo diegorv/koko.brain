@@ -214,4 +214,4 @@ actions:
 
 - [Markdown Guide](04-markdown.md) — Markdown syntax reference.
 - [Sidebar Panels — Properties](07-sidebar-panels.md) — The visual frontmatter editor.
-- [Collection](12-collection.md) — Database-style queries that read the same frontmatter properties.
+- [Views](12-views.md) — Database-style queries that read the same frontmatter properties.

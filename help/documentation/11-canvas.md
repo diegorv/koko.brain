@@ -131,5 +131,5 @@ Each node has a position (`x`, `y`), dimensions (`width`, `height`), and type-sp
 
 ## Next Steps
 
-- [Collection](12-collection.md) -- Query your notes as a database
+- [Views](12-views.md) -- Query your notes as a database
 - [Graph View](14-graph-view.md) -- Visualize your notes as an interactive knowledge graph

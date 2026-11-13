@@ -202,7 +202,7 @@ These work while the Calendar tab has focus, not while you type in a field or wh
 
 - **Search**: a new event appears in text search after its first edit, or after the vault is opened again.
 - **Sync (planned)**: with the planned peer-to-peer sync, a sync conflict copy of an event note is an ordinary Event note, so it shows as a duplicate event until you resolve the conflict.
-- **Collections**: to list events in a [Collection](12-collection.md), filter on the type and use `date` as the date property:
+- **Views**: to list events in a [view](12-views.md), filter on the type and use `date` as the date property:
 
   ```yaml
   filters: '_type == "Event"'

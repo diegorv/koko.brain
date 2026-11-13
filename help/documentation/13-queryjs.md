@@ -11,7 +11,7 @@ QueryJS is a JavaScript API that provides programmatic access to your vault data
 - **Render dynamic content** — tables, lists, cards, heatmaps, timelines — directly into your notes.
 - **Access the DOM** — create canvas elements, load external libraries, build custom visualizations.
 
-QueryJS is separate from [Collection](12-collection.md), which runs its own expression language and no JavaScript. Its API is modelled on the JavaScript API of Obsidian's Dataview plugin (`kb` and `dv` are the same object).
+QueryJS is separate from [Views](12-views.md), which run its own expression language and no JavaScript. Its API is modelled on the JavaScript API of Obsidian's Dataview plugin (`kb` and `dv` are the same object).
 
 ### How it works
 
@@ -1307,9 +1307,9 @@ kb.paragraph(`Largest: ${pages.max(p => p.file.size)} bytes`);
 ```
 
 > [!NOTE]
-> For simple table views with filters and sorts, consider using [Collection](12-collection.md) instead — no code required.
+> For simple table views with filters and sorts, consider using [Views](12-views.md) instead — no code required.
 
 ## Next Steps
 
-- [Collection](12-collection.md) — Visual table queries (no code needed)
+- [Views](12-views.md) — Visual table queries (no code needed)
 - [Graph View](14-graph-view.md) — Visualize your notes as an interactive knowledge graph

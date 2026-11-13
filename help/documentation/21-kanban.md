@@ -253,4 +253,4 @@ A complete `.kanban` file looks like this:
 ## Next Steps
 
 - [Tasks & Todoist](10-tasks-and-todoist.md) — Aggregate tasks from all notes into a filtered list
-- [Collection](12-collection.md) — Query and filter notes as a table view
+- [Views](12-views.md) — Query and filter notes as a table view

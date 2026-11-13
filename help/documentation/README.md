@@ -31,7 +31,7 @@ After that, explore any topic that interests you.
 | 09 | [Quick Capture & Templates](09-quick-notes-and-templates.md) | Instant capture (composer popover + clipboard shortcut + Cmd+N), 1:1 meeting notes, template system |
 | 10 | [Tasks & Todoist](10-tasks-and-todoist.md) | Aggregated task view, metadata, Todoist sync |
 | 11 | [Canvas](11-canvas.md) | Infinite visual canvas with nodes, edges, and colors |
-| 12 | [Collection](12-collection.md) | Table and calendar views of notes, the `.view` format, the expression language |
+| 12 | [Views](12-views.md) | Table and calendar views of notes, the `.view` format, the expression language |
 | 13 | [QueryJS](13-queryjs.md) | JavaScript API for programmatic vault queries |
 | 14 | [Graph View](14-graph-view.md) | Interactive knowledge graph of note connections |
 | 15 | [File History](15-file-history.md) | Snapshots, diff viewer, retention policy, restore |

@@ -71,15 +71,15 @@ Each rule consists of:
 A rule with no new name, no folder, no property, no note to create and no mod action does nothing. Settings says so under the rule, and still saves it.
 
 > [!TIP]
-> Open [Collection](12-collection.md) to experiment with a filter before adding it as a rule. A Collection view uses the same expression engine, so you can check which notes it matches there first.
+> Open a [view](12-views.md) to experiment with a filter before adding it as a rule. A view uses the same expression engine, so you can check which notes it matches there first.
 
 ## Filters
 
-A filter decides which notes a rule applies to. It uses the same language as [Collection](12-collection.md) filters, evaluated against the note's frontmatter properties and file metadata.
+A filter decides which notes a rule applies to. It uses the same language as [view](12-views.md) filters, evaluated against the note's frontmatter properties and file metadata.
 
 ### The filter builder
 
-The filter is edited with the same builder as a [Collection](12-collection.md) view's filters. Click **Add filter** to add a condition, pick a property and an operator, and type a value. Conditions sit in a group, and the group's menu says how they combine:
+The filter is edited with the same builder as a [view](12-views.md)'s filters. Click **Add filter** to add a condition, pick a property and an operator, and type a value. Conditions sit in a group, and the group's menu says how they combine:
 
 | Group | The rule matches a note when | Saved as |
 |-------|------------------------------|----------|
@@ -131,7 +131,7 @@ Each condition, and each expression row, is one expression. The most useful part
 | `file.ext` | `file.ext == ".md"` | the extension, with its dot |
 | `file.tags` | `file.tags.contains("project")` | the note has the tag `project` in its frontmatter or body |
 | `file.hasTag(tag, ...)` | `file.hasTag("project", "client")` | the note has any of the tags (case-insensitive) |
-| `file.inFolder(folder)` | `file.inFolder("work/clients")` | the note is in `work/clients` or a subfolder. The folder is vault-relative (see [`file.inFolder()`](12-collection.md#fileinfolder-takes-a-vault-relative-folder)) |
+| `file.inFolder(folder)` | `file.inFolder("work/clients")` | the note is in `work/clients` or a subfolder. The folder is vault-relative (see [`file.inFolder()`](12-views.md#fileinfolder-takes-a-vault-relative-folder)) |
 | `file.hasProperty(key)` | `file.hasProperty("due")` | the frontmatter has a `due` key, whatever its value |
 | `contains()` | `contains(file.path, "meetings")` | the path contains `meetings` (case-insensitive). On a list, `tags.contains("x")` checks for an item |
 | `startsWith()` | `startsWith(file.basename, "Meeting")` | the name starts with `Meeting` (case-insensitive) |
@@ -140,7 +140,7 @@ Each condition, and each expression row, is one expression. The most useful part
 | `date()` | `due >= date("2026-01-01")` | `due` is on or after 1 January 2026 |
 | Durations | `due <= today() + "7d"` | `due` is within the next 7 days. `"1h 30m"`, `"2 weeks"` and `"1M"` work too |
 
-For every function, method and operator, see the [Expression Language Reference](12-collection.md#expression-language-reference).
+For every function, method and operator, see the [Expression Language Reference](12-views.md#expression-language-reference).
 
 ### Traps
 
@@ -156,7 +156,7 @@ Each trap below shows a filter that looks right but is wrong, and the form that 
 
 `type` is the one alias a filter understands: `type == "meeting"` and `_type == "meeting"` are the same.
 
-**Archived, organized and favorite have two spellings.** `archived`, `organized` and `favorite` are always present as `true` or `false`, even on a note that never wrote the key. `_archived`, `_organized` and `_favorite` are the raw frontmatter values, `null` when absent. Use the flag spelling for "is it archived" (see [Collection](12-collection.md#archived-and-_archived-are-different-fields-not-aliases)).
+**Archived, organized and favorite have two spellings.** `archived`, `organized` and `favorite` are always present as `true` or `false`, even on a note that never wrote the key. `_archived`, `_organized` and `_favorite` are the raw frontmatter values, `null` when absent. Use the flag spelling for "is it archived" (see [Views](12-views.md#archived-and-_archived-are-different-fields-not-aliases)).
 
 | Wrong | Right |
 |-------|-------|
@@ -170,7 +170,7 @@ Each trap below shows a filter that looks right but is wrong, and the form that 
 
 **A method on a missing property fails.** `status.lower() == "done"` throws on a note without `status`, because there is no value to call `.lower()` on. The rule is skipped for that note and the failure is logged, whether the filter is a single expression or built in the builder, and even inside **None of the following are true**. Notes that have `status` are still checked as usual. A misspelled method such as `status.lowr()` fails the same way, on every note, and **Matches N notes now** shows 0.
 
-A Collection view counts such a condition as false instead, so inside **None of the following are true** the view shows every note without the property.
+A view counts such a condition as false instead, so inside **None of the following are true** the view shows every note without the property.
 
 | Wrong | Right |
 |-------|-------|
@@ -756,6 +756,6 @@ You can inspect or back up the rules file manually:
 
 ## Next Steps
 
-- [Collection](12-collection.md): the expression language used for rule filters
+- [Views](12-views.md): the expression language used for rule filters
 - [File Icons](02-file-explorer.md#custom-file-icons): assign icons to files and folders
 - [File History](15-file-history.md): recover previous versions if a move goes wrong

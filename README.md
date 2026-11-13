@@ -75,7 +75,7 @@ A Tauri 2 shell with a Rust core indexes the vault, keeps backlinks, tags and ta
 <sub>Note types, semantic links and an inbox lifecycle with archive and favorites.</sub>
 </td>
 <td width="33%" valign="top">
-📊 <a href="help/documentation/12-collection.md"><b>Views</b></a><br />
+📊 <a href="help/documentation/12-views.md"><b>Views</b></a><br />
 <sub>Tables and calendars of notes, queried by frontmatter properties, saved as <code>.view</code> files.</sub>
 </td>
 <td width="33%" valign="top">

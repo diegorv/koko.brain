@@ -1,35 +1,36 @@
-# Collection
+# Views
 
-Learn how to query your vault notes as a table or database using Collection — a powerful spreadsheet-like view over your notes' frontmatter properties.
+Learn how to query your vault notes as a table, calendar or timeline with Views: a spreadsheet-like view over your notes' frontmatter properties.
 
-## What Are Collection?
+## What Are Views?
 
-Collection let you view and query your vault notes as rows in a table. Each note becomes a row, and its frontmatter properties become columns. Collection are saved as `.view` files in YAML format, so they live right alongside your notes in the vault.
+A view lists your vault notes as rows. Each note becomes a row, and its frontmatter properties become columns. Views are saved as `.view` files in YAML format, so they live right alongside your notes in the vault. An inline ` ```collection ` block embeds the same format in a note.
 
-If you have used Notion databases or Obsidian's Dataview plugin, Collection will feel familiar — but with a visual, spreadsheet-like interface that requires no code to get started.
+If you have used Notion databases or Obsidian's Dataview plugin, Views will feel familiar, with a visual, spreadsheet-like interface that requires no code to get started.
 
 > [!NOTE]
-> A `.view` with `_visible: false` and `_open_in_editor: true` (what **New table** writes) is a table or calendar you open in the editor. Without those keys it is also an entry in the menu: the **Views** section of the Types navigator lists it, and it can be pinned to the rail or reached with the palette's **Open view** (see [View Files](25-types-and-relationships.md#view-files-view)). An inline ` ```collection ` block embeds the same format in a note.
+> One `.view` file can show up in two places. A `.view` with `_visible: false` and `_open_in_editor: true` (what **New table** writes) is a table or calendar you open in the editor. Without those keys it is also an entry in the menu: the **Views** section of the Types navigator lists it, and it can be pinned to the rail or reached with the palette's **Open view** (see [View Files](25-types-and-relationships.md#view-files-view)).
 >
-> A `.collection` file, the format's old extension, opens as plain text. To migrate one by hand, rename it to `.view` and add `_visible: false` and `_open_in_editor: true` at the top.
+> Views used to come in two file kinds, `.view` for the menu and `.collection` for tables opened in the editor. They are one kind now. A `.collection` file opens as plain text. To migrate one by hand, rename it to `.view` and add `_visible: false` and `_open_in_editor: true` at the top.
 >
 > Every key of the format, with its value, default and effect, is listed once in [Types & Relationships > View Metadata Fields](25-types-and-relationships.md#view-metadata-fields). The underscore keys there (`_sidebar_label`, `_rail`, ...) are read only in a `.view`.
 
-Collection are great for:
+Views are great for:
 
-- **Project trackers** — monitor status, priority, and deadlines across all your project notes.
-- **Reading lists** — keep track of books, articles, ratings, and reading progress.
-- **CRM** — manage contacts, companies, and interaction history.
-- **Content calendars** — plan and schedule blog posts, videos, or social media content.
-- **Any structured collection** — anything where your notes share a common set of properties.
+- **Project trackers**: monitor status, priority, and deadlines across all your project notes.
+- **Reading lists**: keep track of books, articles, ratings, and reading progress.
+- **CRM**: manage contacts, companies, and interaction history.
+- **Content calendars**: plan and schedule blog posts, videos, or social media content.
+- **Any structured set of notes**: anything where your notes share a common set of properties.
 
-## Creating a Collection
+## Creating a View
 
-There are three ways to create a collection:
+There are four ways to create a view:
 
-1. **Right-click a folder in the Files navigator** (or the empty space below the folders, for the vault root) — Choose **New table**. Kokobrain writes `Untitled.view` in that folder (`Untitled 1.view` when the name is taken), with one table view named `All` and no filters, picks the folder and opens the file in the editor. The file carries `_visible: false` and `_open_in_editor: true`, so Views in the Types navigator does not list it and a click on it opens the table; to list it in Views, choose **Show in Views** on its row in the note list (see [View Files](25-types-and-relationships.md#creating-a-view)). To give it a name, rename its row in the note list.
-2. **Inside a `.md` file** — Use a ` ```collection ` fenced code block to embed a collection inline (see [Inline Collection](#inline-collection-code-blocks)).
-3. **Manually** — Create the file from any file manager or terminal — just make sure the extension is `.view`. Add `_visible: false` and `_open_in_editor: true` at the top to keep it out of Views.
+1. **New table**: right-click a folder in the Files navigator (or the empty space below the folders, for the vault root) and choose **New table**. Kokobrain writes `Untitled.view` in that folder (`Untitled 1.view` when the name is taken), with one table view named `All` and no filters, picks the folder and opens the file in the editor. The file carries `_visible: false` and `_open_in_editor: true`, so Views in the Types navigator does not list it and a click on it opens the table; to list it in Views, choose **Show in Views** on its row in the note list. To give it a name, rename its row in the note list.
+2. **New view**: click the **+** next to **Views** in the Types navigator, or choose **New view** in a folder's menu. A dialog asks for a name and filters, and the view is listed in Views (see [Creating a View](25-types-and-relationships.md#creating-a-view)).
+3. **Inside a `.md` file**: use a ` ```collection ` fenced code block to embed a view inline (see [Inline View Blocks](#inline-view-blocks)).
+4. **Manually**: create the file from any file manager or terminal, with the extension `.view`. Add `_visible: false` and `_open_in_editor: true` at the top to keep it out of Views.
 
 When you open a `.view` file for the first time, Kokobrain will present an empty table ready for configuration.
 
@@ -58,7 +59,7 @@ You can click on any row to open the corresponding note in the editor.
 
 ## Toolbar
 
-The toolbar at the top of the collection editor provides three main panels for controlling what data appears and how it is displayed.
+The toolbar at the top of the view editor provides three main panels for controlling what data appears and how it is displayed.
 
 ### Filter Panel
 
@@ -140,7 +141,7 @@ A single `.view` file can contain multiple named views. Each view has its own in
 - Visible columns
 - View type (`table`, `calendar`, or `linear-calendar`)
 
-When a file has more than one view, the collection editor renders a tab strip at the top — one tab per view name. Click a tab to switch the visible view. The Filter, Sort, and Properties toolbar panels rebind to the active view, so edits go into the view you are looking at. Files with a single view also show the tab strip with a single tab, alongside the controls described below.
+When a file has more than one view, the view editor renders a tab strip at the top — one tab per view name. Click a tab to switch the visible view. The Filter, Sort, and Properties toolbar panels rebind to the active view, so edits go into the view you are looking at. Files with a single view also show the tab strip with a single tab, alongside the controls described below.
 
 ### Managing views
 
@@ -155,15 +156,15 @@ When you change a view's type, all calendar-specific keys (`dateProperty`, `endD
 This is useful when you want different perspectives on the same data. For example, you might have one view called "Active Projects" that filters for `status: active`, and another called "Completed Projects" that filters for `status: done` — both defined in the same `.view` file.
 
 > [!NOTE]
-> When a `.view` file is picked in the **Types navigator** (instead of opened in the editor), only one view in the `views:` array is rendered, and the rest are ignored: the first one, or the one whose `name` the top-level `_rail_view` key gives (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). The collection editor does not read `_rail_view`. The note list cannot draw calendar or linear-calendar layouts. Open the `.view` file in the editor to access the full multi-view experience with the tab strip.
+> When a `.view` file is picked in the **Types navigator** (instead of opened in the editor), only one view in the `views:` array is rendered, and the rest are ignored: the first one, or the one whose `name` the top-level `_rail_view` key gives (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). The view editor does not read `_rail_view`. The note list cannot draw calendar or linear-calendar layouts. Open the `.view` file in the editor to access the full multi-view experience with the tab strip.
 
 ## Result Limit
 
-Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings". The limit is taken after the view's `sort`, so set a `sort` to choose which notes are kept; notes without the sorted property come last, so a descending sort keeps the highest values. With no `sort`, the first notes of the vault index are kept, in no meaningful order. In a `.view` the limit is taken last, after the list leaves out archived notes (unless a filter cites `archived` or `_archived`) and orders the rest (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). In an inline block it is taken after the block leaves out the notes it never lists (see [Inline Collection](#inline-collection-code-blocks)).
+Each view can set a maximum number of results using a `limit` value. This is useful for dashboards where you only want to display a subset of matching notes, such as "Top 10 by priority" or "5 most recent meetings". The limit is taken after the view's `sort`, so set a `sort` to choose which notes are kept; notes without the sorted property come last, so a descending sort keeps the highest values. With no `sort`, the first notes of the vault index are kept, in no meaningful order. In a `.view` the limit is taken last, after the list leaves out archived notes (unless a filter cites `archived` or `_archived`) and orders the rest (see [View Metadata Fields](25-types-and-relationships.md#view-metadata-fields)). In an inline block it is taken after the block leaves out the notes it never lists (see [Inline View Blocks](#inline-view-blocks)).
 
-## Inline Collection (Code Blocks)
+## Inline View Blocks
 
-You can also embed a Collection directly inside any `.md` note using a ` ```collection ` fenced code block:
+You can also embed a view directly inside any `.md` note using a ` ```collection ` fenced code block. The fence keeps its old name, so existing notes keep working:
 
 ````
 ```collection
@@ -184,7 +185,7 @@ An inline block lists notes by the same rule as a `.view`. It never lists notes 
 
 ## Source Mode
 
-Click the toggle button in the bottom-right corner of the collection editor to switch between the visual table and the raw YAML source.
+Click the toggle button in the bottom-right corner of the view editor to switch between the visual table and the raw YAML source.
 
 ### YAML structure
 
@@ -264,7 +265,7 @@ Source mode is helpful when you want to make bulk edits, copy a view configurati
 
 ## Expression Language Reference
 
-The filter and formula expressions used in Collection (and in Auto Organize rules) support a rich set of functions, methods, and operators.
+The filter and formula expressions used in Views (and in Auto Organize rules) support a rich set of functions, methods, and operators.
 
 ### Operators
 
@@ -435,9 +436,9 @@ filters: 'contains(file.path, "people")'   # any path containing "people"
 
 ---
 
-## Setting Up Your Notes for Collection
+## Setting Up Your Notes for Views
 
-For Collection to work well, your notes need consistent frontmatter. Add a YAML frontmatter block at the top of each note with the properties you want to query:
+For views to work well, your notes need consistent frontmatter. Add a YAML frontmatter block at the top of each note with the properties you want to query:
 
 ```yaml
 ---
@@ -474,7 +475,7 @@ tags: [project, engineering]
 
 ## Relationship with QueryJS
 
-Collection and QueryJS are separate: a collection runs its filters and formulas with its own expression language (above), and it does not run JavaScript. If you need programmatic access to your vault data beyond what the visual table provides, write a ` ```queryjs ` block with the QueryJS API. See [QueryJS](13-queryjs.md) for details.
+Views and QueryJS are separate: a view runs its filters and formulas with its own expression language (above), and it does not run JavaScript. If you need programmatic access to your vault data beyond what the visual table provides, write a ` ```queryjs ` block with the QueryJS API. See [QueryJS](13-queryjs.md) for details.
 
 ## Next Steps
 

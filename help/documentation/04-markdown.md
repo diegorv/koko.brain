@@ -691,7 +691,7 @@ Your note content starts here.
 | `aliases`  | Alternative names for wikilink resolution         | `aliases: [MN, meetings]`   |
 | `cssclass` | Apply a custom CSS class to the note              | `cssclass: wide-page`       |
 
-You can add **any custom fields** you want — they all become visible in the Properties panel and queryable in Collection.
+You can add **any custom fields** you want — they all become visible in the Properties panel and queryable in Views.
 
 > [!TIP]
 > You don't have to type frontmatter by hand. Use the **Properties** panel in the right sidebar to add and edit fields visually. See [Sidebar Panels](07-sidebar-panels.md) for details.
@@ -715,7 +715,7 @@ In addition to syntax-highlighted code, Kokobrain supports special fenced code b
 
 | Language | What it renders | See |
 |----------|----------------|-----|
-| `collection` | Inline database/table view over vault notes | [Collection](12-collection.md) |
+| `collection` | Inline database/table view over vault notes | [Views](12-views.md) |
 | `queryjs` | Executable JavaScript with access to vault data | [QueryJS](13-queryjs.md) |
 | `mermaid` | Diagrams (see above) | [Mermaid docs](https://mermaid.js.org) |
 | `meta-bind-button` | Clickable action button | [Meta-Bind](24-meta-bind.md) |
