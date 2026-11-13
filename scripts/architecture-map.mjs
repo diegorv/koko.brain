@@ -420,7 +420,7 @@ const shortName = (path) => (path.startsWith('src/lib/') ? path.slice('src/lib/'
 const pageOf = (path) => `modules/${path}.md`;
 
 /** Escapes a table cell. */
-const cell = (s) => String(s ?? '').replace(/\|/g, '\\|').replace(/\n+/g, ' ');
+const cell = (s) => String(s ?? '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|').replace(/\n+/g, ' ');
 
 /** Singular and plural label of each role. */
 const ROLE_LABELS = {
