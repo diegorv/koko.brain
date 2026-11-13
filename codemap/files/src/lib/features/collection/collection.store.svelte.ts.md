@@ -7,7 +7,7 @@ imp src/lib/features/collection/collection.store.svelte.ts:1 -> src/lib/features
 imp src/lib/app/boot.ts:8 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:18 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:16 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
-imp src/lib/features/auto-organize/auto-organize.service.ts:44 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
+imp src/lib/features/auto-organize/auto-organize.service.ts:45 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/CollectionView.svelte:15 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/collection-block-widget.ts:7 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/collection.service.ts:8 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
@@ -67,7 +67,7 @@ sym src/lib/features/collection/collection.store.svelte.ts:28 store collectionSt
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/app/boot.ts:79 in registerAppPorts member
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:172 in preview=$derived member
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:85 in availableProperties=$derived member +4
-by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/auto-organize.service.ts:287 in evaluateAndMove member
+by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/auto-organize/auto-organize.service.ts:293 in evaluateAndMove member
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/CollectionView.svelte:145 in restoreViewIndex mcall +7
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/collection-block-widget.ts:79 in CollectionBlockWidget.constructor member +5
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/collection.service.ts:101 in buildPropertyIndex mcall +11

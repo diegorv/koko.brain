@@ -1,14 +1,14 @@
 # file card src/lib/core/filesystem/fs.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/filesystem/fs.service.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, locals, calls, effects
-file src/lib/core/filesystem/fs.service.ts service L379 module src/lib/core/filesystem in27 t45
+file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t45
 ## imports
 imp src/lib/core/filesystem/fs.service.ts:1 -> pkg:@tauri-apps/plugin-fs readTextFile,writeTextFile,mkdir,remove,rename,exists,copyFile,readDir
 imp src/lib/core/filesystem/fs.service.ts:2 -> pkg:@tauri-apps/plugin-opener revealItemInDir
 imp src/lib/core/filesystem/fs.service.ts:3 -> src/lib/contracts/ipc.ts call
 imp src/lib/core/filesystem/fs.service.ts:4 -> src/lib/core/filesystem/fs.types.ts type:FileTreeNode,type:FolderOrderMap
 imp src/lib/core/filesystem/fs.service.ts:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
-imp src/lib/core/filesystem/fs.service.ts:6 -> src/lib/core/filesystem/fs.logic.ts getParentPath,getFileName,generateCopyName,generateUniqueName,applyFolderOrder,insertTreeNode,isMarkdownFile,renamedPath,type:TreeOrder
+imp src/lib/core/filesystem/fs.service.ts:6 -> src/lib/core/filesystem/fs.logic.ts getParentPath,getFileName,generateCopyName,generateUniqueName,applyFolderOrder,insertTreeNode,isMarkdownFile,renamedPath,TargetExistsError,type:TreeOrder
 imp src/lib/core/filesystem/fs.service.ts:7 -> src/lib/core/filesystem/note-change.service.ts applyNoteChange
 imp src/lib/core/filesystem/fs.service.ts:8 -> src/lib/core/filesystem/path-change.service.ts applyPathChange
 imp src/lib/core/filesystem/fs.service.ts:9 -> src/lib/core/editor/editor.hooks.ts markRecentSave
@@ -27,7 +27,7 @@ imp src/lib/core/filesystem/fs.watcher.ts:5 -> src/lib/core/filesystem/fs.servic
 imp src/lib/core/filesystem/path-change.service.ts:3 -> src/lib/core/filesystem/fs.service.ts currentTreeOrder,refreshTree
 imp src/lib/core/note-creator/note-creator.service.ts:7 -> src/lib/core/filesystem/fs.service.ts addToTree
 imp src/lib/core/trash/trash.service.ts:158 -> src/lib/core/filesystem/fs.service.ts dyn:addScannedToTree
-imp src/lib/features/auto-organize/auto-organize.service.ts:4 -> src/lib/core/filesystem/fs.service.ts createFile,moveItem,renameItem
+imp src/lib/features/auto-organize/auto-organize.service.ts:5 -> src/lib/core/filesystem/fs.service.ts createFile,moveItem,renameItem
 imp src/lib/features/canvas/canvas.service.ts:1 -> src/lib/core/filesystem/fs.service.ts createFile
 imp src/lib/features/collection/collection.service.ts:6 -> src/lib/core/filesystem/fs.service.ts createFile
 imp src/lib/features/deep-link/deep-link.service.ts:12 -> src/lib/core/filesystem/fs.service.ts addToTree
@@ -111,7 +111,7 @@ sym src/lib/core/filesystem/fs.service.ts:179 fn addScannedToTree(path: string, 
 by src/lib/core/filesystem/fs.service.ts:addScannedToTree <- src/lib/core/trash/trash.service.ts:159 in restoreItem call
 sym src/lib/core/filesystem/fs.service.ts:198 fn createFile(parentPath: string, fileName: string, content: string = ''): Promise<string> L27 | Creates a file on disk with the given initial content (empty by default) and adds it to the tree.
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/app/commands.ts:155 in getBuiltInCommands call
-by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/auto-organize/auto-organize.service.ts:568 in createRuleNote call
+by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/auto-organize/auto-organize.service.ts:612 in createRuleNote call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/canvas/canvas.service.ts:9 in createCanvasFile call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/collection/collection.service.ts:34 in createCollectionFile call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/event-calendar/event-calendar.service.ts:1014 in duplicateEvent call
@@ -128,32 +128,31 @@ by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/features/event-ca
 by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/features/note-list/NoteRowMenu.svelte:168 in handleDelete call
 by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/features/rail-shell/FilesNavigator.svelte:202 in handleDelete call
 by src/lib/core/filesystem/fs.service.ts:deleteItem <- src/lib/plugins/mods/mod-vault.service.ts:109 in createModVault call
-sym src/lib/core/filesystem/fs.service.ts:280 fn renameItem(oldPath: string, newName: string): Promise<string> L20 | Renames a file or folder and returns the new path.
-by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/auto-organize/auto-organize.service.ts:473 in applyRename call
+sym src/lib/core/filesystem/fs.service.ts:275 fn renameItem(oldPath: string, newName: string): Promise<string> L20 | Renames a file or folder and returns the new path.
+by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/auto-organize/auto-organize.service.ts:517 in applyRename call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/event-calendar/event-calendar.service.ts:734 in renameAndWrite call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/note-list/NoteRowMenu.svelte:142 in commitRename call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/rail-shell/FilesNavigator.svelte:179 in commitRename call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/todoist-sync/sync-now.service.ts:960 in renameProjectNotes call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/features/type-definitions/type-definitions.service.ts:224 in renameType call
 by src/lib/core/filesystem/fs.service.ts:renameItem <- src/lib/plugins/mods/mod-vault.service.ts:93 in createModVault call
-sym src/lib/core/filesystem/fs.service.ts:307 fn moveItem(sourcePath: string, targetDirPath: string): Promise<string | null> L21 | Moves a file or folder into a different directory.
-by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/features/auto-organize/auto-organize.service.ts:338 in evaluateAndMove call
+sym src/lib/core/filesystem/fs.service.ts:304 fn moveItem(sourcePath: string, targetDirPath: string, fileName = getFileName(sourcePath)): Promise<string | null> L21 | Moves a file or folder into a different directory, as `fileName` there, in one path change (links and tabs follow).
+by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/features/auto-organize/auto-organize.service.ts:393 in moveToFreeName call +1
 by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/features/rail-shell/FilesNavigator.svelte:288 in handleDrop call
 by src/lib/core/filesystem/fs.service.ts:moveItem <- src/lib/plugins/mods/mod-vault.service.ts:100 in createModVault call
-sym src/lib/core/filesystem/fs.service.ts:345 fn duplicateItem(itemPath: string, isDirectory: boolean): Promise<string> L21 | Duplicates a file or folder, generating a unique "copy" name.
+sym src/lib/core/filesystem/fs.service.ts:342 fn duplicateItem(itemPath: string, isDirectory: boolean): Promise<string> L21 | Duplicates a file or folder, generating a unique "copy" name.
 by src/lib/core/filesystem/fs.service.ts:duplicateItem <- src/lib/features/note-list/NoteRowMenu.svelte:85 in handleDuplicate call
-sym src/lib/core/filesystem/fs.service.ts:368 fn revealInSystemExplorer(itemPath: string): Promise<void> L7 | Opens the system file explorer with the given item selected
+sym src/lib/core/filesystem/fs.service.ts:365 fn revealInSystemExplorer(itemPath: string): Promise<void> L7 | Opens the system file explorer with the given item selected
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/file-history/FileHistoryDialog.svelte:37 in handleRevealBackup call
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/note-list/NoteRowMenu.svelte:266 in (markup) markup
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/rail-shell/FilesNavigator.svelte:388 in (markup) markup
 by src/lib/core/filesystem/fs.service.ts:revealInSystemExplorer <- src/lib/features/rail-shell/TypesNavigator.svelte:339 in (markup) markup +1
-sym src/lib/core/filesystem/fs.service.ts:377 fn resetFileSystem() L3 | Resets all file system state (e.g. when switching vaults)
+sym src/lib/core/filesystem/fs.service.ts:374 fn resetFileSystem() L3 | Resets all file system state (e.g. when switching vaults)
 by src/lib/core/filesystem/fs.service.ts:resetFileSystem <- src/lib/app/lifecycle/app-lifecycle.service.ts:661 in teardownVault call
 ## locals
 local src/lib/core/filesystem/fs.service.ts:14 fn countTreeNodes(nodes: FileTreeNode[]): number L8
 local src/lib/core/filesystem/fs.service.ts:37 fn ensureKokobrainDir(vaultPath: string): Promise<void> L3
-local src/lib/core/filesystem/fs.service.ts:272 fn targetExistsError(name: string): Error L3
-local src/lib/core/filesystem/fs.service.ts:330 fn copyDirectoryRecursive(sourcePath: string, destPath: string): Promise<void> L13
+local src/lib/core/filesystem/fs.service.ts:327 fn copyDirectoryRecursive(sourcePath: string, destPath: string): Promise<void> L13
 ## calls
 call src/lib/core/filesystem/fs.service.ts:18 in countTreeNodes -> src/lib/core/filesystem/fs.service.ts:countTreeNodes call
 call src/lib/core/filesystem/fs.service.ts:47 in loadFolderOrder -> src/lib/core/filesystem/fs.service.ts:ensureKokobrainDir call
@@ -198,25 +197,25 @@ call src/lib/core/filesystem/fs.service.ts:248 in deleteItem -> src/lib/core/fil
 call src/lib/core/filesystem/fs.service.ts:257 in deleteItem -> src/lib/core/trash/trash.service.ts:moveToTrash call
 call src/lib/core/filesystem/fs.service.ts:264 in deleteItem -> src/lib/utils/debug.ts:debug call
 call src/lib/core/filesystem/fs.service.ts:266 in deleteItem -> src/lib/utils/debug.ts:error call
-call src/lib/core/filesystem/fs.service.ts:281 in renameItem -> src/lib/core/filesystem/fs.logic.ts:renamedPath call
-call src/lib/core/filesystem/fs.service.ts:284 in renameItem -> src/lib/core/filesystem/fs.service.ts:targetExistsError call
-call src/lib/core/filesystem/fs.service.ts:285 in renameItem -> src/lib/core/filesystem/path-change.service.ts:applyPathChange call
-call src/lib/core/filesystem/fs.service.ts:293 in renameItem -> src/lib/utils/debug.ts:debug call
-call src/lib/core/filesystem/fs.service.ts:296 in renameItem -> src/lib/utils/debug.ts:error call
-call src/lib/core/filesystem/fs.service.ts:308 in moveItem -> src/lib/core/filesystem/fs.logic.ts:getFileName call
-call src/lib/core/filesystem/fs.service.ts:312 in moveItem -> src/lib/core/filesystem/fs.service.ts:targetExistsError call
-call src/lib/core/filesystem/fs.service.ts:313 in moveItem -> src/lib/core/filesystem/path-change.service.ts:applyPathChange call
-call src/lib/core/filesystem/fs.service.ts:321 in moveItem -> src/lib/utils/debug.ts:debug call
-call src/lib/core/filesystem/fs.service.ts:324 in moveItem -> src/lib/utils/debug.ts:error call
-call src/lib/core/filesystem/fs.service.ts:337 in copyDirectoryRecursive -> src/lib/core/filesystem/fs.service.ts:copyDirectoryRecursive call
-call src/lib/core/filesystem/fs.service.ts:347 in duplicateItem -> src/lib/core/filesystem/fs.logic.ts:getParentPath call
-call src/lib/core/filesystem/fs.service.ts:350 in duplicateItem -> src/lib/core/filesystem/fs.logic.ts:getFileName call
-call src/lib/core/filesystem/fs.service.ts:351 in duplicateItem -> src/lib/core/filesystem/fs.logic.ts:generateCopyName call
-call src/lib/core/filesystem/fs.service.ts:355 in duplicateItem -> src/lib/core/filesystem/fs.service.ts:copyDirectoryRecursive call
-call src/lib/core/filesystem/fs.service.ts:359 in duplicateItem -> src/lib/core/filesystem/fs.service.ts:addScannedToTree call
-call src/lib/core/filesystem/fs.service.ts:362 in duplicateItem -> src/lib/utils/debug.ts:error call
-call src/lib/core/filesystem/fs.service.ts:372 in revealInSystemExplorer -> src/lib/utils/debug.ts:error call
-call src/lib/core/filesystem/fs.service.ts:378 in resetFileSystem -> src/lib/core/filesystem/fs.store.svelte.ts:fsStore.reset mcall
+call src/lib/core/filesystem/fs.service.ts:276 in renameItem -> src/lib/core/filesystem/fs.logic.ts:renamedPath call
+call src/lib/core/filesystem/fs.service.ts:279 in renameItem -> src/lib/core/filesystem/fs.logic.ts:TargetExistsError new
+call src/lib/core/filesystem/fs.service.ts:280 in renameItem -> src/lib/core/filesystem/path-change.service.ts:applyPathChange call
+call src/lib/core/filesystem/fs.service.ts:288 in renameItem -> src/lib/utils/debug.ts:debug call
+call src/lib/core/filesystem/fs.service.ts:291 in renameItem -> src/lib/utils/debug.ts:error call
+call src/lib/core/filesystem/fs.service.ts:304 in moveItem -> src/lib/core/filesystem/fs.logic.ts:getFileName call
+call src/lib/core/filesystem/fs.service.ts:308 in moveItem -> src/lib/core/filesystem/fs.logic.ts:TargetExistsError new
+call src/lib/core/filesystem/fs.service.ts:309 in moveItem -> src/lib/core/filesystem/path-change.service.ts:applyPathChange call
+call src/lib/core/filesystem/fs.service.ts:317 in moveItem -> src/lib/utils/debug.ts:debug call
+call src/lib/core/filesystem/fs.service.ts:321 in moveItem -> src/lib/utils/debug.ts:error call
+call src/lib/core/filesystem/fs.service.ts:334 in copyDirectoryRecursive -> src/lib/core/filesystem/fs.service.ts:copyDirectoryRecursive call
+call src/lib/core/filesystem/fs.service.ts:344 in duplicateItem -> src/lib/core/filesystem/fs.logic.ts:getParentPath call
+call src/lib/core/filesystem/fs.service.ts:347 in duplicateItem -> src/lib/core/filesystem/fs.logic.ts:getFileName call
+call src/lib/core/filesystem/fs.service.ts:348 in duplicateItem -> src/lib/core/filesystem/fs.logic.ts:generateCopyName call
+call src/lib/core/filesystem/fs.service.ts:352 in duplicateItem -> src/lib/core/filesystem/fs.service.ts:copyDirectoryRecursive call
+call src/lib/core/filesystem/fs.service.ts:356 in duplicateItem -> src/lib/core/filesystem/fs.service.ts:addScannedToTree call
+call src/lib/core/filesystem/fs.service.ts:359 in duplicateItem -> src/lib/utils/debug.ts:error call
+call src/lib/core/filesystem/fs.service.ts:369 in revealInSystemExplorer -> src/lib/utils/debug.ts:error call
+call src/lib/core/filesystem/fs.service.ts:375 in resetFileSystem -> src/lib/core/filesystem/fs.store.svelte.ts:fsStore.reset mcall
 ## effects
 fx src/lib/core/filesystem/fs.service.ts:38 tauri-fs.mkdir in ensureKokobrainDir
 fx src/lib/core/filesystem/fs.service.ts:45 tauri-fs.exists in loadFolderOrder
@@ -229,13 +228,13 @@ ipc-call src/lib/core/filesystem/fs.service.ts:208 in createFile -> ipc:create_n
 fx src/lib/core/filesystem/fs.service.ts:229 tauri-fs.readDir in createFolder
 ipc-call src/lib/core/filesystem/fs.service.ts:235 in createFolder -> ipc:create_folder -> src-tauri/src/commands/vault.rs:1179
 fx src/lib/core/filesystem/fs.service.ts:260 tauri-fs.remove in deleteItem
-fx src/lib/core/filesystem/fs.service.ts:284 tauri-fs.exists in renameItem
-fx src/lib/core/filesystem/fs.service.ts:290 tauri-fs.rename in renameItem
-fx src/lib/core/filesystem/fs.service.ts:312 tauri-fs.exists in moveItem
-fx src/lib/core/filesystem/fs.service.ts:318 tauri-fs.rename in moveItem
-fx src/lib/core/filesystem/fs.service.ts:331 tauri-fs.mkdir in copyDirectoryRecursive
-fx src/lib/core/filesystem/fs.service.ts:332 tauri-fs.readDir in copyDirectoryRecursive
-fx src/lib/core/filesystem/fs.service.ts:339 tauri-fs.copyFile in copyDirectoryRecursive
-fx src/lib/core/filesystem/fs.service.ts:348 tauri-fs.readDir in duplicateItem
-fx src/lib/core/filesystem/fs.service.ts:357 tauri-fs.copyFile in duplicateItem
-fx src/lib/core/filesystem/fs.service.ts:370 tauri-opener.revealItemInDir in revealInSystemExplorer
+fx src/lib/core/filesystem/fs.service.ts:279 tauri-fs.exists in renameItem
+fx src/lib/core/filesystem/fs.service.ts:285 tauri-fs.rename in renameItem
+fx src/lib/core/filesystem/fs.service.ts:308 tauri-fs.exists in moveItem
+fx src/lib/core/filesystem/fs.service.ts:314 tauri-fs.rename in moveItem
+fx src/lib/core/filesystem/fs.service.ts:328 tauri-fs.mkdir in copyDirectoryRecursive
+fx src/lib/core/filesystem/fs.service.ts:329 tauri-fs.readDir in copyDirectoryRecursive
+fx src/lib/core/filesystem/fs.service.ts:336 tauri-fs.copyFile in copyDirectoryRecursive
+fx src/lib/core/filesystem/fs.service.ts:345 tauri-fs.readDir in duplicateItem
+fx src/lib/core/filesystem/fs.service.ts:354 tauri-fs.copyFile in duplicateItem
+fx src/lib/core/filesystem/fs.service.ts:367 tauri-opener.revealItemInDir in revealInSystemExplorer

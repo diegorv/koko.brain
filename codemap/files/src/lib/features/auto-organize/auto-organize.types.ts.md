@@ -9,7 +9,7 @@ imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:20 -> src/lib
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:29 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:RuleCreateNote,type:RuleProperty,type:RuleRename
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:15 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule
 imp src/lib/features/auto-organize/auto-organize.logic.ts:1 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:RuleCreateNote,type:RuleProperty,type:RuleRename,type:RuleRunAction,type:RuleValue
-imp src/lib/features/auto-organize/auto-organize.service.ts:41 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeConfig,type:AutoOrganizeRule
+imp src/lib/features/auto-organize/auto-organize.service.ts:42 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeConfig,type:AutoOrganizeRule
 imp src/lib/features/auto-organize/auto-organize.store.svelte.ts:1 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule,type:AutoOrganizeConfig
 imp src/lib/features/auto-organize/type-lifecycle-rules.ts:2 -> src/lib/features/auto-organize/auto-organize.types.ts type:AutoOrganizeRule
 ## reach
@@ -42,11 +42,11 @@ sym src/lib/features/auto-organize/auto-organize.types.ts:72 interface AutoOrgan
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:29 in (script) import
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:15 in (script) import
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/auto-organize.logic.ts:1 in (module) import
-by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/auto-organize.service.ts:41 in (module) import
+by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/auto-organize.service.ts:42 in (module) import
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/auto-organize.store.svelte.ts:1 in (module) import
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeRule <- src/lib/features/auto-organize/type-lifecycle-rules.ts:2 in (module) import
 sym src/lib/features/auto-organize/auto-organize.types.ts:103 interface RuleRunAction L6 | A mod action a matching rule runs on the note, after every other consequence
 by src/lib/features/auto-organize/auto-organize.types.ts:RuleRunAction <- src/lib/features/auto-organize/auto-organize.logic.ts:1 in (module) import
 sym src/lib/features/auto-organize/auto-organize.types.ts:111 interface AutoOrganizeConfig L6 | Persisted auto-organize configuration stored in .kokobrain/auto-organize-rules.json
-by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeConfig <- src/lib/features/auto-organize/auto-organize.service.ts:41 in (module) import
+by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeConfig <- src/lib/features/auto-organize/auto-organize.service.ts:42 in (module) import
 by src/lib/features/auto-organize/auto-organize.types.ts:AutoOrganizeConfig <- src/lib/features/auto-organize/auto-organize.store.svelte.ts:1 in (module) import

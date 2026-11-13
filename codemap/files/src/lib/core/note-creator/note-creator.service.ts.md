@@ -15,7 +15,7 @@ imp src/lib/core/note-creator/note-creator.service.ts:11 -> src/lib/utils/debug.
 imp src/lib/core/note-creator/note-creator.service.ts:12 -> src/lib/utils/log.service.ts appendLog
 ## imported-by
 imp src/lib/app/editor-host.ts:21 -> src/lib/core/note-creator/note-creator.service.ts openOrCreateNote
-imp src/lib/features/auto-organize/auto-organize.service.ts:6 -> src/lib/core/note-creator/note-creator.service.ts loadNoteTemplate
+imp src/lib/features/auto-organize/auto-organize.service.ts:7 -> src/lib/core/note-creator/note-creator.service.ts loadNoteTemplate
 imp src/lib/features/deep-link/deep-link.service.ts:9 -> src/lib/core/note-creator/note-creator.service.ts openOrCreateNote
 imp src/lib/features/type-definitions/type-definitions.service.ts:10 -> src/lib/core/note-creator/note-creator.service.ts loadNoteTemplate,openOrCreateNote
 imp src/lib/plugins/mods/mod-app.service.ts:5 -> src/lib/core/note-creator/note-creator.service.ts openOrCreateNote
@@ -46,7 +46,7 @@ test src/tests/lib/plugins/templates/templates.service.test.ts mocks src/lib/cor
 sym src/lib/core/note-creator/note-creator.service.ts:15 interface NoteCreationOptions L25 | Options for creating or opening a note from a template
 sym src/lib/core/note-creator/note-creator.service.ts:42 type NoteTemplateOptions L1 | Template inputs of NoteCreationOptions, without the target path.
 sym src/lib/core/note-creator/note-creator.service.ts:49 fn loadNoteTemplate(options: NoteTemplateOptions): Promise<string> L16 | Loads a note's initial content: reads `templatePath` (falling back to `inlineTemplate` when the read fails), or uses `inlineTemplate` alone, then expands its `…
-by src/lib/core/note-creator/note-creator.service.ts:loadNoteTemplate <- src/lib/features/auto-organize/auto-organize.service.ts:554 in createRuleNote call
+by src/lib/core/note-creator/note-creator.service.ts:loadNoteTemplate <- src/lib/features/auto-organize/auto-organize.service.ts:598 in createRuleNote call
 by src/lib/core/note-creator/note-creator.service.ts:loadNoteTemplate <- src/lib/features/type-definitions/type-definitions.service.ts:139 in createTypedNote call
 sym src/lib/core/note-creator/note-creator.service.ts:79 fn openOrCreateNote(options: NoteCreationOptions): Promise<void> L58 | Opens a note if it exists, or creates it from a template and opens it.
 by src/lib/core/note-creator/note-creator.service.ts:openOrCreateNote <- src/lib/app/editor-host.ts:161 in appEditorHost.createNote call

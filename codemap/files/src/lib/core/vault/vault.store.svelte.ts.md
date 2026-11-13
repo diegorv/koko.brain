@@ -27,7 +27,7 @@ imp src/lib/core/vault/vault.service.ts:7 -> src/lib/core/vault/vault.store.svel
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:16 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:26 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:9 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
-imp src/lib/features/auto-organize/auto-organize.service.ts:15 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
+imp src/lib/features/auto-organize/auto-organize.service.ts:16 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/backlinks/BacklinksPanel.svelte:10 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/backlinks/backlinks.service.ts:5 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 imp src/lib/features/canvas/CanvasInner.svelte:46 -> src/lib/core/vault/vault.store.svelte.ts vaultStore

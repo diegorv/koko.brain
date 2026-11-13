@@ -21,7 +21,7 @@ imp src/lib/core/markdown-editor/EditorTabs.svelte:10 -> src/lib/core/editor/edi
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:22 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/core/status-bar/SaveStatus.svelte:4 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:14 -> src/lib/core/editor/editor.store.svelte.ts editorStore
-imp src/lib/features/auto-organize/auto-organize.service.ts:11 -> src/lib/core/editor/editor.store.svelte.ts editorStore
+imp src/lib/features/auto-organize/auto-organize.service.ts:12 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/backlinks/BacklinksPanel.svelte:8 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/backlinks/backlinks.service.ts:4 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/copy-block-link/copy-block-link.service.ts:3 -> src/lib/core/editor/editor.store.svelte.ts editorStore

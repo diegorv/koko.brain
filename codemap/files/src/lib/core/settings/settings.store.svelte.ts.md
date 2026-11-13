@@ -35,7 +35,7 @@ imp src/lib/core/settings/theme.service.ts:5 -> src/lib/core/settings/settings.s
 imp src/lib/core/settings/update-check.service.ts:3 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:27 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:8 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
-imp src/lib/features/auto-organize/auto-organize.service.ts:14 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
+imp src/lib/features/auto-organize/auto-organize.service.ts:15 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/deep-link/deep-link.service.ts:11 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:7 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/EventCalendarView.svelte:13 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
@@ -128,7 +128,7 @@ mem src/lib/core/settings/settings.store.svelte.ts:177 get settingsStore.history
 more r 7 not shown: src/lib/core/settings(3) src/lib/app(2) src/lib/features/file-history(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.history
 mem src/lib/core/settings/settings.store.svelte.ts:178 get settingsStore.search r:7 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 7 not shown: src/lib/features/search(5) src/lib/app(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.search
-mem src/lib/core/settings/settings.store.svelte.ts:179 get settingsStore.autoOrganize r:src/lib/app/lifecycle/app-lifecycle.service.ts:452,src/lib/features/auto-organize/AutoOrganizeSection.svelte:115,src/lib/features/auto-organize/AutoOrganizeSection.svelte:133,src/lib/features/auto-organize/auto-organize.service.ts:207,src/lib/features/auto-organize/auto-organize.service.ts:227,src/lib/features/auto-organize/auto-organize.service.ts:235 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
+mem src/lib/core/settings/settings.store.svelte.ts:179 get settingsStore.autoOrganize r:src/lib/app/lifecycle/app-lifecycle.service.ts:452,src/lib/features/auto-organize/AutoOrganizeSection.svelte:115,src/lib/features/auto-organize/AutoOrganizeSection.svelte:133,src/lib/features/auto-organize/auto-organize.service.ts:211,src/lib/features/auto-organize/auto-organize.service.ts:231,src/lib/features/auto-organize/auto-organize.service.ts:239 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 mem src/lib/core/settings/settings.store.svelte.ts:180 get settingsStore.eventCalendar r:24 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 24 not shown: src/lib/features/event-calendar(22) src/lib/plugins/calendar(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.eventCalendar
 mem src/lib/core/settings/settings.store.svelte.ts:181 get settingsStore.todoist r:10 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22

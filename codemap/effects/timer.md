@@ -52,7 +52,7 @@ fx src/lib/core/settings/settings-persistence.svelte.ts:72 timer.setTimeout dela
 fx src/lib/core/settings/theme-catalog.service.ts:26 timer.setTimeout delay=THEME_CATALOG_TIMEOUT_MS in fetchThemeCatalog
 fx src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:94 timer.setTimeout delay=COUNT_DELAY_MS in $effect@92
 fx src/lib/features/auto-organize/AutoOrganizeSection.svelte:44 timer.setTimeout delay=500 in saveConfigDebounced
-fx src/lib/features/auto-organize/auto-organize.service.ts:225 timer.setTimeout delay=settingsStore.autoOrganize.de… in registerAutoOrganizeHook
+fx src/lib/features/auto-organize/auto-organize.service.ts:229 timer.setTimeout delay=settingsStore.autoOrganize.de… in registerAutoOrganizeHook
 fx src/lib/features/canvas/CanvasInner.svelte:238 timer.setTimeout delay=300 in $effect@229
 fx src/lib/features/event-calendar/EventCalendarView.svelte:195 timer.setTimeout delay=PULSE_MS in pulse
 fx src/lib/features/properties/PropertiesView.svelte:110 timer.setTimeout delay=300 in $effect@105

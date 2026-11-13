@@ -14,7 +14,7 @@ imp src/lib/app/commands.ts:20 -> src/lib/features/type-definitions/type-definit
 imp src/lib/app/editor-host.ts:32 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:74 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/app/tauri-listeners.service.ts:13 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
-imp src/lib/features/auto-organize/auto-organize.service.ts:43 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
+imp src/lib/features/auto-organize/auto-organize.service.ts:44 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:16 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/event-calendar/event-calendar.service.ts:32 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
 imp src/lib/features/note-action-bar/NoteActionBar.svelte:34 -> src/lib/features/type-definitions/type-definitions.store.svelte.ts typeDefinitionsStore
@@ -78,7 +78,7 @@ by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefini
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/editor-host.ts:187 in appEditorHost.openView mcall
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:684 in teardownVault mcall
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/app/tauri-listeners.service.ts:214 in registerVaultIndexUpdatedListener mcall +3
-by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/features/auto-organize/auto-organize.service.ts:210 in registerAutoOrganizeHook member +1
+by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/features/auto-organize/auto-organize.service.ts:214 in registerAutoOrganizeHook member +1
 by src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore <- src/lib/features/event-calendar/EventCalendarSection.svelte:49 in eventType=$derived member
 more by 12 not shown: src/lib/features/rail-shell(4) src/lib/features/event-calendar(1) src/lib/features/note-action-bar(1) src/lib/features/note-list(1) src/lib/features/properties(1) src/lib/features/type-definitions(1) src/lib/plugins/calendar(1) src/lib/plugins/mods(1) +1 modules: q importers src/lib/features/type-definitions/type-definitions.store.svelte.ts:typeDefinitionsStore
 ## store

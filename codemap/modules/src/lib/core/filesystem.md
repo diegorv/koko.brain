@@ -1,7 +1,7 @@
 # module card src/lib/core/filesystem
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/filesystem ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 57/88 ipc 14/0 card ~6.8k
+module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 58/89 ipc 14/0 card ~6.9k
 ## neighbors
 dep src/lib/app -> src/lib/core/filesystem 22
 dep src/lib/core/editor -> src/lib/core/filesystem 2
@@ -58,8 +58,8 @@ entry src/lib/core/filesystem/task-write.service.ts ext-in2 src/lib/features/tas
 file src/lib/core/filesystem/delete-note.service.ts service L28 module src/lib/core/filesystem in2 t1
 file src/lib/core/filesystem/file-entries.logic.ts logic L77 module src/lib/core/filesystem in12 t3
 file src/lib/core/filesystem/folder-notes.logic.ts logic L65 module src/lib/core/filesystem in3 t1
-file src/lib/core/filesystem/fs.logic.ts logic L631 module src/lib/core/filesystem in45 t14
-file src/lib/core/filesystem/fs.service.ts service L379 module src/lib/core/filesystem in27 t45
+file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in45 t15
+file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t45
 file src/lib/core/filesystem/fs.store.svelte.ts store L48 module src/lib/core/filesystem in22 t57
 file src/lib/core/filesystem/fs.types.ts types L16 module src/lib/core/filesystem in11 t0
 file src/lib/core/filesystem/fs.watcher.ts other L304 module src/lib/core/filesystem in2 t5
@@ -91,24 +91,25 @@ sym src/lib/core/filesystem/fs.logic.ts:120 fn getLanguageForFile(fileName: stri
 sym src/lib/core/filesystem/fs.logic.ts:133 fn getFileNameError(name: string): string | null L8 | Returns a user-facing message naming the rule a file name breaks, or null when the name is valid.
 sym src/lib/core/filesystem/fs.logic.ts:148 fn fileOperationErrorMessage(verb: string, name: string, err: unknown): string L5 | Builds the user-facing text for a failed file operation: `Could not <verb> "<name>": <reason>`.
 sym src/lib/core/filesystem/fs.logic.ts:159 class PreDeleteSaveError extends Error L10 | Thrown by `applyPathChange` on a delete when saving a dirty tab at or under the deleted path failed: nothing was closed or moved.
-sym src/lib/core/filesystem/fs.logic.ts:171 fn isValidFileName(name: string): boolean L3 | Validates a file name — rejects empty names, dot-prefixed names, and OS-forbidden characters
-sym src/lib/core/filesystem/fs.logic.ts:233 fn generateUniqueName(name: string, isDirectory: boolean, existingSiblingNames: string[]): string L30 | Generates a unique file/folder name by appending an incrementing number.
-sym src/lib/core/filesystem/fs.logic.ts:265 fn getRelativePath(vaultPath: string, filePath: string): string L3 | Strips the vault root prefix from an absolute path to produce a vault-relative path
-sym src/lib/core/filesystem/fs.logic.ts:273 fn validateDragDrop(sourcePath: string, targetDirPath: string): string | null L11 | Validates whether a drag-and-drop move operation is allowed.
-sym src/lib/core/filesystem/fs.logic.ts:365 fn collectFilePathsUnder(nodes: FileTreeNode[], dirPath: string): string[] L16 | Collects the absolute path of every FILE stored under `dirPath`, recursively.
-sym src/lib/core/filesystem/fs.logic.ts:397 fn applyFolderOrder(nodes: FileTreeNode[], orderMap: FolderOrderMap, vaultPath: string, currentPath: string, contentOrder?: Map<string, nu… L13 | Recursively reorders directory nodes according to folder-order.json and _order frontmatter values.
-sym src/lib/core/filesystem/fs.logic.ts:510 fn naturalCompare(a: string, b: string): number L28 | Case-insensitive natural name order, a port of the Rust `natural_cmp` (`src-tauri/src/commands/vault.rs`) that orders `scan_vault` output: runs of ASCII digits…
+sym src/lib/core/filesystem/fs.logic.ts:174 class TargetExistsError extends Error L6 | Thrown by `renameItem` and `moveItem` when the target folder already holds the name.
+sym src/lib/core/filesystem/fs.logic.ts:182 fn isValidFileName(name: string): boolean L3 | Validates a file name — rejects empty names, dot-prefixed names, and OS-forbidden characters
+sym src/lib/core/filesystem/fs.logic.ts:244 fn generateUniqueName(name: string, isDirectory: boolean, existingSiblingNames: string[]): string L30 | Generates a unique file/folder name by appending an incrementing number.
+sym src/lib/core/filesystem/fs.logic.ts:276 fn getRelativePath(vaultPath: string, filePath: string): string L3 | Strips the vault root prefix from an absolute path to produce a vault-relative path
+sym src/lib/core/filesystem/fs.logic.ts:284 fn validateDragDrop(sourcePath: string, targetDirPath: string): string | null L11 | Validates whether a drag-and-drop move operation is allowed.
+sym src/lib/core/filesystem/fs.logic.ts:376 fn collectFilePathsUnder(nodes: FileTreeNode[], dirPath: string): string[] L16 | Collects the absolute path of every FILE stored under `dirPath`, recursively.
+sym src/lib/core/filesystem/fs.logic.ts:408 fn applyFolderOrder(nodes: FileTreeNode[], orderMap: FolderOrderMap, vaultPath: string, currentPath: string, contentOrder?: Map<string, nu… L13 | Recursively reorders directory nodes according to folder-order.json and _order frontmatter values.
+sym src/lib/core/filesystem/fs.logic.ts:521 fn naturalCompare(a: string, b: string): number L28 | Case-insensitive natural name order, a port of the Rust `natural_cmp` (`src-tauri/src/commands/vault.rs`) that orders `scan_vault` output: runs of ASCII digits…
 sym src/lib/core/filesystem/fs.service.ts:88 fn loadDirectoryTree(vaultPath: string) L39 | Builds the full file tree for a vault and updates the store.
 sym src/lib/core/filesystem/fs.service.ts:158 fn addToTree(path: string, isDirectory = false, children: FileTreeNode[] = []): void L14 | Adds a node the app just created on disk to the file tree, in the position the next full load gives it, instead of rescanning the vault.
 sym src/lib/core/filesystem/fs.service.ts:179 fn addScannedToTree(path: string, isDirectory: boolean): Promise<void> L11 | `addToTree` for an item that arrived on disk with content (a copied or restored folder): a folder's subtree comes from `scan_vault` on that folder alone.
 sym src/lib/core/filesystem/fs.service.ts:198 fn createFile(parentPath: string, fileName: string, content: string = ''): Promise<string> L27 | Creates a file on disk with the given initial content (empty by default) and adds it to the tree.
 sym src/lib/core/filesystem/fs.service.ts:227 fn createFolder(parentPath: string, folderName: string): Promise<string> L17 | Creates a directory on disk and adds it to the tree.
 sym src/lib/core/filesystem/fs.service.ts:246 fn deleteItem(itemPath: string, isDirectory: boolean = false): Promise<void> L24 | Moves a file or folder to trash (soft delete), closes open tabs, and removes it from the tree.
-sym src/lib/core/filesystem/fs.service.ts:280 fn renameItem(oldPath: string, newName: string): Promise<string> L20 | Renames a file or folder and returns the new path.
-sym src/lib/core/filesystem/fs.service.ts:307 fn moveItem(sourcePath: string, targetDirPath: string): Promise<string | null> L21 | Moves a file or folder into a different directory.
-sym src/lib/core/filesystem/fs.service.ts:345 fn duplicateItem(itemPath: string, isDirectory: boolean): Promise<string> L21 | Duplicates a file or folder, generating a unique "copy" name.
-sym src/lib/core/filesystem/fs.service.ts:368 fn revealInSystemExplorer(itemPath: string): Promise<void> L7 | Opens the system file explorer with the given item selected
-sym src/lib/core/filesystem/fs.service.ts:377 fn resetFileSystem() L3 | Resets all file system state (e.g. when switching vaults)
+sym src/lib/core/filesystem/fs.service.ts:275 fn renameItem(oldPath: string, newName: string): Promise<string> L20 | Renames a file or folder and returns the new path.
+sym src/lib/core/filesystem/fs.service.ts:304 fn moveItem(sourcePath: string, targetDirPath: string, fileName = getFileName(sourcePath)): Promise<string | null> L21 | Moves a file or folder into a different directory, as `fileName` there, in one path change (links and tabs follow).
+sym src/lib/core/filesystem/fs.service.ts:342 fn duplicateItem(itemPath: string, isDirectory: boolean): Promise<string> L21 | Duplicates a file or folder, generating a unique "copy" name.
+sym src/lib/core/filesystem/fs.service.ts:365 fn revealInSystemExplorer(itemPath: string): Promise<void> L7 | Opens the system file explorer with the given item selected
+sym src/lib/core/filesystem/fs.service.ts:374 fn resetFileSystem() L3 | Resets all file system state (e.g. when switching vaults)
 sym src/lib/core/filesystem/fs.store.svelte.ts:25 store fsStore L24 | Central store for the file system / file explorer state.
 sym src/lib/core/filesystem/fs.types.ts:6 type FileTreeNode L4 | A file or folder in the vault's file tree: the `scan_vault` wire shape.
 sym src/lib/core/filesystem/fs.watcher.ts:67 fn onFileChange(listener: (paths: string[]) => void): () => void L6 | Registers a callback that fires whenever the vault's files change.

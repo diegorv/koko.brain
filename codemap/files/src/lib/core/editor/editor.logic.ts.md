@@ -16,7 +16,7 @@ imp src/lib/core/layout/layout.logic.ts:1 -> src/lib/core/editor/editor.logic.ts
 imp src/lib/core/markdown-editor/EditorTabs.svelte:12 -> src/lib/core/editor/editor.logic.ts isTabDirty,isTabPinned,isVirtualTab
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:23 -> src/lib/core/editor/editor.logic.ts findTabIndex,getPositionAfterFrontmatter
 imp src/lib/core/status-bar/SaveStatus.svelte:5 -> src/lib/core/editor/editor.logic.ts isTabDirty,isVirtualTab
-imp src/lib/features/auto-organize/auto-organize.service.ts:5 -> src/lib/core/editor/editor.logic.ts isTabDirty
+imp src/lib/features/auto-organize/auto-organize.service.ts:6 -> src/lib/core/editor/editor.logic.ts isTabDirty
 imp src/lib/features/event-calendar/event-calendar.service.ts:17 -> src/lib/core/editor/editor.logic.ts EVENT_CALENDAR_VIRTUAL_PATH,findTabIndex
 imp src/lib/features/properties/lifecycle.service.ts:2 -> src/lib/core/editor/editor.logic.ts isMarkdownNoteTab
 imp src/lib/features/search/SemanticIndexStatus.svelte:8 -> src/lib/core/editor/editor.logic.ts isVirtualTab
@@ -91,7 +91,7 @@ by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/lin
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/markdown-editor/EditorTabs.svelte:63 in (markup) markup
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/status-bar/SaveStatus.svelte:10 in status=$derived call
-by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/auto-organize/auto-organize.service.ts:438 in applyRename call
+by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/auto-organize/auto-organize.service.ts:482 in applyRename call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/tasks/tasks.service.ts:344 in preflightTaskWrite call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/type-definitions/type-definitions.service.ts:388 in rewriteViewFileNow call +1
 more by 1 not shown: src/lib/plugins/mods(1): q importers src/lib/core/editor/editor.logic.ts:isTabDirty

@@ -17,7 +17,7 @@ imp src/lib/core/filesystem/task-write.service.ts:2 -> src/lib/core/editor/edito
 imp src/lib/core/frontmatter/frontmatter-write.service.ts:5 -> src/lib/core/editor/editor.hooks.ts notifyAfterSave
 imp src/lib/core/note-creator/note-creator.service.ts:5 -> src/lib/core/editor/editor.hooks.ts markRecentSave,notifyNoteCreated
 imp src/lib/core/trash/trash.service.ts:17 -> src/lib/core/editor/editor.hooks.ts markRecentSave
-imp src/lib/features/auto-organize/auto-organize.service.ts:2 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
+imp src/lib/features/auto-organize/auto-organize.service.ts:3 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/deep-link/deep-link.service.ts:14 -> src/lib/core/editor/editor.hooks.ts markRecentSave,notifyAfterSave
 imp src/lib/features/file-history/file-history.service.ts:8 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:6 -> src/lib/core/editor/editor.hooks.ts notifyNoteCreated
@@ -90,7 +90,7 @@ more by 1 not shown: src/lib/plugins/mods(1): q importers src/lib/core/editor/ed
 sym src/lib/core/editor/editor.hooks.ts:47 fn areAllRecentSaves(paths: string[]): boolean L3 | Returns true if ALL given paths were recently saved by the editor.
 by src/lib/core/editor/editor.hooks.ts:areAllRecentSaves <- src/lib/app/lifecycle/watcher-handler.service.ts:50 in rebuildAllIndexes call
 sym src/lib/core/editor/editor.hooks.ts:52 fn addAfterSaveObserver(observer: AfterSaveObserver): () => void L9 | Adds an after-save observer.
-by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/auto-organize/auto-organize.service.ts:204 in registerAutoOrganizeHook call
+by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/auto-organize/auto-organize.service.ts:208 in registerAutoOrganizeHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/file-history/file-history.service.ts:192 in registerFileHistoryHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/SemanticIndexStatus.svelte:23 in (script) call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/search.service.ts:303 in registerSearchIndexHook call

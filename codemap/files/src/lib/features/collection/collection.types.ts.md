@@ -7,7 +7,7 @@ imp src/lib/features/collection/collection.types.ts:1 -> src/lib/features/collec
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:24 -> src/lib/features/collection/collection.types.ts type:FilterItem
 imp src/lib/features/auto-organize/auto-organize.logic.ts:12 -> src/lib/features/collection/collection.types.ts type:FilterItem,type:PropertyIndexRecord
-imp src/lib/features/auto-organize/auto-organize.service.ts:45 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
+imp src/lib/features/auto-organize/auto-organize.service.ts:46 -> src/lib/features/collection/collection.types.ts type:PropertyIndexRecord
 imp src/lib/features/auto-organize/auto-organize.types.ts:81 -> src/lib/features/collection/collection.types.ts type:FilterItem
 imp src/lib/features/collection/CollectionCalendarView.svelte:2 -> src/lib/features/collection/collection.types.ts type:QueryResult,type:PropertyIndexRecord
 imp src/lib/features/collection/CollectionLinearCalendarView.svelte:2 -> src/lib/features/collection/collection.types.ts type:QueryResult,type:PropertyIndexRecord
@@ -136,7 +136,7 @@ by src/lib/features/collection/collection.types.ts:CollectionDefinition <- src/l
 more by 3 not shown: src/lib/features/type-definitions(2) src/lib/plugins/mods(1): q importers src/lib/features/collection/collection.types.ts:CollectionDefinition
 sym src/lib/features/collection/collection.types.ts:77 interface PropertyIndexRecord L20 | A note record in the property index
 by src/lib/features/collection/collection.types.ts:PropertyIndexRecord <- src/lib/features/auto-organize/auto-organize.logic.ts:12 in (module) import
-by src/lib/features/collection/collection.types.ts:PropertyIndexRecord <- src/lib/features/auto-organize/auto-organize.service.ts:45 in (module) import
+by src/lib/features/collection/collection.types.ts:PropertyIndexRecord <- src/lib/features/auto-organize/auto-organize.service.ts:46 in (module) import
 by src/lib/features/collection/collection.types.ts:PropertyIndexRecord <- src/lib/features/collection/CollectionCalendarView.svelte:2 in (script) import
 by src/lib/features/collection/collection.types.ts:PropertyIndexRecord <- src/lib/features/collection/CollectionLinearCalendarView.svelte:2 in (script) import
 by src/lib/features/collection/collection.types.ts:PropertyIndexRecord <- src/lib/features/collection/CollectionTableView.svelte:2 in (script) import

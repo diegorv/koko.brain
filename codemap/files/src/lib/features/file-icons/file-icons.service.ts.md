@@ -20,7 +20,7 @@ imp src/lib/features/file-icons/file-icons.service.ts:186 -> src/lib/features/fi
 ## imported-by
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:50 -> src/lib/features/file-icons/file-icons.service.ts loadRecentIcons,buildFrontmatterIconIndex,registerFileIconsNoteChangeConsumer,resetFileIcons
 imp src/lib/app/lifecycle/watcher-handler.service.ts:4 -> src/lib/features/file-icons/file-icons.service.ts buildFrontmatterIconIndex
-imp src/lib/features/auto-organize/auto-organize.service.ts:7 -> src/lib/features/file-icons/file-icons.service.ts setIconForPath
+imp src/lib/features/auto-organize/auto-organize.service.ts:8 -> src/lib/features/file-icons/file-icons.service.ts setIconForPath
 imp src/lib/features/note-list/NoteRowMenu.svelte:21 -> src/lib/features/file-icons/file-icons.service.ts setIconForPath,setIconColors,removeIconForPath,trackRecentIcon
 imp src/lib/features/rail-shell/FilesNavigator.svelte:50 -> src/lib/features/file-icons/file-icons.service.ts setIconForPath,setIconColors,removeIconForPath,trackRecentIcon
 imp src/lib/features/rail-shell/TypesNavigator.svelte:33 -> src/lib/features/file-icons/file-icons.service.ts setIconForPath,setIconColors,removeIconForPath,trackRecentIcon
@@ -55,7 +55,7 @@ by src/lib/features/file-icons/file-icons.service.ts:trackRecentIcon <- src/lib/
 by src/lib/features/file-icons/file-icons.service.ts:trackRecentIcon <- src/lib/features/rail-shell/FilesNavigator.svelte:222 in handleIconSelect call
 by src/lib/features/file-icons/file-icons.service.ts:trackRecentIcon <- src/lib/features/rail-shell/TypesNavigator.svelte:168 in handleIconSelect call
 sym src/lib/features/file-icons/file-icons.service.ts:118 fn setIconForPath(vaultPath: string, path: string, iconPack: IconPackId, iconName: string, color?: string, textColor?: string, isDirecto… L28 | Sets a custom icon for a file/folder path. - .md files: writes to frontmatter (_icon, _color, _title_color). - Directories (isDirectory=true): writes to folder…
-by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/auto-organize/auto-organize.service.ts:635 in applyLegacyIcon call
+by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/auto-organize/auto-organize.service.ts:679 in applyLegacyIcon call
 by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/note-list/NoteRowMenu.svelte:179 in handleIconSelect call
 by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:221 in handleIconSelect call
 by src/lib/features/file-icons/file-icons.service.ts:setIconForPath <- src/lib/features/rail-shell/TypesNavigator.svelte:166 in handleIconSelect call

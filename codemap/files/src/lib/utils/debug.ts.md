@@ -37,7 +37,7 @@ imp src/lib/core/trash/trash.service.ts:18 -> src/lib/utils/debug.ts debug,error
 imp src/lib/core/vault/vault.service.ts:5 -> src/lib/utils/debug.ts error
 imp src/lib/core/vault/write-barrier.service.ts:1 -> src/lib/utils/debug.ts debug
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:16 -> src/lib/utils/debug.ts error
-imp src/lib/features/auto-organize/auto-organize.service.ts:46 -> src/lib/utils/debug.ts debug,error
+imp src/lib/features/auto-organize/auto-organize.service.ts:47 -> src/lib/utils/debug.ts debug,error
 imp src/lib/features/backlinks/backlinks.service.ts:2 -> src/lib/utils/debug.ts debug,error,perfStart,perfEnd
 imp src/lib/features/collection/CollectionView.svelte:18 -> src/lib/utils/debug.ts error
 imp src/lib/features/collection/collection.service.ts:5 -> src/lib/utils/debug.ts debug,error,timeAsync

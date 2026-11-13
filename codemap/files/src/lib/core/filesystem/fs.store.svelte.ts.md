@@ -96,4 +96,4 @@ mem src/lib/core/filesystem/fs.store.svelte.ts:34 do fsStore.setContentOrder w:s
 mem src/lib/core/filesystem/fs.store.svelte.ts:36 do fsStore.startLoading w:src/lib/core/filesystem/fs.service.ts:91 | Increments or decrements the loading counter. isLoading is true while counter > 0.
 mem src/lib/core/filesystem/fs.store.svelte.ts:37 do fsStore.stopLoading w:src/lib/core/filesystem/fs.service.ts:124
 mem src/lib/core/filesystem/fs.store.svelte.ts:38 do fsStore.setRenamingPath w:src/lib/features/note-list/NoteRowMenu.svelte:105,src/lib/features/note-list/NoteRowMenu.svelte:134,src/lib/features/note-list/NoteRowMenu.svelte:148
-mem src/lib/core/filesystem/fs.store.svelte.ts:41 do fsStore.reset w:src/lib/core/filesystem/fs.service.ts:378 | Resets all state to initial values (e.g. when switching vaults)
+mem src/lib/core/filesystem/fs.store.svelte.ts:41 do fsStore.reset w:src/lib/core/filesystem/fs.service.ts:375 | Resets all state to initial values (e.g. when switching vaults)

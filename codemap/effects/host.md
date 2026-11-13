@@ -38,6 +38,6 @@ fx src/lib/core/settings/sections/UpdateSection.svelte:294 tauri-opener.openUrl 
 fx src/lib/core/settings/sections/UpdateSection.svelte:328 tauri-opener.openUrl in (markup)
 fx src/lib/features/canvas/LinkNode.svelte:83 tauri-opener.openUrl in handleClick
 fx src/lib/features/todoist-sync/TodoistSection.svelte:92 tauri-opener.openUrl in (markup)
-fx src/lib/core/filesystem/fs.service.ts:370 tauri-opener.revealItemInDir in revealInSystemExplorer
+fx src/lib/core/filesystem/fs.service.ts:367 tauri-opener.revealItemInDir in revealInSystemExplorer
 fx src/lib/features/note-action-bar/note-action-bar.service.ts:25 tauri-opener.revealItemInDir in revealNote
 fx src/lib/core/settings/sections/UpdateSection.svelte:222 tauri-process.relaunch in restartApp

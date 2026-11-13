@@ -12,7 +12,7 @@ imp src/lib/core/frontmatter/frontmatter-write.service.ts:8 -> src/lib/core/fron
 imp src/lib/core/frontmatter/frontmatter-write.service.ts:16 -> src/lib/core/frontmatter/properties.types.ts type:Property
 ## imported-by
 imp src/lib/app/deep-link-actions.ts:6 -> src/lib/core/frontmatter/frontmatter-write.service.ts FrontmatterWriteError,toastFrontmatterWriteError
-imp src/lib/features/auto-organize/auto-organize.service.ts:10 -> src/lib/core/frontmatter/frontmatter-write.service.ts updateNoteFrontmatter
+imp src/lib/features/auto-organize/auto-organize.service.ts:11 -> src/lib/core/frontmatter/frontmatter-write.service.ts updateNoteFrontmatter
 imp src/lib/features/event-calendar/event-calendar.service.ts:29 -> src/lib/core/frontmatter/frontmatter-write.service.ts FrontmatterWriteError,updateNoteFrontmatter,type:FrontmatterWriteReason
 imp src/lib/features/file-icons/frontmatter-icon.service.ts:3 -> src/lib/core/frontmatter/frontmatter-write.service.ts FrontmatterWriteError,toastFrontmatterWriteError,updateNoteFrontmatter
 imp src/lib/features/properties/bookmark-migration.service.ts:7 -> src/lib/core/frontmatter/frontmatter-write.service.ts FrontmatterWriteError,updateNoteFrontmatter
@@ -49,7 +49,7 @@ by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteEr
 by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/features/properties/properties.service.ts:92 in commitChanges call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:toastFrontmatterWriteError <- src/lib/features/rail-shell/RailNoteList.svelte:448 in writeThroughOverlay call
 sym src/lib/core/frontmatter/frontmatter-write.service.ts:99 fn updateNoteFrontmatter(path: string, mutate: (props: Property[]) => Property[]): Promise<string> L7 | Rewrites one note's frontmatter by path without losing data, and returns the written content (the unchanged base when `mutate` changes nothing).
-by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/auto-organize/auto-organize.service.ts:677 in writeRuleProperties call
+by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/auto-organize/auto-organize.service.ts:721 in writeRuleProperties call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/event-calendar/event-calendar.service.ts:759 in renameAndWrite call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/file-icons/frontmatter-icon.service.ts:43 in writeIconFrontmatter call
 by src/lib/core/frontmatter/frontmatter-write.service.ts:updateNoteFrontmatter <- src/lib/features/properties/bookmark-migration.service.ts:80 in migrateBookmarksToFavorites call

@@ -12,7 +12,7 @@ imp src/lib/core/filesystem/note-change.service.ts:3 -> src/lib/utils/path.ts va
 imp src/lib/core/filesystem/path-change.service.ts:13 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/core/frontmatter/frontmatter-write.service.ts:7 -> src/lib/utils/path.ts basename
 imp src/lib/core/vault/vault.logic.ts:1 -> src/lib/utils/path.ts basename
-imp src/lib/features/auto-organize/auto-organize.service.ts:47 -> src/lib/utils/path.ts vaultRelativeKey
+imp src/lib/features/auto-organize/auto-organize.service.ts:48 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/features/deep-link/deep-link.logic.ts:7 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/features/deep-link/deep-link.logic.ts:318 -> src/lib/utils/path.ts resolveFilePath
 imp src/lib/features/note-action-bar/note-action-bar.logic.ts:1 -> src/lib/utils/path.ts basename
@@ -56,7 +56,7 @@ by src/lib/utils/path.ts:stem <- src/lib/features/note-action-bar/note-action-ba
 by src/lib/utils/path.ts:stem <- src/lib/features/search/search.logic.ts:194 in getFileName call
 by src/lib/utils/path.ts:stem <- src/lib/plugins/one-on-one/one-on-one.service.ts:112 in registerOneOnOneActionBarAction call
 sym src/lib/utils/path.ts:98 fn relativePath(vaultPath: string, filePath: string): string L6 | Strips the vault root prefix from an absolute path to produce a vault-relative path.
-by src/lib/utils/path.ts:relativePath <- src/lib/core/filesystem/fs.logic.ts:266 in getRelativePath call
+by src/lib/utils/path.ts:relativePath <- src/lib/core/filesystem/fs.logic.ts:277 in getRelativePath call
 by src/lib/utils/path.ts:relativePath <- src/lib/features/properties/RelationshipSearch.svelte:82 in (markup) markup
 by src/lib/utils/path.ts:relativePath <- src/lib/features/quick-switcher/QuickSwitcher.svelte:89 in (markup) markup
 by src/lib/utils/path.ts:relativePath <- src/lib/features/search/SearchResult.svelte:66 in subtitle=$derived call
@@ -68,7 +68,7 @@ by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/app/deep-link-actions.ts:11
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/core/filesystem/link-updater.logic.ts:90 in replaceWikilinks call
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/core/filesystem/note-change.service.ts:281 in ftsKey call
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/core/filesystem/path-change.service.ts:230 in applyPathChange call +1
-by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/auto-organize/auto-organize.service.ts:399 in runRuleAction call
+by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/auto-organize/auto-organize.service.ts:443 in runRuleAction call
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/deep-link/deep-link.logic.ts:329 in buildOpenNoteDeepLink call
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/search/search.service.ts:311 in registerSearchIndexHook call
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/tasks/task-query.logic.ts:267 in buildTaskRows call

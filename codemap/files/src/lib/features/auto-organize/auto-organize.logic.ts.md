@@ -19,7 +19,7 @@ imp src/lib/features/auto-organize/auto-organize.logic.ts:22 -> src/lib/utils/fr
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:21 -> src/lib/features/auto-organize/auto-organize.logic.ts computeRuleValue,exprProblem,isBooleanOnlyKey,isRefusedKey,parseRuleItems,ruleRecordStats,ruleValueEditor
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:31 -> src/lib/features/auto-organize/auto-organize.logic.ts BLANK_VALUE_ERROR,countMatchingNotes,countNotesToCreate,hasBlankValue,isRefusedKey,isValidCreatePath,isValidTemplatePath,renameProblem,sanitizeCreateNote,sanitizeRename,sanitizeRuleProperties,sanitizeRunAction
 imp src/lib/features/auto-organize/AutoOrganizeSection.svelte:14 -> src/lib/features/auto-organize/auto-organize.logic.ts generateRuleId
-imp src/lib/features/auto-organize/auto-organize.service.ts:16 -> src/lib/features/auto-organize/auto-organize.logic.ts applyPropertyWrites,createTargetProblem,findMatchingRules,findMoveRule,isAlreadyNamed,isInExcludedFolder,isAlreadyInDestination,isRefusedKey,normalizeVaultRelativePath,numberedName,ownedProperties,propertiesToWrite,propertyWriteSkipReason,renameProblem,renameTarget,resolveComputedProperties,resolveDestination,ruleRecordStats,sanitizeCreateNote,sanitizeRename,sanitizeRuleProperties,sanitizeRunAction,type:OwnedProperty
+imp src/lib/features/auto-organize/auto-organize.service.ts:17 -> src/lib/features/auto-organize/auto-organize.logic.ts applyPropertyWrites,createTargetProblem,findMatchingRules,findMoveRule,isAlreadyNamed,isInExcludedFolder,isAlreadyInDestination,isRefusedKey,normalizeVaultRelativePath,numberedName,ownedProperties,propertiesToWrite,propertyWriteSkipReason,renameProblem,renameTarget,resolveComputedProperties,resolveDestination,ruleRecordStats,sanitizeCreateNote,sanitizeRename,sanitizeRuleProperties,sanitizeRunAction,type:OwnedProperty
 ## reach
 in2 src/lib/features/auto-organize/auto-organize.logic.ts 2 files in 1 modules: src/lib/app(2)
 out2 src/lib/features/auto-organize/auto-organize.logic.ts 12 files in 4 modules: src/lib/features/collection(5) src/lib/utils(4) src/lib/core/filesystem(2) src/lib/features/file-icons(1)
@@ -37,15 +37,15 @@ sym src/lib/features/auto-organize/auto-organize.logic.ts:60 fn hasBlankValue(ro
 by src/lib/features/auto-organize/auto-organize.logic.ts:hasBlankValue <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:84 in blankValue=$derived ref
 sym src/lib/features/auto-organize/auto-organize.logic.ts:97 fn findMatchingRule(rules: AutoOrganizeRule[], record: PropertyIndexRecord, vaultPath: string, onError?: (rule: AutoOrganizeRule, err: unk… L18 | Evaluates all rules against a PropertyIndexRecord and returns the first matching rule.
 sym src/lib/features/auto-organize/auto-organize.logic.ts:123 fn findMatchingRules(rules: AutoOrganizeRule[], record: PropertyIndexRecord, vaultPath: string, onError?: (rule: AutoOrganizeRule, err: unk… L17 | Every enabled rule whose filter is true, in list order.
-by src/lib/features/auto-organize/auto-organize.logic.ts:findMatchingRules <- src/lib/features/auto-organize/auto-organize.service.ts:293 in evaluateAndMove call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:findMatchingRules <- src/lib/features/auto-organize/auto-organize.service.ts:299 in evaluateAndMove call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:147 fn countMatchingNotes(expression: FilterItem, index: Map<string, PropertyIndexRecord>, vaultPath: string): number | null L19 | How many notes in `index` a rule with this filter matches now, with the matcher a save uses. 0 for a blank expression, null when a string does not parse or an …
 by src/lib/features/auto-organize/auto-organize.logic.ts:countMatchingNotes <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:97 in matchCount=$derived call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:171 fn findMoveRule(matched: AutoOrganizeRule[]): AutoOrganizeRule | null L3 | The rule that moves the note: the first one with a non-blank destination.
-by src/lib/features/auto-organize/auto-organize.logic.ts:findMoveRule <- src/lib/features/auto-organize/auto-organize.service.ts:301 in evaluateAndMove call
+by src/lib/features/auto-organize/auto-organize.logic.ts:findMoveRule <- src/lib/features/auto-organize/auto-organize.service.ts:307 in evaluateAndMove call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:182 fn isRefusedKey(key: string): boolean L3 | True when `key` (or its alias) is one a rule never sets.
 by src/lib/features/auto-organize/auto-organize.logic.ts:isRefusedKey <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:360 in (markup) markup
 by src/lib/features/auto-organize/auto-organize.logic.ts:isRefusedKey <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:137 in keySuggestions=$derived call
-by src/lib/features/auto-organize/auto-organize.logic.ts:isRefusedKey <- src/lib/features/auto-organize/auto-organize.service.ts:432 in applyRename ref
+by src/lib/features/auto-organize/auto-organize.logic.ts:isRefusedKey <- src/lib/features/auto-organize/auto-organize.service.ts:476 in applyRename ref
 sym src/lib/features/auto-organize/auto-organize.logic.ts:194 fn isBooleanOnlyKey(key: string): boolean L3 | True when `key` (or its alias) accepts only a boolean value.
 by src/lib/features/auto-organize/auto-organize.logic.ts:isBooleanOnlyKey <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:64 in showTypeChooser=$derived call +3
 sym src/lib/features/auto-organize/auto-organize.logic.ts:202 type RuleValueEditor L1 | The Settings editor for a rule property's value.
@@ -55,18 +55,18 @@ sym src/lib/features/auto-organize/auto-organize.logic.ts:223 fn parseRuleItems(
 by src/lib/features/auto-organize/auto-organize.logic.ts:parseRuleItems <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:95 in fitted call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:289 fn sanitizeRuleProperties(raw: unknown, onRefused?: (key: string, reason: string) => void): RuleProperty[] L32 | The valid entries of a rule's `properties` as loaded from JSON: a non-array is none, and an entry with a blank key, an unknown mode, a value of another type, t…
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRuleProperties <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:118 in doesNothing=$derived call
-by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRuleProperties <- src/lib/features/auto-organize/auto-organize.service.ts:147 in withValidProperties call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRuleProperties <- src/lib/features/auto-organize/auto-organize.service.ts:151 in withValidProperties call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:323 fn isValidCreatePath(path: string): boolean L4 | True when `path` (trimmed) is a Markdown note path that does not start with `/`.
 by src/lib/features/auto-organize/auto-organize.logic.ts:isValidCreatePath <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:189 in pathInvalid=$derived call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:329 fn isValidTemplatePath(template: string): boolean L4 | True when `template` (trimmed) stays inside the vault: no `..` segment and no leading `/`.
 by src/lib/features/auto-organize/auto-organize.logic.ts:isValidTemplatePath <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:192 in templateInvalid=$derived call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:341 fn sanitizeCreateNote(raw: unknown): RuleCreateNote | undefined L13 | A rule's `createNote` as loaded from JSON, or undefined when it has no string `path` that `isValidCreatePath` accepts, or a template that `isValidTemplatePath`…
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeCreateNote <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:100 in validCreate=$derived call
-by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeCreateNote <- src/lib/features/auto-organize/auto-organize.service.ts:152 in withValidProperties call +2
+by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeCreateNote <- src/lib/features/auto-organize/auto-organize.service.ts:156 in withValidProperties call +2
 sym src/lib/features/auto-organize/auto-organize.logic.ts:360 fn normalizeVaultRelativePath(target: string): string | null L5 | Vault-relative `target` without its empty and `.` segments, or null when any segment is `..`.
-by src/lib/features/auto-organize/auto-organize.logic.ts:normalizeVaultRelativePath <- src/lib/features/auto-organize/auto-organize.service.ts:514 in createRuleNotes call
+by src/lib/features/auto-organize/auto-organize.logic.ts:normalizeVaultRelativePath <- src/lib/features/auto-organize/auto-organize.service.ts:558 in createRuleNotes call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:373 fn createTargetProblem(target: string, vaultPath: string, protectedFolders: string[], excludedFolders: string[]): string | null L17 | Why a rule must not create a note at vault-relative `target`, or null when it may: a `..` segment (a frontmatter variable can bring one in), no file name (a va…
-by src/lib/features/auto-organize/auto-organize.logic.ts:createTargetProblem <- src/lib/features/auto-organize/auto-organize.service.ts:508 in createRuleNotes call
+by src/lib/features/auto-organize/auto-organize.logic.ts:createTargetProblem <- src/lib/features/auto-organize/auto-organize.service.ts:552 in createRuleNotes call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:392 interface CreateGates L6 | The folders a created note must stay out of.
 sym src/lib/features/auto-organize/auto-organize.logic.ts:408 fn countNotesToCreate(expression: FilterItem, createNote: RuleCreateNote, index: Map<string, PropertyIndexRecord>, vaultPath: string, gates:… L27 | How many notes a rule with this filter and `createNote` would create now: the distinct resolved targets of the matching notes in `index` that pass the gates an…
 by src/lib/features/auto-organize/auto-organize.logic.ts:countNotesToCreate <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:104 in createCount=$derived call
@@ -78,42 +78,42 @@ sym src/lib/features/auto-organize/auto-organize.logic.ts:543 fn computeRuleValu
 by src/lib/features/auto-organize/auto-organize.logic.ts:computeRuleValue <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:173 in preview=$derived call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:585 fn renameProblem(raw: unknown): string | null L13 | Why a rule's `rename` cannot be used, or null: not an object, both or neither of `name` and `expr`, a blank or non-text one, an `expr` the evaluator's validato…
 by src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:232 in renameError=$derived call +1
-by src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem <- src/lib/features/auto-organize/auto-organize.service.ts:165 in withValidProperties call
+by src/lib/features/auto-organize/auto-organize.logic.ts:renameProblem <- src/lib/features/auto-organize/auto-organize.service.ts:169 in withValidProperties call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:600 fn sanitizeRename(raw: unknown): RuleRename | undefined L5 | A rule's `rename` as loaded from JSON, trimmed, or undefined when `renameProblem` refuses it.
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRename <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:120 in doesNothing=$derived call
-by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRename <- src/lib/features/auto-organize/auto-organize.service.ts:166 in withValidProperties call +2
+by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRename <- src/lib/features/auto-organize/auto-organize.service.ts:170 in withValidProperties call +2
 sym src/lib/features/auto-organize/auto-organize.logic.ts:611 fn sanitizeRunAction(raw: unknown): RuleRunAction | undefined L6 | A rule's `runAction` as loaded from JSON, its id trimmed and its `input` kept as typed when it is non-empty text, or undefined without a non-blank text `id`.
 by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRunAction <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:114 in actionId=$derived call +1
-by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRunAction <- src/lib/features/auto-organize/auto-organize.service.ts:370 in evaluateAndMove call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:sanitizeRunAction <- src/lib/features/auto-organize/auto-organize.service.ts:379 in evaluateAndMove call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:623 fn toFileName(text: string): string L7 | `text` as a file name: each character a file name cannot hold (`/ \ : * ? " < > |` and control characters) becomes `-`, then spaces are trimmed and leading dot…
 sym src/lib/features/auto-organize/auto-organize.logic.ts:647 fn renameTarget(rename: RuleRename, record: PropertyIndexRecord, vaultPath: string): { name: string } | { failure: string } | null L31 | The name, without extension, `rename` gives the note in `record`, or why it gives none, or null when it resolves to an empty name (nothing to do).
-by src/lib/features/auto-organize/auto-organize.logic.ts:renameTarget <- src/lib/features/auto-organize/auto-organize.service.ts:442 in applyRename call
+by src/lib/features/auto-organize/auto-organize.logic.ts:renameTarget <- src/lib/features/auto-organize/auto-organize.service.ts:486 in applyRename call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:684 fn isAlreadyNamed(basename: string, name: string): boolean L4 | True when a note named `basename` already carries `name`: the name itself or `<name> N` for any number N, compared case-insensitively.
-by src/lib/features/auto-organize/auto-organize.logic.ts:isAlreadyNamed <- src/lib/features/auto-organize/auto-organize.service.ts:462 in applyRename call
+by src/lib/features/auto-organize/auto-organize.logic.ts:isAlreadyNamed <- src/lib/features/auto-organize/auto-organize.service.ts:506 in applyRename call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:690 fn numberedName(name: string, n: number): string L3 | The `n`th name a rename tries: `name`, then `name 2`, `name 3` and so on.
-by src/lib/features/auto-organize/auto-organize.logic.ts:numberedName <- src/lib/features/auto-organize/auto-organize.service.ts:467 in applyRename call
+by src/lib/features/auto-organize/auto-organize.logic.ts:numberedName <- src/lib/features/auto-organize/auto-organize.service.ts:399 in moveToFreeName call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:701 fn resolveComputedProperties(current: Property[], owned: OwnedProperty[], ctx: EvalContext, onFail?: (property: OwnedProperty, reason: string) => v… L21 | `owned` with each `expr` replaced by its result as `value`, so the two passes of a frontmatter write see one value.
-by src/lib/features/auto-organize/auto-organize.logic.ts:resolveComputedProperties <- src/lib/features/auto-organize/auto-organize.service.ts:590 in withRuleProperties call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:resolveComputedProperties <- src/lib/features/auto-organize/auto-organize.service.ts:634 in withRuleProperties call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:729 fn ruleRecordStats(indexed: PropertyIndexRecord | undefined, content: string, now: number): [mtime: number, ctime: number, size: number] L8 | The `mtime`, `ctime` and `size` a rule's note record gets: the index record's, as of its last refresh, when both its times are above 0 (a note created this ses…
 by src/lib/features/auto-organize/auto-organize.logic.ts:ruleRecordStats <- src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:172 in preview=$derived call
-by src/lib/features/auto-organize/auto-organize.logic.ts:ruleRecordStats <- src/lib/features/auto-organize/auto-organize.service.ts:287 in evaluateAndMove call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:ruleRecordStats <- src/lib/features/auto-organize/auto-organize.service.ts:293 in evaluateAndMove call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:739 interface OwnedProperty L6 | A property consequence of one run, owned by the rule that named its key first.
-by src/lib/features/auto-organize/auto-organize.logic.ts:OwnedProperty <- src/lib/features/auto-organize/auto-organize.service.ts:39 in (module) import
+by src/lib/features/auto-organize/auto-organize.logic.ts:OwnedProperty <- src/lib/features/auto-organize/auto-organize.service.ts:40 in (module) import
 sym src/lib/features/auto-organize/auto-organize.logic.ts:753 fn ownedProperties(matched: AutoOrganizeRule[]): OwnedProperty[] L10 | The property consequences of the matching rules, one per canonical key, in rule order then list order.
-by src/lib/features/auto-organize/auto-organize.logic.ts:ownedProperties <- src/lib/features/auto-organize/auto-organize.service.ts:348 in evaluateAndMove call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:ownedProperties <- src/lib/features/auto-organize/auto-organize.service.ts:357 in evaluateAndMove call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:782 fn propertiesToWrite(current: Property[], owned: OwnedProperty[], onSkip?: (property: OwnedProperty) => void): OwnedProperty[] L22 | The owned properties that would change `current` (parsed frontmatter): `if-missing` when the key is absent or empty (`false` and `0` are present), `always` whe…
-by src/lib/features/auto-organize/auto-organize.logic.ts:propertiesToWrite <- src/lib/features/auto-organize/auto-organize.service.ts:593 in withRuleProperties call +2
+by src/lib/features/auto-organize/auto-organize.logic.ts:propertiesToWrite <- src/lib/features/auto-organize/auto-organize.service.ts:637 in withRuleProperties call +2
 sym src/lib/features/auto-organize/auto-organize.logic.ts:818 fn applyPropertyWrites(current: Property[], writes: OwnedProperty[]): Property[] L24 | `current` with each write applied: a `remove` deletes the key, an `add` writes the merged list, any other write sets its value.
-by src/lib/features/auto-organize/auto-organize.logic.ts:applyPropertyWrites <- src/lib/features/auto-organize/auto-organize.service.ts:600 in withRuleProperties call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:applyPropertyWrites <- src/lib/features/auto-organize/auto-organize.service.ts:644 in withRuleProperties call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:851 fn propertyWriteSkipReason(filePath: string, content: string, vaultPath: string, protectedFolders: string[]): string | null L19 | Why a rule must not write properties to this note, or null when it may: not Markdown, inside one of `protectedFolders` (vault-relative, matched case-insensitiv…
-by src/lib/features/auto-organize/auto-organize.logic.ts:propertyWriteSkipReason <- src/lib/features/auto-organize/auto-organize.service.ts:382 in runRuleAction call +3
+by src/lib/features/auto-organize/auto-organize.logic.ts:propertyWriteSkipReason <- src/lib/features/auto-organize/auto-organize.service.ts:426 in runRuleAction call +3
 sym src/lib/features/auto-organize/auto-organize.logic.ts:875 fn isInExcludedFolder(filePath: string, vaultPath: string, excludedFolders: string[]): boolean L23 | Checks if a file path is inside any excluded folder.
-by src/lib/features/auto-organize/auto-organize.logic.ts:isInExcludedFolder <- src/lib/features/auto-organize/auto-organize.service.ts:216 in registerAutoOrganizeHook call
+by src/lib/features/auto-organize/auto-organize.logic.ts:isInExcludedFolder <- src/lib/features/auto-organize/auto-organize.service.ts:220 in registerAutoOrganizeHook call
 sym src/lib/features/auto-organize/auto-organize.logic.ts:903 fn isAlreadyInDestination(filePath: string, vaultPath: string, destination: string): boolean L13 | Checks if a file is already in the rule's destination folder.
-by src/lib/features/auto-organize/auto-organize.logic.ts:isAlreadyInDestination <- src/lib/features/auto-organize/auto-organize.service.ts:319 in evaluateAndMove call +1
+by src/lib/features/auto-organize/auto-organize.logic.ts:isAlreadyInDestination <- src/lib/features/auto-organize/auto-organize.service.ts:325 in evaluateAndMove call +1
 sym src/lib/features/auto-organize/auto-organize.logic.ts:921 fn validateExpression(expression: string): string | null L9 | Validates a rule's expression by attempting to parse it.
 sym src/lib/features/auto-organize/auto-organize.logic.ts:936 fn resolveDestination(template: string, record: PropertyIndexRecord, vaultPath: string): string L29 | Resolves template variables in a destination string.
-by src/lib/features/auto-organize/auto-organize.logic.ts:resolveDestination <- src/lib/features/auto-organize/auto-organize.service.ts:318 in evaluateAndMove call +2
+by src/lib/features/auto-organize/auto-organize.logic.ts:resolveDestination <- src/lib/features/auto-organize/auto-organize.service.ts:324 in evaluateAndMove call +2
 sym src/lib/features/auto-organize/auto-organize.logic.ts:969 fn generateRuleId(): string L3 | Generates a unique rule ID based on timestamp + random suffix.
 by src/lib/features/auto-organize/auto-organize.logic.ts:generateRuleId <- src/lib/features/auto-organize/AutoOrganizeSection.svelte:51 in addRule call
 ## locals

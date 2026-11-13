@@ -12,7 +12,7 @@ imp src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input
 imp src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts:11 -> src/lib/core/frontmatter/properties.logic.ts parseFrontmatterProperties
 imp src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:10 -> src/lib/core/frontmatter/properties.logic.ts parseFrontmatterProperties,setPropertyByBindTarget,typedOptionValue,extractBody,rebuildContent,detectLossyFrontmatter,LOSSY_FRONTMATTER_MESSAGES
 imp src/lib/features/auto-organize/auto-organize.logic.ts:4 -> src/lib/core/frontmatter/properties.logic.ts detectLossyFrontmatter,extractRawFrontmatter,isEmptyPropertyValue,normalizeTypeCasing,parseFrontmatterProperties
-imp src/lib/features/auto-organize/auto-organize.service.ts:9 -> src/lib/core/frontmatter/properties.logic.ts detectLossyFrontmatter,extractBody,parseFrontmatterProperties,rebuildContent
+imp src/lib/features/auto-organize/auto-organize.service.ts:10 -> src/lib/core/frontmatter/properties.logic.ts detectLossyFrontmatter,extractBody,parseFrontmatterProperties,rebuildContent
 imp src/lib/features/collection/collection.logic.ts:13 -> src/lib/core/frontmatter/properties.logic.ts normalizeTypeCasing,parseFrontmatterProperties
 imp src/lib/features/deep-link/deep-link.logic.ts:1 -> src/lib/core/frontmatter/properties.logic.ts parseFrontmatterProperties,extractBody,rebuildContent
 imp src/lib/features/event-calendar/EventCalendarSection.svelte:14 -> src/lib/core/frontmatter/properties.logic.ts normalizeTypeCasing
@@ -73,7 +73,7 @@ by src/lib/core/frontmatter/properties.logic.ts:extractRawFrontmatter <- src/lib
 sym src/lib/core/frontmatter/properties.logic.ts:55 fn extractBody(content: string): string L5 | Returns the body content after the frontmatter block.
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/frontmatter/frontmatter-write.service.ts:128 in attempt call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:913 in dispatchMetaBindUpdate call
-by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/auto-organize/auto-organize.service.ts:600 in withRuleProperties call
+by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/auto-organize/auto-organize.service.ts:644 in withRuleProperties call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/deep-link/deep-link.logic.ts:390 in injectTitleIntoContent call +1
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/event-calendar/event-calendar-event.logic.ts:358 in applyEventDraft call
 by src/lib/core/frontmatter/properties.logic.ts:extractBody <- src/lib/features/event-calendar/event-calendar.service.ts:1004 in duplicateEvent call
@@ -87,7 +87,7 @@ by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- sr
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts:18 in computeTables call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:912 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/auto-organize/auto-organize.logic.ts:866 in propertyWriteSkipReason call
-by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/auto-organize/auto-organize.service.ts:589 in withRuleProperties call +1
+by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/auto-organize/auto-organize.service.ts:633 in withRuleProperties call +1
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/collection/collection.logic.ts:36 in buildNoteRecord call
 by src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties <- src/lib/features/deep-link/deep-link.logic.ts:389 in injectTitleIntoContent call +1
 more by 6 not shown: src/lib/features/event-calendar(2) src/lib/features/file-icons(1) src/lib/features/note-action-bar(1) src/lib/features/properties(1) src/lib/features/todoist-sync(1): q importers src/lib/core/frontmatter/properties.logic.ts:parseFrontmatterProperties
@@ -101,7 +101,7 @@ by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/li
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/core/frontmatter/frontmatter-write.service.ts:125 in attempt call
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:905 in dispatchMetaBindUpdate call
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/auto-organize/auto-organize.logic.ts:863 in propertyWriteSkipReason call
-by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/auto-organize/auto-organize.service.ts:595 in withRuleProperties call +1
+by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/auto-organize/auto-organize.service.ts:639 in withRuleProperties call +1
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/event-calendar/event-calendar.service.ts:943 in createNow call +1
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/properties/properties.service.ts:87 in commitChanges call
 by src/lib/core/frontmatter/properties.logic.ts:detectLossyFrontmatter <- src/lib/features/todoist-sync/sync-now.service.ts:897 in writeProjectId call
@@ -120,7 +120,7 @@ by src/lib/core/frontmatter/properties.logic.ts:typedOptionValue <- src/lib/core
 sym src/lib/core/frontmatter/properties.logic.ts:689 fn rebuildContent(properties: Property[], body: string, original?: string): string L9 | Rebuilds the full file content with updated frontmatter properties.
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/core/frontmatter/frontmatter-write.service.ts:128 in attempt call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/core/markdown-editor/extensions/live-preview/widgets.ts:915 in dispatchMetaBindUpdate call
-by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/auto-organize/auto-organize.service.ts:600 in withRuleProperties call
+by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/auto-organize/auto-organize.service.ts:644 in withRuleProperties call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/deep-link/deep-link.logic.ts:398 in injectTitleIntoContent call +4
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/event-calendar/event-calendar-event.logic.ts:362 in applyEventDraft call
 by src/lib/core/frontmatter/properties.logic.ts:rebuildContent <- src/lib/features/event-calendar/event-calendar.service.ts:1004 in duplicateEvent call
