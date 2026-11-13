@@ -156,7 +156,7 @@ An empty template path means "no template — just write the rendered body." See
 | **Folder format** | dayjs format for meeting note subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format with `{person}` placeholder | `[-1on1-]{person}[-]DD-MM-YYYY` |
 | **Template** | Path to a template file | `_system/templates/periodic-note/One-On-One.md` |
-| **1:1 due after (days)** (`dueAfterDays`) | Today's My people flags a work person with no 1:1 for more than this many days | `14` |
+| **1:1 due after (days)** (`dueAfterDays`) | Today's My people flags a person marked `_one_on_one_every: true` with no 1:1 for more than this many days ([My people](09-quick-notes-and-templates.md#my-people-on-today)) | `14` |
 
 See [Quick Capture & Templates](09-quick-notes-and-templates.md) for details.
 

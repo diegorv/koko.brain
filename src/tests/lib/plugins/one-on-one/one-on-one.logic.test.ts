@@ -13,6 +13,7 @@ import {
 	type PersonEntry,
 } from '#lib/plugins/one-on-one/one-on-one.logic.js';
 import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
+import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 dayjs.extend(advancedFormat);
@@ -282,9 +283,55 @@ describe('buildMyPeople', () => {
 	const PEOPLE = '/vault/Work/_people';
 	const OPTIONS = { vaultPath: '/vault', workPeopleFolder: 'Work/_people', todayKey: '2026-11-01', dueAfterDays: 14 };
 
-	function person(name: string) {
-		return entryV2(`${PEOPLE}/${name}.md`, { isA: 'Person' });
+	function person(name: string, every: unknown = true) {
+		return entryV2(`${PEOPLE}/${name}.md`, { isA: 'Person', frontmatter: { _one_on_one_every: every } as NoteEntryV2['frontmatter'] });
 	}
+
+	it('lists only the people whose note sets _one_on_one_every', () => {
+		const rows = buildMyPeople([person('Ana'), entryV2(`${PEOPLE}/Bruno.md`, { isA: 'Person' })], OPTIONS);
+
+		expect(rows.map((r) => r.name)).toEqual(['Ana']);
+	});
+
+	it('flags past the person\'s own cadence when _one_on_one_every is a number, ignoring dueAfterDays', () => {
+		const at = (every: number, date: string) =>
+			buildMyPeople([person('Ana', every), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date } })], OPTIONS)[0];
+		expect(at(3, '2026-10-29')).toMatchObject({ days: 3, overdue: false });
+		expect(at(3, '2026-10-28')).toMatchObject({ days: 4, overdue: true });
+		expect(at(30, '2026-10-10')).toMatchObject({ days: 22, overdue: false });
+	});
+
+	it.each([[false], [0], [-2], [2.5], ['0'], ['2.5'], ['soon'], [''], [null]])('leaves out a person whose _one_on_one_every is %j', (every) => {
+		expect(buildMyPeople([person('Ana', every)], OPTIONS)).toEqual([]);
+	});
+
+	it('reads the text values the Properties panel saves: a whole number and true', () => {
+		const at = (every: string) =>
+			buildMyPeople([person('Ana', every), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-25' } })], OPTIONS)[0];
+		expect(at('5')).toMatchObject({ days: 7, overdue: true });
+		expect(at(' 10 ')).toMatchObject({ days: 7, overdue: false });
+		expect(at('true')).toMatchObject({ days: 7, overdue: false });
+		expect(at('TRUE')).toMatchObject({ days: 7, overdue: false });
+	});
+
+	it('orders by how far past their own cadence each person is', () => {
+		const rows = buildMyPeople(
+			[
+				person('Ana', 30),
+				person('Bruno', 3),
+				person('Carla', 7),
+				entryV2('/vault/1.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-10' } }),
+				entryV2('/vault/2.md', { relatedTo: ['Bruno'], frontmatter: { date: '2026-10-27' } }),
+				entryV2('/vault/3.md', { relatedTo: ['Carla'], frontmatter: { date: '2026-10-25' } }),
+			],
+			OPTIONS,
+		);
+		expect(rows.map((r) => [r.name, r.days, r.overdue])).toEqual([
+			['Bruno', 5, true],
+			['Carla', 7, false],
+			['Ana', 22, false],
+		]);
+	});
 
 	it('counts a note whose _related_to links the person, wherever it lives', () => {
 		const rows = buildMyPeople(

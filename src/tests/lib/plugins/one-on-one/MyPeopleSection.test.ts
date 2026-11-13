@@ -42,7 +42,7 @@ async function settle(rounds = 4) {
 	}
 }
 
-const person = (name: string) => entryV2(`${PEOPLE}/${name}.md`, { isA: 'Person' });
+const person = (name: string) => entryV2(`${PEOPLE}/${name}.md`, { isA: 'Person', frontmatter: { _one_on_one_every: true } });
 const oneOnOne = (path: string, name: string, date: string) => entryV2(path, { relatedTo: [name], frontmatter: { date } });
 
 describe('MyPeopleSection', () => {
@@ -187,11 +187,13 @@ describe('MyPeopleSection', () => {
 		expect(days('Ana').textContent?.trim()).toBe('never');
 	});
 
-	it('shows a notice naming the folder when it holds no people', async () => {
-		typeDefinitionsStore.setEntries([entryV2('/vault/Personal/_people/Mom.md')]);
+	it('shows how to track someone, naming the folder, when it holds no tracked people', async () => {
+		typeDefinitionsStore.setEntries([entryV2('/vault/Personal/_people/Mom.md'), entryV2(`${PEOPLE}/Bruno.md`, { isA: 'Person' })]);
 		await mountSection();
 		expect(names()).toEqual([]);
-		expect(target.querySelector('[data-my-people-empty]')?.textContent?.trim()).toBe('No people in Work/_people');
+		expect(target.querySelector('[data-my-people-empty]')?.textContent?.trim()).toBe(
+			'Add _one_on_one_every to a person in Work/_people to track 1:1s',
+		);
 	});
 
 	it('registers as the My people Today section and unregisters', () => {

@@ -109,7 +109,15 @@ Every new 1:1 note gets `_related_to: "[[Person]]"` in its frontmatter, even whe
 
 ### My people on Today
 
-The Today list in the rail shows **My people** above the day's notes: every `.md` file directly in the work people folder, with the days since the last 1:1 (`5d`, or `never`). A note counts as a 1:1 with a person when its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A person only mentioned in a note's body (a daily note, say) does not count, and neither does a note dated after today. People with no 1:1, or none for more than **1:1 due after (days)**, are shown in the warning color, most overdue first. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
+The Today list in the rail shows **My people** above the day's notes: the people you hold recurring 1:1s with, each with the days since the last 1:1 (`5d`, or `never`). A person is listed when their `.md` file sits directly in the work people folder and sets `_one_on_one_every` in its frontmatter:
+
+```yaml
+_one_on_one_every: 7
+```
+
+A positive whole number is that person's cadence in days (`7` above means a 1:1 every week); `true` takes **1:1 due after (days)** from Settings. Both work typed into the Properties panel, which saves them as text. A person without the property, or with any other value (`false`, `0`, `2.5`), is not listed. With nobody marked, the section says which property to add.
+
+A note counts as a 1:1 with a person when its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A person only mentioned in a note's body (a daily note, say) does not count, and neither does a note dated after today. People with no 1:1, or none for longer than their cadence, are shown in the warning color. The list puts people with no 1:1 first, then orders by how many days each person is past their own cadence. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
 
 ### Setting up people
 
@@ -127,7 +135,7 @@ The Today list in the rail shows **My people** above the day's notes: every `.md
 | **Folder format** | dayjs format for meeting note subfolder | `YYYY/MM-MMM` |
 | **Filename format** | dayjs format with `{person}` placeholder | `[-1on1-]{person}[-]DD-MM-YYYY` |
 | **Template** | Path to a template file | `_system/templates/periodic-note/One-On-One.md` |
-| **1:1 due after (days)** (`dueAfterDays`) | Today's My people flags a work person with no 1:1 for more than this many days | `14` |
+| **1:1 due after (days)** (`dueAfterDays`) | Today's My people flags a person marked `_one_on_one_every: true` with no 1:1 for more than this many days | `14` |
 
 The `{person}` placeholder is replaced with the selected person's name.
 

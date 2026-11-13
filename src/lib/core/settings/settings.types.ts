@@ -195,7 +195,7 @@ export interface OneOnOneSettings {
 	filenameFormat: string;
 	/** Path to template file relative to vault (e.g. "_templates/One on One.md") */
 	templatePath?: string;
-	/** Days without a 1:1 after which Today's My people flags a person */
+	/** Days without a 1:1 after which Today's My people flags a person marked `_one_on_one_every: true` */
 	dueAfterDays: number;
 }
 

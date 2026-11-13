@@ -9,7 +9,7 @@
 	import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
 	import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 	import { error } from '#lib/utils/debug.js';
-	import { buildMyPeople, myPeopleDaysLabel } from './one-on-one.logic';
+	import { ONE_ON_ONE_EVERY_PROPERTY, buildMyPeople, myPeopleDaysLabel } from './one-on-one.logic';
 	import { createOneOnOneNote } from './one-on-one.service';
 
 	// The Today lens holds the Calendar clock, so `todayKey` moves at midnight while this shows.
@@ -34,7 +34,7 @@
 
 {#if rows.length === 0}
 	<div class="px-2 py-1 text-xs text-file-explorer-muted-fg" data-my-people-empty>
-		No people in {settingsStore.oneOnOne.workPeopleFolder || 'the work people folder'}
+		Add {ONE_ON_ONE_EVERY_PROPERTY} to a person in {settingsStore.oneOnOne.workPeopleFolder || 'the work people folder'} to track 1:1s
 	</div>
 {:else}
 	{#each rows as row (row.path)}

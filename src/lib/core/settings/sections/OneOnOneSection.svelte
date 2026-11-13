@@ -87,7 +87,7 @@
 
 	<SettingItem
 		label="1:1 due after (days)"
-		description="Today's My people flags a work person with no 1:1 for more than this many days"
+		description="Today's My people flags a person marked _one_on_one_every: true with no 1:1 for more than this many days"
 	>
 		<Input
 			type="number"
