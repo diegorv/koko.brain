@@ -1,9 +1,13 @@
 <script lang="ts">
+	import { closeCompletion } from '@codemirror/autocomplete';
+	import type { EditorView } from '@codemirror/view';
 	import type { UnlistenFn } from '@tauri-apps/api/event';
 	import { onMount, onDestroy } from 'svelte';
 	import { EVENT_NAMES } from '#lib/contracts/events.js';
 	import { call, on } from '#lib/contracts/ipc.js';
 	import { applyStoredTheme, THEME_VARS_STORAGE_KEY } from '#lib/core/settings/theme.service.js';
+	import { createComposerEditorHost } from '#lib/plugins/quick-capture/composer-editor-host.service.js';
+	import { createComposerEditor, setComposerDark, setComposerText } from '#lib/plugins/quick-capture/composer-editor.js';
 
 	const SAVE_FLASH_MS = 180;
 	/** How long a save waits for the main window to report the written note. */
@@ -26,12 +30,26 @@
 	 * and summoned again leaves the new show alone.
 	 */
 	let show = 0;
-	let textareaEl: HTMLTextAreaElement | undefined = $state();
+	let editorEl: HTMLDivElement | undefined = $state();
+	let view: EditorView | undefined;
+	/** Tag and note suggestions, read again on each summon. */
+	const host = createComposerEditorHost();
 	const unlisteners: UnlistenFn[] = [];
 	/** The save waiting for its `qc:composer-capture-result`. */
 	let pending: { requestId: string; settle: (ok: boolean | null) => void } | undefined;
 
 	$effect(() => writeDraft(text));
+
+	/** Sets the text from outside the editor (draft restore, saved capture dropped). */
+	function setText(next: string) {
+		text = next;
+		if (view) setComposerText(view, next);
+	}
+
+	/** Whether the stored theme is dark: `applyStoredTheme` toggles the `dark` class. */
+	function isDark(): boolean {
+		return document.documentElement.classList.contains('dark');
+	}
 
 	// The composer must keep working without storage (private mode, blocked
 	// site data): every access is guarded and only the restore is lost.
@@ -110,7 +128,7 @@
 		if (show !== savedShow) {
 			// Dismissed and summoned again while waiting: do not flash, hide or
 			// report on the new show, only drop the text that was written.
-			if (ok === true) text = withoutWritten(text, body);
+			if (ok === true) setText(withoutWritten(text, body));
 			return;
 		}
 		if (ok !== true) {
@@ -127,7 +145,7 @@
 		saved = false;
 		// Written: dropping it from the text (and so the draft) leaves only what
 		// was typed after the submit for the next summon.
-		text = withoutWritten(text, body);
+		setText(withoutWritten(text, body));
 		if (show === savedShow) {
 			saving = false;
 			await dismiss();
@@ -140,7 +158,9 @@
 	}
 
 	function onStorage(event: StorageEvent) {
-		if (event.key === THEME_VARS_STORAGE_KEY) applyStoredTheme();
+		if (event.key !== THEME_VARS_STORAGE_KEY) return;
+		applyStoredTheme();
+		if (view) setComposerDark(view, isDark());
 	}
 
 	function resetForShow() {
@@ -148,14 +168,21 @@
 		// the window is hidden.
 		applyStoredTheme();
 		show++;
+		host.reset();
 		// Text left unsaved by an earlier show (dismissed, failed or unconfirmed).
-		text = readDraft();
+		setText(readDraft());
+		if (view) {
+			// The draft usually equals the text, so nothing above replaced it and
+			// a list left open by the last show would still be there.
+			closeCompletion(view);
+			setComposerDark(view, isDark());
+		}
 		saved = false;
 		saveProblem = null;
 		saving = false;
 		dismissing = false;
 		// Defer focus to the next tick so the show + reset commits to DOM first.
-		queueMicrotask(() => textareaEl?.focus());
+		queueMicrotask(() => view?.focus());
 	}
 
 	function onKeyDown(event: KeyboardEvent) {
@@ -172,7 +199,16 @@
 
 	onMount(async () => {
 		applyStoredTheme();
-		textareaEl?.focus();
+		view = createComposerEditor({
+			parent: editorEl!,
+			doc: text,
+			host,
+			dark: isDark(),
+			onDocChange: (next) => (text = next),
+			// Esc inside the editor; the window handler takes it elsewhere.
+			onEscape: () => void dismiss(),
+		});
+		view.focus();
 		try {
 			unlisteners.push(
 				await on(EVENT_NAMES.QC_OPEN_COMPOSER, () => {
@@ -196,20 +232,21 @@
 
 	onDestroy(() => {
 		for (const unlisten of unlisteners) unlisten();
+		view?.destroy();
 	});
 </script>
 
 <svelte:window on:keydown={onKeyDown} on:storage={onStorage} />
 
 <div class="composer-root" class:saved data-tauri-drag-region>
-	<textarea
-		bind:this={textareaEl}
-		bind:value={text}
-		placeholder="Quick capture..."
-		spellcheck="false"
-		aria-label="Quick capture composer"
-		data-tauri-drag-region="false"
-	></textarea>
+	<div class="composer-field">
+		<div class="composer-editor" bind:this={editorEl} data-tauri-drag-region="false"></div>
+		<!-- Outside the editor DOM: a CodeMirror placeholder widget sits next to
+		     the first typed character, where WebKit can drop a dead-key accent. -->
+		{#if !text}
+			<div class="placeholder" aria-hidden="true">Quick capture...</div>
+		{/if}
+	</div>
 	{#if saveProblem === 'failed'}
 		<div class="hint error" role="alert">Could not save. ⌘↩ retries, ESC cancels.</div>
 	{:else if saveProblem === 'unknown'}
@@ -246,20 +283,25 @@
 		box-shadow: inset 0 0 0 3px color-mix(in srgb, var(--primary) 60%, transparent);
 	}
 
-	textarea {
+	.composer-field {
+		position: relative;
 		flex: 1;
-		background: transparent;
-		border: none;
-		outline: none;
-		resize: none;
-		color: var(--popover-foreground);
+		min-height: 0;
+	}
+
+	.composer-editor {
+		height: 100%;
+	}
+
+	.placeholder {
+		position: absolute;
+		top: 0;
+		left: 0;
+		pointer-events: none;
+		color: var(--muted-foreground);
 		font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 		font-size: 14px;
 		line-height: 1.5;
-	}
-
-	textarea::placeholder {
-		color: var(--muted-foreground);
 	}
 
 	.hint {

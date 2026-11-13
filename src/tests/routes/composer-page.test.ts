@@ -8,9 +8,11 @@ vi.mock('#lib/contracts/ipc.js', () => ({
 }));
 
 import { mount, unmount, flushSync } from 'svelte';
+import { EditorView } from '@codemirror/view';
 import { call, on } from '#lib/contracts/ipc.js';
 import { THEME_VARS_STORAGE_KEY } from '#lib/core/settings/theme.service.js';
 import ComposerPage from '../../routes/composer/+page.svelte';
+import { entryV2 } from '../fixtures/vault-entries.fixture';
 
 const root = document.documentElement;
 
@@ -57,7 +59,7 @@ describe('composer route theme', () => {
 		await settle();
 
 		expect(root.style.getPropertyValue('--popover')).toBe('');
-		expect(target.querySelector('textarea')).not.toBeNull();
+		expect(target.querySelector('.cm-editor [aria-label="Quick capture composer"]')).not.toBeNull();
 	});
 
 	it('follows a theme change made in the main window', async () => {
@@ -94,6 +96,13 @@ describe('composer route theme', () => {
 	});
 });
 
+const TAGS = [
+	{ name: 'project', count: 2, filePaths: [] },
+	{ name: 'prose', count: 5, filePaths: [] },
+];
+
+const ENTRIES = [entryV2('/vault/Welcome.md'), entryV2('/vault/Weekly.md')];
+
 describe('composer save', () => {
 	const ERROR_TEXT = 'Could not save. ⌘↩ retries, ESC cancels.';
 	const UNKNOWN_TEXT = 'Save not confirmed. ⌘↩ saves again, ESC cancels.';
@@ -123,6 +132,8 @@ describe('composer save', () => {
 	/** Makes each `submit_composer_capture` call take the next outcome; `ok` once they run out. */
 	function mockSubmit(...outcomes: Outcome[]): void {
 		vi.mocked(call).mockImplementation((async (cmd: string, args?: { requestId: string }) => {
+			if (cmd === 'get_all_tags_v2') return TAGS;
+			if (cmd === 'get_all_vault_entries_v2') return ENTRIES;
 			if (cmd !== 'submit_composer_capture') return undefined;
 			const outcome = outcomes.shift() ?? 'ok';
 			if (outcome === 'fail') throw new Error('emit failed');
@@ -135,14 +146,44 @@ describe('composer save', () => {
 		}) as typeof call);
 	}
 
-	function textarea(): HTMLTextAreaElement {
-		return target.querySelector('textarea')!;
+	function editorView(): EditorView {
+		return EditorView.findFromDOM(target.querySelector('.cm-editor') as HTMLElement)!;
 	}
 
+	function editorText(): string {
+		return editorView().state.doc.toString();
+	}
+
+	/** Sets the whole text at once, as a paste does: it opens no suggestion list. */
 	function type(value: string): void {
-		textarea().value = value;
-		textarea().dispatchEvent(new Event('input', { bubbles: true }));
+		const view = editorView();
+		view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: value } });
 		flushSync();
+	}
+
+	/** Types `value` at the cursor one character at a time, as the keyboard does. */
+	function typeKeys(value: string): void {
+		const view = editorView();
+		for (const ch of value) {
+			const at = view.state.selection.main.head;
+			view.dispatch({ changes: { from: at, insert: ch }, selection: { anchor: at + 1 }, userEvent: 'input.type' });
+		}
+		flushSync();
+	}
+
+	/** A key pressed in the editor; it reaches the window unless the editor stops it. */
+	function pressInEditor(init: KeyboardEventInit): void {
+		editorView().contentDOM.dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
+	}
+
+	function listShown(): boolean {
+		return target.querySelector('.cm-tooltip-autocomplete') !== null;
+	}
+
+	/** Waits for the suggestion list, then past its 75 ms interaction delay so Enter accepts. */
+	async function waitForList(): Promise<void> {
+		await vi.waitFor(() => expect(listShown()).toBe(true));
+		await new Promise((resolve) => setTimeout(resolve, 100));
 	}
 
 	function press(init: KeyboardEventInit): void {
@@ -196,7 +237,7 @@ describe('composer save', () => {
 		saveKey();
 
 		await vi.waitFor(() => expect(alertText()).toBe(ERROR_TEXT));
-		expect(textarea().value).toBe('idea');
+		expect(editorText()).toBe('idea');
 		expect(vi.mocked(call)).not.toHaveBeenCalledWith('dismiss_composer');
 		expect(commands()).toEqual(['submit_composer_capture']);
 		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(false);
@@ -210,7 +251,7 @@ describe('composer save', () => {
 		saveKey();
 
 		await vi.waitFor(() => expect(alertText()).toBe(ERROR_TEXT));
-		expect(textarea().value).toBe('an idea');
+		expect(editorText()).toBe('an idea');
 		expect(commands()).toEqual(['submit_composer_capture']);
 		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(false);
 	});
@@ -231,7 +272,7 @@ describe('composer save', () => {
 
 		summon();
 
-		expect(textarea().value).toBe('');
+		expect(editorText()).toBe('');
 	});
 
 	/** The `requestId` of the last `submit_composer_capture` call. */
@@ -251,9 +292,9 @@ describe('composer save', () => {
 		resultHandler()({ requestId: lastRequestId(), ok: true });
 
 		await vi.waitFor(() => expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']));
-		await vi.waitFor(() => expect(textarea().value).toBe(', and more'));
+		await vi.waitFor(() => expect(editorText()).toBe(', and more'));
 		summon();
-		expect(textarea().value).toBe(', and more');
+		expect(editorText()).toBe(', and more');
 	});
 
 	it('leaves a new summon open when the earlier save is reported late', async () => {
@@ -264,7 +305,7 @@ describe('composer save', () => {
 		press({ key: 'Escape' });
 		await vi.waitFor(() => expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']));
 		summon();
-		expect(textarea().value).toBe('an idea');
+		expect(editorText()).toBe('an idea');
 		type('an idea, new thought');
 
 		resultHandler()({ requestId: lastRequestId(), ok: true });
@@ -274,7 +315,7 @@ describe('composer save', () => {
 		expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']);
 		expect(target.querySelector('.composer-root')!.classList.contains('saved')).toBe(false);
 		// The written text is dropped; what was typed after it stays.
-		expect(textarea().value).toBe(', new thought');
+		expect(editorText()).toBe(', new thought');
 	});
 
 	it('sends one capture when Cmd+Enter is pressed again during the saved flash', async () => {
@@ -306,7 +347,7 @@ describe('composer save', () => {
 
 		// Only the Esc dismissed; the written text is dropped from the new show.
 		expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']);
-		expect(textarea().value).toBe('');
+		expect(editorText()).toBe('');
 	});
 
 	it('a submit that rejects late leaves the save of a newer show alone', async () => {
@@ -369,7 +410,7 @@ describe('composer save', () => {
 		flushSync();
 
 		expect(alertText()).toBe(UNKNOWN_TEXT);
-		expect(textarea().value).toBe('an idea');
+		expect(editorText()).toBe('an idea');
 		expect(commands()).toEqual(['submit_composer_capture']);
 	});
 
@@ -416,7 +457,7 @@ describe('composer save', () => {
 		summon();
 
 		expect(alertText()).toBeUndefined();
-		expect(textarea().value).toBe('an idea');
+		expect(editorText()).toBe('an idea');
 	});
 
 	it('restores text dismissed without saving on the next summon', async () => {
@@ -426,7 +467,7 @@ describe('composer save', () => {
 
 		summon();
 
-		expect(textarea().value).toBe('half a thought');
+		expect(editorText()).toBe('half a thought');
 	});
 
 	it('restores the unsaved text after the composer window is rebuilt', async () => {
@@ -435,7 +476,7 @@ describe('composer save', () => {
 
 		await mountComposer();
 
-		expect(textarea().value).toBe('half a thought');
+		expect(editorText()).toBe('half a thought');
 	});
 
 	it('saves without a draft when storage throws', async () => {
@@ -454,6 +495,106 @@ describe('composer save', () => {
 
 		await vi.waitFor(() => expect(commands()).toEqual(['submit_composer_capture', 'dismiss_composer']));
 		summon();
-		expect(textarea().value).toBe('');
+		expect(editorText()).toBe('');
+	});
+
+	describe('completion', () => {
+		function count(cmd: string): number {
+			return commands().filter((c) => c === cmd).length;
+		}
+
+		it('suggests tags on #, reading them once per summon', async () => {
+			typeKeys('see #pro');
+			await waitForList();
+			expect(target.querySelector('.cm-tooltip-autocomplete')!.textContent).toContain('project');
+			typeKeys('j');
+			await waitForList();
+			expect(count('get_all_tags_v2')).toBe(1);
+
+			press({ key: 'Escape' });
+			summon();
+			typeKeys(' #p');
+			await waitForList();
+
+			expect(count('get_all_tags_v2')).toBe(2);
+			expect(count('get_all_vault_entries_v2')).toBe(0);
+		});
+
+		it('saves the link a suggestion completed', async () => {
+			typeKeys('read [[Welc');
+			await waitForList();
+			pressInEditor({ key: 'Enter' });
+			expect(editorText()).toBe('read [[Welcome]]');
+
+			pressInEditor({ key: 'Enter', metaKey: true });
+
+			await vi.waitFor(() => expect(commands()).toContain('dismiss_composer'));
+			expect(vi.mocked(call)).toHaveBeenCalledWith('submit_composer_capture', {
+				text: 'read [[Welcome]]',
+				requestId: expect.any(String),
+			});
+		});
+
+		it('closes an open list on Esc and dismisses on the second Esc', async () => {
+			typeKeys('#pro');
+			await waitForList();
+
+			pressInEditor({ key: 'Escape' });
+			await settle();
+			expect(listShown()).toBe(false);
+			expect(commands()).not.toContain('dismiss_composer');
+
+			pressInEditor({ key: 'Escape' });
+			await vi.waitFor(() => expect(count('dismiss_composer')).toBe(1));
+			expect(editorText()).toBe('#pro');
+		});
+
+		it('dismisses once on Esc in the editor with no list', async () => {
+			type('an idea');
+
+			pressInEditor({ key: 'Escape' });
+
+			await vi.waitFor(() => expect(commands()).toEqual(['dismiss_composer']));
+		});
+
+		it('closes a list left open when the composer is summoned again', async () => {
+			typeKeys('#pro');
+			await waitForList();
+
+			summon();
+
+			expect(listShown()).toBe(false);
+			expect(editorText()).toBe('#pro');
+		});
+
+		it('keeps typing and saving when the tags cannot be read', async () => {
+			vi.mocked(call).mockImplementation((async (cmd: string, args?: { requestId: string }) => {
+				if (cmd === 'get_all_tags_v2') throw new Error('index unavailable');
+				if (cmd !== 'submit_composer_capture') return undefined;
+				const requestId = args!.requestId;
+				setTimeout(() => resultHandler()({ requestId, ok: true }), 0);
+				return undefined;
+			}) as typeof call);
+			typeKeys('#pro');
+			await new Promise((resolve) => setTimeout(resolve, 250));
+			expect(listShown()).toBe(false);
+
+			saveKey();
+
+			await vi.waitFor(() => expect(commands()).toContain('dismiss_composer'));
+			expect(alertText()).toBeUndefined();
+			expect(vi.mocked(call)).toHaveBeenCalledWith('submit_composer_capture', {
+				text: '#pro',
+				requestId: expect.any(String),
+			});
+		});
+
+		it('hides the placeholder once there is text', () => {
+			expect(target.querySelector('.placeholder')?.textContent).toBe('Quick capture...');
+
+			type('a');
+
+			expect(target.querySelector('.placeholder')).toBeNull();
+		});
 	});
 });
