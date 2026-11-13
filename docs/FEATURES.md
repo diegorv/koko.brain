@@ -10,7 +10,7 @@ Kokobrain's features, grouped by area. Each item links to the matching page of t
 - **Wikilinks** (`[[note]]`) with autocomplete, block references and embeds ([guide](../help/documentation/05-wikilinks.md))
 - **Meta-bind**: interactive inline inputs and action buttons that read and write frontmatter ([guide](../help/documentation/24-meta-bind.md))
 - **Table of contents**: an outline panel generated from the document headings ([guide](../help/documentation/16-table-of-contents.md))
-- **Templates**, **Quick Capture** (in-editor `Cmd+N`, a global composer popover, a clipboard shortcut) and **1:1 meeting notes** ([guide](../help/documentation/09-quick-notes-and-templates.md))
+- **Templates**, **Quick Capture** (in-editor `Cmd+N`, a global composer popover with tag and note suggestions, a clipboard shortcut) and **1:1 meeting notes** ([guide](../help/documentation/09-quick-notes-and-templates.md))
 
 ## 🔍 Search and discovery
 
