@@ -183,7 +183,7 @@ Tags:
 | `hub` | `hub <layer> <file> in<n> t<n>` | INDEX |
 | `more` | see section 5 | anywhere |
 
-`imp` names: as exported by the target (`default`, `*` for namespace, `type:` prefix for type-only, `dyn:` prefix for `import()`), comma-joined in source order. An `imp` edge has exactly one text, written in both cards. The same holds for `mount`, `ipc-call`, `ev` and `dep`.
+`imp` names: as exported by the target (`default`, `*` for namespace and `export *`, `type:` prefix for type-only, `dyn:` prefix for `import()`, `side-effect` for a statement that binds nothing such as `import 'x'`), taken from that one statement, comma-joined in source order. An `imp` edge has exactly one text, written in both cards. The same holds for `mount`, `ipc-call`, `ev` and `dep`.
 
 `<kind>` on `by` and `call`: `call`, `mcall` (method call on an imported object), `ref` (value use, e.g. a callback passed), `member` (property read), `assign` (write to a member), `markup` (use inside a Svelte `{…}` expression), `mount`, `import` (no use found, for example type-only; the location is then the import specifier's line), `lexical` and `lexical-method` (Rust, F16). `+<n>` counts further sites of the same (file, enclosing, target).
 
@@ -360,7 +360,7 @@ Rows are not written as such; they feed `by`, `call`, `mem`, `ipc-call`, `reg`, 
 ### F6. Tests
 
 - `imports`: a test file has a non-type-only import that resolves to F. `mocks`: `vi.mock`/`vi.doMock` with a string-literal first argument (multi-line, AST), resolved from the test file; `mocks` wins when both; package mocks ignored. `e2e`: an e2e file with a non-type import resolving to F.
-- `mirror`: test in `src/tests/<source dir without src/>/`, basename starting with the source stem, relation `imports`.
+- `mirror`: test in `src/tests/<source dir without src/>/`, basename starting with the source stem followed by `.` or `-` (`x.test.ts`, `x-parity.test.ts`; not `xy.test.ts`), relation `imports`.
 - Rust: each `kokobrain_lib::a::b…` path in lexed `src-tauri/tests/**/*.rs` maps by the F16 resolver; relation `imports`. Files with `#[cfg(test)]` get `t:inline`.
 - The reverse (what a test covers): `grep -rF -- 'test <test path> ' codemap/files` or `q deps <test path>`.
 
@@ -400,8 +400,8 @@ Rust struct or enum with `ts(export)`; TS file `src/lib/contracts/generated/<Nam
 - Per sink:
   - `stores`: the written binding and the mutation.
   - `read-by`: same-file functions or getters referencing a written binding without mutating it (`notifyAfterSave` yes; `resetHooks` with `.length = 0` no).
-  - `fired-by`: for an exported `read-by` function, its F4 use sites. For a local one, climb the same-file call graph (F4 same-file calls) until an exported function or `(module)`, and print the chain with each hop's location (`fs.watcher.ts:onFileChange` → `notifyListeners` ← `handleChangedPaths` ← `startWatching`). For a `get` member of a store object, its F5 readers (`railRegistryStore.navigators` readers in `src/lib/app/AppShell.svelte`, `Rail.svelte`, `src/lib/app/commands.ts`).
-  - `registered-at`: F4 call sites of the sink, with `args=` the first argument's source text (whitespace collapsed, cap 80) and `->` the callback: the first argument when it is an identifier resolving to a function, else the identifier values of its object-literal properties, else the site's enclosing function.
+  - `fired-by`: for an exported `read-by` function, its F4 use sites, each continued up the same climb while its enclosing is a file-local function of its file. For a local one, climb the same-file call graph (F4 same-file calls) until an exported function or `(module)`, and print the chain with each hop's location (`fs.watcher.ts:onFileChange` → `notifyListeners` ← `handleChangedPaths` ← `startWatching`). For a `get` member of a store object, its F5 readers (`railRegistryStore.navigators` readers in `src/lib/app/AppShell.svelte`, `Rail.svelte`, `src/lib/app/commands.ts`).
+  - `registered-at`: F4 call sites of the sink, with `args=` the first argument's source text (comments dropped, whitespace collapsed, cap 80) and `->` the callback: the first argument when it is an identifier resolving to a function, else the identifier values of its object-literal properties, else the site's enclosing function.
   - `invoked-at`: one hop up from each exported `registered-at` enclosing fn.
 - Each `registered-at` site is also a `reg` line on the registering card.
 
@@ -426,7 +426,7 @@ Rust struct or enum with `ts(export)`; TS file `src/lib/contracts/generated/<Nam
 - File graph: nodes = every F1 file; edges = F3-resolved import statements (static, type-only, re-export, literal dynamic) plus F16 Rust edges. Reverse edges precomputed.
 - Module graph: production files only; weight = distinct (from file, to file) pairs.
 - Symbol graph (CLI and F11): nodes = symbol IDs, local fns, scopes (section 4); edges = F4 uses, F16/F20 Rust calls, F8 IPC (TS enclosing → Rust cmd fn), F9 events (Rust emit enclosing → TS listener enclosing), F11 fires (each `read-by` fn → each registered callback), F5 state (a writer's enclosing → the enclosings of readers of the `get` members in `w-via` of the `do` member it calls), mounts (`(markup)` of X → `<Y>:default`; a component's `default` → its `(script)`, `(markup)` and reactive scopes).
-- Hub rank (INDEX and `q hubs` only): production files sorted by (distinct production importer files desc, distinct test importer files desc, path asc). INDEX shows the top 3 per layer (`app`, `routes`, `core`, `features`, `plugins`, `utils`, `contracts`, `types`, `rust`). Today's global top 5: `settings.store.svelte.ts` (82, 124), `vault.store.svelte.ts` (81, 149), `utils/debug.ts` (73, 28), `editor.service.ts` (55, 74), `utils.ts` (54, 1).
+- Hub rank (INDEX and `q hubs` only): production files sorted by (distinct production importer files desc, distinct test importer files desc, path asc). INDEX shows the top 3 per layer (`app`, `routes`, `core`, `features`, `plugins`, `utils`, `lib-root`, `contracts`, `types`, `rust`; `lib-root` holds the files directly in `src/lib`, such as `utils.ts`). Today's global top 5: `settings.store.svelte.ts` (82, 124), `vault.store.svelte.ts` (81, 149), `utils/debug.ts` (73, 28), `editor.service.ts` (55, 74), `utils.ts` (54, 1).
 - Entry files of a module: files with at least one production importer outside the module, by (external importer files desc, path asc).
 - PageRank is not used: in-degree is exact, integer and explainable in one line.
 
@@ -438,6 +438,8 @@ Each site: `(location, sink, class, arg?, enclosing)`, written as an `fx` line o
 - **Timer wrappers (AST).** A wrapper is an exported function containing a `setTimeout`/`setInterval` call whose delay argument's root identifier is one of the wrapper's own parameters (today only `src/lib/utils/debounce.ts:debounce`; the broader "contains a timer" rule matches 14 functions including `appendLog` and `initializeVault`, which would flood `timer.md`). Each F4 `call` of a wrapper is an `fx` line, sink `timer-wrap.<name>`, class `timer`, `args=<argument source text, whitespace collapsed, cap 60>`, ` as <X>` when the call initializes `const X`. Gives `tags.service.ts:90 … 300 as debouncedTrigger`.
 - **Reactive effects.** `$effect`, `$effect.pre`, `$effect.root` sites, sink `svelte.$effect`, class `reactive` (117). Their store reads are F5 reader sites enclosed as `$effect@<line>` (F4e).
 - **DOM listeners.** `<expr>.addEventListener('<literal>', …)` → `dom.<event>`, `arg` = receiver text cap 30 (58 sites, all literal). Markup `<svelte:window|document|body …>` attributes `on:?<name>=` → `dom.<name>`, arg `svelte:window` etc., enclosing `(markup)`.
+- **Markup expressions.** Inside Svelte `{…}` spans (the F4 markup matcher), `B(` of a static Tauri binding, `ns.name(` of a Tauri namespace, and a global timer name (or `window.`/`globalThis.` + name) the file does not declare → the same sinks, enclosing `(markup)`; the `setTimeout`/`setInterval` delay is parsed at the call.
+- Two identical sites (same location, sink, arg and enclosing, e.g. both arms of a ternary) are one `fx` row.
 - **Rust disk writes.** In production text: `fs::(write|create_dir_all|create_dir|remove_file|remove_dir_all|remove_dir|rename|copy)\s*\(`, `File::create\s*\(`, `OpenOptions::new\s*\(`, where `fs` is `std::fs`/`tokio::fs` written out or imported by `use std::fs`/`use tokio::fs` (a crate module named `fs` does not count). Sink `rust-fs.<name>` / `rust-tokio-fs.<name>`, class `disk-write`. 19 sites; `src-tauri/src/utils/fs.rs:write_atomic` is the enclosing fn of its own.
 - **Rust database writes.** `.execute(`, `.execute_batch(` → `rust-db.execute`, class `db`, 45 sites (9 more sit in `#[cfg(test)]` modules). Receiver not resolved.
 - **Rust timers / spawns.** `thread::sleep(`, `tokio::time::(sleep|interval|timeout)(` → `rust-timer.<name>`; `tauri::async_runtime::spawn(`, `std::thread::spawn(` (or `thread::spawn(` with `use std::thread`), `tokio::spawn(` → `rust-spawn.<name>`, class `spawn`.
@@ -638,7 +640,7 @@ Owner actions, not part of the change: delete the remote `architecture` branch; 
 3. Orders: modules by path; files by path; `imp` by (importer, line, target); symbols and locals by (file, line, name); `by` by (user file, line); `call` by (enclosing line, site line, target); store members in source order; tests mirrored first then (relation, path); `ipc/*` by name; `fx` by (sink, file, line) in effect shards and by line in cards; hubs by the F14 key; BFS neighbors by the stated key.
 4. No absolute paths, environment variables or locale-dependent APIs in output; POSIX paths; no `\r`. Git calls affect only the `--stale` message and the write refusal.
 5. Token estimate in `modules.md`: `Math.round(bytes / 300) / 10`. Cards render before `modules.md` and INDEX.
-6. Doc and code excerpts verbatim after D3 or whitespace collapse; tabs and newlines become a space.
+6. Doc and code excerpts verbatim after D3 or whitespace collapse; tabs and newlines become a space; code excerpts (`args=`, `delay=`, receivers) drop comments.
 7. The model is built from path-sorted data, so input order does not matter; the CLI uses the same model and keys.
 
 ## 14. Tests

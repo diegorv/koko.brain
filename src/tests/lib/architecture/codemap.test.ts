@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { dirname, join } from 'node:path';
 
+import {
+	buildModel,
+	discoverModules,
+	fileRole,
+	isInput,
+	moduleOf,
+	readInputs,
+} from '../../../../scripts/codemap/model.mjs';
 import {
 	byLines,
 	crossLanguageLines,
@@ -21,7 +32,9 @@ import {
 	rustEmits,
 } from '../../../../scripts/codemap/rust.mjs';
 import {
+	collectRegistries,
 	collectStores,
+	componentMounts,
 	extractContracts,
 	extractIpcSites,
 	extractTsFile,
@@ -31,6 +44,8 @@ import {
 	publicIds,
 	resolveBindings,
 	resolveReexports,
+	testRelations,
+	tsEffects,
 	usersBySymbol,
 } from '../../../../scripts/codemap/ts.mjs';
 
@@ -1869,5 +1884,752 @@ describe('DTOs', () => {
 			'dto dto:TagAggregate | rust src-tauri/src/vault/task.rs:4 | ts src/lib/contracts/generated/TagAggregate.ts | returned-by ipc:get_all_tags_v2 | arg-of ipc:set_tags | contains dto:Task | in - | used-by src/lib/contracts(2) src/lib/features/tags(1) src/lib/types(1) | e2e e2e/mocks/vault-index.ts:2 | doc Tag rows.',
 			'dto dto:Task | rust src-tauri/src/vault/task.rs:7 | ts src/lib/contracts/generated/Task.ts | returned-by - | arg-of - | contains - | in dto:TagAggregate | used-by src/lib/contracts(1) src/lib/types(1) | e2e -',
 		]);
+	});
+});
+
+/** Parses an in-memory TS tree into per-file facts. */
+function tsFacts(tree: Record<string, string>) {
+	return new Map(Object.keys(tree).map((path) => [path, extractTsFile(path, tree[path])]));
+}
+
+describe('test mapping', () => {
+	it('maps imports, mocks, e2e and mirror rows; mocks wins, type imports and package mocks give none', () => {
+		const files = tsFacts({
+			'src/lib/core/x/x.service.ts': 'export function a() {}',
+			'src/lib/core/x/x.logic.ts': 'export function b() {}',
+			'src/lib/core/x/x.types.ts': 'export type T = 1;',
+			'src/lib/core/x/x.store.svelte.ts': 'export const s = { get v() { return 1; } };',
+			'src/lib/core/y.ts': 'export const y = 1;',
+			'src/tests/lib/core/x/x.service.test.ts': [
+				"import { vi } from 'vitest';",
+				"import { a } from '#lib/core/x/x.service.js';",
+				"import { b } from '#lib/core/x/x.logic.js';",
+				"import type { T } from '#lib/core/x/x.types.js';",
+				'vi.mock(',
+				"\t'#lib/core/x/x.logic.js',",
+				'\t() => ({}),',
+				');',
+				"vi.mock('@tauri-apps/plugin-fs');",
+				"vi.doMock('../../../../lib/core/y.js');",
+			].join('\n'),
+			'src/tests/lib/core/x/other.test.ts': "import { a } from '#lib/core/x/x.service.js';",
+			'src/tests/lib/core/x/x.service-parity.test.ts': "import { a } from '#lib/core/x/x.service.js';",
+			'src/tests/lib/core/x/x.servicex.test.ts': "import { a } from '#lib/core/x/x.service.js';",
+			'src/tests/lib/core/x.service.test.ts': "import { a } from '#lib/core/x/x.service.js';",
+			'src/tests/lib/core/x/x.store.test.ts': "const { s } = await import('#lib/core/x/x.store.svelte.js');",
+			'e2e/mocks/m.ts': "import { a } from '../../src/lib/core/x/x.service';\nimport type { T } from '../../src/lib/core/x/x.types';",
+		});
+		expect(
+			testRelations(files).map(
+				(r: { test: string; relation: string; target: string; mirror: boolean }) =>
+					`test ${r.test} ${r.relation} ${r.target}${r.mirror ? ' mirror' : ''}`,
+			),
+		).toEqual([
+			'test src/tests/lib/core/x/x.service.test.ts mocks src/lib/core/x/x.logic.ts',
+			'test src/tests/lib/core/x/x.service-parity.test.ts imports src/lib/core/x/x.service.ts mirror',
+			'test src/tests/lib/core/x/x.service.test.ts imports src/lib/core/x/x.service.ts mirror',
+			'test e2e/mocks/m.ts e2e src/lib/core/x/x.service.ts',
+			'test src/tests/lib/core/x.service.test.ts imports src/lib/core/x/x.service.ts',
+			'test src/tests/lib/core/x/other.test.ts imports src/lib/core/x/x.service.ts',
+			'test src/tests/lib/core/x/x.servicex.test.ts imports src/lib/core/x/x.service.ts',
+			'test src/tests/lib/core/x/x.store.test.ts imports src/lib/core/x/x.store.svelte.ts mirror',
+			'test src/tests/lib/core/x/x.service.test.ts mocks src/lib/core/y.ts',
+		]);
+	});
+});
+
+/** A registry as wiring-like lines, for compact assertions. */
+function registryLines(r: {
+	id: string;
+	kind: string;
+	file: string;
+	line: number;
+	stores: { binding: string; mutation: string }[];
+	readBy: { id: string; file: string; line: number }[];
+	firedBy: { via: string; chain: { file: string; line: number; enclosing: string }[] }[];
+	registeredAt: { file: string; line: number; enclosing: string; args: string; callbacks: string[] }[];
+	invokedAt: { file: string; line: number; enclosing: string; via: string }[];
+}) {
+	const hop = (h: { file: string; line: number; enclosing: string }) => `${h.file}:${h.line} in ${h.enclosing}`;
+	return [
+		`${r.kind} ${r.id} ${r.file}:${r.line}${r.stores.map((s) => ` ${s.binding} ${s.mutation}`).join('')}`,
+		...r.readBy.map((x) => `read-by ${x.file}:${x.line} ${x.id}`),
+		...r.firedBy.map((f) => `fired-by ${f.chain.map(hop).join(' <- ')} via ${f.via}`),
+		...r.registeredAt.map((x) => `registered-at ${hop(x)} args=${x.args} -> ${x.callbacks.join(',')}`),
+		...r.invokedAt.map((x) => `invoked-at ${hop(x)} via ${x.via}`),
+	];
+}
+
+/** Registries of an in-memory tree as `registryLines`. */
+function registriesOf(tree: Record<string, string>) {
+	const { files, uses } = analyze(tree);
+	return collectRegistries(files, uses, isTest).map(registryLines);
+}
+
+describe('registries', () => {
+	const tree: Record<string, string> = {
+		'src/lib/core/h/hooks.ts': [
+			'const observers: Array<() => void> = [];', // 1
+			'let list: Array<() => void> = [];', // 2
+			'const cache = new Map();', // 3
+			'export function addObserver(o: () => void) {', // 4
+			'\tobservers.push(o);',
+			'\treturn () => {',
+			'\t\tobservers.splice(observers.indexOf(o), 1);',
+			'\t};',
+			'}',
+			'export function addToList(x: () => void) {', // 10
+			'\tlist = [...list, x];',
+			'\treturn () => {',
+			'\t\tlist = list.filter((y) => y !== x);',
+			'\t};',
+			'}',
+			'export function cacheSet(k: string, v: number) { cache.set(k, v); }', // 16
+			'export function viaCall(o: () => void) { observers.push(o); return make(); }', // 17
+			'export function nested(o: () => void) { observers.push(o); function inner() { return () => {}; } return inner; }', // 18
+			'export function notify() { for (const o of observers) o(); }', // 19
+			'export function reset() { observers.length = 0; }', // 20
+			'function notifyList() { for (const x of list) x(); }', // 21
+			'async function handle() {', // 22
+			'\tnotifyList();', // 23
+			'}',
+			'export function start() {', // 25
+			'\t[1].forEach(() => void handle());', // 26
+			'}',
+			'export function shadowed(observers: unknown[]) { observers.push(1); return () => {}; }', // 28
+			'function make() { return () => {}; }', // 29
+		].join('\n'),
+		'src/lib/core/editor/save.ts': [
+			"import { notify } from '#lib/core/h/hooks.js';", // 1
+			'function writeTab() {', // 2
+			'\tnotify();', // 3
+			'\tnotify();', // 4
+			'}',
+			'export function saveFileByPath() {', // 6
+			'\twriteTab();', // 7
+			'}',
+		].join('\n'),
+		'src/lib/features/rail/rail.store.svelte.ts': [
+			'let navs = $state<string[]>([]);', // 1
+			'export const railStore = {', // 2
+			'\tget navigators() { return navs; },', // 3
+			'\tregisterNavigator(n: string) {', // 4
+			'\t\tnavs = [...navs, n];',
+			'\t\treturn () => { navs = navs.filter((x) => x !== n); };',
+			'\t},',
+			'};',
+		].join('\n'),
+		'src/lib/app/Shell.svelte': [
+			'<script lang="ts">', // 1
+			"\timport { railStore } from '#lib/features/rail/rail.store.svelte.js';",
+			'</script>',
+			'{#each railStore.navigators as n}{n}{/each}', // 4
+		].join('\n'),
+		'src/lib/features/search/search.service.ts': [
+			"import { addObserver, addToList } from '#lib/core/h/hooks.js';", // 1
+			"import { railStore } from '#lib/features/rail/rail.store.svelte.js';", // 2
+			'function onSaved(p: string) {}', // 3
+			'function other() {}', // 4
+			"const nav = 'n';", // 5
+			'export function registerSearchHook() {', // 6
+			'\treturn addObserver(onSaved);', // 7
+			'}',
+			'export function registerObj() {', // 9
+			"\taddToList({ name: 'x', pathChanged: onSaved, other });", // 10
+			'}',
+			'export function registerInline() {', // 12
+			'\taddObserver((p) => {', // 13
+			'\t\tonSaved(p);',
+			'\t});',
+			'}',
+			'railStore.registerNavigator(nav);', // 17
+			'export function registerCommented() {', // 18
+			'\taddToList({', // 19
+			'\t\t// The handler.',
+			'\t\tpathChanged: /* on save */ onSaved,',
+			'\t});',
+			'}',
+		].join('\n'),
+		'src/lib/app/lifecycle.ts': [
+			"import { registerSearchHook } from '#lib/features/search/search.service.js';", // 1
+			'export function initializeVault() {', // 2
+			'\tregisterSearchHook();', // 3
+			'}',
+		].join('\n'),
+		'src/tests/lib/core/h/hooks.test.ts': "import { addObserver, notify } from '#lib/core/h/hooks.js';\naddObserver(() => {});\nnotify();",
+	};
+
+	it('finds sinks by a returned function plus a module-level registration, with read-by, fired-by, registered-at and invoked-at', () => {
+		expect(registriesOf(tree)).toEqual([
+			[
+				'sink src/lib/core/h/hooks.ts:addObserver src/lib/core/h/hooks.ts:4 observers push',
+				'read-by src/lib/core/h/hooks.ts:19 src/lib/core/h/hooks.ts:notify',
+				'fired-by src/lib/core/editor/save.ts:3 in writeTab <- src/lib/core/editor/save.ts:7 in saveFileByPath via src/lib/core/h/hooks.ts:notify',
+				'registered-at src/lib/features/search/search.service.ts:7 in registerSearchHook args=onSaved -> src/lib/features/search/search.service.ts:onSaved',
+				'registered-at src/lib/features/search/search.service.ts:13 in registerInline args=(p) => { onSaved(p); } -> src/lib/features/search/search.service.ts:registerInline',
+				'invoked-at src/lib/app/lifecycle.ts:3 in initializeVault via src/lib/features/search/search.service.ts:registerSearchHook',
+			],
+			[
+				'sink src/lib/core/h/hooks.ts:addToList src/lib/core/h/hooks.ts:10 list assign',
+				'read-by src/lib/core/h/hooks.ts:21 src/lib/core/h/hooks.ts:notifyList',
+				'fired-by src/lib/core/h/hooks.ts:23 in handle <- src/lib/core/h/hooks.ts:26 in start via src/lib/core/h/hooks.ts:notifyList',
+				"registered-at src/lib/features/search/search.service.ts:10 in registerObj args={ name: 'x', pathChanged: onSaved, other } -> src/lib/features/search/search.service.ts:onSaved,src/lib/features/search/search.service.ts:other",
+				'registered-at src/lib/features/search/search.service.ts:19 in registerCommented args={ pathChanged: onSaved, } -> src/lib/features/search/search.service.ts:onSaved',
+			],
+			[
+				'sink src/lib/features/rail/rail.store.svelte.ts:railStore.registerNavigator src/lib/features/rail/rail.store.svelte.ts:4 navs assign',
+				'read-by src/lib/features/rail/rail.store.svelte.ts:3 src/lib/features/rail/rail.store.svelte.ts:railStore.navigators',
+				'fired-by src/lib/app/Shell.svelte:4 in (markup) via src/lib/features/rail/rail.store.svelte.ts:railStore.navigators',
+				'registered-at src/lib/features/search/search.service.ts:17 in (module) args=nav -> src/lib/features/search/search.service.ts:(module)',
+			],
+		]);
+	});
+
+	it('finds a facet by `Facet.define` and its `.of(…)` registrations', () => {
+		expect(
+			registriesOf({
+				'src/lib/core/md/editor-host.ts': "import { Facet } from '@codemirror/state';\nexport const editorHost = Facet.define<H, H>({ combine: (v) => v[0] });",
+				'src/lib/app/editor.ts': [
+					"import { editorHost } from '#lib/core/md/editor-host.js';", // 1
+					'function makeHost() { return {}; }', // 2
+					'export function extensions() {', // 3
+					'\treturn [editorHost.of(makeHost())];', // 4
+					'}',
+				].join('\n'),
+			}),
+		).toEqual([
+			[
+				'facet src/lib/core/md/editor-host.ts:editorHost src/lib/core/md/editor-host.ts:2',
+				'registered-at src/lib/app/editor.ts:4 in extensions args=makeHost() -> src/lib/app/editor.ts:extensions',
+			],
+		]);
+	});
+});
+
+/** F15 TS sites of an in-memory tree as `<loc> <sink> <class>[ <arg>] in <enclosing>` lines. */
+function effectLines(tree: Record<string, string>) {
+	const { files, uses } = analyze(tree);
+	return tsEffects(files, uses, isTest).map(
+		(s: { file: string; line: number; sink: string; class: string; arg: string; enclosing: string }) =>
+			`${s.file}:${s.line} ${s.sink} ${s.class}${s.arg ? ` ${s.arg}` : ''} in ${s.enclosing}`,
+	);
+}
+
+describe('F15 Tauri sites', () => {
+	it('classes named, aliased, namespace and dynamic calls; shadowed and same-named local functions are no sinks', () => {
+		expect(
+			effectLines({
+				'src/lib/core/f/f.service.ts': [
+					"import { writeTextFile, exists as fileExists } from '@tauri-apps/plugin-fs';", // 1
+					"import * as fs from '@tauri-apps/plugin-fs';", // 2
+					"import { ask } from '@tauri-apps/plugin-dialog';", // 3
+					"import { invoke } from '@tauri-apps/api/core';", // 4
+					'export async function save(p: string) {', // 5
+					"\tawait writeTextFile(p, 'x');", // 6
+					"\tawait fs.writeTextFile(p, 'y');", // 7
+					'\tawait fileExists(p);', // 8
+					"\tawait ask('sure?');", // 9
+					"\tawait invoke('x');", // 10
+					'}',
+					'export function shadow(writeTextFile: (p: string) => void) { writeTextFile("z"); }', // 12
+					'export async function lazy() {', // 13
+					"\tconst { open } = await import('@tauri-apps/plugin-dialog');", // 14
+					'\tawait open();', // 15
+					'}',
+					"export const both = (f: boolean) => (f ? invoke('a') : invoke('b'));", // 17
+				].join('\n'),
+				'src/lib/core/f/g.ts': 'function writeTextFile(p: string) {}\nexport function g() { writeTextFile("a"); }',
+				'src/tests/lib/core/f/f.test.ts': "import { writeTextFile } from '@tauri-apps/plugin-fs';\nwriteTextFile('t', 'u');",
+			}),
+		).toEqual([
+			'src/lib/core/f/f.service.ts:6 tauri-fs.writeTextFile disk-write in save',
+			'src/lib/core/f/f.service.ts:7 tauri-fs.writeTextFile disk-write in save',
+			'src/lib/core/f/f.service.ts:8 tauri-fs.exists disk-read in save',
+			'src/lib/core/f/f.service.ts:9 tauri-dialog.ask host in save',
+			'src/lib/core/f/f.service.ts:10 tauri-api-core.invoke host in save',
+			'src/lib/core/f/f.service.ts:15 tauri-dialog.open host in lazy',
+			'src/lib/core/f/f.service.ts:17 tauri-api-core.invoke host in both',
+		]);
+	});
+
+	it('finds Tauri calls and global timers inside markup expressions', () => {
+		expect(
+			effectLines({
+				'src/lib/core/f/U.svelte': [
+					'<script lang="ts">', // 1
+					"\timport { openUrl } from '@tauri-apps/plugin-opener';",
+					"\timport * as fs from '@tauri-apps/plugin-fs';",
+					'\tfunction requestIdleCallback() {}',
+					'</script>', // 5
+					"<button onclick={() => openUrl('x')}>a</button>", // 6
+					"<button onclick={() => fs.exists('y')}>b</button>", // 7
+					"<p>openUrl('z') queueMicrotask(h)</p>", // 8
+					'{queueMicrotask(() => {})}', // 9
+					'<i onclick={() => setTimeout(h, /* soon */ 5)}></i>', // 10
+					'<i onclick={() => window.setInterval(h, 9)}></i>', // 11
+					'<i onclick={() => requestIdleCallback()}></i>', // 12
+					'<i onclick={() => x.openUrl()}></i>', // 13
+					"<!-- {openUrl('c')} -->", // 14
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/core/f/U.svelte:6 tauri-opener.openUrl host in (markup)',
+			'src/lib/core/f/U.svelte:7 tauri-fs.exists disk-read in (markup)',
+			'src/lib/core/f/U.svelte:9 timer.queueMicrotask timer in (markup)',
+			'src/lib/core/f/U.svelte:10 timer.setTimeout timer delay=5 in (markup)',
+			'src/lib/core/f/U.svelte:11 timer.setInterval timer delay=9 in (markup)',
+		]);
+	});
+});
+
+describe('F15 timers, reactive effects and DOM listeners', () => {
+	it('finds global timers with their delay, $effect sites and literal DOM listeners, in script and markup', () => {
+		expect(
+			effectLines({
+				'src/lib/utils/timers.ts': 'export function setTimeout(f: () => void) {}',
+				'src/lib/core/t/t.svelte.ts': [
+					'export function a(f: () => void, el: HTMLElement, name: string) {', // 1
+					'\tsetTimeout(f, 300 * /* ms */ 1);', // 2
+					'\twindow.setTimeout(f, 1_000);', // 3
+					'\tglobalThis.setInterval(f,\n\t\tDELAY * 2);', // 4
+					'\trequestAnimationFrame(f);', // 6
+					'\tqueueMicrotask(f);', // 7
+					"\tel.addEventListener('keydown', f);", // 8
+					'\tdocument.body.addEventListener(name, f);', // 9
+					'\tclearTimeout(0);', // 10
+					'}',
+					'$effect(() => {});', // 12
+					'$effect.pre(() => {});', // 13
+					'$effect.root(() => {});', // 14
+				].join('\n'),
+				'src/lib/core/t/u.ts': "import { setTimeout } from '#lib/utils/timers.js';\nexport function b(f: () => void) { setTimeout(f); }",
+				'src/lib/core/t/W.svelte': [
+					'<script lang="ts">', // 1
+					'\tfunction h() {}',
+					'\t$effect(() => { h(); });', // 3
+					'</script>',
+					'<svelte:window onkeydown={h} on:resize={() => (1 > 0 ? h() : h())} />', // 5
+					'<svelte:document', // 6
+					'\tonvisibilitychange={h}', // 7
+					'/>',
+					'<!-- <svelte:body onclick={h} /> -->', // 9
+					'<div onclick={h}></div>', // 10
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/core/t/W.svelte:3 svelte.$effect reactive in (script)',
+			'src/lib/core/t/W.svelte:5 dom.keydown dom svelte:window in (markup)',
+			'src/lib/core/t/W.svelte:5 dom.resize dom svelte:window in (markup)',
+			'src/lib/core/t/W.svelte:7 dom.visibilitychange dom svelte:document in (markup)',
+			'src/lib/core/t/t.svelte.ts:2 timer.setTimeout timer delay=300 * 1 in a',
+			'src/lib/core/t/t.svelte.ts:3 timer.setTimeout timer delay=1_000 in a',
+			'src/lib/core/t/t.svelte.ts:4 timer.setInterval timer delay=DELAY * 2 in a',
+			'src/lib/core/t/t.svelte.ts:6 timer.requestAnimationFrame timer in a',
+			'src/lib/core/t/t.svelte.ts:7 timer.queueMicrotask timer in a',
+			'src/lib/core/t/t.svelte.ts:8 dom.keydown dom el in a',
+			'src/lib/core/t/t.svelte.ts:12 svelte.$effect reactive in (module)',
+			'src/lib/core/t/t.svelte.ts:13 svelte.$effect reactive in (module)',
+			'src/lib/core/t/t.svelte.ts:14 svelte.$effect reactive in (module)',
+		]);
+	});
+});
+
+describe('F15 timer wrappers', () => {
+	it('treats an exported function whose timer delay comes from its own parameter as a wrapper and lists its calls', () => {
+		expect(
+			effectLines({
+				'src/lib/utils/debounce.ts': [
+					'export function debounce<T>(fn: () => T, delay: number) {', // 1
+					'\tlet t: ReturnType<typeof setTimeout>;',
+					'\tconst fire = () => fn();',
+					'\treturn () => {',
+					'\t\tclearTimeout(t);',
+					'\t\tt = setTimeout(fire, delay);', // 6
+					'\t};',
+					'}',
+					'const DELAY = 50;',
+					'export function fixed(fn: () => void) {', // 10
+					'\tsetTimeout(fn, DELAY);', // 11
+					'}',
+					'export function inner(fn: () => void, ms: number) { return () => { const ms = 1; setTimeout(fn, ms); }; }', // 13
+				].join('\n'),
+				'src/lib/features/tags/tags.service.ts': [
+					"import { debounce, fixed, inner } from '#lib/utils/debounce.js';", // 1
+					'function g() {}',
+					'const t = debounce(() => g(), 300);', // 3
+					'export function later() {', // 4
+					'\tconst u = debounce(', // 5
+					'\t\tg, // the callback',
+					'\t\t500,',
+					'\t);',
+					'\tfixed(g);', // 9
+					'\tinner(g, 2);', // 10
+					'}',
+					'let v = debounce(g, 1);', // 12
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/features/tags/tags.service.ts:3 timer-wrap.debounce timer args=() => g(), 300 as t in t',
+			'src/lib/features/tags/tags.service.ts:5 timer-wrap.debounce timer args=g, 500 as u in later',
+			'src/lib/features/tags/tags.service.ts:12 timer-wrap.debounce timer args=g, 1 in v',
+			'src/lib/utils/debounce.ts:6 timer.setTimeout timer delay=delay in debounce',
+			'src/lib/utils/debounce.ts:11 timer.setTimeout timer delay=DELAY in fixed',
+			'src/lib/utils/debounce.ts:13 timer.setTimeout timer delay=ms in inner',
+		]);
+	});
+});
+
+describe('F17 component mounts', () => {
+	it('finds `<B` tags of imported components followed by whitespace, `/` or `>`, outside comments', () => {
+		const { files, resolved } = analyze({
+			'src/lib/features/tags/TagItem.svelte': '<p>x</p>',
+			'src/lib/features/tags/TagItemList.svelte': '<p>y</p>',
+			'src/lib/components/ui/button/button.svelte': '<button></button>',
+			'src/lib/components/ui/button/index.ts': "import Root from './button.svelte';\nexport { Root as Button };",
+			'src/lib/features/tags/TagsView.svelte': [
+				'<script lang="ts">', // 1
+				"\timport TagItem from './TagItem.svelte';",
+				"\timport TagItemList from './TagItemList.svelte';",
+				"\timport { Button } from '#lib/components/ui/button/index.js';",
+				'</script>', // 5
+				'<TagItem foo={1} />', // 6
+				'<TagItem/>', // 7
+				'<TagItemList>', // 8
+				'</TagItemList>',
+				'<!-- <TagItem /> -->', // 10
+				'<Button', // 11
+				'\tonclick={() => {}}>Go</Button>',
+				'<TagItem>', // 13
+				'{#if x}<TagItem\n/>{/if}', // 14
+			].join('\n'),
+		});
+		expect(
+			componentMounts(files, resolved).map(
+				(m: { file: string; line: number; name: string; target: string }) => `mount ${m.file}:${m.line} ${m.name} -> ${m.target}`,
+			),
+		).toEqual([
+			'mount src/lib/features/tags/TagsView.svelte:6 TagItem -> src/lib/features/tags/TagItem.svelte',
+			'mount src/lib/features/tags/TagsView.svelte:7 TagItem -> src/lib/features/tags/TagItem.svelte',
+			'mount src/lib/features/tags/TagsView.svelte:8 TagItemList -> src/lib/features/tags/TagItemList.svelte',
+			'mount src/lib/features/tags/TagsView.svelte:11 Button -> src/lib/components/ui/button/button.svelte',
+			'mount src/lib/features/tags/TagsView.svelte:13 TagItem -> src/lib/features/tags/TagItem.svelte',
+			'mount src/lib/features/tags/TagsView.svelte:14 TagItem -> src/lib/features/tags/TagItem.svelte',
+		]);
+	});
+});
+
+/** Builds the model of an in-memory tree. */
+function modelOf(tree: Record<string, string>) {
+	return buildModel(new Map(Object.entries(tree)));
+}
+
+describe('F14 graphs and ranking', () => {
+	const tree: Record<string, string> = {
+		'src/lib/core/a/a.ts': 'export const a = 1;',
+		'src/lib/core/b/b.ts': "import { b3 } from './b3.js';\nexport const b = b3;",
+		'src/lib/core/b/b2.ts': 'export const b2 = 1;',
+		'src/lib/core/b/b3.ts': 'export const b3 = 1;',
+		'src/lib/core/c/c.ts': 'export const c = 1;',
+		'src/lib/features/f/f1.ts': "import { a } from '#lib/core/a/a.js';\nimport type { b } from '#lib/core/b/b.js';",
+		'src/lib/features/f/f2.ts': "import { a } from '#lib/core/a/a.js';\nimport { c } from '#lib/core/c/c.js';\nimport type { a as A } from '#lib/core/a/a.js';",
+		'src/lib/app/app.ts': [
+			"import { a } from '#lib/core/a/a.js';",
+			"import { b } from '#lib/core/b/b.js';",
+			"import { c } from '#lib/core/c/c.js';",
+			"import { b2 } from '#lib/core/b/b2.js';",
+		].join('\n'),
+		'src/tests/lib/core/b/b.test.ts': "import { b } from '#lib/core/b/b.js';\nimport type { b as B } from '#lib/core/b/b.js';",
+		'src-tauri/src/lib.rs': 'pub fn run() { x::go(); }',
+		'src-tauri/src/x.rs': 'pub fn go() {}',
+		'src-tauri/tests/t.rs': 'use kokobrain_lib::x::go;\n#[test]\nfn t() { go(); }',
+	};
+
+	it('ranks production files by production importers, then test importers, then path; type-only importers count', () => {
+		const m = modelOf(tree);
+		expect(m.hubs.map((h: { file: string; prod: number; test: number }) => `${h.file} ${h.prod} ${h.test}`)).toEqual([
+			'src/lib/core/a/a.ts 3 0',
+			'src/lib/core/b/b.ts 2 1',
+			'src/lib/core/c/c.ts 2 0',
+			'src-tauri/src/x.rs 1 1',
+			'src/lib/core/b/b2.ts 1 0',
+			'src/lib/core/b/b3.ts 1 0',
+			'src-tauri/src/lib.rs 0 0',
+			'src/lib/app/app.ts 0 0',
+			'src/lib/features/f/f1.ts 0 0',
+			'src/lib/features/f/f2.ts 0 0',
+		]);
+		expect(m.hubsByLayer.get('core').map((h: { file: string }) => h.file)).toEqual([
+			'src/lib/core/a/a.ts',
+			'src/lib/core/b/b.ts',
+			'src/lib/core/c/c.ts',
+			'src/lib/core/b/b2.ts',
+			'src/lib/core/b/b3.ts',
+		]);
+		expect([...m.hubsByLayer.keys()]).toEqual(['app', 'core', 'features', 'rust']);
+	});
+
+	it('keeps a file directly in src/lib in its own `lib-root` hub layer', () => {
+		const m = modelOf({
+			'src/lib/utils.ts': 'export const cn = 1;',
+			'src/lib/utils/debug.ts': "import { cn } from '#lib/utils.js';",
+		});
+		expect(m.hubsByLayer.get('lib-root').map((h: { file: string; prod: number }) => `${h.file} ${h.prod}`)).toEqual(['src/lib/utils.ts 1']);
+		expect([...m.hubsByLayer.keys()]).toEqual(['lib-root', 'utils']);
+	});
+
+	it('weighs module edges by distinct production file pairs; test imports make none', () => {
+		const m = modelOf(tree);
+		expect(m.moduleEdges.map((e: { from: string; to: string; pairs: number }) => `dep ${e.from} -> ${e.to} ${e.pairs}`)).toEqual([
+			'dep src/lib/app -> src/lib/core/a 1',
+			'dep src/lib/app -> src/lib/core/b 2',
+			'dep src/lib/app -> src/lib/core/c 1',
+			'dep src/lib/features/f -> src/lib/core/a 2',
+			'dep src/lib/features/f -> src/lib/core/b 1',
+			'dep src/lib/features/f -> src/lib/core/c 1',
+		]);
+	});
+
+	it('orders entry files by external importer files, then path', () => {
+		const m = modelOf(tree);
+		expect(
+			m.entryFiles.get('src/lib/core/b')!.map((e: { file: string; importers: string[] }) => `${e.file} ${e.importers.join(',')}`),
+		).toEqual(['src/lib/core/b/b.ts src/lib/app/app.ts,src/lib/features/f/f1.ts', 'src/lib/core/b/b2.ts src/lib/app/app.ts']);
+		expect(m.entryFiles.get('src/lib/features/f')).toEqual([]);
+	});
+
+	it('maps Rust integration tests and keeps their imports off module edges', () => {
+		const m = modelOf(tree);
+		expect(
+			m.tests.map((r: { test: string; relation: string; target: string; mirror: boolean }) => `${r.test} ${r.relation} ${r.target}${r.mirror ? ' mirror' : ''}`),
+		).toEqual(['src-tauri/tests/t.rs imports src-tauri/src/x.rs', 'src/tests/lib/core/b/b.test.ts imports src/lib/core/b/b.ts mirror']);
+	});
+
+	it('gives two-hop reach without direct neighbors and self', () => {
+		const m = modelOf({
+			'src/lib/core/m/p.ts': "import { q } from './q.js';\nexport const p = q;",
+			'src/lib/core/m/q.ts': "import { p } from './p.js';\nexport const q = 1;",
+			'src/lib/core/m/r.ts': "import { p } from './p.js';\nimport { q } from './q.js';\nexport const r = 1;",
+			'src/lib/core/m/s.ts': "import { r } from './r.js';",
+			'src/tests/lib/core/m/s.test.ts': "import { s } from '#lib/core/m/s.js';",
+		});
+		expect(m.in2('src/lib/core/m/q.ts')).toEqual(['src/lib/core/m/s.ts']);
+		expect(m.out2('src/lib/core/m/s.ts')).toEqual(['src/lib/core/m/p.ts', 'src/lib/core/m/q.ts']);
+		expect(m.out2('src/lib/core/m/r.ts')).toEqual([]);
+		expect(m.in2('src/lib/core/m/r.ts')).toEqual([]);
+	});
+
+	it('records import edges with their names in source order', () => {
+		const m = modelOf({
+			'src/lib/core/m/p.ts': 'export const p = 1;\nexport type P = 1;\nexport default 1;',
+			'src/lib/core/m/q.ts': 'export const qq = 1;\nexport const qr = 1;',
+			'src/lib/core/m/u.ts': [
+				"import def, { p, type P } from './p.js';", // 1
+				"import * as ns from './p.js';", // 2
+				"export { p as q } from './p.js';", // 3
+				"const { p: x } = await import('./p.js');", // 4
+				"import '@tauri-apps/api/core';", // 5
+				'const {', // 6
+				'\tdefault: d2,',
+				"} = await import('./p.js');", // 8
+				"export type { P } from './p.js';", // 9
+				"export * from './q.js';", // 10
+				"export { qq, type qr } from './q.js';", // 11
+				"import './q.js';", // 12
+				"export * as all from './q.js';", // 13
+			].join('\n'),
+		});
+		expect(
+			m.edges.map((e: { from: string; line: number; target: string; names: string[] }) => `imp ${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`),
+		).toEqual([
+			'imp src/lib/core/m/u.ts:1 -> src/lib/core/m/p.ts default,p,type:P',
+			'imp src/lib/core/m/u.ts:2 -> src/lib/core/m/p.ts *',
+			'imp src/lib/core/m/u.ts:3 -> src/lib/core/m/p.ts p',
+			'imp src/lib/core/m/u.ts:4 -> src/lib/core/m/p.ts dyn:p',
+			'imp src/lib/core/m/u.ts:8 -> src/lib/core/m/p.ts dyn:default',
+			'imp src/lib/core/m/u.ts:9 -> src/lib/core/m/p.ts type:P',
+			'imp src/lib/core/m/u.ts:10 -> src/lib/core/m/q.ts *',
+			'imp src/lib/core/m/u.ts:11 -> src/lib/core/m/q.ts qq,type:qr',
+			'imp src/lib/core/m/u.ts:12 -> src/lib/core/m/q.ts side-effect',
+			'imp src/lib/core/m/u.ts:13 -> src/lib/core/m/q.ts *',
+		]);
+		expect(
+			m.packageImports.map((e: { from: string; line: number; target: string; names: string[] }) => `${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`),
+		).toEqual(['src/lib/core/m/u.ts:5 -> pkg:@tauri-apps/api/core side-effect']);
+	});
+
+	it('links the symbol graph through calls, refs, registry fires, IPC, events, store state and mounts', () => {
+		const m = modelOf({
+			'src/lib/contracts/ipc.ts': IPC_TS,
+			'src/lib/contracts/commands.ts': 'export type NoArgs = Record<never, never>;\nexport interface CommandMap {\n\tdo_it: { args: NoArgs; result: null };\n}',
+			'src/lib/contracts/events.ts': "export const EVENT_NAMES = {\n\tDONE: 'done',\n} as const;\nexport interface EventMap {\n\tdone: null;\n}",
+			'src/lib/core/s/s.store.svelte.ts': 'let v = $state(0);\nexport const s = { get v() { return v; }, setV(x: number) { v = x; } };',
+			'src/lib/core/h/hooks.ts': 'const obs: Array<() => void> = [];\nexport function addObs(o: () => void) { obs.push(o); return () => {}; }\nexport function notify() { for (const o of obs) o(); }',
+			'src/lib/features/x/x.service.ts': [
+				"import { call, on } from '#lib/contracts/ipc.js';",
+				"import { EVENT_NAMES } from '#lib/contracts/events.js';",
+				"import { addObs, notify } from '#lib/core/h/hooks.js';",
+				"import { s } from '#lib/core/s/s.store.svelte.js';",
+				"function onSaved() { void call('do_it'); }",
+				'export function register() { addObs(onSaved); }',
+				'export function save() { notify(); s.setV(1); }',
+				'export function listen() { void on(EVENT_NAMES.DONE, () => { s.v; }); }',
+			].join('\n'),
+			'src/lib/features/x/Child.svelte': '<p>c</p>',
+			'src/lib/features/x/View.svelte': [
+				'<script lang="ts">',
+				"\timport Child from './Child.svelte';",
+				"\timport { s } from '#lib/core/s/s.store.svelte.js';",
+				'\t$effect(() => { s.v; });', // 4
+				'</script>',
+				'<Child />',
+			].join('\n'),
+			'src-tauri/src/lib.rs': 'mod commands;\npub fn run() {\n\ttauri::generate_handler![commands::do_it];\n}',
+			'src-tauri/src/events.rs': 'pub const DONE_EVENT: &str = "done";',
+			'src-tauri/src/commands.rs': 'use crate::events::DONE_EVENT;\n#[tauri::command]\npub fn do_it(app: App) { app.emit(DONE_EVENT, ()); }',
+			'src-tauri/tests/t.rs': 'use kokobrain_lib::commands::do_it;\n#[test]\nfn t() { do_it(app); }',
+			'src/tests/lib/features/x/x.test.ts': [
+				"import { save, register } from '#lib/features/x/x.service.js';",
+				"import { s } from '#lib/core/s/s.store.svelte.js';",
+				"import { call } from '#lib/contracts/ipc.js';",
+				'save();',
+				'register();',
+				's.setV(2);',
+				"void call('do_it');",
+			].join('\n'),
+			'src/tests/lib/features/x/Fake.svelte': '<script lang="ts">\n\timport Child from \'#lib/features/x/Child.svelte\';\n</script>\n<Child />',
+		});
+		const edges = m.symbolEdges.map((e: { kind: string; from: string; to: string }) => `${e.kind} ${e.from} -> ${e.to}`);
+		expect(edges.filter((e: string) => / (?:src\/tests|src-tauri\/tests)\//.test(e))).toEqual([]);
+		const x = 'src/lib/features/x/x.service.ts';
+		const view = 'src/lib/features/x/View.svelte';
+		expect(edges).toEqual(
+			expect.arrayContaining([
+				`call ${x}:save -> src/lib/core/h/hooks.ts:notify`,
+				`call ${x}:register -> src/lib/core/h/hooks.ts:addObs`,
+				`ref ${x}:register -> ${x}:onSaved`,
+				`fires src/lib/core/h/hooks.ts:notify -> ${x}:onSaved`,
+				`ipc ${x}:onSaved -> ipc:do_it`,
+				'ipc ipc:do_it -> src-tauri/src/commands.rs:do_it',
+				'event src-tauri/src/commands.rs:do_it -> event:done',
+				`event event:done -> ${x}:listen`,
+				`state ${x}:save -> ${x}:listen`,
+				`state ${x}:save -> ${view}:$effect@4`,
+				`mount ${view}:(markup) -> src/lib/features/x/Child.svelte:default`,
+				`mount ${view}:default -> ${view}:(script)`,
+				`mount ${view}:default -> ${view}:(markup)`,
+				`mount ${view}:default -> ${view}:$effect@4`,
+			]),
+		);
+		expect(new Set(edges).size).toBe(edges.length);
+	});
+
+	it('orders symbol edges by from, then kind order, then to', () => {
+		const m = modelOf({
+			'src/lib/core/o/o.ts': ['function b() {}', 'function a() {}', 'export function z() { b(); return a; }', 'export function y() { a(); }'].join('\n'),
+		});
+		const o = 'src/lib/core/o/o.ts';
+		expect(m.symbolEdges.map((e: { kind: string; from: string; to: string }) => `${e.kind} ${e.from} -> ${e.to}`)).toEqual([
+			`call ${o}:y -> ${o}:a`,
+			`call ${o}:z -> ${o}:b`,
+			`ref ${o}:z -> ${o}:a`,
+		]);
+	});
+});
+
+describe('F1 inventory and modules', () => {
+	it('names one module per core/features/plugins folder, per other src/lib layer, the routes, and each Rust folder', () => {
+		expect(
+			discoverModules({
+				libFiles: [
+					'src/lib/core/editor/editor.service.ts',
+					'src/lib/core/editor/sub/deep.ts',
+					'src/lib/features/tags/Tags.svelte',
+					'src/lib/plugins/kanban/kanban.logic.ts',
+					'src/lib/app/boot.ts',
+					'src/lib/utils/path.ts',
+					'src/lib/utils.ts',
+				],
+				routeFiles: ['src/routes/+layout.svelte'],
+				rustFiles: ['src-tauri/src/lib.rs', 'src-tauri/src/vault/index.rs', 'src-tauri/src/db/mod.rs'],
+			}),
+		).toEqual([
+			'src-tauri/src',
+			'src-tauri/src/db',
+			'src-tauri/src/vault',
+			'src/lib/app',
+			'src/lib/core/editor',
+			'src/lib/features/tags',
+			'src/lib/plugins/kanban',
+			'src/lib/utils',
+			'src/lib/utils.ts',
+			'src/routes',
+		]);
+		expect(discoverModules({ libFiles: [], routeFiles: [], rustFiles: [] })).toEqual([]);
+	});
+
+	it('picks the longest module path holding a file, a file module only by exact match, else null', () => {
+		const modules = ['src-tauri/src', 'src-tauri/src/vault', 'src/lib/utils', 'src/lib/utils.ts'];
+		expect(moduleOf('src-tauri/src/vault/index.rs', modules)).toBe('src-tauri/src/vault');
+		expect(moduleOf('src-tauri/src/lib.rs', modules)).toBe('src-tauri/src');
+		expect(moduleOf('src/lib/utils.ts', modules)).toBe('src/lib/utils.ts');
+		expect(moduleOf('src/lib/utils/path.ts', modules)).toBe('src/lib/utils');
+		expect(moduleOf('scripts/x.mjs', modules)).toBeNull();
+	});
+
+	it('names the role of each file type of the architecture guidelines', () => {
+		expect(
+			['a/x.logic.ts', 'a/x.store.svelte.ts', 'a/x.service.ts', 'a/X.svelte', 'a/x.types.ts', 'a/x.rs', 'a/x.ts', 'a/x.js'].map(fileRole),
+		).toEqual(['logic', 'store', 'service', 'component', 'types', 'rust', 'other', 'other']);
+	});
+
+	it('reads the F1 inputs of a repo folder in code-unit order; `.js` in src/lib gets no symbols', () => {
+		const root = mkdtempSync(join(tmpdir(), 'codemap-inputs-'));
+		try {
+			const tree: Record<string, string> = {
+				'src/lib/a.ts': 'export const a = 1;',
+				'src/lib/a.d.ts': 'export declare const a: number;',
+				'src/lib/b.js': 'export const b = 1;',
+				'src/lib/C.svelte': '<p>c</p>',
+				'src/lib/x.css': '',
+				'src/lib/node_modules/n.ts': '',
+				'src/routes/+page.js': '',
+				'src/routes/+page.svelte': '',
+				'src/tests/t.test.ts': '',
+				'src/tests/t.js': '',
+				'src/tests/T.svelte': '',
+				'e2e/e.ts': '',
+				'e2e/e.js': '',
+				'src-tauri/src/lib.rs': '',
+				'src-tauri/src/x.txt': '',
+				'src-tauri/tests/t.rs': '',
+				'src/tests/lib/architecture/layer-baseline.json': '[]',
+				'scripts/s.mjs': '',
+			};
+			for (const [path, text] of Object.entries(tree)) {
+				mkdirSync(join(root, dirname(path)), { recursive: true });
+				writeFileSync(join(root, path), text);
+			}
+			const inputs = readInputs(root);
+			expect([...inputs.keys()]).toEqual([
+				'e2e/e.ts',
+				'src-tauri/src/lib.rs',
+				'src-tauri/tests/t.rs',
+				'src/lib/C.svelte',
+				'src/lib/a.ts',
+				'src/lib/b.js',
+				'src/routes/+page.js',
+				'src/routes/+page.svelte',
+				'src/tests/lib/architecture/layer-baseline.json',
+				'src/tests/t.test.ts',
+			]);
+			expect(isInput('src/lib/a.d.ts')).toBe(false);
+			const m = buildModel(inputs);
+			expect(m.files).toContain('src/lib/b.js');
+			expect(m.files).not.toContain('src/tests/lib/architecture/layer-baseline.json');
+			expect(m.ts.has('src/lib/b.js')).toBe(false);
+			expect(m.baseline).toEqual([]);
+		} finally {
+			rmSync(root, { recursive: true, force: true });
+		}
 	});
 });

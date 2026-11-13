@@ -9,14 +9,16 @@
  * functions, import bindings, the export table, and binding resolution through
  * re-export chains (F2, F3); uses of those bindings in scripts and Svelte
  * markup with their F4e enclosing scope, and the `by` users built from them
- * (F4); store objects with their members, readers, writers and `w-via` (F5).
- * Parsing uses the `typescript` parser only, once per code region
+ * (F4); store objects with their members, readers, writers and `w-via` (F5);
+ * the IPC and event sites of the TS end (F8, F9); test relations (F6);
+ * registries and facets (F11); side-effect sites (F15); component mounts
+ * (F17). Parsing uses the `typescript` parser only, once per code region
  * (`codeRegions` from `scripts/import-graph.mjs`); markup is scanned as text.
  */
 import { createRequire } from 'node:module';
 import { posix } from 'node:path';
 
-import { codeRegions, resolveSpecifier } from '../import-graph.mjs';
+import { codeRegions, extractImportsFromSource, resolveSpecifier } from '../import-graph.mjs';
 
 const require = createRequire(import.meta.url);
 const ts = require('typescript');
@@ -47,6 +49,31 @@ const LINK_RE = /\{@link(?:code|plain)?\s+([^\s|}]+)\s*(?:\|\s*)?([^}]*)\}/g;
 
 /** Collapses every whitespace run, newlines and tabs included, to one space. */
 const collapse = (s) => s.replace(/\s+/g, ' ').trim();
+
+/**
+ * The source text of `[start, end)` of a parsed file with every comment inside
+ * `root` that lies in that range replaced by a space, whitespace collapsed.
+ */
+function codeExcerpt(sf, root, start, end) {
+	const comments = new Map();
+	const visit = (n) => {
+		// Comments on the line of the previous token are trailing ranges, the rest leading ones.
+		const ranges = [...(ts.getTrailingCommentRanges(sf.text, n.pos) ?? []), ...(ts.getLeadingCommentRanges(sf.text, n.pos) ?? [])];
+		for (const r of ranges) if (r.pos >= start && r.end <= end) comments.set(r.pos, r.end);
+		for (const c of n.getChildren(sf)) visit(c);
+	};
+	visit(root);
+	let out = '';
+	let at = start;
+	for (const pos of [...comments.keys()].sort((a, b) => a - b)) {
+		out += `${sf.text.slice(at, pos)} `;
+		at = comments.get(pos);
+	}
+	return collapse(out + sf.text.slice(at, end));
+}
+
+/** `codeExcerpt` of one whole node. */
+const nodeExcerpt = (sf, node) => codeExcerpt(sf, node, node.getStart(sf), node.end);
 
 /** Cuts `s` to `n` UTF-16 units, the last being `…`, when it is longer; never splits a surrogate pair. */
 function cap(s, n) {
@@ -216,6 +243,7 @@ function bindingsOf(region, out, top) {
 						specLine: line,
 						typeOnly: false,
 						dynamic: true,
+						importLine: lineOf(init),
 						enclosing: enclosingOf(e, top, lineOf),
 					});
 				}
@@ -367,11 +395,12 @@ function lookup(name, scopes) {
 /**
  * Visits every node of `root` outside type positions, imports and export
  * lists, with the scope stack in force at the node (`scopes` plus the scopes
- * of its ancestors and its own).
+ * of its ancestors and its own). A node other than `root` for which `prune`
+ * returns true is not visited, nor is its subtree.
  */
-function walkScoped(root, scopes, dyn, onNode) {
+function walkScoped(root, scopes, dyn, onNode, prune = null) {
 	const visit = (n, sc) => {
-		if (isSkipped(n)) return;
+		if (isSkipped(n) || (prune && n !== root && prune(n))) return;
 		const own = scopeOf(n, dyn);
 		const inner = own ? [...sc, own] : sc;
 		onNode(n, inner);
@@ -641,12 +670,13 @@ export function enclosingOf(node, top, lineOf) {
  *   header: string,
  *   symbols: {name: string, kind: string, line: number, span: number, sig: string, doc: string}[],
  *   locals: {name: string, kind: 'fn', line: number, span: number, sig: string}[],
- *   bindings: {local: string, imported: string, spec: string, line: number, specLine: number, typeOnly: boolean, dynamic: boolean, enclosing: string}[],
+ *   bindings: {local: string, imported: string, spec: string, line: number, specLine: number, typeOnly: boolean, dynamic: boolean, importLine?: number, enclosing: string}[],
  *   exports: {names: Map<string, {local: string} | {spec: string, name: string}>, stars: string[]},
  *   aliases: Map<string, string>,
  *   objects: Map<string, string[]>,
  *   stores: {name: string, line: number, members: {name: string, kind: 'get' | 'set' | 'do', line: number, doc: string, wVia: string[]}[]}[],
  *   markup: string,
+ *   template: string,
  * }} lines are 1-based from the file start; symbols and locals by (line, name);
  *   `imported` is `default` or `*` for default and namespace imports; an
  *   export entry `{spec, name: '*'}` is an `export * as` namespace; `aliases`
@@ -654,7 +684,9 @@ export function enclosingOf(node, top, lineOf) {
  *   `objects` maps each top-level `const Obj = {…}` to its method names;
  *   `stores` lists the F5 store objects in line order (`wVia` empty on
  *   members other than `get`); `markup` is `markupCode` of a `.svelte` file,
- *   '' otherwise; a binding's `enclosing` is its region's file scope, or for a
+ *   '' otherwise; a dynamic binding's `importLine` is the line of its
+ *   `import()` call; `template` is a `.svelte` file with its comments, `<script>`
+ *   and `<style>` blocks blanked (newlines kept), '' otherwise; a binding's `enclosing` is its region's file scope, or for a
  *   dynamic one the F4e enclosing of its declaration
  */
 export function extractTsFile(file, text) {
@@ -761,6 +793,7 @@ export function extractTsFile(file, text) {
 		objects,
 		stores: stores.sort(byLineName),
 		markup: svelte ? markupCode(text) : '',
+		template: svelte ? text.replace(MARKUP_HIDE_RE, blankKeepLines) : '',
 	};
 }
 
@@ -1140,6 +1173,26 @@ const EVENTS_TS = 'src/lib/contracts/events.ts';
 /** Line of a node within its region, from the file start. */
 const regionLine = (region, n) => region.lineOffset + region.sf.getLineAndCharacterOfPosition(n.getStart(region.sf)).line + 1;
 
+/**
+ * The names one `export … from` statement takes from its target, in source
+ * order: `*` for `export *` and `export * as`, else each element's name in the
+ * target, `type:`-prefixed when the statement or the element is type-only.
+ *
+ * @param {{sf: import('typescript').SourceFile, lineOffset: number}} region a parsed region
+ * @param {number} line file line of the statement, as `extractImportsFromSource` gives it
+ * @param {string} spec its module specifier
+ * @returns {string[]} empty when no such statement exists or it names nothing
+ */
+export function reexportNames(region, line, spec) {
+	for (const st of region.sf.statements) {
+		if (!ts.isExportDeclaration(st) || !st.moduleSpecifier || !ts.isStringLiteral(st.moduleSpecifier)) continue;
+		if (st.moduleSpecifier.text !== spec || regionLine(region, st) !== line) continue;
+		if (!st.exportClause || ts.isNamespaceExport(st.exportClause)) return ['*'];
+		return st.exportClause.elements.map((e) => `${st.isTypeOnly || e.isTypeOnly ? 'type:' : ''}${(e.propertyName ?? e.name).text}`);
+	}
+	return [];
+}
+
 /** The members of the interface `name` declared at the top of a file, with their region. */
 function interfaceMembers(facts, name) {
 	for (const region of facts?.regions ?? []) {
@@ -1288,4 +1341,671 @@ export function keySites(files, names) {
 		}
 	}
 	return out.sort((x, y) => cmp(x.name, y.name) || cmp(x.file, y.file) || x.line - y.line);
+}
+
+/** Whether a path is a frontend test or e2e file. */
+const isTestPath = (f) => f.startsWith('src/tests/') || f.startsWith('e2e/');
+
+/** The stem a mirrored test name starts with: the basename without `.ts`, `.js` or `.svelte`, and without a `.svelte` before `.ts`. */
+const sourceStem = (file) =>
+	posix
+		.basename(file)
+		.replace(/\.(?:ts|js|svelte)$/, '')
+		.replace(/\.svelte$/, '');
+
+/**
+ * What may follow the source stem in a mirrored test's basename: `x.test.ts`
+ * and `x-parity.test.ts` mirror `x.ts`, `xy.test.ts` does not.
+ */
+const MIRROR_SEPARATORS = ['.', '-'];
+
+/** The callees that mock a module in vitest. */
+const VI_MOCKS = new Set(['vi.mock', 'vi.doMock']);
+
+/**
+ * F6 for the frontend: one row per (test file, source file). `mocks` when the
+ * test calls `vi.mock` or `vi.doMock` with a string literal resolving to the
+ * file (it wins over an import); else `e2e` for an e2e file and `imports` for
+ * a `src/tests` file with a non-type-only import (static, re-export or
+ * `import()`) resolving to it. Package mocks and targets that are test files
+ * give no row. `mirror` marks an `imports` row whose test sits in
+ * `src/tests/<source dir without src/>/` with a basename starting with the
+ * source stem and a `.` or `-`.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @param {(path: string) => boolean} [exists] whether a repo-relative file is in the inventory
+ * @returns {{test: string, relation: 'imports' | 'mocks' | 'e2e', target: string, mirror: boolean}[]}
+ *   by (target, mirrored first, relation, test)
+ */
+export function testRelations(files, exists = (p) => files.has(p)) {
+	const rel = new Map();
+	for (const test of [...files.keys()].sort(cmp)) {
+		if (!isTestPath(test)) continue;
+		const set = (spec, relation) => {
+			const target = resolveSpecifier(test, spec, exists);
+			if (target === null || !exists(target) || isTestPath(target)) return;
+			const key = `${test}\0${target}`;
+			if (rel.get(key) !== 'mocks') rel.set(key, relation);
+		};
+		for (const region of files.get(test).regions) {
+			for (const imp of extractImportsFromSource(region.sf, region.lineOffset))
+				if (imp.spec !== null && !imp.typeOnly) set(imp.spec, test.startsWith('e2e/') ? 'e2e' : 'imports');
+			const visit = (n) => {
+				if (ts.isCallExpression(n) && VI_MOCKS.has(calleeText(n))) {
+					const a = n.arguments[0];
+					if (a && (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a))) set(a.text, 'mocks');
+				}
+				ts.forEachChild(n, visit);
+			};
+			visit(region.sf);
+		}
+	}
+	const rows = [...rel].map(([key, relation]) => {
+		const [test, target] = key.split('\0');
+		const mirror =
+			relation === 'imports' &&
+			target.startsWith('src/') &&
+			posix.dirname(test) === `src/tests/${posix.dirname(target).slice('src/'.length)}` &&
+			MIRROR_SEPARATORS.some((sep) => posix.basename(test).startsWith(`${sourceStem(target)}${sep}`));
+		return { test, relation, target, mirror };
+	});
+	return rows.sort(
+		(a, b) => cmp(a.target, b.target) || Number(b.mirror) - Number(a.mirror) || cmp(a.relation, b.relation) || cmp(a.test, b.test),
+	);
+}
+
+/** The identifier that starts at `pos` in a parsed region, found by descending the child that spans it. */
+function identifierAt(sf, pos) {
+	let n = sf;
+	for (;;) {
+		const next = ts.forEachChild(n, (c) => (c.pos <= pos && pos < c.end ? c : undefined));
+		if (!next) return null;
+		if (ts.isIdentifier(next) && next.getStart(sf) === pos) return next;
+		n = next;
+	}
+}
+
+/**
+ * The parsed context of a script use row: its region, its identifier and the
+ * call it is the callee of (`B(…)` for a row without member, `B.m(…)` for a
+ * row with member `m`), or null for a markup row.
+ */
+function useNode(files, u) {
+	if (u.markup) return null;
+	const [ri, pos] = u.site.split(':').map(Number);
+	const region = files.get(u.file).regions[ri];
+	const id = identifierAt(region.sf, pos);
+	if (!id) return null;
+	const p = id.parent;
+	let call = null;
+	if (u.member === null && ts.isCallExpression(p) && p.expression === id) call = p;
+	else if (u.member !== null && ts.isPropertyAccessExpression(p) && p.expression === id && ts.isCallExpression(p.parent) && p.parent.expression === p)
+		call = p.parent;
+	return { region, id, call };
+}
+
+/** The F4 rows of every script and markup use, keyed by `<file>\0<site>`. */
+function rowsBySite(uses) {
+	const out = new Map();
+	for (const u of uses) {
+		const key = `${u.file}\0${u.site}`;
+		if (!out.has(key)) out.set(key, []);
+		out.get(key).push(u);
+	}
+	return out;
+}
+
+/** The production F4 rows by target ID, each site once. */
+function rowsByTarget(uses, isTest) {
+	const out = new Map();
+	const seen = new Set();
+	for (const u of uses) {
+		if (isTest(u.file)) continue;
+		const key = `${u.target}\0${u.file}\0${u.site}`;
+		if (seen.has(key)) continue;
+		seen.add(key);
+		if (!out.has(u.target)) out.set(u.target, []);
+		out.get(u.target).push(u);
+	}
+	return out;
+}
+
+/** Methods whose call on a module-level binding registers into it, for the F11 sink rule. */
+const SINK_MUTATORS = new Set(['push', 'add', 'set', 'unshift']);
+
+/** Whether an operator token is `=` or a compound assignment. */
+const isAssignOp = (t) => t.kind >= ts.SyntaxKind.FirstAssignment && t.kind <= ts.SyntaxKind.LastAssignment;
+
+/**
+ * The top-level functions of a region (declarations and `const|let` bound to
+ * arrow or function expressions) and the methods, getters and function
+ * properties of its top-level `const` object literals (`Obj.member`), each with
+ * its node, line and whether it is exported (its statement, or for a member
+ * its object's).
+ */
+function regionFunctions(region) {
+	const { sf, lineOffset } = region;
+	const lineOf = (n) => lineOffset + sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+	const out = [];
+	for (const st of sf.statements) {
+		const exported = isExported(st);
+		if (ts.isFunctionDeclaration(st) && st.name && st.body)
+			out.push({ name: st.name.text, node: st, line: lineOf(st), exported, member: null });
+		if (!ts.isVariableStatement(st)) continue;
+		for (const d of st.declarationList.declarations) {
+			if (!ts.isIdentifier(d.name)) continue;
+			if (isFnExpr(d.initializer)) out.push({ name: d.name.text, node: d.initializer, line: lineOf(d), exported, member: null });
+			const obj = unwrap(d.initializer);
+			if (!obj || !ts.isObjectLiteralExpression(obj) || !(st.declarationList.flags & ts.NodeFlags.Const)) continue;
+			for (const p of obj.properties) {
+				let node = null;
+				if (ts.isMethodDeclaration(p) || ts.isGetAccessorDeclaration(p)) node = p;
+				else if (ts.isPropertyAssignment(p) && isFnExpr(p.initializer)) node = p.initializer;
+				if (node) out.push({ name: `${d.name.text}.${propName(p.name)}`, node, line: lineOf(p), exported, member: ts.isGetAccessorDeclaration(p) ? 'get' : 'do' });
+			}
+		}
+	}
+	return out;
+}
+
+/** The names a region's top-level `const`/`let`/`var` statements declare. */
+function moduleBindings(region) {
+	const out = new Set();
+	for (const st of region.sf.statements)
+		if (ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) for (const id of bindingNames(d.name)) out.add(id.text);
+	return out;
+}
+
+/**
+ * The F11 facts of one function: `refs`, the module bindings it reads
+ * anywhere in its body; `muts`, those it changes anywhere (assignment,
+ * `++`/`--`, or a mutator call on the root of a property chain); and, for its
+ * own body only (nested functions left out), whether it returns an arrow or
+ * function expression and the registrations it makes (`.push`, `.add`,
+ * `.set`, `.unshift` on a module binding, or an assignment to one).
+ */
+function functionFacts(fn, region, moduleNames) {
+	const { sf, lineOffset } = region;
+	const lineOf = (n) => lineOffset + sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+	const noDyn = () => null;
+	const free = (id, sc) => Boolean(id) && moduleNames.has(id.text) && !lookup(id.text, sc);
+	const refs = new Set();
+	const muts = new Set();
+	walkScoped(fn.node, [], noDyn, (n, sc) => {
+		if (ts.isIdentifier(n) && isValueRef(n) && free(n, sc)) refs.add(n.text);
+		let target = null;
+		if (ts.isBinaryExpression(n) && isAssignOp(n.operatorToken)) target = n.left;
+		else if ((ts.isPrefixUnaryExpression(n) || ts.isPostfixUnaryExpression(n)) && isAssigned(n.operand)) target = n.operand;
+		else if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && MUTATORS.has(n.expression.name.text)) target = n.expression.expression;
+		const root = target && chainRoot(target);
+		if (free(root, sc)) muts.add(root.text);
+	});
+	let returnsFn = false;
+	const stores = [];
+	walkScoped(
+		fn.node,
+		[],
+		noDyn,
+		(n, sc) => {
+			if (ts.isReturnStatement(n) && isFnExpr(unwrap(n.expression))) returnsFn = true;
+			let root = null;
+			let mutation = null;
+			if (ts.isCallExpression(n) && ts.isPropertyAccessExpression(n.expression) && SINK_MUTATORS.has(n.expression.name.text)) {
+				root = chainRoot(n.expression.expression);
+				mutation = n.expression.name.text;
+			} else if (ts.isBinaryExpression(n) && isAssignOp(n.operatorToken)) {
+				root = chainRoot(n.left);
+				mutation = 'assign';
+			}
+			if (free(root, sc) && !stores.some((s) => s.binding === root.text && s.mutation === mutation))
+				stores.push({ binding: root.text, mutation, line: lineOf(n) });
+		},
+		(n) => ts.isFunctionLike(n),
+	);
+	return { refs, muts, returnsFn, stores };
+}
+
+/**
+ * F11: registries and facets.
+ *
+ * A sink is an exported function, or a method of an exported object literal,
+ * whose own body returns an arrow or function expression and registers into a
+ * module-level binding of its file (`.push`, `.add`, `.set`, `.unshift`, or an
+ * assignment). Its `readBy` are the same-region functions, methods and getters
+ * that read a written binding and change none of them. `firedBy` lists, per
+ * reader, the chains up the F4 production call graph from the reader (a store
+ * getter's first hops are its F5 readers), one hop per distinct (file,
+ * enclosing) with its first site, continuing while the hop's enclosing is a
+ * file-local function of its file, so each chain ends at an exported
+ * function or another scope.
+ *
+ * A facet is an exported `const` initialized with `Facet.define(…)`; its
+ * registrations are `X.of(…)` calls.
+ *
+ * `registeredAt` are the production script call sites of the sink (or of
+ * `X.of`), with `args` the first argument's text (comments dropped, whitespace
+ * collapsed, cap 80)
+ * and `callbacks`: the first argument when it is an identifier resolving to a
+ * function, else the identifier values (function ones) of its object-literal
+ * properties, else the site's enclosing scope as `<file>:<enclosing>`.
+ * `invokedAt` are the production use sites of each registration's enclosing
+ * scope when that scope is an exported symbol of its file.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @param {ReturnType<typeof extractUses>} uses
+ * @param {(file: string) => boolean} isTest whether a file is a test or e2e file
+ * @returns {{id: string, kind: 'sink' | 'facet', file: string, line: number,
+ *   stores: {binding: string, mutation: string, line: number}[],
+ *   readBy: {id: string, file: string, line: number}[],
+ *   firedBy: {via: string, chain: {file: string, line: number, enclosing: string}[]}[],
+ *   registeredAt: {file: string, line: number, enclosing: string, args: string, callbacks: string[]}[],
+ *   invokedAt: {file: string, line: number, enclosing: string, via: string}[]}[]}
+ *   by ID; lists by location, `firedBy` by reader line then first hop
+ */
+export function collectRegistries(files, uses, isTest) {
+	const fnIds = new Set();
+	for (const [file, facts] of files) {
+		for (const s of facts.symbols) if (s.kind === 'fn' || s.kind === 'method') fnIds.add(`${file}:${s.name}`);
+		for (const l of facts.locals) fnIds.add(`${file}:${l.name}`);
+		for (const [obj, methods] of facts.objects) for (const m of methods) fnIds.add(`${file}:${obj}.${m}`);
+	}
+	const bySite = rowsBySite(uses);
+	const byTarget = rowsByTarget(uses, isTest);
+	const hop = (u) => ({ file: u.file, line: u.line, enclosing: u.enclosing });
+	const firstPerScope = (rows) => {
+		const out = new Map();
+		for (const u of rows) {
+			const key = `${u.file}\0${u.enclosing}`;
+			if (!out.has(key)) out.set(key, u);
+		}
+		return [...out.values()];
+	};
+	const localsOf = new Map([...files].map(([f, facts]) => [f, new Set(facts.locals.map((l) => l.name))]));
+	const registries = [];
+	for (const file of [...files.keys()].sort(cmp)) {
+		if (isTest(file)) continue;
+		const facts = files.get(file);
+		for (const region of facts.regions) {
+			if (file.endsWith('.svelte') && !region.module) continue;
+			const moduleNames = moduleBindings(region);
+			const fns = regionFunctions(region).map((fn) => ({ ...fn, ...functionFacts(fn, region, moduleNames) }));
+			for (const fn of fns) {
+				if (!fn.exported || fn.member === 'get' || !fn.returnsFn || !fn.stores.length) continue;
+				const written = new Set(fn.stores.map((s) => s.binding));
+				const readBy = fns.filter((o) => o !== fn && [...written].some((b) => o.refs.has(b) && !o.muts.has(b)));
+				const firedBy = [];
+				for (const r of readBy) {
+					const id = `${file}:${r.name}`;
+					const seen = new Set([id]);
+					const climb = (target, chain) => {
+						const sites = firstPerScope(byTarget.get(target) ?? []);
+						if (!sites.length && chain.length) firedBy.push({ via: id, chain });
+						for (const u of sites) {
+							const next = [...chain, hop(u)];
+							const up = `${u.file}:${u.enclosing}`;
+							if (localsOf.get(u.file)?.has(u.enclosing) && !seen.has(up)) {
+								seen.add(up);
+								climb(up, next);
+							} else firedBy.push({ via: id, chain: next });
+						}
+					};
+					climb(id, []);
+				}
+				registries.push({
+					id: `${file}:${fn.name}`,
+					kind: 'sink',
+					file,
+					line: fn.line,
+					stores: fn.stores,
+					readBy: readBy.map((r) => ({ id: `${file}:${r.name}`, file, line: r.line })),
+					firedBy,
+					target: `${file}:${fn.name}`,
+				});
+			}
+			for (const st of region.sf.statements) {
+				if (!ts.isVariableStatement(st) || !isExported(st)) continue;
+				for (const d of st.declarationList.declarations) {
+					const init = unwrap(d.initializer);
+					if (!ts.isIdentifier(d.name) || !init || !ts.isCallExpression(init) || calleeText(init) !== 'Facet.define') continue;
+					const id = `${file}:${d.name.text}`;
+					registries.push({ id, kind: 'facet', file, line: regionLine(region, d), stores: [], readBy: [], firedBy: [], target: `${id}.of` });
+				}
+			}
+		}
+	}
+	const callbacksOf = (u, arg) => {
+		const fnAt = (node) => (bySite.get(`${u.file}\0${u.site.split(':')[0]}:${node.getStart(node.getSourceFile())}`) ?? []).find((r) => fnIds.has(r.target))?.target;
+		const a = unwrap(arg);
+		if (a && ts.isIdentifier(a)) {
+			const id = fnAt(a);
+			if (id) return [id];
+		} else if (a && ts.isObjectLiteralExpression(a)) {
+			const ids = [];
+			for (const p of a.properties) {
+				const v = ts.isShorthandPropertyAssignment(p) ? p.name : ts.isPropertyAssignment(p) && ts.isIdentifier(unwrap(p.initializer)) ? unwrap(p.initializer) : null;
+				const id = v && fnAt(v);
+				if (id && !ids.includes(id)) ids.push(id);
+			}
+			if (ids.length) return ids;
+		}
+		return [`${u.file}:${u.enclosing}`];
+	};
+	const byLoc = (a, b) => cmp(a.file, b.file) || a.line - b.line;
+	return registries
+		.sort((a, b) => cmp(a.id, b.id))
+		.map(({ target, ...r }) => {
+			const registeredAt = [];
+			for (const u of byTarget.get(target) ?? []) {
+				if (u.kind !== 'call' && u.kind !== 'mcall') continue;
+				const node = useNode(files, u);
+				if (!node?.call) continue;
+				const arg = node.call.arguments[0];
+				registeredAt.push({
+					file: u.file,
+					line: u.line,
+					enclosing: u.enclosing,
+					args: arg ? cap(nodeExcerpt(node.region.sf, arg), 80) : '',
+					callbacks: callbacksOf(u, arg),
+				});
+			}
+			const invokedAt = [];
+			const seen = new Set();
+			for (const reg of registeredAt) {
+				const exported = new Set(files.get(reg.file).symbols.map((s) => s.name));
+				if (!exported.has(reg.enclosing.split('.')[0])) continue;
+				const via = `${reg.file}:${reg.enclosing}`;
+				for (const u of byTarget.get(via) ?? []) {
+					const key = `${via}\0${u.file}\0${u.site}`;
+					if (seen.has(key)) continue;
+					seen.add(key);
+					invokedAt.push({ ...hop(u), via });
+				}
+			}
+			return { ...r, registeredAt: registeredAt.sort(byLoc), invokedAt: invokedAt.sort(byLoc) };
+		});
+}
+
+/** Global timer functions (F15). */
+const TIMERS = new Set(['setTimeout', 'setInterval', 'requestAnimationFrame', 'requestIdleCallback', 'queueMicrotask']);
+
+/** Timers whose second argument is a delay. */
+const DELAYED = new Set(['setTimeout', 'setInterval']);
+
+/** Objects through which a global timer may be called. */
+const GLOBAL_OBJECTS = new Set(['window', 'globalThis']);
+
+/** `@tauri-apps/plugin-fs` functions by F15 class; other plugin-fs functions and every other Tauri API are `host`. */
+const TAURI_FS_CLASS = new Map([
+	...['writeTextFile', 'writeFile', 'mkdir', 'remove', 'rename', 'copyFile', 'create', 'truncate'].map((n) => [n, 'disk-write']),
+	...['readTextFile', 'readFile', 'readDir', 'exists', 'stat', 'lstat', 'readTextFileLines', 'open'].map((n) => [n, 'disk-read']),
+]);
+
+/** Marks a scope entry as a destructure of a Tauri package's `await import`. */
+const TAURI_MARK = 'tauri\0';
+
+/** The sink origin of a Tauri specifier: `@tauri-apps/plugin-X` → `tauri-X`, `@tauri-apps/api/X` → `tauri-api-X`. */
+function tauriOrigin(spec) {
+	const rest = spec.slice('@tauri-apps/'.length);
+	return `tauri-${rest.startsWith('plugin-') ? rest.slice('plugin-'.length) : rest.replace(/\//g, '-')}`;
+}
+
+/** A Tauri site's sink and class from its specifier and exported name. */
+function tauriSink(spec, name) {
+	const origin = tauriOrigin(spec);
+	return { sink: `${origin}.${name}`, class: (origin === 'tauri-fs' && TAURI_FS_CLASS.get(name)) || 'host' };
+}
+
+/** `<svelte:window`, `<svelte:document` and `<svelte:body` opening tags. */
+const SVELTE_SPECIAL_RE = /<(svelte:(?:window|document|body))(?![\w-])/g;
+
+/** An event handler attribute name, `onx=` or `on:x=`, with optional Svelte 4 modifiers. */
+const HANDLER_ATTR_RE = /(?<![\w:-])on:?([A-Za-z]\w*)(?:\|[\w|]*)?\s*=/g;
+
+/**
+ * The text of a tag from `from` to its closing `>`, with every character
+ * inside `{…}` or a quoted value blanked, so only attribute names remain.
+ */
+function tagHead(text, from) {
+	let depth = 0;
+	let quote = null;
+	let out = '';
+	for (let i = from; i < text.length; i++) {
+		const c = text[i];
+		if (depth === 0 && quote === null && c === '>') break;
+		if (quote !== null) {
+			if (c === quote) quote = null;
+			out += c === '\n' ? '\n' : ' ';
+			continue;
+		}
+		if (c === '{') depth++;
+		else if (c === '}') depth--;
+		else if (depth === 0 && (c === '"' || c === "'")) quote = c;
+		out += depth > 0 || c === '}' ? (c === '\n' ? '\n' : ' ') : c;
+	}
+	return out;
+}
+
+/** Whether a call's callee is a global timer: `name(…)` not declared in any scope, the file or its imports, or `window.name(…)`/`globalThis.name(…)`. */
+function timerName(call, sc, fileNames) {
+	const e = call.expression;
+	if (ts.isIdentifier(e)) return TIMERS.has(e.text) && !lookup(e.text, sc) && !fileNames.has(e.text) ? e.text : null;
+	if (ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression) && GLOBAL_OBJECTS.has(e.expression.text) && TIMERS.has(e.name.text))
+		return !lookup(e.expression.text, sc) && !fileNames.has(e.expression.text) ? e.name.text : null;
+	return null;
+}
+
+/** Names a file declares at its top level or imports: a same-named callee is not a global. */
+function fileNamesOf(facts) {
+	const out = new Set(facts.bindings.map((b) => b.local));
+	for (const region of facts.regions) {
+		for (const n of moduleBindings(region)) out.add(n);
+		for (const st of region.sf.statements) if ((ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name) out.add(st.name.text);
+	}
+	return out;
+}
+
+/**
+ * F15 for the frontend, production files only. Sites:
+ * - Tauri package calls: a callee bound by a named, aliased, namespace or
+ *   `await import` destructure from `@tauri-apps/*`; sink `<origin>.<exported
+ *   name>`, class by the plugin-fs table, else `host`.
+ * - Global timers (`setTimeout`, `setInterval`, `requestAnimationFrame`,
+ *   `requestIdleCallback`, `queueMicrotask`, also through `window.` or
+ *   `globalThis.`), sink `timer.<name>`, arg `delay=<2nd argument>` (cap 30)
+ *   for `setTimeout` and `setInterval`.
+ * - Timer wrapper calls: every F4 `call` of an exported function that holds a
+ *   `setTimeout`/`setInterval` whose delay's root identifier is the function's
+ *   own parameter; sink `timer-wrap.<name>`, arg `args=<arguments>` (cap 60)
+ *   plus ` as X` when the call initializes `const X`.
+ * - `$effect`, `$effect.pre`, `$effect.root` calls, sink `svelte.$effect`.
+ * - `<expr>.addEventListener('<literal>', …)`, sink `dom.<event>`, arg the
+ *   receiver text (cap 30); `on<name>=` / `on:<name>=` attributes of
+ *   `<svelte:window|document|body>`, arg the tag name, enclosing `(markup)`.
+ * - Tauri calls and global timers inside Svelte markup expressions (see
+ *   `markupEffects`).
+ * Excerpts drop comments and collapse whitespace. Identical sites (two calls
+ * of one sink on one line) are one row.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @param {ReturnType<typeof extractUses>} uses
+ * @param {(file: string) => boolean} isTest whether a file is a test or e2e file
+ * @returns {{file: string, line: number, sink: string, class: string, arg: string, enclosing: string}[]}
+ *   by (file, line, sink, arg, enclosing); `arg` '' when there is none
+ */
+export function tsEffects(files, uses, isTest) {
+	const out = [];
+	const wrappers = new Set();
+	const paths = [...files.keys()].sort(cmp).filter((f) => !isTest(f));
+	for (const file of paths) {
+		const facts = files.get(file);
+		const fileNames = fileNamesOf(facts);
+		const tauri = new Map();
+		const tauriDyn = new Map();
+		for (const b of facts.bindings) {
+			if (!b.spec.startsWith('@tauri-apps/') || b.typeOnly) continue;
+			if (b.dynamic) tauriDyn.set(`${b.local}@${b.line}`, `${TAURI_MARK}${b.spec}\0${b.imported}`);
+			else tauri.set(b.local, b);
+		}
+		for (const region of facts.regions) {
+			const { sf, lineOffset } = region;
+			const top = file.endsWith('.svelte') && !region.module ? '(script)' : '(module)';
+			const lineOf = (n) => lineOffset + sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+			const dyn = (id) => tauriDyn.get(`${id.text}@${lineOf(ts.isBindingElement(id.parent) ? id.parent : id)}`) ?? null;
+			const add = (n, sink, cls, arg) => out.push({ file, line: lineOf(n), sink, class: cls, arg, enclosing: enclosingOf(n, top, lineOf) });
+			walkScoped(sf, [], dyn, (n, sc) => {
+				if (!ts.isCallExpression(n)) return;
+				const e = n.expression;
+				if (EFFECTS.has(calleeText(n))) return add(n, 'svelte.$effect', 'reactive', '');
+				const timer = timerName(n, sc, fileNames);
+				if (timer) {
+					const delay = DELAYED.has(timer) && n.arguments[1] ? `delay=${cap(nodeExcerpt(sf, n.arguments[1]), 30)}` : '';
+					return add(n, `timer.${timer}`, 'timer', delay);
+				}
+				if (ts.isIdentifier(e)) {
+					const hit = lookup(e.text, sc);
+					if (hit?.id?.startsWith(TAURI_MARK)) {
+						const [, spec, name] = hit.id.split('\0');
+						const t = tauriSink(spec, name);
+						return add(n, t.sink, t.class, '');
+					}
+					const b = !hit && tauri.get(e.text);
+					if (b && b.imported !== '*') {
+						const t = tauriSink(b.spec, b.imported);
+						return add(n, t.sink, t.class, '');
+					}
+					return;
+				}
+				if (!ts.isPropertyAccessExpression(e)) return;
+				const root = ts.isIdentifier(e.expression) ? e.expression.text : null;
+				const ns = root && !lookup(root, sc) ? tauri.get(root) : null;
+				if (ns && ns.imported === '*') {
+					const t = tauriSink(ns.spec, e.name.text);
+					return add(n, t.sink, t.class, '');
+				}
+				const ev = n.arguments[0];
+				if (e.name.text === 'addEventListener' && ev && (ts.isStringLiteral(ev) || ts.isNoSubstitutionTemplateLiteral(ev)))
+					add(n, `dom.${ev.text}`, 'dom', cap(nodeExcerpt(sf, e.expression), 30));
+			});
+			for (const fn of regionFunctions(region)) {
+				if (!fn.exported || fn.member !== null) continue;
+				let own = null;
+				walkScoped(fn.node, [], () => null, (n, sc) => {
+					if (n === fn.node) own = sc.at(-1) ?? null;
+					if (!own || !ts.isCallExpression(n) || !DELAYED.has(timerName(n, sc, fileNames) ?? '')) return;
+					const root = n.arguments[1] && chainRoot(n.arguments[1]);
+					if (!root) return;
+					for (let i = sc.length - 1; i >= 0; i--) {
+						if (!sc[i].has(root.text)) continue;
+						if (sc[i] === own) wrappers.add(`${file}:${fn.name}`);
+						break;
+					}
+				});
+			}
+		}
+		const template = facts.template;
+		if (template) {
+			const lineAt = lineIndex(template);
+			for (const m of template.matchAll(SVELTE_SPECIAL_RE)) {
+				const from = m.index + m[0].length;
+				for (const a of tagHead(template, from).matchAll(HANDLER_ATTR_RE))
+					out.push({ file, line: lineAt(from + a.index), sink: `dom.${a[1]}`, class: 'dom', arg: m[1], enclosing: '(markup)' });
+			}
+			out.push(...markupEffects(file, facts, tauri, fileNames));
+		}
+	}
+	for (const u of uses) {
+		if (u.kind !== 'call' || u.member !== null || !wrappers.has(u.target) || isTest(u.file)) continue;
+		const node = useNode(files, u);
+		if (!node?.call) continue;
+		const { call, region } = node;
+		const args = call.arguments.length
+			? cap(codeExcerpt(region.sf, call, call.arguments[0].getStart(region.sf), call.arguments.at(-1).end), 60)
+			: '';
+		let e = call;
+		while (e.parent && unwrap(e.parent) === call) e = e.parent;
+		const v = e.parent;
+		const asName =
+			v && ts.isVariableDeclaration(v) && v.initializer === e && ts.isIdentifier(v.name) && v.parent.flags & ts.NodeFlags.Const ? v.name.text : null;
+		const arg = [args ? `args=${args}` : '', asName ? `as ${asName}` : ''].filter(Boolean).join(' ');
+		out.push({ file: u.file, line: u.line, sink: `timer-wrap.${u.target.slice(u.target.lastIndexOf(':') + 1)}`, class: 'timer', arg, enclosing: u.enclosing });
+	}
+	const seen = new Set();
+	return out
+		.filter((s) => {
+			const key = `${s.file}\0${s.line}\0${s.sink}\0${s.arg}\0${s.enclosing}`;
+			if (seen.has(key)) return false;
+			seen.add(key);
+			return true;
+		})
+		.sort((a, b) => cmp(a.file, b.file) || a.line - b.line || cmp(a.sink, b.sink) || cmp(a.arg, b.arg) || cmp(a.enclosing, b.enclosing));
+}
+
+/** A global timer call in markup code: an optional `window.`/`globalThis.` (group 1) and the timer name (group 2). */
+const MARKUP_TIMER_RE = new RegExp(
+	`(?<![\\w$])(?<!(?<!\\.)\\.)(?:(${[...GLOBAL_OBJECTS].join('|')})\\s*\\.\\s*)?(${[...TIMERS].join('|')})\\s*\\(`,
+	'g',
+);
+
+/**
+ * The F15 Tauri and timer sites inside the `{…}` expressions of a `.svelte`
+ * file's markup, enclosing `(markup)`: a call of a static Tauri binding
+ * (`B(` or, for a namespace, `B.name(`), and a global timer call whose name,
+ * or its `window`/`globalThis` object, the file does not declare or import.
+ * The delay of `setTimeout`/`setInterval` is parsed from the template text at
+ * the call.
+ */
+function markupEffects(file, facts, tauri, fileNames) {
+	const code = facts.markup;
+	const lineAt = lineIndex(code);
+	const out = [];
+	const add = (index, sink, cls, arg) => out.push({ file, line: lineAt(index), sink, class: cls, arg, enclosing: '(markup)' });
+	const before = '(?<![\\w$])(?<!(?<!\\.)\\.)';
+	for (const [local, b] of tauri) {
+		const ns = b.imported === '*';
+		const re = new RegExp(`${before}${escapeRe(local)}${ns ? '\\s*\\.\\s*([\\w$]+)' : ''}\\s*\\(`, 'g');
+		for (const m of code.matchAll(re)) {
+			const t = tauriSink(b.spec, ns ? m[1] : b.imported);
+			add(m.index, t.sink, t.class, '');
+		}
+	}
+	for (const m of code.matchAll(MARKUP_TIMER_RE)) {
+		const [, obj, name] = m;
+		if (fileNames.has(obj ?? name)) continue;
+		let arg = '';
+		if (DELAYED.has(name)) {
+			const sf = ts.createSourceFile('x.ts', facts.template.slice(m.index, m.index + 500), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+			const st = sf.statements[0];
+			const call = st && ts.isExpressionStatement(st) && ts.isCallExpression(st.expression) ? st.expression : null;
+			if (call?.arguments[1]) arg = `delay=${cap(nodeExcerpt(sf, call.arguments[1]), 30)}`;
+		}
+		add(m.index, `timer.${name}`, 'timer', arg);
+	}
+	return out;
+}
+
+/**
+ * F17: each `<B` followed by whitespace, `/` or `>` in a `.svelte` file's
+ * template (comments, `<script>` and `<style>` blanked), for every static,
+ * non-type import binding B that resolves to a component.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @param {ReturnType<typeof resolveBindings>} resolved bindings of the same files
+ * @returns {{file: string, line: number, name: string, target: string}[]} by (file, line, name)
+ */
+export function componentMounts(files, resolved) {
+	const out = [];
+	const byFile = new Map();
+	for (const r of resolved) {
+		if (r.dynamic || r.typeOnly || !r.id?.endsWith('.svelte:default') || !r.from.endsWith('.svelte')) continue;
+		if (!byFile.has(r.from)) byFile.set(r.from, []);
+		byFile.get(r.from).push(r);
+	}
+	for (const file of [...byFile.keys()].sort(cmp)) {
+		const template = files.get(file).template;
+		const lineAt = lineIndex(template);
+		for (const r of byFile.get(file))
+			for (const m of template.matchAll(new RegExp(`<${escapeRe(r.local)}(?=[\\s/>])`, 'g')))
+				out.push({ file, line: lineAt(m.index), name: r.local, target: r.id.slice(0, -':default'.length) });
+	}
+	return out.sort((a, b) => cmp(a.file, b.file) || a.line - b.line || cmp(a.name, b.name));
 }
