@@ -4,7 +4,7 @@ module src-tauri/src rust files 3 in-modules 1 out-modules 1 pub 3/4 ipc 0/0 car
 module src-tauri/src/commands rust files 2 in-modules 1 out-modules 2 pub 2/3 ipc 0/2 card ~0.4k
 module src-tauri/src/utils rust files 2 in-modules 1 out-modules 0 pub 1/1 ipc 0/0 card ~0.4k
 module src/lib/app app files 1 in-modules 1 out-modules 2 pub 1/1 ipc 0/0 card ~0.3k
-module src/lib/contracts contracts files 5 in-modules 2 out-modules 0 pub 3/6 ipc 0/0 card ~0.5k
+module src/lib/contracts contracts files 5 in-modules 2 out-modules 0 pub 4/8 ipc 0/0 card ~0.6k
 module src/lib/core/notes core files 3 in-modules 2 out-modules 2 pub 4/7 ipc 2/0 card ~0.7k
 module src/lib/features/tags features files 3 in-modules 2 out-modules 1 pub 2/3 ipc 0/0 card ~0.5k
 module src/lib/plugins/cal plugins files 1 in-modules 1 out-modules 2 pub 1/1 ipc 0/0 card ~0.3k

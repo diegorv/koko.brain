@@ -26,16 +26,17 @@ Search code with Grep path src or src-tauri; search the map with path codemap. I
 - Store state, who reads it, who writes it: codemap/stores.md, q store <name>
 - Disk writes and reads, frontend and Rust: codemap/effects/disk-write.md, codemap/effects/disk-read.md, q sink disk-write --up 2
 - Timers, debounce calls and their delays: codemap/effects/timer.md
-- Svelte $effect sites: codemap/effects/reactive.md · DOM listeners: codemap/effects/dom.md · SQLite writes: codemap/effects/db.md · Tauri dialogs, opener, window, http: codemap/effects/host.md · Rust spawns: codemap/effects/spawn.md
-- Observer lists, hooks, CodeMirror facets (who registers, who fires): codemap/wiring.md, q reg <id>
+- Svelte $effect sites: codemap/effects/reactive.md · DOM listeners: codemap/effects/dom.md · SQLite writes: codemap/effects/db.md · Tauri dialogs, opener, window, http: codemap/effects/host.md · Rust spawns: codemap/effects/spawn.md · localStorage and sessionStorage: codemap/effects/storage.md
+- Observer lists, hooks, CodeMirror facets (who registers, who fires): codemap/wiring/<layer>.md by the layer of the file that defines the sink (wiring/core.md), q reg <id>
 
 ## Tests
 - Tests for a source file: test lines in its card, or q tests <file>
 - Sources a test covers: q deps <test file>
+- t<n> counts test files that import a file; imports-type (type-only) and example test lines are listed but not counted, harness lines count.
 
 ## IDs
 file = repo path · location = <file>:<line> · symbol = <file>:<name> · member = <file>:<object>.<member> · component = <file>:default · Rust method = <file>:<Type>::<name> · scopes = <file>:$effect@<line>, <file>:<var>=$derived, <file>:(module), (script), (markup) · module = folder path · ipc:<command> · event:<name> · dto:<Name> · sink = <origin>.<api>
-Line tags: file imp in2 out2 test sym by local store mem call mount fx reg ipc-call ev ipc event dto dep entry module layer rule debt fx-count ipc-count hub more. "-" means no static reference found, not "unused". "in <name>" names a function in the same file as the line's location.
+Line tags: file imp in2 out2 test sym by local store mem call mount fx reg ipc-call ev ipc event dto dep entry module layer rule debt fx-count ipc-count hub more. "-" means no static reference found, not "unused". "in <name>" names a function in the same file as the line's location. On a by line, +<n> counts the further sites in that user file, in any function; its card has every call line. A signature on a sym or local line is copied as written, " | " included; the doc follows the first " | " after L<span>. Elsewhere (ipc lines, args= and doc excerpts) " / " inside copied text stands for " | ".
 
 ## Blind spots (fall back to Grep or Read)
 - Module-level $state outside store objects, and Svelte onMount/onDestroy: not tracked.
@@ -50,6 +51,7 @@ Line tags: file imp in2 out2 test sym by local store mem call mount fx reg ipc-c
 - The rust-db.execute receiver and the DOM listener receiver: not resolved.
 - Settings key joins (AppSettings, DEFAULT_SETTINGS) beyond settingsStore members: not tracked.
 - Imports of unparsed files (.js, .json, scripts): file edges only, no symbols.
+- Class methods: only this.m() and C.m() inside the defining file; calls on instances, inherited methods and super.m() are not tracked.
 - Test, e2e and crate example (src-tauri/examples) files: graph nodes for test lines and q --tests answers, no cards.
 
 ## Hubs (production importers, test importers)
@@ -63,15 +65,15 @@ hub features src/lib/features/tags/TagsView.svelte in1 t0
 hub features src/lib/features/tags/tags.service.ts in1 t0
 hub plugins src/lib/plugins/cal/cal.ts in1 t0
 hub utils src/lib/utils/debounce.ts in1 t1
+hub contracts src/lib/contracts/ipc.ts in2 t1
 hub contracts src/lib/contracts/generated/TagAggregate.ts in2 t0
-hub contracts src/lib/contracts/ipc.ts in2 t0
-hub contracts src/lib/contracts/index.ts in1 t1
+hub contracts src/lib/contracts/events.ts in1 t0
 hub rust src-tauri/src/commands/notes.rs in1 t1
 hub rust src-tauri/src/events.rs in1 t0
 hub rust src-tauri/src/index.rs in1 t0
 
 ## Counts
-files 27 (cards 21) · modules 10 · symbols 28 · locals 4 · calls 21 · ipc 2 · events 1 · dto 1 · stores 1 · registries 1 · effect sites 8
+files 27 (cards 21) · modules 10 · symbols 30 · locals 4 · calls 22 · ipc 2 · events 1 · dto 1 · stores 1 · registries 1 · effect sites 8
 
 ## Optional
 - Layer rules, layer edge totals, baseline debt: codemap/modules.md

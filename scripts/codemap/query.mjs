@@ -87,7 +87,7 @@ export const HELP = `${[
 	'  sink <sink|class> [--up N]             fx sites of a sink or effect class; --up N (at most 3) adds callers per hop',
 	'  tests <file>                           test lines of a file',
 	'  hubs [--layer L] [--module M]          files by production importers, then test importers',
-	'  reg <registry>                         the wiring lines of one registry or facet',
+	'  reg <registry>                         the codemap/wiring/<layer>.md lines of one registry or facet',
 	'options: --limit N (default 50) · --module M keeps results in module M · --file F reads a bare name as F:name',
 	'IDs: file = repo path · symbol = <file>:<name> · member = <file>:<object>.<member> · component = <file>:default or <file>:<Basename> · Rust method = <file>:<Type>::<name> · scope = <file>:(module), (script), (markup), $effect@<line>, <var>=$derived · module = folder path · ipc:<command> · event:<name> · dto:<Name> · a bare name when one definition has it',
 	'exit: 0 found (no fact prints "none …") · 1 no match or ambiguous · 2 usage error',
@@ -307,8 +307,10 @@ class Query {
 
 	/**
 	 * Definitions by ID and by name: carded TS symbols, locals, object methods,
-	 * store members and Rust items, each with its card line (`sym`, `local`,
-	 * `mem`; an object method shows the line of its object). Then the names
+	 * class methods (by `Class.m` only), store members and Rust items, each
+	 * with its card line (`sym`, `local`, `mem`; an object or class method
+	 * shows the line of its owner, none for a non-exported class). A re-export
+	 * is named by `sym` only, so a bare name elsewhere resolves to the origin. Then the names
 	 * output prints after `in` (enclosings of uses, effects, Rust calls,
 	 * registry sites, IPC callers and event sites) and the file scopes a file
 	 * has, with no line; a scope name is reachable by its full ID only.
@@ -336,7 +338,8 @@ class Query {
 		for (const file of [...model.ts.keys()].sort(cmp)) {
 			if (!isCarded(model, file)) continue;
 			const facts = model.ts.get(file);
-			for (const s of facts.symbols) add({ id: symId(file, s), names: [s.name], file, text: symLine(file, s) });
+			for (const s of facts.symbols)
+				add({ id: symId(file, s), names: s.kind === 'reexport' ? [] : [s.name], symNames: [s.name], file, text: symLine(file, s) });
 			for (const l of facts.locals) add({ id: `${file}:${l.name}`, names: [l.name], file, text: localLine(file, l) });
 			const lineOf = (name) => {
 				const sym = facts.symbols.find((s) => s.name === name);
@@ -346,6 +349,8 @@ class Query {
 			};
 			for (const obj of [...facts.objects.keys()].sort(cmp))
 				for (const m of facts.objects.get(obj)) add({ id: `${file}:${obj}.${m}`, names: [`${obj}.${m}`, m], file, text: lineOf(obj) });
+			for (const cls of [...facts.classes.keys()].sort(cmp))
+				for (const m of facts.classes.get(cls)) add({ id: `${file}:${cls}.${m}`, names: [`${cls}.${m}`], file, text: lineOf(cls) });
 		}
 		for (const file of [...model.rust.keys()].sort(cmp)) {
 			if (model.isTest(file)) continue;
@@ -637,8 +642,8 @@ const COMMANDS = {
 			if (q.opts.match === undefined) {
 				if (pos.length !== 1) throw usage('sym takes a name, or --match <part>');
 				const name = pos[0];
-				const hits = defs.filter((d) => d.text && d.names.includes(name)).sort((a, b) => count(b) - count(a) || cmp(a.id, b.id));
-				if (!hits.length) throw noMatch(name, q.ix.defs.filter((d) => d.text).flatMap((d) => d.names));
+				const hits = defs.filter((d) => d.text && (d.symNames ?? d.names).includes(name)).sort((a, b) => count(b) - count(a) || cmp(a.id, b.id));
+				if (!hits.length) throw noMatch(name, q.ix.defs.filter((d) => d.text).flatMap((d) => d.symNames ?? d.names));
 				return q.answer('sym', name, hits.map((d) => ({ text: d.text, file: d.file })));
 			}
 			if (pos.length) throw usage('sym takes a name or --match, not both');
@@ -663,7 +668,7 @@ const COMMANDS = {
 			const hits = [];
 			for (const d of defs) {
 				if (!d.text) continue;
-				const ranks = d.names.map(rank).filter((r) => r !== null);
+				const ranks = (d.symNames ?? d.names).map(rank).filter((r) => r !== null);
 				if (ranks.length) hits.push({ d, rank: Math.min(...ranks) });
 			}
 			hits.sort((a, b) => a.rank - b.rank || count(b.d) - count(a.d) || cmp(a.d.id, b.d.id));

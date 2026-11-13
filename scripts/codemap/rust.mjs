@@ -736,7 +736,8 @@ function namesOf(facts) {
  *   calls: {file: string, line: number, enclosing: string, target: string, kind: string}[],
  *   users: Map<string, {file: string, line: number, enclosing: string, kind: string, more: number}[]>,
  * }} edges by (from, line, target); calls by (file, line, target, kind);
- *   users keyed in code-unit order, by user file path, integration tests and examples left out
+ *   users keyed in code-unit order, by user file path, integration tests and examples left out,
+ *   each at its first call site with `more` counting the further sites in that file, any enclosing
  */
 export function analyzeRust(files) {
 	const paths = [...files.keys()].sort(cmp);
@@ -903,7 +904,7 @@ export function analyzeRust(files) {
 		const per = by.get(c.target);
 		const first = per.get(c.file);
 		if (!first) per.set(c.file, { file: c.file, line: c.line, enclosing: c.enclosing, kind: c.kind, more: 0 });
-		else if (first.enclosing === c.enclosing) first.more++;
+		else first.more++;
 	}
 	for (const u of leafUsers) {
 		if (isTestFile(u.file)) continue;

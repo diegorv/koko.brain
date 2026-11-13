@@ -32,6 +32,7 @@ call src/lib/core/notes/notes.service.ts:19 in loadTags -> src/lib/contracts/ipc
 call src/lib/core/notes/notes.service.ts:20 in loadTags -> src/lib/core/notes/notes.store.svelte.ts:notesStore.addTag mcall
 call src/lib/core/notes/notes.service.ts:22 in scheduleLoad -> src/lib/core/notes/notes.service.ts:loadTags call
 call src/lib/core/notes/notes.service.ts:22 in scheduleLoad -> src/lib/utils/debounce.ts:debounce call
+call src/lib/core/notes/notes.service.ts:24 in flushLater -> src/lib/core/notes/notes.service.ts:scheduleLoad call
 ## effects
 fx src/lib/core/notes/notes.service.ts:9 tauri-fs.writeTextFile in writeNote
 ipc-call src/lib/core/notes/notes.service.ts:15 in saveNote -> ipc:save_note -> src-tauri/src/commands/notes.rs:26

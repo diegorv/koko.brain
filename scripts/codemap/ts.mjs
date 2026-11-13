@@ -158,6 +158,13 @@ function declaratorSig(d, sf) {
 	return '';
 }
 
+/** The method names of a class: methods and arrow or function properties, static ones included, in source order. */
+const classMethods = (cls) =>
+	cls.members
+		.filter((m) => (ts.isMethodDeclaration(m) && m.body) || (ts.isPropertyDeclaration(m) && isFnExpr(m.initializer)))
+		.map((m) => propName(m.name))
+		.filter((n, i, all) => all.indexOf(n) === i);
+
 /** Whether an initializer is an object literal with a getter: a store object. */
 const isStoreObject = (init) =>
 	Boolean(init) && ts.isObjectLiteralExpression(init) && init.properties.some((p) => ts.isGetAccessorDeclaration(p));
@@ -604,15 +611,16 @@ function markupCode(text) {
 }
 
 /**
- * The F4e enclosing scope of a node, nearest ancestor first: a function
- * declaration's name; `Obj.member` for a method, accessor or function
+ * The F4e enclosing scope of a node, nearest ancestor first: a top-level
+ * function declaration's name; `Obj.member` for a method, accessor or function
  * property of an object literal bound to a top-level `const Obj`;
- * `Class.method` for a class member; the variable an arrow or function
- * expression is bound to; `$effect@<line>` (`$effect.pre@<line>`) for the
+ * `Class.method` for a class member; the top-level variable an arrow or
+ * function expression is bound to; `$effect@<line>` (`$effect.pre@<line>`) for the
  * arguments of `$effect(…)`, `$effect.pre(…)`, `$effect.root(…)`;
  * `X=$derived` or `$derived@<line>` for the arguments of `$derived(…)` and
  * `$derived.by(…)`; `X` for the initializer of a top-level `const|let X`.
- * Anonymous callbacks resolve outward; with no match, `top`.
+ * Anonymous callbacks, and functions and arrow consts nested in a function
+ * (they name no symbol), resolve outward; with no match, `top`.
  *
  * @param {import('typescript').Node} node a node of a parsed region
  * @param {string} top `(module)` or `(script)`
@@ -622,7 +630,7 @@ function markupCode(text) {
 export function enclosingOf(node, top, lineOf) {
 	let child = node;
 	for (let a = node.parent; a && !ts.isSourceFile(a); child = a, a = a.parent) {
-		if (ts.isFunctionDeclaration(a) && a.name) return a.name.text;
+		if (ts.isFunctionDeclaration(a) && a.name && ts.isSourceFile(a.parent)) return a.name.text;
 		let member = null;
 		if (ts.isMethodDeclaration(a) || ts.isGetAccessorDeclaration(a) || ts.isSetAccessorDeclaration(a) || ts.isConstructorDeclaration(a))
 			member = a;
@@ -634,7 +642,8 @@ export function enclosingOf(node, top, lineOf) {
 			const owner = ts.isObjectLiteralExpression(c) ? topConstOf(c) : (ts.isClassLike(c) && c.name?.text) || null;
 			if (owner) return `${owner}.${name}`;
 		}
-		if (isFnExpr(a) && ts.isVariableDeclaration(a.parent) && a.parent.initializer === a && ts.isIdentifier(a.parent.name))
+		// A const nested in a function names no symbol, so its arrow resolves outward.
+		if (isFnExpr(a) && ts.isVariableDeclaration(a.parent) && a.parent.initializer === a && ts.isIdentifier(a.parent.name) && isTopLevel(a.parent))
 			return a.parent.name.text;
 		if (ts.isCallExpression(a) && child !== a.expression) {
 			const callee = calleeText(a);
@@ -655,9 +664,12 @@ export function enclosingOf(node, top, lineOf) {
  *
  * Symbol kinds: `fn`, `class`, `interface`, `type`, `const`, `store` (an
  * exported `const` object literal with a getter), `method` (an instance-script
- * `export function` or `export const` arrow, kept out of the export table) and
+ * `export function` or `export const` arrow, kept out of the export table),
  * `component` (every `.svelte` file, at line 1, its span the file's line
- * count, `sig` its ` props:…` field). An overloaded function counts once, at
+ * count, `sig` its ` props:…` field) and `reexport` (each element of a named
+ * `export { … } from`, at its element's line, with `from` its specifier and
+ * name in that module; `sig` is empty until `resolveReexportSymbols`). An
+ * overloaded function counts once, at
  * its implementation. `export default function f` and `export default class C`
  * are the export `default` of the symbol `f` or `C`; `export default <expr>`
  * is not read.
@@ -674,6 +686,9 @@ export function enclosingOf(node, top, lineOf) {
  *   exports: {names: Map<string, {local: string} | {spec: string, name: string}>, stars: string[]},
  *   aliases: Map<string, string>,
  *   objects: Map<string, string[]>,
+ *   classes: Map<string, string[]>,
+ *   callConsts: {name: string, line: number, span: number, sig: string, callee: string, exported: boolean}[],
+ *   wrapperConsts: string[],
  *   stores: {name: string, line: number, members: {name: string, kind: 'get' | 'set' | 'do', line: number, doc: string, wVia: string[]}[]}[],
  *   markup: string,
  *   template: string,
@@ -682,6 +697,11 @@ export function enclosingOf(node, top, lineOf) {
  *   export entry `{spec, name: '*'}` is an `export * as` namespace; `aliases`
  *   maps a top-level non-exported `const X = A.B…` to its root identifier `A`;
  *   `objects` maps each top-level `const Obj = {…}` to its method names;
+ *   `classes` maps each top-level named class to its method names (methods
+ *   and arrow or function properties, static ones included); `callConsts`
+ *   lists the top-level `const X = f(…)` declarators whose callee is a plain
+ *   identifier (not an instance-script export), by line; `wrapperConsts` is
+ *   empty until `markWrapperConsts`;
  *   `stores` lists the F5 store objects in line order (`wVia` empty on
  *   members other than `get`); `markup` is `markupCode` of a `.svelte` file,
  *   '' otherwise; a dynamic binding's `importLine` is the line of its
@@ -703,6 +723,8 @@ export function extractTsFile(file, text) {
 	const stars = [];
 	const aliases = new Map();
 	const objects = new Map();
+	const classes = new Map();
+	const callConsts = [];
 	const stores = [];
 	if (svelte) {
 		const instance = regions.find((r) => !r.module);
@@ -721,6 +743,7 @@ export function extractTsFile(file, text) {
 		bindingsOf(region, bindings, instance ? '(script)' : '(module)');
 		for (const st of sf.statements) {
 			const exported = isExported(st);
+			if (ts.isClassDeclaration(st) && st.name) classes.set(st.name.text, classMethods(st));
 			if (ts.isFunctionDeclaration(st) && st.name) {
 				// An overload signature has no body; the implementation carries the symbol.
 				if (!st.body) continue;
@@ -738,6 +761,9 @@ export function extractTsFile(file, text) {
 						objects.set(d.name.text, obj.properties.filter(isMethodLike).map((p) => propName(p.name)));
 					const fn = isFnExpr(d.initializer);
 					const entry = { name: d.name.text, line: line(d), span: span(d), sig: cap(declaratorSig(d, sf), SIG_CAP) };
+					const call = unwrap(d.initializer);
+					if (call && ts.isCallExpression(call) && ts.isIdentifier(call.expression) && st.declarationList.flags & ts.NodeFlags.Const && !(exported && instance))
+						callConsts.push({ ...entry, callee: call.expression.text, exported });
 					if (!exported) {
 						if (fn) locals.push({ ...entry, kind: 'fn' });
 						const root = accessRoot(d.initializer);
@@ -775,6 +801,8 @@ export function extractTsFile(file, text) {
 					for (const e of st.exportClause.elements) {
 						const local = (e.propertyName ?? e.name).text;
 						names.set(e.name.text, spec === null ? { local } : { spec, name: local });
+						// `sig` (` = <origin id>`) is set by `resolveReexportSymbols`, once every file is parsed.
+						if (spec !== null) symbols.push({ name: e.name.text, kind: 'reexport', line: line(e), span: span(e), sig: '', doc: '', from: { spec, name: local } });
 					}
 				}
 			}
@@ -791,6 +819,9 @@ export function extractTsFile(file, text) {
 		exports: { names, stars },
 		aliases,
 		objects,
+		classes,
+		callConsts: callConsts.sort(byLineName),
+		wrapperConsts: [],
 		stores: stores.sort(byLineName),
 		markup: svelte ? markupCode(text) : '',
 		template: svelte ? text.replace(MARKUP_HIDE_RE, blankKeepLines) : '',
@@ -895,6 +926,20 @@ export function resolveReexports(files) {
 }
 
 /**
+ * Sets the `sig` of every `reexport` symbol to ` = <origin id>`, the ID its
+ * entry resolves to as a binding would (`dto:<T>` and `external:<package>`
+ * included), or ` = -` when the chain breaks.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ */
+export function resolveReexportSymbols(files) {
+	const ctx = { files, exists: (p) => files.has(p) };
+	for (const from of [...files.keys()].sort(cmp))
+		for (const s of files.get(from).symbols)
+			if (s.kind === 'reexport') s.sig = ` = ${resolveImport(from, s.from.spec, s.from.name, ctx, 0, new Set()) ?? '-'}`;
+}
+
+/**
  * The public symbols: those a non-test file outside their module imports.
  *
  * @param {{from: string, id: string | null}[]} resolved output of `resolveBindings`
@@ -921,6 +966,7 @@ const fileOfId = (id) => id.slice(0, id.indexOf(':'));
 function useKinds(id) {
 	const p = id.parent;
 	if (ts.isCallExpression(p) && p.expression === id) return [{ kind: 'call', member: null }];
+	if (ts.isNewExpression(p) && p.expression === id) return [{ kind: 'new', member: null }];
 	if (ts.isPropertyAccessExpression(p) && p.expression === id) {
 		const member = p.name.text;
 		const g = p.parent;
@@ -937,6 +983,22 @@ function useKinds(id) {
 		return out;
 	}
 	return [{ kind: 'ref', member: null }];
+}
+
+/**
+ * The top-level class a `this` keyword refers to: the class of the nearest
+ * enclosing class member, or null when a function declaration or expression,
+ * a method or accessor of an object literal, or a nested class comes first
+ * (each rebinds `this`). Arrow functions keep the outer `this`.
+ */
+function thisClass(node) {
+	for (let a = node.parent; a && !ts.isSourceFile(a); a = a.parent) {
+		if (ts.isFunctionDeclaration(a) || ts.isFunctionExpression(a)) return null;
+		if ((ts.isMethodDeclaration(a) || ts.isGetAccessorDeclaration(a) || ts.isSetAccessorDeclaration(a)) && ts.isObjectLiteralExpression(a.parent))
+			return null;
+		if (ts.isClassLike(a)) return ts.isClassDeclaration(a) && a.name && ts.isSourceFile(a.parent) ? a.name.text : null;
+	}
+	return null;
 }
 
 /** Escapes a name for use inside a RegExp. */
@@ -961,16 +1023,21 @@ function lineIndex(text) {
 /**
  * F4: every use, in every file of `files`, of an import binding that
  * resolves to a symbol, of a same-file top-level function (declaration or
- * const-bound arrow or function expression), and of a method of a same-file
- * top-level object literal called as `Obj.m(…)`. Identifiers in type
+ * const-bound arrow or function expression) or timer-wrapper const
+ * (`wrapperConsts`), of a method of a same-file top-level object literal
+ * called as `Obj.m(…)`, and of a method of a same-file top-level class called
+ * as `Class.m(…)` or as `this.m(…)` inside that class (no `function` between
+ * them rebinding `this`). Identifiers in type
  * positions, declaration and property names, and names a parameter or an
  * enclosing block declaration shadows are no uses; a destructure of
  * `await import(x)` is the binding F3 resolved, inside its block.
  *
- * Script kinds: `call` (callee), `mcall` (`B.m(…)`, optional chaining
- * included), `assign` (`B.m` assigned, compound-assigned, `++`/`--`),
- * `member` (other `B.m`, and each property of `const { a, b } = B`), `ref`
- * (any other value use). A same-file `Obj.m(…)` is a `call` of `Obj.m`.
+ * Script kinds: `call` (callee), `new` (`new B(…)`), `mcall` (`B.m(…)`,
+ * optional chaining included), `assign` (`B.m` assigned, compound-assigned,
+ * `++`/`--`), `member` (other `B.m`, and each property of `const { a, b } =
+ * B`), `ref` (any other value use). A same-file `Obj.m(…)`, `Class.m(…)` or
+ * `this.m(…)` is a `call` of `Obj.m` or `Class.m`; a same-file `new Class(…)`
+ * is a `new` of `Class`.
  *
  * Markup (`.svelte`, inside `{…}` spans only, enclosing `(markup)`), for each
  * import binding and same-file function B: on a store, `B.m(` of a `do`
@@ -979,7 +1046,7 @@ function lineIndex(text) {
  *
  * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
  * @param {ReturnType<typeof resolveBindings>} resolved bindings of the same files
- * @returns {{file: string, line: number, enclosing: string, kind: 'call' | 'mcall' | 'member' | 'assign' | 'ref', symbol: string, member: string | null, target: string, markup: boolean, site: string}[]}
+ * @returns {{file: string, line: number, enclosing: string, kind: 'call' | 'new' | 'mcall' | 'member' | 'assign' | 'ref', symbol: string, member: string | null, target: string, markup: boolean, site: string}[]}
  *   `symbol` is the binding's symbol ID, `target` the ID used (`<symbol>.<member>`
  *   when the use goes through a member); `site` names the identifier within its
  *   file (`<region index>:<offset>` or `m:<offset>`), shared by the rows of one
@@ -1005,6 +1072,7 @@ export function extractUses(files, resolved) {
 		const own = new Map();
 		for (const s of facts.symbols) if (s.kind === 'fn' || s.kind === 'method') own.set(s.name, `${file}:${s.name}`);
 		for (const l of facts.locals) own.set(l.name, `${file}:${l.name}`);
+		for (const name of facts.wrapperConsts) own.set(name, `${file}:${name}`);
 		const push = (site, line, enclosing, kind, symbol, member, markup) =>
 			rows.push({ file, line, enclosing, kind, symbol, member, target: member === null ? symbol : `${symbol}.${member}`, markup, site });
 		for (const [ri, region] of facts.regions.entries()) {
@@ -1012,7 +1080,18 @@ export function extractUses(files, resolved) {
 			const top = file.endsWith('.svelte') && !region.module ? '(script)' : '(module)';
 			const lineOf = (n) => lineOffset + sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
 			const dyn = (id) => b.dynamic.get(`${id.text}@${lineOf(ts.isBindingElement(id.parent) ? id.parent : id)}`) ?? null;
+			const methodCall = (n, owner, methods) => {
+				const p = n.parent;
+				if (!ts.isPropertyAccessExpression(p) || p.expression !== n || !ts.isCallExpression(p.parent) || p.parent.expression !== p) return;
+				if (methods?.includes(p.name.text))
+					push(`${ri}:${n.getStart(sf)}`, lineOf(n), enclosingOf(n, top, lineOf), 'call', `${file}:${owner}`, p.name.text, false);
+			};
 			walkScoped(sf, [], dyn, (n, sc) => {
+				if (n.kind === ts.SyntaxKind.ThisKeyword) {
+					const cls = thisClass(n);
+					if (cls) methodCall(n, cls, facts.classes.get(cls));
+					return;
+				}
 				if (!ts.isIdentifier(n) || !isValueRef(n)) return;
 				const hit = lookup(n.text, sc);
 				const symbol = hit ? hit.id : (b.static.get(n.text) ?? own.get(n.text));
@@ -1021,11 +1100,12 @@ export function extractUses(files, resolved) {
 					for (const u of useKinds(n)) push(`${ri}:${n.getStart(sf)}`, lineOf(n), enclosing, u.kind, symbol, u.member, false);
 					return;
 				}
-				if (hit || !facts.objects.has(n.text)) return;
-				const p = n.parent;
-				if (!ts.isPropertyAccessExpression(p) || p.expression !== n || !ts.isCallExpression(p.parent) || p.parent.expression !== p) return;
-				if (facts.objects.get(n.text).includes(p.name.text))
-					push(`${ri}:${n.getStart(sf)}`, lineOf(n), enclosingOf(n, top, lineOf), 'call', `${file}:${n.text}`, p.name.text, false);
+				if (hit) return;
+				if (facts.objects.has(n.text)) methodCall(n, n.text, facts.objects.get(n.text));
+				else if (facts.classes.has(n.text)) {
+					if (ts.isNewExpression(n.parent) && n.parent.expression === n) push(`${ri}:${n.getStart(sf)}`, lineOf(n), enclosingOf(n, top, lineOf), 'new', `${file}:${n.text}`, null, false);
+					else methodCall(n, n.text, facts.classes.get(n.text));
+				}
 			});
 		}
 		if (!facts.markup) continue;
@@ -1071,7 +1151,7 @@ export function extractUses(files, resolved) {
  * The `by` users of each symbol: one entry per production file other than the
  * defining one, at its first F4 use (kind `markup` for a markup use) or F17
  * mount (kind `mount`, enclosing `(markup)`, of `<component>:default`), `more`
- * counting the further sites in that file with the same enclosing. A file
+ * counting the further sites in that file, in any enclosing. A file
  * that binds the symbol with no use gets the line of its first import
  * specifier element, kind `import`, with the binding's enclosing. Test and e2e
  * files are left out (F4: their rows feed only `--tests` answers).
@@ -1109,7 +1189,7 @@ export function usersBySymbol(resolved, uses, isTest, mounts = []) {
 		const per = slot(u.symbol);
 		const first = per.get(u.file);
 		if (!first) per.set(u.file, { file: u.file, line: u.line, enclosing: u.enclosing, kind: u.markup ? 'markup' : u.kind, more: 0 });
-		else if (first.enclosing === u.enclosing) first.more++;
+		else first.more++;
 	}
 	for (const r of resolved) {
 		if (!isSymbolId(r.id) || fileOfId(r.id) === r.from || isTest(r.from)) continue;
@@ -1375,52 +1455,78 @@ const MIRROR_SEPARATORS = ['.', '-'];
 /** The callees that mock a module in vitest. */
 const VI_MOCKS = new Set(['vi.mock', 'vi.doMock']);
 
+/** Relations a (test, source) pair keeps when several apply, strongest first. */
+const RELATION_RANK = ['mocks', 'imports', 'e2e', 'harness', 'imports-type'];
+
+/** Relations whose row may be a `mirror`. */
+const MIRROR_RELATIONS = new Set(['imports', 'harness', 'imports-type']);
+
+/** Whether a test file is a harness component that tests render (`src/tests/**\/*.svelte`). */
+const isHarness = (f) => f.startsWith('src/tests/') && f.endsWith('.svelte');
+
 /**
- * F6 for the frontend: one row per (test file, source file). `mocks` when the
- * test calls `vi.mock` or `vi.doMock` with a string literal resolving to the
- * file (it wins over an import); else `e2e` for an e2e file and `imports` for
- * a `src/tests` file with a non-type-only import (static, re-export or
- * `import()`) resolving to it. Package mocks and targets that are test files
- * give no row. `mirror` marks an `imports` row whose test sits in
+ * F6 for the frontend: one row per (test file, source file), the strongest
+ * relation winning (`RELATION_RANK`). `mocks` when the test calls `vi.mock`
+ * or `vi.doMock` with a string literal resolving to the file; `e2e` for an
+ * e2e file and `imports` for a `src/tests` file with a non-type-only import
+ * (static, re-export or `import()`) resolving to it; `harness` (with `via`
+ * the harness) when the test imports a harness component
+ * (`src/tests/**\/*.svelte`) whose own non-type import resolves to it;
+ * `imports-type` when every import of it is type-only (an `import type` or
+ * an inline `import()` type). Harnesses give no rows of their own; package
+ * mocks and targets that are test files give none. `mirror` marks an
+ * `imports`, `harness` or `imports-type` row whose test sits in
  * `src/tests/<source dir without src/>/` with a basename starting with the
  * source stem and a `.` or `-`.
  *
  * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
  * @param {(path: string) => boolean} [exists] whether a repo-relative file is in the inventory
- * @returns {{test: string, relation: 'imports' | 'mocks' | 'e2e', target: string, mirror: boolean}[]}
+ * @returns {{test: string, relation: 'imports' | 'imports-type' | 'mocks' | 'e2e' | 'harness', target: string, mirror: boolean, via?: string}[]}
  *   by (target, mirrored first, relation, test)
  */
 export function testRelations(files, exists = (p) => files.has(p)) {
+	const importsOf = (file) => {
+		const out = [];
+		for (const region of files.get(file).regions)
+			for (const imp of extractImportsFromSource(region.sf, region.lineOffset)) {
+				const target = imp.spec === null ? null : resolveSpecifier(file, imp.spec, exists);
+				if (target !== null && exists(target)) out.push({ target, typeOnly: imp.typeOnly });
+			}
+		return out;
+	};
 	const rel = new Map();
 	for (const test of [...files.keys()].sort(cmp)) {
-		if (!isTestPath(test)) continue;
-		const set = (spec, relation) => {
-			const target = resolveSpecifier(test, spec, exists);
+		if (!isTestPath(test) || isHarness(test)) continue;
+		const set = (target, relation, via) => {
 			if (target === null || !exists(target) || isTestPath(target)) return;
 			const key = `${test}\0${target}`;
-			if (rel.get(key) !== 'mocks') rel.set(key, relation);
+			const prev = rel.get(key);
+			if (!prev || RELATION_RANK.indexOf(relation) < RELATION_RANK.indexOf(prev.relation)) rel.set(key, { relation, via });
 		};
+		for (const imp of importsOf(test)) {
+			if (imp.typeOnly) set(imp.target, 'imports-type');
+			else if (!isHarness(imp.target)) set(imp.target, test.startsWith('e2e/') ? 'e2e' : 'imports');
+			else for (const h of importsOf(imp.target)) if (!h.typeOnly) set(h.target, 'harness', imp.target);
+		}
 		for (const region of files.get(test).regions) {
-			for (const imp of extractImportsFromSource(region.sf, region.lineOffset))
-				if (imp.spec !== null && !imp.typeOnly) set(imp.spec, test.startsWith('e2e/') ? 'e2e' : 'imports');
 			const visit = (n) => {
 				if (ts.isCallExpression(n) && VI_MOCKS.has(calleeText(n))) {
 					const a = n.arguments[0];
-					if (a && (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a))) set(a.text, 'mocks');
+					if (a && (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a))) set(resolveSpecifier(test, a.text, exists), 'mocks');
 				}
 				ts.forEachChild(n, visit);
 			};
 			visit(region.sf);
 		}
 	}
-	const rows = [...rel].map(([key, relation]) => {
+	const rows = [...rel].map(([key, { relation, via }]) => {
 		const [test, target] = key.split('\0');
 		const mirror =
-			relation === 'imports' &&
+			MIRROR_RELATIONS.has(relation) &&
 			target.startsWith('src/') &&
 			posix.dirname(test) === `src/tests/${posix.dirname(target).slice('src/'.length)}` &&
 			MIRROR_SEPARATORS.some((sep) => posix.basename(test).startsWith(`${sourceStem(target)}${sep}`));
-		return { test, relation, target, mirror };
+		return via ? { test, relation, target, mirror, via } : { test, relation, target, mirror };
 	});
 	return rows.sort(
 		(a, b) => cmp(a.target, b.target) || Number(b.mirror) - Number(a.mirror) || cmp(a.relation, b.relation) || cmp(a.test, b.test),
@@ -1596,11 +1702,12 @@ function functionFacts(fn, region, moduleNames) {
  * registrations are `X.of(…)` calls.
  *
  * `registeredAt` are the production script call sites of the sink (or of
- * `X.of`), with `args` the first argument's text (comments dropped, whitespace
- * collapsed, cap 80)
- * and `callbacks`: the first argument when it is an identifier resolving to a
- * function, else the identifier values (function ones) of its object-literal
- * properties, else the site's enclosing scope as `<file>:<enclosing>`.
+ * `X.of`), with `args` the text of all arguments (comments dropped,
+ * whitespace collapsed, cap 80) and `callbacks` from the first argument that
+ * names a function: an identifier resolving to one, or an object literal
+ * with identifier values resolving to functions (each listed); with no such
+ * argument (an inline arrow, a name string only), the site's enclosing scope
+ * as `<file>:<enclosing>`.
  * `invokedAt` are the production use sites of each registration's enclosing
  * scope when that scope is an exported symbol of its file.
  *
@@ -1686,6 +1793,7 @@ export function collectRegistries(files, uses, isTest) {
 			}
 		}
 	}
+	/** The functions one argument names: an identifier resolving to one, or the function values of an object literal; empty otherwise. */
 	const callbacksOf = (u, arg) => {
 		const fnAt = (node) => (bySite.get(`${u.file}\0${u.site.split(':')[0]}:${node.getStart(node.getSourceFile())}`) ?? []).find((r) => fnIds.has(r.target))?.target;
 		const a = unwrap(arg);
@@ -1699,9 +1807,9 @@ export function collectRegistries(files, uses, isTest) {
 				const id = v && fnAt(v);
 				if (id && !ids.includes(id)) ids.push(id);
 			}
-			if (ids.length) return ids;
+			return ids;
 		}
-		return [`${u.file}:${u.enclosing}`];
+		return [];
 	};
 	const byLoc = (a, b) => cmp(a.file, b.file) || a.line - b.line;
 	return registries
@@ -1712,13 +1820,16 @@ export function collectRegistries(files, uses, isTest) {
 				if (u.kind !== 'call' && u.kind !== 'mcall') continue;
 				const node = useNode(files, u);
 				if (!node?.call) continue;
-				const arg = node.call.arguments[0];
+				const { call, region } = node;
+				const args = call.arguments;
+				let callbacks = [];
+				for (const arg of args) if (!callbacks.length) callbacks = callbacksOf(u, arg);
 				registeredAt.push({
 					file: u.file,
 					line: u.line,
 					enclosing: u.enclosing,
-					args: arg ? cap(nodeExcerpt(node.region.sf, arg), 80) : '',
-					callbacks: callbacksOf(u, arg),
+					args: args.length ? cap(codeExcerpt(region.sf, call, args[0].getStart(region.sf), args.at(-1).end), 80) : '',
+					callbacks: callbacks.length ? callbacks : [`${u.file}:${u.enclosing}`],
 				});
 			}
 			const invokedAt = [];
@@ -1807,6 +1918,25 @@ function timerName(call, sc, fileNames) {
 	return null;
 }
 
+/** Web Storage methods (F15 class `storage`). */
+const STORAGE_METHODS = new Set(['getItem', 'setItem', 'removeItem', 'clear']);
+
+/** The Web Storage globals. */
+const STORAGES = new Set(['localStorage', 'sessionStorage']);
+
+/** Whether an expression is the global `localStorage` or `sessionStorage`, bare or as `window.`/`globalThis.` + name, not declared in any scope, the file or its imports. */
+function isGlobalStorage(e, sc, fileNames) {
+	const free = (id) => !lookup(id.text, sc) && !fileNames.has(id.text);
+	if (ts.isIdentifier(e)) return STORAGES.has(e.text) && free(e);
+	return (
+		ts.isPropertyAccessExpression(e) &&
+		STORAGES.has(e.name.text) &&
+		ts.isIdentifier(e.expression) &&
+		GLOBAL_OBJECTS.has(e.expression.text) &&
+		free(e.expression)
+	);
+}
+
 /** Names a file declares at its top level or imports: a same-named callee is not a global. */
 function fileNamesOf(facts) {
 	const out = new Set(facts.bindings.map((b) => b.local));
@@ -1815,6 +1945,66 @@ function fileNamesOf(facts) {
 		for (const st of region.sf.statements) if ((ts.isFunctionDeclaration(st) || ts.isClassDeclaration(st)) && st.name) out.add(st.name.text);
 	}
 	return out;
+}
+
+/**
+ * F15 timer wrappers: the exported functions of production files that hold a
+ * `setTimeout`/`setInterval` whose delay's root identifier is a parameter of
+ * the function itself (today `debounce`).
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @param {(file: string) => boolean} isTest whether a file is a test or e2e file
+ * @returns {Set<string>} wrapper IDs, inserted in code-unit order
+ */
+export function timerWrappers(files, isTest) {
+	const wrappers = new Set();
+	for (const file of [...files.keys()].sort(cmp)) {
+		if (isTest(file)) continue;
+		const facts = files.get(file);
+		const fileNames = fileNamesOf(facts);
+		for (const region of facts.regions) {
+			for (const fn of regionFunctions(region)) {
+				if (!fn.exported || fn.member !== null) continue;
+				let own = null;
+				walkScoped(fn.node, [], () => null, (n, sc) => {
+					if (n === fn.node) own = sc.at(-1) ?? null;
+					if (!own || !ts.isCallExpression(n) || !DELAYED.has(timerName(n, sc, fileNames) ?? '')) return;
+					const root = n.arguments[1] && chainRoot(n.arguments[1]);
+					if (!root) return;
+					for (let i = sc.length - 1; i >= 0; i--) {
+						if (!sc[i].has(root.text)) continue;
+						if (sc[i] === own) wrappers.add(`${file}:${fn.name}`);
+						break;
+					}
+				});
+			}
+		}
+	}
+	return wrappers;
+}
+
+/**
+ * Marks the top-level `const X = W(…)` of each file whose callee W resolves
+ * (an import binding or a same-file function) to a timer wrapper: X joins
+ * the file's `wrapperConsts`, so `X()` and `X.cancel()` are F4 uses, and a
+ * non-exported X joins its `locals` as a `fn` (signature ` = W(…)`).
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path, changed in place
+ * @param {ReturnType<typeof resolveBindings>} resolved bindings of the same files
+ * @param {Set<string>} wrappers `timerWrappers` IDs
+ */
+export function markWrapperConsts(files, resolved, wrappers) {
+	const bound = new Map();
+	for (const r of resolved) if (!r.dynamic && !r.typeOnly && r.id) bound.set(`${r.from}\0${r.local}`, r.id);
+	for (const file of [...files.keys()].sort(cmp)) {
+		const facts = files.get(file);
+		for (const c of facts.callConsts) {
+			if (!wrappers.has(bound.get(`${file}\0${c.callee}`) ?? `${file}:${c.callee}`)) continue;
+			facts.wrapperConsts.push(c.name);
+			if (!c.exported) facts.locals.push({ name: c.name, kind: 'fn', line: c.line, span: c.span, sig: c.sig });
+		}
+		facts.locals.sort((a, b) => a.line - b.line || cmp(a.name, b.name));
+	}
 }
 
 /**
@@ -1831,6 +2021,9 @@ function fileNamesOf(facts) {
  *   own parameter; sink `timer-wrap.<name>`, arg `args=<arguments>` (cap 60)
  *   plus ` as X` when the call initializes `const X`.
  * - `$effect`, `$effect.pre`, `$effect.root` calls, sink `svelte.$effect`.
+ * - Web Storage: `getItem`, `setItem`, `removeItem` and `clear` on the global
+ *   `localStorage` or `sessionStorage` (also through `window.` or
+ *   `globalThis.`), sink `storage.<method>`, class `storage`.
  * - `<expr>.addEventListener('<literal>', …)`, sink `dom.<event>`, arg the
  *   receiver text (cap 30); `on<name>=` / `on:<name>=` attributes of
  *   `<svelte:window|document|body>`, arg the tag name, enclosing `(markup)`.
@@ -1842,12 +2035,12 @@ function fileNamesOf(facts) {
  * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
  * @param {ReturnType<typeof extractUses>} uses
  * @param {(file: string) => boolean} isTest whether a file is a test or e2e file
+ * @param {Set<string>} [wrappers] the `timerWrappers` of the same files
  * @returns {{file: string, line: number, sink: string, class: string, arg: string, enclosing: string}[]}
  *   by (file, line, sink, arg, enclosing); `arg` '' when there is none
  */
-export function tsEffects(files, uses, isTest) {
+export function tsEffects(files, uses, isTest, wrappers = timerWrappers(files, isTest)) {
 	const out = [];
-	const wrappers = new Set();
 	const paths = [...files.keys()].sort(cmp).filter((f) => !isTest(f));
 	for (const file of paths) {
 		const facts = files.get(file);
@@ -1889,6 +2082,7 @@ export function tsEffects(files, uses, isTest) {
 					return;
 				}
 				if (!ts.isPropertyAccessExpression(e)) return;
+				if (STORAGE_METHODS.has(e.name.text) && isGlobalStorage(e.expression, sc, fileNames)) return add(n, `storage.${e.name.text}`, 'storage', '');
 				const root = ts.isIdentifier(e.expression) ? e.expression.text : null;
 				const ns = root && !lookup(root, sc) ? tauri.get(root) : null;
 				if (ns && ns.imported === '*') {
@@ -1899,21 +2093,6 @@ export function tsEffects(files, uses, isTest) {
 				if (e.name.text === 'addEventListener' && ev && (ts.isStringLiteral(ev) || ts.isNoSubstitutionTemplateLiteral(ev)))
 					add(n, `dom.${ev.text}`, 'dom', cap(nodeExcerpt(sf, e.expression), 30));
 			});
-			for (const fn of regionFunctions(region)) {
-				if (!fn.exported || fn.member !== null) continue;
-				let own = null;
-				walkScoped(fn.node, [], () => null, (n, sc) => {
-					if (n === fn.node) own = sc.at(-1) ?? null;
-					if (!own || !ts.isCallExpression(n) || !DELAYED.has(timerName(n, sc, fileNames) ?? '')) return;
-					const root = n.arguments[1] && chainRoot(n.arguments[1]);
-					if (!root) return;
-					for (let i = sc.length - 1; i >= 0; i--) {
-						if (!sc[i].has(root.text)) continue;
-						if (sc[i] === own) wrappers.add(`${file}:${fn.name}`);
-						break;
-					}
-				});
-			}
 		}
 		const template = facts.template;
 		if (template) {

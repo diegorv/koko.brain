@@ -7,7 +7,7 @@
  * The code map shards: line rendering (spec section 6 grammar), the section 5
  * list caps and calls split, and the assembly of every output file of
  * `codemap/` from one model (file and module cards, `modules.md`, `ipc/*`,
- * `wiring.md`, `stores.md`, `effects/*`, `INDEX.md`).
+ * `wiring/<layer>.md`, `stores.md`, `effects/*`, `INDEX.md`).
  */
 import { posix } from 'node:path';
 
@@ -233,7 +233,7 @@ export const BUDGET = {
 export const INDEX_TITLE = '# Kokobrain code map';
 
 /** The effect classes, one `effects/<class>.md` each. */
-export const EFFECT_CLASSES = ['disk-write', 'disk-read', 'host', 'timer', 'reactive', 'dom', 'db', 'spawn'];
+export const EFFECT_CLASSES = ['disk-write', 'disk-read', 'host', 'timer', 'reactive', 'dom', 'db', 'spawn', 'storage'];
 
 /** The tag every fact line starts with, across all shards. */
 export const LINE_TAGS = [
@@ -283,11 +283,8 @@ const MEM_SITES_CAP = 6;
 /** Most `ipc-call` lines per command and `ev` lines per event on one Rust card. */
 const XLANG_CAP = 12;
 
-/**
- * Most `read-by`, `fired-by`, `registered-at` and `invoked-at` lines per
- * registry in `wiring.md`, lowered from 20 so the file keeps headroom under 48 KB.
- */
-const WIRING_CAP = 10;
+/** Most `read-by`, `fired-by`, `registered-at` and `invoked-at` lines per registry in a `wiring/<layer>.md` shard. */
+const WIRING_CAP = 20;
 
 /** Modules named on an `in2` or `out2` line. */
 const REACH_CAP = 5;
@@ -315,11 +312,15 @@ const BLIND_SPOTS = [
 	'The rust-db.execute receiver and the DOM listener receiver: not resolved.',
 	'Settings key joins (AppSettings, DEFAULT_SETTINGS) beyond settingsStore members: not tracked.',
 	'Imports of unparsed files (.js, .json, scripts): file edges only, no symbols.',
+	'Class methods: only this.m() and C.m() inside the defining file; calls on instances, inherited methods and super.m() are not tracked.',
 	'Test, e2e and crate example (src-tauri/examples) files: graph nodes for test lines and q --tests answers, no cards.',
 ];
 
+/** Copied text on one line: tabs and newlines as spaces. */
+const oneLine = (s) => s.replace(/[\t\r\n]+/g, ' ');
+
 /** A copied excerpt on one line: tabs and newlines as spaces, ` | ` as ` / `. */
-const excerpt = (s) => field(s.replace(/[\t\r\n]+/g, ' '));
+const excerpt = (s) => field(oneLine(s));
 
 /** UTF-8 size of a text. */
 const bytesOf = (s) => Buffer.byteLength(s, 'utf8');
@@ -421,10 +422,10 @@ export function context(model) {
 			ids.add(`${file}:${l.name}`);
 			fns.add(`${file}:${l.name}`);
 		}
-		for (const obj of [...facts.objects.keys()].sort(cmp))
-			for (const m of facts.objects.get(obj)) {
-				ids.add(`${file}:${obj}.${m}`);
-				fns.add(`${file}:${obj}.${m}`);
+		for (const owner of [...facts.objects.keys(), ...facts.classes.keys()].sort(cmp))
+			for (const m of facts.objects.get(owner) ?? facts.classes.get(owner)) {
+				ids.add(`${file}:${owner}.${m}`);
+				fns.add(`${file}:${owner}.${m}`);
 			}
 	}
 	for (const st of model.stores) for (const m of st.members) ids.add(m.id);
@@ -458,8 +459,8 @@ export function context(model) {
 /** An `imp` line: `imp <importer>:<line> -> <target> <names>`. */
 export const impLine = (e) => `imp ${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`;
 
-/** A `test` line: `test <test file> imports|mocks|e2e|example <file> [mirror]`. */
-export const testLine = (t) => `test ${t.test} ${t.relation} ${t.target}${t.mirror ? ' mirror' : ''}`;
+/** A `test` line: `test <test file> imports|imports-type|mocks|e2e|harness|example <file> [mirror] [via <harness>]`. */
+export const testLine = (t) => `test ${t.test} ${t.relation} ${t.target}${t.mirror ? ' mirror' : ''}${t.via ? ` via ${t.via}` : ''}`;
 
 /** A `mount` line: `mount <loc> <Name> -> <component file>`. */
 export const mountLine = (m) => `mount ${m.file}:${m.line} ${m.name} -> ${m.target}`;
@@ -470,12 +471,16 @@ export const fxLine = (e) => `fx ${e.file}:${e.line} ${e.sink}${e.arg ? ` ${exce
 /** A card `reg` line: `reg <loc> <registry id> in <enclosing> [args=<text>]`. */
 const cardRegLine = (r, s) => `reg ${s.file}:${s.line} ${r.id} in ${s.enclosing}${s.args ? ` args=${excerpt(s.args)}` : ''}`;
 
-/** A `sym` line: `sym <loc> <kind> <name><sig> L<span>[<extra>] [| doc]`. */
+/**
+ * A `sym` line: `sym <loc> <kind> <name><sig> L<span>[<extra>] [| doc]`. The
+ * signature is copied as written, ` | ` included; the doc follows the first
+ * ` | ` after `L<span>`, its own ` | ` as ` / `.
+ */
 export const symLine = (file, s, extra = '') =>
-	`sym ${file}:${s.line} ${s.kind} ${s.name}${excerpt(s.sig)} L${s.span}${extra}${s.doc ? ` | ${excerpt(s.doc)}` : ''}`;
+	`sym ${file}:${s.line} ${s.kind} ${s.name}${oneLine(s.sig)} L${s.span}${extra}${s.doc ? ` | ${excerpt(s.doc)}` : ''}`;
 
-/** A `local` line: `local <loc> fn <name><sig> L<span>`. */
-export const localLine = (file, l) => `local ${file}:${l.line} fn ${l.name}${excerpt(l.sig)} L${l.span}`;
+/** A `local` line: `local <loc> fn <name><sig> L<span>`, the signature as written. */
+export const localLine = (file, l) => `local ${file}:${l.line} fn ${l.name}${oneLine(l.sig)} L${l.span}`;
 
 /** The `sym` line of a Rust item, with ` dto:<Name>` for a `#[ts(export)]` type. */
 export const rustSymLine = (file, i) => symLine(file, i, i.dto ? ` dto:${i.name}` : '');
@@ -483,10 +488,13 @@ export const rustSymLine = (file, i) => symLine(file, i, i.dto ? ` dto:${i.name}
 /** A `store` line of a card: `store <loc> <name> esc:<n>`. */
 export const storeLine = (st) => `store ${st.file}:${st.line} ${st.name} esc:${st.esc}`;
 
+/** Test relations that are listed on a card but not counted in its `t<n>`: crate examples and type-only test imports. */
+const UNCOUNTED_RELATIONS = new Set([EXAMPLE_RELATION, 'imports-type']);
+
 /**
  * The `file` line: `file <path> <role> L<lines> module <m> in<n> t<n> [t:inline] [| header doc]`,
  * `in` counting distinct production importer files and `t` distinct test
- * files, crate examples left out of both.
+ * files, crate examples left out of both and type-only test imports out of `t`.
  */
 function fileLine(model, ctx, file) {
 	if (ctx.fileLines.has(file)) return ctx.fileLines.get(file);
@@ -494,7 +502,7 @@ function fileLine(model, ctx, file) {
 	const rust = model.rust.get(file);
 	const header = facts?.header || rust?.fileDoc || '';
 	const inN = new Set((ctx.importers.get(file) ?? []).map((e) => e.from)).size;
-	const tN = new Set((ctx.tests.get(file) ?? []).filter((t) => t.relation !== EXAMPLE_RELATION).map((t) => t.test)).size;
+	const tN = new Set((ctx.tests.get(file) ?? []).filter((t) => !UNCOUNTED_RELATIONS.has(t.relation)).map((t) => t.test)).size;
 	const line = `file ${file} ${model.fileRole(file)} L${lineCountOf(model.inputs.get(file))} module ${model.moduleOf(file) ?? '-'} in${inN} t${tN}${rust?.inlineTests ? ' t:inline' : ''}${header ? ` | ${excerpt(header)}` : ''}`;
 	ctx.fileLines.set(file, line);
 	return line;
@@ -577,14 +585,14 @@ function callLines(file, rows, defLine) {
 }
 
 /**
- * The F4 call rows of a TS file: `call` and `mcall` uses, `ref` uses of a
- * function, markup ones printed `markup`. A method call on an object member
- * the model does not know as an ID (`arr.push()`) is a call of the object.
+ * The F4 call rows of a TS file: `call`, `mcall` and `new` uses, `ref` uses
+ * of a function, markup ones printed `markup`. A method call on an object
+ * member the model does not know as an ID (`arr.push()`) is a call of the object.
  */
 function tsCallRows(ctx, file) {
 	const out = [];
 	for (const u of ctx.uses.get(file) ?? []) {
-		const called = u.kind === 'call' || u.kind === 'mcall';
+		const called = u.kind === 'call' || u.kind === 'mcall' || u.kind === 'new';
 		if (!called && !(u.kind === 'ref' && ctx.fns.has(u.target))) continue;
 		const target = ctx.ids.has(u.target) ? u.target : u.symbol;
 		if (!ctx.ids.has(target)) continue;
@@ -791,10 +799,13 @@ function renderModuleCard(model, ctx, m) {
 	const outgoing = model.moduleEdges.filter((e) => e.from === m).sort((a, b) => cmp(a.to, b.to));
 	const pub = [];
 	let exports = 0;
+	// A re-export is public when a production file outside the module imports its name from the re-exporting file.
+	const reexportPublic = (f, name) =>
+		(ctx.importers.get(f) ?? []).some((e) => model.moduleOf(e.from) !== m && (e.names.includes(name) || e.names.includes(`type:${name}`)));
 	for (const f of files.filter((x) => isCarded(model, x))) {
 		for (const s of model.ts.get(f)?.symbols ?? []) {
 			exports++;
-			if (model.publicSymbols.has(symId(f, s))) pub.push(symLine(f, s));
+			if (s.kind === 'reexport' ? reexportPublic(f, s.name) : model.publicSymbols.has(symId(f, s))) pub.push(symLine(f, s));
 		}
 		for (const i of model.rust.get(f)?.items ?? []) {
 			exports++;
@@ -896,13 +907,13 @@ function sinkDoc(model, id) {
 }
 
 /**
- * The `wiring.md` lines of one registry or facet, at most `cap` lines per
- * relation (`read-by`, `fired-by`, `registered-at`, `invoked-at`).
+ * The `wiring/<layer>.md` lines of one registry or facet, at most `cap` lines
+ * per relation (`read-by`, `fired-by`, `registered-at`, `invoked-at`).
  *
  * @param {ReturnType<typeof import('./model.mjs').buildModel>} model
  * @param {ReturnType<typeof import('./ts.mjs').collectRegistries>[number]} r
  * @param {(file: string) => string} group the module of a file
- * @param {number} [cap] 10 in `wiring.md`; the query CLI passes no limit
+ * @param {number} [cap] 20 in the shards; the query CLI passes no limit
  * @returns {string[]}
  */
 export function wiringLines(model, r, group, cap = WIRING_CAP) {
@@ -967,7 +978,7 @@ function renderEffects(model, cls) {
 }
 
 /** `INDEX.md` from the section 10 template. */
-function renderIndex(model, counts, hash) {
+function renderIndex(model, counts, hash, layers) {
 	const hubs = [];
 	for (const layer of HUB_LAYERS)
 		for (const h of (model.hubsByLayer.get(layer) ?? []).slice(0, HUBS_PER_LAYER)) hubs.push(`hub ${layer} ${h.file} in${h.prod} t${h.test}`);
@@ -1000,16 +1011,17 @@ function renderIndex(model, counts, hash) {
 		'- Store state, who reads it, who writes it: codemap/stores.md, q store <name>',
 		'- Disk writes and reads, frontend and Rust: codemap/effects/disk-write.md, codemap/effects/disk-read.md, q sink disk-write --up 2',
 		'- Timers, debounce calls and their delays: codemap/effects/timer.md',
-		'- Svelte $effect sites: codemap/effects/reactive.md · DOM listeners: codemap/effects/dom.md · SQLite writes: codemap/effects/db.md · Tauri dialogs, opener, window, http: codemap/effects/host.md · Rust spawns: codemap/effects/spawn.md',
-		'- Observer lists, hooks, CodeMirror facets (who registers, who fires): codemap/wiring.md, q reg <id>',
+		'- Svelte $effect sites: codemap/effects/reactive.md · DOM listeners: codemap/effects/dom.md · SQLite writes: codemap/effects/db.md · Tauri dialogs, opener, window, http: codemap/effects/host.md · Rust spawns: codemap/effects/spawn.md · localStorage and sessionStorage: codemap/effects/storage.md',
+		`- Observer lists, hooks, CodeMirror facets (who registers, who fires): codemap/wiring/<layer>.md by the layer of the file that defines the sink${layers.length ? ` (${layers.map((l) => `wiring/${l}.md`).join(', ')})` : ''}, q reg <id>`,
 		'',
 		'## Tests',
 		'- Tests for a source file: test lines in its card, or q tests <file>',
 		'- Sources a test covers: q deps <test file>',
+		'- t<n> counts test files that import a file; imports-type (type-only) and example test lines are listed but not counted, harness lines count.',
 		'',
 		'## IDs',
 		'file = repo path · location = <file>:<line> · symbol = <file>:<name> · member = <file>:<object>.<member> · component = <file>:default · Rust method = <file>:<Type>::<name> · scopes = <file>:$effect@<line>, <file>:<var>=$derived, <file>:(module), (script), (markup) · module = folder path · ipc:<command> · event:<name> · dto:<Name> · sink = <origin>.<api>',
-		`Line tags: ${LINE_TAGS.join(' ')}. "-" means no static reference found, not "unused". "in <name>" names a function in the same file as the line's location.`,
+		`Line tags: ${LINE_TAGS.join(' ')}. "-" means no static reference found, not "unused". "in <name>" names a function in the same file as the line's location. On a by line, +<n> counts the further sites in that user file, in any function; its card has every call line. A signature on a sym or local line is copied as written, " | " included; the doc follows the first " | " after L<span>. Elsewhere (ipc lines, args= and doc excerpts) " / " inside copied text stands for " | ".`,
 		'',
 		'## Blind spots (fall back to Grep or Read)',
 		...BLIND_SPOTS.map((b) => `- ${b}`),
@@ -1052,7 +1064,8 @@ function checkBudgets(files) {
  * Renders every file of the code map from one model: `files/<file>.md` per
  * carded file (plus `files/<file>.calls.md` for a split card),
  * `modules/<module>.md`, `modules.md`, `ipc/commands.md`, `ipc/events.md`,
- * `ipc/dto.md`, `wiring.md`, `stores.md`, `effects/<class>.md` and `INDEX.md`.
+ * `ipc/dto.md`, `wiring/<layer>.md` (registries by the F7 layer of the file
+ * that defines them), `stores.md`, `effects/<class>.md` and `INDEX.md`.
  * Cards render before `modules.md` and INDEX, which carry their sizes and
  * counts.
  *
@@ -1106,17 +1119,20 @@ export function renderMap(model, { inputsHash }) {
 			model.dtos.map(dtoLine),
 		),
 	);
-	out.set(
-		'wiring.md',
-		shard(
-			'# wiring: registries and facets, who registers and who fires',
-			"cols: reg <id> sink <loc> | stores <binding> <mutation> | doc <text> · reg <id> facet <loc> · reg <id> read-by <loc> <name> · reg <id> fired-by <loc> in <fn> <- <loc> in <fn> · reg <id> registered-at <loc> in <fn> args=<text> -> <callbacks> · reg <id> invoked-at <loc> in <fn> · grep: grep -F -- 'reg <id> ' codemap/wiring.md",
-			model.registries.flatMap((r) => wiringLines(model, r, group)),
-		),
-	);
+	const wiring = new Map();
+	for (const r of model.registries) bucket(wiring, model.layerOf(r.file)).push(r);
+	for (const layer of [...wiring.keys()].sort(cmp))
+		out.set(
+			`wiring/${layer}.md`,
+			shard(
+				`# wiring ${layer}: registries and facets defined in ${layer}, who registers and who fires`,
+				"cols: reg <id> sink <loc> | stores <binding> <mutation> | doc <text> · reg <id> facet <loc> · reg <id> read-by <loc> <name> · reg <id> fired-by <loc> in <fn> <- <loc> in <fn> · reg <id> registered-at <loc> in <fn> args=<text> -> <callbacks> · reg <id> invoked-at <loc> in <fn> · grep: grep -rF -- 'reg <id> ' codemap/wiring",
+				wiring.get(layer).flatMap((r) => wiringLines(model, r, group)),
+			),
+		);
 	out.set('stores.md', renderStores(model));
 	for (const cls of EFFECT_CLASSES) out.set(`effects/${cls}.md`, renderEffects(model, cls));
-	out.set('INDEX.md', renderIndex(model, counts, inputsHash));
+	out.set('INDEX.md', renderIndex(model, counts, inputsHash, [...wiring.keys()].sort(cmp)));
 	const sorted = new Map([...out.keys()].sort(cmp).map((k) => [k, out.get(k)]));
 	checkBudgets(sorted);
 	return sorted;

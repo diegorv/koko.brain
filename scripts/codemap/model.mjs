@@ -34,11 +34,14 @@ import {
 	extractTsFile,
 	extractUses,
 	keySites,
+	markWrapperConsts,
 	publicIds,
 	reexportNames,
 	resolveBindings,
 	resolveReexports,
+	resolveReexportSymbols,
 	testRelations,
+	timerWrappers,
 	tsEffects,
 	usersBySymbol,
 } from './ts.mjs';
@@ -133,7 +136,8 @@ export function isInput(path) {
 	if (path === BASELINE) return true;
 	if (path.endsWith('.d.ts')) return false;
 	if (path.startsWith('src/lib/') || path.startsWith('src/routes/')) return /\.(?:ts|svelte|js)$/.test(path);
-	if (path.startsWith('src/tests/') || path.startsWith('e2e/')) return path.endsWith('.ts');
+	if (path.startsWith('src/tests/')) return /\.(?:ts|svelte)$/.test(path);
+	if (path.startsWith('e2e/')) return path.endsWith('.ts');
 	if (path.startsWith(`${RUST}/`) || path.startsWith(`${RUST_TESTS}/`) || isExample(path)) return path.endsWith('.rs');
 	return false;
 }
@@ -178,7 +182,8 @@ export const SIDE_EFFECT_NAME = 'side-effect';
  * The import names of one edge as the target exports them, in source order:
  * `default`, `*`, `type:` for a type-only binding, `dyn:` for an `import()`
  * destructure, `*` for `export * from`, `side-effect` for a statement that
- * binds nothing.
+ * binds nothing, `type:<Name>` for an inline `import('x').Name` type
+ * (`type:*` with no qualifier).
  */
 function edgeNames(facts, region, imp) {
 	const names = [];
@@ -193,7 +198,7 @@ function edgeNames(facts, region, imp) {
 	} else if (imp.kind === 'dynamic') {
 		for (const b of facts.bindings) if (b.dynamic && b.spec === imp.spec && b.importLine === imp.line) add(`dyn:${b.imported}`);
 		if (!names.length) add('dyn:*');
-	} else add('type:*');
+	} else add(`type:${imp.name ?? '*'}`);
 	return names;
 }
 
@@ -209,7 +214,8 @@ function edgeNames(facts, region, imp) {
  * - `moduleEdges`: production file pairs across modules, weighted by
  *   distinct (from file, to file) pairs.
  * - `hubs`: production files by (distinct production importer files desc,
- *   distinct test importer files desc, path), examples counted in neither;
+ *   distinct test files of the F6 relations desc, path), the card's `t<n>`
+ *   (examples and type-only test imports not counted);
  *   `hubsByLayer` the same per F7 layer.
  * - `entryFiles`: per module, its files with a production importer outside
  *   it, by (external importer files desc, path).
@@ -247,6 +253,9 @@ export function buildModel(inputs, { reverse = false } = {}) {
 
 	const resolved = resolveBindings(tsFiles);
 	const reexports = resolveReexports(tsFiles);
+	resolveReexportSymbols(tsFiles);
+	const wrappers = timerWrappers(tsFiles, isTest);
+	markWrapperConsts(tsFiles, resolved, wrappers);
 	const uses = extractUses(tsFiles, resolved);
 	const mounts = componentMounts(tsFiles, resolved);
 	const users = usersBySymbol(resolved, uses, isTest, mounts);
@@ -271,7 +280,7 @@ export function buildModel(inputs, { reverse = false } = {}) {
 
 	const registries = collectRegistries(tsFiles, uses, isTest);
 	const effects = [
-		...tsEffects(tsFiles, uses, isTest),
+		...tsEffects(tsFiles, uses, isTest, wrappers),
 		...rustPaths.flatMap((p) => rustEffects(rustFiles.get(p)).map((s) => ({ ...s, arg: '' }))),
 	].sort((a, b) => cmp(a.file, b.file) || a.line - b.line || cmp(a.sink, b.sink) || cmp(a.arg, b.arg));
 
@@ -326,11 +335,13 @@ export function buildModel(inputs, { reverse = false } = {}) {
 	const production = paths.filter((p) => !isTest(p));
 	const distinct = (list, pick, keep) => [...new Set(list.filter(keep).map(pick))].sort(cmp);
 	const prodImporters = (f) => distinct(importers.get(f) ?? [], (e) => e.from, (e) => !isTest(e.from));
-	const testImporters = (f) => distinct(importers.get(f) ?? [], (e) => e.from, (e) => isTest(e.from) && !isExample(e.from));
+	const testsOf = new Map();
+	for (const t of tests) if (t.relation !== EXAMPLE_RELATION && t.relation !== 'imports-type') bucket(testsOf, t.target).push(t.test);
+	const testFileCount = (f) => new Set(testsOf.get(f) ?? []).size;
 	const prodTargets = (f) => distinct(imports.get(f) ?? [], (e) => e.target, (e) => !isTest(e.target));
 
 	const hubs = production
-		.map((file) => ({ file, layer: layerOf(file), prod: prodImporters(file).length, test: testImporters(file).length }))
+		.map((file) => ({ file, layer: layerOf(file), prod: prodImporters(file).length, test: testFileCount(file) }))
 		.sort((a, b) => b.prod - a.prod || b.test - a.test || cmp(a.file, b.file));
 	const hubsByLayer = new Map();
 	for (const h of hubs) bucket(hubsByLayer, h.layer).push(h);
@@ -429,6 +440,9 @@ export function buildModel(inputs, { reverse = false } = {}) {
 	};
 }
 
+/** F4 use kinds that are a `call` edge of the symbol graph; every other kind is a `ref` edge. */
+const CALL_KINDS = new Set(['call', 'mcall', 'new']);
+
 /** Whether an enclosing name is a reactive scope (`$effect@<line>`, `X=$derived`, `$derived@<line>`). */
 const isReactiveScope = (name) => /^\$effect(?:\.pre)?@\d+$|=\$derived$|^\$derived@\d+$/.test(name);
 
@@ -436,7 +450,7 @@ const isReactiveScope = (name) => /^\$effect(?:\.pre)?@\d+$|=\$derived$|^\$deriv
  * The F14 symbol graph over production code, one edge per (kind, from, to),
  * each with the location of its first fact:
  * - `call` / `ref`: F4 uses from `<file>:<enclosing>` to the target (`call`
- *   for `call` and `mcall`, `ref` for every other kind); Rust F16/F20 rows
+ *   for `call`, `mcall` and `new`, `ref` for every other kind); Rust F16/F20 rows
  *   (`ref` for a Rust `ref`, `call` for the others).
  * - `ipc`: TS enclosing → `ipc:<cmd>` → the Rust `cmd` fn.
  * - `event`: Rust emit enclosing → `event:<name>` → TS listener enclosing.
@@ -458,7 +472,7 @@ function symbolGraph({ tsFiles, uses, rust, commands, events, registries, stores
 	const scopes = new Map();
 	for (const u of uses) {
 		if (isTest(u.file)) continue;
-		add(u.kind === 'call' || u.kind === 'mcall' ? 'call' : 'ref', `${u.file}:${u.enclosing}`, u.target, u.file, u.line);
+		add(CALL_KINDS.has(u.kind) ? 'call' : 'ref', `${u.file}:${u.enclosing}`, u.target, u.file, u.line);
 		if (isReactiveScope(u.enclosing)) bucket(scopes, u.file).push(u);
 	}
 	for (const c of rust.calls) if (!isTest(c.file)) add(c.kind === 'ref' ? 'ref' : 'call', `${c.file}:${c.enclosing}`, c.target, c.file, c.line);

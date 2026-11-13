@@ -92,9 +92,11 @@ function allInlineTypes(elements) {
  *
  * @param {import('typescript').SourceFile} sf the region, parsed with parent pointers set
  * @param {number} lineOffset lines of the file that precede the region
- * @returns {{spec: string | null, kind: 'static' | 'reexport' | 'dynamic' | 'import-type', typeOnly: boolean, line: number}[]}
+ * @returns {{spec: string | null, kind: 'static' | 'reexport' | 'dynamic' | 'import-type', typeOnly: boolean, line: number, name?: string | null}[]}
  *   `spec` is null for an `import()` whose argument is not a plain string literal.
- *   `line` is 1-based, counted from the start of the file.
+ *   `line` is 1-based, counted from the start of the file. An `import-type`
+ *   row's `name` is the leftmost name of its qualifier (`Y` in
+ *   `import('x').Y`, `A` in `import('x').A.B`), null without one.
  */
 export function extractImportsFromSource(sf, lineOffset) {
 	const out = [];
@@ -115,7 +117,9 @@ export function extractImportsFromSource(sf, lineOffset) {
 			const literal = a && (ts.isStringLiteral(a) || ts.isNoSubstitutionTemplateLiteral(a));
 			out.push({ spec: literal ? a.text : null, kind: 'dynamic', typeOnly: false, line: lineOf(n) });
 		} else if (ts.isImportTypeNode(n) && ts.isLiteralTypeNode(n.argument) && ts.isStringLiteral(n.argument.literal)) {
-			out.push({ spec: n.argument.literal.text, kind: 'import-type', typeOnly: true, line: lineOf(n) });
+			let q = n.qualifier;
+			while (q && ts.isQualifiedName(q)) q = q.left;
+			out.push({ spec: n.argument.literal.text, kind: 'import-type', typeOnly: true, line: lineOf(n), name: q ? q.text : null });
 		}
 		ts.forEachChild(n, visit);
 	};

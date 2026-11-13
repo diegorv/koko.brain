@@ -272,10 +272,11 @@ describe('q commands (test 48)', () => {
 			`call ${SVC}:22 in scheduleLoad -> ${SVC}:loadTags call`,
 			`call ${VIEW}:13 in (markup) -> ${SVC}:loadTags markup`,
 			'## depth 2',
-			'depth 2 nodes 2 files 2: src/lib/features/tags(1) src/routes(1) · via call(1) via-mount(1)',
+			'depth 2 nodes 3 files 3: src/lib/core/notes(1) src/lib/features/tags(1) src/routes(1) · via call(2) via-mount(1)',
 			'## depth 3',
 			'depth 3 nodes 1 files 1: src/lib/features/tags(1) · via ref(1)',
 			'## top files (depth 2+)',
+			'hub core src/lib/core/notes/notes.service.ts in2 t1',
 			'hub features src/lib/features/tags/tags.service.ts in1 t0',
 			'hub routes src/routes/+page.svelte in0 t0',
 		]);
@@ -705,6 +706,48 @@ describe('q file consistency (test 52)', () => {
 	});
 });
 
+describe('q over timer-wrapper consts and re-exports', () => {
+	const WRAP = modelOf({
+		'src/lib/utils/debounce.ts':
+			'export function debounce(fn: () => void, ms: number) {\n\tlet t: ReturnType<typeof setTimeout>;\n\treturn () => {\n\t\tclearTimeout(t);\n\t\tt = setTimeout(fn, ms);\n\t};\n}\n',
+		'src/lib/core/f.ts': "import { debounce } from '#lib/utils/debounce.js';\nfunction save() {}\nconst d = debounce(save, 10);\nexport function schedule() { d(); d.cancel(); }\n",
+		'src/lib/types/x.ts': 'export type X = 1;\n',
+		'src/lib/types/t.ts': "export type { X as Y } from './x.js';\n",
+	});
+
+	it('flow: a call through a timer-wrapper const reaches the wrapped function', () => {
+		const r = q(WRAP, 'flow', 'src/lib/core/f.ts:schedule', 'src/lib/core/f.ts:save');
+		expect(r.stdout.split('\n')).toEqual([
+			'# flow src/lib/core/f.ts:schedule -> src/lib/core/f.ts:save total 2 (prod 2, tests 0)',
+			'call src/lib/core/f.ts:4 src/lib/core/f.ts:schedule -> src/lib/core/f.ts:d',
+			'ref src/lib/core/f.ts:3 src/lib/core/f.ts:d -> src/lib/core/f.ts:save',
+			'',
+		]);
+	});
+
+	it('sym: a re-export name', () => {
+		expect(q(WRAP, 'sym', 'Y').stdout.split('\n')).toEqual([
+			'# sym Y total 1 (prod 1, tests 0)',
+			'sym src/lib/types/t.ts:1 reexport Y = src/lib/types/x.ts:X L1',
+			'',
+		]);
+	});
+
+	it('a barrel that re-exports a name unchanged does not make the bare name ambiguous', () => {
+		const model = modelOf({
+			'src/lib/core/x.ts': 'export function f() {}\n',
+			'src/lib/core/index.ts': "export { f } from './x.js';\n",
+			'src/lib/core/use.ts': "import { f } from './x.js';\nexport function g() { f(); }\n",
+		});
+		const callers = q(model, 'callers', 'f');
+		expect(callers.code).toBe(0);
+		expect(callers.stdout).toContain('call src/lib/core/use.ts:2 in g -> src/lib/core/x.ts:f call');
+		const sym = q(model, 'sym', 'f').stdout;
+		expect(sym).toContain('reexport f');
+		expect(sym).toContain('fn f()');
+	});
+});
+
 describe('q on the real repo (test 53)', () => {
 	const ROOT = process.cwd();
 
@@ -766,6 +809,9 @@ describe('q on the real repo (test 53)', () => {
 			expect(flow).toMatch(/ -> src\/lib\/core\/editor\/editor\.service\.ts:writeTab\n/);
 			expect(flow).toMatch(/ -> src\/lib\/core\/editor\/editor\.hooks\.ts:notifyAfterSave\n/);
 			expect(flow).toMatch(/^fires .* -> src\/lib\/features\/search\/search\.service\.ts:registerSearchIndexHook$/m);
+			const autosave = out('flow', 'src/lib/core/editor/editor.service.ts:scheduleAutoSave', 'src/lib/core/editor/editor.service.ts:saveDirtyTabs');
+			expect(autosave).toMatch(/ -> src\/lib\/core\/editor\/editor\.service\.ts:debouncedSave\n/);
+			expect(autosave).toMatch(/^ref .* -> src\/lib\/core\/editor\/editor\.service\.ts:saveDirtyTabs$/m);
 		});
 	});
 });

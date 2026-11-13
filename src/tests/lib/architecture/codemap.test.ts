@@ -23,6 +23,7 @@ import {
 	INDEX_TITLE,
 	ipcLine,
 	LINE_TAGS,
+	renderCard,
 	renderMap,
 } from '../../../../scripts/codemap/render.mjs';
 import { resolveSpecifier } from '../../../../scripts/import-graph.mjs';
@@ -605,6 +606,30 @@ describe('binding resolution', () => {
 	});
 });
 
+describe('re-export symbols', () => {
+	const tree: Record<string, string> = {
+		'src/lib/types/x.ts': 'export type X = 1;\nexport function f() {}',
+		'src/lib/types/t.ts': "export type { X as Y } from './x.js';\nexport {\n\tf,\n} from './x.js';\nexport * from './x.js';",
+		'src/lib/core/u.ts': "import type { Y } from '#lib/types/t.js';\nimport { f } from '#lib/types/t.js';\nlet y: Y;\nf();",
+	};
+
+	it('gives each named `export … from` entry a `reexport` symbol naming its origin, and keeps `by` lines on the origin', () => {
+		const model = buildModel(new Map(Object.entries(tree)));
+		expect(section(renderCard(model, 'src/lib/types/t.ts').card, 'symbols')).toEqual([
+			'sym src/lib/types/t.ts:1 reexport Y = src/lib/types/x.ts:X L1',
+			'sym src/lib/types/t.ts:3 reexport f = src/lib/types/x.ts:f L1',
+		]);
+		expect(section(renderCard(model, 'src/lib/types/x.ts').card, 'symbols')).toContain(
+			'by src/lib/types/x.ts:f <- src/lib/core/u.ts:4 in (module) call',
+		);
+	});
+
+	it('counts re-exports in the module `pub` field, public when a file outside the module imports the name', () => {
+		const files = renderTree(tree);
+		expect(linesOf(files.get('modules/src/lib/types.md')!)[2]).toMatch(/ pub 4\/4 /);
+	});
+});
+
 describe('public and internal symbols', () => {
 	const tree: Record<string, string> = {
 		'src/lib/features/tags/tags.service.ts': 'export function used() {}\nexport function testOnly() {}\nexport function sameModule() {}',
@@ -679,6 +704,16 @@ describe('by lines', () => {
 		]);
 	});
 
+	it('counts in `+<n>` every further site in the user file, in any enclosing', () => {
+		const { resolved, uses } = analyze({
+			'src/lib/core/a.ts': 'export function f() {}',
+			'src/lib/features/x/b.ts': "import { f } from '#lib/core/a.js';\nexport function x() { f(); }\nexport function y() { f(); f(); }",
+		});
+		expect(byLines('src/lib/core/a.ts:f', usersBySymbol(resolved, uses, isTest).get('src/lib/core/a.ts:f'), moduleOf)).toEqual([
+			'by src/lib/core/a.ts:f <- src/lib/features/x/b.ts:2 in x call +2',
+		]);
+	});
+
 	it('point at the first use site with its enclosing and kind, or at the specifier element of a type-only import', () => {
 		const { resolved, uses } = analyze({
 			'src/lib/core/tags/tags.service.ts': 'export function buildTagIndex() {}\nexport type Tag = { a: string };\nbuildTagIndex();',
@@ -701,7 +736,7 @@ describe('by lines', () => {
 		});
 		const users = usersBySymbol(resolved, uses, isTest);
 		expect(byLines('src/lib/core/tags/tags.service.ts:buildTagIndex', users.get('src/lib/core/tags/tags.service.ts:buildTagIndex'), moduleOf)).toEqual([
-			'by src/lib/core/tags/tags.service.ts:buildTagIndex <- src/lib/app/life/life.ts:4 in initializeVault call +1',
+			'by src/lib/core/tags/tags.service.ts:buildTagIndex <- src/lib/app/life/life.ts:4 in initializeVault call +2',
 			'by src/lib/core/tags/tags.service.ts:buildTagIndex <- src/lib/features/t/u.ts:2 in (module) import',
 		]);
 		expect(byLines('src/lib/core/tags/tags.service.ts:Tag', users.get('src/lib/core/tags/tags.service.ts:Tag'), moduleOf)).toEqual([
@@ -915,6 +950,113 @@ describe('uses', () => {
 				].join('\n'),
 			}),
 		).toEqual(['src/lib/features/x/A.svelte:5 in (script) -> src/lib/utils/fmt.ts:fmt call']);
+	});
+
+	it('records `this.m()` and `Class.m()` of a same-file class, not after a `function` rebinds `this`', () => {
+		expect(
+			useLines({
+				'src/lib/core/f.ts': [
+					'export class C {', // 1
+					'\ta() { return this.b(); }', // 2
+					'\tb() {}', // 3
+					'\tstatic s() {}', // 4
+					'\tc() { C.s(); }', // 5
+					'\td() { [1].forEach(function () { this.b(); }); }', // 6
+					'\te() { [1].forEach(() => this.b()); }', // 7
+					'\tf() { this.missing(); C.missing(); }', // 8
+					'}',
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/core/f.ts:2 in C.a -> src/lib/core/f.ts:C.b call',
+			'src/lib/core/f.ts:5 in C.c -> src/lib/core/f.ts:C.s call',
+			'src/lib/core/f.ts:7 in C.e -> src/lib/core/f.ts:C.b call',
+		]);
+	});
+
+	it('records `new K()` of an imported class as kind `new`', () => {
+		expect(
+			useLines({
+				'src/lib/core/a.ts': 'export class K {}',
+				'src/lib/core/b.ts': "import { K } from './a.js';\nexport function f() { return new K(); }",
+			}),
+		).toEqual(['src/lib/core/b.ts:2 in f -> src/lib/core/a.ts:K new']);
+	});
+
+	it('records a same-file `new K()` of an exported class as kind `new`', () => {
+		expect(useLines({ 'src/lib/core/a.ts': 'export class K {}\nexport function mk() { return new K(); }' })).toEqual([
+			'src/lib/core/a.ts:2 in mk -> src/lib/core/a.ts:K new',
+		]);
+	});
+});
+
+describe('timer-wrapper consts and class calls on cards', () => {
+	const DEBOUNCE = [
+		'export function debounce(fn: () => void, ms: number) {',
+		'\tlet t: ReturnType<typeof setTimeout>;',
+		'\treturn () => {',
+		'\t\tclearTimeout(t);',
+		'\t\tt = setTimeout(fn, ms);',
+		'\t};',
+		'}',
+	].join('\n');
+	const model = buildModel(
+		new Map(
+			Object.entries({
+				'src/lib/utils/debounce.ts': DEBOUNCE,
+				'src/lib/core/f.ts': [
+					"import { debounce } from '#lib/utils/debounce.js';", // 1
+					'function save() {}', // 2
+					'const d = debounce(save, 10);', // 3
+					'export function schedule() { d(); d.cancel(); }', // 4
+					'export const e = debounce(save, 20);', // 5
+					'export function later() { e(); }', // 6
+				].join('\n'),
+				'src/lib/core/k.ts': [
+					'export class C {', // 1
+					'\ta() { return this.b(); }', // 2
+					'\tb() {}', // 3
+					'}',
+					"import { K } from './a.js';", // 5
+					'export function mk() { return new K(); }', // 6
+				].join('\n'),
+				'src/lib/core/a.ts': 'export class K {}',
+			}),
+		),
+	);
+	const rows = (file: string) =>
+		model.uses
+			.filter((u: { file: string }) => u.file === file)
+			.map((u: { line: number; enclosing: string; target: string; kind: string }) => `${u.line} in ${u.enclosing} -> ${u.target} ${u.kind}`);
+
+	it('makes a top-level const set by a timer wrapper a call target and a local', () => {
+		expect(rows('src/lib/core/f.ts')).toEqual([
+			'3 in d -> src/lib/core/f.ts:save ref',
+			'3 in d -> src/lib/utils/debounce.ts:debounce call',
+			'4 in schedule -> src/lib/core/f.ts:d call',
+			'4 in schedule -> src/lib/core/f.ts:d.cancel mcall',
+			'5 in e -> src/lib/core/f.ts:save ref',
+			'5 in e -> src/lib/utils/debounce.ts:debounce call',
+			'6 in later -> src/lib/core/f.ts:e call',
+		]);
+		const { card } = renderCard(model, 'src/lib/core/f.ts');
+		expect(section(card, 'locals')).toContain('local src/lib/core/f.ts:3 fn d = debounce(…) L1');
+		expect(section(card, 'calls')).toContain('call src/lib/core/f.ts:4 in schedule -> src/lib/core/f.ts:d call +1');
+		expect(section(card, 'calls')).toContain('call src/lib/core/f.ts:3 in d -> src/lib/core/f.ts:save ref');
+	});
+
+	it('links the wrapper const to the wrapped function in the symbol graph', () => {
+		const edges = model.symbolEdges.map((e: { kind: string; from: string; to: string }) => `${e.kind} ${e.from} -> ${e.to}`);
+		expect(edges).toContain('call src/lib/core/f.ts:schedule -> src/lib/core/f.ts:d');
+		expect(edges).toContain('ref src/lib/core/f.ts:d -> src/lib/core/f.ts:save');
+	});
+
+	it('lists same-class method calls and `new` on the caller card, and `new` as a call edge', () => {
+		const calls = section(renderCard(model, 'src/lib/core/k.ts').card, 'calls');
+		expect(calls).toContain('call src/lib/core/k.ts:2 in C.a -> src/lib/core/k.ts:C.b call');
+		expect(calls).toContain('call src/lib/core/k.ts:6 in mk -> src/lib/core/a.ts:K new');
+		const edges = model.symbolEdges.map((e: { kind: string; from: string; to: string }) => `${e.kind} ${e.from} -> ${e.to}`);
+		expect(edges).toContain('call src/lib/core/k.ts:mk -> src/lib/core/a.ts:K');
 	});
 });
 
@@ -1229,12 +1371,26 @@ describe('enclosing', () => {
 			'src/lib/core/u.svelte.ts:12 in (module) -> src/lib/utils/g.ts:g call',
 			'src/lib/core/u.svelte.ts:13 in z=$derived -> src/lib/utils/g.ts:g call',
 			'src/lib/core/u.svelte.ts:14 in (module) -> src/lib/utils/g.ts:g call',
-			'src/lib/core/u.svelte.ts:15 in nested -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:15 in inner -> src/lib/utils/g.ts:g call',
 			'src/lib/core/u.svelte.ts:16 in $effect@16 -> src/lib/utils/g.ts:g call',
 			'src/lib/core/u.svelte.ts:17 in $derived@17 -> src/lib/core/s.svelte.ts:s.x member',
 			'src/lib/core/u.svelte.ts:18 in sat.a -> src/lib/utils/g.ts:g call',
 			'src/lib/core/u.svelte.ts:19 in later -> src/lib/utils/g.ts:debounce call',
 			'src/lib/core/u.svelte.ts:19 in later -> src/lib/utils/g.ts:g call',
+		]);
+	});
+
+	it('names the enclosing top-level function, not a nested arrow const or function declaration inside it', () => {
+		expect(
+			useLines({
+				'src/lib/core/f.ts':
+					'export function outer() { const inner = () => leaf(); return inner(); }\nfunction leaf() {}\nexport function outer2() { function helper() { leaf(); } helper(); }',
+				'src/lib/features/x/A.svelte': '<script lang="ts">\n\tfunction leaf() {}\n\tconst top = () => leaf();\n</script>',
+			}),
+		).toEqual([
+			'src/lib/core/f.ts:1 in outer -> src/lib/core/f.ts:leaf call',
+			'src/lib/core/f.ts:3 in outer2 -> src/lib/core/f.ts:leaf call',
+			'src/lib/features/x/A.svelte:3 in top -> src/lib/features/x/A.svelte:leaf call',
 		]);
 	});
 
@@ -1482,10 +1638,23 @@ describe('Rust uses', () => {
 		const { users } = analyzeRust(rustTree(tree));
 		const by = (id: string) => byLines(id, users.get(id), fixtureModule);
 		expect(by('src-tauri/src/a/b.rs:f')).toEqual([
-			'by src-tauri/src/a/b.rs:f <- src-tauri/src/c.rs:3 in run lexical',
+			'by src-tauri/src/a/b.rs:f <- src-tauri/src/c.rs:3 in run lexical +1',
 		]);
 		expect(by('src-tauri/src/a/b.rs:g')).toEqual(['by src-tauri/src/a/b.rs:g <- src-tauri/src/c.rs:5 in (module) import']);
 		expect(by('src-tauri/src/a/x.rs:Y')).toEqual(['by src-tauri/src/a/x.rs:Y <- src-tauri/src/a/b.rs:3 in g ref']);
+	});
+
+	it('counts in `+<n>` every further site in the user file, in any enclosing fn', () => {
+		const { users } = analyzeRust(
+			rustTree({
+				'src-tauri/src/lib.rs': 'pub mod a;\npub mod b;',
+				'src-tauri/src/a.rs': 'pub fn f() {}',
+				'src-tauri/src/b.rs': 'use crate::a::f;\npub fn x() { f(); }\npub fn y() { f(); f(); }',
+			}),
+		);
+		expect(byLines('src-tauri/src/a.rs:f', users.get('src-tauri/src/a.rs:f'), fixtureModule)).toEqual([
+			'by src-tauri/src/a.rs:f <- src-tauri/src/b.rs:2 in x lexical +2',
+		]);
 	});
 });
 
@@ -2101,7 +2270,7 @@ function tsFacts(tree: Record<string, string>) {
 }
 
 describe('test mapping', () => {
-	it('maps imports, mocks, e2e and mirror rows; mocks wins, type imports and package mocks give none', () => {
+	it('maps imports, mocks, e2e, imports-type and mirror rows; mocks wins, package mocks give none', () => {
 		const files = tsFacts({
 			'src/lib/core/x/x.service.ts': 'export function a() {}',
 			'src/lib/core/x/x.logic.ts': 'export function b() {}',
@@ -2141,8 +2310,61 @@ describe('test mapping', () => {
 			'test src/tests/lib/core/x/other.test.ts imports src/lib/core/x/x.service.ts',
 			'test src/tests/lib/core/x/x.servicex.test.ts imports src/lib/core/x/x.service.ts',
 			'test src/tests/lib/core/x/x.store.test.ts imports src/lib/core/x/x.store.svelte.ts mirror',
+			'test e2e/mocks/m.ts imports-type src/lib/core/x/x.types.ts',
+			'test src/tests/lib/core/x/x.service.test.ts imports-type src/lib/core/x/x.types.ts',
 			'test src/tests/lib/core/x/x.service.test.ts mocks src/lib/core/y.ts',
 		]);
+	});
+
+	it('gives a type-only test import an `imports-type` row with mirror, and a test rendering through a harness a `harness` row', () => {
+		const files = tsFacts({
+			'src/lib/types/a.types.ts': 'export type A = 1;',
+			'src/tests/lib/types/a.types.test.ts': "import type { A } from '#lib/types/a.types.js';\nlet a: import('#lib/types/a.types.js').A;",
+			'src/lib/features/x/C.svelte': '<p>c</p>',
+			'src/lib/features/x/D.svelte': '<p>d</p>',
+			'src/tests/fixtures/H.svelte': "<script lang=\"ts\">\n\timport C from '#lib/features/x/C.svelte';\n\timport type D from '#lib/features/x/D.svelte';\n</script>\n<C />",
+			'src/tests/lib/features/x/C.test.ts': "import H from '../../../fixtures/H.svelte';",
+		});
+		expect(
+			testRelations(files).map(
+				(r: { test: string; relation: string; target: string; mirror: boolean; via?: string }) =>
+					`test ${r.test} ${r.relation} ${r.target}${r.mirror ? ' mirror' : ''}${r.via ? ` via ${r.via}` : ''}`,
+			),
+		).toEqual([
+			'test src/tests/lib/features/x/C.test.ts harness src/lib/features/x/C.svelte mirror via src/tests/fixtures/H.svelte',
+			'test src/tests/lib/types/a.types.test.ts imports-type src/lib/types/a.types.ts mirror',
+		]);
+	});
+
+	it('reads test harness components as inputs and counts harness rows in `t<n>`, type-only rows not', () => {
+		expect(isInput('src/tests/fixtures/H.svelte')).toBe(true);
+		const files = renderTree({
+			'src/lib/types/a.types.ts': 'export type A = 1;',
+			'src/tests/lib/types/a.types.test.ts': "import type { A } from '#lib/types/a.types.js';",
+			'src/lib/features/x/C.svelte': '<p>c</p>',
+			'src/tests/fixtures/H.svelte': "<script lang=\"ts\">\n\timport C from '#lib/features/x/C.svelte';\n</script>\n<C />",
+			'src/tests/lib/features/x/C.test.ts': "import H from '../../../fixtures/H.svelte';",
+		});
+		expect(linesOf(files.get('files/src/lib/features/x/C.svelte.md')!)[2]).toMatch(/ t1$/);
+		expect(linesOf(files.get('files/src/lib/types/a.types.ts.md')!)[2]).toMatch(/ t0$/);
+		expect(section(files.get('files/src/lib/types/a.types.ts.md')!, 'tests')).toEqual([
+			'test src/tests/lib/types/a.types.test.ts imports-type src/lib/types/a.types.ts mirror',
+		]);
+		expect(files.get('INDEX.md')).toContain('imports-type (type-only) and example test lines are listed but not counted');
+	});
+
+	it('counts the same t<n> in the hub ranking as on the card', () => {
+		const m = modelOf({
+			'src/lib/types/a.types.ts': 'export type A = 1;',
+			'src/tests/lib/types/a.types.test.ts': "import type { A } from '#lib/types/a.types.js';",
+			'src/lib/features/x/C.svelte': '<p>c</p>',
+			'src/tests/fixtures/H.svelte': "<script lang=\"ts\">\n\timport C from '#lib/features/x/C.svelte';\n</script>\n<C />",
+			'src/tests/lib/features/x/C.test.ts': "import H from '../../../fixtures/H.svelte';",
+			'src/tests/lib/features/x/D.test.ts': "import H from '../../../fixtures/H.svelte';",
+		});
+		const hub = (f: string) => m.hubs.find((h: { file: string }) => h.file === f);
+		expect(hub('src/lib/features/x/C.svelte')).toMatchObject({ test: 2 });
+		expect(hub('src/lib/types/a.types.ts')).toMatchObject({ test: 0 });
 	});
 });
 
@@ -2312,6 +2534,31 @@ describe('registries', () => {
 			],
 		]);
 	});
+
+	it('takes the first argument that names a callback, and shows every argument in `args=`', () => {
+		expect(
+			registriesOf({
+				'src/lib/core/r/reg.ts': [
+					'const ls: (() => void)[] = [];', // 1
+					'export function register(name: string, fn: () => void) { ls.push(fn); return () => {}; }', // 2
+					'export function fire() { for (const l of ls) l(); }', // 3
+				].join('\n'),
+				'src/lib/features/u/use.ts': [
+					"import { register } from '#lib/core/r/reg.js';", // 1
+					'function cb() {}', // 2
+					"export function boot() { register('x', cb); }", // 3
+					"export function inline() { register('y', () => {}); }", // 4
+				].join('\n'),
+			}),
+		).toEqual([
+			[
+				'sink src/lib/core/r/reg.ts:register src/lib/core/r/reg.ts:2 ls push',
+				'read-by src/lib/core/r/reg.ts:3 src/lib/core/r/reg.ts:fire',
+				"registered-at src/lib/features/u/use.ts:3 in boot args='x', cb -> src/lib/features/u/use.ts:cb",
+				"registered-at src/lib/features/u/use.ts:4 in inline args='y', () => {} -> src/lib/features/u/use.ts:inline",
+			],
+		]);
+	});
 });
 
 /** F15 TS sites of an in-memory tree as `<loc> <sink> <class>[ <arg>] in <enclosing>` lines. */
@@ -2439,6 +2686,32 @@ describe('F15 timers, reactive effects and DOM listeners', () => {
 			'src/lib/core/t/t.svelte.ts:13 svelte.$effect reactive in (module)',
 			'src/lib/core/t/t.svelte.ts:14 svelte.$effect reactive in (module)',
 		]);
+	});
+});
+
+describe('F15 browser storage', () => {
+	it('finds localStorage and sessionStorage method calls, also through window, not a shadowing binding', () => {
+		expect(
+			effectLines({
+				'src/lib/core/s.ts': [
+					"export function save() { localStorage.setItem('k', 'v'); }", // 1
+					"export function load() { return window.localStorage.getItem('k'); }", // 2
+					"export function drop() { sessionStorage.removeItem('k'); sessionStorage.clear(); }", // 3
+					"export function own(localStorage: Storage) { localStorage.getItem('k'); }", // 4
+					'export function key() { return localStorage.key(0); }', // 5
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/core/s.ts:1 storage.setItem storage in save',
+			'src/lib/core/s.ts:2 storage.getItem storage in load',
+			'src/lib/core/s.ts:3 storage.clear storage in drop',
+			'src/lib/core/s.ts:3 storage.removeItem storage in drop',
+		]);
+	});
+
+	it('writes the storage sites to effects/storage.md', () => {
+		const files = renderTree({ 'src/lib/core/s.ts': "export function save() { localStorage.setItem('k', 'v'); }\n" });
+		expect(linesOf(files.get('effects/storage.md')!)).toContain('fx src/lib/core/s.ts:1 storage.setItem in save');
 	});
 });
 
@@ -2696,6 +2969,26 @@ describe('F14 graphs and ranking', () => {
 		).toEqual(['src/lib/core/m/u.ts:5 -> pkg:@tauri-apps/api/core side-effect']);
 	});
 
+	it('names an inline `import()` type by the leftmost name of its qualifier, `type:*` without one', () => {
+		const m = modelOf({
+			'src/lib/core/m/p.ts': 'export type Y = 1;\nexport namespace A { export type B = 1; }',
+			'src/lib/core/m/u.ts': [
+				"type T = import('./p.js').Y;", // 1
+				"type U = typeof import('./p.js');", // 2
+				"type V = import('./p.js').A.B;", // 3
+				"type W = [import('./p.js').Y, import('./p.js').A.B];", // 4
+			].join('\n'),
+		});
+		expect(
+			m.edges.map((e: { from: string; line: number; target: string; names: string[] }) => `imp ${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`),
+		).toEqual([
+			'imp src/lib/core/m/u.ts:1 -> src/lib/core/m/p.ts type:Y',
+			'imp src/lib/core/m/u.ts:2 -> src/lib/core/m/p.ts type:*',
+			'imp src/lib/core/m/u.ts:3 -> src/lib/core/m/p.ts type:A',
+			'imp src/lib/core/m/u.ts:4 -> src/lib/core/m/p.ts type:Y,type:A',
+		]);
+	});
+
 	it('links the symbol graph through calls, refs, registry fires, IPC, events, store state and mounts', () => {
 		const m = modelOf({
 			'src/lib/contracts/ipc.ts': IPC_TS,
@@ -2861,6 +3154,7 @@ describe('F1 inventory and modules', () => {
 				'src/lib/b.js',
 				'src/routes/+page.js',
 				'src/routes/+page.svelte',
+				'src/tests/T.svelte',
 				'src/tests/lib/architecture/layer-baseline.json',
 				'src/tests/t.test.ts',
 			]);
@@ -2945,7 +3239,7 @@ function runMain(argv: string[], opts: { root: string; env?: Record<string, stri
 const linesOf = (text: string) => text.slice(0, -1).split('\n');
 
 /** Files whose lines use ` | ` as a field separator. */
-const isSeparatorFile = (path: string) => path.startsWith('ipc/') || path === 'wiring.md';
+const isSeparatorFile = (path: string) => path.startsWith('ipc/') || path.startsWith('wiring/');
 
 /** A location token: a repo path under src, src-tauri or e2e, then `:<line>`. */
 const LOCATION_RE = /^(?:[rw]:)?((?:src|src-tauri|e2e)\/[^\s,:]+):(\d+),?$/;
@@ -2954,8 +3248,10 @@ const LOCATION_RE = /^(?:[rw]:)?((?:src|src-tauri|e2e)\/[^\s,:]+):(\d+),?$/;
  * Test 32 checks over rendered files: line 1 a `#` title, line 2 `cols:`
  * (INDEX its `>` summary), a known tag on every other non-heading line, every
  * location in an existing file and in range, no Markdown links or fences, no
- * tabs, `\r` or trailing spaces, at most one ` | ` outside separator files,
- * and no `<…>` placeholder token on fact lines outside excerpts.
+ * tabs, `\r` or trailing spaces, at most one ` | ` outside separator files
+ * (a `sym` or `local` signature keeps its own: a `sym` doc follows the first
+ * ` | ` after `L<span>`), and no `<…>` placeholder token on fact lines
+ * outside excerpts.
  */
 function grammarProblems(files: Map<string, string>, inputs: Map<string, string>): string[] {
 	const tags = new Set<string>(LINE_TAGS);
@@ -2993,8 +3289,9 @@ function grammarProblems(files: Map<string, string>, inputs: Map<string, string>
 			if ((i === 2 && line.startsWith('sections: ')) || line.startsWith('## ')) return;
 			const tag = line.split(' ', 1)[0];
 			if (!tags.has(tag) && line !== '-') problems.push(`${where}: unknown tag '${tag}'`);
-			if (!isSeparatorFile(path) && line.split(' | ').length > 2) problems.push(`${where}: more than one ' | '`);
-			const facts = isSeparatorFile(path) ? line.replace(/ \| doc .*$/, '') : line.split(' | ')[0];
+			const signed = tag === 'sym' || tag === 'local' ? symFacts(line) : null;
+			if (!isSeparatorFile(path) && !signed && line.split(' | ').length > 2) problems.push(`${where}: more than one ' | '`);
+			const facts = signed ?? (isSeparatorFile(path) ? line.replace(/ \| doc .*$/, '') : line.split(' | ')[0]);
 			const outsideExcerpts = facts.replace(/ (?:args|delay)=.*$/, '');
 			checkLocations(outsideExcerpts, where);
 			for (const tok of outsideExcerpts.split(' ')) if (/^<[^\s]*>$/.test(tok)) problems.push(`${where}: placeholder ${tok}`);
@@ -3012,13 +3309,17 @@ function grammarProblems(files: Map<string, string>, inputs: Map<string, string>
 	}
 }
 
-/** The IDs a model defines: symbols, components, locals, object methods, store members, Rust items. */
+/** The facts of a `sym` or `local` line: the text up to `L<span>` (and a Rust ` dto:<Name>`), without the doc. */
+const symFacts = (line: string) => /^.*? L\d+(?: dto:\S+)?(?= \| |$)/.exec(line)?.[0] ?? line;
+
+/** The IDs a model defines: symbols, components, locals, object methods, class methods, store members, Rust items. */
 function modelIds(model: ReturnType<typeof buildModel>): Set<string> {
 	const ids = new Set<string>();
 	for (const [file, facts] of model.ts) {
 		for (const s of facts.symbols) ids.add(s.kind === 'component' ? `${file}:default` : `${file}:${s.name}`);
 		for (const l of facts.locals) ids.add(`${file}:${l.name}`);
 		for (const [obj, methods] of facts.objects) for (const m of methods) ids.add(`${file}:${obj}.${m}`);
+		for (const [cls, methods] of facts.classes) for (const m of methods) ids.add(`${file}:${cls}.${m}`);
 	}
 	for (const st of model.stores) for (const m of st.members) ids.add(m.id);
 	for (const [file, facts] of model.rust) for (const x of [...facts.items, ...facts.locals]) ids.add(`${file}:${x.name}`);
@@ -3165,7 +3466,7 @@ describe('render: golden fixture', () => {
 			'INDEX.md',
 			'modules.md',
 			'stores.md',
-			'wiring.md',
+			'wiring/core.md',
 			'ipc/commands.md',
 			'ipc/events.md',
 			'ipc/dto.md',
@@ -3177,6 +3478,7 @@ describe('render: golden fixture', () => {
 			'effects/dom.md',
 			'effects/db.md',
 			'effects/spawn.md',
+			'effects/storage.md',
 			'modules/src/lib/core/notes.md',
 			'modules/src-tauri/src.md',
 			'files/src/lib/core/notes/notes.service.ts.md',
@@ -3198,7 +3500,7 @@ describe('render: golden fixture', () => {
 			'ipc/commands.md',
 			'ipc/events.md',
 			'ipc/dto.md',
-			'wiring.md',
+			'wiring/core.md',
 			'stores.md',
 			'effects/disk-write.md',
 			'effects/timer.md',
@@ -3255,6 +3557,21 @@ describe('render: golden fixture', () => {
 		expect(linesOf(index)[1]).toContain(`inputs=sha256:${HASH} `);
 		expect(linesOf(index).length).toBeLessThanOrEqual(BUDGET.indexLines);
 		expect(Buffer.byteLength(index)).toBeLessThanOrEqual(BUDGET.indexBytes);
+	});
+});
+
+describe('render: signatures as written', () => {
+	it('keeps ` | ` in sym and local signatures, the doc after the first ` | ` past `L<span>`, and passes test 32', () => {
+		const tree = {
+			'src/lib/core/u.ts': "/** Picks a or b | never c. */\nexport function f(x: 'a' | 'b') {}\nfunction g(y: 1 | 2): 1 | 2 {\n\treturn y;\n}\n",
+		};
+		const model = buildModel(new Map(Object.entries(tree)));
+		const files = renderMap(model, { inputsHash: HASH });
+		const card = files.get('files/src/lib/core/u.ts.md')!;
+		expect(section(card, 'symbols')).toEqual(["sym src/lib/core/u.ts:2 fn f(x: 'a' | 'b') L1 | Picks a or b / never c."]);
+		expect(section(card, 'locals')).toEqual(['local src/lib/core/u.ts:3 fn g(y: 1 | 2): 1 | 2 L3']);
+		expect(grammarProblems(files, model.inputs)).toEqual([]);
+		expect(files.get('INDEX.md')).toContain('the doc follows the first " | " after L<span>');
 	});
 });
 
@@ -3318,7 +3635,7 @@ describe('render: caps and the calls split (test 35)', () => {
 		expect(Buffer.byteLength(card)).toBeLessThanOrEqual(BUDGET.splitBytes);
 	});
 
-	it('caps read-by and registered-at lines of a registry at 10', () => {
+	it('caps read-by and registered-at lines of a registry at 20', () => {
 		const hooks = [
 			'const observers: Array<() => void> = [];',
 			'/** Registers an observer. */',
@@ -3330,18 +3647,35 @@ describe('render: caps and the calls split (test 35)', () => {
 			'}',
 		];
 		const regs = ["import { addObs } from '#lib/core/h/hooks.js';", 'function cb() {}'];
-		for (let i = 0; i < 12; i++) {
+		for (let i = 0; i < 22; i++) {
 			hooks.push(`export function fire${i}() {`, '\tfor (const o of observers) o();', '}');
 			regs.push(`export function reg${i}() {`, '\taddObs(cb);', '}');
 		}
 		const files = renderTree({ 'src/lib/core/h/hooks.ts': `${hooks.join('\n')}\n`, 'src/lib/features/u/u.ts': `${regs.join('\n')}\n` });
-		const wiring = linesOf(files.get('wiring.md')!);
+		expect(files.has('wiring.md')).toBe(false);
+		const wiring = linesOf(files.get('wiring/core.md')!);
 		const of = (what: string) => wiring.filter((l) => l.startsWith(`reg src/lib/core/h/hooks.ts:addObs ${what} `));
-		expect(of('read-by')).toHaveLength(10);
-		expect(of('registered-at')).toHaveLength(10);
-		expect(of('fired-by').length).toBeLessThanOrEqual(10);
+		expect(of('read-by')).toHaveLength(20);
+		expect(of('registered-at')).toHaveLength(20);
+		expect(of('fired-by').length).toBeLessThanOrEqual(20);
 		expect(wiring).toContain('more read-by 2 not shown: src/lib/core/h(2): q reg src/lib/core/h/hooks.ts:addObs');
 		expect(wiring).toContain('more registered-at 2 not shown: src/lib/features/u(2): q reg src/lib/core/h/hooks.ts:addObs');
+	});
+
+	it('shards wiring by the layer of the file that defines the sink', () => {
+		const sink = (name: string) =>
+			`const list: Array<() => void> = [];\nexport function ${name}(f: () => void) {\n\tlist.push(f);\n\treturn () => {};\n}\nexport function fire() { for (const f of list) f(); }\n`;
+		const files = renderTree({ 'src/lib/core/h/hooks.ts': sink('addCore'), 'src/lib/features/f/hooks.ts': sink('addFeature') });
+		const heads = (p: string) => linesOf(files.get(p)!).filter((l) => /^reg \S+ (?:sink|facet) /.test(l)).map((l) => l.split(' ')[1]);
+		expect([...files.keys()].filter((p) => p.startsWith('wiring'))).toEqual(['wiring/core.md', 'wiring/features.md']);
+		expect(heads('wiring/core.md')).toEqual(['src/lib/core/h/hooks.ts:addCore']);
+		expect(heads('wiring/features.md')).toEqual(['src/lib/features/f/hooks.ts:addFeature']);
+		expect(linesOf(files.get('wiring/core.md')!)[0]).toBe('# wiring core: registries and facets defined in core, who registers and who fires');
+		expect(files.get('INDEX.md')).toContain('codemap/wiring/<layer>.md');
+		expect(files.get('INDEX.md')).toContain('(wiring/core.md, wiring/features.md)');
+		expect(files.get('INDEX.md')).not.toContain('wiring/app.md');
+		expect(files.get('INDEX.md')).toContain('" / " inside copied text stands for " | "');
+		expect(files.get('INDEX.md')).toContain('Class methods: only this.m() and C.m() inside the defining file');
 	});
 
 	it('prints every name of an import statement on its `imp` line', () => {
@@ -3659,11 +3993,18 @@ describe('real repo', () => {
 	}, 60_000);
 
 	/** The source line of a location. */
-	const sourceLine = (file: string, line: number) => model.inputs.get(file)!.split('\n')[line - 1] ?? '';
+	const sourceLines = new Map<string, string[]>();
+	const sourceLine = (file: string, line: number) => {
+		if (!sourceLines.has(file)) sourceLines.set(file, model.inputs.get(file)!.split('\n'));
+		return sourceLines.get(file)![line - 1] ?? '';
+	};
+
+	const resolvedBy = new Map<string, { id: string | null; local: string }[]>();
 
 	/** The local names a file binds to a symbol ID (aliases included; Rust `use … as` aliases by item name). */
 	const localNames = (file: string, id: string) => {
-		const ts = model.resolved.filter((r: { from: string; id: string | null }) => r.from === file && r.id === id).map((r: { local: string }) => r.local);
+		if (!resolvedBy.size) for (const r of model.resolved) (resolvedBy.get(r.from) ?? resolvedBy.set(r.from, []).get(r.from)!).push(r);
+		const ts = (resolvedBy.get(file) ?? []).filter((r) => r.id === id).map((r) => r.local);
 		const item = id.slice(id.indexOf(':') + 1).split('::')[0];
 		const rust = (model.rust.get(file)?.uses ?? []).flatMap((u: { leaves: { segs: string[]; alias: string | null }[] }) =>
 			u.leaves.filter((l) => l.alias && l.segs.at(-1) === item).map((l) => l.alias!),
@@ -3713,7 +4054,7 @@ describe('real repo', () => {
 				}
 				continue;
 			}
-			if (p === 'wiring.md') {
+			if (p.startsWith('wiring/')) {
 				for (const l of linesOf(text).filter((x) => x.startsWith('reg '))) {
 					const tok = l.split(' | ')[0].split(' ');
 					if (tok[2] === 'sink' || tok[2] === 'facet') checkId(tok[3], tok[1], 'wiring sink');
@@ -3833,7 +4174,7 @@ describe('real repo', () => {
 		expect(fileCards).toEqual(production);
 	});
 
-	it('places each exported TS symbol on one card, matching an independent count (test 42)', () => {
+	it('places each exported TS symbol and named re-export on one card, matching an independent count (test 42)', () => {
 		let expected = 0;
 		for (const f of model.files) {
 			if (!(f.endsWith('.ts') || f.endsWith('.svelte')) || model.isTest(f)) continue;
@@ -3846,6 +4187,8 @@ describe('real repo', () => {
 			for (const r of regions) {
 				const sf = ts.createSourceFile('x.ts', r.code, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
 				for (const st of sf.statements) {
+					if (!r.instance && ts.isExportDeclaration(st) && st.moduleSpecifier && st.exportClause && ts.isNamedExports(st.exportClause))
+						expected += st.exportClause.elements.length;
 					const exported = ts.canHaveModifiers(st) && ts.getModifiers(st)?.some((m) => m.kind === ts.SyntaxKind.ExportKeyword);
 					if (!exported) continue;
 					if (ts.isFunctionDeclaration(st) && st.name && st.body) expected++;
@@ -3890,7 +4233,7 @@ describe('real repo', () => {
 		expect(timer.some((l) => /^fx src\/lib\/features\/tags\/tags\.service\.ts:\d+ timer-wrap\.debounce args=.*300 as debouncedTrigger in debouncedTrigger$/.test(l))).toBe(true);
 		expect(timer.some((l) => /^fx src\/lib\/core\/editor\/editor\.service\.ts:\d+ timer-wrap\.debounce args=.*2000/.test(l))).toBe(true);
 
-		const wiring = linesOf(files.get('wiring.md')!);
+		const wiring = [...files].filter(([p]) => p.startsWith('wiring/')).flatMap(([, t]) => linesOf(t));
 		for (const sink of [
 			'src/lib/core/filesystem/note-change.service.ts:registerNoteChangeConsumer',
 			'src/lib/core/filesystem/path-change.service.ts:registerPathChangeConsumer',
@@ -3961,18 +4304,12 @@ describe('real repo', () => {
 	});
 
 	it('keeps 15 % headroom under every cap, so growth fails a PR before it fails the main-branch build', () => {
-		/**
-		 * wiring.md grows with the number of registries, not with a list cap
-		 * (one `reg` line per sink, reader, registration and fire site), so no
-		 * cap constant gives it 15 %; it keeps 5 % until its layout changes.
-		 */
-		const byteShare = (p: string) => (p === 'wiring.md' ? 0.95 : 0.85);
 		const over: string[] = [];
 		for (const [p, t] of files) {
 			const lines = linesOf(t);
 			const bytes = Buffer.byteLength(t);
 			const long = Math.max(...lines.map((l) => l.length));
-			if (bytes > BUDGET.maxBytes * byteShare(p)) over.push(`${p}: ${bytes} bytes`);
+			if (bytes > BUDGET.maxBytes * 0.85) over.push(`${p}: ${bytes} bytes`);
 			if (lines.length > BUDGET.maxLines * 0.85) over.push(`${p}: ${lines.length} lines`);
 			if (long > BUDGET.maxLineChars * 0.85) over.push(`${p}: a line of ${long} chars`);
 		}
