@@ -129,33 +129,32 @@ Dependency and supply-chain auditing.
 
 **Triggers**
 
-- `push` to `main`
-- `pull_request` against `main`
-- `schedule`: every Monday at 09:00 UTC (catches new CVEs even when no code changes)
+- `push` to `main`, skipped when only docs (`**/*.md`, `.scratch/**`, `help/**`, `LICENSE`) or `.github/**` files other than `security.yml` and the setup action changed
+- `schedule`: daily at 12:30 UTC (catches new CVEs even when no code changes)
 - `workflow_dispatch`
-- `workflow_call`
-- Skipped when only `**/*.md` changed.
+- `workflow_call`: from `pr.yml` when a PR changes a manifest, a lockfile, `pnpm-workspace.yaml`, the audit script, `.github/actions/` or `.github/workflows/`; from `release.yml`; and from `run-all.yml`
 
 **Jobs**
 
 | Job ID | Runner | What it does |
 |---|---|---|
-| `npm-audit` | ubuntu-24.04 | `pnpm audit --audit-level=moderate`. Fails if any moderate or higher vulnerability is reported. |
+| `npm-audit` | ubuntu-24.04 | `scripts/quarantine-aware-audit.mjs` runs `pnpm audit --audit-level=moderate` and fails on a moderate or higher advisory whose patch is past the 5-day quarantine and within the installed major. It only warns when every such patch is still quarantined, when the fix needs a major bump of the dependent, or when no patch exists yet. |
 | `cargo-audit` | ubuntu-24.04 | `rustsec/audit-check@v2.0.0` against `src-tauri/`. Posts a check annotation when an advisory matches a dependency. Skipped on the `schedule` trigger: there audit-check opens an issue per new warning, which the token cannot do, so the daily run always failed. Pushes, `workflow_dispatch` and `release.yml` still run it; the daily OSV scan still reports advisories in `Cargo.lock`. |
 | `supply-chain-quarantine` | ubuntu-24.04 | Verifies `pnpm-workspace.yaml` exists and sets `minimumReleaseAge` to at least `7200` minutes (5 days). This is the tamper-detection layer over the pnpm config that refuses to resolve packages younger than the configured age. |
-| `dependency-review` | ubuntu-24.04 | PR only. Runs `actions/dependency-review-action@v4` with `fail-on-severity: moderate`. Blocks PRs that introduce dependencies with known vulnerabilities. |
+| `gitleaks-history` | ubuntu-24.04 | `schedule` and `workflow_dispatch` of Security itself only. gitleaks `8.30.1` with `.gitleaks.toml` over the full git history. |
+| `osv-scanner` | (reusable) | Security's own triggers only (callers narrow the token and the SARIF upload fails). `google/osv-scanner-action` over the full tree, results uploaded to code scanning. `fail-on-vuln: false`, so it does not fail on findings. |
 
 **What Security tests**
 
 - Known CVEs in npm + Cargo dependency trees (against advisory databases).
 - That the pnpm supply-chain quarantine config has not been deleted or weakened.
-- New dependency vulnerabilities introduced by a PR.
+- Secrets anywhere in the git history (daily).
 
 **What Security does NOT test**
 
-- Whether application code is exploitable. There is no SAST step (CodeQL, semgrep, etc.).
+- Whether application code is exploitable. This workflow has no SAST step; CodeQL runs separately, as GitHub's default code-scanning setup.
 - Container images, lockfile integrity checksums, or signed-commit verification.
-- Runtime behaviour. It only inspects manifests, lockfiles, and advisory databases.
+- Runtime behaviour. It only inspects manifests, lockfiles, advisory databases and, for gitleaks, the git history.
 
 ---
 
@@ -366,7 +365,7 @@ Manual entry point that fans out CI, E2E, Security, and Privacy in one click. Us
 | `security` | Security | `uses: ./.github/workflows/security.yml` |
 | `privacy` | Privacy | `uses: ./.github/workflows/privacy.yml` |
 
-Permissions are granted at the wrapper level. The cargo-audit job in Security needs `checks: write` to post annotations, so the `security` caller declares it explicitly; everything else operates on `contents: read`.
+Permissions are granted at the wrapper level. The cargo-audit job in Security needs `checks: write` to post annotations, and its osv-scanner job needs `actions: read` and `security-events: write` to upload results to code scanning, so the `security` caller declares all three; everything else operates on `contents: read`.
 
 **Why Release and Wiki Sync are excluded**
 
@@ -453,7 +452,7 @@ Third-party actions (anything outside the `actions/*` namespace) are pinned by f
 
 This protects the suite against a compromised maintainer account silently moving a tag to malicious code — the SHA we recorded is the only thing GitHub will resolve. The release pipeline (`tauri-apps/tauri-action`, which handles Apple signing certs and notarization credentials) is the highest-stakes case, but the same convention applies everywhere.
 
-`actions/*` (e.g. `actions/checkout`, `actions/setup-node`, `actions/cache`, `actions/upload-artifact`, `actions/dependency-review-action`) is left on version tags — those are GitHub-published and considered part of the trusted base.
+`actions/*` (e.g. `actions/checkout`, `actions/setup-node`, `actions/cache`, `actions/upload-artifact`) is left on version tags — those are GitHub-published and considered part of the trusted base.
 
 `dtolnay/rust-toolchain@stable` is also intentionally NOT pinned by SHA: `stable` is a branch reference that tracks the rolling rustc stable channel, so pinning by SHA would freeze the channel as well as the action code.
 
@@ -462,6 +461,7 @@ This protects the suite against a compromised maintainer account silently moving
 Every workflow declares `permissions: contents: read` at the file level. Jobs that need more escalate at the job level — and because GitHub Actions REPLACES (not merges) workflow-level permissions when a job declares its own, escalating jobs re-state the `contents: read` baseline alongside the extra scope they need. Current escalations:
 
 - `security.yml` → `cargo-audit`: `contents: read` + `checks: write` (for `rustsec/audit-check` to post annotations).
+- `security.yml` → `osv-scanner`: `contents: read` + `actions: read` + `security-events: write` (for the reusable OSV workflow to upload SARIF to code scanning).
 - `release.yml` → `build-macos`: `contents: write` (for `tauri-action` to create the release and upload assets).
 - `sync-wiki.yml`: workflow-level `contents: write` (publishes to the `<repo>.wiki` Git repo).
 
