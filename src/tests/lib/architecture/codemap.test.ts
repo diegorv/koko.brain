@@ -1,13 +1,36 @@
 import { describe, expect, it } from 'vitest';
 
-import { byLines } from '../../../../scripts/codemap/render.mjs';
+import {
+	byLines,
+	crossLanguageLines,
+	dtoLine,
+	eventLine,
+	ipcLine,
+} from '../../../../scripts/codemap/render.mjs';
+import {
+	analyzeRust,
+	eventConsts,
+	extractRustFile,
+	handlerEntries,
+	joinCommands,
+	joinDtos,
+	joinEvents,
+	lexRust,
+	parseUseTree,
+	rustEffects,
+	rustEmits,
+} from '../../../../scripts/codemap/rust.mjs';
 import {
 	collectStores,
+	extractContracts,
+	extractIpcSites,
 	extractTsFile,
 	extractUses,
 	firstSentence,
+	keySites,
 	publicIds,
 	resolveBindings,
+	resolveReexports,
 	usersBySymbol,
 } from '../../../../scripts/codemap/ts.mjs';
 
@@ -1209,6 +1232,642 @@ describe('enclosing', () => {
 			'src/lib/features/x/A.svelte:3 in (module) -> src/lib/utils/g.ts:g call',
 			'src/lib/features/x/A.svelte:6 in (script) -> src/lib/utils/g.ts:g call',
 			'src/lib/features/x/A.svelte:8 in (markup) -> src/lib/utils/g.ts:g call markup',
+		]);
+	});
+});
+
+/** Parses an in-memory Rust tree into per-file facts. */
+function rustTree(tree: Record<string, string>) {
+	return new Map(Object.keys(tree).map((path) => [path, extractRustFile(path, tree[path])]));
+}
+
+/** Items of one Rust file as `<line> <kind>[ dto] <name><sig> L<span>[ | doc]` lines. */
+function rustItems(file: string, text: string) {
+	return extractRustFile(file, text).items.map(
+		(s: { line: number; kind: string; dto: boolean; name: string; sig: string; span: number; doc: string }) =>
+			`${s.line} ${s.kind}${s.dto ? ' dto' : ''} ${s.name}${s.sig} L${s.span}${s.doc ? ` | ${s.doc}` : ''}`,
+	);
+}
+
+/** Locals of one Rust file as `<line> <name><sig> L<span>` lines. */
+function rustLocals(file: string, text: string) {
+	return extractRustFile(file, text).locals.map(
+		(s: { line: number; name: string; sig: string; span: number }) => `${s.line} ${s.name}${s.sig} L${s.span}`,
+	);
+}
+
+/** F16 file edges of a Rust tree as `<from>:<line> -> <target> <names>` lines. */
+function rustEdgeLines(tree: Record<string, string>) {
+	return analyzeRust(rustTree(tree)).edges.map(
+		(e: { from: string; line: number; target: string; names: string[] }) =>
+			`${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`,
+	);
+}
+
+/** F16 and F20 call rows of a Rust tree as `<file>:<line> in <enclosing> -> <target> <kind>` lines. */
+function rustCallLines(tree: Record<string, string>) {
+	return analyzeRust(rustTree(tree)).calls.map(
+		(c: { file: string; line: number; enclosing: string; target: string; kind: string }) =>
+			`${c.file}:${c.line} in ${c.enclosing} -> ${c.target} ${c.kind}`,
+	);
+}
+
+/** Parses an in-memory TS tree and returns its facts, F3 resolution and contracts. */
+function tsTree(tree: Record<string, string>) {
+	const files = new Map(Object.keys(tree).map((path) => [path, extractTsFile(path, tree[path])]));
+	const resolved = resolveBindings(files);
+	return { files, resolved, contract: extractContracts(files), sites: extractIpcSites(files, resolved) };
+}
+
+/** Module of a fixture path: the feature folder under `src/lib/features`, else the first three segments. */
+const fixtureModule = (f: string) => f.split('/').slice(0, f.startsWith('src/lib/features/') ? 4 : 3).join('/');
+
+describe('Rust lexer and items', () => {
+	const text = [
+		'const S: &str = r#"a { b " }"#;', // 1
+		'const M: &str = "multi', // 2
+		' { line \\" }";', // 3
+		"fn lt<'a>(x: &'a str) -> char { '{' }", // 4
+		'/* outer /* inner { */ still } */', // 5
+		'/// Doc of Foo.', // 6
+		'#[derive(', // 7
+		'\tDebug,', // 8
+		')]', // 9
+		'pub struct Foo {}', // 10
+		"pub fn after(b: u8) -> u8 { let c = b'}'; let e = '\\''; b }", // 11
+	].join('\n');
+
+	it('blanks comments and string contents, keeps lines, and tells char literals from lifetimes', () => {
+		const { code } = lexRust(text);
+		expect(code.length).toBe(text.length);
+		expect(code.split('\n').length).toBe(text.split('\n').length);
+		expect(code.split('\n')[0]).not.toMatch(/[{}]/);
+		expect(code.split('\n')[2]).not.toMatch(/[{}]/);
+		expect(code.split('\n')[3]).toBe("fn lt<'a>(x: &'a str) -> char { ' ' }");
+		expect(code.split('\n')[4].trim()).toBe('');
+	});
+
+	it('keeps the brace depth across raw, multi-line and byte strings, chars and nested comments, and the doc across a multi-line attribute', () => {
+		expect(rustItems('src-tauri/src/a.rs', text)).toEqual(['10 struct Foo L1 | Doc of Foo.', '11 fn after(b: u8) -> u8 L1']);
+		expect(rustLocals('src-tauri/src/a.rs', text)).toEqual(["4 lt(x: &'a str) -> char L1"]);
+	});
+
+	it('reads impl methods, restricted visibility, commands, DTOs and locals; trait impl fns only as locals', () => {
+		const k = [
+			"pub struct Foo<'a> { x: &'a str }", // 1
+			"impl Foo<'_> {", // 2
+			'\tpub fn baz(&self) -> bool { true }', // 3
+			'}',
+			"impl Foo<'static> {", // 5
+			'\tpub async fn bar() {}', // 6
+			'\tfn hidden(&self) {}', // 7
+			'}',
+			"impl Clone for Foo<'_> {", // 9
+			'\tpub fn nope() {}', // 10
+			'}',
+			'pub(crate) fn inner() {}', // 12
+			'fn private_one() {}', // 13
+			'#[tauri::command]', // 14
+			'pub async fn do_it(path: String) -> Result<(), String> {', // 15
+			'\tOk(())',
+			'}',
+			'#[derive(ts_rs::TS)]', // 18
+			'#[ts(export)]',
+			'pub struct Dto {}', // 20
+		].join('\n');
+		expect(rustItems('src-tauri/src/k.rs', k)).toEqual([
+			'1 struct Foo L1',
+			'3 method Foo::baz(&self) -> bool L1',
+			'6 method Foo::bar() L1',
+			'12 fn(crate) inner() L1',
+			'15 cmd do_it(path: String) -> Result<(), String> L3',
+			'20 struct dto Dto L1',
+		]);
+		expect(rustLocals('src-tauri/src/k.rs', k)).toEqual(['7 Foo::hidden(&self) L1', '10 Foo::nope() L1', '13 private_one() L1']);
+	});
+
+	it('keeps one item or local for cfg-gated twins, the first, and drops a local twin of an item', () => {
+		const t = [
+			'#[cfg(target_os = "macos")]', // 1
+			'pub fn f() {}', // 2
+			'#[cfg(not(target_os = "macos"))]', // 3
+			'pub fn f() {}', // 4
+			'#[cfg(unix)]', // 5
+			'fn g() {}', // 6
+			'#[cfg(not(unix))]', // 7
+			'fn g() {}', // 8
+			'#[cfg(unix)]', // 9
+			'pub fn h() {}', // 10
+			'#[cfg(not(unix))]', // 11
+			'fn h() {}', // 12
+		].join('\n');
+		expect(rustItems('src-tauri/src/t.rs', t)).toEqual(['2 fn f() L1', '10 fn h() L1']);
+		expect(rustLocals('src-tauri/src/t.rs', t)).toEqual(['6 g() L1']);
+	});
+
+	it('keeps a `///` doc across a plain `//` comment before the attributes', () => {
+		const t = [
+			'/// Writes the text.', // 1
+			'// The camelCase args are the IPC contract.', // 2
+			'#[allow(non_snake_case)]', // 3
+			'#[tauri::command]', // 4
+			'pub fn write_task_text() {}', // 5
+		].join('\n');
+		expect(rustItems('src-tauri/src/t.rs', t)).toEqual(['5 cmd write_task_text() L1 | Writes the text.']);
+	});
+
+	it('reads `r#` names, `pub(self)` as a local and `pub(in path)` as `(crate)`', () => {
+		const t = ['pub fn r#type() {}', 'pub(self) fn hidden_self() {}', 'pub(in crate::a) fn scoped() {}'].join('\n');
+		expect(rustItems('src-tauri/src/t.rs', t)).toEqual(['1 fn r#type() L1', '3 fn(crate) scoped() L1']);
+		expect(rustLocals('src-tauri/src/t.rs', t)).toEqual(['2 hidden_self() L1']);
+	});
+
+	it('drops `#[cfg(test)]` items: no item, no edge, and marks the file `t:inline`', () => {
+		const tree = {
+			'src-tauri/src/lib.rs': 'pub mod a;\npub mod x;',
+			'src-tauri/src/x.rs': 'pub struct Y;',
+			'src-tauri/src/a/mod.rs': 'pub mod b;\npub fn up() {}',
+			'src-tauri/src/a/b.rs': [
+				'pub fn real() {}', // 1
+				'#[cfg(test)]',
+				'mod tests {',
+				'\tpub fn t() {}',
+				'\tuse crate::x::Y;',
+				'\tuse super::*;',
+				'}',
+				'#[cfg(test)]',
+				'pub fn helper_for_tests() {}',
+			].join('\n'),
+		};
+		expect(rustItems('src-tauri/src/a/b.rs', tree['src-tauri/src/a/b.rs'])).toEqual(['1 fn real() L1']);
+		expect(rustEdgeLines(tree)).toEqual([]);
+		expect(extractRustFile('src-tauri/src/a/b.rs', tree['src-tauri/src/a/b.rs']).inlineTests).toBe(true);
+		expect(extractRustFile('src-tauri/src/x.rs', tree['src-tauri/src/x.rs']).inlineTests).toBe(false);
+	});
+
+	it('resolves `super::` inside an inline `mod m {` against the parent of `m`', () => {
+		expect(
+			rustEdgeLines({
+				'src-tauri/src/lib.rs': 'pub mod a;\npub mod c;',
+				'src-tauri/src/c.rs': 'pub struct X;',
+				'src-tauri/src/a/c.rs': 'pub struct X;',
+				'src-tauri/src/a/mod.rs': 'pub mod c;\nmod m {\n\tuse super::c::X;\n}',
+			}),
+		).toEqual(['src-tauri/src/a/mod.rs:3 -> src-tauri/src/a/c.rs X']);
+	});
+
+	it('reads the file doc from the first `//!` run', () => {
+		expect(extractRustFile('src-tauri/src/e.rs', '//! Event names. More.\n//! Second line.\n\npub fn f() {}').fileDoc).toBe(
+			'Event names.',
+		);
+	});
+});
+
+describe('Rust uses', () => {
+	it('expands nested use trees with aliases and globs', () => {
+		expect(parseUseTree('crate::a::{b::{C, D as E}, f::*}')).toEqual(['crate::a::b::C', 'crate::a::b::D as E', 'crate::a::f::*']);
+		expect(parseUseTree('crate::a::{self, g}')).toEqual(['crate::a', 'crate::a::g']);
+	});
+
+	const tree = {
+		'src-tauri/src/lib.rs': 'pub mod a;\npub mod c;',
+		'src-tauri/src/a/mod.rs': 'pub mod b;\npub mod x;',
+		'src-tauri/src/a/b.rs': ['use super::x::Y;', 'pub fn f() {}', 'pub fn g() { let _ = Y; }'].join('\n'),
+		'src-tauri/src/a/x.rs': 'pub struct Y;',
+		'src-tauri/src/c.rs': [
+			'mod inner;', // 1
+			'pub fn run() {', // 2
+			'\tcrate::a::b::f();', // 3
+			'}',
+			'use crate::a::{b::{f as eff, g}, x::*};', // 5
+			'pub fn two() { eff(); }', // 6
+		].join('\n'),
+	};
+
+	it('gives one edge per statement or inline-path line and target; `super::` from `a/b.rs` goes under `a/`; `mod x;` is none', () => {
+		expect(rustEdgeLines(tree)).toEqual([
+			'src-tauri/src/a/b.rs:1 -> src-tauri/src/a/x.rs Y',
+			'src-tauri/src/c.rs:3 -> src-tauri/src/a/b.rs f',
+			'src-tauri/src/c.rs:5 -> src-tauri/src/a/b.rs f,g',
+			'src-tauri/src/c.rs:5 -> src-tauri/src/a/x.rs *',
+		]);
+	});
+
+	it('lists item importers for the defining card: first call site, or the use line', () => {
+		const { users } = analyzeRust(rustTree(tree));
+		const by = (id: string) => byLines(id, users.get(id), fixtureModule);
+		expect(by('src-tauri/src/a/b.rs:f')).toEqual([
+			'by src-tauri/src/a/b.rs:f <- src-tauri/src/c.rs:3 in run lexical',
+		]);
+		expect(by('src-tauri/src/a/b.rs:g')).toEqual(['by src-tauri/src/a/b.rs:g <- src-tauri/src/c.rs:5 in (module) import']);
+		expect(by('src-tauri/src/a/x.rs:Y')).toEqual(['by src-tauri/src/a/x.rs:Y <- src-tauri/src/a/b.rs:1 in (module) import']);
+	});
+});
+
+describe('Rust calls', () => {
+	it('finds module-alias, type-method, unique-method and same-file calls, not common method names', () => {
+		expect(
+			rustCallLines({
+				'src-tauri/src/lib.rs': 'pub mod commands;\npub mod utils;\npub mod vault;',
+				'src-tauri/src/utils/fs.rs': 'pub fn write_atomic() {}',
+				'src-tauri/src/vault/entry.rs': [
+					'pub struct NoteEntry {}',
+					'impl NoteEntry {',
+					'\tpub fn from_content_full() -> Self {',
+					'\t\tNoteEntry {}',
+					'\t}',
+					'}',
+				].join('\n'),
+				'src-tauri/src/vault/index.rs': [
+					'pub struct VaultIndex {}', // 1
+					'fn top_helper() {}', // 2
+					'impl VaultIndex {', // 3
+					'\tpub fn update_entry(&mut self) {}', // 4
+					'\tpub fn store(&self) {}', // 5
+					'\tpub fn is_empty(&self) -> bool { true }', // 6
+					'\tfn helper(&self) {}', // 7
+					'\tfn other() {}', // 8
+					'\tpub fn run(&self) {', // 9
+					'\t\tself.helper();', // 10
+					'\t\tSelf::other();', // 11
+					'\t\ttop_helper();', // 12
+					'\t\tself.update_entry();', // 13
+					'\t}',
+					'\tpub fn dup_name(&self) {}', // 15
+					'}',
+				].join('\n'),
+				'src-tauri/src/utils/other.rs': 'pub fn dup_name() {}',
+				'src-tauri/src/commands/vault.rs': [
+					'use crate::utils::fs as vault_fs;', // 1
+					'use crate::vault::entry::NoteEntry;', // 2
+					'pub fn cmd(idx: &mut X) {', // 3
+					'\tvault_fs::write_atomic();', // 4
+					'\tNoteEntry::from_content_full();', // 5
+					'\tidx.update_entry();', // 6
+					'\tidx.store();', // 7
+					'\tidx.is_empty();', // 8
+					'\tidx.dup_name();', // 9
+					'}',
+				].join('\n'),
+			}),
+		).toEqual([
+			'src-tauri/src/commands/vault.rs:4 in cmd -> src-tauri/src/utils/fs.rs:write_atomic lexical',
+			'src-tauri/src/commands/vault.rs:5 in cmd -> src-tauri/src/vault/entry.rs:NoteEntry lexical',
+			'src-tauri/src/commands/vault.rs:5 in cmd -> src-tauri/src/vault/entry.rs:NoteEntry::from_content_full lexical',
+			'src-tauri/src/commands/vault.rs:6 in cmd -> src-tauri/src/vault/index.rs:VaultIndex::update_entry lexical-method',
+			'src-tauri/src/vault/index.rs:10 in VaultIndex::run -> src-tauri/src/vault/index.rs:VaultIndex::helper call',
+			'src-tauri/src/vault/index.rs:11 in VaultIndex::run -> src-tauri/src/vault/index.rs:VaultIndex::other call',
+			'src-tauri/src/vault/index.rs:12 in VaultIndex::run -> src-tauri/src/vault/index.rs:top_helper call',
+			'src-tauri/src/vault/index.rs:13 in VaultIndex::run -> src-tauri/src/vault/index.rs:VaultIndex::update_entry call',
+		]);
+	});
+
+	it('takes only pub items through a glob, yields to own items, and never counts a `fn name(` definition', () => {
+		expect(
+			rustCallLines({
+				'src-tauri/src/lib.rs': 'pub mod a;\npub mod b;',
+				'src-tauri/src/a.rs': 'fn helper() {}\npub fn shared() {}\npub fn other() {}',
+				'src-tauri/src/b.rs': [
+					'use crate::a::*;', // 1
+					'fn helper() {}', // 2
+					'fn other() {}', // 3
+					'pub fn go() { helper(); shared(); other(); }', // 4
+				].join('\n'),
+			}),
+		).toEqual([
+			'src-tauri/src/b.rs:4 in go -> src-tauri/src/a.rs:shared lexical',
+			'src-tauri/src/b.rs:4 in go -> src-tauri/src/b.rs:helper call',
+			'src-tauri/src/b.rs:4 in go -> src-tauri/src/b.rs:other call',
+		]);
+	});
+
+	it('names a trait impl fn as the enclosing `Type::name` local', () => {
+		const tree = {
+			'src-tauri/src/lib.rs': 'pub mod a;\npub mod b;',
+			'src-tauri/src/a.rs': 'pub fn bump() {}',
+			'src-tauri/src/b.rs': ['use crate::a::bump;', 'pub struct Guard;', 'impl Drop for Guard {', '\tfn drop(&mut self) { bump(); }', '}'].join('\n'),
+		};
+		expect(rustCallLines(tree)).toEqual(['src-tauri/src/b.rs:4 in Guard::drop -> src-tauri/src/a.rs:bump lexical']);
+		expect(rustLocals('src-tauri/src/b.rs', tree['src-tauri/src/b.rs'])).toEqual(['4 Guard::drop(&mut self) L1']);
+	});
+
+	it('records a `generate_handler!` entry as an edge, not as a call or a `by` user', () => {
+		const { edges, calls, users } = analyzeRust(rustTree(IPC_RUST));
+		expect(edges.map((e: { from: string; line: number; target: string; names: string[] }) => `${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`)).toContain(
+			'src-tauri/src/lib.rs:4 -> src-tauri/src/commands/vault.rs get_all_tags_v2',
+		);
+		expect(calls).toEqual([]);
+		expect(users.get('src-tauri/src/commands/vault.rs:get_all_tags_v2')).toBeUndefined();
+	});
+});
+
+describe('Rust integration tests', () => {
+	it('maps a `kokobrain_lib::` use to the source file and keeps test users off `by` lines', () => {
+		const tree = {
+			'src-tauri/src/lib.rs': 'pub mod vault;',
+			'src-tauri/src/vault/index.rs': 'pub struct VaultIndex {}',
+			'src-tauri/tests/vault_index_test.rs': [
+				'use kokobrain_lib::vault::index::{VaultIndex};',
+				'#[test]',
+				'fn works() { let _ = VaultIndex::default(); }',
+			].join('\n'),
+		};
+		expect(rustEdgeLines(tree)).toEqual(['src-tauri/tests/vault_index_test.rs:1 -> src-tauri/src/vault/index.rs VaultIndex']);
+		expect(analyzeRust(rustTree(tree)).users.get('src-tauri/src/vault/index.rs:VaultIndex')).toBeUndefined();
+	});
+});
+
+describe('Rust side effects', () => {
+	it('finds std and tokio fs writes, db writes, spawns and timers in production text only', () => {
+		const files = rustTree({
+			'src-tauri/src/x.rs': [
+				'use std::fs;', // 1
+				'pub fn a(p: &str, conn: &C) {', // 2
+				'\tstd::fs::write(p, "x");', // 3
+				'\tfs::write(p, "x");', // 4
+				'\ttokio::fs::rename(p, p);', // 5
+				'\tconn.execute("x", []);', // 6
+				'\ttauri::async_runtime::spawn(async {});', // 7
+				'\tstd::thread::sleep(d);', // 8
+				'\tconn.execute_batch("y");', // 9
+				'\tlet f = fs::File::create(p);', // 10
+				'}',
+				'#[cfg(test)]',
+				'mod tests {',
+				'\tfn t() { std::fs::write(p, b); }',
+				'}',
+			].join('\n'),
+			'src-tauri/src/y.rs': 'use crate::utils::fs;\npub fn b() { fs::write(p); fs::File::create(p); }',
+			'src-tauri/src/z.rs': 'use std::thread::{self, JoinHandle};\npub fn c() { thread::spawn(|| {}); }',
+			'src-tauri/src/w.rs': 'use crate::thread;\npub fn d() { thread::spawn(|| {}); }',
+		});
+		const fx = (f: string) =>
+			rustEffects(files.get(f)!).map(
+				(s: { file: string; line: number; sink: string; class: string; enclosing: string }) =>
+					`${s.file}:${s.line} ${s.sink} ${s.class} in ${s.enclosing}`,
+			);
+		expect(fx('src-tauri/src/x.rs')).toEqual([
+			'src-tauri/src/x.rs:3 rust-fs.write disk-write in a',
+			'src-tauri/src/x.rs:4 rust-fs.write disk-write in a',
+			'src-tauri/src/x.rs:5 rust-tokio-fs.rename disk-write in a',
+			'src-tauri/src/x.rs:6 rust-db.execute db in a',
+			'src-tauri/src/x.rs:7 rust-spawn.spawn spawn in a',
+			'src-tauri/src/x.rs:8 rust-timer.sleep timer in a',
+			'src-tauri/src/x.rs:9 rust-db.execute db in a',
+			'src-tauri/src/x.rs:10 rust-fs.File::create disk-write in a',
+		]);
+		expect(fx('src-tauri/src/y.rs')).toEqual([]);
+		expect(fx('src-tauri/src/z.rs')).toEqual(['src-tauri/src/z.rs:2 rust-spawn.spawn spawn in c']);
+		expect(fx('src-tauri/src/w.rs')).toEqual([]);
+	});
+});
+
+/** TS `contracts/ipc.ts` with the `call` and `on` wrappers. */
+const IPC_TS = 'export function call(cmd: string, args?: unknown) {}\nexport function on(name: string, h: unknown) {}';
+
+/** Rust side of the IPC fixtures. */
+const IPC_RUST = {
+	'src-tauri/src/lib.rs': [
+		'pub fn run() {', // 1
+		'\ttauri::Builder::default()', // 2
+		'\t\t.invoke_handler(tauri::generate_handler![', // 3
+		'\t\t\tcommands::vault::get_all_tags_v2,', // 4
+		'\t\t\tquick_capture::commands::capture_now,', // 5
+		'\t\t\ta::b::deep_cmd,', // 6
+		'\t\t\tcommands::vault::missing_fn,', // 7
+		'\t\t\tx::y::twin_cmd,', // 8
+		'\t\t]);',
+		'}',
+	].join('\n'),
+	'src-tauri/src/commands/vault.rs': '#[tauri::command]\npub fn get_all_tags_v2() {}\npub fn missing_fn() {}',
+	'src-tauri/src/quick_capture/commands.rs': '#[tauri::command]\npub fn capture_now() {}',
+	'src-tauri/src/a/b/mod.rs': '/// Deep.\n#[tauri::command]\npub fn deep_cmd() {}',
+	'src-tauri/src/x/y.rs': 'pub fn other() {}',
+	'src-tauri/src/x/y/mod.rs': '#[tauri::command]\npub fn twin_cmd() {}',
+};
+
+/** TS side of the IPC fixtures. */
+const IPC_TS_TREE = {
+	'src/lib/contracts/ipc.ts': IPC_TS,
+	'src/lib/contracts/commands.ts': [
+		'export type NoArgs = Record<never, never>;', // 1
+		'export interface CommandMap {', // 2
+		'\t/** Tag aggregates, sorted by name. */', // 3
+		'\tget_all_tags_v2: { args: NoArgs; result: TagAggregate[] };', // 4
+		'\tcapture_now: { args: { path: string; content: string }; result: null };', // 5
+		'\tmissing_fn: { args: NoArgs; result: null };', // 6
+		'\tonly_ts: { args: NoArgs; result: UpdateResult | null };', // 7
+		'\ttwin_cmd: { args: NoArgs; result: null };', // 8
+		'}',
+		'export const ARG_KEYS = {', // 10
+		'\tget_all_tags_v2: [],', // 11
+		'};',
+	].join('\n'),
+	'src/lib/features/x/x.service.ts': [
+		"import { call as ipc } from '#lib/contracts/ipc.js';", // 1
+		'export async function load(name: string) {', // 2
+		"\tawait ipc('get_all_tags_v2');", // 3
+		'\tipc();', // 4
+		'\tipc(name);', // 5
+		'}',
+	].join('\n'),
+	'src/lib/features/x/y.service.ts': [
+		"import { call } from '#lib/contracts/ipc.js';", // 1
+		"// call('in_comment');", // 2
+		'export function shadow(call: (s: string) => void) {', // 3
+		"\tcall('shadowed');", // 4
+		'}',
+		"export const later = () => call('missing_fn');", // 6
+	].join('\n'),
+	'e2e/mocks/tauri-core.ts': "const handlers = {\n\tget_all_tags_v2: () => [],\n\t'capture_now': () => null,\n};",
+	'src/tests/lib/x.test.ts': "import { call } from '#lib/contracts/ipc.js';\nconst t = { get_all_tags_v2: 1 };\ncall('only_ts');",
+	'src/routes/+page.ts': 'export const load = () => ({\n\tcapture_now: true,\n});',
+};
+
+/** Joins the IPC fixtures into command records. */
+function ipcFixture() {
+	const rust = rustTree(IPC_RUST);
+	const { files, contract, sites } = tsTree(IPC_TS_TREE);
+	const names = new Set<string>([
+		...handlerEntries(rust.get('src-tauri/src/lib.rs')).map((h: { command: string }) => h.command),
+		...contract.commands.map((c: { name: string }) => c.name),
+	]);
+	const calls = sites.calls.filter((c: { file: string }) => !isTest(c.file));
+	return joinCommands(handlerEntries(rust.get('src-tauri/src/lib.rs')), rust, contract, calls, keySites(files, names));
+}
+
+describe('IPC callers', () => {
+	it('finds aliased `call` sites with a literal first argument, not comments, no-argument, non-literal or shadowed ones', () => {
+		const { sites } = tsTree(IPC_TS_TREE);
+		expect(
+			sites.calls.map(
+				(c: { file: string; line: number; enclosing: string; command: string }) =>
+					`${c.file}:${c.line} in ${c.enclosing} -> ${c.command}`,
+			),
+		).toEqual([
+			'src/lib/features/x/x.service.ts:3 in load -> get_all_tags_v2',
+			'src/lib/features/x/y.service.ts:6 in later -> missing_fn',
+			'src/tests/lib/x.test.ts:3 in (module) -> only_ts',
+		]);
+	});
+
+	it('writes the same `ipc-call` text on the TS card and on the Rust card', () => {
+		const lines = crossLanguageLines(ipcFixture(), []);
+		const text = 'ipc-call src/lib/features/x/x.service.ts:3 in load -> ipc:get_all_tags_v2 -> src-tauri/src/commands/vault.rs:2';
+		expect(lines.get('src/lib/features/x/x.service.ts')).toEqual([{ line: 3, text }]);
+		expect(lines.get('src-tauri/src/commands/vault.rs')).toEqual([{ line: 2, text }]);
+		expect(lines.get('src/lib/features/x/y.service.ts')).toEqual([
+			{ line: 6, text: 'ipc-call src/lib/features/x/y.service.ts:6 in later -> ipc:missing_fn -> !no-rust-fn' },
+		]);
+	});
+});
+
+describe('IPC join', () => {
+	it('maps handler paths to files, flags missing Rust fns and contracts, and lists key sites in src/lib and e2e', () => {
+		expect(ipcFixture().map((c) => ipcLine(c, fixtureModule))).toEqual([
+			'ipc ipc:capture_now | args path,content -> null | rust src-tauri/src/quick_capture/commands.rs:2 | reg src-tauri/src/lib.rs:5 | keys e2e/mocks/tauri-core.ts:3 src/lib/contracts/commands.ts:5 src/routes/+page.ts:2 | callers -',
+			'ipc ipc:deep_cmd | args !no-contract | rust src-tauri/src/a/b/mod.rs:3 | reg src-tauri/src/lib.rs:6 | keys - | callers -',
+			'ipc ipc:get_all_tags_v2 | args - -> TagAggregate[] | rust src-tauri/src/commands/vault.rs:2 | reg src-tauri/src/lib.rs:4 | keys e2e/mocks/tauri-core.ts:2 src/lib/contracts/commands.ts:4 src/lib/contracts/commands.ts:11 | callers src/lib/features/x/x.service.ts:3 in load | doc Tag aggregates, sorted by name.',
+			'ipc ipc:missing_fn | args - -> null | rust !no-rust-fn | reg src-tauri/src/lib.rs:7 | keys src/lib/contracts/commands.ts:6 | callers src/lib/features/x/y.service.ts:6 in later',
+			'ipc ipc:only_ts | args - -> UpdateResult / null | rust !no-rust-fn | reg - | keys src/lib/contracts/commands.ts:7 | callers -',
+			'ipc ipc:twin_cmd | args - -> null | rust !no-rust-fn | reg src-tauri/src/lib.rs:8 | keys src/lib/contracts/commands.ts:8 | callers -',
+		]);
+	});
+
+	it('caps the callers list at 8 with a `more` hint', () => {
+		const callers = Array.from({ length: 9 }, (_, i) => ({ file: `src/lib/features/f${i < 8 ? 'a' : 'b'}/s.ts`, line: i + 1, enclosing: 'go' }));
+		const line = ipcLine({ name: 'c', rust: null, reg: null, contract: null, keys: [], callers }, fixtureModule);
+		expect(line).toContain('callers src/lib/features/fa/s.ts:1 in go, ');
+		expect(line).toContain('src/lib/features/fa/s.ts:8 in go, more callers 1 not shown: src/lib/features/fb(1): q callers ipc:c');
+		expect(line).not.toContain('s.ts:9');
+	});
+});
+
+describe('events', () => {
+	const rust = rustTree({
+		'src-tauri/src/events.rs': [
+			'//! Event names.', // 1
+			'',
+			'/// Emitted after a change. More text.', // 3
+			'pub const X_EVENT: &str = "x-happened";', // 4
+			'pub const Y_EVENT: &str = "y-happened";', // 5
+		].join('\n'),
+		'src-tauri/src/lib.rs': [
+			'mod events;', // 1
+			'use events::{', // 2
+			'\tX_EVENT,', // 3
+			'\tY_EVENT,', // 4
+			'};',
+			'pub fn run(app: App) {', // 6
+			'\tlet _ = app.emit_to(LABEL,', // 7
+			'\t\tX_EVENT, ());', // 8
+			'\t// app.emit(X_EVENT, ());', // 9
+			'\tlet s = "app.emit(X_EVENT)";', // 10
+			'\tfoo(X_EVENT);', // 11
+			'\tapp.emit(Y_EVENT, 1);', // 12
+			'}',
+		].join('\n'),
+		'src-tauri/src/other.rs': [
+			'use crate::events::X_EVENT;', // 1
+			'pub fn go(app: App) {', // 2
+			'\tapp.emit(crate::events::Y_EVENT, 2);', // 3
+			'\tapp.emit(X_EVENT, 3);', // 4
+			'}',
+		].join('\n'),
+	});
+	const ts = tsTree({
+		'src/lib/contracts/ipc.ts': IPC_TS,
+		'src/lib/contracts/events.ts': [
+			'export const EVENT_NAMES = {', // 1
+			"\tX: 'x-happened',", // 2
+			"\tY: 'y-happened',", // 3
+			'} as const;',
+			'export interface EventMap {', // 5
+			"\t'x-happened': UpdateResult;",
+			"\t'y-happened': number | null;",
+			'}',
+		].join('\n'),
+		'src/lib/app/listeners.ts': [
+			"import { on } from '#lib/contracts/ipc.js';", // 1
+			"import { EVENT_NAMES } from '#lib/contracts/events.js';", // 2
+			'export function listenX() {', // 3
+			'\tvoid on(EVENT_NAMES.X, () => {});', // 4
+			'}',
+		].join('\n'),
+	});
+	const consts = eventConsts(rust.get('src-tauri/src/events.rs'));
+	const events = joinEvents(consts, ts.contract, rustEmits(rust, consts), ts.sites.listens);
+
+	it('counts a multi-line `emit_to` and a qualified const with their enclosing fn, not a `use`, a comment, a string or a non-emit call', () => {
+		expect(
+			rustEmits(rust, consts).map(
+				(e: { file: string; line: number; enclosing: string; constName: string }) => `${e.file}:${e.line} in ${e.enclosing} ${e.constName}`,
+			),
+		).toEqual([
+			'src-tauri/src/lib.rs:8 in run X_EVENT',
+			'src-tauri/src/lib.rs:12 in run Y_EVENT',
+			'src-tauri/src/other.rs:3 in go Y_EVENT',
+			'src-tauri/src/other.rs:4 in go X_EVENT',
+		]);
+	});
+
+	it('maps `on(EVENT_NAMES.K, …)` through the key value and renders the event lines', () => {
+		expect(events.map((e) => eventLine(e, fixtureModule))).toEqual([
+			'event event:x-happened | const X_EVENT src-tauri/src/events.rs:4 | ts EVENT_NAMES.X src/lib/contracts/events.ts:2 | payload UpdateResult | emits src-tauri/src/lib.rs:8 in run, src-tauri/src/other.rs:4 in go | listens src/lib/app/listeners.ts:4 in listenX | doc Emitted after a change.',
+			'event event:y-happened | const Y_EVENT src-tauri/src/events.rs:5 | ts EVENT_NAMES.Y src/lib/contracts/events.ts:3 | payload number / null | emits src-tauri/src/lib.rs:12 in run, src-tauri/src/other.rs:3 in go | listens -',
+		]);
+	});
+
+	it('writes the same `ev` text on the Rust card and on the TS card', () => {
+		const lines = crossLanguageLines([], events);
+		const text = 'ev src-tauri/src/lib.rs:8 in run -> event:x-happened -> src/lib/app/listeners.ts:4 in listenX';
+		expect(lines.get('src-tauri/src/lib.rs')).toEqual([{ line: 8, text }]);
+		expect(lines.get('src/lib/app/listeners.ts')).toEqual([
+			{ line: 4, text },
+			{ line: 4, text: 'ev src-tauri/src/other.rs:4 in go -> event:x-happened -> src/lib/app/listeners.ts:4 in listenX' },
+		]);
+	});
+});
+
+describe('DTOs', () => {
+	it('lists returned-by, arg-of, contains, in, used-by modules with re-exports and aliases, and e2e import locations', () => {
+		const rust = rustTree({
+			'src-tauri/src/vault/task.rs': [
+				'/// Tag rows. Second.', // 1
+				'#[derive(ts_rs::TS)]',
+				'#[ts(export)]',
+				'pub struct TagAggregate {}', // 4
+				'#[derive(ts_rs::TS)]',
+				'#[ts(export)]',
+				'pub struct Task {}', // 7
+				'#[ts(export)]',
+				'pub enum Orphan { A }', // 9
+			].join('\n'),
+		});
+		const tree = {
+			'src/lib/contracts/generated/TagAggregate.ts': 'import type { Task } from "./Task";\nexport type TagAggregate = { t: Task };',
+			'src/lib/contracts/generated/Task.ts': 'export type Task = {};',
+			'src/lib/contracts/index.ts': "export type { TagAggregate } from './generated/TagAggregate.js';\nexport * from './generated/Task.js';",
+			'src/lib/types/v2.types.ts': "export type { TagAggregate as TagAggregateV2, Task } from '#lib/contracts/index.js';",
+			'src/lib/contracts/commands.ts': [
+				"import type { TagAggregate } from './index.js';",
+				'export type NoArgs = Record<never, never>;',
+				'export interface CommandMap {',
+				'\tget_all_tags_v2: { args: NoArgs; result: TagAggregate[] };',
+				'\tset_tags: { args: { tags: TagAggregate[] }; result: null };',
+				'\tset_x: { args: { x: TagAggregateX }; result: null };',
+				'}',
+			].join('\n'),
+			'src/lib/features/tags/t.ts': "import type { TagAggregate as TA } from '#lib/contracts/index.js';",
+			'e2e/mocks/vault-index.ts': "import type {\n\tTagAggregate,\n} from '../../src/lib/contracts/index';",
+			'src/tests/lib/x.test.ts': "import type { TagAggregate } from '#lib/contracts/index.js';",
+		};
+		const { files, resolved, contract } = tsTree(tree);
+		const dtos = joinDtos(rust, Object.keys(tree), contract, resolved, resolveReexports(files), isTest, fixtureModule);
+		expect(dtos.map((d) => dtoLine(d))).toEqual([
+			'dto dto:Orphan | rust src-tauri/src/vault/task.rs:9 | ts !no-ts | returned-by - | arg-of - | contains - | in - | used-by - | e2e -',
+			'dto dto:TagAggregate | rust src-tauri/src/vault/task.rs:4 | ts src/lib/contracts/generated/TagAggregate.ts | returned-by ipc:get_all_tags_v2 | arg-of ipc:set_tags | contains dto:Task | in - | used-by src/lib/contracts(2) src/lib/features/tags(1) src/lib/types(1) | e2e e2e/mocks/vault-index.ts:2 | doc Tag rows.',
+			'dto dto:Task | rust src-tauri/src/vault/task.rs:7 | ts src/lib/contracts/generated/Task.ts | returned-by - | arg-of - | contains - | in dto:TagAggregate | used-by src/lib/contracts(1) src/lib/types(1) | e2e -',
 		]);
 	});
 });

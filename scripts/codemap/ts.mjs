@@ -834,6 +834,34 @@ export function resolveBindings(files) {
 }
 
 /**
+ * The F3 re-exports of every file: each `export { X as Y } from` entry
+ * resolved like a binding, and each `export * from` a ts-rs output file as
+ * `dto:<T>`. Re-exports make no bindings, so a barrel or an alias file that
+ * only re-exports is found here.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @returns {{from: string, id: string}[]} files by path, named entries in
+ *   source order before stars; unresolved entries left out
+ */
+export function resolveReexports(files) {
+	const ctx = { files, exists: (p) => files.has(p) };
+	const out = [];
+	for (const from of [...files.keys()].sort(cmp)) {
+		const { names, stars } = files.get(from).exports;
+		for (const entry of names.values()) {
+			if (!('spec' in entry)) continue;
+			const id = resolveImport(from, entry.spec, entry.name, ctx, 0, new Set());
+			if (id) out.push({ from, id });
+		}
+		for (const star of stars) {
+			const gen = GENERATED_RE.exec(resolveSpecifier(from, star, ctx.exists) ?? '');
+			if (gen) out.push({ from, id: `dto:${gen[1]}` });
+		}
+	}
+	return out;
+}
+
+/**
  * The public symbols: those a non-test file outside their module imports.
  *
  * @param {{from: string, id: string | null}[]} resolved output of `resolveBindings`
@@ -1098,4 +1126,166 @@ export function collectStores(files, uses, isTest) {
 			pick('do').writers.push(site);
 	}
 	return out.map(({ escFiles, ...st }) => ({ ...st, esc: escFiles.size }));
+}
+
+/** The typed IPC wrapper module: `call` and `on`. */
+const IPC_TS = 'src/lib/contracts/ipc.ts';
+
+/** The `CommandMap` contract. */
+const COMMANDS_TS = 'src/lib/contracts/commands.ts';
+
+/** The `EVENT_NAMES` and `EventMap` contract. */
+const EVENTS_TS = 'src/lib/contracts/events.ts';
+
+/** Line of a node within its region, from the file start. */
+const regionLine = (region, n) => region.lineOffset + region.sf.getLineAndCharacterOfPosition(n.getStart(region.sf)).line + 1;
+
+/** The members of the interface `name` declared at the top of a file, with their region. */
+function interfaceMembers(facts, name) {
+	for (const region of facts?.regions ?? []) {
+		const decl = region.sf.statements.find((s) => ts.isInterfaceDeclaration(s) && s.name.text === name);
+		if (decl) return decl.members.filter(ts.isPropertySignature).map((m) => ({ m, region }));
+	}
+	return [];
+}
+
+/**
+ * The IPC contracts read from `contracts/commands.ts` and `contracts/events.ts`:
+ * every `CommandMap` member with its args (property names of the `args` type
+ * literal comma-joined, `-` for `NoArgs`, else the type text), result type
+ * text and doc; every `EVENT_NAMES` property with a string value; every
+ * `EventMap` member's payload type text.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @returns {{
+ *   commands: {name: string, line: number, args: string, result: string, argsText: string, resultText: string, doc: string}[],
+ *   eventNames: {key: string, value: string, line: number}[],
+ *   eventMap: Map<string, string>,
+ *   eventsFile: string,
+ * }} commands and event names in source order; type texts whitespace-collapsed
+ */
+export function extractContracts(files) {
+	const commands = [];
+	for (const { m, region } of interfaceMembers(files.get(COMMANDS_TS), 'CommandMap')) {
+		const sf = region.sf;
+		const parts = m.type && ts.isTypeLiteralNode(m.type) ? m.type.members.filter(ts.isPropertySignature) : [];
+		const part = (key) => parts.find((p) => propName(p.name) === key)?.type ?? null;
+		const argsType = part('args');
+		const resultType = part('result');
+		const argsText = argsType ? collapse(argsType.getText(sf)) : '';
+		let args = argsText || '-';
+		if (argsType && ts.isTypeLiteralNode(argsType)) args = argsType.members.map((p) => (p.name ? propName(p.name) : '')).join(',') || '-';
+		else if (argsType && ts.isTypeReferenceNode(argsType) && argsType.typeName.getText(sf) === 'NoArgs') args = '-';
+		const resultText = resultType ? collapse(resultType.getText(sf)) : '';
+		commands.push({ name: propName(m.name), line: regionLine(region, m), args, result: resultText || '-', argsText, resultText, doc: docOf(m, m) });
+	}
+	const events = files.get(EVENTS_TS);
+	const eventNames = [];
+	for (const region of events?.regions ?? []) {
+		for (const st of region.sf.statements) {
+			if (!ts.isVariableStatement(st)) continue;
+			for (const d of st.declarationList.declarations) {
+				const obj = unwrap(d.initializer);
+				if (!ts.isIdentifier(d.name) || d.name.text !== 'EVENT_NAMES' || !obj || !ts.isObjectLiteralExpression(obj)) continue;
+				for (const p of obj.properties) {
+					if (!ts.isPropertyAssignment(p)) continue;
+					const v = unwrap(p.initializer);
+					if (ts.isStringLiteral(v) || ts.isNoSubstitutionTemplateLiteral(v))
+						eventNames.push({ key: propName(p.name), value: v.text, line: regionLine(region, p) });
+				}
+			}
+		}
+	}
+	const eventMap = new Map();
+	for (const { m, region } of interfaceMembers(events, 'EventMap'))
+		if (m.type) eventMap.set(propName(m.name), collapse(m.type.getText(region.sf)));
+	return { commands, eventNames, eventMap, eventsFile: EVENTS_TS };
+}
+
+/**
+ * F8 callers and F9 listens: calls of the binding imported as `call` from
+ * `contracts/ipc.ts` whose first argument is a string literal, and calls of
+ * the binding imported as `on` whose first argument is `EVENT_NAMES.KEY`
+ * (`EVENT_NAMES` imported from `contracts/events.ts`) or a string literal.
+ * Aliases and re-exports resolve through F3; a parameter or block
+ * declaration of the same name shadows the binding. Lines and F4e enclosing
+ * as for F4 uses; test and e2e files included.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @param {ReturnType<typeof resolveBindings>} resolved bindings of the same files
+ * @returns {{
+ *   calls: {file: string, line: number, enclosing: string, command: string}[],
+ *   listens: {file: string, line: number, enclosing: string, key: string | null, name: string | null}[],
+ * }} by (file, line, name)
+ */
+export function extractIpcSites(files, resolved) {
+	const callId = `${IPC_TS}:call`;
+	const onId = `${IPC_TS}:on`;
+	const namesId = `${EVENTS_TS}:EVENT_NAMES`;
+	const bound = new Map();
+	for (const r of resolved) {
+		if (r.id !== callId && r.id !== onId && r.id !== namesId) continue;
+		if (!bound.has(r.from)) bound.set(r.from, { static: new Map(), dynamic: new Map() });
+		const b = bound.get(r.from);
+		if (r.dynamic) b.dynamic.set(`${r.local}@${r.line}`, r.id);
+		else if (!r.typeOnly) b.static.set(r.local, r.id);
+	}
+	const calls = [];
+	const listens = [];
+	for (const file of [...bound.keys()].sort(cmp)) {
+		const facts = files.get(file);
+		const b = bound.get(file);
+		for (const region of facts.regions) {
+			const { sf, lineOffset } = region;
+			const top = file.endsWith('.svelte') && !region.module ? '(script)' : '(module)';
+			const lineOf = (n) => lineOffset + sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1;
+			const dyn = (id) => b.dynamic.get(`${id.text}@${lineOf(ts.isBindingElement(id.parent) ? id.parent : id)}`) ?? null;
+			const idOf = (id, sc) => {
+				const hit = lookup(id.text, sc);
+				return hit ? hit.id : (b.static.get(id.text) ?? null);
+			};
+			walkScoped(sf, [], dyn, (n, sc) => {
+				if (!ts.isCallExpression(n) || !ts.isIdentifier(n.expression)) return;
+				const target = idOf(n.expression, sc);
+				const arg = n.arguments[0];
+				if (!arg || (target !== callId && target !== onId)) return;
+				const site = { file, line: lineOf(n), enclosing: enclosingOf(n, top, lineOf) };
+				const literal = ts.isStringLiteral(arg) || ts.isNoSubstitutionTemplateLiteral(arg) ? arg.text : null;
+				if (target === callId) {
+					if (literal !== null) calls.push({ ...site, command: literal });
+				} else if (literal !== null) listens.push({ ...site, key: null, name: literal });
+				else if (ts.isPropertyAccessExpression(arg) && ts.isIdentifier(arg.expression) && idOf(arg.expression, sc) === namesId)
+					listens.push({ ...site, key: arg.name.text, name: null });
+			});
+		}
+	}
+	const order = (x, y) => cmp(x.file, y.file) || x.line - y.line;
+	return {
+		calls: calls.sort((x, y) => order(x, y) || cmp(x.command, y.command)),
+		listens: listens.sort((x, y) => order(x, y) || cmp(x.key ?? x.name, y.key ?? y.name)),
+	};
+}
+
+/**
+ * F8 key sites: property-assignment and property-signature names (identifier
+ * or string literal) equal to a command, in `src/lib`, `src/routes` and `e2e`.
+ *
+ * @param {Map<string, ReturnType<typeof extractTsFile>>} files facts by repo-relative path
+ * @param {Set<string>} names command names
+ * @returns {{name: string, file: string, line: number}[]} by (name, file, line)
+ */
+export function keySites(files, names) {
+	const out = [];
+	for (const file of [...files.keys()].sort(cmp)) {
+		if (!/^(?:src\/lib|src\/routes|e2e)\//.test(file)) continue;
+		for (const region of files.get(file).regions) {
+			const visit = (n) => {
+				if ((ts.isPropertyAssignment(n) || ts.isPropertySignature(n)) && (ts.isIdentifier(n.name) || ts.isStringLiteral(n.name)) && names.has(n.name.text))
+					out.push({ name: n.name.text, file, line: regionLine(region, n) });
+				ts.forEachChild(n, visit);
+			};
+			visit(region.sf);
+		}
+	}
+	return out.sort((x, y) => cmp(x.name, y.name) || cmp(x.file, y.file) || x.line - y.line);
 }

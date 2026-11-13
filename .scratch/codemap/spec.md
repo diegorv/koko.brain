@@ -67,7 +67,7 @@ Hard rules:
 | Rust impl headers with generic args after the type | 1 (`src-tauri/src/semantic/update_plan.rs:28` `impl UpdatePlan<'_>`) | impl |
 | Grouped importer lines over 1000 chars under spec-v2's rule | 5 (max 1381, `vault.store.svelte.ts`) | impl `lines.mjs` |
 | Hub-rank churn: ranks changed by one new file with one importer | 257 of 730 | impl `churn.mjs` |
-| Rust fs writes / `.execute(`+`.execute_batch(` / timers / spawns, outside test bodies | 19 / 54 (all in `src-tauri/src/db/`) / 5 / 3 | v2 |
+| Rust fs writes / `.execute(`+`.execute_batch(` / timers / spawns, outside test bodies | 19 / 45 (all in `src-tauri/src/db/`) / 5 / 4 | v2 |
 | Shadowed import names | 3 (`mods-host.service.ts:163` param `call`, `SearchResult.svelte:29` param `relativePath`, `fs.service.ts:253` `const { vaultStore } = await import(…)`, which is the same binding) | impl `ts.mjs` |
 | e2e files importing `src/lib` | 3 (`e2e/mocks/tauri-core.ts`, `e2e/mocks/vault-index.ts`, one spec) | grep |
 | Branch protection on `main` | none (`404 Branch not protected`, rulesets `[]`) | impl critique, `gh api` |
@@ -410,9 +410,9 @@ Rust struct or enum with `ts(export)`; TS file `src/lib/contracts/generated/<Nam
 - Lexer: one pass giving code-only text (comments and string contents blanked, newlines kept), brace depth, and `///`/`//!` runs with lines. Handles `//`, nested `/* */`, multi-line `"…"` with escapes, `b"…"`, raw strings `r"…"`/`r#…#"…"#…#`, char literals versus lifetimes.
 - **Production text**: the code-only text with the whole body of every item preceded by `#[cfg(test)]` blanked (keeping newlines). F9, F12 items, F15, F16 and F20 all read only production text. Edges from test modules are dropped (the file is already `t:inline`).
 - Inline modules: the lexer tracks `mod name {` nesting, so a path inside one resolves `self::`/`super::` against the module path, not the file (the only production inline module is `src-tauri/src/semantic/qos.rs:39` `mod sys`, `#[cfg(target_os = "macos")]`; its items are not carded, listed as a blind spot).
-- Items: depth 0 `pub`, `pub(crate)`, `pub(super)` + `[async] fn|struct|enum|trait|type|const|static`; inside `impl` headers matching `impl(<…>)?\s+Path(<…>)?\s*(where …)?\{` and not `impl … for …`, `pub [async] fn` as `Type::name` (catches `impl UpdatePlan<'_>` → `UpdatePlan::is_noop` at `update_plan.rs:31`). Non-pub fns at depth 0 and in impls are `local` lines. Braces, never columns.
+- Items: depth 0 `pub`, `pub(crate)`, `pub(super)` + `[async] fn|struct|enum|trait|type|const|static`; inside `impl` headers matching `impl(<…>)?\s+Path(<…>)?\s*(where …)?\{` and not `impl … for …`, `pub [async] fn` as `Type::name` (catches `impl UpdatePlan<'_>` → `UpdatePlan::is_noop` at `update_plan.rs:31`). Non-pub fns at depth 0 and in impls, and every fn of a trait impl (as `Type::name`, so enclosing names resolve), are `local` lines. Of cfg-gated twins with one name only the first is kept. Braces, never columns.
 - Kinds: `cmd` (`#[tauri::command]`), `dto` flag (`ts(export)`), restricted visibility `fn(crate)`, `method` for `Type::name`.
-- Doc: contiguous `///` run above, skipping attribute runs (multi-line `#[…]`), then D3. Signature: params between matched parens + ` -> ` return type up to `{` or `where`, cap 120. Span from the item's braces. File doc: first `//!` run (30 files).
+- Doc: contiguous `///` run above, skipping attribute runs (multi-line `#[…]`) and plain `//` comment lines, then D3. Signature: params between matched parens + ` -> ` return type up to `{` or `where`, cap 120. Span from the item's braces. File doc: first `//!` run (30 files).
 
 ### F13. Inputs hash and CLI entry
 
@@ -439,8 +439,8 @@ Each site: `(location, sink, class, arg?, enclosing)`, written as an `fx` line o
 - **Reactive effects.** `$effect`, `$effect.pre`, `$effect.root` sites, sink `svelte.$effect`, class `reactive` (117). Their store reads are F5 reader sites enclosed as `$effect@<line>` (F4e).
 - **DOM listeners.** `<expr>.addEventListener('<literal>', …)` → `dom.<event>`, `arg` = receiver text cap 30 (58 sites, all literal). Markup `<svelte:window|document|body …>` attributes `on:?<name>=` → `dom.<name>`, arg `svelte:window` etc., enclosing `(markup)`.
 - **Rust disk writes.** In production text: `fs::(write|create_dir_all|create_dir|remove_file|remove_dir_all|remove_dir|rename|copy)\s*\(`, `File::create\s*\(`, `OpenOptions::new\s*\(`, where `fs` is `std::fs`/`tokio::fs` written out or imported by `use std::fs`/`use tokio::fs` (a crate module named `fs` does not count). Sink `rust-fs.<name>` / `rust-tokio-fs.<name>`, class `disk-write`. 19 sites; `src-tauri/src/utils/fs.rs:write_atomic` is the enclosing fn of its own.
-- **Rust database writes.** `.execute(`, `.execute_batch(` → `rust-db.execute`, class `db`, 54 sites. Receiver not resolved.
-- **Rust timers / spawns.** `thread::sleep(`, `tokio::time::(sleep|interval|timeout)(` → `rust-timer.<name>`; `tauri::async_runtime::spawn(`, `std::thread::spawn(`, `tokio::spawn(` → `rust-spawn.<name>`, class `spawn`.
+- **Rust database writes.** `.execute(`, `.execute_batch(` → `rust-db.execute`, class `db`, 45 sites (9 more sit in `#[cfg(test)]` modules). Receiver not resolved.
+- **Rust timers / spawns.** `thread::sleep(`, `tokio::time::(sleep|interval|timeout)(` → `rust-timer.<name>`; `tauri::async_runtime::spawn(`, `std::thread::spawn(` (or `thread::spawn(` with `use std::thread`), `tokio::spawn(` → `rust-spawn.<name>`, class `spawn`.
 - Rust event emits are `ev` lines (F9), not `fx`.
 
 ### F16. Rust `use` edges, item importers and cross-file callers
@@ -664,7 +664,7 @@ Extraction:
 16. IPC join: `quick_capture::commands::x` → `quick_capture/commands.rs`; `a::b::x` → `a/b/mod.rs`; `!no-rust-fn`, `!no-contract`; key sites in `src/lib` and `e2e`.
 17. Events: multi-line `emit_to(LABEL,\n X_EVENT, ())` counts with enclosing fn; multi-line `use events::{…}` does not; in a comment or string does not; `on(EVENT_NAMES.K, …)` maps through the value; `ev` text identical on both cards.
 18. DTO: `returned-by` from a `CommandMap` result type text; nested generated import → `contains`/`in`; e2e type import → `e2e` location.
-19. Rust lexer: raw and multi-line strings keep depth; `'a` vs `'{'`; nested block comments; multi-line `#[derive(\n…)]` between `///` and item keeps the doc; `#[cfg(test)] mod tests { pub fn t() {} use crate::x::Y; use super::*; }` → no item, no edge; `impl Foo { pub fn bar() }` → `Foo::bar`; `impl Foo<'_> { pub fn baz() }` → `Foo::baz`; `impl T for Foo` → nothing; `pub(crate) fn` → `fn(crate)`; private fn → `local`; `#[tauri::command] pub async fn` → `cmd`; `#[ts(export)]` → dto flag; `super::x` inside inline `mod m {` resolves against `m`'s parent module.
+19. Rust lexer: raw and multi-line strings keep depth; `'a` vs `'{'`; nested block comments; multi-line `#[derive(\n…)]` between `///` and item keeps the doc; `#[cfg(test)] mod tests { pub fn t() {} use crate::x::Y; use super::*; }` → no item, no edge; `impl Foo { pub fn bar() }` → `Foo::bar`; `impl Foo<'_> { pub fn baz() }` → `Foo::baz`; `impl T for Foo` → no item, its fns `local`; `pub(crate) fn` → `fn(crate)`; private fn → `local`; `#[tauri::command] pub async fn` → `cmd`; `#[ts(export)]` → dto flag; `super::x` inside inline `mod m {` resolves against `m`'s parent module.
 20. Rust uses: `use crate::a::{b::{C, D as E}, f::*};` gives C, D (alias E), `*`; `super::x` from `a/b.rs` under `a/`; inline `crate::a::b::f()` edge; `mod x;` none; item importers on the defining card.
 21. Rust calls: `vault_fs::write_atomic(` via a module alias → `lexical`; `NoteEntry::from_content_full(` → that method; `.update_entry(` with a unique underscore name → `lexical-method`; `.store(` and `.is_empty(` → none; same-file `helper(` and `self.helper(` → `call`.
 22. Rust tests: `use kokobrain_lib::vault::index::{VaultIndex}` → `vault/index.rs`; `#[cfg(test)]` → `t:inline`.
