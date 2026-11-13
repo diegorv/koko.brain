@@ -1,10 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
+import { byLines } from '../../../../scripts/codemap/render.mjs';
 import {
+	collectStores,
 	extractTsFile,
+	extractUses,
 	firstSentence,
 	publicIds,
 	resolveBindings,
+	usersBySymbol,
 } from '../../../../scripts/codemap/ts.mjs';
 
 /** The code map generator (`scripts/codemap.mjs` and `scripts/codemap/`). */
@@ -569,5 +573,642 @@ describe('public and internal symbols', () => {
 		const files = new Map(Object.keys(tree).map((path) => [path, extractTsFile(path, tree[path])]));
 		const resolved = resolveBindings(files);
 		expect([...publicIds(resolved, moduleOf, isTest)]).toEqual(['src/lib/features/tags/tags.service.ts:used']);
+	});
+});
+
+/** Parses an in-memory tree and returns its F3 resolution and F4 use rows. */
+function analyze(tree: Record<string, string>) {
+	const files = new Map(Object.keys(tree).map((path) => [path, extractTsFile(path, tree[path])]));
+	const resolved = resolveBindings(files);
+	return { files, resolved, uses: extractUses(files, resolved) };
+}
+
+/** F4 rows of a tree as `<file>:<line> in <enclosing> -> <target> <kind>[ markup]` lines. */
+function useLines(tree: Record<string, string>) {
+	return analyze(tree).uses.map(
+		(u: { file: string; line: number; enclosing: string; target: string; kind: string; markup: boolean }) =>
+			`${u.file}:${u.line} in ${u.enclosing} -> ${u.target} ${u.kind}${u.markup ? ' markup' : ''}`,
+	);
+}
+
+/** Whether a fixture path is a test or e2e file. */
+const isTest = (f: string) => f.startsWith('src/tests/') || f.startsWith('e2e/');
+
+describe('by lines', () => {
+	const moduleOf = (f: string) => f.split('/').slice(0, 4).join('/');
+
+	it('leaves out test and e2e users', () => {
+		const { resolved, uses } = analyze({
+			'src/lib/utils/d.ts': 'export function d() {}\nexport function onlyTested() {}',
+			'src/lib/core/a.ts': "import { d } from '#lib/utils/d.js';\nd();",
+			'e2e/a.spec.ts': "import { d, onlyTested } from '#lib/utils/d.js';\nd();\nonlyTested();",
+			'src/tests/lib/utils/d.test.ts': "import { d } from '#lib/utils/d.js';\nd();",
+		});
+		const users = usersBySymbol(resolved, uses, isTest);
+		expect(byLines('src/lib/utils/d.ts:d', users.get('src/lib/utils/d.ts:d'), moduleOf)).toEqual([
+			'by src/lib/utils/d.ts:d <- src/lib/core/a.ts:2 in (module) call',
+		]);
+		expect(users.get('src/lib/utils/d.ts:onlyTested')).toBeUndefined();
+	});
+
+	it('gives an unused dynamic-import binding the enclosing of its declaration', () => {
+		const { resolved, uses } = analyze({
+			'src/lib/utils/g.ts': 'export function s() {}',
+			'src/lib/core/b.ts': "export async function lazy() {\n\tconst { s } = await import('#lib/utils/g.js');\n}",
+		});
+		expect(byLines('src/lib/utils/g.ts:s', usersBySymbol(resolved, uses, isTest).get('src/lib/utils/g.ts:s'), moduleOf)).toEqual([
+			'by src/lib/utils/g.ts:s <- src/lib/core/b.ts:2 in lazy import',
+		]);
+	});
+
+	it('counts `+<n>` in sites, so a destructure of two members is one site', () => {
+		const { resolved, uses } = analyze({
+			'src/lib/core/s.ts': 'export const s = { get a() { return 1; }, get b() { return 2; } };',
+			'src/lib/features/x/u.ts': "import { s } from '#lib/core/s.js';\nexport function f() {\n\tconst { a, b } = s;\n\ts.a;\n}",
+		});
+		expect(byLines('src/lib/core/s.ts:s', usersBySymbol(resolved, uses, isTest).get('src/lib/core/s.ts:s'), moduleOf)).toEqual([
+			'by src/lib/core/s.ts:s <- src/lib/features/x/u.ts:3 in f member +1',
+		]);
+	});
+
+	it('point at the first use site with its enclosing and kind, or at the specifier element of a type-only import', () => {
+		const { resolved, uses } = analyze({
+			'src/lib/core/tags/tags.service.ts': 'export function buildTagIndex() {}\nexport type Tag = { a: string };\nbuildTagIndex();',
+			'src/lib/app/life/life.ts': [
+				"import { buildTagIndex } from '#lib/core/tags/tags.service.js';", // 1
+				'',
+				'export async function initializeVault() {', // 3
+				'\tawait buildTagIndex();', // 4
+				'\tbuildTagIndex();',
+				'}',
+				'buildTagIndex();', // 7
+			].join('\n'),
+			'src/lib/features/t/u.ts': [
+				'import {', // 1
+				'\tbuildTagIndex,', // 2
+				'\ttype Tag,', // 3
+				"} from '#lib/core/tags/tags.service.js';",
+				'let t: Tag;',
+			].join('\n'),
+		});
+		const users = usersBySymbol(resolved, uses, isTest);
+		expect(byLines('src/lib/core/tags/tags.service.ts:buildTagIndex', users.get('src/lib/core/tags/tags.service.ts:buildTagIndex'), moduleOf)).toEqual([
+			'by src/lib/core/tags/tags.service.ts:buildTagIndex <- src/lib/app/life/life.ts:4 in initializeVault call +1',
+			'by src/lib/core/tags/tags.service.ts:buildTagIndex <- src/lib/features/t/u.ts:2 in (module) import',
+		]);
+		expect(byLines('src/lib/core/tags/tags.service.ts:Tag', users.get('src/lib/core/tags/tags.service.ts:Tag'), moduleOf)).toEqual([
+			'by src/lib/core/tags/tags.service.ts:Tag <- src/lib/features/t/u.ts:3 in (module) import',
+		]);
+	});
+
+	it('prints `markup` for a markup use and `(script)` for an unused binding of a component script', () => {
+		const { resolved, uses } = analyze({
+			'src/lib/utils/fmt.ts': 'export function fmt() {}\nexport const unused = 1;',
+			'src/lib/features/x/A.svelte': "<script lang=\"ts\">\n\timport { fmt, unused } from '#lib/utils/fmt.js';\n</script>\n<p>{fmt()}</p>",
+		});
+		const users = usersBySymbol(resolved, uses, isTest);
+		expect(byLines('src/lib/utils/fmt.ts:fmt', users.get('src/lib/utils/fmt.ts:fmt'), moduleOf)).toEqual([
+			'by src/lib/utils/fmt.ts:fmt <- src/lib/features/x/A.svelte:4 in (markup) markup',
+		]);
+		expect(byLines('src/lib/utils/fmt.ts:unused', users.get('src/lib/utils/fmt.ts:unused'), moduleOf)).toEqual([
+			'by src/lib/utils/fmt.ts:unused <- src/lib/features/x/A.svelte:2 in (script) import',
+		]);
+	});
+
+	it('caps at 8 lines and ends with a `more` line grouped by module and a `q importers` hint', () => {
+		const tree: Record<string, string> = { 'src/lib/utils/d.ts': 'export function d() {}' };
+		for (let i = 0; i < 20; i++) {
+			const mod = i < 12 ? 'a' : i < 17 ? 'b' : 'c';
+			tree[`src/lib/features/${mod}/u${String(i).padStart(2, '0')}.ts`] = "import { d } from '#lib/utils/d.js';\nd();";
+		}
+		const { resolved, uses } = analyze(tree);
+		const lines = byLines('src/lib/utils/d.ts:d', usersBySymbol(resolved, uses, isTest).get('src/lib/utils/d.ts:d'), moduleOf);
+		expect(lines).toHaveLength(9);
+		expect(lines[0]).toBe('by src/lib/utils/d.ts:d <- src/lib/features/a/u00.ts:2 in (module) call');
+		expect(lines[7]).toBe('by src/lib/utils/d.ts:d <- src/lib/features/a/u07.ts:2 in (module) call');
+		expect(lines[8]).toBe(
+			'more by 12 not shown: src/lib/features/b(5) src/lib/features/a(4) src/lib/features/c(3): q importers src/lib/utils/d.ts:d',
+		);
+	});
+
+	it('names the extra modules past 8 groups in the `more` line', () => {
+		const tree: Record<string, string> = { 'src/lib/utils/d.ts': 'export function d() {}' };
+		for (let i = 0; i < 18; i++) tree[`src/lib/features/m${String(i).padStart(2, '0')}/u.ts`] = "import { d } from '#lib/utils/d.js';\nd();";
+		const { resolved, uses } = analyze(tree);
+		const lines = byLines('src/lib/utils/d.ts:d', usersBySymbol(resolved, uses, isTest).get('src/lib/utils/d.ts:d'), moduleOf);
+		expect(lines.at(-1)).toBe(
+			'more by 10 not shown: src/lib/features/m08(1) src/lib/features/m09(1) src/lib/features/m10(1) src/lib/features/m11(1) src/lib/features/m12(1) src/lib/features/m13(1) src/lib/features/m14(1) src/lib/features/m15(1) +2 modules: q importers src/lib/utils/d.ts:d',
+		);
+	});
+
+	it('leaves out the defining file and files with no binding to the symbol', () => {
+		const { resolved, uses } = analyze({
+			'src/lib/utils/d.ts': 'export function d() {}\nd();',
+			'src/lib/utils/e.ts': 'export function d() {}\nd();',
+		});
+		expect(usersBySymbol(resolved, uses, isTest).get('src/lib/utils/d.ts:d')).toBeUndefined();
+	});
+});
+
+describe('uses', () => {
+	it('records calls, same-file calls, refs, same-file object method calls and dynamic-import bindings', () => {
+		expect(
+			useLines({
+				'src/lib/utils/debounce.ts': 'export function debounce(f: () => void, ms: number) {}\nexport function foo() {}',
+				'src/lib/core/m.ts': 'export function x() {}',
+				'src/lib/core/u.ts': [
+					"import { debounce, foo } from '#lib/utils/debounce.js';", // 1
+					'function helper() {}', // 2
+					'const Obj = { m() {}, n: () => 1, get g() { return 1; } };', // 3
+					'export function run() {', // 4
+					'\tfoo();', // 5
+					'\thelper();', // 6
+					'\tdebounce(helper, 300);', // 7
+					'\tObj.m();', // 8
+					'\tObj.n();', // 9
+					'\tObj.g;', // 10
+					'}',
+					'export async function lazy() {', // 12
+					"\tconst { x } = await import('./m.js');", // 13
+					'\tx();', // 14
+					'}',
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/core/u.ts:5 in run -> src/lib/utils/debounce.ts:foo call',
+			'src/lib/core/u.ts:6 in run -> src/lib/core/u.ts:helper call',
+			'src/lib/core/u.ts:7 in run -> src/lib/core/u.ts:helper ref',
+			'src/lib/core/u.ts:7 in run -> src/lib/utils/debounce.ts:debounce call',
+			'src/lib/core/u.ts:8 in run -> src/lib/core/u.ts:Obj.m call',
+			'src/lib/core/u.ts:9 in run -> src/lib/core/u.ts:Obj.n call',
+			'src/lib/core/u.ts:14 in lazy -> src/lib/core/m.ts:x call',
+		]);
+	});
+
+	it('reads member, mcall, assign, destructuring and optional-chaining forms of an imported object', () => {
+		expect(
+			useLines({
+				'src/lib/core/s.ts': 'export const s = { get a() { return 1; }, set() {} };',
+				'src/lib/core/u.ts': [
+					"import { s } from './s.js';", // 1
+					'export function f(v: number) {', // 2
+					'\ts.a;', // 3
+					'\ts.set();', // 4
+					'\ts?.a;', // 5
+					'\ts.a = v;', // 6
+					'\ts.a += 1;', // 7
+					'\ts.a++;', // 8
+					'\tconst { a, b: c } = s;', // 9
+					'\tuse(s);', // 10
+					'\ts.set?.();', // 11
+					'}',
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/core/u.ts:3 in f -> src/lib/core/s.ts:s.a member',
+			'src/lib/core/u.ts:4 in f -> src/lib/core/s.ts:s.set mcall',
+			'src/lib/core/u.ts:5 in f -> src/lib/core/s.ts:s.a member',
+			'src/lib/core/u.ts:6 in f -> src/lib/core/s.ts:s.a assign',
+			'src/lib/core/u.ts:7 in f -> src/lib/core/s.ts:s.a assign',
+			'src/lib/core/u.ts:8 in f -> src/lib/core/s.ts:s.a assign',
+			'src/lib/core/u.ts:9 in f -> src/lib/core/s.ts:s.a member',
+			'src/lib/core/u.ts:9 in f -> src/lib/core/s.ts:s.b member',
+			'src/lib/core/u.ts:10 in f -> src/lib/core/s.ts:s ref',
+			'src/lib/core/u.ts:11 in f -> src/lib/core/s.ts:s.set mcall',
+		]);
+	});
+
+	it('does not count a parameter, a block declaration, a type position, a property name or an import specifier', () => {
+		expect(
+			useLines({
+				'src/lib/contracts/ipc.ts': 'export function call() {}\nexport type T = string;',
+				'src/lib/core/u.ts': [
+					"import { call, type T } from '#lib/contracts/ipc.js';", // 1
+					'export const cb = (name: string, call: () => unknown) => call();', // 2
+					'export function g() {', // 3
+					'\tconst call = 1;', // 4
+					'\treturn call;',
+					'}',
+					'export function h() {', // 7
+					'\tif (true) {',
+					'\t\tfunction call() {}',
+					'\t\tcall();',
+					'\t}',
+					'\tfor (const call of []) call;',
+					'\ttry {} catch (call) { call; }',
+					'\tconst o = { call: 1 };',
+					'\to.call;',
+					'\tlet t: T;',
+					'\tlet u: typeof call;',
+					'\tcall();', // 18
+					'}',
+					'export { call };',
+				].join('\n'),
+			}),
+		).toEqual(['src/lib/core/u.ts:18 in h -> src/lib/contracts/ipc.ts:call call']);
+	});
+
+	it('does not count a name declared in a `switch` case or a `for…in` head', () => {
+		expect(
+			useLines({
+				'src/lib/contracts/ipc.ts': 'export function call() {}',
+				'src/lib/core/u.ts': [
+					"import { call } from '#lib/contracts/ipc.js';", // 1
+					'export function h(k: number) {', // 2
+					'\tswitch (k) {',
+					'\t\tcase 1:',
+					'\t\t\tconst call = 2;',
+					'\t\t\treturn call;',
+					'\t}',
+					'\tfor (const call in {}) call;',
+					'\tcall();', // 9
+					'}',
+				].join('\n'),
+			}),
+		).toEqual(['src/lib/core/u.ts:9 in h -> src/lib/contracts/ipc.ts:call call']);
+	});
+
+	it('keeps a dynamic-import destructure as the binding inside its block and a static import outside it', () => {
+		expect(
+			useLines({
+				'src/lib/core/a.ts': 'export const vaultStore = { get path() { return 1; } };',
+				'src/lib/core/b.ts': 'export const vaultStore = { get path() { return 2; } };',
+				'src/lib/core/u.ts': [
+					"import { vaultStore } from './a.js';", // 1
+					'export async function f() {', // 2
+					"\tconst { vaultStore } = await import('./b.js');", // 3
+					'\tvaultStore.path;', // 4
+					'}',
+					'export function g() {', // 6
+					'\tvaultStore.path;', // 7
+					'}',
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/core/u.ts:4 in f -> src/lib/core/b.ts:vaultStore.path member',
+			'src/lib/core/u.ts:7 in g -> src/lib/core/a.ts:vaultStore.path member',
+		]);
+	});
+
+	it('records uses of a component script with file lines, and ignores DTO, package and unresolved bindings', () => {
+		expect(
+			useLines({
+				'src/lib/contracts/generated/Tag.ts': 'export type Tag = { a: string };',
+				'src/lib/utils/fmt.ts': 'export function fmt() {}',
+				'src/lib/features/x/A.svelte': [
+					'<script lang="ts">', // 1
+					"\timport { fmt } from '#lib/utils/fmt.js';",
+					"\timport { tick } from 'svelte';",
+					"\timport { Tag, gone } from '#lib/contracts/generated/Tag.js';",
+					'\tfmt();', // 5
+					'\ttick();',
+					'\tgone();',
+					'</script>',
+				].join('\n'),
+			}),
+		).toEqual(['src/lib/features/x/A.svelte:5 in (script) -> src/lib/utils/fmt.ts:fmt call']);
+	});
+});
+
+describe('markup uses', () => {
+	it('finds calls and refs inside `{…}` only, outside comments, style, strings and prose', () => {
+		expect(
+			useLines({
+				'src/lib/utils/fmt.ts': 'export function fmt() {}\nexport function toggle() {}',
+				'src/lib/features/x/A.svelte': [
+					'<script lang="ts">', // 1
+					"\timport { fmt, toggle } from '#lib/utils/fmt.js';",
+					'\tfunction local() {}',
+					'</script>',
+					'', // 5
+					'<!-- fmt() {fmt()} -->', // 6
+					'<p>fmt is a word {fmt(a)}</p>', // 7
+					'<button onclick={toggle}>toggle</button>', // 8
+					"<span title=\"x {local()} y\">{'fmt'} {\"toggle\"}</span>", // 9
+					'<i>{`${fmt(b)} fmt`}</i>', // 10
+					'<b>{x.fmt} {$fmt} {fmt_2}</b>', // 11
+					'{#if fmt(c)}{/if}', // 12
+					'<style>',
+					'\t.fmt { color: red; } :global(toggle) {}',
+					'</style>',
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/features/x/A.svelte:7 in (markup) -> src/lib/utils/fmt.ts:fmt call markup',
+			'src/lib/features/x/A.svelte:8 in (markup) -> src/lib/utils/fmt.ts:toggle ref markup',
+			'src/lib/features/x/A.svelte:9 in (markup) -> src/lib/features/x/A.svelte:local call markup',
+			'src/lib/features/x/A.svelte:10 in (markup) -> src/lib/utils/fmt.ts:fmt call markup',
+			'src/lib/features/x/A.svelte:12 in (markup) -> src/lib/utils/fmt.ts:fmt call markup',
+		]);
+	});
+
+	it('skips `//` and `/* */` comments inside an expression, a quote in them included, and backslash escapes in strings', () => {
+		expect(
+			useLines({
+				'src/lib/utils/fmt.ts': 'export function fmt() {}\nexport function g() {}',
+				'src/lib/features/x/A.svelte': [
+					'<script lang="ts">', // 1
+					"\timport { fmt, g } from '#lib/utils/fmt.js';",
+					'</script>',
+					'<p onclick={() => {', // 4
+					"\t// the menu's handler fmt()",
+					'\tg();', // 6
+					"\t/* it's fmt() */ g();", // 7
+					'}}>a</p>',
+					'<p>{fmt()}</p>', // 9
+					'<p>{"a\\"fmt()"}</p>', // 10
+					"<p>{'http://x'} {fmt()}</p>", // 11
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/features/x/A.svelte:6 in (markup) -> src/lib/utils/fmt.ts:g call markup',
+			'src/lib/features/x/A.svelte:7 in (markup) -> src/lib/utils/fmt.ts:g call markup',
+			'src/lib/features/x/A.svelte:9 in (markup) -> src/lib/utils/fmt.ts:fmt call markup',
+			'src/lib/features/x/A.svelte:11 in (markup) -> src/lib/utils/fmt.ts:fmt call markup',
+		]);
+	});
+
+	it('counts a spread `...B` as a use', () => {
+		expect(
+			useLines({
+				'src/lib/utils/fmt.ts': 'export const LENS = { a: 1 };',
+				'src/lib/features/x/A.svelte': [
+					'<script lang="ts">', // 1
+					"\timport { LENS } from '#lib/utils/fmt.js';",
+					'</script>',
+					'<C v={{ ...LENS }} />', // 4
+				].join('\n'),
+			}),
+		).toEqual(['src/lib/features/x/A.svelte:4 in (markup) -> src/lib/utils/fmt.ts:LENS ref markup']);
+	});
+
+	it('reads store members in markup: get member, do call, do ref', () => {
+		expect(
+			useLines({
+				'src/lib/core/s.svelte.ts': 'export const s = { get x() { return 1; }, setX() {}, close() {} };',
+				'src/lib/features/x/A.svelte': [
+					'<script lang="ts">', // 1
+					"\timport { s } from '#lib/core/s.svelte.js';",
+					'</script>',
+					'<p>{s.x} {s?.x}</p>', // 4
+					'<button onclick={() => s.setX(1)}>a</button>', // 5
+					'<button onclick={s.close}>b</button>', // 6
+					'<Child store={s} />', // 7
+					'<C v={{ ...s.x }} />', // 8
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/features/x/A.svelte:4 in (markup) -> src/lib/core/s.svelte.ts:s.x member markup',
+			'src/lib/features/x/A.svelte:4 in (markup) -> src/lib/core/s.svelte.ts:s.x member markup',
+			'src/lib/features/x/A.svelte:5 in (markup) -> src/lib/core/s.svelte.ts:s.setX mcall markup',
+			'src/lib/features/x/A.svelte:6 in (markup) -> src/lib/core/s.svelte.ts:s.close ref markup',
+			'src/lib/features/x/A.svelte:7 in (markup) -> src/lib/core/s.svelte.ts:s ref markup',
+			'src/lib/features/x/A.svelte:8 in (markup) -> src/lib/core/s.svelte.ts:s.x member markup',
+		]);
+	});
+});
+
+describe('stores', () => {
+	const storeFile = [
+		'let tabs = $state([]);', // 1
+		'let activeIndex = $state(-1);', // 2
+		'const count = $derived(tabs.length);', // 3
+		'export const s = {', // 4
+		'\tget tabs() { return tabs; },', // 5
+		'\t/** Index of the focused tab. */',
+		'\tget activeIndex() { return activeIndex; },', // 7
+		'\tget count() { return count; },', // 8
+		'\taddTab(t) { tabs.push(t); },', // 9
+		'\tremoveTab(i) { tabs.splice(i, 1); },', // 10
+		'\tsetActiveIndex(i) { activeIndex = i; },', // 11
+		'\treset: () => { clearAll(); },', // 12
+		'\trename(tabs) { tabs.push(1); },', // 13
+		'\tclose() {},', // 14
+		'};',
+		'function clearAll() { tabs[0].content = ""; }',
+	].join('\n');
+
+	it('lists members in source order with kind, line, doc and `w-via`', () => {
+		const [store] = extractTsFile('src/lib/core/s.svelte.ts', storeFile).stores;
+		expect(store.name).toBe('s');
+		expect(store.line).toBe(4);
+		expect(
+			store.members.map((m: { name: string; kind: string; line: number; doc: string; wVia: string[] }) => [
+				m.name,
+				m.kind,
+				m.line,
+				m.doc,
+				m.wVia,
+			]),
+		).toEqual([
+			['tabs', 'get', 5, '', ['addTab', 'removeTab', 'reset']],
+			['activeIndex', 'get', 7, 'Index of the focused tab.', ['setActiveIndex']],
+			['count', 'get', 8, '', ['addTab', 'removeTab', 'reset']],
+			['addTab', 'do', 9, '', []],
+			['removeTab', 'do', 10, '', []],
+			['setActiveIndex', 'do', 11, '', []],
+			['reset', 'do', 12, '', []],
+			['rename', 'do', 13, '', []],
+			['close', 'do', 14, '', []],
+		]);
+	});
+
+	it('detects only exported const object literals with a getter', () => {
+		const ts = 'const hidden = { get a() { return 1; } };\nexport const plain = { a: 1 };\nexport let later = { get b() { return 1; } };';
+		const out = extractTsFile('src/lib/core/x.ts', ts);
+		expect(out.stores).toEqual([]);
+		expect(out.symbols.map((x: { name: string; kind: string }) => [x.name, x.kind])).toEqual([
+			['plain', 'const'],
+			['later', 'const'],
+		]);
+	});
+
+	it('reads readers, writers and `esc` from script and markup uses', () => {
+		const { files, uses } = analyze({
+			'src/lib/core/s.svelte.ts': storeFile,
+			'src/lib/core/u.ts': [
+				"import { s } from './s.svelte.js';", // 1
+				'export function f(v: number) {', // 2
+				'\ts.tabs;', // 3
+				'\ts.addTab(1);', // 4
+				'\ts?.activeIndex;', // 5
+				'\tconst { tabs, count } = s;', // 6
+				'\ts.close = v;', // 7
+				'\tuse(s);', // 8
+				'}',
+			].join('\n'),
+			'src/lib/features/x/B.svelte': [
+				'<script lang="ts">', // 1
+				"\timport { s } from '#lib/core/s.svelte.js';",
+				'\t$effect(() => { s.count; });', // 3
+				'</script>',
+				'<p>{s.tabs.length}</p>', // 5
+				'<button onclick={() => s.removeTab(0)}>x</button>', // 6
+				'<button onclick={s.close}>y</button>', // 7
+			].join('\n'),
+		});
+		const [store] = collectStores(files, uses, isTest);
+		expect(store.id).toBe('src/lib/core/s.svelte.ts:s');
+		expect(store.esc).toBe(1);
+		const sites = (list: { file: string; line: number; enclosing: string }[]) =>
+			list.map((x) => `${x.file}:${x.line} in ${x.enclosing}`);
+		const byName = new Map(
+			store.members.map((m) => [m.name, { r: sites(m.readers), w: sites(m.writers) }]),
+		);
+		expect(byName.get('tabs')).toEqual({
+			r: ['src/lib/core/u.ts:3 in f', 'src/lib/core/u.ts:6 in f', 'src/lib/features/x/B.svelte:5 in (markup)'],
+			w: [],
+		});
+		expect(byName.get('activeIndex')).toEqual({ r: ['src/lib/core/u.ts:5 in f'], w: [] });
+		expect(byName.get('count')).toEqual({
+			r: ['src/lib/core/u.ts:6 in f', 'src/lib/features/x/B.svelte:3 in $effect@3'],
+			w: [],
+		});
+		expect(byName.get('addTab')).toEqual({ r: [], w: ['src/lib/core/u.ts:4 in f'] });
+		expect(byName.get('removeTab')).toEqual({ r: [], w: ['src/lib/features/x/B.svelte:6 in (markup)'] });
+		expect(byName.get('close')).toEqual({
+			r: [],
+			w: ['src/lib/core/u.ts:7 in f', 'src/lib/features/x/B.svelte:7 in (markup)'],
+		});
+		expect(byName.get('setActiveIndex')).toEqual({ r: [], w: [] });
+	});
+
+	it('counts each file passing the store as a value once in `esc`', () => {
+		const { files, uses } = analyze({
+			'src/lib/core/s.svelte.ts': 'export const s = { get x() { return 1; } };',
+			'src/lib/core/a.ts': "import { s } from './s.svelte.js';\nuse(s);\nother(s);",
+			'src/lib/core/b.ts': "import { s } from './s.svelte.js';\ns.x;",
+		});
+		expect(collectStores(files, uses, isTest)[0].esc).toBe(1);
+	});
+
+	it('leaves test and e2e sites out of readers, writers and `esc`', () => {
+		const { files, uses } = analyze({
+			'src/lib/core/s.svelte.ts': 'export const s = { get x() { return 1; }, setX() {} };',
+			'src/tests/lib/core/s.test.ts': "import { s } from '#lib/core/s.svelte.js';\ns.x;\ns.setX();\nuse(s);",
+			'e2e/s.spec.ts': "import { s } from '#lib/core/s.svelte.js';\ns.x;\ns.setX();\nuse(s);",
+		});
+		const [store] = collectStores(files, uses, isTest);
+		expect(store.esc).toBe(0);
+		expect(store.members.map((m) => [m.name, m.readers.length, m.writers.length])).toEqual([
+			['x', 0, 0],
+			['setX', 0, 0],
+		]);
+	});
+
+	it('counts a same-file call of a `do` member as a writer', () => {
+		const { files, uses } = analyze({
+			'src/lib/core/s.svelte.ts': 'export const s = { get x() { return 1; }, setX() {} };\nexport function f() { s.setX(); }',
+		});
+		const [store] = collectStores(files, uses, isTest);
+		expect(store.members[1].writers).toEqual([
+			{ file: 'src/lib/core/s.svelte.ts', line: 2, enclosing: 'f', kind: 'call', markup: false },
+		]);
+	});
+
+	it('links `w-via` through a local function chain, a local alias of state and a `this` getter', () => {
+		const [store] = extractTsFile(
+			'src/lib/core/s.svelte.ts',
+			[
+				'let tabs = $state([]);',
+				'let other = $state(0);',
+				'export const s = {',
+				'\tget tabs() { return tabs; },',
+				'\tget first() { return this.tabs[0]; },',
+				'\tget other() { return other; },',
+				'\tmarkSaved(p) { const tab = tabs.find((t) => t.p === p); if (tab) tab.saved = true; },',
+				"\tbyIndex(i) { const t = tabs[i]; t.content = ''; },",
+				'\trebind() { let t = tabs.at(0); t = null; },',
+				'\tcopy() { const open = tabs.filter(Boolean); open.push(1); },',
+				'\tdeep() { a(); },',
+				'\tsetOther(v) { other = v; },',
+				'};',
+				'function a() { b(); }',
+				'function b() { tabs.length = 0; }',
+			].join('\n'),
+		).stores;
+		expect(
+			store.members.filter((m: { kind: string }) => m.kind === 'get').map((m: { name: string; wVia: string[] }) => [m.name, m.wVia]),
+		).toEqual([
+			['tabs', ['markSaved', 'byIndex', 'deep']],
+			['first', ['markSaved', 'byIndex', 'deep']],
+			['other', ['setOther']],
+		]);
+	});
+});
+
+describe('enclosing', () => {
+	it('names the nearest declaration, object member, class method, reactive scope or top-level const', () => {
+		expect(
+			useLines({
+				'src/lib/utils/g.ts': 'export function g() {}\nexport function debounce(f: () => void, ms: number) {}',
+				'src/lib/core/s.svelte.ts': 'export const s = { get x() { return 1; } };',
+				'src/lib/core/u.svelte.ts': [
+					"import { g, debounce } from '#lib/utils/g.js';", // 1
+					"import { s } from './s.svelte.js';", // 2
+					'export function decl() { g(); }', // 3
+					'const arrow = () => g();', // 4
+					'export const obj = { method() { g(); }, prop: () => g(), get x() { return g(); } };', // 5
+					'class K { m() { g(); } }', // 6
+					'export function outer() { [1].forEach(() => g()); }', // 7
+					'$effect(() => { s.x; });', // 8
+					'$effect.pre(() => g());', // 9
+					'const y = $derived(s.x);', // 10
+					'const t = debounce(() => g(), 300);', // 11
+					'g();', // 12
+					'const z = $derived.by(() => g());', // 13
+					'export const { w } = { w: g() };', // 14
+					'function inner() { const nested = () => g(); }', // 15
+					'$effect.root(() => g());', // 16
+					'const q = [1].map(() => $derived(s.x));', // 17
+					'const sat = { a() { g(); } } satisfies object;', // 18
+					'function later() { const t2 = debounce(() => g(), 300); }', // 19
+				].join('\n'),
+			}).filter((l) => l.startsWith('src/lib/core/u.svelte.ts')),
+		).toEqual([
+			'src/lib/core/u.svelte.ts:3 in decl -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:4 in arrow -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:5 in obj.method -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:5 in obj.prop -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:5 in obj.x -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:6 in K.m -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:7 in outer -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:8 in $effect@8 -> src/lib/core/s.svelte.ts:s.x member',
+			'src/lib/core/u.svelte.ts:9 in $effect.pre@9 -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:10 in y=$derived -> src/lib/core/s.svelte.ts:s.x member',
+			'src/lib/core/u.svelte.ts:11 in t -> src/lib/utils/g.ts:debounce call',
+			'src/lib/core/u.svelte.ts:11 in t -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:12 in (module) -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:13 in z=$derived -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:14 in (module) -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:15 in nested -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:16 in $effect@16 -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:17 in $derived@17 -> src/lib/core/s.svelte.ts:s.x member',
+			'src/lib/core/u.svelte.ts:18 in sat.a -> src/lib/utils/g.ts:g call',
+			'src/lib/core/u.svelte.ts:19 in later -> src/lib/utils/g.ts:debounce call',
+			'src/lib/core/u.svelte.ts:19 in later -> src/lib/utils/g.ts:g call',
+		]);
+	});
+
+	it('uses `(script)` for a component instance script, `(module)` for its module script and `(markup)` for markup', () => {
+		expect(
+			useLines({
+				'src/lib/utils/g.ts': 'export function g() {}',
+				'src/lib/features/x/A.svelte': [
+					'<script module lang="ts">', // 1
+					"\timport { g } from '#lib/utils/g.js';",
+					'\tg();', // 3
+					'</script>',
+					'<script lang="ts">', // 5
+					'\tg();', // 6
+					'</script>',
+					'<p>{g()}</p>', // 8
+				].join('\n'),
+			}),
+		).toEqual([
+			'src/lib/features/x/A.svelte:3 in (module) -> src/lib/utils/g.ts:g call',
+			'src/lib/features/x/A.svelte:6 in (script) -> src/lib/utils/g.ts:g call',
+			'src/lib/features/x/A.svelte:8 in (markup) -> src/lib/utils/g.ts:g call markup',
+		]);
 	});
 });
