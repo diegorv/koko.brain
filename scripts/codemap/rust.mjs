@@ -23,6 +23,15 @@ const SRC = 'src-tauri/src';
 /** Root of the crate integration tests. */
 const TESTS = 'src-tauri/tests';
 
+/** Root of the crate examples, which use the crate as `kokobrain_lib` like the tests. */
+const EXAMPLES = 'src-tauri/examples';
+
+/** Whether a file is an integration test or an example: a crate-external, non-production consumer. */
+const isExternalConsumer = (file) => file.startsWith(`${TESTS}/`) || file.startsWith(`${EXAMPLES}/`);
+
+/** Whether a file names the crate as `kokobrain_lib::`: tests, examples and the binary root `main.rs`. */
+const usesLibName = (file) => isExternalConsumer(file) || file === `${SRC}/main.rs`;
+
 /** The crate root files, where a bare path may start with a top-level module. */
 const ROOTS = new Set([`${SRC}/lib.rs`, `${SRC}/main.rs`]);
 
@@ -637,13 +646,13 @@ function resolveModulePath(segs, exists) {
  * The crate-absolute segments of a path written in `facts.file` at `offset`,
  * or null for a path outside the crate: `crate::` dropped, `self::` and
  * `super::` resolved against the module path, `kokobrain_lib::` dropped in
- * integration tests, a bare top-level module kept in the crate root files.
+ * integration tests, examples and `main.rs`, a bare top-level module kept in
+ * the crate root files.
  */
 function absoluteSegs(segs, facts, offset, topModules) {
-	const test = facts.file.startsWith(`${TESTS}/`);
 	if (!segs.length) return null;
-	if (segs[0] === 'kokobrain_lib') return test ? segs.slice(1) : null;
-	if (test) return null;
+	if (segs[0] === 'kokobrain_lib') return usesLibName(facts.file) ? segs.slice(1) : null;
+	if (isExternalConsumer(facts.file)) return null;
 	if (segs[0] === 'crate') return segs.slice(1);
 	if (segs[0] === 'self') return [...modulePathAt(facts, offset), ...segs.slice(1)];
 	if (segs[0] === 'super') {
@@ -676,12 +685,12 @@ function bodyText(facts) {
 
 /**
  * Inline paths outside `use`: `crate::a::b…` everywhere, `kokobrain_lib::…`
- * in integration tests, and in the crate root files a bare path whose first
- * segment is a top-level module.
+ * in integration tests, examples and `main.rs`, and in the crate root files
+ * a bare path whose first segment is a top-level module.
  */
 function inlinePaths(facts, body, topModules) {
 	const heads = ['crate'];
-	if (facts.file.startsWith(`${TESTS}/`)) heads.push('kokobrain_lib');
+	if (usesLibName(facts.file)) heads.push('kokobrain_lib');
 	if (ROOTS.has(facts.file)) heads.push(...[...topModules].sort(cmp));
 	const re = new RegExp(`(?<![\\w:])(?:${heads.map(escapeRe).join('|')})(?:\\s*::\\s*[A-Za-z_]\\w*)+`, 'g');
 	return [...body.matchAll(re)].map((m) => ({ segs: m[0].split(/\s*::\s*/), offset: m.index, end: m.index + m[0].length }));
@@ -707,22 +716,27 @@ function namesOf(facts) {
  * of `lib.rs` left out, enclosing by F12; a handler entry is an edge and an
  * `import` user of its command, not a call):
  * - `lexical`: in another file, an imported item's local name followed by
- *   `(` or `::`; `alias::X` through a module alias, followed by `(` or `::`; a
- *   full inline path naming an item; `Type::method(` of an imported type. A
- *   glob brings in the pub items of its module that the file does not define.
+ *   `(` or `::`; a path through a module alias (`alias::X`, or
+ *   `alias::sub::X` into a submodule, which also adds a file edge at its
+ *   line), followed by `(` or `::`; a full inline path naming an item;
+ *   `Type::method(` of an imported type. A glob brings in the pub items of
+ *   its module that the file does not define.
+ * - `ref`: any other whole-word use of an imported item's local name or of
+ *   an alias path naming an item (a fn passed as a value, a const, a type, a
+ *   generic argument). A `let` binding that shadows an imported name counts.
  * - `lexical-method`: `.name(` of a pub impl method whose name contains `_`,
  *   is defined once among all crate fn names and is not in
  *   RUST_STD_METHOD_NAMES.
  * - `call` (same file, F20): `self.name(` and `Self::name(` of the enclosing
  *   impl, `Type::name(` of a type of the file, a bare `name(` of a depth-0 fn.
  *
- * @param {Map<string, ReturnType<typeof extractRustFile>>} files facts by path, `src-tauri/src` and `src-tauri/tests`
+ * @param {Map<string, ReturnType<typeof extractRustFile>>} files facts by path, `src-tauri/src`, `src-tauri/tests` and `src-tauri/examples`
  * @returns {{
  *   edges: {from: string, line: number, target: string, names: string[]}[],
  *   calls: {file: string, line: number, enclosing: string, target: string, kind: string}[],
  *   users: Map<string, {file: string, line: number, enclosing: string, kind: string, more: number}[]>,
  * }} edges by (from, line, target); calls by (file, line, target, kind);
- *   users keyed in code-unit order, by user file path, integration tests left out
+ *   users keyed in code-unit order, by user file path, integration tests and examples left out
  */
 export function analyzeRust(files) {
 	const paths = [...files.keys()].sort(cmp);
@@ -777,7 +791,7 @@ export function analyzeRust(files) {
 					continue;
 				}
 				if (local === '_') continue;
-				if (!hit.rest.length) modules.set(local, hit.file);
+				if (!hit.rest.length) modules.set(local, abs);
 				else if (targetNames.has(hit.rest[0])) {
 					items.set(local, targetNames.get(hit.rest[0]));
 					leafUsers.push({ id: targetNames.get(hit.rest[0]), file: p, line: leaf.line, enclosing: '(module)' });
@@ -808,22 +822,35 @@ export function analyzeRust(files) {
 			const id = `${file}:${typeId.slice(file.length + 1)}::${m[1]}`;
 			if (named.get(file)?.has(`${typeId.slice(file.length + 1)}::${m[1]}`)) row(after, id, file === p ? 'call' : kind);
 		};
-		for (const [local, id] of [...items].sort(([a], [b]) => cmp(a, b))) {
+		const ident = /[A-Za-z_]\w*/g;
+		for (const [alias, aliasSegs] of [...modules].sort(([a], [b]) => cmp(a, b))) {
+			const aliasFile = resolveModulePath(aliasSegs, exists).file;
+			const re = new RegExp(`(?<![\\w.])(?<!::\\s*)${escapeRe(alias)}(?:\\s*::\\s*[A-Za-z_]\\w*)+`, 'g');
+			for (const m of scan.matchAll(re)) {
+				const segs = [...m[0].matchAll(ident)].map((x) => ({ name: x[0], at: m.index + x.index }));
+				const hit = resolveModulePath([...aliasSegs, ...segs.slice(1).map((x) => x.name)], exists);
+				const targetNames = named.get(hit.file);
+				if (!hit.rest.length || !targetNames?.has(hit.rest[0])) continue;
+				const item = segs[segs.length - hit.rest.length];
+				const end = m.index + m[0].length;
+				if (hit.file !== aliasFile) addEdge(p, facts.lineAt(item.at), hit.file, hit.rest[0]);
+				const callShaped = hit.rest.length > 1 || /^\s*(?:\(|::)/.test(scan.slice(end));
+				row(item.at, targetNames.get(hit.rest[0]), hit.file === p ? 'call' : callShaped ? 'lexical' : 'ref');
+				const method = hit.rest.length === 2 ? `${hit.rest[0]}::${hit.rest[1]}` : null;
+				if (method && targetNames.has(method) && /^\s*\(/.test(scan.slice(end))) row(item.at, targetNames.get(method), hit.file === p ? 'call' : 'lexical');
+			}
+		}
+		const sortedItems = [...items].sort(([a], [b]) => cmp(a, b));
+		for (const [local, id] of sortedItems) {
 			const re = new RegExp(`(?<![\\w.])(?<!::\\s*)(?<!\\bfn\\s+)${escapeRe(local)}(?![\\w])(?=\\s*(?:\\(|::))`, 'g');
 			for (const m of scan.matchAll(re)) {
 				row(m.index, id, 'lexical');
 				methodOf(id, m.index + local.length, 'lexical');
 			}
 		}
-		for (const [alias, file] of [...modules].sort(([a], [b]) => cmp(a, b))) {
-			const re = new RegExp(`(?<![\\w.])(?<!::\\s*)${escapeRe(alias)}\\s*::\\s*([A-Za-z_]\\w*)(?=\\s*(?:\\(|::))`, 'g');
-			for (const m of scan.matchAll(re)) {
-				const id = named.get(file)?.get(m[1]);
-				if (!id) continue;
-				const at = m.index + m[0].length - m[1].length;
-				row(at, id, 'lexical');
-				methodOf(id, m.index + m[0].length, 'lexical');
-			}
+		for (const [local, id] of sortedItems) {
+			const re = new RegExp(`(?<![\\w.'])(?<!::\\s*)(?<!\\bfn\\s+)${escapeRe(local)}(?![\\w])(?!\\s*:(?!:))`, 'g');
+			for (const m of scan.matchAll(re)) row(m.index, id, 'ref');
 		}
 		for (const ip of inlinePaths(facts, body, topModules)) {
 			const abs = absoluteSegs(ip.segs, facts, ip.offset, topModules);
@@ -867,7 +894,7 @@ export function analyzeRust(files) {
 		}
 	}
 	calls.sort((x, y) => cmp(x.file, y.file) || x.line - y.line || cmp(x.target, y.target) || cmp(x.kind, y.kind) || x.offset - y.offset);
-	const isTestFile = (f) => f.startsWith(`${TESTS}/`);
+	const isTestFile = isExternalConsumer;
 	const fileOfId = (id) => id.slice(0, id.indexOf(':'));
 	const by = new Map();
 	for (const c of calls) {

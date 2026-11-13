@@ -50,7 +50,7 @@ Line tags: file imp in2 out2 test sym by local store mem call mount fx reg ipc-c
 - The rust-db.execute receiver and the DOM listener receiver: not resolved.
 - Settings key joins (AppSettings, DEFAULT_SETTINGS) beyond settingsStore members: not tracked.
 - Imports of unparsed files (.js, .json, scripts): file edges only, no symbols.
-- Test and e2e files: graph nodes for test lines and q --tests answers, no cards.
+- Test, e2e and crate example (src-tauri/examples) files: graph nodes for test lines and q --tests answers, no cards.
 
 ## Hubs (production importers, test importers)
 hub app src/lib/app/boot.ts in1 t0

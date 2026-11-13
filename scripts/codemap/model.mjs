@@ -52,11 +52,17 @@ const RUST = 'src-tauri/src';
 /** Root of the crate integration tests. */
 const RUST_TESTS = 'src-tauri/tests';
 
+/** Root of the crate examples: consumers of the crate rendered like tests, counted in neither `in<n>` nor `t<n>`. */
+const RUST_EXAMPLES = 'src-tauri/examples';
+
+/** The test relation of an example that imports a crate file. */
+export const EXAMPLE_RELATION = 'example';
+
 /** The layer-rule baseline, an F1 input read as data. */
 export const BASELINE = 'src/tests/lib/architecture/layer-baseline.json';
 
 /** Folders the inventory walks. */
-const INPUT_ROOTS = ['src/lib', 'src/routes', 'src/tests', 'e2e', RUST, RUST_TESTS];
+const INPUT_ROOTS = ['src/lib', 'src/routes', 'src/tests', 'e2e', RUST, RUST_TESTS, RUST_EXAMPLES];
 
 /** Edge kinds of the symbol graph in BFS neighbor order (`q flow`). */
 export const SYMBOL_EDGE_KINDS = ['call', 'ref', 'mount', 'fires', 'state', 'ipc', 'event'];
@@ -105,8 +111,15 @@ export function moduleOf(file, modules) {
 	return best;
 }
 
-/** Whether a path is a test file: frontend tests, e2e files and crate integration tests. */
-export const isTestFile = (path) => path.startsWith('src/tests/') || path.startsWith('e2e/') || path.startsWith(`${RUST_TESTS}/`);
+/** Whether a path is a crate example. */
+const isExample = (path) => path.startsWith(`${RUST_EXAMPLES}/`);
+
+/**
+ * Whether a path is a test file: frontend tests, e2e files, crate integration
+ * tests and crate examples (non-production consumers with no card).
+ */
+export const isTestFile = (path) =>
+	path.startsWith('src/tests/') || path.startsWith('e2e/') || path.startsWith(`${RUST_TESTS}/`) || isExample(path);
 
 /** The F7 layer of a production file: `rust`, `routes`, or the `src/lib` layer of `locate`. */
 export function layerOf(path) {
@@ -121,7 +134,7 @@ export function isInput(path) {
 	if (path.endsWith('.d.ts')) return false;
 	if (path.startsWith('src/lib/') || path.startsWith('src/routes/')) return /\.(?:ts|svelte|js)$/.test(path);
 	if (path.startsWith('src/tests/') || path.startsWith('e2e/')) return path.endsWith('.ts');
-	if (path.startsWith(`${RUST}/`) || path.startsWith(`${RUST_TESTS}/`)) return path.endsWith('.rs');
+	if (path.startsWith(`${RUST}/`) || path.startsWith(`${RUST_TESTS}/`) || isExample(path)) return path.endsWith('.rs');
 	return false;
 }
 
@@ -196,11 +209,16 @@ function edgeNames(facts, region, imp) {
  * - `moduleEdges`: production file pairs across modules, weighted by
  *   distinct (from file, to file) pairs.
  * - `hubs`: production files by (distinct production importer files desc,
- *   distinct test importer files desc, path); `hubsByLayer` the same per F7 layer.
+ *   distinct test importer files desc, path), examples counted in neither;
+ *   `hubsByLayer` the same per F7 layer.
  * - `entryFiles`: per module, its files with a production importer outside
  *   it, by (external importer files desc, path).
  * - `in2(file)` / `out2(file)`: production files two import hops away, minus
- *   direct neighbors and the file; `moduleIn2` / `moduleOut2` on the module graph.
+ *   direct neighbors and the file.
+ * - `moduleIn2Pairs(m)` / `moduleOut2Pairs(m)`: the modules of the files two
+ *   file hops from a file of `m`, minus `m` and its direct neighbor modules,
+ *   each with its count of distinct (far file, middle file) pairs; a module
+ *   path with no file chain behind it is not reach.
  * - `symbolEdges`: the symbol graph (see `symbolGraph`).
  *
  * @param {Map<string, string>} inputs contents by repo-relative path, as `readInputs` gives them
@@ -259,8 +277,13 @@ export function buildModel(inputs, { reverse = false } = {}) {
 
 	const rustTests = new Map();
 	for (const e of rust.edges)
-		if (e.from.startsWith(`${RUST_TESTS}/`) && !isTest(e.target))
-			rustTests.set(`${e.target}\0${e.from}`, { test: e.from, relation: 'imports', target: e.target, mirror: false });
+		if ((e.from.startsWith(`${RUST_TESTS}/`) || isExample(e.from)) && !isTest(e.target))
+			rustTests.set(`${e.target}\0${e.from}`, {
+				test: e.from,
+				relation: isExample(e.from) ? EXAMPLE_RELATION : 'imports',
+				target: e.target,
+				mirror: false,
+			});
 	const tests = [...testRelations(tsFiles, exists), ...rustTests.values()].sort(
 		(a, b) => cmp(a.target, b.target) || Number(b.mirror) - Number(a.mirror) || cmp(a.relation, b.relation) || cmp(a.test, b.test),
 	);
@@ -303,7 +326,7 @@ export function buildModel(inputs, { reverse = false } = {}) {
 	const production = paths.filter((p) => !isTest(p));
 	const distinct = (list, pick, keep) => [...new Set(list.filter(keep).map(pick))].sort(cmp);
 	const prodImporters = (f) => distinct(importers.get(f) ?? [], (e) => e.from, (e) => !isTest(e.from));
-	const testImporters = (f) => distinct(importers.get(f) ?? [], (e) => e.from, (e) => isTest(e.from));
+	const testImporters = (f) => distinct(importers.get(f) ?? [], (e) => e.from, (e) => isTest(e.from) && !isExample(e.from));
 	const prodTargets = (f) => distinct(imports.get(f) ?? [], (e) => e.target, (e) => !isTest(e.target));
 
 	const hubs = production
@@ -343,13 +366,23 @@ export function buildModel(inputs, { reverse = false } = {}) {
 		const near = new Set([start, ...direct]);
 		return [...new Set(direct.flatMap(next))].filter((f) => !near.has(f)).sort(cmp);
 	};
-	const moduleNext = (dir) => {
-		const out = new Map();
-		for (const e of moduleEdges) bucket(out, dir === 'in' ? e.to : e.from).push(dir === 'in' ? e.from : e.to);
-		return (m) => out.get(m) ?? [];
+	const productionOf = new Map(modules.map((m) => [m, []]));
+	for (const f of production) if (modOf(f)) productionOf.get(modOf(f)).push(f);
+	const moduleTwoHop = (m, next) => {
+		const files = productionOf.get(m) ?? [];
+		const near = new Set([m]);
+		for (const f of files) for (const g of next(f)) if (modOf(g)) near.add(modOf(g));
+		const pairs = new Map();
+		for (const f of files)
+			for (const mid of next(f))
+				for (const far of next(mid)) {
+					const fm = modOf(far);
+					if (!fm || near.has(fm)) continue;
+					if (!pairs.has(fm)) pairs.set(fm, new Set());
+					pairs.get(fm).add(`${far}\0${mid}`);
+				}
+		return new Map([...pairs.keys()].sort(cmp).map((k) => [k, pairs.get(k).size]));
 	};
-	const moduleIns = moduleNext('in');
-	const moduleOuts = moduleNext('out');
 
 	const symbolEdges = symbolGraph({ tsFiles, uses, rust, commands, events, registries, stores, mounts, isTest });
 
@@ -390,8 +423,8 @@ export function buildModel(inputs, { reverse = false } = {}) {
 		entryFiles,
 		in2: (file) => twoHop(file, prodImporters),
 		out2: (file) => twoHop(file, prodTargets),
-		moduleIn2: (m) => twoHop(m, moduleIns),
-		moduleOut2: (m) => twoHop(m, moduleOuts),
+		moduleIn2Pairs: (m) => moduleTwoHop(m, prodImporters),
+		moduleOut2Pairs: (m) => moduleTwoHop(m, prodTargets),
 		symbolEdges,
 	};
 }
@@ -403,7 +436,8 @@ const isReactiveScope = (name) => /^\$effect(?:\.pre)?@\d+$|=\$derived$|^\$deriv
  * The F14 symbol graph over production code, one edge per (kind, from, to),
  * each with the location of its first fact:
  * - `call` / `ref`: F4 uses from `<file>:<enclosing>` to the target (`call`
- *   for `call` and `mcall`, `ref` for every other kind); Rust F16/F20 calls.
+ *   for `call` and `mcall`, `ref` for every other kind); Rust F16/F20 rows
+ *   (`ref` for a Rust `ref`, `call` for the others).
  * - `ipc`: TS enclosing → `ipc:<cmd>` → the Rust `cmd` fn.
  * - `event`: Rust emit enclosing → `event:<name>` → TS listener enclosing.
  * - `fires`: each F11 `read-by` function → each registered callback.
@@ -427,7 +461,7 @@ function symbolGraph({ tsFiles, uses, rust, commands, events, registries, stores
 		add(u.kind === 'call' || u.kind === 'mcall' ? 'call' : 'ref', `${u.file}:${u.enclosing}`, u.target, u.file, u.line);
 		if (isReactiveScope(u.enclosing)) bucket(scopes, u.file).push(u);
 	}
-	for (const c of rust.calls) if (!isTest(c.file)) add('call', `${c.file}:${c.enclosing}`, c.target, c.file, c.line);
+	for (const c of rust.calls) if (!isTest(c.file)) add(c.kind === 'ref' ? 'ref' : 'call', `${c.file}:${c.enclosing}`, c.target, c.file, c.line);
 	for (const c of commands) {
 		const id = `ipc:${c.name}`;
 		for (const s of c.callers) add('ipc', `${s.file}:${s.enclosing}`, id, s.file, s.line);

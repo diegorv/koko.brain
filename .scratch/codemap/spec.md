@@ -164,7 +164,7 @@ Tags:
 | `file` | `file <path> <role> L<lines> module <m> in<prod importer files> t<test files> [t:inline] [| header doc]` | card line 4, module card |
 | `imp` | `imp <importer>:<line> -> <target file> <names>` | both cards of the edge |
 | `in2`/`out2` | `in2 <file> <n> files in <m> modules: <module>(<k>) …` | card `reach` |
-| `test` | `test <test file> imports|mocks|e2e <file> [mirror]` | source card |
+| `test` | `test <test file> imports|mocks|e2e|example <file> [mirror]` | source card |
 | `sym` | `sym <loc> <kind> <name><sig> L<span> [| doc]` | card, module card |
 | `by` | `by <symbol id> <- <use loc> in <enclosing> <kind> [+<n>]` | defining card |
 | `local` | `local <loc> fn <name><sig> L<span>` | card |
@@ -185,7 +185,7 @@ Tags:
 
 `imp` names: as exported by the target (`default`, `*` for namespace and `export *`, `type:` prefix for type-only, `dyn:` prefix for `import()`, `side-effect` for a statement that binds nothing such as `import 'x'`), taken from that one statement, comma-joined in source order. An `imp` edge has exactly one text, written in both cards. The same holds for `mount`, `ipc-call`, `ev` and `dep`.
 
-`<kind>` on `by` and `call`: `call`, `mcall` (method call on an imported object), `ref` (value use, e.g. a callback passed), `member` (property read), `assign` (write to a member), `markup` (use inside a Svelte `{…}` expression), `mount`, `import` (no use found, for example type-only; the location is then the import specifier's line), `lexical` and `lexical-method` (Rust, F16). `+<n>` counts further sites of the same (file, enclosing, target).
+`<kind>` on `by` and `call`: `call`, `mcall` (method call on an imported object), `ref` (value use, e.g. a callback passed; in Rust also a const, static or type use, F16), `member` (property read), `assign` (write to a member), `markup` (use inside a Svelte `{…}` expression), `mount`, `import` (imported, no use matched, for example type-only; the location is then the import specifier's line), `lexical` and `lexical-method` (Rust, F16). `+<n>` counts further sites of the same (file, enclosing, target).
 
 ### `files/<file>.md` (abridged; lines and numbers real unless `<…>`)
 
@@ -220,14 +220,14 @@ Section rules:
 - `imports`: every import statement resolving to a scanned file, in line order, plus `@tauri-apps/*` package imports (`-> pkg:@tauri-apps/plugin-fs …`, importer card only). Other packages are left out.
 - `imported-by`: production importers by (path, line). Test importers are in `tests`.
 - `reach`: 2-hop summary only. `in2` = production files importing a direct importer, minus direct importers and self; `out2` forward. Full list: `q impact <file> --depth 2`.
-- `tests`: mirrored first, then (relation, path).
+- `tests`: mirrored first, then (relation, path). `example` rows (a `src-tauri/examples` file using the crate) are listed but counted in neither `in<n>` nor `t<n>`.
 - `symbols`: every exported symbol in line order, each followed by its `by` lines (one per user file other than this one, path order, first use site in that file).
 - `locals`: non-exported top-level functions (declarations and consts bound to arrow or function expressions) and Rust non-`pub` fns, in line order.
 - `store`: for a store file, the `store` line then one `mem` line per member in source order.
-- `calls`: every distinct (enclosing, target) pair of this file's F4 uses of kind `call`, `mcall`, `ref` of a function, `markup` call, and Rust calls, by (enclosing line, first site line, target). Same-file pairs included, so the file's local call graph is on its card. The reverse is grep: `grep -rF -- '-> <id> ' codemap/files`.
+- `calls`: every distinct (enclosing, target) pair of this file's F4 uses of kind `call`, `mcall`, `ref` of a function, `markup` call, and Rust rows (a Rust `ref` only when it names a fn, command, method or local fn), by (enclosing line, first site line, target). Same-file pairs included, so the file's local call graph is on its card. The reverse is grep: `grep -rF -- '-> <id> ' codemap/files`.
 - `effects`: `fx`, `reg`, `ipc-call`, `ev`, by line.
 - Components: `sym <file>:1 component <Name> props:<…>`; instance-script exported functions as `sym <loc> method <name><sig>` (F2); a `## mounted-at` section with the `mount` lines that render it.
-- Rust cards: `file` line with the `//!` first sentence and `t:inline` when the file has `#[cfg(test)]`; `imp` from F16; `sym` for F12 items with `by` from F16; `local` for non-pub fns; `test` from `src-tauri/tests`; `calls`; `ipc-call` lines into its commands (section `ipc-in`), `ev`, `fx`.
+- Rust cards: `file` line with the `//!` first sentence and `t:inline` when the file has `#[cfg(test)]`; `imp` from F16; `sym` for F12 items with `by` from F16; `local` for non-pub fns; `test` from `src-tauri/tests` and `src-tauri/examples`; `calls`; `ipc-call` lines into its commands (section `ipc-in`), `ev`, `fx`.
 
 ### `modules/<module>.md`
 
@@ -253,6 +253,8 @@ fx-count timer.setTimeout 1 · ipc-call ipc:get_all_tags_v2 1
 -
 ```
 `dep` weight = distinct (from file, to file) production pairs, TS and Rust alike. No rank numbers on cards (they churn, impl critique 4).
+
+Module `in2` = the modules of the production files that import a production importer of a file of the module, minus the module and its direct importer modules; `out2` forward. Reach comes from file chains, not module edges, so a module holding both a hub and a leaf (the crate root: `lib.rs` and `events.rs`) is no shortcut. `(<k>)` = distinct (far file, middle file) pairs.
 
 ### `modules.md`
 
@@ -297,9 +299,9 @@ reg src/lib/core/markdown-editor/editor-host.ts:editorHost facet src/lib/core/ma
 ### F1. Inventory and modules
 
 - Keep `walk`, `discoverModules`, `moduleOf`, `fileRole` and `handlerCommands` from `scripts/architecture-map.mjs` (move them into `scripts/codemap/`). 60 modules: 51 `src/lib` + `src/routes` + `src-tauri/src` + its 7 folders.
-- Inputs: `src/lib/**/*.{ts,svelte}` (no `.d.ts`), `src/lib/**/*.js` (role `other`, no symbols), `src/routes/**/*.{ts,svelte,js}`, `src/tests/**/*.ts`, `e2e/**/*.ts`, `src-tauri/src/**/*.rs`, `src-tauri/tests/**/*.rs`, `src/tests/lib/architecture/layer-baseline.json`.
+- Inputs: `src/lib/**/*.{ts,svelte}` (no `.d.ts`), `src/lib/**/*.js` (role `other`, no symbols), `src/routes/**/*.{ts,svelte,js}`, `src/tests/**/*.ts`, `e2e/**/*.ts`, `src-tauri/src/**/*.rs`, `src-tauri/tests/**/*.rs`, `src-tauri/examples/**/*.rs`, `src/tests/lib/architecture/layer-baseline.json`.
 - `src/lib/components/ui/**` and `src/lib/contracts/generated/**` are graph nodes and count in module totals, but get no card and no `sym` lines.
-- Test files and e2e files are graph nodes (for `test` relations, DTO users and CLI queries) with no card.
+- Test files, e2e files and crate examples are graph nodes (for `test` relations, DTO users and CLI queries) with no card.
 
 ### F2. TS/Svelte exports
 
@@ -362,6 +364,7 @@ Rows are not written as such; they feed `by`, `call`, `mem`, `ipc-call`, `reg`, 
 - `imports`: a test file has a non-type-only import that resolves to F. `mocks`: `vi.mock`/`vi.doMock` with a string-literal first argument (multi-line, AST), resolved from the test file; `mocks` wins when both; package mocks ignored. `e2e`: an e2e file with a non-type import resolving to F.
 - `mirror`: test in `src/tests/<source dir without src/>/`, basename starting with the source stem followed by `.` or `-` (`x.test.ts`, `x-parity.test.ts`; not `xy.test.ts`), relation `imports`.
 - Rust: each `kokobrain_lib::a::b…` path in lexed `src-tauri/tests/**/*.rs` maps by the F16 resolver; relation `imports`. Files with `#[cfg(test)]` get `t:inline`.
+- Examples: the same paths in `src-tauri/examples/**/*.rs` give relation `example` (`test src-tauri/examples/retrieval_eval.rs example src-tauri/src/search/eval_metrics.rs`). An example is never a production importer, and is counted in neither `in<n>`, `t<n>` nor the hub test count.
 - The reverse (what a test covers): `grep -rF -- 'test <test path> ' codemap/files` or `q deps <test path>`.
 
 ### F7. Module layer facts
@@ -426,7 +429,7 @@ Rust struct or enum with `ts(export)`; TS file `src/lib/contracts/generated/<Nam
 - File graph: nodes = every F1 file; edges = F3-resolved import statements (static, type-only, re-export, literal dynamic) plus F16 Rust edges. Reverse edges precomputed.
 - Module graph: production files only; weight = distinct (from file, to file) pairs.
 - Symbol graph (CLI and F11): nodes = symbol IDs, local fns, scopes (section 4); edges = F4 uses, F16/F20 Rust calls, F8 IPC (TS enclosing → Rust cmd fn), F9 events (Rust emit enclosing → TS listener enclosing), F11 fires (each `read-by` fn → each registered callback), F5 state (a writer's enclosing → the enclosings of readers of the `get` members in `w-via` of the `do` member it calls), mounts (`(markup)` of X → `<Y>:default`; a component's `default` → its `(script)`, `(markup)` and reactive scopes).
-- Hub rank (INDEX and `q hubs` only): production files sorted by (distinct production importer files desc, distinct test importer files desc, path asc). INDEX shows the top 3 per layer (`app`, `routes`, `core`, `features`, `plugins`, `utils`, `lib-root`, `contracts`, `types`, `rust`; `lib-root` holds the files directly in `src/lib`, such as `utils.ts`). Today's global top 5: `settings.store.svelte.ts` (82, 124), `vault.store.svelte.ts` (81, 149), `utils/debug.ts` (73, 28), `editor.service.ts` (55, 74), `utils.ts` (54, 1).
+- Hub rank (INDEX and `q hubs` only): production files sorted by (distinct production importer files desc, distinct test importer files desc, path asc); crate examples count in neither. INDEX shows the top 3 per layer (`app`, `routes`, `core`, `features`, `plugins`, `utils`, `lib-root`, `contracts`, `types`, `rust`; `lib-root` holds the files directly in `src/lib`, such as `utils.ts`). Today's global top 5: `settings.store.svelte.ts` (82, 124), `vault.store.svelte.ts` (81, 149), `utils/debug.ts` (73, 28), `editor.service.ts` (55, 74), `utils.ts` (54, 1).
 - Entry files of a module: files with at least one production importer outside the module, by (external importer files desc, path asc).
 - PageRank is not used: in-degree is exact, integer and explainable in one line.
 
@@ -447,11 +450,12 @@ Each site: `(location, sink, class, arg?, enclosing)`, written as an `fx` line o
 
 ### F16. Rust `use` edges, item importers and cross-file callers
 
-- Sources (production text): `use` trees (nested braces, `self`, `as`, `pub use`) rooted at `crate::`, `super::`, `self::`, and `kokobrain_lib::` in `src-tauri/tests`; inline paths `crate::a::b…` outside `use`; in `lib.rs`/`main.rs`, bare paths whose first segment is a top-level crate module.
+- Sources (production text): `use` trees (nested braces, `self`, `as`, `pub use`) rooted at `crate::`, `super::`, `self::`, and `kokobrain_lib::` in `src-tauri/tests`, `src-tauri/examples` and `main.rs`; inline paths `crate::a::b…` (and `kokobrain_lib::a::b…` in those files) outside `use`; in `lib.rs`/`main.rs`, bare paths whose first segment is a top-level crate module. Users in `src-tauri/tests` and `src-tauri/examples` get no `by` line.
 - Resolution: drop the root (resolving `self`/`super` against the module path, F12), map to the longest prefix existing as `src-tauri/src/<a>/<b>.rs` or `<a>/<b>/mod.rs`; the leaf is an item when it names an F12 item of that file.
 - File edge: one `imp` line per (file, statement or inline-path line, target). `mod x;` is containment, not an edge.
 - Item importers: `by` lines on the defining card.
-- Callers, marked `lexical`: in a file importing item X, each occurrence of X's local name followed by `(` or `::`, `alias::X(` for a module alias (`vault_fs::write_atomic(`), or a full `crate::…::X` path, outside `use`, with the F12 enclosing fn. `Type::method(` and `Self::method(` count as calls of that method item when `Type` is imported or defined in the file.
+- Callers, marked `lexical`: in a file importing item X, each occurrence of X's local name followed by `(` or `::`, `alias::X(` for a module alias (`vault_fs::write_atomic(`), `alias::sub::X(` into a submodule of the alias (`db::semantic_repo::insert_chunk(` with `use crate::db;`, which also gives a file edge at that line), or a full `crate::…::X` path, outside `use`, with the F12 enclosing fn. `Type::method(` and `Self::method(` count as calls of that method item when `Type` is imported or defined in the file.
+- Value uses, marked `ref`: every other whole-word occurrence of an imported item's local name (not after `.` or `::`, not a `fn` name), or an alias path naming an item not followed by `(` or `::`: a fn passed as a value (`db::with_vault_db(todoist_repo::read_kv)`), a const or static, a type in a signature or struct literal, a generic argument. An identifier followed by a single `:` (a struct field name or field-init key) and one preceded by `'` (a lifetime) is not a use. A `let` binding that shadows an imported name and a generic parameter named like an imported item count as uses (accepted false positives). `import` is left only for an imported item with no use matched.
 - Method calls, marked `lexical-method`: `.name(` counts as a call of `Type::name` when `name` is a pub impl method defined once among all crate fn names, contains `_`, and is not in the generator's fixed `RUST_STD_METHOD_NAMES` list (Rust std/core methods with an underscore: `is_empty`, `to_string`, `as_str`, `as_ref`, `get_mut`, `to_owned`, `into_iter`, `iter_mut`, `unwrap_or`, `unwrap_or_default`, `unwrap_or_else`, `map_err`, `ok_or`, `and_then`, `starts_with`, `ends_with`, `push_str`, `to_lowercase`, `to_uppercase`, `split_whitespace`, `as_bytes`, `as_path`, `to_path_buf`, `file_name`, `extension`, `with_capacity`, `read_to_string`, `sort_by`, `sort_by_key`, `retain`, `extend_from_slice`, `is_some`, `is_none`, `is_ok`, `is_err`, `as_deref`, `contains_key`, `entry`, `or_insert`, `or_insert_with`, `get_or_insert_with`). Today this reaches e.g. `VaultIndex::update_entry` from `src-tauri/src/commands/vault.rs:343` and `:1340`. Names without `_` (`build`, `store`, `entries`, `start`) collide with `std`/crate APIs (`.store(` on atomics, `.build()` on builders) and are not counted.
 
 ### F17. Component mounts
@@ -481,7 +485,7 @@ Section 6 defines each section; every value comes from F2 to F20. Caps and the c
 | Imports (TS, Svelte, Rust `use`) | tracked | F3, F16 |
 | Calls, same-file and cross-file, TS | tracked | F4 |
 | Calls from Svelte markup | tracked inside `{…}` | F4 |
-| Rust calls | same-file and imported names exact by text; `Type::method` exact; `.method()` for unique names with `_` (`lexical-method`) | F16, F20 |
+| Rust calls | same-file and imported names exact by text (call-shaped `lexical`, value uses `ref`); module-alias paths into submodules; `Type::method` exact; `.method()` for unique names with `_` (`lexical-method`) | F16, F20 |
 | IPC TS → Rust, events Rust → TS | tracked, both ends | F8, F9, F18 |
 | Store reads and writes, getter-to-mutator links | tracked | F5 |
 | Svelte `$effect`/`$derived` store dependencies | direct store reads tracked as reader sites in the scope; indirect reads through called functions not | F4e, F5 |
@@ -510,9 +514,9 @@ ID arguments accept every form in section 4; `in`-short forms with `--file`; `ip
 | `q help` | Commands, one-line grammar each, ID forms. |
 | `q sym <name> [--match]` | Definitions with that exact name (TS export or local, store member, component, Rust item, `Type::method`) as `sym`/`local` lines. `--match <substring\|/regex/>`: case-insensitive name search, ranked (exact, prefix, substring), then production importer count desc, then ID. |
 | `q file <file> [--section <name>]` | The card, computed live; one section with `--section`. |
-| `q importers <file\|symbol> [--tests]` | File: `imp` lines into it. Symbol: `by` lines (all, uncapped up to `--limit`). |
+| `q importers <file\|symbol> [--tests]` | File: `imp` lines into it. Symbol: `by` lines (all, uncapped up to `--limit`). `--tests` (every command that takes it) counts `src-tauri/examples` files as tests, although the card's `t<n>` does not. |
 | `q deps <file\|module>` | Outgoing `imp` lines or `dep` lines. For a test file: the sources it imports or mocks. |
-| `q callers <id> [--tests]` | F4 uses into the ID as `call`-grammar lines: functions, store members (readers, writers, and writers via `w-via`), components (mounts), Rust items (`lexical`, `lexical-method`), `ipc:` (TS call sites), `event:` (listeners and emitters). |
+| `q callers <id> [--tests]` | F4 uses into the ID as `call`-grammar lines: functions, store members (readers, writers, and writers via `w-via`), components (mounts), Rust items (`lexical`, `lexical-method`, `ref`), `ipc:` (TS call sites), `event:` (listeners and emitters). |
 | `q calls <symbol\|file>` | Outgoing `call` lines. |
 | `q impact <file\|symbol> [--depth N] [--tests]` | Reverse closure, default depth 2, max 6. Depth 1 in full (to the limit); depth ≥ 2 summarized: count, module counts, top 10 files by hub rank. Symbol hops follow use edges to the enclosing scope; from `(module)` continue to the file's importers (`via-file`); from `(script)`, `(markup)` or a reactive scope of a component continue to its mounts (`via-mount`); from a Rust `cmd` continue to its TS call sites (`via ipc:<cmd>`). File: reverse import edges. `--tests`: test files that import or use any impacted node. |
 | `q path <A> <B>` | Shortest import path (files or modules), BFS with neighbors in code-unit order; each hop as its `imp`/`dep` line. Falls back to B → A and says so; else `no path`. |
@@ -601,7 +605,7 @@ The CLAUDE.md row (section 3) is not part of the map; there is no other mention 
 **In-place writes only on main.** Without `--out`, or with `--out` resolving to `<repo>/codemap`, the build writes only when `git rev-parse --abbrev-ref HEAD` prints `main` or `CI=true`. Otherwise it exits 2 with `codemap/ is written by CI on main; use q (live) or --out <dir>`. This decides whether it writes, never the bytes.
 
 **Workflow `.github/workflows/codemap.yml`** (replaces `architecture.yml`):
-- `on: push: branches: [main]`, `paths:` `src/lib/**`, `src/routes/**`, `src/tests/**`, `e2e/**`, `src-tauri/src/**`, `src-tauri/tests/**`, `scripts/codemap.mjs`, `scripts/codemap/**`, `scripts/import-graph.mjs`, `package.json`, `pnpm-lock.yaml`, `.github/workflows/codemap.yml`; plus `workflow_dispatch`. Pushes made with `GITHUB_TOKEN` start no workflow (GitHub docs, checked by the impl critique), so the bot commit cannot loop.
+- `on: push: branches: [main]`, `paths:` `src/lib/**`, `src/routes/**`, `src/tests/**`, `e2e/**`, `src-tauri/src/**`, `src-tauri/tests/**`, `src-tauri/examples/**`, `scripts/codemap.mjs`, `scripts/codemap/**`, `scripts/import-graph.mjs`, `package.json`, `pnpm-lock.yaml`, `.github/workflows/codemap.yml`; plus `workflow_dispatch`. Pushes made with `GITHUB_TOKEN` start no workflow (GitHub docs, checked by the impl critique), so the bot commit cannot loop.
 - `if: github.ref == 'refs/heads/main'`; `concurrency: { group: codemap, cancel-in-progress: false }` (a burst of pushes leaves at most one pending run); `permissions: contents: write`; `timeout-minutes: 10`.
 - Steps: `actions/checkout@v7.0.1`; `./.github/actions/setup` with `mods-repo-read-token: ${{ secrets.MODS_REPO_READ_TOKEN }}` (declared `required: true` in `.github/actions/setup/action.yml`) and `rust: "false"`; then up to 3 attempts of:
   1. `git fetch --depth 1 origin main && git reset --hard FETCH_HEAD` (build from the tip, never rebase).
@@ -668,12 +672,12 @@ Extraction:
 18. DTO: `returned-by` from a `CommandMap` result type text; nested generated import → `contains`/`in`; e2e type import → `e2e` location.
 19. Rust lexer: raw and multi-line strings keep depth; `'a` vs `'{'`; nested block comments; multi-line `#[derive(\n…)]` between `///` and item keeps the doc; `#[cfg(test)] mod tests { pub fn t() {} use crate::x::Y; use super::*; }` → no item, no edge; `impl Foo { pub fn bar() }` → `Foo::bar`; `impl Foo<'_> { pub fn baz() }` → `Foo::baz`; `impl T for Foo` → no item, its fns `local`; `pub(crate) fn` → `fn(crate)`; private fn → `local`; `#[tauri::command] pub async fn` → `cmd`; `#[ts(export)]` → dto flag; `super::x` inside inline `mod m {` resolves against `m`'s parent module.
 20. Rust uses: `use crate::a::{b::{C, D as E}, f::*};` gives C, D (alias E), `*`; `super::x` from `a/b.rs` under `a/`; inline `crate::a::b::f()` edge; `mod x;` none; item importers on the defining card.
-21. Rust calls: `vault_fs::write_atomic(` via a module alias → `lexical`; `NoteEntry::from_content_full(` → that method; `.update_entry(` with a unique underscore name → `lexical-method`; `.store(` and `.is_empty(` → none; same-file `helper(` and `self.helper(` → `call`.
-22. Rust tests: `use kokobrain_lib::vault::index::{VaultIndex}` → `vault/index.rs`; `#[cfg(test)]` → `t:inline`.
+21. Rust calls: `vault_fs::write_atomic(` via a module alias → `lexical`; `NoteEntry::from_content_full(` → that method; `.update_entry(` with a unique underscore name → `lexical-method`; `.store(` and `.is_empty(` → none; same-file `helper(` and `self.helper(` → `call`; `use crate::db;` then `db::repo::insert(` → `lexical` to `db/repo.rs:insert` with an edge at the call line; an imported fn passed as a value, a const and a type → `ref` (also through `a::K`), an imported item with no use → `import`, `s.K`, `other::f` and `f_x` → none; a Rust `ref` is on the `calls` section only for a fn.
+22. Rust tests: `use kokobrain_lib::vault::index::{VaultIndex}` → `vault/index.rs`; `#[cfg(test)]` → `t:inline`. `kokobrain_lib::run()` in `main.rs` → edge to `lib.rs` and a `by` line; an example's `use kokobrain_lib::m::f` → edge and `test … example …` row, no `by` line, not counted in `in<n>`, `t<n>` or the hub test count.
 23. Test mapping: multi-line `vi.mock('#lib/x.js', …)` → `mocks`; mock + import → `mocks`; `import type` → no row; package mock → no row; relative `vi.mock('../x')`; e2e non-type import → `e2e`; `mirror` only for the mirrored path.
 24. Registries: positives (push + returned arrow; `list = [...list, x]` + returned arrow); negatives (`.set` cache without returned fn; returns a call result; arrow nested in an inner fn); `read-by` includes `for…of`, excludes `.length = 0`; `fired-by` through a local chain (`notify` local ← `handle` local ← exported `start`); `fired-by` through a getter → the getter's readers; `registered-at` `args=` and `->` callback for an identifier, an object literal of identifiers, and an inline arrow (→ enclosing fn); `invoked-at` one hop.
 25. Facet: `Facet.define` + `f.of(v)` elsewhere → `registered-at` and a `reg` line.
-26. F14: three files imported by 3, 2, 2 production files and 0, 1, 0 tests → hub order; type-only importers count; test imports create no module edge; entry-file order; `in2` excludes direct importers and self; hubs per layer in INDEX, none on cards.
+26. F14: three files imported by 3, 2, 2 production files and 0, 1, 0 tests → hub order; type-only importers count; test imports create no module edge; entry-file order; `in2` excludes direct importers and self; module `in2`/`out2` from file chains (root `lib.rs` → `db`, root `events.rs` ← `qc`: `db` has no `in2` `qc`) with `(<k>)` = distinct (far file, middle file) pairs; hubs per layer in INDEX, none on cards.
 27. F15 Tauri: named, aliased and namespace calls → `tauri-fs.writeTextFile` `disk-write`; `exists` → `disk-read`; dialog `ask` → `host`; a same-named local function is not a sink.
 28. F15 timers: `setTimeout(f, 300)` → `delay=300`; `window.setTimeout`; an imported `setTimeout` binding not; `$effect`/`$effect.pre`; `el.addEventListener('keydown', …)` → `dom.keydown`; `<svelte:window onkeydown={h}>` → `dom.keydown` arg `svelte:window`.
 29. F15 timer wrappers: an exported `debounce(fn, delay)` using `setTimeout(fire, delay)` is a wrapper; one using a module const delay is not; `const t = debounce(() => g(), 300)` → `fx … timer-wrap.debounce args=() => g(), 300 as t in t`.

@@ -1478,14 +1478,14 @@ describe('Rust uses', () => {
 		]);
 	});
 
-	it('lists item importers for the defining card: first call site, or the use line', () => {
+	it('lists item importers for the defining card: first use site, or the use line', () => {
 		const { users } = analyzeRust(rustTree(tree));
 		const by = (id: string) => byLines(id, users.get(id), fixtureModule);
 		expect(by('src-tauri/src/a/b.rs:f')).toEqual([
 			'by src-tauri/src/a/b.rs:f <- src-tauri/src/c.rs:3 in run lexical',
 		]);
 		expect(by('src-tauri/src/a/b.rs:g')).toEqual(['by src-tauri/src/a/b.rs:g <- src-tauri/src/c.rs:5 in (module) import']);
-		expect(by('src-tauri/src/a/x.rs:Y')).toEqual(['by src-tauri/src/a/x.rs:Y <- src-tauri/src/a/b.rs:1 in (module) import']);
+		expect(by('src-tauri/src/a/x.rs:Y')).toEqual(['by src-tauri/src/a/x.rs:Y <- src-tauri/src/a/b.rs:3 in g ref']);
 	});
 });
 
@@ -1586,6 +1586,113 @@ describe('Rust calls', () => {
 			{ file: 'src-tauri/src/lib.rs', line: 4, enclosing: 'run', kind: 'import', more: 0 },
 		]);
 	});
+
+	describe('a module alias path into a submodule', () => {
+		const tree = {
+			'src-tauri/src/lib.rs': 'pub mod commands;\npub mod db;',
+			'src-tauri/src/db/mod.rs': 'pub mod repo;\npub fn with_db() {}',
+			'src-tauri/src/db/repo.rs': ['pub fn insert() {}', 'pub struct Repo;', 'impl Repo {', '\tpub fn open() {}', '}'].join('\n'),
+			'src-tauri/src/commands/x.rs': [
+				'use crate::db;', // 1
+				'pub fn run() { db::repo::insert(); }', // 2
+				'pub fn two() { db::with_db(); db::repo::Repo::open(); }', // 3
+			].join('\n'),
+			'src-tauri/src/commands/y.rs': [
+				'use crate::db as store;', // 1
+				'pub fn pass() { store::with_db(store::repo::insert); }', // 2
+			].join('\n'),
+		};
+
+		it('resolves `alias::sub::item(` to the submodule item, with an edge at the call line', () => {
+			expect(rustEdgeLines(tree)).toEqual([
+				'src-tauri/src/commands/x.rs:1 -> src-tauri/src/db/mod.rs self',
+				'src-tauri/src/commands/x.rs:2 -> src-tauri/src/db/repo.rs insert',
+				'src-tauri/src/commands/x.rs:3 -> src-tauri/src/db/repo.rs Repo',
+				'src-tauri/src/commands/y.rs:1 -> src-tauri/src/db/mod.rs self',
+				'src-tauri/src/commands/y.rs:2 -> src-tauri/src/db/repo.rs insert',
+			]);
+			expect(rustCallLines(tree)).toEqual([
+				'src-tauri/src/commands/x.rs:2 in run -> src-tauri/src/db/repo.rs:insert lexical',
+				'src-tauri/src/commands/x.rs:3 in two -> src-tauri/src/db/mod.rs:with_db lexical',
+				'src-tauri/src/commands/x.rs:3 in two -> src-tauri/src/db/repo.rs:Repo lexical',
+				'src-tauri/src/commands/x.rs:3 in two -> src-tauri/src/db/repo.rs:Repo::open lexical',
+				'src-tauri/src/commands/y.rs:2 in pass -> src-tauri/src/db/mod.rs:with_db lexical',
+				'src-tauri/src/commands/y.rs:2 in pass -> src-tauri/src/db/repo.rs:insert ref',
+			]);
+		});
+
+		it('gives the submodule item a `by` line', () => {
+			const { users } = analyzeRust(rustTree(tree));
+			const id = 'src-tauri/src/db/repo.rs:insert';
+			expect(byLines(id, users.get(id), fixtureModule)).toEqual([
+				'by src-tauri/src/db/repo.rs:insert <- src-tauri/src/commands/x.rs:2 in run lexical',
+				'by src-tauri/src/db/repo.rs:insert <- src-tauri/src/commands/y.rs:2 in pass ref',
+			]);
+		});
+	});
+
+	describe('value uses of imported items', () => {
+		const tree = {
+			'src-tauri/src/lib.rs': 'pub mod a;\npub mod b;\npub mod c;',
+			'src-tauri/src/a.rs': 'pub const K: u8 = 1; pub struct T; pub fn f() {}\npub fn unused() {}',
+			'src-tauri/src/b.rs': [
+				'use crate::a::{f, K, T, unused};', // 1
+				'pub fn g(_x: T) -> u8 { h(f); K }', // 2
+				'fn h(_: fn()) {}', // 3
+				'pub fn n(s: &S) { let _ = s.K; let _ = other::f; let f_x = 1; }', // 4
+			].join('\n'),
+			'src-tauri/src/c.rs': [
+				'use crate::a;', // 1
+				'pub fn v() -> u8 { let _t: a::T = a::T; a::K }', // 2
+				'pub fn w() { a::f(); }', // 3
+			].join('\n'),
+		};
+		const by = (id: string) => byLines(id, analyzeRust(rustTree(tree)).users.get(id), fixtureModule);
+
+		it('marks a fn passed as a value, a const and a type `ref`, by name or through a module alias', () => {
+			expect(by('src-tauri/src/a.rs:f')).toEqual([
+				'by src-tauri/src/a.rs:f <- src-tauri/src/b.rs:2 in g ref',
+				'by src-tauri/src/a.rs:f <- src-tauri/src/c.rs:3 in w lexical',
+			]);
+			expect(by('src-tauri/src/a.rs:K')).toEqual([
+				'by src-tauri/src/a.rs:K <- src-tauri/src/b.rs:2 in g ref',
+				'by src-tauri/src/a.rs:K <- src-tauri/src/c.rs:2 in v ref',
+			]);
+			expect(by('src-tauri/src/a.rs:T')).toEqual([
+				'by src-tauri/src/a.rs:T <- src-tauri/src/b.rs:2 in g ref',
+				'by src-tauri/src/a.rs:T <- src-tauri/src/c.rs:2 in v ref +1',
+			]);
+		});
+
+		it('keeps `import` for an imported item with no matched use, and skips field access, other paths and longer words', () => {
+			expect(by('src-tauri/src/a.rs:unused')).toEqual(['by src-tauri/src/a.rs:unused <- src-tauri/src/b.rs:1 in (module) import']);
+			expect(rustCallLines(tree).filter((l) => l.startsWith('src-tauri/src/b.rs:4'))).toEqual([]);
+		});
+
+		it('skips lifetimes, struct field names and field-init keys that share an imported name', () => {
+			const shapes = {
+				'src-tauri/src/lib.rs': 'pub mod a;\npub mod b;',
+				'src-tauri/src/a.rs': 'pub fn f() {}',
+				'src-tauri/src/b.rs': [
+					'use crate::a::f;', // 1
+					"pub fn s3<'f>(x: &'f str) -> &'f str { x }", // 2
+					'pub struct S { pub f: u8 }', // 3
+					'pub fn s6() -> S { S { f: 1 } }', // 4
+					'pub fn s7() { let _ = std::mem::drop::<fn()>(f); }', // 5
+				].join('\n'),
+			};
+			expect(rustCallLines(shapes)).toEqual(['src-tauri/src/b.rs:5 in s7 -> src-tauri/src/a.rs:f ref']);
+		});
+
+		it('lists a `ref` of a fn in the `calls` section, not a `ref` of a const or a type', () => {
+			const card = renderTree(tree).get('files/src-tauri/src/b.rs.md')!;
+			const calls = card.split('\n').filter((l) => l.startsWith('call '));
+			expect(calls).toEqual([
+				'call src-tauri/src/b.rs:2 in g -> src-tauri/src/a.rs:f ref',
+				'call src-tauri/src/b.rs:2 in g -> src-tauri/src/b.rs:h call',
+			]);
+		});
+	});
 });
 
 describe('Rust integration tests', () => {
@@ -1601,6 +1708,42 @@ describe('Rust integration tests', () => {
 		};
 		expect(rustEdgeLines(tree)).toEqual(['src-tauri/tests/vault_index_test.rs:1 -> src-tauri/src/vault/index.rs VaultIndex']);
 		expect(analyzeRust(rustTree(tree)).users.get('src-tauri/src/vault/index.rs:VaultIndex')).toBeUndefined();
+	});
+});
+
+describe('Rust crate-external consumers', () => {
+	const tree = {
+		'src-tauri/src/main.rs': 'fn main() {\n\tkokobrain_lib::run()\n}',
+		'src-tauri/src/lib.rs': 'pub mod m;\npub fn run() {}',
+		'src-tauri/src/m.rs': 'pub fn f() {}\npub fn g() {}',
+		'src-tauri/examples/e.rs': 'use kokobrain_lib::m::f;\nfn main() { f(); kokobrain_lib::m::g(); }',
+	};
+
+	it('maps `kokobrain_lib::` in main.rs and in examples to the crate, and keeps example users off `by` lines', () => {
+		expect(rustEdgeLines(tree)).toEqual([
+			'src-tauri/examples/e.rs:1 -> src-tauri/src/m.rs f',
+			'src-tauri/examples/e.rs:2 -> src-tauri/src/m.rs g',
+			'src-tauri/src/main.rs:2 -> src-tauri/src/lib.rs run',
+		]);
+		const { users } = analyzeRust(rustTree(tree));
+		expect(byLines('src-tauri/src/lib.rs:run', users.get('src-tauri/src/lib.rs:run'), fixtureModule)).toEqual([
+			'by src-tauri/src/lib.rs:run <- src-tauri/src/main.rs:2 in main lexical',
+		]);
+		expect(users.get('src-tauri/src/m.rs:f')).toBeUndefined();
+		expect(users.get('src-tauri/src/m.rs:g')).toBeUndefined();
+	});
+
+	it('gives an example an `example` test row, counted in neither `in<n>` nor `t<n>` nor the hub test count', () => {
+		const m = modelOf(tree);
+		expect(m.isTest('src-tauri/examples/e.rs')).toBe(true);
+		expect(
+			m.tests.map((r: { test: string; relation: string; target: string }) => `${r.test} ${r.relation} ${r.target}`),
+		).toEqual(['src-tauri/examples/e.rs example src-tauri/src/m.rs']);
+		expect(m.hubs.find((h: { file: string }) => h.file === 'src-tauri/src/m.rs')).toMatchObject({ prod: 0, test: 0 });
+		const card = renderTree(tree).get('files/src-tauri/src/m.rs.md')!.split('\n');
+		expect(card.find((l) => l.startsWith('file '))).toMatch(/ in0 t0$/);
+		expect(card).toContain('test src-tauri/examples/e.rs example src-tauri/src/m.rs');
+		expect(renderTree(tree).get('files/src-tauri/src/main.rs.md')).toContain('imp src-tauri/src/main.rs:2 -> src-tauri/src/lib.rs run');
 	});
 });
 
@@ -2483,6 +2626,37 @@ describe('F14 graphs and ranking', () => {
 		expect(m.in2('src/lib/core/m/r.ts')).toEqual([]);
 	});
 
+	it('derives module two-hop reach from file chains, so a module mixing a hub and a leaf is no shortcut', () => {
+		const m = modelOf({
+			'src-tauri/src/lib.rs': 'pub mod db;\npub mod events;\npub mod qc;\npub fn run() { crate::db::open(); }',
+			'src-tauri/src/events.rs': 'pub const E: &str = "e";',
+			'src-tauri/src/db/mod.rs': 'pub fn open() {}',
+			'src-tauri/src/qc/a.rs': "use crate::events::E;\npub fn go() -> &'static str { E }",
+			'src-tauri/src/vault/v.rs': 'use crate::qc::a::go;\npub fn v() { go(); }',
+		});
+		expect(m.moduleEdges.map((e: { from: string; to: string }) => `${e.from} -> ${e.to}`)).toEqual([
+			'src-tauri/src -> src-tauri/src/db',
+			'src-tauri/src/qc -> src-tauri/src',
+			'src-tauri/src/vault -> src-tauri/src/qc',
+		]);
+		expect([...m.moduleIn2Pairs('src-tauri/src/db').keys()]).toEqual([]);
+		expect([...m.moduleOut2Pairs('src-tauri/src/qc').keys()]).toEqual([]);
+		expect([...m.moduleOut2Pairs('src-tauri/src/vault').keys()]).toEqual(['src-tauri/src']);
+		expect([...m.moduleIn2Pairs('src-tauri/src').keys()]).toEqual(['src-tauri/src/vault']);
+	});
+
+	it('counts the distinct (far file, middle file) pairs behind each module of a module reach line', () => {
+		const files = renderTree({
+			'src/lib/core/m/m.ts': 'export const m = 1;',
+			'src/lib/core/n/n1.ts': "import { m } from '#lib/core/m/m.js';\nexport const n1 = m;",
+			'src/lib/core/n/n2.ts': "import { m } from '#lib/core/m/m.js';\nexport const n2 = m;",
+			'src/lib/app/a1.ts': "import { n1 } from '#lib/core/n/n1.js';\nimport { n2 } from '#lib/core/n/n2.js';",
+			'src/lib/app/a2.ts': "import { n1 } from '#lib/core/n/n1.js';",
+		});
+		const neighbors = section(files.get('modules/src/lib/core/m.md')!, 'neighbors');
+		expect(neighbors).toContain('in2 src/lib/core/m 1 modules: src/lib/app(3)');
+	});
+
 	it('records import edges with their names in source order', () => {
 		const m = modelOf({
 			'src/lib/core/m/p.ts': 'export const p = 1;\nexport type P = 1;\nexport default 1;',
@@ -2667,6 +2841,8 @@ describe('F1 inventory and modules', () => {
 				'src-tauri/src/lib.rs': '',
 				'src-tauri/src/x.txt': '',
 				'src-tauri/tests/t.rs': '',
+				'src-tauri/examples/ex.rs': '',
+				'src-tauri/examples/ex.queries.json': '{}',
 				'src/tests/lib/architecture/layer-baseline.json': '[]',
 				'scripts/s.mjs': '',
 			};
@@ -2677,6 +2853,7 @@ describe('F1 inventory and modules', () => {
 			const inputs = readInputs(root);
 			expect([...inputs.keys()]).toEqual([
 				'e2e/e.ts',
+				'src-tauri/examples/ex.rs',
 				'src-tauri/src/lib.rs',
 				'src-tauri/tests/t.rs',
 				'src/lib/C.svelte',
@@ -3045,6 +3222,10 @@ describe('render: golden fixture', () => {
 		const stores = linesOf(files.get('stores.md')!).filter((l) => l.startsWith('store '));
 		expect(stores.map((l) => l.split(' ')[2])).toEqual(['notesStore']);
 		expect(files.get('INDEX.md')).toContain(' · stores 1 · ');
+	});
+
+	it('names crate examples among the files without a card in the INDEX blind spots', () => {
+		expect(files.get('INDEX.md')).toContain('Test, e2e and crate example (src-tauri/examples) files: graph nodes for test lines and q --tests answers, no cards.');
 	});
 
 	it('gives a mounted component a `mount` by line at its first mount site', () => {

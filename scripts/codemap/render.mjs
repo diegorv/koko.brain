@@ -12,6 +12,7 @@
 import { posix } from 'node:path';
 
 import { locate, PLUGIN_ALLOWLIST, ruleFor } from '../import-graph.mjs';
+import { EXAMPLE_RELATION } from './model.mjs';
 
 /** Code-unit comparison, the only sort order of the code map. */
 const cmp = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
@@ -314,7 +315,7 @@ const BLIND_SPOTS = [
 	'The rust-db.execute receiver and the DOM listener receiver: not resolved.',
 	'Settings key joins (AppSettings, DEFAULT_SETTINGS) beyond settingsStore members: not tracked.',
 	'Imports of unparsed files (.js, .json, scripts): file edges only, no symbols.',
-	'Test and e2e files: graph nodes for test lines and q --tests answers, no cards.',
+	'Test, e2e and crate example (src-tauri/examples) files: graph nodes for test lines and q --tests answers, no cards.',
 ];
 
 /** A copied excerpt on one line: tabs and newlines as spaces, ` | ` as ` / `. */
@@ -457,7 +458,7 @@ export function context(model) {
 /** An `imp` line: `imp <importer>:<line> -> <target> <names>`. */
 export const impLine = (e) => `imp ${e.from}:${e.line} -> ${e.target} ${e.names.join(',')}`;
 
-/** A `test` line: `test <test file> imports|mocks|e2e <file> [mirror]`. */
+/** A `test` line: `test <test file> imports|mocks|e2e|example <file> [mirror]`. */
 export const testLine = (t) => `test ${t.test} ${t.relation} ${t.target}${t.mirror ? ' mirror' : ''}`;
 
 /** A `mount` line: `mount <loc> <Name> -> <component file>`. */
@@ -484,7 +485,8 @@ export const storeLine = (st) => `store ${st.file}:${st.line} ${st.name} esc:${s
 
 /**
  * The `file` line: `file <path> <role> L<lines> module <m> in<n> t<n> [t:inline] [| header doc]`,
- * `in` counting distinct production importer files and `t` distinct test files.
+ * `in` counting distinct production importer files and `t` distinct test
+ * files, crate examples left out of both.
  */
 function fileLine(model, ctx, file) {
 	if (ctx.fileLines.has(file)) return ctx.fileLines.get(file);
@@ -492,7 +494,7 @@ function fileLine(model, ctx, file) {
 	const rust = model.rust.get(file);
 	const header = facts?.header || rust?.fileDoc || '';
 	const inN = new Set((ctx.importers.get(file) ?? []).map((e) => e.from)).size;
-	const tN = new Set((ctx.tests.get(file) ?? []).map((t) => t.test)).size;
+	const tN = new Set((ctx.tests.get(file) ?? []).filter((t) => t.relation !== EXAMPLE_RELATION).map((t) => t.test)).size;
 	const line = `file ${file} ${model.fileRole(file)} L${lineCountOf(model.inputs.get(file))} module ${model.moduleOf(file) ?? '-'} in${inN} t${tN}${rust?.inlineTests ? ' t:inline' : ''}${header ? ` | ${excerpt(header)}` : ''}`;
 	ctx.fileLines.set(file, line);
 	return line;
@@ -611,9 +613,20 @@ function cappedXlang(entries, keyRe, what, query, group) {
 	return out;
 }
 
+/** Whether a Rust ID names a fn, command or method item, or a local fn. */
+function isRustFn(model, id) {
+	const file = id.slice(0, id.indexOf(':'));
+	const name = id.slice(file.length + 1);
+	const facts = model.rust.get(file);
+	if (!facts) return false;
+	if (facts.locals.some((l) => l.name === name)) return true;
+	return facts.items.some((i) => i.name === name && /^(?:fn|cmd|method)\b/.test(i.kind));
+}
+
 /**
  * The `call` lines of one file's `calls` section: its F4 call rows (TS) or
- * Rust call rows, ordered by the line each enclosing name is defined at.
+ * Rust call rows (a `ref` only when it names a fn), ordered by the line each
+ * enclosing name is defined at.
  *
  * @param {ReturnType<typeof import('./model.mjs').buildModel>} model
  * @param {ReturnType<typeof context>} ctx
@@ -632,7 +645,7 @@ export function fileCalls(model, ctx, file) {
 		for (const x of [...rust.items, ...rust.locals]) defLine.set(x.name, x.line);
 		return callLines(
 			file,
-			(ctx.rustCalls.get(file) ?? []).map((c, i) => ({ ...c, site: String(i) })),
+			(ctx.rustCalls.get(file) ?? []).map((c, i) => ({ ...c, site: String(i) })).filter((c) => c.kind !== 'ref' || isRustFn(model, c.target)),
 			defLine,
 		);
 	}
@@ -751,11 +764,11 @@ const moduleLayer = (model, ctx, m) => model.layerOf(ctx.moduleFiles.get(m)[0] ?
 
 /**
  * Two-hop module reach: `<tag> <module> <n> modules: <module>(<k>) … [+<r> modules]`,
- * each count the number of direct neighbors it reaches the module through. No
- * `q` command takes a module for two hops, so the overflow names none.
+ * each count the distinct (far file, middle file) pairs of its file chains
+ * (`moduleIn2Pairs` / `moduleOut2Pairs`). No `q` command takes a module for
+ * two hops, so the overflow names none.
  */
-function moduleReachLine(tag, m, second, near, linked) {
-	const counts = new Map(second.map((x) => [x, near.filter((y) => linked(x, y)).length]));
+function moduleReachLine(tag, m, counts) {
 	const mods = [...counts.keys()].sort(cmp).sort((a, b) => counts.get(b) - counts.get(a));
 	const shown = mods.slice(0, REACH_CAP).map((x) => `${x}(${counts.get(x)})`);
 	const rest = mods.length - REACH_CAP;
@@ -776,7 +789,6 @@ function renderModuleCard(model, ctx, m) {
 	const inSet = new Set(files);
 	const incoming = model.moduleEdges.filter((e) => e.to === m).sort((a, b) => cmp(a.from, b.from));
 	const outgoing = model.moduleEdges.filter((e) => e.from === m).sort((a, b) => cmp(a.to, b.to));
-	const edgeKeys = new Set(model.moduleEdges.map((e) => `${e.from}\0${e.to}`));
 	const pub = [];
 	let exports = 0;
 	for (const f of files.filter((x) => isCarded(model, x))) {
@@ -800,8 +812,6 @@ function renderModuleCard(model, ctx, m) {
 	const fxCounts = new Map();
 	for (const f of files) for (const e of ctx.effects.get(f) ?? []) fxCounts.set(e.sink, (fxCounts.get(e.sink) ?? 0) + 1);
 	const debt = model.baseline.filter((entry) => entry.split(' -> ').some((side) => model.moduleOf(side) === m));
-	const ins = incoming.map((e) => e.from);
-	const outs = outgoing.map((e) => e.to);
 	const moduleLine = (k) =>
 		`module ${m} ${moduleLayer(model, ctx, m)} files ${files.length} in-modules ${incoming.length} out-modules ${outgoing.length} pub ${pub.length}/${exports} ipc ${called.size}/${served} card ~${k}k`;
 	const body = (k) => [
@@ -812,8 +822,8 @@ function renderModuleCard(model, ctx, m) {
 				[
 					...incoming.map(depLine),
 					...outgoing.map(depLine),
-					moduleReachLine('in2', m, model.moduleIn2(m), ins, (x, y) => edgeKeys.has(`${x}\0${y}`)),
-					moduleReachLine('out2', m, model.moduleOut2(m), outs, (x, y) => edgeKeys.has(`${y}\0${x}`)),
+					moduleReachLine('in2', m, model.moduleIn2Pairs(m)),
+					moduleReachLine('out2', m, model.moduleOut2Pairs(m)),
 				],
 			],
 			[

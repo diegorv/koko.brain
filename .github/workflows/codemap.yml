@@ -15,6 +15,7 @@ on:
       - "e2e/**"
       - "src-tauri/src/**"
       - "src-tauri/tests/**"
+      - "src-tauri/examples/**"
       - "scripts/codemap.mjs"
       - "scripts/codemap/**"
       - "scripts/import-graph.mjs"
