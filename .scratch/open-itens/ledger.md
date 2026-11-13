@@ -299,3 +299,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 19:36 — 042 — deliver — round 1 APPROVED by claude with a fix round (two tests for a query that changes match state), deliver re-review APPROVED by claude; full suite 633 files / 16517 tests passed; create item look left for the owner's check; squash merged and pushed — 2009ad219
 - 2026-11-12 20:54 — 043 — start — launched by /relay-lite:run (owner approved, e2e allowed) — 1a0c63774
 - 2026-11-12 21:06 — 043 — deliver — round 1 APPROVED by claude with a fix round (JSDoc on refresh order, illegal-name rename row), deliver re-review APPROVED by claude; full suite 633 files / 16592 tests passed; squash merged and pushed — 130b2a890
+- 2026-11-12 22:20 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006)
