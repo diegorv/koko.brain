@@ -1,6 +1,6 @@
 import { autocompletion, closeCompletion } from '@codemirror/autocomplete';
 import { history, historyKeymap, insertNewline, redo, standardKeymap, undo } from '@codemirror/commands';
-import { Compartment, EditorState, Prec, Transaction } from '@codemirror/state';
+import { Compartment, EditorState, Prec } from '@codemirror/state';
 import { EditorView, keymap, type KeyBinding } from '@codemirror/view';
 import { editorHost, type EditorHost } from '#lib/core/markdown-editor/editor-host.js';
 import { tagCompletionSource } from '#lib/core/markdown-editor/extensions/tag/completion.js';
@@ -24,6 +24,8 @@ export interface ComposerEditorOptions {
 }
 
 const themeCompartment = new Compartment();
+/** Holds `history()`, so a replace from outside can drop the undo stack. */
+const historyCompartment = new Compartment();
 
 /** The composer surface: transparent over the popover, system font, no padding. */
 const composerSurfaceTheme = EditorView.theme({
@@ -104,7 +106,7 @@ export function createComposerEditor(opts: ComposerEditorOptions): EditorView {
 					override: [wikilinkCompletionSource, tagCompletionSource],
 					activateOnTyping: true,
 				}),
-				history(),
+				historyCompartment.of(history()),
 				keymap.of([
 					// standardKeymap's Enter copies the line indent, which plain text should not.
 					{ key: 'Enter', run: insertNewline, shift: insertNewline },
@@ -126,16 +128,21 @@ export function createComposerEditor(opts: ComposerEditorOptions): EditorView {
 }
 
 /**
- * Replaces the whole text, with the cursor at the end, when it differs. Not
- * an undo step: it restores a draft or drops a saved capture.
+ * Replaces the whole text, with the cursor at the end, when it differs. It
+ * restores a draft or drops a saved capture, so it also clears the undo
+ * history, as setting a textarea's value does: undo events kept across the
+ * replace would map onto the new text, and undo could bring back text deleted
+ * while writing an earlier capture.
  */
 export function setComposerText(view: EditorView, text: string): void {
 	if (view.state.doc.toString() === text) return;
+	// Removing the history field and adding it back starts it empty.
 	view.dispatch({
 		changes: { from: 0, to: view.state.doc.length, insert: text },
 		selection: { anchor: text.length },
-		annotations: Transaction.addToHistory.of(false),
+		effects: historyCompartment.reconfigure([]),
 	});
+	view.dispatch({ effects: historyCompartment.reconfigure(history()) });
 }
 
 /** Switches the editor theme between its light and dark base. */

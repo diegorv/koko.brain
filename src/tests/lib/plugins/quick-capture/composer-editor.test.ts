@@ -296,6 +296,31 @@ describe('createComposerEditor', () => {
 			expect(onDocChange).toHaveBeenCalledWith('new text');
 		});
 
+		it('drops the undo history of the text it replaces', () => {
+			const { view } = mount();
+			typeText(view, 'buy milk');
+			// Select all, then delete: the selection starts a new undo event.
+			view.dispatch({ selection: { anchor: 0, head: view.state.doc.length }, userEvent: 'select' });
+			view.dispatch({ changes: { from: 0, to: view.state.doc.length }, userEvent: 'delete' });
+			typeText(view, 'call mom');
+
+			setComposerText(view, '');
+
+			expect(undoDepth(view.state)).toBe(0);
+			press(view, 'z', { ctrlKey: true });
+			expect(view.state.doc.toString()).toBe('');
+		});
+
+		it('still records typing after a replace', () => {
+			const { view } = mount('old');
+			setComposerText(view, '');
+
+			typeText(view, 'idea');
+			press(view, 'z', { ctrlKey: true });
+
+			expect(view.state.doc.toString()).toBe('');
+		});
+
 		it('leaves the view alone when the text is already there', () => {
 			const { view, onDocChange } = mount('same');
 			view.dispatch({ selection: { anchor: 1 } });
