@@ -53,10 +53,16 @@ const composerSurfaceTheme = EditorView.theme({
 /**
  * The editor theme, for the suggestion list's look, under the composer
  * surface. A theme listed earlier at the same precedence wins, so the
- * surface goes first at a higher one.
+ * surface goes first at a higher one. Built once per mode: every
+ * `EditorView.theme()` call mounts new style rules, which are never removed.
  */
+const composerThemes = {
+	light: [Prec.high(composerSurfaceTheme), buildEditorTheme('', 14, 1.5, 0, 0, false)],
+	dark: [Prec.high(composerSurfaceTheme), buildEditorTheme('', 14, 1.5, 0, 0, true)],
+};
+
 function composerTheme(dark: boolean) {
-	return [Prec.high(composerSurfaceTheme), buildEditorTheme('', 14, 1.5, 0, 0, dark)];
+	return dark ? composerThemes.dark : composerThemes.light;
 }
 
 /**
@@ -147,5 +153,6 @@ export function setComposerText(view: EditorView, text: string): void {
 
 /** Switches the editor theme between its light and dark base. */
 export function setComposerDark(view: EditorView, dark: boolean): void {
+	if (view.state.facet(EditorView.darkTheme) === dark) return;
 	view.dispatch({ effects: themeCompartment.reconfigure(composerTheme(dark)) });
 }

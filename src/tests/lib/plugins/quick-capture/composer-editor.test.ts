@@ -81,6 +81,12 @@ async function waitForList(view: EditorView) {
 	await new Promise((resolve) => setTimeout(resolve, 100));
 }
 
+/** CSS rules CodeMirror mounted in the document; style-mod only ever adds them. */
+function mountedRuleCount(): number {
+	const sheets = [...document.styleSheets, ...(document.adoptedStyleSheets ?? [])];
+	return sheets.reduce((n, sheet) => n + sheet.cssRules.length, 0);
+}
+
 function spyWindowKeydown() {
 	const spy = vi.fn();
 	windowListeners.push(spy);
@@ -281,6 +287,21 @@ describe('createComposerEditor', () => {
 			setComposerDark(view, true);
 
 			expect(view.state.facet(EditorView.darkTheme)).toBe(true);
+		});
+
+		it('adds no style rules when the theme is set again', () => {
+			const { view } = mount();
+			setComposerDark(view, true);
+			setComposerDark(view, false);
+			const rules = mountedRuleCount();
+
+			// A summon sets the theme even when it did not change.
+			setComposerDark(view, false);
+			setComposerDark(view, true);
+			setComposerDark(view, false);
+
+			expect(mountedRuleCount()).toBe(rules);
+			expect(view.state.facet(EditorView.darkTheme)).toBe(false);
 		});
 	});
 
