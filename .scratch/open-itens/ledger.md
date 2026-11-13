@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 001 | [The caret and selection follow their text when a frontmatter toggle, property edit, link rewrite or external reload rewrites the open note](issues/001-caret-selection-follow-their-text-when-frontmatter.md) | none | done | issue/001-caret-selection-follow-their-text-when-frontmatter (13291dfa0) | 2026-11-10 |
-| 002 | [Keyboard edits next to the hidden frontmatter never change its fences](issues/002-keyboard-edits-next-hidden-frontmatter-never-change.md) | none | in-progress | | |
+| 002 | [Keyboard edits next to the hidden frontmatter never change its fences](issues/002-keyboard-edits-next-hidden-frontmatter-never-change.md) | none | done | issue/002-keyboard-edits-next-hidden-frontmatter-never-change (86563a880) | 2026-11-12 |
 | 003 | [Closing the main window never leaves a windowless app: Quick Capture, deep links and a Dock click keep working](issues/003-closing-main-window-never-leaves-windowless-app.md) | none | todo | | |
 | 004 | [A canvas edit closed inside the debounce window reaches its .canvas file](issues/004-canvas-edit-closed-renamed-inside-debounce-window.md) | 015 | done | issue/004-canvas-edit-closed-renamed-inside-debounce-window (5cb784f0f) | 2026-11-12 |
 | 005 | [Setting a folder icon never stacks a second frontmatter block](issues/005-empty-frontmatter-block-matched-writers-never-stack.md) | none | todo | | |
@@ -301,3 +301,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-12 21:06 — 043 — deliver — round 1 APPROVED by claude with a fix round (JSDoc on refresh order, illegal-name rename row), deliver re-review APPROVED by claude; full suite 633 files / 16592 tests passed; squash merged and pushed — 130b2a890
 - 2026-11-12 22:20 — ledger updated (title of 006, 006; link of 006, 006; blocked by of 006, 006)
 - 2026-11-12 22:23 — 002 — start — launched by /relay-lite:run (variant B, owner approved) — 932e497ba
+- 2026-11-12 22:45 — 002 — deliver — variant B; round 1 APPROVED by claude with a fix round (shared e2e fixture), deliver re-review APPROVED by claude; full suite 634 files / 16631 tests passed; e2e frontmatter.spec.ts 7 passed; squash merged and pushed — 86563a880
