@@ -19,6 +19,8 @@ import {
 	flowToCanvas,
 	isNodeInsideGroup,
 	computeGroupContainment,
+	resolveCanvasFilePath,
+	toVaultRelativePath,
 } from '#lib/features/canvas/canvas.logic.js';
 import type { CanvasData, CanvasTextNode, CanvasGroupNode, CanvasImageNode } from '#lib/features/canvas/canvas.types.js';
 
@@ -696,5 +698,45 @@ describe('image node round-trip', () => {
 		expect(img.file).toBe('photo.png');
 		expect(img.x).toBe(100);
 		expect(img.y).toBe(200);
+	});
+});
+
+describe('resolveCanvasFilePath', () => {
+	it('returns an absolute path inside the vault unchanged', () => {
+		expect(resolveCanvasFilePath('/vault/assets/pic.png', '/vault')).toBe('/vault/assets/pic.png');
+	});
+
+	it('returns an absolute path outside the vault unchanged', () => {
+		expect(resolveCanvasFilePath('/elsewhere/pic.png', '/vault')).toBe('/elsewhere/pic.png');
+	});
+
+	it('joins a vault-relative path to the vault', () => {
+		expect(resolveCanvasFilePath('assets/pic.png', '/vault')).toBe('/vault/assets/pic.png');
+	});
+
+	it('returns the path unchanged when no vault is open', () => {
+		expect(resolveCanvasFilePath('assets/pic.png', null)).toBe('assets/pic.png');
+	});
+});
+
+describe('toVaultRelativePath', () => {
+	it('strips the vault prefix from an absolute path inside the vault', () => {
+		expect(toVaultRelativePath('/vault/assets/pic.png', '/vault')).toBe('assets/pic.png');
+	});
+
+	it('leaves a sibling path that only shares the prefix unchanged', () => {
+		expect(toVaultRelativePath('/vault2/a.png', '/vault')).toBe('/vault2/a.png');
+	});
+
+	it('leaves an already relative path unchanged', () => {
+		expect(toVaultRelativePath('assets/pic.png', '/vault')).toBe('assets/pic.png');
+	});
+
+	it('leaves a path outside the vault unchanged', () => {
+		expect(toVaultRelativePath('/elsewhere/pic.png', '/vault')).toBe('/elsewhere/pic.png');
+	});
+
+	it('returns the path unchanged when no vault is open', () => {
+		expect(toVaultRelativePath('/vault/assets/pic.png', null)).toBe('/vault/assets/pic.png');
 	});
 });

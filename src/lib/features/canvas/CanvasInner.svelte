@@ -38,10 +38,12 @@
 		duplicateNode,
 		resolveColor,
 		generateId,
+		toVaultRelativePath,
 	} from './canvas.logic';
 	import { isImageFile } from './canvas-image.service';
 	import { createHistory, pushSnapshot, undo, redo, type CanvasHistory } from './canvas-history.logic';
 	import { openFileInEditor, registerPendingEditFlusher } from '#lib/core/editor/editor.service.js';
+	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import type { CanvasData, CanvasNode, CanvasColor } from './canvas.types';
 
 	interface Props {
@@ -502,7 +504,7 @@
 	/** Create an image node for the selected image file */
 	function handleImageSelected(filePath: string) {
 		const center = getViewportCenter();
-		const newNode = createImageNode(center.x - 150, center.y - 100, filePath);
+		const newNode = createImageNode(center.x - 150, center.y - 100, toVaultRelativePath(filePath, vaultStore.path));
 		const flowNode = canvasNodeToFlowNode(newNode);
 		nodes = [...nodes, flowNode];
 		persistChanges(nodes, edges);
@@ -583,7 +585,7 @@
 		let newNode: CanvasNode;
 
 		if (isImageFile(filePath)) {
-			newNode = createImageNode(flowPos.x - 150, flowPos.y - 100, filePath);
+			newNode = createImageNode(flowPos.x - 150, flowPos.y - 100, toVaultRelativePath(filePath, vaultStore.path));
 		} else if (filePath.endsWith('.md')) {
 			newNode = createFileNode(flowPos.x - 125, flowPos.y - 30, filePath);
 		} else {

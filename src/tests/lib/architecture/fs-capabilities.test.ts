@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readdirSync, readFileSync } from 'node:fs';
+import { join, relative } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -27,14 +27,19 @@ function readJson(path: string): unknown {
 	return JSON.parse(readFileSync(join(ROOT, path), 'utf8'));
 }
 
-/** The path globs of the `fs:allow-read-text-file` permission. */
-function fsReadScope(): string[] {
+/** The path globs of a scoped permission in `capabilities/default.json`, empty when absent. */
+function permissionScope(identifier: string): string[] {
 	const capability = readJson('src-tauri/capabilities/default.json') as { permissions: unknown[] };
 	const permission = capability.permissions.find(
 		(p): p is ScopedPermission =>
-			typeof p === 'object' && p !== null && (p as ScopedPermission).identifier === 'fs:allow-read-text-file',
+			typeof p === 'object' && p !== null && (p as ScopedPermission).identifier === identifier,
 	);
 	return permission?.allow.map((a) => a.path) ?? [];
+}
+
+/** The path globs of the `fs:allow-read-text-file` permission. */
+function fsReadScope(): string[] {
+	return permissionScope('fs:allow-read-text-file');
 }
 
 /** The globs of `app.security.assetProtocol.scope`. */
@@ -105,5 +110,119 @@ describe('asset protocol scope', () => {
 		expect(isCovered('$DOCUMENT/kokobrain-vaults/**/.kokobrain/**', ['$DOCUMENT/**/.kokobrain/**'])).toBe(true);
 		expect(isCovered('$HOME/kokobrain-vaults/**', ['$HOME/kokobrain-vault/**'])).toBe(false);
 		expect(isCovered('$HOME/kokobrain-vaults/**', [])).toBe(false);
+	});
+});
+
+/**
+ * Every vitest file mocks `@tauri-apps/plugin-fs`, so a call the capability does not grant
+ * passes every test and is rejected only in the app. Each plugin-fs function imported under
+ * `src/lib` or `src/routes` must map to a permission granted in `capabilities/default.json`.
+ */
+describe('plugin-fs imports are granted', () => {
+	/** plugin-fs function name to the permission that grants its command. */
+	const FS_PERMISSIONS: Record<string, string> = {
+		copyFile: 'fs:allow-copy-file',
+		exists: 'fs:allow-exists',
+		mkdir: 'fs:allow-mkdir',
+		readDir: 'fs:allow-read-dir',
+		readFile: 'fs:allow-read-file',
+		readTextFile: 'fs:allow-read-text-file',
+		remove: 'fs:allow-remove',
+		rename: 'fs:allow-rename',
+		stat: 'fs:allow-stat',
+		writeTextFile: 'fs:allow-write-text-file',
+	};
+
+	/** A static named import from `@tauri-apps/plugin-fs`, capturing the braces' contents. */
+	const PLUGIN_FS_IMPORT = /import\s*\{([^}]*)\}\s*from\s*'@tauri-apps\/plugin-fs'/g;
+
+	/** The plugin-fs value names imported by a source file (`type` imports and aliases resolved). */
+	function importedNames(src: string): string[] {
+		return [...src.matchAll(PLUGIN_FS_IMPORT)].flatMap((m) =>
+			m[1]
+				.split(',')
+				.map((part) => part.trim())
+				.filter((part) => part !== '' && !part.startsWith('type '))
+				.map((part) => part.split(/\s+as\s+/)[0]),
+		);
+	}
+
+	/** Every `.ts`, `.js` and `.svelte` file under `src/lib` and `src/routes`, as [path, source]. */
+	function sourceFiles(): [string, string][] {
+		return ['src/lib', 'src/routes'].flatMap((dir) =>
+			readdirSync(join(ROOT, dir), { recursive: true, encoding: 'utf8' })
+				.filter((f) => /\.(ts|js|svelte)$/.test(f))
+				.map((f): [string, string] => {
+					const path = relative(ROOT, join(ROOT, dir, f));
+					return [path, readFileSync(join(ROOT, path), 'utf8')];
+				}),
+		);
+	}
+
+	/** Every plugin-fs name imported under `src/lib` and `src/routes`, with the files importing it. */
+	function importsByName(): Map<string, string[]> {
+		const byName = new Map<string, string[]>();
+		for (const [path, src] of sourceFiles()) {
+			for (const name of importedNames(src)) {
+				byName.set(name, [...(byName.get(name) ?? []), path]);
+			}
+		}
+		return byName;
+	}
+
+	/** The identifiers of every permission in `capabilities/default.json`, string or scoped. */
+	function grantedIdentifiers(): string[] {
+		const capability = readJson('src-tauri/capabilities/default.json') as {
+			permissions: (string | ScopedPermission)[];
+		};
+		return capability.permissions.map((p) => (typeof p === 'string' ? p : p.identifier));
+	}
+
+	it('finds the plugin-fs imports it checks', () => {
+		const names = [...importsByName().keys()];
+		expect(names).toContain('readTextFile');
+		expect(names).toContain('readFile');
+	});
+
+	it('parses every @tauri-apps/plugin-fs mention as a static named import', () => {
+		// A namespace import, a dynamic import() or a double-quoted specifier would skip the
+		// grant check above, so any mention the import regex does not parse fails here.
+		const unparsed = sourceFiles()
+			.filter(
+				([, src]) =>
+					src.split('@tauri-apps/plugin-fs').length - 1 !== [...src.matchAll(PLUGIN_FS_IMPORT)].length,
+			)
+			.map(([path]) => path);
+		expect(unparsed).toEqual([]);
+	});
+
+	it('maps every imported plugin-fs function to a permission', () => {
+		const unmapped = [...importsByName()].filter(([name]) => !(name in FS_PERMISSIONS));
+		expect(unmapped).toEqual([]);
+	});
+
+	it('grants the permission of every imported plugin-fs function', () => {
+		const granted = new Set(grantedIdentifiers());
+		const missing = [...importsByName().keys()]
+			.filter((name) => name in FS_PERMISSIONS && !granted.has(FS_PERMISSIONS[name]))
+			.map((name) => `${name} -> ${FS_PERMISSIONS[name]}`);
+		expect(missing).toEqual([]);
+	});
+
+	it('scopes fs:allow-read-file exactly like fs:allow-read-text-file', () => {
+		expect(permissionScope('fs:allow-read-file')).toEqual(permissionScope('fs:allow-read-text-file'));
+		expect(permissionScope('fs:allow-read-file')).toEqual([
+			'$DOCUMENT/kokobrain-vaults/**',
+			'$DOCUMENT/kokobrain-vaults/**/.kokobrain/**',
+			'$HOME/kokobrain-vaults/**',
+			'$HOME/kokobrain-vaults/**/.kokobrain/**',
+		]);
+	});
+
+	it('reads value names and skips type-only parts of an import', () => {
+		expect(
+			importedNames("import { readFile as rf, type DirEntry, exists } from '@tauri-apps/plugin-fs';"),
+		).toEqual(['readFile', 'exists']);
+		expect(importedNames("import { readFile } from '@tauri-apps/plugin-dialog';")).toEqual([]);
 	});
 });

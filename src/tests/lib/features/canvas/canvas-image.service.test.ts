@@ -142,6 +142,15 @@ describe('resolveImageSrc', () => {
 		expect(blob.size).toBe(3);
 	});
 
+	it('reads an absolute in-vault path as is, without prefixing the vault again', async () => {
+		vaultStore.open('/vault');
+		vi.mocked(readFile).mockResolvedValue(new Uint8Array([1]));
+
+		await resolveImageSrc('/vault/assets/pic.png');
+
+		expect(readFile).toHaveBeenCalledWith('/vault/assets/pic.png');
+	});
+
 	it('uses the raw path when no vault is open', async () => {
 		vi.mocked(readFile).mockResolvedValue(new Uint8Array([9]));
 

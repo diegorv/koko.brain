@@ -371,6 +371,26 @@ export function createImageNode(x: number, y: number, file: string): CanvasNode 
 	return { id: generateId(), type: 'image', x, y, width: 300, height: 200, file };
 }
 
+/**
+ * Resolves a node's `file` to a path the filesystem can read. A .canvas may store an
+ * absolute path (older nodes) or a vault-relative one: an absolute path is returned
+ * unchanged, a relative one is joined to the vault, and with no vault open it stays as is.
+ */
+export function resolveCanvasFilePath(file: string, vaultPath: string | null): string {
+	if (file.startsWith('/') || !vaultPath) return file;
+	return `${vaultPath}/${file}`;
+}
+
+/**
+ * Strips the vault prefix from a path inside the vault, so new nodes store
+ * vault-relative paths. A path outside the vault, an already relative one, or any
+ * path when no vault is open is returned unchanged.
+ */
+export function toVaultRelativePath(path: string, vaultPath: string | null): string {
+	if (!vaultPath || !path.startsWith(`${vaultPath}/`)) return path;
+	return path.slice(vaultPath.length + 1);
+}
+
 /** Duplicates a node with a new ID and offset position */
 export function duplicateNode(node: CanvasNode, offsetX = 20, offsetY = 20): CanvasNode {
 	return { ...node, id: generateId(), x: node.x + offsetX, y: node.y + offsetY };

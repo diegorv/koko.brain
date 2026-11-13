@@ -22,7 +22,7 @@ Canvases already saved with absolute paths keep loading through the resolver; th
 
 **Blocked by (origin):** closed blockers dropped: audit-2026-11-05 10.
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Answered:** owner, 2026-11-13: merge 253 into 038 and run them together. D7 (b) of 2026-11-04 stands. Nothing open.
 
@@ -30,13 +30,13 @@ Canvases already saved with absolute paths keep loading through the resolver; th
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` + `pnpm check` + `pnpm vitest run`. No e2e: every e2e and vitest run mocks plugin-fs, so none of them sees the permission.
 
-- [ ] Failing test first, in src/tests/lib/architecture/fs-capabilities.test.ts (new file next to layer-rules.test.ts): collect the names imported from '@tauri-apps/plugin-fs' under src/lib and src/routes, map each to its permission (readFile -> fs:allow-read-file, readTextFile -> fs:allow-read-text-file, and so on), and assert each is present in src-tauri/capabilities/default.json. It fails today on readFile. An imported name with no known mapping fails the test too.
-- [ ] The test also asserts that the fs:allow-read-file scope equals the fs:allow-read-text-file scope.
-- [ ] Failing test first: in src/tests/lib/features/canvas/canvas-image.service.test.ts, with vaultStore opened at '/vault' and readFile mocked (Tauri boundary), resolveImageSrc('/vault/assets/pic.png') calls readFile with '/vault/assets/pic.png'. It fails today ('/vault//vault/assets/pic.png').
-- [ ] The existing cases in canvas-image.service.test.ts stay green: vault-relative 'assets/pic.png' reads '/vault/assets/pic.png', a raw path with no vault open, the http URL case with no readFile call, and the MIME cases.
-- [ ] canvas.logic.test.ts covers both helpers: `resolveCanvasFilePath` with an absolute in-vault path, an absolute path outside the vault, a vault-relative path and a null vault path; `toVaultRelativePath` with an in-vault absolute path, a sibling path that only shares the prefix ('/vault2/a.png' stays unchanged), an already relative path and a path outside the vault.
-- [ ] A test that dropping an absolute image path (text/plain) and picking one in the image picker store a vault-relative `file` in the canvas JSON passed to writeTextFile (harness in src/tests/lib/features/canvas/canvas-tab-switch.test.ts).
-- [ ] Both gates green.
+- [x] Failing test first, in src/tests/lib/architecture/fs-capabilities.test.ts (new file next to layer-rules.test.ts): collect the names imported from '@tauri-apps/plugin-fs' under src/lib and src/routes, map each to its permission (readFile -> fs:allow-read-file, readTextFile -> fs:allow-read-text-file, and so on), and assert each is present in src-tauri/capabilities/default.json. It fails today on readFile. An imported name with no known mapping fails the test too.
+- [x] The test also asserts that the fs:allow-read-file scope equals the fs:allow-read-text-file scope.
+- [x] Failing test first: in src/tests/lib/features/canvas/canvas-image.service.test.ts, with vaultStore opened at '/vault' and readFile mocked (Tauri boundary), resolveImageSrc('/vault/assets/pic.png') calls readFile with '/vault/assets/pic.png'. It fails today ('/vault//vault/assets/pic.png').
+- [x] The existing cases in canvas-image.service.test.ts stay green: vault-relative 'assets/pic.png' reads '/vault/assets/pic.png', a raw path with no vault open, the http URL case with no readFile call, and the MIME cases.
+- [x] canvas.logic.test.ts covers both helpers: `resolveCanvasFilePath` with an absolute in-vault path, an absolute path outside the vault, a vault-relative path and a null vault path; `toVaultRelativePath` with an in-vault absolute path, a sibling path that only shares the prefix ('/vault2/a.png' stays unchanged), an already relative path and a path outside the vault.
+- [x] A test that dropping an absolute image path (text/plain) and picking one in the image picker store a vault-relative `file` in the canvas JSON passed to writeTextFile (harness in src/tests/lib/features/canvas/canvas-tab-switch.test.ts).
+- [x] Both gates green.
 
 ## Notes
 
@@ -53,3 +53,4 @@ Canvases already saved with absolute paths keep loading through the resolver; th
 - 2026-11-06: Blocked by 10 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.
 - 2026-11-12: the image half of 039 became Issue 253, blocked by this Issue.
 - 2026-11-13: Issue 253 merged in on the owner's approval (the permission and the path are both needed before an image shows). Gate stays Both, without `pnpm build` (no dependency change).
+- 2026-11-13: delivered from branch issue/038-canvas-image-nodes-load-their-image-main. The main capability grants fs:allow-read-file with the read-text-file scope; new `resolveCanvasFilePath`/`toVaultRelativePath` helpers in canvas.logic.ts; resolveImageSrc reads absolute in-vault paths as is; dropped and picked images store vault-relative paths; fs-capabilities.test.ts checks every plugin-fs import against the grant and fails on imports it cannot parse. Tests: full suite at 2f9d6cda2, 637 files / 16910 tests passed, 54 skipped, 1 todo, exit 0; `pnpm check` 0 errors. Reviews: round 1 APPROVED (review.md), fix round, round 2 APPROVED (review-2.md, no findings).

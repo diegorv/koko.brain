@@ -1,5 +1,6 @@
 import { readFile } from '@tauri-apps/plugin-fs';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { resolveCanvasFilePath } from './canvas.logic';
 
 /** Image extensions we recognize */
 export const IMAGE_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.bmp'];
@@ -30,9 +31,7 @@ export async function resolveImageSrc(filePath: string): Promise<string> {
 	if (/^https?:\/\//.test(filePath)) return filePath;
 
 	// Local vault file — read binary and create blob URL
-	const vaultPath = vaultStore.path;
-	const fullPath = vaultPath ? `${vaultPath}/${filePath}` : filePath;
-	const bytes = await readFile(fullPath);
+	const bytes = await readFile(resolveCanvasFilePath(filePath, vaultStore.path));
 	const ext = filePath.split('.').pop()?.toLowerCase() ?? '';
 	const mime = extToMime(ext);
 	const blob = new Blob([bytes], { type: mime });

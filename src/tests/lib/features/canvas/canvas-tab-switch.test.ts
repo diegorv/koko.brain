@@ -29,6 +29,7 @@ window.matchMedia ??= (query: string) =>
 	}) as MediaQueryList;
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
+	readFile: vi.fn(() => Promise.resolve(new Uint8Array())),
 	readTextFile: vi.fn(() => Promise.resolve('')),
 	writeTextFile: vi.fn(() => Promise.resolve()),
 	mkdir: vi.fn(() => Promise.resolve()),
@@ -56,6 +57,8 @@ import { registerAppPorts, unregisterAppPorts } from '#lib/app/boot.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { closeTab, switchTab } from '#lib/core/editor/editor.service.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import EditorView from '#lib/app/EditorView.svelte';
 
 const A = '/vault/a.canvas';
@@ -254,5 +257,87 @@ describe('canvas persistence across tab switch and close', { timeout: 20_000 }, 
 		expect(writes.map(([path]) => path)).toEqual([A]);
 		expect(String(writes[0][1])).toContain('typed in A');
 		expect(tabContent(M)).toBe(NOTE);
+	});
+});
+
+// Image nodes added in the app store vault-relative paths (owner decision D7 b),
+// whatever absolute path the file tree drag or the image picker hands over.
+describe('canvas image nodes store vault-relative paths', { timeout: 20_000 }, () => {
+	const PIC = '/vault/assets/pic.png';
+	let component: Record<string, unknown> | null = null;
+
+	beforeAll(() => registerAppPorts());
+	afterAll(() => unregisterAppPorts());
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.mocked(writeTextFile).mockClear();
+		editorStore.reset();
+		settingsStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.setFileTree([{ name: 'pic.png', path: PIC, isDirectory: false }]);
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		fsStore.reset();
+		vaultStore._reset();
+		vi.useRealTimers();
+	});
+
+	/** Mounts EditorView with one empty canvas tab, as `render` does above. */
+	async function renderEmptyCanvas(): Promise<void> {
+		const content = JSON.stringify({ nodes: [], edges: [] });
+		editorStore.addTab({ path: A, name: 'a.canvas', content, savedContent: content, fileType: 'canvas' });
+		editorStore.setActiveIndex(0);
+		const target = document.body.appendChild(document.createElement('div'));
+		component = mount(EditorView, { target });
+		flushSync();
+		await vi.advanceTimersByTimeAsync(0);
+	}
+
+	/** The `file` of every image node in the JSON last written to the canvas path. */
+	async function writtenImageFiles(): Promise<string[]> {
+		await vi.advanceTimersByTimeAsync(3000);
+		const writes = vi.mocked(writeTextFile).mock.calls.filter(([path]) => path === A);
+		expect(writes.length).toBeGreaterThan(0);
+		const data = JSON.parse(String(writes.at(-1)![1])) as { nodes: { type: string; file?: string }[] };
+		return data.nodes.filter((n) => n.type === 'image').map((n) => n.file!);
+	}
+
+	it('dropping an absolute image path from the file tree stores it vault-relative', async () => {
+		await renderEmptyCanvas();
+		const container = document.body.querySelector<HTMLElement>('.canvas-container');
+		expect(container).not.toBeNull();
+
+		// jsdom has no DragEvent; the drop handler reads only dataTransfer and the coordinates.
+		const drop = new MouseEvent('drop', { bubbles: true, cancelable: true, clientX: 10, clientY: 10 });
+		Object.defineProperty(drop, 'dataTransfer', {
+			value: { getData: (type: string) => (type === 'text/plain' ? PIC : ''), types: ['text/plain'] },
+		});
+		container!.dispatchEvent(drop);
+		flushSync();
+
+		expect(await writtenImageFiles()).toEqual(['assets/pic.png']);
+	});
+
+	it('picking an image in the image picker stores it vault-relative', async () => {
+		await renderEmptyCanvas();
+		const addImage = document.body.querySelector<HTMLButtonElement>('button[title="Add image"]');
+		expect(addImage).not.toBeNull();
+		addImage!.click();
+		flushSync();
+
+		const item = [...document.body.querySelectorAll<HTMLButtonElement>('.picker-item')].find((b) =>
+			b.textContent?.includes(PIC),
+		);
+		expect(item).toBeDefined();
+		item!.click();
+		flushSync();
+
+		expect(await writtenImageFiles()).toEqual(['assets/pic.png']);
 	});
 });
