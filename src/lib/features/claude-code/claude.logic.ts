@@ -10,8 +10,8 @@ export interface ToolPart {
 	name: string;
 	/** What the tool acts on (a path, a pattern, a command), one line; empty when unknown. */
 	target: string;
-	/** `running` until its result arrives. */
-	status: 'running' | 'done' | 'error';
+	/** `running` until its result arrives; `stopped` when the turn ended first. */
+	status: 'running' | 'done' | 'error' | 'stopped';
 	/** The start of the tool's result text; empty while running. */
 	summary: string;
 }
@@ -34,7 +34,7 @@ export interface ChatState {
 	messages: ChatMessage[];
 	/** The running turn's id, once `claude_run_turn` returned it; `null` otherwise. */
 	runId: string | null;
-	/** Session of the last `Result`, resumed by the next turn; `null` for a new chat. */
+	/** Session of the last `Init` or `Result`, resumed by the next turn; `null` for a new chat. */
 	sessionId: string | null;
 	/** `running` from send until the run's `Done` (or a failure before it); an `Error` before `Done` shows but does not end the turn. */
 	status: 'idle' | 'running' | 'error';
@@ -120,12 +120,21 @@ export function receiveEvent(state: ChatState, payload: ClaudeEventPayload): Cha
 function applyEvent(state: ChatState, event: ClaudeEvent): ChatState {
 	switch (event.type) {
 		case 'Init':
-			return { ...state, slashCommands: event.slashCommands };
+			// Kept from Init too: a turn stopped or crashed before its Result is still resumed.
+			return { ...state, sessionId: event.sessionId || state.sessionId, slashCommands: event.slashCommands };
 		case 'TextDelta':
 			return updateReply(state, (parts) => {
 				const last = parts.at(-1);
 				if (last?.kind === 'text') return [...parts.slice(0, -1), { kind: 'text', text: last.text + event.text }];
 				return [...parts, { kind: 'text', text: event.text }];
+			});
+		case 'TextRetracted':
+			// Abandoned blocks never get an assistant message, so no tool card follows their text.
+			return updateReply(state, (parts) => {
+				const last = parts.at(-1);
+				if (last?.kind !== 'text' || !event.text || !last.text.endsWith(event.text)) return parts;
+				const text = last.text.slice(0, -event.text.length);
+				return text ? [...parts.slice(0, -1), { kind: 'text', text }] : parts.slice(0, -1);
 			});
 		case 'ThinkingDelta':
 			return state;
@@ -141,8 +150,9 @@ function applyEvent(state: ChatState, event: ClaudeEvent): ChatState {
 					: part,
 			));
 		case 'Result': {
-			let next: ChatState = { ...state, sessionId: event.sessionId };
-			if (event.text) {
+			let next: ChatState = { ...state, sessionId: event.sessionId || state.sessionId };
+			// An error's text is its cause, shown as the alert below, not as reply text.
+			if (event.text && !event.isError) {
 				next = updateReply(next, (parts) => (parts.some((p) => p.kind === 'text') ? parts : [...parts, { kind: 'text', text: event.text }]));
 			}
 			if (event.isError) next = { ...next, error: event.text || 'Claude ended the turn with an error.' };
@@ -151,8 +161,13 @@ function applyEvent(state: ChatState, event: ClaudeEvent): ChatState {
 		case 'Error':
 			// The process may still run until its Done; ending the turn here would hide Stop and drop its later events.
 			return { ...state, error: event.message };
-		case 'Done':
-			return { ...state, runId: null, stopRequested: false, status: state.error === null ? 'idle' : 'error' };
+		case 'Done': {
+			// A tool whose result never came (Stop, a crash) is not running anymore.
+			const next = updateReply(state, (parts) => parts.map((part) =>
+				part.kind === 'tool' && part.status === 'running' ? { ...part, status: 'stopped' } : part,
+			));
+			return { ...next, runId: null, stopRequested: false, status: state.error === null ? 'idle' : 'error' };
+		}
 	}
 }
 

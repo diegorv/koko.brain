@@ -24,6 +24,10 @@ skills: Array<string>, } | { "type": "TextDelta",
 /**
  * The chunk.
  */
+text: string, } | { "type": "TextRetracted", 
+/**
+ * The abandoned text, exactly as its `TextDelta`s sent it.
+ */
 text: string, } | { "type": "ThinkingDelta", 
 /**
  * The chunk.
@@ -58,7 +62,8 @@ summary: string, } | { "type": "Result",
  */
 sessionId: string, 
 /**
- * Final answer text; empty when the CLI sent none.
+ * Final answer text. For an error with no text: its `errors` joined
+ * with newlines, or else its `subtype`. Empty when the CLI sent none.
  */
 text: string, 
 /**

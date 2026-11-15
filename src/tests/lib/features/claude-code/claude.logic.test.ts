@@ -48,16 +48,47 @@ describe('beginTurn', () => {
 });
 
 describe('receiveEvent', () => {
-	it('Init keeps the slash commands and leaves the session to Result', () => {
+	it('Init keeps the slash commands and the session, so a turn with no Result can still be resumed', () => {
 		const state = event(running(), { type: 'Init', sessionId: 's1', model: 'opus', slashCommands: ['hello', 'review'], skills: [] });
 		expect(state.slashCommands).toEqual(['hello', 'review']);
-		expect(state.sessionId).toBeNull();
+		expect(state.sessionId).toBe('s1');
+		expect(event(state, { type: 'Done', exitCode: null }).sessionId).toBe('s1');
+	});
+
+	it('Init or Result with an empty session id keeps the previous one', () => {
+		const state = { ...running(), sessionId: 's0' };
+		expect(event(state, { type: 'Init', sessionId: '', model: 'opus', slashCommands: [], skills: [] }).sessionId).toBe('s0');
+		expect(event(state, { type: 'Result', sessionId: '', text: '', isError: false, costUsd: null, numTurns: null }).sessionId).toBe('s0');
 	});
 
 	it('TextDelta appends to the reply text', () => {
 		let state = event(running(), { type: 'TextDelta', text: 'Hel' });
 		state = event(state, { type: 'TextDelta', text: 'lo' });
 		expect(state.messages.at(-1)).toEqual({ role: 'assistant', parts: [{ kind: 'text', text: 'Hello' }] });
+	});
+
+	it('TextRetracted removes abandoned text, so a retried reply shows once', () => {
+		let state = event(running(), { type: 'TextDelta', text: 'Reading. ' });
+		state = event(state, { type: 'TextDelta', text: 'The note says' });
+		state = event(state, { type: 'TextRetracted', text: 'The note says' });
+		state = event(state, { type: 'TextDelta', text: 'The note says hi.' });
+		expect(state.messages.at(-1)).toEqual({ role: 'assistant', parts: [{ kind: 'text', text: 'Reading. The note says hi.' }] });
+	});
+
+	it('TextRetracted of a whole text part drops the part, so a tool card stays last', () => {
+		let state = event(running(), { type: 'ToolStart', id: 't1', name: 'Read', input: { file_path: 'a.md' } });
+		state = event(state, { type: 'TextDelta', text: 'cut' });
+		state = event(state, { type: 'TextRetracted', text: 'cut' });
+		expect(state.messages.at(-1)).toEqual({
+			role: 'assistant',
+			parts: [{ kind: 'tool', id: 't1', name: 'Read', target: 'a.md', status: 'running', summary: '' }],
+		});
+	});
+
+	it('TextRetracted that is not the end of the reply text changes nothing', () => {
+		const before = event(running(), { type: 'TextDelta', text: 'Hello' });
+		expect(event(before, { type: 'TextRetracted', text: 'other' })).toEqual(before);
+		expect(event(running(), { type: 'TextRetracted', text: 'x' })).toEqual(running());
 	});
 
 	it('ThinkingDelta changes nothing', () => {
@@ -115,6 +146,13 @@ describe('receiveEvent', () => {
 		expect(state.sessionId).toBe('s1');
 	});
 
+	it('Result with isError on an empty reply shows its cause only as the error, not as reply text', () => {
+		const before = running();
+		const state = event(before, { type: 'Result', sessionId: 's1', text: 'error_max_turns', isError: true, costUsd: null, numTurns: null });
+		expect(state.error).toBe('error_max_turns');
+		expect(state.messages).toEqual(before.messages);
+	});
+
 	it('Result with isError and no text still says the turn failed', () => {
 		const state = event(running(), { type: 'Result', sessionId: 's1', text: '', isError: true, costUsd: null, numTurns: null });
 		expect(state.error).toBe('Claude ended the turn with an error.');
@@ -141,6 +179,20 @@ describe('receiveEvent', () => {
 		const resultError = { type: 'Result', sessionId: 's1', text: 'Max turns reached', isError: true, costUsd: null, numTurns: null } as const;
 		const failedResult = event(event(running(), resultError), { type: 'Done', exitCode: 0 });
 		expect(failedResult.status).toBe('error');
+	});
+
+	it('Done marks the tool cards still running as stopped and keeps finished ones', () => {
+		let state = event(running(), { type: 'ToolStart', id: 't1', name: 'Read', input: { file_path: 'a.md' } });
+		state = event(state, { type: 'ToolResult', id: 't1', isError: false, summary: 'ok' });
+		state = event(state, { type: 'ToolStart', id: 't2', name: 'Bash', input: { command: 'sleep 60' } });
+		state = event(state, { type: 'Done', exitCode: null });
+		expect(state.messages.at(-1)).toEqual({
+			role: 'assistant',
+			parts: [
+				{ kind: 'tool', id: 't1', name: 'Read', target: 'a.md', status: 'done', summary: 'ok' },
+				{ kind: 'tool', id: 't2', name: 'Bash', target: 'sleep 60', status: 'stopped', summary: '' },
+			],
+		});
 	});
 
 	it('ignores events of a stale run id', () => {

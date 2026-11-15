@@ -1,5 +1,5 @@
 {
-  "base": "mvp-claude",
+  "base": "main",
   "remote": "origin",
   "delivery": "merge",
   "checks": {

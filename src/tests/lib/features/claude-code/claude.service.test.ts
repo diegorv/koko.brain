@@ -76,6 +76,18 @@ describe('sendPrompt', () => {
 		expect(claudeStore.runId).toBe('r2');
 	});
 
+	it('resumes the session of the Init when the turn ended without a Result', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('first');
+		claudeStore.receive({ runId: 'r1', event: { type: 'Init', sessionId: 's1', model: 'opus', slashCommands: [], skills: [] } });
+		claudeStore.receive({ runId: 'r1', event: { type: 'Done', exitCode: null } });
+
+		vi.mocked(invoke).mockClear();
+		answerRunTurn('r2');
+		await sendPrompt('second');
+		expect(runTurnRequest()?.resumeSessionId).toBe('s1');
+	});
+
 	it('saves dirty tabs before starting the turn', async () => {
 		editorStore.addTab({ path: '/vault/a.md', name: 'a.md', content: 'edited', savedContent: 'old' });
 

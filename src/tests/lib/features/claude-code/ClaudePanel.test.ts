@@ -205,6 +205,17 @@ describe('ClaudePanel chat', () => {
 		expect(q('[data-claude-tool] pre')?.textContent).toBe('# A');
 	});
 
+	it('shows a tool card whose result never came as stopped once the turn ends', async () => {
+		await render();
+		await sendText('run it');
+		await emit({ type: 'ToolStart', id: 't1', name: 'Bash', input: { command: 'sleep 60' } });
+		await emit({ type: 'Done', exitCode: null });
+
+		const card = q('[data-claude-tool]')!;
+		expect(card.dataset.claudeTool).toBe('stopped');
+		expect(card.querySelector('summary')?.textContent).toContain('stopped');
+	});
+
 	it('opens a wikilink of the reply as a note and a web link outside', async () => {
 		await render();
 		await sendText('links');
