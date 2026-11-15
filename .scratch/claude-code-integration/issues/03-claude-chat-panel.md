@@ -4,17 +4,17 @@
 
 **Blocked by:** 02
 
-**Files:** src/,e2e/
+**Files:** src/,e2e/,src-tauri/src/commands/claude/turn.rs,src-tauri/tests/commands/claude_turn_test.rs
 
 **Status:** ready-for-agent
 
-**Gate:** `pnpm check` + `pnpm vitest run`
+**Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml` (for the `--` change in `build_args`), `pnpm check`, `pnpm vitest run`.
 
 - [ ] `claude.store.svelte.ts`: messages (user, assistant with text and tool cards), `runId`, `sessionId`, `status` (`idle`, `running`, `error`), `contextNotes` (vault-relative paths), `slashCommands`. Getters tested. The reducer that applies each `ClaudeEvent` lives in `claude.logic.ts`, pure, tested for every event type and for events of a stale `runId` (ignored).
 - [ ] Note context: opening the panel attaches the active note when there is one; the user can remove any chip, attach more notes (a note picker reusing the quick switcher's search, and the "Add to Claude context" command on the active note) or send with no notes to work on the vault as a whole. Chips persist for the chat until removed or "New chat".
 - [ ] `claude.service.ts`: `sendPrompt(text)` awaits `saveAllDirtyTabs()` before `invoke('claude_run_turn')`, passes the text unchanged, `context_note_paths` and `resume_session_id` from the last `Result`; `stop()` calls `claude_cancel_turn`; `newChat()` clears the session and the chips back to the active note. Errors propagate and show inline in the panel. Tests mock only `invoke` and `listen` and use the real store.
 - [ ] Events for a `runId` the store has not seen yet are buffered, not dropped, until `claude_run_turn` resolves with that id: on a spawn failure Issue 02's runner emits `Error` and `Done` before the call returns (Issue 02 review, finding 3). Tested.
-- [ ] A prompt that starts with `-` (a `- [ ] ...` list item, `--help`) reaches claude as the prompt, not as a CLI option: Issue 02 passes the prompt right after the boolean `-p`, so the CLI parses a leading `-` as a flag. Owner decision recorded in Notes: move the prompt to the end after `--` in `build_args` (Rust, with a unit test), or escape or refuse it in the panel (Issue 02 review, finding 2). Tested.
+- [ ] A prompt that starts with `-` (a `- [ ] ...` list item, `--help`) reaches claude as the prompt, not as a CLI option: Issue 02 passes the prompt right after the boolean `-p`, so the CLI parses a leading `-` as a flag. Owner decision recorded in Notes: move the prompt to the end after `--` in `build_args` (Rust, with a unit test) (Issue 02 review, finding 2). Tested.
 - [ ] Slash commands: typing `/` at the start of the prompt opens an autocomplete of `slashCommands`, filtered by what follows; picking one inserts `/name `. The list comes from the `Init` event and is kept in the store for the app session; before the first turn the menu is empty and says so. Filtering is a pure function, tested.
 - [ ] One `claude-event` listener registered for the app lifetime next to the others in `src/lib/app/tauri-listeners.service.ts`.
 - [ ] When the panel is visible it is the only right-sidebar section rendered (the chat needs the height); hiding it restores the other panels. Rendered in `src/lib/app/AppShell.svelte` beside the existing panels.
@@ -25,6 +25,7 @@
 
 ## Notes
 
+- Owner decision (2026-11-14), prompts starting with `-`: `build_args` (`src-tauri/src/commands/claude/turn.rs`) ends the argument list with `--` and then the prompt; the panel sends the text unchanged, no escaping or refusing. Probed on claude 2.1.325: `claude -p "- [ ] ..."` fails with `error: unknown option`, while `claude -p <flags> -- "- [ ] reply with exactly: DASH-OK"` answered `DASH-OK` and `-- "/hello world"` still ran the vault command (`HELLO-CMD world`). Add a Rust unit test for a prompt starting with `-` and one starting with `/`. Issue 05 also edits `turn.rs`; this Issue resumes after 05 is delivered and rebases on it.
 - The session lives only in memory; a restart starts a new chat.
 - Right sidebar `maxSize` is 30 in `AppShell.svelte`; do not change it in this Issue.
 - The CLI expands only a leading `/name`. A `/name` typed mid-text is sent as plain text; the autocomplete opens only at the start.
