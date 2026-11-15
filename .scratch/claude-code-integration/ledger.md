@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | done | issue/01-claude-binary-detection (69a180e69) | 2026-11-14 |
 | 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | done | issue/02-rust-turn-runner (d7a921df5) | 2026-11-14 |
-| 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | blocked | | |
+| 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | todo | | |
 | 04 | [Claude Code settings per machine, not in the vault](issues/04-claude-settings-per-machine.md) | 01 | wontfix | | |
 | 05 | [Run `claude` with the login shell's environment](issues/05-login-shell-env-for-claude.md) | 02 | done | issue/05-login-shell-env-for-claude (3cd72c8c6) | 2026-11-14 |
 | 06 | [Remote images in Claude replies can leak data](issues/06-remote-images-in-replies.md) | 03 | wontfix | | |
