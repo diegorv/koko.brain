@@ -37,9 +37,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | done | issue/01-claude-binary-detection (69a180e69) | 2026-11-14 |
 | 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | done | issue/02-rust-turn-runner (d7a921df5) | 2026-11-14 |
-| 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | todo | | |
+| 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | in-progress | | |
 | 04 | [Claude Code settings per machine, not in the vault](issues/04-claude-settings-per-machine.md) | 01 | wontfix | | |
-| 05 | [Run `claude` with the login shell's environment](issues/05-login-shell-env-for-claude.md) | 02 | todo | | |
+| 05 | [Run `claude` with the login shell's environment](issues/05-login-shell-env-for-claude.md) | 02 | in-progress | | |
 
 ## Log
 
@@ -52,3 +52,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-14 21:50 — 02 — start — launched by /relay-lite:run on mvp-claude — a1f5680b0
 - 2026-11-14 21:56 — ledger updated (added 05)
 - 2026-11-14 22:23 — 02 — deliver — merged on mvp-claude; review APPROVED x2; fix: Done still sent when a leftover process keeps stderr open (stderr drain timeout); open nit: stderr tail dropped on drain timeout; cargo 1507 passed, clippy clean, vitest 639 files / 16960 tests passed — d7a921df5
+- 2026-11-14 22:24 — 03 — start — launched by /relay-lite:run on mvp-claude (parallel with 05) — fc71eaee4
+- 2026-11-14 22:24 — 05 — start — launched by /relay-lite:run on mvp-claude (parallel with 03) — fc71eaee4
