@@ -39,6 +39,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | in-progress | | |
 | 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | todo | | |
 | 04 | [Claude Code settings per machine, not in the vault](issues/04-claude-settings-per-machine.md) | 01 | wontfix | | |
+| 05 | [Run `claude` with the login shell's environment](issues/05-login-shell-env-for-claude.md) | 02 | todo | | |
 
 ## Log
 
@@ -49,3 +50,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-14 21:49 — 01 — deliver — merged on mvp-claude; review CHANGES_REQUESTED then APPROVED x2; fixes: cancel on first-enable notice resets switch, timeout doc, settings help section, shell_from_env with test; full suite 639 files / 16958 tests passed — 69a180e69
 - 2026-11-14 21:50 — ledger updated (blocked by of 02; wontfix 04)
 - 2026-11-14 21:50 — 02 — start — launched by /relay-lite:run on mvp-claude — a1f5680b0
+- 2026-11-14 21:56 — ledger updated (added 05)
