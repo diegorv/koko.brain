@@ -2,7 +2,7 @@
 
 **What to build:** Rust commands `claude_run_turn` and `claude_cancel_turn` in `src-tauri/src/commands/claude.rs`. A turn spawns the resolved binary in the vault directory with full permissions, parses stdout NDJSON into a normalized `ClaudeEvent` and emits each event to the frontend; cancel kills the process.
 
-**Blocked by:** 01, 04
+**Blocked by:** 01
 
 **Status:** ready-for-agent
 

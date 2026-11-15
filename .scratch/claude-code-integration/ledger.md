@@ -36,9 +36,9 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | done | issue/01-claude-binary-detection (69a180e69) | 2026-11-14 |
-| 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01, 04 | todo | | |
+| 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | todo | | |
 | 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | todo | | |
-| 04 | [Claude Code settings per machine, not in the vault](issues/04-claude-settings-per-machine.md) | 01 | todo | | |
+| 04 | [Claude Code settings per machine, not in the vault](issues/04-claude-settings-per-machine.md) | 01 | wontfix | | |
 
 ## Log
 
@@ -47,3 +47,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-14 21:21 — 01 — start — launched by /relay-lite:run on mvp-claude — 2f1efc8d6
 - 2026-11-14 21:37 — ledger updated (added 04; blocked by of 02)
 - 2026-11-14 21:49 — 01 — deliver — merged on mvp-claude; review CHANGES_REQUESTED then APPROVED x2; fixes: cancel on first-enable notice resets switch, timeout doc, settings help section, shell_from_env with test; full suite 639 files / 16958 tests passed — 69a180e69
+- 2026-11-14 21:50 — ledger updated (blocked by of 02; wontfix 04)

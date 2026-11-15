@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
@@ -21,3 +21,4 @@ Issue 01 persisted `claudeCode.*` through the settings store, whose file is `<va
 ## Comments
 
 - 2026-11-14, from an automated security review of Issue 01's commits: ready-for-agent, runs before 02.
+- 2026-11-14, owner: wontfix. The owner is the only user and writes every vault they open; settings in `.kokobrain/settings.json` are accepted (spec, Constraints).

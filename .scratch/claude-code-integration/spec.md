@@ -44,6 +44,7 @@ One turn = one process. Follow-up turns pass `--resume <session_id>` from the pr
 - **Dirty tabs win over disk.** `reloadExternallyChangedTabs` (`src/lib/core/editor/editor.service.ts:477-512`) skips dirty tabs, and the next auto-save writes the editor content back, silently undoing Claude's edit. Every turn must first flush dirty tabs (`saveAllDirtyTabs`, same file, line 324). An edit the user types into a note while a turn is running can still overwrite Claude's change to that note; the panel says so while a turn runs.
 - **Full permissions.** With `bypassPermissions` the agent runs any shell command and writes anywhere the user can, with no prompt. This is the owner's choice; the Settings toggle that enables the feature states it.
 - **Any webview code can drive the agent.** App commands have no IPC ACL (ADR-0036, Consequences), and both vault mods and QueryJS blocks in any note run in the main webview (`src/lib/plugins/queryjs/kb-api.ts:414`), so they can call `claude_run_turn` and, through `bypassPermissions`, run shell commands. Accepted while the owner writes every mod and note in the vault; revisit together with ADR-0036's triggers (a mod or vault from someone else). The commands only run a binary named `claude` (Issue 02), so they are not a generic exec primitive.
+- **Settings live in the vault.** `claudeCode.*` (enabled, override path, privacy acknowledged) persist in `<vault>/.kokobrain/settings.json`, so a vault from elsewhere could arrive with the feature on and an override pointing at a `claude` script it ships, which the Settings section runs. Accepted by the owner (sole user, writes every vault); Issue 04, which moved them to per-machine storage, is wontfix.
 - **Privacy.** Kokobrain does no network calls outside the allowlist in `.github/workflows/privacy.yml`. The `claude` process sends note content to Anthropic under the user's own Claude Code account. The feature is off by default, enabling it shows that sentence once, and no Kokobrain code makes the HTTP call.
 - **GUI PATH.** A macOS app launched from Finder does not inherit the login shell PATH. Resolve `claude` via `$SHELL -lc 'command -v claude'`, then known install paths (`~/.local/bin`, `~/.claude/local`, Homebrew), with an override path in Settings.
 
@@ -55,7 +56,7 @@ Changed-files summary and revert (git diff when the vault is a repo, as Tolaria 
 
 | # | Issue | Blocked by | Status |
 |---|---|---|---|
-| [01](issues/01-claude-binary-detection.md) | Detect the `claude` binary and show its status in Settings | none | ready-for-agent |
-| [02](issues/02-rust-turn-runner.md) | Rust turn runner: spawn, NDJSON to events, cancel | 01, 04 | ready-for-agent |
+| [01](issues/01-claude-binary-detection.md) | Detect the `claude` binary and show its status in Settings | none | resolved |
+| [02](issues/02-rust-turn-runner.md) | Rust turn runner: spawn, NDJSON to events, cancel | 01 | ready-for-agent |
 | [03](issues/03-claude-chat-panel.md) | Agent panel: chat, note context, slash commands | 02 | ready-for-agent |
-| [04](issues/04-claude-settings-per-machine.md) | Claude Code settings per machine, not in the vault | 01 | ready-for-agent |
+| [04](issues/04-claude-settings-per-machine.md) | Claude Code settings per machine, not in the vault | 01 | wontfix |
