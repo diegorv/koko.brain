@@ -10,7 +10,7 @@ describe('BuildInfo chip', () => {
 	let component: Record<string, unknown> | null = null;
 
 	/** Mounts the widget for a build and returns its chip element. */
-	function renderChip(opts: { dev: boolean; channel: 'stable' | 'nightly' }): HTMLElement {
+	function renderChip(opts: { dev: boolean; channel: 'stable' | 'nightly' | 'preview' }): HTMLElement {
 		vi.stubEnv('DEV', opts.dev);
 		globals.__APP_CHANNEL__ = opts.channel;
 		const target = document.body.appendChild(document.createElement('div'));
@@ -34,6 +34,8 @@ describe('BuildInfo chip', () => {
 		expect(renderChip({ dev: false, channel: 'stable' }).textContent).toBe('STABLE');
 		cleanup();
 		expect(renderChip({ dev: false, channel: 'nightly' }).textContent).toBe('NIGHTLY');
+		cleanup();
+		expect(renderChip({ dev: false, channel: 'preview' }).textContent).toBe('PREVIEW');
 	});
 
 	it('labels a dev server run as DEV whatever the channel define says', () => {
@@ -47,9 +49,14 @@ describe('BuildInfo chip', () => {
 		cleanup();
 		const nightly = renderChip({ dev: false, channel: 'nightly' }).className;
 		cleanup();
+		const preview = renderChip({ dev: false, channel: 'preview' }).className;
+		cleanup();
 		const dev = renderChip({ dev: true, channel: 'stable' }).className;
 
-		expect(new Set([stable, nightly, dev]).size).toBe(3);
+		expect(new Set([stable, nightly, preview, dev]).size).toBe(4);
+		for (const className of [stable, nightly, preview, dev]) {
+			expect(className).toMatch(/\bbg-\S+/);
+		}
 	});
 
 	it('does not style the stable chip as muted', () => {

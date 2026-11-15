@@ -328,18 +328,26 @@ Messages use the existing best-effort buffered writer, normally flushing every 2
 |---------|-------------|---------|
 | **Current version** | Release channel, version, commit and build time | — |
 | **Check for updates** | Button to manually check the selected channel for a newer version. The row also shows when the app last asked GitHub: `never`, `just now`, or a coarse "X min/h/d ago". | — |
-| **Release channel** | Choose between `Stable` and `Nightly` builds. **Stable** installs official tagged releases (recommended for everyday use). **Nightly** is built from the latest commit on `main` and may be unstable. | `Stable` |
+| **Release channel** | Choose between `Stable`, `Nightly` and `Preview` builds. **Stable** installs official tagged releases (recommended for everyday use). **Nightly** is built from the latest commit on `main` and may be unstable. **Preview** is built from `main` plus features under test and may be unstable. | The channel of the installed build |
 | **Auto-check on launch** | Silently check for an update when the app opens. Fires once per vault open, with no throttle. | Disabled |
 
 The section ends with **Changes in this build**, the commits since the last release tag.
 
 When an update is available, the **Check for updates** row shows download progress (version and size) and then a **Restart to update** button. Changing the release channel resets any pending download, since it pointed at a build from the other channel.
 
-### Nightly to Stable downgrade
+### Downgrading to a lower channel
 
-The auto-updater never moves to a lower version, so switching the channel back from **Nightly** to **Stable** does not automatically downgrade. Nightly versions use the format `X.Y.Z-nightly.<count>.<sha>` (or `X.Y.Z-beta.N.nightly.<count>.<sha>` while a pre-release is out) and sort semver-greater than the same-base stable release.
+The auto-updater never moves to a lower version, so switching the channel to one that ranks below the installed build does not automatically downgrade. For the same base version the channels sort **Stable** < **Nightly** < **Preview**:
 
-When you are running a Nightly build but have selected the **Stable** channel, an extra **Install Stable** row appears with an **Install Stable (downgrade)** button. Clicking it shows a confirmation dialog (you will lose any changes that landed on `main` since the last Stable tag, until the next Stable release ships; your vault and settings are unaffected), then installs the latest Stable build in-app. A **Releases page** button next to it opens the GitHub Releases page as a manual fallback if the in-app install fails.
+- Nightly versions use the format `X.Y.Z-nightly.<count>.<sha>` (or `X.Y.Z-beta.N.nightly.<count>.<sha>` while a pre-release is out) and sort semver-greater than the same-base stable release.
+- Preview versions use the format `X.Y.Z-preview.<count>.<sha>` (or `X.Y.Z-beta.N.preview.<count>.<sha>` while a pre-release is out). `preview` sorts above `nightly`, so every Preview build sorts above every Nightly build of the same base, and both sort below the next Stable release.
+
+Switching from Nightly to Preview updates on the next check. Going back from Preview to Nightly or Stable, or from Nightly to Stable, needs the downgrade button: when the installed build's channel ranks above the selected one, an extra **Install Nightly** or **Install Stable** row appears with an **Install Nightly (downgrade)** or **Install Stable (downgrade)** button. Clicking it shows a confirmation dialog, then installs the latest build of the selected channel in-app. What you lose:
+
+- From Nightly to Stable: any changes that landed on `main` since the last Stable tag, until the next Stable release ships. Your vault and settings are unaffected.
+- From Preview: the features under test that are not on `main` yet (and, going to Stable, the changes since the last Stable tag). Settings keys that only Preview code knows are dropped the first time a Stable or Nightly build saves the vault's settings, because a build saves only the settings it knows. Your notes are unaffected.
+
+A **Releases page** button next to it opens the selected channel's GitHub release as a manual fallback if the in-app install fails.
 
 ## Labs
 

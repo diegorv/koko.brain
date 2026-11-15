@@ -2,8 +2,8 @@
 //!
 //! The built-in `@tauri-apps/plugin-updater` JS API reads endpoints from
 //! `tauri.conf.json` at build time and does not expose a runtime
-//! endpoints override. To let the user flip between stable and nightly
-//! channels from Settings, we construct the `Updater` programmatically
+//! endpoints override. To let the user flip between the stable, nightly
+//! and preview channels from Settings, we construct the `Updater` programmatically
 //! on the Rust side and inject the right `latest.json` URL based on the
 //! channel argument.
 //!
@@ -31,6 +31,12 @@ pub const STABLE_ENDPOINT: &str =
 pub const NIGHTLY_ENDPOINT: &str =
     "https://github.com/diegorv/koko.brain/releases/download/nightly/latest.json";
 
+/// Preview channel `latest.json` URL. Published against the fixed `preview`
+/// pre-release tag by builds of the `preview` branch, which holds `main`
+/// plus features under test (ADR-0039).
+pub const PREVIEW_ENDPOINT: &str =
+    "https://github.com/diegorv/koko.brain/releases/download/preview/latest.json";
+
 /// Map a channel name to its `latest.json` URL.
 ///
 /// Unknown values fall back to the stable endpoint — same safe-default
@@ -40,6 +46,7 @@ pub const NIGHTLY_ENDPOINT: &str =
 pub fn endpoint_for_channel(channel: &str) -> &'static str {
     match channel {
         "nightly" => NIGHTLY_ENDPOINT,
+        "preview" => PREVIEW_ENDPOINT,
         _ => STABLE_ENDPOINT,
     }
 }
@@ -78,10 +85,10 @@ pub struct UpdateMetadata {
 /// run the existing plugin's `download_and_install` command against it.
 ///
 /// `allow_downgrades` (default `false`) overrides the default semver
-/// comparator with `update.version != current.to_string()`, so a nightly
-/// user can install a same-base stable release even though the stable
-/// version sorts semver-LOWER. Used by the "Install Stable" downgrade
-/// flow in UpdateSection. Errors are returned as strings so the
+/// comparator with `update.version != current.to_string()`, so a build
+/// can install a release of a lower-ranked channel (preview > nightly >
+/// stable) even though that version sorts semver-LOWER. Used by the
+/// "Install <channel> (downgrade)" flow in UpdateSection. Errors are returned as strings so the
 /// frontend can `try { ... } catch` the rejection — matches the
 /// plugin's own error-handling convention.
 #[tauri::command]
@@ -139,6 +146,11 @@ mod tests {
 	}
 
 	#[test]
+	fn endpoint_for_channel_preview() {
+		assert_eq!(endpoint_for_channel("preview"), PREVIEW_ENDPOINT);
+	}
+
+	#[test]
 	fn endpoint_for_channel_stable() {
 		assert_eq!(endpoint_for_channel("stable"), STABLE_ENDPOINT);
 	}
@@ -151,6 +163,7 @@ mod tests {
 		// names before they reach this command, so an uppercase value here
 		// represents an unexpected leak and should default to stable.
 		assert_eq!(endpoint_for_channel("NIGHTLY"), STABLE_ENDPOINT);
+		assert_eq!(endpoint_for_channel("PREVIEW"), STABLE_ENDPOINT);
 	}
 
 	#[test]
@@ -159,6 +172,7 @@ mod tests {
 		// than first runtime invocation in production.
 		assert!(Url::parse(STABLE_ENDPOINT).is_ok());
 		assert!(Url::parse(NIGHTLY_ENDPOINT).is_ok());
+		assert!(Url::parse(PREVIEW_ENDPOINT).is_ok());
 	}
 
 	#[test]
@@ -172,6 +186,11 @@ mod tests {
 		assert_eq!(nightly.host_str(), Some("github.com"));
 		assert!(nightly.path().ends_with("/latest.json"));
 		assert!(nightly.path().contains("/releases/download/nightly/"));
+
+		let preview = Url::parse(PREVIEW_ENDPOINT).unwrap();
+		assert_eq!(preview.host_str(), Some("github.com"));
+		assert!(preview.path().ends_with("/latest.json"));
+		assert!(preview.path().contains("/releases/download/preview/"));
 	}
 }
 

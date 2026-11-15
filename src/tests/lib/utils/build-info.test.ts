@@ -94,6 +94,45 @@ describe('resolveVersion', () => {
 		];
 		expect(semver.sort([...ordered].reverse())).toEqual(ordered);
 	});
+
+	it('bumps patch+1 and appends -preview.<count>.<sha> on the preview channel', () => {
+		expect(resolveVersion({
+			pkgVersion: '2.8.0',
+			gitHash: '34158e03',
+			commitCount: '1234',
+			channel: 'preview',
+		})).toBe('2.8.1-preview.1234.34158e03');
+	});
+
+	it('appends .preview.<count>.<sha> to a prerelease base instead of bumping the patch', () => {
+		expect(resolveVersion({
+			pkgVersion: '4.0.0-beta.1',
+			gitHash: '34158e03',
+			commitCount: '12',
+			channel: 'preview',
+		})).toBe('4.0.0-beta.1.preview.12.34158e03');
+	});
+
+	it('sorts stable < nightly < preview < next stable for the same count', () => {
+		const build = (channel: 'nightly' | 'preview') =>
+			resolveVersion({ pkgVersion: '3.0.12', gitHash: 'abc1234', commitCount: '40', channel });
+		const ordered = ['3.0.12', build('nightly'), build('preview'), '3.0.13'];
+		expect(semver.sort([...ordered].reverse())).toEqual(ordered);
+	});
+
+	it('sorts every preview above every nightly of the same base, whatever the counts', () => {
+		const nightly = resolveVersion({ pkgVersion: '3.0.12', gitHash: 'abc1234', commitCount: '900', channel: 'nightly' });
+		const preview = resolveVersion({ pkgVersion: '3.0.12', gitHash: 'def5678', commitCount: '3', channel: 'preview' });
+		const ordered = ['3.0.12', nightly, preview, '3.0.13'];
+		expect(semver.sort([...ordered].reverse())).toEqual(ordered);
+	});
+
+	it('sorts a preview on a prerelease base above its nightly and below the next prerelease', () => {
+		const nightly = resolveVersion({ pkgVersion: '4.0.0-beta.1', gitHash: 'abc1234', commitCount: '50', channel: 'nightly' });
+		const preview = resolveVersion({ pkgVersion: '4.0.0-beta.1', gitHash: 'def5678', commitCount: '2', channel: 'preview' });
+		const ordered = ['4.0.0-beta.1', nightly, preview, '4.0.0-beta.2'];
+		expect(semver.sort([...ordered].reverse())).toEqual(ordered);
+	});
 });
 
 describe('formatBuildInfo', () => {
@@ -128,6 +167,16 @@ describe('formatBuildInfo', () => {
 		// "deadbeef" must appear exactly once
 		expect(result.match(/deadbeef/g)?.length).toBe(1);
 	});
+
+	it('omits the (sha) parens on preview as on nightly', () => {
+		expect(formatBuildInfo({
+			pkgVersion: '2.8.0',
+			gitHash: '34158e03',
+			commitCount: '1234',
+			buildTime: '2026-05-13T12:00:00',
+			channel: 'preview',
+		})).toBe('2.8.1-preview.1234.34158e03 (2026-05-13T12:00:00)');
+	});
 });
 
 describe('parseReleaseChannel', () => {
@@ -148,6 +197,12 @@ describe('parseReleaseChannel', () => {
 		expect(parseReleaseChannel('NIGHTLY')).toBe('nightly');
 	});
 
+	it('returns preview case-insensitively', () => {
+		expect(parseReleaseChannel('preview')).toBe('preview');
+		expect(parseReleaseChannel('Preview')).toBe('preview');
+		expect(parseReleaseChannel('PREVIEW')).toBe('preview');
+	});
+
 	it('returns stable for any other value', () => {
 		expect(parseReleaseChannel('stable')).toBe('stable');
 		expect(parseReleaseChannel('canary')).toBe('stable');
@@ -162,6 +217,10 @@ describe('channelLabel', () => {
 
 	it('returns NIGHTLY for the nightly channel', () => {
 		expect(channelLabel('nightly')).toBe('NIGHTLY');
+	});
+
+	it('returns PREVIEW for the preview channel', () => {
+		expect(channelLabel('preview')).toBe('PREVIEW');
 	});
 
 	it('returns DEV for a dev server run', () => {

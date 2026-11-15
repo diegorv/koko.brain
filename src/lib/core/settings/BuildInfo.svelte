@@ -29,6 +29,7 @@
 	const BADGE_CLASSES = {
 		stable: 'bg-success/20 text-success',
 		nightly: 'bg-warning/20 text-warning',
+		preview: 'bg-type-purple/20 text-type-purple',
 		dev: 'bg-primary/20 text-primary',
 	};
 

@@ -143,3 +143,4 @@ Examples: `0001-tauri-svelte-sveltekit-stack.md`, `0009-incremental-indexing-rev
 | [0036](0036-vault-mods-trust-loader-storage.md) | Vault mods: trust, loader and storage                                                | active |
 | [0037](0037-todoist-two-way-sync.md) | Todoist two-way sync: anchored lines, two-base merge, Todoist wins, detach only      | active |
 | [0038](0038-claude-code-cli-subprocess.md) | Claude Code integration spawns the claude CLI per turn, in print mode with stream-json | proposed |
+| [0039](0039-preview-release-channel.md) | Preview release channel: main plus features under test, sorting above Nightly        | active |

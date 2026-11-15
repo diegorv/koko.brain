@@ -4,7 +4,7 @@
 
 **Blocked by:** 01
 
-**Files:** .github/workflows/preview.yml,.github/workflows/nightly.yml,scripts/,src/tests/scripts/,help/documentation/19-settings.md
+**Files:** .github/workflows/preview.yml,.github/workflows/nightly.yml,scripts/,src/tests/scripts/,help/documentation/19-settings.md,docs/RELEASE-CHANNELS.md
 
 **Status:** ready-for-agent
 
@@ -16,6 +16,7 @@
 - [ ] The release body says the build is `main` plus features under test, lists the branches merged into `preview` that are not in `main` (`git log --merges --first-parent origin/main..HEAD` subjects), and repeats the nightly body's warning and checksum instructions.
 - [ ] `nightly.yml` is unchanged, or changes only to share a step with `preview.yml` (for example a composite action), with no change in what nightly builds or publishes.
 - [ ] `help/documentation/19-settings.md`, Update section: one paragraph on where preview builds come from (the `preview` branch, rebuilt on every push to `main` and to `preview`).
+- [ ] `docs/RELEASE-CHANNELS.md` describes the Preview channel (its branch, workflow, tag and version order Stable < Nightly < Preview) and replaces the "One-way update rule" text that says the updater never downgrades and going back needs a manual reinstall: the in-app "Install <channel> (downgrade)" button moves any build to a lower channel, and the Releases page download stays the fallback.
 
 ## Notes
 
