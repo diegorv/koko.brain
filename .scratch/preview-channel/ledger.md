@@ -35,9 +35,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Preview channel in the app: version, settings, updater endpoint, downgrade](issues/01-preview-channel-in-the-app.md) | none | todo | | |
+| 01 | [Preview channel in the app: version, settings, updater endpoint, downgrade](issues/01-preview-channel-in-the-app.md) | none | in-progress | | |
 | 02 | [Preview build workflow and automatic merge of main](issues/02-preview-workflow-and-branch-sync.md) | 01 | todo | | |
 
 ## Log
 
 - 2026-11-15 09:17 — ledger created (2 Issues)
+- 2026-11-15 09:19 — 01 — start — launched by /relay-lite:run — 5050cf923
