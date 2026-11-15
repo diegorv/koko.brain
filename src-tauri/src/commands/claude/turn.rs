@@ -149,12 +149,30 @@ pub struct ClaudeRuns {
 }
 
 impl ClaudeRuns {
-	/// Kills the run's process group. No-op for an unknown or finished run.
+	/// Kills the run's process group, and kills it again once the process has
+	/// exited. No-op for an unknown or finished run.
 	pub fn cancel(&self, run_id: &str) {
 		let runs = self.lock();
 		let Some(run) = runs.get(run_id) else { return };
 		run.cancelled.store(true, Ordering::SeqCst);
 		kill_group(run.pid);
+		let pid = run.pid;
+		drop(runs);
+
+		// A process forked while `killpg` walks the group can miss the signal
+		// (macOS) and keep stdout, and so `Done`, open. It exists once its
+		// parent has died, so the group is killed again after the leader exits.
+		// The leader is not reaped until the run leaves the map, so while the
+		// run is listed its group id cannot have been reused.
+		let this = self.clone();
+		let run_id = run_id.to_string();
+		thread::spawn(move || {
+			wait_for_exit(pid);
+			let runs = this.lock();
+			if runs.contains_key(&run_id) {
+				kill_group(pid);
+			}
+		});
 	}
 
 	/// True when no turn is running.
@@ -316,10 +334,29 @@ fn kill_group(pid: u32) {
 	}
 }
 
+/// Blocks until the child `pid` has exited, without reaping it (`WNOWAIT`),
+/// or returns at once when it is already reaped.
+#[cfg(unix)]
+fn wait_for_exit(pid: u32) {
+	loop {
+		// SAFETY: `info` is a valid, zeroed siginfo_t that waitid fills in.
+		let rc = unsafe {
+			let mut info: libc::siginfo_t = std::mem::zeroed();
+			libc::waitid(libc::P_PID, pid, &mut info, libc::WEXITED | libc::WNOWAIT)
+		};
+		if rc == 0 || std::io::Error::last_os_error().raw_os_error() != Some(libc::EINTR) {
+			return;
+		}
+	}
+}
+
 #[cfg(not(unix))]
 fn kill_group(pid: u32) {
 	debug_log("CLAUDE", format!("cancel is not supported on this platform (pid {pid})"));
 }
+
+#[cfg(not(unix))]
+fn wait_for_exit(_pid: u32) {}
 
 fn non_blank(value: &Option<String>) -> Option<&str> {
 	value.as_deref().map(str::trim).filter(|v| !v.is_empty())

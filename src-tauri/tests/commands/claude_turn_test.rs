@@ -327,10 +327,9 @@ fn sleeping_run_cancelled_mid_run_ends_in_done() {
 	let dir = TempDir::new().unwrap();
 	let init = r#"{"type":"system","subtype":"init","session_id":"s","model":"m","slash_commands":[]}"#;
 	// No `exec`: the kill must reach the sleeping grandchild through the group.
-	// The grandchild starts before Init is printed, so the cancel never lands
-	// while `sh` is still forking it (a child forked during `killpg` can miss
-	// the signal on macOS: `.scratch/claude-code-integration/issues/07-cancel-
-	// misses-a-child-forked-during-killpg.md`).
+	// The grandchild starts before Init is printed, so it is already running
+	// when the cancel lands (`cancel_reaches_a_child_forked_during_the_kill`
+	// covers a fork that races the kill).
 	let claude = script(dir.path(), "claude", &format!("sleep 30 &\necho '{init}'\nwait\necho 'never'"));
 	let vault = TempDir::new().unwrap();
 	let runs = ClaudeRuns::default();
@@ -345,6 +344,30 @@ fn sleeping_run_cancelled_mid_run_ends_in_done() {
 	assert_eq!(rest, vec![ClaudeEvent::Done { exit_code: None }]);
 	assert!(runs.is_empty());
 	runs.cancel(&run_id); // finished run: no-op
+}
+
+#[test]
+fn cancel_reaches_a_child_forked_during_the_kill() {
+	let dir = TempDir::new().unwrap();
+	let init = r#"{"type":"system","subtype":"init","session_id":"s","model":"m","slash_commands":[]}"#;
+	// `sh` forks `sleep` right after printing Init, so the cancel lands while
+	// it forks. On macOS that child can miss the first `killpg` and would hold
+	// stdout, and so `Done`, for 30 s.
+	let claude = script(dir.path(), "claude", &format!("echo '{init}'\nsleep 30\necho 'never'"));
+	let vault = TempDir::new().unwrap();
+	let runs = ClaudeRuns::default();
+
+	let (run_id, rx) = start(&runs, dir.path(), request(vault.path(), &claude)).unwrap();
+	let first = rx.recv_timeout(WAIT).unwrap();
+	assert!(matches!(first.event, ClaudeEvent::Init { .. }), "{first:?}");
+
+	let cancelled_at = std::time::Instant::now();
+	runs.cancel(&run_id);
+	let rest = collect_until_done(&rx, &run_id);
+
+	assert!(cancelled_at.elapsed() < Duration::from_secs(5), "Done took {:?}", cancelled_at.elapsed());
+	assert_eq!(rest, vec![ClaudeEvent::Done { exit_code: None }]);
+	assert!(runs.is_empty());
 }
 
 #[test]
