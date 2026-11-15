@@ -7,6 +7,7 @@
 import type {
 	CachedScanResult,
 	ClaudeStatus,
+	ClaudeTurnRequest,
 	DiffLine,
 	FileNode,
 	FileReadResult,
@@ -219,6 +220,10 @@ export interface CommandMap {
 	};
 	/** Finds the `claude` CLI (blank `binaryPath` = auto lookup) and reports its version (`commands/claude.rs`). */
 	claude_status: { args: { binaryPath: string }; result: ClaudeStatus };
+	/** Starts an agent turn; returns its run id, events follow on `claude-event` (`commands/claude.rs`). */
+	claude_run_turn: { args: { request: ClaudeTurnRequest }; result: string };
+	/** Kills a running agent turn; no-op for an unknown or finished run (`commands/claude.rs`). */
+	claude_cancel_turn: { args: { runId: string }; result: null };
 	/** Rust-only: registered but not invoked from TS (`quick_capture/commands.rs`). */
 	capture_clipboard_now: { args: NoArgs; result: null };
 	/** Rust-only: registered but not invoked from TS. */
@@ -325,6 +330,8 @@ export const COMMAND_ARGS = {
 	list_system_fonts: [],
 	check_for_update_on_channel: ['channel', 'allowDowngrades?'],
 	claude_status: ['binaryPath'],
+	claude_run_turn: ['request'],
+	claude_cancel_turn: ['runId'],
 	capture_clipboard_now: [],
 	open_composer: [],
 	dismiss_composer: [],

@@ -322,6 +322,7 @@ pub fn run() {
         .manage(PrevFrontmostPid::new())
         .manage(LastCaptureSignature::default())
         .manage(ExitFlushState::default())
+        .manage(commands::claude::turn::ClaudeRuns::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,
@@ -389,6 +390,8 @@ pub fn run() {
             commands::fonts::list_system_fonts,
             commands::update_channel::check_for_update_on_channel,
             commands::claude::claude_status,
+            commands::claude::claude_run_turn,
+            commands::claude::claude_cancel_turn,
             quick_capture::commands::capture_clipboard_now,
             quick_capture::commands::open_composer,
             quick_capture::commands::dismiss_composer,

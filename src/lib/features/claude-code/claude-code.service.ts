@@ -1,5 +1,7 @@
-import type { ClaudeStatus } from '#lib/contracts/index.js';
-import { call } from '#lib/contracts/ipc.js';
+import type { UnlistenFn } from '@tauri-apps/api/event';
+import type { ClaudeEventPayload, ClaudeStatus } from '#lib/contracts/index.js';
+import { EVENT_NAMES } from '#lib/contracts/events.js';
+import { call, on } from '#lib/contracts/ipc.js';
 import { error } from '#lib/utils/debug.js';
 
 /**
@@ -14,4 +16,13 @@ export async function checkClaudeStatus(binaryPath: string): Promise<ClaudeStatu
 		error('CLAUDE', 'claude_status failed:', err);
 		throw err;
 	}
+}
+
+/**
+ * Subscribes to the events of every agent turn (`claude-event`). Each run's
+ * events carry its `runId` and end with `Done`; events can arrive before
+ * `claude_run_turn` resolves with that id. Resolves to the unlisten function.
+ */
+export function onClaudeEvent(handler: (payload: ClaudeEventPayload) => void): Promise<UnlistenFn> {
+	return on(EVENT_NAMES.CLAUDE, handler);
 }

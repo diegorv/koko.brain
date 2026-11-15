@@ -1,17 +1,25 @@
-//! Detection of the user's `claude` CLI (Claude Code), for the Settings
-//! status and the agent panel (ADR-0038).
+//! The user's `claude` CLI (Claude Code): detection for the Settings status,
+//! and the agent panel's turns (ADR-0038). `stream` parses a turn's stdout,
+//! `turn` spawns and cancels it.
 //!
 //! A macOS app launched from Finder does not inherit the login shell PATH, so
 //! the lookup asks the login shell before trying the known install paths.
 //! Processes are spawned with `std::process::Command`; the app does not use
 //! `tauri-plugin-shell`.
 
+pub mod stream;
+pub mod turn;
+
+use crate::events::CLAUDE_EVENT;
+use crate::utils::logger::debug_log;
 use serde::Serialize;
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
 use std::thread;
 use std::time::{Duration, Instant};
+use tauri::Emitter;
+use turn::{run_turn_with, ClaudeRuns, ClaudeTurnRequest};
 
 /// How long `claude --version` and the login-shell lookup may run.
 pub const VERSION_TIMEOUT: Duration = Duration::from_secs(5);
@@ -73,11 +81,8 @@ pub fn version_command(binary: &Path) -> Command {
 	cmd
 }
 
-/// Looks for `claude` and asks it for its version.
-///
-/// Order: `override_path` when non-blank (it must be an executable file, with
-/// no fallback when it is not), then `shell -lc 'command -v claude'`, then the
-/// first executable of `candidates`.
+/// Looks for `claude` with [`resolve_claude`] and asks it for its version. A
+/// refused override is reported without running anything.
 pub fn claude_status_with(
 	override_path: &str,
 	shell: &Path,
@@ -85,35 +90,66 @@ pub fn claude_status_with(
 	timeout: Duration,
 ) -> ClaudeStatus {
 	let override_path = override_path.trim();
-	let binary = if override_path.is_empty() {
-		match lookup_login_shell(shell, timeout).or_else(|| first_executable(candidates)) {
-			Some(found) => found,
-			None => {
-				return ClaudeStatus {
-					installed: false,
-					path: None,
-					version: None,
-					error: Some("claude was not found on the login shell PATH or in the known install locations".into()),
-				}
-			}
-		}
-	} else {
-		let path = PathBuf::from(override_path);
-		if !is_executable_file(&path) {
+	let binary = match resolve_claude(override_path, shell, candidates, timeout) {
+		Ok(binary) => binary,
+		Err(error) => {
 			return ClaudeStatus {
 				installed: false,
-				path: Some(override_path.to_string()),
+				path: (!override_path.is_empty()).then(|| override_path.to_string()),
 				version: None,
-				error: Some(format!("The override path is not an executable file: {override_path}")),
-			};
+				error: Some(error),
+			}
 		}
-		path
 	};
 
-	let path = Some(binary.to_string_lossy().into_owned());
+	// An override is reported as typed; a found binary by where it was found.
+	let path = Some(if override_path.is_empty() {
+		binary.to_string_lossy().into_owned()
+	} else {
+		override_path.to_string()
+	});
 	match read_version(&binary, timeout) {
 		Ok(version) => ClaudeStatus { installed: true, path, version: Some(version), error: None },
 		Err(error) => ClaudeStatus { installed: false, path, version: None, error: Some(error) },
+	}
+}
+
+/// The `claude` binary to run, used by both the Settings status and the turn
+/// runner, so neither ever spawns a path the renderer sent unchecked.
+///
+/// Order: `override_path` when non-blank, then `shell -lc 'command -v claude'`,
+/// then the first executable of `candidates`. An override must be an absolute
+/// path to an executable file named `claude`, with no fallback when it is not:
+/// the commands that take it can then only run a `claude` binary, never a
+/// generic one such as `/bin/sh`. The directory is canonicalized but the file
+/// name is kept, because the native installer's `~/.local/bin/claude` is a
+/// symlink to `versions/<version>`.
+pub fn resolve_claude(
+	override_path: &str,
+	shell: &Path,
+	candidates: &[PathBuf],
+	timeout: Duration,
+) -> Result<PathBuf, String> {
+	let override_path = override_path.trim();
+	if override_path.is_empty() {
+		return lookup_login_shell(shell, timeout)
+			.or_else(|| first_executable(candidates))
+			.ok_or_else(|| "claude was not found on the login shell PATH or in the known install locations".into());
+	}
+	let path = Path::new(override_path);
+	let canonical = match (path.parent(), path.file_name()) {
+		(Some(parent), Some(name)) => std::fs::canonicalize(parent).ok().map(|dir| (dir.join(name), name)),
+		_ => None,
+	};
+	match canonical {
+		Some((binary, name)) if is_executable_file(&binary) => {
+			if name == "claude" {
+				Ok(binary)
+			} else {
+				Err(format!("The override path is not an executable file named claude: {override_path}"))
+			}
+		}
+		_ => Err(format!("The override path is not an executable file: {override_path}")),
 	}
 }
 
@@ -128,6 +164,37 @@ pub async fn claude_status(binary_path: String) -> Result<ClaudeStatus, String> 
 	})
 	.await
 	.map_err(|e| format!("claude_status task failed: {e}"))
+}
+
+/// Starts an agent turn and returns its run id; events arrive on
+/// `claude-event` as `{ runId, event }`, ending with `Done`. Fails, with
+/// nothing spawned, when the binary is refused or missing or the vault
+/// already has a turn running. Runs off the async runtime because the
+/// login-shell lookup blocks for up to `VERSION_TIMEOUT`.
+#[tauri::command]
+pub async fn claude_run_turn(
+	app: tauri::AppHandle,
+	runs: tauri::State<'_, ClaudeRuns>,
+	request: ClaudeTurnRequest,
+) -> Result<String, String> {
+	let runs = runs.inner().clone();
+	tokio::task::spawn_blocking(move || {
+		let home = std::env::var_os("HOME").map(PathBuf::from);
+		run_turn_with(&runs, request, &login_shell(), &default_candidates(home.as_deref()), move |payload| {
+			if let Err(e) = app.emit(CLAUDE_EVENT, &payload) {
+				debug_log("CLAUDE", format!("emit failed: {e}"));
+			}
+		})
+	})
+	.await
+	.map_err(|e| format!("claude_run_turn task failed: {e}"))?
+}
+
+/// Kills a running turn and its process group. No-op for an unknown or
+/// finished run.
+#[tauri::command]
+pub fn claude_cancel_turn(runs: tauri::State<'_, ClaudeRuns>, run_id: String) {
+	runs.cancel(&run_id);
 }
 
 /// Asks the login shell for `claude`. Takes the last non-empty stdout line,

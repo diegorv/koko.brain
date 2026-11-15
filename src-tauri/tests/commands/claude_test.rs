@@ -7,7 +7,7 @@
 #![cfg(unix)]
 
 use kokobrain_lib::commands::claude::{
-	claude_status_with, default_candidates, shell_from_env, version_command, ClaudeStatus,
+	claude_status_with, default_candidates, resolve_claude, shell_from_env, version_command, ClaudeStatus,
 };
 use std::ffi::OsString;
 use std::fs;
@@ -148,6 +148,76 @@ fn non_executable_override_says_so_without_fallback() {
 	assert_eq!(status.path, Some(path_str(&plain)));
 	assert_eq!(status.version, None);
 	assert!(status.error.unwrap().contains("not an executable file"));
+}
+
+#[test]
+fn override_not_named_claude_is_refused_and_never_run() {
+	let dir = TempDir::new().unwrap();
+	let marker = dir.path().join("ran");
+	let sh = script(dir.path(), "sh", &format!("touch '{}'\necho '1.0.0'", path_str(&marker)), 0o755);
+	let fallback = fake_claude(dir.path());
+
+	let status = claude_status_with(&path_str(&sh), &failing_shell(dir.path()), &[fallback], TIMEOUT);
+
+	assert!(!status.installed);
+	assert_eq!(status.path, Some(path_str(&sh)));
+	assert_eq!(status.version, None);
+	assert!(status.error.unwrap().contains("named claude"));
+	assert!(!marker.exists(), "the refused override must not be run");
+}
+
+#[test]
+fn override_symlink_named_claude_is_accepted() {
+	// The native installer links `~/.local/bin/claude` to `versions/<version>`.
+	let dir = TempDir::new().unwrap();
+	fs::create_dir(dir.path().join("versions")).unwrap();
+	let target = script(&dir.path().join("versions"), "2.1.325", "echo '2.1.325 (Claude Code)'", 0o755);
+	let link = dir.path().join("claude");
+	std::os::unix::fs::symlink(&target, &link).unwrap();
+
+	let status = claude_status_with(&path_str(&link), &failing_shell(dir.path()), &[], TIMEOUT);
+
+	assert!(status.installed, "{status:?}");
+	assert_eq!(status.version.as_deref(), Some("2.1.325 (Claude Code)"));
+}
+
+#[test]
+fn resolve_returns_the_override_in_its_canonical_directory() {
+	let dir = TempDir::new().unwrap();
+	let claude = fake_claude(dir.path());
+
+	let resolved = resolve_claude(&path_str(&claude), &failing_shell(dir.path()), &[], TIMEOUT).unwrap();
+
+	assert_eq!(resolved, fs::canonicalize(dir.path()).unwrap().join("claude"));
+}
+
+#[test]
+fn resolve_refuses_an_override_not_named_claude() {
+	let dir = TempDir::new().unwrap();
+	let sh = script(dir.path(), "sh", "echo '1.0.0'", 0o755);
+
+	let error = resolve_claude(&path_str(&sh), &failing_shell(dir.path()), &[], TIMEOUT).unwrap_err();
+
+	assert!(error.contains("named claude"), "{error}");
+}
+
+#[test]
+fn resolve_refuses_a_relative_override() {
+	let dir = TempDir::new().unwrap();
+
+	let error = resolve_claude("claude", &failing_shell(dir.path()), &[], TIMEOUT).unwrap_err();
+
+	assert!(error.contains("not an executable file"), "{error}");
+}
+
+#[test]
+fn resolve_without_override_uses_the_candidates() {
+	let dir = TempDir::new().unwrap();
+	let claude = fake_claude(dir.path());
+
+	let resolved = resolve_claude("", &failing_shell(dir.path()), std::slice::from_ref(&claude), TIMEOUT).unwrap();
+
+	assert_eq!(resolved, claude);
 }
 
 #[test]

@@ -456,6 +456,16 @@ function handleClaudeStatus(): ClaudeStatus {
 	return { installed: false, path: null, version: null, error: 'claude is not available in the browser build' };
 }
 
+/** No `claude` CLI in the browser build, so no turn can start. */
+function handleClaudeRunTurn(): never {
+	throw new Error('claude is not available in the browser build');
+}
+
+/** Cancel is a no-op for an unknown run, and no run ever starts here. */
+function handleClaudeCancelTurn(): null {
+	return null;
+}
+
 function handleQuickCaptureNoop(): null {
 	return null;
 }
@@ -561,6 +571,8 @@ const HANDLERS: Handlers = {
 
 	// Claude Code
 	claude_status: handleClaudeStatus,
+	claude_run_turn: handleClaudeRunTurn,
+	claude_cancel_turn: handleClaudeCancelTurn,
 
 	// Quick capture
 	capture_clipboard_now: handleQuickCaptureNoop,

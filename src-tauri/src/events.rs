@@ -36,3 +36,7 @@ pub const QC_OPEN_COMPOSER_EVENT: &str = "qc:open-composer";
 /// Carries a `ComposerCaptureResult`: whether the main window wrote the
 /// capture note of one composer submit.
 pub const QC_COMPOSER_CAPTURE_RESULT_EVENT: &str = "qc:composer-capture-result";
+
+/// Carries one `ClaudeEventPayload` (`{ runId, event }`) per event of an
+/// agent turn started by `claude_run_turn`.
+pub const CLAUDE_EVENT: &str = "claude-event";
