@@ -93,7 +93,7 @@ The release body lists the merges on `preview`'s first-parent line whose branch 
 
 When `chore: bump version` lands on `main` before a stable tag push, `nightly.yml` short-circuits in its `guard` job to avoid duplicating the work `release.yml` is about to do for the same SHA.
 
-`preview.yml` copies `nightly.yml`'s build steps with `KOKO_RELEASE_CHANNEL=preview`, the tag `preview`, its own Rust cache key (`macos-preview-aarch64`) and the version from `resolveVersion(..., channel: 'preview')`. Its `guard` skips the same release-flow commits on `main` (sync and build both); a push to `preview` or a manual run always builds the `preview` head. Concurrency group `preview`; only a push to `preview` cancels the running run.
+`preview.yml` copies `nightly.yml`'s build steps with `KOKO_RELEASE_CHANNEL=preview`, the tag `preview`, its own Rust cache key (`macos-preview-aarch64`) and the version from `resolveVersion(..., channel: 'preview')`. Unlike `nightly.yml`, its `guard` syncs and builds the `chore: bump version` commit on `main`: `release.yml` builds no preview, and skipping the bump would leave `preview` on the old base version, below the new stable. Only `[skip nightly]` skips a push to `main` (sync and build both); a push to `preview` or a manual run always builds the `preview` head. Concurrency group `preview`; only a push to `preview` cancels the running run.
 
 ## Verifying a download
 
