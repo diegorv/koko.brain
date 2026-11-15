@@ -4,6 +4,8 @@
 
 **Blocked by:** 02
 
+**Files:** src/,e2e/
+
 **Status:** ready-for-agent
 
 **Gate:** `pnpm check` + `pnpm vitest run`
