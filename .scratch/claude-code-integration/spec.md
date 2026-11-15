@@ -56,5 +56,6 @@ Changed-files summary and revert (git diff when the vault is a repo, as Tolaria 
 | # | Issue | Blocked by | Status |
 |---|---|---|---|
 | [01](issues/01-claude-binary-detection.md) | Detect the `claude` binary and show its status in Settings | none | ready-for-agent |
-| [02](issues/02-rust-turn-runner.md) | Rust turn runner: spawn, NDJSON to events, cancel | 01 | ready-for-agent |
+| [02](issues/02-rust-turn-runner.md) | Rust turn runner: spawn, NDJSON to events, cancel | 01, 04 | ready-for-agent |
 | [03](issues/03-claude-chat-panel.md) | Agent panel: chat, note context, slash commands | 02 | ready-for-agent |
+| [04](issues/04-claude-settings-per-machine.md) | Claude Code settings per machine, not in the vault | 01 | ready-for-agent |

@@ -36,11 +36,13 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | in-progress | | |
-| 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | todo | | |
+| 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01, 04 | todo | | |
 | 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | todo | | |
+| 04 | [Claude Code settings per machine, not in the vault](issues/04-claude-settings-per-machine.md) | 01 | todo | | |
 
 ## Log
 
 - 2026-11-14 21:17 — ledger created (3 Issues)
 - 2026-11-14 21:17 — 01 — start — launched by /relay-lite:run — a8e1f1c68
 - 2026-11-14 21:21 — 01 — start — launched by /relay-lite:run on mvp-claude — 2f1efc8d6
+- 2026-11-14 21:37 — ledger updated (added 04; blocked by of 02)
