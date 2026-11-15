@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | in-progress | | |
+| 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | todo | | |
 | 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | todo | | |
 | 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | todo | | |
 
