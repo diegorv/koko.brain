@@ -2,6 +2,7 @@
 	import { tick, untrack } from 'svelte';
 	import X from '@lucide/svelte/icons/x';
 	import Plus from '@lucide/svelte/icons/plus';
+	import LoaderIcon from '@lucide/svelte/icons/loader';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { filterAndRank, flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -209,7 +210,8 @@
 			<Button variant="outline" size="sm" onclick={() => settingsPanelStore.open('claude-code')}>Open Claude Code settings</Button>
 		</div>
 	{:else}
-		<div bind:this={messagesEl} class="min-h-0 flex-1 overflow-y-auto p-3" onscroll={onMessagesScroll} data-claude-messages>
+		<!-- The app body sets user-select: none; replies and tool output must stay copyable. -->
+		<div bind:this={messagesEl} class="min-h-0 flex-1 select-text overflow-y-auto p-3" onscroll={onMessagesScroll} data-claude-messages>
 			{#if claudeStore.messages.length === 0}
 				<p class="text-right-sidebar-muted-fg" data-claude-empty>
 					Ask Claude about the attached notes, or about the whole vault when none are attached.
@@ -231,7 +233,8 @@
 									<summary class="flex cursor-default items-baseline gap-1.5 px-2 py-1">
 										<span class="font-medium" data-claude-tool-name>{part.name}</span>
 										<span class="min-w-0 truncate text-right-sidebar-muted-fg" data-claude-tool-target>{part.target}</span>
-										<span class="ml-auto shrink-0 text-right-sidebar-muted-fg">
+										<span class="ml-auto inline-flex shrink-0 items-center gap-1 text-right-sidebar-muted-fg">
+											{#if part.status === 'running'}<LoaderIcon class="size-3 animate-spin" />{/if}
 											{part.status === 'error' ? 'failed' : part.status}
 										</span>
 									</summary>
@@ -246,6 +249,11 @@
 			{/each}
 			{#if claudeStore.error}
 				<p class="text-destructive" role="alert" data-claude-error>{claudeStore.error}</p>
+			{/if}
+			{#if claudeStore.isRunning}
+				<p class="flex select-none items-center gap-1.5 text-right-sidebar-muted-fg" data-claude-working>
+					<LoaderIcon class="size-3.5 animate-spin" />Working...
+				</p>
 			{/if}
 		</div>
 
