@@ -6,6 +6,7 @@
 
 import type {
 	CachedScanResult,
+	ClaudeStatus,
 	DiffLine,
 	FileNode,
 	FileReadResult,
@@ -216,6 +217,8 @@ export interface CommandMap {
 		args: { channel: string; allowDowngrades?: boolean };
 		result: UpdateMetadata | null;
 	};
+	/** Finds the `claude` CLI (blank `binaryPath` = auto lookup) and reports its version (`commands/claude.rs`). */
+	claude_status: { args: { binaryPath: string }; result: ClaudeStatus };
 	/** Rust-only: registered but not invoked from TS (`quick_capture/commands.rs`). */
 	capture_clipboard_now: { args: NoArgs; result: null };
 	/** Rust-only: registered but not invoked from TS. */
@@ -321,6 +324,7 @@ export const COMMAND_ARGS = {
 	configure_sentry: ['enabled', 'dsn', 'release'],
 	list_system_fonts: [],
 	check_for_update_on_channel: ['channel', 'allowDowngrades?'],
+	claude_status: ['binaryPath'],
 	capture_clipboard_now: [],
 	open_composer: [],
 	dismiss_composer: [],

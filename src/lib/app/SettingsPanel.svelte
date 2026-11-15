@@ -12,6 +12,7 @@
 	import EventCalendarSection from '#lib/features/event-calendar/EventCalendarSection.svelte';
 	import TrashSection from '#lib/core/settings/sections/TrashSection.svelte';
 	import TodoistSection from '#lib/features/todoist-sync/TodoistSection.svelte';
+	import ClaudeCodeSection from '#lib/features/claude-code/ClaudeCodeSection.svelte';
 	import SentrySection from '#lib/core/settings/sections/SentrySection.svelte';
 	import TroubleshootingSection from '#lib/core/settings/sections/TroubleshootingSection.svelte';
 	import UpdateSection from '#lib/core/settings/sections/UpdateSection.svelte';
@@ -30,6 +31,7 @@
 	import FolderOutputIcon from '@lucide/svelte/icons/folder-output';
 	import Trash2Icon from '@lucide/svelte/icons/trash-2';
 	import CircleCheckIcon from '@lucide/svelte/icons/circle-check';
+	import BotIcon from '@lucide/svelte/icons/bot';
 	import ShieldAlertIcon from '@lucide/svelte/icons/shield-alert';
 	import BugIcon from '@lucide/svelte/icons/bug';
 	import DownloadIcon from '@lucide/svelte/icons/download';
@@ -54,6 +56,7 @@
 		'auto-organize': FolderOutputIcon,
 		trash: Trash2Icon,
 		todoist: CircleCheckIcon,
+		'claude-code': BotIcon,
 		sentry: ShieldAlertIcon,
 		troubleshooting: BugIcon,
 		update: DownloadIcon,
@@ -81,6 +84,7 @@
 		'auto-organize': AutoOrganizeSection,
 		trash: TrashSection,
 		todoist: TodoistSection,
+		'claude-code': ClaudeCodeSection,
 		sentry: SentrySection,
 		troubleshooting: TroubleshootingSection,
 		update: UpdateSection,

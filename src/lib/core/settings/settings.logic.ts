@@ -289,7 +289,10 @@ export const SETTINGS_SECTION_GROUPS: readonly SettingsSectionGroup[] = [
 	},
 	{
 		group: 'Integrations',
-		sections: [{ id: 'todoist', label: 'Todoist' }],
+		sections: [
+			{ id: 'todoist', label: 'Todoist' },
+			{ id: 'claude-code', label: 'Claude Code' },
+		],
 	},
 	{
 		group: 'Advanced',

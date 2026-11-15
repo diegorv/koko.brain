@@ -6,7 +6,7 @@ A complete reference for all application settings. Open Settings with `Cmd+,` or
 
 Settings are stored per vault in `.kokobrain/settings.json` inside the vault folder. Each vault can have different settings, so you can tailor the experience to each project or area of your life.
 
-The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Layout), **Notes** (Types, Periodic Notes, Quick Capture, 1:1 Notes, Calendar), **Vault** (Files & Folders, File History, Auto Organize, Trash), **Tools** (Search, QueryJS), **Integrations** (Todoist), **Advanced** (Sentry, Troubleshooting, Update), and **Labs** (experimental features).
+The Settings dialog has a navigation list organized into groups: **General** (Appearance, Editor, Layout), **Notes** (Types, Periodic Notes, Quick Capture, 1:1 Notes, Calendar), **Vault** (Files & Folders, File History, Auto Organize, Trash), **Tools** (Search, QueryJS), **Integrations** (Todoist, Claude Code), **Advanced** (Sentry, Troubleshooting, Update), and **Labs** (experimental features).
 
 The Labs settings are the exception: they are stored on this machine, keyed by the vault's path, not in `settings.json`. See [Labs](#labs).
 
@@ -260,6 +260,17 @@ Rules and excluded folders are managed in the Auto Organize settings section and
 Get your token from: [todoist.com/prefs/integrations](https://todoist.com/prefs/integrations) > Developer > API token.
 
 See [Todoist Sync](29-todoist-sync.md) for the full guide to the two-way sync, and [Tasks & Todoist](10-tasks-and-todoist.md#todoist-sync) for how it fits the Tasks view. With sync on, the status bar shows the sync state (see [Status Bar](03-editor.md#status-bar)).
+
+## Claude Code
+
+Shows whether the `claude` command (Claude Code) is installed and lets you turn the integration on. Kokobrain runs your installed `claude` command and makes no network call itself; when the integration is on, note content goes to Anthropic through your Claude Code account.
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Enable Claude Code** (`claudeCode.enabled`) | Turns the integration on. The first time, a notice says that note content goes to Anthropic and that the agent runs with full permissions (any shell command, any file you can write, without asking). Choose **Enable** to confirm or **Cancel** to leave it off. | Disabled (`false`) |
+| **Path to claude** (`claudeCode.binaryPath`) | Leave empty to find `claude` through your login shell and then `~/.local/bin`, `~/.claude/local`, `/opt/homebrew/bin` and `/usr/local/bin`. When set, it must be an executable file, otherwise the status says so. | Empty |
+
+The **claude command** row shows the version and path that were found, or why nothing was found. **Check again** repeats the lookup, for example after you install Claude Code or change the path.
 
 ## QueryJS
 

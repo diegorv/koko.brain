@@ -388,6 +388,7 @@ pub fn run() {
             commands::sentry::configure_sentry,
             commands::fonts::list_system_fonts,
             commands::update_channel::check_for_update_on_channel,
+            commands::claude::claude_status,
             quick_capture::commands::capture_clipboard_now,
             quick_capture::commands::open_composer,
             quick_capture::commands::dismiss_composer,

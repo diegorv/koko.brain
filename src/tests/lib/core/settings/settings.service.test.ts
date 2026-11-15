@@ -278,6 +278,42 @@ describe('loadSettings', () => {
 		});
 	});
 
+	it('keeps Claude Code off when a saved file has no Claude Code settings', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({ editor: { fontSize: 18 } }));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.claudeCode).toEqual({ enabled: false, binaryPath: '', privacyAcknowledged: false });
+	});
+
+	it('round-trips the Claude Code settings through a save and a reload', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+		settingsStore.updateClaudeCode({ enabled: true, binaryPath: '/opt/claude', privacyAcknowledged: true });
+
+		await saveSettings('/vault');
+		const written = vi.mocked(writeTextFile).mock.calls[0][1];
+		settingsStore.reset();
+		vi.mocked(readTextFile).mockResolvedValue(written);
+		await loadSettings('/vault');
+
+		expect(settingsStore.claudeCode).toEqual({ enabled: true, binaryPath: '/opt/claude', privacyAcknowledged: true });
+	});
+
+	it('does not treat non-boolean saved Claude Code flags as consent', async () => {
+		vi.mocked(exists).mockResolvedValue(true);
+		vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+			claudeCode: { enabled: 'true', binaryPath: 42, privacyAcknowledged: 1 },
+		}));
+		vi.mocked(writeTextFile).mockResolvedValue(undefined);
+
+		await loadSettings('/vault');
+
+		expect(settingsStore.claudeCode).toEqual({ enabled: false, binaryPath: '', privacyAcknowledged: false });
+	});
+
 	it('merges templates settings with defaults', async () => {
 		vi.mocked(exists).mockResolvedValue(true);
 		vi.mocked(readTextFile).mockResolvedValue(

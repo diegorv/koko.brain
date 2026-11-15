@@ -18,6 +18,7 @@ import type { CommandArgs, CommandMap, CommandResult } from '../../src/lib/contr
 import type { EventMap } from '../../src/lib/contracts/events';
 import type {
 	CachedScanResult,
+	ClaudeStatus,
 	FileNode,
 	FileReadResult,
 	FileTaskGroup,
@@ -450,6 +451,11 @@ function handleCheckForUpdateOnChannel(): null {
 	return null;
 }
 
+/** The browser build has no `claude` CLI: report it as not installed. */
+function handleClaudeStatus(): ClaudeStatus {
+	return { installed: false, path: null, version: null, error: 'claude is not available in the browser build' };
+}
+
 function handleQuickCaptureNoop(): null {
 	return null;
 }
@@ -552,6 +558,9 @@ const HANDLERS: Handlers = {
 
 	// Updater
 	check_for_update_on_channel: handleCheckForUpdateOnChannel,
+
+	// Claude Code
+	claude_status: handleClaudeStatus,
 
 	// Quick capture
 	capture_clipboard_now: handleQuickCaptureNoop,
