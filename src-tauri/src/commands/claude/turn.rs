@@ -5,7 +5,8 @@
 //! Std threads, not tokio: a run is two blocking pipe readers and a `wait`.
 
 use super::stream::{dispatch_line, ClaudeEvent, StreamState};
-use super::{resolve_claude, NESTED_SESSION_ENV, VERSION_TIMEOUT};
+use super::shell_env::{EnvVars, TurnEnv};
+use super::{resolve_turn_claude, NESTED_SESSION_ENV, VERSION_TIMEOUT};
 use crate::utils::logger::debug_log;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
@@ -107,13 +108,16 @@ pub fn build_args(request: &ClaudeTurnRequest) -> Vec<String> {
 	args
 }
 
-/// The process of a turn: cwd = vault, `CLAUDECODE` removed, stdin closed,
-/// stdout and stderr piped separately, in its own process group so cancel
-/// also kills the tools it started.
-pub fn turn_command(binary: &Path, request: &ClaudeTurnRequest) -> Command {
+/// The process of a turn: cwd = vault, exactly `env` (none of the app's own
+/// variables) minus `CLAUDECODE`, stdin closed, stdout and stderr piped
+/// separately, in its own process group so cancel also kills the tools it
+/// started.
+pub fn turn_command(binary: &Path, request: &ClaudeTurnRequest, env: &EnvVars) -> Command {
 	let mut cmd = Command::new(binary);
 	cmd.args(build_args(request))
 		.current_dir(&request.vault_path)
+		.env_clear()
+		.envs(env)
 		.env_remove(NESTED_SESSION_ENV)
 		.stdin(Stdio::null())
 		.stdout(Stdio::piped())
@@ -159,8 +163,8 @@ impl ClaudeRuns {
 	}
 }
 
-/// Resolves the binary and starts a turn; returns its run id at once while
-/// the events stream to `sink` from a background thread.
+/// Resolves the binary on `env` and starts a turn with `env`; returns its run
+/// id at once while the events stream to `sink` from a background thread.
 ///
 /// Returns an error, with nothing spawned, when the binary is refused or
 /// missing, or when the vault already has a turn running. Once a run id
@@ -169,6 +173,7 @@ impl ClaudeRuns {
 pub fn run_turn_with<F>(
 	runs: &ClaudeRuns,
 	request: ClaudeTurnRequest,
+	env: &TurnEnv,
 	shell: &Path,
 	candidates: &[PathBuf],
 	sink: F,
@@ -176,7 +181,7 @@ pub fn run_turn_with<F>(
 where
 	F: Fn(ClaudeEventPayload) + Send + 'static,
 {
-	let binary = resolve_claude(&request.binary_path, shell, candidates, VERSION_TIMEOUT)?;
+	let binary = resolve_turn_claude(&request.binary_path, env, shell, candidates, VERSION_TIMEOUT)?;
 	let run_id = uuid::Uuid::new_v4().to_string();
 	let emit = {
 		let run_id = run_id.clone();
@@ -189,7 +194,7 @@ where
 	if map.values().any(|run| run.vault_path == request.vault_path) {
 		return Err("A Claude turn is already running for this vault".into());
 	}
-	let mut child = match turn_command(&binary, &request).spawn() {
+	let mut child = match turn_command(&binary, &request, &env.vars).spawn() {
 		Ok(child) => child,
 		Err(e) => {
 			drop(map);

@@ -323,6 +323,7 @@ pub fn run() {
         .manage(LastCaptureSignature::default())
         .manage(ExitFlushState::default())
         .manage(commands::claude::turn::ClaudeRuns::default())
+        .manage(commands::claude::shell_env::ShellEnv::default())
         .invoke_handler(tauri::generate_handler![
             commands::db::open_vault_db,
             commands::db::close_vault_db,

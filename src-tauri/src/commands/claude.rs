@@ -1,18 +1,22 @@
 //! The user's `claude` CLI (Claude Code): detection for the Settings status,
 //! and the agent panel's turns (ADR-0038). `stream` parses a turn's stdout,
-//! `turn` spawns and cancels it.
+//! `turn` spawns and cancels it, `shell_env` captures the login shell
+//! environment a turn runs with.
 //!
 //! A macOS app launched from Finder does not inherit the login shell PATH, so
-//! the lookup asks the login shell before trying the known install paths.
+//! the lookup asks the login shell (or, for a turn, searches the captured
+//! PATH) before trying the known install paths.
 //! Processes are spawned with `std::process::Command`; the app does not use
 //! `tauri-plugin-shell`.
 
+pub mod shell_env;
 pub mod stream;
 pub mod turn;
 
 use crate::events::CLAUDE_EVENT;
 use crate::utils::logger::debug_log;
 use serde::Serialize;
+use shell_env::{clean_base, turn_env, ShellEnv, TurnEnv};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -153,11 +157,45 @@ pub fn resolve_claude(
 	}
 }
 
+/// The `claude` binary for a turn run with `env`. Order: `override_path` as
+/// in [`resolve_claude`], then a file named `claude` in an absolute directory
+/// of the env's `PATH`, then, for a captured env, the first executable of
+/// `candidates`, or, for the fallback env, [`resolve_claude`]'s login-shell
+/// lookup and candidates. A captured env therefore runs no extra shell.
+pub fn resolve_turn_claude(
+	override_path: &str,
+	env: &TurnEnv,
+	shell: &Path,
+	candidates: &[PathBuf],
+	timeout: Duration,
+) -> Result<PathBuf, String> {
+	if !override_path.trim().is_empty() {
+		return resolve_claude(override_path, shell, candidates, timeout);
+	}
+	let on_path = env.vars.get(&OsString::from("PATH")).and_then(|path| {
+		std::env::split_paths(path)
+			.filter(|dir| dir.is_absolute())
+			.map(|dir| dir.join("claude"))
+			.find(|binary| is_executable_file(binary))
+	});
+	match on_path {
+		Some(binary) => Ok(binary),
+		None if env.captured => first_executable(candidates)
+			.ok_or_else(|| "claude was not found on the login shell PATH or in the known install locations".into()),
+		None => resolve_claude("", shell, candidates, timeout),
+	}
+}
+
 /// Checks the Settings override, or finds `claude` on this machine, and
 /// reports its version. Runs off the async runtime because the lookup and
 /// `--version` block for up to `VERSION_TIMEOUT` each.
+///
+/// Also discards the cached login shell environment and starts a fresh
+/// capture in the background without waiting for it, so opening the Claude
+/// Code settings or "Check again" picks up rc file edits.
 #[tauri::command]
-pub async fn claude_status(binary_path: String) -> Result<ClaudeStatus, String> {
+pub async fn claude_status(shell_env: tauri::State<'_, ShellEnv>, binary_path: String) -> Result<ClaudeStatus, String> {
+	drop(shell_env.refresh());
 	tokio::task::spawn_blocking(move || {
 		let home = std::env::var_os("HOME").map(PathBuf::from);
 		claude_status_with(&binary_path, &login_shell(), &default_candidates(home.as_deref()), VERSION_TIMEOUT)
@@ -169,18 +207,23 @@ pub async fn claude_status(binary_path: String) -> Result<ClaudeStatus, String> 
 /// Starts an agent turn and returns its run id; events arrive on
 /// `claude-event` as `{ runId, event }`, ending with `Done`. Fails, with
 /// nothing spawned, when the binary is refused or missing or the vault
-/// already has a turn running. Runs off the async runtime because the
-/// login-shell lookup blocks for up to `VERSION_TIMEOUT`.
+/// already has a turn running. Runs off the async runtime because it waits
+/// for the login shell environment capture (up to its deadline) before
+/// spawning, so `claude` and its MCP servers never start with the app's env.
 #[tauri::command]
 pub async fn claude_run_turn(
 	app: tauri::AppHandle,
 	runs: tauri::State<'_, ClaudeRuns>,
+	shell_env: tauri::State<'_, ShellEnv>,
 	request: ClaudeTurnRequest,
 ) -> Result<String, String> {
 	let runs = runs.inner().clone();
+	let shell_env = shell_env.inner().clone();
 	tokio::task::spawn_blocking(move || {
+		let env = turn_env(shell_env.get(), &clean_base(std::env::vars_os()));
 		let home = std::env::var_os("HOME").map(PathBuf::from);
-		run_turn_with(&runs, request, &login_shell(), &default_candidates(home.as_deref()), move |payload| {
+		let candidates = default_candidates(home.as_deref());
+		run_turn_with(&runs, request, &env, &login_shell(), &candidates, move |payload| {
 			if let Err(e) = app.emit(CLAUDE_EVENT, &payload) {
 				debug_log("CLAUDE", format!("emit failed: {e}"));
 			}

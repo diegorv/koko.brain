@@ -272,6 +272,8 @@ Shows whether the `claude` command (Claude Code) is installed and lets you turn 
 
 The **claude command** row shows the version and path that were found, or why nothing was found. **Check again** repeats the lookup, for example after you install Claude Code or change the path.
 
+`claude` runs with the environment of your login shell, as in a terminal, so its tools, hooks and MCP servers find the same commands and variables. Kokobrain reads that environment by starting your login shell (`$SHELL -l -i`) in your home folder when the Claude Code settings open, on **Check again**, and before the first turn when it has not read it yet; it gives up after 10 seconds and then uses `/usr/bin`, `/bin` and the usual install folders that exist (Homebrew, `~/.local/bin`, mise, asdf, Volta, Bun). While it does this, `KOKOBRAIN_RESOLVING_ENVIRONMENT=1` is set, so your `.zshrc` can skip slow or interactive steps. Changes to `.zshrc` or `.zprofile` apply after **Check again** or a restart.
+
 ## QueryJS
 
 | Setting | Description | Default |

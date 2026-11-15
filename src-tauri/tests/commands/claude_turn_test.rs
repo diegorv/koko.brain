@@ -5,10 +5,12 @@
 
 #![cfg(unix)]
 
+use kokobrain_lib::commands::claude::shell_env::{capture_with, child_env, clean_base, EnvVars, TurnEnv, SYSTEM_PATH};
 use kokobrain_lib::commands::claude::stream::{dispatch_line, ClaudeEvent, StreamState};
 use kokobrain_lib::commands::claude::turn::{
 	build_args, run_turn_with, system_prompt, turn_command, ClaudeEventPayload, ClaudeRuns, ClaudeTurnRequest,
 };
+use std::ffi::OsString;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -41,14 +43,47 @@ fn request(vault: &Path, binary: &Path) -> ClaudeTurnRequest {
 	}
 }
 
+/// An env with only the system PATH, as a captured env would be.
+fn system_env() -> TurnEnv {
+	TurnEnv { vars: EnvVars::from([("PATH".into(), SYSTEM_PATH.into())]), captured: true }
+}
+
 /// Starts a run with a fake `claude` and returns its id and event receiver.
 fn start(runs: &ClaudeRuns, dir: &Path, req: ClaudeTurnRequest) -> Result<(String, Receiver<ClaudeEventPayload>), String> {
+	start_with_env(runs, dir, req, &system_env())
+}
+
+fn start_with_env(
+	runs: &ClaudeRuns,
+	dir: &Path,
+	req: ClaudeTurnRequest,
+	env: &TurnEnv,
+) -> Result<(String, Receiver<ClaudeEventPayload>), String> {
 	let (tx, rx) = channel();
 	let shell = script(dir, "fake-shell-none", "exit 1");
-	let run_id = run_turn_with(runs, req, &shell, &[], move |payload| {
+	let run_id = run_turn_with(runs, req, env, &shell, &[], move |payload| {
 		let _ = tx.send(payload);
 	})?;
 	Ok((run_id, rx))
+}
+
+/// A fake `claude` whose `result` text is the shell expansion `expr`.
+fn reporting_claude(dir: &Path, expr: &str) -> PathBuf {
+	script(
+		dir,
+		"claude",
+		&format!(r#"printf '{{"type":"result","subtype":"success","is_error":false,"session_id":"s","result":"%s"}}\n' "{expr}""#),
+	)
+}
+
+fn result_text(events: &[ClaudeEvent]) -> String {
+	events
+		.iter()
+		.find_map(|e| match e {
+			ClaudeEvent::Result { text, .. } => Some(text.clone()),
+			_ => None,
+		})
+		.unwrap_or_else(|| panic!("no Result event: {events:?}"))
 }
 
 /// Receives events until `Done`, checking every one carries `run_id`.
@@ -158,16 +193,78 @@ fn system_prompt_lists_the_context_notes() {
 }
 
 #[test]
-fn turn_command_runs_in_the_vault_without_claudecode() {
+fn turn_command_runs_in_the_vault_with_the_given_env_without_claudecode() {
 	let req = request(Path::new("/vault"), Path::new("/bin/claude"));
+	let env = EnvVars::from([("PATH".into(), "/x/bin".into()), ("CLAUDECODE".into(), "1".into())]);
 
-	let cmd = turn_command(Path::new("/bin/claude"), &req);
+	let cmd = turn_command(Path::new("/bin/claude"), &req, &env);
 
 	assert_eq!(cmd.get_program(), "/bin/claude");
 	assert_eq!(cmd.get_current_dir(), Some(Path::new("/vault")));
 	let args: Vec<_> = cmd.get_args().map(|a| a.to_string_lossy().into_owned()).collect();
 	assert_eq!(args, build_args(&req));
-	assert!(cmd.get_envs().any(|(key, value)| key == "CLAUDECODE" && value.is_none()));
+	// After `env_clear` the child gets exactly the listed vars.
+	let envs: Vec<_> = cmd.get_envs().collect();
+	assert_eq!(envs, [("PATH".as_ref(), Some("/x/bin".as_ref()))]);
+}
+
+// --- the turn's environment ------------------------------------------------------
+
+#[test]
+fn claude_gets_the_login_shell_env_and_not_the_app_env() {
+	let dir = TempDir::new().unwrap();
+	let home = TempDir::new().unwrap();
+	// Set only in this test process, as a dev launch from a terminal would.
+	std::env::set_var("KOKO_TEST_APP_ONLY_TURN", "leaked");
+	let shell = script(dir.path(), "fake-login-shell", "export KOKO_LOGIN_VAR=from-login-shell\nexec /bin/sh -c \"$4\"");
+	let mut base = clean_base(std::env::vars_os());
+	base.insert("HOME".into(), home.path().into());
+	let captured = capture_with(&shell, &base, Duration::from_secs(5)).unwrap();
+	let env = TurnEnv { vars: child_env(&captured), captured: true };
+	let claude = reporting_claude(dir.path(), "$KOKO_LOGIN_VAR|${KOKO_TEST_APP_ONLY_TURN:-absent}");
+	let vault = TempDir::new().unwrap();
+	let runs = ClaudeRuns::default();
+
+	let (run_id, rx) = start_with_env(&runs, dir.path(), request(vault.path(), &claude), &env).unwrap();
+	let events = collect_until_done(&rx, &run_id);
+
+	assert_eq!(result_text(&events), "from-login-shell|absent");
+}
+
+#[test]
+fn claude_is_found_on_the_env_path() {
+	let dir = TempDir::new().unwrap();
+	let bin = TempDir::new().unwrap();
+	reporting_claude(bin.path(), "from-path");
+	let vault = TempDir::new().unwrap();
+	let runs = ClaudeRuns::default();
+	let path = format!("{}:{SYSTEM_PATH}", path_str(bin.path()));
+	let env = TurnEnv { vars: EnvVars::from([("PATH".into(), OsString::from(path))]), captured: true };
+
+	let (run_id, rx) = start_with_env(&runs, dir.path(), request(vault.path(), Path::new("")), &env).unwrap();
+	let events = collect_until_done(&rx, &run_id);
+
+	assert_eq!(result_text(&events), "from-path");
+}
+
+#[test]
+fn captured_env_without_claude_runs_no_login_shell() {
+	let dir = TempDir::new().unwrap();
+	let marker = dir.path().join("shell-ran");
+	let shell = script(dir.path(), "fake-shell-marker", &format!("touch '{}'\nexit 1", path_str(&marker)));
+	let vault = TempDir::new().unwrap();
+	let runs = ClaudeRuns::default();
+	let req = request(vault.path(), Path::new(""));
+
+	let error = run_turn_with(&runs, req.clone(), &system_env(), &shell, &[], |_| {}).unwrap_err();
+
+	assert!(error.contains("not found"), "{error}");
+	assert!(!marker.exists(), "a captured env must not run the login-shell lookup");
+
+	// With the fallback env, Issue 01's login-shell lookup still runs.
+	let fallback = TurnEnv { captured: false, ..system_env() };
+	let _ = run_turn_with(&runs, req, &fallback, &shell, &[], |_| {}).unwrap_err();
+	assert!(marker.exists(), "the fallback env keeps the login-shell lookup");
 }
 
 // --- runs ----------------------------------------------------------------------
@@ -210,7 +307,11 @@ fn sleeping_run_cancelled_mid_run_ends_in_done() {
 	let dir = TempDir::new().unwrap();
 	let init = r#"{"type":"system","subtype":"init","session_id":"s","model":"m","slash_commands":[]}"#;
 	// No `exec`: the kill must reach the sleeping grandchild through the group.
-	let claude = script(dir.path(), "claude", &format!("echo '{init}'\nsleep 30\necho 'never'"));
+	// The grandchild starts before Init is printed, so the cancel never lands
+	// while `sh` is still forking it (a child forked during `killpg` can miss
+	// the signal on macOS: `.scratch/claude-code-integration/issues/07-cancel-
+	// misses-a-child-forked-during-killpg.md`).
+	let claude = script(dir.path(), "claude", &format!("sleep 30 &\necho '{init}'\nwait\necho 'never'"));
 	let vault = TempDir::new().unwrap();
 	let runs = ClaudeRuns::default();
 
