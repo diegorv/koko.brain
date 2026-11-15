@@ -6,14 +6,14 @@
 
 **Files:** src-tauri/tests/
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml`
 
-- [ ] The fixture is the real capture in `.scratch/claude-code-integration/research/stream-json-capture/turn.ndjson` (one turn that streams text, calls `Read` and ends in a `result`, personal values already replaced), copied over `src-tauri/tests/fixtures/claude/stream.ndjson` unchanged.
-- [ ] The parser tests that read the fixture pass against it, or are updated to the fields the real stream sends.
+- [x] The fixture is the real capture in `.scratch/claude-code-integration/research/stream-json-capture/turn.ndjson` (one turn that streams text, calls `Read` and ends in a `result`, personal values already replaced), copied over `src-tauri/tests/fixtures/claude/stream.ndjson` unchanged.
+- [x] The parser tests that read the fixture pass against it, or are updated to the fields the real stream sends.
 - [x] Owner decision recorded in Notes: the capture needs a paid `claude` run on the owner's machine.
-- [ ] The `system` events the CLI sends besides `init` (`hook_started`, `hook_response`, `status`) are skipped without an error event, tested against the fixture.
+- [x] The `system` events the CLI sends besides `init` (`hook_started`, `hook_response`, `status`) are skipped without an error event, tested against the fixture.
 
 ## Problem
 
@@ -24,3 +24,7 @@ Found by Issue 02's review (finding 6) and carried by Issue 03's Notes, which pl
 - Owner decision (2026-11-15): the owner approved this Issue, which needs a paid run. The main session made it on the owner's machine with claude 2.1.325 in a temporary vault with one note (`notes/hello.md`): `claude -p --output-format stream-json --verbose --include-partial-messages --permission-mode bypassPermissions --no-session-persistence -- "Read notes/hello.md with the Read tool, then reply with its second line only."`, exit 0, 40 lines. The agent makes no `claude` run.
 - Sanitized before commit: the vault path became `/vault` (also inside the `input_json_delta` chunks, rejoined and re-split into the same number of chunks), the home dir `/Users/user`; the `init` lists (`tools` MCP entries, `slash_commands`, `skills`, `plugins`, `mcp_servers`) were cut to neutral entries in the real shape; of 6 `SessionStart` hook pairs one `hook_started`/`hook_response` pair is kept, with `output`, `stdout` and `stderr` emptied. Everything else is as the CLI printed it.
 - Differences from the hand-written fixture: no `thinking` block; the first message is a single `tool_use` block streamed in 10 `input_json_delta` chunks; `hook_started`/`hook_response` system events before `init`; `assistant.message.content[].caller`, `user.tool_use_result` and `user.tool_result_meta`; `init` and `result` carry many more keys (`capabilities`, `memory_paths`, `modelUsage`, `ttft_ms`, ...). Assertions on the old fixture's values (`sess-1`, `notes/a.md`, `Done.`) change to the capture's.
+
+## Comments
+
+- 2026-11-15, branch `issue/08-real-stream-json-fixture`: `src-tauri/tests/fixtures/claude/stream.ndjson` is now the sanitized real capture; parser tests in `commands_test` assert the capture's values and that `hook_started`/`hook_response`/`status` system events are skipped without an error event; the fixture's hook trimming and pinned CLI version are described. Tests: targeted `cargo test --test commands_test claude_` 84 passed; full vitest 17069 passed, 54 skipped, 0 failed; full cargo test 1540 passed, 0 failed. Reviews: round 1 APPROVED (review.md), round 2 APPROVED with no findings (review-2.md) after a fix round.

@@ -1,11 +1,18 @@
 //! Tests for `commands::claude::stream`: the `claude -p --output-format
-//! stream-json` line parser. `fixtures/claude/stream.ndjson` holds one line of
-//! every type the CLI prints (spec, Verified CLI behavior).
+//! stream-json` line parser. `fixtures/claude/stream.ndjson` is a real capture
+//! (claude 2.1.325, one turn that calls `Read` then answers, with the vault
+//! path, home dir and `init` lists replaced by neutral values, and the
+//! `SessionStart` hook pairs cut to one with `output`/`stdout`/`stderr`
+//! emptied). It pins the parser to the 2.1.325 stream shape: a field a later
+//! CLI version renames fails these tests only after a re-capture.
 
 use kokobrain_lib::commands::claude::stream::{dispatch_line, ClaudeEvent, StreamState};
 use serde_json::json;
 
 const RECORDED: &str = include_str!("../fixtures/claude/stream.ndjson");
+
+const SESSION: &str = "0bf03d03-7914-4ed8-ad68-068dc94c9c0f";
+const TOOL_ID: &str = "toolu_01Na6FCUShnuo6KpS93GSNzv";
 
 fn dispatch_all(text: &str) -> (Vec<ClaudeEvent>, StreamState) {
 	let mut state = StreamState::default();
@@ -21,31 +28,62 @@ fn recorded_stream_maps_to_events_in_order() {
 		events,
 		vec![
 			ClaudeEvent::Init {
-				session_id: "sess-1".into(),
+				session_id: SESSION.into(),
 				model: "claude-opus-5-5".into(),
-				slash_commands: vec!["hello".into(), "review".into()],
-				skills: vec!["tdd".into(), "grilling".into()],
+				slash_commands: vec!["code-review".into(), "hello".into(), "init".into()],
+				skills: vec!["code-review".into()],
 			},
-			ClaudeEvent::ThinkingDelta { text: "Let me look.".into() },
-			ClaudeEvent::TextDelta { text: "I'll read ".into() },
-			ClaudeEvent::TextDelta { text: "the note.".into() },
 			ClaudeEvent::ToolStart {
-				id: "toolu_1".into(),
+				id: TOOL_ID.into(),
 				name: "Read".into(),
-				input: json!({ "file_path": "notes/a.md" }),
+				input: json!({ "file_path": "/vault/notes/hello.md" }),
 			},
-			ClaudeEvent::ToolResult { id: "toolu_1".into(), is_error: false, summary: "# A\nhello".into() },
-			ClaudeEvent::TextDelta { text: "Done.".into() },
-			ClaudeEvent::Result {
-				session_id: "sess-1".into(),
-				text: "Done.".into(),
+			ClaudeEvent::ToolResult {
+				id: TOOL_ID.into(),
 				is_error: false,
-				cost_usd: Some(0.0123),
+				summary: "1\t# Hello\n2\tThe capture note says hi.\n3\t".into(),
+			},
+			ClaudeEvent::TextDelta { text: "The capture note says hi.".into() },
+			ClaudeEvent::Result {
+				session_id: SESSION.into(),
+				text: "The capture note says hi.".into(),
+				is_error: false,
+				cost_usd: Some(0.2596148),
 				num_turns: Some(2),
 			},
 		]
 	);
 	assert!(state.saw_result);
+}
+
+#[test]
+fn recorded_system_events_other_than_init_are_skipped() {
+	let mut others: Vec<&str> = Vec::new();
+	let mut subtypes: Vec<String> = Vec::new();
+	for line in RECORDED.lines() {
+		let v: serde_json::Value = serde_json::from_str(line).unwrap();
+		if v["type"] == "system" && v["subtype"] != "init" {
+			others.push(line);
+			subtypes.push(v["subtype"].as_str().unwrap_or("").to_string());
+		}
+	}
+	for expected in ["hook_started", "hook_response", "status"] {
+		assert!(subtypes.iter().any(|s| s == expected), "fixture has no system/{expected}: {subtypes:?}");
+	}
+
+	let mut state = StreamState::default();
+	for line in others {
+		assert_eq!(dispatch_line(line, &mut state), vec![], "{line}");
+	}
+	assert!(!state.saw_result);
+}
+
+#[test]
+fn thinking_delta_maps_to_thinking_event() {
+	let mut state = StreamState::default();
+	let line = r#"{"type":"stream_event","event":{"type":"content_block_delta","index":0,"delta":{"type":"thinking_delta","thinking":"Let me look."}}}"#;
+
+	assert_eq!(dispatch_line(line, &mut state), vec![ClaudeEvent::ThinkingDelta { text: "Let me look.".into() }]);
 }
 
 #[test]
@@ -69,6 +107,8 @@ fn each_recorded_line_type_is_handled() {
 	for kind in &kinds {
 		assert!(
 			[
+				"system/hook_started",
+				"system/hook_response",
 				"system/status",
 				"stream_event/message_start",
 				"stream_event/content_block_start",
