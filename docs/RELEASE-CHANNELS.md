@@ -75,7 +75,7 @@ On every push to `main`, the `sync` job of `preview.yml` merges `main` into `pre
 
 On a merge conflict the sync job aborts the merge and fails with a `::error::` naming the files and the commands to resolve it by hand: `git fetch origin && git checkout -B preview origin/preview && git merge origin/main`, fix, commit, `git push origin HEAD:refs/heads/preview`. No build runs until then.
 
-GitHub keeps only the newest pending run in the `preview` concurrency group. When a push to `preview` or a manual run replaces a pending run from a push to `main`, that sync never happens and `preview` lags `main` until the next push to `main`.
+A push to `preview` cancels the running preview run, whose build it makes outdated. A push to `main` or a manual run waits for the running one instead. GitHub keeps only the newest pending run in the `preview` concurrency group. When a run from a push to `main` is cancelled before its sync pushed, or a newer run replaces it while pending, that sync never happens and `preview` lags `main` until the next push to `main`.
 
 `preview` only grows: the workflow never force-pushes, rebases or resets it. The commit count in the version is taken on this branch, so rebuilding it from scratch would lower the count and the updater would stop offering newer builds. The `preview` tag shares the branch's name, so check the branch out from `origin/preview` (a bare `git checkout preview` without a local branch detaches at the tag, the last built head) and push it with the explicit `refs/heads/preview` refspec.
 
@@ -93,7 +93,7 @@ The release body lists the merges on `preview`'s first-parent line whose branch 
 
 When `chore: bump version` lands on `main` before a stable tag push, `nightly.yml` short-circuits in its `guard` job to avoid duplicating the work `release.yml` is about to do for the same SHA.
 
-`preview.yml` copies `nightly.yml`'s build steps with `KOKO_RELEASE_CHANNEL=preview`, the tag `preview`, its own Rust cache key (`macos-preview-aarch64`) and the version from `resolveVersion(..., channel: 'preview')`. Its `guard` skips the same release-flow commits on `main` (sync and build both); a push to `preview` or a manual run always builds the `preview` head. Concurrency group `preview`, never cancelled.
+`preview.yml` copies `nightly.yml`'s build steps with `KOKO_RELEASE_CHANNEL=preview`, the tag `preview`, its own Rust cache key (`macos-preview-aarch64`) and the version from `resolveVersion(..., channel: 'preview')`. Its `guard` skips the same release-flow commits on `main` (sync and build both); a push to `preview` or a manual run always builds the `preview` head. Concurrency group `preview`; only a push to `preview` cancels the running run.
 
 ## Verifying a download
 
