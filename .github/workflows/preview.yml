@@ -27,13 +27,17 @@ on:
       - ".github/actions/setup/**"
       - ".github/actions/publish-checksums/**"
   workflow_dispatch:
-# Never cancel a running run: a cancelled sync or build leaves preview behind
-# main or the release half-updated. GitHub keeps only the newest run pending:
-# a newer main push syncs the latest main anyway, but a preview push or manual
-# run that replaces a pending main-push run skips its sync until the next main push.
+# A push to preview cancels the running run, whose build it makes outdated.
+# A main push or a manual run never cancels one, so a burst of main pushes
+# cannot keep every build from publishing. A run cancelled mid-publish leaves
+# old and new assets side by side and the tag behind; the next run's snapshot
+# and prune clean that up. A cancel inside the seconds where tauri-action
+# replaces latest.json leaves none until the next run publishes. A cancelled
+# run from a main push that had not pushed its sync yet, or a pending one a
+# newer run replaces, leaves preview behind main until the next main push.
 concurrency:
   group: preview
-  cancel-in-progress: false
+  cancel-in-progress: ${{ github.event_name == 'push' && github.ref == 'refs/heads/preview' }}
 
 jobs:
   guard:

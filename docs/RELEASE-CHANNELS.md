@@ -63,7 +63,7 @@ A **Releases page** button next to it opens the selected channel's GitHub releas
 
 - **Use Stable** for everyday note-taking. Tagged builds, the full CI matrix (frontend + rust forced via `force_all: true`), Playwright E2E, the gitleaks scan, the Security audits and the Privacy scan as hard gates, slower cadence, fewer regressions.
 - **Use Nightly** if you want the latest fixes or are testing a feature that just merged. Every push to `main` that changes code queues a build; a running build always finishes, and during a burst only the newest pending push is built, so the published nightly may skip intermediate commits. Every push to `main` runs CI with the normal paths-filter (a docs-only commit doesn't re-run frontend tests) plus the full E2E suite in `main-checks.yml`, but neither gates the nightly build: a red check is signal for the maintainer, and the nightly DMG still publishes. The next stable tag-push re-runs both against the exact release SHA, there as hard gates.
-- **Use Preview** to test features that are not approved for `main` yet. It is Nightly plus the branches merged into `preview`, with no CI of its own: what lands there was tested on its own branch.
+- **Use Preview** to test features that are not approved for `main` yet. It is Nightly plus the branches merged into `preview`, with no CI of its own: a branch is tested only through its PR to `main`, so open one before merging the branch into `preview`.
 
 Nightly is built and signed by the same workflow infrastructure as Stable, so the binaries themselves are equally trustworthy. The difference is review surface and gate coverage — Nightly ships before the change has accumulated days of real-world use, and publishes even when CI or E2E goes red on the post-merge SHA.
 
@@ -75,7 +75,7 @@ On every push to `main`, the `sync` job of `preview.yml` merges `main` into `pre
 
 On a merge conflict the sync job aborts the merge and fails with a `::error::` naming the files and the commands to resolve it by hand: `git fetch origin && git checkout -B preview origin/preview && git merge origin/main`, fix, commit, `git push origin HEAD:refs/heads/preview`. No build runs until then.
 
-GitHub keeps only the newest pending run in the `preview` concurrency group. When a push to `preview` or a manual run replaces a pending run from a push to `main`, that sync never happens and `preview` lags `main` until the next push to `main`.
+A push to `preview` cancels the running preview run, whose build it makes outdated. A push to `main` or a manual run waits for the running one instead. GitHub keeps only the newest pending run in the `preview` concurrency group. When a run from a push to `main` is cancelled before its sync pushed, or a newer run replaces it while pending, that sync never happens and `preview` lags `main` until the next push to `main`.
 
 `preview` only grows: the workflow never force-pushes, rebases or resets it. The commit count in the version is taken on this branch, so rebuilding it from scratch would lower the count and the updater would stop offering newer builds. The `preview` tag shares the branch's name, so check the branch out from `origin/preview` (a bare `git checkout preview` without a local branch detaches at the tag, the last built head) and push it with the explicit `refs/heads/preview` refspec.
 
@@ -93,7 +93,7 @@ The release body lists the merges on `preview`'s first-parent line whose branch 
 
 When `chore: bump version` lands on `main` before a stable tag push, `nightly.yml` short-circuits in its `guard` job to avoid duplicating the work `release.yml` is about to do for the same SHA.
 
-`preview.yml` copies `nightly.yml`'s build steps with `KOKO_RELEASE_CHANNEL=preview`, the tag `preview`, its own Rust cache key (`macos-preview-aarch64`) and the version from `resolveVersion(..., channel: 'preview')`. Its `guard` skips the same release-flow commits on `main` (sync and build both); a push to `preview` or a manual run always builds the `preview` head. Concurrency group `preview`, never cancelled.
+`preview.yml` copies `nightly.yml`'s build steps with `KOKO_RELEASE_CHANNEL=preview`, the tag `preview`, its own Rust cache key (`macos-preview-aarch64`) and the version from `resolveVersion(..., channel: 'preview')`. Its `guard` skips the same release-flow commits on `main` (sync and build both); a push to `preview` or a manual run always builds the `preview` head. Concurrency group `preview`; only a push to `preview` cancels the running run.
 
 ## Verifying a download
 
@@ -107,6 +107,6 @@ Compare the output against the corresponding line in `checksums-sha256.txt`.
 
 ## Related docs
 
-- [GitHub Workflows](../GITHUB-WORKFLOW.md) — the full `release.yml` and `nightly.yml` job graphs.
+- [GitHub Workflows](../GITHUB-WORKFLOW.md): the full `release.yml`, `nightly.yml` and `preview.yml` job graphs.
 - `.github/workflows/preview.yml` and `scripts/preview-branch.sh`: the preview sync and build.
 - [Commit Conventions](COMMITS.md) — including the `chore: bump version` convention that triggers Stable releases.
