@@ -45,3 +45,17 @@ description = "WebSocket handshake nonces in test requests"
 # full-history job failed on them every day.
 regexTarget = "line"
 regexes = ['''Sec-WebSocket-Key: ''']
+
+[[allowlists]]
+description = "Anthropic message ids in recorded claude stream-json"
+# The real `claude -p --output-format stream-json` capture (Issue 08 of
+# claude-code-integration) carries `"api_message_id":"msg_..."`, an API
+# message id, not a credential. generic-api-key flags it because the key
+# name contains "api".
+condition = "AND"
+regexTarget = "match"
+regexes = ['''api_message_id":"msg_[0-9A-Za-z]+''']
+paths = [
+    '''^\.scratch/claude-code-integration/research/stream-json-capture/turn\.ndjson$''',
+    '''^src-tauri/tests/fixtures/claude/stream\.ndjson$''',
+]
