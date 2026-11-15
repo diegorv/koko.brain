@@ -8,7 +8,7 @@ imp src/lib/core/settings/sections/AppearanceSection.svelte:22 -> src/lib/core/s
 imp src/lib/core/settings/sections/ThemeEditor.svelte:21 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors
 imp src/lib/core/settings/sections/ThemePreview.svelte:3 -> src/lib/core/settings/theme.types.ts type:ThemeColors
 imp src/lib/core/settings/settings.store.svelte.ts:2 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
-imp src/lib/core/settings/settings.types.ts:398 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
+imp src/lib/core/settings/settings.types.ts:399 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
 imp src/lib/core/settings/theme-builder.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors
 imp src/lib/core/settings/theme-editor.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors,type:SyntaxColors,type:PreviewColors,type:WikilinkColors,type:CalloutColors
 imp src/lib/core/settings/theme-package.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings,type:Theme,type:ThemeColors

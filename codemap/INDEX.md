@@ -1,5 +1,5 @@
 # Kokobrain code map
-> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:2f02433dd677 · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
+> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:798c1042aa08 · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
 
 Use this map to find code, then Read the code at the given path:line. Facts are static; read "Blind spots" before trusting an empty answer. On a branch, cards of files you changed lag the code; q commands read the working tree and are always current.
 Search code with Grep path src or src-tauri; search the map with path codemap. IDs contain regex characters: grep with -F and end the ID with a space.
@@ -62,7 +62,7 @@ hub routes src/routes/composer/+page.svelte in0 t1
 hub routes src/routes/(app)/+layout.svelte in0 t0
 hub routes src/routes/(app)/+page.svelte in0 t0
 hub core src/lib/core/vault/vault.store.svelte.ts in83 t150
-hub core src/lib/core/settings/settings.store.svelte.ts in83 t124
+hub core src/lib/core/settings/settings.store.svelte.ts in83 t125
 hub core src/lib/core/editor/editor.service.ts in55 t97
 hub features src/lib/features/collection/collection.types.ts in37 t0
 hub features src/lib/features/type-definitions/type-definitions.store.svelte.ts in20 t38
@@ -83,7 +83,7 @@ hub rust src-tauri/src/utils/fs.rs in8 t2
 hub rust src-tauri/src/db/mod.rs in6 t8
 
 ## Counts
-files 1635 (cards 646) · modules 60 · symbols 3152 · locals 1413 · calls 6869 · ipc 72 · events 9 · dto 51 · stores 43 · registries 27 · effect sites 549
+files 1636 (cards 646) · modules 60 · symbols 3153 · locals 1414 · calls 6872 · ipc 72 · events 9 · dto 51 · stores 43 · registries 27 · effect sites 549
 
 ## Optional
 - Layer rules, layer edge totals, baseline debt: codemap/modules.md

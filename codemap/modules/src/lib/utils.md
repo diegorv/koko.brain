@@ -79,7 +79,7 @@ entry src/lib/utils/build-info.js ext-in1 src/lib/core/settings/BuildInfo.svelte
 entry src/lib/utils/text-roles.ts ext-in1 src/lib/utils.ts
 ## files
 file src/lib/utils/app-channel.ts other L17 module src/lib/utils in1 t1
-file src/lib/utils/build-info.js other L162 module src/lib/utils in1 t1
+file src/lib/utils/build-info.js other L167 module src/lib/utils in1 t1
 file src/lib/utils/capture-path.ts other L14 module src/lib/utils in3 t1
 file src/lib/utils/clamp.ts other L9 module src/lib/utils in10 t1
 file src/lib/utils/color-presets.ts other L30 module src/lib/utils in6 t1

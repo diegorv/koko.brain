@@ -2,7 +2,7 @@
 cols: fx <loc> <sink> [<arg>] in <enclosing> · grep: grep -F -- ' <sink> ' codemap/effects/host.md
 fx src/lib/app/editor-host.ts:140 tauri-api-core.convertFileSrc in appEditorHost.assetUrl
 fx src/lib/contracts/ipc.ts:26 tauri-api-core.invoke in call
-fx src/lib/core/settings/sections/UpdateSection.svelte:178 tauri-api-core.invoke in checkForUpdates
+fx src/lib/core/settings/sections/UpdateSection.svelte:203 tauri-api-core.invoke in checkForUpdates
 fx src/lib/contracts/ipc.ts:88 tauri-api-event.listen in on
 fx src/lib/utils/log.service.ts:46 tauri-api-path.appLogDir in getLogDir
 fx src/lib/core/zoom/zoom.service.ts:29 tauri-api-webviewWindow.getCurrentWebviewWindow in applyZoom
@@ -18,7 +18,7 @@ fx src/lib/core/editor/editor.service.ts:376 tauri-dialog.ask in closeTab
 fx src/lib/core/filesystem/delete-note.service.ts:14 tauri-dialog.ask in deleteNoteWithConfirm
 fx src/lib/core/settings/sections/TrashSection.svelte:34 tauri-dialog.ask in handleDeletePermanently
 fx src/lib/core/settings/sections/TrashSection.svelte:49 tauri-dialog.ask in handleEmptyTrash
-fx src/lib/core/settings/sections/UpdateSection.svelte:202 tauri-dialog.ask in confirmInstallStable
+fx src/lib/core/settings/sections/UpdateSection.svelte:238 tauri-dialog.ask in confirmDowngrade
 fx src/lib/core/vault/exit.service.ts:35 tauri-dialog.ask in confirmDiscardFailedSaves
 fx src/lib/features/file-history/FileHistoryDialog.svelte:44 tauri-dialog.ask in handleRestore
 fx src/lib/features/note-list/NoteRowMenu.svelte:163 tauri-dialog.ask in handleDelete
@@ -34,10 +34,10 @@ fx src/lib/core/settings/theme-catalog.service.ts:39 tauri-http.fetch in readCat
 fx src/lib/features/todoist-sync/tauri-fetch-adapter.ts:16 tauri-http.fetch in createTauriFetchAdapter
 fx src/lib/utils/log.service.ts:235 tauri-opener.openPath in openLogDir
 fx src/lib/app/editor-host.ts:149 tauri-opener.openUrl in appEditorHost.openExternal
-fx src/lib/core/settings/sections/UpdateSection.svelte:294 tauri-opener.openUrl in (markup)
-fx src/lib/core/settings/sections/UpdateSection.svelte:328 tauri-opener.openUrl in (markup)
+fx src/lib/core/settings/sections/UpdateSection.svelte:332 tauri-opener.openUrl in (markup)
+fx src/lib/core/settings/sections/UpdateSection.svelte:366 tauri-opener.openUrl in (markup)
 fx src/lib/features/canvas/LinkNode.svelte:83 tauri-opener.openUrl in handleClick
 fx src/lib/features/todoist-sync/TodoistSection.svelte:92 tauri-opener.openUrl in (markup)
 fx src/lib/core/filesystem/fs.service.ts:367 tauri-opener.revealItemInDir in revealInSystemExplorer
 fx src/lib/features/note-action-bar/note-action-bar.service.ts:25 tauri-opener.revealItemInDir in revealNote
-fx src/lib/core/settings/sections/UpdateSection.svelte:222 tauri-process.relaunch in restartApp
+fx src/lib/core/settings/sections/UpdateSection.svelte:258 tauri-process.relaunch in restartApp

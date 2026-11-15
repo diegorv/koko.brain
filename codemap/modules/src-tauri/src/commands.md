@@ -1,7 +1,7 @@
 # module card src-tauri/src/commands
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src-tauri/src/commands ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src-tauri/src/commands rust files 14 in-modules 1 out-modules 6 pub 71/113 ipc 0/66 card ~6.5k
+module src-tauri/src/commands rust files 14 in-modules 1 out-modules 6 pub 71/114 ipc 0/66 card ~6.5k
 ## neighbors
 dep src-tauri/src -> src-tauri/src/commands 13
 dep src-tauri/src/commands -> src-tauri/src 4
@@ -38,7 +38,7 @@ file src-tauri/src/commands/search_index.rs rust L406 module src-tauri/src/comma
 file src-tauri/src/commands/semantic.rs rust L1735 module src-tauri/src/commands in2 t1 t:inline
 file src-tauri/src/commands/sentry.rs rust L14 module src-tauri/src/commands in1 t0
 file src-tauri/src/commands/todoist.rs rust L76 module src-tauri/src/commands in1 t1 | IPC over the Todoist sync state in `kokobrain.db`.
-file src-tauri/src/commands/update_channel.rs rust L177 module src-tauri/src/commands in1 t1 t:inline | Channel-aware in-app updater commands.
+file src-tauri/src/commands/update_channel.rs rust L196 module src-tauri/src/commands in1 t1 t:inline | Channel-aware in-app updater commands.
 file src-tauri/src/commands/vault.rs rust L1843 module src-tauri/src/commands in1 t10
 file src-tauri/src/commands/watcher.rs rust L29 module src-tauri/src/commands in1 t0
 ## public
@@ -85,7 +85,7 @@ sym src-tauri/src/commands/todoist.rs:40 cmd todoist_read_sections(vault_path: S
 sym src-tauri/src/commands/todoist.rs:47 cmd todoist_commit_state(vault_path: String, commit: TodoistStateCommit) -> Result<(), String> L8 | Writes kv rows (the `sync_token` among them), link and section link upserts and deletes in one transaction: all of it lands, or none of it.
 sym src-tauri/src/commands/todoist.rs:58 cmd todoist_append_log(vault_path: String, entries: Vec<TodoistSyncLogInput>) -> Result<(), String> L12 | Appends sync log entries and keeps only the newest 1000 rows.
 sym src-tauri/src/commands/todoist.rs:73 cmd todoist_read_log(vault_path: String, limit: Option<u32>) -> Result<Vec<TodoistSyncLogEntry>, String> L4 | The newest `limit` sync log rows (default: all kept rows), newest first.
-sym src-tauri/src/commands/update_channel.rs:88 cmd check_for_update_on_channel(webview: Webview<R>, channel: String, allow_downgrades: Option<bool>,) -> Result<Option<UpdateMetadata>, String> L42 | Check for an available update on the given release channel.
+sym src-tauri/src/commands/update_channel.rs:95 cmd check_for_update_on_channel(webview: Webview<R>, channel: String, allow_downgrades: Option<bool>,) -> Result<Option<UpdateMetadata>, String> L42 | Check for an available update on the given release channel.
 sym src-tauri/src/commands/vault.rs:120 cmd scan_vault(path: String, sort_by: String) -> Result<Vec<FileNode>, String> L8 | Recursively scans a vault directory and returns the full file tree with metadata.
 sym src-tauri/src/commands/vault.rs:358 cmd update_note_in_index(app: tauri::AppHandle, state: tauri::State<'_, VaultIndexState>, path: String, content: String,) -> Result<UpdateResul… L27 | Tauri command: updates a single note's metadata in the managed `VaultIndex` and emits `vault-index-updated` with the resulting `UpdateResult` payload.
 sym src-tauri/src/commands/vault.rs:451 cmd propagate_type_rename(app: tauri::AppHandle, state: tauri::State<'_, VaultIndexState>, old_type: String, new_type: String,) -> Result<usize,… L26 | Tauri command: propagates a type rename to all member notes — rewrites their `_type:` frontmatter from `old_type` to `new_type` in one pass and reindexes each …

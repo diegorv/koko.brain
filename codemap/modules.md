@@ -2,7 +2,7 @@
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · layer <from layer> -> <to layer> <file pairs> · rule <layer> may: <layers> · debt <baseline entry> · grep: grep -F 'module src/lib/features/' codemap/modules.md
 sections: layers (distinct file pairs), layer rules (scripts/import-graph.mjs ruleFor), debt (src/tests/lib/architecture/layer-baseline.json)
 module src-tauri/src rust files 4 in-modules 2 out-modules 5 pub 8/13 ipc 0/0 card ~0.9k
-module src-tauri/src/commands rust files 14 in-modules 1 out-modules 6 pub 71/113 ipc 0/66 card ~6.5k
+module src-tauri/src/commands rust files 14 in-modules 1 out-modules 6 pub 71/114 ipc 0/66 card ~6.5k
 module src-tauri/src/db rust files 6 in-modules 3 out-modules 1 pub 57/59 ipc 0/0 card ~4.3k
 module src-tauri/src/quick_capture rust files 6 in-modules 1 out-modules 2 pub 19/38 ipc 0/6 card ~1.9k
 module src-tauri/src/search rust files 6 in-modules 1 out-modules 2 pub 12/28 ipc 0/0 card ~1.3k

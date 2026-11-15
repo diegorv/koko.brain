@@ -69,7 +69,7 @@ entry src/lib/core/settings/theme-builder.logic.ts ext-in1 src/lib/features/file
 entry src/lib/core/settings/theme-editor.logic.ts ext-in1 src/lib/features/tags/TagColorPicker.svelte
 entry src/lib/core/settings/update-check.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
-file src/lib/core/settings/BuildInfo.svelte component L51 module src/lib/core/settings in2 t1
+file src/lib/core/settings/BuildInfo.svelte component L52 module src/lib/core/settings in2 t1
 file src/lib/core/settings/applied-theme.store.svelte.ts store L35 module src/lib/core/settings in6 t7
 file src/lib/core/settings/heading-typography.logic.ts logic L35 module src/lib/core/settings in1 t4
 file src/lib/core/settings/rail-pin.logic.ts logic L22 module src/lib/core/settings in2 t1 | Keys of the rail items pinned with `_rail: true`, saved in `layout.railItem`.
@@ -89,15 +89,15 @@ file src/lib/core/settings/sections/ThemePreview.svelte component L53 module src
 file src/lib/core/settings/sections/TrashSection.svelte component L138 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TroubleshootingSection.svelte component L158 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sections/TypesSection.svelte component L58 module src/lib/core/settings in1 t1
-file src/lib/core/settings/sections/UpdateSection.svelte component L338 module src/lib/core/settings in1 t3
+file src/lib/core/settings/sections/UpdateSection.svelte component L376 module src/lib/core/settings in1 t4
 file src/lib/core/settings/sentry.logic.ts logic L28 module src/lib/core/settings in1 t1
 file src/lib/core/settings/sentry.service.ts service L134 module src/lib/core/settings in3 t6
 file src/lib/core/settings/settings-panel.store.svelte.ts store L24 module src/lib/core/settings in5 t6
 file src/lib/core/settings/settings-persistence.svelte.ts other L122 module src/lib/core/settings in2 t9
 file src/lib/core/settings/settings.logic.ts logic L303 module src/lib/core/settings in11 t2
 file src/lib/core/settings/settings.service.ts service L297 module src/lib/core/settings in3 t6
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in83 t124
-file src/lib/core/settings/settings.types.ts types L461 module src/lib/core/settings in24 t0
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in83 t125
+file src/lib/core/settings/settings.types.ts types L462 module src/lib/core/settings in24 t0
 file src/lib/core/settings/theme-builder.logic.ts logic L318 module src/lib/core/settings in3 t10
 file src/lib/core/settings/theme-catalog.service.ts service L45 module src/lib/core/settings in1 t1
 file src/lib/core/settings/theme-editor.logic.ts logic L303 module src/lib/core/settings in3 t1
@@ -108,7 +108,7 @@ file src/lib/core/settings/theme.service.ts service L87 module src/lib/core/sett
 file src/lib/core/settings/theme.types.ts types L251 module src/lib/core/settings in10 t0
 file src/lib/core/settings/update-check.service.ts service L37 module src/lib/core/settings in1 t2
 ## public
-sym src/lib/core/settings/BuildInfo.svelte:1 component BuildInfo props:variant= L51
+sym src/lib/core/settings/BuildInfo.svelte:1 component BuildInfo props:variant= L52
 sym src/lib/core/settings/applied-theme.store.svelte.ts:14 store appliedThemeStore L22 | Reactive mode of the applied theme.
 sym src/lib/core/settings/rail-pin.logic.ts:9 const VIEW_PIN_PREFIX L1 | The rail item key prefix of a pinned `.view`; the rest is its absolute path.
 sym src/lib/core/settings/rail-pin.logic.ts:12 const TYPE_PIN_PREFIX L1 | The rail item key prefix of a pinned type; the rest is its `TypeMetadata.name`.
@@ -126,7 +126,7 @@ sym src/lib/core/settings/sections/SettingItem.svelte:1 component SettingItem pr
 sym src/lib/core/settings/sections/TrashSection.svelte:1 component TrashSection L138
 sym src/lib/core/settings/sections/TroubleshootingSection.svelte:1 component TroubleshootingSection L158
 sym src/lib/core/settings/sections/TypesSection.svelte:1 component TypesSection L58
-sym src/lib/core/settings/sections/UpdateSection.svelte:1 component UpdateSection L338
+sym src/lib/core/settings/sections/UpdateSection.svelte:1 component UpdateSection L376
 sym src/lib/core/settings/sentry.service.ts:94 fn configureSentry(settings: SentrySettings): Promise<SentryConfigurationResult> L6 | Enables or disables error monitoring for one vault.
 sym src/lib/core/settings/sentry.service.ts:102 fn disableSentry(): Promise<SentryConfigurationResult> L3 | Disables the active Sentry client without changing persisted settings.
 sym src/lib/core/settings/sentry.service.ts:112 fn captureSentryException(tag: string, exception: unknown): void L7 | Captures a handled application error only when the current vault opted in to Sentry.
@@ -151,11 +151,11 @@ sym src/lib/core/settings/settings.types.ts:15 interface PeriodicNotesSettings L
 sym src/lib/core/settings/settings.types.ts:48 interface LayoutSettings L70 | Configuration for layout visibility preferences
 sym src/lib/core/settings/settings.types.ts:276 type TodoistSyncContext L1 | One of the vault contexts in `TODOIST_SYNC_CONTEXTS`
 sym src/lib/core/settings/settings.types.ts:301 type AutoRunQueriesPolicy L4 | Policy for QueryJS block execution — controls when `kb.pages()`/`dv.view()` blocks run
-sym src/lib/core/settings/settings.types.ts:325 type ReleaseChannel L1 | Release channel the in-app auto-updater follows.
-sym src/lib/core/settings/settings.types.ts:359 type SettingsSection L1 | Sidebar navigation sections in the settings dialog
-sym src/lib/core/settings/settings.types.ts:362 type EventCalendarColor L1 | One of the event colors in `EVENT_CALENDAR_COLORS`
-sym src/lib/core/settings/settings.types.ts:365 type EventCalendarViewMode L1 | One of the calendar view modes in `EVENT_CALENDAR_VIEW_MODES`
-sym src/lib/core/settings/settings.types.ts:368 interface EventCalendarSettings L20 | Configuration for the event calendar
+sym src/lib/core/settings/settings.types.ts:326 type ReleaseChannel L1 | Release channel the in-app auto-updater follows.
+sym src/lib/core/settings/settings.types.ts:360 type SettingsSection L1 | Sidebar navigation sections in the settings dialog
+sym src/lib/core/settings/settings.types.ts:363 type EventCalendarColor L1 | One of the event colors in `EVENT_CALENDAR_COLORS`
+sym src/lib/core/settings/settings.types.ts:366 type EventCalendarViewMode L1 | One of the calendar view modes in `EVENT_CALENDAR_VIEW_MODES`
+sym src/lib/core/settings/settings.types.ts:369 interface EventCalendarSettings L20 | Configuration for the event calendar
 sym src/lib/core/settings/theme-builder.logic.ts:8 const TYPE_PALETTE_NAMES L1 | Names of the categorical type palette.
 sym src/lib/core/settings/theme-editor.logic.ts:231 fn hexToColorInputValue(value: string): string L6 | Converts a color value to a format accepted by `<input type="color">` (`#rrggbb`).
 sym src/lib/core/settings/theme.service.ts:13 const THEME_VARS_STORAGE_KEY L1 | localStorage key holding the CSS variables of the theme last applied in the main window.
