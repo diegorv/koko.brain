@@ -35,11 +35,51 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | todo | | |
-| 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | todo | | |
-| 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | todo | | |
+| 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | done | issue/01-claude-binary-detection (69a180e69) | 2026-11-14 |
+| 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | done | issue/02-rust-turn-runner (d7a921df5) | 2026-11-14 |
+| 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | done | issue/03-claude-chat-panel (6f72a4e17) | 2026-11-14 |
+| 04 | [Claude Code settings per machine, not in the vault](issues/04-claude-settings-per-machine.md) | 01 | wontfix | | |
+| 05 | [Run `claude` with the login shell's environment](issues/05-login-shell-env-for-claude.md) | 02 | done | issue/05-login-shell-env-for-claude (3cd72c8c6) | 2026-11-14 |
+| 06 | [Remote images in Claude replies can leak data](issues/06-remote-images-in-replies.md) | 03 | wontfix | | |
+| 07 | [Cancel misses a child forked during `killpg`](issues/07-cancel-misses-a-child-forked-during-killpg.md) | 05 | done | issue/07-cancel-misses-a-child-forked-during-killpg (e1b69f51e) | 2026-11-15 |
+| 08 | [Replace the hand-written stream-json fixture with a real capture](issues/08-real-stream-json-fixture.md) | 03 | done | issue/08-real-stream-json-fixture (46213233d) | 2026-11-15 |
+| 09 | [A run started before a vault switch leaks into the new vault's chat](issues/09-stale-run-after-vault-switch.md) | 03 | todo | | |
+| 10 | [The status check finds `claude` the way a turn does](issues/10-status-uses-turn-env.md) | 05 | done | issue/10-status-uses-turn-env (95945e00a) | 2026-11-15 |
+| 11 | [Quitting the app cancels running turns](issues/11-cancel-turns-on-app-exit.md) | 07 | done | issue/11-cancel-turns-on-app-exit (fdc76b135) | 2026-11-15 |
+| 12 | [Panel follows the reply, keeps focus, and handles IME and slash-menu keys](issues/12-panel-scroll-focus-keys.md) | 10 | done | issue/12-panel-scroll-focus-keys (31b482497) | 2026-11-15 |
+| 13 | [Stream and chat keep the session, the error cause and retried text right](issues/13-stream-session-errors-retries.md) | 12 | in-progress | | |
 
 ## Log
 
 - 2026-11-14 21:17 — ledger created (3 Issues)
 - 2026-11-14 21:17 — 01 — start — launched by /relay-lite:run — a8e1f1c68
+- 2026-11-14 21:21 — 01 — start — launched by /relay-lite:run on mvp-claude — 2f1efc8d6
+- 2026-11-14 21:37 — ledger updated (added 04; blocked by of 02)
+- 2026-11-14 21:49 — 01 — deliver — merged on mvp-claude; review CHANGES_REQUESTED then APPROVED x2; fixes: cancel on first-enable notice resets switch, timeout doc, settings help section, shell_from_env with test; full suite 639 files / 16958 tests passed — 69a180e69
+- 2026-11-14 21:50 — ledger updated (blocked by of 02; wontfix 04)
+- 2026-11-14 21:50 — 02 — start — launched by /relay-lite:run on mvp-claude — a1f5680b0
+- 2026-11-14 21:56 — ledger updated (added 05)
+- 2026-11-14 22:23 — 02 — deliver — merged on mvp-claude; review APPROVED x2; fix: Done still sent when a leftover process keeps stderr open (stderr drain timeout); open nit: stderr tail dropped on drain timeout; cargo 1507 passed, clippy clean, vitest 639 files / 16960 tests passed — d7a921df5
+- 2026-11-14 22:24 — 03 — start — launched by /relay-lite:run on mvp-claude (parallel with 05) — fc71eaee4
+- 2026-11-14 22:24 — 05 — start — launched by /relay-lite:run on mvp-claude (parallel with 03) — fc71eaee4
+- 2026-11-14 22:36 — ledger updated (added 06)
+- 2026-11-14 22:43 — 03 — deliver — blocked: criterion on prompts starting with - needs an owner decision (-- in build_args, Rust, outside Files src/,e2e/; or escape/refuse in panel); rest of the Issue built and committed in the worktree — 239e66c39
+- 2026-11-14 23:23 — 05 — deliver — merged on mvp-claude; review APPROVED x2; fixes: capture session killed after a clean shell exit, lingering-shell test, capturing flag so Check again is not dropped; cancel race moved to Issue 07 (needs-triage); cargo 1536 passed, clippy clean, vitest 639 files / 16960 tests passed — 3cd72c8c6
+- 2026-11-14 23:23 — ledger updated (added 07)
+- 2026-11-14 23:23 — 03 — start — retry by /relay-lite:run on mvp-claude after owner decision (-- in build_args) — 520912c50
+- 2026-11-14 23:47 — 03 — deliver — merged on mvp-claude; review APPROVED x2; prompt after -- in build_args (Rust tests); fixes: chat closes on vault switch, turn stays running until Done, chip radius; open: stale run id after vault switch (minor), longer closing fence (nit); vitest 643 files / 17069 tests passed; cargo targeted only — 6f72a4e17
+- 2026-11-14 23:47 — ledger updated (added 08, 09)
+- 2026-11-15 06:08 — 07 — start — launched by /relay-lite:run — 4efafbf6a
+- 2026-11-15 06:32 — 07 — deliver — review round 1 APPROVED (claude), 1 minor + 2 nits accepted with no code change; vitest 17069 passed, cargo test 1538 passed; squash merged on mvp-claude — e1b69f51e
+- 2026-11-15 06:32 — 08 — start — launched by /relay-lite:run — ac15f70a6
+- 2026-11-15 06:50 — 08 — deliver — review round 1 APPROVED, round 2 APPROVED (claude); real capture as fixture; vitest 17069 passed, cargo test 1540 passed; squash merged on mvp-claude — 46213233d
+- 2026-11-15 08:09 — ledger updated (added 10, 11, 12, 13)
+- 2026-11-15 08:09 — 10 — start — launched by /relay-lite:run — a367628a1
+- 2026-11-15 08:34 — 10 — deliver — review round 1 APPROVED, round 2 APPROVED (claude); fix bba7bd950 shows checking state in Settings; vitest 17078 passed; squash merged on mvp-claude — 95945e00a
+- 2026-11-15 08:34 — 11 — start — launched by /relay-lite:run — ec181e01b
+- 2026-11-15 08:48 — 11 — deliver — blocked: disk full (284 MiB free), full suite could not run; review round 1 APPROVED; worktree kept at 44e8a8f45 — 8ae2affd2
+- 2026-11-15 09:04 — 11 — start — deliver finished by hand by the main session after freeing disk — 9509904c8
+- 2026-11-15 09:04 — 11 — deliver — vitest 17078 passed, pnpm check clean, cargo 1545 passed + vault_watcher_test 12/12 on re-run (4 load flakes while another session compiled); review round 1 APPROVED; squash merged on mvp-claude — fdc76b135
+- 2026-11-15 09:04 — 12 — start — launched by /relay-lite:run — 0b8d88ada
+- 2026-11-15 09:24 — 12 — deliver — review round 1 APPROVED, round 2 APPROVED (claude); fix dfb2aaa40 stops the follow on a small scroll up; vitest 17093 passed; squash merged on mvp-claude — 31b482497
+- 2026-11-15 09:24 — 13 — start — launched by /relay-lite:run — 099d4c081

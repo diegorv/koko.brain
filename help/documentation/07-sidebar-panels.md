@@ -1,6 +1,6 @@
 # Sidebar Panels
 
-Learn about the right sidebar panels: Backlinks, Outgoing Links and Properties.
+Learn about the right sidebar panels: Backlinks, Outgoing Links, Properties and Claude.
 
 "Sidebar" in Kokobrain always means the right sidebar. The left side of the window is the rail with its navigators and note list, described in [Getting Started > The Rail](01-getting-started.md#the-rail). **Settings > Layout** sets up both.
 
@@ -145,6 +145,19 @@ panel. The `#tags` written in a note body are not tinted.
 
 > [!TIP]
 > Use nested tags for organization: `#project/alpha`, `#project/beta`. The Tags tab groups them into a collapsible tree, keeping your tag list tidy even as it grows.
+
+---
+
+## Claude
+
+With Claude Code turned on in **Settings > Claude Code** (see [Settings](19-settings.md#claude-code)), the right sidebar can show a Claude panel for chatting with Claude Code about your vault.
+
+- Press **Cmd+Shift+A**, or run **Toggle Claude Panel** from the Command Palette, to show or hide it. While it shows, it is the only panel in the right sidebar; hiding it brings the other panels back.
+- Showing the panel with **Cmd+Shift+A** or the command attaches the active note as context. Remove a note with the x on its chip, add more with **Add note** or the **Add to Claude context** command, or send with no notes to work on the vault as a whole.
+- Type `/` in an empty prompt to pick a Claude Code slash command or skill. The list loads with your first message.
+- **Stop** ends the running turn. **New chat** (not available while a turn runs) starts a new session with only the active note attached.
+
+Claude can edit notes while a turn runs. Kokobrain saves your open notes before each turn, and the turn does not start if a note cannot be saved. An edit you type into a note Claude is changing can overwrite Claude's change.
 
 ---
 

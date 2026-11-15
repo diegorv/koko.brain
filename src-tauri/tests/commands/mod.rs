@@ -1,4 +1,8 @@
 mod app_exit_test;
+mod claude_shell_env_test;
+mod claude_stream_test;
+mod claude_test;
+mod claude_turn_test;
 mod debug_test;
 mod files_test;
 mod update_channel_test;

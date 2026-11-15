@@ -24,7 +24,9 @@ import {
 } from '#lib/core/settings/settings-persistence.svelte.js';
 import {
 	hideRailPanels,
+	showClaudePanel,
 	showRailPanels,
+	toggleClaudePanel,
 	toggleLeftSidebar,
 	toggleRightSidebar,
 } from '#lib/core/layout/layout.service.js';
@@ -234,5 +236,60 @@ describe('toggleRightSidebar', () => {
 
 		expect(settingsStore.layout.rightSidebarVisible).toBe(false);
 		expect(writeTextFile).not.toHaveBeenCalled();
+	});
+});
+
+describe('toggleClaudePanel / showClaudePanel', () => {
+	beforeEach(() => {
+		resetAll();
+		settingsStore.updateClaudeCode({ enabled: true });
+	});
+	afterEach(teardownAll);
+
+	it('is hidden by default', () => {
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+	});
+
+	it('shows the panel and opens the right sidebar, then hides only the panel, and persists', async () => {
+		vaultStore.open('/vault');
+		startSettingsPersistence('/vault');
+
+		toggleClaudePanel();
+		await settle();
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		expect(persisted().layout.claudeVisible).toBe(true);
+
+		toggleClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('shows the panel again when its flag is set but the right sidebar was closed', () => {
+		settingsStore.updateLayout({ claudeVisible: true, rightSidebarVisible: false });
+		toggleClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+	});
+
+	it('does nothing while Claude Code is off', () => {
+		settingsStore.updateClaudeCode({ enabled: false });
+		toggleClaudePanel();
+		showClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(false);
+	});
+
+	it('does nothing on a tab that always hides the right sidebar', () => {
+		editorStore.addTab({ path: TASKS_VIRTUAL_PATH, name: 'Tasks', content: '', savedContent: '' });
+		toggleClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+	});
+
+	it('showClaudePanel keeps a shown panel shown', () => {
+		showClaudePanel();
+		showClaudePanel();
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
 	});
 });

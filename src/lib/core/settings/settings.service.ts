@@ -169,6 +169,12 @@ function parseSettings(content: string): AppSettings {
 			enabled: parsed.sentry?.enabled === true,
 			dsn: typeof parsed.sentry?.dsn === 'string' ? parsed.sentry.dsn : DEFAULT_SETTINGS.sentry.dsn,
 		},
+		// Strict checks: only a real `true` turns the integration on or counts as consent.
+		claudeCode: {
+			enabled: parsed.claudeCode?.enabled === true,
+			binaryPath: typeof parsed.claudeCode?.binaryPath === 'string' ? parsed.claudeCode.binaryPath : DEFAULT_SETTINGS.claudeCode.binaryPath,
+			privacyAcknowledged: parsed.claudeCode?.privacyAcknowledged === true,
+		},
 		debugMode: parsed.debugMode ?? DEFAULT_SETTINGS.debugMode,
 		debugModeTauri: parsed.debugModeTauri ?? DEFAULT_SETTINGS.debugModeTauri,
 		debugLogToFile: parsed.debugLogToFile ?? DEFAULT_SETTINGS.debugLogToFile,

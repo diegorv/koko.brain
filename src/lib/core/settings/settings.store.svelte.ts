@@ -1,4 +1,4 @@
-import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, AutoOrganizeSettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings } from './settings.types';
+import type { AppSettings, PeriodicNotesUpdate, QuickCaptureUpdate, OneOnOneSettings, LayoutSettings, FolderNotesSettings, EditorSettings, TemplatesSettings, HistorySettings, SearchSettings, TodoistSettings, SentrySettings, ClaudeCodeSettings, AutoOrganizeSettings, TagColorSettings, QueryjsSettings, UpdateSettings, EventCalendarSettings } from './settings.types';
 import type { AppearanceSettings } from './theme.types';
 import { DEFAULT_APPEARANCE } from './theme.logic';
 
@@ -67,6 +67,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
 		tableOfContentsVisible: true,
+		claudeVisible: false,
 		// The panes' minSize in AppShell.svelte: what fits one monitor does not fit another, so
 		// the owner drags them to size on each and a new vault opens with the editor at its widest.
 		rightSidebarSize: 3,
@@ -136,6 +137,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		enabled: false,
 		dsn: '',
 	},
+	claudeCode: {
+		enabled: false,
+		binaryPath: '',
+		privacyAcknowledged: false,
+	},
 	debugMode: false,
 	debugModeTauri: false,
 	debugLogToFile: false,
@@ -180,6 +186,8 @@ export const settingsStore = {
 	get eventCalendar() { return settings.eventCalendar; },
 	get todoist() { return settings.todoist; },
 	get sentry() { return settings.sentry; },
+	/** Claude Code integration settings: on/off, binary override, first-enable notice seen */
+	get claudeCode() { return settings.claudeCode; },
 	get debugMode() { return settings.debugMode; },
 	get debugModeTauri() { return settings.debugModeTauri; },
 	get debugLogToFile() { return settings.debugLogToFile; },
@@ -331,6 +339,14 @@ export const settingsStore = {
 		settings = {
 			...settings,
 			sentry: { ...settings.sentry, ...value },
+		};
+	},
+
+	/** Partially updates the Claude Code integration settings. */
+	updateClaudeCode(value: Partial<ClaudeCodeSettings>) {
+		settings = {
+			...settings,
+			claudeCode: { ...settings.claudeCode, ...value },
 		};
 	},
 

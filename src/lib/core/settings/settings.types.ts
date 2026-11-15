@@ -102,6 +102,8 @@ export interface LayoutSettings {
 	outgoingLinksVisible: boolean;
 	/** Whether the table of contents panel is shown in the right sidebar */
 	tableOfContentsVisible: boolean;
+	/** Whether the Claude agent panel fills the right sidebar in place of the other panels; ignored while `claudeCode.enabled` is false */
+	claudeVisible: boolean;
 	/** Saved width percentage of the right sidebar pane */
 	rightSidebarSize: number;
 	/** Saved width percentage of the rail shell's note list pane */
@@ -283,6 +285,16 @@ export interface SentrySettings {
 	dsn: string;
 }
 
+/** Configuration for the Claude Code integration, which runs the user's `claude` CLI (ADR-0038). */
+export interface ClaudeCodeSettings {
+	/** Whether the Claude Code integration is on. Off by default. */
+	enabled: boolean;
+	/** Path to the `claude` binary; empty means look it up automatically. */
+	binaryPath: string;
+	/** Whether the user has seen the privacy and permissions notice shown on first enable. */
+	privacyAcknowledged: boolean;
+}
+
 /** Settings for the auto-organize feature, persisted inside AppSettings */
 export interface AutoOrganizeSettings {
 	/** Whether auto-organize is globally enabled */
@@ -357,7 +369,7 @@ export interface UpdateSettings {
 }
 
 /** Sidebar navigation sections in the settings dialog */
-export type SettingsSection = 'appearance' | 'layout' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'files' | 'search' | 'file-history' | 'auto-organize' | 'trash' | 'todoist' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update' | 'labs';
+export type SettingsSection = 'appearance' | 'layout' | 'editor' | 'periodic-notes' | 'quick-capture' | 'one-on-one' | 'files' | 'search' | 'file-history' | 'auto-organize' | 'trash' | 'todoist' | 'claude-code' | 'sentry' | 'queryjs' | 'types' | 'event-calendar' | 'troubleshooting' | 'update' | 'labs';
 
 /** One of the event colors in `EVENT_CALENDAR_COLORS` */
 export type EventCalendarColor = (typeof EVENT_CALENDAR_COLORS)[number];
@@ -405,6 +417,8 @@ export interface AppSettings {
 	todoist: TodoistSettings;
 	/** Optional Sentry error-monitoring configuration */
 	sentry: SentrySettings;
+	/** Claude Code integration configuration */
+	claudeCode: ClaudeCodeSettings;
 	/** Auto Organize feature configuration */
 	autoOrganize: AutoOrganizeSettings;
 	/** Event calendar configuration */

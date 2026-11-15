@@ -96,6 +96,7 @@ import { buildTypeMetadataMap } from '#lib/features/type-definitions/type-defini
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
+import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
 describe('getBuiltInCommands', () => {
@@ -684,5 +685,53 @@ describe('getBuiltInCommands rail commands', () => {
 		run(`rail:open-view:${BOARD}`);
 		expect(openFileInEditor).toHaveBeenCalledWith(BOARD);
 		expect(settingsStore.layout).toEqual(before);
+	});
+});
+
+describe('getBuiltInCommands Claude commands', () => {
+	const command = (id: string) => getBuiltInCommands().find((c) => c.id === id);
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		clearLocalStorage();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		editorStore.reset();
+		settingsStore.reset();
+		claudeStore.reset();
+	});
+
+	it('lists no Claude command while Claude Code is off', () => {
+		expect(getBuiltInCommands().filter((c) => c.category === 'Claude')).toEqual([]);
+	});
+
+	it('Toggle Claude Panel shows its shortcut and shows, then hides, the panel', () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+		const toggle = command('claude:toggle-panel')!;
+		expect(formatShortcut(toggle.shortcut!)).toBe('⌘⇧A');
+
+		toggle.action();
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+		expect(settingsStore.layout.rightSidebarVisible).toBe(true);
+		toggle.action();
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+	});
+
+	it('Add to Claude context attaches the active note and shows the panel', () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+		editorStore.addTab({ path: '/vault/Notes/a.md', name: 'a.md', content: '', savedContent: '' });
+
+		command('claude:add-to-context')!.action();
+		expect(claudeStore.contextNotes).toEqual(['Notes/a.md']);
+		expect(settingsStore.layout.claudeVisible).toBe(true);
+	});
+
+	it('Add to Claude context without an open note says so and leaves the panel as it is', () => {
+		settingsStore.updateClaudeCode({ enabled: true });
+
+		command('claude:add-to-context')!.action();
+		expect(claudeStore.contextNotes).toEqual([]);
+		expect(settingsStore.layout.claudeVisible).toBe(false);
+		expect(toast.error).toHaveBeenCalledWith('Open a note to add it to the Claude context.');
 	});
 });

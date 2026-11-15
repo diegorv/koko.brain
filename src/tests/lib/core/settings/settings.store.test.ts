@@ -324,6 +324,19 @@ describe('settingsStore', () => {
 			});
 		});
 
+		it('keeps Claude Code off, with no override and no consent, by default', () => {
+			expect(settingsStore.claudeCode).toEqual({ enabled: false, binaryPath: '', privacyAcknowledged: false });
+		});
+
+		it('updateClaudeCode merges each key and keeps the others', () => {
+			settingsStore.updateClaudeCode({ binaryPath: '/opt/claude' });
+			expect(settingsStore.claudeCode).toEqual({ enabled: false, binaryPath: '/opt/claude', privacyAcknowledged: false });
+
+			settingsStore.updateClaudeCode({ enabled: true, privacyAcknowledged: true });
+			expect(settingsStore.claudeCode).toEqual({ enabled: true, binaryPath: '/opt/claude', privacyAcknowledged: true });
+			expect(settingsStore.settings.claudeCode).toBe(settingsStore.claudeCode);
+		});
+
 		it('updateDebugMode sets the flag', () => {
 			expect(settingsStore.debugMode).toBe(false);
 			settingsStore.updateDebugMode(true);

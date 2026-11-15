@@ -70,6 +70,7 @@ import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service
 import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 import { startAutoSync, stopAutoSync } from '#lib/features/todoist-sync/sync-scheduler.service.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
+import { resetClaude } from '#lib/features/claude-code/claude.service.js';
 import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import { typeDefinitionsStore } from '#lib/features/type-definitions/type-definitions.store.svelte.js';
 import { registerFileHistoryHook, closeFileHistory } from '#lib/features/file-history/file-history.service.js';
@@ -680,6 +681,8 @@ export function teardownVault(): void {
 	resetPeriodicNotes();
 	resetTrash();
 	todoistSyncStore.reset();
+	// Cancels a running turn too: its session and notes belong to the closed vault.
+	resetClaude();
 	lifecycleFilterStore.reset();
 	typeDefinitionsStore.reset();
 	neighbourhoodStore.reset();
