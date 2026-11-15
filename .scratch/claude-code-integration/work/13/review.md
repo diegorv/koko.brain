@@ -1,0 +1,43 @@
+VERDICT: APPROVED
+
+Review of `git diff mvp-claude...HEAD` (6 commits, 8977b96bc..1926e753e) for Issue 13.
+
+## Acceptance criteria
+
+- [met] Failing tests first for each criterion, in `claude.logic` tests, `claude_stream_test.rs` or both. — Probe: with `claude.logic.ts` restored to `mvp-claude` (then put back, worktree clean), the 8 new frontend tests fail (`claude.logic.test.ts` 6, `claude.service.test.ts` 1, `ClaudePanel.test.ts` 1); the new Rust retry and fallback tests cannot compile without `ClaudeEvent::TextRetracted`. The slash filter test cannot fail without deleting the filter, which is the point of that criterion.
+- [met] Session: the reducer stores `sessionId` from `Init` as well as from `Result`, so a first turn that is stopped or exits with no `result` still lets the next send pass `--resume` with it. Test: `Init` then `Done` with no `Result`, then the next request carries that id. — `claude.logic.ts:122-124` sets `sessionId: event.sessionId || state.sessionId` (`Result` likewise at `:153`); `claude.service.test.ts` "resumes the session of the Init when the turn ended without a Result" sends Init, Done, then asserts `runTurnRequest()?.resumeSessionId === 's1'`; the logic test checks the id survives `Done`.
+- [met] Error cause: for a `result` with `is_error: true` and no or empty `result` text, `Result.text` is the `errors` strings joined with newlines; when there are none, the `subtype` (`error_during_execution`, `error_max_turns`, ...). The panel shows it instead of "Claude ended the turn with an error." Tested with a fixture line for `error_during_execution` with `errors`. — `stream.rs` `result_message` (`:155-162`); fixture `fixtures/claude/error-during-execution.ndjson`, test `error_result_without_text_shows_the_errors` (joined `"API Error: 529 Overloaded\nRequest was aborted."`), plus `error_result_with_text_or_empty_errors` and `error_result_without_text_or_errors_says_its_subtype`. The reducer already shows `event.text` as the error (`claude.logic.ts:158`), rendered in `[data-claude-error]`. Shape confirmed in the 2.1.325 bundle (see Notes).
+- [met] Tool cards: on `Done`, every tool card of that reply still `running` gets a final status shown as "stopped" in the panel. Test: `ToolStart`, then `Done` with no `ToolResult`. — `claude.logic.ts:163-169` maps running tool parts to `stopped`; `ClaudePanel.svelte:235` shows the status; tests: logic "Done marks the tool cards still running as stopped and keeps finished ones", panel "shows a tool card whose result never came as stopped once the turn ends" (`data-claude-tool="stopped"`, label contains "stopped").
+- [met] Retried stream: when the CLI ends a message with its own `message_stop` carrying `abandoned_blocks` and then retries (a new `message_start`), the text streamed for the abandoned blocks is removed, so the reply shows the retried text once. Tested with fixture lines in that shape. — `stream.rs` `stream_event`/`retracted_text` (`:167-211`) emits `TextRetracted` for blocks `>= from_block_index` of the response the stop names; reducer strips the suffix (`claude.logic.ts:131-138`). Tests: `retried_response_retracts_the_text_of_the_abandoned_blocks` (fixture `retry.ndjson`), `abandoned_blocks_retract_from_their_index_for_the_response_they_close`, and three logic `TextRetracted` tests. I checked the bundle: `abandoned_blocks` sits on the line beside `event` (builder `sr(...)`), shape `{api_message_id, from_block_index}`, matching the fixture.
+- [met] Non-streamed fallback: a `text` block in an `assistant` message whose text was not streamed (no `text_delta` for that message) reaches the panel as text. Tested with fixture lines. — `assistant_events` (`stream.rs:213-238`) sends text blocks as `TextDelta` when the message id never streamed a `text_delta`; test `non_streamed_fallback_sends_its_text_and_tools` (fixture `non-streamed.ndjson`) and `streamed_text_is_not_sent_again_by_its_assistant_message` (no duplicate). The real capture `stream.ndjson` shows assistant `message.id` equal to the `message_start` id, so the recorded-stream test guards against duplicating streamed text.
+- [met] A test covers `slash_commands` minus `terminal_slash_commands` in `init_event`: the real capture's lists do not overlap, so the filter can be deleted today with every test green. Use a small inline line, not the fixture. — `init_leaves_out_the_terminal_only_slash_commands` uses an inline init line where `doctor` and `color` overlap and asserts `["hello", "review"]`; it fails if the filter is removed.
+
+## Findings
+
+1. minor, `src/lib/features/claude-code/claude.logic.ts:154`: The `Result` case still appends `event.text` as reply text when no text part exists, regardless of `isError`. With the new error text, a turn that ends in `error_max_turns` (or with `errors`) before any text streamed now shows the cause twice: once as a Markdown reply bubble ("error_max_turns") and once in the red `[data-claude-error]` line. Before this branch that case had empty text, so only the alert showed. Fix: append the Result text to the reply only when `!event.isError`, with a logic test for an error Result on an empty reply. Not a blocker: the criterion (the panel shows the cause instead of the fallback sentence) is met.
+2. nit, `src-tauri/src/commands/claude/stream.rs:182`: A `text_delta` with no open `message_start` and no `api_message_id` records `""` in `streamed`, so the matching `assistant` message (real id) re-sends its text and the reply shows it twice. Only reachable when the `message_start` was missed and the producer omits `api_message_id`. Fix: insert into `streamed` only when an id is known.
+3. nit, `src-tauri/src/commands/claude/stream.rs:205`: Blocks below `from_block_index` are kept; the bundle schema says lower blocks "may have no assistant message, and what follows may repeat or replace them", so a retry that regenerates them can still show them twice. Recorded as a known limit in `work/13/discovery.md`; no change asked, mention it if retries are seen duplicating in practice.
+4. nit, `.scratch/claude-code-integration/spec.md:40`: Still says follow-up turns pass `--resume` "from the previous `result`"; the session now also comes from `Init`. Fix: update that sentence.
+
+## Checks run by the reviewer
+
+- `pnpm check`: exit 0, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/features/claude-code/`: exit 0, 7 files, 135 tests passed (`claude.logic.test.ts`, `claude.service.test.ts`, `ClaudePanel.test.ts`, `claude.store.test.ts`, `claude-code.service.test.ts`, `claude-status.store.test.ts`, `ClaudeCodeSection.test.ts`).
+- `pnpm vitest run src/tests/lib/app/tauri-listeners.service.test.ts` (references `ClaudeEvent`): exit 0, 69 passed.
+- `cargo test --manifest-path src-tauri/Cargo.toml --test commands_test claude_`: exit 0, 101 passed (`claude_stream_test.rs`, `claude_turn_test.rs`).
+- `cargo test --manifest-path src-tauri/Cargo.toml --lib export_bindings_claude`: exit 0; worktree stayed clean, so the committed `src/lib/contracts/generated/ClaudeEvent.ts` is fresh.
+- Red probe described under the first criterion.
+- The full suites (vitest and cargo) were not run: deliver runs them.
+
+## Notes
+
+- Scope: only files under the Issue's **Files** list changed (`turn.rs` untouched). No layer-baseline or composition-root change.
+- Stop kills the process group with SIGKILL (`turn.rs:346`), so the bundle's "turn was interrupted" `message_stop` with `abandoned_blocks` does not reach the panel on Stop, and Stop does not retract the visible partial text.
+- Not verified: whether `--resume` with an `Init` id from a first turn killed before the CLI wrote its transcript resumes cleanly. That depends on when the CLI persists the session, which I did not run the CLI to test.
+
+## Resolution
+
+1. Fixed. `claude.logic.ts` adds the `Result` text to the reply only when `!event.isError`; logic test "Result with isError on an empty reply shows its cause only as the error, not as reply text" (red before, green after).
+2. Fixed, with a correction to the stated effect: recording `""` cannot make the real-id `assistant` message resend (it resends either way, since the response id is unknown). What `""` did was hide the text of a later `assistant` message with no `id`. `stream.rs` now inserts into `streamed` only a known, non-empty id; test `text_delta_with_no_known_response_does_not_hide_an_assistant_message_text` (red before, green after). The resend when both `message_start` and `api_message_id` are missing stays a known limit.
+3. No change, as the finding says (known limit recorded in `discovery.md`).
+4. Fixed. `spec.md` now says the session for `--resume` comes from the previous turn's `system/init` and its `result`.

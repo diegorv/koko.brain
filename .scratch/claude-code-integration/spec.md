@@ -37,7 +37,7 @@ ClaudePanel.svelte (right sidebar)
      index update + reloadExternallyChangedTabs for clean open tabs
 ```
 
-One turn = one process. Follow-up turns pass `--resume <session_id>` from the previous `result`. Cancel kills the process.
+One turn = one process. Follow-up turns pass `--resume <session_id>`, taken from the previous turn's `system/init` and its `result`, so a turn stopped before its `result` is still resumed. Cancel kills the process.
 
 ## Constraints found in this repo
 

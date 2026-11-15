@@ -232,7 +232,7 @@
 										<span class="font-medium" data-claude-tool-name>{part.name}</span>
 										<span class="min-w-0 truncate text-right-sidebar-muted-fg" data-claude-tool-target>{part.target}</span>
 										<span class="ml-auto shrink-0 text-right-sidebar-muted-fg">
-											{part.status === 'running' ? 'running' : part.status === 'error' ? 'failed' : 'done'}
+											{part.status === 'error' ? 'failed' : part.status}
 										</span>
 									</summary>
 									{#if part.summary}
