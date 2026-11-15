@@ -1,6 +1,6 @@
 # Claude Code integration: an agent panel for the vault through the `claude` CLI
 
-**Status:** ready-for-agent (Issues 01-03)
+**Status:** MVP delivered (01, 02, 03, 05); follow-ups 07-09
 
 ## Goal
 
@@ -59,7 +59,10 @@ Changed-files summary and revert (git diff when the vault is a repo, as Tolaria 
 |---|---|---|---|
 | [01](issues/01-claude-binary-detection.md) | Detect the `claude` binary and show its status in Settings | none | resolved |
 | [02](issues/02-rust-turn-runner.md) | Rust turn runner: spawn, NDJSON to events, cancel | 01 | resolved |
-| [03](issues/03-claude-chat-panel.md) | Agent panel: chat, note context, slash commands | 02 | ready-for-agent |
+| [03](issues/03-claude-chat-panel.md) | Agent panel: chat, note context, slash commands | 02 | resolved |
 | [04](issues/04-claude-settings-per-machine.md) | Claude Code settings per machine, not in the vault | 01 | wontfix |
-| [05](issues/05-login-shell-env-for-claude.md) | Run `claude` with the login shell's environment | 02 | ready-for-agent |
+| [05](issues/05-login-shell-env-for-claude.md) | Run `claude` with the login shell's environment | 02 | resolved |
 | [06](issues/06-remote-images-in-replies.md) | Remote images in Claude replies can leak data | 03 | wontfix |
+| [07](issues/07-cancel-misses-a-child-forked-during-killpg.md) | Cancel misses a child forked during `killpg` | 05 | ready-for-agent |
+| [08](issues/08-real-stream-json-fixture.md) | Replace the hand-written stream-json fixture with a real capture | 03 | ready-for-agent |
+| [09](issues/09-stale-run-after-vault-switch.md) | A run started before a vault switch leaks into the new vault's chat | 03 | needs-triage |

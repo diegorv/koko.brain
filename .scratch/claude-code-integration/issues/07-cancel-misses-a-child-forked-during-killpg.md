@@ -6,7 +6,7 @@
 
 **Files:** src-tauri/
 
-**Status:** needs-triage
+**Status:** ready-for-agent
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml`
 
