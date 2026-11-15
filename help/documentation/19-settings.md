@@ -335,6 +335,8 @@ The section ends with **Changes in this build**, the commits since the last rele
 
 When an update is available, the **Check for updates** row shows download progress (version and size) and then a **Restart to update** button. Changing the release channel resets any pending download, since it pointed at a build from the other channel.
 
+Preview builds come from the `preview` branch, which holds `main` plus the feature branches under test. A new Preview build is published on every push to `main` (which is first merged into `preview`) and on every push to `preview`. Its release page lists the branches it contains that are not in `main` yet.
+
 ### Downgrading to a lower channel
 
 The auto-updater never moves to a lower version, so switching the channel to one that ranks below the installed build does not automatically downgrade. For the same base version the channels sort **Stable** < **Nightly** < **Preview**:
