@@ -290,6 +290,38 @@ describe('ClaudePanel chat', () => {
 		expect(button('Send')).toBeDefined();
 	});
 
+	it('shows a working indicator at the end of the chat while a turn runs, until Done', async () => {
+		await render();
+		expect(q('[data-claude-working]')).toBeNull();
+
+		await sendText('work');
+		const list = q('[data-claude-messages]')!;
+		expect(list.lastElementChild?.matches('[data-claude-working]')).toBe(true);
+		expect(q('[data-claude-working]')?.textContent).toContain('Working');
+		expect(q('[data-claude-working] .animate-spin')).not.toBeNull();
+
+		await emit({ type: 'TextDelta', text: 'Partial' });
+		expect(list.lastElementChild?.matches('[data-claude-working]')).toBe(true);
+
+		await emit({ type: 'Done', exitCode: 0 });
+		expect(q('[data-claude-working]')).toBeNull();
+	});
+
+	it('spins on a running tool card only', async () => {
+		await render();
+		await sendText('read a');
+		await emit({ type: 'ToolStart', id: 't1', name: 'Read', input: { file_path: 'Notes/a.md' } });
+		expect(q('[data-claude-tool] summary .animate-spin')).not.toBeNull();
+
+		await emit({ type: 'ToolResult', id: 't1', isError: false, summary: '# A' });
+		expect(q('[data-claude-tool] summary .animate-spin')).toBeNull();
+	});
+
+	it('lets the user select the text of the chat, which the app body makes unselectable', async () => {
+		await render();
+		expect(q('[data-claude-messages]')!.classList.contains('select-text')).toBe(true);
+	});
+
 	it('sends with Enter and keeps Shift+Enter for a new line', async () => {
 		await render();
 		await type('line one');
