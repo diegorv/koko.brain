@@ -117,13 +117,14 @@ A Tauri 2 shell with a Rust core indexes the vault, keeps backlinks, tags and ta
 
 ## 📦 Download
 
-Grab the `.dmg` of the [**latest stable release**](https://github.com/diegorv/koko.brain/releases/latest) (Apple Silicon, code-signed). Stable and Nightly builds update in place from Settings > Update > Check for updates.
+Grab the `.dmg` of the [**latest stable release**](https://github.com/diegorv/koko.brain/releases/latest) (Apple Silicon, code-signed). Stable, Nightly and Preview builds update in place from Settings > Update > Check for updates.
 
 | Channel | What you get |
 |---|---|
 | **Stable** | Tagged releases. |
 | **Pre-release** | Alpha, beta and RC builds ahead of a major version, installed by hand. |
 | **Nightly** | The latest `main`, rebuilt as code changes land. |
+| **Preview** | Nightly plus features under test, from the `preview` branch. |
 
 Details on each channel and how versions are numbered: [Release Channels](docs/RELEASE-CHANNELS.md).
 
@@ -132,7 +133,7 @@ Details on each channel and how versions are numbered: [Release Channels](docs/R
 
 ## 🚦 Quality gates
 
-The workflows that guard `main` and the release builds. A release, Stable or pre-release, is built only after CI, E2E, Secret Scan, Security and Privacy pass again on the tagged commit. Nightly builds skip that gate.
+The workflows that guard `main` and the release builds. A release, Stable or pre-release, is built only after CI, E2E, Secret Scan, Security and Privacy pass again on the tagged commit. Nightly and Preview builds skip that gate.
 
 | Workflow | Status | What it checks |
 |---|---|---|
@@ -145,6 +146,7 @@ The workflows that guard `main` and the release builds. A release, Stable or pre
 | **Dependabot** | [![Dependabot][dependabot-badge]][dependabot-url] | Dependency update PRs |
 | **Release** | [![Release][release-badge]][release-url] | Signed Stable and pre-release builds |
 | **Nightly** | [![Nightly][nightly-badge]][nightly-url] | Signed builds of `main` |
+| **Preview** | [![Preview][preview-badge]][preview-url] | Signed builds of `preview`, after merging in each accepted push to `main` |
 
 How each workflow works and when it runs: [GITHUB-WORKFLOW.md](GITHUB-WORKFLOW.md).
 
@@ -195,6 +197,8 @@ Licensed under the [GNU Affero General Public License v3.0 or later](LICENSE).
 [release-url]: https://github.com/diegorv/koko.brain/actions/workflows/release.yml
 [nightly-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/nightly.yml?label=Nightly&logo=github&logoColor=white
 [nightly-url]: https://github.com/diegorv/koko.brain/actions/workflows/nightly.yml
+[preview-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/preview.yml?label=Preview&logo=github&logoColor=white
+[preview-url]: https://github.com/diegorv/koko.brain/actions/workflows/preview.yml
 [dependabot-badge]: https://img.shields.io/github/actions/workflow/status/diegorv/koko.brain/dependabot/dependabot-updates?label=Dependabot&logo=dependabot&logoColor=white
 [dependabot-url]: https://github.com/diegorv/koko.brain/actions/workflows/dependabot/dependabot-updates
 [version-badge]: https://img.shields.io/github/v/release/diegorv/koko.brain?include_prereleases&sort=semver&label=release&color=blue

@@ -63,7 +63,7 @@ A **Releases page** button next to it opens the selected channel's GitHub releas
 
 - **Use Stable** for everyday note-taking. Tagged builds, the full CI matrix (frontend + rust forced via `force_all: true`), Playwright E2E, the gitleaks scan, the Security audits and the Privacy scan as hard gates, slower cadence, fewer regressions.
 - **Use Nightly** if you want the latest fixes or are testing a feature that just merged. Every push to `main` that changes code queues a build; a running build always finishes, and during a burst only the newest pending push is built, so the published nightly may skip intermediate commits. Every push to `main` runs CI with the normal paths-filter (a docs-only commit doesn't re-run frontend tests) plus the full E2E suite in `main-checks.yml`, but neither gates the nightly build: a red check is signal for the maintainer, and the nightly DMG still publishes. The next stable tag-push re-runs both against the exact release SHA, there as hard gates.
-- **Use Preview** to test features that are not approved for `main` yet. It is Nightly plus the branches merged into `preview`, with no CI of its own: what lands there was tested on its own branch.
+- **Use Preview** to test features that are not approved for `main` yet. It is Nightly plus the branches merged into `preview`, with no CI of its own: a branch is tested only through its PR to `main`, so open one before merging the branch into `preview`.
 
 Nightly is built and signed by the same workflow infrastructure as Stable, so the binaries themselves are equally trustworthy. The difference is review surface and gate coverage — Nightly ships before the change has accumulated days of real-world use, and publishes even when CI or E2E goes red on the post-merge SHA.
 
@@ -107,6 +107,6 @@ Compare the output against the corresponding line in `checksums-sha256.txt`.
 
 ## Related docs
 
-- [GitHub Workflows](../GITHUB-WORKFLOW.md) — the full `release.yml` and `nightly.yml` job graphs.
+- [GitHub Workflows](../GITHUB-WORKFLOW.md): the full `release.yml`, `nightly.yml` and `preview.yml` job graphs.
 - `.github/workflows/preview.yml` and `scripts/preview-branch.sh`: the preview sync and build.
 - [Commit Conventions](COMMITS.md) — including the `chore: bump version` convention that triggers Stable releases.
