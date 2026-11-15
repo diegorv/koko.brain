@@ -14,6 +14,7 @@ A complete reference of all keyboard shortcuts in Kokobrain.
 | `Cmd+Shift+T` | Toggle Tasks View |
 | `Cmd+Shift+C` | Toggle Calendar View (the [Calendar tab](27-calendar.md)) |
 | `Cmd+B` | Toggle Right Sidebar |
+| `Cmd+Shift+A` | Toggle the Claude panel in the right sidebar (only when Claude Code is on in **Settings > Claude Code**) |
 | `Cmd+Shift+B` | Toggle Rail Panels: toggle the panels between the rail and the editor |
 | `Cmd+1` | Hide Rail Panels: hide the panels between the rail and the editor (the rail stays) |
 | `Cmd+2` | Show Rail Panels: show the panels between the rail and the editor |
