@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Detect the `claude` binary and show its status in Settings](issues/01-claude-binary-detection.md) | none | done | issue/01-claude-binary-detection (69a180e69) | 2026-11-14 |
 | 02 | [Rust turn runner: spawn, NDJSON to events, cancel](issues/02-rust-turn-runner.md) | 01 | done | issue/02-rust-turn-runner (d7a921df5) | 2026-11-14 |
-| 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | todo | | |
+| 03 | [Agent panel: chat, note context, slash commands](issues/03-claude-chat-panel.md) | 02 | in-progress | | |
 | 04 | [Claude Code settings per machine, not in the vault](issues/04-claude-settings-per-machine.md) | 01 | wontfix | | |
 | 05 | [Run `claude` with the login shell's environment](issues/05-login-shell-env-for-claude.md) | 02 | done | issue/05-login-shell-env-for-claude (3cd72c8c6) | 2026-11-14 |
 | 06 | [Remote images in Claude replies can leak data](issues/06-remote-images-in-replies.md) | 03 | wontfix | | |
@@ -60,3 +60,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-14 22:43 — 03 — deliver — blocked: criterion on prompts starting with - needs an owner decision (-- in build_args, Rust, outside Files src/,e2e/; or escape/refuse in panel); rest of the Issue built and committed in the worktree — 239e66c39
 - 2026-11-14 23:23 — 05 — deliver — merged on mvp-claude; review APPROVED x2; fixes: capture session killed after a clean shell exit, lingering-shell test, capturing flag so Check again is not dropped; cancel race moved to Issue 07 (needs-triage); cargo 1536 passed, clippy clean, vitest 639 files / 16960 tests passed — 3cd72c8c6
 - 2026-11-14 23:23 — ledger updated (added 07)
+- 2026-11-14 23:23 — 03 — start — retry by /relay-lite:run on mvp-claude after owner decision (-- in build_args) — 520912c50
