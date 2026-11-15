@@ -8,7 +8,7 @@ date: 2026-11-14
 
 ## Context
 
-The owner wants to work on vault notes with Claude Code from inside Kokobrain (`.scratch/claude-code-integration/PRD.md`). Two existing apps show the options: Tolaria spawns the `claude` binary from Rust and parses its NDJSON stream (Tolaria ADR 0012), and t3code runs `@anthropic-ai/claude-agent-sdk` in a Node server. Kokobrain ships a Tauri bundle with no Node runtime, and makes no network calls outside the allowlist in `.github/workflows/privacy.yml`.
+The owner wants to work on vault notes with Claude Code from inside Kokobrain (`.scratch/claude-code-integration/spec.md`). Two existing apps show the options: Tolaria spawns the `claude` binary from Rust and parses its NDJSON stream (Tolaria ADR 0012), and t3code runs `@anthropic-ai/claude-agent-sdk` in a Node server. Kokobrain ships a Tauri bundle with no Node runtime, and makes no network calls outside the allowlist in `.github/workflows/privacy.yml`.
 
 ## Decision
 

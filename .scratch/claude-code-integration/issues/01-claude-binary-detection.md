@@ -1,6 +1,6 @@
 # 01: Detect the `claude` binary and show its status in Settings
 
-**What to build:** A Rust command `claude_status` that finds the `claude` binary and returns whether it is installed, its path and its version, and a new Settings section "Claude Code" that shows that status, an enable toggle (off by default), an optional binary path override and the privacy sentence from the PRD.
+**What to build:** A Rust command `claude_status` that finds the `claude` binary and returns whether it is installed, its path and its version, and a new Settings section "Claude Code" that shows that status, an enable toggle (off by default), an optional binary path override and the privacy sentence from the spec.
 
 **Blocked by:** none
 
