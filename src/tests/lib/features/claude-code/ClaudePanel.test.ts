@@ -487,6 +487,37 @@ describe('ClaudePanel note context', () => {
 		expect(chips()).toEqual([]);
 	});
 
+	it('offers the open note when it is not attached, and one click attaches it', async () => {
+		await render();
+		expect(q('[data-claude-suggested-note]')).toBeNull();
+
+		editorStore.addTab({ path: '/vault/Notes/b.md', name: 'b.md', content: '', savedContent: '' });
+		await settle();
+		const suggested = q<HTMLButtonElement>('[data-claude-suggested-note]')!;
+		expect(suggested.textContent?.trim()).toBe('b');
+		expect(chips()).toEqual([]);
+
+		suggested.click();
+		await settle();
+		expect(chips()).toEqual(['Notes/b.md']);
+		expect(q('[data-claude-suggested-note]')).toBeNull();
+	});
+
+	it('offers the open note again after its chip is removed, and nothing for a file that is not a note', async () => {
+		editorStore.addTab({ path: '/vault/Notes/a.md', name: 'a.md', content: '', savedContent: '' });
+		claudeStore.addContextNote('Notes/a.md');
+		await render();
+		expect(q('[data-claude-suggested-note]')).toBeNull();
+
+		target.querySelector<HTMLButtonElement>('[aria-label="Remove a"]')!.click();
+		await settle();
+		expect(q('[data-claude-suggested-note]')?.textContent?.trim()).toBe('a');
+
+		editorStore.addTab({ path: '/vault/photo.png', name: 'photo.png', content: '', savedContent: '' });
+		await settle();
+		expect(q('[data-claude-suggested-note]')).toBeNull();
+	});
+
 	it('attaches nothing without an open note, and sends with no notes', async () => {
 		await render();
 		expect(chips()).toEqual([]);

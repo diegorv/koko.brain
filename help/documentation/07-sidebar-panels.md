@@ -153,7 +153,7 @@ panel. The `#tags` written in a note body are not tinted.
 With Claude Code turned on in **Settings > Claude Code** (see [Settings](19-settings.md#claude-code)), the right sidebar can show a Claude panel for chatting with Claude Code about your vault.
 
 - Press **Cmd+Shift+A**, or run **Toggle Claude Panel** from the Command Palette, to show or hide it. While it shows, it is the only panel in the right sidebar; hiding it brings the other panels back.
-- Showing the panel with **Cmd+Shift+A** or the command attaches the active note as context. Remove a note with the x on its chip, add more with **Add note** or the **Add to Claude context** command, or send with no notes to work on the vault as a whole.
+- Showing the panel with **Cmd+Shift+A** or the command attaches the active note as context. When the note open in the editor is not attached, for example after you switch notes, it shows as a dashed chip with a +: click it to attach it. Remove a note with the x on its chip, add more with **Add note** or the **Add to Claude context** command, or send with no notes to work on the vault as a whole.
 - Type `/` in an empty prompt to pick a Claude Code slash command or skill. The list loads with your first message.
 - **Stop** ends the running turn. **New chat** (not available while a turn runs) starts a new session with only the active note attached.
 

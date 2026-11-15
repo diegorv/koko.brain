@@ -4,6 +4,7 @@
 	import Plus from '@lucide/svelte/icons/plus';
 	import LoaderIcon from '@lucide/svelte/icons/loader';
 	import { Button } from '#lib/components/ui/button/index.js';
+	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { filterAndRank, flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 	import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
@@ -14,8 +15,8 @@
 	import { error } from '#lib/utils/debug.js';
 	import { checkClaudeStatus } from './claude-code.service';
 	import { claudeStatusStore } from './claude-status.store.svelte';
-	import { filterSlashCommands, renderReplyHtml, replyLinkAction, slashQuery } from './claude.logic';
-	import { newChat, sendPrompt, stop, STOP_FAILED } from './claude.service';
+	import { activeNoteContextPath, filterSlashCommands, renderReplyHtml, replyLinkAction, slashQuery } from './claude.logic';
+	import { attachActiveNote, newChat, sendPrompt, stop, STOP_FAILED } from './claude.service';
 	import { claudeStore } from './claude.store.svelte';
 
 	interface Props {
@@ -59,6 +60,11 @@
 
 	const query = $derived(slashDismissed ? null : slashQuery(prompt));
 	const slashMatches = $derived(query === null ? [] : filterSlashCommands(query, claudeStore.slashCommands));
+	/** The open note when it is not attached, offered as a one-click chip. */
+	const suggestedNote = $derived.by(() => {
+		const note = activeNoteContextPath(editorStore.activeTabPath, vaultStore.path);
+		return note !== null && !claudeStore.contextNotes.includes(note) ? note : null;
+	});
 	const pickerResults = $derived.by(() => {
 		if (!pickerOpen) return [];
 		const notes = flattenFileTree(fsStore.fileTree).filter((f) => /\.md$/i.test(f.path));
@@ -269,6 +275,15 @@
 						><X class="size-3" /></button>
 					</span>
 				{/each}
+				{#if suggestedNote}
+					<button
+						class="inline-flex items-center gap-0.5 rounded-md border border-dashed border-divider px-1.5 py-0.5 text-right-sidebar-muted-fg hover:bg-right-sidebar-accent/50"
+						title={`Add ${suggestedNote}`}
+						aria-label={`Add ${noteName(suggestedNote)}`}
+						onclick={() => attachActiveNote()}
+						data-claude-suggested-note
+					><Plus class="size-3" />{noteName(suggestedNote)}</button>
+				{/if}
 				<button
 					class="inline-flex items-center gap-0.5 rounded-md px-1.5 py-0.5 text-right-sidebar-muted-fg hover:bg-right-sidebar-accent/50"
 					onclick={() => (pickerOpen = !pickerOpen)}
