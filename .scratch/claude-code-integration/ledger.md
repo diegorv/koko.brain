@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [Replace the hand-written stream-json fixture with a real capture](issues/08-real-stream-json-fixture.md) | 03 | done | issue/08-real-stream-json-fixture (46213233d) | 2026-11-15 |
 | 09 | [A run started before a vault switch leaks into the new vault's chat](issues/09-stale-run-after-vault-switch.md) | 03 | todo | | |
 | 10 | [The status check finds `claude` the way a turn does](issues/10-status-uses-turn-env.md) | 05 | done | issue/10-status-uses-turn-env (95945e00a) | 2026-11-15 |
-| 11 | [Quitting the app cancels running turns](issues/11-cancel-turns-on-app-exit.md) | 07 | blocked | | |
+| 11 | [Quitting the app cancels running turns](issues/11-cancel-turns-on-app-exit.md) | 07 | todo | | |
 | 12 | [Panel follows the reply, keeps focus, and handles IME and slash-menu keys](issues/12-panel-scroll-focus-keys.md) | 10 | todo | | |
 | 13 | [Stream and chat keep the session, the error cause and retried text right](issues/13-stream-session-errors-retries.md) | 12 | todo | | |
 
