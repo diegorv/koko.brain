@@ -153,11 +153,24 @@ impl ClaudeRuns {
 	/// exited. No-op for an unknown or finished run.
 	pub fn cancel(&self, run_id: &str) {
 		let runs = self.lock();
-		let Some(run) = runs.get(run_id) else { return };
+		if let Some(run) = runs.get(run_id) {
+			self.kill(run_id, run);
+		}
+	}
+
+	/// `cancel` for every running turn, for the app's exit. Returns at once,
+	/// without waiting for the turns to end.
+	pub fn cancel_all(&self) {
+		let runs = self.lock();
+		for (run_id, run) in runs.iter() {
+			self.kill(run_id, run);
+		}
+	}
+
+	/// The caller holds the runs lock and `run` is listed under `run_id`.
+	fn kill(&self, run_id: &str, run: &Run) {
 		run.cancelled.store(true, Ordering::SeqCst);
 		kill_group(run.pid);
-		let pid = run.pid;
-		drop(runs);
 
 		// A process forked while `killpg` walks the group can miss the signal
 		// (macOS) and keep stdout, and so `Done`, open. It exists once its
@@ -166,6 +179,7 @@ impl ClaudeRuns {
 		// run is listed its group id cannot have been reused.
 		let this = self.clone();
 		let run_id = run_id.to_string();
+		let pid = run.pid;
 		thread::spawn(move || {
 			wait_for_exit(pid);
 			let runs = this.lock();

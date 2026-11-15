@@ -403,9 +403,20 @@ pub fn run() {
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
-        .run(|app, event| {
-            if let RunEvent::ExitRequested { code, api, .. } = event {
-                on_exit_requested(app, code, &api);
-            }
+        .run(|app, event| match event {
+            RunEvent::ExitRequested { code, api, .. } => on_exit_requested(app, code, &api),
+            // A turn leads its own process group and macOS has no parent-death
+            // signal, so its claude and tools outlive the app unless killed here.
+            // Every exit reaches `Exit` (tao `LoopDestroyed`, tauri-runtime-wry
+            // 2.12.3 lib.rs:4131-4132), after any `ExitRequested` was allowed:
+            // - Cmd+Q, last window closed: the loop stops, then tao 0.37.2
+            //   macos/event_loop.rs:234-240 calls `AppState::exit`.
+            // - Dock Quit, logout: `applicationWillTerminate`, tao
+            //   macos/app_delegate.rs:130-133, with no `ExitRequested`.
+            // - Restart to update: `relaunch` -> `request_restart`
+            //   (tauri-plugin-process 2.4.0 commands.rs:12-15), and tauri 2.12.5
+            //   app.rs:1449-1455 calls this before `process::restart`.
+            RunEvent::Exit => app.state::<commands::claude::turn::ClaudeRuns>().cancel_all(),
+            _ => {}
         });
 }

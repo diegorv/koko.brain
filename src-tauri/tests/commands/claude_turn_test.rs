@@ -371,6 +371,59 @@ fn cancel_reaches_a_child_forked_during_the_kill() {
 }
 
 #[test]
+fn cancel_all_kills_every_run_and_its_process_group() {
+	let dir = TempDir::new().unwrap();
+	// The Init session id is the script's pid, which is its group id (the run
+	// leads its own group). The background `sleep` is a tool still running.
+	let claude = script(
+		dir.path(),
+		"claude",
+		r#"sleep 30 &
+printf '{"type":"system","subtype":"init","session_id":"%s","model":"m","slash_commands":[]}\n' "$$"
+wait
+echo 'never'"#,
+	);
+	let vaults = [TempDir::new().unwrap(), TempDir::new().unwrap()];
+	let runs = ClaudeRuns::default();
+
+	let started: Vec<(String, Receiver<ClaudeEventPayload>, libc::pid_t)> = vaults
+		.iter()
+		.map(|vault| {
+			let (run_id, rx) = start(&runs, dir.path(), request(vault.path(), &claude)).unwrap();
+			let first = rx.recv_timeout(WAIT).unwrap();
+			let ClaudeEvent::Init { session_id, .. } = first.event else { panic!("{first:?}") };
+			(run_id, rx, session_id.parse().unwrap())
+		})
+		.collect();
+
+	let cancelled_at = std::time::Instant::now();
+	runs.cancel_all();
+	for (run_id, rx, pgid) in &started {
+		let rest = collect_until_done(rx, run_id);
+		assert!(cancelled_at.elapsed() < Duration::from_secs(5), "Done took {:?}", cancelled_at.elapsed());
+		assert_eq!(rest, vec![ClaudeEvent::Done { exit_code: None }]);
+		// The orphaned `sleep` is reaped by init, not by this process, so its
+		// group can outlive `Done` for a moment.
+		let deadline = std::time::Instant::now() + Duration::from_secs(2);
+		while unsafe { libc::killpg(*pgid, 0) } == 0 && std::time::Instant::now() < deadline {
+			std::thread::sleep(Duration::from_millis(20));
+		}
+		assert_eq!(unsafe { libc::killpg(*pgid, 0) }, -1, "group {pgid} still has a process");
+		assert_eq!(std::io::Error::last_os_error().raw_os_error(), Some(libc::ESRCH));
+	}
+	assert!(runs.is_empty());
+}
+
+#[test]
+fn cancel_all_without_runs_is_a_no_op() {
+	let runs = ClaudeRuns::default();
+
+	runs.cancel_all();
+
+	assert!(runs.is_empty());
+}
+
+#[test]
 fn grandchild_holding_stderr_does_not_hold_back_done() {
 	let dir = TempDir::new().unwrap();
 	let result = r#"{"type":"result","subtype":"success","is_error":false,"session_id":"s","result":"ok"}"#;
