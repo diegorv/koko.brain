@@ -28,9 +28,27 @@
 
 	/** Most note picker results shown at once. */
 	const MAX_PICKER_RESULTS = 8;
+	/** Distance in px from the bottom of the message list within which it follows new content. */
+	const FOLLOW_THRESHOLD = 32;
 
 	let prompt = $state('');
 	let promptEl = $state<HTMLTextAreaElement | null>(null);
+	let slashMenuEl = $state<HTMLDivElement | null>(null);
+	let messagesEl = $state<HTMLDivElement | null>(null);
+	/**
+	 * Whether the message list was near its bottom, and not moving up, at the user's last scroll.
+	 * Growing content fires no scroll event, so this is the position before an
+	 * update. Not reactive: only the follow effect reads it.
+	 */
+	let following = true;
+	/**
+	 * `scrollTop` at the last scroll event or follow. A scroll up from it leaves
+	 * the bottom even within the threshold: a slow trackpad scroll moves a few
+	 * px per event, and each streamed delta would snap it back.
+	 */
+	let lastScrollTop = 0;
+	/** The prompt had focus when the running turn was sent, so it gets it back when the turn ends. */
+	let refocusPrompt = false;
 	/** Highlighted row of the slash menu. */
 	let slashIndex = $state(0);
 	/** Escape closes the slash menu until the prompt changes. */
@@ -58,6 +76,41 @@
 		});
 	});
 
+	// Follows the chat: every event replaces the messages, so a new message,
+	// a tool card and each streamed delta re-run this.
+	$effect(() => {
+		void claudeStore.messages;
+		untrack(() => {
+			void tick().then(() => {
+				if (!following || !messagesEl) return;
+				messagesEl.scrollTop = messagesEl.scrollHeight;
+				lastScrollTop = messagesEl.scrollTop;
+			});
+		});
+	});
+
+	// The prompt is disabled while a turn runs, and WKWebView drops its focus.
+	// When the turn ends, the prompt gets it back unless the user moved focus
+	// elsewhere meanwhile (a note they type in keeps its keystrokes).
+	$effect(() => {
+		const running = claudeStore.isRunning;
+		untrack(() => {
+			if (running || !refocusPrompt) return;
+			refocusPrompt = false;
+			void tick().then(() => {
+				const active = document.activeElement;
+				if (active === null || active === document.body || active === promptEl) promptEl?.focus();
+			});
+		});
+	});
+
+	function onMessagesScroll(): void {
+		if (!messagesEl) return;
+		const top = messagesEl.scrollTop;
+		following = top >= lastScrollTop && messagesEl.scrollHeight - top - messagesEl.clientHeight <= FOLLOW_THRESHOLD;
+		lastScrollTop = top;
+	}
+
 	function noteName(path: string): string {
 		return path.slice(path.lastIndexOf('/') + 1).replace(/\.md$/i, '');
 	}
@@ -74,12 +127,22 @@
 		promptEl?.focus();
 	}
 
+	/** Scrolls the highlighted slash command into the menu's view, so Enter never inserts a command the user did not see. */
+	async function revealSlashOption(): Promise<void> {
+		await tick();
+		slashMenuEl?.querySelector('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+	}
+
 	function onPromptKeydown(e: KeyboardEvent): void {
+		// Keys of an IME composition belong to the IME. WebKit sends the
+		// confirming Enter after compositionend, with isComposing false and keyCode 229.
+		if (e.isComposing || e.keyCode === 229) return;
 		if (query !== null && slashMatches.length > 0) {
 			if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
 				e.preventDefault();
 				const step = e.key === 'ArrowDown' ? 1 : -1;
 				slashIndex = (slashIndex + step + slashMatches.length) % slashMatches.length;
+				void revealSlashOption();
 				return;
 			}
 			if (e.key === 'Enter' || e.key === 'Tab') {
@@ -93,7 +156,7 @@
 			slashDismissed = true;
 			return;
 		}
-		if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+		if (e.key === 'Enter' && !e.shiftKey) {
 			e.preventDefault();
 			send();
 		}
@@ -103,6 +166,7 @@
 		const text = prompt;
 		if (claudeStore.isRunning || text.trim() === '') return;
 		prompt = '';
+		refocusPrompt = document.activeElement === promptEl;
 		// The store shows the failure inline; nothing else to do here.
 		sendPrompt(text).catch(() => {});
 	}
@@ -145,7 +209,7 @@
 			<Button variant="outline" size="sm" onclick={() => settingsPanelStore.open('claude-code')}>Open Claude Code settings</Button>
 		</div>
 	{:else}
-		<div class="min-h-0 flex-1 overflow-y-auto p-3" data-claude-messages>
+		<div bind:this={messagesEl} class="min-h-0 flex-1 overflow-y-auto p-3" onscroll={onMessagesScroll} data-claude-messages>
 			{#if claudeStore.messages.length === 0}
 				<p class="text-right-sidebar-muted-fg" data-claude-empty>
 					Ask Claude about the attached notes, or about the whole vault when none are attached.
@@ -235,7 +299,7 @@
 
 			<div class="relative">
 				{#if query !== null}
-					<div class="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto rounded-md border border-divider bg-right-sidebar-bg shadow" role="listbox" data-claude-slash-menu>
+					<div bind:this={slashMenuEl} class="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto rounded-md border border-divider bg-right-sidebar-bg shadow" role="listbox" data-claude-slash-menu>
 						{#each slashMatches as name, k (name)}
 							<button
 								class="block w-full truncate px-2 py-1 text-left {k === slashIndex ? 'bg-right-sidebar-accent' : ''}"

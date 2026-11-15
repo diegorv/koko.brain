@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { setupLocalStorage, clearLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
+// jsdom has no scrollIntoView; the slash menu calls it on the highlighted option.
+Element.prototype.scrollIntoView ??= () => {};
 
 vi.mock('@tauri-apps/api/core', () => ({ invoke: vi.fn() }));
 vi.mock('@tauri-apps/api/event', () => ({ listen: vi.fn() }));
@@ -85,6 +87,65 @@ async function emit(event: ClaudeEvent, runId = 'r1') {
 	claudeStore.receive({ runId, event });
 	await settle();
 }
+
+/** Sends a keydown to the prompt. */
+async function key(init: KeyboardEventInit) {
+	promptBox().dispatchEvent(new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init }));
+	await settle();
+}
+
+/** Loads `commands` as the slash commands of a finished turn, before the panel mounts. */
+function seedSlashCommands(commands: string[]) {
+	claudeStore.beginTurn('x');
+	claudeStore.startRun('r0');
+	claudeStore.receive({ runId: 'r0', event: { type: 'Init', sessionId: 's', model: 'm', slashCommands: commands, skills: [] } });
+	claudeStore.receive({ runId: 'r0', event: { type: 'Done', exitCode: 0 } });
+}
+
+/**
+ * Gives the message list the layout jsdom lacks: a 100 px viewport over
+ * 500 px of content plus 10 px per character of the rendered messages and
+ * tool cards, with `scrollTop` clamped as a browser does. The height grows
+ * only once the DOM shows an update, so a follow that measures before the
+ * render lands short of the bottom. `scrollTo` moves the list the way the
+ * user does, with a scroll event.
+ */
+function fakeMessageListLayout() {
+	const list = q('[data-claude-messages]')!;
+	const height = () => 500 + 10 * qa('[data-claude-message], [data-claude-tool]').reduce((n, el) => n + (el.textContent?.length ?? 0), 0);
+	let top = 0;
+	Object.defineProperty(list, 'clientHeight', { configurable: true, get: () => 100 });
+	Object.defineProperty(list, 'scrollHeight', { configurable: true, get: height });
+	Object.defineProperty(list, 'scrollTop', {
+		configurable: true,
+		get: () => top,
+		set: (v: number) => { top = Math.max(0, Math.min(v, height() - 100)); },
+	});
+	return {
+		/** The largest `scrollTop` of the content rendered now. */
+		get bottom() { return height() - 100; },
+		get scrollTop() { return top; },
+		async scrollTo(v: number) {
+			list.scrollTop = v;
+			list.dispatchEvent(new Event('scroll'));
+			await settle();
+		},
+	};
+}
+
+/**
+ * WKWebView drops the focus of a field that gets disabled; jsdom keeps it and
+ * ignores blur() on a disabled field. Focusing an element and removing it
+ * leaves the focus on the body, as WebKit does.
+ */
+function dropFocus() {
+	const sink = document.body.appendChild(document.createElement('button'));
+	sink.focus();
+	sink.remove();
+}
+
+const highlighted = () => q('[data-claude-slash-option][aria-selected="true"]')?.dataset.claudeSlashOption;
+const runTurnCalled = () => vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'claude_run_turn');
 
 beforeEach(() => {
 	vi.resetAllMocks();
@@ -229,6 +290,140 @@ describe('ClaudePanel chat', () => {
 		await settle();
 		expect(invoke).toHaveBeenCalledWith('claude_run_turn', expect.objectContaining({ request: expect.objectContaining({ prompt: 'line one' }) }));
 	});
+
+	it('follows a new message and the growing reply when the list is near its bottom', async () => {
+		await render();
+		const layout = fakeMessageListLayout();
+		// 20 px above the bottom of 500 px content in a 100 px viewport.
+		await layout.scrollTo(380);
+
+		await sendText('hello');
+		expect(layout.scrollTop).toBeGreaterThan(400);
+		expect(layout.scrollTop).toBe(layout.bottom);
+
+		let before = layout.scrollTop;
+		await emit({ type: 'TextDelta', text: 'a long reply' });
+		expect(layout.scrollTop).toBeGreaterThan(before);
+		expect(layout.scrollTop).toBe(layout.bottom);
+
+		before = layout.scrollTop;
+		await emit({ type: 'ToolStart', id: 't1', name: 'Read', input: { file_path: 'a.md' } });
+		expect(layout.scrollTop).toBeGreaterThan(before);
+		expect(layout.scrollTop).toBe(layout.bottom);
+	});
+
+	it('stays where the user scrolled up to when a message arrives', async () => {
+		await render();
+		const layout = fakeMessageListLayout();
+		await layout.scrollTo(100);
+
+		await sendText('hello');
+		expect(layout.scrollTop).toBe(100);
+
+		await emit({ type: 'TextDelta', text: 'a long reply' });
+		expect(layout.scrollTop).toBe(100);
+
+		// Back at the bottom, the list follows again.
+		await layout.scrollTo(layout.bottom);
+		const before = layout.scrollTop;
+		await emit({ type: 'TextDelta', text: ' and more' });
+		expect(layout.scrollTop).toBeGreaterThan(before);
+		expect(layout.scrollTop).toBe(layout.bottom);
+	});
+
+	it('stops following on a small scroll up during a streamed reply', async () => {
+		await render();
+		const layout = fakeMessageListLayout();
+		await sendText('hello');
+		await emit({ type: 'TextDelta', text: 'a long reply' });
+		expect(layout.scrollTop).toBe(layout.bottom);
+
+		// 10 px up from where the list followed to, inside the follow threshold.
+		const scrolledTo = layout.scrollTop - 10;
+		await layout.scrollTo(scrolledTo);
+		await emit({ type: 'TextDelta', text: ' that keeps going' });
+		expect(layout.scrollTop).toBe(scrolledTo);
+		expect(layout.bottom).toBeGreaterThan(scrolledTo + 32);
+	});
+
+	it('gives focus back to the prompt when a turn sent from it ends', async () => {
+		await render();
+		promptBox().focus();
+		await type('hi');
+		await key({ key: 'Enter' });
+		expect(promptBox().disabled).toBe(true);
+		dropFocus();
+		expect(document.activeElement).toBe(document.body);
+
+		await emit({ type: 'Done', exitCode: 0 });
+		expect(document.activeElement).toBe(promptBox());
+	});
+
+	it('gives focus back after a turn that fails to start', async () => {
+		let fail!: (reason: unknown) => void;
+		answer(INSTALLED, () => new Promise((_, reject) => { fail = reject; }));
+		await render();
+		promptBox().focus();
+		await type('hi');
+		await key({ key: 'Enter' });
+		expect(promptBox().disabled).toBe(true);
+		dropFocus();
+
+		fail('a turn is already running for this vault');
+		await settle();
+		expect(q('[role="alert"]')).not.toBeNull();
+		expect(document.activeElement).toBe(promptBox());
+	});
+
+	it('focuses the prompt again when the engine kept focus on it while disabled', async () => {
+		await render();
+		promptBox().focus();
+		await type('hi');
+		await key({ key: 'Enter' });
+		// jsdom keeps activeElement on the disabled prompt, as some WebKit builds may.
+		expect(document.activeElement).toBe(promptBox());
+		const focus = vi.spyOn(promptBox(), 'focus');
+
+		await emit({ type: 'Done', exitCode: 0 });
+		expect(focus).toHaveBeenCalled();
+		expect(document.activeElement).toBe(promptBox());
+	});
+
+	it('does not take focus when the prompt did not have it at send', async () => {
+		await render();
+		await sendText('hi');
+		expect(document.activeElement).not.toBe(promptBox());
+
+		await emit({ type: 'Done', exitCode: 0 });
+		expect(document.activeElement).not.toBe(promptBox());
+	});
+
+	it('leaves focus where the user moved it during the turn', async () => {
+		const elsewhere = document.body.appendChild(document.createElement('input'));
+		try {
+			await render();
+			promptBox().focus();
+			await type('hi');
+			await key({ key: 'Enter' });
+			elsewhere.focus();
+
+			await emit({ type: 'Done', exitCode: 0 });
+			expect(document.activeElement).toBe(elsewhere);
+		} finally {
+			elsewhere.remove();
+		}
+	});
+
+	it('does not send on an Enter that confirms an IME composition', async () => {
+		await render();
+		await type('にほんご');
+		await key({ key: 'Enter', isComposing: true });
+		// WebKit sends the confirming Enter after compositionend, with isComposing false and keyCode 229.
+		await key({ key: 'Enter', keyCode: 229 });
+
+		expect(runTurnCalled()).toBe(false);
+		expect(promptBox().value).toBe('にほんご');
+	});
 });
 
 describe('ClaudePanel note context', () => {
@@ -330,6 +525,92 @@ describe('ClaudePanel slash commands', () => {
 		expect(q('[data-claude-slash-menu]')).toBeNull();
 		await type('/review now');
 		expect(q('[data-claude-slash-menu]')).toBeNull();
+	});
+
+	it('moves the highlight with ArrowDown and ArrowUp, wrapping at both ends', async () => {
+		seedSlashCommands(['alpha', 'beta', 'gamma']);
+		await render();
+		await type('/');
+		expect(highlighted()).toBe('alpha');
+
+		await key({ key: 'ArrowDown' });
+		expect(highlighted()).toBe('beta');
+		await key({ key: 'ArrowDown' });
+		await key({ key: 'ArrowDown' });
+		expect(highlighted()).toBe('alpha');
+		await key({ key: 'ArrowUp' });
+		expect(highlighted()).toBe('gamma');
+	});
+
+	it('scrolls the highlighted command into view after each arrow, the wrap included', async () => {
+		const scrolled: { name: string | undefined; options: unknown }[] = [];
+		const spy = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(function (this: Element, options) {
+			scrolled.push({ name: (this as HTMLElement).dataset.claudeSlashOption, options });
+		});
+		try {
+			seedSlashCommands(['alpha', 'beta', 'gamma']);
+			await render();
+			await type('/');
+
+			await key({ key: 'ArrowUp' });
+			expect(scrolled.at(-1)).toEqual({ name: 'gamma', options: { block: 'nearest' } });
+			await key({ key: 'ArrowDown' });
+			expect(scrolled.at(-1)).toEqual({ name: 'alpha', options: { block: 'nearest' } });
+			await key({ key: 'ArrowDown' });
+			expect(scrolled.at(-1)).toEqual({ name: 'beta', options: { block: 'nearest' } });
+			expect(scrolled).toHaveLength(3);
+		} finally {
+			spy.mockRestore();
+		}
+	});
+
+	it('inserts the highlighted command with Enter, without sending', async () => {
+		seedSlashCommands(['alpha', 'beta', 'gamma']);
+		await render();
+		await type('/');
+		await key({ key: 'ArrowDown' });
+		await key({ key: 'Enter' });
+
+		expect(promptBox().value).toBe('/beta ');
+		expect(q('[data-claude-slash-menu]')).toBeNull();
+		expect(runTurnCalled()).toBe(false);
+	});
+
+	it('inserts the highlighted command with Tab', async () => {
+		seedSlashCommands(['alpha', 'beta', 'gamma']);
+		await render();
+		await type('/ga');
+		await key({ key: 'Tab' });
+
+		expect(promptBox().value).toBe('/gamma ');
+		expect(q('[data-claude-slash-menu]')).toBeNull();
+	});
+
+	it('ignores the menu keys of an IME composition', async () => {
+		seedSlashCommands(['alpha', 'beta', 'gamma']);
+		await render();
+		await type('/');
+		await key({ key: 'ArrowDown', isComposing: true });
+		await key({ key: 'ArrowDown', keyCode: 229 });
+		expect(highlighted()).toBe('alpha');
+
+		await key({ key: 'Enter', keyCode: 229 });
+		await key({ key: 'Tab', isComposing: true });
+		await key({ key: 'Escape', keyCode: 229 });
+		expect(promptBox().value).toBe('/');
+		expect(q('[data-claude-slash-menu]')).not.toBeNull();
+		expect(runTurnCalled()).toBe(false);
+	});
+
+	it('closes the menu with Escape and keeps the typed text', async () => {
+		seedSlashCommands(['alpha']);
+		await render();
+		await type('/al');
+		expect(q('[data-claude-slash-menu]')).not.toBeNull();
+
+		await key({ key: 'Escape' });
+		expect(q('[data-claude-slash-menu]')).toBeNull();
+		expect(promptBox().value).toBe('/al');
 	});
 });
 
