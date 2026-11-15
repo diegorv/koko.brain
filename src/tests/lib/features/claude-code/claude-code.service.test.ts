@@ -9,6 +9,7 @@ import { listen } from '@tauri-apps/api/event';
 import type { ClaudeEventPayload } from '#lib/contracts/index.js';
 import { error } from '#lib/utils/debug.js';
 import { checkClaudeStatus, onClaudeEvent } from '#lib/features/claude-code/claude-code.service.js';
+import { claudeStatusStore } from '#lib/features/claude-code/claude-status.store.svelte.js';
 
 describe('onClaudeEvent', () => {
 	beforeEach(() => {
@@ -45,28 +46,35 @@ describe('onClaudeEvent', () => {
 describe('checkClaudeStatus', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		claudeStatusStore.reset();
 	});
 
-	it('passes the override path and returns the Rust status', async () => {
+	it('passes the override path and the refresh flag, and records the Rust status', async () => {
 		const status = { installed: true, path: '/opt/claude', version: '2.1.325 (Claude Code)', error: null };
 		vi.mocked(invoke).mockResolvedValue(status);
 
-		await expect(checkClaudeStatus('/opt/claude')).resolves.toEqual(status);
-		expect(invoke).toHaveBeenCalledWith('claude_status', { binaryPath: '/opt/claude' });
+		await expect(checkClaudeStatus('/opt/claude', true)).resolves.toEqual(status);
+		expect(invoke).toHaveBeenCalledWith('claude_status', { binaryPath: '/opt/claude', refreshEnv: true });
+		expect(claudeStatusStore.status).toEqual(status);
+		expect(claudeStatusStore.unavailable).toBe(false);
 	});
 
 	it('sends an empty override as is, so Rust runs the automatic lookup', async () => {
 		const status = { installed: false, path: null, version: null, error: 'not found' };
 		vi.mocked(invoke).mockResolvedValue(status);
 
-		await expect(checkClaudeStatus('')).resolves.toEqual(status);
-		expect(invoke).toHaveBeenCalledWith('claude_status', { binaryPath: '' });
+		await expect(checkClaudeStatus('', false)).resolves.toEqual(status);
+		expect(invoke).toHaveBeenCalledWith('claude_status', { binaryPath: '', refreshEnv: false });
+		expect(claudeStatusStore.status).toEqual(status);
+		expect(claudeStatusStore.unavailable).toBe(true);
 	});
 
-	it('logs and rethrows an IPC failure', async () => {
+	it('logs and rethrows an IPC failure, and marks the check failed', async () => {
 		vi.mocked(invoke).mockRejectedValue(new Error('ipc down'));
 
-		await expect(checkClaudeStatus('')).rejects.toThrow('ipc down');
+		await expect(checkClaudeStatus('', false)).rejects.toThrow('ipc down');
 		expect(error).toHaveBeenCalledWith('CLAUDE', 'claude_status failed:', expect.any(Error));
+		expect(claudeStatusStore.checkFailed).toBe(true);
+		expect(claudeStatusStore.unavailable).toBe(true);
 	});
 });

@@ -1,22 +1,37 @@
 //! Integration tests for `commands::claude` binary detection.
 //!
-//! Every test passes its own shell and candidate list, so the developer's real
-//! `claude` install and login shell never take part. Fake binaries are `/bin/sh`
-//! scripts written into a temp dir.
+//! Every test passes its own env, shell and candidate list, so the developer's
+//! real `claude` install and login shell never take part. Fake binaries are
+//! `/bin/sh` scripts written into a temp dir.
 
 #![cfg(unix)]
 
+use kokobrain_lib::commands::claude::shell_env::{capture_with, child_env, clean_base, EnvVars, ShellEnv, TurnEnv, SYSTEM_PATH};
 use kokobrain_lib::commands::claude::{
-	claude_status_with, default_candidates, resolve_claude, shell_from_env, version_command, ClaudeStatus,
+	claude_status_with, default_candidates, resolve_claude, shell_from_env, status_env, version_command, ClaudeStatus,
 };
 use std::ffi::OsString;
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tempfile::TempDir;
 
 const TIMEOUT: Duration = Duration::from_secs(5);
+
+/// A captured env with only the system PATH: `claude` is not on it, so the
+/// lookup goes to the candidates without running the login shell.
+fn system_env() -> TurnEnv {
+	TurnEnv { vars: EnvVars::from([("PATH".into(), SYSTEM_PATH.into())]), captured: true }
+}
+
+/// The fallback env (the capture failed), with only the system PATH: the
+/// lookup asks the login shell, then the candidates.
+fn fallback_env() -> TurnEnv {
+	TurnEnv { captured: false, ..system_env() }
+}
 
 /// Writes `body` as a `/bin/sh` script at `dir/name` with the given mode.
 fn script(dir: &Path, name: &str, body: &str, mode: u32) -> PathBuf {
@@ -46,7 +61,7 @@ fn override_path_wins_and_reports_the_first_version_line() {
 	// A candidate that would also match proves the override is checked first.
 	let other = script(dir.path(), "other-claude", "echo 'other'", 0o755);
 
-	let status = claude_status_with(&path_str(&claude), &failing_shell(dir.path()), &[other], TIMEOUT);
+	let status = claude_status_with(&path_str(&claude), &system_env(), &failing_shell(dir.path()), &[other], TIMEOUT);
 
 	assert_eq!(
 		status,
@@ -57,6 +72,94 @@ fn override_path_wins_and_reports_the_first_version_line() {
 			error: None,
 		}
 	);
+}
+
+#[test]
+fn status_finds_claude_on_the_login_shell_path_and_runs_it_with_that_env() {
+	let dir = TempDir::new().unwrap();
+	let home = TempDir::new().unwrap();
+	let bin = TempDir::new().unwrap();
+	// Only on the PATH an rc file sets, and answers only with a variable that
+	// rc file exports, like an nvm-installed `#!/usr/bin/env node` launcher.
+	let claude = script(
+		bin.path(),
+		"claude",
+		"[ \"$KOKO_FROM_RC\" = yes ] || { echo 'KOKO_FROM_RC unset' >&2; exit 7; }\necho '2.1.325 (Claude Code)'",
+		0o755,
+	);
+	let shell = script(
+		dir.path(),
+		"fake-login-shell",
+		&format!("export PATH='{}':\"$PATH\"\nexport KOKO_FROM_RC=yes\nexec /bin/sh -c \"$4\"", path_str(bin.path())),
+		0o755,
+	);
+	let mut base = clean_base(std::env::vars_os());
+	base.insert("HOME".into(), home.path().into());
+	let env = TurnEnv { vars: child_env(&capture_with(&shell, &base, TIMEOUT).unwrap()), captured: true };
+
+	let status = claude_status_with("", &env, &failing_shell(dir.path()), &[], TIMEOUT);
+
+	assert_eq!(
+		status,
+		ClaudeStatus {
+			installed: true,
+			path: Some(path_str(&claude)),
+			version: Some("2.1.325 (Claude Code)".into()),
+			error: None,
+		}
+	);
+}
+
+#[test]
+fn override_runs_with_the_turn_env_and_not_the_app_env() {
+	let dir = TempDir::new().unwrap();
+	// Set only in this test process, as a dev launch from a terminal would.
+	std::env::set_var("KOKO_TEST_APP_ONLY_STATUS", "leaked");
+	let claude = script(dir.path(), "claude", "echo \"$KOKO_ENV_VAR|${KOKO_TEST_APP_ONLY_STATUS:-absent}\"", 0o755);
+	let mut env = system_env();
+	env.vars.insert("KOKO_ENV_VAR".into(), "from-env".into());
+
+	let status = claude_status_with(&path_str(&claude), &env, &failing_shell(dir.path()), &[], TIMEOUT);
+
+	assert_eq!(status.version.as_deref(), Some("from-env|absent"));
+}
+
+/// A cache whose capture counts its calls and returns the call number as `N`.
+fn counting_cache() -> (ShellEnv, Arc<AtomicUsize>) {
+	let calls = Arc::new(AtomicUsize::new(0));
+	let counter = calls.clone();
+	let cache = ShellEnv::new(move || {
+		let n = counter.fetch_add(1, Ordering::SeqCst) + 1;
+		Ok(EnvVars::from([("N".into(), n.to_string().into())]))
+	});
+	(cache, calls)
+}
+
+#[test]
+fn status_env_captures_again_only_when_asked() {
+	let (cache, calls) = counting_cache();
+	let base = EnvVars::new();
+
+	let first = status_env(&cache, false, &base);
+	let second = status_env(&cache, false, &base);
+	assert_eq!(calls.load(Ordering::SeqCst), 1, "a status check without refresh must not capture again");
+	assert_eq!(first, second);
+	assert!(first.captured);
+
+	let refreshed = status_env(&cache, true, &base);
+	assert_eq!(calls.load(Ordering::SeqCst), 2);
+	assert_eq!(refreshed.vars.get(&OsString::from("N")), Some(&OsString::from("2")));
+}
+
+#[test]
+fn status_env_uses_the_fallback_when_the_capture_failed() {
+	let cache = ShellEnv::new(|| Err("timeout".into()));
+	let base = EnvVars::from([("HOME".into(), "/nonexistent-home".into())]);
+
+	let env = status_env(&cache, false, &base);
+
+	assert!(!env.captured);
+	assert_eq!(env.vars.get(&OsString::from("HOME")), Some(&OsString::from("/nonexistent-home")));
 }
 
 #[test]
@@ -71,7 +174,7 @@ fn login_shell_lookup_takes_the_last_absolute_line() {
 		0o755,
 	);
 
-	let status = claude_status_with("", &shell, &[], TIMEOUT);
+	let status = claude_status_with("", &fallback_env(), &shell, &[], TIMEOUT);
 
 	assert!(status.installed, "{status:?}");
 	assert_eq!(status.path, Some(path_str(&claude)));
@@ -84,7 +187,7 @@ fn login_shell_alias_output_falls_through_to_candidates() {
 	let claude = fake_claude(dir.path());
 	let shell = script(dir.path(), "fake-shell", "echo 'alias claude=/somewhere/claude'", 0o755);
 
-	let status = claude_status_with("", &shell, std::slice::from_ref(&claude), TIMEOUT);
+	let status = claude_status_with("", &fallback_env(), &shell, std::slice::from_ref(&claude), TIMEOUT);
 
 	assert_eq!(status.path, Some(path_str(&claude)));
 	assert!(status.installed);
@@ -99,6 +202,7 @@ fn candidates_use_the_first_executable_one() {
 
 	let status = claude_status_with(
 		"   ",
+		&system_env(),
 		&failing_shell(dir.path()),
 		&[missing, not_exec, claude.clone()],
 		TIMEOUT,
@@ -114,6 +218,7 @@ fn missing_everywhere_reports_not_found() {
 
 	let status = claude_status_with(
 		"",
+		&system_env(),
 		&failing_shell(dir.path()),
 		&[dir.path().join("claude")],
 		TIMEOUT,
@@ -130,7 +235,7 @@ fn missing_login_shell_binary_is_not_an_error() {
 	let dir = TempDir::new().unwrap();
 	let claude = fake_claude(dir.path());
 
-	let status = claude_status_with("", &dir.path().join("no-shell"), std::slice::from_ref(&claude), TIMEOUT);
+	let status = claude_status_with("", &fallback_env(), &dir.path().join("no-shell"), std::slice::from_ref(&claude), TIMEOUT);
 
 	assert_eq!(status.path, Some(path_str(&claude)));
 	assert!(status.installed);
@@ -142,7 +247,7 @@ fn non_executable_override_says_so_without_fallback() {
 	let plain = script(dir.path(), "claude", "echo '1.0.0'", 0o644);
 	let fallback = script(dir.path(), "fallback", "echo '9.9.9'", 0o755);
 
-	let status = claude_status_with(&path_str(&plain), &failing_shell(dir.path()), &[fallback], TIMEOUT);
+	let status = claude_status_with(&path_str(&plain), &system_env(), &failing_shell(dir.path()), &[fallback], TIMEOUT);
 
 	assert!(!status.installed);
 	assert_eq!(status.path, Some(path_str(&plain)));
@@ -157,7 +262,7 @@ fn override_not_named_claude_is_refused_and_never_run() {
 	let sh = script(dir.path(), "sh", &format!("touch '{}'\necho '1.0.0'", path_str(&marker)), 0o755);
 	let fallback = fake_claude(dir.path());
 
-	let status = claude_status_with(&path_str(&sh), &failing_shell(dir.path()), &[fallback], TIMEOUT);
+	let status = claude_status_with(&path_str(&sh), &system_env(), &failing_shell(dir.path()), &[fallback], TIMEOUT);
 
 	assert!(!status.installed);
 	assert_eq!(status.path, Some(path_str(&sh)));
@@ -175,7 +280,7 @@ fn override_symlink_named_claude_is_accepted() {
 	let link = dir.path().join("claude");
 	std::os::unix::fs::symlink(&target, &link).unwrap();
 
-	let status = claude_status_with(&path_str(&link), &failing_shell(dir.path()), &[], TIMEOUT);
+	let status = claude_status_with(&path_str(&link), &system_env(), &failing_shell(dir.path()), &[], TIMEOUT);
 
 	assert!(status.installed, "{status:?}");
 	assert_eq!(status.version.as_deref(), Some("2.1.325 (Claude Code)"));
@@ -207,7 +312,23 @@ fn resolve_refuses_a_relative_override() {
 
 	let error = resolve_claude("claude", &failing_shell(dir.path()), &[], TIMEOUT).unwrap_err();
 
-	assert!(error.contains("not an executable file"), "{error}");
+	assert!(error.contains("must be an absolute path"), "{error}");
+}
+
+#[test]
+fn resolve_refuses_an_override_that_is_not_absolute() {
+	let dir = TempDir::new().unwrap();
+	// A candidate that would answer: a refused override has no fallback.
+	fake_claude(dir.path());
+
+	for relative in ["./claude", "bin/claude", "~/.local/bin/claude"] {
+		let error = resolve_claude(relative, &failing_shell(dir.path()), std::slice::from_ref(&dir.path().join("claude")), TIMEOUT)
+			.unwrap_err();
+
+		assert!(error.contains("must be an absolute path"), "{relative}: {error}");
+		assert!(error.contains("~ is not expanded"), "{relative}: {error}");
+		assert!(error.contains(relative), "{relative}: {error}");
+	}
 }
 
 #[test]
@@ -225,7 +346,7 @@ fn override_that_does_not_exist_says_so() {
 	let dir = TempDir::new().unwrap();
 	let missing = dir.path().join("missing-claude");
 
-	let status = claude_status_with(&path_str(&missing), &failing_shell(dir.path()), &[], TIMEOUT);
+	let status = claude_status_with(&path_str(&missing), &system_env(), &failing_shell(dir.path()), &[], TIMEOUT);
 
 	assert!(!status.installed);
 	assert!(status.error.unwrap().contains("not an executable file"));
@@ -235,7 +356,7 @@ fn override_that_does_not_exist_says_so() {
 fn override_that_is_a_directory_says_so() {
 	let dir = TempDir::new().unwrap();
 
-	let status = claude_status_with(&path_str(dir.path()), &failing_shell(dir.path()), &[], TIMEOUT);
+	let status = claude_status_with(&path_str(dir.path()), &system_env(), &failing_shell(dir.path()), &[], TIMEOUT);
 
 	assert!(!status.installed);
 	assert!(status.error.unwrap().contains("not an executable file"));
@@ -250,6 +371,7 @@ fn hanging_version_times_out() {
 	let started = Instant::now();
 	let status = claude_status_with(
 		&path_str(&claude),
+		&system_env(),
 		&failing_shell(dir.path()),
 		&[],
 		Duration::from_millis(300),
@@ -266,7 +388,7 @@ fn failing_version_reports_the_exit_status() {
 	let dir = TempDir::new().unwrap();
 	let claude = script(dir.path(), "claude", "echo 'boom' >&2\nexit 3", 0o755);
 
-	let status = claude_status_with(&path_str(&claude), &failing_shell(dir.path()), &[], TIMEOUT);
+	let status = claude_status_with(&path_str(&claude), &system_env(), &failing_shell(dir.path()), &[], TIMEOUT);
 
 	assert!(!status.installed);
 	assert_eq!(status.path, Some(path_str(&claude)));
@@ -279,22 +401,26 @@ fn empty_version_output_is_an_error() {
 	let dir = TempDir::new().unwrap();
 	let claude = script(dir.path(), "claude", "exit 0", 0o755);
 
-	let status = claude_status_with(&path_str(&claude), &failing_shell(dir.path()), &[], TIMEOUT);
+	let status = claude_status_with(&path_str(&claude), &system_env(), &failing_shell(dir.path()), &[], TIMEOUT);
 
 	assert!(!status.installed);
 	assert!(status.error.is_some());
 }
 
 #[test]
-fn version_command_removes_claudecode_from_the_env() {
-	let cmd = version_command(Path::new("/usr/local/bin/claude"));
+fn version_command_uses_the_given_env_without_claudecode() {
+	let env = EnvVars::from([("PATH".into(), "/custom/bin".into()), ("CLAUDECODE".into(), "1".into())]);
+	let cmd = version_command(Path::new("/usr/local/bin/claude"), &env);
 
 	let args: Vec<_> = cmd.get_args().collect();
 	assert_eq!(args, ["--version"]);
-	let removed = cmd
-		.get_envs()
-		.any(|(key, value)| key == "CLAUDECODE" && value.is_none());
-	assert!(removed, "CLAUDECODE must be removed from the child env");
+	let envs: Vec<_> = cmd.get_envs().collect();
+	assert!(envs.contains(&("PATH".as_ref(), Some("/custom/bin".as_ref()))), "{envs:?}");
+	// The env is cleared first, so removing CLAUDECODE drops it from the list.
+	assert!(
+		envs.iter().all(|(key, value)| *key != "CLAUDECODE" || value.is_none()),
+		"CLAUDECODE must be removed from the child env: {envs:?}"
+	);
 }
 
 #[test]

@@ -248,17 +248,20 @@ impl ShellEnv {
 		slot.clone().expect("filled above")
 	}
 
-	/// Replaces the cached result with a fresh capture on a detached thread;
-	/// skipped when a capture is already running. The handle is for tests.
-	pub fn refresh(&self) -> thread::JoinHandle<()> {
-		let this = self.clone();
-		thread::spawn(move || {
-			if this.capturing.load(Ordering::SeqCst) {
-				return;
-			}
-			let mut slot = this.lock();
-			*slot = Some(this.run());
-		})
+	/// Captures again on the calling thread and caches the result, except that
+	/// a failed capture never replaces a cached success: turns keep the env
+	/// with the user's MCP servers and hooks when an rc file times out once.
+	/// Skipped when a capture is already running; a `get` after it waits for
+	/// that capture.
+	pub fn refresh(&self) {
+		if self.capturing.load(Ordering::SeqCst) {
+			return;
+		}
+		let mut slot = self.lock();
+		let fresh = self.run();
+		if fresh.is_ok() || !matches!(*slot, Some(Ok(_))) {
+			*slot = Some(fresh);
+		}
 	}
 
 	fn lock(&self) -> std::sync::MutexGuard<'_, CachedCapture> {

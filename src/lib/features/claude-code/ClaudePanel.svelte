@@ -2,7 +2,6 @@
 	import { tick, untrack } from 'svelte';
 	import X from '@lucide/svelte/icons/x';
 	import Plus from '@lucide/svelte/icons/plus';
-	import type { ClaudeStatus } from '#lib/contracts/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { filterAndRank, flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
 	import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
@@ -13,6 +12,7 @@
 	import { relativePath } from '#lib/utils/path.js';
 	import { error } from '#lib/utils/debug.js';
 	import { checkClaudeStatus } from './claude-code.service';
+	import { claudeStatusStore } from './claude-status.store.svelte';
 	import { filterSlashCommands, renderReplyHtml, replyLinkAction, slashQuery } from './claude.logic';
 	import { newChat, sendPrompt, stop, STOP_FAILED } from './claude.service';
 	import { claudeStore } from './claude.store.svelte';
@@ -29,10 +29,6 @@
 	/** Most note picker results shown at once. */
 	const MAX_PICKER_RESULTS = 8;
 
-	/** The `claude` binary status; `null` until the check resolves. */
-	let status = $state<ClaudeStatus | null>(null);
-	/** Set when the status check itself failed (IPC), not when claude is missing. */
-	let statusError = $state('');
 	let prompt = $state('');
 	let promptEl = $state<HTMLTextAreaElement | null>(null);
 	/** Highlighted row of the slash menu. */
@@ -42,7 +38,6 @@
 	let pickerOpen = $state(false);
 	let pickerQuery = $state('');
 
-	const unavailable = $derived(statusError !== '' || (status !== null && !status.installed));
 	const query = $derived(slashDismissed ? null : slashQuery(prompt));
 	const slashMatches = $derived(query === null ? [] : filterSlashCommands(query, claudeStore.slashCommands));
 	const pickerResults = $derived.by(() => {
@@ -51,23 +46,17 @@
 		return filterAndRank(pickerQuery, notes, quickSwitcherStore.recentPaths).slice(0, MAX_PICKER_RESULTS);
 	});
 
-	// Checks for claude once per mount. Attaching the active note on open is
-	// AppShell's: the panel also remounts when a canvas, kanban or view tab hides
-	// the right sidebar, which must not bring back a chip the user removed.
+	// Checks for claude once per mount, without recapturing the login shell env:
+	// the panel remounts when a canvas, kanban or view tab hides the right
+	// sidebar. The status is shared, so a check from Settings updates the open
+	// panel. Attaching the active note on open is AppShell's, so a remount does
+	// not bring back a chip the user removed.
 	$effect(() => {
 		untrack(() => {
-			void checkStatus();
+			// The store marks a failed check; the unavailable block shows it.
+			checkClaudeStatus(settingsStore.claudeCode.binaryPath, false).catch(() => {});
 		});
 	});
-
-	async function checkStatus(): Promise<void> {
-		try {
-			status = await checkClaudeStatus(settingsStore.claudeCode.binaryPath);
-			statusError = '';
-		} catch {
-			statusError = 'Could not check for the claude command. Try again from Settings, or restart Kokobrain.';
-		}
-	}
 
 	function noteName(path: string): string {
 		return path.slice(path.lastIndexOf('/') + 1).replace(/\.md$/i, '');
@@ -146,10 +135,12 @@
 		<Button variant="ghost" size="sm" disabled={claudeStore.isRunning} onclick={newChat}>New chat</Button>
 	</div>
 
-	{#if unavailable}
+	{#if claudeStatusStore.unavailable}
 		<div class="flex flex-col gap-2 p-3" data-claude-unavailable>
 			<p class="text-right-sidebar-muted-fg">
-				{statusError || `Claude Code is not available: ${status?.error ?? 'claude was not found.'}`}
+				{claudeStatusStore.checkFailed
+					? 'Could not check for the claude command. Try again from Settings, or restart Kokobrain.'
+					: `Claude Code is not available: ${claudeStatusStore.status?.error ?? 'claude was not found.'}`}
 			</p>
 			<Button variant="outline" size="sm" onclick={() => settingsPanelStore.open('claude-code')}>Open Claude Code settings</Button>
 		</div>

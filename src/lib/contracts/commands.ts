@@ -218,8 +218,11 @@ export interface CommandMap {
 		args: { channel: string; allowDowngrades?: boolean };
 		result: UpdateMetadata | null;
 	};
-	/** Finds the `claude` CLI (blank `binaryPath` = auto lookup) and reports its version (`commands/claude.rs`). */
-	claude_status: { args: { binaryPath: string }; result: ClaudeStatus };
+	/**
+	 * Finds the `claude` CLI the way a turn does (blank `binaryPath` = auto lookup) and reports its
+	 * version; `refreshEnv` recaptures the login shell env first (`commands/claude.rs`).
+	 */
+	claude_status: { args: { binaryPath: string; refreshEnv: boolean }; result: ClaudeStatus };
 	/** Starts an agent turn; returns its run id, events follow on `claude-event` (`commands/claude.rs`). */
 	claude_run_turn: { args: { request: ClaudeTurnRequest }; result: string };
 	/** Kills a running agent turn; no-op for an unknown or finished run (`commands/claude.rs`). */
@@ -329,7 +332,7 @@ export const COMMAND_ARGS = {
 	configure_sentry: ['enabled', 'dsn', 'release'],
 	list_system_fonts: [],
 	check_for_update_on_channel: ['channel', 'allowDowngrades?'],
-	claude_status: ['binaryPath'],
+	claude_status: ['binaryPath', 'refreshEnv'],
 	claude_run_turn: ['request'],
 	claude_cancel_turn: ['runId'],
 	capture_clipboard_now: [],

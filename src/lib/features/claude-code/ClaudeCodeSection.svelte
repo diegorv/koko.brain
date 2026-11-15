@@ -1,35 +1,35 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
-	import type { ClaudeStatus } from '#lib/contracts/index.js';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { Input } from '#lib/components/ui/input/index.js';
 	import { Switch } from '#lib/components/ui/switch/index.js';
 	import SettingItem from '#lib/core/settings/sections/SettingItem.svelte';
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { checkClaudeStatus } from './claude-code.service';
+	import { claudeStatusStore } from './claude-status.store.svelte';
 
-	/** Last status returned by Rust; `null` until the first check resolves. */
-	let status = $state<ClaudeStatus | null>(null);
-	/** Inline message when the check itself failed (IPC error), not when claude is missing. */
-	let checkError = $state('');
 	let checking = $state(false);
 	/** Whether the first-enable notice is open, waiting for Enable or Cancel. */
 	let confirmingEnable = $state(false);
 
 	const statusText = $derived.by(() => {
-		if (checkError) return checkError;
+		const status = claudeStatusStore.status;
+		// The store may hold the panel's earlier result; while this section checks, say so.
+		if (checking) return 'Checking for the claude command...';
+		if (claudeStatusStore.checkFailed) return 'Could not check for claude. Try again, or restart Kokobrain if it keeps failing.';
 		if (!status) return 'Checking for the claude command...';
 		if (status.installed) return `Installed: ${status.version} at ${status.path}`;
 		return `Not installed: ${status.error ?? 'claude was not found.'}`;
 	});
 
+	// Opening the section and Check again recapture the login shell env, so
+	// rc file edits apply; the shared store carries the result to the panel.
 	async function check(): Promise<void> {
 		checking = true;
 		try {
-			status = await checkClaudeStatus(settingsStore.claudeCode.binaryPath);
-			checkError = '';
+			await checkClaudeStatus(settingsStore.claudeCode.binaryPath, true);
 		} catch {
-			checkError = 'Could not check for claude. Try again, or restart Kokobrain if it keeps failing.';
+			// The store marks the failure; statusText shows it.
 		} finally {
 			checking = false;
 		}
@@ -102,7 +102,7 @@
 	<div data-setting="binary-path">
 		<SettingItem
 			label="Path to claude"
-			description="Leave empty to find it through your login shell and the usual install folders. When set, it must be an executable file."
+			description="Leave empty to find it on your login shell PATH and in the usual install folders. When set, it must be an absolute path to an executable file named claude (~ is not expanded). The login shell environment is read when this section opens and on Check again."
 			layout="stacked"
 		>
 			<Input

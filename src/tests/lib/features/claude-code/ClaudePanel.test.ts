@@ -18,8 +18,10 @@ import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svel
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
+import { claudeStatusStore } from '#lib/features/claude-code/claude-status.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 import ClaudePanel from '#lib/features/claude-code/ClaudePanel.svelte';
+import ClaudeCodeSection from '#lib/features/claude-code/ClaudeCodeSection.svelte';
 
 const INSTALLED: ClaudeStatus = { installed: true, path: '/bin/claude', version: '2.1.325 (Claude Code)', error: null };
 const MISSING: ClaudeStatus = { installed: false, path: null, version: null, error: 'claude was not found on the login shell PATH' };
@@ -88,6 +90,7 @@ beforeEach(() => {
 	vi.resetAllMocks();
 	clearLocalStorage();
 	claudeStore.reset();
+	claudeStatusStore.reset();
 	editorStore.reset();
 	settingsStore.reset();
 	settingsPanelStore._reset();
@@ -346,5 +349,39 @@ describe('ClaudePanel without claude', () => {
 		vi.mocked(invoke).mockRejectedValue(new Error('ipc down'));
 		await render();
 		expect(q('[data-claude-unavailable]')?.textContent).toContain('Could not check for the claude command');
+	});
+
+	it('checks on mount without recapturing the login shell env', async () => {
+		await render();
+
+		expect(invoke).toHaveBeenCalledWith('claude_status', { binaryPath: '', refreshEnv: false });
+		expect(invoke).not.toHaveBeenCalledWith('claude_status', expect.objectContaining({ refreshEnv: true }));
+	});
+
+	it('shows the chat once Check again in Settings finds claude, without a remount', async () => {
+		answer(MISSING);
+		await render();
+		expect(q('[data-claude-unavailable]')).not.toBeNull();
+
+		const settingsTarget = document.body.appendChild(document.createElement('div'));
+		const section = mount(ClaudeCodeSection, { target: settingsTarget });
+		try {
+			await settle();
+			expect(q('[data-claude-unavailable]')).not.toBeNull();
+
+			answer(INSTALLED);
+			const checkAgain = [...settingsTarget.querySelectorAll<HTMLButtonElement>('button')].find(
+				(b) => b.textContent?.trim() === 'Check again',
+			)!;
+			checkAgain.click();
+			await settle();
+
+			expect(settingsTarget.textContent).toContain('Installed: 2.1.325 (Claude Code)');
+			expect(q('[data-claude-unavailable]')).toBeNull();
+			expect(q('[data-claude-prompt]')).not.toBeNull();
+		} finally {
+			unmount(section);
+			settingsTarget.remove();
+		}
 	});
 });

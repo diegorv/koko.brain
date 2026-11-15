@@ -28,6 +28,6 @@ The owner wants to work on vault notes with Claude Code from inside Kokobrain (`
 ## Consequences
 
 - The app depends on the CLI's stream-json format. The parser ignores unknown event types and non-JSON lines, so additions do not break it; a removed field shows up in the parser tests against recorded lines.
-- Binary lookup goes through the login shell, because a Finder-launched macOS app does not inherit the shell PATH, with an override path in Settings.
+- Binary lookup goes through the login shell, because a Finder-launched macOS app does not inherit the shell PATH: the Settings status and every turn search the `PATH` of the captured `$SHELL -l -i` env and run `claude` with that env (Issues 05 and 10), then try the known install paths; `$SHELL -lc 'command -v claude'` runs only when the capture failed. An override path in Settings must be an absolute path to a file named `claude`.
 - Reviewing or reverting Claude's edits in the app is out of v1. File History does not see Claude's writes before they happen (it snapshots editor saves only), so a later revert needs git or a PreToolUse hook.
 - Re-evaluate if Claude Code changes or drops print-mode stream-json, or if per-edit approval or safer permission modes become a requirement.

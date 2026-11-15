@@ -434,17 +434,64 @@ fn refresh_replaces_the_cached_result() {
 	let (cache, calls) = counting_cache(Duration::ZERO, false);
 	assert_eq!(get(&cache.get().unwrap(), "N"), Some(&os("1")));
 
-	cache.refresh().join().unwrap();
+	cache.refresh();
 
 	assert_eq!(calls.load(Ordering::SeqCst), 2);
 	assert_eq!(get(&cache.get().unwrap(), "N"), Some(&os("2")));
 }
 
 #[test]
+fn a_failed_refresh_keeps_the_good_capture() {
+	let dir = TempDir::new().unwrap();
+	let good = script(dir.path(), "good-shell", &format!("export FROM_RC=good\n{RUN_SCRIPT}"));
+	let failing = [
+		script(dir.path(), "hanging-shell", "exec sleep 30"),
+		script(dir.path(), "silent-shell", "exit 0"),
+		dir.path().join("no-such-shell"),
+	];
+	let home = dir.path().to_path_buf();
+	let calls = Arc::new(AtomicUsize::new(0));
+	let counter = calls.clone();
+	let cache = ShellEnv::new(move || match counter.fetch_add(1, Ordering::SeqCst) {
+		0 => capture_with(&good, &base(&home), DEADLINE),
+		n => capture_with(&failing[n - 1], &base(&home), Duration::from_millis(300)),
+	});
+	assert_eq!(get(&cache.get().unwrap(), "FROM_RC"), Some(&os("good")));
+
+	// Timeout, no markers, spawn error.
+	for _ in 0..3 {
+		cache.refresh();
+		assert_eq!(get(&cache.get().unwrap(), "FROM_RC"), Some(&os("good")));
+	}
+	assert_eq!(calls.load(Ordering::SeqCst), 4);
+}
+
+#[test]
+fn a_failed_refresh_replaces_a_cached_failure() {
+	let calls = Arc::new(AtomicUsize::new(0));
+	let counter = calls.clone();
+	let cache = ShellEnv::new(move || {
+		let n = counter.fetch_add(1, Ordering::SeqCst) + 1;
+		if n == 3 {
+			Ok(vars(&[("N", "3")]))
+		} else {
+			Err(format!("failure {n}"))
+		}
+	});
+	assert_eq!(cache.get(), Err("failure 1".into()));
+
+	cache.refresh();
+	assert_eq!(cache.get(), Err("failure 2".into()));
+
+	cache.refresh();
+	assert_eq!(get(&cache.get().unwrap(), "N"), Some(&os("3")));
+}
+
+#[test]
 fn refresh_on_an_empty_cache_fills_it() {
 	let (cache, calls) = counting_cache(Duration::ZERO, false);
 
-	cache.refresh().join().unwrap();
+	cache.refresh();
 
 	assert_eq!(get(&cache.get().unwrap(), "N"), Some(&os("1")));
 	assert_eq!(calls.load(Ordering::SeqCst), 1);
@@ -460,7 +507,7 @@ fn refresh_while_a_capture_runs_is_skipped() {
 	}
 
 	let started = Instant::now();
-	cache.refresh().join().unwrap();
+	cache.refresh();
 
 	assert!(started.elapsed() < Duration::from_millis(300), "refresh waited {:?}", started.elapsed());
 	assert_eq!(get(&running.join().unwrap().unwrap(), "N"), Some(&os("1")));

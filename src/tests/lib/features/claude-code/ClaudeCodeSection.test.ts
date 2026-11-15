@@ -8,6 +8,7 @@ import { mount, unmount, flushSync, tick } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
 import type { ClaudeStatus } from '#lib/contracts/index.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
+import { claudeStatusStore } from '#lib/features/claude-code/claude-status.store.svelte.js';
 import ClaudeCodeSection from '#lib/features/claude-code/ClaudeCodeSection.svelte';
 
 const INSTALLED: ClaudeStatus = {
@@ -62,6 +63,7 @@ describe('ClaudeCodeSection', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
 		settingsStore.reset();
+		claudeStatusStore.reset();
 	});
 
 	afterEach(() => {
@@ -78,7 +80,7 @@ describe('ClaudeCodeSection', () => {
 		const text = row('status').textContent ?? '';
 		expect(text).toContain('2.1.325 (Claude Code)');
 		expect(text).toContain('/Users/me/.local/bin/claude');
-		expect(invoke).toHaveBeenCalledWith('claude_status', { binaryPath: '' });
+		expect(invoke).toHaveBeenCalledWith('claude_status', { binaryPath: '', refreshEnv: true });
 	});
 
 	it('says why when claude is missing', async () => {
@@ -97,7 +99,22 @@ describe('ClaudeCodeSection', () => {
 		expect(row('status').textContent).toContain('Could not check for claude');
 	});
 
-	it('Check again re-runs the lookup with the current override path', async () => {
+	it('says it is checking while a check runs, even with an earlier status in the store', async () => {
+		claudeStatusStore.setStatus(MISSING);
+		let resolve!: (value: ClaudeStatus) => void;
+		vi.mocked(invoke).mockReturnValue(new Promise((r) => (resolve = r)));
+		await render();
+
+		const text = row('status').textContent ?? '';
+		expect(text).toContain('Checking for the claude command...');
+		expect(text).not.toContain('Not installed');
+
+		resolve(INSTALLED);
+		await settle();
+		expect(row('status').textContent).toContain('2.1.325 (Claude Code)');
+	});
+
+	it('Check again re-runs the lookup with the current override path and a fresh env', async () => {
 		vi.mocked(invoke).mockResolvedValue(MISSING);
 		await render();
 		vi.mocked(invoke).mockResolvedValue(INSTALLED);
@@ -107,7 +124,7 @@ describe('ClaudeCodeSection', () => {
 		button('Check again').click();
 		await settle();
 
-		expect(invoke).toHaveBeenLastCalledWith('claude_status', { binaryPath: '/opt/claude' });
+		expect(invoke).toHaveBeenLastCalledWith('claude_status', { binaryPath: '/opt/claude', refreshEnv: true });
 		expect(row('status').textContent).toContain('2.1.325 (Claude Code)');
 	});
 
@@ -121,6 +138,16 @@ describe('ClaudeCodeSection', () => {
 		flushSync();
 
 		expect(settingsStore.claudeCode.binaryPath).toBe('/opt/claude');
+	});
+
+	it('says the override is an absolute path to a file named claude, and when the env is read', async () => {
+		vi.mocked(invoke).mockResolvedValue(MISSING);
+		await render();
+
+		const text = row('binary-path').textContent ?? '';
+		expect(text).toContain('absolute path to an executable file named claude');
+		expect(text).toContain('~ is not expanded');
+		expect(text).toContain('read when this section opens and on Check again');
 	});
 
 	it('states the privacy sentence while the feature is off', async () => {

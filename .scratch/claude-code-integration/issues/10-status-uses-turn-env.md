@@ -6,17 +6,17 @@
 
 **Files:** src-tauri/src/commands/claude.rs,src-tauri/src/commands/claude/shell_env.rs,src-tauri/tests/commands/,src/lib/features/claude-code/,src/tests/lib/features/claude-code/,help/documentation/19-settings.md,docs/adr/0038-claude-code-cli-subprocess.md,.scratch/claude-code-integration/spec.md
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** Both: `cargo test --manifest-path src-tauri/Cargo.toml`, `pnpm check`, `pnpm vitest run`.
 
-- [ ] Failing test first (Rust): a fake login shell exports a `PATH` whose only `claude` is a script outside `default_candidates`, and that script needs a variable from that env to answer `--version`. `claude_status_with` (or its replacement) reports `installed: true` with that path and version. Today it reports not found.
-- [ ] `claude_status` waits for the captured env (`ShellEnv::get`) inside its blocking task, resolves with `resolve_turn_claude` on the turn env, and runs `--version` with `env_clear().envs(env)`. `lookup_login_shell` (`$SHELL -lc 'command -v claude'`) goes away if nothing else uses it. The status then reports the binary a turn would run.
-- [ ] The env is refreshed only from the Settings section (on mount and "Check again"), not on every `claude_status` call: `ClaudePanel.svelte` mounts on every canvas, kanban or view tab switch and must not start a capture. Use an explicit argument or a separate command; tested on both sides.
-- [ ] A refresh that fails (timeout, no markers, spawn error) leaves a cached successful capture in place; only a first capture that fails caches the failure, as today. Tested with fake shells: good, then hanging, then `get()` returns the good env.
-- [ ] The panel and the Settings section share one status: after "Check again" in Settings reports `installed`, the open panel shows the chat without being hidden and shown again. Component test.
-- [ ] An override that is not absolute (`./claude`, `bin/claude`, `~/.local/bin/claude`) is refused with a message saying it must be an absolute path and that `~` is not expanded. Tested next to `resolve_refuses_a_relative_override`.
-- [ ] The Settings field description (`ClaudeCodeSection.svelte`) and `help/documentation/19-settings.md` (Claude Code section) say the override is an absolute path to a file named `claude`, and describe when the environment is read. The `-lc` lookup in spec.md (Constraints, GUI PATH) and ADR-0038 is updated to match.
+- [x] Failing test first (Rust): a fake login shell exports a `PATH` whose only `claude` is a script outside `default_candidates`, and that script needs a variable from that env to answer `--version`. `claude_status_with` (or its replacement) reports `installed: true` with that path and version. Today it reports not found.
+- [x] `claude_status` waits for the captured env (`ShellEnv::get`) inside its blocking task, resolves with `resolve_turn_claude` on the turn env, and runs `--version` with `env_clear().envs(env)`. `lookup_login_shell` (`$SHELL -lc 'command -v claude'`) goes away if nothing else uses it. The status then reports the binary a turn would run.
+- [x] The env is refreshed only from the Settings section (on mount and "Check again"), not on every `claude_status` call: `ClaudePanel.svelte` mounts on every canvas, kanban or view tab switch and must not start a capture. Use an explicit argument or a separate command; tested on both sides.
+- [x] A refresh that fails (timeout, no markers, spawn error) leaves a cached successful capture in place; only a first capture that fails caches the failure, as today. Tested with fake shells: good, then hanging, then `get()` returns the good env.
+- [x] The panel and the Settings section share one status: after "Check again" in Settings reports `installed`, the open panel shows the chat without being hidden and shown again. Component test.
+- [x] An override that is not absolute (`./claude`, `bin/claude`, `~/.local/bin/claude`) is refused with a message saying it must be an absolute path and that `~` is not expanded. Tested next to `resolve_refuses_a_relative_override`.
+- [x] The Settings field description (`ClaudeCodeSection.svelte`) and `help/documentation/19-settings.md` (Claude Code section) say the override is an absolute path to a file named `claude`, and describe when the environment is read. The `-lc` lookup in spec.md (Constraints, GUI PATH) and ADR-0038 is updated to match.
 
 ## Problem
 
@@ -27,3 +27,7 @@ From the PR #247 review (2026-11-15), confirmed by verifiers:
 3. The panel checks the status once per mount into local state. After the user fixes the path in Settings (an overlay, so the panel stays mounted), the panel still says "not available".
 4. `resolve_claude` (`claude.rs:143-147`) never checks `is_absolute()`: `./claude` resolves against the app's cwd and `~/.local/bin/claude` fails with "not an executable file".
 5. The help row and the Settings description do not say the file must be named `claude`.
+
+## Comments
+
+- 2026-11-15, branch issue/10-status-uses-turn-env: `claude_status` resolves and runs `claude` on the captured turn env; the env refreshes only from Settings; a failed refresh keeps the last good capture; relative overrides are refused; panel and Settings share one status; Settings shows a checking state while the check runs; docs, spec and ADR-0038 updated. Tests: targeted claude-code vitest 113 passed, pnpm check 0 errors, full suite 644 files / 17078 tests passed (exit 0). Reviews: round 1 APPROVED, round 2 APPROVED (after a fix round).

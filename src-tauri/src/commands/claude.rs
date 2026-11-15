@@ -4,8 +4,9 @@
 //! environment a turn runs with.
 //!
 //! A macOS app launched from Finder does not inherit the login shell PATH, so
-//! the lookup asks the login shell (or, for a turn, searches the captured
-//! PATH) before trying the known install paths.
+//! the status check and a turn both search the captured login shell PATH (or,
+//! when the capture failed, ask the login shell) before trying the known
+//! install paths, and run `claude` with that env.
 //! Processes are spawned with `std::process::Command`; the app does not use
 //! `tauri-plugin-shell`.
 
@@ -16,7 +17,7 @@ pub mod turn;
 use crate::events::CLAUDE_EVENT;
 use crate::utils::logger::debug_log;
 use serde::Serialize;
-use shell_env::{clean_base, turn_env, ShellEnv, TurnEnv};
+use shell_env::{clean_base, turn_env, EnvVars, ShellEnv, TurnEnv};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -78,23 +79,38 @@ pub fn shell_from_env(shell: Option<OsString>) -> PathBuf {
 	}
 }
 
-/// The `claude --version` command, with the nested-session env var removed.
-pub fn version_command(binary: &Path) -> Command {
+/// The `claude --version` command, run with `env` only (as a turn is), minus
+/// the nested-session env var.
+pub fn version_command(binary: &Path, env: &EnvVars) -> Command {
 	let mut cmd = Command::new(binary);
-	cmd.arg("--version").env_remove(NESTED_SESSION_ENV);
+	cmd.arg("--version").env_clear().envs(env).env_remove(NESTED_SESSION_ENV);
 	cmd
 }
 
-/// Looks for `claude` with [`resolve_claude`] and asks it for its version. A
-/// refused override is reported without running anything.
+/// The env a status check uses: the cached login shell capture (capturing
+/// first when there is none), recaptured first when `refresh` is true, or
+/// the fallback built from `base` when the capture failed. Only the Settings
+/// section asks for a refresh, so the panel's check on mount never reruns
+/// the login shell.
+pub fn status_env(shell_env: &ShellEnv, refresh: bool, base: &EnvVars) -> TurnEnv {
+	if refresh {
+		shell_env.refresh();
+	}
+	turn_env(shell_env.get(), base)
+}
+
+/// Looks for `claude` with [`resolve_turn_claude`] on `env` and asks it for
+/// its version with that env, so the status reports the binary a turn would
+/// run. A refused override is reported without running anything.
 pub fn claude_status_with(
 	override_path: &str,
+	env: &TurnEnv,
 	shell: &Path,
 	candidates: &[PathBuf],
 	timeout: Duration,
 ) -> ClaudeStatus {
 	let override_path = override_path.trim();
-	let binary = match resolve_claude(override_path, shell, candidates, timeout) {
+	let binary = match resolve_turn_claude(override_path, env, shell, candidates, timeout) {
 		Ok(binary) => binary,
 		Err(error) => {
 			return ClaudeStatus {
@@ -112,22 +128,24 @@ pub fn claude_status_with(
 	} else {
 		override_path.to_string()
 	});
-	match read_version(&binary, timeout) {
+	match read_version(&binary, &env.vars, timeout) {
 		Ok(version) => ClaudeStatus { installed: true, path, version: Some(version), error: None },
 		Err(error) => ClaudeStatus { installed: false, path, version: None, error: Some(error) },
 	}
 }
 
-/// The `claude` binary to run, used by both the Settings status and the turn
-/// runner, so neither ever spawns a path the renderer sent unchecked.
+/// The `claude` binary for the fallback env, and the override check of
+/// [`resolve_turn_claude`], so no command ever spawns a path the renderer
+/// sent unchecked.
 ///
 /// Order: `override_path` when non-blank, then `shell -lc 'command -v claude'`,
 /// then the first executable of `candidates`. An override must be an absolute
 /// path to an executable file named `claude`, with no fallback when it is not:
 /// the commands that take it can then only run a `claude` binary, never a
-/// generic one such as `/bin/sh`. The directory is canonicalized but the file
-/// name is kept, because the native installer's `~/.local/bin/claude` is a
-/// symlink to `versions/<version>`.
+/// generic one such as `/bin/sh`. A relative path would resolve against the
+/// app's cwd and `~` is not expanded, so both are refused. The directory is
+/// canonicalized but the file name is kept, because the native installer's
+/// `~/.local/bin/claude` is a symlink to `versions/<version>`.
 pub fn resolve_claude(
 	override_path: &str,
 	shell: &Path,
@@ -141,6 +159,11 @@ pub fn resolve_claude(
 			.ok_or_else(|| "claude was not found on the login shell PATH or in the known install locations".into());
 	}
 	let path = Path::new(override_path);
+	if !path.is_absolute() {
+		return Err(format!(
+			"The override path must be an absolute path to a file named claude (~ is not expanded): {override_path}"
+		));
+	}
 	let canonical = match (path.parent(), path.file_name()) {
 		(Some(parent), Some(name)) => std::fs::canonicalize(parent).ok().map(|dir| (dir.join(name), name)),
 		_ => None,
@@ -186,19 +209,25 @@ pub fn resolve_turn_claude(
 	}
 }
 
-/// Checks the Settings override, or finds `claude` on this machine, and
-/// reports its version. Runs off the async runtime because the lookup and
-/// `--version` block for up to `VERSION_TIMEOUT` each.
+/// Checks the Settings override, or finds `claude` the way a turn does, and
+/// reports its version. Runs off the async runtime because it waits for the
+/// login shell environment capture (up to its deadline), and `--version`
+/// blocks for up to `VERSION_TIMEOUT`.
 ///
-/// Also discards the cached login shell environment and starts a fresh
-/// capture in the background without waiting for it, so opening the Claude
-/// Code settings or "Check again" picks up rc file edits.
+/// `refresh_env` recaptures the login shell environment first, so opening the
+/// Claude Code settings or "Check again" picks up rc file edits; a failed
+/// recapture keeps the last good one. The panel passes false.
 #[tauri::command]
-pub async fn claude_status(shell_env: tauri::State<'_, ShellEnv>, binary_path: String) -> Result<ClaudeStatus, String> {
-	drop(shell_env.refresh());
+pub async fn claude_status(
+	shell_env: tauri::State<'_, ShellEnv>,
+	binary_path: String,
+	refresh_env: bool,
+) -> Result<ClaudeStatus, String> {
+	let shell_env = shell_env.inner().clone();
 	tokio::task::spawn_blocking(move || {
+		let env = status_env(&shell_env, refresh_env, &clean_base(std::env::vars_os()));
 		let home = std::env::var_os("HOME").map(PathBuf::from);
-		claude_status_with(&binary_path, &login_shell(), &default_candidates(home.as_deref()), VERSION_TIMEOUT)
+		claude_status_with(&binary_path, &env, &login_shell(), &default_candidates(home.as_deref()), VERSION_TIMEOUT)
 	})
 	.await
 	.map_err(|e| format!("claude_status task failed: {e}"))
@@ -260,8 +289,8 @@ fn first_executable(candidates: &[PathBuf]) -> Option<PathBuf> {
 	candidates.iter().find(|p| is_executable_file(p)).cloned()
 }
 
-fn read_version(binary: &Path, timeout: Duration) -> Result<String, String> {
-	let output = run_with_timeout(version_command(binary), timeout)?;
+fn read_version(binary: &Path, env: &EnvVars, timeout: Duration) -> Result<String, String> {
+	let output = run_with_timeout(version_command(binary, env), timeout)?;
 	if !output.status.success() {
 		let stderr = String::from_utf8_lossy(&output.stderr);
 		return Err(format!("`claude --version` failed ({}): {}", output.status, stderr.trim()));
