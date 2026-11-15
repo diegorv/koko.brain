@@ -48,7 +48,8 @@ import { createNoteComposer } from '#lib/plugins/quick-capture/note-composer.ser
 import { openOneOnOnePicker } from '#lib/plugins/one-on-one/one-on-one.service.js';
 import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { openFileHistory } from '#lib/features/file-history/file-history.service.js';
-import { hideRailPanels, showRailPanels, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { hideRailPanels, showClaudePanel, showRailPanels, toggleClaudePanel, toggleLeftSidebar, toggleRightSidebar } from '#lib/core/layout/layout.service.js';
+import { attachActiveNote } from '#lib/features/claude-code/claude.service.js';
 import { toggleActiveNoteFavorite, toggleActiveNoteOrganized } from '#lib/features/properties/lifecycle.service.js';
 import { shortcutFor } from '#lib/app/global-keybindings.js';
 import { openRailView, selectRailItem } from '#lib/app/rail-navigation.js';
@@ -107,6 +108,35 @@ function openViewCommands(): AppCommand[] {
 			action: () => openRailView(view.path, opensInEditor),
 		};
 	});
+}
+
+/**
+ * The Claude panel commands, only while Claude Code is on. The setting is read
+ * while the list is built, like the Go to commands.
+ */
+function claudeCommands(): AppCommand[] {
+	if (!settingsStore.claudeCode.enabled) return [];
+	return [
+		{
+			id: 'claude:toggle-panel',
+			label: 'Toggle Claude Panel',
+			category: 'Claude',
+			shortcut: shortcutFor('claude:toggle-panel'),
+			action: toggleClaudePanel,
+		},
+		{
+			id: 'claude:add-to-context',
+			label: 'Add to Claude context',
+			category: 'Claude',
+			action: () => {
+				if (!attachActiveNote()) {
+					toast.error('Open a note to add it to the Claude context.');
+					return;
+				}
+				showClaudePanel();
+			},
+		},
+	];
 }
 
 /**
@@ -413,6 +443,7 @@ export function getBuiltInCommands(): AppCommand[] {
 				openFileHistory(path);
 			},
 		},
+		...claudeCommands(),
 		...railGoToCommands(),
 		...openViewCommands(),
 		...modCommandsStore.list.filter((command) => command.palette).map((command) => ({

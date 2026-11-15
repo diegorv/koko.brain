@@ -102,6 +102,8 @@ export interface LayoutSettings {
 	outgoingLinksVisible: boolean;
 	/** Whether the table of contents panel is shown in the right sidebar */
 	tableOfContentsVisible: boolean;
+	/** Whether the Claude agent panel fills the right sidebar in place of the other panels; ignored while `claudeCode.enabled` is false */
+	claudeVisible: boolean;
 	/** Saved width percentage of the right sidebar pane */
 	rightSidebarSize: number;
 	/** Saved width percentage of the rail shell's note list pane */

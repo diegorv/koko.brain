@@ -308,6 +308,7 @@ import { startModsHost, stopModsHost } from '#lib/plugins/mods/mods-host.service
 import { modsRunsStore } from '#lib/plugins/mods/mods-runs.store.svelte.js';
 import { startAutoSync, stopAutoSync } from '#lib/features/todoist-sync/sync-scheduler.service.js';
 import { todoistSyncStore } from '#lib/features/todoist-sync/todoist-sync.store.svelte.js';
+import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
 import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 import type { CompletionContext } from '@codemirror/autocomplete';
 import type { PropertyIndexRecord } from '#lib/features/collection/collection.types.js';
@@ -1026,6 +1027,21 @@ describe('teardownVault', () => {
 		teardownVault();
 
 		expect(invoke).toHaveBeenCalledWith('close_vault_db');
+	});
+
+	it('cancels the running Claude turn and clears its chat, session and notes', () => {
+		claudeStore.addContextNote('a.md');
+		claudeStore.beginTurn('hi');
+		claudeStore.startRun('r1');
+		claudeStore.receive({ runId: 'r1', event: { type: 'Result', sessionId: 's1', text: 'ok', isError: false, costUsd: null, numTurns: 1 } });
+
+		teardownVault();
+
+		expect(invoke).toHaveBeenCalledWith('claude_cancel_turn', { runId: 'r1' });
+		expect(claudeStore.messages).toEqual([]);
+		expect(claudeStore.sessionId).toBeNull();
+		expect(claudeStore.contextNotes).toEqual([]);
+		expect(claudeStore.isRunning).toBe(false);
 	});
 
 	it('clears editor hooks before resetting stores', () => {

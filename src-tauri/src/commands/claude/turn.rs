@@ -81,11 +81,13 @@ pub fn system_prompt(vault_root: &str, context_note_paths: &[String]) -> String 
 }
 
 /// The CLI args of a turn. The settings sources stay at the CLI default, so
-/// skills, plugins, hooks and MCP servers load as in the terminal.
+/// skills, plugins, hooks and MCP servers load as in the terminal. The prompt
+/// goes last, after `--`: `-p` is a boolean flag, so a prompt starting with `-`
+/// (`- [ ] ...`, `--help`) would otherwise be parsed as an option. A leading
+/// `/name` after `--` is still expanded as a skill or command.
 pub fn build_args(request: &ClaudeTurnRequest) -> Vec<String> {
 	let mut args: Vec<String> = [
 		"-p",
-		&request.prompt,
 		"--output-format",
 		"stream-json",
 		"--verbose",
@@ -104,6 +106,8 @@ pub fn build_args(request: &ClaudeTurnRequest) -> Vec<String> {
 	args.extend([
 		"--append-system-prompt".to_string(),
 		system_prompt(&request.vault_path, &request.context_note_paths),
+		"--".to_string(),
+		request.prompt.clone(),
 	]);
 	args
 }

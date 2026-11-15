@@ -118,7 +118,6 @@ fn args_for_a_first_turn() {
 		build_args(&req),
 		vec![
 			"-p",
-			"summarize",
 			"--output-format",
 			"stream-json",
 			"--verbose",
@@ -127,8 +126,25 @@ fn args_for_a_first_turn() {
 			"bypassPermissions",
 			"--append-system-prompt",
 			&system_prompt("/vault", &[]),
+			"--",
+			"summarize",
 		]
 	);
+}
+
+#[test]
+fn a_prompt_starting_with_a_dash_follows_the_end_of_options_marker() {
+	for prompt in ["- [ ] buy milk", "--help"] {
+		let mut req = request(Path::new("/vault"), Path::new(""));
+		req.prompt = prompt.into();
+
+		let args = build_args(&req);
+
+		// Without `--` the CLI parses the leading `-` as an option and fails
+		// with `unknown option`.
+		assert_eq!(args[args.len() - 2..], ["--", prompt], "{args:?}");
+		assert_eq!(args.iter().filter(|a| a.as_str() == "--").count(), 1, "{args:?}");
+	}
 }
 
 #[test]
@@ -144,10 +160,10 @@ fn args_with_resume_model_and_a_slash_prompt() {
 
 	let args = build_args(&req);
 
-	// The prompt is passed exactly as typed, right after -p, so the CLI
-	// expands the leading /name as a skill or command.
-	assert_eq!(args[0..2], ["-p", "/review notes/a.md please"]);
-	let tail: Vec<&str> = args[8..].iter().map(String::as_str).collect();
+	// The prompt is passed exactly as typed after `--`; the CLI still expands
+	// a leading /name as a skill or command there.
+	assert_eq!(args[0], "-p");
+	let tail: Vec<&str> = args[7..].iter().map(String::as_str).collect();
 	assert_eq!(
 		tail,
 		[
@@ -157,6 +173,8 @@ fn args_with_resume_model_and_a_slash_prompt() {
 			"opus",
 			"--append-system-prompt",
 			&system_prompt("/vault", &["notes/a.md".to_string()]),
+			"--",
+			"/review notes/a.md please",
 		]
 	);
 	for forbidden in ["--setting-sources", "--strict-mcp-config", "--tools"] {
@@ -298,7 +316,9 @@ fn recorded_stream_is_emitted_in_order_and_ends_in_done() {
 	let recorded_args = fs::read_to_string(&args_file).unwrap();
 	let mut lines = recorded_args.lines();
 	assert_eq!(fs::canonicalize(lines.next().unwrap()).unwrap(), fs::canonicalize(vault.path()).unwrap());
-	assert_eq!(lines.take(2).collect::<Vec<_>>(), ["-p", "hello"]);
+	let argv: Vec<&str> = lines.collect();
+	assert_eq!(argv[0], "-p");
+	assert_eq!(argv[argv.len() - 2..], ["--", "hello"]);
 	assert!(runs.is_empty(), "a finished run removes itself");
 }
 

@@ -32,3 +32,30 @@ export function toggleRightSidebar(): void {
 	const current = settingsStore.layout.rightSidebarVisible;
 	settingsStore.updateLayout({ rightSidebarVisible: !current });
 }
+
+/** Whether the Claude panel shows now: the feature is on, its flag is set and the right sidebar is open. */
+function claudePanelOpen(): boolean {
+	const { claudeVisible, rightSidebarVisible } = settingsStore.layout;
+	return settingsStore.claudeCode.enabled && claudeVisible && rightSidebarVisible;
+}
+
+/**
+ * Shows the Claude panel, opening the right sidebar it fills. No-op while
+ * Claude Code is off.
+ */
+export function showClaudePanel(): void {
+	if (!settingsStore.claudeCode.enabled) return;
+	settingsStore.updateLayout({ claudeVisible: true, rightSidebarVisible: true });
+}
+
+/**
+ * Shows the Claude panel, or hides it when it shows, which brings back the
+ * other right sidebar panels. Shared by its command and keybinding. No-op
+ * while Claude Code is off, and on the tabs `hidesRightSidebar` covers, like
+ * `toggleRightSidebar`.
+ */
+export function toggleClaudePanel(): void {
+	if (!settingsStore.claudeCode.enabled || hidesRightSidebar(editorStore.activeTabPath)) return;
+	if (claudePanelOpen()) settingsStore.updateLayout({ claudeVisible: false });
+	else showClaudePanel();
+}

@@ -15,6 +15,8 @@ import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { loadDirectoryTree } from '#lib/core/filesystem/fs.service.js';
 import { buildContentOrderMap, patchContentOrderMap } from '#lib/core/filesystem/folder-notes.logic.js';
 import { applyPropertyDelta, buildPropertyIndex, propertyIndexNeedsWholeRead } from '#lib/features/collection/collection.service.js';
+import { onClaudeEvent } from '#lib/features/claude-code/claude-code.service.js';
+import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 
 /**
@@ -95,6 +97,30 @@ export function registerExitRequestListener(): () => void {
 		else unlisten = fn;
 	}).catch((err) => {
 		error('LISTENERS', 'Failed to listen for app:exit-requested:', err);
+	});
+	return () => {
+		cancelled = true;
+		unlisten?.();
+	};
+}
+
+/**
+ * Registers the one `claude-event` listener of the app: every agent turn
+ * event goes to the chat store, which applies, buffers or ignores it by run id
+ * (`claude.logic.ts`). Registered for the app lifetime, not per panel, so a
+ * turn keeps streaming while the panel is hidden.
+ * Returns a cleanup function to unsubscribe.
+ */
+export function registerClaudeEventListener(): () => void {
+	let cancelled = false;
+	let unlisten: (() => void) | undefined;
+	onClaudeEvent((payload) => {
+		claudeStore.receive(payload);
+	}).then((fn) => {
+		if (cancelled) fn();
+		else unlisten = fn;
+	}).catch((err) => {
+		error('LISTENERS', 'Failed to listen for claude-event:', err);
 	});
 	return () => {
 		cancelled = true;

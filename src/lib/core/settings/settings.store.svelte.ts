@@ -67,6 +67,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 		backlinksVisible: true,
 		outgoingLinksVisible: true,
 		tableOfContentsVisible: true,
+		claudeVisible: false,
 		// The panes' minSize in AppShell.svelte: what fits one monitor does not fit another, so
 		// the owner drags them to size on each and a new vault opens with the editor at its widest.
 		rightSidebarSize: 3,

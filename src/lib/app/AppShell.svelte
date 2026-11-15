@@ -38,6 +38,7 @@
 	import type { TypesPickCheck } from '#lib/features/rail-shell/lens.logic.js';
 	import { parseRailCollapsed, parseRailHidden, parseRailStyle, parseRailWidth, railFormWidth, railHeaderPad } from '#lib/features/rail-shell/rail-items.logic.js';
 	import EditorView from '#lib/app/EditorView.svelte';
+	import { appEditorHost, openWikilinkTarget } from '#lib/app/editor-host.js';
 	import { selectRailItem } from '#lib/app/rail-navigation.js';
 	import BacklinksPanel from '#lib/features/backlinks/BacklinksPanel.svelte';
 	import OutgoingLinksPanel from '#lib/features/outgoing-links/OutgoingLinksPanel.svelte';
@@ -45,6 +46,8 @@
 	import PropertiesView from '#lib/features/properties/PropertiesView.svelte';
 	import SearchPanel from '#lib/features/search/SearchPanel.svelte';
 	import TableOfContentsPanel from '#lib/plugins/table-of-contents/TableOfContentsPanel.svelte';
+	import ClaudePanel from '#lib/features/claude-code/ClaudePanel.svelte';
+	import { attachActiveNote } from '#lib/features/claude-code/claude.service.js';
 	import StatusBar from '#lib/core/status-bar/StatusBar.svelte';
 	import WordCount from '#lib/plugins/word-count/WordCount.svelte';
 	import SearchStatus from '#lib/features/search/SearchStatus.svelte';
@@ -59,6 +62,8 @@
 	let { children }: { children: Snippet } = $props();
 
 	let rightSidebarShown = $derived(isRightSidebarShown(settingsStore.layout.rightSidebarVisible, editorStore.activeTabPath));
+	/** The Claude panel takes the whole right sidebar (the chat needs the height); off with Claude Code. */
+	let claudePanelShown = $derived(settingsStore.claudeCode.enabled && settingsStore.layout.claudeVisible);
 
 	// Keep the macOS dock badge in sync with the lifecycle inbox count.
 	// Tracks the toggle and the vault entries version; the actual OS call
@@ -75,6 +80,14 @@
 		untrack(() => {
 			applyDockBadge(value);
 		});
+	});
+
+	// Opening the Claude panel attaches the active note. Keyed to the panel's own
+	// flag, not to its mount: a canvas, kanban or view tab remounts the panel, and
+	// that must not bring back a chip the user removed.
+	$effect(() => {
+		if (!claudePanelShown) return;
+		untrack(() => attachActiveNote());
 	});
 
 	// [FE-STARTUP-PROBE]
@@ -274,23 +287,29 @@
 						>
 							<div class="flex h-full flex-col text-row bg-right-sidebar-bg text-right-sidebar-fg" data-right-sidebar>
 								<div class="h-10 shrink-0 bg-tab-bar" style="box-shadow: inset 0 -1px 0 var(--divider)" data-tauri-drag-region></div>
-								<ScrollArea class="min-h-0 flex-1">
-									{#if settingsStore.layout.propertiesVisible}
-										<PropertiesView />
-									{/if}
-									{#if settingsStore.layout.tableOfContentsVisible}
-										<TableOfContentsPanel />
-									{/if}
-									{#if settingsStore.layout.backlinksVisible}
-										<BacklinksPanel />
-									{/if}
-									{#if settingsStore.layout.outgoingLinksVisible}
-										<OutgoingLinksPanel />
-									{/if}
-									{#if settingsStore.layout.propertiesVisible}
-										<NoteInfo />
-									{/if}
-								</ScrollArea>
+								{#if claudePanelShown}
+									<div class="min-h-0 flex-1">
+										<ClaudePanel onOpenWikilink={openWikilinkTarget} onOpenExternal={(url) => appEditorHost.openExternal(url)} />
+									</div>
+								{:else}
+									<ScrollArea class="min-h-0 flex-1">
+										{#if settingsStore.layout.propertiesVisible}
+											<PropertiesView />
+										{/if}
+										{#if settingsStore.layout.tableOfContentsVisible}
+											<TableOfContentsPanel />
+										{/if}
+										{#if settingsStore.layout.backlinksVisible}
+											<BacklinksPanel />
+										{/if}
+										{#if settingsStore.layout.outgoingLinksVisible}
+											<OutgoingLinksPanel />
+										{/if}
+										{#if settingsStore.layout.propertiesVisible}
+											<NoteInfo />
+										{/if}
+									</ScrollArea>
+								{/if}
 							</div>
 						</Resizable.Pane>
 					{/if}
