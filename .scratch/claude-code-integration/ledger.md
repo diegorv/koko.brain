@@ -44,6 +44,10 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 07 | [Cancel misses a child forked during `killpg`](issues/07-cancel-misses-a-child-forked-during-killpg.md) | 05 | done | issue/07-cancel-misses-a-child-forked-during-killpg (e1b69f51e) | 2026-11-15 |
 | 08 | [Replace the hand-written stream-json fixture with a real capture](issues/08-real-stream-json-fixture.md) | 03 | done | issue/08-real-stream-json-fixture (46213233d) | 2026-11-15 |
 | 09 | [A run started before a vault switch leaks into the new vault's chat](issues/09-stale-run-after-vault-switch.md) | 03 | todo | | |
+| 10 | [The status check finds `claude` the way a turn does](issues/10-status-uses-turn-env.md) | 05 | todo | | |
+| 11 | [Quitting the app cancels running turns](issues/11-cancel-turns-on-app-exit.md) | 07 | todo | | |
+| 12 | [Panel follows the reply, keeps focus, and handles IME and slash-menu keys](issues/12-panel-scroll-focus-keys.md) | 10 | todo | | |
+| 13 | [Stream and chat keep the session, the error cause and retried text right](issues/13-stream-session-errors-retries.md) | 12 | todo | | |
 
 ## Log
 
@@ -69,3 +73,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-15 06:32 — 07 — deliver — review round 1 APPROVED (claude), 1 minor + 2 nits accepted with no code change; vitest 17069 passed, cargo test 1538 passed; squash merged on mvp-claude — e1b69f51e
 - 2026-11-15 06:32 — 08 — start — launched by /relay-lite:run — ac15f70a6
 - 2026-11-15 06:50 — 08 — deliver — review round 1 APPROVED, round 2 APPROVED (claude); real capture as fixture; vitest 17069 passed, cargo test 1540 passed; squash merged on mvp-claude — 46213233d
+- 2026-11-15 08:09 — ledger updated (added 10, 11, 12, 13)

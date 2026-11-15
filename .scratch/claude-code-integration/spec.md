@@ -1,6 +1,6 @@
 # Claude Code integration: an agent panel for the vault through the `claude` CLI
 
-**Status:** MVP delivered (01, 02, 03, 05); follow-ups 07-09
+**Status:** MVP delivered (01, 02, 03, 05, 07, 08); PR #247 review follow-ups 10-13; 09 open
 
 ## Goal
 
@@ -63,6 +63,10 @@ Changed-files summary and revert (git diff when the vault is a repo, as Tolaria 
 | [04](issues/04-claude-settings-per-machine.md) | Claude Code settings per machine, not in the vault | 01 | wontfix |
 | [05](issues/05-login-shell-env-for-claude.md) | Run `claude` with the login shell's environment | 02 | resolved |
 | [06](issues/06-remote-images-in-replies.md) | Remote images in Claude replies can leak data | 03 | wontfix |
-| [07](issues/07-cancel-misses-a-child-forked-during-killpg.md) | Cancel misses a child forked during `killpg` | 05 | ready-for-agent |
-| [08](issues/08-real-stream-json-fixture.md) | Replace the hand-written stream-json fixture with a real capture | 03 | ready-for-agent |
+| [07](issues/07-cancel-misses-a-child-forked-during-killpg.md) | Cancel misses a child forked during `killpg` | 05 | resolved |
+| [08](issues/08-real-stream-json-fixture.md) | Replace the hand-written stream-json fixture with a real capture | 03 | resolved |
 | [09](issues/09-stale-run-after-vault-switch.md) | A run started before a vault switch leaks into the new vault's chat | 03 | needs-triage |
+| [10](issues/10-status-uses-turn-env.md) | The status check finds `claude` the way a turn does | 05 | ready-for-agent |
+| [11](issues/11-cancel-turns-on-app-exit.md) | Quitting the app cancels running turns | 07 | ready-for-agent |
+| [12](issues/12-panel-scroll-focus-keys.md) | Panel follows the reply, keeps focus, and handles IME and slash-menu keys | 10 | ready-for-agent |
+| [13](issues/13-stream-session-errors-retries.md) | Stream and chat keep the session, the error cause and retried text right | 12 | ready-for-agent |
