@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [A resume whose session is gone keeps the chat and starts a new session](issues/01-gone-session-starts-over.md) | none | in-progress | | |
+| 01 | [A resume whose session is gone keeps the chat and starts a new session](issues/01-gone-session-starts-over.md) | none | done | issue/01-gone-session-starts-over (893431088) | 2026-11-16 |
 | 02 | [Panel chats are saved in the vault, and the last one comes back](issues/02-save-and-restore-last-chat.md) | 01 | todo | | |
 | 03 | [A history list reopens and deletes older chats](issues/03-chat-history-list.md) | 02 | todo | | |
 
@@ -43,3 +43,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 - 2026-11-15 23:09 — ledger created (3 Issues)
 - 2026-11-15 23:09 — 01 — start — launched by /relay-lite:run — b1ce31701
+- 2026-11-16 01:22 — 01 — deliver — Review round 1 APPROVED (2 nits not changed); merged onto mvp-claude at 893431088; cargo 1559 passed, vitest 17111 passed — 893431088
