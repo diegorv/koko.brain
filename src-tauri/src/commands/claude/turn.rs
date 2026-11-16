@@ -207,10 +207,11 @@ impl ClaudeRuns {
 /// Resolves the binary on `env` and starts a turn with `env`; returns its run
 /// id at once while the events stream to `sink` from a background thread.
 ///
-/// Returns an error, with nothing spawned, when the binary is refused or
-/// missing, or when the vault already has a turn running. Once a run id
-/// exists every outcome is an event, and `Done` is always the last one: a
-/// spawn failure sends `Error` and `Done` before this returns.
+/// Returns an error, with nothing spawned, when the resume id is not a session
+/// id, when the binary is refused or missing, or when the vault already has a
+/// turn running. Once a run id exists every outcome is an event, and `Done`
+/// is always the last one: a spawn failure sends `Error` and `Done` before
+/// this returns.
 pub fn run_turn_with<F>(
 	runs: &ClaudeRuns,
 	request: ClaudeTurnRequest,
@@ -222,6 +223,11 @@ pub fn run_turn_with<F>(
 where
 	F: Fn(ClaudeEventPayload) + Send + 'static,
 {
+	if let Some(id) = non_blank(&request.resume_session_id) {
+		if !is_session_id(id) {
+			return Err("Refused a resume session id that is not a Claude session id".into());
+		}
+	}
 	let binary = resolve_turn_claude(&request.binary_path, env, shell, candidates, VERSION_TIMEOUT)?;
 	let run_id = uuid::Uuid::new_v4().to_string();
 	let emit = {
@@ -376,6 +382,13 @@ fn kill_group(pid: u32) {
 
 #[cfg(not(unix))]
 fn wait_for_exit(_pid: u32) {}
+
+/// A CLI session id is a lowercase hyphenated UUID. Anything else is refused,
+/// so a value from a chat file or from IPC never reaches the CLI as an option
+/// after `--resume`.
+fn is_session_id(id: &str) -> bool {
+	uuid::Uuid::parse_str(id).is_ok_and(|u| u.hyphenated().to_string() == id)
+}
 
 fn non_blank(value: &Option<String>) -> Option<&str> {
 	value.as_deref().map(str::trim).filter(|v| !v.is_empty())

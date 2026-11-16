@@ -174,9 +174,14 @@ export function storedFromChat(
 	};
 }
 
+/** A CLI session id: a lowercase hyphenated UUID. */
+const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
 /**
  * Parses a chat file. `null` for an unknown version or a malformed file. A
  * tool still `running` when it was saved (a quit mid-turn) comes back `stopped`.
+ * A session id that is not a CLI session id is dropped: it becomes a `--resume`
+ * argument, and a chat file in a vault from elsewhere could carry an option.
  */
 export function chatFromStored(text: string): StoredChat | null {
 	let raw: unknown;
@@ -196,7 +201,7 @@ export function chatFromStored(text: string): StoredChat | null {
 		if (!message) return null;
 		messages.push(message);
 	}
-	return { version: 1, chatId, sessionId, createdAt, updatedAt, title, messages };
+	return { version: 1, chatId, sessionId: typeof sessionId === 'string' && SESSION_ID.test(sessionId) ? sessionId : null, createdAt, updatedAt, title, messages };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

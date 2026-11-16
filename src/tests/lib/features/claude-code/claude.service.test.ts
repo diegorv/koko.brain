@@ -568,12 +568,15 @@ describe('a reset while the dirty tabs are saving', () => {
 	});
 });
 
+/** A CLI session id, as `chatFromStored` accepts. */
+const SESSION = '0c9a3f0e-5b1d-4e2a-9f6c-1d2e3f4a5b6c';
+
 /** A saved chat file's text. */
 function chatFile(chatId: string, overrides: Record<string, unknown> = {}) {
 	return JSON.stringify({
 		version: 1,
 		chatId,
-		sessionId: 's1',
+		sessionId: SESSION,
 		createdAt: '2026-11-16T10:00:00.000Z',
 		updatedAt: '2026-11-16T10:05:00.000Z',
 		title: 'saved',
@@ -601,7 +604,7 @@ describe('restoreLastChat', () => {
 		expect(invoke).toHaveBeenCalledWith('claude_chat_list', { vaultPath: '/vault/' });
 		expect(invoke).toHaveBeenCalledWith('claude_chat_read', { vaultPath: '/vault/', chatId: CHAT_B });
 		expect(claudeStore.chatId).toBe(CHAT_B);
-		expect(claudeStore.sessionId).toBe('s1');
+		expect(claudeStore.sessionId).toBe(SESSION);
 		expect(claudeStore.messages).toEqual([{ role: 'user', text: 'saved' }, { role: 'assistant', parts: [{ kind: 'text', text: 'reply' }] }]);
 		expect(claudeStore.restored).toBe(true);
 		expect(claudeStore.contextNotes).toEqual(['a.md']);
@@ -698,20 +701,20 @@ describe('restart', () => {
 			return cmd === 'claude_run_turn' ? 'r1' : null;
 		});
 		await sendPrompt('hello');
-		await deliver({ runId: 'r1', event: { type: 'Init', sessionId: 's1', model: 'm', slashCommands: [], skills: [] } });
+		await deliver({ runId: 'r1', event: { type: 'Init', sessionId: SESSION, model: 'm', slashCommands: [], skills: [] } });
 		await deliver({ runId: 'r1', event: { type: 'TextDelta', text: 'Hi' } });
-		await deliver({ runId: 'r1', event: { type: 'Result', sessionId: 's1', text: 'Hi', isError: false, costUsd: null, numTurns: 1 } });
+		await deliver({ runId: 'r1', event: { type: 'Result', sessionId: SESSION, text: 'Hi', isError: false, costUsd: null, numTurns: 1 } });
 		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
 		const messages = claudeStore.messages;
 
 		claudeStore.reset();
 		await restoreLastChat('/vault/');
 		expect(claudeStore.messages).toEqual(messages);
-		expect(claudeStore.sessionId).toBe('s1');
+		expect(claudeStore.sessionId).toBe(SESSION);
 
 		vi.mocked(invoke).mockClear();
 		await sendPrompt('and then?');
-		expect(runTurnRequest()?.resumeSessionId).toBe('s1');
+		expect(runTurnRequest()?.resumeSessionId).toBe(SESSION);
 		expect(files.size).toBe(1);
 	});
 });

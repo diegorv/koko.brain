@@ -367,7 +367,7 @@ function stored(overrides: Partial<StoredChat> = {}): StoredChat {
 	return {
 		version: 1,
 		chatId: FRESH.chatId,
-		sessionId: 's1',
+		sessionId: '0c9a3f0e-5b1d-4e2a-9f6c-1d2e3f4a5b6c',
 		createdAt: FRESH.createdAt,
 		updatedAt: '2026-11-16T10:05:00.000Z',
 		title: 'hello',
@@ -423,7 +423,7 @@ describe('storedFromChat', () => {
 
 describe('chatFromStored', () => {
 	it('round trips the messages, the session, the creation time and the title', () => {
-		let chat = event({ ...running(), sessionId: null }, { type: 'Init', sessionId: 's9', model: 'm', slashCommands: [], skills: [] });
+		let chat = event({ ...running(), sessionId: null }, { type: 'Init', sessionId: '7f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f', model: 'm', slashCommands: [], skills: [] });
 		chat = event(chat, { type: 'ToolStart', id: 't1', name: 'Read', input: { file_path: 'a.md' } });
 		chat = event(chat, { type: 'ToolResult', id: 't1', isError: false, summary: 'ok' });
 		chat = event(chat, { type: 'TextDelta', text: 'Done.' });
@@ -433,7 +433,7 @@ describe('chatFromStored', () => {
 		const back = chatFromStored(JSON.stringify(saved, null, '\t'));
 		expect(back).toEqual(saved);
 		expect(back?.messages).toEqual(chat.messages);
-		expect(back?.sessionId).toBe('s9');
+		expect(back?.sessionId).toBe('7f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f');
 		expect(back?.createdAt).toBe(FRESH.createdAt);
 		expect(back?.title).toBe('hello');
 	});
@@ -444,6 +444,14 @@ describe('chatFromStored', () => {
 		});
 		const back = chatFromStored(JSON.stringify(running));
 		expect(back?.messages).toEqual([{ role: 'assistant', parts: [{ kind: 'tool', id: 't1', name: 'Bash', target: 'ls', status: 'stopped', summary: '' }] }]);
+	});
+
+	it('keeps the chat but drops a session id that is not a CLI session id', () => {
+		for (const sessionId of ['--settings={}', '-p', 's1', '0C9A3F0E-5B1D-4E2A-9F6C-1D2E3F4A5B6C']) {
+			const back = chatFromStored(JSON.stringify(stored({ sessionId })));
+			expect(back?.messages).toEqual(stored().messages);
+			expect(back?.sessionId).toBeNull();
+		}
 	});
 
 	it('keeps a chat with no session', () => {
@@ -492,7 +500,7 @@ describe('restoreChat', () => {
 			slashCommands: ['hello'],
 			chatId: FRESH.chatId,
 			createdAt: FRESH.createdAt,
-			sessionId: 's1',
+			sessionId: stored().sessionId,
 			messages: stored().messages,
 			restored: true,
 		});
@@ -519,7 +527,7 @@ describe('restoreChat', () => {
 		const next = beginTurn(restoreChat(EMPTY_CHAT, stored()), 'more', { chatId: 'other', createdAt: 'later' });
 		expect(next.chatId).toBe(FRESH.chatId);
 		expect(next.createdAt).toBe(FRESH.createdAt);
-		expect(next.sessionId).toBe('s1');
+		expect(next.sessionId).toBe(stored().sessionId);
 		expect(next.messages.slice(0, 2)).toEqual(stored().messages);
 	});
 });

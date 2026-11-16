@@ -466,10 +466,12 @@ describe('initializeVault', () => {
 	describe('the last Claude chat', () => {
 		const CHAT_A = '0f8fad5b-d9cb-469f-a165-70867728950e';
 		const CHAT_B = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+		/** A CLI session id per chat title, as `chatFromStored` accepts. */
+		const sessionFor = (text: string) => (text === 'hello' ? '0c9a3f0e-5b1d-4e2a-9f6c-1d2e3f4a5b6c' : '7f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f');
 		const chatFile = (chatId: string, text: string) => JSON.stringify({
 			version: 1,
 			chatId,
-			sessionId: `s-${text}`,
+			sessionId: sessionFor(text),
 			createdAt: '2026-11-16T10:00:00.000Z',
 			updatedAt: '2026-11-16T10:05:00.000Z',
 			title: text,
@@ -505,7 +507,7 @@ describe('initializeVault', () => {
 			await vi.waitFor(() => expect(claudeStore.chatId).toBe(CHAT_A));
 			expect(invoke).toHaveBeenCalledWith('claude_chat_list', { vaultPath: '/vault' });
 			expect(claudeStore.messages).toEqual([{ role: 'user', text: 'hello' }]);
-			expect(claudeStore.sessionId).toBe('s-hello');
+			expect(claudeStore.sessionId).toBe(sessionFor('hello'));
 			expect(claudeStore.restored).toBe(true);
 			expect(claudeStore.contextNotes).toEqual(['a.md']);
 		});
