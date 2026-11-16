@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Quitting the app cancels running turns](issues/11-cancel-turns-on-app-exit.md) | 07 | done | issue/11-cancel-turns-on-app-exit (fdc76b135) | 2026-11-15 |
 | 12 | [Panel follows the reply, keeps focus, and handles IME and slash-menu keys](issues/12-panel-scroll-focus-keys.md) | 10 | done | issue/12-panel-scroll-focus-keys (31b482497) | 2026-11-15 |
 | 13 | [Stream and chat keep the session, the error cause and retried text right](issues/13-stream-session-errors-retries.md) | 12 | done | issue/13-stream-session-errors-retries (ac23b5c37) | 2026-11-15 |
-| 14 | [A resumed turn sees the notes attached now, not those of the first turn](issues/14-resumed-turns-see-current-notes.md) | 13 | in-progress | | |
+| 14 | [A resumed turn sees the notes attached now, not those of the first turn](issues/14-resumed-turns-see-current-notes.md) | 13 | done | issue/14-resumed-turns-see-current-notes (a6b88127c) | 2026-11-16 |
 
 ## Log
 
@@ -87,3 +87,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-15 10:05 — 13 — deliver — review round 1 APPROVED, round 2 APPROVED (claude); fix round: error Result text, streamed-message ids, spec resume note; vitest 17101 passed, cargo 1558 passed (single-threaded rerun after a watcher flake); squash merged on mvp-claude — ac23b5c37
 - 2026-11-15 23:09 — ledger updated (added 14)
 - 2026-11-15 23:09 — 14 — start — launched by /relay-lite:run — 2d9811f73
+- 2026-11-16 00:10 — 14 — deliver — Review round 1 APPROVED with no findings; merged onto mvp-claude at a6b88127c; full vitest suite 17106 passed — a6b88127c
