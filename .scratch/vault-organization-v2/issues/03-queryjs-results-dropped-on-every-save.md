@@ -6,13 +6,13 @@
 
 **Blocked by:** none
 
-**Status:** needs-info
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, reproducing the problem; it passes after the change.
-- [ ] Returning to a hub after editing another note shows its list without a click, with no visible slowdown elsewhere.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, reproducing the problem; it passes after the change.
+- [x] Returning to a hub after editing another note shows its list without a click, with no visible slowdown elsewhere.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Problem
 
@@ -27,3 +27,4 @@ Every save anywhere clears every cached QueryJS result. Under the default `first
 ## Comments
 
 - 2026-11-13, triage: needs-info. First try `queryjs.autoRunQueries: "always"` in the live settings of the work machine and report whether hubs and chart-heavy notes behave. App work only if that fails.
+- 2026-11-16, deliver (branch issue/03-queryjs-results-dropped-on-every-save): stale QueryJS blocks keep their last result across saves and re-run; `queryjsSessionStore.clearStale` stops a throwing re-run from looping. Targeted checks pass; full suite at a43a8096 exit 0 (16996 passed, 54 skipped, 0 failed) after one unrelated timeout in run 1. Reviews: round 1 APPROVED, round 2 APPROVED (fix round ran between them).

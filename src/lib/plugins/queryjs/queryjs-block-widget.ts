@@ -17,13 +17,14 @@ import { queryjsSessionStore } from './queryjs-session.store.svelte';
  * 12 refactor moved cache state into `queryjsSessionStore`, but
  * `editor.hooks.ts → notifyAfterSave` still calls the function by name.
  *
- * Forwards to `clearResults()` — drops every cached rendered DOM but KEEPS
- * the `autoRunOnFirstOpen` markers. If we called `reset()` instead, every
- * save would also clear the per-file autoRun marker, which would silently
- * make the `'first-open'` policy auto-execute again on the next render
- * instead of showing the ▶ Run button (the entire point of cache
- * invalidation on save). The autoRun marker is per-file, not per-content,
- * and survives content edits intentionally.
+ * Forwards to `clearResults()` — drops every cached rendered DOM and marks
+ * it stale, but KEEPS the `autoRunOnFirstOpen` markers. If we called
+ * `reset()` instead, every save would also clear the per-file autoRun
+ * marker, so the `'first-open'` policy would auto-execute every block of the
+ * file on its next render, a block whose text was just edited included,
+ * instead of only the stale blocks (whose result the save dropped). The
+ * autoRun marker is per-file, not per-content, and survives content edits
+ * intentionally.
  *
  * **Deletion plan:** Phase 12.5 will migrate the call site to per-block
  * `queryjsSessionStore.invalidate(filePath, jsContent)` (more granular, only
@@ -63,14 +64,19 @@ function markAutoRunAfterRenderPass(filePath: string): void {
  *
  * Execution policy is governed by `settingsStore.queryjs.autoRunQueries`:
  *
- *   policy        cache hit       cache miss + first-open    cache miss after edit
- *   ───────────── ─────────────── ────────────────────────── ────────────────────────
- *   first-open    re-attach DOM   execute + mark autoRun     show ▶ Run button
- *   always        re-attach DOM   execute                    execute (re-render)
- *   manual        re-attach DOM   show ▶ Run button (1)      show ▶ Run button
+ *   policy        cache hit       cache miss + first-open    cache miss, stale (2)   cache miss after edit
+ *   ───────────── ─────────────── ────────────────────────── ─────────────────────── ────────────────────────
+ *   first-open    re-attach DOM   execute + mark autoRun     execute (re-render)     show ▶ Run button
+ *   always        re-attach DOM   execute                    execute (re-render)     execute (re-render)
+ *   manual        re-attach DOM   show ▶ Run button (1)      show ▶ Run button       show ▶ Run button
  *
  *   The first-open mark lands after the render pass, so every block of that
  *   pass auto-runs; a block first built on a later scroll shows ▶ Run.
+ *
+ *   (2) A content invalidation (a save anywhere) dropped this block's result
+ *   in this file (`queryjsSessionStore.isStale`). Re-running it on its next
+ *   draw keeps a hub left open showing its list. An edited block has new
+ *   text, so it is never stale and still shows ▶ Run.
  *
  *   (1) **Invariant:** clicking ▶ Run in `manual` mode does NOT mark the
  *   file as autoRun. A user who later switches the policy back to
@@ -80,7 +86,8 @@ function markAutoRunAfterRenderPass(filePath: string): void {
  * Cache key is the note's path plus `jsContent` (no version suffix): a
  * shared script reads `kb.current()`, so the same block text in two notes
  * renders two results (ADR 0010, amendment 2026-11-03). Every content
- * invalidation drops all results via `invalidateQueryjsCache()`.
+ * invalidation drops all results via `invalidateQueryjsCache()` and marks
+ * them stale.
  *
  * No auto-await regex, no canvas/video/iframe exclusions, no clone
  * semantics — `_pendingViews` (in KBAPI) handles unawaited `kb.view()` and
@@ -136,7 +143,8 @@ export class QueryjsBlockWidget extends WidgetType {
 		const policy = settingsStore.queryjs.autoRunQueries;
 		const shouldAutoRun =
 			policy === 'always' ||
-			(policy === 'first-open' && !queryjsSessionStore.hasAutoRun(filePath));
+			(policy === 'first-open' &&
+				(!queryjsSessionStore.hasAutoRun(filePath) || queryjsSessionStore.isStale(filePath, this.jsContent)));
 
 		if (shouldAutoRun) {
 			appendLog('QJS-PROFILE', `toDOM() cache MISS — auto-run (${policy}): ${this.jsContent.substring(0, 50)}`);
@@ -149,7 +157,8 @@ export class QueryjsBlockWidget extends WidgetType {
 			return container;
 		}
 
-		// Manual mode, or first-open after the file has already auto-run once.
+		// Manual mode, or first-open after the file has already auto-run once
+		// and this block is not stale.
 		// Show a ▶ Run placeholder; execution waits for the user click.
 		this.renderRunPrompt(container, filePath);
 		return container;
@@ -273,6 +282,8 @@ export class QueryjsBlockWidget extends WidgetType {
 			// A failed run is never cached. If its widget is already gone,
 			// `destroy()` skipped it as in flight, so nothing else frees its charts.
 			if (!container.isConnected) destroyChartsIn(container);
+			// A stale block that fails would otherwise re-run on every redraw.
+			queryjsSessionStore.clearStale(filePath, this.jsContent);
 			this.renderStructuredError(container, err, filePath);
 		} finally {
 			runningContainers.delete(container);

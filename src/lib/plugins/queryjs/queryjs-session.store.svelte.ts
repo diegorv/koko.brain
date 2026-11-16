@@ -28,11 +28,19 @@
  *                       "auto-run". Invariant captured in the policy
  *                       matrix in widget.ts and ADR 0010.
  *
+ *   staleResults      — Set<filePath + jsContent>
+ *                       Blocks whose result a content invalidation dropped.
+ *                       Under `'first-open'` such a block re-runs on its next
+ *                       draw instead of showing ▶ Run, so a hub left open
+ *                       shows its list again after a save in another note.
+ *                       An edited block has new text, so it is never stale.
+ *                       A failed re-run drops the mark (`clearStale`).
+ *
  * Invalidation hooks:
  *   - `invalidate(filePath, jsContent)` — drop a single result.
- *   - `clearResults()` — drop every result, keep the autoRun markers (called
- *     on every content invalidation, e.g. after a save).
- *   - `invalidatePath(filePath)` — drop the file's autoRun marker (called
+ *   - `clearResults()` — drop every result and mark it stale, keep the
+ *     autoRun markers (called on every content invalidation, e.g. after a save).
+ *   - `invalidatePath(filePath)` — drop the file's autoRun and stale markers (called
  *     by closeTab and closeTabsForDeletedPath so reopening the file
  *     re-runs first-open auto-execution).
  *   - `reset()` — wipe everything (called by app-lifecycle teardownVault).
@@ -45,6 +53,7 @@ import { destroyChartsIn } from './queryjs-charts';
 
 let resultCache = $state<Map<string, HTMLElement>>(new Map());
 let autoRunOnFirstOpen = $state<Set<string>>(new Set());
+let staleResults = $state<Set<string>>(new Set());
 
 /**
  * Disposes a result that left the cache. A result still on screen keeps its
@@ -69,6 +78,10 @@ export const queryjsSessionStore = {
 	get autoRunOnFirstOpen() {
 		return autoRunOnFirstOpen;
 	},
+	/** Cache keys whose result a content invalidation dropped — for inspection and tests. */
+	get staleResults() {
+		return staleResults;
+	},
 
 	/** True if this script already has a cached result in this file. */
 	hasResult(filePath: string, jsContent: string): boolean {
@@ -91,6 +104,7 @@ export const queryjsSessionStore = {
 		resultCache.set(key, element);
 		// Reassign so Svelte runes notice the mutation
 		resultCache = resultCache;
+		if (staleResults.delete(key)) staleResults = staleResults;
 	},
 
 	/** Drops one cached result (called when its source content changes). */
@@ -113,15 +127,31 @@ export const queryjsSessionStore = {
 	},
 
 	/**
-	 * Drops every cached result while keeping the autoRunOnFirstOpen markers
-	 * intact. Called by `notifyAfterSave` so subsequent toDOM() calls miss
-	 * the cache and the `'first-open'` policy renders ▶ Run instead of
-	 * silently auto-executing the saved-but-still-marked file.
+	 * Drops every cached result and marks each one stale, keeping the
+	 * autoRunOnFirstOpen markers intact. Called on every content invalidation:
+	 * the next toDOM() of a stale block re-runs it under `'first-open'`, while
+	 * a block with new text (an edit) misses both and renders ▶ Run.
 	 */
 	clearResults(): void {
 		const dropped = resultCache;
 		resultCache = new Map();
+		for (const key of dropped.keys()) staleResults.add(key);
+		staleResults = staleResults;
 		for (const element of dropped.values()) dropResult(element);
+	},
+
+	/** True if a content invalidation dropped this script's result in this file and it has not run since. */
+	isStale(filePath: string, jsContent: string): boolean {
+		return staleResults.has(resultKey(filePath, jsContent));
+	},
+
+	/**
+	 * Drops the stale mark of one block without caching a result. Called when
+	 * a stale block's re-run fails, so later draws show ▶ Run instead of
+	 * running the failing script again (live-preview rule 2).
+	 */
+	clearStale(filePath: string, jsContent: string): void {
+		if (staleResults.delete(resultKey(filePath, jsContent))) staleResults = staleResults;
 	},
 
 	/** True if this file path has already auto-run at least once this session. */
@@ -138,13 +168,23 @@ export const queryjsSessionStore = {
 	},
 
 	/**
-	 * Drops the auto-run marker for a path. Called when a tab closes or a
-	 * file is deleted — reopening should restart the first-open policy.
+	 * Drops the auto-run and stale markers for a path. Called when a tab
+	 * closes or a file is deleted — reopening should restart the first-open
+	 * policy, which re-runs every block of its first render pass anyway.
 	 */
 	invalidatePath(filePath: string): void {
 		if (autoRunOnFirstOpen.delete(filePath)) {
 			autoRunOnFirstOpen = autoRunOnFirstOpen;
 		}
+		const prefix = resultKey(filePath, '');
+		let changed = false;
+		for (const key of staleResults) {
+			if (key.startsWith(prefix)) {
+				staleResults.delete(key);
+				changed = true;
+			}
+		}
+		if (changed) staleResults = staleResults;
 	},
 
 	/** Wipes the entire session — called by vault teardown. */
@@ -152,6 +192,7 @@ export const queryjsSessionStore = {
 		const dropped = resultCache;
 		resultCache = new Map();
 		autoRunOnFirstOpen = new Set();
+		staleResults = new Set();
 		for (const element of dropped.values()) dropResult(element);
 	},
 };
