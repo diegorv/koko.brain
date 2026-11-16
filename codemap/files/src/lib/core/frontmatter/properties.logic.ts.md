@@ -109,7 +109,7 @@ sym src/lib/core/frontmatter/properties.logic.ts:464 fn isEmptyPropertyValue(val
 by src/lib/core/frontmatter/properties.logic.ts:isEmptyPropertyValue <- src/lib/features/auto-organize/auto-organize.logic.ts:263 in listAfterAdd call +2
 sym src/lib/core/frontmatter/properties.logic.ts:519 fn ensureFrontmatterLink(content: string, key: string, target: string): string L30 | Returns `content` with frontmatter `key` linking `[[target]]`, for notes that must carry a relationship whatever their template writes.
 by src/lib/core/frontmatter/properties.logic.ts:ensureFrontmatterLink <- src/lib/features/note-action-bar/note-action-bar.service.ts:79 in createLinkedNote call
-by src/lib/core/frontmatter/properties.logic.ts:ensureFrontmatterLink <- src/lib/plugins/one-on-one/one-on-one.service.ts:96 in createOneOnOneNote call
+by src/lib/core/frontmatter/properties.logic.ts:ensureFrontmatterLink <- src/lib/plugins/one-on-one/one-on-one.service.ts:98 in createOneOnOneNote call
 sym src/lib/core/frontmatter/properties.logic.ts:603 fn serializeProperties(properties: Property[], originalRaw?: string): string L23 | Serializes an array of properties into a YAML frontmatter string (without delimiters).
 sym src/lib/core/frontmatter/properties.logic.ts:634 fn yamlScalar(value: string): string L3 | The one-line YAML scalar for `value`, for pasting after `key: ` or `- ` in a frontmatter block: plain when a plain scalar reads back as the same string, quoted…
 by src/lib/core/frontmatter/properties.logic.ts:yamlScalar <- src/lib/plugins/quick-capture/note-composer.logic.ts:129 in processCaptureTemplate call

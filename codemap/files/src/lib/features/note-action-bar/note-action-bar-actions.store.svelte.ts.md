@@ -17,9 +17,9 @@ test src/tests/lib/plugins/one-on-one/one-on-one.create.test.ts imports src/lib/
 ## symbols
 sym src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:13 store noteActionBarActionsStore L22
 by src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore <- src/lib/features/note-action-bar/NoteActionBar.svelte:67 in hubButton=$derived member
-by src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore <- src/lib/plugins/one-on-one/one-on-one.service.ts:106 in registerOneOnOneActionBarAction mcall
+by src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:noteActionBarActionsStore <- src/lib/plugins/one-on-one/one-on-one.service.ts:108 in registerOneOnOneActionBarAction mcall
 ## store
 store src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:13 noteActionBarActionsStore esc:0
 mem src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:15 get noteActionBarActionsStore.actions r:src/lib/features/note-action-bar/NoteActionBar.svelte:67 w-via:register,reset | The registered actions, in registration order.
-mem src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:23 do noteActionBarActionsStore.register w:src/lib/plugins/one-on-one/one-on-one.service.ts:106 | Registers `action`.
+mem src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:23 do noteActionBarActionsStore.register w:src/lib/plugins/one-on-one/one-on-one.service.ts:108 | Registers `action`.
 mem src/lib/features/note-action-bar/note-action-bar-actions.store.svelte.ts:31 do noteActionBarActionsStore.reset w:- | Drops every registration.

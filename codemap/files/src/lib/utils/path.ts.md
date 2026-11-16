@@ -29,7 +29,7 @@ imp src/lib/features/tasks/tasks.service.ts:19 -> src/lib/utils/path.ts vaultRel
 imp src/lib/plugins/mods/mod-query.service.ts:5 -> src/lib/utils/path.ts relativePath
 imp src/lib/plugins/mods/mod-vault.service.ts:13 -> src/lib/utils/path.ts relativePath
 imp src/lib/plugins/mods/mods-host.service.ts:18 -> src/lib/utils/path.ts vaultRelativeKey
-imp src/lib/plugins/one-on-one/one-on-one.service.ts:18 -> src/lib/utils/path.ts stem
+imp src/lib/plugins/one-on-one/one-on-one.service.ts:19 -> src/lib/utils/path.ts stem
 ## reach
 in2 src/lib/utils/path.ts 81 files in 29 modules: src/lib/features/rail-shell(10) src/lib/app(9) src/lib/features/tasks(5) src/lib/features/type-definitions(5) src/lib/core/editor(4) +24 modules: q impact src/lib/utils/path.ts --depth 2
 out2 src/lib/utils/path.ts 0 files in 0 modules: -
@@ -54,7 +54,7 @@ sym src/lib/utils/path.ts:79 fn stem(path: string): string L5 | Extracts the las
 by src/lib/utils/path.ts:stem <- src/lib/core/filesystem/link-updater.logic.ts:16 in extractNoteName call
 by src/lib/utils/path.ts:stem <- src/lib/features/note-action-bar/note-action-bar.service.ts:76 in createLinkedNote call
 by src/lib/utils/path.ts:stem <- src/lib/features/search/search.logic.ts:194 in getFileName call
-by src/lib/utils/path.ts:stem <- src/lib/plugins/one-on-one/one-on-one.service.ts:112 in registerOneOnOneActionBarAction call
+by src/lib/utils/path.ts:stem <- src/lib/plugins/one-on-one/one-on-one.service.ts:114 in registerOneOnOneActionBarAction call
 sym src/lib/utils/path.ts:98 fn relativePath(vaultPath: string, filePath: string): string L6 | Strips the vault root prefix from an absolute path to produce a vault-relative path.
 by src/lib/utils/path.ts:relativePath <- src/lib/core/filesystem/fs.logic.ts:277 in getRelativePath call
 by src/lib/utils/path.ts:relativePath <- src/lib/features/properties/RelationshipSearch.svelte:82 in (markup) markup
