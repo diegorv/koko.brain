@@ -234,6 +234,8 @@ export interface CommandMap {
 	claude_chat_read: { args: { vaultPath: string; chatId: string }; result: string | null };
 	/** The vault's saved chats, newest modification first; empty when the folder is missing (`commands/claude/chats.rs`). */
 	claude_chat_list: { args: { vaultPath: string }; result: ClaudeChatEntry[] };
+	/** Deletes a chat file; a missing file is not an error, and CLI transcripts are never touched (`commands/claude/chats.rs`). */
+	claude_chat_delete: { args: { vaultPath: string; chatId: string }; result: null };
 	/** Rust-only: registered but not invoked from TS (`quick_capture/commands.rs`). */
 	capture_clipboard_now: { args: NoArgs; result: null };
 	/** Rust-only: registered but not invoked from TS. */
@@ -345,6 +347,7 @@ export const COMMAND_ARGS = {
 	claude_chat_write: ['vaultPath', 'chatId', 'content'],
 	claude_chat_read: ['vaultPath', 'chatId'],
 	claude_chat_list: ['vaultPath'],
+	claude_chat_delete: ['vaultPath', 'chatId'],
 	capture_clipboard_now: [],
 	open_composer: [],
 	dismiss_composer: [],

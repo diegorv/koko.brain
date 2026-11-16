@@ -17,7 +17,7 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
-import { attachActiveNote, newChat, resetClaude, restoreLastChat, saveChatOnDone, sendPrompt, stop } from '#lib/features/claude-code/claude.service.js';
+import { attachActiveNote, deleteChat, loadChatHistory, newChat, openChat, resetClaude, restoreLastChat, saveChatOnDone, sendPrompt, stop } from '#lib/features/claude-code/claude.service.js';
 
 const invoked = () => vi.mocked(invoke).mock.calls.map(([cmd]) => cmd);
 const runTurnRequest = () => {
@@ -716,5 +716,239 @@ describe('restart', () => {
 		await sendPrompt('and then?');
 		expect(runTurnRequest()?.resumeSessionId).toBe(SESSION);
 		expect(files.size).toBe(1);
+	});
+});
+
+const CHAT_C = '16fd2706-8baf-433b-82eb-8c7fada847da';
+
+/** Holds the answer to `cmd` until `release` is called; every other command answers from `answerChats`. */
+function holdCommand(cmd: string, files: [string, string][]) {
+	answerChats(files);
+	const answer = vi.mocked(invoke).getMockImplementation()!;
+	let release!: () => void;
+	vi.mocked(invoke).mockImplementation((c: string, args?: unknown) => {
+		if (c !== cmd) return answer(c, args as never);
+		return new Promise((resolve) => { release = () => resolve(answer(c, args as never)); });
+	});
+	return () => release();
+}
+
+describe('loadChatHistory', () => {
+	it('gives the saved chats in list order with their titles and modification times', async () => {
+		answerChats([[CHAT_B, chatFile(CHAT_B, { title: 'newest' })], [CHAT_A, chatFile(CHAT_A, { title: 'older' })]]);
+
+		expect(await loadChatHistory('/vault/')).toEqual([
+			{ chatId: CHAT_B, title: 'newest', modifiedMs: 1000 },
+			{ chatId: CHAT_A, title: 'older', modifiedMs: 999 },
+		]);
+		expect(invoke).toHaveBeenCalledWith('claude_chat_list', { vaultPath: '/vault/' });
+	});
+
+	it('is empty when the vault has no saved chat', async () => {
+		answerChats([]);
+		expect(await loadChatHistory('/vault/')).toEqual([]);
+		expect(invoked()).not.toContain('claude_chat_read');
+	});
+
+	it('leaves out a file that is gone, corrupt, or cannot be read, and logs the unreadable ones', async () => {
+		answerChats([[CHAT_A, chatFile(CHAT_A)], [CHAT_B, '{ not json'], [CHAT_C, chatFile(CHAT_C)]]);
+		const answer = vi.mocked(invoke).getMockImplementation()!;
+		const GONE = '9b2d6a0e-1c3f-4e5a-8b7c-6d5e4f3a2b1c';
+		const FAILS = 'a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d';
+		vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
+			if (cmd === 'claude_chat_list') return [CHAT_A, CHAT_B, GONE, FAILS, CHAT_C].map((chatId, i) => ({ chatId, modifiedMs: 10 - i }));
+			if (cmd === 'claude_chat_read' && (args as { chatId: string }).chatId === FAILS) throw 'read failed: not valid UTF-8';
+			return answer(cmd, args as never);
+		});
+
+		const rows = await loadChatHistory('/vault/');
+		expect(rows?.map((r) => r.chatId)).toEqual([CHAT_A, CHAT_C]);
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.stringContaining(CHAT_B));
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.stringContaining(FAILS), 'read failed: not valid UTF-8');
+	});
+
+	it('drops a list or read that resolves after the vault changed', async () => {
+		let release = holdCommand('claude_chat_list', [[CHAT_A, chatFile(CHAT_A)]]);
+		let loading = loadChatHistory('/vault/');
+		await vi.waitFor(() => expect(invoked()).toContain('claude_chat_list'));
+		vaultStore.open('/other');
+		release();
+		expect(await loading).toBeNull();
+		expect(invoked()).not.toContain('claude_chat_read');
+
+		vaultStore.open('/vault/');
+		vi.mocked(invoke).mockClear();
+		release = holdCommand('claude_chat_read', [[CHAT_A, chatFile(CHAT_A)]]);
+		loading = loadChatHistory('/vault/');
+		await vi.waitFor(() => expect(invoked()).toContain('claude_chat_read'));
+		vaultStore.open('/other');
+		release();
+		expect(await loading).toBeNull();
+	});
+
+	it('drops a list that resolves after a turn started', async () => {
+		const release = holdCommand('claude_chat_read', [[CHAT_A, chatFile(CHAT_A)]]);
+		const loading = loadChatHistory('/vault/');
+		await vi.waitFor(() => expect(invoked()).toContain('claude_chat_read'));
+		claudeStore.beginTurn('sent while the list loads');
+		release();
+		expect(await loading).toBeNull();
+	});
+
+	it('logs and rethrows a failed list', async () => {
+		vi.mocked(invoke).mockRejectedValue('read_dir failed');
+		await expect(loadChatHistory('/vault/')).rejects.toBe('read_dir failed');
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.any(String), 'read_dir failed');
+	});
+});
+
+describe('openChat', () => {
+	it('restores the chat and keeps the attached notes', async () => {
+		answerChats([[CHAT_A, chatFile(CHAT_A)]]);
+		claudeStore.addContextNote('a.md');
+
+		expect(await openChat('/vault/', CHAT_A)).toBe(true);
+		expect(invoke).toHaveBeenCalledWith('claude_chat_read', { vaultPath: '/vault/', chatId: CHAT_A });
+		expect(claudeStore.chatId).toBe(CHAT_A);
+		expect(claudeStore.sessionId).toBe(SESSION);
+		expect(claudeStore.messages).toEqual([{ role: 'user', text: 'saved' }, { role: 'assistant', parts: [{ kind: 'text', text: 'reply' }] }]);
+		expect(claudeStore.contextNotes).toEqual(['a.md']);
+	});
+
+	it('the open chat stays as it is, without a read', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('live');
+		await deliver({ runId: 'r1', event: { type: 'Error', message: 'boom' } });
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 1 } });
+		const chatId = claudeStore.chatId!;
+		const messages = claudeStore.messages;
+		vi.mocked(invoke).mockClear();
+
+		expect(await openChat('/vault/', chatId)).toBe(true);
+		expect(invoked()).not.toContain('claude_chat_read');
+		expect(claudeStore.messages).toBe(messages);
+		expect(claudeStore.error).toBe('boom');
+	});
+
+	it('does nothing while a turn runs', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('running');
+		vi.mocked(invoke).mockClear();
+
+		expect(await openChat('/vault/', CHAT_A)).toBe(false);
+		expect(invoked()).toEqual([]);
+		expect(claudeStore.isRunning).toBe(true);
+	});
+
+	it('drops a read that resolves after the vault changed', async () => {
+		claudeStore.restore(JSON.parse(chatFile(CHAT_B)));
+		const release = holdCommand('claude_chat_read', [[CHAT_A, chatFile(CHAT_A)]]);
+		const opening = openChat('/vault/', CHAT_A);
+		await vi.waitFor(() => expect(invoked()).toContain('claude_chat_read'));
+
+		vaultStore.open('/other');
+		release();
+		expect(await opening).toBe(false);
+		expect(claudeStore.chatId).toBe(CHAT_B);
+	});
+
+	it('drops a read that resolves after a turn started', async () => {
+		const release = holdCommand('claude_chat_read', [[CHAT_A, chatFile(CHAT_A)]]);
+		const opening = openChat('/vault/', CHAT_A);
+		await vi.waitFor(() => expect(invoked()).toContain('claude_chat_read'));
+
+		claudeStore.beginTurn('sent while the chat loads');
+		release();
+		expect(await opening).toBe(false);
+		expect(claudeStore.isRunning).toBe(true);
+		expect(claudeStore.messages[0]).toEqual({ role: 'user', text: 'sent while the chat loads' });
+	});
+
+	it('a chat that is gone or cannot be parsed throws and leaves the chat as it is', async () => {
+		claudeStore.restore(JSON.parse(chatFile(CHAT_B)));
+		answerChats([[CHAT_A, '{ not json'], [CHAT_C, chatFile(CHAT_A)]]);
+
+		await expect(openChat('/vault/', CHAT_A)).rejects.toThrow('This chat cannot be read');
+		await expect(openChat('/vault/', CHAT_C)).rejects.toThrow('This chat cannot be read');
+		await expect(openChat('/vault/', 'f47ac10b-58cc-4372-a567-0e02b2c3d479')).rejects.toThrow('This chat was deleted');
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.stringContaining(CHAT_A));
+		expect(claudeStore.chatId).toBe(CHAT_B);
+	});
+
+	it('logs and rethrows a failed read', async () => {
+		claudeStore.restore(JSON.parse(chatFile(CHAT_B)));
+		vi.mocked(invoke).mockRejectedValue('read failed');
+		await expect(openChat('/vault/', CHAT_A)).rejects.toBe('read failed');
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.any(String), 'read failed');
+		expect(claudeStore.chatId).toBe(CHAT_B);
+	});
+});
+
+describe('deleteChat', () => {
+	it('deletes the chat file and leaves the open chat alone', async () => {
+		answerChats([]);
+		claudeStore.restore(JSON.parse(chatFile(CHAT_B)));
+
+		await deleteChat('/vault/', CHAT_A);
+		expect(invoke).toHaveBeenCalledWith('claude_chat_delete', { vaultPath: '/vault/', chatId: CHAT_A });
+		expect(claudeStore.chatId).toBe(CHAT_B);
+	});
+
+	it('deleting the open chat leaves a new empty chat with the active note', async () => {
+		answerChats([]);
+		editorStore.addTab({ path: '/vault/Notes/a.md', name: 'a.md', content: 'x', savedContent: 'x' });
+		claudeStore.restore(JSON.parse(chatFile(CHAT_A)));
+
+		await deleteChat('/vault/', CHAT_A);
+		expect(claudeStore.chatId).toBeNull();
+		expect(claudeStore.messages).toEqual([]);
+		expect(claudeStore.sessionId).toBeNull();
+		expect(claudeStore.restored).toBe(false);
+		expect(claudeStore.contextNotes).toEqual(['Notes/a.md']);
+	});
+
+	it('the next send after deleting the open chat writes a new file, not the deleted one', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('first');
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		const deleted = claudeStore.chatId!;
+
+		await deleteChat('/vault/', deleted);
+		vi.mocked(invoke).mockClear();
+		answerRunTurn('r2');
+		await sendPrompt('second');
+		expect(chatWrites().map((w) => w.chatId)).not.toContain(deleted);
+		expect(chatWrites()).toHaveLength(1);
+	});
+
+	it('does nothing while a turn runs', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('running');
+		vi.mocked(invoke).mockClear();
+
+		await deleteChat('/vault/', claudeStore.chatId!);
+		expect(invoked()).toEqual([]);
+		expect(claudeStore.isRunning).toBe(true);
+	});
+
+	it('a failed delete is logged, rethrown, and keeps the open chat', async () => {
+		claudeStore.restore(JSON.parse(chatFile(CHAT_A)));
+		vi.mocked(invoke).mockRejectedValue('delete failed');
+
+		await expect(deleteChat('/vault/', CHAT_A)).rejects.toBe('delete failed');
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.any(String), 'delete failed');
+		expect(claudeStore.chatId).toBe(CHAT_A);
+	});
+
+	it('a delete that resolves after the vault changed leaves the new vault chat alone', async () => {
+		claudeStore.restore(JSON.parse(chatFile(CHAT_A)));
+		const release = holdCommand('claude_chat_delete', []);
+		const deleting = deleteChat('/vault/', CHAT_A);
+		await vi.waitFor(() => expect(invoked()).toContain('claude_chat_delete'));
+
+		vaultStore.open('/other');
+		release();
+		await deleting;
+		expect(claudeStore.chatId).toBe(CHAT_A);
 	});
 });

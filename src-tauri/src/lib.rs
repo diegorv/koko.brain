@@ -396,6 +396,7 @@ pub fn run() {
             commands::claude::chats::claude_chat_write,
             commands::claude::chats::claude_chat_read,
             commands::claude::chats::claude_chat_list,
+            commands::claude::chats::claude_chat_delete,
             quick_capture::commands::capture_clipboard_now,
             quick_capture::commands::open_composer,
             quick_capture::commands::dismiss_composer,

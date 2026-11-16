@@ -157,6 +157,7 @@ With Claude Code turned on in **Settings > Claude Code** (see [Settings](19-sett
 - Type `/` in an empty prompt to pick a Claude Code slash command or skill. The list loads with your first message.
 - **Stop** ends the running turn. **New chat** (not available while a turn runs) starts a new session with only the active note attached.
 - Chats are kept in the vault, in its `.kokobrain` folder, so they travel with it. When you open the vault, the last chat comes back with the line "Restored last chat. New chat starts over."; your next message continues it. Attached notes are not kept with a chat.
+- The clock button next to **New chat** (not available while a turn runs) shows the vault's saved chats in place of the messages, newest first, each with its first message and when it was last active. The open chat is highlighted. Click a chat to continue it, or press the button again or **Escape** to go back. The trash button on a chat deletes Kokobrain's copy of it; Claude Code's own session files are left alone. Deleting the open chat starts a new one. While a turn runs, the list can be viewed but not used.
 
 Claude can edit notes while a turn runs. Kokobrain saves your open notes before each turn, and the turn does not start if a note cannot be saved. An edit you type into a note Claude is changing can overwrite Claude's change.
 

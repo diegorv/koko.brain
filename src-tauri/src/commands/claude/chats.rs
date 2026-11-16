@@ -70,6 +70,18 @@ pub fn claude_chat_read(vault_path: String, chat_id: String) -> Result<Option<St
 		.map_err(|_| format!("read failed for {}: not valid UTF-8", path.display()))
 }
 
+/// Deletes a chat's file; a file that is not there is not an error. Only
+/// Kokobrain's copy goes: the CLI transcript of its session is never touched.
+#[tauri::command(async)]
+pub fn claude_chat_delete(vault_path: String, chat_id: String) -> Result<(), String> {
+	let path = chat_path(&vault_path, &chat_id)?;
+	match std::fs::remove_file(&path) {
+		Ok(()) => Ok(()),
+		Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+		Err(e) => Err(format!("delete failed for {}: {}", path.display(), e)),
+	}
+}
+
 /// The vault's saved chats, newest modification first. A missing folder
 /// gives an empty list. Only regular files named `<chatId>.json` count, which
 /// also leaves out `write_atomic`'s temp files.
