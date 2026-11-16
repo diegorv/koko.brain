@@ -4,6 +4,7 @@
  * and it imports nothing from `#lib` (ADR-0003).
  */
 export type { CachedScanResult } from './generated/CachedScanResult.js';
+export type { ClaudeChatEntry } from './generated/ClaudeChatEntry.js';
 export type { ClaudeEvent } from './generated/ClaudeEvent.js';
 export type { ClaudeEventPayload } from './generated/ClaudeEventPayload.js';
 export type { ClaudeStatus } from './generated/ClaudeStatus.js';

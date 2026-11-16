@@ -156,6 +156,7 @@ With Claude Code turned on in **Settings > Claude Code** (see [Settings](19-sett
 - Showing the panel with **Cmd+Shift+A** or the command attaches the active note as context. When the note open in the editor is not attached, for example after you switch notes, it shows as a dashed chip with a +: click it to attach it. Remove a note with the x on its chip, add more with **Add note** or the **Add to Claude context** command, or send with no notes to work on the vault as a whole.
 - Type `/` in an empty prompt to pick a Claude Code slash command or skill. The list loads with your first message.
 - **Stop** ends the running turn. **New chat** (not available while a turn runs) starts a new session with only the active note attached.
+- Chats are kept in the vault, in its `.kokobrain` folder, so they travel with it. When you open the vault, the last chat comes back with the line "Restored last chat. New chat starts over."; your next message continues it. Attached notes are not kept with a chat.
 
 Claude can edit notes while a turn runs. Kokobrain saves your open notes before each turn, and the turn does not start if a note cannot be saved. An edit you type into a note Claude is changing can overwrite Claude's change.
 

@@ -259,6 +259,46 @@ describe('ClaudePanel chat', () => {
 		expect(q('[data-claude-message="user"]')?.textContent).toBe('hi');
 	});
 
+	describe('a restored chat', () => {
+		const saved = {
+			version: 1 as const,
+			chatId: '0f8fad5b-d9cb-469f-a165-70867728950e',
+			sessionId: 's1',
+			createdAt: '2026-11-16T10:00:00.000Z',
+			updatedAt: '2026-11-16T10:05:00.000Z',
+			title: 'earlier',
+			messages: [{ role: 'user' as const, text: 'earlier' }, { role: 'assistant' as const, parts: [{ kind: 'text' as const, text: 'An answer' }] }],
+		};
+		const notice = () => q('[data-claude-restored]')?.textContent?.trim();
+
+		it('shows its messages and the notice until the next send', async () => {
+			claudeStore.restore(saved);
+			await render();
+			expect(notice()).toBe('Restored last chat. New chat starts over.');
+			expect(q('[data-claude-message="user"]')?.textContent).toBe('earlier');
+			expect(q('[data-claude-empty]')).toBeNull();
+
+			await sendText('more');
+			expect(notice()).toBeUndefined();
+		});
+
+		it('drops the notice on New chat', async () => {
+			claudeStore.restore(saved);
+			await render();
+			button('New chat').click();
+			await settle();
+			expect(notice()).toBeUndefined();
+			expect(q('[data-claude-empty]')).not.toBeNull();
+		});
+
+		it('shows no notice in a chat that was not restored', async () => {
+			await render();
+			await sendText('hi');
+			await emit({ type: 'Done', exitCode: 0 });
+			expect(notice()).toBeUndefined();
+		});
+	});
+
 	it('keeps Stop and the disabled prompt after an Error event until the run is Done', async () => {
 		await render();
 		await sendText('hi');

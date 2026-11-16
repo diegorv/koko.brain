@@ -123,6 +123,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import { registerWriteBarrier } from '#lib/core/vault/write-barrier.service.js';
 import type { NoteEntryV2, NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
+import { sendPrompt } from '#lib/features/claude-code/claude.service.js';
 import { registerMenuSettingsListener, registerCloseHandler, registerExitRequestListener, registerFocusListener, registerVaultIndexUpdatedListener, registerClaudeEventListener } from '#lib/app/tauri-listeners.service.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
@@ -1363,6 +1364,27 @@ describe('registerClaudeEventListener', () => {
 		claudeStore.startRun('r1');
 
 		expect(claudeStore.error).toBe('spawn failed');
+	});
+
+	it("saves the chat after the store applied the turn's Done, and not for other events", async () => {
+		registerClaudeEventListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		vi.mocked(saveAllDirtyTabs).mockResolvedValue([]);
+		vi.mocked(invoke).mockImplementation((async (cmd: string) => (cmd === 'claude_run_turn' ? 'r1' : null)) as unknown as typeof invoke);
+		await sendPrompt('hi');
+		vi.mocked(invoke).mockClear();
+		const writes = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'claude_chat_write');
+
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'TextDelta', text: 'Hello' } } });
+		await Promise.resolve();
+		expect(writes()).toEqual([]);
+
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'Done', exitCode: 0 } } });
+		await vi.waitFor(() => expect(writes()).toHaveLength(1));
+		const { content } = writes()[0][1] as { content: string };
+		expect(JSON.parse(content).messages).toEqual([{ role: 'user', text: 'hi' }, { role: 'assistant', parts: [{ kind: 'text', text: 'Hello' }] }]);
 	});
 
 	it('returns a cleanup function that unsubscribes', async () => {
