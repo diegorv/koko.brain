@@ -22,7 +22,7 @@ Open an agent panel in Kokobrain and work with Claude Code on the vault as a who
 - A slash command works in print mode: a vault-local `.claude/commands/hello.md` run as `-p "/hello world"` answered `HELLO-CMD world`, with `hello` listed in `slash_commands`.
 - The CLI expands one skill or command per message, and only when `/name` starts the text; the rest of the text becomes its arguments (t3code `apps/server/src/provider/Drivers/ClaudeSkillDispatch.ts`, citing anthropics/claude-code#87113). So the panel sends the typed text unchanged as the prompt, and note context goes in `--append-system-prompt`, never in front of the text.
 - `--verbose` is required with `stream-json` in print mode. Warnings go to stderr as plain text; read stderr separately, skip and log a non-JSON stdout line.
-- `--permission-mode bypassPermissions` ran with every tool; `--resume <session_id>`, `--model`, `--append-system-prompt`, `--no-session-persistence` exist.
+- `--permission-mode bypassPermissions` ran with every tool; `--resume <session_id>`, `--model`, `--append-system-prompt`, `--no-session-persistence` exist. `--system-prompt-snapshot off` (CLI 2.1.257 and later) rebuilds the system prompt on every request; by default the CLI records it on a conversation's first request and reuses it after `--resume` (https://code.claude.com/docs/en/cli-reference, "System prompt flags in resumed conversations").
 - Tolaria removes the `CLAUDECODE` env var before spawning to avoid the nested-session guard (`src-tauri/src/claude_cli.rs` there); the probes ran with it unset.
 
 ## Shape
@@ -37,7 +37,7 @@ ClaudePanel.svelte (right sidebar)
      index update + reloadExternallyChangedTabs for clean open tabs
 ```
 
-One turn = one process. Follow-up turns pass `--resume <session_id>`, taken from the previous turn's `system/init` and its `result`, so a turn stopped before its `result` is still resumed. Cancel kills the process.
+One turn = one process. Follow-up turns pass `--resume <session_id>`, taken from the previous turn's `system/init` and its `result`, so a turn stopped before its `result` is still resumed. Every turn passes `--system-prompt-snapshot off`, so the attached notes in `--append-system-prompt` are re-read on every turn: a note attached or removed after the first message reaches Claude on the next turn. Cancel kills the process.
 
 ## Constraints found in this repo
 

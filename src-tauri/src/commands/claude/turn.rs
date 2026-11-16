@@ -85,6 +85,9 @@ pub fn system_prompt(vault_root: &str, context_note_paths: &[String]) -> String 
 /// goes last, after `--`: `-p` is a boolean flag, so a prompt starting with `-`
 /// (`- [ ] ...`, `--help`) would otherwise be parsed as an option. A leading
 /// `/name` after `--` is still expanded as a skill or command.
+/// `--system-prompt-snapshot off` makes a resumed turn rebuild the system prompt
+/// with the notes attached now (CLI reference, "System prompt flags in resumed
+/// conversations", https://code.claude.com/docs/en/cli-reference).
 pub fn build_args(request: &ClaudeTurnRequest) -> Vec<String> {
 	let mut args: Vec<String> = [
 		"-p",
@@ -106,6 +109,8 @@ pub fn build_args(request: &ClaudeTurnRequest) -> Vec<String> {
 	args.extend([
 		"--append-system-prompt".to_string(),
 		system_prompt(&request.vault_path, &request.context_note_paths),
+		"--system-prompt-snapshot".to_string(),
+		"off".to_string(),
 		"--".to_string(),
 		request.prompt.clone(),
 	]);
