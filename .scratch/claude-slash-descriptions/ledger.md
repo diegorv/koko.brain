@@ -35,10 +35,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [The slash menu shows each command's description](issues/01-slash-menu-descriptions.md) | none | in-progress | | |
+| 01 | [The slash menu shows each command's description](issues/01-slash-menu-descriptions.md) | none | done | issue/01-slash-menu-descriptions (d5e00f0ae) | 2026-11-16 |
 | 02 | [The slash menu works before the first message](issues/02-slash-menu-before-first-message.md) | 01 | todo | | |
 
 ## Log
 
 - 2026-11-15 23:09 — ledger created (2 Issues)
 - 2026-11-16 02:48 — 01 — start — launched by /relay-lite:run — 42cfca565
+- 2026-11-16 03:23 — 01 — deliver — Round 1 APPROVED with findings, fix round, round 2 APPROVED; merged onto mvp-claude at d5e00f0ae; cargo and vitest 17230 passed — d5e00f0ae
