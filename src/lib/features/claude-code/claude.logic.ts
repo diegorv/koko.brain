@@ -46,6 +46,12 @@ export interface ChatState {
 	pending: ClaudeEventPayload[];
 	/** Stop was asked before the run id was known; the service cancels once `claude_run_turn` returns it. */
 	stopRequested: boolean;
+	/** Id of the chat's file in the vault (a UUID); `null` until the first send. */
+	chatId: string | null;
+	/** ISO time of the chat's first send; `null` until then. */
+	createdAt: string | null;
+	/** True from a restore of a saved chat until the next send or New chat. */
+	restored: boolean;
 }
 
 /** A chat with nothing in it. */
@@ -58,18 +64,35 @@ export const EMPTY_CHAT: ChatState = {
 	slashCommands: [],
 	pending: [],
 	stopRequested: false,
+	chatId: null,
+	createdAt: null,
+	restored: false,
 };
 
-/** Starts a turn: the user's text, an empty reply to stream into, `running` with no run id yet. */
-export function beginTurn(state: ChatState, text: string): ChatState {
+/** The id and creation time a chat gets on its first send. */
+export interface ChatIdentity {
+	/** A new UUID. */
+	chatId: string;
+	/** ISO time of the send. */
+	createdAt: string;
+}
+
+/**
+ * Starts a turn: the user's text, an empty reply to stream into, `running` with
+ * no run id yet. A chat without an id takes `fresh`; one that has an id keeps it.
+ */
+export function beginTurn(state: ChatState, text: string, fresh: ChatIdentity): ChatState {
+	const identity = state.chatId === null ? fresh : { chatId: state.chatId, createdAt: state.createdAt };
 	return {
 		...state,
+		...identity,
 		messages: [...state.messages, { role: 'user', text }, { role: 'assistant', parts: [] }],
 		runId: null,
 		status: 'running',
 		error: null,
 		pending: [],
 		stopRequested: false,
+		restored: false,
 	};
 }
 
@@ -101,9 +124,131 @@ export function requestStop(state: ChatState): ChatState {
 	return state.status === 'running' && state.runId === null ? { ...state, stopRequested: true } : state;
 }
 
-/** A new chat: no messages, no session, no error. Slash commands stay, they belong to the app session. */
+/** A new chat: no messages, no session, no error, no id. Slash commands stay, they belong to the app session. */
 export function resetChat(state: ChatState): ChatState {
 	return { ...EMPTY_CHAT, slashCommands: state.slashCommands };
+}
+
+/** A chat file in `<vault>/.kokobrain/claude/chats/<chatId>.json`, schema v1. */
+export interface StoredChat {
+	/** Schema version; a file with any other value is not read. */
+	version: 1;
+	/** The chat's UUID, also the file name. */
+	chatId: string;
+	/** Session the next turn resumes; `null` when it has none. */
+	sessionId: string | null;
+	/** ISO time of the first send. */
+	createdAt: string;
+	/** ISO time of the last save. */
+	updatedAt: string;
+	/** The first prompt on one line, at most 80 chars. */
+	title: string;
+	/** The messages as the panel shows them. */
+	messages: ChatMessage[];
+}
+
+const MAX_TITLE_LENGTH = 80;
+
+/** A chat's title: its first prompt on one line, cut at 80 chars; empty without a prompt. */
+export function chatTitle(messages: readonly ChatMessage[]): string {
+	const first = messages.find((m) => m.role === 'user');
+	if (!first) return '';
+	const line = first.text.replace(/\s+/g, ' ').trim();
+	return line.length > MAX_TITLE_LENGTH ? `${line.slice(0, MAX_TITLE_LENGTH - 3)}...` : line;
+}
+
+/** The file of a chat, saved at `updatedAt`; `null` for a chat never sent (it has no id). */
+export function storedFromChat(
+	chat: Pick<ChatState, 'chatId' | 'createdAt' | 'sessionId' | 'messages'>,
+	updatedAt: string,
+): StoredChat | null {
+	if (chat.chatId === null || chat.createdAt === null) return null;
+	return {
+		version: 1,
+		chatId: chat.chatId,
+		sessionId: chat.sessionId,
+		createdAt: chat.createdAt,
+		updatedAt,
+		title: chatTitle(chat.messages),
+		messages: chat.messages,
+	};
+}
+
+/** A CLI session id: a lowercase hyphenated UUID. */
+const SESSION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/**
+ * Parses a chat file. `null` for an unknown version or a malformed file. A
+ * tool still `running` when it was saved (a quit mid-turn) comes back `stopped`.
+ * A session id that is not a CLI session id is dropped: it becomes a `--resume`
+ * argument, and a chat file in a vault from elsewhere could carry an option.
+ */
+export function chatFromStored(text: string): StoredChat | null {
+	let raw: unknown;
+	try {
+		raw = JSON.parse(text);
+	} catch {
+		return null;
+	}
+	if (!isRecord(raw) || raw.version !== 1) return null;
+	const { chatId, sessionId, createdAt, updatedAt, title } = raw;
+	if (typeof chatId !== 'string' || typeof createdAt !== 'string' || typeof updatedAt !== 'string' || typeof title !== 'string') return null;
+	if (sessionId !== null && typeof sessionId !== 'string') return null;
+	if (!Array.isArray(raw.messages)) return null;
+	const messages: ChatMessage[] = [];
+	for (const item of raw.messages) {
+		const message = parseMessage(item);
+		if (!message) return null;
+		messages.push(message);
+	}
+	return { version: 1, chatId, sessionId: typeof sessionId === 'string' && SESSION_ID.test(sessionId) ? sessionId : null, createdAt, updatedAt, title, messages };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+const TOOL_STATUSES: readonly ToolPart['status'][] = ['running', 'done', 'error', 'stopped'];
+
+function parseMessage(value: unknown): ChatMessage | null {
+	if (!isRecord(value)) return null;
+	if (value.role === 'user') return typeof value.text === 'string' ? { role: 'user', text: value.text } : null;
+	if (value.role !== 'assistant' || !Array.isArray(value.parts)) return null;
+	const parts: (TextPart | ToolPart)[] = [];
+	for (const part of value.parts) {
+		const parsed = parsePart(part);
+		if (!parsed) return null;
+		parts.push(parsed);
+	}
+	return { role: 'assistant', parts };
+}
+
+function parsePart(value: unknown): TextPart | ToolPart | null {
+	if (!isRecord(value)) return null;
+	if (value.kind === 'text') return typeof value.text === 'string' ? { kind: 'text', text: value.text } : null;
+	if (value.kind !== 'tool') return null;
+	const { id, name, target, status, summary } = value;
+	if (typeof id !== 'string' || typeof name !== 'string' || typeof target !== 'string' || typeof summary !== 'string') return null;
+	if (!TOOL_STATUSES.includes(status as ToolPart['status'])) return null;
+	return { kind: 'tool', id, name, target, status: status === 'running' ? 'stopped' : (status as ToolPart['status']), summary };
+}
+
+/**
+ * Replaces the chat with a saved one: idle, no run, the restored notice on.
+ * `null` gives a new chat. Slash commands stay. While a turn runs it returns
+ * `state` itself, so a reply in progress is never thrown away.
+ */
+export function restoreChat(state: ChatState, stored: StoredChat | null): ChatState {
+	if (state.status === 'running') return state;
+	if (!stored) return resetChat(state);
+	return {
+		...resetChat(state),
+		chatId: stored.chatId,
+		createdAt: stored.createdAt,
+		sessionId: stored.sessionId,
+		messages: stored.messages,
+		restored: true,
+	};
 }
 
 /**

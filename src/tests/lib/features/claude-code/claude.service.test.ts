@@ -11,11 +11,13 @@ vi.mock('#lib/utils/debug.js', () => ({ debug: vi.fn(), error: vi.fn() }));
 
 import { invoke } from '@tauri-apps/api/core';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
+import type { ClaudeEventPayload } from '#lib/contracts/index.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { error } from '#lib/utils/debug.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
-import { attachActiveNote, newChat, resetClaude, sendPrompt, stop } from '#lib/features/claude-code/claude.service.js';
+import { attachActiveNote, newChat, resetClaude, restoreLastChat, saveChatOnDone, sendPrompt, stop } from '#lib/features/claude-code/claude.service.js';
 
 const invoked = () => vi.mocked(invoke).mock.calls.map(([cmd]) => cmd);
 const runTurnRequest = () => {
@@ -296,5 +298,423 @@ describe('attachActiveNote', () => {
 	it('attaches nothing without an open note', () => {
 		expect(attachActiveNote()).toBe(false);
 		expect(claudeStore.contextNotes).toEqual([]);
+	});
+});
+
+/** The `claude_chat_write` calls, with their content parsed. */
+function chatWrites() {
+	return vi.mocked(invoke).mock.calls
+		.filter(([cmd]) => cmd === 'claude_chat_write')
+		.map(([, args]) => {
+			const { vaultPath, chatId, content } = args as { vaultPath: string; chatId: string; content: string };
+			return { vaultPath, chatId, chat: JSON.parse(content) };
+		});
+}
+
+/** What the listener does with one event: the store applies it, then the service may save. */
+async function deliver(payload: ClaudeEventPayload) {
+	claudeStore.receive(payload);
+	await saveChatOnDone(payload);
+}
+
+const CHAT_A = '0f8fad5b-d9cb-469f-a165-70867728950e';
+const CHAT_B = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+
+describe('saving the chat', () => {
+	it('saves the chat when a prompt is sent, before the turn starts', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('hello\nthere');
+
+		const writes = chatWrites();
+		expect(writes).toHaveLength(1);
+		expect(writes[0].vaultPath).toBe('/vault/');
+		expect(writes[0].chatId).toBe(claudeStore.chatId);
+		expect(writes[0].chat).toMatchObject({
+			version: 1,
+			chatId: claudeStore.chatId,
+			sessionId: null,
+			createdAt: claudeStore.createdAt,
+			title: 'hello there',
+			messages: [{ role: 'user', text: 'hello\nthere' }, { role: 'assistant', parts: [] }],
+		});
+		expect(typeof writes[0].chat.updatedAt).toBe('string');
+		expect(invoked().indexOf('claude_chat_write')).toBeLessThan(invoked().indexOf('claude_run_turn'));
+	});
+
+	it("saves again when the turn's Done ends its run, never per delta", async () => {
+		answerRunTurn('r1');
+		await sendPrompt('hello');
+		vi.mocked(invoke).mockClear();
+
+		await deliver({ runId: 'r1', event: { type: 'Init', sessionId: 's1', model: 'm', slashCommands: [], skills: [] } });
+		await deliver({ runId: 'r1', event: { type: 'TextDelta', text: 'Hi' } });
+		await deliver({ runId: 'r1', event: { type: 'Result', sessionId: 's1', text: 'Hi', isError: false, costUsd: null, numTurns: 1 } });
+		expect(chatWrites()).toEqual([]);
+
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		const writes = chatWrites();
+		expect(writes).toHaveLength(1);
+		expect(writes[0].chat.sessionId).toBe('s1');
+		expect(writes[0].chat.messages).toEqual([{ role: 'user', text: 'hello' }, { role: 'assistant', parts: [{ kind: 'text', text: 'Hi' }] }]);
+	});
+
+	it('every send of one chat writes the same file', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('one');
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		answerRunTurn('r2');
+		await sendPrompt('two');
+
+		const ids = new Set(chatWrites().map((w) => w.chatId));
+		expect(ids.size).toBe(1);
+		expect(chatWrites().at(-1)?.chat.title).toBe('one');
+	});
+
+	it('a Done of another run writes nothing', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('hello');
+		vi.mocked(invoke).mockClear();
+		await deliver({ runId: 'r0', event: { type: 'Done', exitCode: 0 } });
+		expect(invoked()).not.toContain('claude_chat_write');
+	});
+
+	it('a turn sent in vault A, a switch to B, then A\'s Done: no claude_chat_write call at all', async () => {
+		vaultStore.open('/vault-a');
+		answerRunTurn('r1');
+		await sendPrompt('hello');
+		vi.mocked(invoke).mockClear();
+
+		resetClaude();
+		vaultStore.open('/vault-b');
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		expect(invoked()).not.toContain('claude_chat_write');
+	});
+
+	it('a Done that arrives after a vault switch the chat survived writes nothing', async () => {
+		// A quick double switch can skip the teardown that resets the chat.
+		vaultStore.open('/vault-a');
+		answerRunTurn('r1');
+		await sendPrompt('hello');
+		vi.mocked(invoke).mockClear();
+
+		vaultStore.open('/vault-b');
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		expect(claudeStore.isRunning).toBe(false);
+		expect(invoked()).not.toContain('claude_chat_write');
+	});
+
+	it('a Done after New chat writes nothing', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('hello');
+		claudeStore.failTurn('x');
+		newChat();
+		vi.mocked(invoke).mockClear();
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		expect(invoked()).not.toContain('claude_chat_write');
+	});
+
+	it('saves a Done replayed by the run id, when the run ended before claude_run_turn returned', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd !== 'claude_run_turn') return null;
+			claudeStore.receive({ runId: 'r1', event: { type: 'Error', message: 'spawn failed' } });
+			claudeStore.receive({ runId: 'r1', event: { type: 'Done', exitCode: null } });
+			return 'r1';
+		});
+		await sendPrompt('hi');
+		expect(claudeStore.isRunning).toBe(false);
+		expect(chatWrites()).toHaveLength(2);
+	});
+
+	it('a failed save logs and the chat goes on', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd === 'claude_chat_write') throw 'disk full';
+			return cmd === 'claude_run_turn' ? 'r1' : null;
+		});
+		await sendPrompt('hello');
+		expect(claudeStore.runId).toBe('r1');
+		expect(claudeStore.error).toBeNull();
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.stringContaining('save'), 'disk full');
+
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		expect(claudeStore.status).toBe('idle');
+	});
+});
+
+describe('a run id that arrives after the chat was reset', () => {
+	it('is not attached and the run is cancelled', async () => {
+		let release!: (id: string) => void;
+		vi.mocked(invoke).mockImplementation((cmd: string) => (cmd === 'claude_run_turn' ? new Promise((r) => { release = r; }) : Promise.resolve(null)));
+		const sending = sendPrompt('hi');
+		await vi.waitFor(() => expect(invoked()).toContain('claude_run_turn'));
+
+		resetClaude();
+		release('r9');
+		await sending;
+
+		expect(claudeStore.runId).toBeNull();
+		expect(invoke).toHaveBeenCalledWith('claude_cancel_turn', { runId: 'r9' });
+		await deliver({ runId: 'r9', event: { type: 'Init', sessionId: 'old', model: 'm', slashCommands: ['x'], skills: [] } });
+		await deliver({ runId: 'r9', event: { type: 'Done', exitCode: null } });
+		expect(claudeStore.sessionId).toBeNull();
+		expect(claudeStore.slashCommands).toEqual([]);
+		expect(claudeStore.messages).toEqual([]);
+	});
+
+	it('a claude_run_turn that fails after the reset leaves the new chat alone', async () => {
+		let reject!: (err: string) => void;
+		vi.mocked(invoke).mockImplementation((cmd: string) => (cmd === 'claude_run_turn' ? new Promise((_, r) => { reject = r; }) : Promise.resolve(null)));
+		const sending = sendPrompt('hi');
+		await vi.waitFor(() => expect(invoked()).toContain('claude_run_turn'));
+
+		resetClaude();
+		reject('a turn is already running for this vault');
+		await expect(sending).rejects.toBe('a turn is already running for this vault');
+		expect(claudeStore.error).toBeNull();
+		expect(claudeStore.status).toBe('idle');
+	});
+
+	it('is not attached to a newer turn that waits for its own id', async () => {
+		const releases: ((id: string) => void)[] = [];
+		vi.mocked(invoke).mockImplementation((cmd: string) => (cmd === 'claude_run_turn' ? new Promise((r) => { releases.push(r); }) : Promise.resolve(null)));
+		const first = sendPrompt('old');
+		await vi.waitFor(() => expect(releases).toHaveLength(1));
+		resetClaude();
+		const second = sendPrompt('new');
+		await vi.waitFor(() => expect(releases).toHaveLength(2));
+
+		releases[0]('r-old');
+		await first;
+		expect(claudeStore.runId).toBeNull();
+		expect(invoke).toHaveBeenCalledWith('claude_cancel_turn', { runId: 'r-old' });
+
+		releases[1]('r-new');
+		await second;
+		expect(claudeStore.runId).toBe('r-new');
+	});
+});
+
+describe('a reset while the dirty tabs are saving', () => {
+	/** Sends `text` in `/vault-a` with a dirty tab whose save waits for the returned `release`. */
+	async function sendWithPendingTabSave(text: string) {
+		vaultStore.open('/vault-a');
+		editorStore.addTab({ path: '/vault-a/a.md', name: 'a.md', content: 'edited', savedContent: 'old' });
+		let release!: () => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((r) => { release = r; }));
+		const sending = sendPrompt(text);
+		await vi.waitFor(() => expect(writeTextFile).toHaveBeenCalled());
+		return { sending, release: () => release() };
+	}
+
+	it('starts no turn for the old chat, and the send in the new vault keeps its own run', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
+			if (cmd !== 'claude_run_turn') return null;
+			return (args as { request: { vaultPath: string } }).request.vaultPath === '/vault-b' ? 'r-new' : 'r-old';
+		});
+		const { sending, release } = await sendWithPendingTabSave('old');
+
+		resetClaude();
+		editorStore.reset();
+		vaultStore.open('/vault-b');
+		await sendPrompt('new');
+		const chatB = claudeStore.chatId;
+		expect(claudeStore.runId).toBe('r-new');
+
+		release();
+		await sending;
+
+		const runTurns = vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'claude_run_turn');
+		expect(runTurns).toHaveLength(1);
+		expect((runTurns[0][1] as { request: { vaultPath: string } }).request.vaultPath).toBe('/vault-b');
+		expect(invoked()).not.toContain('claude_cancel_turn');
+		expect(chatWrites().every((w) => w.vaultPath === '/vault-b' && w.chatId === chatB)).toBe(true);
+		expect(claudeStore.runId).toBe('r-new');
+		expect(claudeStore.chatId).toBe(chatB);
+
+		vi.mocked(invoke).mockClear();
+		await deliver({ runId: 'r-new', event: { type: 'Done', exitCode: 0 } });
+		expect(chatWrites()).toEqual([expect.objectContaining({ vaultPath: '/vault-b', chatId: chatB })]);
+	});
+
+	it('a tab that fails to save after the reset leaves the new chat alone', async () => {
+		answerRunTurn();
+		vaultStore.open('/vault-a');
+		editorStore.addTab({ path: '/vault-a/a.md', name: 'a.md', content: 'edited', savedContent: 'old' });
+		let reject!: (err: Error) => void;
+		vi.mocked(writeTextFile).mockImplementationOnce(() => new Promise<void>((_, r) => { reject = r; }));
+		const sending = sendPrompt('old');
+		await vi.waitFor(() => expect(writeTextFile).toHaveBeenCalled());
+
+		resetClaude();
+		reject(new Error('disk full'));
+		await sending;
+
+		expect(invoked()).not.toContain('claude_run_turn');
+		expect(claudeStore.status).toBe('idle');
+		expect(claudeStore.error).toBeNull();
+	});
+
+	it('a vault switch the chat survived ends the turn inline without starting it', async () => {
+		answerRunTurn();
+		const { sending, release } = await sendWithPendingTabSave('old');
+
+		vaultStore.open('/vault-b');
+		release();
+
+		await expect(sending).rejects.toThrow('The vault changed before the turn started.');
+		expect(invoked()).not.toContain('claude_run_turn');
+		expect(chatWrites()).toEqual([]);
+		expect(claudeStore.status).toBe('error');
+		expect(claudeStore.isRunning).toBe(false);
+	});
+});
+
+/** A CLI session id, as `chatFromStored` accepts. */
+const SESSION = '0c9a3f0e-5b1d-4e2a-9f6c-1d2e3f4a5b6c';
+
+/** A saved chat file's text. */
+function chatFile(chatId: string, overrides: Record<string, unknown> = {}) {
+	return JSON.stringify({
+		version: 1,
+		chatId,
+		sessionId: SESSION,
+		createdAt: '2026-11-16T10:00:00.000Z',
+		updatedAt: '2026-11-16T10:05:00.000Z',
+		title: 'saved',
+		messages: [{ role: 'user', text: 'saved' }, { role: 'assistant', parts: [{ kind: 'text', text: 'reply' }] }],
+		...overrides,
+	});
+}
+
+/** Answers the chat commands from `files` (chat id to text), listed in the given order. */
+function answerChats(files: [string, string][]) {
+	vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
+		if (cmd === 'claude_chat_list') return files.map(([chatId], i) => ({ chatId, modifiedMs: 1000 - i }));
+		if (cmd === 'claude_chat_read') return files.find(([id]) => id === (args as { chatId: string }).chatId)?.[1] ?? null;
+		return null;
+	});
+}
+
+describe('restoreLastChat', () => {
+	it('restores the newest chat of the vault', async () => {
+		answerChats([[CHAT_B, chatFile(CHAT_B)], [CHAT_A, chatFile(CHAT_A)]]);
+		claudeStore.addContextNote('a.md');
+
+		await restoreLastChat('/vault/');
+
+		expect(invoke).toHaveBeenCalledWith('claude_chat_list', { vaultPath: '/vault/' });
+		expect(invoke).toHaveBeenCalledWith('claude_chat_read', { vaultPath: '/vault/', chatId: CHAT_B });
+		expect(claudeStore.chatId).toBe(CHAT_B);
+		expect(claudeStore.sessionId).toBe(SESSION);
+		expect(claudeStore.messages).toEqual([{ role: 'user', text: 'saved' }, { role: 'assistant', parts: [{ kind: 'text', text: 'reply' }] }]);
+		expect(claudeStore.restored).toBe(true);
+		expect(claudeStore.contextNotes).toEqual(['a.md']);
+	});
+
+	it('with no saved chat leaves an empty chat', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('from another vault');
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		answerChats([]);
+
+		await restoreLastChat('/vault/');
+		expect(invoked()).not.toContain('claude_chat_read');
+		expect(claudeStore.messages).toEqual([]);
+		expect(claudeStore.chatId).toBeNull();
+		expect(claudeStore.restored).toBe(false);
+	});
+
+	it('a corrupt file is logged, left on disk, and gives an empty chat', async () => {
+		claudeStore.restore(JSON.parse(chatFile(CHAT_A)));
+		answerChats([[CHAT_B, '{ not json']]);
+
+		await restoreLastChat('/vault/');
+		expect(claudeStore.messages).toEqual([]);
+		expect(claudeStore.chatId).toBeNull();
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.stringContaining(CHAT_B));
+		expect(invoked()).not.toContain('claude_chat_write');
+	});
+
+	it('a file whose chat id is not its name counts as corrupt', async () => {
+		answerChats([[CHAT_B, chatFile(CHAT_A)]]);
+		await restoreLastChat('/vault/');
+		expect(claudeStore.chatId).toBeNull();
+	});
+
+	it('drops a read that resolves after the vault changed', async () => {
+		let release!: (text: string) => void;
+		vi.mocked(invoke).mockImplementation((cmd: string) => {
+			if (cmd === 'claude_chat_list') return Promise.resolve([{ chatId: CHAT_A, modifiedMs: 1 }]);
+			if (cmd === 'claude_chat_read') return new Promise((r) => { release = r; });
+			return Promise.resolve(null);
+		});
+		claudeStore.restore(JSON.parse(chatFile(CHAT_B)));
+		const restoring = restoreLastChat('/vault/');
+		await vi.waitFor(() => expect(invoked()).toContain('claude_chat_read'));
+
+		vaultStore.open('/other');
+		release(chatFile(CHAT_A));
+		await restoring;
+		expect(claudeStore.chatId).toBe(CHAT_B);
+	});
+
+	it('drops a list that resolves after the vault changed', async () => {
+		let release!: (entries: unknown) => void;
+		vi.mocked(invoke).mockImplementation((cmd: string) => (cmd === 'claude_chat_list' ? new Promise((r) => { release = r; }) : Promise.resolve(null)));
+		claudeStore.restore(JSON.parse(chatFile(CHAT_B)));
+		const restoring = restoreLastChat('/vault/');
+		await vi.waitFor(() => expect(invoked()).toContain('claude_chat_list'));
+
+		vaultStore.open('/other');
+		release([]);
+		await restoring;
+		expect(invoked()).not.toContain('claude_chat_read');
+		expect(claudeStore.chatId).toBe(CHAT_B);
+	});
+
+	it('leaves a running turn alone', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('typed before the vault finished opening');
+		answerChats([[CHAT_A, chatFile(CHAT_A)]]);
+
+		await restoreLastChat('/vault/');
+		expect(claudeStore.isRunning).toBe(true);
+		expect(claudeStore.messages[0]).toEqual({ role: 'user', text: 'typed before the vault finished opening' });
+	});
+
+	it('a failed list or read gives an empty chat and rethrows', async () => {
+		claudeStore.restore(JSON.parse(chatFile(CHAT_B)));
+		vi.mocked(invoke).mockRejectedValue('read failed: not valid UTF-8');
+		await expect(restoreLastChat('/vault/')).rejects.toBe('read failed: not valid UTF-8');
+		expect(claudeStore.chatId).toBeNull();
+	});
+});
+
+describe('restart', () => {
+	it('after a restart the last saved chat comes back and the next send resumes its session', async () => {
+		// The vault's chat folder, as the three commands see it.
+		const files = new Map<string, string>();
+		vi.mocked(invoke).mockImplementation(async (cmd: string, args?: unknown) => {
+			const a = args as { chatId: string; content: string };
+			if (cmd === 'claude_chat_write') files.set(a.chatId, a.content);
+			if (cmd === 'claude_chat_list') return [...files.keys()].map((chatId) => ({ chatId, modifiedMs: 1 }));
+			if (cmd === 'claude_chat_read') return files.get(a.chatId) ?? null;
+			return cmd === 'claude_run_turn' ? 'r1' : null;
+		});
+		await sendPrompt('hello');
+		await deliver({ runId: 'r1', event: { type: 'Init', sessionId: SESSION, model: 'm', slashCommands: [], skills: [] } });
+		await deliver({ runId: 'r1', event: { type: 'TextDelta', text: 'Hi' } });
+		await deliver({ runId: 'r1', event: { type: 'Result', sessionId: SESSION, text: 'Hi', isError: false, costUsd: null, numTurns: 1 } });
+		await deliver({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		const messages = claudeStore.messages;
+
+		claudeStore.reset();
+		await restoreLastChat('/vault/');
+		expect(claudeStore.messages).toEqual(messages);
+		expect(claudeStore.sessionId).toBe(SESSION);
+
+		vi.mocked(invoke).mockClear();
+		await sendPrompt('and then?');
+		expect(runTurnRequest()?.resumeSessionId).toBe(SESSION);
+		expect(files.size).toBe(1);
 	});
 });

@@ -306,6 +306,30 @@ fn captured_env_without_claude_runs_no_login_shell() {
 	assert!(marker.exists(), "the fallback env keeps the login-shell lookup");
 }
 
+#[test]
+fn a_resume_id_that_is_not_a_session_id_starts_nothing() {
+	let dir = TempDir::new().unwrap();
+	let marker = dir.path().join("claude-ran");
+	let claude = script(dir.path(), "claude", &format!("touch '{}'", path_str(&marker)));
+	let vault = TempDir::new().unwrap();
+	let runs = ClaudeRuns::default();
+	for id in ["--settings={}", "-p", "s1", "B0F4E3C2-1A2B-4C3D-8E9F-0A1B2C3D4E5F"] {
+		let req = ClaudeTurnRequest { resume_session_id: Some(id.into()), ..request(vault.path(), &claude) };
+		let error = run_turn_with(&runs, req, &system_env(), &claude, &[], |_| {}).unwrap_err();
+		assert!(error.contains("session id"), "{id}: {error}");
+	}
+	assert!(!marker.exists(), "a refused resume id must not spawn claude");
+
+	let req = ClaudeTurnRequest { resume_session_id: Some("0bf03d03-7914-4ed8-ad68-068dc94c9c0f".into()), ..request(vault.path(), &claude) };
+	let (tx, rx) = channel();
+	let run_id = run_turn_with(&runs, req, &system_env(), &claude, &[], move |payload| {
+		let _ = tx.send(payload);
+	})
+	.expect("a CLI session id resumes");
+	collect_until_done(&rx, &run_id);
+	assert!(marker.exists(), "a CLI session id spawns claude");
+}
+
 // --- runs ----------------------------------------------------------------------
 
 #[test]

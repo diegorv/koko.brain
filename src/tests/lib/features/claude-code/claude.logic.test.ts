@@ -5,6 +5,8 @@ import type { ClaudeEvent } from '#lib/contracts/index.js';
 import {
 	activeNoteContextPath,
 	beginTurn,
+	chatFromStored,
+	chatTitle,
 	EMPTY_CHAT,
 	failTurn,
 	filterSlashCommands,
@@ -14,24 +16,30 @@ import {
 	replyLinkAction,
 	requestStop,
 	resetChat,
+	restoreChat,
 	SESSION_GONE,
 	showError,
 	slashQuery,
 	startRun,
+	storedFromChat,
 	toolTarget,
 	type ChatState,
+	type StoredChat,
 } from '#lib/features/claude-code/claude.logic.js';
+
+/** The identity a first send gives a chat that has none. */
+const FRESH = { chatId: '0f8fad5b-d9cb-469f-a165-70867728950e', createdAt: '2026-11-16T10:00:00.000Z' };
 
 /** A chat with one turn sent and its run id known. */
 function running(runId = 'r1'): ChatState {
-	return startRun(beginTurn(EMPTY_CHAT, 'hello'), runId);
+	return startRun(beginTurn(EMPTY_CHAT, 'hello', FRESH), runId);
 }
 
 const event = (state: ChatState, ev: ClaudeEvent, runId = 'r1') => receiveEvent(state, { runId, event: ev });
 
 describe('beginTurn', () => {
 	it('adds the user message and an empty reply, and waits for a run id', () => {
-		const state = beginTurn(EMPTY_CHAT, '/hello world');
+		const state = beginTurn(EMPTY_CHAT, '/hello world', FRESH);
 		expect(state.messages).toEqual([
 			{ role: 'user', text: '/hello world' },
 			{ role: 'assistant', parts: [] },
@@ -42,9 +50,30 @@ describe('beginTurn', () => {
 	});
 
 	it('clears the error of the previous turn', () => {
-		const state = beginTurn(failTurn(EMPTY_CHAT, 'boom'), 'again');
+		const state = beginTurn(failTurn(EMPTY_CHAT, 'boom'), 'again', FRESH);
 		expect(state.error).toBeNull();
 		expect(state.status).toBe('running');
+	});
+
+	it('gives a chat its id and creation time on the first send only', () => {
+		expect(EMPTY_CHAT.chatId).toBeNull();
+		expect(EMPTY_CHAT.createdAt).toBeNull();
+		const first = beginTurn(EMPTY_CHAT, 'one', FRESH);
+		expect(first.chatId).toBe(FRESH.chatId);
+		expect(first.createdAt).toBe(FRESH.createdAt);
+
+		const second = beginTurn(event(startRun(first, 'r1'), { type: 'Done', exitCode: 0 }), 'two', {
+			chatId: '7c9e6679-7425-40de-944b-e07fc1f90ae7',
+			createdAt: '2026-11-17T10:00:00.000Z',
+		});
+		expect(second.chatId).toBe(FRESH.chatId);
+		expect(second.createdAt).toBe(FRESH.createdAt);
+	});
+
+	it('ends the restored notice', () => {
+		const restored = restoreChat(EMPTY_CHAT, stored());
+		expect(restored.restored).toBe(true);
+		expect(beginTurn(restored, 'next', FRESH).restored).toBe(false);
 	});
 });
 
@@ -175,6 +204,9 @@ describe('receiveEvent', () => {
 		expect(state.error).toBe(SESSION_GONE);
 		expect(SESSION_GONE).toBe('The earlier conversation is no longer available to Claude. Your next message starts a new one.');
 		expect(event(state, { type: 'Done', exitCode: 1 }).sessionId).toBeNull();
+		// Still the same saved chat, only with a new session from the next send.
+		expect(state.chatId).toBe(FRESH.chatId);
+		expect(state.createdAt).toBe(FRESH.createdAt);
 	});
 
 	it('a zero-turn error Result with any other text keeps the session', () => {
@@ -247,7 +279,7 @@ describe('receiveEvent', () => {
 	});
 
 	it('buffers events that arrive before the run id is known', () => {
-		const waiting = beginTurn(EMPTY_CHAT, 'hi');
+		const waiting = beginTurn(EMPTY_CHAT, 'hi', FRESH);
 		const buffered = receiveEvent(waiting, { runId: 'r1', event: { type: 'TextDelta', text: 'early' } });
 		expect(buffered.pending).toHaveLength(1);
 		expect(buffered.messages.at(-1)).toEqual({ role: 'assistant', parts: [] });
@@ -256,7 +288,7 @@ describe('receiveEvent', () => {
 
 describe('startRun', () => {
 	it('replays the buffered events of its run and drops the others', () => {
-		let state = beginTurn(EMPTY_CHAT, 'hi');
+		let state = beginTurn(EMPTY_CHAT, 'hi', FRESH);
 		state = receiveEvent(state, { runId: 'old', event: { type: 'TextDelta', text: 'stale' } });
 		state = receiveEvent(state, { runId: 'r1', event: { type: 'Error', message: 'spawn failed' } });
 		state = receiveEvent(state, { runId: 'r1', event: { type: 'Done', exitCode: null } });
@@ -270,7 +302,7 @@ describe('startRun', () => {
 	});
 
 	it('sets the run id when nothing was buffered', () => {
-		const state = startRun(beginTurn(EMPTY_CHAT, 'hi'), 'r1');
+		const state = startRun(beginTurn(EMPTY_CHAT, 'hi', FRESH), 'r1');
 		expect(state.runId).toBe('r1');
 		expect(state.status).toBe('running');
 	});
@@ -278,7 +310,7 @@ describe('startRun', () => {
 
 describe('failTurn', () => {
 	it('sets the error, clears the run and drops the buffer', () => {
-		let state = beginTurn(EMPTY_CHAT, 'hi');
+		let state = beginTurn(EMPTY_CHAT, 'hi', FRESH);
 		state = receiveEvent(state, { runId: 'r1', event: { type: 'TextDelta', text: 'x' } });
 		state = failTurn(state, 'claude is not installed');
 		expect(state.status).toBe('error');
@@ -304,12 +336,12 @@ describe('showError', () => {
 
 describe('requestStop', () => {
 	it('is remembered while the turn waits for its run id, and cleared by Done and the next turn', () => {
-		const waiting = requestStop(beginTurn(EMPTY_CHAT, 'hi'));
+		const waiting = requestStop(beginTurn(EMPTY_CHAT, 'hi', FRESH));
 		expect(waiting.stopRequested).toBe(true);
 		const started = startRun(waiting, 'r1');
 		expect(started.stopRequested).toBe(true);
 		expect(event(started, { type: 'Done', exitCode: null }).stopRequested).toBe(false);
-		expect(beginTurn(waiting, 'again').stopRequested).toBe(false);
+		expect(beginTurn(waiting, 'again', FRESH).stopRequested).toBe(false);
 	});
 
 	it('does nothing once the run id is known or when no turn runs', () => {
@@ -325,6 +357,178 @@ describe('resetChat', () => {
 		state = event(state, { type: 'Result', sessionId: 's1', text: 'x', isError: true, costUsd: null, numTurns: null });
 		const reset = resetChat(state);
 		expect(reset).toEqual({ ...EMPTY_CHAT, slashCommands: ['hello'] });
+		expect(reset.chatId).toBeNull();
+		expect(reset.createdAt).toBeNull();
+	});
+});
+
+/** A saved chat with a user message, a reply with text and a finished tool. */
+function stored(overrides: Partial<StoredChat> = {}): StoredChat {
+	return {
+		version: 1,
+		chatId: FRESH.chatId,
+		sessionId: '0c9a3f0e-5b1d-4e2a-9f6c-1d2e3f4a5b6c',
+		createdAt: FRESH.createdAt,
+		updatedAt: '2026-11-16T10:05:00.000Z',
+		title: 'hello',
+		messages: [
+			{ role: 'user', text: 'hello' },
+			{
+				role: 'assistant',
+				parts: [
+					{ kind: 'tool', id: 't1', name: 'Read', target: 'a.md', status: 'done', summary: 'x' },
+					{ kind: 'text', text: 'Hi' },
+				],
+			},
+		],
+		...overrides,
+	};
+}
+
+describe('chatTitle', () => {
+	it('is the first prompt on one line', () => {
+		expect(chatTitle([{ role: 'user', text: '  fix\n\tthe   note ' }, { role: 'user', text: 'second' }])).toBe('fix the note');
+	});
+
+	it('is cut at 80 chars', () => {
+		const title = chatTitle([{ role: 'user', text: 'x'.repeat(200) }]);
+		expect(title).toHaveLength(80);
+		expect(title.endsWith('...')).toBe(true);
+		expect(chatTitle([{ role: 'user', text: 'y'.repeat(80) }])).toBe('y'.repeat(80));
+	});
+
+	it('is empty without a prompt', () => {
+		expect(chatTitle([])).toBe('');
+	});
+});
+
+describe('storedFromChat', () => {
+	it('is the v1 file of a chat with an id', () => {
+		const chat = { ...running(), sessionId: 's1' };
+		expect(storedFromChat(chat, '2026-11-16T10:05:00.000Z')).toEqual({
+			version: 1,
+			chatId: FRESH.chatId,
+			sessionId: 's1',
+			createdAt: FRESH.createdAt,
+			updatedAt: '2026-11-16T10:05:00.000Z',
+			title: 'hello',
+			messages: chat.messages,
+		});
+	});
+
+	it('is null for a chat that was never sent', () => {
+		expect(storedFromChat(EMPTY_CHAT, '2026-11-16T10:05:00.000Z')).toBeNull();
+	});
+});
+
+describe('chatFromStored', () => {
+	it('round trips the messages, the session, the creation time and the title', () => {
+		let chat = event({ ...running(), sessionId: null }, { type: 'Init', sessionId: '7f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f', model: 'm', slashCommands: [], skills: [] });
+		chat = event(chat, { type: 'ToolStart', id: 't1', name: 'Read', input: { file_path: 'a.md' } });
+		chat = event(chat, { type: 'ToolResult', id: 't1', isError: false, summary: 'ok' });
+		chat = event(chat, { type: 'TextDelta', text: 'Done.' });
+		chat = event(chat, { type: 'Done', exitCode: 0 });
+		const saved = storedFromChat(chat, '2026-11-16T10:05:00.000Z')!;
+
+		const back = chatFromStored(JSON.stringify(saved, null, '\t'));
+		expect(back).toEqual(saved);
+		expect(back?.messages).toEqual(chat.messages);
+		expect(back?.sessionId).toBe('7f1e2d3c-4b5a-4c6d-8e7f-9a0b1c2d3e4f');
+		expect(back?.createdAt).toBe(FRESH.createdAt);
+		expect(back?.title).toBe('hello');
+	});
+
+	it('turns a tool that was running into a stopped one', () => {
+		const running = stored({
+			messages: [{ role: 'assistant', parts: [{ kind: 'tool', id: 't1', name: 'Bash', target: 'ls', status: 'running', summary: '' }] }],
+		});
+		const back = chatFromStored(JSON.stringify(running));
+		expect(back?.messages).toEqual([{ role: 'assistant', parts: [{ kind: 'tool', id: 't1', name: 'Bash', target: 'ls', status: 'stopped', summary: '' }] }]);
+	});
+
+	it('keeps the chat but drops a session id that is not a CLI session id', () => {
+		for (const sessionId of ['--settings={}', '-p', 's1', '0C9A3F0E-5B1D-4E2A-9F6C-1D2E3F4A5B6C']) {
+			const back = chatFromStored(JSON.stringify(stored({ sessionId })));
+			expect(back?.messages).toEqual(stored().messages);
+			expect(back?.sessionId).toBeNull();
+		}
+	});
+
+	it('keeps a chat with no session', () => {
+		expect(chatFromStored(JSON.stringify(stored({ sessionId: null })))?.sessionId).toBeNull();
+	});
+
+	it('is null for an unknown version', () => {
+		expect(chatFromStored(JSON.stringify({ ...stored(), version: 2 }))).toBeNull();
+		expect(chatFromStored(JSON.stringify({ ...stored(), version: undefined }))).toBeNull();
+	});
+
+	it('is null for a malformed file', () => {
+		const bad: unknown[] = [
+			'',
+			'{',
+			'null',
+			'[]',
+			'"text"',
+			{ ...stored(), chatId: 5 },
+			{ ...stored(), sessionId: 5 },
+			{ ...stored(), createdAt: null },
+			{ ...stored(), updatedAt: undefined },
+			{ ...stored(), title: [] },
+			{ ...stored(), messages: 'x' },
+			{ ...stored(), messages: [null] },
+			{ ...stored(), messages: [{ role: 'system', text: 'x' }] },
+			{ ...stored(), messages: [{ role: 'user', text: 1 }] },
+			{ ...stored(), messages: [{ role: 'assistant', parts: 'x' }] },
+			{ ...stored(), messages: [{ role: 'assistant', parts: [{ kind: 'image' }] }] },
+			{ ...stored(), messages: [{ role: 'assistant', parts: [{ kind: 'text', text: null }] }] },
+			{ ...stored(), messages: [{ role: 'assistant', parts: [{ kind: 'tool', id: 't', name: 'n', target: 't', status: 'odd', summary: '' }] }] },
+			{ ...stored(), messages: [{ role: 'assistant', parts: [{ kind: 'tool', id: 't', name: 'n', status: 'done', summary: '' }] }] },
+		];
+		for (const value of bad) {
+			expect(chatFromStored(typeof value === 'string' ? value : JSON.stringify(value))).toBeNull();
+		}
+	});
+});
+
+describe('restoreChat', () => {
+	it('shows the saved chat, idle, with no run, and keeps the slash commands', () => {
+		const before = { ...resetChat(EMPTY_CHAT), slashCommands: ['hello'], error: 'old' };
+		const restored = restoreChat(before, stored());
+		expect(restored).toEqual({
+			...EMPTY_CHAT,
+			slashCommands: ['hello'],
+			chatId: FRESH.chatId,
+			createdAt: FRESH.createdAt,
+			sessionId: stored().sessionId,
+			messages: stored().messages,
+			restored: true,
+		});
+	});
+
+	it('also works after a failed turn', () => {
+		const failed = failTurn(beginTurn(EMPTY_CHAT, 'hi', FRESH), 'boom');
+		expect(restoreChat(failed, stored({ chatId: '7c9e6679-7425-40de-944b-e07fc1f90ae7' })).chatId).toBe('7c9e6679-7425-40de-944b-e07fc1f90ae7');
+	});
+
+	it('does nothing while a turn runs', () => {
+		const busy = beginTurn(EMPTY_CHAT, 'hi', FRESH);
+		expect(restoreChat(busy, stored())).toBe(busy);
+		const started = running();
+		expect(restoreChat(started, null)).toBe(started);
+	});
+
+	it('with no saved chat gives a new chat', () => {
+		const chat = { ...event(running(), { type: 'Done', exitCode: 0 }), slashCommands: ['hello'] };
+		expect(restoreChat(chat, null)).toEqual({ ...EMPTY_CHAT, slashCommands: ['hello'] });
+	});
+
+	it('the next send continues the restored chat', () => {
+		const next = beginTurn(restoreChat(EMPTY_CHAT, stored()), 'more', { chatId: 'other', createdAt: 'later' });
+		expect(next.chatId).toBe(FRESH.chatId);
+		expect(next.createdAt).toBe(FRESH.createdAt);
+		expect(next.sessionId).toBe(stored().sessionId);
+		expect(next.messages.slice(0, 2)).toEqual(stored().messages);
 	});
 });
 

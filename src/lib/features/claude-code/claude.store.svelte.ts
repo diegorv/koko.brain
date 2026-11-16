@@ -1,7 +1,7 @@
 import type { ClaudeEventPayload } from '#lib/contracts/index.js';
-import { beginTurn, EMPTY_CHAT, failTurn, receiveEvent, requestStop, resetChat, showError, startRun, type ChatState } from './claude.logic';
+import { beginTurn, EMPTY_CHAT, failTurn, receiveEvent, requestStop, resetChat, restoreChat, showError, startRun, type ChatState, type StoredChat } from './claude.logic';
 
-/** The agent chat; lives in memory only, so a restart starts a new chat. */
+/** The agent chat; the service saves it to the vault and restores the newest one on vault open. */
 let chat = $state<ChatState>(EMPTY_CHAT);
 /** Vault-relative paths of the notes attached to the chat, in the order added. */
 let contextNotes = $state<string[]>([]);
@@ -24,11 +24,19 @@ export const claudeStore = {
 	get stopRequested() { return chat.stopRequested; },
 	/** Slash commands from the last `Init`; empty before the first turn. */
 	get slashCommands() { return chat.slashCommands; },
+	/** Id of the chat's file; `null` until the first send. */
+	get chatId() { return chat.chatId; },
+	/** ISO time of the chat's first send; `null` until then. */
+	get createdAt() { return chat.createdAt; },
+	/** True while a restored chat shows its notice (until the next send or New chat). */
+	get restored() { return chat.restored; },
 	/** Vault-relative paths of the attached notes. */
 	get contextNotes() { return contextNotes; },
 
-	/** Starts a turn with the user's text. */
-	beginTurn(text: string) { chat = beginTurn(chat, text); },
+	/** Starts a turn with the user's text; the first send of a chat gives it a new id and creation time. */
+	beginTurn(text: string) {
+		chat = beginTurn(chat, text, { chatId: crypto.randomUUID(), createdAt: new Date().toISOString() });
+	},
 	/** Records the run id of the turn and replays its buffered events. */
 	startRun(runId: string) { chat = startRun(chat, runId); },
 	/** Applies one `claude-event`. */
@@ -44,6 +52,8 @@ export const claudeStore = {
 		chat = resetChat(chat);
 		contextNotes = notes;
 	},
+	/** Shows a saved chat, or an empty one for `null`; no-op while a turn runs. The attached notes stay. */
+	restore(stored: StoredChat | null) { chat = restoreChat(chat, stored); },
 	/** Attaches a note; a note already attached is not added twice. */
 	addContextNote(path: string) {
 		if (!contextNotes.includes(path)) contextNotes = [...contextNotes, path];

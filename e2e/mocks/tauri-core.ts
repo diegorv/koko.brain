@@ -18,6 +18,7 @@ import type { CommandArgs, CommandMap, CommandResult } from '../../src/lib/contr
 import type { EventMap } from '../../src/lib/contracts/events';
 import type {
 	CachedScanResult,
+	ClaudeChatEntry,
 	ClaudeStatus,
 	FileNode,
 	FileReadResult,
@@ -466,6 +467,19 @@ function handleClaudeCancelTurn(): null {
 	return null;
 }
 
+/** Panel chats are not kept in the browser build: a write is dropped and the vault has none. */
+function handleClaudeChatWrite(): null {
+	return null;
+}
+
+function handleClaudeChatRead(): string | null {
+	return null;
+}
+
+function handleClaudeChatList(): ClaudeChatEntry[] {
+	return [];
+}
+
 function handleQuickCaptureNoop(): null {
 	return null;
 }
@@ -573,6 +587,9 @@ const HANDLERS: Handlers = {
 	claude_status: handleClaudeStatus,
 	claude_run_turn: handleClaudeRunTurn,
 	claude_cancel_turn: handleClaudeCancelTurn,
+	claude_chat_write: handleClaudeChatWrite,
+	claude_chat_read: handleClaudeChatRead,
+	claude_chat_list: handleClaudeChatList,
 
 	// Quick capture
 	capture_clipboard_now: handleQuickCaptureNoop,

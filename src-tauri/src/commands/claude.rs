@@ -1,7 +1,7 @@
 //! The user's `claude` CLI (Claude Code): detection for the Settings status,
 //! and the agent panel's turns (ADR-0038). `stream` parses a turn's stdout,
 //! `turn` spawns and cancels it, `shell_env` captures the login shell
-//! environment a turn runs with.
+//! environment a turn runs with, `chats` keeps the panel's chat files.
 //!
 //! A macOS app launched from Finder does not inherit the login shell PATH, so
 //! the status check and a turn both search the captured login shell PATH (or,
@@ -10,6 +10,7 @@
 //! Processes are spawned with `std::process::Command`; the app does not use
 //! `tauri-plugin-shell`.
 
+pub mod chats;
 pub mod shell_env;
 pub mod stream;
 pub mod turn;

@@ -218,6 +218,9 @@
 	{:else}
 		<!-- The app body sets user-select: none; replies and tool output must stay copyable. -->
 		<div bind:this={messagesEl} class="min-h-0 flex-1 select-text overflow-y-auto p-3" onscroll={onMessagesScroll} data-claude-messages>
+			{#if claudeStore.restored}
+				<p class="mb-3 text-meta text-right-sidebar-muted-fg" data-claude-restored>Restored last chat. New chat starts over.</p>
+			{/if}
 			{#if claudeStore.messages.length === 0}
 				<p class="text-right-sidebar-muted-fg" data-claude-empty>
 					Ask Claude about the attached notes, or about the whole vault when none are attached.
