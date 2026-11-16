@@ -36,7 +36,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
 | 01 | [Move collision is silent](issues/01-move-collision-is-silent.md) | none | done | issue/01-move-collision-is-silent (abc8399b) | 2026-11-13 |
-| 02 | [My People counts only 1:1s](issues/02-my-people-counts-only-1on1s.md) | none | blocked | | |
+| 02 | [My People counts only 1:1s](issues/02-my-people-counts-only-1on1s.md) | none | todo | | |
 | 03 | [QueryJS results dropped on every save](issues/03-queryjs-results-dropped-on-every-save.md) | none | todo | | |
 
 ## Log
