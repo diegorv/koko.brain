@@ -21,6 +21,6 @@
 ## Notes
 
 - UX evidence: `research/08-ux-and-edges.md` section 2. The list reads each chat file for its title; files are small (`research/validate-app.md`).
-- **Delivery:** the panel code exists only on `mvp-claude`; see `spec.md`.
+- **Delivery:** onto `mvp-claude` (relay-lite base `mvp-claude`), then merged into `preview`; see `spec.md`.
 
 ## Comments

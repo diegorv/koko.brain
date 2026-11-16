@@ -45,7 +45,7 @@ The transcript format is internal and unstable per the docs; a panel turn's tran
 
 ## Delivery
 
-The panel code exists only on `mvp-claude` until PR #247 merges. Relay-lite's base is `main` (f157205b3), so run these Issues after the merge, or with the base set back to `mvp-claude`.
+These Issues are delivered onto `mvp-claude`, never onto `main`: relay-lite's base on that branch is `mvp-claude`. After each delivery, merge `mvp-claude` into `preview` so the Preview build carries it. They reach `main` only with PR #247 (whose last commit sets the base back to `main`).
 
 ## Later (not v1)
 

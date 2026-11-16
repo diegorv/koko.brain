@@ -38,6 +38,6 @@
 - The 30 s deadline is shorter than the CLI's default hook timeout (not looked up), so a slow SessionStart hook is killed by this request where the terminal would wait. Accepted with the owner's choice to keep hooks on.
 - Neither side logs the reply or a description: a review item, plus the `error()` test above.
 - `ClaudeEvent::Init` does not change.
-- **Delivery:** the panel code exists only on `mvp-claude`. Relay-lite's base is `main`, so run this after PR #247 merges, or with the base set back to `mvp-claude`.
+- **Delivery:** onto `mvp-claude` (relay-lite base `mvp-claude`), then merged into `preview`; see `spec.md`.
 
 ## Comments

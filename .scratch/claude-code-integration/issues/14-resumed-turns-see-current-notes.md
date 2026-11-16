@@ -25,7 +25,7 @@ Found by the session-history deep dive (`.scratch/claude-session-history/researc
 
 ## Notes
 
-- **Delivery:** the files exist only on `mvp-claude`. Relay-lite's base is `main` again (f157205b3), so run this after PR #247 merges, or deliver it onto `mvp-claude` by hand or with the base set back to `mvp-claude`.
+- **Delivery:** onto `mvp-claude` (relay-lite base `mvp-claude`), then merged into `preview`.
 - **CLI versions:** below 2.1.257 the flag is an unknown option and every turn fails with the CLI's error in the panel; 2.1.257 to 2.1.264 never had the bug (system prompt flags turned recording off). So the flag only breaks CLIs that do not need it. The owner runs 2.1.325; no version gating.
 - **Prompt cache:** the cache follows tools, then system, then messages, and a change invalidates its level and every later one. With recording off, a turn whose chips changed (or whose CLAUDE.md, memory or skill list changed) misses the cache for the system block and the whole history on that turn. Accepted.
 

@@ -20,6 +20,6 @@
 
 - Evidence: `research/synthesis.md` G3 and G6. Today the panel keeps the dead id (`claude.logic.ts:153`), so every later send fails the same way until New chat. No extra `Error` event comes, because `saw_result` suppresses it (`turn.rs:302`).
 - Useful now (a session pruned after 30 days in a chat kept open), and needed by Issue 02, where restored chats carry old ids.
-- **Delivery:** the panel code exists only on `mvp-claude`; see `spec.md`.
+- **Delivery:** onto `mvp-claude` (relay-lite base `mvp-claude`), then merged into `preview`; see `spec.md`.
 
 ## Comments

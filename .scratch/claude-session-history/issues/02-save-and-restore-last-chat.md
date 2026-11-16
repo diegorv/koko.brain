@@ -31,6 +31,6 @@
 - Decisions and evidence: `spec.md`, `research/synthesis.md` section 5, `research/validate-app.md`.
 - `src/lib/app/lifecycle/` is the composition root, exempt from the outbound layer rules (`layer-rules.test.ts:155-160`); it already calls `resetClaude` (`app-lifecycle.service.ts:73,685`).
 - `.kokobrain` is skipped by the scan (`src-tauri/src/utils/fs.rs:177-178`) and by the watcher, so chat files need no indexing work.
-- **Delivery:** the panel code exists only on `mvp-claude`; see `spec.md`.
+- **Delivery:** onto `mvp-claude` (relay-lite base `mvp-claude`), then merged into `preview`; see `spec.md`.
 
 ## Comments

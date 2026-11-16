@@ -20,6 +20,6 @@
 ## Notes
 
 - Evidence: `research/synthesis.md` G4 (init names and row names are the same set in a neutral cwd, and the 4 terminal-only names are in both), F10. The one-shot reply never holds MCP rows (G5), so no filter for them.
-- **Delivery:** as Issue 01 (after PR #247 merges, or with the relay base set to `mvp-claude`).
+- **Delivery:** onto `mvp-claude` (relay-lite base `mvp-claude`), then merged into `preview`; see `spec.md`.
 
 ## Comments
