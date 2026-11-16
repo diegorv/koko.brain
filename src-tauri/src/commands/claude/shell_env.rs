@@ -363,7 +363,7 @@ fn reap(child: &mut Child) {
 /// unreaped shell keeps its pid, so the session's group id stays reserved
 /// for the `killpg` that follows.
 #[cfg(unix)]
-fn exited_unreaped(child: &Child) -> bool {
+pub(super) fn exited_unreaped(child: &Child) -> bool {
 	// SAFETY: `info` is a valid, zeroed siginfo_t; `si_pid` stays 0 when the
 	// child has not exited yet (WNOHANG).
 	unsafe {

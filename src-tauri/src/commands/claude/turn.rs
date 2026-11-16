@@ -140,14 +140,16 @@ pub fn turn_command(binary: &Path, request: &ClaudeTurnRequest, env: &EnvVars) -
 }
 
 struct Run {
-	vault_path: String,
+	/// The turn's vault; `None` for a slash command request, which never
+	/// keeps a turn from starting.
+	vault_path: Option<String>,
 	pid: u32,
 	cancelled: Arc<AtomicBool>,
 }
 
-/// The running turns, keyed by run id (Tauri managed state). A run removes
-/// itself when its stdout closes, before the process is reaped, so `cancel`
-/// never signals a reused process group.
+/// The running turns and slash command requests, keyed by run id (Tauri
+/// managed state). A run removes itself when its stdout closes, before the
+/// process is reaped, so `cancel` never signals a reused process group.
 #[derive(Clone, Default)]
 pub struct ClaudeRuns {
 	runs: Arc<Mutex<HashMap<String, Run>>>,
@@ -194,7 +196,22 @@ impl ClaudeRuns {
 		});
 	}
 
-	/// True when no turn is running.
+	/// Spawns `cmd` and lists it as a run that is not a turn, under a new id.
+	/// The lock spans the spawn, so a `cancel_all` cannot miss the process.
+	pub(super) fn spawn_listed(&self, mut cmd: Command) -> std::io::Result<(String, Child)> {
+		let mut map = self.lock();
+		let child = cmd.spawn()?;
+		let id = uuid::Uuid::new_v4().to_string();
+		map.insert(id.clone(), Run { vault_path: None, pid: child.id(), cancelled: Arc::new(AtomicBool::new(false)) });
+		Ok((id, child))
+	}
+
+	/// Unlists a run spawned by `spawn_listed`; call it before reaping the process.
+	pub(super) fn remove(&self, run_id: &str) {
+		self.lock().remove(run_id);
+	}
+
+	/// True when no turn or slash command request is running.
 	pub fn is_empty(&self) -> bool {
 		self.lock().is_empty()
 	}
@@ -238,7 +255,7 @@ where
 	// The lock spans the check and the insert, so two calls for one vault
 	// cannot both start.
 	let mut map = runs.lock();
-	if map.values().any(|run| run.vault_path == request.vault_path) {
+	if map.values().any(|run| run.vault_path.as_deref() == Some(request.vault_path.as_str())) {
 		return Err("A Claude turn is already running for this vault".into());
 	}
 	let mut child = match turn_command(&binary, &request, &env.vars).spawn() {
@@ -254,7 +271,7 @@ where
 	let cancelled = Arc::new(AtomicBool::new(false));
 	map.insert(
 		run_id.clone(),
-		Run { vault_path: request.vault_path.clone(), pid: child.id(), cancelled: cancelled.clone() },
+		Run { vault_path: Some(request.vault_path.clone()), pid: child.id(), cancelled: cancelled.clone() },
 	);
 	drop(map);
 	debug_log("CLAUDE", format!("run {run_id} started: pid {}", child.id()));

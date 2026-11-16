@@ -34,6 +34,7 @@ import type {
 	SemanticFileStatus,
 	SemanticResult,
 	SemanticStats,
+	SlashCommandInfo,
 	SnapshotInfo,
 	DiffLine,
 	TagAggregate,
@@ -462,6 +463,11 @@ function handleClaudeRunTurn(): never {
 	throw new Error('claude is not available in the browser build');
 }
 
+/** No `claude` CLI in the browser build: the slash menu gets no descriptions. */
+function handleClaudeSlashCommands(): SlashCommandInfo[] {
+	return [];
+}
+
 /** Cancel is a no-op for an unknown run, and no run ever starts here. */
 function handleClaudeCancelTurn(): null {
 	return null;
@@ -591,6 +597,7 @@ const HANDLERS: Handlers = {
 	claude_status: handleClaudeStatus,
 	claude_run_turn: handleClaudeRunTurn,
 	claude_cancel_turn: handleClaudeCancelTurn,
+	claude_slash_commands: handleClaudeSlashCommands,
 	claude_chat_write: handleClaudeChatWrite,
 	claude_chat_read: handleClaudeChatRead,
 	claude_chat_list: handleClaudeChatList,

@@ -12,7 +12,31 @@ describe('claudeStore', () => {
 		expect(claudeStore.isRunning).toBe(false);
 		expect(claudeStore.error).toBeNull();
 		expect(claudeStore.slashCommands).toEqual([]);
+		expect(claudeStore.slashCommandDetails.size).toBe(0);
 		expect(claudeStore.contextNotes).toEqual([]);
+	});
+
+	describe('slashCommandDetails', () => {
+		const rows = [{ name: 'debug', description: 'Enable debug logging', argumentHint: '[issue]', aliases: ['dbg'] }];
+
+		it('maps the names and aliases of the rows set last', () => {
+			claudeStore.setSlashCommandRows(rows);
+			expect(claudeStore.slashCommandDetails.get('debug')).toEqual({ description: 'Enable debug logging', argumentHint: '[issue]' });
+			expect(claudeStore.slashCommandDetails.get('dbg')).toEqual({ description: 'Enable debug logging', argumentHint: '[issue]' });
+
+			claudeStore.setSlashCommandRows([]);
+			expect(claudeStore.slashCommandDetails.size).toBe(0);
+		});
+
+		it('stays through New chat and a restore, and reset clears it', () => {
+			claudeStore.setSlashCommandRows(rows);
+			claudeStore.newChat([]);
+			claudeStore.restore(null);
+			expect(claudeStore.slashCommandDetails.has('debug')).toBe(true);
+
+			claudeStore.reset();
+			expect(claudeStore.slashCommandDetails.size).toBe(0);
+		});
 	});
 
 	it('runs a turn through its events', () => {

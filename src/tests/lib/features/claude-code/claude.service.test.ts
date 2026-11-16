@@ -17,7 +17,21 @@ import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
-import { attachActiveNote, deleteChat, loadChatHistory, newChat, openChat, resetClaude, restoreLastChat, saveChatOnDone, sendPrompt, stop } from '#lib/features/claude-code/claude.service.js';
+import {
+	attachActiveNote,
+	deleteChat,
+	loadChatHistory,
+	loadSlashCommandDetails,
+	newChat,
+	openChat,
+	resetClaude,
+	restoreLastChat,
+	saveChatOnDone,
+	sendPrompt,
+	slashCommandDetailsAfterEvent,
+	stop,
+} from '#lib/features/claude-code/claude.service.js';
+import type { SlashCommandInfo } from '#lib/contracts/index.js';
 
 const invoked = () => vi.mocked(invoke).mock.calls.map(([cmd]) => cmd);
 const runTurnRequest = () => {
@@ -950,5 +964,181 @@ describe('deleteChat', () => {
 		release();
 		await deleting;
 		expect(claudeStore.chatId).toBe(CHAT_A);
+	});
+});
+
+describe('slash command details', () => {
+	const DEBUG: SlashCommandInfo = { name: 'debug', description: 'Secret description of debug', argumentHint: '[issue]', aliases: ['dbg'] };
+	const SKETCH: SlashCommandInfo = { name: 'sketch', description: 'Draw a sketch', argumentHint: '', aliases: [] };
+	const slashCalls = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'claude_slash_commands');
+
+	/** Answers `claude_slash_commands` with each entry of `replies` in turn (an `Error` rejects); the last one repeats. */
+	function answerSlash(...replies: (SlashCommandInfo[] | Error)[]) {
+		let n = 0;
+		vi.mocked(invoke).mockImplementation(async (cmd: string) => {
+			if (cmd !== 'claude_slash_commands') return null;
+			const reply = replies[Math.min(n++, replies.length - 1)];
+			if (reply instanceof Error) throw reply;
+			return reply;
+		});
+	}
+
+	/** Holds every `claude_slash_commands` call until the returned function resolves them all with `rows`. */
+	function holdSlash(rows: SlashCommandInfo[]) {
+		const held: (() => void)[] = [];
+		vi.mocked(invoke).mockImplementation((cmd: string) => {
+			if (cmd !== 'claude_slash_commands') return Promise.resolve(null);
+			return new Promise((resolve) => { held.push(() => resolve(rows)); });
+		});
+		return () => held.forEach((release) => release());
+	}
+
+	const init = (slashCommands: string[], runId = 'r1'): ClaudeEventPayload => ({ runId, event: { type: 'Init', sessionId: 's', model: 'm', slashCommands, skills: [] } });
+	const done = (runId = 'r1'): ClaudeEventPayload => ({ runId, event: { type: 'Done', exitCode: 0 } });
+
+	beforeEach(() => resetClaude());
+
+	it('asks with the binary override and the normalized vault path, and maps the reply', async () => {
+		settingsStore.updateClaudeCode({ binaryPath: '/opt/claude' });
+		answerSlash([DEBUG]);
+
+		await loadSlashCommandDetails();
+
+		expect(slashCalls()).toEqual([['claude_slash_commands', { binaryPath: '/opt/claude', vaultPath: '/vault' }]]);
+		expect(claudeStore.slashCommandDetails.get('debug')).toEqual({ description: 'Secret description of debug', argumentHint: '[issue]' });
+		expect(claudeStore.slashCommandDetails.get('dbg')?.description).toBe('Secret description of debug');
+	});
+
+	it('asks once per vault: a second load, done or in flight, makes no call', async () => {
+		const release = holdSlash([DEBUG]);
+		const first = loadSlashCommandDetails();
+		await loadSlashCommandDetails();
+		expect(slashCalls()).toHaveLength(1);
+
+		release();
+		await first;
+		await loadSlashCommandDetails();
+		expect(slashCalls()).toHaveLength(1);
+	});
+
+	it('asks again for the next vault, with the binary override set by then', async () => {
+		answerSlash([DEBUG]);
+		await loadSlashCommandDetails();
+		settingsStore.updateClaudeCode({ binaryPath: '/new/claude' });
+		await loadSlashCommandDetails();
+		expect(slashCalls()).toHaveLength(1);
+
+		vaultStore.open('/other/');
+		await loadSlashCommandDetails();
+		expect(slashCalls()).toEqual([
+			['claude_slash_commands', { binaryPath: '', vaultPath: '/vault' }],
+			['claude_slash_commands', { binaryPath: '/new/claude', vaultPath: '/other' }],
+		]);
+	});
+
+	it('drops a reply that arrives after the vault changed', async () => {
+		const release = holdSlash([DEBUG]);
+		const loading = loadSlashCommandDetails();
+		vaultStore.open('/other');
+		release();
+		await loading;
+		expect(claudeStore.slashCommandDetails.size).toBe(0);
+	});
+
+	it('does nothing without a vault', async () => {
+		vaultStore._reset();
+		answerSlash([DEBUG]);
+		await loadSlashCommandDetails();
+		expect(slashCalls()).toEqual([]);
+	});
+
+	it('resetClaude clears the map, the request in flight and the tried names', async () => {
+		answerSlash([DEBUG]);
+		await loadSlashCommandDetails();
+		await slashCommandDetailsAfterEvent(init(['debug', 'mcp__srv__prompt']));
+		await slashCommandDetailsAfterEvent(done());
+		expect(slashCalls()).toHaveLength(2);
+
+		resetClaude();
+		expect(claudeStore.slashCommandDetails.size).toBe(0);
+		await loadSlashCommandDetails();
+		await slashCommandDetailsAfterEvent(init(['debug', 'mcp__srv__prompt']));
+		await slashCommandDetailsAfterEvent(done());
+		expect(slashCalls()).toHaveLength(4);
+
+		const release = holdSlash([SKETCH]);
+		resetClaude();
+		const stale = loadSlashCommandDetails();
+		resetClaude();
+		const fresh = loadSlashCommandDetails();
+		expect(slashCalls()).toHaveLength(6);
+		release();
+		await Promise.all([stale, fresh]);
+		expect(claudeStore.slashCommandDetails.size).toBe(1);
+	});
+
+	it('an Init with unknown names fetches once after that run is Done, and an identical Init does not again', async () => {
+		answerSlash([DEBUG]);
+		await loadSlashCommandDetails();
+
+		await slashCommandDetailsAfterEvent(init(['debug', 'dbg', 'mcp__srv__prompt']));
+		expect(slashCalls()).toHaveLength(1);
+		await slashCommandDetailsAfterEvent(done('other-run'));
+		expect(slashCalls()).toHaveLength(1);
+		await slashCommandDetailsAfterEvent(done());
+		expect(slashCalls()).toHaveLength(2);
+
+		await slashCommandDetailsAfterEvent(init(['debug', 'dbg', 'mcp__srv__prompt'], 'r2'));
+		await slashCommandDetailsAfterEvent(done('r2'));
+		expect(slashCalls()).toHaveLength(2);
+	});
+
+	it('an Init whose names are all mapped fetches nothing', async () => {
+		answerSlash([DEBUG]);
+		await loadSlashCommandDetails();
+		await slashCommandDetailsAfterEvent(init(['debug', 'dbg']));
+		await slashCommandDetailsAfterEvent(done());
+		expect(slashCalls()).toHaveLength(1);
+	});
+
+	it('an Init while a fetch is pending causes none', async () => {
+		const release = holdSlash([DEBUG]);
+		const loading = loadSlashCommandDetails();
+		await slashCommandDetailsAfterEvent(init(['debug', 'new-skill']));
+		await slashCommandDetailsAfterEvent(done());
+		expect(slashCalls()).toHaveLength(1);
+		release();
+		await loading;
+		expect(slashCalls()).toHaveLength(1);
+	});
+
+	it('a failed fetch keeps the map, logs no description, and is retried only by a later Init', async () => {
+		answerSlash([DEBUG], new Error('claude did not answer the initialize request within 30s'));
+		await loadSlashCommandDetails();
+		await slashCommandDetailsAfterEvent(init(['debug', 'sketch']));
+		await slashCommandDetailsAfterEvent(done());
+		expect(slashCalls()).toHaveLength(2);
+
+		expect(error).toHaveBeenCalledTimes(1);
+		expect(JSON.stringify(vi.mocked(error).mock.calls, (_k, v: unknown) => (v instanceof Error ? v.message : v))).not.toContain('Secret');
+		expect(claudeStore.slashCommandDetails.get('debug')?.description).toBe('Secret description of debug');
+
+		await loadSlashCommandDetails();
+		expect(slashCalls()).toHaveLength(2);
+		answerSlash([DEBUG, SKETCH]);
+		await slashCommandDetailsAfterEvent(init(['debug', 'sketch', 'other'], 'r2'));
+		await slashCommandDetailsAfterEvent(done('r2'));
+		expect(slashCalls()).toHaveLength(3);
+		expect(claudeStore.slashCommandDetails.get('sketch')?.description).toBe('Draw a sketch');
+	});
+
+	it('a failed first fetch rejects after logging, and a remount does not retry it', async () => {
+		answerSlash(new Error('claude exited (exit status: 1) without answering the initialize request'));
+		await expect(loadSlashCommandDetails()).rejects.toThrow('without answering');
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.any(String), expect.any(Error));
+		expect(claudeStore.slashCommandDetails.size).toBe(0);
+
+		await loadSlashCommandDetails();
+		expect(slashCalls()).toHaveLength(1);
 	});
 });

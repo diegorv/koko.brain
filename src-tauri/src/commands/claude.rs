@@ -1,7 +1,8 @@
 //! The user's `claude` CLI (Claude Code): detection for the Settings status,
 //! and the agent panel's turns (ADR-0038). `stream` parses a turn's stdout,
 //! `turn` spawns and cancels it, `shell_env` captures the login shell
-//! environment a turn runs with, `chats` keeps the panel's chat files.
+//! environment a turn runs with, `chats` keeps the panel's chat files,
+//! `slash` asks the CLI for the slash menu's command list.
 //!
 //! A macOS app launched from Finder does not inherit the login shell PATH, so
 //! the status check and a turn both search the captured login shell PATH (or,
@@ -12,6 +13,7 @@
 
 pub mod chats;
 pub mod shell_env;
+pub mod slash;
 pub mod stream;
 pub mod turn;
 
@@ -19,6 +21,7 @@ use crate::events::CLAUDE_EVENT;
 use crate::utils::logger::debug_log;
 use serde::Serialize;
 use shell_env::{clean_base, turn_env, EnvVars, ShellEnv, TurnEnv};
+use slash::{slash_commands_with, SlashCommandInfo, SLASH_DEADLINE};
 use std::ffi::OsString;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output, Stdio};
@@ -261,6 +264,30 @@ pub async fn claude_run_turn(
 	})
 	.await
 	.map_err(|e| format!("claude_run_turn task failed: {e}"))?
+}
+
+/// The installed `claude`'s slash commands with their descriptions, asked in
+/// `vault_path` so vault-local skills are included. Resolves the binary as a
+/// turn does (the Settings override included). Runs off the async runtime:
+/// it waits for the login shell env capture, then for the CLI's reply, which
+/// comes after the user's SessionStart hooks (up to `SLASH_DEADLINE`).
+#[tauri::command]
+pub async fn claude_slash_commands(
+	runs: tauri::State<'_, ClaudeRuns>,
+	shell_env: tauri::State<'_, ShellEnv>,
+	binary_path: String,
+	vault_path: String,
+) -> Result<Vec<SlashCommandInfo>, String> {
+	let runs = runs.inner().clone();
+	let shell_env = shell_env.inner().clone();
+	tokio::task::spawn_blocking(move || {
+		let env = turn_env(shell_env.get(), &clean_base(std::env::vars_os()));
+		let home = std::env::var_os("HOME").map(PathBuf::from);
+		let candidates = default_candidates(home.as_deref());
+		slash_commands_with(&runs, &binary_path, &vault_path, &env, &login_shell(), &candidates, SLASH_DEADLINE)
+	})
+	.await
+	.map_err(|e| format!("claude_slash_commands task failed: {e}"))?
 }
 
 /// Kills a running turn and its process group. No-op for an unknown or
