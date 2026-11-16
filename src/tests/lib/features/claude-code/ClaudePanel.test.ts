@@ -246,6 +246,19 @@ describe('ClaudePanel chat', () => {
 		expect(q('[data-claude-error]')?.textContent).toBe('claude exited with code 1');
 	});
 
+	it('says the next message starts a new conversation, instead of the CLI error, when the resumed session is gone', async () => {
+		await render();
+		await sendText('hi');
+		await emit({ type: 'Result', sessionId: 's1', text: 'No conversation found with session ID: s1', isError: true, costUsd: null, numTurns: 0 });
+		await emit({ type: 'Done', exitCode: 1 });
+
+		expect(qa('[data-claude-error]').map((el) => el.textContent)).toEqual([
+			'The earlier conversation is no longer available to Claude. Your next message starts a new one.',
+		]);
+		expect(target.textContent).not.toContain('No conversation found');
+		expect(q('[data-claude-message="user"]')?.textContent).toBe('hi');
+	});
+
 	it('keeps Stop and the disabled prompt after an Error event until the run is Done', async () => {
 		await render();
 		await sendText('hi');

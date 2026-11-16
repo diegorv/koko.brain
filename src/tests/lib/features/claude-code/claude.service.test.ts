@@ -76,6 +76,26 @@ describe('sendPrompt', () => {
 		expect(claudeStore.runId).toBe('r2');
 	});
 
+	it('starts a new session after a resume whose session is gone, keeping the chat', async () => {
+		answerRunTurn('r1');
+		await sendPrompt('first');
+		claudeStore.receive({ runId: 'r1', event: { type: 'Result', sessionId: 's1', text: 'ok', isError: false, costUsd: null, numTurns: 1 } });
+		claudeStore.receive({ runId: 'r1', event: { type: 'Done', exitCode: 0 } });
+		answerRunTurn('r2');
+		await sendPrompt('second');
+		claudeStore.receive({
+			runId: 'r2',
+			event: { type: 'Result', sessionId: 's1', text: 'No conversation found with session ID: s1', isError: true, costUsd: null, numTurns: 0 },
+		});
+		claudeStore.receive({ runId: 'r2', event: { type: 'Done', exitCode: 1 } });
+
+		vi.mocked(invoke).mockClear();
+		answerRunTurn('r3');
+		await sendPrompt('third');
+		expect(runTurnRequest()?.resumeSessionId).toBeUndefined();
+		expect(claudeStore.messages.filter((m) => m.role === 'user').map((m) => m.text)).toEqual(['first', 'second', 'third']);
+	});
+
 	it('resumes the session of the Init when the turn ended without a Result', async () => {
 		answerRunTurn('r1');
 		await sendPrompt('first');

@@ -14,6 +14,7 @@ import {
 	replyLinkAction,
 	requestStop,
 	resetChat,
+	SESSION_GONE,
 	showError,
 	slashQuery,
 	startRun,
@@ -156,6 +157,42 @@ describe('receiveEvent', () => {
 	it('Result with isError and no text still says the turn failed', () => {
 		const state = event(running(), { type: 'Result', sessionId: 's1', text: '', isError: true, costUsd: null, numTurns: null });
 		expect(state.error).toBe('Claude ended the turn with an error.');
+	});
+
+	it('Result saying the resumed session is gone drops the session, keeps the chat and says the next message starts over', () => {
+		const before = event({ ...running(), sessionId: 'dead' }, { type: 'TextDelta', text: 'partial' });
+		const gone: ClaudeEvent = {
+			type: 'Result',
+			sessionId: 'dead',
+			text: 'No conversation found with session ID: dead',
+			isError: true,
+			costUsd: null,
+			numTurns: 0,
+		};
+		const state = event(before, gone);
+		expect(state.sessionId).toBeNull();
+		expect(state.messages).toEqual(before.messages);
+		expect(state.error).toBe(SESSION_GONE);
+		expect(SESSION_GONE).toBe('The earlier conversation is no longer available to Claude. Your next message starts a new one.');
+		expect(event(state, { type: 'Done', exitCode: 1 }).sessionId).toBeNull();
+	});
+
+	it('a zero-turn error Result with any other text keeps the session', () => {
+		const before = { ...running(), sessionId: 's1' };
+		const other = { type: 'Result', sessionId: 's1', text: 'turn_setup_failed', isError: true, costUsd: null, numTurns: 0 } as const;
+		const state = event(before, other);
+		expect(state.sessionId).toBe('s1');
+		expect(state.error).toBe('turn_setup_failed');
+	});
+
+	it('the not-found text keeps the session when the Result is not a zero-turn error', () => {
+		const text = 'No conversation found with session ID: s1';
+		const before = { ...running(), sessionId: 's1' };
+		const withTurns = event(before, { type: 'Result', sessionId: 's1', text, isError: true, costUsd: null, numTurns: 1 });
+		const unknownTurns = event(before, { type: 'Result', sessionId: 's1', text, isError: true, costUsd: null, numTurns: null });
+		expect(withTurns.sessionId).toBe('s1');
+		expect(unknownTurns.sessionId).toBe('s1');
+		expect(withTurns.error).toBe(text);
 	});
 
 	it('Error shows its message and keeps the turn running until Done, since the process may still run', () => {
