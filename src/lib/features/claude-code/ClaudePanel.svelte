@@ -3,6 +3,8 @@
 	import X from '@lucide/svelte/icons/x';
 	import Plus from '@lucide/svelte/icons/plus';
 	import LoaderIcon from '@lucide/svelte/icons/loader';
+	import History from '@lucide/svelte/icons/history';
+	import Trash2 from '@lucide/svelte/icons/trash-2';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { filterAndRank, flattenFileTree } from '#lib/core/filesystem/file-entries.logic.js';
@@ -11,12 +13,13 @@
 	import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
+	import { formatRelativeTime } from '#lib/features/type-definitions/type-sidebar.logic.js';
 	import { relativePath } from '#lib/utils/path.js';
 	import { error } from '#lib/utils/debug.js';
 	import { checkClaudeStatus } from './claude-code.service';
 	import { claudeStatusStore } from './claude-status.store.svelte';
 	import { activeNoteContextPath, filterSlashCommands, renderReplyHtml, replyLinkAction, slashQuery } from './claude.logic';
-	import { attachActiveNote, newChat, sendPrompt, stop, STOP_FAILED } from './claude.service';
+	import { attachActiveNote, deleteChat, loadChatHistory, newChat, openChat, sendPrompt, stop, STOP_FAILED, type ChatHistoryRow } from './claude.service';
 	import { claudeStore } from './claude.store.svelte';
 
 	interface Props {
@@ -57,6 +60,12 @@
 	let slashDismissed = $state(false);
 	let pickerOpen = $state(false);
 	let pickerQuery = $state('');
+	/** `history` shows the saved chats in place of the messages; the prompt stays. */
+	let view = $state<'chat' | 'history'>('chat');
+	/** The saved chats of the list; `null` while they load. */
+	let history = $state<ChatHistoryRow[] | null>(null);
+	/** Inline error of the history list's last load, open or delete. */
+	let historyError = $state<string | null>(null);
 
 	const query = $derived(slashDismissed ? null : slashQuery(prompt));
 	const slashMatches = $derived(query === null ? [] : filterSlashCommands(query, claudeStore.slashCommands));
@@ -87,6 +96,8 @@
 	// a tool card and each streamed delta re-run this.
 	$effect(() => {
 		void claudeStore.messages;
+		// Back from the list, the message list is a new element at the top.
+		void view;
 		untrack(() => {
 			void tick().then(() => {
 				if (!following || !messagesEl) return;
@@ -110,6 +121,75 @@
 			});
 		});
 	});
+
+	// The list belongs to the open vault: a vault switch while it shows loads the new vault's chats.
+	$effect(() => {
+		void vaultStore.path;
+		untrack(() => {
+			if (view === 'history') void loadHistory();
+		});
+	});
+
+	function showChat(): void {
+		view = 'chat';
+		following = true;
+	}
+
+	function toggleHistory(): void {
+		if (view === 'history') {
+			showChat();
+			return;
+		}
+		view = 'history';
+		void loadHistory();
+	}
+
+	async function loadHistory(): Promise<void> {
+		const vaultPath = vaultStore.path;
+		history = null;
+		historyError = null;
+		if (!vaultPath) {
+			history = [];
+			return;
+		}
+		try {
+			// `null`: the vault changed or a turn started meanwhile; that load is dropped.
+			const rows = await loadChatHistory(vaultPath);
+			if (rows) history = rows;
+		} catch {
+			if (vaultStore.path === vaultPath) historyError = 'Could not load the saved chats.';
+		}
+	}
+
+	async function onOpenChat(chatId: string): Promise<void> {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath || claudeStore.isRunning) return;
+		historyError = null;
+		try {
+			if (await openChat(vaultPath, chatId)) showChat();
+		} catch (err) {
+			historyError = err instanceof Error ? err.message : 'Could not open the chat.';
+		}
+	}
+
+	async function onDeleteChat(chatId: string): Promise<void> {
+		const vaultPath = vaultStore.path;
+		if (!vaultPath || claudeStore.isRunning) return;
+		historyError = null;
+		try {
+			await deleteChat(vaultPath, chatId);
+			if (vaultStore.path === vaultPath) history = history?.filter((row) => row.chatId !== chatId) ?? null;
+		} catch {
+			historyError = 'Could not delete the chat.';
+		}
+	}
+
+	/** Escape leaves the list, unless a control inside the panel already used it (the slash menu, the note picker). */
+	function onPanelKeydown(e: KeyboardEvent): void {
+		if (view !== 'history' || e.key !== 'Escape' || e.defaultPrevented || e.isComposing) return;
+		e.preventDefault();
+		showChat();
+	}
 
 	function onMessagesScroll(): void {
 		if (!messagesEl) return;
@@ -174,6 +254,8 @@
 		if (claudeStore.isRunning || text.trim() === '') return;
 		prompt = '';
 		refocusPrompt = document.activeElement === promptEl;
+		// The history button is disabled while the turn runs: show the reply rather than strand the list.
+		if (view === 'history') showChat();
 		// The store shows the failure inline; nothing else to do here.
 		sendPrompt(text).catch(() => {});
 	}
@@ -200,10 +282,22 @@
 	}
 </script>
 
-<section class="flex h-full min-h-0 flex-col" data-claude-panel>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<section class="flex h-full min-h-0 flex-col" onkeydown={onPanelKeydown} data-claude-panel>
 	<div class="pane-toolbar w-full justify-between">
 		<h2 class="text-title text-right-sidebar-primary">Claude</h2>
-		<Button variant="ghost" size="sm" disabled={claudeStore.isRunning} onclick={newChat}>New chat</Button>
+		<div class="flex items-center gap-1">
+			<Button
+				variant="ghost"
+				size="icon-sm"
+				aria-label="Chat history"
+				title="Chat history"
+				aria-pressed={view === 'history'}
+				disabled={claudeStore.isRunning}
+				onclick={toggleHistory}
+			><History class="size-4" /></Button>
+			<Button variant="ghost" size="sm" disabled={claudeStore.isRunning} onclick={() => { newChat(); showChat(); }}>New chat</Button>
+		</div>
 	</div>
 
 	{#if claudeStatusStore.unavailable}
@@ -216,6 +310,44 @@
 			<Button variant="outline" size="sm" onclick={() => settingsPanelStore.open('claude-code')}>Open Claude Code settings</Button>
 		</div>
 	{:else}
+		{#if view === 'history'}
+			<div class="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto p-2" data-claude-history>
+				{#if historyError}
+					<p class="px-1 text-destructive" role="alert">{historyError}</p>
+				{/if}
+				{#if claudeStore.isRunning}
+					<p class="px-1 text-meta text-right-sidebar-muted-fg">Wait for Claude to finish, or press Stop.</p>
+				{/if}
+				{#if history?.length === 0}
+					<p class="px-1 text-right-sidebar-muted-fg" data-claude-history-empty>No saved chats for this vault yet.</p>
+				{/if}
+				{#each history ?? [] as row (row.chatId)}
+					{@const current = row.chatId === claudeStore.chatId}
+					{@const title = row.title || 'Untitled chat'}
+					<div class="flex items-center gap-1 rounded-md {current ? 'bg-right-sidebar-accent' : 'hover:bg-right-sidebar-accent/50'}" data-claude-history-row={row.chatId}>
+						<button
+							class="flex min-w-0 flex-1 flex-col items-start px-2 py-1 text-left disabled:opacity-50"
+							title={title}
+							aria-current={current ? 'true' : undefined}
+							disabled={claudeStore.isRunning}
+							onclick={() => void onOpenChat(row.chatId)}
+							data-claude-history-open
+						>
+							<span class="w-full truncate" data-claude-history-title>{title}</span>
+							<span class="text-meta text-right-sidebar-muted-fg" data-claude-history-time>{formatRelativeTime(Math.floor(row.modifiedMs / 1000))}</span>
+						</button>
+						<button
+							class="inline-flex size-6 shrink-0 items-center justify-center rounded-sm text-right-sidebar-muted-fg hover:bg-right-sidebar-accent disabled:opacity-50"
+							aria-label={`Delete ${title}`}
+							title="Delete chat"
+							disabled={claudeStore.isRunning}
+							onclick={() => void onDeleteChat(row.chatId)}
+							data-claude-history-delete
+						><Trash2 class="size-3.5" /></button>
+					</div>
+				{/each}
+			</div>
+		{:else}
 		<!-- The app body sets user-select: none; replies and tool output must stay copyable. -->
 		<div bind:this={messagesEl} class="min-h-0 flex-1 select-text overflow-y-auto p-3" onscroll={onMessagesScroll} data-claude-messages>
 			{#if claudeStore.restored}
@@ -265,6 +397,7 @@
 				</p>
 			{/if}
 		</div>
+		{/if}
 
 		<div class="flex flex-col gap-2 border-t border-divider p-3">
 			<div class="flex flex-wrap items-center gap-1" data-claude-chips>
@@ -301,7 +434,7 @@
 						class="rounded-md border border-divider bg-transparent px-2 py-1"
 						placeholder="Type a note name..."
 						bind:value={pickerQuery}
-						onkeydown={(e) => { if (e.key === 'Escape') pickerOpen = false; }}
+						onkeydown={(e) => { if (e.key === 'Escape') { e.preventDefault(); pickerOpen = false; } }}
 						autofocus
 					/>
 					{#each pickerResults as file (file.path)}

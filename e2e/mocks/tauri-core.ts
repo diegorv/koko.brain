@@ -480,6 +480,10 @@ function handleClaudeChatList(): ClaudeChatEntry[] {
 	return [];
 }
 
+function handleClaudeChatDelete(): null {
+	return null;
+}
+
 function handleQuickCaptureNoop(): null {
 	return null;
 }
@@ -590,6 +594,7 @@ const HANDLERS: Handlers = {
 	claude_chat_write: handleClaudeChatWrite,
 	claude_chat_read: handleClaudeChatRead,
 	claude_chat_list: handleClaudeChatList,
+	claude_chat_delete: handleClaudeChatDelete,
 
 	// Quick capture
 	capture_clipboard_now: handleQuickCaptureNoop,

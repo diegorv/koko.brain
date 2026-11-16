@@ -140,6 +140,103 @@ export async function restoreLastChat(vaultPath: string): Promise<void> {
 	}
 }
 
+/** One row of the history list. */
+export interface ChatHistoryRow {
+	/** The chat's id, also its file name. */
+	chatId: string;
+	/** The chat's stored title; empty for a chat without a prompt. */
+	title: string;
+	/** The file's modification time, in ms since the Unix epoch. */
+	modifiedMs: number;
+}
+
+/** True when a read begun in `vaultPath` no longer applies: the vault changed, or a turn runs. */
+function historyStale(vaultPath: string): boolean {
+	return vaultStore.path !== vaultPath || claudeStore.isRunning;
+}
+
+/**
+ * The vault's saved chats for the history list, in `claude_chat_list` order
+ * (newest modification first). Each file is read for its title; a file that is
+ * gone is left out, and one that cannot be read or parsed is logged, left on
+ * disk and left out. `null` when the vault changed or a turn started before
+ * the list resolved. A failed list is logged and rethrown.
+ */
+export async function loadChatHistory(vaultPath: string): Promise<ChatHistoryRow[] | null> {
+	let entries;
+	try {
+		entries = await call('claude_chat_list', { vaultPath });
+	} catch (err) {
+		error('CLAUDE', 'claude_chat_list failed:', err);
+		throw err;
+	}
+	if (historyStale(vaultPath)) return null;
+	const rows = await Promise.all(
+		entries.map(async ({ chatId, modifiedMs }): Promise<ChatHistoryRow | null> => {
+			let text: string | null;
+			try {
+				text = await call('claude_chat_read', { vaultPath, chatId });
+			} catch (err) {
+				error('CLAUDE', `Could not read chat ${chatId}.json:`, err);
+				return null;
+			}
+			if (text === null) return null;
+			const stored = chatFromStored(text);
+			if (stored?.chatId !== chatId) {
+				error('CLAUDE', `Chat file ${chatId}.json is not a chat Kokobrain can read; it is left as it is.`);
+				return null;
+			}
+			return { chatId, title: stored.title, modifiedMs };
+		}),
+	);
+	if (historyStale(vaultPath)) return null;
+	return rows.filter((row) => row !== null);
+}
+
+/**
+ * Shows a saved chat from the history list. The chat already open stays as it
+ * is, without a read. Returns whether the chat now shows: `false` while a turn
+ * runs, and when the vault changed or a turn started before the read resolved.
+ * A chat that is gone or cannot be parsed throws an `Error` for the user and
+ * leaves the open chat; a failed read is logged and rethrown.
+ */
+export async function openChat(vaultPath: string, chatId: string): Promise<boolean> {
+	if (claudeStore.isRunning) return false;
+	if (claudeStore.chatId === chatId) return true;
+	let text: string | null;
+	try {
+		text = await call('claude_chat_read', { vaultPath, chatId });
+	} catch (err) {
+		error('CLAUDE', 'claude_chat_read failed:', err);
+		throw err;
+	}
+	if (historyStale(vaultPath)) return false;
+	if (text === null) throw new Error('This chat was deleted.');
+	const stored = chatFromStored(text);
+	if (stored?.chatId !== chatId) {
+		error('CLAUDE', `Chat file ${chatId}.json is not a chat Kokobrain can read; it is left as it is.`);
+		throw new Error('This chat cannot be read. Its file is left in the vault.');
+	}
+	claudeStore.restore(stored);
+	return true;
+}
+
+/**
+ * Deletes a saved chat's file (never the CLI transcript). Deleting the open
+ * chat leaves a new empty chat, as New chat does. Does nothing while a turn
+ * runs. A failed delete is logged and rethrown.
+ */
+export async function deleteChat(vaultPath: string, chatId: string): Promise<void> {
+	if (claudeStore.isRunning) return;
+	try {
+		await call('claude_chat_delete', { vaultPath, chatId });
+	} catch (err) {
+		error('CLAUDE', 'claude_chat_delete failed:', err);
+		throw err;
+	}
+	if (!historyStale(vaultPath) && claudeStore.chatId === chatId) newChat();
+}
+
 /** Inline message when `claude_cancel_turn` fails; the turn keeps running and Stop stays. */
 export const STOP_FAILED = 'Could not stop Claude. Try again.';
 

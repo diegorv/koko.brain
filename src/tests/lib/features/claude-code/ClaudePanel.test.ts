@@ -793,3 +793,263 @@ describe('ClaudePanel without claude', () => {
 		}
 	});
 });
+
+describe('ClaudePanel history', () => {
+	const ID_A = '0f8fad5b-d9cb-469f-a165-70867728950e';
+	const ID_B = '7c9e6679-7425-40de-944b-e07fc1f90ae7';
+	const MINUTE = 60_000;
+
+	/** A saved chat file's text. */
+	const chatFile = (chatId: string, title: string) =>
+		JSON.stringify({
+			version: 1,
+			chatId,
+			sessionId: null,
+			createdAt: '2026-11-16T10:00:00.000Z',
+			updatedAt: '2026-11-16T10:05:00.000Z',
+			title,
+			messages: [{ role: 'user', text: title }, { role: 'assistant', parts: [{ kind: 'text', text: `reply to ${title}` }] }],
+		});
+
+	/** The chat folder of each vault: id, file text and mtime, newest first. */
+	let vaults: Map<string, { chatId: string; text: string; modifiedMs: number }[]>;
+
+	/** Answers the status check, `claude_run_turn` and the chat commands from `vaults`. */
+	function answerHistory(overrides: (cmd: string, args: Record<string, string>) => unknown = () => undefined) {
+		vi.mocked(invoke).mockImplementation(async (cmd: string, raw?: unknown) => {
+			const args = (raw ?? {}) as Record<string, string>;
+			const overridden = overrides(cmd, args);
+			if (overridden !== undefined) return overridden;
+			const chats = vaults.get(args.vaultPath) ?? [];
+			if (cmd === 'claude_status') return INSTALLED;
+			if (cmd === 'claude_run_turn') return 'r1';
+			if (cmd === 'claude_chat_list') return chats.map(({ chatId, modifiedMs }) => ({ chatId, modifiedMs }));
+			if (cmd === 'claude_chat_read') return chats.find((c) => c.chatId === args.chatId)?.text ?? null;
+			if (cmd === 'claude_chat_delete') vaults.set(args.vaultPath, chats.filter((c) => c.chatId !== args.chatId));
+			return null;
+		});
+	}
+
+	const historyButton = () => q<HTMLButtonElement>('button[aria-label="Chat history"]')!;
+	const rows = () => qa('[data-claude-history-row]');
+	const rowTitles = () => rows().map((r) => r.querySelector('[data-claude-history-title]')?.textContent?.trim());
+	const openButton = (chatId: string) => q<HTMLButtonElement>(`[data-claude-history-row="${chatId}"] [data-claude-history-open]`)!;
+	const deleteButton = (chatId: string) => q<HTMLButtonElement>(`[data-claude-history-row="${chatId}"] [data-claude-history-delete]`)!;
+
+	async function openHistory() {
+		historyButton().click();
+		await settle();
+	}
+
+	beforeEach(() => {
+		const now = Date.now();
+		vaults = new Map([
+			['/vault', [
+				{ chatId: ID_B, text: chatFile(ID_B, 'newest chat'), modifiedMs: now - 5 * MINUTE - 1000 },
+				{ chatId: ID_A, text: chatFile(ID_A, 'older chat'), modifiedMs: now - 3 * 60 * MINUTE - 1000 },
+			]],
+		]);
+		answerHistory();
+	});
+
+	it('the history button sits next to New chat and swaps the messages for the list, newest first', async () => {
+		await render();
+		const toolbar = button('New chat').parentElement!;
+		expect(toolbar.contains(historyButton())).toBe(true);
+		expect(historyButton().getAttribute('aria-pressed')).toBe('false');
+
+		await openHistory();
+		expect(q('[data-claude-messages]')).toBeNull();
+		expect(historyButton().getAttribute('aria-pressed')).toBe('true');
+		expect(rowTitles()).toEqual(['newest chat', 'older chat']);
+		expect(rows().map((r) => r.querySelector('[data-claude-history-time]')?.textContent?.trim())).toEqual(['5m ago', '3h ago']);
+		expect(invoke).toHaveBeenCalledWith('claude_chat_list', { vaultPath: '/vault' });
+		expect(promptBox()).not.toBeNull();
+	});
+
+	it('the same button goes back to the chat', async () => {
+		await render();
+		await openHistory();
+		await openHistory();
+		expect(q('[data-claude-history]')).toBeNull();
+		expect(q('[data-claude-messages]')).not.toBeNull();
+	});
+
+	it('Escape goes back to the chat', async () => {
+		await render();
+		await openHistory();
+		openButton(ID_A).dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		await settle();
+		expect(q('[data-claude-history]')).toBeNull();
+		expect(q('[data-claude-messages]')).not.toBeNull();
+	});
+
+	it('Escape that closes the slash menu leaves the list open', async () => {
+		seedSlashCommands(['review']);
+		await render();
+		await openHistory();
+		await type('/');
+		await key({ key: 'Escape' });
+		expect(q('[data-claude-slash-menu]')).toBeNull();
+		expect(q('[data-claude-history]')).not.toBeNull();
+	});
+
+	it('Escape that closes the note picker leaves the list open', async () => {
+		await render();
+		await openHistory();
+		q<HTMLButtonElement>('[data-claude-add-note]')!.click();
+		await settle();
+		q<HTMLInputElement>('[data-claude-note-picker] input')!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+		await settle();
+		expect(q('[data-claude-note-picker]')).toBeNull();
+		expect(q('[data-claude-history]')).not.toBeNull();
+	});
+
+	it('New chat from the list goes back to an empty chat', async () => {
+		claudeStore.restore(JSON.parse(chatFile(ID_A, 'older chat')));
+		await render();
+		await openHistory();
+		button('New chat').click();
+		await settle();
+		expect(q('[data-claude-history]')).toBeNull();
+		expect(q('[data-claude-empty]')).not.toBeNull();
+		expect(qa('[data-claude-message="user"]')).toEqual([]);
+	});
+
+	it('says so when the vault has no saved chats', async () => {
+		vaults.set('/vault', []);
+		await render();
+		await openHistory();
+		expect(rows()).toEqual([]);
+		expect(q('[data-claude-history-empty]')?.textContent?.trim()).toBe('No saved chats for this vault yet.');
+	});
+
+	it('marks the open chat', async () => {
+		claudeStore.restore(JSON.parse(chatFile(ID_A, 'older chat')));
+		await render();
+		await openHistory();
+		expect(openButton(ID_A).getAttribute('aria-current')).toBe('true');
+		expect(openButton(ID_B).hasAttribute('aria-current')).toBe(false);
+	});
+
+	it('a row restores its chat and goes back to the chat view', async () => {
+		await render();
+		await openHistory();
+		openButton(ID_A).click();
+		await settle();
+
+		expect(q('[data-claude-history]')).toBeNull();
+		expect(qa('[data-claude-message="user"]').map((el) => el.textContent)).toEqual(['older chat']);
+		expect(q('[data-claude-text]')?.textContent).toContain('reply to older chat');
+		expect(claudeStore.chatId).toBe(ID_A);
+	});
+
+	it('a row that cannot be opened says so and stays on the list', async () => {
+		await render();
+		await openHistory();
+		vaults.set('/vault', []);
+		openButton(ID_A).click();
+		await settle();
+
+		expect(q('[data-claude-history] [role="alert"]')?.textContent).toBe('This chat was deleted.');
+		expect(q('[data-claude-history]')).not.toBeNull();
+		expect(claudeStore.chatId).toBeNull();
+	});
+
+	it('while a turn runs the history button, rows and delete buttons are disabled', async () => {
+		await render();
+		await sendText('working');
+		expect(historyButton().disabled).toBe(true);
+
+		await emit({ type: 'Done', exitCode: 0 });
+		await openHistory();
+		claudeStore.beginTurn('started elsewhere');
+		await settle();
+		expect(historyButton().disabled).toBe(true);
+		expect(openButton(ID_A).disabled).toBe(true);
+		expect(deleteButton(ID_A).disabled).toBe(true);
+		expect(q('[data-claude-history]')?.textContent).toContain('Wait for Claude to finish, or press Stop.');
+	});
+
+	it('sending from the list goes back to the chat to show the reply', async () => {
+		await render();
+		await openHistory();
+		await sendText('from the list');
+		expect(q('[data-claude-history]')).toBeNull();
+		expect(qa('[data-claude-message="user"]').at(-1)?.textContent).toBe('from the list');
+	});
+
+	it('the delete button removes the row and its file and leaves the open chat', async () => {
+		claudeStore.restore(JSON.parse(chatFile(ID_B, 'newest chat')));
+		await render();
+		await openHistory();
+		deleteButton(ID_A).click();
+		await settle();
+
+		expect(invoke).toHaveBeenCalledWith('claude_chat_delete', { vaultPath: '/vault', chatId: ID_A });
+		expect(rowTitles()).toEqual(['newest chat']);
+		expect(claudeStore.chatId).toBe(ID_B);
+	});
+
+	it('deleting the open chat leaves a new empty chat', async () => {
+		claudeStore.restore(JSON.parse(chatFile(ID_B, 'newest chat')));
+		await render();
+		await openHistory();
+		deleteButton(ID_B).click();
+		await settle();
+		expect(rowTitles()).toEqual(['older chat']);
+
+		await openHistory();
+		expect(q('[data-claude-empty]')).not.toBeNull();
+		expect(q('[data-claude-message="user"]')).toBeNull();
+		expect(claudeStore.chatId).toBeNull();
+	});
+
+	it('a failed delete keeps the row and says so', async () => {
+		answerHistory((cmd) => (cmd === 'claude_chat_delete' ? Promise.reject('delete failed') : undefined));
+		await render();
+		await openHistory();
+		deleteButton(ID_A).click();
+		await settle();
+
+		expect(rowTitles()).toEqual(['newest chat', 'older chat']);
+		expect(q('[data-claude-history] [role="alert"]')?.textContent).toBe('Could not delete the chat.');
+	});
+
+	it('shows the new vault chats when the vault changes while the list is open', async () => {
+		const ID_C = '16fd2706-8baf-433b-82eb-8c7fada847da';
+		vaults.set('/other', [{ chatId: ID_C, text: chatFile(ID_C, 'other vault chat'), modifiedMs: Date.now() }]);
+		await render();
+		await openHistory();
+
+		vaultStore.open('/other');
+		await settle();
+		expect(rowTitles()).toEqual(['other vault chat']);
+	});
+
+	it('a list that resolves after the vault changed is dropped', async () => {
+		let release!: () => void;
+		answerHistory((cmd, args) =>
+			cmd === 'claude_chat_list' && args.vaultPath === '/vault'
+				? new Promise((resolve) => { release = () => resolve([{ chatId: ID_A, modifiedMs: 1 }]); })
+				: undefined,
+		);
+		vaults.set('/other', []);
+		await render();
+		await openHistory();
+
+		vaultStore.open('/other');
+		await settle();
+		release();
+		await settle();
+		expect(rows()).toEqual([]);
+		expect(q('[data-claude-history-empty]')).not.toBeNull();
+	});
+
+	it('a failed list says so', async () => {
+		answerHistory((cmd) => (cmd === 'claude_chat_list' ? Promise.reject('read_dir failed') : undefined));
+		await render();
+		await openHistory();
+		expect(q('[data-claude-history] [role="alert"]')?.textContent).toBe('Could not load the saved chats.');
+	});
+});

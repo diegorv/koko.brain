@@ -1,7 +1,7 @@
 //! Integration tests for `commands::claude::chats`: the panel's chat files in
 //! `<vault>/.kokobrain/claude/chats/`.
 
-use kokobrain_lib::commands::claude::chats::{claude_chat_list, claude_chat_read, claude_chat_write, ClaudeChatEntry};
+use kokobrain_lib::commands::claude::chats::{claude_chat_delete, claude_chat_list, claude_chat_read, claude_chat_write, ClaudeChatEntry};
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
@@ -153,4 +153,64 @@ fn list_skips_anything_not_named_after_a_chat_id() {
 	fs::create_dir_all(dir.join(format!("{ID_B}.json"))).unwrap();
 
 	assert_eq!(ids(&claude_chat_list(vault_str(tmp.path())).unwrap()), vec![ID_A]);
+}
+
+fn delete(vault: &Path, id: &str) -> Result<(), String> {
+	claude_chat_delete(vault_str(vault), id.to_string())
+}
+
+#[test]
+fn delete_removes_only_that_chat_file() {
+	let tmp = vault();
+	write(tmp.path(), ID_A, "a").unwrap();
+	write(tmp.path(), ID_B, "b").unwrap();
+	let dir = chats_dir(tmp.path());
+	fs::write(dir.join("notes.json"), "x").unwrap();
+
+	assert_eq!(delete(tmp.path(), ID_A), Ok(()));
+
+	assert_eq!(read(tmp.path(), ID_A), Ok(None));
+	assert_eq!(read(tmp.path(), ID_B), Ok(Some("b".to_string())));
+	assert!(dir.join("notes.json").exists());
+	assert_eq!(ids(&claude_chat_list(vault_str(tmp.path())).unwrap()), vec![ID_B]);
+}
+
+#[test]
+fn delete_of_a_missing_file_is_not_an_error() {
+	let tmp = vault();
+	assert_eq!(delete(tmp.path(), ID_A), Ok(()));
+
+	write(tmp.path(), ID_A, "a").unwrap();
+	assert_eq!(delete(tmp.path(), ID_A), Ok(()));
+	assert_eq!(delete(tmp.path(), ID_A), Ok(()));
+}
+
+#[test]
+fn delete_errors_when_the_vault_is_gone_or_the_file_cannot_be_removed() {
+	let tmp = vault();
+	assert!(delete(&tmp.path().join("missing"), ID_A).is_err());
+
+	// A folder where the file should be is not a chat file to remove.
+	let dir = chats_dir(tmp.path()).join(format!("{ID_B}.json"));
+	fs::create_dir_all(&dir).unwrap();
+	assert!(delete(tmp.path(), ID_B).is_err());
+	assert!(dir.exists());
+}
+
+#[test]
+fn delete_refuses_an_id_that_is_not_a_canonical_uuid() {
+	let tmp = vault();
+	write(tmp.path(), ID_A, "a").unwrap();
+	fs::write(tmp.path().join("x.json"), "outside the chats folder").unwrap();
+	fs::write(chats_dir(tmp.path()).join("x.json"), "not a chat").unwrap();
+	let upper = ID_A.to_uppercase();
+	let braced = format!("{{{ID_A}}}");
+	let bad = ["", "x", "..", "../../x", "a/b", upper.as_str(), braced.as_str()];
+
+	for id in bad {
+		assert_eq!(delete(tmp.path(), id), Err(format!("Invalid chat id: {id}")));
+	}
+	assert!(tmp.path().join("x.json").exists());
+	assert!(chats_dir(tmp.path()).join("x.json").exists());
+	assert_eq!(read(tmp.path(), ID_A), Ok(Some("a".to_string())));
 }
