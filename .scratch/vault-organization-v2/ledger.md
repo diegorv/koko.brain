@@ -45,3 +45,5 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-13 15:22 — 01 — start — launched by /relay-lite:run — 7ac981f3
 - 2026-11-13 16:08 — 01 — deliver — merged as abc8399b: rule move into a folder with a same-name file now files the note as '<name> 2', updates links and shows a toast; review CHANGES_REQUESTED then APPROVED; full vitest suite green — abc8399b
 - 2026-11-13 16:16 — 02 — start — launched by /relay-lite:run — 4a6fe32c
+- 2026-11-16 15:02 — 02 — deliver — build agent failed: API unreachable (ENOTFOUND); nothing delivered, worktree kept — 3a701624
+- 2026-11-16 15:02 — 02 — start — launched by /relay-lite:run (retry) — b2527a80

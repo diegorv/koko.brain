@@ -10,6 +10,7 @@ import {
 	myPeopleDaysLabel,
 	filterPeople,
 	mergePeopleLists,
+	withOneOnOneKind,
 	type PersonEntry,
 } from '#lib/plugins/one-on-one/one-on-one.logic.js';
 import type { PeriodicNotesSettings } from '#lib/core/settings/settings.types.js';
@@ -287,6 +288,36 @@ describe('buildMyPeople', () => {
 		return entryV2(`${PEOPLE}/${name}.md`, { isA: 'Person', frontmatter: { _one_on_one_every: every } as NoteEntryV2['frontmatter'] });
 	}
 
+	it('does not reset the counter for a group meeting related to the person; a 1:1 does', () => {
+		const sync = entryV2('/vault/notes/team-sync.md', { isA: 'Meeting', relatedTo: ['Ana', 'Bruno'], frontmatter: { date: '2026-10-30' } });
+		const oneOnOne = entryV2('/vault/notes/-1on1-Ana.md', { isA: 'Meeting', relatedTo: ['Ana'], frontmatter: { date: '2026-10-20', kind: 'one-on-one' } });
+
+		expect(buildMyPeople([person('Ana'), sync], OPTIONS)[0]).toMatchObject({ lastDate: null, days: null, overdue: true });
+		expect(buildMyPeople([person('Ana'), sync, oneOnOne], OPTIONS)[0]).toMatchObject({ lastDate: '2026-10-20', days: 12 });
+	});
+
+	it('counts a note tagged type/meeting/one-one as a 1:1, whatever its kind', () => {
+		const tagged = entryV2('/vault/a.md', { relatedTo: ['Ana'], tags: ['Type/Meeting/One-One'], frontmatter: { date: '2026-10-27', kind: 'meeting' } });
+
+		expect(buildMyPeople([person('Ana'), tagged], OPTIONS)[0]).toMatchObject({ lastDate: '2026-10-27', days: 5 });
+	});
+
+	it.each([[' One-On-One '], ['ONE-ON-ONE']])('reads kind %j as a 1:1', (kind) => {
+		const note = entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-27', kind } });
+
+		expect(buildMyPeople([person('Ana'), note], OPTIONS)[0].lastDate).toBe('2026-10-27');
+	});
+
+	it.each([['meeting'], [['one-on-one']], [true]])('does not count a note whose kind is %j and has no 1:1 tag', (kind) => {
+		const note = entryV2('/vault/a.md', {
+			relatedTo: ['Ana'],
+			tags: ['type/meeting', 'type/meeting/one-one/extra'],
+			frontmatter: { date: '2026-10-27', kind } as NoteEntryV2['frontmatter'],
+		});
+
+		expect(buildMyPeople([person('Ana'), note], OPTIONS)[0].lastDate).toBeNull();
+	});
+
 	it('lists only the people whose note sets _one_on_one_every', () => {
 		const rows = buildMyPeople([person('Ana'), entryV2(`${PEOPLE}/Bruno.md`, { isA: 'Person' })], OPTIONS);
 
@@ -295,7 +326,7 @@ describe('buildMyPeople', () => {
 
 	it('flags past the person\'s own cadence when _one_on_one_every is a number, ignoring dueAfterDays', () => {
 		const at = (every: number, date: string) =>
-			buildMyPeople([person('Ana', every), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date } })], OPTIONS)[0];
+			buildMyPeople([person('Ana', every), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date } })], OPTIONS)[0];
 		expect(at(3, '2026-10-29')).toMatchObject({ days: 3, overdue: false });
 		expect(at(3, '2026-10-28')).toMatchObject({ days: 4, overdue: true });
 		expect(at(30, '2026-10-10')).toMatchObject({ days: 22, overdue: false });
@@ -307,7 +338,7 @@ describe('buildMyPeople', () => {
 
 	it('reads the text values the Properties panel saves: a whole number and true', () => {
 		const at = (every: string) =>
-			buildMyPeople([person('Ana', every), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-25' } })], OPTIONS)[0];
+			buildMyPeople([person('Ana', every), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-10-25' } })], OPTIONS)[0];
 		expect(at('5')).toMatchObject({ days: 7, overdue: true });
 		expect(at(' 10 ')).toMatchObject({ days: 7, overdue: false });
 		expect(at('true')).toMatchObject({ days: 7, overdue: false });
@@ -320,9 +351,9 @@ describe('buildMyPeople', () => {
 				person('Ana', 30),
 				person('Bruno', 3),
 				person('Carla', 7),
-				entryV2('/vault/1.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-10' } }),
-				entryV2('/vault/2.md', { relatedTo: ['Bruno'], frontmatter: { date: '2026-10-27' } }),
-				entryV2('/vault/3.md', { relatedTo: ['Carla'], frontmatter: { date: '2026-10-25' } }),
+				entryV2('/vault/1.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-10-10' } }),
+				entryV2('/vault/2.md', { relatedTo: ['Bruno'], frontmatter: { kind: 'one-on-one', date: '2026-10-27' } }),
+				entryV2('/vault/3.md', { relatedTo: ['Carla'], frontmatter: { kind: 'one-on-one', date: '2026-10-25' } }),
 			],
 			OPTIONS,
 		);
@@ -335,7 +366,7 @@ describe('buildMyPeople', () => {
 
 	it('counts a note whose _related_to links the person, wherever it lives', () => {
 		const rows = buildMyPeople(
-			[person('Ana'), entryV2('/vault/Somewhere/deep/sync.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-27' } })],
+			[person('Ana'), entryV2('/vault/Somewhere/deep/sync.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-10-27' } })],
 			OPTIONS,
 		);
 		expect(rows).toEqual([{ name: 'Ana', path: `${PEOPLE}/Ana.md`, lastDate: '2026-10-27', days: 5, overdue: false }]);
@@ -365,9 +396,9 @@ describe('buildMyPeople', () => {
 		const rows = buildMyPeople(
 			[
 				person('Ana'),
-				entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-13' } }),
-				entryV2('/vault/b.md', { relatedTo: ['Ana', 'Promo'], frontmatter: { date: '2026-10-27' } }),
-				entryV2('/vault/c.md', { relatedTo: ['Ana'], frontmatter: { created: '2026-10-20T09:00:00' } }),
+				entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-10-13' } }),
+				entryV2('/vault/b.md', { relatedTo: ['Ana', 'Promo'], frontmatter: { kind: 'one-on-one', date: '2026-10-27' } }),
+				entryV2('/vault/c.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', created: '2026-10-20T09:00:00' } }),
 			],
 			OPTIONS,
 		);
@@ -377,14 +408,14 @@ describe('buildMyPeople', () => {
 
 	it('matches the link case-insensitively, ignoring a folder prefix and .md', () => {
 		const rows = buildMyPeople(
-			[person('Ana Souza'), entryV2('/vault/a.md', { relatedTo: ['Work/_people/ana souza.md'], frontmatter: { date: '2026-10-30' } })],
+			[person('Ana Souza'), entryV2('/vault/a.md', { relatedTo: ['Work/_people/ana souza.md'], frontmatter: { kind: 'one-on-one', date: '2026-10-30' } })],
 			OPTIONS,
 		);
 		expect(rows[0].days).toBe(2);
 	});
 
 	it('gives "never" (null days, flagged) when the person has no 1:1', () => {
-		const rows = buildMyPeople([person('Ana'), entryV2('/vault/x.md', { relatedTo: ['Bruno'], frontmatter: { date: '2026-10-30' } })], OPTIONS);
+		const rows = buildMyPeople([person('Ana'), entryV2('/vault/x.md', { relatedTo: ['Bruno'], frontmatter: { kind: 'one-on-one', date: '2026-10-30' } })], OPTIONS);
 		expect(rows).toEqual([{ name: 'Ana', path: `${PEOPLE}/Ana.md`, lastDate: null, days: null, overdue: true }]);
 	});
 
@@ -392,8 +423,8 @@ describe('buildMyPeople', () => {
 		const rows = buildMyPeople(
 			[
 				person('Ana'),
-				entryV2('/vault/past.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-25' } }),
-				entryV2('/vault/next.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-11-08' } }),
+				entryV2('/vault/past.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-10-25' } }),
+				entryV2('/vault/next.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-11-08' } }),
 			],
 			OPTIONS,
 		);
@@ -402,14 +433,14 @@ describe('buildMyPeople', () => {
 
 	it('flags past dueAfterDays only: exactly dueAfterDays is not flagged, one more day is', () => {
 		const at = (date: string) =>
-			buildMyPeople([person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date } })], OPTIONS)[0];
+			buildMyPeople([person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date } })], OPTIONS)[0];
 		expect(at('2026-10-18')).toMatchObject({ days: 14, overdue: false });
 		expect(at('2026-10-17')).toMatchObject({ days: 15, overdue: true });
 		expect(at('2026-11-01')).toMatchObject({ days: 0, overdue: false });
 	});
 
 	it('follows dueAfterDays', () => {
-		const entries = [person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-25' } })];
+		const entries = [person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-10-25' } })];
 		expect(buildMyPeople(entries, OPTIONS)[0].overdue).toBe(false);
 		expect(buildMyPeople(entries, { ...OPTIONS, dueAfterDays: 5 })[0].overdue).toBe(true);
 	});
@@ -434,9 +465,9 @@ describe('buildMyPeople', () => {
 				person('Bruno'),
 				person('Ana'),
 				person('Dani'),
-				entryV2('/vault/1.md', { relatedTo: ['Carla'], frontmatter: { date: '2026-10-30' } }),
-				entryV2('/vault/2.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-10' } }),
-				entryV2('/vault/3.md', { relatedTo: ['Bruno'], frontmatter: { date: '2026-10-30' } }),
+				entryV2('/vault/1.md', { relatedTo: ['Carla'], frontmatter: { kind: 'one-on-one', date: '2026-10-30' } }),
+				entryV2('/vault/2.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-10-10' } }),
+				entryV2('/vault/3.md', { relatedTo: ['Bruno'], frontmatter: { kind: 'one-on-one', date: '2026-10-30' } }),
 			],
 			OPTIONS,
 		);
@@ -450,11 +481,36 @@ describe('buildMyPeople', () => {
 	});
 
 	it('returns no days for an unparseable today key', () => {
-		const rows = buildMyPeople([person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { date: '2026-10-25' } })], {
+		const rows = buildMyPeople([person('Ana'), entryV2('/vault/a.md', { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one', date: '2026-10-25' } })], {
 			...OPTIONS,
 			todayKey: 'not-a-day',
 		});
 		expect(rows).toEqual([{ name: 'Ana', path: `${PEOPLE}/Ana.md`, lastDate: null, days: null, overdue: true }]);
+	});
+});
+
+describe('withOneOnOneKind', () => {
+	it('adds kind right after the opening --- and keeps the rest byte for byte', () => {
+		expect(withOneOnOneKind('---\n# note\ndate: 2026-02-18\n---\n# 1:1\n')).toBe('---\nkind: one-on-one\n# note\ndate: 2026-02-18\n---\n# 1:1\n');
+		expect(withOneOnOneKind('---\r\ndate: 2026-02-18\r\n---\r\n')).toBe('---\r\nkind: one-on-one\r\ndate: 2026-02-18\r\n---\r\n');
+	});
+
+	it('fills an empty block and prepends a block to content without frontmatter', () => {
+		expect(withOneOnOneKind('---\n---\n# 1:1\n')).toBe('---\nkind: one-on-one\n---\n# 1:1\n');
+		expect(withOneOnOneKind('# 1:1\n')).toBe('---\nkind: one-on-one\n---\n# 1:1\n');
+		expect(withOneOnOneKind('')).toBe('---\nkind: one-on-one\n---\n');
+	});
+
+	it('keeps a top-level kind the template writes, whatever its value', () => {
+		const content = '---\ntype: Meeting\nkind: meeting\n---\n';
+		expect(withOneOnOneKind(content)).toBe(content);
+		expect(withOneOnOneKind('---\nkind : one-on-one\n---\n')).toBe('---\nkind : one-on-one\n---\n');
+		expect(withOneOnOneKind('---\n"kind": meeting\n---\n')).toBe('---\n"kind": meeting\n---\n');
+		expect(withOneOnOneKind("---\n'kind': meeting\n---\n")).toBe("---\n'kind': meeting\n---\n");
+	});
+
+	it('adds kind when the only kind key is nested or in the body', () => {
+		expect(withOneOnOneKind('---\nmeta:\n  kind: x\n---\nkind: body\n')).toBe('---\nkind: one-on-one\nmeta:\n  kind: x\n---\nkind: body\n');
 	});
 });
 

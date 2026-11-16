@@ -153,6 +153,37 @@ function oneOnOneCadence(value: unknown, dueAfterDays: number): number | null {
 	return typeof n === 'number' && Number.isInteger(n) && n > 0 ? n : null;
 }
 
+/** The frontmatter `kind` that marks a note as a 1:1. */
+const ONE_ON_ONE_KIND = 'one-on-one';
+
+/** The tag the brain-os 1:1 template writes; it marks a note as a 1:1 like `kind: one-on-one`. */
+const ONE_ON_ONE_TAG = 'type/meeting/one-one';
+
+/** A note is a 1:1 when its `kind` is `one-on-one` or it carries `ONE_ON_ONE_TAG`, both case-insensitive. */
+function isOneOnOneNote(entry: NoteEntryV2): boolean {
+	const kind = entry.frontmatter.kind;
+	if (typeof kind === 'string' && kind.trim().toLowerCase() === ONE_ON_ONE_KIND) return true;
+	return entry.tags.some((tag) => tag.toLowerCase() === ONE_ON_ONE_TAG);
+}
+
+/**
+ * Returns `content` with `kind: one-on-one` in its frontmatter, unless a
+ * top-level `kind:` line is already there (whatever its value). The line goes
+ * right after the opening `---` with that line's ending, so the rest of the
+ * block is kept byte for byte; an empty `---`/`---` block receives it; content
+ * without frontmatter gets a block holding only the key. Never parses YAML and
+ * never throws, like `withUnorganizedFlag`.
+ */
+export function withOneOnOneKind(content: string): string {
+	const line = `kind: ${ONE_ON_ONE_KIND}`;
+	const insertAfterOpen = () => content.replace(/^---(\r?\n)/, (open, eol: string) => `${open}${line}${eol}`);
+	if (/^---\r?\n---(?:\r?\n|$)/.test(content)) return insertAfterOpen();
+	const block = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+	if (!block) return `---\n${line}\n---\n${content}`;
+	if (block[1].split(/\r?\n/).some((l) => /^["']?kind["']?\s*:/.test(l))) return content;
+	return insertAfterOpen();
+}
+
 /** The lowercase note name a link target points to: folder prefix, `|alias`, `#heading` and `.md` dropped. */
 function linkStem(target: string): string {
 	return target.split(/[|#]/)[0].trim().replace(/\.md$/i, '').split('/').pop()!.toLowerCase();
@@ -160,8 +191,8 @@ function linkStem(target: string): string {
 
 /**
  * Today's My people: the notes directly in the work people folder that set
- * `_one_on_one_every` (`oneOnOneCadence`), each with its last 1:1. A 1:1 for a person is any note whose `_related_to` links them,
- * wherever it lives (body links and folders do not count, PRD Q4); its day is
+ * `_one_on_one_every` (`oneOnOneCadence`), each with its last 1:1. A 1:1 for a person is any 1:1 note (`isOneOnOneNote`) whose `_related_to` links them,
+ * wherever it lives (body links, folders and other meetings do not count, PRD Q4); its day is
  * its note date, and a 1:1 dated after today is not held yet. Ordered most
  * overdue first: never, then the most days past the person's own cadence,
  * ties by name.
@@ -182,7 +213,7 @@ export function buildMyPeople(entries: NoteEntryV2[], options: MyPeopleOptions):
 	const lastByName = new Map<string, string>();
 	if (today) {
 		for (const entry of entries) {
-			if (entry.relatedTo.length === 0) continue;
+			if (entry.relatedTo.length === 0 || !isOneOnOneNote(entry)) continue;
 			const date = entryNoteDate(entry);
 			if (!date || date > today) continue;
 			for (const target of entry.relatedTo) {

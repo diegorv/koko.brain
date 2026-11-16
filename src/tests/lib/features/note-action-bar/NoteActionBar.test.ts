@@ -650,7 +650,7 @@ describe('NoteActionBar', () => {
 			await vi.waitFor(() => expect(editorStore.activeTab?.path).not.toBe(PERSON));
 
 			const [note] = created();
-			expect(note.content).toBe('---\n_related_to: "[[Alice]]"\n---\n');
+			expect(note.content).toBe('---\n_related_to: "[[Alice]]"\nkind: one-on-one\n---\n');
 			expect(editorStore.activeTab?.path).toBe(note.path);
 			expect(editorStore.activeTab?.content).toBe(note.content);
 			expect(toast.error).not.toHaveBeenCalled();
@@ -665,7 +665,7 @@ describe('NoteActionBar', () => {
 			hubButtons()[0].click();
 			await vi.waitFor(() => expect(created()).toHaveLength(1));
 
-			expect(created()[0].content).toBe('---\n_related_to: "[[Alice]]"\n---\n# Notes\n');
+			expect(created()[0].content).toBe('---\nkind: one-on-one\n_related_to: "[[Alice]]"\n---\n# Notes\n');
 		});
 
 		it('New 1:1 shows a toast and leaves no file when the creation fails', async () => {

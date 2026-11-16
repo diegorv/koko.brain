@@ -6,13 +6,13 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, reproducing the problem; it passes after the change.
-- [ ] A group meeting `_related_to` a direct report does not reset their counter; a 1:1 does.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, reproducing the problem; it passes after the change.
+- [x] A group meeting `_related_to` a direct report does not reset their counter; a 1:1 does.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Problem
 
@@ -26,3 +26,4 @@
 ## Comments
 
 - 2026-11-13, triage: ready-for-agent, P2.
+- 2026-11-16, delivery (branch issue/02-my-people-counts-only-1on1s): My people counts only notes with `kind: one-on-one` or tag `type/meeting/one-one`; New 1:1 writes the kind (quoted keys respected); help page updated. Review round 1 APPROVED (nits fixed: constants module-private, quoted `kind` key), round 2 APPROVED. Full suite at 6588b4c4: 639 files, 16983 passed, 0 failed; `pnpm check` 0 errors.

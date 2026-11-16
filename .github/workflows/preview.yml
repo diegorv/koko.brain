@@ -55,47 +55,23 @@ jobs:
           fi
           echo "Confirmed: ${{ github.repository }}"
 
-      - name: Skip if commit on main is a stable version bump
+      # Unlike nightly.yml, release-flow commits (version bump, release tag) are
+      # synced and built: release.yml builds no preview, and skipping them would
+      # leave preview on the old base version, below the new stable.
+      - name: Skip if commit on main asks to
         id: check
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMMIT_MSG: ${{ github.event.head_commit.message || '' }}
-          COMMIT_SHA: ${{ github.sha }}
           EVENT_NAME: ${{ github.event_name }}
           REF: ${{ github.ref }}
         run: |
           set -euo pipefail
-          # Release-flow commits only land on main; a preview push or a manual run always builds.
-          if [ "$EVENT_NAME" != "push" ] || [ "$REF" != "refs/heads/main" ]; then
-            echo "Proceeding: $EVENT_NAME on $REF builds the preview head."
-            echo "should_build=true" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          SUBJECT=$(printf '%s' "$COMMIT_MSG" | head -n 1)
-
-          TAGS_AT_SHA=$(gh api "repos/${{ github.repository }}/git/refs/tags" --paginate --jq ".[] | select(.object.sha == \"$COMMIT_SHA\") | .ref" 2>/dev/null | grep -E 'refs/tags/[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.]+)?$' || true)
-          if [ -n "$TAGS_AT_SHA" ]; then
-            echo "::notice::Release tag(s) at HEAD detected: $TAGS_AT_SHA. release.yml owns this SHA; skipping preview."
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          # In a variable: inline, bash parses the regex parentheses itself.
-          release_subject_re='^chore(\([^)]*\))?:.*bump[[:space:]]+version'
-          if [[ "$SUBJECT" =~ $release_subject_re ]]; then
-            echo "::notice::Detected version-bump commit shape ('$SUBJECT'). Skipping preview to avoid colliding with release.yml."
-            echo "should_build=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          if [[ "$COMMIT_MSG" == *"[skip nightly]"* ]]; then
+          if [ "$EVENT_NAME" = "push" ] && [ "$REF" = "refs/heads/main" ] && [[ "$COMMIT_MSG" == *"[skip nightly]"* ]]; then
             echo "::notice::Detected [skip nightly] marker in commit body. Skipping preview."
             echo "should_build=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
-          echo "Proceeding: '$SUBJECT' is not a release-flow commit."
+          echo "Proceeding: $EVENT_NAME on $REF."
           echo "should_build=true" >> "$GITHUB_OUTPUT"
 
   sync:
