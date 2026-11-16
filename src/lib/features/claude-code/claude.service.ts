@@ -5,7 +5,7 @@ import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { error } from '#lib/utils/debug.js';
-import { activeNoteContextPath, chatFromStored, normalizeVaultPath, storedFromChat } from './claude.logic';
+import { activeNoteContextPath, chatFromStored, normalizeVaultPath, storedFromChat, untriedSlashNames } from './claude.logic';
 import { claudeStore } from './claude.store.svelte';
 
 /** The message of an IPC rejection, which Tauri sends as a plain string. */
@@ -237,6 +237,91 @@ export async function deleteChat(vaultPath: string, chatId: string): Promise<voi
 	if (!historyStale(vaultPath) && claudeStore.chatId === chatId) newChat();
 }
 
+/** The slash command list requests of one vault in this app session. */
+interface SlashFetch {
+	/** `vaultStore.path` the requests are for. */
+	vaultPath: string;
+	/** A request was made for the vault (it may have failed or still run). */
+	asked: boolean;
+	/** A request is running. */
+	inFlight: boolean;
+	/** `Init` names that already caused a request, so they never cause another. */
+	tried: Set<string>;
+	/** The run whose `Done` makes the next request; `null` when none is due. */
+	refetchRunId: string | null;
+}
+
+/** The open vault's requests; replaced on a vault change, cleared by `resetClaude`, so a reply to a replaced one is dropped. */
+let slashFetch: SlashFetch | null = null;
+
+function slashFetchFor(vaultPath: string): SlashFetch {
+	if (slashFetch?.vaultPath !== vaultPath) slashFetch = { vaultPath, asked: false, inFlight: false, tried: new Set(), refetchRunId: null };
+	return slashFetch;
+}
+
+/**
+ * Asks `claude` for its command list in the vault and puts it in the store.
+ * The reply is the user's private setup: nothing of it is logged. A failure is
+ * logged, leaves the map as it was (the menu shows names only), and is rethrown.
+ */
+async function requestSlashCommands(fetch: SlashFetch): Promise<void> {
+	fetch.asked = true;
+	fetch.inFlight = true;
+	try {
+		const rows = await call('claude_slash_commands', {
+			binaryPath: settingsStore.claudeCode.binaryPath,
+			vaultPath: normalizeVaultPath(fetch.vaultPath),
+		});
+		if (slashFetch === fetch && vaultStore.path === fetch.vaultPath) claudeStore.setSlashCommandRows(rows);
+	} catch (err) {
+		error('CLAUDE', 'Could not load the slash command descriptions:', err);
+		throw err;
+	} finally {
+		fetch.inFlight = false;
+	}
+}
+
+/**
+ * Loads the slash command descriptions of the open vault, called when the
+ * panel mounts and when the vault changes. Asks only when no request was made
+ * for this vault in this app session, so a remount (canvas, kanban or view
+ * tab) makes no new call and a failed request is retried only by
+ * `slashCommandDetailsAfterEvent`. A failure is logged and rethrown.
+ */
+export async function loadSlashCommandDetails(): Promise<void> {
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return;
+	const fetch = slashFetchFor(vaultPath);
+	if (fetch.asked) return;
+	await requestSlashCommands(fetch);
+}
+
+/**
+ * Asks again for the command list after a turn whose `Init` brought slash
+ * commands that are neither in the map nor tried for this vault (a skill added
+ * since, an MCP prompt that never joins): once, after that run's `Done`, so
+ * never while the turn runs. An `Init` while a request runs causes none.
+ * Called by the `claude-event` listener for every event. Never rejects.
+ */
+export async function slashCommandDetailsAfterEvent(payload: ClaudeEventPayload): Promise<void> {
+	const vaultPath = vaultStore.path;
+	if (!vaultPath) return;
+	const fetch = slashFetchFor(vaultPath);
+	const { event, runId } = payload;
+	if (event.type === 'Init') {
+		if (fetch.inFlight) return;
+		const untried = untriedSlashNames(event.slashCommands, claudeStore.slashCommandDetails, fetch.tried);
+		if (untried.length === 0) return;
+		for (const name of untried) fetch.tried.add(name);
+		fetch.refetchRunId = runId;
+		return;
+	}
+	if (event.type !== 'Done' || fetch.refetchRunId !== runId) return;
+	fetch.refetchRunId = null;
+	if (fetch.inFlight) return;
+	await requestSlashCommands(fetch).catch(() => {});
+}
+
 /** Inline message when `claude_cancel_turn` fails; the turn keeps running and Stop stays. */
 export const STOP_FAILED = 'Could not stop Claude. Try again.';
 
@@ -261,14 +346,17 @@ export async function stop(): Promise<void> {
 
 /**
  * Closes the chat when the vault closes: cancels a running turn, then clears
- * the chat, its session (keyed to the vault's directory) and the vault-relative
- * notes. A failed cancel is logged; the chat is cleared either way.
+ * the chat, its session (keyed to the vault's directory), the vault-relative
+ * notes and the slash command descriptions with their request state (a reply
+ * still running is then dropped). A failed cancel is logged; the chat is
+ * cleared either way.
  */
 export function resetClaude(): void {
 	const runId = claudeStore.runId;
 	if (runId) {
 		call('claude_cancel_turn', { runId }).catch((err: unknown) => error('CLAUDE', 'claude_cancel_turn on vault close failed:', err));
 	}
+	slashFetch = null;
 	claudeStore.reset();
 }
 

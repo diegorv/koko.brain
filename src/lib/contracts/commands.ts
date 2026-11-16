@@ -24,6 +24,7 @@ import type {
 	SemanticFileStatus,
 	SemanticResult,
 	SemanticStats,
+	SlashCommandInfo,
 	SnapshotInfo,
 	TagAggregate,
 	TaskLineEdits,
@@ -228,6 +229,8 @@ export interface CommandMap {
 	claude_run_turn: { args: { request: ClaudeTurnRequest }; result: string };
 	/** Kills a running agent turn; no-op for an unknown or finished run (`commands/claude.rs`). */
 	claude_cancel_turn: { args: { runId: string }; result: null };
+	/** The installed `claude`'s slash commands with descriptions, asked in the vault; the user's SessionStart hooks run first (`commands/claude/slash.rs`). */
+	claude_slash_commands: { args: { binaryPath: string; vaultPath: string }; result: SlashCommandInfo[] };
 	/** Writes `<vaultPath>/.kokobrain/claude/chats/<chatId>.json` atomically, creating missing folders; `chatId` must be a canonical UUID (`commands/claude/chats.rs`). */
 	claude_chat_write: { args: { vaultPath: string; chatId: string; content: string }; result: null };
 	/** The text of a chat file; null only when the file is not there (`commands/claude/chats.rs`). */
@@ -344,6 +347,7 @@ export const COMMAND_ARGS = {
 	claude_status: ['binaryPath', 'refreshEnv'],
 	claude_run_turn: ['request'],
 	claude_cancel_turn: ['runId'],
+	claude_slash_commands: ['binaryPath', 'vaultPath'],
 	claude_chat_write: ['vaultPath', 'chatId', 'content'],
 	claude_chat_read: ['vaultPath', 'chatId'],
 	claude_chat_list: ['vaultPath'],

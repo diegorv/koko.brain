@@ -123,7 +123,7 @@ import { collectionStore } from '#lib/features/collection/collection.store.svelt
 import { registerWriteBarrier } from '#lib/core/vault/write-barrier.service.js';
 import type { NoteEntryV2, NoteRecordV2 } from '#lib/types/vault-v2.types.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
-import { sendPrompt } from '#lib/features/claude-code/claude.service.js';
+import { resetClaude, sendPrompt } from '#lib/features/claude-code/claude.service.js';
 import { registerMenuSettingsListener, registerCloseHandler, registerExitRequestListener, registerFocusListener, registerVaultIndexUpdatedListener, registerClaudeEventListener } from '#lib/app/tauri-listeners.service.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
 
@@ -1385,6 +1385,25 @@ describe('registerClaudeEventListener', () => {
 		await vi.waitFor(() => expect(writes()).toHaveLength(1));
 		const { content } = writes()[0][1] as { content: string };
 		expect(JSON.parse(content).messages).toEqual([{ role: 'user', text: 'hi' }, { role: 'assistant', parts: [{ kind: 'text', text: 'Hello' }] }]);
+	});
+
+	it("asks claude for the slash commands again after a turn whose Init brought an unknown name", async () => {
+		registerClaudeEventListener();
+		await vi.waitFor(() => expect(capturedEventHandler).toBeDefined());
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		resetClaude();
+		vi.mocked(invoke).mockImplementation((async (cmd: string) =>
+			cmd === 'claude_slash_commands' ? [{ name: 'new-skill', description: 'Does a thing', argumentHint: '', aliases: [] }] : null) as unknown as typeof invoke);
+		const slashCalls = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'claude_slash_commands');
+
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'Init', sessionId: 's', model: 'm', slashCommands: ['new-skill'], skills: [] } } });
+		await Promise.resolve();
+		expect(slashCalls()).toEqual([]);
+
+		capturedEventHandler!({ payload: { runId: 'r1', event: { type: 'Done', exitCode: 0 } } });
+		await vi.waitFor(() => expect(claudeStore.slashCommandDetails.get('new-skill')?.description).toBe('Does a thing'));
+		expect(slashCalls()).toEqual([['claude_slash_commands', { binaryPath: '', vaultPath: '/vault' }]]);
 	});
 
 	it('returns a cleanup function that unsubscribes', async () => {

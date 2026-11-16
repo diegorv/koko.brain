@@ -1,4 +1,4 @@
-import type { ClaudeEvent, ClaudeEventPayload } from '#lib/contracts/index.js';
+import type { ClaudeEvent, ClaudeEventPayload, SlashCommandInfo } from '#lib/contracts/index.js';
 import { renderCanvasMarkdown } from '#lib/features/canvas/canvas-markdown.logic.js';
 
 /** A tool the agent called during a reply, shown as a collapsed card. */
@@ -366,6 +366,38 @@ export function filterSlashCommands(query: string, commands: readonly string[]):
 	const prefix = commands.filter((c) => c.toLowerCase().startsWith(q));
 	const inner = commands.filter((c) => !c.toLowerCase().startsWith(q) && c.toLowerCase().includes(q));
 	return [...prefix, ...inner];
+}
+
+/** What the slash menu shows under a command's name. */
+export interface SlashCommandDetail {
+	/** What the command does, whitespace collapsed; empty when the CLI gives none. */
+	description: string;
+	/** The arguments it takes; empty for none. */
+	argumentHint: string;
+}
+
+/**
+ * The details of each row of the CLI's command list, keyed by the row's name
+ * and by each of its aliases: an `Init` names a skill by its internal name,
+ * which is an alias when its frontmatter `name` differs from its folder. A
+ * row's name wins over another row's alias.
+ */
+export function slashCommandDetails(rows: readonly SlashCommandInfo[]): Map<string, SlashCommandDetail> {
+	const details = new Map<string, SlashCommandDetail>();
+	const detailOf = (row: SlashCommandInfo): SlashCommandDetail => ({
+		description: row.description.replace(/\s+/g, ' ').trim(),
+		argumentHint: row.argumentHint,
+	});
+	for (const row of rows) {
+		for (const alias of row.aliases) if (!details.has(alias)) details.set(alias, detailOf(row));
+	}
+	for (const row of rows) details.set(row.name, detailOf(row));
+	return details;
+}
+
+/** The names, in order, that are neither in `details` nor in `tried`. */
+export function untriedSlashNames(names: readonly string[], details: ReadonlyMap<string, SlashCommandDetail>, tried: ReadonlySet<string>): string[] {
+	return names.filter((name) => !details.has(name) && !tried.has(name));
 }
 
 /** The vault root in one form, without trailing slashes: the runner compares it as a raw string to allow one run per vault. */

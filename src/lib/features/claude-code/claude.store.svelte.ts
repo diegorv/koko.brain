@@ -1,10 +1,26 @@
-import type { ClaudeEventPayload } from '#lib/contracts/index.js';
-import { beginTurn, EMPTY_CHAT, failTurn, receiveEvent, requestStop, resetChat, restoreChat, showError, startRun, type ChatState, type StoredChat } from './claude.logic';
+import type { ClaudeEventPayload, SlashCommandInfo } from '#lib/contracts/index.js';
+import {
+	beginTurn,
+	EMPTY_CHAT,
+	failTurn,
+	receiveEvent,
+	requestStop,
+	resetChat,
+	restoreChat,
+	showError,
+	slashCommandDetails,
+	startRun,
+	type ChatState,
+	type SlashCommandDetail,
+	type StoredChat,
+} from './claude.logic';
 
 /** The agent chat; the service saves it to the vault and restores the newest one on vault open. */
 let chat = $state<ChatState>(EMPTY_CHAT);
 /** Vault-relative paths of the notes attached to the chat, in the order added. */
 let contextNotes = $state<string[]>([]);
+/** The open vault's slash command details, from the CLI's command list; empty until it arrives. */
+let slashDetails = $state.raw<ReadonlyMap<string, SlashCommandDetail>>(new Map());
 
 /** State of the agent panel: the chat and its attached notes. The event rules live in `claude.logic.ts`. */
 export const claudeStore = {
@@ -24,6 +40,8 @@ export const claudeStore = {
 	get stopRequested() { return chat.stopRequested; },
 	/** Slash commands from the last `Init`; empty before the first turn. */
 	get slashCommands() { return chat.slashCommands; },
+	/** Description and argument hint per slash command name or alias; empty until the CLI's list arrives. */
+	get slashCommandDetails() { return slashDetails; },
 	/** Id of the chat's file; `null` until the first send. */
 	get chatId() { return chat.chatId; },
 	/** ISO time of the chat's first send; `null` until then. */
@@ -60,10 +78,13 @@ export const claudeStore = {
 	},
 	/** Removes an attached note. */
 	removeContextNote(path: string) { contextNotes = contextNotes.filter((p) => p !== path); },
+	/** Replaces the slash command details with those of the CLI's command list `rows`. */
+	setSlashCommandRows(rows: readonly SlashCommandInfo[]) { slashDetails = slashCommandDetails(rows); },
 
 	/** Back to the initial state; `resetClaude` calls it on vault close. */
 	reset() {
 		chat = EMPTY_CHAT;
 		contextNotes = [];
+		slashDetails = new Map();
 	},
 };

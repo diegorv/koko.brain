@@ -19,7 +19,7 @@
 	import { checkClaudeStatus } from './claude-code.service';
 	import { claudeStatusStore } from './claude-status.store.svelte';
 	import { activeNoteContextPath, filterSlashCommands, renderReplyHtml, replyLinkAction, slashQuery } from './claude.logic';
-	import { attachActiveNote, deleteChat, loadChatHistory, newChat, openChat, sendPrompt, stop, STOP_FAILED, type ChatHistoryRow } from './claude.service';
+	import { attachActiveNote, deleteChat, loadChatHistory, loadSlashCommandDetails, newChat, openChat, sendPrompt, stop, STOP_FAILED, type ChatHistoryRow } from './claude.service';
 	import { claudeStore } from './claude.store.svelte';
 
 	interface Props {
@@ -89,6 +89,17 @@
 		untrack(() => {
 			// The store marks a failed check; the unavailable block shows it.
 			checkClaudeStatus(settingsStore.claudeCode.binaryPath, false).catch(() => {});
+		});
+	});
+
+	// Asks claude for the slash command descriptions of the open vault, on mount
+	// only. A vault switch resets the settings, which unmounts the panel, and
+	// the remount after the new vault's settings load asks with its binary. The
+	// service asks once per vault, so a remount in the same vault makes no call.
+	$effect(() => {
+		untrack(() => {
+			// The service logs a failure; the menu then shows names only.
+			loadSlashCommandDetails().catch(() => {});
 		});
 	});
 
@@ -458,16 +469,17 @@
 
 			<div class="relative">
 				{#if query !== null}
-					<div bind:this={slashMenuEl} class="absolute bottom-full left-0 right-0 mb-1 max-h-48 overflow-y-auto rounded-md border border-divider bg-right-sidebar-bg shadow" role="listbox" data-claude-slash-menu>
+					<div bind:this={slashMenuEl} class="absolute bottom-full left-0 right-0 mb-1 max-h-64 overflow-y-auto rounded-md border border-divider bg-right-sidebar-bg shadow" role="listbox" data-claude-slash-menu>
 						{#each slashMatches as name, k (name)}
+							{@const detail = claudeStore.slashCommandDetails.get(name)}
 							<button
-								class="block w-full truncate px-2 py-1 text-left {k === slashIndex ? 'bg-right-sidebar-accent' : ''}"
+								class="block w-full px-2 py-1 text-left {k === slashIndex ? 'bg-right-sidebar-accent' : ''}"
 								role="option"
 								aria-selected={k === slashIndex}
 								onmousedown={(e) => e.preventDefault()}
 								onclick={() => void pickSlashCommand(name)}
 								data-claude-slash-option={name}
-							>/{name}</button>
+							><span class="block truncate"><span data-claude-slash-name>/{name}</span>{#if detail?.argumentHint}<span class="ml-1.5 text-right-sidebar-muted-fg" data-claude-slash-hint>{detail.argumentHint}</span>{/if}</span>{#if detail?.description}<span class="line-clamp-2 text-meta text-right-sidebar-muted-fg" data-claude-slash-description>{detail.description}</span>{/if}</button>
 						{:else}
 							<p class="px-2 py-1 text-right-sidebar-muted-fg" data-claude-slash-empty>
 								{claudeStore.slashCommands.length === 0 ? 'Slash commands load after the first message.' : 'No matching command.'}

@@ -31,6 +31,7 @@ export type { SemanticPhase } from './generated/SemanticPhase.js';
 export type { SemanticProgress } from './generated/SemanticProgress.js';
 export type { SemanticResult } from './generated/SemanticResult.js';
 export type { SemanticStats } from './generated/SemanticStats.js';
+export type { SlashCommandInfo } from './generated/SlashCommandInfo.js';
 export type { SnapshotInfo } from './generated/SnapshotInfo.js';
 export type { TagAggregate } from './generated/TagAggregate.js';
 export type { Task } from './generated/Task.js';

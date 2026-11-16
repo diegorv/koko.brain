@@ -12,13 +12,15 @@ vi.mock('#lib/utils/debug.js', () => ({ debug: vi.fn(), error: vi.fn() }));
 
 import { flushSync, mount, tick, unmount } from 'svelte';
 import { invoke } from '@tauri-apps/api/core';
-import type { ClaudeEvent, ClaudeStatus } from '#lib/contracts/index.js';
+import { error } from '#lib/utils/debug.js';
+import type { ClaudeEvent, ClaudeStatus, SlashCommandInfo } from '#lib/contracts/index.js';
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { resetClaude } from '#lib/features/claude-code/claude.service.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
 import { claudeStatusStore } from '#lib/features/claude-code/claude-status.store.svelte.js';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
@@ -35,11 +37,15 @@ let component: Record<string, unknown> | null = null;
 const onOpenWikilink = vi.fn();
 const onOpenExternal = vi.fn();
 
-/** Answers the status check with `status` and `claude_run_turn` with `runTurn`. */
-function answer(status: ClaudeStatus, runTurn: () => Promise<unknown> = async () => 'r1') {
+/** The CLI's command list the slash request answers with by default; the navigation tests run with these descriptions. */
+const SLASH_ROWS: SlashCommandInfo[] = ['alpha', 'beta', 'gamma'].map((name) => ({ name, description: `The ${name} command`, argumentHint: '', aliases: [] }));
+
+/** Answers the status check with `status`, `claude_run_turn` with `runTurn` and the slash request with `slash`. */
+function answer(status: ClaudeStatus, runTurn: () => Promise<unknown> = async () => 'r1', slash: () => Promise<unknown> = async () => SLASH_ROWS) {
 	vi.mocked(invoke).mockImplementation(async (cmd: string) => {
 		if (cmd === 'claude_status') return status;
 		if (cmd === 'claude_run_turn') return runTurn();
+		if (cmd === 'claude_slash_commands') return slash();
 		return null;
 	});
 }
@@ -151,6 +157,8 @@ beforeEach(() => {
 	vi.resetAllMocks();
 	clearLocalStorage();
 	claudeStore.reset();
+	// The slash request state lives in the service: each test starts with no request made.
+	resetClaude();
 	claudeStatusStore.reset();
 	editorStore.reset();
 	settingsStore.reset();
@@ -634,6 +642,7 @@ describe('ClaudePanel slash commands', () => {
 
 		await type('/rev');
 		expect(qa('[data-claude-slash-option]').map((el) => el.textContent)).toEqual(['/review', '/code-review']);
+		expect(qa('[data-claude-slash-name]').map((el) => el.textContent)).toEqual(['/review', '/code-review']);
 
 		q<HTMLButtonElement>('[data-claude-slash-option="code-review"]')!.click();
 		await settle();
@@ -729,6 +738,53 @@ describe('ClaudePanel slash commands', () => {
 		expect(runTurnCalled()).toBe(false);
 	});
 
+	it('shows the argument hint after the name and the description, collapsed, on a second line', async () => {
+		answer(INSTALLED, undefined, async () => [
+			{ name: 'debug', description: '  Enable debug\n\n logging  ', argumentHint: '[issue description]', aliases: [] },
+			{ name: 'my-tool:sketch', description: 'Draw a sketch (my-tool)', argumentHint: '', aliases: ['sketch-internal'] },
+		]);
+		seedSlashCommands(['debug', 'sketch-internal', 'plain']);
+		await render();
+		await type('/');
+
+		const option = (name: string) => q(`[data-claude-slash-option="${name}"]`)!;
+		expect(option('debug').querySelector('[data-claude-slash-name]')?.textContent).toBe('/debug');
+		expect(option('debug').querySelector('[data-claude-slash-hint]')?.textContent).toBe('[issue description]');
+		const description = option('debug').querySelector('[data-claude-slash-description]')!;
+		expect(description.textContent).toBe('Enable debug logging');
+		expect(description.classList).toContain('line-clamp-2');
+
+		// An Init names a skill by its internal name, an alias of the row.
+		expect(option('sketch-internal').querySelector('[data-claude-slash-description]')?.textContent).toBe('Draw a sketch (my-tool)');
+		expect(option('sketch-internal').querySelector('[data-claude-slash-hint]')).toBeNull();
+
+		expect(option('plain').textContent).toBe('/plain');
+		expect(option('plain').querySelector('[data-claude-slash-description]')).toBeNull();
+		expect(q('[data-claude-slash-menu]')?.classList).toContain('max-h-64');
+	});
+
+	it('picks a command with a description by click, and inserts only its name', async () => {
+		seedSlashCommands(['alpha', 'beta']);
+		await render();
+		await type('/');
+		expect(q('[data-claude-slash-option="beta"] [data-claude-slash-description]')?.textContent).toBe('The beta command');
+
+		q<HTMLButtonElement>('[data-claude-slash-option="beta"]')!.click();
+		await settle();
+		expect(promptBox().value).toBe('/beta ');
+	});
+
+	it('shows names only when the slash request fails', async () => {
+		answer(INSTALLED, undefined, async () => { throw 'claude did not answer the initialize request within 30s'; });
+		seedSlashCommands(['alpha']);
+		await render();
+		await type('/');
+
+		expect(q('[data-claude-slash-option="alpha"]')?.textContent).toBe('/alpha');
+		expect(q('[data-claude-slash-description]')).toBeNull();
+		expect(error).toHaveBeenCalledWith('CLAUDE', expect.any(String), 'claude did not answer the initialize request within 30s');
+	});
+
 	it('closes the menu with Escape and keeps the typed text', async () => {
 		seedSlashCommands(['alpha']);
 		await render();
@@ -757,6 +813,43 @@ describe('ClaudePanel without claude', () => {
 		vi.mocked(invoke).mockRejectedValue(new Error('ipc down'));
 		await render();
 		expect(q('[data-claude-unavailable]')?.textContent).toContain('Could not check for the claude command');
+	});
+
+	it('asks claude for the slash commands on mount with the binary override and the normalized vault path', async () => {
+		settingsStore.updateClaudeCode({ binaryPath: '/opt/claude' });
+		vaultStore.open('/vault/');
+		await render();
+
+		expect(invoke).toHaveBeenCalledWith('claude_slash_commands', { binaryPath: '/opt/claude', vaultPath: '/vault' });
+	});
+
+	it('asks once per vault: a remount makes no new call, the remount after a vault switch does', async () => {
+		const slashCalls = () => vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === 'claude_slash_commands');
+		await render();
+		expect(slashCalls()).toHaveLength(1);
+
+		unmount(component!);
+		target.remove();
+		await render();
+		expect(slashCalls()).toHaveLength(1);
+
+		// The switch sets the new path before teardown resets the settings: the
+		// still-mounted panel must not ask with the previous vault's binary.
+		vaultStore.open('/other');
+		await settle();
+		expect(slashCalls()).toHaveLength(1);
+
+		// Teardown unmounts the panel and clears the requests; it remounts once
+		// the new vault's settings have loaded.
+		unmount(component!);
+		target.remove();
+		resetClaude();
+		settingsStore.updateClaudeCode({ binaryPath: '/opt/other' });
+		await render();
+		expect(slashCalls()).toEqual([
+			['claude_slash_commands', { binaryPath: '', vaultPath: '/vault' }],
+			['claude_slash_commands', { binaryPath: '/opt/other', vaultPath: '/other' }],
+		]);
 	});
 
 	it('checks on mount without recapturing the login shell env', async () => {

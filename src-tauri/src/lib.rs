@@ -393,6 +393,7 @@ pub fn run() {
             commands::claude::claude_status,
             commands::claude::claude_run_turn,
             commands::claude::claude_cancel_turn,
+            commands::claude::claude_slash_commands,
             commands::claude::chats::claude_chat_write,
             commands::claude::chats::claude_chat_read,
             commands::claude::chats::claude_chat_list,

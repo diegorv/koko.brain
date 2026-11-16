@@ -19,10 +19,12 @@ import {
 	restoreChat,
 	SESSION_GONE,
 	showError,
+	slashCommandDetails,
 	slashQuery,
 	startRun,
 	storedFromChat,
 	toolTarget,
+	untriedSlashNames,
 	type ChatState,
 	type StoredChat,
 } from '#lib/features/claude-code/claude.logic.js';
@@ -562,6 +564,49 @@ describe('filterSlashCommands', () => {
 	it('returns nothing when no command matches or there are none', () => {
 		expect(filterSlashCommands('zzz', commands)).toEqual([]);
 		expect(filterSlashCommands('', [])).toEqual([]);
+	});
+});
+
+describe('slashCommandDetails', () => {
+	const row = (name: string, description = '', argumentHint = '', aliases: string[] = []) => ({ name, description, argumentHint, aliases });
+
+	it('maps each row name and each alias to its description and argument hint', () => {
+		const details = slashCommandDetails([row('debug', 'Enable debug logging', '[issue description]'), row('my-tool:sketch', 'Draw a sketch', '', ['sketch-internal'])]);
+
+		expect(details.get('debug')).toEqual({ description: 'Enable debug logging', argumentHint: '[issue description]' });
+		expect(details.get('my-tool:sketch')).toEqual({ description: 'Draw a sketch', argumentHint: '' });
+		expect(details.get('sketch-internal')).toEqual({ description: 'Draw a sketch', argumentHint: '' });
+		expect(details.size).toBe(3);
+	});
+
+	it("gives a row's name precedence over another row's alias, in either order", () => {
+		const named = row('zap', 'The zap command');
+		const aliasing = row('zapper', 'The zapper command', '', ['zap']);
+
+		expect(slashCommandDetails([aliasing, named]).get('zap')?.description).toBe('The zap command');
+		expect(slashCommandDetails([named, aliasing]).get('zap')?.description).toBe('The zap command');
+		expect(slashCommandDetails([named, aliasing]).get('zapper')?.description).toBe('The zapper command');
+	});
+
+	it('collapses whitespace in descriptions', () => {
+		expect(slashCommandDetails([row('a', '  First line.\n\n  Second\tline.  ')]).get('a')?.description).toBe('First line. Second line.');
+	});
+
+	it('is empty for no rows', () => {
+		expect(slashCommandDetails([]).size).toBe(0);
+	});
+});
+
+describe('untriedSlashNames', () => {
+	const details = slashCommandDetails([{ name: 'debug', description: 'd', argumentHint: '', aliases: ['dbg'] }]);
+
+	it('lists the names that are neither in the map nor tried, in order', () => {
+		expect(untriedSlashNames(['debug', 'mcp__srv__prompt', 'dbg', 'new-skill', 'seen'], details, new Set(['seen']))).toEqual(['mcp__srv__prompt', 'new-skill']);
+	});
+
+	it('is empty when every name is known or tried, or there are none', () => {
+		expect(untriedSlashNames(['debug', 'seen'], details, new Set(['seen']))).toEqual([]);
+		expect(untriedSlashNames([], new Map(), new Set())).toEqual([]);
 	});
 });
 
