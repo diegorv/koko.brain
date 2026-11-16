@@ -18,14 +18,14 @@ sym src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:4 type OneOnOneSelectH
 by src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:OneOnOneSelectHandler <- src/lib/plugins/one-on-one/one-on-one.service.ts:10 in (module) import
 sym src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:12 store oneOnOneStore L31 | Reactive store for the 1:1 note person picker
 by src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:oneOnOneStore <- src/lib/plugins/one-on-one/OneOnOnePicker.svelte:13 in filteredWork=$derived member +6
-by src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:oneOnOneStore <- src/lib/plugins/one-on-one/one-on-one.service.ts:53 in loadPeople mcall +3
+by src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:oneOnOneStore <- src/lib/plugins/one-on-one/one-on-one.service.ts:54 in loadPeople mcall +3
 ## store
 store src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:12 oneOnOneStore esc:0
 mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:13 get oneOnOneStore.isOpen r:src/lib/plugins/one-on-one/OneOnOnePicker.svelte:29,src/lib/plugins/one-on-one/OneOnOnePicker.svelte:54 w-via:open,close,toggle,reset
 mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:14 get oneOnOneStore.people r:src/lib/plugins/one-on-one/OneOnOnePicker.svelte:13,src/lib/plugins/one-on-one/OneOnOnePicker.svelte:16 w-via:setPeople,reset
 mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:15 get oneOnOneStore.selectHandler r:src/lib/plugins/one-on-one/OneOnOnePicker.svelte:31 w-via:open,close,toggle,reset
-mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:18 do oneOnOneStore.open w:src/lib/plugins/one-on-one/one-on-one.service.ts:127 | Opens the person picker dialog, with `handler` as what picking a person does this time
+mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:18 do oneOnOneStore.open w:src/lib/plugins/one-on-one/one-on-one.service.ts:129 | Opens the person picker dialog, with `handler` as what picking a person does this time
 mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:23 do oneOnOneStore.close w:src/lib/plugins/one-on-one/OneOnOnePicker.svelte:22,src/lib/plugins/one-on-one/OneOnOnePicker.svelte:32 | Closes the person picker dialog
 mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:28 do oneOnOneStore.toggle w:- | Toggles the person picker dialog
-mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:34 do oneOnOneStore.setPeople w:src/lib/plugins/one-on-one/one-on-one.service.ts:53,src/lib/plugins/one-on-one/one-on-one.service.ts:56 | Replaces the people list
-mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:37 do oneOnOneStore.reset w:src/lib/plugins/one-on-one/one-on-one.service.ts:132 | Resets all state (e.g. when switching vaults)
+mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:34 do oneOnOneStore.setPeople w:src/lib/plugins/one-on-one/one-on-one.service.ts:54,src/lib/plugins/one-on-one/one-on-one.service.ts:57 | Replaces the people list
+mem src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:37 do oneOnOneStore.reset w:src/lib/plugins/one-on-one/one-on-one.service.ts:134 | Resets all state (e.g. when switching vaults)

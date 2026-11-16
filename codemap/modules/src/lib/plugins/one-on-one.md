@@ -1,6 +1,6 @@
 # module card src/lib/plugins/one-on-one
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/plugins/one-on-one ' codemap/modules
-module src/lib/plugins/one-on-one plugins files 6 in-modules 2 out-modules 14 pub 5/22 ipc 0/0 card ~1.3k
+module src/lib/plugins/one-on-one plugins files 6 in-modules 2 out-modules 14 pub 5/23 ipc 0/0 card ~1.3k
 ## neighbors
 dep src/lib/app -> src/lib/plugins/one-on-one 5
 dep src/lib/plugins/mods -> src/lib/plugins/one-on-one 1
@@ -28,15 +28,15 @@ entry src/lib/plugins/one-on-one/one-on-one-today.service.ts ext-in1 src/lib/app
 file src/lib/plugins/one-on-one/MyPeopleSection.svelte component L77 module src/lib/plugins/one-on-one in1 t1
 file src/lib/plugins/one-on-one/OneOnOnePicker.svelte component L95 module src/lib/plugins/one-on-one in1 t1
 file src/lib/plugins/one-on-one/one-on-one-today.service.ts service L18 module src/lib/plugins/one-on-one in1 t2
-file src/lib/plugins/one-on-one/one-on-one.logic.ts logic L210 module src/lib/plugins/one-on-one in4 t3
-file src/lib/plugins/one-on-one/one-on-one.service.ts service L133 module src/lib/plugins/one-on-one in6 t8
+file src/lib/plugins/one-on-one/one-on-one.logic.ts logic L241 module src/lib/plugins/one-on-one in4 t3
+file src/lib/plugins/one-on-one/one-on-one.service.ts service L135 module src/lib/plugins/one-on-one in6 t8
 file src/lib/plugins/one-on-one/one-on-one.store.svelte.ts store L42 module src/lib/plugins/one-on-one in2 t3
 ## public
 sym src/lib/plugins/one-on-one/OneOnOnePicker.svelte:1 component OneOnOnePicker L95
 sym src/lib/plugins/one-on-one/one-on-one-today.service.ts:12 fn registerOneOnOneTodaySection(): () => void L7 | Adds My people to the rail shell's Today lens, which may not import plugins (ADR 0003).
-sym src/lib/plugins/one-on-one/one-on-one.service.ts:67 fn createOneOnOneNote(personName: string): Promise<void> L32 | Creates and opens a new 1:1 note for the given person, or opens the one that already exists at the same path.
-sym src/lib/plugins/one-on-one/one-on-one.service.ts:105 fn registerOneOnOneActionBarAction(): () => void L15 | Registers "New 1:1" into the note action bar for Person notes; the person is the note's file name.
-sym src/lib/plugins/one-on-one/one-on-one.service.ts:125 fn openOneOnOnePicker(onSelect?: OneOnOneSelectHandler): Promise<void> L4 | Opens the person picker dialog, loading people first.
+sym src/lib/plugins/one-on-one/one-on-one.service.ts:69 fn createOneOnOneNote(personName: string): Promise<void> L32 | Creates and opens a new 1:1 note for the given person, or opens the one that already exists at the same path.
+sym src/lib/plugins/one-on-one/one-on-one.service.ts:107 fn registerOneOnOneActionBarAction(): () => void L15 | Registers "New 1:1" into the note action bar for Person notes; the person is the note's file name.
+sym src/lib/plugins/one-on-one/one-on-one.service.ts:127 fn openOneOnOnePicker(onSelect?: OneOnOneSelectHandler): Promise<void> L4 | Opens the person picker dialog, loading people first.
 ## stores
 store src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:12 oneOnOneStore esc:0
 ## effects

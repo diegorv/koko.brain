@@ -26,7 +26,7 @@ By default (the **First open** policy), a queryjs block auto-runs the first time
 | Policy | Behavior |
 |--------|----------|
 | **Manual** | The block renders a ▶ Run button. Click it to execute. The result is cached — switching tabs and back replays the cached output instantly, until the cache is cleared (see below). |
-| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Switching to another tab and back replays the cached output without re-running. After the cache is cleared (see below), the file stays marked, so the block shows a ▶ Run button instead of auto-running again. Closing the tab and reopening the note restarts the first-open behavior (the block auto-runs once more). Every block drawn when the note opens auto-runs; a block in a long note that is first drawn later, when you scroll down to it, shows a ▶ Run button. |
+| **First open** (default) | The block runs the first time you open the note in the current session, then caches. Switching to another tab and back replays the cached output without re-running. After the cache is cleared (see below), a block that already showed a result runs again the next time it is drawn, so a note you come back to shows its results without a click; a block whose script text you edited shows a ▶ Run button instead. Closing the tab and reopening the note restarts the first-open behavior (the block auto-runs once more). Every block drawn when the note opens auto-runs; a block in a long note that is first drawn later, when you scroll down to it, shows a ▶ Run button. |
 | **Always** | The block runs whenever it is drawn with no cached result: on the first open, and again after the cache is cleared, with no ▶ Run button. A cached result is re-attached as in the other policies, so scrolling back to the block or switching tabs does not re-run it. |
 
 A manual run in the **Manual** policy does *not* promote the file to "auto-run on first open" — even if you switch the policy later, the block re-shows ▶ Run on next render until the policy explicitly says otherwise.
@@ -38,7 +38,7 @@ When a query runs, its rendered DOM tree is stored in a per-session cache keyed 
 - `<canvas>` charts keep their pixel buffer — no flicker, no re-draw cost.
 - `<video>` playback state, `<iframe>` content, and any imperatively attached event listeners survive viewport scrolls.
 - A block whose script text changed has no cached result yet, so it follows the policy table above.
-- The whole cache, for every note, is cleared whenever any note's content changes: a save in the editor, a change on disk the app picks up (another app, git, sync), or a note restored from the Trash. A note you did not touch then runs again under **Always** when you come back to it, and under **First open** shows ▶ Run if its tab stayed open (a closed and reopened note auto-runs once more).
+- The whole cache, for every note, is cleared whenever any note's content changes: a save in the editor, a change on disk the app picks up (another app, git, sync), or a note restored from the Trash. A note you did not touch then runs again when you come back to it, under **Always** and **First open** alike; under **Manual** it shows ▶ Run.
 - Reopening the vault starts a new session with an empty cache.
 
 To drop every cached result and reset the per-file first-open markers at once, use **Settings → QueryJS → Clear cache**. Each block then re-runs on its next render according to the current policy.

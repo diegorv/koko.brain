@@ -30,6 +30,7 @@ The live-preview system splits decoration into two tracks: per-feature `StateFie
     - Cache hit (`queryjsSessionStore.getResult(filePath, jsContent)`, detached) → re-attach the cached element. No execution.
     - Cache miss + `'always'` → execute. Mark autoRun (harmless — not consulted).
     - Cache miss + `'first-open'` + file not in `autoRunOnFirstOpen` → execute, mark autoRun.
+    - Cache miss + `'first-open'` + block stale (`queryjsSessionStore.isStale(filePath, jsContent)`: a content invalidation dropped its result) → execute. An edited block has new text, so it is never stale (ADR 0010, amendment 2026-11-16).
     - Cache miss + `'first-open'` + file already in `autoRunOnFirstOpen` → render `▶ Run` button.
     - Cache miss + `'manual'` → render `▶ Run` button.
 

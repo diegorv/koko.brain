@@ -19,7 +19,7 @@ vi.mock('@tauri-apps/api/path', () => ({
 }));
 
 import { invoke } from '@tauri-apps/api/core';
-import { QueryjsBlockWidget, queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
+import { QueryjsBlockWidget, invalidateQueryjsCache, queryjsBlockRenderer } from '#lib/plugins/queryjs/queryjs-block-widget.js';
 import { queryjsSessionStore } from '#lib/plugins/queryjs/queryjs-session.store.svelte.js';
 import { trackChart } from '#lib/plugins/queryjs/queryjs-charts.js';
 import { collectionStore } from '#lib/features/collection/collection.store.svelte.js';
@@ -281,6 +281,99 @@ describe('QueryjsBlockWidget.toDOM — first-open marks the file after the rende
 		const later = new QueryjsBlockWidget('kb.paragraph("later")').toDOM();
 
 		expect(later.querySelector('.cm-lp-qjs-run')).toBeNull();
+	});
+});
+
+describe('QueryjsBlockWidget.toDOM — a result dropped by a save re-runs on its next draw', () => {
+	const HUB = '/vault/hub.md';
+	const OTHER = '/vault/person.md';
+	const HUB_JS = 'kb.paragraph("hub list")';
+
+	beforeEach(() => {
+		vi.clearAllMocks();
+		queryjsSessionStore.reset();
+		editorStore.reset();
+		collectionStore.reset();
+		invalidateVaultEntries();
+		collectionStore.setPropertyIndex(new Map());
+		editorStore.addTab({ path: HUB, name: 'hub.md', content: '', savedContent: '' });
+		editorStore.addTab({ path: OTHER, name: 'person.md', content: '', savedContent: '' });
+		editorStore.setActiveIndex(0);
+		settingsStore.updateQueryjs({ autoRunQueries: 'first-open' });
+	});
+
+	afterEach(() => afterRenderPass());
+
+	/** Opens the hub, lets its block run, then leaves it for the other note. */
+	async function runHubThenLeave(): Promise<void> {
+		const first = new QueryjsBlockWidget(HUB_JS).toDOM();
+		await vi.waitFor(() => expect(first.querySelector('p')?.textContent).toBe('hub list'));
+		await afterRenderPass();
+		expect(queryjsSessionStore.hasAutoRun(HUB)).toBe(true);
+		editorStore.setActiveIndex(1);
+	}
+
+	it('under first-open, returning to a hub after a save elsewhere shows its list without a click', async () => {
+		await runHubThenLeave();
+		// A save in the other note fires the content-invalidation listener.
+		invalidateQueryjsCache();
+		editorStore.setActiveIndex(0);
+
+		const back = new QueryjsBlockWidget(HUB_JS).toDOM();
+
+		expect(back.querySelector('.cm-lp-qjs-run')).toBeNull();
+		await vi.waitFor(() => expect(back.querySelector('p')?.textContent).toBe('hub list'));
+		expect(queryjsSessionStore.hasResult(HUB, HUB_JS)).toBe(true);
+	});
+
+	it('a block whose text was edited after the save still shows Run', async () => {
+		await runHubThenLeave();
+		invalidateQueryjsCache();
+		editorStore.setActiveIndex(0);
+
+		const edited = new QueryjsBlockWidget('kb.paragraph("hub list, edited")').toDOM();
+
+		expect(edited.querySelector('.cm-lp-qjs-run')).not.toBeNull();
+	});
+
+	it('the same block text in another note does not inherit the hub stale result', async () => {
+		await runHubThenLeave();
+		invalidateQueryjsCache();
+		queryjsSessionStore.markAutoRun(OTHER);
+
+		const elsewhere = new QueryjsBlockWidget(HUB_JS).toDOM();
+
+		expect(elsewhere.querySelector('.cm-lp-qjs-run')).not.toBeNull();
+	});
+
+	it('a stale block whose rerun throws shows Run on its next draw instead of running again', async () => {
+		const FLAKY_JS = 'if (globalThis.__qjsFail) throw new Error("data changed"); kb.paragraph("hub list")';
+		const first = new QueryjsBlockWidget(FLAKY_JS).toDOM();
+		await vi.waitFor(() => expect(first.querySelector('p')?.textContent).toBe('hub list'));
+		await afterRenderPass();
+		invalidateQueryjsCache();
+		(globalThis as { __qjsFail?: boolean }).__qjsFail = true;
+		try {
+			const failed = new QueryjsBlockWidget(FLAKY_JS).toDOM();
+			await vi.waitFor(() => expect(failed.querySelector('.cm-lp-qjs-error-title')?.textContent).toContain('data changed'));
+
+			const redraw = new QueryjsBlockWidget(FLAKY_JS).toDOM();
+
+			expect(redraw.querySelector('.cm-lp-qjs-run')).not.toBeNull();
+			expect(queryjsSessionStore.isStale(HUB, FLAKY_JS)).toBe(false);
+		} finally {
+			delete (globalThis as { __qjsFail?: boolean }).__qjsFail;
+		}
+	});
+
+	it('manual mode shows Run for a block whose result a save dropped', async () => {
+		settingsStore.updateQueryjs({ autoRunQueries: 'manual' });
+		queryjsSessionStore.setResult(HUB, HUB_JS, cachedElement());
+		invalidateQueryjsCache();
+
+		const back = new QueryjsBlockWidget(HUB_JS).toDOM();
+
+		expect(back.querySelector('.cm-lp-qjs-run')).not.toBeNull();
 	});
 });
 
