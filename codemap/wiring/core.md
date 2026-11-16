@@ -117,7 +117,7 @@ reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:confi
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/plugins/image-plugin.ts:64 in imagePlugin
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts:40 in metaBindInputPlugin
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/plugins/wikilink-embed-plugin.ts:45 in wikilinkEmbedPlugin
-reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/plugins/queryjs/queryjs-block-widget.ts:227 in QueryjsBlockWidget.execute
+reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/plugins/queryjs/queryjs-block-widget.ts:236 in QueryjsBlockWidget.execute
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/core/block-decorator.ts:86 in blockDecorator
 reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling fired-by src/lib/core/markdown-editor/extensions/live-preview/core/scroll-debounce-plugin.ts:27 in scrollDebouncePlugin
 more fired-by 7 not shown: src/lib/core/markdown-editor(6) src/lib/plugins/queryjs(1): q reg src/lib/core/markdown-editor/extensions/live-preview/core/profiling.ts:configureProfiling

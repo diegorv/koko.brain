@@ -40,6 +40,6 @@ store src/lib/plugins/mods/mods-enabled.store.svelte.ts:46 modsEnabledStore get 
 store src/lib/plugins/mods/mods-runs.store.svelte.ts:59 modsRunsStore get 1 set 0 do 11 readers 0 writers 3 card codemap/files/src/lib/plugins/mods/mods-runs.store.svelte.ts.md
 store src/lib/plugins/mods/mods.store.svelte.ts:52 modsStore get 1 set 0 do 7 readers 2 writers 2 card codemap/files/src/lib/plugins/mods/mods.store.svelte.ts.md
 store src/lib/plugins/one-on-one/one-on-one.store.svelte.ts:12 oneOnOneStore get 3 set 0 do 5 readers 1 writers 2 card codemap/files/src/lib/plugins/one-on-one/one-on-one.store.svelte.ts.md
-store src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:63 queryjsSessionStore get 2 set 0 do 10 readers 0 writers 4 card codemap/files/src/lib/plugins/queryjs/queryjs-session.store.svelte.ts.md
+store src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:72 queryjsSessionStore get 3 set 0 do 12 readers 0 writers 4 card codemap/files/src/lib/plugins/queryjs/queryjs-session.store.svelte.ts.md
 store src/lib/plugins/table-of-contents/toc.store.svelte.ts:14 tocStore get 2 set 0 do 3 readers 1 writers 2 card codemap/files/src/lib/plugins/table-of-contents/toc.store.svelte.ts.md
 store src/lib/plugins/templates/templates.store.svelte.ts:9 templatesStore get 2 set 0 do 5 readers 1 writers 2 card codemap/files/src/lib/plugins/templates/templates.store.svelte.ts.md
