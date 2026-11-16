@@ -34,7 +34,7 @@ export interface ChatState {
 	messages: ChatMessage[];
 	/** The running turn's id, once `claude_run_turn` returned it; `null` otherwise. */
 	runId: string | null;
-	/** Session of the last `Init` or `Result`, resumed by the next turn; `null` for a new chat. */
+	/** Session of the last `Init` or `Result`, resumed by the next turn; `null` for a new chat or once the resumed session is gone. */
 	sessionId: string | null;
 	/** `running` from send until the run's `Done` (or a failure before it); an `Error` before `Done` shows but does not end the turn. */
 	status: 'idle' | 'running' | 'error';
@@ -150,6 +150,7 @@ function applyEvent(state: ChatState, event: ClaudeEvent): ChatState {
 					: part,
 			));
 		case 'Result': {
+			if (isSessionGone(event)) return { ...state, sessionId: null, error: SESSION_GONE };
 			let next: ChatState = { ...state, sessionId: event.sessionId || state.sessionId };
 			// An error's text is its cause, shown as the alert below, not as reply text.
 			if (event.text && !event.isError) {
@@ -169,6 +170,18 @@ function applyEvent(state: ChatState, event: ClaudeEvent): ChatState {
 			return { ...next, runId: null, stopRequested: false, status: state.error === null ? 'idle' : 'error' };
 		}
 	}
+}
+
+/** Inline message, in place of the CLI's, when the session a turn resumed no longer exists. */
+export const SESSION_GONE = 'The earlier conversation is no longer available to Claude. Your next message starts a new one.';
+
+/**
+ * A `--resume` of an unknown or pruned session: a zero-turn error whose text is
+ * the CLI's "not found" sentence. Other zero-turn errors exist (unrun turns,
+ * setup failures), and their session is still alive, so the text decides.
+ */
+function isSessionGone(event: Extract<ClaudeEvent, { type: 'Result' }>): boolean {
+	return event.isError && event.numTurns === 0 && event.text.startsWith('No conversation found with session ID');
 }
 
 /** Rewrites the parts of the last message when it is a reply; otherwise returns `state`. */

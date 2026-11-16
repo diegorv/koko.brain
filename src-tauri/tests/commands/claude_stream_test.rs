@@ -230,6 +230,34 @@ fn error_result_without_text_shows_the_errors() {
 	assert!(state.saw_result);
 }
 
+/// The one line claude 2.1.325 prints for a `--resume` of an unknown or
+/// pruned session: no `result` key, so the text comes from `errors`. The panel
+/// matches this text and `num_turns` 0 to start a new session.
+#[test]
+fn resume_of_a_gone_session_gives_a_zero_turn_error_result() {
+	let id = "7d2e9c41-5b8a-4f30-9e1d-3c6a0b8f2e57";
+	let line = json!({
+		"type": "result",
+		"subtype": "error_during_execution",
+		"is_error": true,
+		"num_turns": 0,
+		"duration_ms": 0,
+		"session_id": id,
+		"errors": [format!("No conversation found with session ID: {id}")],
+	})
+	.to_string();
+	let mut state = StreamState::default();
+
+	let events = dispatch_line(&line, &mut state);
+
+	let [ClaudeEvent::Result { session_id, text, is_error, num_turns, .. }] = events.as_slice() else { panic!("{events:?}") };
+	assert!(text.starts_with("No conversation found with session ID: "), "{text}");
+	assert!(*is_error);
+	assert_eq!(*num_turns, Some(0));
+	assert_eq!(session_id, id);
+	assert!(state.saw_result);
+}
+
 #[test]
 fn error_result_with_text_or_empty_errors() {
 	let mut state = StreamState::default();

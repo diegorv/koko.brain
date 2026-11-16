@@ -1,0 +1,34 @@
+VERDICT: APPROVED
+
+## Acceptance criteria
+
+- [met] Failing tests first in `claude.logic` and panel tests. — Probe: with `claude.logic.ts` restored to `mvp-claude` (plus only the `SESSION_GONE` export so the import resolves), `pnpm vitest run src/tests/lib/features/claude-code/` exits 1 with exactly the 3 new tests failing (claude.logic.test.ts "Result saying the resumed session is gone...", ClaudePanel.test.ts "says the next message starts a new conversation...", claude.service.test.ts "starts a new session after a resume whose session is gone..."); with the branch code all 146 pass. File restored afterwards, worktree clean.
+- [met] Rust test in `claude_stream_test.rs`: the line from synthesis G3 (`type` `result`, `subtype` `error_during_execution`, `is_error` true, `num_turns` 0, `duration_ms` 0, `session_id`, one `errors` string starting `No conversation found with session ID: `, no `result` key), built inline, gives `Result { text` starting with that prefix, `isError` true, `numTurns` 0, `sessionId` the id `}` (`stream.rs:155-162` joins `errors` when `result` is missing). Expected to pass on today's code; it pins the shape the frontend relies on. — `src-tauri/tests/commands/claude_stream_test.rs:233-259` builds exactly that line with `json!` (no `result` key) and asserts prefix, `*is_error`, `num_turns == Some(0)`, `session_id == id`, `saw_result`. Traced by reading: `dispatch_line` `Some("result")` arm (`src-tauri/src/commands/claude/stream.rs:127-136`) and `result_message` (`stream.rs:155-162`) yield `errors.join("\n")` as text, `num_turns` via `as_u64` = Some(0). The binding pattern matches the existing test at line 222; `&String == &str` compiles via the blanket `&A: PartialEq<&B>` impl. NOT executed: see finding 1; deliver's cargo gate must run it.
+- [met] Reducer: a `Result` with `isError`, `numTurns` 0 and text starting `No conversation found with session ID` sets `sessionId` to null and keeps `messages`; the next send carries no `resumeSessionId`. — `claude.logic.ts:153` early return `{ ...state, sessionId: null, error: SESSION_GONE }` guarded by `isSessionGone` (`claude.logic.ts:183-185`); messages untouched. claude.logic.test.ts:162-178 asserts null id, equal messages, and id stays null after `Done`; claude.service.test.ts:79-97 asserts `resumeSessionId` undefined on the next `claude_run_turn` and the three user messages kept (service passes `claudeStore.sessionId ?? undefined`, `claude.service.ts:37`).
+- [met] A zero-turn error `Result` with any other text keeps `sessionId`. — claude.logic.test.ts:180-186 (`turn_setup_failed`, numTurns 0 keeps `s1`, error shows the CLI text); claude.logic.test.ts:188-196 also pins that the not-found text with numTurns 1 or null keeps the id.
+- [met] The panel shows, in place of the CLI's error text, one line: "The earlier conversation is no longer available to Claude. Your next message starts a new one." — ClaudePanel.test.ts:249-260 asserts exactly one `[data-claude-error]` with that text, no "No conversation found" anywhere in the panel, and the user message still shown; the panel renders `claudeStore.error` once (`ClaudePanel.svelte:257`). Text equals the Issue's quote character for character (also asserted in claude.logic.test.ts:176).
+
+## Findings
+
+1. major (process, not code) — `src-tauri/tests/commands/claude_stream_test.rs:237`: the Rust test has never been compiled or run, by build or by this review. When reviewed, another session's `cargo check` held the shared target dir with its `ort-sys` build script hung on the ONNX Runtime download (pid 286, TCP CLOSE_WAIT, 0% CPU), the same hang the build reported. This review did not kill another session's process. Code reading says it compiles and passes. Fix: deliver runs `cargo test --manifest-path src-tauri/Cargo.toml` (the Issue's gate is Both) once the download works, or with the `ORT_LIB_LOCATION` workaround in `docs/DEV-ENVIRONMENT.md` § 4. If it fails, the fix belongs in the test, not in `stream.rs`.
+2. nit — `src/lib/features/claude-code/claude.logic.ts:176`: `SESSION_GONE` is declared below `applyEvent`, which uses it. That is valid, since it is read at call time, but other exported constants (`EMPTY_CHAT`) sit at the top of the module. Moving it is optional.
+3. nit — `src/lib/features/claude-code/claude.logic.ts:153`: in the gone case the turn's empty assistant reply (`parts: []`) stays in `messages`, and the panel renders an empty `data-claude-message="assistant"` block above the alert. Every other error `Result` does the same today, so this is not a regression and no criterion covers it. Leave it, or handle it in Issue 02, where the messages get saved.
+
+## Checks run by this review
+
+- `pnpm check`: exit 0, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/features/claude-code/`: exit 0, 7 files, 146 tests. The test verdict rests on `claude.logic.test.ts`, `claude.service.test.ts` and `ClaudePanel.test.ts` (the files the diff changes, and the tests of `claude.logic.ts`, the only source file changed), plus the other files in that folder.
+- Red probe against the pre-fix reducer, as described under criterion 1.
+- `cargo test`: not run (finding 1). There is no rustfmt gate in CI, and the file's tab style is the repo's style.
+- Scope: the diff touches only the Issue's listed paths plus `work/01/discovery.md`. No IPC DTO change, no generated bindings, no layer baseline change, no `.svelte` or store change.
+- Spec: matches `spec.md:38` (the text decides, since other zero-turn errors exist) and the Issue's G3 shape. No `Init` comes for this failure, so nothing re-sets the dead id.
+
+## Full suite
+
+`pnpm vitest run` (full) and the full cargo gate are deliver's to run.
+
+## Resolution
+
+1. Fixed (process). Deliver ran `cargo test --manifest-path src-tauri/Cargo.toml` from the worktree root: exit 0, 1559 passed, 0 failed, 13 ignored; `commands::claude_stream_test::resume_of_a_gone_session_gives_a_zero_turn_error_result ... ok`. No change in `src/lib/contracts/generated/`. The shared target dir was still locked by another session's hung `cargo check` (its `ort-sys` build script in CLOSE_WAIT), so the run used a private `CARGO_TARGET_DIR`. ort-sys's own download failed twice with `native-tls: connection closed via error`, while curl fetched the same archive with the sha256 `dist.tsv` expects; deliver unpacked that archive into a private `ORT_CACHE_DIR` (`dfbin/aarch64-apple-darwin/<hash>`, where ort-sys looks before downloading) and the build linked it.
+2. Rejected (nit, optional). Moving `SESSION_GONE` is cosmetic, and a source edit after an APPROVED review would need a re-review for no behavior change.
+3. Rejected (nit, optional). The empty assistant block is shared by every error `Result` today and no criterion covers it; it belongs with Issue 02, where messages get saved.
