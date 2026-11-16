@@ -6,14 +6,14 @@
 
 **Files:** src-tauri/src/commands/claude/turn.rs,src-tauri/tests/commands/claude_turn_test.rs,docs/adr/0038-claude-code-cli-subprocess.md,.scratch/claude-code-integration/spec.md
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `cargo test --manifest-path src-tauri/Cargo.toml`
 
-- [ ] Failing test first in `claude_turn_test.rs`: `build_args` has `--system-prompt-snapshot` followed by `off` right after the `--append-system-prompt <text>` pair and before `--`, both for a first turn and for a turn with `resume_session_id`.
-- [ ] `build_args` (`src-tauri/src/commands/claude/turn.rs:88-112`) adds the pair there; the prompt stays the last arg after `--`. The tests that compare arg lists gain the two entries: `args_for_a_first_turn` (`claude_turn_test.rs:107-133`, full vec) and `args_with_resume_model_and_a_slash_prompt` (`:151-184`, `args[7..]`, unchanged index because the pair goes after the append pair).
-- [ ] The doc comment on `build_args` says why the flag is there, in one line citing the CLI reference section below.
-- [ ] ADR-0038 (`docs/adr/0038-claude-code-cli-subprocess.md:15`) lists the flag with the turn's flags; `spec.md` adds it to the verified flags (line 25) and says in the "Shape" paragraph (line 40) that the attached notes are re-read on every turn because of it.
+- [x] Failing test first in `claude_turn_test.rs`: `build_args` has `--system-prompt-snapshot` followed by `off` right after the `--append-system-prompt <text>` pair and before `--`, both for a first turn and for a turn with `resume_session_id`.
+- [x] `build_args` (`src-tauri/src/commands/claude/turn.rs:88-112`) adds the pair there; the prompt stays the last arg after `--`. The tests that compare arg lists gain the two entries: `args_for_a_first_turn` (`claude_turn_test.rs:107-133`, full vec) and `args_with_resume_model_and_a_slash_prompt` (`:151-184`, `args[7..]`, unchanged index because the pair goes after the append pair).
+- [x] The doc comment on `build_args` says why the flag is there, in one line citing the CLI reference section below.
+- [x] ADR-0038 (`docs/adr/0038-claude-code-cli-subprocess.md:15`) lists the flag with the turn's flags; `spec.md` adds it to the verified flags (line 25) and says in the "Shape" paragraph (line 40) that the attached notes are re-read on every turn because of it.
 
 ## Problem
 
@@ -30,3 +30,5 @@ Found by the session-history deep dive (`.scratch/claude-session-history/researc
 - **Prompt cache:** the cache follows tools, then system, then messages, and a change invalidates its level and every later one. With recording off, a turn whose chips changed (or whose CLAUDE.md, memory or skill list changed) misses the cache for the system block and the whole history on that turn. Accepted.
 
 ## Comments
+
+- 2026-11-16, branch `issue/14-resumed-turns-see-current-notes`: `build_args` passes `--system-prompt-snapshot off` after the append pair, so a resumed turn reads the chips attached now; ADR-0038 and spec list the flag. Full vitest suite at deliver: 17106 passed, 54 skipped, 0 failed. Review round 1: APPROVED (no findings).

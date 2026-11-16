@@ -12,7 +12,7 @@ The owner wants to work on vault notes with Claude Code from inside Kokobrain (`
 
 ## Decision
 
-**Rust spawns the user's installed `claude` binary once per turn with `-p --output-format stream-json --verbose --include-partial-messages --permission-mode bypassPermissions`, cwd set to the vault, and turns its stdout lines into a normalized `ClaudeEvent` emitted to the frontend. Follow-up turns use `--resume <session_id>`. The typed text is the prompt, unchanged, and note context goes in `--append-system-prompt`, because the CLI expands a skill or slash command only when `/name` starts the text.**
+**Rust spawns the user's installed `claude` binary once per turn with `-p --output-format stream-json --verbose --include-partial-messages --permission-mode bypassPermissions`, cwd set to the vault, and turns its stdout lines into a normalized `ClaudeEvent` emitted to the frontend. Follow-up turns use `--resume <session_id>`. The typed text is the prompt, unchanged, and note context goes in `--append-system-prompt`, because the CLI expands a skill or slash command only when `/name` starts the text. Every turn also passes `--system-prompt-snapshot off`, so a resumed turn rebuilds the system prompt with the notes attached now instead of reusing the one the CLI recorded on the first turn.**
 
 - Auth, model access, skills, slash commands, plugins, MCP servers, user settings and billing belong to Claude Code, loaded as in the terminal. Kokobrain stores no API key and makes no HTTP call for this feature.
 - Full permissions, by owner decision: the agent can run any command and write any file the user can, without a prompt. The feature is off by default, and enabling it states that and that note content goes to Anthropic through the user's Claude Code account.

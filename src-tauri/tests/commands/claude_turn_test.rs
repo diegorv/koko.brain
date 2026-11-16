@@ -126,6 +126,8 @@ fn args_for_a_first_turn() {
 			"bypassPermissions",
 			"--append-system-prompt",
 			&system_prompt("/vault", &[]),
+			"--system-prompt-snapshot",
+			"off",
 			"--",
 			"summarize",
 		]
@@ -173,12 +175,31 @@ fn args_with_resume_model_and_a_slash_prompt() {
 			"opus",
 			"--append-system-prompt",
 			&system_prompt("/vault", &["notes/a.md".to_string()]),
+			"--system-prompt-snapshot",
+			"off",
 			"--",
 			"/review notes/a.md please",
 		]
 	);
 	for forbidden in ["--setting-sources", "--strict-mcp-config", "--tools"] {
 		assert!(!args.iter().any(|a| a == forbidden), "{forbidden} must not be passed");
+	}
+}
+
+#[test]
+fn system_prompt_snapshot_is_off_after_the_append_pair_on_every_turn() {
+	for resume in [None, Some("sess-1".to_string())] {
+		let mut req = request(Path::new("/vault"), Path::new(""));
+		req.resume_session_id = resume;
+		req.context_note_paths = vec!["notes/a.md".into()];
+
+		let args = build_args(&req);
+
+		// Without it a resumed turn reuses the system prompt recorded on the
+		// first turn, so chips attached or removed later never reach Claude.
+		let append = args.iter().position(|a| a == "--append-system-prompt").expect("append flag");
+		assert_eq!(args[append + 2..append + 5], ["--system-prompt-snapshot", "off", "--"], "{args:?}");
+		assert_eq!(args.last().map(String::as_str), Some("hello"), "{args:?}");
 	}
 }
 
