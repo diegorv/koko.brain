@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [A resume whose session is gone keeps the chat and starts a new session](issues/01-gone-session-starts-over.md) | none | done | issue/01-gone-session-starts-over (893431088) | 2026-11-16 |
 | 02 | [Panel chats are saved in the vault, and the last one comes back](issues/02-save-and-restore-last-chat.md) | 01 | done | issue/02-save-and-restore-last-chat (746874e52) | 2026-11-16 |
-| 03 | [A history list reopens and deletes older chats](issues/03-chat-history-list.md) | 02 | in-progress | | |
+| 03 | [A history list reopens and deletes older chats](issues/03-chat-history-list.md) | 02 | done | issue/03-chat-history-list (1c5628f5a) | 2026-11-16 |
 
 ## Log
 
@@ -47,3 +47,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-16 01:22 — 02 — start — launched by /relay-lite:run — d4f8540bf
 - 2026-11-16 02:18 — 02 — deliver — Round 1 CHANGES_REQUESTED, fix round, round 2 APPROVED; merged onto mvp-claude at 746874e52; vitest 17167 passed — 746874e52
 - 2026-11-16 02:26 — 03 — start — launched by /relay-lite:run — fd2262e96
+- 2026-11-16 02:46 — 03 — deliver — Round 1 APPROVED with 5 findings, 2 fixed in deliver, round 2 APPROVED; merged onto mvp-claude at 1c5628f5a; vitest 17205 passed — 1c5628f5a
