@@ -1,6 +1,6 @@
 # Claude Code integration: an agent panel for the vault through the `claude` CLI
 
-**Status:** MVP delivered (01, 02, 03, 05, 07, 08); PR #247 review follow-ups 10-13; 09 open
+**Status:** MVP delivered (01, 02, 03, 05, 07, 08); PR #247 review follow-ups 10-13 delivered; 14 ready; 09 open
 
 ## Goal
 
@@ -51,7 +51,7 @@ One turn = one process. Follow-up turns pass `--resume <session_id>`, taken from
 
 ## Later (not v1)
 
-Changed-files summary and revert (git diff when the vault is a repo, as Tolaria relies on git; otherwise File History pre-edit snapshots, which need a PreToolUse hook because File History only snapshots editor saves, `src/lib/features/file-history/file-history.service.ts:190-197`); safer permission modes; skill descriptions in the autocomplete (read SKILL.md frontmatter, as t3code `ClaudeSkills.ts` does); a Kokobrain MCP server; other agents; session history across restarts.
+Changed-files summary and revert (git diff when the vault is a repo, as Tolaria relies on git; otherwise File History pre-edit snapshots, which need a PreToolUse hook because File History only snapshots editor saves, `src/lib/features/file-history/file-history.service.ts:190-197`); safer permission modes; a Kokobrain MCP server; other agents. Skill descriptions in the autocomplete and session history across restarts have their own specs: `.scratch/claude-slash-descriptions/`, `.scratch/claude-session-history/`.
 
 ## Issues
 
@@ -66,7 +66,8 @@ Changed-files summary and revert (git diff when the vault is a repo, as Tolaria 
 | [07](issues/07-cancel-misses-a-child-forked-during-killpg.md) | Cancel misses a child forked during `killpg` | 05 | resolved |
 | [08](issues/08-real-stream-json-fixture.md) | Replace the hand-written stream-json fixture with a real capture | 03 | resolved |
 | [09](issues/09-stale-run-after-vault-switch.md) | A run started before a vault switch leaks into the new vault's chat | 03 | needs-triage |
-| [10](issues/10-status-uses-turn-env.md) | The status check finds `claude` the way a turn does | 05 | ready-for-agent |
-| [11](issues/11-cancel-turns-on-app-exit.md) | Quitting the app cancels running turns | 07 | ready-for-agent |
-| [12](issues/12-panel-scroll-focus-keys.md) | Panel follows the reply, keeps focus, and handles IME and slash-menu keys | 10 | ready-for-agent |
-| [13](issues/13-stream-session-errors-retries.md) | Stream and chat keep the session, the error cause and retried text right | 12 | ready-for-agent |
+| [10](issues/10-status-uses-turn-env.md) | The status check finds `claude` the way a turn does | 05 | resolved |
+| [11](issues/11-cancel-turns-on-app-exit.md) | Quitting the app cancels running turns | 07 | resolved |
+| [12](issues/12-panel-scroll-focus-keys.md) | Panel follows the reply, keeps focus, and handles IME and slash-menu keys | 10 | resolved |
+| [13](issues/13-stream-session-errors-retries.md) | Stream and chat keep the session, the error cause and retried text right | 12 | resolved |
+| [14](issues/14-resumed-turns-see-current-notes.md) | A resumed turn sees the notes attached now, not those of the first turn | 13 | ready-for-agent |
