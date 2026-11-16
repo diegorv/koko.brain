@@ -35,10 +35,11 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [A resume whose session is gone keeps the chat and starts a new session](issues/01-gone-session-starts-over.md) | none | todo | | |
+| 01 | [A resume whose session is gone keeps the chat and starts a new session](issues/01-gone-session-starts-over.md) | none | in-progress | | |
 | 02 | [Panel chats are saved in the vault, and the last one comes back](issues/02-save-and-restore-last-chat.md) | 01 | todo | | |
 | 03 | [A history list reopens and deletes older chats](issues/03-chat-history-list.md) | 02 | todo | | |
 
 ## Log
 
 - 2026-11-15 23:09 — ledger created (3 Issues)
+- 2026-11-15 23:09 — 01 — start — launched by /relay-lite:run — b1ce31701
