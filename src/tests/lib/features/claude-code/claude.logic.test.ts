@@ -20,9 +20,11 @@ import {
 	SESSION_GONE,
 	showError,
 	slashCommandDetails,
+	slashMenuCommands,
 	slashQuery,
 	startRun,
 	storedFromChat,
+	terminalOnlySlashNames,
 	toolTarget,
 	untriedSlashNames,
 	type ChatState,
@@ -607,6 +609,37 @@ describe('untriedSlashNames', () => {
 	it('is empty when every name is known or tried, or there are none', () => {
 		expect(untriedSlashNames(['debug', 'seen'], details, new Set(['seen']))).toEqual([]);
 		expect(untriedSlashNames([], new Map(), new Set())).toEqual([]);
+	});
+});
+
+describe('terminalOnlySlashNames', () => {
+	const row = (name: string, aliases: string[] = []) => ({ name, description: '', argumentHint: '', aliases });
+
+	it("names the rows an Init lacks, by the row's name and by its aliases", () => {
+		const rows = [row('debug'), row('doctor'), row('my-tool:sketch', ['sketch-internal']), row('focus')];
+		expect(terminalOnlySlashNames(rows, ['debug', 'sketch-internal'])).toEqual(new Set(['doctor', 'focus']));
+	});
+
+	it('is empty when the Init has every row, or there are no rows', () => {
+		expect(terminalOnlySlashNames([row('debug')], ['debug', 'extra']).size).toBe(0);
+		expect(terminalOnlySlashNames([], ['debug']).size).toBe(0);
+	});
+});
+
+describe('slashMenuCommands', () => {
+	const rows = ['debug', 'doctor', 'review'].map((name) => ({ name, description: '', argumentHint: '', aliases: [] }));
+
+	it("lists an Init's names as they are once it has any", () => {
+		expect(slashMenuCommands(['review', 'hello'], rows, new Set(['review']))).toEqual(['review', 'hello']);
+	});
+
+	it('lists the row names in order minus the terminal-only names before an Init', () => {
+		expect(slashMenuCommands([], rows, new Set(['doctor']))).toEqual(['debug', 'review']);
+		expect(slashMenuCommands([], rows, new Set())).toEqual(['debug', 'doctor', 'review']);
+	});
+
+	it('is empty with no Init names and no rows', () => {
+		expect(slashMenuCommands([], [], new Set(['doctor']))).toEqual([]);
 	});
 });
 

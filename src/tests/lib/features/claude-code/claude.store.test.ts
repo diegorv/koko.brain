@@ -39,6 +39,84 @@ describe('claudeStore', () => {
 		});
 	});
 
+	describe('slashMenuCommands', () => {
+		const row = (name: string, aliases: string[] = []) => ({ name, description: '', argumentHint: '', aliases });
+		const rows = [row('debug'), row('doctor'), row('my-tool:sketch', ['sketch-internal']), row('review')];
+
+		/** A finished turn whose `Init` lists `names`. */
+		function turnWithInit(names: string[], runId = 'r1') {
+			claudeStore.beginTurn('x');
+			claudeStore.startRun(runId);
+			claudeStore.receive({ runId, event: { type: 'Init', sessionId: 's', model: 'm', slashCommands: names, skills: [] } });
+			claudeStore.receive({ runId, event: { type: 'Done', exitCode: 0 } });
+		}
+
+		beforeEach(() => claudeStore._reset());
+
+		it('is empty with no rows and no Init', () => {
+			expect(claudeStore.slashMenuCommands).toEqual([]);
+		});
+
+		it('lists every row name before any Init in the app session', () => {
+			claudeStore.setSlashCommandRows(rows);
+			expect(claudeStore.slashMenuCommands).toEqual(['debug', 'doctor', 'my-tool:sketch', 'review']);
+		});
+
+		it("lists the Init's names once one arrives, and still after New chat", () => {
+			claudeStore.setSlashCommandRows(rows);
+			turnWithInit(['review', 'debug', 'sketch-internal']);
+			expect(claudeStore.slashMenuCommands).toEqual(['review', 'debug', 'sketch-internal']);
+
+			claudeStore.newChat([]);
+			expect(claudeStore.slashMenuCommands).toEqual(['review', 'debug', 'sketch-internal']);
+		});
+
+		it('hides the rows an Init lacked from the pre-Init list after reset, matching aliases', () => {
+			claudeStore.setSlashCommandRows(rows);
+			turnWithInit(['review', 'debug', 'sketch-internal']);
+
+			claudeStore.reset();
+			expect(claudeStore.slashMenuCommands).toEqual([]);
+			claudeStore.setSlashCommandRows(rows);
+			expect(claudeStore.slashMenuCommands).toEqual(['debug', 'my-tool:sketch', 'review']);
+		});
+
+		it('learns the terminal-only names when the rows arrive after the Init', () => {
+			turnWithInit(['review', 'debug', 'sketch-internal']);
+			claudeStore.setSlashCommandRows(rows);
+
+			claudeStore.reset();
+			claudeStore.setSlashCommandRows(rows);
+			expect(claudeStore.slashMenuCommands).toEqual(['debug', 'my-tool:sketch', 'review']);
+		});
+
+		it('learns from an Init replayed by startRun', () => {
+			claudeStore.setSlashCommandRows(rows);
+			claudeStore.beginTurn('x');
+			claudeStore.receive({ runId: 'r1', event: { type: 'Init', sessionId: 's', model: 'm', slashCommands: ['debug', 'review', 'sketch-internal'], skills: [] } });
+			claudeStore.startRun('r1');
+
+			claudeStore.reset();
+			claudeStore.setSlashCommandRows(rows);
+			expect(claudeStore.slashMenuCommands).toEqual(['debug', 'my-tool:sketch', 'review']);
+		});
+
+		it('_reset forgets the terminal-only names', () => {
+			claudeStore.setSlashCommandRows(rows);
+			turnWithInit(['review']);
+
+			claudeStore._reset();
+			claudeStore.setSlashCommandRows(rows);
+			expect(claudeStore.slashMenuCommands).toEqual(['debug', 'doctor', 'my-tool:sketch', 'review']);
+		});
+
+		it('keeps the rows set last when a reply is not a list', () => {
+			claudeStore.setSlashCommandRows(rows);
+			expect(() => claudeStore.setSlashCommandRows(null as unknown as [])).toThrow();
+			expect(claudeStore.slashMenuCommands).toEqual(['debug', 'doctor', 'my-tool:sketch', 'review']);
+		});
+	});
+
 	it('runs a turn through its events', () => {
 		claudeStore.beginTurn('hi');
 		expect(claudeStore.isRunning).toBe(true);
