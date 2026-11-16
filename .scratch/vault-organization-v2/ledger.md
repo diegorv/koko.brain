@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Move collision is silent](issues/01-move-collision-is-silent.md) | none | done | issue/01-move-collision-is-silent (abc8399b) | 2026-11-13 |
 | 02 | [My People counts only 1:1s](issues/02-my-people-counts-only-1on1s.md) | none | done | issue/02-my-people-counts-only-1on1s (c24a703a) | 2026-11-16 |
-| 03 | [QueryJS results dropped on every save](issues/03-queryjs-results-dropped-on-every-save.md) | none | todo | | |
+| 03 | [QueryJS results dropped on every save](issues/03-queryjs-results-dropped-on-every-save.md) | none | in-progress | | |
 
 ## Log
 
@@ -48,3 +48,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-16 15:02 — 02 — deliver — build agent failed: API unreachable (ENOTFOUND); nothing delivered, worktree kept — 3a701624
 - 2026-11-16 15:02 — 02 — start — launched by /relay-lite:run (retry) — b2527a80
 - 2026-11-16 15:17 — 02 — deliver — merged as c24a703a: ONE_ON_ONE constants module-private, withOneOnOneKind skips a quoted kind key; review round 1 APPROVED with findings fixed, round 2 APPROVED; full vitest suite green at 6588b4c4 — c24a703a
+- 2026-11-16 15:21 — 03 — start — launched by /relay-lite:run — 8bf55152
