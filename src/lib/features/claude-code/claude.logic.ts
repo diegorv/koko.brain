@@ -400,6 +400,26 @@ export function untriedSlashNames(names: readonly string[], details: ReadonlyMap
 	return names.filter((name) => !details.has(name) && !tried.has(name));
 }
 
+/**
+ * The names of the rows an `Init`'s `initNames` lacks, matched by the row's
+ * name or one of its aliases (an `Init` names a skill by its internal name).
+ * The rows carry no terminal-only flag and Rust drops those names from
+ * `Init.slashCommands`, so these are the commands `-p` refuses.
+ */
+export function terminalOnlySlashNames(rows: readonly SlashCommandInfo[], initNames: readonly string[]): Set<string> {
+	const inInit = new Set(initNames);
+	return new Set(rows.filter((row) => !inInit.has(row.name) && !row.aliases.some((alias) => inInit.has(alias))).map((row) => row.name));
+}
+
+/**
+ * The names the slash menu lists: an `Init`'s names once it has any, else the
+ * row names in order minus `terminalOnly`, so the menu works before the first turn.
+ */
+export function slashMenuCommands(initNames: readonly string[], rows: readonly SlashCommandInfo[], terminalOnly: ReadonlySet<string>): readonly string[] {
+	if (initNames.length > 0) return initNames;
+	return rows.map((row) => row.name).filter((name) => !terminalOnly.has(name));
+}
+
 /** The vault root in one form, without trailing slashes: the runner compares it as a raw string to allow one run per vault. */
 export function normalizeVaultPath(path: string): string {
 	const trimmed = path.replace(/\/+$/, '');

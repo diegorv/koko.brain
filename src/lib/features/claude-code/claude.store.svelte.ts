@@ -9,7 +9,9 @@ import {
 	restoreChat,
 	showError,
 	slashCommandDetails,
+	slashMenuCommands,
 	startRun,
+	terminalOnlySlashNames,
 	type ChatState,
 	type SlashCommandDetail,
 	type StoredChat,
@@ -19,8 +21,21 @@ import {
 let chat = $state<ChatState>(EMPTY_CHAT);
 /** Vault-relative paths of the notes attached to the chat, in the order added. */
 let contextNotes = $state<string[]>([]);
+/** The open vault's command list from the CLI; empty until it arrives. */
+let slashRows = $state.raw<readonly SlashCommandInfo[]>([]);
 /** The open vault's slash command details, from the CLI's command list; empty until it arrives. */
 let slashDetails = $state.raw<ReadonlyMap<string, SlashCommandDetail>>(new Map());
+/**
+ * Row names the last `Init` lacked: the CLI's terminal-only commands. They
+ * belong to the CLI, not the vault, so `reset()` keeps them; empty until an
+ * `Init` and the rows have both arrived in this app session.
+ */
+let terminalOnly = $state.raw<ReadonlySet<string>>(new Set());
+
+/** Relearns the terminal-only names from the chat's `Init` names and the rows, once both are there. */
+function learnTerminalOnly() {
+	if (slashRows.length > 0 && chat.slashCommands.length > 0) terminalOnly = terminalOnlySlashNames(slashRows, chat.slashCommands);
+}
 
 /** State of the agent panel: the chat and its attached notes. The event rules live in `claude.logic.ts`. */
 export const claudeStore = {
@@ -40,6 +55,8 @@ export const claudeStore = {
 	get stopRequested() { return chat.stopRequested; },
 	/** Slash commands from the last `Init`; empty before the first turn. */
 	get slashCommands() { return chat.slashCommands; },
+	/** What the slash menu lists: the last `Init`'s names, or before one the CLI's row names minus the terminal-only ones. */
+	get slashMenuCommands() { return slashMenuCommands(chat.slashCommands, slashRows, terminalOnly); },
 	/** Description and argument hint per slash command name or alias; empty until the CLI's list arrives. */
 	get slashCommandDetails() { return slashDetails; },
 	/** Id of the chat's file; `null` until the first send. */
@@ -55,10 +72,16 @@ export const claudeStore = {
 	beginTurn(text: string) {
 		chat = beginTurn(chat, text, { chatId: crypto.randomUUID(), createdAt: new Date().toISOString() });
 	},
-	/** Records the run id of the turn and replays its buffered events. */
-	startRun(runId: string) { chat = startRun(chat, runId); },
+	/** Records the run id of the turn and replays its buffered events, an `Init` among them. */
+	startRun(runId: string) {
+		chat = startRun(chat, runId);
+		learnTerminalOnly();
+	},
 	/** Applies one `claude-event`. */
-	receive(payload: ClaudeEventPayload) { chat = receiveEvent(chat, payload); },
+	receive(payload: ClaudeEventPayload) {
+		chat = receiveEvent(chat, payload);
+		if (payload.event.type === 'Init') learnTerminalOnly();
+	},
 	/** Ends the turn with an inline error. */
 	failTurn(message: string) { chat = failTurn(chat, message); },
 	/** Shows an inline error and leaves a running turn running. */
@@ -78,13 +101,24 @@ export const claudeStore = {
 	},
 	/** Removes an attached note. */
 	removeContextNote(path: string) { contextNotes = contextNotes.filter((p) => p !== path); },
-	/** Replaces the slash command details with those of the CLI's command list `rows`. */
-	setSlashCommandRows(rows: readonly SlashCommandInfo[]) { slashDetails = slashCommandDetails(rows); },
+	/** Replaces the CLI's command list and its slash command details with `rows`. */
+	setSlashCommandRows(rows: readonly SlashCommandInfo[]) {
+		slashDetails = slashCommandDetails(rows);
+		slashRows = rows;
+		learnTerminalOnly();
+	},
 
-	/** Back to the initial state; `resetClaude` calls it on vault close. */
+	/** Back to the initial state; `resetClaude` calls it on vault close. The terminal-only names stay. */
 	reset() {
 		chat = EMPTY_CHAT;
 		contextNotes = [];
+		slashRows = [];
 		slashDetails = new Map();
+	},
+
+	/** @internal test-only: `reset()` plus the terminal-only names, as a fresh app session. */
+	_reset() {
+		this.reset();
+		terminalOnly = new Set();
 	},
 };

@@ -156,7 +156,8 @@ const runTurnCalled = () => vi.mocked(invoke).mock.calls.some(([cmd]) => cmd ===
 beforeEach(() => {
 	vi.resetAllMocks();
 	clearLocalStorage();
-	claudeStore.reset();
+	// A fresh app session: no terminal-only slash names learned from an earlier test's Init.
+	claudeStore._reset();
 	// The slash request state lives in the service: each test starts with no request made.
 	resetClaude();
 	claudeStatusStore.reset();
@@ -628,10 +629,64 @@ describe('ClaudePanel note context', () => {
 });
 
 describe('ClaudePanel slash commands', () => {
-	it('says the menu is empty before the first turn', async () => {
+	const options = () => qa('[data-claude-slash-option]').map((el) => el.dataset.claudeSlashOption);
+
+	it("says the commands load after the first message while the CLI's list is pending", async () => {
+		answer(INSTALLED, undefined, () => new Promise(() => {}));
 		await render();
 		await type('/');
-		expect(q('[data-claude-slash-empty]')?.textContent).toContain('load after the first message');
+		expect(options()).toEqual([]);
+		expect(q('[data-claude-slash-empty]')?.textContent).toBe('Slash commands load after the first message.');
+	});
+
+	it("says the commands load after the first message when the CLI's list fails", async () => {
+		answer(INSTALLED, undefined, async () => { throw 'claude exited without answering'; });
+		await render();
+		await type('/');
+		expect(options()).toEqual([]);
+		expect(q('[data-claude-slash-empty]')?.textContent).toBe('Slash commands load after the first message.');
+	});
+
+	it("lists the CLI's commands with their descriptions before the first turn", async () => {
+		await render();
+		await type('/');
+		expect(options()).toEqual(['alpha', 'beta', 'gamma']);
+		expect(q('[data-claude-slash-option="beta"] [data-claude-slash-description]')?.textContent).toBe('The beta command');
+
+		await key({ key: 'ArrowDown' });
+		await key({ key: 'Enter' });
+		expect(promptBox().value).toBe('/beta ');
+		expect(runTurnCalled()).toBe(false);
+	});
+
+	it("hides the commands an Init lacked from the next vault's list before its first turn", async () => {
+		const rows = ['debug', 'doctor', 'review'].map((name) => ({ name, description: `The ${name} command`, argumentHint: '', aliases: [] }));
+		answer(INSTALLED, undefined, async () => rows);
+		await render();
+		await type('/');
+		// No Init yet in this app session: nothing is known to be terminal-only.
+		expect(options()).toEqual(['debug', 'doctor', 'review']);
+
+		await sendText('hi');
+		await emit({ type: 'Init', sessionId: 's1', model: 'm', slashCommands: ['review', 'debug'], skills: [] });
+		await emit({ type: 'Done', exitCode: 0 });
+		await type('/');
+		expect(options()).toEqual(['review', 'debug']);
+
+		button('New chat').click();
+		await settle();
+		await type('/');
+		expect(options()).toEqual(['review', 'debug']);
+
+		// A vault switch: teardown unmounts the panel and clears the chat, the
+		// panel remounts in the new vault and asks for its list.
+		unmount(component!);
+		target.remove();
+		resetClaude();
+		vaultStore.open('/other');
+		await render();
+		await type('/');
+		expect(options()).toEqual(['debug', 'review']);
 	});
 
 	it('filters the commands from Init and inserts the picked one', async () => {

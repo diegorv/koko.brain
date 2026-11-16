@@ -68,7 +68,8 @@
 	let historyError = $state<string | null>(null);
 
 	const query = $derived(slashDismissed ? null : slashQuery(prompt));
-	const slashMatches = $derived(query === null ? [] : filterSlashCommands(query, claudeStore.slashCommands));
+	const slashMenu = $derived(claudeStore.slashMenuCommands);
+	const slashMatches = $derived(query === null ? [] : filterSlashCommands(query, slashMenu));
 	/** The open note when it is not attached, offered as a one-click chip. */
 	const suggestedNote = $derived.by(() => {
 		const note = activeNoteContextPath(editorStore.activeTabPath, vaultStore.path);
@@ -482,7 +483,7 @@
 							><span class="block truncate"><span data-claude-slash-name>/{name}</span>{#if detail?.argumentHint}<span class="ml-1.5 text-right-sidebar-muted-fg" data-claude-slash-hint>{detail.argumentHint}</span>{/if}</span>{#if detail?.description}<span class="line-clamp-2 text-meta text-right-sidebar-muted-fg" data-claude-slash-description>{detail.description}</span>{/if}</button>
 						{:else}
 							<p class="px-2 py-1 text-right-sidebar-muted-fg" data-claude-slash-empty>
-								{claudeStore.slashCommands.length === 0 ? 'Slash commands load after the first message.' : 'No matching command.'}
+								{slashMenu.length === 0 ? 'Slash commands load after the first message.' : 'No matching command.'}
 							</p>
 						{/each}
 					</div>
