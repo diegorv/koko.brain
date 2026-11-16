@@ -43,7 +43,7 @@ async function settle(rounds = 4) {
 }
 
 const person = (name: string) => entryV2(`${PEOPLE}/${name}.md`, { isA: 'Person', frontmatter: { _one_on_one_every: true } });
-const oneOnOne = (path: string, name: string, date: string) => entryV2(path, { relatedTo: [name], frontmatter: { date } });
+const oneOnOne = (path: string, name: string, date: string) => entryV2(path, { relatedTo: [name], frontmatter: { date, kind: 'one-on-one' } });
 
 describe('MyPeopleSection', () => {
 	let target: HTMLElement;
@@ -158,15 +158,16 @@ describe('MyPeopleSection', () => {
 		await settle();
 
 		const call = vi.mocked(invoke).mock.calls.find(([cmd]) => cmd === 'create_note');
-		expect(call?.[1]).toMatchObject({ path: ANA_NOTE, content: '---\n_related_to: "[[Ana]]"\n---\n' });
+		expect(call?.[1]).toMatchObject({ path: ANA_NOTE, content: '---\n_related_to: "[[Ana]]"\nkind: one-on-one\n---\n' });
 		expect(openFileInEditor).toHaveBeenCalledWith(ANA_NOTE);
 		expect(openFileInEditor).not.toHaveBeenCalledWith(`${PEOPLE}/Ana.md`);
 
 		// The entries refresh after `vault-index-updated` carries the note Rust indexed:
-		// `_related_to` parsed into `relatedTo`, no `date`, so the disk creation time dates it.
+		// `_related_to` parsed into `relatedTo`, `kind` kept in the frontmatter, no `date`,
+		// so the disk creation time dates it.
 		typeDefinitionsStore.setEntries([
 			...typeDefinitionsStore.entries,
-			entryV2(ANA_NOTE, { relatedTo: ['Ana'], createdAt: Math.floor(NOW.getTime() / 1000) }),
+			entryV2(ANA_NOTE, { relatedTo: ['Ana'], frontmatter: { kind: 'one-on-one' }, createdAt: Math.floor(NOW.getTime() / 1000) }),
 		]);
 		await settle();
 		expect(days('Ana').textContent?.trim()).toBe('0d');

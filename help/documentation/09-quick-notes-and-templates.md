@@ -105,7 +105,7 @@ The `_notes/` prefix is the default Notes folder of Periodic Notes; change it un
 
 The **New 1:1** button in the [note action bar](03-editor.md#note-action-bar) of a Person note creates the same note for that person without the picker.
 
-Every new 1:1 note gets `_related_to: "[[Person]]"` in its frontmatter, even when the template does not write it; a template that already writes that link is kept as is. That link is what ties the note to the person. If the template's frontmatter is not valid YAML (for example `title: 1:1: Alice`, which needs quotes), the note is not created and "Failed to create 1:1 note." is shown: fix the template's frontmatter and try again.
+Every new 1:1 note gets `_related_to: "[[Person]]"` in its frontmatter, even when the template does not write it; a template that already writes that link is kept as is. That link is what ties the note to the person. The note also gets `kind: one-on-one`, which marks it as a 1:1 for [My people](#my-people-on-today), unless the template writes its own `kind`. If the template's frontmatter is not valid YAML (for example `title: 1:1: Alice`, which needs quotes), the note is not created and "Failed to create 1:1 note." is shown: fix the template's frontmatter and try again.
 
 ### My people on Today
 
@@ -117,7 +117,7 @@ _one_on_one_every: 7
 
 A positive whole number is that person's cadence in days (`7` above means a 1:1 every week); `true` takes **1:1 due after (days)** from Settings. Both work typed into the Properties panel, which saves them as text. A person without the property, or with any other value (`false`, `0`, `2.5`), is not listed. With nobody marked, the section says which property to add.
 
-A note counts as a 1:1 with a person when its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A person only mentioned in a note's body (a daily note, say) does not count, and neither does a note dated after today. People with no 1:1, or none for longer than their cadence, are shown in the warning color. The list puts people with no 1:1 first, then orders by how many days each person is past their own cadence. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
+A note counts as a 1:1 with a person when it is a 1:1 note (`kind: one-on-one` in its frontmatter, or the tag `type/meeting/one-one`) and its `_related_to` links that person, wherever the note lives; its day is its note date (`date`, else `created`, else the file's creation time). A group meeting whose `_related_to` links the person does not count, nor does a person only mentioned in a note's body (a daily note, say), nor a note dated after today. People with no 1:1, or none for longer than their cadence, are shown in the warning color. The list puts people with no 1:1 first, then orders by how many days each person is past their own cadence. Click a name to open the person; **New 1:1** on the row creates today's 1:1 for them.
 
 ### Setting up people
 

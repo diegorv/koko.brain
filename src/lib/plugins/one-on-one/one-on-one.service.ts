@@ -13,6 +13,7 @@ import {
 	buildOneOnOneVariables,
 	loadPeopleFromEntries,
 	mergePeopleLists,
+	withOneOnOneKind,
 } from './one-on-one.logic';
 import { error } from '#lib/utils/debug.js';
 import { stem } from '#lib/utils/path.js';
@@ -61,8 +62,9 @@ export async function loadPeople(): Promise<void> {
  * Creates and opens a new 1:1 note for the given person, or opens the one
  * that already exists at the same path. The note is placed in the periodic
  * notes base folder with date-based subfolders. A created note always has
- * `_related_to: [[person]]`, the link that makes it count as a 1:1, even when
- * the template does not write it.
+ * `_related_to: [[person]]`, and `kind: one-on-one` unless the template sets
+ * its own `kind`: what makes My people count it as a 1:1 with the person
+ * (`buildMyPeople`), even when the template writes neither.
  */
 export async function createOneOnOneNote(personName: string): Promise<void> {
 	const vaultPath = vaultStore.path;
@@ -93,7 +95,7 @@ export async function createOneOnOneNote(personName: string): Promise<void> {
 		title,
 		customVariables,
 		buildContent: (content) =>
-			applyExplicitOrganization(ensureFrontmatterLink(content, '_related_to', personName), settingsStore.explicitOrganization),
+			applyExplicitOrganization(ensureFrontmatterLink(withOneOnOneKind(content), '_related_to', personName), settingsStore.explicitOrganization),
 	});
 }
 
