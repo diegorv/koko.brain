@@ -31,22 +31,22 @@ file src/lib/plugins/queryjs/kb-api.ts other L556 module src/lib/plugins/queryjs
 file src/lib/plugins/queryjs/kb-datetime.ts other L231 module src/lib/plugins/queryjs in3 t5
 file src/lib/plugins/queryjs/kb-ui.ts other L1069 module src/lib/plugins/queryjs in1 t2
 file src/lib/plugins/queryjs/kb-ui.types.ts types L23 module src/lib/plugins/queryjs in1 t0
-file src/lib/plugins/queryjs/queryjs-block-widget.ts other L337 module src/lib/plugins/queryjs in2 t5
+file src/lib/plugins/queryjs/queryjs-block-widget.ts other L348 module src/lib/plugins/queryjs in2 t5
 file src/lib/plugins/queryjs/queryjs-charts.ts other L31 module src/lib/plugins/queryjs in3 t3 | Chart.js instances created by `kb.ui.chart()`, by canvas.
 file src/lib/plugins/queryjs/queryjs-ports.ts other L21 module src/lib/plugins/queryjs in1 t0
-file src/lib/plugins/queryjs/queryjs-session.store.svelte.ts store L157 module src/lib/plugins/queryjs in4 t4 | Session-scoped state for the QueryJS execution model (Phase 12 of the Híbrido D refactor).
+file src/lib/plugins/queryjs/queryjs-session.store.svelte.ts store L198 module src/lib/plugins/queryjs in4 t4 | Session-scoped state for the QueryJS execution model (Phase 12 of the Híbrido D refactor).
 file src/lib/plugins/queryjs/queryjs.logic.ts logic L218 module src/lib/plugins/queryjs in1 t3
 file src/lib/plugins/queryjs/queryjs.service.ts service L6 module src/lib/plugins/queryjs in2 t1
 file src/lib/plugins/queryjs/queryjs.types.ts types L9 module src/lib/plugins/queryjs in3 t0
 ## public
 sym src/lib/plugins/queryjs/QueryjsSection.svelte:1 component QueryjsSection L80
 sym src/lib/plugins/queryjs/kb-api.ts:55 class KBAPI L486 | QueryJS API object.
-sym src/lib/plugins/queryjs/queryjs-block-widget.ts:332 const queryjsBlockRenderer: FencedBlockRenderer L6 | Renders `` ```queryjs `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
+sym src/lib/plugins/queryjs/queryjs-block-widget.ts:343 const queryjsBlockRenderer: FencedBlockRenderer L6 | Renders `` ```queryjs `` blocks; the app installs it in the editor's `fencedBlockRenderers`.
 sym src/lib/plugins/queryjs/queryjs-ports.ts:13 fn registerQueryjsBlockPorts(): () => void L9 | Wires the queryjs blocks' app-lifetime ports: a content change clears the cached results (`invalidateQueryjsCache`), and a closed tab drops its file's autoRun …
-sym src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:63 store queryjsSessionStore L95
+sym src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:72 store queryjsSessionStore L127
 sym src/lib/plugins/queryjs/queryjs.service.ts:4 fn loadExternalScript(absolutePath: string): Promise<string> L3 | Loads a .js script file from the vault
 ## stores
-store src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:63 queryjsSessionStore esc:0
+store src/lib/plugins/queryjs/queryjs-session.store.svelte.ts:72 queryjsSessionStore esc:0
 ## effects
 fx-count dom.mousedown 3
 fx-count tauri-fs.readTextFile 1

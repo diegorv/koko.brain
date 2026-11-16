@@ -35,7 +35,7 @@ fx src/lib/features/note-list/NoteRowMenu.svelte:120 timer.requestAnimationFrame
 fx src/lib/features/rail-shell/FilesNavigator.svelte:154 timer.requestAnimationFrame in focusRenameInput
 fx src/lib/plugins/kanban/KanbanCard.svelte:83 timer.requestAnimationFrame in handleWikilinkSelect
 fx src/lib/plugins/kanban/KanbanLane.svelte:131 timer.requestAnimationFrame in handleAddWikilinkSelect
-fx src/lib/plugins/queryjs/queryjs-block-widget.ts:57 timer.requestAnimationFrame in markAutoRunAfterRenderPass
+fx src/lib/plugins/queryjs/queryjs-block-widget.ts:58 timer.requestAnimationFrame in markAutoRunAfterRenderPass
 fx src/lib/utils/log.service.ts:198 timer.requestAnimationFrame in logClickToPaint
 fx src/lib/features/event-calendar/event-calendar.service.ts:313 timer.setInterval delay=CLOCK_INTERVAL_MS in acquireCalendarClock
 fx src/lib/utils/log.service.ts:135 timer.setInterval delay=HEARTBEAT_MS in startHeartbeat
@@ -65,7 +65,7 @@ fx src/lib/features/todoist-sync/sync-scheduler.service.ts:186 timer.setTimeout 
 fx src/lib/plugins/mods/mods-host.service.ts:636 timer.setTimeout delay=0 in createModContext
 fx src/lib/plugins/mods/mods-host.service.ts:663 timer.setTimeout delay=0 in createModContext
 fx src/lib/plugins/mods/mods-host.service.ts:685 timer.setTimeout delay=0 in createModContext
-fx src/lib/plugins/queryjs/queryjs-block-widget.ts:53 timer.setTimeout delay=0 in markAutoRunAfterRenderPass
+fx src/lib/plugins/queryjs/queryjs-block-widget.ts:54 timer.setTimeout delay=0 in markAutoRunAfterRenderPass
 fx src/lib/plugins/word-count/WordCount.svelte:20 timer.setTimeout delay=500 in $effect@17
 fx src/lib/utils/debounce.ts:38 timer.setTimeout delay=delay in debounce
 fx src/lib/utils/debounce.ts:40 timer.setTimeout delay=options.maxWait in debounce

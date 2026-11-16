@@ -49,7 +49,7 @@ by src/lib/core/vault/vault-entries.service.ts:getVaultEntries <- src/lib/featur
 by src/lib/core/vault/vault-entries.service.ts:getVaultEntries <- src/lib/features/properties/NoteInfo.svelte:25 in $effect@18 call
 by src/lib/core/vault/vault-entries.service.ts:getVaultEntries <- src/lib/features/tasks/tasks.service.ts:80 in buildTaskIndex call
 by src/lib/core/vault/vault-entries.service.ts:getVaultEntries <- src/lib/plugins/mods/mod-app.service.ts:82 in createModKb call
-by src/lib/core/vault/vault-entries.service.ts:getVaultEntries <- src/lib/plugins/queryjs/queryjs-block-widget.ts:243 in QueryjsBlockWidget.execute call
+by src/lib/core/vault/vault-entries.service.ts:getVaultEntries <- src/lib/plugins/queryjs/queryjs-block-widget.ts:252 in QueryjsBlockWidget.execute call
 sym src/lib/core/vault/vault-entries.service.ts:45 fn invalidateVaultEntries(): void L3 | Drops the cached snapshot.
 by src/lib/core/vault/vault-entries.service.ts:invalidateVaultEntries <- src/lib/app/lifecycle/app-lifecycle.service.ts:145 in initializeVault call +2
 by src/lib/core/vault/vault-entries.service.ts:invalidateVaultEntries <- src/lib/app/tauri-listeners.service.ts:262 in registerVaultIndexUpdatedListener call
