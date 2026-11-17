@@ -1,0 +1,131 @@
+# Scout: command palette and quick switcher (P55, P56, P57, P159, P160, P179)
+
+Checked against HEAD `f2cd7f97b` (main). Read-only. Tiers from the prototype (`prototypes/finders-search-tags-graph.html`): P55, P56, P57 "clear"; P159 "moderate"; P160, P179 "polish". Screenshots: `screens/command-palette-light.png`, `command-palette-filtered-light.png`, `quick-switcher-light.png`.
+
+## Headline findings
+
+1. **Issue 218 already covers most of this cluster.** `.scratch/open-itens/issues/218-command-palette-shows-dense-one-line-rows.md` (Status `ready-for-agent`, ledger `todo`, owner decision 2026-11-06, "first wave") asks for: one-line `h-9` rows with the category muted on the right (P56), a taller list `max-h-[min(60vh,400px)]` (P56, but 400 not 480), a footer with key hints (P160 footer), no close X (P179 X), and a density prop on the item. It says the change is shared with the Quick Switcher, TemplatePicker and OneOnOnePicker by owner decision. Its own Notes say "drafted from the review without the deep dive; check the cited lines before promoting". It does NOT cover P55 (anchor at 18vh), the Recent/All groups, P159, P57 or the rest of P179. Do not write a second ticket for P56/P160-footer/P179-X: extend or supersede 218.
+2. **Issue 164** (`ready-for-agent`, `todo`) covers the second half of P57: Create with a folder path (`Projects/Idea`) and a failure toast that names the cause. Same function (`createAndOpenNote`), same test file. Merge with P57 or order it first.
+3. **Issue 042 is delivered** (`resolved`, commit `2009ad219`, 2026-11-12): Create is now a selectable `Command.Item`, so Enter creates when nothing matches. P57's "Create only when nothing matches" is still true; only the no-match keyboard path is fixed. 042 explicitly left "a create action while some notes match" out of scope as an owner decision ("separate ticket only if wanted"). P57 is that ticket.
+4. **bits-ui does not distinguish Shift+Enter.** `node_modules/bits-ui/dist/bits/command/command.svelte.js:957-968` (bits-ui 2.20.6): the `kbd.ENTER` case clicks the selected item whatever the modifiers. The proposed "Create bound to Shift+Enter" therefore needs an own keydown handler that runs before bits-ui's (capture on the input or the Command root, `stopPropagation`), otherwise Shift+Enter opens the selected note.
+5. **Shared primitives widen the blast radius.** `Command.Dialog` (`src/lib/components/ui/command/command-dialog.svelte`) is used by 5 dialogs: `CommandPalette.svelte`, `QuickSwitcher.svelte`, `plugins/templates/TemplatePicker.svelte`, `plugins/one-on-one/OneOnOnePicker.svelte`, `plugins/mods/ModActionPicker.svelte`. P55 (position), P56 (list height) and the X removal hit all of them. `ModActionPicker` has its own run view with Stop/Close buttons (`[data-mod-run-close]`), so removing the X must be checked there (precedent: `ModDialogHost.svelte:95` already passes `showCloseButton={dialog.kind !== 'loading'}`).
+6. **`fuzzyMatch` is shared by 6 consumers** (`src/lib/utils/fuzzy-match.ts`): command palette, quick switcher (`file-entries.logic.ts:53`), wikilink completion (`completion.logic.ts:81`, `completion.ts:92,149,201`), tag completion (`tag/completion.logic.ts:98`), `ModDialogHost.svelte:37`. A word-start bonus changes ranking in all of them.
+
+## Per proposal
+
+### P55. Command dialogs anchored at about 18vh
+
+- stillReal: **yes**.
+- Now: `dialog-content.svelte:30` hard-codes `fixed top-[50%] left-[50%] translate-x-[-50%] translate-y-[-50%]` with `max-h-[calc(100dvh-4rem)]`. `command-dialog.svelte:31` passes only `class="overflow-hidden p-0"` and `{portalProps}`, so every command dialog is vertically centred and the input moves as the result count changes. `cn()` is a `tailwind-merge` wrapper (`src/lib/utils.ts:9-12`), so an override class on the `Dialog.Content` call (`top-[18vh] translate-y-0`) wins over the base ones. Open check: the `zoom-in-95` / `animate-in` classes compose a transform with the translate; verify the animation in a real browser (`e2e/specs/overlay-motion.spec.ts`).
+- Geometry check: top 18vh + list cap `min(60vh,480px)` + 48px input stays inside the viewport down to about 600px height, so `max-h-[calc(100dvh-4rem)]` is not hit.
+- Existing Issues: none cover the anchor. 218 does not mention position. Ordinary dialogs stay centred (P55 own rule), so the override belongs in `command-dialog.svelte`, not in `dialog-content.svelte`.
+- Deliberate decisions: none found in ADRs or `help/`.
+- Tests: `src/tests/lib/components/ui/dialog/dialog-content.test.ts` (generic dialog classes: `rounded-xl`, `max-h-[calc(100dvh-4rem)]`; must keep passing), `src/tests/fixtures/DialogHarness.svelte`. No test of `command-dialog.svelte` itself. jsdom computes no CSS, so "input does not move" is only provable in a browser: e2e `e2e/specs/overlay-motion.spec.ts` (animation names), `e2e/specs/focus-ring.spec.ts` (palette dialog outline), `e2e/specs/command-palette.spec.ts`, `e2e/specs/quick-switcher.spec.ts` (open, filter, Escape only). A new e2e case that reads the input's `boundingBox().y` before and after filtering would be the real guard.
+- Owner-only: none. (18vh is a number from the prototype; take as given.)
+
+### P56. Taller list, single-line rows
+
+- stillReal: **yes**.
+- Now: `command-list.svelte:15` `max-h-[300px]`; `command-dialog.svelte:33` forces `[&_[data-command-item]]:py-3`, 20px icons (`svg:h-5 w-5`) and `h-12` input through descendant selectors; `CommandPalette.svelte:56-64` renders a two-line row (label + `command.category` in `text-xs`) with `Command.Shortcut` on the right. About 4.5 rows visible.
+- Existing Issues: **218** (`ready-for-agent`, `todo`) is the same change. Differences: 218 says `max-h-[min(60vh,400px)]`, P56 says `min(60vh,480px)`; 218 wants a density prop on the item instead of descendant selectors.
+- Deliberate decisions: owner decision 2026-11-06 recorded in 218: density goes into the shared `CommandDialog` so Quick Switcher, TemplatePicker and OneOnOnePicker change too.
+- Conflict to resolve: the Quick Switcher row is name + folder (two pieces of information). A one-line density default must still allow the switcher row (P179 shows the folder on the row). Either the folder goes inline right-aligned like the palette category, or the switcher opts into a two-line density. This is a design call for the ticket (see Open questions).
+- Tests: no component test pins row height or list cap. `CommandPalette.test.ts` (113 lines, one test: shortcut hints, renders the whole palette with real `getBuiltInCommands()`), `TemplatePicker.test.ts`, `OneOnOnePicker.test.ts`, `ModActionPicker.test.ts` (portal into `document.body`; query `[data-slot="command-item"]`). Source scans `src/tests/lib/chrome-type-scale.test.ts` (11px floor, skips `components/ui`) and `menu-item-anatomy.test.ts` apply to any new `.svelte` outside `components/ui`.
+- Owner-only: 400 versus 480 px cap (218 versus review).
+
+### P57. Quick switcher offers Create when notes match; target folder; failure cause
+
+- stillReal: **yes** (partly delivered: Enter-on-no-match shipped in 042).
+- Now: `QuickSwitcher.svelte:41-60` `createAndOpenNote`: name = query + `.md`, `createFile(vaultStore.path, name, applyExplicitOrganization(...))` so always the vault root (`fs.service.ts:198-203` builds `${parentPath}/${uniqueName}`, a clash gets a numeric suffix, no error), bare `catch` shows `toast.error('Failed to create file.')` (line 52). `QuickSwitcher.svelte:72-106`: `{#if hasResults}` file group, `{:else if searchQuery.trim().length > 0}` the only place the Create `Command.Item` (value `create:<query>`) is rendered, `{:else}` "No files found." `file-entries.logic.ts:51-56` fuzzy-matches `nameWithoutExt` only (so a query with `/` mostly reaches the Create branch), capped at `MAX_RESULTS = 100` (line 29).
+- Existing Issues: **164** (`ready-for-agent`, `todo`): path-style create (`Projects/Idea`), recursive folder creation via Rust `create_folder`, refuse empty/`.`/`..` segments, error toast with reason. Its criteria edit the same function and the same test file. **042** (`resolved`): created the Command.Item; its test `offers no create item and opens the first match on Enter when a note matches` (`QuickSwitcher.test.ts:215-227`) is the exact guard P57 inverts, and its "create item must not take the selection from a match" invariant must survive (Create row last, a match stays selected).
+- Interaction with the design: the first item is auto-selected by bits-ui; with Create appended after the matches Enter still opens the first match; Shift+Enter needs the own handler (headline 4). `help/documentation/06-search-and-navigation.md:15` states the current rule ("if no file matches ... a Create option appears ... Enter creates") and must change.
+- Deliberate decisions: none in ADRs. ADR 0026 amendment mentions the quick switcher create is covered by `explicitOrganization` (new notes start unorganized); keep it.
+- Tests: `src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts` (227 lines; real `fs.service.createFile`, mocks only Tauri, `editor.service`, `svelte-sonner`; helpers `createFromQuery`, `typeQuery`, `pressEnter`; tests at lines 96-227 cover create, organization flag, toast on failure, `notifyNoteCreated`, Enter on no match, query transitions, match-guard), `quick-switcher.store.test.ts`, `quick-switcher.service.test.ts`, `src/tests/lib/core/filesystem/file-entries.logic.test.ts` (159 lines), `e2e/specs/quick-switcher.spec.ts` (no create case).
+- Owner-only:
+  1. Which folder does the Create row target? Code today: vault root. The prototype shows a selectable Inbox / Projects / vault root, but picks nothing. Candidates: vault root (today), the active note's folder, the quick-capture folder (`settingsStore.quickCapture` via `buildCapturePath`, used by Cmd+N), or the folder typed in the query (164). The row must display it, so a rule is needed.
+  2. Is Shift+Enter the binding, or does Enter on a no-match query (042) stay and Shift+Enter only apply when matches exist? (Recommendation: keep both; Enter keeps creating when nothing matches.)
+  3. Does Create always render as the last row, or is it pinned outside the scrolling list?
+
+### P159. Palette ranking: "cal" finds Go to Calendar first
+
+- stillReal: **yes**.
+- Now: the palette builds its list with `commands={getBuiltInCommands()}` (`src/lib/app/AppOverlays.svelte:19`), re-run reactively because the builders read stores (`railGoToCommands` comment, `commands.ts:56-65`). Calendar commands are at `commands.ts:227-268`: `event-calendar:toggle` (Toggle Calendar View), `new-event` (New Calendar Event), `today` (Calendar: Go to Today), `undo`, `redo` (Calendar: Undo / Redo), all category `Navigation`. 13 static commands have category `Navigation`; `railGoToCommands` (line 62, label `Go to <item>`) and `openViewCommands` (line 98, `Open view: ...`) add more, all `Navigation`. `fuzzyMatch` (`fuzzy-match.ts:32-38`) gives a prefix bonus of `-2*query.length` and `+target.length - query.length`. Hand-computed for "cal": Calendar: Undo/Redo 5, Go to Calendar 11, Calendar: Go to Today 12, New Calendar Event 15, Toggle Calendar View 17, so Undo and Redo lead, matching the screenshot. A word-start bonus applied equally leaves Undo/Redo level with or ahead of "Go to Calendar", as the review's validation says; the context gating carries the fix.
+- Gating inputs exist: `eventCalendarStore.canUndo` / `canRedo` (`event-calendar.store.svelte.ts:104,106`, over a `$state.raw` history, reactive) and the active tab (`editorStore.activeTab?.path === EVENT_CALENDAR_VIRTUAL_PATH`, same check as `commands.test.ts:174`). The recency rule in `command-palette.logic.ts:36-37` (recent within 5 points wins) interacts with ranking.
+- Existing Issues: none on palette ranking or the Calendar category. `146` (`ready-for-agent`) edits `CommandPalette.svelte` `executeCommand` (records usage by `command.id`); `147` reads command labels from `getBuiltInCommands()`. Neither conflicts if ids stay stable. `claude-code-integration/issues/03-claude-chat-panel.md` (`ready-for-agent`, on branch `mvp-claude`) adds palette commands, so a literal command count in tests will conflict.
+- Deliberate decisions: `help/documentation/27-calendar.md:177` and `20-keyboard-shortcuts.md:119` document "Calendar: Undo / Calendar: Redo" as always-available palette commands; `commands.test.ts:185-197` asserts they exist with empty history and that running them toasts "Nothing to undo" / "Nothing to redo" (the toast text still serves the Calendar keys, `EventCalendarView.svelte:86-91`). The palette category table in `help/documentation/06-search-and-navigation.md:42-59` lists categories and must follow a new "Calendar" category.
+- Tests: `src/tests/lib/app/commands.test.ts` (688 lines): line 137 pins **45** built-in commands (gating Undo/Redo changes it to 43 when the calendar is idle), lines 157-199 test new-event, today, undo/redo, line 205 asserts toggle category `Navigation`; `commands.new-commands.test.ts:160` asserts a Tasks command category; `command-palette.logic.test.ts` (64 lines); `src/tests/lib/utils/fuzzy-match.test.ts` (52 lines); `src/tests/lib/core/markdown-editor/extensions/wikilink/completion.logic.test.ts` and tag completion tests would see any `fuzzyMatch` change. No e2e covers ranking (`command-palette.spec.ts` only checks that "save" yields a result).
+- Owner-only: (a) hide Calendar Undo/Redo when idle (review), or only rank them last (keeps them discoverable and keeps the documented behaviour); (b) which commands move to the new "Calendar" category (new-event, today, undo, redo; Toggle Calendar View stays Navigation per the existing test, or moves too); (c) keep the word-start bonus in the shared `fuzzyMatch` at all, given it ties and has 6 consumers.
+
+### P160. Empty query: Recent and All groups, key-hint footer
+
+- stillReal: **yes**. Recents exist and work; the grouping and footer do not.
+- Now: `command-palette.logic.ts:9-17` returns one flat array `[...recent, ...rest]` (rest sorted by label); `CommandPalette.svelte:50` renders a single `Command.Group` without `heading`, although `command-group.svelte:24-30` supports `heading` (`GroupHeading`). `QuickSwitcher.svelte:73-95` the same single headless group; `file-entries.logic.ts:36-47` returns `[...recent, ...rest]` with `rest` capped to `MAX_RESULTS - recent.length`. Neither dialog has a footer; `MAX_RECENT = 20` in both stores. Rows show only the shortcut hint, no key legend. `<kbd class="rounded-xs border px-1.5 py-0.5 text-xs">` is the existing inline pattern (`TemplatePicker.svelte:85`).
+- Needs a shape change: the logic functions return flat arrays and the components iterate them, so groups require either returning `{ recent, rest }` or a second helper. With a query the list stays flat and ranked.
+- Existing Issues: **218** already lists "a footer with key hints (Enter, arrows, Esc)". The Recent/All headings are not in 218. 218 was drafted without deep dive.
+- Deliberate decisions: `help/documentation/06-search-and-navigation.md:14` ("Recent files ... shows your most recently opened files at the top") and `:36` ("Recently used commands appear at the top") describe the flat behaviour; headings keep it true.
+- Tests: `command-palette.logic.test.ts` (empty-query tests at lines 14-26, 49-53 assert the flat order and `result[0]`, `result[1]`; a shape change rewrites them), `file-entries.logic.test.ts`, `command-palette.store.test.ts`, `quick-switcher.store.test.ts`. No test asserts group headings or a footer.
+- Owner-only: none. (Footer content for the switcher includes the Shift+Enter Create hint, which depends on the P57 decision.)
+
+### P179. Quick switcher rows: type icons, folder paths, Archived tag, match highlight, no X
+
+- stillReal: **yes**, per sub-item:
+  - Same icon on every row: yes. `QuickSwitcher.svelte:80-84` renders `FileText`, swapped to `Archive` when `lifecycleFilterStore.isArchived(file.path)`; no kanban, canvas, view or custom icon.
+  - `.md` in the path: yes. `:87-91` prints `relativePath(vaultStore.path, file.path)` (full relative path with extension) under the name; the name uses `file.nameWithoutExt` (`file-entries.logic.ts:19-21`, strips any extension, so a `.canvas` shows without its extension while the path line keeps it).
+  - Archived only by an icon swap and `opacity-50` on the name (`:86`): yes, no "Archived" tag.
+  - No match highlight: yes. `fuzzyMatch` returns only `{match, score}` (`fuzzy-match.ts:2-5`), no indices.
+  - Close X: yes. `command-dialog.svelte:31` does not pass `showCloseButton={false}`; `dialog-content.svelte:15,36-43` renders the X; `command-input.svelte:14` keeps `pe-8` room for it. Covered by **218** ("drop the close X").
+- Existing Issues: 218 (X only). Nothing on icons, highlight, Archived tag, folder-only paths.
+- Prefactors this needs: (1) match positions from the matcher (a `fuzzyMatch` variant or a separate `matchIndices(query, text)` helper in `utils/`, so the six consumers are untouched); (2) the row display fields (type kind, folder, archived) computed in `file-entries.logic.ts` or a new `.logic.ts`, so they are unit-testable without the component; (3) the type icon from the single icon resolver `features/file-icons/icon-resolver.ts` (frontmatter icon, type icon, color via `ResolvedIcon`) and the tab strip's fixed icons (`core/markdown-editor/EditorTabs.svelte:2-9` imports `Kanban`, `Network`, `LayoutDashboard`, `ListChecks`, `CalendarRange`), not a new icon table. Check `layer-baseline.json` and `feature-cycle.test.ts` before adding an import from `quick-switcher` to `file-icons`.
+- Tests: `QuickSwitcher.test.ts` (create-focused, no row-render assertions), `file-entries.logic.test.ts`, `fuzzy-match.test.ts`, `IconPicker*.test.ts` (resolver neighbours). Source scans in `src/tests/lib/chrome-type-scale.test.ts` apply to the new markup (11px floor). `e2e/specs/quick-switcher.spec.ts` asserts `getByRole('option', { name: /Welcome/i })`; highlight markup splitting the name into `<mark>` or spans must keep the accessible name intact.
+- Owner-only: whether "Archived" is a text tag or only the existing dimmed icon plus a tag; the Archived label must keep passing contrast (review row 55 flagged `opacity-50` as low contrast). Highlight colour token.
+
+## Existing Issue overlap table
+
+| Issue | Status | Touches | Relation |
+| --- | --- | --- | --- |
+| `.scratch/open-itens/issues/218-command-palette-shows-dense-one-line-rows.md` | ready-for-agent (ledger todo) | `command-dialog.svelte`, `command-list.svelte`, `dialog-content.svelte` X, `CommandPalette.svelte` rows, footer | P56, P160 footer, P179 X. Extend or supersede. |
+| `.scratch/open-itens/issues/164-quick-switcher-create-folder-path-projects-idea.md` | ready-for-agent (ledger todo) | `QuickSwitcher.svelte:40-58`, `fs.service.ts createFile`, Rust `create_folder` | P57 (folder path + failure cause). Merge. |
+| `.scratch/open-itens/issues/042-enter-quick-switcher-creates-note-when-nothing.md` | resolved (`2009ad219`) | Create as `Command.Item` | Predecessor of P57. Its out-of-scope line names P57. |
+| `.scratch/open-itens/issues/146-usage-recorder-and-seams.md` | ready-for-agent | `CommandPalette.svelte executeCommand`, `commands.ts` ids | Small textual overlap with any `CommandPalette.svelte` edit. Keep `command.id`s stable. |
+| `.scratch/open-itens/issues/147-usage-stats-view.md` | ready-for-agent | reads `getBuiltInCommands()` labels | Stable ids and labels needed; renaming labels is fine. |
+| `.scratch/claude-code-integration/issues/03-claude-chat-panel.md` | ready-for-agent (branch `mvp-claude`) | adds palette commands; "note picker reusing the quick switcher's search" | Command count test (45) and the quick switcher search reuse. |
+| `.scratch/open-itens/issues/059-new-file-from-template-says-name-taken.md` | ready-for-agent | `TemplatePicker` | Shares `Command.Dialog`; unaffected unless row anatomy changes its markup. |
+| `.scratch/open-itens/issues/043-lens-lists-follow-user-s-own-rename.md` | resolved | names "the quick switcher's create" as an entry point that keeps the throttle | If P57 changes create, the note there says other entry points are left alone. |
+| `.scratch/archived/ux-polish/issues/56-...`, `03-...` | wontfix (migrated to 218, 042) | | History only. |
+
+No other Issue in `.scratch/*/issues` mentions the palette, switcher, `Command.Dialog` or `fuzzyMatch` in a way that overlaps (grepped `open-itens`, `tasks-view-ux`, `claude-code-integration`, `frontmatter-rules`, `vault-organization-v2`, `mods-host-robustness`, `preview-channel`; `tasks-view-ux/113` only adds a palette command).
+
+## ADRs and help
+
+- No ADR decides palette layout, density, ranking or the quick switcher. ADR 0032 line 74 lists the calendar commands in the file map only; ADR 0033 amendment (line 146) defines the `Go to <item>` commands and `Open view:` commands (all `Navigation`); ADR 0026 amendment says the switcher's Create honours `explicitOrganization`.
+- `help/documentation/06-search-and-navigation.md` (Quick Switcher lines 7-24, Command Palette lines 27-59, the category table), `20-keyboard-shortcuts.md` (lines 9-10 and the "Commands Without Shortcuts" table, 103-125), `27-calendar.md` (lines 12-14, 177) must be updated by whichever tickets change Create, categories, groups or the calendar commands. `help/documentation/screenshots/quick-switcher.png` and `command-palette.png` will be stale after the density change.
+
+## Suggested tickets
+
+Dependency order: A, then C, then D. B is independent of C and D but shares `CommandPalette.svelte` with A, so run it after A.
+
+### Ticket A: Command dialog anatomy (extend or supersede Issue 218)
+Scope: P55 + P56 + P160 footer + P179 "no X". Files: `components/ui/command/command-dialog.svelte`, `command-list.svelte`, `command-item.svelte` (density prop), `command-input.svelte` (drop `pe-8`), a small footer component, `CommandPalette.svelte` row layout (category right-aligned), plus the four other dialogs only to confirm they still render (TemplatePicker, OneOnOnePicker, ModActionPicker, QuickSwitcher). Tests: new `src/tests/lib/components/ui/command/command-dialog.test.ts` (anchor classes, no close button, footer), `CommandPalette.test.ts` (one-line row, category in the row, footer), picker tests stay green, a new e2e case that the input's y does not change as results change (real browser only; run through `bash scripts/e2e.sh`). The `ModActionPicker` run view needs an explicit check. Size M, fits one context. The footer takes its hints as a snippet or prop so the switcher can add the Shift+Enter hint later. Recommendation: put P55 and the 480px cap into 218 and update its stale line numbers, rather than a second ticket on the same files.
+
+### Ticket B: Palette ranking and grouping
+Scope: P159 (Calendar category, Undo/Redo gating or demotion, optional word-start bonus) + P160 palette half (Recent and All commands headings). Files: `app/commands.ts`, `features/command-palette/command-palette.logic.ts` (return shape `{ recent, rest }` or a helper), `CommandPalette.svelte`, `utils/fuzzy-match.ts` only if the owner keeps the bonus, docs 06/20/27. Tests: `commands.test.ts` (count 45 literal, undo/redo tests, category asserts), `command-palette.logic.test.ts` (empty-query shape; a "cal" ranking test with real labels), `fuzzy-match.test.ts` and wikilink/tag completion tests if the matcher changes. Size M. Prefactor worth doing inside it: replace the `toHaveLength(45)` literal in `commands.test.ts:137` with an assertion that survives the mvp-claude additions. Keep `command.id`s stable for Issues 146 and 147.
+
+### Ticket C: Quick switcher Create row (merge P57 with Issue 164)
+Scope: always-present Create row after the matches, Shift+Enter handler ahead of bits-ui, visible target folder, folder-path creation with recursive folder creation, error toast with the cause. Files: `QuickSwitcher.svelte`, possibly `file-entries.logic.ts` or a new `quick-switcher-create.logic.ts` (split the query, validate segments, pick the target folder, all unit-testable), `fs.service.ts` use of `create_folder`, `help/documentation/06-search-and-navigation.md:15`. Tests: `QuickSwitcher.test.ts` (invert the test at lines 215-227 to "Create row exists and is last, a match is still selected and Enter opens it", add Shift+Enter, folder path, failure reason), new logic test. Size M. Blocked on the target-folder owner decision.
+
+### Ticket D: Quick switcher rows (P179 rows + P160 switcher half)
+Scope: type icons through the icon resolver, folder-only path line, Archived tag, match highlight, "Recent notes" heading. Prefactor inside the ticket: match positions helper in `utils/` and a row-model function in `file-entries.logic.ts`. Files: `QuickSwitcher.svelte`, `file-entries.logic.ts`, `utils/` helper, tests `file-entries.logic.test.ts` and the helper's test, `QuickSwitcher.test.ts` row assertions, `e2e/specs/quick-switcher.spec.ts` (accessible name survives highlight). Size M. Do after A (row density decides inline versus two-line folder) and C (same component).
+
+Not recommended as a separate ticket: the word-start bonus on its own (shared by 6 consumers, ties with the prefix bonus per the review's own validation).
+
+## Open questions (owner-only)
+
+1. P57: target folder of the Create row (vault root, active note's folder, capture folder, folder typed in the query) and the binding (Shift+Enter in addition to Enter-on-no-match).
+2. P159: hide Calendar Undo/Redo when idle versus demote them; which commands join the new "Calendar" category; whether to touch shared `fuzzyMatch` at all.
+3. P56: list cap 400px (218) or 480px (review); one-line density for the Quick Switcher row, or an inline right-aligned folder, or a two-line opt-in (affects 218's owner decision that all pickers change).
+4. 218: extend in place (it already has an owner decision and "first wave" mark) or supersede with a new ticket and mark 218 wontfix.
+5. P179: "Archived" as a text tag versus icon only.
+
+## Not verified
+
+No code was run. The score numbers for "cal" are hand-computed from `fuzzy-match.ts`, not executed. Browser behaviour of the anchored dialog with the `animate-in` zoom transform was not tried. `bits-ui` Shift+Enter behaviour is read from source, not exercised.
