@@ -26,4 +26,4 @@
 ## Comments
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/69-native-controls-to-shadcn.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
-- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/finders-ux/issues/12-graph-controls-shadcn-switch-select.md`. The EventDialog checkbox half is not carried over; it returns with the calendar-tasks group of `.scratch/design-review/review.md`.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/finders-ux/issues/12-graph-controls-shadcn-switch-select.md`. The EventDialog checkbox half is not carried over; it returns with the calendar-tasks group of the design review (`.scratch/design-review/prototypes/calendar-tasks.html`).

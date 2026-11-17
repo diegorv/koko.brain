@@ -8,9 +8,11 @@
 2. **Pure filter.** `filterTagTreeByQuery(nodes, query)` in `src/lib/features/tags/tags.logic.ts`: case-insensitive substring match on `fullPath`, with a leading `#` stripped from the query. It keeps the ancestors of every match and the whole subtree of a matching node, and returns the set of ancestor paths to force open. An empty or whitespace query returns the tree unchanged and an empty set.
 3. **Forced open.** `TagItem` gets a `forceOpen` prop OR-ed with its local `open`, so a matching nested tag is visible without clicking, and clearing the query restores the user's own expansion.
 4. **Bypass the rare filter.** While a query is active, the query runs over `tagsStore.tagTree`, not the rare-filtered tree, so an existing rare tag is found. With no query, the rare filter and the 09 header apply as before.
-5. **No match.** A third empty branch reads "No tags match {q}" (plain markup matching the existing empty paragraph).
-6. **State.** The query is local `$state` in `TagsView` (the view remounts on each tab open); nothing goes into `tagsStore`.
-7. **Help.** Add a "Filter" bullet to "Controls at the top" in `help/documentation/07-sidebar-panels.md:113`.
+5. **Header while filtering.** While the query is not empty, the header count reads "N matching tags" ("1 matching tag"), where N is the number of nodes with `count > 0` in the query result, and the 09 "Showing X of Y" text and its Show all link are not shown.
+6. **No match.** A third empty branch reads "No tags match {q}" (plain markup matching the existing empty paragraph).
+7. **State.** The query is local `$state` in `TagsView` (the view remounts on each tab open); nothing goes into `tagsStore`.
+8. **Forced parents stay open.** While the query is not empty, a forced-open parent cannot be collapsed with its chevron (`forceOpen` wins over the local state). This is accepted; clearing the query hands control back.
+9. **Help.** Add a "Filter" bullet to "Controls at the top" in `help/documentation/07-sidebar-panels.md:113`.
 
 **Blocked by:** 09, 10
 
@@ -21,6 +23,7 @@
 - [ ] Failing test first, `tags.logic.test.ts`: query "pro" on a tree with `work/projects`, `projects` and `home` keeps the first two plus their ancestors, and the forced-open set contains `work`. "#Work" matches `work`. A matching parent keeps its whole subtree. An empty query returns the tree unchanged.
 - [ ] Failing test first, `TagsView.test.ts`: typing a query that matches a rare tag (count 3, filter on) shows it. A query with no match shows "No tags match". Clearing the query restores the filtered list and the header.
 - [ ] A matching nested tag is visible without clicking its parent's chevron, and after the query is cleared the parent returns to its previous open state.
+- [ ] While a query is active the header reads "N matching tags" with no Show all link.
 - [ ] The input has an accessible name; `pane-toolbar.test.ts` stays green.
 - [ ] `help/documentation/07-sidebar-panels.md` lists the filter box.
 - [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.

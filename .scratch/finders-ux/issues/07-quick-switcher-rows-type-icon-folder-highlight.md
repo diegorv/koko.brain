@@ -4,13 +4,13 @@
 
 **What to build:**
 
-1. **Row model.** In `src/lib/core/filesystem/file-entries.logic.ts`, each entry gains the folder relative to the vault (`''` at the root). The kind comes from `fileKind()` (`src/lib/features/rail-shell/lens.logic.ts:913`: markdown, canvas, kanban, view, pdf, image, other), called from the quick-switcher side, not from `file-entries.logic.ts`: a `core/` file importing `features/` is a new layer violation that `src/tests/lib/architecture/layer-rules.test.ts` rejects.
+1. **Row model.** `flattenFileTree` keeps its signature and output: it has 8 other callers (`src/lib/core/filesystem/link-updater.service.ts:41`, `src/lib/app/editor-host.ts:80`, `src/lib/plugins/kanban/kanban.service.ts:72`, `src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:28`, `src/lib/features/canvas/CanvasFilePicker.svelte:21`, `src/lib/features/properties/RelationshipSearch.svelte:24`, `src/lib/features/rail-shell/RailNoteList.svelte:572`, `src/lib/features/properties/PropertiesView.svelte:61`). Add a pure helper in `src/lib/core/filesystem/file-entries.logic.ts` that returns an entry's folder relative to the vault (`''` at the root), and call it on the switcher side when rendering a row. The kind comes from `fileKind()` (`src/lib/features/rail-shell/lens.logic.ts:913`: markdown, canvas, kanban, view, pdf, image, other), called from the quick-switcher side, not from `file-entries.logic.ts`: a `core/` file importing `features/` is a new layer violation that `src/tests/lib/architecture/layer-rules.test.ts` rejects.
 2. **Match positions.** Add a separate `fuzzyMatchPositions(query, target)` to `src/lib/utils/fuzzy-match.ts` using the same greedy scan as `fuzzyMatch`. `fuzzyMatch` and its consumers stay untouched.
-3. **Type icon.** `resolveIconForPath` first, otherwise the kind icon from one kind-icon map shared with `RailNoteList.svelte` (`KIND_ICONS`, `:665-673`). Move the map out of `RailNoteList` into a small non-`.logic` module (a lucide import cannot live in a `.logic.ts`, `src/tests/lib/architecture/pure-logic.test.ts`) and import it from both; do not copy it.
+3. **Type icon.** `resolveIconForPath` first, otherwise the kind icon from one kind-icon map shared with `RailNoteList.svelte` (`KIND_ICONS`, `:665-673`). Move the map out of `RailNoteList` into a new non-`.logic` file under `src/lib/features/rail-shell/` (for example `kind-icons.ts`), exported for both `RailNoteList` and the quick switcher; not in `core/`. A lucide import cannot live in a `.logic.ts` (`src/tests/lib/architecture/pure-logic.test.ts`). Do not copy the map.
 4. **Folder line.** The path shows only the folder (no file name, no `.md`), right-aligned, muted and truncated, per the row anatomy from 01. A root-level note shows no folder.
 5. **Archived.** An "Archived" text tag at full muted strength. Drop `opacity-50` on the name and the `Archive` icon swap (`QuickSwitcher.svelte:80-86`), since the type icon takes that slot.
 6. **Highlight.** Wrap the matched characters in highlight elements with a theme-token style (for example `font-semibold text-foreground`) without changing the option's accessible name.
-7. **Recent notes heading.** With an empty query and recents, the recents group has the heading "Recent notes".
+7. **Recent notes heading.** Today `filterAndRank` returns one flat list for an empty query, recents first and then the rest by name (`file-entries.logic.ts:36-47`), rendered in one `Command.Group` (`QuickSwitcher.svelte:73`). Split the recents into their own group, mirroring the shape 06 gives the palette (recents and rest returned apart, through a shape change or a second helper): with an empty query and recents, a `Command.Group` headed "Recent notes" holds the recents and the rest follows in a group with no heading, as in the prototype (`finders-search-tags-graph.html:550-556`). With no recents, or with a query, there is no heading.
 8. **Help.** Update `help/documentation/06-search-and-navigation.md:14` (Recent notes heading) and `:16` (archived notes now carry an "Archived" tag, not a dimmed name).
 
 **Blocked by:** 02
@@ -19,11 +19,11 @@
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/quick-switcher.spec.ts`.
 
-- [ ] Failing test first, `src/tests/lib/core/filesystem/file-entries.logic.test.ts`: folder for nested and root files (`''` at the root).
+- [ ] Failing test first, `src/tests/lib/core/filesystem/file-entries.logic.test.ts`: the folder helper returns the folder for nested and root files (`''` at the root); an empty query returns recents and the name-sorted rest apart; `flattenFileTree` output is unchanged.
 - [ ] Failing test first, `src/tests/lib/utils/fuzzy-match.test.ts`: positions agree with `fuzzyMatch` on a match and return nothing on no match; empty query returns no positions.
 - [ ] `QuickSwitcher.test.ts`: a `.canvas` row shows the canvas icon and a `.kanban` row the kanban icon, not FileText; a note with a frontmatter icon shows it; `/vault/Projects/A.md` shows "Projects"; an archived note shows the "Archived" tag and no `opacity-50`; typing "wel" wraps the matched characters in highlight elements.
 - [ ] `e2e/specs/quick-switcher.spec.ts` `getByRole('option', { name: /Welcome/i })` still passes.
-- [ ] The "Recent notes" heading appears only for an empty query with recents.
+- [ ] The "Recent notes" heading appears only for an empty query with recents; the rest of the list has no heading; arrow keys still cross the group boundary.
 - [ ] RailNoteList icons are unchanged (its tests stay green); `chrome-type-scale`, `menu-item-anatomy`, `palette-classes`, `pure-logic`, `layer-rules` and `feature-cycle` tests are green.
 - [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 

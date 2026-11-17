@@ -2,15 +2,15 @@
 
 **Origin:** design review 2026-11-17, proposal P155 (`.scratch/design-review/review.md`), prototype `.scratch/design-review/prototypes/finders-search-tags-graph.html`, research `.scratch/finders-ux/research/verdict-graph.md` (fold into 206) and `.scratch/finders-ux/research/breakdown.md` (fold into 206). Absorbs the graph half of `.scratch/open-itens/issues/206-graph-collection-kanban-views-show-real-empty.md`; its canvas, collection and kanban halves are not part of this ticket. The depth stepper half of P155 is 14.
 
-**What to build:** in `src/lib/plugins/graph-view/GraphView.svelte`, as overlays in the same style as the existing "Open a note to see its local graph" hint (`:451-455`: `absolute inset-0 flex items-center justify-center`, `text-sm text-muted-foreground`). Plain markup matching the existing panels; no new shared primitive.
+**What to build:** in `src/lib/plugins/graph-view/GraphView.svelte`, as overlays in the same style as the existing "Open a note to see its local graph" hint (`:451-455`: `absolute inset-0 flex items-center justify-center`, `text-sm text-muted-foreground`). Plain markup matching the existing panels; no new shared primitive. Old 206 planned `EmptyState` and `InlineAlert` primitives from open-itens 204, but `src/lib/components/ui/` has neither and 204 is abandoned with `.scratch/open-itens`.
 
 1. **Isolated note.** In local mode, when the center note is present in the full graph with zero links, show "This note has no links yet". It shows with Orphans on and with Orphans off: with Orphans off `filterGraphData` (`graph-view.logic.ts:70-87`) removes the center and 0 nodes draw, so the check reads the full graph, not the displayed one. It shows only when the center is present in the graph; a center path missing from the graph keeps today's behaviour (out of scope here).
 2. **Empty vault.** When the first snapshot resolves with zero notes, show "No notes to graph yet".
 3. **Loading.** "Building graph..." until the first snapshot resolves. `loadAndRebuild` runs on every `vaultIndexVersion` bump (`:411-416`), which happens on each save, so later rebuilds keep the current graph on screen without the line.
 4. **Error with Retry.** When `buildGraph` rejects (`:81-91`, today only logged), keep the logged `error()` and show an inline error, "Could not build the graph.", with a Retry button (the shared `Button`) inside `role="alert"`. Retry re-runs `loadAndRebuild()`; a successful retry removes the alert and shows the graph. A failed refresh after a successful load keeps the previous graph and shows the alert.
-5. If 12 has landed, reuse its `$state.raw` pre-filter state for the isolated check rather than adding a second copy of the graph data.
+5. Reuse 12's pre-filter `$state.raw` state for the isolated check; do not add a second reactive copy of `fullData`.
 
-**Blocked by:** none
+**Blocked by:** 12
 
 **Status:** ready-for-agent
 
@@ -43,4 +43,4 @@ Checked at `bb57e6165`.
 
 ## Comments
 
-- 2026-11-17, triage: ready-for-agent. Decided: isolated message wording as in the review ("This note has no links yet"); the isolated state shows only when the center note is present in the graph; plain markup instead of shared empty-state and alert primitives; the loading line shows only before the first snapshot. Wording for the states the review does not word: "Building graph...", "Could not build the graph." with Retry, and "No notes to graph yet".
+- 2026-11-17, triage: ready-for-agent. Decided: isolated message wording as in the review ("This note has no links yet"); the isolated state shows only when the center note is present in the graph; plain markup instead of shared empty-state and alert primitives; runs after 12 because both add reactive graph state at `GraphView.svelte:44` and edit the adjacent template lines `:451-460`; the loading line shows only before the first snapshot. Wording for the states the review does not word: "Building graph...", "Could not build the graph." with Retry, and "No notes to graph yet".

@@ -10,7 +10,7 @@
 4. **Control.** `GraphControls.svelte` shows a stepper in local mode only: a group labelled "Link depth" with "Decrease depth" and "Increase depth" buttons (shadcn `Button`, as used in the controls after 12), disabled at the bounds, and the current value visible.
 5. **Help.** Update `help/documentation/14-graph-view.md:39` ("1 hop away") to describe the 1-3 depth stepper.
 
-**Blocked by:** 12
+**Blocked by:** 12, 13
 
 **Status:** ready-for-agent
 
@@ -43,4 +43,4 @@ Checked at `bb57e6165`.
 
 ## Comments
 
-- 2026-11-17, triage: ready-for-agent. Decided: depth resets when the graph is reopened; it is session state, not a setting.
+- 2026-11-17, triage: ready-for-agent. Decided: depth resets when the graph is reopened; it is session state, not a setting. Runs after 12 (`GraphControls.svelte` and its test file) and 13 (`GraphView.svelte` and `GraphView.test.ts`).
