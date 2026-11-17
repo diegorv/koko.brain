@@ -18,6 +18,7 @@
 	import { buildGraph } from './graph-view.service';
 	import { filterGraphData, getLocalGraph, getNodeRadius, graphPalette, FALLBACK_GRAPH_PALETTE, type GraphPalette } from './graph-view.logic';
 	import type { GraphNode, GraphLink, GraphData } from './graph-view.types';
+	import { Button } from '#lib/components/ui/button/index.js';
 	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
@@ -47,6 +48,21 @@
 	// centered). The filter options come from these, not from `simNodes`, so
 	// picking a folder or tag never removes the option that clears it.
 	let filterOptionNodes = $state.raw<GraphNode[]>([]);
+
+	/** True once a snapshot has resolved; later refreshes keep the graph on screen without the loading line. */
+	let loaded = $state(false);
+	/** True while the latest load failed; the previous `fullData` stays on screen under the alert. */
+	let loadFailed = $state(false);
+	/** True when the latest resolved snapshot has no notes. */
+	let vaultEmpty = $state(false);
+
+	// Read from the pre-filter nodes: with Orphans off the filter drops the
+	// lone center, so the displayed graph has nothing to check.
+	const isolated = $derived(
+		graphViewStore.mode === 'local' &&
+			graphViewStore.centerPath !== null &&
+			filterOptionNodes.some((n) => n.id === graphViewStore.centerPath && n.linkCount === 0),
+	);
 
 	// Colors read from the applied theme's CSS variables; refreshed by the
 	// `appliedThemeStore.revision` effect below. Raw: it is only replaced whole,
@@ -94,8 +110,12 @@
 			fullData = await buildGraph();
 		} catch (err) {
 			error('GRAPH_VIEW', 'buildGraph failed:', err);
+			loadFailed = true;
 			return;
 		}
+		loaded = true;
+		loadFailed = false;
+		vaultEmpty = fullData.nodes.length === 0;
 		if (canvasEl && width > 0) {
 			initSimulation();
 		}
@@ -461,9 +481,29 @@
 
 <div bind:this={containerEl} data-testid="graph-view" class="relative h-full w-full overflow-hidden" style="background: {palette.background};">
 	<canvas bind:this={canvasEl}></canvas>
-	{#if graphViewStore.mode === 'local' && !graphViewStore.centerPath}
+	<!-- Overlays other than the hint let pointer events through, so a graph kept under them still pans and clicks. -->
+	{#if loadFailed}
+		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+			<div role="alert" class="pointer-events-auto flex flex-col items-center gap-2">
+				<p class="text-sm text-muted-foreground">Could not build the graph.</p>
+				<Button variant="outline" size="sm" onclick={() => loadAndRebuild()}>Retry</Button>
+			</div>
+		</div>
+	{:else if graphViewStore.mode === 'local' && !graphViewStore.centerPath}
 		<div class="absolute inset-0 flex items-center justify-center">
 			<p class="text-sm text-muted-foreground">Open a note to see its local graph</p>
+		</div>
+	{:else if !loaded}
+		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+			<p class="text-sm text-muted-foreground">Building graph...</p>
+		</div>
+	{:else if vaultEmpty}
+		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+			<p class="text-sm text-muted-foreground">No notes to graph yet</p>
+		</div>
+	{:else if isolated}
+		<div class="pointer-events-none absolute inset-0 flex items-center justify-center">
+			<p class="text-sm text-muted-foreground">This note has no links yet</p>
 		</div>
 	{/if}
 	<GraphControls
