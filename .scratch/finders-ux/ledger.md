@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [Local graph isolated, loading and error states with Retry](issues/13-local-graph-isolated-loading-error-states.md) | 12 | todo | | |
 | 14 | [Local graph depth stepper (1 to 3)](issues/14-local-graph-depth-stepper.md) | 12, 13 | todo | | |
 | 15 | [Graph labels drawn by priority, skipping overlaps](issues/15-graph-labels-priority-skip-overlaps.md) | none | todo | | |
-| 16 | [Text search with tag: or path: filters before the result cap, matches nested tags, and drops stale operator results](issues/16-text-search-operators-before-cap-nested-tags.md) | 05 | todo | | |
+| 16 | [Text search with tag: or path: filters before the result cap, matches nested tags, and drops stale operator results](issues/16-text-search-operators-before-cap-nested-tags.md) | 05 | in-progress | | |
 
 ## Log
 
@@ -76,3 +76,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 16:57 — 07 — deliver — merged; reviews APPROVED x2 (claude): fix round trimmed a stale JSDoc consumer list; full suite 644 files / 17177 tests passed — 2063e2bfe
 - 2026-11-17 16:57 — 09 — start — launched by /relay-lite:run — 5ab5c96e2
 - 2026-11-17 16:59 — 05 — deliver — merged; reviews APPROVED x2 (claude): fix round made the cap flag per mode, spinner padding, Hybrid 70-result help; round-2 nit (stale Rust-hybrid text list shows N+ briefly after switching to Text) left open; full suite 644 files / 17178 tests passed — 7fcc9c141
+- 2026-11-17 16:59 — 16 — start — launched by /relay-lite:run — 92559dd1e
