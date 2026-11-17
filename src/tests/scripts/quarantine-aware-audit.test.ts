@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+	ALLOWED_ADVISORIES,
+	allowedException,
 	classifyAdvisory,
 	compatiblePatches,
 	installedVersionsOf,
@@ -179,5 +181,44 @@ describe('classifyAdvisory', () => {
 		);
 
 		expect(result.kind).toBe('no-patch');
+	});
+});
+
+describe('allowedException', () => {
+	const allowlist = [
+		{ id: 'GHSA-aaaa-bbbb-cccc', module: 'picomatch', reason: 'build-time only, no patch yet', expires: '2026-08-10' },
+	];
+	const adv = { github_advisory_id: 'GHSA-aaaa-bbbb-cccc', module_name: 'picomatch', patched_versions: null };
+
+	it('returns the entry for a listed advisory before its expiry date', () => {
+		expect(allowedException(adv, allowlist, NOW)).toEqual(allowlist[0]);
+	});
+
+	it('stops applying once the expiry date is reached, so the advisory fails CI again', () => {
+		expect(allowedException(adv, allowlist, Date.parse('2026-08-10T00:00:00.000Z'))).toBeNull();
+	});
+
+	it('ignores advisories that are not listed or carry no id', () => {
+		expect(allowedException({ ...adv, github_advisory_id: 'GHSA-zzzz-zzzz-zzzz' }, allowlist, NOW)).toBeNull();
+		expect(allowedException({ module_name: 'picomatch' }, allowlist, NOW)).toBeNull();
+	});
+
+	it('stops applying as soon as the advisory gets a patched range, so CI grades the patch', () => {
+		expect(allowedException({ ...adv, patched_versions: '>=4.0.8' }, allowlist, NOW)).toBeNull();
+	});
+
+	it('ignores the same id on a different package', () => {
+		expect(allowedException({ ...adv, module_name: 'micromatch' }, allowlist, NOW)).toBeNull();
+	});
+
+	it('gives every shipped entry a package, a reason and an ISO expiry at most 90 days out', () => {
+		for (const entry of ALLOWED_ADVISORIES) {
+			expect(entry.id).toMatch(/^GHSA-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}$/);
+			expect(entry.module.length).toBeGreaterThan(0);
+			expect(entry.reason.length).toBeGreaterThan(0);
+			expect(entry.expires).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+			const days = (Date.parse(entry.expires) - Date.now()) / 86_400_000;
+			expect(days).toBeLessThanOrEqual(90);
+		}
 	});
 });
