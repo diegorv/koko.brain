@@ -12,7 +12,8 @@ The Quick Switcher is a popup dialog for opening files by name — the fastest w
 
 - **Fuzzy search**: type any part of the filename. The search is not case-sensitive, and the characters you type don't need to be contiguous. For example, typing "mtg" can match "Meeting Notes".
 - **Recent files**: before you type anything, the Quick Switcher shows your most recently opened files at the top, so you can jump back to them instantly.
-- **Create new note**: if no file matches your search, a "Create [your query]" option appears at the bottom of the list. Press Enter to create a new note with that name instantly.
+- **Create new note**: whenever you type something, a "Create [your query]" row appears at the bottom of the list, after any matching notes, and shows where the note will go ("in vault root" or "in [folder]"). Press **Shift+Enter** to create it even while other notes match; when nothing matches, Enter creates it too. The row is hidden when a note with exactly that name already exists there.
+- **Folder paths**: type a path such as `Projects/Idea` to create `Idea` inside the `Projects` folder. Missing folders are created along the way, and existing ones are reused. Names in the path cannot be empty or start with a `.`; the Quick Switcher tells you when a path is refused, and when a note cannot be created it shows the reason.
 - **Archived notes**: archived notes are not hidden from the results. They appear with an archive icon and a faded (dimmed) name, so you can still find and open them without un-archiving first.
 
 Press **Enter** to open the selected file, or **Escape** to dismiss the dialog.

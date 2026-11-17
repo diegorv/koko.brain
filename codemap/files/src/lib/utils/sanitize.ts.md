@@ -21,6 +21,6 @@ by src/lib/utils/sanitize.ts:sanitizeHtml <- src/lib/features/collection/collect
 sym src/lib/utils/sanitize.ts:38 fn sanitizeSvgContent(svgInner: string): string L14 | Sanitizes SVG inner content (paths, circles, etc.) for use inside a trusted <svg> element.
 by src/lib/utils/sanitize.ts:sanitizeSvgContent <- src/lib/features/file-icons/IconRenderer.svelte:36 in (markup) markup
 sym src/lib/utils/sanitize.ts:57 fn sanitizeSnippetHtml(html: string): string L16 | Sanitizes an FTS5 snippet string that may contain <mark> tags.
-by src/lib/utils/sanitize.ts:sanitizeSnippetHtml <- src/lib/features/search/SearchResult.svelte:168 in (markup) markup
+by src/lib/utils/sanitize.ts:sanitizeSnippetHtml <- src/lib/features/search/SearchResult.svelte:169 in (markup) markup
 sym src/lib/utils/sanitize.ts:77 fn sanitizeMermaidSvg(svg: string): string L10 | Sanitizes mermaid SVG output.
 by src/lib/utils/sanitize.ts:sanitizeMermaidSvg <- src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts:107 in MermaidWidget.toDOM call

@@ -8,7 +8,7 @@ imp src/lib/features/search/search.logic.ts:3 -> src/lib/utils/tag-extraction.ts
 imp src/lib/features/search/search.logic.ts:4 -> src/lib/utils/path.ts relativePath,stem
 imp src/lib/features/search/search.logic.ts:30 -> src/lib/utils/sanitize.ts sanitizeSnippetHtml
 ## imported-by
-imp src/lib/features/search/SearchResult.svelte:8 -> src/lib/features/search/search.logic.ts sanitizeSnippetHtml
+imp src/lib/features/search/SearchResult.svelte:9 -> src/lib/features/search/search.logic.ts sanitizeSnippetHtml
 imp src/lib/features/search/search.service.ts:9 -> src/lib/features/search/search.logic.ts parseSearchQuery,performSearchOverFiles,performOperatorOnlySearch,matchesPathFilter
 ## reach
 in2 src/lib/features/search/search.logic.ts 4 files in 3 modules: src/lib/features/search(2) src/lib/app(1) src/routes(1)

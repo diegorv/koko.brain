@@ -10,7 +10,7 @@ imp src/lib/features/search/SearchPanel.svelte:8 -> src/lib/features/search/sear
 imp src/lib/app/AppShell.svelte:46 -> src/lib/features/search/SearchPanel.svelte default
 ## reach
 in2 src/lib/features/search/SearchPanel.svelte 1 files in 1 modules: src/routes(1)
-out2 src/lib/features/search/SearchPanel.svelte 9 files in 7 modules: src/lib/components(2) src/lib/core/editor(2) src/lib/contracts(1) src/lib/core/vault(1) src/lib/features/event-calendar(1) +2 modules
+out2 src/lib/features/search/SearchPanel.svelte 10 files in 7 modules: src/lib/components(2) src/lib/core/editor(2) src/lib/utils(2) src/lib/contracts(1) src/lib/core/vault(1) +2 modules
 ## tests
 test src/tests/lib/features/search/SearchPanel.test.ts imports src/lib/features/search/SearchPanel.svelte mirror
 ## symbols
