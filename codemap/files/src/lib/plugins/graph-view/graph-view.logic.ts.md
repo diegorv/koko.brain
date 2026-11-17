@@ -21,11 +21,11 @@ sym src/lib/plugins/graph-view/graph-view.logic.ts:7 fn getFolderFromPath(filePa
 sym src/lib/plugins/graph-view/graph-view.logic.ts:23 fn buildGraphData(allEntries: NoteEntryV2[], vaultRoot?: string | null): GraphData L46 | Builds a graph view from a snapshot of Rust `VaultIndex` entries.
 by src/lib/plugins/graph-view/graph-view.logic.ts:buildGraphData <- src/lib/plugins/graph-view/graph-view.service.ts:16 in buildGraph call
 sym src/lib/plugins/graph-view/graph-view.logic.ts:70 fn filterGraphData(data: GraphData, filters: GraphFilters): GraphData L32
-by src/lib/plugins/graph-view/graph-view.logic.ts:filterGraphData <- src/lib/plugins/graph-view/GraphView.svelte:81 in getDisplayData call
+by src/lib/plugins/graph-view/graph-view.logic.ts:filterGraphData <- src/lib/plugins/graph-view/GraphView.svelte:97 in getDisplayData call
 sym src/lib/plugins/graph-view/graph-view.logic.ts:103 fn getLocalGraph(data: GraphData, centerPath: string, depth: number = 1): GraphData L30
-by src/lib/plugins/graph-view/graph-view.logic.ts:getLocalGraph <- src/lib/plugins/graph-view/GraphView.svelte:71 in getBaseData call
+by src/lib/plugins/graph-view/graph-view.logic.ts:getLocalGraph <- src/lib/plugins/graph-view/GraphView.svelte:87 in getBaseData call
 sym src/lib/plugins/graph-view/graph-view.logic.ts:134 fn getNodeRadius(linkCount: number, minRadius: number = 4, maxRadius: number = 16): number L4
-by src/lib/plugins/graph-view/graph-view.logic.ts:getNodeRadius <- src/lib/plugins/graph-view/GraphView.svelte:141 in initSimulation call +4
+by src/lib/plugins/graph-view/graph-view.logic.ts:getNodeRadius <- src/lib/plugins/graph-view/GraphView.svelte:161 in initSimulation call +4
 sym src/lib/plugins/graph-view/graph-view.logic.ts:139 fn getUniqueFolders(nodes: GraphNode[]): string[] L7
 by src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueFolders <- src/lib/plugins/graph-view/GraphControls.svelte:29 in folders=$derived call
 sym src/lib/plugins/graph-view/graph-view.logic.ts:147 fn getUniqueTags(nodes: GraphNode[]): string[] L9
@@ -34,9 +34,9 @@ sym src/lib/plugins/graph-view/graph-view.logic.ts:158 interface GraphThemeToken
 sym src/lib/plugins/graph-view/graph-view.logic.ts:170 interface GraphPalette L18 | Colors the graph canvas paints with.
 by src/lib/plugins/graph-view/graph-view.logic.ts:GraphPalette <- src/lib/plugins/graph-view/GraphView.svelte:19 in (script) import
 sym src/lib/plugins/graph-view/graph-view.logic.ts:190 const FALLBACK_GRAPH_PALETTE: GraphPalette L10 | The fixed dark palette the graph paints with when a theme token is missing or unreadable.
-by src/lib/plugins/graph-view/graph-view.logic.ts:FALLBACK_GRAPH_PALETTE <- src/lib/plugins/graph-view/GraphView.svelte:54 in palette ref
+by src/lib/plugins/graph-view/graph-view.logic.ts:FALLBACK_GRAPH_PALETTE <- src/lib/plugins/graph-view/GraphView.svelte:70 in palette ref
 sym src/lib/plugins/graph-view/graph-view.logic.ts:207 fn graphPalette(tokens: GraphThemeTokens): GraphPalette L20 | Derives the graph palette from the active theme's tokens: the editor background, muted nodes, a primary active node, and dimmed colors and edges mixed toward t…
-by src/lib/plugins/graph-view/graph-view.logic.ts:graphPalette <- src/lib/plugins/graph-view/GraphView.svelte:60 in readPalette call
+by src/lib/plugins/graph-view/graph-view.logic.ts:graphPalette <- src/lib/plugins/graph-view/GraphView.svelte:76 in readPalette call
 ## calls
 call src/lib/plugins/graph-view/graph-view.logic.ts:24 in buildGraphData -> src/lib/core/filesystem/fs.logic.ts:isViewFile call
 call src/lib/plugins/graph-view/graph-view.logic.ts:29 in buildGraphData -> src/lib/core/filesystem/wikilink-resolution.logic.ts:buildResolutionCache call

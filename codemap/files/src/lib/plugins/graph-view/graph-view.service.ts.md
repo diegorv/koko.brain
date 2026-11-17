@@ -27,7 +27,7 @@ test src/tests/lib/app/lifecycle/app-lifecycle.service.test.ts mocks src/lib/plu
 test src/tests/lib/features/command-palette/CommandPalette.test.ts mocks src/lib/plugins/graph-view/graph-view.service.ts
 ## symbols
 sym src/lib/plugins/graph-view/graph-view.service.ts:14 fn buildGraph(): Promise<GraphData> L4 | Fetches the full vault index snapshot from Rust and builds the graph representation.
-by src/lib/plugins/graph-view/graph-view.service.ts:buildGraph <- src/lib/plugins/graph-view/GraphView.svelte:94 in loadAndRebuild call
+by src/lib/plugins/graph-view/graph-view.service.ts:buildGraph <- src/lib/plugins/graph-view/GraphView.svelte:110 in loadAndRebuild call
 sym src/lib/plugins/graph-view/graph-view.service.ts:34 fn openGraphTab(): void L16 | Opens or focuses the Graph View tab.
 sym src/lib/plugins/graph-view/graph-view.service.ts:52 fn closeGraphTab(): void L6 | Closes the Graph View tab if it exists.
 sym src/lib/plugins/graph-view/graph-view.service.ts:60 fn toggleGraphTab(): void L11 | Toggles the Graph View tab: opens if closed, closes if active, focuses if open but not active.

@@ -18,16 +18,17 @@ test src/tests/lib/plugins/graph-view/graph-view.service.test.ts imports src/lib
 ## symbols
 sym src/lib/plugins/graph-view/graph-view.store.svelte.ts:15 store graphViewStore L23
 by src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore <- src/lib/plugins/graph-view/GraphControls.svelte:42 in (markup) markup +19
-by src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore <- src/lib/plugins/graph-view/GraphView.svelte:70 in getBaseData member +12
+by src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore <- src/lib/plugins/graph-view/GraphView.svelte:62 in isolated=$derived member +15
 by src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore <- src/lib/plugins/graph-view/graph-view.service.ts:26 in captureCenterPath mcall +1
 ## store
 store src/lib/plugins/graph-view/graph-view.store.svelte.ts:15 graphViewStore esc:0
-mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:16 get graphViewStore.mode r:src/lib/plugins/graph-view/GraphControls.svelte:42,src/lib/plugins/graph-view/GraphControls.svelte:52,src/lib/plugins/graph-view/GraphView.svelte:70,src/lib/plugins/graph-view/GraphView.svelte:400,src/lib/plugins/graph-view/GraphView.svelte:464 w-via:setMode,reset
+mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:16 get graphViewStore.mode r:src/lib/plugins/graph-view/GraphControls.svelte:42,src/lib/plugins/graph-view/GraphControls.svelte:52,src/lib/plugins/graph-view/GraphView.svelte:62,src/lib/plugins/graph-view/GraphView.svelte:86,src/lib/plugins/graph-view/GraphView.svelte:420,src/lib/plugins/graph-view/GraphView.svelte:492 w-via:setMode,reset
 mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:17 get graphViewStore.filters r:11 w-via:setFilters,reset
 more r 11 not shown: src/lib/plugins/graph-view(11): q store src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore.filters
-mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:18 get graphViewStore.display r:src/lib/plugins/graph-view/GraphControls.svelte:144,src/lib/plugins/graph-view/GraphView.svelte:178 w-via:setDisplay,reset
-mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:19 get graphViewStore.highlightedNodeId r:src/lib/plugins/graph-view/GraphView.svelte:167 w-via:setHighlightedNode,reset
-mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:21 get graphViewStore.centerPath r:src/lib/plugins/graph-view/GraphView.svelte:70,src/lib/plugins/graph-view/GraphView.svelte:71,src/lib/plugins/graph-view/GraphView.svelte:254,src/lib/plugins/graph-view/GraphView.svelte:402,src/lib/plugins/graph-view/GraphView.svelte:464 w-via:setCenterPath,reset | Path of the note local mode centers on and global mode highlights, or null.
+mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:18 get graphViewStore.display r:src/lib/plugins/graph-view/GraphControls.svelte:144,src/lib/plugins/graph-view/GraphView.svelte:198 w-via:setDisplay,reset
+mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:19 get graphViewStore.highlightedNodeId r:src/lib/plugins/graph-view/GraphView.svelte:187 w-via:setHighlightedNode,reset
+mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:21 get graphViewStore.centerPath r:7 w-via:setCenterPath,reset | Path of the note local mode centers on and global mode highlights, or null.
+more r 7 not shown: src/lib/plugins/graph-view(7): q store src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore.centerPath
 mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:23 do graphViewStore.setMode w:src/lib/plugins/graph-view/GraphControls.svelte:45,src/lib/plugins/graph-view/GraphControls.svelte:55
 mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:24 do graphViewStore.setFilters w:src/lib/plugins/graph-view/GraphControls.svelte:89,src/lib/plugins/graph-view/GraphControls.svelte:96,src/lib/plugins/graph-view/GraphControls.svelte:105,src/lib/plugins/graph-view/GraphControls.svelte:123
 mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:25 do graphViewStore.setDisplay w:src/lib/plugins/graph-view/GraphControls.svelte:145

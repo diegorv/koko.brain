@@ -1,7 +1,7 @@
 # file card src/lib/core/vault/vault.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/vault/vault.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, locals, calls, effects
-file src/lib/core/vault/vault.store.svelte.ts store L159 module src/lib/core/vault in83 t150
+file src/lib/core/vault/vault.store.svelte.ts store L159 module src/lib/core/vault in83 t151
 ## imports
 imp src/lib/core/vault/vault.store.svelte.ts:1 -> src/lib/core/vault/vault.logic.ts extractVaultName,updateRecentVaults,type:RecentVault
 ## imported-by
@@ -90,7 +90,7 @@ test src/tests/lib/core/vault/vault.service.test.ts imports src/lib/core/vault/v
 test src/tests/lib/features/auto-organize/AutoOrganizeRuleRow.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/features/auto-organize/auto-organize.no-chain.test.ts imports src/lib/core/vault/vault.store.svelte.ts
 test src/tests/lib/features/auto-organize/auto-organize.service.test.ts imports src/lib/core/vault/vault.store.svelte.ts
-more tests 110 not shown: src/tests/lib/features/rail-shell(17) src/tests/lib/plugins/mods(17) src/tests/lib/features/tasks(11) src/tests/lib/features/collection(7) src/tests/lib/features/properties(7) src/tests/lib/features/event-calendar(6) src/tests/lib/features/todoist-sync(6) src/tests/lib/features/deep-link(4) +17 modules: q tests src/lib/core/vault/vault.store.svelte.ts
+more tests 111 not shown: src/tests/lib/features/rail-shell(17) src/tests/lib/plugins/mods(17) src/tests/lib/features/tasks(11) src/tests/lib/features/collection(7) src/tests/lib/features/properties(7) src/tests/lib/features/event-calendar(6) src/tests/lib/features/todoist-sync(6) src/tests/lib/features/deep-link(4) +17 modules: q tests src/lib/core/vault/vault.store.svelte.ts
 ## symbols
 sym src/lib/core/vault/vault.store.svelte.ts:60 store vaultStore L100 | Reactive store for the current vault and the recent vaults list
 by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/AppShell.svelte:71 in $effect@66 member +6

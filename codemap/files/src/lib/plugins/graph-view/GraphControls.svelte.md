@@ -8,20 +8,20 @@ imp src/lib/plugins/graph-view/GraphControls.svelte:8 -> src/lib/plugins/graph-v
 imp src/lib/plugins/graph-view/GraphControls.svelte:9 -> src/lib/plugins/graph-view/graph-view.types.ts type:GraphNode
 imp src/lib/plugins/graph-view/GraphControls.svelte:10 -> src/lib/plugins/graph-view/graph-view.logic.ts getUniqueFolders,getUniqueTags
 ## imported-by
-imp src/lib/plugins/graph-view/GraphView.svelte:25 -> src/lib/plugins/graph-view/GraphControls.svelte default
+imp src/lib/plugins/graph-view/GraphView.svelte:26 -> src/lib/plugins/graph-view/GraphControls.svelte default
 ## reach
 in2 src/lib/plugins/graph-view/GraphControls.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/plugins/graph-view/GraphControls.svelte 16 files in 4 modules: src/lib/components(12) src/lib/core/filesystem(2) src/lib/types(1) src/lib/utils(1)
 ## symbols
 sym src/lib/plugins/graph-view/GraphControls.svelte:1 component GraphControls props:nodes,onZoomIn,onZoomOut L149
-by src/lib/plugins/graph-view/GraphControls.svelte:default <- src/lib/plugins/graph-view/GraphView.svelte:469 in (markup) mount
+by src/lib/plugins/graph-view/GraphControls.svelte:default <- src/lib/plugins/graph-view/GraphView.svelte:509 in (markup) mount
 ## locals
 local src/lib/plugins/graph-view/GraphControls.svelte:33 fn folderLabel(folder: string): string L3
 ## mounts
 mount src/lib/plugins/graph-view/GraphControls.svelte:94 Switch -> src/lib/components/ui/switch/switch.svelte
 mount src/lib/plugins/graph-view/GraphControls.svelte:143 Switch -> src/lib/components/ui/switch/switch.svelte
 ## mounted-at
-mount src/lib/plugins/graph-view/GraphView.svelte:469 GraphControls -> src/lib/plugins/graph-view/GraphControls.svelte
+mount src/lib/plugins/graph-view/GraphView.svelte:509 GraphControls -> src/lib/plugins/graph-view/GraphControls.svelte
 ## calls
 call src/lib/plugins/graph-view/GraphControls.svelte:29 in folders=$derived -> src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueFolders call
 call src/lib/plugins/graph-view/GraphControls.svelte:30 in tags=$derived -> src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueTags call
