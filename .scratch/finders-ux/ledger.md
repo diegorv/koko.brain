@@ -38,7 +38,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 01 | [Command dialogs: input anchored at 18vh, one-line rows, 400px list, key-hint footer, no close X](issues/01-command-dialogs-anchored-dense-rows.md) | none | done | issue/01-command-dialogs-anchored-dense-rows (9479ac613) | 2026-11-17 |
 | 02 | [Quick switcher offers Create while notes match (Shift+Enter), creates Folder/Note paths, and a failed create says why](issues/02-quick-switcher-create-while-matching.md) | 01 | done | issue/02-quick-switcher-create-while-matching (b459157c9) | 2026-11-17 |
 | 03 | [Search result cards: note name, folder, plain-text snippets, themed highlight](issues/03-search-result-cards-name-folder-plain-snippets.md) | none | done | issue/03-search-result-cards-name-folder-plain-snippets (5d17f397d) | 2026-11-17 |
-| 04 | [Search states: short query, error, disabled mode; operator hints; a11y labels; index status only in the status bar](issues/04-search-panel-states-hints-labels.md) | 03 | in-progress | | |
+| 04 | [Search states: short query, error, disabled mode; operator hints; a11y labels; index status only in the status bar](issues/04-search-panel-states-hints-labels.md) | 03 | done | issue/04-search-panel-states-hints-labels (0de35de11) | 2026-11-17 |
 | 05 | [Search keeps previous results dimmed while searching, shows "N+" at the cap, and clearing mid-search does not stick on Searching...](issues/05-search-keeps-results-while-searching.md) | 04 | todo | | |
 | 06 | [Palette: calendar Undo/Redo only when they can act, Calendar category, Recent / All commands groups](issues/06-palette-calendar-undo-recent-groups.md) | 01 | done | issue/06-palette-calendar-undo-recent-groups (90ccfc691) | 2026-11-17 |
 | 07 | [Quick switcher rows: type icon, folder, Archived tag, match highlight, Recent notes heading](issues/07-quick-switcher-rows-type-icon-folder-highlight.md) | 02 | in-progress | | |
@@ -71,3 +71,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 16:19 — 06 — start — launched by /relay-lite:run — 542efbea0
 - 2026-11-17 16:36 — 06 — deliver — merged; review APPROVED (claude), 3 nits rejected with reasons; full suite 643 files / 17107 tests passed — 90ccfc691
 - 2026-11-17 16:37 — 07 — start — launched by /relay-lite:run — 013e6e6a7
+- 2026-11-17 16:37 — 04 — deliver — merged; reviews APPROVED x2 (claude): fix round fixed tab indentation on the ~ toggle, keyboard note rejected; full suite 643 files / 17098 tests passed — 0de35de11
