@@ -47,7 +47,7 @@ imp src/lib/features/note-action-bar/note-action-bar.service.ts:7 -> src/lib/cor
 imp src/lib/features/note-list/NoteRow.svelte:7 -> src/lib/core/vault/vault.store.svelte.ts vaultStore
 more imported-by 45 not shown: src/lib/features/rail-shell(6) src/lib/features/properties(5) src/lib/features/todoist-sync(5) src/lib/features/search(4) src/lib/plugins/mods(4) src/lib/features/outgoing-links(2) src/lib/features/tasks(2) src/lib/plugins/graph-view(2) +12 modules: q importers src/lib/core/vault/vault.store.svelte.ts
 ## reach
-in2 src/lib/core/vault/vault.store.svelte.ts 40 files in 22 modules: src/lib/app(5) src/lib/features/event-calendar(5) src/lib/features/canvas(3) src/lib/features/rail-shell(3) src/lib/features/todoist-sync(3) +17 modules: q impact src/lib/core/vault/vault.store.svelte.ts --depth 2
+in2 src/lib/core/vault/vault.store.svelte.ts 39 files in 21 modules: src/lib/app(5) src/lib/features/event-calendar(5) src/lib/features/canvas(3) src/lib/features/rail-shell(3) src/lib/features/todoist-sync(3) +16 modules: q impact src/lib/core/vault/vault.store.svelte.ts --depth 2
 out2 src/lib/core/vault/vault.store.svelte.ts 1 files in 1 modules: src/lib/utils(1)
 ## tests
 test src/tests/lib/core/vault/vault.store.test.ts imports src/lib/core/vault/vault.store.svelte.ts mirror
