@@ -1,0 +1,1204 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Colour, contrast, selection states and themes</title>
+<style>
+	/* ---- Real tokens: Lavender Haze (light) and KokoBrain Default (dark), from themeColorsToCssVars ---- */
+	.th-light {
+		color-scheme: light;
+		--background: #F3F0F8; --foreground: #302840; --card: #EAE6F2; --popover: #FFFFFF;
+		--primary: #6848A8; --primary-foreground: #ffffff;
+		--muted: #D5D0E2; --muted-fg: #645c74; --accent: #D5D0E2;
+		--destructive: #C83848; --destructive-foreground: #f1f1f3;
+		--border: #D5D0E2; --input: #D5D0E2; --ring: #6848A8;
+		--tab-bar: #edeaf2; --divider: #C0B8D0;
+		--file-bg: #e8e7ec; --file-muted: #6b6486; --file-accent: #DDD8E8;
+		--editor-bg: #F3F0F8; --editor-fg: #302840;
+		--dlg-bg: #EAE6F2; --settings-side: #FAF8FE; --settings-hover: #D2CCE0; --item-bg: #DDD8E8;
+		--input-bg: #EAE6F2; --switch-bg: #D2CCE0; --tab-text-inactive: #504868;
+		--settings-text: #302840; --link: #3868B0; --wikilink: #7848B8; --h1: #6848A8; --strong-real: #843C7E;
+		--status-bg: #efecf4; --shadow: rgba(48,40,64,0.10); --shadow-lg: rgba(48,40,64,0.16);
+		--ok: #1f7a4d; --bad: #b3261e; --thumb: #F3F0F8;
+		--sw-thumb: var(--background);
+	}
+	.th-dark {
+		color-scheme: dark;
+		--background: #21222e; --foreground: #F8F8F2; --card: #2a2e3d; --popover: #333745;
+		--primary: #9ba3da; --primary-foreground: #10131f;
+		--muted: #242835; --muted-fg: #95a0b9; --accent: #242835;
+		--destructive: #f3333b; --destructive-foreground: #171717;
+		--border: #242835; --input: #242835; --ring: #9ba3da;
+		--tab-bar: #5a5c79; --divider: #383a4f;
+		--file-bg: #262938; --file-muted: #8490ad; --file-accent: #303448;
+		--editor-bg: #2a2e3d; --editor-fg: #F8F8F2;
+		--dlg-bg: #313549; --settings-side: #2B2F40; --settings-hover: #393e50; --item-bg: #20212d;
+		--input-bg: #333544; --switch-bg: #444660; --tab-text-inactive: #d3d7e7;
+		--settings-text: #bfcaf3; --link: #60a5fa; --wikilink: #a78bfa; --h1: #E8A5FF; --strong-real: #93c5fd;
+		--status-bg: #21222e; --shadow: rgba(0,0,0,0.45); --shadow-lg: rgba(0,0,0,0.6);
+		--ok: #4ade80; --bad: #ff8a8a; --thumb: #F8F8F2;
+		--sw-thumb: var(--foreground);
+	}
+	/* ---- Variant tokens: current (before) and proposed (after), computed per theme ---- */
+	.th-light.v-before {
+		--x-input-border: var(--input);
+		--x-switch-border: transparent;
+		--x-err: var(--destructive);
+		--x-dbtn-bg: var(--destructive);
+		--x-dbtn-fg: #ffffff;
+		--x-sel-bg: color-mix(in srgb, var(--primary) 25%, transparent);
+		--x-sel-title: var(--primary);
+		--x-sel-muted: var(--muted-fg);
+		--x-chip-fg: color-mix(in srgb, var(--primary) 80%, transparent);
+		--x-arch-op: 0.6;
+		--x-faint: color-mix(in srgb, var(--file-muted) 40%, transparent);
+		--x-snippet: color-mix(in srgb, var(--foreground) 60%, transparent);
+		--x-addprop: color-mix(in srgb, var(--tab-text-inactive) 60%, transparent);
+		--x-hover: color-mix(in srgb, var(--primary) 10%, transparent);
+		--x-state-sel: color-mix(in srgb, var(--primary) 25%, transparent);
+		--x-state-hover: color-mix(in srgb, var(--primary) 10%, transparent);
+		--x-strong: #93c5fd;
+		--x-title: var(--primary);
+		--x-weekend: var(--primary);
+		--x-tabbar: #5a5c79;
+	}
+	.th-light.v-after {
+		--x-input-border: #817796;
+		--x-switch-border: #817796;
+		--x-err: #ae313f;
+		--x-dbtn-bg: var(--destructive);
+		--x-dbtn-fg: var(--destructive-foreground);
+		--x-sel-bg: color-mix(in srgb, var(--primary) 16%, transparent);
+		--x-sel-title: var(--foreground);
+		--x-sel-muted: #5e566e;
+		--x-chip-fg: #5e4295;
+		--x-arch-op: 1;
+		--x-faint: #7f778f;
+		--x-snippet: var(--muted-fg);
+		--x-addprop: #7f778f;
+		--x-hover: color-mix(in srgb, var(--foreground) 7%, transparent);
+		--x-state-sel: color-mix(in srgb, var(--primary) 16%, transparent);
+		--x-state-hover: color-mix(in srgb, var(--foreground) 7%, transparent);
+		--x-strong: var(--editor-fg);
+		--x-title: var(--foreground);
+		--x-weekend: var(--file-muted);
+		--x-tabbar: #21222e;
+	}
+	.th-light { --ctl-border: #817796; --err-text: #ae313f; --faint-fg: #7f778f; --state-selected-muted-fg: #5e566e; --chip-fg-after: #5e4295; --focus-ring: #6848A8; }
+	.th-light { --chip-blue-bg: rgba(66,153,225,0.15); --chip-blue-before: #4299e1; --chip-blue-after: #3a679a; }
+	.th-light { --chip-green-bg: rgba(72,187,120,0.15); --chip-green-before: #48bb78; --chip-green-after: #3c705b; }
+	.th-light { --chip-red-bg: rgba(239,68,68,0.15); --chip-red-before: #ef4444; --chip-red-after: #aa3a43; }
+	.th-light { --chip-orange-bg: rgba(237,137,54,0.15); --chip-orange-before: #ed8936; --chip-orange-after: #90593b; }
+	.th-light { --chip-purple-bg: rgba(139,108,239,0.15); --chip-purple-before: #8b6cef; --chip-purple-after: #6a54b0; }
+	.th-light { --chip-yellow-bg: rgba(234,179,8,0.15); --chip-yellow-before: #eab308; --chip-yellow-after: #806428; }
+	.th-light { --chip-gray-bg: rgba(160,160,160,0.15); --chip-gray-before: #a0a0a0; --chip-gray-after: #696571; }
+	.th-dark.v-before {
+		--x-input-border: var(--input);
+		--x-switch-border: transparent;
+		--x-err: var(--destructive);
+		--x-dbtn-bg: color-mix(in srgb, var(--destructive) 60%, var(--card));
+		--x-dbtn-fg: #ffffff;
+		--x-sel-bg: color-mix(in srgb, var(--primary) 25%, transparent);
+		--x-sel-title: var(--primary);
+		--x-sel-muted: var(--muted-fg);
+		--x-chip-fg: color-mix(in srgb, var(--primary) 80%, transparent);
+		--x-arch-op: 0.6;
+		--x-faint: color-mix(in srgb, var(--file-muted) 40%, transparent);
+		--x-snippet: color-mix(in srgb, var(--foreground) 60%, transparent);
+		--x-addprop: color-mix(in srgb, var(--tab-text-inactive) 60%, transparent);
+		--x-hover: color-mix(in srgb, var(--primary) 10%, transparent);
+		--x-state-sel: color-mix(in srgb, var(--primary) 25%, transparent);
+		--x-state-hover: color-mix(in srgb, var(--primary) 10%, transparent);
+		--x-strong: #93c5fd;
+		--x-title: var(--primary);
+		--x-weekend: var(--primary);
+		--x-tabbar: #5a5c79;
+	}
+	.th-dark.v-after {
+		--x-input-border: #7e8095;
+		--x-switch-border: #7e8095;
+		--x-err: #f77a80;
+		--x-dbtn-bg: var(--destructive);
+		--x-dbtn-fg: var(--destructive-foreground);
+		--x-sel-bg: color-mix(in srgb, var(--primary) 16%, transparent);
+		--x-sel-title: var(--foreground);
+		--x-sel-muted: #a7b0c3;
+		--x-chip-fg: #b6bce1;
+		--x-arch-op: 1;
+		--x-faint: #7e818f;
+		--x-snippet: var(--muted-fg);
+		--x-addprop: #7e818f;
+		--x-hover: color-mix(in srgb, var(--foreground) 7%, transparent);
+		--x-state-sel: color-mix(in srgb, var(--primary) 16%, transparent);
+		--x-state-hover: color-mix(in srgb, var(--foreground) 7%, transparent);
+		--x-strong: var(--editor-fg);
+		--x-title: var(--foreground);
+		--x-weekend: var(--file-muted);
+		--x-tabbar: #21222e;
+	}
+	.th-dark { --ctl-border: #7e8095; --err-text: #f77a80; --faint-fg: #7e818f; --state-selected-muted-fg: #a7b0c3; --chip-fg-after: #b6bce1; --focus-ring: #9ba3da; }
+	.th-dark { --chip-blue-bg: rgba(66,153,225,0.15); --chip-blue-before: #4299e1; --chip-blue-after: #6aaee5; }
+	.th-dark { --chip-green-bg: rgba(72,187,120,0.15); --chip-green-before: #48bb78; --chip-green-after: #53bf7f; }
+	.th-dark { --chip-red-bg: rgba(239,68,68,0.15); --chip-red-before: #ef4444; --chip-red-after: #f27e7c; }
+	.th-dark { --chip-orange-bg: rgba(237,137,54,0.15); --chip-orange-before: #ed8936; --chip-orange-after: #ee9449; }
+	.th-dark { --chip-purple-bg: rgba(139,108,239,0.15); --chip-purple-before: #8b6cef; --chip-purple-after: #ad97f0; }
+	.th-dark { --chip-yellow-bg: rgba(234,179,8,0.15); --chip-yellow-before: #eab308; --chip-yellow-after: #eab308; }
+	.th-dark { --chip-gray-bg: rgba(160,160,160,0.15); --chip-gray-before: #a0a0a0; --chip-gray-after: #ababaa; }
+
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; }
+	body {
+		margin: 0; background: var(--background); color: var(--foreground);
+		font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+		-webkit-font-smoothing: antialiased;
+	}
+	h1, h2, h3, p { margin: 0; }
+	button { font: inherit; color: inherit; cursor: default; }
+	.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+	.ic { flex: none; vertical-align: middle; }
+
+	/* ---- Page chrome ---- */
+	.top {
+		position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--background) 92%, transparent);
+		backdrop-filter: blur(8px); border-bottom: 1px solid var(--divider);
+	}
+	.top-in { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 20px; }
+	.top h1 { font-size: 17px; font-weight: 600; letter-spacing: -0.01em; }
+	.seg { display: inline-flex; border: 1px solid var(--divider); border-radius: 8px; padding: 2px; background: var(--card); }
+	.seg button { border: 0; background: transparent; padding: 4px 12px; border-radius: 6px; font-size: 13px; color: var(--muted-fg); }
+	.seg button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); font-weight: 500; }
+	.seg button:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+	.nav { display: flex; flex-wrap: wrap; gap: 4px; margin-left: auto; }
+	.nav a { text-decoration: none; color: var(--muted-fg); font-size: 12px; font-weight: 600; padding: 3px 8px; border-radius: 6px; border: 1px solid transparent; }
+	.nav a:hover { color: var(--foreground); border-color: var(--divider); }
+	.nav a:focus-visible { outline: 2px solid var(--primary); outline-offset: 1px; }
+	main { max-width: 1240px; margin: 0 auto; padding: 20px 24px 80px; }
+	.intro { color: var(--muted-fg); max-width: 78ch; margin-bottom: 20px; }
+	.intro b { color: var(--foreground); }
+
+	.prop { margin-top: 44px; padding-top: 4px; scroll-margin-top: 70px; }
+	.prop > header { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; margin-bottom: 4px; }
+	.pid { font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 700; background: var(--primary); color: var(--primary-foreground); padding: 2px 8px; border-radius: 6px; }
+	.prop h2 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; }
+	.tier { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; color: var(--muted-fg); }
+	.problem { color: var(--muted-fg); margin: 2px 0 14px; max-width: 90ch; }
+	.cmp { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start; }
+	.cmp.stack { grid-template-columns: 1fr; }
+	.col { min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+	.lbl { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; display: flex; align-items: center; gap: 8px; }
+	.lbl::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--bad); }
+	.lbl.after::before { background: var(--ok); }
+	.lbl small { font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--muted-fg); font-size: 12px; }
+	.notes { margin-top: 12px; font-size: 12.5px; color: var(--muted-fg); max-width: 100ch; }
+	.notes b { color: var(--foreground); font-weight: 600; }
+	.notes ul { margin: 4px 0 0; padding-left: 18px; }
+	@media (max-width: 900px) { .cmp { grid-template-columns: 1fr; } main, .top-in { padding-left: 16px; padding-right: 16px; } }
+
+	.shot .shotbox { border: 1px solid var(--divider); border-radius: 8px; max-width: 100%; box-shadow: 0 1px 3px var(--shadow); }
+	.shot .cap { font-size: 11.5px; color: var(--muted-fg); margin-top: 4px; }
+
+	/* ---- Mock surface ---- */
+	.mock { background: var(--background); color: var(--foreground); border: 1px solid var(--divider); border-radius: 10px; padding: 14px; position: relative; overflow: hidden; }
+	.mock.flush { padding: 0; }
+	.mock .hint { font-size: 12px; color: var(--muted-fg); }
+	.meas { display: grid; gap: 4px; margin-top: 10px; font-size: 12px; color: var(--muted-fg); }
+	.meas > div { display: flex; justify-content: space-between; gap: 10px; align-items: center; border-top: 1px dashed var(--divider); padding-top: 4px; }
+	.rt { font-family: ui-monospace, Menlo, monospace; font-size: 11.5px; font-weight: 600; padding: 1px 6px; border-radius: 5px; white-space: nowrap; background: color-mix(in srgb, var(--bad) 14%, transparent); color: var(--bad); }
+	.rt.pass { background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); }
+	.rt.info { background: color-mix(in srgb, var(--muted-fg) 14%, transparent); color: var(--muted-fg); }
+
+	/* ---- Focus ---- */
+	.focusable { outline: none; }
+	.v-before .focusable:focus-visible, .v-before.force .focusable { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ring) 50%, transparent); border-color: var(--ring); }
+	.v-before .btn-destr:focus-visible, .v-before.force .btn-destr { box-shadow: 0 0 0 3px color-mix(in srgb, var(--destructive) 25%, transparent); border-color: var(--destructive); }
+	.v-before .f-bare:focus-visible, .v-before.force .f-bare { box-shadow: none; border-color: transparent; }
+	.v-before .f-row:focus-visible, .v-before.force .f-row { box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--ring) 50%, transparent); }
+	.v-after .focusable:focus-visible, .v-after.force .focusable { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+	.v-after .f-row:focus-visible, .v-after.force .f-row { outline-offset: -2px; }
+
+	/* ---- Buttons, inputs, switch ---- */
+	.btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 34px; padding: 0 14px; border-radius: 6px; border: 1px solid transparent; font-weight: 500; font-size: 14px; white-space: nowrap; }
+	.btn.sm { height: 28px; padding: 0 10px; font-size: 13px; }
+	.btn-pri { background: var(--primary); color: var(--primary-foreground); box-shadow: 0 1px 2px var(--shadow); }
+	.btn-out { background: var(--input-bg); border-color: var(--border); box-shadow: 0 1px 2px var(--shadow); }
+	.btn-ghost { background: transparent; }
+	.btn-ghost:hover, .btn-out:hover { background: var(--accent); }
+	.btn-destr { background: var(--x-dbtn-bg); color: var(--x-dbtn-fg); box-shadow: 0 1px 2px var(--shadow); }
+	.btn-icon { width: 32px; height: 32px; padding: 0; border-radius: 6px; background: transparent; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; }
+	.btn-icon:hover { background: var(--accent); }
+	.btn-text { background: transparent; border: 0; color: var(--muted-fg); padding: 2px 4px; border-radius: 4px; font-size: 13px; }
+	.btn-text:hover { color: var(--foreground); }
+	.sw { width: 32px; height: 18.4px; border-radius: 999px; border: 1px solid var(--x-switch-border); background: var(--switch-bg); padding: 0; position: relative; flex: none; box-shadow: 0 1px 2px var(--shadow); }
+	.sw::after { content: ""; position: absolute; top: 0; left: 0; width: 16px; height: 16px; border-radius: 50%; background: var(--sw-thumb); transition: transform .12s; }
+	.sw[aria-checked="true"] { background: var(--primary); border-color: transparent; }
+	.sw[aria-checked="true"]::after { transform: translateX(14px); background: var(--background); }
+	.th-dark .sw[aria-checked="true"]::after { background: var(--primary-foreground); }
+	.item { display: flex; align-items: center; gap: 12px; background: var(--item-bg); border-radius: 10px; padding: 10px 14px; }
+	.item .t { font-weight: 500; }
+	.item .d { font-size: 12px; color: var(--muted-fg); }
+	.grow { flex: 1; min-width: 0; }
+	.dlgbg { background: var(--dlg-bg); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+	.selt, .inp { height: 36px; border: 1px solid var(--x-input-border); background: var(--input-bg); border-radius: 6px; padding: 0 12px; color: var(--foreground); font: inherit; font-size: 14px; box-shadow: 0 1px 2px var(--shadow); }
+	.selt { display: inline-flex; align-items: center; gap: 24px; min-width: 130px; justify-content: space-between; }
+	.inp { width: 170px; }
+	.inp::placeholder { color: var(--muted-fg); }
+	.inp.bad { border-color: var(--destructive); }
+	.errmsg { font-size: 12px; color: var(--x-err); display: flex; gap: 6px; align-items: center; margin-top: 3px; }
+	.errbox { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--item-bg); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; color: var(--x-err); }
+
+	/* ---- Note rows ---- */
+	.cols2 { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 14px; align-items: start; }
+	@media (max-width: 560px) { .cols2 { grid-template-columns: 1fr; } }
+	.notelist { background: var(--file-bg); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 2px; }
+	.nrow { display: flex; flex-direction: column; width: 100%; text-align: left; border: 0; background: transparent; border-radius: 6px; padding: 8px; gap: 2px; opacity: var(--x-arch-op-row, 1); }
+	.nrow.arch { opacity: var(--x-arch-op); }
+	.nrow:hover { background: var(--x-hover); }
+	.nrow.sel, .nrow.sel:hover { background: var(--x-sel-bg); }
+	.nrow .nt { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+	.nrow.sel .nt { color: var(--x-sel-title); }
+	.nrow .nsub { font-size: 11px; color: var(--muted-fg); padding-left: 24px; }
+	.nrow.sel .nsub { color: var(--x-sel-muted); }
+	.nrow .chips { padding-left: 24px; margin-top: 3px; display: flex; gap: 4px; }
+	.nrow .chip { font-size: 11px; background: color-mix(in srgb, var(--primary) 10%, transparent); color: var(--x-chip-fg); padding: 1px 6px; border-radius: 3px; }
+	.nrow .arch-ic { margin-left: auto; color: var(--muted-fg); }
+	.minipanel { background: var(--file-bg); border-radius: 8px; padding: 10px; display: grid; gap: 8px; font-size: 12px; }
+	.minipanel .h { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); }
+	.snip { font-size: 12px; color: var(--x-snippet); }
+	.snip mark { background: color-mix(in srgb, var(--primary) 22%, transparent); color: inherit; border-radius: 2px; }
+	.addprop { color: var(--x-addprop); display: flex; align-items: center; gap: 6px; font-size: 14px; }
+	.mcal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; text-align: center; font-size: 13px; }
+	.mcal span { height: 24px; line-height: 24px; border-radius: 6px; color: var(--foreground); }
+	.mcal .oom { color: var(--x-faint); }
+
+	/* ---- State panels (P85) ---- */
+	.pgrid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+	@media (max-width: 1100px) { .pgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+	@media (max-width: 560px) { .pgrid { grid-template-columns: 1fr; } }
+	.pnl { border-radius: 8px; padding: 6px; display: flex; flex-direction: column; gap: 2px; min-width: 0; border: 1px solid var(--divider); }
+	.pnl > .ph { font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); padding: 2px 6px 4px; }
+	.pnl.files, .pnl.nl, .pnl.rail { background: var(--file-bg); }
+	.pnl.tl { background: var(--background); }
+	.pnl.sn { background: var(--settings-side); }
+	.r { display: flex; align-items: center; gap: 8px; border: 0; background: transparent; border-radius: 6px; padding: 5px 8px; text-align: left; font-size: 14px; width: 100%; color: var(--foreground); min-width: 0; }
+	.r .sub { font-size: 11px; color: var(--muted-fg); display: block; }
+	.r .txt { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.r .cnt { font-size: 11px; color: var(--muted-fg); }
+	.r svg { color: var(--muted-fg); }
+	/* before: today's four recipes */
+	.v-before .files .r:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+	.v-before .files .r.sel { background: color-mix(in srgb, var(--primary) 25%, transparent); color: var(--primary); }
+	.v-before .nl .r:hover { background: color-mix(in srgb, var(--primary) 10%, transparent); }
+	.v-before .nl .r.sel { background: color-mix(in srgb, var(--primary) 25%, transparent); }
+	.v-before .nl .r.sel .txt b { color: var(--primary); }
+	.v-before .tl .r:hover { background: color-mix(in srgb, var(--accent) 50%, transparent); }
+	.v-before .tl .r.sel { background: var(--accent); }
+	.v-before .sn .r:hover, .v-before .sn .r.sel { background: var(--settings-hover); }
+	.v-before .sn .r { color: var(--settings-text, var(--foreground)); }
+	/* after: one recipe */
+	.v-after .r:hover { background: var(--x-state-hover); }
+	.v-after .r.sel, .v-after .r.sel:hover { background: var(--x-state-sel); color: var(--foreground); font-weight: 500; }
+	.v-after .r.sel .sub { color: var(--x-sel-muted); }
+	.v-after .r.sel svg { color: var(--x-sel-muted); }
+	.pnl.rail .r { color: color-mix(in srgb, var(--foreground) 85%, transparent); }
+	.pnl.rail .r:hover { background: color-mix(in srgb, var(--foreground) 10%, transparent); }
+	.pnl.rail .r.sel { background: color-mix(in oklch, var(--rc) 18%, transparent); color: var(--foreground); font-weight: 500; }
+	.pnl.rail .r svg { color: var(--rc); }
+	.rbadge { margin-left: auto; font-size: 11px; font-weight: 600; min-width: 18px; text-align: center; padding: 0 5px; border-radius: 9px; }
+	.tokgrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px; margin-top: 12px; }
+	.tok { border: 1px solid var(--divider); border-radius: 8px; padding: 8px 10px; background: var(--card); font-size: 12px; display: grid; gap: 4px; }
+	.tok code { font-family: ui-monospace, Menlo, monospace; font-size: 12px; font-weight: 600; color: var(--foreground); }
+	.tok .sw2 { display: flex; align-items: center; gap: 8px; color: var(--muted-fg); }
+	.tok .chipc { width: 36px; height: 18px; border-radius: 4px; border: 1px solid var(--divider); }
+
+	/* ---- Kanban, rail badges, linear calendar (P19) ---- */
+	.chiprow { display: flex; flex-wrap: wrap; gap: 8px; }
+	.chipcell { display: grid; gap: 3px; justify-items: start; }
+	.kchip { display: inline-block; font-size: 12px; padding: 1px 6px; border-radius: 4px; }
+	.kcols { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+	.kcol { background: var(--card); border: 1px solid var(--divider); border-radius: 8px; padding: 6px; display: grid; gap: 6px; align-content: start; }
+	.kcol .kh { font-size: 12px; font-weight: 600; padding: 2px 4px; }
+	.kcard { background: var(--editor-bg); border: 1px solid var(--divider); border-radius: 6px; padding: 7px 9px; display: grid; gap: 4px; box-shadow: 0 1px 2px var(--shadow); font-size: 13px; }
+	.kcard .tags { display: flex; gap: 4px; flex-wrap: wrap; }
+	.railbox { background: var(--file-bg); border-radius: 8px; padding: 6px; display: grid; gap: 2px; }
+	.railbox .r { padding: 5px 8px; font-size: 13px; }
+	.railbox .r svg { color: var(--rc); }
+	.railbox .badge { margin-left: auto; font-size: 11px; font-weight: 600; min-width: 18px; text-align: center; padding: 0 5px; border-radius: 9px; background: var(--rc); }
+	.lincal { background: var(--card); border: 1px solid var(--divider); border-radius: 8px; padding: 8px; display: grid; gap: 4px; }
+	.lcrow { display: grid; grid-template-columns: 34px 1fr; gap: 6px; align-items: center; font-size: 11px; color: var(--muted-fg); }
+	.lcgrid { position: relative; height: 24px; background: repeating-linear-gradient(90deg, transparent 0 calc(100%/31 - 1px), var(--divider) calc(100%/31 - 1px) calc(100%/31)); border-radius: 3px; }
+	.lcbar { position: absolute; top: 3px; height: 18px; border-radius: 3px; font-size: 11px; line-height: 18px; padding: 0 6px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; box-shadow: 0 1px 2px var(--shadow); }
+	.sub-h { font-size: 12px; font-weight: 700; color: var(--muted-fg); text-transform: uppercase; letter-spacing: .06em; margin: 14px 0 6px; }
+	.sub-h:first-child { margin-top: 0; }
+
+	/* ---- Editor, calendar (P20) ---- */
+	.ed { background: var(--editor-bg); border-radius: 8px; padding: 16px 20px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; line-height: 1.7; }
+	.ed .strong { color: var(--x-strong); font-weight: 700; }
+	.ed .em { color: var(--strong-real); font-style: italic; }
+	.ed .lnk { color: var(--link); text-decoration: underline; text-decoration-color: color-mix(in srgb, var(--link) 40%, transparent); }
+	.ed .wl { color: var(--wikilink); text-decoration: underline; }
+	.ed h3 { font-size: 20px; color: var(--h1); font-weight: 700; margin-bottom: 4px; }
+	.rsb { background: var(--editor-bg); border-radius: 8px; padding: 8px 10px; display: grid; gap: 2px; border: 1px solid var(--divider); }
+	.rsb .sect { display: flex; align-items: center; gap: 4px; font-weight: 600; color: var(--x-title); padding: 6px 2px; border-top: 1px solid var(--divider); font-size: 14px; }
+	.rsb .sect:first-child { border-top: 0; }
+	.cal { background: var(--file-bg); border-radius: 8px; padding: 8px; display: grid; gap: 2px; font-size: 13px; }
+	.cal .grid7 { display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; gap: 2px; }
+	.cal .hd { font-size: 12px; font-weight: 500; height: 22px; line-height: 22px; color: var(--file-muted); }
+	.cal .hd.we { color: var(--x-weekend); }
+	.cal .d { height: 26px; line-height: 26px; border-radius: 6px; color: var(--foreground); }
+	.cal .d.we { color: var(--x-weekend); }
+	.cal .d.today { box-shadow: inset 0 0 0 1px var(--primary); font-weight: 700; }
+	.cal .d.selected { background: var(--primary); color: var(--primary-foreground); }
+
+	/* ---- Window slice (P109) ---- */
+	.win { border: 1px solid var(--divider); border-radius: 8px; overflow: hidden; display: grid; grid-template-rows: 38px 1fr 24px; height: 250px; background: var(--background); }
+	.strip { background: var(--x-tabbar); display: flex; align-items: flex-end; gap: 6px; padding: 0 10px; }
+	.strip .ttl { font-weight: 600; color: var(--foreground); align-self: center; width: 110px; font-size: 13px; }
+	.tab { padding: 6px 12px; font-size: 13px; border-radius: 8px 8px 0 0; color: var(--tab-text-inactive); background: transparent; border: 0; height: 30px; }
+	.tab.act { background: var(--editor-bg); color: #cfd7f4; }
+	.winbody { display: grid; grid-template-columns: 54px 120px 1fr; min-height: 0; }
+	.winbody .rl { background: var(--background); border-right: 1px solid var(--divider); }
+	.winbody .nv { background: var(--file-bg); border-right: 1px solid var(--divider); padding: 8px; display: grid; gap: 6px; align-content: start; }
+	.winbody .ct { background: var(--editor-bg); padding: 14px 18px; }
+	.skel { height: 8px; border-radius: 4px; background: color-mix(in srgb, var(--foreground) 22%, transparent); }
+	.statusb { background: var(--status-bg); border-top: 1px solid var(--divider); font-size: 11px; color: var(--muted-fg); display: flex; align-items: center; padding: 0 10px; }
+
+	/* ---- Vault picker (P106) ---- */
+	.picker { background: var(--background); color: var(--foreground); display: grid; justify-items: center; align-content: center; gap: 10px; padding: 26px 16px 34px; min-height: 380px; border-radius: 10px; }
+	.picker h3 { font-size: 26px; font-weight: 700; }
+	.picker .sub { color: var(--muted-fg); font-size: 13px; }
+	.picker .rec { width: min(100%, 420px); border: 1px solid var(--divider); border-radius: 10px; padding: 10px; display: grid; gap: 6px; margin-top: 8px; }
+	.picker .rec .rh { color: var(--muted-fg); display: flex; align-items: center; gap: 6px; font-size: 13px; }
+	.picker .allowed { border: 1px solid var(--divider); border-radius: 6px; padding: 5px 8px; font-size: 11.5px; color: var(--muted-fg); background: var(--card); }
+	.picker .vrow { background: var(--card); border-radius: 6px; padding: 7px 10px; margin-left: 20px; }
+	.picker .vrow b { font-size: 13px; display: block; }
+	.picker .vrow span { font-size: 11.5px; color: var(--muted-fg); }
+	.picker .ver { font-size: 11px; color: var(--muted-fg); border: 1px solid var(--divider); border-radius: 6px; padding: 3px 8px; margin-top: 12px; background: var(--card); }
+
+	/* ---- Theme editor (P107) ---- */
+	.ted { display: grid; gap: 10px; }
+	.ted-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+	.ted-head .grow { min-width: 120px; }
+	.ted-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); }
+	.ted-tabs button { background: transparent; border: 0; border-bottom: 2px solid transparent; padding: 5px 10px; color: var(--muted-fg); font-size: 14px; margin-bottom: -1px; }
+	.ted-tabs button[aria-selected="true"] { border-bottom-color: var(--primary); color: var(--foreground); }
+	.crow { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+	.crow .lab { flex: 1; min-width: 0; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.crow .swatch { width: 28px; height: 28px; border-radius: 4px; border: 1px solid var(--border); position: relative; overflow: hidden; flex: none; }
+	.crow .swatch input { position: absolute; inset: -4px; width: 40px; height: 40px; opacity: 0; cursor: pointer; }
+	.crow .hex { width: 88px; height: 28px; font: 12px ui-monospace, Menlo, monospace; padding: 0 8px; border: 1px solid var(--x-input-border, var(--input)); border-radius: 6px; background: var(--input-bg); color: var(--foreground); }
+	.crow .rst { width: 24px; height: 24px; border: 0; background: transparent; border-radius: 4px; color: var(--muted-fg); display: inline-flex; align-items: center; justify-content: center; visibility: hidden; }
+	.crow .rst.on { visibility: visible; }
+	.crow .rst:hover { background: var(--accent); color: var(--foreground); }
+	.crow .src { font-size: 10.5px; color: var(--muted-fg); width: 54px; text-align: right; }
+	.crow .src.ov { color: var(--primary); font-weight: 600; }
+	.prevgrid { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 14px; }
+	@media (max-width: 640px) { .prevgrid { grid-template-columns: 1fr; } }
+	.cgrp { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); margin: 8px 0 2px; }
+	.thumb { border: 1px solid var(--border); border-radius: 8px; overflow: hidden; display: grid; grid-template-columns: 34px 1fr; height: 128px; font-size: 0; }
+	.thumb .a { padding: 6px 5px; display: grid; gap: 4px; align-content: start; }
+	.thumb .b { padding: 8px; display: grid; gap: 5px; align-content: start; }
+	.thumb i { display: block; height: 5px; border-radius: 3px; }
+	.confirm { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border-radius: 8px; background: var(--item-bg); font-size: 13px; }
+
+	/* ---- Theme catalog (P108) ---- */
+	.cat { display: grid; gap: 8px; }
+	.cat .sect { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-fg); }
+	.cat .desc { font-size: 12.5px; color: var(--muted-fg); }
+	.ccard { display: flex; align-items: center; gap: 12px; background: var(--item-bg); border-radius: 10px; padding: 10px 14px; }
+	.ccard .strip3 { display: flex; width: 64px; height: 36px; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); flex: none; }
+	.ccard .strip3 i { flex: 1; }
+	.ccard .nm { font-weight: 500; }
+	.ccard .by { font-size: 12px; color: var(--muted-fg); }
+	.ccard .acts { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+	.badge-act { color: var(--primary); font-size: 12.5px; display: inline-flex; align-items: center; gap: 4px; font-weight: 500; }
+	.badge-inst { color: var(--muted-fg); font-size: 12.5px; }
+	.skeleton { height: 56px; border-radius: 10px; background: linear-gradient(90deg, var(--item-bg), color-mix(in srgb, var(--item-bg) 60%, var(--foreground) 6%), var(--item-bg)); background-size: 200% 100%; animation: sh 1.2s linear infinite; }
+	@keyframes sh { to { background-position: -200% 0; } }
+	@media (prefers-reduced-motion: reduce) { .skeleton { animation: none; } }
+	.toast { position: absolute; right: 12px; bottom: 12px; max-width: 260px; display: flex; gap: 8px; align-items: flex-start; background: var(--popover); color: var(--x-err, var(--destructive)); border-radius: 8px; padding: 10px 12px; font-size: 12.5px; box-shadow: 0 8px 24px var(--shadow-lg); border: 1px solid var(--divider); }
+	.toast button { background: transparent; border: 0; color: var(--muted-fg); padding: 0 2px; }
+	.states { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 12px; color: var(--muted-fg); }
+
+	/* ---- Dialog demo (P23) ---- */
+	.fgrid { display: grid; gap: 12px; }
+	.frow { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+	.frow .tag { font-size: 11px; color: var(--muted-fg); width: 100%; }
+	.tlist { background: var(--file-bg); border-radius: 8px; padding: 4px; display: grid; width: 190px; }
+	.tlist .r { padding: 5px 8px; }
+	.scrim { position: absolute; inset: 0; background: color-mix(in srgb, var(--foreground) 35%, transparent); display: none; align-items: center; justify-content: center; padding: 14px; }
+	.scrim.open { display: flex; }
+	.dlg { background: var(--popover); border: 1px solid var(--divider); border-radius: 12px; padding: 16px 18px; width: min(100%, 320px); position: relative; box-shadow: 0 16px 40px var(--shadow-lg); }
+	.dlg h4 { margin: 0 0 4px; font-size: 15px; }
+	.dlg p { font-size: 12.5px; color: var(--muted-fg); }
+	.dlg-close { position: absolute; right: 12px; top: 12px; border: 0; background: transparent; opacity: .7; border-radius: 3px; padding: 2px; width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; outline: none; }
+	.dlg-close:hover { opacity: 1; }
+	.v-before .dlg-close:focus { box-shadow: 0 0 0 2px var(--popover), 0 0 0 4px var(--ring); }
+	.v-after .dlg-close:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+
+	/* ---- Swatch sheet ---- */
+	.sheet { border: 1px solid var(--divider); border-radius: 10px; overflow: hidden; background: var(--card); }
+	.sh-head, .sh-row { display: grid; grid-template-columns: minmax(180px, 1.3fr) 1fr 1fr; gap: 0; }
+	.sh-head > div { padding: 8px 12px; font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted-fg); border-bottom: 1px solid var(--divider); background: var(--background); }
+	.sh-row > div { padding: 8px 12px; border-bottom: 1px solid var(--divider); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; }
+	.sh-row:last-child > div { border-bottom: 0; }
+	.sh-lab { font-size: 13px; }
+	.sh-lab small { display: block; color: var(--muted-fg); font-size: 11.5px; }
+	.swat { width: 44px; height: 30px; border-radius: 6px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; border: 1px solid color-mix(in srgb, var(--foreground) 14%, transparent); flex: none; }
+	.arrow { color: var(--muted-fg); }
+	.tcell { display: flex; align-items: center; gap: 6px; }
+	@media (max-width: 760px) { .sh-head, .sh-row { grid-template-columns: 1fr; } }
+
+	@media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+</style>
+</head>
+<body class="th-light" id="body">
+<header class="top">
+	<div class="top-in">
+		<h1>Colour, contrast, selection states and themes</h1>
+		<div class="seg" role="group" aria-label="Theme for the After recreations">
+			<button type="button" id="t-light" aria-pressed="true">Lavender Haze (light)</button>
+			<button type="button" id="t-dark" aria-pressed="false">KokoBrain Default (dark)</button>
+		</div>
+		<nav class="nav" aria-label="Proposals">
+			<a href="#sheet">Sheet</a><a href="#p26">P26</a><a href="#p27">P27</a><a href="#p25">P25</a><a href="#p23">P23</a><a href="#p85">P85</a><a href="#p19">P19</a><a href="#p20">P20</a><a href="#p109">P109</a><a href="#p106">P106</a><a href="#p107">P107</a><a href="#p108">P108</a>
+		</nav>
+	</div>
+</header>
+
+<main>
+	<p class="intro"><b>Throwaway prototype for the design review.</b> Every proposal in this group is shown as a Before (screenshot of the real app, plus a recreation with today's tokens) and an After (recreation with the proposed tokens). The toggle above switches every recreation between the two built-in themes; screenshots do not change. All ratios on this page are computed from the real theme values (WCAG 2.x relative luminance, sRGB). P20, P109 and the Before side of P106 are specific to the dark default theme and stay dark.</p>
+
+	<!-- ============ Swatch sheet ============ -->
+	<section class="prop" id="sheet">
+		<header><span class="pid">SHEET</span><h2>Measured ratios, Lavender Haze and KokoBrain Default, before and after</h2></header>
+		<p class="problem">Red means below its target, green meets it. Targets: 3:1 for boundaries and the faint tier, 4.5:1 for text, at most 1.5:1 for the tab strip against the editor, and a colour distance of at least 20 for bold against link.</p>
+		<div class="sheet" id="sheet-body" role="table" aria-label="Contrast before and after in both themes"></div>
+		<p class="notes">Rows are the pairs the proposals add to <code>READABILITY_PAIRS</code> (<code>theme-builder.logic.ts:105</code>). After values are what <code>ensureContrast</code> would produce starting from today's token, so <b>they are illustrative hexes, not a final palette</b>.</p>
+	</section>
+
+	<!-- ============ P26 ============ -->
+	<section class="prop" id="p26">
+		<header><span class="pid">P26</span><h2>Control boundaries fail non-text contrast</h2><span class="tier">moderate</span></header>
+		<p class="problem">The off switch track is 1.12:1 on a setting item and the input border 1.08:1 (Lavender); WCAG asks 3:1 for the edge of a control.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation</small></h3>
+				<div class="shot" data-img="settings-update-light" data-x="853" data-y="368" data-w="548" data-h="152" data-z="1" data-cap="Settings > Update, light. Off switch and select edge nearly vanish."></div>
+				<div class="mock v-before" data-mock="p26"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>--control-border at 3:1, 1px border on the off switch</small></h3>
+				<div class="mock v-after" data-mock="p26"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Try it:</b> click the switches. Input and select share one surface and one border token (<code>--control-border</code>). The On state is unchanged (primary fill).</div>
+	</section>
+
+	<!-- ============ P27 ============ -->
+	<section class="prop" id="p27">
+		<header><span class="pid">P27</span><h2>Error text is held to 3:1, and the destructive button uses literal white</h2><span class="tier">moderate</span></header>
+		<p class="problem">Error text on setting items is 3.4 to 3.7:1; it needs a separate <code>--error-text</code> token at 4.5:1 on every panel surface while <code>--destructive</code> stays for fills.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation</small></h3>
+				<div class="shot" data-img="settings-appearance-light" data-img-dark="settings-appearance-dark" data-x="853" data-y="515" data-w="548" data-h="66" data-z="1" data-cap="Theme catalog error line, as shipped (light or dark follows the toggle)."></div>
+				<div class="mock v-before" data-mock="p27"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>--error-text, button uses destructive-foreground</small></h3>
+				<div class="mock v-after" data-mock="p27"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Dark theme detail:</b> the button also loses <code>dark:bg-destructive/60</code>. Without that, <code>destructive-foreground</code> (#171717) on a 60% fill would be far below 4.5:1, so the fill goes to full strength. Muted text on hover (4.05:1 in both themes) gets its own pair at the same time, not prototyped here.</div>
+	</section>
+
+	<!-- ============ P25 ============ -->
+	<section class="prop" id="p25">
+		<header><span class="pid">P25</span><h2>Text on selected rows and alpha-faded text drops below 4.5:1</h2><span class="tier">moderate</span></header>
+		<p class="problem">Selected-row subtitle, 11 px chips and archived rows sit at 2.4 to 3.9:1, and 28 classes fade text with an alpha.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation</small></h3>
+				<div class="shot" data-img="settings-appearance-light" data-img-dark="settings-appearance-dark" data-x="196" data-y="372" data-w="222" data-h="140" data-z="1.6" data-cap="Note list, selected row 2026-11-10 (primary/25 fill), and a Person chip."></div>
+				<div class="mock v-before" data-mock="p25"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>selected tokens, full-strength chips, no opacity-60, --faint-fg</small></h3>
+				<div class="mock v-after" data-mock="p25"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Try it:</b> click a row to select it, hover for the hover state. The archived row keeps its Archive icon, which already marks it. The faint tier (<code>--faint-fg</code>, 3:1) replaces the one-off alphas for out-of-month days, "Add property" and disabled text; secondary text such as snippets uses <code>muted</code> (4.5:1 or better). <b>Not prototyped:</b> a lint ban on alpha text; the proposal itself says to add pairs per surface instead.</div>
+	</section>
+
+	<!-- ============ P23 ============ -->
+	<section class="prop" id="p23">
+		<header><span class="pid">P23</span><h2>The focus ring is drawn at 50% and many controls have none</h2><span class="tier">moderate</span></header>
+		<p class="problem">The ring measures about 2:1, the destructive ring about 1.3:1, and a dialog close rings when it opens; borderless targets show nothing.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation</small></h3>
+				<div class="shot" data-img="file-history-light" data-x="1150" data-y="92" data-w="90" data-h="48" data-z="3" data-cap="File History dialog: the close button rings the moment the dialog opens."></div>
+				<div class="mock v-before" data-mock="p23"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>--focus-ring, 2px with 2px offset, :focus-visible only</small></h3>
+				<div class="mock v-after" data-mock="p23"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Try it:</b> press Tab inside either mock to walk the controls with the keyboard, or tick "Show focus on every control" to compare them at once. Click "Open dialog": Before rings the close button on open, After only when it was reached by keyboard. Bare buttons, the tags control and the text input in the list row have no style Before and get the same ring After; rows get an inset ring.</div>
+	</section>
+
+	<!-- ============ P85 ============ -->
+	<section class="prop" id="p85">
+		<header><span class="pid">P85</span><h2>One selected-row treatment across surfaces</h2><span class="tier">moderate</span></header>
+		<p class="problem">Files, the note list, Tasks lists and settings nav each select differently (primary/25 text, primary/25 fill, bg-accent, the hover token). The rail tint stays as ADR-0033 defines it.</p>
+		<div class="cmp stack">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation</small></h3>
+				<div class="shot" data-img="kanban-board-light" data-img-dark="kanban-board-dark" data-x="0" data-y="120" data-w="582" data-h="230" data-z="1" data-cap="Three selection looks on one screen: the teal rail tint, a primary folder row and a grey note-list row (light or dark follows the toggle)."></div>
+				<div class="mock v-before" data-mock="p85"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>--state-hover, --state-selected, --state-selected-fg</small></h3>
+				<div class="mock v-after" data-mock="p85"></div>
+				<div class="tokgrid" id="tok85"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Try it:</b> click and hover rows in each panel. The rail column is identical Before and After: the 18% hue tint keyed to <code>aria-current="page"</code> is the ADR-0033 decision, so this proposal leaves it alone. In the settings nav, selected and hover are no longer the same colour. Selected titles move from primary text (3.9:1 on the fill) to foreground; the selected pair goes into <code>READABILITY_PAIRS</code>. <b>Trade-off:</b> with foreground text the only selected cue is the 16% tint, so it is visibly quieter than today's primary-coloured title.</div>
+	</section>
+
+	<!-- ============ P19 ============ -->
+	<section class="prop" id="p19">
+		<header><span class="pid">P19</span><h2>Tag chips, rail badges and linear calendar bars are blind to the theme</h2><span class="tier">moderate</span></header>
+		<p class="problem">Kanban chips measure 1.6 to 2.9:1 on light themes, rail badges use white on yellow and teal, and the full-tab calendar hardcodes <code>text-white</code>.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation</small></h3>
+				<div class="shot" data-img="kanban-board-light" data-img-dark="kanban-board-dark" data-x="880" data-y="135" data-w="556" data-h="165" data-z="1" data-cap="Kanban chips #calendar, #design, #docs (light or dark follows the toggle)."></div>
+				<div class="mock v-before" data-mock="p19"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>chip text mixed toward editor-fg, badge and bar text by contrast</small></h3>
+				<div class="mock v-after" data-mock="p19"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Rail icon colours are unchanged</b> (ADR-0033 fixes them on purpose); only the badge text changes. <b>Finding:</b> the <code>--type-*</code> tokens would not be enough for 12 px chips: they are checked at 3:1 and measure 3.1 to 4.6:1 on Lavender (for example orange 3.14, yellow 3.19), so the chip text here is the preset mixed toward the editor foreground until it reaches 4.5:1. Chip fills (15% preset) are unchanged. Bar text uses the same black-or-white pick as <code>barTextColor</code>.</div>
+	</section>
+
+	<!-- ============ P20 ============ -->
+	<section class="prop" id="p20">
+		<header><span class="pid">P20</span><h2>Bold shares the link hue, section titles share the accent</h2><span class="tier">moderate</span></header>
+		<p class="problem">In KokoBrain Default, bold (#93c5fd) sits beside the link blue (#60a5fa); right-sidebar section titles use primary, and mini calendar weekends use primary too.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation (dark theme)</small></h3>
+				<div class="shot" data-img="editor-live-preview-dark" data-x="650" data-y="262" data-w="470" data-h="124" data-z="1.2" data-cap="Dark default: bold 'roadmap' next to the link 'the roadmap'."></div>
+				<div class="mock v-before th-dark" data-lock="dark" data-mock="p20"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>bold = editor foreground, titles = foreground, weekends = muted</small></h3>
+				<div class="mock v-after th-dark" data-lock="dark" data-mock="p20"></div>
+			</div>
+		</div>
+		<div class="notes">This section stays on the dark theme whatever the toggle says. <b>Lavender Haze is not touched:</b> heading equal to primary there is left as an owner taste call, as the proposal states. The builder check (a minimum colour distance between strong/emphasis and link/wikilink) would flag the Before pairing; the distance row in the sheet shows 10.7 Before and 30.4 After. Today and the selected day in the calendar are already distinct, so they stay.</div>
+	</section>
+
+	<!-- ============ P109 ============ -->
+	<section class="prop" id="p109">
+		<header><span class="pid">P109</span><h2>The dark tab strip is the brightest surface</h2><span class="tier">moderate</span></header>
+		<p class="problem">KokoBrain Default overrides <code>tabBar</code> to #5a5c79, 2.1:1 lighter than the editor, so chrome outshines content.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation (dark theme)</small></h3>
+				<div class="shot" data-img="kanban-board-dark" data-x="350" data-y="0" data-w="600" data-h="110" data-z="0.93" data-cap="Dark default: the strip above the panes is the brightest band on screen."></div>
+				<div class="mock flush v-before th-dark" data-lock="dark" data-mock="p109"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>tabBar derives from sidebarBg (#21222e)</small></h3>
+				<div class="mock flush v-after th-dark" data-lock="dark" data-mock="p109"></div>
+			</div>
+		</div>
+		<div class="notes">Dark-only, so it stays dark. The active tab already uses the editor surface, so it reads as joined to the content after the change. Tab text keeps its contrast (inactive #d3d7e7 on #21222e is 11:1, up from 4.5:1). Lavender's #edeaf2 strip is already within 1.1:1 of the editor and is not touched.</div>
+	</section>
+
+	<!-- ============ P106 ============ -->
+	<section class="prop" id="p106">
+		<header><span class="pid">P106</span><h2>The vault picker paints dark whatever the last theme was</h2><span class="tier">polish</span></header>
+		<p class="problem"><code>app.html</code> ships <code>class="dark"</code> and settings load per vault, so the picker never sees the applied theme; the localStorage cache the composer window already uses is not applied in the main window.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app (Lavender Haze was active)</small></h3>
+				<div class="shot" data-img="vault-picker-light" data-x="430" data-y="210" data-w="580" data-h="480" data-z="0.93" data-cap="Vault picker after the user last applied Lavender Haze: still dark."></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>applyStoredTheme() at boot paints the last applied theme</small></h3>
+				<div class="mock flush v-after" data-mock="p106"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Try it:</b> the recreation follows the toggle above (it stands for "last applied theme"). Tick "No cached theme" to see first launch, which falls back to the dark default, as today. The fix is one call before any vault loads; "Match system" pairing is a later feature and is not shown.</div>
+	</section>
+
+	<!-- ============ P107 ============ -->
+	<section class="prop" id="p107">
+		<header><span class="pid">P107</span><h2>The theme editor lists 128 raw tokens</h2><span class="tier">polish</span></header>
+		<p class="problem">Hex rows only, no way to reset one token, no Simple mode over the core palette, unlabelled swatches and an instant discard on Cancel.</p>
+		<div class="cmp stack">
+			<div class="col">
+				<h3 class="lbl before">Before <small>recreated from ThemeEditor.svelte (no screenshot of the editor was captured)</small></h3>
+				<div class="mock v-before" data-mock="p107"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>Simple (core palette) and Advanced (overrides with per-token reset)</small></h3>
+				<div class="mock v-after" data-mock="p107"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Try it:</b> in Simple, change any colour: the preview and the derived tokens update through a stand-in for <code>buildTheme</code> (a simplified derivation, not the real one). Switch to Advanced to see derived versus overridden rows and reset one with the arrow button. Edit something, then press Cancel to see the dirty-draft confirm. Contrast chips and search are optional extras in the proposal and are not shown.</div>
+	</section>
+
+	<!-- ============ P108 ============ -->
+	<section class="prop" id="p108">
+		<header><span class="pid">P108</span><h2>A catalog failure is reported twice, and Install does not apply</h2><span class="tier">polish</span></header>
+		<p class="problem">A failed fetch shows a toast plus an inline error, and installing a theme leaves the old one active.</p>
+		<div class="cmp">
+			<div class="col">
+				<h3 class="lbl before">Before <small>real app, then recreation</small></h3>
+				<div class="shot" data-img="settings-appearance-light" data-img-dark="settings-appearance-dark" data-x="840" data-y="455" data-w="590" data-h="425" data-z="0.95" data-cap="Appearance, catalog offline: inline error and a toast at the same time."></div>
+				<div class="mock v-before" data-mock="p108"></div>
+			</div>
+			<div class="col">
+				<h3 class="lbl after">After <small>one inline error with Retry, plus Install and apply</small></h3>
+				<div class="mock v-after" data-mock="p108"></div>
+			</div>
+		</div>
+		<div class="notes"><b>Try it:</b> use Loading / Loaded / Error in each mock. Choosing Error in Before raises the toast again. In Loaded, Before installs without applying; After offers Install and apply. Caching the catalog is left out because ADR-0035 accepts a fetch on every visit.</div>
+	</section>
+</main>
+
+<script>
+	const R = {"light":{"before":{"sw":1.1195330797689802,"inp":1.0797318939807738,"errItem":3.6601669119413773,"errCard":4.155257433783459,"errPop":5.103135214160823,"errDlg":4.155257433783459,"dbtn":5.103135214160823,"selSub":3.588389396754658,"chipSel":2.64313617394393,"chipNorm":3.3605780643939283,"selTitle":3.8724876782796596,"archTitle":3.660254166098724,"archSub":2.3956747976615946,"snippet":3.660254166098724,"oom":1.6696933318916254,"addprop":2.7956656948906713,"ring":2.200635427289141,"ringDestr":1.330585796055021,"stateFiles":3.8724876782796596,"stateSel":7.936991142149017,"stateMuted":3.588389396754658,"tab":1.0554175529447374,"tabText":4.528380562440317,"chip.blue":2.360001416428542,"chip.green":1.9208128125706379,"chip.red":2.766466471597446,"chip.orange":2.012578812739195,"chip.purple":2.886848453328944,"chip.yellow":1.5667999086291968,"chip.gray":2.0788819607278275,"rail.Search":4.758842787868666,"rail.Inbox":3.6779011537825332,"rail.Today":2.8030548103399218,"rail.Favorites":1.9178027531556476,"rail.Types":4.234369397337306,"rail.Calendar":3.6718085361702686,"rail.Files":2.489161732374787,"rail.Archive":4.797580078171407,"bar.blue":3.0035938238831172,"bar.green":1.95044128745438,"bar.pink":3.682252769330993,"bar.amber":1.7615557951836152,"bar.purple":3.899939618747999,"bar.teal":1.958902257519912,"bar.orange":3.072055567744305,"bar.lime":2.0353511731312577,"bar.magenta":4.086321328648372,"bar.sky":2.827336343245645,"bar.yellow":1.5341614372908903,"bar.red":3.7874496740076804,"dE":15.788559293418192},"after":{"sw":3.004856595757925,"inp":3.004856595757925,"errItem":4.549309718706907,"errCard":5.164669667267616,"errPop":6.34280981829419,"errDlg":5.164669667267616,"dbtn":4.523925999994648,"selSub":4.523163435023642,"chipSel":4.51225143614911,"chipNorm":5.527136241336713,"selTitle":9.12383478997273,"archTitle":11.357412801800452,"archSub":5.134794652361372,"snippet":5.134794652361372,"oom":3.4575838740911076,"addprop":3.4629748529719397,"ring":6.0469031017665635,"ringDestr":6.0469031017665635,"stateFiles":9.12383478997273,"stateSel":9.12383478997273,"stateMuted":4.523163435023642,"tab":1.0554175529447374,"tabText":11.013029459787564,"chip.blue":4.524010628258478,"chip.green":4.5411156236593255,"chip.red":4.546679970160968,"chip.orange":4.5047838420129604,"chip.purple":4.517409744180247,"chip.yellow":4.549171638595021,"chip.gray":4.511401475638944,"rail.Search":4.758842787868666,"rail.Inbox":5.709778246324693,"rail.Today":7.491826389742756,"rail.Favorites":10.950031209124901,"rail.Types":4.959416156088179,"rail.Calendar":5.719252459144616,"rail.Files":8.43657514369905,"rail.Archive":4.797580078171407,"bar.blue":6.991624444363353,"bar.green":10.766794230144793,"bar.pink":5.7030305401373536,"bar.amber":11.921280073794694,"bar.purple":5.384698752526238,"bar.teal":10.72028985590494,"bar.orange":6.835813850665309,"bar.lime":10.317629840600352,"bar.magenta":5.139096588604828,"bar.sky":7.427485608554452,"bar.yellow":13.688259585694578,"bar.red":5.5446281290858455,"dE":15.788559293418192}},"dark":{"before":{"sw":1.7395737203320203,"inp":1.085878015009817,"errItem":4.060918627533894,"errCard":3.435382478399745,"errPop":3.01585192482954,"errDlg":3.080351353904172,"dbtn":6.85853132672047,"selSub":3.424313671537564,"chipSel":2.6129876407165638,"chipNorm":3.7726037350593207,"selTitle":3.6972521949121626,"archTitle":5.8529710364596905,"archSub":2.922378548391746,"snippet":5.8529710364596905,"oom":1.8604264995882676,"addprop":4.413561159285792,"ring":2.524587404828028,"ringDestr":1.487536577797947,"stateFiles":3.6972521949121626,"stateSel":8.425397208997238,"stateMuted":3.424313671537564,"tab":2.08250158147795,"tabText":4.528380562440317,"chip.blue":3.5447557760866766,"chip.green":4.311341007813436,"chip.red":3.1273114895974605,"chip.orange":4.158823918575837,"chip.purple":2.9490312747229264,"chip.yellow":5.217747350169178,"chip.gray":4.0003347141207755,"rail.Search":4.758842787868666,"rail.Inbox":3.6779011537825332,"rail.Today":2.8030548103399218,"rail.Favorites":1.9178027531556476,"rail.Types":4.234369397337306,"rail.Calendar":3.6718085361702686,"rail.Files":2.489161732374787,"rail.Archive":4.797580078171407,"bar.blue":3.0035938238831172,"bar.green":1.95044128745438,"bar.pink":3.682252769330993,"bar.amber":1.7615557951836152,"bar.purple":3.899939618747999,"bar.teal":1.958902257519912,"bar.orange":3.072055567744305,"bar.lime":2.0353511731312577,"bar.magenta":4.086321328648372,"bar.sky":2.827336343245645,"bar.yellow":1.5341614372908903,"bar.red":3.7874496740076804,"dE":10.678824224414216},"after":{"sw":4.107360169398343,"inp":4.107360169398343,"errItem":6.113336019178377,"errCard":5.171649415100267,"errPop":4.54008511166972,"errDlg":4.637183014667556,"dbtn":4.565299979631373,"selSub":4.910720775155682,"chipSel":4.881004777018244,"chipNorm":6.482570158473078,"selTitle":10.034295556563986,"archTitle":13.524059219551736,"archSub":5.496550457080039,"snippet":5.496550457080039,"oom":3.7234048307773393,"addprop":3.4843597507999893,"ring":5.553649730283785,"ringDestr":5.553649730283785,"stateFiles":10.034295556563986,"stateSel":10.034295556563986,"stateMuted":4.910720775155682,"tab":1.1678270850957615,"tabText":11.013029459787564,"chip.blue":4.536350116839289,"chip.green":4.546311239936526,"chip.red":4.511717449567114,"chip.orange":4.53020898324607,"chip.purple":4.545994235824886,"chip.yellow":5.217747350169178,"chip.gray":4.551545695369993,"rail.Search":4.758842787868666,"rail.Inbox":5.709778246324693,"rail.Today":7.491826389742756,"rail.Favorites":10.950031209124901,"rail.Types":4.959416156088179,"rail.Calendar":5.719252459144616,"rail.Files":8.43657514369905,"rail.Archive":4.797580078171407,"bar.blue":6.991624444363353,"bar.green":10.766794230144793,"bar.pink":5.7030305401373536,"bar.amber":11.921280073794694,"bar.purple":5.384698752526238,"bar.teal":10.72028985590494,"bar.orange":6.835813850665309,"bar.lime":10.317629840600352,"bar.magenta":5.139096588604828,"bar.sky":7.427485608554452,"bar.yellow":13.688259585694578,"bar.red":5.5446281290858455,"dE":30.3485803211231}}};
+	const SHEET = {"light":[{"id":"P26","label":"Off switch track vs setting item","bf":"#D2CCE0","bb":"#DDD8E8","af":"#817796","ab":"#DDD8E8","min":3,"note":"1px border","rb":1.1195330797689802,"ra":3.004856595757925},{"id":"P26","label":"Input / select border vs setting item","bf":"#D5D0E2","bb":"#DDD8E8","af":"#817796","ab":"#DDD8E8","min":3,"note":"--control-border","rb":1.0797318939807738,"ra":3.004856595757925},{"id":"P27","label":"Error text, worst panel surface","bf":"#C83848","bb":"#DDD8E8","af":"#ae313f","ab":"#DDD8E8","min":4.5,"note":"--error-text","rb":3.6601669119413773,"ra":4.549309718706907},{"id":"P27","label":"Destructive button label vs fill","bf":"#ffffff","bb":"#C83848","af":"#f1f1f3","ab":"#C83848","min":4.5,"note":"destructive-foreground","rb":5.103135214160823,"ra":4.523925999994648},{"id":"P25","label":"Selected note-row subtitle","bf":"#645c74","bb":"#c8bfdb","af":"#5e566e","ab":"#d4cee1","min":4.5,"note":"--state-selected-muted-fg","rb":3.588389396754658,"ra":4.523163435023642},{"id":"P25","label":"Chip text on selected row","bf":"#795db1","bb":"#beb3d6","af":"#5e4295","ab":"#c9c1db","min":4.5,"note":"--chip-fg","rb":2.64313617394393,"ra":4.51225143614911},{"id":"P25","label":"Archived row subtitle","bf":"#9994a4","bb":"#e8e7ec","af":"#645c74","ab":"#e8e7ec","min":4.5,"note":"no opacity-60","rb":2.3956747976615946,"ra":5.134794652361372},{"id":"P25","label":"Out-of-month day / faint text","bf":"#b6b3c3","bb":"#e8e7ec","af":"#7f778f","ab":"#e8e7ec","min":3,"note":"--faint-fg","rb":1.6696933318916254,"ra":3.4575838740911076},{"id":"P23","label":"Focus ring vs page","bf":"#ae9cd0","bb":"#F3F0F8","af":"#6848A8","ab":"#F3F0F8","min":3,"note":"--focus-ring","rb":2.200635427289141,"ra":6.0469031017665635},{"id":"P19","label":"Kanban chip, worst of 7 (Before yellow, After orange)","bf":"#eab308","bb":"#f2e7d4","af":"#90593b","ab":"#f2e1db","min":4.5,"note":"mixed toward editor-fg","rb":1.5667999086291968,"ra":4.5047838420129604},{"id":"P19","label":"Rail badge, worst (Favorites)","bf":"#ffffff","bb":"#eab308","af":"#000000","ab":"#eab308","min":4.5,"note":"black or white","rb":1.9178027531556476,"ra":10.950031209124901},{"id":"P19","label":"Linear calendar bar, worst (yellow)","bf":"#ffffff","bb":"#d7d742","af":"#000000","ab":"#d7d742","min":4.5,"note":"barTextColor","rb":1.5341614372908903,"ra":13.688259585694578},{"id":"P109","label":"Tab strip vs editor (luminance ratio)","bf":"#edeaf2","bb":"#F3F0F8","af":"#edeaf2","ab":"#F3F0F8","min":null,"max":1.5,"note":"unchanged in Lavender","rb":1.0554175529447374,"ra":1.0554175529447374},{"id":"P20","label":"Bold vs link hue, colour distance (OKLab dE x100)","bf":"#843C7E","bb":"#3868B0","af":"#843C7E","ab":"#3868B0","min":null,"de":[15.788559293418192,15.788559293418192],"note":"unchanged in Lavender","rb":15.788559293418192,"ra":15.788559293418192}],"dark":[{"id":"P26","label":"Off switch track vs setting item","bf":"#444660","bb":"#20212d","af":"#7e8095","ab":"#20212d","min":3,"note":"1px border","rb":1.7395737203320203,"ra":4.107360169398343},{"id":"P26","label":"Input / select border vs setting item","bf":"#242835","bb":"#20212d","af":"#7e8095","ab":"#20212d","min":3,"note":"--control-border","rb":1.085878015009817,"ra":4.107360169398343},{"id":"P27","label":"Error text, worst panel surface","bf":"#f3333b","bb":"#333745","af":"#f77a80","ab":"#333745","min":4.5,"note":"--error-text","rb":3.01585192482954,"ra":4.54008511166972},{"id":"P27","label":"Destructive button label vs fill","bf":"#ffffff","bb":"#a3313c","af":"#171717","ab":"#f3333b","min":4.5,"note":"destructive-foreground","rb":6.85853132672047,"ra":4.565299979631373},{"id":"P25","label":"Selected note-row subtitle","bf":"#95a0b9","bb":"#434861","af":"#a7b0c3","ab":"#393d52","min":4.5,"note":"--state-selected-muted-fg","rb":3.424313671537564,"ra":4.910720775155682},{"id":"P25","label":"Chip text on selected row","bf":"#8b93c4","bb":"#4c516d","af":"#b6bce1","ab":"#434760","min":4.5,"note":"--chip-fg","rb":2.6129876407165638,"ra":4.881004777018244},{"id":"P25","label":"Archived row subtitle","bf":"#697085","bb":"#262938","af":"#95a0b9","ab":"#262938","min":4.5,"note":"no opacity-60","rb":2.922378548391746,"ra":5.496550457080039},{"id":"P25","label":"Out-of-month day / faint text","bf":"#4c5267","bb":"#262938","af":"#7e818f","ab":"#262938","min":3,"note":"--faint-fg","rb":1.8604264995882676,"ra":3.7234048307773393},{"id":"P23","label":"Focus ring vs page","bf":"#63698c","bb":"#2a2e3d","af":"#9ba3da","ab":"#2a2e3d","min":3,"note":"--focus-ring","rb":2.524587404828028,"ra":5.553649730283785},{"id":"P19","label":"Kanban chip, worst of 7 (Before purple, After red)","bf":"#8b6cef","bb":"#393758","af":"#f27e7c","ab":"#48313e","min":4.5,"note":"mixed toward editor-fg","rb":2.9490312747229264,"ra":4.511717449567114},{"id":"P19","label":"Rail badge, worst (Favorites)","bf":"#ffffff","bb":"#eab308","af":"#000000","ab":"#eab308","min":4.5,"note":"black or white","rb":1.9178027531556476,"ra":10.950031209124901},{"id":"P19","label":"Linear calendar bar, worst (yellow)","bf":"#ffffff","bb":"#d7d742","af":"#000000","ab":"#d7d742","min":4.5,"note":"barTextColor","rb":1.5341614372908903,"ra":13.688259585694578},{"id":"P109","label":"Tab strip vs editor (luminance ratio, lower is better)","bf":"#5a5c79","bb":"#2a2e3d","af":"#21222e","ab":"#2a2e3d","min":null,"max":1.5,"note":"derive from sidebarBg","rb":2.08250158147795,"ra":1.1678270850957615},{"id":"P20","label":"Bold vs link hue, colour distance (OKLab dE x100)","bf":"#93c5fd","bb":"#60a5fa","af":"#F8F8F2","ab":"#60a5fa","min":null,"de":[10.678824224414216,30.3485803211231],"note":"bold = editor-fg","rb":10.678824224414216,"ra":30.3485803211231}]};
+	const TOK = {"light":{"ctl":"#817796","errText":"#ae313f","selMuted":"#5e566e","chipFg":"#5e4295","faint":"#7f778f","selA":0.16,"hoverA":0.07,"destrFgAfter":"#f1f1f3"},"dark":{"ctl":"#7e8095","errText":"#f77a80","selMuted":"#a7b0c3","chipFg":"#b6bce1","faint":"#7e818f","selA":0.16,"hoverA":0.07,"destrFgAfter":"#171717"}};
+	const RAIL = [["Search","#64748b",0],["Inbox","#3b82f6",4],["Today","#f97316",2],["Favorites","#eab308",7],["Types","#8b5cf6",3],["Calendar","#f43f5e",1],["Files","#14b8a6",12],["Archive","#78716c",5]];
+	const BARS = [{"n":"blue","c":"#5299e0"},{"n":"green","c":"#47d18c"},{"n":"pink","c":"#db5783"},{"n":"amber","c":"#e6bf4c"},{"n":"purple","c":"#ac61d1"},{"n":"teal","c":"#4dcbcb"},{"n":"orange","c":"#e07552"},{"n":"lime","c":"#8cc653"},{"n":"magenta","c":"#c6539f"},{"n":"sky","c":"#47a3d1"},{"n":"yellow","c":"#d7d742"},{"n":"red","c":"#d65c5c"}];
+	const TH = {"light":{"name":"Lavender Haze","editor":"#F3F0F8","bg":"#F3F0F8","card":"#EAE6F2","pop":"#FFFFFF","item":"#DDD8E8","dlg":"#EAE6F2","side":"#FAF8FE","fg":"#302840","primary":"#6848A8","muted":"#645c74","swtrack":"#D2CCE0","input":"#D5D0E2","inputBg":"#EAE6F2","destr":"#C83848","destrFg":"#f1f1f3","fileBg":"#e8e7ec","fileMuted":"#6b6486","tabInactive":"#504868","rsBg":"#EAE6F2","tabBar":"#edeaf2"},"dark":{"name":"KokoBrain Default","editor":"#2a2e3d","bg":"#21222e","card":"#2a2e3d","pop":"#333745","item":"#20212d","dlg":"#313549","side":"#2B2F40","fg":"#F8F8F2","primary":"#9ba3da","muted":"#95a0b9","swtrack":"#444660","input":"#242835","inputBg":"#333544","destr":"#f3333b","destrFg":"#171717","fileBg":"#262938","fileMuted":"#8490ad","tabInactive":"#d3d7e7","rsBg":"#2a2e3d","tabBar":"#5a5c79"}};
+
+	const ICONS = {
+		x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+		check: '<path d="M20 6 9 17l-5-5"/>',
+		down: '<path d="m6 9 6 6 6-6"/>',
+		right: '<path d="m9 18 6-6-6-6"/>',
+		search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+		plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+		archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>',
+		cal: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+		file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+		reset: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/>',
+		retry: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+		download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+		upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/>',
+		alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+		folderopen: '<path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/>',
+		folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+		tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+		inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+		star: '<polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>',
+		clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+		circlecheck: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+		layers: '<path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 17.65-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65"/><path d="m22 12.65-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65"/>',
+		sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>',
+		shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/>',
+		sliders: '<line x1="4" x2="20" y1="12" y2="12"/><line x1="4" x2="20" y1="6" y2="6"/><line x1="4" x2="20" y1="18" y2="18"/>',
+		panel: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>',
+		list: '<path d="M8 6h13"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M3 6h.01"/><path d="M3 12h.01"/><path d="M3 18h.01"/>',
+		palette: '<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
+	};
+	const ic = (n, s = 16, cls = '') => `<svg class="ic ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[n] || ''}</svg>`;
+
+	const state = { theme: 'light' };
+	const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+	const fmt = (n) => n.toFixed(2);
+
+	/* ---------- mocks ---------- */
+	const MOCKS = {
+		p26() {
+			return `
+			<div class="dlgbg">
+				<div class="item"><div class="grow"><div class="t">Auto-check on launch</div><div class="d">Silently check for an update when the app opens.</div></div>
+					<button type="button" class="sw focusable" role="switch" aria-checked="false" aria-label="Auto-check on launch" data-sw></button></div>
+				<div class="item"><div class="grow"><div class="t">Notify on new versions</div><div class="d">On state, for comparison.</div></div>
+					<button type="button" class="sw focusable" role="switch" aria-checked="true" aria-label="Notify on new versions" data-sw></button></div>
+				<div class="item"><div class="grow"><div class="t">Release channel</div><div class="d">Official tagged releases.</div></div>
+					<button type="button" class="selt focusable">Stable ${ic('down', 14)}</button></div>
+				<div class="item"><div class="grow"><div class="t">Vault name</div></div>
+					<input class="inp focusable" placeholder="My vault" aria-label="Vault name"></div>
+			</div>
+			<div class="meas">
+				<div><span>Off switch boundary vs setting item (track fill Before, 1px border After)</span><b class="rt" data-k="sw" data-min="3"></b></div>
+				<div><span>Input and select border vs setting item</span><b class="rt" data-k="inp" data-min="3"></b></div>
+			</div>`;
+		},
+		p27() {
+			return `
+			<div class="dlgbg">
+				<div class="item" style="align-items:flex-start"><div class="grow"><div class="t">Webhook URL</div>
+					<div class="errmsg">${ic('alert', 13)}<span>Could not reach the server. Check the address.</span></div></div>
+					<input class="inp bad focusable" value="https://exmple.test" aria-label="Webhook URL" aria-invalid="true"></div>
+				<div class="errbox"><span>Could not load the theme catalog. Your installed and built-in themes still work.</span>
+					<button type="button" class="btn btn-out sm focusable" style="color:var(--foreground)">Retry</button></div>
+				<div class="item"><div class="grow"><div class="t">Delete this vault index</div><div class="d">Rebuilt on next launch.</div></div>
+					<button type="button" class="btn btn-destr focusable">Delete index</button></div>
+			</div>
+			<div class="meas">
+				<div><span>Error text on a setting item</span><b class="rt" data-k="errItem" data-min="4.5"></b></div>
+				<div><span>Error text on the settings dialog</span><b class="rt" data-k="errDlg" data-min="4.5"></b></div>
+				<div><span>Error text on a popover (toast)</span><b class="rt" data-k="errPop" data-min="4.5"></b></div>
+				<div><span>Error text on a card or the editor</span><b class="rt" data-k="errCard" data-min="4.5"></b></div>
+				<div><span>Destructive button label on its fill</span><b class="rt" data-k="dbtn" data-min="4.5"></b></div>
+			</div>`;
+		},
+		p25() {
+			const row = (t, sub, chip, o = {}) => `
+				<button type="button" class="nrow focusable f-row ${o.sel ? 'sel' : ''} ${o.arch ? 'arch' : ''}" data-nrow>
+					<span class="nt">${ic('file', 16)}<span>${t}</span>${o.arch ? `<span class="arch-ic" role="img" aria-label="Archived">${ic('archive', 12)}</span>` : ''}</span>
+					<span class="nsub">${sub}</span>
+					<span class="chips"><span class="chip">${chip}</span></span>
+				</button>`;
+			return `
+			<div class="cols2">
+				<div class="notelist" role="listbox" aria-label="Note list">
+					${row('1-1 with Ana', 'just now · Events', 'Event')}
+					${row('2026-11-10', 'just now · Daily', 'Daily', { sel: true })}
+					${row('Roadmap 2025', '3 weeks ago · Projects', 'Project', { arch: true })}
+				</div>
+				<div class="minipanel">
+					<div class="h">Alpha-faded text</div>
+					<div class="snip">Search snippet: the <mark>release</mark> checklist covers signing and notes for the next build.</div>
+					<div class="addprop">${ic('plus', 14)} Add property</div>
+					<div class="mcal" aria-label="Out-of-month days"><span class="oom">28</span><span class="oom">29</span><span class="oom">30</span><span>1</span><span>2</span><span>3</span><span>4</span></div>
+				</div>
+			</div>
+			<div class="meas">
+				<div><span>Selected row subtitle</span><b class="rt" data-k="selSub" data-min="4.5"></b></div>
+				<div><span>Chip text on a selected row</span><b class="rt" data-k="chipSel" data-min="4.5"></b></div>
+				<div><span>Chip text on a normal row</span><b class="rt" data-k="chipNorm" data-min="4.5"></b></div>
+				<div><span>Archived row title</span><b class="rt" data-k="archTitle" data-min="4.5"></b></div>
+				<div><span>Archived row subtitle</span><b class="rt" data-k="archSub" data-min="4.5"></b></div>
+				<div><span>Search snippet (text-file-explorer-fg/60 Before, muted After)</span><b class="rt" data-k="snippet" data-min="4.5"></b></div>
+				<div><span>"Add property" (tab-text-inactive/60 Before, --faint-fg After, 3:1 tier)</span><b class="rt" data-k="addprop" data-min="3"></b></div>
+				<div><span>Out-of-month day (muted/40 Before, --faint-fg After, 3:1 tier)</span><b class="rt" data-k="oom" data-min="3"></b></div>
+			</div>`;
+		},
+		p23() {
+			return `
+			<div class="fgrid">
+				<div class="frow"><span class="tag">Filled and outlined buttons, input, switch</span>
+					<button type="button" class="btn btn-pri focusable">Save</button>
+					<button type="button" class="btn btn-out focusable">Cancel</button>
+					<button type="button" class="btn btn-destr focusable">Delete</button>
+					<button type="button" class="btn-icon focusable" aria-label="Search">${ic('search', 16)}</button>
+					<input class="inp focusable" placeholder="Filter cards" aria-label="Filter cards" style="width:130px">
+					<button type="button" class="sw focusable" role="switch" aria-checked="false" aria-label="Example switch" data-sw></button>
+				</div>
+				<div class="frow"><span class="tag">Borderless targets with no style today (Tasks buttons, tags control, rename input)</span>
+					<button type="button" class="btn-text focusable f-bare">Add task</button>
+					<button type="button" class="btn-text focusable f-bare">${ic('tag', 14)} #design</button>
+					<input class="focusable f-bare" aria-label="Rename" value="Rename me" style="border:0;background:transparent;color:var(--foreground);font:inherit;width:100px;border-bottom:1px solid var(--divider)">
+					<div class="tlist"><button type="button" class="r focusable f-row">${ic('inbox', 14)}<span class="txt">Inbox</span></button><button type="button" class="r focusable f-row">${ic('star', 14)}<span class="txt">Favorites</span></button></div>
+				</div>
+				<div class="frow"><button type="button" class="btn btn-out sm focusable" data-open-dlg>Open dialog</button>
+					<label class="hint" style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-force> Show focus on every control</label></div>
+			</div>
+			<div class="scrim" data-scrim>
+				<div class="dlg" role="dialog" aria-label="File history">
+					<h4>File History</h4><p>The close button takes focus when this opens. Close it with Enter or Esc.</p>
+					<button type="button" class="dlg-close" aria-label="Close" data-close>${ic('x', 16)}</button>
+				</div>
+			</div>
+			<div class="meas">
+				<div><span>Focus ring vs page</span><b class="rt" data-k="ring" data-min="3"></b></div>
+				<div><span>Destructive ring vs page (Before only; After shares one ring)</span><b class="rt" data-k="ringDestr" data-min="3"></b></div>
+			</div>`;
+		},
+		p85() {
+			const rows = (arr) => arr.map((r) => `<button type="button" class="r focusable f-row ${r.sel ? 'sel' : ''}" data-r aria-current="${r.sel ? 'true' : 'false'}">${r.html}</button>`).join('');
+			const files = ['_system', 'Areas', 'Projects', 'People'].map((n) => ({ sel: n === 'Projects', html: `${ic('folder', 15)}<span class="txt">${n}</span>` }));
+			const nl = [['Active', 'View'], ['Board', 'Kanban'], ['Kokobrain Launch Plan', 'Note'], ['Q4 OKRs', 'Note']].map(([t, s]) => ({ sel: t === 'Board', html: `${ic('file', 15)}<span class="txt"><b style="font-weight:500">${t}</b><span class="sub">${s}</span></span>` }));
+			const tl = [['Inbox', 4], ['Today', 12], ['Upcoming', 9], ['Someday', 3]].map(([t, c]) => ({ sel: t === 'Today', html: `<span class="txt">${t}</span><span class="cnt">${c}</span>` }));
+			const sn = [['Appearance', 'palette'], ['Editor', 'file'], ['Layout', 'panel'], ['Calendar', 'cal']].map(([t, i]) => ({ sel: t === 'Appearance', html: `${ic(i, 15)}<span class="txt">${t}</span>` }));
+			const railI = [['Search', '#64748b', 'search', ''], ['Inbox', '#3b82f6', 'inbox', '4'], ['Today', '#f97316', 'sun', ''], ['Files', '#14b8a6', 'folder', '']];
+			const rl = railI.map(([t, c, i, b]) => `<button type="button" class="r focusable f-row ${t === 'Files' ? 'sel' : ''}" style="--rc:${c}" data-r aria-current="${t === 'Files' ? 'page' : 'false'}">${ic(i, 15)}<span class="txt">${t}</span></button>`).join('');
+			return `
+			<div class="pgrid">
+				<div class="pnl rail"><div class="ph">Rail (ADR-0033, unchanged)</div>${rl}</div>
+				<div class="pnl files"><div class="ph">Files navigator</div>${rows(files)}</div>
+				<div class="pnl nl"><div class="ph">Note list</div>${rows(nl)}</div>
+				<div class="pnl tl"><div class="ph">Tasks lists</div>${rows(tl)}</div>
+				<div class="pnl sn"><div class="ph">Settings nav</div>${rows(sn)}</div>
+			</div>
+			<div class="meas">
+				<div><span>Files row: selected title on its fill (primary text Before, foreground After)</span><b class="rt" data-k="stateFiles" data-min="4.5"></b></div>
+				<div><span>Selected muted text / subtitle on its fill</span><b class="rt" data-k="stateMuted" data-min="4.5"></b></div>
+			</div>`;
+		},
+		p19() {
+			const names = ['blue', 'green', 'red', 'orange', 'purple', 'yellow', 'gray'];
+			const v = (el) => el;
+			const chip = (n, label) => `<span class="chipcell"><span class="kchip" data-chip="${n}">${label}</span><b class="rt" data-k="chip.${n}" data-min="4.5"></b></span>`;
+			const kc = (n, label) => `<span class="kchip" data-chip="${n}">#${label}</span>`;
+			const rail = RAIL.map(([n, c, k]) => `<div class="r" style="--rc:${c}">${ic(({ Search: 'search', Inbox: 'inbox', Today: 'sun', Favorites: 'star', Types: 'layers', Calendar: 'cal', Files: 'folder', Archive: 'archive' })[n], 15)}<span class="txt">${n}</span>${k ? `<span class="badge" data-badge="${n}">${k}</span>` : ''}</div>`).join('');
+			const lab = ['Design review', 'Launch', 'Offsite', 'Sprint 12', '1-1 Ana', 'Retro', 'Planning', 'Demo', 'Backlog', 'QA', 'Hotfix', 'Audit'];
+			const bars = BARS.map((b, i) => `<div class="lcrow"><span>${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][i]}</span><div class="lcgrid"><div class="lcbar" data-bar="${b.n}" style="left:${(i * 7) % 40 + 2}%;width:${28 + (i * 5) % 20}%;background:${b.c}">${lab[i]}</div></div></div>`).join('');
+			return `
+			<div class="sub-h">Kanban and QueryJS tag chips (7 presets)</div>
+			<div class="chiprow">${names.map((n) => chip(n, '#' + n)).join('')}</div>
+			<div class="kcols">
+				<div class="kcol"><div class="kh">Backlog</div>
+					<div class="kcard">Types navigator polish<div class="tags">${kc('purple', 'design')}</div></div>
+					<div class="kcard">Mobile capture spike<div class="tags">${kc('gray', 'research')}</div></div></div>
+				<div class="kcol"><div class="kh">Review</div>
+					<div class="kcard">Onboarding tour<div class="tags">${kc('yellow', 'docs')} ${kc('blue', 'calendar')}</div></div>
+					<div class="kcard">Settings dialog audit<div class="tags">${kc('orange', 'ux')} ${kc('green', 'done')}</div></div></div>
+			</div>
+			<div class="sub-h">Rail badges (icon colours stay as ADR-0033 fixes them)</div>
+			<div class="railbox">${rail}</div>
+			<div class="sub-h">Full-tab linear calendar bars</div>
+			<div class="lincal">${bars}</div>
+			<div class="meas">
+				<div><span>Rail badge on yellow (Favorites)</span><b class="rt" data-k="rail.Favorites" data-min="4.5"></b></div>
+				<div><span>Rail badge on teal (Files)</span><b class="rt" data-k="rail.Files" data-min="4.5"></b></div>
+				<div><span>Calendar bar on yellow</span><b class="rt" data-k="bar.yellow" data-min="4.5"></b></div>
+				<div><span>Calendar bar on amber</span><b class="rt" data-k="bar.amber" data-min="4.5"></b></div>
+			</div>`;
+		},
+		p20() {
+			return `
+			<div class="ed"><h3># Kokobrain Launch Plan</h3>
+				This plan ties together the <span class="strong">roadmap</span>, the <span class="em">design sync</span> and the checklist. See <span class="lnk">the roadmap</span> and <span class="wl">Meetings/2026-11-09</span>.</div>
+			<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px" class="p20grid">
+				<div class="rsb"><div class="sect">${ic('right', 14)} Table of contents</div><div class="sect">${ic('right', 14)} Backlinks</div><div class="sect">${ic('right', 14)} Outgoing links</div></div>
+				<div class="cal">
+					<div class="grid7">${['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => `<span class="hd ${i > 4 ? 'we' : ''}">${d}</span>`).join('')}
+					${Array.from({ length: 14 }, (_, i) => { const n = i + 3; const we = i % 7 > 4; return `<span class="d ${we ? 'we' : ''} ${n === 8 ? 'today' : ''} ${n === 10 ? 'selected' : ''}">${n}</span>`; }).join('')}</div>
+				</div>
+			</div>
+			<div class="meas">
+				<div><span>Bold vs link, colour distance (OKLab dE x 100, 20 or more reads as a different hue family)</span><b class="rt" data-k="dE" data-min="20" data-fmt="n1"></b></div>
+			</div>`;
+		},
+		p109() {
+			return `
+			<div class="win">
+				<div class="strip"><span class="ttl">${ic('panel', 14)}&nbsp; Files</span><button type="button" class="tab">2026-11-10.md</button><button type="button" class="tab act">Board.kanban</button></div>
+				<div class="winbody"><div class="rl"></div><div class="nv"><div class="skel" style="width:70%"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:60%"></div></div>
+					<div class="ct"><div class="skel" style="width:40%;height:12px;margin-bottom:12px"></div><div class="skel" style="width:90%"></div><div class="skel" style="width:84%;margin-top:7px"></div><div class="skel" style="width:70%;margin-top:7px"></div></div></div>
+				<div class="statusb">37 notes indexed</div>
+			</div>
+			<div class="meas" style="padding:0 14px 12px">
+				<div><span>Tab strip vs editor, luminance ratio (lower is calmer)</span><b class="rt" data-k="tab" data-max="1.5"></b></div>
+				<div><span>Active tab label (#cfd7f4) on the strip</span><b class="rt" data-k="tabText" data-min="4.5"></b></div>
+			</div>`;
+		},
+		p106() {
+			return `
+			<div class="picker" data-picker>
+				<h3>KokoBrain</h3><div class="sub">Your second brain for personal knowledge</div>
+				<button type="button" class="btn btn-pri focusable" style="margin-top:6px">${ic('folderopen', 16)} Open Vault</button>
+				<div class="rec"><div class="rh">${ic('clock', 14)} Recent Vaults</div>
+					<div class="allowed">${ic('shield', 12)} Allowed locations: ~/Documents/kokobrain-vaults/ and ~/kokobrain-vaults/</div>
+					<div class="vrow"><b>personal</b><span>/Users/me/Notes/personal</span></div>
+					<div class="vrow"><b>second-brain</b><span>/Users/me/Work/second-brain</span></div>
+					<div class="vrow"><b>archive-2024</b><span>/Users/me/Docs/archive-2024</span></div></div>
+				<div class="ver mono">DEV 4.9.1</div>
+				<label class="hint" style="margin-top:6px;display:flex;gap:6px;align-items:center"><input type="checkbox" data-nocache> No cached theme (first launch)</label>
+			</div>`;
+		},
+		p107() { return ''; },
+		p108() { return ''; },
+	};
+
+	/* ---------- generic rendering ---------- */
+	function themeOf(el) { return el.dataset.lock || state.theme; }
+	function variantOf(el) { return el.classList.contains('v-before') ? 'before' : 'after'; }
+
+	function renderRoots() {
+		$$('[data-mock]').forEach((el) => {
+			el.classList.add('mock');
+			el.classList.add('th-' + themeOf(el));
+			if (!el.dataset.ready) {
+				el.dataset.ready = '1';
+				const f = MOCKS[el.dataset.mock];
+				if (f) el.innerHTML = f();
+			}
+		});
+	}
+	function applyTheme(t) {
+		state.theme = t;
+		const body = document.getElementById('body');
+		body.classList.remove('th-light', 'th-dark');
+		body.classList.add('th-' + t);
+		$$('[data-mock]').forEach((el) => {
+			el.classList.remove('th-light', 'th-dark');
+			el.classList.add('th-' + themeOf(el));
+		});
+		document.getElementById('t-light').setAttribute('aria-pressed', String(t === 'light'));
+		document.getElementById('t-dark').setAttribute('aria-pressed', String(t === 'dark'));
+		refresh();
+	}
+	function refresh() {
+		$$('.rt[data-k]').forEach((el) => {
+			const root = el.closest('[data-mock]');
+			const th = themeOf(root), v = variantOf(root);
+			let val = R[th][v][el.dataset.k];
+			if (val === undefined) { el.textContent = 'n/a'; return; }
+			const n1 = el.dataset.fmt === 'n1';
+			el.textContent = n1 ? 'dE ' + val.toFixed(1) : fmt(val) + ':1';
+			const min = el.dataset.min ? +el.dataset.min : null, max = el.dataset.max ? +el.dataset.max : null;
+			const ok = max !== null ? val <= max : val >= min;
+			el.classList.toggle('pass', ok);
+		});
+		$$('[data-chip]').forEach((el) => {
+			const root = el.closest('[data-mock]'); const v = variantOf(root); const n = el.dataset.chip;
+			el.style.background = `var(--chip-${n}-bg)`;
+			el.style.color = `var(--chip-${n}-${v})`;
+		});
+		$$('[data-badge]').forEach((el) => {
+			const root = el.closest('[data-mock]'); const v = variantOf(root);
+			const item = RAIL.find((r) => r[0] === el.dataset.badge);
+			const c = item[1];
+			el.style.color = v === 'before' ? '#ffffff' : (contrastPick(c));
+		});
+		$$('[data-bar]').forEach((el) => {
+			const root = el.closest('[data-mock]'); const v = variantOf(root);
+			el.style.color = v === 'before' ? '#ffffff' : contrastPick(BARS.find((b) => b.n === el.dataset.bar).c);
+		});
+		$$('.shot').forEach(buildShot);
+		buildSheet();
+		buildTok85();
+		if (typeof p106Sync === 'function') p106Sync();
+	}
+	function lum(h) { h = h.replace('#', ''); const c = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; }
+	function ratioOf(a, b) { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); }
+	function contrastPick(bg) { return ratioOf('#000000', bg) >= ratioOf('#ffffff', bg) ? '#000000' : '#ffffff'; }
+
+	/* ---------- screenshots ---------- */
+	function buildShot(el) {
+		const z = +el.dataset.z || 1, w = +el.dataset.w, h = +el.dataset.h, x = +el.dataset.x, y = +el.dataset.y;
+		const img = state.theme === 'dark' && el.dataset.imgDark ? el.dataset.imgDark : el.dataset.img;
+		el.innerHTML = `<div class="shotbox" role="img" aria-label="${el.dataset.cap}" style="width:${w * z}px;height:${h * z}px;background:url(../screens/${img}.png) -${x * z}px -${y * z}px / ${1440 * z}px auto no-repeat"></div><div class="cap">${el.dataset.cap}</div>`;
+	}
+
+	/* ---------- swatch sheet ---------- */
+	function buildSheet() {
+		const host = document.getElementById('sheet-body');
+		const cell = (r, mode) => {
+			const ratioFmt = (v) => r.de ? 'dE ' + v.toFixed(1) : v.toFixed(2) + ':1';
+			const okB = r.max ? r.rb <= r.max : r.de ? r.rb >= 20 : r.rb >= r.min;
+			const okA = r.max ? r.ra <= r.max : r.de ? r.ra >= 20 : r.ra >= r.min;
+			const same = r.note.indexOf('unchanged') === 0;
+			const cls = (ok) => same ? 'info' : ok ? 'pass' : '';
+			return `<div><span class="tcell"><span class="swat" style="background:${r.bb};color:${r.bf}">Aa</span><b class="rt ${cls(okB)}">${ratioFmt(r.rb)}</b></span>
+				<span class="arrow">to</span>
+				<span class="tcell"><span class="swat" style="background:${r.ab};color:${r.af}">Aa</span><b class="rt ${cls(okA)}">${ratioFmt(r.ra)}</b></span></div>`;
+		};
+		let html = `<div class="sh-head" role="row"><div>Pair</div><div>${TH.light.name}</div><div>${TH.dark.name}</div></div>`;
+		SHEET.light.forEach((rl, i) => {
+			const rd = SHEET.dark[i];
+			html += `<div class="sh-row" role="row"><div class="sh-lab"><span class="pid" style="font-size:11px;padding:1px 6px">${rl.id}</span><span>${rl.label}<small>${rl.note}</small></span></div>${cell(rl, 'light')}${cell(rd, 'dark')}</div>`;
+		});
+		host.innerHTML = html;
+	}
+
+	/* ---------- P85 token cards ---------- */
+	function buildTok85() {
+		const t = TOK[state.theme], T = TH[state.theme];
+		const hov = `${state.theme === 'light' ? 'foreground' : 'foreground'} at ${Math.round(t.hoverA * 100)}%`;
+		const card = (code, desc, color) => `<div class="tok"><code>${code}</code><div class="sw2"><span class="chipc" style="background:${color}"></span><span>${desc}</span></div></div>`;
+		document.getElementById('tok85').innerHTML =
+			card('--state-hover', hov, `color-mix(in srgb, ${T.fg} 7%, ${T.fileBg})`) +
+			card('--state-selected', `primary at ${Math.round(t.selA * 100)}% over the surface`, `color-mix(in srgb, ${T.primary} 16%, ${T.fileBg})`) +
+			card('--state-selected-fg', `${T.fg} (foreground), ${fmt(R[state.theme].after.stateSel)}:1`, T.fg) +
+			card('--state-selected-muted-fg', `${t.selMuted}, ${fmt(R[state.theme].after.stateMuted)}:1 on the fill`, t.selMuted);
+	}
+
+	/* ---------- interactions (delegated) ---------- */
+	document.addEventListener('click', (e) => {
+		const sw = e.target.closest('[data-sw]');
+		if (sw) { sw.setAttribute('aria-checked', String(sw.getAttribute('aria-checked') !== 'true')); return; }
+		const nrow = e.target.closest('[data-nrow]');
+		if (nrow) { $$('[data-nrow]', nrow.parentElement).forEach((r) => r.classList.remove('sel')); nrow.classList.add('sel'); return; }
+		const r = e.target.closest('[data-r]');
+		if (r) {
+			const pnl = r.closest('.pnl');
+			$$('[data-r]', pnl).forEach((x) => { x.classList.remove('sel'); x.setAttribute('aria-current', 'false'); });
+			r.classList.add('sel'); r.setAttribute('aria-current', pnl.classList.contains('rail') ? 'page' : 'true');
+			return;
+		}
+		const od = e.target.closest('[data-open-dlg]');
+		if (od) {
+			const root = od.closest('[data-mock]'); const sc = root.querySelector('[data-scrim]');
+			sc.classList.add('open'); const cl = sc.querySelector('[data-close]');
+			setTimeout(() => cl.focus(), 0);
+			return;
+		}
+		const cl = e.target.closest('[data-close]');
+		if (cl) { const root = cl.closest('[data-mock]'); root.querySelector('[data-scrim]').classList.remove('open'); root.querySelector('[data-open-dlg]').focus({ preventScroll: true }); return; }
+	});
+	document.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape') { $$('[data-scrim].open').forEach((s) => { s.classList.remove('open'); }); }
+	});
+	document.addEventListener('change', (e) => {
+		if (e.target.matches('[data-force]')) { e.target.closest('[data-mock]').classList.toggle('force', e.target.checked); }
+		if (e.target.matches('[data-nocache]')) p106Sync();
+	});
+	document.getElementById('t-light').addEventListener('click', () => applyTheme('light'));
+	document.getElementById('t-dark').addEventListener('click', () => applyTheme('dark'));
+
+	/* ---------- P106 ---------- */
+	function p106Sync() {
+		$$('[data-picker]').forEach((p) => {
+			const root = p.closest('[data-mock]');
+			const none = p.querySelector('[data-nocache]').checked;
+			root.classList.remove('th-light', 'th-dark');
+			root.classList.add('th-' + (none ? 'dark' : state.theme));
+		});
+	}
+
+	/* ---------- P107: theme editor ---------- */
+	const CORE_INIT = {
+		light: { editorBg: '#F3F0F8', sidebarBg: '#F3F0F8', panelBg: '#EAE6F2', popoverBg: '#FFFFFF', fg: '#302840', mutedFg: '#645c74', heading: '#6848A8', primary: '#6848A8', secondary: '#D07838', linkFg: '#3868B0', error: '#C83848', green: '#408868', yellow: '#A89020' },
+		dark: { editorBg: '#2a2e3d', sidebarBg: '#21222e', panelBg: '#2a2e3d', popoverBg: '#333745', fg: '#F8F8F2', mutedFg: '#627195', heading: '#E8A5FF', primary: '#9ba3da', secondary: '#f9a825', linkFg: '#60a5fa', error: '#f3333b', green: '#4ade80', yellow: '#fbbf24' },
+	};
+	const CORE_GROUPS = [
+		['Surfaces', [['editorBg', 'Editor background'], ['sidebarBg', 'Sidebar background'], ['panelBg', 'Panel background'], ['popoverBg', 'Popover background']]],
+		['Text', [['fg', 'Foreground'], ['mutedFg', 'Muted text'], ['heading', 'Heading']]],
+		['Accent', [['primary', 'Primary'], ['secondary', 'Secondary'], ['linkFg', 'Link']]],
+		['Status', [['error', 'Error'], ['green', 'Green'], ['yellow', 'Yellow']]],
+	];
+	const mixHex = (a, b, t) => { const p = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)); const x = p(a), y = p(b); return '#' + x.map((v, i) => Math.round(v * (1 - t) + y[i] * t).toString(16).padStart(2, '0')).join(''); };
+	const DERIVED = [
+		['App Shell', [['tabBar', 'Tab bar', (c) => c.sidebarBg], ['divider', 'Divider', (c) => mixHex(c.editorBg, c.fg, 0.14)], ['statusBarBg', 'Status bar', (c) => c.sidebarBg]]],
+		['Settings', [['settingItemBg', 'Setting item', (c) => mixHex(c.panelBg, c.fg, 0.06)], ['settingsHoverBg', 'Settings hover', (c) => mixHex(c.panelBg, c.fg, 0.1)]]],
+		['Form', [['inputBg', 'Input background', (c) => c.panelBg], ['switchUncheckedBg', 'Switch off', (c) => mixHex(c.panelBg, c.mutedFg, 0.3)], ['ring', 'Ring', (c) => c.primary]]],
+	];
+	function initEditors() {
+		$$('[data-mock="p107"]').forEach((root) => {
+			const after = variantOf(root) === 'after';
+			const th = themeOf(root);
+			const S = { mode: after ? 'simple' : 'advanced', core: { ...CORE_INIT[th] }, over: {}, dirty: false, confirm: false, group: 'UI', name: 'My theme' };
+			const hexOk = (v) => /^#[0-9a-fA-F]{6}$/.test(v);
+			const effective = (key, fn) => S.over[key] ?? fn(S.core);
+			function crow(key, label, value, o = {}) {
+				return `<div class="crow" data-key="${key}">
+					<span class="lab">${label}</span>
+					${o.src ? `<span class="src ${o.src === 'override' ? 'ov' : ''}">${o.src}</span>` : ''}
+					${o.reset ? `<button type="button" class="rst focusable ${o.src === 'override' ? 'on' : ''}" data-reset="${key}" aria-label="Reset ${label} to derived" title="Reset to derived">${ic('reset', 14)}</button>` : ''}
+					<label class="swatch" style="background:${value}"><input type="color" data-pick="${key}" value="${value}" aria-label="${o.noLabel ? '' : label + ' colour'}"></label>
+					<input class="hex focusable" data-hex="${key}" value="${value}" maxlength="7" aria-label="${label} hex value">
+				</div>`;
+			}
+			function render() {
+				let body = '';
+				if (after && S.mode === 'simple') {
+					const rows = CORE_GROUPS.map(([g, ks]) => `<div class="cgrp">${g}</div>${ks.map(([k, l]) => crow(k, l, S.core[k])).join('')}`).join('');
+					body = `<div class="prevgrid"><div>${rows}<div class="hint" style="margin-top:8px">13 core colours. The other tokens are derived from them; open Advanced to override one.</div></div>${preview()}</div>`;
+				} else if (after) {
+					const tabs = ['UI', 'Syntax', 'Preview', 'Wikilink', 'Callout'];
+					const rows = DERIVED.map(([g, ks]) => `<div class="cgrp">${g}</div>${ks.map(([k, l, fn]) => crow(k, l, effective(k, fn), { src: S.over[k] ? 'override' : 'derived', reset: true })).join('')}`).join('');
+					body = `<div class="ted-tabs" role="tablist">${tabs.map((t) => `<button type="button" role="tab" class="focusable" aria-selected="${t === S.group}" data-group="${t}">${t}</button>`).join('')}</div>${S.group === 'UI' ? rows : `<div class="hint" style="padding:10px 0">${S.group} tokens (not shown in this prototype).</div>`}<div class="hint">Sample of the 128 tokens. A dot of colour in "override" means the value no longer follows the core palette.</div>`;
+				} else {
+					const tabs = ['UI', 'Syntax', 'Preview', 'Wikilink', 'Callout'];
+					const simple = (ks) => ks.map(([k, l, fn]) => crow(k, l, effective(k, fn), { noLabel: true })).join('');
+					body = `<div class="ted-tabs">${tabs.map((t) => `<button type="button" class="focusable" aria-selected="${t === 'UI'}">${t}</button>`).join('')}</div>
+						${DERIVED.map(([g, ks]) => `<div class="cgrp">${g}</div>${simple(ks)}`).join('')}
+						<div class="hint">... 120 more rows. No preview of the result, no reset per token, swatches have no accessible name.</div>`;
+				}
+				const head = `<div class="ted-head"><input class="inp focusable grow" value="${S.name}" data-name aria-label="Theme name" style="width:auto">
+					${after ? `<div class="seg" role="group" aria-label="Editor mode"><button type="button" data-mode="simple" aria-pressed="${S.mode === 'simple'}">Simple</button><button type="button" data-mode="advanced" aria-pressed="${S.mode === 'advanced'}">Advanced</button></div>` : ''}
+					<button type="button" class="btn btn-ghost sm focusable" data-cancel>Cancel</button><button type="button" class="btn btn-pri sm focusable" data-save>Save</button></div>
+					<div class="ted-head"><button type="button" class="btn btn-out sm focusable">${ic('download', 14)} Export</button><button type="button" class="btn btn-out sm focusable">${ic('upload', 14)} Import</button></div>`;
+				const conf = S.confirm ? `<div class="confirm" role="alertdialog" aria-label="Discard changes"><span>Discard your unsaved changes?</span><button type="button" class="btn btn-destr sm focusable" data-discard>Discard</button><button type="button" class="btn btn-out sm focusable" data-keep>Keep editing</button></div>` : '';
+				root.innerHTML = `<div class="ted">${head}${conf}${body}</div>`;
+			}
+			function preview() {
+				const c = S.core;
+				return `<div><div class="cgrp" style="margin-top:0">Live preview</div><div class="thumb" data-thumb style="background:${c.editorBg}"><div class="a" style="background:${c.sidebarBg}"><i style="background:${c.mutedFg};width:80%"></i><i style="background:${c.mutedFg};width:60%"></i><i style="background:${c.primary};width:70%"></i></div><div class="b"><i style="background:${c.heading};width:55%;height:8px"></i><i style="background:${c.fg};width:92%"></i><i style="background:${c.fg};width:84%"></i><i style="background:${c.linkFg};width:40%"></i><i style="background:${c.error};width:30%"></i></div></div>
+				<div class="hint" style="margin-top:6px">Derived tokens recompute as you edit. Ratios for every pair are checked by the builder on Save.</div></div>`;
+			}
+			root.addEventListener('input', (e) => {
+				const key = e.target.dataset.pick || e.target.dataset.hex;
+				if (!key) return;
+				const val = e.target.value;
+				if (!hexOk(val)) return;
+				if (S.mode === 'simple') S.core[key] = val; else S.over[key] = val;
+				S.dirty = true;
+				const row = e.target.closest('.crow');
+				row.querySelector('.swatch').style.background = val;
+				row.querySelector('[data-pick]').value = val;
+				if (e.target.dataset.pick) row.querySelector('[data-hex]').value = val;
+				if (S.mode === 'simple') { const t = root.querySelector('[data-thumb]'); if (t) t.parentElement.innerHTML = preview().replace(/^<div>|<\/div>$/g, ''); }
+				else { const rs = row.querySelector('[data-reset]'); if (rs) rs.classList.add('on'); const sc = row.querySelector('.src'); if (sc) { sc.textContent = 'override'; sc.classList.add('ov'); } }
+			});
+			root.addEventListener('click', (e) => {
+				const b = e.target.closest('button'); if (!b) return;
+				if (b.dataset.mode) { S.mode = b.dataset.mode; render(); }
+				else if (b.dataset.group) { S.group = b.dataset.group; render(); }
+				else if (b.dataset.reset) { delete S.over[b.dataset.reset]; render(); }
+				else if (b.matches('[data-cancel]')) { if (after && S.dirty) { S.confirm = true; render(); } }
+				else if (b.matches('[data-discard]')) { S.core = { ...CORE_INIT[themeOf(root)] }; S.over = {}; S.dirty = false; S.confirm = false; render(); }
+				else if (b.matches('[data-keep]')) { S.confirm = false; render(); }
+				else if (b.matches('[data-save]')) { S.dirty = false; }
+			});
+			render();
+		});
+	}
+
+	/* ---------- P108: theme catalog ---------- */
+	const CATALOG = [
+		{ name: 'Nord Light', by: 'community', colors: ['#ECEFF4', '#D8DEE9', '#5E81AC', '#BF616A'] },
+		{ name: 'Solarized Dusk', by: 'community', colors: ['#002b36', '#073642', '#b58900', '#2aa198'] },
+		{ name: 'Rose Pine Dawn', by: 'community', colors: ['#faf4ed', '#f2e9e1', '#907aa9', '#b4637a'] },
+	];
+	function initCatalogs() {
+		$$('[data-mock="p108"]').forEach((root) => {
+			const after = variantOf(root) === 'after';
+			const S = { st: 'error', installed: new Set(), active: null, toast: !after };
+			function card(t) {
+				const inst = S.installed.has(t.name), act = S.active === t.name;
+				const strip = `<span class="strip3">${t.colors.map((c) => `<i style="background:${c}"></i>`).join('')}</span>`;
+				let acts = '';
+				if (act) acts = `<span class="badge-act">${ic('check', 14)} Active</span>`;
+				else if (inst) acts = after ? `<span class="badge-inst">Installed</span><button type="button" class="btn btn-pri sm focusable" data-apply="${t.name}">Apply</button>` : `<span class="badge-inst">Installed, not applied</span>`;
+				else acts = after ? `<button type="button" class="btn btn-pri sm focusable" data-ia="${t.name}">Install and apply</button><button type="button" class="btn btn-out sm focusable" data-inst="${t.name}">Install</button>` : `<button type="button" class="btn btn-out sm focusable" data-inst="${t.name}">Install</button>`;
+				return `<div class="ccard">${strip}<div><div class="nm">${t.name}</div><div class="by">${t.by}</div></div><div class="acts">${acts}</div></div>`;
+			}
+			function render() {
+				let content = '';
+				if (S.st === 'loading') content = `<div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>`;
+				else if (S.st === 'loaded') content = CATALOG.map(card).join('');
+				else content = `<div class="errbox" role="alert"><span>Could not load the theme catalog. Your installed and built-in themes still work.</span><button type="button" class="btn btn-out sm focusable" data-retry style="color:var(--foreground)">${ic('retry', 13)} Retry</button></div>`;
+				const toast = !after && S.st === 'error' && S.toast ? `<div class="toast" role="status">${ic('alert', 16)}<span>Could not load the theme catalog: Theme catalog has no themes list</span><button type="button" data-toast-x aria-label="Dismiss">${ic('x', 14)}</button></div>` : '';
+				root.innerHTML = `<div class="states"><span>State:</span><div class="seg" role="group" aria-label="Catalog state">${['loading', 'loaded', 'error'].map((s) => `<button type="button" data-st="${s}" aria-pressed="${S.st === s}">${s[0].toUpperCase() + s.slice(1)}</button>`).join('')}</div></div>
+				<div class="cat"><div class="sect">Theme catalog</div><div class="desc">Themes published online. An installed theme works offline; duplicate it to customize it.</div>${content}</div>
+				<div style="min-height:${after ? 40 : 90}px"></div>${toast}`;
+			}
+			root.addEventListener('click', (e) => {
+				const b = e.target.closest('button'); if (!b) return;
+				if (b.dataset.st) { S.st = b.dataset.st; if (S.st === 'error') S.toast = true; render(); }
+				else if (b.matches('[data-retry]')) { S.st = 'loading'; render(); setTimeout(() => { S.st = 'error'; S.toast = !after; render(); }, 700); }
+				else if (b.matches('[data-toast-x]')) { S.toast = false; render(); }
+				else if (b.dataset.inst) { S.installed.add(b.dataset.inst); render(); }
+				else if (b.dataset.ia) { S.installed.add(b.dataset.ia); S.active = b.dataset.ia; render(); }
+				else if (b.dataset.apply) { S.active = b.dataset.apply; render(); }
+			});
+			render();
+		});
+	}
+
+	renderRoots();
+	initEditors();
+	initCatalogs();
+	applyTheme('light');
+</script>
+</body>
+</html>
