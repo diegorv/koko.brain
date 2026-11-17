@@ -26,7 +26,7 @@ store src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:24 quickSwi
 store src/lib/features/rail-shell/neighbourhood.store.svelte.ts:10 neighbourhoodStore get 1 set 0 do 2 readers 2 writers 2 card codemap/files/src/lib/features/rail-shell/neighbourhood.store.svelte.ts.md
 store src/lib/features/rail-shell/rail-registry.store.svelte.ts:27 railRegistryStore get 6 set 0 do 7 readers 6 writers 4 card codemap/files/src/lib/features/rail-shell/rail-registry.store.svelte.ts.md
 store src/lib/features/search/search.store.svelte.ts:33 searchStore get 16 set 0 do 17 readers 7 writers 3 card codemap/files/src/lib/features/search/search.store.svelte.ts.md
-store src/lib/features/tags/tags.store.svelte.ts:9 tagsStore get 5 set 0 do 6 readers 2 writers 2 card codemap/files/src/lib/features/tags/tags.store.svelte.ts.md
+store src/lib/features/tags/tags.store.svelte.ts:11 tagsStore get 6 set 0 do 7 readers 2 writers 2 card codemap/files/src/lib/features/tags/tags.store.svelte.ts.md
 store src/lib/features/tasks/tasks.store.svelte.ts:100 tasksStore get 18 set 0 do 17 readers 5 writers 4 card codemap/files/src/lib/features/tasks/tasks.store.svelte.ts.md
 store src/lib/features/todoist-sync/todoist-sync.store.svelte.ts:45 todoistSyncStore get 7 set 0 do 6 readers 4 writers 5 card codemap/files/src/lib/features/todoist-sync/todoist-sync.store.svelte.ts.md
 store src/lib/features/type-definitions/type-definitions.store.svelte.ts:19 typeDefinitionsStore get 6 set 0 do 8 readers 16 writers 7 card codemap/files/src/lib/features/type-definitions/type-definitions.store.svelte.ts.md

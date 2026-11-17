@@ -58,7 +58,7 @@ by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/core/layout
 by src/lib/core/editor/editor.logic.ts:GRAPH_VIRTUAL_PATH <- src/lib/plugins/graph-view/graph-view.service.ts:35 in openGraphTab ref +4
 sym src/lib/core/editor/editor.logic.ts:12 const TAGS_VIRTUAL_PATH L1 | Virtual path used for the singleton Tags tab
 by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:18 in NO_RIGHT_SIDEBAR_PATHS ref
-by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/features/tags/tags.service.ts:126 in openTagsTab ref +3
+by src/lib/core/editor/editor.logic.ts:TAGS_VIRTUAL_PATH <- src/lib/features/tags/tags.service.ts:127 in openTagsTab ref +3
 sym src/lib/core/editor/editor.logic.ts:15 const EVENT_CALENDAR_VIRTUAL_PATH L1 | Virtual path used for the singleton Calendar tab
 by src/lib/core/editor/editor.logic.ts:EVENT_CALENDAR_VIRTUAL_PATH <- src/lib/core/layout/layout.logic.ts:16 in NO_RIGHT_SIDEBAR_PATHS ref
 by src/lib/core/editor/editor.logic.ts:EVENT_CALENDAR_VIRTUAL_PATH <- src/lib/features/event-calendar/event-calendar.service.ts:141 in openEventCalendarTab ref +3
@@ -82,7 +82,7 @@ sym src/lib/core/editor/editor.logic.ts:40 fn findTabIndex(tabs: Pick<EditorTab,
 by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/core/editor/editor.service.ts:164 in openFileInEditor call +4
 by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/core/markdown-editor/MarkdownEditor.svelte:469 in $effect@455 call +1
 by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/features/event-calendar/event-calendar.service.ts:141 in openEventCalendarTab call +2
-by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/features/tags/tags.service.ts:126 in openTagsTab call +2
+by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/features/tags/tags.service.ts:127 in openTagsTab call +2
 by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/features/tasks/tasks.service.ts:548 in openTasksTab call +2
 by src/lib/core/editor/editor.logic.ts:findTabIndex <- src/lib/plugins/graph-view/graph-view.service.ts:37 in openGraphTab call +2
 sym src/lib/core/editor/editor.logic.ts:45 fn isTabDirty(tab: Pick<EditorTab, 'content' | 'savedContent'>): boolean L3 | Checks whether a tab has unsaved changes by comparing current content to the last saved snapshot

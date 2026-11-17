@@ -77,7 +77,7 @@ fx src/lib/features/rail-shell/TypesNavigator.svelte:96 svelte.$effect in (scrip
 fx src/lib/features/search/SearchPanel.svelte:22 svelte.$effect in (script)
 fx src/lib/features/search/SearchSection.svelte:35 svelte.$effect in (script)
 fx src/lib/features/search/SemanticIndexStatus.svelte:29 svelte.$effect in (script)
-fx src/lib/features/tags/TagsView.svelte:41 svelte.$effect in (script)
+fx src/lib/features/tags/TagsView.svelte:45 svelte.$effect in (script)
 fx src/lib/features/tasks/TaskLists.svelte:130 svelte.$effect in (script)
 fx src/lib/features/tasks/TasksView.svelte:271 svelte.$effect in (script)
 fx src/lib/features/tasks/TasksView.svelte:282 svelte.$effect in (script)

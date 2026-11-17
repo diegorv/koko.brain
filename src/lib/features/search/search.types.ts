@@ -43,5 +43,9 @@ export interface HybridSearchResult {
 	snippet: string;
 	heading?: string;
 	lineStart?: number;
-	source: 'text' | 'semantic' | 'both';
+	/**
+	 * Which search found the note. Set only by the legacy FTS + semantic merge,
+	 * where it varies per card; the single `search_hybrid` command leaves it out.
+	 */
+	source?: 'text' | 'semantic' | 'both';
 }

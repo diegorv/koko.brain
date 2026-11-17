@@ -16,7 +16,7 @@ sym src/lib/features/tags/tags.logic.ts:3 fn buildTagTree(entries: TagEntry[]): 
 by src/lib/features/tags/tags.logic.ts:buildTagTree <- src/lib/features/tags/tags.service.ts:39 in buildTagIndex call
 sym src/lib/features/tags/tags.logic.ts:59 interface TagTreeShape L8 | Shape of a built tag tree, logged to tell the cost drivers of `buildTagTree` apart.
 sym src/lib/features/tags/tags.logic.ts:69 fn tagTreeShape(entries: TagEntry[], tree: TagTreeNode[]): TagTreeShape L24 | Counts roots, parent-child pairs and the uppercase segment share of a tag tree.
-by src/lib/features/tags/tags.logic.ts:tagTreeShape <- src/lib/features/tags/tags.service.ts:47 in buildTagIndex call
+by src/lib/features/tags/tags.logic.ts:tagTreeShape <- src/lib/features/tags/tags.service.ts:48 in buildTagIndex call
 sym src/lib/features/tags/tags.logic.ts:98 fn filterTagTree(nodes: TagTreeNode[], minCount: number): TagTreeNode[] L11 | Recursively filters a tag tree, keeping only nodes whose own count exceeds minCount or that have surviving children.
 by src/lib/features/tags/tags.logic.ts:filterTagTree <- src/lib/features/tags/TagsView.svelte:37 in displayedTree=$derived call
 sym src/lib/features/tags/tags.logic.ts:110 fn sortTagTree(nodes: TagTreeNode[], mode: TagSortMode): TagTreeNode[] L14

@@ -19,18 +19,18 @@ entry src/lib/features/tags/TagsView.svelte ext-in1 src/lib/app/EditorView.svelt
 file src/lib/features/tags/TagColorDot.svelte component L19 module src/lib/features/tags in1 t0
 file src/lib/features/tags/TagColorPicker.svelte component L110 module src/lib/features/tags in1 t0
 file src/lib/features/tags/TagItem.svelte component L71 module src/lib/features/tags in1 t0
-file src/lib/features/tags/TagsView.svelte component L91 module src/lib/features/tags in1 t1
+file src/lib/features/tags/TagsView.svelte component L95 module src/lib/features/tags in1 t2
 file src/lib/features/tags/tags.logic.ts logic L123 module src/lib/features/tags in2 t1
-file src/lib/features/tags/tags.service.ts service L167 module src/lib/features/tags in3 t3
-file src/lib/features/tags/tags.store.svelte.ts store L29 module src/lib/features/tags in2 t3
+file src/lib/features/tags/tags.service.ts service L168 module src/lib/features/tags in3 t4
+file src/lib/features/tags/tags.store.svelte.ts store L35 module src/lib/features/tags in2 t4
 file src/lib/features/tags/tags.types.ts types L16 module src/lib/features/tags in3 t0
 ## public
-sym src/lib/features/tags/TagsView.svelte:1 component TagsView L91
-sym src/lib/features/tags/tags.service.ts:26 fn buildTagIndex(): Promise<void> L32 | Builds the tag tree from the Rust `VaultIndex`.
-sym src/lib/features/tags/tags.service.ts:149 fn toggleTagsTab(): void L10 | Toggles the Tags tab: opens if closed, closes if active, focuses if open but not active.
-sym src/lib/features/tags/tags.service.ts:161 fn resetTags(): void L7 | Resets all tag state and cancels any pending scheduled rebuild.
+sym src/lib/features/tags/TagsView.svelte:1 component TagsView L95
+sym src/lib/features/tags/tags.service.ts:26 fn buildTagIndex(): Promise<void> L33 | Builds the tag tree from the Rust `VaultIndex`.
+sym src/lib/features/tags/tags.service.ts:150 fn toggleTagsTab(): void L10 | Toggles the Tags tab: opens if closed, closes if active, focuses if open but not active.
+sym src/lib/features/tags/tags.service.ts:162 fn resetTags(): void L7 | Resets all tag state and cancels any pending scheduled rebuild.
 ## stores
-store src/lib/features/tags/tags.store.svelte.ts:9 tagsStore esc:0
+store src/lib/features/tags/tags.store.svelte.ts:11 tagsStore esc:0
 ## effects
 fx-count svelte.$effect 1
 fx-count timer-wrap.debounce 1
