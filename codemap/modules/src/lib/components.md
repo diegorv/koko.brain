@@ -1,7 +1,7 @@
 # module card src/lib/components
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/components ' codemap/modules
 sections: neighbors, entry files, files, debt
-module src/lib/components components files 96 in-modules 30 out-modules 1 pub 0/0 ipc 0/0 card ~6k
+module src/lib/components components files 97 in-modules 30 out-modules 1 pub 0/0 ipc 0/0 card ~6.1k
 ## neighbors
 dep src/lib/app -> src/lib/components 5
 dep src/lib/core/layout -> src/lib/components 1
@@ -58,18 +58,19 @@ file src/lib/components/ui/collapsible/collapsible-content.svelte component L7 m
 file src/lib/components/ui/collapsible/collapsible-trigger.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/collapsible/collapsible.svelte component L11 module src/lib/components in1 t0
 file src/lib/components/ui/collapsible/index.ts other L13 module src/lib/components in4 t0
-file src/lib/components/ui/command/command-dialog.svelte component L40 module src/lib/components in1 t0
+file src/lib/components/ui/command/command-dialog-context.ts other L21 module src/lib/components in4 t0
+file src/lib/components/ui/command/command-dialog.svelte component L60 module src/lib/components in1 t0
 file src/lib/components/ui/command/command-empty.svelte component L17 module src/lib/components in1 t0
 file src/lib/components/ui/command/command-group.svelte component L32 module src/lib/components in1 t0
-file src/lib/components/ui/command/command-input.svelte component L26 module src/lib/components in1 t0
-file src/lib/components/ui/command/command-item.svelte component L20 module src/lib/components in1 t0
+file src/lib/components/ui/command/command-input.svelte component L30 module src/lib/components in1 t0
+file src/lib/components/ui/command/command-item.svelte component L25 module src/lib/components in1 t0
 file src/lib/components/ui/command/command-link-item.svelte component L20 module src/lib/components in1 t0
-file src/lib/components/ui/command/command-list.svelte component L17 module src/lib/components in1 t0
+file src/lib/components/ui/command/command-list.svelte component L24 module src/lib/components in1 t0
 file src/lib/components/ui/command/command-loading.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/command/command-separator.svelte component L17 module src/lib/components in1 t0
 file src/lib/components/ui/command/command-shortcut.svelte component L20 module src/lib/components in1 t0
 file src/lib/components/ui/command/command.svelte component L28 module src/lib/components in2 t0
-file src/lib/components/ui/command/index.ts other L37 module src/lib/components in7 t0
+file src/lib/components/ui/command/index.ts other L37 module src/lib/components in7 t1
 file src/lib/components/ui/context-menu/context-menu-checkbox-item.svelte component L43 module src/lib/components in1 t0
 file src/lib/components/ui/context-menu/context-menu-content.svelte component L45 module src/lib/components in1 t0
 file src/lib/components/ui/context-menu/context-menu-group-heading.svelte component L21 module src/lib/components in1 t0

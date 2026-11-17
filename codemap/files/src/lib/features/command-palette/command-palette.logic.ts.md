@@ -13,6 +13,6 @@ out2 src/lib/features/command-palette/command-palette.logic.ts 0 files in 0 modu
 test src/tests/lib/features/command-palette/command-palette.logic.test.ts imports src/lib/features/command-palette/command-palette.logic.ts mirror
 ## symbols
 sym src/lib/features/command-palette/command-palette.logic.ts:4 fn filterAndRankCommands(query: string, commands: AppCommand[], recentIds: string[]): AppCommand[] L41
-by src/lib/features/command-palette/command-palette.logic.ts:filterAndRankCommands <- src/lib/features/command-palette/CommandPalette.svelte:17 in filteredCommands=$derived call
+by src/lib/features/command-palette/command-palette.logic.ts:filterAndRankCommands <- src/lib/features/command-palette/CommandPalette.svelte:24 in filteredCommands=$derived call
 ## calls
 call src/lib/features/command-palette/command-palette.logic.ts:24 in filterAndRankCommands -> src/lib/utils/fuzzy-match.ts:fuzzyMatch call

@@ -13,19 +13,19 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, in a new `src/tests/lib/features/tags/TagsView.refresh.test.ts` (`TagsView.test.ts` mocks `tags.service`, so this file mocks only `@tauri-apps/api/core`, like `tags.service.test.ts`): with `tagsStore` holding a loaded tree with tag `work` and `get_all_tags_v2` left pending, mount `TagsView` and advance past the 300 ms debounce; the `work` row is still in the DOM and "Indexing tags..." is not.
-- [ ] A parent tag expanded before a refresh is still expanded after the refresh resolves with the same tree.
-- [ ] A vault with zero tags, after its first successful build, shows "No tags found" (not "Indexing tags...") while a refresh is in flight.
-- [ ] The header count stays visible during a refresh after the first load.
-- [ ] With an empty store (first load), "Indexing tags..." still shows until the IPC resolves; a failed first build leaves `hasLoaded` false and shows "No tags found".
-- [ ] A refresh that fails leaves the previous tree on screen; `tags.service.test.ts` "clears loading state even on IPC error" stays green, or is updated with the reason in the commit.
-- [ ] `tags.store.test.ts` covers `hasLoaded` and its `reset()`.
-- [ ] Only Tauri is mocked; `tags.store` and `tags.logic` are real.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in a new `src/tests/lib/features/tags/TagsView.refresh.test.ts` (`TagsView.test.ts` mocks `tags.service`, so this file mocks only `@tauri-apps/api/core`, like `tags.service.test.ts`): with `tagsStore` holding a loaded tree with tag `work` and `get_all_tags_v2` left pending, mount `TagsView` and advance past the 300 ms debounce; the `work` row is still in the DOM and "Indexing tags..." is not.
+- [x] A parent tag expanded before a refresh is still expanded after the refresh resolves with the same tree.
+- [x] A vault with zero tags, after its first successful build, shows "No tags found" (not "Indexing tags...") while a refresh is in flight.
+- [x] The header count stays visible during a refresh after the first load.
+- [x] With an empty store (first load), "Indexing tags..." still shows until the IPC resolves; a failed first build leaves `hasLoaded` false and shows "No tags found".
+- [x] A refresh that fails leaves the previous tree on screen; `tags.service.test.ts` "clears loading state even on IPC error" stays green, or is updated with the reason in the commit.
+- [x] `tags.store.test.ts` covers `hasLoaded` and its `reset()`.
+- [x] Only Tauri is mocked; `tags.store` and `tags.logic` are real.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -49,3 +49,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: no header refresh spinner; first-load detection uses a `hasLoaded` flag, not an empty-tree check.
+- 2026-11-17, deliver (branch issue/08-tags-view-keeps-list-while-refreshing): the Tags view keeps its tree, expanded state and header count while a refresh is in flight; tagsStore.hasLoaded marks the first successful build and reset() clears it. Full suite run alone: 640 files passed, 17007 tests passed, 54 skipped (the two earlier deliver runs failed on load-flaky tests outside the Issue while Issue 03 ran in parallel). Review: round 1 APPROVED (one nit rejected with reason in review.md).

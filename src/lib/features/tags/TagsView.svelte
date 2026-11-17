@@ -38,6 +38,10 @@
 			: tagsStore.tagTree,
 	);
 
+	// Only the first build replaces the list with the loading line. A refresh over a
+	// loaded tree keeps the keyed rows mounted, so expanded tags and scroll survive.
+	let isFirstLoad = $derived(tagsStore.isLoading && !tagsStore.hasLoaded);
+
 	$effect(() => {
 		void vaultStore.vaultIndexVersion;
 		untrack(() => {
@@ -49,7 +53,7 @@
 <div class="flex h-full flex-col overflow-hidden">
 	<div class="pane-toolbar">
 		<h2 class="font-semibold text-sm text-primary">Tags</h2>
-		{#if !tagsStore.isLoading}
+		{#if !isFirstLoad}
 			<span class="ml-1 text-xs text-muted-foreground">
 				{tagsStore.totalTagCount} {tagsStore.totalTagCount === 1 ? 'tag' : 'tags'}
 			</span>
@@ -76,7 +80,7 @@
 		</div>
 	</div>
 	<div class="flex-1 overflow-y-auto p-3">
-		{#if tagsStore.isLoading}
+		{#if isFirstLoad}
 			<p class="text-muted-foreground px-2 py-8 text-center">Indexing tags...</p>
 		{:else if displayedTree.length === 0}
 			<p class="text-muted-foreground px-2 py-8 text-center">No tags found</p>

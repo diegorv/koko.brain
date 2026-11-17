@@ -16,16 +16,16 @@ test src/tests/lib/features/command-palette/CommandPalette.test.ts imports src/l
 ## symbols
 sym src/lib/features/command-palette/command-palette.store.svelte.ts:24 store commandPaletteStore L34
 by src/lib/features/command-palette/command-palette.store.svelte.ts:commandPaletteStore <- src/lib/app/global-keybindings.ts:66 in GLOBAL_KEYBINDINGS mcall
-by src/lib/features/command-palette/command-palette.store.svelte.ts:commandPaletteStore <- src/lib/features/command-palette/CommandPalette.svelte:17 in filteredCommands=$derived member +4
+by src/lib/features/command-palette/command-palette.store.svelte.ts:commandPaletteStore <- src/lib/features/command-palette/CommandPalette.svelte:24 in filteredCommands=$derived member +4
 by src/lib/features/command-palette/command-palette.store.svelte.ts:commandPaletteStore <- src/lib/features/command-palette/command-palette.service.ts:5 in resetCommandPalette mcall
 ## store
 store src/lib/features/command-palette/command-palette.store.svelte.ts:24 commandPaletteStore esc:0
-mem src/lib/features/command-palette/command-palette.store.svelte.ts:25 get commandPaletteStore.isOpen r:src/lib/features/command-palette/CommandPalette.svelte:41 w-via:open,close,toggle,reset
-mem src/lib/features/command-palette/command-palette.store.svelte.ts:28 get commandPaletteStore.recentCommandIds r:src/lib/features/command-palette/CommandPalette.svelte:17 w-via:addRecentCommand,reset
+mem src/lib/features/command-palette/command-palette.store.svelte.ts:25 get commandPaletteStore.isOpen r:src/lib/features/command-palette/CommandPalette.svelte:48 w-via:open,close,toggle,reset
+mem src/lib/features/command-palette/command-palette.store.svelte.ts:28 get commandPaletteStore.recentCommandIds r:src/lib/features/command-palette/CommandPalette.svelte:24 w-via:addRecentCommand,reset
 mem src/lib/features/command-palette/command-palette.store.svelte.ts:32 do commandPaletteStore.open w:-
-mem src/lib/features/command-palette/command-palette.store.svelte.ts:35 do commandPaletteStore.close w:src/lib/features/command-palette/CommandPalette.svelte:22,src/lib/features/command-palette/CommandPalette.svelte:29
+mem src/lib/features/command-palette/command-palette.store.svelte.ts:35 do commandPaletteStore.close w:src/lib/features/command-palette/CommandPalette.svelte:29,src/lib/features/command-palette/CommandPalette.svelte:36
 mem src/lib/features/command-palette/command-palette.store.svelte.ts:38 do commandPaletteStore.toggle w:src/lib/app/global-keybindings.ts:66
-mem src/lib/features/command-palette/command-palette.store.svelte.ts:42 do commandPaletteStore.addRecentCommand w:src/lib/features/command-palette/CommandPalette.svelte:28
+mem src/lib/features/command-palette/command-palette.store.svelte.ts:42 do commandPaletteStore.addRecentCommand w:src/lib/features/command-palette/CommandPalette.svelte:35
 mem src/lib/features/command-palette/command-palette.store.svelte.ts:48 do commandPaletteStore.reset w:src/lib/features/command-palette/command-palette.service.ts:5
 ## locals
 local src/lib/features/command-palette/command-palette.store.svelte.ts:7 fn loadRecentCommandIds(): string[] L8
