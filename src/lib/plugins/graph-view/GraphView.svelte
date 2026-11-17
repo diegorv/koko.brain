@@ -16,7 +16,7 @@
 	import { drag as d3Drag } from 'd3-drag';
 	import { graphViewStore } from './graph-view.store.svelte';
 	import { buildGraph } from './graph-view.service';
-	import { filterGraphData, getLocalGraph, getNodeRadius, graphPalette, FALLBACK_GRAPH_PALETTE, type GraphPalette } from './graph-view.logic';
+	import { filterGraphData, getLocalGraph, getNodeRadius, graphPalette, selectLabels, FALLBACK_GRAPH_PALETTE, type GraphPalette, type LabelCandidate } from './graph-view.logic';
 	import type { GraphNode, GraphLink, GraphData } from './graph-view.types';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { appliedThemeStore } from '#lib/core/settings/applied-theme.store.svelte.js';
@@ -170,6 +170,25 @@
 		simulation.alpha(1).restart();
 	}
 
+	// Label widths for the font in `labelWidthsFont`. render() runs on every
+	// tick, zoom, resize and hover, so a name is measured once per font size.
+	const labelWidths = new Map<string, number>();
+	let labelWidthsFont = '';
+
+	/** The width of `name` in `ctx.font`, measured on the first ask for that font. */
+	function measureLabel(ctx: CanvasRenderingContext2D, name: string): number {
+		if (ctx.font !== labelWidthsFont) {
+			labelWidths.clear();
+			labelWidthsFont = ctx.font;
+		}
+		let labelWidth = labelWidths.get(name);
+		if (labelWidth === undefined) {
+			labelWidth = ctx.measureText(name).width;
+			labelWidths.set(name, labelWidth);
+		}
+		return labelWidth;
+	}
+
 	function render() {
 		if (!canvasEl) return;
 		const ctx = canvasEl.getContext('2d');
@@ -270,8 +289,33 @@
 			}
 		}
 
-		// Draw nodes
+		// Pick the labels to draw: the nodes the zoom gate admits, minus those
+		// that would overlap a label of higher priority.
 		const centerPath = graphViewStore.centerPath;
+		const fontSize = Math.max(10, 11 / currentTransform.k);
+		ctx.font = `${fontSize}px sans-serif`;
+		ctx.textAlign = 'center';
+		ctx.textBaseline = 'top';
+		const candidates: LabelCandidate[] = [];
+		for (const node of simNodes) {
+			const isActive = node.id === centerPath;
+			const isConnected = connectedIds.has(node.id);
+			if (currentTransform.k > 0.8 || isConnected || isActive) {
+				const labelWidth = measureLabel(ctx, node.name);
+				candidates.push({
+					id: node.id,
+					x: node.x! - labelWidth / 2,
+					y: node.y! + getNodeRadius(node.linkCount) + 3,
+					width: labelWidth,
+					height: fontSize,
+					degree: node.linkCount,
+					forced: isConnected || isActive,
+				});
+			}
+		}
+		const labelIds = selectLabels(candidates);
+
+		// Draw nodes
 		for (const node of simNodes) {
 			const r = getNodeRadius(node.linkCount);
 			const isActive = node.id === centerPath;
@@ -290,12 +334,8 @@
 			}
 			ctx.fill();
 
-			// Draw label when zoomed in enough or when highlighted
-			if (currentTransform.k > 0.8 || isConnected || isActive) {
+			if (labelIds.has(node.id)) {
 				ctx.fillStyle = isDimmed ? palette.labelDimmed : palette.label;
-				ctx.font = `${Math.max(10, 11 / currentTransform.k)}px sans-serif`;
-				ctx.textAlign = 'center';
-				ctx.textBaseline = 'top';
 				ctx.fillText(node.name, node.x!, node.y! + r + 3);
 			}
 		}

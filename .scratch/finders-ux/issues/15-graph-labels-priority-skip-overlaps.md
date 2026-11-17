@@ -12,15 +12,15 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`: of two overlapping candidates only the higher-degree one is selected; equal degree breaks by id; a forced candidate is selected even when it overlaps a higher-degree one; overlapping forced candidates are all selected; non-overlapping candidates are all selected; a label over another node's position but not over another label is selected; empty input returns an empty set.
-- [ ] Render test with the recording 2D context: at the default zoom, 40 unlinked notes with long names draw fewer label `fillText` calls than nodes, and the center note's label is drawn in local and in global mode.
-- [ ] Text widths are measured once per name and font size, not on every tick (assert `measureText` call counts across two renders).
-- [ ] Orphans stay visible by default; existing `GraphView.test.ts` cases stay green.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/plugins/graph-view/graph-view.logic.test.ts`: of two overlapping candidates only the higher-degree one is selected; equal degree breaks by id; a forced candidate is selected even when it overlaps a higher-degree one; overlapping forced candidates are all selected; non-overlapping candidates are all selected; a label over another node's position but not over another label is selected; empty input returns an empty set.
+- [x] Render test with the recording 2D context: at the default zoom, 40 unlinked notes with long names draw fewer label `fillText` calls than nodes, and the center note's label is drawn in local and in global mode.
+- [x] Text widths are measured once per name and font size, not on every tick (assert `measureText` call counts across two renders).
+- [x] Orphans stay visible by default; existing `GraphView.test.ts` cases stay green.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -42,3 +42,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: do not skip labels that cover other node circles; only label-to-label overlap is skipped.
+- 2026-11-17, deliver (branch issue/15-graph-labels-priority-skip-overlaps): `selectLabels` in graph-view.logic.ts picks labels by priority (forced hover/neighbour/center first, then degree, then id) and skips label-to-label overlaps via a grid; GraphView.svelte draws only the selected labels and caches text widths per name and font size. Review round 1 APPROVED with findings; fixes added a forced-hover render test and a brute-force randomized grid test (finding 3, numeric key, not changed). Review round 2 APPROVED, no findings. Tests: `pnpm check` 0 errors; full suite at b3af1282d exit=0, 646 files, 17102 passed, 54 skipped, 1 todo.

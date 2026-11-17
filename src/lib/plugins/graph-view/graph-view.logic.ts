@@ -136,6 +136,83 @@ export function getNodeRadius(linkCount: number, minRadius: number = 4, maxRadiu
 	return Math.min(maxRadius, minRadius + Math.sqrt(linkCount) * 2);
 }
 
+/** A node label the graph may draw. All candidates of one call share a coordinate space. */
+export interface LabelCandidate {
+	/** The node id. */
+	id: string;
+	/** Left edge of the label rectangle. */
+	x: number;
+	/** Top edge of the label rectangle. */
+	y: number;
+	/** Width of the label rectangle. */
+	width: number;
+	/** Height of the label rectangle. */
+	height: number;
+	/** The node's link count: higher degrees are placed first. */
+	degree: number;
+	/** True for a label that always draws (the hovered node, its neighbours, the center note). */
+	forced: boolean;
+}
+
+/** True when two label rectangles share interior area; touching edges do not count. */
+function labelsOverlap(a: LabelCandidate, b: LabelCandidate): boolean {
+	return a.x < b.x + b.width && b.x < a.x + a.width && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+/**
+ * Picks the labels to draw so they do not pile on each other. Forced labels
+ * always draw, even over each other. The rest are placed by descending
+ * degree, then id, and a label is skipped when its rectangle overlaps one
+ * already placed. Only label rectangles are compared: a label over another
+ * node's circle still draws. Placed labels sit in a uniform grid, so each
+ * candidate is tested only against the placed labels in the cells it covers.
+ */
+export function selectLabels(candidates: LabelCandidate[]): Set<string> {
+	const selected = new Set<string>();
+	if (candidates.length === 0) return selected;
+
+	let sizeSum = 0;
+	for (const c of candidates) sizeSum += Math.max(c.width, c.height);
+	const cell = Math.max(1, sizeSum / candidates.length);
+	const grid = new Map<string, LabelCandidate[]>();
+
+	/** Calls `visit` with the bucket key of every grid cell `c` covers; stops when it returns true. */
+	const someCell = (c: LabelCandidate, visit: (key: string) => boolean): boolean => {
+		const x1 = Math.floor((c.x + c.width) / cell);
+		const y1 = Math.floor((c.y + c.height) / cell);
+		for (let i = Math.floor(c.x / cell); i <= x1; i++) {
+			for (let j = Math.floor(c.y / cell); j <= y1; j++) {
+				if (visit(`${i},${j}`)) return true;
+			}
+		}
+		return false;
+	};
+
+	const place = (c: LabelCandidate) => {
+		selected.add(c.id);
+		someCell(c, (key) => {
+			const bucket = grid.get(key);
+			if (bucket) bucket.push(c);
+			else grid.set(key, [c]);
+			return false;
+		});
+	};
+
+	const rest: LabelCandidate[] = [];
+	for (const c of candidates) {
+		if (c.forced) place(c);
+		else rest.push(c);
+	}
+	rest.sort((a, b) => b.degree - a.degree || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+
+	for (const c of rest) {
+		const blocked = someCell(c, (key) => grid.get(key)?.some((placed) => labelsOverlap(c, placed)) ?? false);
+		if (!blocked) place(c);
+	}
+
+	return selected;
+}
+
 export function getUniqueFolders(nodes: GraphNode[]): string[] {
 	const folders = new Set<string>();
 	for (const node of nodes) {
