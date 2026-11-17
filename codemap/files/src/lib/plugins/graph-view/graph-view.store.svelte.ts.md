@@ -1,6 +1,6 @@
 # file card src/lib/plugins/graph-view/graph-view.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/graph-view/graph-view.store.svelte.ts ' codemap/files
-file src/lib/plugins/graph-view/graph-view.store.svelte.ts store L53 module src/lib/plugins/graph-view in3 t4
+file src/lib/plugins/graph-view/graph-view.store.svelte.ts store L53 module src/lib/plugins/graph-view in3 t5
 ## imports
 imp src/lib/plugins/graph-view/graph-view.store.svelte.ts:1 -> src/lib/plugins/graph-view/graph-view.types.ts type:GraphMode,type:GraphFilters,type:GraphDisplay
 ## imported-by
@@ -13,6 +13,7 @@ out2 src/lib/plugins/graph-view/graph-view.store.svelte.ts 0 files in 0 modules:
 ## tests
 test src/tests/lib/plugins/graph-view/graph-view.store.test.ts imports src/lib/plugins/graph-view/graph-view.store.svelte.ts mirror
 test src/tests/lib/plugins/graph-view/GraphControls.test.ts imports src/lib/plugins/graph-view/graph-view.store.svelte.ts
+test src/tests/lib/plugins/graph-view/GraphView.render.test.ts imports src/lib/plugins/graph-view/graph-view.store.svelte.ts
 test src/tests/lib/plugins/graph-view/GraphView.test.ts imports src/lib/plugins/graph-view/graph-view.store.svelte.ts
 test src/tests/lib/plugins/graph-view/graph-view.service.test.ts imports src/lib/plugins/graph-view/graph-view.store.svelte.ts
 ## symbols
@@ -30,8 +31,8 @@ mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:27 get graphViewStore.
 more r 7 not shown: src/lib/plugins/graph-view(7): q store src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore.mode
 mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:28 get graphViewStore.filters r:11 w-via:setFilters,reset
 more r 11 not shown: src/lib/plugins/graph-view(11): q store src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore.filters
-mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:29 get graphViewStore.display r:src/lib/plugins/graph-view/GraphControls.svelte:176,src/lib/plugins/graph-view/GraphView.svelte:198 w-via:setDisplay,reset
-mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:30 get graphViewStore.highlightedNodeId r:src/lib/plugins/graph-view/GraphView.svelte:187 w-via:setHighlightedNode,reset
+mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:29 get graphViewStore.display r:src/lib/plugins/graph-view/GraphControls.svelte:176,src/lib/plugins/graph-view/GraphView.svelte:217 w-via:setDisplay,reset
+mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:30 get graphViewStore.highlightedNodeId r:src/lib/plugins/graph-view/GraphView.svelte:206 w-via:setHighlightedNode,reset
 mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:32 get graphViewStore.centerPath r:7 w-via:setCenterPath,reset | Path of the note local mode centers on and global mode highlights, or null.
 more r 7 not shown: src/lib/plugins/graph-view(7): q store src/lib/plugins/graph-view/graph-view.store.svelte.ts:graphViewStore.centerPath
 mem src/lib/plugins/graph-view/graph-view.store.svelte.ts:34 get graphViewStore.localDepth r:7 w-via:setLocalDepth,reset | Link hops local mode shows around the center, 1 to 3.

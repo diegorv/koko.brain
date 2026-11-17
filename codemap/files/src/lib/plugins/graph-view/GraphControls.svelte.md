@@ -15,7 +15,7 @@ in2 src/lib/plugins/graph-view/GraphControls.svelte 1 files in 1 modules: src/li
 out2 src/lib/plugins/graph-view/GraphControls.svelte 17 files in 4 modules: src/lib/components(13) src/lib/core/filesystem(2) src/lib/types(1) src/lib/utils(1)
 ## symbols
 sym src/lib/plugins/graph-view/GraphControls.svelte:1 component GraphControls props:nodes,onZoomIn,onZoomOut L181
-by src/lib/plugins/graph-view/GraphControls.svelte:default <- src/lib/plugins/graph-view/GraphView.svelte:510 in (markup) mount
+by src/lib/plugins/graph-view/GraphControls.svelte:default <- src/lib/plugins/graph-view/GraphView.svelte:550 in (markup) mount
 ## locals
 local src/lib/plugins/graph-view/GraphControls.svelte:36 fn folderLabel(folder: string): string L3
 ## mounts
@@ -24,7 +24,7 @@ mount src/lib/plugins/graph-view/GraphControls.svelte:81 Button -> src/lib/compo
 mount src/lib/plugins/graph-view/GraphControls.svelte:126 Switch -> src/lib/components/ui/switch/switch.svelte
 mount src/lib/plugins/graph-view/GraphControls.svelte:175 Switch -> src/lib/components/ui/switch/switch.svelte
 ## mounted-at
-mount src/lib/plugins/graph-view/GraphView.svelte:510 GraphControls -> src/lib/plugins/graph-view/GraphControls.svelte
+mount src/lib/plugins/graph-view/GraphView.svelte:550 GraphControls -> src/lib/plugins/graph-view/GraphControls.svelte
 ## calls
 call src/lib/plugins/graph-view/GraphControls.svelte:32 in folders=$derived -> src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueFolders call
 call src/lib/plugins/graph-view/GraphControls.svelte:33 in tags=$derived -> src/lib/plugins/graph-view/graph-view.logic.ts:getUniqueTags call

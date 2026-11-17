@@ -1,6 +1,6 @@
 # file card src/lib/plugins/graph-view/graph-view.service.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/plugins/graph-view/graph-view.service.ts ' codemap/files
-file src/lib/plugins/graph-view/graph-view.service.ts service L78 module src/lib/plugins/graph-view in4 t7
+file src/lib/plugins/graph-view/graph-view.service.ts service L78 module src/lib/plugins/graph-view in4 t8
 ## imports
 imp src/lib/plugins/graph-view/graph-view.service.ts:1 -> src/lib/contracts/ipc.ts call
 imp src/lib/plugins/graph-view/graph-view.service.ts:2 -> src/lib/core/editor/editor.store.svelte.ts editorStore
@@ -20,6 +20,7 @@ out2 src/lib/plugins/graph-view/graph-view.service.ts 9 files in 6 modules: src/
 ## tests
 test src/tests/lib/plugins/graph-view/graph-view.service.test.ts imports src/lib/plugins/graph-view/graph-view.service.ts mirror
 test src/tests/lib/plugins/graph-view/GraphControls.test.ts imports src/lib/plugins/graph-view/graph-view.service.ts
+test src/tests/lib/plugins/graph-view/GraphView.render.test.ts imports src/lib/plugins/graph-view/graph-view.service.ts
 test src/tests/lib/plugins/graph-view/GraphView.test.ts imports src/lib/plugins/graph-view/graph-view.service.ts
 test src/tests/lib/app/commands.test.ts mocks src/lib/plugins/graph-view/graph-view.service.ts
 test src/tests/lib/app/global-keybindings.test.ts mocks src/lib/plugins/graph-view/graph-view.service.ts
