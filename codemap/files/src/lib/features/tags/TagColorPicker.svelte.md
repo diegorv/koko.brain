@@ -12,13 +12,13 @@ in2 src/lib/features/tags/TagColorPicker.svelte 1 files in 1 modules: src/lib/fe
 out2 src/lib/features/tags/TagColorPicker.svelte 4 files in 2 modules: src/lib/core/settings(3) src/lib/components(1)
 ## symbols
 sym src/lib/features/tags/TagColorPicker.svelte:1 component TagColorPicker props:currentColor,onSelect,label,children L112
-by src/lib/features/tags/TagColorPicker.svelte:default <- src/lib/features/tags/TagItem.svelte:37 in (markup) mount +1
+by src/lib/features/tags/TagColorPicker.svelte:default <- src/lib/features/tags/TagItem.svelte:50 in (markup) mount +1
 ## locals
 local src/lib/features/tags/TagColorPicker.svelte:22 fn handlePresetSelect(color: string | undefined) L4
 local src/lib/features/tags/TagColorPicker.svelte:27 fn handleCustomColorInput(e: Event) L4
 ## mounted-at
-mount src/lib/features/tags/TagItem.svelte:37 TagColorPicker -> src/lib/features/tags/TagColorPicker.svelte
-mount src/lib/features/tags/TagItem.svelte:64 TagColorPicker -> src/lib/features/tags/TagColorPicker.svelte
+mount src/lib/features/tags/TagItem.svelte:50 TagColorPicker -> src/lib/features/tags/TagColorPicker.svelte
+mount src/lib/features/tags/TagItem.svelte:77 TagColorPicker -> src/lib/features/tags/TagColorPicker.svelte
 ## calls
 call src/lib/features/tags/TagColorPicker.svelte:43 in (markup) -> src/lib/features/tags/TagColorPicker.svelte:handlePresetSelect markup +1
 call src/lib/features/tags/TagColorPicker.svelte:66 in (markup) -> src/lib/core/settings/theme-editor.logic.ts:hexToColorInputValue markup

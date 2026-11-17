@@ -21,7 +21,7 @@ dep src/lib/features/properties -> src/lib/components 4
 dep src/lib/features/quick-switcher -> src/lib/components 1
 dep src/lib/features/rail-shell -> src/lib/components 10
 dep src/lib/features/search -> src/lib/components 4
-dep src/lib/features/tags -> src/lib/components 3
+dep src/lib/features/tags -> src/lib/components 4
 dep src/lib/features/tasks -> src/lib/components 12
 dep src/lib/features/todoist-sync -> src/lib/components 6
 dep src/lib/features/type-definitions -> src/lib/components 6
@@ -39,7 +39,7 @@ in2 src/lib/components 0 modules: -
 out2 src/lib/components 1 modules: src/lib/utils(1)
 ## entry files
 entry src/lib/components/ui/button/index.ts ext-in37 src/lib/app/SettingsPanel.svelte src/lib/core/settings/sections/AppearanceSection.svelte src/lib/core/settings/sections/EditorSection.svelte src/lib/core/settings/sections/SentrySection.svelte src/lib/core/settings/sections/ThemeEditor.svelte more importers 32 not shown: src/lib/features/collection(5) src/lib/features/event-calendar(5) src/lib/core/settings(3) +12 modules: q importers src/lib/components/ui/button/index.ts
-entry src/lib/components/ui/input/index.ts ext-in28 src/lib/core/settings/sections/EditorSection.svelte src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/sections/FilesSection.svelte src/lib/core/settings/sections/HeadingTypographyEditor.svelte src/lib/core/settings/sections/OneOnOneSection.svelte more importers 23 not shown: src/lib/core/settings(6) src/lib/features/auto-organize(3) src/lib/features/tasks(3) +7 modules: q importers src/lib/components/ui/input/index.ts
+entry src/lib/components/ui/input/index.ts ext-in29 src/lib/core/settings/sections/EditorSection.svelte src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/sections/FilesSection.svelte src/lib/core/settings/sections/HeadingTypographyEditor.svelte src/lib/core/settings/sections/OneOnOneSection.svelte more importers 24 not shown: src/lib/core/settings(6) src/lib/features/auto-organize(3) src/lib/features/tasks(3) +8 modules: q importers src/lib/components/ui/input/index.ts
 entry src/lib/components/ui/switch/index.ts ext-in19 src/lib/app/LabsSection.svelte src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/sections/FilesSection.svelte src/lib/core/settings/sections/PeriodicNotesSection.svelte src/lib/core/settings/sections/SentrySection.svelte more importers 14 not shown: src/lib/core/settings(3) src/lib/features/auto-organize(3) src/lib/features/event-calendar(2) +6 modules: q importers src/lib/components/ui/switch/index.ts
 entry src/lib/components/ui/context-menu/index.ts ext-in9 src/lib/core/markdown-editor/EditorTabs.svelte src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/features/collection/CollectionView.svelte src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/FilesNavigator.svelte more importers 4 not shown: src/lib/plugins/kanban(2) src/lib/features/rail-shell(1) src/lib/features/tasks(1): q importers src/lib/components/ui/context-menu/index.ts
 entry src/lib/components/ui/dialog/index.ts ext-in9 src/lib/features/event-calendar/EventDialog.svelte src/lib/features/event-calendar/EventShortcutsDialog.svelte src/lib/features/file-history/FileHistoryDialog.svelte src/lib/features/file-icons/IconPicker.svelte src/lib/features/tasks/TasksView.svelte more importers 4 not shown: src/lib/features/type-definitions(2) src/lib/features/todoist-sync(1) src/lib/plugins/mods(1): q importers src/lib/components/ui/dialog/index.ts
@@ -118,7 +118,7 @@ file src/lib/components/ui/dropdown-menu/dropdown-menu-sub.svelte component L7 m
 file src/lib/components/ui/dropdown-menu/dropdown-menu-trigger.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/dropdown-menu/dropdown-menu.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/dropdown-menu/index.ts other L54 module src/lib/components in9 t0
-file src/lib/components/ui/input/index.ts other L7 module src/lib/components in28 t0
+file src/lib/components/ui/input/index.ts other L7 module src/lib/components in29 t0
 file src/lib/components/ui/input/input.svelte component L52 module src/lib/components in1 t0
 file src/lib/components/ui/popover/index.ts other L17 module src/lib/components in9 t1
 file src/lib/components/ui/popover/popover-content.svelte component L24 module src/lib/components in1 t0

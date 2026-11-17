@@ -11,7 +11,7 @@ imp src/lib/app/editor-host.ts:30 -> src/lib/features/search/open-search.service
 imp src/lib/app/global-keybindings.ts:10 -> src/lib/features/search/open-search.service.ts openSearch
 imp src/lib/app/rail-navigation.ts:3 -> src/lib/features/search/open-search.service.ts openSearch
 imp src/lib/features/deep-link/deep-link.service.ts:7 -> src/lib/features/search/open-search.service.ts openSearch
-imp src/lib/features/tags/TagsView.svelte:10 -> src/lib/features/search/open-search.service.ts openSearch
+imp src/lib/features/tags/TagsView.svelte:11 -> src/lib/features/search/open-search.service.ts openSearch
 ## reach
 in2 src/lib/features/search/open-search.service.ts 7 files in 3 modules: src/lib/app(5) src/lib/plugins/quick-capture(1) src/routes(1)
 out2 src/lib/features/search/open-search.service.ts 21 files in 8 modules: src/lib/features/collection(5) src/lib/core/settings(4) src/lib/features/type-definitions(4) src/lib/core/filesystem(3) src/lib/utils(2) +3 modules
@@ -24,7 +24,7 @@ by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/app/edit
 by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/app/global-keybindings.ts:46 in registerSlashSearchKeybinding call +1
 by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/app/rail-navigation.ts:16 in selectRailItem call
 by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/features/deep-link/deep-link.service.ts:202 in executeAction call
-by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/features/tags/TagsView.svelte:19 in handleTagClick call
+by src/lib/features/search/open-search.service.ts:openSearch <- src/lib/features/tags/TagsView.svelte:20 in handleTagClick call
 ## calls
 call src/lib/features/search/open-search.service.ts:12 in openSearch -> src/lib/features/search/search.store.svelte.ts:searchStore.setQuery mcall
 call src/lib/features/search/open-search.service.ts:13 in openSearch -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout mcall

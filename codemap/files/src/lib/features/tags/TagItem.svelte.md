@@ -1,6 +1,6 @@
 # file card src/lib/features/tags/TagItem.svelte
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/tags/TagItem.svelte ' codemap/files
-file src/lib/features/tags/TagItem.svelte component L79 module src/lib/features/tags in1 t1
+file src/lib/features/tags/TagItem.svelte component L92 module src/lib/features/tags in1 t1
 ## imports
 imp src/lib/features/tags/TagItem.svelte:3 -> src/lib/components/ui/collapsible/index.ts *
 imp src/lib/features/tags/TagItem.svelte:4 -> src/lib/features/tags/tags.types.ts type:TagTreeNode
@@ -9,26 +9,26 @@ imp src/lib/features/tags/TagItem.svelte:6 -> src/lib/utils/tag-colors.ts getTag
 imp src/lib/features/tags/TagItem.svelte:7 -> src/lib/features/tags/TagColorDot.svelte default
 imp src/lib/features/tags/TagItem.svelte:8 -> src/lib/features/tags/TagColorPicker.svelte default
 ## imported-by
-imp src/lib/features/tags/TagsView.svelte:14 -> src/lib/features/tags/TagItem.svelte default
+imp src/lib/features/tags/TagsView.svelte:15 -> src/lib/features/tags/TagItem.svelte default
 ## reach
 in2 src/lib/features/tags/TagItem.svelte 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/tags/TagItem.svelte 8 files in 2 modules: src/lib/components(4) src/lib/core/settings(4)
 ## tests
 test src/tests/lib/features/tags/TagItem.test.ts imports src/lib/features/tags/TagItem.svelte mirror
 ## symbols
-sym src/lib/features/tags/TagItem.svelte:1 component TagItem props:node,onTagClick,onColorChange L79
-by src/lib/features/tags/TagItem.svelte:default <- src/lib/features/tags/TagsView.svelte:115 in (markup) mount
+sym src/lib/features/tags/TagItem.svelte:1 component TagItem props:node,onTagClick,onColorChange,forceOpen= L92
+by src/lib/features/tags/TagItem.svelte:default <- src/lib/features/tags/TagsView.svelte:140 in (markup) mount
 ## locals
-local src/lib/features/tags/TagItem.svelte:22 fn getColor() L3
+local src/lib/features/tags/TagItem.svelte:27 fn getColor() L3
 ## mounts
-mount src/lib/features/tags/TagItem.svelte:37 TagColorPicker -> src/lib/features/tags/TagColorPicker.svelte
-mount src/lib/features/tags/TagItem.svelte:42 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
-mount src/lib/features/tags/TagItem.svelte:55 Self -> src/lib/features/tags/TagItem.svelte
-mount src/lib/features/tags/TagItem.svelte:64 TagColorPicker -> src/lib/features/tags/TagColorPicker.svelte
-mount src/lib/features/tags/TagItem.svelte:69 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
+mount src/lib/features/tags/TagItem.svelte:50 TagColorPicker -> src/lib/features/tags/TagColorPicker.svelte
+mount src/lib/features/tags/TagItem.svelte:55 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
+mount src/lib/features/tags/TagItem.svelte:68 Self -> src/lib/features/tags/TagItem.svelte
+mount src/lib/features/tags/TagItem.svelte:77 TagColorPicker -> src/lib/features/tags/TagColorPicker.svelte
+mount src/lib/features/tags/TagItem.svelte:82 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
 ## mounted-at
-mount src/lib/features/tags/TagItem.svelte:55 Self -> src/lib/features/tags/TagItem.svelte
-mount src/lib/features/tags/TagsView.svelte:115 TagItem -> src/lib/features/tags/TagItem.svelte
+mount src/lib/features/tags/TagItem.svelte:68 Self -> src/lib/features/tags/TagItem.svelte
+mount src/lib/features/tags/TagsView.svelte:140 TagItem -> src/lib/features/tags/TagItem.svelte
 ## calls
-call src/lib/features/tags/TagItem.svelte:23 in getColor -> src/lib/utils/tag-colors.ts:getTagColor call
-call src/lib/features/tags/TagItem.svelte:38 in (markup) -> src/lib/features/tags/TagItem.svelte:getColor markup +3
+call src/lib/features/tags/TagItem.svelte:28 in getColor -> src/lib/utils/tag-colors.ts:getTagColor call
+call src/lib/features/tags/TagItem.svelte:51 in (markup) -> src/lib/features/tags/TagItem.svelte:getColor markup +3
