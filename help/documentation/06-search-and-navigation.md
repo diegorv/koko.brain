@@ -151,7 +151,7 @@ Click any result to open that file in the editor. The search index updates autom
 
 You can narrow text searches with two operators, typed anywhere in the query:
 
-- `tag:tagname` - only matches notes that contain that tag (in frontmatter or inline). Combine multiple `tag:` operators to require all of them.
+- `tag:tagname` - only matches notes that contain that tag (in frontmatter or inline), or a tag nested under it: `tag:work` also finds notes tagged `work/meetings`, whether the query has only operators or search terms too. Combine multiple `tag:` operators to require all of them.
 - `path:folder` - only matches notes whose path contains that text, so you can scope a search to a folder.
 
 Operators can be combined with regular search terms, for example `meeting tag:work path:projects`.

@@ -410,6 +410,35 @@ describe('SearchPanel', () => {
 			flushSync();
 			expect(status().textContent?.trim()).toBe('50+ results');
 		});
+
+		it('back in Text after a Rust hybrid search, no earlier Text list or count shows', async () => {
+			const entries = [entryV2('/vault/a.md', { tags: ['work'] })];
+			vi.mocked(invoke).mockImplementation(async (cmd) => {
+				if (cmd === 'get_all_vault_entries_v2') return entries;
+				if (cmd === 'search_fts') return ftsRows(50);
+				return [];
+			});
+			enableSemantic();
+			searchStore.setQuery('tag:work');
+			mountPanel();
+			await performSearch();
+			flushSync();
+			expect(status().textContent?.trim()).toBe('1 result');
+			searchStore.setQuery('meeting');
+			await performSearch();
+			flushSync();
+			expect(status().textContent?.trim()).toBe('50+ results');
+
+			modeButton('Hybrid').click();
+			searchStore.setQuery('meeting notes');
+			await performSearch();
+			modeButton('Text').click();
+			flushSync();
+
+			expect(rows()).toHaveLength(0);
+			expect(status().textContent?.trim()).toBe('No results found');
+			expect(target.textContent).not.toMatch(/\d\+? results?\b/);
+		});
 	});
 
 	describe('short query', () => {

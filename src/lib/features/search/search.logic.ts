@@ -9,8 +9,20 @@ const PATH_OPERATOR_REGEX = /path:(\S+)/g;
 // Result caps, one per search path. A search that gets back as many rows as
 // its cap sets `searchStore.resultsCapped`, and the panel reads "N+ results".
 
-/** Rows `search_fts` returns for a Text search (before any operator filter) */
+/**
+ * Rows a Text search shows: the rows `search_fts` returns for plain words,
+ * or the `tag:` / `path:` matches kept from its candidate list when the
+ * words carry operators.
+ */
 export const FTS_MAX_RESULTS = 50;
+/**
+ * `maxResults` sent to `search_fts` when the words carry `tag:` / `path:`
+ * operators. Rust applies its `LIMIT` before the operators filter the rows
+ * in JS, so this is set high enough to be uncapped in practice: a match
+ * ranked past `FTS_MAX_RESULTS` for the bare words is still found. Not the
+ * vault entry count, which is 0 before the index is built (`LIMIT 0`).
+ */
+export const FTS_OPERATOR_CANDIDATE_LIMIT = 100_000;
 /**
  * Chunks `search_semantic` returns. It also drops chunks under its
  * `minScore`, so a list can be cut without reaching this cap and then shows

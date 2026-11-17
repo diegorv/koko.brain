@@ -20,6 +20,7 @@ const mockError = vi.fn();
 vi.mock('#lib/utils/debug.js', () => ({
 	debug: (...args: unknown[]) => mockDebug(...args),
 	error: (...args: unknown[]) => mockError(...args),
+	timeAsync: (_tag: string, _label: string, fn: () => Promise<unknown>) => fn(),
 }));
 
 // Mock editor hooks
@@ -40,6 +41,7 @@ import {
 	startSemanticProgressListener,
 	stopSemanticProgressListener,
 } from '#lib/features/search/search.service.js';
+import { FTS_OPERATOR_CANDIDATE_LIMIT } from '#lib/features/search/search.logic.js';
 import type { SemanticProgress } from '#lib/features/search/search.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import type { FileReadResult } from '#lib/core/filesystem/fs.types.js';
@@ -49,7 +51,8 @@ import { entryV2 } from '../../../fixtures/vault-entries.fixture';
  * Builds an `invoke` implementation that responds to `search_fts`,
  * `get_all_vault_entries_v2`, and `read_files_batch` calls. Phase 11.5h —
  * the FTS-fallback path now loads content via these IPCs rather than
- * reading a TS-side noteIndexStore mirror.
+ * reading a TS-side noteIndexStore mirror. `search_fts` returns at most
+ * `maxResults` rows, like the Rust `LIMIT`.
  */
 function mockSearchIPCs(opts: {
 	ftsResult?: FtsResult[] | Error;
@@ -59,10 +62,10 @@ function mockSearchIPCs(opts: {
 	const fts = opts.ftsResult;
 	const entries = opts.entries ?? [];
 	const contents = opts.contents ?? {};
-	mockInvoke.mockImplementation(async (cmd: string, _args: unknown) => {
+	mockInvoke.mockImplementation(async (cmd: string, args: unknown) => {
 		if (cmd === 'search_fts') {
 			if (fts instanceof Error) throw fts;
-			return fts ?? [];
+			return (fts ?? []).slice(0, (args as { maxResults: number }).maxResults);
 		}
 		if (cmd === 'get_all_vault_entries_v2') return entries;
 		if (cmd === 'read_files_batch') {
@@ -493,15 +496,69 @@ describe('performSearch', () => {
 			expect(searchStore.resultsCapped).toBe(capped);
 		});
 
-		// Today the operator filter runs after the FTS cap, so more matches may
-		// exist past it. Issue 16 moves the filter before the cap and updates this.
-		it('keeps the flag for FTS rows cut by operators after a full page', async () => {
+		/** `n` rows in BM25 order; the rows at `projectRanks` sit under `projects/` */
+		const rankedRows = (n: number, projectRanks: Set<number>): FtsResult[] =>
+			ftsRows(n).map((r, i) => (projectRanks.has(i) ? { ...r, path: `projects/${r.path}` } : r));
+
+		it('no "+" when operators keep one of a full page of FTS rows', async () => {
 			mockSearchIPCs({ ftsResult: ftsRows(50), entries: [entryV2('/vault/n3.md', { tags: ['work'] })] });
 			searchStore.setQuery('tag:work meeting');
 
 			await performSearch();
 
 			expect(searchStore.ftsResults.map((r) => r.path)).toEqual(['n3.md']);
+			expect(searchStore.resultsCapped).toBe(false);
+		});
+
+		it('finds the only path: match ranked below the FTS cap for the bare word', async () => {
+			mockSearchIPCs({ ftsResult: rankedRows(60, new Set([55])) });
+			searchStore.setQuery('meeting path:projects');
+
+			await performSearch();
+
+			expect(mockInvoke).toHaveBeenCalledWith('search_fts', {
+				query: 'meeting',
+				maxResults: FTS_OPERATOR_CANDIDATE_LIMIT,
+				fuzzy: true,
+			});
+			expect(mockInvoke.mock.calls.map(([cmd]) => cmd)).not.toContain('get_all_vault_entries_v2');
+			expect(searchStore.ftsResults.map((r) => r.path)).toEqual(['projects/n55.md']);
+		});
+
+		it('finds the only tag: match ranked below the FTS cap for the bare word', async () => {
+			mockSearchIPCs({ ftsResult: ftsRows(60), entries: [entryV2('/vault/n55.md', { tags: ['work'] })] });
+			searchStore.setQuery('meeting tag:work');
+
+			await performSearch();
+
+			expect(searchStore.ftsResults.map((r) => r.path)).toEqual(['n55.md']);
+		});
+
+		it.each([
+			[51, true],
+			[50, false],
+			[49, false],
+		])('words plus operators with %i filtered matches keep 50 or fewer in BM25 order and set resultsCapped to %s', async (n, capped) => {
+			// Every other row is a match, so the matches span past rank 50.
+			const ranks = new Set(Array.from({ length: n }, (_, i) => i * 2));
+			const rows = rankedRows(n * 2, ranks);
+			mockSearchIPCs({ ftsResult: rows });
+			searchStore.setQuery('meeting path:projects');
+
+			await performSearch();
+
+			const expected = rows.filter((r) => r.path.startsWith('projects/')).slice(0, 50).map((r) => r.path);
+			expect(searchStore.ftsResults.map((r) => r.path)).toEqual(expected);
+			expect(searchStore.resultsCapped).toBe(capped);
+		});
+
+		it('sets resultsCapped when the operator candidate list reaches its own limit', async () => {
+			mockSearchIPCs({ ftsResult: rankedRows(FTS_OPERATOR_CANDIDATE_LIMIT, new Set([7])) });
+			searchStore.setQuery('meeting path:projects');
+
+			await performSearch();
+
+			expect(searchStore.ftsResults.map((r) => r.path)).toEqual(['projects/n7.md']);
 			expect(searchStore.resultsCapped).toBe(true);
 		});
 
@@ -653,7 +710,7 @@ describe('performSearch', () => {
 		// FTS should be called with just "fix", not "tag:javascript fix"
 		expect(mockInvoke).toHaveBeenCalledWith('search_fts', {
 			query: 'fix',
-			maxResults: 50,
+			maxResults: FTS_OPERATOR_CANDIDATE_LIMIT,
 			fuzzy: true,
 		});
 		// Only a.md has the tag, so b.md should be filtered out
@@ -773,11 +830,88 @@ describe('performSearch', () => {
 
 		expect(mockInvoke).toHaveBeenCalledWith('search_fts', {
 			query: 'test',
-			maxResults: 50,
+			maxResults: FTS_OPERATOR_CANDIDATE_LIMIT,
 			fuzzy: true,
 		});
 		expect(searchStore.ftsResults).toHaveLength(1);
 		expect(searchStore.ftsResults[0].path).toBe('daily/2024.md');
+	});
+
+	it('a tag: operator with words matches a nested tag', async () => {
+		mockSearchIPCs({
+			ftsResult: [{ path: 'notes/a.md', title: 'a', score: -1, snippet: 'x', tags: '' }],
+			entries: [entryV2('/vault/notes/a.md', { tags: ['work/meetings'] })],
+		});
+		searchStore.setQuery('meeting tag:work');
+		searchStore.setMode('text');
+
+		await performSearch();
+
+		expect(searchStore.ftsResults.map((r) => r.path)).toEqual(['notes/a.md']);
+	});
+
+	// For `tag:work zzzz`, FTS finds an untagged note, so the operator filter
+	// (not FTS) is what leaves the list empty.
+	it.each([
+		{ query: 'zzzz', ftsResult: [] },
+		{ query: 'tag:work zzzz', ftsResult: [{ path: 'b.md', title: 'b', score: -1, snippet: 'zzzz', tags: '' }] },
+	])('a text search $query with no hits right after a tag click leaves no results', async ({ query, ftsResult }) => {
+		mockSearchIPCs({ ftsResult, entries: [entryV2('/vault/a.md', { tags: ['work'] }), entryV2('/vault/b.md')] });
+		searchStore.setMode('text');
+		searchStore.setQuery('tag:work');
+		await performSearch();
+		expect(searchStore.results).toHaveLength(1);
+
+		searchStore.setQuery(query);
+		await performSearch();
+
+		expect(searchStore.results).toEqual([]);
+		expect(searchStore.ftsResults).toEqual([]);
+	});
+
+	it('a Rust hybrid search clears the text list and its "+" left by earlier Text searches', async () => {
+		const rows = Array.from({ length: 50 }, (_, i) => ({ path: `n${i}.md`, title: `n${i}`, score: -1, snippet: 'x', tags: '' }));
+		const chunk = { key: 'k', sourcePath: 'h.md', content: 'c', heading: null, lineStart: 1, lineEnd: 1, score: 0.9 };
+		mockInvoke.mockImplementation(async (cmd: string) => {
+			if (cmd === 'get_all_vault_entries_v2') return [entryV2('/vault/a.md', { tags: ['work'] })];
+			if (cmd === 'search_fts') return rows;
+			if (cmd === 'search_hybrid') return [chunk];
+			return undefined;
+		});
+		searchStore.setMode('text');
+		searchStore.setQuery('tag:work');
+		await performSearch();
+		expect(searchStore.results).toHaveLength(1);
+		searchStore.setQuery('meeting');
+		await performSearch();
+		expect(searchStore.resultsCapped).toBe(true);
+
+		searchStore.setMode('hybrid');
+		searchStore.setQuery('meeting notes');
+		await performSearch();
+		searchStore.setMode('text');
+
+		expect(searchStore.results).toEqual([]);
+		expect(searchStore.ftsResults).toEqual([]);
+		expect(searchStore.resultsCapped).toBe(false);
+	});
+
+	it('a Rust hybrid search clears an operator-only list', async () => {
+		mockInvoke.mockImplementation(async (cmd: string) => {
+			if (cmd === 'get_all_vault_entries_v2') return [entryV2('/vault/a.md', { tags: ['work'] })];
+			if (cmd === 'search_hybrid') return [];
+			return undefined;
+		});
+		searchStore.setMode('text');
+		searchStore.setQuery('tag:work');
+		await performSearch();
+		expect(searchStore.results).toHaveLength(1);
+
+		searchStore.setMode('hybrid');
+		searchStore.setQuery('meeting notes');
+		await performSearch();
+
+		expect(searchStore.results).toEqual([]);
 	});
 
 	it('completes a tag-filtered FTS query without crashing when no vault is open', async () => {

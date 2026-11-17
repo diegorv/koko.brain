@@ -11,14 +11,16 @@ import {
 	performSearchOverFiles,
 	performOperatorOnlySearch,
 	matchesPathFilter,
+	matchesIndexTag,
 	FTS_MAX_RESULTS,
+	FTS_OPERATOR_CANDIDATE_LIMIT,
 	SEMANTIC_MAX_RESULTS,
 	HYBRID_MAX_RESULTS,
 	OPERATOR_ONLY_MAX_RESULTS,
 	FALLBACK_MAX_RESULTS,
 } from './search.logic';
 import { stem, vaultRelativeKey } from '#lib/utils/path.js';
-import { debug, error } from '#lib/utils/debug.js';
+import { debug, error, timeAsync } from '#lib/utils/debug.js';
 import type { SemanticProgress } from './search.types';
 
 /**
@@ -46,15 +48,16 @@ async function loadVaultContentMap(vaultPath: string): Promise<Map<string, strin
 }
 
 /**
- * Builds a `Map<absolutePath, Set<tag>>` for the FTS-with-operators
- * tag filter. Tags come from `entry.tags` (Rust pre-parsed); no
+ * Builds a `Map<absolutePath, tags>` for the FTS-with-operators tag
+ * filter. Tags come from `entry.tags` (Rust pre-parsed, the set a tag
+ * click filters), never from the FTS row's looser `tags` column; no
  * content read needed. Phase 11.5h.
  */
-async function loadVaultTagMap(): Promise<Map<string, Set<string>>> {
+async function loadVaultTagMap(): Promise<Map<string, string[]>> {
 	const entries = await call('get_all_vault_entries_v2');
-	const map = new Map<string, Set<string>>();
+	const map = new Map<string, string[]>();
 	for (const e of entries) {
-		map.set(e.path, new Set(e.tags.map((t) => t.toLowerCase())));
+		map.set(e.path, e.tags);
 	}
 	return map;
 }
@@ -192,7 +195,11 @@ export async function performSearch(): Promise<void> {
 					lineStart: r.lineStart,
 				}));
 				searchStore.setHybridResults(adapted);
+				// Text mode shows these lists, empty now: an older Text search's
+				// rows or "+" would read as this query's.
 				searchStore.setFtsResults([]);
+				searchStore.setResults([]);
+				searchStore.setResultsCapped('text', false);
 				const hybridCapped = results.length >= HYBRID_MAX_RESULTS;
 				searchStore.setResultsCapped('hybrid', hybridCapped);
 				// The semantic list now holds these chunks too
@@ -224,38 +231,42 @@ export async function performSearch(): Promise<void> {
 					searchStore.setResults(results);
 					searchStore.setFtsResults([]);
 				} else {
-					const results = await call('search_fts', {
-						query: ftsQuery,
-						maxResults: FTS_MAX_RESULTS,
-						fuzzy: searchStore.fuzzyEnabled,
-					});
+					// Rust applies its LIMIT before the operators below filter the
+					// rows, so with operators ask for every candidate and cap after.
+					const fetchFts = (maxResults: number) =>
+						call('search_fts', { query: ftsQuery, maxResults, fuzzy: searchStore.fuzzyEnabled });
+					const results = hasOperators
+						? await timeAsync('SEARCH', 'search_fts operator candidates', () => fetchFts(FTS_OPERATOR_CANDIDATE_LIMIT))
+						: await fetchFts(FTS_MAX_RESULTS);
 					if (searchVersion !== version) return;
-					// Counted before the operator filter below: more matches may
-					// exist past the cap even when the filter keeps fewer rows.
-					textCapped = results.length >= FTS_MAX_RESULTS;
 
 					if (hasOperators) {
-						// Filter FTS results by tag/path operators. Tags come from
-						// Rust-pre-parsed `entry.tags` (no content read).
+						// Tags come from Rust-pre-parsed `entry.tags` (no content
+						// read), matched like a tag click: `tag:a` also finds `a/b`.
 						const tagMap = query.tags.length > 0 ? await loadVaultTagMap() : null;
 						if (searchVersion !== version) return;
 						const filtered = results.filter((r) => {
 							const fullPath = `${vaultPath}/${r.path}`;
 							if (query.tags.length > 0 && tagMap) {
-								const tagSet = tagMap.get(fullPath) ?? new Set<string>();
-								if (!query.tags.every((tag) => tagSet.has(tag.toLowerCase()))) return false;
+								const tags = tagMap.get(fullPath) ?? [];
+								if (!query.tags.every((tag) => matchesIndexTag(tags, tag))) return false;
 							}
 							if (query.paths.length > 0) {
 								if (!query.paths.some((p) => matchesPathFilter(r.path, p))) return false;
 							}
 							return true;
 						});
+						textCapped = filtered.length > FTS_MAX_RESULTS || results.length >= FTS_OPERATOR_CANDIDATE_LIMIT;
 						debug('SEARCH', `FTS returned ${results.length}, filtered to ${filtered.length} with operators`);
-						searchStore.setFtsResults(filtered);
+						searchStore.setFtsResults(filtered.slice(0, FTS_MAX_RESULTS));
 					} else {
+						textCapped = results.length >= FTS_MAX_RESULTS;
 						debug('SEARCH', `FTS returned ${results.length} results`, results.slice(0, 3));
 						searchStore.setFtsResults(results);
 					}
+					// An operator-only query's list; Text mode falls back to it
+					// when `ftsResults` is empty.
+					searchStore.setResults([]);
 				}
 			} catch (ftsErr) {
 				if (searchVersion !== version) return;
