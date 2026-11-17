@@ -33,7 +33,8 @@ The Command Palette gives you a searchable list of all available commands in the
 
 - Type any part of a command name to filter the list.
 - Keyboard shortcuts are shown next to each command, so you can learn them over time.
-- Recently used commands appear at the top for quick access.
+- With an empty search, recently used commands appear first under **Recent**, and every other command follows in alphabetical order under **All commands**. The arrow keys move across both groups. Before you have run any command, the list has no headings. Once you type, the list is one ranked list with no headings.
+- **Calendar: Undo** and **Calendar: Redo** appear only when there is a calendar change to undo or redo.
 
 ![Command Palette](screenshots/command-palette.png)
 
@@ -60,6 +61,10 @@ The Command Palette gives you a searchable list of all available commands in the
 | | Toggle Tags View | — |
 | | Go to *item* (one per rail item: Search, Inbox, Today, Favorites, Types, Calendar, Files, Archive and each pin) | — |
 | | Open view: *view* (one per `.view` file, except a view hidden with `_visible: false`) | — |
+| **Calendar** | New Calendar Event | — |
+| | Calendar: Go to Today | — |
+| | Calendar: Undo (only when there is a calendar change to undo) | — |
+| | Calendar: Redo (only when there is an undone change to redo) | — |
 | **Layout** | Toggle Right Sidebar | `Cmd+B` |
 | | Toggle Rail Panels (the panels next to the rail) | `Cmd+Shift+B` |
 | | Hide Rail Panels | `Cmd+1` |

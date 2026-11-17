@@ -3,7 +3,7 @@
 	import { toast } from 'svelte-sonner';
 	import { formatShortcut } from '#lib/utils/keybindings.js';
 	import { commandPaletteStore } from './command-palette.store.svelte';
-	import { filterAndRankCommands } from './command-palette.logic';
+	import { filterAndRankCommands, splitRecentCommands } from './command-palette.logic';
 	import type { AppCommand } from './command-palette.types';
 
 	let { commands }: {
@@ -23,6 +23,13 @@
 	let filteredCommands = $derived(
 		filterAndRankCommands(searchQuery, commands, commandPaletteStore.recentCommandIds),
 	);
+
+	/** The Recent and All commands groups: only on an empty query with recents. */
+	let recentGroups = $derived.by(() => {
+		if (searchQuery.length > 0) return null;
+		const groups = splitRecentCommands(commands, commandPaletteStore.recentCommandIds);
+		return groups.recent.length > 0 ? groups : null;
+	});
 
 	function handleOpenChange(open: boolean) {
 		if (!open) {
@@ -44,6 +51,19 @@
 	}
 </script>
 
+{#snippet commandRow(command: AppCommand)}
+	<Command.Item
+		value={command.id}
+		onSelect={() => executeCommand(command)}
+	>
+		<span class="min-w-0 flex-1 truncate">{command.label}</span>
+		<span class="shrink-0 text-xs text-muted-foreground">{command.category}</span>
+		{#if command.shortcut}
+			<Command.Shortcut>{formatShortcut(command.shortcut)}</Command.Shortcut>
+		{/if}
+	</Command.Item>
+{/snippet}
+
 <Command.Dialog
 	open={commandPaletteStore.isOpen}
 	onOpenChange={handleOpenChange}
@@ -54,19 +74,23 @@
 >
 	<Command.Input placeholder="Type a command..." bind:value={searchQuery} />
 	<Command.List>
-		{#if filteredCommands.length > 0}
+		{#if recentGroups}
+			<Command.Group heading="Recent">
+				{#each recentGroups.recent as command (command.id)}
+					{@render commandRow(command)}
+				{/each}
+			</Command.Group>
+			{#if recentGroups.rest.length > 0}
+				<Command.Group heading="All commands">
+					{#each recentGroups.rest as command (command.id)}
+						{@render commandRow(command)}
+					{/each}
+				</Command.Group>
+			{/if}
+		{:else if filteredCommands.length > 0}
 			<Command.Group>
 				{#each filteredCommands as command (command.id)}
-					<Command.Item
-						value={command.id}
-						onSelect={() => executeCommand(command)}
-					>
-						<span class="min-w-0 flex-1 truncate">{command.label}</span>
-						<span class="shrink-0 text-xs text-muted-foreground">{command.category}</span>
-						{#if command.shortcut}
-							<Command.Shortcut>{formatShortcut(command.shortcut)}</Command.Shortcut>
-						{/if}
-					</Command.Item>
+					{@render commandRow(command)}
 				{/each}
 			</Command.Group>
 		{:else}

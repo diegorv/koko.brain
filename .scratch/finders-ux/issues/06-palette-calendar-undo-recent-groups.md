@@ -12,18 +12,18 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/app/commands.test.ts`: with empty history there is no `event-calendar:undo` or `event-calendar:redo`; after a recorded calendar change Undo is listed; after an undo Redo is listed and runs.
-- [ ] The count literal at `commands.test.ts:137` becomes 43 (changed on purpose); the "Nothing to undo/redo" palette tests at `:180-197` are rewritten for a non-empty history.
-- [ ] `filterAndRankCommands('cal', getBuiltInCommands(), [])` with idle history contains no Calendar: Undo or Redo.
-- [ ] new-event, today, undo and redo report category "Calendar"; the toggle category assertion at `:205` stays Navigation.
-- [ ] Failing test first, `command-palette.logic.test.ts`: an empty query returns the recents and the label-sorted rest apart.
-- [ ] `CommandPalette.test.ts`: "Recent" and "All commands" headings with recents, no headings without recents, none with a query; arrow keys still cross the group boundary.
-- [ ] `fuzzy-match.ts` and its tests are unchanged; the three help pages are updated.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/app/commands.test.ts`: with empty history there is no `event-calendar:undo` or `event-calendar:redo`; after a recorded calendar change Undo is listed; after an undo Redo is listed and runs.
+- [x] The count literal at `commands.test.ts:137` becomes 43 (changed on purpose); the "Nothing to undo/redo" palette tests at `:180-197` are rewritten for a non-empty history.
+- [x] `filterAndRankCommands('cal', getBuiltInCommands(), [])` with idle history contains no Calendar: Undo or Redo.
+- [x] new-event, today, undo and redo report category "Calendar"; the toggle category assertion at `:205` stays Navigation.
+- [x] Failing test first, `command-palette.logic.test.ts`: an empty query returns the recents and the label-sorted rest apart.
+- [x] `CommandPalette.test.ts`: "Recent" and "All commands" headings with recents, no headings without recents, none with a query; arrow keys still cross the group boundary.
+- [x] `fuzzy-match.ts` and its tests are unchanged; the three help pages are updated.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -50,3 +50,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: idle calendar Undo/Redo are hidden from the palette; no word-start bonus; Toggle Calendar View stays in Navigation.
+- 2026-11-17, deliver (branch `issue/06-palette-calendar-undo-recent-groups`): calendar Undo/Redo are listed only when `canUndo`/`canRedo`; new-event, today, undo and redo use the Calendar category; an empty query with recents shows "Recent" and "All commands" groups (`splitRecentCommands`); help pages updated. Review round 1: APPROVED (three nits, all rejected with reasons in `work/06/review.md` § Resolution). Full suite `pnpm vitest run`: 643 files, 17107 passed, 54 skipped, 1 todo, exit 0.
