@@ -1,0 +1,1186 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Event calendar, rail mini month and Tasks view</title>
+<style>
+	/* Tokens copied from src/app.css (dark = KokoBrain Default) and the Lavender Haze snapshot (light). */
+	:root, :root[data-theme="light"] {
+		color-scheme: light;
+		--background: #F3F0F8;
+		--foreground: #302840;
+		--card: #EAE6F2;
+		--popover: #FFFFFF;
+		--popover-foreground: #302840;
+		--primary: #6848A8;
+		--primary-foreground: #ffffff;
+		--muted: #D5D0E2;
+		--muted-foreground: #645c74;
+		--accent: #D5D0E2;
+		--border: #D5D0E2;
+		--input-bg: #EAE6F2;
+		--ring: #6848A8;
+		--divider: #C0B8D0;
+		--destructive: #C83848;
+		--editor-bg: #F3F0F8;
+		--editor-fg: #302840;
+		--tab-bar: #edeaf2;
+		--success: #357458;
+		--warning: #786714;
+		--elev-shadow-1: #3028400f;
+		--elev-shadow-2: #3028401a;
+		--elev-ring: #30284014;
+		--elev-scrim: #30284040;
+	}
+	:root[data-theme="dark"] {
+		color-scheme: dark;
+		--background: #21222e;
+		--foreground: #F8F8F2;
+		--card: #2a2e3d;
+		--popover: oklch(0.22 0.025 273);
+		--popover-foreground: oklch(0.98 0.005 105);
+		--primary: oklch(0.73 0.08 278);
+		--primary-foreground: oklch(0.19 0.025 273);
+		--muted: oklch(0.28 0.025 272);
+		--muted-foreground: oklch(0.55 0.06 268);
+		--accent: oklch(0.28 0.025 272);
+		--border: oklch(0.28 0.025 272);
+		--input-bg: #3d4058;
+		--ring: oklch(0.73 0.08 278);
+		--divider: #383a4f;
+		--destructive: oklch(0.628 0.225 25);
+		--editor-bg: #2a2e3d;
+		--editor-fg: #F8F8F2;
+		--tab-bar: #5a5c79;
+		--success: #4ade80;
+		--warning: #fbbf24;
+		--elev-shadow-1: #00000040;
+		--elev-shadow-2: #00000073;
+		--elev-ring: #ffffff0f;
+		--elev-scrim: #0000008c;
+	}
+	:root {
+		--radius: 0.625rem;
+		--r-xs: 4px;
+		--r-sm: 6px;
+		--r-md: 8px;
+		--shadow-md: 0 0 0 1px var(--elev-ring), 0 4px 12px -2px var(--elev-shadow-2), 0 2px 4px -2px var(--elev-shadow-1);
+		--ev-blue-bg: color-mix(in oklab, #3b82f6 25%, var(--editor-bg));
+		--ev-blue-fg: color-mix(in oklab, #3b82f6 30%, var(--editor-fg));
+		--ev-green-bg: color-mix(in oklab, #10b981 25%, var(--editor-bg));
+		--ev-green-fg: color-mix(in oklab, #10b981 30%, var(--editor-fg));
+		--ev-purple-bg: color-mix(in oklab, #8b5cf6 25%, var(--editor-bg));
+		--ev-purple-fg: color-mix(in oklab, #8b5cf6 30%, var(--editor-fg));
+		--ev-pink-bg: color-mix(in oklab, #ec4899 25%, var(--editor-bg));
+		--ev-pink-fg: color-mix(in oklab, #ec4899 30%, var(--editor-fg));
+		--ev-orange-bg: color-mix(in oklab, #f97316 25%, var(--editor-bg));
+		--ev-orange-fg: color-mix(in oklab, #f97316 30%, var(--editor-fg));
+		--soft-primary: color-mix(in oklab, var(--primary) 18%, transparent);
+		--mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+		--sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+	}
+
+	* { box-sizing: border-box; }
+	html { background: var(--background); }
+	body { margin: 0; font-family: var(--sans); font-size: 14px; line-height: 1.5; color: var(--foreground); background: var(--background); }
+	button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+	input { font: inherit; color: inherit; }
+	h1, h2, h3, p { margin: 0; }
+	svg.i { width: 14px; height: 14px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+	svg.i.s12 { width: 12px; height: 12px; }
+	svg.i.s16 { width: 16px; height: 16px; }
+	:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+	/* page chrome */
+	.top { position: sticky; top: 0; z-index: 50; display: flex; flex-wrap: wrap; align-items: center; gap: 12px 16px; padding: 10px 16px; background: color-mix(in oklab, var(--background) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--border); }
+	.top h1 { font-size: 15px; font-weight: 600; }
+	.top nav { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; min-width: 0; }
+	.top nav a { font-size: 12px; padding: 2px 7px; border-radius: 999px; color: var(--muted-foreground); text-decoration: none; border: 1px solid var(--border); }
+	.top nav a:hover { color: var(--foreground); background: var(--muted); }
+	.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--editor-bg); }
+	.seg button { padding: 3px 10px; font-size: 12px; color: var(--muted-foreground); }
+	.seg button[aria-pressed="true"] { background: var(--soft-primary); color: var(--foreground); font-weight: 600; }
+	.seg button + button { border-left: 1px solid var(--border); }
+	main { max-width: 1160px; margin: 0 auto; padding: 8px 16px 96px; }
+	.group-title { margin: 40px 0 0; padding-top: 12px; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); }
+	section.p { margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--divider); }
+	.p-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 10px; }
+	.pid { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--primary-foreground); background: var(--primary); padding: 1px 8px; border-radius: 6px; }
+	.p-head h2 { font-size: 17px; font-weight: 600; }
+	.tier { font-size: 11px; padding: 1px 7px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted-foreground); }
+	.tier.clear { color: var(--success); border-color: currentColor; }
+	.tier.moderate { color: var(--warning); border-color: currentColor; }
+	.p-problem { margin-top: 4px; color: var(--muted-foreground); max-width: 80ch; }
+	.p-sub { margin-top: 18px; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+	.tag { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 6px; letter-spacing: .06em; }
+	.tag.before { background: color-mix(in oklab, var(--destructive) 16%, transparent); color: var(--destructive); }
+	.tag.after { background: color-mix(in oklab, var(--success) 18%, transparent); color: var(--success); }
+	.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 16px 20px; align-items: start; }
+	.cols > div { min-width: 0; }
+	.cap { margin-top: 6px; font-size: 12px; color: var(--muted-foreground); max-width: 90ch; }
+	.ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 8px 0; font-size: 12px; color: var(--muted-foreground); }
+	.ctl label { display: inline-flex; align-items: center; gap: 6px; }
+	.ctl input[type=range] { accent-color: var(--primary); width: 160px; }
+	.ctl select { font: inherit; font-size: 12px; background: var(--editor-bg); color: var(--foreground); border: 1px solid var(--border); border-radius: 6px; padding: 2px 6px; }
+	.btn { height: 28px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--editor-bg); font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+	.btn:hover { background: var(--muted); }
+	.btn.sm { height: 24px; padding: 0 8px; font-size: 12px; border-radius: 6px; }
+	.btn.ghost { border-color: transparent; background: transparent; }
+	.btn.ghost:hover { background: var(--muted); }
+	.btn.primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+	.frame { position: relative; background: var(--editor-bg); color: var(--editor-fg); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+	.frame.pad { padding: 12px; }
+	.crop { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 10px; background: #F3F0F8; max-width: 100%; }
+	.crop img { position: absolute; max-width: none; display: block; }
+	.toast { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); z-index: 30; background: var(--foreground); color: var(--background); font-size: 12px; padding: 6px 12px; border-radius: 8px; box-shadow: var(--shadow-md); pointer-events: none; max-width: 90%; text-align: center; }
+	.toast.err { background: var(--destructive); color: #fff; }
+	#tip { position: fixed; z-index: 999; pointer-events: none; background: var(--foreground); color: var(--background); font-size: 12px; padding: 4px 8px; border-radius: 6px; transform: translate(-50%, -100%); max-width: 280px; white-space: normal; text-align: center; opacity: 0; transition: opacity .12s; }
+	#tip.on { opacity: 1; }
+	kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--border); background: var(--muted); border-radius: 4px; padding: 1px 6px; }
+
+	/* calendar bar */
+	.calbar { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px; border-bottom: 1px solid var(--divider); }
+	.calbar .t { font-size: 15px; font-weight: 600; }
+	.calbar .st { font-size: 12px; color: var(--muted-foreground); }
+	.calbar .sp { flex: 1; }
+	.calbar .btn.today { height: 26px; font-size: 12px; }
+	.calbar .ib { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--muted-foreground); }
+	.calbar .ib:hover { background: var(--muted); color: var(--foreground); }
+	.calbar .seg button { padding: 2px 8px; }
+
+	/* month grid */
+	.mhead, .mgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+	.mhead div { padding: 6px 8px; font-size: 11px; font-weight: 500; letter-spacing: .05em; text-transform: uppercase; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
+	.mc { display: flex; flex-direction: column; gap: 4px; padding: 6px; overflow: hidden; border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); min-width: 0; }
+	.mc:nth-child(7n+1) { border-left: 0; }
+	.mc.out.cur { background: color-mix(in oklab, var(--muted) 40%, transparent); }
+	.mc-top { display: flex; align-items: center; gap: 4px; flex: none; }
+	.mc-top .sp { flex: 1; }
+	.dn { height: 24px; min-width: 24px; padding: 0 4px; border-radius: 6px; font-size: 14px; display: inline-flex; align-items: center; justify-content: center; }
+	.dn:hover { background: var(--muted); }
+	.dn.out { color: var(--muted-foreground); }
+	.dn.today { color: var(--primary); }
+	.dn.sel { background: var(--primary); color: var(--primary-foreground); font-weight: 600; }
+	.dn.sel:hover { background: var(--primary); }
+	.dn.ring { box-shadow: inset 0 0 0 1.5px var(--primary); color: var(--primary); font-weight: 600; }
+	.dn.ring.sel { color: var(--primary-foreground); box-shadow: 0 0 0 2px var(--editor-bg), 0 0 0 3.5px var(--primary); margin: 0 1px; }
+	.dnote { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--muted-foreground); flex: none; }
+	.dnote:hover { background: var(--muted); color: var(--foreground); }
+	.dnote.always { opacity: .6; }
+	.dnote.always:hover { opacity: 1; }
+	.dnote.hov { opacity: 0; }
+	.mc:hover .dnote.hov, .dnote.hov:focus-visible, .dnote.hov.keep { opacity: .9; }
+	.dnote.hov:hover { opacity: 1; }
+	.chip { display: flex; align-items: center; gap: 5px; height: 22px; width: 100%; flex: none; padding: 0 6px; border-radius: 6px; font-size: 12px; font-weight: 500; text-align: left; overflow: hidden; }
+	.chip > span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.chip.ev:hover { filter: brightness(1.06); }
+	.chip.task { border: 1px solid var(--border); color: var(--editor-fg); font-weight: 400; background: transparent; }
+	.chip.task.done > span { text-decoration: line-through; color: var(--muted-foreground); }
+	.chip.task svg { color: var(--muted-foreground); }
+	.ev-blue { background: var(--ev-blue-bg); color: var(--ev-blue-fg); }
+	.ev-green { background: var(--ev-green-bg); color: var(--ev-green-fg); }
+	.ev-purple { background: var(--ev-purple-bg); color: var(--ev-purple-fg); }
+	.ev-pink { background: var(--ev-pink-bg); color: var(--ev-pink-fg); }
+	.ev-orange { background: var(--ev-orange-bg); color: var(--ev-orange-fg); }
+	.more { flex: none; align-self: flex-start; padding: 4px 6px; border-radius: 6px; font-size: 12px; color: var(--muted-foreground); }
+	.more:hover { background: var(--muted); color: var(--foreground); }
+	.pill-n { flex: none; height: 20px; padding: 0 6px; border-radius: 999px; font-size: 11px; font-weight: 600; background: var(--muted); color: var(--foreground); }
+	.pill-n:hover { background: var(--soft-primary); color: var(--primary); }
+	.hint { font-size: 11px; color: var(--muted-foreground); padding: 2px 6px; border: 1px dashed var(--border); border-radius: 6px; align-self: flex-start; }
+
+	/* week lane */
+	.wl { display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); }
+	.wl > div { border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); min-width: 0; }
+	.wl > .g { border-left: 0; font-size: 11px; color: var(--muted-foreground); display: flex; align-items: center; justify-content: center; }
+	.wl .dh { display: flex; align-items: center; gap: 6px; padding: 6px 8px; font-size: 12px; color: var(--muted-foreground); }
+	.wl .dh b { font-weight: 500; color: var(--foreground); font-size: 14px; }
+	.wl .dh .td { background: var(--primary); color: var(--primary-foreground); border-radius: 999px; padding: 0 7px; font-weight: 600; }
+	.lane { padding: 4px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; }
+	.lane .chip { height: 24px; }
+
+	/* time grid */
+	.tg { position: relative; }
+	.tg-head { display: grid; grid-template-columns: 44px repeat(3, 1fr); border-bottom: 1px solid var(--border); font-size: 12px; color: var(--muted-foreground); }
+	.tg-head div { padding: 6px 8px; border-left: 1px solid var(--border); }
+	.tg-head div:first-child { border-left: 0; }
+	.tg-head b { color: var(--foreground); font-weight: 500; font-size: 14px; margin-left: 4px; }
+	.tg-head .td { background: var(--primary); color: var(--primary-foreground); border-radius: 999px; padding: 0 7px; font-weight: 600; margin-left: 4px; }
+	.tg-scroll { height: 300px; overflow-y: auto; position: relative; }
+	.tg-body { position: relative; display: grid; grid-template-columns: 44px repeat(3, 1fr); height: 1536px; }
+	.tg-col { position: relative; border-left: 1px solid var(--border); background-image: linear-gradient(var(--border) 1px, transparent 1px); background-size: 100% 64px; }
+	.tg-gut { position: relative; }
+	.tg-gut span { position: absolute; right: 6px; font-size: 11px; color: var(--muted-foreground); transform: translateY(-50%); }
+	.tg-ev { position: absolute; left: 3px; right: 3px; border-radius: 6px; padding: 3px 6px; font-size: 12px; overflow: hidden; }
+	.tg-now { position: absolute; left: 0; right: 0; height: 2px; background: var(--primary); z-index: 3; }
+	.tg-now::before { content: ""; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 999px; background: var(--primary); }
+	.nowpill { position: absolute; left: 50%; transform: translateX(-50%); z-index: 5; display: inline-flex; align-items: center; gap: 4px; background: var(--primary); color: var(--primary-foreground); font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; box-shadow: var(--shadow-md); }
+	.nowpill[hidden] { display: none; }
+	.nowpill.bot { bottom: 10px; }
+	.nowpill.topp { top: 10px; }
+	.tg-bar { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--border); font-size: 12px; }
+	.tg-bar .t { font-weight: 600; font-size: 13px; }
+
+	/* day view */
+	.strip { display: grid; grid-template-columns: repeat(7, 1fr) 40px; align-items: center; border-bottom: 1px solid var(--border); }
+	.strip button.d { padding: 6px 0; text-align: center; font-size: 11px; color: var(--muted-foreground); text-transform: uppercase; letter-spacing: .04em; }
+	.strip button.d b { display: block; font-size: 15px; font-weight: 500; color: var(--foreground); text-transform: none; margin-top: 1px; }
+	.strip button.d.sel b { display: flex; margin: 1px auto 0; width: 26px; height: 26px; align-items: center; justify-content: center; border-radius: 999px; background: var(--primary); color: var(--primary-foreground); }
+	.dl { display: grid; grid-template-columns: 52px 1fr; }
+	.dl > .g { font-size: 11px; color: var(--muted-foreground); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--border); text-align: center; }
+	.dl > .c { border-bottom: 1px solid var(--border); border-left: 1px solid var(--border); min-width: 0; }
+	.alld { height: 22px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; color: transparent; cursor: cell; }
+	.alld:hover { background: var(--soft-primary); color: var(--primary); }
+	.alld.big { height: 40px; }
+	.dl-tl { position: relative; height: 200px; overflow: hidden; }
+
+	/* shortcuts dialog */
+	.dlg { background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow-md); padding: 20px; max-width: 440px; }
+	.dlg h3 { font-size: 18px; font-weight: 600; line-height: 1.2; }
+	.dlg .d { font-size: 14px; color: var(--muted-foreground); margin-top: 6px; }
+	.dlg table { width: 100%; font-size: 14px; border-collapse: collapse; margin-top: 14px; }
+	.dlg td { padding: 6px 0; vertical-align: top; border-bottom: 1px solid var(--border); }
+	.dlg tr:last-child td { border-bottom: 0; }
+	.dlg td:first-child { padding-right: 16px; white-space: nowrap; }
+	.dlg td:last-child { color: var(--muted-foreground); }
+	.dlg .gh { font-size: 11px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted-foreground); padding-top: 14px; border-bottom: 1px solid var(--border); font-weight: 600; }
+	.dlg .sl { color: var(--muted-foreground); padding: 0 3px; }
+	.ghost-kbd { font-size: 12px; color: var(--muted-foreground); }
+
+	/* popover */
+	.pop { width: 270px; background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow-md); }
+	.pop .b { display: flex; gap: 10px; padding: 14px; }
+	.pop .dot { width: 12px; height: 12px; border-radius: 3px; margin-top: 4px; flex: none; }
+	.pop h4 { margin: 0; font-size: 15px; font-weight: 500; line-height: 20px; }
+	.pop p { font-size: 13px; color: var(--muted-foreground); margin-top: 6px; }
+	.pop p.lockcap { display: flex; gap: 6px; align-items: flex-start; background: var(--muted); border-radius: 6px; padding: 6px 8px; font-size: 12px; margin-top: 8px; color: var(--muted-foreground); }
+	.pop .f { display: flex; gap: 4px; padding: 8px; border-top: 1px solid var(--border); }
+	.abar { position: relative; height: 26px; margin: 4px; border-radius: 6px; display: flex; align-items: center; gap: 5px; padding: 0 8px; font-size: 12px; font-weight: 500; }
+	.abar.ro { cursor: not-allowed; }
+	.abar.ro:hover { cursor: not-allowed; }
+
+	/* rail */
+	.railwrap { container-type: inline-size; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 8px 6px 10px; }
+	.rhead { display: flex; align-items: center; gap: 2px; margin-bottom: 6px; }
+	.rhead .rl { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--foreground); padding-left: 2px; }
+	.rhead .rl .full { display: none; }
+	.rb { width: 18px; height: 22px; display: inline-flex; align-items: center; justify-content: center; border-radius: 6px; color: var(--muted-foreground); flex: none; }
+	.rb:hover { background: var(--muted); color: var(--foreground); }
+	.rtoday { height: 22px; padding: 0 4px; font-size: 10.5px; font-weight: 500; border: 1px solid var(--border); border-radius: 6px; background: var(--editor-bg); flex: none; }
+	.rtoday:hover { background: var(--muted); }
+	.rbody { display: flex; gap: 3px; }
+	.rwk { display: none; flex-direction: column; gap: 2px; padding-top: 22px; }
+	.rwk button { width: 22px; height: 26px; font-size: 11px; color: var(--muted-foreground); border-radius: 5px; }
+	.rwk button:hover { background: var(--muted); color: var(--foreground); }
+	.rgrid { flex: 1; min-width: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 2px 0; }
+	.rgrid .wd { height: 22px; display: flex; align-items: center; justify-content: center; font-size: 10.5px; font-weight: 600; color: var(--muted-foreground); }
+	.rgrid .wd.we { color: var(--primary); }
+	.rgrid .wd .l3 { display: none; }
+	.rd { position: relative; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 12.5px; border-radius: 6px; color: var(--foreground); }
+	.rd.out { color: color-mix(in oklab, var(--muted-foreground) 70%, transparent); }
+	.rd.we { color: var(--primary); }
+	.rd:hover { background: var(--muted); }
+	.rd .dots { position: absolute; bottom: 1px; display: flex; gap: 1px; }
+	.rd .dots i { width: 3px; height: 3px; border-radius: 999px; background: var(--primary); }
+	.rd.rtd { background: var(--soft-primary); color: var(--primary); font-weight: 700; }
+	.rd.sel { background: var(--primary); color: var(--primary-foreground); }
+	.rd.sel.rtd { font-weight: 700; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }
+	.rd:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; z-index: 1; }
+	.rd.oldtd { box-shadow: inset 0 0 0 1px var(--primary); font-weight: 700; }
+	.fake-focus { outline: 2px solid var(--ring); outline-offset: 1px; }
+	@container (min-width: 190px) {
+		.rhead .rl .full { display: inline; }
+		.rhead .rl .short { display: none; }
+		.rwk { display: flex; }
+		.rgrid .wd .l3 { display: inline; }
+		.rgrid .wd .l1 { display: none; }
+	}
+	.legend { display: flex; flex-wrap: wrap; gap: 10px 16px; margin-top: 10px; font-size: 12px; color: var(--muted-foreground); align-items: center; }
+	.legend .sw { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px; border-radius: 6px; font-size: 12.5px; color: var(--foreground); margin-right: 5px; }
+	.announce { margin-top: 8px; padding: 6px 10px; font-size: 12px; font-family: var(--mono); background: var(--muted); border-radius: 8px; color: var(--foreground); min-height: 30px; }
+
+	/* tasks */
+	.tbar { display: flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; border-bottom: 1px solid var(--divider); position: relative; }
+	.tbar .t { font-size: 15px; font-weight: 600; }
+	.tbar .m { font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
+	.tsearch { position: relative; width: 168px; flex: none; }
+	.tsearch input { width: 100%; height: 24px; padding: 0 8px; font-size: 12px; border-radius: 6px; background: color-mix(in oklab, var(--background) 50%, transparent); border: 1px solid color-mix(in oklab, var(--border) 50%, transparent); outline: none; }
+	.tsearch input::placeholder { color: color-mix(in oklab, var(--muted-foreground) 50%, transparent); }
+	.tsearch input:focus { border-color: color-mix(in oklab, var(--primary) 50%, transparent); }
+	.tsearch.hi input { background: var(--editor-bg); border-color: var(--divider); padding-right: 34px; }
+	.tsearch.hi input::placeholder { color: var(--muted-foreground); opacity: 1; }
+	.tsearch.hi input:focus { border-color: var(--primary); box-shadow: 0 0 0 2px var(--soft-primary); }
+	.tsearch .k { position: absolute; right: 5px; top: 3px; font-size: 11px; font-family: var(--sans); line-height: 16px; padding: 0 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--muted); color: var(--muted-foreground); pointer-events: none; }
+	.tsearch .k.off { display: none; }
+	.dtrig { height: 24px; padding: 0 8px; display: inline-flex; align-items: center; gap: 4px; border-radius: 6px; font-size: 12px; color: var(--muted-foreground); }
+	.dtrig:hover { background: var(--accent); }
+	.dtrig .dot { opacity: .7; }
+	.menu { position: absolute; right: 8px; top: 34px; z-index: 20; width: 192px; padding: 4px; background: var(--popover); color: var(--popover-foreground); border: 1px solid var(--border); border-radius: 8px; box-shadow: var(--shadow-md); font-size: 13px; }
+	.menu .lb { padding: 4px 8px; font-size: 12px; font-weight: 600; }
+	.menu button.ri { display: flex; width: 100%; align-items: center; padding: 4px 8px 4px 28px; border-radius: 5px; text-align: left; position: relative; }
+	.menu button.ri:hover { background: var(--accent); }
+	.menu button.ri .ck { position: absolute; left: 8px; }
+	.menu .sub { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px 4px 28px; border-radius: 5px; color: var(--foreground); }
+	.menu .sub:hover { background: var(--accent); }
+	.menu hr { border: 0; border-top: 1px solid var(--border); margin: 4px -4px; }
+	.sent { font-size: 12px; color: var(--muted-foreground); padding: 10px 16px 6px; }
+	.sent button { color: var(--primary); margin-left: 6px; }
+	.sent button:hover { text-decoration: underline; }
+	.tgs { padding: 6px 16px 16px; }
+	.tgrp .th { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 8px; }
+	.tgrp + .tgrp { margin-top: 24px; }
+	.tgs.tight .tgrp + .tgrp { margin-top: 16px; }
+	.tgs.tight .tgrp .th { align-items: center; margin-bottom: 2px; }
+	.th .chev { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; color: var(--muted-foreground); border-radius: 4px; flex: none; }
+	.th .chev:hover { background: var(--muted); }
+	.th .ico { height: 20px; display: inline-flex; align-items: center; color: var(--muted-foreground); }
+	.th .nm { font-size: 14px; font-weight: 500; }
+	.th .nm:hover { text-decoration: underline; }
+	.th .ct { font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
+	.th .fo { font-size: 12px; color: var(--muted-foreground); }
+	.th .inl { display: flex; align-items: baseline; gap: 8px; min-width: 0; flex: 1; }
+	.th .inl .fo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+	.th .inl .fo::before { content: "\00b7"; margin-right: 8px; }
+	.tr { position: relative; display: flex; align-items: center; gap: 8px; min-height: 28px; padding: 2px 6px 2px 30px; border-radius: 6px; font-size: 14px; }
+	.tr:hover { background: color-mix(in oklab, var(--accent) 50%, transparent); }
+	.tr svg.cir { color: var(--muted-foreground); }
+	.tr .due { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted-foreground); white-space: nowrap; }
+	.tr .due.od { color: var(--destructive); }
+	.tr .mm { margin-left: auto; color: var(--muted-foreground); letter-spacing: 1px; font-weight: 700; }
+	.tr.dim.s-cur { opacity: .6; }
+	.tr.dim.s-rule { color: var(--muted-foreground); border-left: 2px solid color-mix(in oklab, var(--muted-foreground) 55%, transparent); border-top-left-radius: 0; border-bottom-left-radius: 0; margin-left: 0; padding-left: 30px; }
+	.tr.dim.s-tip { color: var(--muted-foreground); }
+	.sources { padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: color-mix(in oklab, var(--muted) 30%, transparent); display: flex; flex-direction: column; gap: 16px; container-type: inline-size; }
+	.sources h3 { font-size: 12px; font-weight: 500; }
+	.sources p.h { font-size: 12px; color: var(--muted-foreground); }
+	.scard { display: flex; flex-direction: column; gap: 8px; border: 1px solid var(--border); background: var(--editor-bg); border-radius: 8px; padding: 8px; }
+	.scl { display: flex; align-items: center; gap: 8px; }
+	.scl .kl { width: 64px; font-size: 12px; color: var(--muted-foreground); flex: none; }
+	.scl input.f, .exin input { flex: 1; min-width: 0; height: 28px; padding: 0 8px; border: 1px solid var(--border); border-radius: 6px; background: transparent; font-size: 12px; outline: none; }
+	.scl input.f:focus, .exin input:focus { border-color: var(--primary); }
+	.scard .acts { display: flex; gap: 4px; }
+	.cards { display: flex; flex-direction: column; gap: 8px; }
+	.orsep { display: flex; align-items: center; gap: 10px; color: var(--muted-foreground); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
+	.orsep::before, .orsep::after { content: ""; flex: 1; border-top: 1px solid var(--border); }
+	.sw-row { display: flex; flex-wrap: wrap; gap: 8px 16px; }
+	.sw-row label { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; }
+	.tgl { appearance: none; width: 28px; height: 16px; border-radius: 999px; background: var(--muted); position: relative; margin: 0; cursor: pointer; transition: background .15s; }
+	.tgl::after { content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 999px; background: var(--editor-bg); transition: transform .15s; box-shadow: 0 1px 2px var(--elev-shadow-2); }
+	.tgl:checked { background: var(--primary); }
+	.tgl:checked::after { transform: translateX(12px); }
+	.exlists { display: grid; gap: 12px; grid-template-columns: 1fr; margin-top: 8px; }
+	@container (min-width: 560px) { .exlists { grid-template-columns: 1fr 1fr; } }
+	.exlists .lt { font-size: 12px; color: var(--muted-foreground); }
+	.exin { display: flex; gap: 4px; margin-top: 4px; }
+	.chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+	.chips li { list-style: none; display: inline-flex; gap: 4px; align-items: center; background: var(--muted); border-radius: 4px; padding: 0 6px; font-size: 12px; }
+	.chips { padding: 0; margin: 4px 0 0; }
+	.disc { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; padding: 6px 4px; border-radius: 6px; font-size: 12px; font-weight: 500; }
+	.disc:hover { background: var(--muted); }
+	.disc .cnt { margin-left: auto; font-weight: 400; color: var(--muted-foreground); background: var(--muted); border-radius: 999px; padding: 0 8px; }
+	.disc svg { transition: transform .15s; color: var(--muted-foreground); }
+	.disc[aria-expanded="true"] svg { transform: rotate(90deg); }
+	.flt { display: flex; gap: 6px; align-items: center; padding: 8px 16px 0; font-size: 12px; color: var(--muted-foreground); }
+	.flt .c { border: 1px solid var(--border); border-radius: 999px; padding: 0 8px; color: var(--foreground); }
+	@media (max-width: 560px) { .hide-sm { display: none !important; } }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+	<defs>
+		<symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+		<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+		<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+		<symbol id="i-chev-u" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></symbol>
+		<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></symbol>
+		<symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="M12 5v14"/></symbol>
+		<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+		<symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+		<symbol id="i-circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></symbol>
+		<symbol id="i-circle-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></symbol>
+		<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+		<symbol id="i-keyboard" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/></symbol>
+		<symbol id="i-square-pen" viewBox="0 0 24 24"><path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/></symbol>
+		<symbol id="i-cal-plus" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/><path d="M3 10h18"/><path d="M16 19h6"/><path d="M19 16v6"/></symbol>
+		<symbol id="i-cal" viewBox="0 0 24 24"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></symbol>
+		<symbol id="i-file" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></symbol>
+	</defs>
+</svg>
+<div id="tip" role="tooltip"></div>
+
+<header class="top">
+	<h1>Event calendar, rail mini month and Tasks view</h1>
+	<nav aria-label="Proposals">
+		<a href="#P64">P64</a><a href="#P183">P183</a><a href="#P130">P130</a><a href="#P65">P65</a><a href="#P127">P127</a><a href="#P128">P128</a><a href="#P129">P129</a><a href="#P182">P182</a><a href="#P32">P32</a><a href="#P132">P132</a><a href="#P131">P131</a><a href="#P63">P63</a><a href="#P180">P180</a><a href="#P163">P163</a><a href="#P165">P165</a><a href="#P167">P167</a><a href="#P164">P164</a>
+	</nav>
+	<div class="seg" role="group" aria-label="Theme for the AFTER recreations">
+		<button id="th-light" aria-pressed="true">Light</button><button id="th-dark" aria-pressed="false">Dark</button>
+	</div>
+</header>
+
+<main>
+	<p class="cap" style="margin-top:14px">Every AFTER panel is interactive and follows the theme toggle. BEFORE panels are the real screenshots (always light, cropped) or, where no screenshot shows the state, a faithful recreation. "Today" in all demos is Tue, Nov 10, 2026.</p>
+
+	<h2 class="group-title">Event calendar: month, week and day</h2>
+
+	<!-- P64 -->
+	<section class="p" id="P64">
+		<div class="p-head"><span class="pid">P64</span><h2>Month cells clip the '+N more' button on busy days</h2><span class="tier clear">clear</span></div>
+		<p class="p-problem">Three chips plus the footer need about 142 px, and the cell is about 125 px, so '+4 more' is cut off.</p>
+		<div class="p-sub"><span class="tag before">BEFORE</span> real app, 1440 x 900 window</div>
+		<div class="crop" data-f="calendar-month-light" data-x="417" data-y="80" data-w="1023" data-h="415"></div>
+		<div class="p-sub"><span class="tag after">AFTER</span> chip slots computed from the cell height, footer reserved</div>
+		<div class="ctl">
+			<label>Cell height <input type="range" id="p64-h" min="84" max="190" value="125"> <b id="p64-hv">125 px</b></label>
+			<span class="seg" id="p64-var"><button data-v="footer" aria-pressed="true">Footer reserved</button><button data-v="row" aria-pressed="false">Count in the day row</button><button data-v="before" aria-pressed="false">Current behaviour</button></span>
+		</div>
+		<div class="frame" id="p64-host"></div>
+		<p class="cap">125 px is the cell height of a 1440 x 900 window. Drag the slider to see the slots recompute: chips = floor((cell - day row - padding - footer) / 26 px). Nothing is ever clipped; the footer or the count pill always shows how many items are hidden. Nov 2026 needs 6 week rows with a Monday start, so the optional 5-row month would not help this month.</p>
+	</section>
+
+	<!-- P183 -->
+	<section class="p" id="P183">
+		<div class="p-head"><span class="pid">P183</span><h2>Today versus selected, out-of-month cells and the title</h2><span class="tier">polish</span></div>
+		<p class="p-problem">Selecting another day takes today's badge, out-of-month cells look like heavy blocks, and the title reads 'November, 2026'.</p>
+		<div class="p-sub"><span class="tag before">BEFORE</span> real app (today is also the selected day here)</div>
+		<div class="crop" data-f="calendar-month-light" data-x="417" data-y="40" data-w="1023" data-h="335"></div>
+		<div class="p-sub"><span class="tag after">AFTER</span> click any day number to select it</div>
+		<div class="ctl"><span class="seg" id="p183-mode"><button data-v="after" aria-pressed="true">Proposed</button><button data-v="before" aria-pressed="false">Current (recreation)</button></span><span>Select Nov 12: today keeps its ring, the fill moves. Select Nov 10 to see ring and fill together.</span></div>
+		<div class="frame" id="p183-host"></div>
+		<p class="cap">Today always keeps a primary ring on its number; selection stays the solid fill; when today is selected both show (fill plus an offset ring). Out-of-month cells lose the bg-muted/40 fill and recede through muted numbers only. The weekend tint is dropped.</p>
+	</section>
+
+	<!-- P130 -->
+	<section class="p" id="P130">
+		<div class="p-head"><span class="pid">P130</span><h2>The daily-note icon repeats in every cell and header</h2><span class="tier">polish</span></div>
+		<p class="p-problem">42 notebook-pen icons read as 'new', with native title hints.</p>
+		<div class="p-sub"><span class="tag before">BEFORE</span> real app</div>
+		<div class="crop" data-f="calendar-month-light" data-x="417" data-y="245" data-w="1023" data-h="250"></div>
+		<div class="p-sub"><span class="tag after">AFTER</span> hover or Tab to a cell; hover the icon for the shared tooltip</div>
+		<div class="ctl"><span class="seg" id="p130-mode"><button data-v="after" aria-pressed="true">Proposed</button><button data-v="before" aria-pressed="false">Current</button></span><span>Proposed: the icon shows on hover, on keyboard focus and on today; the glyph is a calendar-plus.</span></div>
+		<div class="frame" id="p130-host"></div>
+		<p class="cap">The action stays reachable: the rail Day lens header also opens the daily note. Week and day headers follow the same rule (hover or today).</p>
+	</section>
+
+	<!-- P65 -->
+	<section class="p" id="P65">
+		<div class="p-head"><span class="pid">P65</span><h2>The week and day Tasks lane hides tasks with no overflow cue</h2><span class="tier moderate">moderate</span></div>
+		<p class="p-problem">The lane caps at 3 rows and scrolls inside, with no '+N'; Tuesday's 4th chip shows only as a sliver.</p>
+		<div class="p-sub"><span class="tag before">BEFORE</span> real app, week view</div>
+		<div class="crop" data-f="calendar-week-light" data-x="417" data-y="80" data-w="1023" data-h="190"></div>
+		<div class="p-sub"><span class="tag after">AFTER</span> week view: '+N' opens the day view (same pattern as the All day lane)</div>
+		<div class="frame" id="p65-week"></div>
+		<div class="p-sub"><span class="tag after">AFTER</span> day view: '+N' would loop back, so the lane expands in place</div>
+		<div class="frame" id="p65-day"></div>
+		<p class="cap">Hover a '+N' for the hidden task names. The day-view lane shows its count in the label and expands to every task, then collapses again.</p>
+	</section>
+
+	<!-- P127 -->
+	<section class="p" id="P127">
+		<div class="p-head"><span class="pid">P127</span><h2>The time grid and Today never scroll to the now-line</h2><span class="tier moderate">moderate</span></div>
+		<p class="p-problem">It scrolls only to 'Day starts at' on mount, so after about 15:00 the now-line opens below the fold.</p>
+		<div class="ctl">
+			<label>Simulated time now <select id="p127-now"><option value="9.5">09:30</option><option value="15.67" selected>15:40</option><option value="22.25">22:15</option></select></label>
+			<label>Day starts at <select id="p127-start"><option value="6">06:00</option><option value="7" selected>07:00</option><option value="9">09:00</option></select></label>
+			<button class="btn sm" id="p127-reopen">Reopen week view in both</button>
+		</div>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> opens at the start hour, Today does nothing</div><div class="frame" id="p127-before"></div></div>
+			<div><div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> now-line brought into view, Today scrolls to it</div><div class="frame" id="p127-after"></div></div>
+		</div>
+		<p class="cap">Rule: the mount scroll stays at 'Day starts at'. Only when today is visible and the now-line is below the viewport does the grid scroll, putting the line about a third down. With 09:30 nothing changes, so the setting is still honoured. Scroll away to see the optional 'Now' pill.</p>
+	</section>
+
+	<!-- P128 -->
+	<section class="p" id="P128">
+		<div class="p-head"><span class="pid">P128</span><h2>Day view stacks two headers and uses a third of the height</h2><span class="tier">polish</span></div>
+		<p class="p-problem">The day is named twice (week strip and an in-grid 'TUE 10' header) and the empty All day row is 40 px tall.</p>
+		<div class="p-sub"><span class="tag before">BEFORE</span> real app, day view</div>
+		<div class="crop" data-f="calendar-day-light" data-x="417" data-y="40" data-w="1023" data-h="290"></div>
+		<div class="p-sub"><span class="tag after">AFTER</span> one header, daily-note button in the week strip, thin All day lane</div>
+		<div class="ctl"><label><input type="checkbox" id="p128-cap"> Cap event block width at 640 px (optional)</label></div>
+		<div class="frame" id="p128-host"></div>
+		<p class="cap">The All day lane stays a click target: hover it to see the create affordance, click to start a new all-day event. The freed height shows two more hours of the timeline.</p>
+	</section>
+
+	<!-- P129 -->
+	<section class="p" id="P129">
+		<div class="p-head"><span class="pid">P129</span><h2>Event creation gestures are hidden and inconsistent</h2><span class="tier">polish</span></div>
+		<p class="p-problem">Click, double-click and click again create in different views; the shortcuts dialog lists keys only.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> shortcuts dialog (recreation of CALENDAR_SHORTCUTS)</div><div class="dlg" id="p129-before"></div></div>
+			<div><div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> new 'Mouse' group, gestures unchanged</div><div class="dlg" id="p129-after"></div></div>
+		</div>
+		<div class="p-sub"><span class="tag after">AFTER</span> optional hover hint on an empty month cell (hover a cell, double-click one)</div>
+		<div class="frame" id="p129-month"></div>
+	</section>
+
+	<!-- P182 -->
+	<section class="p" id="P182">
+		<div class="p-head"><span class="pid">P182</span><h2>Multi-day read-only events look editable but ignore drags</h2><span class="tier">polish</span></div>
+		<p class="p-problem">Only a data attribute marks them, and a drag silently does nothing.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> recreation</div><div class="frame" id="p182-before" style="min-height:300px"></div></div>
+			<div><div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> lock icon, tooltip, popover caption</div><div class="frame" id="p182-after" style="min-height:300px"></div></div>
+		</div>
+		<p class="cap">Click the 'Product offsite' bar to open its popover. Hover it: the cursor is not-allowed and the tooltip says why. The caption reuses the wording of the edit dialog ('This event has an end date or crosses midnight. Change its date and time in the note.').</p>
+	</section>
+
+	<h2 class="group-title">Rail mini month</h2>
+
+	<!-- P32 -->
+	<section class="p" id="P32">
+		<div class="p-head"><span class="pid">P32</span><h2>Calendar navigator renders broken at pane widths around 163 px</h2><span class="tier moderate">moderate</span></div>
+		<p class="p-problem">Weekday headers collide ('MONTUEWED...'), chevrons clip and numbers touch. Default pane sizes stay as the owner set them.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> real app, zoomed 2x</div><div class="crop" data-f="rail-calendar-light" data-x="190" data-y="40" data-w="170" data-h="275" data-z="2"></div></div>
+			<div>
+				<div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> container-aware</div>
+				<div class="ctl"><span class="seg" id="p32-w"><button data-w="140" aria-pressed="false">140</button><button data-w="163" aria-pressed="true">163 px</button><button data-w="200" aria-pressed="false">200</button><button data-w="260" aria-pressed="false">260</button></span></div>
+				<div id="p32-host" style="position:relative"></div>
+			</div>
+		</div>
+		<p class="cap">Below about 190 px of content the weekday headers become single letters, the week-number column is hidden and the month shows as 'Nov 2026' with chevrons that never shrink. From 200 px up the full layout returns. Optional extra: navigator panes could declare a pixel minWidth.</p>
+	</section>
+
+	<!-- P132 -->
+	<section class="p" id="P132">
+		<div class="p-head"><span class="pid">P132</span><h2>Rail mini month: today mark looks like focus, no arrow keys</h2><span class="tier">polish</span></div>
+		<p class="p-problem">The mini month is 48 Tab stops with number-only names, and the today ring looks like a focus ring.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> real app, zoomed 2x (today has a ring, same as focus)</div><div class="crop" data-f="rail-calendar-light" data-x="190" data-y="105" data-w="170" data-h="130" data-z="2"></div>
+				<div class="legend" style="margin-top:10px"><span><span class="sw oldtd" style="box-shadow:inset 0 0 0 1px var(--primary);font-weight:700">10</span>today (ring)</span><span><span class="sw fake-focus">11</span>keyboard focus (ring)</span></div></div>
+			<div>
+				<div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> focus the grid, then use the arrow keys</div>
+				<div id="p132-host"></div>
+				<div class="legend"><span><span class="sw" style="background:var(--soft-primary);color:var(--primary);font-weight:700">10</span>today (fill)</span><span><span class="sw" style="background:var(--primary);color:var(--primary-foreground)">12</span>selected</span><span><span class="sw fake-focus">11</span>focus</span></div>
+				<div class="announce" id="p132-ann" aria-live="polite">Click a day or press Tab to enter the grid.</div>
+			</div>
+		</div>
+		<p class="cap">One Tab stop for the whole grid (roving tabindex); arrows move by day and week, Home/End jump to the row ends, Enter or Space selects. Each day carries a full-date label with the note count (shown above as it would be announced).</p>
+	</section>
+
+	<!-- P131 -->
+	<section class="p" id="P131">
+		<div class="p-head"><span class="pid">P131</span><h2>The month title hides 'Go to today'; weekly errors are silent</h2><span class="tier">polish</span></div>
+		<p class="p-problem">The month label is the only 'go to today' control (title tooltip), and a failing weekly note only logs to the console.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> real app, zoomed 2x</div><div class="crop" data-f="rail-calendar-light" data-x="190" data-y="40" data-w="170" data-h="120" data-z="2"></div></div>
+			<div>
+				<div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> explicit Today button, plain month label</div>
+				<div class="ctl"><span class="seg" id="p131-w"><button data-w="163" aria-pressed="true">163 px</button><button data-w="240" aria-pressed="false">240 px</button></span><label><input type="checkbox" id="p131-fail"> Weekly note fails to open</label></div>
+				<div id="p131-host" style="position:relative"></div>
+			</div>
+		</div>
+		<p class="cap">Step to another month with the chevrons, then press Today. At 240 px the week numbers show: click one with the failure switch on to see the error toast (it matches the periodic-entry toast). The Day lens header keeps its 'Daily note' action, so no extra daily row is added.</p>
+	</section>
+
+	<h2 class="group-title">Tasks view</h2>
+
+	<!-- P63 -->
+	<section class="p" id="P63">
+		<div class="p-head"><span class="pid">P63</span><h2>Tasks note-group headers use two lines for one or two tasks</h2><span class="tier">polish</span></div>
+		<p class="p-problem">Each header stacks the title row and a folder line, and groups are 24 px apart.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> real app</div><div class="crop" data-f="tasks-all-open-light" data-x="593" data-y="155" data-w="847" data-h="470"></div></div>
+			<div><div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> same 470 px of height</div><div class="frame" id="p63-host" style="height:472px"></div></div>
+		</div>
+		<p class="cap">The folder moves inline after the count (muted, truncated, hidden under 560 px as today). The 'N of M open' count is kept, and group spacing drops from 24 px to 16 px: the same height now shows more groups. Chevrons collapse a group.</p>
+	</section>
+
+	<!-- P180 -->
+	<section class="p" id="P180">
+		<div class="p-head"><span class="pid">P180</span><h2>Dimmed Tasks context rows have no explanation</h2><span class="tier">polish</span></div>
+		<p class="p-problem">Parent rows that fail the filters stay at opacity-60, which reads as disabled.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> opacity-60, nothing explains it (recreation)</div><div class="frame" id="p180-before"></div></div>
+			<div><div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> hover a context row for 'Shown for context'</div>
+			<div class="ctl"><span class="seg" id="p180-s"><button data-v="s-rule" aria-pressed="true">Left rule + tooltip</button><button data-v="s-tip" aria-pressed="false">Muted text + tooltip</button></span></div>
+			<div class="frame" id="p180-host"></div></div>
+		</div>
+		<p class="cap">The filter is Priority: high. 'Ship v4.10' and 'QA pass' fail it but are kept as parents of tasks that pass. All rows stay fully interactive, so the proposal replaces the disabled-looking opacity with a thin rule (or muted text) and explains itself on hover.</p>
+	</section>
+
+	<!-- P163 -->
+	<section class="p" id="P163">
+		<div class="p-head"><span class="pid">P163</span><h2>The Tasks Display trigger hides the current grouping</h2><span class="tier">polish</span></div>
+		<p class="p-problem">The trigger always reads 'Display'; the active grouping is visible only after opening the menu.</p>
+		<div class="p-sub"><span class="tag before">BEFORE</span> real app</div>
+		<div class="crop" data-f="tasks-all-open-light" data-x="417" data-y="40" data-w="1023" data-h="42"></div>
+		<div class="p-sub"><span class="tag after">AFTER</span> open the menu and pick another grouping</div>
+		<div class="frame" id="p163-host" style="min-height:300px"></div>
+		<p class="cap">Heading stays where it is, under Group by. A Sort control is not proposed (sort is deliberately fixed); it remains an owner question.</p>
+	</section>
+
+	<!-- P165 -->
+	<section class="p" id="P165">
+		<div class="p-head"><span class="pid">P165</span><h2>The Tasks rule sentence button says only 'Edit'</h2><span class="tier">polish</span></div>
+		<p class="p-problem">The same action is called 'Edit sources' in the empty state; here it is a bare 'Edit'.</p>
+		<div class="p-sub"><span class="tag before">BEFORE</span> real app</div>
+		<div class="crop" data-f="tasks-all-open-light" data-x="593" data-y="125" data-w="847" data-h="34"></div>
+		<div class="p-sub"><span class="tag after">AFTER</span></div>
+		<div class="ctl"><label><input type="checkbox" id="p165-custom"> Sources customised (shows Clear)</label></div>
+		<div class="frame" id="p165-host"></div>
+		<p class="cap">Only the label changes. The marker verbs (Save / Revert, Save as view / Reset) and Clear behaviour stay as Issue 125 and 245 specify.</p>
+	</section>
+
+	<!-- P167 -->
+	<section class="p" id="P167">
+		<div class="p-head"><span class="pid">P167</span><h2>The Tasks search field is low contrast and has no shortcut</h2><span class="tier">polish</span></div>
+		<p class="p-problem">A /50 placeholder on a /50 border, and no way to reach the field without the mouse.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> real app, and a live recreation</div><div class="crop" data-f="tasks-all-open-light" data-x="417" data-y="40" data-w="560" data-h="42"></div><div class="frame" id="p167-before" style="margin-top:8px"></div></div>
+			<div><div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> click the panel, then press Cmd+F (or Ctrl+F)</div><div class="frame" id="p167-after" tabindex="0" aria-label="Tasks view demo, press Cmd+F to focus search"></div></div>
+		</div>
+		<p class="cap">Placeholder and border use the full muted-foreground and divider tokens, and the ⌘F hint hides while the field is focused or filled. Cmd+F is unbound globally (Cmd+Shift+F is vault search), so it is free while the Tasks tab is active. '/' is dropped (bare-letter shortcuts are ruled out). Whether Escape clears the field is native WebKit behaviour for type=search and should be checked in the real app.</p>
+	</section>
+
+	<!-- P164 -->
+	<section class="p" id="P164">
+		<div class="p-head"><span class="pid">P164</span><h2>The Sources panel has no 'or' cue and 16 always-open exclude controls</h2><span class="tier">polish</span></div>
+		<p class="p-problem">Cards stack with no separator, and both exclude sections are always expanded.</p>
+		<div class="cols">
+			<div><div class="p-sub" style="margin-top:0"><span class="tag before">BEFORE</span> recreation of SourcesPanel</div><div id="p164-before"></div></div>
+			<div><div class="p-sub" style="margin-top:0"><span class="tag after">AFTER</span> 'or' dividers, Global excludes collapsed</div><div id="p164-after"></div></div>
+		</div>
+		<p class="cap">Card and clause vocabulary is unchanged. The collapsed Global excludes row shows how many rules are active (4 switches on plus 2 list entries). Add card, Remove card and the disclosure all work.</p>
+	</section>
+</main>
+
+<script>
+(() => {
+	'use strict';
+	const $ = (s, r = document) => r.querySelector(s);
+	const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+	const ic = (n, c = '') => `<svg class="i ${c}" aria-hidden="true"><use href="#i-${n}"/></svg>`;
+	const esc = s => String(s).replace(/[&<>"]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[m]));
+	const doc = document.documentElement;
+
+	/* theme */
+	function setTheme(t) {
+		doc.dataset.theme = t;
+		$('#th-light').setAttribute('aria-pressed', String(t === 'light'));
+		$('#th-dark').setAttribute('aria-pressed', String(t === 'dark'));
+	}
+	$('#th-light').onclick = () => setTheme('light');
+	$('#th-dark').onclick = () => setTheme('dark');
+
+	/* screenshot crops */
+	$$('.crop').forEach(el => {
+		const z = Number(el.dataset.z || 1), x = Number(el.dataset.x), y = Number(el.dataset.y);
+		el.style.width = el.dataset.w * z + 'px';
+		el.style.height = el.dataset.h * z + 'px';
+		const img = document.createElement('img');
+		img.src = `../screens/${el.dataset.f}.png`;
+		img.alt = `Real app, ${el.dataset.f}`;
+		img.style.width = 1440 * z + 'px';
+		img.style.left = -x * z + 'px';
+		img.style.top = -y * z + 'px';
+		el.appendChild(img);
+	});
+
+	/* segmented controls */
+	function seg(sel, attr, cb) {
+		const root = $(sel);
+		root.addEventListener('click', e => {
+			const b = e.target.closest('button');
+			if (!b) return;
+			$$('button', root).forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+			cb(b.dataset[attr]);
+		});
+	}
+
+	/* toast */
+	function toast(host, msg, err) {
+		$$('.toast', host).forEach(t => t.remove());
+		const t = document.createElement('div');
+		t.className = 'toast' + (err ? ' err' : '');
+		t.textContent = msg;
+		host.appendChild(t);
+		setTimeout(() => t.remove(), 2600);
+	}
+
+	/* shared tooltip (floats above overflow-hidden cells) */
+	const tipEl = $('#tip');
+	let tipTimer;
+	function showTip(t) {
+		clearTimeout(tipTimer);
+		tipTimer = setTimeout(() => {
+			const r = t.getBoundingClientRect();
+			tipEl.textContent = t.dataset.tip;
+			tipEl.style.left = r.left + r.width / 2 + 'px';
+			tipEl.style.top = r.top - 6 + 'px';
+			tipEl.classList.add('on');
+		}, 220);
+	}
+	function hideTip() { clearTimeout(tipTimer); tipEl.classList.remove('on'); }
+	document.addEventListener('mouseover', e => { const t = e.target.closest('[data-tip]'); if (t) showTip(t); });
+	document.addEventListener('mouseout', e => { if (e.target.closest('[data-tip]')) hideTip(); });
+	document.addEventListener('focusin', e => { const t = e.target.closest('[data-tip]'); if (t) showTip(t); });
+	document.addEventListener('focusout', hideTip);
+	document.addEventListener('scroll', hideTip, true);
+
+	/* dates */
+	const TODAY = '2026-11-10';
+	const pad = n => String(n).padStart(2, '0');
+	const key = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+	const parse = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+	const addDays = (k, n) => { const d = parse(k); d.setDate(d.getDate() + n); return key(d); };
+	const WD = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+	const MON = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+	const longDate = k => { const d = parse(k); return `${WD[d.getDay()]}, ${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`; };
+	const shortDate = k => { const d = parse(k); return `${WD[d.getDay()].slice(0, 3)}, ${MON[d.getMonth()].slice(0, 3)} ${d.getDate()}`; };
+	const WEEKS = (() => { const out = []; let k = '2026-10-26'; for (let w = 0; w < 6; w++) { const wk = []; for (let i = 0; i < 7; i++) { wk.push(k); k = addDays(k, 1); } out.push(wk); } return out; })();
+	const WEEKNO = [44, 45, 46, 47, 48, 49];
+	const dnum = k => parse(k).getDate();
+
+	/* month data */
+	const E = (c, l) => ({ t: 'e', c, l });
+	const T = (l, done) => ({ t: 't', l, done: !!done });
+	const ITEMS = {
+		'2026-10-30': [T('Types navigator', 1)],
+		'2026-11-02': [E('blue', '09:30 Month kickoff')],
+		'2026-11-04': [E('orange', '15:00 Conference talk')],
+		'2026-11-05': [T('Overdue follow-up'), T('Which hero image')],
+		'2026-11-08': [T('Review PRs'), T('Fix the queryjs save', 1)],
+		'2026-11-09': [T('Review PRs')],
+		'2026-11-10': [E('pink', '09:00 Standup'), E('blue', '11:00 Design review'), E('green', '14:00 1-1 with Ana'), T('Run 5k'), T('Review PRs'), T('Write release notes'), T('Ship the changelog')],
+		'2026-11-11': [E('orange', '10:00 Sprint planning'), T('Polish the settings')],
+		'2026-11-12': [E('pink', 'Launch rehearsal'), E('blue', '08:30 Dentist'), T('Book dentist'), T('Ana: audit content'), T('Finish the onboarding')],
+		'2026-11-13': [E('green', '12:30 Team lunch'), E('blue', '16:00 Retro'), T('Dark mode for tables')],
+		'2026-11-18': [E('orange', 'Planning offsite'), T('Calendar polish')],
+		'2026-11-20': [T('Record the demo')],
+		'2026-11-21': [E('pink', '10:00 Release candidate')],
+		'2026-11-25': [T('Mobile capture')],
+		'2026-11-26': [E('green', '18:00 Thanksgiving')],
+		'2026-11-28': [T('Cut cold start')],
+	};
+	const chipHtml = it => it.t === 'e'
+		? `<button class="chip ev ev-${it.c}"><span>${esc(it.l)}</span></button>`
+		: `<button class="chip task ${it.done ? 'done' : ''}">${ic(it.done ? 'circle-check' : 'circle', 's12')}<span>${esc(it.l)}</span></button>`;
+
+	/* month renderer. o: {rows, cellH, variant, mode, dnote, selected, title} */
+	function slotsFor(n, o) {
+		if (o.variant === 'before') return { show: Math.min(n, 3), hidden: Math.max(0, n - 3) };
+		const avail = o.cellH - 12 - 24 - 4;
+		if (o.variant === 'row') {
+			const show = Math.min(n, Math.max(0, Math.floor((avail + 4) / 26)));
+			return { show, hidden: n - show };
+		}
+		if (n * 26 - 4 <= avail) return { show: n, hidden: 0 };
+		const show = Math.max(0, Math.floor((avail - 28) / 26));
+		return { show, hidden: n - show };
+	}
+	function renderMonth(host, o) {
+		const before = o.mode === 'before';
+		const wds = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+		let h = `<div class="mhead">${wds.map(w => `<div>${w}</div>`).join('')}</div><div class="mgrid">`;
+		o.rows.forEach(wi => WEEKS[wi].forEach(k => {
+			const items = ITEMS[k] || [];
+			const s = slotsFor(items.length, o);
+			const inM = k.startsWith('2026-11');
+			const today = k === TODAY, sel = k === o.selected;
+			let cls = 'dn';
+			if (before) { if (sel) cls += ' sel'; else if (today) cls += ' today'; else if (!inM) cls += ' out'; }
+			else { if (today) cls += ' ring'; if (sel) cls += ' sel'; if (!inM) cls += ' out'; }
+			const pillRow = o.variant === 'row' && s.hidden > 0 ? `<button class="pill-n" data-open="${k}" data-tip="${s.hidden} more items, open day view">+${s.hidden}</button>` : '';
+			const dn = o.dnote === 'before'
+				? `<button class="dnote always" data-note="${k}" aria-label="Open daily note for ${longDate(k)}">${ic('square-pen')}</button>`
+				: o.dnote === 'hover'
+					? `<button class="dnote hov ${today ? 'keep' : ''}" data-note="${k}" data-tip="Open daily note · ${shortDate(k)}" aria-label="Open daily note for ${longDate(k)}">${ic('cal-plus')}</button>`
+					: `<button class="dnote always" data-note="${k}" aria-label="Open daily note for ${longDate(k)}">${ic('square-pen')}</button>`;
+			const footer = o.variant !== 'row' && s.hidden > 0 ? `<button class="more" data-open="${k}" aria-label="${s.hidden} more items, open day view">+${s.hidden} more</button>` : '';
+			h += `<div class="mc ${inM ? '' : 'out'} ${before ? 'cur' : ''}" style="height:${o.cellH}px" data-day="${k}">
+				<div class="mc-top"><button class="${cls}" data-sel="${k}" aria-pressed="${sel}" aria-label="${longDate(k)}">${dnum(k)}</button>${pillRow}<span class="sp"></span>${dn}</div>
+				${items.slice(0, s.show).map(chipHtml).join('')}${footer}</div>`;
+		}));
+		h += '</div>';
+		host.innerHTML = (o.bar ? o.bar(o) : '') + h;
+		host.onclick = e => {
+			const sb = e.target.closest('[data-sel]');
+			if (sb) { o.selected = sb.dataset.sel; renderMonth(host, o); return; }
+			const op = e.target.closest('[data-open]');
+			if (op) { toast(host, `Opens the day view for ${shortDate(op.dataset.open)}`); return; }
+			const nb = e.target.closest('[data-note]');
+			if (nb) toast(host, `Opens the daily note ${nb.dataset.note}.md`);
+		};
+	}
+	function calBar(title, sub, active) {
+		return `<div class="calbar"><span class="t">${title}</span><span class="st">${sub}</span><span class="sp"></span><button class="btn today">Today</button><button class="ib" aria-label="Previous">${ic('chev-l')}</button><button class="ib" aria-label="Next">${ic('chev-r')}</button><button class="ib" aria-label="Keyboard shortcuts">${ic('keyboard', 's16')}</button><span class="seg"><button aria-pressed="${active === 'D'}">D</button><button aria-pressed="${active === 'W'}">W</button><button aria-pressed="${active === 'M'}">M</button></span></div>`;
+	}
+
+	/* P64 */
+	(() => {
+		const host = $('#p64-host');
+		const o = { rows: [1, 2], cellH: 125, variant: 'footer', mode: 'after', dnote: 'hover', selected: '2026-11-10' };
+		const draw = () => { $('#p64-hv').textContent = o.cellH + ' px'; o.mode = o.variant === 'before' ? 'before' : 'after'; o.dnote = o.variant === 'before' ? 'before' : 'hover'; renderMonth(host, o); };
+		$('#p64-h').oninput = e => { o.cellH = Number(e.target.value); draw(); };
+		seg('#p64-var', 'v', v => { o.variant = v; draw(); });
+		draw();
+	})();
+
+	/* P183 */
+	(() => {
+		const host = $('#p183-host');
+		const o = { rows: [0, 1, 2], cellH: 100, variant: 'footer', mode: 'after', dnote: 'hover', selected: '2026-11-12' };
+		const draw = () => {
+			const b = o.mode === 'before';
+			o.variant = b ? 'before' : 'footer';
+			o.dnote = b ? 'before' : 'hover';
+			o.bar = () => calBar(b ? 'November, 2026' : 'November 2026', 'Nov 1 to 30', 'M');
+			renderMonth(host, o);
+		};
+		seg('#p183-mode', 'v', v => { o.mode = v; draw(); });
+		draw();
+	})();
+
+	/* P130 */
+	(() => {
+		const host = $('#p130-host');
+		const o = { rows: [1, 2, 3], cellH: 100, variant: 'footer', mode: 'after', dnote: 'hover', selected: '2026-11-10' };
+		const draw = () => { const b = o.mode === 'before'; o.dnote = b ? 'before' : 'hover'; o.variant = b ? 'before' : 'footer'; renderMonth(host, o); };
+		seg('#p130-mode', 'v', v => { o.mode = v; draw(); });
+		draw();
+	})();
+
+	/* P65 */
+	(() => {
+		const days = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-14', '2026-11-15'];
+		const TASKS = {
+			'2026-11-09': ['Review PRs'],
+			'2026-11-10': ['Run 5k', 'Review PRs', 'Write release notes', 'Water the plants', 'Call the bank'],
+			'2026-11-11': ['Polish the settings'],
+			'2026-11-12': ['Book dentist', 'Ana: audit content', 'Finish the onboarding', 'Pay the invoice'],
+			'2026-11-13': ['Dark mode for tables'],
+		};
+		const wk = $('#p65-week');
+		const task = t => `<button class="chip task">${ic('circle', 's12')}<span>${esc(t)}</span></button>`;
+		function drawWeek() {
+			const wds = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+			let h = `<div class="wl"><div class="g"></div>${days.map((k, i) => `<div class="dh"><span>${wds[i]}</span>${k === TODAY ? `<b class="td">${dnum(k)}</b>` : `<b>${dnum(k)}</b>`}</div>`).join('')}`;
+			h += `<div class="g">All day</div>${days.map(k => `<div class="lane" style="height:34px">${k === '2026-11-12' ? '<button class="chip ev ev-pink"><span>Launch rehearsal</span></button>' : ''}</div>`).join('')}`;
+			h += `<div class="g" style="border-bottom:0">Tasks</div>${days.map(k => {
+				const ts = TASKS[k] || [];
+				if (ts.length <= 3) return `<div class="lane" style="height:96px;border-bottom:0">${ts.map(task).join('')}</div>`;
+				const hid = ts.slice(2);
+				return `<div class="lane" style="height:96px;border-bottom:0">${ts.slice(0, 2).map(task).join('')}<button class="chip more-chip" style="height:24px;color:var(--primary);justify-content:flex-start;font-weight:600;font-size:12px" data-day="${k}" data-tip="${esc(hid.join(', '))}"><span>+${hid.length} more</span></button></div>`;
+			}).join('')}</div>`;
+			wk.innerHTML = h;
+		}
+		wk.onclick = e => { const b = e.target.closest('[data-day]'); if (b) toast(wk, `Opens the day view for ${shortDate(b.dataset.day)}`); };
+		drawWeek();
+
+		const dy = $('#p65-day');
+		let open = false;
+		const dtasks = TASKS['2026-11-10'];
+		function drawDay() {
+			const shown = open ? dtasks : dtasks.slice(0, 3);
+			dy.innerHTML = `<div class="dl"><div class="g" style="border-bottom:0;flex-direction:column;gap:2px">Tasks<b style="color:var(--foreground)">${dtasks.length}</b></div><div class="c" style="border-bottom:0"><div class="lane">${shown.map(task).join('')}${dtasks.length > 3 ? `<button class="more" style="color:var(--primary);font-weight:600" id="p65-tog" aria-expanded="${open}">${open ? 'Show fewer' : `Show ${dtasks.length - 3} more`}</button>` : ''}</div></div></div>`;
+			$('#p65-tog').onclick = () => { open = !open; drawDay(); };
+		}
+		drawDay();
+	})();
+
+	/* P127 */
+	(() => {
+		const HOUR = 64, VIEW = 300;
+		const EVS = [
+			[0, 13, 14, 'blue', 'Team sync'],
+			[1, 9, 9.5, 'pink', 'Standup'], [1, 11, 12.5, 'blue', 'Design review'], [1, 14, 14.75, 'green', '1-1 with Ana'], [1, 16, 17, 'blue', 'Retro'],
+			[2, 10, 12, 'orange', 'Sprint planning'],
+		];
+		const hh = h => `${pad(Math.floor(h))}:${pad(Math.round((h % 1) * 60))}`;
+		const inst = [];
+		function build(host, after) {
+			host.innerHTML = `<div class="tg-bar"><span class="t">Nov 9 to 15</span><span style="flex:1"></span><button class="btn sm" data-today>Today</button></div>
+				<div class="tg"><div class="tg-head"><div></div><div>Mon<b>9</b></div><div>Tue<b class="td">10</b></div><div>Wed<b>11</b></div></div>
+				<div class="tg-scroll"><div class="tg-body"><div class="tg-gut">${Array.from({ length: 24 }, (_, i) => `<span style="top:${i * HOUR}px">${i ? pad(i) + ':00' : ''}</span>`).join('')}</div>
+				${[0, 1, 2].map(c => `<div class="tg-col">${EVS.filter(e => e[0] === c).map(e => `<div class="tg-ev ev-${e[3]}" style="top:${e[1] * HOUR + 1}px;height:${(e[2] - e[1]) * HOUR - 2}px">${e[4]}</div>`).join('')}${c === 1 ? '<div class="tg-now"></div>' : ''}</div>`).join('')}</div></div>
+				${after ? '<button class="nowpill" hidden></button>' : ''}</div>`;
+			const sc = $('.tg-scroll', host), now = $('.tg-now', host), pill = $('.nowpill', host);
+			const st = { sc, now, pill, after };
+			$('[data-today]', host).onclick = () => { if (after) sc.scrollTo({ top: st.nowY - VIEW / 3, behavior: 'smooth' }); else toast(host, 'Today: already on today, the scroll position stays'); };
+			if (after) {
+				const upd = () => {
+					const y = st.nowY, top = sc.scrollTop;
+					const below = y > top + VIEW - 6, above = y < top + 6;
+					pill.hidden = !(below || above);
+					pill.className = 'nowpill ' + (below ? 'bot' : 'topp');
+					pill.innerHTML = `${ic(below ? 'chev-d' : 'chev-u', 's12')} Now ${hh(st.now_h)}`;
+					pill.style.top = above ? '34px' : '';
+				};
+				sc.addEventListener('scroll', upd);
+				pill.onclick = () => sc.scrollTo({ top: st.nowY - VIEW / 3, behavior: 'smooth' });
+				st.upd = upd;
+			}
+			return st;
+		}
+		function open(st) {
+			const nowH = Number($('#p127-now').value), start = Number($('#p127-start').value);
+			st.nowY = nowH * HOUR; st.now_h = nowH;
+			st.now.style.top = st.nowY + 'px';
+			st.sc.scrollTop = start * HOUR;
+			if (st.after && st.nowY > st.sc.scrollTop + VIEW - 6) st.sc.scrollTop = st.nowY - VIEW / 3;
+			if (st.upd) setTimeout(st.upd, 0);
+		}
+		const b = build($('#p127-before'), false), a = build($('#p127-after'), true);
+		const all = () => { open(b); open(a); };
+		$('#p127-now').onchange = all; $('#p127-start').onchange = all; $('#p127-reopen').onclick = all;
+		all();
+	})();
+
+	/* P128 */
+	(() => {
+		const host = $('#p128-host');
+		const wds = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+		const HOUR = 64;
+		function draw() {
+			const cap = $('#p128-cap').checked;
+			const evs = [[9, 9.5, 'pink', 'Standup', ''], [11, 12.5, 'blue', 'Design review', '11:00 to 12:30'], [14, 14.75, 'green', '1-1 with Ana', '14:00 to 14:45']];
+			host.innerHTML = calBar('November 2026', 'Week 46 · Tuesday, Nov 10', 'D') +
+				`<div class="strip">${wds.map((w, i) => { const k = addDays('2026-11-09', i); return `<button class="d ${k === TODAY ? 'sel' : ''}">${w}<b>${dnum(k)}</b></button>`; }).join('')}<button class="dnote always" style="opacity:1;margin:0 auto" data-tip="Open daily note · Tue, Nov 10" aria-label="Open daily note for Tuesday, November 10, 2026" data-note>${ic('cal-plus')}</button></div>
+				<div class="dl"><div class="g">All day</div><div class="c"><div class="alld" role="button" tabindex="0" data-allday>${ic('plus', 's12')}&nbsp;New all-day event</div></div>
+				<div class="g" style="border-bottom:0">Tasks</div><div class="c" style="border-bottom:0"><div class="lane">${['Run 5k', 'Review PRs'].map(t => `<button class="chip task">${ic('circle', 's12')}<span>${t}</span></button>`).join('')}<button class="more" style="color:var(--primary);font-weight:600">Show 2 more</button></div></div></div>
+				<div class="dl" style="border-top:1px solid var(--border)"><div class="g" style="border-bottom:0;position:relative;height:230px;display:block">${[8, 9, 10, 11, 12, 13].map(i => `<span style="position:absolute;right:6px;top:${(i - 8) * HOUR + 2}px;font-size:11px;color:var(--muted-foreground)">${pad(i)}:00</span>`).join('')}</div>
+				<div class="c dl-tl" style="height:230px;border-bottom:0;background-image:linear-gradient(var(--border) 1px,transparent 1px);background-size:100% 64px">${evs.map(e => `<div class="tg-ev ev-${e[2]}" style="top:${(e[0] - 8) * HOUR + 1}px;height:${(e[1] - e[0]) * HOUR - 2}px;${cap ? 'right:auto;width:min(640px,calc(100% - 6px))' : ''}"><b style="font-weight:500">${e[3]}</b><div style="font-size:11px;opacity:.85">${e[4]}</div></div>`).join('')}</div></div>`;
+		}
+		host.onclick = e => {
+			if (e.target.closest('[data-allday]')) toast(host, 'New all-day event dialog for Tue, Nov 10');
+			else if (e.target.closest('[data-note]')) toast(host, 'Opens the daily note 2026-11-10.md');
+		};
+		$('#p128-cap').onchange = draw;
+		draw();
+	})();
+
+	/* P129 */
+	(() => {
+		const KEYS = [
+			[['T'], 'Go to today'], [['N'], 'New event'], [['D', 'W', 'M'], 'Day / week / month view'],
+			[['Left', 'Right'], 'Previous / next day, week or month'],
+			[['Delete', 'Backspace'], 'Delete the event in the open popover, or the focused event'],
+			[['Escape'], 'Close the event popover, or cancel a drag'], [['Cmd+Z'], 'Undo the last calendar change'],
+			[['Cmd+Shift+Z', 'Ctrl+Y'], 'Redo'], [['?'], 'Show keyboard shortcuts'],
+		];
+		const MOUSE = [
+			[['Click'], 'or drag an empty spot on the time grid to create an event'],
+			[['Click'], 'an empty spot in the All day lane to create an all-day event'],
+			[['Double-click'], 'an empty part of a month cell to create an event'],
+			[['Click'], 'the selected day number in the month view to open the day view'],
+			[['Drag'], 'an event block to move it; drag its bottom edge to resize'],
+		];
+		const kb = chords => chords.map((c, i) => `${i ? '<span class="sl">/</span>' : ''}<kbd>${c}</kbd>`).join('');
+		const rows = r => r.map(x => `<tr><td>${kb(x[0])}</td><td>${x[1]}</td></tr>`).join('');
+		const head = '<h3>Keyboard shortcuts</h3><p class="d">These work while the Calendar has focus, not while you type in a field.</p>';
+		$('#p129-before').innerHTML = head + `<table>${rows(KEYS)}</table>`;
+		$('#p129-after').innerHTML = head.replace('Keyboard shortcuts', 'Shortcuts and gestures') + `<table>${rows(KEYS)}<tr><td colspan="2" class="gh">Mouse</td></tr>${rows(MOUSE)}</table>`;
+		const host = $('#p129-month');
+		const week = WEEKS[2];
+		host.innerHTML = `<div class="mhead">${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(w => `<div>${w}</div>`).join('')}</div><div class="mgrid">${week.map(k => `<div class="mc" style="height:96px" data-day="${k}"><div class="mc-top"><button class="dn ${k === TODAY ? 'ring' : ''}">${dnum(k)}</button></div>${(ITEMS[k] || []).length ? chipHtml(ITEMS[k][0]) : '<span class="hint" hidden>Double-click to add</span>'}</div>`).join('')}</div>`;
+		$$('.mc', host).forEach(c => {
+			const h = $('.hint', c);
+			if (!h) return;
+			c.onmouseenter = () => { h.hidden = false; };
+			c.onmouseleave = () => { h.hidden = true; };
+			c.ondblclick = () => toast(host, `New event dialog for ${shortDate(c.dataset.day)}`);
+		});
+	})();
+
+	/* P182 */
+	(() => {
+		function draw(host, after) {
+			const wds = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+			const lock = after ? `<span style="margin-left:auto;display:inline-flex">${ic('lock', 's12')}</span>` : '';
+			host.innerHTML = `<div class="wl" style="grid-template-columns:repeat(7,minmax(0,1fr))">${wds.map((w, i) => `<div class="dh" style="padding:6px 4px;${i === 0 ? 'border-left:0' : ''}"><span>${w}</span><b>${9 + i}</b></div>`).join('')}</div>
+				<div style="position:relative;padding:4px 0;border-bottom:1px solid var(--border)">
+					<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr))"><div></div><div style="grid-column:2/5"><button class="abar ro ev-purple" style="width:calc(100% - 8px)" ${after ? 'data-tip="Multi-day events are edited in the note" ' : ''}data-bar aria-haspopup="dialog"><span style="white-space:nowrap">Product offsite</span>${lock}</button></div></div>
+					<div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));margin-top:2px"><div></div><div></div><div></div><div></div><div style="grid-column:5/7"><button class="abar ev-orange" style="cursor:grab;width:calc(100% - 8px)"><span>Launch day</span></button></div></div>
+				</div>
+				<div style="padding:10px 12px;font-size:12px;color:var(--muted-foreground)">${after ? 'Locked bar: cursor is not-allowed, tooltip explains. The orange bar is a normal single-day event.' : 'Both bars look the same. Dragging the purple one does nothing.'}</div>
+				<div class="pop-slot" style="position:absolute;left:12px;top:92px"></div>`;
+			host.onclick = e => {
+				if (!e.target.closest('[data-bar]')) { if (!e.target.closest('.pop')) $('.pop-slot', host).innerHTML = ''; return; }
+				$('.pop-slot', host).innerHTML = `<div class="pop"><div class="b"><span class="dot" style="background:var(--ev-purple-fg)"></span><div><h4>Product offsite</h4><p>Wed, Nov 11 to Fri, Nov 13</p><p>All day</p>${after ? `<p class="lockcap">${ic('lock', 's12')}<span>Multi-day events are read-only here. Change the date in the note.</span></p>` : ''}</div></div><div class="f"><button class="btn sm">Edit</button><button class="btn sm primary">Open note</button></div></div>`;
+			};
+		}
+		draw($('#p182-before'), false);
+		draw($('#p182-after'), true);
+	})();
+
+	/* rail mini month */
+	const NOTES = { '2026-11-02': 1, '2026-11-04': 1, '2026-11-05': 2, '2026-11-09': 1, '2026-11-10': 3, '2026-11-11': 1, '2026-11-12': 2, '2026-11-13': 2, '2026-11-18': 1, '2026-11-21': 1, '2026-11-26': 1 };
+	const FIRST = WEEKS[0][0], LAST = WEEKS[5][6];
+	function rail(host, o) {
+		const days = WEEKS.flat();
+		let h = `<div class="railwrap" style="width:${o.width}px"><div class="rhead"><span class="rl" ${o.label ? '' : ''}><span class="full">November 2026</span><span class="short">Nov 2026</span></span><button class="rb" aria-label="Previous month">${ic('chev-l')}</button>${o.todayBtn ? '<button class="rtoday" data-today>Today</button>' : ''}<button class="rb" aria-label="Next month">${ic('chev-r')}</button></div>
+			<div class="rbody"><div class="rwk">${WEEKNO.map(n => `<button data-week="${n}" aria-label="Open weekly note, week ${n}">${n}</button>`).join('')}</div>
+			<div class="rgrid" role="grid" aria-label="November 2026" data-grid>${['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((w, i) => `<div class="wd ${i > 4 ? 'we' : ''}" role="columnheader"><span class="l3">${w}</span><span class="l1">${w[0]}</span></div>`).join('')}
+			${days.map((k, i) => {
+				const n = NOTES[k] || 0, inM = k.startsWith('2026-11'), td = k === TODAY, sel = k === o.sel;
+				const dots = n ? `<span class="dots">${'<i></i>'.repeat(n <= 1 ? 1 : n <= 3 ? 2 : 3)}</span>` : '';
+				const lbl = `${longDate(k)}${td ? ', today' : ''}${n ? `, ${n} ${n === 1 ? 'note' : 'notes'}` : ''}`;
+				const ti = o.roving ? (k === o.focus ? 0 : -1) : 0;
+				return `<button class="rd ${inM ? '' : 'out'} ${i % 7 > 4 ? 'we' : ''} ${td ? 'rtd' : ''} ${sel ? 'sel' : ''}" role="gridcell" tabindex="${ti}" data-k="${k}" aria-label="${lbl}" aria-selected="${sel}">${dnum(k)}${dots}</button>`;
+			}).join('')}</div></div></div>`;
+		host.innerHTML = h;
+		const grid = $('[data-grid]', host);
+		const ann = k => { if (o.onAnnounce) o.onAnnounce($(`[data-k="${k}"]`, host).getAttribute('aria-label')); };
+		grid.onclick = e => { const b = e.target.closest('[data-k]'); if (!b) return; o.sel = o.focus = b.dataset.k; rail(host, o); $(`[data-k="${o.focus}"]`, host).focus(); ann(o.focus); };
+		grid.onfocusin = e => { const b = e.target.closest('[data-k]'); if (b && o.onAnnounce) ann(b.dataset.k); };
+		if (o.roving) grid.onkeydown = e => {
+			const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+			let nk = null;
+			if (step) nk = addDays(o.focus, step);
+			else if (e.key === 'Home') nk = addDays(o.focus, -((days.indexOf(o.focus) % 7)));
+			else if (e.key === 'End') nk = addDays(o.focus, 6 - (days.indexOf(o.focus) % 7));
+			if (!nk || nk < FIRST || nk > LAST) return;
+			e.preventDefault();
+			o.focus = nk; rail(host, o); $(`[data-k="${nk}"]`, host).focus();
+		};
+		const tb = $('[data-today]', host);
+		if (tb) tb.onclick = () => { o.sel = o.focus = TODAY; rail(host, o); toast(host, 'Today: Tue, Nov 10, 2026'); };
+		$$('[data-week]', host).forEach(b => b.onclick = () => {
+			if (o.failWeekly && o.failWeekly()) toast(host, `Could not open weekly note W${b.dataset.week}: permission denied`, true);
+			else toast(host, `Opened weekly note 2026-W${b.dataset.week}.md`);
+		});
+	}
+
+	/* P32 */
+	(() => {
+		const host = $('#p32-host');
+		const o = { width: 163, sel: TODAY, focus: TODAY, todayBtn: true };
+		seg('#p32-w', 'w', w => { o.width = Number(w); rail(host, o); });
+		rail(host, o);
+	})();
+
+	/* P132 */
+	(() => {
+		const host = $('#p132-host'), ann = $('#p132-ann');
+		const o = { width: 200, sel: '2026-11-12', focus: TODAY, roving: true, todayBtn: true, onAnnounce: t => { ann.textContent = `Announced: ${t}`; } };
+		rail(host, o);
+	})();
+
+	/* P131 */
+	(() => {
+		const host = $('#p131-host');
+		const o = { width: 163, sel: TODAY, focus: TODAY, todayBtn: true, failWeekly: () => $('#p131-fail').checked };
+		seg('#p131-w', 'w', w => { o.width = Number(w); rail(host, o); });
+		rail(host, o);
+	})();
+
+	/* tasks data and helpers */
+	const GROUPS = [
+		{ t: 'Health', f: 'Areas', open: 2, total: 2, rows: [['Book dentist', 'Nov 12'], ['Run 5k', 'Nov 10']] },
+		{ t: 'Reading List', f: 'Areas', open: 1, total: 2, rows: [['The Design of Everyday Things']] },
+		{ t: '2026-11-08', f: 'Daily', open: 1, total: 2, rows: [['Review PRs', 'Nov 8', 1]] },
+		{ t: '2026-11-09', f: 'Daily', open: 1, total: 2, rows: [['Review PRs', 'Nov 9', 1]] },
+		{ t: '2026-11-10', f: 'Daily', open: 3, total: 4, rows: [['Review PRs', 'Nov 10'], ['Write release notes', 'Nov 10'], ['Overdue follow-up', 'Nov 5', 1]] },
+		{ t: 'capture-2026-11-09-09-05-11', f: 'Inbox', open: 2, total: 2, rows: [['Buy a USB-C hub'], ['Renew domain']] },
+		{ t: '2026-11-09 Design sync', f: 'Meetings', open: 1, total: 1, rows: [['Send notes to Ana']] },
+		{ t: 'Q4 OKRs', f: 'Projects', open: 2, total: 5, rows: [['Draft the roadmap'], ['Review with Ana', 'Nov 14']] },
+	];
+	const taskRow = r => `<div class="tr">${ic('circle', 's16 cir')}<span>${esc(r[0])}</span>${r[1] ? `<span class="due ${r[2] ? 'od' : ''}">${ic('cal', 's12')}${r[1]}</span>` : ''}<span class="mm">...</span></div>`;
+	function groups(host, tight) {
+		const closed = host._c || (host._c = {});
+		host.innerHTML = `<div class="tgs ${tight ? 'tight' : ''}">${GROUPS.map((g, gi) => `<div class="tgrp">
+			<div class="th"><button class="chev" data-g="${gi}" aria-expanded="${!closed[gi]}" aria-label="Collapse ${esc(g.t)}">${ic(closed[gi] ? 'chev-r' : 'chev-d')}</button><span class="ico">${ic('file', 's16')}</span>
+			${tight
+				? `<div class="inl"><button class="nm">${esc(g.t)}</button><span class="ct">${g.open} of ${g.total} open</span><span class="fo hide-sm">${g.f}</span></div>`
+				: `<div style="min-width:0;flex:1"><div style="display:flex;align-items:baseline;gap:8px"><button class="nm">${esc(g.t)}</button><span class="ct">${g.open} of ${g.total} open</span></div><p class="fo hide-sm" style="line-height:16px">${g.f}</p></div>`}
+			</div>${closed[gi] ? '' : g.rows.map(taskRow).join('')}</div>`).join('')}</div>`;
+		host.onclick = e => { const b = e.target.closest('[data-g]'); if (b) { closed[b.dataset.g] = !closed[b.dataset.g]; groups(host, tight); } };
+	}
+
+	/* P63 */
+	(() => {
+		const host = $('#p63-host');
+		host.style.overflow = 'hidden';
+		groups(host, true);
+	})();
+
+	/* P180 */
+	(() => {
+		const host = $('#p180-host');
+		let style = 's-rule';
+		const rows = [
+			{ t: 'Ship v4.10', ind: 0, dim: 1 },
+			{ t: 'Write release notes', ind: 1, due: 'Nov 10' },
+			{ t: 'QA pass', ind: 1, dim: 1 },
+			{ t: 'Fix flaky export test', ind: 2, due: 'Nov 12' },
+		];
+		function draw() {
+			paint(host, style);
+			paint($('#p180-before'), 's-cur');
+		}
+		function paint(host, style) {
+			host.innerHTML = `<div class="flt"><span>Filters:</span><span class="c">Priority: high</span></div><div class="tgs tight"><div class="tgrp"><div class="th"><span class="chev">${ic('chev-d')}</span><span class="ico">${ic('file', 's16')}</span><div class="inl"><button class="nm">Launch plan</button><span class="ct">2 of 4 open</span><span class="fo">Projects</span></div></div>
+			${rows.map(r => `<div class="tr ${r.dim ? 'dim ' + style : ''}" style="margin-left:${r.ind * 20}px" ${r.dim && style !== 's-cur' ? 'data-tip="Shown for context: it has a task below that matches the filters" tabindex="0"' : ''}>${ic('circle', 's16 cir')}<span>${r.t}</span>${r.due ? `<span class="due">${ic('cal', 's12')}${r.due}</span>` : ''}<span class="mm">...</span></div>`).join('')}</div></div>`;
+		}
+		seg('#p180-s', 'v', v => { style = v; draw(); });
+		draw();
+	})();
+
+	/* Tasks toolbar */
+	function tbar(host, o) {
+		const label = o.dyn ? `Display<span class="dot"> · </span>${o.group}` : 'Display';
+		host.innerHTML = `<div class="tbar"><span class="t">Tasks</span><span class="m hide-sm">23 open in 11 notes</span>
+			<div class="tsearch ${o.hi ? 'hi' : ''}"><input type="search" placeholder="Search tasks" aria-label="Search tasks">${o.hi ? '<kbd class="k">⌘F</kbd>' : ''}</div>
+			<span style="flex:1"></span><button class="dtrig" aria-haspopup="menu" aria-expanded="${!!o.open}" data-trig>${label}${ic('chev-d', 's12')}</button>
+			${o.open ? `<div class="menu" role="menu"><div class="lb">Group by</div>${['Note', 'Folder', 'Due date', 'Priority', 'Status', 'Type'].map(g => `<button class="ri" role="menuitemradio" aria-checked="${o.group === g}" data-g="${g}">${o.group === g ? `<span class="ck">${ic('check', 's12')}</span>` : ''}${g}</button>`).join('')}<div class="sub">Property ${ic('chev-r', 's12')}</div><hr><button class="ri" role="menuitemradio" aria-checked="${o.group === 'Heading'}" data-g="Heading">${o.group === 'Heading' ? `<span class="ck">${ic('check', 's12')}</span>` : ''}Heading</button></div>` : ''}</div>`;
+		const inp = $('input', host), kk = $('.k', host);
+		if (kk) { const sync = () => kk.classList.toggle('off', document.activeElement === inp || inp.value !== ''); inp.addEventListener('focus', sync); inp.addEventListener('blur', sync); inp.addEventListener('input', sync); }
+		$('[data-trig]', host).onclick = e => { e.stopPropagation(); o.open = !o.open; tbar(host, o); };
+		host.onclick = e => { const g = e.target.closest('[data-g]'); if (g && o.open) { o.group = g.dataset.g; o.open = false; tbar(host, o); } };
+	}
+
+	/* P163 */
+	(() => {
+		const host = $('#p163-host');
+		tbar(host, { dyn: true, group: 'Note', open: false });
+	})();
+
+	/* P165 */
+	(() => {
+		const host = $('#p165-host'), cb = $('#p165-custom');
+		const draw = () => { host.innerHTML = `<p class="sent">Open tasks from every note, except archived notes, type definitions, templates, the system folder <button aria-expanded="false" data-edit>Edit sources</button>${cb.checked ? '<button data-clear style="margin-left:8px">Clear</button>' : ''}</p>`; };
+		host.onclick = e => { if (e.target.closest('[data-edit]')) toast(host, 'Opens the Sources panel'); else if (e.target.closest('[data-clear]')) { cb.checked = false; draw(); } };
+		cb.onchange = draw;
+		draw();
+	})();
+
+	/* P167 */
+	(() => {
+		tbar($('#p167-before'), { dyn: false, group: 'Note' });
+		const host = $('#p167-after');
+		tbar(host, { dyn: false, group: 'Note', hi: true });
+		host.addEventListener('keydown', e => {
+			if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'f') { e.preventDefault(); $('input', host).focus(); }
+		});
+	})();
+
+	/* P164 */
+	function sourcesPanel(host, after) {
+		const st = host._s || (host._s = { cards: [[['Folder', 'Projects'], ['Lifecycle', 'open']], [['Note tag', '#today']]], globalOpen: !after });
+		const exSection = (title, hint, entries, on) => `<section class="ex"><div><h3>${title}</h3><p class="h">${hint}</p></div>
+			<div class="sw-row" style="margin-top:8px">${['Archived notes', 'Type definitions', 'Templates folder', 'System folder'].map((l, i) => `<label><input class="tgl" type="checkbox" ${on[i] ? 'checked' : ''} aria-label="${l}">${l}</label>`).join('')}</div>
+			<div class="exlists">${[['Folders', 'Archive/Old'], ['Notes', 'Inbox/Scratch.md'], ['Note tags', '#someday'], ['Types', 'Meeting']].map(l => `<div><span class="lt">${l[0]}</span><div class="exin"><input type="text" placeholder="${l[1]}" aria-label="${l[0]}"><button class="btn sm ghost">Add</button></div>${entries[l[0]] ? `<ul class="chips">${entries[l[0]].map(v => `<li>${v}${ic('x', 's12')}</li>`).join('')}</ul>` : ''}</div>`).join('')}</div></section>`;
+		const card = (c, ci) => `<div class="scard" role="group" aria-label="Card ${ci + 1}">${c.map(cl => `<div class="scl"><span class="kl">${cl[0]}</span><input class="f" type="text" value="${esc(cl[1])}" aria-label="${cl[0]}"></div>`).join('')}<div class="acts"><button class="btn sm ghost">${ic('plus', 's12')}Add clause</button><span style="flex:1"></span><button class="btn sm ghost" data-rm="${ci}">Remove card</button></div></div>`;
+		const cards = st.cards.map(card);
+		const cardsHtml = after ? cards.join('<div class="orsep" role="separator">or</div>') : cards.join('');
+		const glob = exSection('Global excludes', 'Never listed on any list, whatever the sources say.', { Folders: ['Archive/Old'], 'Note tags': ['#someday'] }, [1, 1, 1, 1]);
+		host.innerHTML = `<div class="sources"><section><div><h3>Sources</h3><p class="h">A task is listed when every clause of one card matches.</p></div><div class="cards" style="margin-top:8px">${cardsHtml}</div><button class="btn sm" style="margin-top:8px" data-add>${ic('plus', 's12')}Add card</button></section>
+			${after
+				? `<section><button class="disc" aria-expanded="${st.globalOpen}" data-disc>${ic('chev-r', 's12')}Global excludes<span class="cnt">6 active</span></button>${st.globalOpen ? glob : ''}</section>`
+				: glob}
+			${exSection("This list's excludes", 'Hidden on this list only, until you switch lists.', {}, [0, 0, 0, 0])}</div>`;
+		host.onclick = e => {
+			if (e.target.closest('[data-add]')) { st.cards.push([['Folder', '']]); sourcesPanel(host, after); }
+			else if (e.target.closest('[data-rm]')) { st.cards.splice(Number(e.target.closest('[data-rm]').dataset.rm), 1); sourcesPanel(host, after); }
+			else if (e.target.closest('[data-disc]')) { st.globalOpen = !st.globalOpen; sourcesPanel(host, after); }
+		};
+	}
+	sourcesPanel($('#p164-before'), false);
+	sourcesPanel($('#p164-after'), true);
+})();
+</script>
+</body>
+</html>

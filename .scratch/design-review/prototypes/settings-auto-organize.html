@@ -1,0 +1,1780 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Settings and Auto Organize rule builder</title>
+<style>
+	/* Tokens copied from src/app.css (.dark) and the Lavender Haze theme (src/lib/core/settings/theme.logic.ts). */
+	[data-theme="light"] {
+		color-scheme: light;
+		--background: #F3F0F8;
+		--foreground: #302840;
+		--card: #EAE6F2;
+		--popover: #FFFFFF;
+		--primary: #6848A8;
+		--primary-foreground: #ffffff;
+		--muted: #DDD8E8;
+		--muted-foreground: #645c74;
+		--accent: #D5D0E2;
+		--border: #D5D0E2;
+		--input: #D5D0E2;
+		--divider: #C0B8D0;
+		--ring: #6848A8;
+		--destructive: #C83848;
+		--destructive-foreground: #ffffff;
+		--warning: #786714;
+		--success: #357458;
+		--settings-dialog-bg: #EAE6F2;
+		--settings-sidebar-bg: #FAF8FE;
+		--settings-text: #302840;
+		--settings-hover-bg: #D2CCE0;
+		--setting-item-bg: #DDD8E8;
+		--input-bg: #F3F0F8;
+		--switch-unchecked-bg: #D2CCE0;
+		--status-bar-bg: #efecf4;
+		--btn-outline-bg: #F3F0F8;
+		--elev-shadow-1: #3028400f;
+		--elev-shadow-2: #3028401a;
+		--elev-shadow-3: #30284029;
+		--elev-ring: #30284014;
+		--scrim: #30284040;
+		--type-blue: #3868B0;
+		--type-green: #408868;
+		--type-orange: #b66737;
+		--type-purple: #7848B8;
+	}
+	[data-theme="dark"] {
+		color-scheme: dark;
+		--background: #21222e;
+		--foreground: #F8F8F2;
+		--card: #2a2e3d;
+		--popover: oklch(0.22 0.025 273);
+		--primary: oklch(0.73 0.08 278);
+		--primary-foreground: oklch(0.19 0.025 273);
+		--muted: oklch(0.28 0.025 272);
+		--muted-foreground: oklch(0.55 0.06 268);
+		--accent: oklch(0.28 0.025 272);
+		--border: oklch(0.28 0.025 272);
+		--input: oklch(0.28 0.025 272);
+		--divider: #383a4f;
+		--ring: oklch(0.73 0.08 278);
+		--destructive: oklch(0.628 0.225 25);
+		--destructive-foreground: oklch(0.98 0.005 105);
+		--warning: #fbbf24;
+		--success: #4ade80;
+		--settings-dialog-bg: #313549;
+		--settings-sidebar-bg: #2B2F40;
+		--settings-text: #bfcaf3;
+		--settings-hover-bg: #393e50;
+		--setting-item-bg: #20212d;
+		--input-bg: #3d4058;
+		--switch-unchecked-bg: #444660;
+		--status-bar-bg: #21222e;
+		--btn-outline-bg: color-mix(in oklab, oklch(0.28 0.025 272) 30%, transparent);
+		--elev-shadow-1: #00000040;
+		--elev-shadow-2: #00000073;
+		--elev-shadow-3: #00000099;
+		--elev-ring: #ffffff0f;
+		--scrim: #0000008c;
+		--type-blue: #60a5fa;
+		--type-green: #4ade80;
+		--type-orange: #fb8336;
+		--type-purple: #a78bfa;
+	}
+	:root {
+		--radius: 0.625rem;
+		--shadow-xs: 0 1px 2px 0 var(--elev-shadow-1);
+		--shadow-sm: 0 1px 3px 0 var(--elev-shadow-1), 0 1px 2px -1px var(--elev-shadow-1);
+		--shadow-md: 0 0 0 1px var(--elev-ring), 0 4px 12px -2px var(--elev-shadow-2), 0 2px 4px -2px var(--elev-shadow-1);
+		--shadow-xl: 0 0 0 1px var(--elev-ring), 0 16px 40px -8px var(--elev-shadow-3), 0 4px 12px -4px var(--elev-shadow-2);
+		--font: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", system-ui, sans-serif;
+		--mono: ui-monospace, "SF Mono", Menlo, monospace;
+	}
+
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; scroll-padding-top: 76px; }
+	body { margin: 0; background: var(--background); color: var(--foreground); font-family: var(--font); font-size: 14px; line-height: 1.5; }
+	button { font: inherit; color: inherit; }
+	input, select, textarea { font: inherit; color: inherit; }
+	.ic { flex-shrink: 0; vertical-align: middle; }
+	code { font-family: var(--mono); }
+
+	/* ---------- page chrome ---------- */
+	.top { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap; padding: 10px 24px; background: color-mix(in oklab, var(--background) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--divider); }
+	.top h1 { font-size: 15px; font-weight: 600; margin: 0; margin-right: auto; }
+	.nav { display: flex; gap: 4px; flex-wrap: wrap; max-width: 880px; }
+	.nav a { font-size: 12px; font-weight: 600; text-decoration: none; padding: 1px 7px; border-radius: 6px; color: var(--muted-foreground); border: 1px solid var(--border); }
+	.nav a:hover { color: var(--foreground); background: var(--accent); }
+	.nav a.pol { opacity: .75; }
+	.seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--card); }
+	.seg button { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border: 0; background: transparent; cursor: pointer; font-size: 12px; color: var(--muted-foreground); }
+	.seg button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+	.seg button:focus-visible, .btn:focus-visible, .nav a:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	main { max-width: 1320px; margin: 0 auto; padding: 24px; }
+	.intro { color: var(--muted-foreground); max-width: 90ch; margin: 0 0 8px; }
+	.tierhead { margin: 48px 0 0; font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted-foreground); padding: 6px 12px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); }
+	.sec { margin: 36px 0 0; padding-top: 22px; border-top: 1px solid var(--divider); }
+	.sec-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+	.sec-h h2 { font-size: 18px; margin: 0; font-weight: 600; }
+	.pid { font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--primary); color: var(--primary-foreground); }
+	.tier { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--border); color: var(--muted-foreground); }
+	.tier.moderate { color: var(--warning); border-color: var(--warning); }
+	.problem { margin: 8px 0 14px; color: var(--muted-foreground); max-width: 100ch; }
+	.problem b { color: var(--foreground); }
+	.cmp { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 20px; align-items: start; }
+	.cmp.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+	@media (max-width: 1000px) { .cmp, .cmp.even { grid-template-columns: 1fr; } }
+	figure.panel { margin: 0; min-width: 0; }
+	figcaption.cap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted-foreground); margin-bottom: 6px; }
+	.tag { font-size: 11px; font-weight: 700; letter-spacing: .05em; padding: 1px 8px; border-radius: 6px; flex-shrink: 0; }
+	.tag.b { background: color-mix(in oklab, var(--destructive) 16%, transparent); color: var(--destructive); }
+	.tag.a { background: color-mix(in oklab, var(--success) 18%, transparent); color: var(--success); }
+	.ctrls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; font-size: 12px; color: var(--muted-foreground); }
+	.btn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 12px; border: 1px solid var(--border); background: var(--card); color: var(--foreground); }
+	.btn:hover { background: var(--accent); }
+	.btn[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); }
+	.readout:empty { display: none; }
+	.readout { font-family: var(--mono); font-size: 11.5px; padding: 6px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--border); color: var(--muted-foreground); margin-top: 8px; min-height: 30px; }
+	.notes { margin: 12px 0 0; padding: 10px 14px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; font-size: 13px; }
+	.notes b { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted-foreground); }
+	.notes ul { margin: 4px 0 0; padding-left: 18px; }
+	.crop { position: relative; overflow: hidden; border-radius: 10px; border: 1px solid var(--border); background: var(--card); margin-inline: auto; }
+	.crop img { display: block; position: absolute; max-width: none; height: auto; }
+	.legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 0; font-size: 12px; }
+	.legend span { border: 1px solid var(--border); border-radius: 99px; padding: 0 8px; background: var(--card); }
+	.legend b { font-family: var(--mono); color: var(--primary); }
+
+	/* ---------- Kokobrain primitives (k-) ---------- */
+	.k-pane { background: var(--settings-dialog-bg); color: var(--foreground); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; position: relative; font-size: 14px; line-height: 20px; text-align: left; }
+	.k-pane h2 { font-size: 18px; line-height: 28px; font-weight: 600; margin: 0 0 14px; }
+	.k-stack { display: flex; flex-direction: column; gap: 8px; }
+	.k-slabel { font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .025em; text-transform: uppercase; color: var(--muted-foreground); margin: 0; }
+	.k-meta { font-size: 12px; line-height: 16px; color: var(--muted-foreground); }
+	.k-help { font-size: 12px; line-height: 16px; color: var(--muted-foreground); margin: 0; }
+	.k-help code, .k-meta code, .k-code { font-family: var(--mono); font-size: 11px; background: var(--muted); padding: 0 4px; border-radius: 3px; color: var(--foreground); }
+	.k-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 56px; padding: 12px 16px; border-radius: 8px; background: var(--setting-item-bg); }
+	.k-item.stacked { flex-direction: column; align-items: stretch; gap: 8px; }
+	.k-item .txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+	.k-item .lbl { font-size: 14px; font-weight: 500; color: var(--settings-text); }
+	.k-item .desc { font-size: 12px; line-height: 16px; color: var(--muted-foreground); text-wrap: pretty; }
+	.k-item .ctl { display: flex; justify-content: flex-end; flex-shrink: 0; max-width: 50%; }
+	.k-item.dis .lbl, .k-item.dis .desc { opacity: .55; }
+	.k-item.click { cursor: pointer; }
+	.k-item.click:hover { background: color-mix(in oklab, var(--setting-item-bg) 88%, var(--foreground)); }
+
+	.k-input { display: flex; height: 36px; width: 100%; min-width: 0; border-radius: 6px; border: 1px solid var(--input); background: var(--input-bg); color: color-mix(in oklab, var(--foreground) 80%, transparent); padding: 4px 12px; font-size: 14px; outline: none; box-shadow: var(--shadow-xs); transition: color .15s, box-shadow .15s; }
+	.k-input::placeholder { color: var(--muted-foreground); }
+	.k-input:focus-visible { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+	.k-input[aria-invalid="true"] { border-color: var(--destructive); box-shadow: 0 0 0 3px color-mix(in oklab, var(--destructive) 20%, transparent); }
+	.k-input.sm { height: 32px; font-size: 13px; padding: 2px 10px; }
+	.k-input.mono { font-family: var(--mono); font-size: 12.5px; }
+	.k-input:disabled { opacity: .5; cursor: not-allowed; }
+	.k-btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex-shrink: 0; height: 36px; padding: 0 16px; border-radius: 6px; border: 1px solid transparent; font-size: 14px; font-weight: 500; white-space: nowrap; cursor: pointer; outline: none; transition: background .12s, box-shadow .12s; background: var(--primary); color: var(--primary-foreground); box-shadow: var(--shadow-xs); }
+	.k-btn:hover { background: color-mix(in oklab, var(--primary) 90%, var(--background)); }
+	.k-btn.sm { height: 32px; padding: 0 12px; gap: 6px; }
+	.k-btn.outline { background: var(--btn-outline-bg); color: var(--foreground); border-color: var(--border); }
+	.k-btn.outline:hover { background: var(--accent); }
+	.k-btn.ghost { background: transparent; box-shadow: none; color: var(--foreground); }
+	.k-btn.ghost:hover { background: var(--accent); }
+	.k-btn.destructive { background: var(--destructive); color: #fff; }
+	.k-btn.icon { width: 28px; height: 28px; padding: 0; }
+	.k-btn.icon.sm { width: 28px; }
+	.k-btn.danger { color: var(--destructive); }
+	.k-btn:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+	.k-btn:disabled, .k-btn[aria-disabled="true"] { opacity: .5; pointer-events: none; }
+	.k-sw { position: relative; display: inline-flex; align-items: center; flex-shrink: 0; width: 32px; height: 18.4px; border-radius: 99px; border: 1px solid transparent; background: var(--switch-unchecked-bg); cursor: pointer; padding: 0; box-shadow: var(--shadow-xs); transition: background .15s; outline: none; }
+	.k-sw::after { content: ""; display: block; width: 16px; height: 16px; border-radius: 50%; background: var(--background); transform: translateX(0); transition: transform .15s; }
+	[data-theme="dark"] .k-sw::after { background: var(--foreground); }
+	.k-sw[aria-checked="true"] { background: var(--primary); }
+	.k-sw[aria-checked="true"]::after { transform: translateX(calc(100% - 2px)); }
+	[data-theme="dark"] .k-sw[aria-checked="true"]::after { background: var(--primary-foreground); }
+	.k-sw:focus-visible { box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+	.k-sw:disabled { opacity: .45; cursor: not-allowed; }
+	.k-sel { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; height: 32px; padding: 0 10px 0 12px; border-radius: 6px; border: 1px solid var(--input); background: var(--input-bg); font-size: 13px; cursor: pointer; white-space: nowrap; box-shadow: var(--shadow-xs); outline: none; color: var(--foreground); }
+	.k-sel:hover { background: color-mix(in oklab, var(--input-bg) 85%, var(--foreground)); }
+	.k-sel:focus-visible { border-color: var(--ring); box-shadow: 0 0 0 3px color-mix(in oklab, var(--ring) 50%, transparent); }
+	.k-sel.h36 { height: 36px; font-size: 14px; }
+	.k-sel .ic { opacity: .6; }
+	.k-sel:disabled { opacity: .5; cursor: not-allowed; }
+	.k-pill { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; line-height: 16px; font-weight: 600; padding: 0 8px; border-radius: 99px; background: var(--muted); color: var(--muted-foreground); white-space: nowrap; }
+	.k-pill.off { border: 1px solid var(--divider); background: transparent; }
+	.k-pill.warn { background: color-mix(in oklab, var(--warning) 16%, transparent); color: var(--warning); }
+	.k-pill.ok { background: color-mix(in oklab, var(--success) 16%, transparent); color: var(--success); }
+	.k-pill.bad { background: color-mix(in oklab, var(--destructive) 14%, transparent); color: var(--destructive); }
+	.k-pill.blue { background: color-mix(in oklab, var(--type-blue) 16%, transparent); color: var(--type-blue); }
+	.k-kbd { font-family: var(--font); font-size: 11px; border: 1px solid var(--border); border-radius: 3px; padding: 0 5px; background: var(--background); }
+	.k-menuhost { position: relative; display: inline-flex; }
+	.k-menu { position: absolute; z-index: 30; top: calc(100% + 4px); left: 0; min-width: 190px; background: var(--popover); color: var(--foreground); border-radius: 8px; box-shadow: var(--shadow-md); padding: 4px; font-size: 13px; }
+	.k-menu.right { left: auto; right: 0; }
+	.k-menu.up { top: auto; bottom: calc(100% + 4px); }
+	.k-menu button { display: flex; align-items: flex-start; gap: 8px; width: 100%; text-align: left; border: 0; background: transparent; padding: 6px 8px; border-radius: 5px; cursor: pointer; }
+	.k-menu button:hover, .k-menu button:focus-visible { background: var(--accent); outline: none; }
+	.k-menu button[disabled] { opacity: .5; cursor: default; }
+	.k-menu .mt { display: flex; flex-direction: column; min-width: 0; }
+	.k-menu .md { font-size: 11.5px; line-height: 15px; color: var(--muted-foreground); }
+	.k-menu .mh { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--muted-foreground); padding: 6px 8px 2px; }
+	.k-menu code { font-family: var(--mono); font-size: 12px; }
+	.k-warn { display: flex; gap: 8px; align-items: flex-start; border-radius: 8px; padding: 8px 12px; font-size: 12px; line-height: 16px; border: 1px solid color-mix(in oklab, var(--warning) 40%, transparent); background: color-mix(in oklab, var(--warning) 10%, transparent); color: var(--foreground); }
+	.k-warn .ic { color: var(--warning); margin-top: 1px; }
+	.k-warn.bad { border-color: color-mix(in oklab, var(--destructive) 45%, transparent); background: color-mix(in oklab, var(--destructive) 10%, transparent); }
+	.k-warn.bad .ic { color: var(--destructive); }
+	.k-warn .tt { font-weight: 600; font-size: 13px; line-height: 18px; }
+	.k-warn .row { display: flex; gap: 8px; margin-top: 8px; }
+	.k-err { color: var(--destructive); font-size: 12px; line-height: 16px; margin: 0; display: flex; gap: 4px; align-items: flex-start; }
+	.k-err .ic { margin-top: 1px; }
+	.k-warnmsg { color: var(--warning); font-size: 12px; line-height: 16px; margin: 0; display: flex; gap: 4px; align-items: flex-start; }
+	.k-warnmsg .ic { margin-top: 1px; }
+	.k-prev { font-size: 12px; line-height: 16px; color: var(--muted-foreground); display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+	.k-prev b { color: var(--foreground); font-family: var(--mono); font-weight: 500; font-size: 11.5px; }
+	.k-empty { border: 1px dashed var(--border); border-radius: 8px; padding: 20px; text-align: center; font-size: 12px; color: var(--muted-foreground); }
+	.k-spin { animation: kspin 1s linear infinite; }
+	@keyframes kind { from { margin-left: 0; } to { margin-left: 65%; } }
+	@keyframes kspin { to { transform: rotate(360deg); } }
+	@media (prefers-reduced-motion: reduce) { .k-spin { animation-duration: 3s; } .k-sw, .k-sw::after { transition: none; } }
+
+	/* frame, scroller, toasts, modal */
+	.k-frame { position: relative; border-radius: 10px; overflow: hidden; }
+	.k-scroller { overflow-y: auto; scrollbar-width: thin; }
+	.k-toasts { position: absolute; left: 12px; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; z-index: 40; pointer-events: none; }
+	.k-toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; max-width: 420px; padding: 10px 12px; border-radius: 8px; background: var(--popover); color: var(--foreground); box-shadow: var(--shadow-xl); font-size: 13px; line-height: 18px; animation: ktoast .18s ease-out; }
+	.k-toast.err { background: color-mix(in oklab, var(--destructive) 12%, var(--popover)); }
+	.k-toast.err .ic.lead { color: var(--destructive); }
+	.k-toast .ic.lead { color: var(--primary); }
+	.k-toast .acts { margin-left: auto; display: flex; gap: 4px; }
+	.k-toast .k-btn { height: 26px; padding: 0 8px; font-size: 12px; }
+	@keyframes ktoast { from { opacity: 0; transform: translateY(6px); } }
+	.k-modal { position: absolute; inset: 0; z-index: 50; background: var(--scrim); display: flex; align-items: center; justify-content: center; padding: 16px; }
+	.k-dialog { width: min(440px, 100%); background: var(--popover); color: var(--foreground); border-radius: 12px; box-shadow: var(--shadow-xl); padding: 18px 20px; display: flex; flex-direction: column; gap: 10px; }
+	.k-dialog h3 { margin: 0; font-size: 16px; font-weight: 600; }
+	.k-dialog ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 6px; }
+	.k-dialog li { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+	.k-dialog li .ic { color: var(--primary); margin-top: 2px; }
+	.k-dialog .foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+
+	/* ---------- Auto Organize rule cards ---------- */
+	.k-rules { display: flex; flex-direction: column; gap: 8px; }
+	.k-rule { display: flex; flex-direction: column; gap: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--setting-item-bg); padding: 10px 12px; transition: border-color .15s; }
+	.k-rule:focus-within { border-color: color-mix(in oklab, var(--primary) 70%, var(--border)); }
+	.k-rule.off { border-style: dashed; border-color: var(--divider); background: color-mix(in oklab, var(--setting-item-bg) 55%, transparent); }
+	.k-rule.off:focus-within { border-color: color-mix(in oklab, var(--primary) 70%, var(--divider)); }
+	.k-rule .head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+	.k-rule .name { flex: 1; min-width: 0; font-weight: 500; }
+	.k-rule .chev { width: 28px; height: 28px; border-radius: 6px; border: 0; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; color: var(--muted-foreground); }
+	.k-rule .chev:hover { background: var(--accent); color: var(--foreground); }
+	.k-rule .chev .ic { transition: transform .15s; }
+	.k-rule .chev[aria-expanded="true"] .ic { transform: rotate(90deg); }
+	.k-rule .sumline { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; cursor: pointer; border: 0; background: transparent; padding: 2px 0; text-align: left; }
+	.k-rule .sumline .nm { font-weight: 500; white-space: nowrap; }
+	.k-rule .sumline .sm { color: var(--muted-foreground); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1; }
+	.k-rule .sumline .sm code { font-size: 11px; background: var(--muted); padding: 0 4px; border-radius: 3px; color: var(--foreground); }
+	.k-rule .sumline .sm .sep { margin: 0 6px; opacity: .6; }
+	.k-rule .body { display: flex; flex-direction: column; gap: 10px; }
+	.k-rule .grid { display: grid; grid-template-columns: 108px minmax(0, 1fr); column-gap: 10px; row-gap: 4px; align-items: start; }
+	.k-rule .grid > .gl { position: relative; white-space: nowrap; font-size: 12px; line-height: 32px; color: var(--muted-foreground); display: flex; align-items: center; gap: 4px; }
+	.k-rule .grid > .gl.then { font-weight: 600; text-transform: uppercase; letter-spacing: .03em; font-size: 11px; }
+	.k-rule .grid .gc { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+	.k-rule .line { display: flex; gap: 6px; align-items: center; min-width: 0; }
+	.k-rule .line > .k-input { flex: 1; }
+	.k-rule .rm { opacity: 0; position: absolute; right: 0; top: 6px; background: var(--setting-item-bg); }
+	.k-rule .grid:hover .rm, .k-rule .rm:focus-visible { opacity: 1; }
+	.k-rule .foot { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-top: 2px; border-top: 1px dashed var(--divider); padding-top: 8px; }
+	.k-rule .more { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 4px 8px; background: color-mix(in oklab, var(--input-bg) 55%, transparent); border-radius: 6px; font-size: 12px; color: var(--muted-foreground); }
+	.k-ao[data-hl] [data-p] { transition: outline-color .2s; }
+	.k-ao[data-hl="P70"] [data-p~="P70"], .k-ao[data-hl="P185"] [data-p~="P185"], .k-ao[data-hl="P146"] [data-p~="P146"], .k-ao[data-hl="P147"] [data-p~="P147"],
+	.k-ao[data-hl="P148"] [data-p~="P148"], .k-ao[data-hl="P149"] [data-p~="P149"], .k-ao[data-hl="P151"] [data-p~="P151"], .k-ao[data-hl="P67"] [data-p~="P67"],
+	.k-ao[data-hl="P69"] [data-p~="P69"], .k-ao[data-hl="P66"] [data-p~="P66"], .k-ao[data-hl="P68"] [data-p~="P68"], .k-ao[data-hl="P08"] [data-p~="P08"],
+	.k-ao[data-hl="P150"] [data-p~="P150"] { outline: 2px dashed var(--primary); outline-offset: 3px; border-radius: 6px; }
+	.k-ao[data-hl="all"] [data-p]:hover::after { content: attr(data-p); position: absolute; margin: -22px 0 0 0; font: 700 10px var(--mono); background: var(--primary); color: var(--primary-foreground); padding: 0 5px; border-radius: 4px; }
+	.k-ao.locked .lockable { opacity: .45; pointer-events: none; filter: grayscale(.4); }
+
+	/* types group */
+	.k-types { border: 1px solid var(--border); border-radius: 8px; background: color-mix(in oklab, var(--setting-item-bg) 40%, transparent); padding: 8px 12px; display: flex; flex-direction: column; gap: 6px; }
+	.k-types .tr { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+	.k-types .tr .ic { color: var(--muted-foreground); }
+	.k-types.paused .tr { opacity: .55; }
+	.k-tdot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+
+	/* chips (excluded folders) */
+	.k-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+	.k-chip { display: inline-flex; align-items: center; gap: 4px; padding: 2px 4px 2px 10px; border-radius: 99px; background: var(--setting-item-bg); border: 1px solid var(--border); font-size: 12px; }
+	.k-chip.missing { border-style: dashed; border-color: var(--warning); }
+	.k-chip .ic.w { color: var(--warning); }
+	.k-chip button { border: 0; background: transparent; cursor: pointer; width: 20px; height: 20px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; color: var(--muted-foreground); }
+	.k-chip button:hover { background: var(--accent); color: var(--foreground); }
+
+	/* settings nav */
+	.k-navbox { width: 220px; background: var(--settings-sidebar-bg); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-direction: column; height: 440px; overflow: hidden; color: var(--foreground); }
+	.k-navbox .ttl { height: 56px; flex-shrink: 0; display: flex; align-items: center; padding: 0 16px; font-size: 15px; font-weight: 600; background: var(--settings-sidebar-bg); }
+	.k-navbox .ttl.fixed { border-bottom: 1px solid color-mix(in oklab, var(--divider) 55%, transparent); }
+	.k-navbox .scr { overflow-y: auto; flex: 1; padding: 0 12px 12px; scrollbar-width: thin; }
+	.k-navbox .grp { padding: 10px 12px 4px; }
+	.k-navbox .nit { display: flex; align-items: center; gap: 10px; width: 100%; border: 0; background: transparent; padding: 6px 12px; height: 32px; border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--settings-text); text-align: left; }
+	.k-navbox .nit:hover { background: color-mix(in oklab, var(--settings-hover-bg) 55%, transparent); }
+	.k-navbox .nit[aria-current="true"] { background: var(--settings-hover-bg); }
+	.k-navbox .nit mark { background: color-mix(in oklab, var(--primary) 28%, transparent); color: inherit; border-radius: 2px; }
+	.k-navbox .nit .kw { margin-left: auto; font-size: 11px; color: var(--muted-foreground); }
+	.k-navbox .flt { padding: 0 12px 8px; flex-shrink: 0; }
+	.k-navbox .flt .wrap { position: relative; }
+	.k-navbox .flt .wrap .ic { position: absolute; left: 10px; top: 9px; color: var(--muted-foreground); }
+	.k-navbox .flt input { padding-left: 32px; padding-right: 28px; }
+	.k-navbox .flt button { position: absolute; right: 4px; top: 4px; }
+
+	/* status bar */
+	.k-status { display: flex; align-items: center; justify-content: space-between; height: 32px; padding: 0 12px; background: var(--status-bar-bg); color: var(--muted-foreground); font-size: 12px; border-top: 1px solid var(--divider); border-radius: 0 0 8px 8px; }
+	.k-status .r { display: flex; align-items: center; gap: 12px; }
+	.k-status .chip { display: inline-flex; align-items: center; gap: 4px; border: 0; background: transparent; color: inherit; padding: 0; font-size: 12px; }
+	.k-status .chip.err { color: var(--destructive); }
+	.k-status button.chip { cursor: pointer; border-radius: 4px; padding: 1px 6px; margin: 0 -6px; border: 1px solid color-mix(in oklab, currentColor 28%, transparent); }
+	.k-status button.chip:hover { background: var(--accent); color: var(--foreground); }
+	.k-status button.chip.err:hover { color: var(--destructive); }
+	.k-status button.chip:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+
+	/* command dialog */
+	.k-cmd { background: var(--popover); color: var(--foreground); border-radius: 12px; box-shadow: var(--shadow-xl); overflow: hidden; width: min(480px, 100%); margin-inline: auto; position: relative; }
+	.k-cmd .in { display: flex; align-items: center; border-bottom: 1px solid var(--border); padding: 0 12px; gap: 6px; }
+	.k-cmd .in input { flex: 1; height: 40px; border: 0; background: transparent; outline: none; font-size: 14px; }
+	.k-cmd .item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; margin: 4px; border-radius: 6px; cursor: pointer; font-size: 14px; border: 0; background: transparent; width: calc(100% - 8px); text-align: left; }
+	.k-cmd .item:hover, .k-cmd .item.sel { background: var(--accent); }
+	.k-cmd .hint { padding: 12px 16px; font-size: 13px; color: var(--muted-foreground); text-align: center; }
+	.k-cmd .hint b { color: var(--foreground); font-weight: 500; }
+	.k-cmd .chiprow { display: flex; align-items: center; gap: 6px; padding: 8px 12px 0; font-size: 12px; color: var(--muted-foreground); }
+	.k-progress { height: 6px; width: 100%; border-radius: 99px; background: var(--muted); overflow: hidden; }
+	.k-progress > div { height: 100%; background: var(--primary); transition: width .2s; }
+	.k-runlog { max-height: 96px; overflow-y: auto; border-radius: 6px; background: color-mix(in oklab, var(--muted) 50%, transparent); padding: 8px; font-family: var(--mono); font-size: 11.5px; line-height: 16px; white-space: pre-wrap; }
+
+	/* small recreation helpers */
+	.k-row2 { display: flex; gap: 8px; align-items: center; }
+	.k-tbl { width: 100%; border-collapse: separate; border-spacing: 0 4px; font-size: 13px; }
+	.k-tbl th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .03em; color: var(--muted-foreground); padding: 0 8px 2px; }
+	.k-tbl td { background: var(--setting-item-bg); padding: 6px 8px; vertical-align: top; }
+	.k-tbl td:first-child { border-radius: 8px 0 0 8px; font-weight: 500; color: var(--settings-text); padding-left: 14px; }
+	.k-tbl td:last-child { border-radius: 0 8px 8px 0; }
+	.k-tbl .ex { font-family: var(--mono); font-size: 11.5px; color: var(--muted-foreground); margin-top: 3px; overflow-wrap: anywhere; }
+	.k-tbl .ex b { color: var(--foreground); font-weight: 500; }
+	.k-tbl .nf { font-size: 11.5px; color: var(--warning); margin-top: 3px; display: flex; gap: 4px; align-items: center; }
+	.k-tbl .ok { font-size: 11.5px; color: var(--success); margin-top: 3px; display: flex; gap: 4px; align-items: center; }
+	.k-prec { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 4px; }
+	.k-prec th, .k-prec td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+	.k-prec th { color: var(--muted-foreground); font-weight: 600; }
+	.k-prec td:first-child { white-space: nowrap; font-weight: 500; }
+	.k-prop { display: inline-block; width: 12px; height: 12px; border-radius: 3px; border: 1.5px solid var(--muted-foreground); vertical-align: -2px; margin-right: 6px; }
+</style>
+</head>
+<body>
+<div class="top">
+	<h1>Settings and Auto Organize rule builder</h1>
+	<nav class="nav" id="nav" aria-label="Proposals"></nav>
+	<div class="seg" role="group" aria-label="Theme of the AFTER recreations">
+		<button type="button" id="th-light" aria-pressed="true"><i data-ic="sun" data-s="14"></i> Lavender light</button>
+		<button type="button" id="th-dark" aria-pressed="false"><i data-ic="moon" data-s="14"></i> Default dark</button>
+	</div>
+</div>
+<main id="main">
+	<p class="intro">Twenty-seven proposals for Settings and the Auto Organize rule builder, moderate ones first and polish last (as the review asked). Every section shows BEFORE (a crop of the real screenshot in Lavender Haze, or a faithful recreation of today's behaviour) and AFTER (an interactive recreation that follows the theme toggle). Dashed outlines in the AFTER mark the part a proposal changes. The last section combines all Auto Organize proposals in one panel.</p>
+</main>
+<script>
+(() => {
+	'use strict';
+	const K = window.K = {};
+
+	/* ---------- lucide icons (24x24 paths, same set the app uses) ---------- */
+	const ICONS = {"plus": "<path d=\"M5 12h14\"/><path d=\"M12 5v14\"/>", "x": "<path d=\"M18 6 6 18\"/><path d=\"m6 6 12 12\"/>", "check": "<path d=\"M20 6 9 17l-5-5\"/>", "chevron-down": "<path d=\"m6 9 6 6 6-6\"/>", "chevron-right": "<path d=\"m9 18 6-6-6-6\"/>", "trash-2": "<path d=\"M3 6h18\"/><path d=\"M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6\"/><path d=\"M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2\"/><line x1=\"10\" x2=\"10\" y1=\"11\" y2=\"17\"/><line x1=\"14\" x2=\"14\" y1=\"11\" y2=\"17\"/>", "circle-alert": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><line x1=\"12\" x2=\"12\" y1=\"8\" y2=\"12\"/><line x1=\"12\" x2=\"12.01\" y1=\"16\" y2=\"16\"/>", "triangle-alert": "<path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"/><path d=\"M12 9v4\"/><path d=\"M12 17h.01\"/>", "refresh": "<path d=\"M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8\"/><path d=\"M21 3v5h-5\"/><path d=\"M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16\"/><path d=\"M8 16H3v5\"/>", "folder": "<path d=\"M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z\"/>", "folder-open": "<path d=\"m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2\"/>", "undo-2": "<path d=\"M9 14 4 9l5-5\"/><path d=\"M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11\"/>", "search": "<circle cx=\"11\" cy=\"11\" r=\"8\"/><path d=\"m21 21-4.3-4.3\"/>", "info": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"M12 16v-4\"/><path d=\"M12 8h.01\"/>", "sun": "<circle cx=\"12\" cy=\"12\" r=\"4\"/><path d=\"M12 2v2\"/><path d=\"M12 20v2\"/><path d=\"m4.93 4.93 1.41 1.41\"/><path d=\"m17.66 17.66 1.41 1.41\"/><path d=\"M2 12h2\"/><path d=\"M20 12h2\"/><path d=\"m6.34 17.66-1.41 1.41\"/><path d=\"m19.07 4.93-1.41 1.41\"/>", "moon": "<path d=\"M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z\"/>", "file-text": "<path d=\"M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z\"/><path d=\"M14 2v4a2 2 0 0 0 2 2h4\"/><path d=\"M10 9H8\"/><path d=\"M16 13H8\"/><path d=\"M16 17H8\"/>", "ellipsis": "<circle cx=\"12\" cy=\"12\" r=\"1\"/><circle cx=\"19\" cy=\"12\" r=\"1\"/><circle cx=\"5\" cy=\"12\" r=\"1\"/>", "history": "<path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/><path d=\"M12 7v5l4 2\"/>", "lock": "<rect width=\"18\" height=\"11\" x=\"3\" y=\"11\" rx=\"2\" ry=\"2\"/><path d=\"M7 11V7a5 5 0 0 1 10 0v4\"/>", "archive": "<rect width=\"20\" height=\"5\" x=\"2\" y=\"3\" rx=\"1\"/><path d=\"M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8\"/><path d=\"M10 12h4\"/>", "palette": "<circle cx=\"13.5\" cy=\"6.5\" r=\".5\" fill=\"currentColor\"/><circle cx=\"17.5\" cy=\"10.5\" r=\".5\" fill=\"currentColor\"/><circle cx=\"8.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"/><circle cx=\"6.5\" cy=\"12.5\" r=\".5\" fill=\"currentColor\"/><path d=\"M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z\"/>", "pencil": "<path d=\"M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z\"/><path d=\"m15 5 4 4\"/>", "clock": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><polyline points=\"12 6 12 12 16 14\"/>", "calendar": "<path d=\"M8 2v4\"/><path d=\"M16 2v4\"/><rect width=\"18\" height=\"18\" x=\"3\" y=\"4\" rx=\"2\"/><path d=\"M3 10h18\"/>", "code": "<polyline points=\"16 18 22 12 16 6\"/><polyline points=\"8 6 2 12 8 18\"/>", "circle-check": "<circle cx=\"12\" cy=\"12\" r=\"10\"/><path d=\"m9 12 2 2 4-4\"/>", "loader": "<path d=\"M21 12a9 9 0 1 1-6.219-8.56\"/>", "link": "<path d=\"M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71\"/><path d=\"M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71\"/>", "image": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\" ry=\"2\"/><circle cx=\"9\" cy=\"9\" r=\"2\"/><path d=\"m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21\"/>", "list-filter": "<path d=\"M3 6h18\"/><path d=\"M7 12h10\"/><path d=\"M10 18h4\"/>", "filter": "<polygon points=\"22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3\"/>", "settings": "<path d=\"M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>", "copy": "<rect width=\"14\" height=\"14\" x=\"8\" y=\"8\" rx=\"2\" ry=\"2\"/><path d=\"M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2\"/>", "rotate-ccw": "<path d=\"M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8\"/><path d=\"M3 3v5h5\"/>", "user": "<circle cx=\"12\" cy=\"8\" r=\"5\"/><path d=\"M20 21a8 8 0 0 0-16 0\"/>", "inbox": "<polyline points=\"22 12 16 12 14 15 10 15 8 12 2 12\"/><path d=\"M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z\"/>", "tag": "<path d=\"M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z\"/><circle cx=\"7.5\" cy=\"7.5\" r=\".5\" fill=\"currentColor\"/>", "move": "<path d=\"M2 9V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1\"/><path d=\"M2 13h10\"/><path d=\"m9 16 3-3-3-3\"/>", "panel-right": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/><path d=\"M15 3v18\"/>", "arrow-right": "<path d=\"M5 12h14\"/><path d=\"m12 5 7 7-7 7\"/>", "list": "<path d=\"M3 12h.01\"/><path d=\"M3 18h.01\"/><path d=\"M3 6h.01\"/><path d=\"M8 12h13\"/><path d=\"M8 18h13\"/><path d=\"M8 6h13\"/>", "sliders": "<line x1=\"21\" x2=\"14\" y1=\"4\" y2=\"4\"/><line x1=\"10\" x2=\"3\" y1=\"4\" y2=\"4\"/><line x1=\"21\" x2=\"12\" y1=\"12\" y2=\"12\"/><line x1=\"8\" x2=\"3\" y1=\"12\" y2=\"12\"/><line x1=\"21\" x2=\"16\" y1=\"20\" y2=\"20\"/><line x1=\"12\" x2=\"3\" y1=\"20\" y2=\"20\"/><line x1=\"14\" x2=\"14\" y1=\"2\" y2=\"6\"/><line x1=\"8\" x2=\"8\" y1=\"10\" y2=\"14\"/><line x1=\"16\" x2=\"16\" y1=\"18\" y2=\"22\"/>", "eye-off": "<path d=\"M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49\"/><path d=\"M14.084 14.158a3 3 0 0 1-4.242-4.242\"/><path d=\"M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143\"/><path d=\"m2 2 20 20\"/>", "square": "<rect width=\"18\" height=\"18\" x=\"3\" y=\"3\" rx=\"2\"/>"};
+	Object.assign(ICONS, {
+		'chevron-up': '<path d="m18 15-6-6-6 6"/>',
+		'chevron-left': '<path d="m15 18-6-6 6-6"/>',
+		'download': '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/>',
+		'play': '<polygon points="6 3 20 12 6 21 6 3"/>',
+		'braces': '<path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1"/>',
+		'corner-down-left': '<polyline points="9 10 4 15 9 20"/><path d="M20 4v7a4 4 0 0 1-4 4H4"/>',
+		'terminal': '<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>',
+		'sparkles-none': '',
+	});
+
+	/** Returns an inline lucide SVG element. */
+	K.ic = function ic(name, size = 16, cls = '') {
+		const t = document.createElement('template');
+		t.innerHTML = '<svg class="ic ' + cls + '" xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+		return t.content.firstChild;
+	};
+	const ic = K.ic;
+
+	/** Tiny DOM builder: h('div', {class, onclick, ...}, ...children). */
+	const h = K.h = function h(tag, props, ...kids) {
+		const el = document.createElement(tag);
+		for (const [k, v] of Object.entries(props || {})) {
+			if (v === false || v == null) continue;
+			if (k === 'class') el.className = v;
+			else if (k === 'style') el.style.cssText = v;
+			else if (k === 'html') el.innerHTML = v;
+			else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+			else if (k === 'value' || k === 'checked' || k === 'disabled' || k === 'readOnly') el[k] = v;
+			else el.setAttribute(k, v === true ? '' : v);
+		}
+		for (const kid of kids.flat(Infinity)) {
+			if (kid == null || kid === false) continue;
+			el.append(kid instanceof Node ? kid : document.createTextNode(String(kid)));
+		}
+		return el;
+	};
+	const txt = (s) => document.createTextNode(s);
+	const code = (s, cls) => h('code', { class: cls || 'k-code' }, s);
+	K.uid = (() => { let n = 100; return (p = 'id') => p + (++n); })();
+
+	/** Replaces <i data-ic> placeholders in static markup. */
+	K.hydrateIcons = function (root) {
+		root.querySelectorAll('i[data-ic]').forEach((i) => i.replaceWith(ic(i.dataset.ic, Number(i.dataset.s || 16))));
+	};
+
+	/* ---------- primitives ---------- */
+	K.sw = function sw(checked, onchange, label, o = {}) {
+		const b = h('button', { type: 'button', role: 'switch', class: 'k-sw', 'aria-checked': String(!!checked), 'aria-label': label, disabled: !!o.disabled, id: o.id, 'aria-describedby': o.describedby });
+		b.addEventListener('click', () => {
+			const next = b.getAttribute('aria-checked') !== 'true';
+			b.setAttribute('aria-checked', String(next));
+			onchange && onchange(next);
+		});
+		return b;
+	};
+	K.btn = function btn(label, o = {}) {
+		return h('button', { type: 'button', class: 'k-btn ' + (o.cls || 'outline sm'), onclick: o.onclick, disabled: !!o.disabled, title: o.title, 'aria-label': o.aria, 'data-p': o.p, 'data-fk': o.fk },
+			o.icon ? ic(o.icon, o.iconSize || 14) : null, label || null);
+	};
+	K.iconBtn = (icon, aria, onclick, o = {}) => h('button', { type: 'button', class: 'k-btn ghost icon ' + (o.cls || ''), 'aria-label': aria, title: aria, onclick, disabled: !!o.disabled }, ic(icon, o.size || 14));
+	K.sel = function sel(label, o = {}) {
+		return h('button', { type: 'button', class: 'k-sel' + (o.h36 ? ' h36' : ''), 'aria-haspopup': 'menu', 'aria-label': o.aria, onclick: o.onclick, disabled: !!o.disabled, style: o.style, 'data-p': o.p }, h('span', {}, label), ic('chevron-down', 14));
+	};
+	K.item = function item(label, desc, ctl, o = {}) {
+		const id = K.uid('lbl');
+		const labelEl = o.labelFor
+			? h('label', { class: 'lbl', for: o.labelFor, id }, label)
+			: h('span', { class: 'lbl', id }, label);
+		const d = desc ? h('span', { class: 'desc', id: id + '-d' }, desc) : null;
+		const el = h('div', { class: 'k-item' + (o.stacked ? ' stacked' : '') + (o.cls ? ' ' + o.cls : ''), 'data-p': o.p },
+			h('div', { class: 'txt' }, labelEl, d), o.stacked ? ctl : h('div', { class: 'ctl' }, ctl));
+		el._ids = { label: id, desc: id + '-d' };
+		return el;
+	};
+
+	/* menus */
+	function closeMenus() { document.querySelectorAll('.k-menu:not(.k-sug)').forEach((m) => m.remove()); }
+	K.closeMenus = closeMenus;
+	document.addEventListener('click', (e) => { if (!e.target.closest('.k-menuhost') && !e.target.closest('.k-menu')) closeMenus(); });
+	document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeMenus(); });
+	K.menu = function menu(anchor, items, onpick, o = {}) {
+		const host = anchor.closest('.k-menuhost');
+		const existing = host.querySelector(':scope > .k-menu');
+		closeMenus();
+		if (existing) return;
+		const m = h('div', { class: 'k-menu' + (o.right ? ' right' : '') + (o.up ? ' up' : ''), role: 'menu', style: o.w ? 'min-width:' + o.w + 'px' : '' },
+			items.map((it) => it.head ? h('div', { class: 'mh' }, it.head)
+				: h('button', { type: 'button', role: 'menuitem', disabled: !!it.disabled, onclick: () => { closeMenus(); onpick(it); } },
+					it.icon ? ic(it.icon, 14) : null,
+					h('span', { class: 'mt' }, it.mono ? h('code', {}, it.label) : h('span', {}, it.label), it.desc ? h('span', { class: 'md' }, it.desc) : null))));
+		host.append(m);
+		const sc = m.closest('.k-scroller');
+		if (sc) {
+			const r = m.getBoundingClientRect(), s = sc.getBoundingClientRect();
+			if (r.bottom > s.bottom && anchor.getBoundingClientRect().top - s.top > r.height + 8) m.classList.add('up');
+		}
+		const first = m.querySelector('button:not([disabled])');
+		if (first) first.focus({ preventScroll: true });
+	};
+	/** A trigger button plus its menu host. */
+	K.menuBtn = function menuBtn(trigger, items, onpick, o = {}) {
+		const host = h('span', { class: 'k-menuhost' }, trigger);
+		trigger.addEventListener('click', () => K.menu(trigger, typeof items === 'function' ? items() : items, onpick, o));
+		return host;
+	};
+
+	/** Toast inside a .k-frame (the real app uses a window-level toaster). */
+	K.toast = function toast(frame, o) {
+		let host = frame.querySelector(':scope > .k-toasts');
+		if (!host) { host = h('div', { class: 'k-toasts', 'aria-live': 'polite' }); frame.append(host); }
+		const t = h('div', { class: 'k-toast' + (o.tone === 'err' ? ' err' : ''), role: o.tone === 'err' ? 'alert' : 'status' },
+			ic(o.icon || (o.tone === 'err' ? 'circle-alert' : 'circle-check'), 16, 'lead'), h('span', {}, o.text),
+			(o.actions || []).length ? h('span', { class: 'acts' }, o.actions.map((a) => h('button', { type: 'button', class: 'k-btn outline', onclick: () => { t.remove(); a.fn && a.fn(); } }, a.icon ? ic(a.icon, 12) : null, a.label))) : null,
+			h('button', { type: 'button', class: 'k-btn ghost icon', style: 'width:22px;height:22px', 'aria-label': 'Dismiss', onclick: () => t.remove() }, ic('x', 12)));
+		host.append(t);
+		while (host.children.length > 3) host.firstChild.remove();
+		setTimeout(() => t.remove(), o.ms || (o.tone === 'err' ? 7000 : 6000));
+		return t;
+	};
+
+	/** A crop of a real screenshot (1440 px nominal width). */
+	K.crop = function crop(file, x, y, w, hh, o = {}) {
+		const max = o.maxScale || 1.25;
+		const img = h('img', { src: '../screens/' + file + '.png', alt: o.alt || '', draggable: 'false', loading: 'lazy' });
+		const box = h('div', { class: 'crop', 'data-theme': 'light', role: 'img', 'aria-label': o.alt || 'Screenshot crop' }, img);
+		const fit = () => {
+			const avail = box.parentElement ? box.parentElement.clientWidth : w;
+			const scale = Math.min(max, (avail || w) / w);
+			box.style.width = Math.round(w * scale) + 'px';
+			box.style.height = Math.round(hh * scale) + 'px';
+			img.style.width = Math.round(1440 * scale) + 'px';
+			img.style.left = Math.round(-x * scale) + 'px';
+			img.style.top = Math.round(-y * scale) + 'px';
+		};
+		K.onFit.push(fit);
+		requestAnimationFrame(fit);
+		return box;
+	};
+	K.onFit = [];
+	new ResizeObserver(() => K.onFit.forEach((f) => f())).observe(document.documentElement);
+
+	/** A short description card with notes. */
+	K.note = (title, items) => h('div', { class: 'notes' }, h('b', {}, title), h('ul', {}, items.map((i) => h('li', {}, i))));
+
+	/* ================================================================
+	   Auto Organize panel (AFTER recreation of AutoOrganizeSection)
+	   ================================================================ */
+	const VARS = [
+		{ label: '{folder}', desc: 'Name of the note\'s current folder' },
+		{ label: '{parent}', desc: 'Name of the folder above it' },
+		{ label: '{basename}', desc: 'File name without .md' },
+		{ label: '{type}', desc: 'Value of _type' },
+		{ label: '{status}', desc: 'Value of the status property' },
+		{ label: '{year}', desc: 'Year of the note date' },
+		{ label: '{month}', desc: 'Month of the note date, 01 to 12' },
+	];
+	const SAMPLE = { folder: 'Inbox', parent: 'Work', basename: 'Website Redesign', type: 'Project', status: 'active', year: '2026', month: '11' };
+	const MODES = [
+		{ id: 'ifMissing', label: 'Set if missing', desc: 'Writes only when the note has no value yet' },
+		{ id: 'always', label: 'Always overwrite', desc: 'Replaces any existing value on every save' },
+		{ id: 'remove', label: 'Remove', desc: 'Deletes the property from the note' },
+		{ id: 'add', label: 'Add to list', desc: 'Appends to a list and keeps existing items' },
+	];
+	const EFFECTS = [
+		{ id: 'rename', label: 'Rename', desc: 'Give the note a new name', icon: 'pencil' },
+		{ id: 'move', label: 'Move to folder', desc: 'File the note into a folder', icon: 'folder' },
+		{ id: 'props', label: 'Set properties', desc: 'Write frontmatter properties', icon: 'tag' },
+		{ id: 'create', label: 'Create note', desc: 'Create a new note from a path', icon: 'file-text' },
+		{ id: 'mod', label: 'Run mod action', desc: 'Start an action from a vault mod', icon: 'play' },
+	];
+	const VAULT_FOLDERS = ['Archive', 'Daily', 'Inbox', 'Meetings', 'People', 'Projects', 'Work', 'Work/_people', '_system', '_templates'];
+	K.VAULT_FOLDERS = VAULT_FOLDERS;
+	const lev = (a, b) => { const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; };
+	const resolveDest = (t) => { const unknown = []; const out = t.replace(/\{([^{}]*)\}/g, (m, k) => { if (k in SAMPLE) return SAMPLE[k]; unknown.push(k); return m; }); return { out, unknown }; };
+	const closest = (k) => Object.keys(SAMPLE).map((n) => [n, lev(k, n)]).sort((a, b) => a[1] - b[1])[0];
+	const balanced = (s) => { let d = 0, q = null; for (const c of s) { if (q) { if (c === q) q = null; continue; } if (c === '"' || c === "'") q = c; else if (c === '(') d++; else if (c === ')') d--; if (d < 0) return false; } return d === 0 && q === null; };
+	const nonDefault = (p) => p.source === 'Expression' || p.type === 'Yes/no';
+
+	/** Fresh copies of the demo rules. */
+	K.rules = {
+		owner: () => ({ id: K.uid('r'), name: 'Projects get an owner', enabled: true, matches: 4, when: [{ id: K.uid('c'), k: 'expr', text: 'file.inFolder("Projects")' }], move: 'Projects/{year}', props: [{ id: K.uid('p'), key: 'owner', source: 'Value', type: 'Text', value: 'me', mode: 'ifMissing' }] }),
+		archive: () => ({ id: K.uid('r'), name: 'Archive finished work', enabled: true, matches: 12, when: [{ id: K.uid('c'), k: 'prop', key: 'status', op: 'is', val: 'done' }], move: 'Archive/{type}', props: [{ id: K.uid('p'), key: '_archived', source: 'Value', type: 'Yes/no', value: 'true', mode: 'always' }] }),
+		meeting: () => ({ id: K.uid('r'), name: 'Meeting notes', enabled: false, matches: 7, when: [{ id: K.uid('c'), k: 'expr', text: "file.hasTag('meeting')" }], rename: { pattern: '{year}-{month}-{basename}' }, move: 'Meetings/{year}/{month}', create: { path: 'Meetings/{year}/agenda.md', template: '_templates/agenda.md' } }),
+		inbox: () => ({ id: K.uid('r'), name: 'Inbox people', enabled: true, matches: 3, legacyIcon: { pack: 'lucide', name: 'user' }, when: [{ id: K.uid('c'), k: 'expr', text: 'file.inFolder("Inbox") && _type == "Person"' }], move: 'People' }),
+	};
+
+	K.createAO = function createAO(root, cfg = {}) {
+		const P = Object.assign({ title: true, toggle: true, toggleDesc: 'new', debounce: false, rulesHead: true, help: 'new', precedence: false, types: false, rules: true, excluded: false }, cfg.parts);
+		const st = { enabled: cfg.enabled !== false, rules: cfg.rules || [], open: Object.assign({}, cfg.open), more: {}, loadError: !!cfg.loadError, fixed: false, retryNote: '', simFail: false, focusKey: null, focusSel: null, caret: {}, modal: null, lastFail: 0, debounce: '3' };
+		const frame = h('div', { class: 'k-frame' });
+		const pane = h('div', { class: 'k-pane k-scroller k-ao', 'data-hl': cfg.hl || null });
+		if (cfg.maxH) pane.style.maxHeight = cfg.maxH + 'px';
+		const modalHost = h('div', {});
+		frame.append(pane, modalHost);
+		root.replaceChildren(frame);
+		const api = { st, frame, pane };
+		let excludedNode = null;
+
+		function commit() {
+			if (st.loadError) return;
+			if (st.simFail && Date.now() - st.lastFail > 1200) {
+				st.lastFail = Date.now();
+				K.toast(frame, { tone: 'err', text: 'Could not save auto-organize rules' });
+			}
+		}
+		function ruleErrors(rule) {
+			const e = {};
+			if (rule.rename && rule.rename.pattern.includes('/')) e.rename = 'Not saved: a name cannot contain "/". Use Move to folder for folders.';
+			if (rule.create && rule.create.path && !rule.create.path.endsWith('.md')) e.create = 'Not saved: the path must end in .md, for example Meetings/{year}/agenda.md.';
+			(rule.props || []).forEach((p) => { if (p.source === 'Expression' && p.mode !== 'remove' && !balanced(p.value)) e['p:' + p.id] = 'Not saved: the expression has an unclosed parenthesis or quote.'; });
+			return e;
+		}
+		const errP = (msg) => h('p', { class: 'k-err', role: 'alert', 'data-p': 'P148' }, ic('circle-alert', 13), msg);
+		function summary(rule) {
+			const c = rule.when[0];
+			const cond = c ? (c.k === 'expr' ? c.text : c.key + ' ' + c.op + ' ' + c.val) : 'any note';
+			const eff = [];
+			if (rule.rename) eff.push('Rename');
+			if (rule.move !== undefined) eff.push(rule.move ? 'Move to ' + rule.move : 'Move (no folder)');
+			if (rule.props) eff.push('Set ' + (rule.props.map((p) => p.key || '?').join(', ') || 'properties'));
+			if (rule.create) eff.push('Create note');
+			if (rule.mod) eff.push('Run mod action');
+			return h('span', { class: 'sm' }, eff.length ? eff.join(', ') : 'no actions yet', h('span', { class: 'sep' }, 'when'), code(cond, ''));
+		}
+		function setCaret(e, fk) { st.caret[fk] = [e.target.selectionStart, e.target.selectionEnd]; }
+		function input(fk, value, o = {}) {
+			return h('input', { class: 'k-input ' + (o.cls || ''), value, placeholder: o.ph, 'aria-label': o.aria || o.ph, 'data-fk': fk, 'aria-invalid': o.invalid ? 'true' : null, 'aria-describedby': o.describedby, spellcheck: 'false',
+				oninput: (e) => { setCaret(e, fk); o.oninput(e.target.value); commit(); render(); },
+				onclick: (e) => setCaret(e, fk), onkeyup: (e) => setCaret(e, fk), onselect: (e) => setCaret(e, fk) });
+		}
+		function effectCell(rule, id, label, body, removeFn) {
+			const eff = EFFECTS.find((e) => e.id === id);
+			return h('div', { class: 'grid' },
+				h('div', { class: 'gl' }, h('span', {}, label), h('button', { type: 'button', class: 'k-btn ghost icon rm', style: 'width:20px;height:20px', 'aria-label': 'Remove ' + eff.label, title: 'Remove action', onclick: () => { removeFn(); commit(); render(); } }, ic('x', 12))),
+				h('div', { class: 'gc' }, body));
+		}
+
+		function propRow(rule, p, errs) {
+			const err = errs['p:' + p.id];
+			const open = st.more[p.id] !== undefined ? st.more[p.id] : nonDefault(p);
+			const modeLabel = MODES.find((m) => m.id === p.mode).label;
+			const idp = 'perr-' + p.id;
+			const rows = [];
+			const line = h('div', { class: 'line', 'data-p': 'P147' },
+				h('input', { class: 'k-input sm', style: 'flex:0 0 112px', value: p.key, placeholder: 'key', 'aria-label': 'Property key', 'data-fk': rule.id + ':pk:' + p.id, spellcheck: 'false', oninput: (e) => { p.key = e.target.value; commit(); render(); } }));
+			if (p.mode !== 'remove') {
+				if (p.source !== 'Expression' && p.type === 'Yes/no') {
+					line.append(K.menuBtn(K.sel(p.value === 'true' ? 'Yes' : 'No', { aria: 'Value' }), [{ id: 'true', label: 'Yes' }, { id: 'false', label: 'No' }], (it) => { p.value = it.id; commit(); render(); }));
+					line.lastChild.style.flex = '1';
+				} else {
+					line.append(h('input', { class: 'k-input sm' + (p.source === 'Expression' ? ' mono' : ''), value: p.value, placeholder: p.source === 'Expression' ? 'expression, e.g. file.name' : 'value', 'aria-label': 'Property value', 'aria-invalid': err ? 'true' : null, 'aria-describedby': err ? idp : null, 'data-fk': rule.id + ':pv:' + p.id, spellcheck: 'false', oninput: (e) => { p.value = e.target.value; commit(); render(); } }));
+				}
+			} else line.append(h('span', { class: 'k-meta', style: 'flex:1' }, 'The property is deleted from the note'));
+			line.append(K.menuBtn(K.sel(modeLabel, { aria: 'Mode: ' + modeLabel }), MODES, (it) => { p.mode = it.id; commit(); render(); }, { w: 250 }));
+			line.append(h('button', { type: 'button', class: 'k-btn ghost icon', 'aria-label': open ? 'Hide source and type' : 'Show source and type', 'aria-expanded': String(open), title: 'Source and type', onclick: () => { st.more[p.id] = !open; render(); } }, ic(open ? 'chevron-up' : 'chevron-down', 14)));
+			line.append(K.iconBtn('x', 'Remove property', () => { rule.props = rule.props.filter((q) => q !== p); commit(); render(); }));
+			rows.push(line);
+			if (open && p.mode !== 'remove') {
+				rows.push(h('div', { class: 'more', 'data-p': 'P147' }, 'Value from',
+					K.menuBtn(K.sel(p.source, { aria: 'Value source' }), [{ id: 'Value', label: 'Value', desc: 'A fixed text' }, { id: 'Expression', label: 'Expression', desc: 'Computed from the note, like a Collection formula' }], (it) => { p.source = it.id; if (it.id === 'Expression') p.type = 'Text'; commit(); render(); }, { w: 250 }),
+					p.source === 'Value' ? ['Type', K.menuBtn(K.sel(p.type, { aria: 'Value type' }), [{ id: 'Text', label: 'Text' }, { id: 'Yes/no', label: 'Yes/no' }], (it) => { p.type = it.id; p.value = it.id === 'Yes/no' ? 'true' : p.value; commit(); render(); })] : null));
+			}
+			if (err) rows.push(h('p', { class: 'k-err', id: idp, role: 'alert', 'data-p': 'P148' }, ic('circle-alert', 13), err));
+			return h('div', { style: 'display:flex;flex-direction:column;gap:4px' }, rows);
+		}
+
+		function moveBody(rule) {
+			const fk = rule.id + ':move';
+			const dest = rule.move || '';
+			const r = resolveDest(dest);
+			const items = VARS.map((v) => ({ id: v.label, label: v.label, desc: v.desc, mono: true }));
+			const insertBtn = K.menuBtn(K.btn('Insert variable', { icon: 'braces', cls: 'outline sm', p: 'P69' }), [{ head: 'Variables' }, ...items], (it) => {
+				const c = st.caret[fk] || [dest.length, dest.length];
+				rule.move = dest.slice(0, c[0]) + it.id + dest.slice(c[1]);
+				const pos = c[0] + it.id.length;
+				st.caret[fk] = [pos, pos]; st.focusKey = fk; st.focusSel = [pos, pos];
+				commit(); render();
+			}, { right: true, w: 280 });
+			const line = h('div', { class: 'line' }, input(fk, dest, { cls: 'mono', ph: 'Empty: do not move, e.g. Projects/{year}', aria: 'Move to folder', oninput: (v) => { rule.move = v; } }), insertBtn);
+			if (rule.legacyIcon) line.append(h('span', { 'data-p': 'P151', style: 'display:inline-flex' }, K.btn('Legacy icon on move', { icon: 'user', cls: 'outline sm', title: 'Icon set from the moving rule. New rules should use the _icon property.' })));
+			const out = [line];
+			if (dest) {
+				const prev = h('div', { class: 'k-prev', 'data-p': 'P69' }, 'Preview for ', h('b', {}, 'Website Redesign.md'), ic('arrow-right', 12), h('b', {}, r.out.replace(/\/?$/, '/')));
+				out.push(prev);
+				r.unknown.forEach((u) => {
+					const [best, d] = closest(u);
+					out.push(h('p', { class: 'k-warnmsg', role: 'status', 'data-p': 'P69' }, ic('triangle-alert', 13), h('span', {}, h('code', {}, '{' + u + '}'), ' is not a variable, so a folder literally named ', h('code', {}, '{' + u + '}'), ' would be created. ',
+						d <= 2 ? [' Did you mean ', h('button', { type: 'button', class: 'k-btn outline', style: 'height:20px;padding:0 6px;font-size:11px', onclick: () => { rule.move = dest.split('{' + u + '}').join('{' + best + '}'); commit(); render(); } }, '{' + best + '}'), '?'] : null)));
+				});
+			} else out.push(h('div', { class: 'k-meta', 'data-p': 'P69' }, 'Nothing is moved while this is empty. Variables: ' + VARS.map((v) => v.label).join(' ')));
+			if (rule.legacyIcon) out.push(h('div', { class: 'k-meta', 'data-p': 'P151' }, 'The legacy icon applies only from the moving rule. For new rules set the ', code('_icon'), ' property instead.'));
+			return out;
+		}
+
+		function ruleCard(rule, i) {
+			const open = !!st.open[rule.id];
+			const off = !rule.enabled;
+			const errs = ruleErrors(rule);
+			const card = h('div', { class: 'k-rule' + (off ? ' off' : ''), 'data-rule': rule.id, 'data-p': off ? 'P185' : null });
+			const head = h('div', { class: 'head' });
+			head.append(h('button', { type: 'button', class: 'chev', 'aria-expanded': String(open), 'aria-label': (open ? 'Collapse ' : 'Expand ') + (rule.name || 'rule'), 'data-p': 'P70', onclick: () => { st.open[rule.id] = !open; render(); } }, ic('chevron-right', 16)));
+			if (open) head.append(input(rule.id + ':name', rule.name, { cls: 'name', ph: 'Rule name', oninput: (v) => { rule.name = v; } }));
+			else head.append(h('button', { type: 'button', class: 'sumline', 'data-p': 'P70', 'aria-label': 'Expand ' + rule.name, onclick: () => { st.open[rule.id] = true; render(); } }, h('span', { class: 'nm' }, rule.name || 'Untitled rule'), summary(rule)));
+			if (off) head.append(h('span', { class: 'k-pill off', 'data-p': 'P185', title: 'This rule is skipped' }, 'Off'));
+			head.append(K.sw(rule.enabled, (v) => { rule.enabled = v; commit(); render(); }, 'Enable ' + (rule.name || 'rule')));
+			head.append(K.iconBtn('chevron-up', 'Move rule up', () => { st.rules.splice(i, 1); st.rules.splice(i - 1, 0, rule); commit(); render(); }, { disabled: i === 0 }));
+			head.append(K.iconBtn('chevron-down', 'Move rule down', () => { st.rules.splice(i, 1); st.rules.splice(i + 1, 0, rule); commit(); render(); }, { disabled: i === st.rules.length - 1 }));
+			head.append(K.iconBtn('trash-2', 'Delete rule', () => { st.rules = st.rules.filter((r) => r !== rule); commit(); render(); }, { cls: 'danger' }));
+			card.append(head);
+			if (!open) return card;
+
+			const body = h('div', { class: 'body' });
+			/* When */
+			const conds = rule.when.map((c) => {
+				const rm = K.iconBtn('x', 'Remove condition', () => { rule.when = rule.when.filter((q) => q !== c); commit(); render(); });
+				if (c.k === 'expr') return h('div', { class: 'line' }, input(rule.id + ':c:' + c.id, c.text, { cls: 'mono sm', ph: "Expression, e.g. file.hasTag('archive')", aria: 'Condition expression', oninput: (v) => { c.text = v; } }), rm);
+				return h('div', { class: 'line' },
+					h('input', { class: 'k-input sm', style: 'flex:0 0 100px', value: c.key, placeholder: 'property', 'aria-label': 'Property', 'data-fk': rule.id + ':ck:' + c.id, oninput: (e) => { c.key = e.target.value; commit(); render(); } }),
+					K.menuBtn(K.sel(c.op, { aria: 'Operator' }), ['is', 'is not', 'contains', 'is empty'].map((o) => ({ id: o, label: o })), (it) => { c.op = it.id; commit(); render(); }),
+					h('input', { class: 'k-input sm', value: c.val, placeholder: 'value', 'aria-label': 'Value', 'data-fk': rule.id + ':cv:' + c.id, oninput: (e) => { c.val = e.target.value; commit(); render(); } }), rm);
+			});
+			const addCond = K.menuBtn(K.btn('Add condition', { icon: 'plus', cls: 'ghost sm' }), [{ id: 'prop', label: 'Property filter', desc: 'status is active', icon: 'tag' }, { id: 'expr', label: 'Expression', desc: "file.hasTag('archive')", icon: 'code' }], (it) => {
+				const c = it.id === 'expr' ? { id: K.uid('c'), k: 'expr', text: '' } : { id: K.uid('c'), k: 'prop', key: '', op: 'is', val: '' };
+				rule.when.push(c); st.focusKey = rule.id + (it.id === 'expr' ? ':c:' : ':ck:') + c.id; commit(); render();
+			});
+			const matchLine = h('div', { class: 'foot' }, h('span', { class: 'k-meta' }, 'Matches ' + rule.matches + ' notes now'),
+				h('span', { 'data-p': 'P67', style: 'display:inline-flex' }, K.btn('Apply to ' + rule.matches + ' notes...', { icon: 'play', cls: 'outline sm', disabled: rule.matches === 0, onclick: () => { st.modal = rule; renderModal(); } })));
+			body.append(h('div', { class: 'grid', 'data-p': 'P146' }, h('div', { class: 'gl', style: 'font-weight:600;color:var(--foreground)' }, 'When'), h('div', { class: 'gc' }, conds, h('div', {}, addCond), matchLine)));
+			/* Then */
+			body.append(h('div', { class: 'k-slabel', style: 'margin-top:2px' }, 'Then'));
+			const used = [];
+			if (rule.rename) { used.push('rename'); body.append(effectCell(rule, 'rename', 'Rename', [
+				h('div', { class: 'line' }, h('span', { class: 'k-sel', style: 'cursor:default' }, 'Name'), input(rule.id + ':rn', rule.rename.pattern, { cls: 'mono', ph: 'e.g. {year}-{month}-{basename}', aria: 'New name', invalid: !!errs.rename, describedby: 'e-rn-' + rule.id, oninput: (v) => { rule.rename.pattern = v; } })),
+				errs.rename ? h('p', { class: 'k-err', id: 'e-rn-' + rule.id, role: 'alert', 'data-p': 'P148' }, ic('circle-alert', 13), errs.rename) : null], () => { delete rule.rename; })); }
+			if (rule.move !== undefined) { used.push('move'); body.append(effectCell(rule, 'move', 'Move to folder', moveBody(rule), () => { delete rule.move; })); }
+			if (rule.props) {
+				used.push('props');
+				body.append(effectCell(rule, 'props', 'Set properties', [rule.props.map((p) => propRow(rule, p, errs)),
+					h('div', {}, K.btn('Add property', { icon: 'plus', cls: 'ghost sm', onclick: () => { const p = { id: K.uid('p'), key: '', source: 'Value', type: 'Text', value: '', mode: 'ifMissing' }; rule.props.push(p); st.focusKey = rule.id + ':pk:' + p.id; commit(); render(); } }))], () => { delete rule.props; }));
+			}
+			if (rule.create) { used.push('create'); body.append(effectCell(rule, 'create', 'Create note', [
+				input(rule.id + ':cp', rule.create.path, { cls: 'mono', ph: 'Path, e.g. Meetings/{year}/agenda.md', aria: 'Path of the new note', invalid: !!errs.create, describedby: 'e-cp-' + rule.id, oninput: (v) => { rule.create.path = v; } }),
+				errs.create ? h('p', { class: 'k-err', id: 'e-cp-' + rule.id, role: 'alert', 'data-p': 'P148' }, ic('circle-alert', 13), errs.create) : null,
+				input(rule.id + ':ct', rule.create.template || '', { cls: 'mono', ph: 'Template path (optional)', oninput: (v) => { rule.create.template = v; } })], () => { delete rule.create; })); }
+			if (rule.mod) { used.push('mod'); body.append(effectCell(rule, 'mod', 'Run mod action', h('div', { class: 'line' }, K.menuBtn(K.sel(rule.mod.action, { aria: 'Mod action' }), ['Weekly review: build', 'Inbox: triage', 'Project: refresh status'].map((a) => ({ id: a, label: a })), (it) => { rule.mod.action = it.id; commit(); render(); }, { w: 240 }), h('span', { class: 'k-meta' }, 'Starts after the other effects')), () => { delete rule.mod; })); }
+			const free = EFFECTS.filter((e) => !used.includes(e.id));
+			if (!used.length) body.append(h('div', { class: 'k-meta' }, 'No actions yet. A rule without actions does nothing.'));
+			if (free.length) body.append(h('div', { class: 'grid' }, h('div', { class: 'gl' }), h('div', { class: 'gc' }, h('div', {}, K.menuBtn(K.btn('Add action', { icon: 'plus', cls: 'outline sm', p: 'P70' }), free.map((e) => ({ id: e.id, label: e.label, desc: e.desc, icon: e.icon })), (it) => {
+				if (it.id === 'rename') rule.rename = { pattern: '' };
+				if (it.id === 'move') rule.move = '';
+				if (it.id === 'props') rule.props = [{ id: K.uid('p'), key: '', source: 'Value', type: 'Text', value: '', mode: 'ifMissing' }];
+				if (it.id === 'create') rule.create = { path: '', template: '' };
+				if (it.id === 'mod') rule.mod = { action: 'Weekly review: build' };
+				commit(); render();
+			}, { w: 230 })))));
+			card.append(body);
+			return card;
+		}
+
+		function buildExcluded() {
+			if (excludedNode) return excludedNode;
+			const list = (cfg.excluded || ['_templates', 'Old Notes']).slice();
+			let idx = -1, focus = false;
+			const inp = h('input', { class: 'k-input', placeholder: 'e.g. _templates', 'aria-label': 'Folder to exclude', role: 'combobox', 'aria-expanded': 'false', 'aria-autocomplete': 'list', autocomplete: 'off', spellcheck: 'false' });
+			const addBtn = h('button', { type: 'button', class: 'k-btn outline sm' }, 'Add');
+			const msg = h('div', { style: 'min-height:16px' });
+			const sug = h('div', { class: 'k-menu k-sug', role: 'listbox', style: 'display:none;left:0;right:0;top:calc(100% + 4px)' });
+			const chips = h('div', { class: 'k-chips', 'data-p': 'P150' });
+			const norm = (s) => s.trim().replace(/^\/+|\/+$/g, '');
+			const dup = () => list.some((x) => x.toLowerCase() === norm(inp.value).toLowerCase()) && norm(inp.value) !== '';
+			const matches = () => { const q = norm(inp.value).toLowerCase(); return VAULT_FOLDERS.filter((f) => f.toLowerCase().includes(q)).slice(0, 6); };
+			function add(name) {
+				const v = norm(name); if (!v || list.some((x) => x.toLowerCase() === v.toLowerCase())) return;
+				list.push(v); inp.value = ''; idx = -1; commit(); update();
+			}
+			function update() {
+				const q = norm(inp.value), d = dup(), m = matches();
+				addBtn.disabled = !q || d;
+				inp.setAttribute('aria-invalid', d ? 'true' : 'false'); inp.removeAttribute('aria-invalid'); if (d) inp.setAttribute('aria-invalid', 'true');
+				msg.replaceChildren();
+				if (d) msg.append(h('p', { class: 'k-err', role: 'status' }, ic('circle-alert', 13), 'Already excluded'));
+				else if (q && !VAULT_FOLDERS.some((f) => f.toLowerCase() === q.toLowerCase())) msg.append(h('p', { class: 'k-warnmsg' }, ic('triangle-alert', 13), 'No folder with this name in the vault. It is saved anyway and marked as missing.'));
+				sug.replaceChildren(...m.map((f, n) => {
+					const ex = list.some((x) => x.toLowerCase() === f.toLowerCase());
+					return h('button', { type: 'button', role: 'option', class: n === idx ? 'sel' : '', style: n === idx ? 'background:var(--accent)' : '', disabled: ex, onmousedown: (e) => { e.preventDefault(); if (!ex) add(f); } }, ic('folder', 14), h('span', { class: 'mt' }, f), ex ? h('span', { class: 'k-meta', style: 'margin-left:auto' }, 'Already excluded') : null);
+				}));
+				const show = focus && m.length > 0;
+				sug.style.display = show ? 'block' : 'none'; inp.setAttribute('aria-expanded', String(show));
+				chips.replaceChildren(...(list.length ? list.map((f) => {
+					const miss = !VAULT_FOLDERS.includes(f);
+					return h('span', { class: 'k-chip' + (miss ? ' missing' : ''), title: miss ? 'This folder no longer exists in the vault' : null }, ic(miss ? 'triangle-alert' : 'folder', 12, miss ? 'w' : ''), f, miss ? h('span', { class: 'k-meta' }, 'missing') : null,
+						h('button', { type: 'button', 'aria-label': 'Remove ' + f, onclick: () => { list.splice(list.indexOf(f), 1); commit(); update(); } }, ic('x', 12)));
+				}) : [h('span', { class: 'k-meta' }, 'No excluded folders')]));
+			}
+			inp.addEventListener('input', () => { idx = -1; update(); });
+			inp.addEventListener('focus', () => { focus = true; update(); });
+			inp.addEventListener('blur', () => { focus = false; update(); });
+			inp.addEventListener('keydown', (e) => {
+				const m = matches();
+				if (e.key === 'ArrowDown') { idx = Math.min(m.length - 1, idx + 1); e.preventDefault(); update(); }
+				else if (e.key === 'ArrowUp') { idx = Math.max(-1, idx - 1); e.preventDefault(); update(); }
+				else if (e.key === 'Enter') { e.preventDefault(); add(idx >= 0 ? m[idx] : inp.value); }
+				else if (e.key === 'Escape') { inp.blur(); }
+			});
+			addBtn.addEventListener('click', () => add(inp.value));
+			excludedNode = h('div', { style: P.rules || P.toggle ? 'margin-top:20px' : '' }, h('h3', { class: 'k-slabel', style: 'margin-bottom:8px' }, 'Excluded folders'),
+				h('p', { class: 'k-help', style: 'margin-bottom:8px' }, 'Notes inside these folders will never be automatically moved.'),
+				h('div', { style: 'display:flex;gap:8px;align-items:flex-start' }, h('span', { class: 'k-menuhost', style: 'flex:1', 'data-p': 'P150' }, inp, sug), addBtn), msg, h('div', { style: 'margin-top:6px' }, chips));
+			update();
+			return excludedNode;
+		}
+
+		function buildTypes() {
+			const rows = [['Project', 'var(--type-purple)', 'archive', 'Archive', 'notes with _archived: true move to Archive/Projects'], ['Project', 'var(--type-purple)', 'rotate-ccw', 'Unarchive', 'notes with _archived cleared move back to Projects'], ['Meeting', 'var(--type-blue)', 'archive', 'Archive', 'notes with _archived: true move to Archive/Meetings']];
+			return h('div', { class: 'k-types' + (st.enabled ? '' : ' paused'), 'data-p': 'P66' },
+				h('div', { class: 'k-row2' }, ic('lock', 14), h('b', { style: 'font-size:13px' }, 'From your types'), h('span', { class: 'k-pill' }, 'Read-only'), !st.enabled ? h('span', { class: 'k-pill warn' }, 'Paused while Auto Organize is off') : null, h('span', { style: 'margin-left:auto' }, K.btn('Edit in Types', { cls: 'ghost sm', icon: 'arrow-right' }))),
+				h('p', { class: 'k-help' }, 'Built from the "archive to" folder of each type. They run after your own rules.'),
+				rows.map((r) => h('div', { class: 'tr' }, h('span', { class: 'k-tdot', style: 'background:' + r[1] }), h('b', { style: 'font-weight:500;min-width:58px' }, r[0]), ic(r[2], 14), h('span', {}, h('b', { style: 'font-weight:500' }, r[3] + ': '), r[4]))));
+		}
+
+		function build() {
+			const out = [];
+			if (P.title) out.push(h('h2', {}, 'Auto Organize'));
+			if (st.loadError) {
+				out.push(h('div', { class: 'k-warn bad', role: 'alert', 'data-p': 'P08', style: 'margin-bottom:12px' }, ic('triangle-alert', 16),
+					h('div', {}, h('div', { class: 'tt' }, 'Rules file is not valid JSON'),
+						h('div', { class: 'k-meta' }, st.retryNote || 'auto-organize.json, line 14: unexpected token. Your rules were not loaded, and the file is left untouched until it parses. Fix it in your editor, then retry.'),
+						h('div', { class: 'row' }, K.btn('Reveal file', { icon: 'folder-open', cls: 'outline sm', onclick: () => K.toast(frame, { text: 'Revealed .kokobrain/auto-organize.json in Finder', icon: 'folder-open' }) }),
+							K.btn('Retry', { icon: 'refresh', cls: 'outline sm', onclick: () => api.retry() })))));
+			}
+			const lock = (n) => { n.classList.add('lockable'); return n; };
+			const stackEls = [];
+			if (P.toggle) {
+				const desc = P.toggleDesc === 'new' ? 'After a save, applies the rules below and the archive rules of your types: notes are moved, renamed or updated automatically.' : 'Automatically move notes to folders based on rules when saved';
+				stackEls.push(lock(K.item('Enable Auto Organize', desc, K.sw(st.enabled, (v) => { st.enabled = v; commit(); render(); }, 'Enable Auto Organize'), { p: 'P68' })));
+				if (P.types && !st.enabled) stackEls.push(h('div', { class: 'k-warn', 'data-p': 'P66' }, ic('triangle-alert', 16), h('div', {}, h('div', { class: 'tt' }, 'Auto Organize is off'), h('div', {}, '2 of your types set an archive folder. While this is off, Archive marks a note as archived but does not move it.'),
+					h('div', { class: 'row' }, K.btn('Enable Auto Organize', { cls: 'default sm', onclick: () => { st.enabled = true; commit(); render(); K.toast(frame, { text: 'Auto Organize is on. Archive rules from your types now run.' }); } })))));
+			}
+			if (P.debounce) stackEls.push(lock(K.item('Debounce delay', 'Seconds to wait after save before evaluating rules (0.5-30)', h('input', { class: 'k-input', type: 'number', style: 'width:96px', value: st.debounce, min: 0.5, max: 30, step: 0.5, 'aria-label': 'Debounce delay', oninput: (e) => { st.debounce = e.target.value; } }))));
+			if (stackEls.length) out.push(h('div', { class: 'k-stack' }, stackEls));
+			if (P.rulesHead) out.push(lock(h('div', { style: 'display:flex;justify-content:space-between;align-items:center;margin-top:20px;margin-bottom:8px' }, h('h3', { class: 'k-slabel' }, 'Rules'), K.btn('Add rule', { icon: 'plus', cls: 'outline sm', p: 'P149', onclick: () => api.addRule() }))));
+			if (P.help) out.push(lock(h('div', { style: 'margin-bottom:8px', 'data-p': 'P68' },
+				P.help === 'new'
+					? h('p', { class: 'k-help' }, 'Rules run top to bottom after a save. The first matching rule wins for rename, move to folder and run mod action. Set properties and create note apply from every matching rule. Your types\' archive rules run last. Conditions use the same syntax as Collection filters, e.g. ', code("file.hasTag('archive')"), '.')
+					: h('p', { class: 'k-help' }, 'Rules are evaluated top-to-bottom. The first matching rule determines the destination folder. Expressions use the same syntax as Collection filters (e.g. ', code("file.hasTag('archive')"), ').'),
+				P.precedence ? h('table', { class: 'k-prec' }, h('thead', {}, h('tr', {}, h('th', {}, 'Effect'), h('th', {}, 'When several rules match'))),
+					h('tbody', {}, [['Rename', 'The first matching rule wins'], ['Move to folder', 'The first matching rule wins'], ['Run mod action', 'The first matching rule wins'], ['Set properties', 'Every matching rule applies'], ['Create note', 'Every matching rule creates its note'], ['From your types', 'Run after your rules']].map((r) => h('tr', {}, h('td', {}, r[0]), h('td', {}, r[1]))))) : null)));
+			if (P.types) out.push(lock(h('div', { style: 'margin-bottom:8px' }, buildTypes())));
+			if (P.rules) {
+				out.push(lock(st.rules.length ? h('div', { class: 'k-rules' }, st.rules.map((r, i) => ruleCard(r, i))) : h('div', { class: 'k-empty' }, 'No rules configured. Click "Add rule" to create one.')));
+			}
+			if (P.excluded) out.push(lock(buildExcluded()));
+			pane.classList.toggle('locked', st.loadError);
+			return out;
+		}
+
+		function render() {
+			const top = pane.scrollTop;
+			const act = document.activeElement;
+			const fk = act && pane.contains(act) ? act.dataset.fk : null;
+			const sel = fk && act.selectionStart != null ? [act.selectionStart, act.selectionEnd] : null;
+			pane.replaceChildren(...build());
+			pane.scrollTop = top;
+			const target = st.focusKey || fk;
+			const tsel = st.focusKey ? st.focusSel : sel;
+			if (target) {
+				const el = pane.querySelector('[data-fk="' + target + '"]');
+				if (el) { el.focus({ preventScroll: true }); if (tsel && el.setSelectionRange) { try { el.setSelectionRange(tsel[0], tsel[1]); } catch (e) { /* number inputs */ } } }
+			}
+			st.focusKey = null; st.focusSel = null;
+		}
+		function renderModal() {
+			modalHost.replaceChildren();
+			const r = st.modal; if (!r) return;
+			const lines = [];
+			if (r.rename) lines.push(['pencil', 'Rename to ' + r.rename.pattern]);
+			if (r.move !== undefined) lines.push(['folder', 'Move to ' + (r.move || '(no folder)')]);
+			(r.props || []).forEach((p) => lines.push(['tag', (MODES.find((m) => m.id === p.mode).label) + ': ' + p.key + (p.mode === 'remove' ? '' : ' = ' + p.value)]));
+			if (r.create) lines.push(['file-text', 'Create ' + r.create.path]);
+			if (r.mod) lines.push(['play', 'Run ' + r.mod.action]);
+			const close = () => { st.modal = null; renderModal(); };
+			modalHost.append(h('div', { class: 'k-modal', onclick: (e) => { if (e.target === e.currentTarget) close(); } },
+				h('div', { class: 'k-dialog', role: 'alertdialog', 'aria-label': 'Apply rule to existing notes', 'data-p': 'P67' },
+					h('h3', {}, 'Apply "' + (r.name || 'rule') + '" to ' + r.matches + ' notes?'),
+					h('p', { class: 'k-help' }, 'These ' + r.matches + ' notes match now. Rules otherwise run only when a note is saved. This will:'),
+					h('ul', {}, lines.length ? lines.map((l) => h('li', {}, ic(l[0], 14), l[1])) : [h('li', {}, 'Nothing: the rule has no actions yet.')]),
+					h('p', { class: 'k-help' }, 'Files are changed on disk. You can undo the moves right after.'),
+					h('div', { class: 'foot' }, K.btn('Cancel', { cls: 'outline', onclick: close }), K.btn('Apply to ' + r.matches + ' notes', { cls: 'default', onclick: () => { close(); K.toast(frame, { text: 'Applied "' + r.name + '" to ' + r.matches + ' notes', actions: [{ label: 'Undo', icon: 'undo-2', fn: () => K.toast(frame, { text: 'Undone: ' + r.matches + ' notes restored', icon: 'undo-2' }) }] }); } })))));
+			const b = modalHost.querySelector('.k-btn.outline'); if (b) b.focus();
+		}
+
+		api.addRule = () => {
+			if (st.loadError) return;
+			const r = { id: K.uid('r'), name: '', enabled: false, matches: 0, when: [{ id: K.uid('c'), k: 'expr', text: '' }] };
+			st.rules.push(r); st.open[r.id] = true; st.focusKey = r.id + ':name'; commit(); render();
+			const c = pane.querySelector('[data-rule="' + r.id + '"]');
+			if (c) pane.scrollTo({ top: Math.max(0, c.offsetTop - 80), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+		};
+		api.setLoadError = (b) => { st.loadError = b; st.retryNote = ''; st.fixed = false; render(); };
+		api.fixFile = () => { st.fixed = true; };
+		api.retry = () => {
+			if (st.fixed) { st.loadError = false; render(); K.toast(frame, { text: 'Loaded ' + st.rules.length + ' rules from auto-organize.json' }); }
+			else { st.retryNote = 'Still not valid JSON: auto-organize.json, line 14: unexpected token. Nothing was changed.'; render(); }
+		};
+		api.setSimFail = (b) => { st.simFail = b; };
+		api.setEnabled = (b) => { st.enabled = b; render(); };
+		api.simulateMove = () => {
+			const r = st.rules.find((q) => q.enabled && q.move) || st.rules[0];
+			const dest = r ? resolveDest(r.move || 'Projects/{year}').out : 'Projects/2026';
+			K.toast(frame, { text: 'Moved Website Redesign.md to ' + dest + '/ by "' + (r ? r.name : 'rule') + '"', icon: 'folder', actions: [{ label: 'Undo', icon: 'undo-2', fn: () => K.toast(frame, { text: 'Moved back to Inbox/', icon: 'undo-2' }) }] });
+		};
+		render();
+		return api;
+	};
+})();
+
+(() => {
+	'use strict';
+	const { h, ic } = K;
+	const code = (s) => h('code', { class: 'k-code' }, s);
+
+	/* ---------- control helpers ---------- */
+	const ctrls = (...n) => h('div', { class: 'ctrls' }, n);
+	const abtn = (label, fn, icon) => h('button', { type: 'button', class: 'btn', onclick: fn }, icon ? ic(icon, 13) : null, label);
+	const tbtn = (label, fn, pressed) => {
+		const b = h('button', { type: 'button', class: 'btn', 'aria-pressed': String(!!pressed) }, label);
+		b.addEventListener('click', () => { const v = b.getAttribute('aria-pressed') !== 'true'; b.setAttribute('aria-pressed', String(v)); fn(v); });
+		return b;
+	};
+	const radio = (labels, fn, initial = 0) => {
+		const seg = h('div', { class: 'seg', role: 'group' });
+		labels.forEach((l, i) => {
+			const b = h('button', { type: 'button', 'aria-pressed': String(i === initial) }, l);
+			b.addEventListener('click', () => { seg.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', 'false')); b.setAttribute('aria-pressed', 'true'); fn(i); });
+			seg.append(b);
+		});
+		return seg;
+	};
+	K.ui = { ctrls, abtn, tbtn, radio, code };
+
+	const SECTIONS = K.SECTIONS = [];
+	const S = (d) => SECTIONS.push(d);
+	const AO = (el, cfg) => { const api = K.createAO(el, cfg); return api; };
+	const withOpen = (rules, openIdx) => { const open = {}; openIdx.forEach((i) => { open[rules[i].id] = true; }); return open; };
+	const SHOT_RULE = 'auto-organize-rule-builder-light';
+	const SHOT_AO = 'settings-auto-organize-light';
+
+	/* ======================= MODERATE ======================= */
+
+	S({
+		id: 'P08', tier: 'moderate', title: 'An unreadable auto-organize config is reset and then overwritten, and save failures are silent',
+		problem: '<b>Problem.</b> On a parse failure the loader resets to the defaults, and the next edit saves that empty config over the file. Save errors only reach the log.',
+		beforeCap: 'Real screenshot. After a parse failure this empty state is all the user sees, and nothing warns them.',
+		afterCap: 'Inline banner with Reveal file and Retry; editing is locked while the file is unreadable; a save failure raises a toast.',
+		before: (el) => { el.append(K.crop(SHOT_AO, 840, 50, 580, 370, { alt: 'Auto Organize settings with an empty rule list' })); },
+		after: (el) => {
+			const rules = [K.rules.owner(), K.rules.archive()];
+			const api = AO(el, { rules, parts: { help: false, toggle: true }, hl: 'P08', loadError: true, maxH: 470 });
+			const seg = radio(['Rules file loaded', 'File is not valid JSON'], (i) => api.setLoadError(i === 1), 1);
+			el.append(ctrls(seg, abtn('Fix the file on disk, then press Retry', () => { api.fixFile(); }, 'pencil'), tbtn('Next save fails', (v) => api.setSimFail(v))));
+			el.append(h('div', { class: 'readout' }, 'Try: press Retry before fixing the file (it stays locked), then fix it and Retry. In the loaded state switch on "Next save fails" and toggle a rule.'));
+		},
+		notes: ['The .bak copy, the Saved tick and the loading skeleton are left out as polish.', 'Saves are blocked while the load error is set, so the unreadable file is never replaced.'],
+	});
+
+	S({
+		id: 'P28', tier: 'moderate', title: 'Form controls are labelled by a neighbouring span instead of a label',
+		problem: '<b>Problem.</b> SettingItem uses spans, so switches announce as "switch, off", clicking a label does nothing, and the checkbox property is named "true".',
+		beforeCap: 'Recreation of today\'s SettingItem (spans). Click a label: nothing happens.',
+		afterCap: 'A real label linked with for/id and aria-describedby; clicking anywhere on the row toggles the switch.',
+		before: (el) => { el.append(p28(false)); },
+		after: (el) => { el.append(p28(true)); },
+		even: true,
+	});
+	function p28(labelled) {
+		const pane = h('div', { class: 'k-pane' });
+		const read = h('div', { class: 'readout' }, 'Hover or focus a control: this line shows what a screen reader announces.');
+		const stack = h('div', { class: 'k-stack' });
+		const mk = (label, desc, on) => {
+			const id = K.uid('sw');
+			const sw = K.sw(on, null, null, { id, describedby: labelled ? id + '-d' : null });
+			const row = K.item(label, desc, sw, { labelFor: labelled ? id : null, cls: labelled ? 'click' : '' });
+			if (labelled) { row.querySelector('.desc').id = id + '-d'; row.addEventListener('click', (e) => { if (e.target.closest('.k-sw, label')) return; sw.click(); }); }
+			const say = () => { const st = sw.getAttribute('aria-checked') === 'true' ? 'on' : 'off'; read.textContent = labelled ? label + ', switch, ' + st + '. ' + desc : 'switch, ' + st; };
+			row.addEventListener('mouseenter', say); sw.addEventListener('focus', say); sw.addEventListener('click', () => setTimeout(say, 0));
+			return row;
+		};
+		stack.append(mk('Auto-open', 'Open today\'s daily note on vault load', true), mk('Auto-pin', 'Pin the daily note tab', false));
+		const cbId = K.uid('cb');
+		const cb = h('input', { type: 'checkbox', id: cbId, checked: true, style: 'accent-color:var(--primary);width:16px;height:16px' });
+		if (labelled) cb.setAttribute('aria-label', 'done');
+		const cbRow = h('div', { class: 'k-item', style: 'min-height:40px;padding:8px 16px' },
+			h('span', { class: 'lbl', style: 'font-size:12px;color:var(--muted-foreground);font-weight:500' }, 'Properties panel: done'),
+			h('label', { class: 'k-row2', style: 'cursor:pointer' }, cb, labelled ? null : h('span', { class: 'k-meta' }, 'true')));
+		const sayCb = () => { read.textContent = labelled ? 'done, checkbox, ' + (cb.checked ? 'checked' : 'not checked') : (cb.checked ? 'true' : 'false') + ', checkbox, ' + (cb.checked ? 'checked' : 'not checked'); };
+		cb.addEventListener('focus', sayCb); cb.addEventListener('change', sayCb); cbRow.addEventListener('mouseenter', sayCb);
+		stack.append(cbRow);
+		pane.append(h('h2', {}, 'Periodic Notes'), stack, read);
+		return pane;
+	}
+
+	S({
+		id: 'P66', tier: 'moderate', title: 'Type archive rules are invisible and gated by a master switch that is off by default',
+		problem: '<b>Problem.</b> Lifecycle rules built from a type\'s archive folder run only when Auto Organize is on (default off), and they are never listed.',
+		beforeCap: 'Real screenshot: switch off, no mention of types, nothing under Rules.',
+		afterCap: 'A read-only "From your types" group, plus a hint with an Enable button when a type sets an archive folder while Auto Organize is off.',
+		before: (el) => { el.append(K.crop(SHOT_AO, 840, 100, 580, 270, { alt: 'Auto Organize with the master switch off' })); },
+		after: (el) => {
+			const api = AO(el, { enabled: false, rules: [K.rules.owner()], parts: { help: false, types: true, rules: true }, hl: 'P66', maxH: 560 });
+			el.append(ctrls(tbtn('Auto Organize on', (v) => api.setEnabled(v)), h('span', {}, 'Use the Enable button in the hint, or this toggle, to see the group and the paused state change.')));
+			const t = el.querySelector('.ctrls button'); t.setAttribute('aria-pressed', 'false');
+			const sync = () => t.setAttribute('aria-pressed', String(api.st.enabled));
+			el.addEventListener('click', () => setTimeout(sync, 0));
+		},
+	});
+
+	S({
+		id: 'P67', tier: 'moderate', title: 'Rules run only on save: no way to apply one to existing notes, and no record of what ran',
+		problem: '<b>Problem.</b> "Matches 4 notes now" offers no action, and automatic moves, renames and property writes are silent.',
+		beforeCap: 'Real screenshot: the count is a dead end.',
+		afterCap: 'An "Apply to N notes..." button with a confirm that lists the effects, and an Undo toast after an automatic move.',
+		before: (el) => { el.append(K.crop(SHOT_RULE, 850, 400, 560, 190, { alt: 'Filter section ending in Matches 4 notes now' })); },
+		after: (el) => {
+			const rules = [K.rules.owner()];
+			const api = AO(el, { rules, open: withOpen(rules, [0]), parts: { title: false, toggle: false, help: false, rulesHead: false }, hl: 'P67', maxH: 500 });
+			el.append(ctrls(abtn('Simulate an automatic move after a save', () => api.simulateMove(), 'folder'), h('span', {}, 'Then press Undo in the toast.')));
+		},
+	});
+
+	S({
+		id: 'P68', tier: 'moderate', title: 'The Auto Organize copy describes "move" and "first match", which is not how rules work',
+		problem: '<b>Problem.</b> Rules also rename, set properties, create notes and run mods, and precedence differs per effect, but the copy says the first matching rule decides the destination folder.',
+		beforeCap: 'Real screenshot of the current toggle description and Rules help.',
+		afterCap: 'Toggle description and Rules help rewritten, with the precedence per effect spelled out.',
+		before: (el) => { el.append(K.crop(SHOT_AO, 840, 100, 580, 260, { alt: 'Current help text' })); },
+		after: (el) => { AO(el, { rules: [], parts: { title: false, debounce: false, help: 'new', precedence: true, rules: false, rulesHead: true }, hl: 'P68' }); },
+		notes: ['Per-effect badges on each card are left to the one-line summary of P70.', 'Precedence follows evaluateAndMove (auto-organize.service.ts): first match for rename, move and run action; every match for properties and create note; type lifecycle rules are appended after user rules.'],
+	});
+
+	S({
+		id: 'P69', tier: 'moderate', title: 'The destination field hides its template variables, and a typo creates a literal folder',
+		problem: '<b>Problem.</b> None of the seven variables is listed, there is no preview, and an unknown variable such as {yaer} is kept literally as a folder name.',
+		beforeCap: 'Real screenshot: a bare field with the placeholder "Empty: do not move".',
+		afterCap: 'Insert variable menu (caret aware), live preview, and a flag with a one-click fix for an unknown variable. Edit the text or press Insert variable.',
+		before: (el) => { el.append(K.crop(SHOT_RULE, 850, 605, 560, 110, { alt: 'Move to folder field with no hints' })); },
+		after: (el) => {
+			const r = K.rules.owner(); r.move = 'Projects/{yaer}/{month}'; r.props = undefined; const rules = [r];
+			AO(el, { rules, open: withOpen(rules, [0]), parts: { title: false, toggle: false, help: false, rulesHead: false }, hl: 'P69', maxH: 400 });
+		},
+		notes: ['The preview resolves against a sample note (Website Redesign.md, type Project, 2026-11).', 'Folder suggestions inside this field are not prototyped here; P150 shows the same suggestion list for excluded folders.'],
+	});
+
+	S({
+		id: 'P70', tier: 'moderate', title: 'Each rule is a flat, always-expanded form with no summary',
+		problem: '<b>Problem.</b> All six sections render even when unused, so a single rule fills the viewport.',
+		beforeCap: 'Real screenshot: one rule fills the panel and the Create note section is already cut off.',
+		afterCap: 'Cards collapse to a one-line summary; the expanded card shows only the effects in use plus Add action. Click a card to expand it.',
+		before: (el) => { el.append(K.crop(SHOT_RULE, 845, 350, 560, 520, { alt: 'One expanded rule', maxScale: 1.0 })); },
+		after: (el) => {
+			const rules = [K.rules.owner(), K.rules.archive(), K.rules.meeting()];
+			AO(el, { rules, open: withOpen(rules, [1]), parts: { title: false, toggle: false, help: false }, hl: 'P70', maxH: 560 });
+		},
+	});
+
+	/* P152 */
+	S({
+		id: 'P152', tier: 'moderate', title: 'Property rows are keyed by index, so error state follows the wrong row',
+		problem: '<b>Problem.</b> After deleting a row above a refused expression, the error and the draft stay on the same position, which now holds another property. A later mode change can write that draft into the wrong property.',
+		beforeCap: 'Recreation of today\'s keying by index. Press "Delete the first row".',
+		afterCap: 'Rows keyed by a stable client id (not persisted). Press "Delete the first row".',
+		before: (el) => { el.append(p152('index')); },
+		after: (el) => { el.append(p152('id')); },
+		even: true,
+	});
+	function p152(mode) {
+		const wrap = h('div', {});
+		const pane = h('div', { class: 'k-pane' });
+		const read = h('div', { class: 'readout' });
+		const init = () => ({ props: [{ id: 1, key: 'owner', expr: 'me' }, { id: 2, key: 'status', expr: 'file.name' }, { id: 3, key: 'tags', expr: '"a"' }], err: null });
+		let st = init();
+		const kf = (p, i) => (mode === 'index' ? i : p.id);
+		st.err = { k: kf(st.props[1], 1), msg: 'Not saved: the expression has an unclosed parenthesis.', draft: '(owner', owner: 'status' };
+		function render() {
+			const rows = st.props.map((p, i) => {
+				const hit = st.err && st.err.k === kf(p, i);
+				const wrong = hit && st.err.owner !== p.key;
+				return h('div', { style: 'display:flex;flex-direction:column;gap:4px' },
+					h('div', { class: 'line', style: 'display:flex;gap:6px;align-items:center' },
+						h('span', { class: 'k-input sm', style: 'flex:0 0 100px;align-items:center;cursor:default' }, p.key),
+						h('input', { class: 'k-input sm mono', value: hit ? st.err.draft : p.expr, 'aria-label': 'Expression for ' + p.key, 'aria-invalid': hit ? 'true' : null, readOnly: true }),
+						K.iconBtn('x', 'Remove ' + p.key, () => { st.props.splice(i, 1); render(); })),
+					hit ? h('p', { class: 'k-err' }, ic('circle-alert', 13), st.err.msg, wrong ? h('b', { style: 'margin-left:4px' }, '(wrong row)') : null) : null);
+			});
+			pane.replaceChildren(h('h2', {}, 'Set properties'), h('div', { style: 'display:flex;flex-direction:column;gap:8px' }, rows), h('div', { style: 'margin-top:10px' }, abtn('Reset demo', () => { const keep = mode; st = init(); st.err = { k: kf(st.props[1], 1), msg: 'Not saved: the expression has an unclosed parenthesis.', draft: '(owner', owner: 'status' }; render(); }, 'rotate-ccw')));
+			const holder = st.err && st.props.find((p, i) => st.err.k === kf(p, i));
+			if (!holder) read.textContent = 'The row that held the error was removed together with its error.';
+			else if (holder.key !== st.err.owner) read.textContent = 'WRONG ROW: the refused expression "' + st.err.draft + '" belongs to "' + st.err.owner + '" but now shows on "' + holder.key + '". Changing its mode would save that draft into "' + holder.key + '".';
+			else read.textContent = 'OK: the error and draft stay on "' + st.err.owner + '", the row that produced them.';
+		}
+		render(); wrap.append(pane, ctrls(abtn('Delete the first row', () => { st.props.splice(0, 1); render(); }, 'trash-2')), read); return wrap;
+	}
+
+	/* ======================= POLISH ======================= */
+
+	S({
+		id: 'P146', tier: 'polish', title: 'The rule filter borrows collection-view wording and has two add buttons',
+		problem: '<b>Problem.</b> "This view" appears inside a rule, "Add filter" and "Add expression" sit side by side, and a margin hack aligns them.',
+		beforeCap: 'Real screenshot: "Filter", "This view", "All the following are true", two add buttons.',
+		afterCap: 'The block is labelled "When" and has one "Add condition" dropdown (Property filter or Expression). Labels and content share one two-column grid.',
+		before: (el) => { el.append(K.crop(SHOT_RULE, 855, 400, 545, 190, { alt: 'Filter block of a rule' })); },
+		after: (el) => {
+			const rules = [K.rules.archive()]; rules[0].when.push({ id: K.uid('c'), k: 'expr', text: "!file.hasTag('keep')" });
+			AO(el, { rules, open: withOpen(rules, [0]), parts: { title: false, toggle: false, help: false, rulesHead: false }, hl: 'P146', maxH: 460 });
+		},
+	});
+
+	S({
+		id: 'P185', tier: 'polish', title: 'A disabled rule looks almost identical to an enabled one',
+		problem: '<b>Problem.</b> Only the small switch shows state, and there is no focus-within style. New rules start disabled on purpose, so inputs must stay at full opacity.',
+		beforeCap: 'Real screenshot: this rule is disabled, and the card looks like any other.',
+		afterCap: 'An "Off" pill and a dashed border on disabled cards; inputs keep full opacity; the focus-within border marks the card being edited.',
+		before: (el) => { el.append(K.crop(SHOT_RULE, 850, 360, 560, 110, { alt: 'A disabled rule card' })); },
+		after: (el) => {
+			const rules = [K.rules.owner(), K.rules.meeting(), K.rules.archive()];
+			rules[2].enabled = false;
+			AO(el, { rules, open: {}, parts: { title: false, toggle: false, help: false, rulesHead: false }, hl: 'P185', maxH: 520 });
+			el.append(h('div', { class: 'readout' }, 'Expand a disabled card and click into a field: the card keeps its dashed shape but takes the focus-within border.'));
+		},
+	});
+
+	S({
+		id: 'P147', tier: 'polish', title: 'Property rows pack six controls and unexplained jargon',
+		problem: '<b>Problem.</b> Key, source, type, value, mode and delete share one row, and "always" does not say it overwrites.',
+		beforeCap: 'Real screenshot: the row wraps onto two lines and the modes read "if missing", "always".',
+		afterCap: 'Verb mode labels with a description per item; Value/Expression and Text/Yes-no collapse behind a caret until they leave their defaults.',
+		before: (el) => { el.append(K.crop(SHOT_RULE, 855, 695, 545, 125, { alt: 'Set properties row' })); },
+		after: (el) => {
+			const r = K.rules.owner(); r.move = undefined;
+			r.props.push({ id: K.uid('p'), key: 'status', source: 'Value', type: 'Text', value: 'draft', mode: 'always' }, { id: K.uid('p'), key: 'title', source: 'Expression', type: 'Text', value: 'file.name', mode: 'ifMissing' }, { id: K.uid('p'), key: 'inbox', source: 'Value', type: 'Text', value: '', mode: 'remove' });
+			const rules = [r];
+			AO(el, { rules, open: withOpen(rules, [0]), parts: { title: false, toggle: false, help: false, rulesHead: false }, hl: 'P147', maxH: 520 });
+		},
+		notes: ['Common row: key, value, mode, caret, delete. The "title" row shows the auto-opened chooser because its source is not the default.', 'Open the mode menu to read the one-line descriptions.'],
+	});
+
+	S({
+		id: 'P148', tier: 'polish', title: 'Rule validation errors are not tied to their fields',
+		problem: '<b>Problem.</b> Inputs are never marked invalid, so the bad field is not highlighted although the Input component already styles aria-invalid with a red border. Messages end in "It is not saved."',
+		beforeCap: 'Recreation of today\'s behaviour: only a red sentence appears.',
+		afterCap: 'aria-invalid on the field (red border), aria-describedby on the message, and messages led by the outcome: "Not saved: ...". Edit the fields to clear the errors.',
+		before: (el) => {
+			const pane = h('div', { class: 'k-pane' });
+			let v = 'Meetings/{year}/agenda';
+			const msg = h('p', { style: 'color:var(--destructive);font-size:12px;margin:4px 0 0' });
+			const inp = h('input', { class: 'k-input mono', value: v, 'aria-label': 'Path' });
+			const upd = () => { msg.textContent = inp.value.endsWith('.md') || !inp.value ? '' : 'The path must end in .md, for example Meetings/{year}/agenda.md. It is not saved.'; };
+			inp.addEventListener('input', upd); upd();
+			pane.append(h('div', { class: 'k-slabel', style: 'margin-bottom:6px' }, 'Create note'), inp, msg);
+			el.append(pane);
+		},
+		after: (el) => {
+			const r = K.rules.meeting(); r.enabled = true; r.rename = { pattern: '{year}/{basename}' };
+			r.props = [{ id: K.uid('p'), key: 'owner', source: 'Expression', type: 'Text', value: '(file.name', mode: 'ifMissing' }];
+			const rules = [r];
+			AO(el, { rules, open: withOpen(rules, [0]), parts: { title: false, toggle: false, help: false, rulesHead: false }, hl: 'P148', maxH: 560 });
+		},
+	});
+
+	S({
+		id: 'P149', tier: 'polish', title: 'New rules, properties and expressions are added without scroll or focus',
+		problem: '<b>Problem.</b> "Add rule" sits at the top while the new card is appended at the end, below the fold, and focus does not move.',
+		beforeCap: 'Recreation of today\'s behaviour: press Add rule. Nothing visible happens.',
+		afterCap: 'The new card scrolls into view, expands and focuses its name. Add property and Add condition focus the new row.',
+		before: (el) => {
+			const pane = h('div', { class: 'k-pane k-scroller', style: 'max-height:420px' });
+			const read = h('div', { class: 'readout' });
+			let n = 2;
+			const list = h('div', { style: 'display:flex;flex-direction:column;gap:8px;margin-top:8px' });
+			const card = () => K.crop(SHOT_RULE, 853, 365, 547, 500, { alt: 'A rule card (screenshot)', maxScale: 0.75 });
+			const upd = () => { read.textContent = n + ' rules. The new one is appended after the last, below the visible area. The view did not move and nothing has focus.'; };
+			list.append(card(), card());
+			pane.append(h('div', { style: 'display:flex;justify-content:space-between;align-items:center' }, h('h3', { class: 'k-slabel' }, 'Rules'), K.btn('Add rule', { icon: 'plus', cls: 'outline sm', onclick: () => { n++; list.append(card()); upd(); } })), list);
+			upd(); el.append(pane, read);
+		},
+		after: (el) => {
+			const rules = [K.rules.owner(), K.rules.archive(), K.rules.meeting()];
+			AO(el, { rules, open: withOpen(rules, [0, 1]), parts: { title: false, toggle: false, help: false }, hl: 'P149', maxH: 420 });
+			el.append(h('div', { class: 'readout' }, 'Press Add rule: the list scrolls to the new card, which opens with the name focused. Rules start off, as today.'));
+		},
+	});
+
+	S({
+		id: 'P150', tier: 'polish', title: 'Excluded folders accept anything and give no feedback',
+		problem: '<b>Problem.</b> Free text, silent duplicates, no unknown-folder flag, a placeholder that reads like a value, and nothing when the list is empty.',
+		beforeCap: 'Real screenshot: the placeholder "_templates" looks like a value.',
+		afterCap: 'Suggestions from the vault folders, "Already excluded" on a duplicate, a missing-folder mark on chips, and an empty state. Try "tem", "Archive" twice, or remove all chips.',
+		before: (el) => { el.append(K.crop(SHOT_AO, 840, 440, 580, 110, { alt: 'Excluded folders field' })); },
+		after: (el) => { AO(el, { rules: [], parts: { title: false, toggle: false, help: false, rulesHead: false, rules: false, excluded: true }, hl: 'P150', excluded: ['_templates', 'Old Notes'], maxH: 400 }); },
+		notes: ['"Old Notes" is a chip for a folder that no longer exists: dashed warning border plus "missing". The placeholder becomes "e.g. _templates".'],
+	});
+
+	S({
+		id: 'P151', tier: 'polish', title: 'A legacy "file icon" button duplicates the _icon property',
+		problem: '<b>Problem.</b> Two controls set an icon, under two names and with different conditions. The PRD keeps the legacy icon, so data is not migrated.',
+		beforeCap: 'Real screenshot: an unlabelled image button after every Move to folder field.',
+		afterCap: 'The button appears only on rules that already have a legacy icon, with a visible label and a hint to use _icon. The second rule has none and shows no button.',
+		before: (el) => { el.append(K.crop(SHOT_RULE, 855, 650, 545, 70, { alt: 'Unlabelled icon button next to Move to folder' })); },
+		after: (el) => {
+			const rules = [K.rules.inbox(), K.rules.owner()];
+			AO(el, { rules, open: withOpen(rules, [0, 1]), parts: { title: false, toggle: false, help: false, rulesHead: false }, hl: 'P151', maxH: 520 });
+		},
+	});
+})();
+
+(() => {
+	'use strict';
+	const { h, ic } = K;
+	const { ctrls, abtn, tbtn, radio, code } = K.ui;
+	const S = (d) => K.SECTIONS.push(d);
+
+	/* ---------- date formatting for live examples (fixed "today") ---------- */
+	const TODAY = new Date(2026, 10, 17);
+	const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+	const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+	const isoWeek = (d) => { const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); const day = t.getUTCDay() || 7; t.setUTCDate(t.getUTCDate() + 4 - day); const y0 = new Date(Date.UTC(t.getUTCFullYear(), 0, 1)); return Math.ceil(((t - y0) / 86400000 + 1) / 7); };
+	const pad = (n) => String(n).padStart(2, '0');
+	function fmt(d, p, person) {
+		return p.replace(/\[([^\]]*)\]|\{person\}|YYYY|YY|MMMM|MMM|MM|M|DD|D|dddd|ddd|WW|W|Q/g, (m, lit) => {
+			if (lit !== undefined) return lit;
+			switch (m) {
+				case '{person}': return person || 'Ana Souza';
+				case 'YYYY': return String(d.getFullYear()); case 'YY': return String(d.getFullYear()).slice(2);
+				case 'MMMM': return MONTHS[d.getMonth()]; case 'MMM': return MONTHS[d.getMonth()].slice(0, 3);
+				case 'MM': return pad(d.getMonth() + 1); case 'M': return String(d.getMonth() + 1);
+				case 'DD': return pad(d.getDate()); case 'D': return String(d.getDate());
+				case 'dddd': return DAYS[d.getDay()]; case 'ddd': return DAYS[d.getDay()].slice(0, 3);
+				case 'WW': return pad(isoWeek(d)); case 'W': return String(isoWeek(d));
+				case 'Q': return String(Math.floor(d.getMonth() / 3) + 1);
+			}
+			return m;
+		});
+	}
+	const TEMPLATES = ['_templates/daily.md', '_templates/weekly.md', '_templates/monthly.md', '_templates/1on1.md', '_templates/meeting.md'];
+
+	/* ---------- settings nav ---------- */
+	const NAV = [
+		['General', [['Appearance', 'palette', 'theme dark light colors accent'], ['Editor', 'pencil', 'font size line height width'], ['Layout', 'panel-right', 'rail sidebar panes']]],
+		['Notes', [['Types', 'tag', 'type property archive'], ['Periodic Notes', 'calendar', 'daily weekly monthly quarterly yearly format template'], ['Quick Capture', 'inbox', 'capture inbox shortcut'], ['1:1 Notes', 'user', 'people meeting one on one'], ['Calendar', 'calendar', 'event week start hour']]],
+		['Vault', [['Files & Folders', 'folder', 'attachments new file location'], ['File History', 'history', 'versions snapshots restore'], ['Auto Organize', 'move', 'rules move rename folder'], ['Trash', 'trash-2', 'delete restore']]],
+		['Tools', [['Search', 'search', 'semantic text index model'], ['QueryJS', 'code', 'script query']]],
+		['Integrations', [['Todoist', 'circle-check', 'token sync project tasks']]],
+		['Advanced', [['Labs', 'sliders', 'mods experimental'], ['Sentry', 'info', 'crash errors telemetry'], ['Troubleshooting', 'terminal', 'debug log heartbeat'], ['Update', 'download', 'version channel download release']]],
+	];
+	function navBox(o) {
+		const box = h('div', { class: 'k-navbox' });
+		const scr = h('div', { class: 'scr' });
+		const ttl = h('div', { class: 'ttl' + (o.fixed ? ' fixed' : '') }, 'Settings');
+		let q = '', cur = 'Auto Organize';
+		const read = h('div', { class: 'readout' });
+		const input = h('input', { class: 'k-input sm', placeholder: 'Filter sections', 'aria-label': 'Filter sections', spellcheck: 'false' });
+		const clear = h('button', { type: 'button', class: 'k-btn ghost icon', 'aria-label': 'Clear filter', style: 'display:none', onclick: () => { input.value = ''; q = ''; list(); input.focus(); } }, ic('x', 12));
+		function list() {
+			q = input.value.trim().toLowerCase();
+			clear.style.display = q ? '' : 'none';
+			const nodes = [];
+			let total = 0, first = null;
+			NAV.forEach(([g, items]) => {
+				const vis = items.filter(([l, , kw]) => !q || l.toLowerCase().includes(q) || kw.split(' ').some((k) => k.startsWith(q)));
+				if (!vis.length) return;
+				nodes.push(h('div', { class: 'grp k-slabel' }, g));
+				vis.forEach(([l, icn, kw]) => {
+					total++; if (!first) first = l;
+					const i = q ? l.toLowerCase().indexOf(q) : -1;
+					const label = i >= 0 ? [l.slice(0, i), h('mark', {}, l.slice(i, i + q.length)), l.slice(i + q.length)] : l;
+					const kwHit = q && i < 0 ? kw.split(' ').find((k) => k.startsWith(q)) : null;
+					nodes.push(h('button', { type: 'button', class: 'nit', 'aria-current': String(cur === l), onclick: () => { cur = l; read.textContent = 'Opened: ' + l; list(); } }, ic(icn, 16), h('span', {}, label), kwHit ? h('span', { class: 'kw' }, kwHit) : null));
+				});
+			});
+			if (!total) nodes.push(h('div', { class: 'k-meta', style: 'padding:16px 12px' }, 'No section matches "' + input.value.trim() + '".'));
+			scr.replaceChildren(...(o.fixed ? [] : [ttl]), ...nodes);
+			input._first = first;
+		}
+		input.addEventListener('input', list);
+		input.addEventListener('keydown', (e) => { if (e.key === 'Enter' && input._first) { cur = input._first; read.textContent = 'Opened: ' + cur; list(); } if (e.key === 'Escape') { input.value = ''; list(); } });
+		if (o.fixed) box.append(ttl);
+		if (o.filter) box.append(h('div', { class: 'flt' }, h('div', { class: 'wrap' }, ic('search', 14), input, clear)));
+		box.append(scr);
+		list();
+		const wrap = h('div', {}, box, read);
+		wrap.box = box; wrap.scr = scr;
+		return wrap;
+	}
+
+	S({
+		id: 'P51', tier: 'polish', title: 'The Settings title and the active nav item scroll out of view',
+		problem: '<b>Problem.</b> The "Settings" title sits inside the scrolling nav, so it disappears as soon as the list scrolls and the last items are clipped.',
+		beforeCap: 'Recreation of today\'s nav: the title is part of the scrolling list.',
+		afterCap: 'The h-14 title band sits outside the overflow container; only the group list scrolls.',
+		even: true,
+		before: (el) => { const n = navBox({ fixed: false }); el.append(n, ctrls(abtn('Scroll to the bottom', () => n.scr.scrollTo({ top: 9999, behavior: 'smooth' }), 'chevron-down'))); setTimeout(() => { n.scr.scrollTop = 120; }, 50); },
+		after: (el) => { const n = navBox({ fixed: true }); el.append(n, ctrls(abtn('Scroll to the bottom', () => n.scr.scrollTo({ top: 9999, behavior: 'smooth' }), 'chevron-down'))); setTimeout(() => { n.scr.scrollTop = 120; }, 50); },
+		notes: ['Scroll-into-view of the active item and a sticky section heading are dropped: the active section changes only by clicking the nav, so the clicked item is always visible.'],
+	});
+
+	S({
+		id: 'P52', tier: 'polish', title: 'There is no search across the 19 settings sections',
+		problem: '<b>Problem.</b> 19 sections in 6 groups, with no filter. A power user has to remember where a setting lives.',
+		beforeCap: 'Real screenshot: 19 sections, no filter, the last item is cut off.',
+		afterCap: 'A filter at the top of the nav matches section labels plus a short keyword list per section. Try "daily", "token", "log" or "zzz". Enter opens the first match.',
+		before: (el) => { el.append(K.crop('settings-update-light', 620, 0, 195, 560, { alt: 'Settings navigation', maxScale: 1.1 })); },
+		after: (el) => { el.append(navBox({ fixed: true, filter: true })); },
+		notes: ['Effort is S: labels plus a static keyword list. A per-row index with jump and highlight is not proposed.'],
+	});
+
+	/* P53 */
+	function depPanel(mode) {
+		const s = { open: false, pin: true, log: false };
+		const pane = h('div', { class: 'k-pane' });
+		const mk = (label, desc, on, o = {}) => {
+			const sw = K.sw(on, o.change, label, { disabled: o.disabled });
+			return { el: K.item(label, desc, sw, { cls: o.disabled ? 'dis' : '' }), sw };
+		};
+		const wrap = h('div', { class: 'k-stack' });
+		function render() {
+			const open = s.open, log = s.log;
+			const dis = mode === 'after';
+			const items = [
+				h('div', { class: 'k-slabel', style: 'margin:0' }, 'Periodic Notes'),
+				mk('Auto-open', 'Open today\'s daily note on vault load', open, { change: (v) => { s.open = v; render(); } }).el,
+				mk('Auto-pin', mode === 'after' && !open ? 'Needs Auto-open. Turn it on to pin the daily note tab.' : 'Pin the daily note tab (requires auto-open)', s.pin, { disabled: dis && !open, change: (v) => { s.pin = v; } }).el,
+				h('div', { class: 'k-slabel', style: 'margin:10px 0 0' }, 'Troubleshooting'),
+				mk('Save debug log to file', 'Write frontend debug logs to the system log directory', log, { change: (v) => { s.log = v; render(); } }).el,
+			];
+			[['Save mod run messages to file', 'Save raw run.log text locally.'], ['Heartbeat', 'Log a tick every 250 ms to find stalls.'], ['Profile decoration plugins', 'Log timing for each live preview rebuild.']].forEach(([l, d]) => {
+				items.push(mk(l, mode === 'after' && !log ? d + ' Needs Save debug log to file.' : d + ' Needs a log file.', true, { disabled: dis && !log }).el);
+			});
+			wrap.replaceChildren(...items);
+		}
+		render();
+		pane.append(h('h2', {}, 'Settings'), wrap);
+		return pane;
+	}
+	S({
+		id: 'P53', tier: 'polish', title: 'Dependent settings are described in text but never disabled',
+		problem: '<b>Problem.</b> Auto-pin stays active while Auto-open is off, and the log-dependent Troubleshooting toggles stay active without a log file, so they look on and do nothing.',
+		beforeCap: 'Recreation of today\'s rows. Auto-open and the log are off, yet their children still look active.',
+		afterCap: 'The children are disabled and dimmed while their parent is off, and the description says why. Both parents start off here; turn them on to compare.',
+		even: true,
+		before: (el) => { el.append(depPanel('before')); },
+		after: (el) => { el.append(depPanel('after')); },
+		notes: ['Todoist and Sentry are left out: the Todoist description already explains the sync stays off, and the Sentry test button is not a dependent toggle.'],
+	});
+
+	/* P54 */
+	function numPanel(mode) {
+		const pane = h('div', { class: 'k-pane' });
+		const sample = h('div', { style: 'border:1px solid var(--border);border-radius:8px;padding:10px 14px;background:var(--background);min-height:62px;overflow:hidden;line-height:1.3' }, 'The quick brown fox jumps over the lazy dog.');
+		const read = h('div', { class: 'readout' });
+		let font = 16, deb = 3;
+		const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+		const showFont = () => { sample.style.fontSize = font + 'px'; sample.style.opacity = font === 0 ? '.25' : '1'; };
+		const upd = (extra) => { read.textContent = 'Applied font size: ' + font + ' px   |   applied debounce: ' + deb + ' s' + (extra ? '   |   ' + extra : ''); showFont(); };
+		const fontIn = h('input', { class: 'k-input', type: 'number', style: 'width:96px', value: '16', min: 8, max: 40, 'aria-label': 'Font size' });
+		const debIn = h('input', { class: 'k-input', type: 'number', style: 'width:96px', value: '3', min: 0.5, max: 30, step: 0.5, 'aria-label': 'Debounce delay' });
+		if (mode === 'before') {
+			fontIn.addEventListener('input', () => { font = Number(fontIn.value); upd(font === 0 ? 'cleared field applies 0: the note collapses' : (font < 8 ? 'below the minimum, applied anyway' : '')); });
+			fontIn.addEventListener('change', () => { font = clamp(Number(fontIn.value), 8, 40); fontIn.value = String(font); upd(); });
+			debIn.addEventListener('input', () => { deb = clamp(Number(debIn.value), 0.5, 30); debIn.value = String(deb); upd(deb === 0.5 && true ? 'the field snaps while you type' : ''); });
+		} else {
+			fontIn.addEventListener('input', () => { const n = Number(fontIn.value); if (fontIn.value !== '' && Number.isFinite(n) && n >= 8 && n <= 40) { font = n; upd('live preview'); } else upd('waiting for a value in 8 to 40'); });
+			fontIn.addEventListener('change', () => { font = clamp(Number(fontIn.value) || 16, 8, 40); fontIn.value = String(font); upd('clamped on change'); });
+			debIn.addEventListener('input', () => { const n = Number(debIn.value); if (debIn.value !== '' && Number.isFinite(n) && n >= 0.5 && n <= 30) { deb = n; upd(); } else upd('waiting for a value in 0.5 to 30'); });
+			debIn.addEventListener('change', () => { deb = clamp(Number(debIn.value) || 3, 0.5, 30); debIn.value = String(deb); upd('clamped on change'); });
+		}
+		pane.append(h('h2', {}, 'Editor'), h('div', { class: 'k-stack' },
+			K.item('Font size', 'Editor text size in pixels (8-40)', fontIn), sample,
+			K.item('Debounce delay', 'Auto Organize: seconds to wait after save (0.5-30)', debIn)), read);
+		upd();
+		return pane;
+	}
+	S({
+		id: 'P54', tier: 'polish', title: 'Number fields apply unclamped values on every keystroke',
+		problem: '<b>Problem.</b> Clearing the font size field to retype writes 0 and reflows the note on each keystroke; the debounce field snaps to 0.5 while you type "0.8".',
+		beforeCap: 'Recreation of today\'s behaviour. Select the font size, press Delete, then type 20. Then type "0.8" into the debounce.',
+		afterCap: 'Writes happen only for finite, in-range values (live preview kept); the clamp runs on change. Same two exercises.',
+		even: true,
+		before: (el) => { el.append(numPanel('before')); },
+		after: (el) => { el.append(numPanel('after')); },
+	});
+
+	/* P79 */
+	function syncPanel(mode) {
+		const frame = h('div', { class: 'k-frame', style: 'border:1px solid var(--border)' });
+		const st = { state: 'error', last: 'Synced 2 min ago' };
+		const body = h('div', { style: 'height:150px;background:var(--background);padding:14px;font-size:13px;color:var(--muted-foreground)' }, 'Editor area. The sync status chip lives in the status bar below.');
+		const bar = h('div', { class: 'k-status' });
+		const modalHost = h('div', {});
+		const ERR = 'Todoist API 429: rate limited. Retrying in 60 s.';
+		function chip() {
+			const e = st.state === 'error', sy = st.state === 'syncing';
+			const label = e ? 'Sync failed' : sy ? 'Syncing...' : st.last;
+			const inner = [ic(e ? 'circle-alert' : 'refresh', 12, sy ? 'k-spin' : ''), label];
+			if (mode === 'before') return h('span', { class: 'chip' + (e ? ' err' : ''), title: e ? ERR : label }, inner);
+			return h('button', { type: 'button', class: 'chip' + (e ? ' err' : ''), 'aria-label': 'Open Todoist sync log. ' + label, title: 'Open the sync log', onclick: openLog }, inner);
+		}
+		function renderBar() { bar.replaceChildren(h('span', {}, '37 notes indexed'), h('span', { class: 'r' }, chip(), h('span', {}, 'Saved'), h('span', {}, '33 words'))); }
+		function syncNow() { if (st.state === 'syncing') return; st.state = 'syncing'; renderBar(); renderLog(); setTimeout(() => { st.state = 'ok'; st.last = 'Synced just now'; renderBar(); renderLog(); }, 1400); }
+		let open = false;
+		function openLog() { open = true; renderLog(); }
+		function renderLog() {
+			modalHost.replaceChildren();
+			if (!open) return;
+			const e = st.state === 'error';
+			modalHost.append(h('div', { class: 'k-modal', onclick: (ev) => { if (ev.target === ev.currentTarget) { open = false; renderLog(); } } },
+				h('div', { class: 'k-dialog', role: 'dialog', 'aria-label': 'Todoist sync log', style: 'width:min(480px,100%)' },
+					h('div', { style: 'display:flex;align-items:center;gap:8px' }, h('h3', { style: 'flex:1' }, 'Todoist sync log'), K.btn(st.state === 'syncing' ? 'Syncing...' : 'Sync now', { icon: 'refresh', cls: 'default sm', disabled: st.state === 'syncing', onclick: syncNow }), K.iconBtn('x', 'Close', () => { open = false; renderLog(); })),
+					e ? h('div', { class: 'k-warn bad', role: 'alert' }, ic('circle-alert', 16), h('div', {}, h('div', { class: 'tt' }, 'Last sync failed'), h('div', {}, ERR))) : null,
+					h('div', { class: 'k-runlog' }, ['10:42:01 pull: 18 tasks, 2 changed', '10:42:02 push: 1 note updated', e ? '10:44:10 pull failed: ' + ERR : '10:44:10 pull: no changes', st.state === 'ok' ? '10:45:31 manual sync: ok' : ''].filter(Boolean).join('\n')))));
+		}
+		renderBar();
+		frame.append(body, bar, modalHost);
+		const wrap = h('div', {}, frame);
+		const seg = radio(['Synced', 'Syncing', 'Failed'], (i) => { st.state = ['ok', 'syncing', 'error'][i]; st.last = 'Synced 2 min ago'; renderBar(); renderLog(); }, 2);
+		wrap.append(ctrls(seg, mode === 'before' ? h('span', {}, 'Hover the chip: the error is only in a native tooltip. "Sync now" and "Show sync log" live in the command palette.') : h('span', {}, 'Click the chip.')));
+		if (mode === 'before') wrap.append(h('div', { class: 'readout' }, 'Command palette (Cmd+P): "Todoist: Sync now", "Todoist: Show sync log"'));
+		return wrap;
+	}
+	S({
+		id: 'P79', tier: 'polish', title: 'The Todoist status chip is not actionable; Sync now and the log are in the palette only',
+		problem: '<b>Problem.</b> The chip is a span and the error text is only in a hover title. Recovery needs the command palette.',
+		beforeCap: 'Recreation of the status bar chip (a span with a title).',
+		afterCap: 'The chip is a button that opens the sync log dialog, with the last error and a Sync now button at the top.',
+		even: true,
+		before: (el) => { el.append(syncPanel('before')); },
+		after: (el) => { el.append(syncPanel('after')); },
+		notes: ['Settings gets no extra buttons: the chip is the one entry point.'],
+	});
+
+	/* P80 */
+	S({
+		id: 'P80', tier: 'polish', title: 'The Todoist "Root project" control overflows onto its description',
+		problem: '<b>Problem.</b> The control is wider than SettingItem\'s 50% column, so the Load projects button covers the description.',
+		beforeCap: 'Real screenshot: "Load projects" sits on top of the description text.',
+		afterCap: 'SettingItem layout="stacked": the Load projects button and the Select share one line below the description. Press Load projects.',
+		before: (el) => { el.append(K.crop('settings-todoist-light', 850, 485, 555, 105, { alt: 'Root project row with overlap' })); },
+		after: (el) => {
+			const pane = h('div', { class: 'k-pane' });
+			const state = { loaded: false, loading: false, val: 'None (sync off)' };
+			const ctl = h('div', { style: 'display:flex;gap:8px;align-items:center' });
+			function render() {
+				const btn = K.btn(state.loading ? 'Loading...' : state.loaded ? 'Reload projects' : 'Load projects', { icon: 'refresh', cls: 'outline', disabled: state.loading, onclick: () => { state.loading = true; render(); setTimeout(() => { state.loading = false; state.loaded = true; render(); }, 800); } });
+				if (state.loading) btn.firstChild.classList.add('k-spin');
+				const sel = K.menuBtn(K.sel(state.val, { h36: true, style: 'width:100%;justify-content:space-between', disabled: !state.loaded, aria: 'Root project' }), ['None (sync off)', 'Work', 'Personal', 'Side projects'].map((l) => ({ id: l, label: l })), (it) => { state.val = it.id; render(); }, { w: 220 });
+				sel.style.flex = '1';
+				ctl.replaceChildren(btn, sel);
+			}
+			render();
+			pane.append(h('h2', {}, 'Todoist'), h('div', { class: 'k-stack' },
+				K.item('Sync with Todoist', 'Keep the root project\'s tasks and this vault\'s notes in sync both ways', K.sw(false, null, 'Sync with Todoist')),
+				K.item('Root project', 'This vault syncs this project and every project nested under it. With none chosen, the sync stays off.', ctl, { stacked: true, p: 'P80' })));
+			el.append(pane);
+		},
+		notes: ['Projects are not auto-loaded: that would add a network call nobody asked for.'],
+	});
+
+	/* P124 + P125 */
+	function dateField(label, desc, value, kind) { return { label, desc, value, kind }; }
+	function p124() {
+		const pane = h('div', { class: 'k-pane' });
+		const st = { folder: 'YYYY/MM', file: '{person}-DD-MM-YYYY', tpl: '_templates/1on1-notes.md' };
+		const body = h('div', { class: 'k-stack' });
+		function render() {
+			const fkey = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fk : null;
+			const ex = (t) => h('div', { class: 'k-prev', 'data-p': 'P124' }, t);
+			const tplMissing = st.tpl && !TEMPLATES.includes(st.tpl);
+			const field = (k, ph) => h('input', { class: 'k-input', value: st[k], placeholder: ph, 'data-fk': k, 'aria-label': k, spellcheck: 'false', oninput: (e) => { st[k] = e.target.value; render(); } });
+			body.replaceChildren(
+				K.item('Folder format', 'Date pattern for the subfolder, e.g. YYYY/MM', [field('folder', 'YYYY/MM'), ex(['A 1:1 today goes to ', h('b', {}, 'Work/_people/' + fmt(TODAY, st.folder) + '/')])], { stacked: true }),
+				K.item('Filename format', 'Date pattern with a {person} placeholder, e.g. [-1on1-]{person}[-]DD-MM-YYYY', [field('file', '{person}-DD-MM-YYYY'), ex(['Ana Souza, today: ', h('b', {}, fmt(TODAY, st.file, 'Ana Souza') + '.md')])], { stacked: true }),
+				K.item('Template path', 'Path to the template file relative to vault root', [field('tpl', '_templates/1on1.md'), tplMissing ? h('div', { class: 'k-meta', style: 'display:flex;gap:4px;align-items:center;color:var(--warning)', 'data-p': 'P124' }, ic('triangle-alert', 13), 'File not found. Templates in the vault: ' + TEMPLATES.filter((t) => t.includes('1on1') || t.includes('meeting')).join(', ')) : (st.tpl ? h('div', { class: 'k-meta', style: 'display:flex;gap:4px;align-items:center;color:var(--success)' }, ic('circle-check', 13), 'Template found') : null)], { stacked: true }));
+			if (fkey) { const e = body.querySelector('[data-fk="' + fkey + '"]'); if (e) { const v = e.value.length; e.focus(); e.setSelectionRange(v, v); } }
+		}
+		render();
+		pane.append(h('h2', {}, '1:1 Notes'), h('div', { class: 'k-slabel', style: 'margin:0 0 8px' }, 'New notes'), body);
+		return pane;
+	}
+	S({
+		id: 'P124', tier: 'polish', title: 'Path and format fields have no validation, picker or preview',
+		problem: '<b>Problem.</b> Paths are truncated free text with no existence check, and a date format shows no example, so a typo only shows up when the next note is created.',
+		beforeCap: 'Real screenshot of the 1:1 Notes "New notes" group.',
+		afterCap: 'A live example under each format (today is 2026-11-17), and "File not found" under a template path that does not resolve; the stacked layout stops truncating long paths. Edit the fields.',
+		before: (el) => { el.append(K.crop('settings-1-1-notes-light', 850, 335, 555, 290, { alt: '1:1 Notes new notes settings' })); },
+		after: (el) => { el.append(p124()); },
+		notes: ['The label "Day starts at" in the Calendar section is kept: dayStartHour also sets the default start of a new event.'],
+	});
+
+	function p125() {
+		const pane = h('div', { class: 'k-pane' });
+		const st = { folder: 'Daily', rows: [['Daily', 'YYYY-MM-DD', '_templates/daily.md'], ['Weekly', 'YYYY-[W]WW', ''], ['Monthly', 'YYYY-MM', '_templates/monthly-review.md'], ['Quarterly', 'YYYY-[Q]Q', ''], ['Yearly', 'YYYY', '']] };
+		const tbody = h('tbody', {});
+		function render() {
+			const af = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.fk : null;
+			tbody.replaceChildren(...st.rows.map((r, i) => {
+				const miss = r[2] && !TEMPLATES.includes(r[2]);
+				return h('tr', {},
+					h('td', {}, r[0]),
+					h('td', {}, h('input', { class: 'k-input sm mono', value: r[1], 'aria-label': r[0] + ' format', 'data-fk': 'f' + i, spellcheck: 'false', oninput: (e) => { r[1] = e.target.value; render(); } }), h('div', { class: 'ex', 'data-p': 'P125' }, st.folder + '/', h('b', {}, fmt(TODAY, r[1]) + '.md'))),
+					h('td', {}, h('input', { class: 'k-input sm mono', value: r[2], placeholder: 'No template', 'aria-label': r[0] + ' template path', 'data-fk': 't' + i, spellcheck: 'false', oninput: (e) => { r[2] = e.target.value; render(); } }), miss ? h('div', { class: 'nf', 'data-p': 'P124' }, ic('triangle-alert', 12), 'File not found') : null));
+			}));
+			if (af) { const e = tbody.querySelector('[data-fk="' + af + '"]'); if (e) { e.focus(); e.setSelectionRange(e.value.length, e.value.length); } }
+		}
+		render();
+		const folder = h('input', { class: 'k-input', value: st.folder, 'aria-label': 'Notes folder', oninput: (e) => { st.folder = e.target.value; render(); } });
+		pane.append(h('h2', {}, 'Periodic Notes'), h('div', { class: 'k-stack' }, K.item('Notes folder', 'Folder where periodic notes are created.', folder),
+			h('table', { class: 'k-tbl' }, h('thead', {}, h('tr', {}, h('th', {}, 'Period'), h('th', {}, 'Format and today\'s example'), h('th', {}, 'Template path'))), tbody),
+			K.item('Auto-open', 'Open today\'s daily note on vault load', K.sw(true, null, 'Auto-open'))));
+		return pane;
+	}
+	S({
+		id: 'P125', tier: 'polish', title: 'Periodic Notes repeats five identical Format and Template blocks',
+		problem: '<b>Problem.</b> Ten near-identical rows push the page far past one screen.',
+		beforeCap: 'Real screenshot: Daily and Weekly already fill the panel; Monthly, Quarterly and Yearly follow.',
+		afterCap: 'One compact table (period, format with its live example, template path with "File not found"), designed together with P124. Edit a format or a path.',
+		before: (el) => { el.append(K.crop('settings-periodic-notes-light', 845, 230, 560, 640, { alt: 'Periodic notes blocks', maxScale: 0.95 })); },
+		after: (el) => { el.append(p125()); },
+	});
+
+	/* P126 */
+	function updPanel(mode) {
+		const pane = h('div', { class: 'k-pane' });
+		const st = { phase: 'idle', pct: 0, known: true, fail: false };
+		let timer = null;
+		const bodyHost = h('div', { class: 'k-stack' });
+		const MB = (p) => (19.1 * p / 100).toFixed(1);
+		function render() {
+			const idle = st.phase === 'idle';
+			const label = mode === 'after' ? 'Check and download' : 'Check';
+			const busy = st.phase === 'checking' || st.phase === 'downloading';
+			const btn = K.btn(st.phase === 'checking' ? 'Checking...' : label, { cls: 'outline', disabled: busy, onclick: () => start() });
+			const items = [K.item('Check for updates', mode === 'after' ? 'Stable channel. Downloads and installs an available update, then asks for a restart. Last checked: never.' : 'Stable channel. Last checked: never.', btn)];
+			if (st.phase === 'downloading') {
+				const known = mode === 'after' ? st.known : st.known;
+				let text;
+				if (mode === 'after') text = known ? 'Downloading 4.9.2: ' + Math.round(st.pct) + '% (' + MB(st.pct) + ' of 19.1 MB)' : 'Downloading 4.9.2: ' + MB(st.pct) + ' MB';
+				else text = 'Downloading ' + (known ? Math.round(st.pct) : 0) + '% (' + MB(st.pct) + ' MB / ' + (known ? '19.1 MB' : '?') + ')';
+				const bar = h('div', { class: 'k-progress', role: 'progressbar', 'aria-label': 'Download of update 4.9.2', 'aria-valuemin': 0, 'aria-valuemax': 100, 'aria-valuenow': known ? Math.round(st.pct) : null }, h('div', { style: 'width:' + (known ? st.pct : 35) + '%' + (known ? '' : ';animation:kind 1.1s ease-in-out infinite alternate') }));
+				items.push(h('div', { class: 'k-item stacked', 'data-p': 'P126' }, h('span', { class: 'desc', style: 'font-size:13px;color:var(--foreground)' }, text), mode === 'after' ? bar : null));
+			} else if (st.phase === 'ready') {
+				items.push(K.item('Update 4.9.2 is ready', 'It is installed. Restart Kokobrain to use it.', K.btn('Restart to update', { cls: 'default', onclick: () => { st.phase = 'idle'; render(); } }), { p: 'P126' }));
+			} else if (st.phase === 'error') {
+				items.push(h('div', { class: 'k-warn bad', role: 'alert' }, ic('circle-alert', 16), h('div', {}, h('div', { class: 'tt' }, 'Update check failed'), h('div', {}, mode === 'after' ? 'Could not reach the update server. Check your connection and try again.' : 'error sending request for url (https://updates.kokobrain.app/stable/latest.json): error trying to connect: dns error'))));
+			}
+			bodyHost.replaceChildren(...items);
+		}
+		function start() {
+			clearInterval(timer);
+			st.phase = 'checking'; st.pct = 0; render();
+			setTimeout(() => {
+				if (st.fail) { st.phase = 'error'; render(); return; }
+				st.phase = 'downloading'; render();
+				timer = setInterval(() => { st.pct = Math.min(100, st.pct + 4 + Math.random() * 6); if (st.pct >= 100) { clearInterval(timer); st.phase = 'ready'; } render(); }, 220);
+			}, 700);
+		}
+		pane._ctl = { setKnown: (v) => { st.known = v; render(); }, setFail: (v) => { st.fail = v; }, reset: () => { clearInterval(timer); st.phase = 'idle'; render(); } };
+		render();
+		pane.append(h('h2', {}, 'Update'), bodyHost);
+		return pane;
+	}
+	S({
+		id: 'P126', tier: 'polish', title: 'The update "Check" button also downloads and installs, and progress is text only',
+		problem: '<b>Problem.</b> The label under-promises, the size can show "?", and errors are raw.',
+		beforeCap: 'Recreation of today\'s flow: a "Check" button and a text percentage. Switch to "size unknown" to see the "?".',
+		afterCap: 'The button says "Check and download", progress is a bar, and the size is hidden when unknown. Press it.',
+		even: true,
+		before: (el) => { const p = updPanel('before'); el.append(p, ctrls(radio(['Size known', 'Size unknown'], (i) => p._ctl.setKnown(i === 0)), tbtn('Next check fails', (v) => p._ctl.setFail(v)), abtn('Reset', () => p._ctl.reset(), 'rotate-ccw'))); },
+		after: (el) => { const p = updPanel('after'); el.append(p, ctrls(radio(['Size known', 'Size unknown'], (i) => p._ctl.setKnown(i === 0)), tbtn('Next check fails', (v) => p._ctl.setFail(v)), abtn('Reset', () => p._ctl.reset(), 'rotate-ccw'))); },
+		notes: ['Check and download stay one action: the install still waits for an explicit "Restart to update".'],
+	});
+
+	/* P81 */
+	function tplPicker(mode) {
+		const wrap = h('div', {});
+		const st = { step: 'name', tpl: 'Meeting', name: 'Dashboard', q: '' };
+		const read = h('div', { class: 'readout' }, 'Starts on the naming step with "Dashboard", which already exists (so does "Health"). Press Enter, or clear the name and press Backspace.');
+		const dlg = h('div', { class: 'k-cmd' });
+		const TPL = ['Meeting', 'Project', 'Weekly review', 'One on one'];
+		const EXISTS = ['dashboard', 'health'];
+		function render() {
+			dlg.replaceChildren();
+			if (st.step === 'list') {
+				const inp = h('input', { placeholder: 'Search templates...', value: st.q, 'aria-label': 'Search templates', oninput: (e) => { st.q = e.target.value; render(); } });
+				dlg.append(h('div', { class: 'in' }, ic('search', 16), inp));
+				const list = TPL.filter((t) => t.toLowerCase().includes(st.q.toLowerCase()));
+				dlg.append(h('div', { style: 'padding:4px' }, list.length ? list.map((t) => h('button', { type: 'button', class: 'item', onclick: () => { st.tpl = t; st.step = 'name'; st.name = ''; render(); } }, ic('file-text', 16), t)) : h('div', { class: 'hint' }, 'No templates found.')));
+				setTimeout(() => { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }, 0);
+			} else {
+				const nm = st.name.trim();
+				const full = nm ? nm + (nm.endsWith('.md') ? '' : '.md') : '';
+				const exists = nm && EXISTS.includes(nm.replace(/\.md$/, '').toLowerCase());
+				const inp = h('input', { placeholder: 'File name...', value: st.name, 'aria-label': 'File name', spellcheck: 'false',
+					oninput: (e) => { st.name = e.target.value; render(); },
+					onkeydown: (e) => {
+						if (e.key === 'Enter' && nm) { read.textContent = exists ? (mode === 'before' ? 'Result: opened the existing note ' + full + ' with no message. Nothing says the template was ignored.' : 'Result: opened the existing note ' + full + ' (the template was not applied, as the hint said).') : 'Result: created ' + full + ' from the "' + st.tpl + '" template in the vault root.'; st.step = 'list'; st.q = ''; render(); }
+						if (e.key === 'Backspace' && !st.name && mode === 'after') { e.preventDefault(); st.step = 'list'; render(); }
+						if (e.key === 'Escape') { read.textContent = 'Escape closes the whole dialog.'; st.step = 'list'; st.q = ''; st.name = ''; render(); }
+					} });
+				if (mode === 'after') dlg.append(h('div', { class: 'chiprow', 'data-p': 'P81' }, h('span', { class: 'k-pill blue' }, ic('file-text', 12), st.tpl, ' template')));
+				dlg.append(h('div', { class: 'in' }, inp));
+				let hint;
+				if (mode === 'before') hint = nm ? ['Press ', h('span', { class: 'k-kbd' }, 'Enter'), ' to create ', h('b', {}, full)] : ['Type a name for the new file'];
+				else if (!nm) hint = ['Type a name for the new ' + st.tpl.toLowerCase() + ' note'];
+				else if (exists) hint = [ic('triangle-alert', 13), ' ', h('b', {}, full), ' already exists. ', h('span', { class: 'k-kbd' }, 'Enter'), ' opens the existing note and does not apply the template'];
+				else hint = [h('span', { class: 'k-kbd' }, 'Enter'), ' creates ', h('b', {}, full)];
+				dlg.append(h('div', { class: 'hint', 'data-p': 'P81', style: exists && mode === 'after' ? 'color:var(--warning)' : '' }, hint));
+				if (mode === 'after') dlg.append(h('div', { class: 'hint', style: 'padding:0 16px 12px;font-size:12px;display:flex;flex-direction:column;gap:2px;align-items:center', 'data-p': 'P81' }, h('span', { style: 'display:inline-flex;gap:6px;align-items:center' }, ic('folder', 13), 'Creates in the vault root, like New File'), h('span', { style: 'opacity:.75' }, 'Backspace on an empty name goes back to the templates')));
+				setTimeout(() => { inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length); }, 0);
+			}
+		}
+		render();
+		wrap.append(dlg, read);
+		return wrap;
+	}
+	S({
+		id: 'P81', tier: 'polish', title: 'The template picker hides the destination and the chosen template, and silently opens existing files',
+		problem: '<b>Problem.</b> The naming step does not name the template, never says where the file goes, opens an existing note without telling you, and has no back step.',
+		beforeCap: 'Recreation of the naming step today, with "Dashboard" typed. Press Enter: the existing note opens with no message.',
+		afterCap: 'A template chip, a read-only "Creates in the vault root" line, "Enter opens the existing note" on a name clash, and Backspace on an empty name goes back.',
+		even: true,
+		before: (el) => { el.append(tplPicker('before')); },
+		after: (el) => { el.append(tplPicker('after')); },
+		notes: ['The destination stays the vault root: it matches New File and the Inbox flow with explicit organization on, so it is shown, not made editable.'],
+	});
+
+	/* P169 */
+	const MODS = [
+		{ name: 'Weekly review', ver: '1.2.0', state: 'Loaded', ms: 12, desc: 'Builds the weekly review note from tasks and meetings of the last 7 days.', on: true },
+		{ name: 'Inbox triage', ver: '0.4.1', state: 'Loaded', ms: 8, desc: 'Adds a status bar chip and a shortcut to file captured notes.', on: true },
+		{ name: 'Project status', ver: '0.1.0', state: 'Error', ms: 0, desc: 'Refreshes the status property of project notes on save.', on: true, err: 'onload threw: Cannot read properties of undefined (reading \'folder\')' },
+		{ name: 'Quote of the day', ver: '0.2.0', state: 'Disabled', ms: 0, desc: 'Inserts a quote into the daily note.', on: false },
+	];
+	function modsList(mode) {
+		const pane = h('div', { class: 'k-pane' });
+		const ul = h('ul', { style: 'list-style:none;margin:0;padding:0 4px;display:flex;flex-direction:column;gap:6px' });
+		MODS.forEach((m) => {
+			const status = h('span', { class: 'k-meta', style: m.state === 'Error' ? 'color:var(--destructive)' : '' }, mode === 'before' ? m.state + (m.ms !== undefined && m.state === 'Loaded' ? ' · ' + m.ms + ' ms' : '') : m.state);
+			if (mode === 'after' && m.state === 'Loaded') { status.title = 'Loaded in ' + m.ms + ' ms'; status.style.cursor = 'help'; status.style.textDecoration = 'underline dotted'; status.style.textUnderlineOffset = '3px'; }
+			ul.append(h('li', { style: 'display:flex;flex-direction:column;gap:2px;padding:4px 0' },
+				h('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:16px' },
+					h('span', { style: 'font-size:14px;color:var(--settings-text)' }, m.name + ' ', h('span', { class: 'k-meta' }, m.ver)),
+					h('span', { style: 'display:flex;align-items:center;gap:12px' }, status, K.sw(m.on, null, 'Enable ' + m.name))),
+				mode === 'after' ? h('span', { class: 'k-meta', 'data-p': 'P169', style: 'max-width:90%' }, m.desc) : null,
+				m.err ? h('p', { class: 'k-meta', style: 'color:var(--destructive);margin:0' }, m.err) : null));
+		});
+		pane.append(h('h2', {}, 'Labs'), K.item('Vault mods', 'Run JavaScript mods from _system/mods/ in this vault. Only enable mods you wrote.', K.sw(true, null, 'Vault mods')), h('div', { style: 'margin-top:10px' }, ul));
+		return pane;
+	}
+	S({
+		id: 'P169', tier: 'polish', title: 'The mods list shows load times, not what each mod does',
+		problem: '<b>Problem.</b> The manifest description is parsed and then dropped between mods.logic.ts and ModStatusEntry, so the list shows only a name, a version and "Loaded, 12 ms".',
+		beforeCap: 'Recreation of ModsStatusList with the master switch on (the real screenshot has it off, so no list).',
+		afterCap: 'One muted description line under each mod name; the load time moves into a tooltip on the status (hover "Loaded").',
+		even: true,
+		before: (el) => { el.append(modsList('before')); },
+		after: (el) => { el.append(modsList('after')); },
+		notes: ['Load errors already render inline in red today; nothing changes there. Retry and inline enable-error work are not needed.'],
+	});
+
+	/* P170 */
+	function modRun(mode) {
+		const wrap = h('div', {});
+		const dlg = h('div', { class: 'k-cmd', style: 'padding:16px;display:flex;flex-direction:column;gap:12px', role: 'dialog', 'aria-label': 'Weekly review: build' });
+		const read = h('div', { class: 'readout' });
+		const st = { status: 'idle', done: 0, lines: [], stopping: false, willFail: false };
+		let timer = null, stopT = null;
+		const LABEL = { running: 'Running', done: 'Done', failed: 'Failed', cancelled: 'Cancelled' };
+		const COLOR = { running: 'var(--muted-foreground)', done: 'var(--success)', failed: 'var(--destructive)', cancelled: 'var(--muted-foreground)' };
+		function render() {
+			dlg.replaceChildren();
+			if (st.status === 'idle') { dlg.append(h('div', { class: 'k-meta', style: 'text-align:center;padding:12px' }, 'No run in progress. Press "Start a run" below.')); read.textContent = ''; return; }
+			const label = st.stopping && mode === 'after' ? 'Stopping...' : LABEL[st.status];
+			const prog = 'Weekly review: build, ' + st.done + ' of 8 notes';
+			dlg.append(h('div', { style: 'display:flex;align-items:center;justify-content:space-between;gap:8px' }, h('span', { style: 'font-weight:500' }, 'Weekly review: build'),
+				mode === 'after' ? h('span', { class: 'k-pill', 'data-p': 'P170', style: 'font-size:12px;background:color-mix(in oklab,' + COLOR[st.status] + ' 14%,transparent);color:' + (st.stopping ? 'var(--muted-foreground)' : COLOR[st.status]) }, label) : h('span', { style: 'font-size:12px;color:var(--muted-foreground)' }, LABEL[st.status])));
+			dlg.append(h('div', { class: 'k-progress', role: 'progressbar', 'aria-valuemin': 0, 'aria-valuemax': 8, 'aria-valuenow': st.done, 'aria-label': mode === 'after' ? prog : null }, h('div', { style: 'width:' + (st.done / 8 * 100) + '%;' + (mode === 'after' && st.status === 'failed' ? 'background:var(--destructive)' : '') })));
+			dlg.append(h('span', { class: 'k-meta' }, st.done + ' of 8 notes'));
+			dlg.append(h('div', { class: 'k-runlog', role: mode === 'after' ? 'log' : null, 'aria-live': mode === 'after' ? 'polite' : null, 'data-p': 'P170' }, st.lines.join('\n')));
+			if (st.status === 'failed') dlg.append(h('p', { style: 'color:var(--destructive);font-size:13px;margin:0' }, 'Note 5 has no "week" property.'));
+			const stop = K.btn(st.stopping && mode === 'after' ? 'Stopping...' : 'Stop', { cls: 'destructive sm', disabled: mode === 'after' && st.stopping, onclick: () => stopRun(), p: 'P170' });
+			dlg.append(h('div', { style: 'display:flex;justify-content:flex-end;gap:8px' }, st.status === 'running' ? stop : null, K.btn('Close', { cls: 'outline sm', onclick: () => { clear(); st.status = 'idle'; render(); } })));
+			read.textContent = mode === 'after' ? 'Screen reader: progressbar "' + prog + '"; the log is a live region (role=log). Status text: "' + label + '".' : 'Screen reader: progressbar with no name (the label is a separate span). Status text: "' + LABEL[st.status] + '"' + (st.stopping ? ' (still, 12 px muted, until the mod honours the abort)' : '') + '.';
+		}
+		function clear() { clearInterval(timer); clearTimeout(stopT); }
+		function start(fail) {
+			clear(); Object.assign(st, { status: 'running', done: 0, lines: ['start: Weekly review'], stopping: false, willFail: fail });
+			render();
+			timer = setInterval(() => {
+				st.done++; st.lines.push('note ' + st.done + ': ok');
+				if (fail && st.done === 5) { clearInterval(timer); st.status = 'failed'; st.lines.push('note 5: no "week" property'); }
+				else if (st.done >= 8) { clearInterval(timer); st.status = 'done'; st.lines.push('finished'); }
+				render();
+			}, 700);
+		}
+		function stopRun() {
+			st.stopping = true; render();
+			clearInterval(timer);
+			stopT = setTimeout(() => { st.status = 'cancelled'; st.stopping = false; st.lines.push('aborted'); render(); }, 2200);
+		}
+		render(); start(false);
+		wrap.append(dlg, ctrls(abtn('Start a run', () => start(false), 'play'), abtn('Start a run that fails', () => start(true), 'circle-alert'), h('span', {}, 'Press Stop and watch the status for about two seconds.')), read);
+		return wrap;
+	}
+	S({
+		id: 'P170', tier: 'polish', title: 'The mod run view\'s status, progress and log are not legible or accessible',
+		problem: '<b>Problem.</b> Running, Done and Failed share the same 12 px muted text, the progress bar has no name, the log is not a live region, and Stop gives no feedback while the mod finishes.',
+		beforeCap: 'Recreation of today\'s run dialog. Press Stop: the status still reads Running.',
+		afterCap: 'Coloured status (destructive for Failed, success for Done, muted for Cancelled), a named progress bar, a live log, and a "Stopping..." disabled state on Stop.',
+		even: true,
+		before: (el) => { el.append(modRun('before')); },
+		after: (el) => { el.append(modRun('after')); },
+		notes: ['The shared announce helper from the earlier review is not proposed.'],
+	});
+})();
+
+(() => {
+	'use strict';
+	const { h, ic } = K;
+	const { ctrls, abtn, tbtn, radio } = K.ui;
+
+	/* Everything together */
+	K.SECTIONS.push({
+		id: 'ALL', tier: 'combined', title: 'All Auto Organize proposals in one panel',
+		problem: '<b>How it reads together.</b> P08, P66, P67, P68, P69, P70, P146, P147, P148, P149, P150, P151, P152 and P185 in a single panel. Hover an element with the Auto Organize panel focused to see the tag of the proposal that shaped it.',
+		beforeCap: 'Real screenshots: the empty panel and the one-rule panel that fills the viewport.',
+		afterCap: 'The combined panel. Expand cards, add a rule, break a path, turn Auto Organize off, or switch the file state.',
+		before: (el) => {
+			el.append(K.crop('settings-auto-organize-light', 840, 50, 580, 540, { alt: 'Auto Organize today', maxScale: 1 }));
+			el.append(h('div', { style: 'height:12px' }));
+			el.append(K.crop('auto-organize-rule-builder-light', 840, 50, 580, 820, { alt: 'Rule builder today', maxScale: 1 }));
+		},
+		after: (el) => {
+			const rules = [K.rules.owner(), K.rules.archive(), K.rules.meeting(), K.rules.inbox()];
+			rules[1].enabled = false;
+			const open = {}; open[rules[0].id] = true;
+			const api = K.createAO(el, { rules, open, enabled: true, parts: { debounce: true, help: 'new', precedence: false, types: true, excluded: true }, hl: 'all', maxH: 820 });
+			el.append(ctrls(radio(['Auto Organize on', 'Auto Organize off'], (i) => api.setEnabled(i === 0)), radio(['Rules file loaded', 'File is not valid JSON'], (i) => api.setLoadError(i === 1)),
+				abtn('Simulate an automatic move', () => api.simulateMove(), 'folder'), tbtn('Next save fails', (v) => api.setSimFail(v))));
+		},
+	});
+
+	/* ---------- page assembly ---------- */
+	const main = document.getElementById('main');
+	const nav = document.getElementById('nav');
+	const TIERS = { moderate: 'Moderate impact', polish: 'Polish', combined: 'Everything together' };
+	const counts = {}; K.SECTIONS.forEach((s) => { counts[s.tier] = (counts[s.tier] || 0) + 1; });
+	let lastTier = null;
+	const order = { moderate: 0, polish: 1, combined: 2 };
+	const list = K.SECTIONS.slice().sort((a, b) => order[a.tier] - order[b.tier]);
+	const afters = [];
+
+	list.forEach((d) => {
+		if (d.tier !== lastTier) {
+			lastTier = d.tier;
+			main.append(h('div', { class: 'tierhead' }, TIERS[d.tier] + (d.tier === 'combined' ? '' : ' (' + counts[d.tier] + ' proposals)')));
+		}
+		const a = h('a', { href: '#' + d.id.toLowerCase(), class: d.tier === 'polish' ? 'pol' : '' }, d.id === 'ALL' ? 'All' : d.id);
+		nav.append(a);
+		const beforeEl = h('div', {});
+		const afterEl = h('div', { 'data-after': '' });
+		const sec = h('section', { class: 'sec', id: d.id.toLowerCase() },
+			h('div', { class: 'sec-h' }, d.id === 'ALL' ? null : h('span', { class: 'pid' }, d.id), h('h2', {}, d.title), d.tier === 'combined' ? null : h('span', { class: 'tier ' + d.tier }, d.tier)),
+			h('p', { class: 'problem', html: d.problem }),
+			h('div', { class: 'cmp' + (d.even ? ' even' : '') },
+				h('figure', { class: 'panel' }, h('figcaption', { class: 'cap' }, h('span', { class: 'tag b' }, 'BEFORE'), d.beforeCap), beforeEl),
+				h('figure', { class: 'panel' }, h('figcaption', { class: 'cap' }, h('span', { class: 'tag a' }, 'AFTER'), d.afterCap), afterEl)),
+			d.notes ? K.note('Notes', d.notes) : null);
+		main.append(sec);
+		d.before(beforeEl);
+		d.after(afterEl);
+	});
+	K.hydrateIcons(document);
+
+	/* ---------- theme toggle (BEFORE crops stay in Lavender light) ---------- */
+	function setTheme(t) {
+		document.documentElement.dataset.theme = t;
+		document.getElementById('th-light').setAttribute('aria-pressed', String(t === 'light'));
+		document.getElementById('th-dark').setAttribute('aria-pressed', String(t === 'dark'));
+		try { localStorage.setItem('kb-proto-theme', t); } catch (e) { /* storage may be blocked */ }
+	}
+	document.getElementById('th-light').addEventListener('click', () => setTheme('light'));
+	document.getElementById('th-dark').addEventListener('click', () => setTheme('dark'));
+	let saved = null; try { saved = localStorage.getItem('kb-proto-theme'); } catch (e) { /* ignore */ }
+	if (saved === 'dark') setTheme('dark');
+	if (location.hash) setTimeout(() => { const t = document.querySelector(location.hash); if (t) t.scrollIntoView(); }, 50);
+})();
+</script>
+</body>
+</html>

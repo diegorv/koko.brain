@@ -6,7 +6,7 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **Gate:** frontend only: `pnpm check` + `pnpm vitest run`.
 
@@ -28,3 +28,5 @@
 **Second opinion (audit 2026-11-05, round 2):** upheld (ux, low). buildTagIndex calls setLoading(true) unconditionally (tags.service.ts:27). TagsView.svelte:79-80 replaces the keyed list with 'Indexing tags...', and the header count is hidden while loading (:52-56). TagItem.svelte:19 keeps open as local $state. EditorView.svelte:73-74 mounts TagsView only while its tab is active, and the $effect on vaultIndexVersion runs on mount. TagsView.test.ts mocks tags.service, so the new test file the Issue proposes is justified.
 
 ## Comments
+
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/finders-ux/issues/08-tags-view-keeps-list-while-refreshing.md`.

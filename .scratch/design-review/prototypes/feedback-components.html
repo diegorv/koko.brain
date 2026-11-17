@@ -1,0 +1,1553 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Feedback, destructive actions, toasts and shared primitives</title>
+<style>
+	:root {
+		--pg-bg: #f4f2f8; --pg-card: #ffffff; --pg-fg: #231f2e; --pg-muted: #6b6480; --pg-line: #d9d4e4;
+		--pg-accent: #6848a8; --pg-before: #a8323f; --pg-after: #1d6f4d; --pg-code: #ece8f4;
+	}
+	body[data-theme="dark"] {
+		--pg-bg: #14151d; --pg-card: #1d1f2b; --pg-fg: #ececf3; --pg-muted: #9aa0bd; --pg-line: #333650;
+		--pg-accent: #a99be0; --pg-before: #f08a94; --pg-after: #6fd9a6; --pg-code: #272a3b;
+	}
+	* { box-sizing: border-box; }
+	html { scroll-behavior: smooth; }
+	body { margin: 0; background: var(--pg-bg); color: var(--pg-fg); font: 15px/1.5 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter", system-ui, sans-serif; }
+	.top { position: sticky; top: 0; z-index: 200; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 10px 24px; background: color-mix(in srgb, var(--pg-card) 94%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--pg-line); }
+	.top h1 { margin: 0; font-size: 16px; font-weight: 650; flex: 1 1 320px; }
+	.pgseg { display: inline-flex; border: 1px solid var(--pg-line); border-radius: 8px; overflow: hidden; }
+	.pgseg button { font: 500 13px/1 inherit; font-family: inherit; padding: 7px 12px; border: 0; background: transparent; color: var(--pg-fg); cursor: pointer; }
+	.pgseg button + button { border-left: 1px solid var(--pg-line); }
+	.pgseg button[aria-pressed="true"] { background: var(--pg-accent); color: #fff; }
+	body[data-theme="dark"] .pgseg button[aria-pressed="true"] { color: #14151d; }
+	.top nav { display: flex; flex-wrap: wrap; gap: 2px 6px; font-size: 12px; width: 100%; }
+	.top nav a { color: var(--pg-muted); text-decoration: none; padding: 2px 6px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+	.top nav a:hover { color: var(--pg-fg); background: var(--pg-code); }
+	main { max-width: 1240px; margin: 0 auto; padding: 24px 24px 80px; }
+	.intro { color: var(--pg-muted); margin: 0 0 8px; max-width: 90ch; font-size: 14px; }
+	.tier-h { margin: 52px 0 4px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--pg-muted); font-weight: 650; border-bottom: 1px solid var(--pg-line); padding-bottom: 6px; }
+	.prop { background: var(--pg-card); border: 1px solid var(--pg-line); border-radius: 12px; padding: 20px 22px 24px; margin: 20px 0; scroll-margin-top: 110px; }
+	.prop > header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+	.pid { font: 700 13px/1 ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--pg-accent); color: #fff; padding: 5px 8px; border-radius: 6px; }
+	body[data-theme="dark"] .pid { color: #14151d; }
+	.prop h2 { margin: 0; font-size: 18px; line-height: 1.3; flex: 1 1 360px; }
+	.badge { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; padding: 3px 8px; border-radius: 99px; border: 1px solid var(--pg-line); color: var(--pg-muted); }
+	.badge.clear { color: var(--pg-after); border-color: currentColor; }
+	.badge.moderate { color: #a8741a; border-color: currentColor; }
+	body[data-theme="dark"] .badge.moderate { color: #e7b45c; }
+	.prop .why { margin: 8px 0 2px; color: var(--pg-muted); font-size: 14px; max-width: 110ch; }
+	.prop .why b { color: var(--pg-fg); font-weight: 600; }
+	.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; margin: 12px 0 8px; font-size: 13px; color: var(--pg-muted); }
+	.controls .pgseg button { font-size: 12px; padding: 6px 10px; }
+	.controls label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+	.cmp { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 28px; align-items: start; margin-top: 14px; }
+	.cmp.even { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+	.cmp.one { grid-template-columns: minmax(0, 1fr); }
+	@media (max-width: 900px) { .cmp, .cmp.even { grid-template-columns: minmax(0, 1fr); } }
+	.cell { min-width: 0; }
+	.cap { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; }
+	.cap i { font-style: normal; font-weight: 500; letter-spacing: 0; text-transform: none; color: var(--pg-muted); }
+	.cap.before { color: var(--pg-before); }
+	.cap.after { color: var(--pg-after); }
+	.note { font-size: 12.5px; color: var(--pg-muted); margin: 8px 0 0; max-width: 70ch; }
+	.note code, .why code { background: var(--pg-code); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+	.shot { position: relative; overflow: hidden; border: 1px solid #cfc9dc; background: #fff; width: calc(var(--w) * var(--z, 1) * 1px); height: calc(var(--h) * var(--z, 1) * 1px); max-width: 100%; border-radius: 6px; }
+	.shot img { position: absolute; max-width: none; display: block; width: calc(1440px * var(--z, 1)); left: calc(var(--x) * -1px * var(--z, 1)); top: calc(var(--y) * -1px * var(--z, 1)); }
+	.shots { display: flex; flex-direction: column; gap: 10px; }
+	pre.code { margin: 0; padding: 10px 12px; background: var(--pg-code); border-radius: 8px; font: 12px/1.55 ui-monospace, Menlo, monospace; overflow: auto; tab-size: 2; color: var(--pg-fg); }
+	table.spec { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+	table.spec th, table.spec td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--pg-line); vertical-align: top; }
+	table.spec th { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: var(--pg-muted); }
+	.bad { color: var(--pg-before); }
+	.good { color: var(--pg-after); }
+
+	/* ================= Kokobrain token scope ================= */
+	.kk {
+		--bg: #F3F0F8; --panel: #EAE6F2; --pop: #FFFFFF; --fg: #302840; --mut: #645c74; --faint: #8078A0;
+		--bd: #D5D0E2; --div: #C0B8D0; --acc: #DDD8E8; --hov: #D5D0E2; --pri: #6848A8; --prif: #ffffff;
+		--des: #C83848; --desf: #ffffff; --warn: #786714; --ok: #357458; --info: #3868B0; --inp: #E2DDEC; --ring: #6848A8;
+		--sh1: #3028400f; --sh2: #3028401a; --sh3: #30284029; --edge: #30284014; --scrim: #30284040; --tabbar: #edeaf2;
+		--type-purple: #7848B8; --type-blue: #3868B0; --type-orange: #b66737; --type-green: #408868; --type-yellow: #907900; --type-teal: #397a8e; --type-pink: #a04a85; --type-gray: #645c74; --type-red: #C83848;
+		--r: 0.625rem; --r-xs: calc(var(--r) - 6px); --r-sm: calc(var(--r) - 4px); --r-md: calc(var(--r) - 2px); --r-lg: var(--r); --r-xl: calc(var(--r) + 4px);
+		--shadow-xs: 0 1px 2px 0 var(--sh1);
+		--shadow-sm: 0 1px 3px 0 var(--sh1), 0 1px 2px -1px var(--sh1);
+		--shadow-md: 0 0 0 1px var(--edge), 0 4px 12px -2px var(--sh2), 0 2px 4px -2px var(--sh1);
+		--shadow-xl: 0 0 0 1px var(--edge), 0 16px 40px -8px var(--sh3), 0 4px 12px -4px var(--sh2);
+		font: 400 14px/20px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--fg); user-select: none; -webkit-user-select: none; cursor: default;
+	}
+	body[data-theme="dark"] .kk {
+		--bg: #2a2e3d; --panel: #262938; --pop: oklch(0.22 0.025 273); --fg: #F8F8F2; --mut: oklch(0.62 0.06 268); --faint: #8a8faa;
+		--bd: oklch(0.34 0.025 272); --div: #383a4f; --acc: oklch(0.28 0.025 272); --hov: #393e50; --pri: oklch(0.73 0.08 278); --prif: oklch(0.19 0.025 273);
+		--des: oklch(0.7 0.19 25); --desf: #ffffff; --warn: #fbbf24; --ok: #4ade80; --info: #60a5fa; --inp: #3d4058; --ring: oklch(0.73 0.08 278);
+		--sh1: #00000040; --sh2: #00000073; --sh3: #00000099; --edge: #ffffff0f; --scrim: #0000008c; --tabbar: #5a5c79;
+		--type-purple: #a78bfa; --type-blue: #60a5fa; --type-orange: #fb8336; --type-green: #4ade80; --type-yellow: #fbbf24; --type-teal: #52c4c4; --type-pink: #d16fa2; --type-gray: #95a0b9; --type-red: #f3333b;
+	}
+	.kk *, .kk *::before, .kk *::after { box-sizing: border-box; }
+	.kk button, .kk input, .kk textarea, .kk select { font: inherit; color: inherit; }
+	.kk button { cursor: default; }
+	.kk .ic { flex: none; display: block; }
+	.kk :focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.kk .sel { user-select: text; -webkit-user-select: text; cursor: text; }
+	.kk .t-label { font-size: 11px; line-height: 16px; }
+	.kk .t-meta { font-size: 12px; line-height: 16px; }
+	.kk .mut { color: var(--mut); }
+	.kk .secl { font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: .025em; text-transform: uppercase; color: var(--mut); }
+	.kk .mono { font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+	.kk .row { display: flex; align-items: center; gap: 8px; }
+	.kk .grow { flex: 1 1 auto; min-width: 0; }
+
+	.stage { position: relative; border: 1px solid var(--div); border-radius: 10px; background: var(--bg); overflow: hidden; }
+	.stage.pad { padding: 16px; }
+	.stage.tall { min-height: 340px; }
+
+	/* buttons */
+	.kk .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 28px; padding: 0 10px; border: 1px solid var(--bd); background: var(--pop); color: var(--fg); border-radius: var(--r-md); font-size: 13px; line-height: 1; font-weight: 500; white-space: nowrap; transition: background .12s; }
+	.kk .btn:hover { background: var(--acc); }
+	.kk .btn:active { background: var(--hov); }
+	.kk .btn.pri { background: var(--pri); color: var(--prif); border-color: transparent; }
+	.kk .btn.pri:hover { background: color-mix(in srgb, var(--pri) 88%, var(--fg)); }
+	.kk .btn.pri:active { background: color-mix(in srgb, var(--pri) 78%, var(--fg)); }
+	.kk .btn.des { background: var(--des); color: var(--desf); border-color: transparent; }
+	.kk .btn.des:hover { background: color-mix(in srgb, var(--des) 88%, #000); }
+	.kk .btn.ghost { background: transparent; border-color: transparent; }
+	.kk .btn.ghost:hover { background: var(--acc); }
+	.kk .btn.ghost:active { background: var(--hov); }
+	.kk .btn.sm { height: 24px; padding: 0 8px; font-size: 12px; }
+	.kk .btn[disabled], .kk .btn[aria-disabled="true"] { opacity: .55; }
+	.kk .btn.busy { opacity: .85; }
+	.kk .tbtn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; background: transparent; color: var(--mut); border-radius: var(--r-md); flex: none; }
+	.kk .tbtn:hover { background: var(--acc); color: var(--fg); }
+	.kk .tbtn:active { background: var(--hov); }
+	.kk .tbtn[aria-pressed="true"] { background: color-mix(in srgb, var(--pri) 14%, transparent); color: var(--pri); }
+	.kk .tbtn.sm { width: 24px; height: 24px; }
+	.kk kbd, .kk .kchip { font: 600 11px/1 ui-monospace, Menlo, monospace; padding: 2px 5px; border-radius: 4px; background: color-mix(in srgb, var(--fg) 10%, transparent); color: inherit; border: 0; }
+	.kk .spin { animation: kkspin .9s linear infinite; }
+	@keyframes kkspin { to { transform: rotate(360deg); } }
+
+	/* inputs */
+	.kk .inp { height: 28px; width: 100%; padding: 0 10px; border: 1px solid var(--bd); background: var(--inp); border-radius: var(--r-md); outline: 0; font-size: 13px; user-select: text; -webkit-user-select: text; cursor: text; }
+	.kk .inp:focus-visible, .kk .inp:focus { outline: 2px solid var(--ring); outline-offset: -1px; }
+	.kk .inp[aria-invalid="true"] { border-color: var(--des); }
+	.kk .inp::placeholder { color: var(--faint); }
+	.kk .ferr { color: var(--des); font-size: 12px; line-height: 16px; margin-top: 4px; }
+	.kk .tsearch { position: relative; display: inline-flex; align-items: center; height: 28px; width: 180px; border-radius: var(--r-md); background: var(--inp); border: 1px solid transparent; color: var(--mut); }
+	.kk .tsearch:focus-within { border-color: var(--ring); outline: 2px solid color-mix(in srgb, var(--ring) 40%, transparent); outline-offset: 0; }
+	.kk .tsearch .ic { margin-left: 8px; }
+	.kk .tsearch input { flex: 1; min-width: 0; height: 100%; border: 0; background: transparent; outline: 0; padding: 0 4px 0 6px; font-size: 13px; color: var(--fg); cursor: text; user-select: text; -webkit-user-select: text; }
+	.kk .tsearch input::placeholder { color: var(--faint); }
+	.kk .tsearch .clr { width: 20px; height: 20px; margin-right: 4px; display: none; align-items: center; justify-content: center; border: 0; background: transparent; color: var(--mut); border-radius: 4px; }
+	.kk .tsearch.has .clr { display: inline-flex; }
+	.kk .tsearch .clr:hover { background: var(--acc); color: var(--fg); }
+	.kk .tmenu { display: inline-flex; align-items: center; gap: 4px; height: 28px; padding: 0 8px 0 10px; border: 0; background: transparent; border-radius: var(--r-md); font-size: 13px; color: var(--fg); white-space: nowrap; }
+	.kk .tmenu:hover, .kk .tmenu[aria-expanded="true"] { background: var(--acc); }
+	.kk .tmenu .pre { color: var(--mut); }
+	.kk .tmenu.field { border: 1px solid var(--bd); background: var(--inp); min-width: 120px; justify-content: space-between; }
+	.kk .mwrap { position: relative; display: inline-block; }
+	.kk .mpop { position: absolute; top: calc(100% + 4px); left: 0; min-width: 100%; width: max-content; max-width: 260px; z-index: 40; padding: 4px; background: var(--pop); border-radius: var(--r-lg); box-shadow: var(--shadow-md); }
+	.kk .mpop[hidden] { display: none; }
+	.kk .mitem { display: flex; align-items: center; gap: 8px; height: 28px; padding: 0 8px 0 26px; border: 0; background: transparent; width: 100%; text-align: left; border-radius: var(--r-sm); font-size: 13px; position: relative; }
+	.kk .mitem .ic { position: absolute; left: 8px; }
+	.kk .mitem:hover, .kk .mitem.act { background: var(--acc); }
+	.kk .mitem[aria-checked="true"], .kk .mitem[aria-selected="true"] { font-weight: 600; }
+	.kk .mitem:focus-visible { outline: 0; background: var(--acc); }
+	.kk .msep { height: 1px; margin: 4px -4px; background: var(--bd); }
+	.kk .mhead { padding: 4px 8px; }
+
+	/* segmented */
+	.kk .seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: var(--r-md); background: color-mix(in srgb, var(--acc) 70%, transparent); }
+	.kk .seg button { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 9px; border: 0; background: transparent; color: var(--mut); border-radius: calc(var(--r-md) - 2px); font-size: 12px; font-weight: 500; }
+	.kk .seg button.ico { width: 28px; padding: 0; justify-content: center; }
+	.kk .seg button:hover { color: var(--fg); }
+	.kk .seg button[aria-checked="true"] { background: var(--pop); color: var(--fg); box-shadow: var(--shadow-sm); }
+	.kk .seg button[aria-disabled="true"] { opacity: .45; }
+	.kk .seg button[aria-disabled="true"]:hover { color: var(--mut); }
+
+	/* switch */
+	.kk .sw { position: relative; width: 36px; height: 20px; border-radius: 99px; border: 0; background: var(--hov); flex: none; transition: background .15s; padding: 0; }
+	.kk .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; box-shadow: var(--shadow-xs); transition: transform .15s; }
+	.kk .sw[aria-checked="true"] { background: var(--pri); }
+	.kk .sw[aria-checked="true"]::after { transform: translateX(16px); }
+
+	/* dialog */
+	.kk .scrim { position: absolute; inset: 0; background: var(--scrim); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+	.kk .scrim[hidden] { display: none; }
+	.kk .dlg { background: var(--pop); border-radius: var(--r-xl); box-shadow: var(--shadow-xl); padding: 18px 18px 14px; width: 100%; max-width: 420px; }
+	.kk .dlg.sm { max-width: 340px; } .kk .dlg.md { max-width: 480px; } .kk .dlg.lg { max-width: 680px; }
+	.kk .dlg h3 { margin: 0 0 4px; font-size: 15px; line-height: 22px; font-weight: 600; }
+	.kk .dlg p { margin: 0 0 14px; color: var(--mut); font-size: 13px; line-height: 18px; }
+	.kk .dlg .foot { display: flex; justify-content: flex-end; gap: 8px; }
+
+	/* toasts */
+	.kk .tstack { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 8px; width: min(360px, calc(100% - 24px)); z-index: 70; pointer-events: none; }
+	.kk .toast { pointer-events: auto; position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 10px; align-items: start; padding: 10px 8px 10px 14px; background: var(--pop); color: var(--fg); border: 1px solid var(--bd); border-radius: var(--r-lg); box-shadow: var(--shadow-md); overflow: hidden; font-size: 13px; line-height: 18px; animation: tin .18s ease-out; }
+	@keyframes tin { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+	.kk .toast::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--sev); }
+	.kk .toast.err { --sev: var(--des); } .kk .toast.warn { --sev: var(--warn); } .kk .toast.ok { --sev: var(--ok); } .kk .toast.info { --sev: var(--info); }
+	.kk .toast .ti { color: var(--sev); padding-top: 1px; }
+	.kk .toast .tt { font-weight: 600; }
+	.kk .toast .td { color: var(--mut); font-size: 12px; line-height: 16px; margin-top: 1px; word-break: break-word; }
+	.kk .toast .ta { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+	.kk .toast .tx { width: 22px; height: 22px; border: 0; background: transparent; color: var(--mut); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; }
+	.kk .toast .tx:hover { background: var(--acc); color: var(--fg); }
+	.kk .toast .bar { position: absolute; left: 0; right: 0; bottom: 0; height: 2px; background: color-mix(in srgb, var(--sev) 60%, transparent); transform-origin: left; animation: drain var(--dur) linear forwards; }
+	.kk .toast:hover .bar { animation-play-state: paused; }
+	@keyframes drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+	.kk .toast.rich { background: #fff1f1; border-color: #ffe0e1; color: #e60000; box-shadow: var(--shadow-md); }
+	.kk .toast.rich.ok { background: #f0fff4; border-color: #d3fde8; color: #008a2e; }
+	.kk .toast.rich::before { display: none; }
+	.kk .toast.rich .ti { color: inherit; }
+	.kk .toast.rich .bar { display: none; }
+	body[data-theme="dark"] .kk .toast.rich { background: #2a0a0d; border-color: #470f14; color: #ffb3b8; }
+	body[data-theme="dark"] .kk .toast.rich.ok { background: #03150b; border-color: #052a14; color: #59f3a6; }
+	.kk .scale-note { font-size: 11px; color: var(--mut); }
+
+	/* misc ui */
+	.kk .chip { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: 99px; font-size: 11px; line-height: 16px; font-weight: 500; white-space: nowrap; }
+	.kk .panel { background: var(--panel); border: 1px solid var(--div); border-radius: var(--r-lg); }
+	.kk .card { background: var(--pop); border: 1px solid var(--bd); border-radius: var(--r-lg); }
+	.kk .hint { font-size: 12px; line-height: 16px; color: var(--mut); }
+	.kk .hr { height: 1px; background: var(--div); }
+	.kk .lbl { font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--mut); }
+	.kk .fade { animation: tin .2s ease-out; }
+	.kk.tip { position: fixed; z-index: 400; pointer-events: none; display: none; align-items: center; gap: 8px; padding: 4px 8px; border-radius: var(--r-md); background: var(--fg); color: var(--bg); font-size: 12px; line-height: 16px; box-shadow: var(--shadow-md); white-space: nowrap; }
+	.kk.tip.on { display: inline-flex; }
+	.kk.tip kbd { background: color-mix(in srgb, var(--bg) 22%, transparent); }
+</style>
+</head>
+<body data-theme="light">
+<div class="kk tip" id="tip" role="tooltip"></div>
+<header class="top">
+	<h1>Feedback, destructive actions, toasts and shared primitives</h1>
+	<div class="pgseg" role="group" aria-label="Theme for the After recreations">
+		<button type="button" data-theme-set="light" aria-pressed="true">Light tokens</button>
+		<button type="button" data-theme-set="dark" aria-pressed="false">Dark tokens</button>
+	</div>
+	<nav aria-label="Proposals">
+		<a href="#p01">P01</a><a href="#p17">P17</a>
+		<a href="#p14">P14</a><a href="#p15">P15</a><a href="#p16">P16</a><a href="#p21">P21</a><a href="#p22">P22</a><a href="#p77">P77</a><a href="#p83">P83</a><a href="#p89">P89</a><a href="#p91">P91</a><a href="#p153">P153</a>
+		<a href="#p86">P86</a><a href="#p87">P87</a><a href="#p90">P90</a><a href="#p92">P92</a><a href="#p93">P93</a><a href="#p94">P94</a><a href="#p171">P171</a><a href="#p172">P172</a><a href="#p174">P174</a><a href="#p175">P175</a>
+	</nav>
+</header>
+<main>
+<p class="intro">Component sheet for the feedback and shared-primitive proposals. Every section shows the real screenshot or a faithful recreation of today (Before) next to the proposed UI (After). The After panels use Kokobrain's real tokens from <code>src/app.css</code> and follow the Light/Dark toggle above. Screenshots are fixed captures. Most After panels are interactive: click, hover, tab through them.</p>
+<style>
+	.pgb { font: 500 12px/1 inherit; font-family: inherit; padding: 6px 10px; border: 1px solid var(--pg-line); border-radius: 8px; background: var(--pg-card); color: var(--pg-fg); cursor: pointer; }
+	.pgb:hover { background: var(--pg-code); }
+	.pgb[aria-pressed="true"] { background: var(--pg-accent); color: #fff; border-color: var(--pg-accent); }
+	body[data-theme="dark"] .pgb[aria-pressed="true"] { color: #14151d; }
+	.controls .sep { width: 1px; height: 18px; background: var(--pg-line); }
+	.readout { font: 12px/1.4 ui-monospace, Menlo, monospace; color: var(--pg-muted); margin: 8px 0 0; min-height: 17px; }
+	.readout b { color: var(--pg-fg); font-weight: 600; }
+	.mt { margin-top: 10px; }
+
+	/* kanban mini */
+	.kk .lanes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+	.kk .lane { background: color-mix(in srgb, var(--panel) 70%, var(--bg)); border: 1px solid var(--div); border-radius: var(--r-lg); padding: 8px; min-height: 120px; }
+	.kk .lane-h { display: flex; align-items: center; gap: 4px; height: 26px; margin-bottom: 6px; font-weight: 600; font-size: 13px; }
+	.kk .lane-h .cnt { color: var(--mut); font-weight: 500; font-size: 12px; }
+	.kk .lane-h .trash { margin-left: auto; opacity: 0; }
+	.kk .lane:hover .lane-h .trash, .kk .lane-h .trash:focus-visible { opacity: 1; }
+	.kk .kcard { position: relative; display: flex; align-items: flex-start; gap: 6px; padding: 7px 8px; margin-bottom: 6px; background: var(--bg); border: 1px solid var(--bd); border-radius: var(--r-lg); box-shadow: var(--shadow-sm); font-size: 13px; line-height: 18px; }
+	.kk .kcard:hover { border-color: color-mix(in srgb, var(--pri) 40%, var(--bd)); }
+	.kk .kcard .cb { width: 16px; height: 16px; margin-top: 1px; border: 1px solid var(--faint); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; flex: none; background: transparent; padding: 0; }
+	.kk .kcard .cb[aria-checked="true"] { background: var(--pri); border-color: var(--pri); color: var(--prif); }
+	.kk .kcard .trash { margin-left: auto; opacity: 0; width: 22px; height: 22px; }
+	.kk .kcard:hover .trash, .kk .kcard:focus-within .trash { opacity: 1; }
+	.kk .kcard.done .ct { text-decoration: line-through; color: var(--mut); }
+	.kk .lane .empty { font-size: 12px; color: var(--mut); text-align: center; padding: 14px 4px; }
+	.kk .rowitem { display: flex; align-items: center; gap: 8px; height: 30px; padding: 0 6px 0 10px; border-radius: var(--r-md); font-size: 13px; }
+	.kk .rowitem:hover { background: var(--acc); }
+	.kk .rowitem .trash { margin-left: auto; opacity: 0; }
+	.kk .rowitem:hover .trash, .kk .rowitem .trash:focus-visible { opacity: 1; }
+	.kk .tag { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font-size: 11px; background: color-mix(in srgb, var(--pri) 14%, transparent); color: var(--pri); }
+
+	/* composer + desktop */
+	.kk .cwin { position: relative; width: min(100%, 460px); margin: 0 auto; padding: 14px 16px 10px; background: color-mix(in srgb, var(--pop) 94%, transparent); border: 1px solid var(--bd); border-radius: var(--r-xl); box-shadow: var(--shadow-xl); transition: opacity .2s, transform .2s, box-shadow .12s; }
+	.kk .cwin.flash { box-shadow: 0 0 0 2px var(--pri), var(--shadow-xl); }
+	.kk .cwin.gone { opacity: 0; transform: scale(.98); pointer-events: none; }
+	.kk .cwin textarea { width: 100%; min-height: 62px; resize: none; border: 0; background: transparent; outline: 0; font: 14px/20px ui-monospace, Menlo, monospace; color: var(--fg); user-select: text; -webkit-user-select: text; cursor: text; display: block; }
+	.kk .cwin textarea::placeholder { color: var(--faint); }
+	.kk .chint { display: flex; justify-content: space-between; gap: 10px; align-items: center; font-size: 11px; line-height: 16px; color: var(--mut); margin-top: 6px; min-height: 16px; }
+	.kk .chint.error { color: var(--des); }
+	.kk .chint .okk { color: var(--ok); display: inline-flex; gap: 4px; align-items: center; font-weight: 500; }
+	.kk .chint .lnk { color: var(--pri); text-decoration: underline; background: none; border: 0; padding: 0; cursor: default; font-size: 11px; }
+	.kk.desk { position: relative; min-height: 360px; background: linear-gradient(135deg, #6b7fb8, #a98bd0 55%, #d9a8c0); border-radius: 10px; overflow: hidden; padding: 28px 14px 14px; }
+	.kk.desk .menubar { position: absolute; left: 0; right: 0; top: 0; height: 20px; background: rgba(255,255,255,.28); backdrop-filter: blur(8px); display: flex; align-items: center; gap: 12px; padding: 0 10px; font-size: 11px; color: #1c1c1e; }
+	.kk .nc { position: absolute; right: 10px; top: 28px; width: min(330px, calc(100% - 20px)); display: flex; gap: 10px; padding: 10px 12px; border-radius: 14px; background: rgba(246,246,250,.86); backdrop-filter: blur(14px); color: #1c1c1e; box-shadow: 0 8px 28px rgba(0,0,0,.28); font-size: 12px; line-height: 16px; animation: tin .25s ease-out; z-index: 30; }
+	.kk .nc[hidden] { display: none; }
+	.kk .nc .ni { width: 34px; height: 34px; border-radius: 8px; background: #6848A8; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex: none; }
+	.kk .nc .nt { display: flex; justify-content: space-between; font-weight: 600; }
+	.kk .nc .nt span:last-child { font-weight: 400; color: #6b6b70; }
+	.kk .nc .na { margin-top: 6px; display: flex; gap: 6px; }
+	.kk .nc .na button { border: 0; background: rgba(0,0,0,.08); border-radius: 6px; padding: 3px 10px; font-size: 11px; color: #1c1c1e; }
+	.kk .nc .na button:hover { background: rgba(0,0,0,.14); }
+	.kk .winpane { background: var(--bg); border: 1px solid var(--div); border-radius: 10px; box-shadow: var(--shadow-xl); overflow: hidden; position: relative; min-height: 190px; }
+	.kk .winbar { display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; background: var(--tabbar); border-bottom: 1px solid var(--div); font-size: 11px; color: var(--mut); }
+	.kk .winbar i { width: 9px; height: 9px; border-radius: 50%; background: var(--faint); opacity: .6; }
+
+	/* search panel */
+	.kk .res { padding: 7px 10px; border-radius: var(--r-md); }
+	.kk .res:hover { background: var(--acc); }
+	.kk .res .rt { font-weight: 600; font-size: 13px; }
+	.kk .res .rs { color: var(--mut); font-size: 12px; line-height: 16px; }
+	.kk .res mark { background: color-mix(in srgb, var(--warn) 30%, transparent); color: inherit; border-radius: 2px; }
+	.kk .errbox { margin: 10px; padding: 12px; border: 1px solid color-mix(in srgb, var(--des) 35%, var(--bd)); background: color-mix(in srgb, var(--des) 7%, var(--pop)); border-radius: var(--r-lg); display: flex; gap: 10px; align-items: flex-start; }
+	.kk .errbox .et { font-weight: 600; font-size: 13px; }
+	.kk .setrow { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: var(--panel); border-radius: var(--r-lg); }
+	.kk .setrow .st { font-weight: 600; font-size: 13px; line-height: 18px; }
+
+	/* file history */
+	.kk .fh { display: grid; grid-template-columns: 220px minmax(0, 1fr); background: var(--pop); border: 1px solid var(--bd); border-radius: var(--r-xl); box-shadow: var(--shadow-xl); overflow: hidden; height: 440px; position: relative; }
+	.kk .fh.compact { grid-template-columns: 1fr; height: auto; max-width: 440px; margin: 0 auto; }
+	.kk .fh .fh-title { grid-column: 1 / -1; display: flex; align-items: center; height: 44px; padding: 0 16px; border-bottom: 1px solid var(--bd); font-weight: 600; font-size: 14px; }
+	.kk .fh .fh-title .x { margin-left: auto; }
+	.kk .fh .body { display: contents; }
+	.kk .fh .list { grid-row: 2; border-right: 1px solid var(--bd); overflow: auto; background: var(--pop); min-height: 0; }
+	.kk .fh .snap { display: block; width: 100%; text-align: left; padding: 8px 12px; border: 0; border-bottom: 1px solid color-mix(in srgb, var(--bd) 60%, transparent); background: transparent; }
+	.kk .fh .snap:hover { background: var(--acc); }
+	.kk .fh .snap[aria-selected="true"] { background: color-mix(in srgb, var(--pri) 12%, transparent); box-shadow: inset 2px 0 var(--pri); }
+	.kk .fh .snap .s1 { font-size: 13px; font-weight: 500; line-height: 18px; }
+	.kk .fh .snap .s2 { font-size: 11px; line-height: 16px; color: var(--mut); }
+	.kk .fh .pane { grid-row: 2; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+	.kk .fh .phead { padding: 10px 14px 8px; border-bottom: 1px solid var(--bd); display: flex; align-items: flex-start; gap: 10px; flex-wrap: wrap; }
+	.kk .fh .phead .ph1 { font-weight: 600; font-size: 14px; line-height: 20px; }
+	.kk .fh .phead .ph2 { font-size: 12px; line-height: 16px; color: var(--mut); }
+	.kk .fh .phead .acts { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+	.kk .fh .dwrap { flex: 1; overflow: auto; min-height: 0; position: relative; }
+	.kk table.diff { border-collapse: collapse; width: 100%; font: 12px/18px ui-monospace, Menlo, monospace; }
+	.kk table.diff th { position: sticky; top: 0; background: var(--panel); text-align: right; font: 600 11px/16px -apple-system, system-ui, sans-serif; color: var(--mut); padding: 4px 8px; border-bottom: 1px solid var(--bd); z-index: 1; }
+	.kk table.diff th.l { text-align: left; }
+	.kk table.diff td { padding: 0 8px; white-space: pre-wrap; vertical-align: top; }
+	.kk table.diff td.n { text-align: right; color: var(--faint); width: 42px; user-select: none; }
+	.kk table.diff td.g { width: 18px; text-align: center; color: var(--mut); }
+	.kk table.diff tr.add { background: color-mix(in srgb, var(--ok) 14%, transparent); }
+	.kk table.diff tr.del { background: color-mix(in srgb, var(--des) 13%, transparent); }
+	.kk table.diff tr.focus td { box-shadow: inset 0 1px var(--pri), inset 0 -1px var(--pri); }
+	.kk .dchip { display: inline-flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 4px; font: 600 11px/16px ui-monospace, Menlo, monospace; }
+	.kk .dchip.a { color: var(--ok); background: color-mix(in srgb, var(--ok) 15%, transparent); }
+	.kk .dchip.d { color: var(--des); background: color-mix(in srgb, var(--des) 14%, transparent); }
+	.kk .nodiff { margin: 10px 14px 0; padding: 7px 10px; border-radius: var(--r-md); background: color-mix(in srgb, var(--info) 11%, transparent); color: var(--fg); font-size: 12px; display: flex; gap: 8px; align-items: center; }
+	.kk .centerbox { margin: auto; text-align: center; padding: 24px; max-width: 320px; }
+	.kk .centerbox .big { font-weight: 600; font-size: 14px; margin-bottom: 4px; }
+
+	/* form */
+	.kk .fcard { background: var(--pop); border-radius: var(--r-xl); box-shadow: var(--shadow-xl); padding: 16px; width: min(100%, 400px); margin: 0 auto; }
+	.kk .fcard h3 { margin: 0 0 12px; font-size: 15px; line-height: 22px; font-weight: 600; }
+	.kk .flab { display: block; font-size: 12px; line-height: 16px; font-weight: 500; margin: 10px 0 4px; color: var(--mut); }
+
+	/* shadow / token swatches */
+	.kk .elev { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; }
+	.kk .elev div { height: 56px; border-radius: var(--r-lg); background: var(--pop); display: flex; align-items: center; justify-content: center; font: 11px/1 ui-monospace, Menlo, monospace; color: var(--mut); }
+	.kk .sheet { position: absolute; top: 0; right: 0; bottom: 0; width: 62%; background: var(--panel); padding: 14px; transition: transform .2s ease-out; z-index: 20; }
+	.kk .sheet.out { transform: translateX(105%); }
+	.kk .sheet .secl { margin: 10px 0 4px; }
+	.kk .bscrim { position: absolute; inset: 0; background: var(--scrim); z-index: 15; transition: opacity .2s; }
+	.kk .bscrim[hidden] { display: none; }
+
+	/* badges */
+	.kk .bd { display: inline-flex; align-items: center; gap: 4px; height: 20px; padding: 0 7px; border-radius: var(--r-sm); font-size: 11px; line-height: 16px; font-weight: 500; white-space: nowrap; }
+	.kk .bd.count { min-width: 20px; justify-content: center; padding: 0 6px; border-radius: 99px; background: var(--info); color: #fff; font-weight: 600; }
+	body[data-theme="dark"] .kk .bd.count { color: #0b1020; }
+	.kk .bd.tag { background: color-mix(in srgb, var(--tc, var(--type-purple)) 18%, transparent); color: var(--tc, var(--type-purple)); }
+	.kk .bd.type { background: color-mix(in srgb, var(--pri) 13%, transparent); color: var(--pri); }
+	.kk .bd.date { background: color-mix(in srgb, var(--fg) 8%, transparent); color: var(--mut); }
+	.kk .bd.date.soon { background: color-mix(in srgb, var(--info) 15%, transparent); color: var(--info); }
+	.kk .bd.date.over { background: color-mix(in srgb, var(--type-orange) 16%, transparent); color: var(--type-orange); }
+	.kk .bd.tiny { height: 16px; }
+	.kk .nrow { padding: 8px 10px; border-radius: var(--r-md); background: var(--pop); border: 1px solid var(--bd); }
+	.kk .nrow .nt1 { font-weight: 500; font-size: 14px; }
+	.kk .nrow .nt2 { font-size: 12px; color: var(--mut); line-height: 16px; }
+	.kk .oldchip { display: inline-flex; align-items: center; padding: 1px 6px; font-size: 11px; line-height: 16px; border-radius: 4px; }
+
+	/* swatches */
+	.kk .pill-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+	.kk .tile { border: 1px solid var(--bd); border-radius: var(--r-lg); background: var(--pop); padding: 10px 12px; font-size: 12px; line-height: 16px; }
+	.kk .tile b { display: block; font-size: 13px; }
+	.kk .zstack { position: relative; height: 150px; }
+	.kk .zstack div { position: absolute; left: calc(var(--i) * 26px); top: calc(var(--i) * 18px); width: 170px; height: 44px; border-radius: var(--r-md); background: var(--pop); box-shadow: var(--shadow-md); padding: 6px 10px; font: 11px/16px ui-monospace, Menlo, monospace; color: var(--mut); }
+
+	/* motion */
+	.kk .motion-demo { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+	.kk .pulse { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); animation: kkpulse 1.2s ease-in-out infinite; }
+	@keyframes kkpulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+	.kk .chev { transition: transform .15s; }
+	.kk[data-rm="1"] .spin, .kk[data-rm="1"] .pulse { animation: none; }
+	.kk[data-rm="1"] .chev, .kk[data-rm="1"] .sheet { transition: none; }
+	.kk[data-rm="1"] .toast { animation: none; }
+	.kk .drawer { position: relative; height: 120px; overflow: hidden; border: 1px solid var(--div); border-radius: var(--r-lg); background: var(--bg); }
+	.kk .drawer .dp { position: absolute; top: 0; right: 0; bottom: 0; width: 55%; background: var(--panel); border-left: 1px solid var(--div); padding: 10px; font-size: 12px; transform: translateX(110%); transition: transform .2s ease-out; }
+	.kk .drawer .dp.in { transform: none; }
+	.kk .drawer.rm .dp { transition: none; }
+
+	/* P175 */
+	.kk .ptile { display: flex; align-items: center; gap: 8px; padding: 0 12px; height: 34px; border-radius: var(--r-md); border: 1px solid var(--bd); background: var(--pop); font-size: 13px; }
+	.kk .after-press .ptile:hover, .kk .after-press .btn:hover { background: var(--acc); }
+	.kk .after-press .ptile:active { background: var(--hov); }
+	.kk .ctile { display: flex; flex-direction: column; gap: 2px; padding: 10px 12px; border: 1px solid var(--bd); border-radius: var(--r-lg); background: var(--pop); font-size: 12px; line-height: 16px; }
+	.kk .ctile b { font-size: 13px; }
+	.kk .ctile code { font: 11px/1 ui-monospace, Menlo, monospace; color: var(--mut); }
+	.kk .grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+	.kk .grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+
+	/* theme rows */
+	.kk .throw { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid var(--bd); border-radius: var(--r-lg); background: var(--pop); margin-bottom: 8px; position: relative; }
+	.kk .throw[aria-checked="true"], .kk .throw.sel-on { border-color: var(--pri); box-shadow: 0 0 0 1px var(--pri); }
+	.kk .throw .thumb { width: 64px; height: 38px; border-radius: 5px; border: 1px solid var(--bd); display: flex; overflow: hidden; flex: none; }
+	.kk .throw .thumb i { flex: 1; }
+	.kk .throw .tn { font-weight: 600; font-size: 13px; line-height: 18px; }
+	.kk .throw .acts { margin-left: auto; display: flex; gap: 2px; }
+	.kk .throw.hovonly .acts { opacity: 0; }
+	.kk .throw.hovonly:hover .acts, .kk .throw.hovonly:focus-within .acts { opacity: 1; }
+	.kk .throw.vis .acts .tbtn { opacity: .55; }
+	.kk .throw.vis:hover .acts .tbtn, .kk .throw.vis:focus-within .acts .tbtn { opacity: 1; }
+	.kk .throw .radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--faint); flex: none; display: flex; align-items: center; justify-content: center; }
+	.kk .rmain[aria-checked="true"] .radio { border-color: var(--pri); }
+	.kk .rmain[aria-checked="true"] .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--pri); }
+	.kk .throw .rmain { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; border-radius: var(--r-md); }
+	.kk .throw .rmain:focus-visible { outline-offset: 4px; }
+
+	.kk .lint { font: 11.5px/1.55 ui-monospace, Menlo, monospace; background: var(--panel); border: 1px solid var(--div); border-radius: var(--r-lg); padding: 10px 12px; white-space: pre-wrap; color: var(--fg); user-select: text; -webkit-user-select: text; }
+	.kk .lint .f { color: var(--des); font-weight: 600; }
+	.kk .lint .g { color: var(--mut); }
+	.kk .tbtn.tb-h { background: var(--acc); color: var(--fg); }
+	.kk .tbtn.tb-p { background: var(--hov); color: var(--fg); }
+	.kk .tbtn.tb-f { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.kk .tbtn[disabled] { opacity: .4; }
+	.kk .dim { position: relative; }
+	.kk .annot { font: 10.5px/1 ui-monospace, Menlo, monospace; color: var(--mut); }
+	.kk .tb40 { display: flex; align-items: center; gap: 4px; height: 40px; padding: 0 12px; border-bottom: 1px solid var(--div); background: var(--bg); }
+	.kk .ptile:hover { background: var(--acc); }
+	.kk.noact .btn:active { background: var(--acc); }
+	.kk.noact .ptile:active { background: var(--acc); }
+	.kk .ptile.row { justify-content: space-between; }
+</style>
+<h3 class="tier-h">Clear improvements</h3>
+<section class="prop" id="p01">
+<header><span class="pid">P01</span><h2>Destructive actions: add Undo and a safe default where deletes are instant</h2><span class="badge clear">clear</span></header>
+<p class="why"><b>Problem.</b> Kanban card, lane and archived-item deletes, auto-organize rule deletes and user theme deletes happen at once with no confirm and no undo. Destructive mod dialogs focus the destructive button, so Enter confirms, and Undo toasts last only 4 s. Trash confirmation and File History restore are left as they are and listed as open questions below.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app, dark</i></div><div class="shots"><div class="shot" style="--x:880;--y:98;--w:270;--h:200;--z:1.5"><img src="../screens/kanban-board-dark.png" alt="Kanban lane in the real app"></div></div><p class="note">The kanban plugin has no undo at all. Lane trash, card trash and rule/theme trash act on click, and Enter on a mod dialog hits the red button.</p><div class="cap before">Before <i>live recreation, try it</i></div><div data-mount="p01-before"></div></div>
+<div class="cell"><div class="cap after">After <i>live, try it</i></div><div data-mount="p01-after"></div><p class="note"><b>Open questions for the owner, not changed here:</b> Trash keeps its native confirm to match the file explorer, and File History restore keeps its confirm even though Cmd+Z reverses it. Tasks Clear/Hide only change the view query, so they are not destructive.</p></div>
+</div>
+</section>
+<section class="prop" id="p17">
+<header><span class="pid">P17</span><h2>Toasts ignore the theme, and error toasts vanish after 4 seconds</h2><span class="badge clear">clear</span></header>
+<p class="why"><b>Problem.</b> <code>richColors</code> bypasses the tokens (red text on dark red in dark mode). All 103 error toasts use the 4 s default with no close button and no way to copy the message. Hover-pause already exists in sonner and is kept.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app, dark: Theme catalog failure</i></div><div class="shots"><div class="shot" style="--x:1000;--y:790;--w:440;--h:100;--z:1.1"><img src="../screens/settings-appearance-dark.png" alt="Red toast in dark mode"></div></div><div class="cap before">Before <i>live recreation of today (4 s, no close)</i></div><div data-mount="p17-before"></div></div>
+<div class="cell"><div class="cap after">After <i>popover tokens, severity bar, errors stay</i></div><div data-mount="p17-after"></div><p class="note">Rules: error = stays until closed (or about 10 s), with close and Copy details when it carries a message. Info, success and warning keep 4 s. Undo toasts last about 8 s. A thin bar under each toast shows the remaining time and pauses on hover.</p></div>
+</div>
+</section>
+<h3 class="tier-h">Moderate improvements</h3>
+<section class="prop" id="p14">
+<header><span class="pid">P14</span><h2>Quick Capture success is invisible, and clipboard captures give no feedback</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> A capture only flashes a ring for 180 ms before the window hides, the clipboard shortcut has no UI, and the folder and name are never shown. The shortcut fires from another app, so an in-app toast would not be seen.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>live recreation</i></div><div data-mount="p14-before"></div></div>
+<div class="cell"><div class="cap after">After <i>check + path in the composer, macOS notification when unfocused</i></div><div data-mount="p14-after"></div><p class="note">Needs <code>tauri-plugin-notification</code> (not a dependency today). Main-window focused captures use an in-app toast with Open. The composer holds the saved state about 600 ms in the app; this prototype holds it until reset so you can inspect it.</p></div>
+</div>
+</section>
+<section class="prop" id="p15">
+<header><span class="pid">P15</span><h2>The composer says ESC cancels but keeps the draft, and saving is hidden</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> Esc hides the window and keeps the draft, which returns silently next time. There is no Saving state during the wait of up to 3 s, and the error hints also say "ESC cancels".</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>live recreation, type and press Esc or Cmd+Enter</i></div><div data-mount="p15-before"></div></div>
+<div class="cell"><div class="cap after">After <i>same keys, honest copy and states</i></div><div data-mount="p15-after"></div><p class="note">Cmd/Ctrl+Enter saves (1.2 s simulated wait). Esc hides the window and keeps the draft; summon it again to see "Draft restored". No new clear-draft shortcut.</p></div>
+</div>
+</section>
+<section class="prop" id="p16">
+<header><span class="pid">P16</span><h2>Errors go to the wrong channel, or nowhere: search, Labs</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> A search error reads as "No results found", and a failed Labs start leaves the switch on. Principle for new code: on-screen failures inline with Retry, background failures as a toast, a switch reverts on failure. File History restore is shown in P77.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>live recreation</i></div><div data-mount="p16-before"></div></div>
+<div class="cell"><div class="cap after">After <i>inline error with Retry, switch reverts with a toast</i></div><div data-mount="p16-after"></div><p class="note">Troubleshooting "Save debug log" gets the same revert-with-toast treatment when <code>initLogSession</code> rejects.</p></div>
+</div>
+</section>
+<section class="prop" id="p21">
+<header><span class="pid">P21</span><h2>Toolbar kit: 28 px ToolbarButton, h-7 ToolbarSearch with clear, menu trigger</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> Controls in the h-10 band run from 20 to 32 px with four active states, search fields differ in every dimension, and kanban sort is a native select that shows only "Manual" next to a bare icon.</p>
+<div class="cmp one">
+<div class="cell"><div class="cap before">Before <i>real app, dark, kanban toolbar</i></div><div class="shots"><div class="shot" style="--x:590;--y:42;--w:410;--h:38;--z:2"><img src="../screens/kanban-board-dark.png" alt="Kanban toolbar"></div></div><p class="note">p-1 buttons with 14 px icons, a native select with only "Manual", a search field with the icon outside and no clear button.</p></div>
+<div class="cell"><div class="cap after">After <i>kit in context (kanban first) and a spec sheet</i></div><div data-mount="p21-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p22">
+<header><span class="pid">P22</span><h2>Icon-only controls: required label, fast styled tooltip, shortcut chip</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> About 27 icon buttons have no name at all (collection toolbar, auto-organize, trash actions) and 133 native titles are slow and never show on focus. Hover the icons on each side: the inspector line shows the accessible name.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app: three unlabeled icons (sort, filter, columns)</i></div><div class="shots"><div class="shot" style="--x:1320;--y:42;--w:120;--h:36;--z:3"><img src="../screens/view-file-table-light.png" alt="Collection toolbar"></div></div><div class="cap before">Before <i>live recreation: no name, native title is slow</i></div><div data-mount="p22-before"></div></div>
+<div class="cell"><div class="cap after">After <i>IconButton, 400 ms tooltip, instant on focus, shortcut chip</i></div><div data-mount="p22-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p77">
+<header><span class="pid">P77</span><h2>File History: load and restore failures give feedback, empty states stop lying</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> Restore has no catch, a load failure reads as "No history available", a diff failure reads as "Select a snapshot", and an empty history still opens the full two-pane dialog. Identical content correctly shows an all-unchanged diff, so it gets a notice instead.</p>
+<div class="cmp one">
+<div class="cell"><div class="cap before">Before <i>real app, light: empty history</i></div><div class="shots"><div class="shot" style="--x:208;--y:90;--w:1024;--h:340;--z:0.8"><img src="../screens/file-history-light.png" alt="File History dialog empty state"></div></div></div>
+<div class="cell"><div class="cap after">After <i>switch the state to see each case</i></div><div data-mount="p77-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p83">
+<header><span class="pid">P83</span><h2>Text selection is disabled app-wide with no opt-in</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> <code>body</code> is <code>user-select: none</code>, so error messages, versions, paths, Info values and toasts cannot be copied. Keep none on chrome; opt in with a <code>selectable</code> utility.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app, light: Update panel</i></div><div class="shots"><div class="shot" style="--x:853;--y:140;--w:550;--h:100;--z:1"><img src="../screens/settings-update-light.png" alt="Version row"></div><div class="shot" style="--x:853;--y:580;--w:550;--h:90;--z:1"><img src="../screens/settings-update-light.png" alt="Changes in this build"></div></div><div class="cap before">Before <i>live recreation, try to select text</i></div><div data-mount="p83-before"></div></div>
+<div class="cell"><div class="cap after">After <i>selectable on content, not on chrome</i></div><div data-mount="p83-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p89">
+<header><span class="pid">P89</span><h2>Copy actions confirm four ways, and Copy block link gives no feedback</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> 13 clipboard writes behave four ways. The block-link shortcut is silent, inserts the <code>^id</code> before the write, and no-ops on an empty line. Row-menu Copy path says nothing.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>live recreation</i></div><div data-mount="p89-before"></div></div>
+<div class="cell"><div class="cap after">After <i>one pattern: write first, label swap to Copied, failure toast</i></div><div data-mount="p89-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p91">
+<header><span class="pid">P91</span><h2>Form validation fires on open, and error styles differ</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> A new event opens with a red "Enter a title." and Save disabled. TypeNameDialog already hides the error while empty, which is the pattern to follow everywhere.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>live recreation</i></div><div data-mount="p91-before"></div></div>
+<div class="cell"><div class="cap after">After <i>validate on blur or submit, one error style</i></div><div data-mount="p91-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p153">
+<header><span class="pid">P153</span><h2>File History diff: orientation, summary and change navigation</h2><span class="badge moderate">moderate</span></header>
+<p class="why"><b>Problem.</b> An epoch header, a misleading "Current" label on a snapshot, two unlabeled line-number columns, and no summary or way to jump between changes.</p>
+<div class="cmp one">
+<div class="cell"><div class="cap before">Before <i>live recreation from code</i></div><div data-mount="p153-before"></div></div>
+<div class="cell"><div class="cap after">After <i>"Compared with current note", +/- chips, column headers, Previous/Next change</i></div><div data-mount="p153-after"></div></div>
+</div>
+</section>
+<h3 class="tier-h">Polish (kept last)</h3>
+<section class="prop" id="p86">
+<header><span class="pid">P86</span><h2>One SegmentedControl for kanban, graph, search and calendar D/W/M</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> Six segmented controls have five selected looks. Search disables unavailable modes with no reason, and the calendar D/W/M labels have no hint of the full name or shortcut.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app</i></div><div class="shots"><div class="shot" style="--x:590;--y:42;--w:110;--h:38;--z:3"><img src="../screens/kanban-board-dark.png" alt="Kanban view switch"></div><div class="shot" style="--x:590;--y:45;--w:190;--h:30;--z:2.5"><img src="../screens/view-file-table-light.png" alt="Collection tabs"></div></div><div class="cap before">Before <i>live recreation of the five looks</i></div><div data-mount="p86-before"></div></div>
+<div class="cell"><div class="cap after">After <i>one component, roving arrows, disabled with reason, tooltips</i></div><div data-mount="p86-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p87">
+<header><span class="pid">P87</span><h2>Theme row: radio group with sibling actions, no select on Edit</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> The theme row is a role=button div, so keyboard Enter on Edit or Duplicate bubbles and selects and persists that theme. Actions are hover-only. Tab to Edit and press Enter on each side.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app, dark</i></div><div class="shots"><div class="shot" style="--x:853;--y:150;--w:550;--h:225;--z:0.9"><img src="../screens/settings-appearance-dark.png" alt="Theme rows"></div></div><div class="cap before">Before <i>live recreation with the bubbling bug</i></div><div data-mount="p87-before"></div></div>
+<div class="cell"><div class="cap after">After <i>radiogroup, sibling action buttons, focus ring</i></div><div data-mount="p87-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p90">
+<header><span class="pid">P90</span><h2>Async dialogs: busy confirm button until the work is done</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> TypeNameDialog closes before <code>onConfirm</code> resolves, so a failure after validation loses the typed name. A type rename runs <code>propagate_type_rename</code> with no progress shown. ViewDialog and Trash are not changed.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>live recreation</i></div><div data-mount="p90-before"></div></div>
+<div class="cell"><div class="cap after">After <i>stays open, busy button, inline failure keeps the name</i></div><div data-mount="p90-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p92">
+<header><span class="pid">P92</span><h2>Dialog sizes sm, md, lg and tokenised shadows</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> Only SettingsPanel uses a literal shadow (<code>shadow-[-4px_0_12px_rgba(0,0,0,0.15)]</code>); hand-built menus bypass the elevation tokens, and dialogs use 6 ad hoc widths. The Settings scrim is an owner decision.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app, light: Settings sheet edge</i></div><div class="shots"><div class="shot" style="--x:590;--y:0;--w:270;--h:120;--z:1.6"><img src="../screens/settings-update-light.png" alt="Settings sheet"></div></div></div>
+<div class="cell"><div class="cap after">After <i>sizes, elevation ladder, sheet shadow, optional scrim</i></div><div data-mount="p92-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p93">
+<header><span class="pid">P93</span><h2>Badge primitive: count, tag, type, date variants</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> The type chip is bg-primary/10 text-[11px] in NoteRow, kanban chips use tag colour presets, the rail count has its own hue, and date chips differ in radius. Adopt where code is touched next, no sweep.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app</i></div><div class="shots"><div class="shot" style="--x:358;--y:235;--w:220;--h:150;--z:1.4"><img src="../screens/view-file-table-light.png" alt="Note row chips"></div><div class="shot" style="--x:600;--y:130;--w:560;--h:90;--z:0.9"><img src="../screens/kanban-board-dark.png" alt="Kanban chips"></div></div></div>
+<div class="cell"><div class="cap after">After <i>one Badge, four variants, one height</i></div><div data-mount="p93-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p94">
+<header><span class="pid">P94</span><h2>Themed Select in place of native selects</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> Four files still use a native select (kanban sort, graph tag and folder filters). The native menu ignores the theme. Checkbox and Textarea primitives are deferred until a change touches those call sites.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>real app, dark: kanban sort</i></div><div class="shots"><div class="shot" style="--x:685;--y:45;--w:150;--h:30;--z:4"><img src="../screens/kanban-board-dark.png" alt="Native select"></div></div><div class="cap before">Before <i>live: a real native select</i></div><div data-mount="p94-before"></div></div>
+<div class="cell"><div class="cap after">After <i>themed trigger and listbox, arrow keys, type to jump</i></div><div data-mount="p94-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p171">
+<header><span class="pid">P171</span><h2>Reduced motion: one CSS block, plus gating for Svelte transitions</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> The only reduced-motion rule is in EventCalendarView. Spinners, the SaveStatus pulse, chevrons, smooth scroll and the Settings fly ignore the OS setting. A CSS block alone cannot stop a JS-driven Svelte transition.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>live recreation</i></div><div data-mount="p171-before"></div></div>
+<div class="cell"><div class="cap after">After <i>toggle "Simulate reduce motion" to compare</i></div><div data-mount="p171-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p172">
+<header><span class="pid">P172</span><h2>Copy and casing drift: user-visible strings only</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> "Failed to" versus "Could not", "1 words", a hard-coded "(Cmd+D)", "Source mode" versus "Show raw Markdown", two ellipsis styles, UK spellings. Log messages are left alone.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>strings today</i></div><div data-mount="p172-before"></div></div>
+<div class="cell"><div class="cap after">After <i>one voice, with a live plural and shortcut demo</i></div><div data-mount="p172-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p174">
+<header><span class="pid">P174</span><h2>Token hygiene: extend the type-scale lint, add radius and z-index tokens</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> 28 raw <code>text-[Npx]</code> sites remain, radii and z-index have no tokens, and unused Separator imports linger. The lint at <code>chrome-type-scale.test.ts</code> already exists (11 px floor); the work is to extend it, and to ticket the dark-fallback and stale-today items separately.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>what the lint allows today</i></div><div data-mount="p174-before"></div></div>
+<div class="cell"><div class="cap after">After <i>scale, radius and z-index tokens, proposed lint output</i></div><div data-mount="p174-after"></div></div>
+</div>
+</section>
+<section class="prop" id="p175">
+<header><span class="pid">P175</span><h2>Pressed state and the macOS cursor policy</h2><span class="badge polish">polish</span></header>
+<p class="why"><b>Problem.</b> 288 hover variants against 4 <code>active:</code> variants, and 88 cursor-pointer against 54 cursor-default with no documented policy. Hover, press and look at the actual cursor on each tile.</p>
+<div class="cmp even">
+<div class="cell"><div class="cap before">Before <i>live recreation</i></div><div data-mount="p175-before"></div></div>
+<div class="cell"><div class="cap after">After <i>pressed fill one step stronger, arrow on chrome, hand only on links</i></div><div data-mount="p175-after"></div></div>
+</div>
+</section>
+</main>
+<script>
+'use strict';
+/* ---------- icons (lucide paths, 24px grid) ---------- */
+const ICONS = {
+	x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+	check: '<path d="M20 6 9 17l-5-5"/>',
+	copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+	alert: '<circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/>',
+	info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
+	warn: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+	circlecheck: '<circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/>',
+	undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/>',
+	trash: '<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+	search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
+	down: '<path d="m6 9 6 6 6-6"/>',
+	up: '<path d="m18 15-6-6-6 6"/>',
+	right: '<path d="m9 18 6-6-6-6"/>',
+	left: '<path d="m15 18-6-6 6-6"/>',
+	sort: '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+	plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+	refresh: '<path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/>',
+	loader: '<path d="M21 12a9 9 0 1 1-6.219-8.56"/>',
+	grid: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+	list: '<path d="M3 12h.01"/><path d="M3 18h.01"/><path d="M3 6h.01"/><path d="M8 12h13"/><path d="M8 18h13"/><path d="M8 6h13"/>',
+	table: '<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
+	cal: '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+	filter: '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
+	columns: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>',
+	history: '<path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/>',
+	pencil: '<path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/>',
+	more: '<circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>',
+	tag: '<path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/>',
+	file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+	folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+	graph: '<circle cx="6" cy="6" r="3"/><circle cx="18" cy="8" r="3"/><circle cx="12" cy="18" r="3"/><path d="m8.5 8 1.8 7.4"/><path d="m15.5 10-2.6 5.6"/><path d="M9 6.4 15 7.6"/>',
+	copyplus: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+	grip: '<circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>',
+	link: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+	inbox: '<polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>',
+	clipboard: '<rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
+	archive: '<rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/>'
+};
+function ic(n, s, cls) {
+	s = s || 16;
+	return '<svg class="ic ' + (cls || '') + '" width="' + s + '" height="' + s + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + (ICONS[n] || '') + '</svg>';
+}
+const SEV_ICON = { err: 'alert', warn: 'warn', ok: 'circlecheck', info: 'info' };
+
+/* ---------- dom helpers ---------- */
+function h(html) { const t = document.createElement('template'); t.innerHTML = html.trim(); return t.content.firstElementChild; }
+function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+function mountAt(id, fn) {
+	const el = document.querySelector('[data-mount="' + id + '"]');
+	if (!el) { console.warn('missing mount', id); return; }
+	try { fn(el); } catch (e) { console.error('mount ' + id + ' failed', e); el.textContent = 'Prototype error in ' + id + ': ' + e.message; }
+}
+/* page-style controls row */
+function controls(host) { const c = h('<div class="controls"></div>'); host.appendChild(c); return c; }
+function pgBtn(parent, label, fn) { const b = h('<button type="button" class="pgb"></button>'); b.textContent = label; b.onclick = fn; parent.appendChild(b); return b; }
+function pgSeg(parent, items, value, fn) {
+	const g = h('<div class="pgseg" role="group"></div>');
+	items.forEach(function (it) {
+		const b = h('<button type="button"></button>'); b.textContent = it[1]; b.dataset.v = it[0]; b.setAttribute('aria-pressed', String(it[0] === value));
+		b.onclick = function () { g.querySelectorAll('button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); }); fn(it[0]); };
+		g.appendChild(b);
+	});
+	parent.appendChild(g); return g;
+}
+function pgCheck(parent, label, checked, fn) {
+	const l = h('<label><input type="checkbox"> <span></span></label>'); l.querySelector('span').textContent = label;
+	const i = l.querySelector('input'); i.checked = checked; i.onchange = function () { fn(i.checked); }; parent.appendChild(l); return i;
+}
+function readout(host) { const r = h('<p class="readout"></p>'); host.appendChild(r); return function (html) { r.innerHTML = html; }; }
+function stage(host, cls) { const s = h('<div class="stage kk ' + (cls || '') + '"></div>'); host.appendChild(s); return s; }
+
+/* ---------- theme toggle ---------- */
+document.querySelectorAll('[data-theme-set]').forEach(function (b) {
+	b.addEventListener('click', function () {
+		document.body.dataset.theme = b.dataset.themeSet;
+		document.querySelectorAll('[data-theme-set]').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+	});
+});
+
+/* ---------- clipboard + label swap (P89 pattern) ---------- */
+function copyText(t) {
+	return (navigator.clipboard && navigator.clipboard.writeText ? navigator.clipboard.writeText(t).then(function () { return true; }) : Promise.reject()).catch(function () {
+		try { const ta = document.createElement('textarea'); ta.value = t; document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok; } catch (e) { return false; }
+	});
+}
+function swapCopied(btn, text, idleHtml, fail) {
+	return copyText(text).then(function (ok) {
+		btn.innerHTML = ok ? ic('check', 13) + '<span>Copied</span>' : ic('x', 13) + '<span>Could not copy</span>';
+		clearTimeout(btn._t); btn._t = setTimeout(function () { btn.innerHTML = idleHtml; }, 1500);
+		if (!ok && fail) fail();
+		return ok;
+	});
+}
+
+/* ---------- toasts ---------- */
+function toastEl(o) {
+	const sev = o.sev || 'info';
+	const el = h('<div class="toast ' + sev + (o.rich ? ' rich' : '') + '" role="' + (sev === 'err' ? 'alert' : 'status') + '"' + (o.dur ? ' style="--dur:' + o.dur + 'ms"' : '') + '>' +
+		'<span class="ti">' + ic(SEV_ICON[sev], 16) + '</span>' +
+		'<div class="tc"><div class="tt' + (o.rich ? '' : ' sel') + '"></div><div class="td' + (o.rich ? '' : ' sel') + '"></div><div class="ta"></div></div>' +
+		(o.close ? '<button class="tx" type="button" aria-label="Close notification">' + ic('x', 14) + '</button>' : '<span></span>') +
+		(o.dur && !o.rich ? '<span class="bar"></span>' : '') + '</div>');
+	el.querySelector('.tt').textContent = o.title;
+	const td = el.querySelector('.td'); if (o.desc) td.textContent = o.desc; else td.remove();
+	return el;
+}
+function mkToaster(stageEl) {
+	const st = h('<div class="tstack" aria-live="polite"></div>'); stageEl.appendChild(st);
+	return {
+		push: function (o) {
+			const el = toastEl(o); const rm = function () { el.remove(); };
+			const x = el.querySelector('.tx'); if (x) x.onclick = rm;
+			const bar = el.querySelector('.bar'); if (bar) bar.addEventListener('animationend', rm);
+			if (o.rich && o.dur) setTimeout(rm, o.dur);
+			const ta = el.querySelector('.ta');
+			(o.actions || []).forEach(function (a) {
+				const b = h('<button type="button" class="btn sm"></button>'); b.textContent = a.label;
+				b.onclick = function () { a.fn && a.fn(); if (a.keep !== true) rm(); }; ta.appendChild(b);
+			});
+			if (o.copy) {
+				const idle = ic('copy', 13) + '<span>Copy details</span>';
+				const b = h('<button type="button" class="btn sm">' + idle + '</button>');
+				b.onclick = function () { swapCopied(b, o.copy, idle); }; ta.appendChild(b);
+			}
+			if (!ta.children.length) ta.remove();
+			st.appendChild(el);
+			while (st.children.length > 4) st.firstChild.remove();
+			return el;
+		},
+		clear: function () { st.innerHTML = ''; },
+		el: st
+	};
+}
+
+/* ---------- tooltip engine (P22): 400 ms delay, instant after a recent one, instant on keyboard focus ---------- */
+(function () {
+	const tip = document.getElementById('tip'); let timer = null, lastHide = 0, cur = null;
+	function show(t) {
+		cur = t; const k = t.dataset.keys;
+		tip.innerHTML = '<span></span>' + (k ? '<kbd>' + esc(k) + '</kbd>' : ''); tip.firstChild.textContent = t.dataset.tip;
+		tip.classList.add('on');
+		const r = t.getBoundingClientRect(), w = tip.offsetWidth, hh = tip.offsetHeight;
+		let top = r.top - hh - 6; if (top < 4) top = r.bottom + 6;
+		let left = Math.min(Math.max(4, r.left + r.width / 2 - w / 2), window.innerWidth - w - 4);
+		tip.style.top = top + 'px'; tip.style.left = left + 'px';
+		t.dispatchEvent(new CustomEvent('tipshow', { bubbles: true }));
+	}
+	function hide() { clearTimeout(timer); if (cur) { lastHide = Date.now(); } cur = null; tip.classList.remove('on'); }
+	document.addEventListener('mouseover', function (e) {
+		const t = e.target.closest && e.target.closest('[data-tip]'); if (!t || t === cur) return;
+		hide(); const d = t.dataset.tipDelay != null ? +t.dataset.tipDelay : (Date.now() - lastHide < 500 ? 0 : 400);
+		timer = setTimeout(function () { show(t); }, d);
+	});
+	document.addEventListener('mouseout', function (e) { const t = e.target.closest && e.target.closest('[data-tip]'); if (t && !t.contains(e.relatedTarget)) hide(); });
+	document.addEventListener('focusin', function (e) { const t = e.target.closest && e.target.closest('[data-tip]'); if (t && t.matches(':focus-visible')) { hide(); show(t); } });
+	document.addEventListener('focusout', hide);
+	document.addEventListener('keydown', function (e) { if (e.key === 'Escape') hide(); });
+	document.addEventListener('scroll', hide, true);
+})();
+
+/* ---------- menu / select (P21, P94) ---------- */
+function mkMenu(host, o) {
+	/* o: {prefix, items:[{id,label}], value, kind:'toolbar'|'field', role:'menu'|'listbox', onChange, width} */
+	const id = 'm' + Math.random().toString(36).slice(2, 7);
+	const field = o.kind === 'field';
+	const w = h('<span class="mwrap"></span>');
+	const trig = h('<button type="button" class="tmenu' + (field ? ' field' : '') + '" aria-haspopup="' + (field ? 'listbox' : 'menu') + '" aria-expanded="false"' + (o.width ? ' style="min-width:' + o.width + 'px"' : '') + '></button>');
+	const pop = h('<div class="mpop" hidden role="' + (field ? 'listbox' : 'menu') + '"></div>');
+	w.appendChild(trig); w.appendChild(pop); host.appendChild(w);
+	let value = o.value, idx = 0;
+	function label() { return o.items.filter(function (i) { return i.id === value; })[0].label; }
+	function renderTrig() {
+		trig.innerHTML = (o.prefix ? '<span class="pre">' + esc(o.prefix) + ':</span> ' : '') + '<span>' + esc(label()) + '</span>' + ic('down', 14);
+		if (o.tip) { trig.dataset.tip = o.tip; if (o.keys) trig.dataset.keys = o.keys; }
+	}
+	function renderPop() {
+		pop.innerHTML = '';
+		o.items.forEach(function (it, i) {
+			if (it.sep) { pop.appendChild(h('<div class="msep" role="separator"></div>')); return; }
+			const b = h('<button type="button" class="mitem" tabindex="-1" role="' + (field ? 'option' : 'menuitemradio') + '" ' + (field ? 'aria-selected' : 'aria-checked') + '="' + (it.id === value) + '">' + (it.id === value ? ic('check', 14) : '') + '<span>' + esc(it.label) + '</span></button>');
+			b.dataset.i = i; b.onclick = function () { choose(it.id); }; pop.appendChild(b);
+		});
+	}
+	function items() { return Array.prototype.slice.call(pop.querySelectorAll('.mitem')); }
+	function open() {
+		renderPop(); pop.hidden = false; trig.setAttribute('aria-expanded', 'true');
+		const its = items(); idx = Math.max(0, its.findIndex(function (b) { return b.getAttribute(field ? 'aria-selected' : 'aria-checked') === 'true'; })); focusIdx(idx);
+	}
+	function close(refocus) { pop.hidden = true; trig.setAttribute('aria-expanded', 'false'); if (refocus) trig.focus(); }
+	function focusIdx(i) { const its = items(); idx = (i + its.length) % its.length; its.forEach(function (b, j) { b.classList.toggle('act', j === idx); }); its[idx].focus(); }
+	function choose(v) { value = v; renderTrig(); close(true); o.onChange && o.onChange(v); }
+	trig.onclick = function () { pop.hidden ? open() : close(); };
+	trig.addEventListener('keydown', function (e) { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); if (pop.hidden) open(); } });
+	pop.addEventListener('keydown', function (e) {
+		if (e.key === 'ArrowDown') { e.preventDefault(); focusIdx(idx + 1); }
+		else if (e.key === 'ArrowUp') { e.preventDefault(); focusIdx(idx - 1); }
+		else if (e.key === 'Home') { e.preventDefault(); focusIdx(0); }
+		else if (e.key === 'End') { e.preventDefault(); focusIdx(items().length - 1); }
+		else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(true); }
+		else if (e.key === 'Tab') { close(); }
+		else if (e.key.length === 1) { const its = items(); const k = e.key.toLowerCase(); const n = its.findIndex(function (b, j) { return j > idx && b.textContent.trim().toLowerCase().startsWith(k); }); const m = n >= 0 ? n : its.findIndex(function (b) { return b.textContent.trim().toLowerCase().startsWith(k); }); if (m >= 0) focusIdx(m); }
+	});
+	pop.addEventListener('mousemove', function (e) { const b = e.target.closest('.mitem'); if (b) { items().forEach(function (x) { x.classList.toggle('act', x === b); }); idx = +b.dataset.i; } });
+	document.addEventListener('mousedown', function (e) { if (!w.contains(e.target)) close(); });
+	renderTrig();
+	return { el: w, trig: trig, get value() { return value; }, set: function (v) { value = v; renderTrig(); } };
+}
+
+/* ---------- segmented control (P86) ---------- */
+function mkSeg(host, o) {
+	/* o: {items:[{id,label,icon,disabled,reason,tip,keys}], value, label, onChange} */
+	const g = h('<div class="seg" role="radiogroup" aria-label="' + esc(o.label || '') + '"></div>');
+	let value = o.value;
+	function btns() { return Array.prototype.slice.call(g.querySelectorAll('button')); }
+	function paint() { btns().forEach(function (b) { const on = b.dataset.id === value; b.setAttribute('aria-checked', String(on)); b.tabIndex = on ? 0 : -1; }); }
+	o.items.forEach(function (it) {
+		const b = h('<button type="button" role="radio"' + (it.icon && !it.label ? ' class="ico"' : '') + '>' + (it.icon ? ic(it.icon, 14) : '') + (it.label ? '<span>' + esc(it.label) + '</span>' : '') + '</button>');
+		b.dataset.id = it.id; b.setAttribute('aria-label', it.full || it.label || it.tip || it.id);
+		if (it.disabled) { b.setAttribute('aria-disabled', 'true'); b.dataset.tip = it.reason; }
+		else if (it.tip) { b.dataset.tip = it.tip; if (it.keys) b.dataset.keys = it.keys; }
+		b.onclick = function () { if (it.disabled) return; value = it.id; paint(); o.onChange && o.onChange(value); };
+		g.appendChild(b);
+	});
+	g.addEventListener('keydown', function (e) {
+		const dir = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0; if (!dir) return;
+		e.preventDefault(); const bs = btns().filter(function (b) { return b.getAttribute('aria-disabled') !== 'true'; });
+		const i = bs.findIndex(function (b) { return b.dataset.id === value; }); const n = bs[(i + dir + bs.length) % bs.length];
+		value = n.dataset.id; paint(); n.focus(); o.onChange && o.onChange(value);
+	});
+	host.appendChild(g); paint();
+	return { el: g, get value() { return value; } };
+}
+
+/* ---------- toolbar search with clear (P21) ---------- */
+function mkToolbarSearch(host, placeholder, w) {
+	const s = h('<span class="tsearch"' + (w ? ' style="width:' + w + 'px"' : '') + '>' + ic('search', 14) + '<input type="text" aria-label="' + esc(placeholder) + '" placeholder="' + esc(placeholder) + '"><button type="button" class="clr" aria-label="Clear filter" data-tip="Clear filter">' + ic('x', 12) + '</button></span>');
+	const i = s.querySelector('input'), c = s.querySelector('.clr');
+	i.oninput = function () { s.classList.toggle('has', !!i.value); };
+	c.onclick = function () { i.value = ''; s.classList.remove('has'); i.focus(); };
+	i.addEventListener('keydown', function (e) { if (e.key === 'Escape' && i.value) { e.preventDefault(); c.click(); } });
+	host.appendChild(s); return s;
+}
+
+/* ================= P17 toasts ================= */
+mountAt('p17-before', function (host) {
+	const c = controls(host); const st = stage(host, 'tall'); const T = mkToaster(st);
+	pgBtn(c, 'Error toast', function () { T.push({ sev: 'err', rich: true, dur: 4000, title: 'Could not load the theme catalog: Theme catalog has no themes list' }); });
+	pgBtn(c, 'Success toast', function () { T.push({ sev: 'ok', rich: true, dur: 4000, title: 'Theme duplicated' }); });
+	pgBtn(c, 'Clear', function () { T.clear(); });
+	st.appendChild(h('<div class="hint" style="position:absolute;left:14px;top:12px;max-width:60%">Today: sonner richColors, 4000 ms, no close button, no copy, fills ignore the theme tokens. It also vanishes before a long message is read.</div>'));
+	T.push({ sev: 'err', rich: true, dur: 4000, title: 'Could not load the theme catalog: Theme catalog has no themes list' });
+});
+mountAt('p17-after', function (host) {
+	const c = controls(host); const st = stage(host, 'tall'); const T = mkToaster(st);
+	const fire = {
+		info: function () { T.push({ sev: 'info', dur: 4000, title: 'Note moved to Archive', desc: 'Projects/Q4 OKRs.md' }); },
+		ok: function () { T.push({ sev: 'ok', dur: 4000, title: 'Theme duplicated', desc: 'Lavender Haze copy' }); },
+		warn: function () { T.push({ sev: 'warn', dur: 4000, title: 'Index is rebuilding', desc: 'Search results may be incomplete for a moment.' }); },
+		err: function () { T.push({ sev: 'err', close: true, title: 'Could not load the theme catalog', desc: 'Theme catalog has no themes list. Your installed and built-in themes still work.', copy: 'Could not load the theme catalog: Theme catalog has no themes list (GET /themes/catalog.json, 200)', actions: [{ label: 'Retry', fn: function () { fire.ok(); } }] }); },
+		errPlain: function () { T.push({ sev: 'err', close: true, title: 'Could not save settings' }); },
+		undo: function () { T.push({ sev: 'info', dur: 8000, close: true, title: 'Lane "In progress" deleted', desc: '2 cards', actions: [{ label: 'Undo', fn: function () { fire.ok(); } }] }); }
+	};
+	pgBtn(c, 'Info (4 s)', fire.info); pgBtn(c, 'Success (4 s)', fire.ok); pgBtn(c, 'Warning (4 s)', fire.warn);
+	pgBtn(c, 'Error (stays, copy)', fire.err); pgBtn(c, 'Error, no details', fire.errPlain); pgBtn(c, 'Undo (8 s)', fire.undo); pgBtn(c, 'Clear', function () { T.clear(); });
+	st.appendChild(h('<div style="position:absolute;left:14px;top:12px;display:flex;flex-direction:column;gap:6px;max-width:48%"><span class="secl">Severity accent</span><div class="pill-row"><span class="chip" style="background:color-mix(in srgb,var(--info) 16%,transparent);color:var(--info)">info</span><span class="chip" style="background:color-mix(in srgb,var(--ok) 16%,transparent);color:var(--ok)">success</span><span class="chip" style="background:color-mix(in srgb,var(--warn) 18%,transparent);color:var(--warn)">warning</span><span class="chip" style="background:color-mix(in srgb,var(--des) 16%,transparent);color:var(--des)">error</span></div><span class="hint">Bar under each toast = time left. Hover to pause. Error toasts have none: they stay.</span></div>'));
+	fire.err(); fire.undo();
+});
+
+/* ================= P01 destructive actions ================= */
+function mkP01(host, mode) {
+	const after = mode === 'after';
+	const st = stage(host, 'pad'); st.style.minHeight = '470px'; const T = mkToaster(st);
+	const fresh = function () { return { lanes: [{ id: 'b', name: 'Backlog', cards: [{ t: 'Types navigator polish', d: 0 }, { t: 'Mobile capture spike', d: 0 }] }, { id: 'p', name: 'In progress', cards: [{ t: 'Calendar week view', d: 0 }, { t: 'Settings dialog audit', d: 1 }] }, { id: 'r', name: 'Review', cards: [] }], rules: ['Move meeting-* to Meetings', 'Tag #idea notes from Inbox', 'Archive Daily older than 90 days'], themes: ['Lavender Haze (mine)', 'Midnight copy (mine)'] }; };
+	let S = fresh(); const clone = function (o) { return JSON.parse(JSON.stringify(o)); };
+	const root = h('<div></div>'); st.appendChild(root);
+	const dlgHost = h('<div class="scrim" hidden></div>'); st.appendChild(dlgHost);
+	let prev = null;
+	function undoToast(title, desc, fn) { if (!after) return; T.push({ sev: 'info', dur: 8000, close: true, title: title, desc: desc, actions: [{ label: 'Undo', fn: fn }] }); }
+	function snapshot() { prev = clone(S); }
+	function restoreSnap(snap) { S = snap; render(); }
+	function delCard(li, ci) { snapshot(); const snap = prev; const name = S.lanes[li].cards[ci].t; S.lanes[li].cards.splice(ci, 1); render(); undoToast('Card deleted', name, function () { restoreSnap(snap); }); }
+	function delLane(li) {
+		const lane = S.lanes[li];
+		const doIt = function () { snapshot(); const snap = prev; S.lanes.splice(li, 1); render(); undoToast('Lane "' + lane.name + '" deleted', lane.cards.length + ' card' + (lane.cards.length === 1 ? '' : 's'), function () { restoreSnap(snap); }); };
+		if (after && lane.cards.length) {
+			dlgHost.hidden = false;
+			dlgHost.innerHTML = '<div class="dlg sm" role="alertdialog" aria-modal="true" aria-labelledby="dt"><h3 id="dt"></h3><p>This removes the lane and its cards. You can undo for a few seconds.</p><div class="foot"><button type="button" class="btn" data-a="cancel">Cancel</button><button type="button" class="btn des" data-a="ok">Delete lane</button></div></div>';
+			dlgHost.querySelector('h3').textContent = 'Delete lane "' + lane.name + '" and its ' + lane.cards.length + ' cards?';
+			const cancel = dlgHost.querySelector('[data-a=cancel]'); cancel.focus();
+			dlgHost.querySelectorAll('button').forEach(function (b) { b.onclick = function () { dlgHost.hidden = true; if (b.dataset.a === 'ok') doIt(); }; });
+			dlgHost.onkeydown = function (e) { if (e.key === 'Escape') dlgHost.hidden = true; };
+		} else doIt();
+	}
+	function archiveDone() {
+		const n = S.lanes.reduce(function (a, l) { return a + l.cards.filter(function (c) { return c.d; }).length; }, 0);
+		if (!n) { T.push({ sev: 'info', dur: 4000, title: 'No completed cards to archive' }); return; }
+		snapshot(); const snap = prev; S.lanes.forEach(function (l) { l.cards = l.cards.filter(function (c) { return !c.d; }); }); render();
+		undoToast('Archived ' + n + ' completed card' + (n === 1 ? '' : 's'), '', function () { restoreSnap(snap); });
+	}
+	function delList(key, i) { snapshot(); const snap = prev; const name = S[key][i]; S[key].splice(i, 1); render(); undoToast(key === 'rules' ? 'Rule deleted' : 'Theme deleted', name, function () { restoreSnap(snap); }); }
+	function render() {
+		root.innerHTML = '';
+		const tb = h('<div class="row" style="margin-bottom:10px"><span class="lbl">Board.kanban</span><span class="grow"></span></div>');
+		const ar = h('<button type="button" class="btn sm">' + ic('archive', 13) + 'Archive completed</button>'); ar.onclick = archiveDone; tb.appendChild(ar);
+		const rs = h('<button type="button" class="btn sm ghost" data-tip="Reset demo">' + ic('refresh', 13) + 'Reset</button>'); rs.onclick = function () { S = fresh(); T.clear(); render(); }; tb.appendChild(rs);
+		root.appendChild(tb);
+		const lanes = h('<div class="lanes"></div>');
+		S.lanes.forEach(function (l, li) {
+			const el = h('<div class="lane"><div class="lane-h"><span></span><span class="cnt"></span></div></div>');
+			el.querySelector('.lane-h span').textContent = l.name; el.querySelector('.cnt').textContent = l.cards.length;
+			const tr = h('<button type="button" class="tbtn sm trash" aria-label="Delete lane ' + esc(l.name) + '">' + ic('trash', 14) + '</button>'); tr.onclick = function () { delLane(li); }; el.querySelector('.lane-h').appendChild(tr);
+			l.cards.forEach(function (c, ci) {
+				const cd = h('<div class="kcard' + (c.d ? ' done' : '') + '" tabindex="0"><button type="button" class="cb" role="checkbox" aria-checked="' + !!c.d + '" aria-label="Done">' + (c.d ? ic('check', 12) : '') + '</button><span class="ct"></span></div>');
+				cd.querySelector('.ct').textContent = c.t;
+				cd.querySelector('.cb').onclick = function () { c.d = c.d ? 0 : 1; render(); };
+				const t2 = h('<button type="button" class="tbtn trash" aria-label="Delete card">' + ic('trash', 13) + '</button>'); t2.onclick = function () { delCard(li, ci); }; cd.appendChild(t2);
+				cd.addEventListener('keydown', function (e) { if (e.target === cd && (e.key === 'Backspace' || e.key === 'Delete')) { e.preventDefault(); delCard(li, ci); } });
+				el.appendChild(cd);
+			});
+			if (!l.cards.length) el.appendChild(h('<div class="empty">Empty lane</div>'));
+			lanes.appendChild(el);
+		});
+		root.appendChild(lanes);
+		const two = h('<div class="grid2" style="margin-top:12px"></div>');
+		[['rules', 'Auto-organize rules'], ['themes', 'My themes']].forEach(function (k) {
+			const box = h('<div class="card" style="padding:8px"><div class="secl" style="padding:2px 10px 4px"></div></div>'); box.firstChild.textContent = k[1];
+			S[k[0]].forEach(function (n, i) { const r = h('<div class="rowitem"><span></span></div>'); r.firstChild.textContent = n; const t = h('<button type="button" class="tbtn sm trash" aria-label="Delete">' + ic('trash', 13) + '</button>'); t.onclick = function () { delList(k[0], i); }; r.appendChild(t); box.appendChild(r); });
+			if (!S[k[0]].length) box.appendChild(h('<div class="hint" style="padding:6px 10px">Nothing left</div>'));
+			two.appendChild(box);
+		});
+		root.appendChild(two);
+		/* mod dialog */
+		const mod = h('<div class="row" style="margin-top:12px"><span class="lbl">Mod dialog</span></div>');
+		const ob = h('<button type="button" class="btn sm">Open destructive mod dialog</button>'); mod.appendChild(ob);
+		const res = h('<span class="hint grow">No action yet</span>'); mod.appendChild(res);
+		ob.onclick = function () {
+			dlgHost.hidden = false;
+			dlgHost.innerHTML = '<div class="dlg sm" role="alertdialog" aria-modal="true"><h3>Delete 14 notes from _inbox?</h3><p>The mod "inbox-cleaner" asks to delete these notes. Notes go to Trash.</p><div class="foot"><button type="button" class="btn" data-a="cancel">Cancel</button><button type="button" class="btn des" data-a="ok">Delete</button></div></div>';
+			const f = dlgHost.querySelector(after ? '[data-a=cancel]' : '[data-a=ok]'); f.focus();
+			dlgHost.querySelectorAll('button').forEach(function (b) { b.onclick = function () { dlgHost.hidden = true; res.textContent = b.dataset.a === 'ok' ? 'Deleted 14 notes (focused button confirmed)' : 'Cancelled, nothing deleted'; ob.focus(); }; });
+			dlgHost.onkeydown = function (e) { if (e.key === 'Escape') { dlgHost.hidden = true; res.textContent = 'Cancelled, nothing deleted'; ob.focus(); } };
+		};
+		root.appendChild(mod);
+		root.appendChild(h('<p class="hint" style="margin-top:6px">' + (after ? 'Hover a card, lane or row to reveal Delete, or focus a card and press Backspace. Mod dialog focus starts on Cancel, so Enter is safe.' : 'Today: every delete is instant and permanent. The mod dialog focuses the red Delete, so Enter confirms.') + '</p>'));
+	}
+	render();
+}
+mountAt('p01-before', function (host) { mkP01(host, 'before'); });
+mountAt('p01-after', function (host) { mkP01(host, 'after'); });
+
+/* ================= composer (P14, P15) ================= */
+const CMD = '⌘↩︎';
+function mkComposer(host, o) {
+	/* o: {mode:'before'|'after', text, onSaved, hold} */
+	const after = o.mode === 'after';
+	const win = h('<div class="cwin"><textarea rows="3" placeholder="Quick capture..." aria-label="Quick capture"></textarea><div class="chint"></div></div>');
+	host.appendChild(win);
+	const ta = win.querySelector('textarea'), hint = win.querySelector('.chint'); ta.value = o.text || '';
+	let state = 'idle', restored = false, hidden = false;
+	const path = 'Inbox/capture-2026-11-17-09-41.md';
+	function paint() {
+		hint.className = 'chint';
+		if (state === 'saving') hint.innerHTML = '<span class="row" style="gap:6px">' + ic('loader', 12, 'spin') + 'Saving…</span><span>Please wait</span>';
+		else if (state === 'saved') hint.innerHTML = '<span class="okk">' + ic('check', 13) + 'Saved to ' + esc(path) + '</span><span></span>';
+		else if (state === 'failed') { hint.classList.add('error'); hint.setAttribute('role', 'alert'); hint.innerHTML = '<span>Could not save. ' + CMD + ' retries, ' + (after ? 'Esc hides (draft kept).' : 'ESC cancels.') + '</span>'; }
+		else if (state === 'unknown') { hint.classList.add('error'); hint.setAttribute('role', 'alert'); hint.innerHTML = '<span>Save not confirmed. ' + CMD + ' saves again, ' + (after ? 'Esc hides (draft kept).' : 'ESC cancels.') + '</span>'; }
+		else if (after && restored && ta.value) { hint.innerHTML = '<span>Draft restored · <button type="button" class="lnk">Discard</button></span><span>Esc hides (draft kept) · ' + CMD + ' saves</span>'; hint.querySelector('.lnk').onclick = function () { ta.value = ''; restored = false; paint(); ta.focus(); }; }
+		else hint.innerHTML = '<span>' + (after ? 'Esc hides (draft kept) · ' + CMD + ' saves' : 'ESC cancels · ' + CMD + ' saves') + '</span>';
+	}
+	function save() {
+		if (!ta.value.trim()) { hide(); return; }
+		if (after) { state = 'saving'; paint(); setTimeout(function () { state = 'saved'; win.classList.add('flash'); paint(); o.onSaved && o.onSaved(path); if (!o.hold) setTimeout(function () { win.classList.remove('flash'); ta.value = ''; state = 'idle'; hide(); }, 700); }, 1200); }
+		else { win.classList.add('flash'); setTimeout(function () { win.classList.remove('flash'); ta.value = ''; hide(); }, 180); }
+	}
+	function hide() { hidden = true; win.classList.add('gone'); o.onHide && o.onHide(); }
+	function show() { hidden = false; win.classList.remove('gone'); state = 'idle'; win.classList.remove('flash'); restored = !!ta.value; paint(); ta.focus(); }
+	win.addEventListener('keydown', function (e) {
+		if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') { e.preventDefault(); if (state !== 'saving') save(); }
+		else if (e.key === 'Escape') { e.preventDefault(); hide(); }
+	});
+	ta.addEventListener('input', function () { restored = false; if (state !== 'idle') state = 'idle'; paint(); });
+	paint();
+	return { win: win, ta: ta, show: show, hide: hide, save: save, setState: function (s) { state = s; paint(); }, get hidden() { return hidden; }, reset: function () { ta.value = ''; win.classList.remove('flash', 'gone'); state = 'idle'; restored = false; paint(); } };
+}
+
+mountAt('p14-before', function (host) {
+	const c = controls(host); const st = stage(host, 'pad'); st.style.minHeight = '230px'; st.style.paddingTop = '30px';
+	const cp = mkComposer(st, { mode: 'before', text: 'Call the notary about the contract' });
+	const msg = h('<p class="hint" style="text-align:center;margin-top:14px">Press Cmd+Enter in the box. The ring flashes for 180 ms and the window is gone. No path, no confirmation.</p>'); st.appendChild(msg);
+	pgBtn(c, 'Show composer again', function () { cp.ta.value = 'Call the notary about the contract'; cp.show(); });
+	pgBtn(c, 'Clipboard shortcut (other app)', function () { msg.textContent = 'Clipboard capture: nothing appears. The only evidence is a new note in the Inbox later. An empty clipboard fails with no UI.'; });
+});
+mountAt('p14-after', function (host) {
+	const c = controls(host);
+	const desk = h('<div class="kk desk"><div class="menubar"><b>Safari</b><span>File</span><span>Edit</span><span>View</span></div></div>'); host.appendChild(desk);
+	const nc = h('<div class="nc" hidden role="alert"><div class="ni">K</div><div class="grow"><div class="nt"><span>Kokobrain</span><span>now</span></div><div class="nbody"></div><div class="na"><button type="button">Open</button></div></div></div>'); desk.appendChild(nc);
+	const app = h('<div class="winpane" style="margin-top:40px;display:none"><div class="winbar"><i></i><i></i><i></i><span style="margin-left:6px">Kokobrain</span></div><div style="padding:14px;font-size:13px;color:var(--mut)">Main window: focused. A toast appears in the corner.</div></div>'); desk.appendChild(app);
+	const T = mkToaster(app);
+	const holder = h('<div style="margin-top:34px"></div>'); desk.appendChild(holder);
+	const cp = mkComposer(holder, { mode: 'after', text: '', hold: true, onSaved: function () { sub.textContent = 'Held here for review. In the app the saved state shows about 600 ms, then the window hides.'; } });
+	const sub = h('<p class="hint" style="text-align:center;margin-top:12px;color:rgba(255,255,255,.88)">Type, then press Cmd+Enter.</p>'); desk.appendChild(sub);
+	cp.ta.value = 'Buy oat milk, call the notary';
+	function note(body) { nc.querySelector('.nbody').textContent = body; nc.hidden = false; clearTimeout(note.t); note.t = setTimeout(function () { nc.hidden = true; }, 5000); }
+	pgBtn(c, 'Reset composer', function () { cp.reset(); cp.ta.value = 'Buy oat milk, call the notary'; cp.show(); sub.textContent = 'Type, then press Cmd+Enter.'; });
+	pgBtn(c, 'Clipboard capture, app in background', function () { app.style.display = 'none'; holder.style.display = ''; note('Captured to Inbox/capture-2026-11-17-09-42.md'); });
+	pgBtn(c, 'Clipboard capture, app focused', function () { nc.hidden = true; holder.style.display = 'none'; sub.style.display = 'none'; app.style.display = 'block'; T.clear(); T.push({ sev: 'ok', dur: 4000, title: 'Captured to Inbox/capture-2026-11-17-09-42.md', actions: [{ label: 'Open' }] }); });
+	pgBtn(c, 'Clipboard empty', function () { app.style.display = 'none'; holder.style.display = ''; sub.style.display = ''; note('Clipboard is empty. Nothing was captured.'); });
+	pgBtn(c, 'Back to composer', function () { app.style.display = 'none'; holder.style.display = ''; sub.style.display = ''; nc.hidden = true; });
+});
+
+mountAt('p15-before', function (host) {
+	const c = controls(host); const st = stage(host, 'pad'); st.style.minHeight = '210px'; st.style.paddingTop = '30px';
+	const cp = mkComposer(st, { mode: 'before', text: 'Draft: ideas for the offsite agenda' });
+	const msg = h('<p class="hint" style="text-align:center;margin-top:14px">Esc says "cancels", yet the draft is kept and returns silently.</p>'); st.appendChild(msg);
+	pgBtn(c, 'Summon composer', function () { cp.show(); });
+	pgBtn(c, 'Show error hints', function () { cp.show(); cp.setState('failed'); });
+});
+mountAt('p15-after', function (host) {
+	const c = controls(host); const st = stage(host, 'pad'); st.style.minHeight = '210px'; st.style.paddingTop = '30px';
+	const cp = mkComposer(st, { mode: 'after', text: 'Draft: ideas for the offsite agenda', hold: true });
+	const msg = h('<p class="hint" style="text-align:center;margin-top:14px">Esc hides and keeps the draft. Summon again to see "Draft restored".</p>'); st.appendChild(msg);
+	pgBtn(c, 'Summon composer', function () { cp.show(); });
+	pgBtn(c, 'Show Saving...', function () { cp.show(); cp.setState('saving'); });
+	pgBtn(c, 'Show error hints', function () { cp.show(); cp.setState('failed'); });
+	pgBtn(c, 'Show unconfirmed hint', function () { cp.show(); cp.setState('unknown'); });
+	cp.show();
+});
+
+/* ================= search panel + Labs switch (P16) ================= */
+function mkP16(host, mode) {
+	const after = mode === 'after';
+	const c = controls(host);
+	const st = stage(host, 'pad'); st.style.minHeight = '470px'; const T = mkToaster(st);
+	let state = 'err', failStart = true;
+	const panel = h('<div class="panel" style="overflow:hidden"></div>'); st.appendChild(panel);
+	function results() {
+		const rows = [['Q4 OKRs', 'Review the <mark>meeting</mark> cadence with the leads'], ['2026-11-10', 'Standup <mark>notes</mark> and follow-ups'], ['Roadmap', 'Planning <mark>meeting</mark> notes for December']];
+		return rows.map(function (r) { return '<div class="res"><div class="rt">' + r[0] + '</div><div class="rs">' + r[1] + '</div></div>'; }).join('');
+	}
+	function paint() {
+		panel.innerHTML = '';
+		const top = h('<div class="row" style="padding:8px 10px;border-bottom:1px solid var(--div)"></div>'); panel.appendChild(top);
+		const s = mkToolbarSearch(top, 'Search notes', 180); s.querySelector('input').value = 'meeting notes'; s.classList.add('has'); s.style.flex = '1';
+		mkSeg(top, { label: 'Search mode', value: 'text', items: [{ id: 'text', label: 'Text' }, { id: 'sem', label: 'Semantic' }, { id: 'hyb', label: 'Hybrid' }] });
+		const body = h('<div style="min-height:150px;padding:4px"></div>'); panel.appendChild(body);
+		if (state === 'ok') body.innerHTML = results();
+		else if (state === 'none' || (state === 'err' && !after)) body.innerHTML = '<p class="hint" style="text-align:center;padding:48px 0 0">No results found</p>';
+		else if (state === 'loading') body.innerHTML = '<p class="hint" style="text-align:center;padding:48px 0 0;display:flex;gap:6px;justify-content:center">' + ic('loader', 14, 'spin') + 'Searching…</p>';
+		else {
+			const e = h('<div class="errbox" role="alert"><span style="color:var(--des);padding-top:1px">' + ic('alert', 16) + '</span><div class="grow"><div class="et">Search failed</div><div class="hint sel" style="margin-top:2px">Search index is not ready (the embedding model is still loading).</div><div style="margin-top:8px"></div></div></div>');
+			const rb = h('<button type="button" class="btn sm">' + ic('refresh', 13) + 'Retry</button>'); rb.onclick = function () { state = 'loading'; paint(); setTimeout(function () { state = 'ok'; paint(); }, 800); };
+			e.querySelector('.grow > div:last-child').appendChild(rb); body.appendChild(e);
+		}
+		/* labs */
+		const lab = h('<div class="setrow" style="margin-top:14px"><div class="grow"><div class="st">Enable Labs</div><div class="hint">Starts the vault mods host on port 4177.</div></div><span class="lstate hint"></span><button type="button" class="sw" role="switch" aria-checked="false" aria-label="Enable Labs"></button></div>');
+		const sw = lab.querySelector('.sw'), ls = lab.querySelector('.lstate'); ls.textContent = 'Mods host: stopped';
+		sw.onclick = function () {
+			if (sw.getAttribute('aria-checked') === 'true') { sw.setAttribute('aria-checked', 'false'); ls.textContent = 'Mods host: stopped'; return; }
+			sw.setAttribute('aria-checked', 'true'); ls.textContent = 'Starting…';
+			setTimeout(function () {
+				if (!failStart) { ls.textContent = 'Mods host: running'; return; }
+				if (after) { sw.setAttribute('aria-checked', 'false'); ls.textContent = 'Mods host: stopped'; T.push({ sev: 'err', close: true, title: 'Could not start the mods host', desc: 'Port 4177 is already in use.', copy: 'startModsHost failed: EADDRINUSE 127.0.0.1:4177', actions: [{ label: 'Retry', fn: function () { sw.click(); } }] }); }
+				else { ls.textContent = 'Mods host: stopped (switch still on)'; ls.style.color = 'var(--des)'; }
+			}, 900);
+		};
+		panel.appendChild(h('<div style="padding:0 10px 12px"></div>')).appendChild(lab);
+	}
+	pgSeg(c, [['ok', 'Results'], ['none', 'No matches'], ['err', 'Index error']], state, function (v) { state = v; paint(); });
+	pgCheck(c, 'Labs start fails', true, function (v) { failStart = v; });
+	paint();
+}
+mountAt('p16-before', function (host) { mkP16(host, 'before'); });
+mountAt('p16-after', function (host) { mkP16(host, 'after'); });
+
+/* ================= P21 toolbar kit ================= */
+mountAt('p21-after', function (host) {
+	const st = stage(host); const T = mkToaster(st);
+	const bar = h('<div class="tb40"></div>'); st.appendChild(bar);
+	const viewSeg = mkSeg(bar, { label: 'View', value: 'board', items: [{ id: 'board', icon: 'grid', tip: 'Board view', full: 'Board view' }, { id: 'list', icon: 'list', tip: 'List view', full: 'List view' }, { id: 'table', icon: 'table', tip: 'Table view', full: 'Table view' }] });
+	const sp = h('<span style="width:1px;height:16px;background:var(--div);margin:0 4px"></span>'); bar.appendChild(sp);
+	mkMenu(bar, { prefix: 'Sort', value: 'manual', items: [{ id: 'manual', label: 'Manual' }, { id: 'title', label: 'Title A to Z' }, { id: 'due', label: 'Due date' }, { id: 'open', label: 'Open first' }], onChange: function (v) { out('Sort changed to <b>' + v + '</b>'); }, tip: 'Sort cards', keys: '' });
+	const arch = h('<button type="button" class="tbtn" aria-label="Show archived" data-tip="Show archived" aria-pressed="false">' + ic('archive', 16) + '</button>'); arch.onclick = function () { const on = arch.getAttribute('aria-pressed') !== 'true'; arch.setAttribute('aria-pressed', String(on)); }; bar.appendChild(arch);
+	bar.appendChild(h('<span class="grow"></span>'));
+	mkToolbarSearch(bar, 'Filter cards', 190);
+	const body = h('<div style="padding:12px 14px 14px"></div>'); st.appendChild(body);
+	body.appendChild(h('<p class="hint" style="margin:0 0 12px">Try: open Sort and use arrows, type in the filter and press Esc (or the clear button), Tab through everything for the focus ring.</p>'));
+	const spec = h('<div class="grid2" style="align-items:start"></div>'); body.appendChild(spec);
+	const mk = function (title, inner) { const t = h('<div class="tile"><b></b><div class="pill-row" style="margin:8px 0 6px"></div></div>'); t.querySelector('b').textContent = title; t.querySelector('.pill-row').innerHTML = inner; return t; };
+	spec.appendChild(mk('ToolbarButton', '<button class="tbtn" aria-label="Default">' + ic('plus', 16) + '</button><button class="tbtn tb-h" aria-label="Hover">' + ic('plus', 16) + '</button><button class="tbtn tb-p" aria-label="Pressed fill">' + ic('plus', 16) + '</button><button class="tbtn" aria-pressed="true" aria-label="On">' + ic('plus', 16) + '</button><button class="tbtn tb-f" aria-label="Focus">' + ic('plus', 16) + '</button><button class="tbtn" disabled aria-label="Disabled">' + ic('plus', 16) + '</button>'));
+	spec.lastChild.appendChild(h('<div class="annot">28 x 28 px, 16 px icon, radius-md. default, hover, pressed, on, focus, disabled. aria-label required, tooltip from it.</div>'));
+	spec.appendChild(mk('ToolbarSearch', '<span class="tsearch has" style="width:170px">' + ic('search', 14) + '<input value="design" aria-label="Spec"><button class="clr" type="button" aria-label="Clear">' + ic('x', 12) + '</button></span>'));
+	spec.lastChild.appendChild(h('<div class="annot">h-7 (28 px), icon inside at 8 px, clear button when non-empty, Esc clears, focus ring on the field.</div>'));
+	spec.appendChild(mk('ToolbarMenuTrigger', '<button class="tmenu"><span class="pre">Sort:</span> <span>Manual</span>' + ic('down', 14) + '</button><button class="tmenu"><span class="pre">Group:</span> <span>Open first</span>' + ic('down', 14) + '</button>'));
+	spec.lastChild.appendChild(h('<div class="annot">"Label: value" plus chevron. Opens a DropdownMenu radio group, replacing the native select.</div>'));
+	spec.appendChild(mk('Row spec', '<div class="annot" style="line-height:1.6">band: h-10 (pane-toolbar)<br>controls: 28 px, gap 4 px<br>icons: 16 px, stroke 2<br>active: one style (pri 14% tint)</div>'));
+	const outEl = h('<div class="hint" style="margin-top:10px"></div>'); body.appendChild(outEl);
+	function out(m) { outEl.innerHTML = m; }
+	out('Sort: Manual');
+});
+
+/* ================= P22 icon buttons + tooltip ================= */
+mountAt('p22-before', function (host) {
+	const st = stage(host, 'pad'); const read = readout(host);
+	const row = h('<div class="row"></div>'); st.appendChild(row);
+	[['sort', ''], ['filter', 'Filter'], ['columns', ''], ['cal', '']].forEach(function (b) {
+		const e = h('<button type="button" class="tbtn" ' + (b[1] ? 'title="' + b[1] + '"' : '') + '>' + ic(b[0], 16) + '</button>');
+		const rep = function () { read('Accessible name: <b>' + (b[1] || '(none)') + '</b>' + (b[1] ? ' via title, shown after the native delay, never on keyboard focus' : ' (an icon-only button with no name at all)')); };
+		e.onmouseenter = rep; e.onfocus = rep; row.appendChild(e);
+	});
+	st.appendChild(h('<div class="row" style="margin-top:14px"><span class="tag">launch</span><button type="button" class="tbtn sm" style="margin-left:-4px">' + ic('x', 12) + '</button><span class="hint">Remove button does not name its target</span></div>'));
+	read('Hover or tab to an icon.');
+});
+mountAt('p22-after', function (host) {
+	const st = stage(host, 'pad'); const read = readout(host);
+	const row = h('<div class="row"></div>'); st.appendChild(row);
+	[['sort', 'Sort', ''], ['filter', 'Filter', ''], ['columns', 'Choose columns', ''], ['cal', "Open today's note", '⌘D']].forEach(function (b) {
+		const e = h('<button type="button" class="tbtn" aria-label="' + esc(b[1]) + '" data-tip="' + esc(b[1]) + '"' + (b[2] ? ' data-keys="' + b[2] + '"' : '') + '>' + ic(b[0], 16) + '</button>');
+		const rep = function () { read('Accessible name: <b>aria-label="' + b[1] + '"</b>, tooltip after 400 ms, instant while moving between neighbours, instant on keyboard focus'); };
+		e.onmouseenter = rep; e.onfocus = rep; row.appendChild(e);
+	});
+	const chip = h('<div class="row" style="margin-top:14px"><span class="tag">launch</span><button type="button" class="tbtn sm" style="margin-left:-4px" aria-label="Remove tag &quot;launch&quot;" data-tip="Remove tag &quot;launch&quot;">' + ic('x', 12) + '</button><span class="hint">Remove names its target</span></div>'); st.appendChild(chip);
+	chip.querySelector('.tbtn').onmouseenter = function () { read('Accessible name: <b>aria-label="Remove tag "launch""</b>'); };
+	st.appendChild(h('<div style="margin-top:14px" class="annot">One Tooltip.Provider at the root, delayDuration 400 ms. IconButton requires <b>label</b>; shortcut chip only when one exists.</div>'));
+	read('Hover or tab to an icon.');
+});
+
+/* ================= P86 segmented ================= */
+mountAt('p86-before', function (host) {
+	const st = stage(host, 'pad');
+	const L = function (t) { return '<div class="secl" style="margin:12px 0 6px">' + t + '</div>'; };
+	st.innerHTML =
+		L('Kanban view: bg-primary/10 text-primary') + '<div class="row" style="gap:2px"><button class="tbtn" style="background:color-mix(in srgb,var(--pri) 10%,transparent);color:var(--pri)">' + ic('grid', 14) + '</button><button class="tbtn">' + ic('list', 14) + '</button><button class="tbtn">' + ic('table', 14) + '</button></div>' +
+		L('Calendar D/W/M and graph mode: bg-muted, no role=tabpanel') + '<div class="row" style="gap:2px"><button class="btn sm" style="background:var(--acc);border-color:transparent;width:28px;padding:0">D</button><button class="btn sm ghost" style="width:28px;padding:0">W</button><button class="btn sm ghost" style="width:28px;padding:0">M</button><span class="hint">no tooltip</span></div>' +
+		L('Search modes: raised pill, unavailable = opacity-40, no reason') + '<div class="seg"><button aria-checked="true" style="background:var(--pop);color:var(--fg);box-shadow:var(--shadow-sm)">Text</button><button style="opacity:.4">Semantic</button><button style="opacity:.4">Hybrid</button></div>' +
+		L('Collection tabs: bg-primary/15 chips') + '<div class="row"><span class="chip" style="background:color-mix(in srgb,var(--pri) 15%,transparent);color:var(--pri);border-radius:4px;height:22px">Projects</span><span class="chip mut">+</span></div>' +
+		L('Theme editor tabs: underline, no semantics') + '<div class="row" style="gap:14px;border-bottom:1px solid var(--div)"><span style="padding:4px 2px;border-bottom:2px solid var(--pri);font-size:13px">Editor</span><span style="padding:4px 2px;font-size:13px;color:var(--mut)">UI</span><span style="padding:4px 2px;font-size:13px;color:var(--mut)">Syntax</span></div>';
+});
+mountAt('p86-after', function (host) {
+	const st = stage(host, 'pad'); const read = readout(host);
+	const grid = h('<div class="grid2" style="gap:14px 20px"></div>'); st.appendChild(grid);
+	const cell = function (t) { const c = h('<div><div class="secl" style="margin-bottom:6px"></div><div></div></div>'); c.firstChild.textContent = t; grid.appendChild(c); return c.lastChild; };
+	mkSeg(cell('Kanban view'), { label: 'Kanban view', value: 'board', items: [{ id: 'board', icon: 'grid', tip: 'Board' }, { id: 'list', icon: 'list', tip: 'List' }, { id: 'table', icon: 'table', tip: 'Table' }], onChange: function (v) { read('Kanban view: <b>' + v + '</b>'); } });
+	mkSeg(cell('Graph mode'), { label: 'Graph mode', value: 'global', items: [{ id: 'global', label: 'Global' }, { id: 'local', label: 'Local' }], onChange: function (v) { read('Graph mode: <b>' + v + '</b>'); } });
+	mkSeg(cell('Search mode'), { label: 'Search mode', value: 'text', items: [{ id: 'text', label: 'Text' }, { id: 'sem', label: 'Semantic', disabled: true, reason: 'Semantic search needs the embedding model. Download it in Settings, Search.' }, { id: 'hyb', label: 'Hybrid', disabled: true, reason: 'Hybrid search needs the embedding model.' }], onChange: function (v) { read('Search mode: <b>' + v + '</b>'); } });
+	mkSeg(cell('Calendar range'), { label: 'Calendar range', value: 'w', items: [{ id: 'd', label: 'D', full: 'Day', tip: 'Day', keys: 'D' }, { id: 'w', label: 'W', full: 'Week', tip: 'Week', keys: 'W' }, { id: 'm', label: 'M', full: 'Month', tip: 'Month', keys: 'M' }], onChange: function (v) { read('Calendar range: <b>' + v.toUpperCase() + '</b>'); } });
+	st.appendChild(h('<p class="hint" style="margin:14px 0 0">Raised pill = selected, always. Arrow keys move and select (radiogroup, roving tabindex). Disabled items stay focusable so the reason shows. Calendar keeps its one-letter labels, tooltip adds the full name and shortcut. Theme editor groups and collection tabs get real tabs semantics separately.</p>'));
+	read('Hover the disabled Semantic item for its reason.');
+});
+
+/* ================= P94 native vs themed select ================= */
+mountAt('p94-before', function (host) {
+	const st = stage(host, 'pad');
+	st.innerHTML = '<div class="grid2" style="gap:10px"><div><div class="secl" style="margin-bottom:6px">Sort</div><select aria-label="Sort"><option>Manual</option><option>Title A to Z</option><option>Due date</option><option>Open first</option></select></div><div><div class="secl" style="margin-bottom:6px">Tag filter</div><select aria-label="Tag filter"><option>All tags</option><option>#design</option><option>#docs</option><option>#research</option></select></div></div><p class="hint" style="margin-top:10px">Open one: the menu is drawn by the OS, ignores the theme, radius and focus ring.</p>';
+});
+mountAt('p94-after', function (host) {
+	const st = stage(host, 'pad'); st.style.minHeight = '230px';
+	const g = h('<div class="grid2" style="gap:10px"></div>'); st.appendChild(g);
+	const c1 = h('<div><div class="secl" style="margin-bottom:6px">Sort</div></div>'); g.appendChild(c1);
+	mkMenu(c1, { kind: 'field', value: 'manual', width: 150, items: [{ id: 'manual', label: 'Manual' }, { id: 'title', label: 'Title A to Z' }, { id: 'due', label: 'Due date' }, { id: 'open', label: 'Open first' }] });
+	const c2 = h('<div><div class="secl" style="margin-bottom:6px">Tag filter</div></div>'); g.appendChild(c2);
+	mkMenu(c2, { kind: 'field', value: 'all', width: 150, items: [{ id: 'all', label: 'All tags' }, { id: 'design', label: '#design' }, { id: 'docs', label: '#docs' }, { id: 'research', label: '#research' }] });
+	st.appendChild(h('<p class="hint" style="margin-top:10px">Same Select primitive the settings use. Enter or arrow opens, arrows move, type a letter to jump, Esc closes and returns focus. Checkbox and Textarea primitives wait until a change touches those call sites.</p>'));
+});
+
+/* ================= File History (P77, P153) ================= */
+const FH_SNAPS = [
+	{ id: 3, t: 'Nov 17, 2026, 09:12', epoch: 1763370720, size: '1.8 KB', sub: 'Latest saved version', diff: [
+		['eq', 1, 1, '# Kokobrain Launch Plan'], ['eq', 2, 2, ''], ['del', 3, 0, 'Release candidate on 2026-11-14'], ['add', 0, 3, 'Release candidate on 2026-11-21'], ['eq', 4, 4, ''],
+		['eq', 5, 5, '## Checklist'], ['eq', 6, 6, '- [x] Docs and changelog'], ['del', 7, 0, '- [ ] Smoke test on macOS 14'], ['add', 0, 7, '- [x] Smoke test on macOS 14'], ['add', 0, 8, '- [ ] Notarize the dmg'],
+		['eq', 8, 9, ''], ['eq', 9, 10, 'Owner: Diego'], ['eq', 10, 11, 'Status: active'], ['eq', 11, 12, ''], ['eq', 12, 13, '## Risks'], ['del', 13, 0, '- Search index rebuild is slow'], ['add', 0, 14, '- Search index rebuild is slow on large vaults'], ['eq', 14, 15, '- Sparkle key rotation']
+	] },
+	{ id: 2, t: 'Nov 16, 2026, 18:40', epoch: 1763318400, size: '1.7 KB', sub: '', diff: [
+		['eq', 1, 1, '# Kokobrain Launch Plan'], ['eq', 2, 2, ''], ['del', 3, 0, 'Release candidate on 2026-11-12'], ['add', 0, 3, 'Release candidate on 2026-11-21'], ['eq', 4, 4, ''], ['eq', 5, 5, '## Checklist'],
+		['del', 6, 0, '- [ ] Docs and changelog'], ['add', 0, 6, '- [x] Docs and changelog'], ['del', 7, 0, '- [ ] Smoke test on macOS 14'], ['add', 0, 7, '- [x] Smoke test on macOS 14'], ['add', 0, 8, '- [ ] Notarize the dmg'],
+		['eq', 8, 9, ''], ['eq', 9, 10, 'Owner: Diego'], ['del', 10, 0, 'Status: planned'], ['add', 0, 11, 'Status: active'], ['eq', 11, 12, '']
+	] },
+	{ id: 1, t: 'Nov 10, 2026, 11:03', epoch: 1762772580, size: '1.1 KB', sub: '', same: true, diff: [
+		['eq', 1, 1, '# Kokobrain Launch Plan'], ['eq', 2, 2, ''], ['eq', 3, 3, 'Release candidate on 2026-11-21'], ['eq', 4, 4, ''], ['eq', 5, 5, '## Checklist'], ['eq', 6, 6, '- [x] Docs and changelog'], ['eq', 7, 7, '- [x] Smoke test on macOS 14'], ['eq', 8, 8, '']
+	] }
+];
+function mkFileHistory(host, o) {
+	const after = !o.before;
+	const T = o.toaster; let state = 'ok', sel = 0, failRestore = false, changeIdx = -1, closed = false;
+	const root = h('<div></div>'); host.appendChild(root);
+	function counts(d) { return { a: d.filter(function (r) { return r[0] === 'add'; }).length, d: d.filter(function (r) { return r[0] === 'del'; }).length }; }
+	function hunks(d) { const hs = []; d.forEach(function (r, i) { if (r[0] !== 'eq' && (i === 0 || d[i - 1][0] === 'eq')) hs.push(i); }); return hs; }
+	function label(sn, i) { return after ? sn.t : (i === 0 ? 'Current' : sn.t); }
+	function render() {
+		root.innerHTML = '';
+		if (closed) { const b = h('<div class="hint" style="padding:30px;text-align:center">Dialog closed. The editor now shows the restored text. <button type="button" class="btn sm" style="margin-left:8px">Reopen</button></div>'); b.querySelector('button').onclick = function () { closed = false; render(); }; root.appendChild(b); return; }
+		if (state === 'empty') {
+			const f = h('<div class="fh compact"><div class="fh-title">File History: Kokobrain Launch Plan.md<button class="tbtn x" aria-label="Close">' + ic('x', 14) + '</button></div><div class="centerbox" style="grid-row:2"><div class="big">No saved versions yet</div><div class="hint">Versions are saved as you edit. Choose how long they are kept in Settings, File History.</div><button type="button" class="btn sm" style="margin-top:12px">Open File History settings</button></div></div>');
+			root.appendChild(f); return;
+		}
+		const sn = FH_SNAPS[sel]; const cnt = counts(sn.diff); const hs = hunks(sn.diff);
+		const f = h('<div class="fh"><div class="fh-title">File History: Kokobrain Launch Plan.md<button class="tbtn x" aria-label="Close">' + ic('x', 14) + '</button></div><div class="list" role="listbox" aria-label="Saved versions"></div><div class="pane"></div></div>');
+		root.appendChild(f);
+		const list = f.querySelector('.list'), pane = f.querySelector('.pane');
+		if (state === 'loadfail') {
+			list.innerHTML = '<div class="errbox" role="alert" style="margin:10px"><span style="color:var(--des)">' + ic('alert', 16) + '</span><div class="grow"><div class="et">Could not load versions</div><div class="hint sel" style="margin:2px 0 8px">The history store could not be read.</div></div></div>';
+			const rb = h('<button type="button" class="btn sm">' + ic('refresh', 13) + 'Retry</button>'); rb.onclick = function () { state = 'ok'; render(); }; list.querySelector('.grow').appendChild(rb);
+			pane.innerHTML = '<div class="centerbox"><div class="hint">Select a version to compare it with the current note.</div></div>'; return;
+		}
+		FH_SNAPS.forEach(function (s, i) {
+			const b = h('<button type="button" class="snap" role="option" aria-selected="' + (i === sel) + '"><div class="s1"></div><div class="s2"></div></button>');
+			b.querySelector('.s1').textContent = label(s, i); b.querySelector('.s2').textContent = (after && i === 0 ? 'Latest saved version · ' : '') + s.size;
+			b.onclick = function () { sel = i; changeIdx = -1; render(); }; list.appendChild(b);
+		});
+		const hd = h('<div class="phead"><div><div class="ph1"></div><div class="ph2"></div></div><div class="acts"></div></div>'); pane.appendChild(hd);
+		const acts = hd.querySelector('.acts');
+		if (after) {
+			hd.querySelector('.ph1').textContent = 'Compared with current note'; hd.querySelector('.ph2').textContent = sn.t + (sel === 0 ? ' · Latest saved version' : '');
+			if (!sn.same) acts.appendChild(h('<span class="row" style="gap:4px"><span class="dchip a">+' + cnt.a + '</span><span class="dchip d">-' + cnt.d + '</span></span>'));
+			const nav = h('<span class="row" style="gap:0"><button type="button" class="tbtn sm" aria-label="Previous change" data-tip="Previous change" data-keys="⌥↑">' + ic('up', 14) + '</button><span class="hint" style="min-width:74px;text-align:center"></span><button type="button" class="tbtn sm" aria-label="Next change" data-tip="Next change" data-keys="⌥↓">' + ic('down', 14) + '</button></span>');
+			const lab = nav.querySelector('.hint'); lab.textContent = hs.length ? (changeIdx >= 0 ? 'Change ' + (changeIdx + 1) + ' of ' + hs.length : hs.length + ' changes') : 'No changes';
+			const go = function (d) { if (!hs.length) return; changeIdx = (changeIdx + d + hs.length) % hs.length; lab.textContent = 'Change ' + (changeIdx + 1) + ' of ' + hs.length; const rows = pane.querySelectorAll('tbody tr'); rows.forEach(function (r) { r.classList.remove('focus'); }); const r = rows[hs[changeIdx]]; r.classList.add('focus'); r.scrollIntoView({ block: 'nearest' }); const w = pane.querySelector('.dwrap'); w.scrollTop = Math.max(0, r.offsetTop - 60); };
+			nav.children[0].onclick = function () { go(-1); }; nav.children[2].onclick = function () { go(1); }; if (!hs.length) { nav.children[0].disabled = true; nav.children[2].disabled = true; }
+			acts.appendChild(nav);
+		} else {
+			hd.querySelector('.ph1').textContent = sn.t; hd.querySelector('.ph2').innerHTML = '<span class="mono">' + sn.epoch + '</span>';
+		}
+		const rb = h('<button type="button" class="btn pri sm">Restore this version</button>'); acts.appendChild(rb);
+		rb.onclick = function () {
+			rb.classList.add('busy'); rb.innerHTML = ic('loader', 13, 'spin') + 'Restoring…'; rb.disabled = true;
+			setTimeout(function () {
+				if (failRestore) { rb.classList.remove('busy'); rb.disabled = false; rb.textContent = 'Restore this version'; if (after && T) T.push({ sev: 'err', close: true, title: 'Could not restore this version', desc: 'Kokobrain Launch Plan.md is read-only (permission denied).', copy: 'restoreSnapshot failed: EACCES: permission denied, write Projects/Kokobrain Launch Plan.md', actions: [{ label: 'Retry', fn: function () { rb.click(); } }] }); else rb.insertAdjacentHTML('afterend', '<span class="hint" style="color:var(--mut)">(nothing happens: unhandled rejection)</span>'); }
+				else { closed = true; render(); }
+			}, 700);
+		};
+		if (state === 'difffail') {
+			pane.appendChild(h('<div class="centerbox"><div class="errbox" role="alert" style="text-align:left;margin:0"><span style="color:var(--des)">' + ic('alert', 16) + '</span><div class="grow"><div class="et">Could not compare this version</div><div class="hint sel" style="margin:2px 0 8px">The diff could not be computed.</div></div></div></div>'));
+			const rr = h('<button type="button" class="btn sm">' + ic('refresh', 13) + 'Retry</button>'); rr.onclick = function () { state = 'ok'; render(); }; pane.querySelector('.grow').appendChild(rr); return;
+		}
+		if (after && sn.same) pane.appendChild(h('<div class="nodiff">' + ic('info', 14) + 'No differences from the current version</div>'));
+		const w = h('<div class="dwrap"></div>'); pane.appendChild(w);
+		const head = after ? '<thead><tr><th>Saved</th><th>Current</th><th></th><th class="l">Content</th></tr></thead>' : '';
+		w.innerHTML = '<table class="diff">' + head + '<tbody>' + sn.diff.map(function (r) { return '<tr class="' + r[0] + '"><td class="n">' + (r[1] || '') + '</td><td class="n">' + (r[2] || '') + '</td><td class="g">' + (r[0] === 'add' ? '+' : r[0] === 'del' ? '-' : '') + '</td><td class="sel">' + esc(r[3]) + '</td></tr>'; }).join('') + '</tbody></table>';
+	}
+	render();
+	return { setState: function (s) { state = s; closed = false; if (s === 'nodiff') { state = 'ok'; sel = 2; } else if (s === 'ok') sel = 0; render(); }, setFail: function (v) { failRestore = v; }, select: function (i) { sel = i; render(); } };
+}
+mountAt('p77-after', function (host) {
+	const c = controls(host); const st = stage(host, 'pad'); const T = mkToaster(st); st.style.minHeight = '540px';
+	const fh = mkFileHistory(st, { toaster: T });
+	pgSeg(c, [['ok', 'Normal'], ['loadfail', 'Load fails'], ['difffail', 'Diff fails'], ['nodiff', 'Identical content'], ['empty', 'Empty history']], 'ok', function (v) { fh.setState(v); });
+	pgCheck(c, 'Restore fails', false, function (v) { fh.setFail(v); });
+	c.appendChild(h('<span class="hint" style="font-size:12px">Select "Restore fails" then click Restore to see the error toast with Retry. Success closes the dialog, no extra message.</span>'));
+});
+mountAt('p153-before', function (host) {
+	const st = stage(host, 'pad'); st.style.minHeight = '500px';
+	mkFileHistory(st, { before: true });
+	host.appendChild(h('<p class="note">From code: header shows the formatted date plus the raw epoch in mono, index 0 is labelled "Current" although it is a snapshot, two unlabeled number columns, no summary and no way to jump between changes.</p>'));
+});
+mountAt('p153-after', function (host) {
+	const st = stage(host, 'pad'); st.style.minHeight = '500px'; const T = mkToaster(st);
+	const fh = mkFileHistory(st, { toaster: T });
+	host.appendChild(h('<p class="note">Try the chevrons (Previous/Next change) in the header, and switch versions in the list. The first row is "Latest saved version", not "Current".</p>'));
+});
+
+/* ================= P83 selectable text ================= */
+function mkP83(host, after) {
+	const st = stage(host, 'pad'); st.style.minHeight = '300px';
+	const T = mkToaster(st);
+	const box = h('<div style="display:flex;flex-direction:column;gap:10px"></div>'); st.appendChild(box);
+	box.appendChild(h('<div class="setrow"><div class="grow"><div class="st">Current version</div><div class="hint">Release channel, version, commit and build time</div><div class="mono ' + (after ? 'sel' : '') + '" id="ver' + (after ? 'a' : 'b') + '" style="margin-top:6px;font-size:12px"><span class="chip" style="background:color-mix(in srgb,var(--pri) 18%,transparent);color:var(--pri);height:18px;border-radius:4px">DEV</span> 4.9.1 (f2cd7f9b) (2026-11-17T09:11:08)</div></div></div>'));
+	box.appendChild(h('<div class="errbox" role="alert"><span style="color:var(--des)">' + ic('alert', 16) + '</span><div class="grow"><div class="et">Search failed</div><div class="hint ' + (after ? 'sel' : '') + '" id="err' + (after ? 'a' : 'b') + '" style="margin-top:2px">Search index is not ready: embedding model "bge-m3" returned status 503 at 09:11:42</div></div></div>'));
+	const row = h('<div class="row"></div>'); box.appendChild(row);
+	const b = h('<button type="button" class="btn sm">Select the version text</button>'); row.appendChild(b);
+	const t = h('<button type="button" class="btn sm">Show error toast</button>'); row.appendChild(t);
+	const res = h('<p class="hint">Try dragging across the version, the error or the toast text.</p>'); box.appendChild(res);
+	b.onclick = function () { const el = document.getElementById('ver' + (after ? 'a' : 'b')); const r = document.createRange(); r.selectNodeContents(el); const s = getSelection(); s.removeAllRanges(); s.addRange(r); res.textContent = after ? 'Selected: you can now Cmd+C the version.' : 'Nothing visible is selected: user-select is none on body.'; };
+	t.onclick = function () { if (after) T.push({ sev: 'err', close: true, title: 'Could not create the "Meeting" type', desc: 'A file named Meeting.md already exists in _system/types.' }); else T.push({ sev: 'err', rich: true, dur: 4000, title: 'Could not create the "Meeting" type' }); };
+	if (!after) {
+		/* the before panel inherits user-select:none from .kk; nothing opts back in */
+	}
+	return st;
+}
+mountAt('p83-before', function (host) { mkP83(host, false); });
+mountAt('p83-after', function (host) { const st = mkP83(host, true); st.appendChild(h('<p class="hint" style="margin-top:10px">Outlined rule: chrome (buttons, labels, rows) stays unselectable; settings content, errors, Info values, dialogs and toasts get <code>selectable</code> (user-select: text, I-beam cursor).</p>')); });
+
+/* ================= P89 copy feedback ================= */
+function mkP89(host, after) {
+	const st = stage(host, 'pad'); st.style.minHeight = '400px'; const T = mkToaster(st);
+	const lines = [{ t: '## Release notes', id: null }, { t: 'Notarize the dmg before Friday.', id: null }, { t: '', id: null }, { t: 'Send the changelog to the beta list.', id: null }];
+	let cur = 1;
+	const ed = h('<div class="card" style="padding:6px 0;margin-bottom:10px"></div>'); st.appendChild(ed);
+	const log = h('<p class="hint" style="margin-top:6px"></p>');
+	function renderEd() {
+		ed.innerHTML = '';
+		lines.forEach(function (l, i) {
+			const r = h('<div style="display:flex;gap:10px;padding:1px 12px;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:20px;cursor:text;' + (i === cur ? 'background:var(--acc)' : '') + '"><span style="width:16px;color:var(--faint);text-align:right">' + (i + 1) + '</span><span class="grow"></span></div>');
+			r.lastChild.textContent = l.t + (l.id ? ' ^' + l.id : '') || ' '; r.onclick = function () { cur = i; renderEd(); }; ed.appendChild(r);
+		});
+	}
+	renderEd();
+	const row = h('<div class="row" style="flex-wrap:wrap"></div>'); st.appendChild(row);
+	const idleBlock = ic('link', 13) + '<span>Copy block link</span>';
+	const bBlock = h('<button type="button" class="btn sm">' + idleBlock + '</button>'); row.appendChild(bBlock);
+	bBlock.onclick = function () {
+		const l = lines[cur];
+		if (!l.t) { if (after) T.push({ sev: 'warn', dur: 4000, title: 'Place the cursor on a block' }); else log.textContent = 'Nothing happened (empty line, no feedback).'; return; }
+		const id = l.id || 'a' + Math.random().toString(36).slice(2, 7);
+		const link = '[[Release notes#^' + id + ']]';
+		if (!after) { l.id = id; renderEd(); copyText(link); log.textContent = 'Silent. The ^id was inserted first; if the clipboard write failed you would never know.'; return; }
+		swapCopied(bBlock, link, idleBlock, function () { T.push({ sev: 'err', close: true, title: 'Could not copy to the clipboard' }); }).then(function (ok) { if (ok) { l.id = id; renderEd(); log.textContent = 'Clipboard written first, then the ^id was added.'; } else log.textContent = 'Clipboard failed: no stray ^id was inserted.'; });
+	};
+	const idlePath = ic('copy', 13) + '<span>Copy path</span>';
+	const bPath = h('<button type="button" class="btn sm">' + idlePath + '</button>'); row.appendChild(bPath);
+	bPath.onclick = function () { if (!after) { copyText('Projects/Kokobrain Launch Plan.md'); log.textContent = 'Row-menu Copy path: says nothing.'; } else swapCopied(bPath, 'Projects/Kokobrain Launch Plan.md', idlePath); };
+	const code = h('<div class="card" style="margin-top:12px;overflow:hidden"><div class="row" style="padding:4px 8px;background:var(--panel)"><span class="hint">ts</span><span class="grow"></span></div><pre class="mono" style="margin:0;padding:8px 12px;font-size:12px;line-height:18px">const id = nanoid(6)</pre></div>'); st.appendChild(code);
+	const idleCode = ic('copy', 12) + '<span>Copy</span>';
+	const bCode = h('<button type="button" class="btn sm ghost" style="height:22px">' + idleCode + '</button>'); code.querySelector('.row').appendChild(bCode);
+	bCode.onclick = function () { if (!after) { copyText('const id = nanoid(6)'); bCode.innerHTML = ic('check', 12); setTimeout(function () { bCode.innerHTML = idleCode; }, 1000); log.textContent = 'Code block today: icon-only swap, no label.'; } else swapCopied(bCode, 'const id = nanoid(6)', idleCode); };
+	st.appendChild(log);
+	log.textContent = after ? 'Click line 3 (empty) then Copy block link; then a text line.' : 'Click line 3 (empty) then Copy block link; then a text line.';
+}
+mountAt('p89-before', function (host) { mkP89(host, false); });
+mountAt('p89-after', function (host) { mkP89(host, true); });
+
+/* ================= P91 new event form ================= */
+function mkP91(host, after) {
+	const st = stage(host, 'pad'); st.style.minHeight = '330px'; const T = mkToaster(st);
+	const f = h('<div class="fcard"><h3>New event</h3><label class="flab" for="ti' + (after ? 'a' : 'b') + '">Title</label><input class="inp" id="ti' + (after ? 'a' : 'b') + '" ' + (after ? 'placeholder="Event title"' : '') + '><div class="ferr" hidden></div><div class="grid2" style="margin-top:6px"><div><label class="flab">Date</label><input class="inp" value="2026-11-18"></div><div><label class="flab">Time</label><input class="inp" value="14:00"></div></div><div class="row" style="justify-content:flex-end;margin-top:16px"><button type="button" class="btn" data-a="x">Cancel</button><button type="button" class="btn pri" data-a="s">Save</button></div></div>');
+	st.appendChild(f);
+	const inp = f.querySelector('.inp'), err = f.querySelector('.ferr'), save = f.querySelector('[data-a=s]');
+	const valid = function () { return inp.value.trim().length > 0; };
+	function show(on) { err.hidden = !on; err.textContent = on ? 'Enter a title.' : ''; inp.setAttribute('aria-invalid', String(on)); if (on) { inp.setAttribute('aria-describedby', err.id = 'e' + Math.random().toString(36).slice(2, 6)); } else inp.removeAttribute('aria-describedby'); }
+	if (!after) {
+		err.style.fontSize = '12px'; const sync = function () { show(!valid()); save.disabled = !valid(); save.setAttribute('aria-disabled', String(!valid())); }; inp.oninput = sync; sync();
+	} else {
+		inp.onblur = function () { if (!valid()) show(true); }; inp.oninput = function () { if (valid()) show(false); };
+		save.onclick = function () { if (!valid()) { show(true); inp.focus(); return; } T.push({ sev: 'ok', dur: 4000, title: 'Event created', desc: inp.value }); };
+	}
+	st.appendChild(h('<p class="hint" style="text-align:center;margin-top:12px">' + (after ? 'Opens clean. Leave the field empty (blur) or press Save to see the error, text-meta in the error token, linked with aria-describedby.' : 'Opens with the red error and a disabled Save before anything was typed.') + '</p>'));
+}
+mountAt('p91-before', function (host) { mkP91(host, false); });
+mountAt('p91-after', function (host) { mkP91(host, true); });
+
+/* ================= P90 async dialog ================= */
+function mkP90(host, after) {
+	const c = controls(host); const st = stage(host, 'pad'); st.style.minHeight = '340px'; const T = mkToaster(st);
+	let fail = true;
+	pgCheck(c, 'The work fails', true, function (v) { fail = v; });
+	const launch = h('<div class="row"><button type="button" class="btn">New type...</button><button type="button" class="btn">Rename type...</button><span class="grow"></span></div>'); st.appendChild(launch);
+	const lastName = { v: '' };
+	const prog = h('<p class="hint" style="margin-top:10px"></p>'); st.appendChild(prog);
+	const scrim = h('<div class="scrim" hidden></div>'); st.appendChild(scrim);
+	function dialog(kind) {
+		scrim.hidden = false;
+		const rename = kind === 'rename';
+		scrim.innerHTML = '<div class="dlg sm" role="dialog" aria-modal="true"><h3>' + (rename ? 'Rename type' : 'New type') + '</h3><p>' + (rename ? 'Notes of this type are updated to the new name.' : 'Types describe a kind of note, such as Project or Person.') + '</p><input class="inp" aria-label="Type name" value="' + esc(lastName.v || (rename ? 'Project' : '')) + '" placeholder="Type name"><div class="ferr" hidden></div><div class="foot" style="margin-top:14px"><button type="button" class="btn" data-a="c">Cancel</button><button type="button" class="btn pri" data-a="ok">' + (rename ? 'Rename' : 'Create') + '</button></div></div>';
+		const inp = scrim.querySelector('input'), err = scrim.querySelector('.ferr'), ok = scrim.querySelector('[data-a=ok]'), cancel = scrim.querySelector('[data-a=c]');
+		inp.focus();
+		cancel.onclick = function () { scrim.hidden = true; };
+		ok.onclick = function () {
+			const name = inp.value.trim(); if (!name) return; lastName.v = name;
+			if (!after) {
+				scrim.hidden = true; prog.textContent = 'Dialog closed immediately. Working...';
+				setTimeout(function () { if (fail) { prog.textContent = 'Failed. The typed name is gone; reopening starts empty.'; lastName.v = ''; T.push({ sev: 'err', rich: true, dur: 4000, title: 'Could not create the "' + name + '" type' }); } else prog.textContent = 'Done.'; }, 1100);
+				return;
+			}
+			ok.disabled = true; ok.classList.add('busy'); inp.disabled = true; cancel.disabled = true;
+			ok.innerHTML = ic('loader', 13, 'spin') + (rename ? 'Renaming…' : 'Creating…');
+			if (rename) { err.hidden = false; err.style.color = 'var(--mut)'; err.textContent = 'Updating notes… 0 of 120'; let n = 0; const iv = setInterval(function () { n += 24; err.textContent = 'Updating notes… ' + Math.min(n, 120) + ' of 120'; if (n >= 120) clearInterval(iv); }, 200); }
+			setTimeout(function () {
+				if (fail) { ok.disabled = false; ok.classList.remove('busy'); inp.disabled = false; cancel.disabled = false; ok.textContent = rename ? 'Rename' : 'Create'; err.hidden = false; err.style.color = 'var(--des)'; err.textContent = 'Could not ' + (rename ? 'rename' : 'create') + ' the "' + name + '" type: a file named ' + name + '.md already exists.'; inp.focus(); }
+				else { scrim.hidden = true; prog.textContent = 'Done. The dialog stayed open until the work finished.'; }
+			}, rename ? 1100 : 1000);
+		};
+		scrim.onkeydown = function (e) { if (e.key === 'Escape' && !cancel.disabled) scrim.hidden = true; if (e.key === 'Enter' && e.target === inp) ok.click(); };
+	}
+	launch.children[0].onclick = function () { dialog('new'); }; launch.children[1].onclick = function () { dialog('rename'); };
+	st.appendChild(h('<p class="hint" style="margin-top:6px">' + (after ? 'Confirm shows a busy state, the name stays, a failure appears inline under the field.' : 'Today the dialog closes first and the toast arrives later; the name is lost.') + '</p>'));
+}
+mountAt('p90-before', function (host) { mkP90(host, false); });
+mountAt('p90-after', function (host) { mkP90(host, true); });
+
+/* ================= P87 theme rows ================= */
+const THEMES = [
+	{ n: 'KokoBrain Default', s: 'Built-in', th: ['#1e2030', '#262938', '#2a2e3d'] },
+	{ n: 'Lavender Haze', s: 'Built-in', th: ['#EAE6F2', '#F3F0F8', '#FFFFFF'] },
+	{ n: 'Midnight copy', s: 'Mine', th: ['#10131c', '#171b27', '#1d2230'] }
+];
+function thumb(t) { return '<span class="thumb">' + t.th.map(function (c) { return '<i style="background:' + c + '"></i>'; }).join('') + '</span>'; }
+mountAt('p87-before', function (host) {
+	const st = stage(host, 'pad'); const read = readout(host); let sel = 0;
+	const wrap = h('<div></div>'); st.appendChild(wrap);
+	function paint() {
+		wrap.innerHTML = '';
+		THEMES.forEach(function (t, i) {
+			const r = h('<div class="throw hovonly' + (i === sel ? ' sel-on' : '') + '" role="button" tabindex="0">' + thumb(t) + '<div class="grow"><div class="tn">' + t.n + '</div><div class="hint">' + (i === sel ? 'Active' : t.s) + '</div></div><div class="acts"><button type="button" class="tbtn sm" aria-label="Edit theme">' + ic('pencil', 14) + '</button><button type="button" class="tbtn sm" aria-label="Duplicate theme">' + ic('copy', 14) + '</button></div></div>');
+			const pick = function (why) { sel = i; read('Theme selected and persisted: <b>' + t.n + '</b> (' + why + ')'); paint(); };
+			r.onclick = function () { pick('row click'); };
+			r.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick('keydown on ' + (e.target === r ? 'row' : '<b>' + e.target.getAttribute('aria-label') + '</b>, bubbled')); } });
+			const btns = r.querySelectorAll('button'); btns[0].onclick = function (e) { e.stopPropagation(); read('Edit opened for <b>' + t.n + '</b> (selection side effect may already have happened)'); }; btns[1].onclick = function (e) { e.stopPropagation(); read('Duplicated <b>' + t.n + '</b>'); };
+			wrap.appendChild(r);
+		});
+	}
+	paint(); read('Tab to the Edit icon of "Lavender Haze" and press Enter.');
+});
+mountAt('p87-after', function (host) {
+	const st = stage(host, 'pad'); const read = readout(host); let sel = 0;
+	const wrap = h('<div role="radiogroup" aria-label="Color theme"></div>'); st.appendChild(wrap);
+	function paint(focusIdx) {
+		wrap.innerHTML = '';
+		THEMES.forEach(function (t, i) {
+			const r = h('<div class="throw vis' + (i === sel ? ' sel-on' : '') + '"><button type="button" role="radio" class="rmain" aria-checked="' + (i === sel) + '" tabindex="' + (i === sel ? 0 : -1) + '"><span class="radio"></span>' + thumb(t) + '<span class="grow"><span class="tn" style="display:block">' + t.n + '</span><span class="hint" style="display:block">' + (i === sel ? 'Active' : t.s) + '</span></span></button><div class="acts"><button type="button" class="tbtn sm" aria-label="Edit ' + t.n + '" data-tip="Edit theme">' + ic('pencil', 14) + '</button><button type="button" class="tbtn sm" aria-label="Duplicate ' + t.n + '" data-tip="Duplicate">' + ic('copy', 14) + '</button></div></div>');
+			const m = r.querySelector('.rmain'); m.onclick = function () { sel = i; read('Theme selected: <b>' + t.n + '</b>'); paint(i); };
+			m.addEventListener('keydown', function (e) { const d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0; if (d) { e.preventDefault(); sel = (i + d + THEMES.length) % THEMES.length; read('Theme selected: <b>' + THEMES[sel].n + '</b>'); paint(sel); } });
+			const b = r.querySelectorAll('.acts button'); b[0].onclick = function () { read('Edit opened for <b>' + t.n + '</b>. Selection unchanged: <b>' + THEMES[sel].n + '</b>'); }; b[1].onclick = function () { read('Duplicated <b>' + t.n + '</b>. Selection unchanged.'); };
+			wrap.appendChild(r);
+		});
+		if (focusIdx != null) wrap.querySelectorAll('.rmain')[focusIdx].focus();
+	}
+	paint(); read('Tab to Edit on "Lavender Haze" and press Enter: selection does not move. Arrow keys move the radio.');
+});
+
+/* ================= P92 dialog sizes, elevation, sheet ================= */
+mountAt('p92-after', function (host) {
+	const c = controls(host); const st = stage(host, 'pad'); st.style.minHeight = '470px';
+	st.appendChild(h('<div class="secl" style="margin-bottom:8px">Elevation tokens (read by every floating surface)</div>'));
+	st.appendChild(h('<div class="elev"><div style="box-shadow:var(--shadow-xs)">shadow-xs</div><div style="box-shadow:var(--shadow-sm)">shadow-sm</div><div style="box-shadow:var(--shadow-md)">shadow-md: menus, popovers</div><div style="box-shadow:var(--shadow-xl)">shadow-xl: dialogs, sheet</div></div>'));
+	const win = h('<div class="winpane" style="margin-top:16px;height:270px"><div class="winbar"><i></i><i></i><i></i><span style="margin-left:6px">Kokobrain</span></div><div style="padding:14px;font-size:13px;color:var(--mut)">Editor area. Open a dialog, or the Settings sheet.</div></div>'); st.appendChild(win);
+	const scrim = h('<div class="scrim" hidden style="top:28px"></div>'); win.appendChild(scrim);
+	function dlg(size) {
+		const sizes = { sm: 'sm (340 px): confirmations', md: 'md (480 px): forms', lg: 'lg (680 px): browsers and previews' };
+		scrim.hidden = false; scrim.innerHTML = '<div class="dlg ' + size + '" role="dialog" aria-modal="true"><h3>Dialog ' + size + '</h3><p>' + sizes[size] + '. Explicit widths stay where content needs them (icon picker, diff).</p><div class="foot"><button type="button" class="btn" data-a="c">Close</button></div></div>';
+		const b = scrim.querySelector('button'); b.focus(); b.onclick = function () { scrim.hidden = true; };
+		scrim.onkeydown = function (e) { if (e.key === 'Escape') scrim.hidden = true; };
+	}
+	['sm', 'md', 'lg'].forEach(function (s) { pgBtn(c, 'Dialog ' + s, function () { dlg(s); }); });
+	const bs = h('<div class="bscrim" hidden></div>'); win.appendChild(bs);
+	const sheet = h('<div class="sheet out" role="dialog" aria-label="Settings"><div class="row"><b>Settings</b><span class="grow"></span><button type="button" class="tbtn sm" aria-label="Close settings">' + ic('x', 14) + '</button></div><div class="secl">General</div><div class="rowitem">Appearance</div><div class="rowitem">Editor</div><div class="secl">Vault</div><div class="rowitem">File History</div></div>'); win.appendChild(sheet);
+	let lit = false, scr = false, open = false;
+	function paintSheet() { sheet.style.boxShadow = lit ? '-4px 0 12px rgba(0,0,0,0.15)' : 'var(--shadow-xl)'; sheet.classList.toggle('out', !open); bs.hidden = !(scr && open); }
+	pgBtn(c, 'Toggle Settings sheet', function () { open = !open; paintSheet(); });
+	sheet.querySelector('.tbtn').onclick = function () { open = false; paintSheet(); };
+	pgSeg(c, [['tok', 'Sheet: var(--shadow-xl)'], ['lit', 'Sheet: literal (today)']], 'tok', function (v) { lit = v === 'lit'; paintSheet(); });
+	pgCheck(c, 'Scrim behind sheet (owner decision)', false, function (v) { scr = v; paintSheet(); });
+	paintSheet();
+});
+
+/* ================= P93 badges ================= */
+mountAt('p93-after', function (host) {
+	const st = stage(host, 'pad');
+	const grid = h('<div style="display:grid;grid-template-columns:90px 1fr;gap:10px 14px;align-items:center"></div>'); st.appendChild(grid);
+	const row = function (k, inner) { grid.appendChild(h('<div class="secl"></div>')).textContent = k; grid.appendChild(h('<div class="pill-row">' + inner + '</div>')); };
+	row('count', '<span class="bd count">4</span><span class="bd count">18</span><span class="bd count">128</span>');
+	row('tag', '<span class="bd tag">#design</span><span class="bd tag" style="--tc:var(--type-blue)">#calendar</span><span class="bd tag" style="--tc:var(--type-yellow)">#docs</span><span class="bd tag" style="--tc:var(--type-gray)">#research</span>');
+	row('type', '<span class="bd type">Project</span><span class="bd type">Person</span><span class="bd type">Event</span>');
+	row('date', '<span class="bd date">' + ic('cal', 11) + '2026-12-01</span><span class="bd date soon">' + ic('cal', 11) + '2026-11-18</span><span class="bd date over">' + ic('cal', 11) + '2026-11-11</span>');
+	st.appendChild(h('<div class="hr" style="margin:16px 0"></div>'));
+	st.appendChild(h('<div class="secl" style="margin-bottom:8px">In context (adopted where code is touched next)</div>'));
+	const two = h('<div class="grid2" style="gap:12px"></div>'); st.appendChild(two);
+	two.appendChild(h('<div class="nrow"><div class="nt1">Kokobrain Launch Plan</div><div class="nt2">just now · Projects</div><div class="pill-row" style="margin-top:6px"><span class="bd type">Project</span><span class="bd date soon">' + ic('cal', 11) + '2026-11-21</span><span class="bd tag" style="--tc:var(--type-blue)">#launch</span></div></div>'));
+	two.appendChild(h('<div class="kcard" style="box-shadow:var(--shadow-sm)"><span style="width:16px;height:16px;border:1px solid var(--faint);border-radius:4px;flex:none;margin-top:1px"></span><div><div>Settings dialog audit</div><div class="pill-row" style="margin-top:4px"><span class="bd tag">#design</span><span class="bd date over">' + ic('cal', 11) + '2026-11-11</span></div></div></div>'));
+	st.appendChild(h('<p class="hint" style="margin-top:12px">One height (20 px), radius-sm, 11 px label type. Tint = 13 to 18 % of the hue over the surface, so contrast holds in every theme. Count is the only filled variant.</p>'));
+});
+
+/* ================= P171 reduced motion ================= */
+function mkMotion(host, after) {
+	const st = stage(host, 'pad' + (after ? '' : ' noact')); st.style.minHeight = '300px';
+	const demo = h('<div class="motion-demo"><span class="row" style="gap:6px">' + ic('loader', 16, 'spin') + 'Indexing</span><span class="row" style="gap:6px"><span class="pulse"></span>Saving</span><button type="button" class="btn sm" aria-expanded="false"><span class="chev" style="display:inline-flex">' + ic('right', 14) + '</span>Section</button></div>'); st.appendChild(demo);
+	const dr = h('<div class="drawer" style="margin-top:14px"><div style="padding:10px" class="hint">Editor</div><div class="dp"><b>Settings</b><div class="hint">Slides in over 200 ms</div></div></div>'); st.appendChild(dr);
+	const chev = demo.querySelector('.chev'), btn = demo.querySelector('button'); let o = false;
+	btn.onclick = function () { o = !o; chev.style.transform = o ? 'rotate(90deg)' : ''; btn.setAttribute('aria-expanded', String(o)); };
+	const tg = h('<button type="button" class="btn sm" style="margin-top:10px">Toggle drawer</button>'); st.appendChild(tg);
+	tg.onclick = function () { dr.querySelector('.dp').classList.toggle('in'); };
+	st.appendChild(h('<p class="hint" style="margin-top:10px">' + (after ? 'Tick "Simulate OS Reduce motion" above: spinner, pulse, chevron and drawer stop animating. Content still updates.' : 'Ignores the OS setting: spinner, pulse, chevron and the drawer fly always animate (only EventCalendarView honours it).') + '</p>'));
+	return { set: function (v) { st.dataset.rm = v ? '1' : ''; dr.classList.toggle('rm', v); } };
+}
+mountAt('p171-before', function (host) { mkMotion(host, false); });
+mountAt('p171-after', function (host) {
+	const c = controls(host); const m = mkMotion(host, true);
+	pgCheck(c, 'Simulate OS "Reduce motion"', false, function (v) { m.set(v); });
+	const q = window.matchMedia('(prefers-reduced-motion: reduce)');
+	c.appendChild(h('<span class="hint" style="font-size:12px">Your OS currently reports: ' + (q.matches ? 'reduce' : 'no-preference') + '</span>'));
+	host.appendChild(h('<pre class="code mt">/* app.css, @layer base */\n@media (prefers-reduced-motion: reduce) {\n  *, ::before, ::after {\n    animation-duration: 0.01ms !important;\n    animation-iteration-count: 1 !important;\n    transition-duration: 0.01ms !important;\n    scroll-behavior: auto !important;\n  }\n}\n\n// SettingsPanel.svelte: a JS-driven transition needs its own gate\nimport { prefersReducedMotion } from \'svelte/motion\';\ntransition:fly={{ x: prefersReducedMotion.current ? 0 : 820, duration: prefersReducedMotion.current ? 0 : 200 }}</pre>'));
+	host.appendChild(h('<p class="note">Checked: <code>prefersReducedMotion</code> is exported by <code>svelte/motion</code> in the installed Svelte 5.57.3 (types/index.d.ts). Duration tokens only if they get adopted.</p>'));
+});
+
+/* ================= P172 copy ================= */
+const COPY_ROWS = [
+	['Failed to restore version', 'Could not restore this version', 'Toast. 114 "Failed to" vs 44 "Could not" in src/lib, many log-only (left alone)', 'confirmed'],
+	['Failed to load snapshots', 'Could not load versions', 'Inline error, same voice and one noun', 'example'],
+	['1 words', '1 word', 'WordCount.svelte has no plural handling', 'confirmed'],
+	['Source mode / Show raw Markdown', 'Source mode (title and menu)', 'EditorView titles sit against "Board view", "Table view"', 'confirmed'],
+	['Open daily note (Cmd+D)', 'Open daily note + shortcut chip from the keybinding', 'NoteActionBar.svelte hard-codes the shortcut', 'confirmed'],
+	['Loading... and Loading…', 'Loading…', 'One ellipsis style', 'example'],
+	['Colour, Organise', 'Color, Organize', 'US spelling throughout', 'example'],
+	['No items / Nothing here / No results found', 'No <things> yet (empty), No results (filtered)', 'One phrasing per case', 'example']
+];
+mountAt('p172-before', function (host) {
+	const st = stage(host, 'pad');
+	st.innerHTML = '<table class="spec" style="width:100%"><thead><tr><th>Today</th><th>Where</th></tr></thead><tbody>' + COPY_ROWS.map(function (r) { return '<tr><td class="bad">' + esc(r[0]) + '</td><td class="hint">' + esc(r[2]) + ' <span style="opacity:.7">(' + r[3] + ')</span></td></tr>'; }).join('') + '</tbody></table>';
+});
+mountAt('p172-after', function (host) {
+	const st = stage(host, 'pad');
+	st.innerHTML = '<table class="spec" style="width:100%"><thead><tr><th>After</th></tr></thead><tbody>' + COPY_ROWS.map(function (r) { return '<tr><td style="color:var(--ok)">' + esc(r[1]) + '</td></tr>'; }).join('') + '</tbody></table>';
+	const demo = h('<div class="grid2" style="margin-top:14px;gap:12px"><div class="tile"><b>Word count</b><div class="row" style="margin:8px 0"><button type="button" class="btn sm" data-d="-1">-</button><span class="mono" data-n style="min-width:34px;text-align:center">1</span><button type="button" class="btn sm" data-d="1">+</button></div><div class="annot">Before: <span class="bad" data-b></span><br>After: <span data-a style="color:var(--ok)"></span></div></div><div class="tile"><b>Shortcut chip</b><div class="row" style="margin:8px 0"><button type="button" class="btn sm" data-tip="Open daily note" data-keys="⌘D">' + ic('cal', 14) + 'Daily note</button></div><div class="annot">Chip is read from the keybinding, so remapping updates the label.</div></div></div>');
+	st.appendChild(demo); let n = 1;
+	function p() { demo.querySelector('[data-n]').textContent = n; demo.querySelector('[data-b]').textContent = n + ' words'; demo.querySelector('[data-a]').textContent = n + ' word' + (n === 1 ? '' : 's'); }
+	demo.querySelectorAll('[data-d]').forEach(function (b) { b.onclick = function () { n = Math.max(0, n + +b.dataset.d); p(); }; }); p();
+	st.appendChild(h('<p class="hint" style="margin-top:10px">Scope: toasts, labels, titles and empty states only. Log messages stay. Extend <code>settings-copy.test.ts</code> for the settings strings only.</p>'));
+});
+
+/* ================= P174 tokens ================= */
+mountAt('p174-before', function (host) {
+	const st = stage(host, 'pad');
+	st.innerHTML = '<div class="secl" style="margin-bottom:6px">chrome-type-scale.test.ts today</div><div class="lint"><span class="g">$ pnpm vitest run chrome-type-scale</span>\n  ok  no text-[Npx] below the 11 px floor\n  ok  section labels use the section-label utility\n\n<span class="g">28 raw text-[Npx] sites above the floor pass silently,\ne.g. MyPeopleSection.svelte:58, CalendarGrid.svelte:57.\nNo rule covers radii (px in kb-ui.ts inline styles) or z-index.</span></div><div class="secl" style="margin:14px 0 6px">Type roles that exist</div><div class="mut t-meta">label 11, meta 12, rail 13, row 14, title 15 (semibold). Nothing stops a new text-[12px].</div>';
+});
+mountAt('p174-after', function (host) {
+	const st = stage(host, 'pad');
+	st.innerHTML = '<div class="secl" style="margin-bottom:6px">Type roles (already in app.css)</div><div class="tile" style="display:grid;gap:4px"><div style="font-size:11px;line-height:16px">text-label 11: chips, section labels</div><div style="font-size:12px;line-height:16px">text-meta 12: counts, timestamps, status</div><div style="font-size:13px;line-height:18px">text-rail 13: rail row titles</div><div style="font-size:14px;line-height:20px">text-row 14: list rows</div><div style="font-size:15px;line-height:22px;font-weight:600">text-title 15: panel titles</div></div>' +
+		'<div class="secl" style="margin:14px 0 6px">Radius tokens (proposed utilities, derived from --radius)</div><div class="row" style="gap:10px;flex-wrap:wrap">' + ['xs', 'sm', 'md', 'lg', 'xl'].map(function (k) { return '<div style="text-align:center"><div style="width:56px;height:40px;border:1px solid var(--div);background:var(--pop);border-radius:var(--r-' + k + ')"></div><div class="annot" style="margin-top:4px">radius-' + k + '</div></div>'; }).join('') + '</div>' +
+		'<div class="secl" style="margin:14px 0 6px">z-index scale (proposed values)</div><div class="zstack">' + [['sticky', 10], ['sheet', 20], ['popover', 40], ['dialog', 50], ['toast', 70], ['tooltip', 80]].map(function (z, i) { return '<div style="--i:' + i + ';z-index:' + z[1] + '">--z-' + z[0] + ': ' + z[1] + '</div>'; }).join('') + '</div>' +
+		'<div class="secl" style="margin:10px 0 6px">Extended lint output (proposed)</div><div class="lint"><span class="g">$ pnpm vitest run chrome-type-scale</span>\n<span class="f">FAIL</span>  MyPeopleSection.svelte:58  text-[Npx] where a role exists, use text-meta / text-rail / text-row\n<span class="f">FAIL</span>  CalendarGrid.svelte:57     text-[Npx] where a role exists\n<span class="g">illustrative: the real list comes from running the lint over the 28 sites</span></div>' +
+		'<p class="hint" style="margin-top:10px">Ticket separately: the duplicated .dark fallback generation and the stale "today" after midnight. Remove the unused Separator imports (BacklinksPanel, OutgoingLinksPanel).</p>';
+});
+
+/* ================= P175 pressed + cursors ================= */
+function mkP175(host, after) {
+	const st = stage(host, 'pad' + (after ? ' after-press' : ' noact')); st.style.minHeight = '320px';
+	const cur = function (c) { return after ? c : 'pointer'; };
+	st.appendChild(h('<div class="secl" style="margin-bottom:6px">Press and hold each (hover, then mouse down)</div>'));
+	const row = h('<div class="row" style="flex-wrap:wrap"></div>'); st.appendChild(row);
+	row.appendChild(h('<button type="button" class="btn">Button</button>')).style.cursor = cur('default');
+	row.appendChild(h('<button type="button" class="btn pri">Primary</button>')).style.cursor = cur('default');
+	const t1 = h('<div class="ptile" style="width:150px">List row</div>'); t1.style.cursor = cur('default'); row.appendChild(t1);
+	st.appendChild(h('<div class="secl" style="margin:14px 0 6px">Cursor on hover (watch the real cursor)</div>'));
+	const g = h('<div class="grid3"></div>'); st.appendChild(g);
+	const tiles = after ?
+		[['Toolbar button', 'default', 'arrow on chrome'], ['List row', 'default', 'arrow'], ['Link, wikilink', 'pointer', 'hand: links only'], ['Text field', 'text', 'I-beam'], ['Card drag handle', 'grab', 'open hand'], ['Disabled', 'not-allowed', 'not allowed']] :
+		[['Toolbar button', 'pointer', 'hand (88 uses of pointer)'], ['List row', 'pointer', 'hand'], ['Link, wikilink', 'pointer', 'hand'], ['Text field', 'text', 'I-beam'], ['Tab', 'default', 'arrow (54 uses of default)'], ['Chip', 'pointer', 'hand, inconsistent']];
+	tiles.forEach(function (t) { const e = h('<div class="ctile"><b></b><code></code><span class="hint"></span></div>'); e.querySelector('b').textContent = t[0]; e.querySelector('code').textContent = 'cursor: ' + t[1]; e.querySelector('.hint').textContent = t[2]; e.style.cursor = t[1]; g.appendChild(e); });
+	st.appendChild(h('<p class="hint" style="margin-top:12px">' + (after ? 'Pressed fill is one step stronger than hover (acc, then hov). macOS convention: arrow on chrome, hand only on links.' : 'Hover changes the fill; pressing changes nothing. The hand cursor appears on some chrome and not on other chrome.') + '</p>'));
+}
+mountAt('p175-before', function (host) { mkP175(host, false); });
+mountAt('p175-after', function (host) { mkP175(host, true); });
+
+</script>
+</body>
+</html>

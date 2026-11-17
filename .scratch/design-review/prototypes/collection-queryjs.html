@@ -1,0 +1,1365 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Collection views and QueryJS result tables</title>
+<style>
+	/* Tokens copied from src/app.css (dark = KokoBrain Default) and the Lavender Haze snapshot (light). */
+	:root, :root[data-theme="light"] {
+		color-scheme: light;
+		--background: #F3F0F8;
+		--foreground: #302840;
+		--card: #EAE6F2;
+		--popover: #FFFFFF;
+		--primary: #6848A8;
+		--primary-foreground: #ffffff;
+		--muted: #D5D0E2;
+		--muted-foreground: #645c74;
+		--accent: #D5D0E2;
+		--border: #D5D0E2;
+		--input: #D5D0E2;
+		--input-bg: #EAE6F2;
+		--ring: #6848A8;
+		--divider: #C0B8D0;
+		--destructive: #C83848;
+		--editor-bg: #F3F0F8;
+		--editor-fg: #302840;
+		--tab-bar: #edeaf2;
+		--success: #357458;
+		--warning: #786714;
+		--type-orange: #b66737;
+		--type-blue: #3868B0;
+		--lp-collection-bg: #DDD8E8;
+		--lp-collection-border: #D5D0E2;
+		--lp-collection-header: #504868;
+		--lp-collection-header-border: #D5D0E2;
+		--lp-collection-table-alt: #DDD8E845;
+		--lp-collection-table-header-bg: #e2dded;
+		--lp-collection-table-header-text: #504868;
+		--lp-collection-table-hover: #D5D0E287;
+		--lp-collection-null: #C0B8D0;
+		--lp-collection-error: #C83848;
+		--lp-wikilink: #7848B8;
+		--lp-wikilink-decoration: #7848B845;
+		--elev-shadow-1: #3028400f;
+		--elev-shadow-2: #3028401a;
+		--elev-ring: #30284014;
+	}
+	:root[data-theme="dark"] {
+		color-scheme: dark;
+		--background: #21222e;
+		--foreground: #F8F8F2;
+		--card: #2a2e3d;
+		--popover: oklch(0.22 0.025 273);
+		--primary: oklch(0.73 0.08 278);
+		--primary-foreground: oklch(0.19 0.025 273);
+		--muted: oklch(0.28 0.025 272);
+		--muted-foreground: oklch(0.55 0.06 268);
+		--accent: oklch(0.28 0.025 272);
+		--border: oklch(0.28 0.025 272);
+		--input: oklch(0.28 0.025 272);
+		--input-bg: #3d4058;
+		--ring: oklch(0.73 0.08 278);
+		--divider: #383a4f;
+		--destructive: oklch(0.628 0.225 25);
+		--editor-bg: #2a2e3d;
+		--editor-fg: #F8F8F2;
+		--tab-bar: #5a5c79;
+		--success: #4ade80;
+		--warning: #fbbf24;
+		--type-orange: #fb8336;
+		--type-blue: #60a5fa;
+		--lp-collection-bg: #1e1e2e;
+		--lp-collection-border: #313244;
+		--lp-collection-header: #a6adc8;
+		--lp-collection-header-border: #313244;
+		--lp-collection-table-alt: #1e1e2e44;
+		--lp-collection-table-header-bg: #181825;
+		--lp-collection-table-header-text: #a6adc8;
+		--lp-collection-table-hover: #31324488;
+		--lp-collection-null: #585b70;
+		--lp-collection-error: #f38ba8;
+		--lp-wikilink: #a78bfa;
+		--lp-wikilink-decoration: #a78bfa44;
+		--elev-shadow-1: #00000040;
+		--elev-shadow-2: #00000073;
+		--elev-ring: #ffffff0f;
+	}
+	:root {
+		--radius: 0.625rem;
+		--radius-xs: calc(var(--radius) - 6px);
+		--radius-sm: calc(var(--radius) - 4px);
+		--radius-md: calc(var(--radius) - 2px);
+		--radius-lg: var(--radius);
+		--radius-xl: calc(var(--radius) + 4px);
+		--shadow-md: 0 0 0 1px var(--elev-ring), 0 4px 12px -2px var(--elev-shadow-2), 0 2px 4px -2px var(--elev-shadow-1);
+		--event-blue-bg: color-mix(in oklab, #3b82f6 25%, var(--editor-bg));
+		--event-blue-fg: color-mix(in oklab, #3b82f6 30%, var(--editor-fg));
+		--event-green-bg: color-mix(in oklab, #10b981 25%, var(--editor-bg));
+		--event-green-fg: color-mix(in oklab, #10b981 30%, var(--editor-fg));
+		--event-purple-bg: color-mix(in oklab, #8b5cf6 25%, var(--editor-bg));
+		--event-purple-fg: color-mix(in oklab, #8b5cf6 30%, var(--editor-fg));
+		--mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+		--sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+		--soft-primary: color-mix(in oklab, var(--primary) 15%, transparent);
+	}
+
+	* { box-sizing: border-box; }
+	html { background: var(--background); }
+	body {
+		margin: 0;
+		background: var(--background);
+		color: var(--foreground);
+		font-family: var(--sans);
+		font-size: 14px;
+		line-height: 1.5;
+	}
+	button { font: inherit; color: inherit; }
+	svg.ic { flex-shrink: 0; }
+
+	/* Page chrome */
+	.top {
+		position: sticky; top: 0; z-index: 50;
+		display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+		padding: 10px 16px;
+		background: var(--background);
+		border-bottom: 1px solid var(--divider);
+	}
+	.top h1 { font-size: 15px; font-weight: 600; margin: 0; }
+	.top .toc { display: flex; gap: 4px; flex-wrap: wrap; margin-left: auto; }
+	.top .toc a {
+		font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: var(--radius-xs);
+		color: var(--muted-foreground); text-decoration: none; border: 1px solid var(--border);
+	}
+	.top .toc a:hover { color: var(--foreground); background: var(--muted); }
+	main { max-width: 1240px; margin: 0 auto; padding: 8px 16px 80px; }
+	.intro { color: var(--muted-foreground); font-size: 13px; max-width: 80ch; margin: 16px 0 4px; }
+	.tierhead {
+		margin: 40px 0 4px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase;
+		color: var(--muted-foreground); border-bottom: 1px solid var(--divider); padding-bottom: 6px;
+	}
+
+	.seg { display: inline-flex; border: 1px solid var(--input); border-radius: var(--radius-md); overflow: hidden; background: var(--background); }
+	.seg button { border: 0; background: none; padding: 3px 10px; font-size: 12px; cursor: pointer; color: var(--muted-foreground); }
+	.seg button + button { border-left: 1px solid var(--input); }
+	.seg button[aria-pressed="true"] { background: var(--primary); color: var(--primary-foreground); }
+	.seg button:focus-visible, .btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.btn {
+		border: 1px solid var(--input); background: var(--background); border-radius: var(--radius-md);
+		padding: 3px 10px; font-size: 12px; cursor: pointer;
+	}
+	.btn:hover { background: var(--accent); }
+
+	.prop { margin: 28px 0 0; padding-top: 4px; scroll-margin-top: 64px; }
+	.prop > header { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+	.prop h2 { font-size: 17px; font-weight: 600; margin: 0; }
+	.pid {
+		font-family: var(--mono); font-size: 12px; font-weight: 700; padding: 1px 8px; border-radius: var(--radius-xs);
+		background: var(--primary); color: var(--primary-foreground);
+	}
+	.tier {
+		font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em;
+		padding: 1px 6px; border-radius: var(--radius-xs); border: 1px solid var(--border); color: var(--muted-foreground);
+	}
+	.problem { margin: 6px 0 12px; color: var(--muted-foreground); font-size: 13px; }
+	.problem b { color: var(--foreground); font-weight: 600; }
+
+	.ba { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+	.ba.stack { grid-template-columns: minmax(0, 1fr); }
+	@media (max-width: 960px) { .ba { grid-template-columns: minmax(0, 1fr); } }
+	.col > .lbl {
+		display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+		font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 8px;
+		color: var(--muted-foreground);
+	}
+	.col.after > .lbl { color: var(--primary); }
+	.col > .lbl .seg { text-transform: none; letter-spacing: 0; font-weight: 400; }
+	.controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; font-size: 12px; color: var(--muted-foreground); }
+	.controls label { display: inline-flex; align-items: center; gap: 6px; }
+	.controls input[type="range"] { accent-color: var(--primary); }
+
+	.shot {
+		--sw: 1440; --sh: 900;
+		width: 100%; aspect-ratio: calc(var(--cw) / var(--ch));
+		background-repeat: no-repeat;
+		background-size: calc(var(--sw) / var(--cw) * 100%) auto;
+		background-position: calc(var(--cx) / (var(--sw) - var(--cw)) * 100%) calc(var(--cy) / (var(--sh) - var(--ch)) * 100%);
+		border: 1px solid var(--border); border-radius: var(--radius-md);
+	}
+	.shot + .shot { margin-top: 10px; }
+	.shotnote { font-size: 11px; color: var(--muted-foreground); margin: 6px 0 0; }
+
+	.annos { margin: 12px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+	.annos li {
+		font-size: 12px; color: var(--muted-foreground); padding: 6px 10px;
+		border-left: 3px solid var(--primary); background: color-mix(in oklab, var(--primary) 7%, transparent);
+		border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+	}
+	.annos li b { color: var(--foreground); }
+	.annos code, .problem code, .shotnote code { font-family: var(--mono); font-size: 11px; }
+	.annos li.warn { border-left-color: var(--warning); background: color-mix(in oklab, var(--warning) 9%, transparent); }
+
+	/* Tooltip (stand-in for the native title attribute) */
+	[data-tip] { position: relative; }
+	[data-tip]:hover::after, [data-tip]:focus-visible::after {
+		content: attr(data-tip); position: absolute; left: 50%; top: calc(100% + 4px); transform: translateX(-50%);
+		z-index: 30; white-space: nowrap; font-size: 11px; font-weight: 400; line-height: 1.3; text-transform: none; letter-spacing: 0;
+		background: var(--foreground); color: var(--background); padding: 3px 7px; border-radius: var(--radius-sm); pointer-events: none;
+	}
+	[data-tip].tip-left:hover::after { left: 0; transform: none; }
+
+	/* Editor stage with CodeMirror-like widgets */
+	.stage {
+		background: var(--editor-bg); border: 1px solid var(--border); border-radius: var(--radius-lg);
+		padding: 18px 18px 20px; font-family: var(--mono); font-size: 13px; color: var(--editor-fg); overflow: hidden;
+	}
+	.note { width: var(--w, 100%); max-width: 100%; }
+	.md-h { font-size: 17px; font-weight: 700; color: var(--primary); margin: 12px 0 10px; }
+	.md-h:first-child { margin-top: 0; }
+	.md-h .hash { color: var(--type-orange); }
+	.cmw {
+		background: var(--lp-collection-bg); border: 1px solid var(--lp-collection-border);
+		border-radius: var(--radius-lg); padding: 12px 14px; margin: 0 0 10px;
+	}
+	.cmw-head {
+		display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+		color: var(--lp-collection-header); font-size: .9em; font-weight: 600; margin-bottom: 8px; padding-bottom: 6px;
+		border-bottom: 1px solid var(--lp-collection-header-border);
+	}
+	.cmw-head .hint { font-weight: 400; font-size: 11px; color: var(--muted-foreground); white-space: nowrap; cursor: default; }
+	.cmw table { width: 100%; border-collapse: collapse; font-size: .9em; overflow-wrap: anywhere; }
+	.cmw th, .cmw td {
+		border: 1px solid var(--lp-collection-border); padding: 4px 8px; text-align: left;
+		overflow-wrap: anywhere;
+	}
+	.cmw.qjs th, .cmw.qjs td { padding: 7px 12px; }
+	.cmw th { background: var(--lp-collection-table-header-bg); color: var(--lp-collection-table-header-text); font-weight: 600; }
+	.cmw tbody tr:nth-child(even) { background: var(--lp-collection-table-alt); }
+	.cmw tbody tr:hover { background: var(--lp-collection-table-hover); }
+	.cmw .nul { color: var(--lp-collection-null); }
+	.cmw .qjs-run {
+		appearance: none; border: 0; background: var(--primary); color: var(--primary-foreground);
+		border-radius: var(--radius-md); padding: 4px 12px; font: inherit; font-size: .8em; cursor: pointer; margin-bottom: 8px; outline: none;
+	}
+	.cmw .qjs-run:hover { filter: brightness(1.08); }
+	.cmw .qjs-nav { display: flex; align-items: center; justify-content: flex-end; gap: 8px; margin-top: 6px; font-size: .8em; }
+	.cmw .qjs-nav-btn {
+		appearance: none; background: transparent; border: 1px solid var(--lp-collection-border); color: inherit;
+		border-radius: var(--radius-md); padding: 2px 10px; font: inherit; font-size: .9em; cursor: pointer; outline: none;
+	}
+	.cmw .qjs-nav-btn:hover:not(:disabled) { background: var(--lp-collection-table-hover); }
+	.cmw .qjs-nav-btn:disabled { opacity: .4; cursor: not-allowed; }
+	.cmw .qjs-ind { font-size: .9em; opacity: .7; user-select: none; }
+	/* P09 proposal */
+	.cmw.fix .scroll { overflow-x: auto; }
+	.scroll::-webkit-scrollbar, .dt-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
+	.scroll::-webkit-scrollbar-thumb, .dt-scroll::-webkit-scrollbar-thumb { background: var(--muted-foreground); border-radius: 4px; }
+	.cmw.fix table { overflow-wrap: normal; word-break: normal; }
+	.cmw.fix th, .cmw.fix td { overflow-wrap: normal; word-break: normal; }
+	.cmw.fix th, .cmw.fix td.nw { white-space: nowrap; }
+	.cmw.fix td.txt { white-space: nowrap; max-width: 18ch; overflow: hidden; text-overflow: ellipsis; }
+	.cmw.fix .qjs-run:focus-visible, .cmw.fix .qjs-nav-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+
+	/* Standalone collection view */
+	.view { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; display: flex; flex-direction: column; }
+	.pane-toolbar { display: flex; height: 40px; flex-shrink: 0; align-items: center; gap: 4px; padding: 0 12px; border-bottom: 1px solid var(--divider); }
+	.vtab {
+		font-size: 12px; height: 24px; padding: 0 8px; border-radius: var(--radius-xs); border: 0; background: none; cursor: default;
+		color: var(--muted-foreground); display: inline-flex; align-items: center; gap: 5px; flex-shrink: 0; white-space: nowrap;
+	}
+	.vtab:hover { color: var(--foreground); background: var(--muted); }
+	.vtab.on { background: var(--soft-primary); color: var(--foreground); font-weight: 500; }
+	.vtab:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.vtab-wrap { display: inline-flex; align-items: center; flex-shrink: 0; position: relative; }
+	.vtab-chev {
+		width: 18px; height: 22px; margin-left: -4px; border: 0; background: none; border-radius: var(--radius-xs);
+		color: var(--muted-foreground); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; opacity: 0;
+	}
+	.vtab-wrap:hover .vtab-chev, .vtab-wrap.on .vtab-chev, .vtab-chev:focus-visible, .vtab-chev[aria-expanded="true"] { opacity: 1; }
+	.vtab-chev:hover { background: var(--muted); color: var(--foreground); }
+	.vtab-chev:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.vtab-input {
+		font: inherit; font-size: 12px; height: 24px; min-width: 80px; padding: 0 8px; border: 1px solid var(--ring);
+		background: var(--background); color: var(--foreground); border-radius: var(--radius-xs); outline: none;
+	}
+	.vcount { font-size: 12px; margin-left: 4px; color: color-mix(in oklab, var(--muted-foreground) 70%, transparent); white-space: nowrap; }
+	.vcount.hot { color: var(--foreground); }
+	.tb-right { margin-left: auto; display: flex; gap: 2px; }
+	.icon-btn {
+		width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: none;
+		border-radius: var(--radius-md); color: var(--muted-foreground); cursor: default;
+	}
+	.icon-btn:hover { background: var(--accent); color: var(--foreground); }
+	.icon-btn.on { color: var(--primary); }
+	.vbody { position: relative; min-height: 0; }
+
+	.dt-scroll { overflow: auto; }
+	.dt { width: 100%; border-collapse: collapse; font-size: 14px; }
+	.dt thead tr { border-bottom: 1px solid var(--border); }
+	.dt th {
+		padding: 8px 12px; text-align: left; font-weight: 500; color: var(--muted-foreground);
+		white-space: nowrap; cursor: pointer; user-select: none; transition: color .15s;
+	}
+	.dt th:hover { color: var(--foreground); }
+	.dt th:focus-visible { outline: 2px solid var(--ring); outline-offset: -2px; border-radius: var(--radius-xs); }
+	.dt td { padding: 6px 12px; white-space: nowrap; }
+	.dt tbody tr { border-bottom: 1px solid color-mix(in oklab, var(--border) 50%, transparent); cursor: pointer; }
+	.dt tbody tr:nth-child(even) { background: color-mix(in oklab, var(--muted) 20%, transparent); }
+	.dt tbody tr:hover { background: color-mix(in oklab, var(--muted) 50%, transparent); }
+	.dt .nul { color: color-mix(in oklab, var(--muted-foreground) 50%, transparent); }
+	.dt td.trunc { max-width: 26ch; overflow: hidden; text-overflow: ellipsis; }
+	.dt .num { font-variant-numeric: tabular-nums; }
+	.dt.sticky thead th { position: sticky; top: 0; z-index: 2; background: var(--card); box-shadow: inset 0 -1px 0 var(--border); }
+	.dt-scroll.scrolled .dt.sticky thead th { box-shadow: inset 0 -1px 0 var(--border), 0 3px 6px -3px var(--elev-shadow-2); }
+	.th-in { display: inline-flex; align-items: center; gap: 4px; }
+	.th-in .rank {
+		min-width: 14px; height: 14px; padding: 0 3px; border-radius: 7px; background: var(--primary); color: var(--primary-foreground);
+		font-size: 10px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; line-height: 1;
+	}
+	.dt th[aria-sort="ascending"], .dt th[aria-sort="descending"] { color: var(--foreground); }
+	pre.out {
+		margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radius-md); background: var(--muted); font-family: var(--mono); font-size: 11px;
+		white-space: pre-wrap; color: var(--foreground);
+	}
+	.hintline { font-size: 12px; color: var(--muted-foreground); margin: 8px 0 0; }
+	.kbd {
+		font-family: var(--mono); font-size: 11px; border: 1px solid var(--border); border-bottom-width: 2px; border-radius: var(--radius-xs);
+		padding: 0 4px; background: var(--background); color: var(--foreground);
+	}
+
+	/* Menus and popovers */
+	.menu {
+		position: absolute; z-index: 40; min-width: 168px; padding: 4px; background: var(--popover); color: var(--foreground);
+		border-radius: var(--radius-md); box-shadow: var(--shadow-md); font-size: 13px;
+	}
+	.menu[hidden] { display: none; }
+	.mitem {
+		display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left;
+		padding: 5px 8px; border: 0; background: none; border-radius: var(--radius-sm); cursor: default; font-size: 13px; position: relative;
+	}
+	.mitem:hover:not(:disabled), .mitem:focus-visible { background: var(--accent); outline: none; }
+	.mitem:disabled { opacity: .5; }
+	.mitem.destructive { color: var(--destructive); }
+	.mitem .check { color: var(--primary); }
+	.msep { height: 1px; background: var(--border); margin: 4px 0; }
+	.msub { position: relative; }
+	.msub > .menu { left: 100%; top: -4px; display: none; }
+	.msub:hover > .menu { display: block; }
+	.pop {
+		background: var(--popover); color: var(--foreground); border-radius: var(--radius-lg); box-shadow: var(--shadow-md); padding: 12px; font-size: 12px;
+	}
+	.pop.w72 { width: 288px; max-width: 100%; }
+	.pop.w80 { width: 320px; max-width: 100%; }
+	.section-label { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted-foreground); margin: 4px 0; }
+	.sel {
+		height: 28px; display: inline-flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 80px;
+		border: 1px solid var(--input); background: var(--background); border-radius: var(--radius-md); padding: 0 8px; font-size: 12px; cursor: pointer;
+	}
+	.sel:hover { background: var(--accent); }
+	.sel:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.sel .ic { opacity: .5; }
+	.sel.plain { border-color: transparent; background: none; color: var(--muted-foreground); padding: 0; min-width: 0; height: auto; }
+	.sel.plain:hover { background: none; color: var(--foreground); }
+	.ghost-btn {
+		height: 28px; display: inline-flex; align-items: center; gap: 4px; padding: 0 8px; border: 0; background: none; border-radius: var(--radius-md);
+		font-size: 12px; color: var(--muted-foreground); cursor: pointer;
+	}
+	.ghost-btn:hover { background: var(--accent); color: var(--foreground); }
+	.ghost-btn:focus-visible, .x-btn:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.x-btn {
+		width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border: 0; background: none; border-radius: var(--radius-md);
+		color: var(--muted-foreground); cursor: pointer; flex-shrink: 0;
+	}
+	.x-btn:hover { background: var(--accent); color: var(--foreground); }
+	.x-btn.danger:hover { color: var(--destructive); }
+	.stack-col { display: flex; flex-direction: column; gap: 8px; }
+	.row { display: flex; align-items: center; gap: 6px; }
+	.chip-count { border-radius: 99px; background: var(--soft-primary); color: var(--primary); font-size: 11px; font-weight: 600; padding: 0 6px; }
+	.fake-input {
+		height: 28px; flex: 1; min-width: 0; border: 1px solid var(--input); background: var(--background); border-radius: var(--radius-md);
+		padding: 0 8px; font-size: 12px; display: inline-flex; align-items: center;
+	}
+
+	/* Reorderable rows (sort and properties panels) */
+	.rrow { display: flex; align-items: center; gap: 6px; position: relative; border-radius: var(--radius-sm); }
+	.rrow.dragging { opacity: .4; }
+	.rrow .grip { color: color-mix(in oklab, var(--muted-foreground) 55%, transparent); cursor: grab; display: inline-flex; }
+	.rrow:hover .grip { color: var(--muted-foreground); }
+	.rrow:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+	.rrow.drop-before::before, .rrow.drop-after::after {
+		content: ""; position: absolute; left: 0; right: 0; height: 2px; background: var(--primary); border-radius: 1px; pointer-events: none;
+	}
+	.rrow.drop-before::before { top: -5px; }
+	.rrow.drop-after::after { bottom: -5px; }
+	.rrow .name { min-width: 80px; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+	.prow { padding: 3px 4px; font-size: 12px; }
+	.prow:hover { background: var(--accent); }
+	.prow .name { flex: 1; }
+	.prow input[type="checkbox"], .crow input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--primary); margin: 0; }
+	.crow { display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: 12px; border-radius: var(--radius-xs); cursor: pointer; }
+	.crow:hover { background: var(--accent); }
+	.hdrprev { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 8px; align-items: center; }
+	.hdrprev .pill { font-size: 11px; padding: 1px 7px; border-radius: var(--radius-xs); border: 1px solid var(--border); background: var(--card); }
+	.live { font-size: 11px; color: var(--muted-foreground); margin-top: 6px; min-height: 16px; }
+
+	/* Calendar mock */
+	.cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); font-size: 12px; position: relative; }
+	.cal .dow { padding: 6px 8px; font-size: 11px; font-weight: 600; color: var(--muted-foreground); border-bottom: 1px solid var(--border); }
+	.cal .cell { min-height: 60px; padding: 3px 4px; border-right: 1px solid color-mix(in oklab, var(--border) 60%, transparent); border-bottom: 1px solid color-mix(in oklab, var(--border) 60%, transparent); min-width: 0; }
+	.cal .cell.out { color: color-mix(in oklab, var(--muted-foreground) 55%, transparent); background: color-mix(in oklab, var(--muted) 18%, transparent); }
+	.cal .cell .d { font-size: 11px; }
+	.cal .ev { display: block; margin-top: 2px; padding: 0 5px; border-radius: var(--radius-xs); font-size: 11px; line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: var(--event-blue-bg); color: var(--event-blue-fg); }
+	.cal .ev.g { background: var(--event-green-bg); color: var(--event-green-fg); }
+	.cal .ev.p { background: var(--event-purple-bg); color: var(--event-purple-fg); }
+	.cal-empty {
+		position: absolute; inset: 29px 0 0 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+		background: color-mix(in oklab, var(--card) 82%, transparent); text-align: center; padding: 16px;
+	}
+	.cal-empty b { font-size: 14px; font-weight: 600; }
+	.cal-empty span { font-size: 12px; color: var(--muted-foreground); }
+	.chipbtn {
+		display: inline-flex; align-items: center; gap: 4px; height: 22px; padding: 0 8px; border-radius: 99px; font-size: 11px; font-weight: 500; cursor: pointer;
+		border: 1px solid color-mix(in oklab, var(--warning) 45%, var(--border)); background: color-mix(in oklab, var(--warning) 12%, transparent); color: var(--foreground);
+	}
+	.chipbtn:hover { background: color-mix(in oklab, var(--warning) 20%, transparent); }
+	.chipbtn:focus-visible { outline: 2px solid var(--ring); outline-offset: 1px; }
+	.undated-list { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; max-height: 180px; overflow: auto; }
+	.undated-list li { display: flex; justify-content: space-between; gap: 12px; padding: 4px 6px; border-radius: var(--radius-sm); font-size: 12px; }
+	.undated-list li:hover { background: var(--accent); }
+	.undated-list li span:last-child { color: var(--muted-foreground); }
+
+	/* P82 simulation */
+	.ed82 { background: var(--editor-bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; font-family: var(--mono); font-size: 13px; color: var(--editor-fg); cursor: text; }
+	.src82 { margin: 8px 0 0; padding: 8px 10px; border-radius: var(--radius-md); background: var(--lp-collection-bg); font-size: 12px; white-space: pre-wrap; border: 1px solid var(--primary); }
+	.cursor { display: inline-block; width: 7px; height: 14px; background: var(--primary); vertical-align: -2px; animation: blink 1s steps(2) infinite; }
+	@keyframes blink { 50% { opacity: 0; } }
+	.log {
+		margin-top: 8px; padding: 8px 10px; border-radius: var(--radius-md); background: var(--muted); font-family: var(--mono); font-size: 11px;
+		min-height: 80px; max-height: 140px; overflow: auto; white-space: pre-wrap;
+	}
+	.log .bad { color: var(--destructive); }
+	.log .good { color: var(--success); }
+
+	.mock-frame { border: 1px dashed var(--divider); border-radius: var(--radius-lg); padding: 12px; background: var(--background); }
+	.mock-frame.pad-menu { padding-bottom: 150px; }
+	@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="top">
+	<h1>Collection views and QueryJS result tables</h1>
+	<div class="seg" id="themeSeg" role="group" aria-label="Theme for the AFTER recreations">
+		<button type="button" data-v="light" aria-pressed="true">Light</button>
+		<button type="button" data-v="dark" aria-pressed="false">Dark</button>
+	</div>
+	<nav class="toc" aria-label="Proposals">
+		<a href="#P09">P09</a><a href="#P48">P48</a><a href="#P82">P82</a>
+		<a href="#P142">P142</a><a href="#P141">P141</a><a href="#P49">P49</a>
+		<a href="#P47">P47</a><a href="#P138">P138</a><a href="#P139">P139</a><a href="#P140">P140</a><a href="#P50">P50</a>
+	</nav>
+</div>
+
+<main>
+<p class="intro">Throwaway prototype for the design review. BEFORE panels are crops of real screenshots (Lavender Haze light theme, so they do not follow the toggle) or live recreations of the current behavior. AFTER panels are interactive recreations built with the app's tokens. Every proposal has a labelled Before panel and a labelled After panel.</p>
+
+<div class="tierhead">Clear</div>
+
+<!-- ============ P09 ============ -->
+<section class="prop" id="P09">
+	<header><span class="pid">P09</span><h2>Result tables in notes break words mid-word and cannot scroll</h2><span class="tier">clear, S</span></header>
+	<p class="problem"><b>Problem:</b> collection and QueryJS tables inherit <code>overflow-wrap: anywhere</code> and have no overflow container, so 'Dieg/o' and '2026-12-/01' split, and the Run and Prev/Next buttons show no focus ring.</p>
+	<div class="ba">
+		<div class="col before">
+			<div class="lbl">Before (real app)</div>
+			<div class="shot" style="background-image:url(../screens/collection-and-queryjs-block-light.png);--cx:658;--cy:253;--cw:458;--ch:273"></div>
+			<div class="shot" style="background-image:url(../screens/collection-and-queryjs-block-light.png);--cx:658;--cy:667;--cw:458;--ch:201"></div>
+			<p class="shotnote">Words break ('Dieg/o', 'priori/ty', 'planne/d') and dates split across two lines. No horizontal scroll.</p>
+		</div>
+		<div class="col after">
+			<div class="lbl">After (recreation)</div>
+			<div class="controls">
+				<label><input type="checkbox" id="p09fix" checked> Apply proposal</label>
+				<label>Note width <input type="range" id="p09w" min="280" max="560" value="470"> <span id="p09wv">470px</span></label>
+			</div>
+			<div class="stage">
+				<div class="note" id="p09note" style="--w:470px">
+					<div class="md-h"><span class="hash">#</span> Active projects</div>
+					<div class="cmw fix" id="p09c">
+						<div class="cmw-head"><span>Projects (4)</span></div>
+						<div class="scroll"><table>
+							<thead><tr><th>file.name</th><th>status</th><th>priority</th><th>owner</th><th>due</th></tr></thead>
+							<tbody>
+								<tr><td class="txt" title="Kokobrain Launch Plan.md">Kokobrain Launch Plan.md</td><td class="txt" title="active">active</td><td class="nw">1</td><td class="txt" title="Diego">Diego</td><td class="nw">2026-12-01</td></tr>
+								<tr><td class="txt" title="Roadmap.md">Roadmap.md</td><td class="txt" title="active">active</td><td class="nw">2</td><td class="txt" title="Diego">Diego</td><td class="nw">2026-12-15</td></tr>
+								<tr><td class="txt" title="Q4 OKRs.md">Q4 OKRs.md</td><td class="txt" title="planned">planned</td><td class="nw">2</td><td class="txt" title="Diego">Diego</td><td class="nw"><span class="nul">&ndash;</span></td></tr>
+								<tr><td class="txt" title="Website Redesign.md">Website Redesign.md</td><td class="txt" title="active">active</td><td class="nw">3</td><td class="txt" title="Ana">Ana</td><td class="nw">2026-11-30</td></tr>
+							</tbody>
+						</table></div>
+					</div>
+					<div class="md-h"><span class="hash">#</span> Notes by folder</div>
+					<div class="cmw qjs fix" id="p09q">
+						<button type="button" class="qjs-run">Run again</button>
+						<div class="scroll"><table>
+							<thead><tr><th>Folder</th><th>Notes</th></tr></thead>
+							<tbody id="p09qb"></tbody>
+						</table></div>
+						<div class="qjs-nav">
+							<button type="button" class="qjs-nav-btn" id="p09prev">Prev</button>
+							<span class="qjs-ind" id="p09ind"></span>
+							<button type="button" class="qjs-nav-btn" id="p09next">Next</button>
+						</div>
+					</div>
+				</div>
+			</div>
+			<ul class="annos">
+				<li><b>Wrapping:</b> <code>overflow-wrap: normal; word-break: normal</code> on both tables. Headers and date or number cells are <code>white-space: nowrap</code>.</li>
+				<li><b>Text cells:</b> max-width with ellipsis and a <code>title</code> (hover the long path or file names). Each table sits in an <code>overflow-x: auto</code> container: shrink the note width to see it scroll.</li>
+				<li><b>Focus:</b> press Tab to see the <code>:focus-visible</code> ring (<code>var(--ring)</code>) on Run, Prev and Next. Turn off 'Apply proposal' to see none.</li>
+				<li class="warn"><b>Unchanged on purpose:</b> <code>file.folder</code> and every path stay absolute (queryjs.logic.ts:206). A relative folder would be a separate kb API addition (e.g. <code>file.relFolder</code>), not a rendering change.</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<!-- ============ P48 ============ -->
+<section class="prop" id="P48">
+	<header><span class="pid">P48</span><h2>Clicking a collection header silently stacks multi-column sorts</h2><span class="tier">clear, S</span></header>
+	<p class="problem"><b>Problem:</b> a second click on another header appends a sort. The header shows only an arrow (no rank, no <code>aria-sort</code>), the result contradicts what the header suggests, and the stack is written to the <code>.view</code> file.</p>
+		<div class="controls"><button type="button" class="btn" id="p48reset">Reset both sorts</button><span>Try on both: click 'status', then click 'priority'.</span></div>
+		<div class="ba">
+			<div class="col before">
+				<div class="lbl">Before (current behavior, live recreation)</div>
+				<div class="view" id="p48viewB"></div>
+				<pre class="out" id="p48outB"></pre>
+				<p class="hintline">Click appends the column to the stack. The header shows an arrow only, so the order of precedence is invisible. No <code>aria-sort</code>, not focusable.</p>
+			</div>
+			<div class="col after">
+				<div class="lbl">After (proposed)</div>
+				<div class="view" id="p48view"></div>
+				<pre class="out" id="p48out"></pre>
+				<p class="hintline">Click sorts by that column only. <span class="kbd">Shift</span>+click (or Shift+Enter) adds it as the next sort. Rank badges show when more than one sort is active.</p>
+			</div>
+		</div>
+		<ul class="annos">
+			<li><b>Compare:</b> Before, status then priority stacks silently: status wins and priority only breaks ties, with no sign of it. After, the second click replaces the sort; <span class="kbd">Shift</span>+click on 'priority' adds it as sort 2 with rank badges 1 and 2.</li>
+			<li><b>A11y:</b> each <code>th</code> carries <code>aria-sort</code> (ascending, descending, none), is focusable, and reacts to Enter / Space (Shift+Enter adds a secondary sort). Inspect the DOM to see the attributes.</li>
+			<li>The cycle per column stays ASC, DESC, off. The block under each table is the exact <code>viewSort</code> that would be persisted to the <code>.view</code> file.</li>
+		</ul>
+</section>
+
+<!-- ============ P82 ============ -->
+<section class="prop" id="P82">
+	<header><span class="pid">P82</span><h2>QueryJS table Prev/Next probably destroy the widget on mouse click</h2><span class="tier">clear, S, unverified lead</span></header>
+	<p class="problem"><b>Problem:</b> Prev/Next listen to <code>onclick</code> only. A mouse press bubbles to CodeMirror, the cursor lands on the block's line, the block is revealed as source and the widget is destroyed before the click fires (live-preview-rules.md rule 11). Not reproduced at runtime, and <code>kb-ui.test.ts:789</code> uses <code>.click()</code>, which skips mousedown.</p>
+		<div class="ba">
+			<div class="col before">
+				<div class="lbl">Before (current: onclick only)</div>
+				<div id="p82before"></div>
+				<ul class="annos">
+					<li><b>Press the mouse on Next.</b> The editor handles the mousedown, reveals the source and the widget disappears. No click arrives, no page change.</li>
+				</ul>
+			</div>
+			<div class="col after">
+				<div class="lbl">After (proposed: mousedown stopPropagation)</div>
+				<div id="p82after"></div>
+				<ul class="annos">
+					<li><b>Prev/Next handle <code>mousedown</code></b> with <code>stopPropagation()</code>, exactly like the Run and Run again buttons in the same widget (queryjs-block-widget.ts:211-217, 326-329). Paging works.</li>
+				</ul>
+			</div>
+		</div>
+		<ul class="annos">
+			<li><b>Test gap:</b> the synthetic <code>next.click()</code> button passes on both sides, which is why <code>kb-ui.test.ts:789</code> cannot catch this. The proposed test dispatches <code>mousedown</code> first and asserts the widget survives.</li>
+			<li class="warn"><b>Verify first:</b> this is an unreproduced lead. Check in the real app before touching code; if paging works, drop the change.</li>
+		</ul>
+</section>
+
+<div class="tierhead">Moderate</div>
+
+<!-- ============ P142 ============ -->
+<section class="prop" id="P142">
+	<header><span class="pid">P142</span><h2>Collection tables have no sticky header or cell truncation</h2><span class="tier">moderate, S</span></header>
+	<p class="problem"><b>Problem:</b> over 200 rows the header scrolls away, and every cell is <code>nowrap</code> with no max width, so one long value widens its column and pushes the rest off screen.</p>
+		<div class="ba">
+			<div class="col before">
+				<div class="lbl">Before (current, 40 rows)</div>
+				<div class="view" id="p142viewB"></div>
+				<p class="shotnote">Header scrolls away; the Summary column runs off the right edge and pushes everything else.</p>
+			</div>
+			<div class="col after">
+				<div class="lbl">After (proposed, 40 rows)</div>
+				<div class="view" id="p142view"></div>
+				<p class="shotnote">Header stays pinned with a soft shadow once scrolled; Summary is truncated with a tooltip.</p>
+			</div>
+		</div>
+		<ul class="annos">
+			<li><b>Sticky header:</b> <code>thead th</code> gets <code>position: sticky; top: 0</code> with the card background. Scroll both tables to compare.</li>
+			<li><b>Truncation:</b> text cells cap at a max width with <code>truncate</code> and a <code>title</code> tooltip (hover the Summary cells).</li>
+			<li class="warn"><b>Implementation caveat:</b> <code>sticky</code> sticks to the nearest scrolling ancestor. The wrapper today is <code>overflow-auto</code> with no bounded height, so the header would not stick while the outer pane scrolls. The standalone view gives the wrapper a bounded height (here 300px, in the app <code>flex-1 min-h-0</code>) so it becomes the scroller. Alternative: <code>overflow-x-auto</code> only, so sticky resolves against the page scroller.</li>
+		</ul>
+</section>
+
+<!-- ============ P141 ============ -->
+<section class="prop" id="P141">
+	<header><span class="pid">P141</span><h2>Collection columns cannot be reordered</h2><span class="tier">moderate, M</span></header>
+	<p class="problem"><b>Problem:</b> the Properties panel offers checkboxes only. <code>viewOrder</code> is persisted but nothing in the UI can change it.</p>
+	<div class="ba">
+		<div class="col before">
+			<div class="lbl">Before (recreation)</div>
+			<div class="mock-frame"><div class="pop w72" id="p141before"></div></div>
+		</div>
+		<div class="col after">
+			<div class="lbl">After (drag the grip, or focus a row and press <span class="kbd" style="text-transform:none">Alt</span>+<span class="kbd" style="text-transform:none">Up/Down</span>)</div>
+			<div class="mock-frame"><div class="pop w72" id="p141after"></div></div>
+			<div class="live" id="p141live"></div>
+			<ul class="annos">
+				<li><b>Visible columns first</b> in table order, each with a drag handle and an insertion line while dragging. Unchecking moves a column to Hidden; checking appends it to the end of Shown.</li>
+				<li>The header strip below the panel shows the resulting <code>viewOrder</code>. The Formula section and 'Add formula' stay as they are.</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<!-- ============ P49 ============ -->
+<section class="prop" id="P49">
+	<header><span class="pid">P49</span><h2>Collection calendar views silently drop undated notes</h2><span class="tier">moderate, M</span></header>
+	<p class="problem"><b>Problem:</b> records without a date are skipped by the calendar but still counted in '12 results', and an empty grid shows no message.</p>
+		<div class="controls">
+			<span class="seg" id="p49state"><button type="button" data-v="mixed" aria-pressed="true">9 dated, 3 undated</button><button type="button" data-v="none" aria-pressed="false">None dated</button><button type="button" data-v="all" aria-pressed="false">All dated</button></span>
+			<span>Data set applied to both calendars.</span>
+		</div>
+		<div class="ba">
+			<div class="col before">
+				<div class="lbl">Before (current)</div>
+				<div class="view" id="p49viewB"></div>
+				<p class="shotnote">'12 results' counts the undated notes; the grid silently shows only the dated ones, and an empty month is blank.</p>
+			</div>
+			<div class="col after">
+				<div class="lbl">After (proposed)</div>
+				<div class="view" id="p49view"></div>
+			</div>
+		</div>
+		<ul class="annos">
+			<li><b>Count:</b> '12 results, 9 on calendar' (plain '12 results' when nothing is dropped).</li>
+			<li><b>Chip:</b> 'N without date' opens a list of the dropped notes and names the property that is empty. Click it in the After panel.</li>
+			<li><b>Empty grid:</b> 'No dated entries' with the reason, instead of a blank month. Same pattern applies to the linear calendar.</li>
+		</ul>
+</section>
+
+<div class="tierhead">Polish</div>
+
+<!-- ============ P47 ============ -->
+<section class="prop" id="P47">
+	<header><span class="pid">P47</span><h2>Collection headers show raw column ids and file names keep .md</h2><span class="tier">polish, S</span></header>
+	<p class="problem"><b>Problem:</b> <code>displayName</code> falls back to the key ('file.name'), and name cells show 'Roadmap.md'.</p>
+	<div class="ba">
+		<div class="col before">
+			<div class="lbl">Before (real app)</div>
+			<div class="shot" style="background-image:url(../screens/view-file-table-light.png);--cx:580;--cy:40;--cw:860;--ch:215"></div>
+		</div>
+		<div class="col after">
+			<div class="lbl">After (recreation, with Folder and Modified added)</div>
+			<div class="view" id="p47view"></div>
+		</div>
+	</div>
+	<ul class="annos">
+		<li><b>Built-in names</b> used when the definition sets none: <code>file.name</code> Name, <code>file.folder</code> Folder, <code>file.mtime</code> Modified, <code>file.ctime</code> Created, <code>file.size</code> Size. A <code>displayName</code> in the <code>.view</code> still wins. Hover a header to see the raw key as a tooltip.</li>
+		<li><b>Name cells</b> render without <code>.md</code>; the underlying <code>file.name</code> value is unchanged, so filters, sorts and queries keep the Bases-style contract (<code>file.basename</code> already exists for the alternative).</li>
+	</ul>
+</section>
+
+<!-- ============ P138 ============ -->
+<section class="prop" id="P138">
+	<header><span class="pid">P138</span><h2>Collection view-tab actions hide behind double-click and right-click</h2><span class="tier">polish, S</span></header>
+	<p class="problem"><b>Problem:</b> rename is double-click only, Change type and Delete are right-click only, tabs have no type icon, and Delete is disabled on the last view with no reason.</p>
+	<div class="ba">
+		<div class="col before">
+			<div class="lbl">Before (recreation; right-click or double-click a tab)</div>
+			<div class="mock-frame pad-menu" id="p138before"></div>
+		</div>
+		<div class="col after">
+			<div class="lbl">After (chevron menu, type icons)
+				<span class="seg" id="p138seg"><button type="button" data-v="3" aria-pressed="true">3 views</button><button type="button" data-v="1" aria-pressed="false">1 view</button></span>
+			</div>
+			<div class="mock-frame pad-menu" id="p138after"></div>
+			<ul class="annos">
+				<li>Chevron appears on the active tab and on hover. It opens the same menu as right-click, so both paths stay. Double-click rename stays too.</li>
+				<li>With one view left, Delete view is disabled and hovering or focusing it shows 'A collection needs at least one view'. Switch to '1 view' and open the menu.</li>
+				<li>Type icons: table, calendar, linear calendar (the three types in Change type).</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<!-- ============ P139 ============ -->
+<section class="prop" id="P139">
+	<header><span class="pid">P139</span><h2>The filter conjunction selector looks like plain text</h2><span class="tier">polish, S</span></header>
+	<p class="problem"><b>Problem:</b> the and / or / not switch is a borderless muted text button, unlike the bordered selectors next to it.</p>
+	<div class="ba">
+		<div class="col before">
+			<div class="lbl">Before (recreation)</div>
+			<div class="mock-frame"><div class="pop w80" id="p139before"></div></div>
+		</div>
+		<div class="col after">
+			<div class="lbl">After</div>
+			<div class="mock-frame pad-menu"><div class="pop w80" id="p139after"></div></div>
+			<ul class="annos">
+				<li>Same border, height, hover and chevron-down as the FilterRow selectors. The <code>CONJUNCTION_LABELS</code> text is unchanged ('All the following are true').</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<!-- ============ P140 ============ -->
+<section class="prop" id="P140">
+	<header><span class="pid">P140</span><h2>Sort rows drag with no indicator and no keyboard path</h2><span class="tier">polish, S</span></header>
+	<p class="problem"><b>Problem:</b> no drop line while dragging, no keyboard reorder, <code>role="listitem"</code> without a list parent, and the remove buttons have no name.</p>
+	<div class="ba">
+		<div class="col before">
+			<div class="lbl">Before (drag a row: nothing shows where it lands)</div>
+			<div class="mock-frame"><div class="pop w72" id="p140before"></div></div>
+		</div>
+		<div class="col after">
+			<div class="lbl">After (drag, or focus a row and press <span class="kbd" style="text-transform:none">Alt</span>+<span class="kbd" style="text-transform:none">Up/Down</span>)</div>
+			<div class="mock-frame"><div class="pop w72" id="p140after"></div></div>
+			<div class="live" id="p140live" aria-live="polite"></div>
+			<ul class="annos">
+				<li><b>Insertion line</b> between rows while dragging. <b>Keyboard:</b> Alt+Up/Down moves the focused row and announces the new position (live region shown under the panel).</li>
+				<li><b>Structure:</b> rows are <code>role="listitem"</code> inside a <code>role="list"</code> wrapper. Remove buttons carry <code>aria-label="Remove sort by status"</code> and the same text as tooltip (hover the X).</li>
+			</ul>
+		</div>
+	</div>
+</section>
+
+<!-- ============ P50 ============ -->
+<section class="prop" id="P50">
+	<header><span class="pid">P50</span><h2>An embedded collection block shows only its first view, with no sign that others exist</h2><span class="tier">polish, M</span></header>
+	<p class="problem"><b>Problem:</b> the inline widget always renders <code>views[0]</code>; a block that defines several views gives no hint.</p>
+	<div class="ba">
+		<div class="col before">
+			<div class="lbl">Before (recreation)</div>
+			<div class="stage"><div id="p50before"></div></div>
+		</div>
+		<div class="col after">
+			<div class="lbl">After
+				<span class="seg" id="p50seg"><button type="button" data-v="3" aria-pressed="true">Block defines 3 views</button><button type="button" data-v="1" aria-pressed="false">1 view</button></span>
+			</div>
+			<div class="stage"><div id="p50after"></div></div>
+			<ul class="annos">
+				<li>A muted '1 of 3 views' hint in the header; hover it to see the other view names. With a single view nothing is added.</li>
+				<li class="warn"><b>Not prototyped on purpose:</b> interactive view chips. A session-local view switch inside a CM6 widget cached by <code>yamlContent</code> costs M for a rare case. Only worth it if the owner confirms he embeds multi-view blocks.</li>
+			</ul>
+		</div>
+	</div>
+</section>
+</main>
+
+<script>
+(function () {
+	'use strict';
+
+	/* ---------- helpers ---------- */
+	var $ = function (s, r) { return (r || document).querySelector(s); };
+	var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
+	function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+	var ICONS = {
+		'chevron-down': '<path d="m6 9 6 6 6-6"/>',
+		'chevron-right': '<path d="m9 18 6-6-6-6"/>',
+		'x': '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+		'plus': '<path d="M5 12h14"/><path d="M12 5v14"/>',
+		'grip': '<circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/>',
+		'arrow-up': '<path d="m5 12 7-7 7 7"/><path d="M12 19V5"/>',
+		'arrow-down': '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+		'table': '<path d="M12 3v18"/><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/>',
+		'calendar': '<path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/>',
+		'calendar-range': '<rect width="18" height="18" x="3" y="4" rx="2"/><path d="M16 2v4"/><path d="M3 10h18"/><path d="M8 2v4"/><path d="M17 14h-6"/><path d="M13 18H7"/><path d="M7 14h.01"/><path d="M17 18h.01"/>',
+		'arrow-up-down': '<path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/>',
+		'list-filter': '<path d="M3 6h18"/><path d="M7 12h10"/><path d="M10 18h4"/>',
+		'columns': '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M15 3v18"/>',
+		'check': '<path d="M20 6 9 17l-5-5"/>',
+		'info': '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>'
+	};
+	function ic(name, size) {
+		size = size || 14;
+		return '<svg class="ic" xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + ICONS[name] + '</svg>';
+	}
+	function seg(el, cb) {
+		el.addEventListener('click', function (e) {
+			var b = e.target.closest('button');
+			if (!b) return;
+			$$('button', el).forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+			cb(b.dataset.v);
+		});
+	}
+	/** Close a menu when clicking outside it. */
+	function dismissOutside(menu, anchorSel, close) {
+		document.addEventListener('mousedown', function (e) {
+			if (menu.hidden) return;
+			if (e.target.closest('.menu') === menu || (anchorSel && e.target.closest(anchorSel))) return;
+			close();
+		});
+	}
+
+	/* ---------- theme ---------- */
+	seg($('#themeSeg'), function (v) { document.documentElement.setAttribute('data-theme', v); });
+
+	/* ---------- generic reorderable list (HTML5 drag and Alt+Arrow) ---------- */
+	function reorderable(list, o) {
+		var drag = null, idx = null;
+		function clear() { $$('.drop-before,.drop-after,.dragging', list).forEach(function (n) { n.classList.remove('drop-before', 'drop-after', 'dragging'); }); }
+		function end() { drag = null; idx = null; clear(); }
+		function apply(id, insertAt) {
+			var ids = o.ids();
+			var from = ids.indexOf(id);
+			if (from < 0) return;
+			ids.splice(from, 1);
+			var to = insertAt;
+			if (from < insertAt) to--;
+			ids.splice(to, 0, id);
+			o.move(ids, id, false);
+		}
+		list.addEventListener('dragstart', function (e) {
+			var r = e.target.closest && e.target.closest(o.row);
+			if (!r) return;
+			drag = r.dataset.id;
+			r.classList.add('dragging');
+			e.dataTransfer.effectAllowed = 'move';
+			e.dataTransfer.setData('text/plain', drag);
+		});
+		list.addEventListener('dragover', function (e) {
+			if (drag === null) return;
+			e.preventDefault();
+			e.dataTransfer.dropEffect = 'move';
+			var rows = $$(o.row, list);
+			idx = rows.length;
+			for (var i = 0; i < rows.length; i++) {
+				var b = rows[i].getBoundingClientRect();
+				if (e.clientY < b.top + b.height / 2) { idx = i; break; }
+			}
+			if (o.indicator) {
+				$$('.drop-before,.drop-after', list).forEach(function (n) { n.classList.remove('drop-before', 'drop-after'); });
+				if (idx < rows.length) rows[idx].classList.add('drop-before'); else rows[rows.length - 1].classList.add('drop-after');
+			}
+		});
+		list.addEventListener('drop', function (e) {
+			e.preventDefault();
+			if (drag !== null && idx !== null) apply(drag, idx);
+			end();
+		});
+		list.addEventListener('dragend', end);
+		if (o.keyboard) {
+			list.addEventListener('keydown', function (e) {
+				if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+				var r = e.target.closest && e.target.closest(o.row);
+				if (!r) return;
+				e.preventDefault();
+				var ids = o.ids(), id = r.dataset.id, i = ids.indexOf(id);
+				var j = e.key === 'ArrowUp' ? i - 1 : i + 1;
+				if (j < 0 || j >= ids.length) return;
+				ids.splice(i, 1);
+				ids.splice(j, 0, id);
+				o.move(ids, id, true);
+				var again = list.querySelector(o.row + '[data-id="' + id + '"]');
+				if (again) again.focus();
+			});
+		}
+	}
+
+	/* ---------- P09 ---------- */
+	(function () {
+		var fixBox = $('#p09fix'), slider = $('#p09w'), wv = $('#p09wv'), note = $('#p09note');
+		var cmws = [$('#p09c'), $('#p09q')];
+		fixBox.addEventListener('change', function () { cmws.forEach(function (c) { c.classList.toggle('fix', fixBox.checked); }); });
+		slider.addEventListener('input', function () { note.style.setProperty('--w', slider.value + 'px'); wv.textContent = slider.value + 'px'; });
+		var rows = [
+			['/test-vault', 2], ['/test-vault/Projects', 4], ['/test-vault/Meetings', 2], ['/test-vault/People', 1], ['/test-vault/Areas', 2],
+			['/test-vault/Inbox', 4], ['/test-vault/Daily', 12], ['/test-vault/Projects/Archive/2025/Customer Research', 3]
+		];
+		var page = 0, size = 4;
+		function draw() {
+			var slice = rows.slice(page * size, page * size + size);
+			$('#p09qb').innerHTML = slice.map(function (r) {
+				return '<tr><td class="txt" title="' + esc(r[0]) + '">' + esc(r[0]) + '</td><td class="nw">' + r[1] + '</td></tr>';
+			}).join('');
+			$('#p09ind').textContent = (page * size + 1) + '-' + Math.min(rows.length, page * size + size) + ' of ' + rows.length;
+			$('#p09prev').disabled = page === 0;
+			$('#p09next').disabled = (page + 1) * size >= rows.length;
+		}
+		$('#p09prev').addEventListener('click', function () { page--; draw(); });
+		$('#p09next').addEventListener('click', function () { page++; draw(); });
+		draw();
+	})();
+
+	/* ---------- shared data table ---------- */
+	var ROWS = [
+		{ 'file.name': 'Kokobrain Launch Plan.md', 'file.folder': 'Projects', 'file.mtime': '2026-11-10', status: 'active', priority: 1, due: '2026-12-01', summary: 'Draft the launch announcement, coordinate with design and schedule the beta cohort invitations for early December' },
+		{ 'file.name': 'Roadmap.md', 'file.folder': 'Projects', 'file.mtime': '2026-11-10', status: 'active', priority: 2, due: '2026-12-15', summary: 'Quarterly roadmap with the milestones for search, canvas and the collection views' },
+		{ 'file.name': 'Q4 OKRs.md', 'file.folder': 'Projects', 'file.mtime': '2026-11-09', status: 'planned', priority: 2, due: null, summary: 'Objectives and key results' },
+		{ 'file.name': 'Website Redesign.md', 'file.folder': 'Projects', 'file.mtime': '2026-11-10', status: 'active', priority: 3, due: '2026-11-30', summary: 'New landing page, pricing page and a refreshed documentation site' },
+		{ 'file.name': 'Hiring Plan.md', 'file.folder': 'Areas', 'file.mtime': '2026-11-02', status: 'planned', priority: 1, due: '2026-12-10', summary: 'Two engineers and one designer, interview loop and scorecards' },
+		{ 'file.name': 'Budget 2027.md', 'file.folder': 'Areas', 'file.mtime': '2026-11-08', status: 'active', priority: 1, due: '2026-12-20', summary: 'Annual budget, tooling spend and contractor allowances' },
+		{ 'file.name': 'Onboarding Docs.md', 'file.folder': 'Projects', 'file.mtime': '2026-10-28', status: 'planned', priority: 3, due: '2026-12-05', summary: 'Checklist for new hires, accounts and first-week tasks' },
+		{ 'file.name': 'Security Audit.md', 'file.folder': 'Areas', 'file.mtime': '2026-10-30', status: 'done', priority: 2, due: '2026-10-30', summary: 'External review findings and remediation notes' }
+	];
+	var COLS = {
+		'file.name': { friendly: 'Name', type: 'name' },
+		'file.folder': { friendly: 'Folder', type: 'text' },
+		'file.mtime': { friendly: 'Modified', type: 'date' },
+		status: { type: 'text' },
+		priority: { type: 'num' },
+		due: { type: 'date' },
+		summary: { type: 'long' }
+	};
+	function fmtDate(iso) {
+		var d = new Date(iso + 'T12:00:00');
+		return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+	}
+	function cycleStack(sort, col) {
+		var cur = sort.find(function (s) { return s.column === col; });
+		if (!cur) return sort.concat([{ column: col, direction: 'ASC' }]);
+		if (cur.direction === 'ASC') return sort.map(function (s) { return s.column === col ? { column: col, direction: 'DESC' } : s; });
+		return sort.filter(function (s) { return s.column !== col; });
+	}
+	function cycleSingle(sort, col) {
+		var cur = sort.find(function (s) { return s.column === col; });
+		if (!cur) return [{ column: col, direction: 'ASC' }];
+		if (cur.direction === 'ASC') return [{ column: col, direction: 'DESC' }];
+		return [];
+	}
+
+	/**
+	 * A collection table recreation. Options: cols (keys), rows, labels ('raw' | 'friendly'),
+	 * stripMd, sortMode ('stack' | 'single'), proposedA11y, sticky, truncate, maxH, sort, onSort.
+	 */
+	function DataTable(host, o) {
+		this.host = host;
+		this.o = Object.assign({ cols: ['file.name', 'status', 'priority', 'due'], rows: ROWS, labels: 'raw', stripMd: false, sortMode: 'stack', proposedA11y: false, sticky: false, truncate: false, maxH: null, sort: [], onSort: null }, o);
+		this.render();
+	}
+	DataTable.prototype.set = function (p) { Object.assign(this.o, p); this.render(); };
+	DataTable.prototype.sortedRows = function () {
+		var s = this.o.sort, rows = this.o.rows.slice();
+		if (!s.length) return rows;
+		return rows.sort(function (a, b) {
+			for (var i = 0; i < s.length; i++) {
+				var k = s[i].column, av = a[k], bv = b[k];
+				if (av == null && bv == null) continue;
+				if (av == null) return 1;
+				if (bv == null) return -1;
+				var c = typeof av === 'number' ? av - bv : String(av).localeCompare(String(bv));
+				if (c !== 0) return s[i].direction === 'ASC' ? c : -c;
+			}
+			return 0;
+		});
+	};
+	DataTable.prototype.render = function () {
+		var o = this.o, self = this, multi = o.sort.length > 1;
+		var head = o.cols.map(function (k) {
+			var def = COLS[k], label = o.labels === 'raw' ? k : (def.friendly || k);
+			var idx = o.sort.findIndex(function (s) { return s.column === k; });
+			var s = idx >= 0 ? o.sort[idx] : null;
+			if (!o.proposedA11y) {
+				return '<th data-col="' + k + '">' + esc(label) + (s ? (s.direction === 'ASC' ? ' ↑' : ' ↓') : '') + '</th>';
+			}
+			var aria = s ? (s.direction === 'ASC' ? 'ascending' : 'descending') : 'none';
+			var tip = o.labels === 'friendly' && def.friendly ? ' data-tip="' + esc(k) + '"' : '';
+			return '<th data-col="' + k + '" tabindex="0" aria-sort="' + aria + '"' + tip + ' class="tip-left"><span class="th-in">' + esc(label)
+				+ (s ? ic(s.direction === 'ASC' ? 'arrow-up' : 'arrow-down', 12) : '')
+				+ (s && multi ? '<span class="rank" aria-label="sort ' + (idx + 1) + '">' + (idx + 1) + '</span>' : '') + '</span></th>';
+		}).join('');
+		var body = this.sortedRows().map(function (r) {
+			return '<tr>' + o.cols.map(function (k) {
+				var v = r[k], def = COLS[k], cls = [], title = '';
+				if (v == null) return '<td><span class="nul">–</span></td>';
+				var text = String(v);
+				if (k === 'file.name' && o.stripMd) text = text.replace(/\.md$/, '');
+				if (def.type === 'date') text = k === 'file.mtime' ? fmtDate(v) : v;
+				if (def.type === 'num') cls.push('num');
+				if (o.truncate && (def.type === 'long' || def.type === 'name' || def.type === 'text')) { cls.push('trunc'); title = ' title="' + esc(text) + '"'; }
+				return '<td' + (cls.length ? ' class="' + cls.join(' ') + '"' : '') + title + '>' + esc(text) + '</td>';
+			}).join('') + '</tr>';
+		}).join('');
+		this.host.innerHTML = '<div class="dt-scroll"' + (o.maxH ? ' style="max-height:' + o.maxH + 'px"' : '') + '><table class="dt' + (o.sticky ? ' sticky' : '') + '"><thead><tr>' + head + '</tr></thead><tbody>' + body + '</tbody></table></div>';
+		var scroller = $('.dt-scroll', this.host);
+		scroller.addEventListener('scroll', function () { scroller.classList.toggle('scrolled', scroller.scrollTop > 2); });
+		$$('th', this.host).forEach(function (th) {
+			function act(shift) {
+				var col = th.dataset.col;
+				if (o.sortMode === 'single') o.sort = shift ? cycleStack(o.sort, col) : cycleSingle(o.sort, col);
+				else o.sort = cycleStack(o.sort, col);
+				self.render();
+				if (o.onSort) o.onSort(o.sort);
+				var again = $('th[data-col="' + col + '"]', self.host);
+				if (again && o.proposedA11y && document.activeElement !== again && th.matches(':focus')) again.focus();
+			}
+			th.addEventListener('click', function (e) { act(e.shiftKey); });
+			th.addEventListener('keydown', function (e) {
+				if (!o.proposedA11y) return;
+				if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); act(e.shiftKey); var a = $('th[data-col="' + th.dataset.col + '"]', self.host); if (a) a.focus(); }
+			});
+		});
+	};
+
+	function viewFrame(host, opts) {
+		opts = opts || {};
+		host.innerHTML = '<div class="pane-toolbar"><button type="button" class="vtab on">Projects</button><button type="button" class="vtab" aria-label="Add view">' + ic('plus', 12) + '</button><span class="vcount">' + (opts.count || '8 results') + '</span>'
+			+ '<div class="tb-right"><span class="icon-btn' + (opts.sorted ? ' on' : '') + '">' + ic('arrow-up-down', 14) + '</span><span class="icon-btn">' + ic('list-filter', 14) + '</span><span class="icon-btn">' + ic('columns', 14) + '</span></div></div><div class="vbody"></div>';
+		return $('.vbody', host);
+	}
+
+	/* ---------- P48 ---------- */
+	(function () {
+		function show(view, out) {
+			return function (sort) {
+				out.textContent = 'viewSort: ' + (sort.length ? '\n' + sort.map(function (s) { return '  - column: ' + s.column + '\n    direction: ' + s.direction; }).join('\n') : '[]');
+				$('.tb-right .icon-btn', view).classList.toggle('on', sort.length > 0);
+			};
+		}
+		var vB = $('#p48viewB'), vA = $('#p48view'), oB = $('#p48outB'), oA = $('#p48out');
+		var showB = show(vB, oB), showA = show(vA, oA);
+		var tB = new DataTable(viewFrame(vB, { sorted: false }), { cols: ['file.name', 'status', 'priority', 'due'], sortMode: 'stack', proposedA11y: false, onSort: showB });
+		var tA = new DataTable(viewFrame(vA, { sorted: false }), { cols: ['file.name', 'status', 'priority', 'due'], sortMode: 'single', proposedA11y: true, onSort: showA });
+		showB([]); showA([]);
+		$('#p48reset').addEventListener('click', function () { tB.set({ sort: [] }); tA.set({ sort: [] }); showB([]); showA([]); });
+	})();
+
+	/* ---------- P82 ---------- */
+	(function () {
+		var data = [['/test-vault', 2], ['/test-vault/Projects', 4], ['/test-vault/Meetings', 2], ['/test-vault/People', 1], ['/test-vault/Areas', 2], ['/test-vault/Inbox', 4], ['/test-vault/Daily', 12]];
+		function sim(host, mode) {
+			host.innerHTML = '<div class="ed82"><div class="md-h"><span class="hash">#</span> Notes by folder</div><div class="w"></div>'
+				+ '<div class="src82" hidden>```queryjs\nkb.ui.table(pages.map(p =&gt; [p.file.folder, 1]), { pageSize: 3 })<span class="cursor"></span>\n```</div></div>'
+				+ '<div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button type="button" class="btn rst">Reset widget</button><button type="button" class="btn syn">Call next.click() from code (what the test does)</button></div>'
+				+ '<div class="log" aria-live="polite"></div>';
+			var ed = $('.ed82', host), w = $('.w', host), src = $('.src82', host), log = $('.log', host);
+			var page = 0, size = 3, clickSeen = false;
+			function say(msg, cls) { var d = document.createElement('div'); if (cls) d.className = cls; d.textContent = msg; log.appendChild(d); log.scrollTop = log.scrollHeight; }
+			function draw() {
+				var slice = data.slice(page * size, page * size + size);
+				w.innerHTML = '<div class="cmw qjs fix"><button type="button" class="qjs-run">Run again</button><div class="scroll"><table><thead><tr><th>Folder</th><th>Notes</th></tr></thead><tbody>'
+					+ slice.map(function (r) { return '<tr><td class="txt" title="' + esc(r[0]) + '">' + esc(r[0]) + '</td><td class="nw">' + r[1] + '</td></tr>'; }).join('')
+					+ '</tbody></table></div><div class="qjs-nav"><button type="button" class="qjs-nav-btn prev"' + (page === 0 ? ' disabled' : '') + '>Prev</button><span class="qjs-ind">' + (page * size + 1) + '-' + Math.min(data.length, page * size + size) + ' of ' + data.length + '</span><button type="button" class="qjs-nav-btn next"' + ((page + 1) * size >= data.length ? ' disabled' : '') + '>Next</button></div></div>';
+				var run = $('.qjs-run', w);
+				run.addEventListener('mousedown', function (e) { e.stopPropagation(); say('mousedown on Run again: stopPropagation (already fixed today)'); });
+				run.addEventListener('click', function () { say('Run again clicked: query re-run', 'good'); });
+				[[$('.prev', w), -1, 'Prev'], [$('.next', w), 1, 'Next']].forEach(function (x) {
+					if (mode === 'proposed') x[0].addEventListener('mousedown', function (e) { e.stopPropagation(); say('mousedown on ' + x[2] + ': stopPropagation, editor untouched'); });
+					x[0].addEventListener('click', function () { clickSeen = true; page += x[1]; say('click on ' + x[2] + ': page ' + (page + 1), 'good'); draw(); });
+				});
+			}
+			function reset() { w.hidden = false; src.hidden = true; page = 0; log.innerHTML = ''; draw(); say('Widget rebuilt (' + (mode === 'proposed' ? 'proposed' : 'current') + ')'); }
+			ed.addEventListener('mousedown', function (e) {
+				if (!e.target.closest('.w')) return;
+				say('mousedown bubbled to the editor: cursor lands on the block line, block revealed as source', 'bad');
+				w.hidden = true; src.hidden = false;
+				say('widget destroyed before mouseup', 'bad');
+			});
+			document.addEventListener('mousedown', function () { clickSeen = false; }, true);
+			ed.addEventListener('mouseup', function () {
+				setTimeout(function () { if (!clickSeen && w.hidden) say('no click event reached the button (it no longer exists)', 'bad'); }, 80);
+			});
+			$('.rst', host).addEventListener('click', reset);
+			$('.syn', host).addEventListener('click', function () {
+				var n = $('.next', w);
+				if (!n || w.hidden) { say('synthetic click skipped: widget is destroyed, press Reset'); return; }
+				say('next.click() from code: no mousedown dispatched', 'good');
+				n.click();
+				say('-> test passes on both sides, so it cannot catch the bug');
+			});
+			reset();
+		}
+		sim($('#p82before'), 'current');
+		sim($('#p82after'), 'proposed');
+	})();
+
+	/* ---------- P142 ---------- */
+	(function () {
+		var names = ['Launch checklist', 'Beta invite list', 'Pricing experiment', 'Docs refresh', 'Onboarding flow', 'Search relevance', 'Canvas export', 'Kanban archive', 'Vault migration', 'Sync research'];
+		var statuses = ['active', 'planned', 'done'];
+		var long = [
+			'Coordinate the announcement with design, schedule the beta cohort invitations and prepare the changelog for the first public build',
+			'Short note',
+			'Collect feedback from the first twenty users, group it by theme and turn the top three themes into tickets',
+			'Review the pricing page copy with the owner and compare three layouts before the freeze'
+		];
+		var rows = [];
+		for (var i = 0; i < 40; i++) {
+			rows.push({ 'file.name': names[i % names.length] + ' ' + (Math.floor(i / names.length) + 1) + '.md', status: statuses[i % 3], due: '2026-12-' + String(1 + (i % 28)).padStart(2, '0'), summary: long[i % 4] });
+		}
+		var cols = ['file.name', 'status', 'due', 'summary'];
+		new DataTable(viewFrame($('#p142viewB'), { count: '40 results' }), { rows: rows, cols: cols, labels: 'raw', sticky: false, truncate: false, maxH: 300, proposedA11y: false });
+		new DataTable(viewFrame($('#p142view'), { count: '40 results' }), { rows: rows, cols: cols, labels: 'raw', sticky: true, truncate: true, maxH: 300, proposedA11y: false });
+	})();
+
+	/* ---------- P141 ---------- */
+	(function () {
+		var all = ['file.name', 'file.folder', 'file.mtime', 'file.ctime', 'file.size', 'status', 'priority', 'owner', 'due', 'tags'];
+		var shown = ['file.name', 'status', 'priority', 'due'];
+		var before = $('#p141before'), after = $('#p141after'), live = $('#p141live');
+		function group(title, cols, checked) {
+			return '<p class="section-label">' + title + '</p>' + cols.map(function (c) {
+				return '<label class="crow"><input type="checkbox" data-b="' + c + '"' + (checked.indexOf(c) >= 0 ? ' checked' : '') + '> ' + c + '</label>';
+			}).join('');
+		}
+		function drawBefore() {
+			var file = all.filter(function (c) { return c.indexOf('file.') === 0; });
+			var note = all.filter(function (c) { return c.indexOf('file.') !== 0; });
+			before.innerHTML = '<div class="stack-col" style="gap:2px">' + group('File', file, shown) + '<div style="height:1px;background:var(--border);margin:4px 0"></div>' + group('Note', note, shown) + '</div><div style="height:1px;background:var(--border);margin:8px 0 4px"></div><button type="button" class="ghost-btn">' + ic('plus', 12) + 'Add formula</button>'
+				+ '<div class="live" style="margin-top:4px">No way to move a column. Order follows the list above.</div>';
+		}
+		before.addEventListener('change', function (e) {
+			var c = e.target.dataset.b;
+			if (!c) return;
+			if (e.target.checked) { shown = all.filter(function (x) { return shown.indexOf(x) >= 0 || x === c; }); }
+			else shown = shown.filter(function (x) { return x !== c; });
+			drawBefore(); drawAfter();
+		});
+		function drawAfter() {
+			var hidden = all.filter(function (c) { return shown.indexOf(c) < 0; });
+			after.innerHTML = '<p class="section-label">Shown (' + shown.length + ')</p><div class="stack-col" style="gap:2px" id="p141shown" role="list">'
+				+ shown.map(function (c) {
+					return '<div class="rrow prow" draggable="true" role="listitem" tabindex="0" data-id="' + c + '"><span class="grip" aria-hidden="true">' + ic('grip', 14) + '</span><input type="checkbox" checked data-a="' + c + '" aria-label="Show ' + c + '"><span class="name">' + c + '</span></div>';
+				}).join('') + '</div>'
+				+ (hidden.length ? '<p class="section-label" style="margin-top:10px">Hidden (' + hidden.length + ')</p><div class="stack-col" style="gap:2px">'
+				+ hidden.map(function (c) { return '<div class="rrow prow" style="padding-left:24px"><input type="checkbox" data-a="' + c + '" aria-label="Show ' + c + '"><span class="name" style="color:var(--muted-foreground)">' + c + '</span></div>'; }).join('') + '</div>' : '')
+				+ '<div style="height:1px;background:var(--border);margin:8px 0 4px"></div><button type="button" class="ghost-btn">' + ic('plus', 12) + 'Add formula</button>'
+				+ '<div class="hdrprev"><span style="font-size:11px;color:var(--muted-foreground)">viewOrder:</span>' + shown.map(function (c) { return '<span class="pill">' + c + '</span>'; }).join('') + '</div>';
+		}
+		after.addEventListener('change', function (e) {
+			var c = e.target.dataset.a;
+			if (!c) return;
+			if (e.target.checked) shown = shown.concat([c]); else shown = shown.filter(function (x) { return x !== c; });
+			drawBefore(); drawAfter();
+			live.textContent = (e.target.checked ? 'Added ' : 'Hid ') + c + '.';
+		});
+		after.addEventListener('mousedown', function () {});
+		reorderable(after, {
+			row: '#p141shown .rrow', indicator: true, keyboard: true,
+			ids: function () { return shown.slice(); },
+			move: function (ids, id, kb) {
+				shown = ids; drawAfter(); drawBefore();
+				live.textContent = id + ' moved to position ' + (ids.indexOf(id) + 1) + ' of ' + ids.length + '.';
+				if (kb) { var r = after.querySelector('.rrow[data-id="' + id + '"]'); if (r) r.focus(); }
+			}
+		});
+		drawBefore(); drawAfter();
+	})();
+
+	/* ---------- P49 ---------- */
+	(function () {
+		var names = ['Launch Plan', 'Roadmap review', 'Hiring sync', 'Security Audit', 'Customer interviews', 'Team offsite', 'Budget 2027', 'Onboarding Docs', 'Website Redesign'];
+		var days = [3, 12, 5, 9, 17, 18, 20, 24, 27];
+		var undatedNames = ['Q4 OKRs', 'Brainstorm notes', 'Retro template'];
+		var extraDays = [2, 13, 27], extraCls = ['g', 'p', 'g'];
+		var state = 'mixed';
+		var cls = ['', 'g', 'p'];
+		var calendars = [];
+		function make(view, proposed, sfx) {
+			var popOpen = false;
+			function render() {
+				var dated = [], undated = [];
+				if (state === 'mixed') { names.forEach(function (n, i) { dated.push({ n: n, d: days[i], c: cls[i % 3] }); }); undated = undatedNames.slice(); }
+				else if (state === 'all') { names.forEach(function (n, i) { dated.push({ n: n, d: days[i], c: cls[i % 3] }); }); undatedNames.forEach(function (n, i) { dated.push({ n: n, d: extraDays[i], c: extraCls[i] }); }); }
+				else { undated = names.concat(undatedNames); }
+				var total = dated.length + undated.length;
+				var count = proposed && undated.length ? total + ' results, ' + dated.length + ' on calendar' : total + ' results';
+				var chip = proposed && undated.length ? '<button type="button" class="chipbtn" id="p49chip' + sfx + '" aria-expanded="' + popOpen + '">' + ic('calendar', 12) + undated.length + ' without date</button>' : '';
+				var cells = '', start = new Date(2026, 9, 26);
+				['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].forEach(function (d) { cells += '<div class="dow">' + d + '</div>'; });
+				for (var i = 0; i < 35; i++) {
+					var d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i), inMonth = d.getMonth() === 10;
+					var evs = inMonth ? dated.filter(function (x) { return x.d === d.getDate(); }) : [];
+					cells += '<div class="cell' + (inMonth ? '' : ' out') + '"><span class="d">' + d.getDate() + '</span>' + evs.map(function (e) { return '<span class="ev ' + e.c + '" title="' + esc(e.n) + '">' + esc(e.n) + '</span>'; }).join('') + '</div>';
+				}
+				var empty = proposed && dated.length === 0 ? '<div class="cal-empty"><b>No dated entries</b><span>' + undated.length + ' notes have no value in <code>due</code>. Set it on a note, or pick another date property in the calendar settings.</span></div>' : '';
+				view.innerHTML = '<div class="pane-toolbar"><button type="button" class="vtab on">' + ic('calendar', 12) + 'Calendar</button><span class="vcount hot">' + count + '</span>' + chip
+					+ '<div class="tb-right"><span class="icon-btn on">' + ic('calendar', 14) + '</span><span class="icon-btn">' + ic('arrow-up-down', 14) + '</span><span class="icon-btn">' + ic('list-filter', 14) + '</span></div></div>'
+					+ '<div class="vbody"><div class="cal">' + cells + empty + '</div>'
+					+ '<div class="menu pop" id="p49pop' + sfx + '" style="left:150px;top:6px;width:240px" ' + (popOpen && proposed && undated.length ? '' : 'hidden') + '><div class="section-label" style="margin:0">Not on the calendar (empty <code>due</code>)</div><ul class="undated-list">'
+					+ undated.map(function (n) { return '<li><span>' + esc(n) + '</span><span>no due</span></li>'; }).join('') + '</ul></div></div>';
+				var chipEl = $('#p49chip' + sfx);
+				if (chipEl) chipEl.addEventListener('click', function (e) { e.stopPropagation(); popOpen = !popOpen; render(); });
+			}
+			document.addEventListener('mousedown', function (e) { if (popOpen && !e.target.closest('#p49pop' + sfx) && !e.target.closest('#p49chip' + sfx)) { popOpen = false; render(); } });
+			calendars.push({ render: render, close: function () { popOpen = false; } });
+			render();
+		}
+		make($('#p49viewB'), false, 'B');
+		make($('#p49view'), true, 'A');
+		seg($('#p49state'), function (v) { state = v; calendars.forEach(function (c) { c.close(); c.render(); }); });
+	})();
+
+	/* ---------- P47 ---------- */
+	(function () {
+		var body = viewFrame($('#p47view'), { count: '4 results' });
+		new DataTable(body, { rows: ROWS.filter(function (r) { return r['file.folder'] === 'Projects'; }).slice(0, 4), cols: ['file.name', 'file.folder', 'file.mtime', 'status', 'due'], labels: 'friendly', stripMd: true, proposedA11y: false });
+		// Raw-key tooltips on the friendly headers, without changing sort behavior.
+		$$('th', body).forEach(function (th) {
+			var k = th.dataset.col;
+			if (COLS[k].friendly) { th.setAttribute('data-tip', k); th.classList.add('tip-left'); }
+		});
+	})();
+
+	/* ---------- P138 ---------- */
+	(function () {
+		var TYPE_ICON = { table: 'table', calendar: 'calendar', 'linear-calendar': 'calendar-range' };
+		var TYPE_LABEL = { table: 'Table', calendar: 'Calendar', 'linear-calendar': 'Linear calendar' };
+		function Tabs(host, proposed) {
+			var self = this;
+			this.proposed = proposed; this.host = host;
+			this.views = [{ name: 'Projects', type: 'table' }, { name: 'Calendar', type: 'calendar' }, { name: 'Timeline', type: 'linear-calendar' }];
+			this.active = 0; this.menuIdx = null; this.renaming = null; this.pos = { x: 0, y: 0 };
+			document.addEventListener('mousedown', function (e) { if (self.menuIdx !== null && !e.target.closest('.menu') && !e.target.closest('.vtab-chev')) { self.menuIdx = null; self.render(); } });
+			this.render();
+		}
+		Tabs.prototype.setCount = function (n) {
+			this.views = [{ name: 'Projects', type: 'table' }, { name: 'Calendar', type: 'calendar' }, { name: 'Timeline', type: 'linear-calendar' }].slice(0, n);
+			this.active = 0; this.menuIdx = null; this.renaming = null; this.render();
+		};
+		Tabs.prototype.render = function () {
+			var self = this, p = this.proposed, v = this.views;
+			var tabs = v.map(function (view, i) {
+				if (self.renaming === i) return '<input class="vtab-input" data-rename value="' + esc(view.name) + '" aria-label="Rename view">';
+				var on = i === self.active;
+				if (!p) return '<button type="button" class="vtab' + (on ? ' on' : '') + '" data-i="' + i + '">' + esc(view.name) + '</button>';
+				return '<span class="vtab-wrap' + (on ? ' on' : '') + '"><button type="button" class="vtab' + (on ? ' on' : '') + '" data-i="' + i + '">' + ic(TYPE_ICON[view.type], 12) + esc(view.name) + '</button>'
+					+ '<button type="button" class="vtab-chev" data-menu="' + i + '" aria-haspopup="menu" aria-expanded="' + (self.menuIdx === i) + '" aria-label="Actions for ' + esc(view.name) + '">' + ic('chevron-down', 12) + '</button></span>';
+			}).join('');
+			var idx = this.menuIdx, m = '';
+			if (idx !== null) {
+				var last = v.length <= 1;
+				m = '<div class="menu" role="menu" style="left:' + this.pos.x + 'px;top:' + this.pos.y + 'px;width:176px">'
+					+ '<button type="button" class="mitem" role="menuitem" data-act="rename">Rename</button>'
+					+ '<div class="msub"><button type="button" class="mitem" role="menuitem">Change type' + ic('chevron-right', 12) + '</button><div class="menu" style="width:164px">'
+					+ ['table', 'calendar', 'linear-calendar'].map(function (t) { return '<button type="button" class="mitem" role="menuitem" data-type="' + t + '"><span>' + TYPE_LABEL[t] + '</span>' + (v[idx].type === t ? '<span class="check">' + ic('check', 12) + '</span>' : '') + '</button>'; }).join('')
+					+ '</div></div><div class="msep"></div>'
+					+ '<span' + (p && last ? ' data-tip="A collection needs at least one view" tabindex="0" style="display:block" class="tip-left"' : '') + '><button type="button" class="mitem destructive" role="menuitem" data-act="delete"' + (last ? ' disabled aria-disabled="true"' : '') + '>Delete view</button></span></div>';
+			}
+			this.host.innerHTML = '<div class="view" style="overflow:visible"><div class="pane-toolbar" style="gap:2px">' + tabs + '<button type="button" class="vtab" aria-label="Add view" data-add>' + ic('plus', 12) + '</button><span class="vcount">4 results</span></div></div>' + m;
+			this.host.style.position = 'relative';
+			$$('.vtab[data-i]', this.host).forEach(function (b) {
+				var i = +b.dataset.i;
+				b.addEventListener('click', function () { self.active = i; self.render(); });
+				b.addEventListener('dblclick', function () { self.renaming = i; self.render(); var inp = $('[data-rename]', self.host); if (inp) { inp.focus(); inp.select(); } });
+				b.addEventListener('contextmenu', function (e) {
+					e.preventDefault();
+					var r = self.host.getBoundingClientRect(), br = b.getBoundingClientRect();
+					self.pos = { x: br.left - r.left, y: br.bottom - r.top + 4 };
+					self.menuIdx = i; self.render();
+				});
+			});
+			$$('.vtab-chev', this.host).forEach(function (b) {
+				b.addEventListener('click', function () {
+					var i = +b.dataset.menu;
+					if (self.menuIdx === i) { self.menuIdx = null; self.render(); return; }
+					var r = self.host.getBoundingClientRect(), br = b.getBoundingClientRect();
+					self.pos = { x: br.left - r.left - 20, y: br.bottom - r.top + 4 };
+					self.menuIdx = i; self.render();
+					var first = $('.menu .mitem', self.host); if (first) first.focus();
+				});
+			});
+			var add = $('[data-add]', this.host);
+			add.addEventListener('click', function () { self.views.push({ name: 'View ' + (self.views.length + 1), type: 'table' }); self.active = self.views.length - 1; self.render(); });
+			var inp = $('[data-rename]', this.host);
+			if (inp) {
+				var done = function (ok) { if (ok && inp.value.trim()) self.views[self.renaming].name = inp.value.trim(); self.renaming = null; self.render(); };
+				inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') done(true); if (e.key === 'Escape') done(false); });
+				inp.addEventListener('blur', function () { if (self.renaming !== null) done(true); });
+			}
+			var menu = $('.menu', this.host);
+			if (menu) menu.addEventListener('click', function (e) {
+				var b = e.target.closest('[data-act],[data-type]');
+				if (!b || b.disabled) return;
+				if (b.dataset.act === 'rename') { self.renaming = idx; self.menuIdx = null; self.render(); var i2 = $('[data-rename]', self.host); if (i2) { i2.focus(); i2.select(); } }
+				else if (b.dataset.act === 'delete') { self.views.splice(idx, 1); self.active = Math.min(self.active, self.views.length - 1); self.menuIdx = null; self.render(); }
+				else if (b.dataset.type) { self.views[idx].type = b.dataset.type; self.menuIdx = null; self.render(); }
+			});
+		};
+		var a = new Tabs($('#p138after'), true);
+		new Tabs($('#p138before'), false);
+		seg($('#p138seg'), function (v) { a.setCount(+v); });
+	})();
+
+	/* ---------- P139 ---------- */
+	(function () {
+		var LABELS = { and: 'All the following are true', or: 'Any of the following are true', not: 'None of the following are true' };
+		function Panel(host, proposed) {
+			var conj = 'and', open = false;
+			function render() {
+				host.style.position = 'relative';
+				host.innerHTML = '<div class="row" style="gap:6px;font-size:12px;font-weight:500;color:var(--muted-foreground);margin-bottom:8px">' + ic('chevron-right', 14).replace('<svg ', '<svg style="transform:rotate(90deg)" ') + 'This view <span class="chip-count">2</span></div>'
+					+ '<div class="stack-col"><div style="position:relative;align-self:flex-start"><button type="button" class="sel' + (proposed ? '' : ' plain') + '" aria-haspopup="menu" aria-expanded="' + open + '">' + LABELS[conj] + (proposed ? ic('chevron-down', 12) : '') + '</button>'
+					+ '<div class="menu" role="menu" style="left:0;top:32px;width:240px" ' + (open ? '' : 'hidden') + '>' + ['and', 'or', 'not'].map(function (c) { return '<button type="button" class="mitem" role="menuitem" data-c="' + c + '"><span>' + LABELS[c] + '</span>' + (c === conj ? '<span class="check">' + ic('check', 12) + '</span>' : '') + '</button>'; }).join('') + '</div></div>'
+					+ '<div class="row"><span class="sel" style="min-width:80px"><span>status</span>' + ic('chevron-down', 12) + '</span><span class="sel"><span>is</span>' + ic('chevron-down', 12) + '</span><span class="fake-input">active</span><button type="button" class="x-btn" aria-label="Remove filter">' + ic('x', 14) + '</button></div>'
+					+ '<div class="row"><span class="sel" style="min-width:80px"><span>due</span>' + ic('chevron-down', 12) + '</span><span class="sel"><span>is before</span>' + ic('chevron-down', 12) + '</span><span class="fake-input">2026-12-31</span><button type="button" class="x-btn" aria-label="Remove filter">' + ic('x', 14) + '</button></div>'
+					+ '<button type="button" class="ghost-btn" style="align-self:flex-start">' + ic('plus', 12) + 'Add filter</button></div>';
+				$('.sel[aria-haspopup]', host).addEventListener('click', function () { open = !open; render(); });
+				$$('[data-c]', host).forEach(function (b) { b.addEventListener('click', function () { conj = b.dataset.c; open = false; render(); }); });
+			}
+			document.addEventListener('mousedown', function (e) { if (open && !host.contains(e.target)) { open = false; render(); } });
+			render();
+		}
+		new Panel($('#p139before'), false);
+		new Panel($('#p139after'), true);
+	})();
+
+	/* ---------- P140 ---------- */
+	(function () {
+		var TYPES = { status: 'text', due: 'date', priority: 'number' };
+		var LAB = { text: ['A → Z', 'Z → A'], number: ['Smallest → Largest', 'Largest → Smallest'], date: ['Old → New', 'New → Old'] };
+		function Panel(host, proposed, live) {
+			var sorts = [{ column: 'status', direction: 'ASC' }, { column: 'due', direction: 'DESC' }, { column: 'priority', direction: 'ASC' }];
+			function render() {
+				host.innerHTML = '<div class="stack-col" id="' + host.id + 'list"' + (proposed ? ' role="list" aria-label="Sort order"' : '') + '>'
+					+ sorts.map(function (s) {
+						var lab = LAB[TYPES[s.column]][s.direction === 'ASC' ? 0 : 1];
+						var nm = proposed ? 'Remove sort by ' + s.column : '';
+						return '<div class="rrow" draggable="true" data-id="' + s.column + '" role="listitem"' + (proposed ? ' tabindex="0"' : '') + '><span class="grip" aria-hidden="true">' + ic('grip', 14) + '</span><span class="name">' + s.column + '</span>'
+							+ '<span class="sel" style="margin-left:auto"><span style="white-space:nowrap">' + lab + '</span>' + ic('chevron-down', 12) + '</span>'
+							+ '<button type="button" class="x-btn"' + (proposed ? ' aria-label="' + nm + '" data-tip="' + nm + '"' : '') + ' data-rm="' + s.column + '">' + ic('x', 14) + '</button></div>';
+					}).join('') + '</div><button type="button" class="ghost-btn" style="margin-top:6px">' + ic('plus', 12) + 'Add sort</button>';
+				$$('[data-rm]', host).forEach(function (b) { b.addEventListener('click', function () { sorts = sorts.filter(function (s) { return s.column !== b.dataset.rm; }); render(); }); });
+				$$('.x-btn[data-tip]', host).forEach(function (b) { b.classList.add('tip-left'); });
+			}
+			render();
+			reorderable(host, {
+				row: '.rrow', indicator: proposed, keyboard: proposed,
+				ids: function () { return sorts.map(function (s) { return s.column; }); },
+				move: function (ids, id, kb) {
+					sorts = ids.map(function (c) { return sorts.find(function (s) { return s.column === c; }); });
+					render();
+					if (live) live.textContent = id + ' moved to position ' + (ids.indexOf(id) + 1) + ' of ' + ids.length;
+					if (kb) { var r = host.querySelector('.rrow[data-id="' + id + '"]'); if (r) r.focus(); }
+				}
+			});
+		}
+		new Panel($('#p140before'), false, null);
+		new Panel($('#p140after'), true, $('#p140live'));
+	})();
+
+	/* ---------- P50 ---------- */
+	(function () {
+		var rows = [['Kokobrain Launch Plan.md', 'active', '2026-12-01'], ['Roadmap.md', 'active', '2026-12-15'], ['Website Redesign.md', 'active', '2026-11-30']];
+		function widget(hint, tip) {
+			return '<div class="cmw"><div class="cmw-head"><span>Projects (3)</span>' + (hint ? '<span class="hint" data-tip="' + esc(tip) + '" tabindex="0">' + hint + '</span>' : '') + '</div><div style="overflow-x:auto"><table><thead><tr><th>file.name</th><th>status</th><th>due</th></tr></thead><tbody>'
+				+ rows.map(function (r) { return '<tr><td>' + esc(r[0]) + '</td><td>' + r[1] + '</td><td style="white-space:nowrap">' + r[2] + '</td></tr>'; }).join('') + '</tbody></table></div></div>';
+		}
+		$('#p50before').innerHTML = widget('', '');
+		function drawAfter(n) {
+			var h = $('#p50after');
+			h.innerHTML = widget(n > 1 ? '1 of ' + n + ' views' : '', 'Also in this block: Calendar, Board');
+			var hint = $('.hint', h); if (hint) hint.classList.add('tip-left');
+			if (hint) { hint.style.position = 'relative'; hint.setAttribute('data-tip', 'Also in this block: Calendar, Board'); }
+		}
+		seg($('#p50seg'), function (v) { drawAfter(+v); });
+		drawAfter(3);
+		// The hint tooltip anchors to the right edge so it stays inside the widget.
+		var st = document.createElement('style');
+		st.textContent = '.cmw-head .hint[data-tip]:hover::after{left:auto;right:0;transform:none}';
+		document.head.appendChild(st);
+	})();
+})();
+</script>
+</body>
+</html>

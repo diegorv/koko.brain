@@ -12,7 +12,7 @@
 
 **Blocked by:** 087, 204
 
-**Status:** ready-for-agent
+**Status:** wontfix
 
 **First wave:** yes, picked by the owner on 2026-11-06.
 
@@ -31,3 +31,4 @@
 
 - 2026-11-06: migrated from `.scratch/archived/ux-polish/issues/61-views-empty-error-states.md` by audit 2026-11-05, which re-checked it at `5f8003d67`.
 - 2026-11-06: Blocked by 141 added after the order review (`raw/first-wave-order-review.json`): the two edit the same code.
+- 2026-11-17, triage: wontfix. `.scratch/open-itens` is abandoned; replaced by `.scratch/finders-ux/issues/13-local-graph-isolated-loading-error-states.md`. The canvas, collection and kanban halves are not carried over; they return with the canvas, collection-queryjs and kanban-board groups of the design review (`.scratch/design-review/prototypes/canvas.html`, `collection-queryjs.html`, `kanban-board.html`).

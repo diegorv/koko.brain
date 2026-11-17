@@ -114,6 +114,11 @@ describe('ModActionPicker', () => {
 		expect(row('hello').textContent).toContain('Say hello');
 		expect(row('hello').textContent).toContain('Shows a toast');
 		expect(row('boom').textContent).toContain('Explode');
+		// A minimum row height, not a fixed one, so the description line is not clipped.
+		const lines = [...row('hello').querySelectorAll(':scope > div > span')].map((el) => el.textContent?.trim());
+		expect(lines).toEqual(['Say hello', 'Shows a toast']);
+		expect(row('hello').classList.contains('min-h-9')).toBe(true);
+		expect(row('hello').classList.contains('h-9')).toBe(false);
 		// The dialog's accessible title is the button's title.
 		const dialog = document.querySelector('[role="dialog"]')!;
 		expect(document.getElementById(dialog.getAttribute('aria-labelledby')!)?.textContent).toBe('Hello mod');
@@ -160,6 +165,9 @@ describe('ModActionPicker', () => {
 		expect(status()).toBe('Failed');
 		expect(runView()!.querySelector('[data-mod-run-error]')?.textContent).toContain('kaboom');
 		expect(runView()!.querySelector('details pre')?.textContent).toContain('kaboom');
+		// A tall failed run scrolls inside the anchored dialog, so Close stays reachable.
+		expect(runView()!.classList.contains('max-h-[calc(82dvh-1rem)]')).toBe(true);
+		expect(runView()!.classList.contains('overflow-y-auto')).toBe(true);
 	});
 
 	describe('a long run', () => {
@@ -242,6 +250,14 @@ describe('ModActionPicker', () => {
 
 			expect(modPickerStore.isOpen).toBe(false);
 			expect(runView()).toBeNull();
+		});
+
+		it("has no dialog close X: the run view's Close is the only Close button", () => {
+			startSlowJob();
+
+			const content = document.querySelector('[data-slot="dialog-content"]')!;
+			const closes = [...content.querySelectorAll('button')].filter((b) => b.textContent?.trim() === 'Close');
+			expect(closes).toEqual([closeButton()]);
 		});
 
 		it('Escape in the run view still closes the picker', () => {
