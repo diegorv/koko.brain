@@ -80,9 +80,9 @@ test src/tests/lib/features/rail-shell/RailNoteList.test.ts imports-type src/lib
 test src/tests/lib/features/rail-shell/RailNoteList.toolbar.test.ts imports-type src/lib/types/vault-v2.types.ts
 test src/tests/lib/features/rail-shell/lens.logic.test.ts imports-type src/lib/types/vault-v2.types.ts
 test src/tests/lib/features/search/search.service.test.ts imports-type src/lib/types/vault-v2.types.ts
+test src/tests/lib/features/tags/TagsView.refresh.test.ts imports-type src/lib/types/vault-v2.types.ts
 test src/tests/lib/features/tags/tags.service.test.ts imports-type src/lib/types/vault-v2.types.ts
-test src/tests/lib/features/tasks/TasksView.collapse.test.ts imports-type src/lib/types/vault-v2.types.ts
-more tests 18 not shown: src/tests/lib/features/tasks(11) src/tests/lib/features/type-definitions(3) src/tests/lib/plugins/queryjs(3) src/tests/lib/plugins/one-on-one(1): q tests src/lib/types/vault-v2.types.ts
+more tests 19 not shown: src/tests/lib/features/tasks(12) src/tests/lib/features/type-definitions(3) src/tests/lib/plugins/queryjs(3) src/tests/lib/plugins/one-on-one(1): q tests src/lib/types/vault-v2.types.ts
 ## symbols
 sym src/lib/types/vault-v2.types.ts:19 reexport FrontmatterValue = src/lib/contracts/generated/serde_json/JsonValue.ts:JsonValue L1
 sym src/lib/types/vault-v2.types.ts:20 reexport WikiLinkV2 = dto:WikiLink L1

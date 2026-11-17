@@ -9,7 +9,7 @@ fx src/lib/app/lifecycle/app-lifecycle.service.ts:514 timer-wrap.debounce args=(
 fx src/lib/core/editor/editor.service.ts:276 timer-wrap.debounce args=saveDirtyTabs, 2000, { maxWait: 10_000 } as debouncedSave in debouncedSave
 fx src/lib/core/editor/editor.service.ts:279 timer-wrap.debounce args=saveDirtyTabs, 500 as debouncedSaveFrontmatter in debouncedSaveFrontmatter
 fx src/lib/features/rail-shell/TypesNavigator.svelte:88 timer-wrap.debounce args=async (paths: string[], ctx: LensContext, propertyIndex: Ma… as recountViews in recountViews
-fx src/lib/features/tags/tags.service.ts:90 timer-wrap.debounce args=() => { void runScheduledRebuild(); }, 300 as debouncedTrigger in debouncedTrigger
+fx src/lib/features/tags/tags.service.ts:91 timer-wrap.debounce args=() => { void runScheduledRebuild(); }, 300 as debouncedTrigger in debouncedTrigger
 fx src/lib/features/canvas/CanvasInner.svelte:112 timer.queueMicrotask in $effect@99
 fx src/lib/features/canvas/CanvasInner.svelte:302 timer.queueMicrotask in handleKeydown
 fx src/lib/features/canvas/CanvasInner.svelte:316 timer.queueMicrotask in handleKeydown
@@ -58,7 +58,7 @@ fx src/lib/features/event-calendar/EventCalendarView.svelte:195 timer.setTimeout
 fx src/lib/features/properties/PropertiesView.svelte:110 timer.setTimeout delay=300 in $effect@105
 fx src/lib/features/rail-shell/RailListSearch.svelte:67 timer.setTimeout delay=DEBOUNCE_MS in handleInput
 fx src/lib/features/search/search.service.ts:101 timer.setTimeout delay=PROGRESS_THROTTLE_MS in startSemanticProgressListener
-fx src/lib/features/tags/tags.service.ts:120 timer.setTimeout delay=0 in flushScheduledTagIndexRebuild
+fx src/lib/features/tags/tags.service.ts:121 timer.setTimeout delay=0 in flushScheduledTagIndexRebuild
 fx src/lib/features/todoist-sync/sync-scheduler.service.ts:95 timer.setTimeout delay=SAVE_DELAY_MS in startAutoSync
 fx src/lib/features/todoist-sync/sync-scheduler.service.ts:166 timer.setTimeout delay=settingsStore.todoist.syncInt… in scheduleInterval
 fx src/lib/features/todoist-sync/sync-scheduler.service.ts:186 timer.setTimeout delay=wait in requestAutoCycle
