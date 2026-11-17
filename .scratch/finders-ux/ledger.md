@@ -41,7 +41,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 04 | [Search states: short query, error, disabled mode; operator hints; a11y labels; index status only in the status bar](issues/04-search-panel-states-hints-labels.md) | 03 | done | issue/04-search-panel-states-hints-labels (0de35de11) | 2026-11-17 |
 | 05 | [Search keeps previous results dimmed while searching, shows "N+" at the cap, and clearing mid-search does not stick on Searching...](issues/05-search-keeps-results-while-searching.md) | 04 | in-progress | | |
 | 06 | [Palette: calendar Undo/Redo only when they can act, Calendar category, Recent / All commands groups](issues/06-palette-calendar-undo-recent-groups.md) | 01 | done | issue/06-palette-calendar-undo-recent-groups (90ccfc691) | 2026-11-17 |
-| 07 | [Quick switcher rows: type icon, folder, Archived tag, match highlight, Recent notes heading](issues/07-quick-switcher-rows-type-icon-folder-highlight.md) | 02 | in-progress | | |
+| 07 | [Quick switcher rows: type icon, folder, Archived tag, match highlight, Recent notes heading](issues/07-quick-switcher-rows-type-icon-folder-highlight.md) | 02 | done | issue/07-quick-switcher-rows-type-icon-folder-highlight (2063e2bfe) | 2026-11-17 |
 | 08 | [Tags view keeps its list and expanded tags on screen while it refreshes](issues/08-tags-view-keeps-list-while-refreshing.md) | none | done | issue/08-tags-view-keeps-list-while-refreshing (9023e5e61) | 2026-11-17 |
 | 09 | [Tags header says "Showing X of Y" and the empty state explains the rare-tag filter](issues/09-tags-header-showing-x-of-y.md) | 08 | todo | | |
 | 10 | [Tags rows align leaves with parents, name their chevron and colour controls, and the Tags tab shows a tag icon](issues/10-tags-rows-align-label-controls-tab-icon.md) | none | todo | | |
@@ -73,3 +73,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 16:37 — 07 — start — launched by /relay-lite:run — 013e6e6a7
 - 2026-11-17 16:37 — 04 — deliver — merged; reviews APPROVED x2 (claude): fix round fixed tab indentation on the ~ toggle, keyboard note rejected; full suite 643 files / 17098 tests passed — 0de35de11
 - 2026-11-17 16:38 — 05 — start — launched by /relay-lite:run — 1679d7f8c
+- 2026-11-17 16:57 — 07 — deliver — merged; reviews APPROVED x2 (claude): fix round trimmed a stale JSDoc consumer list; full suite 644 files / 17177 tests passed — 2063e2bfe
