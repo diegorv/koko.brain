@@ -1,5 +1,5 @@
 # Kokobrain code map
-> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:73c6ef1926d7 · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
+> Generated from the code by scripts/codemap.mjs; no hand-written text. inputs=sha256:7c846a6b9cfa · check freshness: node scripts/codemap.mjs --stale · written by CI on main only; never edit or stage codemap/.
 
 Use this map to find code, then Read the code at the given path:line. Facts are static; read "Blind spots" before trusting an empty answer. On a branch, cards of files you changed lag the code; q commands read the working tree and are always current.
 Search code with Grep path src or src-tauri; search the map with path codemap. IDs contain regex characters: grep with -F and end the ID with a space.
@@ -74,7 +74,7 @@ hub utils src/lib/utils/debug.ts in73 t53
 hub utils src/lib/utils/path.ts in27 t1
 hub utils src/lib/utils/date.ts in16 t3
 hub lib-root src/lib/utils.ts in54 t1
-hub contracts src/lib/contracts/ipc.ts in45 t5
+hub contracts src/lib/contracts/ipc.ts in46 t5
 hub contracts src/lib/contracts/index.ts in28 t0
 hub contracts src/lib/contracts/events.ts in7 t1
 hub types src/lib/types/vault-v2.types.ts in32 t0
@@ -83,7 +83,7 @@ hub rust src-tauri/src/utils/fs.rs in8 t2
 hub rust src-tauri/src/db/mod.rs in6 t8
 
 ## Counts
-files 1644 (cards 647) · modules 60 · symbols 3155 · locals 1417 · calls 6884 · ipc 72 · events 9 · dto 51 · stores 43 · registries 27 · effect sites 549
+files 1646 (cards 648) · modules 60 · symbols 3158 · locals 1419 · calls 6891 · ipc 72 · events 9 · dto 51 · stores 43 · registries 27 · effect sites 549
 
 ## Optional
 - Layer rules, layer edge totals, baseline debt: codemap/modules.md

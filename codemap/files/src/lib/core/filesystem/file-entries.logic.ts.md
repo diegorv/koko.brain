@@ -12,7 +12,7 @@ imp src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts:1 -> sr
 imp src/lib/features/canvas/CanvasFilePicker.svelte:3 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,filterAndRank
 imp src/lib/features/properties/PropertiesView.svelte:14 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/features/properties/RelationshipSearch.svelte:7 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,filterAndRank
-imp src/lib/features/quick-switcher/QuickSwitcher.svelte:13 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,filterAndRank
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:14 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree,filterAndRank
 imp src/lib/features/rail-shell/RailNoteList.svelte:33 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:4 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
 imp src/lib/plugins/kanban/kanban.service.ts:8 -> src/lib/core/filesystem/file-entries.logic.ts flattenFileTree
@@ -38,7 +38,7 @@ by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/core
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/canvas/CanvasFilePicker.svelte:21 in allFiles=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/properties/PropertiesView.svelte:61 in relLinksMap=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/properties/RelationshipSearch.svelte:24 in allFiles=$derived call
-by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/quick-switcher/QuickSwitcher.svelte:21 in allFiles=$derived call
+by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/quick-switcher/QuickSwitcher.svelte:23 in allFiles=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/features/rail-shell/RailNoteList.svelte:572 in allPaths=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree <- src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:28 in files=$derived call
 more by 1 not shown: src/lib/plugins/kanban(1): q importers src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree
@@ -46,7 +46,7 @@ sym src/lib/core/filesystem/file-entries.logic.ts:29 const MAX_RESULTS L1 | Maxi
 sym src/lib/core/filesystem/file-entries.logic.ts:31 fn filterAndRank(query: string, files: FileEntry[], recentPaths: string[]): FileEntry[] L47
 by src/lib/core/filesystem/file-entries.logic.ts:filterAndRank <- src/lib/features/canvas/CanvasFilePicker.svelte:25 in filtered=$derived call
 by src/lib/core/filesystem/file-entries.logic.ts:filterAndRank <- src/lib/features/properties/RelationshipSearch.svelte:25 in results=$derived call
-by src/lib/core/filesystem/file-entries.logic.ts:filterAndRank <- src/lib/features/quick-switcher/QuickSwitcher.svelte:23 in filteredFiles=$derived call
+by src/lib/core/filesystem/file-entries.logic.ts:filterAndRank <- src/lib/features/quick-switcher/QuickSwitcher.svelte:39 in filteredFiles=$derived call
 ## calls
 call src/lib/core/filesystem/file-entries.logic.ts:16 in flattenFileTree -> src/lib/core/filesystem/file-entries.logic.ts:flattenFileTree call
 call src/lib/core/filesystem/file-entries.logic.ts:53 in filterAndRank -> src/lib/utils/fuzzy-match.ts:fuzzyMatch call

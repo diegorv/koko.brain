@@ -11,7 +11,7 @@ module src-tauri/src/utils rust files 5 in-modules 6 out-modules 0 pub 17/33 ipc
 module src-tauri/src/vault rust files 9 in-modules 2 out-modules 1 pub 46/105 ipc 0/0 card ~3.9k
 module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 card ~2.4k
 module src/lib/components components files 97 in-modules 30 out-modules 1 pub 0/0 ipc 0/0 card ~6.1k
-module src/lib/contracts contracts files 56 in-modules 25 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
+module src/lib/contracts contracts files 56 in-modules 26 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
 module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 44/52 ipc 0/0 card ~4.3k
 module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 58/89 ipc 14/0 card ~6.9k
 module src/lib/core/frontmatter core files 4 in-modules 16 out-modules 3 pub 28/40 ipc 0/0 card ~3.5k
@@ -39,7 +39,7 @@ module src/lib/features/note-action-bar features files 4 in-modules 2 out-module
 module src/lib/features/note-list features files 4 in-modules 1 out-modules 9 pub 3/8 ipc 0/0 card ~0.9k
 module src/lib/features/outgoing-links features files 5 in-modules 2 out-modules 7 pub 3/6 ipc 2/0 card ~0.9k
 module src/lib/features/properties features files 13 in-modules 5 out-modules 13 pub 14/34 ipc 1/0 card ~2.3k
-module src/lib/features/quick-switcher features files 3 in-modules 1 out-modules 8 pub 3/3 ipc 0/0 card ~0.9k
+module src/lib/features/quick-switcher features files 4 in-modules 1 out-modules 9 pub 3/6 ipc 1/0 card ~0.9k
 module src/lib/features/rail-shell features files 29 in-modules 7 out-modules 17 pub 49/161 ipc 2/0 card ~6.2k
 module src/lib/features/search features files 12 in-modules 4 out-modules 9 pub 14/44 ipc 16/0 card ~2.1k
 module src/lib/features/tags features files 8 in-modules 1 out-modules 7 pub 4/21 ipc 1/0 card ~0.9k
@@ -78,9 +78,9 @@ layer core -> core 467
 layer core -> types 5
 layer core -> utils 67
 layer features -> components 96
-layer features -> contracts 42
+layer features -> contracts 43
 layer features -> core 339
-layer features -> features 718
+layer features -> features 719
 layer features -> types 23
 layer features -> utils 98
 layer lib-root -> utils 1

@@ -25,7 +25,8 @@ reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver sink src/lib/core
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver read-by src/lib/core/editor/editor.hooks.ts:119 notifyNoteCreated
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/app/commands.ts:157 in getBuiltInCommands
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote
-reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:57 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:101 in (markup)
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:95 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:109 in handleInputKeydown <- src/lib/features/quick-switcher/QuickSwitcher.svelte:121 in (markup)
+reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/quick-switcher/QuickSwitcher.svelte:95 in createAndOpenNote <- src/lib/features/quick-switcher/QuickSwitcher.svelte:153 in (markup)
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/FilesNavigator.svelte:129 in handleNewFile <- src/lib/features/rail-shell/FilesNavigator.svelte:350 in (markup)
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver fired-by src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere
 reg src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver registered-at src/lib/plugins/mods/mods-host.service.ts:681 in createModContext args=(filePath) => { const path = vaultRelativeKey(vaultPath, filePath); if (path ==… -> src/lib/plugins/mods/mods-host.service.ts:createModContext

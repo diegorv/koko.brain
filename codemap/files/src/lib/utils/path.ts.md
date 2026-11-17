@@ -19,7 +19,7 @@ imp src/lib/features/note-action-bar/note-action-bar.logic.ts:1 -> src/lib/utils
 imp src/lib/features/note-action-bar/note-action-bar.service.ts:12 -> src/lib/utils/path.ts basename,stem
 imp src/lib/features/properties/RelationshipSearch.svelte:9 -> src/lib/utils/path.ts relativePath
 imp src/lib/features/properties/bookmark-migration.service.ts:6 -> src/lib/utils/path.ts basename,normalizePath
-imp src/lib/features/quick-switcher/QuickSwitcher.svelte:12 -> src/lib/utils/path.ts relativePath
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:13 -> src/lib/utils/path.ts relativePath
 imp src/lib/features/search/SearchResult.svelte:8 -> src/lib/utils/path.ts relativePath
 imp src/lib/features/search/search.logic.ts:4 -> src/lib/utils/path.ts relativePath,stem
 imp src/lib/features/search/search.service.ts:10 -> src/lib/utils/path.ts stem,vaultRelativeKey
@@ -59,7 +59,7 @@ by src/lib/utils/path.ts:stem <- src/lib/plugins/one-on-one/one-on-one.service.t
 sym src/lib/utils/path.ts:98 fn relativePath(vaultPath: string, filePath: string): string L6 | Strips the vault root prefix from an absolute path to produce a vault-relative path.
 by src/lib/utils/path.ts:relativePath <- src/lib/core/filesystem/fs.logic.ts:277 in getRelativePath call
 by src/lib/utils/path.ts:relativePath <- src/lib/features/properties/RelationshipSearch.svelte:82 in (markup) markup
-by src/lib/utils/path.ts:relativePath <- src/lib/features/quick-switcher/QuickSwitcher.svelte:89 in (markup) markup
+by src/lib/utils/path.ts:relativePath <- src/lib/features/quick-switcher/QuickSwitcher.svelte:140 in (markup) markup
 by src/lib/utils/path.ts:relativePath <- src/lib/features/search/SearchResult.svelte:60 in vaultRelPath=$derived call
 by src/lib/utils/path.ts:relativePath <- src/lib/features/search/search.logic.ts:176 in performOperatorOnlySearch call +1
 by src/lib/utils/path.ts:relativePath <- src/lib/plugins/mods/mod-query.service.ts:57 in createModQuery call

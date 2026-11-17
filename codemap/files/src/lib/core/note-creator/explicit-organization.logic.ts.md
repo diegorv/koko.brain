@@ -7,7 +7,7 @@ imp src/lib/app/deep-link-actions.ts:11 -> src/lib/core/note-creator/explicit-or
 imp src/lib/app/editor-host.ts:22 -> src/lib/core/note-creator/explicit-organization.logic.ts withUnorganizedFlag
 imp src/lib/features/deep-link/deep-link.service.ts:10 -> src/lib/core/note-creator/explicit-organization.logic.ts applyExplicitOrganization,withUnorganizedFlag
 imp src/lib/features/note-action-bar/note-action-bar.service.ts:10 -> src/lib/core/note-creator/explicit-organization.logic.ts applyExplicitOrganization
-imp src/lib/features/quick-switcher/QuickSwitcher.svelte:9 -> src/lib/core/note-creator/explicit-organization.logic.ts applyExplicitOrganization
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:10 -> src/lib/core/note-creator/explicit-organization.logic.ts applyExplicitOrganization
 imp src/lib/features/rail-shell/FilesNavigator.svelte:42 -> src/lib/core/note-creator/explicit-organization.logic.ts applyExplicitOrganization
 imp src/lib/features/rail-shell/new-note.service.ts:5 -> src/lib/core/note-creator/explicit-organization.logic.ts applyExplicitOrganization
 imp src/lib/features/type-definitions/type-definitions.service.ts:11 -> src/lib/core/note-creator/explicit-organization.logic.ts applyExplicitOrganization,withUnorganizedFlag
@@ -31,7 +31,7 @@ by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganiz
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/app/deep-link-actions.ts:210 in executeCaptureAction call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/deep-link/deep-link.service.ts:334 in executeNewAction call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/note-action-bar/note-action-bar.service.ts:79 in createLinkedNote call
-by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/quick-switcher/QuickSwitcher.svelte:50 in createAndOpenNote call
+by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/quick-switcher/QuickSwitcher.svelte:88 in createAndOpenNote call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/rail-shell/FilesNavigator.svelte:86 in fileCreators=$derived call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/rail-shell/new-note.service.ts:37 in createNoteHere call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/type-definitions/type-definitions.service.ts:148 in createTypedNote call

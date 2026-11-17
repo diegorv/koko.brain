@@ -35,7 +35,7 @@ imp src/lib/features/event-calendar/event-calendar.service.ts:21 -> src/lib/core
 imp src/lib/features/file-history/FileHistoryDialog.svelte:7 -> src/lib/core/filesystem/fs.service.ts revealInSystemExplorer
 imp src/lib/features/note-action-bar/note-action-bar.service.ts:4 -> src/lib/core/filesystem/fs.service.ts createFile
 imp src/lib/features/note-list/NoteRowMenu.svelte:17 -> src/lib/core/filesystem/fs.service.ts deleteItem,duplicateItem,renameItem,revealInSystemExplorer
-imp src/lib/features/quick-switcher/QuickSwitcher.svelte:8 -> src/lib/core/filesystem/fs.service.ts createFile
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:9 -> src/lib/core/filesystem/fs.service.ts createFile
 imp src/lib/features/rail-shell/FilesNavigator.svelte:25 -> src/lib/core/filesystem/fs.service.ts createFile,createFolder,deleteItem,moveItem,renameItem,revealInSystemExplorer
 imp src/lib/features/rail-shell/TypesNavigator.svelte:18 -> src/lib/core/filesystem/fs.service.ts revealInSystemExplorer
 imp src/lib/features/rail-shell/new-note.service.ts:4 -> src/lib/core/filesystem/fs.service.ts createFile
@@ -116,7 +116,7 @@ by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/canvas/c
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/collection/collection.service.ts:34 in createCollectionFile call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/event-calendar/event-calendar.service.ts:1014 in duplicateEvent call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/note-action-bar/note-action-bar.service.ts:80 in createLinkedNote call
-by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/quick-switcher/QuickSwitcher.svelte:50 in createAndOpenNote call
+by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/quick-switcher/QuickSwitcher.svelte:88 in createAndOpenNote call
 by src/lib/core/filesystem/fs.service.ts:createFile <- src/lib/features/rail-shell/FilesNavigator.svelte:86 in fileCreators=$derived call
 more by 3 not shown: src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) src/lib/plugins/kanban(1): q importers src/lib/core/filesystem/fs.service.ts:createFile
 sym src/lib/core/filesystem/fs.service.ts:227 fn createFolder(parentPath: string, folderName: string): Promise<string> L17 | Creates a directory on disk and adds it to the tree.
