@@ -40,7 +40,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 03 | [Search result cards: note name, folder, plain-text snippets, themed highlight](issues/03-search-result-cards-name-folder-plain-snippets.md) | none | done | issue/03-search-result-cards-name-folder-plain-snippets (5d17f397d) | 2026-11-17 |
 | 04 | [Search states: short query, error, disabled mode; operator hints; a11y labels; index status only in the status bar](issues/04-search-panel-states-hints-labels.md) | 03 | in-progress | | |
 | 05 | [Search keeps previous results dimmed while searching, shows "N+" at the cap, and clearing mid-search does not stick on Searching...](issues/05-search-keeps-results-while-searching.md) | 04 | todo | | |
-| 06 | [Palette: calendar Undo/Redo only when they can act, Calendar category, Recent / All commands groups](issues/06-palette-calendar-undo-recent-groups.md) | 01 | in-progress | | |
+| 06 | [Palette: calendar Undo/Redo only when they can act, Calendar category, Recent / All commands groups](issues/06-palette-calendar-undo-recent-groups.md) | 01 | done | issue/06-palette-calendar-undo-recent-groups (90ccfc691) | 2026-11-17 |
 | 07 | [Quick switcher rows: type icon, folder, Archived tag, match highlight, Recent notes heading](issues/07-quick-switcher-rows-type-icon-folder-highlight.md) | 02 | todo | | |
 | 08 | [Tags view keeps its list and expanded tags on screen while it refreshes](issues/08-tags-view-keeps-list-while-refreshing.md) | none | done | issue/08-tags-view-keeps-list-while-refreshing (9023e5e61) | 2026-11-17 |
 | 09 | [Tags header says "Showing X of Y" and the empty state explains the rare-tag filter](issues/09-tags-header-showing-x-of-y.md) | 08 | todo | | |
@@ -69,3 +69,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 16:12 — 04 — start — launched by /relay-lite:run — 50157349e
 - 2026-11-17 16:19 — 02 — deliver — merged; reviews APPROVED x2 (claude): fix round tightened the reuse-folder test and lists an existing note in its target folder; full suite 642 files / 17054 tests passed — b459157c9
 - 2026-11-17 16:19 — 06 — start — launched by /relay-lite:run — 542efbea0
+- 2026-11-17 16:36 — 06 — deliver — merged; review APPROVED (claude), 3 nits rejected with reasons; full suite 643 files / 17107 tests passed — 90ccfc691
