@@ -20,7 +20,7 @@ imp src/lib/app/lifecycle/app-lifecycle.service.ts:65 -> src/lib/plugins/kanban/
 imp src/lib/plugins/kanban/KanbanCard.svelte:11 -> src/lib/plugins/kanban/kanban.service.ts loadLinkedFileContent
 ## reach
 in2 src/lib/plugins/kanban/kanban.service.ts 3 files in 3 modules: src/lib/app(1) src/lib/plugins/kanban(1) src/routes(1)
-out2 src/lib/plugins/kanban/kanban.service.ts 17 files in 9 modules: src/lib/core/filesystem(4) src/lib/contracts(3) src/lib/utils(3) src/lib/core/settings(2) src/lib/core/editor(1) +4 modules
+out2 src/lib/plugins/kanban/kanban.service.ts 18 files in 9 modules: src/lib/core/filesystem(4) src/lib/utils(4) src/lib/contracts(3) src/lib/core/settings(2) src/lib/core/editor(1) +4 modules
 ## tests
 test src/tests/lib/plugins/kanban/kanban.service.test.ts imports src/lib/plugins/kanban/kanban.service.ts mirror
 test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts imports src/lib/plugins/kanban/kanban.service.ts

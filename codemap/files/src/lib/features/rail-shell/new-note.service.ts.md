@@ -14,7 +14,7 @@ imp src/lib/features/rail-shell/new-note.service.ts:9 -> src/lib/features/type-d
 imp src/lib/features/rail-shell/new-note.service.ts:10 -> src/lib/features/rail-shell/lens.logic.ts newNoteContent
 imp src/lib/features/rail-shell/new-note.service.ts:11 -> src/lib/features/rail-shell/rail-shell.types.ts type:NewNoteRule
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:88 -> src/lib/features/rail-shell/new-note.service.ts createNoteHere
+imp src/lib/features/rail-shell/RailNoteList.svelte:81 -> src/lib/features/rail-shell/new-note.service.ts createNoteHere
 ## reach
 in2 src/lib/features/rail-shell/new-note.service.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/rail-shell/new-note.service.ts 39 files in 13 modules: src/lib/core/filesystem(6) src/lib/features/type-definitions(6) src/lib/utils(6) src/lib/core/settings(5) src/lib/features/collection(5) +8 modules
@@ -22,7 +22,7 @@ out2 src/lib/features/rail-shell/new-note.service.ts 39 files in 13 modules: src
 test src/tests/lib/features/rail-shell/new-note.service.test.ts imports src/lib/features/rail-shell/new-note.service.ts mirror
 ## symbols
 sym src/lib/features/rail-shell/new-note.service.ts:26 fn createNoteHere(rule: NewNoteRule): Promise<string> L22 | "+ New here": a plain rule creates `Untitled.md` (deduped) in its folder with its frontmatter; a typed rule creates `Untitled <Type>` through `createTypedNote`…
-by src/lib/features/rail-shell/new-note.service.ts:createNoteHere <- src/lib/features/rail-shell/RailNoteList.svelte:607 in handleNewHere call
+by src/lib/features/rail-shell/new-note.service.ts:createNoteHere <- src/lib/features/rail-shell/RailNoteList.svelte:600 in handleNewHere call
 ## calls
 call src/lib/features/rail-shell/new-note.service.ts:29 in createNoteHere -> src/lib/core/vault/vault.store.svelte.ts:vaultStore.requestPromptIndexRefresh mcall
 call src/lib/features/rail-shell/new-note.service.ts:33 in createNoteHere -> src/lib/features/type-definitions/type-definitions.service.ts:createTypedNote call

@@ -6,7 +6,7 @@ imp src/lib/features/rail-shell/list-sort-compare.logic.ts:1 -> src/lib/core/fil
 imp src/lib/features/rail-shell/list-sort-compare.logic.ts:2 -> src/lib/features/rail-shell/list-toolbar.types.ts type:ListSortConfig,type:ListSortOption
 imp src/lib/features/rail-shell/list-sort-compare.logic.ts:3 -> src/lib/features/rail-shell/rail-shell.types.ts type:LensGroup,type:LensNote,type:ResolvedLens
 ## imported-by
-imp src/lib/features/rail-shell/RailNoteList.svelte:84 -> src/lib/features/rail-shell/list-sort-compare.logic.ts applyListSort
+imp src/lib/features/rail-shell/RailNoteList.svelte:77 -> src/lib/features/rail-shell/list-sort-compare.logic.ts applyListSort
 ## reach
 in2 src/lib/features/rail-shell/list-sort-compare.logic.ts 1 files in 1 modules: src/lib/app(1)
 out2 src/lib/features/rail-shell/list-sort-compare.logic.ts 6 files in 5 modules: src/lib/utils(2) src/lib/core/filesystem(1) src/lib/features/note-list(1) src/lib/features/type-definitions(1) src/lib/types(1)
@@ -15,7 +15,7 @@ test src/tests/lib/features/rail-shell/list-sort-compare.logic.test.ts imports s
 ## symbols
 sym src/lib/features/rail-shell/list-sort-compare.logic.ts:95 fn sortLensNotes(notes: readonly LensNote[], config: ListSortConfig): LensNote[] L3 | Returns a new array of `notes` in the given order; the input is not changed.
 sym src/lib/features/rail-shell/list-sort-compare.logic.ts:104 fn applyListSort(resolved: ResolvedLens, config: ListSortConfig): ResolvedLens L18 | Applies a sort to a resolved lens.
-by src/lib/features/rail-shell/list-sort-compare.logic.ts:applyListSort <- src/lib/features/rail-shell/RailNoteList.svelte:552 in sortedResolved=$derived call
+by src/lib/features/rail-shell/list-sort-compare.logic.ts:applyListSort <- src/lib/features/rail-shell/RailNoteList.svelte:545 in sortedResolved=$derived call
 ## locals
 local src/lib/features/rail-shell/list-sort-compare.logic.ts:8 fn rawValue(note: LensNote, option: ListSortOption): unknown L14
 local src/lib/features/rail-shell/list-sort-compare.logic.ts:24 fn sortValue(note: LensNote, option: ListSortOption): unknown L4

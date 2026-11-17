@@ -11,7 +11,7 @@ imp src/lib/features/auto-organize/auto-organize.service.ts:45 -> src/lib/featur
 imp src/lib/features/collection/CollectionView.svelte:15 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/collection-block-widget.ts:7 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/collection/collection.service.ts:8 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:29 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:22 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:46 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/features/type-definitions/ViewDialog.svelte:7 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
 imp src/lib/plugins/mods/mod-app.service.ts:9 -> src/lib/features/collection/collection.store.svelte.ts collectionStore
@@ -71,7 +71,7 @@ by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/CollectionView.svelte:145 in restoreViewIndex mcall +7
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/collection-block-widget.ts:79 in CollectionBlockWidget.constructor member +5
 by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/collection/collection.service.ts:101 in buildPropertyIndex mcall +11
-by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/rail-shell/RailNoteList.svelte:182 in availableProperties=$derived member +6
+by src/lib/features/collection/collection.store.svelte.ts:collectionStore <- src/lib/features/rail-shell/RailNoteList.svelte:175 in availableProperties=$derived member +6
 more by 5 not shown: src/lib/plugins/mods(2) src/lib/features/rail-shell(1) src/lib/features/type-definitions(1) src/lib/plugins/queryjs(1): q importers src/lib/features/collection/collection.store.svelte.ts:collectionStore
 ## store
 store src/lib/features/collection/collection.store.svelte.ts:28 collectionStore esc:0

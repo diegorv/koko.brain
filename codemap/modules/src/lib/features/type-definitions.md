@@ -28,7 +28,7 @@ dep src/lib/features/type-definitions -> src/lib/features/collection 15
 dep src/lib/features/type-definitions -> src/lib/features/file-icons 1
 dep src/lib/features/type-definitions -> src/lib/types 5
 dep src/lib/features/type-definitions -> src/lib/utils 1
-in2 src/lib/features/type-definitions 2 modules: src/routes(4) src/lib/features/search(1)
+in2 src/lib/features/type-definitions 3 modules: src/routes(4) src/lib/features/quick-switcher(1) src/lib/features/search(1)
 out2 src/lib/features/type-definitions 2 modules: src/lib/core/markdown-editor(1) src/lib/core/trash(1)
 ## entry files
 entry src/lib/features/type-definitions/type-definitions.store.svelte.ts ext-in19 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/editor-host.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 14 not shown: src/lib/features/rail-shell(4) src/lib/features/event-calendar(2) src/lib/app(1) +7 modules: q importers src/lib/features/type-definitions/type-definitions.store.svelte.ts

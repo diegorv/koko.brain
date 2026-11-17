@@ -1,10 +1,11 @@
 # module card src/lib/features/rail-shell
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/rail-shell ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/features/rail-shell features files 29 in-modules 7 out-modules 17 pub 49/161 ipc 2/0 card ~6.2k
+module src/lib/features/rail-shell features files 30 in-modules 8 out-modules 17 pub 51/162 ipc 2/0 card ~6.4k
 ## neighbors
 dep src/lib/app -> src/lib/features/rail-shell 19
 dep src/lib/features/note-action-bar -> src/lib/features/rail-shell 1
+dep src/lib/features/quick-switcher -> src/lib/features/rail-shell 2
 dep src/lib/features/search -> src/lib/features/rail-shell 1
 dep src/lib/plugins/calendar -> src/lib/features/rail-shell 4
 dep src/lib/plugins/kanban -> src/lib/features/rail-shell 1
@@ -30,7 +31,7 @@ dep src/lib/features/rail-shell -> src/lib/utils 11
 in2 src/lib/features/rail-shell 3 modules: src/routes(3) src/lib/features/deep-link(1) src/lib/features/tags(1)
 out2 src/lib/features/rail-shell 2 modules: src/lib/core/trash(4) src/lib/core/markdown-editor(1)
 ## entry files
-entry src/lib/features/rail-shell/lens.logic.ts ext-in7 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/rail-navigation.ts src/lib/features/search/open-search.service.ts more importers 2 not shown: src/lib/plugins/calendar(1) src/lib/plugins/one-on-one(1): q importers src/lib/features/rail-shell/lens.logic.ts
+entry src/lib/features/rail-shell/lens.logic.ts ext-in8 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/commands.ts src/lib/app/rail-navigation.ts src/lib/features/quick-switcher/QuickSwitcher.svelte more importers 3 not shown: src/lib/features/search(1) src/lib/plugins/calendar(1) src/lib/plugins/one-on-one(1): q importers src/lib/features/rail-shell/lens.logic.ts
 entry src/lib/features/rail-shell/rail-registry.store.svelte.ts ext-in7 src/lib/app/AppShell.svelte src/lib/app/commands.ts src/lib/plugins/calendar/calendar-rail.service.ts src/lib/plugins/kanban/kanban.service.ts src/lib/plugins/mods/mod-app.service.ts more importers 2 not shown: src/lib/plugins/mods(1) src/lib/plugins/one-on-one(1): q importers src/lib/features/rail-shell/rail-registry.store.svelte.ts
 entry src/lib/features/rail-shell/rail-items.logic.ts ext-in3 src/lib/app/AppShell.svelte src/lib/app/commands.ts src/lib/app/rail-navigation.ts
 entry src/lib/features/rail-shell/neighbourhood.service.ts ext-in2 src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/features/note-action-bar/NoteActionBar.svelte
@@ -42,6 +43,7 @@ entry src/lib/features/rail-shell/Rail.svelte ext-in1 src/lib/app/AppShell.svelt
 entry src/lib/features/rail-shell/RailNoteList.svelte ext-in1 src/lib/app/AppShell.svelte
 entry src/lib/features/rail-shell/TypesNavigator.svelte ext-in1 src/lib/app/AppShell.svelte
 entry src/lib/features/rail-shell/files-navigator.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
+entry src/lib/features/rail-shell/kind-icons.ts ext-in1 src/lib/features/quick-switcher/QuickSwitcher.svelte
 entry src/lib/features/rail-shell/types-navigator.service.ts ext-in1 src/lib/app/lifecycle/app-lifecycle.service.ts
 ## files
 file src/lib/features/rail-shell/FilesNavigator.svelte component L502 module src/lib/features/rail-shell in1 t4
@@ -49,12 +51,13 @@ file src/lib/features/rail-shell/LayoutSection.svelte component L201 module src/
 file src/lib/features/rail-shell/Rail.svelte component L380 module src/lib/features/rail-shell in1 t3
 file src/lib/features/rail-shell/RailArchivedMenu.svelte component L67 module src/lib/features/rail-shell in1 t0
 file src/lib/features/rail-shell/RailListSearch.svelte component L119 module src/lib/features/rail-shell in1 t1
-file src/lib/features/rail-shell/RailNoteList.svelte component L925 module src/lib/features/rail-shell in1 t6
+file src/lib/features/rail-shell/RailNoteList.svelte component L907 module src/lib/features/rail-shell in1 t6
 file src/lib/features/rail-shell/RailPropertiesPicker.svelte component L177 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/RailSortMenu.svelte component L233 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/TypesNavigator.svelte component L511 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/files-navigator.service.ts service L20 module src/lib/features/rail-shell in1 t3
-file src/lib/features/rail-shell/lens.logic.ts logic L1111 module src/lib/features/rail-shell in18 t30
+file src/lib/features/rail-shell/kind-icons.ts other L24 module src/lib/features/rail-shell in2 t0
+file src/lib/features/rail-shell/lens.logic.ts logic L1111 module src/lib/features/rail-shell in19 t30
 file src/lib/features/rail-shell/list-fulltext.service.ts service L34 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/list-prefs.logic.ts logic L107 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/list-prefs.service.ts service L69 module src/lib/features/rail-shell in1 t1
@@ -69,7 +72,7 @@ file src/lib/features/rail-shell/neighbourhood.store.svelte.ts store L25 module 
 file src/lib/features/rail-shell/new-note.service.ts service L47 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/rail-items.logic.ts logic L195 module src/lib/features/rail-shell in5 t5
 file src/lib/features/rail-shell/rail-registry.store.svelte.ts store L111 module src/lib/features/rail-shell in11 t26
-file src/lib/features/rail-shell/rail-shell.types.ts types L234 module src/lib/features/rail-shell in15 t0
+file src/lib/features/rail-shell/rail-shell.types.ts types L234 module src/lib/features/rail-shell in16 t0
 file src/lib/features/rail-shell/types-navigator.service.ts service L21 module src/lib/features/rail-shell in1 t2
 file src/lib/features/rail-shell/view-lens-seed.logic.ts logic L56 module src/lib/features/rail-shell in1 t1
 file src/lib/features/rail-shell/view-lens.service.ts service L48 module src/lib/features/rail-shell in1 t2
@@ -77,9 +80,10 @@ file src/lib/features/rail-shell/view-lens.service.ts service L48 module src/lib
 sym src/lib/features/rail-shell/FilesNavigator.svelte:1 component FilesNavigator props:picked,expanded,onPick,onToggle,onPickView L502
 sym src/lib/features/rail-shell/LayoutSection.svelte:1 component LayoutSection L201
 sym src/lib/features/rail-shell/Rail.svelte:1 component Rail props:activeItem,onSelect L380
-sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L925
+sym src/lib/features/rail-shell/RailNoteList.svelte:1 component RailNoteList props:lens,firstPane= L907
 sym src/lib/features/rail-shell/TypesNavigator.svelte:1 component TypesNavigator props:rows,picked,onPick L511
 sym src/lib/features/rail-shell/files-navigator.service.ts:11 fn registerFilesNavigatorPathChangeConsumer(): () => void L10 | Registers the Files navigator as a path-change consumer, so its saved pick and expanded folders follow a folder renamed, moved or deleted anywhere in the app.
+sym src/lib/features/rail-shell/kind-icons.ts:16 const KIND_ICONS: Record<FileKind, Component> L9 | The row icon of each file kind when the file has no icon of its own (the file tree's kind icons).
 sym src/lib/features/rail-shell/lens.logic.ts:97 const SEARCH_LENS: Lens L1 | The Search rail item's lens.
 sym src/lib/features/rail-shell/lens.logic.ts:109 const VIEW_LENS_KIND L1 | The lens kind of a `.view` file; its target is the file's absolute path.
 sym src/lib/features/rail-shell/lens.logic.ts:124 const SEARCH_RAIL_ITEM L1 | The rail item that shows Search.
@@ -100,6 +104,7 @@ sym src/lib/features/rail-shell/lens.logic.ts:592 fn stepTypesPickCheck(prev: Ty
 sym src/lib/features/rail-shell/lens.logic.ts:656 fn viewNavigatorRows(tree: FileTreeNode[], entriesByPath: Map<string, NoteEntryV2>): TypeNavigatorRow[] L24 | The Views part of the Types navigator: every `.view` file in the tree but the hidden ones (`_visible: false`), labelled by its `_sidebar_label`, marked to open…
 sym src/lib/features/rail-shell/lens.logic.ts:717 fn viewRowSet<T extends { path: string }>(records: readonly T[], view: CollectionViewDef, viewPath: string, ctx: ViewRowContext, def… L18 | The one row set of a `.view` view, which the editor (through the collection row-set port), the rail's view lens and the navigator count all use.
 sym src/lib/features/rail-shell/lens.logic.ts:749 fn blockRowSet<T extends Pick<PropertyIndexRecord, 'path' | 'properties'>>(records: readonly T[], view: CollectionViewDef, definition… L15 | The row set of an inline ` ```collection ` block: `viewRowSet`'s rule read from the records alone. Takes the records the block's query matched (filters and the…
+sym src/lib/features/rail-shell/lens.logic.ts:913 fn fileKind(name: string): FileKind L10 | The kind of a file, from its name's extension (case-insensitive).
 sym src/lib/features/rail-shell/lens.logic.ts:1011 fn pickedFolderLens(saved: unknown): Lens L3 | The Files navigator's pick saved in `layout.railFolder` as a lens; anything but a non-empty string is the vault root.
 sym src/lib/features/rail-shell/lens.logic.ts:1016 fn parseExpandedFolders(saved: unknown): string[] L3 | The expanded folders saved in `layout.railExpandedFolders`; a hand-edited non-array reads as none, non-strings are dropped.
 sym src/lib/features/rail-shell/lens.logic.ts:1029 fn staleFolderPickFix(railItem: unknown, savedPick: unknown, savedExpanded: unknown, tree: readonly FileTreeNode[], vaultPath: string): Pick… L19 | The layout change that drops what the Files navigator saved but the tree no longer holds: a picked folder that is gone clears the pick and, when Files is the a…

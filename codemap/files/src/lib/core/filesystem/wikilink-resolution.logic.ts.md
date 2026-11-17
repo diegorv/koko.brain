@@ -20,7 +20,7 @@ imp src/lib/plugins/queryjs/kb-api.ts:9 -> src/lib/core/filesystem/wikilink-reso
 imp src/lib/plugins/queryjs/queryjs.logic.ts:5 -> src/lib/core/filesystem/wikilink-resolution.logic.ts isLinkTargetFile,resolveWikilinkCached,type:WikilinkResolutionCache
 imp src/lib/plugins/quick-capture/composer-editor-host.service.ts:3 -> src/lib/core/filesystem/wikilink-resolution.logic.ts getNoteName,isLinkTargetFile
 ## reach
-in2 src/lib/core/filesystem/wikilink-resolution.logic.ts 43 files in 16 modules: src/lib/features/rail-shell(11) src/lib/app(6) src/lib/features/collection(6) src/lib/features/auto-organize(3) src/lib/plugins/graph-view(3) +11 modules: q impact src/lib/core/filesystem/wikilink-resolution.logic.ts --depth 2
+in2 src/lib/core/filesystem/wikilink-resolution.logic.ts 44 files in 17 modules: src/lib/features/rail-shell(11) src/lib/app(6) src/lib/features/collection(6) src/lib/features/auto-organize(3) src/lib/plugins/graph-view(3) +12 modules: q impact src/lib/core/filesystem/wikilink-resolution.logic.ts --depth 2
 out2 src/lib/core/filesystem/wikilink-resolution.logic.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/core/filesystem/wikilink-resolution.logic.test.ts imports src/lib/core/filesystem/wikilink-resolution.logic.ts mirror

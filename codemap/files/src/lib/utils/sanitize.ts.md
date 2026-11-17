@@ -9,7 +9,7 @@ imp src/lib/features/collection/collection-block-widget.ts:10 -> src/lib/utils/s
 imp src/lib/features/file-icons/IconRenderer.svelte:3 -> src/lib/utils/sanitize.ts sanitizeSvgContent
 imp src/lib/features/search/search.logic.ts:48 -> src/lib/utils/sanitize.ts sanitizeSnippetHtml
 ## reach
-in2 src/lib/utils/sanitize.ts 20 files in 11 modules: src/lib/app(3) src/lib/features/rail-shell(3) src/lib/features/search(3) src/lib/features/auto-organize(2) src/lib/features/canvas(2) +6 modules: q impact src/lib/utils/sanitize.ts --depth 2
+in2 src/lib/utils/sanitize.ts 21 files in 12 modules: src/lib/app(3) src/lib/features/rail-shell(3) src/lib/features/search(3) src/lib/features/auto-organize(2) src/lib/features/canvas(2) +7 modules: q impact src/lib/utils/sanitize.ts --depth 2
 out2 src/lib/utils/sanitize.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/utils/sanitize.test.ts imports src/lib/utils/sanitize.ts mirror

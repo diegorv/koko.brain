@@ -8,7 +8,7 @@ imp src/lib/features/collection/CollectionView.svelte:3 -> src/lib/features/coll
 imp src/lib/features/collection/collection-block-widget.ts:3 -> src/lib/features/collection/yaml-parser.ts parseCollectionYaml
 imp src/lib/features/collection/collection.types.ts:1 -> src/lib/features/collection/yaml-parser.ts type:ViewType
 imp src/lib/features/collection/key-edit.logic.ts:2 -> src/lib/features/collection/yaml-parser.ts parseCollectionYaml,updateCollectionYaml,type:CollectionYamlUpdates
-imp src/lib/features/rail-shell/RailNoteList.svelte:42 -> src/lib/features/collection/yaml-parser.ts railViewIndex
+imp src/lib/features/rail-shell/RailNoteList.svelte:35 -> src/lib/features/collection/yaml-parser.ts railViewIndex
 imp src/lib/features/rail-shell/lens.logic.ts:41 -> src/lib/features/collection/yaml-parser.ts railViewIndex
 imp src/lib/features/type-definitions/ViewDialog.svelte:16 -> src/lib/features/collection/yaml-parser.ts railViewIndex
 imp src/lib/features/type-definitions/type-definitions.service.ts:22 -> src/lib/features/collection/yaml-parser.ts updateViewEditYaml,type:ViewEdit
@@ -16,7 +16,7 @@ imp src/lib/features/type-definitions/type-note-list.logic.ts:4 -> src/lib/featu
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:6 -> src/lib/features/collection/yaml-parser.ts viewIndexByName
 imp src/lib/features/type-definitions/view-parse-cache.ts:2 -> src/lib/features/collection/yaml-parser.ts parseCollectionYaml
 ## reach
-in2 src/lib/features/collection/yaml-parser.ts 57 files in 12 modules: src/lib/features/collection(18) src/lib/features/rail-shell(13) src/lib/app(8) src/lib/features/auto-organize(4) src/lib/features/event-calendar(3) +7 modules: q impact src/lib/features/collection/yaml-parser.ts --depth 2
+in2 src/lib/features/collection/yaml-parser.ts 58 files in 13 modules: src/lib/features/collection(18) src/lib/features/rail-shell(13) src/lib/app(8) src/lib/features/auto-organize(4) src/lib/features/event-calendar(3) +8 modules: q impact src/lib/features/collection/yaml-parser.ts --depth 2
 out2 src/lib/features/collection/yaml-parser.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/collection/yaml-parser.test.ts imports src/lib/features/collection/yaml-parser.ts mirror
@@ -48,7 +48,7 @@ by src/lib/features/collection/yaml-parser.ts:parseCollectionYaml <- src/lib/fea
 sym src/lib/features/collection/yaml-parser.ts:131 fn viewIndexByName(views: unknown, name: unknown): number L4 | Index of the first entry of `views` (raw YAML or parsed) whose `name` equals `name` exactly; -1 when none does.
 by src/lib/features/collection/yaml-parser.ts:viewIndexByName <- src/lib/features/type-definitions/type-sidebar.logic.ts:453 in railViewNameNote call
 sym src/lib/features/collection/yaml-parser.ts:142 fn railViewIndex(definition: Pick<CollectionDefinition, 'views' | 'railView'>): number L3 | Index of the view the rail runs (its note list, navigator count, Sort and Filter toolbar, and Edit view): the first view whose `name` equals `railView` exactly…
-by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/RailNoteList.svelte:272 in loadView call
+by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/RailNoteList.svelte:265 in loadView call
 by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/rail-shell/lens.logic.ts:805 in queryViewLens call
 by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/type-definitions/ViewDialog.svelte:96 in load call
 by src/lib/features/collection/yaml-parser.ts:railViewIndex <- src/lib/features/type-definitions/type-note-list.logic.ts:169 in toolbarKeyBase call +1

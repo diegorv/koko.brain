@@ -21,7 +21,7 @@ dep src/routes -> src/lib/core/frontmatter 1
 dep src/lib/core/frontmatter -> src/lib/core/editor 3
 dep src/lib/core/frontmatter -> src/lib/core/vault 1
 dep src/lib/core/frontmatter -> src/lib/utils 2
-in2 src/lib/core/frontmatter 3 modules: src/lib/features/note-list(3) src/lib/plugins/calendar(2) src/lib/features/tasks(1)
+in2 src/lib/core/frontmatter 4 modules: src/lib/features/note-list(3) src/lib/plugins/calendar(2) src/lib/features/quick-switcher(1) src/lib/features/tasks(1)
 out2 src/lib/core/frontmatter 2 modules: src/lib/core/filesystem(2) src/lib/core/markdown-editor(1)
 ## entry files
 entry src/lib/core/frontmatter/properties.logic.ts ext-in26 src/lib/app/deep-link-actions.ts src/lib/core/markdown-editor/extensions/live-preview/plugins/meta-bind-input-plugin.ts src/lib/core/markdown-editor/extensions/live-preview/plugins/table-field.ts src/lib/core/markdown-editor/extensions/live-preview/widgets.ts src/lib/features/auto-organize/auto-organize.logic.ts more importers 21 not shown: src/lib/features/event-calendar(3) src/lib/features/properties(3) src/lib/features/file-icons(2) +10 modules: q importers src/lib/core/frontmatter/properties.logic.ts

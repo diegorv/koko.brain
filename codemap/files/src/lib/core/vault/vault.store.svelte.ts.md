@@ -104,8 +104,8 @@ by src/lib/core/vault/vault.store.svelte.ts:vaultStore <- src/lib/app/tauri-list
 more by 75 not shown: src/lib/features/rail-shell(6) src/lib/features/properties(5) src/lib/features/todoist-sync(5) src/lib/core/filesystem(4) src/lib/features/auto-organize(4) src/lib/features/event-calendar(4) src/lib/features/search(4) src/lib/plugins/mods(4) +25 modules: q importers src/lib/core/vault/vault.store.svelte.ts:vaultStore
 ## store
 store src/lib/core/vault/vault.store.svelte.ts:60 vaultStore esc:1
-mem src/lib/core/vault/vault.store.svelte.ts:61 get vaultStore.path r:176 w-via:open,close,_reset
-more r 176 not shown: src/lib/features/rail-shell(21) src/lib/app(20) src/lib/plugins/mods(18) src/lib/features/search(12) src/lib/features/event-calendar(11) src/lib/features/type-definitions(10) src/lib/core/filesystem(9) src/lib/core/settings(8) +22 modules: q store src/lib/core/vault/vault.store.svelte.ts:vaultStore.path
+mem src/lib/core/vault/vault.store.svelte.ts:61 get vaultStore.path r:175 w-via:open,close,_reset
+more r 175 not shown: src/lib/features/rail-shell(21) src/lib/app(20) src/lib/plugins/mods(18) src/lib/features/search(12) src/lib/features/event-calendar(11) src/lib/features/type-definitions(10) src/lib/core/filesystem(9) src/lib/core/settings(8) +22 modules: q store src/lib/core/vault/vault.store.svelte.ts:vaultStore.path
 mem src/lib/core/vault/vault.store.svelte.ts:62 get vaultStore.name r:src/lib/features/note-action-bar/note-action-bar.service.ts:59,src/lib/plugins/quick-capture/quick-capture.service.ts:103 w-via:open,close,_reset
 mem src/lib/core/vault/vault.store.svelte.ts:64 get vaultStore.isOpen r:src/lib/app/AppShell.svelte:184,src/lib/features/backlinks/BacklinksPanel.svelte:59,src/routes/(app)/+layout.svelte:76,src/routes/(app)/+layout.svelte:117 w-via:open,close,_reset | Whether a vault is currently open (computed from path)
 mem src/lib/core/vault/vault.store.svelte.ts:65 get vaultStore.recentVaults r:src/lib/features/deep-link/deep-link.service.ts:142,src/routes/(app)/+page.svelte:36,src/routes/(app)/+page.svelte:46 w-via:open,removeRecent,_reset

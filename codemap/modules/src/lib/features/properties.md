@@ -39,7 +39,7 @@ file src/lib/features/properties/RelationshipSearch.svelte component L94 module 
 file src/lib/features/properties/bookmark-migration.service.ts service L115 module src/lib/features/properties in1 t2
 file src/lib/features/properties/lifecycle-filter.logic.ts logic L10 module src/lib/features/properties in1 t1
 file src/lib/features/properties/lifecycle-filter.service.ts service L11 module src/lib/features/properties in1 t1
-file src/lib/features/properties/lifecycle-filter.store.svelte.ts store L28 module src/lib/features/properties in3 t4
+file src/lib/features/properties/lifecycle-filter.store.svelte.ts store L28 module src/lib/features/properties in3 t5
 file src/lib/features/properties/lifecycle.logic.ts logic L64 module src/lib/features/properties in3 t3
 file src/lib/features/properties/lifecycle.service.ts service L93 module src/lib/features/properties in5 t15
 file src/lib/features/properties/note-info.logic.ts logic L35 module src/lib/features/properties in1 t1

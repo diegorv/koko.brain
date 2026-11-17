@@ -12,7 +12,7 @@ imp src/lib/plugins/kanban/KanbanCard.svelte:16 -> src/lib/plugins/kanban/Kanban
 imp src/lib/plugins/kanban/KanbanLane.svelte:14 -> src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte default
 ## reach
 in2 src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte 1 files in 1 modules: src/lib/plugins/kanban(1)
-out2 src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte 4 files in 4 modules: src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/core/markdown-editor(1) src/lib/utils(1)
+out2 src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte 5 files in 4 modules: src/lib/utils(2) src/lib/contracts(1) src/lib/core/filesystem(1) src/lib/core/markdown-editor(1)
 ## tests
 test src/tests/lib/plugins/kanban/KanbanWikilinkSuggestions.test.ts imports src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte mirror
 ## symbols

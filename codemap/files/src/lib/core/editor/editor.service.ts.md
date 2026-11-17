@@ -54,7 +54,7 @@ imp src/lib/features/properties/PropertiesView.svelte:10 -> src/lib/core/editor/
 imp src/lib/features/properties/properties.service.ts:2 -> src/lib/core/editor/editor.service.ts syncExternalContentToEditor
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:5 -> src/lib/core/editor/editor.service.ts openFileInEditor
 imp src/lib/features/rail-shell/FilesNavigator.svelte:20 -> src/lib/core/editor/editor.service.ts openFileInEditor
-imp src/lib/features/rail-shell/RailNoteList.svelte:18 -> src/lib/core/editor/editor.service.ts openFileInEditor
+imp src/lib/features/rail-shell/RailNoteList.svelte:11 -> src/lib/core/editor/editor.service.ts openFileInEditor
 more imported-by 15 not shown: src/lib/features/rail-shell(2) src/lib/features/tasks(2) src/lib/features/todoist-sync(2) src/lib/plugins/mods(2) src/lib/plugins/queryjs(2) src/lib/features/search(1) src/lib/features/type-definitions(1) src/lib/plugins/graph-view(1) +2 modules: q importers src/lib/core/editor/editor.service.ts
 ## reach
 in2 src/lib/core/editor/editor.service.ts 45 files in 24 modules: src/lib/features/event-calendar(6) src/lib/app(5) src/lib/features/rail-shell(4) src/lib/features/todoist-sync(3) src/lib/features/properties(2) +19 modules: q impact src/lib/core/editor/editor.service.ts --depth 2

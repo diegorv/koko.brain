@@ -1,6 +1,6 @@
 # file card src/lib/features/file-icons/file-icons.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-icons/file-icons.logic.ts ' codemap/files
-file src/lib/features/file-icons/file-icons.logic.ts logic L245 module src/lib/features/file-icons in14 t2
+file src/lib/features/file-icons/file-icons.logic.ts logic L245 module src/lib/features/file-icons in15 t2
 ## imports
 imp src/lib/features/file-icons/file-icons.logic.ts:2 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:NormalizedIcon,type:RecentIcon
 imp src/lib/features/file-icons/file-icons.logic.ts:3 -> src/lib/types/vault-v2.types.ts type:FrontmatterValue
@@ -15,6 +15,7 @@ imp src/lib/features/file-icons/file-icons.service.ts:7 -> src/lib/features/file
 imp src/lib/features/note-list/NoteRow.svelte:9 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/properties/PropertiesView.svelte:26 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/properties/RelationshipSearch.svelte:11 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:15 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/rail-shell/FilesNavigator.svelte:46 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
 imp src/lib/features/rail-shell/Rail.svelte:19 -> src/lib/features/file-icons/file-icons.logic.ts iconColorCss,parseIconValuePermissive
 imp src/lib/features/rail-shell/TypesNavigator.svelte:29 -> src/lib/features/file-icons/file-icons.logic.ts iconColorStyle
@@ -22,7 +23,7 @@ imp src/lib/features/tasks/TasksView.svelte:30 -> src/lib/features/file-icons/fi
 imp src/lib/features/type-definitions/type-sidebar.logic.ts:10 -> src/lib/features/file-icons/file-icons.logic.ts extractViewIcon,parseIconValuePermissive
 imp src/lib/plugins/mods/mods-host.service.ts:12 -> src/lib/features/file-icons/file-icons.logic.ts parseIconValuePermissive
 ## reach
-in2 src/lib/features/file-icons/file-icons.logic.ts 22 files in 9 modules: src/lib/app(7) src/lib/features/rail-shell(5) src/lib/features/type-definitions(3) src/lib/features/auto-organize(2) src/lib/features/event-calendar(1) +4 modules: q impact src/lib/features/file-icons/file-icons.logic.ts --depth 2
+in2 src/lib/features/file-icons/file-icons.logic.ts 23 files in 9 modules: src/lib/app(8) src/lib/features/rail-shell(5) src/lib/features/type-definitions(3) src/lib/features/auto-organize(2) src/lib/features/event-calendar(1) +4 modules: q impact src/lib/features/file-icons/file-icons.logic.ts --depth 2
 out2 src/lib/features/file-icons/file-icons.logic.ts 5 files in 4 modules: src/lib/utils(2) src/lib/contracts(1) src/lib/core/frontmatter(1) src/lib/core/settings(1)
 ## tests
 test src/tests/lib/features/file-icons/file-icons.logic.test.ts imports src/lib/features/file-icons/file-icons.logic.ts mirror
@@ -56,6 +57,7 @@ by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/app
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/note-list/NoteRow.svelte:56 in (markup) markup +1
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/properties/PropertiesView.svelte:268 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/properties/RelationshipSearch.svelte:76 in (markup) markup
+by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/quick-switcher/QuickSwitcher.svelte:139 in (markup) markup
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/rail-shell/FilesNavigator.svelte:489 in (markup) markup +1
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/rail-shell/TypesNavigator.svelte:292 in (markup) markup +1
 by src/lib/features/file-icons/file-icons.logic.ts:iconColorStyle <- src/lib/features/tasks/TasksView.svelte:762 in (markup) markup

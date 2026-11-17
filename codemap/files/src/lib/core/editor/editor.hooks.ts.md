@@ -108,7 +108,7 @@ by src/lib/core/editor/editor.hooks.ts:addNoteCreatedObserver <- src/lib/plugins
 sym src/lib/core/editor/editor.hooks.ts:119 fn notifyNoteCreated(filePath: string): void L9 | Notifies the note-created observers.
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/app/commands.ts:158 in getBuiltInCommands call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/core/note-creator/note-creator.service.ts:130 in openOrCreateNote call
-by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:95 in createAndOpenNote call
+by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/quick-switcher/QuickSwitcher.svelte:110 in createAndOpenNote call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/FilesNavigator.svelte:129 in handleNewFile call
 by src/lib/core/editor/editor.hooks.ts:notifyNoteCreated <- src/lib/features/rail-shell/new-note.service.ts:41 in createNoteHere call
 sym src/lib/core/editor/editor.hooks.ts:130 fn resetHooks(): void L8 | Removes all hooks and observers.

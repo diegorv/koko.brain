@@ -1,7 +1,7 @@
 # module card src/lib/core/filesystem
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/core/filesystem ' codemap/modules
 sections: neighbors, entry files, files, public, stores, effects, debt
-module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 58/89 ipc 14/0 card ~6.9k
+module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 60/91 ipc 14/0 card ~7k
 ## neighbors
 dep src/lib/app -> src/lib/core/filesystem 22
 dep src/lib/core/editor -> src/lib/core/filesystem 2
@@ -38,7 +38,7 @@ dep src/lib/core/filesystem -> src/lib/core/markdown-editor 1
 dep src/lib/core/filesystem -> src/lib/core/trash 1
 dep src/lib/core/filesystem -> src/lib/core/vault 4
 dep src/lib/core/filesystem -> src/lib/types 1
-dep src/lib/core/filesystem -> src/lib/utils 12
+dep src/lib/core/filesystem -> src/lib/utils 13
 in2 src/lib/core/filesystem 9 modules: src/routes(8) src/lib/plugins/calendar(5) src/lib/core/frontmatter(2) src/lib/core/vault(2) src/lib/features/backlinks(2) +4 modules
 out2 src/lib/core/filesystem 1 modules: src/lib/core/settings(2)
 ## entry files
@@ -56,7 +56,7 @@ entry src/lib/core/filesystem/fs.watcher.ts ext-in2 src/lib/app/lifecycle/app-li
 entry src/lib/core/filesystem/task-write.service.ts ext-in2 src/lib/features/tasks/tasks.service.ts src/lib/features/todoist-sync/closed-note-writer.service.ts
 ## files
 file src/lib/core/filesystem/delete-note.service.ts service L28 module src/lib/core/filesystem in2 t1
-file src/lib/core/filesystem/file-entries.logic.ts logic L77 module src/lib/core/filesystem in12 t3
+file src/lib/core/filesystem/file-entries.logic.ts logic L105 module src/lib/core/filesystem in12 t3
 file src/lib/core/filesystem/folder-notes.logic.ts logic L65 module src/lib/core/filesystem in3 t1
 file src/lib/core/filesystem/fs.logic.ts logic L642 module src/lib/core/filesystem in45 t15
 file src/lib/core/filesystem/fs.service.ts service L376 module src/lib/core/filesystem in27 t45
@@ -71,9 +71,11 @@ file src/lib/core/filesystem/task-write.service.ts service L38 module src/lib/co
 file src/lib/core/filesystem/wikilink-resolution.logic.ts logic L184 module src/lib/core/filesystem in15 t8
 ## public
 sym src/lib/core/filesystem/delete-note.service.ts:12 fn deleteNoteWithConfirm(path: string): Promise<void> L17 | Asks the same "Move to Trash" confirmation as the file explorer, then moves the note to the trash.
-sym src/lib/core/filesystem/file-entries.logic.ts:4 interface FileEntry L5
-sym src/lib/core/filesystem/file-entries.logic.ts:10 fn flattenFileTree(nodes: FileTreeNode[]): FileEntry[] L17
-sym src/lib/core/filesystem/file-entries.logic.ts:31 fn filterAndRank(query: string, files: FileEntry[], recentPaths: string[]): FileEntry[] L47
+sym src/lib/core/filesystem/file-entries.logic.ts:5 interface FileEntry L5
+sym src/lib/core/filesystem/file-entries.logic.ts:11 fn flattenFileTree(nodes: FileTreeNode[]): FileEntry[] L17
+sym src/lib/core/filesystem/file-entries.logic.ts:38 fn entryFolder(vaultPath: string, path: string): string L5 | The folder holding a file, relative to the vault.
+sym src/lib/core/filesystem/file-entries.logic.ts:51 fn splitRecentFiles(files: FileEntry[], recentPaths: string[]): { recent: FileEntry[]; rest: FileEntry[] } L15 | The quick switcher's empty-query groups.
+sym src/lib/core/filesystem/file-entries.logic.ts:67 fn filterAndRank(query: string, files: FileEntry[], recentPaths: string[]): FileEntry[] L39
 sym src/lib/core/filesystem/folder-notes.logic.ts:9 fn findFolderNote(folderName: string, children: FileTreeNode[]): string | null L5 | Finds a folder note inside a directory.
 sym src/lib/core/filesystem/folder-notes.logic.ts:19 fn buildContentOrderMap(entries: NoteEntryV2[]): Map<string, number> L5 | Builds a path -> numeric order map from vault entries' _order frontmatter.
 sym src/lib/core/filesystem/folder-notes.logic.ts:31 fn patchContentOrderMap(current: Map<string, number>, touchedPaths: Iterable<string>, upserted: NoteEntryV2[]): Map<string, number> L14 | Returns a copy of `current` with the order of every `touchedPaths` note recomputed: its keys (the note, and its directory for a folder note) are dropped, then …

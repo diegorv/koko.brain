@@ -15,7 +15,7 @@ imp src/lib/core/editor/editor.service.ts:12 -> src/lib/utils/log.service.ts app
 imp src/lib/core/note-creator/note-creator.service.ts:12 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/core/settings/sections/TroubleshootingSection.svelte:5 -> src/lib/utils/log.service.ts initLogSession,teardownLogSession,openLogDir,startHeartbeat,stopHeartbeat,isLogSessionActive
 imp src/lib/features/properties/properties.service.ts:19 -> src/lib/utils/log.service.ts appendLog
-imp src/lib/features/rail-shell/RailNoteList.svelte:25 -> src/lib/utils/log.service.ts appendLog
+imp src/lib/features/rail-shell/RailNoteList.svelte:18 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/features/rail-shell/view-lens.service.ts:2 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/plugins/periodic-notes/periodic-notes.service.ts:7 -> src/lib/utils/log.service.ts appendLog
 imp src/lib/plugins/queryjs/kb-api.ts:14 -> src/lib/utils/log.service.ts appendLog
@@ -79,7 +79,7 @@ by src/lib/utils/log.service.ts:appendLog <- src/lib/app/boot.ts:38 in registerA
 by src/lib/utils/log.service.ts:appendLog <- src/lib/core/editor/editor.service.ts:152 in openFileInEditor call +5
 by src/lib/utils/log.service.ts:appendLog <- src/lib/core/note-creator/note-creator.service.ts:84 in openOrCreateNote call +4
 by src/lib/utils/log.service.ts:appendLog <- src/lib/features/properties/properties.service.ts:89 in commitChanges call
-by src/lib/utils/log.service.ts:appendLog <- src/lib/features/rail-shell/RailNoteList.svelte:289 in loadView call +3
+by src/lib/utils/log.service.ts:appendLog <- src/lib/features/rail-shell/RailNoteList.svelte:282 in loadView call +3
 by src/lib/utils/log.service.ts:appendLog <- src/lib/features/rail-shell/view-lens.service.ts:39 in countViewNotes call
 by src/lib/utils/log.service.ts:appendLog <- src/lib/plugins/periodic-notes/periodic-notes.service.ts:101 in autoOpenDailyNote call +3
 more by 4 not shown: src/lib/plugins/queryjs(2) src/lib/utils(1) src/routes(1): q importers src/lib/utils/log.service.ts:appendLog
