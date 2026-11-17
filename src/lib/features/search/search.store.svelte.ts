@@ -12,6 +12,8 @@ import type {
 let query = $state('');
 let results = $state<SearchResult[]>([]);
 let isSearching = $state(false);
+/** Message of the last failed search, or null; the panel shows an error state with Retry while set */
+let searchError = $state<string | null>(null);
 /** Counts requests to focus the search input; the input refocuses on every change */
 let focusRequest = $state(0);
 /** The last `focusRequest` the input took focus for; the rail panel skips focus on a mount with nothing newer */
@@ -34,6 +36,8 @@ export const searchStore = {
 	get query() { return query; },
 	get results() { return results; },
 	get isSearching() { return isSearching; },
+	/** Message of the last failed search, or null when the last search did not fail */
+	get searchError() { return searchError; },
 	/** Bumped by `requestFocus`; the search input focuses itself when it changes */
 	get focusRequest() { return focusRequest; },
 	/** The last `focusRequest` the search input handled; equal to `focusRequest` when none is pending */
@@ -53,6 +57,8 @@ export const searchStore = {
 	setQuery(q: string) { query = q; },
 	setResults(r: SearchResult[]) { results = r; },
 	setSearching(s: boolean) { isSearching = s; },
+	/** Records a failed search (a message) or clears it (null) */
+	setSearchError(e: string | null) { searchError = e; },
 	/** Asks the mounted search input to take focus, even when Search is already shown */
 	requestFocus() { focusRequest++; },
 	/** Records that the input took focus for every request so far */
@@ -73,6 +79,7 @@ export const searchStore = {
 		query = '';
 		results = [];
 		isSearching = false;
+		searchError = null;
 		focusRequest = 0;
 		handledFocusRequest = 0;
 		mode = 'text';

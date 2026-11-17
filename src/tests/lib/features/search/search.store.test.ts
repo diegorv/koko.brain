@@ -28,6 +28,17 @@ describe('searchStore', () => {
 		expect(searchStore.isSearching).toBe(true);
 	});
 
+	it('searchError starts null, holds the set error and is cleared by reset', () => {
+		expect(searchStore.searchError).toBeNull();
+		searchStore.setSearchError('No model');
+		expect(searchStore.searchError).toBe('No model');
+		searchStore.setSearchError(null);
+		expect(searchStore.searchError).toBeNull();
+		searchStore.setSearchError('No model');
+		searchStore.reset();
+		expect(searchStore.searchError).toBeNull();
+	});
+
 	it('focusRequest starts at 0, counts each requestFocus and resets to 0', () => {
 		expect(searchStore.focusRequest).toBe(0);
 		searchStore.requestFocus();

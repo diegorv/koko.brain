@@ -123,10 +123,14 @@ export function stopSemanticProgressListener(): void {
  * Performs search based on current mode (text/semantic/hybrid).
  * In text mode, uses FTS5 backend for BM25-ranked results with optional fuzzy matching.
  * Falls back to in-memory search if FTS5 index is not available.
+ * Sets `searchStore.searchError` when a Semantic-mode search or the search
+ * as a whole fails (the fallbacks above are not failures), and clears it on
+ * every call.
  */
 export async function performSearch(): Promise<void> {
 	const version = ++searchVersion;
 	const raw = searchStore.query;
+	searchStore.setSearchError(null);
 	if (!raw.trim()) {
 		searchStore.setFtsResults([]);
 		searchStore.setSemanticResults([]);
@@ -256,8 +260,15 @@ export async function performSearch(): Promise<void> {
 				searchStore.setSemanticResults(results);
 			} catch (semErr) {
 				if (searchVersion !== version) return;
-				debug('SEARCH', 'Semantic search failed:', semErr);
 				searchStore.setSemanticResults([]);
+				// In Hybrid this is the legacy fallthrough, which still shows the
+				// text results: not an error for the user.
+				if (mode === 'semantic') {
+					error('SEARCH', 'Semantic search failed:', semErr);
+					searchStore.setSearchError(String(semErr));
+				} else {
+					debug('SEARCH', 'Semantic search failed:', semErr);
+				}
 			}
 		}
 
@@ -268,6 +279,14 @@ export async function performSearch(): Promise<void> {
 		}
 	} catch (err) {
 		error('SEARCH', 'Search failed:', err);
+		if (searchVersion === version) {
+			// Drop whatever a step wrote before the throw: no partial results.
+			searchStore.setFtsResults([]);
+			searchStore.setSemanticResults([]);
+			searchStore.setHybridResults([]);
+			searchStore.setResults([]);
+			searchStore.setSearchError(String(err));
+		}
 	} finally {
 		if (searchVersion === version) {
 			searchStore.setSearching(false);

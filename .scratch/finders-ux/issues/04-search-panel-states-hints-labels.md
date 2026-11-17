@@ -19,22 +19,22 @@ Size: this is the largest ticket in the feature; build all of it in one run.
 
 **Blocked by:** 03
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/search.spec.ts`.
 
-- [ ] Failing test first, `SearchPanel.test.ts`: in Semantic or Hybrid with a 1-2 character query, the panel shows "Type at least 3 characters", not "No results found"; Text mode is unchanged. `search.logic.test.ts` covers the helper (empty, 2 and 3 code points, an operator-only query).
-- [ ] Failing test first: a `search_semantic` rejection in Semantic mode, or the outer catch, sets `searchStore.searchError`; the panel shows "Search failed" with a Retry button in `role="alert"` that re-runs `performSearch`; results stay empty; a new search or an empty query clears it. `search.store.test.ts` covers the getter and `reset()`. The FTS fallback and the hybrid fallthrough stay silent and still return results.
-- [ ] Failing test first: unavailable mode buttons have `aria-disabled="true"` (the `.disabled` assertions at `SearchPanel.test.ts:175-176` change on purpose, and the test at `:173-178` must also turn the setting on before it expects the modes to become available); activating one leaves `searchStore.mode` unchanged and shows the reason with an "Open Settings > Search" link; clicking the link calls `settingsPanelStore.open('search')` (assert the real `settingsPanelStore` state); the reason text depends on `semanticSearchEnabled` and `modelAvailable`.
-- [ ] With the mode on Semantic, turning `semanticSearchEnabled` off switches the mode to Text and shows the inline note with the link.
-- [ ] The Text-mode empty state keeps "Type to search across all files" and adds the operator hint; there is no hint in Semantic or Hybrid.
-- [ ] Tests assert `aria-label` on the input and on `~`, `aria-pressed` on the modes and on `~`, and `role="group"` on the mode toggle, with `getAttribute`.
-- [ ] One persistent `role="status"` element (the same node across state changes) carries the status text.
-- [ ] Failing test first (from 220), `SearchPanel.test.ts`: with the real `searchStore` given `setIndexStats({ totalDocuments: 12, ... })`, the panel does not contain "Indexed:".
-- [ ] A new `src/tests/lib/features/search/SearchStatus.test.ts` pins the surviving owner with the real store: "12 notes indexed" for the same stats, "Indexing..." while indexing, the semantic progress message while semantic indexing, and nothing when `indexStats` is null.
-- [ ] `SearchPanel.svelte` no longer imports `Loader2`; mode buttons and results are otherwise unchanged.
-- [ ] `e2e/specs/search.spec.ts:31-37` ("No results found" for a nonsense Text query) stays green; the help doc is updated.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `SearchPanel.test.ts`: in Semantic or Hybrid with a 1-2 character query, the panel shows "Type at least 3 characters", not "No results found"; Text mode is unchanged. `search.logic.test.ts` covers the helper (empty, 2 and 3 code points, an operator-only query).
+- [x] Failing test first: a `search_semantic` rejection in Semantic mode, or the outer catch, sets `searchStore.searchError`; the panel shows "Search failed" with a Retry button in `role="alert"` that re-runs `performSearch`; results stay empty; a new search or an empty query clears it. `search.store.test.ts` covers the getter and `reset()`. The FTS fallback and the hybrid fallthrough stay silent and still return results.
+- [x] Failing test first: unavailable mode buttons have `aria-disabled="true"` (the `.disabled` assertions at `SearchPanel.test.ts:175-176` change on purpose, and the test at `:173-178` must also turn the setting on before it expects the modes to become available); activating one leaves `searchStore.mode` unchanged and shows the reason with an "Open Settings > Search" link; clicking the link calls `settingsPanelStore.open('search')` (assert the real `settingsPanelStore` state); the reason text depends on `semanticSearchEnabled` and `modelAvailable`.
+- [x] With the mode on Semantic, turning `semanticSearchEnabled` off switches the mode to Text and shows the inline note with the link.
+- [x] The Text-mode empty state keeps "Type to search across all files" and adds the operator hint; there is no hint in Semantic or Hybrid.
+- [x] Tests assert `aria-label` on the input and on `~`, `aria-pressed` on the modes and on `~`, and `role="group"` on the mode toggle, with `getAttribute`.
+- [x] One persistent `role="status"` element (the same node across state changes) carries the status text.
+- [x] Failing test first (from 220), `SearchPanel.test.ts`: with the real `searchStore` given `setIndexStats({ totalDocuments: 12, ... })`, the panel does not contain "Indexed:".
+- [x] A new `src/tests/lib/features/search/SearchStatus.test.ts` pins the surviving owner with the real store: "12 notes indexed" for the same stats, "Indexing..." while indexing, the semantic progress message while semantic indexing, and nothing when `indexStats` is null.
+- [x] `SearchPanel.svelte` no longer imports `Loader2`; mode buttons and results are otherwise unchanged.
+- [x] `e2e/specs/search.spec.ts:31-37` ("No results found" for a nonsense Text query) stays green; the help doc is updated.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -61,3 +61,5 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: a too-short Hybrid query shows the "Type at least 3 characters" message (no Text fallback); a disabled mode shows its reason and a link that opens Settings > Search (an inline note in the panel, so the link is keyboard-reachable); the status bar owns the index status, so the panel's duplicate index block goes (per 220's trace); error and empty states use plain markup matching the existing panels.
+
+- 2026-11-17, branch `issue/04-search-panel-states-hints-labels`: search panel short-query, error (Retry) and disabled-mode states with Settings link; Text-mode operator hint; aria-label/aria-pressed/role=group labels and one persistent role=status; index status moved to `SearchStatus` (status bar) only. Fix round: tab indentation on the `~` toggle attributes; keyboard finding rejected (native buttons). Tests: pnpm check exit 0; SearchPanel.test.ts exit 0; full suite at 0c83a3dfb exit 0 (643 files, 17098 passed, 54 skipped, 1 todo). Reviews: round 1 APPROVED, round 2 APPROVED.

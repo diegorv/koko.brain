@@ -142,6 +142,7 @@ describe('performSearch', () => {
 
 		expect(searchStore.results).toHaveLength(1);
 		expect(searchStore.results[0].filePath).toBe('/vault/match.md');
+		expect(searchStore.searchError).toBeNull();
 	});
 
 	it('clears stale ftsResults when FTS5 fails and falls back', async () => {
@@ -251,6 +252,72 @@ describe('performSearch', () => {
 		expect(searchStore.semanticResults).toEqual([]);
 	});
 
+	it('sets searchError and logs an error when search_semantic fails in Semantic mode', async () => {
+		searchStore.setSemanticResults([
+			{ key: 'old', sourcePath: 'old.md', content: 'stale', heading: null, lineStart: 1, lineEnd: 1, score: 0.9 },
+		]);
+		mockInvoke.mockRejectedValueOnce(new Error('No model'));
+		searchStore.setQuery('concept');
+		searchStore.setMode('semantic');
+
+		await performSearch();
+
+		expect(searchStore.searchError).toBe('Error: No model');
+		expect(searchStore.semanticResults).toEqual([]);
+		expect(searchStore.isSearching).toBe(false);
+		expect(mockError).toHaveBeenCalledWith('SEARCH', 'Semantic search failed:', expect.any(Error));
+	});
+
+	it('sets searchError and leaves every result list empty when the search fails outside a fallback', async () => {
+		// search_fts fails, then the in-memory fallback's entries read fails too:
+		// the error reaches the outer catch.
+		searchStore.setFtsResults([{ path: 'stale.md', title: 'Stale', score: -1, snippet: '', tags: '' }]);
+		mockInvoke
+			.mockRejectedValueOnce(new Error('No DB'))
+			.mockRejectedValueOnce(new Error('IPC down'));
+		searchStore.setQuery('hello');
+		searchStore.setMode('text');
+
+		await performSearch();
+
+		expect(searchStore.searchError).toBe('Error: IPC down');
+		expect(searchStore.ftsResults).toEqual([]);
+		expect(searchStore.results).toEqual([]);
+		expect(searchStore.semanticResults).toEqual([]);
+		expect(searchStore.hybridResults).toEqual([]);
+		expect(searchStore.isSearching).toBe(false);
+		expect(mockError).toHaveBeenCalledWith('SEARCH', 'Search failed:', expect.any(Error));
+	});
+
+	it('clears searchError on a new search and on an empty query', async () => {
+		searchStore.setSearchError('Error: earlier');
+		mockInvoke.mockResolvedValueOnce([]);
+		searchStore.setQuery('hello');
+		await performSearch();
+		expect(searchStore.searchError).toBeNull();
+
+		searchStore.setSearchError('Error: earlier');
+		searchStore.setQuery('');
+		await performSearch();
+		expect(searchStore.searchError).toBeNull();
+	});
+
+	it('does not set searchError for a failure of a search a newer one replaced', async () => {
+		let rejectFirst!: (err: Error) => void;
+		mockInvoke
+			.mockImplementationOnce(() => new Promise((_resolve, reject) => { rejectFirst = reject; }))
+			.mockResolvedValueOnce([]);
+		searchStore.setQuery('concept');
+		searchStore.setMode('semantic');
+		const first = performSearch();
+		searchStore.setQuery('concepts');
+		await performSearch();
+		rejectFirst(new Error('late'));
+		await first;
+
+		expect(searchStore.searchError).toBeNull();
+	});
+
 	it('hybrid mode invokes the Rust search_hybrid command and adapts results', async () => {
 		// Task 3.3: hybrid is a single Rust command (FTS + semantic + RRF + rerank).
 		// The frontend just maps the chunk-shaped result onto HybridSearchResult.
@@ -310,6 +377,24 @@ describe('performSearch', () => {
 
 		const sources = Object.fromEntries(searchStore.hybridResults.map((r) => [r.path, r.source]));
 		expect(sources).toEqual({ 'both.md': 'both', 'text.md': 'text', 'sem.md': 'semantic' });
+		expect(searchStore.searchError).toBeNull();
+	});
+
+	it('hybrid fallthrough stays silent and keeps the text results when search_semantic also fails', async () => {
+		mockInvoke.mockImplementation(async (cmd: string) => {
+			if (cmd === 'search_hybrid') throw new Error('no embedder');
+			if (cmd === 'search_fts') return [{ path: 'text.md', title: 'text', score: -1, snippet: 'y', tags: '' }];
+			if (cmd === 'search_semantic') throw new Error('no embedder');
+			return undefined;
+		});
+		searchStore.setQuery('test');
+		searchStore.setMode('hybrid');
+
+		await performSearch();
+
+		expect(searchStore.hybridResults.map((r) => r.path)).toEqual(['text.md']);
+		expect(searchStore.searchError).toBeNull();
+		expect(mockError).not.toHaveBeenCalled();
 	});
 
 	it('sets isSearching to false after completion', async () => {

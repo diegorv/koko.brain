@@ -94,6 +94,10 @@ Search is a rail item: it fills the note list next to the rail, with the query i
 
 Kokobrain offers three search modes. Select them using the tabs at the top of the search panel.
 
+Semantic and Hybrid are off until you turn on semantic search in **Settings > Search**. Until then, and while the model is still loading, clicking either tab leaves you in Text mode and shows a note with the reason and an **Open Settings > Search** link. If you turn semantic search off while in Semantic or Hybrid, the panel switches back to Text and shows the same note.
+
+Semantic and Hybrid need a query of 3 or more characters; a shorter one shows "Type at least 3 characters". If a search fails, the panel shows "Search failed" with a **Retry** button instead of an empty result list.
+
 #### Text Search (default)
 
 Fast full-text search powered by SQLite FTS5. This mode finds exact words and phrases across all your notes. Results are ranked by relevance using the BM25 algorithm, and matching text is highlighted in the results.
@@ -149,13 +153,15 @@ You can narrow text searches with two operators, typed anywhere in the query:
 
 Operators can be combined with regular search terms, for example `meeting tag:work path:projects`.
 
+With an empty query in Text mode, the search panel shows a reminder: "Try tag:work or path:Projects". Semantic and Hybrid ignore the operators, so the reminder appears only in Text mode.
+
 Clicking a tag in the Tags tab automatically sets the search query to `tag:tagname`, which is the same as typing the operator yourself.
 
 ---
 
 ## Status Bar: Search Progress
 
-When the search index is being built — on first vault open or after many changes — the status bar at the bottom of the window shows indexing progress. Once indexing is complete, searches are near-instantaneous.
+When the search index is being built — on first vault open or after many changes — the status bar at the bottom of the window shows indexing progress. Once indexing is complete, it shows how many notes are indexed (and the chunk count when semantic search is on), and searches are near-instantaneous. The status bar is the only place that shows the index status; the search panel does not repeat it.
 
 ---
 

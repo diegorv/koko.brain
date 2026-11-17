@@ -25,6 +25,24 @@ export function parseSearchQuery(raw: string): SearchQuery {
 	return { text, tags, paths };
 }
 
+/**
+ * Shortest query, in code points, that Semantic and Hybrid search answer.
+ * Mirrors the `chars().count() < 3` early return of `search_semantic` and
+ * `search_hybrid` in `src-tauri/src/commands/semantic.rs:804` and `:991`.
+ */
+export const SEMANTIC_MIN_QUERY_CHARS = 3;
+
+/**
+ * True when Semantic or Hybrid search would return nothing because the query
+ * is too short. Measures what `performSearch` sends (the text left after the
+ * `tag:`/`path:` operators, or the raw query when nothing is left), trimmed
+ * like Rust does.
+ */
+export function isBelowSemanticMinimum(raw: string): boolean {
+	const sent = parseSearchQuery(raw).text.trim() || raw;
+	return [...sent.trim()].length < SEMANTIC_MIN_QUERY_CHARS;
+}
+
 // Re-exported from the centralized sanitize utility for backwards compatibility.
 // The implementation lives in #lib/utils/sanitize and also escapes single quotes.
 export { sanitizeSnippetHtml } from '#lib/utils/sanitize.js';
