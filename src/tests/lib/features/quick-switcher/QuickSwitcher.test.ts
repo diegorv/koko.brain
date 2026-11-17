@@ -21,6 +21,9 @@ import { addNoteCreatedObserver } from '#lib/core/editor/editor.hooks.js';
 import { fsStore } from '#lib/core/filesystem/fs.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
+import { fileIconsStore } from '#lib/features/file-icons/file-icons.store.svelte.js';
+import { preloadPacks } from '#lib/features/file-icons/file-icons.icon-data.js';
+import { lifecycleFilterStore } from '#lib/features/properties/lifecycle-filter.store.svelte.js';
 import QuickSwitcher from '#lib/features/quick-switcher/QuickSwitcher.svelte';
 import { quickSwitcherStore } from '#lib/features/quick-switcher/quick-switcher.store.svelte.js';
 
@@ -294,7 +297,8 @@ describe('QuickSwitcher - create from the query', () => {
 		expect(createItem()).toBeUndefined();
 		const labels = itemLabels();
 		expect(labels).toHaveLength(1);
-		expect(labels[0]).toContain('Projects/Idea.md');
+		expect(labels[0]).toContain('Idea');
+		expect(labels[0]).toContain('Projects');
 		expect(document.body.textContent).not.toContain('No files found.');
 		await pressEnter(input);
 
@@ -400,5 +404,171 @@ describe('QuickSwitcher - create from the query', () => {
 		expect(footer).not.toBeNull();
 		expect([...footer!.querySelectorAll('kbd')].map((k) => k.textContent)).toContain('⇧↵');
 		expect(footer!.textContent).toContain('Create');
+	});
+});
+
+describe('QuickSwitcher - rows', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	beforeEach(() => {
+		vi.resetAllMocks();
+		clearLocalStorage();
+		fsStore.reset();
+		fileIconsStore.reset();
+		lifecycleFilterStore.reset();
+		quickSwitcherStore.reset();
+		vaultStore._reset();
+		vaultStore.open('/vault');
+		fsStore.setFileTree([
+			{
+				name: 'Projects',
+				path: '/vault/Projects',
+				isDirectory: true,
+				children: [{ name: 'A.md', path: '/vault/Projects/A.md', isDirectory: false }],
+			},
+			{ name: 'Board.canvas', path: '/vault/Board.canvas', isDirectory: false },
+			{ name: 'Tasks.kanban', path: '/vault/Tasks.kanban', isDirectory: false },
+			{ name: 'Welcome.md', path: '/vault/Welcome.md', isDirectory: false },
+		]);
+		target = document.body.appendChild(document.createElement('div'));
+		component = mount(QuickSwitcher, { target });
+		flushSync();
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+		fileIconsStore.reset();
+		lifecycleFilterStore.reset();
+		vaultStore._reset();
+	});
+
+	/** Opens the switcher and types `query` (empty leaves the input blank). */
+	function open(query = ''): HTMLInputElement {
+		quickSwitcherStore.open();
+		flushSync();
+		const input = document.querySelector<HTMLInputElement>('[data-slot="command-input"]')!;
+		if (query) {
+			input.value = query;
+			input.dispatchEvent(new Event('input', { bubbles: true }));
+			flushSync();
+		}
+		return input;
+	}
+
+	/** The row whose name reads `name`. */
+	function row(name: string): HTMLElement {
+		const found = [...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]')].find(
+			(el) => el.querySelector('[data-quick-switcher-name]')?.textContent === name,
+		);
+		if (!found) throw new Error(`Row ${name} not found`);
+		return found;
+	}
+
+	/** Texts of the group headings, in order. */
+	function headingTexts(): string[] {
+		return [...document.querySelectorAll('[data-command-group-heading]')].map((el) => el.textContent?.trim() ?? '');
+	}
+
+	/** Name of the highlighted row. */
+	function selectedName(): string | undefined {
+		return document.querySelector('[data-slot="command-item"][aria-selected="true"] [data-quick-switcher-name]')?.textContent ?? undefined;
+	}
+
+	it('shows the kind icon of a canvas and a kanban file, not the note icon', () => {
+		open();
+
+		expect(row('Board').querySelector('svg.lucide-layout-dashboard')).not.toBeNull();
+		expect(row('Board').querySelector('svg.lucide-file-text')).toBeNull();
+		expect(row('Tasks').querySelector('svg.lucide-kanban')).not.toBeNull();
+		expect(row('Tasks').querySelector('svg.lucide-file-text')).toBeNull();
+		expect(row('Welcome').querySelector('svg.lucide-file-text')).not.toBeNull();
+	});
+
+	it("shows a note's own frontmatter icon instead of the kind icon", async () => {
+		await preloadPacks(['emoji']);
+		fileIconsStore.updateFrontmatterIcon('/vault/Welcome.md', { iconPack: 'emoji', iconName: '🚀' });
+		open();
+
+		const emoji = [...row('Welcome').querySelectorAll('span')].find((s) => s.childElementCount === 0 && s.textContent === '🚀');
+		expect(emoji).toBeDefined();
+		expect(row('Welcome').querySelector('svg.lucide-file-text')).toBeNull();
+	});
+
+	it('shows only the folder of a nested note, and none for a root note', () => {
+		open();
+
+		expect(row('A').querySelector('[data-quick-switcher-folder]')?.textContent?.trim()).toBe('Projects');
+		expect(row('A').textContent).not.toContain('.md');
+		expect(row('Welcome').querySelector('[data-quick-switcher-folder]')).toBeNull();
+		expect(row('Welcome').textContent).not.toContain('Welcome.md');
+	});
+
+	it('marks an archived note with an Archived tag and no dimmed name', () => {
+		lifecycleFilterStore.setArchivedPaths(new Set(['/vault/Welcome.md']));
+		open();
+
+		const archived = row('Welcome');
+		expect(archived.querySelector('[data-quick-switcher-archived]')?.textContent?.trim()).toBe('Archived');
+		expect(archived.querySelector('.opacity-50')).toBeNull();
+		expect(archived.querySelector('svg.lucide-archive')).toBeNull();
+		expect(row('Board').querySelector('[data-quick-switcher-archived]')).toBeNull();
+	});
+
+	it('wraps the matched characters in highlight elements and keeps the option text', () => {
+		open('wel');
+
+		const welcome = row('Welcome');
+		expect([...welcome.querySelectorAll('mark')].map((m) => m.textContent)).toEqual(['Wel']);
+		expect(welcome.getAttribute('role')).toBe('option');
+		expect(welcome.querySelector('[data-quick-switcher-name]')?.textContent).toBe('Welcome');
+	});
+
+	it('highlights nothing for an empty query', () => {
+		open();
+		expect(document.querySelectorAll('[data-slot="command-item"] mark')).toHaveLength(0);
+	});
+
+	it('heads the recents "Recent notes" and leaves the rest unheaded', () => {
+		quickSwitcherStore.addRecentPath('/vault/Tasks.kanban');
+		open();
+
+		expect(headingTexts()).toEqual(['Recent notes']);
+		const groups = document.querySelectorAll('[data-slot="command-group"]');
+		expect(groups).toHaveLength(2);
+		expect([...groups[0].querySelectorAll('[data-quick-switcher-name]')].map((el) => el.textContent)).toEqual(['Tasks']);
+		expect(groups[1].querySelector('[data-command-group-heading]')).toBeNull();
+		expect([...groups[1].querySelectorAll('[data-quick-switcher-name]')].map((el) => el.textContent)).toEqual([
+			'A',
+			'Board',
+			'Welcome',
+		]);
+	});
+
+	it('shows no heading without recents', () => {
+		open();
+		expect(headingTexts()).toEqual([]);
+	});
+
+	it('shows no heading once a query is typed', () => {
+		quickSwitcherStore.addRecentPath('/vault/Tasks.kanban');
+		open('a');
+		expect(headingTexts()).toEqual([]);
+	});
+
+	it('moves the highlight across the Recent notes boundary with the arrow keys', async () => {
+		quickSwitcherStore.addRecentPath('/vault/Tasks.kanban');
+		const input = open();
+		await vi.waitFor(() => expect(selectedName()).toBe('Tasks'));
+
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true }));
+		flushSync();
+		expect(selectedName()).toBe('A');
+
+		input.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp', bubbles: true, cancelable: true }));
+		flushSync();
+		expect(selectedName()).toBe('Tasks');
 	});
 });

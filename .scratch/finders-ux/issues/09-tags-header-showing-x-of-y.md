@@ -13,17 +13,17 @@ Out of scope: the default of `hideRareTags`, and the Tasks filtered-empty messag
 
 **Blocked by:** 08
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/features/tags/TagsView.test.ts`: real `tagsStore` with tags at count 12 and 3, `totalTagCount` 2, filter on. The header reads "Showing 1 of 2 tags" with a Show all button; clicking it sets `hideRareTags` false, both tags are listed and the header reads "2 tags".
-- [ ] With the filter off, or with no tag hidden, the header reads "N tags" with no button.
-- [ ] Failing test first, filtered-empty case: a tree whose every node has a count below 10, filter on, `totalTagCount` 3. The body shows "All 3 tags are used fewer than 10 times." and does not show "No tags found"; exactly one Show all button is in the view; clicking it sets `hideRareTags` false and the tags are listed.
-- [ ] `tags.logic.test.ts` covers the count helper: an empty tree is 0, a pure container is not counted, a rare parent kept for a popular child is counted.
-- [ ] The existing "No tags found" case (empty tree), `pane-toolbar.test.ts` and the `tags.service.test.ts` totals stay green.
-- [ ] `help/documentation/07-sidebar-panels.md` describes the "Showing X of Y" header.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/features/tags/TagsView.test.ts`: real `tagsStore` with tags at count 12 and 3, `totalTagCount` 2, filter on. The header reads "Showing 1 of 2 tags" with a Show all button; clicking it sets `hideRareTags` false, both tags are listed and the header reads "2 tags".
+- [x] With the filter off, or with no tag hidden, the header reads "N tags" with no button.
+- [x] Failing test first, filtered-empty case: a tree whose every node has a count below 10, filter on, `totalTagCount` 3. The body shows "All 3 tags are used fewer than 10 times." and does not show "No tags found"; exactly one Show all button is in the view; clicking it sets `hideRareTags` false and the tags are listed.
+- [x] `tags.logic.test.ts` covers the count helper: an empty tree is 0, a pure container is not counted, a rare parent kept for a popular child is counted.
+- [x] The existing "No tags found" case (empty tree), `pane-toolbar.test.ts` and the `tags.service.test.ts` totals stay green.
+- [x] `help/documentation/07-sidebar-panels.md` describes the "Showing X of Y" header.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -48,3 +48,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: reverse 212's "header shows the unfiltered total" decision: "Showing X of Y tags" with an inline Show all; hide the header link when X is 0. Y stays `totalTagCount`.
+- 2026-11-17, deliver (branch issue/09-tags-header-showing-x-of-y): Tags header reads "Showing X of Y tags" with an inline Show all when the rare-tag filter hides tags, "N tags" otherwise; the filtered-empty body explains the filter ("All Y tags are used fewer than 10 times.", singular for one tag) with one Show all button; filter icon title reads "Turn off rare-tag filter" while on; help docs updated. Tests: pnpm check 0 errors; targeted tags/pane-toolbar/sync-wiki-docs 89 passed; full suite at 540cdd436 exit 0, 644 files, 17186 passed, 54 skipped, 1 todo. Reviews: round 1 APPROVED (findings 1-2 fixed, 3 no change), round 2 APPROVED (no findings).

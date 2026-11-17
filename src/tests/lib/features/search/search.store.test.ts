@@ -28,6 +28,48 @@ describe('searchStore', () => {
 		expect(searchStore.isSearching).toBe(true);
 	});
 
+	it('searchError starts null, holds the set error and is cleared by reset', () => {
+		expect(searchStore.searchError).toBeNull();
+		searchStore.setSearchError('No model');
+		expect(searchStore.searchError).toBe('No model');
+		searchStore.setSearchError(null);
+		expect(searchStore.searchError).toBeNull();
+		searchStore.setSearchError('No model');
+		searchStore.reset();
+		expect(searchStore.searchError).toBeNull();
+	});
+
+	it('resultsCapped starts false, holds the set flag and is cleared by reset', () => {
+		expect(searchStore.resultsCapped).toBe(false);
+		searchStore.setResultsCapped('text', true);
+		expect(searchStore.resultsCapped).toBe(true);
+		searchStore.setResultsCapped('text', false);
+		expect(searchStore.resultsCapped).toBe(false);
+		searchStore.setResultsCapped('text', true);
+		searchStore.reset();
+		expect(searchStore.resultsCapped).toBe(false);
+	});
+
+	it('resultsCapped reads the flag of the current mode', () => {
+		searchStore.setResultsCapped('text', true);
+		searchStore.setMode('semantic');
+		expect(searchStore.resultsCapped).toBe(false);
+		searchStore.setResultsCapped('semantic', true);
+		searchStore.setMode('hybrid');
+		expect(searchStore.resultsCapped).toBe(false);
+		searchStore.setMode('text');
+		expect(searchStore.resultsCapped).toBe(true);
+	});
+
+	it('clearResultsCapped clears the flag of every mode', () => {
+		searchStore.setResultsCapped('text', true);
+		searchStore.setResultsCapped('hybrid', true);
+		searchStore.clearResultsCapped();
+		expect(searchStore.resultsCapped).toBe(false);
+		searchStore.setMode('hybrid');
+		expect(searchStore.resultsCapped).toBe(false);
+	});
+
 	it('focusRequest starts at 0, counts each requestFocus and resets to 0', () => {
 		expect(searchStore.focusRequest).toBe(0);
 		searchStore.requestFocus();

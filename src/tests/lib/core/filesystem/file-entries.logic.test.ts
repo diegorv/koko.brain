@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
+	entryFolder,
 	flattenFileTree,
 	filterAndRank,
+	splitRecentFiles,
 	MAX_RESULTS,
 } from '#lib/core/filesystem/file-entries.logic.js';
 import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
@@ -155,5 +157,66 @@ describe('filterAndRank', () => {
 			const result = filterAndRank('file', many, []);
 			expect(result).toHaveLength(MAX_RESULTS);
 		});
+	});
+});
+
+describe('entryFolder', () => {
+	it('returns the folder of a nested file relative to the vault', () => {
+		expect(entryFolder('/vault', '/vault/Projects/A.md')).toBe('Projects');
+	});
+
+	it('returns every level of a deep folder', () => {
+		expect(entryFolder('/vault', '/vault/Area/Projects/Board.canvas')).toBe('Area/Projects');
+	});
+
+	it('returns an empty string for a file at the vault root', () => {
+		expect(entryFolder('/vault', '/vault/A.md')).toBe('');
+	});
+});
+
+describe('splitRecentFiles', () => {
+	const files: FileEntry[] = [
+		{ name: 'alpha.md', nameWithoutExt: 'alpha', path: '/vault/alpha.md' },
+		{ name: 'beta.md', nameWithoutExt: 'beta', path: '/vault/beta.md' },
+		{ name: 'gamma.md', nameWithoutExt: 'gamma', path: '/vault/gamma.md' },
+		{ name: 'delta.md', nameWithoutExt: 'delta', path: '/vault/delta.md' },
+	];
+
+	it('returns the recents in recency order and the name-sorted rest apart', () => {
+		const { recent, rest } = splitRecentFiles(files, ['/vault/gamma.md', '/vault/alpha.md']);
+		expect(recent.map((f) => f.nameWithoutExt)).toEqual(['gamma', 'alpha']);
+		expect(rest.map((f) => f.nameWithoutExt)).toEqual(['beta', 'delta']);
+	});
+
+	it('skips recent paths that are no longer in the vault', () => {
+		const { recent, rest } = splitRecentFiles(files, ['/vault/gone.md', '/vault/beta.md']);
+		expect(recent.map((f) => f.nameWithoutExt)).toEqual(['beta']);
+		expect(rest).toHaveLength(3);
+	});
+
+	it('returns no recents and every file when nothing was opened', () => {
+		const { recent, rest } = splitRecentFiles(files, []);
+		expect(recent).toEqual([]);
+		expect(rest.map((f) => f.nameWithoutExt)).toEqual(['alpha', 'beta', 'delta', 'gamma']);
+	});
+
+	it('returns nothing for an empty vault', () => {
+		expect(splitRecentFiles([], ['/vault/a.md'])).toEqual({ recent: [], rest: [] });
+	});
+
+	it('caps the rest so recents and rest together stay within MAX_RESULTS', () => {
+		const many: FileEntry[] = Array.from({ length: MAX_RESULTS + 50 }, (_, i) => {
+			const name = `file-${String(i).padStart(5, '0')}`;
+			return { name: `${name}.md`, nameWithoutExt: name, path: `/vault/${name}.md` };
+		});
+		const { recent, rest } = splitRecentFiles(many, [many[140].path, many[120].path]);
+		expect(recent).toHaveLength(2);
+		expect(rest).toHaveLength(MAX_RESULTS - 2);
+	});
+
+	it('is the empty-query result of filterAndRank, recents first', () => {
+		const recents = ['/vault/delta.md', '/vault/beta.md'];
+		const { recent, rest } = splitRecentFiles(files, recents);
+		expect(filterAndRank('', files, recents)).toEqual([...recent, ...rest]);
 	});
 });

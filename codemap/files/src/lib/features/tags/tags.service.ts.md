@@ -10,7 +10,7 @@ imp src/lib/features/tags/tags.service.ts:5 -> src/lib/core/editor/editor.logic.
 imp src/lib/features/tags/tags.service.ts:6 -> src/lib/features/tags/tags.store.svelte.ts tagsStore
 imp src/lib/features/tags/tags.service.ts:7 -> src/lib/features/tags/tags.logic.ts buildTagTree,sortTagTree,tagTreeShape
 ## imported-by
-imp src/lib/app/commands.ts:43 -> src/lib/features/tags/tags.service.ts toggleTagsTab
+imp src/lib/app/commands.ts:44 -> src/lib/features/tags/tags.service.ts toggleTagsTab
 imp src/lib/app/lifecycle/app-lifecycle.service.ts:24 -> src/lib/features/tags/tags.service.ts buildTagIndex,resetTags
 imp src/lib/features/tags/TagsView.svelte:7 -> src/lib/features/tags/tags.service.ts scheduleTagIndexRebuild,updateTagSort
 ## reach
@@ -25,14 +25,14 @@ test src/tests/lib/features/tags/TagsView.test.ts mocks src/lib/features/tags/ta
 sym src/lib/features/tags/tags.service.ts:26 fn buildTagIndex(): Promise<void> L33 | Builds the tag tree from the Rust `VaultIndex`.
 by src/lib/features/tags/tags.service.ts:buildTagIndex <- src/lib/app/lifecycle/app-lifecycle.service.ts:433 in initializeVault call
 sym src/lib/features/tags/tags.service.ts:64 fn updateTagSort(mode: 'name' | 'count'): void L4 | Updates the sort mode and re-sorts the existing tree.
-by src/lib/features/tags/tags.service.ts:updateTagSort <- src/lib/features/tags/TagsView.svelte:28 in toggleSort call
+by src/lib/features/tags/tags.service.ts:updateTagSort <- src/lib/features/tags/TagsView.svelte:30 in toggleSort call
 sym src/lib/features/tags/tags.service.ts:109 fn scheduleTagIndexRebuild(): void L3 | Schedules a tag-index rebuild with a 300 ms trailing debounce and single-flight semantics.
-by src/lib/features/tags/tags.service.ts:scheduleTagIndexRebuild <- src/lib/features/tags/TagsView.svelte:48 in $effect@45 call
+by src/lib/features/tags/tags.service.ts:scheduleTagIndexRebuild <- src/lib/features/tags/TagsView.svelte:73 in $effect@70 call
 sym src/lib/features/tags/tags.service.ts:118 fn flushScheduledTagIndexRebuild(): Promise<void> L6 | Flushes any pending debounced trigger and waits for the current rebuild (and any pending re-run) to settle.
 sym src/lib/features/tags/tags.service.ts:126 fn openTagsTab(): void L14 | Opens or focuses the Tags tab.
 sym src/lib/features/tags/tags.service.ts:142 fn closeTagsTab(): void L6 | Closes the Tags tab if it exists.
 sym src/lib/features/tags/tags.service.ts:150 fn toggleTagsTab(): void L10 | Toggles the Tags tab: opens if closed, closes if active, focuses if open but not active.
-by src/lib/features/tags/tags.service.ts:toggleTagsTab <- src/lib/app/commands.ts:291 in getBuiltInCommands call
+by src/lib/features/tags/tags.service.ts:toggleTagsTab <- src/lib/app/commands.ts:298 in getBuiltInCommands call
 sym src/lib/features/tags/tags.service.ts:162 fn resetTags(): void L7 | Resets all tag state and cancels any pending scheduled rebuild.
 by src/lib/features/tags/tags.service.ts:resetTags <- src/lib/app/lifecycle/app-lifecycle.service.ts:664 in teardownVault call
 ## locals

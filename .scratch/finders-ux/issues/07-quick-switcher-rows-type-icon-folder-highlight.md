@@ -15,18 +15,18 @@
 
 **Blocked by:** 02
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/quick-switcher.spec.ts`.
 
-- [ ] Failing test first, `src/tests/lib/core/filesystem/file-entries.logic.test.ts`: the folder helper returns the folder for nested and root files (`''` at the root); an empty query returns recents and the name-sorted rest apart; `flattenFileTree` output is unchanged.
-- [ ] Failing test first, `src/tests/lib/utils/fuzzy-match.test.ts`: positions agree with `fuzzyMatch` on a match and return nothing on no match; empty query returns no positions.
-- [ ] `QuickSwitcher.test.ts`: a `.canvas` row shows the canvas icon and a `.kanban` row the kanban icon, not FileText; a note with a frontmatter icon shows it; `/vault/Projects/A.md` shows "Projects"; an archived note shows the "Archived" tag and no `opacity-50`; typing "wel" wraps the matched characters in highlight elements.
-- [ ] `e2e/specs/quick-switcher.spec.ts` `getByRole('option', { name: /Welcome/i })` still passes.
-- [ ] The "Recent notes" heading appears only for an empty query with recents; the rest of the list has no heading; arrow keys still cross the group boundary.
-- [ ] RailNoteList icons are unchanged (its tests stay green); `chrome-type-scale`, `menu-item-anatomy`, `palette-classes`, `pure-logic`, `layer-rules` and `feature-cycle` tests are green.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
-- [ ] `filterAndRank` returns the same flat list as before; `CanvasFilePicker` and `RelationshipSearch` behave as today.
+- [x] Failing test first, `src/tests/lib/core/filesystem/file-entries.logic.test.ts`: the folder helper returns the folder for nested and root files (`''` at the root); an empty query returns recents and the name-sorted rest apart; `flattenFileTree` output is unchanged.
+- [x] Failing test first, `src/tests/lib/utils/fuzzy-match.test.ts`: positions agree with `fuzzyMatch` on a match and return nothing on no match; empty query returns no positions.
+- [x] `QuickSwitcher.test.ts`: a `.canvas` row shows the canvas icon and a `.kanban` row the kanban icon, not FileText; a note with a frontmatter icon shows it; `/vault/Projects/A.md` shows "Projects"; an archived note shows the "Archived" tag and no `opacity-50`; typing "wel" wraps the matched characters in highlight elements.
+- [x] `e2e/specs/quick-switcher.spec.ts` `getByRole('option', { name: /Welcome/i })` still passes.
+- [x] The "Recent notes" heading appears only for an empty query with recents; the rest of the list has no heading; arrow keys still cross the group boundary.
+- [x] RailNoteList icons are unchanged (its tests stay green); `chrome-type-scale`, `menu-item-anatomy`, `palette-classes`, `pure-logic`, `layer-rules` and `feature-cycle` tests are green.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] `filterAndRank` returns the same flat list as before; `CanvasFilePicker` and `RelationshipSearch` behave as today.
 
 ## Original proposal
 
@@ -50,3 +50,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: Archived becomes a text tag (no opacity); the kind-icon map moves out of RailNoteList and is shared, not copied; the file kind is computed on the features side, because the research's plan to call `fileKind()` from `core/filesystem/file-entries.logic.ts` would add a core-to-features import.
+- 2026-11-17, deliver (branch issue/07-quick-switcher-rows-type-icon-folder-highlight): quick switcher rows show a type icon (shared KIND_ICONS map from rail-shell), folder-only second line, an "Archived" text tag instead of opacity, fuzzy match highlight, and a "Recent notes" heading for an empty query. Review round 1 APPROVED (one nit, fixed: KIND_ICONS JSDoc consumer list dropped); round 2 APPROVED, no findings. Tests: `pnpm check` 0 errors; full suite at 9ae1fc388 exit 0, 644/644 files, 17177 passed, 54 skipped, 1 todo.

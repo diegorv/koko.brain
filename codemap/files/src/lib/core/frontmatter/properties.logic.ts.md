@@ -34,7 +34,7 @@ imp src/lib/plugins/one-on-one/one-on-one.service.ts:8 -> src/lib/core/frontmatt
 imp src/lib/plugins/quick-capture/note-composer.logic.ts:2 -> src/lib/core/frontmatter/properties.logic.ts yamlScalar
 imp src/routes/(app)/+layout.svelte:13 -> src/lib/core/frontmatter/properties.logic.ts configurePropertiesDiagnostics
 ## reach
-in2 src/lib/core/frontmatter/properties.logic.ts 67 files in 18 modules: src/lib/features/event-calendar(13) src/lib/app(9) src/lib/core/markdown-editor(7) src/lib/features/collection(6) src/lib/features/rail-shell(5) +13 modules: q impact src/lib/core/frontmatter/properties.logic.ts --depth 2
+in2 src/lib/core/frontmatter/properties.logic.ts 68 files in 19 modules: src/lib/features/event-calendar(13) src/lib/app(9) src/lib/core/markdown-editor(7) src/lib/features/collection(6) src/lib/features/rail-shell(5) +14 modules: q impact src/lib/core/frontmatter/properties.logic.ts --depth 2
 out2 src/lib/core/frontmatter/properties.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/frontmatter/properties.logic.test.ts imports src/lib/core/frontmatter/properties.logic.ts mirror

@@ -107,6 +107,54 @@ export function filterTagTree(nodes: TagTreeNode[], minCount: number): TagTreeNo
 	return result;
 }
 
+/** A tag tree narrowed by a filter query. */
+export interface TagQueryResult {
+	/** The matches, their ancestors and the subtrees of matching nodes. */
+	nodes: TagTreeNode[];
+	/** Full paths of the kept nodes that hold a match below them, to show expanded. */
+	forceOpen: Set<string>;
+}
+
+/**
+ * Narrows a tag tree to the nodes whose full path contains `query`, ignoring
+ * case and one leading `#`, plus their ancestors. A child's full path extends
+ * its parent's, so every descendant of a match matches too and a matching
+ * node keeps its whole subtree. An empty query returns `nodes` itself.
+ */
+export function filterTagTreeByQuery(nodes: TagTreeNode[], query: string): TagQueryResult {
+	const forceOpen = new Set<string>();
+	const needle = query.trim().replace(/^#/, '').toLowerCase();
+	if (needle === '') return { nodes, forceOpen };
+
+	function walk(level: TagTreeNode[]): TagTreeNode[] {
+		const result: TagTreeNode[] = [];
+		for (const node of level) {
+			const children = walk(node.children);
+			if (children.length === 0 && !node.fullPath.toLowerCase().includes(needle)) continue;
+			if (children.length > 0) forceOpen.add(node.fullPath);
+			const childTotal = children.reduce((sum, c) => sum + c.totalCount, 0);
+			result.push({ ...node, children, totalCount: node.count + childTotal });
+		}
+		return result;
+	}
+
+	return { nodes: walk(nodes), forceOpen };
+}
+
+/**
+ * Counts the nodes in a tag tree that stand for a tag of their own
+ * (`count > 0`). A pure container (`count === 0`, only a path prefix) is not
+ * counted; a rare parent kept to hold a popular child is, since it is a row.
+ */
+export function countVisibleTags(nodes: TagTreeNode[]): number {
+	let total = 0;
+	for (const node of nodes) {
+		if (node.count > 0) total++;
+		total += countVisibleTags(node.children);
+	}
+	return total;
+}
+
 export function sortTagTree(nodes: TagTreeNode[], mode: TagSortMode): TagTreeNode[] {
 	const sorted = [...nodes].sort((a, b) => {
 		if (mode === 'count') {

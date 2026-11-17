@@ -8,7 +8,7 @@ in2 src/lib/features/tags/TagColorDot.svelte 1 files in 1 modules: src/lib/featu
 out2 src/lib/features/tags/TagColorDot.svelte 0 files in 0 modules: -
 ## symbols
 sym src/lib/features/tags/TagColorDot.svelte:1 component TagColorDot props:color L19
-by src/lib/features/tags/TagColorDot.svelte:default <- src/lib/features/tags/TagItem.svelte:37 in (markup) mount +1
+by src/lib/features/tags/TagColorDot.svelte:default <- src/lib/features/tags/TagItem.svelte:55 in (markup) mount +1
 ## mounted-at
-mount src/lib/features/tags/TagItem.svelte:37 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
-mount src/lib/features/tags/TagItem.svelte:61 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
+mount src/lib/features/tags/TagItem.svelte:55 TagColorDot -> src/lib/features/tags/TagColorDot.svelte
+mount src/lib/features/tags/TagItem.svelte:82 TagColorDot -> src/lib/features/tags/TagColorDot.svelte

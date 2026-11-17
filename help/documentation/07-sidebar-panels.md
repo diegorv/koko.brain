@@ -105,8 +105,12 @@ body and the values of a frontmatter `tags:` property are counted, so a tag that
 with a `#` still appears in the tree.
 
 The **Hide rare tags** filter is **on by default**, so tags used fewer than 10 times are hidden
-until you toggle the filter icon off. The tag count in the header is the unfiltered total, so it
-does not change when the filter does.
+until you toggle the filter icon off. While the filter hides some tags, the header reads
+**Showing X of Y tags**, where X is the number of tags listed and Y the number of tags in the vault,
+followed by a **Show all** button that turns the filter off. With the filter off, or when it hides
+nothing, the header shows just the total, such as **12 tags**. When every tag is used fewer than
+10 times, the list reads "All Y tags are used fewer than 10 times." (or "The only tag is used
+fewer than 10 times." for a single tag) with a **Show all tags** button in place of the tree.
 
 ![Tags panel with hierarchical tree](screenshots/tags.png)
 
@@ -114,6 +118,12 @@ does not change when the filter does.
 
 - **Sort** - Toggle between A-Z (alphabetical) and by count (most used first).
 - **Hide rare tags** - The filter icon toggles hiding tags with fewer than 10 uses.
+- **Filter** - The **Filter tags** box lists only the tags whose full path contains what you type,
+  ignoring case and a leading `#` (`proj` finds both `#projects` and `#work/projects`). Parents of a
+  match open on their own and a matching tag keeps its subtags. The filter searches every tag, so
+  it also finds tags the rare-tag filter hides. While it is active the header reads **N matching
+  tags**, and "No tags match" appears when nothing does. Clearing the box brings back the full list
+  and the rare-tag filter as you left it.
 
 ### Clicking a tag
 

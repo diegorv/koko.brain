@@ -12,16 +12,16 @@
 
 **Blocked by:** 12, 13
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/plugins/graph-view/graph-view.store.test.ts`: `localDepth` defaults to 1, the setter clamps to 1-3 (0 becomes 1, 5 becomes 3), `reset()` returns it to 1.
-- [ ] Failing test first, `GraphView.test.ts` local mode: for a chain A-B-C centered on A, depth 1 shows 2 notes and depth 2 shows 3 (footer count), with no extra `invoke` call.
-- [ ] `GraphControls.test.ts`: the stepper shows only in local mode; Increase is disabled at 3 and Decrease at 1; clicking them changes `graphViewStore.localDepth`; the group and buttons have accessible names.
-- [ ] Global mode ignores depth.
-- [ ] `graph-view.service.test.ts`: with `localDepth` 3, closing the Graph tab and opening it again (`openGraphTab` and `toggleGraphTab`) gives depth 1; focusing the already open tab keeps 3.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/plugins/graph-view/graph-view.store.test.ts`: `localDepth` defaults to 1, the setter clamps to 1-3 (0 becomes 1, 5 becomes 3), `reset()` returns it to 1.
+- [x] Failing test first, `GraphView.test.ts` local mode: for a chain A-B-C centered on A, depth 1 shows 2 notes and depth 2 shows 3 (footer count), with no extra `invoke` call.
+- [x] `GraphControls.test.ts`: the stepper shows only in local mode; Increase is disabled at 3 and Decrease at 1; clicking them changes `graphViewStore.localDepth`; the group and buttons have accessible names.
+- [x] Global mode ignores depth.
+- [x] `graph-view.service.test.ts`: with `localDepth` 3, closing the Graph tab and opening it again (`openGraphTab` and `toggleGraphTab`) gives depth 1; focusing the already open tab keeps 3.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -44,3 +44,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: depth resets when the graph is reopened; it is session state, not a setting. Runs after 12 (`GraphControls.svelte` and its test file) and 13 (`GraphView.svelte` and `GraphView.test.ts`).
+- 2026-11-17, delivery (branch `issue/14-local-graph-depth-stepper`): `graphViewStore.localDepth` (1-3, clamped, reset by `reset()` and when the Graph tab is created again), the local graph follows it without refetching, and a Decrease/Increase depth stepper shows in the graph controls in local mode; help page updated. Tests: `pnpm vitest run` 645 files, 17089 passed, 54 skipped, exit 0. Review round 1: APPROVED; its two nits were rejected with reasons in `work/14/review.md` § Resolution, no code change.

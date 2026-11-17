@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store, calls
-file src/lib/core/editor/editor.store.svelte.ts store L173 module src/lib/core/editor in48 t107
+file src/lib/core/editor/editor.store.svelte.ts store L173 module src/lib/core/editor in48 t109
 ## imports
 imp src/lib/core/editor/editor.store.svelte.ts:2 -> src/lib/core/editor/editor.types.ts type:EditorTab
 imp src/lib/core/editor/editor.store.svelte.ts:3 -> src/lib/core/editor/editor.logic.ts reorderTabsAfterPinChange,getPinnedBoundary
@@ -17,7 +17,7 @@ imp src/lib/core/filesystem/link-updater.service.ts:3 -> src/lib/core/editor/edi
 imp src/lib/core/filesystem/path-change.service.ts:8 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/core/frontmatter/frontmatter-write.service.ts:3 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/core/layout/layout.service.ts:1 -> src/lib/core/editor/editor.store.svelte.ts editorStore
-imp src/lib/core/markdown-editor/EditorTabs.svelte:10 -> src/lib/core/editor/editor.store.svelte.ts editorStore
+imp src/lib/core/markdown-editor/EditorTabs.svelte:11 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:22 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/core/status-bar/SaveStatus.svelte:4 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte:14 -> src/lib/core/editor/editor.store.svelte.ts editorStore
@@ -36,7 +36,7 @@ imp src/lib/features/properties/PropertiesView.svelte:9 -> src/lib/core/editor/e
 imp src/lib/features/properties/lifecycle.service.ts:1 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/properties/properties.service.ts:1 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/rail-shell/Rail.svelte:14 -> src/lib/core/editor/editor.store.svelte.ts editorStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:17 -> src/lib/core/editor/editor.store.svelte.ts editorStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:10 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:17 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/search/SemanticIndexStatus.svelte:7 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 imp src/lib/features/tags/tags.service.ts:4 -> src/lib/core/editor/editor.store.svelte.ts editorStore
@@ -48,7 +48,7 @@ imp src/lib/features/todoist-sync/vault-scan.service.ts:3 -> src/lib/core/editor
 imp src/lib/features/type-definitions/type-definitions.service.ts:8 -> src/lib/core/editor/editor.store.svelte.ts editorStore
 more imported-by 8 not shown: src/lib/plugins/mods(2) src/lib/plugins/graph-view(1) src/lib/plugins/one-on-one(1) src/lib/plugins/queryjs(1) src/lib/plugins/table-of-contents(1) src/lib/plugins/word-count(1) src/routes(1): q importers src/lib/core/editor/editor.store.svelte.ts
 ## reach
-in2 src/lib/core/editor/editor.store.svelte.ts 60 files in 28 modules: src/lib/features/event-calendar(10) src/lib/app(7) src/lib/features/rail-shell(6) src/lib/features/collection(3) src/lib/features/tasks(3) +23 modules: q impact src/lib/core/editor/editor.store.svelte.ts --depth 2
+in2 src/lib/core/editor/editor.store.svelte.ts 59 files in 28 modules: src/lib/features/event-calendar(10) src/lib/app(7) src/lib/features/rail-shell(6) src/lib/features/collection(3) src/lib/features/tasks(3) +23 modules: q impact src/lib/core/editor/editor.store.svelte.ts --depth 2
 out2 src/lib/core/editor/editor.store.svelte.ts 1 files in 1 modules: src/lib/utils(1)
 ## tests
 test src/tests/lib/core/editor/editor.store.test.ts imports src/lib/core/editor/editor.store.svelte.ts mirror
@@ -91,12 +91,12 @@ test src/tests/lib/features/collection/CollectionView.view-writes.test.ts import
 test src/tests/lib/features/collection/collection-block-click.test.ts imports src/lib/core/editor/editor.store.svelte.ts
 test src/tests/lib/features/collection/collection-block-row-rule.test.ts imports src/lib/core/editor/editor.store.svelte.ts
 test src/tests/lib/features/copy-block-link/copy-block-link.service.test.ts imports src/lib/core/editor/editor.store.svelte.ts
-more tests 67 not shown: src/tests/lib/features/properties(11) src/tests/lib/features/tasks(10) src/tests/lib/features/rail-shell(8) src/tests/lib/plugins/mods(7) src/tests/lib/features/event-calendar(5) src/tests/lib/features/todoist-sync(4) src/tests/lib/features/deep-link(3) src/tests/lib/features/file-icons(2) +12 modules: q tests src/lib/core/editor/editor.store.svelte.ts
+more tests 69 not shown: src/tests/lib/features/properties(11) src/tests/lib/features/tasks(10) src/tests/lib/features/rail-shell(8) src/tests/lib/plugins/mods(7) src/tests/lib/features/event-calendar(5) src/tests/lib/features/todoist-sync(4) src/tests/lib/plugins/graph-view(4) src/tests/lib/features/deep-link(3) +12 modules: q tests src/lib/core/editor/editor.store.svelte.ts
 ## symbols
 sym src/lib/core/editor/editor.store.svelte.ts:33 store editorStore L141 | Central store for all editor tab state.
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived member +1
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/EditorView.svelte:37 in isCollectionTab=$derived member +25
-by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/commands.ts:383 in getBuiltInCommands member +2
+by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/commands.ts:390 in getBuiltInCommands member +2
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/editor-host.ts:41 in scrollToAnchor member +1
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/app/global-keybindings.ts:173 in GLOBAL_KEYBINDINGS member
 by src/lib/core/editor/editor.store.svelte.ts:editorStore <- src/lib/core/editor/editor.service.ts:126 in syncExternalContentToEditor member +42
@@ -117,7 +117,7 @@ mem src/lib/core/editor/editor.store.svelte.ts:40 get editorStore.activeTabConte
 mem src/lib/core/editor/editor.store.svelte.ts:41 get editorStore.pendingScrollPosition r:src/lib/core/markdown-editor/MarkdownEditor.svelte:592 w-via:setPendingScrollPosition,reset
 mem src/lib/core/editor/editor.store.svelte.ts:42 get editorStore.isLivePreview r:9 w-via:setLivePreview,reset
 more r 9 not shown: src/lib/app(4) src/lib/core/markdown-editor(3) src/lib/core/editor(1) src/lib/features/note-action-bar(1): q store src/lib/core/editor/editor.store.svelte.ts:editorStore.isLivePreview
-mem src/lib/core/editor/editor.store.svelte.ts:43 get editorStore.editorView r:src/lib/app/commands.ts:383,src/lib/app/commands.ts:393,src/lib/features/file-history/file-history.service.ts:90,src/lib/features/todoist-sync/note-writer.service.ts:69 w-via:setEditorView,reset
+mem src/lib/core/editor/editor.store.svelte.ts:43 get editorStore.editorView r:src/lib/app/commands.ts:390,src/lib/app/commands.ts:400,src/lib/features/file-history/file-history.service.ts:90,src/lib/features/todoist-sync/note-writer.service.ts:69 w-via:setEditorView,reset
 mem src/lib/core/editor/editor.store.svelte.ts:49 get editorStore.externalContentSignal r:src/lib/core/markdown-editor/MarkdownEditor.svelte:631 w-via:bumpExternalContentSignal,reset | Counter that bumps on every external content write (Properties, task toggle, link rename, watcher reload).
 mem src/lib/core/editor/editor.store.svelte.ts:52 do editorStore.addTab w:7 | Opens a new tab and makes it active (unpinned tabs go after pinned ones)
 more w 7 not shown: src/lib/core/editor(1) src/lib/core/filesystem(1) src/lib/features/auto-organize(1) src/lib/features/event-calendar(1) src/lib/features/tags(1) src/lib/features/tasks(1) src/lib/plugins/graph-view(1): q store src/lib/core/editor/editor.store.svelte.ts:editorStore.addTab

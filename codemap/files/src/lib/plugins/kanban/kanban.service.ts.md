@@ -20,7 +20,7 @@ imp src/lib/app/lifecycle/app-lifecycle.service.ts:65 -> src/lib/plugins/kanban/
 imp src/lib/plugins/kanban/KanbanCard.svelte:11 -> src/lib/plugins/kanban/kanban.service.ts loadLinkedFileContent
 ## reach
 in2 src/lib/plugins/kanban/kanban.service.ts 3 files in 3 modules: src/lib/app(1) src/lib/plugins/kanban(1) src/routes(1)
-out2 src/lib/plugins/kanban/kanban.service.ts 17 files in 9 modules: src/lib/core/filesystem(4) src/lib/contracts(3) src/lib/utils(3) src/lib/core/settings(2) src/lib/core/editor(1) +4 modules
+out2 src/lib/plugins/kanban/kanban.service.ts 18 files in 9 modules: src/lib/core/filesystem(4) src/lib/utils(4) src/lib/contracts(3) src/lib/core/settings(2) src/lib/core/editor(1) +4 modules
 ## tests
 test src/tests/lib/plugins/kanban/kanban.service.test.ts imports src/lib/plugins/kanban/kanban.service.ts mirror
 test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts imports src/lib/plugins/kanban/kanban.service.ts
@@ -31,7 +31,7 @@ test src/tests/lib/plugins/kanban/kanban-unmodeled-content.test.ts mocks src/lib
 test src/tests/lib/plugins/kanban/kanban-unmodeled-lines.test.ts mocks src/lib/plugins/kanban/kanban.service.ts
 ## symbols
 sym src/lib/plugins/kanban/kanban.service.ts:18 fn createKanbanFile(parentPath: string): Promise<string> L3 | Creates a new `.kanban` file with an empty board (To Do, In Progress, Done).
-by src/lib/plugins/kanban/kanban.service.ts:createKanbanFile <- src/lib/app/commands.ts:189 in getBuiltInCommands call
+by src/lib/plugins/kanban/kanban.service.ts:createKanbanFile <- src/lib/app/commands.ts:190 in getBuiltInCommands call
 sym src/lib/plugins/kanban/kanban.service.ts:27 fn registerKanbanFolderCreator(): () => void L9 | Adds "New Kanban Board" to the Files navigator's folder menu: the rail shell may not import plugins (ADR 0003).
 by src/lib/plugins/kanban/kanban.service.ts:registerKanbanFolderCreator <- src/lib/app/lifecycle/app-lifecycle.service.ts:275 in initializeVault call
 sym src/lib/plugins/kanban/kanban.service.ts:38 fn resetKanban(): void L4 | Resets all kanban state (called during vault teardown)

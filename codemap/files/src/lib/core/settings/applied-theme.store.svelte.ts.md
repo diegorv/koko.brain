@@ -6,7 +6,7 @@ imp src/lib/app/AppOverlays.svelte:4 -> src/lib/core/settings/applied-theme.stor
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:25 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 imp src/lib/core/settings/theme.service.ts:4 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 imp src/lib/features/rail-shell/Rail.svelte:17 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
-imp src/lib/plugins/graph-view/GraphView.svelte:21 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
+imp src/lib/plugins/graph-view/GraphView.svelte:22 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 imp src/lib/plugins/mods/mod-theme.svelte.ts:3 -> src/lib/core/settings/applied-theme.store.svelte.ts appliedThemeStore
 ## reach
 in2 src/lib/core/settings/applied-theme.store.svelte.ts 8 files in 4 modules: src/lib/core/settings(3) src/lib/app(2) src/routes(2) src/lib/plugins/mods(1)
@@ -25,13 +25,13 @@ by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/core/markdown-editor/MarkdownEditor.svelte:119 in freshState member +2
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/core/settings/theme.service.ts:35 in applyMode mcall +1
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/features/rail-shell/Rail.svelte:181 in actionRow member
-by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/plugins/graph-view/GraphView.svelte:401 in $effect@400 member
+by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/plugins/graph-view/GraphView.svelte:475 in $effect@474 member
 by src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore <- src/lib/plugins/mods/mod-theme.svelte.ts:41 in readModTheme member +4
 ## store
 store src/lib/core/settings/applied-theme.store.svelte.ts:14 appliedThemeStore esc:0
 mem src/lib/core/settings/applied-theme.store.svelte.ts:16 get appliedThemeStore.isDark r:8 w-via:setDark,_reset | True when the applied theme is dark (its editor background is dark or unreadable).
 more r 8 not shown: src/lib/core/markdown-editor(3) src/lib/plugins/mods(3) src/lib/app(1) src/lib/features/rail-shell(1): q store src/lib/core/settings/applied-theme.store.svelte.ts:appliedThemeStore.isDark
-mem src/lib/core/settings/applied-theme.store.svelte.ts:19 get appliedThemeStore.revision r:src/lib/plugins/graph-view/GraphView.svelte:401,src/lib/plugins/mods/mod-theme.svelte.ts:51,src/lib/plugins/mods/mod-theme.svelte.ts:55 w-via:bumpRevision,_reset | Grows by one on every theme application; read it to re-run when the theme's colors change.
+mem src/lib/core/settings/applied-theme.store.svelte.ts:19 get appliedThemeStore.revision r:src/lib/plugins/graph-view/GraphView.svelte:475,src/lib/plugins/mods/mod-theme.svelte.ts:51,src/lib/plugins/mods/mod-theme.svelte.ts:55 w-via:bumpRevision,_reset | Grows by one on every theme application; read it to re-run when the theme's colors change.
 mem src/lib/core/settings/applied-theme.store.svelte.ts:22 do appliedThemeStore.setDark w:src/lib/core/settings/theme.service.ts:35 | Records the mode of the theme just applied.
 mem src/lib/core/settings/applied-theme.store.svelte.ts:28 do appliedThemeStore.bumpRevision w:src/lib/core/settings/theme.service.ts:36 | Records that a theme was just applied.
 mem src/lib/core/settings/applied-theme.store.svelte.ts:31 do appliedThemeStore._reset w:-

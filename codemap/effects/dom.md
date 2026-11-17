@@ -13,7 +13,7 @@ fx src/lib/features/collection/collection-block-widget.ts:255 dom.click pill in 
 fx src/lib/features/collection/collection-block-widget.ts:384 dom.click bar in CollectionBlockWidget.buildLinearCalendar
 fx src/lib/features/collection/collection-block-widget.ts:452 dom.click tr in buildCollectionTable
 fx src/lib/features/event-calendar/event-calendar-gesture-guard.ts:99 dom.click window in GestureGuard.arm
-fx src/lib/plugins/graph-view/GraphView.svelte:349 dom.click canvasEl in setupInteractions
+fx src/lib/plugins/graph-view/GraphView.svelte:422 dom.click canvasEl in setupInteractions
 fx src/lib/features/rail-shell/Rail.svelte:242 dom.dragstart svelte:window in (markup)
 fx src/lib/features/event-calendar/event-calendar.service.ts:314 dom.focus window in acquireCalendarClock
 fx src/lib/features/todoist-sync/sync-scheduler.service.ts:100 dom.focus window in startAutoSync
@@ -47,7 +47,7 @@ fx src/lib/features/collection/collection-block-widget.ts:481 dom.mousedown el i
 fx src/lib/plugins/queryjs/kb-api.ts:507 dom.mousedown a in KBAPI.renderValue
 fx src/lib/plugins/queryjs/queryjs-block-widget.ts:217 dom.mousedown button in QueryjsBlockWidget.renderRunPrompt
 fx src/lib/plugins/queryjs/queryjs-block-widget.ts:329 dom.mousedown retry in QueryjsBlockWidget.renderStructuredError
-fx src/lib/plugins/graph-view/GraphView.svelte:350 dom.mousemove canvasEl in setupInteractions
+fx src/lib/plugins/graph-view/GraphView.svelte:423 dom.mousemove canvasEl in setupInteractions
 fx src/lib/core/markdown-editor/extensions/live-preview/core/mouse-selecting.ts:43 dom.mouseup view.dom.ownerDocument in mouseSelectingHandlers
 fx src/lib/features/event-calendar/event-calendar-day-drag.svelte.ts:62 dom.pointercancel window in DayDrag.pointerdown
 fx src/lib/features/event-calendar/event-calendar-gesture-guard.ts:84 dom.pointerdown window in GestureGuard.discard

@@ -174,7 +174,7 @@ Every calendar change (create, move, resize, edit) rewrites the note's frontmatt
 | `Cmd+Z` | Undo the last calendar change |
 | `Cmd+Shift+Z` or `Ctrl+Y` | Redo |
 
-The Command Palette has **Calendar: Undo** and **Calendar: Redo** too.
+The Command Palette has **Calendar: Undo** and **Calendar: Redo** too, in the Calendar category. They appear only when there is something to undo or redo, so with an empty history the palette does not list them.
 
 - Undo covers changes made in the Calendar: create, duplicate, move, resize, edit and delete. Undoing a delete restores the note from the Trash. The last 100 changes are kept.
 - Undo does not cover edits made elsewhere (in the editor or the Properties panel). If the event changed since, undo is refused ("Event changed since; not undone").

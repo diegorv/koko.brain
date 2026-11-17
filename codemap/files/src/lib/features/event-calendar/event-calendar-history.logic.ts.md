@@ -1,6 +1,6 @@
 # file card src/lib/features/event-calendar/event-calendar-history.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/event-calendar/event-calendar-history.logic.ts ' codemap/files
-file src/lib/features/event-calendar/event-calendar-history.logic.ts logic L107 module src/lib/features/event-calendar in2 t2 | Field-level undo / redo history of the event calendar.
+file src/lib/features/event-calendar/event-calendar-history.logic.ts logic L107 module src/lib/features/event-calendar in2 t3 | Field-level undo / redo history of the event calendar.
 ## imports
 imp src/lib/features/event-calendar/event-calendar-history.logic.ts:12 -> src/lib/features/event-calendar/event-calendar-event.logic.ts sameEventState
 imp src/lib/features/event-calendar/event-calendar-history.logic.ts:13 -> src/lib/features/event-calendar/event-calendar.types.ts type:EventState,type:HistoryOp
@@ -12,6 +12,7 @@ in2 src/lib/features/event-calendar/event-calendar-history.logic.ts 15 files in 
 out2 src/lib/features/event-calendar/event-calendar-history.logic.ts 7 files in 5 modules: src/lib/core/frontmatter(2) src/lib/core/settings(2) src/lib/features/event-calendar(1) src/lib/features/type-definitions(1) src/lib/types(1)
 ## tests
 test src/tests/lib/features/event-calendar/event-calendar-history.logic.test.ts imports src/lib/features/event-calendar/event-calendar-history.logic.ts mirror
+test src/tests/lib/app/commands.test.ts imports src/lib/features/event-calendar/event-calendar-history.logic.ts
 test src/tests/lib/features/event-calendar/event-calendar.store.test.ts imports src/lib/features/event-calendar/event-calendar-history.logic.ts
 ## symbols
 sym src/lib/features/event-calendar/event-calendar-history.logic.ts:16 interface EventHistory L8 | Undo and redo stacks of the calendar, newest op last.

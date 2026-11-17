@@ -9,6 +9,7 @@ imp src/lib/features/tags/tags.store.svelte.ts:1 -> src/lib/features/tags/tags.t
 in2 src/lib/features/tags/tags.types.ts 2 files in 1 modules: src/lib/features/tags(2)
 out2 src/lib/features/tags/tags.types.ts 0 files in 0 modules: -
 ## tests
+test src/tests/lib/features/tags/TagItem.test.ts imports-type src/lib/features/tags/tags.types.ts
 test src/tests/lib/features/tags/TagsView.test.ts imports-type src/lib/features/tags/tags.types.ts
 ## symbols
 sym src/lib/features/tags/tags.types.ts:1 interface TagEntry L5

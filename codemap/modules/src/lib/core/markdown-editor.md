@@ -44,7 +44,7 @@ entry src/lib/core/markdown-editor/extensions/wikilink/completion.ts ext-in1 src
 entry src/lib/core/markdown-editor/setup/editor-extensions.ts ext-in1 src/lib/app/commands.ts
 entry src/lib/core/markdown-editor/setup/editor-theme.ts ext-in1 src/lib/plugins/quick-capture/composer-editor.ts
 ## files
-file src/lib/core/markdown-editor/EditorTabs.svelte component L119 module src/lib/core/markdown-editor in1 t1
+file src/lib/core/markdown-editor/EditorTabs.svelte component L122 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/MarkdownEditor.svelte component L762 module src/lib/core/markdown-editor in1 t3
 file src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts logic L92 module src/lib/core/markdown-editor in1 t1
 file src/lib/core/markdown-editor/doc-diff.logic.ts logic L157 module src/lib/core/markdown-editor in2 t1
@@ -153,7 +153,7 @@ file src/lib/core/markdown-editor/setup/index.ts other L2 module src/lib/core/ma
 file src/lib/core/markdown-editor/tab-view-state.ts other L111 module src/lib/core/markdown-editor in3 t2 | Per-tab view state (scroll position, cursor) preserved across tab switches AND across MarkdownEditor component remounts (e.g. when switching to a non-markdown …
 file src/lib/core/markdown-editor/wikilink-click-target.ts other L81 module src/lib/core/markdown-editor in3 t2
 ## public
-sym src/lib/core/markdown-editor/EditorTabs.svelte:1 component EditorTabs props:tabIcon,tabTitleColor L119
+sym src/lib/core/markdown-editor/EditorTabs.svelte:1 component EditorTabs props:tabIcon,tabTitleColor L122
 sym src/lib/core/markdown-editor/MarkdownEditor.svelte:1 component MarkdownEditor props:host,renderers,blockLinks L762
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:34 fn detectBlockElement(lineText: string): DetectedBlockElement L20 | Detects the type of markdown element on a given line.
 sym src/lib/core/markdown-editor/copy-block-link/copy-block-link.logic.ts:59 fn generateBlockId(): string L6 | Generates a random 6-character alphanumeric block ID.

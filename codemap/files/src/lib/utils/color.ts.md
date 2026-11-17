@@ -33,7 +33,7 @@ sym src/lib/utils/color.ts:127 fn ensureContrast(fg: string, bg: string, min: nu
 by src/lib/utils/color.ts:ensureContrast <- src/lib/core/settings/theme-builder.logic.ts:168 in withReadableContrast call +3
 sym src/lib/utils/color.ts:152 fn mixColors(a: string, b: string, t = 0.5): string | null L8 | OKLab mix of two colors as a 6-digit hex (alpha ignored): `t` is the share of `b`, 0.5 (the midpoint) by default.
 by src/lib/utils/color.ts:mixColors <- src/lib/core/settings/theme-builder.logic.ts:224 in buildTheme call
-by src/lib/utils/color.ts:mixColors <- src/lib/plugins/graph-view/graph-view.logic.ts:210 in graphPalette call +4
+by src/lib/utils/color.ts:mixColors <- src/lib/plugins/graph-view/graph-view.logic.ts:287 in graphPalette call +4
 ## locals
 local src/lib/utils/color.ts:8 fn clamp01(v: number) L1
 local src/lib/utils/color.ts:14 fn parseRgba(color: string): [number, number, number, number] | null L21

@@ -1,11 +1,11 @@
 # module card src/lib/utils
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/utils ' codemap/modules
 sections: neighbors, entry files, files, public, effects, debt
-module src/lib/utils utils files 30 in-modules 42 out-modules 2 pub 85/104 ipc 3/0 card ~9.4k
+module src/lib/utils utils files 30 in-modules 42 out-modules 2 pub 86/105 ipc 3/0 card ~9.4k
 ## neighbors
 dep src/lib/app -> src/lib/utils 17
 dep src/lib/core/editor -> src/lib/utils 7
-dep src/lib/core/filesystem -> src/lib/utils 12
+dep src/lib/core/filesystem -> src/lib/utils 13
 dep src/lib/core/frontmatter -> src/lib/utils 2
 dep src/lib/core/markdown-editor -> src/lib/utils 22
 dep src/lib/core/note-creator -> src/lib/utils 3
@@ -51,14 +51,14 @@ in2 src/lib/utils 5 modules: src/lib/components(54) src/lib/core/layout(2) src/l
 out2 src/lib/utils 0 modules: -
 ## entry files
 entry src/lib/utils/debug.ts ext-in73 src/lib/app/LabsSection.svelte src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/app/global-keybindings.ts src/lib/app/lifecycle/app-lifecycle.service.ts more importers 68 not shown: src/lib/features/todoist-sync(7) src/lib/core/settings(6) src/lib/core/filesystem(5) +30 modules: q importers src/lib/utils/debug.ts
-entry src/lib/utils/path.ts ext-in27 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/fs.logic.ts more importers 22 not shown: src/lib/core/filesystem(3) src/lib/features/search(3) src/lib/features/tasks(3) +9 modules: q importers src/lib/utils/path.ts
+entry src/lib/utils/path.ts ext-in27 src/lib/app/deep-link-actions.ts src/lib/app/editor-host.ts src/lib/core/editor/editor.logic.ts src/lib/core/filesystem/delete-note.service.ts src/lib/core/filesystem/file-entries.logic.ts more importers 22 not shown: src/lib/core/filesystem(4) src/lib/features/search(3) src/lib/features/tasks(3) +8 modules: q importers src/lib/utils/path.ts
 entry src/lib/utils/date.ts ext-in15 src/lib/core/markdown-editor/extensions/date-shortcut/completion.logic.ts src/lib/features/collection/calendar.logic.ts src/lib/features/file-history/file-history.logic.ts src/lib/features/tasks/TaskLists.svelte src/lib/features/tasks/TasksView.svelte more importers 10 not shown: src/lib/features/tasks(4) src/lib/plugins/kanban(3) src/lib/plugins/calendar(1) +2 modules: q importers src/lib/utils/date.ts
 entry src/lib/utils/log.service.ts ext-in13 src/lib/app/AppShell.svelte src/lib/app/boot.ts src/lib/app/lifecycle/app-lifecycle.service.ts src/lib/core/editor/editor.service.ts src/lib/core/note-creator/note-creator.service.ts more importers 8 not shown: src/lib/features/rail-shell(2) src/lib/plugins/queryjs(2) src/lib/core/settings(1) +3 modules: q importers src/lib/utils/log.service.ts
 entry src/lib/utils/clamp.ts ext-in10 src/lib/core/editor/open-note-at.service.ts src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/settings.logic.ts src/lib/features/auto-organize/AutoOrganizeSection.svelte src/lib/features/collection/expression/evaluator.ts more importers 5 not shown: src/lib/plugins/kanban(2) src/lib/plugins/queryjs(2) src/lib/features/rail-shell(1): q importers src/lib/utils/clamp.ts
 entry src/lib/utils/color.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/core/settings/sections/ThemePreview.svelte src/lib/core/settings/theme-builder.logic.ts src/lib/core/settings/theme.logic.ts src/lib/core/settings/theme.service.ts more importers 2 not shown: src/lib/features/collection(1) src/lib/plugins/graph-view(1): q importers src/lib/utils/color.ts
+entry src/lib/utils/fuzzy-match.ts ext-in7 src/lib/core/filesystem/file-entries.logic.ts src/lib/core/markdown-editor/extensions/tag/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/features/command-palette/command-palette.logic.ts more importers 2 not shown: src/lib/features/quick-switcher(1) src/lib/plugins/mods(1): q importers src/lib/utils/fuzzy-match.ts
 entry src/lib/utils/tag-extraction.ts ext-in7 src/lib/core/markdown-editor/extensions/live-preview/click-handler.ts src/lib/core/markdown-editor/extensions/live-preview/inline/handlers/tag-handler.ts src/lib/features/collection/collection.logic.ts src/lib/features/search/search.logic.ts src/lib/features/tasks/task-headings.logic.ts more importers 2 not shown: src/lib/features/tasks(1) src/lib/features/todoist-sync(1): q importers src/lib/utils/tag-extraction.ts
 entry src/lib/utils/color-presets.ts ext-in6 src/lib/features/collection/expression/evaluator.ts src/lib/plugins/kanban/KanbanCard.svelte src/lib/plugins/kanban/KanbanCardText.svelte src/lib/plugins/kanban/KanbanListView.svelte src/lib/plugins/kanban/KanbanTableView.svelte more importers 1 not shown: src/lib/plugins/queryjs(1): q importers src/lib/utils/color-presets.ts
-entry src/lib/utils/fuzzy-match.ts ext-in6 src/lib/core/filesystem/file-entries.logic.ts src/lib/core/markdown-editor/extensions/tag/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts src/lib/core/markdown-editor/extensions/wikilink/completion.ts src/lib/features/command-palette/command-palette.logic.ts more importers 1 not shown: src/lib/plugins/mods(1): q importers src/lib/utils/fuzzy-match.ts
 entry src/lib/utils/sanitize.ts ext-in6 src/lib/core/markdown-editor/extensions/live-preview/widgets/mermaid-widget.ts src/lib/features/canvas/canvas-markdown.logic.ts src/lib/features/collection/CollectionTableView.svelte src/lib/features/collection/collection-block-widget.ts src/lib/features/file-icons/IconRenderer.svelte more importers 1 not shown: src/lib/features/search(1): q importers src/lib/utils/sanitize.ts
 entry src/lib/utils/font-stacks.ts ext-in5 src/lib/core/markdown-editor/extensions/live-preview/styles.ts src/lib/core/markdown-editor/highlight-styles.ts src/lib/core/markdown-editor/setup/editor-theme.ts src/lib/core/settings/sections/EditorSection.svelte src/lib/plugins/queryjs/kb-ui.ts
 entry src/lib/utils/frontmatter-aliases.ts ext-in5 src/lib/core/frontmatter/properties.logic.ts src/lib/core/markdown-editor/extensions/live-preview/widgets.ts src/lib/features/auto-organize/AutoOrganizeRuleProperty.svelte src/lib/features/auto-organize/auto-organize.logic.ts src/lib/features/properties/properties.service.ts
@@ -90,7 +90,7 @@ file src/lib/utils/debounce.ts other L55 module src/lib/utils in4 t4
 file src/lib/utils/debug.ts other L166 module src/lib/utils in73 t53
 file src/lib/utils/font-stacks.ts other L56 module src/lib/utils in5 t5 | Font stacks shared by every place that sets a `font-family` from TypeScript, so code and app text render in one face per role on every machine.
 file src/lib/utils/frontmatter-aliases.ts other L31 module src/lib/utils in5 t6
-file src/lib/utils/fuzzy-match.ts other L41 module src/lib/utils in6 t2
+file src/lib/utils/fuzzy-match.ts other L59 module src/lib/utils in7 t2
 file src/lib/utils/index-dedupe.ts other L39 module src/lib/utils in3 t33
 file src/lib/utils/inflight.ts other L173 module src/lib/utils in5 t1
 file src/lib/utils/keybindings.ts other L81 module src/lib/utils in5 t4
@@ -141,6 +141,7 @@ sym src/lib/utils/font-stacks.ts:39 fn quoteFontFamily(value: string): string L8
 sym src/lib/utils/font-stacks.ts:53 fn editorFontFamily(value: string): string L4 | The editor `font-family`: the user's value (quoted when it is a single name) followed by the app sans stack, so a font the machine lacks falls back to the syst…
 sym src/lib/utils/frontmatter-aliases.ts:29 fn canonicalizeKey(key: string): string L3 | Returns the canonical key name if the input matches a known alias, otherwise returns the input unchanged.
 sym src/lib/utils/fuzzy-match.ts:8 fn fuzzyMatch(query: string, target: string): FuzzyMatchResult L34 | Performs a fuzzy match of query against target.
+sym src/lib/utils/fuzzy-match.ts:47 fn fuzzyMatchPositions(query: string, target: string): number[] L13 | The indices in `target` of the characters `fuzzyMatch` matches, found by the same greedy scan.
 sym src/lib/utils/index-dedupe.ts:19 fn isAlreadyIndexed(path: string, content: string): boolean L3 | Returns true if the given (path, content) was the most recent input to the shared updaters.
 sym src/lib/utils/index-dedupe.ts:26 fn markIndexed(path: string, content: string): void L3 | Records that the given (path, content) has just been sent through the shared updaters.
 sym src/lib/utils/index-dedupe.ts:32 fn clearIndexedEntry(path: string): void L3 | Removes the signature for a path.

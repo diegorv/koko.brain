@@ -17,7 +17,7 @@ imp src/lib/app/AppOverlays.svelte:13 -> src/lib/app/commands.ts getBuiltInComma
 imp src/routes/(app)/+layout.svelte:23 -> src/lib/app/AppOverlays.svelte default
 ## reach
 in2 src/lib/app/AppOverlays.svelte 0 files in 0 modules: -
-out2 src/lib/app/AppOverlays.svelte 92 files in 33 modules: src/lib/core/settings(16) src/lib/features/todoist-sync(7) src/lib/features/file-history(6) src/lib/components(5) src/lib/plugins/mods(5) +28 modules
+out2 src/lib/app/AppOverlays.svelte 96 files in 34 modules: src/lib/core/settings(16) src/lib/features/todoist-sync(7) src/lib/features/file-history(6) src/lib/components(5) src/lib/features/rail-shell(5) +29 modules
 ## tests
 test src/tests/lib/app/AppOverlays.test.ts imports src/lib/app/AppOverlays.svelte mirror
 ## symbols

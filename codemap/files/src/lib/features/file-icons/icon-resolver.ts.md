@@ -1,6 +1,6 @@
 # file card src/lib/features/file-icons/icon-resolver.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-icons/icon-resolver.ts ' codemap/files
-file src/lib/features/file-icons/icon-resolver.ts other L98 module src/lib/features/file-icons in10 t2
+file src/lib/features/file-icons/icon-resolver.ts other L98 module src/lib/features/file-icons in11 t2
 ## imports
 imp src/lib/features/file-icons/icon-resolver.ts:1 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore,type:FrontmatterIconRef
 imp src/lib/features/file-icons/icon-resolver.ts:2 -> src/lib/features/file-icons/file-icons.icon-data.ts getIconSync
@@ -11,13 +11,14 @@ imp src/lib/app/boot.ts:11 -> src/lib/features/file-icons/icon-resolver.ts regis
 imp src/lib/features/note-list/NoteRow.svelte:10 -> src/lib/features/file-icons/icon-resolver.ts type:ResolvedIcon
 imp src/lib/features/properties/PropertiesView.svelte:25 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath,resolveIconForType
 imp src/lib/features/properties/RelationshipSearch.svelte:10 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
+imp src/lib/features/quick-switcher/QuickSwitcher.svelte:13 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/FilesNavigator.svelte:45 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/Rail.svelte:21 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
-imp src/lib/features/rail-shell/RailNoteList.svelte:32 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
+imp src/lib/features/rail-shell/RailNoteList.svelte:25 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/rail-shell/TypesNavigator.svelte:28 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 imp src/lib/features/tasks/TasksView.svelte:29 -> src/lib/features/file-icons/icon-resolver.ts resolveIconForPath
 ## reach
-in2 src/lib/features/file-icons/icon-resolver.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
+in2 src/lib/features/file-icons/icon-resolver.ts 3 files in 2 modules: src/lib/app(2) src/routes(1)
 out2 src/lib/features/file-icons/icon-resolver.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/file-icons/icon-resolver.test.ts imports src/lib/features/file-icons/icon-resolver.ts mirror
@@ -32,11 +33,12 @@ sym src/lib/features/file-icons/icon-resolver.ts:64 fn resolveIconForPath(path: 
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/app/EditorView.svelte:57 in (markup) markup +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/properties/PropertiesView.svelte:258 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/properties/RelationshipSearch.svelte:65 in (markup) markup
+by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/quick-switcher/QuickSwitcher.svelte:129 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/FilesNavigator.svelte:433 in (markup) markup
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/Rail.svelte:167 in pinRow call +1
-by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/RailNoteList.svelte:653 in resolveNoteIcon call +1
+by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/RailNoteList.svelte:646 in resolveNoteIcon call +1
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/rail-shell/TypesNavigator.svelte:279 in (markup) markup +1
-by src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath <- src/lib/features/tasks/TasksView.svelte:754 in (markup) markup
+more by 1 not shown: src/lib/features/tasks(1): q importers src/lib/features/file-icons/icon-resolver.ts:resolveIconForPath
 sym src/lib/features/file-icons/icon-resolver.ts:84 fn resolveIconForType(typeName: string): ResolvedIcon | undefined L7 | Resolves the display icon for a type name by looking up the type definition note's frontmatter icon.
 by src/lib/features/file-icons/icon-resolver.ts:resolveIconForType <- src/lib/features/properties/PropertiesView.svelte:173 in (markup) markup +1
 ## locals

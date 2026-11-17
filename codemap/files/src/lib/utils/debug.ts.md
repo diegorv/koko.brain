@@ -52,7 +52,7 @@ imp src/lib/features/file-icons/file-icons.service.ts:21 -> src/lib/utils/debug.
 imp src/lib/features/note-action-bar/NoteActionBar.svelte:36 -> src/lib/utils/debug.ts error
 more imported-by 33 not shown: src/lib/features/todoist-sync(7) src/lib/features/rail-shell(4) src/lib/plugins/mods(4) src/lib/plugins/one-on-one(3) src/lib/features/properties(2) src/lib/features/search(2) src/lib/features/tasks(2) src/lib/features/note-action-bar(1) +8 modules: q importers src/lib/utils/debug.ts
 ## reach
-in2 src/lib/utils/debug.ts 57 files in 31 modules: src/lib/app(7) src/lib/features/event-calendar(7) src/lib/features/rail-shell(4) src/lib/features/canvas(3) src/lib/features/tasks(3) +26 modules: q impact src/lib/utils/debug.ts --depth 2
+in2 src/lib/utils/debug.ts 58 files in 31 modules: src/lib/app(7) src/lib/features/event-calendar(7) src/lib/features/rail-shell(4) src/lib/features/canvas(3) src/lib/features/search(3) +26 modules: q impact src/lib/utils/debug.ts --depth 2
 out2 src/lib/utils/debug.ts 6 files in 2 modules: src/lib/core/settings(4) src/lib/contracts(2)
 ## tests
 test src/tests/lib/utils/debug.test.ts imports src/lib/utils/debug.ts mirror
@@ -121,6 +121,7 @@ sym src/lib/utils/debug.ts:41 fn timeAsync<T>(tag: string, label: string, fn: ()
 by src/lib/utils/debug.ts:timeAsync <- src/lib/core/filesystem/fs.service.ts:93 in loadDirectoryTree call +1
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/collection/collection.service.ts:94 in buildPropertyIndex call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/file-icons/file-icons.service.ts:202 in buildFrontmatterIconIndex call
+by src/lib/utils/debug.ts:timeAsync <- src/lib/features/search/search.service.ts:239 in performSearch call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/tags/tags.service.ts:29 in buildTagIndex call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/tasks/tasks.service.ts:78 in buildTaskIndex call
 sym src/lib/utils/debug.ts:57 fn timeSync<T>(tag: string, label: string, fn: () => T): T L11 | Times a synchronous operation and logs the elapsed time via debug().

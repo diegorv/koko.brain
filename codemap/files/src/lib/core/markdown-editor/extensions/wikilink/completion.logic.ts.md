@@ -11,7 +11,7 @@ imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:2 -> src/lib/core/ma
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:3 -> src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts matchFilesForWikilink
 ## reach
 in2 src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts 4 files in 3 modules: src/lib/plugins/kanban(2) src/lib/core/markdown-editor(1) src/lib/plugins/quick-capture(1)
-out2 src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts 1 files in 1 modules: src/lib/core/filesystem(1)
+out2 src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts 2 files in 2 modules: src/lib/core/filesystem(1) src/lib/utils(1)
 ## tests
 test src/tests/lib/core/markdown-editor/extensions/wikilink/completion.logic.test.ts imports src/lib/core/markdown-editor/extensions/wikilink/completion.logic.ts mirror
 ## symbols

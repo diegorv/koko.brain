@@ -49,7 +49,7 @@ imp src/lib/plugins/mods/mod-vault.service.ts:3 -> src/lib/contracts/ipc.ts call
 imp src/lib/plugins/mods/mods-host.service.ts:4 -> src/lib/contracts/ipc.ts call
 more imported-by 6 not shown: src/lib/plugins/quick-capture(2) src/lib/utils(2) src/lib/plugins/templates(1) src/routes(1): q importers src/lib/contracts/ipc.ts
 ## reach
-in2 src/lib/contracts/ipc.ts 81 files in 35 modules: src/lib/app(9) src/lib/features/event-calendar(8) src/lib/features/rail-shell(7) src/lib/core/settings(6) src/lib/features/tasks(4) +30 modules: q impact src/lib/contracts/ipc.ts --depth 2
+in2 src/lib/contracts/ipc.ts 81 files in 36 modules: src/lib/app(9) src/lib/features/event-calendar(8) src/lib/features/rail-shell(7) src/lib/core/settings(6) src/lib/features/tasks(4) +31 modules: q impact src/lib/contracts/ipc.ts --depth 2
 out2 src/lib/contracts/ipc.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/contracts/ipc.test.ts imports src/lib/contracts/ipc.ts mirror
@@ -75,7 +75,7 @@ by src/lib/contracts/ipc.ts:takeQueueWait <- src/lib/utils/debug.ts:140 in logQu
 sym src/lib/contracts/ipc.ts:84 fn on<K extends keyof EventMap>(name: K, handler: (payload: EventMap[K]) => void): Promise<UnlistenFn> L6 | Typed `listen` over `EventMap`: the payload type comes from the event name, and the handler receives `event.payload` instead of the `Event` wrapper.
 by src/lib/contracts/ipc.ts:on <- src/lib/app/tauri-listeners.service.ts:28 in registerMenuSettingsListener call +2
 by src/lib/contracts/ipc.ts:on <- src/lib/core/filesystem/fs.watcher.ts:276 in startWatching call
-by src/lib/contracts/ipc.ts:on <- src/lib/features/search/search.service.ts:85 in startSemanticProgressListener call
+by src/lib/contracts/ipc.ts:on <- src/lib/features/search/search.service.ts:98 in startSemanticProgressListener call
 by src/lib/contracts/ipc.ts:on <- src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener call
 by src/lib/contracts/ipc.ts:on <- src/lib/utils/debug.ts:128 in startTauriDebugListener call
 by src/lib/contracts/ipc.ts:on <- src/routes/composer/+page.svelte:214 in (script) call +1

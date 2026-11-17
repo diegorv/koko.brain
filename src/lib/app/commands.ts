@@ -40,6 +40,7 @@ import {
 	undoEventChangeFromUi,
 } from '#lib/features/event-calendar/event-calendar.service.js';
 import { eventCalendarViewStore } from '#lib/features/event-calendar/event-calendar-view.store.svelte.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
 import { toggleTagsTab } from '#lib/features/tags/tags.service.js';
 import { showSyncLog } from '#lib/features/todoist-sync/sync-log.service.js';
 import { syncNowFromUi } from '#lib/features/todoist-sync/sync-scheduler.service.js';
@@ -265,7 +266,7 @@ export function getBuiltInCommands(): AppCommand[] {
 		{
 			id: 'event-calendar:new-event',
 			label: 'New Calendar Event',
-			category: 'Navigation',
+			category: 'Calendar',
 			action: () => {
 				openNewEventDialog();
 			},
@@ -273,28 +274,34 @@ export function getBuiltInCommands(): AppCommand[] {
 		{
 			id: 'event-calendar:today',
 			label: 'Calendar: Go to Today',
-			category: 'Navigation',
+			category: 'Calendar',
 			action: () => {
 				openEventCalendarTab();
 				eventCalendarViewStore.goToToday();
 			},
 		},
-		{
-			id: 'event-calendar:undo',
-			label: 'Calendar: Undo',
-			category: 'Navigation',
-			action: () => {
-				void undoEventChangeFromUi();
-			},
-		},
-		{
-			id: 'event-calendar:redo',
-			label: 'Calendar: Redo',
-			category: 'Navigation',
-			action: () => {
-				void redoEventChangeFromUi();
-			},
-		},
+		// Listed only when they can act: an idle Undo or Redo would outrank
+		// "Go to Calendar" for "cal" and only toast "Nothing to undo".
+		...(eventCalendarStore.canUndo
+			? [{
+				id: 'event-calendar:undo',
+				label: 'Calendar: Undo',
+				category: 'Calendar',
+				action: () => {
+					void undoEventChangeFromUi();
+				},
+			}]
+			: []),
+		...(eventCalendarStore.canRedo
+			? [{
+				id: 'event-calendar:redo',
+				label: 'Calendar: Redo',
+				category: 'Calendar',
+				action: () => {
+					void redoEventChangeFromUi();
+				},
+			}]
+			: []),
 		{
 			id: 'todoist:check-sync-connection',
 			label: 'Todoist: Check sync connection',

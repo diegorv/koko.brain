@@ -97,11 +97,25 @@ import type { FileTreeNode } from '#lib/core/filesystem/fs.types.js';
 import type { NoteEntryV2 } from '#lib/types/vault-v2.types.js';
 import { modCommandsStore } from '#lib/plugins/mods/mod-commands.store.svelte.js';
 import { claudeStore } from '#lib/features/claude-code/claude.store.svelte.js';
+import { eventCalendarStore } from '#lib/features/event-calendar/event-calendar.store.svelte.js';
+import { createEventHistory, pushOp, takeUndo } from '#lib/features/event-calendar/event-calendar-history.logic.js';
+import { filterAndRankCommands } from '#lib/features/command-palette/command-palette.logic.js';
+import type { HistoryOp } from '#lib/features/event-calendar/event-calendar.types.js';
 import { entryV2 } from '../../fixtures/vault-entries.fixture';
+
+/** A recorded move of an event note the calendar has not loaded. */
+const MOVE_OP: HistoryOp = {
+	kind: 'update',
+	label: 'Move event',
+	path: '/vault/standup.md',
+	before: { title: 'Standup', date: '2026-11-08', start: 540, end: 570, allDay: false, color: 'blue', location: '' },
+	after: { title: 'Standup', date: '2026-11-08', start: 780, end: 810, allDay: false, color: 'blue', location: '' },
+};
 
 describe('getBuiltInCommands', () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		eventCalendarStore.reset();
 		clearLocalStorage();
 		vaultStore._reset();
 		editorStore.reset();
@@ -132,10 +146,10 @@ describe('getBuiltInCommands', () => {
 		expect(modCommandsStore.list).toEqual([]);
 	});
 
-	it('returns 45 built-in commands with no navigator, no pin and no view', () => {
+	it('returns 43 built-in commands with no navigator, no pin, no view and no calendar history', () => {
 		const commands = getBuiltInCommands();
 
-		expect(commands).toHaveLength(45);
+		expect(commands).toHaveLength(43);
 	});
 
 	it('includes Toggle Favorite (Cmd+D) and Toggle Organized (Cmd+E) acting on the active note', () => {
@@ -181,21 +195,62 @@ describe('getBuiltInCommands', () => {
 		expect(eventCalendarViewStore.focusedDate).toBe(toKey(new Date()));
 	});
 
-	it('includes "Calendar: Undo" and "Calendar: Redo" without shortcuts', async () => {
+	it('lists neither "Calendar: Undo" nor "Calendar: Redo" with an empty calendar history', () => {
+		const ids = getBuiltInCommands().map((c) => c.id);
+
+		expect(ids).not.toContain('event-calendar:undo');
+		expect(ids).not.toContain('event-calendar:redo');
+	});
+
+	it('lists "Calendar: Undo" without a shortcut after a recorded calendar change, and it runs the undo', async () => {
+		eventCalendarStore.setHistory(pushOp(createEventHistory(), MOVE_OP));
 		const commands = getBuiltInCommands();
 		const undo = commands.find((c) => c.id === 'event-calendar:undo');
-		const redo = commands.find((c) => c.id === 'event-calendar:redo');
 
-		expect(undo?.label).toBe('Calendar: Undo');
-		expect(redo?.label).toBe('Calendar: Redo');
-		expect(undo?.shortcut).toBeUndefined();
-		expect(redo?.shortcut).toBeUndefined();
+		expect(undo).toMatchObject({ label: 'Calendar: Undo', category: 'Calendar' });
+		expect(undo!.shortcut).toBeUndefined();
+		expect(commands.some((c) => c.id === 'event-calendar:redo')).toBe(false);
 
 		undo!.action();
-		redo!.action();
-		await vi.waitFor(() => expect(vi.mocked(toast).mock.calls).toEqual([['Nothing to undo'], ['Nothing to redo']]));
+		// The note is not loaded, so the undo reports it left the calendar.
+		await vi.waitFor(() =>
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['Event was moved or renamed outside the calendar; cannot undo']]),
+		);
 		// The palette commands do not open the Calendar tab.
 		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
+	});
+
+	it('lists "Calendar: Redo" without a shortcut after an undo, and it runs the redo', async () => {
+		// The history an undo leaves: the op moved to the redo stack.
+		eventCalendarStore.setHistory(takeUndo(pushOp(createEventHistory(), MOVE_OP))!.history);
+		const commands = getBuiltInCommands();
+		const redo = commands.find((c) => c.id === 'event-calendar:redo');
+
+		expect(redo).toMatchObject({ label: 'Calendar: Redo', category: 'Calendar' });
+		expect(redo!.shortcut).toBeUndefined();
+		expect(commands.some((c) => c.id === 'event-calendar:undo')).toBe(false);
+
+		redo!.action();
+		await vi.waitFor(() =>
+			expect(vi.mocked(toast.error).mock.calls).toEqual([['Event was moved or renamed outside the calendar; cannot redo']]),
+		);
+		expect(editorStore.tabs.some((t) => t.path === EVENT_CALENDAR_VIRTUAL_PATH)).toBe(false);
+	});
+
+	it('does not rank Calendar: Undo or Redo for "cal" while the calendar history is empty', () => {
+		const labels = filterAndRankCommands('cal', getBuiltInCommands(), []).map((c) => c.label);
+
+		expect(labels).toContain('Calendar: Go to Today');
+		expect(labels).not.toContain('Calendar: Undo');
+		expect(labels).not.toContain('Calendar: Redo');
+	});
+
+	it('files New Calendar Event, Go to Today, Undo and Redo under Calendar', () => {
+		eventCalendarStore.setHistory({ ...createEventHistory(), undo: [MOVE_OP], redo: [MOVE_OP] });
+		const commands = getBuiltInCommands();
+		const ids = ['event-calendar:new-event', 'event-calendar:today', 'event-calendar:undo', 'event-calendar:redo'];
+
+		expect(ids.map((id) => commands.find((c) => c.id === id)?.category)).toEqual(['Calendar', 'Calendar', 'Calendar', 'Calendar']);
 	});
 
 	it('includes a toggle-calendar command that opens and closes the Calendar tab', () => {

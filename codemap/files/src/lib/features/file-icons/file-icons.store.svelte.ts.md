@@ -1,6 +1,6 @@
 # file card src/lib/features/file-icons/file-icons.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/features/file-icons/file-icons.store.svelte.ts ' codemap/files
-file src/lib/features/file-icons/file-icons.store.svelte.ts store L59 module src/lib/features/file-icons in9 t26
+file src/lib/features/file-icons/file-icons.store.svelte.ts store L59 module src/lib/features/file-icons in9 t27
 ## imports
 imp src/lib/features/file-icons/file-icons.store.svelte.ts:1 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId,type:RecentIcon
 ## imported-by
@@ -14,7 +14,7 @@ imp src/lib/features/rail-shell/FilesNavigator.svelte:49 -> src/lib/features/fil
 imp src/lib/features/rail-shell/Rail.svelte:20 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:32 -> src/lib/features/file-icons/file-icons.store.svelte.ts fileIconsStore
 ## reach
-in2 src/lib/features/file-icons/file-icons.store.svelte.ts 13 files in 7 modules: src/lib/app(5) src/lib/features/auto-organize(2) src/lib/features/properties(2) src/lib/features/note-list(1) src/lib/features/rail-shell(1) +2 modules: q impact src/lib/features/file-icons/file-icons.store.svelte.ts --depth 2
+in2 src/lib/features/file-icons/file-icons.store.svelte.ts 14 files in 8 modules: src/lib/app(5) src/lib/features/auto-organize(2) src/lib/features/properties(2) src/lib/features/note-list(1) src/lib/features/quick-switcher(1) +3 modules: q impact src/lib/features/file-icons/file-icons.store.svelte.ts --depth 2
 out2 src/lib/features/file-icons/file-icons.store.svelte.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/file-icons/file-icons.store.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts mirror
@@ -30,6 +30,7 @@ test src/tests/lib/features/note-list/NoteRowMenu.show-in-views.test.ts imports 
 test src/tests/lib/features/note-list/NoteRowMenu.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/properties/PropertiesView.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/properties/RelationshipSearch.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
+test src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.menu.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/rail-shell/FilesNavigator.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts
 test src/tests/lib/features/rail-shell/Rail.test.ts imports src/lib/features/file-icons/file-icons.store.svelte.ts

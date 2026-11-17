@@ -54,9 +54,9 @@ entry src/lib/core/editor/open-note-at.service.ts ext-in5 src/lib/features/event
 entry src/lib/core/editor/editor.types.ts ext-in3 src/lib/app/EditorView.svelte src/lib/core/filesystem/path-change.service.ts src/lib/core/markdown-editor/EditorTabs.svelte
 ## files
 file src/lib/core/editor/editor.hooks.ts other L137 module src/lib/core/editor in23 t49
-file src/lib/core/editor/editor.logic.ts logic L140 module src/lib/core/editor in21 t18
+file src/lib/core/editor/editor.logic.ts logic L140 module src/lib/core/editor in21 t19
 file src/lib/core/editor/editor.service.ts service L527 module src/lib/core/editor in55 t97
-file src/lib/core/editor/editor.store.svelte.ts store L173 module src/lib/core/editor in48 t107
+file src/lib/core/editor/editor.store.svelte.ts store L173 module src/lib/core/editor in48 t109
 file src/lib/core/editor/editor.types.ts types L15 module src/lib/core/editor in6 t0
 file src/lib/core/editor/open-note-at.service.ts service L49 module src/lib/core/editor in5 t3
 ## public

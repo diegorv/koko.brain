@@ -14,7 +14,7 @@ imp src/lib/features/collection/toolbar/FilterPanel.svelte:21 -> src/lib/feature
 ## imported-by
 imp src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:23 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
 imp src/lib/features/collection/CollectionView.svelte:26 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
-imp src/lib/features/rail-shell/RailNoteList.svelte:27 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
+imp src/lib/features/rail-shell/RailNoteList.svelte:20 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
 imp src/lib/features/type-definitions/ViewDialog.svelte:8 -> src/lib/features/collection/toolbar/FilterPanel.svelte default
 ## reach
 in2 src/lib/features/collection/toolbar/FilterPanel.svelte 5 files in 3 modules: src/lib/app(2) src/lib/features/rail-shell(2) src/lib/features/auto-organize(1)
@@ -25,7 +25,7 @@ test src/tests/lib/features/collection/toolbar/FilterPanel.svelte.test.ts import
 sym src/lib/features/collection/toolbar/FilterPanel.svelte:1 component FilterPanel props:globalFilters,viewFilters,availableProperties,propertyIndex,onGlobalFiltersChange,onViewFiltersChange,showGlobal= L216
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:332 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/collection/CollectionView.svelte:654 in (markup) mount
-by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:784 in (markup) mount
+by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/rail-shell/RailNoteList.svelte:766 in (markup) mount
 by src/lib/features/collection/toolbar/FilterPanel.svelte:default <- src/lib/features/type-definitions/ViewDialog.svelte:202 in (markup) mount
 ## locals
 local src/lib/features/collection/toolbar/FilterPanel.svelte:57 fn updateRow(groups: FilterGroup[], groupIdx: number, rowIdx: number, row: FilterRowType): FilterGroup[] L7
@@ -55,7 +55,7 @@ mount src/lib/features/collection/toolbar/FilterPanel.svelte:204 Button -> src/l
 ## mounted-at
 mount src/lib/features/auto-organize/AutoOrganizeRuleRow.svelte:332 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/collection/CollectionView.svelte:654 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
-mount src/lib/features/rail-shell/RailNoteList.svelte:784 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
+mount src/lib/features/rail-shell/RailNoteList.svelte:766 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 mount src/lib/features/type-definitions/ViewDialog.svelte:202 FilterPanel -> src/lib/features/collection/toolbar/FilterPanel.svelte
 ## calls
 call src/lib/features/collection/toolbar/FilterPanel.svelte:75 in addFilter -> src/lib/features/collection/toolbar/filter.logic.ts:inferPropertyType call

@@ -15,7 +15,7 @@ imp src/lib/core/settings/theme-package.logic.ts:1 -> src/lib/core/settings/them
 imp src/lib/core/settings/theme.logic.ts:1 -> src/lib/core/settings/theme.types.ts type:Theme,type:ThemeColors,type:UIColors,type:SyntaxColors,type:PreviewColors,type:WikilinkColors,type:CalloutColors,type:AppearanceSettings
 imp src/lib/core/settings/theme.service.ts:3 -> src/lib/core/settings/theme.types.ts type:Theme
 ## reach
-in2 src/lib/core/settings/theme.types.ts 103 files in 28 modules: src/lib/core/settings(21) src/lib/features/event-calendar(13) src/lib/features/rail-shell(10) src/lib/app(9) src/lib/features/todoist-sync(5) +23 modules: q impact src/lib/core/settings/theme.types.ts --depth 2
+in2 src/lib/core/settings/theme.types.ts 104 files in 28 modules: src/lib/core/settings(21) src/lib/features/event-calendar(13) src/lib/features/rail-shell(10) src/lib/app(9) src/lib/features/search(5) +23 modules: q impact src/lib/core/settings/theme.types.ts --depth 2
 out2 src/lib/core/settings/theme.types.ts 3 files in 1 modules: src/lib/core/settings(3)
 ## tests
 test src/tests/lib/core/settings/ThemePreview.test.ts imports-type src/lib/core/settings/theme.types.ts

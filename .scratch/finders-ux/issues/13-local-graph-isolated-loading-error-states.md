@@ -12,17 +12,17 @@
 
 **Blocked by:** 12
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `src/tests/lib/plugins/graph-view/GraphView.test.ts`: a local graph centered on a note with no links shows "This note has no links yet", with Orphans on and with Orphans off.
-- [ ] A local graph centered on a note with links does not show the isolated message.
-- [ ] While the first `invoke('get_all_vault_entries_v2')` is pending, "Building graph..." shows; after it resolves the line is gone; a later `vaultIndexVersion` bump with a pending fetch does not show it.
-- [ ] Failing test first: a rejected load shows "Could not build the graph." with a Retry button in `role="alert"`; Retry with a resolving `invoke` removes the alert and the footer shows the note count.
-- [ ] A first snapshot with zero notes shows "No notes to graph yet".
-- [ ] The existing "Open a note to see its local graph" hint and the other `GraphView.test.ts` cases stay green.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/plugins/graph-view/GraphView.test.ts`: a local graph centered on a note with no links shows "This note has no links yet", with Orphans on and with Orphans off.
+- [x] A local graph centered on a note with links does not show the isolated message.
+- [x] While the first `invoke('get_all_vault_entries_v2')` is pending, "Building graph..." shows; after it resolves the line is gone; a later `vaultIndexVersion` bump with a pending fetch does not show it.
+- [x] Failing test first: a rejected load shows "Could not build the graph." with a Retry button in `role="alert"`; Retry with a resolving `invoke` removes the alert and the footer shows the note count.
+- [x] A first snapshot with zero notes shows "No notes to graph yet".
+- [x] The existing "Open a note to see its local graph" hint and the other `GraphView.test.ts` cases stay green.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -44,3 +44,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: isolated message wording as in the review ("This note has no links yet"); the isolated state shows only when the center note is present in the graph; plain markup instead of shared empty-state and alert primitives; runs after 12 because both add reactive graph state at `GraphView.svelte:44` and edit the adjacent template lines `:451-460`; the loading line shows only before the first snapshot. Wording for the states the review does not word: "Building graph...", "Could not build the graph." with Retry, and "No notes to graph yet".
+- 2026-11-17, deliver (branch issue/13-local-graph-isolated-loading-error-states): `GraphView.svelte` shows "This note has no links yet" for an isolated center note, "Building graph..." before the first snapshot, "No notes to graph yet" for an empty vault, and "Could not build the graph." with Retry in `role="alert"` on a failed load. Tests in `GraphView.test.ts`. Review round 1: APPROVED with three nits, none changed (reasons in `work/13/review.md` § Resolution). Full suite `pnpm vitest run`: exit 0, 645 files, 17078 passed, 54 skipped, 1 todo.

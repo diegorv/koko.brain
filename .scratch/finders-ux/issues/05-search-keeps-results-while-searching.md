@@ -12,21 +12,21 @@
 
 **Blocked by:** 04
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/search.spec.ts`.
 
-- [ ] Failing test first (from 057), `search.service.test.ts`: with the real `searchStore`, `setQuery('meeting')` and a `search_fts` mock that returns a deferred promise; start `performSearch()` without awaiting, `setQuery('')`, await `performSearch()`, then resolve the deferred and await the first call; `searchStore.isSearching` is false.
-- [ ] New test: a newer non-empty search still owns `isSearching` while an older call finishes (no existing test covers this; `:285` only checks completion).
-- [ ] Failing test first, `SearchPanel.test.ts`: with `ftsResults` holding 2 rows and `setSearching(true)`, both rows and "2 results" stay rendered and "Searching..." is absent.
-- [ ] With fake timers: before 300 ms there is no dim and no spinner; after 300 ms the list has `aria-busy="true"` and a spinner is in the header row; when `isSearching` turns false the dim and spinner disappear and the new results render.
-- [ ] With `isSearching` true and an empty current-mode list, "Searching..." shows (the existing "shows the searching notice" test changes on purpose into this case).
-- [ ] After a mode switch to a mode whose list holds older results, those results stay rendered while the new search runs and dim after 300 ms.
-- [ ] `search.service.test.ts` pins that the previous lists stay in the store while a non-empty search is in flight.
-- [ ] Failing test first: a text search whose `search_fts` mock returns exactly 50 rows shows "50+ results"; 49 rows show "49 results". Semantic returning 20 and the operator-only path returning 100 show "20+" and "100+"; an empty query clears the flag. The store getter has a test.
-- [ ] No inline 50, 20 or 100 cap remains in `performSearch` or the logic helpers it calls.
-- [ ] `e2e/specs/search.spec.ts` stays green; help page 06 states the cap.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first (from 057), `search.service.test.ts`: with the real `searchStore`, `setQuery('meeting')` and a `search_fts` mock that returns a deferred promise; start `performSearch()` without awaiting, `setQuery('')`, await `performSearch()`, then resolve the deferred and await the first call; `searchStore.isSearching` is false.
+- [x] New test: a newer non-empty search still owns `isSearching` while an older call finishes (no existing test covers this; `:285` only checks completion).
+- [x] Failing test first, `SearchPanel.test.ts`: with `ftsResults` holding 2 rows and `setSearching(true)`, both rows and "2 results" stay rendered and "Searching..." is absent.
+- [x] With fake timers: before 300 ms there is no dim and no spinner; after 300 ms the list has `aria-busy="true"` and a spinner is in the header row; when `isSearching` turns false the dim and spinner disappear and the new results render.
+- [x] With `isSearching` true and an empty current-mode list, "Searching..." shows (the existing "shows the searching notice" test changes on purpose into this case).
+- [x] After a mode switch to a mode whose list holds older results, those results stay rendered while the new search runs and dim after 300 ms.
+- [x] `search.service.test.ts` pins that the previous lists stay in the store while a non-empty search is in flight.
+- [x] Failing test first: a text search whose `search_fts` mock returns exactly 50 rows shows "50+ results"; 49 rows show "49 results". Semantic returning 20 and the operator-only path returning 100 show "20+" and "100+"; an empty query clears the flag. The store getter has a test.
+- [x] No inline 50, 20 or 100 cap remains in `performSearch` or the logic helpers it calls.
+- [x] `e2e/specs/search.spec.ts` stays green; help page 06 states the cap.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -51,3 +51,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: after a mode switch the older results stay, dimmed after about 300 ms; the spinner uses the same 300 ms; "N+" on every capped path, noting that semantic `minScore` can under-report.
+- 2026-11-17, delivered from `issue/05-search-keeps-results-while-searching`: search keeps the previous results while a search runs (dimmed with a header spinner after 300 ms), shows "N+" when a path hits its cap (per-mode flag in `searchStore`, caps named once), and clearing the query mid-search no longer leaves "Searching..." stuck. Round 1 fixes: per-mode cap flag, `pr-12` input pad in Text mode, help page 06 wording on the Hybrid fallback. Tests: `pnpm check` 0 errors; full `pnpm vitest run` at b6b21eb11: 644 files, 17178 passed, 54 skipped, 1 todo, exit=0. Reviews: round 1 APPROVED, round 2 APPROVED (one nit on the Rust hybrid path leaving a stale text list as "N+", left as an optional follow-up).

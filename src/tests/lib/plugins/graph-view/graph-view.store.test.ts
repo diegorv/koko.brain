@@ -12,6 +12,23 @@ describe('graphViewStore', () => {
 		expect(graphViewStore.display).toEqual({ showArrows: false });
 		expect(graphViewStore.highlightedNodeId).toBeNull();
 		expect(graphViewStore.centerPath).toBeNull();
+		expect(graphViewStore.localDepth).toBe(1);
+	});
+
+	it('setLocalDepth sets a depth within 1 to 3', () => {
+		graphViewStore.setLocalDepth(2);
+		expect(graphViewStore.localDepth).toBe(2);
+
+		graphViewStore.setLocalDepth(3);
+		expect(graphViewStore.localDepth).toBe(3);
+	});
+
+	it('setLocalDepth clamps to 1 to 3', () => {
+		graphViewStore.setLocalDepth(0);
+		expect(graphViewStore.localDepth).toBe(1);
+
+		graphViewStore.setLocalDepth(5);
+		expect(graphViewStore.localDepth).toBe(3);
 	});
 
 	it('setCenterPath updates the center path', () => {
@@ -57,6 +74,7 @@ describe('graphViewStore', () => {
 		graphViewStore.setDisplay({ showArrows: true });
 		graphViewStore.setHighlightedNode('n1');
 		graphViewStore.setCenterPath('/vault/A.md');
+		graphViewStore.setLocalDepth(3);
 
 		graphViewStore.reset();
 
@@ -65,5 +83,6 @@ describe('graphViewStore', () => {
 		expect(graphViewStore.display).toEqual({ showArrows: false });
 		expect(graphViewStore.highlightedNodeId).toBeNull();
 		expect(graphViewStore.centerPath).toBeNull();
+		expect(graphViewStore.localDepth).toBe(1);
 	});
 });

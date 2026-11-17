@@ -12,7 +12,7 @@ imp src/lib/plugins/quick-capture/quick-capture.service.ts:2 -> src/lib/contract
 imp src/lib/utils/debug.ts:2 -> src/lib/contracts/events.ts EVENT_NAMES
 imp src/routes/composer/+page.svelte:6 -> src/lib/contracts/events.ts EVENT_NAMES
 ## reach
-in2 src/lib/contracts/events.ts 80 files in 35 modules: src/lib/core/settings(9) src/lib/features/todoist-sync(8) src/lib/app(7) src/lib/core/filesystem(4) src/lib/features/rail-shell(4) +30 modules: q impact src/lib/contracts/events.ts --depth 2
+in2 src/lib/contracts/events.ts 81 files in 35 modules: src/lib/core/settings(9) src/lib/features/todoist-sync(8) src/lib/app(7) src/lib/core/filesystem(4) src/lib/features/rail-shell(4) +30 modules: q impact src/lib/contracts/events.ts --depth 2
 out2 src/lib/contracts/events.ts 52 files in 1 modules: src/lib/contracts(52)
 ## tests
 test src/tests/lib/contracts/events-parity.test.ts imports src/lib/contracts/events.ts mirror
@@ -23,7 +23,7 @@ test src/tests/lib/contracts/ipc.test.ts imports-type src/lib/contracts/events.t
 sym src/lib/contracts/events.ts:16 const EVENT_NAMES L11 | Every event name Rust emits, keyed by its Rust const name minus `_EVENT`.
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/app/tauri-listeners.service.ts:28 in registerMenuSettingsListener member +2
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/core/filesystem/fs.watcher.ts:276 in startWatching member
-by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/features/search/search.service.ts:85 in startSemanticProgressListener member
+by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/features/search/search.service.ts:98 in startSemanticProgressListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/utils/debug.ts:128 in startTauriDebugListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/routes/composer/+page.svelte:214 in (script) member +1

@@ -14,21 +14,22 @@ No Rust change: `search_fts` already takes `max_results`. Whichever side applies
 
 **Blocked by:** 05
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run` (frontend only; the fix does not touch `src-tauri/`).
 
-- [ ] Failing test first, `src/tests/lib/features/search/search.service.test.ts`: text mode, query `meeting tag:work`, `search_fts` resolving one row for `notes/a.md`, `get_all_vault_entries_v2` returning that note with tags `['work/meetings']`; after `await performSearch()`, `searchStore.ftsResults` contains `notes/a.md`.
-- [ ] Failing test first: 60 notes contain the word, and the only note under `path:projects` (and, in a second case, the only note with the tag) ranks below 50 for the bare word; `meeting path:projects` returns that note. The `search_fts` mock honours `maxResults`, so the test fails while the call still asks for 50.
-- [ ] The final list is still capped at the FTS cap after filtering, and BM25 order is kept.
-- [ ] With operators, 51 or more filtered matches show "{cap}+ results"; exactly the cap or fewer show the plain count (05's test for this branch changes on purpose).
-- [ ] Operator-only queries and plain text queries behave as today: the existing tests at `search.service.test.ts:294-465` stay green, except the `maxResults: 50` assertions for operator queries (`:312-316`, and `:435` in the `path:` test that starts at `:422`), which change on purpose to the candidate constant. The `path:` test needs no new mock: `path:`-only operators must not trigger a `get_all_vault_entries_v2` call.
-- [ ] Failing test first (from Issue 24): with the real `searchStore` in text mode, query `tag:work` and `get_all_vault_entries_v2` returning a note tagged `work`, `await performSearch()` (`searchStore.results` has 1 entry); then `setQuery('zzzz')` with `search_fts` resolving `[]`, `await performSearch()`; `searchStore.results` and `searchStore.ftsResults` are both empty.
-- [ ] The same holds for `tag:work zzzz` when the operator filter leaves no FTS row.
-- [ ] `src/tests/lib/features/search/SearchPanel.test.ts`: after that sequence the panel shows "No results found" and no result count.
-- [ ] The FTS-failure fallback and the operator-only branch still clear `ftsResults` (the test at `search.service.test.ts:147` stays green).
-- [ ] The help page says `tag:` matches nested tags.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/features/search/search.service.test.ts`: text mode, query `meeting tag:work`, `search_fts` resolving one row for `notes/a.md`, `get_all_vault_entries_v2` returning that note with tags `['work/meetings']`; after `await performSearch()`, `searchStore.ftsResults` contains `notes/a.md`.
+- [x] Failing test first: 60 notes contain the word, and the only note under `path:projects` (and, in a second case, the only note with the tag) ranks below 50 for the bare word; `meeting path:projects` returns that note. The `search_fts` mock honours `maxResults`, so the test fails while the call still asks for 50.
+- [x] The final list is still capped at the FTS cap after filtering, and BM25 order is kept.
+- [x] With operators, 51 or more filtered matches show "{cap}+ results"; exactly the cap or fewer show the plain count (05's test for this branch changes on purpose).
+- [x] Operator-only queries and plain text queries behave as today: the existing tests at `search.service.test.ts:294-465` stay green, except the `maxResults: 50` assertions for operator queries (`:312-316`, and `:435` in the `path:` test that starts at `:422`), which change on purpose to the candidate constant. The `path:` test needs no new mock: `path:`-only operators must not trigger a `get_all_vault_entries_v2` call.
+- [x] Failing test first (from Issue 24): with the real `searchStore` in text mode, query `tag:work` and `get_all_vault_entries_v2` returning a note tagged `work`, `await performSearch()` (`searchStore.results` has 1 entry); then `setQuery('zzzz')` with `search_fts` resolving `[]`, `await performSearch()`; `searchStore.results` and `searchStore.ftsResults` are both empty.
+- [x] The same holds for `tag:work zzzz` when the operator filter leaves no FTS row.
+- [x] Failing test first (from Issue 05's round-2 review nit): an operator-only Text query (`results` holds rows), then a capped FTS query (the `text` cap flag is true), then a Hybrid search through the Rust hybrid path (`search.service.ts`, the branch that calls `setFtsResults([])`); switching back to Text before the new Text search lands shows neither the stale `results` list nor a stale "N+": the Rust hybrid path also clears `searchStore.results` and sets the `text` cap flag to false.
+- [x] `src/tests/lib/features/search/SearchPanel.test.ts`: after that sequence the panel shows "No results found" and no result count.
+- [x] The FTS-failure fallback and the operator-only branch still clear `ftsResults` (the test at `search.service.test.ts:147` stays green).
+- [x] The help page says `tag:` matches nested tags.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -55,3 +56,5 @@ Re-checked at `bb57e6165`; 045's line numbers from `5f8003d67` still hold except
 
 - 2026-11-06 (in 045): Issue 24 merged in by the owner after the challenge review; its criteria are above.
 - 2026-11-17, triage: ready-for-agent. Decided: the fix stays in the frontend (a fixed candidate constant sent as `maxResults` to `search_fts` when operators are present, not the vault entry count, filtered with `matchesIndexTag` and `matchesPathFilter`, then capped), because it needs no Rust or IPC change and `search_fts` already takes `max_results`; a Rust-side filter before `LIMIT` is not part of this ticket. Runs after 05, whose "N+" flag this ticket updates for the operator branch.
+
+- 2026-11-17, branch `issue/16-text-search-operators-before-cap-nested-tags`: text search applies `tag:`/`path:` filters to a larger candidate list before the FTS cap, `tag:` matches nested tags from VaultIndex entries, the cap count reflects filtered matches, and stale operator and Text results are cleared (including on the Rust hybrid path); help page documents nested tags. Fix round: the `tag:work zzzz` test now exercises the filter-to-empty path. Tests: full `pnpm vitest run` at 889153f3e exit 0 (644 files, 17223 passed, 54 skipped, 1 todo); `pnpm check` exit 0. Reviews: round 1 APPROVED, round 2 APPROVED.

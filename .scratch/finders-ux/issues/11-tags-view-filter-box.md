@@ -16,17 +16,17 @@
 
 **Blocked by:** 09, 10
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, `tags.logic.test.ts`: query "pro" on a tree with `work/projects`, `projects` and `home` keeps the first two plus their ancestors, and the forced-open set contains `work`. "#Work" matches `work`. A matching parent keeps its whole subtree. An empty query returns the tree unchanged.
-- [ ] Failing test first, `TagsView.test.ts`: typing a query that matches a rare tag (count 3, filter on) shows it. A query with no match shows "No tags match". Clearing the query restores the filtered list and the header.
-- [ ] A matching nested tag is visible without clicking its parent's chevron, and after the query is cleared the parent returns to its previous open state.
-- [ ] While a query is active the header reads "N matching tags" with no Show all link.
-- [ ] The input has an accessible name; `pane-toolbar.test.ts` stays green.
-- [ ] `help/documentation/07-sidebar-panels.md` lists the filter box.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `tags.logic.test.ts`: query "pro" on a tree with `work/projects`, `projects` and `home` keeps the first two plus their ancestors, and the forced-open set contains `work`. "#Work" matches `work`. A matching parent keeps its whole subtree. An empty query returns the tree unchanged.
+- [x] Failing test first, `TagsView.test.ts`: typing a query that matches a rare tag (count 3, filter on) shows it. A query with no match shows "No tags match". Clearing the query restores the filtered list and the header.
+- [x] A matching nested tag is visible without clicking its parent's chevron, and after the query is cleared the parent returns to its previous open state.
+- [x] While a query is active the header reads "N matching tags" with no Show all link.
+- [x] The input has an accessible name; `pane-toolbar.test.ts` stays green.
+- [x] `help/documentation/07-sidebar-panels.md` lists the filter box.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -49,3 +49,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: build it; the query bypasses the rare-tag filter; substring match on the full path, and a matching parent shows its subtree; the query is local component state.
+- 2026-11-17, deliver (branch issue/11-tags-view-filter-box): the Tags view has a filter box that matches full tag paths, bypasses the rare-tag filter and opens matching parents; the header reads "N matching tags" while a query is active. Full suite run alone after rebasing onto main (codemap tests now run in CI only, 81217f607): 645 files passed, 17071 tests passed, 54 skipped; the two earlier deliver runs failed only on codemap timing tests under load. Review: round 1 APPROVED (findings 1 and 4 accepted, 3 rejected as matching RailListSearch; finding 2, toolbar width at narrow panes, left for the owner to check in the app).

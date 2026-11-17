@@ -17,7 +17,7 @@ imp src/lib/features/note-list/NoteRowMenu.svelte:22 -> src/lib/features/file-ic
 imp src/lib/features/rail-shell/FilesNavigator.svelte:51 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
 imp src/lib/features/rail-shell/TypesNavigator.svelte:34 -> src/lib/features/file-icons/file-icons.types.ts type:IconPackId
 ## reach
-in2 src/lib/features/file-icons/file-icons.types.ts 18 files in 8 modules: src/lib/app(5) src/lib/features/auto-organize(5) src/lib/features/properties(2) src/lib/features/rail-shell(2) src/lib/features/note-list(1) +3 modules: q impact src/lib/features/file-icons/file-icons.types.ts --depth 2
+in2 src/lib/features/file-icons/file-icons.types.ts 19 files in 9 modules: src/lib/app(5) src/lib/features/auto-organize(5) src/lib/features/properties(2) src/lib/features/rail-shell(2) src/lib/features/note-list(1) +4 modules: q impact src/lib/features/file-icons/file-icons.types.ts --depth 2
 out2 src/lib/features/file-icons/file-icons.types.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/features/file-icons/IconRenderer.test.ts imports-type src/lib/features/file-icons/file-icons.types.ts

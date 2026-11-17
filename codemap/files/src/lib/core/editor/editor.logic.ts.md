@@ -1,7 +1,7 @@
 # file card src/lib/core/editor/editor.logic.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/editor/editor.logic.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, calls
-file src/lib/core/editor/editor.logic.ts logic L140 module src/lib/core/editor in21 t18
+file src/lib/core/editor/editor.logic.ts logic L140 module src/lib/core/editor in21 t19
 ## imports
 imp src/lib/core/editor/editor.logic.ts:1 -> src/lib/utils/path.ts basename
 imp src/lib/core/editor/editor.logic.ts:3 -> src/lib/core/editor/editor.types.ts type:EditorTab
@@ -13,7 +13,7 @@ imp src/lib/core/editor/open-note-at.service.ts:3 -> src/lib/core/editor/editor.
 imp src/lib/core/filesystem/link-updater.service.ts:5 -> src/lib/core/editor/editor.logic.ts isTabDirty
 imp src/lib/core/filesystem/path-change.service.ts:9 -> src/lib/core/editor/editor.logic.ts isTabDirty,isVirtualTab
 imp src/lib/core/layout/layout.logic.ts:1 -> src/lib/core/editor/editor.logic.ts EVENT_CALENDAR_VIRTUAL_PATH,getFileName,GRAPH_VIRTUAL_PATH,TAGS_VIRTUAL_PATH,TASKS_VIRTUAL_PATH
-imp src/lib/core/markdown-editor/EditorTabs.svelte:12 -> src/lib/core/editor/editor.logic.ts isTabDirty,isTabPinned,isVirtualTab
+imp src/lib/core/markdown-editor/EditorTabs.svelte:13 -> src/lib/core/editor/editor.logic.ts isTabDirty,isTabPinned,isVirtualTab
 imp src/lib/core/markdown-editor/MarkdownEditor.svelte:23 -> src/lib/core/editor/editor.logic.ts findTabIndex,getPositionAfterFrontmatter
 imp src/lib/core/status-bar/SaveStatus.svelte:5 -> src/lib/core/editor/editor.logic.ts isTabDirty,isVirtualTab
 imp src/lib/features/auto-organize/auto-organize.service.ts:6 -> src/lib/core/editor/editor.logic.ts isTabDirty
@@ -28,7 +28,7 @@ imp src/lib/plugins/mods/mod-vault.service.ts:5 -> src/lib/core/editor/editor.lo
 imp src/lib/plugins/word-count/WordCount.svelte:4 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 imp src/routes/(app)/+layout.svelte:20 -> src/lib/core/editor/editor.logic.ts isVirtualTab
 ## reach
-in2 src/lib/core/editor/editor.logic.ts 80 files in 33 modules: src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(8) src/lib/features/todoist-sync(4) src/lib/features/backlinks(3) +28 modules: q impact src/lib/core/editor/editor.logic.ts --depth 2
+in2 src/lib/core/editor/editor.logic.ts 79 files in 33 modules: src/lib/features/event-calendar(10) src/lib/app(9) src/lib/features/rail-shell(8) src/lib/features/todoist-sync(4) src/lib/features/backlinks(3) +28 modules: q impact src/lib/core/editor/editor.logic.ts --depth 2
 out2 src/lib/core/editor/editor.logic.ts 0 files in 0 modules: -
 ## tests
 test src/tests/lib/core/editor/editor.logic.test.ts imports src/lib/core/editor/editor.logic.ts mirror
@@ -39,6 +39,7 @@ test src/tests/lib/app/global-keybindings.test.ts imports src/lib/core/editor/ed
 test src/tests/lib/core/editor/editor.service.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/core/layout/layout.logic.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/core/layout/layout.service.test.ts imports src/lib/core/editor/editor.logic.ts
+test src/tests/lib/core/markdown-editor/EditorTabs.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/core/markdown-editor/MarkdownEditor.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/core/markdown-editor/undo-history-across-notes.test.ts imports src/lib/core/editor/editor.logic.ts
 test src/tests/lib/features/backlinks/LinkItem.test.ts imports src/lib/core/editor/editor.logic.ts
@@ -66,7 +67,7 @@ sym src/lib/core/editor/editor.logic.ts:18 fn isVirtualTab(tab: Pick<EditorTab, 
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/app/EditorView.svelte:44 in isVirtual=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/editor/editor.service.ts:238 in writeTab call +4
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
-by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/markdown-editor/EditorTabs.svelte:63 in (markup) markup
+by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/markdown-editor/EditorTabs.svelte:64 in (markup) markup
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/core/status-bar/SaveStatus.svelte:9 in status=$derived call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/features/search/SemanticIndexStatus.svelte:31 in $effect@29 call
 by src/lib/core/editor/editor.logic.ts:isVirtualTab <- src/lib/plugins/word-count/WordCount.svelte:13 in isMarkdown=$derived call
@@ -89,7 +90,7 @@ sym src/lib/core/editor/editor.logic.ts:45 fn isTabDirty(tab: Pick<EditorTab, 'c
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/editor/editor.service.ts:238 in writeTab call +4
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/link-updater.service.ts:53 in updateLinksAfterRename call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/filesystem/path-change.service.ts:67 in saveDirtyTabsUnder call
-by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/markdown-editor/EditorTabs.svelte:63 in (markup) markup
+by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/markdown-editor/EditorTabs.svelte:64 in (markup) markup
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/core/status-bar/SaveStatus.svelte:10 in status=$derived call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/auto-organize/auto-organize.service.ts:482 in applyRename call
 by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/tasks/tasks.service.ts:344 in preflightTaskWrite call
@@ -97,7 +98,7 @@ by src/lib/core/editor/editor.logic.ts:isTabDirty <- src/lib/features/type-defin
 more by 1 not shown: src/lib/plugins/mods(1): q importers src/lib/core/editor/editor.logic.ts:isTabDirty
 sym src/lib/core/editor/editor.logic.ts:50 fn isTabPinned(tab: Pick<EditorTab, 'pinned'>): boolean L3 | Returns whether a tab is pinned
 by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/editor/editor.service.ts:365 in closeTab call
-by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/markdown-editor/EditorTabs.svelte:47 in (markup) markup
+by src/lib/core/editor/editor.logic.ts:isTabPinned <- src/lib/core/markdown-editor/EditorTabs.svelte:48 in (markup) markup
 sym src/lib/core/editor/editor.logic.ts:58 fn getPinnedBoundary(tabs: Pick<EditorTab, 'pinned'>[]): number L8 | Returns the boundary index between pinned and unpinned tabs.
 by src/lib/core/editor/editor.logic.ts:getPinnedBoundary <- src/lib/core/editor/editor.store.svelte.ts:54 in editorStore.addTab call
 sym src/lib/core/editor/editor.logic.ts:73 fn reorderTabsAfterPinChange(tabs: EditorTab[], tabIndex: number, activeIndex: number, pin: boolean): { tabs: EditorTab[]; activeIndex: number } L31 | Computes the new active index after pinning/unpinning a tab.

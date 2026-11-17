@@ -111,10 +111,10 @@ call src-tauri/src/commands/search_index.rs:336 in read_files -> src-tauri/src/u
 call src-tauri/src/commands/search_index.rs:383 in build_fts_query -> src-tauri/src/search/fts_logic.rs:sanitize_fts_term lexical
 call src-tauri/src/commands/search_index.rs:389 in build_fts_query -> src-tauri/src/search/fuzzy.rs:expand_fuzzy_terms lexical
 ## ipc-in
-ipc-call src/lib/features/search/search.service.ts:286 in buildSearchIndex -> ipc:build_search_index -> src-tauri/src/commands/search_index.rs:39
+ipc-call src/lib/features/search/search.service.ts:350 in buildSearchIndex -> ipc:build_search_index -> src-tauri/src/commands/search_index.rs:39
 ipc-call src/lib/features/rail-shell/list-fulltext.service.ts:24 in searchListFullText -> ipc:search_fts -> src-tauri/src/commands/search_index.rs:153
-ipc-call src/lib/features/search/search.service.ts:199 in performSearch -> ipc:search_fts -> src-tauri/src/commands/search_index.rs:153
+ipc-call src/lib/features/search/search.service.ts:237 in performSearch -> ipc:search_fts -> src-tauri/src/commands/search_index.rs:153
 ipc-call src/lib/core/filesystem/note-change.service.ts:252 in applyNoteChange -> ipc:update_search_index_file -> src-tauri/src/commands/search_index.rs:203
-ipc-call src/lib/features/search/search.service.ts:320 in registerSearchIndexHook -> ipc:update_search_index_file -> src-tauri/src/commands/search_index.rs:203
+ipc-call src/lib/features/search/search.service.ts:384 in registerSearchIndexHook -> ipc:update_search_index_file -> src-tauri/src/commands/search_index.rs:203
 ipc-call src/lib/core/filesystem/note-change.service.ts:214 in applyNoteChange -> ipc:remove_from_search_index -> src-tauri/src/commands/search_index.rs:239
 ipc-call src/lib/core/filesystem/path-change.service.ts:234 in applyPathChange -> ipc:rename_in_search_index -> src-tauri/src/commands/search_index.rs:265

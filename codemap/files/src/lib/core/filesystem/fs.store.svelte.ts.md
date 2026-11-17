@@ -22,7 +22,7 @@ imp src/lib/features/properties/PropertiesView.svelte:12 -> src/lib/core/filesys
 imp src/lib/features/properties/RelationshipSearch.svelte:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/quick-switcher/QuickSwitcher.svelte:3 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/rail-shell/FilesNavigator.svelte:21 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
-imp src/lib/features/rail-shell/RailNoteList.svelte:20 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
+imp src/lib/features/rail-shell/RailNoteList.svelte:13 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/features/rail-shell/TypesNavigator.svelte:23 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/KanbanWikilinkSuggestions.svelte:5 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
 imp src/lib/plugins/kanban/kanban.service.ts:6 -> src/lib/core/filesystem/fs.store.svelte.ts fsStore
@@ -74,7 +74,7 @@ more tests 17 not shown: src/tests/lib/features/rail-shell(5) src/tests/lib/plug
 ## symbols
 sym src/lib/core/filesystem/fs.store.svelte.ts:25 store fsStore L24 | Central store for the file system / file explorer state.
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/AppShell.svelte:123 in viewFilesKey=$derived member +3
-by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/commands.ts:100 in openViewCommands member
+by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/commands.ts:101 in openViewCommands member
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/editor-host.ts:77 in treeLinkIndex member +1
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:387 in initializeVault mcall +4
 by src/lib/core/filesystem/fs.store.svelte.ts:fsStore <- src/lib/app/tauri-listeners.service.ts:198 in registerVaultIndexUpdatedListener member +2

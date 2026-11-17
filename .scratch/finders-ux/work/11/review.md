@@ -1,0 +1,36 @@
+VERDICT: APPROVED
+
+Review of `git diff main...HEAD` (921ab416e..3d32773da) in `brain.worktrees/issue-11-tags-view-filter-box`. No `.scratch/finders-ux/spec.md` exists; the Issue is the spec.
+
+## Acceptance criteria
+
+- [met] Failing test first, `tags.logic.test.ts`: query "pro" on a tree with `work/projects`, `projects` and `home` keeps the first two plus their ancestors, and the forced-open set contains `work`. "#Work" matches `work`. A matching parent keeps its whole subtree. An empty query returns the tree unchanged. — `src/tests/lib/features/tags/tags.logic.test.ts:348-401` covers each case ("pro" -> `['work','work/projects','projects']`, forceOpen `['work']`; "#Work"; `area/home` subtree kept and `toEqual` the original; `''`, `'   '`, `'#'` return the same reference and an empty set). The tests import `filterTagTreeByQuery`, which does not exist on main, so they fail there; tests and implementation share commit 671692d77. Passes in my run.
+- [met] Failing test first, `TagsView.test.ts`: typing a query that matches a rare tag (count 3, filter on) shows it. A query with no match shows "No tags match". Clearing the query restores the filtered list and the header. — `src/tests/lib/features/tags/TagsView.test.ts:249-275`: `misc` (count 3) hidden by the default filter, found by "misc", "No tags match zzz", and `type('')` restores `['work']` and "Showing 1 of 2 tags Show all" with `hideRareTags` still true. They query `input[aria-label="Filter tags"]`, absent on main, so they fail there. Passes in my run.
+- [met] A matching nested tag is visible without clicking its parent's chevron, and after the query is cleared the parent returns to its previous open state. — `TagItem.svelte:21-41` (`isOpen = open || forced`, function binding whose setter skips writes while forced). Tests: `TagsView.test.ts:277-302` (nested `work/projects` listed on "#proj" without a click; parent back closed when cleared; a parent the user opened stays open), `TagItem.test.ts:175-196` (chevron click while forced does not overwrite local `open`; removing the path restores `true`/`false` per row). See finding 1 for rows the query hides.
+- [met] While a query is active the header reads "N matching tags" with no Show all link. — `TagsView.svelte:83-84` precedes `isPartial`; `isPartial`/`isFilteredEmpty` gated on `!isQuerying` (`:58-64`). N is `countVisibleTags(displayedTree)`, nodes with `count > 0`. Tests assert "1 matching tag", "2 matching tags", "0 matching tags" and `showAllButtons()` length 0.
+- [met] The input has an accessible name; `pane-toolbar.test.ts` stays green. — `TagsView.svelte:98` `aria-label="Filter tags"`, tested at `TagsView.test.ts:304-309`; the `.pane-toolbar` class list at `:79` is unchanged and `src/tests/lib/pane-toolbar.test.ts` passes in my run.
+- [met] `help/documentation/07-sidebar-panels.md` lists the filter box. — "Filter" bullet added under "Controls at the top" (`help/documentation/07-sidebar-panels.md:121-126`); its wording matches the behavior (case, leading `#`, rare tags found, "N matching tags", "No tags match").
+- [met] Frontend gate: `pnpm check` and `pnpm vitest run` pass. — `pnpm check` exit 0 (0 errors, 0 warnings). Targeted tests pass (see below); the full suite is deliver's to run.
+
+## Checks run
+
+- `pnpm check`: exit 0, 234 files, 0 errors, 0 warnings.
+- `pnpm vitest run src/tests/lib/features/tags/ src/tests/lib/pane-toolbar.test.ts`: exit 0, 7 files, 101/101 passed. My test verdict rests on these files: `tags.logic.test.ts`, `TagItem.test.ts`, `TagsView.test.ts`, `TagsView.refresh.test.ts`, the other files under `src/tests/lib/features/tags/`, and `pane-toolbar.test.ts`.
+- `pnpm vitest run src/tests/lib/architecture/codemap.test.ts`: 2 of 195 failed, both on timing only: "writes edges identically at both ends (test 34)" timed out at 5000 ms, and test 44 failed on `elapsed < 15000` (20166 ms). The byte and line budget assertions in test 44, which come before the timing one, passed. Machine load average was 31.9 at the time. The diff adds no file the codemap budgets would push over, so I do not attribute these failures to the branch. Deliver's full suite reruns them. `codemap-query.test.ts` passed.
+- Layer baseline and `BASELINE_SIZE` untouched; no composition root added.
+
+## Findings
+
+1. minor, `src/lib/features/tags/TagsView.svelte:139` / `src/lib/features/tags/TagItem.svelte:22`: Item 3 of the Issue says "clearing the query restores the user's own expansion". That holds only for rows the query keeps. A row the query hides, such as a user-expanded sibling `work/admin` under a forced `work`, or a top-level `home` the user opened, is unmounted by the keyed `#each` and comes back collapsed. The build report and discovery Risks disclose this. The checklist criterion names only "the parent", so it is met. Fix, if the owner wants full restoration: hoist the expanded paths into a `SvelteSet` local to `TagsView` and pass it down in place of the per-row `$state`. Otherwise, record the limit in the Issue as accepted.
+2. minor, `src/lib/features/tags/TagsView.svelte:79-102`: Nobody has checked the toolbar width. "Tags", "Showing X of Y tags Show all", a fixed `w-32` input and two icon buttons share one 40 px row with no wrap or truncation, so a narrow sidebar can overflow or squeeze the header span. Fix: the owner checks it visually in the app. If it overflows, let the input shrink (`w-32` -> `min-w-16 w-32 shrink`) or truncate the header span.
+3. nit, `src/lib/features/tags/TagsView.svelte:96`: The base `Input` class carries `text-base md:text-sm` (`src/lib/components/ui/input/input.svelte`). `cn` drops `text-base` but keeps `md:text-sm`, so at md+ viewport widths the box renders `text-sm`, not the `text-xs` the Issue names. The precedent `RailListSearch.svelte` (`h-7 pr-12 text-xs`) has the same behavior, so the two boxes match. `SourcesPanel.svelte` uses `text-meta md:text-meta` to override it. Fix if `text-xs` is intended: add `md:text-xs`.
+4. nit, `src/lib/features/tags/TagsView.svelte:44`: `isQuerying` is derived from reference identity (`queryResult.nodes !== tagsStore.tagTree`), which ties the view to an undocumented contract of `filterTagTreeByQuery` ("returns `nodes` itself"). The JSDoc and a test (`toBe(tree)`) cover it, so it holds today. A plain `query.trim().replace(/^#/, '') !== ''` would not depend on that contract. No change required.
+
+## Resolution
+
+No source change in deliver.
+
+1. Accepted as a limit, not fixed. Criterion 3 names only the forced parent, which is met and tested. Rows the query hides unmount and return collapsed; hoisting expansion into a `SvelteSet` in `TagsView` changes `TagItem`'s state model for a case the Issue does not ask for. The owner can open a follow-up if full restoration matters.
+2. Not fixed: the finding asks for a visual check and names a fix only if the row overflows, which this step cannot observe. Left for the owner to check in the app; the fix (`min-w-16 shrink` on the input, or `truncate` on the header span) is recorded above.
+3. Rejected: the Issue gives `RailListSearch.svelte` as the precedent, and the box uses the same `h-7 text-xs` classes, so both boxes render the same size at md+ widths. Overriding only this one would make them differ.
+4. No change, as the finding says.

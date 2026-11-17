@@ -13,18 +13,18 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, in a new `src/tests/lib/plugins/graph-view/GraphControls.test.ts` (real `graphViewStore`, no store mock; Select recipe from `src/tests/lib/core/settings/UpdateSection.channel.test.ts:33-100`): with notes in folders `a/` and `b/`, after picking folder `a` the folder control is still shown and offers "All folders" and `b`; choosing "All folders" sets `filters.folder` to `null`.
-- [ ] Picking a tag sets `filters.tag` to it; "All tags" sets `null`.
-- [ ] Orphans and Arrows are `role="switch"` with `aria-checked`; toggling them sets `filters.showOrphans` and `display.showArrows`.
-- [ ] No native `<select>` is left in GraphControls.
-- [ ] There is no Close button in the controls; the graph tab still closes from the tab bar and with Cmd+G (existing `graph-view.service.test.ts` cases stay green).
-- [ ] The mode and zoom buttons have accessible names.
-- [ ] `GraphView.test.ts` stays green; the help page no longer mentions a Close button.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in a new `src/tests/lib/plugins/graph-view/GraphControls.test.ts` (real `graphViewStore`, no store mock; Select recipe from `src/tests/lib/core/settings/UpdateSection.channel.test.ts:33-100`): with notes in folders `a/` and `b/`, after picking folder `a` the folder control is still shown and offers "All folders" and `b`; choosing "All folders" sets `filters.folder` to `null`.
+- [x] Picking a tag sets `filters.tag` to it; "All tags" sets `null`.
+- [x] Orphans and Arrows are `role="switch"` with `aria-checked`; toggling them sets `filters.showOrphans` and `display.showArrows`.
+- [x] No native `<select>` is left in GraphControls.
+- [x] There is no Close button in the controls; the graph tab still closes from the tab bar and with Cmd+G (existing `graph-view.service.test.ts` cases stay green).
+- [x] The mode and zoom buttons have accessible names.
+- [x] `GraphView.test.ts` stays green; the help page no longer mentions a Close button.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -48,3 +48,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: remove the graph Close button (the tab bar and Cmd+G still close it); the trapped-filter fix is part of this ticket.
+- 2026-11-17, branch issue/12-graph-controls-shadcn-switch-select: GraphControls moved to shadcn Switch/Select (no native `<select>`), the Close button removed (help page updated), "All folders"/"All tags" clear the filter, a set filter outside the current options stays selectable, mode and zoom buttons have accessible names. Review round 1 APPROVED with findings (fixed: tests for set filters outside local-mode options, label-click toggles once); round 2 APPROVED, no findings. Tests: `pnpm check` 0 errors; GraphControls.test.ts 12 passed; full suite 645 files, 17244 passed, 54 skipped, 0 failed (one earlier run had a load-induced codemap timeout).

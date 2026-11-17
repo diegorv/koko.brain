@@ -10,11 +10,13 @@
 		currentColor?: string;
 		/** Called when a color is selected (undefined = remove) */
 		onSelect: (color: string | undefined) => void;
+		/** Accessible name and tooltip of the trigger, e.g. "Color of work/project" */
+		label: string;
 		/** Trigger element snippet */
 		children: Snippet;
 	}
 
-	let { currentColor, onSelect, children }: Props = $props();
+	let { currentColor, onSelect, label, children }: Props = $props();
 	let open = $state(false);
 
 	function handlePresetSelect(color: string | undefined) {
@@ -29,7 +31,7 @@
 </script>
 
 <Popover.Root bind:open>
-	<Popover.Trigger class="shrink-0 cursor-pointer rounded-sm hover:bg-accent/50 transition-colors p-0.5">
+	<Popover.Trigger class="shrink-0 cursor-pointer rounded-sm hover:bg-accent/50 transition-colors p-0.5" aria-label={label} title={label}>
 		{@render children()}
 	</Popover.Trigger>
 	<Popover.Content class="w-auto p-0" side="bottom" align="start" sideOffset={4}>

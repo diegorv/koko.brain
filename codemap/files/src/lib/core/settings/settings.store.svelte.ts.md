@@ -1,7 +1,7 @@
 # file card src/lib/core/settings/settings.store.svelte.ts
 cols: file <path> <role> L<lines> module <module> in<prod importers> t<tests> [t:inline] · imp <importer>:<line> -> <target> <names> · sym <loc> <kind> <name><sig> L<span> | doc · by <id> <- <use loc> in <fn> <kind> [+<n>] · local <loc> fn <name><sig> L<span> · store/mem · mount <loc> <Name> -> <file> · call <loc> in <fn> -> <target> <kind> [+<n>] · fx/reg/ipc-call/ev · grep: grep -rF -- '-> src/lib/core/settings/settings.store.svelte.ts ' codemap/files
 sections: imports, imported-by, reach, tests, symbols, store
-file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in83 t126
+file src/lib/core/settings/settings.store.svelte.ts store L415 module src/lib/core/settings in84 t128
 ## imports
 imp src/lib/core/settings/settings.store.svelte.ts:1 -> src/lib/core/settings/settings.types.ts type:AppSettings,type:PeriodicNotesUpdate,type:QuickCaptureUpdate,type:OneOnOneSettings,type:LayoutSettings,type:FolderNotesSettings,type:EditorSettings,type:TemplatesSettings,type:HistorySettings,type:SearchSettings,type:TodoistSettings,type:SentrySettings,type:AutoOrganizeSettings,type:TagColorSettings,type:QueryjsSettings,type:UpdateSettings,type:EventCalendarSettings
 imp src/lib/core/settings/settings.store.svelte.ts:2 -> src/lib/core/settings/theme.types.ts type:AppearanceSettings
@@ -47,7 +47,7 @@ imp src/lib/features/event-calendar/EventWeekStrip.svelte:2 -> src/lib/core/sett
 imp src/lib/features/event-calendar/ShowInCalendarButton.svelte:5 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/event-calendar-view.store.svelte.ts:1 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
 imp src/lib/features/event-calendar/event-calendar.service.ts:23 -> src/lib/core/settings/settings.store.svelte.ts settingsStore
-more imported-by 43 not shown: src/lib/features/rail-shell(9) src/lib/features/todoist-sync(5) src/lib/features/search(4) src/lib/features/tasks(4) src/lib/features/note-action-bar(2) src/lib/features/tags(2) src/lib/plugins/calendar(2) src/lib/plugins/mods(2) +11 modules: q importers src/lib/core/settings/settings.store.svelte.ts
+more imported-by 44 not shown: src/lib/features/rail-shell(9) src/lib/features/search(5) src/lib/features/todoist-sync(5) src/lib/features/tasks(4) src/lib/features/note-action-bar(2) src/lib/features/tags(2) src/lib/plugins/calendar(2) src/lib/plugins/mods(2) +11 modules: q importers src/lib/core/settings/settings.store.svelte.ts
 ## reach
 in2 src/lib/core/settings/settings.store.svelte.ts 67 files in 34 modules: src/lib/features/event-calendar(9) src/lib/app(7) src/lib/core/filesystem(5) src/lib/core/vault(3) src/lib/features/properties(3) +29 modules: q impact src/lib/core/settings/settings.store.svelte.ts --depth 2
 out2 src/lib/core/settings/settings.store.svelte.ts 4 files in 2 modules: src/lib/core/settings(3) src/lib/utils(1)
@@ -92,7 +92,7 @@ test src/tests/lib/core/settings/HeadingTypographyEditor.test.ts imports src/lib
 test src/tests/lib/core/settings/OneOnOneSection.test.ts imports src/lib/core/settings/settings.store.svelte.ts
 test src/tests/lib/core/settings/TroubleshootingSection.test.ts imports src/lib/core/settings/settings.store.svelte.ts
 test src/tests/lib/core/settings/UpdateSection.channel.test.ts imports src/lib/core/settings/settings.store.svelte.ts
-more tests 86 not shown: src/tests/lib/features/rail-shell(15) src/tests/lib/features/event-calendar(12) src/tests/lib/core/settings(10) src/tests/lib/features/tasks(6) src/tests/lib/features/todoist-sync(5) src/tests/lib/plugins/mods(4) src/tests/lib/features/deep-link(3) src/tests/lib/features/search(3) +18 modules: q tests src/lib/core/settings/settings.store.svelte.ts
+more tests 88 not shown: src/tests/lib/features/rail-shell(15) src/tests/lib/features/event-calendar(12) src/tests/lib/core/settings(10) src/tests/lib/features/tasks(6) src/tests/lib/features/todoist-sync(5) src/tests/lib/features/search(4) src/tests/lib/plugins/mods(4) src/tests/lib/features/deep-link(3) +18 modules: q tests src/lib/core/settings/settings.store.svelte.ts
 ## symbols
 sym src/lib/core/settings/settings.store.svelte.ts:6 const DEFAULT_SETTINGS: AppSettings L157 | Fallback values used when no settings file exists or when it fails to parse
 by src/lib/core/settings/settings.store.svelte.ts:DEFAULT_SETTINGS <- src/lib/core/settings/settings.service.ts:95 in parseSettings member +40
@@ -100,12 +100,12 @@ sym src/lib/core/settings/settings.store.svelte.ts:167 store settingsStore L249 
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/AppShell.svelte:61 in rightSidebarShown=$derived member +32
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/EditorView.svelte:9 in (script) import
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/boot.ts:38 in registerAppPorts member +2
-by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/commands.ts:65 in railGoToCommands member +4
+by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/commands.ts:66 in railGoToCommands member +4
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/deep-link-actions.ts:56 in executeDailyAction member +3
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/editor-host.ts:55 in periodicTarget member +1
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/lifecycle/app-lifecycle.service.ts:215 in initializeVault member +11
 by src/lib/core/settings/settings.store.svelte.ts:settingsStore <- src/lib/app/rail-navigation.ts:23 in selectRailItem mcall +1
-more by 75 not shown: src/lib/core/settings(16) src/lib/features/event-calendar(10) src/lib/features/rail-shell(9) src/lib/features/todoist-sync(5) src/lib/features/search(4) src/lib/features/tasks(4) src/lib/features/auto-organize(3) src/lib/features/note-action-bar(2) +17 modules: q importers src/lib/core/settings/settings.store.svelte.ts:settingsStore
+more by 76 not shown: src/lib/core/settings(16) src/lib/features/event-calendar(10) src/lib/features/rail-shell(9) src/lib/features/search(5) src/lib/features/todoist-sync(5) src/lib/features/tasks(4) src/lib/features/auto-organize(3) src/lib/features/note-action-bar(2) +17 modules: q importers src/lib/core/settings/settings.store.svelte.ts:settingsStore
 ## store
 store src/lib/core/settings/settings.store.svelte.ts:167 settingsStore esc:1
 mem src/lib/core/settings/settings.store.svelte.ts:168 get settingsStore.settings r:src/lib/core/settings/sections/TypesSection.svelte:18,src/lib/core/settings/sections/TypesSection.svelte:32,src/lib/core/settings/sections/TypesSection.svelte:47,src/lib/core/settings/settings-persistence.svelte.ts:35,src/lib/core/settings/settings.service.ts:280,src/lib/features/rail-shell/LayoutSection.svelte:108 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
@@ -126,8 +126,8 @@ mem src/lib/core/settings/settings.store.svelte.ts:176 get settingsStore.appeara
 more r 13 not shown: src/lib/core/settings(13): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.appearance
 mem src/lib/core/settings/settings.store.svelte.ts:177 get settingsStore.history r:7 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 7 not shown: src/lib/core/settings(3) src/lib/app(2) src/lib/features/file-history(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.history
-mem src/lib/core/settings/settings.store.svelte.ts:178 get settingsStore.search r:7 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
-more r 7 not shown: src/lib/features/search(5) src/lib/app(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.search
+mem src/lib/core/settings/settings.store.svelte.ts:178 get settingsStore.search r:9 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
+more r 9 not shown: src/lib/features/search(7) src/lib/app(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.search
 mem src/lib/core/settings/settings.store.svelte.ts:179 get settingsStore.autoOrganize r:src/lib/app/lifecycle/app-lifecycle.service.ts:452,src/lib/features/auto-organize/AutoOrganizeSection.svelte:115,src/lib/features/auto-organize/AutoOrganizeSection.svelte:133,src/lib/features/auto-organize/auto-organize.service.ts:211,src/lib/features/auto-organize/auto-organize.service.ts:231,src/lib/features/auto-organize/auto-organize.service.ts:239 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 mem src/lib/core/settings/settings.store.svelte.ts:180 get settingsStore.eventCalendar r:24 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 24 not shown: src/lib/features/event-calendar(22) src/lib/plugins/calendar(2): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.eventCalendar
@@ -143,7 +143,7 @@ mem src/lib/core/settings/settings.store.svelte.ts:188 get settingsStore.debugTa
 mem src/lib/core/settings/settings.store.svelte.ts:189 get settingsStore.debugHeartbeat r:src/lib/app/lifecycle/app-lifecycle.service.ts:236,src/lib/core/settings/sections/TroubleshootingSection.svelte:45,src/lib/core/settings/sections/TroubleshootingSection.svelte:70,src/lib/core/settings/sections/TroubleshootingSection.svelte:150 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 mem src/lib/core/settings/settings.store.svelte.ts:190 get settingsStore.livePreviewProfiling r:src/lib/app/boot.ts:38,src/lib/core/settings/sections/TroubleshootingSection.svelte:98 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 mem src/lib/core/settings/settings.store.svelte.ts:191 get settingsStore.disabledDecorators r:src/lib/core/markdown-editor/MarkdownEditor.svelte:126,src/lib/core/markdown-editor/MarkdownEditor.svelte:244,src/lib/core/markdown-editor/MarkdownEditor.svelte:662,src/lib/core/settings/sections/TroubleshootingSection.svelte:14 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
-mem src/lib/core/settings/settings.store.svelte.ts:192 get settingsStore.tagColors r:src/lib/core/markdown-editor/MarkdownEditor.svelte:668,src/lib/features/properties/PropertyField.svelte:171,src/lib/features/tags/TagItem.svelte:23,src/lib/features/tags/TagsView.svelte:22 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
+mem src/lib/core/settings/settings.store.svelte.ts:192 get settingsStore.tagColors r:src/lib/core/markdown-editor/MarkdownEditor.svelte:668,src/lib/features/properties/PropertyField.svelte:171,src/lib/features/tags/TagItem.svelte:28,src/lib/features/tags/TagsView.svelte:24 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 mem src/lib/core/settings/settings.store.svelte.ts:193 get settingsStore.queryjs r:src/lib/plugins/queryjs/QueryjsSection.svelte:54,src/lib/plugins/queryjs/QueryjsSection.svelte:58,src/lib/plugins/queryjs/QueryjsSection.svelte:62,src/lib/plugins/queryjs/queryjs-block-widget.ts:143,src/lib/plugins/queryjs/queryjs-block-widget.ts:201 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 mem src/lib/core/settings/settings.store.svelte.ts:194 get settingsStore.updates r:9 w-via:setSettings,updatePeriodicNotes,updateQuickCapture,updateOneOnOne,updateFolderNotes,+22
 more r 9 not shown: src/lib/core/settings(9): q store src/lib/core/settings/settings.store.svelte.ts:settingsStore.updates
@@ -181,7 +181,7 @@ mem src/lib/core/settings/settings.store.svelte.ts:358 do settingsStore.updateDe
 mem src/lib/core/settings/settings.store.svelte.ts:363 do settingsStore.updateDebugHeartbeat w:src/lib/core/settings/sections/TroubleshootingSection.svelte:72 | Updates the heartbeat debug flag (250 ms `[HB] alive` ticks while logging)
 mem src/lib/core/settings/settings.store.svelte.ts:368 do settingsStore.updateLivePreviewProfiling w:src/lib/core/settings/sections/TroubleshootingSection.svelte:100 | Updates the live preview profiling flag
 mem src/lib/core/settings/settings.store.svelte.ts:373 do settingsStore.toggleDecorator w:src/lib/core/settings/sections/TroubleshootingSection.svelte:119 | Toggles a specific live preview decorator on/off
-mem src/lib/core/settings/settings.store.svelte.ts:379 do settingsStore.updateTagColors w:src/lib/features/tags/TagsView.svelte:23 | Partially updates tag color settings, merging with existing values
+mem src/lib/core/settings/settings.store.svelte.ts:379 do settingsStore.updateTagColors w:src/lib/features/tags/TagsView.svelte:25 | Partially updates tag color settings, merging with existing values
 mem src/lib/core/settings/settings.store.svelte.ts:387 do settingsStore.updateQueryjs w:src/lib/plugins/queryjs/QueryjsSection.svelte:36 | Partially updates QueryJS plugin settings, merging with existing values
 mem src/lib/core/settings/settings.store.svelte.ts:398 do settingsStore.updateUpdates w:src/lib/core/settings/sections/UpdateSection.svelte:80,src/lib/core/settings/sections/UpdateSection.svelte:91,src/lib/core/settings/sections/UpdateSection.svelte:182,src/lib/core/settings/update-check.service.ts:27 | Partially updates the auto-updater settings (channel / autoCheck / lastCheckedAt), shallow-merging with the existing values.
 mem src/lib/core/settings/settings.store.svelte.ts:406 do settingsStore.updateTasksView w:src/lib/features/tasks/tasks.service.ts:119 | Replaces the Tasks view's saved state; the store never inspects it

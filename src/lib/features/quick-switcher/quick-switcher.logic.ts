@@ -39,3 +39,29 @@ export function parseCreatePath(query: string): CreatePath {
 export function createTargetLabel(folder: string): string {
 	return folder ? `in ${folder}` : 'in vault root';
 }
+
+/** A run of a row's name, matched by the query or not. */
+export interface MatchSegment {
+	/** The run's characters. */
+	text: string;
+	/** Whether the query matched these characters. */
+	match: boolean;
+}
+
+/**
+ * Splits `text` into runs of matched and unmatched characters, so a row
+ * highlights each run with one element.
+ * @param text - the row's name
+ * @param positions - matched indices into `text`, ascending (`fuzzyMatchPositions`)
+ */
+export function matchSegments(text: string, positions: number[]): MatchSegment[] {
+	const matched = new Set(positions);
+	const segments: MatchSegment[] = [];
+	for (let i = 0; i < text.length; i++) {
+		const match = matched.has(i);
+		const last = segments.at(-1);
+		if (last && last.match === match) last.text += text[i];
+		else segments.push({ text: text[i], match });
+	}
+	return segments;
+}

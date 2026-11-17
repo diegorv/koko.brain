@@ -7,7 +7,7 @@ imp src/lib/core/layout/layout.service.ts:2 -> src/lib/core/settings/settings.st
 imp src/lib/core/layout/layout.service.ts:3 -> src/lib/core/layout/layout.logic.ts hidesRightSidebar
 ## imported-by
 imp src/lib/app/AppShell.svelte:55 -> src/lib/core/layout/layout.service.ts toggleRightSidebar
-imp src/lib/app/commands.ts:51 -> src/lib/core/layout/layout.service.ts hideRailPanels,showRailPanels,toggleLeftSidebar,toggleRightSidebar
+imp src/lib/app/commands.ts:52 -> src/lib/core/layout/layout.service.ts hideRailPanels,showRailPanels,toggleLeftSidebar,toggleRightSidebar
 imp src/lib/app/global-keybindings.ts:21 -> src/lib/core/layout/layout.service.ts hideRailPanels,showRailPanels,toggleLeftSidebar,toggleRightSidebar
 ## reach
 in2 src/lib/core/layout/layout.service.ts 2 files in 2 modules: src/lib/app(1) src/routes(1)
@@ -16,17 +16,17 @@ out2 src/lib/core/layout/layout.service.ts 6 files in 3 modules: src/lib/core/se
 test src/tests/lib/core/layout/layout.service.test.ts imports src/lib/core/layout/layout.service.ts mirror
 ## symbols
 sym src/lib/core/layout/layout.service.ts:10 fn toggleLeftSidebar(): void L3 | Toggles the panels between the rail and the editor (navigator, note list); the rail itself never hides.
-by src/lib/core/layout/layout.service.ts:toggleLeftSidebar <- src/lib/app/commands.ts:299 in getBuiltInCommands ref
+by src/lib/core/layout/layout.service.ts:toggleLeftSidebar <- src/lib/app/commands.ts:306 in getBuiltInCommands ref
 by src/lib/core/layout/layout.service.ts:toggleLeftSidebar <- src/lib/app/global-keybindings.ts:138 in GLOBAL_KEYBINDINGS ref
 sym src/lib/core/layout/layout.service.ts:15 fn hideRailPanels(): void L3 | Hides the panels between the rail and the editor (Cmd+1, "Hide Rail Panels").
-by src/lib/core/layout/layout.service.ts:hideRailPanels <- src/lib/app/commands.ts:306 in getBuiltInCommands ref
+by src/lib/core/layout/layout.service.ts:hideRailPanels <- src/lib/app/commands.ts:313 in getBuiltInCommands ref
 by src/lib/core/layout/layout.service.ts:hideRailPanels <- src/lib/app/global-keybindings.ts:140 in GLOBAL_KEYBINDINGS ref
 sym src/lib/core/layout/layout.service.ts:20 fn showRailPanels(): void L3 | Shows the panels between the rail and the editor (Cmd+2, "Show Rail Panels").
-by src/lib/core/layout/layout.service.ts:showRailPanels <- src/lib/app/commands.ts:313 in getBuiltInCommands ref
+by src/lib/core/layout/layout.service.ts:showRailPanels <- src/lib/app/commands.ts:320 in getBuiltInCommands ref
 by src/lib/core/layout/layout.service.ts:showRailPanels <- src/lib/app/global-keybindings.ts:141 in GLOBAL_KEYBINDINGS ref
 sym src/lib/core/layout/layout.service.ts:30 fn toggleRightSidebar(): void L5 | Toggles the right sidebar visibility.
 by src/lib/core/layout/layout.service.ts:toggleRightSidebar <- src/lib/app/AppShell.svelte:192 in (markup) markup
-by src/lib/core/layout/layout.service.ts:toggleRightSidebar <- src/lib/app/commands.ts:320 in getBuiltInCommands call
+by src/lib/core/layout/layout.service.ts:toggleRightSidebar <- src/lib/app/commands.ts:327 in getBuiltInCommands call
 by src/lib/core/layout/layout.service.ts:toggleRightSidebar <- src/lib/app/global-keybindings.ts:146 in GLOBAL_KEYBINDINGS ref
 ## calls
 call src/lib/core/layout/layout.service.ts:11 in toggleLeftSidebar -> src/lib/core/settings/settings.store.svelte.ts:settingsStore.updateLayout mcall

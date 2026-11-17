@@ -27,11 +27,11 @@ by src/lib/core/note-creator/explicit-organization.logic.ts:withUnorganizedFlag 
 by src/lib/core/note-creator/explicit-organization.logic.ts:withUnorganizedFlag <- src/lib/plugins/quick-capture/note-composer.service.ts:52 in createNoteComposer ref
 by src/lib/core/note-creator/explicit-organization.logic.ts:withUnorganizedFlag <- src/lib/plugins/templates/templates.service.ts:67 in createFileFromTemplate ref
 sym src/lib/core/note-creator/explicit-organization.logic.ts:43 fn applyExplicitOrganization(content: string, enabled: boolean): string L3 | The switch: withUnorganizedFlag of `content` when `enabled` (`settingsStore.explicitOrganization`), `content` unchanged otherwise.
-by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/app/commands.ts:155 in getBuiltInCommands call
+by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/app/commands.ts:156 in getBuiltInCommands call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/app/deep-link-actions.ts:210 in executeCaptureAction call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/deep-link/deep-link.service.ts:334 in executeNewAction call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/note-action-bar/note-action-bar.service.ts:79 in createLinkedNote call
-by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/quick-switcher/QuickSwitcher.svelte:88 in createAndOpenNote call
+by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/quick-switcher/QuickSwitcher.svelte:103 in createAndOpenNote call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/rail-shell/FilesNavigator.svelte:86 in fileCreators=$derived call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/rail-shell/new-note.service.ts:37 in createNoteHere call
 by src/lib/core/note-creator/explicit-organization.logic.ts:applyExplicitOrganization <- src/lib/features/type-definitions/type-definitions.service.ts:148 in createTypedNote call
