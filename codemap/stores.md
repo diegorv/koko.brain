@@ -4,8 +4,8 @@ store src/lib/core/editor/editor.store.svelte.ts:33 editorStore get 9 set 0 do 1
 store src/lib/core/filesystem/fs.store.svelte.ts:25 fsStore get 5 set 0 do 7 readers 22 writers 6 card codemap/files/src/lib/core/filesystem/fs.store.svelte.ts.md
 store src/lib/core/rule-actions/rule-actions.store.svelte.ts:38 ruleActionsStore get 1 set 0 do 3 readers 1 writers 3 card codemap/files/src/lib/core/rule-actions/rule-actions.store.svelte.ts.md
 store src/lib/core/settings/applied-theme.store.svelte.ts:14 appliedThemeStore get 2 set 0 do 3 readers 5 writers 1 card codemap/files/src/lib/core/settings/applied-theme.store.svelte.ts.md
-store src/lib/core/settings/settings-panel.store.svelte.ts:7 settingsPanelStore get 2 set 0 do 5 readers 1 writers 5 card codemap/files/src/lib/core/settings/settings-panel.store.svelte.ts.md
-store src/lib/core/settings/settings.store.svelte.ts:167 settingsStore get 31 set 0 do 28 readers 79 writers 37 card codemap/files/src/lib/core/settings/settings.store.svelte.ts.md
+store src/lib/core/settings/settings-panel.store.svelte.ts:7 settingsPanelStore get 2 set 0 do 5 readers 1 writers 6 card codemap/files/src/lib/core/settings/settings-panel.store.svelte.ts.md
+store src/lib/core/settings/settings.store.svelte.ts:167 settingsStore get 31 set 0 do 28 readers 80 writers 37 card codemap/files/src/lib/core/settings/settings.store.svelte.ts.md
 store src/lib/core/trash/trash.store.svelte.ts:14 trashStore get 4 set 0 do 5 readers 3 writers 1 card codemap/files/src/lib/core/trash/trash.store.svelte.ts.md
 store src/lib/core/vault/vault.store.svelte.ts:60 vaultStore get 6 set 0 do 9 readers 76 writers 12 card codemap/files/src/lib/core/vault/vault.store.svelte.ts.md
 store src/lib/features/auto-organize/auto-organize.store.svelte.ts:9 autoOrganizeStore get 4 set 0 do 7 readers 3 writers 2 card codemap/files/src/lib/features/auto-organize/auto-organize.store.svelte.ts.md
@@ -25,7 +25,7 @@ store src/lib/features/properties/properties.store.svelte.ts:17 propertiesStore 
 store src/lib/features/quick-switcher/quick-switcher.store.svelte.ts:24 quickSwitcherStore get 2 set 0 do 6 readers 1 writers 5 card codemap/files/src/lib/features/quick-switcher/quick-switcher.store.svelte.ts.md
 store src/lib/features/rail-shell/neighbourhood.store.svelte.ts:10 neighbourhoodStore get 1 set 0 do 2 readers 2 writers 2 card codemap/files/src/lib/features/rail-shell/neighbourhood.store.svelte.ts.md
 store src/lib/features/rail-shell/rail-registry.store.svelte.ts:27 railRegistryStore get 6 set 0 do 7 readers 6 writers 4 card codemap/files/src/lib/features/rail-shell/rail-registry.store.svelte.ts.md
-store src/lib/features/search/search.store.svelte.ts:33 searchStore get 16 set 0 do 17 readers 7 writers 3 card codemap/files/src/lib/features/search/search.store.svelte.ts.md
+store src/lib/features/search/search.store.svelte.ts:35 searchStore get 17 set 0 do 18 readers 7 writers 3 card codemap/files/src/lib/features/search/search.store.svelte.ts.md
 store src/lib/features/tags/tags.store.svelte.ts:11 tagsStore get 6 set 0 do 7 readers 2 writers 2 card codemap/files/src/lib/features/tags/tags.store.svelte.ts.md
 store src/lib/features/tasks/tasks.store.svelte.ts:100 tasksStore get 18 set 0 do 17 readers 5 writers 4 card codemap/files/src/lib/features/tasks/tasks.store.svelte.ts.md
 store src/lib/features/todoist-sync/todoist-sync.store.svelte.ts:45 todoistSyncStore get 7 set 0 do 6 readers 4 writers 5 card codemap/files/src/lib/features/todoist-sync/todoist-sync.store.svelte.ts.md

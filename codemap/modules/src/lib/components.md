@@ -20,7 +20,7 @@ dep src/lib/features/outgoing-links -> src/lib/components 1
 dep src/lib/features/properties -> src/lib/components 4
 dep src/lib/features/quick-switcher -> src/lib/components 1
 dep src/lib/features/rail-shell -> src/lib/components 10
-dep src/lib/features/search -> src/lib/components 3
+dep src/lib/features/search -> src/lib/components 4
 dep src/lib/features/tags -> src/lib/components 2
 dep src/lib/features/tasks -> src/lib/components 12
 dep src/lib/features/todoist-sync -> src/lib/components 6
@@ -37,7 +37,7 @@ dep src/lib/components -> src/lib/utils.ts 54
 in2 src/lib/components 0 modules: -
 out2 src/lib/components 1 modules: src/lib/utils(1)
 ## entry files
-entry src/lib/components/ui/button/index.ts ext-in35 src/lib/app/SettingsPanel.svelte src/lib/core/settings/sections/AppearanceSection.svelte src/lib/core/settings/sections/EditorSection.svelte src/lib/core/settings/sections/SentrySection.svelte src/lib/core/settings/sections/ThemeEditor.svelte more importers 30 not shown: src/lib/features/collection(5) src/lib/features/event-calendar(5) src/lib/core/settings(3) +11 modules: q importers src/lib/components/ui/button/index.ts
+entry src/lib/components/ui/button/index.ts ext-in36 src/lib/app/SettingsPanel.svelte src/lib/core/settings/sections/AppearanceSection.svelte src/lib/core/settings/sections/EditorSection.svelte src/lib/core/settings/sections/SentrySection.svelte src/lib/core/settings/sections/ThemeEditor.svelte more importers 31 not shown: src/lib/features/collection(5) src/lib/features/event-calendar(5) src/lib/core/settings(3) +11 modules: q importers src/lib/components/ui/button/index.ts
 entry src/lib/components/ui/input/index.ts ext-in28 src/lib/core/settings/sections/EditorSection.svelte src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/sections/FilesSection.svelte src/lib/core/settings/sections/HeadingTypographyEditor.svelte src/lib/core/settings/sections/OneOnOneSection.svelte more importers 23 not shown: src/lib/core/settings(6) src/lib/features/auto-organize(3) src/lib/features/tasks(3) +7 modules: q importers src/lib/components/ui/input/index.ts
 entry src/lib/components/ui/switch/index.ts ext-in18 src/lib/app/LabsSection.svelte src/lib/core/settings/sections/FileHistorySection.svelte src/lib/core/settings/sections/FilesSection.svelte src/lib/core/settings/sections/PeriodicNotesSection.svelte src/lib/core/settings/sections/SentrySection.svelte more importers 13 not shown: src/lib/core/settings(3) src/lib/features/auto-organize(3) src/lib/features/event-calendar(2) +5 modules: q importers src/lib/components/ui/switch/index.ts
 entry src/lib/components/ui/context-menu/index.ts ext-in9 src/lib/core/markdown-editor/EditorTabs.svelte src/lib/core/markdown-editor/MarkdownEditor.svelte src/lib/features/collection/CollectionView.svelte src/lib/features/note-list/NoteRowMenu.svelte src/lib/features/rail-shell/FilesNavigator.svelte more importers 4 not shown: src/lib/plugins/kanban(2) src/lib/features/rail-shell(1) src/lib/features/tasks(1): q importers src/lib/components/ui/context-menu/index.ts
@@ -53,7 +53,7 @@ entry src/lib/components/ui/tooltip/index.ts ext-in3 src/lib/features/event-cale
 entry src/lib/components/ui/resizable/index.ts ext-in1 src/lib/app/AppShell.svelte
 ## files
 file src/lib/components/ui/button/button.svelte component L82 module src/lib/components in1 t0
-file src/lib/components/ui/button/index.ts other L17 module src/lib/components in35 t0
+file src/lib/components/ui/button/index.ts other L17 module src/lib/components in36 t0
 file src/lib/components/ui/collapsible/collapsible-content.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/collapsible/collapsible-trigger.svelte component L7 module src/lib/components in1 t0
 file src/lib/components/ui/collapsible/collapsible.svelte component L11 module src/lib/components in1 t0

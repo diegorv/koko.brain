@@ -48,7 +48,7 @@ imp src/lib/features/type-definitions/type-definitions.service.ts:15 -> src/lib/
 imp src/lib/features/type-definitions/type-note-list.logic.ts:6 -> src/lib/core/filesystem/fs.logic.ts getFileNameError
 more imported-by 5 not shown: src/lib/features/type-definitions(1) src/lib/plugins/graph-view(1) src/lib/plugins/mods(1) src/lib/plugins/one-on-one(1) src/lib/plugins/queryjs(1): q importers src/lib/core/filesystem/fs.logic.ts
 ## reach
-in2 src/lib/core/filesystem/fs.logic.ts 97 files in 34 modules: src/lib/features/rail-shell(12) src/lib/features/event-calendar(10) src/lib/features/collection(9) src/lib/app(8) src/lib/core/markdown-editor(5) +29 modules: q impact src/lib/core/filesystem/fs.logic.ts --depth 2
+in2 src/lib/core/filesystem/fs.logic.ts 98 files in 34 modules: src/lib/features/rail-shell(12) src/lib/features/event-calendar(10) src/lib/features/collection(9) src/lib/app(8) src/lib/core/markdown-editor(5) +29 modules: q impact src/lib/core/filesystem/fs.logic.ts --depth 2
 out2 src/lib/core/filesystem/fs.logic.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/core/filesystem/fs.logic.test.ts imports src/lib/core/filesystem/fs.logic.ts mirror

@@ -6,10 +6,10 @@ imp src/lib/features/search/search-hybrid.logic.ts:1 -> src/lib/features/search/
 ## imported-by
 imp src/lib/features/search/search.service.ts:8 -> src/lib/features/search/search-hybrid.logic.ts mergeResults
 ## reach
-in2 src/lib/features/search/search-hybrid.logic.ts 3 files in 3 modules: src/lib/app(1) src/lib/features/search(1) src/routes(1)
+in2 src/lib/features/search/search-hybrid.logic.ts 4 files in 3 modules: src/lib/features/search(2) src/lib/app(1) src/routes(1)
 out2 src/lib/features/search/search-hybrid.logic.ts 1 files in 1 modules: src/lib/contracts(1)
 ## tests
 test src/tests/lib/features/search/search-hybrid.logic.test.ts imports src/lib/features/search/search-hybrid.logic.ts mirror
 ## symbols
 sym src/lib/features/search/search-hybrid.logic.ts:17 fn mergeResults(textResults: FtsSearchResult[], semanticResults: SemanticSearchResult[]): HybridSearchResult[] L57 | Merges FTS5 text results and semantic results using Reciprocal Rank Fusion (RRF).
-by src/lib/features/search/search-hybrid.logic.ts:mergeResults <- src/lib/features/search/search.service.ts:265 in performSearch call
+by src/lib/features/search/search-hybrid.logic.ts:mergeResults <- src/lib/features/search/search.service.ts:276 in performSearch call

@@ -31,7 +31,7 @@ imp src/lib/features/type-definitions/type-definitions.service.ts:14 -> src/lib/
 imp src/lib/plugins/mods/mod-vault.service.ts:4 -> src/lib/core/editor/editor.hooks.ts markRecentSave,notifyAfterSave
 imp src/lib/plugins/mods/mods-host.service.ts:5 -> src/lib/core/editor/editor.hooks.ts addAfterSaveObserver,addNoteCreatedObserver
 ## reach
-in2 src/lib/core/editor/editor.hooks.ts 68 files in 31 modules: src/lib/app(9) src/lib/features/event-calendar(5) src/lib/core/filesystem(4) src/lib/features/properties(4) src/lib/features/canvas(3) +26 modules: q impact src/lib/core/editor/editor.hooks.ts --depth 2
+in2 src/lib/core/editor/editor.hooks.ts 69 files in 31 modules: src/lib/app(9) src/lib/features/event-calendar(5) src/lib/core/filesystem(4) src/lib/features/properties(4) src/lib/features/canvas(3) +26 modules: q impact src/lib/core/editor/editor.hooks.ts --depth 2
 out2 src/lib/core/editor/editor.hooks.ts 6 files in 3 modules: src/lib/contracts(2) src/lib/core/settings(2) src/lib/utils(2)
 ## tests
 test src/tests/lib/core/editor/editor.hooks.test.ts imports src/lib/core/editor/editor.hooks.ts mirror
@@ -93,7 +93,7 @@ sym src/lib/core/editor/editor.hooks.ts:52 fn addAfterSaveObserver(observer: Aft
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/auto-organize/auto-organize.service.ts:208 in registerAutoOrganizeHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/file-history/file-history.service.ts:192 in registerFileHistoryHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/SemanticIndexStatus.svelte:23 in (script) call
-by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/search.service.ts:303 in registerSearchIndexHook call
+by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/search/search.service.ts:322 in registerSearchIndexHook call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/features/todoist-sync/sync-scheduler.service.ts:90 in startAutoSync call
 by src/lib/core/editor/editor.hooks.ts:addAfterSaveObserver <- src/lib/plugins/mods/mods-host.service.ts:630 in createModContext call
 sym src/lib/core/editor/editor.hooks.ts:67 fn notifyAfterSave(filePath: string, content: string): void L26 | Notifies all after-save observers.
