@@ -11,17 +11,17 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first: a new `src/tests/lib/features/tags/TagItem.test.ts` (jsdom, real `settingsStore`, no store mocks). A parent and a leaf rendered as siblings have the same-width leading element before the dot and the same name and count classes (assert classes and DOM order, not pixels; jsdom has no layout).
-- [ ] The chevron trigger has an accessible name containing the tag path, and its `aria-expanded` goes from false to true on click while the name stays the same.
-- [ ] Every row's colour-dot trigger has an accessible name containing the tag path.
-- [ ] `TagsView.test.ts`: a tag click still opens Search with `tag:work`.
-- [ ] Failing test first, `src/tests/lib/core/markdown-editor/EditorTabs.test.ts`: a tab with `fileType: 'tags'` at `TAGS_VIRTUAL_PATH` renders an svg whose class contains `lucide-tag`, and no `lucide-file-text` in that tab (precedent `src/tests/lib/plugins/mods/mod-rail-icon.test.ts:77`).
-- [ ] A markdown tab still renders through the `tabIcon` snippet or FileText, unchanged.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first: a new `src/tests/lib/features/tags/TagItem.test.ts` (jsdom, real `settingsStore`, no store mocks). A parent and a leaf rendered as siblings have the same-width leading element before the dot and the same name and count classes (assert classes and DOM order, not pixels; jsdom has no layout).
+- [x] The chevron trigger has an accessible name containing the tag path, and its `aria-expanded` goes from false to true on click while the name stays the same.
+- [x] Every row's colour-dot trigger has an accessible name containing the tag path.
+- [x] `TagsView.test.ts`: a tag click still opens Search with `tag:work`.
+- [x] Failing test first, `src/tests/lib/core/markdown-editor/EditorTabs.test.ts`: a tab with `fileType: 'tags'` at `TAGS_VIRTUAL_PATH` renders an svg whose class contains `lucide-tag`, and no `lucide-file-text` in that tab (precedent `src/tests/lib/plugins/mods/mod-rail-icon.test.ts:77`).
+- [x] A markdown tab still renders through the `tabIcon` snippet or FileText, unchanged.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -43,3 +43,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: the tab icon is lucide Tag (Hash already marks an uncoloured tag dot in the view); the chevron label is static and `aria-expanded` carries the state.
+- 2026-11-17, deliver (branch `issue/10-tags-rows-align-label-controls-tab-icon`): leaf tag rows get a `w-5` leading slot and the parent row's name and count classes, so dots, names and counts line up; the chevron trigger is named "Subtags of <path>" (state in `aria-expanded`) and every colour-dot trigger "Color of <path>"; the Tags tab renders the lucide Tag icon. Tests: `pnpm check` exit 0; full `pnpm vitest run` exit 0, 645 files, 17227 passed, 54 skipped, 1 todo. Review round 1: APPROVED with three nits, none needing a code change (see `work/10/review.md` Resolution).

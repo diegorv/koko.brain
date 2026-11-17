@@ -27,11 +27,16 @@
 {#if hasChildren}
 	<Collapsible.Root bind:open>
 		<div class="flex items-center">
-			<Collapsible.Trigger class="flex items-center p-1 rounded-md hover:bg-accent transition-colors cursor-pointer shrink-0">
+			<Collapsible.Trigger
+				class="flex w-5 shrink-0 items-center justify-center p-1 rounded-md hover:bg-accent transition-colors cursor-pointer"
+				aria-label="Subtags of {node.fullPath}"
+				title="Subtags of {node.fullPath}"
+			>
 				<ChevronRight class="size-3 shrink-0 transition-transform {open ? 'rotate-90' : ''}" />
 			</Collapsible.Trigger>
 			<TagColorPicker
 				currentColor={getColor()}
+				label="Color of {node.fullPath}"
 				onSelect={(color) => onColorChange(node.fullPath, color)}
 			>
 				<TagColorDot color={getColor()} />
@@ -53,15 +58,18 @@
 		</Collapsible.Content>
 	</Collapsible.Root>
 {:else}
-	<div class="flex w-full items-center gap-1.5 rounded-md px-2 py-1 hover:bg-accent transition-colors">
+	<div class="flex items-center">
+		<!-- Holds the place of a parent's chevron so leaf dots, names and counts line up with it. -->
+		<span class="w-5 shrink-0" aria-hidden="true"></span>
 		<TagColorPicker
 			currentColor={getColor()}
+			label="Color of {node.fullPath}"
 			onSelect={(color) => onColorChange(node.fullPath, color)}
 		>
 			<TagColorDot color={getColor()} />
 		</TagColorPicker>
 		<button
-			class="flex items-center gap-1.5 flex-1 min-w-0 cursor-pointer"
+			class="flex items-center gap-1.5 flex-1 min-w-0 rounded-md px-1 py-1 hover:bg-accent transition-colors cursor-pointer"
 			onclick={() => onTagClick(node.fullPath)}
 		>
 			<span class="text-[14px] truncate">{node.segment}</span>

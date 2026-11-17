@@ -7,6 +7,7 @@
 	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
 	import Kanban from '@lucide/svelte/icons/kanban';
 	import CalendarRange from '@lucide/svelte/icons/calendar-range';
+	import Tag from '@lucide/svelte/icons/tag';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { switchTab, closeTab, togglePinTab } from '#lib/core/editor/editor.service.js';
 	import { isTabDirty, isTabPinned, isVirtualTab } from '#lib/core/editor/editor.logic.js';
@@ -76,6 +77,8 @@
 								<Kanban class="size-3.5 shrink-0 text-muted-foreground" />
 							{:else if tab.fileType === 'event-calendar'}
 								<CalendarRange class="size-3.5 shrink-0 text-muted-foreground" />
+							{:else if tab.fileType === 'tags'}
+								<Tag class="size-3.5 shrink-0 text-muted-foreground" />
 							{:else if tabIcon}
 								{@render tabIcon(tab)}
 							{:else}

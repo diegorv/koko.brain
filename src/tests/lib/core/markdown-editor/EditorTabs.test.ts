@@ -1,12 +1,14 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mount, unmount, flushSync } from 'svelte';
+import { mount, unmount, flushSync, createRawSnippet } from 'svelte';
 
 vi.mock('@tauri-apps/api/core', () => ({
 	invoke: vi.fn(() => Promise.resolve([])),
 }));
 
 import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
+import { TAGS_VIRTUAL_PATH } from '#lib/core/editor/editor.logic.js';
+import type { EditorTab } from '#lib/core/editor/editor.types.js';
 import EditorTabs from '#lib/core/markdown-editor/EditorTabs.svelte';
 
 // jsdom has no layout, so it has no `scrollIntoView`; the spy records the calls.
@@ -153,5 +155,61 @@ describe('EditorTabs tab menu', () => {
 		flushSync();
 
 		expect(await openTabMenu()).toEqual(['Unpin tab']);
+	});
+});
+
+describe('EditorTabs tab icon', () => {
+	let component: Record<string, unknown> | null = null;
+	let target: HTMLElement;
+
+	beforeEach(() => {
+		editorStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.replaceChildren();
+		editorStore.reset();
+	});
+
+	function tabIconClass(): string {
+		return target.querySelector('[role="tab"] svg')?.getAttribute('class') ?? '';
+	}
+
+	it('shows a tag icon, not the note icon, on the Tags tab', () => {
+		editorStore.addTab({ path: TAGS_VIRTUAL_PATH, name: 'Tags', content: '', savedContent: '', fileType: 'tags' });
+		const tabIcon = createRawSnippet((_tab: () => EditorTab) => ({ render: () => '<i class="from-snippet"></i>' }));
+		component = mount(EditorTabs, { target, props: { tabIcon } });
+		flushSync();
+
+		const tab = target.querySelector('[role="tab"]')!;
+		expect(tabIconClass()).toContain('lucide-tag');
+		expect(tab.querySelector('.lucide-file-text')).toBeNull();
+		expect(tab.querySelector('.from-snippet')).toBeNull();
+	});
+
+	it('still shows the file icon on a note tab without a tabIcon snippet', () => {
+		addNote('One');
+		component = mount(EditorTabs, { target });
+		flushSync();
+
+		expect(tabIconClass()).toContain('lucide-file-text');
+		expect(tabIconClass()).not.toContain('lucide-tag');
+	});
+
+	it('still renders a note tab through the tabIcon snippet', () => {
+		addNote('One');
+		const tabIcon = createRawSnippet((tab: () => EditorTab) => ({
+			render: () => `<i class="from-snippet" data-path="${tab().path}"></i>`,
+		}));
+		component = mount(EditorTabs, { target, props: { tabIcon } });
+		flushSync();
+
+		const tab = target.querySelector('[role="tab"]')!;
+		expect(tab.querySelector('.from-snippet')?.getAttribute('data-path')).toBe('/vault/One.md');
+		expect(tab.querySelector('svg.lucide-file-text')).toBeNull();
+		expect(tab.querySelector('svg.lucide-tag')).toBeNull();
 	});
 });
