@@ -43,7 +43,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 06 | [Palette: calendar Undo/Redo only when they can act, Calendar category, Recent / All commands groups](issues/06-palette-calendar-undo-recent-groups.md) | 01 | done | issue/06-palette-calendar-undo-recent-groups (90ccfc691) | 2026-11-17 |
 | 07 | [Quick switcher rows: type icon, folder, Archived tag, match highlight, Recent notes heading](issues/07-quick-switcher-rows-type-icon-folder-highlight.md) | 02 | done | issue/07-quick-switcher-rows-type-icon-folder-highlight (2063e2bfe) | 2026-11-17 |
 | 08 | [Tags view keeps its list and expanded tags on screen while it refreshes](issues/08-tags-view-keeps-list-while-refreshing.md) | none | done | issue/08-tags-view-keeps-list-while-refreshing (9023e5e61) | 2026-11-17 |
-| 09 | [Tags header says "Showing X of Y" and the empty state explains the rare-tag filter](issues/09-tags-header-showing-x-of-y.md) | 08 | in-progress | | |
+| 09 | [Tags header says "Showing X of Y" and the empty state explains the rare-tag filter](issues/09-tags-header-showing-x-of-y.md) | 08 | done | issue/09-tags-header-showing-x-of-y (b137b906c) | 2026-11-17 |
 | 10 | [Tags rows align leaves with parents, name their chevron and colour controls, and the Tags tab shows a tag icon](issues/10-tags-rows-align-label-controls-tab-icon.md) | none | todo | | |
 | 11 | [Tags view filter box matching full paths](issues/11-tags-view-filter-box.md) | 09, 10 | todo | | |
 | 12 | [Graph controls on shadcn Switch/Select: no Close, working "All", accessible names, filter that does not trap](issues/12-graph-controls-shadcn-switch-select.md) | none | todo | | |
@@ -77,3 +77,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 16:57 — 09 — start — launched by /relay-lite:run — 5ab5c96e2
 - 2026-11-17 16:59 — 05 — deliver — merged; reviews APPROVED x2 (claude): fix round made the cap flag per mode, spinner padding, Hybrid 70-result help; round-2 nit (stale Rust-hybrid text list shows N+ briefly after switching to Text) left open; full suite 644 files / 17178 tests passed — 7fcc9c141
 - 2026-11-17 16:59 — 16 — start — launched by /relay-lite:run — 92559dd1e
+- 2026-11-17 17:10 — 09 — deliver — merged; reviews APPROVED x2 (claude): fix round renamed the filter icon title and added the singular empty state; full suite 644 files / 17186 tests passed — b137b906c
