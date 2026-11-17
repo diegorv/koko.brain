@@ -25,9 +25,9 @@ test src/tests/lib/features/tags/TagsView.test.ts mocks src/lib/features/tags/ta
 sym src/lib/features/tags/tags.service.ts:26 fn buildTagIndex(): Promise<void> L33 | Builds the tag tree from the Rust `VaultIndex`.
 by src/lib/features/tags/tags.service.ts:buildTagIndex <- src/lib/app/lifecycle/app-lifecycle.service.ts:433 in initializeVault call
 sym src/lib/features/tags/tags.service.ts:64 fn updateTagSort(mode: 'name' | 'count'): void L4 | Updates the sort mode and re-sorts the existing tree.
-by src/lib/features/tags/tags.service.ts:updateTagSort <- src/lib/features/tags/TagsView.svelte:28 in toggleSort call
+by src/lib/features/tags/tags.service.ts:updateTagSort <- src/lib/features/tags/TagsView.svelte:29 in toggleSort call
 sym src/lib/features/tags/tags.service.ts:109 fn scheduleTagIndexRebuild(): void L3 | Schedules a tag-index rebuild with a 300 ms trailing debounce and single-flight semantics.
-by src/lib/features/tags/tags.service.ts:scheduleTagIndexRebuild <- src/lib/features/tags/TagsView.svelte:48 in $effect@45 call
+by src/lib/features/tags/tags.service.ts:scheduleTagIndexRebuild <- src/lib/features/tags/TagsView.svelte:61 in $effect@58 call
 sym src/lib/features/tags/tags.service.ts:118 fn flushScheduledTagIndexRebuild(): Promise<void> L6 | Flushes any pending debounced trigger and waits for the current rebuild (and any pending re-run) to settle.
 sym src/lib/features/tags/tags.service.ts:126 fn openTagsTab(): void L14 | Opens or focuses the Tags tab.
 sym src/lib/features/tags/tags.service.ts:142 fn closeTagsTab(): void L6 | Closes the Tags tab if it exists.

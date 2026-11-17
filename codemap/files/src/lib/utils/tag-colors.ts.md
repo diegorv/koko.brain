@@ -5,7 +5,7 @@ file src/lib/utils/tag-colors.ts other L44 module src/lib/utils in4 t1
 imp src/lib/features/properties/PropertyField.svelte:13 -> src/lib/utils/tag-colors.ts getTagColor
 imp src/lib/features/tags/TagColorPicker.svelte:5 -> src/lib/utils/tag-colors.ts TAG_COLOR_PRESET_ENTRIES
 imp src/lib/features/tags/TagItem.svelte:6 -> src/lib/utils/tag-colors.ts getTagColor
-imp src/lib/features/tags/TagsView.svelte:12 -> src/lib/utils/tag-colors.ts setTagColor
+imp src/lib/features/tags/TagsView.svelte:13 -> src/lib/utils/tag-colors.ts setTagColor
 ## reach
 in2 src/lib/utils/tag-colors.ts 2 files in 2 modules: src/lib/app(1) src/lib/features/properties(1)
 out2 src/lib/utils/tag-colors.ts 0 files in 0 modules: -
@@ -19,4 +19,4 @@ sym src/lib/utils/tag-colors.ts:19 fn getTagColor(tagPath: string, colorMap: Rec
 by src/lib/utils/tag-colors.ts:getTagColor <- src/lib/features/properties/PropertyField.svelte:171 in (markup) markup
 by src/lib/utils/tag-colors.ts:getTagColor <- src/lib/features/tags/TagItem.svelte:23 in getColor call
 sym src/lib/utils/tag-colors.ts:31 fn setTagColor(colorMap: Record<string, string>, tagPath: string, color: string | undefined): Record<string, string> L14 | Returns an updated color map with the given tag color set or removed.
-by src/lib/utils/tag-colors.ts:setTagColor <- src/lib/features/tags/TagsView.svelte:22 in handleColorChange call
+by src/lib/utils/tag-colors.ts:setTagColor <- src/lib/features/tags/TagsView.svelte:23 in handleColorChange call

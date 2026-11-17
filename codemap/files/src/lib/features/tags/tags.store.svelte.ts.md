@@ -16,19 +16,19 @@ test src/tests/lib/features/tags/TagsView.test.ts imports src/lib/features/tags/
 test src/tests/lib/features/tags/tags.service.test.ts imports src/lib/features/tags/tags.store.svelte.ts
 ## symbols
 sym src/lib/features/tags/tags.store.svelte.ts:11 store tagsStore L25
-by src/lib/features/tags/tags.store.svelte.ts:tagsStore <- src/lib/features/tags/TagsView.svelte:27 in toggleSort member +13
+by src/lib/features/tags/tags.store.svelte.ts:tagsStore <- src/lib/features/tags/TagsView.svelte:28 in toggleSort member +20
 by src/lib/features/tags/tags.store.svelte.ts:tagsStore <- src/lib/features/tags/tags.service.ts:27 in buildTagIndex mcall +9
 ## store
 store src/lib/features/tags/tags.store.svelte.ts:11 tagsStore esc:0
-mem src/lib/features/tags/tags.store.svelte.ts:12 get tagsStore.tagTree r:src/lib/features/tags/TagsView.svelte:37,src/lib/features/tags/TagsView.svelte:38,src/lib/features/tags/tags.service.ts:66 w-via:setTagTree,reset
-mem src/lib/features/tags/tags.store.svelte.ts:13 get tagsStore.sortMode r:src/lib/features/tags/TagsView.svelte:27,src/lib/features/tags/TagsView.svelte:72,src/lib/features/tags/TagsView.svelte:74,src/lib/features/tags/tags.service.ts:41 w-via:setSortMode,reset
-mem src/lib/features/tags/tags.store.svelte.ts:14 get tagsStore.hideRareTags r:src/lib/features/tags/TagsView.svelte:32,src/lib/features/tags/TagsView.svelte:36,src/lib/features/tags/TagsView.svelte:65,src/lib/features/tags/TagsView.svelte:67 w-via:setHideRareTags,reset
-mem src/lib/features/tags/tags.store.svelte.ts:15 get tagsStore.isLoading r:src/lib/features/tags/TagsView.svelte:43 w-via:setLoading,reset
-mem src/lib/features/tags/tags.store.svelte.ts:17 get tagsStore.hasLoaded r:src/lib/features/tags/TagsView.svelte:43 w-via:setHasLoaded,reset | Whether a tag tree has been built, so a refresh can keep the current list on screen.
-mem src/lib/features/tags/tags.store.svelte.ts:18 get tagsStore.totalTagCount r:src/lib/features/tags/TagsView.svelte:58 w-via:setTotalTagCount,reset
+mem src/lib/features/tags/tags.store.svelte.ts:12 get tagsStore.tagTree r:src/lib/features/tags/TagsView.svelte:38,src/lib/features/tags/TagsView.svelte:39,src/lib/features/tags/TagsView.svelte:51,src/lib/features/tags/tags.service.ts:66 w-via:setTagTree,reset
+mem src/lib/features/tags/tags.store.svelte.ts:13 get tagsStore.sortMode r:src/lib/features/tags/TagsView.svelte:28,src/lib/features/tags/TagsView.svelte:90,src/lib/features/tags/TagsView.svelte:92,src/lib/features/tags/tags.service.ts:41 w-via:setSortMode,reset
+mem src/lib/features/tags/tags.store.svelte.ts:14 get tagsStore.hideRareTags r:src/lib/features/tags/TagsView.svelte:33,src/lib/features/tags/TagsView.svelte:37,src/lib/features/tags/TagsView.svelte:47,src/lib/features/tags/TagsView.svelte:51,src/lib/features/tags/TagsView.svelte:83,src/lib/features/tags/TagsView.svelte:85 w-via:setHideRareTags,reset
+mem src/lib/features/tags/tags.store.svelte.ts:15 get tagsStore.isLoading r:src/lib/features/tags/TagsView.svelte:56 w-via:setLoading,reset
+mem src/lib/features/tags/tags.store.svelte.ts:17 get tagsStore.hasLoaded r:src/lib/features/tags/TagsView.svelte:56 w-via:setHasLoaded,reset | Whether a tag tree has been built, so a refresh can keep the current list on screen.
+mem src/lib/features/tags/tags.store.svelte.ts:18 get tagsStore.totalTagCount r:src/lib/features/tags/TagsView.svelte:47,src/lib/features/tags/TagsView.svelte:72,src/lib/features/tags/TagsView.svelte:75,src/lib/features/tags/TagsView.svelte:106 w-via:setTotalTagCount,reset
 mem src/lib/features/tags/tags.store.svelte.ts:20 do tagsStore.setTagTree w:src/lib/features/tags/tags.service.ts:44,src/lib/features/tags/tags.service.ts:66
 mem src/lib/features/tags/tags.store.svelte.ts:21 do tagsStore.setSortMode w:src/lib/features/tags/tags.service.ts:65
-mem src/lib/features/tags/tags.store.svelte.ts:22 do tagsStore.setHideRareTags w:src/lib/features/tags/TagsView.svelte:32
+mem src/lib/features/tags/tags.store.svelte.ts:22 do tagsStore.setHideRareTags w:src/lib/features/tags/TagsView.svelte:33
 mem src/lib/features/tags/tags.store.svelte.ts:23 do tagsStore.setLoading w:src/lib/features/tags/tags.service.ts:27,src/lib/features/tags/tags.service.ts:56
 mem src/lib/features/tags/tags.store.svelte.ts:24 do tagsStore.setHasLoaded w:src/lib/features/tags/tags.service.ts:46
 mem src/lib/features/tags/tags.store.svelte.ts:25 do tagsStore.setTotalTagCount w:src/lib/features/tags/tags.service.ts:45
