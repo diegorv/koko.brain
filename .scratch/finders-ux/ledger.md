@@ -49,7 +49,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 12 | [Graph controls on shadcn Switch/Select: no Close, working "All", accessible names, filter that does not trap](issues/12-graph-controls-shadcn-switch-select.md) | none | done | issue/12-graph-controls-shadcn-switch-select (7e0a314ea) | 2026-11-17 |
 | 13 | [Local graph isolated, loading and error states with Retry](issues/13-local-graph-isolated-loading-error-states.md) | 12 | done | issue/13-local-graph-isolated-loading-error-states (854888c7d) | 2026-11-17 |
 | 14 | [Local graph depth stepper (1 to 3)](issues/14-local-graph-depth-stepper.md) | 12, 13 | done | issue/14-local-graph-depth-stepper (2987ce269) | 2026-11-17 |
-| 15 | [Graph labels drawn by priority, skipping overlaps](issues/15-graph-labels-priority-skip-overlaps.md) | none | in-progress | | |
+| 15 | [Graph labels drawn by priority, skipping overlaps](issues/15-graph-labels-priority-skip-overlaps.md) | none | done | issue/15-graph-labels-priority-skip-overlaps (d63fc28bd) | 2026-11-17 |
 | 16 | [Text search with tag: or path: filters before the result cap, matches nested tags, and drops stale operator results](issues/16-text-search-operators-before-cap-nested-tags.md) | 05 | done | issue/16-text-search-operators-before-cap-nested-tags (697b8a4d3) | 2026-11-17 |
 
 ## Log
@@ -92,3 +92,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 18:18 — 14 — start — launched by /relay-lite:run — 37be6f828
 - 2026-11-17 18:28 — 14 — deliver — merged; review APPROVED (claude), 2 nits rejected with reasons; full suite 645 files / 17089 tests passed — 2987ce269
 - 2026-11-17 18:28 — 15 — start — launched by /relay-lite:run — 69322ca5d
+- 2026-11-17 18:45 — 15 — deliver — merged; reviews APPROVED x2 (claude): fix round added a hovered-label render test and a brute-force overlap-grid check; full suite 646 files / 17102 tests passed — d63fc28bd
