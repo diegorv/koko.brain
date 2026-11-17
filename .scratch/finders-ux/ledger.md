@@ -48,7 +48,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 11 | [Tags view filter box matching full paths](issues/11-tags-view-filter-box.md) | 09, 10 | done | issue/11-tags-view-filter-box (840c1c562) | 2026-11-17 |
 | 12 | [Graph controls on shadcn Switch/Select: no Close, working "All", accessible names, filter that does not trap](issues/12-graph-controls-shadcn-switch-select.md) | none | done | issue/12-graph-controls-shadcn-switch-select (7e0a314ea) | 2026-11-17 |
 | 13 | [Local graph isolated, loading and error states with Retry](issues/13-local-graph-isolated-loading-error-states.md) | 12 | done | issue/13-local-graph-isolated-loading-error-states (854888c7d) | 2026-11-17 |
-| 14 | [Local graph depth stepper (1 to 3)](issues/14-local-graph-depth-stepper.md) | 12, 13 | todo | | |
+| 14 | [Local graph depth stepper (1 to 3)](issues/14-local-graph-depth-stepper.md) | 12, 13 | in-progress | | |
 | 15 | [Graph labels drawn by priority, skipping overlaps](issues/15-graph-labels-priority-skip-overlaps.md) | none | todo | | |
 | 16 | [Text search with tag: or path: filters before the result cap, matches nested tags, and drops stale operator results](issues/16-text-search-operators-before-cap-nested-tags.md) | 05 | done | issue/16-text-search-operators-before-cap-nested-tags (697b8a4d3) | 2026-11-17 |
 
@@ -89,3 +89,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 18:06 — 11 — deliver — merged by hand; review APPROVED (claude), findings resolved in review.md; full suite 645 files / 17071 tests passed (codemap now CI only) — 840c1c562
 - 2026-11-17 18:06 — 13 — start — launched by /relay-lite:run — 82dd0c047
 - 2026-11-17 18:18 — 13 — deliver — merged; review APPROVED (claude), 3 nits rejected with reasons; full suite 645 files / 17078 tests passed — 854888c7d
+- 2026-11-17 18:18 — 14 — start — launched by /relay-lite:run — 37be6f828
