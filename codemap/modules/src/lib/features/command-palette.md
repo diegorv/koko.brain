@@ -13,13 +13,13 @@ entry src/lib/features/command-palette/command-palette.service.ts ext-in1 src/li
 entry src/lib/features/command-palette/command-palette.store.svelte.ts ext-in1 src/lib/app/global-keybindings.ts
 entry src/lib/features/command-palette/command-palette.types.ts ext-in1 src/lib/app/commands.ts
 ## files
-file src/lib/features/command-palette/CommandPalette.svelte component L72 module src/lib/features/command-palette in1 t1
+file src/lib/features/command-palette/CommandPalette.svelte component L76 module src/lib/features/command-palette in1 t1
 file src/lib/features/command-palette/command-palette.logic.ts logic L44 module src/lib/features/command-palette in1 t1
 file src/lib/features/command-palette/command-palette.service.ts service L6 module src/lib/features/command-palette in1 t1
 file src/lib/features/command-palette/command-palette.store.svelte.ts store L57 module src/lib/features/command-palette in3 t4
 file src/lib/features/command-palette/command-palette.types.ts types L17 module src/lib/features/command-palette in3 t0
 ## public
-sym src/lib/features/command-palette/CommandPalette.svelte:1 component CommandPalette props:commands L72
+sym src/lib/features/command-palette/CommandPalette.svelte:1 component CommandPalette props:commands L76
 sym src/lib/features/command-palette/command-palette.service.ts:4 fn resetCommandPalette(): void L3 | Resets the command palette store to its initial state.
 sym src/lib/features/command-palette/command-palette.store.svelte.ts:24 store commandPaletteStore L34
 sym src/lib/features/command-palette/command-palette.types.ts:1 interface AppCommand L7

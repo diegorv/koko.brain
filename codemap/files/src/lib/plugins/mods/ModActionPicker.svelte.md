@@ -37,7 +37,7 @@ call src/lib/plugins/mods/ModActionPicker.svelte:51 in $effect@50 -> src/lib/plu
 call src/lib/plugins/mods/ModActionPicker.svelte:69 in handleOpenChange -> src/lib/plugins/mods/mod-picker.store.svelte.ts:modPickerStore.close mcall
 call src/lib/plugins/mods/ModActionPicker.svelte:75 in pick -> src/lib/plugins/mods/mod-picker.store.svelte.ts:modPickerStore.askInput mcall
 call src/lib/plugins/mods/ModActionPicker.svelte:98 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleOpenChange markup
-call src/lib/plugins/mods/ModActionPicker.svelte:104 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleRunKeydown markup
+call src/lib/plugins/mods/ModActionPicker.svelte:105 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleRunKeydown markup
 call src/lib/plugins/mods/ModActionPicker.svelte:118 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:percent markup
 call src/lib/plugins/mods/ModActionPicker.svelte:124 in (markup) -> src/lib/plugins/mods/mods-runs.store.svelte.ts:modsRunsStore.isReloadPending markup
 call src/lib/plugins/mods/ModActionPicker.svelte:128 in (markup) -> src/lib/plugins/mods/ModActionPicker.svelte:handleLogScroll markup

@@ -10,7 +10,7 @@ module src-tauri/src/semantic rust files 12 in-modules 2 out-modules 1 pub 39/69
 module src-tauri/src/utils rust files 5 in-modules 6 out-modules 0 pub 17/33 ipc 0/0 card ~1.8k
 module src-tauri/src/vault rust files 9 in-modules 2 out-modules 1 pub 46/105 ipc 0/0 card ~3.9k
 module src/lib/app app files 15 in-modules 1 out-modules 46 pub 12/27 ipc 11/0 card ~2.4k
-module src/lib/components components files 96 in-modules 30 out-modules 1 pub 0/0 ipc 0/0 card ~6k
+module src/lib/components components files 97 in-modules 30 out-modules 1 pub 0/0 ipc 0/0 card ~6.1k
 module src/lib/contracts contracts files 56 in-modules 25 out-modules 0 pub 45/65 ipc 0/0 card ~4.4k
 module src/lib/core/editor core files 6 in-modules 37 out-modules 3 pub 44/52 ipc 0/0 card ~4.3k
 module src/lib/core/filesystem core files 14 in-modules 29 out-modules 7 pub 58/89 ipc 14/0 card ~6.9k
@@ -69,7 +69,7 @@ layer app -> core 109
 layer app -> features 121
 layer app -> plugins 44
 layer app -> utils 17
-layer components -> components 94
+layer components -> components 98
 layer components -> lib-root 54
 layer contracts -> contracts 85
 layer core -> components 33
