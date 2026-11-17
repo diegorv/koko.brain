@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import { svelte, vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 
 export default defineConfig({
@@ -14,5 +14,9 @@ export default defineConfig({
 	},
 	test: {
 		include: ['src/tests/**/*.test.ts'],
+		// The code map is generated and checked by CI only (codemap/INDEX.md is
+		// written by CI on main). Its tests are slow and time out under local
+		// load, so local runs skip them; GitHub Actions sets CI=true.
+		exclude: [...configDefaults.exclude, ...(process.env.CI ? [] : ['src/tests/lib/architecture/codemap.test.ts'])],
 	},
 });
