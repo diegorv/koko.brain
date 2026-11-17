@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [Tags view keeps its list and expanded tags on screen while it refreshes](issues/08-tags-view-keeps-list-while-refreshing.md) | none | done | issue/08-tags-view-keeps-list-while-refreshing (9023e5e61) | 2026-11-17 |
 | 09 | [Tags header says "Showing X of Y" and the empty state explains the rare-tag filter](issues/09-tags-header-showing-x-of-y.md) | 08 | done | issue/09-tags-header-showing-x-of-y (b137b906c) | 2026-11-17 |
 | 10 | [Tags rows align leaves with parents, name their chevron and colour controls, and the Tags tab shows a tag icon](issues/10-tags-rows-align-label-controls-tab-icon.md) | none | done | issue/10-tags-rows-align-label-controls-tab-icon (19f319469) | 2026-11-17 |
-| 11 | [Tags view filter box matching full paths](issues/11-tags-view-filter-box.md) | 09, 10 | in-progress | | |
+| 11 | [Tags view filter box matching full paths](issues/11-tags-view-filter-box.md) | 09, 10 | blocked | | |
 | 12 | [Graph controls on shadcn Switch/Select: no Close, working "All", accessible names, filter that does not trap](issues/12-graph-controls-shadcn-switch-select.md) | none | in-progress | | |
 | 13 | [Local graph isolated, loading and error states with Retry](issues/13-local-graph-isolated-loading-error-states.md) | 12 | todo | | |
 | 14 | [Local graph depth stepper (1 to 3)](issues/14-local-graph-depth-stepper.md) | 12, 13 | todo | | |
@@ -83,3 +83,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 17:16 — 12 — start — launched by /relay-lite:run — 552891df9
 - 2026-11-17 17:22 — 10 — deliver — merged; review APPROVED (claude), 3 nits resolved without code change; full suite 645 files / 17227 tests passed — 19f319469
 - 2026-11-17 17:22 — 11 — start — launched by /relay-lite:run — dadbc641b
+- 2026-11-17 17:51 — 11 — deliver — full suite failed twice on codemap.test.ts timing tests (34, 44) under load (12 ran in parallel); file passes alone 195/195; review APPROVED; worktree kept at 76c942143 — 3cc2cee97
