@@ -11,6 +11,7 @@ describe('tagsStore', () => {
 		expect(tagsStore.sortMode).toBe('count');
 		expect(tagsStore.hideRareTags).toBe(true);
 		expect(tagsStore.isLoading).toBe(false);
+		expect(tagsStore.hasLoaded).toBe(false);
 		expect(tagsStore.totalTagCount).toBe(0);
 	});
 
@@ -30,6 +31,11 @@ describe('tagsStore', () => {
 		expect(tagsStore.isLoading).toBe(true);
 	});
 
+	it('setHasLoaded updates the loaded flag', () => {
+		tagsStore.setHasLoaded(true);
+		expect(tagsStore.hasLoaded).toBe(true);
+	});
+
 	it('setTotalTagCount updates total count', () => {
 		tagsStore.setTotalTagCount(42);
 		expect(tagsStore.totalTagCount).toBe(42);
@@ -45,6 +51,7 @@ describe('tagsStore', () => {
 		tagsStore.setSortMode('count');
 		tagsStore.setHideRareTags(false);
 		tagsStore.setLoading(true);
+		tagsStore.setHasLoaded(true);
 		tagsStore.setTotalTagCount(10);
 
 		tagsStore.reset();
@@ -53,6 +60,7 @@ describe('tagsStore', () => {
 		expect(tagsStore.sortMode).toBe('count');
 		expect(tagsStore.hideRareTags).toBe(true);
 		expect(tagsStore.isLoading).toBe(false);
+		expect(tagsStore.hasLoaded).toBe(false);
 		expect(tagsStore.totalTagCount).toBe(0);
 	});
 });
