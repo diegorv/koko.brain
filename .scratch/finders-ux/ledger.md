@@ -37,7 +37,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 |---|---|---|---|---|---|
 | 01 | [Command dialogs: input anchored at 18vh, one-line rows, 400px list, key-hint footer, no close X](issues/01-command-dialogs-anchored-dense-rows.md) | none | done | issue/01-command-dialogs-anchored-dense-rows (9479ac613) | 2026-11-17 |
 | 02 | [Quick switcher offers Create while notes match (Shift+Enter), creates Folder/Note paths, and a failed create says why](issues/02-quick-switcher-create-while-matching.md) | 01 | in-progress | | |
-| 03 | [Search result cards: note name, folder, plain-text snippets, themed highlight](issues/03-search-result-cards-name-folder-plain-snippets.md) | none | in-progress | | |
+| 03 | [Search result cards: note name, folder, plain-text snippets, themed highlight](issues/03-search-result-cards-name-folder-plain-snippets.md) | none | done | issue/03-search-result-cards-name-folder-plain-snippets (5d17f397d) | 2026-11-17 |
 | 04 | [Search states: short query, error, disabled mode; operator hints; a11y labels; index status only in the status bar](issues/04-search-panel-states-hints-labels.md) | 03 | todo | | |
 | 05 | [Search keeps previous results dimmed while searching, shows "N+" at the cap, and clearing mid-search does not stick on Searching...](issues/05-search-keeps-results-while-searching.md) | 04 | todo | | |
 | 06 | [Palette: calendar Undo/Redo only when they can act, Calendar category, Recent / All commands groups](issues/06-palette-calendar-undo-recent-groups.md) | 01 | todo | | |
@@ -65,3 +65,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 16:01 — 08 — deliver — merged by hand after a solo full suite (640 files, 17007 tests passed); review APPROVED (claude), nit rejected; earlier deliver runs failed only on load-flaky tests — 9023e5e61
 - 2026-11-17 16:02 — 02 — start — launched by /relay-lite:run — e2f27ea90
 - 2026-11-17 16:12 — 03 — start — deliver finished by hand (re-review rounds 2-3, solo full suite) — 85f95433d
+- 2026-11-17 16:12 — 03 — deliver — merged by hand; reviews APPROVED x3 (claude): round-1 nits fixed, round-2 regression (unbalanced link parens) fixed test-first; full suite 640 files / 17037 tests passed — 5d17f397d
