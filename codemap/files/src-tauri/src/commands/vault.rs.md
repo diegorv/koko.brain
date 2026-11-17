@@ -154,9 +154,9 @@ ipc-call src/lib/app/lifecycle/app-lifecycle.service.ts:385 in initializeVault -
 ipc-call src/lib/core/vault/vault-entries.service.ts:27 in vaultEntriesMemo -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
 ipc-call src/lib/features/file-icons/file-icons.service.ts:203 in buildFrontmatterIconIndex -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
 ipc-call src/lib/features/properties/lifecycle-filter.service.ts:8 in refreshArchivedPaths -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
-ipc-call src/lib/features/search/search.service.ts:219 in performSearch -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
-ipc-call src/lib/features/search/search.service.ts:35 in loadVaultContentMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
-ipc-call src/lib/features/search/search.service.ts:54 in loadVaultTagMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
+ipc-call src/lib/features/search/search.service.ts:226 in performSearch -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
+ipc-call src/lib/features/search/search.service.ts:37 in loadVaultContentMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
+ipc-call src/lib/features/search/search.service.ts:57 in loadVaultTagMap -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
 ipc-call src/lib/features/type-definitions/type-definitions.service.ts:29 in refreshTypeDefinitions -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
 ipc-call src/lib/plugins/graph-view/graph-view.service.ts:15 in buildGraph -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563
 ipc-call src/lib/plugins/quick-capture/composer-editor-host.service.ts:41 in createComposerEditorHost -> ipc:get_all_vault_entries_v2 -> src-tauri/src/commands/vault.rs:563

@@ -22,7 +22,7 @@ imp src/lib/features/properties/RelationshipSearch.svelte:9 -> src/lib/utils/pat
 imp src/lib/features/properties/bookmark-migration.service.ts:6 -> src/lib/utils/path.ts basename,normalizePath
 imp src/lib/features/search/SearchResult.svelte:8 -> src/lib/utils/path.ts relativePath
 imp src/lib/features/search/search.logic.ts:4 -> src/lib/utils/path.ts relativePath,stem
-imp src/lib/features/search/search.service.ts:20 -> src/lib/utils/path.ts stem,vaultRelativeKey
+imp src/lib/features/search/search.service.ts:22 -> src/lib/utils/path.ts stem,vaultRelativeKey
 imp src/lib/features/tasks/task-query.logic.ts:3 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/features/tasks/tasks.logic.ts:2 -> src/lib/utils/path.ts vaultRelativeKey
 imp src/lib/features/tasks/tasks.service.ts:19 -> src/lib/utils/path.ts vaultRelativeKey
@@ -53,15 +53,15 @@ by src/lib/utils/path.ts:basename <- src/lib/features/properties/bookmark-migrat
 sym src/lib/utils/path.ts:79 fn stem(path: string): string L5 | Extracts the last segment of a path without its extension.
 by src/lib/utils/path.ts:stem <- src/lib/core/filesystem/link-updater.logic.ts:16 in extractNoteName call
 by src/lib/utils/path.ts:stem <- src/lib/features/note-action-bar/note-action-bar.service.ts:76 in createLinkedNote call
-by src/lib/utils/path.ts:stem <- src/lib/features/search/search.logic.ts:230 in getFileName call
-by src/lib/utils/path.ts:stem <- src/lib/features/search/search.service.ts:187 in performSearch call
+by src/lib/utils/path.ts:stem <- src/lib/features/search/search.logic.ts:242 in getFileName call
+by src/lib/utils/path.ts:stem <- src/lib/features/search/search.service.ts:190 in performSearch call
 by src/lib/utils/path.ts:stem <- src/lib/plugins/one-on-one/one-on-one.service.ts:114 in registerOneOnOneActionBarAction call
 sym src/lib/utils/path.ts:98 fn relativePath(vaultPath: string, filePath: string): string L6 | Strips the vault root prefix from an absolute path to produce a vault-relative path.
 by src/lib/utils/path.ts:relativePath <- src/lib/core/filesystem/file-entries.logic.ts:39 in entryFolder call
 by src/lib/utils/path.ts:relativePath <- src/lib/core/filesystem/fs.logic.ts:277 in getRelativePath call
 by src/lib/utils/path.ts:relativePath <- src/lib/features/properties/RelationshipSearch.svelte:82 in (markup) markup
 by src/lib/utils/path.ts:relativePath <- src/lib/features/search/SearchResult.svelte:60 in vaultRelPath=$derived call
-by src/lib/utils/path.ts:relativePath <- src/lib/features/search/search.logic.ts:212 in performOperatorOnlySearch call +1
+by src/lib/utils/path.ts:relativePath <- src/lib/features/search/search.logic.ts:224 in performOperatorOnlySearch call +1
 by src/lib/utils/path.ts:relativePath <- src/lib/plugins/mods/mod-query.service.ts:57 in createModQuery call
 by src/lib/utils/path.ts:relativePath <- src/lib/plugins/mods/mod-vault.service.ts:95 in createModVault call +1
 sym src/lib/utils/path.ts:120 fn vaultRelativeKey(vaultPath: string, filePath: string): string | null L4 | Derives the vault-relative key that the FTS5 and semantic tables index on.
@@ -71,7 +71,7 @@ by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/core/filesystem/note-change
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/core/filesystem/path-change.service.ts:230 in applyPathChange call +1
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/auto-organize/auto-organize.service.ts:443 in runRuleAction call
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/deep-link/deep-link.logic.ts:329 in buildOpenNoteDeepLink call
-by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/search/search.service.ts:364 in registerSearchIndexHook call
+by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/search/search.service.ts:375 in registerSearchIndexHook call
 by src/lib/utils/path.ts:vaultRelativeKey <- src/lib/features/tasks/task-query.logic.ts:267 in buildTaskRows call
 more by 3 not shown: src/lib/features/tasks(2) src/lib/plugins/mods(1): q importers src/lib/utils/path.ts:vaultRelativeKey
 ## calls

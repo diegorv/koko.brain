@@ -121,6 +121,7 @@ sym src/lib/utils/debug.ts:41 fn timeAsync<T>(tag: string, label: string, fn: ()
 by src/lib/utils/debug.ts:timeAsync <- src/lib/core/filesystem/fs.service.ts:93 in loadDirectoryTree call +1
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/collection/collection.service.ts:94 in buildPropertyIndex call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/file-icons/file-icons.service.ts:202 in buildFrontmatterIconIndex call
+by src/lib/utils/debug.ts:timeAsync <- src/lib/features/search/search.service.ts:239 in performSearch call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/tags/tags.service.ts:29 in buildTagIndex call
 by src/lib/utils/debug.ts:timeAsync <- src/lib/features/tasks/tasks.service.ts:78 in buildTaskIndex call
 sym src/lib/utils/debug.ts:57 fn timeSync<T>(tag: string, label: string, fn: () => T): T L11 | Times a synchronous operation and logs the elapsed time via debug().

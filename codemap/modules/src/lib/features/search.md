@@ -1,6 +1,6 @@
 # module card src/lib/features/search
 cols: module <path> <layer> files <n> in-modules <n> out-modules <n> pub <public>/<exports> ipc <called>/<served> card ~<k>k · dep <from> -> <to> <file pairs> · in2/out2 <module> <n> modules: <module>(<via>) · entry <file> ext-in<n> <importers> · file … · sym … · grep: grep -rF -- '-> src/lib/features/search ' codemap/modules
-module src/lib/features/search features files 12 in-modules 4 out-modules 9 pub 14/51 ipc 16/0 card ~2.1k
+module src/lib/features/search features files 12 in-modules 4 out-modules 9 pub 14/52 ipc 16/0 card ~2.1k
 ## neighbors
 dep src/lib/app -> src/lib/features/search 10
 dep src/lib/features/deep-link -> src/lib/features/search 1
@@ -33,8 +33,8 @@ file src/lib/features/search/SearchStatus.svelte component L29 module src/lib/fe
 file src/lib/features/search/SemanticIndexStatus.svelte component L69 module src/lib/features/search in1 t1
 file src/lib/features/search/open-search.service.ts service L15 module src/lib/features/search in6 t1
 file src/lib/features/search/search-hybrid.logic.ts logic L73 module src/lib/features/search in1 t1
-file src/lib/features/search/search.logic.ts logic L287 module src/lib/features/search in3 t1
-file src/lib/features/search/search.service.ts service L478 module src/lib/features/search in4 t4
+file src/lib/features/search/search.logic.ts logic L299 module src/lib/features/search in3 t2
+file src/lib/features/search/search.service.ts service L489 module src/lib/features/search in4 t4
 file src/lib/features/search/search.store.svelte.ts store L110 module src/lib/features/search in8 t13
 file src/lib/features/search/search.types.ts types L51 module src/lib/features/search in6 t0
 file src/lib/features/search/semantic-index-status.logic.ts logic L52 module src/lib/features/search in1 t1
@@ -44,14 +44,14 @@ sym src/lib/features/search/SearchSection.svelte:1 component SearchSection L159
 sym src/lib/features/search/SearchStatus.svelte:1 component SearchStatus L29
 sym src/lib/features/search/SemanticIndexStatus.svelte:1 component SemanticIndexStatus L69
 sym src/lib/features/search/open-search.service.ts:11 fn openSearch(query?: string): void L5 | Shows Search with `query` (the current query stays when it is left out): picks the Search rail item, shows the panels Cmd+1 may have hidden and focuses the inp…
-sym src/lib/features/search/search.service.ts:92 fn startSemanticProgressListener(): Promise<void> L23 | Starts listening for semantic-index-progress events from Rust.
-sym src/lib/features/search/search.service.ts:117 fn stopSemanticProgressListener(): void L14 | Stops listening for semantic progress events.
-sym src/lib/features/search/search.service.ts:140 fn performSearch(): Promise<void> L190 | Performs search based on current mode (text/semantic/hybrid).
-sym src/lib/features/search/search.service.ts:332 fn buildSearchIndex(): Promise<void> L17 | Builds the FTS5 search index.
-sym src/lib/features/search/search.service.ts:354 fn registerSearchIndexHook(): () => void L30 | Registers AfterSaveObserver for incremental FTS5 + semantic index updates.
-sym src/lib/features/search/search.service.ts:392 fn initSemanticSearch({ fetchStats = true }: { fetchStats?: boolean } = {}): Promise<void> L25 | Initializes semantic search — loads model if available.
-sym src/lib/features/search/search.service.ts:430 fn buildSemanticIndex(): Promise<void> L39 | Builds the semantic index — chunks and embeds all files.
-sym src/lib/features/search/search.service.ts:471 fn resetSearch() L8 | Resets search state.
+sym src/lib/features/search/search.service.ts:95 fn startSemanticProgressListener(): Promise<void> L23 | Starts listening for semantic-index-progress events from Rust.
+sym src/lib/features/search/search.service.ts:120 fn stopSemanticProgressListener(): void L14 | Stops listening for semantic progress events.
+sym src/lib/features/search/search.service.ts:143 fn performSearch(): Promise<void> L198 | Performs search based on current mode (text/semantic/hybrid).
+sym src/lib/features/search/search.service.ts:343 fn buildSearchIndex(): Promise<void> L17 | Builds the FTS5 search index.
+sym src/lib/features/search/search.service.ts:365 fn registerSearchIndexHook(): () => void L30 | Registers AfterSaveObserver for incremental FTS5 + semantic index updates.
+sym src/lib/features/search/search.service.ts:403 fn initSemanticSearch({ fetchStats = true }: { fetchStats?: boolean } = {}): Promise<void> L25 | Initializes semantic search — loads model if available.
+sym src/lib/features/search/search.service.ts:441 fn buildSemanticIndex(): Promise<void> L39 | Builds the semantic index — chunks and embeds all files.
+sym src/lib/features/search/search.service.ts:482 fn resetSearch() L8 | Resets search state.
 sym src/lib/features/search/search.store.svelte.ts:41 store searchStore L70
 ## stores
 store src/lib/features/search/search.store.svelte.ts:41 searchStore esc:0

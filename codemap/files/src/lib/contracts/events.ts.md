@@ -23,7 +23,7 @@ test src/tests/lib/contracts/ipc.test.ts imports-type src/lib/contracts/events.t
 sym src/lib/contracts/events.ts:16 const EVENT_NAMES L11 | Every event name Rust emits, keyed by its Rust const name minus `_EVENT`.
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/app/tauri-listeners.service.ts:28 in registerMenuSettingsListener member +2
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/core/filesystem/fs.watcher.ts:276 in startWatching member
-by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/features/search/search.service.ts:95 in startSemanticProgressListener member
+by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/features/search/search.service.ts:98 in startSemanticProgressListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/plugins/quick-capture/quick-capture.service.ts:62 in registerQuickCaptureListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/lib/utils/debug.ts:128 in startTauriDebugListener member
 by src/lib/contracts/events.ts:EVENT_NAMES <- src/routes/composer/+page.svelte:214 in (script) member +1

@@ -20,4 +20,4 @@ call src-tauri/src/commands/files.rs:29 in read_files_batch -> src-tauri/src/uti
 call src-tauri/src/commands/files.rs:31 in read_files_batch -> src-tauri/src/utils/fs.rs:validate_vault_path lexical
 ## ipc-in
 ipc-call src/lib/app/lifecycle/watcher-handler.service.ts:98 in incrementalUpdateFiles -> ipc:read_files_batch -> src-tauri/src/commands/files.rs:24
-ipc-call src/lib/features/search/search.service.ts:37 in loadVaultContentMap -> ipc:read_files_batch -> src-tauri/src/commands/files.rs:24
+ipc-call src/lib/features/search/search.service.ts:39 in loadVaultContentMap -> ipc:read_files_batch -> src-tauri/src/commands/files.rs:24

@@ -8,7 +8,7 @@ imp src/lib/features/search/SearchPanel.svelte:13 -> src/lib/features/search/sea
 imp src/lib/features/search/SearchResult.svelte:10 -> src/lib/features/search/search.types.ts type:SearchResult,type:FtsSearchResult,type:SemanticSearchResult,type:HybridSearchResult
 imp src/lib/features/search/search-hybrid.logic.ts:1 -> src/lib/features/search/search.types.ts type:FtsSearchResult,type:SemanticSearchResult,type:HybridSearchResult
 imp src/lib/features/search/search.logic.ts:1 -> src/lib/features/search/search.types.ts type:SearchQuery,type:SearchMatch,type:SearchContextSnippet,type:SearchResult
-imp src/lib/features/search/search.service.ts:22 -> src/lib/features/search/search.types.ts type:SemanticProgress
+imp src/lib/features/search/search.service.ts:24 -> src/lib/features/search/search.types.ts type:SemanticProgress
 imp src/lib/features/search/search.store.svelte.ts:1 -> src/lib/features/search/search.types.ts type:SearchResult,type:SearchMode,type:FtsSearchResult,type:SemanticSearchResult,type:HybridSearchResult,type:SearchIndexStats,type:SemanticStats,type:SemanticProgress
 ## reach
 in2 src/lib/features/search/search.types.ts 7 files in 3 modules: src/lib/features/search(4) src/lib/app(2) src/routes(1)
