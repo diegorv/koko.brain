@@ -1,11 +1,11 @@
 <script lang="ts">
-	import X from '@lucide/svelte/icons/x';
 	import ZoomIn from '@lucide/svelte/icons/zoom-in';
 	import ZoomOut from '@lucide/svelte/icons/zoom-out';
 	import Globe from '@lucide/svelte/icons/globe';
 	import Target from '@lucide/svelte/icons/target';
+	import * as Select from '#lib/components/ui/select/index.js';
+	import { Switch } from '#lib/components/ui/switch/index.js';
 	import { graphViewStore } from './graph-view.store.svelte';
-	import { closeGraphTab } from './graph-view.service';
 	import type { GraphNode } from './graph-view.types';
 	import { getUniqueFolders, getUniqueTags } from './graph-view.logic';
 
@@ -14,17 +14,29 @@
 		onZoomIn,
 		onZoomOut,
 	}: {
+		/** The graph before filters apply, so the options do not shrink to the current selection. */
 		nodes: GraphNode[];
 		onZoomIn: () => void;
 		onZoomOut: () => void;
 	} = $props();
 
+	/**
+	 * Value of the "All tags" / "All folders" items. bits-ui treats `''` as no
+	 * value, so an empty-string item would show as unselected.
+	 */
+	const ALL = '__all__';
+
 	let folders = $derived(getUniqueFolders(nodes));
 	let tags = $derived(getUniqueTags(nodes));
+
+	/** Folder option text: its last path segment, or `/` for the vault root. */
+	function folderLabel(folder: string): string {
+		return folder === '/' ? '/' : (folder.split('/').pop() ?? folder);
+	}
 </script>
 
 <div class="absolute top-3 left-3 z-10 flex flex-col gap-2">
-	<!-- Mode + Close -->
+	<!-- Mode + Zoom -->
 	<div class="flex items-center gap-1 rounded-md border border-border bg-background/90 p-1 backdrop-blur-sm">
 		<button
 			class="rounded-xs px-2 py-1 text-xs transition-colors {graphViewStore.mode === 'global'
@@ -32,6 +44,7 @@
 				: 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => graphViewStore.setMode('global')}
 			title="Global graph"
+			aria-label="Global graph"
 		>
 			<Globe class="h-3.5 w-3.5" />
 		</button>
@@ -41,6 +54,7 @@
 				: 'text-muted-foreground hover:text-foreground'}"
 			onclick={() => graphViewStore.setMode('local')}
 			title="Local graph"
+			aria-label="Local graph"
 		>
 			<Target class="h-3.5 w-3.5" />
 		</button>
@@ -51,6 +65,7 @@
 			class="rounded-xs px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
 			onclick={onZoomIn}
 			title="Zoom in"
+			aria-label="Zoom in"
 		>
 			<ZoomIn class="h-3.5 w-3.5" />
 		</button>
@@ -58,18 +73,9 @@
 			class="rounded-xs px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
 			onclick={onZoomOut}
 			title="Zoom out"
+			aria-label="Zoom out"
 		>
 			<ZoomOut class="h-3.5 w-3.5" />
-		</button>
-
-		<div class="mx-1 h-4 w-px bg-border"></div>
-
-		<button
-			class="rounded-xs px-1 py-1 text-muted-foreground transition-colors hover:text-foreground"
-			onclick={() => closeGraphTab()}
-			title="Close graph"
-		>
-			<X class="h-3.5 w-3.5" />
 		</button>
 	</div>
 
@@ -85,41 +91,47 @@
 
 		<label class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
 			<span>Orphans</span>
-			<button
-				class="h-4 w-7 rounded-full transition-colors {graphViewStore.filters.showOrphans ? 'bg-primary' : 'bg-muted'}"
-				onclick={() => graphViewStore.setFilters({ showOrphans: !graphViewStore.filters.showOrphans })}
-				title="Toggle orphan nodes"
-			>
-				<span
-					class="block h-3 w-3 rounded-full bg-foreground transition-transform {graphViewStore.filters.showOrphans ? 'translate-x-3.5' : 'translate-x-0.5'}"
-				></span>
-			</button>
+			<Switch
+				checked={graphViewStore.filters.showOrphans}
+				onCheckedChange={(v) => graphViewStore.setFilters({ showOrphans: v })}
+			/>
 		</label>
 
-		{#if tags.length > 0}
-			<select
-				class="h-7 rounded-xs border border-border bg-background px-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-				value={graphViewStore.filters.tag ?? ''}
-				onchange={(e) => graphViewStore.setFilters({ tag: e.currentTarget.value || null })}
+		<!-- A set filter keeps its control even when its value is not in the list, so it can be cleared. -->
+		{#if tags.length > 0 || graphViewStore.filters.tag}
+			<Select.Root
+				type="single"
+				value={graphViewStore.filters.tag ?? ALL}
+				onValueChange={(v) => graphViewStore.setFilters({ tag: v === ALL ? null : v })}
 			>
-				<option value="">All tags</option>
-				{#each tags as tag}
-					<option value={tag}>#{tag}</option>
-				{/each}
-			</select>
+				<Select.Trigger size="sm" class="h-7 w-full text-xs" aria-label="Tag filter">
+					<span data-slot="select-value">{graphViewStore.filters.tag ? `#${graphViewStore.filters.tag}` : 'All tags'}</span>
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value={ALL} label="All tags" />
+					{#each tags as tag (tag)}
+						<Select.Item value={tag} label={`#${tag}`} />
+					{/each}
+				</Select.Content>
+			</Select.Root>
 		{/if}
 
-		{#if folders.length > 1}
-			<select
-				class="h-7 rounded-xs border border-border bg-background px-1 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-				value={graphViewStore.filters.folder ?? ''}
-				onchange={(e) => graphViewStore.setFilters({ folder: e.currentTarget.value || null })}
+		{#if folders.length > 1 || graphViewStore.filters.folder}
+			<Select.Root
+				type="single"
+				value={graphViewStore.filters.folder ?? ALL}
+				onValueChange={(v) => graphViewStore.setFilters({ folder: v === ALL ? null : v })}
 			>
-				<option value="">All folders</option>
-				{#each folders as folder}
-					<option value={folder}>{folder === '/' ? '/' : folder.split('/').pop()}</option>
-				{/each}
-			</select>
+				<Select.Trigger size="sm" class="h-7 w-full text-xs" aria-label="Folder filter">
+					<span data-slot="select-value">{graphViewStore.filters.folder ? folderLabel(graphViewStore.filters.folder) : 'All folders'}</span>
+				</Select.Trigger>
+				<Select.Content>
+					<Select.Item value={ALL} label="All folders" />
+					{#each folders as folder (folder)}
+						<Select.Item value={folder} label={folderLabel(folder)} />
+					{/each}
+				</Select.Content>
+			</Select.Root>
 		{/if}
 	</div>
 
@@ -128,15 +140,10 @@
 		<span class="section-label">Display</span>
 		<label class="flex items-center justify-between gap-2 text-xs text-muted-foreground">
 			<span>Arrows</span>
-			<button
-				class="h-4 w-7 rounded-full transition-colors {graphViewStore.display.showArrows ? 'bg-primary' : 'bg-muted'}"
-				onclick={() => graphViewStore.setDisplay({ showArrows: !graphViewStore.display.showArrows })}
-				title="Toggle directional arrows"
-			>
-				<span
-					class="block h-3 w-3 rounded-full bg-foreground transition-transform {graphViewStore.display.showArrows ? 'translate-x-3.5' : 'translate-x-0.5'}"
-				></span>
-			</button>
+			<Switch
+				checked={graphViewStore.display.showArrows}
+				onCheckedChange={(v) => graphViewStore.setDisplay({ showArrows: v })}
+			/>
 		</label>
 	</div>
 </div>

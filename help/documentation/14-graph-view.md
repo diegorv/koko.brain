@@ -59,7 +59,7 @@ A separate **Display** panel controls how edges are drawn:
 |---------|-------------|
 | **Arrows** | Toggle directional arrows on edges (bidirectional arrows for mutual links) |
 
-The controls panel also includes **Zoom In / Zoom Out** buttons and a **Close** button.
+The controls panel also includes **Zoom In / Zoom Out** buttons. Close the graph with the **X** on its tab or with `Cmd+G`.
 
 ## Layout
 

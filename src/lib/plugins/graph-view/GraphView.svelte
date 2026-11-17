@@ -43,6 +43,11 @@
 	// filter/mode/tab effects below do NOT refetch — they reuse this cache.
 	let fullData: GraphData = { nodes: [], links: [] };
 
+	// Nodes of the graph on screen before filters apply (global, or local when
+	// centered). The filter options come from these, not from `simNodes`, so
+	// picking a folder or tag never removes the option that clears it.
+	let filterOptionNodes = $state.raw<GraphNode[]>([]);
+
 	// Colors read from the applied theme's CSS variables; refreshed by the
 	// `appliedThemeStore.revision` effect below. Raw: it is only replaced whole,
 	// and `render()` reads it per node and link on every tick.
@@ -60,10 +65,16 @@
 		});
 	}
 
-	function getDisplayData() {
-		let data = graphViewStore.mode === 'local' && graphViewStore.centerPath
+	/** The graph for the current mode, before filters apply. */
+	function getBaseData(): GraphData {
+		return graphViewStore.mode === 'local' && graphViewStore.centerPath
 			? getLocalGraph(fullData, graphViewStore.centerPath, 1)
 			: fullData;
+	}
+
+	/** Applies the store's filters to `base`. */
+	function getDisplayData(base: GraphData): GraphData {
+		let data = base;
 
 		const { tag, folder, searchQuery, showOrphans } = graphViewStore.filters;
 		if (tag || folder || searchQuery || !showOrphans) {
@@ -93,7 +104,9 @@
 	function initSimulation() {
 		if (simulation) simulation.stop();
 
-		const data = getDisplayData();
+		const base = getBaseData();
+		filterOptionNodes = base.nodes;
+		const data = getDisplayData(base);
 
 		// Create sim nodes with copies so d3 can mutate x/y
 		simNodes = data.nodes.map((n) => ({ ...n }));
@@ -454,7 +467,7 @@
 		</div>
 	{/if}
 	<GraphControls
-		nodes={simNodes}
+		nodes={filterOptionNodes}
 		onZoomIn={handleZoomIn}
 		onZoomOut={handleZoomOut}
 	/>
