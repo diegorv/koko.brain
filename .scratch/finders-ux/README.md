@@ -21,6 +21,7 @@ The design review of 2026-11-17 (`.scratch/design-review/review.md`) groups its 
 | 13 | [Local graph isolated, loading and error states with Retry](issues/13-local-graph-isolated-loading-error-states.md) | P155 | 12 |
 | 14 | [Local graph depth stepper (1 to 3)](issues/14-local-graph-depth-stepper.md) | P155 (depth part) | 12, 13 |
 | 15 | [Graph labels drawn by priority, skipping overlaps](issues/15-graph-labels-priority-skip-overlaps.md) | P78 | none |
+| 16 | [Text search with tag: or path: filters before the result cap, matches nested tags, and drops stale operator results](issues/16-text-search-operators-before-cap-nested-tags.md) | none (old Issue 045) | 05 |
 
 Free to start: 01, 03, 08, 10, 12, 15. The blockers follow shared files: 03 to 05 all edit `search.service.ts` and `SearchPanel.svelte`; 02 and 07 both edit `QuickSwitcher.svelte`; 09 and 11 edit the `TagsView` header and empty branch; 12, 13 and 14 run in that order because 12 and 13 both add reactive graph state at `GraphView.svelte:44` and edit adjacent template lines, and 14 edits `GraphControls.svelte` (with 12) and `GraphView.svelte` and `GraphView.test.ts` (with 13). 15 is free because it edits only the label block of `render()` in `GraphView.svelte` and adds its own test file. `help/documentation/06-search-and-navigation.md` is edited by 02 to 07 in different sections, so parallel runs may need a trivial rebase.
 
@@ -30,7 +31,7 @@ Free to start: 01, 03, 08, 10, 12, 15. The blockers follow shared files: 03 to 0
 
 ## Dropped edges
 
-`research/breakdown.md` also ordered these tickets against open-itens Issues that touch the same files: 045, 087, 160, 165, 166, 204, 205 and 209. Those edges are dropped because `.scratch/open-itens` is abandoned. 045 (text-search operators are filtered after the FTS cap of 50, and tags match exactly) is the one with a behavioural tie: ticket 05 shows the "+" for today's capped behaviour and does not decide 045's fix, which is flagged to the owner separately.
+`research/breakdown.md` also ordered these tickets against open-itens Issues that touch the same files: 045, 087, 160, 165, 166, 204, 205 and 209. Those edges are dropped because `.scratch/open-itens` is abandoned, except 045, which the owner carried in as ticket 16 (operators filtered before the cap, nested tag match); 16 runs after 05 and updates 05's "+" for the operator branch.
 
 ## Not in this group
 
@@ -50,5 +51,6 @@ Each is marked wontfix in `.scratch/open-itens/issues/` with a pointer to its re
 | 212 Tags view explains the rare-tag filter | 09 |
 | 208 graph controls and event dialog use shadcn controls (graph half only) | 12 |
 | 206 graph, collection and kanban empty and error states (graph half only) | 13 |
+| 045 text search with tag: or path: filtered after the cap | 16 |
 
 The EventDialog checkbox half of 208 returns with the calendar-tasks group (`.scratch/design-review/prototypes/calendar-tasks.html`); the canvas, collection and kanban halves of 206 return with the canvas, collection-queryjs and kanban-board groups (`prototypes/canvas.html`, `prototypes/collection-queryjs.html`, `prototypes/kanban-board.html`).
