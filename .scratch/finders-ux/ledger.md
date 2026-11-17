@@ -50,7 +50,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 13 | [Local graph isolated, loading and error states with Retry](issues/13-local-graph-isolated-loading-error-states.md) | 12 | todo | | |
 | 14 | [Local graph depth stepper (1 to 3)](issues/14-local-graph-depth-stepper.md) | 12, 13 | todo | | |
 | 15 | [Graph labels drawn by priority, skipping overlaps](issues/15-graph-labels-priority-skip-overlaps.md) | none | todo | | |
-| 16 | [Text search with tag: or path: filters before the result cap, matches nested tags, and drops stale operator results](issues/16-text-search-operators-before-cap-nested-tags.md) | 05 | in-progress | | |
+| 16 | [Text search with tag: or path: filters before the result cap, matches nested tags, and drops stale operator results](issues/16-text-search-operators-before-cap-nested-tags.md) | 05 | done | issue/16-text-search-operators-before-cap-nested-tags (697b8a4d3) | 2026-11-17 |
 
 ## Log
 
@@ -79,3 +79,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 16:59 — 16 — start — launched by /relay-lite:run — 92559dd1e
 - 2026-11-17 17:10 — 09 — deliver — merged; reviews APPROVED x2 (claude): fix round renamed the filter icon title and added the singular empty state; full suite 644 files / 17186 tests passed — b137b906c
 - 2026-11-17 17:10 — 10 — start — launched by /relay-lite:run — 7bef5abcf
+- 2026-11-17 17:16 — 16 — deliver — merged; reviews APPROVED x2 (claude): fix round made the tag:work zzzz test cover an empty filtered list; full suite 644 files / 17223 tests passed — 697b8a4d3
