@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { mount, unmount, flushSync } from 'svelte';
+import { SvelteSet } from 'svelte/reactivity';
 import { setupLocalStorage } from '../../../fixtures/localStorage.fixture';
 
 setupLocalStorage();
@@ -116,5 +117,81 @@ describe('TagItem rows', () => {
 		mountRows(leaf);
 		expect(target.querySelector('[data-slot="collapsible-trigger"]')).toBeNull();
 		expect(dotTriggers().map((d) => d.getAttribute('aria-label'))).toEqual(['Color of home']);
+	});
+});
+
+describe('TagItem forceOpen', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	const nested = node('area', 0, [node('area/home', 0, [node('area/home/garden', 1)])]);
+
+	function mountRow(forceOpen: ReadonlySet<string>) {
+		component = mount(TagItem, { target, props: { node: nested, forceOpen, onTagClick: vi.fn(), onColorChange: vi.fn() } });
+		flushSync();
+	}
+
+	function chevron(path: string): HTMLElement {
+		const el = target.querySelector<HTMLElement>(`[aria-label="Subtags of ${path}"]`);
+		expect(el).not.toBeNull();
+		return el!;
+	}
+
+	/**
+	 * The tag names in open rows. A closed row keeps its children in the DOM,
+	 * hidden only after its exit animation, so the content's state decides.
+	 */
+	function listed(): string[] {
+		return [...target.querySelectorAll('span.truncate')]
+			.filter((s) => s.closest('[data-slot="collapsible-content"][data-state="closed"]') === null)
+			.map((s) => s.textContent?.trim() ?? '');
+	}
+
+	beforeEach(() => {
+		settingsStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('shows a forced row and its forced children expanded without a click', () => {
+		mountRow(new Set(['area', 'area/home']));
+		expect(listed()).toEqual(['area', 'home', 'garden']);
+		expect(chevron('area').getAttribute('aria-expanded')).toBe('true');
+	});
+
+	it('keeps a forced row open when its chevron is clicked', () => {
+		mountRow(new Set(['area']));
+		chevron('area').click();
+		flushSync();
+		expect(chevron('area').getAttribute('aria-expanded')).toBe('true');
+		expect(listed()).toEqual(['area', 'home']);
+	});
+
+	it('returns to the row\'s own state when the path leaves the set', () => {
+		const forced = new SvelteSet<string>();
+		mountRow(forced);
+		chevron('area').click();
+		flushSync();
+		expect(chevron('area').getAttribute('aria-expanded')).toBe('true');
+
+		// Forced while the user had it open: a chevron click during it must not
+		// overwrite the user's open state.
+		forced.add('area');
+		forced.add('area/home');
+		flushSync();
+		chevron('area').click();
+		flushSync();
+		expect(listed()).toEqual(['area', 'home', 'garden']);
+
+		forced.clear();
+		flushSync();
+		expect(chevron('area').getAttribute('aria-expanded')).toBe('true');
+		expect(chevron('area/home').getAttribute('aria-expanded')).toBe('false');
+		expect(listed()).toEqual(['area', 'home']);
 	});
 });

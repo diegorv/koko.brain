@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { buildTagTree, sortTagTree, filterTagTree, countVisibleTags, tagTreeShape } from '#lib/features/tags/tags.logic.js';
+import {
+	buildTagTree,
+	sortTagTree,
+	filterTagTree,
+	filterTagTreeByQuery,
+	countVisibleTags,
+	tagTreeShape,
+} from '#lib/features/tags/tags.logic.js';
 
 describe('buildTagTree', () => {
 	it('builds a flat list for simple tags', () => {
@@ -335,5 +342,61 @@ describe('countVisibleTags', () => {
 	it('counts a rare parent kept for a popular child', () => {
 		const tree = filterTagTree([makeNode('project', 3, [makeNode('work', 12), makeNode('old', 1)])], 10);
 		expect(countVisibleTags(tree)).toBe(2);
+	});
+});
+
+describe('filterTagTreeByQuery', () => {
+	function entry(name: string, count: number) {
+		return { name, count, filePaths: [] };
+	}
+
+	/** Full paths of every node in a tree, depth first. */
+	function paths(nodes: ReturnType<typeof buildTagTree>): string[] {
+		return nodes.flatMap((n) => [n.fullPath, ...paths(n.children)]);
+	}
+
+	const tree = buildTagTree([entry('work/projects', 4), entry('projects', 2), entry('home', 7)]);
+
+	it('keeps substring matches on the full path and their ancestors, forcing the ancestors open', () => {
+		const result = filterTagTreeByQuery(tree, 'pro');
+		expect(paths(result.nodes)).toEqual(['work', 'work/projects', 'projects']);
+		expect([...result.forceOpen]).toEqual(['work']);
+	});
+
+	it('matches case-insensitively and strips a leading #', () => {
+		const result = filterTagTreeByQuery(tree, '#Work');
+		expect(paths(result.nodes)).toEqual(['work', 'work/projects']);
+	});
+
+	it('keeps the whole subtree of a matching parent', () => {
+		const nested = buildTagTree([entry('area/home/garden', 1), entry('area/home/kitchen', 2), entry('area/work', 3)]);
+		const result = filterTagTreeByQuery(nested, 'home');
+		expect(paths(result.nodes)).toEqual(['area', 'area/home', 'area/home/garden', 'area/home/kitchen']);
+		expect(result.nodes[0].children[0]).toEqual(nested[0].children[0]);
+		expect(result.forceOpen).toEqual(new Set(['area', 'area/home']));
+	});
+
+	it('recomputes an ancestor\'s totalCount from the kept children', () => {
+		const counted = buildTagTree([entry('work', 1), entry('work/projects', 4), entry('work/admin', 9)]);
+		const result = filterTagTreeByQuery(counted, 'proj');
+		expect(result.nodes[0].totalCount).toBe(5);
+	});
+
+	it('returns the tree unchanged and nothing to force open for an empty or whitespace query', () => {
+		for (const query of ['', '   ', '#']) {
+			const result = filterTagTreeByQuery(tree, query);
+			expect(result.nodes).toBe(tree);
+			expect(result.forceOpen.size).toBe(0);
+		}
+	});
+
+	it('returns an empty tree when nothing matches', () => {
+		const result = filterTagTreeByQuery(tree, 'zzz');
+		expect(result.nodes).toEqual([]);
+		expect(result.forceOpen.size).toBe(0);
+	});
+
+	it('returns an empty tree for an empty input', () => {
+		expect(filterTagTreeByQuery([], 'pro').nodes).toEqual([]);
 	});
 });

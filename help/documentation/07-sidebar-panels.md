@@ -118,6 +118,12 @@ fewer than 10 times." for a single tag) with a **Show all tags** button in place
 
 - **Sort** - Toggle between A-Z (alphabetical) and by count (most used first).
 - **Hide rare tags** - The filter icon toggles hiding tags with fewer than 10 uses.
+- **Filter** - The **Filter tags** box lists only the tags whose full path contains what you type,
+  ignoring case and a leading `#` (`proj` finds both `#projects` and `#work/projects`). Parents of a
+  match open on their own and a matching tag keeps its subtags. The filter searches every tag, so
+  it also finds tags the rare-tag filter hides. While it is active the header reads **N matching
+  tags**, and "No tags match" appears when nothing does. Clearing the box brings back the full list
+  and the rare-tag filter as you left it.
 
 ### Clicking a tag
 

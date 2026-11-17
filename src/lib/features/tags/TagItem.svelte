@@ -12,11 +12,16 @@
 		node: TagTreeNode;
 		onTagClick: (tag: string) => void;
 		onColorChange: (tag: string, color: string | undefined) => void;
+		/** Full paths shown expanded whatever the row's own state, while a filter query holds them open. */
+		forceOpen?: ReadonlySet<string>;
 	}
 
-	let { node, onTagClick, onColorChange }: Props = $props();
+	let { node, onTagClick, onColorChange, forceOpen = new Set<string>() }: Props = $props();
 
+	/** The user's own expansion, kept while a forced open overrides it. */
 	let open = $state(false);
+	let forced = $derived(forceOpen.has(node.fullPath));
+	let isOpen = $derived(open || forced);
 	let hasChildren = $derived(node.children.length > 0);
 
 	function getColor() {
@@ -25,14 +30,22 @@
 </script>
 
 {#if hasChildren}
-	<Collapsible.Root bind:open>
+	<!-- A forced row ignores the chevron, so the user's own state is intact when the query clears. -->
+	<Collapsible.Root
+		bind:open={
+			() => isOpen,
+			(next) => {
+				if (!forced) open = next;
+			}
+		}
+	>
 		<div class="flex items-center">
 			<Collapsible.Trigger
 				class="flex w-5 shrink-0 items-center justify-center p-1 rounded-md hover:bg-accent transition-colors cursor-pointer"
 				aria-label="Subtags of {node.fullPath}"
 				title="Subtags of {node.fullPath}"
 			>
-				<ChevronRight class="size-3 shrink-0 transition-transform {open ? 'rotate-90' : ''}" />
+				<ChevronRight class="size-3 shrink-0 transition-transform {isOpen ? 'rotate-90' : ''}" />
 			</Collapsible.Trigger>
 			<TagColorPicker
 				currentColor={getColor()}
@@ -52,7 +65,7 @@
 		<Collapsible.Content>
 			<div class="pl-4 space-y-0.5">
 				{#each node.children as child (child.fullPath)}
-					<Self node={child} {onTagClick} {onColorChange} />
+					<Self node={child} {onTagClick} {onColorChange} {forceOpen} />
 				{/each}
 			</div>
 		</Collapsible.Content>

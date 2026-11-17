@@ -188,3 +188,123 @@ describe('TagsView rare-tag filter', () => {
 		expect([...target.querySelectorAll('button[title]')].map((b) => b.getAttribute('title'))).toContain('Hide rare tags');
 	});
 });
+
+describe('TagsView filter box', () => {
+	let target: HTMLElement;
+	let component: Record<string, unknown> | null = null;
+
+	function tag(fullPath: string, count: number, children: TagTreeNode[] = []): TagTreeNode {
+		const segment = fullPath.split('/').at(-1)!;
+		const totalCount = count + children.reduce((sum, c) => sum + c.totalCount, 0);
+		return { segment, fullPath, count, totalCount, filePaths: [], children };
+	}
+
+	function mountView() {
+		component = mount(TagsView, { target });
+		flushSync();
+	}
+
+	function filterInput(): HTMLInputElement {
+		const input = target.querySelector<HTMLInputElement>('input[aria-label="Filter tags"]');
+		expect(input).not.toBeNull();
+		return input!;
+	}
+
+	function type(value: string) {
+		const input = filterInput();
+		input.value = value;
+		input.dispatchEvent(new Event('input', { bubbles: true }));
+		flushSync();
+	}
+
+	function headerText(): string {
+		const span = target.querySelector('.pane-toolbar span');
+		return (span?.textContent ?? '').replace(/\s+/g, ' ').trim();
+	}
+
+	function showAllButtons(): HTMLButtonElement[] {
+		return [...target.querySelectorAll('button')].filter((b) => b.textContent?.includes('Show all'));
+	}
+
+	/** The tag names in open rows; a closed row keeps its children in the DOM. */
+	function listedTags(): string[] {
+		return [...target.querySelectorAll('span.truncate')]
+			.filter((s) => s.closest('[data-slot="collapsible-content"][data-state="closed"]') === null)
+			.map((s) => s.textContent?.trim() ?? '');
+	}
+
+	beforeEach(() => {
+		tagsStore.reset();
+		searchStore.reset();
+		settingsStore.reset();
+		target = document.body.appendChild(document.createElement('div'));
+	});
+
+	afterEach(() => {
+		if (component) unmount(component);
+		component = null;
+		document.body.innerHTML = '';
+	});
+
+	it('finds a rare tag the filter hides, and clearing the query restores the filtered list and header', () => {
+		tagsStore.setTagTree([tag('work', 12), tag('misc', 3)]);
+		tagsStore.setTotalTagCount(2);
+		mountView();
+		expect(listedTags()).toEqual(['work']);
+
+		type('misc');
+		expect(listedTags()).toEqual(['misc']);
+		expect(headerText()).toBe('1 matching tag');
+		expect(showAllButtons()).toHaveLength(0);
+
+		type('');
+		expect(listedTags()).toEqual(['work']);
+		expect(headerText()).toBe('Showing 1 of 2 tags Show all');
+		expect(tagsStore.hideRareTags).toBe(true);
+	});
+
+	it('says "No tags match" with the query when nothing matches', () => {
+		tagsStore.setTagTree([tag('work', 12)]);
+		tagsStore.setTotalTagCount(1);
+		mountView();
+
+		type('zzz');
+		expect(target.textContent).toContain('No tags match zzz');
+		expect(target.textContent).not.toContain('No tags found');
+		expect(headerText()).toBe('0 matching tags');
+	});
+
+	it('shows a nested match without a click and hands the parent back closed', () => {
+		tagsStore.setTagTree([tag('work', 12, [tag('work/projects', 12)]), tag('home', 15)]);
+		tagsStore.setTotalTagCount(3);
+		mountView();
+		expect(listedTags()).toEqual(['work', 'home']);
+
+		type('#proj');
+		expect(listedTags()).toEqual(['work', 'projects']);
+		expect(headerText()).toBe('2 matching tags');
+
+		type('');
+		expect(listedTags()).toEqual(['work', 'home']);
+		expect(headerText()).toBe('3 tags');
+	});
+
+	it('keeps a parent the user opened open after the query clears', () => {
+		tagsStore.setTagTree([tag('work', 12, [tag('work/projects', 12)])]);
+		tagsStore.setTotalTagCount(2);
+		mountView();
+		target.querySelector<HTMLElement>('[aria-label="Subtags of work"]')!.click();
+		flushSync();
+
+		type('proj');
+		type('');
+		expect(listedTags()).toEqual(['work', 'projects']);
+	});
+
+	it('gives the filter box an accessible name', () => {
+		tagsStore.setTagTree([tag('work', 12)]);
+		tagsStore.setTotalTagCount(1);
+		mountView();
+		expect(filterInput().getAttribute('aria-label')).toBe('Filter tags');
+	});
+});
