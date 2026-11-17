@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTagTree, sortTagTree, filterTagTree, tagTreeShape } from '#lib/features/tags/tags.logic.js';
+import { buildTagTree, sortTagTree, filterTagTree, countVisibleTags, tagTreeShape } from '#lib/features/tags/tags.logic.js';
 
 describe('buildTagTree', () => {
 	it('builds a flat list for simple tags', () => {
@@ -315,5 +315,25 @@ describe('filterTagTree', () => {
 		expect(result[0].children).toHaveLength(1);
 		// totalCount should be own count (2) + surviving child work (5) = 7, not original 10
 		expect(result[0].totalCount).toBe(7);
+	});
+});
+
+describe('countVisibleTags', () => {
+	function makeNode(segment: string, count: number, children: any[] = []): any {
+		return { segment, fullPath: segment, count, totalCount: count, filePaths: [], children };
+	}
+
+	it('returns 0 for an empty tree', () => {
+		expect(countVisibleTags([])).toBe(0);
+	});
+
+	it('does not count a pure container', () => {
+		const tree = [makeNode('project', 0, [makeNode('work', 12), makeNode('home', 15)])];
+		expect(countVisibleTags(tree)).toBe(2);
+	});
+
+	it('counts a rare parent kept for a popular child', () => {
+		const tree = filterTagTree([makeNode('project', 3, [makeNode('work', 12), makeNode('old', 1)])], 10);
+		expect(countVisibleTags(tree)).toBe(2);
 	});
 });

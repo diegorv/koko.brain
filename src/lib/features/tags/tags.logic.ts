@@ -107,6 +107,20 @@ export function filterTagTree(nodes: TagTreeNode[], minCount: number): TagTreeNo
 	return result;
 }
 
+/**
+ * Counts the nodes in a tag tree that stand for a tag of their own
+ * (`count > 0`). A pure container (`count === 0`, only a path prefix) is not
+ * counted; a rare parent kept to hold a popular child is, since it is a row.
+ */
+export function countVisibleTags(nodes: TagTreeNode[]): number {
+	let total = 0;
+	for (const node of nodes) {
+		if (node.count > 0) total++;
+		total += countVisibleTags(node.children);
+	}
+	return total;
+}
+
 export function sortTagTree(nodes: TagTreeNode[], mode: TagSortMode): TagTreeNode[] {
 	const sorted = [...nodes].sort((a, b) => {
 		if (mode === 'count') {

@@ -105,8 +105,12 @@ body and the values of a frontmatter `tags:` property are counted, so a tag that
 with a `#` still appears in the tree.
 
 The **Hide rare tags** filter is **on by default**, so tags used fewer than 10 times are hidden
-until you toggle the filter icon off. The tag count in the header is the unfiltered total, so it
-does not change when the filter does.
+until you toggle the filter icon off. While the filter hides some tags, the header reads
+**Showing X of Y tags**, where X is the number of tags listed and Y the number of tags in the vault,
+followed by a **Show all** button that turns the filter off. With the filter off, or when it hides
+nothing, the header shows just the total, such as **12 tags**. When every tag is used fewer than
+10 times, the list reads "All Y tags are used fewer than 10 times." (or "The only tag is used
+fewer than 10 times." for a single tag) with a **Show all tags** button in place of the tree.
 
 ![Tags panel with hierarchical tree](screenshots/tags.png)
 
