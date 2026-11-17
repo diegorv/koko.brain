@@ -23,6 +23,7 @@
 - [ ] Component tests: palette rows are one line (label, then category muted right, then shortcut), the list carries `max-h-[min(60vh,400px)]`, and the palette footer shows the Enter, arrows and Esc hints. A dialog that passes no hints shows no footer.
 - [ ] A `ModActionPicker` action with a description shows both lines; the run view's Stop and Close still work (`src/tests/lib/plugins/mods/ModActionPicker.test.ts`).
 - [ ] Keyboard navigation and Escape still work in every command dialog: `TemplatePicker.test.ts`, `OneOnOnePicker.test.ts`, `ModActionPicker.test.ts`, `QuickSwitcher.test.ts` and `CommandPalette.test.ts` stay green.
+- [ ] Inside a command dialog the input wrapper has no `pe-8` and each row has `min-h-9` (asserted in `command-dialog.test.ts`).
 - [ ] Outside a command dialog nothing changes: `src/tests/lib/plugins/mods/ModDialogHost.test.ts` and `src/tests/lib/core/settings/EditorSection.test.ts` stay green, and a `Command.List` rendered outside `Command.Dialog` keeps `max-h-[300px]` and its input keeps `pe-8`.
 - [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass; the two E2E specs above pass.
 

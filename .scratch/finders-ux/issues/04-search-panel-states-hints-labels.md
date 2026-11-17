@@ -15,7 +15,7 @@
 
 Out of scope: a "semantic index is still building" message for a Semantic search during the first index build.
 
-Size: this is the largest ticket in the feature. If the build runs out of room, the operator hint (step 4, P161) is the part to split off into a follow-up.
+Size: this is the largest ticket in the feature; build all of it in one run.
 
 **Blocked by:** 03
 

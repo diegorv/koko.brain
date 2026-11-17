@@ -10,7 +10,7 @@
 4. **Folder line.** The path shows only the folder (no file name, no `.md`), right-aligned, muted and truncated, per the row anatomy from 01. A root-level note shows no folder.
 5. **Archived.** An "Archived" text tag at full muted strength. Drop `opacity-50` on the name and the `Archive` icon swap (`QuickSwitcher.svelte:80-86`), since the type icon takes that slot.
 6. **Highlight.** Wrap the matched characters in highlight elements with a theme-token style (for example `font-semibold text-foreground`) without changing the option's accessible name.
-7. **Recent notes heading.** Today `filterAndRank` returns one flat list for an empty query, recents first and then the rest by name (`file-entries.logic.ts:36-47`), rendered in one `Command.Group` (`QuickSwitcher.svelte:73`). Split the recents into their own group, mirroring the shape 06 gives the palette (recents and rest returned apart, through a shape change or a second helper): with an empty query and recents, a `Command.Group` headed "Recent notes" holds the recents and the rest follows in a group with no heading, as in the prototype (`finders-search-tags-graph.html:550-556`). With no recents, or with a query, there is no heading.
+7. **Recent notes heading.** Today `filterAndRank` returns one flat list for an empty query, recents first and then the rest by name (`file-entries.logic.ts:36-47`), rendered in one `Command.Group` (`QuickSwitcher.svelte:73`). Split the recents into their own group, mirroring the shape 06 gives the palette (recents and rest returned apart through a second helper; `filterAndRank` keeps its flat output because `CanvasFilePicker.svelte:25` and `RelationshipSearch.svelte:25` also call it): with an empty query and recents, a `Command.Group` headed "Recent notes" holds the recents and the rest follows in a group with no heading, as in the prototype (`finders-search-tags-graph.html:550-556`). With no recents, or with a query, there is no heading.
 8. **Help.** Update `help/documentation/06-search-and-navigation.md:14` (Recent notes heading) and `:16` (archived notes now carry an "Archived" tag, not a dimmed name).
 
 **Blocked by:** 02
@@ -26,6 +26,7 @@
 - [ ] The "Recent notes" heading appears only for an empty query with recents; the rest of the list has no heading; arrow keys still cross the group boundary.
 - [ ] RailNoteList icons are unchanged (its tests stay green); `chrome-type-scale`, `menu-item-anatomy`, `palette-classes`, `pure-logic`, `layer-rules` and `feature-cycle` tests are green.
 - [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [ ] `filterAndRank` returns the same flat list as before; `CanvasFilePicker` and `RelationshipSearch` behave as today.
 
 ## Original proposal
 
