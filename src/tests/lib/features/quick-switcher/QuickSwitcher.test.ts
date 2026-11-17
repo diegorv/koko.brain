@@ -118,7 +118,7 @@ describe('QuickSwitcher - create from the query', () => {
 
 		createFromQuery('Ideas');
 
-		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to create file.'));
+		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to create file: disk full'));
 		expect(openFileInEditor).not.toHaveBeenCalled();
 	});
 
@@ -149,7 +149,7 @@ describe('QuickSwitcher - create from the query', () => {
 
 		try {
 			createFromQuery('Ideas');
-			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to create file.'));
+			await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to create file: disk full'));
 		} finally {
 			unsubscribe();
 		}
@@ -212,16 +212,193 @@ describe('QuickSwitcher - create from the query', () => {
 		expect(quickSwitcherStore.isOpen).toBe(false);
 	});
 
-	it('offers no create item and opens the first match on Enter when a note matches', async () => {
+	/** Command item labels, in rendered order. */
+	function itemLabels(): string[] {
+		return [...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]')].map((el) => el.textContent ?? '');
+	}
+
+	/** The rendered "Create" item, or undefined. */
+	function createItem(): HTMLElement | undefined {
+		return [...document.querySelectorAll<HTMLElement>('[data-slot="command-item"]')].find((el) =>
+			el.textContent?.includes('Create "'),
+		);
+	}
+
+	/** Presses Shift+Enter in `input`, after the same macrotask as `pressEnter`. */
+	async function pressShiftEnter(input: HTMLInputElement): Promise<void> {
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		input.dispatchEvent(
+			new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true, bubbles: true, cancelable: true }),
+		);
+		flushSync();
+	}
+
+	/** Every invoked command name, in order. */
+	function invokedCommands(): string[] {
+		return vi.mocked(invoke).mock.calls.map(([cmd]) => cmd);
+	}
+
+	it('renders the Create row after the matches and opens the first match on Enter', async () => {
 		fsStore.setFileTree([{ name: 'Ideas.md', path: '/vault/Ideas.md', isDirectory: false }]);
 		flushSync();
-		const input = typeQuery('Ideas');
+		const input = typeQuery('Idea');
 
-		expect(document.body.textContent).not.toContain('Create "Ideas"');
+		const labels = itemLabels();
+		expect(labels).toHaveLength(2);
+		expect(labels[0]).toContain('Ideas');
+		expect(labels[1]).toContain('Create "Idea"');
 		await pressEnter(input);
 
 		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Ideas.md'));
-		expect(vi.mocked(invoke).mock.calls.some(([cmd]) => cmd === 'create_note')).toBe(false);
+		expect(invokedCommands()).not.toContain('create_note');
 		expect(quickSwitcherStore.isOpen).toBe(false);
+	});
+
+	it('creates and opens the typed note on Shift+Enter while a note matches', async () => {
+		fsStore.setFileTree([{ name: 'Ideas.md', path: '/vault/Ideas.md', isDirectory: false }]);
+		flushSync();
+		const input = typeQuery('Idea');
+
+		await pressShiftEnter(input);
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Idea.md'));
+		expect(openFileInEditor).not.toHaveBeenCalledWith('/vault/Ideas.md');
+		expect(quickSwitcherStore.isOpen).toBe(false);
+	});
+
+	it('offers no Create row when a note with that exact name exists in the target folder', async () => {
+		vi.mocked(readDir).mockResolvedValue([{ name: 'Ideas.md', isDirectory: false, isFile: true, isSymlink: false }]);
+		fsStore.setFileTree([{ name: 'Ideas.md', path: '/vault/Ideas.md', isDirectory: false }]);
+		flushSync();
+		const input = typeQuery('ideas');
+
+		expect(createItem()).toBeUndefined();
+		await pressShiftEnter(input);
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Ideas.md'));
+		expect(invokedCommands()).not.toContain('create_note');
+	});
+
+	it('lists the existing note a folder path names, and opens it on Enter', async () => {
+		fsStore.setFileTree([
+			{
+				name: 'Projects',
+				path: '/vault/Projects',
+				isDirectory: true,
+				children: [{ name: 'Idea.md', path: '/vault/Projects/Idea.md', isDirectory: false }],
+			},
+		]);
+		flushSync();
+		const input = typeQuery('Projects/Idea');
+
+		expect(createItem()).toBeUndefined();
+		const labels = itemLabels();
+		expect(labels).toHaveLength(1);
+		expect(labels[0]).toContain('Projects/Idea.md');
+		expect(document.body.textContent).not.toContain('No files found.');
+		await pressEnter(input);
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Projects/Idea.md'));
+		expect(invokedCommands()).not.toContain('create_note');
+	});
+
+	it('labels the Create row with its target folder', () => {
+		typeQuery('Projects/Idea');
+		expect(createItem()?.textContent).toContain('in Projects');
+
+		typeQuery('Idea');
+		expect(createItem()?.textContent).toContain('in vault root');
+	});
+
+	it('creates the typed folder before the note in it, and opens the note', async () => {
+		createFromQuery('Projects/Idea');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Projects/Idea.md'));
+		const calls = vi.mocked(invoke).mock.calls;
+		const folderAt = calls.findIndex(([cmd, args]) => cmd === 'create_folder' && (args as { path: string }).path === '/vault/Projects');
+		const noteAt = calls.findIndex(([cmd, args]) => cmd === 'create_note' && (args as { path: string }).path === '/vault/Projects/Idea.md');
+		expect(folderAt).toBeGreaterThanOrEqual(0);
+		expect(noteAt).toBeGreaterThan(folderAt);
+	});
+
+	it('creates every missing level of a nested folder path', async () => {
+		createFromQuery('Area/Projects/Idea');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Area/Projects/Idea.md'));
+		expect(vi.mocked(invoke)).toHaveBeenCalledWith('create_folder', { path: '/vault/Area/Projects' });
+		const tree = fsStore.fileTree;
+		const area = tree.find((n) => n.path === '/vault/Area');
+		const projects = area?.children?.find((n) => n.path === '/vault/Area/Projects');
+		expect(projects?.children?.map((n) => n.path)).toEqual(['/vault/Area/Projects/Idea.md']);
+	});
+
+	it('reuses an existing folder instead of making a renamed copy', async () => {
+		// The vault root lists `Projects`, so a path through fs.service `createFolder` would get `Projects 1`.
+		vi.mocked(readDir).mockImplementation(async (p) =>
+			p === '/vault' ? [{ name: 'Projects', isDirectory: true, isFile: false, isSymlink: false }] : [],
+		);
+		fsStore.setFileTree([{ name: 'Projects', path: '/vault/Projects', isDirectory: true, children: [] }]);
+		flushSync();
+
+		createFromQuery('Projects/Idea');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Projects/Idea.md'));
+		expect(JSON.stringify(vi.mocked(invoke).mock.calls)).not.toContain('Projects 1');
+		expect(fsStore.fileTree.filter((n) => n.isDirectory).map((n) => n.path)).toEqual(['/vault/Projects']);
+	});
+
+	it('adds the typed folder holding the note to the tree', async () => {
+		createFromQuery('Projects/Idea');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Projects/Idea.md'));
+		const projects = fsStore.fileTree.find((n) => n.path === '/vault/Projects');
+		expect(projects?.isDirectory).toBe(true);
+		expect(projects?.children?.map((n) => n.name)).toEqual(['Idea.md']);
+	});
+
+	it('skips create_folder for a note in the vault root', async () => {
+		createFromQuery('Idea');
+
+		await vi.waitFor(() => expect(openFileInEditor).toHaveBeenCalledWith('/vault/Idea.md'));
+		expect(invokedCommands()).not.toContain('create_folder');
+	});
+
+	it.each([
+		['Projects//Idea', 'empty'],
+		['Projects/', 'empty'],
+		['./Idea', '"."'],
+		['../Idea', '"."'],
+		['.kokobrain/x', '"."'],
+		['Projects/.hidden', '"."'],
+	])('creates nothing for %s and toasts why', async (query, reason) => {
+		createFromQuery(query);
+
+		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledOnce());
+		expect(vi.mocked(toast.error).mock.calls[0][0]).toContain(reason);
+		expect(invokedCommands()).not.toContain('create_folder');
+		expect(invokedCommands()).not.toContain('create_note');
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('toasts the reason when the folder cannot be created', async () => {
+		vi.mocked(invoke).mockImplementation(async (cmd) => {
+			if (cmd === 'create_folder') throw 'Permission denied';
+		});
+		vi.spyOn(console, 'error').mockImplementation(() => {});
+
+		createFromQuery('Projects/Idea');
+
+		await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith('Failed to create file: Permission denied'));
+		expect(invokedCommands()).not.toContain('create_note');
+		expect(openFileInEditor).not.toHaveBeenCalled();
+	});
+
+	it('shows the Shift+Enter Create hint in the footer', () => {
+		quickSwitcherStore.open();
+		flushSync();
+		const footer = document.querySelector('[data-slot="command-dialog-footer"]');
+		expect(footer).not.toBeNull();
+		expect([...footer!.querySelectorAll('kbd')].map((k) => k.textContent)).toContain('⇧↵');
+		expect(footer!.textContent).toContain('Create');
 	});
 });

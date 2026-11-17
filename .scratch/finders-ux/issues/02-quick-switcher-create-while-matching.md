@@ -15,23 +15,23 @@
 
 **Blocked by:** 01
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`
 
-- [ ] Failing test first, in `src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts`: with no files in the tree, type `Projects/Idea` and run Create; `create_folder` is invoked for `/vault/Projects` before `create_note` is invoked with `/vault/Projects/Idea.md`, and the note opens.
-- [ ] A nested path (`Area/Projects/Idea`) creates every missing folder level.
-- [ ] An existing folder is reused, not duplicated as `Projects 1`.
-- [ ] A query with an empty, `.` or `..` segment creates nothing and shows a toast that says why.
-- [ ] A query with a segment that starts with `.` (for example `.kokobrain/x` or `Projects/.hidden`) creates nothing (no `create_folder` or `create_note` invoke) and shows a toast that says why.
-- [ ] After `Projects/Idea` is created with no `Projects` folder in the tree, `fsStore.fileTree` holds a `Projects` folder node containing `Idea.md`.
-- [ ] When creation fails, the toast includes the error reason; the existing "toasts and opens nothing" test keeps passing with its assertions adjusted only for the new text.
-- [ ] Failing test first: invert the test at `QuickSwitcher.test.ts:215-227`. With `Ideas.md` present, typing "Idea" renders the match and then `Create "Idea"` last; Enter opens `/vault/Ideas.md`; Shift+Enter creates and opens `/vault/Idea.md`.
-- [ ] Typing "Ideas" with `Ideas.md` present renders no Create row, and Shift+Enter creates no `Ideas 1.md`.
-- [ ] `Projects/Idea` shows "in Projects" on the row and creates there; a plain `Idea` shows "in vault root".
-- [ ] The 042 tests (Enter on no match, both query transitions) stay green.
-- [ ] The switcher footer shows the Shift+Enter Create hint; the help doc describes the Create row, Shift+Enter and folder paths.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, in `src/tests/lib/features/quick-switcher/QuickSwitcher.test.ts`: with no files in the tree, type `Projects/Idea` and run Create; `create_folder` is invoked for `/vault/Projects` before `create_note` is invoked with `/vault/Projects/Idea.md`, and the note opens.
+- [x] A nested path (`Area/Projects/Idea`) creates every missing folder level.
+- [x] An existing folder is reused, not duplicated as `Projects 1`.
+- [x] A query with an empty, `.` or `..` segment creates nothing and shows a toast that says why.
+- [x] A query with a segment that starts with `.` (for example `.kokobrain/x` or `Projects/.hidden`) creates nothing (no `create_folder` or `create_note` invoke) and shows a toast that says why.
+- [x] After `Projects/Idea` is created with no `Projects` folder in the tree, `fsStore.fileTree` holds a `Projects` folder node containing `Idea.md`.
+- [x] When creation fails, the toast includes the error reason; the existing "toasts and opens nothing" test keeps passing with its assertions adjusted only for the new text.
+- [x] Failing test first: invert the test at `QuickSwitcher.test.ts:215-227`. With `Ideas.md` present, typing "Idea" renders the match and then `Create "Idea"` last; Enter opens `/vault/Ideas.md`; Shift+Enter creates and opens `/vault/Idea.md`.
+- [x] Typing "Ideas" with `Ideas.md` present renders no Create row, and Shift+Enter creates no `Ideas 1.md`.
+- [x] `Projects/Idea` shows "in Projects" on the row and creates there; a plain `Idea` shows "in vault root".
+- [x] The 042 tests (Enter on no match, both query transitions) stay green.
+- [x] The switcher footer shows the Shift+Enter Create hint; the help doc describes the Create row, Shift+Enter and folder paths.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -59,3 +59,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: Create targets the typed folder (creating missing folders, per 164), else the vault root. The Create row hides when the exact name already exists in the target folder. Any segment starting with `.` is refused.
+- 2026-11-17, deliver (issue/02-quick-switcher-create-while-matching): Create row offered while notes match (Shift+Enter), folder paths create missing folders and reuse existing ones, dot/empty segments refused with a toast, failed create toasts the reason, existing note named by a folder path is listed and opens on Enter. Tests: pnpm check 0 errors; quick-switcher tests 61 passed; full suite at 47df8daac exit=0 (642 files, 17054 passed). Reviews: round 1 APPROVED (review.md, findings 1-2 fixed), round 2 APPROVED (review-2.md, no findings).
