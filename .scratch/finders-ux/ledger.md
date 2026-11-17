@@ -35,7 +35,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 
 | # | Issue | Blocked by | Status | Branch / PR | Merged |
 |---|---|---|---|---|---|
-| 01 | [Command dialogs: input anchored at 18vh, one-line rows, 400px list, key-hint footer, no close X](issues/01-command-dialogs-anchored-dense-rows.md) | none | in-progress | | |
+| 01 | [Command dialogs: input anchored at 18vh, one-line rows, 400px list, key-hint footer, no close X](issues/01-command-dialogs-anchored-dense-rows.md) | none | done | issue/01-command-dialogs-anchored-dense-rows (9479ac613) | 2026-11-17 |
 | 02 | [Quick switcher offers Create while notes match (Shift+Enter), creates Folder/Note paths, and a failed create says why](issues/02-quick-switcher-create-while-matching.md) | 01 | todo | | |
 | 03 | [Search result cards: note name, folder, plain-text snippets, themed highlight](issues/03-search-result-cards-name-folder-plain-snippets.md) | none | in-progress | | |
 | 04 | [Search states: short query, error, disabled mode; operator hints; a11y labels; index status only in the status bar](issues/04-search-panel-states-hints-labels.md) | 03 | todo | | |
@@ -58,3 +58,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 15:16 — 01 — start — launched by /relay-lite:run — 05f57e2c5
 - 2026-11-17 15:25 — 03 — start — launched by /relay-lite:run — a09a4933e
 - 2026-11-17 15:25 — 08 — start — launched by /relay-lite:run — a09a4933e
+- 2026-11-17 15:42 — 01 — deliver — merged; reviews APPROVED x2 (claude); full suite 640 files / 17009 tests passed; fix round capped Command.Dialog content at 82dvh, kbd footer finding rejected — 9479ac613
