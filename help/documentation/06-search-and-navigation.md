@@ -143,6 +143,8 @@ Each result is a card with three lines:
 
 Semantic results also show a **relevance score** indicating how closely the section matches your query. When Hybrid mode has to fall back to separate text and semantic searches, each card shows which one found it: Text, Semantic or Both.
 
+Each mode returns at most a fixed number of results (50 in Text mode, 20 in Semantic and Hybrid, 100 for a query made only of `tag:` or `path:` operators; when Hybrid falls back to separate text and semantic searches, it shows the results of both, up to 70), and a count such as "50+ results" means the list reached that limit and more matches may exist, so narrow the query to find them.
+
 Click any result to open that file in the editor. The search index updates automatically whenever you save files, so your results are always up to date.
 
 ### Search Operators

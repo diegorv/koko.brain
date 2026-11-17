@@ -6,7 +6,17 @@ import { isViewFile } from '#lib/core/filesystem/fs.logic.js';
 import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { mergeResults } from './search-hybrid.logic';
-import { parseSearchQuery, performSearchOverFiles, performOperatorOnlySearch, matchesPathFilter } from './search.logic';
+import {
+	parseSearchQuery,
+	performSearchOverFiles,
+	performOperatorOnlySearch,
+	matchesPathFilter,
+	FTS_MAX_RESULTS,
+	SEMANTIC_MAX_RESULTS,
+	HYBRID_MAX_RESULTS,
+	OPERATOR_ONLY_MAX_RESULTS,
+	FALLBACK_MAX_RESULTS,
+} from './search.logic';
 import { stem, vaultRelativeKey } from '#lib/utils/path.js';
 import { debug, error } from '#lib/utils/debug.js';
 import type { SemanticProgress } from './search.types';
@@ -136,6 +146,10 @@ export async function performSearch(): Promise<void> {
 		searchStore.setSemanticResults([]);
 		searchStore.setHybridResults([]);
 		searchStore.setResults([]);
+		searchStore.clearResultsCapped();
+		// The older in-flight call's `finally` no longer owns the version, so
+		// it would leave "Searching..." over the empty box.
+		searchStore.setSearching(false);
 		return;
 	}
 
@@ -143,6 +157,11 @@ export async function performSearch(): Promise<void> {
 	debug('SEARCH', `performSearch() mode=${searchStore.mode} query="${raw}" fuzzy=${searchStore.fuzzyEnabled}`);
 	try {
 		const mode = searchStore.mode;
+		// Whether the request behind each list reached the cap it asked for;
+		// written with the results, per list, since a mode switch shows a list
+		// another mode's search wrote.
+		let textCapped = false;
+		let semanticCapped = false;
 
 		// Hybrid is now a single Rust command: FTS + semantic → RRF → rerank.
 		// Bypass the per-source JS merge entirely.
@@ -153,7 +172,7 @@ export async function performSearch(): Promise<void> {
 				debug('SEARCH', 'Calling search_hybrid...');
 				const results = await call('search_hybrid', {
 					query: semanticQuery,
-					maxResults: 20,
+					maxResults: HYBRID_MAX_RESULTS,
 				});
 				if (searchVersion !== version) return;
 				debug('SEARCH', `Hybrid returned ${results.length} results`, results.slice(0, 3));
@@ -174,6 +193,10 @@ export async function performSearch(): Promise<void> {
 				}));
 				searchStore.setHybridResults(adapted);
 				searchStore.setFtsResults([]);
+				const hybridCapped = results.length >= HYBRID_MAX_RESULTS;
+				searchStore.setResultsCapped('hybrid', hybridCapped);
+				// The semantic list now holds these chunks too
+				searchStore.setResultsCapped('semantic', hybridCapped);
 				return;
 			} catch (hybErr) {
 				if (searchVersion !== version) return;
@@ -195,17 +218,21 @@ export async function performSearch(): Promise<void> {
 					// click): filter the index entries, no content read.
 					const entries = await call('get_all_vault_entries_v2');
 					if (searchVersion !== version) return;
-					const results = performOperatorOnlySearch(entries, query, vaultPath);
+					const results = performOperatorOnlySearch(entries, query, vaultPath, OPERATOR_ONLY_MAX_RESULTS);
+					textCapped = results.length >= OPERATOR_ONLY_MAX_RESULTS;
 					debug('SEARCH', `Operator-only query: ${results.length} results`);
 					searchStore.setResults(results);
 					searchStore.setFtsResults([]);
 				} else {
 					const results = await call('search_fts', {
 						query: ftsQuery,
-						maxResults: 50,
+						maxResults: FTS_MAX_RESULTS,
 						fuzzy: searchStore.fuzzyEnabled,
 					});
 					if (searchVersion !== version) return;
+					// Counted before the operator filter below: more matches may
+					// exist past the cap even when the filter keeps fewer rows.
+					textCapped = results.length >= FTS_MAX_RESULTS;
 
 					if (hasOperators) {
 						// Filter FTS results by tag/path operators. Tags come from
@@ -237,7 +264,8 @@ export async function performSearch(): Promise<void> {
 				const vaultPath = vaultStore.path ?? '';
 				const noteContents = await loadVaultContentMap(vaultPath);
 				if (searchVersion !== version) return;
-				const results = performSearchOverFiles(noteContents, query, vaultPath);
+				const results = performSearchOverFiles(noteContents, query, vaultPath, FALLBACK_MAX_RESULTS);
+				textCapped = results.length >= FALLBACK_MAX_RESULTS;
 				debug('SEARCH', `In-memory fallback returned ${results.length} results`);
 				searchStore.setResults(results);
 				searchStore.setFtsResults([]);
@@ -252,12 +280,13 @@ export async function performSearch(): Promise<void> {
 				debug('SEARCH', 'Calling search_semantic...');
 				const results = await call('search_semantic', {
 					query: semanticQuery,
-					maxResults: 20,
+					maxResults: SEMANTIC_MAX_RESULTS,
 					minScore: 0.3,
 				});
 				if (searchVersion !== version) return;
 				debug('SEARCH', `Semantic returned ${results.length} results`, results.slice(0, 3));
 				searchStore.setSemanticResults(results);
+				semanticCapped = results.length >= SEMANTIC_MAX_RESULTS;
 			} catch (semErr) {
 				if (searchVersion !== version) return;
 				searchStore.setSemanticResults([]);
@@ -276,7 +305,11 @@ export async function performSearch(): Promise<void> {
 			const merged = mergeResults(searchStore.ftsResults, searchStore.semanticResults);
 			debug('SEARCH', `Hybrid merge: ${searchStore.ftsResults.length} FTS + ${searchStore.semanticResults.length} semantic → ${merged.length} merged`);
 			searchStore.setHybridResults(merged);
+			// In the legacy merge, either source reaching its cap counts.
+			searchStore.setResultsCapped('hybrid', textCapped || semanticCapped);
 		}
+		if (mode === 'text' || mode === 'hybrid') searchStore.setResultsCapped('text', textCapped);
+		if (mode === 'semantic' || mode === 'hybrid') searchStore.setResultsCapped('semantic', semanticCapped);
 	} catch (err) {
 		error('SEARCH', 'Search failed:', err);
 		if (searchVersion === version) {
@@ -285,6 +318,7 @@ export async function performSearch(): Promise<void> {
 			searchStore.setSemanticResults([]);
 			searchStore.setHybridResults([]);
 			searchStore.setResults([]);
+			searchStore.clearResultsCapped();
 			searchStore.setSearchError(String(err));
 		}
 	} finally {

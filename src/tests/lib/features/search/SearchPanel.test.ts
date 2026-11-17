@@ -31,7 +31,9 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { settingsStore } from '#lib/core/settings/settings.store.svelte.js';
 import { settingsPanelStore } from '#lib/core/settings/settings-panel.store.svelte.js';
 import { invalidateVaultEntries } from '#lib/core/vault/vault-entries.service.js';
+import { performSearch } from '#lib/features/search/search.service.js';
 import type { FtsSearchResult, SemanticSearchResult } from '#lib/features/search/search.types.js';
+import { entryV2 } from '../../../fixtures/vault-entries.fixture';
 
 const FTS: FtsSearchResult[] = [
 	{ path: 'Projects/Roadmap.md', title: 'Roadmap', score: 1, snippet: 'the <mark>roadmap</mark> for Q3', tags: '' },
@@ -231,11 +233,182 @@ describe('SearchPanel', () => {
 			expect(target.textContent).not.toContain('Building index...');
 		});
 
-		it('shows the searching notice while a search runs', () => {
+		it('shows the searching notice while a search runs with nothing to keep', () => {
 			searchStore.setQuery('roadmap');
 			searchStore.setSearching(true);
 			mountPanel();
-			expect(target.textContent).toContain('Searching...');
+			expect(status().textContent?.trim()).toBe('Searching...');
+			expect(rows()).toHaveLength(0);
+		});
+	});
+
+	describe('while a search runs', () => {
+		const list = () => target.querySelector<HTMLElement>('[data-search-result-list]');
+		const spinner = () => target.querySelector<HTMLElement>('[data-search-spinner]');
+
+		afterEach(() => {
+			vi.useRealTimers();
+		});
+
+		it('keeps the previous rows and count instead of "Searching..."', () => {
+			searchStore.setQuery('roadmap');
+			searchStore.setFtsResults(FTS);
+			searchStore.setSearching(true);
+			mountPanel();
+			expect(rows()).toHaveLength(2);
+			expect(status().textContent?.trim()).toBe('2 results');
+			expect(target.textContent).not.toContain('Searching...');
+		});
+
+		it('dims the list and shows a spinner only after 300 ms, and drops both when the search ends', () => {
+			vi.useFakeTimers();
+			searchStore.setQuery('roadmap');
+			searchStore.setFtsResults(FTS);
+			mountPanel();
+			searchStore.setSearching(true);
+			flushSync();
+			vi.advanceTimersByTime(299);
+			flushSync();
+			expect(list()?.getAttribute('aria-busy')).toBeNull();
+			expect(list()?.classList).not.toContain('opacity-50');
+			expect(spinner()).toBeNull();
+
+			vi.advanceTimersByTime(1);
+			flushSync();
+			expect(list()?.getAttribute('aria-busy')).toBe('true');
+			expect(list()?.classList).toContain('opacity-50');
+			const header = target.querySelector('[data-rail-search-header]')!;
+			expect(header.contains(spinner())).toBe(true);
+			expect(spinner()!.getAttribute('aria-hidden')).toBe('true');
+			// Left of the fuzzy toggle in Text mode
+			expect(spinner()!.classList).toContain('right-7');
+			expect(fuzzyToggle().classList).toContain('right-2');
+			// Typed text stops short of the spinner and the toggle
+			expect(input().classList).toContain('pr-12');
+			expect(target.querySelectorAll('[role="status"]')).toHaveLength(1);
+
+			searchStore.setFtsResults([FTS[1]]);
+			searchStore.setSearching(false);
+			flushSync();
+			expect(list()?.getAttribute('aria-busy')).toBeNull();
+			expect(list()?.classList).not.toContain('opacity-50');
+			expect(spinner()).toBeNull();
+			expect(rows()).toHaveLength(1);
+			expect(rows()[0].textContent).toContain('Welcome');
+			expect(status().textContent?.trim()).toBe('1 result');
+		});
+
+		it('puts the spinner at the input edge in a mode without the fuzzy toggle', () => {
+			vi.useFakeTimers();
+			enableSemantic();
+			searchStore.setMode('semantic');
+			searchStore.setQuery('sidebar');
+			searchStore.setSearching(true);
+			mountPanel();
+			vi.advanceTimersByTime(300);
+			flushSync();
+			expect(fuzzyToggle()).toBeUndefined();
+			expect(spinner()!.classList).toContain('right-2');
+			expect(input().classList).toContain('pr-8');
+		});
+
+		it('after a mode switch keeps the target mode\'s older rows and dims them after 300 ms', () => {
+			vi.useFakeTimers();
+			enableSemantic();
+			searchStore.setQuery('sidebar');
+			searchStore.setFtsResults(FTS);
+			searchStore.setSemanticResults([SEMANTIC]);
+			mountPanel();
+			expect(rows()).toHaveLength(2);
+
+			modeButton('Semantic').click();
+			searchStore.setSearching(true);
+			flushSync();
+			expect(rows()).toHaveLength(1);
+			expect(rows()[0].textContent).toContain('Ship the sidebar redesign');
+			expect(status().textContent?.trim()).toBe('1 result');
+			expect(list()?.getAttribute('aria-busy')).toBeNull();
+
+			vi.advanceTimersByTime(300);
+			flushSync();
+			expect(rows()).toHaveLength(1);
+			expect(list()?.getAttribute('aria-busy')).toBe('true');
+		});
+	});
+
+	describe('result cap', () => {
+		const ftsRows = (n: number): FtsSearchResult[] =>
+			Array.from({ length: n }, (_, i) => ({ path: `n${i}.md`, title: `n${i}`, score: -1, snippet: 'x', tags: '' }));
+
+		// `vi.clearAllMocks` keeps implementations: restore the module mock's default.
+		afterEach(() => {
+			vi.mocked(invoke).mockImplementation(() => Promise.resolve([]));
+		});
+
+		it.each([
+			[50, '50+ results'],
+			[49, '49 results'],
+		])('a text search returning %i rows says "%s"', async (n, text) => {
+			vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === 'search_fts' ? ftsRows(n) : []));
+			searchStore.setQuery('note');
+			mountPanel();
+			await performSearch();
+			flushSync();
+			expect(status().textContent?.trim()).toBe(text);
+		});
+
+		it('a semantic search returning 20 chunks says "20+ results"', async () => {
+			const chunks = Array.from({ length: 20 }, (_, i) => ({ ...SEMANTIC, key: `k${i}`, sourcePath: `n${i}.md` }));
+			vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === 'search_semantic' ? chunks : []));
+			enableSemantic();
+			searchStore.setMode('semantic');
+			searchStore.setQuery('sidebar');
+			mountPanel();
+			await performSearch();
+			flushSync();
+			expect(status().textContent?.trim()).toBe('20+ results');
+		});
+
+		it('an operator-only search returning 100 notes says "100+ results"', async () => {
+			const entries = Array.from({ length: 120 }, (_, i) => entryV2(`/vault/n${i}.md`, { tags: ['work'] }));
+			vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === 'get_all_vault_entries_v2' ? entries : []));
+			searchStore.setQuery('tag:work');
+			mountPanel();
+			await performSearch();
+			flushSync();
+			expect(status().textContent?.trim()).toBe('100+ results');
+		});
+
+		it('clearing the query drops the "+" with the results', async () => {
+			vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === 'search_fts' ? ftsRows(50) : []));
+			searchStore.setQuery('note');
+			mountPanel();
+			await performSearch();
+			searchStore.setQuery('');
+			await performSearch();
+			flushSync();
+			expect(searchStore.resultsCapped).toBe(false);
+			expect(target.textContent).toContain('Type to search across all files');
+		});
+
+		it('a mode switch shows the target mode\'s own cap, not the last search\'s', async () => {
+			vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === 'search_fts' ? ftsRows(50) : []));
+			enableSemantic();
+			searchStore.setQuery('sidebar');
+			searchStore.setSemanticResults([SEMANTIC]);
+			mountPanel();
+			await performSearch();
+			flushSync();
+			expect(status().textContent?.trim()).toBe('50+ results');
+
+			modeButton('Semantic').click();
+			searchStore.setSearching(true);
+			flushSync();
+			expect(status().textContent?.trim()).toBe('1 result');
+
+			modeButton('Text').click();
+			flushSync();
+			expect(status().textContent?.trim()).toBe('50+ results');
 		});
 	});
 

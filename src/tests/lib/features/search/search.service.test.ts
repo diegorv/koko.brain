@@ -406,6 +406,232 @@ describe('performSearch', () => {
 		expect(searchStore.isSearching).toBe(false);
 	});
 
+	it('clearing the query while a search runs leaves isSearching false once the old search finishes', async () => {
+		let resolveFirst!: (rows: FtsResult[]) => void;
+		mockInvoke.mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }));
+		searchStore.setQuery('meeting');
+		const first = performSearch();
+		searchStore.setQuery('');
+		await performSearch();
+		resolveFirst([{ path: 'a.md', title: 'A', score: -1, snippet: 'x', tags: '' }]);
+		await first;
+
+		expect(searchStore.isSearching).toBe(false);
+		expect(searchStore.ftsResults).toEqual([]);
+	});
+
+	it('a newer search keeps isSearching true while an older one finishes', async () => {
+		let resolveFirst!: (rows: FtsResult[]) => void;
+		let resolveSecond!: (rows: FtsResult[]) => void;
+		mockInvoke
+			.mockImplementationOnce(() => new Promise((resolve) => { resolveFirst = resolve; }))
+			.mockImplementationOnce(() => new Promise((resolve) => { resolveSecond = resolve; }));
+		searchStore.setQuery('meet');
+		const first = performSearch();
+		searchStore.setQuery('meeting');
+		const second = performSearch();
+		resolveFirst([]);
+		await first;
+		expect(searchStore.isSearching).toBe(true);
+
+		resolveSecond([{ path: 'a.md', title: 'A', score: -1, snippet: 'x', tags: '' }]);
+		await second;
+		expect(searchStore.isSearching).toBe(false);
+		expect(searchStore.ftsResults.map((r) => r.path)).toEqual(['a.md']);
+	});
+
+	it('keeps the previous result lists in the store while a new search is in flight', async () => {
+		const previousFts = [{ path: 'old.md', title: 'old', score: -1, snippet: 'x', tags: '' }];
+		const previousSemantic = [{ key: 'o', sourcePath: 'old.md', content: 'o', heading: null, lineStart: 1, lineEnd: 1, score: 0.9 }];
+		searchStore.setFtsResults(previousFts);
+		searchStore.setSemanticResults(previousSemantic);
+		let resolveSearch!: (rows: FtsResult[]) => void;
+		mockInvoke.mockImplementationOnce(() => new Promise((resolve) => { resolveSearch = resolve; }));
+		searchStore.setQuery('meeting');
+		const search = performSearch();
+
+		expect(searchStore.isSearching).toBe(true);
+		expect(searchStore.ftsResults).toEqual(previousFts);
+		expect(searchStore.semanticResults).toEqual(previousSemantic);
+
+		resolveSearch([]);
+		await search;
+		expect(searchStore.ftsResults).toEqual([]);
+	});
+
+	describe('result cap', () => {
+		const ftsRows = (n: number): FtsResult[] =>
+			Array.from({ length: n }, (_, i) => ({ path: `n${i}.md`, title: `n${i}`, score: -1, snippet: 'x', tags: '' }));
+		const chunks = (n: number, prefix = 's') =>
+			Array.from({ length: n }, (_, i) => ({
+				key: `${prefix}${i}`,
+				sourcePath: `${prefix}${i}.md`,
+				content: 'c',
+				heading: null,
+				lineStart: 1,
+				lineEnd: 1,
+				score: 0.9,
+			}));
+		const fixedResponses = (byCmd: Record<string, unknown>) =>
+			mockInvoke.mockImplementation(async (cmd: string) => {
+				const value = byCmd[cmd];
+				if (value instanceof Error) throw value;
+				return value;
+			});
+
+		it.each([
+			[50, true],
+			[49, false],
+		])('text search with %i FTS rows sets resultsCapped to %s', async (n, capped) => {
+			fixedResponses({ search_fts: ftsRows(n) });
+			searchStore.setQuery('meeting');
+
+			await performSearch();
+
+			expect(mockInvoke).toHaveBeenCalledWith('search_fts', { query: 'meeting', maxResults: 50, fuzzy: true });
+			expect(searchStore.ftsResults).toHaveLength(n);
+			expect(searchStore.resultsCapped).toBe(capped);
+		});
+
+		// Today the operator filter runs after the FTS cap, so more matches may
+		// exist past it. Issue 16 moves the filter before the cap and updates this.
+		it('keeps the flag for FTS rows cut by operators after a full page', async () => {
+			mockSearchIPCs({ ftsResult: ftsRows(50), entries: [entryV2('/vault/n3.md', { tags: ['work'] })] });
+			searchStore.setQuery('tag:work meeting');
+
+			await performSearch();
+
+			expect(searchStore.ftsResults.map((r) => r.path)).toEqual(['n3.md']);
+			expect(searchStore.resultsCapped).toBe(true);
+		});
+
+		it.each([
+			[100, true],
+			[99, false],
+		])('operator-only search over %i matching notes sets resultsCapped to %s', async (n, capped) => {
+			mockSearchIPCs({ entries: Array.from({ length: n + 5 }, (_, i) => entryV2(`/vault/n${i}.md`, { tags: i < n ? ['work'] : [] })) });
+			searchStore.setQuery('tag:work');
+
+			await performSearch();
+
+			expect(searchStore.results).toHaveLength(n);
+			expect(searchStore.resultsCapped).toBe(capped);
+		});
+
+		it('the in-memory fallback sets the flag at 100 matches', async () => {
+			const entries = Array.from({ length: 101 }, (_, i) => entryV2(`/vault/n${i}.md`));
+			const contents = Object.fromEntries(entries.map((e) => [e.path, 'hello there']));
+			mockSearchIPCs({ ftsResult: new Error('No DB'), entries, contents });
+			searchStore.setQuery('hello');
+
+			await performSearch();
+
+			expect(searchStore.results).toHaveLength(100);
+			expect(searchStore.resultsCapped).toBe(true);
+		});
+
+		it.each([
+			[20, true],
+			[19, false],
+		])('semantic search with %i chunks sets resultsCapped to %s', async (n, capped) => {
+			fixedResponses({ search_semantic: chunks(n) });
+			searchStore.setMode('semantic');
+			searchStore.setQuery('meeting notes');
+
+			await performSearch();
+
+			expect(mockInvoke).toHaveBeenCalledWith('search_semantic', { query: 'meeting notes', maxResults: 20, minScore: 0.3 });
+			expect(searchStore.semanticResults).toHaveLength(n);
+			expect(searchStore.resultsCapped).toBe(capped);
+		});
+
+		it.each([
+			[20, true],
+			[19, false],
+		])('hybrid search with %i chunks sets resultsCapped to %s', async (n, capped) => {
+			fixedResponses({ search_hybrid: chunks(n) });
+			searchStore.setMode('hybrid');
+			searchStore.setQuery('meeting notes');
+
+			await performSearch();
+
+			expect(searchStore.hybridResults).toHaveLength(n);
+			expect(searchStore.resultsCapped).toBe(capped);
+		});
+
+		it.each([
+			['FTS', 50, 1, true],
+			['semantic', 1, 20, true],
+			['neither', 49, 19, false],
+		])('the hybrid legacy merge sets the flag when %s reached its cap', async (_label, fts, semantic, capped) => {
+			fixedResponses({ search_hybrid: new Error('no embedder'), search_fts: ftsRows(fts), search_semantic: chunks(semantic, 'c') });
+			searchStore.setMode('hybrid');
+			searchStore.setQuery('meeting notes');
+
+			await performSearch();
+
+			expect(searchStore.hybridResults.length).toBeGreaterThan(0);
+			expect(searchStore.resultsCapped).toBe(capped);
+		});
+
+		it('the hybrid legacy merge flags the text and semantic lists it wrote by their own caps', async () => {
+			fixedResponses({ search_hybrid: new Error('no embedder'), search_fts: ftsRows(50), search_semantic: chunks(1, 'c') });
+			searchStore.setMode('hybrid');
+			searchStore.setQuery('meeting notes');
+
+			await performSearch();
+
+			searchStore.setMode('text');
+			expect(searchStore.resultsCapped).toBe(true);
+			searchStore.setMode('semantic');
+			expect(searchStore.resultsCapped).toBe(false);
+		});
+
+		it('a Rust hybrid search flags the semantic list it also wrote', async () => {
+			fixedResponses({ search_hybrid: chunks(20) });
+			searchStore.setMode('hybrid');
+			searchStore.setQuery('meeting notes');
+
+			await performSearch();
+
+			searchStore.setMode('semantic');
+			expect(searchStore.semanticResults).toHaveLength(20);
+			expect(searchStore.resultsCapped).toBe(true);
+		});
+
+		it('a text search leaves the semantic list\'s flag alone', async () => {
+			searchStore.setResultsCapped('semantic', true);
+			fixedResponses({ search_fts: ftsRows(1) });
+			searchStore.setQuery('meeting');
+
+			await performSearch();
+
+			expect(searchStore.resultsCapped).toBe(false);
+			searchStore.setMode('semantic');
+			expect(searchStore.resultsCapped).toBe(true);
+		});
+
+		it('an empty query clears the flag', async () => {
+			searchStore.setResultsCapped('text', true);
+			searchStore.setQuery('');
+
+			await performSearch();
+
+			expect(searchStore.resultsCapped).toBe(false);
+		});
+
+		it('a failed search clears the flag', async () => {
+			searchStore.setResultsCapped('text', true);
+			mockInvoke.mockRejectedValueOnce(new Error('No DB')).mockRejectedValueOnce(new Error('IPC down'));
+			searchStore.setQuery('hello');
+
+			await performSearch();
+
+			expect(searchStore.searchError).toBe('Error: IPC down');
+			expect(searchStore.resultsCapped).toBe(false);
+		});
+	});
+
 	it('strips tag: operator from FTS query and filters results post-hoc', async () => {
 		const ftsResults = [
 			{ path: 'a.md', title: 'A', score: -2.0, snippet: '<mark>fix</mark>', tags: '' },

@@ -6,6 +6,24 @@ import { relativePath, stem } from '#lib/utils/path.js';
 const TAG_OPERATOR_REGEX = /tag:(\S+)/g;
 const PATH_OPERATOR_REGEX = /path:(\S+)/g;
 
+// Result caps, one per search path. A search that gets back as many rows as
+// its cap sets `searchStore.resultsCapped`, and the panel reads "N+ results".
+
+/** Rows `search_fts` returns for a Text search (before any operator filter) */
+export const FTS_MAX_RESULTS = 50;
+/**
+ * Chunks `search_semantic` returns. It also drops chunks under its
+ * `minScore`, so a list can be cut without reaching this cap and then shows
+ * no "+": that under-report is accepted.
+ */
+export const SEMANTIC_MAX_RESULTS = 20;
+/** Chunks `search_hybrid` returns */
+export const HYBRID_MAX_RESULTS = 20;
+/** Notes an operator-only query (`tag:` / `path:`, no text) returns */
+export const OPERATOR_ONLY_MAX_RESULTS = 100;
+/** Notes the in-memory fallback returns when the FTS index fails */
+export const FALLBACK_MAX_RESULTS = 100;
+
 export function parseSearchQuery(raw: string): SearchQuery {
 	const tags: string[] = [];
 	const paths: string[] = [];
@@ -183,7 +201,7 @@ export function performOperatorOnlySearch(
 	entries: { path: string; tags: string[] }[],
 	query: SearchQuery,
 	vaultPath: string,
-	maxResults: number = 100,
+	maxResults: number = OPERATOR_ONLY_MAX_RESULTS,
 ): SearchResult[] {
 	if (query.tags.length === 0 && query.paths.length === 0) return [];
 	const results: SearchResult[] = [];
@@ -216,7 +234,7 @@ export function performSearchOverFiles(
 	noteContents: Map<string, string>,
 	query: SearchQuery,
 	vaultPath: string,
-	maxResults: number = 100,
+	maxResults: number = FALLBACK_MAX_RESULTS,
 ): SearchResult[] {
 	const results: SearchResult[] = [];
 

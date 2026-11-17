@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import LoaderCircle from '@lucide/svelte/icons/loader-circle';
 	import Search from '@lucide/svelte/icons/search';
 	import { Button } from '#lib/components/ui/button/index.js';
 	import { ScrollArea } from '#lib/components/ui/scroll-area/index.js';
@@ -112,15 +113,33 @@
 
 	const showError = $derived(hasQuery && !isShortQuery && !searchStore.isSearching && searchStore.searchError !== null);
 
-	const showResults = $derived(hasResults && !isShortQuery && !searchStore.isSearching && !showError);
+	/** A running search keeps the current mode's list (it may be an older query's) on screen */
+	const showResults = $derived(hasResults && !isShortQuery && !showError);
+
+	/** How long a search runs before the list dims and the spinner shows; sooner would blink on every keystroke past the 200 ms debounce */
+	const SLOW_SEARCH_MS = 300;
+
+	/** True once the running search has taken `SLOW_SEARCH_MS` */
+	let searchSlow = $state(false);
+
+	$effect(() => {
+		if (!searchStore.isSearching) return;
+		const timer = setTimeout(() => {
+			searchSlow = true;
+		}, SLOW_SEARCH_MS);
+		return () => {
+			clearTimeout(timer);
+			searchSlow = false;
+		};
+	});
 
 	/** Text of the one persistent status region; empty while there is nothing to announce */
 	const statusText = $derived.by(() => {
 		if (!hasQuery || showError) return '';
 		if (isShortQuery) return `Type at least ${SEMANTIC_MIN_QUERY_CHARS} characters`;
-		if (searchStore.isSearching) return 'Searching...';
-		if (!hasResults) return 'No results found';
-		return `${resultCount} ${resultCount === 1 ? 'result' : 'results'}`;
+		if (!hasResults) return searchStore.isSearching ? 'Searching...' : 'No results found';
+		// "+" when a cap cut the list: more matches may exist
+		return `${resultCount}${searchStore.resultsCapped ? '+' : ''} ${resultCount === 1 ? 'result' : 'results'}`;
 	});
 
 	const statusClass = $derived(
@@ -191,7 +210,11 @@
 					<Button variant="outline" size="sm" onclick={() => performSearch()}>Retry</Button>
 				</div>
 			{:else if showResults}
-				<div class="divide-y divide-divider/20">
+				<div
+					class="divide-y divide-divider/20 transition-opacity {searchSlow ? 'opacity-50' : ''}"
+					aria-busy={searchSlow ? 'true' : undefined}
+					data-search-result-list
+				>
 					{#if searchStore.mode === 'text'}
 						{#if searchStore.ftsResults.length > 0}
 							{#each searchStore.ftsResults as ftsResult (ftsResult.path)}
@@ -228,8 +251,18 @@
 			value={searchStore.query}
 			oninput={handleInput}
 			onkeydown={handleKeydown}
-			class="w-full rounded-md border border-file-explorer-border bg-background px-2 py-1.5 pl-7 pr-8 text-xs text-file-explorer-fg placeholder:text-file-explorer-muted-fg focus:outline-none focus:ring-1 focus:ring-ring"
+			class="w-full rounded-md border border-file-explorer-border bg-background px-2 py-1.5 pl-7 {searchStore.mode === 'text' ? 'pr-12' : 'pr-8'} text-xs text-file-explorer-fg placeholder:text-file-explorer-muted-fg focus:outline-none focus:ring-1 focus:ring-ring"
 		/>
+		{#if searchSlow}
+			<!-- Decorative: the role="status" region carries the Searching text -->
+			<span
+				data-search-spinner
+				class="text-file-explorer-muted-fg pointer-events-none absolute top-1/2 -translate-y-1/2 {searchStore.mode === 'text' ? 'right-7' : 'right-2'}"
+				aria-hidden="true"
+			>
+				<LoaderCircle class="size-3.5 animate-spin" />
+			</span>
+		{/if}
 		{#if searchStore.mode === 'text'}
 			<button
 				class="absolute right-2 top-1/2 -translate-y-1/2 text-label font-mono px-1 rounded-xs cursor-pointer transition-colors {searchStore.fuzzyEnabled ? 'bg-file-explorer-primary/20 text-file-explorer-primary' : 'text-file-explorer-muted-fg hover:text-file-explorer-fg'}"
