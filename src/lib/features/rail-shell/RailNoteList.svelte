@@ -1,18 +1,11 @@
 <script lang="ts">
-	import { untrack, type Component } from 'svelte';
+	import { untrack } from 'svelte';
 	import dayjs from 'dayjs';
 	import { VList } from 'virtua/svelte';
 	import { toast } from 'svelte-sonner';
 	import Plus from '@lucide/svelte/icons/plus';
 	import ListFilter from '@lucide/svelte/icons/list-filter';
 	import Search from '@lucide/svelte/icons/search';
-	import FileIcon from '@lucide/svelte/icons/file';
-	import FileText from '@lucide/svelte/icons/file-text';
-	import FileType from '@lucide/svelte/icons/file-type';
-	import ImageIcon from '@lucide/svelte/icons/image';
-	import Kanban from '@lucide/svelte/icons/kanban';
-	import LayoutDashboard from '@lucide/svelte/icons/layout-dashboard';
-	import Table from '@lucide/svelte/icons/table';
 	import NotebookPen from '@lucide/svelte/icons/notebook-pen';
 	import { editorStore } from '#lib/core/editor/editor.store.svelte.js';
 	import { openFileInEditor } from '#lib/core/editor/editor.service.js';
@@ -91,8 +84,8 @@
 	import RailPropertiesPicker from './RailPropertiesPicker.svelte';
 	import RailSortMenu from './RailSortMenu.svelte';
 	import { railRegistryStore } from './rail-registry.store.svelte';
+	import { KIND_ICONS } from './kind-icons';
 	import type {
-		FileKind,
 		Lens,
 		LensContext,
 		LensNote,
@@ -660,17 +653,6 @@
 		}
 		return own ?? null;
 	}
-
-	/** The row icon of each file kind when the file has no icon of its own (the file tree's kind icons). */
-	const KIND_ICONS: Record<FileKind, Component> = {
-		markdown: FileText,
-		canvas: LayoutDashboard,
-		kanban: Kanban,
-		view: Table,
-		pdf: FileType,
-		image: ImageIcon,
-		other: FileIcon,
-	};
 
 	/** One entry of a grouped list: a group header, a note row, an empty group's notice, or a plugin's Today section. */
 	type GroupedItem =

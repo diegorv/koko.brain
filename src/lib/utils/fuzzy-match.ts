@@ -39,3 +39,21 @@ export function fuzzyMatch(query: string, target: string): FuzzyMatchResult {
 
 	return { match: true, score };
 }
+
+/**
+ * The indices in `target` of the characters `fuzzyMatch` matches, found by
+ * the same greedy scan. Empty for an empty query or no match.
+ */
+export function fuzzyMatchPositions(query: string, target: string): number[] {
+	if (query.length === 0) return [];
+
+	const queryLower = query.toLowerCase();
+	const targetLower = target.toLowerCase();
+	const positions: number[] = [];
+
+	for (let i = 0; i < targetLower.length && positions.length < queryLower.length; i++) {
+		if (targetLower[i] === queryLower[positions.length]) positions.push(i);
+	}
+
+	return positions.length === queryLower.length ? positions : [];
+}

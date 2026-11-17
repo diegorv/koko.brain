@@ -10,11 +10,12 @@ Learn how to find anything in your vault using the Quick Switcher, Command Palet
 
 The Quick Switcher is a popup dialog for opening files by name — the fastest way to navigate your vault.
 
-- **Fuzzy search**: type any part of the filename. The search is not case-sensitive, and the characters you type don't need to be contiguous. For example, typing "mtg" can match "Meeting Notes".
-- **Recent files**: before you type anything, the Quick Switcher shows your most recently opened files at the top, so you can jump back to them instantly.
+- **Fuzzy search**: type any part of the filename. The search is not case-sensitive, and the characters you type don't need to be contiguous. For example, typing "mtg" can match "Meeting Notes". The characters that matched are shown in bold.
+- **Rows**: each row shows the file's icon (its own icon, or one for its kind: note, canvas, kanban, view, PDF, image), its name, and at the right the folder it is in. Files at the vault root show no folder.
+- **Recent notes**: before you type anything, the Quick Switcher lists your most recently opened files at the top under a **Recent notes** heading, so you can jump back to them instantly. The rest of your files follow below it. Without recent files, or once you type, there is no heading.
 - **Create new note**: whenever you type something, a "Create [your query]" row appears at the bottom of the list, after any matching notes, and shows where the note will go ("in vault root" or "in [folder]"). Press **Shift+Enter** to create it even while other notes match; when nothing matches, Enter creates it too. The row is hidden when a note with exactly that name already exists there.
 - **Folder paths**: type a path such as `Projects/Idea` to create `Idea` inside the `Projects` folder. Missing folders are created along the way, and existing ones are reused. Names in the path cannot be empty or start with a `.`; the Quick Switcher tells you when a path is refused, and when a note cannot be created it shows the reason.
-- **Archived notes**: archived notes are not hidden from the results. They appear with an archive icon and a faded (dimmed) name, so you can still find and open them without un-archiving first.
+- **Archived notes**: archived notes are not hidden from the results. They carry an **Archived** tag next to their name, so you can still find and open them without un-archiving first.
 
 Press **Enter** to open the selected file, or **Escape** to dismiss the dialog.
 
