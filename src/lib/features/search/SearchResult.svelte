@@ -4,6 +4,7 @@
 	import { openNoteAt } from '#lib/core/editor/open-note-at.service.js';
 	import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 	import ShowInCalendarButton from '#lib/features/event-calendar/ShowInCalendarButton.svelte';
+	import { markdownToPlainText } from '#lib/utils/markdown-plain-text.js';
 	import { relativePath } from '#lib/utils/path.js';
 	import { sanitizeSnippetHtml } from './search.logic';
 	import type {
@@ -52,26 +53,22 @@
 						: '',
 	);
 
-	let subtitle = $derived(
+	let vaultRelPath = $derived(
 		ftsResult ? ftsResult.path
-			: semanticResult
-				? semanticResult.heading
-					? `§ ${semanticResult.heading}`
-					: semanticResult.sourcePath
-				: hybridResult
-					? hybridResult.heading
-						? `§ ${hybridResult.heading}`
-						: hybridResult.path
-					: legacyResult
-						? relativePath(vaultStore.path ?? '', legacyResult.filePath)
+			: semanticResult ? semanticResult.sourcePath
+				: hybridResult ? hybridResult.path
+					: legacyResult ? relativePath(vaultStore.path ?? '', legacyResult.filePath)
 						: '',
 	);
 
-	let hasHeading = $derived(
-		(semanticResult && !!semanticResult.heading) || (hybridResult && !!hybridResult.heading),
+	/** Parent folder shown in the subtitle; empty for a note at the vault root. */
+	let folder = $derived(
+		vaultRelPath.includes('/') ? vaultRelPath.slice(0, vaultRelPath.lastIndexOf('/')) : '',
 	);
 
-	let snippet = $derived(
+	let heading = $derived(semanticResult?.heading ?? hybridResult?.heading ?? '');
+
+	let rawSnippet = $derived(
 		ftsResult ? (ftsResult.snippet ?? '')
 			: semanticResult ? semanticResult.content.substring(0, 200)
 				: hybridResult ? (hybridResult.snippet ?? '')
@@ -82,6 +79,9 @@
 							.substring(0, 200)
 						: '',
 	);
+
+	/** Plain text, `<mark>` kept. The HTML path sanitizes this, so stripping runs first. */
+	let snippet = $derived(markdownToPlainText(rawSnippet));
 
 	let snippetIsHtml = $derived(!!ftsResult || !!hybridResult);
 
@@ -137,10 +137,11 @@
 		class="w-full h-full text-left px-2 py-2 hover:bg-file-explorer-accent/60 transition-colors cursor-pointer"
 		onclick={handleClick}
 	>
+		<!-- A button holds only phrasing content, so every row is a span styled flex or block. -->
 		<!-- Row 1: Icon + Title + optional right element -->
-		<div class="flex items-center gap-1.5">
+		<span class="flex items-center gap-1.5">
 			<FileText class="size-3.5 shrink-0 text-file-explorer-muted-fg" />
-			<span class="text-xs font-medium truncate">{title}</span>
+			<span class="text-xs font-medium truncate" data-search-result-title>{title}</span>
 			{#if badgeSource}
 				<span
 					class="text-label px-1 rounded-xs ml-auto shrink-0
@@ -155,21 +156,21 @@
 			{:else if rightLabel}
 				<span class="text-meta text-file-explorer-muted-fg ml-auto shrink-0">{rightLabel}</span>
 			{/if}
-		</div>
+		</span>
 
-		<!-- Row 2: Subtitle (path or § heading) — always present -->
-		<p class="text-meta truncate pl-5 {hasHeading ? 'text-file-explorer-primary' : 'text-file-explorer-muted-fg'}">
-			{subtitle}
-		</p>
+		<!-- Row 2: Subtitle (parent folder, then § heading). Rendered even when empty so every card keeps its rows. -->
+		<span class="block text-meta truncate pl-5 text-file-explorer-muted-fg" data-search-result-subtitle>
+			{folder}{#if heading}{folder ? ' ' : ''}<span class="text-file-explorer-primary">§ {heading}</span>{/if}
+		</span>
 
 		<!-- Row 3: Snippet — 2-line clamp -->
-		<p class="text-xs text-file-explorer-fg/60 leading-tight pl-5 mt-0.5 line-clamp-2">
+		<span class="text-xs text-file-explorer-fg/60 leading-tight pl-5 mt-0.5 line-clamp-2" data-search-result-snippet>
 			{#if snippetIsHtml && snippet}
 				{@html sanitizeSnippetHtml(snippet)}
 			{:else}
 				{snippet}
 			{/if}
-		</p>
+		</span>
 	</button>
 	{#if notePath}
 		<!-- Sibling of the card button: a button cannot nest in a button. -->

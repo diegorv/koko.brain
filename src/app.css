@@ -481,6 +481,15 @@ input[type="date"]::-webkit-datetime-edit-year-field {
 	-webkit-text-fill-color: color-mix(in srgb, var(--date-input-fg, var(--foreground)) 70%, transparent) !important;
 }
 
+/*
+ * Search snippet match highlight. Tailwind preflight does not reset `mark`,
+ * so without this WebKit paints it yellow with black text in every theme.
+ */
+[data-search-result] mark {
+	background-color: var(--lp-highlight-bg);
+	color: inherit;
+}
+
 @layer base {
 	* {
 		@apply border-border outline-ring/50;

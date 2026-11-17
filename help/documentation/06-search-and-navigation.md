@@ -124,11 +124,13 @@ In Text mode, click the `~` button next to the search input to toggle **fuzzy ma
 
 ### Search Results
 
-Each result shows:
+Each result is a card with three lines:
 
-- The **file name** of the matching note
-- A **text snippet** with the matching terms highlighted
-- A **relevance score** indicating how closely the note matches your query
+- The **note name**.
+- The **folder** the note is in, left empty for a note at the top of the vault. Semantic and Hybrid results add **§ heading** after the folder, naming the section that matched.
+- A **snippet** of the note as plain text, without markdown formatting. Text mode results from the text index, and Hybrid fallback cards found by text search, show the matching terms highlighted.
+
+Semantic results also show a **relevance score** indicating how closely the section matches your query. When Hybrid mode has to fall back to separate text and semantic searches, each card shows which one found it: Text, Semantic or Both.
 
 Click any result to open that file in the editor. The search index updates automatically whenever you save files, so your results are always up to date.
 

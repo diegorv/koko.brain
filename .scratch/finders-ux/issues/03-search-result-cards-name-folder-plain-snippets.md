@@ -13,18 +13,18 @@
 
 **Blocked by:** none
 
-**Status:** ready-for-agent
+**Status:** resolved
 
 **Gate:** `pnpm check` + `pnpm vitest run`, plus `bash scripts/e2e.sh e2e/specs/search.spec.ts`.
 
-- [ ] Failing test first, `src/tests/lib/utils/<util>.test.ts`: the util strips headings, emphasis, `==highlight==`, `~~`, links, images, wikilinks (alias, else the last segment), checkboxes, list and quote markers, inline code, fences and callouts; keeps `<mark>`; tolerates a `...` cut and an unbalanced cut. Empty input returns an empty string.
-- [ ] Failing test first, `search.service.test.ts`: a hybrid chunk for `Projects/a.md` with heading `Intro` adapts to title `a` (no `.md`) and no `source`; the `:282` `source` assertion changes on purpose. A new test covers the `search_hybrid`-throws fallthrough: legacy merge results still carry a real `source`.
-- [ ] Failing test first, `SearchResult.test.ts`: in every mode the title is the note name and the subtitle is folder plus `§ heading`, never the file name; a root-level note shows no folder; a hybrid card without `source` shows no badge, and one with `source` still does; the snippet shows no raw markdown in Text, Hybrid, Semantic and legacy fallback cards.
-- [ ] The result button contains only phrasing content; the subtitle test uses a data hook (for example `data-search-result-subtitle`) instead of `querySelector('p')`.
-- [ ] `mark` in search results uses `--lp-highlight-bg` with `color: inherit`; `theme-snapshot.test.ts.snap` is unchanged. This rule is CSS only; no computed-style test is required.
-- [ ] `e2e/specs/search.spec.ts` stays green (rows still contain the note name).
-- [ ] The help section describes the new card.
-- [ ] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
+- [x] Failing test first, `src/tests/lib/utils/<util>.test.ts`: the util strips headings, emphasis, `==highlight==`, `~~`, links, images, wikilinks (alias, else the last segment), checkboxes, list and quote markers, inline code, fences and callouts; keeps `<mark>`; tolerates a `...` cut and an unbalanced cut. Empty input returns an empty string.
+- [x] Failing test first, `search.service.test.ts`: a hybrid chunk for `Projects/a.md` with heading `Intro` adapts to title `a` (no `.md`) and no `source`; the `:282` `source` assertion changes on purpose. A new test covers the `search_hybrid`-throws fallthrough: legacy merge results still carry a real `source`.
+- [x] Failing test first, `SearchResult.test.ts`: in every mode the title is the note name and the subtitle is folder plus `§ heading`, never the file name; a root-level note shows no folder; a hybrid card without `source` shows no badge, and one with `source` still does; the snippet shows no raw markdown in Text, Hybrid, Semantic and legacy fallback cards.
+- [x] The result button contains only phrasing content; the subtitle test uses a data hook (for example `data-search-result-subtitle`) instead of `querySelector('p')`.
+- [x] `mark` in search results uses `--lp-highlight-bg` with `color: inherit`; `theme-snapshot.test.ts.snap` is unchanged. This rule is CSS only; no computed-style test is required.
+- [x] `e2e/specs/search.spec.ts` stays green (rows still contain the note name).
+- [x] The help section describes the new card.
+- [x] Frontend gate: `pnpm check` and `pnpm vitest run` pass.
 
 ## Original proposal
 
@@ -50,3 +50,4 @@ Checked at `bb57e6165`.
 ## Comments
 
 - 2026-11-17, triage: ready-for-agent. Decided: the highlight reuses `--lp-highlight-bg` (no new token); a root-level note shows no folder; the badge shows only where `source` is set.
+- 2026-11-17, deliver (branch issue/03-search-result-cards-name-folder-plain-snippets): search result cards show the note name and its folder in every mode, snippets as plain text through a new markdownToPlainText util (links with nested, unbalanced or cut parentheses stripped), and one themed mark highlight; Hybrid cards drop the constant source badge; help updated. Full suite: 640 files passed, 17037 tests passed, 54 skipped (two earlier deliver runs failed only on load-flaky tests outside the Issue). Reviews: round 1 APPROVED (4 nits: 2 fixed, 2 rejected); round 2 APPROVED (1 minor regression from the round-1 fix, 1 nit, both fixed); round 3 APPROVED with no open findings.

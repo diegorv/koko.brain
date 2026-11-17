@@ -257,7 +257,7 @@ describe('performSearch', () => {
 		const hybridResults = [
 			{
 				key: 'k1',
-				sourcePath: 'a.md',
+				sourcePath: 'Projects/a.md',
 				content: 'a chunk body for hybrid testing',
 				heading: 'Intro',
 				lineStart: 1,
@@ -277,9 +277,39 @@ describe('performSearch', () => {
 		});
 		expect(searchStore.semanticResults).toHaveLength(1);
 		expect(searchStore.hybridResults).toHaveLength(1);
-		expect(searchStore.hybridResults[0].path).toBe('a.md');
+		expect(searchStore.hybridResults[0].path).toBe('Projects/a.md');
 		expect(searchStore.hybridResults[0].combinedScore).toBe(0.92);
-		expect(searchStore.hybridResults[0].source).toBe('both');
+		// The title is the note name (not the heading), and a single Rust
+		// command has no per-card source: the badge would say "Both" on every card.
+		expect(searchStore.hybridResults[0].title).toBe('a');
+		expect(searchStore.hybridResults[0].heading).toBe('Intro');
+		expect(searchStore.hybridResults[0]).not.toHaveProperty('source');
+	});
+
+	it('hybrid mode falls back to the legacy merge with a real per-card source when search_hybrid throws', async () => {
+		mockInvoke.mockImplementation(async (cmd: string) => {
+			if (cmd === 'search_hybrid') throw new Error('no embedder');
+			if (cmd === 'search_fts') {
+				return [
+					{ path: 'both.md', title: 'both', score: -2, snippet: 'x', tags: '' },
+					{ path: 'text.md', title: 'text', score: -1, snippet: 'y', tags: '' },
+				];
+			}
+			if (cmd === 'search_semantic') {
+				return [
+					{ key: 'b', sourcePath: 'both.md', content: 'b', heading: null, lineStart: 1, lineEnd: 1, score: 0.9 },
+					{ key: 's', sourcePath: 'sem.md', content: 's', heading: null, lineStart: 1, lineEnd: 1, score: 0.8 },
+				];
+			}
+			return undefined;
+		});
+		searchStore.setQuery('test');
+		searchStore.setMode('hybrid');
+
+		await performSearch();
+
+		const sources = Object.fromEntries(searchStore.hybridResults.map((r) => [r.path, r.source]));
+		expect(sources).toEqual({ 'both.md': 'both', 'text.md': 'text', 'sem.md': 'semantic' });
 	});
 
 	it('sets isSearching to false after completion', async () => {

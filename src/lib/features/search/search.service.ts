@@ -7,7 +7,7 @@ import { vaultStore } from '#lib/core/vault/vault.store.svelte.js';
 import { addAfterSaveObserver } from '#lib/core/editor/editor.hooks.js';
 import { mergeResults } from './search-hybrid.logic';
 import { parseSearchQuery, performSearchOverFiles, performOperatorOnlySearch, matchesPathFilter } from './search.logic';
-import { vaultRelativeKey } from '#lib/utils/path.js';
+import { stem, vaultRelativeKey } from '#lib/utils/path.js';
 import { debug, error } from '#lib/utils/debug.js';
 import type { SemanticProgress } from './search.types';
 
@@ -156,17 +156,17 @@ export async function performSearch(): Promise<void> {
 				// Surface as semantic results for the chunk-shaped UI panes. Map
 				// onto the legacy HybridSearchResult shape for any consumer that
 				// still expects it (the chunk has no path/title/snippet split;
-				// derive them from sourcePath + content head).
+				// derive them from sourcePath + content head). No `source`: every
+				// card would carry the same one.
 				searchStore.setSemanticResults(results);
 				const adapted = results.map((r) => ({
 					path: r.sourcePath,
-					title: r.heading ?? r.sourcePath.split('/').pop() ?? r.sourcePath,
+					title: stem(r.sourcePath),
 					combinedScore: r.score,
 					semanticScore: r.score,
 					snippet: r.content.slice(0, 200),
 					heading: r.heading ?? undefined,
 					lineStart: r.lineStart,
-					source: 'both' as const,
 				}));
 				searchStore.setHybridResults(adapted);
 				searchStore.setFtsResults([]);
