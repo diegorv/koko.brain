@@ -45,7 +45,7 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 | 08 | [Tags view keeps its list and expanded tags on screen while it refreshes](issues/08-tags-view-keeps-list-while-refreshing.md) | none | done | issue/08-tags-view-keeps-list-while-refreshing (9023e5e61) | 2026-11-17 |
 | 09 | [Tags header says "Showing X of Y" and the empty state explains the rare-tag filter](issues/09-tags-header-showing-x-of-y.md) | 08 | done | issue/09-tags-header-showing-x-of-y (b137b906c) | 2026-11-17 |
 | 10 | [Tags rows align leaves with parents, name their chevron and colour controls, and the Tags tab shows a tag icon](issues/10-tags-rows-align-label-controls-tab-icon.md) | none | done | issue/10-tags-rows-align-label-controls-tab-icon (19f319469) | 2026-11-17 |
-| 11 | [Tags view filter box matching full paths](issues/11-tags-view-filter-box.md) | 09, 10 | in-progress | | |
+| 11 | [Tags view filter box matching full paths](issues/11-tags-view-filter-box.md) | 09, 10 | done | issue/11-tags-view-filter-box (840c1c562) | 2026-11-17 |
 | 12 | [Graph controls on shadcn Switch/Select: no Close, working "All", accessible names, filter that does not trap](issues/12-graph-controls-shadcn-switch-select.md) | none | done | issue/12-graph-controls-shadcn-switch-select (7e0a314ea) | 2026-11-17 |
 | 13 | [Local graph isolated, loading and error states with Retry](issues/13-local-graph-isolated-loading-error-states.md) | 12 | todo | | |
 | 14 | [Local graph depth stepper (1 to 3)](issues/14-local-graph-depth-stepper.md) | 12, 13 | todo | | |
@@ -86,3 +86,4 @@ An Issue can start when its status is `todo` and every Issue in its "Blocked by"
 - 2026-11-17 17:51 — 11 — deliver — full suite failed twice on codemap.test.ts timing tests (34, 44) under load (12 ran in parallel); file passes alone 195/195; review APPROVED; worktree kept at 76c942143 — 3cc2cee97
 - 2026-11-17 18:03 — 12 — deliver — merged; reviews APPROVED x2 (claude): fix round added local-mode All-clear and Orphans label tests; full suite 645 files / 17244 tests passed on the second run (first hit a codemap timeout) — 7e0a314ea
 - 2026-11-17 18:06 — 11 — start — deliver finished by hand (rebased onto main, solo full suite) — fc6d1a1d4
+- 2026-11-17 18:06 — 11 — deliver — merged by hand; review APPROVED (claude), findings resolved in review.md; full suite 645 files / 17071 tests passed (codemap now CI only) — 840c1c562
